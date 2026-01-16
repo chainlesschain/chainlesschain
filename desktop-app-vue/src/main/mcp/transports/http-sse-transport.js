@@ -4,6 +4,14 @@
  * Provides HTTP+Server-Sent Events based communication with MCP servers.
  * More suitable for remote servers and web-based MCP services.
  *
+ * Features:
+ * - Automatic reconnection with exponential backoff
+ * - Heartbeat keep-alive mechanism
+ * - Health check monitoring
+ * - Authentication token refresh
+ * - Connection state management
+ * - Circuit breaker pattern for fault tolerance
+ *
  * @module HttpSseTransport
  */
 
@@ -19,7 +27,34 @@ const http = require("http");
  * @property {number} timeout - Request timeout in ms
  * @property {boolean} useSSL - Use HTTPS
  * @property {number} maxRetries - Maximum retry attempts
+ * @property {number} retryDelay - Initial retry delay in ms
+ * @property {number} heartbeatInterval - Heartbeat interval in ms (default: 30000)
+ * @property {number} healthCheckInterval - Health check interval in ms (default: 60000)
+ * @property {boolean} enableHeartbeat - Enable heartbeat mechanism (default: true)
+ * @property {boolean} enableHealthCheck - Enable health check (default: true)
+ * @property {Function} onTokenRefresh - Callback for token refresh
  */
+
+/**
+ * Connection states
+ */
+const ConnectionState = {
+  DISCONNECTED: "disconnected",
+  CONNECTING: "connecting",
+  CONNECTED: "connected",
+  RECONNECTING: "reconnecting",
+  ERROR: "error",
+  CIRCUIT_OPEN: "circuit_open",
+};
+
+/**
+ * Circuit breaker states
+ */
+const CircuitState = {
+  CLOSED: "closed", // Normal operation
+  OPEN: "open", // Failing, reject requests
+  HALF_OPEN: "half_open", // Testing if service recovered
+};
 
 class HttpSseTransport extends EventEmitter {
   constructor(config = {}) {
@@ -33,14 +68,54 @@ class HttpSseTransport extends EventEmitter {
       useSSL: false,
       maxRetries: 3,
       retryDelay: 1000,
+      heartbeatInterval: 30000,
+      healthCheckInterval: 60000,
+      enableHeartbeat: true,
+      enableHealthCheck: true,
+      circuitBreakerThreshold: 5, // Open circuit after 5 consecutive failures
+      circuitBreakerTimeout: 30000, // Try again after 30s
+      onTokenRefresh: null,
       ...config,
     };
 
+    // Connection state
+    this.connectionState = ConnectionState.DISCONNECTED;
     this.isConnected = false;
     this.sseConnection = null;
     this.pendingResponses = new Map(); // requestId -> {resolve, reject, timer}
     this.nextRequestId = 1;
     this.retryCount = 0;
+
+    // Heartbeat
+    this.heartbeatTimer = null;
+    this.lastHeartbeatResponse = null;
+    this.missedHeartbeats = 0;
+
+    // Health check
+    this.healthCheckTimer = null;
+    this.lastHealthCheck = null;
+    this.healthCheckResults = [];
+
+    // Circuit breaker
+    this.circuitState = CircuitState.CLOSED;
+    this.consecutiveFailures = 0;
+    this.circuitOpenedAt = null;
+    this.circuitBreakerTimer = null;
+
+    // Statistics
+    this.stats = {
+      connectionAttempts: 0,
+      successfulConnections: 0,
+      failedConnections: 0,
+      requestsSent: 0,
+      requestsSucceeded: 0,
+      requestsFailed: 0,
+      bytesReceived: 0,
+      bytesSent: 0,
+      lastError: null,
+      lastConnectedAt: null,
+      lastDisconnectedAt: null,
+    };
 
     console.log(
       "[HttpSseTransport] Initialized with baseURL:",
@@ -55,16 +130,55 @@ class HttpSseTransport extends EventEmitter {
   async start() {
     try {
       console.log("[HttpSseTransport] Starting connection...");
+      this.connectionState = ConnectionState.CONNECTING;
+      this.stats.connectionAttempts++;
+
+      // Check circuit breaker
+      if (this.circuitState === CircuitState.OPEN) {
+        const timeSinceOpen = Date.now() - this.circuitOpenedAt;
+        if (timeSinceOpen < this.config.circuitBreakerTimeout) {
+          throw new Error(
+            `Circuit breaker open. Retry in ${Math.ceil((this.config.circuitBreakerTimeout - timeSinceOpen) / 1000)}s`,
+          );
+        }
+        // Try half-open state
+        this.circuitState = CircuitState.HALF_OPEN;
+        console.log(
+          "[HttpSseTransport] Circuit breaker half-open, testing connection...",
+        );
+      }
 
       // Establish SSE connection for receiving messages
       await this._connectSSE();
 
       this.isConnected = true;
-      this.emit("connected");
+      this.connectionState = ConnectionState.CONNECTED;
+      this.stats.successfulConnections++;
+      this.stats.lastConnectedAt = new Date().toISOString();
+      this.consecutiveFailures = 0;
+      this.circuitState = CircuitState.CLOSED;
 
+      // Start heartbeat if enabled
+      if (this.config.enableHeartbeat) {
+        this._startHeartbeat();
+      }
+
+      // Start health check if enabled
+      if (this.config.enableHealthCheck) {
+        this._startHealthCheck();
+      }
+
+      this.emit("connected");
       console.log("[HttpSseTransport] Connection established");
     } catch (error) {
       console.error("[HttpSseTransport] Failed to start:", error);
+      this.connectionState = ConnectionState.ERROR;
+      this.stats.failedConnections++;
+      this.stats.lastError = {
+        message: error.message,
+        timestamp: new Date().toISOString(),
+      };
+      this._handleConnectionFailure(error);
       throw error;
     }
   }
@@ -189,6 +303,20 @@ class HttpSseTransport extends EventEmitter {
    * @returns {Promise<Object>} Response from server
    */
   async send(message) {
+    // Check circuit breaker
+    if (this.circuitState === CircuitState.OPEN) {
+      const timeSinceOpen = Date.now() - this.circuitOpenedAt;
+      if (timeSinceOpen < this.config.circuitBreakerTimeout) {
+        const error = new Error(
+          `Circuit breaker open. Retry in ${Math.ceil((this.config.circuitBreakerTimeout - timeSinceOpen) / 1000)}s`,
+        );
+        error.code = "CIRCUIT_OPEN";
+        throw error;
+      }
+      // Try half-open state
+      this.circuitState = CircuitState.HALF_OPEN;
+    }
+
     if (!this.isConnected) {
       throw new Error("Transport not connected");
     }
@@ -199,11 +327,14 @@ class HttpSseTransport extends EventEmitter {
     }
 
     const requestId = message.id;
+    this.stats.requestsSent++;
 
     return new Promise((resolve, reject) => {
       // Set up timeout
       const timer = setTimeout(() => {
         this.pendingResponses.delete(requestId);
+        this.stats.requestsFailed++;
+        this._handleConnectionFailure(new Error("Request timeout"));
         reject(
           new Error(
             `Request ${requestId} timed out after ${this.config.timeout}ms`,
@@ -211,13 +342,28 @@ class HttpSseTransport extends EventEmitter {
         );
       }, this.config.timeout);
 
-      // Store pending response handler
-      this.pendingResponses.set(requestId, { resolve, reject, timer });
+      // Store pending response handler with success/failure tracking
+      this.pendingResponses.set(requestId, {
+        resolve: (result) => {
+          this.stats.requestsSucceeded++;
+          this._resetCircuitBreaker();
+          resolve(result);
+        },
+        reject: (error) => {
+          this.stats.requestsFailed++;
+          this._handleConnectionFailure(error);
+          reject(error);
+        },
+        timer,
+        startTime: Date.now(),
+      });
 
       // Send HTTP POST request
       this._sendHttpRequest(message).catch((error) => {
         clearTimeout(timer);
         this.pendingResponses.delete(requestId);
+        this.stats.requestsFailed++;
+        this._handleConnectionFailure(error);
         reject(error);
       });
 
@@ -330,6 +476,18 @@ class HttpSseTransport extends EventEmitter {
   async stop() {
     console.log("[HttpSseTransport] Stopping connection");
 
+    // Stop heartbeat
+    this._stopHeartbeat();
+
+    // Stop health check
+    this._stopHealthCheck();
+
+    // Clear circuit breaker timer
+    if (this.circuitBreakerTimer) {
+      clearTimeout(this.circuitBreakerTimer);
+      this.circuitBreakerTimer = null;
+    }
+
     if (this.sseConnection) {
       this.sseConnection.destroy();
       this.sseConnection = null;
@@ -346,7 +504,275 @@ class HttpSseTransport extends EventEmitter {
     this.pendingResponses.clear();
 
     this.isConnected = false;
+    this.connectionState = ConnectionState.DISCONNECTED;
+    this.stats.lastDisconnectedAt = new Date().toISOString();
     this.emit("disconnected");
+  }
+
+  // ===================================
+  // Heartbeat Methods
+  // ===================================
+
+  /**
+   * Start heartbeat mechanism
+   * @private
+   */
+  _startHeartbeat() {
+    this._stopHeartbeat(); // Clear any existing timer
+
+    this.missedHeartbeats = 0;
+    this.heartbeatTimer = setInterval(async () => {
+      try {
+        await this._sendHeartbeat();
+        this.missedHeartbeats = 0;
+        this.lastHeartbeatResponse = Date.now();
+      } catch (error) {
+        this.missedHeartbeats++;
+        console.warn(
+          `[HttpSseTransport] Heartbeat failed (missed: ${this.missedHeartbeats}):`,
+          error.message,
+        );
+
+        // If too many heartbeats missed, trigger reconnection
+        if (this.missedHeartbeats >= 3) {
+          console.error(
+            "[HttpSseTransport] Too many missed heartbeats, reconnecting...",
+          );
+          this._reconnectSSE();
+        }
+      }
+    }, this.config.heartbeatInterval);
+
+    console.log(
+      `[HttpSseTransport] Heartbeat started (interval: ${this.config.heartbeatInterval}ms)`,
+    );
+  }
+
+  /**
+   * Stop heartbeat mechanism
+   * @private
+   */
+  _stopHeartbeat() {
+    if (this.heartbeatTimer) {
+      clearInterval(this.heartbeatTimer);
+      this.heartbeatTimer = null;
+    }
+  }
+
+  /**
+   * Send heartbeat ping
+   * @private
+   */
+  async _sendHeartbeat() {
+    const start = Date.now();
+    await this.send({
+      jsonrpc: "2.0",
+      method: "ping",
+      params: {},
+    });
+    const latency = Date.now() - start;
+    this.emit("heartbeat", { latency, timestamp: Date.now() });
+    return latency;
+  }
+
+  // ===================================
+  // Health Check Methods
+  // ===================================
+
+  /**
+   * Start health check mechanism
+   * @private
+   */
+  _startHealthCheck() {
+    this._stopHealthCheck(); // Clear any existing timer
+
+    this.healthCheckTimer = setInterval(async () => {
+      const health = await this.checkHealth();
+      this.healthCheckResults.push(health);
+
+      // Keep only last 10 results
+      if (this.healthCheckResults.length > 10) {
+        this.healthCheckResults.shift();
+      }
+
+      this.emit("health-check", health);
+    }, this.config.healthCheckInterval);
+
+    console.log(
+      `[HttpSseTransport] Health check started (interval: ${this.config.healthCheckInterval}ms)`,
+    );
+  }
+
+  /**
+   * Stop health check mechanism
+   * @private
+   */
+  _stopHealthCheck() {
+    if (this.healthCheckTimer) {
+      clearInterval(this.healthCheckTimer);
+      this.healthCheckTimer = null;
+    }
+  }
+
+  /**
+   * Perform health check
+   * @returns {Promise<Object>} Health check result
+   */
+  async checkHealth() {
+    const health = {
+      timestamp: new Date().toISOString(),
+      connected: this.isConnected,
+      connectionState: this.connectionState,
+      circuitState: this.circuitState,
+      latency: null,
+      pendingRequests: this.pendingResponses.size,
+      stats: { ...this.stats },
+      error: null,
+    };
+
+    if (this.isConnected) {
+      try {
+        const start = Date.now();
+        await this.ping();
+        health.latency = Date.now() - start;
+        health.healthy = true;
+      } catch (error) {
+        health.latency = null;
+        health.healthy = false;
+        health.error = error.message;
+      }
+    } else {
+      health.healthy = false;
+      health.error = "Not connected";
+    }
+
+    this.lastHealthCheck = health;
+    return health;
+  }
+
+  /**
+   * Get health status summary
+   * @returns {Object}
+   */
+  getHealthStatus() {
+    const avgLatency =
+      this.healthCheckResults.length > 0
+        ? this.healthCheckResults
+            .filter((h) => h.latency !== null)
+            .reduce((sum, h) => sum + h.latency, 0) /
+          this.healthCheckResults.filter((h) => h.latency !== null).length
+        : null;
+
+    return {
+      connected: this.isConnected,
+      connectionState: this.connectionState,
+      circuitState: this.circuitState,
+      consecutiveFailures: this.consecutiveFailures,
+      lastHealthCheck: this.lastHealthCheck,
+      averageLatency: avgLatency,
+      recentHealthChecks: this.healthCheckResults.slice(-5),
+      stats: { ...this.stats },
+    };
+  }
+
+  // ===================================
+  // Circuit Breaker Methods
+  // ===================================
+
+  /**
+   * Handle connection failure for circuit breaker
+   * @private
+   */
+  _handleConnectionFailure(error) {
+    this.consecutiveFailures++;
+    this.stats.lastError = {
+      message: error.message,
+      timestamp: new Date().toISOString(),
+    };
+
+    if (
+      this.circuitState !== CircuitState.OPEN &&
+      this.consecutiveFailures >= this.config.circuitBreakerThreshold
+    ) {
+      this._openCircuit();
+    }
+  }
+
+  /**
+   * Open the circuit breaker
+   * @private
+   */
+  _openCircuit() {
+    console.warn(
+      `[HttpSseTransport] Circuit breaker OPENED after ${this.consecutiveFailures} failures`,
+    );
+    this.circuitState = CircuitState.OPEN;
+    this.circuitOpenedAt = Date.now();
+    this.connectionState = ConnectionState.CIRCUIT_OPEN;
+
+    this.emit("circuit-open", {
+      consecutiveFailures: this.consecutiveFailures,
+      openedAt: this.circuitOpenedAt,
+      retryAfter: this.config.circuitBreakerTimeout,
+    });
+
+    // Schedule circuit breaker half-open check
+    this.circuitBreakerTimer = setTimeout(() => {
+      if (this.circuitState === CircuitState.OPEN) {
+        console.log(
+          "[HttpSseTransport] Circuit breaker transitioning to half-open",
+        );
+        this.circuitState = CircuitState.HALF_OPEN;
+        this.emit("circuit-half-open");
+      }
+    }, this.config.circuitBreakerTimeout);
+  }
+
+  /**
+   * Reset circuit breaker after successful operation
+   * @private
+   */
+  _resetCircuitBreaker() {
+    if (this.circuitState !== CircuitState.CLOSED) {
+      console.log("[HttpSseTransport] Circuit breaker CLOSED");
+      this.circuitState = CircuitState.CLOSED;
+      this.consecutiveFailures = 0;
+      this.emit("circuit-closed");
+    }
+  }
+
+  // ===================================
+  // Authentication Methods
+  // ===================================
+
+  /**
+   * Refresh authentication token
+   * @returns {Promise<void>}
+   */
+  async refreshToken() {
+    if (typeof this.config.onTokenRefresh === "function") {
+      try {
+        const newToken = await this.config.onTokenRefresh();
+        if (newToken) {
+          this.config.apiKey = newToken;
+          console.log("[HttpSseTransport] Token refreshed successfully");
+          this.emit("token-refreshed");
+        }
+      } catch (error) {
+        console.error("[HttpSseTransport] Token refresh failed:", error);
+        this.emit("token-refresh-failed", error);
+        throw error;
+      }
+    }
+  }
+
+  /**
+   * Update API key
+   * @param {string} apiKey - New API key
+   */
+  updateApiKey(apiKey) {
+    this.config.apiKey = apiKey;
+    console.log("[HttpSseTransport] API key updated");
   }
 
   /**
@@ -372,6 +798,133 @@ class HttpSseTransport extends EventEmitter {
 
     return Date.now() - start;
   }
+
+  // ===================================
+  // Statistics Methods
+  // ===================================
+
+  /**
+   * Get transport statistics
+   * @returns {Object}
+   */
+  getStats() {
+    const uptime = this.stats.lastConnectedAt
+      ? Date.now() - new Date(this.stats.lastConnectedAt).getTime()
+      : 0;
+
+    return {
+      ...this.stats,
+      isConnected: this.isConnected,
+      connectionState: this.connectionState,
+      circuitState: this.circuitState,
+      pendingRequests: this.pendingResponses.size,
+      uptime: this.isConnected ? uptime : 0,
+      missedHeartbeats: this.missedHeartbeats,
+      lastHeartbeatResponse: this.lastHeartbeatResponse,
+      successRate:
+        this.stats.requestsSent > 0
+          ? (
+              (this.stats.requestsSucceeded / this.stats.requestsSent) *
+              100
+            ).toFixed(2) + "%"
+          : "N/A",
+    };
+  }
+
+  /**
+   * Reset statistics
+   */
+  resetStats() {
+    this.stats = {
+      connectionAttempts: 0,
+      successfulConnections: 0,
+      failedConnections: 0,
+      requestsSent: 0,
+      requestsSucceeded: 0,
+      requestsFailed: 0,
+      bytesReceived: 0,
+      bytesSent: 0,
+      lastError: null,
+      lastConnectedAt: null,
+      lastDisconnectedAt: null,
+    };
+    this.healthCheckResults = [];
+    console.log("[HttpSseTransport] Statistics reset");
+  }
+
+  // ===================================
+  // Utility Methods
+  // ===================================
+
+  /**
+   * Wait for connection to be ready
+   * @param {number} timeout - Maximum wait time in ms
+   * @returns {Promise<void>}
+   */
+  async waitForConnection(timeout = 30000) {
+    if (this.isConnected) {
+      return;
+    }
+
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        cleanup();
+        reject(new Error(`Connection timeout after ${timeout}ms`));
+      }, timeout);
+
+      const onConnected = () => {
+        cleanup();
+        resolve();
+      };
+
+      const onError = (error) => {
+        cleanup();
+        reject(error);
+      };
+
+      const cleanup = () => {
+        clearTimeout(timer);
+        this.off("connected", onConnected);
+        this.off("error", onError);
+      };
+
+      this.once("connected", onConnected);
+      this.once("error", onError);
+    });
+  }
+
+  /**
+   * Retry a function with exponential backoff
+   * @param {Function} fn - Function to retry
+   * @param {Object} options - Retry options
+   * @returns {Promise<any>}
+   */
+  async retryWithBackoff(fn, options = {}) {
+    const maxRetries = options.maxRetries || this.config.maxRetries;
+    const baseDelay = options.baseDelay || this.config.retryDelay;
+
+    let lastError;
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      try {
+        return await fn();
+      } catch (error) {
+        lastError = error;
+        if (attempt < maxRetries - 1) {
+          const delay = baseDelay * Math.pow(2, attempt);
+          console.log(
+            `[HttpSseTransport] Retry ${attempt + 1}/${maxRetries} in ${delay}ms`,
+          );
+          await new Promise((resolve) => setTimeout(resolve, delay));
+        }
+      }
+    }
+    throw lastError;
+  }
 }
 
-module.exports = { HttpSseTransport };
+// Export the class and constants
+module.exports = {
+  HttpSseTransport,
+  ConnectionState,
+  CircuitState,
+};

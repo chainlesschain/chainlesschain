@@ -228,6 +228,83 @@ function registerErrorMonitorIPC({ errorMonitor, ipcMain: injectedIpcMain }) {
   });
 
   /**
+   * 更新分析状态
+   * Channel: 'error:update-status'
+   */
+  ipcMain.handle(
+    "error:update-status",
+    async (_event, analysisId, status, resolution = null) => {
+      try {
+        if (!monitorRef.current) {
+          throw new Error("ErrorMonitor 未初始化");
+        }
+
+        await monitorRef.current.updateAnalysisStatus(
+          analysisId,
+          status,
+          resolution,
+        );
+        return { success: true };
+      } catch (error) {
+        console.error("[ErrorMonitor IPC] 更新分析状态失败:", error);
+        throw error;
+      }
+    },
+  );
+
+  /**
+   * 获取诊断配置
+   * Channel: 'error:get-config'
+   */
+  ipcMain.handle("error:get-config", async () => {
+    try {
+      if (!monitorRef.current) {
+        throw new Error("ErrorMonitor 未初始化");
+      }
+
+      return await monitorRef.current.getDiagnosisConfig();
+    } catch (error) {
+      console.error("[ErrorMonitor IPC] 获取诊断配置失败:", error);
+      throw error;
+    }
+  });
+
+  /**
+   * 更新诊断配置
+   * Channel: 'error:update-config'
+   */
+  ipcMain.handle("error:update-config", async (_event, updates) => {
+    try {
+      if (!monitorRef.current) {
+        throw new Error("ErrorMonitor 未初始化");
+      }
+
+      await monitorRef.current.updateDiagnosisConfig(updates);
+      return { success: true };
+    } catch (error) {
+      console.error("[ErrorMonitor IPC] 更新诊断配置失败:", error);
+      throw error;
+    }
+  });
+
+  /**
+   * 获取每日错误趋势
+   * Channel: 'error:get-daily-trend'
+   */
+  ipcMain.handle("error:get-daily-trend", async (_event, days = 7) => {
+    try {
+      if (!monitorRef.current) {
+        throw new Error("ErrorMonitor 未初始化");
+      }
+
+      return await monitorRef.current.getDailyTrend(days);
+    } catch (error) {
+      console.error("[ErrorMonitor IPC] 获取每日趋势失败:", error);
+      throw error;
+    }
+  });
+
+  /**
    * 重新分析错误（使用 AI）
    * Channel: 'error:reanalyze'
    */

@@ -2163,6 +2163,76 @@ contextBridge.exposeInMainWorld("electronAPI", {
       return () => ipcRenderer.removeListener("mcp:server-error", handler);
     },
   },
+
+  // 安全配置存储 (API Keys 加密存储)
+  secureStorage: {
+    // 存储信息
+    getInfo: () => ipcRenderer.invoke("secure-storage:get-info"),
+
+    // 基本操作
+    save: (config) => ipcRenderer.invoke("secure-storage:save", config),
+    load: () => ipcRenderer.invoke("secure-storage:load"),
+    exists: () => ipcRenderer.invoke("secure-storage:exists"),
+    delete: () => ipcRenderer.invoke("secure-storage:delete"),
+
+    // API Key 验证
+    validateApiKey: (provider, apiKey) =>
+      ipcRenderer.invoke("secure-storage:validate-api-key", {
+        provider,
+        apiKey,
+      }),
+
+    // 备份和恢复
+    createBackup: () => ipcRenderer.invoke("secure-storage:create-backup"),
+    listBackups: () => ipcRenderer.invoke("secure-storage:list-backups"),
+    restoreBackup: (backupPath) =>
+      ipcRenderer.invoke("secure-storage:restore-backup", backupPath),
+
+    // 导出和导入（需要密码）
+    export: (password) =>
+      ipcRenderer.invoke("secure-storage:export", { password }),
+    import: (password) =>
+      ipcRenderer.invoke("secure-storage:import", { password }),
+
+    // 安全迁移
+    migrateToSafeStorage: () =>
+      ipcRenderer.invoke("secure-storage:migrate-to-safe-storage"),
+
+    // 缓存管理
+    clearCache: () => ipcRenderer.invoke("secure-storage:clear-cache"),
+
+    // 敏感字段信息
+    getSensitiveFields: () =>
+      ipcRenderer.invoke("secure-storage:get-sensitive-fields"),
+    getProviderFields: (provider) =>
+      ipcRenderer.invoke("secure-storage:get-provider-fields", provider),
+    isSensitive: (fieldPath) =>
+      ipcRenderer.invoke("secure-storage:is-sensitive", fieldPath),
+    sanitize: (config) => ipcRenderer.invoke("secure-storage:sanitize", config),
+
+    // 单个 API Key 操作
+    setApiKey: (provider, key, value) =>
+      ipcRenderer.invoke("secure-storage:set-api-key", {
+        provider,
+        key,
+        value,
+      }),
+    getApiKeyMasked: (provider, key) =>
+      ipcRenderer.invoke("secure-storage:get-api-key-masked", {
+        provider,
+        key,
+      }),
+    deleteApiKey: (provider, key) =>
+      ipcRenderer.invoke("secure-storage:delete-api-key", { provider, key }),
+    hasApiKey: (provider) =>
+      ipcRenderer.invoke("secure-storage:has-api-key", provider),
+
+    // 批量操作
+    batchSetApiKeys: (apiKeys) =>
+      ipcRenderer.invoke("secure-storage:batch-set-api-keys", apiKeys),
+    getConfiguredProviders: () =>
+      ipcRenderer.invoke("secure-storage:get-configured-providers"),
+  },
 });
 
 // Also expose a direct electron object for components that use window.electron.ipcRenderer

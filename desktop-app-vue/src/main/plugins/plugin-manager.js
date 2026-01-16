@@ -8,13 +8,15 @@
  * - 事件协调
  */
 
-const EventEmitter = require('events');
-const path = require('path');
-const PluginRegistry = require('./plugin-registry');
-const PluginLoader = require('./plugin-loader');
-const PermissionChecker = require('./permission-checker');
-const PluginAPI = require('./plugin-api');
-const PluginSandbox = require('./plugin-sandbox');
+const EventEmitter = require("events");
+const path = require("path");
+const fs = require("fs");
+const PluginRegistry = require("./plugin-registry");
+const PluginLoader = require("./plugin-loader");
+const PermissionChecker = require("./permission-checker");
+const PluginAPI = require("./plugin-api");
+const PluginSandbox = require("./plugin-sandbox");
+const semver = require("./semver-utils");
 
 class PluginManager extends EventEmitter {
   constructor(database, config = {}) {
@@ -47,14 +49,14 @@ class PluginManager extends EventEmitter {
       ...this.systemContext,
       ...context,
     };
-    console.log('[PluginManager] 系统上下文已设置');
+    console.log("[PluginManager] 系统上下文已设置");
   }
 
   /**
    * 初始化插件管理器
    */
   async initialize() {
-    console.log('[PluginManager] 初始化插件管理器...');
+    console.log("[PluginManager] 初始化插件管理器...");
 
     try {
       // 1. 初始化注册表（创建数据库表）
@@ -68,7 +70,9 @@ class PluginManager extends EventEmitter {
         enabled: true,
       });
 
-      console.log(`[PluginManager] 找到 ${installedPlugins.length} 个已启用的插件`);
+      console.log(
+        `[PluginManager] 找到 ${installedPlugins.length} 个已启用的插件`,
+      );
 
       for (const pluginMeta of installedPlugins) {
         try {
@@ -77,17 +81,20 @@ class PluginManager extends EventEmitter {
 
           console.log(`[PluginManager] 插件 ${pluginMeta.id} 加载成功`);
         } catch (error) {
-          console.error(`[PluginManager] 加载插件失败: ${pluginMeta.id}`, error);
+          console.error(
+            `[PluginManager] 加载插件失败: ${pluginMeta.id}`,
+            error,
+          );
           await this.registry.recordError(pluginMeta.id, error);
         }
       }
 
       this.isInitialized = true;
-      this.emit('initialized', { pluginCount: installedPlugins.length });
+      this.emit("initialized", { pluginCount: installedPlugins.length });
 
-      console.log('[PluginManager] 初始化完成');
+      console.log("[PluginManager] 初始化完成");
     } catch (error) {
-      console.error('[PluginManager] 初始化失败:', error);
+      console.error("[PluginManager] 初始化失败:", error);
       throw error;
     }
   }
@@ -97,22 +104,46 @@ class PluginManager extends EventEmitter {
    */
   registerBuiltInExtensionPoints() {
     // UI扩展点
-    this.registerExtensionPoint('ui.page', this.handleUIPageExtension.bind(this));
-    this.registerExtensionPoint('ui.menu', this.handleUIMenuExtension.bind(this));
-    this.registerExtensionPoint('ui.component', this.handleUIComponentExtension.bind(this));
+    this.registerExtensionPoint(
+      "ui.page",
+      this.handleUIPageExtension.bind(this),
+    );
+    this.registerExtensionPoint(
+      "ui.menu",
+      this.handleUIMenuExtension.bind(this),
+    );
+    this.registerExtensionPoint(
+      "ui.component",
+      this.handleUIComponentExtension.bind(this),
+    );
 
     // 数据扩展点
-    this.registerExtensionPoint('data.importer', this.handleDataImporterExtension.bind(this));
-    this.registerExtensionPoint('data.exporter', this.handleDataExporterExtension.bind(this));
+    this.registerExtensionPoint(
+      "data.importer",
+      this.handleDataImporterExtension.bind(this),
+    );
+    this.registerExtensionPoint(
+      "data.exporter",
+      this.handleDataExporterExtension.bind(this),
+    );
 
     // AI扩展点
-    this.registerExtensionPoint('ai.llm-provider', this.handleAILLMProviderExtension.bind(this));
-    this.registerExtensionPoint('ai.function-tool', this.handleAIFunctionToolExtension.bind(this));
+    this.registerExtensionPoint(
+      "ai.llm-provider",
+      this.handleAILLMProviderExtension.bind(this),
+    );
+    this.registerExtensionPoint(
+      "ai.function-tool",
+      this.handleAIFunctionToolExtension.bind(this),
+    );
 
     // 生命周期钩子
-    this.registerExtensionPoint('lifecycle.hook', this.handleLifecycleHookExtension.bind(this));
+    this.registerExtensionPoint(
+      "lifecycle.hook",
+      this.handleLifecycleHookExtension.bind(this),
+    );
 
-    console.log('[PluginManager] 内置扩展点已注册');
+    console.log("[PluginManager] 内置扩展点已注册");
   }
 
   /**
@@ -135,7 +166,7 @@ class PluginManager extends EventEmitter {
    * @returns {Promise<Object>} 安装结果
    */
   async installPlugin(source, options = {}) {
-    this.emit('plugin:installing', { source });
+    this.emit("plugin:installing", { source });
 
     try {
       // 1. 解析插件来源
@@ -160,7 +191,7 @@ class PluginManager extends EventEmitter {
       // 6. 请求权限授权（暂时自动授予）
       const granted = await this.requestPermissions(manifest);
       if (!granted) {
-        throw new Error('用户拒绝授权插件权限');
+        throw new Error("用户拒绝授权插件权限");
       }
 
       // 7. 安装插件到插件目录
@@ -169,7 +200,7 @@ class PluginManager extends EventEmitter {
       // 8. 注册到数据库
       await this.registry.register(manifest, installedPath);
 
-      this.emit('plugin:installed', { pluginId: manifest.id });
+      this.emit("plugin:installed", { pluginId: manifest.id });
 
       console.log(`[PluginManager] 插件安装成功: ${manifest.id}`);
 
@@ -179,8 +210,8 @@ class PluginManager extends EventEmitter {
         path: installedPath,
       };
     } catch (error) {
-      this.emit('plugin:install-failed', { source, error: error.message });
-      console.error('[PluginManager] 安装插件失败:', error);
+      this.emit("plugin:install-failed", { source, error: error.message });
+      console.error("[PluginManager] 安装插件失败:", error);
       throw error;
     }
   }
@@ -191,17 +222,47 @@ class PluginManager extends EventEmitter {
    */
   checkCompatibility(manifest) {
     if (!manifest.compatibility || !manifest.compatibility.chainlesschain) {
-      console.warn('[PluginManager] 插件未声明兼容性，跳过检查');
+      console.warn("[PluginManager] 插件未声明兼容性，跳过检查");
       return;
     }
 
-    // 简单的版本检查（可以使用semver库做更精确的检查）
+    // 获取当前应用版本
+    const currentVersion = this._getCurrentVersion();
     const requiredVersion = manifest.compatibility.chainlesschain;
-    const currentVersion = '0.16.0'; // 从package.json读取
 
-    console.log(`[PluginManager] 检查兼容性: 需要 ${requiredVersion}, 当前 ${currentVersion}`);
+    console.log(
+      `[PluginManager] 检查兼容性: 需要 ${requiredVersion}, 当前 ${currentVersion}`,
+    );
 
-    // TODO: 实现精确的semver检查
+    // 使用 semver 进行精确版本检查
+    if (!semver.satisfies(currentVersion, requiredVersion)) {
+      throw new Error(
+        `插件 ${manifest.id} 不兼容当前版本。` +
+          `需要: ${requiredVersion}, 当前: ${currentVersion}`,
+      );
+    }
+
+    console.log(`[PluginManager] 插件 ${manifest.id} 兼容性检查通过`);
+  }
+
+  /**
+   * 获取当前应用版本
+   * @private
+   */
+  _getCurrentVersion() {
+    // 尝试从 package.json 读取
+    try {
+      const packagePath = path.resolve(__dirname, "../../..", "package.json");
+      if (fs.existsSync(packagePath)) {
+        const pkg = JSON.parse(fs.readFileSync(packagePath, "utf8"));
+        return pkg.version || "0.20.0";
+      }
+    } catch (error) {
+      console.warn("[PluginManager] 无法读取 package.json:", error.message);
+    }
+
+    // 默认版本
+    return "0.20.0";
   }
 
   /**
@@ -209,16 +270,94 @@ class PluginManager extends EventEmitter {
    * @param {Object} manifest - 插件manifest
    */
   async resolveDependencies(manifest) {
-    if (!manifest.dependencies || Object.keys(manifest.dependencies).length === 0) {
+    if (
+      !manifest.dependencies ||
+      Object.keys(manifest.dependencies).length === 0
+    ) {
       return;
     }
 
-    console.log(`[PluginManager] 解析依赖:`, Object.keys(manifest.dependencies));
+    console.log(
+      `[PluginManager] 解析依赖:`,
+      Object.keys(manifest.dependencies),
+    );
 
-    // TODO: 实现依赖解析逻辑
-    // 1. 检查插件依赖是否已安装
-    // 2. 检查NPM依赖版本
-    // 3. 安装缺失的依赖
+    const missingDeps = [];
+    const incompatibleDeps = [];
+
+    for (const [depName, depVersion] of Object.entries(manifest.dependencies)) {
+      // 检查是否是插件依赖（以 @ 或 chainlesschain- 开头）
+      if (
+        depName.startsWith("@chainlesschain/") ||
+        depName.startsWith("chainlesschain-")
+      ) {
+        // 检查插件依赖
+        const depPlugin = this.registry.getPlugin(depName);
+        if (!depPlugin) {
+          missingDeps.push({
+            name: depName,
+            version: depVersion,
+            type: "plugin",
+          });
+          continue;
+        }
+
+        // 检查版本兼容性
+        if (!semver.satisfies(depPlugin.version, depVersion)) {
+          incompatibleDeps.push({
+            name: depName,
+            required: depVersion,
+            installed: depPlugin.version,
+            type: "plugin",
+          });
+        }
+      } else {
+        // NPM 依赖 - 检查是否在 node_modules 中
+        try {
+          const depPath = require.resolve(depName, { paths: [process.cwd()] });
+          const depPkgPath = path.join(path.dirname(depPath), "package.json");
+
+          if (fs.existsSync(depPkgPath)) {
+            const depPkg = JSON.parse(fs.readFileSync(depPkgPath, "utf8"));
+            if (!semver.satisfies(depPkg.version, depVersion)) {
+              incompatibleDeps.push({
+                name: depName,
+                required: depVersion,
+                installed: depPkg.version,
+                type: "npm",
+              });
+            }
+          }
+        } catch (error) {
+          // 依赖不存在
+          missingDeps.push({ name: depName, version: depVersion, type: "npm" });
+        }
+      }
+    }
+
+    // 报告问题
+    if (missingDeps.length > 0) {
+      const missingList = missingDeps
+        .map((d) => `${d.name}@${d.version}`)
+        .join(", ");
+      console.warn(`[PluginManager] 缺失依赖: ${missingList}`);
+      // 可以选择抛出错误或继续
+      // throw new Error(`插件 ${manifest.id} 缺失依赖: ${missingList}`);
+    }
+
+    if (incompatibleDeps.length > 0) {
+      const incompatList = incompatibleDeps
+        .map((d) => `${d.name} (需要 ${d.required}, 已安装 ${d.installed})`)
+        .join(", ");
+      console.warn(`[PluginManager] 不兼容依赖: ${incompatList}`);
+      // throw new Error(`插件 ${manifest.id} 依赖版本不兼容: ${incompatList}`);
+    }
+
+    return {
+      missing: missingDeps,
+      incompatible: incompatibleDeps,
+      resolved: missingDeps.length === 0 && incompatibleDeps.length === 0,
+    };
   }
 
   /**
@@ -259,27 +398,23 @@ class PluginManager extends EventEmitter {
       throw new Error(`插件不存在: ${pluginId}`);
     }
 
-    this.emit('plugin:loading', { pluginId });
+    this.emit("plugin:loading", { pluginId });
 
     try {
       console.log(`[PluginManager] 加载插件: ${pluginId}`);
 
       // 1. 创建插件API实例
-      const pluginAPI = new PluginAPI(
-        pluginId,
-        this.permissionChecker,
-        {
-          database: this.database,
-          ...this.systemContext,
-        }
-      );
+      const pluginAPI = new PluginAPI(pluginId, this.permissionChecker, {
+        database: this.database,
+        ...this.systemContext,
+      });
 
       // 2. 创建沙箱实例
       const sandbox = new PluginSandbox(
         pluginId,
         pluginMeta.path,
         pluginMeta.manifest,
-        pluginAPI
+        pluginAPI,
       );
 
       // 3. 在沙箱中加载插件代码
@@ -289,20 +424,20 @@ class PluginManager extends EventEmitter {
       this.plugins.set(pluginId, {
         id: pluginId,
         manifest: pluginMeta.manifest,
-        state: 'loaded',
+        state: "loaded",
         sandbox,
         api: pluginAPI,
         instance: sandbox.getInstance(),
       });
 
       // 5. 更新数据库状态
-      await this.registry.updatePluginState(pluginId, 'loaded');
+      await this.registry.updatePluginState(pluginId, "loaded");
 
-      this.emit('plugin:loaded', { pluginId });
+      this.emit("plugin:loaded", { pluginId });
 
       console.log(`[PluginManager] 插件加载成功: ${pluginId}`);
     } catch (error) {
-      this.emit('plugin:load-failed', { pluginId, error: error.message });
+      this.emit("plugin:load-failed", { pluginId, error: error.message });
       await this.registry.recordError(pluginId, error);
       console.error(`[PluginManager] 插件加载失败: ${pluginId}`, error);
       throw error;
@@ -323,12 +458,12 @@ class PluginManager extends EventEmitter {
 
     const pluginObj = this.plugins.get(pluginId);
 
-    if (pluginObj.state === 'enabled') {
+    if (pluginObj.state === "enabled") {
       console.log(`[PluginManager] 插件已启用: ${pluginId}`);
       return;
     }
 
-    this.emit('plugin:enabling', { pluginId });
+    this.emit("plugin:enabling", { pluginId });
 
     try {
       console.log(`[PluginManager] 启用插件: ${pluginId}`);
@@ -341,15 +476,15 @@ class PluginManager extends EventEmitter {
       // Phase 2 实现：注册扩展点
       await this.registerPluginExtensions(pluginId);
 
-      pluginObj.state = 'enabled';
-      await this.registry.updatePluginState(pluginId, 'enabled');
+      pluginObj.state = "enabled";
+      await this.registry.updatePluginState(pluginId, "enabled");
       await this.registry.updateEnabled(pluginId, true);
 
-      this.emit('plugin:enabled', { pluginId });
+      this.emit("plugin:enabled", { pluginId });
 
       console.log(`[PluginManager] 插件已启用: ${pluginId}`);
     } catch (error) {
-      this.emit('plugin:enable-failed', { pluginId, error: error.message });
+      this.emit("plugin:enable-failed", { pluginId, error: error.message });
       await this.registry.recordError(pluginId, error);
       throw error;
     }
@@ -362,12 +497,12 @@ class PluginManager extends EventEmitter {
   async disablePlugin(pluginId) {
     const plugin = this.plugins.get(pluginId);
 
-    if (!plugin || plugin.state !== 'enabled') {
+    if (!plugin || plugin.state !== "enabled") {
       console.log(`[PluginManager] 插件未启用: ${pluginId}`);
       return;
     }
 
-    this.emit('plugin:disabling', { pluginId });
+    this.emit("plugin:disabling", { pluginId });
 
     try {
       console.log(`[PluginManager] 禁用插件: ${pluginId}`);
@@ -380,15 +515,15 @@ class PluginManager extends EventEmitter {
         await plugin.sandbox.disable();
       }
 
-      plugin.state = 'disabled';
-      await this.registry.updatePluginState(pluginId, 'disabled');
+      plugin.state = "disabled";
+      await this.registry.updatePluginState(pluginId, "disabled");
       await this.registry.updateEnabled(pluginId, false);
 
-      this.emit('plugin:disabled', { pluginId });
+      this.emit("plugin:disabled", { pluginId });
 
       console.log(`[PluginManager] 插件已禁用: ${pluginId}`);
     } catch (error) {
-      this.emit('plugin:disable-failed', { pluginId, error: error.message });
+      this.emit("plugin:disable-failed", { pluginId, error: error.message });
       await this.registry.recordError(pluginId, error);
       throw error;
     }
@@ -404,7 +539,7 @@ class PluginManager extends EventEmitter {
       await this.disablePlugin(pluginId);
     }
 
-    this.emit('plugin:uninstalling', { pluginId });
+    this.emit("plugin:uninstalling", { pluginId });
 
     try {
       console.log(`[PluginManager] 卸载插件: ${pluginId}`);
@@ -430,11 +565,11 @@ class PluginManager extends EventEmitter {
       // 4. 从数据库删除
       await this.registry.unregister(pluginId);
 
-      this.emit('plugin:uninstalled', { pluginId });
+      this.emit("plugin:uninstalled", { pluginId });
 
       console.log(`[PluginManager] 插件已卸载: ${pluginId}`);
     } catch (error) {
-      this.emit('plugin:uninstall-failed', { pluginId, error: error.message });
+      this.emit("plugin:uninstall-failed", { pluginId, error: error.message });
       throw error;
     }
   }
@@ -478,7 +613,7 @@ class PluginManager extends EventEmitter {
         results.push(result);
       } catch (error) {
         console.error(`[PluginManager] 扩展执行失败:`, error);
-        this.emit('extension:error', { extension: extension.id, error });
+        this.emit("extension:error", { extension: extension.id, error });
       }
     }
 
@@ -490,37 +625,37 @@ class PluginManager extends EventEmitter {
   // ============================================
 
   async handleUIPageExtension(context) {
-    console.log('[PluginManager] 处理UI页面扩展:', context);
+    console.log("[PluginManager] 处理UI页面扩展:", context);
     // Phase 3 实现
   }
 
   async handleUIMenuExtension(context) {
-    console.log('[PluginManager] 处理UI菜单扩展:', context);
+    console.log("[PluginManager] 处理UI菜单扩展:", context);
     // Phase 3 实现
   }
 
   async handleUIComponentExtension(context) {
-    console.log('[PluginManager] 处理UI组件扩展:', context);
+    console.log("[PluginManager] 处理UI组件扩展:", context);
     // Phase 3 实现
   }
 
   async handleDataImporterExtension(context) {
-    console.log('[PluginManager] 处理数据导入器扩展:', context);
+    console.log("[PluginManager] 处理数据导入器扩展:", context);
     // Phase 4 实现
   }
 
   async handleDataExporterExtension(context) {
-    console.log('[PluginManager] 处理数据导出器扩展:', context);
+    console.log("[PluginManager] 处理数据导出器扩展:", context);
     // Phase 4 实现
   }
 
   async handleAILLMProviderExtension(context) {
-    console.log('[PluginManager] 处理AI LLM提供商扩展:', context);
+    console.log("[PluginManager] 处理AI LLM提供商扩展:", context);
     // Phase 4 实现
   }
 
   async handleAIFunctionToolExtension(context) {
-    console.log('[PluginManager] 处理AI Function工具扩展:', context);
+    console.log("[PluginManager] 处理AI Function工具扩展:", context);
 
     const { pluginId, config } = context;
     const { tools = [], skills = [] } = config;
@@ -539,12 +674,16 @@ class PluginManager extends EventEmitter {
 
         // 从插件实例获取handler方法
         let handler = null;
-        if (typeof toolDef.handler === 'string') {
+        if (typeof toolDef.handler === "string") {
           // handler是方法名，从插件实例获取
           handler = async (params, context) => {
-            return await plugin.sandbox.callMethod(toolDef.handler, params, context);
+            return await plugin.sandbox.callMethod(
+              toolDef.handler,
+              params,
+              context,
+            );
           };
-        } else if (typeof toolDef.handler === 'function') {
+        } else if (typeof toolDef.handler === "function") {
           handler = toolDef.handler;
         }
 
@@ -555,21 +694,24 @@ class PluginManager extends EventEmitter {
 
         // 注册工具到ToolManager
         if (this.systemContext.toolManager) {
-          await this.systemContext.toolManager.registerTool({
-            id: toolId,
-            name: toolDef.name,
-            display_name: toolDef.displayName || toolDef.name,
-            description: toolDef.description || '',
-            category: toolDef.category || 'custom',
-            parameters_schema: toolDef.parameters || {},
-            return_schema: toolDef.returnSchema || {},
-            plugin_id: pluginId,
-            is_builtin: 0,
-            enabled: 1,
-            tool_type: toolDef.type || 'function',
-            required_permissions: toolDef.requiredPermissions || [],
-            risk_level: toolDef.riskLevel || 2,
-          }, handler);
+          await this.systemContext.toolManager.registerTool(
+            {
+              id: toolId,
+              name: toolDef.name,
+              display_name: toolDef.displayName || toolDef.name,
+              description: toolDef.description || "",
+              category: toolDef.category || "custom",
+              parameters_schema: toolDef.parameters || {},
+              return_schema: toolDef.returnSchema || {},
+              plugin_id: pluginId,
+              is_builtin: 0,
+              enabled: 1,
+              tool_type: toolDef.type || "function",
+              required_permissions: toolDef.requiredPermissions || [],
+              risk_level: toolDef.riskLevel || 2,
+            },
+            handler,
+          );
 
           console.log(`[PluginManager] 插件工具已注册: ${toolDef.name}`);
         }
@@ -584,8 +726,8 @@ class PluginManager extends EventEmitter {
             id: skillId,
             name: skillDef.name,
             display_name: skillDef.displayName || skillDef.name,
-            description: skillDef.description || '',
-            category: skillDef.category || 'custom',
+            description: skillDef.description || "",
+            category: skillDef.category || "custom",
             icon: skillDef.icon || null,
             plugin_id: pluginId,
             is_builtin: 0,
@@ -601,18 +743,22 @@ class PluginManager extends EventEmitter {
               const toolId = `${pluginId}_${toolName}`;
 
               // 查找工具
-              const tool = await this.systemContext.toolManager.getToolByName(toolName) ||
-                           await this.systemContext.toolManager.getTool(toolId);
+              const tool =
+                (await this.systemContext.toolManager.getToolByName(
+                  toolName,
+                )) || (await this.systemContext.toolManager.getTool(toolId));
 
               if (tool) {
                 await this.systemContext.skillManager.addToolToSkill(
                   skillId,
                   tool.id,
-                  i === 0 ? 'primary' : 'secondary',
-                  skillDef.tools.length - i
+                  i === 0 ? "primary" : "secondary",
+                  skillDef.tools.length - i,
                 );
               } else {
-                console.warn(`[PluginManager] 工具不存在，跳过关联: ${toolName}`);
+                console.warn(
+                  `[PluginManager] 工具不存在，跳过关联: ${toolName}`,
+                );
               }
             }
           }
@@ -621,15 +767,15 @@ class PluginManager extends EventEmitter {
         }
       }
 
-      console.log('[PluginManager] AI工具扩展处理完成');
+      console.log("[PluginManager] AI工具扩展处理完成");
     } catch (error) {
-      console.error('[PluginManager] 处理AI工具扩展失败:', error);
+      console.error("[PluginManager] 处理AI工具扩展失败:", error);
       throw error;
     }
   }
 
   async handleLifecycleHookExtension(context) {
-    console.log('[PluginManager] 处理生命周期钩子扩展:', context);
+    console.log("[PluginManager] 处理生命周期钩子扩展:", context);
     // Phase 4 实现
   }
 
@@ -654,7 +800,12 @@ class PluginManager extends EventEmitter {
         const { point, config, priority = 100 } = ext;
 
         // 注册到数据库
-        await this.registry.registerExtension(pluginId, point, config, priority);
+        await this.registry.registerExtension(
+          pluginId,
+          point,
+          config,
+          priority,
+        );
 
         console.log(`[PluginManager] 注册扩展点: ${pluginId} -> ${point}`);
       } catch (error) {

@@ -8,17 +8,17 @@
  * - 统计查询和报告导出
  */
 
-const { EventEmitter } = require('events');
-const { v4: uuidv4 } = require('uuid');
-const path = require('path');
-const fs = require('fs');
+const { EventEmitter } = require("events");
+const { v4: uuidv4 } = require("uuid");
+const path = require("path");
+const fs = require("fs");
 
 // 导入 Volcengine 定价数据
 let VolcengineModels;
 try {
-  VolcengineModels = require('./volcengine-models');
+  VolcengineModels = require("./volcengine-models");
 } catch (e) {
-  console.warn('[TokenTracker] volcengine-models 不可用:', e.message);
+  console.warn("[TokenTracker] volcengine-models 不可用:", e.message);
 }
 
 /**
@@ -33,76 +33,106 @@ try {
 const PRICING_DATA = {
   openai: {
     // GPT-4o 系列
-    'gpt-4o': { input: 2.50, output: 10.00 },
-    'gpt-4o-2024-08-06': { input: 2.50, output: 10.00 },
-    'gpt-4o-2024-05-13': { input: 5.00, output: 15.00 },
-    'gpt-4o-mini': { input: 0.15, output: 0.60 },
-    'gpt-4o-mini-2024-07-18': { input: 0.15, output: 0.60 },
+    "gpt-4o": { input: 2.5, output: 10.0 },
+    "gpt-4o-2024-08-06": { input: 2.5, output: 10.0 },
+    "gpt-4o-2024-05-13": { input: 5.0, output: 15.0 },
+    "gpt-4o-mini": { input: 0.15, output: 0.6 },
+    "gpt-4o-mini-2024-07-18": { input: 0.15, output: 0.6 },
 
     // GPT-4 Turbo 系列
-    'gpt-4-turbo': { input: 10.00, output: 30.00 },
-    'gpt-4-turbo-2024-04-09': { input: 10.00, output: 30.00 },
-    'gpt-4-turbo-preview': { input: 10.00, output: 30.00 },
+    "gpt-4-turbo": { input: 10.0, output: 30.0 },
+    "gpt-4-turbo-2024-04-09": { input: 10.0, output: 30.0 },
+    "gpt-4-turbo-preview": { input: 10.0, output: 30.0 },
 
     // GPT-4 系列
-    'gpt-4': { input: 30.00, output: 60.00 },
-    'gpt-4-0613': { input: 30.00, output: 60.00 },
-    'gpt-4-32k': { input: 60.00, output: 120.00 },
+    "gpt-4": { input: 30.0, output: 60.0 },
+    "gpt-4-0613": { input: 30.0, output: 60.0 },
+    "gpt-4-32k": { input: 60.0, output: 120.0 },
 
     // GPT-3.5 系列
-    'gpt-3.5-turbo': { input: 0.50, output: 1.50 },
-    'gpt-3.5-turbo-0125': { input: 0.50, output: 1.50 },
-    'gpt-3.5-turbo-1106': { input: 1.00, output: 2.00 },
-    'gpt-3.5-turbo-16k': { input: 3.00, output: 4.00 },
+    "gpt-3.5-turbo": { input: 0.5, output: 1.5 },
+    "gpt-3.5-turbo-0125": { input: 0.5, output: 1.5 },
+    "gpt-3.5-turbo-1106": { input: 1.0, output: 2.0 },
+    "gpt-3.5-turbo-16k": { input: 3.0, output: 4.0 },
 
     // O1 系列 (推理模型)
-    'o1-preview': { input: 15.00, output: 60.00 },
-    'o1-mini': { input: 3.00, output: 12.00 },
+    "o1-preview": { input: 15.0, output: 60.0 },
+    "o1-mini": { input: 3.0, output: 12.0 },
   },
 
   anthropic: {
     // Claude 3.5 系列 (2024新版支持 Prompt Caching)
-    'claude-3-5-sonnet-20241022': { input: 3.00, output: 15.00, cache: 0.30, cacheWrite: 3.75 },
-    'claude-3-5-sonnet-20240620': { input: 3.00, output: 15.00, cache: 0.30, cacheWrite: 3.75 },
-    'claude-3-5-haiku-20241022': { input: 0.80, output: 4.00, cache: 0.08, cacheWrite: 1.00 },
+    "claude-3-5-sonnet-20241022": {
+      input: 3.0,
+      output: 15.0,
+      cache: 0.3,
+      cacheWrite: 3.75,
+    },
+    "claude-3-5-sonnet-20240620": {
+      input: 3.0,
+      output: 15.0,
+      cache: 0.3,
+      cacheWrite: 3.75,
+    },
+    "claude-3-5-haiku-20241022": {
+      input: 0.8,
+      output: 4.0,
+      cache: 0.08,
+      cacheWrite: 1.0,
+    },
 
     // Claude 3 系列
-    'claude-3-opus-20240229': { input: 15.00, output: 75.00, cache: 1.50, cacheWrite: 18.75 },
-    'claude-3-sonnet-20240229': { input: 3.00, output: 15.00, cache: 0.30, cacheWrite: 3.75 },
-    'claude-3-haiku-20240307': { input: 0.25, output: 1.25, cache: 0.03, cacheWrite: 0.30 },
+    "claude-3-opus-20240229": {
+      input: 15.0,
+      output: 75.0,
+      cache: 1.5,
+      cacheWrite: 18.75,
+    },
+    "claude-3-sonnet-20240229": {
+      input: 3.0,
+      output: 15.0,
+      cache: 0.3,
+      cacheWrite: 3.75,
+    },
+    "claude-3-haiku-20240307": {
+      input: 0.25,
+      output: 1.25,
+      cache: 0.03,
+      cacheWrite: 0.3,
+    },
 
     // 旧版本
-    'claude-2.1': { input: 8.00, output: 24.00 },
-    'claude-2.0': { input: 8.00, output: 24.00 },
-    'claude-instant-1.2': { input: 0.80, output: 2.40 },
+    "claude-2.1": { input: 8.0, output: 24.0 },
+    "claude-2.0": { input: 8.0, output: 24.0 },
+    "claude-instant-1.2": { input: 0.8, output: 2.4 },
   },
 
   deepseek: {
     // DeepSeek V3 系列 (2025年最新)
-    'deepseek-chat': { input: 0.14, output: 0.28 },
-    'deepseek-coder': { input: 0.14, output: 0.28 },
+    "deepseek-chat": { input: 0.14, output: 0.28 },
+    "deepseek-coder": { input: 0.14, output: 0.28 },
 
     // 旧版本
-    'deepseek-v2.5': { input: 0.14, output: 0.28 },
-    'deepseek-v2': { input: 0.14, output: 0.28 },
+    "deepseek-v2.5": { input: 0.14, output: 0.28 },
+    "deepseek-v2": { input: 0.14, output: 0.28 },
   },
 
   volcengine: {
     // Volcengine (豆包) 定价将从 volcengine-models.js 动态加载
     // 这里提供默认值作为后备
-    'doubao-seed-1-6-251015': { input: 0.0026, output: 0.0078 },  // 人民币/百万 tokens
-    'doubao-pro-32k': { input: 0.0008, output: 0.002 },
-    'doubao-lite-32k': { input: 0.0003, output: 0.0006 },
+    "doubao-seed-1-6-251015": { input: 0.0026, output: 0.0078 }, // 人民币/百万 tokens
+    "doubao-pro-32k": { input: 0.0008, output: 0.002 },
+    "doubao-lite-32k": { input: 0.0003, output: 0.0006 },
   },
 
   ollama: {
     // Ollama 本地运行，免费
-    '*': { input: 0, output: 0 },
+    "*": { input: 0, output: 0 },
   },
 
   custom: {
     // 自定义提供商，默认使用 OpenAI 兼容定价
-    '*': { input: 0.50, output: 1.50 },
+    "*": { input: 0.5, output: 1.5 },
   },
 };
 
@@ -122,7 +152,7 @@ class TokenTracker extends EventEmitter {
     super();
 
     if (!database) {
-      throw new Error('[TokenTracker] database 参数是必需的');
+      throw new Error("[TokenTracker] database 参数是必需的");
     }
 
     this.db = database;
@@ -135,7 +165,7 @@ class TokenTracker extends EventEmitter {
     // 加载 Volcengine 定价数据
     this.loadVolcenginePricing();
 
-    console.log('[TokenTracker] 初始化完成', this.options);
+    console.log("[TokenTracker] 初始化完成", this.options);
   }
 
   /**
@@ -143,7 +173,7 @@ class TokenTracker extends EventEmitter {
    */
   loadVolcenginePricing() {
     if (!VolcengineModels) {
-      console.warn('[TokenTracker] Volcengine 定价数据不可用，使用默认值');
+      console.warn("[TokenTracker] Volcengine 定价数据不可用，使用默认值");
       return;
     }
 
@@ -151,7 +181,7 @@ class TokenTracker extends EventEmitter {
       const selector = VolcengineModels.getVolcengineModelSelector();
       const models = selector.models || {};
 
-      Object.keys(models).forEach(modelId => {
+      Object.keys(models).forEach((modelId) => {
         const model = models[modelId];
         if (model.pricing) {
           PRICING_DATA.volcengine[modelId] = {
@@ -162,9 +192,11 @@ class TokenTracker extends EventEmitter {
         }
       });
 
-      console.log(`[TokenTracker] 已加载 ${Object.keys(PRICING_DATA.volcengine).length} 个 Volcengine 模型定价`);
+      console.log(
+        `[TokenTracker] 已加载 ${Object.keys(PRICING_DATA.volcengine).length} 个 Volcengine 模型定价`,
+      );
     } catch (e) {
-      console.error('[TokenTracker] 加载 Volcengine 定价失败:', e);
+      console.error("[TokenTracker] 加载 Volcengine 定价失败:", e);
     }
   }
 
@@ -199,11 +231,11 @@ class TokenTracker extends EventEmitter {
       compressionRatio = 1.0,
       responseTime,
       endpoint,
-      userId = 'default',
+      userId = "default",
     } = params;
 
     if (!provider || !model) {
-      console.error('[TokenTracker] recordUsage: provider 和 model 是必需的');
+      console.error("[TokenTracker] recordUsage: provider 和 model 是必需的");
       return;
     }
 
@@ -212,7 +244,13 @@ class TokenTracker extends EventEmitter {
       const latencyMs = responseTime || null;
 
       // 计算成本
-      const costResult = this.calculateCost(provider, model, inputTokens, outputTokens, cachedTokens);
+      const costResult = this.calculateCost(
+        provider,
+        model,
+        inputTokens,
+        outputTokens,
+        cachedTokens,
+      );
 
       // 插入使用日志
       const id = uuidv4();
@@ -237,17 +275,37 @@ class TokenTracker extends EventEmitter {
       `);
 
       stmt.run(
-        id, conversationId, messageId, provider, model,
-        inputTokens, outputTokens, totalTokens, cachedTokens,
-        costResult.costUsd, costResult.costCny,
-        wasCached ? 1 : 0, wasCompressed ? 1 : 0, compressionRatio,
-        latencyMs, responseTime,
-        endpoint, userId, null, createdAt
+        id,
+        conversationId,
+        messageId,
+        provider,
+        model,
+        inputTokens,
+        outputTokens,
+        totalTokens,
+        cachedTokens,
+        costResult.costUsd,
+        costResult.costCny,
+        wasCached ? 1 : 0,
+        wasCompressed ? 1 : 0,
+        compressionRatio,
+        latencyMs,
+        responseTime,
+        endpoint,
+        userId,
+        null,
+        createdAt,
       );
 
       // 更新对话统计
       if (conversationId) {
-        this.updateConversationStats(conversationId, inputTokens, outputTokens, costResult.costUsd, costResult.costCny);
+        this.updateConversationStats(
+          conversationId,
+          inputTokens,
+          outputTokens,
+          costResult.costUsd,
+          costResult.costCny,
+        );
       }
 
       // 更新预算支出
@@ -258,7 +316,9 @@ class TokenTracker extends EventEmitter {
         await this.checkBudgetAlerts(userId);
       }
 
-      console.log(`[TokenTracker] 记录使用: ${provider}/${model}, ${totalTokens} tokens, $${costResult.costUsd.toFixed(5)}`);
+      console.log(
+        `[TokenTracker] 记录使用: ${provider}/${model}, ${totalTokens} tokens, $${costResult.costUsd.toFixed(5)}`,
+      );
 
       return {
         id,
@@ -266,9 +326,8 @@ class TokenTracker extends EventEmitter {
         costUsd: costResult.costUsd,
         costCny: costResult.costCny,
       };
-
     } catch (error) {
-      console.error('[TokenTracker] recordUsage 失败:', error);
+      console.error("[TokenTracker] recordUsage 失败:", error);
       throw error;
     }
   }
@@ -282,7 +341,13 @@ class TokenTracker extends EventEmitter {
    * @param {number} cachedTokens - 缓存 tokens (Anthropic)
    * @returns {Object} { costUsd, costCny, pricing }
    */
-  calculateCost(provider, model, inputTokens = 0, outputTokens = 0, cachedTokens = 0) {
+  calculateCost(
+    provider,
+    model,
+    inputTokens = 0,
+    outputTokens = 0,
+    cachedTokens = 0,
+  ) {
     if (!this.options.enableCostTracking) {
       return { costUsd: 0, costCny: 0, pricing: null };
     }
@@ -293,12 +358,15 @@ class TokenTracker extends EventEmitter {
 
     // 获取定价数据
     if (PRICING_DATA[providerLower]) {
-      pricing = PRICING_DATA[providerLower][model] || PRICING_DATA[providerLower]['*'];
+      pricing =
+        PRICING_DATA[providerLower][model] || PRICING_DATA[providerLower]["*"];
     }
 
     if (!pricing) {
-      console.warn(`[TokenTracker] 未找到 ${provider}/${model} 的定价数据，使用默认值`);
-      pricing = { input: 0.50, output: 1.50 };
+      console.warn(
+        `[TokenTracker] 未找到 ${provider}/${model} 的定价数据，使用默认值`,
+      );
+      pricing = { input: 0.5, output: 1.5 };
     }
 
     // 计算成本 (按百万 tokens)
@@ -329,7 +397,13 @@ class TokenTracker extends EventEmitter {
    * @param {number} costUsd
    * @param {number} costCny
    */
-  updateConversationStats(conversationId, inputTokens, outputTokens, costUsd, costCny) {
+  updateConversationStats(
+    conversationId,
+    inputTokens,
+    outputTokens,
+    costUsd,
+    costCny,
+  ) {
     try {
       const stmt = this.db.prepare(`
         UPDATE conversations
@@ -343,7 +417,7 @@ class TokenTracker extends EventEmitter {
 
       stmt.run(inputTokens, outputTokens, costUsd, costCny, conversationId);
     } catch (error) {
-      console.error('[TokenTracker] updateConversationStats 失败:', error);
+      console.error("[TokenTracker] updateConversationStats 失败:", error);
     }
   }
 
@@ -362,9 +436,12 @@ class TokenTracker extends EventEmitter {
       }
 
       // 检查是否需要重置计数器
-      const needsDailyReset = config.daily_reset_at && now >= config.daily_reset_at;
-      const needsWeeklyReset = config.weekly_reset_at && now >= config.weekly_reset_at;
-      const needsMonthlyReset = config.monthly_reset_at && now >= config.monthly_reset_at;
+      const needsDailyReset =
+        config.daily_reset_at && now >= config.daily_reset_at;
+      const needsWeeklyReset =
+        config.weekly_reset_at && now >= config.weekly_reset_at;
+      const needsMonthlyReset =
+        config.monthly_reset_at && now >= config.monthly_reset_at;
 
       let dailySpend = config.current_daily_spend || 0;
       let weeklySpend = config.current_weekly_spend || 0;
@@ -404,14 +481,17 @@ class TokenTracker extends EventEmitter {
         weeklySpend,
         monthlySpend,
         needsDailyReset ? now + 24 * 60 * 60 * 1000 : config.daily_reset_at,
-        needsWeeklyReset ? now + 7 * 24 * 60 * 60 * 1000 : config.weekly_reset_at,
-        needsMonthlyReset ? now + 30 * 24 * 60 * 60 * 1000 : config.monthly_reset_at,
+        needsWeeklyReset
+          ? now + 7 * 24 * 60 * 60 * 1000
+          : config.weekly_reset_at,
+        needsMonthlyReset
+          ? now + 30 * 24 * 60 * 60 * 1000
+          : config.monthly_reset_at,
         now,
-        userId
+        userId,
       );
-
     } catch (error) {
-      console.error('[TokenTracker] updateBudgetSpend 失败:', error);
+      console.error("[TokenTracker] updateBudgetSpend 失败:", error);
     }
   }
 
@@ -428,25 +508,31 @@ class TokenTracker extends EventEmitter {
       }
 
       const { warning_threshold, critical_threshold } = config;
-      const dailyUsage = (config.current_daily_spend || 0) / (config.daily_limit_usd || Infinity);
-      const weeklyUsage = (config.current_weekly_spend || 0) / (config.weekly_limit_usd || Infinity);
-      const monthlyUsage = (config.current_monthly_spend || 0) / (config.monthly_limit_usd || Infinity);
+      const dailyUsage =
+        (config.current_daily_spend || 0) /
+        (config.daily_limit_usd || Infinity);
+      const weeklyUsage =
+        (config.current_weekly_spend || 0) /
+        (config.weekly_limit_usd || Infinity);
+      const monthlyUsage =
+        (config.current_monthly_spend || 0) /
+        (config.monthly_limit_usd || Infinity);
 
       // 检查是否超过阈值
       const alerts = [];
 
       if (dailyUsage >= critical_threshold) {
         alerts.push({
-          level: 'critical',
-          period: 'daily',
+          level: "critical",
+          period: "daily",
           usage: dailyUsage,
           spent: config.current_daily_spend,
           limit: config.daily_limit_usd,
         });
       } else if (dailyUsage >= warning_threshold) {
         alerts.push({
-          level: 'warning',
-          period: 'daily',
+          level: "warning",
+          period: "daily",
           usage: dailyUsage,
           spent: config.current_daily_spend,
           limit: config.daily_limit_usd,
@@ -455,16 +541,16 @@ class TokenTracker extends EventEmitter {
 
       if (weeklyUsage >= critical_threshold) {
         alerts.push({
-          level: 'critical',
-          period: 'weekly',
+          level: "critical",
+          period: "weekly",
           usage: weeklyUsage,
           spent: config.current_weekly_spend,
           limit: config.weekly_limit_usd,
         });
       } else if (weeklyUsage >= warning_threshold) {
         alerts.push({
-          level: 'warning',
-          period: 'weekly',
+          level: "warning",
+          period: "weekly",
           usage: weeklyUsage,
           spent: config.current_weekly_spend,
           limit: config.weekly_limit_usd,
@@ -473,16 +559,16 @@ class TokenTracker extends EventEmitter {
 
       if (monthlyUsage >= critical_threshold) {
         alerts.push({
-          level: 'critical',
-          period: 'monthly',
+          level: "critical",
+          period: "monthly",
           usage: monthlyUsage,
           spent: config.current_monthly_spend,
           limit: config.monthly_limit_usd,
         });
       } else if (monthlyUsage >= warning_threshold) {
         alerts.push({
-          level: 'warning',
-          period: 'monthly',
+          level: "warning",
+          period: "monthly",
           usage: monthlyUsage,
           spent: config.current_monthly_spend,
           limit: config.monthly_limit_usd,
@@ -490,16 +576,15 @@ class TokenTracker extends EventEmitter {
       }
 
       // 发送告警事件
-      alerts.forEach(alert => {
-        this.emit('budget-alert', {
+      alerts.forEach((alert) => {
+        this.emit("budget-alert", {
           userId,
           ...alert,
           timestamp: Date.now(),
         });
       });
-
     } catch (error) {
-      console.error('[TokenTracker] checkBudgetAlerts 失败:', error);
+      console.error("[TokenTracker] checkBudgetAlerts 失败:", error);
     }
   }
 
@@ -508,13 +593,15 @@ class TokenTracker extends EventEmitter {
    * @param {string} userId
    * @returns {Promise<Object|null>}
    */
-  async getBudgetConfig(userId = 'default') {
+  async getBudgetConfig(userId = "default") {
     try {
-      const stmt = this.db.prepare('SELECT * FROM llm_budget_config WHERE user_id = ?');
+      const stmt = this.db.prepare(
+        "SELECT * FROM llm_budget_config WHERE user_id = ?",
+      );
       const result = stmt.get(userId);
       return result || null;
     } catch (error) {
-      console.error('[TokenTracker] getBudgetConfig 失败:', error);
+      console.error("[TokenTracker] getBudgetConfig 失败:", error);
       return null;
     }
   }
@@ -556,7 +643,7 @@ class TokenTracker extends EventEmitter {
           config.autoPauseOnLimit ? 1 : 0,
           config.autoSwitchToCheaperModel ? 1 : 0,
           now,
-          userId
+          userId,
         );
       } else {
         // 插入
@@ -581,25 +668,28 @@ class TokenTracker extends EventEmitter {
         `);
 
         stmt.run(
-          uuidv4(), userId,
-          config.dailyLimit, config.weeklyLimit, config.monthlyLimit,
-          now + 24 * 60 * 60 * 1000,  // daily_reset_at
-          now + 7 * 24 * 60 * 60 * 1000,  // weekly_reset_at
-          now + 30 * 24 * 60 * 60 * 1000,  // monthly_reset_at
+          uuidv4(),
+          userId,
+          config.dailyLimit,
+          config.weeklyLimit,
+          config.monthlyLimit,
+          now + 24 * 60 * 60 * 1000, // daily_reset_at
+          now + 7 * 24 * 60 * 60 * 1000, // weekly_reset_at
+          now + 30 * 24 * 60 * 60 * 1000, // monthly_reset_at
           config.warningThreshold || 0.8,
           config.criticalThreshold || 0.95,
           config.desktopAlerts ? 1 : 0,
           config.autoPauseOnLimit ? 1 : 0,
           config.autoSwitchToCheaperModel ? 1 : 0,
-          now, now
+          now,
+          now,
         );
       }
 
-      console.log('[TokenTracker] 预算配置已保存:', userId);
+      console.log("[TokenTracker] 预算配置已保存:", userId);
       return { success: true };
-
     } catch (error) {
-      console.error('[TokenTracker] saveBudgetConfig 失败:', error);
+      console.error("[TokenTracker] saveBudgetConfig 失败:", error);
       throw error;
     }
   }
@@ -615,7 +705,7 @@ class TokenTracker extends EventEmitter {
    */
   async getUsageStats(options = {}) {
     const {
-      startDate = Date.now() - 7 * 24 * 60 * 60 * 1000,  // 默认: 过去7天
+      startDate = Date.now() - 7 * 24 * 60 * 60 * 1000, // 默认: 过去7天
       endDate = Date.now(),
       provider,
       groupBy,
@@ -640,7 +730,7 @@ class TokenTracker extends EventEmitter {
       const params = [startDate, endDate];
 
       if (provider) {
-        sql += ' AND provider = ?';
+        sql += " AND provider = ?";
         params.push(provider);
       }
 
@@ -648,9 +738,10 @@ class TokenTracker extends EventEmitter {
       const stats = stmt.get(params);
 
       // 计算缓存命中率
-      const cacheHitRate = stats.total_calls > 0
-        ? ((stats.cached_calls || 0) / stats.total_calls * 100).toFixed(2)
-        : 0;
+      const cacheHitRate =
+        stats.total_calls > 0
+          ? (((stats.cached_calls || 0) / stats.total_calls) * 100).toFixed(2)
+          : 0;
 
       return {
         totalCalls: stats.total_calls || 0,
@@ -666,9 +757,8 @@ class TokenTracker extends EventEmitter {
         startDate,
         endDate,
       };
-
     } catch (error) {
-      console.error('[TokenTracker] getUsageStats 失败:', error);
+      console.error("[TokenTracker] getUsageStats 失败:", error);
       throw error;
     }
   }
@@ -685,20 +775,20 @@ class TokenTracker extends EventEmitter {
     const {
       startDate = Date.now() - 7 * 24 * 60 * 60 * 1000,
       endDate = Date.now(),
-      interval = 'day',
+      interval = "day",
     } = options;
 
     try {
       // 根据 interval 计算时间桶大小
       let bucketSize;
       switch (interval) {
-        case 'hour':
+        case "hour":
           bucketSize = 60 * 60 * 1000;
           break;
-        case 'day':
+        case "day":
           bucketSize = 24 * 60 * 60 * 1000;
           break;
-        case 'week':
+        case "week":
           bucketSize = 7 * 24 * 60 * 60 * 1000;
           break;
         default:
@@ -720,15 +810,14 @@ class TokenTracker extends EventEmitter {
       const stmt = this.db.prepare(sql);
       const results = stmt.all(startDate, endDate);
 
-      return results.map(row => ({
+      return results.map((row) => ({
         timestamp: row.time_bucket,
         calls: row.calls,
         tokens: row.tokens,
         costUsd: row.cost_usd,
       }));
-
     } catch (error) {
-      console.error('[TokenTracker] getTimeSeriesData 失败:', error);
+      console.error("[TokenTracker] getTimeSeriesData 失败:", error);
       throw error;
     }
   }
@@ -783,9 +872,8 @@ class TokenTracker extends EventEmitter {
         byProvider: providerBreakdown,
         byModel: modelBreakdown,
       };
-
     } catch (error) {
-      console.error('[TokenTracker] getCostBreakdown 失败:', error);
+      console.error("[TokenTracker] getCostBreakdown 失败:", error);
       throw error;
     }
   }
@@ -797,9 +885,9 @@ class TokenTracker extends EventEmitter {
    */
   async exportCostReport(options = {}) {
     const {
-      startDate = Date.now() - 30 * 24 * 60 * 60 * 1000,  // 默认: 过去30天
+      startDate = Date.now() - 30 * 24 * 60 * 60 * 1000, // 默认: 过去30天
       endDate = Date.now(),
-      format = 'csv',
+      format = "csv",
     } = options;
 
     try {
@@ -829,23 +917,34 @@ class TokenTracker extends EventEmitter {
       const stmt = this.db.prepare(sql);
       const results = stmt.all(startDate, endDate);
 
-      if (format === 'csv') {
+      if (format === "csv") {
         // 生成 CSV
         const headers = [
-          'ID', 'Conversation ID', 'Message ID', 'Provider', 'Model',
-          'Input Tokens', 'Output Tokens', 'Total Tokens', 'Cached Tokens',
-          'Cost (USD)', 'Cost (CNY)',
-          'Was Cached', 'Was Compressed', 'Compression Ratio',
-          'Response Time (ms)', 'Created At'
+          "ID",
+          "Conversation ID",
+          "Message ID",
+          "Provider",
+          "Model",
+          "Input Tokens",
+          "Output Tokens",
+          "Total Tokens",
+          "Cached Tokens",
+          "Cost (USD)",
+          "Cost (CNY)",
+          "Was Cached",
+          "Was Compressed",
+          "Compression Ratio",
+          "Response Time (ms)",
+          "Created At",
         ];
 
-        let csv = headers.join(',') + '\n';
+        let csv = headers.join(",") + "\n";
 
-        results.forEach(row => {
+        results.forEach((row) => {
           const line = [
             row.id,
-            row.conversation_id || '',
-            row.message_id || '',
+            row.conversation_id || "",
+            row.message_id || "",
             row.provider,
             row.model,
             row.input_tokens,
@@ -854,33 +953,32 @@ class TokenTracker extends EventEmitter {
             row.cached_tokens,
             row.cost_usd.toFixed(6),
             row.cost_cny.toFixed(4),
-            row.was_cached ? 'Yes' : 'No',
-            row.was_compressed ? 'Yes' : 'No',
-            row.compression_ratio?.toFixed(2) || '1.00',
-            row.response_time || '',
+            row.was_cached ? "Yes" : "No",
+            row.was_compressed ? "Yes" : "No",
+            row.compression_ratio?.toFixed(2) || "1.00",
+            row.response_time || "",
             new Date(row.created_at).toISOString(),
-          ].join(',');
+          ].join(",");
 
-          csv += line + '\n';
+          csv += line + "\n";
         });
 
         // 保存到临时文件
-        const { app } = require('electron');
-        const tempDir = app.getPath('temp');
+        const { app } = require("electron");
+        const tempDir = app.getPath("temp");
         const fileName = `llm-cost-report-${Date.now()}.csv`;
         const filePath = path.join(tempDir, fileName);
 
-        fs.writeFileSync(filePath, csv, 'utf-8');
+        fs.writeFileSync(filePath, csv, "utf-8");
 
         console.log(`[TokenTracker] 成本报告已导出: ${filePath}`);
 
-        return filePath;
+        return { success: true, filePath };
       }
 
       throw new Error(`不支持的导出格式: ${format}`);
-
     } catch (error) {
-      console.error('[TokenTracker] exportCostReport 失败:', error);
+      console.error("[TokenTracker] exportCostReport 失败:", error);
       throw error;
     }
   }

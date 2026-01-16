@@ -486,6 +486,7 @@
 
 <script>
 import { llm } from '@/services/llm'
+import { db } from '@/services/database'
 
 export default {
   data() {
@@ -881,9 +882,6 @@ export default {
      */
     async loadDataStats() {
       try {
-        // 导入数据库服务
-        const { db } = await import('@/services/database')
-
         // 获取知识条目数量
         const knowledge = await db.getKnowledgeItems({ limit: 10000 })
         this.dataStats.knowledgeCount = knowledge.length

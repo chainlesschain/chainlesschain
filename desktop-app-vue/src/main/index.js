@@ -30,6 +30,7 @@ const { LLMManager } = require("./llm/llm-manager");
 const { getLLMConfig } = require("./llm/llm-config");
 const LLMSelector = require("./llm/llm-selector");
 const { registerVolcengineIPC } = require("./llm/volcengine-ipc");
+const { registerSecureStorageIPC } = require("./llm/secure-storage-ipc");
 const { RAGManager } = require("./rag/rag-manager");
 const FileImporter = require("./import/file-importer");
 const VideoImporter = require("./video/video-importer");
@@ -1464,6 +1465,14 @@ class ChainlessChainApp {
           "[Main] 火山引擎IPC注册失败（可能API Key未配置）:",
           error.message,
         );
+      }
+
+      // 注册安全存储IPC handlers
+      try {
+        registerSecureStorageIPC();
+        console.log("[Main] 安全存储IPC handlers已注册 (23 handlers)");
+      } catch (error) {
+        console.error("[Main] 安全存储IPC注册失败:", error);
       }
 
       // 注册语音/语音输入IPC handlers
