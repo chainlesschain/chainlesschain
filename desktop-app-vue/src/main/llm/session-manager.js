@@ -574,6 +574,1024 @@ class SessionManager extends EventEmitter {
       throw error;
     }
   }
+
+  // ============================================================
+  // 增强功能 - 会话搜索
+  // ============================================================
+
+  /**
+   * 搜索会话（按标题和内容）
+   * @param {string} query - 搜索关键词
+   * @param {Object} options - 搜索选项
+   * @param {boolean} [options.searchContent=true] - 是否搜索消息内容
+   * @param {boolean} [options.searchTitle=true] - 是否搜索标题
+   * @param {string[]} [options.tags] - 按标签过滤
+   * @param {number} [options.limit=20] - 最大返回数量
+   * @param {number} [options.offset=0] - 偏移量（分页）
+   * @returns {Promise<Array>} 搜索结果
+   */
+  async searchSessions(query, options = {}) {
+    const {
+      searchContent = true,
+      searchTitle = true,
+      tags = [],
+      limit = 20,
+      offset = 0,
+    } = options;
+
+    try {
+      if (!query || query.trim().length === 0) {
+        return this.listSessions({ limit, offset });
+      }
+
+      const searchTerm = `%${query.trim()}%`;
+      const results = [];
+
+      // 搜索标题
+      if (searchTitle) {
+        const titleStmt = this.db.prepare(`
+          SELECT id, conversation_id, title, metadata, created_at, updated_at
+          FROM llm_sessions
+          WHERE title LIKE ?
+          ORDER BY updated_at DESC
+          LIMIT ? OFFSET ?
+        `);
+        const titleResults = titleStmt.all(searchTerm, limit, offset);
+        results.push(
+          ...titleResults.map((row) => ({
+            ...this._parseSessionRow(row),
+            matchType: "title",
+          })),
+        );
+      }
+
+      // 搜索消息内容
+      if (searchContent) {
+        const contentStmt = this.db.prepare(`
+          SELECT id, conversation_id, title, messages, metadata, created_at, updated_at
+          FROM llm_sessions
+          WHERE messages LIKE ?
+          ORDER BY updated_at DESC
+          LIMIT ? OFFSET ?
+        `);
+        const contentResults = contentStmt.all(searchTerm, limit, offset);
+
+        for (const row of contentResults) {
+          // 避免重复
+          if (!results.find((r) => r.id === row.id)) {
+            const session = this._parseSessionRow(row);
+            // 找出匹配的消息
+            const messages = JSON.parse(row.messages || "[]");
+            const matchedMessages = messages.filter((msg) => {
+              const content =
+                typeof msg.content === "string"
+                  ? msg.content
+                  : JSON.stringify(msg.content);
+              return content.toLowerCase().includes(query.toLowerCase());
+            });
+
+            results.push({
+              ...session,
+              matchType: "content",
+              matchedMessages: matchedMessages.slice(0, 3), // 最多返回3条匹配消息
+            });
+          }
+        }
+      }
+
+      // 按标签过滤
+      if (tags.length > 0) {
+        return results.filter((session) => {
+          const sessionTags = session.metadata?.tags || [];
+          return tags.some((tag) => sessionTags.includes(tag));
+        });
+      }
+
+      console.log(
+        `[SessionManager] 搜索 "${query}" 找到 ${results.length} 个会话`,
+      );
+      return results.slice(0, limit);
+    } catch (error) {
+      console.error("[SessionManager] 搜索会话失败:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * 解析数据库行为会话对象
+   * @private
+   */
+  _parseSessionRow(row) {
+    return {
+      id: row.id,
+      conversationId: row.conversation_id,
+      title: row.title,
+      metadata: JSON.parse(row.metadata || "{}"),
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
+  }
+
+  // ============================================================
+  // 增强功能 - 会话标签系统
+  // ============================================================
+
+  /**
+   * 添加标签到会话
+   * @param {string} sessionId - 会话 ID
+   * @param {string|string[]} tags - 标签（单个或数组）
+   * @returns {Promise<Object>} 更新后的会话
+   */
+  async addTags(sessionId, tags) {
+    try {
+      const session = await this.loadSession(sessionId);
+      const currentTags = session.metadata.tags || [];
+
+      // 确保 tags 是数组
+      const newTags = Array.isArray(tags) ? tags : [tags];
+
+      // 合并去重
+      const mergedTags = [...new Set([...currentTags, ...newTags])];
+      session.metadata.tags = mergedTags;
+      session.metadata.updatedAt = Date.now();
+
+      await this.saveSession(sessionId);
+
+      console.log(`[SessionManager] 会话 ${sessionId} 添加标签:`, newTags);
+      this.emit("tags-updated", { sessionId, tags: mergedTags });
+
+      return session;
+    } catch (error) {
+      console.error("[SessionManager] 添加标签失败:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * 从会话移除标签
+   * @param {string} sessionId - 会话 ID
+   * @param {string|string[]} tags - 要移除的标签
+   * @returns {Promise<Object>} 更新后的会话
+   */
+  async removeTags(sessionId, tags) {
+    try {
+      const session = await this.loadSession(sessionId);
+      const currentTags = session.metadata.tags || [];
+
+      const tagsToRemove = Array.isArray(tags) ? tags : [tags];
+      session.metadata.tags = currentTags.filter(
+        (t) => !tagsToRemove.includes(t),
+      );
+      session.metadata.updatedAt = Date.now();
+
+      await this.saveSession(sessionId);
+
+      console.log(`[SessionManager] 会话 ${sessionId} 移除标签:`, tagsToRemove);
+      this.emit("tags-updated", { sessionId, tags: session.metadata.tags });
+
+      return session;
+    } catch (error) {
+      console.error("[SessionManager] 移除标签失败:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * 获取所有使用过的标签
+   * @returns {Promise<Array>} 标签列表（带使用次数）
+   */
+  async getAllTags() {
+    try {
+      const stmt = this.db.prepare(`
+        SELECT metadata FROM llm_sessions
+      `);
+      const rows = stmt.all();
+
+      const tagCount = new Map();
+      for (const row of rows) {
+        const metadata = JSON.parse(row.metadata || "{}");
+        const tags = metadata.tags || [];
+        for (const tag of tags) {
+          tagCount.set(tag, (tagCount.get(tag) || 0) + 1);
+        }
+      }
+
+      return Array.from(tagCount.entries())
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => b.count - a.count);
+    } catch (error) {
+      console.error("[SessionManager] 获取标签列表失败:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * 按标签查找会话
+   * @param {string[]} tags - 标签数组
+   * @param {Object} options - 查询选项
+   * @param {string} [options.matchMode='any'] - 匹配模式：'any'(任意) 或 'all'(全部)
+   * @param {number} [options.limit=50] - 最大返回数量
+   * @returns {Promise<Array>} 会话列表
+   */
+  async findSessionsByTags(tags, options = {}) {
+    const { matchMode = "any", limit = 50 } = options;
+
+    try {
+      const sessions = await this.listSessions({ limit: 1000 });
+
+      return sessions
+        .filter((session) => {
+          const sessionTags = session.metadata?.tags || [];
+          if (matchMode === "all") {
+            return tags.every((t) => sessionTags.includes(t));
+          }
+          return tags.some((t) => sessionTags.includes(t));
+        })
+        .slice(0, limit);
+    } catch (error) {
+      console.error("[SessionManager] 按标签查找失败:", error);
+      throw error;
+    }
+  }
+
+  // ============================================================
+  // 增强功能 - 会话导出/导入
+  // ============================================================
+
+  /**
+   * 导出会话为 JSON
+   * @param {string} sessionId - 会话 ID
+   * @param {Object} options - 导出选项
+   * @param {boolean} [options.includeMetadata=true] - 包含元数据
+   * @param {boolean} [options.prettify=true] - 美化 JSON
+   * @returns {Promise<string>} JSON 字符串
+   */
+  async exportToJSON(sessionId, options = {}) {
+    const { includeMetadata = true, prettify = true } = options;
+
+    try {
+      const session = await this.loadSession(sessionId);
+
+      const exportData = {
+        version: "1.0",
+        exportedAt: new Date().toISOString(),
+        session: {
+          id: session.id,
+          conversationId: session.conversationId,
+          title: session.title,
+          messages: session.messages,
+        },
+      };
+
+      if (includeMetadata) {
+        exportData.session.metadata = session.metadata;
+        exportData.session.compressedHistory = session.compressedHistory;
+      }
+
+      console.log(`[SessionManager] 导出会话 ${sessionId} 为 JSON`);
+      return prettify
+        ? JSON.stringify(exportData, null, 2)
+        : JSON.stringify(exportData);
+    } catch (error) {
+      console.error("[SessionManager] 导出 JSON 失败:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * 导出会话为 Markdown
+   * @param {string} sessionId - 会话 ID
+   * @param {Object} options - 导出选项
+   * @param {boolean} [options.includeTimestamp=true] - 包含时间戳
+   * @param {boolean} [options.includeMetadata=false] - 包含元数据
+   * @returns {Promise<string>} Markdown 字符串
+   */
+  async exportToMarkdown(sessionId, options = {}) {
+    const { includeTimestamp = true, includeMetadata = false } = options;
+
+    try {
+      const session = await this.loadSession(sessionId);
+
+      let md = `# ${session.title}\n\n`;
+
+      if (includeMetadata) {
+        md += `> **会话ID**: ${session.id}\n`;
+        md += `> **创建时间**: ${new Date(session.metadata.createdAt).toLocaleString()}\n`;
+        if (session.metadata.tags?.length > 0) {
+          md += `> **标签**: ${session.metadata.tags.join(", ")}\n`;
+        }
+        md += "\n---\n\n";
+      }
+
+      for (const msg of session.messages) {
+        const role = msg.role === "user" ? "👤 用户" : "🤖 助手";
+        const content =
+          typeof msg.content === "string"
+            ? msg.content
+            : JSON.stringify(msg.content, null, 2);
+
+        md += `## ${role}\n\n`;
+
+        if (includeTimestamp && msg.timestamp) {
+          md += `*${new Date(msg.timestamp).toLocaleString()}*\n\n`;
+        }
+
+        md += `${content}\n\n`;
+      }
+
+      md += "---\n\n";
+      md += `*导出时间: ${new Date().toLocaleString()}*\n`;
+
+      console.log(`[SessionManager] 导出会话 ${sessionId} 为 Markdown`);
+      return md;
+    } catch (error) {
+      console.error("[SessionManager] 导出 Markdown 失败:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * 从 JSON 导入会话
+   * @param {string} jsonData - JSON 字符串
+   * @param {Object} options - 导入选项
+   * @param {boolean} [options.generateNewId=true] - 生成新的会话 ID
+   * @param {string} [options.conversationId] - 指定对话 ID
+   * @returns {Promise<Object>} 导入的会话
+   */
+  async importFromJSON(jsonData, options = {}) {
+    const { generateNewId = true, conversationId } = options;
+
+    try {
+      const data = JSON.parse(jsonData);
+
+      if (!data.session || !data.session.messages) {
+        throw new Error("无效的会话数据格式");
+      }
+
+      const importSession = data.session;
+
+      // 创建新会话
+      const newSession = await this.createSession({
+        conversationId:
+          conversationId ||
+          importSession.conversationId ||
+          `imported-${Date.now()}`,
+        title: importSession.title || "导入的会话",
+        metadata: {
+          ...(importSession.metadata || {}),
+          importedAt: Date.now(),
+          importedFrom: data.exportedAt,
+        },
+      });
+
+      // 添加消息
+      for (const msg of importSession.messages) {
+        await this.addMessage(newSession.id, {
+          role: msg.role,
+          content: msg.content,
+          timestamp: msg.timestamp || Date.now(),
+        });
+      }
+
+      console.log(
+        `[SessionManager] 导入会话成功，新会话ID: ${newSession.id}，消息数: ${importSession.messages.length}`,
+      );
+      this.emit("session-imported", { sessionId: newSession.id });
+
+      return newSession;
+    } catch (error) {
+      console.error("[SessionManager] 导入 JSON 失败:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * 批量导出会话
+   * @param {string[]} sessionIds - 会话 ID 数组
+   * @param {Object} options - 导出选项
+   * @returns {Promise<string>} JSON 字符串
+   */
+  async exportMultiple(sessionIds, options = {}) {
+    try {
+      const sessions = [];
+
+      for (const sessionId of sessionIds) {
+        const session = await this.loadSession(sessionId);
+        sessions.push({
+          id: session.id,
+          conversationId: session.conversationId,
+          title: session.title,
+          messages: session.messages,
+          metadata: session.metadata,
+        });
+      }
+
+      const exportData = {
+        version: "1.0",
+        exportedAt: new Date().toISOString(),
+        sessionCount: sessions.length,
+        sessions,
+      };
+
+      console.log(`[SessionManager] 批量导出 ${sessions.length} 个会话`);
+      return JSON.stringify(exportData, null, 2);
+    } catch (error) {
+      console.error("[SessionManager] 批量导出失败:", error);
+      throw error;
+    }
+  }
+
+  // ============================================================
+  // 增强功能 - 会话摘要生成
+  // ============================================================
+
+  /**
+   * 生成会话摘要
+   * @param {string} sessionId - 会话 ID
+   * @param {Object} options - 摘要选项
+   * @param {boolean} [options.useLLM=true] - 使用 LLM 生成（需要 llmManager）
+   * @param {number} [options.maxLength=200] - 摘要最大长度
+   * @returns {Promise<string>} 会话摘要
+   */
+  async generateSummary(sessionId, options = {}) {
+    const { useLLM = true, maxLength = 200 } = options;
+
+    try {
+      const session = await this.loadSession(sessionId);
+
+      if (session.messages.length === 0) {
+        return "空会话";
+      }
+
+      // 方式1：使用 LLM 生成摘要
+      if (useLLM && this.llmManager) {
+        const messagesText = session.messages
+          .map((msg) => {
+            const role = msg.role === "user" ? "用户" : "助手";
+            const content =
+              typeof msg.content === "string"
+                ? msg.content
+                : JSON.stringify(msg.content);
+            return `${role}: ${content}`;
+          })
+          .join("\n");
+
+        const prompt = `请用一句话（不超过${maxLength}字）总结以下对话的主要内容：\n\n${messagesText}\n\n摘要：`;
+
+        try {
+          const result = await this.llmManager.query(prompt, {
+            max_tokens: 100,
+            temperature: 0.3,
+          });
+          const summary = (result.text || result.content || "").trim();
+
+          // 更新会话元数据
+          session.metadata.summary = summary;
+          session.metadata.summaryGeneratedAt = Date.now();
+          await this.saveSession(sessionId);
+
+          console.log(`[SessionManager] LLM 生成摘要: ${summary}`);
+          return summary;
+        } catch (llmError) {
+          console.warn(
+            "[SessionManager] LLM 摘要生成失败，使用简单摘要:",
+            llmError.message,
+          );
+        }
+      }
+
+      // 方式2：简单摘要（提取首条用户消息）
+      const firstUserMessage = session.messages.find(
+        (msg) => msg.role === "user",
+      );
+      if (firstUserMessage) {
+        const content =
+          typeof firstUserMessage.content === "string"
+            ? firstUserMessage.content
+            : JSON.stringify(firstUserMessage.content);
+        const summary =
+          content.length > maxLength
+            ? content.substring(0, maxLength) + "..."
+            : content;
+
+        session.metadata.summary = summary;
+        await this.saveSession(sessionId);
+
+        return summary;
+      }
+
+      return "无用户消息";
+    } catch (error) {
+      console.error("[SessionManager] 生成摘要失败:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * 批量生成摘要
+   * @param {Object} options - 选项
+   * @param {boolean} [options.overwrite=false] - 覆盖已有摘要
+   * @param {number} [options.limit=50] - 最多处理数量
+   * @returns {Promise<Object>} 处理结果
+   */
+  async generateSummariesBatch(options = {}) {
+    const { overwrite = false, limit = 50 } = options;
+
+    try {
+      const sessions = await this.listSessions({ limit });
+      let processed = 0;
+      let skipped = 0;
+
+      for (const session of sessions) {
+        if (!overwrite && session.metadata?.summary) {
+          skipped++;
+          continue;
+        }
+
+        try {
+          await this.generateSummary(session.id, { useLLM: true });
+          processed++;
+        } catch (err) {
+          console.warn(
+            `[SessionManager] 会话 ${session.id} 摘要生成失败:`,
+            err.message,
+          );
+        }
+      }
+
+      console.log(
+        `[SessionManager] 批量摘要完成: 处理 ${processed}, 跳过 ${skipped}`,
+      );
+      return { processed, skipped };
+    } catch (error) {
+      console.error("[SessionManager] 批量生成摘要失败:", error);
+      throw error;
+    }
+  }
+
+  // ============================================================
+  // 增强功能 - 会话续接
+  // ============================================================
+
+  /**
+   * 恢复会话（获取续接上下文）
+   * @param {string} sessionId - 会话 ID
+   * @param {Object} options - 选项
+   * @param {boolean} [options.generateContextPrompt=true] - 生成上下文提示
+   * @returns {Promise<Object>} 恢复结果
+   */
+  async resumeSession(sessionId, options = {}) {
+    const { generateContextPrompt = true } = options;
+
+    try {
+      const session = await this.loadSession(sessionId);
+
+      // 更新最后访问时间
+      session.metadata.lastResumedAt = Date.now();
+      session.metadata.resumeCount = (session.metadata.resumeCount || 0) + 1;
+      await this.saveSession(sessionId);
+
+      const result = {
+        session,
+        messages: await this.getEffectiveMessages(sessionId),
+        stats: await this.getSessionStats(sessionId),
+      };
+
+      // 生成上下文提示
+      if (generateContextPrompt) {
+        result.contextPrompt = this._generateContextPrompt(session);
+      }
+
+      console.log(`[SessionManager] 恢复会话: ${sessionId}`);
+      this.emit("session-resumed", { sessionId });
+
+      return result;
+    } catch (error) {
+      console.error("[SessionManager] 恢复会话失败:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * 生成上下文提示
+   * @private
+   */
+  _generateContextPrompt(session) {
+    const msgs = session.messages;
+    if (msgs.length === 0) return "";
+
+    let prompt = "[对话上下文提示]\n";
+    prompt += `这是一个续接的对话，标题："${session.title}"\n`;
+
+    if (session.metadata.summary) {
+      prompt += `上次对话摘要：${session.metadata.summary}\n`;
+    }
+
+    // 提取最近的话题
+    const recentUserMsgs = msgs
+      .filter((m) => m.role === "user")
+      .slice(-3)
+      .map((m) =>
+        typeof m.content === "string"
+          ? m.content.substring(0, 50)
+          : JSON.stringify(m.content).substring(0, 50),
+      );
+
+    if (recentUserMsgs.length > 0) {
+      prompt += `最近讨论的话题：${recentUserMsgs.join("；")}\n`;
+    }
+
+    return prompt;
+  }
+
+  /**
+   * 获取最近的会话（用于快速续接）
+   * @param {number} count - 数量
+   * @returns {Promise<Array>} 最近的会话列表
+   */
+  async getRecentSessions(count = 5) {
+    try {
+      const stmt = this.db.prepare(`
+        SELECT id, conversation_id, title, metadata, created_at, updated_at
+        FROM llm_sessions
+        ORDER BY updated_at DESC
+        LIMIT ?
+      `);
+
+      const rows = stmt.all(count);
+      return rows.map((row) => this._parseSessionRow(row));
+    } catch (error) {
+      console.error("[SessionManager] 获取最近会话失败:", error);
+      throw error;
+    }
+  }
+
+  // ============================================================
+  // 增强功能 - 会话模板
+  // ============================================================
+
+  /**
+   * 保存会话为模板
+   * @param {string} sessionId - 会话 ID
+   * @param {Object} templateInfo - 模板信息
+   * @param {string} templateInfo.name - 模板名称
+   * @param {string} [templateInfo.description] - 模板描述
+   * @param {string} [templateInfo.category] - 分类
+   * @returns {Promise<Object>} 模板对象
+   */
+  async saveAsTemplate(sessionId, templateInfo) {
+    const { name, description = "", category = "default" } = templateInfo;
+
+    try {
+      const session = await this.loadSession(sessionId);
+      const templateId = uuidv4();
+      const now = Date.now();
+
+      const template = {
+        id: templateId,
+        name,
+        description,
+        category,
+        sourceSessionId: sessionId,
+        messages: session.messages.map((msg) => ({
+          role: msg.role,
+          content: msg.content,
+        })),
+        metadata: {
+          createdAt: now,
+          updatedAt: now,
+          useCount: 0,
+        },
+      };
+
+      // 保存到数据库
+      const stmt = this.db.prepare(`
+        INSERT INTO llm_session_templates (
+          id, name, description, category, source_session_id,
+          messages, metadata, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+
+      stmt.run(
+        templateId,
+        name,
+        description,
+        category,
+        sessionId,
+        JSON.stringify(template.messages),
+        JSON.stringify(template.metadata),
+        now,
+        now,
+      );
+
+      console.log(`[SessionManager] 会话 ${sessionId} 保存为模板: ${name}`);
+      this.emit("template-created", { templateId, name });
+
+      return template;
+    } catch (error) {
+      // 如果表不存在，尝试创建
+      if (error.message.includes("no such table")) {
+        await this._ensureTemplateTable();
+        return this.saveAsTemplate(sessionId, templateInfo);
+      }
+      console.error("[SessionManager] 保存模板失败:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * 确保模板表存在
+   * @private
+   */
+  async _ensureTemplateTable() {
+    // 使用 prepare().run() 替代 exec() 以符合安全规范
+    // 注意：此 SQL 是硬编码的 DDL，不包含用户输入
+    this.db
+      .prepare(
+        `CREATE TABLE IF NOT EXISTS llm_session_templates (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        description TEXT,
+        category TEXT DEFAULT 'default',
+        source_session_id TEXT,
+        messages TEXT NOT NULL,
+        metadata TEXT,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      )`,
+      )
+      .run();
+    console.log("[SessionManager] 模板表已创建");
+  }
+
+  /**
+   * 从模板创建会话
+   * @param {string} templateId - 模板 ID
+   * @param {Object} options - 选项
+   * @param {string} [options.conversationId] - 对话 ID
+   * @param {string} [options.title] - 会话标题
+   * @returns {Promise<Object>} 新会话
+   */
+  async createFromTemplate(templateId, options = {}) {
+    try {
+      const stmt = this.db.prepare(`
+        SELECT * FROM llm_session_templates WHERE id = ?
+      `);
+      const template = stmt.get(templateId);
+
+      if (!template) {
+        throw new Error(`模板不存在: ${templateId}`);
+      }
+
+      const messages = JSON.parse(template.messages || "[]");
+
+      // 创建新会话
+      const newSession = await this.createSession({
+        conversationId: options.conversationId || `template-${Date.now()}`,
+        title: options.title || `来自模板: ${template.name}`,
+        metadata: {
+          templateId,
+          templateName: template.name,
+        },
+      });
+
+      // 添加模板消息
+      for (const msg of messages) {
+        await this.addMessage(newSession.id, msg);
+      }
+
+      // 更新模板使用次数
+      const updateStmt = this.db.prepare(`
+        UPDATE llm_session_templates
+        SET metadata = json_set(metadata, '$.useCount', json_extract(metadata, '$.useCount') + 1),
+            updated_at = ?
+        WHERE id = ?
+      `);
+      updateStmt.run(Date.now(), templateId);
+
+      console.log(`[SessionManager] 从模板 ${template.name} 创建会话`);
+      return newSession;
+    } catch (error) {
+      console.error("[SessionManager] 从模板创建失败:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * 列出所有模板
+   * @param {Object} options - 查询选项
+   * @param {string} [options.category] - 按分类过滤
+   * @param {number} [options.limit=50] - 最大返回数量
+   * @returns {Promise<Array>} 模板列表
+   */
+  async listTemplates(options = {}) {
+    const { category, limit = 50 } = options;
+
+    try {
+      await this._ensureTemplateTable();
+
+      let sql = `
+        SELECT id, name, description, category, source_session_id,
+               metadata, created_at, updated_at
+        FROM llm_session_templates
+      `;
+      const params = [];
+
+      if (category) {
+        sql += " WHERE category = ?";
+        params.push(category);
+      }
+
+      sql += " ORDER BY updated_at DESC LIMIT ?";
+      params.push(limit);
+
+      const stmt = this.db.prepare(sql);
+      const rows = stmt.all(...params);
+
+      return rows.map((row) => ({
+        id: row.id,
+        name: row.name,
+        description: row.description,
+        category: row.category,
+        sourceSessionId: row.source_session_id,
+        metadata: JSON.parse(row.metadata || "{}"),
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+      }));
+    } catch (error) {
+      console.error("[SessionManager] 列出模板失败:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * 删除模板
+   * @param {string} templateId - 模板 ID
+   * @returns {Promise<void>}
+   */
+  async deleteTemplate(templateId) {
+    try {
+      const stmt = this.db.prepare(
+        "DELETE FROM llm_session_templates WHERE id = ?",
+      );
+      stmt.run(templateId);
+
+      console.log(`[SessionManager] 模板已删除: ${templateId}`);
+      this.emit("template-deleted", { templateId });
+    } catch (error) {
+      console.error("[SessionManager] 删除模板失败:", error);
+      throw error;
+    }
+  }
+
+  // ============================================================
+  // 增强功能 - 批量操作
+  // ============================================================
+
+  /**
+   * 批量删除会话
+   * @param {string[]} sessionIds - 会话 ID 数组
+   * @returns {Promise<Object>} 删除结果
+   */
+  async deleteMultiple(sessionIds) {
+    try {
+      let deleted = 0;
+      let failed = 0;
+
+      for (const sessionId of sessionIds) {
+        try {
+          await this.deleteSession(sessionId);
+          deleted++;
+        } catch (err) {
+          console.warn(
+            `[SessionManager] 删除会话 ${sessionId} 失败:`,
+            err.message,
+          );
+          failed++;
+        }
+      }
+
+      console.log(
+        `[SessionManager] 批量删除完成: 成功 ${deleted}, 失败 ${failed}`,
+      );
+      return { deleted, failed };
+    } catch (error) {
+      console.error("[SessionManager] 批量删除失败:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * 批量添加标签
+   * @param {string[]} sessionIds - 会话 ID 数组
+   * @param {string[]} tags - 要添加的标签
+   * @returns {Promise<Object>} 处理结果
+   */
+  async addTagsToMultiple(sessionIds, tags) {
+    try {
+      let updated = 0;
+
+      for (const sessionId of sessionIds) {
+        try {
+          await this.addTags(sessionId, tags);
+          updated++;
+        } catch (err) {
+          console.warn(
+            `[SessionManager] 会话 ${sessionId} 添加标签失败:`,
+            err.message,
+          );
+        }
+      }
+
+      console.log(`[SessionManager] 批量添加标签完成: ${updated} 个会话`);
+      return { updated };
+    } catch (error) {
+      console.error("[SessionManager] 批量添加标签失败:", error);
+      throw error;
+    }
+  }
+
+  // ============================================================
+  // 增强功能 - 高级统计
+  // ============================================================
+
+  /**
+   * 获取全局统计信息
+   * @returns {Promise<Object>} 统计信息
+   */
+  async getGlobalStats() {
+    try {
+      const stmt = this.db.prepare(`
+        SELECT
+          COUNT(*) as totalSessions,
+          SUM(json_extract(metadata, '$.messageCount')) as totalMessages,
+          SUM(json_extract(metadata, '$.compressionCount')) as totalCompressions,
+          SUM(json_extract(metadata, '$.totalTokensSaved')) as totalTokensSaved,
+          MIN(created_at) as earliestSession,
+          MAX(updated_at) as latestActivity
+        FROM llm_sessions
+      `);
+
+      const row = stmt.get();
+
+      // 获取标签统计
+      const tags = await this.getAllTags();
+
+      // 获取活跃度（最近7天）
+      const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+      const activityStmt = this.db.prepare(`
+        SELECT COUNT(*) as recentSessions
+        FROM llm_sessions
+        WHERE updated_at > ?
+      `);
+      const activity = activityStmt.get(weekAgo);
+
+      return {
+        totalSessions: row.totalSessions || 0,
+        totalMessages: row.totalMessages || 0,
+        totalCompressions: row.totalCompressions || 0,
+        totalTokensSaved: row.totalTokensSaved || 0,
+        earliestSession: row.earliestSession,
+        latestActivity: row.latestActivity,
+        uniqueTags: tags.length,
+        topTags: tags.slice(0, 5),
+        recentActivityCount: activity.recentSessions || 0,
+      };
+    } catch (error) {
+      console.error("[SessionManager] 获取全局统计失败:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * 更新会话标题
+   * @param {string} sessionId - 会话 ID
+   * @param {string} title - 新标题
+   * @returns {Promise<Object>} 更新后的会话
+   */
+  async updateTitle(sessionId, title) {
+    try {
+      const session = await this.loadSession(sessionId);
+      session.title = title;
+      session.metadata.updatedAt = Date.now();
+
+      const stmt = this.db.prepare(`
+        UPDATE llm_sessions SET title = ?, updated_at = ? WHERE id = ?
+      `);
+      stmt.run(title, Date.now(), sessionId);
+
+      // 更新缓存
+      this.sessionCache.set(sessionId, session);
+
+      console.log(`[SessionManager] 会话标题已更新: ${sessionId}`);
+      this.emit("session-updated", { sessionId, title });
+
+      return session;
+    } catch (error) {
+      console.error("[SessionManager] 更新标题失败:", error);
+      throw error;
+    }
+  }
 }
 
 module.exports = {

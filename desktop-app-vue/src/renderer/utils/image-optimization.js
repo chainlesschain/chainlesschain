@@ -37,7 +37,7 @@ export class ImageFormatDetector {
     // Detect AVIF
     this.support.avif = await this.detectAVIF();
 
-    console.log('[ImageFormat] Browser support:', this.support);
+    console.log("[ImageFormat] Browser support:", this.support);
   }
 
   /**
@@ -46,7 +46,7 @@ export class ImageFormatDetector {
   detectWebP() {
     return new Promise((resolve) => {
       const webpData =
-        'data:image/webp;base64,UklGRiQAAABXRUJQVlA4IBgAAAAwAQCdASoBAAEAAwA0JaQAA3AA/vuUAAA=';
+        "data:image/webp;base64,UklGRiQAAABXRUJQVlA4IBgAAAAwAQCdASoBAAEAAwA0JaQAA3AA/vuUAAA=";
 
       const img = new Image();
       img.onload = () => resolve(img.width === 1);
@@ -61,7 +61,7 @@ export class ImageFormatDetector {
   detectAVIF() {
     return new Promise((resolve) => {
       const avifData =
-        'data:image/avif;base64,AAAAIGZ0eXBhdmlmAAAAAGF2aWZtaWYxbWlhZk1BMUIAAADybWV0YQAAAAAAAAAoaGRscgAAAAAAAAAAcGljdAAAAAAAAAAAAAAAAGxpYmF2aWYAAAAADnBpdG0AAAAAAAEAAAAeaWxvYwAAAABEAAABAAEAAAABAAABGgAAAB0AAAAoaWluZgAAAAAAAQAAABppbmZlAgAAAAABAABhdjAxQ29sb3IAAAAAamlwcnAAAABLaXBjbwAAABRpc3BlAAAAAAAAAAIAAAACAAAAEHBpeGkAAAAAAwgICAAAAAxhdjFDgQ0MAAAAABNjb2xybmNseAACAAIAAYAAAAAXaXBtYQAAAAAAAAABAAEEAQKDBAAAACVtZGF0EgAKCBgANogQEAwgMg8f8D///8WfhwB8+ErK42A=';
+        "data:image/avif;base64,AAAAIGZ0eXBhdmlmAAAAAGF2aWZtaWYxbWlhZk1BMUIAAADybWV0YQAAAAAAAAAoaGRscgAAAAAAAAAAcGljdAAAAAAAAAAAAAAAAGxpYmF2aWYAAAAADnBpdG0AAAAAAAEAAAAeaWxvYwAAAABEAAABAAEAAAABAAABGgAAAB0AAAAoaWluZgAAAAAAAQAAABppbmZlAgAAAAABAABhdjAxQ29sb3IAAAAAamlwcnAAAABLaXBjbwAAABRpc3BlAAAAAAAAAAIAAAACAAAAEHBpeGkAAAAAAwgICAAAAAxhdjFDgQ0MAAAAABNjb2xybmNseAACAAIAAYAAAAAXaXBtYQAAAAAAAAABAAEEAQKDBAAAACVtZGF0EgAKCBgANogQEAwgMg8f8D///8WfhwB8+ErK42A=";
 
       const img = new Image();
       img.onload = () => resolve(img.width === 2);
@@ -74,9 +74,9 @@ export class ImageFormatDetector {
    * Get best supported format
    */
   getBestFormat() {
-    if (this.support.avif) return 'avif';
-    if (this.support.webp) return 'webp';
-    return 'jpeg';
+    if (this.support.avif) return "avif";
+    if (this.support.webp) return "webp";
+    return "jpeg";
   }
 
   /**
@@ -95,7 +95,7 @@ export class SmartImageLoader {
   constructor(options = {}) {
     this.options = {
       // CDN base URL
-      cdnBase: options.cdnBase || '',
+      cdnBase: options.cdnBase || "",
 
       // Enable responsive images
       responsive: options.responsive !== false,
@@ -131,14 +131,14 @@ export class SmartImageLoader {
       height = null,
       quality = this.options.quality,
       placeholder = this.options.placeholder,
-      priority = 'normal',
+      priority = "normal",
     } = options;
 
     // Check cache
     const cacheKey = this.getCacheKey(src, width, height, quality);
     if (this.cache.has(cacheKey)) {
       if (this.options.debug) {
-        console.log('[SmartImage] Cache hit:', src);
+        console.log("[SmartImage] Cache hit:", src);
       }
       return this.cache.get(cacheKey);
     }
@@ -169,37 +169,40 @@ export class SmartImageLoader {
     const { width, height, quality } = options;
 
     // If using CDN
-    if (this.options.cdnBase && !src.startsWith('data:')) {
+    if (this.options.cdnBase && !src.startsWith("data:")) {
       const params = new URLSearchParams();
 
       // Add format parameter
       if (this.options.webp) {
         const format = this.formatDetector.getBestFormat();
-        params.append('format', format);
+        params.append("format", format);
       }
 
       // Add size parameters
-      if (width) params.append('w', width);
-      if (height) params.append('h', height);
-      if (quality) params.append('q', quality);
+      if (width) params.append("w", width);
+      if (height) params.append("h", height);
+      if (quality) params.append("q", quality);
 
       // Network-aware quality
       if (this.options.networkAware) {
-        const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+        const connection =
+          navigator.connection ||
+          navigator.mozConnection ||
+          navigator.webkitConnection;
         if (connection) {
           const effectiveType = connection.effectiveType;
 
           // Reduce quality on slow networks
-          if (effectiveType === 'slow-2g' || effectiveType === '2g') {
-            params.set('q', Math.min(quality, 50));
-          } else if (effectiveType === '3g') {
-            params.set('q', Math.min(quality, 70));
+          if (effectiveType === "slow-2g" || effectiveType === "2g") {
+            params.set("q", Math.min(quality, 50));
+          } else if (effectiveType === "3g") {
+            params.set("q", Math.min(quality, 70));
           }
         }
       }
 
       const paramString = params.toString();
-      const separator = src.includes('?') ? '&' : '?';
+      const separator = src.includes("?") ? "&" : "?";
 
       return `${this.options.cdnBase}${src}${separator}${paramString}`;
     }
@@ -219,7 +222,7 @@ export class SmartImageLoader {
 
       img.onload = () => {
         if (this.options.debug) {
-          console.log('[SmartImage] Loaded:', src);
+          console.log("[SmartImage] Loaded:", src);
         }
 
         resolve({
@@ -233,16 +236,16 @@ export class SmartImageLoader {
       };
 
       img.onerror = (error) => {
-        console.error('[SmartImage] Failed to load:', src, error);
+        console.error("[SmartImage] Failed to load:", src, error);
         reject(error);
         this.loading.delete(src);
       };
 
       // Set loading priority
-      if (priority === 'high') {
-        img.loading = 'eager';
+      if (priority === "high") {
+        img.loading = "eager";
       } else {
-        img.loading = 'lazy';
+        img.loading = "lazy";
       }
 
       // Start loading
@@ -255,16 +258,14 @@ export class SmartImageLoader {
    * Generate cache key
    */
   getCacheKey(src, width, height, quality) {
-    return `${src}:${width || ''}:${height || ''}:${quality || ''}`;
+    return `${src}:${width || ""}:${height || ""}:${quality || ""}`;
   }
 
   /**
    * Preload images
    */
-  async preload(srcs, priority = 'low') {
-    const promises = srcs.map((src) =>
-      this.load(src, { priority })
-    );
+  async preload(srcs, priority = "low") {
+    const promises = srcs.map((src) => this.load(src, { priority }));
 
     return Promise.all(promises);
   }
@@ -275,7 +276,7 @@ export class SmartImageLoader {
   clearCache() {
     this.cache.clear();
     if (this.options.debug) {
-      console.log('[SmartImage] Cache cleared');
+      console.log("[SmartImage] Cache cleared");
     }
   }
 
@@ -314,7 +315,7 @@ export class ResponsiveImageGenerator {
         });
         return `${url} ${width}w`;
       })
-      .join(', ');
+      .join(", ");
 
     return srcset;
   }
@@ -323,12 +324,12 @@ export class ResponsiveImageGenerator {
    * Generate sizes attribute
    */
   generateSizes(config) {
-    if (typeof config === 'string') {
+    if (typeof config === "string") {
       return config;
     }
 
     // Default responsive sizes
-    return '(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw';
+    return "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw";
   }
 
   /**
@@ -336,14 +337,14 @@ export class ResponsiveImageGenerator {
    */
   createResponsiveImage(src, options = {}) {
     const {
-      alt = '',
-      className = '',
+      alt = "",
+      className = "",
       sizes = null,
       quality = 80,
-      loading = 'lazy',
+      loading = "lazy",
     } = options;
 
-    const img = document.createElement('img');
+    const img = document.createElement("img");
     img.src = src;
     img.alt = alt;
     img.className = className;
@@ -368,22 +369,18 @@ export class ImagePlaceholderGenerator {
    * Generate blur placeholder from image
    */
   static async generateBlurPlaceholder(src, options = {}) {
-    const {
-      width = 40,
-      height = 40,
-      blur = 20,
-    } = options;
+    const { width = 40, height = 40, blur = 20 } = options;
 
     return new Promise((resolve, reject) => {
       const img = new Image();
-      img.crossOrigin = 'anonymous';
+      img.crossOrigin = "anonymous";
 
       img.onload = () => {
-        const canvas = document.createElement('canvas');
+        const canvas = document.createElement("canvas");
         canvas.width = width;
         canvas.height = height;
 
-        const ctx = canvas.getContext('2d');
+        const ctx = canvas.getContext("2d");
 
         // Draw scaled down image
         ctx.drawImage(img, 0, 0, width, height);
@@ -393,7 +390,7 @@ export class ImagePlaceholderGenerator {
         ctx.drawImage(canvas, 0, 0);
 
         // Convert to data URL
-        const placeholder = canvas.toDataURL('image/jpeg', 0.1);
+        const placeholder = canvas.toDataURL("image/jpeg", 0.1);
 
         resolve(placeholder);
       };
@@ -406,12 +403,12 @@ export class ImagePlaceholderGenerator {
   /**
    * Generate solid color placeholder
    */
-  static generateColorPlaceholder(color = '#f0f0f0', width = 1, height = 1) {
-    const canvas = document.createElement('canvas');
+  static generateColorPlaceholder(color = "#f0f0f0", width = 1, height = 1) {
+    const canvas = document.createElement("canvas");
     canvas.width = width;
     canvas.height = height;
 
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
     ctx.fillStyle = color;
     ctx.fillRect(0, 0, width, height);
 
@@ -421,12 +418,16 @@ export class ImagePlaceholderGenerator {
   /**
    * Generate gradient placeholder
    */
-  static generateGradientPlaceholder(colors = ['#f0f0f0', '#e0e0e0'], width = 1, height = 1) {
-    const canvas = document.createElement('canvas');
+  static generateGradientPlaceholder(
+    colors = ["#f0f0f0", "#e0e0e0"],
+    width = 1,
+    height = 1,
+  ) {
+    const canvas = document.createElement("canvas");
     canvas.width = width;
     canvas.height = height;
 
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
     const gradient = ctx.createLinearGradient(0, 0, width, height);
 
     colors.forEach((color, index) => {
@@ -481,7 +482,7 @@ export class ProgressiveImageLoader {
 
       return img;
     } catch (error) {
-      console.error('[ProgressiveImage] Load failed:', error);
+      console.error("[ProgressiveImage] Load failed:", error);
 
       if (this.options.onError) {
         this.options.onError(error);
@@ -495,14 +496,14 @@ export class ProgressiveImageLoader {
    * Show placeholder
    */
   showPlaceholder(placeholderSrc) {
-    const placeholder = document.createElement('img');
+    const placeholder = document.createElement("img");
     placeholder.src = placeholderSrc;
-    placeholder.style.filter = 'blur(20px)';
-    placeholder.style.width = '100%';
-    placeholder.style.height = '100%';
-    placeholder.className = 'progressive-placeholder';
+    placeholder.style.filter = "blur(20px)";
+    placeholder.style.width = "100%";
+    placeholder.style.height = "100%";
+    placeholder.className = "progressive-placeholder";
 
-    this.container.innerHTML = '';
+    this.container.replaceChildren();
     this.container.appendChild(placeholder);
   }
 
@@ -523,18 +524,18 @@ export class ProgressiveImageLoader {
    * Show full image with fade-in
    */
   showImage(img) {
-    img.style.opacity = '0';
+    img.style.opacity = "0";
     img.style.transition = `opacity ${this.options.fadeInDuration}ms ease-in-out`;
-    img.style.width = '100%';
-    img.style.height = '100%';
-    img.className = 'progressive-image';
+    img.style.width = "100%";
+    img.style.height = "100%";
+    img.className = "progressive-image";
 
-    this.container.innerHTML = '';
+    this.container.replaceChildren();
     this.container.appendChild(img);
 
     // Trigger fade-in
     setTimeout(() => {
-      img.style.opacity = '1';
+      img.style.opacity = "1";
     }, 10);
   }
 }

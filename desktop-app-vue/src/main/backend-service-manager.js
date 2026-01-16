@@ -4,22 +4,30 @@
  * 仅在生产环境（打包后）自动启动和管理这些服务
  */
 
-const { spawn, exec, execSync } = require('child_process');
-const path = require('path');
-const fs = require('fs');
-const { app } = require('electron');
-const net = require('net');
+const { spawn, exec, execSync } = require("child_process");
+const path = require("path");
+const fs = require("fs");
+const { app } = require("electron");
+const net = require("net");
 
 class BackendServiceManager {
   constructor() {
     this.services = new Map();
-    this.isProduction = process.env.NODE_ENV === 'production' || app.isPackaged;
+    this.isProduction = process.env.NODE_ENV === "production" || app.isPackaged;
     this.appPath = this.isProduction ? process.resourcesPath : app.getAppPath();
-    this.backendDir = path.join(this.appPath, 'backend');
-    this.dataDir = path.join(path.dirname(this.appPath), 'data');
-    this.logsDir = path.join(this.dataDir, 'logs');
-    this.startupScript = path.join(this.appPath, 'scripts', 'start-backend-services.bat');
-    this.stopScript = path.join(this.appPath, 'scripts', 'stop-backend-services.bat');
+    this.backendDir = path.join(this.appPath, "backend");
+    this.dataDir = path.join(path.dirname(this.appPath), "data");
+    this.logsDir = path.join(this.dataDir, "logs");
+    this.startupScript = path.join(
+      this.appPath,
+      "scripts",
+      "start-backend-services.bat",
+    );
+    this.stopScript = path.join(
+      this.appPath,
+      "scripts",
+      "stop-backend-services.bat",
+    );
 
     // 确保目录存在
     this.ensureDirectories();
@@ -32,12 +40,12 @@ class BackendServiceManager {
     const dirs = [
       this.dataDir,
       this.logsDir,
-      path.join(this.dataDir, 'postgres'),
-      path.join(this.dataDir, 'redis'),
-      path.join(this.dataDir, 'qdrant')
+      path.join(this.dataDir, "postgres"),
+      path.join(this.dataDir, "redis"),
+      path.join(this.dataDir, "qdrant"),
     ];
 
-    dirs.forEach(dir => {
+    dirs.forEach((dir) => {
       if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
       }
@@ -51,15 +59,15 @@ class BackendServiceManager {
     return new Promise((resolve) => {
       const server = net.createServer();
 
-      server.once('error', (err) => {
-        if (err.code === 'EADDRINUSE') {
+      server.once("error", (err) => {
+        if (err.code === "EADDRINUSE") {
           resolve(true);
         } else {
           resolve(false);
         }
       });
 
-      server.once('listening', () => {
+      server.once("listening", () => {
         server.close();
         resolve(false);
       });
@@ -81,62 +89,71 @@ class BackendServiceManager {
   async startServices() {
     // 开发环境下不启动后端服务（假设使用 Docker）
     if (!this.isProduction) {
-      console.log('[Backend Services] Running in development mode, skipping backend service startup');
-      console.log('[Backend Services] Please ensure Docker services are running (docker-compose up)');
+      console.log(
+        "[Backend Services] Running in development mode, skipping backend service startup",
+      );
+      console.log(
+        "[Backend Services] Please ensure Docker services are running (docker-compose up)",
+      );
       return;
     }
 
-    console.log('[Backend Services] Starting backend services...');
-    console.log('[Backend Services] App path:', this.appPath);
-    console.log('[Backend Services] Backend dir:', this.backendDir);
-    console.log('[Backend Services] Data dir:', this.dataDir);
+    console.log("[Backend Services] Starting backend services...");
+    console.log("[Backend Services] App path:", this.appPath);
+    console.log("[Backend Services] Backend dir:", this.backendDir);
+    console.log("[Backend Services] Data dir:", this.dataDir);
 
     try {
       // 检查启动脚本是否存在
       if (!fs.existsSync(this.startupScript)) {
-        console.warn(`[Backend Services] Startup script not found: ${this.startupScript}`);
-        console.warn('[Backend Services] Attempting to start services individually...');
+        console.warn(
+          `[Backend Services] Startup script not found: ${this.startupScript}`,
+        );
+        console.warn(
+          "[Backend Services] Attempting to start services individually...",
+        );
         await this.startIndividualServices();
         return;
       }
 
       // 使用批处理脚本启动所有服务
-      const startProcess = spawn('cmd.exe', ['/c', this.startupScript], {
+      const startProcess = spawn("cmd.exe", ["/c", this.startupScript], {
         windowsHide: false,
         detached: false,
-        stdio: ['ignore', 'pipe', 'pipe']
+        stdio: ["ignore", "pipe", "pipe"],
       });
 
-      startProcess.stdout.on('data', (data) => {
+      startProcess.stdout.on("data", (data) => {
         console.log(`[Backend Services] ${data.toString().trim()}`);
       });
 
-      startProcess.stderr.on('data', (data) => {
+      startProcess.stderr.on("data", (data) => {
         const message = data.toString().trim();
         if (message) {
           console.error(`[Backend Services Error] ${message}`);
         }
       });
 
-      startProcess.on('error', (error) => {
-        console.error('[Backend Services] Failed to start services:', error);
+      startProcess.on("error", (error) => {
+        console.error("[Backend Services] Failed to start services:", error);
       });
 
-      startProcess.on('exit', (code) => {
+      startProcess.on("exit", (code) => {
         if (code === 0) {
-          console.log('[Backend Services] All services started successfully');
+          console.log("[Backend Services] All services started successfully");
         } else {
-          console.error(`[Backend Services] Startup script exited with code ${code}`);
+          console.error(
+            `[Backend Services] Startup script exited with code ${code}`,
+          );
         }
       });
 
-      this.services.set('startup', startProcess);
+      this.services.set("startup", startProcess);
 
       // 等待服务启动
       await this.waitForServices();
-
     } catch (error) {
-      console.error('[Backend Services] Error starting services:', error);
+      console.error("[Backend Services] Error starting services:", error);
     }
   }
 
@@ -145,18 +162,22 @@ class BackendServiceManager {
    */
   async startIndividualServices() {
     const services = [
-      { name: 'PostgreSQL', port: 5432, exe: 'postgres.exe' },
-      { name: 'Redis', port: 6379, exe: 'redis-server.exe' },
-      { name: 'Qdrant', port: 6333, exe: 'qdrant.exe' },
-      { name: 'Project Service', port: 9090, exe: 'java.exe' }
+      { name: "PostgreSQL", port: 5432, exe: "postgres.exe" },
+      { name: "Redis", port: 6379, exe: "redis-server.exe" },
+      { name: "Qdrant", port: 6333, exe: "qdrant.exe" },
+      { name: "Project Service", port: 9090, exe: "java.exe" },
     ];
 
     for (const service of services) {
       const isRunning = await this.checkService(service.name, service.port);
       if (isRunning) {
-        console.log(`[Backend Services] ${service.name} is already running on port ${service.port}`);
+        console.log(
+          `[Backend Services] ${service.name} is already running on port ${service.port}`,
+        );
       } else {
-        console.log(`[Backend Services] ${service.name} is not running, may need manual start`);
+        console.log(
+          `[Backend Services] ${service.name} is not running, may need manual start`,
+        );
       }
     }
   }
@@ -166,10 +187,10 @@ class BackendServiceManager {
    */
   async waitForServices() {
     const services = [
-      { name: 'PostgreSQL', port: 5432 },
-      { name: 'Redis', port: 6379 },
-      { name: 'Qdrant', port: 6333 },
-      { name: 'Project Service', port: 9090 }
+      { name: "PostgreSQL", port: 5432 },
+      { name: "Redis", port: 6379 },
+      { name: "Qdrant", port: 6333 },
+      { name: "Project Service", port: 9090 },
     ];
 
     const maxRetries = 30; // 最多等待30秒
@@ -182,15 +203,19 @@ class BackendServiceManager {
       while (retries < maxRetries && !isRunning) {
         isRunning = await this.checkService(service.name, service.port);
         if (!isRunning) {
-          await new Promise(resolve => setTimeout(resolve, retryDelay));
+          await new Promise((resolve) => setTimeout(resolve, retryDelay));
           retries++;
         }
       }
 
       if (isRunning) {
-        console.log(`[Backend Services] ✓ ${service.name} is ready (port ${service.port})`);
+        console.log(
+          `[Backend Services] ✓ ${service.name} is ready (port ${service.port})`,
+        );
       } else {
-        console.warn(`[Backend Services] ✗ ${service.name} failed to start (port ${service.port})`);
+        console.warn(
+          `[Backend Services] ✗ ${service.name} failed to start (port ${service.port})`,
+        );
       }
     }
   }
@@ -200,26 +225,34 @@ class BackendServiceManager {
    */
   async stopServices() {
     if (!this.isProduction) {
-      console.log('[Backend Services] Running in development mode, skipping service shutdown');
+      console.log(
+        "[Backend Services] Running in development mode, skipping service shutdown",
+      );
       return;
     }
 
-    console.log('[Backend Services] Stopping backend services...');
+    console.log("[Backend Services] Stopping backend services...");
 
     try {
       if (fs.existsSync(this.stopScript)) {
-        // 使用批处理脚本停止所有服务
-        execSync(`cmd /c "${this.stopScript}"`, {
+        // 验证脚本路径安全性 - 必须在应用目录下
+        const normalizedPath = path.normalize(this.stopScript);
+        if (!normalizedPath.startsWith(this.appPath)) {
+          throw new Error("Invalid script path");
+        }
+        // 使用 spawn 替代 execSync 避免 shell 注入
+        const { spawnSync } = require("child_process");
+        spawnSync("cmd", ["/c", normalizedPath], {
           windowsHide: true,
-          timeout: 10000
+          timeout: 10000,
         });
-        console.log('[Backend Services] All services stopped successfully');
+        console.log("[Backend Services] All services stopped successfully");
       } else {
         // 备用方案：直接杀进程
         await this.killServiceProcesses();
       }
     } catch (error) {
-      console.error('[Backend Services] Error stopping services:', error);
+      console.error("[Backend Services] Error stopping services:", error);
       // 强制杀进程
       await this.killServiceProcesses();
     }
@@ -232,18 +265,21 @@ class BackendServiceManager {
    * 强制终止服务进程
    */
   async killServiceProcesses() {
-    const processes = [
-      'java.exe',
-      'qdrant.exe',
-      'redis-server.exe',
-      'postgres.exe'
-    ];
+    // 白名单 - 只允许终止这些进程
+    const allowedProcesses = new Set([
+      "java.exe",
+      "qdrant.exe",
+      "redis-server.exe",
+      "postgres.exe",
+    ]);
 
-    for (const processName of processes) {
+    for (const processName of allowedProcesses) {
       try {
-        execSync(`taskkill /F /IM ${processName} /T`, {
+        // 使用 spawnSync 替代 execSync 避免 shell 注入
+        const { spawnSync } = require("child_process");
+        spawnSync("taskkill", ["/F", "/IM", processName, "/T"], {
           windowsHide: true,
-          timeout: 3000
+          timeout: 3000,
         });
         console.log(`[Backend Services] Killed ${processName}`);
       } catch (error) {
@@ -257,10 +293,10 @@ class BackendServiceManager {
    */
   async getServicesStatus() {
     const services = [
-      { name: 'PostgreSQL', port: 5432 },
-      { name: 'Redis', port: 6379 },
-      { name: 'Qdrant', port: 6333 },
-      { name: 'Project Service', port: 9090 }
+      { name: "PostgreSQL", port: 5432 },
+      { name: "Redis", port: 6379 },
+      { name: "Qdrant", port: 6333 },
+      { name: "Project Service", port: 9090 },
     ];
 
     const status = {};
@@ -269,7 +305,7 @@ class BackendServiceManager {
       const isRunning = await this.checkService(service.name, service.port);
       status[service.name] = {
         running: isRunning,
-        port: service.port
+        port: service.port,
       };
     }
 
@@ -280,9 +316,9 @@ class BackendServiceManager {
    * 重启服务
    */
   async restartServices() {
-    console.log('[Backend Services] Restarting services...');
+    console.log("[Backend Services] Restarting services...");
     await this.stopServices();
-    await new Promise(resolve => setTimeout(resolve, 3000)); // 等待3秒
+    await new Promise((resolve) => setTimeout(resolve, 3000)); // 等待3秒
     await this.startServices();
   }
 }

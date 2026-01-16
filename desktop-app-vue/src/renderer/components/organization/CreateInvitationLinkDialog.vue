@@ -50,7 +50,10 @@
             :disabled="formData.unlimited"
             style="width: 150px"
           />
-          <a-checkbox v-model:checked="formData.unlimited" @change="handleUnlimitedChange">
+          <a-checkbox
+            v-model:checked="formData.unlimited"
+            @change="handleUnlimitedChange"
+          >
             无限制
           </a-checkbox>
         </a-space>
@@ -60,7 +63,10 @@
       </a-form-item>
 
       <a-form-item label="过期时间" name="expiresIn">
-        <a-radio-group v-model:value="formData.expiresInOption" @change="handleExpiresChange">
+        <a-radio-group
+          v-model:value="formData.expiresInOption"
+          @change="handleExpiresChange"
+        >
           <a-radio value="1h">1小时</a-radio>
           <a-radio value="1d">1天</a-radio>
           <a-radio value="7d">7天</a-radio>
@@ -79,7 +85,10 @@
           :disabled-date="disabledDate"
         />
 
-        <div v-if="formData.expiresInOption !== 'never'" style="margin-top: 8px; color: #8c8c8c; font-size: 12px">
+        <div
+          v-if="formData.expiresInOption !== 'never'"
+          style="margin-top: 8px; color: #8c8c8c; font-size: 12px"
+        >
           <ClockCircleOutlined /> 过期后链接将自动失效
         </div>
       </a-form-item>
@@ -87,19 +96,31 @@
       <a-form-item label="高级选项" name="advanced">
         <a-collapse ghost>
           <a-collapse-panel key="1" header="元数据（可选）">
-            <a-form-item label="来源" :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
+            <a-form-item
+              label="来源"
+              :label-col="{ span: 6 }"
+              :wrapper-col="{ span: 18 }"
+            >
               <a-input
                 v-model:value="formData.metadata.source"
                 placeholder="例如：email, social_media"
               />
             </a-form-item>
-            <a-form-item label="活动" :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
+            <a-form-item
+              label="活动"
+              :label-col="{ span: 6 }"
+              :wrapper-col="{ span: 18 }"
+            >
               <a-input
                 v-model:value="formData.metadata.campaign"
                 placeholder="例如：Q1_2026"
               />
             </a-form-item>
-            <a-form-item label="备注" :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
+            <a-form-item
+              label="备注"
+              :label-col="{ span: 6 }"
+              :wrapper-col="{ span: 18 }"
+            >
               <a-textarea
                 v-model:value="formData.metadata.notes"
                 placeholder="内部备注"
@@ -183,12 +204,22 @@
               </a-tag>
             </a-descriptions-item>
             <a-descriptions-item label="最大使用次数">
-              {{ createdLink.maxUses === 999999 ? '无限制' : createdLink.maxUses }}
+              {{
+                createdLink.maxUses === 999999 ? "无限制" : createdLink.maxUses
+              }}
             </a-descriptions-item>
             <a-descriptions-item label="过期时间" :span="2">
-              {{ createdLink.expiresAt ? formatDate(createdLink.expiresAt) : '永不过期' }}
+              {{
+                createdLink.expiresAt
+                  ? formatDate(createdLink.expiresAt)
+                  : "永不过期"
+              }}
             </a-descriptions-item>
-            <a-descriptions-item label="邀请消息" :span="2" v-if="createdLink.message">
+            <a-descriptions-item
+              label="邀请消息"
+              :span="2"
+              v-if="createdLink.message"
+            >
               {{ createdLink.message }}
             </a-descriptions-item>
           </a-descriptions>
@@ -203,31 +234,31 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch, nextTick } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, reactive, computed, watch, nextTick } from "vue";
+import { message } from "ant-design-vue";
 import {
   InfoCircleOutlined,
   ClockCircleOutlined,
   CopyOutlined,
-  DownloadOutlined
-} from '@ant-design/icons-vue';
-import QRCode from 'qrcode';
-import dayjs from 'dayjs';
+  DownloadOutlined,
+} from "@ant-design/icons-vue";
+import QRCode from "qrcode";
+import dayjs from "dayjs";
 
 // Props
 const props = defineProps({
   visible: {
     type: Boolean,
-    default: false
+    default: false,
   },
   orgId: {
     type: String,
-    required: true
-  }
+    required: true,
+  },
 });
 
 // Emits
-const emit = defineEmits(['update:visible', 'created']);
+const emit = defineEmits(["update:visible", "created"]);
 
 // State
 const loading = ref(false);
@@ -237,34 +268,32 @@ const qrcodeRef = ref(null);
 const createdLink = ref({});
 
 const formData = reactive({
-  role: 'member',
-  message: '',
+  role: "member",
+  message: "",
   maxUses: 10,
   unlimited: false,
-  expiresInOption: '7d',
+  expiresInOption: "7d",
   customExpireDate: null,
   metadata: {
-    source: '',
-    campaign: '',
-    notes: ''
-  }
+    source: "",
+    campaign: "",
+    notes: "",
+  },
 });
 
 // Validation rules
 const rules = {
-  role: [
-    { required: true, message: '请选择角色', trigger: 'change' }
-  ],
+  role: [{ required: true, message: "请选择角色", trigger: "change" }],
   maxUses: [
-    { required: true, message: '请输入使用次数', trigger: 'blur' },
-    { type: 'number', min: 1, message: '使用次数至少为1', trigger: 'blur' }
-  ]
+    { required: true, message: "请输入使用次数", trigger: "blur" },
+    { type: "number", min: 1, message: "使用次数至少为1", trigger: "blur" },
+  ],
 };
 
 // Computed
 const visible = computed({
   get: () => props.visible,
-  set: (val) => emit('update:visible', val)
+  set: (val) => emit("update:visible", val),
 });
 
 // Methods
@@ -276,20 +305,20 @@ const handleCreate = async () => {
 
     // 计算过期时间
     let expiresIn = null;
-    if (formData.expiresInOption !== 'never') {
-      if (formData.expiresInOption === 'custom') {
+    if (formData.expiresInOption !== "never") {
+      if (formData.expiresInOption === "custom") {
         if (!formData.customExpireDate) {
-          message.error('请选择过期时间');
+          message.error("请选择过期时间");
           loading.value = false;
           return;
         }
         expiresIn = formData.customExpireDate.valueOf() - Date.now();
       } else {
         const timeMap = {
-          '1h': 60 * 60 * 1000,
-          '1d': 24 * 60 * 60 * 1000,
-          '7d': 7 * 24 * 60 * 60 * 1000,
-          '30d': 30 * 24 * 60 * 60 * 1000
+          "1h": 60 * 60 * 1000,
+          "1d": 24 * 60 * 60 * 1000,
+          "7d": 7 * 24 * 60 * 60 * 1000,
+          "30d": 30 * 24 * 60 * 60 * 1000,
         };
         expiresIn = timeMap[formData.expiresInOption];
       }
@@ -298,18 +327,22 @@ const handleCreate = async () => {
     // 准备元数据
     const metadata = {};
     if (formData.metadata.source) metadata.source = formData.metadata.source;
-    if (formData.metadata.campaign) metadata.campaign = formData.metadata.campaign;
+    if (formData.metadata.campaign)
+      metadata.campaign = formData.metadata.campaign;
     if (formData.metadata.notes) metadata.notes = formData.metadata.notes;
 
     // 调用IPC创建链接
-    const result = await window.electron.ipcRenderer.invoke('org:create-invitation-link', {
-      orgId: props.orgId,
-      role: formData.role,
-      message: formData.message,
-      maxUses: formData.unlimited ? -1 : formData.maxUses,
-      expiresIn,
-      metadata
-    });
+    const result = await window.electron.ipcRenderer.invoke(
+      "org:create-invitation-link",
+      {
+        orgId: props.orgId,
+        role: formData.role,
+        message: formData.message,
+        maxUses: formData.unlimited ? -1 : formData.maxUses,
+        expiresIn,
+        metadata,
+      },
+    );
 
     if (result.success) {
       createdLink.value = result.invitationLink;
@@ -320,18 +353,18 @@ const handleCreate = async () => {
       await nextTick();
       await generateQRCode();
 
-      emit('created', result.invitationLink);
+      emit("created", result.invitationLink);
       resetForm();
     } else {
-      message.error(result.error || '创建邀请链接失败');
+      message.error(result.error || "创建邀请链接失败");
     }
   } catch (error) {
     if (error.errorFields) {
       // 表单验证错误
       return;
     }
-    console.error('创建邀请链接失败:', error);
-    message.error('创建邀请链接失败');
+    console.error("创建邀请链接失败:", error);
+    message.error("创建邀请链接失败");
   } finally {
     loading.value = false;
   }
@@ -355,31 +388,31 @@ const handleUnlimitedChange = (e) => {
 };
 
 const handleExpiresChange = () => {
-  if (formData.expiresInOption !== 'custom') {
+  if (formData.expiresInOption !== "custom") {
     formData.customExpireDate = null;
   }
 };
 
 const disabledDate = (current) => {
   // 不能选择过去的日期
-  return current && current < dayjs().startOf('day');
+  return current && current < dayjs().startOf("day");
 };
 
 const copyCreatedLink = async () => {
   try {
     const result = await window.electron.ipcRenderer.invoke(
-      'org:copy-invitation-link',
-      createdLink.value.invitationUrl
+      "org:copy-invitation-link",
+      createdLink.value.invitationUrl,
     );
 
     if (result.success) {
-      message.success('链接已复制到剪贴板');
+      message.success("链接已复制到剪贴板");
     } else {
-      message.error('复制失败');
+      message.error("复制失败");
     }
   } catch (error) {
-    console.error('复制链接失败:', error);
-    message.error('复制链接失败');
+    console.error("复制链接失败:", error);
+    message.error("复制链接失败");
   }
 };
 
@@ -388,48 +421,44 @@ const generateQRCode = async () => {
 
   try {
     // 清空之前的二维码
-    qrcodeRef.value.innerHTML = '';
+    qrcodeRef.value.replaceChildren();
 
     // 生成新的二维码
-    await QRCode.toCanvas(
-      qrcodeRef.value,
-      createdLink.value.invitationUrl,
-      {
-        width: 200,
-        margin: 2,
-        color: {
-          dark: '#000000',
-          light: '#FFFFFF'
-        }
-      }
-    );
+    await QRCode.toCanvas(qrcodeRef.value, createdLink.value.invitationUrl, {
+      width: 200,
+      margin: 2,
+      color: {
+        dark: "#000000",
+        light: "#FFFFFF",
+      },
+    });
   } catch (error) {
-    console.error('生成二维码失败:', error);
+    console.error("生成二维码失败:", error);
   }
 };
 
 const downloadQRCode = () => {
-  const canvas = qrcodeRef.value.querySelector('canvas');
+  const canvas = qrcodeRef.value.querySelector("canvas");
   if (!canvas) return;
 
-  const link = document.createElement('a');
+  const link = document.createElement("a");
   link.download = `invitation-qrcode-${Date.now()}.png`;
   link.href = canvas.toDataURL();
   link.click();
-  message.success('二维码已下载');
+  message.success("二维码已下载");
 };
 
 const resetForm = () => {
-  formData.role = 'member';
-  formData.message = '';
+  formData.role = "member";
+  formData.message = "";
   formData.maxUses = 10;
   formData.unlimited = false;
-  formData.expiresInOption = '7d';
+  formData.expiresInOption = "7d";
   formData.customExpireDate = null;
   formData.metadata = {
-    source: '',
-    campaign: '',
-    notes: ''
+    source: "",
+    campaign: "",
+    notes: "",
   };
   formRef.value?.resetFields();
 };
@@ -437,34 +466,37 @@ const resetForm = () => {
 // Helper functions
 const getRoleColor = (role) => {
   const colors = {
-    owner: 'red',
-    admin: 'orange',
-    member: 'blue',
-    viewer: 'green'
+    owner: "red",
+    admin: "orange",
+    member: "blue",
+    viewer: "green",
   };
-  return colors[role] || 'default';
+  return colors[role] || "default";
 };
 
 const getRoleLabel = (role) => {
   const labels = {
-    owner: '所有者',
-    admin: '管理员',
-    member: '成员',
-    viewer: '访客'
+    owner: "所有者",
+    admin: "管理员",
+    member: "成员",
+    viewer: "访客",
   };
   return labels[role] || role;
 };
 
 const formatDate = (timestamp) => {
-  return dayjs(timestamp).format('YYYY-MM-DD HH:mm:ss');
+  return dayjs(timestamp).format("YYYY-MM-DD HH:mm:ss");
 };
 
 // Watch
-watch(() => props.visible, (val) => {
-  if (val) {
-    resetForm();
-  }
-});
+watch(
+  () => props.visible,
+  (val) => {
+    if (val) {
+      resetForm();
+    }
+  },
+);
 </script>
 
 <style scoped lang="scss">
@@ -472,7 +504,12 @@ watch(() => props.visible, (val) => {
   margin-bottom: 20px;
 }
 
-:deep(.ant-collapse-ghost > .ant-collapse-item > .ant-collapse-content > .ant-collapse-content-box) {
+:deep(
+  .ant-collapse-ghost
+    > .ant-collapse-item
+    > .ant-collapse-content
+    > .ant-collapse-content-box
+) {
   padding-top: 12px;
 }
 </style>
