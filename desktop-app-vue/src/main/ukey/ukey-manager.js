@@ -2,26 +2,31 @@
  * U盾管理器
  *
  * 统一管理多种U盾驱动
+ * 支持国产U盾（鑫金科、飞天、握奇、华大、天地融）
+ * 支持跨平台 PKCS#11 标准驱动
  */
 
-const XinJinKeDriver = require('./xinjinke-driver');
-const FeiTianDriver = require('./feitian-driver');
-const WatchDataDriver = require('./watchdata-driver');
-const HuadaDriver = require('./huada-driver');
-const TDRDriver = require('./tdr-driver');
-const SimulatedDriver = require('./simulated-driver');
-const EventEmitter = require('events');
+const XinJinKeDriver = require("./xinjinke-driver");
+const FeiTianDriver = require("./feitian-driver");
+const WatchDataDriver = require("./watchdata-driver");
+const HuadaDriver = require("./huada-driver");
+const TDRDriver = require("./tdr-driver");
+const SimulatedDriver = require("./simulated-driver");
+const PKCS11Driver = require("./pkcs11-driver");
+const EventEmitter = require("events");
+const os = require("os");
 
 /**
  * U盾驱动类型
  */
 const DriverTypes = {
-  XINJINKE: 'xinjinke',
-  FEITIAN: 'feitian',
-  WATCHDATA: 'watchdata',
-  HUADA: 'huada',
-  TDR: 'tdr',
-  SIMULATED: 'simulated',
+  XINJINKE: "xinjinke",
+  FEITIAN: "feitian",
+  WATCHDATA: "watchdata",
+  HUADA: "huada",
+  TDR: "tdr",
+  PKCS11: "pkcs11", // 跨平台 PKCS#11 标准
+  SIMULATED: "simulated",
 };
 
 /**
@@ -52,24 +57,19 @@ class UKeyManager extends EventEmitter {
   async initialize() {
     // console.log('[UKeyManager] 初始化U盾管理器...');
 
-    try {
-      // 创建驱动实例
-      this.currentDriver = await this.createDriver(this.driverType);
+    // 创建驱动实例
+    this.currentDriver = await this.createDriver(this.driverType);
 
-      // 初始化驱动
-      await this.currentDriver.initialize();
+    // 初始化驱动
+    await this.currentDriver.initialize();
 
-      this.isInitialized = true;
-      // console.log('[UKeyManager] U盾管理器初始化成功');
+    this.isInitialized = true;
+    // console.log('[UKeyManager] U盾管理器初始化成功');
 
-      // 发射初始化事件
-      this.emit('initialized');
+    // 发射初始化事件
+    this.emit("initialized");
 
-      return true;
-    } catch (error) {
-      // console.error('[UKeyManager] 初始化失败:', error);
-      throw error;
-    }
+    return true;
   }
 
   /**
@@ -105,6 +105,10 @@ class UKeyManager extends EventEmitter {
         driver = new TDRDriver(this.config);
         break;
 
+      case DriverTypes.PKCS11:
+        driver = new PKCS11Driver(this.config);
+        break;
+
       case DriverTypes.SIMULATED:
         driver = new SimulatedDriver(this.config);
         break;
@@ -126,45 +130,53 @@ class UKeyManager extends EventEmitter {
   async switchDriver(driverType) {
     // console.log('[UKeyManager] 切换驱动类型:', driverType);
 
-    try {
-      // 关闭当前驱动
-      if (this.currentDriver) {
-        await this.currentDriver.close();
-      }
-
-      // 创建并初始化新驱动
-      this.currentDriver = await this.createDriver(driverType);
-      await this.currentDriver.initialize();
-
-      this.driverType = driverType;
-
-      // 发射驱动切换事件
-      this.emit('driver-changed', driverType);
-
-      // console.log('[UKeyManager] 驱动切换成功');
-      return true;
-    } catch (error) {
-      // console.error('[UKeyManager] 切换驱动失败:', error);
-      throw error;
+    // 关闭当前驱动
+    if (this.currentDriver) {
+      await this.currentDriver.close();
     }
+
+    // 创建并初始化新驱动
+    this.currentDriver = await this.createDriver(driverType);
+    await this.currentDriver.initialize();
+
+    this.driverType = driverType;
+
+    // 发射驱动切换事件
+    this.emit("driver-changed", driverType);
+
+    // console.log('[UKeyManager] 驱动切换成功');
+    return true;
   }
 
   /**
    * 自动检测U盾类型
    *
    * 尝试不同的驱动，看哪个能成功检测到设备
+   * Windows: 优先使用国产驱动，然后 PKCS#11
+   * macOS/Linux: 优先使用 PKCS#11（跨平台支持）
    */
   async autoDetect() {
     // console.log('[UKeyManager] 自动检测U盾类型...');
 
-    // 支持的驱动列表（按优先级排序）
-    const driverTypes = [
-      DriverTypes.XINJINKE,    // 鑫金科
-      DriverTypes.FEITIAN,     // 飞天诚信
-      DriverTypes.WATCHDATA,   // 握奇（卫士通）
-      DriverTypes.HUADA,       // 华大
-      DriverTypes.TDR,         // 天地融
-    ];
+    const platform = os.platform();
+    let driverTypes;
+
+    if (platform === "win32") {
+      // Windows: 国产驱动优先
+      driverTypes = [
+        DriverTypes.XINJINKE, // 鑫金科
+        DriverTypes.FEITIAN, // 飞天诚信
+        DriverTypes.WATCHDATA, // 握奇（卫士通）
+        DriverTypes.HUADA, // 华大
+        DriverTypes.TDR, // 天地融
+        DriverTypes.PKCS11, // PKCS#11 作为后备
+      ];
+    } else {
+      // macOS/Linux: PKCS#11 优先（跨平台支持最好）
+      driverTypes = [
+        DriverTypes.PKCS11, // PKCS#11 跨平台标准
+      ];
+    }
 
     for (const type of driverTypes) {
       try {
@@ -178,7 +190,7 @@ class UKeyManager extends EventEmitter {
           this.currentDriver = driver;
           this.driverType = type;
 
-          this.emit('device-detected', { driverType: type, status });
+          this.emit("device-detected", { driverType: type, status });
 
           return {
             detected: true,
@@ -208,18 +220,18 @@ class UKeyManager extends EventEmitter {
       // 在非Windows平台上，返回未检测到设备的状态，而不是抛出错误
       return {
         detected: false,
-        reason: 'driver_not_initialized',
-        message: 'U-Key driver not available on this platform (Windows only)',
-        platform: process.platform
+        reason: "driver_not_initialized",
+        message: "U-Key driver not available on this platform (Windows only)",
+        platform: process.platform,
       };
     }
 
     const status = await this.currentDriver.detect();
 
     if (status.detected) {
-      this.emit('device-detected', status);
+      this.emit("device-detected", status);
     } else {
-      this.emit('device-not-found');
+      this.emit("device-not-found");
     }
 
     return status;
@@ -232,17 +244,17 @@ class UKeyManager extends EventEmitter {
     if (!this.currentDriver) {
       return {
         success: false,
-        reason: 'driver_not_initialized',
-        message: 'U-Key driver not available on this platform (Windows only)'
+        reason: "driver_not_initialized",
+        message: "U-Key driver not available on this platform (Windows only)",
       };
     }
 
     const result = await this.currentDriver.verifyPIN(pin);
 
     if (result.success) {
-      this.emit('unlocked', result);
+      this.emit("unlocked", result);
     } else {
-      this.emit('unlock-failed', result);
+      this.emit("unlock-failed", result);
     }
 
     return result;
@@ -255,16 +267,16 @@ class UKeyManager extends EventEmitter {
     if (!this.currentDriver) {
       return {
         success: false,
-        reason: 'driver_not_initialized',
-        message: 'U-Key driver not available on this platform (Windows only)'
+        reason: "driver_not_initialized",
+        message: "U-Key driver not available on this platform (Windows only)",
       };
     }
 
     if (!this.currentDriver.isDeviceUnlocked()) {
       return {
         success: false,
-        reason: 'device_locked',
-        message: 'U-Key device is locked'
+        reason: "device_locked",
+        message: "U-Key device is locked",
       };
     }
 
@@ -278,8 +290,8 @@ class UKeyManager extends EventEmitter {
     if (!this.currentDriver) {
       return {
         success: false,
-        reason: 'driver_not_initialized',
-        message: 'U-Key driver not available on this platform (Windows only)'
+        reason: "driver_not_initialized",
+        message: "U-Key driver not available on this platform (Windows only)",
       };
     }
 
@@ -293,16 +305,16 @@ class UKeyManager extends EventEmitter {
     if (!this.currentDriver) {
       return {
         success: false,
-        reason: 'driver_not_initialized',
-        message: 'U-Key driver not available on this platform (Windows only)'
+        reason: "driver_not_initialized",
+        message: "U-Key driver not available on this platform (Windows only)",
       };
     }
 
     if (!this.currentDriver.isDeviceUnlocked()) {
       return {
         success: false,
-        reason: 'device_locked',
-        message: 'U-Key device is locked'
+        reason: "device_locked",
+        message: "U-Key device is locked",
       };
     }
 
@@ -316,16 +328,16 @@ class UKeyManager extends EventEmitter {
     if (!this.currentDriver) {
       return {
         success: false,
-        reason: 'driver_not_initialized',
-        message: 'U-Key driver not available on this platform (Windows only)'
+        reason: "driver_not_initialized",
+        message: "U-Key driver not available on this platform (Windows only)",
       };
     }
 
     if (!this.currentDriver.isDeviceUnlocked()) {
       return {
         success: false,
-        reason: 'device_locked',
-        message: 'U-Key device is locked'
+        reason: "device_locked",
+        message: "U-Key device is locked",
       };
     }
 
@@ -337,7 +349,7 @@ class UKeyManager extends EventEmitter {
    */
   async getPublicKey() {
     if (!this.currentDriver) {
-      throw new Error('驱动未初始化');
+      throw new Error("驱动未初始化");
     }
 
     return await this.currentDriver.getPublicKey();
@@ -348,7 +360,7 @@ class UKeyManager extends EventEmitter {
    */
   async getDeviceInfo() {
     if (!this.currentDriver) {
-      throw new Error('驱动未初始化');
+      throw new Error("驱动未初始化");
     }
 
     return await this.currentDriver.getDeviceInfo();
@@ -360,7 +372,7 @@ class UKeyManager extends EventEmitter {
   lock() {
     if (this.currentDriver) {
       this.currentDriver.lock();
-      this.emit('locked');
+      this.emit("locked");
     }
   }
 
@@ -423,7 +435,7 @@ class UKeyManager extends EventEmitter {
     this.currentDriver = null;
     this.isInitialized = false;
 
-    this.emit('closed');
+    this.emit("closed");
   }
 
   /**
@@ -442,11 +454,11 @@ class UKeyManager extends EventEmitter {
 
         if (status.detected && !lastDetected) {
           // 设备插入
-          this.emit('device-connected', status);
+          this.emit("device-connected", status);
           lastDetected = true;
         } else if (!status.detected && lastDetected) {
           // 设备拔出
-          this.emit('device-disconnected');
+          this.emit("device-disconnected");
           lastDetected = false;
 
           // 自动锁定
