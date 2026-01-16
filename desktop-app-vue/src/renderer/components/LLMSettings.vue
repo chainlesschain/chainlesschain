@@ -9,17 +9,20 @@
       >
         <!-- 提供商选择 -->
         <a-form-item label="服务提供商">
-          <a-radio-group v-model:value="form.provider" @change="handleProviderChange">
+          <a-radio-group
+            v-model:value="form.provider"
+            @change="handleProviderChange"
+          >
             <a-radio-button value="ollama">Ollama (本地)</a-radio-button>
             <a-radio-button value="openai">OpenAI</a-radio-button>
-            <a-radio-button value="anthropic">Claude (Anthropic)</a-radio-button>
+            <a-radio-button value="anthropic"
+              >Claude (Anthropic)</a-radio-button
+            >
             <a-radio-button value="volcengine">豆包 (字节)</a-radio-button>
             <a-radio-button value="deepseek">DeepSeek</a-radio-button>
             <a-radio-button value="custom">自定义API</a-radio-button>
           </a-radio-group>
-          <div class="form-hint">
-            选择LLM服务提供商
-          </div>
+          <div class="form-hint">选择LLM服务提供商</div>
         </a-form-item>
 
         <!-- Ollama 配置 -->
@@ -42,7 +45,8 @@
               placeholder="输入模型名称，如 llama3.2, qwen2.5, mistral"
             />
             <div class="form-hint">
-              常用模型: llama3.2, llama3.1, qwen2.5, qwen2, mistral, codellama, gemma2
+              常用模型: llama3.2, llama3.1, qwen2.5, qwen2, mistral, codellama,
+              gemma2
             </div>
           </a-form-item>
         </template>
@@ -56,9 +60,7 @@
               v-model:value="form.openai.apiKey"
               placeholder="sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
             />
-            <div class="form-hint">
-              OpenAI API 密钥
-            </div>
+            <div class="form-hint">OpenAI API 密钥</div>
           </a-form-item>
 
           <a-form-item label="API 地址">
@@ -66,9 +68,7 @@
               v-model:value="form.openai.baseURL"
               placeholder="https://api.openai.com/v1"
             />
-            <div class="form-hint">
-              默认为官方API地址，使用代理时可修改
-            </div>
+            <div class="form-hint">默认为官方API地址，使用代理时可修改</div>
           </a-form-item>
 
           <a-form-item label="模型">
@@ -86,9 +86,7 @@
               v-model:value="form.openai.organization"
               placeholder="org-xxxxxxxxxxxxxxxx (可选)"
             />
-            <div class="form-hint">
-              组织ID（可选）
-            </div>
+            <div class="form-hint">组织ID（可选）</div>
           </a-form-item>
         </template>
 
@@ -101,9 +99,7 @@
               v-model:value="form.anthropic.apiKey"
               placeholder="sk-ant-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
             />
-            <div class="form-hint">
-              Anthropic API 密钥
-            </div>
+            <div class="form-hint">Anthropic API 密钥</div>
           </a-form-item>
 
           <a-form-item label="API 地址">
@@ -111,9 +107,7 @@
               v-model:value="form.anthropic.baseURL"
               placeholder="https://api.anthropic.com"
             />
-            <div class="form-hint">
-              默认官方 API 地址，可用于代理/私有部署
-            </div>
+            <div class="form-hint">默认官方 API 地址，可用于代理/私有部署</div>
           </a-form-item>
 
           <a-form-item label="模型">
@@ -122,7 +116,8 @@
               placeholder="输入模型名称，如 claude-3-5-sonnet-20241022"
             />
             <div class="form-hint">
-              常用模型: claude-3-5-sonnet-20241022, claude-3-opus-20240229, claude-3-haiku-20240307
+              常用模型: claude-3-5-sonnet-20241022, claude-3-opus-20240229,
+              claude-3-haiku-20240307
             </div>
           </a-form-item>
         </template>
@@ -146,9 +141,7 @@
               v-model:value="form.deepseek.apiKey"
               placeholder="sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
             />
-            <div class="form-hint">
-              DeepSeek API 密钥
-            </div>
+            <div class="form-hint">DeepSeek API 密钥</div>
           </a-form-item>
 
           <a-form-item label="模型">
@@ -156,9 +149,7 @@
               v-model:value="form.deepseek.model"
               placeholder="输入模型名称，如 deepseek-chat, deepseek-coder"
             />
-            <div class="form-hint">
-              常用模型: deepseek-chat, deepseek-coder
-            </div>
+            <div class="form-hint">常用模型: deepseek-chat, deepseek-coder</div>
           </a-form-item>
         </template>
 
@@ -197,7 +188,8 @@
             >
             </a-select>
             <div class="form-hint">
-              选择常用模型或输入自定义模型名称（必须包含年月版本号，如 doubao-pro-32k-241202）
+              选择常用模型或输入自定义模型名称（必须包含年月版本号，如
+              doubao-pro-32k-241202）
             </div>
           </a-form-item>
         </template>
@@ -218,9 +210,7 @@
               v-model:value="form.custom.baseURL"
               placeholder="https://api.example.com/v1"
             />
-            <div class="form-hint">
-              兼容 OpenAI API 格式的服务地址
-            </div>
+            <div class="form-hint">兼容 OpenAI API 格式的服务地址</div>
           </a-form-item>
 
           <a-form-item label="API Key">
@@ -235,9 +225,7 @@
               v-model:value="form.custom.model"
               placeholder="model-name"
             />
-            <div class="form-hint">
-              模型标识符
-            </div>
+            <div class="form-hint">模型标识符</div>
           </a-form-item>
         </template>
 
@@ -265,9 +253,7 @@
             :step="0.05"
             :marks="{ 0: '0', 0.5: '0.5', 1: '1' }"
           />
-          <div class="form-hint">
-            核采样参数。推荐 0.9
-          </div>
+          <div class="form-hint">核采样参数。推荐 0.9</div>
         </a-form-item>
 
         <a-form-item label="Top K">
@@ -277,9 +263,7 @@
             :max="100"
             style="width: 120px"
           />
-          <div class="form-hint">
-            仅保留概率最高的K个词。推荐 40
-          </div>
+          <div class="form-hint">仅保留概率最高的K个词。推荐 40</div>
         </a-form-item>
 
         <a-form-item label="最大Token数">
@@ -290,9 +274,7 @@
             :step="100"
             style="width: 150px"
           />
-          <div class="form-hint">
-            单次生成的最大token数量
-          </div>
+          <div class="form-hint">单次生成的最大token数量</div>
         </a-form-item>
 
         <a-form-item label="超时时间">
@@ -303,9 +285,7 @@
             style="width: 120px"
           />
           <span class="unit-text">秒</span>
-          <div class="form-hint">
-            API请求超时时间
-          </div>
+          <div class="form-hint">API请求超时时间</div>
         </a-form-item>
 
         <!-- 系统提示词 -->
@@ -317,23 +297,17 @@
             :rows="4"
             placeholder="输入系统提示词..."
           />
-          <div class="form-hint">
-            定义AI助手的角色和行为
-          </div>
+          <div class="form-hint">定义AI助手的角色和行为</div>
         </a-form-item>
 
         <a-form-item label="启用流式输出">
           <a-switch v-model:checked="form.streamEnabled" />
-          <div class="form-hint">
-            启用后，响应将逐字显示
-          </div>
+          <div class="form-hint">启用后，响应将逐字显示</div>
         </a-form-item>
 
         <a-form-item label="自动保存对话">
           <a-switch v-model:checked="form.autoSaveConversations" />
-          <div class="form-hint">
-            自动保存对话历史到数据库
-          </div>
+          <div class="form-hint">自动保存对话历史到数据库</div>
         </a-form-item>
 
         <!-- 操作按钮 -->
@@ -345,9 +319,7 @@
             <a-button @click="handleTest" :loading="testing">
               测试连接
             </a-button>
-            <a-button @click="handleReset">
-              恢复默认
-            </a-button>
+            <a-button @click="handleReset"> 恢复默认 </a-button>
           </a-space>
         </a-form-item>
       </a-form>
@@ -367,16 +339,22 @@
           {{ status.models.length }}
         </a-descriptions-item>
         <a-descriptions-item label="错误信息" v-if="status.error" :span="2">
-          <a-typography-text type="danger">{{ status.error }}</a-typography-text>
+          <a-typography-text type="danger">{{
+            status.error
+          }}</a-typography-text>
         </a-descriptions-item>
       </a-descriptions>
     </a-card>
+
+    <!-- Token 使用概览卡片 -->
+    <TokenStatsCard />
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, reactive, computed, onMounted } from "vue";
+import { message } from "ant-design-vue";
+import TokenStatsCard from "./TokenStatsCard.vue";
 
 // 状态
 const loading = ref(false);
@@ -386,7 +364,7 @@ const modelsLoading = ref(false);
 const availableModels = ref([]);
 const status = ref({
   available: false,
-  provider: '',
+  provider: "",
   models: [],
   error: null,
 });
@@ -394,68 +372,88 @@ const status = ref({
 // 火山引擎（豆包）模型选项 - 2025年1月最新版本
 const volcengineModelOptions = [
   // Doubao Seed 1.6 系列（最新推荐 - 注意使用下划线格式）
-  { label: 'doubao-seed-1-6-251015（推荐 - 最新，支持reasoning_effort）', value: 'doubao-seed-1-6-251015' },
-  { label: 'doubao-seed-1-6-250615（支持thinking控制）', value: 'doubao-seed-1-6-250615' },
+  {
+    label: "doubao-seed-1-6-251015（推荐 - 最新，支持reasoning_effort）",
+    value: "doubao-seed-1-6-251015",
+  },
+  {
+    label: "doubao-seed-1-6-250615（支持thinking控制）",
+    value: "doubao-seed-1-6-250615",
+  },
 
   // Doubao 1.5 系列
-  { label: 'doubao-1-5-pro-32k-250115（高性能32k）', value: 'doubao-1-5-pro-32k-250115' },
-  { label: 'doubao-1-5-lite-250115（轻量版）', value: 'doubao-1-5-lite-250115' },
-  { label: 'doubao-1-5-vision-pro-250115（视觉模型）', value: 'doubao-1-5-vision-pro-250115' },
+  {
+    label: "doubao-1-5-pro-32k-250115（高性能32k）",
+    value: "doubao-1-5-pro-32k-250115",
+  },
+  {
+    label: "doubao-1-5-lite-250115（轻量版）",
+    value: "doubao-1-5-lite-250115",
+  },
+  {
+    label: "doubao-1-5-vision-pro-250115（视觉模型）",
+    value: "doubao-1-5-vision-pro-250115",
+  },
 
   // Doubao Pro 系列
-  { label: 'doubao-pro-32k-241215（高性能32k）', value: 'doubao-pro-32k-241215' },
-  { label: 'doubao-pro-32k-240828', value: 'doubao-pro-32k-240828' },
+  {
+    label: "doubao-pro-32k-241215（高性能32k）",
+    value: "doubao-pro-32k-241215",
+  },
+  { label: "doubao-pro-32k-240828", value: "doubao-pro-32k-240828" },
 
   // 其他版本
-  { label: 'doubao-lite-32k（轻量32k）', value: 'doubao-lite-32k' },
+  { label: "doubao-lite-32k（轻量32k）", value: "doubao-lite-32k" },
 ];
 
 // 过滤选项
 const filterOption = (input, option) => {
-  return option.value.toLowerCase().includes(input.toLowerCase()) ||
-         option.label.toLowerCase().includes(input.toLowerCase());
+  return (
+    option.value.toLowerCase().includes(input.toLowerCase()) ||
+    option.label.toLowerCase().includes(input.toLowerCase())
+  );
 };
 
 // 表单数据
 const form = reactive({
-  provider: 'ollama',
+  provider: "ollama",
 
   ollama: {
-    url: 'http://localhost:11434',
-    model: 'llama2',
+    url: "http://localhost:11434",
+    model: "llama2",
   },
 
   openai: {
-    apiKey: '',
-    baseURL: 'https://api.openai.com/v1',
-    model: 'gpt-3.5-turbo',
-    organization: '',
+    apiKey: "",
+    baseURL: "https://api.openai.com/v1",
+    model: "gpt-3.5-turbo",
+    organization: "",
   },
 
   anthropic: {
-    apiKey: '',
-    baseURL: 'https://api.anthropic.com',
-    model: 'claude-3-opus-20240229',
-    version: '2023-06-01',
+    apiKey: "",
+    baseURL: "https://api.anthropic.com",
+    model: "claude-3-opus-20240229",
+    version: "2023-06-01",
   },
 
   deepseek: {
-    apiKey: '',
-    baseURL: 'https://api.deepseek.com/v1',
-    model: 'deepseek-chat',
+    apiKey: "",
+    baseURL: "https://api.deepseek.com/v1",
+    model: "deepseek-chat",
   },
 
   volcengine: {
-    apiKey: '',
-    baseURL: 'https://ark.cn-beijing.volces.com/api/v3',
-    model: 'doubao-seed-1-6-251015',
+    apiKey: "",
+    baseURL: "https://ark.cn-beijing.volces.com/api/v3",
+    model: "doubao-seed-1-6-251015",
   },
 
   custom: {
-    name: 'Custom Provider',
-    apiKey: '',
-    baseURL: '',
-    model: '',
+    name: "Custom Provider",
+    apiKey: "",
+    baseURL: "",
+    model: "",
   },
 
   options: {
@@ -466,7 +464,8 @@ const form = reactive({
     timeout: 120000,
   },
 
-  systemPrompt: 'You are a helpful AI assistant for a knowledge management system.',
+  systemPrompt:
+    "You are a helpful AI assistant for a knowledge management system.",
   streamEnabled: true,
   autoSaveConversations: true,
 });
@@ -488,8 +487,8 @@ const loadConfig = async () => {
       Object.assign(form, config);
     }
   } catch (error) {
-    console.error('加载配置失败:', error);
-    message.error('加载配置失败: ' + error.message);
+    console.error("加载配置失败:", error);
+    message.error("加载配置失败: " + error.message);
   } finally {
     loading.value = false;
   }
@@ -502,11 +501,11 @@ const handleSave = async () => {
     // 转换为普通对象以避免结构化克隆错误
     const plainConfig = JSON.parse(JSON.stringify(form));
     await window.electronAPI.llm.setConfig(plainConfig);
-    message.success('配置已保存');
+    message.success("配置已保存");
     await checkStatus();
   } catch (error) {
-    console.error('保存配置失败:', error);
-    message.error('保存配置失败: ' + error.message);
+    console.error("保存配置失败:", error);
+    message.error("保存配置失败: " + error.message);
   } finally {
     saving.value = false;
   }
@@ -517,20 +516,20 @@ const handleTest = async () => {
   testing.value = true;
   try {
     // 验证必填字段
-    if (form.provider === 'openai' && !form.openai.apiKey) {
-      throw new Error('请先输入 OpenAI API Key');
+    if (form.provider === "openai" && !form.openai.apiKey) {
+      throw new Error("请先输入 OpenAI API Key");
     }
-    if (form.provider === 'anthropic' && !form.anthropic.apiKey) {
-      throw new Error('请先输入 Claude API Key');
+    if (form.provider === "anthropic" && !form.anthropic.apiKey) {
+      throw new Error("请先输入 Claude API Key");
     }
-    if (form.provider === 'volcengine' && !form.volcengine.apiKey) {
-      throw new Error('请先输入火山引擎 API Key');
+    if (form.provider === "volcengine" && !form.volcengine.apiKey) {
+      throw new Error("请先输入火山引擎 API Key");
     }
-    if (form.provider === 'deepseek' && !form.deepseek.apiKey) {
-      throw new Error('请先输入 DeepSeek API Key');
+    if (form.provider === "deepseek" && !form.deepseek.apiKey) {
+      throw new Error("请先输入 DeepSeek API Key");
     }
-    if (form.provider === 'custom' && !form.custom.baseURL) {
-      throw new Error('请先输入自定义 API 地址');
+    if (form.provider === "custom" && !form.custom.baseURL) {
+      throw new Error("请先输入自定义 API 地址");
     }
 
     // 先保存配置（转换为普通对象）
@@ -541,15 +540,15 @@ const handleTest = async () => {
     const result = await window.electronAPI.llm.checkStatus();
 
     if (result.available) {
-      message.success('连接成功！服务正常运行');
+      message.success("连接成功！服务正常运行");
       status.value = result;
     } else {
-      message.error('连接失败: ' + (result.error || '未知错误'));
+      message.error("连接失败: " + (result.error || "未知错误"));
       status.value = result;
     }
   } catch (error) {
-    console.error('测试连接失败:', error);
-    message.error('测试失败: ' + error.message);
+    console.error("测试连接失败:", error);
+    message.error("测试失败: " + error.message);
   } finally {
     testing.value = false;
   }
@@ -557,38 +556,38 @@ const handleTest = async () => {
 
 // 恢复默认设置
 const handleReset = () => {
-  form.provider = 'ollama';
+  form.provider = "ollama";
   form.ollama = {
-    url: 'http://localhost:11434',
-    model: 'llama2',
+    url: "http://localhost:11434",
+    model: "llama2",
   };
   form.openai = {
-    apiKey: '',
-    baseURL: 'https://api.openai.com/v1',
-    model: 'gpt-3.5-turbo',
-    organization: '',
+    apiKey: "",
+    baseURL: "https://api.openai.com/v1",
+    model: "gpt-3.5-turbo",
+    organization: "",
   };
   form.anthropic = {
-    apiKey: '',
-    baseURL: 'https://api.anthropic.com',
-    model: 'claude-3-opus-20240229',
-    version: '2023-06-01',
+    apiKey: "",
+    baseURL: "https://api.anthropic.com",
+    model: "claude-3-opus-20240229",
+    version: "2023-06-01",
   };
   form.deepseek = {
-    apiKey: '',
-    baseURL: 'https://api.deepseek.com/v1',
-    model: 'deepseek-chat',
+    apiKey: "",
+    baseURL: "https://api.deepseek.com/v1",
+    model: "deepseek-chat",
   };
   form.volcengine = {
-    apiKey: '',
-    baseURL: 'https://ark.cn-beijing.volces.com/api/v3',
-    model: 'doubao-seed-1-6-251015',
+    apiKey: "",
+    baseURL: "https://ark.cn-beijing.volces.com/api/v3",
+    model: "doubao-seed-1-6-251015",
   };
   form.custom = {
-    name: 'Custom Provider',
-    apiKey: '',
-    baseURL: '',
-    model: '',
+    name: "Custom Provider",
+    apiKey: "",
+    baseURL: "",
+    model: "",
   };
   form.options = {
     temperature: 0.7,
@@ -597,11 +596,12 @@ const handleReset = () => {
     max_tokens: 2000,
     timeout: 120000,
   };
-  form.systemPrompt = 'You are a helpful AI assistant for a knowledge management system.';
+  form.systemPrompt =
+    "You are a helpful AI assistant for a knowledge management system.";
   form.streamEnabled = true;
   form.autoSaveConversations = true;
 
-  message.info('已恢复默认设置');
+  message.info("已恢复默认设置");
 };
 
 // 检查服务状态
@@ -610,20 +610,20 @@ const checkStatus = async () => {
     const result = await window.electronAPI.llm.checkStatus();
     status.value = result;
   } catch (error) {
-    console.error('检查状态失败:', error);
+    console.error("检查状态失败:", error);
   }
 };
 
 // 加载可用模型
 const loadModels = async () => {
-  if (form.provider !== 'ollama') return;
+  if (form.provider !== "ollama") return;
 
   modelsLoading.value = true;
   try {
     const models = await window.electronAPI.llm.listModels();
     availableModels.value = models;
   } catch (error) {
-    console.error('加载模型列表失败:', error);
+    console.error("加载模型列表失败:", error);
   } finally {
     modelsLoading.value = false;
   }
@@ -638,7 +638,7 @@ const handleModelsDropdown = (visible) => {
 
 // 提供商改变时
 const handleProviderChange = () => {
-  if (form.provider === 'ollama') {
+  if (form.provider === "ollama") {
     loadModels();
   }
 };
@@ -646,19 +646,19 @@ const handleProviderChange = () => {
 // 获取提供商名称
 const getProviderName = (provider) => {
   const names = {
-    ollama: 'Ollama (本地)',
-    openai: 'OpenAI',
-    anthropic: 'Claude (Anthropic)',
-    deepseek: 'DeepSeek',
-    volcengine: '豆包（火山引擎）',
-    custom: '自定义API',
+    ollama: "Ollama (本地)",
+    openai: "OpenAI",
+    anthropic: "Claude (Anthropic)",
+    deepseek: "DeepSeek",
+    volcengine: "豆包（火山引擎）",
+    custom: "自定义API",
   };
   return names[provider] || provider;
 };
 
 // 格式化大小
 const formatSize = (bytes) => {
-  if (!bytes) return '';
+  if (!bytes) return "";
   const gb = bytes / (1024 * 1024 * 1024);
   return `${gb.toFixed(1)}GB`;
 };

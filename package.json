@@ -102,5 +102,8 @@
     "*.{js,jsx,ts,tsx,json,md}": [
       "node scripts/security-check.js"
     ]
+  },
+  "dependencies": {
+    "claude": "^0.1.1"
   }
 }

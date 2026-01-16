@@ -64,6 +64,17 @@
           <LLMSettings />
         </a-tab-pane>
 
+        <!-- Token 使用与成本 -->
+        <a-tab-pane key="token-usage" tab="Token 使用">
+          <template #tab>
+            <span>
+              <dollar-outlined />
+              Token 使用
+            </span>
+          </template>
+          <TokenUsageTab />
+        </a-tab-pane>
+
         <!-- Git 同步设置 -->
         <a-tab-pane key="git" tab="Git 同步">
           <template #tab>
@@ -100,17 +111,13 @@
                 <a-tag v-if="store.ukeyStatus.detected" color="success">
                   已检测
                 </a-tag>
-                <a-tag v-else color="error">
-                  未检测
-                </a-tag>
+                <a-tag v-else color="error"> 未检测 </a-tag>
               </a-descriptions-item>
               <a-descriptions-item label="锁定状态">
                 <a-tag v-if="store.ukeyStatus.unlocked" color="success">
                   已解锁
                 </a-tag>
-                <a-tag v-else color="warning">
-                  已锁定
-                </a-tag>
+                <a-tag v-else color="warning"> 已锁定 </a-tag>
               </a-descriptions-item>
             </a-descriptions>
 
@@ -140,7 +147,10 @@
               sub-title="完整的数据库安全设置请访问专用页面"
             >
               <template #extra>
-                <a-button type="primary" @click="router.push('/settings/database-security')">
+                <a-button
+                  type="primary"
+                  @click="router.push('/settings/database-security')"
+                >
                   <lock-outlined /> 进入数据库安全设置
                 </a-button>
               </template>
@@ -190,9 +200,7 @@
           </template>
           <a-card title="关于 ChainlessChain">
             <a-descriptions bordered :column="1">
-              <a-descriptions-item label="版本">
-                0.1.0
-              </a-descriptions-item>
+              <a-descriptions-item label="版本"> 0.1.0 </a-descriptions-item>
               <a-descriptions-item label="描述">
                 ChainlessChain 是一个基于 Electron + Vue 3 的个人 AI 知识库系统
               </a-descriptions-item>
@@ -218,12 +226,8 @@
 
             <div style="margin-top: 16px">
               <a-space>
-                <a-button type="link" @click="checkUpdate">
-                  检查更新
-                </a-button>
-                <a-button type="link" @click="openGithub">
-                  GitHub
-                </a-button>
+                <a-button type="link" @click="checkUpdate"> 检查更新 </a-button>
+                <a-button type="link" @click="openGithub"> GitHub </a-button>
               </a-space>
             </div>
           </a-card>
@@ -234,10 +238,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
-import { useI18n } from 'vue-i18n';
-import { message } from 'ant-design-vue';
+import { ref, onMounted } from "vue";
+import { useRouter } from "vue-router";
+import { useI18n } from "vue-i18n";
+import { message } from "ant-design-vue";
 import {
   ApiOutlined,
   SyncOutlined,
@@ -248,27 +252,28 @@ import {
   LockOutlined,
   BarChartOutlined,
   DashboardOutlined,
-} from '@ant-design/icons-vue';
-import { useAppStore } from '../stores/app';
-import { supportedLocales, setLocale, getLocale } from '../locales';
-import LLMSettings from '../components/LLMSettings.vue';
-import GitSettings from '../components/GitSettings.vue';
-import RAGSettings from '../components/RAGSettings.vue';
-import AdditionalToolsStats from '../components/tool/AdditionalToolsStats.vue';
-import PerformanceDashboard from '../components/PerformanceDashboard.vue';
+} from "@ant-design/icons-vue";
+import { useAppStore } from "../stores/app";
+import { supportedLocales, setLocale, getLocale } from "../locales";
+import LLMSettings from "../components/LLMSettings.vue";
+import TokenUsageTab from "../components/TokenUsageTab.vue";
+import GitSettings from "../components/GitSettings.vue";
+import RAGSettings from "../components/RAGSettings.vue";
+import AdditionalToolsStats from "../components/tool/AdditionalToolsStats.vue";
+import PerformanceDashboard from "../components/PerformanceDashboard.vue";
 
 const router = useRouter();
 const store = useAppStore();
 const { t } = useI18n();
 
 // 当前激活的标签页
-const activeTab = ref('general');
+const activeTab = ref("general");
 
 // 支持的语言列表
 const supportedLanguages = supportedLocales;
 
 // 通用设置
-const theme = ref('light');
+const theme = ref("light");
 const language = ref(getLocale());
 const openOnStartup = ref(false);
 const minimizeToTray = ref(true);
@@ -279,29 +284,29 @@ const performanceDashboardVisible = ref(false);
 // 处理语言切换
 const handleLanguageChange = (value) => {
   setLocale(value);
-  const langInfo = supportedLocales.find(lang => lang.value === value);
-  message.success(t('common.success') + ': ' + langInfo.label);
+  const langInfo = supportedLocales.find((lang) => lang.value === value);
+  message.success(t("common.success") + ": " + langInfo.label);
 };
 
 // 返回
 const handleBack = () => {
-  router.push('/');
+  router.push("/");
 };
 
 // 保存通用设置
 const handleSaveGeneral = () => {
-  message.success('设置已保存');
+  message.success("设置已保存");
 };
 
 // 检查更新
 const checkUpdate = () => {
-  message.info('当前已是最新版本');
+  message.info("当前已是最新版本");
 };
 
 // 打开 GitHub
 const openGithub = () => {
   // 通过 IPC 打开外部链接
-  message.info('即将打开 GitHub 页面');
+  message.info("即将打开 GitHub 页面");
 };
 
 // 组件挂载时

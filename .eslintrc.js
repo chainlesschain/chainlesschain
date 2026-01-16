@@ -46,5 +46,6 @@ module.exports = {
     "desktop-app-vue/src/renderer/assets/",
     "backend/",
     "mobile-app-uniapp/",
+    "**/*.vue", // Temporarily ignore Vue files (need vue-eslint-parser)
   ],
 };

@@ -1,0 +1,247 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Filesystem Server Configuration",
+  "description": "Configuration schema for @modelcontextprotocol/server-filesystem",
+  "type": "object",
+
+  "properties": {
+    "enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable or disable the filesystem server"
+    },
+
+    "command": {
+      "type": "string",
+      "default": "npx",
+      "description": "Command to launch the server"
+    },
+
+    "args": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": ["-y", "@modelcontextprotocol/server-filesystem"],
+      "description": "Arguments to pass to the command"
+    },
+
+    "rootPath": {
+      "type": "string",
+      "description": "Root directory for filesystem operations (absolute path)",
+      "examples": [
+        "D:\\code\\chainlesschain\\data",
+        "/Users/username/chainlesschain/data"
+      ]
+    },
+
+    "autoConnect": {
+      "type": "boolean",
+      "default": true,
+      "description": "Automatically connect on application startup"
+    },
+
+    "permissions": {
+      "type": "object",
+      "description": "Permission configuration for filesystem access",
+      "properties": {
+        "allowedPaths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": ["notes/", "imports/", "exports/", "projects/"],
+          "description": "Relative paths that are allowed for read/write operations"
+        },
+
+        "forbiddenPaths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "chainlesschain.db",
+            "ukey/",
+            "did/private-keys/",
+            "p2p/keys/",
+            "../"
+          ],
+          "description": "Relative paths that are always blocked"
+        },
+
+        "readOnly": {
+          "type": "boolean",
+          "default": false,
+          "description": "If true, only read operations are allowed"
+        },
+
+        "maxFileSize": {
+          "type": "integer",
+          "default": 104857600,
+          "description": "Maximum file size in bytes (default: 100MB)"
+        },
+
+        "allowedExtensions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            ".txt",
+            ".md",
+            ".json",
+            ".yaml",
+            ".yml",
+            ".toml",
+            ".js",
+            ".ts",
+            ".jsx",
+            ".tsx",
+            ".vue",
+            ".py",
+            ".java",
+            ".go",
+            ".rs",
+            ".html",
+            ".css",
+            ".scss",
+            ".pdf",
+            ".docx",
+            ".xlsx"
+          ],
+          "description": "Allowed file extensions (empty = all allowed)"
+        },
+
+        "deniedExtensions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [".exe", ".dll", ".so", ".dylib", ".bat", ".sh", ".ps1"],
+          "description": "File extensions that are always blocked"
+        }
+      },
+      "required": ["allowedPaths", "forbiddenPaths"]
+    },
+
+    "features": {
+      "type": "object",
+      "description": "Feature flags for filesystem operations",
+      "properties": {
+        "enableSearch": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable file search capabilities"
+        },
+
+        "enableWatch": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable file watching for changes (experimental)"
+        },
+
+        "enableSymlinks": {
+          "type": "boolean",
+          "default": false,
+          "description": "Allow following symbolic links"
+        },
+
+        "enableMetadata": {
+          "type": "boolean",
+          "default": true,
+          "description": "Include file metadata (size, modified time, etc.)"
+        }
+      }
+    },
+
+    "performance": {
+      "type": "object",
+      "description": "Performance tuning options",
+      "properties": {
+        "timeout": {
+          "type": "integer",
+          "default": 30000,
+          "description": "Operation timeout in milliseconds"
+        },
+
+        "maxConcurrentOps": {
+          "type": "integer",
+          "default": 5,
+          "description": "Maximum concurrent file operations"
+        },
+
+        "cacheEnabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable file content caching"
+        },
+
+        "cacheTTL": {
+          "type": "integer",
+          "default": 300000,
+          "description": "Cache time-to-live in milliseconds (default: 5 minutes)"
+        }
+      }
+    },
+
+    "logging": {
+      "type": "object",
+      "description": "Logging configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable audit logging"
+        },
+
+        "logLevel": {
+          "type": "string",
+          "enum": ["debug", "info", "warn", "error"],
+          "default": "info",
+          "description": "Logging level"
+        },
+
+        "logPath": {
+          "type": "string",
+          "default": ".chainlesschain/logs/mcp-filesystem.log",
+          "description": "Path to log file (relative to app root)"
+        }
+      }
+    }
+  },
+
+  "required": ["rootPath"],
+
+  "examples": [
+    {
+      "enabled": true,
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "D:\\code\\chainlesschain\\data"
+      ],
+      "rootPath": "D:\\code\\chainlesschain\\data",
+      "autoConnect": true,
+      "permissions": {
+        "allowedPaths": ["notes/", "imports/", "exports/"],
+        "forbiddenPaths": ["chainlesschain.db", "ukey/", "did/private-keys/"],
+        "readOnly": false,
+        "maxFileSize": 104857600
+      },
+      "features": {
+        "enableSearch": true,
+        "enableWatch": false,
+        "enableSymlinks": false
+      },
+      "performance": {
+        "timeout": 30000,
+        "cacheEnabled": true
+      },
+      "logging": {
+        "enabled": true,
+        "logLevel": "info"
+      }
+    }
+  ]
+}
