@@ -48,7 +48,8 @@
     "config:show": "node -e \"const { getPerformanceConfigManager } = require('./utils/performance-config-manager'); const c = getPerformanceConfigManager(); console.log(JSON.stringify(c.getConfigSummary(), null, 2));\"",
     "config:preset:balanced": "node -e \"const { getPerformanceConfigManager } = require('./utils/performance-config-manager'); const c = getPerformanceConfigManager(); c.applyPreset('balanced'); c.saveConfig();\"",
     "config:preset:high": "node -e \"const { getPerformanceConfigManager } = require('./utils/performance-config-manager'); const c = getPerformanceConfigManager(); c.applyPreset('high-performance'); c.saveConfig();\"",
-    "db:optimize": "echo '数据库优化将在应用启动时自动运行'"
+    "db:optimize": "echo '数据库优化将在应用启动时自动运行'",
+    "prepare": "husky"
   },
   "keywords": [
     "electron",
@@ -204,8 +205,10 @@
     "electron": "^39.2.6",
     "happy-dom": "^15.7.4",
     "hardhat": "^2.28.0",
+    "husky": "^9.1.7",
     "jsdom": "^26.1.0",
     "less": "^4.5.1",
+    "lint-staged": "^16.2.7",
     "pinia": "^2.1.7",
     "playwright": "^1.57.0",
     "png-to-ico": "^3.0.1",

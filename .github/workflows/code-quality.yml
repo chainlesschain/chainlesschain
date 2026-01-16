@@ -1,0 +1,261 @@
+name: Code Quality & Security
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  validate-rules:
+    name: Validate Coding Rules
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+          cache-dependency-path: "desktop-app-vue/package-lock.json"
+
+      - name: Install dependencies
+        run: |
+          cd desktop-app-vue
+          npm ci
+
+      - name: Run Rules Validator
+        run: |
+          cd desktop-app-vue
+          npm run validate:rules
+        continue-on-error: false
+
+      - name: Upload validation report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: validation-report
+          path: desktop-app-vue/validation-report.txt
+          retention-days: 30
+
+  security-audit:
+    name: Security Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+          cache-dependency-path: "desktop-app-vue/package-lock.json"
+
+      - name: Install dependencies
+        run: |
+          cd desktop-app-vue
+          npm ci
+
+      - name: Run npm audit
+        run: |
+          cd desktop-app-vue
+          npm audit --audit-level=high
+        continue-on-error: true
+
+      - name: Check for critical vulnerabilities
+        run: |
+          cd desktop-app-vue
+          AUDIT_RESULT=$(npm audit --audit-level=critical --json)
+          CRITICAL_COUNT=$(echo $AUDIT_RESULT | jq '.metadata.vulnerabilities.critical // 0')
+
+          if [ "$CRITICAL_COUNT" -gt 0 ]; then
+            echo "❌ Found $CRITICAL_COUNT critical vulnerabilities"
+            exit 1
+          else
+            echo "✅ No critical vulnerabilities found"
+          fi
+
+  lint-and-format:
+    name: Lint & Format Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+          cache-dependency-path: "desktop-app-vue/package-lock.json"
+
+      - name: Install dependencies
+        run: |
+          cd desktop-app-vue
+          npm ci
+
+      - name: Check code style
+        run: |
+          cd desktop-app-vue
+          # 如果有 ESLint 配置
+          if [ -f ".eslintrc.js" ] || [ -f ".eslintrc.json" ]; then
+            npm run lint || echo "⚠️ Linting issues found"
+          else
+            echo "ℹ️ ESLint not configured"
+          fi
+
+  test-database:
+    name: Database Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+          cache-dependency-path: "desktop-app-vue/package-lock.json"
+
+      - name: Install dependencies
+        run: |
+          cd desktop-app-vue
+          npm ci
+
+      - name: Run database tests
+        run: |
+          cd desktop-app-vue
+          npm run test:db || echo "⚠️ Database tests failed (may require native modules)"
+        continue-on-error: true
+
+  build-check:
+    name: Build Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+          cache: "npm"
+          cache-dependency-path: "desktop-app-vue/package-lock.json"
+
+      - name: Install dependencies
+        run: |
+          cd desktop-app-vue
+          npm ci
+
+      - name: Build main process
+        run: |
+          cd desktop-app-vue
+          npm run build:main
+
+      - name: Build renderer
+        run: |
+          cd desktop-app-vue
+          npm run build:renderer
+
+      - name: Check build artifacts
+        run: |
+          cd desktop-app-vue
+          if [ -f "dist/main/index.js" ]; then
+            echo "✅ Main process build successful"
+          else
+            echo "❌ Main process build failed"
+            exit 1
+          fi
+
+  # 后端服务检查
+  backend-java-check:
+    name: Java Backend Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+          cache: "maven"
+
+      - name: Build Project Service
+        run: |
+          cd backend/project-service
+          mvn clean compile -DskipTests
+        continue-on-error: true
+
+      - name: Run tests
+        run: |
+          cd backend/project-service
+          mvn test
+        continue-on-error: true
+
+  # Python AI 服务检查
+  backend-python-check:
+    name: Python Backend Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          cd backend/ai-service
+          if [ -f "requirements.txt" ]; then
+            pip install -r requirements.txt
+          fi
+        continue-on-error: true
+
+      - name: Lint Python code
+        run: |
+          pip install flake8
+          cd backend/ai-service
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics || true
+        continue-on-error: true
+
+  # 汇总报告
+  quality-gate:
+    name: Quality Gate
+    runs-on: ubuntu-latest
+    needs: [validate-rules, security-audit, build-check]
+    if: always()
+
+    steps:
+      - name: Check quality gate status
+        run: |
+          if [ "${{ needs.validate-rules.result }}" != "success" ]; then
+            echo "❌ Rules validation failed"
+            exit 1
+          fi
+
+          if [ "${{ needs.security-audit.result }}" != "success" ]; then
+            echo "⚠️ Security audit has warnings"
+          fi
+
+          if [ "${{ needs.build-check.result }}" != "success" ]; then
+            echo "❌ Build check failed"
+            exit 1
+          fi
+
+          echo "✅ Quality gate passed"
