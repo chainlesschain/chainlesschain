@@ -44,9 +44,9 @@ class ContactManager extends EventEmitter {
   async ensureTables() {
     try {
       // 检查 contacts 表
-      const result = this.db.exec(
+      const result = this.db.prepare(
         "SELECT name FROM sqlite_master WHERE type='table' AND name='contacts'"
-      );
+      ).all();
 
       if (!result || result.length === 0) {
         // 创建 contacts 表
@@ -70,9 +70,9 @@ class ContactManager extends EventEmitter {
       }
 
       // 创建好友请求表
-      const requestResult = this.db.exec(
+      const requestResult = this.db.prepare(
         "SELECT name FROM sqlite_master WHERE type='table' AND name='friend_requests'"
-      );
+      ).all();
 
       if (!requestResult || requestResult.length === 0) {
         this.db.exec(`
@@ -122,26 +122,25 @@ class ContactManager extends EventEmitter {
         notes: contact.notes || null,
       };
 
-      this.db.exec(
+      this.db.prepare(
         `
         INSERT OR REPLACE INTO contacts (
           did, nickname, avatar_url, public_key_sign, public_key_encrypt,
           relationship, trust_score, node_address, added_at, last_seen, notes
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `,
-        [
-          contactData.did,
-          contactData.nickname,
-          contactData.avatar_url,
-          contactData.public_key_sign,
-          contactData.public_key_encrypt,
-          contactData.relationship,
-          contactData.trust_score,
-          contactData.node_address,
-          contactData.added_at,
-          contactData.last_seen,
-          contactData.notes,
-        ]
+      `
+      ).run(
+        contactData.did,
+        contactData.nickname,
+        contactData.avatar_url,
+        contactData.public_key_sign,
+        contactData.public_key_encrypt,
+        contactData.relationship,
+        contactData.trust_score,
+        contactData.node_address,
+        contactData.added_at,
+        contactData.last_seen,
+        contactData.notes
       );
 
       this.db.saveToFile();
@@ -271,7 +270,7 @@ class ContactManager extends EventEmitter {
 
       values.push(did);
 
-      this.db.exec(`UPDATE contacts SET ${fields.join(', ')} WHERE did = ?`, values);
+      this.db.prepare(`UPDATE contacts SET ${fields.join(', ')} WHERE did = ?`).run(values);
 
       this.db.saveToFile();
 
@@ -316,12 +315,11 @@ class ContactManager extends EventEmitter {
    */
   searchContacts(query) {
     try {
-      const result = this.db.exec(
+      const result = this.db.prepare(
         `SELECT * FROM contacts
          WHERE nickname LIKE ? OR did LIKE ? OR notes LIKE ?
-         ORDER BY trust_score DESC, added_at DESC`,
-        [`%${query}%`, `%${query}%`, `%${query}%`]
-      );
+         ORDER BY trust_score DESC, added_at DESC`
+      ).all(`%${query}%`, `%${query}%`, `%${query}%`);
 
       if (!result || result.length === 0 || !result[0].values) {
         return [];
@@ -348,9 +346,9 @@ class ContactManager extends EventEmitter {
    */
   getFriends() {
     try {
-      const result = this.db.exec(
+      const result = this.db.prepare(
         "SELECT * FROM contacts WHERE relationship = 'friend' ORDER BY trust_score DESC"
-      );
+      ).all();
 
       if (!result || result.length === 0 || !result[0].values) {
         return [];
@@ -430,9 +428,9 @@ class ContactManager extends EventEmitter {
       const total = totalResult[0]?.values[0]?.[0] || 0;
 
       // 好友数
-      const friendsResult = this.db.exec(
+      const friendsResult = this.db.prepare(
         "SELECT COUNT(*) as count FROM contacts WHERE relationship = 'friend'"
-      );
+      ).all();
       const friends = friendsResult[0]?.values[0]?.[0] || 0;
 
       // 按关系类型统计

@@ -19,9 +19,11 @@ const ipcGuard = require('../ipc-guard');
  * @param {Object} [dependencies.database] - 数据库实例（可选）
  * @param {Object} [dependencies.app] - App 实例（可选，用于更新 llmManager 引用）
  * @param {Object} [dependencies.tokenTracker] - Token 追踪器（可选）
+ * @param {Object} [dependencies.promptCompressor] - Prompt 压缩器（可选）
+ * @param {Object} [dependencies.responseCache] - 响应缓存（可选）
  * @param {Object} [dependencies.ipcMain] - IPC主进程对象（可选，用于测试注入）
  */
-function registerLLMIPC({ llmManager, mainWindow, ragManager, promptTemplateManager, llmSelector, database, app, tokenTracker, ipcMain: injectedIpcMain }) {
+function registerLLMIPC({ llmManager, mainWindow, ragManager, promptTemplateManager, llmSelector, database, app, tokenTracker, promptCompressor, responseCache, ipcMain: injectedIpcMain }) {
   // 防止重复注册
   if (ipcGuard.isModuleRegistered('llm-ipc')) {
     console.log('[LLM IPC] Handlers already registered, skipping...');
@@ -84,13 +86,64 @@ function registerLLMIPC({ llmManager, mainWindow, ragManager, promptTemplateMana
    * LLM 聊天对话（支持 messages 数组格式，保留完整对话历史，自动RAG增强）
    * Channel: 'llm:chat'
    */
-  ipcMain.handle('llm:chat', async (_event, { messages, stream = false, enableRAG = true, ...options }) => {
+  ipcMain.handle('llm:chat', async (_event, { messages, stream = false, enableRAG = true, enableCache = true, enableCompression = true, ...options }) => {
     try {
       if (!managerRef.current) {
         throw new Error('LLM服务未初始化');
       }
 
-      console.log('[LLM IPC] LLM 聊天请求, messages:', messages?.length || 0, 'stream:', stream, 'RAG:', enableRAG);
+      console.log('[LLM IPC] LLM 聊天请求, messages:', messages?.length || 0, 'stream:', stream, 'RAG:', enableRAG, 'Cache:', enableCache, 'Compress:', enableCompression);
+
+      const provider = managerRef.current.provider;
+      const model = options.model || managerRef.current.config.model || 'unknown';
+
+      // 🔥 优化步骤 1: 检查缓存
+      if (enableCache && responseCache && !stream) {
+        try {
+          const cached = await responseCache.get(provider, model, messages, options);
+
+          if (cached.hit) {
+            console.log('[LLM IPC] 🎯 缓存命中! 节省', cached.tokensSaved, 'tokens');
+
+            // 记录缓存命中到 TokenTracker
+            if (tokenTracker) {
+              await tokenTracker.recordUsage({
+                conversationId: options.conversationId,
+                messageId: options.messageId,
+                provider,
+                model,
+                inputTokens: 0,
+                outputTokens: 0,
+                cachedTokens: cached.tokensSaved || 0,
+                wasCached: true,
+                wasCompressed: false,
+                compressionRatio: 1.0,
+                responseTime: 0,
+                endpoint: options.endpoint,
+                userId: options.userId || 'default',
+              });
+            }
+
+            // 返回缓存的响应
+            return {
+              content: cached.response.content || cached.response.text || '',
+              message: cached.response.message || {
+                role: 'assistant',
+                content: cached.response.content || cached.response.text || '',
+              },
+              usage: cached.response.usage || {
+                total_tokens: 0,
+              },
+              wasCached: true,
+              tokensSaved: cached.tokensSaved,
+              cacheAge: cached.cacheAge,
+              retrievedDocs: [],
+            };
+          }
+        } catch (cacheError) {
+          console.warn('[LLM IPC] 缓存检查失败，继续正常流程:', cacheError.message);
+        }
+      }
 
       // 🔥 火山引擎智能模型选择 + 工具调用自动启用
       let toolsToUse = [];
@@ -157,6 +210,7 @@ function registerLLMIPC({ llmManager, mainWindow, ragManager, promptTemplateMana
 
       let enhancedMessages = messages;
       let retrievedDocs = [];
+      let compressionResult = null;
 
       // 如果启用RAG，自动检索知识库并增强上下文
       if (enableRAG && ragManager) {
@@ -205,6 +259,27 @@ function registerLLMIPC({ llmManager, mainWindow, ragManager, promptTemplateMana
           }
         } catch (ragError) {
           console.error('[LLM IPC] RAG检索失败，继续普通对话:', ragError);
+        }
+      }
+
+      // 🔥 优化步骤 2: Prompt 压缩（在 RAG 增强之后）
+      if (enableCompression && promptCompressor && enhancedMessages.length > 3) {
+        try {
+          compressionResult = await promptCompressor.compress(enhancedMessages, {
+            preserveSystemMessage: true,
+            preserveLastUserMessage: true,
+          });
+
+          if (compressionResult.compressionRatio < 0.95) {
+            console.log('[LLM IPC] ⚡ Prompt 压缩成功! 压缩率:', compressionResult.compressionRatio.toFixed(2), '节省', compressionResult.tokensSaved, 'tokens');
+            enhancedMessages = compressionResult.messages;
+          } else {
+            console.log('[LLM IPC] Prompt 压缩效果不明显，使用原始消息');
+            compressionResult = null;
+          }
+        } catch (compressError) {
+          console.warn('[LLM IPC] Prompt 压缩失败，使用原始消息:', compressError.message);
+          compressionResult = null;
         }
       }
 
@@ -259,8 +334,26 @@ function registerLLMIPC({ llmManager, mainWindow, ragManager, promptTemplateMana
 
       console.log('[LLM IPC] LLM 聊天响应成功, tokens:', response.tokens);
 
-      // 返回 OpenAI 兼容格式，包含检索到的文档
-      return {
+      // 🔥 优化步骤 3: 缓存响应（缓存未命中的情况）
+      if (enableCache && responseCache && !stream) {
+        try {
+          // 使用原始的 messages 作为缓存键（而非压缩后的）
+          await responseCache.set(provider, model, messages, {
+            content: response.text,
+            text: response.text,
+            message: response.message,
+            usage: response.usage,
+            tokens: response.tokens,
+          }, options);
+
+          console.log('[LLM IPC] 响应已缓存');
+        } catch (cacheError) {
+          console.warn('[LLM IPC] 缓存响应失败:', cacheError.message);
+        }
+      }
+
+      // 构建最终响应
+      const finalResponse = {
         content: response.text,
         message: response.message || {
           role: 'assistant',
@@ -276,7 +369,15 @@ function registerLLMIPC({ llmManager, mainWindow, ragManager, promptTemplateMana
           content: doc.content.substring(0, 200), // 只返回摘要
           score: doc.score,
         })),
+        // 🔥 优化信息
+        wasCached: false,
+        wasCompressed: compressionResult !== null,
+        compressionRatio: compressionResult?.compressionRatio || 1.0,
+        tokensSaved: compressionResult?.tokensSaved || 0,
+        optimizationStrategy: compressionResult?.strategy || 'none',
       };
+
+      return finalResponse;
     } catch (error) {
       console.error('[LLM IPC] LLM 聊天失败:', error);
       throw error;
@@ -735,10 +836,151 @@ function registerLLMIPC({ llmManager, mainWindow, ragManager, promptTemplateMana
     }
   });
 
+  // ============================================================
+  // Token 追踪与成本管理 (Token Tracking & Cost Management) - 8 handlers
+  // ============================================================
+
+  /**
+   * 获取 Token 使用统计
+   * Channel: 'llm:get-usage-stats'
+   */
+  ipcMain.handle('llm:get-usage-stats', async (_event, options = {}) => {
+    try {
+      if (!tokenTracker) {
+        throw new Error('Token 追踪器未初始化');
+      }
+
+      return await tokenTracker.getUsageStats(options);
+    } catch (error) {
+      console.error('[LLM IPC] 获取使用统计失败:', error);
+      throw error;
+    }
+  });
+
+  /**
+   * 获取时间序列数据
+   * Channel: 'llm:get-time-series'
+   */
+  ipcMain.handle('llm:get-time-series', async (_event, options = {}) => {
+    try {
+      if (!tokenTracker) {
+        throw new Error('Token 追踪器未初始化');
+      }
+
+      return await tokenTracker.getTimeSeriesData(options);
+    } catch (error) {
+      console.error('[LLM IPC] 获取时间序列数据失败:', error);
+      throw error;
+    }
+  });
+
+  /**
+   * 获取成本分解
+   * Channel: 'llm:get-cost-breakdown'
+   */
+  ipcMain.handle('llm:get-cost-breakdown', async (_event, options = {}) => {
+    try {
+      if (!tokenTracker) {
+        throw new Error('Token 追踪器未初始化');
+      }
+
+      return await tokenTracker.getCostBreakdown(options);
+    } catch (error) {
+      console.error('[LLM IPC] 获取成本分解失败:', error);
+      throw error;
+    }
+  });
+
+  /**
+   * 获取预算配置
+   * Channel: 'llm:get-budget'
+   */
+  ipcMain.handle('llm:get-budget', async (_event, userId = 'default') => {
+    try {
+      if (!tokenTracker) {
+        throw new Error('Token 追踪器未初始化');
+      }
+
+      return await tokenTracker.getBudgetConfig(userId);
+    } catch (error) {
+      console.error('[LLM IPC] 获取预算配置失败:', error);
+      throw error;
+    }
+  });
+
+  /**
+   * 设置预算配置
+   * Channel: 'llm:set-budget'
+   */
+  ipcMain.handle('llm:set-budget', async (_event, userId, config) => {
+    try {
+      if (!tokenTracker) {
+        throw new Error('Token 追踪器未初始化');
+      }
+
+      return await tokenTracker.saveBudgetConfig(userId, config);
+    } catch (error) {
+      console.error('[LLM IPC] 设置预算配置失败:', error);
+      throw error;
+    }
+  });
+
+  /**
+   * 导出成本报告
+   * Channel: 'llm:export-cost-report'
+   */
+  ipcMain.handle('llm:export-cost-report', async (_event, options = {}) => {
+    try {
+      if (!tokenTracker) {
+        throw new Error('Token 追踪器未初始化');
+      }
+
+      return await tokenTracker.exportCostReport(options);
+    } catch (error) {
+      console.error('[LLM IPC] 导出成本报告失败:', error);
+      throw error;
+    }
+  });
+
+  /**
+   * 清除响应缓存
+   * Channel: 'llm:clear-cache'
+   */
+  ipcMain.handle('llm:clear-cache', async (_event) => {
+    try {
+      if (!responseCache) {
+        throw new Error('响应缓存未初始化');
+      }
+
+      const deletedCount = await responseCache.clear();
+      return { success: true, deletedCount };
+    } catch (error) {
+      console.error('[LLM IPC] 清除缓存失败:', error);
+      throw error;
+    }
+  });
+
+  /**
+   * 获取缓存统计信息
+   * Channel: 'llm:get-cache-stats'
+   */
+  ipcMain.handle('llm:get-cache-stats', async (_event) => {
+    try {
+      if (!responseCache) {
+        throw new Error('响应缓存未初始化');
+      }
+
+      return await responseCache.getStats();
+    } catch (error) {
+      console.error('[LLM IPC] 获取缓存统计失败:', error);
+      throw error;
+    }
+  });
+
   // 标记模块为已注册
   ipcGuard.markModuleRegistered('llm-ipc');
 
-  console.log('[LLM IPC] ✓ All LLM IPC handlers registered successfully (20 handlers: 14 basic + 6 stream control)');
+  console.log('[LLM IPC] ✓ All LLM IPC handlers registered successfully (28 handlers: 14 basic + 6 stream + 8 token tracking)');
 }
 
 module.exports = {

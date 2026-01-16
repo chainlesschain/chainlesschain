@@ -79,6 +79,45 @@ export const useLLMStore = defineStore('llm', {
       totalTokens: 0,
       averageResponseTime: 0,
     },
+
+    // 🔥 Token 使用追踪
+    tokenUsage: {
+      totalTokens: 0,
+      totalCost: 0,
+      todayTokens: 0,
+      todayCost: 0,
+      weekTokens: 0,
+      weekCost: 0,
+      cacheHitRate: 0,
+      cachedTokens: 0,
+      avgCostPerCall: 0,
+      totalCalls: 0,
+      lastUpdated: null,
+    },
+
+    // 🔥 预算配置
+    budget: {
+      dailyLimit: 1.0,
+      weeklyLimit: 5.0,
+      monthlyLimit: 20.0,
+      dailySpend: 0,
+      weeklySpend: 0,
+      monthlySpend: 0,
+      warningThreshold: 0.8,
+      criticalThreshold: 0.95,
+      desktopAlerts: true,
+    },
+
+    // 🔥 缓存统计
+    cacheStats: {
+      totalEntries: 0,
+      expiredEntries: 0,
+      totalHits: 0,
+      totalTokensSaved: 0,
+      totalCostSaved: 0,
+      avgHitsPerEntry: 0,
+      hitRate: 0,
+    },
   }),
 
   getters: {
@@ -364,6 +403,138 @@ export const useLLMStore = defineStore('llm', {
     // 设置流式状态
     setStreaming(streaming) {
       this.isStreaming = streaming;
+    },
+
+    // 🔥 ========== Token 追踪与成本管理 ==========
+
+    // 加载 Token 使用统计
+    async loadTokenUsage(options = {}) {
+      try {
+        const stats = await window.electronAPI.llm.getUsageStats(options);
+        if (stats) {
+          Object.assign(this.tokenUsage, {
+            totalTokens: stats.totalTokens || 0,
+            totalCost: stats.totalCost || 0,
+            todayTokens: stats.todayTokens || 0,
+            todayCost: stats.todayCost || 0,
+            weekTokens: stats.weekTokens || 0,
+            weekCost: stats.weekCost || 0,
+            cacheHitRate: stats.cacheHitRate || 0,
+            cachedTokens: stats.cachedTokens || 0,
+            avgCostPerCall: stats.avgCostPerCall || 0,
+            totalCalls: stats.totalCalls || 0,
+            lastUpdated: Date.now(),
+          });
+        }
+        return stats;
+      } catch (error) {
+        console.error('加载 Token 使用统计失败:', error);
+        throw error;
+      }
+    },
+
+    // 获取时间序列数据
+    async getTimeSeriesData(options = {}) {
+      try {
+        return await window.electronAPI.llm.getTimeSeries(options);
+      } catch (error) {
+        console.error('获取时间序列数据失败:', error);
+        throw error;
+      }
+    },
+
+    // 获取成本分解
+    async getCostBreakdown(options = {}) {
+      try {
+        return await window.electronAPI.llm.getCostBreakdown(options);
+      } catch (error) {
+        console.error('获取成本分解失败:', error);
+        throw error;
+      }
+    },
+
+    // 加载预算配置
+    async loadBudget(userId = 'default') {
+      try {
+        const budget = await window.electronAPI.llm.getBudget(userId);
+        if (budget) {
+          Object.assign(this.budget, budget);
+        }
+        return budget;
+      } catch (error) {
+        console.error('加载预算配置失败:', error);
+        throw error;
+      }
+    },
+
+    // 保存预算配置
+    async saveBudget(config, userId = 'default') {
+      try {
+        await window.electronAPI.llm.setBudget(userId, config);
+        await this.loadBudget(userId);
+        return true;
+      } catch (error) {
+        console.error('保存预算配置失败:', error);
+        throw error;
+      }
+    },
+
+    // 导出成本报告
+    async exportCostReport(options = {}) {
+      try {
+        return await window.electronAPI.llm.exportCostReport(options);
+      } catch (error) {
+        console.error('导出成本报告失败:', error);
+        throw error;
+      }
+    },
+
+    // 清除响应缓存
+    async clearCache() {
+      try {
+        const result = await window.electronAPI.llm.clearCache();
+        // 重新加载缓存统计
+        await this.loadCacheStats();
+        return result;
+      } catch (error) {
+        console.error('清除缓存失败:', error);
+        throw error;
+      }
+    },
+
+    // 加载缓存统计
+    async loadCacheStats() {
+      try {
+        const stats = await window.electronAPI.llm.getCacheStats();
+        if (stats) {
+          Object.assign(this.cacheStats, {
+            totalEntries: stats.database?.totalEntries || 0,
+            expiredEntries: stats.database?.expiredEntries || 0,
+            totalHits: stats.database?.totalHits || 0,
+            totalTokensSaved: stats.database?.totalTokensSaved || 0,
+            totalCostSaved: parseFloat(stats.database?.totalCostSaved || 0),
+            avgHitsPerEntry: parseFloat(stats.database?.avgHitsPerEntry || 0),
+            hitRate: parseFloat(stats.runtime?.hitRate || 0),
+          });
+        }
+        return stats;
+      } catch (error) {
+        console.error('加载缓存统计失败:', error);
+        throw error;
+      }
+    },
+
+    // 初始化 Token 追踪数据（在应用启动时调用）
+    async initTokenTracking() {
+      try {
+        await Promise.all([
+          this.loadTokenUsage(),
+          this.loadBudget(),
+          this.loadCacheStats(),
+        ]);
+      } catch (error) {
+        console.error('初始化 Token 追踪数据失败:', error);
+      }
     },
   },
 });

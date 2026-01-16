@@ -1,0 +1,76 @@
+{
+  "mcp": {
+    "enabled": true,
+    "trustedServers": [
+      "@modelcontextprotocol/server-filesystem",
+      "@modelcontextprotocol/server-postgres",
+      "@modelcontextprotocol/server-github"
+    ],
+    "allowUntrustedServers": false,
+    "defaultPermissions": {
+      "requireConsent": true,
+      "readOnly": false
+    },
+    "servers": {
+      "filesystem": {
+        "enabled": true,
+        "command": "npx",
+        "args": [
+          "-y",
+          "@modelcontextprotocol/server-filesystem",
+          "D:\\code\\chainlesschain\\data"
+        ],
+        "autoConnect": true,
+        "permissions": {
+          "allowedPaths": [
+            "notes/",
+            "imports/",
+            "exports/",
+            "temp/"
+          ],
+          "forbiddenPaths": [
+            "ukey/",
+            "did/private-keys/",
+            "p2p/keys/",
+            "chainlesschain.db"
+          ],
+          "readOnly": false,
+          "requireConsent": false
+        },
+        "description": "Local file system access with restricted paths"
+      },
+      "postgres": {
+        "enabled": false,
+        "command": "npx",
+        "args": [
+          "-y",
+          "@modelcontextprotocol/server-postgres",
+          "postgresql://chainlesschain:chainlesschain_pwd_2024@localhost:5432/chainlesschain"
+        ],
+        "autoConnect": false,
+        "permissions": {
+          "readOnly": true,
+          "requireConsent": true
+        },
+        "description": "PostgreSQL database access (read-only)"
+      },
+      "github": {
+        "enabled": false,
+        "command": "npx",
+        "args": [
+          "-y",
+          "@modelcontextprotocol/server-github"
+        ],
+        "autoConnect": false,
+        "env": {
+          "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"
+        },
+        "permissions": {
+          "readOnly": false,
+          "requireConsent": true
+        },
+        "description": "GitHub repository and issue management"
+      }
+    }
+  }
+}

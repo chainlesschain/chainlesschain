@@ -602,6 +602,41 @@ class ChainlessChainApp {
       this.tokenTracker = null;
     }
 
+    // 初始化 PromptCompressor (Prompt 压缩优化)
+    try {
+      console.log('初始化 Prompt 压缩器...');
+      const { PromptCompressor } = require('./llm/prompt-compressor');
+      this.promptCompressor = new PromptCompressor({
+        enableDeduplication: true,
+        enableSummarization: false,  // 暂时禁用总结（需要 LLM）
+        enableTruncation: true,
+        maxHistoryMessages: 10,
+        maxTotalTokens: 4000,
+        similarityThreshold: 0.9,
+        llmManager: null  // 稍后会设置
+      });
+      console.log('✓ Prompt 压缩器初始化成功');
+    } catch (error) {
+      console.error('Prompt 压缩器初始化失败:', error);
+      this.promptCompressor = null;
+    }
+
+    // 初始化 ResponseCache (响应缓存)
+    try {
+      console.log('初始化响应缓存...');
+      const { ResponseCache } = require('./llm/response-cache');
+      this.responseCache = new ResponseCache(this.database, {
+        ttl: 7 * 24 * 60 * 60 * 1000,  // 7 天
+        maxSize: 1000,
+        enableAutoCleanup: true,
+        cleanupInterval: 60 * 60 * 1000  // 1 小时
+      });
+      console.log('✓ 响应缓存初始化成功');
+    } catch (error) {
+      console.error('响应缓存初始化失败:', error);
+      this.responseCache = null;
+    }
+
     // 初始化LLM管理器
     try {
       console.log('初始化LLM管理器...');
@@ -656,6 +691,12 @@ class ChainlessChainApp {
         await this.llmManager.initialize();
 
         console.log('LLM管理器初始化成功');
+
+        // 🔥 将 LLM Manager 设置到 Prompt 压缩器（用于智能总结）
+        if (this.promptCompressor) {
+          this.promptCompressor.llmManager = this.llmManager;
+          console.log('✓ Prompt 压缩器已关联 LLM 管理器');
+        }
       }
     } catch (error) {
       console.error('LLM管理器初始化失败:', error);

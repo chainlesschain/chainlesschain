@@ -71,9 +71,9 @@ class VCManager extends EventEmitter {
    */
   async ensureTables() {
     try {
-      const result = this.db.exec(
+      const result = this.db.prepare(
         "SELECT name FROM sqlite_master WHERE type='table' AND name='verifiable_credentials'"
-      );
+      ).all();
 
       if (!result || result.length === 0) {
         // 创建可验证凭证表
@@ -307,12 +307,12 @@ class VCManager extends EventEmitter {
    */
   async saveCredential(vcRecord) {
     try {
-      this.db.exec(`
+      this.db.prepare(`
         INSERT OR REPLACE INTO verifiable_credentials (
           id, type, issuer_did, subject_did, claims,
           vc_document, issued_at, expires_at, status, created_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `, [
+      `).run(
         vcRecord.id,
         vcRecord.type,
         vcRecord.issuer_did,
@@ -322,8 +322,8 @@ class VCManager extends EventEmitter {
         vcRecord.issued_at,
         vcRecord.expires_at,
         vcRecord.status,
-        vcRecord.created_at,
-      ]);
+        vcRecord.created_at
+      );
 
       this.db.saveToFile();
     } catch (error) {
@@ -364,7 +364,7 @@ class VCManager extends EventEmitter {
 
       query += ' ORDER BY created_at DESC';
 
-      const result = this.db.exec(query, params);
+      const result = this.db.prepare(query).all(params);
 
       if (!result || result.length === 0 || !result[0].values) {
         return [];
@@ -506,8 +506,8 @@ class VCManager extends EventEmitter {
         receivedParams.push(did);
       }
 
-      const issuedResult = this.db.exec(issuedQuery, issuedParams);
-      const receivedResult = this.db.exec(receivedQuery, receivedParams);
+      const issuedResult = this.db.prepare(issuedQuery).all(issuedParams);
+      const receivedResult = this.db.prepare(receivedQuery).all(receivedParams);
 
       const issued = issuedResult?.[0]?.values?.[0]?.[0] || 0;
       const received = receivedResult?.[0]?.values?.[0]?.[0] || 0;
@@ -517,7 +517,7 @@ class VCManager extends EventEmitter {
         ? 'SELECT type, COUNT(*) as count FROM verifiable_credentials WHERE subject_did = ? GROUP BY type'
         : 'SELECT type, COUNT(*) as count FROM verifiable_credentials GROUP BY type';
       const typeParams = did ? [did] : [];
-      const typeResult = this.db.exec(typeQuery, typeParams);
+      const typeResult = this.db.prepare(typeQuery).all(...typeParams);
 
       const byType = {};
       if (typeResult && typeResult[0] && typeResult[0].values) {
