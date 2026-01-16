@@ -2,7 +2,7 @@
 
 > 记录当前开发会话的状态和上下文，帮助 AI 助手快速了解工作进度
 >
-> **最后更新**: 2026-01-16
+> **最后更新**: 2026-01-16 (SessionManager v0.21.0 增强)
 
 ---
 
@@ -13,18 +13,32 @@
 - [x] 完善 ErrorMonitor 自动修复（SQLite 锁、网络重连）
 - [x] 验证 Session 压缩效果
 - [x] 创建 Memory Bank 系统
+- [x] 完善 SessionManager 增强功能
 - [ ] 配置 Pre-commit Hooks (Husky)
 
 ### 最近完成
 
-1. ErrorMonitor 增强：添加了 `optimizeSQLiteForConcurrency()`、`releaseDatabaseLock()`、`attemptServiceReconnection()` 等实际修复方法
-2. Session 压缩测试：压缩率 0.76-0.93，节省 7-24% Token
-3. Memory Bank 系统：创建了 CLAUDE-patterns.md、CLAUDE-decisions.md、CLAUDE-troubleshooting.md
+1. **SessionManager v0.21.0 增强** (2026-01-16):
+   - 会话搜索：按标题和内容全文搜索
+   - 标签系统：添加/移除标签、按标签过滤
+   - 导出/导入：JSON 和 Markdown 格式导出、JSON 导入
+   - 智能摘要：LLM 或简单模式生成摘要
+   - 会话续接：上下文恢复和续接提示
+   - 会话模板：保存/使用模板快速创建会话
+   - 批量操作：批量删除、批量标签、批量导出
+   - 全局统计：跨会话统计分析
+   - 新增 20+ IPC 通道
+   - 新增数据库迁移 008_session_templates.sql
+   - 更新测试脚本（13 项测试）
+2. ErrorMonitor 增强：添加了 `optimizeSQLiteForConcurrency()`、`releaseDatabaseLock()`、`attemptServiceReconnection()` 等实际修复方法
+3. Session 压缩测试：压缩率 0.76-0.93，节省 7-24% Token
+4. Memory Bank 系统：创建了 CLAUDE-patterns.md、CLAUDE-decisions.md、CLAUDE-troubleshooting.md
 
 ### 待处理
 
 - [ ] Pre-commit Hooks 配置
 - [ ] LLM Performance Dashboard UI 完善
+- [ ] SessionManager 前端 UI 组件（会话管理页面）
 - [ ] 增强 .chainlesschain/memory/ 目录实际使用
 
 ---
@@ -33,13 +47,14 @@
 
 ### 本次会话修改
 
-| 文件                        | 修改类型 | 说明                           |
-| --------------------------- | -------- | ------------------------------ |
-| `error-monitor.js`          | 增强     | 添加 SQLite 优化和网络重连方法 |
-| `CLAUDE-patterns.md`        | 新建     | 架构模式库                     |
-| `CLAUDE-decisions.md`       | 新建     | 架构决策记录                   |
-| `CLAUDE-troubleshooting.md` | 新建     | 故障排除指南                   |
-| `CLAUDE-activeContext.md`   | 新建     | 当前会话上下文（本文件）       |
+| 文件                        | 修改类型 | 说明                                    |
+| --------------------------- | -------- | --------------------------------------- |
+| `session-manager.js`        | 增强     | 添加搜索/标签/导出/摘要/模板/批量等功能 |
+| `session-manager-ipc.js`    | 增强     | 新增 20+ IPC 通道                       |
+| `008_session_templates.sql` | 新建     | 会话模板数据库表                        |
+| `test-session-manager.js`   | 更新     | 扩展到 13 项功能测试                    |
+| `CLAUDE.md`                 | 更新     | SessionManager 文档完善                 |
+| `CLAUDE-activeContext.md`   | 更新     | 当前会话上下文                          |
 
 ---
 

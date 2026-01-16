@@ -514,8 +514,9 @@ LLM 性能仪表板提供全面的 Token 使用、成本分析和性能优化监
 
 ## SessionManager (会话管理系统)
 
-**Status**: ✅ Implemented (v0.20.0)
+**Status**: ✅ Implemented (v0.21.0 - Enhanced)
 **Added**: 2026-01-16
+**Updated**: 2026-01-16
 
 SessionManager 实现智能会话上下文管理，支持跨会话连续对话和 Token 优化。基于 OpenClaude 最佳实践设计。
 
@@ -526,6 +527,17 @@ SessionManager 实现智能会话上下文管理，支持跨会话连续对话�
 3. **Token 优化**: 减少 30-40% Token 使用，降低 LLM 成本
 4. **跨会话恢复**: 支持加载历史会话继续对话
 5. **统计分析**: 追踪压缩效果和 Token 节省
+
+### 增强功能 (v0.21.0 新增)
+
+6. **会话搜索**: 按标题和消息内容全文搜索历史会话
+7. **标签系统**: 为会话添加标签，支持按标签过滤和查找
+8. **导出/导入**: 支持导出为 JSON/Markdown 格式，支持从 JSON 导入
+9. **智能摘要**: 自动或手动生成会话摘要（支持 LLM 和简单模式）
+10. **会话续接**: 智能上下文恢复，生成续接提示
+11. **会话模板**: 将会话保存为模板，快速创建新会话
+12. **批量操作**: 批量删除、批量添加标签、批量导出
+13. **全局统计**: 跨会话的使用统计和分析
 
 ### 使用方式
 
@@ -555,12 +567,95 @@ await sessionManager.addMessage(session.id, {
 const messages = await sessionManager.getEffectiveMessages(session.id);
 ```
 
-#### 查看统计
+#### 搜索会话
 
 ```javascript
-const stats = await sessionManager.getSessionStats(session.id);
-console.log("压缩次数:", stats.compressionCount);
+// 按标题和内容搜索
+const results = await sessionManager.searchSessions("数据库优化", {
+  searchTitle: true,
+  searchContent: true,
+  limit: 20,
+});
+```
+
+#### 标签管理
+
+```javascript
+// 添加标签
+await sessionManager.addTags(session.id, ["技术讨论", "数据库"]);
+
+// 按标签查找
+const sessions = await sessionManager.findSessionsByTags(["技术讨论"]);
+
+// 获取所有标签
+const allTags = await sessionManager.getAllTags();
+```
+
+#### 导出/导入
+
+```javascript
+// 导出为 JSON
+const json = await sessionManager.exportToJSON(session.id);
+
+// 导出为 Markdown
+const markdown = await sessionManager.exportToMarkdown(session.id, {
+  includeMetadata: true,
+});
+
+// 从 JSON 导入
+const imported = await sessionManager.importFromJSON(jsonData);
+
+// 批量导出
+const batch = await sessionManager.exportMultiple([id1, id2, id3]);
+```
+
+#### 摘要生成
+
+```javascript
+// 生成摘要（优先使用 LLM）
+const summary = await sessionManager.generateSummary(session.id);
+
+// 批量生成
+await sessionManager.generateSummariesBatch({ overwrite: false });
+```
+
+#### 会话续接
+
+```javascript
+// 恢复会话，获取上下文提示
+const result = await sessionManager.resumeSession(session.id);
+console.log(result.contextPrompt); // 续接上下文提示
+console.log(result.messages); // 有效消息
+
+// 获取最近会话
+const recent = await sessionManager.getRecentSessions(5);
+```
+
+#### 会话模板
+
+```javascript
+// 保存为模板
+const template = await sessionManager.saveAsTemplate(session.id, {
+  name: "技术讨论模板",
+  description: "用于技术问题讨论",
+  category: "tech",
+});
+
+// 从模板创建
+const newSession = await sessionManager.createFromTemplate(template.id);
+
+// 列出模板
+const templates = await sessionManager.listTemplates({ category: "tech" });
+```
+
+#### 全局统计
+
+```javascript
+const stats = await sessionManager.getGlobalStats();
+console.log("总会话数:", stats.totalSessions);
+console.log("总消息数:", stats.totalMessages);
 console.log("节省 Tokens:", stats.totalTokensSaved);
+console.log("唯一标签数:", stats.uniqueTags);
 ```
 
 ### 配置参数
@@ -580,16 +675,43 @@ SessionManager 使用 PromptCompressor 实现三种压缩策略：
 2. **历史截断**: 保留最近 N 条消息，截断旧消息
 3. **智能总结**: 使用 LLM 生成长历史的摘要（需要 llmManager）
 
+### IPC 通道
+
+| 通道                           | 功能          |
+| ------------------------------ | ------------- |
+| `session:create`               | 创建会话      |
+| `session:load`                 | 加载会话      |
+| `session:add-message`          | 添加消息      |
+| `session:search`               | 搜索会话      |
+| `session:add-tags`             | 添加标签      |
+| `session:remove-tags`          | 移除标签      |
+| `session:get-all-tags`         | 获取所有标签  |
+| `session:find-by-tags`         | 按标签查找    |
+| `session:export-json`          | 导出 JSON     |
+| `session:export-markdown`      | 导出 Markdown |
+| `session:import-json`          | 导入 JSON     |
+| `session:generate-summary`     | 生成摘要      |
+| `session:resume`               | 恢复会话      |
+| `session:get-recent`           | 获取最近会话  |
+| `session:save-as-template`     | 保存为模板    |
+| `session:create-from-template` | 从模板创建    |
+| `session:list-templates`       | 列出模板      |
+| `session:delete-multiple`      | 批量删除      |
+| `session:add-tags-multiple`    | 批量添加标签  |
+| `session:get-global-stats`     | 获取全局统计  |
+| `session:update-title`         | 更新会话标题  |
+
 ### 性能指标
 
 - **压缩率**: 通常为 0.6-0.7（节省 30-40% tokens）
 - **压缩延迟**: < 500ms（不使用 LLM 总结）
+- **搜索延迟**: < 100ms（1000 条会话内）
 - **存储开销**: < 1MB per session（100条消息）
 
 ### 测试
 
 ```bash
-# 运行 SessionManager 测试
+# 运行 SessionManager 测试（包含所有增强功能）
 cd desktop-app-vue
 node scripts/test-session-manager.js
 ```
@@ -599,11 +721,13 @@ node scripts/test-session-manager.js
 - **核心模块**: `desktop-app-vue/src/main/llm/session-manager.js`
 - **IPC 处理器**: `desktop-app-vue/src/main/llm/session-manager-ipc.js`
 - **数据库迁移**: `desktop-app-vue/src/main/database/migrations/005_llm_sessions.sql`
+- **模板表迁移**: `desktop-app-vue/src/main/database/migrations/008_session_templates.sql`
 - **测试脚本**: `desktop-app-vue/scripts/test-session-manager.js`
 
 ### 数据库表
 
 - `llm_sessions`: 存储会话元数据和消息历史
+- `llm_session_templates`: 存储会话模板
 - `llm_usage_log`: 记录 LLM Token 使用
 - `llm_budget_config`: 预算配置和限额
 - `llm_cache`: 响应缓存
