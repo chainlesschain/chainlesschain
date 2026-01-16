@@ -1,0 +1,40 @@
+{
+  "name": "@chainlesschain/weather-mcp-server",
+  "version": "1.0.0",
+  "description": "示例MCP服务器 - 提供天气查询功能",
+  "main": "build/index.js",
+  "type": "module",
+  "bin": {
+    "weather-mcp-server": "./build/index.js"
+  },
+  "scripts": {
+    "build": "tsc && chmod +x build/index.js",
+    "watch": "tsc --watch",
+    "dev": "npm run build && node build/index.js",
+    "test": "vitest",
+    "lint": "eslint src --ext .ts",
+    "prepare": "npm run build"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "weather",
+    "chainlesschain"
+  ],
+  "author": "ChainlessChain Team",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^0.5.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@typescript-eslint/eslint-plugin": "^6.19.0",
+    "@typescript-eslint/parser": "^6.19.0",
+    "eslint": "^8.56.0",
+    "typescript": "^5.3.3",
+    "vitest": "^1.2.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

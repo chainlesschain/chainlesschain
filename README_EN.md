@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v0.21.1-blue.svg)
+![Version](https://img.shields.io/badge/version-v0.24.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Phase 1](https://img.shields.io/badge/Phase%201-100%25-brightgreen.svg)
@@ -23,10 +23,14 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 
 ---
 
-## ⭐ Current Version: v0.21.1 (2026-01-13)
+## ⭐ Current Version: v0.24.0 (2026-01-16)
 
 ### Latest Updates
-- ✅ **Trading UI Polish** - Order QR code generation, order editing feature, multiple sharing methods (link/social/export), multi-format export (JSON/CSV/PDF/image) ⭐LATEST
+
+- ✅ **MCP (Model Context Protocol) Integration** - POC v0.1.0, supports Filesystem/PostgreSQL/SQLite/Git/Fetch servers, multi-layer security protection, UI management interface, complete documentation ⭐LATEST
+- ✅ **Unified Configuration Directory System** - `.chainlesschain/` directory for centralized config/logs/cache/session management, inspired by OpenClaude best practices, auto-initialization, config migration support ⭐LATEST
+- ✅ **Token Budget Management System** - LLM usage cost tracking, monthly budget control, overspending alerts, detailed statistics ⭐LATEST
+- ✅ **Trading UI Polish** - Order QR code generation, order editing feature, multiple sharing methods (link/social/export), multi-format export (JSON/CSV/PDF/image)
 - ✅ **Voice Message System Complete** - Full voice message recording and playback system with real-time recording UI, pause/resume controls, duration display, audio waveform visualization, play/pause controls, automatic resource cleanup, error handling ⭐NEW
 - ✅ **Message Reactions Feature** - Emoji reactions beyond likes, 18 common emojis, real-time reaction stats, toggle reactions, visual feedback
 - ✅ **P2P File Transfer Complete Implementation** - Large file chunked transfer (64KB chunks), resume capability, real-time progress tracking, SHA-256 integrity verification, concurrent transfer control
@@ -65,6 +69,7 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 - ✅ **145 Vue Components** - 14 pages, 54 project components, trading components (with escrow UI), social components, editors, skill-tool components, enterprise edition components
 
 ### Project Status (Overall Completion: 100%)
+
 - 🟢 **PC Desktop Application**: 100% Complete - **Production Ready** ⭐Completed
 - 🟢 **Knowledge Base Management**: 100% Complete - **Production Ready** ⭐Completed
 - 🟢 **AI Engine System**: 100% Complete - **P2 Optimization + 16 Specialized Engines** ⭐Completed
@@ -72,6 +77,9 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 - 🟢 **Backend Services**: 100% Complete - **3 Microservices + Conversation API** ⭐Completed
 - 🟢 **Skill & Tool System**: 100% Complete - **115 Skills + 300 Tools** ⭐Completed
 - 🟢 **Plugin System**: 100% Complete - **Dynamic Loading + Hot Reload** ⭐Completed
+- 🟢 **MCP Integration**: 100% Complete - **POC v0.1.0 + 5 Servers + Security Sandbox + UI Management** ⭐NEW
+- 🟢 **Unified Configuration**: 100% Complete - **.chainlesschain/ Directory + Auto-Init + Multi-Level Priority** ⭐NEW
+- 🟢 **Token Budget Management**: 100% Complete - **Cost Tracking + Budget Control + Alerts** ⭐NEW
 - 🟢 **Voice Recognition**: 100% Complete - **Real-time Voice Input + UI Integration** ⭐Completed
 - 🟢 **Deep Performance Optimization**: 100% Complete - **18 Optimization Tools + 4 Specialized Components** ⭐Completed
 - 🟢 **Performance Optimization**: 100% Complete - **Memory/Disk/Concurrency Control** ⭐Completed
@@ -96,6 +104,9 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 - 🌐 **Fully Decentralized**: P2P network (libp2p 3.1.2) + DHT + local data storage, no central servers needed ✅
 - 📁 **P2P File Transfer**: Large file chunked transfer (64KB) + resume capability + real-time progress + SHA-256 verification + concurrent control ✅ ⭐NEW
 - 🧠 **AI Native**: Support for 14+ cloud LLM providers + Ollama local deployment + RAG-enhanced retrieval ✅
+- 🔌 **MCP Integration**: Model Context Protocol support, 5 official servers (Filesystem/PostgreSQL/SQLite/Git/Fetch) + security sandbox + UI management + audit logs ✅ ⭐NEW
+- ⚙️ **Unified Configuration**: `.chainlesschain/` centralized config directory + auto-initialization + multi-level priority + logs/cache/session management ✅ ⭐NEW
+- 💰 **Token Budget Management**: LLM cost tracking + monthly budget control + overspending alerts + detailed analytics ✅ ⭐NEW
 - 🎯 **16 AI Engines**: Code/document/spreadsheet/PPT/PDF/image/video specialized processing, covering all scenarios ✅
 - 📋 **Template System**: 178 AI templates + 32 categories + smart engine allocation + 100% configuration coverage ✅
 - ⛓️ **Blockchain Integration**: 6 smart contracts + HD wallet system + MetaMask/WalletConnect + LayerZero cross-chain bridge ✅ ⭐Updated
@@ -116,11 +127,193 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 - 🖥️ **Workspace Management**: Full CRUD + restore + permanent delete + member management ✅ ⭐NEW
 - 🔄 **Remote Sync**: Incremental sync + conflict resolution + multi-device collaboration + auto-fallback ✅ ⭐NEW
 
+### MCP (Model Context Protocol) Integration ⭐NEW
+
+ChainlessChain integrates MCP (Model Context Protocol) to extend AI capabilities through a standardized protocol:
+
+**What is MCP**:
+
+- 🔌 **Open Standard**: Standardized protocol enabling AI assistants to connect with various external tools and data sources
+- 🚀 **Highly Extensible**: Easily add new capabilities without modifying core code
+- 🔒 **Secure Isolation**: Servers run in isolated processes with fine-grained permission control
+
+**Supported MCP Servers**:
+
+| Server         | Functionality                                   | Security Level | Status |
+| -------------- | ----------------------------------------------- | -------------- | ------ |
+| **Filesystem** | File read/write, search, directory management   | Medium         | ✅     |
+| **PostgreSQL** | Database queries, table management              | High           | ✅     |
+| **SQLite**     | Local database access                           | Medium         | ✅     |
+| **Git**        | Repository status, commit history, diff viewing | Medium         | ✅     |
+| **Fetch**      | HTTP requests, API calls                        | Medium         | ✅     |
+
+**Core Features**:
+
+- 🎯 **UI Management Interface**: Visual MCP server management in Settings page
+- 🔐 **Multi-Layer Security Protection**:
+  - Server whitelist mechanism (`server-registry.json`)
+  - Path/table access control (whitelist + blacklist)
+  - User consent workflow (confirmation for high-risk operations)
+  - Process isolation (servers run independently)
+  - Audit logging (all operations recorded)
+- 📊 **Performance Monitoring**: Connection time, call latency, error rate, memory usage
+- 📝 **Complete Documentation**: User guide, testing guide, developer docs
+
+**Security Boundaries**:
+
+- ❌ Permanently forbidden: `chainlesschain.db` (encrypted database), `ukey/` (hardware keys), `did/private-keys/` (DID private keys), `p2p/keys/` (P2P encryption keys)
+- ✅ Whitelisted paths: `notes/`, `imports/`, `exports/`, `projects/`
+- 🔒 Read-only mode by default, writes require user confirmation
+
+**Use Cases**:
+
+- 📁 AI assistant reads/searches filesystem
+- 🗄️ AI assistant queries database for data
+- 📋 AI assistant views Git commit history
+- 🌐 AI assistant calls external APIs
+
+**Technical Implementation**:
+
+- `mcp-client-manager.js` - Core client orchestrator
+- `mcp-security-policy.js` - Security policy enforcement
+- `mcp-tool-adapter.js` - Bridge to ToolManager
+- Stdio transport protocol (HTTP+SSE planned)
+- Integrated UI management in Settings page
+
+**Documentation Links**:
+
+- 📖 [MCP User Guide](docs/features/MCP_USER_GUIDE.md)
+- 🧪 [MCP Testing Guide](desktop-app-vue/src/main/mcp/TESTING_GUIDE.md)
+- 🌐 [MCP Official Spec](https://modelcontextprotocol.io/)
+
+**Known Limitations (POC Stage)**:
+
+- Only Stdio transport supported (HTTP+SSE pending)
+- Basic error recovery (simple retry only)
+- File-based configuration (UI editing planned)
+- Windows-focused (cross-platform support needed)
+
+**Roadmap**:
+
+- 🔜 HTTP+SSE transport support
+- 🔜 More official servers (Slack, GitHub, etc.)
+- 🔜 Enhanced UI configuration editing
+- 🔜 Custom MCP server development SDK
+- 🔜 Community server marketplace
+
+### Unified Configuration Directory System ⭐NEW
+
+ChainlessChain uses a unified `.chainlesschain/` directory for managing all configurations, logs, and cache, inspired by OpenClaude best practices:
+
+**Directory Structure**:
+
+```
+.chainlesschain/
+├── config.json              # Core config (model, cost, performance, logging)
+├── config.json.example      # Config template (version controlled)
+├── rules.md                 # Project coding rules
+├── memory/                  # Session and learning data
+│   ├── sessions/            # Conversation history
+│   ├── preferences/         # User preferences
+│   └── learned-patterns/    # Learned patterns
+├── logs/                    # Operation logs
+│   ├── error.log
+│   ├── performance.log
+│   ├── llm-usage.log        # LLM usage tracking
+│   └── mcp-*.log            # MCP logs
+├── cache/                   # Cached data
+│   ├── embeddings/          # Vector cache
+│   ├── query-results/       # Query results
+│   └── model-outputs/       # Model outputs
+└── checkpoints/             # Checkpoints and backups
+```
+
+**Configuration Priority** (High → Low):
+
+1. **Environment variables** (`.env`, system env)
+2. **`.chainlesschain/config.json`** (user config)
+3. **Default configuration** (defined in code)
+
+**Core Features**:
+
+- ✅ **Auto-initialization**: Automatically creates directory structure on first run
+- 📦 **Git-friendly**: Runtime data excluded, templates/rules version controlled
+- 🎯 **Centralized Management**: All paths accessible via `UnifiedConfigManager`
+- 🔄 **Easy Migration**: Support for config export/import
+- 📊 **LLM Cost Tracking**: Automatically logs token usage and costs
+
+**Usage Example**:
+
+```javascript
+const { getUnifiedConfigManager } = require("./config/unified-config-manager");
+const configManager = getUnifiedConfigManager();
+
+// Get config
+const modelConfig = configManager.getConfig("model");
+
+// Get paths
+const logsDir = configManager.getLogsDir();
+
+// Update config
+configManager.updateConfig({
+  cost: { monthlyBudget: 100 },
+});
+```
+
+**Configuration Files**:
+
+- `.chainlesschain/config.json` - Main config (git-ignored)
+- `.chainlesschain/config.json.example` - Template (version controlled)
+- `.chainlesschain/rules.md` - Coding rules (priority > CLAUDE.md)
+
+**Backward Compatibility**:
+
+- Existing `app-config.js` continues to work
+- New code recommended to use `UnifiedConfigManager`
+- Logs gradually migrate from `userData/logs/` to `.chainlesschain/logs/`
+
+### Token Budget Management System ⭐NEW
+
+ChainlessChain implements a complete LLM usage cost tracking and budget management system:
+
+**Core Functions**:
+
+- 💰 **Cost Tracking**: Automatically records token usage and costs for each LLM call
+- 📊 **Budget Control**: Set monthly budget, real-time usage monitoring
+- ⚠️ **Overspending Alerts**: Automatic alerts at 80%, 90%, 100% of budget
+- 📈 **Statistical Analysis**: Analyze usage by time, model, and feature
+
+**Supported LLM Providers**:
+
+- Alibaba Qwen, Zhipu GLM, Baidu Qianfan, Moonshot
+- DeepSeek, Tencent Hunyuan, iFlytek Spark
+- And more cloud LLM services (14+ providers)
+
+**Usage Monitoring**:
+
+- Real-time token counting (input/output separately)
+- Automatic cost calculation (based on official pricing)
+- Daily/monthly usage trends
+- Model usage ranking
+
+**Alert Strategy**:
+
+- 80% budget: Yellow reminder
+- 90% budget: Orange warning
+- 100% budget: Red alert, suggest pausing usage
+
+**Log Storage**:
+
+- Location: `.chainlesschain/logs/llm-usage.log`
+- Format: JSON Lines (one record per line)
+- Content: Timestamp, model, token count, cost, feature module
+
 ### P2P File Transfer System ⭐NEW
 
 ChainlessChain implements a complete P2P file transfer system supporting efficient and secure transfer of large files:
 
 **Core Features**:
+
 - 📦 **Large File Chunked Transfer**: 64KB chunk size, supports files of any size
 - 🔄 **Resume Capability**: Resume from breakpoint after interruption, no need to restart
 - 📊 **Real-time Progress Tracking**: Real-time display of transfer progress, speed, and remaining time
@@ -131,12 +324,14 @@ ChainlessChain implements a complete P2P file transfer system supporting efficie
 - 🔐 **E2E Encryption**: End-to-end encrypted transfer based on Signal Protocol
 
 **Use Cases**:
+
 - Send/receive images and files in chat
 - Knowledge base file synchronization
 - Project file collaboration
 - Large file peer-to-peer transfer
 
 **Technical Implementation**:
+
 - P2P network layer based on libp2p
 - MessageManager for message management and batch processing
 - FileTransferManager for file transfer management
@@ -147,6 +342,7 @@ ChainlessChain implements a complete P2P file transfer system supporting efficie
 ChainlessChain mobile app has undergone comprehensive UX optimization to provide a smooth, modern mobile experience:
 
 **Core UX Features**:
+
 - 📱 **Responsive Design**: Adapts to various screen sizes, supports portrait/landscape orientation
 - 🎨 **Modern UI**: Gradient design, card-based layout, smooth animations
 - ⚡ **Performance Optimization**: Virtual scrolling, lazy loading, image optimization, skeleton screens
@@ -159,6 +355,7 @@ ChainlessChain mobile app has undergone comprehensive UX optimization to provide
 - 🌙 **Theme Switching**: Light/dark themes, follows system settings
 
 **Implemented Features** (80% Complete):
+
 - ✅ Knowledge Base Management - Markdown rendering, code highlighting, image preview
 - ✅ AI Chat Interface - Streaming responses, message bubbles, voice input
 - ✅ Social Features - Friend list, post publishing, private messaging
@@ -167,6 +364,7 @@ ChainlessChain mobile app has undergone comprehensive UX optimization to provide
 - ✅ Settings Pages - Account management, privacy settings, sync configuration
 
 **Technical Implementation**:
+
 - uni-app 3.0 + Vue 3.4 cross-platform framework
 - Pinia 2.1.7 state management
 - SQLite local database
@@ -179,6 +377,7 @@ ChainlessChain mobile app has undergone comprehensive UX optimization to provide
 ChainlessChain implements a complete voice message recording and playback system for seamless audio communication in P2P chats:
 
 **Recording Features**:
+
 - 🎙️ **Real-time Voice Recording**: One-click recording with intuitive modal interface
 - ⏸️ **Pause/Resume Controls**: Pause and resume recording without losing progress
 - ⏱️ **Duration Display**: Real-time recording duration counter (MM:SS format)
@@ -187,6 +386,7 @@ ChainlessChain implements a complete voice message recording and playback system
 - ❌ **Cancel Recording**: Discard recording without sending
 
 **Playback Features**:
+
 - ▶️ **Play/Pause Controls**: Simple play/pause button in message bubble
 - 🕐 **Duration Display**: Shows voice message length
 - 🔊 **Audio Element Management**: Proper audio resource handling and cleanup
@@ -194,6 +394,7 @@ ChainlessChain implements a complete voice message recording and playback system
 - ⚠️ **Error Handling**: Graceful error handling for playback failures
 
 **Technical Implementation**:
+
 - VoiceMessageRecorder component for recording UI
 - Integration with speech IPC handlers (start/pause/resume/stop/cancel)
 - Audio file storage in uploads/chat directory
@@ -202,6 +403,7 @@ ChainlessChain implements a complete voice message recording and playback system
 - Automatic resource cleanup on component unmount
 
 **Use Cases**:
+
 - Quick voice messages in P2P chats
 - Voice notes for knowledge base
 - Audio feedback and communication
@@ -214,6 +416,7 @@ ChainlessChain implements a complete blockchain adapter system providing unified
 #### 1. Multi-Chain Support (15 Blockchains)
 
 **Mainnets**:
+
 - Ethereum (Ethereum Mainnet)
 - Polygon (Polygon Mainnet)
 - BSC (Binance Smart Chain)
@@ -223,6 +426,7 @@ ChainlessChain implements a complete blockchain adapter system providing unified
 - Base (Base Mainnet)
 
 **Testnets**:
+
 - Ethereum Sepolia
 - Polygon Mumbai
 - BSC Testnet
@@ -235,11 +439,13 @@ ChainlessChain implements a complete blockchain adapter system providing unified
 #### 2. Smart Contract Deployment
 
 **Token Contracts**:
+
 - ✅ ERC-20 Token Deployment (ChainlessToken)
 - ✅ ERC-721 NFT Deployment (ChainlessNFT)
 - ✅ Custom Token Parameters (name/symbol/decimals/initial supply)
 
 **Business Contracts**:
+
 - ✅ Escrow Contract (EscrowContract) - Supports buyer-seller fund escrow
 - ✅ Subscription Contract (SubscriptionContract) - Supports periodic subscription payments
 - ✅ Bounty Contract (BountyContract) - Supports task bounties and reward distribution
@@ -247,11 +453,13 @@ ChainlessChain implements a complete blockchain adapter system providing unified
 #### 3. Asset Operations
 
 **Token Operations**:
+
 - ✅ Token Transfer (single/batch)
 - ✅ Token Balance Query
 - ✅ Token Approval Management
 
 **NFT Operations**:
+
 - ✅ NFT Minting (mint)
 - ✅ NFT Transfer (single/batch)
 - ✅ NFT Ownership Query
@@ -261,6 +469,7 @@ ChainlessChain implements a complete blockchain adapter system providing unified
 #### 4. Wallet Management System
 
 **HD Wallet**:
+
 - ✅ BIP39 Mnemonic Generation (12 words)
 - ✅ BIP44 Derivation Path (m/44'/60'/0'/0/0)
 - ✅ Import Wallet from Mnemonic
@@ -268,12 +477,14 @@ ChainlessChain implements a complete blockchain adapter system providing unified
 - ✅ Export Private Key/Mnemonic
 
 **Security Features**:
+
 - ✅ AES-256-GCM Encrypted Storage
 - ✅ PBKDF2 Key Derivation (100,000 iterations)
 - ✅ USB Key Hardware Signing Support
 - ✅ Wallet Lock/Unlock Mechanism
 
 **External Wallets**:
+
 - ✅ MetaMask Integration
 - ✅ WalletConnect Support
 - ✅ Multi-Wallet Management
@@ -281,17 +492,20 @@ ChainlessChain implements a complete blockchain adapter system providing unified
 #### 5. Advanced Features
 
 **Gas Optimization**:
+
 - ✅ Gas Price Optimization (slow/standard/fast tiers)
 - ✅ Transaction Fee Estimation (L2 special handling support)
 - ✅ EIP-1559 Support (maxFeePerGas/maxPriorityFeePerGas)
 
 **Transaction Management**:
+
 - ✅ Transaction Retry Mechanism (exponential backoff, up to 3 attempts)
 - ✅ Transaction Monitoring (real-time status updates)
 - ✅ Transaction Replacement (cancel/speed up pending transactions)
 - ✅ Transaction Confirmation Tracking
 
 **Event System**:
+
 - ✅ Contract Event Listening
 - ✅ Real-time Event Push
 - ✅ Event Filtering and Query
@@ -299,6 +513,7 @@ ChainlessChain implements a complete blockchain adapter system providing unified
 #### 6. Cross-Chain Bridge
 
 **LayerZero Integration**:
+
 - ✅ Cross-chain Asset Transfer
 - ✅ Cross-chain Message Passing
 - ✅ Support for 15 Chain Interoperability
@@ -307,6 +522,7 @@ ChainlessChain implements a complete blockchain adapter system providing unified
 #### 7. On-Chain Off-Chain Sync
 
 **BlockchainIntegration Module**:
+
 - ✅ On-chain Asset Mapping to Local Database
 - ✅ On-chain Transaction Record Sync
 - ✅ Escrow Status Sync
@@ -316,6 +532,7 @@ ChainlessChain implements a complete blockchain adapter system providing unified
 #### 8. RPC Management
 
 **Smart RPC Switching**:
+
 - ✅ Multiple RPC Endpoint Configuration
 - ✅ Automatic Failover
 - ✅ Connection Timeout Detection (5 seconds)
@@ -324,6 +541,7 @@ ChainlessChain implements a complete blockchain adapter system providing unified
 #### 9. Block Explorer Integration
 
 **Supported Explorers**:
+
 - Etherscan (Ethereum)
 - Polygonscan (Polygon)
 - BscScan (BSC)
@@ -333,6 +551,7 @@ ChainlessChain implements a complete blockchain adapter system providing unified
 - BaseScan (Base)
 
 **Features**:
+
 - ✅ Transaction Query Link Generation
 - ✅ Address Query Link Generation
 - ✅ Contract Verification Link
@@ -340,6 +559,7 @@ ChainlessChain implements a complete blockchain adapter system providing unified
 #### 10. Technical Architecture
 
 **Core Modules**:
+
 ```
 desktop-app-vue/src/main/blockchain/
 ├── blockchain-adapter.js          # Core Adapter (1087 lines)
@@ -354,6 +574,7 @@ desktop-app-vue/src/main/blockchain/
 ```
 
 **IPC Interfaces**:
+
 - `blockchain-ipc.js` - Blockchain Basic Operations
 - `wallet-ipc.js` - Wallet Operations
 - `contract-ipc.js` - Contract Interaction
@@ -363,6 +584,7 @@ desktop-app-vue/src/main/blockchain/
 - `marketplace-ipc.js` - Marketplace Trading
 
 **Database Tables**:
+
 - `blockchain_wallets` - Wallet Information
 - `blockchain_asset_mapping` - Asset Mapping
 - `blockchain_transaction_mapping` - Transaction Mapping
@@ -372,38 +594,49 @@ desktop-app-vue/src/main/blockchain/
 #### 11. Usage Examples
 
 **Create Wallet**:
+
 ```javascript
 // Generate new wallet
 const wallet = await walletManager.createWallet(password, chainId);
 // Returns: { id, address, mnemonic, chainId }
 
 // Import from mnemonic
-const wallet = await walletManager.importFromMnemonic(mnemonic, password, chainId);
+const wallet = await walletManager.importFromMnemonic(
+  mnemonic,
+  password,
+  chainId,
+);
 
 // Import from private key
-const wallet = await walletManager.importFromPrivateKey(privateKey, password, chainId);
+const wallet = await walletManager.importFromPrivateKey(
+  privateKey,
+  password,
+  chainId,
+);
 ```
 
 **Deploy Contracts**:
+
 ```javascript
 // Deploy ERC-20 token
 const { address, txHash } = await blockchainAdapter.deployERC20Token(walletId, {
-  name: 'My Token',
-  symbol: 'MTK',
+  name: "My Token",
+  symbol: "MTK",
   decimals: 18,
   initialSupply: 1000000,
-  password: 'your-password'
+  password: "your-password",
 });
 
 // Deploy NFT contract
 const { address, txHash } = await blockchainAdapter.deployNFT(walletId, {
-  name: 'My NFT',
-  symbol: 'MNFT',
-  password: 'your-password'
+  name: "My NFT",
+  symbol: "MNFT",
+  password: "your-password",
 });
 ```
 
 **Transfer Operations**:
+
 ```javascript
 // Transfer tokens
 const txHash = await blockchainAdapter.transferToken(
@@ -411,7 +644,7 @@ const txHash = await blockchainAdapter.transferToken(
   tokenAddress,
   toAddress,
   amount,
-  password
+  password,
 );
 
 // Transfer NFT
@@ -421,20 +654,25 @@ const txHash = await blockchainAdapter.transferNFT(
   fromAddress,
   toAddress,
   tokenId,
-  password
+  password,
 );
 ```
 
 **Query Balance**:
+
 ```javascript
 // Query token balance
-const balance = await blockchainAdapter.getTokenBalance(tokenAddress, ownerAddress);
+const balance = await blockchainAdapter.getTokenBalance(
+  tokenAddress,
+  ownerAddress,
+);
 
 // Query NFT balance
 const balance = await blockchainAdapter.getNFTBalance(nftAddress, ownerAddress);
 ```
 
 **Switch Network**:
+
 ```javascript
 // Switch to Polygon mainnet
 await blockchainAdapter.switchChain(137);
@@ -470,6 +708,7 @@ const chainInfo = blockchainAdapter.getCurrentChainInfo();
 - ✅ User-Friendly Error Messages
 
 **Code Statistics**:
+
 - Core Code: 5,000+ lines
 - Smart Contracts: 2,400+ lines
 - Test Cases: 50+
@@ -502,11 +741,13 @@ const chainInfo = blockchainAdapter.getCurrentChainInfo();
 **If you see "Cannot open because developer cannot be verified"**:
 
 **Method 1** (Recommended):
+
 - Right-click on `ChainlessChain.app`
 - Select "Open"
 - Click "Open" in the dialog
 
 **Method 2**:
+
 - Open "System Preferences" → "Security & Privacy"
 - In the "General" tab, click "Open Anyway" button at the bottom
 
@@ -646,6 +887,7 @@ If you want to run from source or contribute to development, see the [🚀 Quick
 ### 1️⃣ Knowledge Base Management (95% Complete) ✅
 
 **Database System**:
+
 - ✅ SQL.js + SQLCipher AES-256 encrypted database (50+ tables: base + enterprise + blockchain + optimization)
 - ✅ Unified management of knowledge items, tags, conversations, projects, tasks
 - ✅ Soft delete mechanism + auto-save + transaction support
@@ -653,6 +895,7 @@ If you want to run from source or contribute to development, see the [🚀 Quick
 - ✅ Performance optimization and edge case handling (memory downgrade, disk check, concurrency control)
 
 **AI-Enhanced Retrieval (RAG)**:
+
 - ✅ ChromaDB/Qdrant vector storage
 - ✅ Hybrid search (vector + keyword + FTS5 full-text index)
 - ✅ 3 reranking algorithms (LLM, CrossEncoder, hybrid)
@@ -660,18 +903,21 @@ If you want to run from source or contribute to development, see the [🚀 Quick
 - ✅ Performance monitoring and metrics collection
 
 **File Processing**:
+
 - ✅ Multi-format import: Markdown/PDF/Word/TXT/Images
 - ✅ OCR recognition: Tesseract.js, supports Chinese and English
 - ✅ Image processing: Sharp compression, thumbnails, format conversion
 - ✅ 6 specialized editors: Code/Markdown/Excel/PPT/RichText/WebDev
 
 **Version Control**:
+
 - ✅ isomorphic-git pure JS implementation
 - ✅ AI auto-generated commit messages
 - ✅ Visual conflict resolution UI
 - ✅ Git sync scheduler
 
 **Deep Performance Optimization** (v0.20.0):
+
 - ✅ **Smart Image Optimization** (560 lines):
   - WebP/AVIF format auto-detection and conversion
   - Responsive image loading (srcset/sizes)
@@ -703,11 +949,12 @@ If you want to run from source or contribute to development, see the [🚀 Quick
   - LazyImage.vue - Lazy loading image component
   - PerformanceMonitor.vue - Performance monitoring panel
   - VirtualMessageList.vue - Virtual scrolling message list
-- ✅ **Complete Documentation**: 8 detailed documents (OPTIMIZATION_*.md)
+- ✅ **Complete Documentation**: 8 detailed documents (OPTIMIZATION\_\*.md)
 
 ### 2️⃣ Decentralized Social (85% Complete) ✅
 
 **DID Identity System**:
+
 - ✅ W3C DID Core standard (`did:chainlesschain:<identifier>`)
 - ✅ Ed25519 signing key pair + X25519 encryption key pair
 - ✅ DID document generation, signing, verification
@@ -715,11 +962,13 @@ If you want to run from source or contribute to development, see the [🚀 Quick
 - ⏳ P2P network publishing and resolution (framework ready)
 
 **Verifiable Credentials (VC)**:
+
 - ✅ 5 credential types: self-claim, skill certificate, trust endorsement, education, work experience
 - ✅ W3C VC standard signing and verification
 - ✅ Credential lifecycle management + revocation mechanism
 
 **P2P Network**:
+
 - ✅ libp2p 3.1.2 node management
 - ✅ TCP transport + Noise encryption + Kademlia DHT
 - ✅ mDNS local discovery + device hot-plug monitoring
@@ -728,12 +977,14 @@ If you want to run from source or contribute to development, see the [🚀 Quick
 - ⏳ WebRTC support (framework ready)
 
 **Social Features**:
+
 - ✅ Friend management: request/accept/reject, online status, grouping, remarks
 - ✅ Social posts: publish, like, comment, share, image support
 - ✅ P2P encrypted private messages: offline messages, multi-device sync, file transfer, message forwarding ⭐Updated
 - ✅ Group chat: create groups, member management, end-to-end encrypted group messages, invitation system
 
 **Message Forwarding Feature** (~200 lines of code): ⭐NEW
+
 - ✅ **Context Menu**: Right-click on message bubbles for forward, copy, delete operations
 - ✅ **Multi-Session Selection**: Select multiple target sessions for batch forwarding
 - ✅ **Automatic File Copying**: Automatically copy files when forwarding image/file messages
@@ -744,6 +995,7 @@ If you want to run from source or contribute to development, see the [🚀 Quick
 - ✅ **UI Components**: Forward dialog, session selector, forwarding status notifications
 
 **Voice Message Playback Feature** (~150 lines of code): ⭐NEW
+
 - ✅ **Playback Controls**: Click play/pause button to control voice playback, supports playback state toggle
 - ✅ **Status Display**: Real-time playback status display (playing/paused), dynamic icon switching
 - ✅ **Duration Display**: Shows voice message duration in MM:SS format
@@ -754,6 +1006,7 @@ If you want to run from source or contribute to development, see the [🚀 Quick
 - ✅ **UI Integration**: Voice message bubble, play/pause icons, duration label
 
 **Community Forum** (Standalone App):
+
 - ✅ Spring Boot 3.1.5 backend (69 Java files, 63 APIs)
 - ✅ Vue3 frontend (45 files, 15 pages)
 - ✅ 14 database tables: users, posts, replies, tags, likes, favorites, etc.
@@ -767,6 +1020,7 @@ Total code: **12,494+ lines** (28 UI components + 8 backend modules + blockchain
 **Trading UI Components** (28 components, 12,494 lines):
 
 **Asset Management UI** (6 components - 2,631 lines):
+
 - ✅ **AssetList.vue** (316 lines) - Asset listing with filters, search, statistics
 - ✅ **AssetCreate.vue** (601 lines) - Create tokens, NFTs, knowledge products, services
 - ✅ **AssetDetail.vue** (452 lines) - Detailed asset view with blockchain info
@@ -775,6 +1029,7 @@ Total code: **12,494+ lines** (28 UI components + 8 backend modules + blockchain
 - ✅ **AssetStatistics.vue** (460 lines) - Asset analytics and charts
 
 **Marketplace UI** (6 components - 2,794 lines):
+
 - ✅ **Marketplace.vue** (728 lines) - Main marketplace with order cards, filters, tabs
 - ✅ **OrderCreate.vue** (468 lines) - Create buy/sell/service/barter orders
 - ✅ **OrderDetail.vue** (417 lines) - Order details with purchase/cancel actions
@@ -783,6 +1038,7 @@ Total code: **12,494+ lines** (28 UI components + 8 backend modules + blockchain
 - ✅ **TransactionList.vue** (444 lines) - Transaction history with status tracking
 
 **Smart Contract UI** (6 components - 3,031 lines):
+
 - ✅ **ContractList.vue** (474 lines) - Contract listing with filters
 - ✅ **ContractCreate.vue** (732 lines) - Create contracts from templates
 - ✅ **ContractDetail.vue** (661 lines) - Contract details with conditions/events
@@ -791,12 +1047,14 @@ Total code: **12,494+ lines** (28 UI components + 8 backend modules + blockchain
 - ✅ **ContractArbitration.vue** (403 lines) - Dispute resolution interface
 
 **Escrow Management UI** (4 components - 1,718 lines):
+
 - ✅ **EscrowList.vue** (455 lines) - Escrow listing with status filters
 - ✅ **EscrowDetail.vue** (392 lines) - Escrow details and actions
 - ✅ **EscrowDispute.vue** (404 lines) - Dispute filing interface
 - ✅ **EscrowStatistics.vue** (467 lines) - Escrow analytics dashboard
 
 **Credit & Review UI** (5 components - 1,867 lines):
+
 - ✅ **CreditScore.vue** (509 lines) - Credit score display, level badges, benefits, history chart, leaderboard
 - ✅ **ReviewList.vue** (414 lines) - Review listing with ratings
 - ✅ **ReviewCreate.vue** (373 lines) - Create reviews with star ratings
@@ -804,9 +1062,11 @@ Total code: **12,494+ lines** (28 UI components + 8 backend modules + blockchain
 - ✅ **MyReviews.vue** (344 lines) - User's review history
 
 **Transaction Statistics UI** (1 component - 453 lines):
+
 - ✅ **TransactionStatistics.vue** (453 lines) - Charts and analytics for transactions
 
 **Common/Shared Components** (8 components):
+
 - ✅ **AssetCard.vue** - Reusable asset card
 - ✅ **ContractCard.vue** - Reusable contract card
 - ✅ **OrderCard.vue** - Reusable order card
@@ -820,6 +1080,7 @@ Total code: **12,494+ lines** (28 UI components + 8 backend modules + blockchain
 **Backend Modules** (8 modules, 6,492 lines):
 
 **1. Digital Asset Management** (asset-manager.js - 1,052 lines):
+
 - ✅ 4 asset types: Token, NFT, knowledge products, service credentials
 - ✅ Asset creation, minting, transfer, burning
 - ✅ Balance management + transfer history + metadata
@@ -835,6 +1096,7 @@ Total code: **12,494+ lines** (28 UI components + 8 backend modules + blockchain
   - Multi-chain support (Ethereum, Polygon, BSC, Arbitrum, Optimism, Avalanche, Base)
 
 **2. Trading Market** (marketplace-manager.js - 773 lines):
+
 - ✅ Product listing management (create, update, list, delist)
 - ✅ Multi-dimensional search and filtering (category, price, tags)
 - ✅ Order management (create, pay, confirm, cancel)
@@ -845,6 +1107,7 @@ Total code: **12,494+ lines** (28 UI components + 8 backend modules + blockchain
 - ✅ **Multi-Format Export** - Export orders as JSON/CSV/PDF/image ⭐NEW
 
 **3. Smart Contract Engine** (contract-engine.js - 1,345 lines + contract-templates.js - 526 lines):
+
 - ✅ Contract engine: condition evaluation, auto-execution, state management
 - ✅ 5 contract types: Simple Trade, Subscription, Bounty, Skill Exchange, Custom
 - ✅ 4 escrow types: Simple, Multisig, Timelock, Conditional
@@ -857,6 +1120,7 @@ Total code: **12,494+ lines** (28 UI components + 8 backend modules + blockchain
 - ✅ **Event Listening** - Real-time event synchronization
 
 **4. Escrow Service** (escrow-manager.js - 592 lines):
+
 - ✅ 4 escrow types: simple escrow, multi-party escrow, arbitration escrow, time-locked
 - ✅ Buyer and seller protection mechanisms
 - ✅ Dispute resolution process
@@ -865,6 +1129,7 @@ Total code: **12,494+ lines** (28 UI components + 8 backend modules + blockchain
 - ✅ Integration with marketplace and contracts
 
 **5. Knowledge Payment** (knowledge-payment.js - 896 lines):
+
 - ✅ 5 content types: article/video/audio/course/consulting
 - ✅ 3 pricing models: one-time, subscription, donation
 - ✅ Knowledge product encryption (AES-256) + key management
@@ -875,6 +1140,7 @@ Total code: **12,494+ lines** (28 UI components + 8 backend modules + blockchain
 - ✅ Statistics tracking
 
 **6. Credit Scoring** (credit-score.js - 637 lines):
+
 - ✅ 6-factor credit score calculation:
   - Completion rate, trade volume, positive rate
   - Response speed, dispute rate, refund rate
@@ -886,6 +1152,7 @@ Total code: **12,494+ lines** (28 UI components + 8 backend modules + blockchain
 - ✅ Level-based benefits (fee discounts, priority display, VIP support)
 
 **7. Review System** (review-manager.js - 671 lines):
+
 - ✅ 5-star rating + text review + image attachments
 - ✅ Bilateral reviews (buyer/seller)
 - ✅ Reply system
@@ -895,6 +1162,7 @@ Total code: **12,494+ lines** (28 UI components + 8 backend modules + blockchain
 - ✅ Review visibility control
 
 **8. Order Management** (integrated in marketplace-manager.js):
+
 - ✅ Order lifecycle: pending payment → paid → in progress → completed → cancelled
 - ✅ Order detail queries
 - ✅ Batch order processing
@@ -903,6 +1171,7 @@ Total code: **12,494+ lines** (28 UI components + 8 backend modules + blockchain
 - ✅ Order sharing (link, social media, export)
 
 **9. Blockchain Smart Contract System** (2400+ lines) ⭐NEW:
+
 - ✅ **ChainlessToken** (ERC-20 token contract, 70 lines)
   - Custom name, symbol, decimals
   - Mint/Burn functions, Ownable access control
@@ -932,6 +1201,7 @@ Total code: **12,494+ lines** (28 UI components + 8 backend modules + blockchain
 - ✅ **Deployment Scripts** (support for multi-network deployment)
 
 **10. Wallet System** (3000+ lines) ⭐NEW:
+
 - ✅ **Built-in HD Wallet** (900 lines)
   - BIP39 mnemonic + BIP44 path
   - AES-256-GCM strong encryption storage
@@ -947,6 +1217,7 @@ Total code: **12,494+ lines** (28 UI components + 8 backend modules + blockchain
   - Database persistence
 
 **Trading UI Components** (20+):
+
 - AssetCreate/List/Transfer - Asset management
 - Marketplace/OrderCreate/OrderDetail - Market and orders
 - ContractCreate/Detail/List/Execute/Sign - Smart contracts
@@ -957,12 +1228,14 @@ Total code: **12,494+ lines** (28 UI components + 8 backend modules + blockchain
 ### 4️⃣ Enterprise Edition (Decentralized Organizations) (100% Complete) ✅ ⭐COMPLETE
 
 **Core Architecture**:
+
 - ✅ **Multi-Identity Architecture**: One user DID can have personal identity + multiple organization identities
 - ✅ **Complete Data Isolation**: Each identity corresponds to independent database file (personal.db, org_xxx.db)
 - ✅ **Organization DID**: Support for organization-level DID creation (did:chainlesschain:org:xxxx)
 - ✅ **Database Switching**: Dynamic switching between different identity databases
 
 **Organization Management** (OrganizationManager - 1966 lines):
+
 - ✅ Organization create/delete - UUID generation, DID creation, database initialization
 - ✅ Member management - add/remove/role change, online status
 - ✅ Invitation system - 6-digit invitation code generation, DID invitation links (complete implementation)
@@ -971,6 +1244,7 @@ Total code: **12,494+ lines** (28 UI components + 8 backend modules + blockchain
 **Enterprise Data Synchronization System** (Complete Implementation) ⭐NEW:
 
 **1. P2P Sync Engine** (P2PSyncEngine - Complete Implementation):
+
 - ✅ **Incremental Sync** - Timestamp-based incremental data sync, reduces network traffic
 - ✅ **Conflict Detection** - Vector Clock conflict detection mechanism
 - ✅ **Conflict Resolution** - Multiple strategies supported (LWW/Manual/Auto-merge)
@@ -983,6 +1257,7 @@ Total code: **12,494+ lines** (28 UI components + 8 backend modules + blockchain
 - ✅ **Sync State Tracking** - Complete sync state recording and querying
 
 **2. Organization P2P Network** (OrgP2PNetwork - Complete Implementation):
+
 - ✅ **Topic Subscription** - Organization topic subscription based on libp2p PubSub
 - ✅ **Member Discovery** - Automatic discovery of online members in organization
 - ✅ **Heartbeat Mechanism** - 30-second heartbeat interval, real-time member status
@@ -991,6 +1266,7 @@ Total code: **12,494+ lines** (28 UI components + 8 backend modules + blockchain
 - ✅ **Broadcast Messages** - Organization-wide message broadcasting and announcements
 
 **3. Knowledge Collaboration Sync** (OrgKnowledgeSyncManager - Complete Implementation):
+
 - ✅ **Folder Permissions** - Hierarchical folder structure, fine-grained permission control
 - ✅ **Real-time Collaboration** - Yjs CRDT integration, conflict-free real-time editing
 - ✅ **Activity Tracking** - Complete knowledge base change audit logs
@@ -998,6 +1274,7 @@ Total code: **12,494+ lines** (28 UI components + 8 backend modules + blockchain
 - ✅ **Permission Checking** - Role-based knowledge base access control
 
 **4. Collaboration Manager** (CollaborationManager - Complete Implementation):
+
 - ✅ **ShareDB Integration** - Operational Transformation (OT) for real-time editing
 - ✅ **WebSocket Server** - Built-in collaboration WebSocket server
 - ✅ **Permission Integration** - Enterprise permission checking integration
@@ -1005,49 +1282,56 @@ Total code: **12,494+ lines** (28 UI components + 8 backend modules + blockchain
 - ✅ **Session Management** - Complete collaboration session tracking
 
 **5. Sync Strategy Configuration**:
+
 ```javascript
 const strategies = {
-  knowledge: 'manual',    // Knowledge requires manual conflict resolution
-  member: 'lww',         // Member info uses Last-Write-Wins
-  role: 'manual',        // Role configs require manual resolution
-  settings: 'manual',    // Organization settings require manual resolution
-  project: 'lww'         // Project metadata uses Last-Write-Wins
+  knowledge: "manual", // Knowledge requires manual conflict resolution
+  member: "lww", // Member info uses Last-Write-Wins
+  role: "manual", // Role configs require manual resolution
+  settings: "manual", // Organization settings require manual resolution
+  project: "lww", // Project metadata uses Last-Write-Wins
 };
 ```
 
 **6. Sync Workflows**:
 
 **Organization Creation Sync**:
+
 1. Create organization locally
 2. Initialize P2P network
 3. Broadcast creation event to network
 4. Set up sync state tracking
 
 **Member Addition Sync**:
+
 1. Add member locally
 2. Update sync state
 3. Broadcast member addition event
 4. Trigger permission recalculation
 
 **Knowledge Sync**:
+
 1. Real-time collaborative editing via Yjs
 2. Conflict-free merging of concurrent edits
 3. Permission-based access control
 4. Activity logging for audit trails
 
 **Conflict Resolution**:
+
 1. Vector clock comparison
 2. Configurable resolution strategies
 3. Manual resolution UI for critical conflicts
 4. Automatic LWW for non-critical data
 
 **7. Database Support**:
+
 - ✅ `p2p_sync_state` - Sync state tracking
 - ✅ `sync_conflicts` - Conflict resolution records
 - ✅ `sync_queue` - Offline operation queue
 - ✅ `organization_activities` - Complete audit logs
 
 **8. Enterprise-Grade Features**:
+
 - ✅ **Security**: DID identity, P2P encrypted communication
 - ✅ **Scalability**: Configurable batch sizes, offline queuing
 - ✅ **Reliability**: Retry mechanisms, conflict detection, audit trails
@@ -1055,6 +1339,7 @@ const strategies = {
 - ✅ **Flexibility**: Custom roles, configurable sync strategies
 
 **DID Invitation Link System** (DIDInvitationManager - Complete Implementation):
+
 - ✅ **Secure Token Generation** - 32-byte random tokens (base64url encoded)
 - ✅ **Flexible Usage Control** - Single/multiple/unlimited use, usage count tracking
 - ✅ **Expiration Management** - Default 7-day expiration, customizable, auto-expiration detection
@@ -1066,12 +1351,14 @@ const strategies = {
 - ✅ **Detailed Documentation** - INVITATION_LINK_FEATURE.md (500 lines complete documentation)
 
 **Permission System** (RBAC + ACL):
+
 - ✅ **4 Built-in Roles**: Owner (all permissions), Admin (management permissions), Member (read-write permissions), Viewer (read-only)
-- ✅ **Permission Granularity**: org.manage, member.manage, knowledge.*, project.*, invitation.create, etc.
+- ✅ **Permission Granularity**: org.manage, member.manage, knowledge._, project._, invitation.create, etc.
 - ✅ **Permission Checking**: Support for wildcards, prefix matching, exact matching
 - ✅ **Custom Roles**: Support for creating custom roles and permissions
 
 **Database Architecture** (14 tables):
+
 - ✅ `identity_contexts` - Identity context management (personal + organizations)
 - ✅ `organization_info` - Organization metadata (name, type, description, Owner)
 - ✅ `organization_members` - Organization member details (DID, role, permissions)
@@ -1088,6 +1375,7 @@ const strategies = {
 - ✅ `knowledge_items extension` - 8 new enterprise fields (org_id, created_by, share_scope, etc.)
 
 **Frontend UI Components** (10 pages/components, 5885 lines):
+
 - ✅ **IdentitySwitcher.vue** (511 lines) - Identity switcher, support create/join organizations
 - ✅ **OrganizationMembersPage.vue** - Member management page, role assignment
 - ✅ **OrganizationSettingsPage.vue** - Organization settings page, info editing
@@ -1100,12 +1388,14 @@ const strategies = {
 - ✅ **PermissionManager.vue** (680 lines) - Permission management component, role/permission/matrix views
 
 **State Management** (IdentityStore - 385 lines):
+
 - ✅ Current active identity management
 - ✅ All identity context caching
 - ✅ Organization list and switching logic
 - ✅ Permission checking interface
 
 **Application Scenarios**:
+
 - Startup teams, small companies
 - Tech communities, open source projects
 - Educational institutions
@@ -1114,6 +1404,7 @@ const strategies = {
 ### 5️⃣ AI Template System (100% Complete) ⭐NEW
 
 **System Overview**:
+
 - ✅ **178 AI Templates** - Covering office, development, design, media, and all scenarios
 - ✅ **32 Category System** - From document editing to blockchain development, complete categorization
 - ✅ **100% Configuration Coverage** - All templates configured with skills and tools
@@ -1122,6 +1413,7 @@ const strategies = {
 **Template Categories** (32 total):
 
 **Office Document Categories (12 categories)**:
+
 - ✅ writing, creative-writing - Creative writing, copywriting
 - ✅ education, learning - Education training, learning materials
 - ✅ legal, health - Legal documents, health management
@@ -1130,16 +1422,19 @@ const strategies = {
 - ✅ productivity, tech-docs - Productivity tools, technical documentation
 
 **Office Suite Categories (3 categories)**:
+
 - ✅ ppt - Presentation creation (6 templates)
 - ✅ excel - Data analysis, financial management (12 templates)
 - ✅ word - Professional document editing (8 templates)
 
 **Development Categories (3 categories)**:
+
 - ✅ web - Web development projects (5 templates)
 - ✅ code-project - Code project structures (7 templates)
 - ✅ data-science - Data science, machine learning (6 templates)
 
 **Design & Media Categories (5 categories)**:
+
 - ✅ design - UI/UX design (6 templates)
 - ✅ photography - Photography creation
 - ✅ video - Video production (29 templates)
@@ -1147,18 +1442,21 @@ const strategies = {
 - ✅ music - Music creation (5 templates)
 
 **Marketing Categories (4 categories)**:
+
 - ✅ marketing - Marketing planning (8 templates)
 - ✅ marketing-pro - Professional marketing (6 templates)
 - ✅ social-media - Social media management (6 templates)
 - ✅ ecommerce - E-commerce operations (6 templates)
 
 **Professional Domain Categories (5 categories)**:
+
 - ✅ research - Academic research
 - ✅ finance - Financial analysis
 - ✅ time-management - Time management
 - ✅ travel - Travel planning
 
 **Execution Engine Distribution** (after optimization):
+
 ```
 document engine : 95  (46.3%) - Main engine for document templates
 video engine    : 29  (14.1%) - Video production
@@ -1174,6 +1472,7 @@ web engine      : 5   (2.4%)  - Web development
 ```
 
 **Configuration Completeness**:
+
 - ✅ File system: 178/178 (100%)
 - ✅ Database: 203/203 (100%)
 - ✅ Skills configuration: 100%
@@ -1181,12 +1480,14 @@ web engine      : 5   (2.4%)  - Web development
 - ✅ Engine configuration: 100%
 
 **Optimization Results**:
+
 - Default engine usage reduced from 52.2% to **12.7%** (39.5 percentage point decrease)
 - Specialized engine coverage increased from 22.4% to **84.4%** (62 percentage point increase)
 - More precise engine allocation improves AI execution efficiency
 
 **Template Capability Mapping**:
 Each template is precisely configured with:
+
 - **skills** - Required AI skills for execution (selected from 115 skills)
 - **tools** - Required tools for execution (selected from 216 tools)
 - **execution_engine** - Optimal execution engine (11 engine types)
@@ -1238,12 +1539,14 @@ Details: `desktop-app-vue/dist/main/templates/OPTIMIZATION_COMPLETE_REPORT.md`
 ### Installation
 
 #### 1. Clone the Repository
+
 ```bash
 git clone https://github.com/chainlesschain/chainlesschain.git
 cd chainlesschain
 ```
 
 #### 2. Start PC Desktop App
+
 ```bash
 # Navigate to desktop app directory
 cd desktop-app-vue
@@ -1256,6 +1559,7 @@ npm run dev
 ```
 
 #### 3. Start AI Services (Optional, for local LLM)
+
 ```bash
 # Start Docker services
 docker-compose up -d
@@ -1265,6 +1569,7 @@ docker exec chainlesschain-llm ollama pull qwen2:7b
 ```
 
 #### 4. Start Community Forum (Optional)
+
 ```bash
 # Backend (Spring Boot)
 cd community-forum/backend
@@ -1368,21 +1673,22 @@ chainlesschain/
 
 ### Project Components
 
-| Project | Tech Stack | Code Size | APIs | Completion | Status |
-|---------|-----------|-----------|------|-----------|--------|
-| **desktop-app-vue** | Electron 39 + Vue3 | 210,000+ lines | 160+ IPC | 99% | ✅ Production Ready | ⭐Updated
-| **contracts** | Hardhat + Solidity | 2,400 lines | - | 100% | ✅ Complete |
-| **browser-extension** | Vanilla JS | 2,000+ lines | - | 70% | 🚧 In Development |
-| **backend/project-service** | Spring Boot 3.1 + Java 17 | 5,679 lines | 48 APIs | 95% | ✅ Production Ready |
-| **backend/ai-service** | FastAPI + Python 3.9+ | 12,417 lines | 38 APIs | 85% | ✅ Functional |
-| **community-forum/backend** | Spring Boot 3.1 + MySQL | 5,679 lines | 63 APIs | 90% | ✅ Production Ready |
-| **community-forum/frontend** | Vue3 + Element Plus | 10,958 lines | - | 85% | ✅ Functional |
-| **mobile-app-uniapp** | uni-app + Vue3 | Minimal | - | 10% | 🚧 In Development |
-| **Total** | - | **240,000+ lines** | **149 APIs** | **99%** | ✅ Ready for Use | ⭐Updated
+| Project                      | Tech Stack                | Code Size          | APIs         | Completion | Status              |
+| ---------------------------- | ------------------------- | ------------------ | ------------ | ---------- | ------------------- | --------- |
+| **desktop-app-vue**          | Electron 39 + Vue3        | 210,000+ lines     | 160+ IPC     | 99%        | ✅ Production Ready | ⭐Updated |
+| **contracts**                | Hardhat + Solidity        | 2,400 lines        | -            | 100%       | ✅ Complete         |
+| **browser-extension**        | Vanilla JS                | 2,000+ lines       | -            | 70%        | 🚧 In Development   |
+| **backend/project-service**  | Spring Boot 3.1 + Java 17 | 5,679 lines        | 48 APIs      | 95%        | ✅ Production Ready |
+| **backend/ai-service**       | FastAPI + Python 3.9+     | 12,417 lines       | 38 APIs      | 85%        | ✅ Functional       |
+| **community-forum/backend**  | Spring Boot 3.1 + MySQL   | 5,679 lines        | 63 APIs      | 90%        | ✅ Production Ready |
+| **community-forum/frontend** | Vue3 + Element Plus       | 10,958 lines       | -            | 85%        | ✅ Functional       |
+| **mobile-app-uniapp**        | uni-app + Vue3            | Minimal            | -            | 10%        | 🚧 In Development   |
+| **Total**                    | -                         | **240,000+ lines** | **149 APIs** | **99%**    | ✅ Ready for Use    | ⭐Updated |
 
 ## 🗓️ Roadmap
 
 ### Completed ✅
+
 - [x] **Phase 0**: System design and architecture planning (100%)
 - [x] **Phase 1 (MVP - Knowledge Base)**: 100% Complete
   - [x] Desktop app framework (Electron + Vue3)
@@ -1450,26 +1756,27 @@ chainlesschain/
 
 ### Version History
 
-| Version | Date | Major Updates |
-|---------|------|---------------|
+| Version | Date       | Major Updates                                                                                                                                                                                                                                                                                                                                            |
+| ------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | v0.21.0 | 2026-01-06 | **Deep Performance Optimization System**: Added 14,000+ lines of optimization code, 18 utility classes, 4 specialized components, smart image optimization system (WebP/AVIF), real-time performance monitoring (Core Web Vitals), frontend deep optimization (code splitting/lazy loading/virtual scrolling/intelligent prefetch), 8 detailed documents |
-| v0.20.0 | 2026-01-03 | **Testing Framework Upgrade + Performance Optimization**: Full migration to Vitest (94 test files/900+ cases), performance optimization integration (memory downgrade/disk check/concurrency control), security protection system, 4 core module unit tests |
-| v0.19.5 | 2026-01-02 | **P2 Optimization + V3 Tools + Menu Integration**: AI engine P2 optimization complete (intent fusion/knowledge distillation/streaming response), V3 tool system restored (300 tools), application menu integration, production deployment |
-| v0.19.0 | 2025-12-31 | **Codebase Refinement**: Updated project documentation, optimized template configuration, enhanced testing framework (62 test files), codebase restructuring |
-| v0.18.0 | 2025-12-30 | **Enterprise Edition + Skill/Tool Expansion**: Decentralized organizations (multi-identity + RBAC + 9 new tables) + skill/tool system expanded to 115 skills + 300 tools + Playwright testing + multi-database isolation |
-| v0.17.0 | 2025-12-29 | **Blockchain Integration Phase 1-3**: Smart contract system (6 contracts + tests + deployment) + wallet system (HD + external) + skill/tool system + plugin system + browser extension + voice recognition Phase 3 |
-| v0.16.0 | 2025-12-28 | **Phase 3 Complete**: 8 trading modules (5625+ lines) + 19 AI engines + backend services (149 APIs) + database sync + testing framework |
-| v0.11.0 | 2025-12-18 | Image upload and OCR (Tesseract.js + Sharp) |
-| v0.10.0 | 2025-12 | RAG reranker (3 algorithms) + query rewriting |
-| v0.9.0 | 2025-11 | File import enhancement (PDF/Word/TXT) |
-| v0.8.0 | 2025-11 | Verifiable credentials system (W3C VC standard, 5 types) |
-| v0.6.1 | 2025-10 | DHT network publishing (DID documents) |
-| v0.4.0 | 2025-09 | Git conflict resolution (visual UI) + AI commit messages |
-| v0.1.0 | 2025-08 | First MVP release |
+| v0.20.0 | 2026-01-03 | **Testing Framework Upgrade + Performance Optimization**: Full migration to Vitest (94 test files/900+ cases), performance optimization integration (memory downgrade/disk check/concurrency control), security protection system, 4 core module unit tests                                                                                              |
+| v0.19.5 | 2026-01-02 | **P2 Optimization + V3 Tools + Menu Integration**: AI engine P2 optimization complete (intent fusion/knowledge distillation/streaming response), V3 tool system restored (300 tools), application menu integration, production deployment                                                                                                                |
+| v0.19.0 | 2025-12-31 | **Codebase Refinement**: Updated project documentation, optimized template configuration, enhanced testing framework (62 test files), codebase restructuring                                                                                                                                                                                             |
+| v0.18.0 | 2025-12-30 | **Enterprise Edition + Skill/Tool Expansion**: Decentralized organizations (multi-identity + RBAC + 9 new tables) + skill/tool system expanded to 115 skills + 300 tools + Playwright testing + multi-database isolation                                                                                                                                 |
+| v0.17.0 | 2025-12-29 | **Blockchain Integration Phase 1-3**: Smart contract system (6 contracts + tests + deployment) + wallet system (HD + external) + skill/tool system + plugin system + browser extension + voice recognition Phase 3                                                                                                                                       |
+| v0.16.0 | 2025-12-28 | **Phase 3 Complete**: 8 trading modules (5625+ lines) + 19 AI engines + backend services (149 APIs) + database sync + testing framework                                                                                                                                                                                                                  |
+| v0.11.0 | 2025-12-18 | Image upload and OCR (Tesseract.js + Sharp)                                                                                                                                                                                                                                                                                                              |
+| v0.10.0 | 2025-12    | RAG reranker (3 algorithms) + query rewriting                                                                                                                                                                                                                                                                                                            |
+| v0.9.0  | 2025-11    | File import enhancement (PDF/Word/TXT)                                                                                                                                                                                                                                                                                                                   |
+| v0.8.0  | 2025-11    | Verifiable credentials system (W3C VC standard, 5 types)                                                                                                                                                                                                                                                                                                 |
+| v0.6.1  | 2025-10    | DHT network publishing (DID documents)                                                                                                                                                                                                                                                                                                                   |
+| v0.4.0  | 2025-09    | Git conflict resolution (visual UI) + AI commit messages                                                                                                                                                                                                                                                                                                 |
+| v0.1.0  | 2025-08    | First MVP release                                                                                                                                                                                                                                                                                                                                        |
 
 ## 🛠️ Tech Stack
 
 ### PC (desktop-app-vue) - Main Application
+
 - **Framework**: Electron 39.2.6 + Vue 3.4 + TypeScript 5.3
 - **UI Components**: Ant Design Vue 4.1.2
 - **State Management**: Pinia 2.1.7
@@ -1484,11 +1791,13 @@ chainlesschain/
 - **Image Processing**: Sharp 0.33 + Tesseract.js 5.0
 - **Encryption**: node-forge + TweetNaCl + USB Key SDK (Koffi FFI)
 - **Vector DB**: ChromaDB 3.1.8
+- **MCP Integration**: @modelcontextprotocol/sdk (Stdio transport)
 - **Build**: Vite 7.2.7 + Electron Builder
 
 ### Backend Services
 
 #### Project Service (Project Management)
+
 - **Framework**: Spring Boot 3.1.11 + Java 17
 - **ORM**: MyBatis Plus 3.5.7 (recommended upgrade to 3.5.9)
 - **Database**: PostgreSQL 16
@@ -1499,6 +1808,7 @@ chainlesschain/
 - **Port**: 9090
 
 #### AI Service (AI Inference)
+
 - **Framework**: FastAPI 0.109.0+ + Python 3.9+
 - **LLM**: Ollama (local) + 14+ cloud providers
 - **Vector DB**: Qdrant 1.7.0+ / ChromaDB 0.4.22
@@ -1507,7 +1817,9 @@ chainlesschain/
 - **Port**: 8001
 
 #### Community Forum
+
 **Backend**:
+
 - **Framework**: Spring Boot 3.1.5 + Java 17
 - **ORM**: MyBatis Plus 3.5.9
 - **Database**: MySQL 8.0.12
@@ -1518,6 +1830,7 @@ chainlesschain/
 - **Port**: 8080
 
 **Frontend**:
+
 - **Framework**: Vue 3.4.0 + Vite 5.0.8
 - **UI Components**: Element Plus 2.5.1
 - **State Management**: Pinia 2.1.7
@@ -1527,7 +1840,9 @@ chainlesschain/
 - **Port**: 3000
 
 ### Mobile
+
 #### Android (android-app)
+
 - **Language**: Kotlin
 - **UI**: Jetpack Compose
 - **Database**: Room ORM + SQLCipher
@@ -1536,10 +1851,12 @@ chainlesschain/
 - **LLM**: Ollama Android
 
 #### React Native (mobile-app)
+
 - **Framework**: React Native 0.73.2
 - **Navigation**: React Navigation
 
 ### Docker Services
+
 - **LLM Engine**: Ollama (latest, port 11434)
   - Supported models: Qwen2-7B, LLaMA3-8B, GLM-4, MiniCPM-2B, etc.
   - GPU acceleration: NVIDIA CUDA support
@@ -1555,6 +1872,7 @@ chainlesschain/
 - **Git Service**: Gitea (optional)
 
 ### Blockchain (50% Complete) ⭐
+
 - **Smart Contracts**: Solidity 0.8+ + Hardhat 2.28
 - **Development Framework**: Hardhat Toolbox 5.0
 - **Contract Libraries**: OpenZeppelin Contracts 5.4
@@ -1579,6 +1897,7 @@ chainlesschain/
 We welcome all forms of contribution!
 
 ### How to Contribute
+
 1. Fork this repository
 2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
 3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
@@ -1586,6 +1905,7 @@ We welcome all forms of contribution!
 5. Open a Pull Request
 
 ### Development Guidelines
+
 - Code style: Follow ESLint/Prettier configuration
 - Commit messages: Use semantic commits (feat/fix/docs/style/refactor/test/chore)
 - Testing: Add necessary unit and integration tests
@@ -1594,6 +1914,7 @@ We welcome all forms of contribution!
 See [CONTRIBUTING.md](./docs/development/CONTRIBUTING.md) for details
 
 ### Priority Tasks
+
 1. 🔴 **High Priority**:
    - Complete blockchain adapter implementation (Phase 4-6)
    - Improve USB Key drivers (FeiTian, WatchData, simulation mode)
@@ -1620,12 +1941,14 @@ See [CONTRIBUTING.md](./docs/development/CONTRIBUTING.md) for details
 ### Known Limitations
 
 **USB Key Support**:
+
 - Only supports Windows platform (via Koffi FFI calling DLL)
 - Only XinJinKe driver implemented (40% complete)
 - FeiTian, WatchData drivers to be implemented
 - macOS/Linux require simulation mode
 
 **Blockchain Integration**:
+
 - Blockchain adapter not completed (Phase 4-6 pending)
 - Cross-chain bridge is simplified version (recommend Chainlink CCIP or LayerZero for production)
 - Contracts not audited by third-party security firms
@@ -1633,20 +1956,24 @@ See [CONTRIBUTING.md](./docs/development/CONTRIBUTING.md) for details
 - Frontend UI adaptation incomplete
 
 **P2P Network**:
+
 - WebRTC transport not implemented (framework ready)
 - NAT traversal needs optimization
 - Signaling server needs deployment
 
 **Backend Services**:
+
 - Project Service MyBatis Plus version 3.5.7 needs upgrade to 3.5.9
 - AI Service needs more integration tests
 - Cloud LLM provider interfaces need complete implementation
 
 **Mobile Application**:
+
 - uni-app version only 10% complete
 - SIMKey integration not developed
 
 **Others**:
+
 - Browser extension 70% complete (remaining features in development)
 - Knowledge graph visualization not implemented
 - Multi-language UI not implemented
@@ -1660,18 +1987,21 @@ Core encryption libraries use **Apache 2.0** license
 ## 📞 Contact Us
 
 ### Official Channels
+
 - **Website**: https://www.chainlesschain.com
 - **Documentation**: https://docs.chainlesschain.com
 - **Forum**: https://community.chainlesschain.com
 - **GitHub**: https://github.com/chainlesschain/chainlesschain
 
 ### Contact Information
+
 - **Email**: zhanglongfa@chainlesschain.com
 - **Security Reports**: security@chainlesschain.com
 - **Phone**: +86 400-1068-687
 - **WeChat**: https://work.weixin.qq.com/ca/cawcde653996f7ecb2
 
 ### Community
+
 - **Tech Discussion**: GitHub Discussions
 - **Bug Reports**: GitHub Issues
 - **Feature Requests**: GitHub Issues
@@ -1681,28 +2011,33 @@ Core encryption libraries use **Apache 2.0** license
 Thanks to the following open source projects and technologies:
 
 ### Core Frameworks
+
 - [Electron](https://www.electronjs.org/) - Cross-platform desktop app framework
 - [Vue.js](https://vuejs.org/) - Progressive JavaScript framework
 - [React](https://react.dev/) - User interface library
 - [Spring Boot](https://spring.io/projects/spring-boot) - Java application framework
 
 ### AI & Data
+
 - [Ollama](https://ollama.ai/) - Local LLM runtime
 - [Qdrant](https://qdrant.tech/) - Vector database
 - [ChromaDB](https://www.trychroma.com/) - AI-native embedding database
 - [Tesseract.js](https://tesseract.projectnaptha.com/) - OCR engine
 
 ### Encryption & Network
+
 - [SQLCipher](https://www.zetetic.net/sqlcipher/) - Encrypted database
 - [libp2p](https://libp2p.io/) - P2P networking stack
 - [Signal Protocol](https://signal.org/docs/) - End-to-end encryption protocol
 
 ### Editor & UI
+
 - [Milkdown](https://milkdown.dev/) - Markdown editor
 - [Ant Design](https://ant.design/) / [Ant Design Vue](https://antdv.com/) - Enterprise UI components
 - [Element Plus](https://element-plus.org/) - Vue 3 component library
 
 ### Tools
+
 - [Vite](https://vitejs.dev/) - Next generation frontend tooling
 - [TypeScript](https://www.typescriptlang.org/) - JavaScript superset
 - [Docker](https://www.docker.com/) - Containerization platform
@@ -1721,6 +2056,7 @@ Thanks to the following open source projects and technologies:
 ### Overall Code Statistics
 
 **Total Code**: 260,000+ lines ⭐Updated
+
 - Desktop App: 220,000+ lines (JavaScript/TypeScript/Vue) ⭐Updated
   - Main process: ~190,000 lines (including mobile sync 7700 lines) ⭐Updated
   - Renderer process: ~15,000 lines (243 components)
@@ -1733,6 +2069,7 @@ Thanks to the following open source projects and technologies:
 - Optimization Docs: 4,200+ lines (8 documents)
 
 **Components and Files**:
+
 - Vue Components: 288 (Desktop 243 + Forum 45)
 - JavaScript Files: 369 (Main process 335 + Utilities 34)
 - Solidity Contracts: 6
@@ -1742,6 +2079,7 @@ Thanks to the following open source projects and technologies:
 - Optimization Docs: 8
 
 **Function Modules**:
+
 - 16 AI specialized engines
 - Mobile-PC Data Sync System (7700+ lines)
   - Device pairing, knowledge sync, project sync, PC status monitoring
@@ -1791,6 +2129,7 @@ Thanks to the following open source projects and technologies:
 - 4 database sync modules
 
 **Backend Services**:
+
 - Total API endpoints: 157 ⭐Updated
   - Project Service: 56 APIs ⭐Updated
   - AI Service: 38 APIs
@@ -1801,6 +2140,7 @@ Thanks to the following open source projects and technologies:
 - Optimization docs: 8 documents, ~4,200 lines
 
 **Test Coverage**:
+
 - Total test files: 97 ⭐Updated
   - Unit tests: 70+ files
   - Integration tests: 4 files

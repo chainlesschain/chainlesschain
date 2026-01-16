@@ -54,10 +54,16 @@ class LLMManager extends EventEmitter {
     this.tokenTracker = config.tokenTracker || null;
     if (this.tokenTracker) {
       console.log("[LLMManager] Token 追踪已启用");
+
+      // 🔥 监听预算告警事件
+      this.tokenTracker.on("budget-alert", this._handleBudgetAlert.bind(this));
     }
 
     // 🔥 暂停标志（预算超限时）
     this.paused = false;
+
+    // 🔥 预算配置缓存（用于自动切换模型）
+    this.budgetConfig = null;
   }
 
   /**
@@ -253,6 +259,15 @@ class LLMManager extends EventEmitter {
       throw new Error("LLM服务未初始化");
     }
 
+    // 🔥 检查服务是否已暂停（预算超限）
+    if (this.paused) {
+      throw new Error(
+        "LLM服务已暂停：预算超限。请前往设置页面调整预算或恢复服务。",
+      );
+    }
+
+    const startTime = Date.now();
+
     try {
       const conversationId = options.conversationId;
       let result;
@@ -321,10 +336,37 @@ class LLMManager extends EventEmitter {
 
       this.emit("query-completed", { prompt, result });
 
+      const responseTime = Date.now() - startTime;
+
+      // 🔥 记录 Token 使用
+      if (this.tokenTracker) {
+        try {
+          await this.tokenTracker.recordUsage({
+            conversationId: options.conversationId,
+            messageId: options.messageId,
+            provider: this.provider,
+            model: result.model || this.config.model || "unknown",
+            inputTokens: result.usage?.prompt_tokens || 0,
+            outputTokens: result.usage?.completion_tokens || 0,
+            cachedTokens: result.usage?.cached_tokens || 0,
+            wasCached: options.wasCached || false,
+            wasCompressed: options.wasCompressed || false,
+            compressionRatio: options.compressionRatio || 1.0,
+            responseTime,
+            endpoint: options.endpoint,
+            userId: options.userId || "default",
+          });
+        } catch (trackError) {
+          console.error("[LLMManager] Token 追踪失败:", trackError);
+          // 不阻塞主流程
+        }
+      }
+
       return {
         text: result.text || result.message?.content,
         model: result.model,
         tokens: result.tokens || result.usage?.total_tokens || 0,
+        usage: result.usage,
         timestamp: Date.now(),
       };
     } catch (error) {
@@ -532,6 +574,15 @@ class LLMManager extends EventEmitter {
       throw new Error("LLM服务未初始化");
     }
 
+    // 🔥 检查服务是否已暂停（预算超限）
+    if (this.paused) {
+      throw new Error(
+        "LLM服务已暂停：预算超限。请前往设置页面调整预算或恢复服务。",
+      );
+    }
+
+    const startTime = Date.now();
+
     try {
       const conversationId = options.conversationId;
       let result;
@@ -593,10 +644,37 @@ class LLMManager extends EventEmitter {
 
       this.emit("stream-completed", { prompt, result });
 
+      const responseTime = Date.now() - startTime;
+
+      // 🔥 记录 Token 使用
+      if (this.tokenTracker) {
+        try {
+          await this.tokenTracker.recordUsage({
+            conversationId: options.conversationId,
+            messageId: options.messageId,
+            provider: this.provider,
+            model: result.model || this.config.model || "unknown",
+            inputTokens: result.usage?.prompt_tokens || 0,
+            outputTokens: result.usage?.completion_tokens || 0,
+            cachedTokens: result.usage?.cached_tokens || 0,
+            wasCached: options.wasCached || false,
+            wasCompressed: options.wasCompressed || false,
+            compressionRatio: options.compressionRatio || 1.0,
+            responseTime,
+            endpoint: options.endpoint,
+            userId: options.userId || "default",
+          });
+        } catch (trackError) {
+          console.error("[LLMManager] Token 追踪失败:", trackError);
+          // 不阻塞主流程
+        }
+      }
+
       return {
         text: result.text || result.message?.content,
         model: result.model,
         tokens: result.tokens || 0,
+        usage: result.usage,
         timestamp: Date.now(),
       };
     } catch (error) {
@@ -884,11 +962,296 @@ class LLMManager extends EventEmitter {
     return await this.toolsClient.chatWithMultipleTools(messages, toolConfig);
   }
 
+  // ========================================
+  // 🔥 Token 追踪和预算管理 API
+  // ========================================
+
+  /**
+   * 处理预算告警事件（内部方法）
+   * @private
+   * @param {Object} alert - 告警详情
+   */
+  async _handleBudgetAlert(alert) {
+    const { level, period, usage, spent, limit } = alert;
+
+    console.warn(
+      `[LLMManager] 🚨 预算告警: ${period} 使用率 ${(usage * 100).toFixed(1)}% ($${spent.toFixed(2)}/$${limit})`,
+    );
+
+    // 发送告警事件给外部监听器
+    this.emit("budget-alert", alert);
+
+    // 如果是 critical 级别且启用了自动暂停
+    if (level === "critical" && this.budgetConfig?.auto_pause_on_limit) {
+      console.error("[LLMManager] ⛔ 预算超限，自动暂停 LLM 服务");
+      this.paused = true;
+      this.emit("service-paused", { reason: "budget-exceeded", alert });
+    }
+
+    // 如果启用了自动切换到更便宜的模型
+    if (
+      level === "warning" &&
+      this.budgetConfig?.auto_switch_to_cheaper_model
+    ) {
+      console.warn("[LLMManager] 💡 尝试切换到更便宜的模型");
+      await this._switchToCheaperModel();
+    }
+  }
+
+  /**
+   * 切换到更便宜的模型（内部方法）
+   * @private
+   */
+  async _switchToCheaperModel() {
+    // 模型成本映射（从低到高）
+    const cheaperModels = {
+      openai: ["gpt-3.5-turbo", "gpt-4o-mini"],
+      anthropic: ["claude-3-haiku-20240307", "claude-3-5-haiku-20241022"],
+      deepseek: ["deepseek-chat"],
+      volcengine: ["doubao-lite-32k", "doubao-pro-32k"],
+    };
+
+    const currentProvider = this.provider;
+    const currentModel = this.config.model;
+
+    if (cheaperModels[currentProvider]) {
+      const options = cheaperModels[currentProvider];
+      const currentIndex = options.indexOf(currentModel);
+
+      // 如果当前不是最便宜的模型，切换到更便宜的
+      if (currentIndex > 0) {
+        const newModel = options[currentIndex - 1];
+        console.log(`[LLMManager] 切换模型: ${currentModel} → ${newModel}`);
+
+        this.config.model = newModel;
+        await this.initialize();
+
+        this.emit("model-switched", {
+          from: currentModel,
+          to: newModel,
+          reason: "budget-optimization",
+        });
+      } else {
+        console.warn("[LLMManager] 已经在使用最便宜的模型，无法继续降级");
+      }
+    }
+  }
+
+  /**
+   * 恢复被暂停的服务
+   * @param {string} userId - 用户 ID
+   */
+  async resumeService(userId = "default") {
+    if (!this.paused) {
+      console.warn("[LLMManager] 服务未暂停，无需恢复");
+      return { success: false, message: "服务未暂停" };
+    }
+
+    console.log("[LLMManager] 恢复 LLM 服务");
+    this.paused = false;
+    this.emit("service-resumed", { userId });
+
+    return { success: true, message: "服务已恢复" };
+  }
+
+  /**
+   * 手动暂停服务
+   */
+  async pauseService() {
+    if (this.paused) {
+      console.warn("[LLMManager] 服务已经暂停");
+      return { success: false, message: "服务已暂停" };
+    }
+
+    console.log("[LLMManager] 手动暂停 LLM 服务");
+    this.paused = true;
+    this.emit("service-paused", { reason: "manual" });
+
+    return { success: true, message: "服务已暂停" };
+  }
+
+  /**
+   * 获取预算配置
+   * @param {string} userId - 用户 ID
+   * @returns {Promise<Object>}
+   */
+  async getBudgetConfig(userId = "default") {
+    if (!this.tokenTracker) {
+      throw new Error("Token 追踪未启用");
+    }
+
+    const config = await this.tokenTracker.getBudgetConfig(userId);
+    this.budgetConfig = config; // 缓存配置
+    return config;
+  }
+
+  /**
+   * 保存预算配置
+   * @param {string} userId - 用户 ID
+   * @param {Object} config - 预算配置
+   * @returns {Promise<Object>}
+   */
+  async saveBudgetConfig(userId = "default", config) {
+    if (!this.tokenTracker) {
+      throw new Error("Token 追踪未启用");
+    }
+
+    const result = await this.tokenTracker.saveBudgetConfig(userId, config);
+
+    // 更新缓存
+    this.budgetConfig = await this.tokenTracker.getBudgetConfig(userId);
+
+    return result;
+  }
+
+  /**
+   * 获取使用统计
+   * @param {Object} options - 查询选项
+   * @returns {Promise<Object>}
+   */
+  async getUsageStats(options = {}) {
+    if (!this.tokenTracker) {
+      throw new Error("Token 追踪未启用");
+    }
+
+    return await this.tokenTracker.getUsageStats(options);
+  }
+
+  /**
+   * 获取时间序列数据（用于图表）
+   * @param {Object} options - 查询选项
+   * @returns {Promise<Array>}
+   */
+  async getTimeSeriesData(options = {}) {
+    if (!this.tokenTracker) {
+      throw new Error("Token 追踪未启用");
+    }
+
+    return await this.tokenTracker.getTimeSeriesData(options);
+  }
+
+  /**
+   * 获取成本分解（按提供商/模型）
+   * @param {Object} options - 查询选项
+   * @returns {Promise<Object>}
+   */
+  async getCostBreakdown(options = {}) {
+    if (!this.tokenTracker) {
+      throw new Error("Token 追踪未启用");
+    }
+
+    return await this.tokenTracker.getCostBreakdown(options);
+  }
+
+  /**
+   * 导出成本报告
+   * @param {Object} options - 导出选项
+   * @returns {Promise<string>} CSV 文件路径
+   */
+  async exportCostReport(options = {}) {
+    if (!this.tokenTracker) {
+      throw new Error("Token 追踪未启用");
+    }
+
+    return await this.tokenTracker.exportCostReport(options);
+  }
+
+  /**
+   * 计算成本估算（支持多提供商）
+   * @param {string} provider - 提供商
+   * @param {string} model - 模型名称
+   * @param {number} inputTokens - 输入 tokens
+   * @param {number} outputTokens - 输出 tokens
+   * @param {number} cachedTokens - 缓存 tokens
+   * @returns {Object} 成本估算结果
+   */
+  calculateCostEstimate(
+    provider,
+    model,
+    inputTokens,
+    outputTokens,
+    cachedTokens = 0,
+  ) {
+    if (!this.tokenTracker) {
+      return { costUsd: 0, costCny: 0, pricing: null };
+    }
+
+    return this.tokenTracker.calculateCost(
+      provider,
+      model,
+      inputTokens,
+      outputTokens,
+      cachedTokens,
+    );
+  }
+
+  /**
+   * 检查是否可以执行操作（预算检查）
+   * @param {number} estimatedTokens - 预估 token 数量
+   * @returns {Promise<Object>} { allowed: boolean, reason?: string }
+   */
+  async canPerformOperation(estimatedTokens = 0) {
+    if (this.paused) {
+      return {
+        allowed: false,
+        reason: "服务已暂停：预算超限。请前往设置页面调整预算或恢复服务。",
+      };
+    }
+
+    if (!this.tokenTracker) {
+      return { allowed: true };
+    }
+
+    // 估算成本
+    const estimate = this.calculateCostEstimate(
+      this.provider,
+      this.config.model,
+      estimatedTokens,
+      estimatedTokens,
+    );
+
+    // 获取当前预算状态
+    const budgetConfig = await this.getBudgetConfig();
+    if (!budgetConfig) {
+      return { allowed: true };
+    }
+
+    // 检查是否会超出预算
+    const dailyRemaining =
+      (budgetConfig.daily_limit_usd || Infinity) -
+      (budgetConfig.current_daily_spend || 0);
+    const monthlyRemaining =
+      (budgetConfig.monthly_limit_usd || Infinity) -
+      (budgetConfig.current_monthly_spend || 0);
+
+    if (estimate.costUsd > dailyRemaining) {
+      return {
+        allowed: false,
+        reason: `操作预估成本 $${estimate.costUsd.toFixed(4)} 超出每日剩余预算 $${dailyRemaining.toFixed(4)}`,
+      };
+    }
+
+    if (estimate.costUsd > monthlyRemaining) {
+      return {
+        allowed: false,
+        reason: `操作预估成本 $${estimate.costUsd.toFixed(4)} 超出每月剩余预算 $${monthlyRemaining.toFixed(4)}`,
+      };
+    }
+
+    return { allowed: true };
+  }
+
   /**
    * 关闭管理器
    */
   async close() {
     console.log("[LLMManager] 关闭LLM管理器");
+
+    // 移除 TokenTracker 监听器
+    if (this.tokenTracker) {
+      this.tokenTracker.removeAllListeners("budget-alert");
+    }
+
     this.conversationContext.clear();
     this.isInitialized = false;
     this.client = null;

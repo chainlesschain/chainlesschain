@@ -1,0 +1,406 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Puppeteer Server Configuration",
+  "description": "Configuration schema for @modelcontextprotocol/server-puppeteer",
+  "type": "object",
+
+  "properties": {
+    "enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Enable or disable the Puppeteer server"
+    },
+
+    "command": {
+      "type": "string",
+      "default": "npx",
+      "description": "Command to launch the server"
+    },
+
+    "args": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": ["-y", "@modelcontextprotocol/server-puppeteer"],
+      "description": "Arguments to pass to the command"
+    },
+
+    "autoConnect": {
+      "type": "boolean",
+      "default": false,
+      "description": "Automatically connect on application startup"
+    },
+
+    "browser": {
+      "type": "object",
+      "description": "Browser configuration",
+      "properties": {
+        "headless": {
+          "type": "boolean",
+          "default": true,
+          "description": "Run browser in headless mode"
+        },
+
+        "executablePath": {
+          "type": "string",
+          "description": "Path to browser executable (optional, uses bundled Chromium by default)"
+        },
+
+        "userDataDir": {
+          "type": "string",
+          "description": "Path to user data directory for persistent sessions"
+        },
+
+        "args": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": ["--no-sandbox", "--disable-setuid-sandbox"],
+          "description": "Additional browser launch arguments"
+        },
+
+        "defaultViewport": {
+          "type": "object",
+          "properties": {
+            "width": {
+              "type": "integer",
+              "default": 1920
+            },
+            "height": {
+              "type": "integer",
+              "default": 1080
+            }
+          }
+        },
+
+        "slowMo": {
+          "type": "integer",
+          "default": 0,
+          "description": "Slow down Puppeteer operations by specified milliseconds"
+        }
+      }
+    },
+
+    "permissions": {
+      "type": "object",
+      "description": "Permission configuration for browser operations",
+      "properties": {
+        "allowedDomains": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Domains that are allowed for navigation (empty = all allowed)"
+        },
+
+        "forbiddenDomains": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": ["localhost", "127.0.0.1", "*.internal"],
+          "description": "Domains that are always blocked"
+        },
+
+        "allowedOperations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "navigate",
+              "click",
+              "type",
+              "screenshot",
+              "pdf",
+              "evaluate",
+              "cookies",
+              "localStorage",
+              "download"
+            ]
+          },
+          "default": ["navigate", "click", "screenshot"],
+          "description": "Browser operations that are allowed"
+        },
+
+        "allowJavaScriptExecution": {
+          "type": "boolean",
+          "default": false,
+          "description": "Allow executing arbitrary JavaScript in page context"
+        },
+
+        "allowFileDownloads": {
+          "type": "boolean",
+          "default": false,
+          "description": "Allow downloading files from web pages"
+        },
+
+        "maxPagesPerSession": {
+          "type": "integer",
+          "default": 10,
+          "description": "Maximum number of pages that can be open simultaneously"
+        },
+
+        "requireConfirmation": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": ["evaluate", "download"],
+          "description": "Operations that require user confirmation"
+        }
+      }
+    },
+
+    "features": {
+      "type": "object",
+      "description": "Feature flags for browser operations",
+      "properties": {
+        "enableScreenshots": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable taking screenshots"
+        },
+
+        "enablePDFGeneration": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable generating PDFs from pages"
+        },
+
+        "enableElementSelection": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable selecting and interacting with DOM elements"
+        },
+
+        "enableFormFilling": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable filling out web forms"
+        },
+
+        "enableCookieManagement": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable reading/writing cookies"
+        },
+
+        "enableLocalStorageAccess": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable accessing localStorage"
+        },
+
+        "enableNetworkMonitoring": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable monitoring network requests"
+        },
+
+        "enableConsoleCapture": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable capturing console messages from page"
+        }
+      }
+    },
+
+    "navigation": {
+      "type": "object",
+      "description": "Navigation configuration",
+      "properties": {
+        "timeout": {
+          "type": "integer",
+          "default": 30000,
+          "description": "Navigation timeout in milliseconds"
+        },
+
+        "waitUntil": {
+          "type": "string",
+          "enum": ["load", "domcontentloaded", "networkidle0", "networkidle2"],
+          "default": "networkidle2",
+          "description": "When to consider navigation successful"
+        },
+
+        "userAgent": {
+          "type": "string",
+          "description": "Custom user agent string (optional)"
+        },
+
+        "extraHTTPHeaders": {
+          "type": "object",
+          "description": "Additional HTTP headers to send with every request",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      }
+    },
+
+    "screenshot": {
+      "type": "object",
+      "description": "Screenshot configuration",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["png", "jpeg", "webp"],
+          "default": "png",
+          "description": "Image format"
+        },
+
+        "quality": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100,
+          "default": 90,
+          "description": "Image quality (for jpeg/webp)"
+        },
+
+        "fullPage": {
+          "type": "boolean",
+          "default": false,
+          "description": "Capture full scrollable page"
+        },
+
+        "maxFileSize": {
+          "type": "integer",
+          "default": 10485760,
+          "description": "Maximum screenshot file size in bytes (default: 10MB)"
+        },
+
+        "savePath": {
+          "type": "string",
+          "default": ".chainlesschain/cache/screenshots/",
+          "description": "Directory to save screenshots"
+        }
+      }
+    },
+
+    "performance": {
+      "type": "object",
+      "description": "Performance tuning options",
+      "properties": {
+        "maxConcurrentPages": {
+          "type": "integer",
+          "default": 5,
+          "description": "Maximum number of pages to process concurrently"
+        },
+
+        "pagePoolSize": {
+          "type": "integer",
+          "default": 3,
+          "description": "Number of pages to keep in pool for reuse"
+        },
+
+        "pageIdleTimeout": {
+          "type": "integer",
+          "default": 300000,
+          "description": "Close idle pages after this many milliseconds"
+        },
+
+        "blockResources": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["stylesheet", "image", "font", "media"]
+          },
+          "default": [],
+          "description": "Resource types to block for faster loading"
+        },
+
+        "enableCache": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable browser cache"
+        }
+      }
+    },
+
+    "logging": {
+      "type": "object",
+      "description": "Logging configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable audit logging"
+        },
+
+        "logNavigations": {
+          "type": "boolean",
+          "default": true,
+          "description": "Log all page navigations"
+        },
+
+        "logConsole": {
+          "type": "boolean",
+          "default": false,
+          "description": "Log console messages from browser"
+        },
+
+        "logLevel": {
+          "type": "string",
+          "enum": ["debug", "info", "warn", "error"],
+          "default": "info",
+          "description": "Logging level"
+        },
+
+        "logPath": {
+          "type": "string",
+          "default": ".chainlesschain/logs/mcp-puppeteer.log",
+          "description": "Path to log file (relative to app root)"
+        }
+      }
+    }
+  },
+
+  "examples": [
+    {
+      "enabled": false,
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-puppeteer"],
+      "autoConnect": false,
+      "browser": {
+        "headless": true,
+        "defaultViewport": {
+          "width": 1920,
+          "height": 1080
+        }
+      },
+      "permissions": {
+        "allowedDomains": ["example.com", "*.example.com"],
+        "forbiddenDomains": ["localhost", "127.0.0.1"],
+        "allowedOperations": ["navigate", "click", "screenshot", "pdf"],
+        "allowJavaScriptExecution": false,
+        "maxPagesPerSession": 10
+      },
+      "features": {
+        "enableScreenshots": true,
+        "enablePDFGeneration": true,
+        "enableFormFilling": true,
+        "enableCookieManagement": false
+      },
+      "navigation": {
+        "timeout": 30000,
+        "waitUntil": "networkidle2"
+      },
+      "screenshot": {
+        "type": "png",
+        "quality": 90,
+        "fullPage": false
+      },
+      "performance": {
+        "maxConcurrentPages": 5,
+        "blockResources": ["font", "media"]
+      },
+      "logging": {
+        "enabled": true,
+        "logNavigations": true,
+        "logLevel": "info"
+      }
+    }
+  ]
+}
