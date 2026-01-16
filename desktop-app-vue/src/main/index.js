@@ -109,6 +109,9 @@ const { registerSpeechIPC } = require("./speech/speech-ipc");
 // Session Management System
 const { registerSessionManagerIPC } = require("./llm/session-manager-ipc");
 
+// Error Monitor AI Diagnosis System
+const { registerErrorMonitorIPC } = require("./error-monitor-ipc");
+
 // Plugin Marketplace System
 const { registerPluginMarketplaceIPC } = require("./plugins/marketplace-ipc");
 
@@ -797,6 +800,29 @@ class ChainlessChainApp {
       // SessionManager 初始化失败不影响应用启动
     }
 
+    // 初始化 ErrorMonitor（错误智能诊断）
+    try {
+      console.log("初始化错误智能诊断系统...");
+      const { ErrorMonitor } = require("./error-monitor");
+
+      this.errorMonitor = new ErrorMonitor({
+        llmManager: this.llmManager,
+        database: this.database,
+        enableAIDiagnosis: true,
+        autoFixStrategies: [
+          "retry",
+          "timeout_increase",
+          "fallback",
+          "validation",
+        ],
+      });
+
+      console.log("错误智能诊断系统初始化成功");
+    } catch (error) {
+      console.error("错误智能诊断系统初始化失败:", error);
+      // ErrorMonitor 初始化失败不影响应用启动
+    }
+
     // 初始化RAG管理器
     try {
       console.log("初始化RAG管理器...");
@@ -1462,6 +1488,20 @@ class ChainlessChainApp {
         }
       } catch (error) {
         console.error("[Main] 会话管理IPC注册失败:", error);
+      }
+
+      // 注册错误智能诊断IPC handlers
+      try {
+        if (this.errorMonitor) {
+          registerErrorMonitorIPC({
+            errorMonitor: this.errorMonitor,
+          });
+          console.log("[Main] 错误智能诊断IPC handlers已注册 (11 handlers)");
+        } else {
+          console.warn("[Main] ErrorMonitor 未初始化，跳过IPC注册");
+        }
+      } catch (error) {
+        console.error("[Main] 错误智能诊断IPC注册失败:", error);
       }
 
       console.log("[Main] 技能和工具管理系统初始化完成（含桥接器）");
