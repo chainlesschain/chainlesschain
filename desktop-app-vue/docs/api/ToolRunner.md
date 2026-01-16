@@ -2,7 +2,7 @@
 
 工具运行器 - 负责工具的安全执行和错误处理
 
-**文件路径**: `src/main/skill-tool-system/tool-runner.js`
+**文件路径**: `src\main\skill-tool-system\tool-runner.js`
 
 ## 类概述
 
@@ -39,8 +39,6 @@ new ToolRunner(options = {})
 ---
 
 #### `if(!tool.enabled)`
-
-执行工具
 
 ---
 
@@ -212,4 +210,4 @@ const toolrunner = new ToolRunner(/* 参数 */);
 
 ---
 
-> 自动生成时间: 2026/1/4 04:33:57
+> 自动生成时间: 2026/1/16 09:14:43

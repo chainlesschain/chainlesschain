@@ -49,6 +49,12 @@ class LLMManager extends EventEmitter {
 
     // 火山引擎工具调用客户端
     this.toolsClient = null;
+
+    // Token 追踪器（可选）
+    this.tokenTracker = config.tokenTracker || null;
+    if (this.tokenTracker) {
+      console.log('[LLMManager] Token 追踪已启用');
+    }
   }
 
   /**
@@ -362,6 +368,8 @@ class LLMManager extends EventEmitter {
       throw new Error('LLM服务未初始化');
     }
 
+    const startTime = Date.now();
+
     try {
       let result;
 
@@ -373,6 +381,32 @@ class LLMManager extends EventEmitter {
       }
 
       this.emit('chat-completed', { messages, result });
+
+      const responseTime = Date.now() - startTime;
+
+      // 🔥 记录 Token 使用
+      if (this.tokenTracker) {
+        try {
+          await this.tokenTracker.recordUsage({
+            conversationId: options.conversationId,
+            messageId: options.messageId,
+            provider: this.provider,
+            model: result.model || this.config.model || 'unknown',
+            inputTokens: result.usage?.prompt_tokens || 0,
+            outputTokens: result.usage?.completion_tokens || 0,
+            cachedTokens: result.usage?.cached_tokens || 0,
+            wasCached: options.wasCached || false,
+            wasCompressed: options.wasCompressed || false,
+            compressionRatio: options.compressionRatio || 1.0,
+            responseTime,
+            endpoint: options.endpoint,
+            userId: options.userId || 'default',
+          });
+        } catch (trackError) {
+          console.error('[LLMManager] Token 追踪失败:', trackError);
+          // 不阻塞主流程
+        }
+      }
 
       return {
         text: result.message?.content || result.text,
@@ -400,6 +434,8 @@ class LLMManager extends EventEmitter {
       throw new Error('LLM服务未初始化');
     }
 
+    const startTime = Date.now();
+
     try {
       let result;
 
@@ -411,6 +447,32 @@ class LLMManager extends EventEmitter {
       }
 
       this.emit('chat-stream-completed', { messages, result });
+
+      const responseTime = Date.now() - startTime;
+
+      // 🔥 记录 Token 使用
+      if (this.tokenTracker) {
+        try {
+          await this.tokenTracker.recordUsage({
+            conversationId: options.conversationId,
+            messageId: options.messageId,
+            provider: this.provider,
+            model: result.model || this.config.model || 'unknown',
+            inputTokens: result.usage?.prompt_tokens || 0,
+            outputTokens: result.usage?.completion_tokens || 0,
+            cachedTokens: result.usage?.cached_tokens || 0,
+            wasCached: options.wasCached || false,
+            wasCompressed: options.wasCompressed || false,
+            compressionRatio: options.compressionRatio || 1.0,
+            responseTime,
+            endpoint: options.endpoint,
+            userId: options.userId || 'default',
+          });
+        } catch (trackError) {
+          console.error('[LLMManager] Token 追踪失败:', trackError);
+          // 不阻塞主流程
+        }
+      }
 
       return {
         text: result.message?.content || result.text,

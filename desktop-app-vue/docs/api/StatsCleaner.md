@@ -2,7 +2,7 @@
 
 统计数据清理器 - 定期清理过期数据和优化数据库
 
-**文件路径**: `src/main/skill-tool-system/stats-cleaner.js`
+**文件路径**: `src\main\skill-tool-system\stats-cleaner.js`
 
 ## 类概述
 
@@ -73,8 +73,6 @@ new StatsCleaner()
 ---
 
 #### `async aggregateDailyStats()`
-
-清理过期的执行日志
 
 ---
 
@@ -170,4 +168,4 @@ const statscleaner = new StatsCleaner(/* 参数 */);
 
 ---
 
-> 自动生成时间: 2026/1/3 16:58:47
+> 自动生成时间: 2026/1/16 09:14:43

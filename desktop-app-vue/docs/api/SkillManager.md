@@ -2,7 +2,7 @@
 
 技能管理器 - 负责技能的CRUD操作、状态管理和统计
 
-**文件路径**: `src/main/skill-tool-system/skill-manager.js`
+**文件路径**: `src\main\skill-tool-system\skill-manager.js`
 
 ## 类概述
 
@@ -32,8 +32,6 @@ new SkillManager()
 ---
 
 #### `catch(error)`
-
-初始化技能管理器
 
 ---
 
@@ -214,7 +212,7 @@ new SkillManager()
 
 #### `async addToolToSkill(skillId, toolId, role = 'primary', priority = 0)`
 
-启用技能
+禁用技能
 
 **参数:**
 
@@ -590,14 +588,6 @@ deleteSkill 方法（别名，用于兼容测试）
 
 #### `async toggleSkillEnabled(skillId, enabled)`
 
-deleteSkill 方法（别名，用于兼容测试）
-
-**参数:**
-
-- `skillId` (`string`) - 技能ID
-
-**返回:** `Promise<Object>` - 删除结果
-
 ---
 
 #### `catch(error)`
@@ -719,4 +709,4 @@ const skillmanager = new SkillManager(/* 参数 */);
 
 ---
 
-> 自动生成时间: 2026/1/13 01:06:44
+> 自动生成时间: 2026/1/16 09:14:43

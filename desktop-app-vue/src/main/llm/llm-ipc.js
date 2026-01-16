@@ -18,9 +18,10 @@ const ipcGuard = require('../ipc-guard');
  * @param {Object} [dependencies.llmSelector] - LLM 智能选择器（可选）
  * @param {Object} [dependencies.database] - 数据库实例（可选）
  * @param {Object} [dependencies.app] - App 实例（可选，用于更新 llmManager 引用）
+ * @param {Object} [dependencies.tokenTracker] - Token 追踪器（可选）
  * @param {Object} [dependencies.ipcMain] - IPC主进程对象（可选，用于测试注入）
  */
-function registerLLMIPC({ llmManager, mainWindow, ragManager, promptTemplateManager, llmSelector, database, app, ipcMain: injectedIpcMain }) {
+function registerLLMIPC({ llmManager, mainWindow, ragManager, promptTemplateManager, llmSelector, database, app, tokenTracker, ipcMain: injectedIpcMain }) {
   // 防止重复注册
   if (ipcGuard.isModuleRegistered('llm-ipc')) {
     console.log('[LLM IPC] Handlers already registered, skipping...');

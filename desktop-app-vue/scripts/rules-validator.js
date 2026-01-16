@@ -69,7 +69,23 @@ class RulesValidator {
         // 检查 db.exec() 使用（高危）
         if (line.includes('db.exec(') || line.includes('database.exec(')) {
           // 排除注释行
-          if (!line.trim().startsWith('//') && !line.trim().startsWith('*')) {
+          if (line.trim().startsWith('//') || line.trim().startsWith('*')) {
+            return;
+          }
+
+          // 检查当前行和接下来的3行是否包含DDL语句
+          const contextLines = lines.slice(index, Math.min(index + 4, lines.length));
+          const context = contextLines.join(' ').toUpperCase();
+
+          const isSafeDDL = (
+            context.includes('CREATE TABLE') ||
+            context.includes('CREATE INDEX') ||
+            context.includes('DROP TABLE') ||
+            context.includes('DROP INDEX') ||
+            context.includes('ALTER TABLE')
+          ) && !line.includes('${'); // 且不包含变量插值
+
+          if (!isSafeDDL) {
             this.errors.push({
               type: 'SQL_INJECTION',
               severity: 'HIGH',

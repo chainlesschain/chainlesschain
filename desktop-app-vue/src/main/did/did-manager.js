@@ -450,7 +450,7 @@ class DIDManager extends EventEmitter {
    */
   getAllIdentities() {
     try {
-      const result = this.db.exec('SELECT * FROM identities ORDER BY created_at DESC');
+      const result = this.db.prepare('SELECT * FROM identities ORDER BY created_at DESC').all();
 
       if (!result || result.length === 0 || !result[0] || !result[0].values) {
         return [];
@@ -479,7 +479,7 @@ class DIDManager extends EventEmitter {
    */
   getIdentityByDID(did) {
     try {
-      const result = this.db.exec('SELECT * FROM identities WHERE did = ?', [did]);
+      const result = this.db.prepare('SELECT * FROM identities WHERE did = ?').all([did]);
 
       if (!result || result.length === 0 || !result[0].values || result[0].values.length === 0) {
         return null;
@@ -507,10 +507,10 @@ class DIDManager extends EventEmitter {
   async setDefaultIdentity(did) {
     try {
       // 清除所有默认标记
-      this.db.exec('UPDATE identities SET is_default = 0');
+      this.db.prepare('UPDATE identities SET is_default = 0').run();
 
       // 设置新的默认身份
-      this.db.exec('UPDATE identities SET is_default = 1 WHERE did = ?', [did]);
+      this.db.prepare('UPDATE identities SET is_default = 1 WHERE did = ?').run([did]);
 
       this.db.saveToFile();
 
@@ -530,7 +530,7 @@ class DIDManager extends EventEmitter {
    */
   async loadDefaultIdentity() {
     try {
-      const result = this.db.exec('SELECT * FROM identities WHERE is_default = 1 LIMIT 1');
+      const result = this.db.prepare('SELECT * FROM identities WHERE is_default = 1 LIMIT 1').all();
 
       if (result && result.length > 0 && result[0].values && result[0].values.length > 0) {
         const columns = result[0].columns;
@@ -634,7 +634,7 @@ class DIDManager extends EventEmitter {
         throw new Error('不能删除默认身份');
       }
 
-      this.db.exec('DELETE FROM identities WHERE did = ?', [did]);
+      this.db.prepare('DELETE FROM identities WHERE did = ?').run([did]);
       this.db.saveToFile();
 
       console.log('[DIDManager] 身份已删除:', did);

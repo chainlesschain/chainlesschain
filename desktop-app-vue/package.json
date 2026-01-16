@@ -30,6 +30,13 @@
     "test:auto-fix": "node scripts/auto-fix-runner.js",
     "test:health": "node -e \"const { getHealthCheckService } = require('./src/main/health-check'); const service = getHealthCheckService(); service.runChecks().then(r => console.log(JSON.stringify(r, null, 2)));\"",
     "validate:rules": "node scripts/rules-validator.js",
+    "fix:sql": "node scripts/fix-sql-injection.js",
+    "fix:sql:apply": "node scripts/fix-sql-injection.js --apply",
+    "security:audit": "npm audit --audit-level=high",
+    "security:check": "npm run validate:rules && npm run security:audit",
+    "docs:rules": "cat ../.chainlesschain/QUICK_REFERENCE.md",
+    "example:database": "node ../.chainlesschain/examples/database-good.js",
+    "example:p2p": "node ../.chainlesschain/examples/p2p-encryption-good.js",
     "package": "npm run build && electron-forge package",
     "make": "npm run build && electron-forge make",
     "make:win": "npm run build && electron-forge make --platform=win32",
@@ -224,5 +231,14 @@
   "directories": {
     "doc": "docs",
     "test": "tests"
+  },
+  "lint-staged": {
+    "*.{js,vue}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md}": [
+      "prettier --write"
+    ]
   }
 }

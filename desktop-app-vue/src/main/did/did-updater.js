@@ -339,11 +339,11 @@ class DIDUpdater extends EventEmitter {
       const version = document.version || 1;
       const changes = document.versionHistory?.[document.versionHistory.length - 1]?.changes || 'Unknown';
 
-      this.didManager.db.exec(`
+      this.didManager.db.prepare(`
         INSERT INTO did_version_history (
           did, version, document, changes, updated_at
         ) VALUES (?, ?, ?, ?, ?)
-      `, [
+      `).run([
         did,
         version,
         JSON.stringify(document),
@@ -367,7 +367,7 @@ class DIDUpdater extends EventEmitter {
   async cleanupVersionHistory(did) {
     try {
       // 保留最新的N个版本
-      this.didManager.db.exec(`
+      this.didManager.db.prepare(`
         DELETE FROM did_version_history
         WHERE did = ?
         AND version NOT IN (
@@ -376,7 +376,7 @@ class DIDUpdater extends EventEmitter {
           ORDER BY version DESC
           LIMIT ?
         )
-      `, [did, did, this.config.maxVersionHistory]);
+      `).all([did, did, this.config.maxVersionHistory]);
 
       this.didManager.db.saveToFile();
     } catch (error) {
@@ -391,12 +391,12 @@ class DIDUpdater extends EventEmitter {
    */
   getVersionHistory(did) {
     try {
-      const result = this.didManager.db.exec(`
+      const result = this.didManager.db.prepare(`
         SELECT version, changes, updated_at
         FROM did_version_history
         WHERE did = ?
         ORDER BY version DESC
-      `, [did]);
+      `).all([did]);
 
       if (!result || result.length === 0 || !result[0].values) {
         return [];
@@ -471,11 +471,11 @@ class DIDUpdater extends EventEmitter {
       }
 
       // 更新数据库
-      this.didManager.db.exec(`
+      this.didManager.db.prepare(`
         UPDATE identities
         SET did_document = ?
         WHERE did = ?
-      `, [JSON.stringify(document), did]);
+      `).run([JSON.stringify(document), did]);
 
       this.didManager.db.saveToFile();
 

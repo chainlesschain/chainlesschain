@@ -101,12 +101,16 @@ function registerAllIPC(dependencies) {
     // 获取 LLM 智能选择器（如果已初始化）
     const llmSelector = app ? (app.llmSelector || null) : null;
 
+    // 获取 Token 追踪器（如果已初始化）
+    const tokenTracker = app ? (app.tokenTracker || null) : null;
+
     registerLLMIPC({
       llmManager: llmManager || null,
       mainWindow: mainWindow || null,
       ragManager: ragManager || null,
       promptTemplateManager: promptTemplateManager || null,
       llmSelector,
+      tokenTracker,
       database: database || null,
       app: app || null
     });

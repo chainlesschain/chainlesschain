@@ -273,7 +273,7 @@ class DIDCache extends EventEmitter {
         this.cache.clear();
 
         if (this.config.enablePersistence) {
-          this.db.exec('DELETE FROM did_cache');
+          this.db.prepare('DELETE FROM did_cache').run();
           this.db.saveToFile();
         }
 
@@ -404,11 +404,11 @@ class DIDCache extends EventEmitter {
    */
   async saveToDatabase(did, document, cachedAt, expiresAt) {
     try {
-      this.db.exec(`
+      this.db.prepare(`
         INSERT OR REPLACE INTO did_cache (
           did, document, cached_at, expires_at, access_count, last_accessed_at
         ) VALUES (?, ?, ?, ?, 0, ?)
-      `, [
+      `).run([
         did,
         JSON.stringify(document),
         cachedAt,
@@ -427,7 +427,7 @@ class DIDCache extends EventEmitter {
    */
   async deleteFromDatabase(did) {
     try {
-      this.db.exec('DELETE FROM did_cache WHERE did = ?', [did]);
+      this.db.prepare('DELETE FROM did_cache WHERE did = ?').run([did]);
       this.db.saveToFile();
     } catch (error) {
       console.error('[DIDCache] 从数据库删除失败:', error);
@@ -439,11 +439,11 @@ class DIDCache extends EventEmitter {
    */
   async updateAccessInDatabase(did, accessCount, lastAccessedAt) {
     try {
-      this.db.exec(`
+      this.db.prepare(`
         UPDATE did_cache
         SET access_count = ?, last_accessed_at = ?
         WHERE did = ?
-      `, [accessCount, lastAccessedAt, did]);
+      `).run([accessCount, lastAccessedAt, did]);
 
       // 不立即保存，减少I/O
     } catch (error) {

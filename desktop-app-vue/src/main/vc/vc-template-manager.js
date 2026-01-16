@@ -384,7 +384,7 @@ class VCTemplateManager extends EventEmitter {
       }
 
       // 查询用户自定义模板
-      const result = this.db.exec('SELECT * FROM vc_templates WHERE id = ?', [id]);
+      const result = this.db.prepare('SELECT * FROM vc_templates WHERE id = ?').all([id]);
 
       if (!result || result.length === 0 || !result[0].values || result[0].values.length === 0) {
         return null;
@@ -556,7 +556,7 @@ class VCTemplateManager extends EventEmitter {
         throw new Error('模板不存在');
       }
 
-      this.db.exec('DELETE FROM vc_templates WHERE id = ?', [id]);
+      this.db.prepare('DELETE FROM vc_templates WHERE id = ?').run([id]);
       this.db.saveToFile();
 
       console.log('[VCTemplateManager] 模板已删除:', id);
@@ -580,10 +580,7 @@ class VCTemplateManager extends EventEmitter {
         return;
       }
 
-      this.db.exec(
-        'UPDATE vc_templates SET usage_count = usage_count + 1 WHERE id = ?',
-        [id]
-      );
+      this.db.prepare('UPDATE vc_templates SET usage_count = usage_count + 1 WHERE id = ?').run([id]);
 
       this.db.saveToFile();
     } catch (error) {
@@ -632,10 +629,10 @@ class VCTemplateManager extends EventEmitter {
     try {
       const builtInCount = Object.keys(BUILT_IN_TEMPLATES).length;
 
-      const customResult = this.db.exec('SELECT COUNT(*) as count FROM vc_templates');
+      const customResult = this.db.prepare('SELECT COUNT(*) as count FROM vc_templates').all();
       const customCount = customResult?.[0]?.values?.[0]?.[0] || 0;
 
-      const publicResult = this.db.exec('SELECT COUNT(*) as count FROM vc_templates WHERE is_public = 1');
+      const publicResult = this.db.prepare('SELECT COUNT(*) as count FROM vc_templates WHERE is_public = 1').all();
       const publicCount = publicResult?.[0]?.values?.[0]?.[0] || 0;
 
       return {
