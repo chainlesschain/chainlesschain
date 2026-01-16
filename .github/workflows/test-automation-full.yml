@@ -49,12 +49,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
         working-directory: desktop-app-vue
-        run: npm ci
+        run: npm install
 
       - name: Run comprehensive test suite
         working-directory: desktop-app-vue
