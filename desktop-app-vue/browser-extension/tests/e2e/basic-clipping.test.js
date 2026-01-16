@@ -3,16 +3,25 @@
  * Tests core web clipping features in real browser
  */
 
+const { test, expect: playwrightExpect } = require('@playwright/test');
 const puppeteer = require('puppeteer');
 const config = require('./config');
 const E2EHelpers = require('./helpers');
 
-describe('E2E: Basic Clipping', () => {
+// Wrapper for Jest-style expect to work with Playwright
+const expect = (value) => ({
+  toBeTruthy: () => playwrightExpect(value).toBeTruthy(),
+  toBe: (expected) => playwrightExpect(value).toBe(expected),
+  toContain: (expected) => playwrightExpect(value).toContain(expected),
+  toMatch: (expected) => playwrightExpect(value).toMatch(expected),
+});
+
+test.describe('E2E: Basic Clipping', () => {
   let browser;
   let page;
   let extensionId;
 
-  beforeAll(async () => {
+  test.beforeAll(async () => {
     // Check if desktop app is running
     const apiConnected = await E2EHelpers.checkAPIConnection();
     if (!apiConnected) {
@@ -29,29 +38,29 @@ describe('E2E: Basic Clipping', () => {
     console.log(`✓ Extension loaded with ID: ${extensionId}`);
   });
 
-  afterAll(async () => {
+  test.afterAll(async () => {
     if (browser) {
       await browser.close();
     }
   });
 
-  beforeEach(async () => {
+  test.beforeEach(async () => {
     page = await browser.newPage();
   });
 
-  afterEach(async () => {
+  test.afterEach(async () => {
     if (page) {
       await page.close();
     }
   });
 
-  describe('Extension Loading', () => {
-    it('should load extension successfully', async () => {
+  test.describe('Extension Loading', () => {
+    test('should load extension successfully', async () => {
       expect(extensionId).toBeTruthy();
       expect(extensionId).toMatch(/^[a-z]{32}$/);
     });
 
-    it('should open popup page', async () => {
+    test('should open popup page', async () => {
       const popupPage = await E2EHelpers.openPopup(browser, extensionId);
 
       const title = await popupPage.title();
@@ -61,8 +70,8 @@ describe('E2E: Basic Clipping', () => {
     });
   });
 
-  describe('Connection Status', () => {
-    it('should show connection status in popup', async () => {
+  test.describe('Connection Status', () => {
+    test('should show connection status in popup', async () => {
       const popupPage = await E2EHelpers.openPopup(browser, extensionId);
 
       // Wait for status indicator
@@ -75,8 +84,8 @@ describe('E2E: Basic Clipping', () => {
     });
   });
 
-  describe('Simple Page Clipping', () => {
-    it('should clip example.com successfully', async () => {
+  test.describe('Simple Page Clipping', () => {
+    test('should clip example.com successfully', async () => {
       // Navigate to test page
       await page.goto(config.testUrls.simple, { waitUntil: 'networkidle0' });
 
@@ -116,8 +125,8 @@ describe('E2E: Basic Clipping', () => {
     }, 30000);
   });
 
-  describe('Form Interactions', () => {
-    it('should allow editing title', async () => {
+  test.describe('Form Interactions', () => {
+    test('should allow editing title', async () => {
       await page.goto(config.testUrls.simple);
       const popupPage = await E2EHelpers.openPopup(browser, extensionId);
 
@@ -133,7 +142,7 @@ describe('E2E: Basic Clipping', () => {
       await popupPage.close();
     });
 
-    it('should allow adding tags', async () => {
+    test('should allow adding tags', async () => {
       await page.goto(config.testUrls.simple);
       const popupPage = await E2EHelpers.openPopup(browser, extensionId);
 
@@ -146,7 +155,7 @@ describe('E2E: Basic Clipping', () => {
       await popupPage.close();
     });
 
-    it('should toggle Readability checkbox', async () => {
+    test('should toggle Readability checkbox', async () => {
       await page.goto(config.testUrls.simple);
       const popupPage = await E2EHelpers.openPopup(browser, extensionId);
 
@@ -162,8 +171,8 @@ describe('E2E: Basic Clipping', () => {
     });
   });
 
-  describe('AI Features', () => {
-    it('should have AI tag generation button', async () => {
+  test.describe('AI Features', () => {
+    test('should have AI tag generation button', async () => {
       await page.goto(config.testUrls.article);
       const popupPage = await E2EHelpers.openPopup(browser, extensionId);
 
@@ -175,7 +184,7 @@ describe('E2E: Basic Clipping', () => {
       await popupPage.close();
     });
 
-    it('should have AI summary generation button', async () => {
+    test('should have AI summary generation button', async () => {
       await page.goto(config.testUrls.article);
       const popupPage = await E2EHelpers.openPopup(browser, extensionId);
 
@@ -188,8 +197,8 @@ describe('E2E: Basic Clipping', () => {
     });
   });
 
-  describe('Screenshot Feature', () => {
-    it('should have screenshot button', async () => {
+  test.describe('Screenshot Feature', () => {
+    test('should have screenshot button', async () => {
       await page.goto(config.testUrls.simple);
       const popupPage = await E2EHelpers.openPopup(browser, extensionId);
 
@@ -200,8 +209,8 @@ describe('E2E: Basic Clipping', () => {
     });
   });
 
-  describe('Batch Clipping Feature', () => {
-    it('should have batch clipping button', async () => {
+  test.describe('Batch Clipping Feature', () => {
+    test('should have batch clipping button', async () => {
       await page.goto(config.testUrls.simple);
       const popupPage = await E2EHelpers.openPopup(browser, extensionId);
 
