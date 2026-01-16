@@ -1577,6 +1577,41 @@ contextBridge.exposeInMainWorld("electronAPI", {
         permission,
         granted,
       ),
+    // 权限对话框响应
+    respondToPermissionRequest: (requestId, response) =>
+      ipcRenderer.invoke(
+        "plugin:respond-to-permission-request",
+        requestId,
+        response,
+      ),
+    cancelPermissionRequest: (requestId) =>
+      ipcRenderer.invoke("plugin:cancel-permission-request", requestId),
+    getPermissionCategories: () =>
+      ipcRenderer.invoke("plugin:get-permission-categories"),
+    getRiskLevels: () => ipcRenderer.invoke("plugin:get-risk-levels"),
+    getPermissionDetails: (permissions) =>
+      ipcRenderer.invoke("plugin:get-permission-details", permissions),
+
+    // UI 扩展点
+    getUIExtensions: () => ipcRenderer.invoke("plugin:get-ui-extensions"),
+    getSlotExtensions: (slotName) =>
+      ipcRenderer.invoke("plugin:get-slot-extensions", slotName),
+
+    // 插件设置
+    getSettingsDefinitions: (pluginId) =>
+      ipcRenderer.invoke("plugin:get-settings-definitions", pluginId),
+    getSettings: (pluginId) =>
+      ipcRenderer.invoke("plugin:get-settings", pluginId),
+    saveSettings: (pluginId, settings) =>
+      ipcRenderer.invoke("plugin:save-settings", pluginId, settings),
+
+    // 数据导入导出
+    getDataImporters: () => ipcRenderer.invoke("plugin:get-data-importers"),
+    getDataExporters: () => ipcRenderer.invoke("plugin:get-data-exporters"),
+    executeImport: (importerId, options) =>
+      ipcRenderer.invoke("plugin:execute-import", importerId, options),
+    executeExport: (exporterId, options) =>
+      ipcRenderer.invoke("plugin:execute-export", exporterId, options),
 
     // 扩展点
     triggerExtensionPoint: (name, context) =>
