@@ -1,9 +1,11 @@
 <template>
-  <a-config-provider
-    :locale="currentAntdLocale"
-    :theme="themeConfig"
-  >
-    <a-spin v-if="loading" size="large" :tip="$t('app.initializing')" class="loading-overlay" />
+  <a-config-provider :locale="currentAntdLocale" :theme="themeConfig">
+    <a-spin
+      v-if="loading"
+      size="large"
+      :tip="$t('app.initializing')"
+      class="loading-overlay"
+    />
     <router-view v-else />
 
     <!-- 全局设置向导 (首次启动时显示) -->
@@ -36,31 +38,35 @@
       @accepted="handleInvitationAccepted"
       @rejected="handleInvitationRejected"
     />
+
+    <!-- 预算告警监听器 -->
+    <BudgetAlertListener />
   </a-config-provider>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, onErrorCaptured } from 'vue';
-import { useI18n } from 'vue-i18n';
-import { message } from 'ant-design-vue';
-import { useAppStore } from './stores/app';
-import { useSocialStore } from './stores/social';
-import { ukeyAPI, llmAPI } from './utils/ipc';
-import { handleError, ErrorType, ErrorLevel } from './utils/errorHandler';
-import { useTheme } from './utils/themeManager';
-import { useShortcuts, CommonShortcuts } from './utils/shortcutManager';
-import { useNotifications } from './utils/notificationManager';
-import DatabaseEncryptionWizard from './components/DatabaseEncryptionWizard.vue';
-import GlobalSettingsWizard from './components/GlobalSettingsWizard.vue';
-import NotificationCenter from './components/common/NotificationCenter.vue';
-import ShortcutHelpPanel from './components/common/ShortcutHelpPanel.vue';
-import GlobalSearch from './components/common/GlobalSearch.vue';
-import InvitationAcceptDialog from './components/organization/InvitationAcceptDialog.vue';
-import zhCN from 'ant-design-vue/es/locale/zh_CN';
-import enUS from 'ant-design-vue/es/locale/en_US';
-import zhTW from 'ant-design-vue/es/locale/zh_TW';
-import jaJP from 'ant-design-vue/es/locale/ja_JP';
-import koKR from 'ant-design-vue/es/locale/ko_KR';
+import { ref, computed, onMounted, onUnmounted, onErrorCaptured } from "vue";
+import { useI18n } from "vue-i18n";
+import { message } from "ant-design-vue";
+import { useAppStore } from "./stores/app";
+import { useSocialStore } from "./stores/social";
+import { ukeyAPI, llmAPI } from "./utils/ipc";
+import { handleError, ErrorType, ErrorLevel } from "./utils/errorHandler";
+import { useTheme } from "./utils/themeManager";
+import { useShortcuts, CommonShortcuts } from "./utils/shortcutManager";
+import { useNotifications } from "./utils/notificationManager";
+import DatabaseEncryptionWizard from "./components/DatabaseEncryptionWizard.vue";
+import GlobalSettingsWizard from "./components/GlobalSettingsWizard.vue";
+import NotificationCenter from "./components/common/NotificationCenter.vue";
+import ShortcutHelpPanel from "./components/common/ShortcutHelpPanel.vue";
+import GlobalSearch from "./components/common/GlobalSearch.vue";
+import InvitationAcceptDialog from "./components/organization/InvitationAcceptDialog.vue";
+import BudgetAlertListener from "./components/BudgetAlertListener.vue";
+import zhCN from "ant-design-vue/es/locale/zh_CN";
+import enUS from "ant-design-vue/es/locale/en_US";
+import zhTW from "ant-design-vue/es/locale/zh_TW";
+import jaJP from "ant-design-vue/es/locale/ja_JP";
+import koKR from "ant-design-vue/es/locale/ko_KR";
 
 const store = useAppStore();
 const socialStore = useSocialStore();
@@ -71,7 +77,7 @@ const showEncryptionWizard = ref(false);
 
 // 企业版DID邀请链接
 const showInvitationDialog = ref(false);
-const invitationToken = ref('');
+const invitationToken = ref("");
 
 // 主题系统
 const { effectiveTheme, toggle: toggleTheme } = useTheme();
@@ -79,7 +85,7 @@ const { effectiveTheme, toggle: toggleTheme } = useTheme();
 // 主题配置
 const themeConfig = computed(() => ({
   token: {
-    colorPrimary: effectiveTheme.value.colors?.primary || '#1890ff',
+    colorPrimary: effectiveTheme.value.colors?.primary || "#1890ff",
     borderRadius: 6,
   },
 }));
@@ -97,22 +103,22 @@ const { success: notifySuccess, error: notifyError } = useNotifications();
 useShortcuts([
   {
     keys: CommonShortcuts.HELP,
-    description: '显示快捷键帮助',
+    description: "显示快捷键帮助",
     handler: () => {
       showShortcutHelp.value = true;
     },
   },
   {
-    keys: ['ctrl', 't'],
-    description: '切换主题',
+    keys: ["ctrl", "t"],
+    description: "切换主题",
     handler: () => {
       toggleTheme();
-      notifySuccess('主题已切换', `当前主题: ${effectiveTheme.value.name}`);
+      notifySuccess("主题已切换", `当前主题: ${effectiveTheme.value.name}`);
     },
   },
   {
     keys: CommonShortcuts.SEARCH,
-    description: '全局搜索',
+    description: "全局搜索",
     handler: () => {
       showGlobalSearch.value = true;
     },
@@ -121,11 +127,11 @@ useShortcuts([
 
 // Ant Design Vue locale mapping
 const antdLocaleMap = {
-  'zh-CN': zhCN,
-  'en-US': enUS,
-  'zh-TW': zhTW,
-  'ja-JP': jaJP,
-  'ko-KR': koKR
+  "zh-CN": zhCN,
+  "en-US": enUS,
+  "zh-TW": zhTW,
+  "ja-JP": jaJP,
+  "ko-KR": koKR,
 };
 
 // Computed property for current Ant Design locale
@@ -135,8 +141,8 @@ const currentAntdLocale = computed(() => {
 
 // 全局错误捕获
 onErrorCaptured((err, instance, info) => {
-  console.error('[App] Global error captured:', err);
-  console.error('[App] Component info:', info);
+  console.error("[App] Global error captured:", err);
+  console.error("[App] Component info:", info);
 
   // 使用统一错误处理
   handleError(err, {
@@ -144,9 +150,9 @@ onErrorCaptured((err, instance, info) => {
     showNotification: true,
     logToFile: true,
     context: {
-      component: 'App',
+      component: "App",
       componentInfo: info,
-      location: 'global',
+      location: "global",
     },
   });
 
@@ -155,15 +161,15 @@ onErrorCaptured((err, instance, info) => {
 });
 
 // 监听未捕获的 Promise 错误
-if (typeof window !== 'undefined') {
-  window.addEventListener('unhandledrejection', (event) => {
-    console.error('[App] Unhandled promise rejection:', event.reason);
+if (typeof window !== "undefined") {
+  window.addEventListener("unhandledrejection", (event) => {
+    console.error("[App] Unhandled promise rejection:", event.reason);
 
     handleError(event.reason, {
       showMessage: true,
       logToFile: true,
       context: {
-        type: 'unhandledRejection',
+        type: "unhandledRejection",
         promise: event.promise,
       },
     });
@@ -174,18 +180,18 @@ if (typeof window !== 'undefined') {
 
 // 深链接事件处理器（企业版DID邀请链接）
 const handleInvitationDeepLink = (event, token) => {
-  console.log('收到邀请链接:', token);
+  console.log("收到邀请链接:", token);
   invitationToken.value = token;
   showInvitationDialog.value = true;
 };
 
 const handleInvitationAccepted = (org) => {
-  console.log('已加入组织:', org.name);
+  console.log("已加入组织:", org.name);
   message.success(`成功加入组织: ${org.name}`);
 };
 
 const handleInvitationRejected = () => {
-  console.log('已拒绝邀请');
+  console.log("已拒绝邀请");
 };
 
 onMounted(async () => {
@@ -195,7 +201,10 @@ onMounted(async () => {
 
     // 监听深链接事件（企业版DID邀请链接）
     if (window.electron?.ipcRenderer) {
-      window.electron.ipcRenderer.on('deep-link:invitation', handleInvitationDeepLink);
+      window.electron.ipcRenderer.on(
+        "deep-link:invitation",
+        handleInvitationDeepLink,
+      );
     }
 
     // 检测U盾状态
@@ -209,7 +218,9 @@ onMounted(async () => {
     // 步骤1: 首先检查全局设置是否完成
     if (window.electron?.ipcRenderer) {
       try {
-        const setupStatus = await window.electron.ipcRenderer.invoke('initial-setup:get-status');
+        const setupStatus = await window.electron.ipcRenderer.invoke(
+          "initial-setup:get-status",
+        );
 
         if (!setupStatus.completed) {
           // 首次启动，显示全局设置向导
@@ -221,7 +232,9 @@ onMounted(async () => {
         }
 
         // 步骤2: 全局设置已完成，检查数据库加密状态
-        const encStatus = await window.electron.ipcRenderer.invoke('database:get-encryption-status');
+        const encStatus = await window.electron.ipcRenderer.invoke(
+          "database:get-encryption-status",
+        );
 
         // 如果是首次设置且未加密，延迟1秒后显示加密向导
         if (encStatus.firstTimeSetup && !encStatus.isEncrypted) {
@@ -230,19 +243,19 @@ onMounted(async () => {
           }, 1000);
         }
       } catch (error) {
-        console.error('检查设置状态失败:', error);
+        console.error("检查设置状态失败:", error);
       }
     }
 
     // 监听托盘菜单触发的全局设置事件
     if (window.electron?.ipcRenderer) {
-      window.electron.ipcRenderer.on('show-global-settings', () => {
+      window.electron.ipcRenderer.on("show-global-settings", () => {
         showGlobalSetupWizard.value = true;
       });
 
       // 监听数据库切换事件(身份上下文切换)
-      window.electron.ipcRenderer.on('database-switched', (data) => {
-        console.log('数据库已切换:', data);
+      window.electron.ipcRenderer.on("database-switched", (data) => {
+        console.log("数据库已切换:", data);
         // 刷新页面以重新加载新身份的数据
         setTimeout(() => {
           window.location.reload();
@@ -250,7 +263,7 @@ onMounted(async () => {
       });
     }
   } catch (error) {
-    console.error('应用初始化失败', error);
+    console.error("应用初始化失败", error);
   } finally {
     loading.value = false;
   }
@@ -262,7 +275,10 @@ onUnmounted(() => {
   socialStore.removeOnlineStatusListeners();
 
   if (window.electron?.ipcRenderer) {
-    window.electron.ipcRenderer.removeListener('deep-link:invitation', handleInvitationDeepLink);
+    window.electron.ipcRenderer.removeListener(
+      "deep-link:invitation",
+      handleInvitationDeepLink,
+    );
   }
 });
 
@@ -272,29 +288,31 @@ const handleGlobalSetupComplete = async () => {
 
   // 全局设置完成后，立即检查加密状态
   try {
-    const encStatus = await window.electron.ipcRenderer.invoke('database:get-encryption-status');
+    const encStatus = await window.electron.ipcRenderer.invoke(
+      "database:get-encryption-status",
+    );
     if (encStatus.firstTimeSetup && !encStatus.isEncrypted) {
       setTimeout(() => {
         showEncryptionWizard.value = true;
       }, 800);
     } else {
       // 如果加密已设置或跳过，提示可能需要重启
-      message.success('全局设置已保存，部分配置将在重启后生效');
+      message.success("全局设置已保存，部分配置将在重启后生效");
     }
   } catch (error) {
-    console.error('检查加密状态失败:', error);
-    message.success('全局设置已保存');
+    console.error("检查加密状态失败:", error);
+    message.success("全局设置已保存");
   }
 };
 
 // 数据库加密向导完成处理
 const onEncryptionWizardComplete = () => {
-  message.success('加密设置完成！应用将在重启后生效。');
+  message.success("加密设置完成！应用将在重启后生效。");
 };
 
 // 数据库加密向导跳过处理
 const onEncryptionWizardSkip = () => {
-  message.info('您可以随时在设置中启用数据库加密');
+  message.info("您可以随时在设置中启用数据库加密");
 };
 </script>
 

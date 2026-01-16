@@ -33,5 +33,51 @@
     "cacheDir": ".chainlesschain/cache",
     "memoryDir": ".chainlesschain/memory",
     "checkpointsDir": ".chainlesschain/checkpoints"
+  },
+  "mcp": {
+    "enabled": false,
+    "servers": {
+      "filesystem": {
+        "enabled": false,
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-filesystem", "D:\\code\\chainlesschain\\data"],
+        "autoConnect": false,
+        "permissions": {
+          "allowedPaths": ["notes/", "imports/", "exports/", "projects/"],
+          "forbiddenPaths": ["chainlesschain.db", "ukey/", "did/private-keys/", "p2p/keys/"],
+          "readOnly": false,
+          "maxFileSize": 104857600
+        }
+      },
+      "postgres": {
+        "enabled": false,
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-postgres"],
+        "autoConnect": false,
+        "connection": {
+          "host": "localhost",
+          "port": 5432,
+          "database": "chainlesschain",
+          "user": "chainlesschain",
+          "password": "${DB_PASSWORD}",
+          "ssl": false
+        },
+        "permissions": {
+          "allowedSchemas": ["public"],
+          "forbiddenTables": ["users", "credentials", "api_keys"],
+          "readOnly": true,
+          "maxResultRows": 1000
+        }
+      }
+    },
+    "security": {
+      "auditLog": true,
+      "requireConsent": true,
+      "trustRegistry": true
+    },
+    "performance": {
+      "timeout": 30000,
+      "maxConcurrentConnections": 5
+    }
   }
 }

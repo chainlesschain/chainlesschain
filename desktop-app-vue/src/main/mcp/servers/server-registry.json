@@ -1,0 +1,129 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "MCP Server Registry",
+  "description": "Whitelist of trusted MCP servers that can be loaded by ChainlessChain",
+  "version": "1.0.0",
+  "lastUpdated": "2026-01-16",
+
+  "trustedServers": [
+    {
+      "id": "filesystem",
+      "name": "Filesystem Server",
+      "description": "Official MCP filesystem server for file operations",
+      "vendor": "@modelcontextprotocol",
+      "packageName": "@modelcontextprotocol/server-filesystem",
+      "minVersion": "0.1.0",
+      "maxVersion": "1.0.0",
+      "verifiedChecksum": null,
+      "capabilities": ["tools", "resources"],
+      "securityLevel": "medium",
+      "requiredPermissions": ["filesystem:read", "filesystem:write"],
+      "documentation": "https://github.com/modelcontextprotocol/servers/tree/main/src/filesystem",
+      "configSchema": "./server-configs/filesystem.json"
+    },
+    {
+      "id": "postgres",
+      "name": "PostgreSQL Server",
+      "description": "Official MCP PostgreSQL server for database operations",
+      "vendor": "@modelcontextprotocol",
+      "packageName": "@modelcontextprotocol/server-postgres",
+      "minVersion": "0.1.0",
+      "maxVersion": "1.0.0",
+      "verifiedChecksum": null,
+      "capabilities": ["tools", "resources"],
+      "securityLevel": "high",
+      "requiredPermissions": ["database:read", "database:write"],
+      "documentation": "https://github.com/modelcontextprotocol/servers/tree/main/src/postgres",
+      "configSchema": "./server-configs/postgres.json"
+    },
+    {
+      "id": "sqlite",
+      "name": "SQLite Server",
+      "description": "Official MCP SQLite server for local database operations",
+      "vendor": "@modelcontextprotocol",
+      "packageName": "@modelcontextprotocol/server-sqlite",
+      "minVersion": "0.1.0",
+      "maxVersion": "1.0.0",
+      "verifiedChecksum": null,
+      "capabilities": ["tools", "resources"],
+      "securityLevel": "medium",
+      "requiredPermissions": ["database:read", "database:write"],
+      "documentation": "https://github.com/modelcontextprotocol/servers/tree/main/src/sqlite",
+      "configSchema": null
+    },
+    {
+      "id": "fetch",
+      "name": "HTTP Fetch Server",
+      "description": "Official MCP HTTP fetch server for web requests",
+      "vendor": "@modelcontextprotocol",
+      "packageName": "@modelcontextprotocol/server-fetch",
+      "minVersion": "0.1.0",
+      "maxVersion": "1.0.0",
+      "verifiedChecksum": null,
+      "capabilities": ["tools"],
+      "securityLevel": "medium",
+      "requiredPermissions": ["network:http"],
+      "documentation": "https://github.com/modelcontextprotocol/servers/tree/main/src/fetch",
+      "configSchema": null
+    },
+    {
+      "id": "git",
+      "name": "Git Server",
+      "description": "Official MCP Git server for repository operations",
+      "vendor": "@modelcontextprotocol",
+      "packageName": "@modelcontextprotocol/server-git",
+      "minVersion": "0.1.0",
+      "maxVersion": "1.0.0",
+      "verifiedChecksum": null,
+      "capabilities": ["tools", "resources"],
+      "securityLevel": "medium",
+      "requiredPermissions": [
+        "filesystem:read",
+        "filesystem:write",
+        "git:operations"
+      ],
+      "documentation": "https://github.com/modelcontextprotocol/servers/tree/main/src/git",
+      "configSchema": null
+    }
+  ],
+
+  "securityLevels": {
+    "low": {
+      "description": "Read-only operations with minimal risk",
+      "requiresUserConsent": false,
+      "auditLogging": false,
+      "networkAccess": false
+    },
+    "medium": {
+      "description": "Read/write operations with moderate risk",
+      "requiresUserConsent": true,
+      "auditLogging": true,
+      "networkAccess": true
+    },
+    "high": {
+      "description": "Privileged operations with significant risk",
+      "requiresUserConsent": true,
+      "auditLogging": true,
+      "networkAccess": true,
+      "requiresAuthentication": true
+    }
+  },
+
+  "forbiddenPatterns": [
+    "eval(",
+    "Function(",
+    "child_process.exec",
+    "require('fs').unlink",
+    "/data/chainlesschain.db",
+    "/data/ukey/",
+    "/data/did/private-keys/",
+    "/data/p2p/keys/"
+  ],
+
+  "notes": [
+    "Only servers listed in 'trustedServers' can be loaded",
+    "Servers must match the specified version range",
+    "Security level determines required user consent and logging",
+    "Forbidden patterns are always blocked regardless of server configuration"
+  ]
+}

@@ -103,6 +103,7 @@
     "@milkdown/prose": "^7.17.3",
     "@milkdown/theme-nord": "^7.17.3",
     "@milkdown/vue": "^7.17.3",
+    "@modelcontextprotocol/sdk": "^1.25.2",
     "@privacyresearch/libsignal-protocol-typescript": "^0.0.16",
     "@tanstack/virtual-core": "^3.13.13",
     "@teamwork/websocket-json-stream": "^2.0.0",
