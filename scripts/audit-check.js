@@ -18,11 +18,21 @@ const KNOWN_UNFIXABLE = [
   "GHSA-4p35-cfcx-8653", // Bypass in parse-url
   "GHSA-pqw5-jmp5-px4v", // SSRF in parse-url
   "GHSA-j9fq-vwqv-2fm2", // Bypass in parse-url
+
+  // elliptic - via @ethersproject, ethereum-cryptography, hdkey
+  // Used for blockchain/crypto operations - no patched version as of 2026-01-16
+  "GHSA-848j-6mx2-7j84", // Risky cryptographic implementation in elliptic
+
+  // xlsx (SheetJS) - no fix available, used for Excel file processing
+  "GHSA-4r6h-8v6p-xvw6", // Prototype Pollution in sheetJS
+  "GHSA-5pgg-2g8v-p4x9", // ReDoS in sheetJS
 ];
 
 // Packages with known unfixable transitive vulnerabilities
 const KNOWN_UNFIXABLE_PACKAGES = [
   "parse-url", // stun depends on this, no fix available
+  "elliptic", // crypto operations, no patched version
+  "xlsx", // Excel processing, no patched version
 ];
 
 // Parse command line args
