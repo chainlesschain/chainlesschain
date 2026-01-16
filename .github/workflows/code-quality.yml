@@ -18,17 +18,15 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "18"
+          node-version: "22"
 
       - name: Install dependencies
-        run: |
-          cd desktop-app-vue
-          npm install
+        working-directory: ./desktop-app-vue
+        run: npm install --legacy-peer-deps
 
       - name: Run Rules Validator
-        run: |
-          cd desktop-app-vue
-          npm run validate:rules
+        working-directory: ./desktop-app-vue
+        run: npm run validate:rules
         continue-on-error: false
 
       - name: Upload validation report
@@ -50,23 +48,21 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "18"
+          node-version: "22"
 
       - name: Install dependencies
-        run: |
-          cd desktop-app-vue
-          npm install
+        working-directory: ./desktop-app-vue
+        run: npm install --legacy-peer-deps
 
       - name: Run npm audit
-        run: |
-          cd desktop-app-vue
-          npm audit --audit-level=high
+        working-directory: ./desktop-app-vue
+        run: npm audit --audit-level=high
         continue-on-error: true
 
       - name: Check for critical vulnerabilities
+        working-directory: ./desktop-app-vue
         run: |
-          cd desktop-app-vue
-          AUDIT_RESULT=$(npm audit --audit-level=critical --json)
+          AUDIT_RESULT=$(npm audit --audit-level=critical --json || true)
           CRITICAL_COUNT=$(echo $AUDIT_RESULT | jq '.metadata.vulnerabilities.critical // 0')
 
           if [ "$CRITICAL_COUNT" -gt 0 ]; then
@@ -87,18 +83,17 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "18"
+          node-version: "22"
 
       - name: Install dependencies
-        run: |
-          cd desktop-app-vue
-          npm install
+        working-directory: ./desktop-app-vue
+        run: npm install --legacy-peer-deps
 
       - name: Check code style
+        working-directory: ./desktop-app-vue
         run: |
-          cd desktop-app-vue
           # 如果有 ESLint 配置
-          if [ -f ".eslintrc.js" ] || [ -f ".eslintrc.json" ]; then
+          if [ -f ".eslintrc.js" ] || [ -f ".eslintrc.json" ] || [ -f "eslint.config.js" ]; then
             npm run lint || echo "⚠️ Linting issues found"
           else
             echo "ℹ️ ESLint not configured"
@@ -115,17 +110,15 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "18"
+          node-version: "22"
 
       - name: Install dependencies
-        run: |
-          cd desktop-app-vue
-          npm install
+        working-directory: ./desktop-app-vue
+        run: npm install --legacy-peer-deps
 
       - name: Run database tests
-        run: |
-          cd desktop-app-vue
-          npm run test:db || echo "⚠️ Database tests failed (may require native modules)"
+        working-directory: ./desktop-app-vue
+        run: npm run test:db || echo "⚠️ Database tests failed (may require native modules)"
         continue-on-error: true
 
   build-check:
@@ -139,26 +132,23 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "18"
+          node-version: "22"
 
       - name: Install dependencies
-        run: |
-          cd desktop-app-vue
-          npm install
+        working-directory: ./desktop-app-vue
+        run: npm install --legacy-peer-deps
 
       - name: Build main process
-        run: |
-          cd desktop-app-vue
-          npm run build:main
+        working-directory: ./desktop-app-vue
+        run: npm run build:main
 
       - name: Build renderer
-        run: |
-          cd desktop-app-vue
-          npm run build:renderer
+        working-directory: ./desktop-app-vue
+        run: npm run build:renderer
 
       - name: Check build artifacts
+        working-directory: ./desktop-app-vue
         run: |
-          cd desktop-app-vue
           if [ -f "dist/main/index.js" ]; then
             echo "✅ Main process build successful"
           else
@@ -180,18 +170,15 @@ jobs:
         with:
           distribution: "temurin"
           java-version: "17"
-          cache: "maven"
 
       - name: Build Project Service
-        run: |
-          cd backend/project-service
-          mvn clean compile -DskipTests
+        working-directory: ./backend/project-service
+        run: mvn clean compile -DskipTests
         continue-on-error: true
 
       - name: Run tests
-        run: |
-          cd backend/project-service
-          mvn test
+        working-directory: ./backend/project-service
+        run: mvn test
         continue-on-error: true
 
   # Python AI 服务检查
@@ -207,11 +194,10 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.10"
-          cache: "pip"
 
       - name: Install dependencies
+        working-directory: ./backend/ai-service
         run: |
-          cd backend/ai-service
           if [ -f "requirements.txt" ]; then
             pip install -r requirements.txt
           fi

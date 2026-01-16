@@ -12,17 +12,29 @@
       <!-- Logo -->
       <div class="app-logo">
         <div class="logo-icon">
-          <img src="@/assets/logo.png" alt="ChainlessChain Logo" class="logo-image" />
+          <img
+            src="@/assets/logo.png"
+            alt="ChainlessChain Logo"
+            class="logo-image"
+          />
         </div>
         <h2 v-if="!sidebarCollapsed">ChainlessChain</h2>
       </div>
 
       <!-- 快捷访问区域 -->
-      <div v-if="!sidebarCollapsed && store.favoriteMenus.length > 0" class="quick-access-section">
+      <div
+        v-if="!sidebarCollapsed && store.favoriteMenus.length > 0"
+        class="quick-access-section"
+      >
         <div class="section-header">
           <StarFilled class="section-icon" />
           <span class="section-title">快捷访问</span>
-          <a-button type="text" size="small" class="manage-btn" @click="showFavoriteManager = true">
+          <a-button
+            type="text"
+            size="small"
+            class="manage-btn"
+            @click="showFavoriteManager = true"
+          >
             <SettingOutlined />
           </a-button>
         </div>
@@ -53,314 +65,385 @@
           class="main-menu"
           @click="handleMenuClick"
         >
-        <!-- 1. 工作台 ⭐高频功能集合 -->
-        <a-sub-menu key="workspace">
-          <template #icon><DashboardOutlined /></template>
-          <template #title>
-            <span>工作台</span>
-            <a-badge count="核心" :number-style="{ backgroundColor: '#52c41a', fontSize: '10px', padding: '0 4px' }" style="margin-left: 8px" />
-          </template>
-          <a-menu-item key="home">
-            <template #icon><HomeOutlined /></template>
-            知识首页
-          </a-menu-item>
-          <a-menu-item key="projects">
-            <template #icon><FolderOpenOutlined /></template>
-            <span @contextmenu="showContextMenu($event, 'projects')">我的项目</span>
-            <span class="menu-shortcut">Alt+1</span>
-          </a-menu-item>
-          <a-menu-item key="knowledge-list">
+          <!-- 1. 工作台 ⭐高频功能集合 -->
+          <a-sub-menu key="workspace">
+            <template #icon><DashboardOutlined /></template>
+            <template #title>
+              <span>工作台</span>
+              <a-badge
+                count="核心"
+                :number-style="{
+                  backgroundColor: '#52c41a',
+                  fontSize: '10px',
+                  padding: '0 4px',
+                }"
+                style="margin-left: 8px"
+              />
+            </template>
+            <a-menu-item key="home">
+              <template #icon><HomeOutlined /></template>
+              知识首页
+            </a-menu-item>
+            <a-menu-item key="projects">
+              <template #icon><FolderOpenOutlined /></template>
+              <span @contextmenu="showContextMenu($event, 'projects')"
+                >我的项目</span
+              >
+              <span class="menu-shortcut">Alt+1</span>
+            </a-menu-item>
+            <a-menu-item key="knowledge-list">
+              <template #icon><FileTextOutlined /></template>
+              <span @contextmenu="showContextMenu($event, 'knowledge-list')"
+                >我的知识</span
+              >
+              <span class="menu-shortcut">Alt+2</span>
+            </a-menu-item>
+            <a-menu-item key="ai-chat">
+              <template #icon><RobotOutlined /></template>
+              <span @contextmenu="showContextMenu($event, 'ai-chat')"
+                >AI对话</span
+              >
+              <span class="menu-shortcut">Alt+3</span>
+            </a-menu-item>
+            <a-menu-item key="workspace-management">
+              <template #icon><ApartmentOutlined /></template>
+              <span
+                @contextmenu="showContextMenu($event, 'workspace-management')"
+                >工作区管理</span
+              >
+            </a-menu-item>
+          </a-sub-menu>
+
+          <!-- 2. 知识管理 -->
+          <a-sub-menu key="knowledge-management">
             <template #icon><FileTextOutlined /></template>
-            <span @contextmenu="showContextMenu($event, 'knowledge-list')">我的知识</span>
-            <span class="menu-shortcut">Alt+2</span>
-          </a-menu-item>
-          <a-menu-item key="ai-chat">
-            <template #icon><RobotOutlined /></template>
-            <span @contextmenu="showContextMenu($event, 'ai-chat')">AI对话</span>
-            <span class="menu-shortcut">Alt+3</span>
-          </a-menu-item>
-          <a-menu-item key="workspace-management">
-            <template #icon><ApartmentOutlined /></template>
-            <span @contextmenu="showContextMenu($event, 'workspace-management')">工作区管理</span>
-          </a-menu-item>
-        </a-sub-menu>
-
-        <!-- 2. 知识管理 -->
-        <a-sub-menu key="knowledge-management">
-          <template #icon><FileTextOutlined /></template>
-          <template #title>知识管理</template>
-          <a-menu-item key="knowledge-graph">
-            <template #icon><NodeIndexOutlined /></template>
-            知识图谱
-          </a-menu-item>
-          <a-menu-item key="file-import">
-            <template #icon><CloudUploadOutlined /></template>
-            文件导入
-          </a-menu-item>
-          <a-menu-item key="image-upload">
-            <template #icon><FileImageOutlined /></template>
-            图片上传
-          </a-menu-item>
-          <a-menu-item key="prompt-templates">
-            <template #icon><TagsOutlined /></template>
-            提示词模板
-          </a-menu-item>
-          <a-menu-item key="knowledge-store">
-            <template #icon><ShopOutlined /></template>
-            知识付费
-          </a-menu-item>
-        </a-sub-menu>
-
-        <!-- 3. AI工具 -->
-        <a-sub-menu key="ai-tools">
-          <template #icon><RobotOutlined /></template>
-          <template #title>
-            <span>AI工具</span>
-            <a-badge count="新" :number-style="{ backgroundColor: '#1890ff', fontSize: '10px', padding: '0 4px' }" style="margin-left: 8px" />
-          </template>
-          <a-menu-item key="audio-import">
-            <template #icon><SoundOutlined /></template>
-            音频导入
-          </a-menu-item>
-          <a-menu-item key="multimedia-demo">
-            <template #icon><VideoCameraOutlined /></template>
-            多媒体处理
-          </a-menu-item>
-          <a-menu-item key="my-purchases">
-            <template #icon><ShoppingCartOutlined /></template>
-            我的购买
-          </a-menu-item>
-        </a-sub-menu>
-
-        <!-- 4. 项目管理 -->
-        <a-sub-menu key="project-management">
-          <template #icon><FolderOutlined /></template>
-          <template #title>项目管理</template>
-          <a-menu-item key="project-categories">
-            <template #icon><AppstoreOutlined /></template>
-            <span @contextmenu="showContextMenu($event, 'project-categories')">项目分类</span>
-          </a-menu-item>
-          <a-menu-item key="project-list-management">
-            <template #icon><TableOutlined /></template>
-            <span @contextmenu="showContextMenu($event, 'project-list-management')">项目列表管理</span>
-          </a-menu-item>
-          <a-menu-item key="template-management">
-            <template #icon><TagsOutlined /></template>
-            <span @contextmenu="showContextMenu($event, 'template-management')">模板管理</span>
-          </a-menu-item>
-          <a-menu-item key="project-market">
-            <template #icon><ShopOutlined /></template>
-            <span @contextmenu="showContextMenu($event, 'project-market')">项目市场</span>
-          </a-menu-item>
-          <a-menu-item key="project-collaboration">
-            <template #icon><TeamOutlined /></template>
-            <span @contextmenu="showContextMenu($event, 'project-collaboration')">协作项目</span>
-          </a-menu-item>
-          <a-menu-item key="project-archived">
-            <template #icon><InboxOutlined /></template>
-            <span @contextmenu="showContextMenu($event, 'project-archived')">已归档项目</span>
-          </a-menu-item>
-        </a-sub-menu>
-
-        <!-- 5. 社交网络 -->
-        <a-sub-menu key="social">
-          <template #icon><TeamOutlined /></template>
-          <template #title>社交网络</template>
-          <a-menu-item key="did">
-            <template #icon><IdcardOutlined /></template>
-            <span @contextmenu="showContextMenu($event, 'did')">DID身份</span>
-            <span class="menu-shortcut">Alt+4</span>
-          </a-menu-item>
-          <a-menu-item key="credentials">
-            <template #icon><SafetyCertificateOutlined /></template>
-            可验证凭证
-          </a-menu-item>
-          <a-menu-item key="contacts">
-            <template #icon><TeamOutlined /></template>
-            联系人
-          </a-menu-item>
-          <a-menu-item key="friends">
-            <template #icon><UserOutlined /></template>
-            好友管理
-          </a-menu-item>
-          <a-menu-item key="posts">
-            <template #icon><CommentOutlined /></template>
-            动态广场
-          </a-menu-item>
-          <a-menu-item key="p2p-messaging">
-            <template #icon><MessageOutlined /></template>
-            P2P加密消息
-          </a-menu-item>
-          <a-menu-item key="offline-queue">
-            <template #icon><InboxOutlined /></template>
-            离线消息队列
-          </a-menu-item>
-        </a-sub-menu>
-
-        <!-- 6. 交易市场 -->
-        <a-sub-menu key="trade">
-          <template #icon><ShopOutlined /></template>
-          <template #title>交易市场</template>
-          <a-menu-item key="trading">
-            <template #icon><DashboardOutlined /></template>
-            <span @contextmenu="showContextMenu($event, 'trading')">交易中心</span>
-            <span class="menu-shortcut">Alt+5</span>
-          </a-menu-item>
-          <a-menu-item key="marketplace">
-            <template #icon><ShopOutlined /></template>
-            交易市场
-          </a-menu-item>
-          <a-menu-item key="contracts">
-            <template #icon><AuditOutlined /></template>
-            智能合约
-          </a-menu-item>
-          <a-menu-item key="credit-score">
-            <template #icon><StarOutlined /></template>
-            信用评分
-          </a-menu-item>
-          <a-menu-item key="wallet">
-            <template #icon><WalletOutlined /></template>
-            钱包管理
-          </a-menu-item>
-          <a-menu-item key="bridge">
-            <template #icon><SwapOutlined /></template>
-            跨链桥
-          </a-menu-item>
-        </a-sub-menu>
-
-        <!-- 7. 开发与设计 -->
-        <a-sub-menu key="dev-tools">
-          <template #icon><CodeOutlined /></template>
-          <template #title>
-            <span>开发与设计</span>
-            <a-badge count="新" :number-style="{ backgroundColor: '#52c41a', fontSize: '10px', padding: '0 4px' }" style="margin-left: 8px" />
-          </template>
-          <a-menu-item key="webide">
-            <template #icon><CodeOutlined /></template>
-            <span @contextmenu="showContextMenu($event, 'webide')">Web IDE</span>
-            <span class="menu-shortcut">Alt+6</span>
-          </a-menu-item>
-          <a-menu-item key="design-editor">
-            <template #icon><BgColorsOutlined /></template>
-            设计编辑器
-          </a-menu-item>
-          <a-menu-item key="rss-feeds">
-            <template #icon><RssOutlined /></template>
-            RSS订阅
-          </a-menu-item>
-          <a-menu-item key="email-accounts">
-            <template #icon><MailOutlined /></template>
-            邮件管理
-          </a-menu-item>
-        </a-sub-menu>
-
-        <!-- 8. 企业版 -->
-        <a-sub-menu key="enterprise">
-          <template #icon><BankOutlined /></template>
-          <template #title>
-            <span>企业版</span>
-            <a-badge count="Pro" :number-style="{ backgroundColor: '#faad14', fontSize: '10px', padding: '0 4px' }" style="margin-left: 8px" />
-          </template>
-          <a-menu-item key="organizations">
-            <template #icon><ApartmentOutlined /></template>
-            <span @contextmenu="showContextMenu($event, 'organizations')">组织管理</span>
-            <span class="menu-shortcut">Alt+7</span>
-          </a-menu-item>
-          <a-menu-item key="enterprise-dashboard">
-            <template #icon><DashboardOutlined /></template>
-            企业仪表板
-          </a-menu-item>
-          <a-menu-item key="permission-management">
-            <template #icon><SafetyCertificateOutlined /></template>
-            权限管理
-          </a-menu-item>
-        </a-sub-menu>
-
-        <!-- 9. 系统设置 -->
-        <a-sub-menu key="system">
-          <template #icon><SettingOutlined /></template>
-          <template #title>系统设置</template>
-
-          <!-- 基础配置 -->
-          <a-menu-item-group title="基础配置">
-            <a-menu-item key="system-settings">
-              <template #icon><SettingOutlined /></template>
-              <span @contextmenu="showContextMenu($event, 'system-settings')">系统配置</span>
-              <span class="menu-shortcut">Alt+8</span>
+            <template #title>知识管理</template>
+            <a-menu-item key="knowledge-graph">
+              <template #icon><NodeIndexOutlined /></template>
+              知识图谱
             </a-menu-item>
-            <a-menu-item key="settings">
-              <template #icon><SettingOutlined /></template>
-              通用设置
-            </a-menu-item>
-          </a-menu-item-group>
-
-          <!-- 插件生态 -->
-          <a-menu-item-group title="插件生态">
-            <a-menu-item key="plugin-management">
-              <template #icon><AppstoreOutlined /></template>
-              插件管理
-            </a-menu-item>
-            <a-menu-item key="plugin-marketplace">
-              <template #icon><ShopOutlined /></template>
-              插件市场
-            </a-menu-item>
-            <a-menu-item key="plugin-publisher">
+            <a-menu-item key="file-import">
               <template #icon><CloudUploadOutlined /></template>
-              插件发布
+              文件导入
             </a-menu-item>
-            <a-menu-item key="skill-management">
-              <template #icon><ThunderboltOutlined /></template>
-              技能管理
+            <a-menu-item key="image-upload">
+              <template #icon><FileImageOutlined /></template>
+              图片上传
             </a-menu-item>
-            <a-menu-item key="tool-management">
-              <template #icon><ToolOutlined /></template>
-              工具管理
+            <a-menu-item key="prompt-templates">
+              <template #icon><TagsOutlined /></template>
+              提示词模板
             </a-menu-item>
-          </a-menu-item-group>
+            <a-menu-item key="knowledge-store">
+              <template #icon><ShopOutlined /></template>
+              知识付费
+            </a-menu-item>
+          </a-sub-menu>
 
-          <!-- AI配置 -->
-          <a-menu-item-group title="AI配置">
-            <a-menu-item key="llm-settings">
-              <template #icon><ApiOutlined /></template>
-              LLM配置
+          <!-- 3. AI工具 -->
+          <a-sub-menu key="ai-tools">
+            <template #icon><RobotOutlined /></template>
+            <template #title>
+              <span>AI工具</span>
+              <a-badge
+                count="新"
+                :number-style="{
+                  backgroundColor: '#1890ff',
+                  fontSize: '10px',
+                  padding: '0 4px',
+                }"
+                style="margin-left: 8px"
+              />
+            </template>
+            <a-menu-item key="audio-import">
+              <template #icon><SoundOutlined /></template>
+              音频导入
             </a-menu-item>
-            <a-menu-item key="rag-settings">
-              <template #icon><DatabaseOutlined /></template>
-              RAG配置
+            <a-menu-item key="multimedia-demo">
+              <template #icon><VideoCameraOutlined /></template>
+              多媒体处理
             </a-menu-item>
-          </a-menu-item-group>
+            <a-menu-item key="my-purchases">
+              <template #icon><ShoppingCartOutlined /></template>
+              我的购买
+            </a-menu-item>
+          </a-sub-menu>
 
-          <!-- 同步与安全 -->
-          <a-menu-item-group title="同步与安全">
-            <a-menu-item key="git-settings">
-              <template #icon><SyncOutlined /></template>
-              Git同步
+          <!-- 4. 项目管理 -->
+          <a-sub-menu key="project-management">
+            <template #icon><FolderOutlined /></template>
+            <template #title>项目管理</template>
+            <a-menu-item key="project-categories">
+              <template #icon><AppstoreOutlined /></template>
+              <span @contextmenu="showContextMenu($event, 'project-categories')"
+                >项目分类</span
+              >
             </a-menu-item>
-            <a-menu-item key="sync-conflicts">
-              <template #icon><ExclamationCircleOutlined /></template>
-              同步冲突管理
+            <a-menu-item key="project-list-management">
+              <template #icon><TableOutlined /></template>
+              <span
+                @contextmenu="
+                  showContextMenu($event, 'project-list-management')
+                "
+                >项目列表管理</span
+              >
             </a-menu-item>
-            <a-menu-item key="ukey-settings">
-              <template #icon><SafetyOutlined /></template>
-              UKey安全
+            <a-menu-item key="template-management">
+              <template #icon><TagsOutlined /></template>
+              <span
+                @contextmenu="showContextMenu($event, 'template-management')"
+                >模板管理</span
+              >
             </a-menu-item>
-            <a-menu-item key="database-performance">
+            <a-menu-item key="project-market">
+              <template #icon><ShopOutlined /></template>
+              <span @contextmenu="showContextMenu($event, 'project-market')"
+                >项目市场</span
+              >
+            </a-menu-item>
+            <a-menu-item key="project-collaboration">
+              <template #icon><TeamOutlined /></template>
+              <span
+                @contextmenu="showContextMenu($event, 'project-collaboration')"
+                >协作项目</span
+              >
+            </a-menu-item>
+            <a-menu-item key="project-archived">
+              <template #icon><InboxOutlined /></template>
+              <span @contextmenu="showContextMenu($event, 'project-archived')"
+                >已归档项目</span
+              >
+            </a-menu-item>
+          </a-sub-menu>
+
+          <!-- 5. 社交网络 -->
+          <a-sub-menu key="social">
+            <template #icon><TeamOutlined /></template>
+            <template #title>社交网络</template>
+            <a-menu-item key="did">
+              <template #icon><IdcardOutlined /></template>
+              <span @contextmenu="showContextMenu($event, 'did')">DID身份</span>
+              <span class="menu-shortcut">Alt+4</span>
+            </a-menu-item>
+            <a-menu-item key="credentials">
+              <template #icon><SafetyCertificateOutlined /></template>
+              可验证凭证
+            </a-menu-item>
+            <a-menu-item key="contacts">
+              <template #icon><TeamOutlined /></template>
+              联系人
+            </a-menu-item>
+            <a-menu-item key="friends">
+              <template #icon><UserOutlined /></template>
+              好友管理
+            </a-menu-item>
+            <a-menu-item key="posts">
+              <template #icon><CommentOutlined /></template>
+              动态广场
+            </a-menu-item>
+            <a-menu-item key="p2p-messaging">
+              <template #icon><MessageOutlined /></template>
+              P2P加密消息
+            </a-menu-item>
+            <a-menu-item key="offline-queue">
+              <template #icon><InboxOutlined /></template>
+              离线消息队列
+            </a-menu-item>
+          </a-sub-menu>
+
+          <!-- 6. 交易市场 -->
+          <a-sub-menu key="trade">
+            <template #icon><ShopOutlined /></template>
+            <template #title>交易市场</template>
+            <a-menu-item key="trading">
               <template #icon><DashboardOutlined /></template>
-              数据库性能监控
+              <span @contextmenu="showContextMenu($event, 'trading')"
+                >交易中心</span
+              >
+              <span class="menu-shortcut">Alt+5</span>
             </a-menu-item>
-          </a-menu-item-group>
-        </a-sub-menu>
-      </a-menu>
+            <a-menu-item key="marketplace">
+              <template #icon><ShopOutlined /></template>
+              交易市场
+            </a-menu-item>
+            <a-menu-item key="contracts">
+              <template #icon><AuditOutlined /></template>
+              智能合约
+            </a-menu-item>
+            <a-menu-item key="credit-score">
+              <template #icon><StarOutlined /></template>
+              信用评分
+            </a-menu-item>
+            <a-menu-item key="wallet">
+              <template #icon><WalletOutlined /></template>
+              钱包管理
+            </a-menu-item>
+            <a-menu-item key="bridge">
+              <template #icon><SwapOutlined /></template>
+              跨链桥
+            </a-menu-item>
+          </a-sub-menu>
+
+          <!-- 7. 开发与设计 -->
+          <a-sub-menu key="dev-tools">
+            <template #icon><CodeOutlined /></template>
+            <template #title>
+              <span>开发与设计</span>
+              <a-badge
+                count="新"
+                :number-style="{
+                  backgroundColor: '#52c41a',
+                  fontSize: '10px',
+                  padding: '0 4px',
+                }"
+                style="margin-left: 8px"
+              />
+            </template>
+            <a-menu-item key="webide">
+              <template #icon><CodeOutlined /></template>
+              <span @contextmenu="showContextMenu($event, 'webide')"
+                >Web IDE</span
+              >
+              <span class="menu-shortcut">Alt+6</span>
+            </a-menu-item>
+            <a-menu-item key="design-editor">
+              <template #icon><BgColorsOutlined /></template>
+              设计编辑器
+            </a-menu-item>
+            <a-menu-item key="rss-feeds">
+              <template #icon><ReadOutlined /></template>
+              RSS订阅
+            </a-menu-item>
+            <a-menu-item key="email-accounts">
+              <template #icon><MailOutlined /></template>
+              邮件管理
+            </a-menu-item>
+          </a-sub-menu>
+
+          <!-- 8. 企业版 -->
+          <a-sub-menu key="enterprise">
+            <template #icon><BankOutlined /></template>
+            <template #title>
+              <span>企业版</span>
+              <a-badge
+                count="Pro"
+                :number-style="{
+                  backgroundColor: '#faad14',
+                  fontSize: '10px',
+                  padding: '0 4px',
+                }"
+                style="margin-left: 8px"
+              />
+            </template>
+            <a-menu-item key="organizations">
+              <template #icon><ApartmentOutlined /></template>
+              <span @contextmenu="showContextMenu($event, 'organizations')"
+                >组织管理</span
+              >
+              <span class="menu-shortcut">Alt+7</span>
+            </a-menu-item>
+            <a-menu-item key="enterprise-dashboard">
+              <template #icon><DashboardOutlined /></template>
+              企业仪表板
+            </a-menu-item>
+            <a-menu-item key="permission-management">
+              <template #icon><SafetyCertificateOutlined /></template>
+              权限管理
+            </a-menu-item>
+          </a-sub-menu>
+
+          <!-- 9. 系统设置 -->
+          <a-sub-menu key="system">
+            <template #icon><SettingOutlined /></template>
+            <template #title>系统设置</template>
+
+            <!-- 基础配置 -->
+            <a-menu-item-group title="基础配置">
+              <a-menu-item key="system-settings">
+                <template #icon><SettingOutlined /></template>
+                <span @contextmenu="showContextMenu($event, 'system-settings')"
+                  >系统配置</span
+                >
+                <span class="menu-shortcut">Alt+8</span>
+              </a-menu-item>
+              <a-menu-item key="settings">
+                <template #icon><SettingOutlined /></template>
+                通用设置
+              </a-menu-item>
+            </a-menu-item-group>
+
+            <!-- 插件生态 -->
+            <a-menu-item-group title="插件生态">
+              <a-menu-item key="plugin-management">
+                <template #icon><AppstoreOutlined /></template>
+                插件管理
+              </a-menu-item>
+              <a-menu-item key="plugin-marketplace">
+                <template #icon><ShopOutlined /></template>
+                插件市场
+              </a-menu-item>
+              <a-menu-item key="plugin-publisher">
+                <template #icon><CloudUploadOutlined /></template>
+                插件发布
+              </a-menu-item>
+              <a-menu-item key="skill-management">
+                <template #icon><ThunderboltOutlined /></template>
+                技能管理
+              </a-menu-item>
+              <a-menu-item key="tool-management">
+                <template #icon><ToolOutlined /></template>
+                工具管理
+              </a-menu-item>
+            </a-menu-item-group>
+
+            <!-- AI配置 -->
+            <a-menu-item-group title="AI配置">
+              <a-menu-item key="llm-settings">
+                <template #icon><ApiOutlined /></template>
+                LLM配置
+              </a-menu-item>
+              <a-menu-item key="rag-settings">
+                <template #icon><DatabaseOutlined /></template>
+                RAG配置
+              </a-menu-item>
+            </a-menu-item-group>
+
+            <!-- 同步与安全 -->
+            <a-menu-item-group title="同步与安全">
+              <a-menu-item key="git-settings">
+                <template #icon><SyncOutlined /></template>
+                Git同步
+              </a-menu-item>
+              <a-menu-item key="sync-conflicts">
+                <template #icon><ExclamationCircleOutlined /></template>
+                同步冲突管理
+              </a-menu-item>
+              <a-menu-item key="ukey-settings">
+                <template #icon><SafetyOutlined /></template>
+                UKey安全
+              </a-menu-item>
+              <a-menu-item key="database-performance">
+                <template #icon><DashboardOutlined /></template>
+                数据库性能监控
+              </a-menu-item>
+            </a-menu-item-group>
+          </a-sub-menu>
+        </a-menu>
       </div>
     </a-layout-sider>
 
     <!-- 主内容区 -->
     <a-layout class="main-content-area">
-        <!-- 顶部栏 -->
-        <a-layout-header class="layout-header">
+      <!-- 顶部栏 -->
+      <a-layout-header class="layout-header">
         <div class="header-left">
           <!-- 只在有侧边栏时显示折叠按钮 -->
-          <a-button v-if="showSidebar" type="text" @click="toggleSidebar" class="trigger-btn">
+          <a-button
+            v-if="showSidebar"
+            type="text"
+            @click="toggleSidebar"
+            class="trigger-btn"
+          >
             <MenuFoldOutlined v-if="!sidebarCollapsed" />
             <MenuUnfoldOutlined v-else />
           </a-button>
@@ -373,7 +456,11 @@
           </div>
 
           <!-- 面包屑导航 -->
-          <a-breadcrumb v-if="breadcrumbs.length > 1" class="breadcrumb-nav" separator=">">
+          <a-breadcrumb
+            v-if="breadcrumbs.length > 1"
+            class="breadcrumb-nav"
+            separator=">"
+          >
             <a-breadcrumb-item
               v-for="(item, index) in breadcrumbs"
               :key="index"
@@ -383,11 +470,19 @@
                 @click="handleBreadcrumbClick(item)"
                 class="breadcrumb-link"
               >
-                <component v-if="item.icon" :is="getIconComponent(item.icon)" class="breadcrumb-icon" />
+                <component
+                  v-if="item.icon"
+                  :is="getIconComponent(item.icon)"
+                  class="breadcrumb-icon"
+                />
                 {{ item.title }}
               </a>
               <span v-else class="breadcrumb-current">
-                <component v-if="item.icon" :is="getIconComponent(item.icon)" class="breadcrumb-icon" />
+                <component
+                  v-if="item.icon"
+                  :is="getIconComponent(item.icon)"
+                  class="breadcrumb-icon"
+                />
                 {{ item.title }}
               </span>
             </a-breadcrumb-item>
@@ -398,17 +493,31 @@
           <a-space :size="16">
             <!-- 搜索按钮 -->
             <a-tooltip title="搜索菜单 (Ctrl+K)">
-              <a-button type="text" @click="showCommandPalette" class="search-btn">
+              <a-button
+                type="text"
+                @click="showCommandPalette"
+                class="search-btn"
+              >
                 <SearchOutlined />
               </a-button>
             </a-tooltip>
 
             <!-- 同步状态 -->
             <a-tooltip :title="syncTooltip">
-              <a-button type="text" @click="handleSyncClick" :loading="isSyncing">
+              <a-button
+                type="text"
+                @click="handleSyncClick"
+                :loading="isSyncing"
+              >
                 <template v-if="!isSyncing">
-                  <SyncOutlined v-if="syncStatus === 'synced'" :style="{ color: '#52c41a' }" />
-                  <ExclamationCircleOutlined v-else-if="syncStatus === 'error'" :style="{ color: '#ff4d4f' }" />
+                  <SyncOutlined
+                    v-if="syncStatus === 'synced'"
+                    :style="{ color: '#52c41a' }"
+                  />
+                  <ExclamationCircleOutlined
+                    v-else-if="syncStatus === 'error'"
+                    :style="{ color: '#ff4d4f' }"
+                  />
                   <CloudSyncOutlined v-else :style="{ color: '#1890ff' }" />
                 </template>
               </a-button>
@@ -486,12 +595,8 @@
               </a-button>
               <template #overlay>
                 <a-menu @click="handleTabDropdown">
-                  <a-menu-item key="close-others">
-                    关闭其他
-                  </a-menu-item>
-                  <a-menu-item key="close-all">
-                    关闭所有
-                  </a-menu-item>
+                  <a-menu-item key="close-others"> 关闭其他 </a-menu-item>
+                  <a-menu-item key="close-all"> 关闭所有 </a-menu-item>
                 </a-menu>
               </template>
             </a-dropdown>
@@ -569,13 +674,20 @@
               <template #renderItem="{ item }">
                 <a-list-item>
                   <template #actions>
-                    <a-button type="text" danger @click="store.removeFavoriteMenu(item.key)">
+                    <a-button
+                      type="text"
+                      danger
+                      @click="store.removeFavoriteMenu(item.key)"
+                    >
                       <DeleteOutlined />
                     </a-button>
                   </template>
                   <a-list-item-meta>
                     <template #avatar>
-                      <component :is="getIconComponent(item.icon)" :style="{ fontSize: '20px' }" />
+                      <component
+                        :is="getIconComponent(item.icon)"
+                        :style="{ fontSize: '20px' }"
+                      />
                     </template>
                     <template #title>{{ item.title }}</template>
                     <template #description>{{ item.path }}</template>
@@ -588,7 +700,11 @@
           <a-tab-pane key="recents" tab="最近访问">
             <div class="recents-header">
               <span>最近访问的 {{ store.recentMenus.length }} 个菜单</span>
-              <a-button type="link" size="small" @click="store.clearRecentMenus()">
+              <a-button
+                type="link"
+                size="small"
+                @click="store.clearRecentMenus()"
+              >
                 清空
               </a-button>
             </div>
@@ -605,7 +721,10 @@
                   </template>
                   <a-list-item-meta>
                     <template #avatar>
-                      <component :is="getIconComponent(item.icon)" :style="{ fontSize: '20px' }" />
+                      <component
+                        :is="getIconComponent(item.icon)"
+                        :style="{ fontSize: '20px' }"
+                      />
                     </template>
                     <template #title>{{ item.title }}</template>
                     <template #description>
@@ -632,19 +751,31 @@
           left: contextMenuPosition.x + 'px',
           top: contextMenuPosition.y + 'px',
           width: '1px',
-          height: '1px'
+          height: '1px',
         }"
       ></div>
       <template #overlay>
         <a-menu @click="contextMenuVisible = false">
           <a-menu-item @click="toggleFavorite">
-            <StarFilled v-if="currentMenuItem && store.isFavoriteMenu(currentMenuItem.key)" />
+            <StarFilled
+              v-if="
+                currentMenuItem && store.isFavoriteMenu(currentMenuItem.key)
+              "
+            />
             <StarOutlined v-else />
-            {{ currentMenuItem && store.isFavoriteMenu(currentMenuItem.key) ? '取消收藏' : '添加收藏' }}
+            {{
+              currentMenuItem && store.isFavoriteMenu(currentMenuItem.key)
+                ? "取消收藏"
+                : "添加收藏"
+            }}
           </a-menu-item>
           <a-menu-item @click="pinToTop">
             <PushpinOutlined />
-            {{ currentMenuItem && store.isPinnedMenu(currentMenuItem.key) ? '取消置顶' : '置顶' }}
+            {{
+              currentMenuItem && store.isPinnedMenu(currentMenuItem.key)
+                ? "取消置顶"
+                : "置顶"
+            }}
           </a-menu-item>
         </a-menu>
       </template>
@@ -653,9 +784,9 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
-import { useRouter, useRoute } from 'vue-router';
-import { message } from 'ant-design-vue';
+import { ref, computed, watch, onMounted, onUnmounted } from "vue";
+import { useRouter, useRoute } from "vue-router";
+import { message } from "ant-design-vue";
 import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
@@ -704,26 +835,25 @@ import {
   CodeOutlined,
   BgColorsOutlined,
   GlobalOutlined,
-  RssOutlined,
+  ReadOutlined,
   MailOutlined,
   BankOutlined,
   StarFilled,
-  StarOutlined,
   DeleteOutlined,
   ArrowRightOutlined,
   PushpinOutlined,
-} from '@ant-design/icons-vue';
-import { useAppStore } from '../stores/app';
-import { useSocialStore } from '../stores/social';
-import ChatPanel from './ChatPanel.vue';
-import SyncConflictDialog from './SyncConflictDialog.vue';
-import LanguageSwitcher from './LanguageSwitcher.vue';
-import NotificationCenter from './social/NotificationCenter.vue';
-import DatabaseEncryptionStatus from './DatabaseEncryptionStatus.vue';
-import VoiceFeedbackWidget from './VoiceFeedbackWidget.vue';
-import CommandPalette from './common/CommandPalette.vue';
-import DIDInvitationNotifier from './DIDInvitationNotifier.vue';
-import { registerMenuCommands } from '../utils/keyboard-shortcuts';
+} from "@ant-design/icons-vue";
+import { useAppStore } from "../stores/app";
+import { useSocialStore } from "../stores/social";
+import ChatPanel from "./ChatPanel.vue";
+import SyncConflictDialog from "./SyncConflictDialog.vue";
+import LanguageSwitcher from "./LanguageSwitcher.vue";
+import NotificationCenter from "./social/NotificationCenter.vue";
+import DatabaseEncryptionStatus from "./DatabaseEncryptionStatus.vue";
+import VoiceFeedbackWidget from "./VoiceFeedbackWidget.vue";
+import CommandPalette from "./common/CommandPalette.vue";
+import DIDInvitationNotifier from "./DIDInvitationNotifier.vue";
+import { registerMenuCommands } from "../utils/keyboard-shortcuts";
 
 const router = useRouter();
 const route = useRoute();
@@ -735,7 +865,7 @@ const commandPaletteRef = ref(null);
 
 // 收藏管理对话框
 const showFavoriteManager = ref(false);
-const favoriteTab = ref('favorites');
+const favoriteTab = ref("favorites");
 
 // 右键菜单
 const contextMenuVisible = ref(false);
@@ -752,81 +882,109 @@ const chatPanelVisible = computed({
   set: (val) => store.setChatPanelVisible(val),
 });
 
-const selectedMenuKeys = ref(['home']);
+const selectedMenuKeys = ref(["home"]);
 
 // 判断是否显示侧边栏（只在首页显示）
 const showSidebar = computed(() => {
-  return route.path === '/';
+  return route.path === "/";
 });
 
 // 菜单配置
 const menuConfig = {
   // 项目管理模块
-  'project-categories': { path: '/projects/categories', title: '项目分类' },
-  projects: { path: '/projects', title: '我的项目' },
-  'project-list-management': { path: '/projects/management', title: '项目列表管理' },
-  'workspace-management': { path: '/projects/workspace', title: '工作区管理' },
-  'template-management': { path: '/template-management', title: '模板管理' },
-  'project-market': { path: '/projects/market', title: '项目市场' },
-  'project-collaboration': { path: '/projects/collaboration', title: '协作项目' },
-  'project-archived': { path: '/projects/archived', title: '已归档项目' },
+  "project-categories": { path: "/projects/categories", title: "项目分类" },
+  projects: { path: "/projects", title: "我的项目" },
+  "project-list-management": {
+    path: "/projects/management",
+    title: "项目列表管理",
+  },
+  "workspace-management": { path: "/projects/workspace", title: "工作区管理" },
+  "template-management": { path: "/template-management", title: "模板管理" },
+  "project-market": { path: "/projects/market", title: "项目市场" },
+  "project-collaboration": {
+    path: "/projects/collaboration",
+    title: "协作项目",
+  },
+  "project-archived": { path: "/projects/archived", title: "已归档项目" },
 
   // 知识与AI模块
-  home: { path: '/', title: '知识首页', closable: false },
-  'knowledge-list': { path: '/knowledge/list', title: '我的知识' },
-  'knowledge-graph': { path: '/knowledge/graph', title: '知识图谱' },
-  'file-import': { path: '/file-import', title: '文件导入' },
-  'image-upload': { path: '/image-upload', title: '图片上传' },
-  'audio-import': { path: '/audio/import', title: '音频导入' },
-  'multimedia-demo': { path: '/multimedia/demo', title: '多媒体处理' },
-  'prompt-templates': { path: '/prompt-templates', title: '提示词模板' },
-  'ai-chat': { path: '/ai/chat', title: 'AI对话' },
-  'knowledge-store': { path: '/knowledge-store', title: '知识付费' },
-  'my-purchases': { path: '/my-purchases', title: '我的购买' },
+  home: { path: "/", title: "知识首页", closable: false },
+  "knowledge-list": { path: "/knowledge/list", title: "我的知识" },
+  "knowledge-graph": { path: "/knowledge/graph", title: "知识图谱" },
+  "file-import": { path: "/file-import", title: "文件导入" },
+  "image-upload": { path: "/image-upload", title: "图片上传" },
+  "audio-import": { path: "/audio/import", title: "音频导入" },
+  "multimedia-demo": { path: "/multimedia/demo", title: "多媒体处理" },
+  "prompt-templates": { path: "/prompt-templates", title: "提示词模板" },
+  "ai-chat": { path: "/ai/chat", title: "AI对话" },
+  "knowledge-store": { path: "/knowledge-store", title: "知识付费" },
+  "my-purchases": { path: "/my-purchases", title: "我的购买" },
 
   // 身份与社交模块
-  did: { path: '/did', title: 'DID身份' },
-  credentials: { path: '/credentials', title: '可验证凭证' },
-  contacts: { path: '/contacts', title: '联系人' },
-  friends: { path: '/friends', title: '好友管理' },
-  posts: { path: '/posts', title: '动态广场' },
-  'p2p-messaging': { path: '/p2p-messaging', title: 'P2P加密消息' },
+  did: { path: "/did", title: "DID身份" },
+  credentials: { path: "/credentials", title: "可验证凭证" },
+  contacts: { path: "/contacts", title: "联系人" },
+  friends: { path: "/friends", title: "好友管理" },
+  posts: { path: "/posts", title: "动态广场" },
+  "p2p-messaging": { path: "/p2p-messaging", title: "P2P加密消息" },
 
   // 交易系统模块
-  trading: { path: '/trading', title: '交易中心' },
-  marketplace: { path: '/marketplace', title: '交易市场' },
-  contracts: { path: '/contracts', title: '智能合约' },
-  'credit-score': { path: '/credit-score', title: '信用评分' },
-  wallet: { path: '/wallet', title: '钱包管理' },
-  bridge: { path: '/bridge', title: '跨链桥' },
+  trading: { path: "/trading", title: "交易中心" },
+  marketplace: { path: "/marketplace", title: "交易市场" },
+  contracts: { path: "/contracts", title: "智能合约" },
+  "credit-score": { path: "/credit-score", title: "信用评分" },
+  wallet: { path: "/wallet", title: "钱包管理" },
+  bridge: { path: "/bridge", title: "跨链桥" },
 
   // 开发工具模块
-  webide: { path: '/webide', title: 'Web IDE' },
-  'design-editor': { path: '/design/new', title: '设计编辑器' },
+  webide: { path: "/webide", title: "Web IDE" },
+  "design-editor": { path: "/design/new", title: "设计编辑器" },
 
   // 内容聚合模块
-  'rss-feeds': { path: '/rss/feeds', title: 'RSS订阅' },
-  'email-accounts': { path: '/email/accounts', title: '邮件管理' },
+  "rss-feeds": { path: "/rss/feeds", title: "RSS订阅" },
+  "email-accounts": { path: "/email/accounts", title: "邮件管理" },
 
   // 企业版模块
-  organizations: { path: '/organizations', title: '组织管理' },
-  'enterprise-dashboard': { path: '/enterprise/dashboard', title: '企业仪表板' },
-  'permission-management': { path: '/permissions', title: '权限管理' },
+  organizations: { path: "/organizations", title: "组织管理" },
+  "enterprise-dashboard": {
+    path: "/enterprise/dashboard",
+    title: "企业仪表板",
+  },
+  "permission-management": { path: "/permissions", title: "权限管理" },
 
   // 系统设置模块
-  'system-settings': { path: '/settings/system', title: '系统配置' },
-  settings: { path: '/settings', title: '通用设置', query: { tab: 'general' } },
-  'plugin-management': { path: '/settings/plugins', title: '插件管理' },
-  'plugin-marketplace': { path: '/plugins/marketplace', title: '插件市场' },
-  'plugin-publisher': { path: '/plugins/publisher', title: '插件发布' },
-  'skill-management': { path: '/settings/skills', title: '技能管理' },
-  'tool-management': { path: '/settings/tools', title: '工具管理' },
-  'llm-settings': { path: '/settings', title: 'LLM配置', query: { tab: 'llm' } },
-  'rag-settings': { path: '/settings', title: 'RAG配置', query: { tab: 'rag' } },
-  'git-settings': { path: '/settings', title: 'Git同步', query: { tab: 'git' } },
-  'sync-conflicts': { path: '/sync/conflicts', title: '同步冲突管理' },
-  'ukey-settings': { path: '/settings', title: 'UKey安全', query: { tab: 'ukey' } },
-  'database-performance': { path: '/database/performance', title: '数据库性能监控' },
+  "system-settings": { path: "/settings/system", title: "系统配置" },
+  settings: { path: "/settings", title: "通用设置", query: { tab: "general" } },
+  "plugin-management": { path: "/settings/plugins", title: "插件管理" },
+  "plugin-marketplace": { path: "/plugins/marketplace", title: "插件市场" },
+  "plugin-publisher": { path: "/plugins/publisher", title: "插件发布" },
+  "skill-management": { path: "/settings/skills", title: "技能管理" },
+  "tool-management": { path: "/settings/tools", title: "工具管理" },
+  "llm-settings": {
+    path: "/settings",
+    title: "LLM配置",
+    query: { tab: "llm" },
+  },
+  "rag-settings": {
+    path: "/settings",
+    title: "RAG配置",
+    query: { tab: "rag" },
+  },
+  "git-settings": {
+    path: "/settings",
+    title: "Git同步",
+    query: { tab: "git" },
+  },
+  "sync-conflicts": { path: "/sync/conflicts", title: "同步冲突管理" },
+  "ukey-settings": {
+    path: "/settings",
+    title: "UKey安全",
+    query: { tab: "ukey" },
+  },
+  "database-performance": {
+    path: "/database/performance",
+    title: "数据库性能监控",
+  },
 };
 
 // 监听路由变化，更新选中的菜单项
@@ -841,15 +999,20 @@ watch(
 
     if (menuKey) {
       selectedMenuKeys.value = [menuKey];
-    } else if (newPath.startsWith('/projects/') && newPath !== '/projects/new' &&
-               newPath !== '/projects/market' &&
-               newPath !== '/projects/collaboration' && newPath !== '/projects/archived' &&
-               newPath !== '/projects/management' && newPath !== '/projects/categories') {
+    } else if (
+      newPath.startsWith("/projects/") &&
+      newPath !== "/projects/new" &&
+      newPath !== "/projects/market" &&
+      newPath !== "/projects/collaboration" &&
+      newPath !== "/projects/archived" &&
+      newPath !== "/projects/management" &&
+      newPath !== "/projects/categories"
+    ) {
       // 项目详情页，选中"我的项目"菜单
-      selectedMenuKeys.value = ['projects'];
+      selectedMenuKeys.value = ["projects"];
     }
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 const toggleSidebar = () => {
@@ -863,7 +1026,7 @@ const toggleChat = () => {
 // 通知中心面板
 const notificationPanelVisible = computed({
   get: () => socialStore.notificationPanelVisible,
-  set: (val) => socialStore.toggleNotificationPanel(val)
+  set: (val) => socialStore.toggleNotificationPanel(val),
 });
 
 const toggleNotificationPanel = () => {
@@ -880,7 +1043,7 @@ const handleMenuClick = ({ key }) => {
     title: config.title,
     path: config.path,
     icon: getMenuIcon(key),
-    query: config.query
+    query: config.query,
   });
 
   // 添加标签页
@@ -912,7 +1075,7 @@ const handleTabChange = (activeKey) => {
 };
 
 const handleTabEdit = (targetKey, action) => {
-  if (action === 'remove') {
+  if (action === "remove") {
     store.removeTab(targetKey);
 
     // 路由跳转到当前激活的标签页
@@ -924,38 +1087,40 @@ const handleTabEdit = (targetKey, action) => {
 };
 
 const handleTabDropdown = ({ key }) => {
-  if (key === 'close-others') {
+  if (key === "close-others") {
     store.closeOtherTabs(store.activeTabKey);
-  } else if (key === 'close-all') {
+  } else if (key === "close-all") {
     store.closeAllTabs();
-    router.push('/');
+    router.push("/");
   }
 };
 
 const handleLogout = () => {
   store.logout();
-  router.push('/login');
-  message.success('已退出登录');
+  router.push("/login");
+  message.success("已退出登录");
 };
 
 // 返回首页
 const handleBackToHome = () => {
-  router.push('/');
+  router.push("/");
 };
 
 // ==================== 语音输入处理 ====================
 
 // 处理语音识别结果
 const handleVoiceResult = (result) => {
-  console.log('[MainLayout] 语音识别结果:', result);
+  console.log("[MainLayout] 语音识别结果:", result);
 
   // 如果聊天面板打开,将文本发送到聊天
   if (chatPanelVisible.value) {
     // 触发聊天面板的输入事件
-    window.dispatchEvent(new CustomEvent('voice-input', {
-      detail: { text: result.text }
-    }));
-    message.success('语音已转换为文本');
+    window.dispatchEvent(
+      new CustomEvent("voice-input", {
+        detail: { text: result.text },
+      }),
+    );
+    message.success("语音已转换为文本");
   } else {
     // 否则显示提示
     message.info(`识别结果: ${result.text}`);
@@ -964,25 +1129,25 @@ const handleVoiceResult = (result) => {
 
 // 处理语音识别错误
 const handleVoiceError = (error) => {
-  console.error('[MainLayout] 语音识别错误:', error);
-  message.error('语音识别失败: ' + error.message);
+  console.error("[MainLayout] 语音识别错误:", error);
+  message.error("语音识别失败: " + error.message);
 };
 
 // 处理语音命令
 const handleVoiceCommand = (command) => {
-  console.log('[MainLayout] 执行语音命令:', command);
+  console.log("[MainLayout] 执行语音命令:", command);
 
   // 根据命令类型执行相应操作
   switch (command.type) {
-    case 'navigate':
+    case "navigate":
       router.push(command.path);
       message.success(`已导航到: ${command.name}`);
       break;
-    case 'toggle-chat':
+    case "toggle-chat":
       toggleChat();
-      message.success('已切换聊天面板');
+      message.success("已切换聊天面板");
       break;
-    case 'search':
+    case "search":
       // 触发搜索
       message.info(`搜索: ${command.query}`);
       break;
@@ -994,14 +1159,15 @@ const handleVoiceCommand = (command) => {
 // ==================== 同步状态管理 ====================
 
 const isSyncing = ref(false);
-const syncStatus = ref('synced'); // synced, error, pending
+const syncStatus = ref("synced"); // synced, error, pending
 const syncError = ref(null);
 
 const syncTooltip = computed(() => {
-  if (isSyncing.value) return '正在同步...';
-  if (syncStatus.value === 'error') return '同步失败：' + (syncError.value || '未知错误');
-  if (syncStatus.value === 'synced') return '已同步';
-  return '等待同步';
+  if (isSyncing.value) return "正在同步...";
+  if (syncStatus.value === "error")
+    return "同步失败：" + (syncError.value || "未知错误");
+  if (syncStatus.value === "synced") return "已同步";
+  return "等待同步";
 });
 
 // ==================== 命令面板 ====================
@@ -1018,7 +1184,7 @@ const showCommandPalette = () => {
  */
 const handleKeyboardShortcut = (event) => {
   // Ctrl+K 或 Cmd+K 打开命令面板
-  if ((event.ctrlKey || event.metaKey) && event.key === 'k') {
+  if ((event.ctrlKey || event.metaKey) && event.key === "k") {
     event.preventDefault();
     showCommandPalette();
   }
@@ -1031,46 +1197,46 @@ const handleKeyboardShortcut = (event) => {
  */
 const getIconComponent = (iconName) => {
   const iconMap = {
-    'AppstoreOutlined': AppstoreOutlined,
-    'FolderOpenOutlined': FolderOpenOutlined,
-    'TableOutlined': TableOutlined,
-    'ApartmentOutlined': ApartmentOutlined,
-    'TagsOutlined': TagsOutlined,
-    'ShopOutlined': ShopOutlined,
-    'TeamOutlined': TeamOutlined,
-    'InboxOutlined': InboxOutlined,
-    'HomeOutlined': HomeOutlined,
-    'FileTextOutlined': FileTextOutlined,
-    'NodeIndexOutlined': NodeIndexOutlined,
-    'CloudUploadOutlined': CloudUploadOutlined,
-    'FileImageOutlined': FileImageOutlined,
-    'SoundOutlined': SoundOutlined,
-    'VideoCameraOutlined': VideoCameraOutlined,
-    'RobotOutlined': RobotOutlined,
-    'ShoppingCartOutlined': ShoppingCartOutlined,
-    'IdcardOutlined': IdcardOutlined,
-    'SafetyCertificateOutlined': SafetyCertificateOutlined,
-    'UserOutlined': UserOutlined,
-    'CommentOutlined': CommentOutlined,
-    'MessageOutlined': MessageOutlined,
-    'DashboardOutlined': DashboardOutlined,
-    'AuditOutlined': AuditOutlined,
-    'StarOutlined': StarOutlined,
-    'WalletOutlined': WalletOutlined,
-    'SwapOutlined': SwapOutlined,
-    'CodeOutlined': CodeOutlined,
-    'BgColorsOutlined': BgColorsOutlined,
-    'RssOutlined': RssOutlined,
-    'MailOutlined': MailOutlined,
-    'BankOutlined': BankOutlined,
-    'SettingOutlined': SettingOutlined,
-    'ThunderboltOutlined': ThunderboltOutlined,
-    'ToolOutlined': ToolOutlined,
-    'ApiOutlined': ApiOutlined,
-    'DatabaseOutlined': DatabaseOutlined,
-    'SyncOutlined': SyncOutlined,
-    'ExclamationCircleOutlined': ExclamationCircleOutlined,
-    'SafetyOutlined': SafetyOutlined,
+    AppstoreOutlined: AppstoreOutlined,
+    FolderOpenOutlined: FolderOpenOutlined,
+    TableOutlined: TableOutlined,
+    ApartmentOutlined: ApartmentOutlined,
+    TagsOutlined: TagsOutlined,
+    ShopOutlined: ShopOutlined,
+    TeamOutlined: TeamOutlined,
+    InboxOutlined: InboxOutlined,
+    HomeOutlined: HomeOutlined,
+    FileTextOutlined: FileTextOutlined,
+    NodeIndexOutlined: NodeIndexOutlined,
+    CloudUploadOutlined: CloudUploadOutlined,
+    FileImageOutlined: FileImageOutlined,
+    SoundOutlined: SoundOutlined,
+    VideoCameraOutlined: VideoCameraOutlined,
+    RobotOutlined: RobotOutlined,
+    ShoppingCartOutlined: ShoppingCartOutlined,
+    IdcardOutlined: IdcardOutlined,
+    SafetyCertificateOutlined: SafetyCertificateOutlined,
+    UserOutlined: UserOutlined,
+    CommentOutlined: CommentOutlined,
+    MessageOutlined: MessageOutlined,
+    DashboardOutlined: DashboardOutlined,
+    AuditOutlined: AuditOutlined,
+    StarOutlined: StarOutlined,
+    WalletOutlined: WalletOutlined,
+    SwapOutlined: SwapOutlined,
+    CodeOutlined: CodeOutlined,
+    BgColorsOutlined: BgColorsOutlined,
+    ReadOutlined: ReadOutlined,
+    MailOutlined: MailOutlined,
+    BankOutlined: BankOutlined,
+    SettingOutlined: SettingOutlined,
+    ThunderboltOutlined: ThunderboltOutlined,
+    ToolOutlined: ToolOutlined,
+    ApiOutlined: ApiOutlined,
+    DatabaseOutlined: DatabaseOutlined,
+    SyncOutlined: SyncOutlined,
+    ExclamationCircleOutlined: ExclamationCircleOutlined,
+    SafetyOutlined: SafetyOutlined,
   };
   return iconMap[iconName] || FileTextOutlined;
 };
@@ -1080,59 +1246,59 @@ const getIconComponent = (iconName) => {
  */
 const getMenuIcon = (key) => {
   const iconMap = {
-    'project-categories': 'AppstoreOutlined',
-    'projects': 'FolderOpenOutlined',
-    'project-list-management': 'TableOutlined',
-    'workspace-management': 'ApartmentOutlined',
-    'template-management': 'TagsOutlined',
-    'project-market': 'ShopOutlined',
-    'project-collaboration': 'TeamOutlined',
-    'project-archived': 'InboxOutlined',
-    'home': 'HomeOutlined',
-    'knowledge-list': 'FileTextOutlined',
-    'knowledge-graph': 'NodeIndexOutlined',
-    'file-import': 'CloudUploadOutlined',
-    'image-upload': 'FileImageOutlined',
-    'audio-import': 'SoundOutlined',
-    'multimedia-demo': 'VideoCameraOutlined',
-    'prompt-templates': 'TagsOutlined',
-    'ai-chat': 'RobotOutlined',
-    'knowledge-store': 'ShopOutlined',
-    'my-purchases': 'ShoppingCartOutlined',
-    'did': 'IdcardOutlined',
-    'credentials': 'SafetyCertificateOutlined',
-    'contacts': 'TeamOutlined',
-    'friends': 'UserOutlined',
-    'posts': 'CommentOutlined',
-    'p2p-messaging': 'MessageOutlined',
-    'trading': 'DashboardOutlined',
-    'marketplace': 'ShopOutlined',
-    'contracts': 'AuditOutlined',
-    'credit-score': 'StarOutlined',
-    'wallet': 'WalletOutlined',
-    'bridge': 'SwapOutlined',
-    'webide': 'CodeOutlined',
-    'design-editor': 'BgColorsOutlined',
-    'rss-feeds': 'RssOutlined',
-    'email-accounts': 'MailOutlined',
-    'organizations': 'ApartmentOutlined',
-    'enterprise-dashboard': 'DashboardOutlined',
-    'permission-management': 'SafetyCertificateOutlined',
-    'system-settings': 'SettingOutlined',
-    'settings': 'SettingOutlined',
-    'plugin-management': 'AppstoreOutlined',
-    'plugin-marketplace': 'ShopOutlined',
-    'plugin-publisher': 'CloudUploadOutlined',
-    'skill-management': 'ThunderboltOutlined',
-    'tool-management': 'ToolOutlined',
-    'llm-settings': 'ApiOutlined',
-    'rag-settings': 'DatabaseOutlined',
-    'git-settings': 'SyncOutlined',
-    'sync-conflicts': 'ExclamationCircleOutlined',
-    'ukey-settings': 'SafetyOutlined',
-    'database-performance': 'DashboardOutlined',
+    "project-categories": "AppstoreOutlined",
+    projects: "FolderOpenOutlined",
+    "project-list-management": "TableOutlined",
+    "workspace-management": "ApartmentOutlined",
+    "template-management": "TagsOutlined",
+    "project-market": "ShopOutlined",
+    "project-collaboration": "TeamOutlined",
+    "project-archived": "InboxOutlined",
+    home: "HomeOutlined",
+    "knowledge-list": "FileTextOutlined",
+    "knowledge-graph": "NodeIndexOutlined",
+    "file-import": "CloudUploadOutlined",
+    "image-upload": "FileImageOutlined",
+    "audio-import": "SoundOutlined",
+    "multimedia-demo": "VideoCameraOutlined",
+    "prompt-templates": "TagsOutlined",
+    "ai-chat": "RobotOutlined",
+    "knowledge-store": "ShopOutlined",
+    "my-purchases": "ShoppingCartOutlined",
+    did: "IdcardOutlined",
+    credentials: "SafetyCertificateOutlined",
+    contacts: "TeamOutlined",
+    friends: "UserOutlined",
+    posts: "CommentOutlined",
+    "p2p-messaging": "MessageOutlined",
+    trading: "DashboardOutlined",
+    marketplace: "ShopOutlined",
+    contracts: "AuditOutlined",
+    "credit-score": "StarOutlined",
+    wallet: "WalletOutlined",
+    bridge: "SwapOutlined",
+    webide: "CodeOutlined",
+    "design-editor": "BgColorsOutlined",
+    "rss-feeds": "ReadOutlined",
+    "email-accounts": "MailOutlined",
+    organizations: "ApartmentOutlined",
+    "enterprise-dashboard": "DashboardOutlined",
+    "permission-management": "SafetyCertificateOutlined",
+    "system-settings": "SettingOutlined",
+    settings: "SettingOutlined",
+    "plugin-management": "AppstoreOutlined",
+    "plugin-marketplace": "ShopOutlined",
+    "plugin-publisher": "CloudUploadOutlined",
+    "skill-management": "ThunderboltOutlined",
+    "tool-management": "ToolOutlined",
+    "llm-settings": "ApiOutlined",
+    "rag-settings": "DatabaseOutlined",
+    "git-settings": "SyncOutlined",
+    "sync-conflicts": "ExclamationCircleOutlined",
+    "ukey-settings": "SafetyOutlined",
+    "database-performance": "DashboardOutlined",
   };
-  return iconMap[key] || 'FileTextOutlined';
+  return iconMap[key] || "FileTextOutlined";
 };
 
 /**
@@ -1166,7 +1332,7 @@ const formatTime = (timestamp) => {
   const now = Date.now();
   const diff = now - timestamp;
 
-  if (diff < 60000) return '刚刚';
+  if (diff < 60000) return "刚刚";
   if (diff < 3600000) return `${Math.floor(diff / 60000)} 分钟前`;
   if (diff < 86400000) return `${Math.floor(diff / 3600000)} 小时前`;
   if (diff < 604800000) return `${Math.floor(diff / 86400000)} 天前`;
@@ -1190,12 +1356,12 @@ const showContextMenu = (event, key) => {
     title: config.title,
     path: config.path,
     icon: getMenuIcon(key),
-    query: config.query
+    query: config.query,
   };
 
   contextMenuPosition.value = {
     x: event.clientX,
-    y: event.clientY
+    y: event.clientY,
   };
 
   contextMenuVisible.value = true;
@@ -1212,8 +1378,8 @@ const toggleFavorite = () => {
 
   message.success(
     store.isFavoriteMenu(currentMenuItem.value.key)
-      ? '已添加到收藏'
-      : '已取消收藏'
+      ? "已添加到收藏"
+      : "已取消收藏",
   );
 };
 
@@ -1225,10 +1391,10 @@ const pinToTop = () => {
 
   if (store.isPinnedMenu(currentMenuItem.value.key)) {
     store.unpinMenu(currentMenuItem.value.key);
-    message.success('已取消置顶');
+    message.success("已取消置顶");
   } else {
     store.pinMenu(currentMenuItem.value.key);
-    message.success('已置顶');
+    message.success("已置顶");
   }
 
   contextMenuVisible.value = false;
@@ -1244,100 +1410,133 @@ const breadcrumbs = computed(() => {
   const path = route.path;
 
   // 首页
-  if (path === '/') {
-    items.push({ title: '首页', path: '/', icon: 'HomeOutlined' });
+  if (path === "/") {
+    items.push({ title: "首页", path: "/", icon: "HomeOutlined" });
     return items;
   }
 
   // 根据路由生成面包屑
-  items.push({ title: '首页', path: '/', icon: 'HomeOutlined' });
+  items.push({ title: "首页", path: "/", icon: "HomeOutlined" });
 
   // 项目管理模块
-  if (path.startsWith('/projects')) {
-    items.push({ title: '项目管理', path: '/projects', icon: 'FolderOutlined' });
+  if (path.startsWith("/projects")) {
+    items.push({
+      title: "项目管理",
+      path: "/projects",
+      icon: "FolderOutlined",
+    });
 
-    if (path === '/projects/categories') {
-      items.push({ title: '项目分类', path: null });
-    } else if (path === '/projects/management') {
-      items.push({ title: '项目列表管理', path: null });
-    } else if (path === '/projects/workspace') {
-      items.push({ title: '工作区管理', path: null });
+    if (path === "/projects/categories") {
+      items.push({ title: "项目分类", path: null });
+    } else if (path === "/projects/management") {
+      items.push({ title: "项目列表管理", path: null });
+    } else if (path === "/projects/workspace") {
+      items.push({ title: "工作区管理", path: null });
     } else if (path.match(/^\/projects\/\d+/)) {
-      items.push({ title: '项目详情', path: null });
+      items.push({ title: "项目详情", path: null });
     }
   }
   // 知识与AI模块
-  else if (path.startsWith('/knowledge')) {
-    items.push({ title: '知识与AI', path: '/knowledge/list', icon: 'FileTextOutlined' });
+  else if (path.startsWith("/knowledge")) {
+    items.push({
+      title: "知识与AI",
+      path: "/knowledge/list",
+      icon: "FileTextOutlined",
+    });
 
-    if (path === '/knowledge/graph') {
-      items.push({ title: '知识图谱', path: null });
+    if (path === "/knowledge/graph") {
+      items.push({ title: "知识图谱", path: null });
     }
   }
   // AI对话
-  else if (path === '/ai/chat') {
-    items.push({ title: 'AI对话', path: null, icon: 'RobotOutlined' });
+  else if (path === "/ai/chat") {
+    items.push({ title: "AI对话", path: null, icon: "RobotOutlined" });
   }
   // 身份与社交模块
-  else if (path.startsWith('/did') || path.startsWith('/credentials') ||
-           path.startsWith('/contacts') || path.startsWith('/friends') ||
-           path.startsWith('/posts') || path.startsWith('/p2p-messaging')) {
-    items.push({ title: '身份与社交', path: '/did', icon: 'TeamOutlined' });
+  else if (
+    path.startsWith("/did") ||
+    path.startsWith("/credentials") ||
+    path.startsWith("/contacts") ||
+    path.startsWith("/friends") ||
+    path.startsWith("/posts") ||
+    path.startsWith("/p2p-messaging")
+  ) {
+    items.push({ title: "身份与社交", path: "/did", icon: "TeamOutlined" });
 
-    if (path === '/credentials') {
-      items.push({ title: '可验证凭证', path: null });
-    } else if (path === '/contacts') {
-      items.push({ title: '联系人', path: null });
-    } else if (path === '/friends') {
-      items.push({ title: '好友管理', path: null });
-    } else if (path === '/posts') {
-      items.push({ title: '动态广场', path: null });
-    } else if (path === '/p2p-messaging') {
-      items.push({ title: 'P2P加密消息', path: null });
+    if (path === "/credentials") {
+      items.push({ title: "可验证凭证", path: null });
+    } else if (path === "/contacts") {
+      items.push({ title: "联系人", path: null });
+    } else if (path === "/friends") {
+      items.push({ title: "好友管理", path: null });
+    } else if (path === "/posts") {
+      items.push({ title: "动态广场", path: null });
+    } else if (path === "/p2p-messaging") {
+      items.push({ title: "P2P加密消息", path: null });
     }
   }
   // 交易系统模块
-  else if (path.startsWith('/trading') || path.startsWith('/marketplace') ||
-           path.startsWith('/contracts') || path.startsWith('/wallet')) {
-    items.push({ title: '交易系统', path: '/trading', icon: 'ShopOutlined' });
+  else if (
+    path.startsWith("/trading") ||
+    path.startsWith("/marketplace") ||
+    path.startsWith("/contracts") ||
+    path.startsWith("/wallet")
+  ) {
+    items.push({ title: "交易系统", path: "/trading", icon: "ShopOutlined" });
 
-    if (path === '/marketplace') {
-      items.push({ title: '交易市场', path: null });
-    } else if (path === '/contracts') {
-      items.push({ title: '智能合约', path: null });
-    } else if (path === '/wallet') {
-      items.push({ title: '钱包管理', path: null });
+    if (path === "/marketplace") {
+      items.push({ title: "交易市场", path: null });
+    } else if (path === "/contracts") {
+      items.push({ title: "智能合约", path: null });
+    } else if (path === "/wallet") {
+      items.push({ title: "钱包管理", path: null });
     }
   }
   // 开发工具模块
-  else if (path === '/webide') {
-    items.push({ title: 'Web IDE', path: null, icon: 'CodeOutlined' });
+  else if (path === "/webide") {
+    items.push({ title: "Web IDE", path: null, icon: "CodeOutlined" });
   }
   // 企业版模块
-  else if (path.startsWith('/organizations') || path.startsWith('/enterprise') || path.startsWith('/permissions')) {
-    items.push({ title: '企业版', path: '/organizations', icon: 'BankOutlined' });
+  else if (
+    path.startsWith("/organizations") ||
+    path.startsWith("/enterprise") ||
+    path.startsWith("/permissions")
+  ) {
+    items.push({
+      title: "企业版",
+      path: "/organizations",
+      icon: "BankOutlined",
+    });
 
-    if (path === '/enterprise/dashboard') {
-      items.push({ title: '企业仪表板', path: null });
-    } else if (path === '/permissions') {
-      items.push({ title: '权限管理', path: null });
+    if (path === "/enterprise/dashboard") {
+      items.push({ title: "企业仪表板", path: null });
+    } else if (path === "/permissions") {
+      items.push({ title: "权限管理", path: null });
     }
   }
   // 系统设置模块
-  else if (path.startsWith('/settings') || path.startsWith('/plugins') ||
-           path.startsWith('/sync') || path.startsWith('/database')) {
-    items.push({ title: '系统设置', path: '/settings', icon: 'SettingOutlined' });
+  else if (
+    path.startsWith("/settings") ||
+    path.startsWith("/plugins") ||
+    path.startsWith("/sync") ||
+    path.startsWith("/database")
+  ) {
+    items.push({
+      title: "系统设置",
+      path: "/settings",
+      icon: "SettingOutlined",
+    });
 
-    if (path === '/settings/system') {
-      items.push({ title: '系统配置', path: null });
-    } else if (path === '/settings/plugins') {
-      items.push({ title: '插件管理', path: null });
-    } else if (path === '/plugins/marketplace') {
-      items.push({ title: '插件市场', path: null });
-    } else if (path === '/sync/conflicts') {
-      items.push({ title: '同步冲突管理', path: null });
-    } else if (path === '/database/performance') {
-      items.push({ title: '数据库性能监控', path: null });
+    if (path === "/settings/system") {
+      items.push({ title: "系统配置", path: null });
+    } else if (path === "/settings/plugins") {
+      items.push({ title: "插件管理", path: null });
+    } else if (path === "/plugins/marketplace") {
+      items.push({ title: "插件市场", path: null });
+    } else if (path === "/sync/conflicts") {
+      items.push({ title: "同步冲突管理", path: null });
+    } else if (path === "/database/performance") {
+      items.push({ title: "数据库性能监控", path: null });
     }
   }
 
@@ -1366,39 +1565,39 @@ onMounted(async () => {
     await Promise.all([
       socialStore.loadNotifications(),
       socialStore.loadChatSessions(),
-      socialStore.loadFriends()
+      socialStore.loadFriends(),
     ]);
   } catch (error) {
-    console.error('加载社交数据失败:', error);
+    console.error("加载社交数据失败:", error);
   }
 
   // 添加快捷键监听
-  window.addEventListener('keydown', handleKeyboardShortcut);
+  window.addEventListener("keydown", handleKeyboardShortcut);
 
   if (window.electronAPI && window.electronAPI.sync) {
     window.electronAPI.sync.onSyncStarted(() => {
       isSyncing.value = true;
-      syncStatus.value = 'pending';
+      syncStatus.value = "pending";
       syncError.value = null;
     });
 
     window.electronAPI.sync.onSyncCompleted(() => {
       isSyncing.value = false;
-      syncStatus.value = 'synced';
+      syncStatus.value = "synced";
       syncError.value = null;
     });
 
     window.electronAPI.sync.onSyncError((data) => {
       isSyncing.value = false;
-      syncStatus.value = 'error';
-      syncError.value = data.error || '同步失败';
+      syncStatus.value = "error";
+      syncError.value = data.error || "同步失败";
     });
   }
 });
 
 onUnmounted(() => {
   // 移除快捷键监听
-  window.removeEventListener('keydown', handleKeyboardShortcut);
+  window.removeEventListener("keydown", handleKeyboardShortcut);
 });
 
 // 手动触发同步
@@ -1407,17 +1606,17 @@ const handleSyncClick = async () => {
 
   try {
     isSyncing.value = true;
-    syncStatus.value = 'pending';
+    syncStatus.value = "pending";
 
     await window.electronAPI.sync.incremental();
 
-    syncStatus.value = 'synced';
-    message.success('同步完成');
+    syncStatus.value = "synced";
+    message.success("同步完成");
   } catch (error) {
-    console.error('[MainLayout] 手动同步失败:', error);
-    syncStatus.value = 'error';
+    console.error("[MainLayout] 手动同步失败:", error);
+    syncStatus.value = "error";
     syncError.value = error.message;
-    message.error('同步失败：' + error.message);
+    message.error("同步失败：" + error.message);
   } finally {
     isSyncing.value = false;
   }
@@ -1433,7 +1632,9 @@ const handleSyncClick = async () => {
 .layout-sider {
   background: linear-gradient(180deg, #001529 0%, #002140 100%);
   box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
-  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
+  transition:
+    width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.3s ease;
 }
 
 .layout-sider:not(.ant-layout-sider-collapsed) {
@@ -1553,8 +1754,13 @@ const handleSyncClick = async () => {
 
 /* 菜单项发光动画 */
 @keyframes menu-item-glow {
-  0%, 100% { box-shadow: 0 0 0 rgba(102, 126, 234, 0); }
-  50% { box-shadow: 0 0 12px rgba(102, 126, 234, 0.3); }
+  0%,
+  100% {
+    box-shadow: 0 0 0 rgba(102, 126, 234, 0);
+  }
+  50% {
+    box-shadow: 0 0 12px rgba(102, 126, 234, 0.3);
+  }
 }
 
 /* 子菜单展开动画 */
@@ -1577,8 +1783,15 @@ const handleSyncClick = async () => {
 
 /* Badge脉冲动画 */
 @keyframes badge-pulse {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.1); opacity: 0.8; }
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
 }
 
 .main-menu :deep(.ant-badge) {
@@ -1605,7 +1818,7 @@ const handleSyncClick = async () => {
   float: right;
   font-size: 11px;
   color: rgba(255, 255, 255, 0.45);
-  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-family: "Consolas", "Monaco", "Courier New", monospace;
   margin-left: 8px;
   padding: 2px 6px;
   background: rgba(255, 255, 255, 0.05);

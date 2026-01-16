@@ -1,11 +1,12 @@
 <template>
   <a-modal
-    v-model:open="visible"
+    :open="visible"
     title="撰写邮件"
     width="800px"
     :confirm-loading="sending"
     @ok="sendEmail"
     @cancel="handleCancel"
+    @update:open="emit('update:visible', $event)"
   >
     <a-form :model="emailForm" layout="vertical">
       <a-form-item label="收件人" required>
@@ -45,10 +46,7 @@
       </a-row>
 
       <a-form-item label="主题" required>
-        <a-input
-          v-model:value="emailForm.subject"
-          placeholder="邮件主题"
-        />
+        <a-input v-model:value="emailForm.subject" placeholder="邮件主题" />
       </a-form-item>
 
       <a-form-item label="内容" required>
@@ -99,11 +97,12 @@
           :remove="removeFile"
           multiple
         >
-          <a-button>
-            <PaperClipOutlined /> 选择文件
-          </a-button>
+          <a-button> <PaperClipOutlined /> 选择文件 </a-button>
         </a-upload>
-        <div v-if="totalSize > 0" style="margin-top: 8px; font-size: 12px; color: #999">
+        <div
+          v-if="totalSize > 0"
+          style="margin-top: 8px; font-size: 12px; color: #999"
+        >
           总大小: {{ formatSize(totalSize) }}
           <span v-if="totalSize > 25 * 1024 * 1024" style="color: #ff4d4f">
             (建议不超过 25MB)
@@ -136,9 +135,7 @@
 
     <template #footer>
       <a-space>
-        <a-button @click="saveDraft">
-          <SaveOutlined /> 保存草稿
-        </a-button>
+        <a-button @click="saveDraft"> <SaveOutlined /> 保存草稿 </a-button>
         <a-button @click="handleCancel">取消</a-button>
         <a-button type="primary" @click="sendEmail" :loading="sending">
           <SendOutlined /> 发送
@@ -149,8 +146,8 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, watch } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, reactive, computed, watch } from "vue";
+import { message } from "ant-design-vue";
 import {
   MailOutlined,
   PaperClipOutlined,
@@ -161,7 +158,7 @@ import {
   UnderlineOutlined,
   LinkOutlined,
   PictureOutlined,
-} from '@ant-design/icons-vue';
+} from "@ant-design/icons-vue";
 
 const props = defineProps({
   visible: {
@@ -182,20 +179,20 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['update:visible', 'sent']);
+const emit = defineEmits(["update:visible", "sent"]);
 
 // 状态
 const sending = ref(false);
-const contentType = ref('text');
+const contentType = ref("text");
 const fileList = ref([]);
 
 const emailForm = reactive({
   to: [],
   cc: [],
   bcc: [],
-  subject: '',
-  text: '',
-  html: '',
+  subject: "",
+  text: "",
+  html: "",
 });
 
 // 计算属性
@@ -223,28 +220,28 @@ const removeFile = (file) => {
 
 const insertFormat = (format) => {
   // 简单的格式插入
-  const textarea = document.querySelector('.html-editor textarea');
+  const textarea = document.querySelector(".html-editor textarea");
   if (!textarea) return;
 
   const start = textarea.selectionStart;
   const end = textarea.selectionEnd;
   const selectedText = emailForm.html.substring(start, end);
 
-  let insertText = '';
+  let insertText = "";
   switch (format) {
-    case 'bold':
-      insertText = `<strong>${selectedText || '粗体文本'}</strong>`;
+    case "bold":
+      insertText = `<strong>${selectedText || "粗体文本"}</strong>`;
       break;
-    case 'italic':
-      insertText = `<em>${selectedText || '斜体文本'}</em>`;
+    case "italic":
+      insertText = `<em>${selectedText || "斜体文本"}</em>`;
       break;
-    case 'underline':
-      insertText = `<u>${selectedText || '下划线文本'}</u>`;
+    case "underline":
+      insertText = `<u>${selectedText || "下划线文本"}</u>`;
       break;
-    case 'link':
-      insertText = `<a href="https://example.com">${selectedText || '链接文本'}</a>`;
+    case "link":
+      insertText = `<a href="https://example.com">${selectedText || "链接文本"}</a>`;
       break;
-    case 'image':
+    case "image":
       insertText = `<img src="https://example.com/image.jpg" alt="图片">`;
       break;
   }
@@ -258,17 +255,17 @@ const insertFormat = (format) => {
 const sendEmail = async () => {
   // 验证
   if (emailForm.to.length === 0) {
-    message.error('请输入收件人');
+    message.error("请输入收件人");
     return;
   }
 
   if (!emailForm.subject) {
-    message.error('请输入邮件主题');
+    message.error("请输入邮件主题");
     return;
   }
 
   if (!emailForm.text && !emailForm.html) {
-    message.error('请输入邮件内容');
+    message.error("请输入邮件内容");
     return;
   }
 
@@ -283,34 +280,34 @@ const sendEmail = async () => {
           path: file.path || file.originFileObj?.path,
           content: file.originFileObj,
         };
-      })
+      }),
     );
 
     // 发送邮件
     const result = await window.electron.ipcRenderer.invoke(
-      'email:send-email',
+      "email:send-email",
       props.accountId,
       {
-        to: emailForm.to.join(', '),
-        cc: emailForm.cc.length > 0 ? emailForm.cc.join(', ') : undefined,
-        bcc: emailForm.bcc.length > 0 ? emailForm.bcc.join(', ') : undefined,
+        to: emailForm.to.join(", "),
+        cc: emailForm.cc.length > 0 ? emailForm.cc.join(", ") : undefined,
+        bcc: emailForm.bcc.length > 0 ? emailForm.bcc.join(", ") : undefined,
         subject: emailForm.subject,
-        text: contentType.value === 'text' ? emailForm.text : undefined,
-        html: contentType.value === 'html' ? emailForm.html : undefined,
+        text: contentType.value === "text" ? emailForm.text : undefined,
+        html: contentType.value === "html" ? emailForm.html : undefined,
         attachments: attachments.length > 0 ? attachments : undefined,
         inReplyTo: props.replyTo?.message_id,
         references: props.replyTo?.message_id,
-      }
+      },
     );
 
     if (result.success) {
-      message.success('邮件发送成功');
-      emit('sent');
+      message.success("邮件发送成功");
+      emit("sent");
       resetForm();
-      emit('update:visible', false);
+      emit("update:visible", false);
     }
   } catch (error) {
-    message.error('发送失败: ' + error.message);
+    message.error("发送失败: " + error.message);
   } finally {
     sending.value = false;
   }
@@ -318,61 +315,64 @@ const sendEmail = async () => {
 
 const saveDraft = () => {
   // TODO: 实现保存草稿功能
-  message.info('草稿保存功能开发中');
+  message.info("草稿保存功能开发中");
 };
 
 const handleCancel = () => {
-  emit('update:visible', false);
+  emit("update:visible", false);
 };
 
 const resetForm = () => {
   emailForm.to = [];
   emailForm.cc = [];
   emailForm.bcc = [];
-  emailForm.subject = '';
-  emailForm.text = '';
-  emailForm.html = '';
+  emailForm.subject = "";
+  emailForm.text = "";
+  emailForm.html = "";
   fileList.value = [];
-  contentType.value = 'text';
+  contentType.value = "text";
 };
 
 const clearReply = () => {
-  emit('update:replyTo', null);
+  emit("update:replyTo", null);
 };
 
 const clearForward = () => {
-  emit('update:forward', null);
+  emit("update:forward", null);
 };
 
 const formatSize = (bytes) => {
-  if (bytes < 1024) return bytes + ' B';
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
-  return (bytes / 1024 / 1024).toFixed(2) + ' MB';
+  if (bytes < 1024) return bytes + " B";
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + " KB";
+  return (bytes / 1024 / 1024).toFixed(2) + " MB";
 };
 
 // 监听 props 变化
-watch(() => props.visible, (newVal) => {
-  if (newVal) {
-    // 如果是回复邮件
-    if (props.replyTo) {
-      emailForm.to = [props.replyTo.from_address];
-      emailForm.subject = props.replyTo.subject.startsWith('Re:')
-        ? props.replyTo.subject
-        : `Re: ${props.replyTo.subject}`;
-      emailForm.text = `\n\n--- 原始邮件 ---\n发件人: ${props.replyTo.from_address}\n日期: ${props.replyTo.date}\n主题: ${props.replyTo.subject}\n\n${props.replyTo.text_content}`;
-    }
+watch(
+  () => props.visible,
+  (newVal) => {
+    if (newVal) {
+      // 如果是回复邮件
+      if (props.replyTo) {
+        emailForm.to = [props.replyTo.from_address];
+        emailForm.subject = props.replyTo.subject.startsWith("Re:")
+          ? props.replyTo.subject
+          : `Re: ${props.replyTo.subject}`;
+        emailForm.text = `\n\n--- 原始邮件 ---\n发件人: ${props.replyTo.from_address}\n日期: ${props.replyTo.date}\n主题: ${props.replyTo.subject}\n\n${props.replyTo.text_content}`;
+      }
 
-    // 如果是转发邮件
-    if (props.forward) {
-      emailForm.subject = props.forward.subject.startsWith('Fwd:')
-        ? props.forward.subject
-        : `Fwd: ${props.forward.subject}`;
-      emailForm.text = `\n\n--- 转发邮件 ---\n发件人: ${props.forward.from_address}\n日期: ${props.forward.date}\n主题: ${props.forward.subject}\n\n${props.forward.text_content}`;
+      // 如果是转发邮件
+      if (props.forward) {
+        emailForm.subject = props.forward.subject.startsWith("Fwd:")
+          ? props.forward.subject
+          : `Fwd: ${props.forward.subject}`;
+        emailForm.text = `\n\n--- 转发邮件 ---\n发件人: ${props.forward.from_address}\n日期: ${props.forward.date}\n主题: ${props.forward.subject}\n\n${props.forward.text_content}`;
+      }
+    } else {
+      resetForm();
     }
-  } else {
-    resetForm();
-  }
-});
+  },
+);
 </script>
 
 <style scoped>

@@ -34,7 +34,7 @@
 
     <a-divider style="margin: 12px 0" />
 
-    <a-row :gutter="8}>
+    <a-row :gutter="8">
       <a-col :span="12">
         <div class="metric-item">
           <ThunderboltOutlined class="metric-icon" style="color: #faad14" />
@@ -49,7 +49,9 @@
           <DollarOutlined class="metric-icon" style="color: #13c2c2" />
           <div class="metric-content">
             <div class="metric-label">平均成本/次</div>
-            <div class="metric-value">${{ stats.avgCostPerCall.toFixed(5) }}</div>
+            <div class="metric-value">
+              ${{ stats.avgCostPerCall.toFixed(5) }}
+            </div>
           </div>
         </div>
       </a-col>
@@ -87,14 +89,14 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed } from 'vue';
-import { useRouter } from 'vue-router';
-import dayjs from 'dayjs';
+import { ref, reactive, onMounted, computed } from "vue";
+import { useRouter } from "vue-router";
+import dayjs from "dayjs";
 import {
   RightOutlined,
   ThunderboltOutlined,
   DollarOutlined,
-} from '@ant-design/icons-vue';
+} from "@ant-design/icons-vue";
 
 const router = useRouter();
 const loading = ref(false);
@@ -109,7 +111,7 @@ const stats = reactive({
   weeklyLimit: 5.0,
 });
 
-const optimizationTip = ref('');
+const optimizationTip = ref("");
 
 // 计算属性
 const weeklyBudgetPercent = computed(() => {
@@ -119,28 +121,28 @@ const weeklyBudgetPercent = computed(() => {
 
 // 方法
 function getBudgetStatus(percent) {
-  if (percent >= 95) return 'exception';
-  if (percent >= 80) return 'normal';
-  return 'active';
+  if (percent >= 95) return "exception";
+  if (percent >= 80) return "normal";
+  return "active";
 }
 
 function getBudgetColor(percent) {
-  if (percent >= 95) return '#ff4d4f';
-  if (percent >= 80) return '#faad14';
-  return '#52c41a';
+  if (percent >= 95) return "#ff4d4f";
+  if (percent >= 80) return "#faad14";
+  return "#52c41a";
 }
 
 function handleViewDetails() {
   // 跳转到设置页面的 Token 使用 Tab
-  router.push('/settings?tab=token-usage');
+  router.push("/settings?tab=token-usage");
 }
 
 async function loadStats() {
   loading.value = true;
   try {
     const now = Date.now();
-    const todayStart = dayjs().startOf('day').valueOf();
-    const weekStart = dayjs().startOf('week').valueOf();
+    const todayStart = dayjs().startOf("day").valueOf();
+    const weekStart = dayjs().startOf("week").valueOf();
 
     // 获取今日统计
     const todayStats = await window.electronAPI.llm.getUsageStats({
@@ -171,7 +173,7 @@ async function loadStats() {
     // 生成优化建议
     generateOptimizationTip();
   } catch (error) {
-    console.error('加载 Token 统计失败:', error);
+    console.error("加载 Token 统计失败:", error);
   } finally {
     loading.value = false;
   }
@@ -179,13 +181,13 @@ async function loadStats() {
 
 function generateOptimizationTip() {
   if (stats.cacheHitRate < 10) {
-    optimizationTip.value = '缓存命中率较低，建议启用响应缓存功能';
+    optimizationTip.value = "缓存命中率较低，建议启用响应缓存功能";
   } else if (weeklyBudgetPercent.value > 80) {
-    optimizationTip.value = '本周预算已使用超过 80%，请注意控制成本';
+    optimizationTip.value = "本周预算已使用超过 80%，请注意控制成本";
   } else if (stats.avgCostPerCall > 0.01) {
-    optimizationTip.value = '平均成本较高，建议启用 Prompt 压缩功能';
+    optimizationTip.value = "平均成本较高，建议启用 Prompt 压缩功能";
   } else {
-    optimizationTip.value = '';
+    optimizationTip.value = "";
   }
 }
 

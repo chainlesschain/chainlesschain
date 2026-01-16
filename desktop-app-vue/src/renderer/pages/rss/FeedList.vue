@@ -48,10 +48,7 @@
                 收藏文章
               </a-menu-item>
               <a-menu-divider />
-              <a-menu-item
-                v-for="category in categories"
-                :key="category.id"
-              >
+              <a-menu-item v-for="category in categories" :key="category.id">
                 <template #icon>
                   <FolderOutlined :style="{ color: category.color }" />
                 </template>
@@ -82,11 +79,7 @@
                     </a-button>
                   </a-tooltip>
                   <a-tooltip title="编辑">
-                    <a-button
-                      type="text"
-                      size="small"
-                      @click="editFeed(item)"
-                    >
+                    <a-button type="text" size="small" @click="editFeed(item)">
                       <EditOutlined />
                     </a-button>
                   </a-tooltip>
@@ -103,10 +96,10 @@
                 <a-list-item-meta>
                   <template #avatar>
                     <a-avatar :src="item.image_url" v-if="item.image_url">
-                      <template #icon><RssOutlined /></template>
+                      <template #icon><ReadOutlined /></template>
                     </a-avatar>
                     <a-avatar v-else>
-                      <template #icon><RssOutlined /></template>
+                      <template #icon><ReadOutlined /></template>
                     </a-avatar>
                   </template>
 
@@ -134,7 +127,10 @@
                       <span v-if="item.last_fetched_at">
                         最后更新: {{ formatTime(item.last_fetched_at) }}
                       </span>
-                      <span v-if="item.error_message" style="color: #ff4d4f; margin-left: 8px">
+                      <span
+                        v-if="item.error_message"
+                        style="color: #ff4d4f; margin-left: 8px"
+                      >
                         {{ item.error_message }}
                       </span>
                     </div>
@@ -161,10 +157,16 @@
             placeholder="https://example.com/feed.xml"
             @blur="validateFeed"
           />
-          <div v-if="feedValidation.valid" style="color: #52c41a; margin-top: 4px">
+          <div
+            v-if="feedValidation.valid"
+            style="color: #52c41a; margin-top: 4px"
+          >
             ✓ {{ feedValidation.title }} ({{ feedValidation.itemCount }} 篇文章)
           </div>
-          <div v-else-if="feedValidation.error" style="color: #ff4d4f; margin-top: 4px">
+          <div
+            v-else-if="feedValidation.error"
+            style="color: #ff4d4f; margin-top: 4px"
+          >
             ✗ {{ feedValidation.error }}
           </div>
         </a-form-item>
@@ -262,9 +264,9 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
-import { message } from 'ant-design-vue';
+import { ref, reactive, computed, onMounted } from "vue";
+import { useRouter } from "vue-router";
+import { message } from "ant-design-vue";
 import {
   PlusOutlined,
   SearchOutlined,
@@ -275,14 +277,14 @@ import {
   BellOutlined,
   StarOutlined,
   FolderOutlined,
-  RssOutlined,
-} from '@ant-design/icons-vue';
-import dayjs from 'dayjs';
-import relativeTime from 'dayjs/plugin/relativeTime';
-import 'dayjs/locale/zh-cn';
+  ReadOutlined,
+} from "@ant-design/icons-vue";
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+import "dayjs/locale/zh-cn";
 
 dayjs.extend(relativeTime);
-dayjs.locale('zh-cn');
+dayjs.locale("zh-cn");
 
 const router = useRouter();
 
@@ -291,7 +293,7 @@ const loading = ref(false);
 const refreshing = ref(false);
 const feeds = ref([]);
 const categories = ref([]);
-const selectedCategories = ref(['all']);
+const selectedCategories = ref(["all"]);
 const unreadCount = ref(0);
 
 // 添加订阅
@@ -299,29 +301,29 @@ const addFeedModalVisible = ref(false);
 const addingFeed = ref(false);
 const editingFeedId = ref(null);
 const feedForm = reactive({
-  url: '',
+  url: "",
   category: null,
   updateFrequency: 3600,
   autoSync: true,
 });
 const feedValidation = reactive({
   valid: false,
-  title: '',
+  title: "",
   itemCount: 0,
-  error: '',
+  error: "",
 });
 
 // 发现订阅
 const discoverModalVisible = ref(false);
 const discovering = ref(false);
-const discoverUrl = ref('');
+const discoverUrl = ref("");
 const discoveredFeeds = ref([]);
 
 // 添加分类
 const addCategoryModalVisible = ref(false);
 const categoryForm = reactive({
-  name: '',
-  color: '#1890ff',
+  name: "",
+  color: "#1890ff",
 });
 
 // 计算属性
@@ -330,16 +332,16 @@ const totalFeeds = computed(() => feeds.value.length);
 const filteredFeeds = computed(() => {
   const selected = selectedCategories.value[0];
 
-  if (selected === 'all') {
+  if (selected === "all") {
     return feeds.value;
-  } else if (selected === 'unread') {
+  } else if (selected === "unread") {
     // 这里需要根据未读文章数过滤
     return feeds.value;
-  } else if (selected === 'starred') {
+  } else if (selected === "starred") {
     // 这里需要根据收藏文章过滤
     return feeds.value;
   } else {
-    return feeds.value.filter(feed => feed.category === selected);
+    return feeds.value.filter((feed) => feed.category === selected);
   }
 });
 
@@ -347,12 +349,12 @@ const filteredFeeds = computed(() => {
 const loadFeeds = async () => {
   loading.value = true;
   try {
-    const result = await window.electron.ipcRenderer.invoke('rss:get-feeds');
+    const result = await window.electron.ipcRenderer.invoke("rss:get-feeds");
     if (result.success) {
       feeds.value = result.feeds;
     }
   } catch (error) {
-    message.error('加载订阅源失败: ' + error.message);
+    message.error("加载订阅源失败: " + error.message);
   } finally {
     loading.value = false;
   }
@@ -360,22 +362,23 @@ const loadFeeds = async () => {
 
 const loadCategories = async () => {
   try {
-    const result = await window.electron.ipcRenderer.invoke('rss:get-categories');
+    const result =
+      await window.electron.ipcRenderer.invoke("rss:get-categories");
     if (result.success) {
       categories.value = result.categories;
     }
   } catch (error) {
-    message.error('加载分类失败: ' + error.message);
+    message.error("加载分类失败: " + error.message);
   }
 };
 
 const showAddFeedModal = () => {
-  feedForm.url = '';
+  feedForm.url = "";
   feedForm.category = null;
   feedForm.updateFrequency = 3600;
   feedForm.autoSync = true;
   feedValidation.valid = false;
-  feedValidation.error = '';
+  feedValidation.error = "";
   editingFeedId.value = null;
   addFeedModalVisible.value = true;
 };
@@ -384,12 +387,15 @@ const validateFeed = async () => {
   if (!feedForm.url) return;
 
   try {
-    const result = await window.electron.ipcRenderer.invoke('rss:validate-feed', feedForm.url);
+    const result = await window.electron.ipcRenderer.invoke(
+      "rss:validate-feed",
+      feedForm.url,
+    );
     if (result.success && result.validation.valid) {
       feedValidation.valid = true;
       feedValidation.title = result.validation.title;
       feedValidation.itemCount = result.validation.itemCount;
-      feedValidation.error = '';
+      feedValidation.error = "";
     } else {
       feedValidation.valid = false;
       feedValidation.error = result.validation.error;
@@ -402,7 +408,7 @@ const validateFeed = async () => {
 
 const handleAddFeed = async () => {
   if (!feedForm.url) {
-    message.error('请输入 Feed URL');
+    message.error("请输入 Feed URL");
     return;
   }
 
@@ -410,53 +416,68 @@ const handleAddFeed = async () => {
   try {
     if (editingFeedId.value) {
       // 更新现有订阅源
-      const result = await window.electron.ipcRenderer.invoke('rss:update-feed', editingFeedId.value, {
-        url: feedForm.url,
-        category: feedForm.category,
-        update_frequency: feedForm.updateFrequency,
-      });
+      const result = await window.electron.ipcRenderer.invoke(
+        "rss:update-feed",
+        editingFeedId.value,
+        {
+          url: feedForm.url,
+          category: feedForm.category,
+          update_frequency: feedForm.updateFrequency,
+        },
+      );
 
       if (result.success) {
-        message.success('订阅更新成功');
+        message.success("订阅更新成功");
         addFeedModalVisible.value = false;
         editingFeedId.value = null;
         await loadFeeds();
       }
     } else {
       // 添加新订阅源
-      const result = await window.electron.ipcRenderer.invoke('rss:add-feed', feedForm.url, {
-        category: feedForm.category,
-        updateFrequency: feedForm.updateFrequency,
-        autoSync: feedForm.autoSync,
-      });
+      const result = await window.electron.ipcRenderer.invoke(
+        "rss:add-feed",
+        feedForm.url,
+        {
+          category: feedForm.category,
+          updateFrequency: feedForm.updateFrequency,
+          autoSync: feedForm.autoSync,
+        },
+      );
 
       if (result.success) {
-        message.success('订阅添加成功');
+        message.success("订阅添加成功");
         addFeedModalVisible.value = false;
         await loadFeeds();
       }
     }
   } catch (error) {
-    message.error(editingFeedId.value ? '更新订阅失败: ' + error.message : '添加订阅失败: ' + error.message);
+    message.error(
+      editingFeedId.value
+        ? "更新订阅失败: " + error.message
+        : "添加订阅失败: " + error.message,
+    );
   } finally {
     addingFeed.value = false;
   }
 };
 
 const refreshFeed = async (feedId) => {
-  const feed = feeds.value.find(f => f.id === feedId);
+  const feed = feeds.value.find((f) => f.id === feedId);
   if (feed) {
     feed.refreshing = true;
   }
 
   try {
-    const result = await window.electron.ipcRenderer.invoke('rss:fetch-feed', feedId);
+    const result = await window.electron.ipcRenderer.invoke(
+      "rss:fetch-feed",
+      feedId,
+    );
     if (result.success) {
       message.success(`已获取 ${result.itemCount} 篇新文章`);
       await loadFeeds();
     }
   } catch (error) {
-    message.error('刷新失败: ' + error.message);
+    message.error("刷新失败: " + error.message);
   } finally {
     if (feed) {
       feed.refreshing = false;
@@ -467,15 +488,17 @@ const refreshFeed = async (feedId) => {
 const refreshAllFeeds = async () => {
   refreshing.value = true;
   try {
-    const result = await window.electron.ipcRenderer.invoke('rss:fetch-all-feeds');
+    const result = await window.electron.ipcRenderer.invoke(
+      "rss:fetch-all-feeds",
+    );
     if (result.success) {
       message.success(
-        `刷新完成: 成功 ${result.results.success}, 失败 ${result.results.failed}`
+        `刷新完成: 成功 ${result.results.success}, 失败 ${result.results.failed}`,
       );
       await loadFeeds();
     }
   } catch (error) {
-    message.error('批量刷新失败: ' + error.message);
+    message.error("批量刷新失败: " + error.message);
   } finally {
     refreshing.value = false;
   }
@@ -483,13 +506,16 @@ const refreshAllFeeds = async () => {
 
 const deleteFeed = async (feedId) => {
   try {
-    const result = await window.electron.ipcRenderer.invoke('rss:remove-feed', feedId);
+    const result = await window.electron.ipcRenderer.invoke(
+      "rss:remove-feed",
+      feedId,
+    );
     if (result.success) {
-      message.success('订阅已删除');
+      message.success("订阅已删除");
       await loadFeeds();
     }
   } catch (error) {
-    message.error('删除失败: ' + error.message);
+    message.error("删除失败: " + error.message);
   }
 };
 
@@ -498,11 +524,11 @@ const editFeed = (feed) => {
   feedForm.url = feed.url;
   feedForm.category = feed.category;
   feedForm.updateFrequency = feed.update_frequency;
-  feedForm.autoSync = feed.status === 'active';
+  feedForm.autoSync = feed.status === "active";
 
   // 清除验证状态
   feedValidation.valid = false;
-  feedValidation.error = '';
+  feedValidation.error = "";
 
   // 设置编辑模式
   editingFeedId.value = feed.id;
@@ -511,40 +537,40 @@ const editFeed = (feed) => {
 
 const viewFeedArticles = (feed) => {
   router.push({
-    name: 'RSSArticle',
-    params: { feedId: feed.id }
+    name: "RSSArticle",
+    params: { feedId: feed.id },
   });
 };
 
 const discoverFeeds = () => {
-  discoverUrl.value = '';
+  discoverUrl.value = "";
   discoveredFeeds.value = [];
   discoverModalVisible.value = true;
 };
 
 const handleDiscoverFeeds = async () => {
   if (!discoverUrl.value) {
-    message.error('请输入网站 URL');
+    message.error("请输入网站 URL");
     return;
   }
 
   discovering.value = true;
   try {
     const result = await window.electron.ipcRenderer.invoke(
-      'rss:discover-feeds',
-      discoverUrl.value
+      "rss:discover-feeds",
+      discoverUrl.value,
     );
 
     if (result.success) {
       discoveredFeeds.value = result.feeds;
       if (result.feeds.length === 0) {
-        message.warning('未发现 RSS 订阅源');
+        message.warning("未发现 RSS 订阅源");
       } else {
         message.success(`发现 ${result.feeds.length} 个订阅源`);
       }
     }
   } catch (error) {
-    message.error('发现订阅失败: ' + error.message);
+    message.error("发现订阅失败: " + error.message);
   } finally {
     discovering.value = false;
   }
@@ -557,29 +583,33 @@ const addDiscoveredFeed = async (url) => {
 };
 
 const showAddCategoryModal = () => {
-  categoryForm.name = '';
-  categoryForm.color = '#1890ff';
+  categoryForm.name = "";
+  categoryForm.color = "#1890ff";
   addCategoryModalVisible.value = true;
 };
 
 const handleAddCategory = async () => {
   if (!categoryForm.name) {
-    message.error('请输入分类名称');
+    message.error("请输入分类名称");
     return;
   }
 
   try {
-    const result = await window.electron.ipcRenderer.invoke('rss:add-category', categoryForm.name, {
-      color: categoryForm.color,
-    });
+    const result = await window.electron.ipcRenderer.invoke(
+      "rss:add-category",
+      categoryForm.name,
+      {
+        color: categoryForm.color,
+      },
+    );
 
     if (result.success) {
-      message.success('分类添加成功');
+      message.success("分类添加成功");
       addCategoryModalVisible.value = false;
       await loadCategories();
     }
   } catch (error) {
-    message.error('添加分类失败: ' + error.message);
+    message.error("添加分类失败: " + error.message);
   }
 };
 

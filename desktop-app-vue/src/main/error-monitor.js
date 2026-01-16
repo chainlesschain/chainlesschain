@@ -91,36 +91,97 @@ class ErrorMonitor extends EventEmitter {
    */
   initFixStrategies() {
     return {
-      SQLITE_BUSY: async (error) => {
+      SQLITE_BUSY: async (error, context = {}) => {
         console.log("[Auto-Fix] Attempting to fix database lock...");
-        // 等待一段时间后重试
-        await this.sleep(1000);
-        // 可以尝试关闭并重新打开数据库连接
-        return { success: true, message: "Database lock resolved after retry" };
+        // 指数退避重试策略
+        return await this.retryWithExponentialBackoff(
+          context.retryFn,
+          {
+            maxRetries: 5,
+            baseDelay: 100,
+            maxDelay: 5000,
+            factor: 2,
+          },
+          "SQLITE_BUSY",
+        );
       },
 
-      ECONNREFUSED: async (error) => {
+      DATABASE_LOCKED: async (error, context = {}) => {
+        console.log("[Auto-Fix] Attempting to fix database lock (generic)...");
+        // 与 SQLITE_BUSY 相同的策略
+        return await this.retryWithExponentialBackoff(
+          context.retryFn,
+          {
+            maxRetries: 5,
+            baseDelay: 100,
+            maxDelay: 5000,
+            factor: 2,
+          },
+          "DATABASE_LOCKED",
+        );
+      },
+
+      ECONNREFUSED: async (error, context = {}) => {
         console.log("[Auto-Fix] Attempting to reconnect to service...");
         const service = this.identifyService(error);
 
+        // 先尝试直接重连（可能是临时网络问题）
+        const reconnectResult = await this.retryWithExponentialBackoff(
+          context.retryFn,
+          {
+            maxRetries: 3,
+            baseDelay: 1000,
+            maxDelay: 10000,
+            factor: 2,
+          },
+          "ECONNREFUSED",
+        );
+
+        if (reconnectResult.success) {
+          return reconnectResult;
+        }
+
+        // 重连失败，尝试启动服务
         if (service === "ollama") {
-          // 尝试启动Ollama服务
           return await this.restartOllamaService();
         } else if (service === "qdrant") {
-          // 尝试启动Qdrant服务
           return await this.restartQdrantService();
+        } else if (service === "postgres") {
+          return await this.restartPostgresService();
+        } else if (service === "redis") {
+          return await this.restartRedisService();
         }
 
         return {
           success: false,
-          message: "Could not identify service to restart",
+          message: `Could not identify or restart service (port: ${this.extractPort(error) || "unknown"})`,
         };
       },
 
-      ETIMEDOUT: async (error) => {
+      CONNECTION_REFUSED: async (error, context = {}) => {
+        // 别名，调用 ECONNREFUSED 策略
+        return await this.fixStrategies.ECONNREFUSED(error, context);
+      },
+
+      ETIMEDOUT: async (error, context = {}) => {
         console.log("[Auto-Fix] Retrying operation after timeout...");
-        // 增加超时时间并重试
-        return { success: true, message: "Will retry with longer timeout" };
+        // 使用更长的超时时间重试
+        return await this.retryWithExponentialBackoff(
+          context.retryFn,
+          {
+            maxRetries: 3,
+            baseDelay: 2000,
+            maxDelay: 30000,
+            factor: 2,
+            timeoutMultiplier: 2, // 每次重试超时时间翻倍
+          },
+          "ETIMEDOUT",
+        );
+      },
+
+      TIMEOUT: async (error, context = {}) => {
+        // 别名，调用 ETIMEDOUT 策略
+        return await this.fixStrategies.ETIMEDOUT(error, context);
       },
 
       EACCES: async (error) => {
@@ -132,6 +193,11 @@ class ErrorMonitor extends EventEmitter {
         return { success: false, message: "Could not extract file path" };
       },
 
+      EPERM: async (error) => {
+        // 别名，调用 EACCES 策略
+        return await this.fixStrategies.EACCES(error);
+      },
+
       ENOENT: async (error) => {
         console.log("[Auto-Fix] Creating missing file/directory...");
         const filePath = this.extractFilePath(error);
@@ -139,6 +205,11 @@ class ErrorMonitor extends EventEmitter {
           return await this.createMissingPath(filePath);
         }
         return { success: false, message: "Could not extract file path" };
+      },
+
+      FILE_NOT_FOUND: async (error) => {
+        // 别名，调用 ENOENT 策略
+        return await this.fixStrategies.ENOENT(error);
       },
 
       EADDRINUSE: async (error) => {
@@ -150,10 +221,121 @@ class ErrorMonitor extends EventEmitter {
         return { success: false, message: "Could not extract port number" };
       },
 
+      PORT_IN_USE: async (error) => {
+        // 别名，调用 EADDRINUSE 策略
+        return await this.fixStrategies.EADDRINUSE(error);
+      },
+
       MEMORY_LEAK: async (error) => {
         console.log("[Auto-Fix] Clearing caches to free memory...");
         return await this.clearCaches();
       },
+
+      NETWORK_ERROR: async (error, context = {}) => {
+        console.log("[Auto-Fix] Attempting to recover from network error...");
+        // 网络错误：等待后重试
+        return await this.retryWithExponentialBackoff(
+          context.retryFn,
+          {
+            maxRetries: 3,
+            baseDelay: 1000,
+            maxDelay: 15000,
+            factor: 2,
+          },
+          "NETWORK_ERROR",
+        );
+      },
+
+      INVALID_JSON: async (error, context = {}) => {
+        console.log("[Auto-Fix] Handling invalid JSON response...");
+        // JSON 解析错误：可能是截断响应，重试
+        return await this.retryWithExponentialBackoff(
+          context.retryFn,
+          {
+            maxRetries: 2,
+            baseDelay: 500,
+            maxDelay: 2000,
+            factor: 2,
+          },
+          "INVALID_JSON",
+        );
+      },
+    };
+  }
+
+  /**
+   * 指数退避重试策略
+   * @param {Function} retryFn - 要重试的函数
+   * @param {Object} options - 重试选项
+   * @param {string} errorType - 错误类型（用于日志）
+   * @returns {Promise<Object>} 重试结果
+   */
+  async retryWithExponentialBackoff(retryFn, options = {}, errorType = "") {
+    const {
+      maxRetries = 3,
+      baseDelay = 100,
+      maxDelay = 10000,
+      factor = 2,
+      timeoutMultiplier = 1,
+    } = options;
+
+    if (!retryFn || typeof retryFn !== "function") {
+      // 如果没有提供重试函数，只执行延迟等待
+      const delay = Math.min(baseDelay * factor, maxDelay);
+      await this.sleep(delay);
+      return {
+        success: true,
+        message: `Waited ${delay}ms for ${errorType} recovery (no retry function provided)`,
+        retries: 0,
+        finalDelay: delay,
+      };
+    }
+
+    let lastError = null;
+    let currentDelay = baseDelay;
+    let currentTimeout = options.initialTimeout || 30000;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(
+          `[Auto-Fix] ${errorType} retry attempt ${attempt}/${maxRetries}, delay: ${currentDelay}ms`,
+        );
+
+        // 等待延迟
+        await this.sleep(currentDelay);
+
+        // 执行重试函数
+        const result = await Promise.race([
+          retryFn({ timeout: currentTimeout }),
+          this.sleep(currentTimeout).then(() => {
+            throw new Error("Retry timeout");
+          }),
+        ]);
+
+        return {
+          success: true,
+          message: `${errorType} resolved after ${attempt} ${attempt === 1 ? "retry" : "retries"}`,
+          retries: attempt,
+          result,
+        };
+      } catch (error) {
+        lastError = error;
+        console.log(
+          `[Auto-Fix] ${errorType} retry ${attempt} failed:`,
+          error.message,
+        );
+
+        // 计算下一次延迟
+        currentDelay = Math.min(currentDelay * factor, maxDelay);
+        currentTimeout = currentTimeout * timeoutMultiplier;
+      }
+    }
+
+    return {
+      success: false,
+      message: `${errorType} could not be resolved after ${maxRetries} retries: ${lastError?.message}`,
+      retries: maxRetries,
+      lastError: lastError?.message,
     };
   }
 
@@ -328,13 +510,94 @@ class ErrorMonitor extends EventEmitter {
       const execPromise = util.promisify(exec);
 
       if (process.platform === "win32") {
-        await execPromise(`netstat -ano | findstr :${port}`);
-        // 提取PID并杀掉进程
-      } else {
-        await execPromise(`lsof -ti:${port} | xargs kill -9`);
-      }
+        // Windows: 使用 netstat 找到 PID，然后 taskkill
+        try {
+          const { stdout } = await execPromise(
+            `netstat -ano | findstr :${port} | findstr LISTENING`,
+          );
+          const lines = stdout.trim().split("\n");
+          const pids = new Set();
 
-      return { success: true, message: `Freed port ${port}` };
+          for (const line of lines) {
+            const parts = line.trim().split(/\s+/);
+            const pid = parts[parts.length - 1];
+            if (pid && pid !== "0" && /^\d+$/.test(pid)) {
+              pids.add(pid);
+            }
+          }
+
+          if (pids.size === 0) {
+            return {
+              success: true,
+              message: `Port ${port} is not in use`,
+            };
+          }
+
+          // 杀掉所有占用端口的进程
+          for (const pid of pids) {
+            try {
+              await execPromise(`taskkill /PID ${pid} /F`);
+              console.log(`[Auto-Fix] Killed process ${pid} on port ${port}`);
+            } catch (killError) {
+              console.warn(
+                `[Auto-Fix] Could not kill process ${pid}:`,
+                killError.message,
+              );
+            }
+          }
+
+          // 等待端口释放
+          await this.sleep(1000);
+
+          return {
+            success: true,
+            message: `Freed port ${port} (killed ${pids.size} process(es))`,
+          };
+        } catch (netstatError) {
+          // netstat 没找到进程，端口可能已经空闲
+          return {
+            success: true,
+            message: `Port ${port} appears to be free`,
+          };
+        }
+      } else {
+        // Unix/macOS
+        try {
+          const { stdout } = await execPromise(`lsof -ti:${port}`);
+          const pids = stdout.trim().split("\n").filter(Boolean);
+
+          if (pids.length === 0) {
+            return {
+              success: true,
+              message: `Port ${port} is not in use`,
+            };
+          }
+
+          for (const pid of pids) {
+            try {
+              await execPromise(`kill -9 ${pid}`);
+              console.log(`[Auto-Fix] Killed process ${pid} on port ${port}`);
+            } catch (killError) {
+              console.warn(
+                `[Auto-Fix] Could not kill process ${pid}:`,
+                killError.message,
+              );
+            }
+          }
+
+          await this.sleep(1000);
+
+          return {
+            success: true,
+            message: `Freed port ${port} (killed ${pids.length} process(es))`,
+          };
+        } catch (lsofError) {
+          return {
+            success: true,
+            message: `Port ${port} appears to be free`,
+          };
+        }
+      }
     } catch (error) {
       return {
         success: false,
@@ -348,16 +611,162 @@ class ErrorMonitor extends EventEmitter {
    */
   async clearCaches() {
     try {
-      // 触发垃圾回收
+      const clearedItems = [];
+
+      // 1. 触发垃圾回收
       if (global.gc) {
         global.gc();
+        clearedItems.push("GC");
       }
 
-      return { success: true, message: "Caches cleared" };
+      // 2. 清理应用级缓存（如果存在）
+      try {
+        // 清理 QueryCache
+        if (global.queryCache) {
+          global.queryCache.clear();
+          clearedItems.push("QueryCache");
+        }
+
+        // 清理 SessionManager 缓存
+        if (global.sessionManager?.sessionCache) {
+          global.sessionManager.sessionCache.clear();
+          clearedItems.push("SessionCache");
+        }
+
+        // 清理 Embeddings 缓存
+        if (global.embeddingsCache) {
+          global.embeddingsCache.clear();
+          clearedItems.push("EmbeddingsCache");
+        }
+      } catch (cacheError) {
+        console.warn(
+          "[Auto-Fix] Could not clear app caches:",
+          cacheError.message,
+        );
+      }
+
+      // 3. 清理 .chainlesschain/cache 目录中的临时文件
+      try {
+        const cacheDir = path.join(
+          app.getPath("userData"),
+          "..",
+          ".chainlesschain",
+          "cache",
+        );
+
+        if (fs.existsSync && (await fs.stat(cacheDir).catch(() => null))) {
+          const cacheSubdirs = ["query-results", "model-outputs"];
+          for (const subdir of cacheSubdirs) {
+            const subdirPath = path.join(cacheDir, subdir);
+            try {
+              const files = await fs.readdir(subdirPath);
+              // 删除超过 1 小时的缓存文件
+              const oneHourAgo = Date.now() - 60 * 60 * 1000;
+              for (const file of files) {
+                const filePath = path.join(subdirPath, file);
+                const stat = await fs.stat(filePath);
+                if (stat.mtimeMs < oneHourAgo) {
+                  await fs.unlink(filePath);
+                }
+              }
+              clearedItems.push(subdir);
+            } catch (subdirError) {
+              // 子目录可能不存在，忽略
+            }
+          }
+        }
+      } catch (fsCacheError) {
+        console.warn(
+          "[Auto-Fix] Could not clear file caches:",
+          fsCacheError.message,
+        );
+      }
+
+      // 4. 记录内存使用情况
+      const memoryAfter = process.memoryUsage();
+      const heapUsedMB = Math.round(memoryAfter.heapUsed / 1024 / 1024);
+      const heapTotalMB = Math.round(memoryAfter.heapTotal / 1024 / 1024);
+
+      return {
+        success: true,
+        message: `Caches cleared (${clearedItems.join(", ") || "GC only"}), memory: ${heapUsedMB}MB / ${heapTotalMB}MB`,
+        clearedItems,
+        memoryAfter: {
+          heapUsed: heapUsedMB,
+          heapTotal: heapTotalMB,
+        },
+      };
     } catch (error) {
       return {
         success: false,
         message: `Failed to clear caches: ${error.message}`,
+      };
+    }
+  }
+
+  /**
+   * 重启 PostgreSQL 服务
+   */
+  async restartPostgresService() {
+    try {
+      const { exec } = require("child_process");
+      const util = require("util");
+      const execPromise = util.promisify(exec);
+
+      // 尝试启动 Docker 容器
+      await execPromise("docker start chainlesschain-postgres");
+      await this.sleep(5000); // 等待服务启动
+
+      // 验证连接
+      try {
+        await execPromise(
+          "docker exec chainlesschain-postgres pg_isready -U chainlesschain",
+        );
+        return {
+          success: true,
+          message: "PostgreSQL service restarted and ready",
+        };
+      } catch (checkError) {
+        return {
+          success: true,
+          message: "PostgreSQL service started (connection not verified)",
+        };
+      }
+    } catch (error) {
+      return {
+        success: false,
+        message: `Failed to restart PostgreSQL: ${error.message}`,
+      };
+    }
+  }
+
+  /**
+   * 重启 Redis 服务
+   */
+  async restartRedisService() {
+    try {
+      const { exec } = require("child_process");
+      const util = require("util");
+      const execPromise = util.promisify(exec);
+
+      // 尝试启动 Docker 容器
+      await execPromise("docker start chainlesschain-redis");
+      await this.sleep(3000); // Redis 启动较快
+
+      // 验证连接
+      try {
+        await execPromise("docker exec chainlesschain-redis redis-cli ping");
+        return { success: true, message: "Redis service restarted and ready" };
+      } catch (checkError) {
+        return {
+          success: true,
+          message: "Redis service started (connection not verified)",
+        };
+      }
+    } catch (error) {
+      return {
+        success: false,
+        message: `Failed to restart Redis: ${error.message}`,
       };
     }
   }
