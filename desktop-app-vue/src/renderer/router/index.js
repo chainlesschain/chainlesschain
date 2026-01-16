@@ -596,6 +596,12 @@ const routes = [
         meta: { title: "LLM 性能仪表板" },
       },
       {
+        path: "error/monitor",
+        name: "ErrorMonitor",
+        component: () => import("../pages/ErrorMonitorPage.vue"),
+        meta: { title: "错误监控仪表板" },
+      },
+      {
         path: "performance/dashboard",
         name: "PerformanceDashboard",
         component: () => import("../components/PerformanceDashboard.vue"),

@@ -8,19 +8,19 @@
 
 ```javascript
 class ToolManager {
-  db; // 
-  functionCaller; // 
-  dependencies; // 
-  tools; // 
-  docGenerator; // 
-  isInitialized; // 
+  db; //
+  functionCaller; //
+  dependencies; //
+  tools; //
+  docGenerator; //
+  isInitialized; //
 }
 ```
 
 ## 构造函数
 
 ```javascript
-new ToolManager()
+new ToolManager();
 ```
 
 ## 方法
@@ -327,6 +327,7 @@ new ToolManager()
 ---
 
 #### `forEach(tool => {
+
           // 统计分类
           if (tool.category)`
 
@@ -681,7 +682,6 @@ toggleToolEnabled 方法（用于兼容测试）
 
 ---
 
-
 ## 事件
 
 如果该类继承自EventEmitter,可以监听以下事件:
@@ -699,4 +699,4 @@ const toolmanager = new ToolManager(/* 参数 */);
 
 ---
 
-> 自动生成时间: 2026/1/16 09:14:43
+> 自动生成时间: 2026/1/16 17:18:05

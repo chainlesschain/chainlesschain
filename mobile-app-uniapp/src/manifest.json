@@ -1,89 +1,141 @@
 {
-    "name" : "ChainlessChain",
-    "appid" : "__UNI__4F3B0DC",
-    "description" : "去中心化个人AI助手平台",
-    "versionName" : "0.1.0",
-    "versionCode" : "100",
-    "transformPx" : false,
-    "app-plus" : {
-        "usingComponents" : true,
-        "compilerVersion" : 3,
-        "splashscreen" : {
-            "alwaysShowBeforeRender" : false,
-            "autoclose" : true,
-            "delay" : 0,
-            "target" : "logo.png"
+  "name": "ChainlessChain",
+  "appid": "__UNI__4F3B0DC",
+  "description": "去中心化个人AI助手平台",
+  "versionName": "0.1.0",
+  "versionCode": "100",
+  "transformPx": false,
+  "app-plus": {
+    "usingComponents": true,
+    "compilerVersion": 3,
+    "nvueCompiler": "uni-app",
+    "nvueStyleCompiler": "uni-app",
+    "renderer": "auto",
+    "splashscreen": {
+      "alwaysShowBeforeRender": false,
+      "autoclose": true,
+      "delay": 0,
+      "target": "logo.png",
+      "waiting": true
+    },
+    "modules": {
+      "SQLite": {},
+      "Fingerprint": {},
+      "Camera": {},
+      "Record": {},
+      "Barcode": {},
+      "Push": {},
+      "VideoPlayer": {},
+      "LivePusher": {}
+    },
+    "distribute": {
+      "android": {
+        "permissions": [
+          "<uses-permission android:name=\"android.permission.INTERNET\"/>",
+          "<uses-permission android:name=\"android.permission.ACCESS_NETWORK_STATE\"/>",
+          "<uses-permission android:name=\"android.permission.ACCESS_WIFI_STATE\"/>",
+          "<uses-permission android:name=\"android.permission.CHANGE_NETWORK_STATE\"/>",
+          "<uses-permission android:name=\"android.permission.CHANGE_WIFI_STATE\"/>",
+          "<uses-permission android:name=\"android.permission.READ_EXTERNAL_STORAGE\"/>",
+          "<uses-permission android:name=\"android.permission.WRITE_EXTERNAL_STORAGE\"/>",
+          "<uses-permission android:name=\"android.permission.CAMERA\"/>",
+          "<uses-permission android:name=\"android.permission.RECORD_AUDIO\"/>",
+          "<uses-permission android:name=\"android.permission.VIBRATE\"/>",
+          "<uses-permission android:name=\"android.permission.USE_FINGERPRINT\"/>",
+          "<uses-permission android:name=\"android.permission.USE_BIOMETRIC\"/>",
+          "<uses-permission android:name=\"android.permission.WAKE_LOCK\"/>",
+          "<uses-permission android:name=\"android.permission.RECEIVE_BOOT_COMPLETED\"/>",
+          "<uses-permission android:name=\"android.permission.FLASHLIGHT\"/>"
+        ],
+        "minSdkVersion": 23,
+        "targetSdkVersion": 34,
+        "abiFilters": ["armeabi-v7a", "arm64-v8a"],
+        "packagingOptions": [
+          "doNotStrip \"*/armeabi-v7a/*.so\"",
+          "doNotStrip \"*/arm64-v8a/*.so\""
+        ]
+      },
+      "ios": {
+        "dSYMs": false,
+        "privacyDescription": {
+          "NSPhotoLibraryUsageDescription": "用于保存和选择图片",
+          "NSPhotoLibraryAddUsageDescription": "用于保存图片到相册",
+          "NSCameraUsageDescription": "用于拍照和扫描二维码",
+          "NSMicrophoneUsageDescription": "用于语音输入和录制",
+          "NSFaceIDUsageDescription": "用于生物识别认证",
+          "NSLocalNetworkUsageDescription": "用于P2P设备发现和通信"
         },
-        "distribute" : {
-            "android" : {
-                "permissions" : [ "<uses-permission android:name=\"android.permission.INTERNET\"/>" ]
-            },
-            "ios" : {
-                "dSYMs" : false
-            },
-            "sdkConfigs" : {},
-            "icons" : {
-                "android" : {
-                    "xxxhdpi" : "unpackage/res/icons/192x192.png",
-                    "hdpi" : "unpackage/res/icons/72x72.png",
-                    "xhdpi" : "unpackage/res/icons/96x96.png",
-                    "xxhdpi" : "unpackage/res/icons/144x144.png"
-                },
-                "ios" : {
-                    "appstore" : "unpackage/res/icons/1024x1024.png",
-                    "ipad" : {
-                        "app" : "unpackage/res/icons/76x76.png",
-                        "app@2x" : "unpackage/res/icons/152x152.png",
-                        "notification" : "unpackage/res/icons/20x20.png",
-                        "notification@2x" : "unpackage/res/icons/40x40.png",
-                        "proapp@2x" : "unpackage/res/icons/167x167.png",
-                        "settings" : "unpackage/res/icons/29x29.png",
-                        "settings@2x" : "unpackage/res/icons/58x58.png",
-                        "spotlight" : "unpackage/res/icons/40x40.png",
-                        "spotlight@2x" : "unpackage/res/icons/80x80.png"
-                    },
-                    "iphone" : {
-                        "app@2x" : "unpackage/res/icons/120x120.png",
-                        "app@3x" : "unpackage/res/icons/180x180.png",
-                        "notification@2x" : "unpackage/res/icons/40x40.png",
-                        "notification@3x" : "unpackage/res/icons/60x60.png",
-                        "settings@2x" : "unpackage/res/icons/58x58.png",
-                        "settings@3x" : "unpackage/res/icons/87x87.png",
-                        "spotlight@2x" : "unpackage/res/icons/80x80.png",
-                        "spotlight@3x" : "unpackage/res/icons/120x120.png"
-                    }
-                }
-            }
+        "UIBackgroundModes": ["audio", "fetch", "remote-notification"]
+      },
+      "sdkConfigs": {
+        "oauth": {},
+        "share": {},
+        "payment": {},
+        "push": {},
+        "ad": {}
+      },
+      "icons": {
+        "android": {
+          "xxxhdpi": "unpackage/res/icons/192x192.png",
+          "hdpi": "unpackage/res/icons/72x72.png",
+          "xhdpi": "unpackage/res/icons/96x96.png",
+          "xxhdpi": "unpackage/res/icons/144x144.png"
+        },
+        "ios": {
+          "appstore": "unpackage/res/icons/1024x1024.png",
+          "ipad": {
+            "app": "unpackage/res/icons/76x76.png",
+            "app@2x": "unpackage/res/icons/152x152.png",
+            "notification": "unpackage/res/icons/20x20.png",
+            "notification@2x": "unpackage/res/icons/40x40.png",
+            "proapp@2x": "unpackage/res/icons/167x167.png",
+            "settings": "unpackage/res/icons/29x29.png",
+            "settings@2x": "unpackage/res/icons/58x58.png",
+            "spotlight": "unpackage/res/icons/40x40.png",
+            "spotlight@2x": "unpackage/res/icons/80x80.png"
+          },
+          "iphone": {
+            "app@2x": "unpackage/res/icons/120x120.png",
+            "app@3x": "unpackage/res/icons/180x180.png",
+            "notification@2x": "unpackage/res/icons/40x40.png",
+            "notification@3x": "unpackage/res/icons/60x60.png",
+            "settings@2x": "unpackage/res/icons/58x58.png",
+            "settings@3x": "unpackage/res/icons/87x87.png",
+            "spotlight@2x": "unpackage/res/icons/80x80.png",
+            "spotlight@3x": "unpackage/res/icons/120x120.png"
+          }
         }
+      }
+    }
+  },
+  "quickapp": {},
+  "mp-weixin": {
+    "appid": "",
+    "setting": {
+      "urlCheck": false
     },
-    "quickapp" : {},
-    "mp-weixin" : {
-        "appid" : "",
-        "setting" : {
-            "urlCheck" : false
-        },
-        "usingComponents" : true
+    "usingComponents": true
+  },
+  "mp-alipay": {
+    "usingComponents": true
+  },
+  "mp-baidu": {
+    "usingComponents": true
+  },
+  "mp-toutiao": {
+    "usingComponents": true
+  },
+  "h5": {
+    "router": {
+      "mode": "hash",
+      "base": "/"
     },
-    "mp-alipay" : {
-        "usingComponents" : true
+    "devServer": {
+      "port": 8080,
+      "https": false
     },
-    "mp-baidu" : {
-        "usingComponents" : true
-    },
-    "mp-toutiao" : {
-        "usingComponents" : true
-    },
-    "h5" : {
-        "router" : {
-            "mode" : "hash",
-            "base" : "/"
-        },
-        "devServer" : {
-            "port" : 8080,
-            "https" : false
-        },
-        "title" : "ChainlessChain",
-        "favicon" : "logo.png"
-    },
-    "vueVersion" : "3"
+    "title": "ChainlessChain",
+    "favicon": "logo.png"
+  },
+  "vueVersion": "3"
 }

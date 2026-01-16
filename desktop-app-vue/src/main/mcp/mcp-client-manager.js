@@ -12,7 +12,11 @@ const { Client } = require("@modelcontextprotocol/sdk/client/index.js");
 const {
   StdioClientTransport,
 } = require("@modelcontextprotocol/sdk/client/stdio.js");
-const { HttpSseTransport } = require("./transports/http-sse-transport");
+const {
+  HttpSseTransport,
+  ConnectionState,
+  CircuitState,
+} = require("./transports/http-sse-transport");
 const EventEmitter = require("events");
 const { spawn } = require("child_process");
 

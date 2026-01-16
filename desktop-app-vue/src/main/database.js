@@ -4259,9 +4259,27 @@ class DatabaseManager {
       throw new Error("数据库未初始化");
     }
 
-    const data = this.db.export();
-    const buffer = Buffer.from(data);
-    fs.writeFileSync(backupPath, buffer);
+    // Check for sql.js first (has export() method which returns Uint8Array)
+    // Note: sql.js 1.8+ also has backup() but with different signature
+    if (typeof this.db.export === "function") {
+      // sql.js: use export() and write buffer to file
+      const data = this.db.export();
+      const buffer = Buffer.from(data);
+      fs.writeFileSync(backupPath, buffer);
+    } else if (
+      this.db.__betterSqliteCompat ||
+      typeof this.db.backup === "function"
+    ) {
+      // better-sqlite3: use backup() for synchronous backup
+      this.db.backup(backupPath);
+    } else {
+      // Fallback: copy the database file directly
+      if (this.dbPath && fs.existsSync(this.dbPath)) {
+        fs.copyFileSync(this.dbPath, backupPath);
+      } else {
+        throw new Error("无法备份数据库: 不支持的数据库类型");
+      }
+    }
   }
 
   // ==================== 软删除管理 ====================

@@ -40,6 +40,32 @@ class ErrorMonitor extends EventEmitter {
   }
 
   /**
+   * 获取数据库连接实例
+   * 统一处理不同数据库适配器的差异
+   * @returns {Object|null} 数据库连接对象
+   * @private
+   */
+  _getDbConnection() {
+    if (!this.database) return null;
+    // 支持 DatabaseManager (有 .db 属性) 或直接的数据库实例
+    return this.database.db || this.database;
+  }
+
+  /**
+   * 准备 SQL 语句
+   * @param {string} sql - SQL 语句
+   * @returns {Object} 准备好的语句对象
+   * @private
+   */
+  _prepareStatement(sql) {
+    const db = this._getDbConnection();
+    if (!db) {
+      throw new Error("数据库未初始化");
+    }
+    return db.prepare(sql);
+  }
+
+  /**
    * 设置全局错误处理器
    */
   setupGlobalErrorHandlers() {
@@ -73,16 +99,53 @@ class ErrorMonitor extends EventEmitter {
    */
   initErrorPatterns() {
     return {
+      // 数据库相关
       DATABASE_LOCKED: /SQLITE_BUSY|database is locked/i,
+      DATABASE_CORRUPT:
+        /database disk image is malformed|file is not a database/i,
+      DATABASE_READONLY: /attempt to write a readonly database/i,
+
+      // 网络相关
       CONNECTION_REFUSED: /ECONNREFUSED|connect ECONNREFUSED/i,
-      TIMEOUT: /ETIMEDOUT|timeout/i,
+      CONNECTION_RESET: /ECONNRESET|connection reset/i,
+      TIMEOUT: /ETIMEDOUT|timeout|request timed out/i,
+      DNS_ERROR: /ENOTFOUND|getaddrinfo|DNS lookup failed/i,
+      NETWORK_ERROR: /network error|socket hang up|ENETUNREACH/i,
+      SSL_ERROR: /CERT_|SSL_|certificate|UNABLE_TO_VERIFY_LEAF/i,
+
+      // 文件系统相关
       PERMISSION_DENIED: /EACCES|EPERM|permission denied/i,
-      FILE_NOT_FOUND: /ENOENT|no such file/i,
+      FILE_NOT_FOUND: /ENOENT|no such file|does not exist/i,
+      DISK_FULL: /ENOSPC|no space left|disk full/i,
+      FILE_LOCKED: /EBUSY|resource busy|locked/i,
+      PATH_TOO_LONG: /ENAMETOOLONG|path too long/i,
+
+      // 端口和进程相关
       PORT_IN_USE: /EADDRINUSE|address already in use/i,
-      MEMORY_LEAK: /heap out of memory|allocation failed/i,
-      NETWORK_ERROR: /network error|socket hang up/i,
-      INVALID_JSON: /unexpected token|invalid json/i,
-      GPU_ERROR: /GPU process|OpenGL/i,
+      PROCESS_KILLED: /SIGKILL|SIGTERM|process terminated/i,
+
+      // 内存相关
+      MEMORY_LEAK: /heap out of memory|allocation failed|JavaScript heap/i,
+      STACK_OVERFLOW: /Maximum call stack size exceeded|stack overflow/i,
+
+      // JSON 和数据格式
+      INVALID_JSON: /unexpected token|invalid json|JSON\.parse|SyntaxError/i,
+      INVALID_INPUT: /invalid|malformed|corrupt|unexpected/i,
+
+      // API 和服务相关
+      RATE_LIMIT: /rate limit|too many requests|429/i,
+      AUTH_ERROR: /unauthorized|forbidden|401|403|authentication/i,
+      SERVER_ERROR: /500|502|503|504|internal server error/i,
+
+      // Electron 相关
+      GPU_ERROR: /GPU process|OpenGL|WebGL|graphics/i,
+      IPC_ERROR: /ipc|channel|renderer process/i,
+      WINDOW_ERROR: /BrowserWindow|window is destroyed/i,
+
+      // LLM 相关
+      LLM_CONTEXT_LENGTH: /context length|token limit|maximum.*tokens/i,
+      LLM_MODEL_ERROR: /model not found|model loading|GGML/i,
+      LLM_API_ERROR: /ollama|openai|anthropic|API error/i,
     };
   }
 
@@ -1703,88 +1766,208 @@ ${error?.stack || "无堆栈信息"}
   /**
    * 保存错误分析到数据库
    * @param {Object} analysis - 分析结果
-   * @returns {Promise<void>}
+   * @returns {Promise<string|null>} 保存的记录 ID 或 null
    */
   async saveErrorAnalysis(analysis) {
-    if (!this.database) return;
+    if (!this._getDbConnection()) return null;
 
     try {
-      // 这里假设有一个 error_analysis 表
-      // 实际实现需要根据数据库架构调整
-      const stmt = this.database.prepare(`
+      const { v4: uuidv4 } = require("uuid");
+      const now = Date.now();
+      const id = uuidv4();
+      const errorId = uuidv4(); // 用于后续重新分析
+
+      const stmt = this._prepareStatement(`
         INSERT INTO error_analysis (
-          id, error_message, error_type, classification, severity,
-          auto_fix_attempted, auto_fix_success,
-          ai_diagnosis, recommendations, created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          id, error_id, error_message, error_stack, error_type,
+          classification, severity, context, keywords,
+          auto_fix_attempted, auto_fix_success, auto_fix_strategy, auto_fix_result,
+          ai_diagnosis_enabled, ai_diagnosis, ai_root_cause, ai_fix_suggestions,
+          ai_best_practices, ai_related_docs,
+          related_issues, related_issues_count, status,
+          created_at, updated_at
+        ) VALUES (
+          ?, ?, ?, ?, ?,
+          ?, ?, ?, ?,
+          ?, ?, ?, ?,
+          ?, ?, ?, ?,
+          ?, ?,
+          ?, ?, ?,
+          ?, ?
+        )
       `);
 
-      const { v4: uuidv4 } = require("uuid");
+      // 提取 AI 诊断信息
+      const aiDiagnosis = analysis.aiDiagnosis || {};
+      const aiAnalysis = aiDiagnosis.analysis?.structured || {};
 
       stmt.run(
-        uuidv4(),
-        analysis.error.message,
-        analysis.error.name,
-        analysis.classification,
-        analysis.severity,
+        id,
+        errorId,
+        analysis.error?.message || "",
+        analysis.error?.stack || "",
+        analysis.error?.name || "Unknown",
+        analysis.classification || "UNKNOWN",
+        analysis.severity || "low",
+        JSON.stringify(analysis.context || {}),
+        JSON.stringify(this.extractKeywords(analysis.error?.message || "")),
         analysis.autoFixResult?.attempted ? 1 : 0,
         analysis.autoFixResult?.success ? 1 : 0,
-        JSON.stringify(analysis.aiDiagnosis),
-        JSON.stringify(analysis.recommendations),
-        Date.now(),
+        analysis.autoFixResult?.errorType || null,
+        JSON.stringify(analysis.autoFixResult || {}),
+        this.enableAIDiagnosis ? 1 : 0,
+        JSON.stringify(aiDiagnosis),
+        aiAnalysis.rootCause || null,
+        JSON.stringify(aiAnalysis.fixes ? [aiAnalysis.fixes] : []),
+        aiAnalysis.bestPractices || null,
+        JSON.stringify(
+          aiAnalysis.documentation ? [aiAnalysis.documentation] : [],
+        ),
+        JSON.stringify(analysis.relatedIssues || []),
+        (analysis.relatedIssues || []).length,
+        "analyzed",
+        now,
+        now,
       );
 
-      console.log("[ErrorMonitor] 错误分析已保存到数据库");
+      console.log("[ErrorMonitor] 错误分析已保存到数据库, ID:", id);
+      return id;
     } catch (error) {
       console.error("[ErrorMonitor] saveErrorAnalysis 失败:", error);
+      return null;
     }
   }
 
   /**
    * 生成诊断报告
-   * @param {Error} error - 错误对象
+   * @param {Error|Object} errorOrAnalysis - 错误对象或已有的分析结果
    * @returns {Promise<string>} Markdown 格式的报告
    */
-  async generateDiagnosisReport(error) {
-    const analysis = await this.analyzeError(error);
+  async generateDiagnosisReport(errorOrAnalysis) {
+    let analysis;
+
+    // 判断传入的是错误对象还是分析结果
+    if (
+      errorOrAnalysis &&
+      errorOrAnalysis.classification &&
+      errorOrAnalysis.severity
+    ) {
+      // 已有的分析结果
+      analysis = errorOrAnalysis;
+    } else {
+      // 错误对象，需要先分析
+      analysis = await this.analyzeError(errorOrAnalysis);
+    }
+
+    return this._formatDiagnosisReport(analysis);
+  }
+
+  /**
+   * 格式化诊断报告
+   * @param {Object} analysis - 分析结果
+   * @returns {string} Markdown 格式的报告
+   * @private
+   */
+  _formatDiagnosisReport(analysis) {
+    const severityIcon = {
+      critical: "🚨",
+      high: "⚠️",
+      medium: "🔶",
+      low: "ℹ️",
+    };
+
+    const classificationLabels = {
+      DATABASE: "数据库",
+      NETWORK: "网络",
+      FILESYSTEM: "文件系统",
+      PERMISSION: "权限",
+      TIMEOUT: "超时",
+      MEMORY: "内存",
+      TYPE_ERROR: "类型错误",
+      REFERENCE_ERROR: "引用错误",
+      SYNTAX_ERROR: "语法错误",
+      UNKNOWN: "未知",
+    };
 
     let report = `# 错误诊断报告\n\n`;
-    report += `**生成时间**: ${new Date().toLocaleString()}\n\n`;
+    report += `**生成时间**: ${new Date().toLocaleString()}\n`;
+    report += `**分析 ID**: ${analysis.id || "N/A"}\n\n`;
     report += `---\n\n`;
 
     // 1. 错误信息
+    const errorInfo = analysis.error || {};
     report += `## 错误信息\n\n`;
-    report += `- **类型**: ${analysis.error.name}\n`;
-    report += `- **消息**: ${analysis.error.message}\n`;
-    report += `- **分类**: ${analysis.classification}\n`;
-    report += `- **严重程度**: ${analysis.severity}\n\n`;
+    report += `| 属性 | 值 |\n`;
+    report += `|------|----|\n`;
+    report += `| **类型** | ${errorInfo.name || analysis.error_type || "Unknown"} |\n`;
+    report += `| **消息** | ${errorInfo.message || analysis.error_message || "N/A"} |\n`;
+    report += `| **分类** | ${classificationLabels[analysis.classification] || analysis.classification} |\n`;
+    report += `| **严重程度** | ${severityIcon[analysis.severity] || ""} ${analysis.severity} |\n`;
+    report += `| **状态** | ${analysis.status || "analyzed"} |\n\n`;
 
-    // 2. 自动修复结果
-    if (analysis.autoFixResult?.attempted) {
+    // 2. 堆栈跟踪
+    const stack = errorInfo.stack || analysis.error_stack;
+    if (stack) {
+      report += `## 堆栈跟踪\n\n`;
+      report += `\`\`\`\n${stack}\n\`\`\`\n\n`;
+    }
+
+    // 3. 自动修复结果
+    const autoFixResult = analysis.autoFixResult || analysis.auto_fix_result;
+    if (autoFixResult?.attempted || analysis.auto_fix_attempted) {
       report += `## 自动修复\n\n`;
-      report += `- **状态**: ${analysis.autoFixResult.success ? "✅ 成功" : "❌ 失败"}\n`;
-      report += `- **描述**: ${analysis.autoFixResult.message}\n\n`;
+      const success = autoFixResult?.success ?? analysis.auto_fix_success;
+      report += `- **状态**: ${success ? "✅ 成功" : "❌ 失败"}\n`;
+      report += `- **策略**: ${autoFixResult?.errorType || analysis.auto_fix_strategy || "N/A"}\n`;
+      report += `- **描述**: ${autoFixResult?.message || "N/A"}\n\n`;
     }
 
-    // 3. AI 诊断
-    if (analysis.aiDiagnosis?.available) {
+    // 4. AI 诊断
+    const aiDiagnosis = analysis.aiDiagnosis || analysis.ai_diagnosis;
+    if (aiDiagnosis?.available || aiDiagnosis?.rawResponse) {
       report += `## AI 智能诊断\n\n`;
-      report += `${analysis.aiDiagnosis.rawResponse}\n\n`;
+      if (aiDiagnosis.rawResponse) {
+        report += `${aiDiagnosis.rawResponse}\n\n`;
+      } else if (aiDiagnosis.analysis?.full) {
+        report += `${aiDiagnosis.analysis.full}\n\n`;
+      }
     }
 
-    // 4. 相关历史问题
-    if (analysis.relatedIssues && analysis.relatedIssues.length > 0) {
-      report += `## 相关历史问题\n\n`;
-      analysis.relatedIssues.forEach((issue, index) => {
-        report += `${index + 1}. **${new Date(issue.timestamp).toLocaleString()}**: ${issue.message}\n`;
+    // AI 根本原因
+    const rootCause = analysis.ai_root_cause;
+    if (rootCause) {
+      report += `### 根本原因\n\n${rootCause}\n\n`;
+    }
+
+    // AI 修复建议
+    const fixSuggestions = analysis.ai_fix_suggestions;
+    if (Array.isArray(fixSuggestions) && fixSuggestions.length > 0) {
+      report += `### 修复建议\n\n`;
+      fixSuggestions.forEach((suggestion, index) => {
+        report += `${index + 1}. ${suggestion}\n`;
       });
       report += `\n`;
     }
 
-    // 5. 推荐操作
-    if (analysis.recommendations.length > 0) {
+    // 5. 相关历史问题
+    const relatedIssues = analysis.relatedIssues || analysis.related_issues;
+    if (Array.isArray(relatedIssues) && relatedIssues.length > 0) {
+      report += `## 相关历史问题 (${relatedIssues.length})\n\n`;
+      relatedIssues.forEach((issue, index) => {
+        const timestamp = issue.timestamp || issue.created_at;
+        const date = timestamp
+          ? new Date(timestamp).toLocaleString()
+          : "Unknown";
+        report += `${index + 1}. **${date}**: ${issue.message || issue.error_message}\n`;
+      });
+      report += `\n`;
+    }
+
+    // 6. 推荐操作
+    const recommendations = analysis.recommendations || [];
+    if (recommendations.length > 0) {
       report += `## 推荐操作\n\n`;
-      analysis.recommendations.forEach((rec, index) => {
+      recommendations.forEach((rec, index) => {
         const icon =
           rec.priority === "critical"
             ? "🚨"
@@ -1796,6 +1979,27 @@ ${error?.stack || "无堆栈信息"}
       report += `\n`;
     }
 
+    // 7. 上下文信息
+    const context = analysis.context;
+    if (context && typeof context === "object") {
+      report += `## 运行环境\n\n`;
+      report += `- **平台**: ${context.platform || "N/A"}\n`;
+      report += `- **Node 版本**: ${context.nodeVersion || "N/A"}\n`;
+      if (context.memory) {
+        const heapUsed = Math.round(
+          (context.memory.heapUsed || 0) / 1024 / 1024,
+        );
+        const heapTotal = Math.round(
+          (context.memory.heapTotal || 0) / 1024 / 1024,
+        );
+        report += `- **内存使用**: ${heapUsed}MB / ${heapTotal}MB\n`;
+      }
+      report += `- **运行时长**: ${context.uptime || "N/A"} 秒\n\n`;
+    }
+
+    report += `---\n\n`;
+    report += `*此报告由 ErrorMonitor AI 诊断系统自动生成*\n`;
+
     return report;
   }
 
@@ -1805,12 +2009,12 @@ ${error?.stack || "无堆栈信息"}
    * @returns {Promise<Object|null>} 分析记录对象
    */
   async getAnalysisById(analysisId) {
-    if (!this.database) {
+    if (!this._getDbConnection()) {
       throw new Error("数据库未初始化");
     }
 
     try {
-      const stmt = this.database.db.prepare(`
+      const stmt = this._prepareStatement(`
         SELECT * FROM error_analysis WHERE id = ?
       `);
 
@@ -1820,31 +2024,40 @@ ${error?.stack || "无堆栈信息"}
         return null;
       }
 
-      // 解析 JSON 字段
-      return {
-        ...record,
-        context: record.context ? JSON.parse(record.context) : null,
-        keywords: record.keywords ? JSON.parse(record.keywords) : [],
-        auto_fix_result: record.auto_fix_result
-          ? JSON.parse(record.auto_fix_result)
-          : null,
-        ai_diagnosis: record.ai_diagnosis
-          ? JSON.parse(record.ai_diagnosis)
-          : null,
-        ai_fix_suggestions: record.ai_fix_suggestions
-          ? JSON.parse(record.ai_fix_suggestions)
-          : [],
-        ai_related_docs: record.ai_related_docs
-          ? JSON.parse(record.ai_related_docs)
-          : [],
-        related_issues: record.related_issues
-          ? JSON.parse(record.related_issues)
-          : [],
-      };
+      // 解析 JSON 字段并返回规范化的结构
+      return this._parseAnalysisRecord(record);
     } catch (error) {
       console.error("[ErrorMonitor] getAnalysisById 失败:", error);
       throw error;
     }
+  }
+
+  /**
+   * 解析数据库中的分析记录
+   * @param {Object} record - 数据库记录
+   * @returns {Object} 解析后的记录
+   * @private
+   */
+  _parseAnalysisRecord(record) {
+    const safeJsonParse = (str, defaultVal = null) => {
+      if (!str) return defaultVal;
+      try {
+        return JSON.parse(str);
+      } catch {
+        return defaultVal;
+      }
+    };
+
+    return {
+      ...record,
+      context: safeJsonParse(record.context, {}),
+      keywords: safeJsonParse(record.keywords, []),
+      auto_fix_result: safeJsonParse(record.auto_fix_result, null),
+      ai_diagnosis: safeJsonParse(record.ai_diagnosis, null),
+      ai_fix_suggestions: safeJsonParse(record.ai_fix_suggestions, []),
+      ai_related_docs: safeJsonParse(record.ai_related_docs, []),
+      related_issues: safeJsonParse(record.related_issues, []),
+    };
   }
 
   /**
@@ -1854,7 +2067,7 @@ ${error?.stack || "无堆栈信息"}
    * @returns {Promise<Object>} 统计信息
    */
   async getErrorStats(options = {}) {
-    if (!this.database) {
+    if (!this._getDbConnection()) {
       throw new Error("数据库未初始化");
     }
 
@@ -1863,7 +2076,7 @@ ${error?.stack || "无堆栈信息"}
 
     try {
       // 总体统计
-      const totalStmt = this.database.db.prepare(`
+      const totalStmt = this._prepareStatement(`
         SELECT
           COUNT(*) as total,
           SUM(CASE WHEN severity = 'critical' THEN 1 ELSE 0 END) as critical,
@@ -1876,13 +2089,16 @@ ${error?.stack || "无堆栈信息"}
         WHERE created_at >= ?
       `);
 
-      const total = totalStmt.get(cutoffTime);
+      const total = totalStmt.get(cutoffTime) || {};
 
       // 按分类统计
       const byClassification = await this.getClassificationStats(days);
 
       // 按严重程度统计
       const bySeverity = await this.getSeverityStats(days);
+
+      // 每日趋势（最近 7 天）
+      const dailyTrend = await this.getDailyTrend(Math.min(days, 30));
 
       return {
         period: `${days} days`,
@@ -1894,6 +2110,8 @@ ${error?.stack || "无堆栈信息"}
           low: total.low || 0,
         },
         byClassification,
+        bySeverityList: bySeverity,
+        dailyTrend,
         autoFixed: total.auto_fixed || 0,
         resolved: total.resolved || 0,
         autoFixRate:
@@ -1912,16 +2130,52 @@ ${error?.stack || "无堆栈信息"}
   }
 
   /**
+   * 获取每日错误趋势
+   * @param {number} days - 天数
+   * @returns {Promise<Array>} 每日趋势数据
+   */
+  async getDailyTrend(days = 7) {
+    if (!this._getDbConnection()) {
+      return [];
+    }
+
+    const cutoffTime = Date.now() - days * 24 * 60 * 60 * 1000;
+
+    try {
+      const stmt = this._prepareStatement(`
+        SELECT
+          DATE(created_at / 1000, 'unixepoch') as date,
+          COUNT(*) as total,
+          SUM(CASE WHEN severity = 'critical' THEN 1 ELSE 0 END) as critical,
+          SUM(CASE WHEN severity = 'high' THEN 1 ELSE 0 END) as high,
+          SUM(CASE WHEN auto_fix_success = 1 THEN 1 ELSE 0 END) as auto_fixed
+        FROM error_analysis
+        WHERE created_at >= ?
+        GROUP BY date
+        ORDER BY date DESC
+        LIMIT ?
+      `);
+
+      return stmt.all(cutoffTime, days);
+    } catch (error) {
+      console.error("[ErrorMonitor] getDailyTrend 失败:", error);
+      return [];
+    }
+  }
+
+  /**
    * 获取分析历史记录
    * @param {Object} options - 查询选项
    * @param {number} options.limit - 返回数量限制
    * @param {number} options.offset - 偏移量
    * @param {string} options.classification - 按分类筛选
    * @param {string} options.severity - 按严重程度筛选
+   * @param {string} options.status - 按状态筛选
+   * @param {string} options.search - 搜索关键词
    * @returns {Promise<Array>} 分析记录列表
    */
   async getAnalysisHistory(options = {}) {
-    if (!this.database) {
+    if (!this._getDbConnection()) {
       throw new Error("数据库未初始化");
     }
 
@@ -1945,29 +2199,24 @@ ${error?.stack || "无堆栈信息"}
         params.push(options.severity);
       }
 
+      if (options.status) {
+        query += ` AND status = ?`;
+        params.push(options.status);
+      }
+
+      if (options.search) {
+        query += ` AND (error_message LIKE ? OR ai_root_cause LIKE ?)`;
+        const searchPattern = `%${options.search}%`;
+        params.push(searchPattern, searchPattern);
+      }
+
       query += ` ORDER BY created_at DESC LIMIT ? OFFSET ?`;
       params.push(limit, offset);
 
-      const stmt = this.database.db.prepare(query);
+      const stmt = this._prepareStatement(query);
       const records = stmt.all(...params);
 
-      return records.map((record) => ({
-        ...record,
-        context: record.context ? JSON.parse(record.context) : null,
-        keywords: record.keywords ? JSON.parse(record.keywords) : [],
-        auto_fix_result: record.auto_fix_result
-          ? JSON.parse(record.auto_fix_result)
-          : null,
-        ai_diagnosis: record.ai_diagnosis
-          ? JSON.parse(record.ai_diagnosis)
-          : null,
-        ai_fix_suggestions: record.ai_fix_suggestions
-          ? JSON.parse(record.ai_fix_suggestions)
-          : [],
-        related_issues: record.related_issues
-          ? JSON.parse(record.related_issues)
-          : [],
-      }));
+      return records.map((record) => this._parseAnalysisRecord(record));
     } catch (error) {
       console.error("[ErrorMonitor] getAnalysisHistory 失败:", error);
       throw error;
@@ -1977,19 +2226,21 @@ ${error?.stack || "无堆栈信息"}
   /**
    * 删除分析记录
    * @param {string} analysisId - 分析记录 ID
+   * @returns {Promise<boolean>} 删除是否成功
    */
   async deleteAnalysis(analysisId) {
-    if (!this.database) {
+    if (!this._getDbConnection()) {
       throw new Error("数据库未初始化");
     }
 
     try {
-      const stmt = this.database.db.prepare(`
+      const stmt = this._prepareStatement(`
         DELETE FROM error_analysis WHERE id = ?
       `);
 
-      stmt.run(analysisId);
+      const result = stmt.run(analysisId);
       console.log(`[ErrorMonitor] 已删除分析记录: ${analysisId}`);
+      return result.changes > 0;
     } catch (error) {
       console.error("[ErrorMonitor] deleteAnalysis 失败:", error);
       throw error;
@@ -2002,7 +2253,7 @@ ${error?.stack || "无堆栈信息"}
    * @returns {Promise<number>} 删除的记录数
    */
   async cleanupOldAnalyses(daysToKeep = 30) {
-    if (!this.database) {
+    if (!this._getDbConnection()) {
       throw new Error("数据库未初始化");
     }
 
@@ -2010,13 +2261,13 @@ ${error?.stack || "无堆栈信息"}
 
     try {
       // 先查询要删除的记录数
-      const countStmt = this.database.db.prepare(`
+      const countStmt = this._prepareStatement(`
         SELECT COUNT(*) as count FROM error_analysis WHERE created_at < ?
       `);
-      const { count } = countStmt.get(cutoffTime);
+      const { count } = countStmt.get(cutoffTime) || { count: 0 };
 
       // 执行删除
-      const deleteStmt = this.database.db.prepare(`
+      const deleteStmt = this._prepareStatement(`
         DELETE FROM error_analysis WHERE created_at < ?
       `);
       deleteStmt.run(cutoffTime);
@@ -2038,19 +2289,21 @@ ${error?.stack || "无堆栈信息"}
    * @returns {Promise<Array>} 分类统计列表
    */
   async getClassificationStats(days = 7) {
-    if (!this.database) {
+    if (!this._getDbConnection()) {
       throw new Error("数据库未初始化");
     }
 
     const cutoffTime = Date.now() - days * 24 * 60 * 60 * 1000;
 
     try {
-      const stmt = this.database.db.prepare(`
+      const stmt = this._prepareStatement(`
         SELECT
           classification,
           COUNT(*) as count,
           SUM(CASE WHEN severity = 'critical' THEN 1 ELSE 0 END) as critical_count,
+          SUM(CASE WHEN severity = 'high' THEN 1 ELSE 0 END) as high_count,
           SUM(CASE WHEN auto_fix_success = 1 THEN 1 ELSE 0 END) as auto_fixed_count,
+          SUM(CASE WHEN status = 'fixed' THEN 1 ELSE 0 END) as resolved_count,
           MAX(created_at) as last_occurrence
         FROM error_analysis
         WHERE created_at >= ?
@@ -2071,14 +2324,14 @@ ${error?.stack || "无堆栈信息"}
    * @returns {Promise<Array>} 严重程度统计列表
    */
   async getSeverityStats(days = 7) {
-    if (!this.database) {
+    if (!this._getDbConnection()) {
       throw new Error("数据库未初始化");
     }
 
     const cutoffTime = Date.now() - days * 24 * 60 * 60 * 1000;
 
     try {
-      const stmt = this.database.db.prepare(`
+      const stmt = this._prepareStatement(`
         SELECT
           severity,
           COUNT(*) as count,
@@ -2111,12 +2364,12 @@ ${error?.stack || "无堆栈信息"}
    * @returns {Promise<Object|null>} 错误对象
    */
   async getErrorById(errorId) {
-    if (!this.database) {
+    if (!this._getDbConnection()) {
       throw new Error("数据库未初始化");
     }
 
     try {
-      const stmt = this.database.db.prepare(`
+      const stmt = this._prepareStatement(`
         SELECT * FROM error_analysis WHERE error_id = ? ORDER BY created_at DESC LIMIT 1
       `);
 
@@ -2134,6 +2387,171 @@ ${error?.stack || "无堆栈信息"}
       return error;
     } catch (error) {
       console.error("[ErrorMonitor] getErrorById 失败:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * 更新错误分析状态
+   * @param {string} analysisId - 分析记录 ID
+   * @param {string} status - 新状态 (new, analyzing, analyzed, fixing, fixed, ignored)
+   * @param {string} [resolution] - 解决方案描述
+   * @returns {Promise<boolean>} 更新是否成功
+   */
+  async updateAnalysisStatus(analysisId, status, resolution = null) {
+    if (!this._getDbConnection()) {
+      throw new Error("数据库未初始化");
+    }
+
+    const validStatuses = [
+      "new",
+      "analyzing",
+      "analyzed",
+      "fixing",
+      "fixed",
+      "ignored",
+    ];
+    if (!validStatuses.includes(status)) {
+      throw new Error(`无效的状态: ${status}`);
+    }
+
+    try {
+      const now = Date.now();
+      let stmt;
+
+      if (status === "fixed" || status === "ignored") {
+        stmt = this._prepareStatement(`
+          UPDATE error_analysis
+          SET status = ?, resolution = ?, resolved_at = ?, updated_at = ?
+          WHERE id = ?
+        `);
+        stmt.run(status, resolution, now, now, analysisId);
+      } else {
+        stmt = this._prepareStatement(`
+          UPDATE error_analysis
+          SET status = ?, updated_at = ?
+          WHERE id = ?
+        `);
+        stmt.run(status, now, analysisId);
+      }
+
+      console.log(`[ErrorMonitor] 更新分析状态: ${analysisId} -> ${status}`);
+      return true;
+    } catch (error) {
+      console.error("[ErrorMonitor] updateAnalysisStatus 失败:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * 获取诊断配置
+   * @returns {Promise<Object>} 配置对象
+   */
+  async getDiagnosisConfig() {
+    if (!this._getDbConnection()) {
+      return {
+        enable_ai_diagnosis: this.enableAIDiagnosis,
+        llm_provider: "ollama",
+        llm_model: "qwen2:7b",
+      };
+    }
+
+    try {
+      const stmt = this._prepareStatement(`
+        SELECT * FROM error_diagnosis_config WHERE id = 'default'
+      `);
+      const config = stmt.get();
+
+      if (config) {
+        return {
+          ...config,
+          auto_fix_strategies: config.auto_fix_strategies
+            ? JSON.parse(config.auto_fix_strategies)
+            : [],
+        };
+      }
+
+      return {
+        enable_ai_diagnosis: this.enableAIDiagnosis,
+        llm_provider: "ollama",
+        llm_model: "qwen2:7b",
+      };
+    } catch (error) {
+      console.error("[ErrorMonitor] getDiagnosisConfig 失败:", error);
+      return {
+        enable_ai_diagnosis: this.enableAIDiagnosis,
+        llm_provider: "ollama",
+        llm_model: "qwen2:7b",
+      };
+    }
+  }
+
+  /**
+   * 更新诊断配置
+   * @param {Object} updates - 要更新的配置项
+   * @returns {Promise<boolean>} 更新是否成功
+   */
+  async updateDiagnosisConfig(updates) {
+    if (!this._getDbConnection()) {
+      // 更新内存配置
+      if (updates.enable_ai_diagnosis !== undefined) {
+        this.enableAIDiagnosis = updates.enable_ai_diagnosis;
+      }
+      return true;
+    }
+
+    try {
+      const allowedFields = [
+        "enable_ai_diagnosis",
+        "llm_provider",
+        "llm_model",
+        "llm_temperature",
+        "enable_auto_fix",
+        "auto_fix_strategies",
+        "analysis_depth",
+        "include_context",
+        "include_related_issues",
+        "related_issues_limit",
+        "retention_days",
+        "auto_cleanup",
+      ];
+
+      const setClauses = [];
+      const values = [];
+
+      for (const [key, value] of Object.entries(updates)) {
+        if (allowedFields.includes(key)) {
+          setClauses.push(`${key} = ?`);
+          values.push(
+            key === "auto_fix_strategies" ? JSON.stringify(value) : value,
+          );
+        }
+      }
+
+      if (setClauses.length === 0) {
+        return false;
+      }
+
+      setClauses.push("updated_at = ?");
+      values.push(Date.now());
+      values.push("default");
+
+      const stmt = this._prepareStatement(`
+        UPDATE error_diagnosis_config
+        SET ${setClauses.join(", ")}
+        WHERE id = ?
+      `);
+      stmt.run(...values);
+
+      // 同步更新内存配置
+      if (updates.enable_ai_diagnosis !== undefined) {
+        this.enableAIDiagnosis = updates.enable_ai_diagnosis;
+      }
+
+      console.log("[ErrorMonitor] 诊断配置已更新");
+      return true;
+    } catch (error) {
+      console.error("[ErrorMonitor] updateDiagnosisConfig 失败:", error);
       throw error;
     }
   }

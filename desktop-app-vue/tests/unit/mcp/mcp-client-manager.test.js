@@ -7,20 +7,20 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
 // Mock the MCP SDK
+const mockClient = {
+  connect: vi.fn().mockResolvedValue(undefined),
+  close: vi.fn().mockResolvedValue(undefined),
+  listTools: vi.fn().mockResolvedValue({ tools: [] }),
+  listResources: vi.fn().mockResolvedValue({ resources: [] }),
+  listPrompts: vi.fn().mockResolvedValue({ prompts: [] }),
+  callTool: vi.fn().mockResolvedValue({ content: [{ text: "result" }] }),
+  readResource: vi.fn().mockResolvedValue({ contents: [{ text: "content" }] }),
+  setNotificationHandler: vi.fn(),
+  setLoggingHandler: vi.fn(),
+};
+
 vi.mock("@modelcontextprotocol/sdk/client/index.js", () => ({
-  Client: vi.fn().mockImplementation(() => ({
-    connect: vi.fn().mockResolvedValue(undefined),
-    close: vi.fn().mockResolvedValue(undefined),
-    listTools: vi.fn().mockResolvedValue({ tools: [] }),
-    listResources: vi.fn().mockResolvedValue({ resources: [] }),
-    listPrompts: vi.fn().mockResolvedValue({ prompts: [] }),
-    callTool: vi.fn().mockResolvedValue({ content: [{ text: "result" }] }),
-    readResource: vi
-      .fn()
-      .mockResolvedValue({ contents: [{ text: "content" }] }),
-    setNotificationHandler: vi.fn(),
-    setLoggingHandler: vi.fn(),
-  })),
+  Client: vi.fn().mockImplementation(() => mockClient),
 }));
 
 vi.mock("@modelcontextprotocol/sdk/client/stdio.js", () => ({
@@ -368,14 +368,12 @@ describe("MCPClientManager", () => {
       );
     });
 
-    it("should track error counts", async () => {
-      // Mock a failing client
-      const { Client } = require("@modelcontextprotocol/sdk/client/index.js");
-      Client.mockImplementationOnce(() => ({
-        connect: vi.fn().mockRejectedValue(new Error("Connection failed")),
-        setNotificationHandler: vi.fn(),
-        setLoggingHandler: vi.fn(),
-      }));
+    it("should track error counts on connection failure", async () => {
+      // Temporarily make connect fail
+      const originalConnect = mockClient.connect;
+      mockClient.connect = vi
+        .fn()
+        .mockRejectedValue(new Error("Connection failed"));
 
       try {
         await manager.connectServer("failing-server", {
@@ -387,22 +385,24 @@ describe("MCPClientManager", () => {
       }
 
       expect(manager.metrics.errorCounts.get("failing-server")).toBe(1);
+
+      // Restore
+      mockClient.connect = originalConnect;
     });
 
     it("should emit server-error event on connection failure", async () => {
-      const { Client } = require("@modelcontextprotocol/sdk/client/index.js");
-      Client.mockImplementationOnce(() => ({
-        connect: vi.fn().mockRejectedValue(new Error("Connection failed")),
-        setNotificationHandler: vi.fn(),
-        setLoggingHandler: vi.fn(),
-      }));
+      // Temporarily make connect fail
+      const originalConnect = mockClient.connect;
+      mockClient.connect = vi
+        .fn()
+        .mockRejectedValue(new Error("Connection failed"));
 
       const eventPromise = new Promise((resolve) => {
         manager.once("server-error", resolve);
       });
 
       try {
-        await manager.connectServer("failing-server", {
+        await manager.connectServer("failing-server-2", {
           command: "npx",
           args: [],
         });
@@ -411,8 +411,11 @@ describe("MCPClientManager", () => {
       }
 
       const event = await eventPromise;
-      expect(event.serverName).toBe("failing-server");
+      expect(event.serverName).toBe("failing-server-2");
       expect(event.error).toBeDefined();
+
+      // Restore
+      mockClient.connect = originalConnect;
     });
   });
 });

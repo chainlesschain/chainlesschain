@@ -8,16 +8,16 @@
 
 ```javascript
 class ToolRunner {
-  toolManager; // 
-  toolImplementations; // 
-  options; // 
+  toolManager; //
+  toolImplementations; //
+  options; //
 }
 ```
 
 ## 构造函数
 
 ```javascript
-new ToolRunner(options = {})
+new ToolRunner((options = {}));
 ```
 
 ## 方法
@@ -65,6 +65,7 @@ new ToolRunner(options = {})
 ---
 
 #### `forEach(requiredParam => {
+
         if (params[requiredParam] === undefined)`
 
 验证参数
@@ -132,7 +133,8 @@ JS生成器
 ---
 
 #### `map(feature => `
-  ${feature}()`
+
+${feature}()`
 
 JS生成器
 
@@ -192,7 +194,6 @@ Git提交
 
 ---
 
-
 ## 事件
 
 如果该类继承自EventEmitter,可以监听以下事件:
@@ -210,4 +211,4 @@ const toolrunner = new ToolRunner(/* 参数 */);
 
 ---
 
-> 自动生成时间: 2026/1/16 09:14:43
+> 自动生成时间: 2026/1/16 17:18:05

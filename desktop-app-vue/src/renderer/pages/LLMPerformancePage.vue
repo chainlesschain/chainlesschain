@@ -13,51 +13,75 @@
       <a-row :gutter="16" class="stats-row">
         <a-col :span="6">
           <a-card>
-            <a-statistic
-              title="总调用次数"
-              :value="stats.totalCalls"
-              :prefix="h(ApiOutlined)"
-            />
+            <a-skeleton
+              :loading="initialLoading"
+              active
+              :paragraph="{ rows: 1 }"
+            >
+              <a-statistic
+                title="总调用次数"
+                :value="stats.totalCalls"
+                :prefix="h(ApiOutlined)"
+              />
+            </a-skeleton>
           </a-card>
         </a-col>
         <a-col :span="6">
           <a-card>
-            <a-statistic
-              title="总 Token 消耗"
-              :value="stats.totalTokens"
-              :prefix="h(ThunderboltOutlined)"
-              :formatter="formatTokens"
-            />
+            <a-skeleton
+              :loading="initialLoading"
+              active
+              :paragraph="{ rows: 1 }"
+            >
+              <a-statistic
+                title="总 Token 消耗"
+                :value="stats.totalTokens"
+                :prefix="h(ThunderboltOutlined)"
+                :formatter="formatTokens"
+              />
+            </a-skeleton>
           </a-card>
         </a-col>
         <a-col :span="6">
           <a-card>
-            <a-statistic
-              title="总成本"
-              :value="stats.totalCostUsd"
-              prefix="$"
-              :precision="4"
-              :value-style="{
-                color: stats.totalCostUsd > 10 ? '#cf1322' : '#3f8600',
-              }"
-            />
-            <div class="sub-value">
-              ¥{{ (stats.totalCostCny || 0).toFixed(2) }}
-            </div>
+            <a-skeleton
+              :loading="initialLoading"
+              active
+              :paragraph="{ rows: 1 }"
+            >
+              <a-statistic
+                title="总成本"
+                :value="stats.totalCostUsd"
+                prefix="$"
+                :precision="4"
+                :value-style="{
+                  color: stats.totalCostUsd > 10 ? '#cf1322' : '#3f8600',
+                }"
+              />
+              <div class="sub-value">
+                ¥{{ (stats.totalCostCny || 0).toFixed(2) }}
+              </div>
+            </a-skeleton>
           </a-card>
         </a-col>
         <a-col :span="6">
           <a-card>
-            <a-statistic
-              title="缓存命中率"
-              :value="stats.cacheHitRate"
-              suffix="%"
-              :precision="2"
-              :prefix="h(RocketOutlined)"
-              :value-style="{
-                color: stats.cacheHitRate > 50 ? '#3f8600' : '#cf1322',
-              }"
-            />
+            <a-skeleton
+              :loading="initialLoading"
+              active
+              :paragraph="{ rows: 1 }"
+            >
+              <a-statistic
+                title="缓存命中率"
+                :value="stats.cacheHitRate"
+                suffix="%"
+                :precision="2"
+                :prefix="h(RocketOutlined)"
+                :value-style="{
+                  color: stats.cacheHitRate > 50 ? '#3f8600' : '#cf1322',
+                }"
+              />
+            </a-skeleton>
           </a-card>
         </a-col>
       </a-row>
@@ -66,39 +90,221 @@
       <a-row :gutter="16" class="optimization-row">
         <a-col :span="8">
           <a-card>
-            <a-statistic
-              title="压缩调用次数"
-              :value="stats.compressedCalls"
-              :prefix="h(CompressOutlined)"
-              :value-style="{ color: '#1890ff' }"
-            />
-            <div class="stat-desc">节省约 30-40% Tokens</div>
+            <a-skeleton
+              :loading="initialLoading"
+              active
+              :paragraph="{ rows: 1 }"
+            >
+              <a-statistic
+                title="压缩调用次数"
+                :value="stats.compressedCalls"
+                :prefix="h(CompressOutlined)"
+                :value-style="{ color: '#1890ff' }"
+              />
+              <div class="stat-desc">节省约 30-40% Tokens</div>
+            </a-skeleton>
           </a-card>
         </a-col>
         <a-col :span="8">
           <a-card>
-            <a-statistic
-              title="平均响应时间"
-              :value="stats.avgResponseTime"
-              suffix="ms"
-              :prefix="h(ClockCircleOutlined)"
-              :value-style="{
-                color: stats.avgResponseTime < 1000 ? '#3f8600' : '#cf1322',
-              }"
-            />
+            <a-skeleton
+              :loading="initialLoading"
+              active
+              :paragraph="{ rows: 1 }"
+            >
+              <a-statistic
+                title="平均响应时间"
+                :value="stats.avgResponseTime"
+                suffix="ms"
+                :prefix="h(ClockCircleOutlined)"
+                :value-style="{
+                  color: stats.avgResponseTime < 1000 ? '#3f8600' : '#cf1322',
+                }"
+              />
+            </a-skeleton>
           </a-card>
         </a-col>
         <a-col :span="8">
           <a-card>
-            <a-statistic
-              title="缓存节省成本"
-              :value="cachedSavings"
-              prefix="$"
-              :precision="4"
-              :prefix-icon="h(DollarOutlined)"
-              :value-style="{ color: '#52c41a' }"
-            />
-            <div class="stat-desc">预计节省</div>
+            <a-skeleton
+              :loading="initialLoading"
+              active
+              :paragraph="{ rows: 1 }"
+            >
+              <a-statistic
+                title="缓存节省成本"
+                :value="cachedSavings"
+                prefix="$"
+                :precision="4"
+                :prefix-icon="h(DollarOutlined)"
+                :value-style="{ color: '#52c41a' }"
+              />
+              <div class="stat-desc">预计节省</div>
+            </a-skeleton>
+          </a-card>
+        </a-col>
+      </a-row>
+
+      <!-- 缓存详情与预算使用 -->
+      <a-row :gutter="16" class="cache-budget-row">
+        <!-- 响应缓存详情 -->
+        <a-col :span="12">
+          <a-card title="响应缓存详情" class="detail-card">
+            <template #extra>
+              <a-tag color="blue"> <DatabaseOutlined /> 缓存系统 </a-tag>
+            </template>
+            <a-skeleton :loading="loading" active>
+              <a-row :gutter="[16, 16]">
+                <a-col :span="8">
+                  <a-statistic
+                    title="缓存条目"
+                    :value="cacheStats.totalEntries"
+                    :value-style="{ fontSize: '20px' }"
+                  />
+                </a-col>
+                <a-col :span="8">
+                  <a-statistic
+                    title="总命中次数"
+                    :value="cacheStats.totalHits"
+                    :value-style="{ fontSize: '20px', color: '#3f8600' }"
+                  />
+                </a-col>
+                <a-col :span="8">
+                  <a-statistic
+                    title="命中率"
+                    :value="cacheStats.hitRate"
+                    suffix="%"
+                    :precision="1"
+                    :value-style="{
+                      fontSize: '20px',
+                      color: cacheStats.hitRate > 50 ? '#3f8600' : '#cf1322',
+                    }"
+                  />
+                </a-col>
+                <a-col :span="8">
+                  <a-statistic
+                    title="节省 Tokens"
+                    :value="cacheStats.totalTokensSaved"
+                    :formatter="formatTokens"
+                    :value-style="{ fontSize: '20px' }"
+                  />
+                </a-col>
+                <a-col :span="8">
+                  <a-statistic
+                    title="节省成本"
+                    :value="cacheStats.totalCostSaved"
+                    prefix="$"
+                    :precision="4"
+                    :value-style="{ fontSize: '20px', color: '#52c41a' }"
+                  />
+                </a-col>
+                <a-col :span="8">
+                  <a-statistic
+                    title="平均命中/条目"
+                    :value="cacheStats.avgHitsPerEntry"
+                    :precision="1"
+                    :value-style="{ fontSize: '20px' }"
+                  />
+                </a-col>
+              </a-row>
+              <a-divider style="margin: 16px 0" />
+              <div class="cache-info">
+                <a-space>
+                  <span>过期条目: {{ cacheStats.expiredEntries }}</span>
+                  <a-button
+                    size="small"
+                    type="link"
+                    @click="clearExpiredCache"
+                    :loading="clearingCache"
+                  >
+                    清理过期缓存
+                  </a-button>
+                </a-space>
+              </div>
+            </a-skeleton>
+          </a-card>
+        </a-col>
+
+        <!-- 预算使用情况 -->
+        <a-col :span="12">
+          <a-card title="预算使用情况" class="detail-card">
+            <template #extra>
+              <a-tag :color="budgetStatusColor">
+                <FundOutlined /> {{ budgetStatusText }}
+              </a-tag>
+            </template>
+            <a-skeleton :loading="loading" active>
+              <!-- 日预算 -->
+              <div class="budget-item">
+                <div class="budget-label">
+                  <span>日预算</span>
+                  <span class="budget-value">
+                    ${{ budget.dailySpend.toFixed(4) }} / ${{
+                      budget.dailyLimit > 0 ? budget.dailyLimit.toFixed(2) : "∞"
+                    }}
+                  </span>
+                </div>
+                <a-progress
+                  :percent="dailyBudgetPercent"
+                  :status="getBudgetStatus(dailyBudgetPercent)"
+                  :stroke-color="getBudgetColor(dailyBudgetPercent)"
+                  size="small"
+                />
+              </div>
+
+              <!-- 周预算 -->
+              <div class="budget-item">
+                <div class="budget-label">
+                  <span>周预算</span>
+                  <span class="budget-value">
+                    ${{ budget.weeklySpend.toFixed(4) }} / ${{
+                      budget.weeklyLimit > 0
+                        ? budget.weeklyLimit.toFixed(2)
+                        : "∞"
+                    }}
+                  </span>
+                </div>
+                <a-progress
+                  :percent="weeklyBudgetPercent"
+                  :status="getBudgetStatus(weeklyBudgetPercent)"
+                  :stroke-color="getBudgetColor(weeklyBudgetPercent)"
+                  size="small"
+                />
+              </div>
+
+              <!-- 月预算 -->
+              <div class="budget-item">
+                <div class="budget-label">
+                  <span>月预算</span>
+                  <span class="budget-value">
+                    ${{ budget.monthlySpend.toFixed(4) }} / ${{
+                      budget.monthlyLimit > 0
+                        ? budget.monthlyLimit.toFixed(2)
+                        : "∞"
+                    }}
+                  </span>
+                </div>
+                <a-progress
+                  :percent="monthlyBudgetPercent"
+                  :status="getBudgetStatus(monthlyBudgetPercent)"
+                  :stroke-color="getBudgetColor(monthlyBudgetPercent)"
+                  size="small"
+                />
+              </div>
+
+              <a-divider style="margin: 16px 0" />
+              <div class="budget-info">
+                <a-space>
+                  <WarningOutlined
+                    v-if="maxBudgetPercent >= budget.warningThreshold"
+                    style="color: #faad14"
+                  />
+                  <span>告警阈值: {{ budget.warningThreshold }}%</span>
+                  <a-divider type="vertical" />
+                  <span>危险阈值: {{ budget.criticalThreshold }}%</span>
+                </a-space>
+              </div>
+            </a-skeleton>
           </a-card>
         </a-col>
       </a-row>
@@ -124,6 +330,31 @@
             :show-time="{ format: 'HH:mm' }"
             format="YYYY-MM-DD HH:mm"
           />
+
+          <a-divider type="vertical" />
+
+          <span class="auto-refresh-label">
+            <SyncOutlined :spin="autoRefreshEnabled" />
+            自动刷新
+          </span>
+          <a-switch
+            v-model:checked="autoRefreshEnabled"
+            @change="toggleAutoRefresh"
+          />
+          <a-select
+            v-model:value="autoRefreshInterval"
+            :disabled="!autoRefreshEnabled"
+            @change="updateRefreshInterval"
+            style="width: 100px"
+            size="small"
+          >
+            <a-select-option :value="30">30 秒</a-select-option>
+            <a-select-option :value="60">60 秒</a-select-option>
+            <a-select-option :value="120">2 分钟</a-select-option>
+            <a-select-option :value="300">5 分钟</a-select-option>
+          </a-select>
+
+          <a-divider type="vertical" />
 
           <a-button type="primary" @click="refreshData" :loading="loading">
             <template #icon><ReloadOutlined /></template>
@@ -239,6 +470,10 @@ import {
   DollarOutlined,
   ReloadOutlined,
   DownloadOutlined,
+  SyncOutlined,
+  DatabaseOutlined,
+  FundOutlined,
+  WarningOutlined,
 } from "@ant-design/icons-vue";
 
 // 状态
@@ -261,7 +496,31 @@ const costBreakdown = ref({
   byModel: [],
 });
 
+// 缓存详情统计
+const cacheStats = ref({
+  totalEntries: 0,
+  expiredEntries: 0,
+  totalHits: 0,
+  totalTokensSaved: 0,
+  totalCostSaved: 0,
+  avgHitsPerEntry: 0,
+  hitRate: 0,
+});
+
+// 预算配置
+const budget = ref({
+  dailyLimit: 0,
+  weeklyLimit: 0,
+  monthlyLimit: 0,
+  dailySpend: 0,
+  weeklySpend: 0,
+  monthlySpend: 0,
+  warningThreshold: 80,
+  criticalThreshold: 95,
+});
+
 const loading = ref(false);
+const initialLoading = ref(true); // 首次加载状态
 const exporting = ref(false);
 const timeRange = ref("7d");
 const customDateRange = ref(null);
@@ -277,11 +536,113 @@ const tokenTrendChart = ref(null);
 const providerCostChart = ref(null);
 const modelCostChart = ref(null);
 
+// 自动刷新配置
+const autoRefreshEnabled = ref(true);
+const autoRefreshInterval = ref(60); // 秒
+let refreshIntervalId = null;
+
+// 清理缓存状态
+const clearingCache = ref(false);
+
 // 计算属性
 const cachedSavings = computed(() => {
-  // 假设缓存节省 50% 成本
-  return ((stats.value.totalCostUsd * stats.value.cacheHitRate) / 100) * 0.5;
+  // 基于缓存调用次数和平均调用成本计算节省
+  const avgCostPerCall =
+    stats.value.totalCalls > 0
+      ? stats.value.totalCostUsd / stats.value.totalCalls
+      : 0;
+  // 缓存调用节省了完整的 API 调用成本
+  return stats.value.cachedCalls * avgCostPerCall;
 });
+
+// 预算百分比计算
+const dailyBudgetPercent = computed(() => {
+  if (budget.value.dailyLimit <= 0) return 0;
+  return Math.min(
+    100,
+    (budget.value.dailySpend / budget.value.dailyLimit) * 100,
+  );
+});
+
+const weeklyBudgetPercent = computed(() => {
+  if (budget.value.weeklyLimit <= 0) return 0;
+  return Math.min(
+    100,
+    (budget.value.weeklySpend / budget.value.weeklyLimit) * 100,
+  );
+});
+
+const monthlyBudgetPercent = computed(() => {
+  if (budget.value.monthlyLimit <= 0) return 0;
+  return Math.min(
+    100,
+    (budget.value.monthlySpend / budget.value.monthlyLimit) * 100,
+  );
+});
+
+const maxBudgetPercent = computed(() => {
+  return Math.max(
+    dailyBudgetPercent.value,
+    weeklyBudgetPercent.value,
+    monthlyBudgetPercent.value,
+  );
+});
+
+const budgetStatusColor = computed(() => {
+  const percent = maxBudgetPercent.value;
+  if (percent >= budget.value.criticalThreshold) return "red";
+  if (percent >= budget.value.warningThreshold) return "orange";
+  return "green";
+});
+
+const budgetStatusText = computed(() => {
+  const percent = maxBudgetPercent.value;
+  if (percent >= budget.value.criticalThreshold) return "超出预算";
+  if (percent >= budget.value.warningThreshold) return "接近预算";
+  return "预算正常";
+});
+
+// 预算状态函数
+const getBudgetStatus = (percent) => {
+  if (percent >= 100) return "exception";
+  if (percent >= budget.value.warningThreshold) return "active";
+  return "normal";
+};
+
+const getBudgetColor = (percent) => {
+  if (percent >= budget.value.criticalThreshold) return "#cf1322";
+  if (percent >= budget.value.warningThreshold) return "#faad14";
+  return "#52c41a";
+};
+
+/**
+ * 清理过期缓存
+ */
+const clearExpiredCache = async () => {
+  clearingCache.value = true;
+  try {
+    const result = await window.electronAPI.invoke("llm:clear-cache", {
+      expiredOnly: true,
+    });
+    if (result && result.success) {
+      message.success(`已清理 ${result.clearedCount || 0} 条过期缓存`);
+      // 刷新缓存统计
+      const cacheResult = await window.electronAPI.invoke(
+        "llm:get-cache-stats",
+      );
+      if (cacheResult) {
+        cacheStats.value = cacheResult;
+      }
+    } else {
+      message.warning("没有需要清理的过期缓存");
+    }
+  } catch (error) {
+    console.error("清理缓存失败:", error);
+    message.error("清理缓存失败: " + error.message);
+  } finally {
+    clearingCache.value = false;
+  }
+};
 
 // 表格列定义
 const providerColumns = [
@@ -400,12 +761,35 @@ const refreshData = async () => {
       renderModelCostChart();
     }
 
+    // 获取缓存统计
+    try {
+      const cacheResult = await window.electronAPI.invoke(
+        "llm:get-cache-stats",
+      );
+      if (cacheResult) {
+        cacheStats.value = cacheResult;
+      }
+    } catch (e) {
+      console.warn("获取缓存统计失败:", e);
+    }
+
+    // 获取预算配置
+    try {
+      const budgetResult = await window.electronAPI.invoke("llm:get-budget");
+      if (budgetResult) {
+        budget.value = budgetResult;
+      }
+    } catch (e) {
+      console.warn("获取预算配置失败:", e);
+    }
+
     message.success("数据已刷新");
   } catch (error) {
     console.error("刷新数据失败:", error);
     message.error("刷新数据失败: " + error.message);
   } finally {
     loading.value = false;
+    initialLoading.value = false;
   }
 };
 
@@ -682,12 +1066,69 @@ const formatDate = (timestamp) => {
 };
 
 /**
- * 窗口大小变化处理
+ * 防抖函数
  */
-const handleResize = () => {
+const debounce = (fn, delay) => {
+  let timer = null;
+  return (...args) => {
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), delay);
+  };
+};
+
+/**
+ * 窗口大小变化处理（带防抖）
+ */
+const handleResize = debounce(() => {
   tokenTrendChartInstance?.resize();
   providerCostChartInstance?.resize();
   modelCostChartInstance?.resize();
+}, 200);
+
+/**
+ * 启动自动刷新
+ */
+const startAutoRefresh = () => {
+  if (refreshIntervalId) {
+    clearInterval(refreshIntervalId);
+  }
+  if (autoRefreshEnabled.value) {
+    refreshIntervalId = setInterval(() => {
+      refreshData();
+    }, autoRefreshInterval.value * 1000);
+  }
+};
+
+/**
+ * 停止自动刷新
+ */
+const stopAutoRefresh = () => {
+  if (refreshIntervalId) {
+    clearInterval(refreshIntervalId);
+    refreshIntervalId = null;
+  }
+};
+
+/**
+ * 切换自动刷新
+ */
+const toggleAutoRefresh = (enabled) => {
+  autoRefreshEnabled.value = enabled;
+  if (enabled) {
+    startAutoRefresh();
+  } else {
+    stopAutoRefresh();
+  }
+};
+
+/**
+ * 修改刷新间隔
+ */
+const updateRefreshInterval = (seconds) => {
+  autoRefreshInterval.value = seconds;
+  if (autoRefreshEnabled.value) {
+    startAutoRefresh();
+  }
 };
 
 // 生命周期
@@ -697,20 +1138,19 @@ onMounted(() => {
   // 监听窗口大小变化
   window.addEventListener("resize", handleResize);
 
-  // 每 60 秒自动刷新
-  const refreshInterval = setInterval(() => {
-    refreshData();
-  }, 60000);
+  // 启动自动刷新
+  startAutoRefresh();
+});
 
-  onUnmounted(() => {
-    window.removeEventListener("resize", handleResize);
-    clearInterval(refreshInterval);
+// 清理资源
+onUnmounted(() => {
+  window.removeEventListener("resize", handleResize);
+  stopAutoRefresh();
 
-    // 销毁图表实例
-    tokenTrendChartInstance?.dispose();
-    providerCostChartInstance?.dispose();
-    modelCostChartInstance?.dispose();
-  });
+  // 销毁图表实例
+  tokenTrendChartInstance?.dispose();
+  providerCostChartInstance?.dispose();
+  modelCostChartInstance?.dispose();
 });
 </script>
 
@@ -742,7 +1182,8 @@ onMounted(() => {
 
   .page-content {
     .stats-row,
-    .optimization-row {
+    .optimization-row,
+    .cache-budget-row {
       margin-bottom: 16px;
     }
 
@@ -760,6 +1201,44 @@ onMounted(() => {
 
     .controls-card {
       margin-bottom: 16px;
+
+      .auto-refresh-label {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: #595959;
+        font-size: 14px;
+      }
+    }
+
+    .detail-card {
+      .cache-info,
+      .budget-info {
+        font-size: 13px;
+        color: #8c8c8c;
+      }
+
+      .budget-item {
+        margin-bottom: 16px;
+
+        &:last-of-type {
+          margin-bottom: 0;
+        }
+
+        .budget-label {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 6px;
+          font-size: 14px;
+          color: #595959;
+
+          .budget-value {
+            font-weight: 500;
+            color: #262626;
+          }
+        }
+      }
     }
 
     .chart-card {
