@@ -10,16 +10,16 @@
  * - 持久化支持
  */
 
-const EventEmitter = require('events');
+const EventEmitter = require("events");
 
 /**
  * DID缓存配置
  */
 const DEFAULT_CONFIG = {
-  maxSize: 1000,                    // 最大缓存数量
-  ttl: 24 * 60 * 60 * 1000,        // 缓存过期时间 (24小时)
+  maxSize: 1000, // 最大缓存数量
+  ttl: 24 * 60 * 60 * 1000, // 缓存过期时间 (24小时)
   cleanupInterval: 60 * 60 * 1000, // 清理间隔 (1小时)
-  enablePersistence: true,          // 启用持久化
+  enablePersistence: true, // 启用持久化
 };
 
 /**
@@ -46,14 +46,14 @@ class DIDCache extends EventEmitter {
     // 清理定时器
     this.cleanupTimer = null;
 
-    console.log('[DIDCache] DID缓存管理器已创建');
+    console.log("[DIDCache] DID缓存管理器已创建");
   }
 
   /**
    * 初始化缓存
    */
   async initialize() {
-    console.log('[DIDCache] 初始化DID缓存...');
+    console.log("[DIDCache] 初始化DID缓存...");
 
     try {
       // 确保缓存表存在
@@ -67,12 +67,12 @@ class DIDCache extends EventEmitter {
       // 启动定期清理
       this.startCleanup();
 
-      console.log('[DIDCache] DID缓存初始化成功');
-      this.emit('initialized');
+      console.log("[DIDCache] DID缓存初始化成功");
+      this.emit("initialized");
 
       return true;
     } catch (error) {
-      console.error('[DIDCache] 初始化失败:', error);
+      console.error("[DIDCache] 初始化失败:", error);
       throw error;
     }
   }
@@ -99,9 +99,9 @@ class DIDCache extends EventEmitter {
         ON did_cache(expires_at)
       `);
 
-      console.log('[DIDCache] 缓存表已就绪');
+      console.log("[DIDCache] 缓存表已就绪");
     } catch (error) {
-      console.error('[DIDCache] 创建缓存表失败:', error);
+      console.error("[DIDCache] 创建缓存表失败:", error);
       throw error;
     }
   }
@@ -113,30 +113,30 @@ class DIDCache extends EventEmitter {
     try {
       const now = Date.now();
 
-      const result = this.db.exec(`
+      const rows = this.db
+        .prepare(
+          `
         SELECT did, document, cached_at, expires_at, access_count
         FROM did_cache
         WHERE expires_at > ?
         ORDER BY last_accessed_at DESC
         LIMIT ?
-      `, [now, this.config.maxSize]);
+      `,
+        )
+        .all(now, this.config.maxSize);
 
-      if (!result || result.length === 0 || !result[0].values) {
-        console.log('[DIDCache] 数据库中无有效缓存');
+      if (!rows || rows.length === 0) {
+        console.log("[DIDCache] 数据库中无有效缓存");
         return;
       }
-
-      const rows = result[0].values;
       let loadedCount = 0;
 
       for (const row of rows) {
-        const [did, document, cachedAt, expiresAt, accessCount] = row;
-
-        this.cache.set(did, {
-          document: JSON.parse(document),
-          cachedAt,
-          expiresAt,
-          accessCount,
+        this.cache.set(row.did, {
+          document: JSON.parse(row.document),
+          cachedAt: row.cached_at,
+          expiresAt: row.expires_at,
+          accessCount: row.access_count,
         });
 
         loadedCount++;
@@ -144,7 +144,7 @@ class DIDCache extends EventEmitter {
 
       console.log(`[DIDCache] 从数据库加载了 ${loadedCount} 个缓存项`);
     } catch (error) {
-      console.error('[DIDCache] 从数据库加载缓存失败:', error);
+      console.error("[DIDCache] 从数据库加载缓存失败:", error);
     }
   }
 
@@ -159,7 +159,7 @@ class DIDCache extends EventEmitter {
 
       if (!cached) {
         this.stats.misses++;
-        this.emit('cache-miss', { did });
+        this.emit("cache-miss", { did });
         return null;
       }
 
@@ -170,7 +170,7 @@ class DIDCache extends EventEmitter {
         this.stats.misses++;
         this.stats.expirations++;
         this.cache.delete(did);
-        this.emit('cache-expired', { did });
+        this.emit("cache-expired", { did });
 
         // 从数据库删除
         if (this.config.enablePersistence) {
@@ -194,11 +194,11 @@ class DIDCache extends EventEmitter {
         await this.updateAccessInDatabase(did, cached.accessCount, now);
       }
 
-      this.emit('cache-hit', { did });
+      this.emit("cache-hit", { did });
 
       return cached.document;
     } catch (error) {
-      console.error('[DIDCache] 获取缓存失败:', error);
+      console.error("[DIDCache] 获取缓存失败:", error);
       this.stats.misses++;
       return null;
     }
@@ -225,7 +225,7 @@ class DIDCache extends EventEmitter {
           await this.deleteFromDatabase(firstKey);
         }
 
-        this.emit('cache-evicted', { did: firstKey });
+        this.emit("cache-evicted", { did: firstKey });
       }
 
       // 添加到缓存
@@ -242,11 +242,11 @@ class DIDCache extends EventEmitter {
         await this.saveToDatabase(did, document, now, expiresAt);
       }
 
-      this.emit('cache-set', { did });
+      this.emit("cache-set", { did });
 
       console.log(`[DIDCache] 已缓存 DID: ${did}`);
     } catch (error) {
-      console.error('[DIDCache] 设置缓存失败:', error);
+      console.error("[DIDCache] 设置缓存失败:", error);
       throw error;
     }
   }
@@ -265,7 +265,7 @@ class DIDCache extends EventEmitter {
           await this.deleteFromDatabase(did);
         }
 
-        this.emit('cache-cleared', { did });
+        this.emit("cache-cleared", { did });
         console.log(`[DIDCache] 已清除缓存: ${did}`);
       } else {
         // 清除所有缓存
@@ -273,15 +273,15 @@ class DIDCache extends EventEmitter {
         this.cache.clear();
 
         if (this.config.enablePersistence) {
-          this.db.prepare('DELETE FROM did_cache').run();
+          this.db.prepare("DELETE FROM did_cache").run();
           this.db.saveToFile();
         }
 
-        this.emit('cache-cleared-all', { count: size });
+        this.emit("cache-cleared-all", { count: size });
         console.log(`[DIDCache] 已清除所有缓存 (${size}个)`);
       }
     } catch (error) {
-      console.error('[DIDCache] 清除缓存失败:', error);
+      console.error("[DIDCache] 清除缓存失败:", error);
       throw error;
     }
   }
@@ -299,7 +299,7 @@ class DIDCache extends EventEmitter {
       size: this.cache.size,
       maxSize: this.config.maxSize,
       totalRequests,
-      hitRate: (hitRate * 100).toFixed(2) + '%',
+      hitRate: (hitRate * 100).toFixed(2) + "%",
       memoryUsage: this.estimateMemoryUsage(),
     };
   }
@@ -315,8 +315,8 @@ class DIDCache extends EventEmitter {
       expirations: 0,
     };
 
-    this.emit('stats-reset');
-    console.log('[DIDCache] 统计信息已重置');
+    this.emit("stats-reset");
+    console.log("[DIDCache] 统计信息已重置");
   }
 
   /**
@@ -351,7 +351,7 @@ class DIDCache extends EventEmitter {
       this.cleanup();
     }, this.config.cleanupInterval);
 
-    console.log('[DIDCache] 定期清理已启动');
+    console.log("[DIDCache] 定期清理已启动");
   }
 
   /**
@@ -361,7 +361,7 @@ class DIDCache extends EventEmitter {
     if (this.cleanupTimer) {
       clearInterval(this.cleanupTimer);
       this.cleanupTimer = null;
-      console.log('[DIDCache] 定期清理已停止');
+      console.log("[DIDCache] 定期清理已停止");
     }
   }
 
@@ -391,11 +391,11 @@ class DIDCache extends EventEmitter {
       }
 
       if (expiredKeys.length > 0) {
-        this.emit('cleanup-completed', { count: expiredKeys.length });
+        this.emit("cleanup-completed", { count: expiredKeys.length });
         console.log(`[DIDCache] 清理了 ${expiredKeys.length} 个过期缓存`);
       }
     } catch (error) {
-      console.error('[DIDCache] 清理失败:', error);
+      console.error("[DIDCache] 清理失败:", error);
     }
   }
 
@@ -404,21 +404,19 @@ class DIDCache extends EventEmitter {
    */
   async saveToDatabase(did, document, cachedAt, expiresAt) {
     try {
-      this.db.prepare(`
+      this.db
+        .prepare(
+          `
         INSERT OR REPLACE INTO did_cache (
           did, document, cached_at, expires_at, access_count, last_accessed_at
         ) VALUES (?, ?, ?, ?, 0, ?)
-      `).run([
-        did,
-        JSON.stringify(document),
-        cachedAt,
-        expiresAt,
-        cachedAt,
-      ]);
+      `,
+        )
+        .run([did, JSON.stringify(document), cachedAt, expiresAt, cachedAt]);
 
       this.db.saveToFile();
     } catch (error) {
-      console.error('[DIDCache] 保存到数据库失败:', error);
+      console.error("[DIDCache] 保存到数据库失败:", error);
     }
   }
 
@@ -427,10 +425,10 @@ class DIDCache extends EventEmitter {
    */
   async deleteFromDatabase(did) {
     try {
-      this.db.prepare('DELETE FROM did_cache WHERE did = ?').run([did]);
+      this.db.prepare("DELETE FROM did_cache WHERE did = ?").run([did]);
       this.db.saveToFile();
     } catch (error) {
-      console.error('[DIDCache] 从数据库删除失败:', error);
+      console.error("[DIDCache] 从数据库删除失败:", error);
     }
   }
 
@@ -439,15 +437,19 @@ class DIDCache extends EventEmitter {
    */
   async updateAccessInDatabase(did, accessCount, lastAccessedAt) {
     try {
-      this.db.prepare(`
+      this.db
+        .prepare(
+          `
         UPDATE did_cache
         SET access_count = ?, last_accessed_at = ?
         WHERE did = ?
-      `).run([accessCount, lastAccessedAt, did]);
+      `,
+        )
+        .run([accessCount, lastAccessedAt, did]);
 
       // 不立即保存，减少I/O
     } catch (error) {
-      console.error('[DIDCache] 更新访问记录失败:', error);
+      console.error("[DIDCache] 更新访问记录失败:", error);
     }
   }
 
@@ -455,7 +457,7 @@ class DIDCache extends EventEmitter {
    * 销毁缓存管理器
    */
   async destroy() {
-    console.log('[DIDCache] 销毁DID缓存管理器...');
+    console.log("[DIDCache] 销毁DID缓存管理器...");
 
     // 停止清理定时器
     this.stopCleanup();
@@ -466,7 +468,7 @@ class DIDCache extends EventEmitter {
     // 移除所有监听器
     this.removeAllListeners();
 
-    console.log('[DIDCache] DID缓存管理器已销毁');
+    console.log("[DIDCache] DID缓存管理器已销毁");
   }
 }
 
