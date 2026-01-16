@@ -432,6 +432,14 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.invoke("marketplace:request-refund", transactionId, reason),
     getMyOrders: (userDid) =>
       ipcRenderer.invoke("marketplace:get-my-orders", userDid),
+    // 搜索相关
+    searchOrders: (options) =>
+      ipcRenderer.invoke("marketplace:search-orders", options),
+    getSearchSuggestions: (prefix, limit = 10) =>
+      ipcRenderer.invoke("marketplace:get-search-suggestions", prefix, limit),
+    // 订单更新
+    updateOrder: (orderId, updates) =>
+      ipcRenderer.invoke("trade:update-order", { orderId, ...updates }),
   },
 
   // 托管管理
