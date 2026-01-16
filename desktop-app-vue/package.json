@@ -249,5 +249,9 @@
     "*.{json,md}": [
       "prettier --write"
     ]
+  },
+  "overrides": {
+    "cookie": ">=0.7.0",
+    "diff": ">=8.0.3"
   }
 }
