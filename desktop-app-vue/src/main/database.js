@@ -4253,8 +4253,9 @@ class DatabaseManager {
   /**
    * 备份数据库
    * @param {string} backupPath - 备份路径
+   * @returns {Promise<void>}
    */
-  backup(backupPath) {
+  async backup(backupPath) {
     if (!this.db) {
       throw new Error("数据库未初始化");
     }
@@ -4266,19 +4267,43 @@ class DatabaseManager {
       const data = this.db.export();
       const buffer = Buffer.from(data);
       fs.writeFileSync(backupPath, buffer);
-    } else if (
-      this.db.__betterSqliteCompat ||
-      typeof this.db.backup === "function"
-    ) {
-      // better-sqlite3: use backup() for synchronous backup
-      this.db.backup(backupPath);
-    } else {
-      // Fallback: copy the database file directly
-      if (this.dbPath && fs.existsSync(this.dbPath)) {
-        fs.copyFileSync(this.dbPath, backupPath);
-      } else {
-        throw new Error("无法备份数据库: 不支持的数据库类型");
+      return;
+    }
+
+    // better-sqlite3 / better-sqlite3-multiple-ciphers: check if connection is open
+    if (this.db.__betterSqliteCompat || typeof this.db.backup === "function") {
+      // Check if database connection is still open
+      // better-sqlite3 has an 'open' property that indicates connection status
+      if (this.db.open === false) {
+        console.warn("[Database] 数据库连接已关闭，使用文件复制备份");
+        if (this.dbPath && fs.existsSync(this.dbPath)) {
+          fs.copyFileSync(this.dbPath, backupPath);
+          return;
+        }
+        throw new Error("数据库连接已关闭且无法复制文件");
       }
+
+      try {
+        // better-sqlite3-multiple-ciphers backup() returns a Promise
+        // better-sqlite3 backup() is synchronous but can be awaited safely
+        await this.db.backup(backupPath);
+        return;
+      } catch (error) {
+        // If backup fails (e.g., connection issues), try file copy as fallback
+        console.warn("[Database] backup() 失败，尝试文件复制:", error.message);
+        if (this.dbPath && fs.existsSync(this.dbPath)) {
+          fs.copyFileSync(this.dbPath, backupPath);
+          return;
+        }
+        throw error;
+      }
+    }
+
+    // Fallback: copy the database file directly
+    if (this.dbPath && fs.existsSync(this.dbPath)) {
+      fs.copyFileSync(this.dbPath, backupPath);
+    } else {
+      throw new Error("无法备份数据库: 不支持的数据库类型");
     }
   }
 
