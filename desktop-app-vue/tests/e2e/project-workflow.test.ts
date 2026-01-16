@@ -2,16 +2,16 @@
  * E2E测试 - 项目工作流程
  *
  * 注意：这些测试需要实际的Electron环境
- * 运行前需要安装 @playwright/test 或 spectron
+ * 运行前需要安装 @playwright/test
  */
 
-import { describe, it, expect } from 'vitest';
+import { test, expect } from '@playwright/test';
 
-describe('项目工作流程 E2E测试', () => {
+test.describe('项目工作流程 E2E测试', () => {
   // 这里是E2E测试的占位符
-  // 实际的E2E测试需要配置Playwright或Spectron
+  // 实际的E2E测试需要配置Playwright
 
-  it.skip('应该能够创建新项目', async () => {
+  test.skip('应该能够创建新项目', async () => {
     // TODO: 实现E2E测试
     // 1. 启动应用
     // 2. 点击"新建项目"
@@ -21,7 +21,7 @@ describe('项目工作流程 E2E测试', () => {
     expect(true).toBe(true);
   });
 
-  it.skip('应该能够执行Python代码', async () => {
+  test.skip('应该能够执行Python代码', async () => {
     // TODO: 实现E2E测试
     // 1. 打开项目
     // 2. 创建Python文件
@@ -31,7 +31,7 @@ describe('项目工作流程 E2E测试', () => {
     expect(true).toBe(true);
   });
 
-  it.skip('应该能够使用AI助手', async () => {
+  test.skip('应该能够使用AI助手', async () => {
     // TODO: 实现E2E测试
     // 1. 打开项目
     // 2. 打开AI助手

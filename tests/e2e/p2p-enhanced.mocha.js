@@ -7,8 +7,7 @@
  * 3. 大文件分块传输和断点续传
  */
 
-const { describe, it, before, after } = require('mocha');
-const { expect } = require('chai');
+const { test, expect } = require('@playwright/test');
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
@@ -100,8 +99,8 @@ class MockP2PManager {
   }
 }
 
-describe('P2P Enhanced Features E2E Tests', function() {
-  this.timeout(30000);
+test.describe('P2P Enhanced Features E2E Tests', () => {
+  test.setTimeout(30000);
 
   let MessageManager;
   let KnowledgeSyncManager;
@@ -112,7 +111,7 @@ describe('P2P Enhanced Features E2E Tests', function() {
   let mockP2PManager;
   let enhancedManager;
 
-  before(async function() {
+  test.beforeAll(async () => {
     // 加载模块
     MessageManager = require('../../desktop-app-vue/src/main/p2p/message-manager');
     KnowledgeSyncManager = require('../../desktop-app-vue/src/main/p2p/knowledge-sync-manager');
@@ -124,10 +123,10 @@ describe('P2P Enhanced Features E2E Tests', function() {
     mockP2PManager = new MockP2PManager();
   });
 
-  describe('1. 消息去重和批量处理', function() {
+  test.describe('1. 消息去重和批量处理', () => {
     let messageManager;
 
-    beforeEach(function() {
+    test.beforeEach(() => {
       messageManager = new MessageManager({
         batchSize: 3,
         batchInterval: 100,
@@ -137,17 +136,17 @@ describe('P2P Enhanced Features E2E Tests', function() {
       });
     });
 
-    afterEach(function() {
+    test.afterEach(() => {
       messageManager.cleanup();
     });
 
-    it('应该生成唯一的消息ID', function() {
+    test('应该生成唯一的消息ID', () => {
       const id1 = messageManager.generateMessageId();
       const id2 = messageManager.generateMessageId();
 
-      expect(id1).to.be.a('string');
-      expect(id2).to.be.a('string');
-      expect(id1).to.not.equal(id2);
+      expect(typeof id1).toBe('string');
+      expect(typeof id2).toBe('string');
+      expect(id1).not.toBe(id2);
     });
 
     it('应该检测重复消息', async function() {
@@ -245,7 +244,7 @@ describe('P2P Enhanced Features E2E Tests', function() {
     let knowledgeSyncManager;
     let messageManager;
 
-    beforeEach(function() {
+    test.beforeEach(() => {
       mockDatabase = new MockDatabase();
       messageManager = new MessageManager();
       knowledgeSyncManager = new KnowledgeSyncManager(mockDatabase, messageManager, {
@@ -256,7 +255,7 @@ describe('P2P Enhanced Features E2E Tests', function() {
       });
     });
 
-    afterEach(function() {
+    test.afterEach(() => {
       knowledgeSyncManager.cleanup();
       messageManager.cleanup();
     });
@@ -364,7 +363,7 @@ describe('P2P Enhanced Features E2E Tests', function() {
       }
     });
 
-    beforeEach(function() {
+    test.beforeEach(() => {
       messageManager = new MessageManager();
       fileTransferManager = new FileTransferManager(messageManager, {
         chunkSize: 64 * 1024,
@@ -373,7 +372,7 @@ describe('P2P Enhanced Features E2E Tests', function() {
       });
     });
 
-    afterEach(function() {
+    test.afterEach(() => {
       fileTransferManager.cleanup();
       messageManager.cleanup();
     });
