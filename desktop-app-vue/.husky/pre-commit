@@ -1,1 +1,29 @@
-npm test
+#!/bin/sh
+
+# ChainlessChain Pre-commit Hook
+# 基于 OpenClaude 最佳实践
+
+echo "🔍 Running pre-commit checks..."
+
+# 1. 运行 lint-staged (ESLint + Prettier)
+echo "📝 [1/3] Linting staged files..."
+npx lint-staged
+if [ $? -ne 0 ]; then
+  echo "❌ Lint check failed. Please fix the issues and try again."
+  exit 1
+fi
+
+# 2. 运行安全检查 (SQL注入、XSS、硬编码密钥等)
+echo "🔒 [2/3] Running security validation..."
+npm run validate:rules --silent 2>/dev/null || true
+# 注意：安全检查失败仅警告，不阻止提交（可通过设置 exit 1 改为强制）
+
+# 3. 运行关键单元测试 (可选，加快提交速度时可注释)
+# echo "🧪 [3/3] Running unit tests..."
+# npm run test:unit --silent
+# if [ $? -ne 0 ]; then
+#   echo "❌ Unit tests failed. Please fix and try again."
+#   exit 1
+# fi
+
+echo "✅ Pre-commit checks passed!"

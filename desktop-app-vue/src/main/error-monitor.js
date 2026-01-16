@@ -93,7 +93,21 @@ class ErrorMonitor extends EventEmitter {
     return {
       SQLITE_BUSY: async (error, context = {}) => {
         console.log("[Auto-Fix] Attempting to fix database lock...");
-        // 指数退避重试策略
+
+        // 1. 尝试设置 WAL 模式和增加超时（如果有数据库实例）
+        if (context.database || this.database) {
+          const db = context.database || this.database;
+          try {
+            await this.optimizeSQLiteForConcurrency(db);
+          } catch (walError) {
+            console.warn(
+              "[Auto-Fix] Could not optimize SQLite settings:",
+              walError.message,
+            );
+          }
+        }
+
+        // 2. 指数退避重试策略
         return await this.retryWithExponentialBackoff(
           context.retryFn,
           {
@@ -108,7 +122,21 @@ class ErrorMonitor extends EventEmitter {
 
       DATABASE_LOCKED: async (error, context = {}) => {
         console.log("[Auto-Fix] Attempting to fix database lock (generic)...");
-        // 与 SQLITE_BUSY 相同的策略
+
+        // 1. 检查并释放可能的数据库锁
+        if (context.database || this.database) {
+          const db = context.database || this.database;
+          try {
+            await this.releaseDatabaseLock(db);
+          } catch (releaseError) {
+            console.warn(
+              "[Auto-Fix] Could not release database lock:",
+              releaseError.message,
+            );
+          }
+        }
+
+        // 2. 指数退避重试
         return await this.retryWithExponentialBackoff(
           context.retryFn,
           {
@@ -125,8 +153,35 @@ class ErrorMonitor extends EventEmitter {
         console.log("[Auto-Fix] Attempting to reconnect to service...");
         const service = this.identifyService(error);
 
-        // 先尝试直接重连（可能是临时网络问题）
-        const reconnectResult = await this.retryWithExponentialBackoff(
+        // 1. 使用新的智能重连方法（包含健康检查和自动重启）
+        if (service !== "unknown") {
+          const reconnectResult =
+            await this.attemptServiceReconnection(service);
+          if (reconnectResult.success) {
+            // 服务恢复后，如果有重试函数则执行
+            if (context.retryFn) {
+              try {
+                const result = await context.retryFn();
+                return {
+                  success: true,
+                  message: `${service} reconnected and operation succeeded`,
+                  serviceRecovery: reconnectResult,
+                  result,
+                };
+              } catch (retryError) {
+                return {
+                  success: false,
+                  message: `${service} reconnected but operation failed: ${retryError.message}`,
+                  serviceRecovery: reconnectResult,
+                };
+              }
+            }
+            return reconnectResult;
+          }
+        }
+
+        // 2. 未知服务或智能重连失败，使用传统重试
+        const retryResult = await this.retryWithExponentialBackoff(
           context.retryFn,
           {
             maxRetries: 3,
@@ -137,24 +192,24 @@ class ErrorMonitor extends EventEmitter {
           "ECONNREFUSED",
         );
 
-        if (reconnectResult.success) {
-          return reconnectResult;
+        if (retryResult.success) {
+          return retryResult;
         }
 
-        // 重连失败，尝试启动服务
-        if (service === "ollama") {
-          return await this.restartOllamaService();
-        } else if (service === "qdrant") {
-          return await this.restartQdrantService();
-        } else if (service === "postgres") {
-          return await this.restartPostgresService();
-        } else if (service === "redis") {
-          return await this.restartRedisService();
+        // 3. 最后尝试：直接启动服务容器
+        if (service !== "unknown") {
+          const startResult = await this.restartService(service);
+          return {
+            ...startResult,
+            retryAttempted: true,
+            port: this.extractPort(error),
+          };
         }
 
         return {
           success: false,
           message: `Could not identify or restart service (port: ${this.extractPort(error) || "unknown"})`,
+          suggestion: "Check if the service is installed and Docker is running",
         };
       },
 
@@ -835,6 +890,341 @@ class ErrorMonitor extends EventEmitter {
    */
   sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  // ============================================================
+  // 🔧 SQLite 锁修复方法
+  // ============================================================
+
+  /**
+   * 优化 SQLite 并发性能
+   * @param {Object} db - 数据库实例
+   * @returns {Promise<Object>} 优化结果
+   */
+  async optimizeSQLiteForConcurrency(db) {
+    const results = {
+      walMode: false,
+      busyTimeout: false,
+      synchronous: false,
+    };
+
+    try {
+      // 检查是否有 db.db（better-sqlite3 包装）
+      const sqliteDb = db.db || db;
+
+      // 1. 设置 WAL 模式（Write-Ahead Logging）- 提高并发性能
+      try {
+        if (typeof sqliteDb.pragma === "function") {
+          const currentMode = sqliteDb.pragma("journal_mode", {
+            simple: true,
+          });
+          if (currentMode !== "wal") {
+            sqliteDb.pragma("journal_mode = WAL");
+            console.log("[Auto-Fix] SQLite: Enabled WAL mode");
+          }
+          results.walMode = true;
+        } else if (typeof sqliteDb.exec === "function") {
+          sqliteDb.exec("PRAGMA journal_mode = WAL;");
+          results.walMode = true;
+        }
+      } catch (walError) {
+        console.warn("[Auto-Fix] Could not set WAL mode:", walError.message);
+      }
+
+      // 2. 设置 busy_timeout（等待锁的最大时间，单位毫秒）
+      try {
+        if (typeof sqliteDb.pragma === "function") {
+          sqliteDb.pragma("busy_timeout = 30000"); // 30 秒
+          results.busyTimeout = true;
+        } else if (typeof sqliteDb.exec === "function") {
+          sqliteDb.exec("PRAGMA busy_timeout = 30000;");
+          results.busyTimeout = true;
+        }
+        console.log("[Auto-Fix] SQLite: Set busy_timeout to 30s");
+      } catch (timeoutError) {
+        console.warn(
+          "[Auto-Fix] Could not set busy_timeout:",
+          timeoutError.message,
+        );
+      }
+
+      // 3. 设置 synchronous 为 NORMAL（平衡性能和安全性）
+      try {
+        if (typeof sqliteDb.pragma === "function") {
+          sqliteDb.pragma("synchronous = NORMAL");
+          results.synchronous = true;
+        } else if (typeof sqliteDb.exec === "function") {
+          sqliteDb.exec("PRAGMA synchronous = NORMAL;");
+          results.synchronous = true;
+        }
+      } catch (syncError) {
+        // 不是关键错误，忽略
+      }
+
+      return {
+        success: true,
+        message: "SQLite optimized for concurrency",
+        details: results,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: `Failed to optimize SQLite: ${error.message}`,
+        details: results,
+      };
+    }
+  }
+
+  /**
+   * 尝试释放数据库锁
+   * @param {Object} db - 数据库实例
+   * @returns {Promise<Object>} 释放结果
+   */
+  async releaseDatabaseLock(db) {
+    try {
+      const sqliteDb = db.db || db;
+
+      // 1. 执行 checkpoint 强制 WAL 文件写入主数据库
+      try {
+        if (typeof sqliteDb.pragma === "function") {
+          sqliteDb.pragma("wal_checkpoint(TRUNCATE)");
+          console.log("[Auto-Fix] SQLite: Executed WAL checkpoint");
+        } else if (typeof sqliteDb.exec === "function") {
+          sqliteDb.exec("PRAGMA wal_checkpoint(TRUNCATE);");
+        }
+      } catch (checkpointError) {
+        // checkpoint 失败不是致命错误
+        console.warn(
+          "[Auto-Fix] WAL checkpoint failed:",
+          checkpointError.message,
+        );
+      }
+
+      // 2. 等待短暂时间让其他事务完成
+      await this.sleep(100);
+
+      // 3. 检查锁状态（通过尝试开始一个事务）
+      try {
+        if (typeof sqliteDb.exec === "function") {
+          sqliteDb.exec("BEGIN IMMEDIATE; COMMIT;");
+          console.log("[Auto-Fix] SQLite: Database lock released");
+          return {
+            success: true,
+            message: "Database lock released successfully",
+          };
+        }
+      } catch (lockTestError) {
+        // 如果仍然锁定，返回等待建议
+        return {
+          success: false,
+          message: `Database still locked: ${lockTestError.message}`,
+          suggestion: "Wait and retry",
+        };
+      }
+
+      return {
+        success: true,
+        message: "Lock release attempted",
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: `Failed to release lock: ${error.message}`,
+      };
+    }
+  }
+
+  // ============================================================
+  // 🔧 网络重连修复方法
+  // ============================================================
+
+  /**
+   * 验证网络服务连接
+   * @param {string} service - 服务名称
+   * @param {string} host - 主机地址
+   * @param {number} port - 端口号
+   * @returns {Promise<Object>} 连接验证结果
+   */
+  async validateServiceConnection(service, host = "localhost", port) {
+    const net = require("net");
+
+    return new Promise((resolve) => {
+      const socket = new net.Socket();
+      const timeout = 5000;
+
+      socket.setTimeout(timeout);
+
+      socket.on("connect", () => {
+        socket.destroy();
+        resolve({
+          success: true,
+          message: `${service} is reachable at ${host}:${port}`,
+          latency: Date.now() - startTime,
+        });
+      });
+
+      socket.on("timeout", () => {
+        socket.destroy();
+        resolve({
+          success: false,
+          message: `${service} connection timeout at ${host}:${port}`,
+        });
+      });
+
+      socket.on("error", (err) => {
+        socket.destroy();
+        resolve({
+          success: false,
+          message: `${service} connection error: ${err.message}`,
+          error: err.code,
+        });
+      });
+
+      const startTime = Date.now();
+      socket.connect(port, host);
+    });
+  }
+
+  /**
+   * 尝试健康检查并重连服务
+   * @param {string} service - 服务名称
+   * @param {Object} options - 重连选项
+   * @returns {Promise<Object>} 重连结果
+   */
+  async attemptServiceReconnection(service, options = {}) {
+    const serviceConfig = {
+      ollama: { port: 11434, healthPath: "/api/tags" },
+      qdrant: { port: 6333, healthPath: "/readyz" },
+      postgres: { port: 5432, healthPath: null },
+      redis: { port: 6379, healthPath: null },
+    };
+
+    const config = serviceConfig[service];
+    if (!config) {
+      return { success: false, message: `Unknown service: ${service}` };
+    }
+
+    // 1. 首先检查端口是否可达
+    console.log(
+      `[Auto-Fix] Checking ${service} connectivity on port ${config.port}...`,
+    );
+    const portCheck = await this.validateServiceConnection(
+      service,
+      "localhost",
+      config.port,
+    );
+
+    if (portCheck.success) {
+      // 端口可达，尝试 HTTP 健康检查（如果支持）
+      if (config.healthPath) {
+        try {
+          const http = require("http");
+          const healthResult = await new Promise((resolve) => {
+            const req = http.get(
+              `http://localhost:${config.port}${config.healthPath}`,
+              { timeout: 3000 },
+              (res) => {
+                resolve({
+                  success: res.statusCode >= 200 && res.statusCode < 400,
+                  statusCode: res.statusCode,
+                });
+              },
+            );
+            req.on("error", (err) => {
+              resolve({ success: false, error: err.message });
+            });
+            req.on("timeout", () => {
+              req.destroy();
+              resolve({ success: false, error: "Health check timeout" });
+            });
+          });
+
+          if (healthResult.success) {
+            return {
+              success: true,
+              message: `${service} is healthy and responding`,
+              port: config.port,
+            };
+          }
+        } catch (healthError) {
+          console.warn(
+            `[Auto-Fix] ${service} health check failed:`,
+            healthError.message,
+          );
+        }
+      } else {
+        // 无健康检查端点，端口可达即认为成功
+        return {
+          success: true,
+          message: `${service} port is reachable`,
+          port: config.port,
+        };
+      }
+    }
+
+    // 2. 端口不可达或健康检查失败，尝试重启服务
+    console.log(`[Auto-Fix] ${service} not responding, attempting restart...`);
+    const restartResult = await this.restartService(service);
+
+    if (restartResult.success) {
+      // 等待服务启动后再次验证
+      await this.sleep(3000);
+      const recheck = await this.validateServiceConnection(
+        service,
+        "localhost",
+        config.port,
+      );
+      return {
+        success: recheck.success,
+        message: recheck.success
+          ? `${service} restarted and responding`
+          : `${service} restarted but not responding yet`,
+        restarted: true,
+      };
+    }
+
+    return restartResult;
+  }
+
+  /**
+   * 通用服务重启方法
+   * @param {string} service - 服务名称
+   * @returns {Promise<Object>} 重启结果
+   */
+  async restartService(service) {
+    const { exec } = require("child_process");
+    const util = require("util");
+    const execPromise = util.promisify(exec);
+
+    const containerNames = {
+      ollama: "chainlesschain-ollama",
+      qdrant: "chainlesschain-qdrant",
+      postgres: "chainlesschain-postgres",
+      redis: "chainlesschain-redis",
+    };
+
+    const containerName = containerNames[service];
+    if (!containerName) {
+      return { success: false, message: `No container mapping for ${service}` };
+    }
+
+    try {
+      // 尝试启动 Docker 容器
+      await execPromise(`docker start ${containerName}`);
+      console.log(`[Auto-Fix] Started Docker container: ${containerName}`);
+      return {
+        success: true,
+        message: `${service} container started`,
+        container: containerName,
+      };
+    } catch (dockerError) {
+      // Docker 失败，可能容器不存在或 Docker 未运行
+      return {
+        success: false,
+        message: `Failed to start ${service}: ${dockerError.message}`,
+        suggestion: "Check if Docker is running and container exists",
+      };
+    }
   }
 
   // ============================================================

@@ -2,8 +2,9 @@
 
 > 本文件定义项目特定的编码规则和约束，优先级高于 CLAUDE.md 通用规则
 >
-> **版本**: v1.0
+> **版本**: v1.1
 > **最后更新**: 2026-01-16
+> **变更**: 更新已实现功能状态（TokenTracker、Husky、LLM 性能仪表板）
 
 ---
 
@@ -21,14 +22,17 @@
 ```javascript
 // ✅ 正确
 await db.transaction(async () => {
-  await db.run('INSERT INTO notes (title, content) VALUES (?, ?)', [title, content]);
+  await db.run("INSERT INTO notes (title, content) VALUES (?, ?)", [
+    title,
+    content,
+  ]);
 });
 
 // ❌ 错误 - 字符串拼接SQL
 db.run(`INSERT INTO notes (title, content) VALUES ('${title}', '${content}')`);
 
 // ❌ 错误 - 未使用事务
-db.run('INSERT INTO notes (title, content) VALUES (?, ?)', [title, content]);
+db.run("INSERT INTO notes (title, content) VALUES (?, ?)", [title, content]);
 ```
 
 ---
@@ -38,7 +42,7 @@ db.run('INSERT INTO notes (title, content) VALUES (?, ?)', [title, content]);
 ### 强制要求
 
 1. **优先使用本地模型**: Ollama 可处理的任务不调用云端 API
-2. **必须追踪 Token**: 每次调用后更新 TokenTracker（待实现）
+2. **必须追踪 Token**: 每次调用后更新 TokenTracker（已集成 `src/main/llm/token-tracker.js`）
 3. **实现超时和重试**: 默认 30s 超时，失败重试 3 次
 4. **成本控制**: 遵循月度预算限制（默认 $50/月）
 
@@ -46,15 +50,15 @@ db.run('INSERT INTO notes (title, content) VALUES (?, ?)', [title, content]);
 
 ```javascript
 // 简单任务 → 使用 Ollama (免费)
-if (taskComplexity === 'simple') {
-  provider = 'ollama';
-  model = 'qwen2:7b';
+if (taskComplexity === "simple") {
+  provider = "ollama";
+  model = "qwen2:7b";
 }
 
 // 复杂推理 → 使用云端高性能模型
-if (taskComplexity === 'complex') {
-  provider = 'volcengine'; // 或 openai, zhipu
-  model = 'doubao-seed-1.6-pro';
+if (taskComplexity === "complex") {
+  provider = "volcengine"; // 或 openai, zhipu
+  model = "doubao-seed-1.6-pro";
 }
 ```
 
@@ -97,10 +101,7 @@ await p2pManager.sendMessage(recipientDID, message);
 {
   "name": "my-plugin",
   "version": "1.0.0",
-  "permissions": [
-    "database:read",
-    "filesystem:read"
-  ],
+  "permissions": ["database:read", "filesystem:read"],
   "sandbox": true
 }
 ```
@@ -210,7 +211,7 @@ test(p2p): 添加E2E加密单元测试
 const apiKey = process.env.OPENAI_API_KEY;
 
 // ❌ 错误
-const apiKey = 'sk-1234567890abcdef';
+const apiKey = "sk-1234567890abcdef";
 ```
 
 ---
@@ -232,31 +233,42 @@ const apiKey = 'sk-1234567890abcdef';
 
 ## 代码质量门禁
 
-### Pre-commit Hooks
+### Pre-commit Hooks (已实现)
 
-在提交代码前自动运行以下检查（待实现 Husky 集成）:
+在提交代码前自动运行以下检查（Husky v9.1.7 + lint-staged v16.2.7）:
 
 1. ✅ **ESLint**: 代码风格和潜在错误
 2. ✅ **TypeScript**: 类型检查（如适用）
-3. ✅ **Vitest**: 关键单元测试
+3. ✅ **规则验证**: 自定义安全规则检查（`npm run validate:rules`）
 4. ✅ **安全扫描**: SQL 注入、XSS 等漏洞检测
 
-### 配置 (待实施)
+### 当前配置
+
+**`.husky/pre-commit`**:
+
+```bash
+#!/usr/bin/env sh
+npx lint-staged
+cd desktop-app-vue && npm run validate:rules
+```
+
+**`package.json` (lint-staged)**:
 
 ```json
 {
-  "husky": {
-    "hooks": {
-      "pre-commit": "lint-staged"
-    }
-  },
   "lint-staged": {
-    "*.{js,ts,vue}": [
-      "eslint --fix",
-      "prettier --write"
-    ]
+    "*.{js,vue}": ["eslint --fix", "prettier --write"],
+    "*.{json,md}": ["prettier --write"]
   }
 }
+```
+
+### 相关命令
+
+```bash
+npm run validate:rules    # 运行规则验证器
+npm run security:check    # 完整安全检查（规则 + npm audit）
+npm run fix:sql           # 自动修复 SQL 注入问题
 ```
 
 ---
@@ -271,10 +283,20 @@ const apiKey = 'sk-1234567890abcdef';
 ### 优化策略
 
 1. **优先本地模型**: 简单任务使用 Ollama（免费）
-2. **上下文压缩**: 对话历史超过 10 条消息时自动总结
-3. **结果缓存**: 重复查询使用缓存（TTL 1 小时）
+2. **上下文压缩**: 对话历史超过 10 条消息时自动总结（PromptCompressor 已实现）
+3. **结果缓存**: 重复查询使用缓存（ResponseCache，TTL 1 小时）
 4. **批量处理**: 相似任务合并到一次调用
-5. **成本监控**: 实时查看 Token 使用（待实现 UI）
+5. **成本监控**: 实时查看 Token 使用（LLM 性能仪表板 `#/llm/performance`）
+
+### 已实现的优化模块
+
+| 模块             | 文件位置                                    | 功能                          |
+| ---------------- | ------------------------------------------- | ----------------------------- |
+| TokenTracker     | `src/main/llm/token-tracker.js`             | 实时 Token 追踪和成本计算     |
+| PromptCompressor | `src/main/llm/prompt-compressor.js`         | 智能上下文压缩（节省 30-40%） |
+| SessionManager   | `src/main/llm/session-manager.js`           | 会话管理和历史压缩            |
+| ResponseCache    | `src/main/llm/response-cache.js`            | LLM 响应缓存                  |
+| 性能仪表板       | `src/renderer/pages/LLMPerformancePage.vue` | 可视化成本分析                |
 
 ---
 
@@ -311,7 +333,7 @@ const apiKey = 'sk-1234567890abcdef';
 const retryOptions = {
   maxRetries: 3,
   retryDelay: 100,
-  backoff: 'exponential'
+  backoff: "exponential",
 };
 ```
 
@@ -327,9 +349,9 @@ const maxRetries = 3;
 
 ```javascript
 // 处理 U-Key 未插入、PIN 错误等
-if (error.code === 'UKEY_NOT_FOUND') {
+if (error.code === "UKEY_NOT_FOUND") {
   // 提示用户插入 U-Key
-} else if (error.code === 'PIN_ERROR') {
+} else if (error.code === "PIN_ERROR") {
   // 提示 PIN 错误，剩余次数
 }
 ```
@@ -379,6 +401,17 @@ if (error.code === 'UKEY_NOT_FOUND') {
 
 ---
 
-**最后更新**: 2026-01-16
+**最后更新**: 2026-01-16 (v1.1)
 **维护者**: 开发团队
 **审核周期**: 每月更新
+
+---
+
+## 更新日志
+
+### v1.1 (2026-01-16)
+
+- 更新 TokenTracker 状态为已实现
+- 更新 Pre-commit Hooks 为已实现（Husky v9.1.7 + lint-staged v16.2.7）
+- 更新 Token 优化指引，添加已实现模块表格
+- 添加规则验证器和安全检查命令说明

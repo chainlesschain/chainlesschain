@@ -95,6 +95,54 @@ configManager.clearCache("embeddings");
 - New code should use `UnifiedConfigManager` for centralized configuration
 - Logs will gradually migrate from `userData/logs` to `.chainlesschain/logs/`
 
+## Memory Bank System (OpenClaude Best Practice)
+
+**Status**: ✅ Implemented (v0.20.0)
+**Added**: 2026-01-16
+
+基于 OpenClaude 最佳实践，项目使用 Memory Bank 系统来保持 AI 助手的跨会话上下文。
+
+### Memory Bank 文件
+
+| 文件                        | 用途                       | 更新时机       |
+| --------------------------- | -------------------------- | -------------- |
+| `CLAUDE.md`                 | 主要项目文档和 AI 指南     | 重大功能变更时 |
+| `CLAUDE-patterns.md`        | 已验证的架构模式和解决方案 | 发现新模式时   |
+| `CLAUDE-decisions.md`       | 架构决策记录 (ADR)         | 重大架构决策时 |
+| `CLAUDE-troubleshooting.md` | 已知问题和解决方案         | 解决新问题时   |
+| `CLAUDE-activeContext.md`   | 当前会话状态和工作焦点     | 每次会话结束时 |
+
+### 使用方式
+
+**AI 助手应该**:
+
+1. 会话开始时阅读 `CLAUDE-activeContext.md` 了解当前状态
+2. 遇到问题时查阅 `CLAUDE-troubleshooting.md`
+3. 做架构决策时参考 `CLAUDE-decisions.md` 和 `CLAUDE-patterns.md`
+4. 会话结束时更新 `CLAUDE-activeContext.md`
+
+**开发者应该**:
+
+1. 解决新问题后更新 `CLAUDE-troubleshooting.md`
+2. 做出重要架构决策后添加 ADR 到 `CLAUDE-decisions.md`
+3. 发现有效模式后记录到 `CLAUDE-patterns.md`
+
+### 目录结构
+
+```
+项目根目录/
+├── CLAUDE.md                    # 主文档
+├── CLAUDE-patterns.md           # 架构模式
+├── CLAUDE-decisions.md          # 架构决策记录
+├── CLAUDE-troubleshooting.md    # 故障排除指南
+├── CLAUDE-activeContext.md      # 当前会话上下文
+└── .chainlesschain/
+    └── memory/                  # 运行时记忆数据
+        ├── sessions/            # 会话历史
+        ├── preferences/         # 用户偏好
+        └── learned-patterns/    # 学习到的模式
+```
+
 ## Critical Build & Development Commands
 
 ### Desktop Application (Primary Focus)
