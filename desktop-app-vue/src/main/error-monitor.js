@@ -2076,15 +2076,50 @@ ${error?.stack || "无堆栈信息"}
     };
 
     const classificationLabels = {
+      // 数据库错误
       DATABASE: "数据库",
+      DATABASE_LOCKED: "数据库锁定",
+      DATABASE_CORRUPT: "数据库损坏",
+      DATABASE_READONLY: "数据库只读",
+      // 网络错误
       NETWORK: "网络",
-      FILESYSTEM: "文件系统",
-      PERMISSION: "权限",
+      NETWORK_ERROR: "网络错误",
+      CONNECTION_REFUSED: "连接被拒绝",
+      CONNECTION_RESET: "连接重置",
       TIMEOUT: "超时",
+      DNS_ERROR: "DNS解析失败",
+      SSL_ERROR: "SSL/TLS错误",
+      // 文件系统错误
+      FILESYSTEM: "文件系统",
+      FILE_NOT_FOUND: "文件未找到",
+      PERMISSION_DENIED: "权限拒绝",
+      DISK_FULL: "磁盘已满",
+      FILE_LOCKED: "文件锁定",
+      PATH_TOO_LONG: "路径过长",
+      // 内存错误
       MEMORY: "内存",
+      MEMORY_LEAK: "内存泄漏",
+      STACK_OVERFLOW: "栈溢出",
+      // API/HTTP 错误
+      RATE_LIMIT: "速率限制",
+      AUTH_ERROR: "认证错误",
+      SERVER_ERROR: "服务器错误",
+      // Electron 错误
+      GPU_ERROR: "GPU错误",
+      IPC_ERROR: "IPC通信错误",
+      WINDOW_ERROR: "窗口错误",
+      // LLM/AI 错误
+      LLM_CONTEXT_LENGTH: "上下文长度超限",
+      LLM_MODEL_ERROR: "模型错误",
+      LLM_API_ERROR: "LLM API错误",
+      // 验证错误
+      VALIDATION: "验证错误",
+      // JavaScript 错误
       TYPE_ERROR: "类型错误",
       REFERENCE_ERROR: "引用错误",
       SYNTAX_ERROR: "语法错误",
+      RANGE_ERROR: "范围错误",
+      PERMISSION: "权限",
       UNKNOWN: "未知",
     };
 

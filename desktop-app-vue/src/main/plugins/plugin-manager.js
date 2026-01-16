@@ -17,6 +17,7 @@ const PermissionChecker = require("./permission-checker");
 const PluginAPI = require("./plugin-api");
 const PluginSandbox = require("./plugin-sandbox");
 const semver = require("./semver-utils");
+const { getPermissionDialogManager } = require("./permission-dialog-manager");
 
 class PluginManager extends EventEmitter {
   constructor(database, config = {}) {
