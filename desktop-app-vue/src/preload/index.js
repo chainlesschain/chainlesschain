@@ -2088,6 +2088,81 @@ contextBridge.exposeInMainWorld("electronAPI", {
       ipcRenderer.invoke("skill-tool:get-usage-analytics", dateRange),
     getCategoryStats: () => ipcRenderer.invoke("skill-tool:get-category-stats"),
   },
+
+  // MCP (Model Context Protocol) 服务器管理
+  mcp: {
+    // 服务器管理
+    listServers: () => ipcRenderer.invoke("mcp:list-servers"),
+    getConnectedServers: () => ipcRenderer.invoke("mcp:get-connected-servers"),
+    connectServer: (serverName, config) =>
+      ipcRenderer.invoke("mcp:connect-server", { serverName, config }),
+    disconnectServer: (serverName) =>
+      ipcRenderer.invoke("mcp:disconnect-server", { serverName }),
+
+    // 工具管理
+    listTools: (serverName) =>
+      ipcRenderer.invoke("mcp:list-tools", { serverName }),
+    callTool: (serverName, toolName, args) =>
+      ipcRenderer.invoke("mcp:call-tool", {
+        serverName,
+        toolName,
+        arguments: args,
+      }),
+
+    // 资源管理
+    listResources: (serverName) =>
+      ipcRenderer.invoke("mcp:list-resources", { serverName }),
+    readResource: (serverName, resourceUri) =>
+      ipcRenderer.invoke("mcp:read-resource", { serverName, resourceUri }),
+
+    // 性能监控
+    getMetrics: () => ipcRenderer.invoke("mcp:get-metrics"),
+
+    // 配置管理
+    getConfig: () => ipcRenderer.invoke("mcp:get-config"),
+    updateConfig: (config) =>
+      ipcRenderer.invoke("mcp:update-config", { config }),
+    getServerConfig: (serverName) =>
+      ipcRenderer.invoke("mcp:get-server-config", { serverName }),
+    updateServerConfig: (serverName, config) =>
+      ipcRenderer.invoke("mcp:update-server-config", { serverName, config }),
+
+    // 安全与同意
+    consentResponse: (requestId, decision) =>
+      ipcRenderer.invoke("mcp:consent-response", { requestId, decision }),
+    getPendingConsents: () => ipcRenderer.invoke("mcp:get-pending-consents"),
+    cancelConsent: (requestId) =>
+      ipcRenderer.invoke("mcp:cancel-consent", { requestId }),
+    clearConsentCache: () => ipcRenderer.invoke("mcp:clear-consent-cache"),
+
+    // 安全统计
+    getSecurityStats: () => ipcRenderer.invoke("mcp:get-security-stats"),
+    getAuditLog: (filters) =>
+      ipcRenderer.invoke("mcp:get-audit-log", filters || {}),
+
+    // 事件监听
+    onConsentRequest: (callback) => {
+      const handler = (_event, data) => callback(data);
+      ipcRenderer.on("mcp:consent-request", handler);
+      return () => ipcRenderer.removeListener("mcp:consent-request", handler);
+    },
+    onServerConnected: (callback) => {
+      const handler = (_event, data) => callback(data);
+      ipcRenderer.on("mcp:server-connected", handler);
+      return () => ipcRenderer.removeListener("mcp:server-connected", handler);
+    },
+    onServerDisconnected: (callback) => {
+      const handler = (_event, data) => callback(data);
+      ipcRenderer.on("mcp:server-disconnected", handler);
+      return () =>
+        ipcRenderer.removeListener("mcp:server-disconnected", handler);
+    },
+    onServerError: (callback) => {
+      const handler = (_event, data) => callback(data);
+      ipcRenderer.on("mcp:server-error", handler);
+      return () => ipcRenderer.removeListener("mcp:server-error", handler);
+    },
+  },
 });
 
 // Also expose a direct electron object for components that use window.electron.ipcRenderer

@@ -388,6 +388,203 @@ function registerMCPIPC(mcpManager, mcpAdapter, securityPolicy) {
     }
   });
 
+  // ==================== Security & Consent ====================
+
+  /**
+   * Handle consent response from renderer
+   */
+  ipcMain.handle(
+    "mcp:consent-response",
+    async (event, { requestId, decision }) => {
+      try {
+        console.log(`[MCP IPC] Consent response: ${requestId} -> ${decision}`);
+
+        const result = securityPolicy.handleConsentResponse(
+          requestId,
+          decision,
+        );
+
+        return {
+          success: result.success,
+          allowed: result.allowed,
+          error: result.error,
+        };
+      } catch (error) {
+        console.error("[MCP IPC] Failed to handle consent response:", error);
+        return {
+          success: false,
+          error: error.message,
+        };
+      }
+    },
+  );
+
+  /**
+   * Get pending consent requests
+   */
+  ipcMain.handle("mcp:get-pending-consents", async () => {
+    try {
+      const pending = securityPolicy.getPendingConsentRequests();
+
+      return {
+        success: true,
+        requests: pending,
+      };
+    } catch (error) {
+      console.error("[MCP IPC] Failed to get pending consents:", error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  });
+
+  /**
+   * Cancel a pending consent request
+   */
+  ipcMain.handle("mcp:cancel-consent", async (event, { requestId }) => {
+    try {
+      const cancelled = securityPolicy.cancelConsentRequest(requestId);
+
+      return {
+        success: cancelled,
+        error: cancelled ? null : "Request not found",
+      };
+    } catch (error) {
+      console.error("[MCP IPC] Failed to cancel consent:", error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  });
+
+  /**
+   * Clear consent cache
+   */
+  ipcMain.handle("mcp:clear-consent-cache", async () => {
+    try {
+      securityPolicy.clearConsentCache();
+
+      return {
+        success: true,
+      };
+    } catch (error) {
+      console.error("[MCP IPC] Failed to clear consent cache:", error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  });
+
+  /**
+   * Get security statistics
+   */
+  ipcMain.handle("mcp:get-security-stats", async () => {
+    try {
+      const stats = securityPolicy.getStatistics();
+
+      return {
+        success: true,
+        stats,
+      };
+    } catch (error) {
+      console.error("[MCP IPC] Failed to get security stats:", error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  });
+
+  /**
+   * Get audit log
+   */
+  ipcMain.handle("mcp:get-audit-log", async (event, filters = {}) => {
+    try {
+      const log = securityPolicy.getAuditLog(filters);
+
+      return {
+        success: true,
+        log,
+      };
+    } catch (error) {
+      console.error("[MCP IPC] Failed to get audit log:", error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  });
+
+  /**
+   * Get server config for a specific server
+   */
+  ipcMain.handle("mcp:get-server-config", async (event, { serverName }) => {
+    try {
+      const {
+        getUnifiedConfigManager,
+      } = require("../config/unified-config-manager");
+      const configManager = getUnifiedConfigManager();
+
+      const mcpConfig = configManager.getConfig("mcp") || {};
+      const serverConfig = mcpConfig.servers?.[serverName] || null;
+
+      return {
+        success: true,
+        config: serverConfig,
+      };
+    } catch (error) {
+      console.error("[MCP IPC] Failed to get server config:", error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  });
+
+  /**
+   * Update server config for a specific server
+   */
+  ipcMain.handle(
+    "mcp:update-server-config",
+    async (event, { serverName, config }) => {
+      try {
+        const {
+          getUnifiedConfigManager,
+        } = require("../config/unified-config-manager");
+        const configManager = getUnifiedConfigManager();
+
+        const mcpConfig = configManager.getConfig("mcp") || { servers: {} };
+
+        // Update server config
+        if (!mcpConfig.servers) {
+          mcpConfig.servers = {};
+        }
+        mcpConfig.servers[serverName] = config;
+
+        // Save to config manager
+        configManager.updateConfig({ mcp: mcpConfig });
+
+        // Also update security policy permissions if applicable
+        if (config.permissions) {
+          securityPolicy.setServerPermissions(serverName, config.permissions);
+        }
+
+        return {
+          success: true,
+        };
+      } catch (error) {
+        console.error("[MCP IPC] Failed to update server config:", error);
+        return {
+          success: false,
+          error: error.message,
+        };
+      }
+    },
+  );
+
   console.log("[MCP IPC] All handlers registered successfully");
 }
 

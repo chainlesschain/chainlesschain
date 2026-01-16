@@ -3,6 +3,7 @@
  *
  * Provides stdio-based communication with MCP servers.
  * Handles process lifecycle, message serialization, and error recovery.
+ * Supports cross-platform operation (Windows, macOS, Linux).
  *
  * @module StdioTransport
  */
@@ -10,6 +11,75 @@
 const { spawn } = require("child_process");
 const EventEmitter = require("events");
 const readline = require("readline");
+const path = require("path");
+const os = require("os");
+
+/**
+ * Platform detection
+ */
+const PLATFORM = {
+  isWindows: process.platform === "win32",
+  isMac: process.platform === "darwin",
+  isLinux: process.platform === "linux",
+};
+
+/**
+ * Get platform-specific spawn options
+ * @param {Object} config - Configuration object
+ * @returns {Object} Spawn options
+ */
+function getPlatformSpawnOptions(config) {
+  const baseOptions = {
+    stdio: ["pipe", "pipe", "pipe"],
+    env: { ...process.env, ...config.env },
+    cwd: config.cwd,
+  };
+
+  if (PLATFORM.isWindows) {
+    // On Windows, use shell for better command resolution
+    // and set proper environment for npm/npx
+    return {
+      ...baseOptions,
+      shell: true,
+      windowsHide: true, // Hide the console window
+    };
+  } else {
+    // On Unix-like systems, use shell only if command contains special characters
+    const needsShell = /[|&;`$(){}[\]<>*?!#~]/.test(config.command);
+    return {
+      ...baseOptions,
+      shell: needsShell,
+    };
+  }
+}
+
+/**
+ * Normalize a path for the current platform
+ * @param {string} inputPath - Input path
+ * @returns {string} Normalized path
+ */
+function normalizePath(inputPath) {
+  if (!inputPath) return inputPath;
+
+  // Normalize the path separators for the current platform
+  let normalized = path.normalize(inputPath);
+
+  // On Windows, also handle forward slashes in paths
+  if (PLATFORM.isWindows) {
+    normalized = normalized.replace(/\//g, path.sep);
+  }
+
+  return normalized;
+}
+
+/**
+ * Get the appropriate kill signal for the platform
+ * @returns {string} Kill signal
+ */
+function getKillSignal() {
+  // Windows doesn't support SIGTERM the same way
+  return PLATFORM.isWindows ? "SIGKILL" : "SIGTERM";
+}
 
 /**
  * @typedef {Object} TransportConfig
@@ -52,18 +122,34 @@ class StdioTransport extends EventEmitter {
 
     try {
       console.log(
-        "[StdioTransport] Starting process:",
+        `[StdioTransport] Starting process on ${process.platform}:`,
         finalConfig.command,
         finalConfig.args,
       );
 
-      // Spawn the MCP server process
-      this.process = spawn(finalConfig.command, finalConfig.args, {
-        stdio: ["pipe", "pipe", "pipe"],
-        env: { ...process.env, ...finalConfig.env },
-        cwd: finalConfig.cwd,
-        shell: true, // Enable shell for Windows compatibility
+      // Normalize working directory path
+      if (finalConfig.cwd) {
+        finalConfig.cwd = normalizePath(finalConfig.cwd);
+      }
+
+      // Normalize path arguments
+      const normalizedArgs = (finalConfig.args || []).map((arg) => {
+        // Check if this argument looks like a path
+        if (arg && (arg.includes("/") || arg.includes("\\"))) {
+          return normalizePath(arg);
+        }
+        return arg;
       });
+
+      // Get platform-specific spawn options
+      const spawnOptions = getPlatformSpawnOptions(finalConfig);
+
+      // Spawn the MCP server process
+      this.process = spawn(finalConfig.command, normalizedArgs, spawnOptions);
+
+      console.log(
+        `[StdioTransport] Process spawned with PID: ${this.process.pid}`,
+      );
 
       // Set up readline for line-based message parsing
       this.rl = readline.createInterface({
@@ -250,7 +336,8 @@ class StdioTransport extends EventEmitter {
       return;
     }
 
-    console.log("[StdioTransport] Stopping process");
+    const pid = this.process.pid;
+    console.log(`[StdioTransport] Stopping process (PID: ${pid})`);
 
     return new Promise((resolve) => {
       const timer = setTimeout(() => {
@@ -258,19 +345,28 @@ class StdioTransport extends EventEmitter {
           "[StdioTransport] Process did not exit gracefully, forcing kill",
         );
         if (this.process) {
-          this.process.kill("SIGKILL");
+          this._forceKill();
         }
         resolve();
       }, 5000);
 
       this.process.once("exit", () => {
         clearTimeout(timer);
+        console.log(`[StdioTransport] Process exited cleanly (PID: ${pid})`);
         resolve();
       });
 
-      // Send SIGTERM for graceful shutdown
+      // Send graceful shutdown signal
       if (this.process) {
-        this.process.kill("SIGTERM");
+        const signal = getKillSignal();
+        console.log(`[StdioTransport] Sending ${signal} to process`);
+
+        if (PLATFORM.isWindows) {
+          // On Windows, use taskkill for cleaner shutdown
+          this._windowsKill();
+        } else {
+          this.process.kill(signal);
+        }
       }
     }).finally(() => {
       this.isConnected = false;
@@ -283,6 +379,61 @@ class StdioTransport extends EventEmitter {
   }
 
   /**
+   * Windows-specific process termination
+   * @private
+   */
+  _windowsKill() {
+    if (!this.process || !this.process.pid) return;
+
+    try {
+      // On Windows, sending SIGTERM doesn't work well
+      // Instead, try to close stdin to signal shutdown
+      if (this.process.stdin && !this.process.stdin.destroyed) {
+        this.process.stdin.end();
+      }
+
+      // Give the process a moment to exit gracefully
+      setTimeout(() => {
+        if (this.process && !this.process.killed) {
+          this.process.kill();
+        }
+      }, 1000);
+    } catch (error) {
+      console.warn("[StdioTransport] Windows kill warning:", error.message);
+      this._forceKill();
+    }
+  }
+
+  /**
+   * Force kill the process
+   * @private
+   */
+  _forceKill() {
+    if (!this.process) return;
+
+    try {
+      if (PLATFORM.isWindows) {
+        // Use taskkill on Windows for tree kill
+        // Use spawnSync with array arguments to avoid command injection
+        const { spawnSync } = require("child_process");
+        const pid = String(this.process.pid);
+        try {
+          spawnSync("taskkill", ["/PID", pid, "/T", "/F"], {
+            stdio: "ignore",
+            windowsHide: true,
+          });
+        } catch (e) {
+          // Process may already be dead
+        }
+      } else {
+        this.process.kill("SIGKILL");
+      }
+    } catch (error) {
+      console.warn("[StdioTransport] Force kill warning:", error.message);
+    }
+  }
+
+  /**
    * Check if transport is connected
    * @returns {boolean}
    */
@@ -291,4 +442,9 @@ class StdioTransport extends EventEmitter {
   }
 }
 
-module.exports = { StdioTransport };
+module.exports = {
+  StdioTransport,
+  PLATFORM,
+  normalizePath,
+  getPlatformSpawnOptions,
+};

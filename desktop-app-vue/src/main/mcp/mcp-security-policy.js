@@ -7,8 +7,81 @@
  * @module MCPSecurityPolicy
  */
 
-const path = require('path');
-const EventEmitter = require('events');
+const path = require("path");
+const EventEmitter = require("events");
+const crypto = require("crypto");
+
+// Platform detection for cross-platform path handling
+const isWindows = process.platform === "win32";
+
+/**
+ * Normalize a path for security comparison
+ * Handles both Windows and Unix path formats
+ * @param {string} inputPath - Path to normalize
+ * @returns {string} Normalized path
+ */
+function normalizeSecurityPath(inputPath) {
+  if (!inputPath) return "";
+
+  // Convert to lowercase on Windows for case-insensitive comparison
+  let normalized = inputPath;
+
+  if (isWindows) {
+    // Normalize Windows paths - convert backslashes to forward slashes
+    normalized = normalized.replace(/\\/g, "/").toLowerCase();
+  }
+
+  // Remove trailing slashes
+  normalized = normalized.replace(/\/+$/, "");
+
+  // Normalize multiple slashes
+  normalized = normalized.replace(/\/+/g, "/");
+
+  // Remove leading ./ if present
+  normalized = normalized.replace(/^\.\//, "");
+
+  return normalized;
+}
+
+/**
+ * Check if a path matches a pattern (supports wildcards)
+ * @param {string} testPath - Path to test
+ * @param {string} pattern - Pattern to match against
+ * @returns {boolean}
+ */
+function pathMatchesPattern(testPath, pattern) {
+  const normalizedPath = normalizeSecurityPath(testPath);
+  const normalizedPattern = normalizeSecurityPath(pattern);
+
+  // Direct match
+  if (normalizedPath === normalizedPattern) {
+    return true;
+  }
+
+  // Check if path starts with pattern (directory match)
+  if (normalizedPath.startsWith(normalizedPattern + "/")) {
+    return true;
+  }
+
+  // Check if pattern ends with / and path is inside that directory
+  if (
+    normalizedPattern.endsWith("/") &&
+    normalizedPath.startsWith(normalizedPattern)
+  ) {
+    return true;
+  }
+
+  // Check if path contains the pattern
+  if (
+    normalizedPath.includes("/" + normalizedPattern + "/") ||
+    normalizedPath.includes("/" + normalizedPattern) ||
+    normalizedPath.endsWith("/" + normalizedPattern)
+  ) {
+    return true;
+  }
+
+  return false;
+}
 
 /**
  * Security error class
@@ -16,7 +89,7 @@ const EventEmitter = require('events');
 class SecurityError extends Error {
   constructor(message, details = {}) {
     super(message);
-    this.name = 'SecurityError';
+    this.name = "SecurityError";
     this.details = details;
     this.timestamp = Date.now();
   }
@@ -33,12 +106,12 @@ class MCPSecurityPolicy extends EventEmitter {
 
     // Global forbidden paths (always blocked)
     this.FORBIDDEN_PATHS = [
-      'chainlesschain.db',          // Encrypted database
-      'data/ukey/',                 // U-Key hardware data
-      'data/did/private-keys/',     // DID private keys
-      'data/p2p/keys/',             // P2P encryption keys
-      '.env',                       // Environment variables
-      'config/secrets/',            // Secret configuration
+      "chainlesschain.db", // Encrypted database
+      "data/ukey/", // U-Key hardware data
+      "data/did/private-keys/", // DID private keys
+      "data/p2p/keys/", // P2P encryption keys
+      ".env", // Environment variables
+      "config/secrets/", // Secret configuration
     ];
 
     // Server-specific permissions
@@ -48,18 +121,37 @@ class MCPSecurityPolicy extends EventEmitter {
     // key: hash(serverName + toolName + paramsHash) -> consent decision
     this.consentCache = new Map();
 
+    // Pending consent requests
+    // key: requestId -> { resolve, reject, timeout, timestamp }
+    this.pendingConsentRequests = new Map();
+
+    // Consent request timeout (30 seconds)
+    this.CONSENT_TIMEOUT = 30000;
+
     // Audit log
     this.auditLog = [];
 
     // Risk levels for operations
     this.RISK_LEVELS = {
-      LOW: 'low',           // Read-only safe operations
-      MEDIUM: 'medium',     // Write to allowed paths
-      HIGH: 'high',         // Delete operations, sensitive reads
-      CRITICAL: 'critical'  // System-level operations
+      LOW: "low", // Read-only safe operations
+      MEDIUM: "medium", // Write to allowed paths
+      HIGH: "high", // Delete operations, sensitive reads
+      CRITICAL: "critical", // System-level operations
     };
 
-    console.log('[MCPSecurityPolicy] Initialized');
+    // Main window reference (set by main process)
+    this.mainWindow = null;
+
+    console.log("[MCPSecurityPolicy] Initialized");
+  }
+
+  /**
+   * Set main window reference for IPC communication
+   * @param {BrowserWindow} window - Electron BrowserWindow
+   */
+  setMainWindow(window) {
+    this.mainWindow = window;
+    console.log("[MCPSecurityPolicy] Main window reference set");
   }
 
   /**
@@ -72,10 +164,16 @@ class MCPSecurityPolicy extends EventEmitter {
       allowedPaths: permissions.allowedPaths || [],
       forbiddenPaths: permissions.forbiddenPaths || [],
       readOnly: permissions.readOnly || false,
-      requireConsent: permissions.requireConsent !== undefined ? permissions.requireConsent : true
+      requireConsent:
+        permissions.requireConsent !== undefined
+          ? permissions.requireConsent
+          : true,
     });
 
-    console.log(`[MCPSecurityPolicy] Set permissions for ${serverName}:`, permissions);
+    console.log(
+      `[MCPSecurityPolicy] Set permissions for ${serverName}:`,
+      permissions,
+    );
   }
 
   /**
@@ -101,23 +199,27 @@ class MCPSecurityPolicy extends EventEmitter {
       }
 
       // 4. Check read-only constraint
-      if (operation.type !== 'read') {
+      if (operation.type !== "read") {
         this._validateWritePermission(serverName, operation.type);
       }
 
       // 5. Request user consent if needed
-      if (riskLevel === this.RISK_LEVELS.HIGH || riskLevel === this.RISK_LEVELS.CRITICAL) {
+      if (
+        riskLevel === this.RISK_LEVELS.HIGH ||
+        riskLevel === this.RISK_LEVELS.CRITICAL
+      ) {
         await this._requestUserConsent(serverName, toolName, params, riskLevel);
       }
 
       // 6. Log to audit trail
-      this._logAudit('ALLOWED', serverName, toolName, params, riskLevel);
+      this._logAudit("ALLOWED", serverName, toolName, params, riskLevel);
 
-      console.log(`[MCPSecurityPolicy] Validation passed: ${serverName}.${toolName} (${riskLevel})`);
-
+      console.log(
+        `[MCPSecurityPolicy] Validation passed: ${serverName}.${toolName} (${riskLevel})`,
+      );
     } catch (error) {
       // Log denied access
-      this._logAudit('DENIED', serverName, toolName, params, error.message);
+      this._logAudit("DENIED", serverName, toolName, params, error.message);
 
       console.error(`[MCPSecurityPolicy] Validation failed: ${error.message}`);
 
@@ -127,21 +229,22 @@ class MCPSecurityPolicy extends EventEmitter {
 
   /**
    * Validate path access
+   * Uses cross-platform path normalization for consistent security checks
    * @param {string} serverName - Server identifier
    * @param {string} operation - Operation type (read/write/delete)
    * @param {string} targetPath - Path to validate
    * @throws {SecurityError} If access denied
    */
   _validatePathAccess(serverName, operation, targetPath) {
-    // Normalize path
-    const normalizedPath = path.normalize(targetPath).replace(/\\/g, '/');
+    // Use cross-platform path normalization
+    const normalizedPath = normalizeSecurityPath(targetPath);
 
-    // Check global forbidden paths
+    // Check global forbidden paths using cross-platform matching
     for (const forbidden of this.FORBIDDEN_PATHS) {
-      if (normalizedPath.includes(forbidden)) {
+      if (pathMatchesPattern(normalizedPath, forbidden)) {
         throw new SecurityError(
           `Access denied: ${targetPath} is globally forbidden`,
-          { serverName, operation, targetPath, forbidden }
+          { serverName, operation, targetPath, forbidden },
         );
       }
     }
@@ -152,40 +255,47 @@ class MCPSecurityPolicy extends EventEmitter {
       // No permissions configured - deny by default
       throw new SecurityError(
         `Access denied: No permissions configured for server ${serverName}`,
-        { serverName, operation, targetPath }
+        { serverName, operation, targetPath },
       );
     }
 
-    // Check server-specific forbidden paths
+    // Check server-specific forbidden paths using cross-platform matching
     for (const forbidden of permissions.forbiddenPaths) {
-      if (normalizedPath.includes(forbidden)) {
+      if (pathMatchesPattern(normalizedPath, forbidden)) {
         throw new SecurityError(
           `Access denied: ${targetPath} is forbidden by server policy`,
-          { serverName, operation, targetPath, forbidden }
+          { serverName, operation, targetPath, forbidden },
         );
       }
     }
 
-    // Check allowed paths (whitelist)
+    // Check allowed paths (whitelist) using cross-platform matching
     if (permissions.allowedPaths.length > 0) {
-      const isAllowed = permissions.allowedPaths.some(allowed => {
+      const isAllowed = permissions.allowedPaths.some((allowed) => {
         // Support glob-like patterns
-        if (allowed.endsWith('*')) {
-          const prefix = allowed.slice(0, -1);
+        if (allowed.endsWith("*")) {
+          const prefix = normalizeSecurityPath(allowed.slice(0, -1));
           return normalizedPath.startsWith(prefix);
         }
-        return normalizedPath.includes(allowed);
+        return pathMatchesPattern(normalizedPath, allowed);
       });
 
       if (!isAllowed) {
         throw new SecurityError(
           `Access denied: ${targetPath} is not in allowed paths`,
-          { serverName, operation, targetPath, allowedPaths: permissions.allowedPaths }
+          {
+            serverName,
+            operation,
+            targetPath,
+            allowedPaths: permissions.allowedPaths,
+          },
         );
       }
     }
 
-    console.log(`[MCPSecurityPolicy] Path access allowed: ${targetPath}`);
+    console.log(
+      `[MCPSecurityPolicy] Path access allowed: ${targetPath} (normalized: ${normalizedPath})`,
+    );
   }
 
   /**
@@ -195,10 +305,10 @@ class MCPSecurityPolicy extends EventEmitter {
   _validateWritePermission(serverName, operation) {
     const permissions = this.serverPermissions.get(serverName);
 
-    if (permissions && permissions.readOnly && operation !== 'read') {
+    if (permissions && permissions.readOnly && operation !== "read") {
       throw new SecurityError(
         `Write operation denied: ${serverName} is configured as read-only`,
-        { serverName, operation }
+        { serverName, operation },
       );
     }
   }
@@ -213,7 +323,7 @@ class MCPSecurityPolicy extends EventEmitter {
       if (!this.config.trustedServers.includes(serverName)) {
         throw new SecurityError(
           `Untrusted server: ${serverName} is not in trusted server list`,
-          { serverName, trustedServers: this.config.trustedServers }
+          { serverName, trustedServers: this.config.trustedServers },
         );
       }
     }
@@ -227,27 +337,39 @@ class MCPSecurityPolicy extends EventEmitter {
     const lowerName = toolName.toLowerCase();
 
     // Read operations
-    if (lowerName.includes('read') || lowerName.includes('get') || lowerName.includes('list')) {
-      return { type: 'read', isDestructive: false };
+    if (
+      lowerName.includes("read") ||
+      lowerName.includes("get") ||
+      lowerName.includes("list")
+    ) {
+      return { type: "read", isDestructive: false };
     }
 
     // Write operations
-    if (lowerName.includes('write') || lowerName.includes('create') || lowerName.includes('update')) {
-      return { type: 'write', isDestructive: false };
+    if (
+      lowerName.includes("write") ||
+      lowerName.includes("create") ||
+      lowerName.includes("update")
+    ) {
+      return { type: "write", isDestructive: false };
     }
 
     // Delete operations
-    if (lowerName.includes('delete') || lowerName.includes('remove')) {
-      return { type: 'delete', isDestructive: true };
+    if (lowerName.includes("delete") || lowerName.includes("remove")) {
+      return { type: "delete", isDestructive: true };
     }
 
     // Execute operations (potentially dangerous)
-    if (lowerName.includes('exec') || lowerName.includes('run') || lowerName.includes('execute')) {
-      return { type: 'execute', isDestructive: true };
+    if (
+      lowerName.includes("exec") ||
+      lowerName.includes("run") ||
+      lowerName.includes("execute")
+    ) {
+      return { type: "execute", isDestructive: true };
     }
 
     // Default to read (safest assumption)
-    return { type: 'read', isDestructive: false };
+    return { type: "read", isDestructive: false };
   }
 
   /**
@@ -261,12 +383,12 @@ class MCPSecurityPolicy extends EventEmitter {
     }
 
     // High: Write to system paths or execute
-    if (operation.type === 'execute' || operation.type === 'write') {
+    if (operation.type === "execute" || operation.type === "write") {
       return this.RISK_LEVELS.HIGH;
     }
 
     // Medium: Write to user data
-    if (operation.type === 'write') {
+    if (operation.type === "write") {
       return this.RISK_LEVELS.MEDIUM;
     }
 
@@ -277,6 +399,7 @@ class MCPSecurityPolicy extends EventEmitter {
   /**
    * Request user consent for high-risk operations
    * @private
+   * @returns {Promise<void>} Resolves if allowed, rejects if denied
    */
   async _requestUserConsent(serverName, toolName, params, riskLevel) {
     // Check consent cache
@@ -285,50 +408,236 @@ class MCPSecurityPolicy extends EventEmitter {
     if (this.consentCache.has(cacheKey)) {
       const cached = this.consentCache.get(cacheKey);
 
-      if (cached.decision === 'always_allow') {
+      if (cached.decision === "always_allow") {
         console.log(`[MCPSecurityPolicy] Using cached consent: always allow`);
         return; // Allowed
       }
 
-      if (cached.decision === 'always_deny') {
+      if (cached.decision === "always_deny") {
         throw new SecurityError(
           `Operation denied: User previously chose to always deny this operation`,
-          { serverName, toolName }
+          { serverName, toolName },
         );
       }
     }
 
-    // Emit event for UI to handle
-    // In POC, we'll just log and allow (production would show dialog)
-    console.warn(`[MCPSecurityPolicy] ⚠️  HIGH RISK OPERATION - User consent required:`);
-    console.warn(`  Server: ${serverName}`);
-    console.warn(`  Tool: ${toolName}`);
-    console.warn(`  Risk: ${riskLevel}`);
-    console.warn(`  Params:`, params);
+    console.log(
+      `[MCPSecurityPolicy] Requesting user consent for ${serverName}.${toolName}`,
+    );
 
-    // Emit event for potential UI handler
-    this.emit('consent-required', {
+    // Generate unique request ID
+    const requestId = crypto.randomUUID();
+
+    // Detect operation type
+    const operation = this._detectOperation(toolName, params);
+
+    // Prepare consent request data
+    const consentRequest = {
+      requestId,
       serverName,
       toolName,
       params,
       riskLevel,
-      callback: (decision) => {
-        if (decision === 'deny') {
-          throw new SecurityError('Operation denied by user', { serverName, toolName });
-        }
+      operationType: operation.type,
+      timestamp: Date.now(),
+    };
 
-        // Cache decision if "always allow/deny"
-        if (decision === 'always_allow' || decision === 'always_deny') {
-          this.consentCache.set(cacheKey, {
-            decision,
-            timestamp: Date.now()
-          });
-        }
-      }
+    // If main window is available, send IPC message
+    if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+      return this._requestConsentViaIPC(consentRequest, cacheKey);
+    }
+
+    // Fallback: emit event for external handler
+    return this._requestConsentViaEvent(consentRequest, cacheKey);
+  }
+
+  /**
+   * Request consent via IPC to renderer process
+   * @private
+   */
+  async _requestConsentViaIPC(consentRequest, cacheKey) {
+    const { requestId, serverName, toolName } = consentRequest;
+
+    return new Promise((resolve, reject) => {
+      // Set up timeout
+      const timeoutId = setTimeout(() => {
+        this.pendingConsentRequests.delete(requestId);
+        console.warn(
+          `[MCPSecurityPolicy] Consent request ${requestId} timed out`,
+        );
+        reject(
+          new SecurityError("User consent request timed out", {
+            serverName,
+            toolName,
+            timeout: this.CONSENT_TIMEOUT,
+          }),
+        );
+      }, this.CONSENT_TIMEOUT);
+
+      // Store pending request
+      this.pendingConsentRequests.set(requestId, {
+        resolve,
+        reject,
+        timeout: timeoutId,
+        cacheKey,
+        timestamp: Date.now(),
+      });
+
+      // Send IPC message to renderer
+      console.log(
+        `[MCPSecurityPolicy] Sending consent request to renderer: ${requestId}`,
+      );
+      this.mainWindow.webContents.send("mcp:consent-request", consentRequest);
     });
+  }
 
-    // For POC, auto-allow with warning (production should block until user responds)
-    console.warn(`[MCPSecurityPolicy] ⚠️  AUTO-ALLOWING for POC (production should require user approval)`);
+  /**
+   * Request consent via event emission (fallback)
+   * @private
+   */
+  async _requestConsentViaEvent(consentRequest, cacheKey) {
+    const { requestId, serverName, toolName, params, riskLevel } =
+      consentRequest;
+
+    return new Promise((resolve, reject) => {
+      // Set up timeout
+      const timeoutId = setTimeout(() => {
+        this.pendingConsentRequests.delete(requestId);
+        console.warn(
+          `[MCPSecurityPolicy] Consent request ${requestId} timed out (event mode)`,
+        );
+        reject(
+          new SecurityError("User consent request timed out", {
+            serverName,
+            toolName,
+            timeout: this.CONSENT_TIMEOUT,
+          }),
+        );
+      }, this.CONSENT_TIMEOUT);
+
+      // Store pending request
+      this.pendingConsentRequests.set(requestId, {
+        resolve,
+        reject,
+        timeout: timeoutId,
+        cacheKey,
+        timestamp: Date.now(),
+      });
+
+      // Emit event for external handler
+      this.emit("consent-required", {
+        ...consentRequest,
+        respond: (decision) => this.handleConsentResponse(requestId, decision),
+      });
+
+      console.log(
+        `[MCPSecurityPolicy] Emitted consent-required event: ${requestId}`,
+      );
+    });
+  }
+
+  /**
+   * Handle consent response from user
+   * @param {string} requestId - Consent request ID
+   * @param {string} decision - User decision: 'allow', 'deny', 'always_allow', 'always_deny'
+   */
+  handleConsentResponse(requestId, decision) {
+    const pending = this.pendingConsentRequests.get(requestId);
+
+    if (!pending) {
+      console.warn(`[MCPSecurityPolicy] Unknown consent request: ${requestId}`);
+      return { success: false, error: "Unknown request ID" };
+    }
+
+    const { resolve, reject, timeout, cacheKey } = pending;
+
+    // Clear timeout
+    clearTimeout(timeout);
+
+    // Remove from pending
+    this.pendingConsentRequests.delete(requestId);
+
+    console.log(
+      `[MCPSecurityPolicy] Consent response received: ${requestId} -> ${decision}`,
+    );
+
+    // Handle decision
+    if (decision === "deny" || decision === "always_deny") {
+      // Cache "always deny" decision
+      if (decision === "always_deny") {
+        this.consentCache.set(cacheKey, {
+          decision,
+          timestamp: Date.now(),
+        });
+      }
+
+      reject(
+        new SecurityError(`Operation denied by user`, { requestId, decision }),
+      );
+
+      return { success: true, allowed: false };
+    }
+
+    // Allow the operation
+    if (decision === "allow" || decision === "always_allow") {
+      // Cache "always allow" decision
+      if (decision === "always_allow") {
+        this.consentCache.set(cacheKey, {
+          decision,
+          timestamp: Date.now(),
+        });
+      }
+
+      resolve();
+
+      return { success: true, allowed: true };
+    }
+
+    // Unknown decision
+    reject(
+      new SecurityError(`Unknown consent decision: ${decision}`, {
+        requestId,
+        decision,
+      }),
+    );
+
+    return { success: false, error: "Unknown decision" };
+  }
+
+  /**
+   * Get pending consent requests
+   * @returns {Object[]} List of pending requests
+   */
+  getPendingConsentRequests() {
+    return Array.from(this.pendingConsentRequests.entries()).map(
+      ([id, data]) => ({
+        requestId: id,
+        timestamp: data.timestamp,
+        age: Date.now() - data.timestamp,
+      }),
+    );
+  }
+
+  /**
+   * Cancel a pending consent request
+   * @param {string} requestId - Request ID to cancel
+   */
+  cancelConsentRequest(requestId) {
+    const pending = this.pendingConsentRequests.get(requestId);
+
+    if (pending) {
+      clearTimeout(pending.timeout);
+      pending.reject(
+        new SecurityError("Consent request cancelled", { requestId }),
+      );
+      this.pendingConsentRequests.delete(requestId);
+      console.log(
+        `[MCPSecurityPolicy] Consent request cancelled: ${requestId}`,
+      );
+      return true;
+    }
+
+    return false;
   }
 
   /**
@@ -348,12 +657,12 @@ class MCPSecurityPolicy extends EventEmitter {
   _logAudit(decision, serverName, toolName, params, details) {
     const entry = {
       timestamp: Date.now(),
-      decision,        // 'ALLOWED' or 'DENIED'
+      decision, // 'ALLOWED' or 'DENIED'
       serverName,
       toolName,
       params,
       details,
-      user: process.env.USER || process.env.USERNAME || 'unknown'
+      user: process.env.USER || process.env.USERNAME || "unknown",
     };
 
     this.auditLog.push(entry);
@@ -364,7 +673,7 @@ class MCPSecurityPolicy extends EventEmitter {
     }
 
     // Emit for external logging
-    this.emit('audit-log', entry);
+    this.emit("audit-log", entry);
   }
 
   /**
@@ -376,15 +685,15 @@ class MCPSecurityPolicy extends EventEmitter {
     let log = this.auditLog;
 
     if (filters.serverName) {
-      log = log.filter(e => e.serverName === filters.serverName);
+      log = log.filter((e) => e.serverName === filters.serverName);
     }
 
     if (filters.decision) {
-      log = log.filter(e => e.decision === filters.decision);
+      log = log.filter((e) => e.decision === filters.decision);
     }
 
     if (filters.since) {
-      log = log.filter(e => e.timestamp >= filters.since);
+      log = log.filter((e) => e.timestamp >= filters.since);
     }
 
     return log;
@@ -395,23 +704,25 @@ class MCPSecurityPolicy extends EventEmitter {
    */
   clearConsentCache() {
     this.consentCache.clear();
-    console.log('[MCPSecurityPolicy] Consent cache cleared');
+    console.log("[MCPSecurityPolicy] Consent cache cleared");
   }
 
   /**
    * Get security statistics
    */
   getStatistics() {
-    const allowed = this.auditLog.filter(e => e.decision === 'ALLOWED').length;
-    const denied = this.auditLog.filter(e => e.decision === 'DENIED').length;
+    const allowed = this.auditLog.filter(
+      (e) => e.decision === "ALLOWED",
+    ).length;
+    const denied = this.auditLog.filter((e) => e.decision === "DENIED").length;
 
     return {
       totalOperations: this.auditLog.length,
       allowed,
       denied,
-      allowRate: ((allowed / this.auditLog.length) * 100).toFixed(2) + '%',
+      allowRate: ((allowed / this.auditLog.length) * 100).toFixed(2) + "%",
       consentCacheSize: this.consentCache.size,
-      configuredServers: this.serverPermissions.size
+      configuredServers: this.serverPermissions.size,
     };
   }
 }
