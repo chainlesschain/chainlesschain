@@ -56,6 +56,13 @@
         </div>
       </div>
 
+      <!-- 插件侧边栏底部插槽 -->
+      <PluginSlot
+        slot-name="sidebar-bottom"
+        class="sidebar-plugin-slot"
+        layout="vertical"
+      />
+
       <!-- 菜单容器 - 添加滚动 -->
       <div class="menu-container">
         <a-menu
@@ -393,6 +400,31 @@
               <a-menu-item key="tool-management">
                 <template #icon><ToolOutlined /></template>
                 工具管理
+              </a-menu-item>
+            </a-menu-item-group>
+
+            <!-- 已安装的插件 -->
+            <a-menu-item-group
+              v-if="pluginMenuItems.length > 0"
+              title="已安装插件"
+            >
+              <a-menu-item v-for="plugin in pluginMenuItems" :key="plugin.key">
+                <template #icon>
+                  <component :is="getIconComponent(plugin.icon)" />
+                </template>
+                <span @contextmenu="showContextMenu($event, plugin.key)">
+                  {{ plugin.label }}
+                </span>
+                <a-badge
+                  v-if="plugin.badge"
+                  :count="plugin.badge"
+                  :number-style="{
+                    backgroundColor: '#1890ff',
+                    fontSize: '10px',
+                    padding: '0 4px',
+                  }"
+                  style="margin-left: 8px"
+                />
               </a-menu-item>
             </a-menu-item-group>
 
@@ -854,11 +886,17 @@ import VoiceFeedbackWidget from "./VoiceFeedbackWidget.vue";
 import CommandPalette from "./common/CommandPalette.vue";
 import DIDInvitationNotifier from "./DIDInvitationNotifier.vue";
 import { registerMenuCommands } from "../utils/keyboard-shortcuts";
+import { usePluginMenus } from "../composables/usePluginExtensions";
+import PluginSlot from "./plugins/PluginSlot.vue";
 
 const router = useRouter();
 const route = useRoute();
 const store = useAppStore();
 const socialStore = useSocialStore();
+
+// 插件菜单
+const { menuItems: pluginMenuItems, loading: pluginMenuLoading } =
+  usePluginMenus();
 
 // 命令面板引用
 const commandPaletteRef = ref(null);
@@ -1034,6 +1072,32 @@ const toggleNotificationPanel = () => {
 };
 
 const handleMenuClick = ({ key }) => {
+  // 检查是否是插件菜单项
+  if (key.startsWith("plugin-")) {
+    const pluginMenu = pluginMenuItems.value.find((p) => p.key === key);
+    if (pluginMenu) {
+      // 添加到最近访问
+      store.addRecentMenu({
+        key,
+        title: pluginMenu.label,
+        path: pluginMenu.path,
+        icon: pluginMenu.icon,
+      });
+
+      // 添加标签页
+      store.addTab({
+        key,
+        title: pluginMenu.label,
+        path: pluginMenu.path,
+        closable: true,
+      });
+
+      // 路由跳转
+      router.push(pluginMenu.path);
+      return;
+    }
+  }
+
   const config = menuConfig[key];
   if (!config) return;
 
@@ -2010,6 +2074,16 @@ const handleSyncClick = async () => {
 /* 当聊天面板打开时,语音组件向左移动 */
 .chat-panel-container:has(+ .voice-feedback-container) {
   /* 聊天面板打开时的样式 */
+}
+
+/* 侧边栏插件插槽 */
+.sidebar-plugin-slot {
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-plugin-slot:empty {
+  display: none;
 }
 
 /* 快捷访问区域 */

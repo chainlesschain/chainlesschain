@@ -337,8 +337,156 @@ function registerPluginIPC({
     }),
   );
 
+  // ============================================
+  // 插件方法调用 IPC 处理器
+  // ============================================
+
+  // 调用插件方法
+  ipcMain.handle(
+    "plugin:call-method",
+    (_event, pluginId, methodName, args = []) =>
+      safeInvoke(async () => {
+        ensureManager();
+
+        // 获取插件实例
+        const plugin = pluginManager.getPlugin(pluginId);
+        if (!plugin) {
+          throw new Error(`插件不存在: ${pluginId}`);
+        }
+
+        // 检查插件是否启用
+        if (plugin.state !== "enabled") {
+          throw new Error(`插件未启用: ${pluginId}`);
+        }
+
+        // 获取沙箱实例并调用方法
+        const sandbox = pluginManager.sandboxes?.get(pluginId);
+        if (!sandbox) {
+          throw new Error(`插件沙箱不存在: ${pluginId}`);
+        }
+
+        // 调用沙箱中的方法
+        const result = await sandbox.callMethod(methodName, ...args);
+        return { success: true, result };
+      }),
+  );
+
+  // 获取插件页面内容
+  ipcMain.handle(
+    "plugin:get-page-content",
+    (_event, pluginId, pageId = "main") =>
+      safeInvoke(async () => {
+        ensureManager();
+
+        const plugin = pluginManager.getPlugin(pluginId);
+        if (!plugin) {
+          throw new Error(`插件不存在: ${pluginId}`);
+        }
+
+        if (plugin.state !== "enabled") {
+          throw new Error(`插件未启用: ${pluginId}`);
+        }
+
+        // 查找页面扩展配置
+        const pageExtensions =
+          pluginManager.registry.getExtensionsByPoint("ui.page");
+        const pageExt = pageExtensions.find(
+          (ext) =>
+            ext.plugin_id === pluginId &&
+            (ext.config?.id === pageId || pageId === "main"),
+        );
+
+        if (!pageExt) {
+          // 如果没有注册页面扩展，尝试调用插件的 getPageContent 方法
+          const sandbox = pluginManager.sandboxes?.get(pluginId);
+          if (sandbox) {
+            try {
+              const content = await sandbox.callMethod(
+                "getPageContent",
+                pageId,
+              );
+              if (content) {
+                return { success: true, ...content };
+              }
+            } catch (err) {
+              // 忽略方法不存在的错误
+              if (!err.message.includes("not a function")) {
+                throw err;
+              }
+            }
+          }
+
+          return {
+            success: true,
+            contentType: "component",
+            props: { pluginId, pageId },
+          };
+        }
+
+        return {
+          success: true,
+          contentType: pageExt.config?.contentType || "component",
+          ...pageExt.config,
+        };
+      }),
+  );
+
+  // 获取插件提供的工具列表
+  ipcMain.handle("plugin:get-tools", (_event, pluginId) =>
+    safeInvoke(() => {
+      ensureManager();
+
+      const plugin = pluginManager.getPlugin(pluginId);
+      if (!plugin) {
+        throw new Error(`插件不存在: ${pluginId}`);
+      }
+
+      // 从 manifest 中获取工具列表
+      const tools = plugin.manifest?.tools || [];
+      return { success: true, tools };
+    }),
+  );
+
+  // 获取插件提供的技能列表
+  ipcMain.handle("plugin:get-skills", (_event, pluginId) =>
+    safeInvoke(() => {
+      ensureManager();
+
+      const plugin = pluginManager.getPlugin(pluginId);
+      if (!plugin) {
+        throw new Error(`插件不存在: ${pluginId}`);
+      }
+
+      // 从 manifest 中获取技能列表
+      const skills = plugin.manifest?.skills || [];
+      return { success: true, skills };
+    }),
+  );
+
+  // 执行插件工具
+  ipcMain.handle("plugin:execute-tool", (_event, pluginId, toolId, params) =>
+    safeInvoke(async () => {
+      ensureManager();
+
+      const plugin = pluginManager.getPlugin(pluginId);
+      if (!plugin || plugin.state !== "enabled") {
+        throw new Error(`插件不存在或未启用: ${pluginId}`);
+      }
+
+      // 获取沙箱并执行工具
+      const sandbox = pluginManager.sandboxes?.get(pluginId);
+      if (!sandbox) {
+        throw new Error(`插件沙箱不存在: ${pluginId}`);
+      }
+
+      // 调用工具执行方法
+      const result = await sandbox.callMethod("executeTool", toolId, params);
+      return { success: true, result };
+    }),
+  );
+
   console.log(
-    "[Plugin IPC] ✓ Handlers registered (including permission dialog, UI extensions, settings, data import/export)",
+    "[Plugin IPC] ✓ Handlers registered (including permission dialog, UI extensions, settings, data import/export, method calls)",
   );
 }
 
