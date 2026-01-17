@@ -117,10 +117,15 @@ const { registerManusIPC } = require("./llm/manus-ipc");
 const { registerTaskTrackerIPC } = require("./ai-engine/task-tracker-ipc");
 
 // Multi-Agent System (Agent orchestrator and specialized agents)
-const { registerMultiAgentIPC } = require("./ai-engine/multi-agent/multi-agent-ipc");
+const {
+  registerMultiAgentIPC,
+} = require("./ai-engine/multi-agent/multi-agent-ipc");
 
 // Error Monitor AI Diagnosis System
 const { registerErrorMonitorIPC } = require("./error-monitor-ipc");
+
+// Memory Bank System (Preferences + Learned Patterns)
+const { initializeMemorySystem, registerMemorySystemIPC } = require("./memory");
 
 // Plugin Marketplace System
 const { registerPluginMarketplaceIPC } = require("./plugins/marketplace-ipc");
@@ -833,6 +838,30 @@ class ChainlessChainApp {
       // ErrorMonitor 初始化失败不影响应用启动
     }
 
+    // 初始化 Memory Bank System（偏好和学习模式管理）
+    try {
+      console.log("初始化 Memory Bank 系统...");
+      const {
+        getUnifiedConfigManager,
+      } = require("./config/unified-config-manager");
+      const configManager = getUnifiedConfigManager();
+
+      const memoryManagers = await initializeMemorySystem({
+        database: this.database,
+        configManager,
+        llmManager: this.llmManager,
+        errorMonitor: this.errorMonitor,
+      });
+
+      this.preferenceManager = memoryManagers.preferenceManager;
+      this.learnedPatternManager = memoryManagers.learnedPatternManager;
+
+      console.log("Memory Bank 系统初始化成功");
+    } catch (error) {
+      console.error("Memory Bank 系统初始化失败:", error);
+      // Memory Bank 初始化失败不影响应用启动
+    }
+
     // 初始化RAG管理器
     try {
       console.log("初始化RAG管理器...");
@@ -1522,10 +1551,29 @@ class ChainlessChainApp {
         console.error("[Main] 错误智能诊断IPC注册失败:", error);
       }
 
+      // 注册 Memory Bank System IPC handlers
+      try {
+        if (this.preferenceManager && this.learnedPatternManager) {
+          registerMemorySystemIPC({
+            preferenceManager: this.preferenceManager,
+            learnedPatternManager: this.learnedPatternManager,
+          });
+          console.log(
+            "[Main] Memory Bank IPC handlers已注册 (preference + pattern)",
+          );
+        } else {
+          console.warn("[Main] Memory managers 未初始化，跳过IPC注册");
+        }
+      } catch (error) {
+        console.error("[Main] Memory Bank IPC注册失败:", error);
+      }
+
       // 🔥 注册 Manus 优化 IPC handlers (Context Engineering + Tool Masking)
       try {
         registerManusIPC();
-        console.log("[Main] Manus 优化 IPC handlers已注册 (Context Engineering + Tool Masking)");
+        console.log(
+          "[Main] Manus 优化 IPC handlers已注册 (Context Engineering + Tool Masking)",
+        );
       } catch (error) {
         console.error("[Main] Manus 优化 IPC注册失败:", error);
       }
@@ -1533,7 +1581,9 @@ class ChainlessChainApp {
       // 🔥 注册 Task Tracker IPC handlers (todo.md 机制)
       try {
         registerTaskTrackerIPC();
-        console.log("[Main] Task Tracker IPC handlers已注册 (todo.md mechanism)");
+        console.log(
+          "[Main] Task Tracker IPC handlers已注册 (todo.md mechanism)",
+        );
       } catch (error) {
         console.error("[Main] Task Tracker IPC注册失败:", error);
       }
@@ -1544,7 +1594,9 @@ class ChainlessChainApp {
           llmManager: this.llmManager,
           functionCaller: this.functionCaller,
         });
-        console.log("[Main] Multi-Agent IPC handlers已注册 (Agent orchestrator + specialized agents)");
+        console.log(
+          "[Main] Multi-Agent IPC handlers已注册 (Agent orchestrator + specialized agents)",
+        );
       } catch (error) {
         console.error("[Main] Multi-Agent IPC注册失败:", error);
       }
