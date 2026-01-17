@@ -1761,6 +1761,10 @@ chainlesschain/
 
 | Version | Date       | Major Updates                                                                                                                                                                                                                                                                                                                                            |
 | ------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| v0.25.0 | 2026-01-17 | **Manus AI Optimization + Multi-Agent System**: Context Engineering (KV-Cache optimization), Tool Masking, TaskTrackerFile (todo.md mechanism), Recoverable Compression, 3 specialized Agents (Code Generation/Data Analysis/Document Processing), parallel/chain execution, added 5,500+ lines of code ⭐LATEST |
+| v0.24.0 | 2026-01-16 | **MCP Chat Integration**: MCP tools integrated into AI chat, invoke MCP server tools via Function Calling, added mcp-function-executor.js (268 lines) |
+| v0.23.0 | 2026-01-15 | **SessionManager Enhancement + ErrorMonitor AI Diagnostics**: Session search/tags/export/summary/templates/batch operations, AI intelligent error diagnosis and auto-fix |
+| v0.22.0 | 2026-01-13 | **Blockchain Integration Complete**: Phase 4-6 complete (15 chain support + RPC management + event listening + complete UI), added 6,566 lines of code, 12 UI components, full test coverage ⭐Major Update |
 | v0.21.0 | 2026-01-06 | **Deep Performance Optimization System**: Added 14,000+ lines of optimization code, 18 utility classes, 4 specialized components, smart image optimization system (WebP/AVIF), real-time performance monitoring (Core Web Vitals), frontend deep optimization (code splitting/lazy loading/virtual scrolling/intelligent prefetch), 8 detailed documents |
 | v0.20.0 | 2026-01-03 | **Testing Framework Upgrade + Performance Optimization**: Full migration to Vitest (94 test files/900+ cases), performance optimization integration (memory downgrade/disk check/concurrency control), security protection system, 4 core module unit tests                                                                                              |
 | v0.19.5 | 2026-01-02 | **P2 Optimization + V3 Tools + Menu Integration**: AI engine P2 optimization complete (intent fusion/knowledge distillation/streaming response), V3 tool system restored (300 tools), application menu integration, production deployment                                                                                                                |
@@ -2058,10 +2062,10 @@ Thanks to the following open source projects and technologies:
 
 ### Overall Code Statistics
 
-**Total Code**: 260,000+ lines ⭐Updated
+**Total Code**: 265,500+ lines ⭐Updated
 
-- Desktop App: 220,000+ lines (JavaScript/TypeScript/Vue) ⭐Updated
-  - Main process: ~190,000 lines (including mobile sync 7700 lines) ⭐Updated
+- Desktop App: 225,500+ lines (JavaScript/TypeScript/Vue) ⭐Updated
+  - Main process: ~195,500 lines (including mobile sync 7700 lines + Manus optimization 5500 lines) ⭐Updated
   - Renderer process: ~15,000 lines (243 components)
   - Utility classes: ~15,000 lines (34 files)
 - Smart Contracts: 2,400 lines (Solidity + tests + scripts)
