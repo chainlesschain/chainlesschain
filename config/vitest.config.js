@@ -22,6 +22,10 @@ export default defineConfig({
       // Standalone script tests that use process.exit()
       '**/speech-manager-integration.test.js',
       '**/pkcs11-encryption.test.js',
+      // Jest-style tests (use describe/test without vitest globals)
+      '**/signaling-server.test.js',
+      // Standalone test scripts (not vitest compatible)
+      '**/test-*.js',
     ],
     coverage: {
       provider: 'v8',

@@ -20,7 +20,7 @@
     "test:jest:project": "jest tests/unit/project",
     "test:jest:watch": "jest --watch",
     "test:jest:coverage": "jest --coverage",
-    "test:vitest:coverage": "vitest run --coverage",
+    "test:vitest:coverage": "vitest run --coverage -c config/vitest.config.js",
     "test:coverage": "npm run test:jest:coverage && npm run test:vitest:coverage",
     "test:coverage:open": "open coverage/jest/index.html && open coverage/vitest/index.html",
     "test:performance": "vitest run tests/performance/benchmark.test.js",
