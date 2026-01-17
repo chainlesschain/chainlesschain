@@ -21,7 +21,24 @@ fi
 echo "✅ ESLint 和代码格式化通过"
 echo ""
 
-# 2. 运行项目规则验证
+# 2. 运行 TypeScript 类型检查
+echo "🔷 运行 TypeScript 类型检查..."
+node scripts/typecheck-staged.js
+
+# 检查类型检查退出码
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "❌ TypeScript 类型检查失败！"
+  echo "请修复上述类型错误后再提交"
+  echo ""
+  echo "如需跳过验证（不推荐），使用: git commit --no-verify"
+  exit 1
+fi
+
+echo "✅ TypeScript 类型检查通过"
+echo ""
+
+# 3. 运行项目规则验证
 echo "🔍 运行代码规则验证..."
 
 # 进入 desktop-app-vue 目录运行验证
