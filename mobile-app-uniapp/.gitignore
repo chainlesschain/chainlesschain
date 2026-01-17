@@ -28,3 +28,10 @@ unpackage/
 # Environment
 .env.local
 .env.*.local
+
+# Playwright E2E Test
+e2e-report/
+e2e-screenshots/
+playwright-report/
+test-results/
+playwright/.cache/
