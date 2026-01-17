@@ -2088,6 +2088,22 @@ Thanks to the following open source projects and technologies:
 **Function Modules**:
 
 - 16 AI specialized engines
+- Manus AI Optimization System (5500+ lines) ⭐NEW
+  - Context Engineering: KV-Cache optimization, Prompt cleanup (652 lines)
+  - Tool Masking: Tool masking, state machine control (604 lines)
+  - TaskTrackerFile: todo.md persistence mechanism (833 lines)
+  - ManusOptimizations: Integration module (624 lines)
+  - Recoverable Compression: URL/path preservation strategy
+- Multi-Agent System (2516+ lines) ⭐NEW
+  - AgentOrchestrator: Task distribution, parallel/chain execution (582 lines)
+  - SpecializedAgent: Specialized Agent base class (252 lines)
+  - CodeGenerationAgent: Code generation/refactoring/review (386 lines)
+  - DataAnalysisAgent: Data analysis/visualization/statistics (555 lines)
+  - DocumentAgent: Document writing/translation/summarization (386 lines)
+  - Multi-Agent IPC: 15 IPC channels (248 lines)
+- MCP Function Executor (268 lines) ⭐NEW
+  - Invoke MCP tools in AI chat
+  - Function Calling integration
 - Mobile-PC Data Sync System (7700+ lines)
   - Device pairing, knowledge sync, project sync, PC status monitoring
   - WebRTC P2P communication, libp2p encryption, signaling server
