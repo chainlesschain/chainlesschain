@@ -8,11 +8,32 @@
       <p class="page-description">实时监控 Token 使用、成本分析和性能优化</p>
     </div>
 
+    <!-- 预算告警横幅 -->
+    <transition name="slide-fade">
+      <div v-if="showBudgetAlert" :class="['budget-alert-banner', budgetAlertLevel]">
+        <div class="alert-content">
+          <component :is="budgetAlertIcon" class="alert-icon" />
+          <div class="alert-text">
+            <strong>{{ budgetAlertTitle }}</strong>
+            <span>{{ budgetAlertMessage }}</span>
+          </div>
+        </div>
+        <div class="alert-actions">
+          <a-button size="small" ghost @click="goToBudgetSettings">
+            调整预算
+          </a-button>
+          <a-button size="small" type="text" @click="dismissAlert">
+            <CloseOutlined />
+          </a-button>
+        </div>
+      </div>
+    </transition>
+
     <div class="page-content">
       <!-- 统计概览 -->
-      <a-row :gutter="16" class="stats-row">
-        <a-col :span="6">
-          <a-card>
+      <a-row :gutter="[16, 16]" class="stats-row">
+        <a-col :xs="12" :sm="12" :md="6" :lg="6">
+          <a-card class="stat-card" hoverable>
             <a-skeleton
               :loading="initialLoading"
               active
@@ -22,12 +43,20 @@
                 title="总调用次数"
                 :value="stats.totalCalls"
                 :prefix="h(ApiOutlined)"
-              />
+              >
+                <template #suffix>
+                  <span v-if="periodComparison.callsChange !== 0" class="stat-change" :class="periodComparison.callsChange > 0 ? 'up' : 'down'">
+                    <ArrowUpOutlined v-if="periodComparison.callsChange > 0" />
+                    <ArrowDownOutlined v-else />
+                    {{ Math.abs(periodComparison.callsChange).toFixed(1) }}%
+                  </span>
+                </template>
+              </a-statistic>
             </a-skeleton>
           </a-card>
         </a-col>
-        <a-col :span="6">
-          <a-card>
+        <a-col :xs="12" :sm="12" :md="6" :lg="6">
+          <a-card class="stat-card" hoverable>
             <a-skeleton
               :loading="initialLoading"
               active
@@ -38,12 +67,20 @@
                 :value="stats.totalTokens"
                 :prefix="h(ThunderboltOutlined)"
                 :formatter="formatTokens"
-              />
+              >
+                <template #suffix>
+                  <span v-if="periodComparison.tokensChange !== 0" class="stat-change" :class="periodComparison.tokensChange > 0 ? 'up' : 'down'">
+                    <ArrowUpOutlined v-if="periodComparison.tokensChange > 0" />
+                    <ArrowDownOutlined v-else />
+                    {{ Math.abs(periodComparison.tokensChange).toFixed(1) }}%
+                  </span>
+                </template>
+              </a-statistic>
             </a-skeleton>
           </a-card>
         </a-col>
-        <a-col :span="6">
-          <a-card>
+        <a-col :xs="12" :sm="12" :md="6" :lg="6">
+          <a-card class="stat-card" hoverable>
             <a-skeleton
               :loading="initialLoading"
               active
@@ -57,15 +94,23 @@
                 :value-style="{
                   color: stats.totalCostUsd > 10 ? '#cf1322' : '#3f8600',
                 }"
-              />
+              >
+                <template #suffix>
+                  <span v-if="periodComparison.costChange !== 0" class="stat-change" :class="periodComparison.costChange > 0 ? 'up' : 'down'">
+                    <ArrowUpOutlined v-if="periodComparison.costChange > 0" />
+                    <ArrowDownOutlined v-else />
+                    {{ Math.abs(periodComparison.costChange).toFixed(1) }}%
+                  </span>
+                </template>
+              </a-statistic>
               <div class="sub-value">
                 ¥{{ (stats.totalCostCny || 0).toFixed(2) }}
               </div>
             </a-skeleton>
           </a-card>
         </a-col>
-        <a-col :span="6">
-          <a-card>
+        <a-col :xs="12" :sm="12" :md="6" :lg="6">
+          <a-card class="stat-card" hoverable>
             <a-skeleton
               :loading="initialLoading"
               active
@@ -87,9 +132,9 @@
       </a-row>
 
       <!-- 优化效果统计 -->
-      <a-row :gutter="16" class="optimization-row">
-        <a-col :span="8">
-          <a-card>
+      <a-row :gutter="[16, 16]" class="optimization-row">
+        <a-col :xs="24" :sm="12" :md="8" :lg="8">
+          <a-card class="stat-card" hoverable>
             <a-skeleton
               :loading="initialLoading"
               active
@@ -105,8 +150,8 @@
             </a-skeleton>
           </a-card>
         </a-col>
-        <a-col :span="8">
-          <a-card>
+        <a-col :xs="24" :sm="12" :md="8" :lg="8">
+          <a-card class="stat-card" hoverable>
             <a-skeleton
               :loading="initialLoading"
               active
@@ -124,8 +169,8 @@
             </a-skeleton>
           </a-card>
         </a-col>
-        <a-col :span="8">
-          <a-card>
+        <a-col :xs="24" :sm="24" :md="8" :lg="8">
+          <a-card class="stat-card" hoverable>
             <a-skeleton
               :loading="initialLoading"
               active
@@ -145,10 +190,105 @@
         </a-col>
       </a-row>
 
+      <!-- 成本优化建议 -->
+      <a-card
+        v-if="costRecommendations.length > 0"
+        class="recommendations-card"
+        title="成本优化建议"
+      >
+        <template #extra>
+          <a-tag color="blue">
+            <BulbOutlined /> 智能分析
+          </a-tag>
+        </template>
+        <a-list
+          :data-source="costRecommendations"
+          :loading="loading"
+          size="small"
+        >
+          <template #renderItem="{ item }">
+            <a-list-item>
+              <a-list-item-meta>
+                <template #avatar>
+                  <a-avatar :style="{ backgroundColor: getRecommendationColor(item.priority) }">
+                    <template #icon>
+                      <ThunderboltOutlined v-if="item.type === 'model'" />
+                      <SettingOutlined v-else-if="item.type === 'cache'" />
+                      <DollarOutlined v-else />
+                    </template>
+                  </a-avatar>
+                </template>
+                <template #title>
+                  <span>{{ item.title }}</span>
+                  <a-tag
+                    v-if="item.savingsPercent"
+                    color="green"
+                    style="margin-left: 8px"
+                  >
+                    可节省 {{ item.savingsPercent }}%
+                  </a-tag>
+                </template>
+                <template #description>
+                  {{ item.description }}
+                </template>
+              </a-list-item-meta>
+            </a-list-item>
+          </template>
+        </a-list>
+      </a-card>
+
+      <!-- 趋势预测卡片 -->
+      <a-card
+        v-if="trendPrediction.enabled"
+        class="prediction-card"
+        title="成本预测分析"
+      >
+        <template #extra>
+          <a-tag color="purple">
+            <LineChartOutlined /> AI 预测
+          </a-tag>
+        </template>
+        <a-row :gutter="[16, 16]">
+          <a-col :xs="24" :sm="12" :md="8">
+            <div class="prediction-item">
+              <div class="prediction-label">预计本月成本</div>
+              <div class="prediction-value" :class="{ warning: trendPrediction.monthlyPredicted > budget.monthlyLimit && budget.monthlyLimit > 0 }">
+                ${{ trendPrediction.monthlyPredicted.toFixed(2) }}
+              </div>
+              <div class="prediction-desc">
+                基于当前使用趋势
+              </div>
+            </div>
+          </a-col>
+          <a-col :xs="24" :sm="12" :md="8">
+            <div class="prediction-item">
+              <div class="prediction-label">日均成本</div>
+              <div class="prediction-value">
+                ${{ trendPrediction.dailyAverage.toFixed(4) }}
+              </div>
+              <div class="prediction-desc">
+                过去 {{ timeRange === '7d' ? '7' : timeRange === '30d' ? '30' : '1' }} 天平均
+              </div>
+            </div>
+          </a-col>
+          <a-col :xs="24" :sm="24" :md="8">
+            <div class="prediction-item">
+              <div class="prediction-label">预算消耗天数</div>
+              <div class="prediction-value" :class="{ warning: trendPrediction.daysUntilBudget < 7 && trendPrediction.daysUntilBudget > 0 }">
+                {{ trendPrediction.daysUntilBudget > 0 ? trendPrediction.daysUntilBudget + ' 天' : '充足' }}
+              </div>
+              <div class="prediction-desc">
+                {{ trendPrediction.daysUntilBudget > 0 ? '预计月预算用尽时间' : '当前趋势下预算充足' }}
+              </div>
+            </div>
+          </a-col>
+        </a-row>
+      </a-card>
+
       <!-- 缓存详情与预算使用 -->
-      <a-row :gutter="16" class="cache-budget-row">
+      <a-row :gutter="[16, 16]" class="cache-budget-row">
         <!-- 响应缓存详情 -->
-        <a-col :span="12">
+        <a-col :xs="24" :sm="24" :md="12" :lg="12">
           <a-card title="响应缓存详情" class="detail-card">
             <template #extra>
               <a-tag color="blue"> <DatabaseOutlined /> 缓存系统 </a-tag>
@@ -226,7 +366,7 @@
         </a-col>
 
         <!-- 预算使用情况 -->
-        <a-col :span="12">
+        <a-col :xs="24" :sm="24" :md="12" :lg="12">
           <a-card title="预算使用情况" class="detail-card">
             <template #extra>
               <a-tag :color="budgetStatusColor">
@@ -381,27 +521,80 @@
             <a-radio-button value="week">按周</a-radio-button>
           </a-radio-group>
         </div>
-        <div ref="tokenTrendChart" class="chart-container"></div>
+        <div v-if="loading && timeSeriesData.length === 0" class="chart-skeleton">
+          <a-skeleton active :paragraph="{ rows: 8 }" />
+        </div>
+        <div v-else ref="tokenTrendChart" class="chart-container"></div>
         <a-empty
           v-if="timeSeriesData.length === 0 && !loading"
           description="暂无数据"
         />
       </a-card>
 
+      <!-- Input/Output Token 分布图 -->
+      <a-row :gutter="[16, 16]">
+        <a-col :xs="24" :sm="24" :md="12" :lg="12">
+          <a-card title="Token 类型分布" class="chart-card">
+            <template #extra>
+              <a-tooltip title="显示输入和输出 Token 的比例分布">
+                <QuestionCircleOutlined style="color: #8c8c8c" />
+              </a-tooltip>
+            </template>
+            <div v-if="loading && !tokenDistributionData.length" class="chart-skeleton">
+              <a-skeleton active :paragraph="{ rows: 6 }" />
+            </div>
+            <div v-else ref="tokenDistributionChart" class="chart-container-small"></div>
+            <a-empty
+              v-if="!tokenDistributionData.length && !loading"
+              description="暂无数据"
+            />
+          </a-card>
+        </a-col>
+        <a-col :xs="24" :sm="24" :md="12" :lg="12">
+          <a-card title="周期对比" class="chart-card">
+            <template #extra>
+              <a-select
+                v-model:value="comparisonPeriod"
+                @change="handleComparisonPeriodChange"
+                size="small"
+                style="width: 120px"
+              >
+                <a-select-option value="week">本周 vs 上周</a-select-option>
+                <a-select-option value="month">本月 vs 上月</a-select-option>
+              </a-select>
+            </template>
+            <div v-if="loading && !periodComparisonData.current.length" class="chart-skeleton">
+              <a-skeleton active :paragraph="{ rows: 6 }" />
+            </div>
+            <div v-else ref="periodComparisonChart" class="chart-container-small"></div>
+            <a-empty
+              v-if="!periodComparisonData.current.length && !loading"
+              description="暂无数据"
+            />
+          </a-card>
+        </a-col>
+      </a-row>
+
       <!-- 成本分解可视化 -->
-      <a-row :gutter="16">
-        <a-col :span="12">
+      <a-row :gutter="[16, 16]">
+        <a-col :xs="24" :sm="24" :md="12" :lg="12">
           <a-card title="按提供商成本分布" class="chart-card">
-            <div ref="providerCostChart" class="chart-container-small"></div>
+            <div v-if="loading && !costBreakdown.byProvider.length" class="chart-skeleton">
+              <a-skeleton active :paragraph="{ rows: 6 }" />
+            </div>
+            <div v-else ref="providerCostChart" class="chart-container-small"></div>
             <a-empty
               v-if="costBreakdown.byProvider.length === 0 && !loading"
               description="暂无数据"
             />
           </a-card>
         </a-col>
-        <a-col :span="12">
+        <a-col :xs="24" :sm="24" :md="12" :lg="12">
           <a-card title="按模型成本分布（Top 10）" class="chart-card">
-            <div ref="modelCostChart" class="chart-container-small"></div>
+            <div v-if="loading && !costBreakdown.byModel.length" class="chart-skeleton">
+              <a-skeleton active :paragraph="{ rows: 6 }" />
+            </div>
+            <div v-else ref="modelCostChart" class="chart-container-small"></div>
             <a-empty
               v-if="costBreakdown.byModel.length === 0 && !loading"
               description="暂无数据"
@@ -457,8 +650,9 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, h, nextTick } from "vue";
+import { ref, computed, onMounted, onUnmounted, h, nextTick, markRaw } from "vue";
 import { message } from "ant-design-vue";
+import { useRouter } from "vue-router";
 import * as echarts from "echarts";
 import {
   BarChartOutlined,
@@ -474,7 +668,18 @@ import {
   DatabaseOutlined,
   FundOutlined,
   WarningOutlined,
+  CloseOutlined,
+  ArrowUpOutlined,
+  ArrowDownOutlined,
+  BulbOutlined,
+  SettingOutlined,
+  LineChartOutlined,
+  QuestionCircleOutlined,
+  ExclamationCircleOutlined,
+  AlertOutlined,
 } from "@ant-design/icons-vue";
+
+const router = useRouter();
 
 // 状态
 const stats = ref({
@@ -544,6 +749,44 @@ let refreshIntervalId = null;
 // 清理缓存状态
 const clearingCache = ref(false);
 
+// 告警横幅状态
+const alertDismissed = ref(false);
+
+// 成本优化建议
+const costRecommendations = ref([]);
+
+// 趋势预测
+const trendPrediction = ref({
+  enabled: false,
+  monthlyPredicted: 0,
+  dailyAverage: 0,
+  daysUntilBudget: 0,
+});
+
+// 周期对比
+const comparisonPeriod = ref("week");
+const periodComparison = ref({
+  callsChange: 0,
+  tokensChange: 0,
+  costChange: 0,
+});
+const periodComparisonData = ref({
+  current: [],
+  previous: [],
+  labels: [],
+});
+
+// Token 分布数据
+const tokenDistributionData = ref([]);
+
+// 新增图表实例
+let tokenDistributionChartInstance = null;
+let periodComparisonChartInstance = null;
+
+// 新增图表 ref
+const tokenDistributionChart = ref(null);
+const periodComparisonChart = ref(null);
+
 // 计算属性
 const cachedSavings = computed(() => {
   // 基于缓存调用次数和平均调用成本计算节省
@@ -601,6 +844,50 @@ const budgetStatusText = computed(() => {
   if (percent >= budget.value.warningThreshold) return "接近预算";
   return "预算正常";
 });
+
+// 告警横幅计算属性
+const showBudgetAlert = computed(() => {
+  if (alertDismissed.value) return false;
+  return maxBudgetPercent.value >= budget.value.warningThreshold;
+});
+
+const budgetAlertLevel = computed(() => {
+  const percent = maxBudgetPercent.value;
+  if (percent >= budget.value.criticalThreshold) return "critical";
+  if (percent >= budget.value.warningThreshold) return "warning";
+  return "";
+});
+
+const budgetAlertIcon = computed(() => {
+  if (maxBudgetPercent.value >= budget.value.criticalThreshold) {
+    return markRaw(ExclamationCircleOutlined);
+  }
+  return markRaw(AlertOutlined);
+});
+
+const budgetAlertTitle = computed(() => {
+  if (maxBudgetPercent.value >= budget.value.criticalThreshold) {
+    return "预算超出警告！";
+  }
+  return "预算接近阈值";
+});
+
+const budgetAlertMessage = computed(() => {
+  const percent = maxBudgetPercent.value;
+  if (percent >= 100) {
+    return `当前使用已超出预算限制 (${percent.toFixed(1)}%)，建议立即调整或暂停服务。`;
+  }
+  return `当前使用已达到预算的 ${percent.toFixed(1)}%，请注意控制使用量。`;
+});
+
+// 告警横幅方法
+const dismissAlert = () => {
+  alertDismissed.value = true;
+};
+
+const goToBudgetSettings = () => {
+  router.push({ name: "Settings", query: { tab: "llm" } });
+};
 
 // 预算状态函数
 const getBudgetStatus = (percent) => {

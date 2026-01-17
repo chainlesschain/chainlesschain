@@ -8,19 +8,19 @@
 
 ```javascript
 class SkillManager {
-  db; //
-  toolManager; //
-  dependencies; //
-  skills; //
-  docGenerator; //
-  isInitialized; //
+  db; // 
+  toolManager; // 
+  dependencies; // 
+  skills; // 
+  docGenerator; // 
+  isInitialized; // 
 }
 ```
 
 ## 构造函数
 
 ```javascript
-new SkillManager();
+new SkillManager()
 ```
 
 ## 方法
@@ -362,7 +362,6 @@ new SkillManager();
 ---
 
 #### `forEach(skill => {
-
           if (skill.category)`
 
 ---
@@ -651,7 +650,7 @@ getSkillCount 方法（用于兼容测试）
 
 #### `if(enabled !== null)`
 
-\_getAllSkillsArray 内部方法，返回技能数组
+_getAllSkillsArray 内部方法，返回技能数组
 
 **参数:**
 
@@ -681,6 +680,7 @@ getSkillCount 方法（用于兼容测试）
 
 ---
 
+
 ### 私有方法
 
 #### `async _getAllSkillsArray(options = {})`
@@ -690,6 +690,7 @@ getSkillCount 方法（用于兼容测试）
 **返回:** `Promise<Object>` - 技能数量
 
 ---
+
 
 ## 事件
 
@@ -708,4 +709,4 @@ const skillmanager = new SkillManager(/* 参数 */);
 
 ---
 
-> 自动生成时间: 2026/1/16 17:18:05
+> 自动生成时间: 2026/1/17 21:32:29
