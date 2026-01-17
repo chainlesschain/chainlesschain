@@ -1,0 +1,77 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Weather MCP Server Configuration",
+  "description": "Configuration schema for the ChainlessChain example weather MCP server",
+  "type": "object",
+  "properties": {
+    "enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Enable or disable this MCP server"
+    },
+    "command": {
+      "type": "string",
+      "default": "npx",
+      "description": "Command to run the server"
+    },
+    "args": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": ["-y", "@chainlesschain/weather-mcp-server"],
+      "description": "Command arguments"
+    },
+    "apiKey": {
+      "type": "string",
+      "description": "Weather API key (optional, uses mock data if not provided)",
+      "examples": ["your-openweathermap-api-key"]
+    },
+    "timeout": {
+      "type": "integer",
+      "default": 30000,
+      "minimum": 1000,
+      "maximum": 120000,
+      "description": "API request timeout in milliseconds"
+    },
+    "units": {
+      "type": "string",
+      "enum": ["metric", "imperial"],
+      "default": "metric",
+      "description": "Temperature units: metric (Celsius) or imperial (Fahrenheit)"
+    },
+    "logLevel": {
+      "type": "string",
+      "enum": ["debug", "info", "warn", "error"],
+      "default": "info",
+      "description": "Logging verbosity level"
+    },
+    "autoConnect": {
+      "type": "boolean",
+      "default": false,
+      "description": "Automatically connect when the application starts"
+    },
+    "cache": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable response caching"
+        },
+        "ttl": {
+          "type": "integer",
+          "default": 600,
+          "minimum": 60,
+          "maximum": 3600,
+          "description": "Cache TTL in seconds"
+        }
+      },
+      "default": {
+        "enabled": true,
+        "ttl": 600
+      }
+    }
+  },
+  "required": []
+}

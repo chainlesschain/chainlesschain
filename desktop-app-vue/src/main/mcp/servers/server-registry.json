@@ -142,6 +142,21 @@
       ],
       "documentation": "https://github.com/modelcontextprotocol/servers/tree/main/src/puppeteer",
       "configSchema": "./server-configs/puppeteer.json"
+    },
+    {
+      "id": "weather",
+      "name": "Weather Server",
+      "description": "ChainlessChain example MCP server for weather queries",
+      "vendor": "@chainlesschain",
+      "packageName": "@chainlesschain/weather-mcp-server",
+      "minVersion": "1.0.0",
+      "maxVersion": "2.0.0",
+      "verifiedChecksum": null,
+      "capabilities": ["tools", "resources"],
+      "securityLevel": "low",
+      "requiredPermissions": ["network:http"],
+      "documentation": "https://github.com/chainlesschain/chainlesschain/tree/main/examples/custom-mcp-server",
+      "configSchema": "./server-configs/weather.json"
     }
   ],
 
