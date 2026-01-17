@@ -110,6 +110,9 @@ const { registerSpeechIPC } = require("./speech/speech-ipc");
 // Session Management System
 const { registerSessionManagerIPC } = require("./llm/session-manager-ipc");
 
+// Manus Optimizations (Context Engineering + Tool Masking)
+const { registerManusIPC } = require("./llm/manus-ipc");
+
 // Error Monitor AI Diagnosis System
 const { registerErrorMonitorIPC } = require("./error-monitor-ipc");
 
@@ -1511,6 +1514,14 @@ class ChainlessChainApp {
         }
       } catch (error) {
         console.error("[Main] 错误智能诊断IPC注册失败:", error);
+      }
+
+      // 🔥 注册 Manus 优化 IPC handlers (Context Engineering + Tool Masking)
+      try {
+        registerManusIPC();
+        console.log("[Main] Manus 优化 IPC handlers已注册 (Context Engineering + Tool Masking)");
+      } catch (error) {
+        console.error("[Main] Manus 优化 IPC注册失败:", error);
       }
 
       console.log("[Main] 技能和工具管理系统初始化完成（含桥接器）");
