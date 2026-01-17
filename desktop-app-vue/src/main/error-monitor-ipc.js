@@ -328,6 +328,43 @@ function registerErrorMonitorIPC({ errorMonitor, ipcMain: injectedIpcMain }) {
     }
   });
 
+  // ============================================================
+  // 日志记录
+  // ============================================================
+
+  /**
+   * 记录渲染进程的错误到日志文件
+   * Channel: 'log:error'
+   */
+  ipcMain.handle("log:error", async (_event, errorInfo) => {
+    try {
+      const { getLogger } = require("./logger");
+      const logger = getLogger("Renderer");
+
+      // 记录错误到日志
+      logger.error("Renderer process error:", errorInfo);
+
+      // 如果 ErrorMonitor 可用，也记录到数据库
+      if (monitorRef.current) {
+        try {
+          await monitorRef.current.analyzeError(errorInfo);
+        } catch (analyzeError) {
+          // 分析失败不影响日志记录
+          console.warn(
+            "[ErrorMonitor IPC] 错误分析失败:",
+            analyzeError.message,
+          );
+        }
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error("[ErrorMonitor IPC] 记录错误日志失败:", error);
+      // 不抛出异常，避免影响渲染进程
+      return { success: false, error: error.message };
+    }
+  });
+
   /**
    * 更新 ErrorMonitor 引用
    * 用于热重载或重新初始化

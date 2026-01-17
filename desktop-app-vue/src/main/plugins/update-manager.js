@@ -5,10 +5,10 @@
  * 支持自动更新和手动更新
  */
 
-const { EventEmitter } = require('events');
-const fs = require('fs');
-const path = require('path');
-const { getPluginMarketplaceAPI } = require('./marketplace-api');
+const { EventEmitter } = require("events");
+const fs = require("fs");
+const path = require("path");
+const { getPluginMarketplaceAPI } = require("./marketplace-api");
 
 class PluginUpdateManager extends EventEmitter {
   constructor(pluginManager, config = {}) {
@@ -41,17 +41,23 @@ class PluginUpdateManager extends EventEmitter {
       return;
     }
 
-    console.log('[PluginUpdateManager] Starting auto-check for updates');
+    console.log("[PluginUpdateManager] Starting auto-check for updates");
 
     // 立即检查一次
-    this.checkForUpdates().catch(error => {
-      console.error('[PluginUpdateManager] Initial update check failed:', error);
+    this.checkForUpdates().catch((error) => {
+      console.error(
+        "[PluginUpdateManager] Initial update check failed:",
+        error,
+      );
     });
 
     // 定期检查
     this.updateTimer = setInterval(() => {
-      this.checkForUpdates().catch(error => {
-        console.error('[PluginUpdateManager] Periodic update check failed:', error);
+      this.checkForUpdates().catch((error) => {
+        console.error(
+          "[PluginUpdateManager] Periodic update check failed:",
+          error,
+        );
       });
     }, this.checkInterval);
   }
@@ -63,7 +69,7 @@ class PluginUpdateManager extends EventEmitter {
     if (this.updateTimer) {
       clearInterval(this.updateTimer);
       this.updateTimer = null;
-      console.log('[PluginUpdateManager] Stopped auto-check for updates');
+      console.log("[PluginUpdateManager] Stopped auto-check for updates");
     }
   }
 
@@ -72,23 +78,23 @@ class PluginUpdateManager extends EventEmitter {
    */
   async checkForUpdates(force = false) {
     if (this.checking && !force) {
-      console.log('[PluginUpdateManager] Update check already in progress');
+      console.log("[PluginUpdateManager] Update check already in progress");
       return this.availableUpdates;
     }
 
     this.checking = true;
-    this.emit('check-start');
+    this.emit("check-start");
 
     try {
-      console.log('[PluginUpdateManager] Checking for plugin updates...');
+      console.log("[PluginUpdateManager] Checking for plugin updates...");
 
       // 获取已安装的插件
-      const installedPlugins = await this.pluginManager.listPlugins();
+      const installedPlugins = this.pluginManager.getPlugins();
 
       if (installedPlugins.length === 0) {
-        console.log('[PluginUpdateManager] No plugins installed');
+        console.log("[PluginUpdateManager] No plugins installed");
         this.checking = false;
-        this.emit('check-complete', []);
+        this.emit("check-complete", []);
         return new Map();
       }
 
@@ -107,13 +113,15 @@ class PluginUpdateManager extends EventEmitter {
           changelog: update.changelog,
           releaseDate: update.releaseDate,
           critical: update.critical || false,
-          downloadUrl: update.downloadUrl
+          downloadUrl: update.downloadUrl,
         });
 
-        console.log(`[PluginUpdateManager] Update available for ${update.pluginId}: ${update.currentVersion} -> ${update.latestVersion}`);
+        console.log(
+          `[PluginUpdateManager] Update available for ${update.pluginId}: ${update.currentVersion} -> ${update.latestVersion}`,
+        );
       }
 
-      this.emit('check-complete', Array.from(this.availableUpdates.values()));
+      this.emit("check-complete", Array.from(this.availableUpdates.values()));
 
       // 如果启用自动更新，自动安装非关键更新
       if (this.autoUpdateEnabled && this.availableUpdates.size > 0) {
@@ -122,8 +130,8 @@ class PluginUpdateManager extends EventEmitter {
 
       return this.availableUpdates;
     } catch (error) {
-      console.error('[PluginUpdateManager] Check for updates failed:', error);
-      this.emit('check-error', error);
+      console.error("[PluginUpdateManager] Check for updates failed:", error);
+      this.emit("check-error", error);
       throw error;
     } finally {
       this.checking = false;
@@ -134,7 +142,7 @@ class PluginUpdateManager extends EventEmitter {
    * 自动安装更新
    */
   async autoInstallUpdates() {
-    console.log('[PluginUpdateManager] Auto-installing updates...');
+    console.log("[PluginUpdateManager] Auto-installing updates...");
 
     const updates = Array.from(this.availableUpdates.values());
 
@@ -145,7 +153,10 @@ class PluginUpdateManager extends EventEmitter {
           await this.updatePlugin(update.pluginId);
         }
       } catch (error) {
-        console.error(`[PluginUpdateManager] Auto-update failed for ${update.pluginId}:`, error);
+        console.error(
+          `[PluginUpdateManager] Auto-update failed for ${update.pluginId}:`,
+          error,
+        );
       }
     }
   }
@@ -153,10 +164,10 @@ class PluginUpdateManager extends EventEmitter {
   /**
    * 更新单个插件
    */
-  async updatePlugin(pluginId, version = 'latest') {
+  async updatePlugin(pluginId, version = "latest") {
     console.log(`[PluginUpdateManager] Updating plugin: ${pluginId}`);
 
-    this.emit('update-start', pluginId);
+    this.emit("update-start", pluginId);
 
     try {
       // 获取插件信息
@@ -166,11 +177,16 @@ class PluginUpdateManager extends EventEmitter {
       }
 
       // 下载新版本
-      console.log(`[PluginUpdateManager] Downloading ${pluginId} ${version}...`);
-      const pluginData = await this.marketplaceAPI.downloadPlugin(pluginId, version);
+      console.log(
+        `[PluginUpdateManager] Downloading ${pluginId} ${version}...`,
+      );
+      const pluginData = await this.marketplaceAPI.downloadPlugin(
+        pluginId,
+        version,
+      );
 
       // 保存到临时文件
-      const tempDir = path.join(process.cwd(), '.temp-updates');
+      const tempDir = path.join(process.cwd(), ".temp-updates");
       if (!fs.existsSync(tempDir)) {
         fs.mkdirSync(tempDir, { recursive: true });
       }
@@ -179,11 +195,15 @@ class PluginUpdateManager extends EventEmitter {
       fs.writeFileSync(tempFile, pluginData);
 
       // 卸载旧版本
-      console.log(`[PluginUpdateManager] Uninstalling old version of ${pluginId}...`);
+      console.log(
+        `[PluginUpdateManager] Uninstalling old version of ${pluginId}...`,
+      );
       await this.pluginManager.uninstallPlugin(pluginId);
 
       // 安装新版本
-      console.log(`[PluginUpdateManager] Installing new version of ${pluginId}...`);
+      console.log(
+        `[PluginUpdateManager] Installing new version of ${pluginId}...`,
+      );
       await this.pluginManager.installPlugin(tempFile);
 
       // 清理临时文件
@@ -193,12 +213,15 @@ class PluginUpdateManager extends EventEmitter {
       this.availableUpdates.delete(pluginId);
 
       console.log(`[PluginUpdateManager] Successfully updated ${pluginId}`);
-      this.emit('update-complete', pluginId);
+      this.emit("update-complete", pluginId);
 
       return true;
     } catch (error) {
-      console.error(`[PluginUpdateManager] Update failed for ${pluginId}:`, error);
-      this.emit('update-error', pluginId, error);
+      console.error(
+        `[PluginUpdateManager] Update failed for ${pluginId}:`,
+        error,
+      );
+      this.emit("update-error", pluginId, error);
       throw error;
     }
   }
@@ -207,11 +230,13 @@ class PluginUpdateManager extends EventEmitter {
    * 批量更新插件
    */
   async updateMultiplePlugins(pluginIds) {
-    console.log(`[PluginUpdateManager] Updating ${pluginIds.length} plugins...`);
+    console.log(
+      `[PluginUpdateManager] Updating ${pluginIds.length} plugins...`,
+    );
 
     const results = {
       success: [],
-      failed: []
+      failed: [],
     };
 
     for (const pluginId of pluginIds) {
@@ -221,12 +246,14 @@ class PluginUpdateManager extends EventEmitter {
       } catch (error) {
         results.failed.push({
           pluginId,
-          error: error.message
+          error: error.message,
         });
       }
     }
 
-    console.log(`[PluginUpdateManager] Batch update complete: ${results.success.length} succeeded, ${results.failed.length} failed`);
+    console.log(
+      `[PluginUpdateManager] Batch update complete: ${results.success.length} succeeded, ${results.failed.length} failed`,
+    );
 
     return results;
   }
@@ -264,8 +291,8 @@ class PluginUpdateManager extends EventEmitter {
    * 比较版本号
    */
   compareVersions(v1, v2) {
-    const parts1 = v1.split('.').map(Number);
-    const parts2 = v2.split('.').map(Number);
+    const parts1 = v1.split(".").map(Number);
+    const parts2 = v2.split(".").map(Number);
 
     for (let i = 0; i < Math.max(parts1.length, parts2.length); i++) {
       const part1 = parts1[i] || 0;
@@ -296,7 +323,9 @@ class PluginUpdateManager extends EventEmitter {
    */
   setAutoUpdate(enabled) {
     this.autoUpdateEnabled = enabled;
-    console.log(`[PluginUpdateManager] Auto-update ${enabled ? 'enabled' : 'disabled'}`);
+    console.log(
+      `[PluginUpdateManager] Auto-update ${enabled ? "enabled" : "disabled"}`,
+    );
   }
 
   /**
@@ -307,8 +336,8 @@ class PluginUpdateManager extends EventEmitter {
 
     return {
       total: updates.length,
-      critical: updates.filter(u => u.critical).length,
-      normal: updates.filter(u => !u.critical).length
+      critical: updates.filter((u) => u.critical).length,
+      normal: updates.filter((u) => !u.critical).length,
     };
   }
 

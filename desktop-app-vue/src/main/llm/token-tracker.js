@@ -178,7 +178,7 @@ class TokenTracker extends EventEmitter {
     }
 
     try {
-      const selector = VolcengineModels.getVolcengineModelSelector();
+      const selector = VolcengineModels.getModelSelector();
       const models = selector.models || {};
 
       Object.keys(models).forEach((modelId) => {

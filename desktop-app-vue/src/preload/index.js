@@ -2415,6 +2415,16 @@ contextBridge.exposeInMainWorld("electronAPI", {
   // 用于调用任意 IPC 通道（如 session:*, error:* 等）
   // ==========================================
   invoke: (channel, ...args) => ipcRenderer.invoke(channel, ...args),
+
+  // ==========================================
+  // 错误日志记录
+  // ==========================================
+  /**
+   * 记录错误到日志文件
+   * @param {Object} errorInfo - 错误信息对象
+   * @returns {Promise<{success: boolean, error?: string}>}
+   */
+  logError: (errorInfo) => ipcRenderer.invoke("log:error", errorInfo),
 });
 
 // Also expose a direct electron object for components that use window.electron.ipcRenderer
