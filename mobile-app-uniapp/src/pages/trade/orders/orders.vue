@@ -26,17 +26,20 @@
       :refresher-triggered="refreshing"
       @refresherrefresh="onRefresh"
     >
-      <!-- 加载状态 -->
-      <view class="loading" v-if="loading && orders.length === 0">
-        <text>加载中...</text>
-      </view>
+      <!-- 加载骨架屏 -->
+      <Skeleton v-if="loading && orders.length === 0" type="list" :rows="5" :avatar="true" :animate="true" />
 
       <!-- 空状态 -->
-      <view class="empty" v-else-if="orders.length === 0">
-        <text class="empty-icon">📋</text>
-        <text class="empty-text">还没有订单</text>
-        <text class="empty-hint">去市场购买知识或上架你的知识吧</text>
-      </view>
+      <EmptyState
+        v-else-if="orders.length === 0"
+        icon="📋"
+        title="还没有订单"
+        description="去市场购买知识或上架你的知识吧"
+        action-text="去市场看看"
+        action-icon="🏪"
+        icon-style="info"
+        @action="goToMarket"
+      />
 
       <!-- 订单列表 -->
       <view class="order-item" v-for="order in displayOrders" :key="order.id" @click="viewOrderDetail(order)">
@@ -138,8 +141,14 @@
 
 <script>
 import { db } from '@/services/database'
+import EmptyState from '@/components/EmptyState.vue'
+import Skeleton from '@/components/Skeleton.vue'
 
 export default {
+  components: {
+    EmptyState,
+    Skeleton
+  },
   data() {
     return {
       currentTab: 'buy',
@@ -309,6 +318,15 @@ export default {
       const hour = String(date.getHours()).padStart(2, '0')
       const minute = String(date.getMinutes()).padStart(2, '0')
       return `${year}-${month}-${day} ${hour}:${minute}`
+    },
+
+    /**
+     * 跳转到市场
+     */
+    goToMarket() {
+      uni.navigateTo({
+        url: '/pages/trade/market/market'
+      })
     }
   }
 }
