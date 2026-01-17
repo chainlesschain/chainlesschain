@@ -19,9 +19,9 @@ Read files from disk
 
 ## 📥 参数说明
 
-| 参数名     | 类型   | 必填 | 说明             |
-| ---------- | ------ | ---- | ---------------- |
-| `filePath` | string | ✅   | Path to the file |
+| 参数名 | 类型 | 必填 | 说明 |
+|--------|------|------|------|
+| `filePath` | string | ✅ | Path to the file |
 
 ## 📤 返回值说明
 
@@ -40,17 +40,17 @@ Read files from disk
 
 ```javascript
 // 通过 FunctionCaller 调用
-const result = await functionCaller.call("tool3", {
-  filePath: "示例filePath",
+const result = await functionCaller.call('tool3', {
+  "filePath": "示例filePath"
 });
 
-console.log("执行结果:", result);
+console.log('执行结果:', result);
 ```
 
 ```javascript
 // 通过 IPC 测试工具
-const result = await window.electronAPI.invoke("tool:test", toolId, {
-  filePath: "示例filePath",
+const result = await window.electronAPI.invoke('tool:test', toolId, {
+  "filePath": "示例filePath"
 });
 ```
 
@@ -69,5 +69,5 @@ const result = await window.electronAPI.invoke("tool:test", toolId, {
 
 ---
 
-**文档生成时间**: 2026/1/16 17:18:04
+**文档生成时间**: 2026/1/17 21:31:34
 **工具类型**: 内置

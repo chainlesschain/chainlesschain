@@ -1153,8 +1153,7 @@ desktop-app-vue/
 - **project-service** (Spring Boot 3.1.11 + Java 17): Project metadata, Git operations
   - PostgreSQL for data
   - Redis for caching
-  - MyBatis Plus for ORM
-  - **IMPORTANT**: Requires MyBatis Plus 3.5.9+ for Spring Boot 3.x compatibility (current version 3.5.3.1 is outdated)
+  - MyBatis Plus for ORM (v3.5.9, upgraded for Spring Boot 3.x compatibility)
 
 - **ai-service** (FastAPI + Python): AI/LLM inference, RAG, embeddings
   - Ollama for local LLM
@@ -1190,7 +1189,7 @@ Desktop app uses SQLite with SQLCipher (AES-256 encryption). Key tables:
 ### Backend Dependencies
 
 - **Java**: 17 with Spring Boot 3.1.11
-- **MyBatis Plus**: 3.5.3.1 (needs upgrade to 3.5.9)
+- **MyBatis Plus**: 3.5.9 (upgraded, fully compatible with Spring Boot 3.x)
 - **Python**: FastAPI, Ollama, Qdrant
 - **Databases**: PostgreSQL 16, Redis 7, SQLite
 
@@ -1199,7 +1198,7 @@ Desktop app uses SQLite with SQLCipher (AES-256 encryption). Key tables:
 The codebase is migrating from Spring Boot 3.2.1 to 3.1.11. Key changes:
 
 1. **Validation annotations**: Changed from `javax.validation.*` to `jakarta.validation.*`
-2. **MyBatis Plus version**: Must use 3.5.9+ (current 3.5.3.1 is incompatible)
+2. **MyBatis Plus version**: Upgraded to 3.5.9 (required for Spring Boot 3.x compatibility)
 3. **Connection pool**: Switched from Druid to HikariCP (Spring Boot default)
 4. **Application port**: Changed from 8080 to 9090 (PROJECT_SERVICE_PORT)
 
@@ -1322,8 +1321,7 @@ Prefixes: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`, `perf`
 ## Known Limitations & Issues
 
 1. **U-Key**: Windows only (macOS/Linux use simulation mode)
-2. **MyBatis Plus**: Version 3.5.3.1 is incompatible with Spring Boot 3.1+ - needs upgrade to 3.5.9
-3. **Mobile App**: uni-app version only 10% complete
+2. **Mobile App**: uni-app version only 10% complete
 4. **P2P**: E2E encryption implemented but needs more testing
 5. **GPU**: Docker Ollama service requires NVIDIA GPU for optimal performance
 

@@ -92,7 +92,7 @@
 
 ### 高优先级
 
-1. **MyBatis Plus 升级**: 当前 3.5.3.1 需升级到 3.5.9+ (Spring Boot 3.x 兼容)
+1. ~~**MyBatis Plus 升级**: 已完成升级到 3.5.9 ✅~~
 2. **Pre-commit Hooks**: 需要配置 Husky + lint-staged
 
 ### 中优先级

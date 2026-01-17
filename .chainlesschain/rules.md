@@ -386,7 +386,7 @@ if (error.code === "UKEY_NOT_FOUND") {
 
 ### 已知兼容性问题
 
-- **MyBatis Plus**: 需要 3.5.9+ 才能兼容 Spring Boot 3.x (当前 3.5.3.1 不兼容)
+- **MyBatis Plus**: 已升级到 3.5.9，兼容 Spring Boot 3.x ✅
 - **Ollama httpx**: 必须 < 0.26.0
 
 ---
