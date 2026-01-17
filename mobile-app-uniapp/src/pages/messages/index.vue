@@ -34,8 +34,11 @@
 
     <!-- 消息列表 -->
     <scroll-view class="messages-scroll" scroll-y @scrolltolower="loadMore">
+      <!-- 加载骨架屏 -->
+      <Skeleton v-if="loading" type="chat" :rows="5" :animate="true" />
+
       <!-- 好友消息 -->
-      <view v-if="currentTab === 0">
+      <view v-else-if="currentTab === 0">
         <view
           v-for="conv in friendConversations"
           :key="conv.id"
@@ -63,15 +66,17 @@
         </view>
 
         <!-- 空状态 -->
-        <view v-if="friendConversations.length === 0 && !loading" class="empty-state">
-          <text class="empty-icon">💬</text>
-          <text class="empty-text">暂无聊天消息</text>
-          <text class="empty-hint">点击右上角开始新对话</text>
-        </view>
+        <EmptyState
+          v-if="friendConversations.length === 0 && !loading"
+          icon="💬"
+          title="暂无聊天消息"
+          description="点击右上角开始新对话"
+          icon-style="info"
+        />
       </view>
 
       <!-- 系统通知 -->
-      <view v-if="currentTab === 1">
+      <view v-else-if="currentTab === 1">
         <view
           v-for="notif in systemNotifications"
           :key="notif.id"
@@ -96,14 +101,17 @@
         </view>
 
         <!-- 空状态 -->
-        <view v-if="systemNotifications.length === 0 && !loading" class="empty-state">
-          <text class="empty-icon">🔔</text>
-          <text class="empty-text">暂无系统通知</text>
-        </view>
+        <EmptyState
+          v-if="systemNotifications.length === 0 && !loading"
+          icon="🔔"
+          title="暂无系统通知"
+          description="系统消息会显示在这里"
+          icon-style="default"
+        />
       </view>
 
       <!-- 好友请求 -->
-      <view v-if="currentTab === 2">
+      <view v-else-if="currentTab === 2">
         <view
           v-for="request in friendRequests"
           :key="request.id"
@@ -141,15 +149,13 @@
         </view>
 
         <!-- 空状态 -->
-        <view v-if="friendRequests.length === 0 && !loading" class="empty-state">
-          <text class="empty-icon">👋</text>
-          <text class="empty-text">暂无好友请求</text>
-        </view>
-      </view>
-
-      <!-- 加载状态 -->
-      <view v-if="loading" class="loading-state">
-        <text class="loading-text">加载中...</text>
+        <EmptyState
+          v-if="friendRequests.length === 0 && !loading"
+          icon="👋"
+          title="暂无好友请求"
+          description="好友请求会显示在这里"
+          icon-style="default"
+        />
       </view>
     </scroll-view>
 
@@ -170,8 +176,14 @@
 <script>
 import { db } from '@/services/database'
 import friendService from '@/services/friends'
+import EmptyState from '@/components/EmptyState.vue'
+import Skeleton from '@/components/Skeleton.vue'
 
 export default {
+  components: {
+    EmptyState,
+    Skeleton
+  },
   data() {
     return {
       searchKeyword: '',
