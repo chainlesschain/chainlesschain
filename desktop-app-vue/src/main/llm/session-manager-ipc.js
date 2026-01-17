@@ -653,7 +653,7 @@ function registerSessionManagerIPC({
   }
 
   // 标记为已注册
-  ipcGuard.markAsRegistered("session-manager-ipc");
+  ipcGuard.markModuleRegistered("session-manager-ipc");
 
   console.log(
     "[SessionManager IPC] SessionManager IPC handlers registered successfully",

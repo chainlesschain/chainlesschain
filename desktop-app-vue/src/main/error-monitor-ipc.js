@@ -339,7 +339,7 @@ function registerErrorMonitorIPC({ errorMonitor, ipcMain: injectedIpcMain }) {
   }
 
   // 标记为已注册
-  ipcGuard.markAsRegistered("error-monitor-ipc");
+  ipcGuard.markModuleRegistered("error-monitor-ipc");
 
   console.log(
     "[ErrorMonitor IPC] ErrorMonitor IPC handlers registered successfully",

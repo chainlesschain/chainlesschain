@@ -13,6 +13,12 @@ const {
   StdioClientTransport,
 } = require("@modelcontextprotocol/sdk/client/stdio.js");
 const {
+  LoggingMessageNotificationSchema,
+  ResourceListChangedNotificationSchema,
+  ToolListChangedNotificationSchema,
+  PromptListChangedNotificationSchema,
+} = require("@modelcontextprotocol/sdk/types.js");
+const {
   HttpSseTransport,
   ConnectionState,
   CircuitState,
@@ -534,23 +540,61 @@ class MCPClientManager extends EventEmitter {
    * @private
    */
   _setupClientHandlers(client, serverName) {
-    // Handle server notifications
-    client.setNotificationHandler((notification) => {
-      console.log(
-        `[MCPClientManager] Notification from ${serverName}:`,
-        notification,
-      );
-      this.emit("server-notification", { serverName, notification });
-    });
+    // Handle logging notifications from server (new SDK API)
+    client.setNotificationHandler(
+      LoggingMessageNotificationSchema,
+      (notification) => {
+        console.log(
+          `[MCPClientManager] Log from ${serverName} [${notification.params.level}]:`,
+          notification.params.data,
+        );
+        this.emit("server-log", {
+          serverName,
+          log: notification.params,
+        });
+      },
+    );
 
-    // Handle logging from server
-    client.setLoggingHandler((log) => {
-      console.log(
-        `[MCPClientManager] Log from ${serverName} [${log.level}]:`,
-        log.data,
-      );
-      this.emit("server-log", { serverName, log });
-    });
+    // Handle resource list changes
+    client.setNotificationHandler(
+      ResourceListChangedNotificationSchema,
+      (notification) => {
+        console.log(
+          `[MCPClientManager] Resources changed on ${serverName}`,
+        );
+        this.emit("server-notification", {
+          serverName,
+          type: "resources-changed",
+          notification,
+        });
+      },
+    );
+
+    // Handle tool list changes
+    client.setNotificationHandler(
+      ToolListChangedNotificationSchema,
+      (notification) => {
+        console.log(`[MCPClientManager] Tools changed on ${serverName}`);
+        this.emit("server-notification", {
+          serverName,
+          type: "tools-changed",
+          notification,
+        });
+      },
+    );
+
+    // Handle prompt list changes
+    client.setNotificationHandler(
+      PromptListChangedNotificationSchema,
+      (notification) => {
+        console.log(`[MCPClientManager] Prompts changed on ${serverName}`);
+        this.emit("server-notification", {
+          serverName,
+          type: "prompts-changed",
+          notification,
+        });
+      },
+    );
   }
 
   /**
