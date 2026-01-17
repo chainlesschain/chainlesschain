@@ -2,11 +2,13 @@
  * 天气查询工具
  *
  * 提供当前天气、天气预报等功能
+ * 支持响应缓存以减少重复请求
  */
 
 import { Tool } from "@modelcontextprotocol/sdk/types.js";
 import { logger } from "../utils/logger.js";
 import { config } from "../config.js";
+import { getCache, type CacheStats } from "../utils/cache.js";
 
 /**
  * 天气工具列表
@@ -27,6 +29,11 @@ export const weatherTools: Tool[] = [
           enum: ["metric", "imperial"],
           default: "metric",
           description: "单位系统：metric(摄氏度) 或 imperial(华氏度)",
+        },
+        skipCache: {
+          type: "boolean",
+          default: false,
+          description: "跳过缓存，强制获取最新数据",
         },
       },
       required: ["city"],
@@ -49,6 +56,11 @@ export const weatherTools: Tool[] = [
           default: 3,
           description: "预报天数（1-7天）",
         },
+        skipCache: {
+          type: "boolean",
+          default: false,
+          description: "跳过缓存，强制获取最新数据",
+        },
       },
       required: ["city"],
     },
@@ -63,8 +75,42 @@ export const weatherTools: Tool[] = [
           type: "string",
           description: "城市名称",
         },
+        skipCache: {
+          type: "boolean",
+          default: false,
+          description: "跳过缓存，强制获取最新数据",
+        },
       },
       required: ["city"],
+    },
+  },
+  {
+    name: "weather_cache_stats",
+    description: "获取天气数据缓存统计信息",
+    inputSchema: {
+      type: "object",
+      properties: {},
+      required: [],
+    },
+  },
+  {
+    name: "weather_cache_clear",
+    description: "清除天气数据缓存",
+    inputSchema: {
+      type: "object",
+      properties: {
+        type: {
+          type: "string",
+          enum: ["current", "forecast", "airQuality", "all"],
+          default: "all",
+          description: "要清除的缓存类型",
+        },
+        city: {
+          type: "string",
+          description: "要清除的城市（可选，不指定则清除该类型所有缓存）",
+        },
+      },
+      required: [],
     },
   },
 ];
@@ -137,35 +183,50 @@ export async function handleWeatherTool(
   args: Record<string, unknown>,
 ) {
   logger.info("Executing weather tool", { name, args });
+  const cache = getCache();
 
   switch (name) {
     case "weather_current": {
-      const { city, units = "metric" } = args as {
+      const { city, units = "metric", skipCache = false } = args as {
         city: string;
         units?: string;
+        skipCache?: boolean;
       };
 
-      // 实际应用中，这里应该调用真实的天气API
-      // 例如: OpenWeatherMap, WeatherAPI等
-      // const data = await fetchWeatherAPI(city, config.apiKey);
+      const cacheKey = cache.generateKey("current", { city, units });
+      let data;
+      let fromCache = false;
 
-      const data = getMockCurrentWeather(city, units);
+      // 尝试从缓存获取
+      if (!skipCache) {
+        const cached = cache.get<ReturnType<typeof getMockCurrentWeather>>(cacheKey);
+        if (cached) {
+          data = cached;
+          fromCache = true;
+        }
+      }
+
+      // 缓存未命中，获取新数据
+      if (!data) {
+        data = getMockCurrentWeather(city, units);
+        cache.set(cacheKey, data, "current");
+      }
 
       return {
         content: [
           {
             type: "text",
             text:
-              `**${data.city}** 当前天气\n\n` +
-              `🌡️ 温度: ${data.temperature}${data.unit}\n` +
-              `☁️ 天气: ${data.condition}\n` +
-              `💧 湿度: ${data.humidity}%\n` +
-              `💨 风速: ${data.windSpeed} km/h\n` +
+              `**${data.city}** 当前天气${fromCache ? " (缓存)" : ""}\\n\\n` +
+              `🌡️ 温度: ${data.temperature}${data.unit}\\n` +
+              `☁️ 天气: ${data.condition}\\n` +
+              `💧 湿度: ${data.humidity}%\\n` +
+              `💨 风速: ${data.windSpeed} km/h\\n` +
               `⏱️ 更新时间: ${new Date(data.timestamp).toLocaleString("zh-CN")}`,
           },
           {
             type: "text",
-            text: JSON.stringify(data, null, 2),
+            text: JSON.stringify({ ...data, fromCache }, null, 2),
             isError: false,
             annotations: {
               type: "data",
@@ -176,18 +237,37 @@ export async function handleWeatherTool(
     }
 
     case "weather_forecast": {
-      const { city, days = 3 } = args as { city: string; days?: number };
+      const { city, days = 3, skipCache = false } = args as {
+        city: string;
+        days?: number;
+        skipCache?: boolean;
+      };
 
-      const data = getMockForecast(city, days);
+      const cacheKey = cache.generateKey("forecast", { city, days });
+      let data;
+      let fromCache = false;
 
-      let forecastText = `**${data.city}** 未来${days}天天气预报\n\n`;
+      if (!skipCache) {
+        const cached = cache.get<ReturnType<typeof getMockForecast>>(cacheKey);
+        if (cached) {
+          data = cached;
+          fromCache = true;
+        }
+      }
+
+      if (!data) {
+        data = getMockForecast(city, days);
+        cache.set(cacheKey, data, "forecast");
+      }
+
+      let forecastText = `**${data.city}** 未来${days}天天气预报${fromCache ? " (缓存)" : ""}\\n\\n`;
 
       for (const day of data.forecast) {
         forecastText +=
-          `📅 ${day.date}\n` +
-          `  🌡️ 温度: ${day.tempLow}°C - ${day.tempHigh}°C\n` +
-          `  ☁️ 天气: ${day.condition}\n` +
-          `  🌧️ 降水概率: ${day.precipitation}%\n\n`;
+          `📅 ${day.date}\\n` +
+          `  🌡️ 温度: ${day.tempLow}°C - ${day.tempHigh}°C\\n` +
+          `  ☁️ 天气: ${day.condition}\\n` +
+          `  🌧️ 降水概率: ${day.precipitation}%\\n\\n`;
       }
 
       return {
@@ -198,16 +278,34 @@ export async function handleWeatherTool(
           },
           {
             type: "text",
-            text: JSON.stringify(data, null, 2),
+            text: JSON.stringify({ ...data, fromCache }, null, 2),
           },
         ],
       };
     }
 
     case "weather_air_quality": {
-      const { city } = args as { city: string };
+      const { city, skipCache = false } = args as {
+        city: string;
+        skipCache?: boolean;
+      };
 
-      const data = getMockAirQuality(city);
+      const cacheKey = cache.generateKey("airQuality", { city });
+      let data;
+      let fromCache = false;
+
+      if (!skipCache) {
+        const cached = cache.get<ReturnType<typeof getMockAirQuality>>(cacheKey);
+        if (cached) {
+          data = cached;
+          fromCache = true;
+        }
+      }
+
+      if (!data) {
+        data = getMockAirQuality(city);
+        cache.set(cacheKey, data, "airQuality");
+      }
 
       let emoji = "🟢";
       if (data.aqi > 50) emoji = "🟡";
@@ -219,15 +317,70 @@ export async function handleWeatherTool(
           {
             type: "text",
             text:
-              `**${data.city}** 空气质量 ${emoji}\n\n` +
-              `AQI: ${data.aqi} (${data.level})\n` +
-              `PM2.5: ${data.pm25} μg/m³\n` +
-              `PM10: ${data.pm10} μg/m³\n` +
+              `**${data.city}** 空气质量 ${emoji}${fromCache ? " (缓存)" : ""}\\n\\n` +
+              `AQI: ${data.aqi} (${data.level})\\n` +
+              `PM2.5: ${data.pm25} μg/m³\\n` +
+              `PM10: ${data.pm10} μg/m³\\n` +
               `更新时间: ${new Date(data.timestamp).toLocaleString("zh-CN")}`,
           },
           {
             type: "text",
-            text: JSON.stringify(data, null, 2),
+            text: JSON.stringify({ ...data, fromCache }, null, 2),
+          },
+        ],
+      };
+    }
+
+    case "weather_cache_stats": {
+      const stats = cache.getStats();
+      const keys = cache.keys();
+
+      return {
+        content: [
+          {
+            type: "text",
+            text:
+              `📊 **缓存统计**\\n\\n` +
+              `命中次数: ${stats.hits}\\n` +
+              `未命中次数: ${stats.misses}\\n` +
+              `命中率: ${(stats.hitRate * 100).toFixed(1)}%\\n` +
+              `缓存键数量: ${stats.keys}\\n\\n` +
+              `**缓存键列表:**\\n${keys.length > 0 ? keys.map(k => `- ${k}`).join("\\n") : "(空)"}`,
+          },
+          {
+            type: "text",
+            text: JSON.stringify({ stats, keys }, null, 2),
+          },
+        ],
+      };
+    }
+
+    case "weather_cache_clear": {
+      const { type = "all", city } = args as {
+        type?: string;
+        city?: string;
+      };
+
+      let cleared = 0;
+
+      if (type === "all") {
+        const keysBefore = cache.keys().length;
+        cache.flush();
+        cleared = keysBefore;
+      } else {
+        const pattern = city ? `${type}:city=${city}*` : `${type}:*`;
+        cleared = cache.delByPattern(pattern);
+      }
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: `✅ 已清除 ${cleared} 条缓存记录`,
+          },
+          {
+            type: "text",
+            text: JSON.stringify({ type, city, cleared }, null, 2),
           },
         ],
       };
@@ -236,4 +389,11 @@ export async function handleWeatherTool(
     default:
       throw new Error(`Unknown weather tool: ${name}`);
   }
+}
+
+/**
+ * 获取缓存统计（供外部使用）
+ */
+export function getCacheStats(): CacheStats {
+  return getCache().getStats();
 }
