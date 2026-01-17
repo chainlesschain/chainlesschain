@@ -16,9 +16,12 @@ import {
   ListToolsRequestSchema,
   ListResourcesRequestSchema,
   ReadResourceRequestSchema,
+  ListPromptsRequestSchema,
+  GetPromptRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 
 import { weatherTools, handleWeatherTool } from "./tools/weather.js";
+import { weatherPrompts, getPromptContent } from "./prompts/weather-prompts.js";
 import { logger } from "./utils/logger.js";
 import { config } from "./config.js";
 
@@ -32,6 +35,7 @@ const server = new Server(
     capabilities: {
       tools: {}, // 提供工具
       resources: {}, // 提供资源
+      prompts: {}, // 提供提示词模板
     },
   },
 );
@@ -149,6 +153,36 @@ server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
   }
 
   throw new Error(`Unknown resource: ${uri}`);
+});
+
+/**
+ * 处理 prompts/list 请求
+ * 返回服务器提供的提示词模板列表
+ */
+server.setRequestHandler(ListPromptsRequestSchema, async () => {
+  logger.info("Handling prompts/list request");
+
+  return {
+    prompts: weatherPrompts,
+  };
+});
+
+/**
+ * 处理 prompts/get 请求
+ * 获取指定提示词的内容
+ */
+server.setRequestHandler(GetPromptRequestSchema, async (request) => {
+  const { name, arguments: args } = request.params;
+
+  logger.info("Handling prompts/get request", { name, args });
+
+  try {
+    const messages = getPromptContent(name, args || {});
+    return { messages };
+  } catch (error) {
+    logger.error("Prompt retrieval failed", { name, error });
+    throw error;
+  }
 });
 
 /**
