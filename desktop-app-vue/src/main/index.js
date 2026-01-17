@@ -2422,7 +2422,17 @@ class ChainlessChainApp {
         enableAutoReconnect: true,
       });
 
-      await this.mobileBridge.connect();
+      // 尝试连接信令服务器，失败不阻塞后续初始化
+      try {
+        await this.mobileBridge.connect();
+        console.log("[Main] 信令服务器连接成功");
+      } catch (signalingError) {
+        console.warn(
+          "[Main] ⚠️ 信令服务器连接失败（移动端桥接将使用自动重连）:",
+          signalingError.message,
+        );
+        // 不抛出错误，允许后续初始化继续
+      }
 
       // 创建设备配对处理器
       this.devicePairingHandler = new DevicePairingHandler(

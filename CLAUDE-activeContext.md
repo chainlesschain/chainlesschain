@@ -2,7 +2,7 @@
 
 > 记录当前开发会话的状态和上下文，帮助 AI 助手快速了解工作进度
 >
-> **最后更新**: 2026-01-16 (SessionManager v0.21.0 增强)
+> **最后更新**: 2026-01-17 (Pre-commit Hooks 配置完成)
 
 ---
 
@@ -14,7 +14,7 @@
 - [x] 验证 Session 压缩效果
 - [x] 创建 Memory Bank 系统
 - [x] 完善 SessionManager 增强功能
-- [ ] 配置 Pre-commit Hooks (Husky)
+- [x] 配置 Pre-commit Hooks (Husky)
 
 ### 最近完成
 
@@ -36,7 +36,6 @@
 
 ### 待处理
 
-- [ ] Pre-commit Hooks 配置
 - [ ] LLM Performance Dashboard UI 完善
 - [ ] SessionManager 前端 UI 组件（会话管理页面）
 - [ ] 增强 .chainlesschain/memory/ 目录实际使用
@@ -93,7 +92,7 @@
 ### 高优先级
 
 1. ~~**MyBatis Plus 升级**: 已完成升级到 3.5.9 ✅~~
-2. **Pre-commit Hooks**: 需要配置 Husky + lint-staged
+2. ~~**Pre-commit Hooks**: Husky v9 + lint-staged 配置完成 ✅~~
 
 ### 中优先级
 
@@ -158,6 +157,12 @@ npm run test:session # Session 压缩测试
 ---
 
 ## 更新日志
+
+### 2026-01-17
+
+- 验证 Pre-commit Hooks 配置完整性
+- 确认 Husky v9.1.7 + lint-staged v16.2.7 正常工作
+- 所有 git hooks 可用：pre-commit、commit-msg、pre-push
 
 ### 2026-01-16
 
