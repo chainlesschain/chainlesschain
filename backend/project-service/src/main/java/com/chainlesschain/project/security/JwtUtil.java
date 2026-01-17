@@ -2,7 +2,6 @@ package com.chainlesschain.project.security;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -17,6 +16,8 @@ import java.util.function.Function;
 /**
  * JWT工具类
  * 用于生成、解析和验证JWT令牌
+ *
+ * Updated for jjwt 0.12.x API
  */
 @Component
 public class JwtUtil {
@@ -53,11 +54,11 @@ public class JwtUtil {
      * 从令牌中提取所有声明
      */
     private Claims extractAllClaims(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(getSigningKey())
+        return Jwts.parser()
+                .verifyWith(getSigningKey())
                 .build()
-                .parseClaimsJws(token)
-                .getBody();
+                .parseSignedClaims(token)
+                .getPayload();
     }
 
     /**
@@ -90,11 +91,11 @@ public class JwtUtil {
         Date expiryDate = new Date(now.getTime() + expiration);
 
         return Jwts.builder()
-                .setClaims(claims)
-                .setSubject(subject)
-                .setIssuedAt(now)
-                .setExpiration(expiryDate)
-                .signWith(getSigningKey(), SignatureAlgorithm.HS256)
+                .claims(claims)
+                .subject(subject)
+                .issuedAt(now)
+                .expiration(expiryDate)
+                .signWith(getSigningKey())
                 .compact();
     }
 
@@ -118,13 +119,21 @@ public class JwtUtil {
      * 刷新令牌
      */
     public String refreshToken(String token) {
-        final Claims claims = extractAllClaims(token);
-        claims.setIssuedAt(new Date());
-        claims.setExpiration(new Date(System.currentTimeMillis() + expiration));
+        final Claims oldClaims = extractAllClaims(token);
+        String subject = oldClaims.getSubject();
+
+        // Create new claims map from old claims
+        Map<String, Object> newClaims = new HashMap<>(oldClaims);
+
+        Date now = new Date();
+        Date expiryDate = new Date(now.getTime() + expiration);
 
         return Jwts.builder()
-                .setClaims(claims)
-                .signWith(getSigningKey(), SignatureAlgorithm.HS256)
+                .claims(newClaims)
+                .subject(subject)
+                .issuedAt(now)
+                .expiration(expiryDate)
+                .signWith(getSigningKey())
                 .compact();
     }
 }

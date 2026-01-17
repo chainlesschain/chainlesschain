@@ -17,4 +17,5 @@ public class RegisterRequest {
 
     private String email;
     private String deviceId;
+    private String did;
 }
