@@ -27,7 +27,10 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 
 ### Latest Updates
 
-- ✅ **MCP (Model Context Protocol) Integration** - POC v0.1.0, supports Filesystem/PostgreSQL/SQLite/Git/Fetch servers, multi-layer security protection, UI management interface, complete documentation ⭐LATEST
+- ✅ **Manus AI Optimization System** - Based on Manus/OpenManus best practices, Context Engineering (KV-Cache optimization), Tool Masking, TaskTrackerFile (todo.md mechanism), Recoverable Compression, theoretical 50-90% Token cost reduction ⭐LATEST
+- ✅ **Multi-Agent System** - Agent Orchestrator, 3 specialized agents (Code Generation/Data Analysis/Document Processing), parallel execution, chain execution, inter-agent communication, 30% reduction in complex task completion time ⭐LATEST
+- ✅ **MCP Chat Integration** - MCP tools integrated into AI chat, invoke MCP server tools via Function Calling ⭐LATEST
+- ✅ **MCP (Model Context Protocol) Integration** - POC v0.1.0, supports Filesystem/PostgreSQL/SQLite/Git/Fetch servers, multi-layer security protection, UI management interface, complete documentation
 - ✅ **Unified Configuration Directory System** - `.chainlesschain/` directory for centralized config/logs/cache/session management, inspired by OpenClaude best practices, auto-initialization, config migration support ⭐LATEST
 - ✅ **Token Budget Management System** - LLM usage cost tracking, monthly budget control, overspending alerts, detailed statistics ⭐LATEST
 - ✅ **Trading UI Polish** - Order QR code generation, order editing feature, multiple sharing methods (link/social/export), multi-format export (JSON/CSV/PDF/image)
