@@ -60,16 +60,20 @@ npx @modelcontextprotocol/server-filesystem --help
 
 ---
 
-## ⚙️ 第二步：配置 MCP 服务器
+## ⚙️ 第二步：配置 MCP 服务器 ✅ 已完成
 
-### 1. 复制配置模板
+配置文件 `.chainlesschain/config.json` 已创建并启用 MCP。
 
-```bash
-# 从项目根目录
-copy .chainlesschain\mcp-config-example.json .chainlesschain\config.json
-```
+### 1. 验证配置 ✅
 
-**或者** 手动编辑 `.chainlesschain/config.json` 添加以下内容：
+配置文件已包含以下内容：
+- MCP 系统启用 (`mcp.enabled: true`)
+- Filesystem 服务器配置
+- 安全策略配置（路径限制、审计日志）
+
+如需修改配置，编辑 `.chainlesschain/config.json`。
+
+**配置示例**:
 
 ```json
 {
