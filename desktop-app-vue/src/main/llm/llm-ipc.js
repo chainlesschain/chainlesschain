@@ -22,6 +22,8 @@ const ipcGuard = require("../ipc-guard");
  * @param {Object} [dependencies.promptCompressor] - Prompt 压缩器（可选）
  * @param {Object} [dependencies.responseCache] - 响应缓存（可选）
  * @param {Object} [dependencies.ipcMain] - IPC主进程对象（可选，用于测试注入）
+ * @param {Object} [dependencies.mcpClientManager] - MCP 客户端管理器（可选，用于MCP工具调用）
+ * @param {Object} [dependencies.mcpToolAdapter] - MCP 工具适配器（可选，用于MCP工具调用）
  */
 function registerLLMIPC({
   llmManager,
@@ -35,6 +37,8 @@ function registerLLMIPC({
   promptCompressor,
   responseCache,
   ipcMain: injectedIpcMain,
+  mcpClientManager,
+  mcpToolAdapter,
 }) {
   // 防止重复注册
   if (ipcGuard.isModuleRegistered("llm-ipc")) {
@@ -288,6 +292,36 @@ function registerLLMIPC({
         let retrievedDocs = [];
         let compressionResult = null;
 
+        // 🔥 获取 MCP 工具（如果可用）
+        let mcpFunctions = [];
+        let mcpExecutor = null;
+
+        if (mcpToolAdapter && mcpClientManager) {
+          try {
+            const connectedServers = mcpClientManager.getConnectedServers();
+            if (connectedServers.length > 0) {
+              const MCPFunctionExecutor = require("../mcp/mcp-function-executor");
+              mcpExecutor = new MCPFunctionExecutor(
+                mcpClientManager,
+                mcpToolAdapter
+              );
+              mcpFunctions = await mcpExecutor.getFunctions();
+
+              if (mcpFunctions.length > 0) {
+                console.log(
+                  "[LLM IPC] MCP 工具可用:",
+                  mcpFunctions.map((f) => f.name).join(", ")
+                );
+              }
+            }
+          } catch (mcpError) {
+            console.warn(
+              "[LLM IPC] 获取 MCP 工具失败:",
+              mcpError.message
+            );
+          }
+        }
+
         // 如果启用RAG，自动检索知识库并增强上下文
         if (enableRAG && ragManager) {
           try {
@@ -389,14 +423,152 @@ function registerLLMIPC({
           }
         }
 
-        // 🔥 根据检测结果选择调用方法（工具调用 vs 普通对话）
+        // 🔥 根据检测结果选择调用方法（MCP工具调用 vs 火山引擎工具 vs 普通对话）
         let response;
+        let usedMCPTools = false;
+
+        // 🔥 优先使用 MCP 工具（如果有）
+        if (mcpFunctions.length > 0 && mcpExecutor) {
+          const provider = managerRef.current.provider;
+
+          // 火山引擎使用 executeFunctionCalling 方法
+          if (provider === "volcengine" && managerRef.current.toolsClient) {
+            console.log(
+              "[LLM IPC] 使用火山引擎 Function Calling，MCP 工具数:",
+              mcpFunctions.length
+            );
+
+            try {
+              response =
+                await managerRef.current.toolsClient.executeFunctionCalling(
+                  enhancedMessages,
+                  mcpFunctions,
+                  mcpExecutor,
+                  options
+                );
+
+              // 转换为统一格式
+              response = {
+                text: response.text || "",
+                message: response.message || {
+                  role: "assistant",
+                  content: response.text || "",
+                },
+                usage: response.usage,
+                tokens: response.usage?.total_tokens || 0,
+              };
+              usedMCPTools = true;
+            } catch (fcError) {
+              console.warn(
+                "[LLM IPC] 火山引擎 Function Calling 失败，回退到标准对话:",
+                fcError.message
+              );
+            }
+          }
+          // OpenAI 和 DeepSeek 使用标准 chat 接口的 tools 参数
+          else if (provider === "openai" || provider === "deepseek") {
+            console.log(
+              "[LLM IPC] 使用 OpenAI 兼容 Function Calling，MCP 工具数:",
+              mcpFunctions.length
+            );
+
+            try {
+              // 将 MCP 函数转换为 OpenAI tools 格式
+              const tools = mcpFunctions.map((func) => ({
+                type: "function",
+                function: func,
+              }));
+
+              // 第一次调用：让 LLM 决定是否调用工具
+              let result = await managerRef.current.chatWithMessages(
+                enhancedMessages,
+                {
+                  ...options,
+                  tools: tools,
+                  tool_choice: "auto",
+                }
+              );
+
+              // 如果 LLM 请求调用工具
+              let currentMessages = enhancedMessages;
+              while (result.message?.tool_calls) {
+                const toolCalls = result.message.tool_calls;
+                console.log(
+                  "[LLM IPC] LLM 请求调用",
+                  toolCalls.length,
+                  "个 MCP 工具"
+                );
+
+                // 执行所有工具调用
+                const toolResults = [];
+                for (const toolCall of toolCalls) {
+                  const functionName = toolCall.function.name;
+                  const functionArgs = JSON.parse(
+                    toolCall.function.arguments
+                  );
+
+                  console.log("[LLM IPC] 执行 MCP 工具:", functionName);
+
+                  try {
+                    const execResult = await mcpExecutor.execute(
+                      functionName,
+                      functionArgs
+                    );
+                    toolResults.push({
+                      tool_call_id: toolCall.id,
+                      role: "tool",
+                      content: JSON.stringify(execResult),
+                    });
+                  } catch (execError) {
+                    console.error(
+                      "[LLM IPC] MCP 工具执行失败:",
+                      execError.message
+                    );
+                    toolResults.push({
+                      tool_call_id: toolCall.id,
+                      role: "tool",
+                      content: JSON.stringify({ error: execError.message }),
+                    });
+                  }
+                }
+
+                // 将工具结果返回给 LLM
+                currentMessages = [
+                  ...currentMessages,
+                  result.message,
+                  ...toolResults,
+                ];
+
+                // 再次调用 LLM 获取最终回答
+                result = await managerRef.current.chatWithMessages(
+                  currentMessages,
+                  {
+                    ...options,
+                    tools: tools,
+                    tool_choice: "auto",
+                  }
+                );
+              }
+
+              response = result;
+              usedMCPTools = true;
+            } catch (fcError) {
+              console.warn(
+                "[LLM IPC] OpenAI Function Calling 失败，回退到标准对话:",
+                fcError.message
+              );
+            }
+          }
+        }
+
+        // 🔥 如果没有使用 MCP 工具，检查火山引擎内置工具
         if (
+          !usedMCPTools &&
           toolsToUse.length > 0 &&
           managerRef.current.provider === "volcengine" &&
           managerRef.current.toolsClient
         ) {
-          console.log("[LLM IPC] 使用工具调用:", toolsToUse.join(", "));
+          console.log("[LLM IPC] 使用火山引擎内置工具:", toolsToUse.join(", "));
 
           // 如果只有一个工具，使用专用方法
           if (toolsToUse.length === 1) {
@@ -447,7 +619,9 @@ function registerLLMIPC({
               tokens: response.usage?.total_tokens || 0,
             };
           }
-        } else {
+        }
+        // 🔥 标准对话（无工具调用）
+        else if (!usedMCPTools) {
           // 使用标准的 chatWithMessages 方法，保留完整的 messages 历史
           response = await managerRef.current.chatWithMessages(
             enhancedMessages,
@@ -504,6 +678,9 @@ function registerLLMIPC({
           compressionRatio: compressionResult?.compressionRatio || 1.0,
           tokensSaved: compressionResult?.tokensSaved || 0,
           optimizationStrategy: compressionResult?.strategy || "none",
+          // 🔥 MCP 工具使用信息
+          usedMCPTools: usedMCPTools,
+          mcpToolsAvailable: mcpFunctions.length,
         };
 
         return finalResponse;
