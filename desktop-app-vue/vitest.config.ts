@@ -11,19 +11,22 @@ export default defineConfig({
     setupFiles: ['./tests/setup.ts'],
     include: ['tests/**/*.test.{js,ts}', 'src/**/*.test.{js,ts}'],
     exclude: [
-      'node_modules',
-      'dist',
-      'out',
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/out/**',
       '.idea',
       '.git',
       '.cache',
       // E2E tests use Playwright, not Vitest
-      'tests/e2e/**/*',
+      '**/tests/e2e/**',
+      '**/e2e/**',
+      '**/*.e2e.test.{js,ts}',
+      '**/*.spec.{js,ts}',
       // Blockchain tests use chai/mocha, run with node directly
-      'tests/blockchain/**/*',
+      '**/tests/blockchain/**',
       // These are standalone scripts that use process.exit()
-      'tests/integration/speech-manager-integration.test.js',
-      'tests/unit/pkcs11-encryption.test.js'
+      '**/speech-manager-integration.test.js',
+      '**/pkcs11-encryption.test.js'
     ],
     coverage: {
       provider: 'v8',

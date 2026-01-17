@@ -18,12 +18,12 @@ export default defineConfig({
       '**/*.jest.test.js',  // Exclude Jest test files
       '**/blockchain/**',   // Exclude blockchain tests (use Mocha/Chai)
       '**/e2e/**',          // Exclude E2E tests (use Playwright)
+      '**/*.e2e.test.{js,ts}',  // Exclude E2E test files by name
+      '**/*.spec.{js,ts}',      // Exclude spec files (used by Playwright)
       '**/performance/**',  // Exclude performance tests (run separately)
       // Standalone script tests that use process.exit()
       '**/speech-manager-integration.test.js',
       '**/pkcs11-encryption.test.js',
-      // Jest-style tests (use describe/test without vitest globals)
-      '**/signaling-server.test.js',
       // Standalone test scripts (not vitest compatible)
       '**/test-*.js',
     ],

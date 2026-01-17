@@ -11,6 +11,7 @@ module.exports = {
   testMatch: [
     '**/tests/unit/project/**/*.jest.test.js',
     '**/tests/unit/**/*.jest.test.js',
+    '**/tests/*.jest.test.js',  // 支持根目录 tests 下的 Jest 测试
   ],
 
   // 转换配置 - 使用 babel-jest 处理 ES6 模块
