@@ -351,7 +351,7 @@ class ProjectServiceTest {
         TaskExecuteRequest request = new TaskExecuteRequest();
         request.setProjectId(testProjectId);
         request.setUserPrompt("执行测试任务");
-        request.setContext(new HashMap<>());
+        request.setContext(new ArrayList<>());
 
         // 执行测试
         Map<String, Object> result = projectService.executeTask(request);
@@ -420,7 +420,7 @@ class ProjectServiceTest {
         // 执行测试（通过createProject间接测试）
         // saveConversation是private方法，通过public方法测试
 
-        verify(projectConversationMapper, never()).insert(any());
+        verify(projectConversationMapper, never()).insert(any(ProjectConversation.class));
     }
 
     /**
