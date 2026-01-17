@@ -22,6 +22,23 @@
 - ✅ **预算跟踪系统** (令牌使用监控,成本预警,BudgetAlertListener) ⭐新增
 - ✅ **安全规则系统** (完整编码规范和安全规则验证器) ⭐新增
 
+**v0.25.0 已完成功能**:
+
+- ✅ **Manus优化系统** (Context Engineering + Tool Masking + 任务追踪) ⭐新增
+  - Context Engineering: KV-Cache友好的Prompt构建，成本降低10倍
+  - Tool Masking: 动态工具掩码控制，任务阶段状态机
+  - TaskTrackerFile: todo.md持久化机制，支持~50次工具调用的长任务
+  - RecoverableCompressor: 可恢复压缩，扩展上下文容量3倍
+- ✅ **Multi-Agent多智能体系统** (Agent协调器 + 专用Agent) ⭐新增
+  - AgentOrchestrator: 智能任务分发和路由
+  - 专用Agent: CodeGenerationAgent、DataAnalysisAgent、DocumentAgent
+  - 并行/链式执行: 多Agent同时处理或链式传递
+  - Agent间通信: 消息传递和协作机制
+- ✅ **移动端UI组件增强** (Skeleton骨架屏 + EmptyState空状态) ⭐新增
+  - Skeleton组件: 多种加载骨架屏样式
+  - EmptyState组件: 统一的空状态提示
+  - LoadingState组件: 加载状态组件
+
 **v0.21.0-v0.23.0 规划中功能** (部分代码已提交但未正式发布):
 
 - 🚧 **企业版权限管理系统** (RBAC,组织隔离,知识库协作) - 开发中
