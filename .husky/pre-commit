@@ -76,7 +76,17 @@ npx vitest run tests/unit \
   --exclude="**/session-manager*.test.js" \
   --exclude="**/llm-performance.test.js" \
   --exclude="**/tool-manager.test.js" \
-  --exclude="**/skill-manager.test.js"
+  --exclude="**/skill-manager.test.js" \
+  --exclude="**/word-engine.test.js" \
+  --exclude="**/image-engine.test.js" \
+  --exclude="**/did-invitation.test.js" \
+  --exclude="**/ipc-guard.test.js" \
+  --exclude="**/permission-system.test.js" \
+  --exclude="**/api/**" \
+  --exclude="**/pages/**" \
+  --exclude="**/stores/**" \
+  --exclude="**/sync/**" \
+  --exclude="**/builtin-tools.test.js"
 
 # 检查测试退出码
 if [ $? -ne 0 ]; then

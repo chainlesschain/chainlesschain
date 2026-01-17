@@ -69,5 +69,5 @@ const result = await window.electronAPI.invoke('tool:test', toolId, {
 
 ---
 
-**文档生成时间**: 2026/1/17 22:44:10
+**文档生成时间**: 2026/1/17 22:52:20
 **工具类型**: 内置
