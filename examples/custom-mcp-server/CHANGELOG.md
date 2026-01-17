@@ -54,9 +54,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Planned
 
 - Real weather API integration (OpenWeatherMap)
-- Rate limiting with `bottleneck`
 - HTTP+SSE transport support
 - Progress notifications for long operations
+
+## [1.2.0] - 2026-01-17
+
+### Added
+
+- **API Rate Limiting**: Prevent API quota exhaustion with intelligent rate control
+  - `weather_rate_limit_stats` tool - View rate limit statistics and current status
+  - `weather_rate_limit_update` tool - Dynamically update rate limit configuration
+  - Support for preset configurations (openweathermap_free, openweathermap_pro, qweather_free, test, strict)
+  - Priority-based request queuing (lower number = higher priority)
+  - Reservoir pattern for time-windowed request quotas
+
+- **Rate Limiter Utility Module** (`src/utils/rate-limiter.ts`):
+  - Singleton pattern for rate limiter instance
+  - Built on `bottleneck` library
+  - Configurable concurrency, minimum interval, and reservoir settings
+  - Statistics tracking (running, queued, done, rejected, reservoir)
+  - Dynamic settings update without restart
+  - `withRateLimit` decorator for easy function wrapping
+
+- **Configuration**:
+  - `RATE_LIMIT_ENABLED` - Enable/disable rate limiting (default: true)
+  - `RATE_LIMIT_MAX_CONCURRENT` - Maximum concurrent requests (default: 5)
+  - `RATE_LIMIT_MIN_TIME` - Minimum interval between requests in ms (default: 100)
+  - `RATE_LIMIT_RESERVOIR` - Requests per time window (default: 60)
+  - `RATE_LIMIT_REFRESH_INTERVAL` - Window refresh interval in ms (default: 60000)
+  - `RATE_LIMIT_REFRESH_AMOUNT` - Requests added on refresh (default: 60)
+
+- **Tests**:
+  - 25 comprehensive rate limiter tests
+  - Tests for singleton pattern, scheduling, statistics, presets, dynamic updates
+
+### Technical Details
+
+- Added `bottleneck` dependency for rate limiting
+- Total tests: 75 (14 weather + 23 cache + 11 prompts + 2 config + 25 rate limiter)
 
 ## [1.1.0] - 2026-01-17
 

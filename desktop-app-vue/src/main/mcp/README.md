@@ -37,8 +37,8 @@ desktop-app-vue/src/main/
 │   ├── mcp-config-loader.js          # Configuration management
 │   ├── mcp-performance-monitor.js    # Performance tracking
 │   ├── transports/
-│   │   ├── stdio-transport.js        # Stdio communication layer
-│   │   └── http-sse-transport.js     # HTTP+SSE transport (future)
+│   │   ├── stdio-transport.js        # Stdio communication layer (local servers)
+│   │   └── http-sse-transport.js     # HTTP+SSE transport (remote servers) ✅ Implemented
 │   ├── servers/
 │   │   ├── server-registry.json      # Trusted server whitelist
 │   │   └── server-configs/
@@ -301,11 +301,137 @@ After 2 weeks of testing, evaluate:
 
 ## 🐛 Known Limitations (POC)
 
-1. **Only stdio transport**: HTTP+SSE not implemented
-2. **Limited error recovery**: Basic retry logic only
-3. **No UI integration**: Configuration is file-based only
-4. **Windows-focused**: Paths and commands assume Windows environment
-5. **Synchronous consent**: User consent dialogs block execution
+1. **Windows-focused**: Some paths and commands assume Windows environment
+2. **Synchronous consent**: User consent dialogs block execution
+
+---
+
+## 🌐 HTTP+SSE Transport
+
+**Status**: ✅ Implemented (v0.18.0)
+
+HTTP+SSE transport enables connections to **remote MCP servers** via HTTP for requests and Server-Sent Events (SSE) for responses. This is ideal for:
+
+- Cloud-hosted MCP servers
+- Web-based MCP services
+- Cross-network MCP integrations
+
+### Features
+
+| Feature | Description |
+|---------|-------------|
+| **Automatic Reconnection** | Exponential backoff (1s, 2s, 4s, 8s) |
+| **Heartbeat** | 30s interval, auto-reconnect on 3 missed |
+| **Health Check** | 60s interval with history tracking |
+| **Circuit Breaker** | Opens after 5 failures, half-open after 30s |
+| **Authentication** | Bearer token via Authorization header |
+| **Token Refresh** | Callback for automatic token refresh |
+
+### Configuration Example
+
+```json
+{
+  "mcp": {
+    "servers": {
+      "remote-api": {
+        "enabled": true,
+        "transport": "http-sse",
+        "baseURL": "https://api.example.com/mcp",
+        "apiKey": "your-api-key-here",
+        "timeout": 30000,
+        "maxRetries": 3,
+        "autoConnect": false,
+        "headers": {
+          "X-Custom-Header": "value"
+        }
+      }
+    }
+  }
+}
+```
+
+### Usage
+
+```javascript
+const { MCPClientManager } = require('./mcp/mcp-client-manager');
+
+const manager = new MCPClientManager(config);
+
+// Method 1: Explicit transport type
+await manager.connectServer('remote-api', {
+  transport: 'http-sse',
+  baseURL: 'https://api.example.com/mcp',
+  apiKey: 'your-api-key'
+});
+
+// Method 2: Convenience method
+await manager.connectRemoteServer('remote-api', {
+  baseURL: 'https://api.example.com/mcp',
+  apiKey: 'your-api-key'
+});
+
+// Use tools same as local servers
+const tools = await manager.listTools('remote-api');
+const result = await manager.callTool('remote-api', 'some_tool', { param: 'value' });
+
+// Check if server is remote
+console.log(manager.isRemoteServer('remote-api')); // true
+```
+
+### Events
+
+```javascript
+manager.on('server-connected', ({ serverName, capabilities }) => {
+  console.log('Connected:', serverName);
+});
+
+manager.on('server-disconnected', ({ serverName, transport }) => {
+  if (transport === 'http-sse') {
+    console.log('Remote server disconnected:', serverName);
+  }
+});
+
+manager.on('server-reconnected', ({ serverName }) => {
+  console.log('Reconnected:', serverName);
+});
+
+manager.on('server-error', ({ serverName, error, transport }) => {
+  console.error('Error:', serverName, error.message);
+});
+```
+
+### Health Monitoring
+
+```javascript
+// Get transport instance for advanced monitoring
+const server = manager.servers.get('remote-api');
+const transport = server.transport;
+
+// Get health status
+const health = await transport.checkHealth();
+console.log('Connected:', health.connected);
+console.log('Latency:', health.latency, 'ms');
+console.log('Circuit State:', health.circuitState);
+
+// Get full statistics
+const stats = transport.getStats();
+console.log('Success Rate:', stats.successRate);
+console.log('Uptime:', stats.uptime, 'ms');
+```
+
+### Circuit Breaker Pattern
+
+The HTTP+SSE transport implements a circuit breaker to prevent cascading failures:
+
+```
+CLOSED (Normal)
+    ↓ 5 consecutive failures
+OPEN (Reject all requests)
+    ↓ 30 seconds
+HALF_OPEN (Test with one request)
+    ↓ Success → CLOSED
+    ↓ Failure → OPEN
+```
 
 ---
 

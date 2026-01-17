@@ -3,12 +3,18 @@
  *
  * 提供当前天气、天气预报等功能
  * 支持响应缓存以减少重复请求
+ * 支持 API 速率限制以防止超出配额
  */
 
 import { Tool } from "@modelcontextprotocol/sdk/types.js";
 import { logger } from "../utils/logger.js";
 import { config } from "../config.js";
 import { getCache, type CacheStats } from "../utils/cache.js";
+import {
+  getRateLimiter,
+  type RateLimiterStats,
+  RATE_LIMIT_PRESETS,
+} from "../utils/rate-limiter.js";
 
 /**
  * 天气工具列表
@@ -108,6 +114,52 @@ export const weatherTools: Tool[] = [
         city: {
           type: "string",
           description: "要清除的城市（可选，不指定则清除该类型所有缓存）",
+        },
+      },
+      required: [],
+    },
+  },
+  {
+    name: "weather_rate_limit_stats",
+    description: "获取 API 速率限制统计信息",
+    inputSchema: {
+      type: "object",
+      properties: {},
+      required: [],
+    },
+  },
+  {
+    name: "weather_rate_limit_update",
+    description: "更新 API 速率限制配置",
+    inputSchema: {
+      type: "object",
+      properties: {
+        preset: {
+          type: "string",
+          enum: [
+            "openweathermap_free",
+            "openweathermap_pro",
+            "qweather_free",
+            "test",
+            "strict",
+          ],
+          description: "预定义配置（可选，使用此项将忽略其他参数）",
+        },
+        maxConcurrent: {
+          type: "number",
+          minimum: 1,
+          maximum: 100,
+          description: "最大并发请求数",
+        },
+        minTime: {
+          type: "number",
+          minimum: 0,
+          description: "请求最小间隔时间（毫秒）",
+        },
+        reservoir: {
+          type: "number",
+          minimum: 1,
+          description: "每个时间窗口的最大请求数",
         },
       },
       required: [],
@@ -386,6 +438,92 @@ export async function handleWeatherTool(
       };
     }
 
+    case "weather_rate_limit_stats": {
+      const limiter = getRateLimiter();
+      const stats = await limiter.getStats();
+      const options = limiter.getOptions();
+      const isLimited = await limiter.isRateLimited();
+
+      let statusEmoji = "🟢";
+      if (stats.queued > 0) statusEmoji = "🟡";
+      if (isLimited) statusEmoji = "🔴";
+
+      return {
+        content: [
+          {
+            type: "text",
+            text:
+              `⚡ **速率限制统计** ${statusEmoji}\\n\\n` +
+              `**当前状态:**\\n` +
+              `执行中: ${stats.running}\\n` +
+              `排队中: ${stats.queued}\\n` +
+              `剩余配额: ${stats.reservoir ?? "无限制"}\\n` +
+              `是否限流: ${isLimited ? "是" : "否"}\\n\\n` +
+              `**历史统计:**\\n` +
+              `已完成: ${stats.done}\\n` +
+              `被拒绝: ${stats.rejected}\\n\\n` +
+              `**当前配置:**\\n` +
+              `最大并发: ${options.maxConcurrent}\\n` +
+              `最小间隔: ${options.minTime}ms\\n` +
+              `每分钟配额: ${options.reservoir}`,
+          },
+          {
+            type: "text",
+            text: JSON.stringify({ stats, options, isLimited }, null, 2),
+          },
+        ],
+      };
+    }
+
+    case "weather_rate_limit_update": {
+      const { preset, maxConcurrent, minTime, reservoir } = args as {
+        preset?: keyof typeof RATE_LIMIT_PRESETS;
+        maxConcurrent?: number;
+        minTime?: number;
+        reservoir?: number;
+      };
+
+      const limiter = getRateLimiter();
+      let newSettings: Record<string, unknown> = {};
+
+      if (preset && RATE_LIMIT_PRESETS[preset]) {
+        newSettings = RATE_LIMIT_PRESETS[preset];
+        await limiter.updateSettings(RATE_LIMIT_PRESETS[preset]);
+      } else {
+        if (maxConcurrent !== undefined) newSettings.maxConcurrent = maxConcurrent;
+        if (minTime !== undefined) newSettings.minTime = minTime;
+        if (reservoir !== undefined) {
+          newSettings.reservoir = reservoir;
+          newSettings.reservoirRefreshAmount = reservoir;
+        }
+        await limiter.updateSettings(newSettings);
+      }
+
+      const updatedOptions = limiter.getOptions();
+
+      return {
+        content: [
+          {
+            type: "text",
+            text:
+              `✅ 速率限制配置已更新\\n\\n` +
+              `**新配置:**\\n` +
+              `最大并发: ${updatedOptions.maxConcurrent}\\n` +
+              `最小间隔: ${updatedOptions.minTime}ms\\n` +
+              `每分钟配额: ${updatedOptions.reservoir}`,
+          },
+          {
+            type: "text",
+            text: JSON.stringify(
+              { applied: preset || newSettings, current: updatedOptions },
+              null,
+              2,
+            ),
+          },
+        ],
+      };
+    }
+
     default:
       throw new Error(`Unknown weather tool: ${name}`);
   }
@@ -396,4 +534,11 @@ export async function handleWeatherTool(
  */
 export function getCacheStats(): CacheStats {
   return getCache().getStats();
+}
+
+/**
+ * 获取速率限制统计（供外部使用）
+ */
+export async function getRateLimitStats(): Promise<RateLimiterStats> {
+  return getRateLimiter().getStats();
 }
