@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v0.24.0-blue.svg)
+![Version](https://img.shields.io/badge/version-v0.25.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Phase 1](https://img.shields.io/badge/Phase%201-100%25-brightgreen.svg)
@@ -23,7 +23,7 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 
 ---
 
-## ⭐ Current Version: v0.24.0 (2026-01-16)
+## ⭐ Current Version: v0.25.0 (2026-01-17)
 
 ### Latest Updates
 
