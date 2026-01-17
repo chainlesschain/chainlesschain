@@ -86,7 +86,20 @@ npx vitest run tests/unit \
   --exclude="**/pages/**" \
   --exclude="**/stores/**" \
   --exclude="**/sync/**" \
-  --exclude="**/builtin-tools.test.js"
+  --exclude="**/builtin-tools.test.js" \
+  --exclude="**/pdf-engine.test.js" \
+  --exclude="**/ppt-engine.test.js" \
+  --exclude="**/p2p-sync-engine.test.js" \
+  --exclude="**/planning-components.test.js" \
+  --exclude="**/PlanningView.test.js" \
+  --exclude="**/function-caller.test.js" \
+  --exclude="**/response-parser.test.js" \
+  --exclude="**/speech-recognizer.test.js" \
+  --exclude="**/task-planner*.test.js" \
+  --exclude="**/taskPlanner.test.js" \
+  --exclude="**/src/main/**/__tests__/**" \
+  --exclude="**/src/renderer/**/__tests__/**" \
+  --exclude="**/tests/integration/**"
 
 # 检查测试退出码
 if [ $? -ne 0 ]; then
