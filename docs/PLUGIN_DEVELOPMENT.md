@@ -1,7 +1,7 @@
 # ChainlessChain 插件开发指南
 
-**版本**: v0.16.0
-**更新日期**: 2026-01-03
+**版本**: v0.24.0
+**更新日期**: 2026-01-17
 
 ---
 
@@ -15,6 +15,11 @@
 - [插件API参考](#插件api参考)
 - [扩展点系统](#扩展点系统)
 - [权限系统](#权限系统)
+- [新功能集成 (v0.17.0 - v0.24.0)](#新功能集成-v0170---v0240)
+  - [MCP 工具集成](#mcp-工具集成)
+  - [Multi-Agent 集成](#multi-agent-集成)
+  - [会话管理集成](#会话管理集成)
+  - [错误诊断集成](#错误诊断集成)
 - [调试与测试](#调试与测试)
 - [发布与分发](#发布与分发)
 - [最佳实践](#最佳实践)
@@ -155,10 +160,10 @@ Linux: ~/.chainlesschain/plugins/
 
 ### 前置要求
 
-- **Node.js**: 16+ （推荐18+）
-- **npm**: 8+
+- **Node.js**: 18+ （推荐20+）
+- **npm**: 9+
 - **代码编辑器**: VS Code（推荐）
-- **ChainlessChain**: v0.16.0+
+- **ChainlessChain**: v0.24.0+
 
 ### 推荐工具
 
@@ -276,7 +281,7 @@ pomodoro-plugin/
     "url": "https://github.com/zhangsan/pomodoro-plugin"
   },
   "engines": {
-    "chainlesschain": ">=0.16.0"
+    "chainlesschain": ">=0.24.0"
   }
 }
 ```
@@ -894,7 +899,7 @@ export default {
 
   // ===== 引擎版本要求 =====
   "engines": {
-    "chainlesschain": ">=0.16.0"
+    "chainlesschain": ">=0.24.0"
   },
 
   // ===== 配置Schema =====
@@ -994,6 +999,11 @@ class MyPlugin {
 - **api.http** - HTTP请求
 - **api.git** - Git操作
 - **api.filesystem** - 文件系统
+- **api.mcp** - MCP 工具集成 (v0.17.0+)
+- **api.session** - 会话管理 (v0.21.0+)
+- **api.agent** - Multi-Agent 调用 (v0.24.0+)
+- **api.errorMonitor** - 错误诊断 (v0.22.0+)
+- **api.llmStats** - LLM 性能统计 (v0.20.0+)
 
 ---
 
@@ -1109,6 +1119,13 @@ api.ui.registerMenuItem({
 | `git` | Git操作 | 中 |
 | `shell` | 执行shell命令 | 高 |
 | `crypto` | 加密功能 | 中 |
+| `mcp` | MCP 工具调用 (v0.17.0+) | 中 |
+| `mcp.filesystem` | MCP 文件系统访问 (v0.17.0+) | 高 |
+| `mcp.database` | MCP 数据库访问 (v0.17.0+) | 高 |
+| `session` | 会话管理 (v0.21.0+) | 低 |
+| `agent` | Multi-Agent 调用 (v0.24.0+) | 中 |
+| `error-monitor` | 错误诊断 (v0.22.0+) | 低 |
+| `llm-stats` | LLM 统计访问 (v0.20.0+) | 低 |
 
 ### 权限申请示例
 
@@ -1137,6 +1154,467 @@ try {
 } catch (error) {
   if (error.code === 'PERMISSION_DENIED') {
     console.error('无文件系统权限');
+  }
+}
+```
+
+---
+
+## 新功能集成 (v0.17.0 - v0.24.0)
+
+### MCP 工具集成
+
+**版本要求**: v0.17.0+
+**权限**: `mcp`, `mcp.filesystem`, `mcp.database`
+
+MCP（Model Context Protocol）允许插件通过标准化协议访问外部工具和数据源。
+
+#### 声明 MCP 权限
+
+```json
+{
+  "permissions": [
+    "mcp",
+    {
+      "name": "mcp.filesystem",
+      "paths": ["notes/", "exports/"],
+      "readonly": false
+    }
+  ]
+}
+```
+
+#### 使用 MCP API
+
+```javascript
+class MCPPlugin {
+  async activate() {
+    // 检查 MCP 服务器状态
+    const servers = await this.api.mcp.listServers();
+    console.log('可用 MCP 服务器:', servers);
+
+    // 连接到 Filesystem 服务器
+    await this.api.mcp.connect('filesystem');
+
+    // 调用 MCP 工具
+    const result = await this.api.mcp.callTool('filesystem', 'read_file', {
+      path: 'notes/example.md'
+    });
+
+    console.log('文件内容:', result.content);
+  }
+
+  async readDirectory() {
+    // 列出目录
+    const files = await this.api.mcp.callTool('filesystem', 'list_directory', {
+      path: 'notes/'
+    });
+
+    return files;
+  }
+
+  async queryDatabase() {
+    // 需要 mcp.database 权限
+    const result = await this.api.mcp.callTool('sqlite', 'query', {
+      sql: 'SELECT * FROM notes LIMIT 10'
+    });
+
+    return result.rows;
+  }
+
+  async deactivate() {
+    // 断开连接
+    await this.api.mcp.disconnect('filesystem');
+  }
+}
+```
+
+#### MCP 事件监听
+
+```javascript
+// 监听 MCP 服务器状态变化
+this.api.events.on('mcp:server-connected', (serverName) => {
+  console.log(`MCP 服务器 ${serverName} 已连接`);
+});
+
+this.api.events.on('mcp:server-disconnected', (serverName) => {
+  console.log(`MCP 服务器 ${serverName} 已断开`);
+});
+
+this.api.events.on('mcp:tool-called', (data) => {
+  console.log(`工具 ${data.toolName} 被调用`);
+});
+```
+
+---
+
+### Multi-Agent 集成
+
+**版本要求**: v0.24.0+
+**权限**: `agent`
+
+Multi-Agent 系统允许插件分发任务到专用 AI Agent。
+
+#### 声明 Agent 权限
+
+```json
+{
+  "permissions": ["agent"]
+}
+```
+
+#### 使用 Agent API
+
+```javascript
+class AgentPlugin {
+  async activate() {
+    // 获取可用 Agent 列表
+    const agents = await this.api.agent.list();
+    console.log('可用 Agent:', agents);
+  }
+
+  async generateCode(description) {
+    // 分发任务到 CodeGenerationAgent
+    const result = await this.api.agent.dispatch({
+      task: description,
+      preferredAgent: 'CodeGenerationAgent',
+      options: {
+        language: 'javascript',
+        maxTokens: 2048
+      }
+    });
+
+    return result.output;
+  }
+
+  async analyzeData(data) {
+    // 分发任务到 DataAnalysisAgent
+    const result = await this.api.agent.dispatch({
+      task: `分析以下数据并找出趋势: ${JSON.stringify(data)}`,
+      preferredAgent: 'DataAnalysisAgent'
+    });
+
+    return result.output;
+  }
+
+  async parallelTasks(tasks) {
+    // 并行执行多个任务
+    const results = await this.api.agent.executeParallel(
+      tasks.map(task => ({
+        task: task.description,
+        preferredAgent: task.agent
+      }))
+    );
+
+    return results;
+  }
+
+  async chainTasks() {
+    // 链式执行任务
+    const result = await this.api.agent.executeChain([
+      {
+        task: '分析 sales.csv 数据',
+        agent: 'DataAnalysisAgent'
+      },
+      {
+        task: '基于分析结果生成报告',
+        agent: 'DocumentAgent',
+        usesPreviousOutput: true
+      }
+    ]);
+
+    return result.finalOutput;
+  }
+}
+```
+
+#### Agent 事件监听
+
+```javascript
+// 监听 Agent 任务状态
+this.api.events.on('agent:task-started', (taskId) => {
+  console.log(`任务 ${taskId} 开始执行`);
+});
+
+this.api.events.on('agent:task-completed', (data) => {
+  console.log(`任务 ${data.taskId} 完成，耗时 ${data.duration}ms`);
+});
+
+this.api.events.on('agent:task-failed', (data) => {
+  console.error(`任务 ${data.taskId} 失败:`, data.error);
+});
+```
+
+---
+
+### 会话管理集成
+
+**版本要求**: v0.21.0+
+**权限**: `session`
+
+SessionManager 提供会话持久化、搜索、标签和智能压缩功能。
+
+#### 声明 Session 权限
+
+```json
+{
+  "permissions": ["session"]
+}
+```
+
+#### 使用 Session API
+
+```javascript
+class SessionPlugin {
+  async activate() {
+    // 获取最近会话
+    const recentSessions = await this.api.session.getRecent(5);
+    console.log('最近会话:', recentSessions);
+  }
+
+  async createSession(title) {
+    // 创建新会话
+    const session = await this.api.session.create({
+      title: title,
+      metadata: {
+        source: 'my-plugin',
+        category: 'custom'
+      }
+    });
+
+    return session;
+  }
+
+  async searchSessions(query) {
+    // 搜索会话
+    const results = await this.api.session.search(query, {
+      searchTitle: true,
+      searchContent: true,
+      limit: 20
+    });
+
+    return results;
+  }
+
+  async manageTags(sessionId) {
+    // 添加标签
+    await this.api.session.addTags(sessionId, ['#插件创建', '#重要']);
+
+    // 按标签查找
+    const sessions = await this.api.session.findByTags(['#插件创建']);
+
+    // 获取所有标签
+    const allTags = await this.api.session.getAllTags();
+
+    return { sessions, allTags };
+  }
+
+  async exportSession(sessionId) {
+    // 导出为 Markdown
+    const markdown = await this.api.session.exportToMarkdown(sessionId, {
+      includeMetadata: true
+    });
+
+    return markdown;
+  }
+
+  async resumeSession(sessionId) {
+    // 恢复会话
+    const result = await this.api.session.resume(sessionId);
+
+    console.log('上下文提示:', result.contextPrompt);
+    console.log('有效消息:', result.messages);
+
+    return result;
+  }
+
+  async getStats() {
+    // 获取全局统计
+    const stats = await this.api.session.getGlobalStats();
+
+    return {
+      totalSessions: stats.totalSessions,
+      totalMessages: stats.totalMessages,
+      tokensSaved: stats.totalTokensSaved
+    };
+  }
+}
+```
+
+#### Session 事件监听
+
+```javascript
+// 监听会话事件
+this.api.events.on('session:created', (session) => {
+  console.log('新会话创建:', session.id);
+});
+
+this.api.events.on('session:message-added', (data) => {
+  console.log(`会话 ${data.sessionId} 新增消息`);
+});
+
+this.api.events.on('session:compressed', (data) => {
+  console.log(`会话压缩完成，节省 ${data.tokensSaved} tokens`);
+});
+```
+
+---
+
+### 错误诊断集成
+
+**版本要求**: v0.22.0+
+**权限**: `error-monitor`
+
+ErrorMonitor 提供 AI 智能错误诊断和自动修复功能。
+
+#### 声明 ErrorMonitor 权限
+
+```json
+{
+  "permissions": ["error-monitor"]
+}
+```
+
+#### 使用 ErrorMonitor API
+
+```javascript
+class ErrorPlugin {
+  async activate() {
+    // 获取错误统计
+    const stats = await this.api.errorMonitor.getStats({ days: 7 });
+    console.log('错误统计:', stats);
+  }
+
+  async analyzeError(error) {
+    // 分析错误
+    const analysis = await this.api.errorMonitor.analyze(error);
+
+    console.log('错误分类:', analysis.classification);
+    console.log('严重程度:', analysis.severity);
+    console.log('AI 诊断:', analysis.aiDiagnosis);
+    console.log('修复建议:', analysis.recommendations);
+
+    return analysis;
+  }
+
+  async handlePluginError(error) {
+    try {
+      // 尝试自动修复
+      const analysis = await this.api.errorMonitor.analyze(error);
+
+      if (analysis.autoFixResult?.success) {
+        console.log('错误已自动修复');
+        return true;
+      }
+
+      // 显示诊断报告
+      const report = await this.api.errorMonitor.getDiagnosisReport(error);
+      await this.api.ui.showModal({
+        title: '错误诊断报告',
+        content: report,
+        type: 'markdown'
+      });
+
+      return false;
+    } catch (e) {
+      console.error('错误分析失败:', e);
+      return false;
+    }
+  }
+
+  async findSimilarIssues(error) {
+    // 查找相关历史问题
+    const related = await this.api.errorMonitor.getRelatedIssues(error, 5);
+
+    return related.map(issue => ({
+      message: issue.message,
+      solution: issue.aiDiagnosis?.recommendations?.[0],
+      resolved: issue.autoFixResult?.success
+    }));
+  }
+}
+```
+
+#### ErrorMonitor 事件监听
+
+```javascript
+// 监听错误事件
+this.api.events.on('error:analyzed', (analysis) => {
+  console.log(`错误分析完成: ${analysis.classification}`);
+});
+
+this.api.events.on('error:auto-fixed', (data) => {
+  console.log(`错误自动修复成功: ${data.strategy}`);
+});
+
+this.api.events.on('error:fix-failed', (data) => {
+  console.log(`自动修复失败: ${data.error}`);
+});
+```
+
+---
+
+### LLM 性能统计集成
+
+**版本要求**: v0.20.0+
+**权限**: `llm-stats`
+
+访问 LLM 使用统计和成本分析数据。
+
+#### 声明 LLM Stats 权限
+
+```json
+{
+  "permissions": ["llm-stats"]
+}
+```
+
+#### 使用 LLM Stats API
+
+```javascript
+class StatsPlugin {
+  async activate() {
+    // 获取使用统计
+    const stats = await this.api.llmStats.getUsageStats({
+      timeRange: '7d'
+    });
+
+    console.log('总调用次数:', stats.totalCalls);
+    console.log('总 Token:', stats.totalTokens);
+    console.log('总成本:', stats.totalCost);
+  }
+
+  async getCostBreakdown() {
+    // 获取成本分解
+    const breakdown = await this.api.llmStats.getCostBreakdown({
+      timeRange: '30d'
+    });
+
+    return {
+      byProvider: breakdown.byProvider,
+      byModel: breakdown.byModel
+    };
+  }
+
+  async getTimeSeries() {
+    // 获取时间序列数据
+    const series = await this.api.llmStats.getTimeSeries({
+      timeRange: '7d',
+      granularity: 'day'
+    });
+
+    return series;
+  }
+
+  async exportReport() {
+    // 导出报告
+    const report = await this.api.llmStats.exportReport({
+      format: 'json',
+      timeRange: '30d',
+      includeDetails: true
+    });
+
+    return report;
   }
 }
 ```
@@ -1518,8 +1996,8 @@ npm run rebuild
 
 ---
 
-**文档版本**: v0.16.0
-**最后更新**: 2026-01-03
+**文档版本**: v0.24.0
+**最后更新**: 2026-01-17
 **维护团队**: ChainlessChain Plugin Development Team
 
 祝你开发愉快！🚀
