@@ -257,7 +257,7 @@ export function useMultimediaTheme() {
  * 初始化主题系统
  */
 export function initMultimediaTheme() {
-  const { setTheme, watchSystemTheme, applyTheme } = useMultimediaTheme();
+  const { setTheme: _setTheme, watchSystemTheme, applyTheme } = useMultimediaTheme();
 
   // 从localStorage恢复主题
   try {
