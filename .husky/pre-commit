@@ -55,3 +55,27 @@ if [ $? -ne 0 ]; then
 fi
 
 echo "✅ 代码规则验证通过"
+echo ""
+
+# 4. 运行单元测试（排除不稳定测试）
+echo "🧪 运行单元测试..."
+echo "   (排除: ocr-service, mcp/* - 环境依赖测试)"
+
+# 使用 vitest 直接运行，排除不稳定的测试
+npx vitest run tests/unit \
+  --exclude="**/ocr-service.test.js" \
+  --exclude="**/mcp/**"
+
+# 检查测试退出码
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "❌ 单元测试失败！"
+  echo "请修复测试错误后再提交"
+  echo ""
+  echo "如需跳过验证（不推荐），使用: git commit --no-verify"
+  echo ""
+  echo "💡 完整测试（含不稳定测试）: npm run test:unit"
+  exit 1
+fi
+
+echo "✅ 单元测试通过"

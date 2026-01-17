@@ -32,6 +32,92 @@
       </div>
     </transition>
 
+    <!-- 首次使用欢迎引导卡片 -->
+    <transition name="slide-fade">
+      <a-card v-if="showWelcomeCard" class="welcome-card">
+        <div class="welcome-content">
+          <div class="welcome-header">
+            <div class="welcome-icon">
+              <BarChartOutlined />
+            </div>
+            <div class="welcome-title">
+              <h2>欢迎使用 LLM 性能仪表板</h2>
+              <p>实时追踪您的 AI 使用情况、成本分析和性能优化</p>
+            </div>
+            <a-button type="text" class="dismiss-btn" @click="dismissWelcome">
+              <CloseOutlined />
+            </a-button>
+          </div>
+
+          <a-divider />
+
+          <div class="welcome-features">
+            <div class="feature-item">
+              <div class="feature-icon">
+                <ApiOutlined />
+              </div>
+              <div class="feature-text">
+                <h4>调用追踪</h4>
+                <p>记录每次 LLM API 调用，包括 Token 使用量和响应时间</p>
+              </div>
+            </div>
+            <div class="feature-item">
+              <div class="feature-icon">
+                <DollarOutlined />
+              </div>
+              <div class="feature-text">
+                <h4>成本分析</h4>
+                <p>按提供商、模型分类统计成本，支持预算告警</p>
+              </div>
+            </div>
+            <div class="feature-item">
+              <div class="feature-icon">
+                <RocketOutlined />
+              </div>
+              <div class="feature-text">
+                <h4>优化建议</h4>
+                <p>智能分析使用模式，提供成本优化和性能提升建议</p>
+              </div>
+            </div>
+          </div>
+
+          <a-divider />
+
+          <div class="welcome-actions">
+            <div class="action-text">
+              <InfoCircleOutlined />
+              <span
+                >开始使用 AI 聊天功能后，数据将自动记录并显示在此仪表板中</span
+              >
+            </div>
+            <div class="action-buttons">
+              <a-button type="primary" size="large" @click="goToChat">
+                <template #icon><PlayCircleOutlined /></template>
+                开始 AI 对话
+              </a-button>
+              <a-tooltip title="生成示例数据以预览仪表板功能（仅用于演示）">
+                <a-button
+                  size="large"
+                  @click="generateTestData"
+                  :loading="generatingTestData"
+                >
+                  <template #icon><ExperimentOutlined /></template>
+                  {{ generatingTestData ? "生成中..." : "生成示例数据" }}
+                </a-button>
+              </a-tooltip>
+            </div>
+            <a-progress
+              v-if="generatingTestData"
+              :percent="testDataProgress"
+              :show-info="false"
+              size="small"
+              style="margin-top: 12px; max-width: 300px"
+            />
+          </div>
+        </div>
+      </a-card>
+    </transition>
+
     <div class="page-content">
       <!-- 统计概览 -->
       <a-row :gutter="[16, 16]" class="stats-row">
@@ -567,10 +653,22 @@
           <a-skeleton active :paragraph="{ rows: 8 }" />
         </div>
         <div v-else ref="tokenTrendChart" class="chart-container"></div>
-        <a-empty
+        <div
           v-if="timeSeriesData.length === 0 && !loading"
-          description="暂无数据"
-        />
+          class="empty-state-container"
+        >
+          <a-empty
+            :image="Empty.PRESENTED_IMAGE_SIMPLE"
+            description="暂无趋势数据"
+          >
+            <template #description>
+              <div class="empty-description">
+                <p>当前时间范围内没有 LLM 调用记录</p>
+                <p class="empty-hint">使用 AI 聊天功能后，数据将自动显示</p>
+              </div>
+            </template>
+          </a-empty>
+        </div>
       </a-card>
 
       <!-- Input/Output Token 分布图 -->
@@ -593,10 +691,18 @@
               ref="tokenDistributionChart"
               class="chart-container-small"
             ></div>
-            <a-empty
+            <div
               v-if="!tokenDistributionData.length && !loading"
-              description="暂无数据"
-            />
+              class="empty-state-container-small"
+            >
+              <a-empty
+                :image="Empty.PRESENTED_IMAGE_SIMPLE"
+              >
+                <template #description>
+                  <span class="empty-hint">尚无 Token 分布数据</span>
+                </template>
+              </a-empty>
+            </div>
           </a-card>
         </a-col>
         <a-col :xs="24" :sm="24" :md="12" :lg="12">
@@ -623,10 +729,18 @@
               ref="periodComparisonChart"
               class="chart-container-small"
             ></div>
-            <a-empty
+            <div
               v-if="!periodComparisonData.current.length && !loading"
-              description="暂无数据"
-            />
+              class="empty-state-container-small"
+            >
+              <a-empty
+                :image="Empty.PRESENTED_IMAGE_SIMPLE"
+              >
+                <template #description>
+                  <span class="empty-hint">需要更多数据进行周期对比</span>
+                </template>
+              </a-empty>
+            </div>
           </a-card>
         </a-col>
       </a-row>
@@ -646,10 +760,18 @@
               ref="providerCostChart"
               class="chart-container-small"
             ></div>
-            <a-empty
+            <div
               v-if="costBreakdown.byProvider.length === 0 && !loading"
-              description="暂无数据"
-            />
+              class="empty-state-container-small"
+            >
+              <a-empty
+                :image="Empty.PRESENTED_IMAGE_SIMPLE"
+              >
+                <template #description>
+                  <span class="empty-hint">尚无提供商成本数据</span>
+                </template>
+              </a-empty>
+            </div>
           </a-card>
         </a-col>
         <a-col :xs="24" :sm="24" :md="12" :lg="12">
@@ -729,7 +851,7 @@ import {
   nextTick,
   markRaw,
 } from "vue";
-import { message } from "ant-design-vue";
+import { message, Empty } from "ant-design-vue";
 import { useRouter } from "vue-router";
 import * as echarts from "echarts";
 import {
@@ -755,6 +877,10 @@ import {
   QuestionCircleOutlined,
   ExclamationCircleOutlined,
   AlertOutlined,
+  PlayCircleOutlined,
+  InfoCircleOutlined,
+  CheckCircleOutlined,
+  ExperimentOutlined,
 } from "@ant-design/icons-vue";
 
 const router = useRouter();
@@ -826,6 +952,13 @@ let refreshIntervalId = null;
 
 // 清理缓存状态
 const clearingCache = ref(false);
+
+// 生成测试数据状态
+const generatingTestData = ref(false);
+const testDataProgress = ref(0);
+
+// 首次使用欢迎卡片状态
+const welcomeDismissed = ref(false);
 
 // 告警横幅状态
 const alertDismissed = ref(false);
@@ -958,6 +1091,20 @@ const budgetAlertMessage = computed(() => {
   return `当前使用已达到预算的 ${percent.toFixed(1)}%，请注意控制使用量。`;
 });
 
+// 是否为首次使用（无数据）
+const isFirstTimeUser = computed(() => {
+  return (
+    !initialLoading.value &&
+    stats.value.totalCalls === 0 &&
+    stats.value.totalTokens === 0
+  );
+});
+
+// 是否显示欢迎引导卡片
+const showWelcomeCard = computed(() => {
+  return isFirstTimeUser.value && !welcomeDismissed.value;
+});
+
 // 告警横幅方法
 const dismissAlert = () => {
   alertDismissed.value = true;
@@ -965,6 +1112,57 @@ const dismissAlert = () => {
 
 const goToBudgetSettings = () => {
   router.push({ name: "Settings", query: { tab: "llm" } });
+};
+
+// 关闭欢迎卡片
+const dismissWelcome = () => {
+  welcomeDismissed.value = true;
+};
+
+// 跳转到 AI 聊天
+const goToChat = () => {
+  router.push({ name: "Chat" });
+};
+
+/**
+ * 生成测试数据（用于演示和开发）
+ */
+const generateTestData = async () => {
+  generatingTestData.value = true;
+  testDataProgress.value = 0;
+
+  try {
+    // 模拟进度
+    const progressInterval = setInterval(() => {
+      if (testDataProgress.value < 90) {
+        testDataProgress.value += 10;
+      }
+    }, 200);
+
+    const result = await window.electronAPI.invoke("llm:generate-test-data", {
+      days: 14,
+      recordsPerDay: 30,
+      clear: false,
+    });
+
+    clearInterval(progressInterval);
+    testDataProgress.value = 100;
+
+    if (result && result.success) {
+      message.success(`已生成 ${result.totalRecords || "示例"} 条测试数据`);
+      welcomeDismissed.value = true;
+      // 刷新数据显示
+      await refreshData();
+    } else {
+      throw new Error(result?.error || "生成失败");
+    }
+  } catch (error) {
+    console.error("生成测试数据失败:", error);
+    message.error("生成测试数据失败: " + error.message);
+  } finally {
+    generatingTestData.value = false;
+    testDataProgress.value = 0;
+  }
 };
 
 // 预算状态函数
@@ -2030,6 +2228,144 @@ onUnmounted(() => {
   .slide-fade-leave-to {
     transform: translateY(-20px);
     opacity: 0;
+  }
+
+  // 首次使用欢迎卡片
+  .welcome-card {
+    margin-bottom: 24px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #f6f9fc 0%, #eef2f7 100%);
+    border: 1px solid #e8ecf1;
+
+    .welcome-content {
+      .welcome-header {
+        display: flex;
+        align-items: flex-start;
+        gap: 16px;
+
+        .welcome-icon {
+          width: 56px;
+          height: 56px;
+          background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+
+          :deep(.anticon) {
+            font-size: 28px;
+            color: #fff;
+          }
+        }
+
+        .welcome-title {
+          flex: 1;
+
+          h2 {
+            font-size: 22px;
+            font-weight: 600;
+            color: #1a202c;
+            margin: 0 0 6px 0;
+          }
+
+          p {
+            font-size: 14px;
+            color: #718096;
+            margin: 0;
+          }
+        }
+
+        .dismiss-btn {
+          color: #a0aec0;
+
+          &:hover {
+            color: #718096;
+          }
+        }
+      }
+
+      .welcome-features {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 20px;
+
+        .feature-item {
+          display: flex;
+          gap: 14px;
+          padding: 16px;
+          background: #fff;
+          border-radius: 10px;
+          border: 1px solid #e2e8f0;
+          transition: all 0.2s ease;
+
+          &:hover {
+            border-color: #1890ff;
+            box-shadow: 0 4px 12px rgba(24, 144, 255, 0.1);
+          }
+
+          .feature-icon {
+            width: 42px;
+            height: 42px;
+            background: #e6f7ff;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+
+            :deep(.anticon) {
+              font-size: 20px;
+              color: #1890ff;
+            }
+          }
+
+          .feature-text {
+            h4 {
+              font-size: 15px;
+              font-weight: 600;
+              color: #1a202c;
+              margin: 0 0 4px 0;
+            }
+
+            p {
+              font-size: 13px;
+              color: #718096;
+              margin: 0;
+              line-height: 1.5;
+            }
+          }
+        }
+      }
+
+      .welcome-actions {
+        text-align: center;
+
+        .action-text {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 14px;
+          color: #718096;
+          margin-bottom: 16px;
+          padding: 10px 16px;
+          background: #fff;
+          border-radius: 8px;
+          border: 1px dashed #cbd5e0;
+
+          :deep(.anticon) {
+            color: #1890ff;
+          }
+        }
+
+        .action-buttons {
+          display: flex;
+          justify-content: center;
+          gap: 12px;
+          flex-wrap: wrap;
+        }
+      }
+    }
   }
 
   .page-content {

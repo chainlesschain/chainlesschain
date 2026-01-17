@@ -620,6 +620,12 @@ const routes = [
         meta: { title: "LLM 性能仪表板" },
       },
       {
+        path: "sessions",
+        name: "SessionManager",
+        component: () => import("../pages/SessionManagerPage.vue"),
+        meta: { title: "会话管理" },
+      },
+      {
         path: "error/monitor",
         name: "ErrorMonitor",
         component: () => import("../pages/ErrorMonitorPage.vue"),
