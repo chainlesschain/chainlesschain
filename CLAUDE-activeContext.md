@@ -2,7 +2,7 @@
 
 > 记录当前开发会话的状态和上下文，帮助 AI 助手快速了解工作进度
 >
-> **最后更新**: 2026-01-17 (Pre-commit Hooks 配置完成)
+> **最后更新**: 2026-01-18 (启动稳定性修复)
 
 ---
 
@@ -15,10 +15,15 @@
 - [x] 创建 Memory Bank 系统
 - [x] 完善 SessionManager 增强功能
 - [x] 配置 Pre-commit Hooks (Husky)
+- [x] 修复应用启动稳定性问题
 
 ### 最近完成
 
-1. **SessionManager v0.21.0 增强** (2026-01-16):
+1. **应用启动稳定性修复** (2026-01-18):
+   - 修复 UnifiedConfigManager EISDIR 错误（config.json/rules.md 被错误创建为目录）
+   - 修复 MobileBridge 信令服务器连接失败阻塞后续初始化的问题
+   - 清理 desktop-app-vue/.chainlesschain/ 下错误创建的目录
+2. **SessionManager v0.21.0 增强** (2026-01-16):
    - 会话搜索：按标题和内容全文搜索
    - 标签系统：添加/移除标签、按标签过滤
    - 导出/导入：JSON 和 Markdown 格式导出、JSON 导入
@@ -30,9 +35,9 @@
    - 新增 20+ IPC 通道
    - 新增数据库迁移 008_session_templates.sql
    - 更新测试脚本（13 项测试）
-2. ErrorMonitor 增强：添加了 `optimizeSQLiteForConcurrency()`、`releaseDatabaseLock()`、`attemptServiceReconnection()` 等实际修复方法
-3. Session 压缩测试：压缩率 0.76-0.93，节省 7-24% Token
-4. Memory Bank 系统：创建了 CLAUDE-patterns.md、CLAUDE-decisions.md、CLAUDE-troubleshooting.md
+3. ErrorMonitor 增强：添加了 `optimizeSQLiteForConcurrency()`、`releaseDatabaseLock()`、`attemptServiceReconnection()` 等实际修复方法
+4. Session 压缩测试：压缩率 0.76-0.93，节省 7-24% Token
+5. Memory Bank 系统：创建了 CLAUDE-patterns.md、CLAUDE-decisions.md、CLAUDE-troubleshooting.md
 
 ### 待处理
 
@@ -44,16 +49,13 @@
 
 ## 关键文件修改记录
 
-### 本次会话修改
+### 本次会话修改 (2026-01-18)
 
-| 文件                        | 修改类型 | 说明                                    |
-| --------------------------- | -------- | --------------------------------------- |
-| `session-manager.js`        | 增强     | 添加搜索/标签/导出/摘要/模板/批量等功能 |
-| `session-manager-ipc.js`    | 增强     | 新增 20+ IPC 通道                       |
-| `008_session_templates.sql` | 新建     | 会话模板数据库表                        |
-| `test-session-manager.js`   | 更新     | 扩展到 13 项功能测试                    |
-| `CLAUDE.md`                 | 更新     | SessionManager 文档完善                 |
-| `CLAUDE-activeContext.md`   | 更新     | 当前会话上下文                          |
+| 文件                        | 修改类型 | 说明                                   |
+| --------------------------- | -------- | -------------------------------------- |
+| `unified-config-manager.js` | 修复     | 防止将 config.json/rules.md 创建为目录 |
+| `index.js`                  | 修复     | 信令服务器连接失败时不阻塞后续初始化   |
+| `CLAUDE-activeContext.md`   | 更新     | 记录今日修复内容                       |
 
 ---
 
@@ -157,6 +159,13 @@ npm run test:session # Session 压缩测试
 ---
 
 ## 更新日志
+
+### 2026-01-18
+
+- 修复 UnifiedConfigManager EISDIR 错误（文件路径被错误创建为目录）
+- 修复 MobileBridge 信令服务器连接失败阻塞后续初始化
+- 清理 `desktop-app-vue/.chainlesschain/` 下错误创建的目录
+- 应用启动稳定性提升
 
 ### 2026-01-17
 
