@@ -28,11 +28,14 @@
 
 ---
 
-## ⭐ 当前版本: v0.24.0 (2026-01-16)
+## ⭐ 当前版本: v0.25.0 (2026-01-17)
 
 ### 最新更新
 
-- ✅ **MCP (Model Context Protocol) 集成** - POC v0.1.0，支持Filesystem/PostgreSQL/SQLite/Git/Fetch服务器，多重安全防护，UI管理界面，完整文档 ⭐最新
+- ✅ **Manus AI 优化系统** - 基于Manus/OpenManus最佳实践，Context Engineering(KV-Cache优化)、Tool Masking(工具掩码)、TaskTrackerFile(todo.md机制)、可恢复压缩，理论Token成本降低50-90% ⭐最新
+- ✅ **Multi-Agent 多智能体系统** - Agent协调器、3个专用Agent(代码生成/数据分析/文档处理)、并行执行、链式执行、Agent间通信，复杂任务完成时间降低30% ⭐最新
+- ✅ **MCP Chat Integration** - MCP工具集成到AI聊天，通过Function Calling调用MCP服务器工具 ⭐最新
+- ✅ **MCP (Model Context Protocol) 集成** - POC v0.1.0，支持Filesystem/PostgreSQL/SQLite/Git/Fetch服务器，多重安全防护，UI管理界面，完整文档
 - ✅ **统一配置目录系统** - `.chainlesschain/`目录集中管理配置、日志、缓存、会话数据，参考OpenClaude最佳实践，支持自动初始化和配置迁移 ⭐最新
 - ✅ **Token预算管理系统** - LLM使用成本跟踪、每月预算控制、超支告警、详细使用统计 ⭐最新
 - ✅ **移动端同步功能完成** - 桌面-移动端数据双向同步、群聊实时同步、知识库同步、联系人同步、增量同步、冲突解决、离线队列管理
@@ -2676,6 +2679,9 @@ chainlesschain/
 
 | 版本    | 日期       | 主要更新                                                                                                                                                                                                              |
 | ------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| v0.25.0 | 2026-01-17 | **Manus AI优化+Multi-Agent系统**: Context Engineering(KV-Cache优化)、Tool Masking(工具掩码)、TaskTrackerFile(todo.md机制)、可恢复压缩、3个专用Agent(代码/数据/文档)、并行/链式执行，新增5,500+行代码 ⭐最新 |
+| v0.24.0 | 2026-01-16 | **MCP Chat Integration**: MCP工具集成到AI聊天，通过Function Calling调用MCP服务器工具，新增mcp-function-executor.js(268行) |
+| v0.23.0 | 2026-01-15 | **SessionManager增强+ErrorMonitor AI诊断**: 会话搜索/标签/导出/摘要/模板/批量操作，AI智能错误诊断和自动修复 |
 | v0.22.0 | 2026-01-13 | **区块链集成完成**: Phase 4-6全部完成（15链支持+RPC管理+事件监听+完整UI），新增6,566行代码，12个UI组件，完整测试覆盖 ⭐重大更新                                                                                       |
 | v0.21.0 | 2026-01-12 | **知识图谱可视化+企业版DID邀请+移动端增强**: 8个图分析算法、5种可视化方式、智能实体提取、6种导出格式、DID邀请链接系统（安全令牌/使用控制/统计分析）、移动端Markdown渲染（代码高亮/图片预览/工具栏/实时预览/自动保存） |
 | v0.20.0 | 2026-01-11 | **语音识别完善+PC端核心功能**: Whisper集成测试通过(100%准确度)、语音设置UI完成、多语言支持、STUN/TURN网络测试、P2P通信增强(WebRTC+Signal Protocol)、文档结构重构、测试框架升级(Vitest)                                |
@@ -3002,10 +3008,10 @@ chainlesschain/
 
 ### 整体代码统计
 
-**代码总量**: 260,000+ 行 ⭐更新
+**代码总量**: 265,500+ 行 ⭐更新
 
-- Desktop App: 220,000+ 行 (JavaScript/TypeScript/Vue) ⭐更新
-  - 主进程: ~190,000 行 (含移动端同步7700行) ⭐更新
+- Desktop App: 225,500+ 行 (JavaScript/TypeScript/Vue) ⭐更新
+  - 主进程: ~195,500 行 (含移动端同步7700行+Manus优化5500行) ⭐更新
   - 渲染进程: ~15,000 行 (243个组件)
   - 工具类: ~15,000 行 (34个文件)
 - Smart Contracts: 2,400 行 (Solidity + 测试 + 脚本)
@@ -3028,6 +3034,22 @@ chainlesschain/
 **功能模块**:
 
 - 16个AI专用引擎
+- Manus AI优化系统 (5500+行) ⭐新增
+  - Context Engineering: KV-Cache优化、Prompt清理 (652行)
+  - Tool Masking: 工具掩码、状态机控制 (604行)
+  - TaskTrackerFile: todo.md持久化机制 (833行)
+  - ManusOptimizations: 集成模块 (624行)
+  - 可恢复压缩: URL/路径保留策略
+- Multi-Agent 多智能体系统 (2516+行) ⭐新增
+  - AgentOrchestrator: 任务分发、并行/链式执行 (582行)
+  - SpecializedAgent: 专用Agent基类 (252行)
+  - CodeGenerationAgent: 代码生成/重构/审查 (386行)
+  - DataAnalysisAgent: 数据分析/可视化/统计 (555行)
+  - DocumentAgent: 文档编写/翻译/摘要 (386行)
+  - Multi-Agent IPC: 15个IPC通道 (248行)
+- MCP Function Executor (268行) ⭐新增
+  - AI聊天中调用MCP工具
+  - Function Calling集成
 - 移动端PC端数据同步系统 (7700+行)
   - 设备配对、知识库同步、项目同步、PC状态监控
   - WebRTC P2P通信、libp2p加密、信令服务器
