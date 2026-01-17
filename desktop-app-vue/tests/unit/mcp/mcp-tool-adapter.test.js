@@ -35,7 +35,7 @@ vi.mock("../../../src/main/mcp/mcp-client-manager", () => ({
   default: vi.fn().mockImplementation(() => mockMCPClientManager),
 }));
 
-const MCPToolAdapter = require("../../../src/main/mcp/mcp-tool-adapter");
+const { MCPToolAdapter } = require("../../../src/main/mcp/mcp-tool-adapter");
 
 describe("MCPToolAdapter", () => {
   let adapter;

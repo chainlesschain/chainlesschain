@@ -42,7 +42,9 @@ vi.mock("../../../src/main/mcp/transports/http-sse-transport", () => ({
 }));
 
 // Import after mocking
-const MCPClientManager = require("../../../src/main/mcp/mcp-client-manager");
+const {
+  MCPClientManager,
+} = require("../../../src/main/mcp/mcp-client-manager");
 
 describe("MCPClientManager", () => {
   let manager;

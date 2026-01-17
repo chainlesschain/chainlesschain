@@ -21,8 +21,8 @@ let MCPClientManager;
 let MCPSecurityPolicy;
 
 try {
-  MCPClientManager = require("../../src/main/mcp/mcp-client-manager");
-  MCPSecurityPolicy = require("../../src/main/mcp/mcp-security-policy");
+  ({ MCPClientManager } = require("../../src/main/mcp/mcp-client-manager"));
+  ({ MCPSecurityPolicy } = require("../../src/main/mcp/mcp-security-policy"));
 } catch (error) {
   console.warn("MCP modules not available, skipping integration tests");
 }
