@@ -2294,6 +2294,71 @@ contextBridge.exposeInMainWorld("electronAPI", {
     getConfiguredProviders: () =>
       ipcRenderer.invoke("secure-storage:get-configured-providers"),
   },
+
+  // ==========================================
+  // Manus 优化 API (Context Engineering + Tool Masking + Multi-Agent)
+  // ==========================================
+  manus: {
+    // 任务追踪
+    startTask: (task) => ipcRenderer.invoke("manus:start-task", task),
+    updateProgress: (data) => ipcRenderer.invoke("manus:update-progress", data),
+    completeStep: () => ipcRenderer.invoke("manus:complete-step"),
+    completeTask: () => ipcRenderer.invoke("manus:complete-task"),
+    cancelTask: () => ipcRenderer.invoke("manus:cancel-task"),
+    getCurrentTask: () => ipcRenderer.invoke("manus:get-current-task"),
+
+    // 工具掩码控制
+    setToolAvailable: (data) => ipcRenderer.invoke("manus:set-tool-available", data),
+    setToolsByPrefix: (data) => ipcRenderer.invoke("manus:set-tools-by-prefix", data),
+    validateToolCall: (data) => ipcRenderer.invoke("manus:validate-tool-call", data),
+    getAvailableTools: () => ipcRenderer.invoke("manus:get-available-tools"),
+
+    // 阶段状态机
+    configurePhases: (config) => ipcRenderer.invoke("manus:configure-phases", config),
+    transitionToPhase: (data) => ipcRenderer.invoke("manus:transition-to-phase", data),
+    getCurrentPhase: () => ipcRenderer.invoke("manus:get-current-phase"),
+
+    // 错误记录
+    recordError: (error) => ipcRenderer.invoke("manus:record-error", error),
+    resolveError: (data) => ipcRenderer.invoke("manus:resolve-error", data),
+
+    // 统计和调试
+    getStats: () => ipcRenderer.invoke("manus:get-stats"),
+    resetStats: () => ipcRenderer.invoke("manus:reset-stats"),
+    exportDebugInfo: () => ipcRenderer.invoke("manus:export-debug-info"),
+
+    // Prompt 优化
+    buildOptimizedPrompt: (options) => ipcRenderer.invoke("manus:build-optimized-prompt", options),
+    compressContent: (data) => ipcRenderer.invoke("manus:compress-content", data),
+  },
+
+  // ==========================================
+  // Task Tracker API (todo.md 机制)
+  // ==========================================
+  taskTracker: {
+    createTask: (task) => ipcRenderer.invoke("task-tracker:create", task),
+    startTask: () => ipcRenderer.invoke("task-tracker:start"),
+    updateProgress: (stepIndex, status) => ipcRenderer.invoke("task-tracker:update-progress", { stepIndex, status }),
+    completeStep: (result) => ipcRenderer.invoke("task-tracker:complete-step", result),
+    completeTask: (result) => ipcRenderer.invoke("task-tracker:complete", result),
+    cancelTask: (reason) => ipcRenderer.invoke("task-tracker:cancel", reason),
+    getTodoContext: () => ipcRenderer.invoke("task-tracker:get-todo-context"),
+    loadUnfinished: () => ipcRenderer.invoke("task-tracker:load-unfinished"),
+    getHistory: (limit) => ipcRenderer.invoke("task-tracker:get-history", limit),
+  },
+
+  // ==========================================
+  // Multi-Agent API (Agent 协调器和专用 Agent)
+  // ==========================================
+  multiAgent: {
+    listAgents: () => ipcRenderer.invoke("agent:list"),
+    dispatch: (task) => ipcRenderer.invoke("agent:dispatch", task),
+    executeParallel: (tasks) => ipcRenderer.invoke("agent:execute-parallel", tasks),
+    executeChain: (tasks) => ipcRenderer.invoke("agent:execute-chain", tasks),
+    getCapableAgents: (task) => ipcRenderer.invoke("agent:get-capable", task),
+    sendMessage: (data) => ipcRenderer.invoke("agent:send-message", data),
+    getStats: () => ipcRenderer.invoke("agent:get-stats"),
+  },
 });
 
 // Also expose a direct electron object for components that use window.electron.ipcRenderer
