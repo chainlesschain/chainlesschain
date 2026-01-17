@@ -27,12 +27,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: "npm"
-          cache-dependency-path: desktop-app-vue/package-lock.json
 
       - name: Install dependencies
         working-directory: ./desktop-app-vue
-        run: npm ci --legacy-peer-deps
+        run: npm install --legacy-peer-deps
 
       - name: Run TypeScript type check
         working-directory: ./desktop-app-vue
@@ -93,12 +91,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "22.x"
-          cache: "npm"
-          cache-dependency-path: desktop-app-vue/package-lock.json
 
       - name: Install dependencies
         working-directory: ./desktop-app-vue
-        run: npm ci --legacy-peer-deps
+        run: npm install --legacy-peer-deps
 
       - name: Run ESLint
         working-directory: ./desktop-app-vue
@@ -129,12 +125,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "22.x"
-          cache: "npm"
-          cache-dependency-path: desktop-app-vue/package-lock.json
 
       - name: Install dependencies
         working-directory: ./desktop-app-vue
-        run: npm ci --legacy-peer-deps
+        run: npm install --legacy-peer-deps
 
       - name: Build main process
         working-directory: ./desktop-app-vue
@@ -166,12 +160,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "22.x"
-          cache: "npm"
-          cache-dependency-path: desktop-app-vue/package-lock.json
 
       - name: Install dependencies
         working-directory: ./desktop-app-vue
-        run: npm ci --legacy-peer-deps
+        run: npm install --legacy-peer-deps
 
       - name: Run database tests
         working-directory: ./desktop-app-vue
@@ -193,12 +185,10 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "22.x"
-          cache: "npm"
-          cache-dependency-path: desktop-app-vue/package-lock.json
 
       - name: Install dependencies
         working-directory: ./desktop-app-vue
-        run: npm ci --legacy-peer-deps
+        run: npm install --legacy-peer-deps
 
       - name: Run all unit tests
         working-directory: ./desktop-app-vue
