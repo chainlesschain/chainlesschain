@@ -1,11 +1,20 @@
 /**
  * Function Calling框架
  * 负责工具的注册、调用和管理
+ *
+ * 🔥 Manus 优化集成 (2026-01-17):
+ * - Tool Masking: 通过掩码控制工具可用性，而非动态修改定义
+ * - 保持工具定义不变以优化 KV-Cache
+ *
+ * @see https://manus.im/blog/Context-Engineering-for-AI-Agents-Lessons-from-Building-Manus
  */
 
 const fs = require('fs').promises;
 const path = require('path');
 const ExtendedTools = require('./extended-tools');
+
+// 🔥 工具掩码系统
+const { getToolMaskingSystem, TASK_PHASE_STATE_MACHINE } = require('./tool-masking');
 const ExtendedTools2 = require('./extended-tools-2');
 const ExtendedTools3 = require('./extended-tools-3');
 const ExtendedTools4 = require('./extended-tools-4');
@@ -24,15 +33,56 @@ const DataScienceToolsHandler = require('./extended-tools-datascience');
 const ProjectToolsHandler = require('./extended-tools-project');
 
 class FunctionCaller {
-  constructor() {
+  constructor(options = {}) {
     // 注册的工具字典
     this.tools = new Map();
 
     // ToolManager引用（用于统计）
     this.toolManager = null;
 
+    // 🔥 工具掩码系统
+    this.toolMasking = null;
+    this.enableToolMasking = options.enableToolMasking !== false;
+
+    if (this.enableToolMasking) {
+      try {
+        this.toolMasking = getToolMaskingSystem({
+          logMaskChanges: options.logMaskChanges !== false,
+          defaultAvailable: true,
+        });
+        console.log('[FunctionCaller] 工具掩码系统已启用');
+      } catch (error) {
+        console.warn('[FunctionCaller] 工具掩码系统初始化失败:', error.message);
+        this.enableToolMasking = false;
+      }
+    }
+
     // 注册内置工具
     this.registerBuiltInTools();
+
+    // 🔥 同步工具到掩码系统
+    if (this.toolMasking) {
+      this._syncToolsToMaskingSystem();
+    }
+  }
+
+  /**
+   * 同步工具到掩码系统
+   * @private
+   */
+  _syncToolsToMaskingSystem() {
+    if (!this.toolMasking) return;
+
+    for (const [name, tool] of this.tools) {
+      this.toolMasking.registerTool({
+        name,
+        description: tool.schema?.description || '',
+        parameters: tool.schema?.parameters || {},
+        handler: tool.handler,
+      });
+    }
+
+    console.log(`[FunctionCaller] 已同步 ${this.tools.size} 个工具到掩码系统`);
   }
 
   /**
@@ -626,6 +676,16 @@ function initializeInteractions() {
       schema,
     });
 
+    // 🔥 同步到掩码系统
+    if (this.toolMasking) {
+      this.toolMasking.registerTool({
+        name,
+        description: schema?.description || '',
+        parameters: schema?.parameters || {},
+        handler,
+      });
+    }
+
     console.log(`[Function Caller] 注册工具: ${name}`);
   }
 
@@ -653,6 +713,16 @@ function initializeInteractions() {
     context = context || {};
 
     const startTime = Date.now();
+
+    // 🔥 工具掩码验证
+    if (this.toolMasking && this.enableToolMasking) {
+      const validation = this.toolMasking.validateCall(toolName);
+      if (!validation.allowed) {
+        console.warn(`[Function Caller] 工具调用被阻止: ${toolName} - ${validation.message}`);
+        throw new Error(validation.message);
+      }
+    }
+
     const tool = this.tools.get(toolName);
 
     if (!tool) {
@@ -708,6 +778,140 @@ function initializeInteractions() {
    */
   hasTool(name) {
     return this.tools.has(name);
+  }
+
+  // ==========================================
+  // 🔥 工具掩码控制 API
+  // ==========================================
+
+  /**
+   * 设置工具可用性
+   * @param {string} toolName - 工具名称
+   * @param {boolean} available - 是否可用
+   */
+  setToolAvailable(toolName, available) {
+    if (!this.toolMasking) return;
+    this.toolMasking.setToolAvailability(toolName, available);
+  }
+
+  /**
+   * 按前缀设置工具可用性
+   * @param {string} prefix - 工具前缀（如 file, git, html）
+   * @param {boolean} available - 是否可用
+   */
+  setToolsByPrefix(prefix, available) {
+    if (!this.toolMasking) return;
+    this.toolMasking.setToolsByPrefix(prefix, available);
+  }
+
+  /**
+   * 启用所有工具
+   */
+  enableAllTools() {
+    if (!this.toolMasking) return;
+    this.toolMasking.enableAll();
+  }
+
+  /**
+   * 禁用所有工具
+   */
+  disableAllTools() {
+    if (!this.toolMasking) return;
+    this.toolMasking.disableAll();
+  }
+
+  /**
+   * 只启用指定的工具
+   * @param {Array<string>} toolNames - 要启用的工具名称
+   */
+  setOnlyAvailable(toolNames) {
+    if (!this.toolMasking) return;
+    this.toolMasking.setOnlyAvailable(toolNames);
+  }
+
+  /**
+   * 检查工具是否可用（考虑掩码）
+   * @param {string} toolName - 工具名称
+   * @returns {boolean}
+   */
+  isToolAvailable(toolName) {
+    if (!this.toolMasking) return this.tools.has(toolName);
+    return this.toolMasking.isToolAvailable(toolName);
+  }
+
+  /**
+   * 获取所有工具定义（用于 LLM 上下文，始终返回完整列表）
+   * @returns {Array} 工具定义
+   */
+  getAllToolDefinitions() {
+    if (!this.toolMasking) return this.getAvailableTools();
+    return this.toolMasking.getAllToolDefinitions();
+  }
+
+  /**
+   * 获取当前可用工具定义（用于验证）
+   * @returns {Array} 可用工具定义
+   */
+  getAvailableToolDefinitions() {
+    if (!this.toolMasking) return this.getAvailableTools();
+    return this.toolMasking.getAvailableToolDefinitions();
+  }
+
+  /**
+   * 配置任务阶段状态机
+   * @param {Object} config - 状态机配置（可选，默认使用预定义配置）
+   */
+  configureTaskPhases(config = null) {
+    if (!this.toolMasking) return;
+    this.toolMasking.configureStateMachine(config || TASK_PHASE_STATE_MACHINE);
+  }
+
+  /**
+   * 切换到指定阶段
+   * @param {string} phase - 阶段名称（planning, executing, validating, committing）
+   * @returns {boolean} 是否成功
+   */
+  transitionToPhase(phase) {
+    if (!this.toolMasking) return false;
+    return this.toolMasking.transitionTo(phase);
+  }
+
+  /**
+   * 获取当前阶段
+   * @returns {string|null}
+   */
+  getCurrentPhase() {
+    if (!this.toolMasking) return null;
+    return this.toolMasking.getCurrentState();
+  }
+
+  /**
+   * 获取工具分组信息
+   * @returns {Object} 分组信息
+   */
+  getToolGroups() {
+    if (!this.toolMasking) return {};
+    return this.toolMasking.getToolGroups();
+  }
+
+  /**
+   * 获取工具掩码统计
+   * @returns {Object} 统计数据
+   */
+  getMaskingStats() {
+    if (!this.toolMasking) return { enabled: false };
+    return {
+      enabled: true,
+      ...this.toolMasking.getStats(),
+    };
+  }
+
+  /**
+   * 重置工具掩码
+   */
+  resetMasking() {
+    if (!this.toolMasking) return;
+    this.toolMasking.reset();
   }
 }
 

@@ -2,6 +2,13 @@
  * LLM 服务管理器
  *
  * 统一管理不同的LLM服务提供商
+ *
+ * 🔥 Manus 优化集成 (2026-01-17):
+ * - Context Engineering: KV-Cache 友好的 Prompt 构建
+ * - Tool Masking: 通过掩码控制工具可用性
+ * - Task Tracking: 任务目标重述机制
+ *
+ * @see https://manus.im/blog/Context-Engineering-for-AI-Agents-Lessons-from-Building-Manus
  */
 
 const EventEmitter = require("events");
@@ -10,6 +17,9 @@ const { OpenAIClient, DeepSeekClient } = require("./openai-client");
 const { AnthropicClient } = require("./anthropic-client");
 const { getModelSelector, TaskTypes } = require("./volcengine-models");
 const { VolcengineToolsClient } = require("./volcengine-tools");
+
+// 🔥 Manus 优化模块
+const { getManusOptimizations } = require("./manus-optimizations");
 
 /**
  * LLM 提供商类型
@@ -76,6 +86,23 @@ class LLMManager extends EventEmitter {
 
     // 🔥 预算配置缓存（用于自动切换模型）
     this.budgetConfig = null;
+
+    // 🔥 Manus 优化（Context Engineering + Tool Masking）
+    this.manusOptimizations = null;
+    if (config.enableManusOptimizations !== false) {
+      try {
+        this.manusOptimizations = getManusOptimizations({
+          enableKVCacheOptimization: config.enableKVCacheOptimization !== false,
+          enableToolMasking: config.enableToolMasking !== false,
+          enableTaskTracking: config.enableTaskTracking !== false,
+          enableRecoverableCompression: config.enableRecoverableCompression !== false,
+          logMaskChanges: config.logMaskChanges !== false,
+        });
+        console.log("[LLMManager] Manus 优化已启用 (Context Engineering + Tool Masking)");
+      } catch (manusError) {
+        console.warn("[LLMManager] Manus 优化初始化失败:", manusError.message);
+      }
+    }
   }
 
   /**
@@ -1573,6 +1600,209 @@ LLMManager.prototype.generateSummaryFallback = function ({ content }) {
   const summary = textContent.substring(0, 200);
 
   return summary + (textContent.length > 200 ? "..." : "");
+};
+
+// ==========================================
+// 🔥 Manus 优化 API
+// ==========================================
+
+/**
+ * 构建优化后的 Prompt（KV-Cache 友好）
+ *
+ * @param {Object} options - 构建选项
+ * @param {string} options.systemPrompt - 系统提示词
+ * @param {Array} options.messages - 对话历史
+ * @param {Array} options.tools - 工具定义（可选）
+ * @returns {Object} 优化后的消息和元数据
+ */
+LLMManager.prototype.buildOptimizedPrompt = function (options) {
+  if (!this.manusOptimizations) {
+    // 不优化，返回基础消息
+    const messages = [];
+    if (options.systemPrompt) {
+      messages.push({ role: "system", content: options.systemPrompt });
+    }
+    if (options.messages) {
+      messages.push(...options.messages);
+    }
+    return { messages, metadata: { optimized: false } };
+  }
+
+  return this.manusOptimizations.buildOptimizedPrompt(options);
+};
+
+/**
+ * 使用优化后的 Prompt 进行对话
+ *
+ * @param {Array} messages - 消息数组
+ * @param {Object} options - 选项
+ * @param {string} options.systemPrompt - 系统提示词
+ * @param {Array} options.tools - 工具定义
+ * @returns {Promise<Object>} 对话结果
+ */
+LLMManager.prototype.chatWithOptimizedPrompt = async function (messages, options = {}) {
+  // 构建优化 Prompt
+  const optimized = this.buildOptimizedPrompt({
+    systemPrompt: options.systemPrompt,
+    messages,
+    tools: options.tools,
+  });
+
+  // 使用优化后的消息进行对话
+  const result = await this.chatWithMessages(optimized.messages, {
+    ...options,
+    skipCompression: true, // 已经优化过，跳过额外压缩
+  });
+
+  return {
+    ...result,
+    promptOptimization: optimized.metadata,
+  };
+};
+
+/**
+ * 开始任务追踪（Manus todo.md 机制）
+ *
+ * @param {Object} task - 任务信息
+ * @param {string} task.objective - 任务目标
+ * @param {Array} task.steps - 任务步骤
+ * @returns {Object} 任务信息
+ */
+LLMManager.prototype.startTask = function (task) {
+  if (!this.manusOptimizations) {
+    console.warn("[LLMManager] Manus 优化未启用，无法追踪任务");
+    return null;
+  }
+  return this.manusOptimizations.startTask(task);
+};
+
+/**
+ * 更新任务进度
+ *
+ * @param {number} stepIndex - 当前步骤索引
+ * @param {string} status - 状态
+ */
+LLMManager.prototype.updateTaskProgress = function (stepIndex, status) {
+  if (!this.manusOptimizations) return;
+  this.manusOptimizations.updateTaskProgress(stepIndex, status);
+};
+
+/**
+ * 完成当前步骤
+ */
+LLMManager.prototype.completeCurrentStep = function () {
+  if (!this.manusOptimizations) return;
+  this.manusOptimizations.completeCurrentStep();
+};
+
+/**
+ * 完成任务
+ */
+LLMManager.prototype.completeTask = function () {
+  if (!this.manusOptimizations) return;
+  this.manusOptimizations.completeTask();
+};
+
+/**
+ * 取消任务
+ */
+LLMManager.prototype.cancelTask = function () {
+  if (!this.manusOptimizations) return;
+  this.manusOptimizations.cancelTask();
+};
+
+/**
+ * 获取当前任务
+ * @returns {Object|null} 当前任务
+ */
+LLMManager.prototype.getCurrentTask = function () {
+  if (!this.manusOptimizations) return null;
+  return this.manusOptimizations.getCurrentTask();
+};
+
+/**
+ * 记录错误（供模型学习）
+ * @param {Object} error - 错误信息
+ */
+LLMManager.prototype.recordError = function (error) {
+  if (!this.manusOptimizations) return;
+  this.manusOptimizations.recordError(error);
+};
+
+/**
+ * 设置工具可用性
+ * @param {string} toolName - 工具名称
+ * @param {boolean} available - 是否可用
+ */
+LLMManager.prototype.setToolAvailable = function (toolName, available) {
+  if (!this.manusOptimizations) return;
+  this.manusOptimizations.setToolAvailable(toolName, available);
+};
+
+/**
+ * 按前缀设置工具可用性
+ * @param {string} prefix - 工具前缀
+ * @param {boolean} available - 是否可用
+ */
+LLMManager.prototype.setToolsByPrefix = function (prefix, available) {
+  if (!this.manusOptimizations) return;
+  this.manusOptimizations.setToolsByPrefix(prefix, available);
+};
+
+/**
+ * 验证工具调用
+ * @param {string} toolName - 工具名称
+ * @returns {Object} 验证结果
+ */
+LLMManager.prototype.validateToolCall = function (toolName) {
+  if (!this.manusOptimizations) {
+    return { allowed: true };
+  }
+  return this.manusOptimizations.validateToolCall(toolName);
+};
+
+/**
+ * 配置任务阶段状态机
+ * @param {Object} config - 状态机配置（可选）
+ */
+LLMManager.prototype.configureTaskPhases = function (config) {
+  if (!this.manusOptimizations) return;
+  this.manusOptimizations.configureTaskPhases(config);
+};
+
+/**
+ * 切换到指定阶段
+ * @param {string} phase - 阶段名称
+ * @returns {boolean} 是否成功
+ */
+LLMManager.prototype.transitionToPhase = function (phase) {
+  if (!this.manusOptimizations) return false;
+  return this.manusOptimizations.transitionToPhase(phase);
+};
+
+/**
+ * 获取 Manus 优化统计
+ * @returns {Object} 统计数据
+ */
+LLMManager.prototype.getManusStats = function () {
+  if (!this.manusOptimizations) {
+    return { enabled: false };
+  }
+  return {
+    enabled: true,
+    ...this.manusOptimizations.getStats(),
+  };
+};
+
+/**
+ * 压缩内容（可恢复压缩）
+ * @param {any} content - 原始内容
+ * @param {string} type - 内容类型
+ * @returns {Object} 压缩后的引用
+ */
+LLMManager.prototype.compressContent = function (content, type) {
+  if (!this.manusOptimizations) return content;
+  return this.manusOptimizations.compress(content, type);
 };
 
 module.exports = {
