@@ -16,9 +16,12 @@ export default defineConfig({
       '**/node_modules/**',
       '**/dist/**',
       '**/*.jest.test.js',  // Exclude Jest test files
-      '**/blockchain/**',   // Exclude blockchain tests (use Mocha)
+      '**/blockchain/**',   // Exclude blockchain tests (use Mocha/Chai)
       '**/e2e/**',          // Exclude E2E tests (use Playwright)
       '**/performance/**',  // Exclude performance tests (run separately)
+      // Standalone script tests that use process.exit()
+      '**/speech-manager-integration.test.js',
+      '**/pkcs11-encryption.test.js',
     ],
     coverage: {
       provider: 'v8',
