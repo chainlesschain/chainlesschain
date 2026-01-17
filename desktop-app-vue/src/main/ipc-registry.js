@@ -110,6 +110,10 @@ function registerAllIPC(dependencies) {
     // 获取响应缓存（如果已初始化）
     const responseCache = app ? (app.responseCache || null) : null;
 
+    // 获取 MCP 相关依赖（如果已初始化）
+    const mcpClientManager = app ? (app.mcpManager || null) : null;
+    const mcpToolAdapter = app ? (app.mcpAdapter || null) : null;
+
     registerLLMIPC({
       llmManager: llmManager || null,
       mainWindow: mainWindow || null,
@@ -120,7 +124,9 @@ function registerAllIPC(dependencies) {
       promptCompressor,
       responseCache,
       database: database || null,
-      app: app || null
+      app: app || null,
+      mcpClientManager,
+      mcpToolAdapter,
     });
 
     if (!llmManager) {
