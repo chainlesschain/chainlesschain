@@ -6,11 +6,15 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { EventEmitter } from 'events';
 
-// vi.mock 会被提升到文件顶部，创建共享的 mock 状态
-const sharedMockState = {
-  handlers: new Map(),
-  windows: []
-};
+// 使用 vi.hoisted() 确保共享状态在 vi.mock 之前定义
+const { sharedMockState } = vi.hoisted(() => {
+  return {
+    sharedMockState: {
+      handlers: new Map(),
+      windows: []
+    }
+  };
+});
 
 vi.mock('electron', () => {
   return {
