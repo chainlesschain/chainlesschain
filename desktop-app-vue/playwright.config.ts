@@ -69,6 +69,8 @@ export default defineConfig({
     '**/browser-extension/**',
     // Tests with incorrect syntax or using other frameworks
     '**/project-workflow.test.ts',
+    // Signal protocol test uses Playwright syntax but tests Node.js modules (not browser E2E)
+    '**/signal-protocol-e2e.test.js',
   ],
 
   // 输出目录
