@@ -425,4 +425,4 @@ class MCPToolAdapter extends EventEmitter {
   }
 }
 
-module.exports = MCPToolAdapter;
+module.exports = { MCPToolAdapter };

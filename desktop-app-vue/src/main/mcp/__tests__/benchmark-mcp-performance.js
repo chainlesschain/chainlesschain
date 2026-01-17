@@ -5,7 +5,7 @@
  * Run with: node src/main/mcp/__tests__/benchmark-mcp-performance.js
  */
 
-const MCPClientManager = require('../mcp-client-manager');
+const { MCPClientManager } = require('../mcp-client-manager');
 const MCPPerformanceMonitor = require('../mcp-performance-monitor');
 const path = require('path');
 const fs = require('fs');

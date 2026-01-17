@@ -1540,7 +1540,10 @@ class ChainlessChainApp {
 
       // 🔥 注册 Multi-Agent IPC handlers (Agent 协调器和专用 Agent)
       try {
-        registerMultiAgentIPC();
+        registerMultiAgentIPC({
+          llmManager: this.llmManager,
+          functionCaller: this.functionCaller,
+        });
         console.log("[Main] Multi-Agent IPC handlers已注册 (Agent orchestrator + specialized agents)");
       } catch (error) {
         console.error("[Main] Multi-Agent IPC注册失败:", error);
