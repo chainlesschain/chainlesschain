@@ -4,31 +4,59 @@
     <template v-if="loading">
       <div class="metadata-section">
         <a-skeleton active :paragraph="{ rows: 0 }" />
-        <a-skeleton active :title="false" :paragraph="{ rows: 4, width: ['100%', '80%', '60%', '40%'] }" />
+        <a-skeleton
+          active
+          :title="false"
+          :paragraph="{ rows: 4, width: ['100%', '80%', '60%', '40%'] }"
+        />
       </div>
       <div class="tags-section">
-        <a-skeleton active :title="{ width: '80px' }" :paragraph="{ rows: 0 }" />
-        <div style="display: flex; gap: 8px; margin-top: 12px;">
+        <a-skeleton
+          active
+          :title="{ width: '80px' }"
+          :paragraph="{ rows: 0 }"
+        />
+        <div style="display: flex; gap: 8px; margin-top: 12px">
           <a-skeleton-button active size="small" style="width: 60px" />
           <a-skeleton-button active size="small" style="width: 80px" />
           <a-skeleton-button active size="small" style="width: 50px" />
         </div>
       </div>
       <div class="actions-section">
-        <div style="display: flex; gap: 8px;">
+        <div style="display: flex; gap: 8px">
           <a-skeleton-button active style="width: 100px" />
           <a-skeleton-button active style="width: 100px" />
           <a-skeleton-button active style="width: 80px" />
         </div>
       </div>
       <div class="messages-section">
-        <a-skeleton active :title="{ width: '100px' }" :paragraph="{ rows: 0 }" />
-        <div v-for="i in 3" :key="i" style="margin-top: 16px;">
-          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+        <a-skeleton
+          active
+          :title="{ width: '100px' }"
+          :paragraph="{ rows: 0 }"
+        />
+        <div v-for="i in 3" :key="i" style="margin-top: 16px">
+          <div
+            style="
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              margin-bottom: 8px;
+            "
+          >
             <a-skeleton-avatar active size="small" />
-            <a-skeleton active :title="false" :paragraph="{ rows: 1, width: '60px' }" style="margin: 0;" />
+            <a-skeleton
+              active
+              :title="false"
+              :paragraph="{ rows: 1, width: '60px' }"
+              style="margin: 0"
+            />
           </div>
-          <a-skeleton active :title="false" :paragraph="{ rows: 2, width: ['100%', '80%'] }" />
+          <a-skeleton
+            active
+            :title="false"
+            :paragraph="{ rows: 2, width: ['100%', '80%'] }"
+          />
         </div>
       </div>
     </template>
@@ -168,7 +196,11 @@
               <span class="time">{{ formatTime(msg.timestamp) }}</span>
             </div>
             <div class="message-content">
-              <template v-if="isMessageExpanded(index) || (msg.content || '').length <= 500">
+              <template
+                v-if="
+                  isMessageExpanded(index) || (msg.content || '').length <= 500
+                "
+              >
                 {{ msg.content }}
               </template>
               <template v-else>
@@ -181,7 +213,7 @@
                 class="expand-btn"
                 @click="toggleMessageExpand(index)"
               >
-                {{ isMessageExpanded(index) ? '收起' : '展开全部' }}
+                {{ isMessageExpanded(index) ? "收起" : "展开全部" }}
                 <DownOutlined v-if="!isMessageExpanded(index)" />
                 <UpOutlined v-else />
               </a-button>
@@ -493,6 +525,19 @@ const truncateContent = (content, maxLength) => {
         color: #262626;
         white-space: pre-wrap;
         word-break: break-word;
+
+        .expand-btn {
+          display: block;
+          margin-top: 8px;
+          padding: 0;
+          height: auto;
+          font-size: 12px;
+          color: #1890ff;
+
+          &:hover {
+            color: #40a9ff;
+          }
+        }
       }
     }
   }

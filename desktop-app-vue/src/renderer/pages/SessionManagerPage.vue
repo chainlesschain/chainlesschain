@@ -150,9 +150,14 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import { message, Modal } from "ant-design-vue";
 import { HistoryOutlined } from "@ant-design/icons-vue";
 import { useSessionStore } from "../stores/session";
+
+// Router for URL state preservation
+const route = useRoute();
+const router = useRouter();
 
 // 子组件
 import SessionStats from "../components/session/SessionStats.vue";
@@ -202,14 +207,78 @@ const loadingDetail = computed(() => store.loadingDetail);
 const loadingTemplates = computed(() => store.loadingTemplates);
 const loadingStats = computed(() => store.loadingStats);
 
+/**
+ * 从 URL 查询参数初始化筛选条件
+ */
+const initFiltersFromURL = () => {
+  const { q, tags, sortBy, sortOrder, tab } = route.query;
+
+  if (q) {
+    store.setFilters({ searchQuery: q });
+  }
+  if (tags) {
+    const tagArray = typeof tags === "string" ? tags.split(",") : tags;
+    store.setFilters({ selectedTags: tagArray });
+  }
+  if (sortBy) {
+    store.setFilters({ sortBy });
+  }
+  if (sortOrder) {
+    store.setFilters({ sortOrder });
+  }
+  if (tab && (tab === "sessions" || tab === "templates")) {
+    activeTab.value = tab;
+  }
+};
+
+/**
+ * 更新 URL 查询参数以保存筛选状态
+ */
+const updateURLWithFilters = () => {
+  const query = {};
+
+  if (filters.value.searchQuery) {
+    query.q = filters.value.searchQuery;
+  }
+  if (filters.value.selectedTags?.length > 0) {
+    query.tags = filters.value.selectedTags.join(",");
+  }
+  if (filters.value.sortBy && filters.value.sortBy !== "updated_at") {
+    query.sortBy = filters.value.sortBy;
+  }
+  if (filters.value.sortOrder && filters.value.sortOrder !== "desc") {
+    query.sortOrder = filters.value.sortOrder;
+  }
+  if (activeTab.value !== "sessions") {
+    query.tab = activeTab.value;
+  }
+
+  // 使用 replace 避免产生过多历史记录
+  router.replace({ query }).catch(() => {});
+};
+
 // 初始化
 onMounted(async () => {
-  await Promise.all([
-    store.loadSessions(),
+  // 先从 URL 初始化筛选条件
+  initFiltersFromURL();
+
+  // 加载数据
+  const loadPromises = [
     store.loadAllTags(),
     store.loadTemplates(),
     store.loadGlobalStats(),
-  ]);
+  ];
+
+  // 根据初始筛选条件加载会话
+  if (filters.value.searchQuery) {
+    loadPromises.push(store.searchSessions(filters.value.searchQuery));
+  } else if (filters.value.selectedTags?.length > 0) {
+    loadPromises.push(store.findByTags(filters.value.selectedTags));
+  } else {
+    loadPromises.push(store.loadSessions());
+  }
+
+  await Promise.all(loadPromises);
 });
 
 // 监听标签页切换
@@ -217,6 +286,7 @@ watch(activeTab, async (newTab) => {
   if (newTab === "templates") {
     await store.loadTemplates();
   }
+  updateURLWithFilters();
 });
 
 // ============================================================
@@ -274,6 +344,7 @@ const handleSearch = async (query) => {
     store.clearFilters();
     await store.loadSessions({ offset: 0 });
   }
+  updateURLWithFilters();
 };
 
 /**
@@ -286,6 +357,7 @@ const handleFilterTags = async (tags) => {
     store.clearFilters();
     await store.loadSessions({ offset: 0 });
   }
+  updateURLWithFilters();
 };
 
 /**
@@ -294,6 +366,7 @@ const handleFilterTags = async (tags) => {
 const handleClearFilters = async () => {
   store.clearFilters();
   await store.loadSessions({ offset: 0 });
+  updateURLWithFilters();
 };
 
 /**
@@ -302,6 +375,7 @@ const handleClearFilters = async () => {
 const handleSortChange = async (sortBy, sortOrder) => {
   store.setFilters({ sortBy, sortOrder });
   await store.loadSessions({ offset: 0, sortBy, sortOrder });
+  updateURLWithFilters();
 };
 
 // ============================================================

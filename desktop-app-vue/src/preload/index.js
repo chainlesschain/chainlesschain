@@ -2308,14 +2308,19 @@ contextBridge.exposeInMainWorld("electronAPI", {
     getCurrentTask: () => ipcRenderer.invoke("manus:get-current-task"),
 
     // 工具掩码控制
-    setToolAvailable: (data) => ipcRenderer.invoke("manus:set-tool-available", data),
-    setToolsByPrefix: (data) => ipcRenderer.invoke("manus:set-tools-by-prefix", data),
-    validateToolCall: (data) => ipcRenderer.invoke("manus:validate-tool-call", data),
+    setToolAvailable: (data) =>
+      ipcRenderer.invoke("manus:set-tool-available", data),
+    setToolsByPrefix: (data) =>
+      ipcRenderer.invoke("manus:set-tools-by-prefix", data),
+    validateToolCall: (data) =>
+      ipcRenderer.invoke("manus:validate-tool-call", data),
     getAvailableTools: () => ipcRenderer.invoke("manus:get-available-tools"),
 
     // 阶段状态机
-    configurePhases: (config) => ipcRenderer.invoke("manus:configure-phases", config),
-    transitionToPhase: (data) => ipcRenderer.invoke("manus:transition-to-phase", data),
+    configurePhases: (config) =>
+      ipcRenderer.invoke("manus:configure-phases", config),
+    transitionToPhase: (data) =>
+      ipcRenderer.invoke("manus:transition-to-phase", data),
     getCurrentPhase: () => ipcRenderer.invoke("manus:get-current-phase"),
 
     // 错误记录
@@ -2328,8 +2333,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
     exportDebugInfo: () => ipcRenderer.invoke("manus:export-debug-info"),
 
     // Prompt 优化
-    buildOptimizedPrompt: (options) => ipcRenderer.invoke("manus:build-optimized-prompt", options),
-    compressContent: (data) => ipcRenderer.invoke("manus:compress-content", data),
+    buildOptimizedPrompt: (options) =>
+      ipcRenderer.invoke("manus:build-optimized-prompt", options),
+    compressContent: (data) =>
+      ipcRenderer.invoke("manus:compress-content", data),
   },
 
   // ==========================================
@@ -2340,8 +2347,13 @@ contextBridge.exposeInMainWorld("electronAPI", {
     create: (plan) => ipcRenderer.invoke("task-tracker:create", plan),
     start: () => ipcRenderer.invoke("task-tracker:start"),
     updateProgress: (stepIndex, status, result) =>
-      ipcRenderer.invoke("task-tracker:update-progress", { stepIndex, status, result }),
-    completeStep: (result) => ipcRenderer.invoke("task-tracker:complete-step", result),
+      ipcRenderer.invoke("task-tracker:update-progress", {
+        stepIndex,
+        status,
+        result,
+      }),
+    completeStep: (result) =>
+      ipcRenderer.invoke("task-tracker:complete-step", result),
     complete: (result) => ipcRenderer.invoke("task-tracker:complete", result),
     cancel: (reason) => ipcRenderer.invoke("task-tracker:cancel", reason),
     recordError: (stepIndex, error) =>
@@ -2351,7 +2363,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
     getCurrent: () => ipcRenderer.invoke("task-tracker:get-current"),
     hasActive: () => ipcRenderer.invoke("task-tracker:has-active"),
     getTodoContext: () => ipcRenderer.invoke("task-tracker:get-todo-context"),
-    getPromptContext: () => ipcRenderer.invoke("task-tracker:get-prompt-context"),
+    getPromptContext: () =>
+      ipcRenderer.invoke("task-tracker:get-prompt-context"),
 
     // 中间结果
     saveResult: (stepIndex, result) =>
@@ -2396,6 +2409,12 @@ contextBridge.exposeInMainWorld("electronAPI", {
     resetStats: () => ipcRenderer.invoke("agent:reset-stats"),
     exportDebug: () => ipcRenderer.invoke("agent:export-debug"),
   },
+
+  // ==========================================
+  // 通用 IPC invoke 方法
+  // 用于调用任意 IPC 通道（如 session:*, error:* 等）
+  // ==========================================
+  invoke: (channel, ...args) => ipcRenderer.invoke(channel, ...args),
 });
 
 // Also expose a direct electron object for components that use window.electron.ipcRenderer

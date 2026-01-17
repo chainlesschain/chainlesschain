@@ -23,7 +23,7 @@
       </a-card>
     </a-col>
     <a-col :xs="12" :sm="12" :md="6" :lg="6">
-      <a-card class="stat-card" hoverable>
+      <a-card class="stat-card tokens-saved" hoverable>
         <a-skeleton :loading="loading" active :paragraph="{ rows: 1 }">
           <a-statistic
             title="节省 Tokens"
@@ -32,6 +32,22 @@
             :formatter="formatNumber"
             :value-style="{ color: '#52c41a' }"
           />
+          <div
+            v-if="stats.totalTokensSaved > 0 && stats.totalSessions > 0"
+            class="stat-extra"
+          >
+            <a-tooltip title="平均每个会话节省的 Token 数量">
+              <span class="avg-saved">
+                <CompressOutlined />
+                平均
+                {{
+                  formatNumber(
+                    Math.round(stats.totalTokensSaved / stats.totalSessions),
+                  )
+                }}/会话
+              </span>
+            </a-tooltip>
+          </div>
         </a-skeleton>
       </a-card>
     </a-col>
@@ -56,6 +72,7 @@ import {
   CommentOutlined,
   ThunderboltOutlined,
   TagsOutlined,
+  CompressOutlined,
 } from "@ant-design/icons-vue";
 
 defineProps({
@@ -96,6 +113,23 @@ const formatNumber = (value) => {
     &:hover {
       transform: translateY(-2px);
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    &.tokens-saved {
+      .stat-extra {
+        margin-top: 8px;
+        padding-top: 8px;
+        border-top: 1px dashed #e8e8e8;
+
+        .avg-saved {
+          font-size: 12px;
+          color: #52c41a;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          cursor: help;
+        }
+      }
     }
   }
 }
