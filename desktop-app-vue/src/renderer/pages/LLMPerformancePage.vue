@@ -695,9 +695,7 @@
               v-if="!tokenDistributionData.length && !loading"
               class="empty-state-container-small"
             >
-              <a-empty
-                :image="Empty.PRESENTED_IMAGE_SIMPLE"
-              >
+              <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE">
                 <template #description>
                   <span class="empty-hint">尚无 Token 分布数据</span>
                 </template>
@@ -733,9 +731,7 @@
               v-if="!periodComparisonData.current.length && !loading"
               class="empty-state-container-small"
             >
-              <a-empty
-                :image="Empty.PRESENTED_IMAGE_SIMPLE"
-              >
+              <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE">
                 <template #description>
                   <span class="empty-hint">需要更多数据进行周期对比</span>
                 </template>
@@ -764,9 +760,7 @@
               v-if="costBreakdown.byProvider.length === 0 && !loading"
               class="empty-state-container-small"
             >
-              <a-empty
-                :image="Empty.PRESENTED_IMAGE_SIMPLE"
-              >
+              <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE">
                 <template #description>
                   <span class="empty-hint">尚无提供商成本数据</span>
                 </template>
@@ -787,10 +781,16 @@
               ref="modelCostChart"
               class="chart-container-small"
             ></div>
-            <a-empty
+            <div
               v-if="costBreakdown.byModel.length === 0 && !loading"
-              description="暂无数据"
-            />
+              class="empty-state-container-small"
+            >
+              <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE">
+                <template #description>
+                  <span class="empty-hint">尚无模型成本数据</span>
+                </template>
+              </a-empty>
+            </div>
           </a-card>
         </a-col>
       </a-row>
@@ -2519,6 +2519,33 @@ onUnmounted(() => {
       .chart-skeleton {
         padding: 40px 20px;
       }
+
+      .empty-state-container {
+        padding: 60px 20px;
+        text-align: center;
+      }
+
+      .empty-state-container-small {
+        padding: 40px 20px;
+        text-align: center;
+      }
+
+      .empty-description {
+        p {
+          margin: 0;
+          color: #8c8c8c;
+          font-size: 14px;
+
+          &:first-child {
+            margin-bottom: 4px;
+          }
+        }
+      }
+
+      .empty-hint {
+        color: #bfbfbf;
+        font-size: 13px;
+      }
     }
 
     .details-card {
@@ -2548,6 +2575,53 @@ onUnmounted(() => {
 
     .prediction-card .prediction-item .prediction-value {
       font-size: 22px;
+    }
+
+    .welcome-card {
+      .welcome-content {
+        .welcome-header {
+          flex-direction: column;
+          text-align: center;
+
+          .welcome-icon {
+            align-self: center;
+          }
+
+          .dismiss-btn {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+          }
+        }
+
+        .welcome-features {
+          grid-template-columns: 1fr;
+
+          .feature-item {
+            flex-direction: column;
+            text-align: center;
+
+            .feature-icon {
+              align-self: center;
+            }
+          }
+        }
+
+        .welcome-actions {
+          .action-text {
+            flex-direction: column;
+            text-align: center;
+          }
+
+          .action-buttons {
+            flex-direction: column;
+
+            button {
+              width: 100%;
+            }
+          }
+        }
+      }
     }
   }
 }
