@@ -76,9 +76,9 @@
 
     <!-- 知识列表 -->
     <view class="list-container">
-      <view class="loading" v-if="loading">
-        <text>加载中...</text>
-      </view>
+      <!-- 骨架屏加载状态 -->
+      <Skeleton v-if="loading" type="list" :rows="5" :avatar="false" :animate="true" />
+
 
       <view class="empty" v-else-if="items.length === 0">
         <text class="empty-icon">📝</text>
@@ -240,10 +240,12 @@
 import { db } from '@/services/database'
 import knowledgeRAG from '@/services/knowledge-rag'
 import FolderSelector from '@/components/FolderSelector.vue'
+import Skeleton from '@/components/Skeleton.vue'
 
 export default {
   components: {
-    FolderSelector
+    FolderSelector,
+    Skeleton
   },
   data() {
     return {
