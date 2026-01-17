@@ -32,20 +32,31 @@ export async function launchElectronApp(): Promise<ElectronTestContext> {
       userDataPath = path.join(os.homedir(), '.config', 'chainlesschain');
   }
 
-  // 启动Electron（增加超时时间，指定 userData 路径）
+  // 启动Electron（增加超时时间，指定 userData 路径，添加测试环境参数）
   const app = await electron.launch({
-    args: [mainPath, `--user-data-dir=${userDataPath}`],
+    args: [
+      mainPath,
+      `--user-data-dir=${userDataPath}`,
+      // 测试环境下禁用 GPU 加速以避免 GPU 进程崩溃
+      '--disable-gpu',
+      '--disable-gpu-compositing',
+      // 在 CI 环境或无头模式下需要禁用沙箱
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      // 禁用硬件加速
+      '--disable-software-rasterizer',
+    ],
     env: {
       ...process.env,
       NODE_ENV: 'test',
       ELECTRON_DISABLE_SECURITY_WARNINGS: 'true',
     },
-    timeout: 60000, // 60秒启动超时
+    timeout: 120000, // 120秒启动超时（应用初始化需要较长时间）
   });
 
-  // 等待并获取第一个窗口（增加超时）
+  // 等待并获取第一个窗口（增加超时以适应较慢的初始化）
   const window = await app.firstWindow({
-    timeout: 30000, // 30秒窗口创建超时
+    timeout: 90000, // 90秒窗口创建超时
   });
 
   // 等待加载完成
@@ -82,7 +93,10 @@ export async function closeElectronApp(app: ElectronApplication): Promise<void> 
 /**
  * 调用IPC API
  * 使用electronAPI暴露的接口调用IPC
- * IPC通道格式如 'project:get-all' 会被转换为 electronAPI的方法调用
+ *
+ * 支持两种格式：
+ * - 点分格式：'system.getSystemInfo' -> electronAPI.system.getSystemInfo()
+ * - 冒号格式：'system:get-system-info' -> 转换为 electronAPI.system.getSystemInfo()
  */
 export async function callIPC<T>(
   window: Page,
@@ -91,18 +105,7 @@ export async function callIPC<T>(
 ): Promise<T> {
   return await window.evaluate(
     async ({ channel, args }) => {
-      // 通过window.electron对象调用IPC（如果可用）
-      if ((window as any).electron && (window as any).electron.ipcRenderer) {
-        return await (window as any).electron.ipcRenderer.invoke(channel, ...args);
-      }
-
-      // 或者通过preload暴露的API
-      if ((window as any).api && typeof (window as any).api.invoke === 'function') {
-        return await (window as any).api.invoke(channel, ...args);
-      }
-
-      // 最后尝试使用electronAPI对象（如果是嵌套路径格式）
-      // 例如：'project.getAll' -> electronAPI.project.getAll()
+      // 优先使用 electronAPI 对象（推荐方式）
       if ((window as any).electronAPI) {
         // 如果是IPC通道格式（如 'project:get-all'），转换为对象路径
         let apiPath = channel;
@@ -129,6 +132,17 @@ export async function callIPC<T>(
         }
 
         return await api(...args);
+      }
+
+      // 备用：通过 window.api.invoke 调用（如果可用）
+      if ((window as any).api && typeof (window as any).api.invoke === 'function') {
+        return await (window as any).api.invoke(channel, ...args);
+      }
+
+      // 最后备用：通过 window.electron.ipcRenderer 直接调用
+      // 注意：这种方式需要传入正确的 IPC 通道名（如 'system:get-system-info'）
+      if ((window as any).electron && (window as any).electron.ipcRenderer) {
+        return await (window as any).electron.ipcRenderer.invoke(channel, ...args);
       }
 
       throw new Error('No IPC interface found in window object');
