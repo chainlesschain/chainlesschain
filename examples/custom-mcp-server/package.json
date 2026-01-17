@@ -1,6 +1,6 @@
 {
   "name": "@chainlesschain/weather-mcp-server",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "示例MCP服务器 - 提供天气查询功能",
   "main": "build/index.js",
   "type": "module",

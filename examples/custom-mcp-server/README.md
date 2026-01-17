@@ -8,6 +8,8 @@
 - ✅ **当前天气查询** - 获取指定城市的实时天气
 - ✅ **天气预报** - 查看未来1-7天的天气预报
 - ✅ **空气质量** - 查询城市的AQI指数
+- ✅ **缓存统计** - 查看缓存命中率和统计信息
+- ✅ **缓存清理** - 按类型或城市清除缓存
 
 ### 资源 (Resources)
 - ✅ **城市列表** - 获取支持的城市列表
@@ -116,6 +118,7 @@ npm link @chainlesschain/weather-mcp-server
 
 - `city` (string, required) - 城市名称
 - `units` (string, optional) - 单位系统: `metric`(摄氏度) 或 `imperial`(华氏度)，默认`metric`
+- `skipCache` (boolean, optional) - 跳过缓存，强制获取最新数据，默认`false`
 
 **示例:**
 
@@ -137,6 +140,7 @@ npm link @chainlesschain/weather-mcp-server
 
 - `city` (string, required) - 城市名称
 - `days` (number, optional) - 预报天数 (1-7)，默认3
+- `skipCache` (boolean, optional) - 跳过缓存，强制获取最新数据，默认`false`
 
 **示例:**
 
@@ -157,6 +161,7 @@ npm link @chainlesschain/weather-mcp-server
 **参数:**
 
 - `city` (string, required) - 城市名称
+- `skipCache` (boolean, optional) - 跳过缓存，强制获取最新数据，默认`false`
 
 **示例:**
 
@@ -165,6 +170,57 @@ npm link @chainlesschain/weather-mcp-server
   "name": "weather_air_quality",
   "arguments": {
     "city": "广州"
+  }
+}
+```
+
+### 4. weather_cache_stats
+
+获取天气数据缓存统计信息。
+
+**参数:** 无
+
+**示例:**
+
+```json
+{
+  "name": "weather_cache_stats",
+  "arguments": {}
+}
+```
+
+**返回示例:**
+
+```
+📊 **缓存统计**
+
+命中次数: 15
+未命中次数: 5
+命中率: 75.0%
+缓存键数量: 8
+
+**缓存键列表:**
+- current:city=北京&units=metric
+- forecast:city=上海&days=3
+```
+
+### 5. weather_cache_clear
+
+清除天气数据缓存。
+
+**参数:**
+
+- `type` (string, optional) - 缓存类型: `current`, `forecast`, `airQuality`, `all`，默认`all`
+- `city` (string, optional) - 要清除的城市名称，不指定则清除该类型所有缓存
+
+**示例:**
+
+```json
+{
+  "name": "weather_cache_clear",
+  "arguments": {
+    "type": "current",
+    "city": "北京"
   }
 }
 ```
@@ -248,10 +304,18 @@ npm link @chainlesschain/weather-mcp-server
 
 服务器支持以下环境变量：
 
+### 基本配置
 - `WEATHER_API_KEY` - 天气API密钥（可选，示例使用模拟数据）
 - `WEATHER_TIMEOUT` - API调用超时时间（毫秒），默认30000
 - `LOG_LEVEL` - 日志级别: `debug`, `info`, `warn`, `error`，默认`info`
 - `LOG_PATH` - 日志文件路径，默认`.logs/weather-mcp-server.log`
+
+### 缓存配置
+- `CACHE_ENABLED` - 是否启用缓存，默认`true`（设为`false`禁用）
+- `CACHE_DEFAULT_TTL` - 默认缓存时间（秒），默认`600`（10分钟）
+- `CACHE_CURRENT_TTL` - 当前天气缓存时间（秒），默认`300`（5分钟）
+- `CACHE_FORECAST_TTL` - 天气预报缓存时间（秒），默认`1800`（30分钟）
+- `CACHE_AIR_QUALITY_TTL` - 空气质量缓存时间（秒），默认`600`（10分钟）
 
 ## 📁 项目结构
 
@@ -265,10 +329,13 @@ custom-mcp-server/
 │   ├── prompts/
 │   │   └── weather-prompts.ts # 提示词模板
 │   ├── utils/
+│   │   ├── cache.ts          # 缓存工具
 │   │   ├── logger.ts         # 日志工具
 │   │   └── validation.ts     # 参数验证工具
 │   └── __tests__/
 │       ├── weather.test.ts   # 天气工具测试
+│       ├── cache.test.ts     # 缓存测试
+│       ├── prompts.test.ts   # 提示词测试
 │       └── config.test.ts    # 配置测试
 ├── build/                    # 编译输出（自动生成）
 ├── .eslintrc.json           # ESLint配置
@@ -319,23 +386,34 @@ async function fetchRealWeather(city: string, apiKey: string) {
 
 ### 添加缓存
 
-```bash
-npm install node-cache
-```
+本服务器已内置智能缓存系统，支持：
+
+- **类型特定TTL** - 不同类型数据有不同的缓存时间
+- **缓存统计** - 跟踪命中率和性能
+- **按需刷新** - 使用 `skipCache: true` 强制获取最新数据
+- **选择性清理** - 按类型或城市清除缓存
 
 ```typescript
-import NodeCache from "node-cache";
+import { getCache } from "../utils/cache.js";
 
-const cache = new NodeCache({ stdTTL: 600 }); // 10分钟缓存
+const cache = getCache();
 
-async function getCachedWeather(city: string) {
-  const cached = cache.get(city);
-  if (cached) return cached;
+// 生成缓存键
+const key = cache.generateKey("current", { city: "北京", units: "metric" });
 
-  const data = await fetchRealWeather(city);
-  cache.set(city, data);
-  return data;
+// 尝试从缓存获取
+const cached = cache.get(key);
+if (cached) {
+  return { data: cached, fromCache: true };
 }
+
+// 获取新数据并缓存
+const data = await fetchWeather(city);
+cache.set(key, data, "current"); // 使用 current 类型的 TTL
+
+// 查看统计
+const stats = cache.getStats();
+console.log(`命中率: ${(stats.hitRate * 100).toFixed(1)}%`);
 ```
 
 ## 📄 许可证
