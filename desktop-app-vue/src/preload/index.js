@@ -2333,31 +2333,68 @@ contextBridge.exposeInMainWorld("electronAPI", {
   },
 
   // ==========================================
-  // Task Tracker API (todo.md 机制)
+  // TaskTracker API (todo.md 机制)
   // ==========================================
   taskTracker: {
-    createTask: (task) => ipcRenderer.invoke("task-tracker:create", task),
-    startTask: () => ipcRenderer.invoke("task-tracker:start"),
-    updateProgress: (stepIndex, status) => ipcRenderer.invoke("task-tracker:update-progress", { stepIndex, status }),
+    // 任务生命周期
+    create: (plan) => ipcRenderer.invoke("task-tracker:create", plan),
+    start: () => ipcRenderer.invoke("task-tracker:start"),
+    updateProgress: (stepIndex, status, result) =>
+      ipcRenderer.invoke("task-tracker:update-progress", { stepIndex, status, result }),
     completeStep: (result) => ipcRenderer.invoke("task-tracker:complete-step", result),
-    completeTask: (result) => ipcRenderer.invoke("task-tracker:complete", result),
-    cancelTask: (reason) => ipcRenderer.invoke("task-tracker:cancel", reason),
+    complete: (result) => ipcRenderer.invoke("task-tracker:complete", result),
+    cancel: (reason) => ipcRenderer.invoke("task-tracker:cancel", reason),
+    recordError: (stepIndex, error) =>
+      ipcRenderer.invoke("task-tracker:record-error", { stepIndex, error }),
+
+    // 任务查询
+    getCurrent: () => ipcRenderer.invoke("task-tracker:get-current"),
+    hasActive: () => ipcRenderer.invoke("task-tracker:has-active"),
     getTodoContext: () => ipcRenderer.invoke("task-tracker:get-todo-context"),
+    getPromptContext: () => ipcRenderer.invoke("task-tracker:get-prompt-context"),
+
+    // 中间结果
+    saveResult: (stepIndex, result) =>
+      ipcRenderer.invoke("task-tracker:save-result", { stepIndex, result }),
+    loadResult: (stepIndex) =>
+      ipcRenderer.invoke("task-tracker:load-result", { stepIndex }),
+
+    // 任务恢复
     loadUnfinished: () => ipcRenderer.invoke("task-tracker:load-unfinished"),
-    getHistory: (limit) => ipcRenderer.invoke("task-tracker:get-history", limit),
+    getHistory: (limit = 10) =>
+      ipcRenderer.invoke("task-tracker:get-history", { limit }),
   },
 
   // ==========================================
-  // Multi-Agent API (Agent 协调器和专用 Agent)
+  // Multi-Agent API (多 Agent 协作系统)
   // ==========================================
   multiAgent: {
-    listAgents: () => ipcRenderer.invoke("agent:list"),
+    // Agent 管理
+    list: () => ipcRenderer.invoke("agent:list"),
+    get: (agentId) => ipcRenderer.invoke("agent:get", { agentId }),
+
+    // 任务执行
     dispatch: (task) => ipcRenderer.invoke("agent:dispatch", task),
-    executeParallel: (tasks) => ipcRenderer.invoke("agent:execute-parallel", tasks),
-    executeChain: (tasks) => ipcRenderer.invoke("agent:execute-chain", tasks),
-    getCapableAgents: (task) => ipcRenderer.invoke("agent:get-capable", task),
-    sendMessage: (data) => ipcRenderer.invoke("agent:send-message", data),
+    executeParallel: (tasks, options = {}) =>
+      ipcRenderer.invoke("agent:execute-parallel", { tasks, options }),
+    executeChain: (tasks) =>
+      ipcRenderer.invoke("agent:execute-chain", { tasks }),
+    getCapable: (task) => ipcRenderer.invoke("agent:get-capable", task),
+
+    // Agent 间通信
+    sendMessage: (fromAgent, toAgent, message) =>
+      ipcRenderer.invoke("agent:send-message", { fromAgent, toAgent, message }),
+    broadcast: (fromAgent, message) =>
+      ipcRenderer.invoke("agent:broadcast", { fromAgent, message }),
+    getMessages: (agentId = null, limit = 50) =>
+      ipcRenderer.invoke("agent:get-messages", { agentId, limit }),
+
+    // 统计和调试
     getStats: () => ipcRenderer.invoke("agent:get-stats"),
+    getHistory: (limit = 20) =>
+      ipcRenderer.invoke("agent:get-history", { limit }),
+    resetStats: () => ipcRenderer.invoke("agent:reset-stats"),
+    exportDebug: () => ipcRenderer.invoke("agent:export-debug"),
   },
 });
 

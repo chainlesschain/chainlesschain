@@ -305,4 +305,4 @@ class MCPConfigLoader extends EventEmitter {
   }
 }
 
-module.exports = MCPConfigLoader;
+module.exports = { MCPConfigLoader };

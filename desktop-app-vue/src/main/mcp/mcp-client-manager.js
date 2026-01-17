@@ -776,4 +776,4 @@ class MCPClientManager extends EventEmitter {
 // Export transport types for external use
 MCPClientManager.TRANSPORT_TYPES = TRANSPORT_TYPES;
 
-module.exports = MCPClientManager;
+module.exports = { MCPClientManager, TRANSPORT_TYPES };

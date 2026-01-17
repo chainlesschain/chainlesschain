@@ -5,10 +5,10 @@
  * This shows how to set up and use MCP in production.
  */
 
-const MCPClientManager = require('../mcp-client-manager');
-const MCPToolAdapter = require('../mcp-tool-adapter');
+const { MCPClientManager } = require('../mcp-client-manager');
+const { MCPToolAdapter } = require('../mcp-tool-adapter');
 const { MCPSecurityPolicy } = require('../mcp-security-policy');
-const MCPConfigLoader = require('../mcp-config-loader');
+const { MCPConfigLoader } = require('../mcp-config-loader');
 const MCPPerformanceMonitor = require('../mcp-performance-monitor');
 
 class MCPIntegrationExample {
