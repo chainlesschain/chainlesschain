@@ -113,6 +113,12 @@ const { registerSessionManagerIPC } = require("./llm/session-manager-ipc");
 // Manus Optimizations (Context Engineering + Tool Masking)
 const { registerManusIPC } = require("./llm/manus-ipc");
 
+// Task Tracker (todo.md mechanism for attention manipulation)
+const { registerTaskTrackerIPC } = require("./ai-engine/task-tracker-ipc");
+
+// Multi-Agent System (Agent orchestrator and specialized agents)
+const { registerMultiAgentIPC } = require("./ai-engine/multi-agent/multi-agent-ipc");
+
 // Error Monitor AI Diagnosis System
 const { registerErrorMonitorIPC } = require("./error-monitor-ipc");
 
@@ -1522,6 +1528,22 @@ class ChainlessChainApp {
         console.log("[Main] Manus 优化 IPC handlers已注册 (Context Engineering + Tool Masking)");
       } catch (error) {
         console.error("[Main] Manus 优化 IPC注册失败:", error);
+      }
+
+      // 🔥 注册 Task Tracker IPC handlers (todo.md 机制)
+      try {
+        registerTaskTrackerIPC();
+        console.log("[Main] Task Tracker IPC handlers已注册 (todo.md mechanism)");
+      } catch (error) {
+        console.error("[Main] Task Tracker IPC注册失败:", error);
+      }
+
+      // 🔥 注册 Multi-Agent IPC handlers (Agent 协调器和专用 Agent)
+      try {
+        registerMultiAgentIPC();
+        console.log("[Main] Multi-Agent IPC handlers已注册 (Agent orchestrator + specialized agents)");
+      } catch (error) {
+        console.error("[Main] Multi-Agent IPC注册失败:", error);
       }
 
       console.log("[Main] 技能和工具管理系统初始化完成（含桥接器）");
