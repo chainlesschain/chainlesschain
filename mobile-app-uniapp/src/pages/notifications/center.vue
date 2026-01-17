@@ -125,17 +125,17 @@
         </view>
       </view>
 
-      <!-- Empty State -->
-      <view v-if="filteredNotifications.length === 0 && !loading" class="empty-state">
-        <text class="empty-icon">🔔</text>
-        <text class="empty-text">暂无通知</text>
-        <text class="empty-hint">{{ getEmptyHint() }}</text>
-      </view>
+      <!-- Loading Skeleton -->
+      <Skeleton v-if="loading" type="list" :rows="5" :avatar="true" :animate="true" />
 
-      <!-- Loading -->
-      <view v-if="loading" class="loading-state">
-        <text class="loading-text">加载中...</text>
-      </view>
+      <!-- Empty State -->
+      <EmptyState
+        v-else-if="filteredNotifications.length === 0"
+        icon="🔔"
+        title="暂无通知"
+        :description="getEmptyHint()"
+        icon-style="default"
+      />
     </scroll-view>
 
     <!-- Do Not Disturb Banner -->
@@ -153,8 +153,14 @@
 import { useNotificationStore } from '@/stores/notification'
 import { useSettingsStore } from '@/stores/settings'
 import { storeToRefs } from 'pinia'
+import EmptyState from '@/components/EmptyState.vue'
+import Skeleton from '@/components/Skeleton.vue'
 
 export default {
+  components: {
+    EmptyState,
+    Skeleton
+  },
   data() {
     return {
       expandedId: null,
