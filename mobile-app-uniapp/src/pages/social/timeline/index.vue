@@ -16,17 +16,20 @@
       :refresher-triggered="refreshing"
       @refresherrefresh="onRefresh"
     >
-      <view v-if="loading" class="loading">
-        <text>加载中...</text>
-      </view>
+      <!-- Loading Skeleton -->
+      <Skeleton v-if="loading" type="feed" :rows="3" :avatar="true" :animate="true" />
 
-      <view v-else-if="posts.length === 0" class="empty">
-        <text class="empty-icon">📝</text>
-        <text class="empty-text">还没有动态</text>
-        <button class="create-post-btn" @click="goToCreate">
-          发布第一条动态
-        </button>
-      </view>
+      <!-- Empty State -->
+      <EmptyState
+        v-else-if="posts.length === 0"
+        icon="📝"
+        title="还没有动态"
+        description="发布你的第一条动态，与好友分享生活"
+        action-text="发布动态"
+        action-icon="✏️"
+        icon-style="info"
+        @action="goToCreate"
+      />
 
       <view v-else class="posts">
         <view
@@ -111,8 +114,14 @@
 import postsService from '@/services/posts'
 import websocketService from '@/services/websocket'
 import didService from '@/services/did'
+import EmptyState from '@/components/EmptyState.vue'
+import Skeleton from '@/components/Skeleton.vue'
 
 export default {
+  components: {
+    EmptyState,
+    Skeleton
+  },
   data() {
     return {
       posts: [],

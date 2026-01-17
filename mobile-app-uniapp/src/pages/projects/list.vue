@@ -36,11 +36,8 @@
         :refresher-triggered="isRefreshing"
         @refresherrefresh="onRefresh"
       >
-        <!-- 加载中 -->
-        <view v-if="isLoading && projects.length === 0" class="loading-container">
-          <view class="loading-spinner"></view>
-          <text class="loading-text">加载中...</text>
-        </view>
+        <!-- 加载骨架屏 -->
+        <Skeleton v-if="isLoading && projects.length === 0" type="card" :rows="3" :animate="true" />
 
         <!-- 项目列表 -->
         <view v-else-if="projects.length > 0" class="project-items">
@@ -113,13 +110,16 @@
         </view>
 
         <!-- 空状态 -->
-        <view v-else class="empty-state">
-          <view class="empty-icon">📁</view>
-          <text class="empty-title">暂无项目</text>
-          <text class="empty-subtitle">
-            {{ currentTab === 'all' ? '点击右下角按钮创建第一个项目' : '该分类下暂无项目' }}
-          </text>
-        </view>
+        <EmptyState
+          v-else
+          icon="📁"
+          title="暂无项目"
+          :description="currentTab === 'all' ? '点击右下角按钮创建第一个项目' : '该分类下暂无项目'"
+          :action-text="currentTab === 'all' ? '创建项目' : ''"
+          action-icon="➕"
+          icon-style="default"
+          @action="goToCreate"
+        />
       </scroll-view>
     </view>
 
@@ -133,8 +133,14 @@
 <script>
 import projectManager from '@/services/project-manager'
 import database from '@/services/database'
+import EmptyState from '@/components/EmptyState.vue'
+import Skeleton from '@/components/Skeleton.vue'
 
 export default {
+  components: {
+    EmptyState,
+    Skeleton
+  },
   data() {
     return {
       searchQuery: '',
