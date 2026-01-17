@@ -10,7 +10,7 @@ import { weatherTools, handleWeatherTool } from "../tools/weather.js";
 describe("Weather Tools", () => {
   describe("Tool Definitions", () => {
     it("should have correct number of tools", () => {
-      expect(weatherTools).toHaveLength(3);
+      expect(weatherTools).toHaveLength(5);
     });
 
     it("should define weather_current tool correctly", () => {
