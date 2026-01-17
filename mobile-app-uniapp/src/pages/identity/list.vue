@@ -6,8 +6,11 @@
       <text class="subtitle">去中心化身份管理</text>
     </view>
 
+    <!-- 加载骨架屏 -->
+    <Skeleton v-if="loading" type="list" :rows="3" :avatar="true" :animate="true" />
+
     <!-- 身份列表 -->
-    <view v-if="identities.length > 0" class="identity-list">
+    <view v-else-if="identities.length > 0" class="identity-list">
       <view
         v-for="identity in identities"
         :key="identity.did"
@@ -37,11 +40,16 @@
     </view>
 
     <!-- 空状态 -->
-    <view v-else class="empty-state">
-      <text class="empty-icon">🆔</text>
-      <text class="empty-text">暂无身份</text>
-      <text class="empty-hint">创建您的第一个去中心化身份</text>
-    </view>
+    <EmptyState
+      v-else
+      icon="🆔"
+      title="暂无身份"
+      description="创建您的第一个去中心化身份"
+      action-text="创建身份"
+      action-icon="+"
+      icon-style="info"
+      @action="createIdentity"
+    />
 
     <!-- 底部操作按钮 -->
     <view class="footer-actions">
@@ -115,11 +123,18 @@
 <script>
 import didService from '@/services/did.js'
 import { db as database } from '@/services/database.js'
+import EmptyState from '@/components/EmptyState.vue'
+import Skeleton from '@/components/Skeleton.vue'
 
 export default {
+  components: {
+    EmptyState,
+    Skeleton
+  },
   data() {
     return {
       identities: [],
+      loading: false,
       showDetailModal: false,
       selectedIdentity: null,
       pin: '123456' // 临时PIN码，实际应从用户输入获取
@@ -139,8 +154,8 @@ export default {
      * 加载身份列表
      */
     async loadIdentities() {
+      this.loading = true
       try {
-        uni.showLoading({ title: '加载中...' })
         this.identities = await database.getAllIdentities()
         console.log('✅ 加载身份列表:', this.identities)
       } catch (error) {
@@ -150,7 +165,7 @@ export default {
           icon: 'none'
         })
       } finally {
-        uni.hideLoading()
+        this.loading = false
       }
     },
 

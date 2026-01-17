@@ -14,17 +14,18 @@
       :refresher-triggered="refreshing"
       @refresherrefresh="onRefresh"
     >
-      <view v-if="loading" class="loading">
-        <text>加载中...</text>
-      </view>
+      <Skeleton v-if="loading" type="list" :rows="5" :avatar="true" :animate="true" />
 
-      <view v-else-if="groups.length === 0" class="empty">
-        <text class="empty-icon">👥</text>
-        <text class="empty-text">还没有群聊</text>
-        <button class="create-group-btn" @click="goToCreateGroup">
-          创建群聊
-        </button>
-      </view>
+      <EmptyState
+        v-else-if="groups.length === 0"
+        icon="👥"
+        title="还没有群聊"
+        description="创建一个群聊开始聊天吧"
+        action-text="创建群聊"
+        action-icon="➕"
+        icon-style="info"
+        @action="goToCreateGroup"
+      />
 
       <view v-else class="groups">
         <view
@@ -54,8 +55,14 @@
 
 <script>
 import groupChatService from '@/services/group-chat'
+import EmptyState from '@/components/EmptyState.vue'
+import Skeleton from '@/components/Skeleton.vue'
 
 export default {
+  components: {
+    EmptyState,
+    Skeleton
+  },
   data() {
     return {
       groups: [],
