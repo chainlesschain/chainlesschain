@@ -61,31 +61,39 @@
         </view>
       </view>
 
-      <view class="empty" v-if="messages.length === 0 && !loading && !configWarning">
-        <text class="empty-icon">💬</text>
-        <text class="empty-text">开始与 AI 对话吧</text>
-        <text class="empty-hint">试试问我任何问题</text>
-        <view class="suggestions">
-          <view class="suggestion-item" @click="useSuggestion('帮我总结一下知识库的内容')">
-            <text>📚 总结知识库</text>
+      <!-- 欢迎空状态 -->
+      <view class="welcome-state" v-if="messages.length === 0 && !loading && !configWarning">
+        <EmptyState
+          icon="💬"
+          title="开始与 AI 对话吧"
+          description="试试问我任何问题"
+          icon-style="info"
+        >
+          <view class="suggestions">
+            <view class="suggestion-item" @click="useSuggestion('帮我总结一下知识库的内容')">
+              <text>📚 总结知识库</text>
+            </view>
+            <view class="suggestion-item" @click="useSuggestion('帮我生成学习计划')">
+              <text>📝 生成计划</text>
+            </view>
+            <view class="suggestion-item" @click="useSuggestion('给我一些学习建议')">
+              <text>💡 学习建议</text>
+            </view>
           </view>
-          <view class="suggestion-item" @click="useSuggestion('帮我生成学习计划')">
-            <text>📝 生成计划</text>
-          </view>
-          <view class="suggestion-item" @click="useSuggestion('给我一些学习建议')">
-            <text>💡 学习建议</text>
-          </view>
-        </view>
+        </EmptyState>
       </view>
 
-      <view class="empty warning" v-if="configWarning">
-        <text class="empty-icon">⚠️</text>
-        <text class="empty-text">AI 服务未配置</text>
-        <text class="empty-hint">{{ configWarning }}</text>
-        <button class="config-btn" @click="goToSettings">
-          <text>去设置</text>
-        </button>
-      </view>
+      <!-- 配置警告状态 -->
+      <EmptyState
+        v-if="configWarning"
+        icon="⚠️"
+        title="AI 服务未配置"
+        :description="configWarning"
+        action-text="去设置"
+        action-icon="⚙️"
+        icon-style="warning"
+        @action="goToSettings"
+      />
     </scroll-view>
 
     <view class="input-container">
@@ -127,9 +135,13 @@
             <text class="conv-arrow">›</text>
           </view>
 
-          <view class="empty-conversations" v-if="conversations.length === 0">
-            <text>暂无对话历史</text>
-          </view>
+          <EmptyState
+            v-if="conversations.length === 0"
+            icon="📝"
+            title="暂无对话历史"
+            icon-style="default"
+            :compact="true"
+          />
         </view>
 
         <button class="modal-btn" @click="showConversations = false">
@@ -157,9 +169,14 @@
             </view>
           </view>
 
-          <view class="empty-knowledge" v-if="knowledgeItems.length === 0">
-            <text>暂无知识条目</text>
-          </view>
+          <EmptyState
+            v-if="knowledgeItems.length === 0"
+            icon="📚"
+            title="暂无知识条目"
+            description="添加知识后可在对话中引用"
+            icon-style="default"
+            :compact="true"
+          />
         </view>
 
         <button class="modal-btn" @click="showKnowledgeModal = false">
@@ -173,8 +190,14 @@
 <script>
 import { db } from '@/services/database'
 import { llm } from '@/services/llm'
+import EmptyState from '@/components/EmptyState.vue'
+import Skeleton from '@/components/Skeleton.vue'
 
 export default {
+  components: {
+    EmptyState,
+    Skeleton
+  },
   data() {
     return {
       conversationId: '',

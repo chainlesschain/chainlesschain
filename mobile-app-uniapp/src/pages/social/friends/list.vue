@@ -64,26 +64,29 @@
     >
       <!-- 好友列表 -->
       <view v-if="activeTab === 'friends'">
-        <view v-if="loading" class="loading">
-          <text class="loading-icon">⏳</text>
-          <text class="loading-text">加载中...</text>
-        </view>
+        <Skeleton v-if="loading" type="list" :rows="5" :avatar="true" :animate="true" />
 
-        <view v-else-if="loadError" class="error-state">
-          <text class="error-icon">⚠️</text>
-          <text class="error-text">{{ loadError }}</text>
-          <button class="retry-btn" @click="retryLoad">
-            重试
-          </button>
-        </view>
+        <EmptyState
+          v-else-if="loadError"
+          icon="⚠️"
+          title="加载失败"
+          :description="loadError"
+          action-text="重试"
+          action-icon="🔄"
+          icon-style="error"
+          @action="retryLoad"
+        />
 
-        <view v-else-if="filteredFriends.length === 0" class="empty">
-          <text class="empty-icon">👥</text>
-          <text class="empty-text">{{ searchQuery ? '未找到好友' : '还没有好友' }}</text>
-          <button class="add-btn" @click="goToAddFriend" v-if="!searchQuery">
-            添加好友
-          </button>
-        </view>
+        <EmptyState
+          v-else-if="filteredFriends.length === 0"
+          icon="👥"
+          :title="searchQuery ? '未找到好友' : '还没有好友'"
+          :description="searchQuery ? '换个关键词试试' : '快去添加第一个好友吧'"
+          :action-text="searchQuery ? '' : '添加好友'"
+          action-icon="➕"
+          icon-style="info"
+          @action="goToAddFriend"
+        />
 
         <view v-else class="friend-list">
           <view
@@ -109,23 +112,26 @@
 
       <!-- 好友请求 -->
       <view v-if="activeTab === 'requests'">
-        <view v-if="loading" class="loading">
-          <text class="loading-icon">⏳</text>
-          <text class="loading-text">加载中...</text>
-        </view>
+        <Skeleton v-if="loading" type="list" :rows="3" :avatar="true" :animate="true" />
 
-        <view v-else-if="loadError" class="error-state">
-          <text class="error-icon">⚠️</text>
-          <text class="error-text">{{ loadError }}</text>
-          <button class="retry-btn" @click="retryLoad">
-            重试
-          </button>
-        </view>
+        <EmptyState
+          v-else-if="loadError"
+          icon="⚠️"
+          title="加载失败"
+          :description="loadError"
+          action-text="重试"
+          action-icon="🔄"
+          icon-style="error"
+          @action="retryLoad"
+        />
 
-        <view v-else-if="pendingRequests.length === 0" class="empty">
-          <text class="empty-icon">📬</text>
-          <text class="empty-text">暂无好友请求</text>
-        </view>
+        <EmptyState
+          v-else-if="pendingRequests.length === 0"
+          icon="📬"
+          title="暂无好友请求"
+          description="当有人向你发送好友请求时会显示在这里"
+          icon-style="info"
+        />
 
         <view v-else class="request-list">
           <view
@@ -163,23 +169,26 @@
 
       <!-- 黑名单 -->
       <view v-if="activeTab === 'blocked'">
-        <view v-if="loading" class="loading">
-          <text class="loading-icon">⏳</text>
-          <text class="loading-text">加载中...</text>
-        </view>
+        <Skeleton v-if="loading" type="list" :rows="3" :avatar="true" :animate="true" />
 
-        <view v-else-if="loadError" class="error-state">
-          <text class="error-icon">⚠️</text>
-          <text class="error-text">{{ loadError }}</text>
-          <button class="retry-btn" @click="retryLoad">
-            重试
-          </button>
-        </view>
+        <EmptyState
+          v-else-if="loadError"
+          icon="⚠️"
+          title="加载失败"
+          :description="loadError"
+          action-text="重试"
+          action-icon="🔄"
+          icon-style="error"
+          @action="retryLoad"
+        />
 
-        <view v-else-if="blockedUsers.length === 0" class="empty">
-          <text class="empty-icon">🚫</text>
-          <text class="empty-text">黑名单为空</text>
-        </view>
+        <EmptyState
+          v-else-if="blockedUsers.length === 0"
+          icon="🚫"
+          title="黑名单为空"
+          description="这里会显示被你拉黑的用户"
+          icon-style="default"
+        />
 
         <view v-else class="blocked-list">
           <view
@@ -210,8 +219,16 @@
 
 <script>
 import friendService from '@/services/friends'
+import EmptyState from '@/components/EmptyState.vue'
+import LoadingState from '@/components/LoadingState.vue'
+import Skeleton from '@/components/Skeleton.vue'
 
 export default {
+  components: {
+    EmptyState,
+    LoadingState,
+    Skeleton
+  },
   data() {
     return {
       activeTab: 'friends', // friends, requests, blocked
