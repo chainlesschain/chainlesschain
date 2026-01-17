@@ -10,7 +10,10 @@
 
     <!-- 预算告警横幅 -->
     <transition name="slide-fade">
-      <div v-if="showBudgetAlert" :class="['budget-alert-banner', budgetAlertLevel]">
+      <div
+        v-if="showBudgetAlert"
+        :class="['budget-alert-banner', budgetAlertLevel]"
+      >
         <div class="alert-content">
           <component :is="budgetAlertIcon" class="alert-icon" />
           <div class="alert-text">
@@ -45,7 +48,11 @@
                 :prefix="h(ApiOutlined)"
               >
                 <template #suffix>
-                  <span v-if="periodComparison.callsChange !== 0" class="stat-change" :class="periodComparison.callsChange > 0 ? 'up' : 'down'">
+                  <span
+                    v-if="periodComparison.callsChange !== 0"
+                    class="stat-change"
+                    :class="periodComparison.callsChange > 0 ? 'up' : 'down'"
+                  >
                     <ArrowUpOutlined v-if="periodComparison.callsChange > 0" />
                     <ArrowDownOutlined v-else />
                     {{ Math.abs(periodComparison.callsChange).toFixed(1) }}%
@@ -69,7 +76,11 @@
                 :formatter="formatTokens"
               >
                 <template #suffix>
-                  <span v-if="periodComparison.tokensChange !== 0" class="stat-change" :class="periodComparison.tokensChange > 0 ? 'up' : 'down'">
+                  <span
+                    v-if="periodComparison.tokensChange !== 0"
+                    class="stat-change"
+                    :class="periodComparison.tokensChange > 0 ? 'up' : 'down'"
+                  >
                     <ArrowUpOutlined v-if="periodComparison.tokensChange > 0" />
                     <ArrowDownOutlined v-else />
                     {{ Math.abs(periodComparison.tokensChange).toFixed(1) }}%
@@ -96,7 +107,11 @@
                 }"
               >
                 <template #suffix>
-                  <span v-if="periodComparison.costChange !== 0" class="stat-change" :class="periodComparison.costChange > 0 ? 'up' : 'down'">
+                  <span
+                    v-if="periodComparison.costChange !== 0"
+                    class="stat-change"
+                    :class="periodComparison.costChange > 0 ? 'up' : 'down'"
+                  >
                     <ArrowUpOutlined v-if="periodComparison.costChange > 0" />
                     <ArrowDownOutlined v-else />
                     {{ Math.abs(periodComparison.costChange).toFixed(1) }}%
@@ -197,9 +212,7 @@
         title="成本优化建议"
       >
         <template #extra>
-          <a-tag color="blue">
-            <BulbOutlined /> 智能分析
-          </a-tag>
+          <a-tag color="blue"> <BulbOutlined /> 智能分析 </a-tag>
         </template>
         <a-list
           :data-source="costRecommendations"
@@ -210,7 +223,11 @@
             <a-list-item>
               <a-list-item-meta>
                 <template #avatar>
-                  <a-avatar :style="{ backgroundColor: getRecommendationColor(item.priority) }">
+                  <a-avatar
+                    :style="{
+                      backgroundColor: getRecommendationColor(item.priority),
+                    }"
+                  >
                     <template #icon>
                       <ThunderboltOutlined v-if="item.type === 'model'" />
                       <SettingOutlined v-else-if="item.type === 'cache'" />
@@ -244,20 +261,23 @@
         title="成本预测分析"
       >
         <template #extra>
-          <a-tag color="purple">
-            <LineChartOutlined /> AI 预测
-          </a-tag>
+          <a-tag color="purple"> <LineChartOutlined /> AI 预测 </a-tag>
         </template>
         <a-row :gutter="[16, 16]">
           <a-col :xs="24" :sm="12" :md="8">
             <div class="prediction-item">
               <div class="prediction-label">预计本月成本</div>
-              <div class="prediction-value" :class="{ warning: trendPrediction.monthlyPredicted > budget.monthlyLimit && budget.monthlyLimit > 0 }">
+              <div
+                class="prediction-value"
+                :class="{
+                  warning:
+                    trendPrediction.monthlyPredicted > budget.monthlyLimit &&
+                    budget.monthlyLimit > 0,
+                }"
+              >
                 ${{ trendPrediction.monthlyPredicted.toFixed(2) }}
               </div>
-              <div class="prediction-desc">
-                基于当前使用趋势
-              </div>
+              <div class="prediction-desc">基于当前使用趋势</div>
             </div>
           </a-col>
           <a-col :xs="24" :sm="12" :md="8">
@@ -267,18 +287,37 @@
                 ${{ trendPrediction.dailyAverage.toFixed(4) }}
               </div>
               <div class="prediction-desc">
-                过去 {{ timeRange === '7d' ? '7' : timeRange === '30d' ? '30' : '1' }} 天平均
+                过去
+                {{
+                  timeRange === "7d" ? "7" : timeRange === "30d" ? "30" : "1"
+                }}
+                天平均
               </div>
             </div>
           </a-col>
           <a-col :xs="24" :sm="24" :md="8">
             <div class="prediction-item">
               <div class="prediction-label">预算消耗天数</div>
-              <div class="prediction-value" :class="{ warning: trendPrediction.daysUntilBudget < 7 && trendPrediction.daysUntilBudget > 0 }">
-                {{ trendPrediction.daysUntilBudget > 0 ? trendPrediction.daysUntilBudget + ' 天' : '充足' }}
+              <div
+                class="prediction-value"
+                :class="{
+                  warning:
+                    trendPrediction.daysUntilBudget < 7 &&
+                    trendPrediction.daysUntilBudget > 0,
+                }"
+              >
+                {{
+                  trendPrediction.daysUntilBudget > 0
+                    ? trendPrediction.daysUntilBudget + " 天"
+                    : "充足"
+                }}
               </div>
               <div class="prediction-desc">
-                {{ trendPrediction.daysUntilBudget > 0 ? '预计月预算用尽时间' : '当前趋势下预算充足' }}
+                {{
+                  trendPrediction.daysUntilBudget > 0
+                    ? "预计月预算用尽时间"
+                    : "当前趋势下预算充足"
+                }}
               </div>
             </div>
           </a-col>
@@ -521,7 +560,10 @@
             <a-radio-button value="week">按周</a-radio-button>
           </a-radio-group>
         </div>
-        <div v-if="loading && timeSeriesData.length === 0" class="chart-skeleton">
+        <div
+          v-if="loading && timeSeriesData.length === 0"
+          class="chart-skeleton"
+        >
           <a-skeleton active :paragraph="{ rows: 8 }" />
         </div>
         <div v-else ref="tokenTrendChart" class="chart-container"></div>
@@ -540,10 +582,17 @@
                 <QuestionCircleOutlined style="color: #8c8c8c" />
               </a-tooltip>
             </template>
-            <div v-if="loading && !tokenDistributionData.length" class="chart-skeleton">
+            <div
+              v-if="loading && !tokenDistributionData.length"
+              class="chart-skeleton"
+            >
               <a-skeleton active :paragraph="{ rows: 6 }" />
             </div>
-            <div v-else ref="tokenDistributionChart" class="chart-container-small"></div>
+            <div
+              v-else
+              ref="tokenDistributionChart"
+              class="chart-container-small"
+            ></div>
             <a-empty
               v-if="!tokenDistributionData.length && !loading"
               description="暂无数据"
@@ -563,10 +612,17 @@
                 <a-select-option value="month">本月 vs 上月</a-select-option>
               </a-select>
             </template>
-            <div v-if="loading && !periodComparisonData.current.length" class="chart-skeleton">
+            <div
+              v-if="loading && !periodComparisonData.current.length"
+              class="chart-skeleton"
+            >
               <a-skeleton active :paragraph="{ rows: 6 }" />
             </div>
-            <div v-else ref="periodComparisonChart" class="chart-container-small"></div>
+            <div
+              v-else
+              ref="periodComparisonChart"
+              class="chart-container-small"
+            ></div>
             <a-empty
               v-if="!periodComparisonData.current.length && !loading"
               description="暂无数据"
@@ -579,10 +635,17 @@
       <a-row :gutter="[16, 16]">
         <a-col :xs="24" :sm="24" :md="12" :lg="12">
           <a-card title="按提供商成本分布" class="chart-card">
-            <div v-if="loading && !costBreakdown.byProvider.length" class="chart-skeleton">
+            <div
+              v-if="loading && !costBreakdown.byProvider.length"
+              class="chart-skeleton"
+            >
               <a-skeleton active :paragraph="{ rows: 6 }" />
             </div>
-            <div v-else ref="providerCostChart" class="chart-container-small"></div>
+            <div
+              v-else
+              ref="providerCostChart"
+              class="chart-container-small"
+            ></div>
             <a-empty
               v-if="costBreakdown.byProvider.length === 0 && !loading"
               description="暂无数据"
@@ -591,10 +654,17 @@
         </a-col>
         <a-col :xs="24" :sm="24" :md="12" :lg="12">
           <a-card title="按模型成本分布（Top 10）" class="chart-card">
-            <div v-if="loading && !costBreakdown.byModel.length" class="chart-skeleton">
+            <div
+              v-if="loading && !costBreakdown.byModel.length"
+              class="chart-skeleton"
+            >
               <a-skeleton active :paragraph="{ rows: 6 }" />
             </div>
-            <div v-else ref="modelCostChart" class="chart-container-small"></div>
+            <div
+              v-else
+              ref="modelCostChart"
+              class="chart-container-small"
+            ></div>
             <a-empty
               v-if="costBreakdown.byModel.length === 0 && !loading"
               description="暂无数据"
@@ -650,7 +720,15 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, h, nextTick, markRaw } from "vue";
+import {
+  ref,
+  computed,
+  onMounted,
+  onUnmounted,
+  h,
+  nextTick,
+  markRaw,
+} from "vue";
 import { message } from "ant-design-vue";
 import { useRouter } from "vue-router";
 import * as echarts from "echarts";
@@ -902,6 +980,398 @@ const getBudgetColor = (percent) => {
   return "#52c41a";
 };
 
+// 成本建议颜色
+const getRecommendationColor = (priority) => {
+  switch (priority) {
+    case "high":
+      return "#ff4d4f";
+    case "medium":
+      return "#faad14";
+    default:
+      return "#1890ff";
+  }
+};
+
+/**
+ * 生成成本优化建议
+ */
+const generateCostRecommendations = () => {
+  const recommendations = [];
+
+  // 基于缓存命中率的建议
+  if (stats.value.cacheHitRate < 30) {
+    recommendations.push({
+      type: "cache",
+      priority: "high",
+      title: "启用响应缓存",
+      description:
+        "当前缓存命中率较低，建议检查缓存配置并增加缓存策略覆盖范围。",
+      savingsPercent: 20,
+    });
+  }
+
+  // 基于模型使用的建议
+  if (costBreakdown.value.byModel.length > 0) {
+    const expensiveModels = costBreakdown.value.byModel.filter(
+      (m) => m.model.includes("gpt-4") || m.model.includes("claude-3-opus"),
+    );
+    if (
+      expensiveModels.length > 0 &&
+      expensiveModels.some((m) => m.cost_usd > 0.1)
+    ) {
+      recommendations.push({
+        type: "model",
+        priority: "medium",
+        title: "考虑使用更经济的模型",
+        description:
+          "对于简单任务，可以使用 GPT-3.5-turbo 或 Claude-3-Haiku 替代高成本模型。",
+        savingsPercent: 50,
+      });
+    }
+  }
+
+  // 基于压缩使用率的建议
+  if (stats.value.totalCalls > 0) {
+    const compressionRate =
+      stats.value.compressedCalls / stats.value.totalCalls;
+    if (compressionRate < 0.5) {
+      recommendations.push({
+        type: "compression",
+        priority: "low",
+        title: "增加 Prompt 压缩",
+        description:
+          "当前压缩调用比例较低，启用 PromptCompressor 可以减少约 30-40% Token 消耗。",
+        savingsPercent: 35,
+      });
+    }
+  }
+
+  // 基于本地模型的建议
+  const ollamaUsage = costBreakdown.value.byProvider.find(
+    (p) => p.provider === "ollama",
+  );
+  const totalCost = stats.value.totalCostUsd;
+  if (
+    totalCost > 1 &&
+    (!ollamaUsage || ollamaUsage.cost_usd / totalCost < 0.2)
+  ) {
+    recommendations.push({
+      type: "model",
+      priority: "medium",
+      title: "使用本地 Ollama 模型",
+      description:
+        "对于不需要最新知识的任务，使用本地 Ollama 模型可以实现零成本运行。",
+      savingsPercent: 80,
+    });
+  }
+
+  costRecommendations.value = recommendations;
+};
+
+/**
+ * 计算趋势预测
+ */
+const calculateTrendPrediction = () => {
+  if (timeSeriesData.value.length < 3) {
+    trendPrediction.value.enabled = false;
+    return;
+  }
+
+  // 简单线性回归计算日均成本
+  const costs = timeSeriesData.value.map((d) => d.costUsd || 0);
+  const dailyAvg = costs.reduce((a, b) => a + b, 0) / costs.length;
+
+  // 计算本月预测成本
+  const today = new Date();
+  const daysInMonth = new Date(
+    today.getFullYear(),
+    today.getMonth() + 1,
+    0,
+  ).getDate();
+  const monthlyPredicted = dailyAvg * daysInMonth;
+
+  // 计算预算消耗天数
+  let daysUntilBudget = 0;
+  if (budget.value.monthlyLimit > 0 && dailyAvg > 0) {
+    const remainingBudget =
+      budget.value.monthlyLimit - budget.value.monthlySpend;
+    daysUntilBudget = Math.floor(remainingBudget / dailyAvg);
+    if (daysUntilBudget < 0) daysUntilBudget = 0;
+  }
+
+  trendPrediction.value = {
+    enabled: true,
+    monthlyPredicted,
+    dailyAverage: dailyAvg,
+    daysUntilBudget,
+  };
+};
+
+/**
+ * 计算周期对比数据
+ */
+const calculatePeriodComparison = async () => {
+  try {
+    const now = Date.now();
+    let currentStart, currentEnd, previousStart, previousEnd;
+
+    if (comparisonPeriod.value === "week") {
+      // 本周 vs 上周
+      const dayOfWeek = new Date().getDay();
+      const weekStart = now - dayOfWeek * 24 * 60 * 60 * 1000;
+      currentStart = weekStart;
+      currentEnd = now;
+      previousStart = weekStart - 7 * 24 * 60 * 60 * 1000;
+      previousEnd = weekStart;
+    } else {
+      // 本月 vs 上月
+      const today = new Date();
+      const monthStart = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        1,
+      ).getTime();
+      currentStart = monthStart;
+      currentEnd = now;
+      const prevMonthStart = new Date(
+        today.getFullYear(),
+        today.getMonth() - 1,
+        1,
+      ).getTime();
+      previousStart = prevMonthStart;
+      previousEnd = monthStart;
+    }
+
+    // 获取当前周期数据
+    const currentStats = await window.electronAPI.invoke(
+      "llm:get-usage-stats",
+      {
+        startDate: currentStart,
+        endDate: currentEnd,
+      },
+    );
+
+    // 获取上一周期数据
+    const previousStats = await window.electronAPI.invoke(
+      "llm:get-usage-stats",
+      {
+        startDate: previousStart,
+        endDate: previousEnd,
+      },
+    );
+
+    // 计算变化百分比
+    if (previousStats && currentStats) {
+      periodComparison.value = {
+        callsChange:
+          previousStats.totalCalls > 0
+            ? ((currentStats.totalCalls - previousStats.totalCalls) /
+                previousStats.totalCalls) *
+              100
+            : 0,
+        tokensChange:
+          previousStats.totalTokens > 0
+            ? ((currentStats.totalTokens - previousStats.totalTokens) /
+                previousStats.totalTokens) *
+              100
+            : 0,
+        costChange:
+          previousStats.totalCostUsd > 0
+            ? ((currentStats.totalCostUsd - previousStats.totalCostUsd) /
+                previousStats.totalCostUsd) *
+              100
+            : 0,
+      };
+    }
+
+    // 获取时间序列数据用于对比图表
+    const currentSeries = await window.electronAPI.invoke(
+      "llm:get-time-series",
+      {
+        startDate: currentStart,
+        endDate: currentEnd,
+        interval: "day",
+      },
+    );
+
+    const previousSeries = await window.electronAPI.invoke(
+      "llm:get-time-series",
+      {
+        startDate: previousStart,
+        endDate: previousEnd,
+        interval: "day",
+      },
+    );
+
+    if (currentSeries && previousSeries) {
+      periodComparisonData.value = {
+        current: currentSeries.map((d) => d.costUsd || 0),
+        previous: previousSeries.map((d) => d.costUsd || 0),
+        labels: currentSeries.map((_, i) => `Day ${i + 1}`),
+      };
+      await nextTick();
+      renderPeriodComparisonChart();
+    }
+  } catch (error) {
+    console.warn("计算周期对比失败:", error);
+  }
+};
+
+/**
+ * 计算 Token 分布数据
+ */
+const calculateTokenDistribution = () => {
+  if (stats.value.totalInputTokens > 0 || stats.value.totalOutputTokens > 0) {
+    tokenDistributionData.value = [
+      { name: "输入 Tokens", value: stats.value.totalInputTokens || 0 },
+      { name: "输出 Tokens", value: stats.value.totalOutputTokens || 0 },
+    ];
+    nextTick(() => {
+      renderTokenDistributionChart();
+    });
+  }
+};
+
+/**
+ * 渲染 Token 分布图
+ */
+const renderTokenDistributionChart = () => {
+  if (!tokenDistributionChart.value || tokenDistributionData.value.length === 0)
+    return;
+
+  if (!tokenDistributionChartInstance) {
+    tokenDistributionChartInstance = echarts.init(tokenDistributionChart.value);
+  }
+
+  const total = tokenDistributionData.value.reduce((a, b) => a + b.value, 0);
+
+  const option = {
+    tooltip: {
+      trigger: "item",
+      formatter: (params) => {
+        const percent = ((params.value / total) * 100).toFixed(1);
+        return `${params.name}<br/>${formatNumber(params.value)} (${percent}%)`;
+      },
+    },
+    legend: {
+      orient: "horizontal",
+      bottom: 10,
+    },
+    series: [
+      {
+        name: "Token 分布",
+        type: "pie",
+        radius: ["40%", "70%"],
+        avoidLabelOverlap: false,
+        itemStyle: {
+          borderRadius: 10,
+          borderColor: "#fff",
+          borderWidth: 2,
+        },
+        label: {
+          show: true,
+          position: "center",
+          formatter: () => `${formatNumber(total)}\n总计`,
+          fontSize: 16,
+          fontWeight: "bold",
+        },
+        emphasis: {
+          label: {
+            show: true,
+            fontSize: 18,
+            fontWeight: "bold",
+          },
+        },
+        labelLine: {
+          show: false,
+        },
+        data: tokenDistributionData.value.map((item, index) => ({
+          ...item,
+          itemStyle: {
+            color: index === 0 ? "#1890ff" : "#52c41a",
+          },
+        })),
+      },
+    ],
+  };
+
+  tokenDistributionChartInstance.setOption(option);
+};
+
+/**
+ * 渲染周期对比图
+ */
+const renderPeriodComparisonChart = () => {
+  if (
+    !periodComparisonChart.value ||
+    periodComparisonData.value.current.length === 0
+  )
+    return;
+
+  if (!periodComparisonChartInstance) {
+    periodComparisonChartInstance = echarts.init(periodComparisonChart.value);
+  }
+
+  const periodLabel = comparisonPeriod.value === "week" ? "周" : "月";
+
+  const option = {
+    tooltip: {
+      trigger: "axis",
+      axisPointer: { type: "shadow" },
+      formatter: (params) => {
+        let result = params[0].axisValue + "<br/>";
+        params.forEach((param) => {
+          result += `${param.marker} ${param.seriesName}: $${param.value.toFixed(4)}<br/>`;
+        });
+        return result;
+      },
+    },
+    legend: {
+      data: [`本${periodLabel}`, `上${periodLabel}`],
+      bottom: 10,
+    },
+    grid: {
+      left: "3%",
+      right: "4%",
+      bottom: 50,
+      top: 30,
+      containLabel: true,
+    },
+    xAxis: {
+      type: "category",
+      data: periodComparisonData.value.labels,
+    },
+    yAxis: {
+      type: "value",
+      name: "成本 (USD)",
+      axisLabel: { formatter: (v) => "$" + v.toFixed(4) },
+    },
+    series: [
+      {
+        name: `本${periodLabel}`,
+        type: "bar",
+        data: periodComparisonData.value.current,
+        itemStyle: { color: "#1890ff" },
+      },
+      {
+        name: `上${periodLabel}`,
+        type: "bar",
+        data: periodComparisonData.value.previous,
+        itemStyle: { color: "#bfbfbf" },
+      },
+    ],
+  };
+
+  periodComparisonChartInstance.setOption(option);
+};
+
+/**
+ * 周期对比变化
+ */
+const handleComparisonPeriodChange = () => {
+  calculatePeriodComparison();
+};
+
 /**
  * 清理过期缓存
  */
@@ -1069,6 +1539,12 @@ const refreshData = async () => {
     } catch (e) {
       console.warn("获取预算配置失败:", e);
     }
+
+    // 计算新增分析数据
+    generateCostRecommendations();
+    calculateTrendPrediction();
+    calculateTokenDistribution();
+    calculatePeriodComparison();
 
     message.success("数据已刷新");
   } catch (error) {
@@ -1370,6 +1846,8 @@ const handleResize = debounce(() => {
   tokenTrendChartInstance?.resize();
   providerCostChartInstance?.resize();
   modelCostChartInstance?.resize();
+  tokenDistributionChartInstance?.resize();
+  periodComparisonChartInstance?.resize();
 }, 200);
 
 /**
@@ -1438,6 +1916,8 @@ onUnmounted(() => {
   tokenTrendChartInstance?.dispose();
   providerCostChartInstance?.dispose();
   modelCostChartInstance?.dispose();
+  tokenDistributionChartInstance?.dispose();
+  periodComparisonChartInstance?.dispose();
 });
 </script>
 
@@ -1467,11 +1947,124 @@ onUnmounted(() => {
     }
   }
 
+  // 预算告警横幅
+  .budget-alert-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    animation: pulse 2s infinite;
+
+    &.warning {
+      background: linear-gradient(90deg, #fff7e6 0%, #ffe7ba 100%);
+      border: 1px solid #ffc069;
+    }
+
+    &.critical {
+      background: linear-gradient(90deg, #fff1f0 0%, #ffccc7 100%);
+      border: 1px solid #ff7875;
+    }
+
+    .alert-content {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      .alert-icon {
+        font-size: 24px;
+      }
+
+      .alert-text {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+
+        strong {
+          font-size: 14px;
+          color: #262626;
+        }
+
+        span {
+          font-size: 13px;
+          color: #595959;
+        }
+      }
+    }
+
+    .alert-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    &.warning .alert-icon {
+      color: #faad14;
+    }
+
+    &.critical .alert-icon {
+      color: #ff4d4f;
+    }
+  }
+
+  @keyframes pulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.9;
+    }
+  }
+
+  // 滑动动画
+  .slide-fade-enter-active {
+    transition: all 0.3s ease-out;
+  }
+
+  .slide-fade-leave-active {
+    transition: all 0.2s ease-in;
+  }
+
+  .slide-fade-enter-from,
+  .slide-fade-leave-to {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+
   .page-content {
     .stats-row,
     .optimization-row,
     .cache-budget-row {
       margin-bottom: 16px;
+    }
+
+    // 统计卡片样式
+    .stat-card {
+      transition: all 0.3s ease;
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      }
+    }
+
+    // 统计变化指示器
+    .stat-change {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+      font-size: 12px;
+      font-weight: normal;
+      margin-left: 8px;
+
+      &.up {
+        color: #52c41a;
+      }
+
+      &.down {
+        color: #ff4d4f;
+      }
     }
 
     .sub-value {
@@ -1484,6 +2077,47 @@ onUnmounted(() => {
       font-size: 12px;
       color: #8c8c8c;
       margin-top: 4px;
+    }
+
+    // 成本优化建议卡片
+    .recommendations-card {
+      margin-bottom: 16px;
+      border-left: 4px solid #1890ff;
+    }
+
+    // 预测卡片
+    .prediction-card {
+      margin-bottom: 16px;
+      border-left: 4px solid #722ed1;
+
+      .prediction-item {
+        text-align: center;
+        padding: 16px;
+        background: #fafafa;
+        border-radius: 8px;
+
+        .prediction-label {
+          font-size: 13px;
+          color: #8c8c8c;
+          margin-bottom: 8px;
+        }
+
+        .prediction-value {
+          font-size: 28px;
+          font-weight: 600;
+          color: #262626;
+          margin-bottom: 4px;
+
+          &.warning {
+            color: #ff4d4f;
+          }
+        }
+
+        .prediction-desc {
+          font-size: 12px;
+          color: #bfbfbf;
+        }
+      }
     }
 
     .controls-card {
@@ -1545,10 +2179,39 @@ onUnmounted(() => {
         width: 100%;
         height: 350px;
       }
+
+      .chart-skeleton {
+        padding: 40px 20px;
+      }
     }
 
     .details-card {
       margin-bottom: 16px;
+    }
+  }
+}
+
+// 响应式布局
+@media (max-width: 768px) {
+  .llm-performance-page {
+    padding: 12px;
+
+    .page-header h1 {
+      font-size: 22px;
+    }
+
+    .budget-alert-banner {
+      flex-direction: column;
+      gap: 12px;
+      text-align: center;
+
+      .alert-content {
+        flex-direction: column;
+      }
+    }
+
+    .prediction-card .prediction-item .prediction-value {
+      font-size: 22px;
     }
   }
 }
