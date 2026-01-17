@@ -1,6 +1,6 @@
 # 技能工具系统 API 文档
 
-> 自动生成时间: 2026/1/17 22:52:31
+> 自动生成时间: 2026/1/17 23:08:10
 
 ## 概述
 
@@ -34,12 +34,11 @@
 
 统计数据清理器 - 定期清理过期数据和优化数据库
 
-
 ## 快速开始
 
 ```javascript
-const { SkillManager } = require('./skill-tool-system/skill-manager');
-const { ToolManager } = require('./skill-tool-system/tool-manager');
+const { SkillManager } = require("./skill-tool-system/skill-manager");
+const { ToolManager } = require("./skill-tool-system/tool-manager");
 
 // 初始化
 const skillManager = new SkillManager(database, toolManager);
@@ -50,27 +49,30 @@ await toolManager.initialize();
 
 // 注册技能
 const skill = await skillManager.registerSkill({
-  id: 'my_skill',
-  name: '我的技能',
-  category: 'custom',
-  description: '自定义技能描述'
+  id: "my_skill",
+  name: "我的技能",
+  category: "custom",
+  description: "自定义技能描述",
 });
 
 // 注册工具
-const tool = await toolManager.registerTool({
-  id: 'my_tool',
-  name: 'my_tool',
-  description: '我的工具',
-  parameters_schema: JSON.stringify({
-    type: 'object',
-    properties: {
-      input: { type: 'string' }
-    }
-  })
-}, async (params) => {
-  // 工具处理逻辑
-  return { result: 'success' };
-});
+const tool = await toolManager.registerTool(
+  {
+    id: "my_tool",
+    name: "my_tool",
+    description: "我的工具",
+    parameters_schema: JSON.stringify({
+      type: "object",
+      properties: {
+        input: { type: "string" },
+      },
+    }),
+  },
+  async (params) => {
+    // 工具处理逻辑
+    return { result: "success" };
+  },
+);
 
 // 关联技能和工具
 await skillManager.addToolToSkill(skill.id, tool.id);
@@ -127,7 +129,9 @@ await skillManager.addToolToSkill(skill.id, tool.id);
           {
             "name": "my_tool",
             "description": "我的工具",
-            "parameters": { /* schema */ },
+            "parameters": {
+              /* schema */
+            },
             "handler": "myToolHandler"
           }
         ],
