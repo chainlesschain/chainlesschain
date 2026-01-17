@@ -6,34 +6,48 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { EventEmitter } from 'events';
 
-// Mock Electron modules
-const mockIpcMain = {
+// vi.mock 会被提升到文件顶部，创建共享的 mock 状态
+const sharedMockState = {
   handlers: new Map(),
-  handle: vi.fn((channel, handler) => {
-    mockIpcMain.handlers.set(channel, handler);
-  }),
-  removeHandler: vi.fn((channel) => {
-    mockIpcMain.handlers.delete(channel);
-  })
+  windows: []
 };
 
-const mockBrowserWindow = {
-  getAllWindows: vi.fn(() => []),
-  _mockWindows: []
-};
-
-vi.mock('electron', () => ({
-  ipcMain: mockIpcMain,
-  BrowserWindow: mockBrowserWindow
-}));
+vi.mock('electron', () => {
+  return {
+    ipcMain: {
+      handlers: sharedMockState.handlers,
+      handle: vi.fn((channel, handler) => {
+        sharedMockState.handlers.set(channel, handler);
+      }),
+      removeHandler: vi.fn((channel) => {
+        sharedMockState.handlers.delete(channel);
+      })
+    },
+    BrowserWindow: {
+      getAllWindows: vi.fn(() => sharedMockState.windows),
+      _mockWindows: sharedMockState.windows
+    }
+  };
+});
 
 describe('InteractivePlanningIPC', () => {
   let InteractivePlanningIPC;
   let ipcHandler;
   let mockPlanner;
   let mockEvent;
+  let electronMock;
 
   beforeEach(async () => {
+    // 清除之前的 handlers
+    sharedMockState.handlers.clear();
+    sharedMockState.windows.length = 0;
+
+    // 获取 electron mock 模块
+    electronMock = await import('electron');
+
+    // 重置所有 mock
+    vi.clearAllMocks();
+
     // 动态导入 (在mock之后)
     const module = await import('../../src/main/ai-engine/interactive-planning-ipc.js');
     InteractivePlanningIPC = module.default || module;
@@ -53,37 +67,34 @@ describe('InteractivePlanningIPC', () => {
       }
     };
 
-    // 清除之前的handlers
-    mockIpcMain.handlers.clear();
-    vi.clearAllMocks();
-
     // 创建IPC处理器
     ipcHandler = new InteractivePlanningIPC(mockPlanner);
   });
 
   afterEach(() => {
-    mockIpcMain.handlers.clear();
+    sharedMockState.handlers.clear();
+    sharedMockState.windows.length = 0;
   });
 
   describe('IPC处理器注册', () => {
     it('应该注册所有必需的IPC处理器', () => {
-      expect(mockIpcMain.handle).toHaveBeenCalledWith(
+      expect(electronMock.ipcMain.handle).toHaveBeenCalledWith(
         'interactive-planning:start-session',
         expect.any(Function)
       );
-      expect(mockIpcMain.handle).toHaveBeenCalledWith(
+      expect(electronMock.ipcMain.handle).toHaveBeenCalledWith(
         'interactive-planning:respond',
         expect.any(Function)
       );
-      expect(mockIpcMain.handle).toHaveBeenCalledWith(
+      expect(electronMock.ipcMain.handle).toHaveBeenCalledWith(
         'interactive-planning:submit-feedback',
         expect.any(Function)
       );
-      expect(mockIpcMain.handle).toHaveBeenCalledWith(
+      expect(electronMock.ipcMain.handle).toHaveBeenCalledWith(
         'interactive-planning:get-session',
         expect.any(Function)
       );
-      expect(mockIpcMain.handle).toHaveBeenCalledWith(
+      expect(electronMock.ipcMain.handle).toHaveBeenCalledWith(
         'interactive-planning:cleanup',
         expect.any(Function)
       );
@@ -99,7 +110,7 @@ describe('InteractivePlanningIPC', () => {
 
       mockPlanner.startPlanSession.mockResolvedValue(mockResult);
 
-      const handler = mockIpcMain.handlers.get('interactive-planning:start-session');
+      const handler = sharedMockState.handlers.get('interactive-planning:start-session');
       const result = await handler(mockEvent, {
         userRequest: '创建一个PPT',
         projectContext: { type: 'document' }
@@ -121,7 +132,7 @@ describe('InteractivePlanningIPC', () => {
       const error = new Error('启动失败');
       mockPlanner.startPlanSession.mockRejectedValue(error);
 
-      const handler = mockIpcMain.handlers.get('interactive-planning:start-session');
+      const handler = sharedMockState.handlers.get('interactive-planning:start-session');
       const result = await handler(mockEvent, {
         userRequest: '测试',
         projectContext: {}
@@ -142,7 +153,7 @@ describe('InteractivePlanningIPC', () => {
 
       mockPlanner.handleUserResponse.mockResolvedValue(mockResult);
 
-      const handler = mockIpcMain.handlers.get('interactive-planning:respond');
+      const handler = sharedMockState.handlers.get('interactive-planning:respond');
       const result = await handler(mockEvent, {
         sessionId: 'session-123',
         userResponse: { action: 'confirm' }
@@ -167,7 +178,7 @@ describe('InteractivePlanningIPC', () => {
 
       mockPlanner.handleUserResponse.mockResolvedValue(mockResult);
 
-      const handler = mockIpcMain.handlers.get('interactive-planning:respond');
+      const handler = sharedMockState.handlers.get('interactive-planning:respond');
       const result = await handler(mockEvent, {
         sessionId: 'session-123',
         userResponse: {
@@ -190,7 +201,7 @@ describe('InteractivePlanningIPC', () => {
       const error = new Error('处理响应失败');
       mockPlanner.handleUserResponse.mockRejectedValue(error);
 
-      const handler = mockIpcMain.handlers.get('interactive-planning:respond');
+      const handler = sharedMockState.handlers.get('interactive-planning:respond');
       const result = await handler(mockEvent, {
         sessionId: 'session-123',
         userResponse: { action: 'confirm' }
@@ -211,7 +222,7 @@ describe('InteractivePlanningIPC', () => {
 
       mockPlanner.submitUserFeedback.mockResolvedValue(mockResult);
 
-      const handler = mockIpcMain.handlers.get('interactive-planning:submit-feedback');
+      const handler = sharedMockState.handlers.get('interactive-planning:submit-feedback');
       const result = await handler(mockEvent, {
         sessionId: 'session-123',
         feedback: {
@@ -239,7 +250,7 @@ describe('InteractivePlanningIPC', () => {
       const error = new Error('提交失败');
       mockPlanner.submitUserFeedback.mockRejectedValue(error);
 
-      const handler = mockIpcMain.handlers.get('interactive-planning:submit-feedback');
+      const handler = sharedMockState.handlers.get('interactive-planning:submit-feedback');
       const result = await handler(mockEvent, {
         sessionId: 'session-123',
         feedback: { rating: 3 }
@@ -267,7 +278,7 @@ describe('InteractivePlanningIPC', () => {
 
       mockPlanner.getSession.mockReturnValue(mockSession);
 
-      const handler = mockIpcMain.handlers.get('interactive-planning:get-session');
+      const handler = sharedMockState.handlers.get('interactive-planning:get-session');
       const result = await handler(mockEvent, {
         sessionId: 'session-123'
       });
@@ -283,7 +294,7 @@ describe('InteractivePlanningIPC', () => {
     it('应该处理会话不存在的情况', async () => {
       mockPlanner.getSession.mockReturnValue(null);
 
-      const handler = mockIpcMain.handlers.get('interactive-planning:get-session');
+      const handler = sharedMockState.handlers.get('interactive-planning:get-session');
       const result = await handler(mockEvent, {
         sessionId: 'non-existent'
       });
@@ -300,7 +311,7 @@ describe('InteractivePlanningIPC', () => {
         throw error;
       });
 
-      const handler = mockIpcMain.handlers.get('interactive-planning:get-session');
+      const handler = sharedMockState.handlers.get('interactive-planning:get-session');
       const result = await handler(mockEvent, {
         sessionId: 'session-123'
       });
@@ -316,7 +327,7 @@ describe('InteractivePlanningIPC', () => {
     it('应该成功清理过期会话', async () => {
       mockPlanner.cleanupExpiredSessions.mockReturnValue(5);
 
-      const handler = mockIpcMain.handlers.get('interactive-planning:cleanup');
+      const handler = sharedMockState.handlers.get('interactive-planning:cleanup');
       const result = await handler(mockEvent, {
         maxAge: 3600000 // 1小时
       });
@@ -335,7 +346,7 @@ describe('InteractivePlanningIPC', () => {
         throw error;
       });
 
-      const handler = mockIpcMain.handlers.get('interactive-planning:cleanup');
+      const handler = sharedMockState.handlers.get('interactive-planning:cleanup');
       const result = await handler(mockEvent, {
         maxAge: 3600000
       });
@@ -358,7 +369,9 @@ describe('InteractivePlanningIPC', () => {
         }
       };
 
-      mockBrowserWindow.getAllWindows.mockReturnValue([mockWindow]);
+      // 使用 sharedMockState.windows 数组设置窗口
+      sharedMockState.windows.length = 0;
+      sharedMockState.windows.push(mockWindow);
     });
 
     it('应该转发plan-generated事件', () => {
@@ -459,7 +472,9 @@ describe('InteractivePlanningIPC', () => {
         }
       };
 
-      mockBrowserWindow.getAllWindows.mockReturnValue([destroyedWindow, activeWindow]);
+      // 更新 sharedMockState.windows 数组
+      sharedMockState.windows.length = 0;
+      sharedMockState.windows.push(destroyedWindow, activeWindow);
 
       const eventData = { sessionId: 'session-123' };
       mockPlanner.emit('plan-generated', eventData);
@@ -482,7 +497,9 @@ describe('InteractivePlanningIPC', () => {
         webContents: { send: vi.fn() }
       };
 
-      mockBrowserWindow.getAllWindows.mockReturnValue([window1, window2]);
+      // 更新 sharedMockState.windows 数组
+      sharedMockState.windows.length = 0;
+      sharedMockState.windows.push(window1, window2);
 
       const eventData = { sessionId: 'session-123' };
       mockPlanner.emit('execution-started', eventData);
