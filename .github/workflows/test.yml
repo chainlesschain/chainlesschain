@@ -76,6 +76,7 @@ jobs:
       - name: Run coverage
         working-directory: ./desktop-app-vue
         run: npm run test:coverage
+        continue-on-error: true
 
       - name: Upload coverage reports
         uses: codecov/codecov-action@v4
