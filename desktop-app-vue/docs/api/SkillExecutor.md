@@ -8,19 +8,19 @@
 
 ```javascript
 class SkillExecutor {
-  skillManager; //
-  toolManager; //
-  executionQueue; //
-  isProcessing; //
-  executionHistory; //
-  scheduledTasks; //
+  skillManager; // 
+  toolManager; // 
+  executionQueue; // 
+  isProcessing; // 
+  executionHistory; // 
+  scheduledTasks; // 
 }
 ```
 
 ## 构造函数
 
 ```javascript
-new SkillExecutor();
+new SkillExecutor()
 ```
 
 ## 方法
@@ -112,7 +112,6 @@ new SkillExecutor();
 ---
 
 #### `forEach(result => {
-
         if (result.success && result.result)`
 
 ---
@@ -128,7 +127,6 @@ new SkillExecutor();
 ---
 
 #### `forEach(key => {
-
       if (context[key] !== undefined)`
 
 准备工具参数
@@ -235,7 +233,7 @@ new SkillExecutor();
 
 - `workflow` (`object`) - 工作流配置
 - `workflow` (`string`) - .name - 工作流名称
-- `workflow` (`string`) - .schedule - Cron表达式 (e.g., '0 0 \* \* \*' for daily at midnight)
+- `workflow` (`string`) - .schedule - Cron表达式 (e.g., '0 0 * * *' for daily at midnight)
 - `workflow` (`string`) - .skillId - 技能ID
 - `workflow` (`object`) - .params - 执行参数
 - `workflow` (`boolean`) - .enabled - 是否启用
@@ -302,6 +300,7 @@ new SkillExecutor();
 
 ---
 
+
 ## 事件
 
 如果该类继承自EventEmitter,可以监听以下事件:
@@ -323,4 +322,4 @@ const skillexecutor = new SkillExecutor(/* 参数 */);
 
 ---
 
-> 自动生成时间: 2026/1/16 17:18:05
+> 自动生成时间: 2026/1/17 22:47:48
