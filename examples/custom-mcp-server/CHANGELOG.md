@@ -54,7 +54,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Planned
 
 - Real weather API integration (OpenWeatherMap)
-- Response caching with `node-cache`
 - Rate limiting with `bottleneck`
 - HTTP+SSE transport support
 - Progress notifications for long operations
+
+## [1.1.0] - 2026-01-17
+
+### Added
+
+- **Response Caching**: Smart caching system for weather data
+  - `weather_cache_stats` tool - View cache hit rate and statistics
+  - `weather_cache_clear` tool - Clear cache by type or city
+  - `skipCache` parameter for all weather tools to bypass cache
+  - Type-specific TTL configuration:
+    - Current weather: 5 minutes (configurable via `CACHE_CURRENT_TTL`)
+    - Weather forecast: 30 minutes (configurable via `CACHE_FORECAST_TTL`)
+    - Air quality: 10 minutes (configurable via `CACHE_AIR_QUALITY_TTL`)
+
+- **Cache Utility Module** (`src/utils/cache.ts`):
+  - Singleton pattern for cache instance
+  - Consistent cache key generation
+  - Pattern-based cache deletion
+  - Cache statistics tracking (hits, misses, hit rate)
+  - Type-safe generic get/set methods
+
+- **Configuration**:
+  - `CACHE_ENABLED` - Enable/disable caching (default: true)
+  - `CACHE_DEFAULT_TTL` - Default cache TTL in seconds (default: 600)
+  - `CACHE_CURRENT_TTL` - Current weather TTL (default: 300)
+  - `CACHE_FORECAST_TTL` - Forecast TTL (default: 1800)
+  - `CACHE_AIR_QUALITY_TTL` - Air quality TTL (default: 600)
+
+- **Tests**:
+  - 23 comprehensive cache tests
+  - Tests for singleton pattern, key generation, CRUD operations, statistics
+
+### Technical Details
+
+- Added `node-cache` dependency for in-memory caching
+- Total tests: 50 (14 weather + 23 cache + 11 prompts + 2 config)
