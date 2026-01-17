@@ -1,0 +1,193 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "HTTP+SSE MCP Server Configuration",
+  "description": "Configuration schema for remote MCP servers using HTTP+SSE transport",
+  "type": "object",
+  "properties": {
+    "enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Enable or disable this MCP server"
+    },
+    "transport": {
+      "type": "string",
+      "enum": ["http-sse"],
+      "default": "http-sse",
+      "description": "Transport type - must be 'http-sse' for remote servers"
+    },
+    "baseURL": {
+      "type": "string",
+      "format": "uri",
+      "description": "Base URL of the remote MCP server (e.g., https://api.example.com/mcp)",
+      "examples": [
+        "https://mcp.example.com",
+        "http://localhost:3000"
+      ]
+    },
+    "apiKey": {
+      "type": "string",
+      "description": "API key or Bearer token for authentication",
+      "examples": ["sk-your-api-key-here"]
+    },
+    "headers": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "default": {},
+      "description": "Additional HTTP headers to include in requests",
+      "examples": [
+        {
+          "X-Custom-Header": "value",
+          "X-Client-Version": "1.0.0"
+        }
+      ]
+    },
+    "timeout": {
+      "type": "integer",
+      "default": 30000,
+      "minimum": 1000,
+      "maximum": 120000,
+      "description": "Request timeout in milliseconds"
+    },
+    "maxRetries": {
+      "type": "integer",
+      "default": 3,
+      "minimum": 0,
+      "maximum": 10,
+      "description": "Maximum number of retry attempts on connection failure"
+    },
+    "retryDelay": {
+      "type": "integer",
+      "default": 1000,
+      "minimum": 100,
+      "maximum": 30000,
+      "description": "Initial retry delay in milliseconds (uses exponential backoff)"
+    },
+    "autoConnect": {
+      "type": "boolean",
+      "default": false,
+      "description": "Automatically connect when the application starts"
+    },
+    "heartbeat": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable heartbeat mechanism to detect connection issues"
+        },
+        "interval": {
+          "type": "integer",
+          "default": 30000,
+          "minimum": 5000,
+          "maximum": 300000,
+          "description": "Heartbeat interval in milliseconds"
+        }
+      },
+      "default": {
+        "enabled": true,
+        "interval": 30000
+      }
+    },
+    "healthCheck": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable periodic health checks"
+        },
+        "interval": {
+          "type": "integer",
+          "default": 60000,
+          "minimum": 10000,
+          "maximum": 600000,
+          "description": "Health check interval in milliseconds"
+        }
+      },
+      "default": {
+        "enabled": true,
+        "interval": 60000
+      }
+    },
+    "circuitBreaker": {
+      "type": "object",
+      "properties": {
+        "threshold": {
+          "type": "integer",
+          "default": 5,
+          "minimum": 1,
+          "maximum": 20,
+          "description": "Number of consecutive failures before opening circuit"
+        },
+        "timeout": {
+          "type": "integer",
+          "default": 30000,
+          "minimum": 5000,
+          "maximum": 300000,
+          "description": "Time to wait before trying half-open state (ms)"
+        }
+      },
+      "default": {
+        "threshold": 5,
+        "timeout": 30000
+      }
+    },
+    "permissions": {
+      "type": "object",
+      "properties": {
+        "allowedTools": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "List of allowed tool names (empty = all allowed)",
+          "examples": [["read_file", "search", "query"]]
+        },
+        "blockedTools": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "List of blocked tool names"
+        },
+        "requireConsent": {
+          "type": "boolean",
+          "default": true,
+          "description": "Require user consent for sensitive operations"
+        }
+      },
+      "default": {
+        "allowedTools": [],
+        "blockedTools": [],
+        "requireConsent": true
+      }
+    }
+  },
+  "required": ["transport", "baseURL"],
+  "examples": [
+    {
+      "enabled": true,
+      "transport": "http-sse",
+      "baseURL": "https://mcp.example.com",
+      "apiKey": "sk-your-api-key",
+      "timeout": 30000,
+      "maxRetries": 3,
+      "autoConnect": false,
+      "heartbeat": {
+        "enabled": true,
+        "interval": 30000
+      },
+      "healthCheck": {
+        "enabled": true,
+        "interval": 60000
+      },
+      "circuitBreaker": {
+        "threshold": 5,
+        "timeout": 30000
+      }
+    }
+  ]
+}

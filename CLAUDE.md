@@ -285,6 +285,7 @@ npm run clean
 
 **Status**: POC (Proof of Concept) - v0.1.0
 **Added**: 2026-01-16
+**Updated**: 2026-01-17 (HTTP+SSE Transport)
 
 ChainlessChain integrates the **Model Context Protocol (MCP)** to extend AI capabilities through standardized external tools and data sources.
 
@@ -295,6 +296,13 @@ MCP is an open protocol that enables AI assistants to connect with various tools
 - **Standardized**: One protocol works across all MCP-compatible tools
 - **Secure**: Tools run in isolated processes with fine-grained permissions
 - **Extensible**: Easy to add new capabilities without modifying core code
+
+### Supported Transports
+
+| Transport | Use Case | Status |
+|-----------|----------|--------|
+| **Stdio** | Local MCP servers (file system, git, etc.) | ✅ Implemented |
+| **HTTP+SSE** | Remote MCP servers (cloud APIs, web services) | ✅ Implemented |
 
 ### Supported MCP Servers
 
