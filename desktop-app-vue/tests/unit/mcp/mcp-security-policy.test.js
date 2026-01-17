@@ -18,7 +18,9 @@ vi.mock("crypto", () => ({
 }));
 
 // Import after mocking
-const MCPSecurityPolicy = require("../../../src/main/mcp/mcp-security-policy");
+const {
+  MCPSecurityPolicy,
+} = require("../../../src/main/mcp/mcp-security-policy");
 
 describe("MCPSecurityPolicy", () => {
   let securityPolicy;
