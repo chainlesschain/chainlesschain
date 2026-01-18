@@ -24,9 +24,14 @@ export default defineConfig({
       '**/*.spec.{js,ts}',
       // Blockchain tests use chai/mocha, run with node directly
       '**/tests/blockchain/**',
+      // IPC tests use sinon/chai, not compatible with vitest
+      '**/tests/ipc/**',
+      // Integration tests that use Playwright
+      '**/tests/integration/pc-features.test.js',
+      '**/tests/integration/p2p-call.test.js',
       // These are standalone scripts that use process.exit()
       '**/speech-manager-integration.test.js',
-      '**/pkcs11-encryption.test.js'
+      '**/pkcs11-encryption.test.js',
     ],
     coverage: {
       provider: 'v8',
