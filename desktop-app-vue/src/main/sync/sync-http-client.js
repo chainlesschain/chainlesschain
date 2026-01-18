@@ -165,6 +165,51 @@ class SyncHTTPClient {
   async health() {
     return this.client.get('/api/sync/health');
   }
+
+  // ==================== 认证方法 ====================
+
+  /**
+   * 设置授权Token
+   * @param {string} token - JWT token
+   */
+  setAuthToken(token) {
+    if (token) {
+      this.client.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      console.log('[SyncHTTP] Auth token set');
+    } else {
+      delete this.client.defaults.headers.common['Authorization'];
+      console.log('[SyncHTTP] Auth token cleared');
+    }
+  }
+
+  /**
+   * 检查是否已设置授权Token
+   * @returns {boolean}
+   */
+  hasAuthToken() {
+    return !!this.client.defaults.headers.common['Authorization'];
+  }
+
+  /**
+   * 更新baseURL
+   * @param {string} newBaseURL - 新的base URL
+   */
+  setBaseURL(newBaseURL) {
+    this.client.defaults.baseURL = newBaseURL;
+    console.log('[SyncHTTP] Base URL updated:', newBaseURL);
+  }
+
+  /**
+   * 获取当前配置
+   * @returns {Object} 客户端配置
+   */
+  getConfig() {
+    return {
+      baseURL: this.client.defaults.baseURL,
+      timeout: this.client.defaults.timeout,
+      hasAuth: this.hasAuthToken(),
+    };
+  }
 }
 
 module.exports = SyncHTTPClient;
