@@ -108,9 +108,29 @@ function registerMCPIPC(mcpManager, mcpAdapter, securityPolicy) {
         // Register tools with ToolManager
         await mcpAdapter.registerMCPServerTools(serverName);
 
+        // Serialize capabilities to plain objects for IPC (avoid "object could not be cloned" error)
+        const serializableCapabilities = {
+          tools: (capabilities.tools || []).map((t) => ({
+            name: t.name,
+            description: t.description,
+            inputSchema: t.inputSchema,
+          })),
+          resources: (capabilities.resources || []).map((r) => ({
+            uri: r.uri,
+            name: r.name,
+            description: r.description,
+            mimeType: r.mimeType,
+          })),
+          prompts: (capabilities.prompts || []).map((p) => ({
+            name: p.name,
+            description: p.description,
+            arguments: p.arguments,
+          })),
+        };
+
         return {
           success: true,
-          capabilities,
+          capabilities: serializableCapabilities,
         };
       } catch (error) {
         console.error(`[MCP IPC] Failed to connect to ${serverName}:`, error);
@@ -155,20 +175,24 @@ function registerMCPIPC(mcpManager, mcpAdapter, securityPolicy) {
     try {
       let tools;
 
+      // Helper to serialize tool for IPC
+      const serializeTool = (t, srvName = null) => ({
+        name: t.name,
+        description: t.description,
+        inputSchema: t.inputSchema,
+        ...(srvName ? { serverName: srvName } : {}),
+      });
+
       if (serverName) {
         // List tools from specific server
-        tools = await mcpManager.listTools(serverName);
+        const rawTools = await mcpManager.listTools(serverName);
+        tools = rawTools.map((t) => serializeTool(t));
       } else {
         // List tools from all connected servers
         tools = [];
         for (const [srvName] of mcpManager.servers.entries()) {
           const serverTools = await mcpManager.listTools(srvName);
-          tools.push(
-            ...serverTools.map((t) => ({
-              ...t,
-              serverName: srvName,
-            })),
-          );
+          tools.push(...serverTools.map((t) => serializeTool(t, srvName)));
         }
       }
 
@@ -232,17 +256,24 @@ function registerMCPIPC(mcpManager, mcpAdapter, securityPolicy) {
     try {
       let resources;
 
+      // Helper to serialize resource for IPC
+      const serializeResource = (r, srvName = null) => ({
+        uri: r.uri,
+        name: r.name,
+        description: r.description,
+        mimeType: r.mimeType,
+        ...(srvName ? { serverName: srvName } : {}),
+      });
+
       if (serverName) {
-        resources = await mcpManager.listResources(serverName);
+        const rawResources = await mcpManager.listResources(serverName);
+        resources = rawResources.map((r) => serializeResource(r));
       } else {
         resources = [];
         for (const [srvName] of mcpManager.servers.entries()) {
           const serverResources = await mcpManager.listResources(srvName);
           resources.push(
-            ...serverResources.map((r) => ({
-              ...r,
-              serverName: srvName,
-            })),
+            ...serverResources.map((r) => serializeResource(r, srvName)),
           );
         }
       }

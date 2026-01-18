@@ -2,6 +2,7 @@
  * MCP Performance Monitor Unit Tests
  *
  * Tests for performance tracking and metrics collection.
+ * Updated to match actual MCPPerformanceMonitor implementation API.
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
@@ -19,292 +20,339 @@ describe("MCPPerformanceMonitor", () => {
     monitor = null;
   });
 
-  describe("Connection Time Tracking", () => {
-    it("should record connection time", () => {
-      monitor.recordConnectionTime("filesystem", 250);
+  describe("Connection Recording", () => {
+    it("should record successful connection", () => {
+      monitor.recordConnection("filesystem", 250, true);
 
-      const times = monitor.getConnectionTimes();
-      expect(times["filesystem"]).toBe(250);
+      const summary = monitor.getSummary();
+      expect(summary.connections.total).toBe(1);
+      expect(summary.connections.successful).toBe(1);
+      expect(summary.connections.failed).toBe(0);
     });
 
-    it("should update connection time on reconnection", () => {
-      monitor.recordConnectionTime("filesystem", 250);
-      monitor.recordConnectionTime("filesystem", 180);
+    it("should record failed connection", () => {
+      monitor.recordConnection("filesystem", 500, false);
 
-      const times = monitor.getConnectionTimes();
-      expect(times["filesystem"]).toBe(180);
+      const summary = monitor.getSummary();
+      expect(summary.connections.total).toBe(1);
+      expect(summary.connections.successful).toBe(0);
+      expect(summary.connections.failed).toBe(1);
     });
 
-    it("should track multiple servers", () => {
-      monitor.recordConnectionTime("filesystem", 250);
-      monitor.recordConnectionTime("postgres", 350);
-      monitor.recordConnectionTime("git", 200);
+    it("should track connection times", () => {
+      monitor.recordConnection("filesystem", 250, true);
+      monitor.recordConnection("postgres", 350, true);
+      monitor.recordConnection("git", 200, true);
 
-      const times = monitor.getConnectionTimes();
-      expect(Object.keys(times).length).toBe(3);
+      const summary = monitor.getSummary();
+      expect(summary.connections.total).toBe(3);
+      expect(summary.connections.avgTime).toBeCloseTo(266.67, 0);
+    });
+
+    it("should calculate connection success rate", () => {
+      monitor.recordConnection("server1", 100, true);
+      monitor.recordConnection("server2", 200, true);
+      monitor.recordConnection("server3", 300, false);
+
+      const summary = monitor.getSummary();
+      expect(summary.connections.successRate).toBe("66.7%");
     });
   });
 
-  describe("Tool Latency Tracking", () => {
-    it("should record tool call latency", () => {
-      monitor.recordToolLatency("filesystem", "read_file", 45);
+  describe("Tool Call Recording", () => {
+    it("should record tool call", () => {
+      monitor.recordToolCall("filesystem", "read_file", 45, true);
 
-      const latencies = monitor.getToolLatencies();
-      expect(latencies["filesystem"]["read_file"]).toBeDefined();
+      const summary = monitor.getSummary();
+      expect(summary.toolCalls.total).toBe(1);
+      expect(summary.toolCalls.successful).toBe(1);
     });
 
-    it("should accumulate multiple latencies for same tool", () => {
-      monitor.recordToolLatency("filesystem", "read_file", 45);
-      monitor.recordToolLatency("filesystem", "read_file", 55);
-      monitor.recordToolLatency("filesystem", "read_file", 50);
+    it("should accumulate multiple tool calls", () => {
+      monitor.recordToolCall("filesystem", "read_file", 45, true);
+      monitor.recordToolCall("filesystem", "read_file", 55, true);
+      monitor.recordToolCall("filesystem", "read_file", 50, true);
 
-      const latencies = monitor.getToolLatencies();
-      expect(latencies["filesystem"]["read_file"].count).toBe(3);
+      const summary = monitor.getSummary();
+      expect(summary.toolCalls.total).toBe(3);
+
+      const toolStats = summary.byTool.find((t) => t.name === "read_file");
+      expect(toolStats.count).toBe(3);
     });
 
     it("should calculate average latency", () => {
-      monitor.recordToolLatency("filesystem", "read_file", 40);
-      monitor.recordToolLatency("filesystem", "read_file", 60);
+      monitor.recordToolCall("filesystem", "read_file", 40, true);
+      monitor.recordToolCall("filesystem", "read_file", 60, true);
 
-      const latencies = monitor.getToolLatencies();
-      expect(latencies["filesystem"]["read_file"].avg).toBe(50);
+      const summary = monitor.getSummary();
+      const toolStats = summary.byTool.find((t) => t.name === "read_file");
+      expect(toolStats.avgLatency).toBe(50);
     });
 
     it("should track min and max latency", () => {
-      monitor.recordToolLatency("filesystem", "read_file", 40);
-      monitor.recordToolLatency("filesystem", "read_file", 60);
-      monitor.recordToolLatency("filesystem", "read_file", 50);
+      monitor.recordToolCall("filesystem", "read_file", 40, true);
+      monitor.recordToolCall("filesystem", "read_file", 60, true);
+      monitor.recordToolCall("filesystem", "read_file", 50, true);
 
-      const latencies = monitor.getToolLatencies();
-      expect(latencies["filesystem"]["read_file"].min).toBe(40);
-      expect(latencies["filesystem"]["read_file"].max).toBe(60);
+      const summary = monitor.getSummary();
+      const toolStats = summary.byTool.find((t) => t.name === "read_file");
+      expect(toolStats.minLatency).toBe(40);
+      expect(toolStats.maxLatency).toBe(60);
     });
 
     it("should calculate P95 latency", () => {
       // Add 100 latency measurements
       for (let i = 1; i <= 100; i++) {
-        monitor.recordToolLatency("filesystem", "read_file", i);
+        monitor.recordToolCall("filesystem", "read_file", i, true);
       }
 
-      const latencies = monitor.getToolLatencies();
+      const summary = monitor.getSummary();
+      const toolStats = summary.byTool.find((t) => t.name === "read_file");
       // P95 should be around 95
-      expect(latencies["filesystem"]["read_file"].p95).toBeGreaterThanOrEqual(
-        94,
-      );
-      expect(latencies["filesystem"]["read_file"].p95).toBeLessThanOrEqual(96);
+      expect(toolStats.p95Latency).toBeGreaterThanOrEqual(94);
+      expect(toolStats.p95Latency).toBeLessThanOrEqual(96);
+    });
+
+    it("should track errors per tool", () => {
+      monitor.recordToolCall("filesystem", "read_file", 50, true);
+      monitor.recordToolCall("filesystem", "read_file", 50, false);
+      monitor.recordToolCall("filesystem", "read_file", 50, false);
+
+      const summary = monitor.getSummary();
+      const toolStats = summary.byTool.find((t) => t.name === "read_file");
+      expect(toolStats.errors).toBe(2);
     });
   });
 
-  describe("Error Tracking", () => {
-    it("should record errors", () => {
-      monitor.recordError(
-        "filesystem",
-        "read_file",
-        new Error("File not found"),
-      );
+  describe("Server Statistics", () => {
+    it("should track by server", () => {
+      monitor.recordToolCall("filesystem", "read_file", 50, true);
+      monitor.recordToolCall("filesystem", "write_file", 80, true);
+      monitor.recordToolCall("postgres", "query", 100, true);
 
-      const errors = monitor.getErrorCounts();
-      expect(errors["filesystem"]).toBe(1);
+      const summary = monitor.getSummary();
+      expect(summary.byServer.length).toBe(2);
+
+      const fsStats = summary.byServer.find((s) => s.name === "filesystem");
+      expect(fsStats.count).toBe(2);
+
+      const pgStats = summary.byServer.find((s) => s.name === "postgres");
+      expect(pgStats.count).toBe(1);
+    });
+  });
+
+  describe("Error Recording", () => {
+    it("should record errors", () => {
+      monitor.recordError("tool_call", new Error("File not found"), {
+        serverName: "filesystem",
+        toolName: "read_file",
+      });
+
+      const summary = monitor.getSummary();
+      expect(summary.errors.total).toBe(1);
     });
 
     it("should accumulate errors", () => {
-      monitor.recordError("filesystem", "read_file", new Error("Error 1"));
-      monitor.recordError("filesystem", "write_file", new Error("Error 2"));
-      monitor.recordError("filesystem", "read_file", new Error("Error 3"));
+      monitor.recordError("tool_call", new Error("Error 1"), {});
+      monitor.recordError("tool_call", new Error("Error 2"), {});
+      monitor.recordError("connection", new Error("Error 3"), {});
 
-      const errors = monitor.getErrorCounts();
-      expect(errors["filesystem"]).toBe(3);
+      const summary = monitor.getSummary();
+      expect(summary.errors.total).toBe(3);
     });
 
     it("should store recent error details", () => {
-      monitor.recordError("filesystem", "read_file", new Error("Test error"));
+      monitor.recordError("tool_call", new Error("Test error"), {
+        serverName: "filesystem",
+        toolName: "read_file",
+      });
 
-      const recentErrors = monitor.getRecentErrors(10);
-      expect(recentErrors.length).toBe(1);
-      expect(recentErrors[0].serverName).toBe("filesystem");
-      expect(recentErrors[0].toolName).toBe("read_file");
-      expect(recentErrors[0].error).toBe("Test error");
+      const summary = monitor.getSummary();
+      expect(summary.errors.recent.length).toBe(1);
+      expect(summary.errors.recent[0].type).toBe("tool_call");
+      expect(summary.errors.recent[0].message).toBe("Test error");
     });
 
     it("should limit recent errors to 100", () => {
       for (let i = 0; i < 150; i++) {
-        monitor.recordError("server", "tool", new Error(`Error ${i}`));
+        monitor.recordError("tool_call", new Error(`Error ${i}`), {});
       }
 
-      const recentErrors = monitor.getRecentErrors(200);
-      expect(recentErrors.length).toBeLessThanOrEqual(100);
+      const summary = monitor.getSummary();
+      // Internal storage limits to 100
+      expect(summary.errors.total).toBeLessThanOrEqual(100);
     });
   });
 
-  describe("Memory Usage Tracking", () => {
-    it("should record memory usage", () => {
-      monitor.recordMemoryUsage("filesystem", 1024 * 1024 * 30); // 30 MB
+  describe("Memory Sampling", () => {
+    it("should sample memory usage", () => {
+      const sample = monitor.sampleMemory();
 
-      const memory = monitor.getMemoryUsage();
-      expect(memory["filesystem"]).toBeDefined();
+      expect(sample).toBeDefined();
+      expect(sample.heapUsed).toBeDefined();
+      expect(sample.heapTotal).toBeDefined();
+      expect(sample.rss).toBeDefined();
+      expect(sample.timestamp).toBeDefined();
     });
 
-    it("should track memory history", () => {
-      monitor.recordMemoryUsage("filesystem", 30 * 1024 * 1024);
-      monitor.recordMemoryUsage("filesystem", 35 * 1024 * 1024);
-      monitor.recordMemoryUsage("filesystem", 32 * 1024 * 1024);
+    it("should accumulate memory samples", () => {
+      monitor.sampleMemory();
+      monitor.sampleMemory();
+      monitor.sampleMemory();
 
-      const memory = monitor.getMemoryUsage();
-      expect(memory["filesystem"].current).toBe(32 * 1024 * 1024);
+      const summary = monitor.getSummary();
+      expect(summary.memory.avgHeapUsed).toBeGreaterThan(0);
     });
   });
 
   describe("Performance Summary", () => {
     beforeEach(() => {
       // Set up some test data
-      monitor.recordConnectionTime("filesystem", 250);
-      monitor.recordConnectionTime("postgres", 400);
+      monitor.recordConnection("filesystem", 250, true);
+      monitor.recordConnection("postgres", 400, true);
 
-      monitor.recordToolLatency("filesystem", "read_file", 50);
-      monitor.recordToolLatency("filesystem", "read_file", 60);
-      monitor.recordToolLatency("filesystem", "write_file", 80);
+      monitor.recordToolCall("filesystem", "read_file", 50, true);
+      monitor.recordToolCall("filesystem", "read_file", 60, true);
+      monitor.recordToolCall("filesystem", "write_file", 80, true);
 
-      monitor.recordError("postgres", "query", new Error("Connection timeout"));
+      monitor.recordError("connection", new Error("Connection timeout"), {
+        serverName: "postgres",
+      });
     });
 
     it("should generate performance summary", () => {
       const summary = monitor.getSummary();
 
-      expect(summary.servers).toBeDefined();
-      expect(summary.totalToolCalls).toBeDefined();
-      expect(summary.avgLatency).toBeDefined();
-      expect(summary.errorRate).toBeDefined();
+      expect(summary.connections).toBeDefined();
+      expect(summary.toolCalls).toBeDefined();
+      expect(summary.byTool).toBeDefined();
+      expect(summary.byServer).toBeDefined();
+      expect(summary.memory).toBeDefined();
+      expect(summary.errors).toBeDefined();
     });
 
-    it("should include server-specific metrics", () => {
+    it("should include connection stats", () => {
       const summary = monitor.getSummary();
 
-      expect(summary.servers["filesystem"]).toBeDefined();
-      expect(summary.servers["filesystem"].connectionTime).toBe(250);
+      expect(summary.connections.total).toBe(2);
+      expect(summary.connections.avgTime).toBe(325);
     });
 
-    it("should calculate overall error rate", () => {
+    it("should include tool call stats", () => {
       const summary = monitor.getSummary();
 
-      expect(summary.errorRate).toBeDefined();
-      expect(typeof summary.errorRate).toBe("number");
+      expect(summary.toolCalls.total).toBe(3);
+      expect(summary.toolCalls.successful).toBe(3);
     });
   });
 
   describe("Performance Report", () => {
     beforeEach(() => {
-      monitor.recordConnectionTime("filesystem", 250);
-      monitor.recordToolLatency("filesystem", "read_file", 50);
+      monitor.recordConnection("filesystem", 250, true);
+      monitor.recordToolCall("filesystem", "read_file", 50, true);
     });
 
     it("should generate formatted report", () => {
-      const report = monitor.getFormattedReport();
+      const report = monitor.generateReport();
 
       expect(typeof report).toBe("string");
       expect(report.length).toBeGreaterThan(0);
     });
 
-    it("should include connection times in report", () => {
-      const report = monitor.getFormattedReport();
+    it("should include connection metrics in report", () => {
+      const report = monitor.generateReport();
 
-      expect(report).toContain("filesystem");
+      expect(report).toContain("CONNECTION METRICS");
       expect(report).toContain("250");
     });
-  });
 
-  describe("Baseline Tracking", () => {
-    it("should set and get baseline", () => {
-      const baseline = {
-        connectionTime: 500,
-        toolLatency: 100,
-        errorRate: 0.01,
-      };
+    it("should include tool call metrics in report", () => {
+      const report = monitor.generateReport();
 
-      monitor.setBaseline(baseline);
-
-      const retrieved = monitor.getBaseline();
-      expect(retrieved).toEqual(baseline);
-    });
-
-    it("should compare against baseline", () => {
-      const baseline = {
-        connectionTime: 500,
-        toolLatency: 100,
-      };
-
-      monitor.setBaseline(baseline);
-      monitor.recordConnectionTime("filesystem", 300); // Better than baseline
-      monitor.recordToolLatency("filesystem", "read_file", 150); // Worse than baseline
-
-      const comparison = monitor.compareToBaseline();
-
-      expect(comparison.connectionTime.status).toBe("better");
-      expect(comparison.toolLatency.status).toBe("worse");
+      expect(report).toContain("TOOL CALL METRICS");
     });
   });
 
-  describe("POC Success Criteria", () => {
-    it("should evaluate connection time criteria", () => {
-      monitor.recordConnectionTime("filesystem", 300); // < 500ms target
+  describe("Baseline Setting", () => {
+    it("should set direct call baseline", () => {
+      monitor.setBaseline("directCall", 10);
 
-      const evaluation = monitor.evaluatePOCCriteria();
-
-      expect(evaluation.connectionTime.passed).toBe(true);
+      const summary = monitor.getSummary();
+      expect(summary.baselines.directCall).toBe(10);
     });
 
-    it("should fail connection time criteria if too slow", () => {
-      monitor.recordConnectionTime("filesystem", 1200); // > 1000ms acceptable
+    it("should set stdio call baseline", () => {
+      monitor.setBaseline("stdioCall", 50);
 
-      const evaluation = monitor.evaluatePOCCriteria();
-
-      expect(evaluation.connectionTime.passed).toBe(false);
+      const summary = monitor.getSummary();
+      expect(summary.baselines.stdioCall).toBe(50);
     });
 
-    it("should evaluate tool latency criteria", () => {
-      monitor.recordToolLatency("filesystem", "read_file", 80); // < 100ms target
+    it("should calculate overhead when both baselines set", () => {
+      monitor.setBaseline("directCall", 10);
+      monitor.setBaseline("stdioCall", 50);
 
-      const evaluation = monitor.evaluatePOCCriteria();
-
-      expect(evaluation.toolLatency.passed).toBe(true);
-    });
-
-    it("should evaluate error rate criteria", () => {
-      // 100 calls, 0 errors
-      for (let i = 0; i < 100; i++) {
-        monitor.recordToolLatency("filesystem", "read_file", 50);
-      }
-
-      const evaluation = monitor.evaluatePOCCriteria();
-
-      expect(evaluation.errorRate.passed).toBe(true);
+      const summary = monitor.getSummary();
+      expect(summary.baselines.overhead).toBe(40);
     });
   });
 
   describe("Reset", () => {
     it("should reset all metrics", () => {
-      monitor.recordConnectionTime("filesystem", 250);
-      monitor.recordToolLatency("filesystem", "read_file", 50);
-      monitor.recordError("filesystem", "read_file", new Error("Test"));
+      monitor.recordConnection("filesystem", 250, true);
+      monitor.recordToolCall("filesystem", "read_file", 50, true);
+      monitor.recordError("tool_call", new Error("Test"), {});
 
       monitor.reset();
 
-      expect(Object.keys(monitor.getConnectionTimes()).length).toBe(0);
-      expect(Object.keys(monitor.getToolLatencies()).length).toBe(0);
-      expect(Object.keys(monitor.getErrorCounts()).length).toBe(0);
+      const summary = monitor.getSummary();
+      expect(summary.connections.total).toBe(0);
+      expect(summary.toolCalls.total).toBe(0);
+      expect(summary.errors.total).toBe(0);
     });
   });
 
-  describe("Export", () => {
-    it("should export metrics as JSON", () => {
-      monitor.recordConnectionTime("filesystem", 250);
-      monitor.recordToolLatency("filesystem", "read_file", 50);
+  describe("Events", () => {
+    it("should emit connection-recorded event", () => {
+      const handler = vi.fn();
+      monitor.on("connection-recorded", handler);
 
-      const exported = monitor.exportMetrics();
-      const parsed = JSON.parse(exported);
+      monitor.recordConnection("filesystem", 250, true);
 
-      expect(parsed.connectionTimes).toBeDefined();
-      expect(parsed.toolLatencies).toBeDefined();
-      expect(parsed.timestamp).toBeDefined();
+      expect(handler).toHaveBeenCalledWith({
+        serverName: "filesystem",
+        duration: 250,
+        success: true,
+      });
+    });
+
+    it("should emit tool-call-recorded event", () => {
+      const handler = vi.fn();
+      monitor.on("tool-call-recorded", handler);
+
+      monitor.recordToolCall("filesystem", "read_file", 50, true, { test: 1 });
+
+      expect(handler).toHaveBeenCalledWith({
+        serverName: "filesystem",
+        toolName: "read_file",
+        duration: 50,
+        success: true,
+        metadata: { test: 1 },
+      });
+    });
+
+    it("should emit error-recorded event", () => {
+      const handler = vi.fn();
+      monitor.on("error-recorded", handler);
+
+      const error = new Error("Test error");
+      monitor.recordError("tool_call", error, { serverName: "filesystem" });
+
+      expect(handler).toHaveBeenCalledWith({
+        type: "tool_call",
+        error,
+        context: { serverName: "filesystem" },
+      });
     });
   });
 });

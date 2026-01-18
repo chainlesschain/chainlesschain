@@ -5,7 +5,6 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import path from "path";
 
 // Mock crypto module
 vi.mock("crypto", () => ({
@@ -35,81 +34,104 @@ describe("MCPSecurityPolicy", () => {
 
   describe("Path Validation", () => {
     it("should block access to chainlesschain.db", async () => {
-      const result = await securityPolicy.validateOperation(
-        "filesystem",
-        "read_file",
-        { path: "/data/chainlesschain.db" },
-      );
-
-      expect(result.allowed).toBe(false);
-      expect(result.reason).toContain("forbidden");
-    });
-
-    it("should block access to ukey directory", async () => {
-      const result = await securityPolicy.validateOperation(
-        "filesystem",
-        "read_file",
-        { path: "/data/ukey/keys.json" },
-      );
-
-      expect(result.allowed).toBe(false);
-    });
-
-    it("should block access to DID private keys", async () => {
-      const result = await securityPolicy.validateOperation(
-        "filesystem",
-        "read_file",
-        { path: "/data/did/private-keys/key.pem" },
-      );
-
-      expect(result.allowed).toBe(false);
-    });
-
-    it("should block access to P2P keys", async () => {
-      const result = await securityPolicy.validateOperation(
-        "filesystem",
-        "read_file",
-        { path: "/data/p2p/keys/session.key" },
-      );
-
-      expect(result.allowed).toBe(false);
-    });
-
-    it("should block access to .env file", async () => {
-      const result = await securityPolicy.validateOperation(
-        "filesystem",
-        "read_file",
-        { path: "/.env" },
-      );
-
-      expect(result.allowed).toBe(false);
-    });
-
-    it("should block access to secrets directory", async () => {
-      const result = await securityPolicy.validateOperation(
-        "filesystem",
-        "read_file",
-        { path: "/config/secrets/api-keys.json" },
-      );
-
-      expect(result.allowed).toBe(false);
-    });
-
-    it("should allow access to notes directory when configured", async () => {
+      // Set up server permissions first
       securityPolicy.setServerPermissions("filesystem", {
-        allowedPaths: ["notes/", "imports/"],
+        allowedPaths: [],
         forbiddenPaths: [],
         readOnly: false,
       });
 
-      const result = await securityPolicy.validateOperation(
-        "filesystem",
-        "read_file",
-        { path: "/data/notes/my-note.md" },
-      );
+      // validateToolExecution throws SecurityError for forbidden paths
+      await expect(
+        securityPolicy.validateToolExecution("filesystem", "read_file", {
+          path: "/data/chainlesschain.db",
+        }),
+      ).rejects.toThrow("forbidden");
+    });
 
-      // Should be allowed for read operations in allowed paths
-      expect(result.reason).not.toContain("forbidden path");
+    it("should block access to ukey directory", async () => {
+      securityPolicy.setServerPermissions("filesystem", {
+        allowedPaths: [],
+        forbiddenPaths: [],
+        readOnly: false,
+      });
+
+      await expect(
+        securityPolicy.validateToolExecution("filesystem", "read_file", {
+          path: "/data/ukey/keys.json",
+        }),
+      ).rejects.toThrow();
+    });
+
+    it("should block access to DID private keys", async () => {
+      securityPolicy.setServerPermissions("filesystem", {
+        allowedPaths: [],
+        forbiddenPaths: [],
+        readOnly: false,
+      });
+
+      await expect(
+        securityPolicy.validateToolExecution("filesystem", "read_file", {
+          path: "/data/did/private-keys/key.pem",
+        }),
+      ).rejects.toThrow();
+    });
+
+    it("should block access to P2P keys", async () => {
+      securityPolicy.setServerPermissions("filesystem", {
+        allowedPaths: [],
+        forbiddenPaths: [],
+        readOnly: false,
+      });
+
+      await expect(
+        securityPolicy.validateToolExecution("filesystem", "read_file", {
+          path: "/data/p2p/keys/session.key",
+        }),
+      ).rejects.toThrow();
+    });
+
+    it("should block access to .env file", async () => {
+      securityPolicy.setServerPermissions("filesystem", {
+        allowedPaths: [],
+        forbiddenPaths: [],
+        readOnly: false,
+      });
+
+      await expect(
+        securityPolicy.validateToolExecution("filesystem", "read_file", {
+          path: "/.env",
+        }),
+      ).rejects.toThrow();
+    });
+
+    it("should block access to secrets directory", async () => {
+      securityPolicy.setServerPermissions("filesystem", {
+        allowedPaths: [],
+        forbiddenPaths: [],
+        readOnly: false,
+      });
+
+      await expect(
+        securityPolicy.validateToolExecution("filesystem", "read_file", {
+          path: "/config/secrets/api-keys.json",
+        }),
+      ).rejects.toThrow();
+    });
+
+    it("should allow access to notes directory when configured", async () => {
+      securityPolicy.setServerPermissions("filesystem", {
+        allowedPaths: ["data/notes/", "imports/"],
+        forbiddenPaths: [],
+        readOnly: false,
+      });
+
+      // This should not throw for allowed paths
+      await expect(
+        securityPolicy.validateToolExecution("filesystem", "read_file", {
+          path: "/data/notes/my-note.md",
+        }),
+      ).resolves.not.toThrow();
     });
   });
 
