@@ -98,6 +98,13 @@ class RealtimeVoiceInput extends EventEmitter {
     // 添加到当前chunk
     this.currentChunk.push(audioData);
 
+    // 调试日志：每10次打印一次接收状态
+    if (this.currentChunk.length % 10 === 1) {
+      console.log(
+        `[RealtimeVoiceInput] 接收音频数据: ${audioData.length} bytes, 当前chunk数量: ${this.currentChunk.length}`,
+      );
+    }
+
     // 检测音量（简单的能量计算）
     const volume = this.calculateVolume(audioData);
 
@@ -179,9 +186,14 @@ class RealtimeVoiceInput extends EventEmitter {
       console.log(`[RealtimeVoiceInput] 创建临时 WAV 文件: ${tempWavFile}`);
 
       // 转录当前chunk（传递文件路径而不是 Buffer）
+      console.log(`[RealtimeVoiceInput] 发送到 Whisper 识别: ${tempWavFile}`);
       const result = await this.recognizer.recognize(tempWavFile, {
         language: this.config.language || "zh",
       });
+      console.log(
+        `[RealtimeVoiceInput] Whisper 返回结果:`,
+        JSON.stringify(result),
+      );
 
       if (result && result.text) {
         // 部分结果

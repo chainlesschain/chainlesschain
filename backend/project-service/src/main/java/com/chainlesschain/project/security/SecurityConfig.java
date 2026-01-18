@@ -45,6 +45,7 @@ public class SecurityConfig {
                     "/api/auth/**",
                     "/api/health",
                     "/api/projects/**",  // 项目端点（开发模式，TODO: 生产环境需实现认证）
+                    "/api/sync/**",      // 同步端点（开发模式，TODO: 生产环境需实现认证）
                     "/actuator/**",
                     "/swagger-ui/**",
                     "/v3/api-docs/**",

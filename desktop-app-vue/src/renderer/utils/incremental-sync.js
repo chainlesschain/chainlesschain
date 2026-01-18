@@ -18,18 +18,18 @@ class IncrementalSyncManager {
       syncInterval: options.syncInterval || 30000, // 30 seconds
       enableAutoSync: options.enableAutoSync !== false,
       enableRealtime: options.enableRealtime || false,
-      conflictResolution: options.conflictResolution || 'server-wins', // 'server-wins', 'client-wins', 'manual'
+      conflictResolution: options.conflictResolution || "server-wins", // 'server-wins', 'client-wins', 'manual'
       debug: options.debug || false,
-    }
+    };
 
     // State
-    this.lastSyncTime = null
-    this.syncTimer = null
-    this.pendingChanges = new Map() // entity -> changes
-    this.syncQueue = []
-    this.isOnline = navigator.onLine
-    this.isSyncing = false
-    this.websocket = null
+    this.lastSyncTime = null;
+    this.syncTimer = null;
+    this.pendingChanges = new Map(); // entity -> changes
+    this.syncQueue = [];
+    this.isOnline = navigator.onLine;
+    this.isSyncing = false;
+    this.websocket = null;
 
     // Statistics
     this.stats = {
@@ -38,13 +38,13 @@ class IncrementalSyncManager {
       failedSyncs: 0,
       conflictsResolved: 0,
       dataSaved: 0, // bytes saved by incremental sync
-    }
+    };
 
     // Initialize
-    this.init()
+    this.init();
 
     if (this.options.debug) {
-      console.log('[IncrementalSyncManager] Initialized')
+      console.log("[IncrementalSyncManager] Initialized");
     }
   }
 
@@ -53,23 +53,23 @@ class IncrementalSyncManager {
    */
   init() {
     // Setup online/offline listeners
-    window.addEventListener('online', () => {
-      this.isOnline = true
-      this.syncNow()
-    })
+    window.addEventListener("online", () => {
+      this.isOnline = true;
+      this.syncNow();
+    });
 
-    window.addEventListener('offline', () => {
-      this.isOnline = false
-    })
+    window.addEventListener("offline", () => {
+      this.isOnline = false;
+    });
 
     // Start auto-sync if enabled
     if (this.options.enableAutoSync) {
-      this.startAutoSync()
+      this.startAutoSync();
     }
 
     // Setup real-time sync if enabled
     if (this.options.enableRealtime) {
-      this.setupRealtimeSync()
+      this.setupRealtimeSync();
     }
   }
 
@@ -86,17 +86,19 @@ class IncrementalSyncManager {
       data,
       timestamp: Date.now(),
       synced: false,
-    }
+    };
 
-    this.pendingChanges.set(entity, change)
+    this.pendingChanges.set(entity, change);
 
     if (this.options.debug) {
-      console.log(`[IncrementalSyncManager] Tracked change: ${entity} (${operation})`)
+      console.log(
+        `[IncrementalSyncManager] Tracked change: ${entity} (${operation})`,
+      );
     }
 
     // Trigger sync if enabled
     if (this.options.enableAutoSync && this.isOnline) {
-      this.debouncedSync()
+      this.debouncedSync();
     }
   }
 
@@ -107,98 +109,100 @@ class IncrementalSyncManager {
   async syncNow(options = {}) {
     if (this.isSyncing) {
       if (this.options.debug) {
-        console.log('[IncrementalSyncManager] Sync already in progress')
+        console.log("[IncrementalSyncManager] Sync already in progress");
       }
-      return
+      return;
     }
 
     if (!this.isOnline && !options.force) {
       if (this.options.debug) {
-        console.log('[IncrementalSyncManager] Offline, skipping sync')
+        console.log("[IncrementalSyncManager] Offline, skipping sync");
       }
-      return
+      return;
     }
 
-    this.isSyncing = true
-    this.stats.totalSyncs++
+    this.isSyncing = true;
+    this.stats.totalSyncs++;
 
     try {
       // Get changes since last sync
-      const changes = Array.from(this.pendingChanges.values())
+      const changes = Array.from(this.pendingChanges.values());
 
       if (changes.length === 0) {
         if (this.options.debug) {
-          console.log('[IncrementalSyncManager] No changes to sync')
+          console.log("[IncrementalSyncManager] No changes to sync");
         }
-        return
+        return;
       }
 
       if (this.options.debug) {
-        console.log(`[IncrementalSyncManager] Syncing ${changes.length} changes`)
+        console.log(
+          `[IncrementalSyncManager] Syncing ${changes.length} changes`,
+        );
       }
 
       // Send changes to server
-      const result = await this.sendChanges(changes)
+      const result = await this.sendChanges(changes);
 
       // Fetch remote changes from server
-      const remoteChanges = await this.fetchRemoteChanges()
+      const remoteChanges = await this.fetchRemoteChanges();
 
       // Handle server response
       if (result.conflicts && result.conflicts.length > 0) {
-        await this.resolveConflicts(result.conflicts)
+        await this.resolveConflicts(result.conflicts);
       }
 
       // Apply remote changes (from server response or fetched)
-      const changesToApply = result.remoteChanges || remoteChanges
+      const changesToApply = result.remoteChanges || remoteChanges;
       if (changesToApply && changesToApply.length > 0) {
-        await this.applyRemoteChanges(changesToApply)
+        await this.applyRemoteChanges(changesToApply);
       }
 
       // Clear synced changes
       changes.forEach((change) => {
-        this.pendingChanges.delete(change.entity)
-      })
+        this.pendingChanges.delete(change.entity);
+      });
 
-      this.lastSyncTime = Date.now()
-      this.stats.successfulSyncs++
+      this.lastSyncTime = Date.now();
+      this.stats.successfulSyncs++;
 
       // Estimate data saved
-      const fullDataSize = this.estimateFullDataSize()
-      const deltaSize = this.estimateDeltaSize(changes)
-      this.stats.dataSaved += fullDataSize - deltaSize
+      const fullDataSize = this.estimateFullDataSize();
+      const deltaSize = this.estimateDeltaSize(changes);
+      this.stats.dataSaved += fullDataSize - deltaSize;
 
       if (this.options.debug) {
-        console.log('[IncrementalSyncManager] Sync completed successfully')
+        console.log("[IncrementalSyncManager] Sync completed successfully");
       }
 
       // Dispatch sync event
       window.dispatchEvent(
-        new CustomEvent('incremental-sync-complete', {
+        new CustomEvent("incremental-sync-complete", {
           detail: { changes, result },
-        })
-      )
+        }),
+      );
     } catch (error) {
-      console.error('[IncrementalSyncManager] Sync failed:', error)
-      this.stats.failedSyncs++
+      console.error("[IncrementalSyncManager] Sync failed:", error);
+      this.stats.failedSyncs++;
 
       // Add to offline queue
       if (!this.isOnline) {
         this.syncQueue.push({
           changes: Array.from(this.pendingChanges.values()),
           timestamp: Date.now(),
-        })
+        });
       }
 
       // Dispatch error event
       window.dispatchEvent(
-        new CustomEvent('incremental-sync-error', {
+        new CustomEvent("incremental-sync-error", {
           detail: { error },
-        })
-      )
+        }),
+      );
 
-      throw error
+      throw error;
     } finally {
-      this.isSyncing = false
+      this.isSyncing = false;
     }
   }
 
@@ -213,13 +217,14 @@ class IncrementalSyncManager {
 
     try {
       // Get backend URL from environment or use default
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9090';
+      const backendUrl =
+        import.meta.env.VITE_BACKEND_URL || "http://localhost:9090";
 
       // Get device ID (generate if not exists)
-      let deviceId = localStorage.getItem('deviceId');
+      let deviceId = localStorage.getItem("deviceId");
       if (!deviceId) {
         deviceId = `device_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        localStorage.setItem('deviceId', deviceId);
+        localStorage.setItem("deviceId", deviceId);
       }
 
       // Group changes by table/entity type
@@ -229,20 +234,22 @@ class IncrementalSyncManager {
       const results = [];
       for (const [tableName, tableChanges] of Object.entries(changesByTable)) {
         const response = await fetch(`${backendUrl}/api/sync/upload`, {
-          method: 'POST',
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({
             tableName,
             deviceId,
             records: tableChanges,
-            timestamp: Date.now()
+            timestamp: Date.now(),
           }),
         });
 
         if (!response.ok) {
-          console.error(`[IncrementalSync] Upload failed for ${tableName}: HTTP ${response.status}`);
+          console.error(
+            `[IncrementalSync] Upload failed for ${tableName}: HTTP ${response.status}`,
+          );
           continue;
         }
 
@@ -250,14 +257,20 @@ class IncrementalSyncManager {
         results.push({ tableName, ...result });
       }
 
-      console.log('[IncrementalSync] Remote sync completed, changes:', changes.length);
+      console.log(
+        "[IncrementalSync] Remote sync completed, changes:",
+        changes.length,
+      );
       return { success: true, results };
-
     } catch (error) {
-      console.error('[IncrementalSync] Remote sync error:', error);
+      console.error("[IncrementalSync] Remote sync error:", error);
       // Fallback to local-only mode on error
-      console.log('[IncrementalSync] Falling back to local-only mode');
-      return { success: true, message: 'Local only (remote sync failed)', error: error.message };
+      console.log("[IncrementalSync] Falling back to local-only mode");
+      return {
+        success: true,
+        message: "Local only (remote sync failed)",
+        error: error.message,
+      };
     }
   }
 
@@ -271,17 +284,17 @@ class IncrementalSyncManager {
 
     for (const change of changes) {
       // Extract table name from entity (e.g., 'notes:123' -> 'notes')
-      const tableName = change.entity.split(':')[0];
+      const tableName = change.entity.split(":")[0];
 
       if (!grouped[tableName]) {
         grouped[tableName] = [];
       }
 
       grouped[tableName].push({
-        id: change.entity.split(':')[1] || change.entity,
+        id: change.entity.split(":")[1] || change.entity,
         operation: change.operation,
         data: change.data,
-        timestamp: change.timestamp
+        timestamp: change.timestamp,
       });
     }
 
@@ -294,52 +307,63 @@ class IncrementalSyncManager {
    */
   async fetchRemoteChanges() {
     try {
-      const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:9090';
+      const backendUrl =
+        import.meta.env.VITE_BACKEND_URL || "http://localhost:9090";
 
-      let deviceId = localStorage.getItem('deviceId');
+      let deviceId = localStorage.getItem("deviceId");
       if (!deviceId) {
         deviceId = `device_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        localStorage.getItem('deviceId', deviceId);
+        localStorage.setItem("deviceId", deviceId);
       }
 
       // Fetch incremental changes for each table
-      const tables = ['notes', 'chat_conversations', 'projects', 'social_posts', 'p2p_messages'];
+      const tables = [
+        "notes",
+        "chat_conversations",
+        "projects",
+        "social_posts",
+        "p2p_messages",
+      ];
       const allChanges = [];
 
       for (const tableName of tables) {
         const response = await fetch(
           `${backendUrl}/api/sync/download/${tableName}?lastSyncedAt=${this.lastSyncTime || 0}&deviceId=${deviceId}`,
           {
-            method: 'GET',
+            method: "GET",
             headers: {
-              'Content-Type': 'application/json',
+              "Content-Type": "application/json",
             },
-          }
+          },
         );
 
         if (!response.ok) {
-          console.warn(`[IncrementalSync] Download failed for ${tableName}: HTTP ${response.status}`);
+          console.warn(
+            `[IncrementalSync] Download failed for ${tableName}: HTTP ${response.status}`,
+          );
           continue;
         }
 
         const result = await response.json();
         if (result.code === 200 && result.data?.records) {
           // Convert server records to change format
-          const changes = result.data.records.map(record => ({
+          const changes = result.data.records.map((record) => ({
             entity: `${tableName}:${record.id}`,
-            operation: record.operation || 'update',
+            operation: record.operation || "update",
             data: record.data || record,
-            timestamp: record.timestamp || record.updated_at
+            timestamp: record.timestamp || record.updated_at,
           }));
           allChanges.push(...changes);
         }
       }
 
-      console.log('[IncrementalSync] Fetched remote changes:', allChanges.length);
+      console.log(
+        "[IncrementalSync] Fetched remote changes:",
+        allChanges.length,
+      );
       return allChanges;
-
     } catch (error) {
-      console.error('[IncrementalSync] Fetch remote changes error:', error);
+      console.error("[IncrementalSync] Fetch remote changes error:", error);
       return [];
     }
   }
@@ -350,17 +374,19 @@ class IncrementalSyncManager {
    */
   async applyRemoteChanges(remoteChanges) {
     for (const change of remoteChanges) {
-      const { entity, operation, data } = change
+      const { entity, operation, data } = change;
 
       // Dispatch event for each change
       window.dispatchEvent(
-        new CustomEvent('remote-change', {
+        new CustomEvent("remote-change", {
           detail: { entity, operation, data },
-        })
-      )
+        }),
+      );
 
       if (this.options.debug) {
-        console.log(`[IncrementalSyncManager] Applied remote change: ${entity} (${operation})`)
+        console.log(
+          `[IncrementalSyncManager] Applied remote change: ${entity} (${operation})`,
+        );
       }
     }
   }
@@ -371,38 +397,40 @@ class IncrementalSyncManager {
    */
   async resolveConflicts(conflicts) {
     if (this.options.debug) {
-      console.log(`[IncrementalSyncManager] Resolving ${conflicts.length} conflicts`)
+      console.log(
+        `[IncrementalSyncManager] Resolving ${conflicts.length} conflicts`,
+      );
     }
 
     for (const conflict of conflicts) {
-      let resolution
+      let resolution;
 
       switch (this.options.conflictResolution) {
-        case 'server-wins':
-          resolution = conflict.serverVersion
-          break
+        case "server-wins":
+          resolution = conflict.serverVersion;
+          break;
 
-        case 'client-wins':
-          resolution = conflict.clientVersion
-          break
+        case "client-wins":
+          resolution = conflict.clientVersion;
+          break;
 
-        case 'manual':
+        case "manual":
           // Dispatch event for manual resolution
-          resolution = await this.requestManualResolution(conflict)
-          break
+          resolution = await this.requestManualResolution(conflict);
+          break;
 
         default:
-          resolution = conflict.serverVersion
+          resolution = conflict.serverVersion;
       }
 
       // Apply resolution
       window.dispatchEvent(
-        new CustomEvent('conflict-resolved', {
+        new CustomEvent("conflict-resolved", {
           detail: { conflict, resolution },
-        })
-      )
+        }),
+      );
 
-      this.stats.conflictsResolved++
+      this.stats.conflictsResolved++;
     }
   }
 
@@ -415,18 +443,18 @@ class IncrementalSyncManager {
     return new Promise((resolve) => {
       // Dispatch event and wait for user decision
       const handler = (event) => {
-        window.removeEventListener('conflict-resolution', handler)
-        resolve(event.detail.resolution)
-      }
+        window.removeEventListener("conflict-resolution", handler);
+        resolve(event.detail.resolution);
+      };
 
-      window.addEventListener('conflict-resolution', handler)
+      window.addEventListener("conflict-resolution", handler);
 
       window.dispatchEvent(
-        new CustomEvent('conflict-needs-resolution', {
+        new CustomEvent("conflict-needs-resolution", {
           detail: { conflict },
-        })
-      )
-    })
+        }),
+      );
+    });
   }
 
   /**
@@ -438,18 +466,20 @@ class IncrementalSyncManager {
    */
   startAutoSync() {
     if (this.syncTimer) {
-      clearInterval(this.syncTimer)
+      clearInterval(this.syncTimer);
     }
 
     this.syncTimer = setInterval(() => {
-      this.syncNow()
-    }, this.options.syncInterval)
+      this.syncNow();
+    }, this.options.syncInterval);
 
     // Initial sync
-    this.syncNow()
+    this.syncNow();
 
     if (this.options.debug) {
-      console.log(`[IncrementalSyncManager] Auto-sync started (interval: ${this.options.syncInterval}ms)`)
+      console.log(
+        `[IncrementalSyncManager] Auto-sync started (interval: ${this.options.syncInterval}ms)`,
+      );
     }
   }
 
@@ -458,11 +488,11 @@ class IncrementalSyncManager {
    */
   stopAutoSync() {
     if (this.syncTimer) {
-      clearInterval(this.syncTimer)
-      this.syncTimer = null
+      clearInterval(this.syncTimer);
+      this.syncTimer = null;
 
       if (this.options.debug) {
-        console.log('[IncrementalSyncManager] Auto-sync stopped')
+        console.log("[IncrementalSyncManager] Auto-sync stopped");
       }
     }
   }
@@ -471,14 +501,14 @@ class IncrementalSyncManager {
    * Debounced sync (prevents too frequent syncs)
    */
   debouncedSync = (() => {
-    let timeout
+    let timeout;
     return () => {
-      clearTimeout(timeout)
+      clearTimeout(timeout);
       timeout = setTimeout(() => {
-        this.syncNow()
-      }, 1000) // 1 second debounce
-    }
-  })()
+        this.syncNow();
+      }, 1000); // 1 second debounce
+    };
+  })();
 
   /**
    * Real-time sync with WebSocket
@@ -488,51 +518,54 @@ class IncrementalSyncManager {
    * Setup WebSocket connection for real-time sync
    */
   setupRealtimeSync() {
-    const wsUrl = this.getWebSocketURL()
+    const wsUrl = this.getWebSocketURL();
 
-    this.websocket = new WebSocket(wsUrl)
+    this.websocket = new WebSocket(wsUrl);
 
     this.websocket.onopen = () => {
       if (this.options.debug) {
-        console.log('[IncrementalSyncManager] WebSocket connected')
+        console.log("[IncrementalSyncManager] WebSocket connected");
       }
-    }
+    };
 
     this.websocket.onmessage = (event) => {
       try {
-        const message = JSON.parse(event.data)
+        const message = JSON.parse(event.data);
 
-        if (message.type === 'change') {
-          this.applyRemoteChanges([message.data])
+        if (message.type === "change") {
+          this.applyRemoteChanges([message.data]);
         }
       } catch (error) {
-        console.error('[IncrementalSyncManager] WebSocket message error:', error)
+        console.error(
+          "[IncrementalSyncManager] WebSocket message error:",
+          error,
+        );
       }
-    }
+    };
 
     this.websocket.onerror = (error) => {
-      console.error('[IncrementalSyncManager] WebSocket error:', error)
-    }
+      console.error("[IncrementalSyncManager] WebSocket error:", error);
+    };
 
     this.websocket.onclose = () => {
       if (this.options.debug) {
-        console.log('[IncrementalSyncManager] WebSocket disconnected')
+        console.log("[IncrementalSyncManager] WebSocket disconnected");
       }
 
       // Attempt reconnect after delay
       setTimeout(() => {
-        this.setupRealtimeSync()
-      }, 5000)
-    }
+        this.setupRealtimeSync();
+      }, 5000);
+    };
   }
 
   /**
    * Get WebSocket URL
    */
   getWebSocketURL() {
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-    const host = window.location.host
-    return `${protocol}//${host}/ws/sync`
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const host = window.location.host;
+    return `${protocol}//${host}/ws/sync`;
   }
 
   /**
@@ -544,7 +577,7 @@ class IncrementalSyncManager {
    */
   estimateFullDataSize() {
     // Rough estimate: assume 10KB per entity
-    return this.pendingChanges.size * 10 * 1024
+    return this.pendingChanges.size * 10 * 1024;
   }
 
   /**
@@ -552,8 +585,8 @@ class IncrementalSyncManager {
    */
   estimateDeltaSize(changes) {
     // Estimate based on actual change data
-    const json = JSON.stringify(changes)
-    return new Blob([json]).size
+    const json = JSON.stringify(changes);
+    return new Blob([json]).size;
   }
 
   /**
@@ -568,18 +601,18 @@ class IncrementalSyncManager {
       isOnline: this.isOnline,
       lastSyncTime: this.lastSyncTime,
       dataSavedMB: Math.round(this.stats.dataSaved / 1024 / 1024),
-    }
+    };
   }
 
   /**
    * Clear all pending changes
    */
   clear() {
-    this.pendingChanges.clear()
-    this.syncQueue = []
+    this.pendingChanges.clear();
+    this.syncQueue = [];
 
     if (this.options.debug) {
-      console.log('[IncrementalSyncManager] Cleared all pending changes')
+      console.log("[IncrementalSyncManager] Cleared all pending changes");
     }
   }
 
@@ -587,48 +620,48 @@ class IncrementalSyncManager {
    * Destroy and cleanup
    */
   destroy() {
-    this.stopAutoSync()
+    this.stopAutoSync();
 
     if (this.websocket) {
-      this.websocket.close()
-      this.websocket = null
+      this.websocket.close();
+      this.websocket = null;
     }
 
-    this.clear()
+    this.clear();
 
     if (this.options.debug) {
-      console.log('[IncrementalSyncManager] Destroyed')
+      console.log("[IncrementalSyncManager] Destroyed");
     }
   }
 }
 
 // Singleton instance
-let managerInstance = null
+let managerInstance = null;
 
 /**
  * Get or create incremental sync manager instance
  */
 export function getIncrementalSyncManager(options) {
   if (!managerInstance) {
-    managerInstance = new IncrementalSyncManager(options)
+    managerInstance = new IncrementalSyncManager(options);
   }
-  return managerInstance
+  return managerInstance;
 }
 
 /**
  * Convenience function: track a change
  */
 export function trackChange(entity, operation, data) {
-  const manager = getIncrementalSyncManager()
-  return manager.trackChange(entity, operation, data)
+  const manager = getIncrementalSyncManager();
+  return manager.trackChange(entity, operation, data);
 }
 
 /**
  * Convenience function: sync now
  */
 export async function syncNow(options) {
-  const manager = getIncrementalSyncManager()
-  return manager.syncNow(options)
+  const manager = getIncrementalSyncManager();
+  return manager.syncNow(options);
 }
 
-export default IncrementalSyncManager
+export default IncrementalSyncManager;

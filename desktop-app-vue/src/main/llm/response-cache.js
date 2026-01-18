@@ -12,7 +12,7 @@
  * @module response-cache
  */
 
-const crypto = require('crypto');
+const crypto = require("crypto");
 
 /**
  * 计算缓存键（SHA-256 哈希）
@@ -28,7 +28,7 @@ function calculateCacheKey(provider, model, messages) {
     messages,
   });
 
-  return crypto.createHash('sha256').update(payload).digest('hex');
+  return crypto.createHash("sha256").update(payload).digest("hex");
 }
 
 class ResponseCache {
@@ -57,7 +57,7 @@ class ResponseCache {
       expirations: 0,
     };
 
-    console.log('[ResponseCache] 初始化完成，配置:', {
+    console.log("[ResponseCache] 初始化完成，配置:", {
       TTL: `${this.ttl / 1000 / 60 / 60 / 24} 天`,
       最大条目数: this.maxSize,
       自动清理: this.enableAutoCleanup,
@@ -83,11 +83,15 @@ class ResponseCache {
       const now = Date.now();
 
       // 查询缓存
-      const cached = this.db.prepare(`
+      const cached = this.db
+        .prepare(
+          `
         SELECT id, response_content, response_tokens, hit_count, tokens_saved, expires_at
         FROM llm_cache
         WHERE cache_key = ?
-      `).get(cacheKey);
+      `,
+        )
+        .get(cacheKey);
 
       if (!cached) {
         this.stats.misses++;
@@ -96,7 +100,7 @@ class ResponseCache {
 
       // 检查是否过期
       if (cached.expires_at < now) {
-        console.log('[ResponseCache] 缓存已过期，删除');
+        console.log("[ResponseCache] 缓存已过期，删除");
         this._deleteCache(cached.id);
         this.stats.expirations++;
         this.stats.misses++;
@@ -104,11 +108,18 @@ class ResponseCache {
       }
 
       // 更新命中统计
-      this._updateHitStats(cached.id, cached.hit_count, cached.tokens_saved, cached.response_tokens);
+      this._updateHitStats(
+        cached.id,
+        cached.hit_count,
+        cached.tokens_saved,
+        cached.response_tokens,
+      );
 
       this.stats.hits++;
 
-      console.log(`[ResponseCache] 缓存命中! 节省 ${cached.response_tokens} tokens`);
+      console.log(
+        `[ResponseCache] 缓存命中! 节省 ${cached.response_tokens} tokens`,
+      );
 
       // 解析响应
       const response = JSON.parse(cached.response_content);
@@ -119,9 +130,8 @@ class ResponseCache {
         tokensSaved: cached.response_tokens || 0,
         cacheAge: now - (cached.expires_at - this.ttl), // 缓存年龄
       };
-
     } catch (error) {
-      console.error('[ResponseCache] 获取缓存失败:', error);
+      console.error("[ResponseCache] 获取缓存失败:", error);
       this.stats.misses++;
       return { hit: false };
     }
@@ -143,9 +153,10 @@ class ResponseCache {
       const expiresAt = now + this.ttl;
 
       // 估算 Token 数
-      const responseTokens = response.usage?.total_tokens
-        || response.tokens
-        || this._estimateTokens(response.text || response.content || '');
+      const responseTokens =
+        response.usage?.total_tokens ||
+        response.tokens ||
+        this._estimateTokens(response.text || response.content || "");
 
       // 检查缓存大小，如果超过限制则执行 LRU 淘汰
       await this._enforceMaxSize();
@@ -153,37 +164,41 @@ class ResponseCache {
       // 插入或更新缓存
       const id = `cache_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-      this.db.prepare(`
+      this.db
+        .prepare(
+          `
         INSERT OR REPLACE INTO llm_cache (
-          id, cache_key, provider, model, messages,
+          id, cache_key, provider, model, request_messages,
           response_content, response_tokens,
-          hit_count, tokens_saved, cost_saved_usd,
-          created_at, expires_at, last_hit_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(
-        id,
-        cacheKey,
-        provider,
-        model,
-        JSON.stringify(messages),
-        JSON.stringify(response),
-        responseTokens,
-        0, // hit_count
-        0, // tokens_saved
-        0, // cost_saved_usd
-        now,
-        expiresAt,
-        null
-      );
+          hit_count, tokens_saved,
+          created_at, expires_at, last_accessed_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `,
+        )
+        .run(
+          id,
+          cacheKey,
+          provider,
+          model,
+          JSON.stringify(messages),
+          JSON.stringify(response),
+          responseTokens,
+          0, // hit_count
+          0, // tokens_saved
+          now,
+          expiresAt,
+          now,
+        );
 
       this.stats.sets++;
 
-      console.log(`[ResponseCache] 缓存已保存: ${provider}/${model}, tokens: ${responseTokens}, 过期时间: ${new Date(expiresAt).toLocaleString()}`);
+      console.log(
+        `[ResponseCache] 缓存已保存: ${provider}/${model}, tokens: ${responseTokens}, 过期时间: ${new Date(expiresAt).toLocaleString()}`,
+      );
 
       return true;
-
     } catch (error) {
-      console.error('[ResponseCache] 保存缓存失败:', error);
+      console.error("[ResponseCache] 保存缓存失败:", error);
       return false;
     }
   }
@@ -194,7 +209,7 @@ class ResponseCache {
    */
   async clear() {
     try {
-      const result = this.db.prepare('DELETE FROM llm_cache').run();
+      const result = this.db.prepare("DELETE FROM llm_cache").run();
       const deletedCount = result.changes || 0;
 
       console.log(`[ResponseCache] 已清除所有缓存: ${deletedCount} 条`);
@@ -209,9 +224,8 @@ class ResponseCache {
       };
 
       return deletedCount;
-
     } catch (error) {
-      console.error('[ResponseCache] 清除缓存失败:', error);
+      console.error("[ResponseCache] 清除缓存失败:", error);
       return 0;
     }
   }
@@ -224,10 +238,14 @@ class ResponseCache {
     try {
       const now = Date.now();
 
-      const result = this.db.prepare(`
+      const result = this.db
+        .prepare(
+          `
         DELETE FROM llm_cache
         WHERE expires_at < ?
-      `).run(now);
+      `,
+        )
+        .run(now);
 
       const deletedCount = result.changes || 0;
 
@@ -237,9 +255,8 @@ class ResponseCache {
       }
 
       return deletedCount;
-
     } catch (error) {
-      console.error('[ResponseCache] 清除过期缓存失败:', error);
+      console.error("[ResponseCache] 清除过期缓存失败:", error);
       return 0;
     }
   }
@@ -251,26 +268,34 @@ class ResponseCache {
   async getStats() {
     try {
       // 查询数据库统计
-      const dbStats = this.db.prepare(`
+      const dbStats = this.db
+        .prepare(
+          `
         SELECT
           COUNT(*) as total_entries,
           SUM(hit_count) as total_hits,
           SUM(tokens_saved) as total_tokens_saved,
-          SUM(cost_saved_usd) as total_cost_saved,
           AVG(hit_count) as avg_hits_per_entry
         FROM llm_cache
-      `).get();
+      `,
+        )
+        .get();
 
       const now = Date.now();
-      const expiredCount = this.db.prepare(`
+      const expiredCount = this.db
+        .prepare(
+          `
         SELECT COUNT(*) as count
         FROM llm_cache
         WHERE expires_at < ?
-      `).get(now);
+      `,
+        )
+        .get(now);
 
       // 计算命中率
       const totalRequests = this.stats.hits + this.stats.misses;
-      const hitRate = totalRequests > 0 ? (this.stats.hits / totalRequests) * 100 : 0;
+      const hitRate =
+        totalRequests > 0 ? (this.stats.hits / totalRequests) * 100 : 0;
 
       return {
         // 运行时统计
@@ -280,7 +305,7 @@ class ResponseCache {
           sets: this.stats.sets,
           evictions: this.stats.evictions,
           expirations: this.stats.expirations,
-          hitRate: hitRate.toFixed(2) + '%',
+          hitRate: hitRate.toFixed(2) + "%",
         },
         // 数据库统计
         database: {
@@ -288,7 +313,6 @@ class ResponseCache {
           expiredEntries: expiredCount.count || 0,
           totalHits: dbStats.total_hits || 0,
           totalTokensSaved: dbStats.total_tokens_saved || 0,
-          totalCostSaved: (dbStats.total_cost_saved || 0).toFixed(4),
           avgHitsPerEntry: (dbStats.avg_hits_per_entry || 0).toFixed(2),
         },
         // 配置
@@ -298,9 +322,8 @@ class ResponseCache {
           autoCleanup: this.enableAutoCleanup,
         },
       };
-
     } catch (error) {
-      console.error('[ResponseCache] 获取统计信息失败:', error);
+      console.error("[ResponseCache] 获取统计信息失败:", error);
       return null;
     }
   }
@@ -311,28 +334,29 @@ class ResponseCache {
    */
   async getStatsByProvider() {
     try {
-      const stats = this.db.prepare(`
+      const stats = this.db
+        .prepare(
+          `
         SELECT
           provider,
           COUNT(*) as entries,
           SUM(hit_count) as hits,
-          SUM(tokens_saved) as tokens_saved,
-          SUM(cost_saved_usd) as cost_saved
+          SUM(tokens_saved) as tokens_saved
         FROM llm_cache
         GROUP BY provider
         ORDER BY entries DESC
-      `).all();
+      `,
+        )
+        .all();
 
-      return stats.map(stat => ({
+      return stats.map((stat) => ({
         provider: stat.provider,
         entries: stat.entries,
         hits: stat.hits || 0,
         tokensSaved: stat.tokens_saved || 0,
-        costSaved: (stat.cost_saved || 0).toFixed(4),
       }));
-
     } catch (error) {
-      console.error('[ResponseCache] 获取提供商统计失败:', error);
+      console.error("[ResponseCache] 获取提供商统计失败:", error);
       return [];
     }
   }
@@ -341,26 +365,34 @@ class ResponseCache {
    * 更新命中统计（私有方法）
    * @private
    */
-  _updateHitStats(cacheId, currentHitCount, currentTokensSaved, responseTokens) {
+  _updateHitStats(
+    cacheId,
+    currentHitCount,
+    currentTokensSaved,
+    responseTokens,
+  ) {
     try {
       const now = Date.now();
 
-      this.db.prepare(`
+      this.db
+        .prepare(
+          `
         UPDATE llm_cache
         SET
           hit_count = ?,
           tokens_saved = ?,
-          last_hit_at = ?
+          last_accessed_at = ?
         WHERE id = ?
-      `).run(
-        currentHitCount + 1,
-        currentTokensSaved + responseTokens,
-        now,
-        cacheId
-      );
-
+      `,
+        )
+        .run(
+          currentHitCount + 1,
+          currentTokensSaved + responseTokens,
+          now,
+          cacheId,
+        );
     } catch (error) {
-      console.error('[ResponseCache] 更新命中统计失败:', error);
+      console.error("[ResponseCache] 更新命中统计失败:", error);
     }
   }
 
@@ -370,9 +402,9 @@ class ResponseCache {
    */
   _deleteCache(cacheId) {
     try {
-      this.db.prepare('DELETE FROM llm_cache WHERE id = ?').run(cacheId);
+      this.db.prepare("DELETE FROM llm_cache WHERE id = ?").run(cacheId);
     } catch (error) {
-      console.error('[ResponseCache] 删除缓存失败:', error);
+      console.error("[ResponseCache] 删除缓存失败:", error);
     }
   }
 
@@ -383,31 +415,38 @@ class ResponseCache {
   async _enforceMaxSize() {
     try {
       // 查询当前缓存数量
-      const count = this.db.prepare('SELECT COUNT(*) as count FROM llm_cache').get();
+      const count = this.db
+        .prepare("SELECT COUNT(*) as count FROM llm_cache")
+        .get();
 
       if (count.count >= this.maxSize) {
         // 计算需要删除的条目数
         const toDelete = count.count - this.maxSize + 1;
 
-        console.log(`[ResponseCache] 缓存已满 (${count.count}/${this.maxSize})，执行 LRU 淘汰: ${toDelete} 条`);
+        console.log(
+          `[ResponseCache] 缓存已满 (${count.count}/${this.maxSize})，执行 LRU 淘汰: ${toDelete} 条`,
+        );
 
-        // 删除最久未使用的条目（按 last_hit_at 排序，NULL 视为最旧）
-        this.db.prepare(`
+        // 删除最久未使用的条目（按 last_accessed_at 排序，NULL 视为最旧）
+        this.db
+          .prepare(
+            `
           DELETE FROM llm_cache
           WHERE id IN (
             SELECT id FROM llm_cache
             ORDER BY
-              CASE WHEN last_hit_at IS NULL THEN 0 ELSE last_hit_at END ASC,
+              CASE WHEN last_accessed_at IS NULL THEN 0 ELSE last_accessed_at END ASC,
               created_at ASC
             LIMIT ?
           )
-        `).run(toDelete);
+        `,
+          )
+          .run(toDelete);
 
         this.stats.evictions += toDelete;
       }
-
     } catch (error) {
-      console.error('[ResponseCache] LRU 淘汰失败:', error);
+      console.error("[ResponseCache] LRU 淘汰失败:", error);
     }
   }
 
@@ -429,12 +468,18 @@ class ResponseCache {
    * @private
    */
   _startAutoCleanup() {
-    console.log('[ResponseCache] 启动自动清理任务，间隔:', this.cleanupInterval / 1000 / 60, '分钟');
+    console.log(
+      "[ResponseCache] 启动自动清理任务，间隔:",
+      this.cleanupInterval / 1000 / 60,
+      "分钟",
+    );
 
     this.cleanupTimer = setInterval(async () => {
-      console.log('[ResponseCache] 执行定时清理...');
+      console.log("[ResponseCache] 执行定时清理...");
       const deletedCount = await this.clearExpired();
-      console.log(`[ResponseCache] 定时清理完成，清除 ${deletedCount} 条过期缓存`);
+      console.log(
+        `[ResponseCache] 定时清理完成，清除 ${deletedCount} 条过期缓存`,
+      );
     }, this.cleanupInterval);
 
     // 立即执行一次清理
@@ -448,7 +493,7 @@ class ResponseCache {
     if (this.cleanupTimer) {
       clearInterval(this.cleanupTimer);
       this.cleanupTimer = null;
-      console.log('[ResponseCache] 自动清理任务已停止');
+      console.log("[ResponseCache] 自动清理任务已停止");
     }
   }
 
@@ -457,7 +502,7 @@ class ResponseCache {
    */
   destroy() {
     this.stopAutoCleanup();
-    console.log('[ResponseCache] 缓存实例已销毁');
+    console.log("[ResponseCache] 缓存实例已销毁");
   }
 }
 

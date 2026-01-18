@@ -2,9 +2,10 @@
  * 项目统计收集器
  * 功能：实时收集项目统计数据
  */
-const chokidar = require('chokidar');
-const fs = require('fs-extra');
-const path = require('path');
+const chokidar = require("chokidar");
+const fs = require("fs-extra");
+const path = require("path");
+const { v4: uuidv4 } = require("uuid");
 
 class ProjectStatsCollector {
   constructor(db) {
@@ -23,34 +24,44 @@ class ProjectStatsCollector {
       this.stopWatching(projectId);
     }
 
-    console.log(`[StatsCollector] 开始监听项目: ${projectId} at ${projectPath}`);
+    console.log(
+      `[StatsCollector] 开始监听项目: ${projectId} at ${projectPath}`,
+    );
 
     const watcher = chokidar.watch(projectPath, {
       ignored: [
-        /(^|[\/\\])\../, // 隐藏文件
+        /(^|[/\\])\./, // 隐藏文件
         /node_modules/,
         /dist/,
         /build/,
-        /\.git/
+        /\.git/,
       ],
       persistent: true,
       ignoreInitial: false,
       awaitWriteFinish: {
         stabilityThreshold: 2000,
-        pollInterval: 100
-      }
+        pollInterval: 100,
+      },
     });
 
     watcher
-      .on('add', filePath => this.scheduleUpdate(projectId, 'file_added', filePath))
-      .on('change', filePath => this.scheduleUpdate(projectId, 'file_changed', filePath))
-      .on('unlink', filePath => this.scheduleUpdate(projectId, 'file_deleted', filePath))
-      .on('error', error => console.error(`[StatsCollector] 监听错误:`, error));
+      .on("add", (filePath) =>
+        this.scheduleUpdate(projectId, "file_added", filePath),
+      )
+      .on("change", (filePath) =>
+        this.scheduleUpdate(projectId, "file_changed", filePath),
+      )
+      .on("unlink", (filePath) =>
+        this.scheduleUpdate(projectId, "file_deleted", filePath),
+      )
+      .on("error", (error) =>
+        console.error(`[StatsCollector] 监听错误:`, error),
+      );
 
     this.watchers.set(projectId, watcher);
 
     // 初始统计
-    this.scheduleUpdate(projectId, 'initial', projectPath);
+    this.scheduleUpdate(projectId, "initial", projectPath);
   }
 
   /**
@@ -85,13 +96,23 @@ class ProjectStatsCollector {
         return;
       }
 
-      // 更新project_stats表
+      // 更新project_stats表 (使用 UPSERT 保留 created_at)
+      const now = Date.now();
       const stmt = this.db.prepare(`
-        INSERT OR REPLACE INTO project_stats (
+        INSERT INTO project_stats (
           project_id, file_count, total_size_kb,
           code_lines, comment_lines, blank_lines,
-          contributor_count, last_updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+          contributor_count, last_updated_at, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(project_id) DO UPDATE SET
+          file_count = excluded.file_count,
+          total_size_kb = excluded.total_size_kb,
+          code_lines = excluded.code_lines,
+          comment_lines = excluded.comment_lines,
+          blank_lines = excluded.blank_lines,
+          contributor_count = excluded.contributor_count,
+          last_updated_at = excluded.last_updated_at,
+          updated_at = excluded.updated_at
       `);
 
       stmt.run(
@@ -102,31 +123,39 @@ class ProjectStatsCollector {
         stats.commentLines,
         stats.blankLines,
         stats.contributorCount || 1,
-        Date.now()
+        now,
+        now,
+        now,
       );
 
       // 记录日志（仅记录重要事件）
-      if (event === 'initial' || event === 'file_added' || event === 'file_deleted') {
+      if (
+        event === "initial" ||
+        event === "file_added" ||
+        event === "file_deleted"
+      ) {
         const logStmt = this.db.prepare(`
           INSERT INTO project_logs (
-            project_id, event_type, event_data, created_at
-          ) VALUES (?, ?, ?, ?)
+            id, project_id, log_level, category, message, details, created_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?)
         `);
 
         logStmt.run(
+          uuidv4(),
           projectId,
-          event,
+          "info",
+          "stats",
+          `Stats event: ${event}`,
           JSON.stringify({
             filePath,
             fileCount: stats.fileCount,
-            codeLines: stats.codeLines
+            codeLines: stats.codeLines,
           }),
-          Date.now()
+          Date.now(),
         );
       }
 
       console.log(`[StatsCollector] 统计更新完成:`, stats);
-
     } catch (error) {
       console.error(`[StatsCollector] 统计更新失败:`, error);
     }
@@ -137,7 +166,9 @@ class ProjectStatsCollector {
    */
   async calculateStats(projectId) {
     try {
-      const project = this.db.prepare('SELECT root_path FROM projects WHERE id = ?').get(projectId);
+      const project = this.db
+        .prepare("SELECT root_path FROM projects WHERE id = ?")
+        .get(projectId);
 
       if (!project || !project.root_path) {
         console.warn(`[StatsCollector] 项目不存在或无路径: ${projectId}`);
@@ -147,7 +178,7 @@ class ProjectStatsCollector {
       const projectPath = project.root_path;
 
       // 检查路径是否存在
-      if (!await fs.pathExists(projectPath)) {
+      if (!(await fs.pathExists(projectPath))) {
         console.warn(`[StatsCollector] 项目路径不存在: ${projectPath}`);
         return null;
       }
@@ -159,7 +190,7 @@ class ProjectStatsCollector {
         commentLines: 0,
         blankLines: 0,
         contributorCount: 1,
-        fileTypes: {} // 统计文件类型
+        fileTypes: {}, // 统计文件类型
       };
 
       // 递归遍历文件
@@ -209,11 +240,13 @@ class ProjectStatsCollector {
 
           if (stat.isDirectory()) {
             // 跳过特定目录
-            if (!item.startsWith('.') &&
-                item !== 'node_modules' &&
-                item !== 'dist' &&
-                item !== 'build' &&
-                item !== '__pycache__') {
+            if (
+              !item.startsWith(".") &&
+              item !== "node_modules" &&
+              item !== "dist" &&
+              item !== "build" &&
+              item !== "__pycache__"
+            ) {
               await this.getAllFiles(fullPath, files);
             }
           } else if (stat.isFile()) {
@@ -236,8 +269,8 @@ class ProjectStatsCollector {
    */
   async analyzeCodeLines(filePath) {
     try {
-      const content = await fs.readFile(filePath, 'utf-8');
-      const lines = content.split('\n');
+      const content = await fs.readFile(filePath, "utf-8");
+      const lines = content.split("\n");
 
       let stats = { code: 0, comment: 0, blank: 0 };
       let inBlockComment = false;
@@ -246,14 +279,22 @@ class ProjectStatsCollector {
       for (const line of lines) {
         const trimmed = line.trim();
 
-        if (trimmed === '') {
+        if (trimmed === "") {
           stats.blank++;
         } else if (this.isCommentLine(trimmed, ext, inBlockComment)) {
           stats.comment++;
           // 检查块注释状态
-          if (ext === '.js' || ext === '.ts' || ext === '.vue' || ext === '.css' || ext === '.java' || ext === '.c' || ext === '.cpp') {
-            if (trimmed.includes('/*')) inBlockComment = true;
-            if (trimmed.includes('*/')) inBlockComment = false;
+          if (
+            ext === ".js" ||
+            ext === ".ts" ||
+            ext === ".vue" ||
+            ext === ".css" ||
+            ext === ".java" ||
+            ext === ".c" ||
+            ext === ".cpp"
+          ) {
+            if (trimmed.includes("/*")) inBlockComment = true;
+            if (trimmed.includes("*/")) inBlockComment = false;
           }
         } else {
           stats.code++;
@@ -274,23 +315,33 @@ class ProjectStatsCollector {
     if (inBlockComment) return true;
 
     // JavaScript/TypeScript/Vue/Java/C/C++
-    if (['.js', '.ts', '.vue', '.java', '.c', '.cpp', '.go', '.rs'].includes(ext)) {
-      return trimmed.startsWith('//') || trimmed.startsWith('/*') || trimmed.startsWith('*');
+    if (
+      [".js", ".ts", ".vue", ".java", ".c", ".cpp", ".go", ".rs"].includes(ext)
+    ) {
+      return (
+        trimmed.startsWith("//") ||
+        trimmed.startsWith("/*") ||
+        trimmed.startsWith("*")
+      );
     }
 
     // Python
-    if (ext === '.py') {
-      return trimmed.startsWith('#') || trimmed.startsWith('"""') || trimmed.startsWith("'''");
+    if (ext === ".py") {
+      return (
+        trimmed.startsWith("#") ||
+        trimmed.startsWith('"""') ||
+        trimmed.startsWith("'''")
+      );
     }
 
     // HTML/XML
-    if (['.html', '.xml', '.svg'].includes(ext)) {
-      return trimmed.startsWith('<!--');
+    if ([".html", ".xml", ".svg"].includes(ext)) {
+      return trimmed.startsWith("<!--");
     }
 
     // CSS
-    if (['.css', '.scss', '.less'].includes(ext)) {
-      return trimmed.startsWith('/*');
+    if ([".css", ".scss", ".less"].includes(ext)) {
+      return trimmed.startsWith("/*");
     }
 
     return false;
@@ -301,11 +352,32 @@ class ProjectStatsCollector {
    */
   isCodeFile(filePath) {
     const codeExtensions = [
-      '.js', '.ts', '.jsx', '.tsx', '.vue',
-      '.py', '.java', '.go', '.rs', '.c', '.cpp', '.h', '.hpp',
-      '.html', '.css', '.scss', '.less', '.sass',
-      '.json', '.md', '.yaml', '.yml', '.toml',
-      '.sh', '.bash', '.sql'
+      ".js",
+      ".ts",
+      ".jsx",
+      ".tsx",
+      ".vue",
+      ".py",
+      ".java",
+      ".go",
+      ".rs",
+      ".c",
+      ".cpp",
+      ".h",
+      ".hpp",
+      ".html",
+      ".css",
+      ".scss",
+      ".less",
+      ".sass",
+      ".json",
+      ".md",
+      ".yaml",
+      ".yml",
+      ".toml",
+      ".sh",
+      ".bash",
+      ".sql",
     ];
 
     const ext = path.extname(filePath).toLowerCase();
@@ -345,18 +417,24 @@ class ProjectStatsCollector {
    */
   getStats(projectId) {
     try {
-      const stats = this.db.prepare(`
+      const stats = this.db
+        .prepare(
+          `
         SELECT * FROM project_stats WHERE project_id = ?
-      `).get(projectId);
+      `,
+        )
+        .get(projectId);
 
-      return stats || {
-        file_count: 0,
-        total_size_kb: 0,
-        code_lines: 0,
-        comment_lines: 0,
-        blank_lines: 0,
-        contributor_count: 0
-      };
+      return (
+        stats || {
+          file_count: 0,
+          total_size_kb: 0,
+          code_lines: 0,
+          comment_lines: 0,
+          blank_lines: 0,
+          contributor_count: 0,
+        }
+      );
     } catch (error) {
       console.error(`[StatsCollector] 获取统计失败:`, error);
       return null;
@@ -381,5 +459,5 @@ function getStatsCollector(db) {
 
 module.exports = {
   ProjectStatsCollector,
-  getStatsCollector
+  getStatsCollector,
 };
