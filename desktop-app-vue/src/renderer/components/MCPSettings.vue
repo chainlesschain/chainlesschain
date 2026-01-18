@@ -1264,6 +1264,8 @@ const handleConnect = async (server) => {
   } catch (error) {
     console.error(`连接 ${server.name} 失败:`, error);
     message.error(`连接失败: ${error.message}`);
+    // Refresh server list to sync error state from backend
+    await loadConnectedServers();
   } finally {
     connectingServers.value.delete(server.id);
   }
@@ -1358,6 +1360,18 @@ const showServerTools = async (server) => {
   selectedServer.value = server;
 
   try {
+    // Refresh server status first to ensure we have current state
+    await loadConnectedServers();
+
+    // Check if server is still connected
+    const currentServer = connectedServers.value.find(
+      (s) => s.name === server.id,
+    );
+    if (!currentServer || currentServer.state !== "connected") {
+      message.warning(`服务器 ${server.name} 未连接，请先连接服务器`);
+      return;
+    }
+
     const result = await window.electronAPI.invoke("mcp:list-tools", {
       serverName: server.id,
     });
@@ -1371,6 +1385,8 @@ const showServerTools = async (server) => {
   } catch (error) {
     console.error("加载工具列表失败:", error);
     message.error("加载工具列表失败: " + error.message);
+    // Refresh server list to sync state
+    await loadConnectedServers();
   }
 };
 
