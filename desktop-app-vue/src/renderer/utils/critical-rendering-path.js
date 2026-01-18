@@ -30,7 +30,7 @@ export class CriticalCSSManager {
       debug: options.debug || false,
     };
 
-    this.criticalCSS = '';
+    this.criticalCSS = "";
     this.deferredCSS = [];
   }
 
@@ -54,16 +54,18 @@ export class CriticalCSSManager {
         }
       });
 
-      this.criticalCSS = criticalRules.join('\n');
+      this.criticalCSS = criticalRules.join("\n");
 
       if (this.options.debug) {
-        console.log(`[CriticalCSS] Extracted ${criticalRules.length} critical rules`);
+        console.log(
+          `[CriticalCSS] Extracted ${criticalRules.length} critical rules`,
+        );
       }
 
       return this.criticalCSS;
     } catch (error) {
-      console.error('[CriticalCSS] Extraction failed:', error);
-      return '';
+      console.error("[CriticalCSS] Extraction failed:", error);
+      return "";
     }
   }
 
@@ -82,9 +84,9 @@ export class CriticalCSSManager {
   inlineCriticalCSS() {
     if (!this.criticalCSS) return;
 
-    const style = document.createElement('style');
+    const style = document.createElement("style");
     style.textContent = this.criticalCSS;
-    style.setAttribute('data-critical', 'true');
+    style.setAttribute("data-critical", "true");
 
     // Insert at the beginning of head
     const firstLink = document.head.querySelector('link[rel="stylesheet"]');
@@ -95,7 +97,7 @@ export class CriticalCSSManager {
     }
 
     if (this.options.debug) {
-      console.log('[CriticalCSS] Inlined critical CSS');
+      console.log("[CriticalCSS] Inlined critical CSS");
     }
   }
 
@@ -103,14 +105,14 @@ export class CriticalCSSManager {
    * Lazy load non-critical CSS
    */
   loadNonCriticalCSS(href) {
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
     link.href = href;
-    link.media = 'print'; // Initially set to print media
+    link.media = "print"; // Initially set to print media
 
     link.onload = () => {
       // Once loaded, switch to all media
-      link.media = 'all';
+      link.media = "all";
 
       if (this.options.debug) {
         console.log(`[CriticalCSS] Loaded non-critical CSS: ${href}`);
@@ -121,7 +123,7 @@ export class CriticalCSSManager {
 
     // Fallback for browsers without onload support
     setTimeout(() => {
-      link.media = 'all';
+      link.media = "all";
     }, 3000);
   }
 
@@ -129,7 +131,9 @@ export class CriticalCSSManager {
    * Defer all non-critical stylesheets
    */
   deferNonCriticalCSS() {
-    const stylesheets = document.querySelectorAll('link[rel="stylesheet"]:not([data-critical])');
+    const stylesheets = document.querySelectorAll(
+      'link[rel="stylesheet"]:not([data-critical])',
+    );
 
     stylesheets.forEach((link) => {
       if (link.href) {
@@ -152,7 +156,7 @@ export class FontOptimizationManager {
   constructor(options = {}) {
     this.options = {
       // Font display strategy
-      fontDisplay: options.fontDisplay || 'swap',
+      fontDisplay: options.fontDisplay || "swap",
 
       // Fonts to preload
       preloadFonts: options.preloadFonts || [],
@@ -170,12 +174,12 @@ export class FontOptimizationManager {
    */
   preloadFonts(fonts = this.options.preloadFonts) {
     fonts.forEach((font) => {
-      const link = document.createElement('link');
-      link.rel = 'preload';
-      link.as = 'font';
-      link.type = font.type || 'font/woff2';
+      const link = document.createElement("link");
+      link.rel = "preload";
+      link.as = "font";
+      link.type = font.type || "font/woff2";
       link.href = font.href;
-      link.crossOrigin = 'anonymous';
+      link.crossOrigin = "anonymous";
 
       document.head.appendChild(link);
 
@@ -206,7 +210,9 @@ export class FontOptimizationManager {
               rule.style.fontDisplay = this.options.fontDisplay;
 
               if (this.options.debug) {
-                console.log(`[FontOptimization] Applied font-display: ${this.options.fontDisplay}`);
+                console.log(
+                  `[FontOptimization] Applied font-display: ${this.options.fontDisplay}`,
+                );
               }
             }
           }
@@ -214,7 +220,10 @@ export class FontOptimizationManager {
       } catch (error) {
         // Cross-origin stylesheets might throw errors
         if (this.options.debug) {
-          console.warn('[FontOptimization] Could not access stylesheet:', error);
+          console.warn(
+            "[FontOptimization] Could not access stylesheet:",
+            error,
+          );
         }
       }
     }
@@ -224,20 +233,30 @@ export class FontOptimizationManager {
    * Use system fonts for initial render
    */
   useSystemFonts() {
+    // 确保 document.body 存在
+    if (!document.body) {
+      if (this.options.debug) {
+        console.log(
+          "[FontOptimization] document.body not ready, skipping system fonts",
+        );
+      }
+      return;
+    }
+
     const systemFontStack = [
-      '-apple-system',
-      'BlinkMacSystemFont',
+      "-apple-system",
+      "BlinkMacSystemFont",
       '"Segoe UI"',
-      'Roboto',
+      "Roboto",
       '"Helvetica Neue"',
-      'Arial',
-      'sans-serif',
-    ].join(', ');
+      "Arial",
+      "sans-serif",
+    ].join(", ");
 
     document.body.style.fontFamily = systemFontStack;
 
     if (this.options.debug) {
-      console.log('[FontOptimization] Using system fonts for initial render');
+      console.log("[FontOptimization] Using system fonts for initial render");
     }
   }
 
@@ -245,7 +264,7 @@ export class FontOptimizationManager {
    * Detect font loading support
    */
   supportsFontLoading() {
-    return 'fonts' in document;
+    return "fonts" in document;
   }
 
   /**
@@ -253,14 +272,14 @@ export class FontOptimizationManager {
    */
   async loadFontsWithAPI(fonts) {
     if (!this.supportsFontLoading()) {
-      console.warn('[FontOptimization] Font Loading API not supported');
+      console.warn("[FontOptimization] Font Loading API not supported");
       return;
     }
 
     const promises = fonts.map((font) => {
       const fontFace = new FontFace(font.family, `url(${font.url})`, {
-        weight: font.weight || 'normal',
-        style: font.style || 'normal',
+        weight: font.weight || "normal",
+        style: font.style || "normal",
         display: this.options.fontDisplay,
       });
 
@@ -279,10 +298,10 @@ export class FontOptimizationManager {
       await Promise.all(promises);
 
       if (this.options.debug) {
-        console.log('[FontOptimization] All fonts loaded');
+        console.log("[FontOptimization] All fonts loaded");
       }
     } catch (error) {
-      console.error('[FontOptimization] Font loading failed:', error);
+      console.error("[FontOptimization] Font loading failed:", error);
     }
   }
 }
@@ -322,22 +341,22 @@ export class AboveTheFoldOptimizer {
    * Optimize images
    */
   optimizeImages() {
-    const images = document.querySelectorAll('img:not([loading])');
+    const images = document.querySelectorAll("img:not([loading])");
 
     images.forEach((img) => {
       if (this.isAboveTheFold(img)) {
         // Above the fold - eager loading
-        img.loading = 'eager';
+        img.loading = "eager";
 
         if (this.options.debug) {
-          console.log('[AboveTheFold] Eager load image:', img.src);
+          console.log("[AboveTheFold] Eager load image:", img.src);
         }
       } else if (this.options.lazyLoadImages) {
         // Below the fold - lazy loading
-        img.loading = 'lazy';
+        img.loading = "lazy";
 
         if (this.options.debug) {
-          console.log('[AboveTheFold] Lazy load image:', img.src);
+          console.log("[AboveTheFold] Lazy load image:", img.src);
         }
       }
     });
@@ -347,11 +366,13 @@ export class AboveTheFoldOptimizer {
    * Optimize scripts
    */
   optimizeScripts() {
-    const scripts = document.querySelectorAll('script[src]:not([async]):not([defer])');
+    const scripts = document.querySelectorAll(
+      "script[src]:not([async]):not([defer])",
+    );
 
     scripts.forEach((script) => {
       // Skip critical scripts
-      if (script.hasAttribute('data-critical')) {
+      if (script.hasAttribute("data-critical")) {
         return;
       }
 
@@ -359,7 +380,7 @@ export class AboveTheFoldOptimizer {
         script.defer = true;
 
         if (this.options.debug) {
-          console.log('[AboveTheFold] Deferred script:', script.src);
+          console.log("[AboveTheFold] Deferred script:", script.src);
         }
       }
     });
@@ -373,7 +394,7 @@ export class AboveTheFoldOptimizer {
     this.optimizeScripts();
 
     if (this.options.debug) {
-      console.log('[AboveTheFold] Optimization complete');
+      console.log("[AboveTheFold] Optimization complete");
     }
   }
 }
@@ -403,18 +424,20 @@ export class RenderBlockingOptimizer {
    * Optimize stylesheets
    */
   optimizeStylesheets() {
-    const links = document.querySelectorAll('link[rel="stylesheet"]:not([data-critical])');
+    const links = document.querySelectorAll(
+      'link[rel="stylesheet"]:not([data-critical])',
+    );
 
     links.forEach((link) => {
       if (this.options.asyncCSS) {
         // Convert to non-blocking
-        link.media = 'print';
+        link.media = "print";
         link.onload = function () {
-          this.media = 'all';
+          this.media = "all";
         };
 
         if (this.options.debug) {
-          console.log('[RenderBlocking] Made stylesheet async:', link.href);
+          console.log("[RenderBlocking] Made stylesheet async:", link.href);
         }
       }
     });
@@ -424,14 +447,16 @@ export class RenderBlockingOptimizer {
    * Optimize scripts
    */
   optimizeScripts() {
-    const scripts = document.querySelectorAll('script[src]:not([async]):not([defer]):not([data-critical])');
+    const scripts = document.querySelectorAll(
+      "script[src]:not([async]):not([defer]):not([data-critical])",
+    );
 
     scripts.forEach((script) => {
       if (this.options.deferScripts) {
         script.defer = true;
 
         if (this.options.debug) {
-          console.log('[RenderBlocking] Deferred script:', script.src);
+          console.log("[RenderBlocking] Deferred script:", script.src);
         }
       }
     });
@@ -442,15 +467,15 @@ export class RenderBlockingOptimizer {
    */
   addPreconnects() {
     this.options.preconnectDomains.forEach((domain) => {
-      const link = document.createElement('link');
-      link.rel = 'preconnect';
+      const link = document.createElement("link");
+      link.rel = "preconnect";
       link.href = domain;
-      link.crossOrigin = 'anonymous';
+      link.crossOrigin = "anonymous";
 
       document.head.appendChild(link);
 
       if (this.options.debug) {
-        console.log('[RenderBlocking] Added preconnect:', domain);
+        console.log("[RenderBlocking] Added preconnect:", domain);
       }
     });
   }
@@ -464,7 +489,7 @@ export class RenderBlockingOptimizer {
     this.addPreconnects();
 
     if (this.options.debug) {
-      console.log('[RenderBlocking] Optimization complete');
+      console.log("[RenderBlocking] Optimization complete");
     }
   }
 }
@@ -498,7 +523,7 @@ export const renderBlockingOptimizer = new RenderBlockingOptimizer();
  * Initialize all optimizations
  */
 export function initializeCriticalPath(options = {}) {
-  console.log('[CriticalPath] Initializing optimizations...');
+  console.log("[CriticalPath] Initializing optimizations...");
 
   // Font optimization
   if (options.fonts) {
@@ -516,7 +541,7 @@ export function initializeCriticalPath(options = {}) {
     renderBlockingOptimizer.optimize();
   }
 
-  console.log('[CriticalPath] Optimizations complete');
+  console.log("[CriticalPath] Optimizations complete");
 }
 
 /**

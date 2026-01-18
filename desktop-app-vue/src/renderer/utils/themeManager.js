@@ -3,49 +3,49 @@
  * 提供主题切换和自定义功能
  */
 
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch } from "vue";
 
 /**
  * 预定义主题
  */
 export const Themes = {
   LIGHT: {
-    id: 'light',
-    name: '浅色主题',
+    id: "light",
+    name: "浅色主题",
     colors: {
-      primary: '#1890ff',
-      success: '#52c41a',
-      warning: '#faad14',
-      error: '#ff4d4f',
-      info: '#1890ff',
-      background: '#ffffff',
-      surface: '#f5f5f5',
-      text: '#262626',
-      textSecondary: '#8c8c8c',
-      border: '#d9d9d9',
-      hover: '#f0f0f0',
+      primary: "#1890ff",
+      success: "#52c41a",
+      warning: "#faad14",
+      error: "#ff4d4f",
+      info: "#1890ff",
+      background: "#ffffff",
+      surface: "#f5f5f5",
+      text: "#262626",
+      textSecondary: "#8c8c8c",
+      border: "#d9d9d9",
+      hover: "#f0f0f0",
     },
   },
   DARK: {
-    id: 'dark',
-    name: '深色主题',
+    id: "dark",
+    name: "深色主题",
     colors: {
-      primary: '#177ddc',
-      success: '#49aa19',
-      warning: '#d89614',
-      error: '#d32029',
-      info: '#177ddc',
-      background: '#141414',
-      surface: '#1f1f1f',
-      text: '#e8e8e8',
-      textSecondary: '#a6a6a6',
-      border: '#434343',
-      hover: '#262626',
+      primary: "#177ddc",
+      success: "#49aa19",
+      warning: "#d89614",
+      error: "#d32029",
+      info: "#177ddc",
+      background: "#141414",
+      surface: "#1f1f1f",
+      text: "#e8e8e8",
+      textSecondary: "#a6a6a6",
+      border: "#434343",
+      hover: "#262626",
     },
   },
   AUTO: {
-    id: 'auto',
-    name: '跟随系统',
+    id: "auto",
+    name: "跟随系统",
     colors: null, // 根据系统自动选择
   },
 };
@@ -73,16 +73,16 @@ class ThemeManager {
    * 监听系统主题变化
    */
   watchSystemTheme() {
-    if (typeof window === 'undefined') return;
+    if (typeof window === "undefined") return;
 
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
     this.systemPrefersDark.value = mediaQuery.matches;
 
-    mediaQuery.addEventListener('change', (e) => {
+    mediaQuery.addEventListener("change", (e) => {
       this.systemPrefersDark.value = e.matches;
 
       // 如果当前是自动模式，重新应用主题
-      if (this.currentTheme.value?.id === 'auto') {
+      if (this.currentTheme.value?.id === "auto") {
         this.applyTheme();
       }
     });
@@ -105,13 +105,13 @@ class ThemeManager {
    */
   getTheme(themeId) {
     // 先查找预定义主题
-    const predefinedTheme = Object.values(Themes).find(t => t.id === themeId);
+    const predefinedTheme = Object.values(Themes).find((t) => t.id === themeId);
     if (predefinedTheme) {
       return predefinedTheme;
     }
 
     // 再查找自定义主题
-    return this.customThemes.value.find(t => t.id === themeId);
+    return this.customThemes.value.find((t) => t.id === themeId);
   }
 
   /**
@@ -123,7 +123,7 @@ class ThemeManager {
     }
 
     // 如果是自动模式，根据系统偏好返回
-    if (this.currentTheme.value.id === 'auto') {
+    if (this.currentTheme.value.id === "auto") {
       return this.systemPrefersDark.value ? Themes.DARK : Themes.LIGHT;
     }
 
@@ -139,16 +139,20 @@ class ThemeManager {
 
     // 应用CSS变量
     const root = document.documentElement;
-    Object.entries(theme.colors).forEach(([key, value]) => {
-      root.style.setProperty(`--color-${key}`, value);
-    });
+    if (root) {
+      Object.entries(theme.colors).forEach(([key, value]) => {
+        root.style.setProperty(`--color-${key}`, value);
+      });
+    }
 
-    // 设置body类名
-    document.body.className = document.body.className
-      .split(' ')
-      .filter(c => !c.startsWith('theme-'))
-      .concat(`theme-${theme.id}`)
-      .join(' ');
+    // 设置body类名（确保 document.body 存在）
+    if (document.body) {
+      document.body.className = document.body.className
+        .split(" ")
+        .filter((c) => !c.startsWith("theme-"))
+        .concat(`theme-${theme.id}`)
+        .join(" ");
+    }
   }
 
   /**
@@ -156,11 +160,11 @@ class ThemeManager {
    */
   addCustomTheme(theme) {
     if (!theme.id || !theme.name || !theme.colors) {
-      throw new Error('Invalid theme format');
+      throw new Error("Invalid theme format");
     }
 
     // 检查ID是否已存在
-    const exists = this.customThemes.value.some(t => t.id === theme.id);
+    const exists = this.customThemes.value.some((t) => t.id === theme.id);
     if (exists) {
       throw new Error(`Theme with id "${theme.id}" already exists`);
     }
@@ -173,7 +177,7 @@ class ThemeManager {
    * 更新自定义主题
    */
   updateCustomTheme(themeId, updates) {
-    const theme = this.customThemes.value.find(t => t.id === themeId);
+    const theme = this.customThemes.value.find((t) => t.id === themeId);
     if (theme) {
       Object.assign(theme, updates);
       this.saveToStorage();
@@ -189,14 +193,14 @@ class ThemeManager {
    * 删除自定义主题
    */
   removeCustomTheme(themeId) {
-    const index = this.customThemes.value.findIndex(t => t.id === themeId);
+    const index = this.customThemes.value.findIndex((t) => t.id === themeId);
     if (index > -1) {
       this.customThemes.value.splice(index, 1);
       this.saveToStorage();
 
       // 如果删除的是当前主题，切换到默认主题
       if (this.currentTheme.value?.id === themeId) {
-        this.setTheme('light');
+        this.setTheme("light");
       }
     }
   }
@@ -205,10 +209,7 @@ class ThemeManager {
    * 获取所有主题
    */
   getAllThemes() {
-    return [
-      ...Object.values(Themes),
-      ...this.customThemes.value,
-    ];
+    return [...Object.values(Themes), ...this.customThemes.value];
   }
 
   /**
@@ -216,7 +217,7 @@ class ThemeManager {
    */
   toggle() {
     const current = this.getEffectiveTheme();
-    const newTheme = current.id === 'light' ? 'dark' : 'light';
+    const newTheme = current.id === "light" ? "dark" : "light";
     this.setTheme(newTheme);
   }
 
@@ -229,9 +230,9 @@ class ThemeManager {
         currentTheme: this.currentTheme.value?.id,
         customThemes: this.customThemes.value,
       };
-      localStorage.setItem('theme', JSON.stringify(data));
+      localStorage.setItem("theme", JSON.stringify(data));
     } catch (error) {
-      console.error('[ThemeManager] Save to storage error:', error);
+      console.error("[ThemeManager] Save to storage error:", error);
     }
   }
 
@@ -240,7 +241,7 @@ class ThemeManager {
    */
   loadFromStorage() {
     try {
-      const stored = localStorage.getItem('theme');
+      const stored = localStorage.getItem("theme");
       if (stored) {
         const data = JSON.parse(stored);
 
@@ -263,7 +264,7 @@ class ThemeManager {
         this.currentTheme.value = Themes.LIGHT;
       }
     } catch (error) {
-      console.error('[ThemeManager] Load from storage error:', error);
+      console.error("[ThemeManager] Load from storage error:", error);
       this.currentTheme.value = Themes.LIGHT;
     }
   }
@@ -288,7 +289,7 @@ class ThemeManager {
       this.addCustomTheme(theme);
       return true;
     } catch (error) {
-      console.error('[ThemeManager] Import theme error:', error);
+      console.error("[ThemeManager] Import theme error:", error);
       return false;
     }
   }
@@ -309,7 +310,8 @@ export function useTheme() {
     setTheme: (themeId) => themeManager.setTheme(themeId),
     toggle: () => themeManager.toggle(),
     addCustomTheme: (theme) => themeManager.addCustomTheme(theme),
-    updateCustomTheme: (themeId, updates) => themeManager.updateCustomTheme(themeId, updates),
+    updateCustomTheme: (themeId, updates) =>
+      themeManager.updateCustomTheme(themeId, updates),
     removeCustomTheme: (themeId) => themeManager.removeCustomTheme(themeId),
     exportTheme: (themeId) => themeManager.exportTheme(themeId),
     importTheme: (themeJson) => themeManager.importTheme(themeJson),
