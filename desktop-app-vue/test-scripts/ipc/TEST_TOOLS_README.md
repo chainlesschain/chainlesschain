@@ -11,16 +11,19 @@
 **用途**: 分析应用日志，检查 IPC handlers 注册状态
 
 **特点**:
+
 - 无需修改应用代码
 - 快速检查关键模块
 - 输出清晰的状态报告
 
 **使用方法**:
+
 ```bash
 node check-ipc-status.js
 ```
 
 **输出示例**:
+
 ```
 ============================================================
 IPC 注册状态分析
@@ -46,6 +49,7 @@ IPC 注册状态分析
 **用途**: 在主进程中直接检查 IPC handlers 是否注册
 
 **特点**:
+
 - 直接访问 ipcMain
 - 检查 listener 数量
 - 详细的测试报告
@@ -53,23 +57,26 @@ IPC 注册状态分析
 **使用方法**:
 
 **方法 1: 独立运行**
+
 ```bash
 # 需要先修改为可独立运行的 Electron 应用
 electron test-ipc-handlers-main.js
 ```
 
 **方法 2: 集成到应用**
+
 ```javascript
 // 在 src/main/index.js 中添加
-if (process.env.NODE_ENV === 'development') {
+if (process.env.NODE_ENV === "development") {
   setTimeout(() => {
-    const { runTests } = require('./test-ipc-handlers-main');
+    const { runTests } = require("./test-ipc-handlers-main");
     runTests();
   }, 5000);
 }
 ```
 
 **输出示例**:
+
 ```
 ============================================================
 IPC Handlers 注册验证测试
@@ -99,6 +106,7 @@ IPC Handlers 注册验证测试
 **用途**: 在渲染进程中测试 IPC handlers 是否可调用
 
 **特点**:
+
 - 在浏览器控制台运行
 - 测试实际的 IPC 通信
 - 检测 handler 是否真正可用
@@ -107,11 +115,13 @@ IPC Handlers 注册验证测试
 
 1. 在应用中打开开发者工具 (F12)
 2. 在控制台中运行:
+
 ```javascript
-testIPCRegistration()
+testIPCRegistration();
 ```
 
 **输出示例**:
+
 ```
 ========== IPC Handlers 注册验证 ==========
 
@@ -180,15 +190,15 @@ cat docs/guides/IPC_REGISTRATION_GUIDE.md
 
 ### 关键模块
 
-| 模块 | Handlers 数量 | 优先级 |
-|------|--------------|--------|
-| Conversation IPC | 16 | 高 |
-| Sync IPC | 4 | 高 |
-| Notification IPC | 5 | 高 |
-| Speech IPC | 34 | 中 |
-| LLM IPC | 14 | 高 |
-| Database IPC | 22 | 高 |
-| Project Core IPC | 34 | 高 |
+| 模块             | Handlers 数量 | 优先级 |
+| ---------------- | ------------- | ------ |
+| Conversation IPC | 16            | 高     |
+| Sync IPC         | 4             | 高     |
+| Notification IPC | 5             | 高     |
+| Speech IPC       | 34            | 中     |
+| LLM IPC          | 14            | 高     |
+| Database IPC     | 22            | 高     |
+| Project Core IPC | 34            | 高     |
 
 ### 测试类型
 
@@ -216,6 +226,7 @@ cat docs/guides/IPC_REGISTRATION_GUIDE.md
 **原因**: 日志文件路径不正确或应用未运行
 
 **解决方案**:
+
 ```bash
 # 1. 检查应用是否运行
 ps aux | grep electron
@@ -232,6 +243,7 @@ node check-ipc-status.js
 **原因**: 需要 Electron 环境
 
 **解决方案**:
+
 ```bash
 # 方法 1: 集成到应用中（推荐）
 # 在 src/main/index.js 中添加测试代码
@@ -245,10 +257,11 @@ electron test-ipc-handlers-main.js
 **原因**: 函数未正确加载
 
 **解决方案**:
+
 ```javascript
 // 1. 确保脚本已加载
 // 2. 在控制台检查
-typeof testIPCRegistration  // 应该返回 'function'
+typeof testIPCRegistration; // 应该返回 'function'
 
 // 3. 如果未定义，手动加载
 // 复制 test-ipc-registration.js 的内容到控制台
