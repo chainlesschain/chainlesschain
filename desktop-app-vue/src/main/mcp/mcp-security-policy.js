@@ -7,7 +7,6 @@
  * @module MCPSecurityPolicy
  */
 
-const path = require("path");
 const EventEmitter = require("events");
 const crypto = require("crypto");
 
@@ -333,7 +332,7 @@ class MCPSecurityPolicy extends EventEmitter {
    * Detect operation type from tool name and params
    * @private
    */
-  _detectOperation(toolName, params) {
+  _detectOperation(toolName, _params) {
     const lowerName = toolName.toLowerCase();
 
     // Read operations
@@ -496,8 +495,7 @@ class MCPSecurityPolicy extends EventEmitter {
    * @private
    */
   async _requestConsentViaEvent(consentRequest, cacheKey) {
-    const { requestId, serverName, toolName, params, riskLevel } =
-      consentRequest;
+    const { requestId, serverName, toolName } = consentRequest;
 
     return new Promise((resolve, reject) => {
       // Set up timeout
