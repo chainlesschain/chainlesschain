@@ -447,6 +447,140 @@ function registerSessionManagerIPC({
   );
 
   // ============================================================
+  // 自动摘要功能
+  // ============================================================
+
+  /**
+   * 获取自动摘要配置
+   * Channel: 'session:get-auto-summary-config'
+   */
+  ipcMain.handle("session:get-auto-summary-config", async () => {
+    try {
+      if (!managerRef.current) {
+        throw new Error("SessionManager 未初始化");
+      }
+
+      return managerRef.current.getAutoSummaryConfig();
+    } catch (error) {
+      console.error("[SessionManager IPC] 获取自动摘要配置失败:", error);
+      throw error;
+    }
+  });
+
+  /**
+   * 更新自动摘要配置
+   * Channel: 'session:update-auto-summary-config'
+   */
+  ipcMain.handle(
+    "session:update-auto-summary-config",
+    async (_event, config) => {
+      try {
+        if (!managerRef.current) {
+          throw new Error("SessionManager 未初始化");
+        }
+
+        return managerRef.current.updateAutoSummaryConfig(config);
+      } catch (error) {
+        console.error("[SessionManager IPC] 更新自动摘要配置失败:", error);
+        throw error;
+      }
+    },
+  );
+
+  /**
+   * 启动后台摘要生成器
+   * Channel: 'session:start-background-summary'
+   */
+  ipcMain.handle("session:start-background-summary", async () => {
+    try {
+      if (!managerRef.current) {
+        throw new Error("SessionManager 未初始化");
+      }
+
+      managerRef.current.startBackgroundSummaryGenerator();
+      return { success: true };
+    } catch (error) {
+      console.error("[SessionManager IPC] 启动后台摘要生成器失败:", error);
+      throw error;
+    }
+  });
+
+  /**
+   * 停止后台摘要生成器
+   * Channel: 'session:stop-background-summary'
+   */
+  ipcMain.handle("session:stop-background-summary", async () => {
+    try {
+      if (!managerRef.current) {
+        throw new Error("SessionManager 未初始化");
+      }
+
+      managerRef.current.stopBackgroundSummaryGenerator();
+      return { success: true };
+    } catch (error) {
+      console.error("[SessionManager IPC] 停止后台摘要生成器失败:", error);
+      throw error;
+    }
+  });
+
+  /**
+   * 获取没有摘要的会话列表
+   * Channel: 'session:get-without-summary'
+   */
+  ipcMain.handle(
+    "session:get-without-summary",
+    async (_event, options = {}) => {
+      try {
+        if (!managerRef.current) {
+          throw new Error("SessionManager 未初始化");
+        }
+
+        return await managerRef.current.getSessionsWithoutSummary(options);
+      } catch (error) {
+        console.error("[SessionManager IPC] 获取无摘要会话失败:", error);
+        throw error;
+      }
+    },
+  );
+
+  /**
+   * 触发批量摘要生成
+   * Channel: 'session:trigger-bulk-summary'
+   */
+  ipcMain.handle(
+    "session:trigger-bulk-summary",
+    async (_event, options = {}) => {
+      try {
+        if (!managerRef.current) {
+          throw new Error("SessionManager 未初始化");
+        }
+
+        return await managerRef.current.triggerBulkSummaryGeneration(options);
+      } catch (error) {
+        console.error("[SessionManager IPC] 触发批量摘要生成失败:", error);
+        throw error;
+      }
+    },
+  );
+
+  /**
+   * 获取自动摘要统计
+   * Channel: 'session:get-auto-summary-stats'
+   */
+  ipcMain.handle("session:get-auto-summary-stats", async () => {
+    try {
+      if (!managerRef.current) {
+        throw new Error("SessionManager 未初始化");
+      }
+
+      return await managerRef.current.getAutoSummaryStats();
+    } catch (error) {
+      console.error("[SessionManager IPC] 获取自动摘要统计失败:", error);
+      throw error;
+    }
+  });
+
+  // ============================================================
   // 会话续接功能
   // ============================================================
 

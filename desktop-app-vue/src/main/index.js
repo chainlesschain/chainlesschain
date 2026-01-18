@@ -858,6 +858,25 @@ class ChainlessChainApp {
       // ErrorMonitor 初始化失败不影响应用启动
     }
 
+    // 初始化 Multi-Agent 系统（基于 Manus/OpenManus 架构）
+    try {
+      console.log("初始化 Multi-Agent 系统...");
+      const { createMultiAgentSystem } = require("./ai-engine/multi-agent");
+
+      const { orchestrator, agents } = createMultiAgentSystem({
+        llmManager: this.llmManager,
+        functionCaller: this.functionCaller,
+      });
+
+      this.agentOrchestrator = orchestrator;
+      this.agents = agents;
+
+      console.log("Multi-Agent 系统初始化成功（3 个专用 Agent 已注册）");
+    } catch (error) {
+      console.error("Multi-Agent 系统初始化失败:", error);
+      // Multi-Agent 初始化失败不影响应用启动
+    }
+
     // 初始化 Memory Bank System（偏好和学习模式管理）
     try {
       console.log("初始化 Memory Bank 系统...");
