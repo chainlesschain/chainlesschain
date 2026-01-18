@@ -4,18 +4,27 @@
  * 支持 .docx 格式
  */
 
-const fs = require('fs').promises;
-const fsSync = require('fs');
+const nodeFs = require('fs');
 const path = require('path');
 const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, UnderlineType } = require('docx');
 const mammoth = require('mammoth');
 const { marked } = require('marked');
 const { getFileHandler } = require('../utils/file-handler');
 
+const globalContext = typeof globalThis !== 'undefined' ? globalThis : global;
+const fs = (globalContext && globalContext.__WORD_ENGINE_FS__) || nodeFs.promises;
+
+const resolveFileHandler = () => {
+  if (globalContext && globalContext.__WORD_ENGINE_FILE_HANDLER__) {
+    return globalContext.__WORD_ENGINE_FILE_HANDLER__;
+  }
+  return getFileHandler();
+};
+
 class WordEngine {
   constructor() {
     this.supportedFormats = ['.docx', '.doc'];
-    this.fileHandler = getFileHandler();
+    this.fileHandler = resolveFileHandler();
   }
 
   /**

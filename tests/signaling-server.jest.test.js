@@ -22,9 +22,10 @@ function createMockWebSocketModule() {
     }
 
     send(data) {
-      if (!this.client) return;
+      const target = this.client;
+      if (!target) return;
       const payload = Buffer.isBuffer(data) ? data : Buffer.from(data);
-      setImmediate(() => this.client.emit('message', payload));
+      setImmediate(() => target.emit('message', payload));
     }
 
     _receiveFromClient(data) {
@@ -223,9 +224,6 @@ function createMockHttpModule() {
     __reset: () => servers.clear(),
   };
 }
-
-jest.mock('ws', () => createMockWebSocketModule());
-jest.mock('http', () => createMockHttpModule());
 
 const SignalingServer = require('../signaling-server/index');
 let WebSocket;
@@ -568,7 +566,7 @@ describe('SignalingServer', () => {
   describe('健康检查', () => {
     test('应该返回健康状态', async () => {
       const response = await new Promise((resolve, reject) => {
-        http.get('http://localhost:9102/health', (res) => {
+        httpModule.get('http://localhost:9102/health', (res) => {
           let data = '';
           res.on('data', chunk => data += chunk);
           res.on('end', () => resolve({ status: res.statusCode, data }));
@@ -585,7 +583,7 @@ describe('SignalingServer', () => {
 
     test('应该返回统计信息', async () => {
       const response = await new Promise((resolve, reject) => {
-        http.get('http://localhost:9102/stats', (res) => {
+        httpModule.get('http://localhost:9102/stats', (res) => {
           let data = '';
           res.on('data', chunk => data += chunk);
           res.on('end', () => resolve({ status: res.statusCode, data }));

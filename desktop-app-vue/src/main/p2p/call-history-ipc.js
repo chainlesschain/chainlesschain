@@ -4,7 +4,21 @@
  * 处理通话历史记录相关的IPC请求
  */
 
-const { ipcMain } = require('electron');
+let electron;
+try {
+  electron = require('electron');
+} catch (error) {
+  electron = {};
+}
+
+const createIpcMainStub = () => ({
+  handle: () => {},
+  removeHandler: () => {},
+  on: () => {},
+  once: () => {},
+});
+
+const { ipcMain = createIpcMainStub() } = electron || {};
 
 class CallHistoryIPC {
   constructor(callHistoryManager) {

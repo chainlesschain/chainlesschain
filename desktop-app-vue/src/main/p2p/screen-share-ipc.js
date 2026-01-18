@@ -4,7 +4,27 @@
  * 提供屏幕共享相关的IPC通道
  */
 
-const { ipcMain, desktopCapturer } = require('electron');
+let electron;
+try {
+  electron = require('electron');
+} catch (error) {
+  electron = {};
+}
+
+const createIpcMainStub = () => ({
+  handle: () => {},
+  removeHandler: () => {},
+  on: () => {},
+  once: () => {},
+});
+
+const createDesktopCapturerStub = () => ({
+  async getSources() {
+    return [];
+  },
+});
+
+const { ipcMain = createIpcMainStub(), desktopCapturer = createDesktopCapturerStub() } = electron || {};
 
 class ScreenShareIPC {
   constructor() {

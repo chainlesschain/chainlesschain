@@ -8,8 +8,8 @@
  * - 移动端与PC端（libp2p）桥接
  */
 
-const http = require('http');
-const WebSocket = require('ws');
+const defaultHttpModule = require('http');
+const defaultWebSocketModule = require('ws');
 const { v4: uuidv4 } = require('uuid');
 
 class SignalingServer {
@@ -21,6 +21,8 @@ class SignalingServer {
     this.healthServer = null;
     this.heartbeatInterval = null;
     this.cleanupInterval = null;
+    this.WebSocket = options.websocketModule || defaultWebSocketModule;
+    this.httpModule = options.httpModule || defaultHttpModule;
 
     // 连接管理
     this.clients = new Map(); // peerId -> { ws, deviceInfo, connectedAt }
@@ -47,7 +49,7 @@ class SignalingServer {
    * 启动HTTP健康检查服务器
    */
   startHealthServer() {
-    this.healthServer = http.createServer((req, res) => {
+    this.healthServer = this.httpModule.createServer((req, res) => {
       if (req.url === '/health' || req.url === '/') {
         // 健康检查端点
         const uptime = Math.floor((Date.now() - this.stats.startTime) / 1000);
@@ -100,7 +102,7 @@ class SignalingServer {
     this.startHealthServer();
 
     // 启动WebSocket服务器
-    this.wss = new WebSocket.Server({ port: this.port });
+    this.wss = new this.WebSocket.Server({ port: this.port });
 
     this.wss.on('connection', (ws, req) => {
       const connectionId = uuidv4();
@@ -268,7 +270,7 @@ class SignalingServer {
 
     const targetClient = this.clients.get(to);
 
-    if (targetClient && targetClient.ws.readyState === WebSocket.OPEN) {
+    if (targetClient && targetClient.ws.readyState === this.WebSocket.OPEN) {
       // 目标在线，直接转发
       this.sendMessage(targetClient.ws, message);
       this.stats.messagesForwarded++;
@@ -304,7 +306,7 @@ class SignalingServer {
 
     const targetClient = this.clients.get(to);
 
-    if (targetClient && targetClient.ws.readyState === WebSocket.OPEN) {
+    if (targetClient && targetClient.ws.readyState === this.WebSocket.OPEN) {
       // 转发消息
       this.sendMessage(targetClient.ws, {
         type: 'message',
@@ -385,7 +387,7 @@ class SignalingServer {
     }
 
     const client = this.clients.get(peerId);
-    if (!client || client.ws.readyState !== WebSocket.OPEN) {
+    if (!client || client.ws.readyState !== this.WebSocket.OPEN) {
       return;
     }
 
@@ -418,7 +420,7 @@ class SignalingServer {
 
     // 广播给所有其他在线节点
     for (const [clientPeerId, client] of this.clients.entries()) {
-      if (clientPeerId !== peerId && client.ws.readyState === WebSocket.OPEN) {
+      if (clientPeerId !== peerId && client.ws.readyState === this.WebSocket.OPEN) {
         this.sendMessage(client.ws, message);
       }
     }
@@ -428,7 +430,7 @@ class SignalingServer {
    * 发送消息到客户端
    */
   sendMessage(ws, message) {
-    if (ws.readyState === WebSocket.OPEN) {
+    if (ws.readyState === this.WebSocket.OPEN) {
       try {
         ws.send(JSON.stringify(message));
       } catch (error) {

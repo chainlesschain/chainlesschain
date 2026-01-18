@@ -5,7 +5,20 @@
  * 由于主进程无法直接访问getUserMedia，需要通过渲染进程获取媒体流
  */
 
-const { ipcMain } = require('electron');
+let electron;
+try {
+  electron = require('electron');
+} catch (error) {
+  electron = {};
+}
+
+const createIpcMainStub = () => ({
+  on: () => {},
+  once: () => {},
+  removeListener: () => {},
+});
+
+const { ipcMain = createIpcMainStub() } = electron || {};
 const EventEmitter = require('events');
 
 class MediaStreamBridge extends EventEmitter {
