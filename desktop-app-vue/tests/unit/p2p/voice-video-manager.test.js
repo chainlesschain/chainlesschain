@@ -266,10 +266,10 @@ describe('VoiceVideoManager', () => {
     const isMuted = voiceVideoManager.toggleMute(callId);
 
     expect(isMuted).toBe(true); // 第一次切换应为静音
-      expect(muteChangedSpy).toHaveBeenCalledWith({
-        callId,
-        isMuted: false
-      });
+    expect(muteChangedSpy).toHaveBeenCalledWith({
+      callId,
+      isMuted: true
+    });
     });
 
     test('应该能够切换视频', () => {
