@@ -925,7 +925,11 @@ const handleEnableChange = async (enabled) => {
     });
 
     if (result.success) {
-      message.success(enabled ? "MCP系统已启用" : "MCP系统已禁用");
+      if (enabled) {
+        message.success("MCP系统已启用，请重启应用以加载 MCP 服务");
+      } else {
+        message.success("MCP系统已禁用");
+      }
     } else {
       throw new Error(result.error);
     }
