@@ -572,20 +572,8 @@ class ChainlessChainApp {
         }
       })(),
 
-      // 视频导入器
-      (async () => {
-        try {
-          console.log("初始化视频导入器...");
-          this.videoImporter = new VideoImporter(
-            this.database,
-            app.getPath("userData"),
-          );
-          await this.videoImporter.initializeStorageDirectories();
-          console.log("✓ 视频导入器初始化成功");
-        } catch (error) {
-          console.error("视频导入器初始化失败:", error);
-        }
-      })(),
+      // 视频导入器 - 懒加载模式（已移至按需初始化）
+      // 视频导入功能将在首次使用时才初始化
 
       // 项目模板管理器
       (async () => {
@@ -914,11 +902,12 @@ class ChainlessChainApp {
       // RAG初始化失败不影响应用启动
     }
 
-    // 🚀 语音管理器和图片上传器懒加载优化
+    // 🚀 媒体导入器懒加载优化
     // 这些功能仅在用户使用时才初始化，节省启动时间 1-2 秒
     this.speechInitialized = false;
     this.imageUploaderInitialized = false;
-    console.log("✓ 语音管理器和图片上传器已配置为懒加载（按需初始化）");
+    this.videoImporterInitialized = false;
+    console.log("✓ 语音管理器、图片上传器和视频导入器已配置为懒加载（按需初始化）");
 
     // 初始化提示词模板管理器
     try {
