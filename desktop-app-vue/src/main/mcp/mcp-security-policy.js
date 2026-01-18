@@ -708,6 +708,15 @@ class MCPSecurityPolicy extends EventEmitter {
   }
 
   /**
+   * Get server permissions
+   * @param {string} serverName - Server identifier
+   * @returns {Object|null} Server permissions or null if not found
+   */
+  getServerPermissions(serverName) {
+    return this.serverPermissions.get(serverName) || null;
+  }
+
+  /**
    * Get security statistics
    */
   getStatistics() {
