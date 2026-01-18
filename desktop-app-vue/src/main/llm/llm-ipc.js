@@ -1187,11 +1187,55 @@ function registerLLMIPC({
    */
   ipcMain.handle("llm:get-usage-stats", async (_event, options = {}) => {
     try {
-      if (!tokenTracker) {
-        throw new Error("Token 追踪器未初始化");
+      if (tokenTracker) {
+        return await tokenTracker.getUsageStats(options);
       }
 
-      return await tokenTracker.getUsageStats(options);
+      // Fallback: 直接从数据库查询
+      if (!database) {
+        throw new Error("数据库未初始化");
+      }
+
+      const {
+        startDate = Date.now() - 7 * 24 * 60 * 60 * 1000,
+        endDate = Date.now(),
+      } = options;
+
+      const sql = `
+        SELECT
+          COUNT(*) as total_calls,
+          COALESCE(SUM(input_tokens), 0) as total_input_tokens,
+          COALESCE(SUM(output_tokens), 0) as total_output_tokens,
+          COALESCE(SUM(total_tokens), 0) as total_tokens,
+          COALESCE(SUM(cost_usd), 0) as total_cost_usd,
+          COALESCE(SUM(cost_cny), 0) as total_cost_cny,
+          COALESCE(SUM(CASE WHEN was_cached = 1 THEN 1 ELSE 0 END), 0) as cached_calls,
+          COALESCE(SUM(CASE WHEN was_compressed = 1 THEN 1 ELSE 0 END), 0) as compressed_calls,
+          COALESCE(AVG(response_time), 0) as avg_response_time
+        FROM llm_usage_log
+        WHERE created_at >= ? AND created_at <= ?
+      `;
+
+      const stmt = database.prepare(sql);
+      const stats = stmt.get([startDate, endDate]);
+
+      const cacheHitRate =
+        stats.total_calls > 0
+          ? (((stats.cached_calls || 0) / stats.total_calls) * 100).toFixed(2)
+          : 0;
+
+      return {
+        totalCalls: stats.total_calls || 0,
+        totalInputTokens: stats.total_input_tokens || 0,
+        totalOutputTokens: stats.total_output_tokens || 0,
+        totalTokens: stats.total_tokens || 0,
+        totalCostUsd: stats.total_cost_usd || 0,
+        totalCostCny: stats.total_cost_cny || 0,
+        cachedCalls: stats.cached_calls || 0,
+        compressedCalls: stats.compressed_calls || 0,
+        cacheHitRate: parseFloat(cacheHitRate),
+        avgResponseTime: Math.round(stats.avg_response_time || 0),
+      };
     } catch (error) {
       console.error("[LLM IPC] 获取使用统计失败:", error);
       throw error;
@@ -1204,11 +1248,64 @@ function registerLLMIPC({
    */
   ipcMain.handle("llm:get-time-series", async (_event, options = {}) => {
     try {
-      if (!tokenTracker) {
-        throw new Error("Token 追踪器未初始化");
+      if (tokenTracker) {
+        return await tokenTracker.getTimeSeriesData(options);
       }
 
-      return await tokenTracker.getTimeSeriesData(options);
+      // Fallback: 直接从数据库查询
+      if (!database) {
+        throw new Error("数据库未初始化");
+      }
+
+      const {
+        startDate = Date.now() - 7 * 24 * 60 * 60 * 1000,
+        endDate = Date.now(),
+        interval = "day",
+      } = options;
+
+      let bucketSize;
+      switch (interval) {
+        case "hour":
+          bucketSize = 60 * 60 * 1000;
+          break;
+        case "day":
+          bucketSize = 24 * 60 * 60 * 1000;
+          break;
+        case "week":
+          bucketSize = 7 * 24 * 60 * 60 * 1000;
+          break;
+        default:
+          bucketSize = 24 * 60 * 60 * 1000;
+      }
+
+      const sql = `
+        SELECT
+          (created_at / ${bucketSize}) * ${bucketSize} as time_bucket,
+          COUNT(*) as calls,
+          COALESCE(SUM(input_tokens), 0) as input_tokens,
+          COALESCE(SUM(output_tokens), 0) as output_tokens,
+          COALESCE(SUM(total_tokens), 0) as total_tokens,
+          COALESCE(SUM(cost_usd), 0) as cost_usd,
+          COALESCE(SUM(cost_cny), 0) as cost_cny
+        FROM llm_usage_log
+        WHERE created_at >= ? AND created_at <= ?
+        GROUP BY time_bucket
+        ORDER BY time_bucket ASC
+      `;
+
+      const stmt = database.prepare(sql);
+      const rows = stmt.all([startDate, endDate]);
+
+      return rows.map((row) => ({
+        timestamp: row.time_bucket,
+        date: new Date(row.time_bucket).toISOString(),
+        calls: row.calls || 0,
+        inputTokens: row.input_tokens || 0,
+        outputTokens: row.output_tokens || 0,
+        totalTokens: row.total_tokens || 0,
+        costUsd: row.cost_usd || 0,
+        costCny: row.cost_cny || 0,
+      }));
     } catch (error) {
       console.error("[LLM IPC] 获取时间序列数据失败:", error);
       throw error;
@@ -1221,11 +1318,73 @@ function registerLLMIPC({
    */
   ipcMain.handle("llm:get-cost-breakdown", async (_event, options = {}) => {
     try {
-      if (!tokenTracker) {
-        throw new Error("Token 追踪器未初始化");
+      if (tokenTracker) {
+        return await tokenTracker.getCostBreakdown(options);
       }
 
-      return await tokenTracker.getCostBreakdown(options);
+      // Fallback: 直接从数据库查询
+      if (!database) {
+        throw new Error("数据库未初始化");
+      }
+
+      const {
+        startDate = Date.now() - 7 * 24 * 60 * 60 * 1000,
+        endDate = Date.now(),
+      } = options;
+
+      // 按提供商分组
+      const providerSql = `
+        SELECT
+          provider,
+          COUNT(*) as calls,
+          COALESCE(SUM(total_tokens), 0) as total_tokens,
+          COALESCE(SUM(cost_usd), 0) as cost_usd,
+          COALESCE(SUM(cost_cny), 0) as cost_cny
+        FROM llm_usage_log
+        WHERE created_at >= ? AND created_at <= ?
+        GROUP BY provider
+        ORDER BY cost_usd DESC
+      `;
+
+      const providerStmt = database.prepare(providerSql);
+      const byProvider = providerStmt.all([startDate, endDate]);
+
+      // 按模型分组
+      const modelSql = `
+        SELECT
+          provider,
+          model,
+          COUNT(*) as calls,
+          COALESCE(SUM(total_tokens), 0) as total_tokens,
+          COALESCE(SUM(cost_usd), 0) as cost_usd,
+          COALESCE(SUM(cost_cny), 0) as cost_cny
+        FROM llm_usage_log
+        WHERE created_at >= ? AND created_at <= ?
+        GROUP BY provider, model
+        ORDER BY cost_usd DESC
+        LIMIT 10
+      `;
+
+      const modelStmt = database.prepare(modelSql);
+      const byModel = modelStmt.all([startDate, endDate]);
+
+      return {
+        byProvider: byProvider.map((row) => ({
+          provider: row.provider,
+          calls: row.calls || 0,
+          totalTokens: row.total_tokens || 0,
+          costUsd: row.cost_usd || 0,
+          costCny: row.cost_cny || 0,
+        })),
+        byModel: byModel.map((row) => ({
+          provider: row.provider,
+          model: row.model,
+          calls: row.calls || 0,
+          totalTokens: row.total_tokens || 0,
+          costUsd: row.cost_usd || 0,
+          costCny: row.cost_cny || 0,
+        })),
+      };
     } catch (error) {
       console.error("[LLM IPC] 获取成本分解失败:", error);
       throw error;
