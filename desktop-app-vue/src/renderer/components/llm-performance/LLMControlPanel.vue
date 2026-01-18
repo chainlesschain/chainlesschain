@@ -78,6 +78,16 @@
             <MoreOutlined />
           </a-button>
         </a-dropdown>
+
+        <a-tooltip title="生成30天的测试数据以预览仪表板功能（仅用于开发测试）">
+          <a-button
+            @click="$emit('generate-test-data')"
+            :loading="generatingTestData"
+          >
+            <template #icon><ExperimentOutlined /></template>
+            {{ generatingTestData ? "生成中..." : "生成测试数据" }}
+          </a-button>
+        </a-tooltip>
       </div>
     </div>
 
@@ -85,6 +95,7 @@
     <div class="keyboard-hints" v-if="showKeyboardHints">
       <a-tag>R - 刷新</a-tag>
       <a-tag>E - 导出</a-tag>
+      <a-tag>G - 生成测试数据</a-tag>
       <a-tag>1-4 - 切换时间</a-tag>
     </div>
   </a-card>
@@ -100,6 +111,7 @@ import {
   FileTextOutlined,
   FileExcelOutlined,
   CodeOutlined,
+  ExperimentOutlined,
 } from "@ant-design/icons-vue";
 
 const props = defineProps({
@@ -135,6 +147,10 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  generatingTestData: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const emit = defineEmits([
@@ -147,6 +163,7 @@ const emit = defineEmits([
   "export-csv",
   "export-excel",
   "export-json",
+  "generate-test-data",
 ]);
 
 const handleExportMenuClick = ({ key }) => {
@@ -166,6 +183,9 @@ const handleKeydown = (event) => {
       break;
     case "e":
       emit("export");
+      break;
+    case "g":
+      emit("generate-test-data");
       break;
     case "1":
       emit("time-change", "24h");
