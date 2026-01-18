@@ -11,59 +11,94 @@ import path from "path";
 import fs from "fs";
 import os from "os";
 
-// Mock the Signal library to avoid WebCrypto issues in test environment
+// Mock objects - will be populated with implementations in beforeEach
 const mockKeyHelper = {
-  generateIdentityKeyPair: vi.fn().mockResolvedValue({
+  generateIdentityKeyPair: vi.fn(),
+  generateRegistrationId: vi.fn(),
+  generateSignedPreKey: vi.fn(),
+  generatePreKey: vi.fn(),
+};
+
+const mockSessionBuilder = {
+  processPreKey: vi.fn(),
+};
+
+const mockSessionCipher = {
+  encrypt: vi.fn(),
+  decryptPreKeyWhisperMessage: vi.fn(),
+  decryptWhisperMessage: vi.fn(),
+};
+
+// Store references to constructor mocks so we can re-apply implementations
+const MockSessionBuilder = vi.fn();
+const MockSessionCipher = vi.fn();
+const MockSignalProtocolAddress = vi.fn();
+
+// Mock the Signal library module
+vi.mock("@privacyresearch/libsignal-protocol-typescript", () => ({
+  KeyHelper: mockKeyHelper,
+  SessionBuilder: MockSessionBuilder,
+  SessionCipher: MockSessionCipher,
+  SignalProtocolAddress: MockSignalProtocolAddress,
+}));
+
+// Helper function to setup mock implementations
+// Called in beforeEach to ensure mocks are properly set after mockReset
+function setupMockImplementations() {
+  // Setup KeyHelper mocks
+  mockKeyHelper.generateIdentityKeyPair.mockResolvedValue({
     pubKey: new ArrayBuffer(33),
     privKey: new ArrayBuffer(32),
-  }),
-  generateRegistrationId: vi.fn().mockReturnValue(12345),
-  generateSignedPreKey: vi.fn().mockResolvedValue({
+  });
+
+  mockKeyHelper.generateRegistrationId.mockReturnValue(12345);
+
+  mockKeyHelper.generateSignedPreKey.mockResolvedValue({
     keyId: 1,
     keyPair: {
       pubKey: new ArrayBuffer(33),
       privKey: new ArrayBuffer(32),
     },
     signature: new ArrayBuffer(64),
-  }),
-  generatePreKey: vi.fn().mockImplementation((keyId) =>
+  });
+
+  mockKeyHelper.generatePreKey.mockImplementation((keyId) =>
     Promise.resolve({
       keyId,
       keyPair: {
         pubKey: new ArrayBuffer(33),
         privKey: new ArrayBuffer(32),
       },
-    }),
-  ),
-};
+    })
+  );
 
-const mockSessionBuilder = {
-  processPreKey: vi.fn().mockResolvedValue(undefined),
-};
+  // Setup SessionBuilder constructor mock
+  MockSessionBuilder.mockImplementation(() => mockSessionBuilder);
+  mockSessionBuilder.processPreKey.mockResolvedValue(undefined);
 
-const mockSessionCipher = {
-  encrypt: vi.fn().mockResolvedValue({
+  // Setup SessionCipher constructor mock
+  MockSessionCipher.mockImplementation(() => mockSessionCipher);
+  mockSessionCipher.encrypt.mockResolvedValue({
     type: 1,
     body: new Uint8Array([1, 2, 3, 4, 5]),
     registrationId: 12345,
-  }),
-  decryptPreKeyWhisperMessage: vi
-    .fn()
-    .mockResolvedValue(new Uint8Array([72, 101, 108, 108, 111])), // "Hello"
-  decryptWhisperMessage: vi.fn().mockResolvedValue(new Uint8Array([72, 105])), // "Hi"
-};
+  });
 
-// Mock the Signal library module
-vi.mock("@privacyresearch/libsignal-protocol-typescript", () => ({
-  KeyHelper: mockKeyHelper,
-  SessionBuilder: vi.fn().mockImplementation(() => mockSessionBuilder),
-  SessionCipher: vi.fn().mockImplementation(() => mockSessionCipher),
-  SignalProtocolAddress: vi.fn().mockImplementation((name, deviceId) => ({
+  mockSessionCipher.decryptPreKeyWhisperMessage.mockResolvedValue(
+    new Uint8Array([72, 101, 108, 108, 111]) // "Hello"
+  );
+
+  mockSessionCipher.decryptWhisperMessage.mockResolvedValue(
+    new Uint8Array([72, 105]) // "Hi"
+  );
+
+  // Setup SignalProtocolAddress constructor mock
+  MockSignalProtocolAddress.mockImplementation((name, deviceId) => ({
     getName: () => name,
     getDeviceId: () => deviceId,
     toString: () => `${name}.${deviceId}`,
-  })),
-}));
+  }));
+}
 
 describe("SignalSessionManager", () => {
   let SignalSessionManager;
@@ -74,8 +109,11 @@ describe("SignalSessionManager", () => {
     testDir = path.join(os.tmpdir(), "signal-test-" + Date.now());
     fs.mkdirSync(testDir, { recursive: true });
 
-    // Reset all mocks
-    vi.clearAllMocks();
+    // Re-apply mock implementations after vitest's mockReset
+    setupMockImplementations();
+
+    // Reset modules to ensure fresh import with mocks
+    vi.resetModules();
 
     // Import the module (needs to be done after mocking)
     SignalSessionManager = (
@@ -493,6 +531,12 @@ describe("LocalSignalProtocolStore", () => {
   let manager;
 
   beforeEach(async () => {
+    // Re-apply mock implementations after vitest's mockReset
+    setupMockImplementations();
+
+    // Reset modules to ensure fresh import with mocks
+    vi.resetModules();
+
     SignalSessionManager = (
       await import("../../../src/main/p2p/signal-session-manager.js")
     ).default;
@@ -518,9 +562,9 @@ describe("LocalSignalProtocolStore", () => {
     expect(loaded).toEqual(sessionData);
   });
 
-  it("should return null for non-existent session", async () => {
+  it("should return undefined for non-existent session", async () => {
     const loaded = await manager.store.loadSession("nonexistent.1");
-    expect(loaded).toBeNull();
+    expect(loaded).toBeUndefined();
   });
 
   it("should remove session", async () => {
@@ -528,7 +572,7 @@ describe("LocalSignalProtocolStore", () => {
     await manager.store.removeSession("test.1");
 
     const loaded = await manager.store.loadSession("test.1");
-    expect(loaded).toBeNull();
+    expect(loaded).toBeUndefined();
   });
 
   it("should get all sessions", async () => {

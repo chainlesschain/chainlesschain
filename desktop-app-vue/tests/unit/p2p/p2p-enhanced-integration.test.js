@@ -11,7 +11,9 @@ import EventEmitter from "events";
 vi.mock("../../../src/main/p2p/message-manager");
 vi.mock("../../../src/main/p2p/knowledge-sync-manager");
 vi.mock("../../../src/main/p2p/file-transfer-manager");
-vi.mock("wrtc", () => ({
+vi.mock("../../../src/main/p2p/wrtc-compat", () => ({
+  available: true,
+  loadError: null,
   RTCPeerConnection: vi.fn().mockImplementation(() => ({
     createOffer: vi
       .fn()

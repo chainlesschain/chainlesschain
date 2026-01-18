@@ -775,11 +775,9 @@ describe('FunctionCaller', () => {
       expect(caller.hasTool('null_schema')).toBe(true);
     });
 
-    it('should handle registering tool with empty name', () => {
+    it('should reject registering tool with empty name', () => {
       const handler = vi.fn();
-      caller.registerTool('', handler, {});
-
-      expect(caller.hasTool('')).toBe(true);
+      expect(() => caller.registerTool('', handler, {})).toThrow('Tool must have a name');
     });
 
     it('should handle registering tool with special characters in name', () => {

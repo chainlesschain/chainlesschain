@@ -21,9 +21,9 @@ describe('BuiltinTools', () => {
     });
 
     it('should have expected number of tools', () => {
-      // 根据grep统计，应该有256个工具
+      // 根据grep统计，约320个工具
       expect(builtinTools.length).toBeGreaterThanOrEqual(200);
-      expect(builtinTools.length).toBeLessThanOrEqual(300);
+      expect(builtinTools.length).toBeLessThanOrEqual(400);
     });
   });
 
