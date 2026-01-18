@@ -779,11 +779,20 @@ class MCPSecurityPolicy extends EventEmitter {
       // Check if server has permissions configured
       const permissions = this.serverPermissions.get(serverName);
 
+      // If no permissions configured, allow by default (server is already trusted)
+      if (!permissions) {
+        console.log(
+          `[MCPSecurityPolicy] No permissions configured for ${serverName}, allowing by default`,
+        );
+        this._logAudit("ALLOWED", serverName, toolName, args, "low");
+        return { permitted: true };
+      }
+
       // Detect operation type
       const operation = this._detectOperation(toolName, args);
 
       // Check read-only constraint
-      if (permissions && permissions.readOnly && operation.type !== "read") {
+      if (permissions.readOnly && operation.type !== "read") {
         return {
           permitted: false,
           reason: `Server ${serverName} is read-only, cannot perform ${operation.type} operation`,
@@ -792,7 +801,7 @@ class MCPSecurityPolicy extends EventEmitter {
 
       // Validate path access if applicable
       const targetPath = args?.path || args?.uri || args?.file;
-      if (targetPath) {
+      if (targetPath && permissions.allowedPaths?.length > 0) {
         try {
           this._validatePathAccess(serverName, operation.type, targetPath);
         } catch (error) {
@@ -829,8 +838,20 @@ class MCPSecurityPolicy extends EventEmitter {
    */
   validateResourceAccess(serverName, resourceUri) {
     try {
-      // Validate path access for the resource
-      this._validatePathAccess(serverName, "read", resourceUri);
+      const permissions = this.serverPermissions.get(serverName);
+
+      // If no permissions configured, allow by default
+      if (!permissions) {
+        console.log(
+          `[MCPSecurityPolicy] No permissions configured for ${serverName}, allowing resource access`,
+        );
+        return { permitted: true };
+      }
+
+      // Only validate path if there are allowed paths configured
+      if (permissions.allowedPaths?.length > 0) {
+        this._validatePathAccess(serverName, "read", resourceUri);
+      }
 
       return { permitted: true };
     } catch (error) {
