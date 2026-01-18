@@ -151,6 +151,9 @@ const DeepLinkHandler = require("./deep-link-handler");
 // Performance Monitor
 const { getPerformanceMonitor } = require("../../utils/performance-monitor");
 
+// Splash Screen (启动画面)
+const SplashWindow = require("./splash/splash-window");
+
 // 过滤不需要的控制台输出
 const originalConsoleLog = console.log;
 const originalConsoleError = console.error;
@@ -350,6 +353,9 @@ class ChainlessChainApp {
     // Deep Link Handler (Enterprise DID Invitation Links)
     this.deepLinkHandler = null;
 
+    // Splash Screen (启动画面)
+    this.splashWindow = null;
+
     this.setupApp();
   }
 
@@ -448,8 +454,19 @@ class ChainlessChainApp {
   async onReady() {
     console.log("ChainlessChain Vue 启动中...");
 
+    // 创建并显示启动画面
+    this.splashWindow = new SplashWindow();
+    try {
+      await this.splashWindow.create();
+      this.splashWindow.updateProgress("正在启动...", 0);
+    } catch (error) {
+      console.error("[Main] 创建启动画面失败:", error);
+      // 降级处理：即使启动画面创建失败，也继续启动应用
+    }
+
     // 启动后端服务（仅在生产环境）
     try {
+      this.splashWindow?.updateProgress("启动后端服务...", 5);
       const backendManager = getBackendServiceManager();
       await backendManager.startServices();
     } catch (error) {
@@ -476,6 +493,7 @@ class ChainlessChainApp {
 
     // 初始化数据库
     try {
+      this.splashWindow?.updateProgress("初始化数据库...", 10);
       console.log("初始化数据库...");
 
       // 检查加密配置（只有用户启用加密后才使用加密数据库）
@@ -590,6 +608,7 @@ class ChainlessChainApp {
 
     // 初始化Git管理器
     try {
+      this.splashWindow?.updateProgress("初始化Git管理器...", 25);
       console.log("初始化Git管理器...");
       const gitConfig = getGitConfig();
 
@@ -715,6 +734,7 @@ class ChainlessChainApp {
 
     // 初始化LLM管理器
     try {
+      this.splashWindow?.updateProgress("初始化LLM服务...", 40);
       console.log("初始化LLM管理器...");
 
       // 🔥 检查是否在测试模式下使用Mock LLM服务
@@ -864,6 +884,7 @@ class ChainlessChainApp {
 
     // 初始化RAG管理器
     try {
+      this.splashWindow?.updateProgress("初始化RAG系统...", 55);
       console.log("初始化RAG管理器...");
       this.ragManager = new RAGManager(this.database, this.llmManager);
       await this.ragManager.initialize();
@@ -909,6 +930,7 @@ class ChainlessChainApp {
 
     // 初始化DID管理器
     try {
+      this.splashWindow?.updateProgress("初始化DID身份...", 65);
       console.log("初始化DID管理器...");
       const DIDManager = require("./did/did-manager");
       this.didManager = new DIDManager(this.database);
@@ -920,6 +942,7 @@ class ChainlessChainApp {
     }
 
     // 初始化P2P管理器
+    this.splashWindow?.updateProgress("初始化P2P网络...", 75);
     try {
       console.log("初始化P2P管理器...");
       const P2PManager = require("./p2p/p2p-manager");
@@ -1383,6 +1406,7 @@ class ChainlessChainApp {
 
     // 初始化AI引擎和相关模块
     try {
+      this.splashWindow?.updateProgress("初始化AI引擎...", 85);
       console.log("初始化AI引擎...");
 
       // 创建引擎实例
@@ -1704,6 +1728,7 @@ class ChainlessChainApp {
     // Note: setupIPC() will be called after all managers are initialized
     // including syncManager, previewManager, etc.
 
+    this.splashWindow?.updateProgress("创建主窗口...", 95);
     await this.createWindow();
 
     // 处理启动时的协议URL (Windows/Linux)
@@ -1946,6 +1971,17 @@ class ChainlessChainApp {
     } else {
       this.mainWindow.loadFile(path.join(__dirname, "../renderer/index.html"));
     }
+
+    // 主窗口加载完成后关闭启动画面
+    this.mainWindow.webContents.on("did-finish-load", () => {
+      this.splashWindow?.updateProgress("加载完成", 100);
+      if (this.splashWindow) {
+        setTimeout(() => {
+          this.splashWindow?.close();
+          this.splashWindow = null;
+        }, 300);
+      }
+    });
 
     this.mainWindow.on("closed", () => {
       this.mainWindow = null;
