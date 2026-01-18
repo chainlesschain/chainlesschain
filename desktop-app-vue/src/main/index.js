@@ -1563,6 +1563,15 @@ class ChainlessChainApp {
       this.mcpConfigLoader = new MCPConfigLoader();
       const mcpConfig = this.mcpConfigLoader.load();
 
+      console.log(
+        "[Main] MCP配置加载结果:",
+        JSON.stringify({
+          enabled: mcpConfig.enabled,
+          serverCount: Object.keys(mcpConfig.servers || {}).length,
+          configPath: this.mcpConfigLoader.configPath,
+        }),
+      );
+
       if (mcpConfig.enabled) {
         console.log("[Main] MCP系统已启用，开始初始化...");
 
