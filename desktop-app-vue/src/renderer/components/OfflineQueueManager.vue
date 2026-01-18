@@ -214,9 +214,7 @@
       <p>确定要重试发送所有待发送和失败的消息吗？</p>
       <p>
         共
-        {{
-          queueStats.pendingMessages + queueStats.failedMessages
-        }}
+        {{ queueStats.pendingMessages + queueStats.failedMessages }}
         条消息将被重试。
       </p>
     </a-modal>
