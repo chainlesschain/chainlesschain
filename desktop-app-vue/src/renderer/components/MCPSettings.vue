@@ -608,6 +608,211 @@
         </template>
       </a-table>
     </a-modal>
+
+    <!-- 工具测试对话框 -->
+    <a-modal
+      v-model:open="toolTestModalVisible"
+      :title="`测试工具: ${selectedTool?.name || ''}`"
+      width="800px"
+      @ok="executeToolTest"
+      :confirm-loading="toolTestLoading"
+      ok-text="执行"
+      cancel-text="取消"
+    >
+      <div v-if="selectedTool">
+        <!-- 工具描述 -->
+        <a-alert
+          :message="selectedTool.description || '无描述'"
+          type="info"
+          show-icon
+          style="margin-bottom: 16px"
+        />
+
+        <!-- 参数输入表单 -->
+        <a-form layout="vertical">
+          <template v-if="toolParameters.length > 0">
+            <a-divider orientation="left">参数输入</a-divider>
+
+            <template v-for="param in toolParameters" :key="param.name">
+              <!-- 字符串参数 -->
+              <a-form-item
+                v-if="param.type === 'string'"
+                :label="param.name"
+                :required="param.required"
+              >
+                <a-textarea
+                  v-if="param.multiline"
+                  v-model:value="toolTestArgs[param.name]"
+                  :placeholder="param.description || `请输入 ${param.name}`"
+                  :rows="4"
+                />
+                <a-input
+                  v-else
+                  v-model:value="toolTestArgs[param.name]"
+                  :placeholder="param.description || `请输入 ${param.name}`"
+                />
+                <div v-if="param.description" class="form-hint">
+                  {{ param.description }}
+                </div>
+              </a-form-item>
+
+              <!-- 数字参数 -->
+              <a-form-item
+                v-else-if="param.type === 'number' || param.type === 'integer'"
+                :label="param.name"
+                :required="param.required"
+              >
+                <a-input-number
+                  v-model:value="toolTestArgs[param.name]"
+                  :placeholder="param.description || `请输入 ${param.name}`"
+                  style="width: 100%"
+                />
+                <div v-if="param.description" class="form-hint">
+                  {{ param.description }}
+                </div>
+              </a-form-item>
+
+              <!-- 布尔参数 -->
+              <a-form-item
+                v-else-if="param.type === 'boolean'"
+                :label="param.name"
+                :required="param.required"
+              >
+                <a-switch v-model:checked="toolTestArgs[param.name]" />
+                <div v-if="param.description" class="form-hint">
+                  {{ param.description }}
+                </div>
+              </a-form-item>
+
+              <!-- 枚举参数 -->
+              <a-form-item
+                v-else-if="param.enum && param.enum.length > 0"
+                :label="param.name"
+                :required="param.required"
+              >
+                <a-select
+                  v-model:value="toolTestArgs[param.name]"
+                  :placeholder="param.description || `请选择 ${param.name}`"
+                  style="width: 100%"
+                >
+                  <a-select-option
+                    v-for="opt in param.enum"
+                    :key="opt"
+                    :value="opt"
+                  >
+                    {{ opt }}
+                  </a-select-option>
+                </a-select>
+                <div v-if="param.description" class="form-hint">
+                  {{ param.description }}
+                </div>
+              </a-form-item>
+
+              <!-- 数组参数 -->
+              <a-form-item
+                v-else-if="param.type === 'array'"
+                :label="param.name"
+                :required="param.required"
+              >
+                <a-select
+                  v-model:value="toolTestArgs[param.name]"
+                  mode="tags"
+                  :placeholder="
+                    param.description ||
+                    `请输入 ${param.name} (多个值用回车分隔)`
+                  "
+                  style="width: 100%"
+                />
+                <div v-if="param.description" class="form-hint">
+                  {{ param.description }}
+                </div>
+              </a-form-item>
+
+              <!-- 对象或其他复杂类型 -->
+              <a-form-item
+                v-else
+                :label="param.name"
+                :required="param.required"
+              >
+                <a-textarea
+                  v-model:value="toolTestArgs[param.name]"
+                  :placeholder="`请输入 JSON 格式的 ${param.name}`"
+                  :rows="3"
+                />
+                <div class="form-hint">
+                  {{
+                    param.description || `类型: ${param.type}，请输入 JSON 格式`
+                  }}
+                </div>
+              </a-form-item>
+            </template>
+          </template>
+
+          <a-empty v-else description="此工具无需参数" style="margin: 16px 0" />
+
+          <!-- JSON模式切换 -->
+          <a-divider orientation="left">
+            <a-switch
+              v-model:checked="toolTestJsonMode"
+              size="small"
+              style="margin-right: 8px"
+            />
+            JSON 编辑模式
+          </a-divider>
+
+          <a-textarea
+            v-if="toolTestJsonMode"
+            v-model:value="toolTestArgsJson"
+            :rows="6"
+            placeholder='{"param1": "value1", "param2": "value2"}'
+            style="font-family: &quot;Courier New&quot;, monospace"
+          />
+          <a-alert
+            v-if="toolTestJsonError"
+            type="error"
+            :message="toolTestJsonError"
+            style="margin-top: 8px"
+            closable
+            @close="toolTestJsonError = ''"
+          />
+        </a-form>
+
+        <!-- 执行结果 -->
+        <template v-if="toolTestResult !== null">
+          <a-divider orientation="left">执行结果</a-divider>
+
+          <a-alert
+            v-if="toolTestResult.success"
+            type="success"
+            message="执行成功"
+            style="margin-bottom: 12px"
+            show-icon
+          />
+          <a-alert
+            v-else
+            type="error"
+            :message="toolTestResult.error || '执行失败'"
+            style="margin-bottom: 12px"
+            show-icon
+          />
+
+          <div class="tool-result-container">
+            <pre class="tool-result">{{
+              formatToolResult(toolTestResult)
+            }}</pre>
+          </div>
+
+          <a-space style="margin-top: 12px">
+            <a-button size="small" @click="copyToolResult">
+              <copy-outlined /> 复制结果
+            </a-button>
+            <a-button size="small" @click="clearToolResult">
+              <delete-outlined /> 清除结果
+            </a-button>
+          </a-space>
+        </template>
+      </div>
+    </a-modal>
   </div>
 </template>
 
@@ -620,6 +825,8 @@ import {
   LockOutlined,
   CodeOutlined,
   ReloadOutlined,
+  CopyOutlined,
+  DeleteOutlined,
 } from "@ant-design/icons-vue";
 
 // 状态
@@ -762,6 +969,16 @@ const serverConfig = reactive(getDefaultConfig("filesystem"));
 const toolsModalVisible = ref(false);
 const serverTools = ref([]);
 
+// 工具测试对话框状态
+const toolTestModalVisible = ref(false);
+const selectedTool = ref(null);
+const toolTestLoading = ref(false);
+const toolTestArgs = reactive({});
+const toolTestArgsJson = ref("{}");
+const toolTestJsonMode = ref(false);
+const toolTestJsonError = ref("");
+const toolTestResult = ref(null);
+
 // 表格列定义
 const serverColumns = [
   {
@@ -838,6 +1055,26 @@ const averageLatency = computed(() => {
   return (sum / latencies.length).toFixed(2);
 });
 
+// 解析工具参数定义
+const toolParameters = computed(() => {
+  if (!selectedTool.value?.inputSchema?.properties) {
+    return [];
+  }
+
+  const schema = selectedTool.value.inputSchema;
+  const required = schema.required || [];
+
+  return Object.entries(schema.properties).map(([name, prop]) => ({
+    name,
+    type: prop.type || "string",
+    description: prop.description || "",
+    required: required.includes(name),
+    enum: prop.enum || null,
+    default: prop.default,
+    multiline: prop.format === "multiline" || name.includes("content"),
+  }));
+});
+
 // 监听配置模式切换
 watch(configEditMode, (newMode) => {
   if (newMode === "json") {
@@ -851,6 +1088,30 @@ watch(configEditMode, (newMode) => {
       jsonError.value = "";
     } catch (error) {
       jsonError.value = "JSON格式错误: " + error.message;
+    }
+  }
+});
+
+// 监听工具测试JSON模式切换
+watch(toolTestJsonMode, (newMode) => {
+  if (newMode) {
+    // 切换到JSON模式，序列化当前参数
+    const cleanArgs = {};
+    for (const [key, value] of Object.entries(toolTestArgs)) {
+      if (value !== "" && value !== undefined && value !== null) {
+        cleanArgs[key] = value;
+      }
+    }
+    toolTestArgsJson.value = JSON.stringify(cleanArgs, null, 2);
+  } else {
+    // 切换到表单模式，尝试解析JSON
+    try {
+      const parsed = JSON.parse(toolTestArgsJson.value);
+      Object.keys(toolTestArgs).forEach((key) => delete toolTestArgs[key]);
+      Object.assign(toolTestArgs, parsed);
+      toolTestJsonError.value = "";
+    } catch (error) {
+      toolTestJsonError.value = "JSON格式错误: " + error.message;
     }
   }
 });
@@ -1089,7 +1350,160 @@ const showServerTools = async (server) => {
 };
 
 const testTool = (tool) => {
-  message.info(`测试工具: ${tool.name} (功能开发中)`);
+  selectedTool.value = tool;
+
+  // 重置状态
+  Object.keys(toolTestArgs).forEach((key) => delete toolTestArgs[key]);
+  toolTestArgsJson.value = "{}";
+  toolTestJsonMode.value = false;
+  toolTestJsonError.value = "";
+  toolTestResult.value = null;
+
+  // 初始化参数默认值
+  if (tool.inputSchema?.properties) {
+    const schema = tool.inputSchema;
+    const required = schema.required || [];
+
+    Object.entries(schema.properties).forEach(([name, prop]) => {
+      if (prop.default !== undefined) {
+        toolTestArgs[name] = prop.default;
+      } else if (prop.type === "boolean") {
+        toolTestArgs[name] = false;
+      } else if (prop.type === "array") {
+        toolTestArgs[name] = [];
+      } else if (prop.type === "number" || prop.type === "integer") {
+        toolTestArgs[name] = undefined;
+      } else {
+        toolTestArgs[name] = "";
+      }
+    });
+  }
+
+  toolTestModalVisible.value = true;
+};
+
+const executeToolTest = async () => {
+  toolTestLoading.value = true;
+  toolTestResult.value = null;
+
+  try {
+    let args;
+
+    // 如果是 JSON 模式，解析 JSON
+    if (toolTestJsonMode.value) {
+      try {
+        args = JSON.parse(toolTestArgsJson.value);
+        toolTestJsonError.value = "";
+      } catch (error) {
+        toolTestJsonError.value = "JSON 格式错误: " + error.message;
+        toolTestLoading.value = false;
+        return;
+      }
+    } else {
+      // 使用表单数据
+      args = {};
+      const schema = selectedTool.value.inputSchema || {};
+      const properties = schema.properties || {};
+
+      for (const [key, value] of Object.entries(toolTestArgs)) {
+        // 跳过空值（非必填项）
+        if (value === "" || value === undefined || value === null) {
+          continue;
+        }
+
+        // 根据类型处理值
+        const propSchema = properties[key] || {};
+        if (propSchema.type === "object" && typeof value === "string") {
+          try {
+            args[key] = JSON.parse(value);
+          } catch {
+            args[key] = value;
+          }
+        } else {
+          args[key] = value;
+        }
+      }
+    }
+
+    // 验证必填参数
+    const schema = selectedTool.value.inputSchema || {};
+    const required = schema.required || [];
+    for (const reqParam of required) {
+      if (args[reqParam] === undefined || args[reqParam] === "") {
+        message.error(`参数 "${reqParam}" 是必填项`);
+        toolTestLoading.value = false;
+        return;
+      }
+    }
+
+    console.log(`[MCP Test] Executing tool: ${selectedTool.value.name}`, args);
+
+    // 调用 MCP 工具
+    const result = await window.electronAPI.invoke("mcp:call-tool", {
+      serverName: selectedServer.value.id,
+      toolName: selectedTool.value.name,
+      arguments: args,
+    });
+
+    toolTestResult.value = result;
+
+    if (result.success) {
+      message.success("工具执行成功");
+    } else {
+      message.error("工具执行失败: " + result.error);
+    }
+  } catch (error) {
+    console.error("[MCP Test] Tool execution failed:", error);
+    toolTestResult.value = {
+      success: false,
+      error: error.message,
+    };
+    message.error("工具执行失败: " + error.message);
+  } finally {
+    toolTestLoading.value = false;
+  }
+};
+
+const formatToolResult = (result) => {
+  if (!result) return "";
+
+  try {
+    if (result.success && result.result) {
+      // 处理 MCP 标准返回格式
+      if (Array.isArray(result.result.content)) {
+        return result.result.content
+          .map((item) => {
+            if (item.type === "text") {
+              return item.text;
+            } else if (item.type === "image") {
+              return `[图片: ${item.mimeType}]`;
+            } else if (item.type === "resource") {
+              return `[资源: ${item.uri}]`;
+            }
+            return JSON.stringify(item, null, 2);
+          })
+          .join("\n");
+      }
+      return JSON.stringify(result.result, null, 2);
+    }
+    return JSON.stringify(result, null, 2);
+  } catch {
+    return String(result);
+  }
+};
+
+const copyToolResult = async () => {
+  try {
+    const text = formatToolResult(toolTestResult.value);
+    await navigator.clipboard.writeText(text);
+    message.success("已复制到剪贴板");
+  } catch (error) {
+    message.error("复制失败: " + error.message);
+  }
+};
+
+const clearToolResult = () => {
+  toolTestResult.value = null;
 };
 
 const loadConfigTemplate = (templateType) => {
@@ -1194,5 +1608,22 @@ onMounted(async () => {
   color: rgba(0, 0, 0, 0.45);
   font-size: 12px;
   margin-top: 4px;
+}
+
+.tool-result-container {
+  max-height: 300px;
+  overflow: auto;
+  background: #f5f5f5;
+  border-radius: 4px;
+  padding: 12px;
+}
+
+.tool-result {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: "Courier New", Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.5;
 }
 </style>

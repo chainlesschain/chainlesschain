@@ -105,6 +105,21 @@ function registerMCPIPC(mcpManager, mcpAdapter, securityPolicy) {
         // Connect to server
         const capabilities = await mcpManager.connectServer(serverName, config);
 
+        // Register server permissions with security policy
+        if (config && config.permissions) {
+          securityPolicy.setServerPermissions(serverName, config.permissions);
+          console.log(`[MCP IPC] Registered permissions for ${serverName}`);
+        } else {
+          // Set default permissive permissions if none provided
+          securityPolicy.setServerPermissions(serverName, {
+            allowedPaths: [],
+            forbiddenPaths: [],
+            readOnly: false,
+            requireConsent: true,
+          });
+          console.log(`[MCP IPC] Set default permissions for ${serverName}`);
+        }
+
         // Register tools with ToolManager
         await mcpAdapter.registerMCPServerTools(serverName);
 
