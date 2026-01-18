@@ -64,6 +64,28 @@ describe('Word引擎测试', () => {
     // Clear all mocks
     vi.clearAllMocks();
 
+    if (!globalThis.__WORD_ENGINE_FS__) {
+      globalThis.__WORD_ENGINE_FS__ = {
+        writeFile: vi.fn().mockResolvedValue(undefined),
+        stat: vi.fn().mockResolvedValue({
+          size: 1024,
+          birthtime: new Date(),
+          mtime: new Date(),
+          isFile: () => true,
+        }),
+        mkdir: vi.fn().mockResolvedValue(undefined),
+      };
+    }
+
+    if (!globalThis.__WORD_ENGINE_FILE_HANDLER__) {
+      globalThis.__WORD_ENGINE_FILE_HANDLER__ = {
+        getFileSize: vi.fn().mockResolvedValue(1024 * 1024),
+        checkAvailableMemory: vi.fn().mockReturnValue({ isAvailable: true }),
+        waitForMemory: vi.fn().mockResolvedValue(undefined),
+        writeFileStream: vi.fn().mockResolvedValue(undefined),
+      };
+    }
+
     // Create temporary directory for test files
     tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'word-test-'));
     testDocxPath = path.join(tmpDir, 'test.docx');
@@ -143,7 +165,6 @@ describe('Word引擎测试', () => {
     });
 
     it('should handle large files', async () => {
-      const fileHandlerMock = (await import('../../src/main/utils/file-handler')).getFileHandler();
       fileHandlerMock.getFileSize.mockResolvedValue(20 * 1024 * 1024); // 20MB
 
       const result = await wordEngine.readWord('/large.docx');
@@ -153,7 +174,6 @@ describe('Word引擎测试', () => {
     });
 
     it('should handle memory availability issues', async () => {
-      const fileHandlerMock = (await import('../../src/main/utils/file-handler')).getFileHandler();
       fileHandlerMock.checkAvailableMemory.mockReturnValue({ isAvailable: false });
 
       const result = await wordEngine.readWord(testDocxPath);
@@ -185,7 +205,7 @@ describe('Word引擎测试', () => {
 
   describe('writeWord', () => {
     beforeEach(() => {
-      mockFs.promises.writeFile.mockResolvedValue(undefined);
+      wordEngineFsMock.writeFile.mockResolvedValue(undefined);
     });
 
     it('should write Word document successfully', async () => {
@@ -224,8 +244,6 @@ describe('Word引擎测试', () => {
       const largeBuffer = Buffer.alloc(15 * 1024 * 1024); // 15MB
       mockDocx.Packer.toBuffer.mockResolvedValue(largeBuffer);
 
-      const fileHandlerMock = (await import('../../src/main/utils/file-handler')).getFileHandler();
-
       const content = { title: 'Large Doc', paragraphs: [] };
       await wordEngine.writeWord('/large.docx', content);
 
@@ -239,7 +257,7 @@ describe('Word引擎测试', () => {
       const content = { title: 'Small Doc', paragraphs: [] };
       await wordEngine.writeWord('/small.docx', content);
 
-      expect(mockFs.promises.writeFile).toHaveBeenCalledWith(
+      expect(wordEngineFsMock.writeFile).toHaveBeenCalledWith(
         '/small.docx',
         smallBuffer
       );
@@ -499,7 +517,7 @@ describe('Word引擎测试', () => {
     beforeEach(() => {
       mockMarked.marked.mockReturnValue('<p>Converted content</p>');
       mockDocx.Packer.toBuffer.mockResolvedValue(Buffer.from('Word'));
-      mockFs.promises.writeFile.mockResolvedValue(undefined);
+      wordEngineFsMock.writeFile.mockResolvedValue(undefined);
     });
 
     it('should convert markdown to Word', async () => {
@@ -596,7 +614,7 @@ describe('Word引擎测试', () => {
   describe('createTemplate', () => {
     beforeEach(() => {
       mockDocx.Packer.toBuffer.mockResolvedValue(Buffer.from('Template'));
-      mockFs.promises.writeFile.mockResolvedValue(undefined);
+      wordEngineFsMock.writeFile.mockResolvedValue(undefined);
     });
 
     it('should create report template', async () => {
@@ -688,7 +706,7 @@ describe('Word引擎测试', () => {
   describe('边界条件和错误处理', () => {
     it('should handle null content for writeWord', async () => {
       mockDocx.Packer.toBuffer.mockResolvedValue(Buffer.from('Doc'));
-      mockFs.promises.writeFile.mockResolvedValue(undefined);
+      wordEngineFsMock.writeFile.mockResolvedValue(undefined);
 
       const result = await wordEngine.writeWord(testDocxPath, {});
 
@@ -697,7 +715,7 @@ describe('Word引擎测试', () => {
 
     it('should handle empty paragraphs array', async () => {
       mockDocx.Packer.toBuffer.mockResolvedValue(Buffer.from('Doc'));
-      mockFs.promises.writeFile.mockResolvedValue(undefined);
+      wordEngineFsMock.writeFile.mockResolvedValue(undefined);
 
       const result = await wordEngine.writeWord(testDocxPath, { paragraphs: [] });
 
@@ -711,7 +729,7 @@ describe('Word引擎测试', () => {
       };
 
       mockDocx.Packer.toBuffer.mockResolvedValue(Buffer.from('Doc'));
-      mockFs.promises.writeFile.mockResolvedValue(undefined);
+      wordEngineFsMock.writeFile.mockResolvedValue(undefined);
 
       const result = await wordEngine.writeWord(testDocxPath, content);
 
@@ -725,7 +743,7 @@ describe('Word引擎测试', () => {
       };
 
       mockDocx.Packer.toBuffer.mockResolvedValue(Buffer.from('Doc'));
-      mockFs.promises.writeFile.mockResolvedValue(undefined);
+      wordEngineFsMock.writeFile.mockResolvedValue(undefined);
 
       const result = await wordEngine.writeWord(testDocxPath, content);
 
