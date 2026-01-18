@@ -8,47 +8,6 @@ import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';
 
-// Mock all dependencies before importing
-vi.mock('docx', () => ({
-  Document: vi.fn((config) => ({ config })),
-  Packer: {
-    toBuffer: vi.fn(),
-  },
-  Paragraph: vi.fn((config) => ({ type: 'paragraph', config })),
-  TextRun: vi.fn((config) => ({ type: 'textrun', config })),
-  HeadingLevel: {
-    TITLE: 'TITLE',
-    HEADING_1: 'H1',
-    HEADING_2: 'H2',
-    HEADING_3: 'H3',
-    HEADING_4: 'H4',
-    HEADING_5: 'H5',
-    HEADING_6: 'H6',
-  },
-  AlignmentType: {
-    LEFT: 'LEFT',
-    CENTER: 'CENTER',
-    RIGHT: 'RIGHT',
-    JUSTIFIED: 'JUSTIFIED',
-  },
-  UnderlineType: {
-    SINGLE: 'SINGLE',
-  },
-}));
-
-vi.mock('mammoth', () => ({
-  default: {
-    convertToHtml: vi.fn(),
-    extractRawText: vi.fn(),
-  },
-  convertToHtml: vi.fn(),
-  extractRawText: vi.fn(),
-}));
-
-vi.mock('marked', () => ({
-  marked: vi.fn(),
-}));
-
 describe('Word引擎测试', () => {
   let WordEngine;
   let wordEngine;
@@ -86,14 +45,54 @@ describe('Word引擎测试', () => {
       };
     }
 
+    if (!globalThis.__WORD_ENGINE_DOCX__) {
+      globalThis.__WORD_ENGINE_DOCX__ = {
+        Document: vi.fn((config) => ({ type: 'document', config })),
+        Packer: { toBuffer: vi.fn() },
+        Paragraph: vi.fn((config) => ({ type: 'paragraph', config })),
+        TextRun: vi.fn((config) => ({ config })),
+        HeadingLevel: {
+          TITLE: 'TITLE',
+          HEADING_1: 'H1',
+          HEADING_2: 'H2',
+          HEADING_3: 'H3',
+          HEADING_4: 'H4',
+          HEADING_5: 'H5',
+          HEADING_6: 'H6',
+        },
+        AlignmentType: {
+          LEFT: 'LEFT',
+          CENTER: 'CENTER',
+          RIGHT: 'RIGHT',
+          JUSTIFIED: 'JUSTIFIED',
+        },
+        UnderlineType: {
+          SINGLE: 'SINGLE',
+        },
+      };
+    }
+
+    if (!globalThis.__WORD_ENGINE_MAMMOTH__) {
+      globalThis.__WORD_ENGINE_MAMMOTH__ = {
+        convertToHtml: vi.fn(),
+        extractRawText: vi.fn(),
+      };
+    }
+
+    if (!globalThis.__WORD_ENGINE_MARKED__) {
+      globalThis.__WORD_ENGINE_MARKED__ = {
+        marked: vi.fn(),
+      };
+    }
+
     // Create temporary directory for test files
     tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'word-test-'));
     testDocxPath = path.join(tmpDir, 'test.docx');
 
-    // Import mocked modules
-    mockDocx = await import('docx');
-    mockMammoth = await import('mammoth');
-    mockMarked = await import('marked');
+    // Access shared mocks configured in setup
+    mockDocx = globalThis.__WORD_ENGINE_DOCX__;
+    mockMammoth = globalThis.__WORD_ENGINE_MAMMOTH__;
+    mockMarked = globalThis.__WORD_ENGINE_MARKED__;
 
     // Import WordEngine after mocks are set up
     const module = await import('../../src/main/engines/word-engine.js');
@@ -101,6 +100,7 @@ describe('Word引擎测试', () => {
     wordEngine = WordEngine;
     fileHandlerMock = globalThis.__WORD_ENGINE_FILE_HANDLER__;
     wordEngineFsMock = globalThis.__WORD_ENGINE_FS__;
+    wordEngine.fileHandler = fileHandlerMock;
 
     // Setup default mock behaviors
     mockDocx.Packer.toBuffer.mockResolvedValue(Buffer.from('Word document'));

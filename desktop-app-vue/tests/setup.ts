@@ -6,33 +6,92 @@ import { vi, beforeEach } from 'vitest';
 import { config } from '@vue/test-utils';
 
 // Centralized mocks that WordEngine reads via global overrides to avoid actual FS access.
-const createWordEngineFileHandlerMock = () => ({
-  getFileSize: vi.fn().mockResolvedValue(1024 * 1024),
-  checkAvailableMemory: vi.fn().mockReturnValue({
+const createDefaultWordStat = () => ({
+  size: 1024,
+  birthtime: new Date(0),
+  mtime: new Date(0),
+  isFile: () => true,
+});
+
+const ensureWordEngineFsMock = () => {
+  const globalTarget = globalThis as any;
+  const fsMock = globalTarget.__WORD_ENGINE_FS__ || {};
+  fsMock.writeFile = vi.fn().mockResolvedValue(undefined);
+  fsMock.stat = vi.fn().mockResolvedValue(createDefaultWordStat());
+  fsMock.mkdir = vi.fn().mockResolvedValue(undefined);
+  globalTarget.__WORD_ENGINE_FS__ = fsMock;
+  return fsMock;
+};
+
+const ensureWordEngineFileHandlerMock = () => {
+  const globalTarget = globalThis as any;
+  const handler = globalTarget.__WORD_ENGINE_FILE_HANDLER__ || {};
+  handler.getFileSize = vi.fn().mockResolvedValue(1024 * 1024);
+  handler.checkAvailableMemory = vi.fn().mockReturnValue({
     freeMem: 2 * 1024 * 1024,
     totalMem: 4 * 1024 * 1024,
     usageRatio: 0.5,
     isAvailable: true,
-  }),
-  waitForMemory: vi.fn().mockResolvedValue(undefined),
-  writeFileStream: vi.fn().mockResolvedValue(undefined),
-});
+  });
+  handler.waitForMemory = vi.fn().mockResolvedValue(undefined);
+  handler.writeFileStream = vi.fn().mockResolvedValue(undefined);
+  globalTarget.__WORD_ENGINE_FILE_HANDLER__ = handler;
+  return handler;
+};
 
-const createWordEngineFsMock = () => ({
-  writeFile: vi.fn().mockResolvedValue(undefined),
-  stat: vi.fn().mockResolvedValue({
-    size: 1024,
-    birthtime: new Date(0),
-    mtime: new Date(0),
-    isFile: () => true,
-  }),
-  mkdir: vi.fn().mockResolvedValue(undefined),
-});
+const ensureWordEngineDocxMock = () => {
+  const globalTarget = globalThis as any;
+  const docxMock = globalTarget.__WORD_ENGINE_DOCX__ || {};
+  docxMock.Document = vi.fn((config) => ({ type: 'document', config }));
+  docxMock.Packer = docxMock.Packer || { toBuffer: vi.fn() };
+  docxMock.Packer.toBuffer = vi.fn();
+  docxMock.Paragraph = vi.fn((config) => ({ type: 'paragraph', config }));
+  docxMock.TextRun = vi.fn((config) => ({ config }));
+  docxMock.HeadingLevel = {
+    TITLE: 'TITLE',
+    HEADING_1: 'H1',
+    HEADING_2: 'H2',
+    HEADING_3: 'H3',
+    HEADING_4: 'H4',
+    HEADING_5: 'H5',
+    HEADING_6: 'H6',
+  };
+  docxMock.AlignmentType = {
+    LEFT: 'LEFT',
+    CENTER: 'CENTER',
+    RIGHT: 'RIGHT',
+    JUSTIFIED: 'JUSTIFIED',
+  };
+  docxMock.UnderlineType = {
+    SINGLE: 'SINGLE',
+  };
+  globalTarget.__WORD_ENGINE_DOCX__ = docxMock;
+  return docxMock;
+};
+
+const ensureWordEngineMammothMock = () => {
+  const globalTarget = globalThis as any;
+  const mammothMock = globalTarget.__WORD_ENGINE_MAMMOTH__ || {};
+  mammothMock.convertToHtml = vi.fn();
+  mammothMock.extractRawText = vi.fn();
+  globalTarget.__WORD_ENGINE_MAMMOTH__ = mammothMock;
+  return mammothMock;
+};
+
+const ensureWordEngineMarkedMock = () => {
+  const globalTarget = globalThis as any;
+  const markedMock = globalTarget.__WORD_ENGINE_MARKED__ || {};
+  markedMock.marked = vi.fn();
+  globalTarget.__WORD_ENGINE_MARKED__ = markedMock;
+  return markedMock;
+};
 
 const resetWordEngineMocks = () => {
-  const fsMock = createWordEngineFsMock();
-  (globalThis as any).__WORD_ENGINE_FS__ = fsMock;
-  (globalThis as any).__WORD_ENGINE_FILE_HANDLER__ = createWordEngineFileHandlerMock();
+  ensureWordEngineFsMock();
+  ensureWordEngineFileHandlerMock();
+  ensureWordEngineDocxMock();
+  ensureWordEngineMammothMock();
+  ensureWordEngineMarkedMock();
 };
 
 resetWordEngineMocks();

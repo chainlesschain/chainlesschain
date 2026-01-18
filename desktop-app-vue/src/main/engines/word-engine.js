@@ -6,12 +6,34 @@
 
 const nodeFs = require('fs');
 const path = require('path');
-const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, UnderlineType } = require('docx');
-const mammoth = require('mammoth');
-const { marked } = require('marked');
 const { getFileHandler } = require('../utils/file-handler');
 
-const globalContext = typeof globalThis !== 'undefined' ? globalThis : global;
+const globalContext =
+  typeof globalThis !== 'undefined'
+    ? globalThis
+    : typeof global !== 'undefined'
+      ? global
+      : undefined;
+const docxModule =
+  (globalContext && globalContext.__WORD_ENGINE_DOCX__) || require('docx');
+const {
+  Document,
+  Packer,
+  Paragraph,
+  TextRun,
+  HeadingLevel,
+  AlignmentType,
+  UnderlineType,
+} = docxModule;
+
+const mammothModule =
+  (globalContext && globalContext.__WORD_ENGINE_MAMMOTH__) || require('mammoth');
+const mammoth = mammothModule.default || mammothModule;
+
+const markedModule =
+  (globalContext && globalContext.__WORD_ENGINE_MARKED__) || require('marked');
+const marked = markedModule.marked || markedModule;
+
 const fs = (globalContext && globalContext.__WORD_ENGINE_FS__) || nodeFs.promises;
 
 const resolveFileHandler = () => {
