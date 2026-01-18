@@ -7,12 +7,10 @@
  * @module MCPConfigLoader
  */
 
-const fs = require('fs');
-const path = require('path');
-const EventEmitter = require('events');
-const {
-  getUnifiedConfigManager,
-} = require('../config/unified-config-manager');
+const fs = require("fs");
+const path = require("path");
+const EventEmitter = require("events");
+const { getUnifiedConfigManager } = require("../config/unified-config-manager");
 
 class MCPConfigLoader extends EventEmitter {
   constructor(configPath = null) {
@@ -25,7 +23,10 @@ class MCPConfigLoader extends EventEmitter {
     this.lastLoadTime = null;
     this.watchHandle = null;
 
-    console.log('[MCPConfigLoader] Initialized with config path:', this.configPath);
+    console.log(
+      "[MCPConfigLoader] Initialized with config path:",
+      this.configPath,
+    );
   }
 
   /**
@@ -35,18 +36,20 @@ class MCPConfigLoader extends EventEmitter {
    */
   load(watch = false) {
     try {
-      console.log('[MCPConfigLoader] Loading configuration...');
+      console.log("[MCPConfigLoader] Loading configuration...");
 
       // Check if config file exists
       if (!fs.existsSync(this.configPath)) {
-        console.warn(`[MCPConfigLoader] Config file not found: ${this.configPath}`);
-        console.warn('[MCPConfigLoader] Using default configuration');
+        console.warn(
+          `[MCPConfigLoader] Config file not found: ${this.configPath}`,
+        );
+        console.warn("[MCPConfigLoader] Using default configuration");
         this.config = this._getDefaultConfig();
         return this.config;
       }
 
       // Read and parse config
-      const configContent = fs.readFileSync(this.configPath, 'utf-8');
+      const configContent = fs.readFileSync(this.configPath, "utf-8");
       const fullConfig = JSON.parse(configContent);
 
       // Extract MCP section
@@ -57,26 +60,27 @@ class MCPConfigLoader extends EventEmitter {
 
       this.lastLoadTime = Date.now();
 
-      console.log('[MCPConfigLoader] Configuration loaded successfully');
+      console.log("[MCPConfigLoader] Configuration loaded successfully");
       console.log(`  Enabled: ${this.config.enabled}`);
-      console.log(`  Servers: ${Object.keys(this.config.servers || {}).length}`);
+      console.log(
+        `  Servers: ${Object.keys(this.config.servers || {}).length}`,
+      );
 
       // Set up file watching if requested
       if (watch && !this.watchHandle) {
         this._setupWatcher();
       }
 
-      this.emit('config-loaded', this.config);
+      this.emit("config-loaded", this.config);
 
       return this.config;
-
     } catch (error) {
-      console.error('[MCPConfigLoader] Failed to load configuration:', error);
+      console.error("[MCPConfigLoader] Failed to load configuration:", error);
 
       // Fall back to default config
       this.config = this._getDefaultConfig();
 
-      this.emit('config-error', error);
+      this.emit("config-error", error);
 
       return this.config;
     }
@@ -129,7 +133,7 @@ class MCPConfigLoader extends EventEmitter {
    * @returns {Object} Updated configuration
    */
   reload() {
-    console.log('[MCPConfigLoader] Reloading configuration...');
+    console.log("[MCPConfigLoader] Reloading configuration...");
 
     const oldConfig = this.config;
     const newConfig = this.load(false);
@@ -138,10 +142,10 @@ class MCPConfigLoader extends EventEmitter {
     const changes = this._detectChanges(oldConfig, newConfig);
 
     if (changes.length > 0) {
-      console.log('[MCPConfigLoader] Configuration changed:');
-      changes.forEach(change => console.log(`  - ${change}`));
+      console.log("[MCPConfigLoader] Configuration changed:");
+      changes.forEach((change) => console.log(`  - ${change}`));
 
-      this.emit('config-changed', { oldConfig, newConfig, changes });
+      this.emit("config-changed", { oldConfig, newConfig, changes });
     }
 
     return newConfig;
@@ -154,7 +158,7 @@ class MCPConfigLoader extends EventEmitter {
     if (this.watchHandle) {
       this.watchHandle.close();
       this.watchHandle = null;
-      console.log('[MCPConfigLoader] Stopped watching configuration file');
+      console.log("[MCPConfigLoader] Stopped watching configuration file");
     }
   }
 
@@ -178,12 +182,12 @@ class MCPConfigLoader extends EventEmitter {
       }
     } catch (error) {
       console.warn(
-        '[MCPConfigLoader] Failed to resolve config path from UnifiedConfigManager:',
-        error.message
+        "[MCPConfigLoader] Failed to resolve config path from UnifiedConfigManager:",
+        error.message,
       );
     }
 
-    return path.join(process.cwd(), '.chainlesschain', 'config.json');
+    return path.join(process.cwd(), ".chainlesschain", "config.json");
   }
 
   /**
@@ -195,15 +199,15 @@ class MCPConfigLoader extends EventEmitter {
       enabled: false,
       servers: {},
       trustedServers: [
-        '@modelcontextprotocol/server-filesystem',
-        '@modelcontextprotocol/server-postgres',
-        '@modelcontextprotocol/server-github'
+        "@modelcontextprotocol/server-filesystem",
+        "@modelcontextprotocol/server-postgres",
+        "@modelcontextprotocol/server-github",
       ],
       allowUntrustedServers: false,
       defaultPermissions: {
         requireConsent: true,
-        readOnly: false
-      }
+        readOnly: false,
+      },
     };
   }
 
@@ -212,16 +216,16 @@ class MCPConfigLoader extends EventEmitter {
    * @private
    */
   _validateConfig(config) {
-    if (typeof config !== 'object') {
-      throw new Error('Config must be an object');
+    if (typeof config !== "object") {
+      throw new Error("Config must be an object");
     }
 
-    if (config.enabled !== undefined && typeof config.enabled !== 'boolean') {
-      throw new Error('config.enabled must be a boolean');
+    if (config.enabled !== undefined && typeof config.enabled !== "boolean") {
+      throw new Error("config.enabled must be a boolean");
     }
 
-    if (config.servers !== undefined && typeof config.servers !== 'object') {
-      throw new Error('config.servers must be an object');
+    if (config.servers !== undefined && typeof config.servers !== "object") {
+      throw new Error("config.servers must be an object");
     }
 
     // Validate each server config
@@ -237,16 +241,30 @@ class MCPConfigLoader extends EventEmitter {
    * @private
    */
   _validateServerConfig(serverName, config) {
+    if (config.enabled !== undefined && typeof config.enabled !== "boolean") {
+      throw new Error(`Server ${serverName}: 'enabled' must be a boolean`);
+    }
+
+    // Skip command/args validation for disabled servers
+    if (config.enabled === false) {
+      return;
+    }
+
+    // Only require command/args for enabled servers
     if (!config.command) {
-      throw new Error(`Server ${serverName}: missing 'command' field`);
+      console.warn(
+        `[MCPConfigLoader] Server ${serverName}: missing 'command' field, disabling server`,
+      );
+      config.enabled = false;
+      return;
     }
 
     if (!Array.isArray(config.args)) {
-      throw new Error(`Server ${serverName}: 'args' must be an array`);
-    }
-
-    if (config.enabled !== undefined && typeof config.enabled !== 'boolean') {
-      throw new Error(`Server ${serverName}: 'enabled' must be a boolean`);
+      console.warn(
+        `[MCPConfigLoader] Server ${serverName}: 'args' must be an array, disabling server`,
+      );
+      config.enabled = false;
+      return;
     }
   }
 
@@ -257,8 +275,10 @@ class MCPConfigLoader extends EventEmitter {
   _setupWatcher() {
     try {
       this.watchHandle = fs.watch(this.configPath, (eventType) => {
-        if (eventType === 'change') {
-          console.log('[MCPConfigLoader] Configuration file changed, reloading...');
+        if (eventType === "change") {
+          console.log(
+            "[MCPConfigLoader] Configuration file changed, reloading...",
+          );
 
           // Debounce: wait 500ms before reloading
           setTimeout(() => {
@@ -267,10 +287,9 @@ class MCPConfigLoader extends EventEmitter {
         }
       });
 
-      console.log('[MCPConfigLoader] Watching configuration file for changes');
-
+      console.log("[MCPConfigLoader] Watching configuration file for changes");
     } catch (error) {
-      console.error('[MCPConfigLoader] Failed to setup file watcher:', error);
+      console.error("[MCPConfigLoader] Failed to setup file watcher:", error);
     }
   }
 
@@ -282,12 +301,12 @@ class MCPConfigLoader extends EventEmitter {
     const changes = [];
 
     if (!oldConfig) {
-      return ['Initial configuration loaded'];
+      return ["Initial configuration loaded"];
     }
 
     // Check enabled status
     if (oldConfig.enabled !== newConfig.enabled) {
-      changes.push(`MCP ${newConfig.enabled ? 'enabled' : 'disabled'}`);
+      changes.push(`MCP ${newConfig.enabled ? "enabled" : "disabled"}`);
     }
 
     // Check server changes
@@ -315,10 +334,15 @@ class MCPConfigLoader extends EventEmitter {
         const newServer = newConfig.servers[server];
 
         if (oldServer.enabled !== newServer.enabled) {
-          changes.push(`Server ${server}: ${newServer.enabled ? 'enabled' : 'disabled'}`);
+          changes.push(
+            `Server ${server}: ${newServer.enabled ? "enabled" : "disabled"}`,
+          );
         }
 
-        if (JSON.stringify(oldServer.permissions) !== JSON.stringify(newServer.permissions)) {
+        if (
+          JSON.stringify(oldServer.permissions) !==
+          JSON.stringify(newServer.permissions)
+        ) {
           changes.push(`Server ${server}: permissions changed`);
         }
       }
