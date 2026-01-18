@@ -568,8 +568,13 @@ const result = await window.electronAPI.invoke('tool:test', toolId, ${JSON.strin
               .replace(/'/g, '"')
               // 移除对象/数组中的尾随逗号
               .replace(/,(\s*[}\]])/g, "$1")
+              // 移除行尾逗号（在注释或换行前）
+              .replace(/,(\s*\/\/)/g, "$1")
+              .replace(/,(\s*\n)/g, "$1")
               // 统一 JSON key 的引号（有引号的保持，无引号的加上）
               .replace(/(\s)(\w+):/g, '$1"$2":')
+              // 统一注释前的空格（多个空格变成一个）
+              .replace(/\s+\/\//g, " //")
           );
         })
         // 移除尾随逗号（JSON 风格差异）

@@ -73,6 +73,7 @@
         :loading="loading"
         :exporting="exporting"
         :show-export-options="true"
+        :generating-test-data="generatingTestData"
         @time-change="handleTimeRangeChange"
         @custom-date-change="handleCustomDateChange"
         @toggle-auto-refresh="toggleAutoRefresh"
@@ -82,6 +83,7 @@
         @export-csv="() => exportData('csv')"
         @export-excel="() => exportData('excel')"
         @export-json="() => exportData('json')"
+        @generate-test-data="generateTestData"
       />
 
       <!-- Token Trend Chart -->

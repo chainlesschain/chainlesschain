@@ -2,7 +2,7 @@
 
 > 记录当前开发会话的状态和上下文，帮助 AI 助手快速了解工作进度
 >
-> **最后更新**: 2026-01-18 (启动稳定性修复)
+> **最后更新**: 2026-01-18 (SessionManager UI 增强)
 
 ---
 
@@ -16,14 +16,23 @@
 - [x] 完善 SessionManager 增强功能
 - [x] 配置 Pre-commit Hooks (Husky)
 - [x] 修复应用启动稳定性问题
+- [x] SessionManager 前端 UI 增强（预览、快捷键、复制、标签管理）
 
 ### 最近完成
 
-1. **应用启动稳定性修复** (2026-01-18):
+1. **SessionManager 前端 UI 增强** (2026-01-18):
+   - 会话预览 Popover：悬停 0.5 秒显示摘要、最近消息、标签、时间
+   - 键盘快捷键：Ctrl+F/A/D/E、Delete、Escape、? 帮助
+   - 会话复制：深拷贝会话及消息、标签，标题加"- 副本"后缀
+   - 标签管理页面：/tags 路由，支持重命名、合并、删除、批量操作
+   - 新建 SessionPreviewCard.vue、TagManagerPage.vue
+   - 修改 SessionList.vue、SessionManagerPage.vue、router/index.js
+   - 新增 6 个 IPC 通道（duplicate、rename-tag、merge-tags、delete-tag 等）
+2. **应用启动稳定性修复** (2026-01-18):
    - 修复 UnifiedConfigManager EISDIR 错误（config.json/rules.md 被错误创建为目录）
    - 修复 MobileBridge 信令服务器连接失败阻塞后续初始化的问题
    - 清理 desktop-app-vue/.chainlesschain/ 下错误创建的目录
-2. **SessionManager v0.21.0 增强** (2026-01-16):
+3. **SessionManager v0.21.0 增强** (2026-01-16):
    - 会话搜索：按标题和内容全文搜索
    - 标签系统：添加/移除标签、按标签过滤
    - 导出/导入：JSON 和 Markdown 格式导出、JSON 导入
@@ -35,14 +44,14 @@
    - 新增 20+ IPC 通道
    - 新增数据库迁移 008_session_templates.sql
    - 更新测试脚本（13 项测试）
-3. ErrorMonitor 增强：添加了 `optimizeSQLiteForConcurrency()`、`releaseDatabaseLock()`、`attemptServiceReconnection()` 等实际修复方法
-4. Session 压缩测试：压缩率 0.76-0.93，节省 7-24% Token
-5. Memory Bank 系统：创建了 CLAUDE-patterns.md、CLAUDE-decisions.md、CLAUDE-troubleshooting.md
+4. ErrorMonitor 增强：添加了 `optimizeSQLiteForConcurrency()`、`releaseDatabaseLock()`、`attemptServiceReconnection()` 等实际修复方法
+5. Session 压缩测试：压缩率 0.76-0.93，节省 7-24% Token
+6. Memory Bank 系统：创建了 CLAUDE-patterns.md、CLAUDE-decisions.md、CLAUDE-troubleshooting.md
 
 ### 待处理
 
 - [ ] LLM Performance Dashboard UI 完善
-- [ ] SessionManager 前端 UI 组件（会话管理页面）
+- [x] SessionManager 前端 UI 组件（会话管理页面）✅ 已完成
 - [ ] 增强 .chainlesschain/memory/ 目录实际使用
 
 ---
@@ -51,11 +60,19 @@
 
 ### 本次会话修改 (2026-01-18)
 
-| 文件                        | 修改类型 | 说明                                   |
-| --------------------------- | -------- | -------------------------------------- |
-| `unified-config-manager.js` | 修复     | 防止将 config.json/rules.md 创建为目录 |
-| `index.js`                  | 修复     | 信令服务器连接失败时不阻塞后续初始化   |
-| `CLAUDE-activeContext.md`   | 更新     | 记录今日修复内容                       |
+| 文件                        | 修改类型 | 说明                                      |
+| --------------------------- | -------- | ----------------------------------------- |
+| `session-manager.js`        | 新增     | duplicateSession、renameTag、mergeTags 等 |
+| `session-manager-ipc.js`    | 新增     | 6 个新 IPC 通道                           |
+| `stores/session.js`         | 新增     | 对应 store actions                        |
+| `SessionPreviewCard.vue`    | 新建     | 会话预览卡片组件                          |
+| `SessionList.vue`           | 修改     | 添加悬停预览和复制按钮                    |
+| `SessionManagerPage.vue`    | 修改     | 添加键盘快捷键和帮助模态框                |
+| `TagManagerPage.vue`        | 新建     | 标签管理独立页面                          |
+| `router/index.js`           | 修改     | 添加 /tags 路由                           |
+| `unified-config-manager.js` | 修复     | 防止将 config.json/rules.md 创建为目录    |
+| `index.js`                  | 修复     | 信令服务器连接失败时不阻塞后续初始化      |
+| `CLAUDE-activeContext.md`   | 更新     | 记录 SessionManager UI 增强进度           |
 
 ---
 
@@ -162,6 +179,13 @@ npm run test:session # Session 压缩测试
 
 ### 2026-01-18
 
+- **SessionManager 前端 UI 增强**:
+  - 新增会话预览 Popover（悬停显示摘要、消息、标签）
+  - 新增键盘快捷键（Ctrl+F/A/D/E、Delete、Escape、?）
+  - 新增会话复制功能（深拷贝消息和标签）
+  - 新增标签管理页面（/tags，支持重命名、合并、删除）
+  - 新建 SessionPreviewCard.vue、TagManagerPage.vue
+  - 新增 6 个 IPC 通道
 - 修复 UnifiedConfigManager EISDIR 错误（文件路径被错误创建为目录）
 - 修复 MobileBridge 信令服务器连接失败阻塞后续初始化
 - 清理 `desktop-app-vue/.chainlesschain/` 下错误创建的目录
