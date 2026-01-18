@@ -135,6 +135,7 @@ describe("ImportIPC", () => {
         ragManager: mockRagManager,
         ipcMain: testIpcMain,
         dialog: mockDialog,
+        ipcGuard: mockIpcGuard,
       });
 
       // Should register 5 handlers
@@ -248,6 +249,7 @@ describe("ImportIPC", () => {
         ragManager: mockRagManager,
         ipcMain: mockIpcMainNoImporter,
         dialog: mockDialog,
+        ipcGuard: mockIpcGuard,
       });
 
       await expect(
@@ -395,6 +397,7 @@ describe("ImportIPC", () => {
         ragManager: null,
         ipcMain: mockIpcMainNoRag,
         dialog: mockDialog,
+        ipcGuard: mockIpcGuard,
       });
 
       await mockIpcMainNoRag.invoke(
@@ -426,6 +429,7 @@ describe("ImportIPC", () => {
         ragManager: mockRagManager,
         ipcMain: mockIpcMainNoDb,
         dialog: mockDialog,
+        ipcGuard: mockIpcGuard,
       });
 
       await mockIpcMainNoDb.invoke(
@@ -462,6 +466,7 @@ describe("ImportIPC", () => {
         ragManager: mockRagManager,
         ipcMain: mockIpcMainNoImporter,
         dialog: mockDialog,
+        ipcGuard: mockIpcGuard,
       });
 
       await expect(
@@ -623,6 +628,7 @@ describe("ImportIPC", () => {
         ragManager: null,
         ipcMain: mockIpcMainNoRag,
         dialog: mockDialog,
+        ipcGuard: mockIpcGuard,
       });
 
       await mockIpcMainNoRag.invoke(
@@ -651,6 +657,7 @@ describe("ImportIPC", () => {
         ragManager: mockRagManager,
         ipcMain: mockIpcMainNoImporter,
         dialog: mockDialog,
+        ipcGuard: mockIpcGuard,
       });
 
       await expect(
@@ -733,6 +740,7 @@ describe("ImportIPC", () => {
         ragManager: mockRagManager,
         ipcMain: mockIpcMainNoImporter,
         dialog: mockDialog,
+        ipcGuard: mockIpcGuard,
       });
 
       await expect(
@@ -826,6 +834,7 @@ describe("ImportIPC", () => {
         ragManager: mockRagManager,
         ipcMain: mockIpcMainNoImporter,
         dialog: mockDialog,
+        ipcGuard: mockIpcGuard,
       });
 
       await expect(
@@ -908,6 +917,7 @@ describe("ImportIPC", () => {
         ragManager: mockRagManager,
         ipcMain: mockIpcMainNoWindow,
         dialog: mockDialog,
+        ipcGuard: mockIpcGuard,
       });
 
       // Should not throw even if mainWindow is null

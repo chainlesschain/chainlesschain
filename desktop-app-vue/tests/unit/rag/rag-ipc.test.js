@@ -545,12 +545,16 @@ describe("RAG IPC 处理器注册", () => {
         handle: (channel, handler) => handlersTest.set(channel, handler),
       };
 
-      // Reset ipc-guard to allow re-registration
-      ipcGuard.resetAll();
+      // Use fresh mock ipcGuard for re-registration
+      const mockIpcGuardTest = {
+        isModuleRegistered: vi.fn().mockReturnValue(false),
+        markModuleRegistered: vi.fn(),
+      };
       registerRAGIPC({
         ragManager: mockRagManager,
         llmManager: mockLlmManager,
         ipcMain: mockIpcMainTest,
+        ipcGuard: mockIpcGuardTest,
       });
 
       expect(handlersTest.size).toBe(7);
