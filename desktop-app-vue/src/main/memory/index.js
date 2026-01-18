@@ -8,11 +8,12 @@
  * - UsageReportGenerator: Weekly/monthly reports and cost analysis
  * - BehaviorTracker: User behavior learning and recommendations
  * - ContextAssociator: Cross-session knowledge extraction and association
+ * - MemorySyncService: Filesystem synchronization service (v2.2.0)
  *
  * Part of the Memory Bank system (.chainlesschain/memory/)
  *
  * @module memory
- * @version 2.0.0
+ * @version 2.2.0
  * @since 2026-01-17
  * @updated 2026-01-18
  */
@@ -41,6 +42,10 @@ const { registerContextAssociatorIPC } = require("./context-associator-ipc");
 
 // Dashboard IPC (v2.1.0)
 const { registerMemoryDashboardIPC } = require("./memory-dashboard-ipc");
+
+// Sync Service (v2.2.0)
+const { MemorySyncService } = require("./memory-sync-service");
+const { registerMemorySyncIPC } = require("./memory-sync-ipc");
 
 /**
  * Initialize all memory managers
@@ -143,7 +148,25 @@ async function initializeMemorySystem(options) {
     });
   }
 
+  // Initialize MemorySyncService (v2.2.0)
+  const memorySyncService = new MemorySyncService({
+    configManager,
+    preferenceManager,
+    learnedPatternManager,
+    sessionManager,
+    autoBackupManager,
+    usageReportGenerator,
+    behaviorTracker,
+    contextAssociator,
+    syncInterval: 5 * 60 * 1000, // 5 minutes
+    enablePeriodicSync: true,
+  });
+
+  // Initialize and perform first sync
+  await memorySyncService.initialize();
+
   console.log("[MemorySystem] Memory system initialized successfully");
+  console.log("[MemorySystem] Data synced to filesystem:", paths.memory);
 
   return {
     preferenceManager,
@@ -152,6 +175,7 @@ async function initializeMemorySystem(options) {
     usageReportGenerator,
     behaviorTracker,
     contextAssociator,
+    memorySyncService,
   };
 }
 
@@ -164,6 +188,7 @@ async function initializeMemorySystem(options) {
  * @param {Object} options.usageReportGenerator - UsageReportGenerator instance
  * @param {Object} options.behaviorTracker - BehaviorTracker instance
  * @param {Object} options.contextAssociator - ContextAssociator instance
+ * @param {Object} [options.memorySyncService] - MemorySyncService instance (v2.2.0)
  * @param {Object} [options.sessionManager] - SessionManager instance (for dashboard)
  * @param {Object} [options.configManager] - UnifiedConfigManager instance (for dashboard)
  * @param {Object} [options.ipcMain] - IPC main object (for testing)
@@ -177,6 +202,7 @@ function registerMemorySystemIPC(options) {
     usageReportGenerator,
     behaviorTracker,
     contextAssociator,
+    memorySyncService,
     sessionManager,
     configManager,
     ipcMain,
@@ -195,7 +221,7 @@ function registerMemorySystemIPC(options) {
   });
 
   // Register new IPC handlers
-  let backupIPC, reportIPC, behaviorIPC, contextIPC;
+  let backupIPC, reportIPC, behaviorIPC, contextIPC, syncIPC;
 
   if (autoBackupManager) {
     backupIPC = registerAutoBackupManagerIPC({
@@ -225,6 +251,14 @@ function registerMemorySystemIPC(options) {
     });
   }
 
+  // Register sync service IPC handlers (v2.2.0)
+  if (memorySyncService) {
+    syncIPC = registerMemorySyncIPC({
+      memorySyncService,
+      ipcMain,
+    });
+  }
+
   // Register dashboard IPC handlers (aggregates all managers)
   let dashboardIPC;
   dashboardIPC = registerMemoryDashboardIPC({
@@ -248,6 +282,7 @@ function registerMemorySystemIPC(options) {
     updateUsageReportGenerator: reportIPC?.updateUsageReportGenerator,
     updateBehaviorTracker: behaviorIPC?.updateBehaviorTracker,
     updateContextAssociator: contextIPC?.updateContextAssociator,
+    updateMemorySyncService: syncIPC?.updateSyncService,
     updateDashboard: dashboardIPC?.updateManagers,
   };
 }
@@ -271,6 +306,11 @@ function stopMemorySystem(managers) {
     managers.behaviorTracker.stopPeriodicAnalysis();
   }
 
+  // Stop sync service (v2.2.0)
+  if (managers.memorySyncService) {
+    managers.memorySyncService.stop();
+  }
+
   console.log("[MemorySystem] Memory system stopped");
 }
 
@@ -285,6 +325,9 @@ module.exports = {
   BehaviorTracker,
   ContextAssociator,
 
+  // Sync Service (v2.2.0)
+  MemorySyncService,
+
   // IPC Registration
   registerPreferenceManagerIPC,
   registerLearnedPatternManagerIPC,
@@ -293,6 +336,7 @@ module.exports = {
   registerBehaviorTrackerIPC,
   registerContextAssociatorIPC,
   registerMemoryDashboardIPC,
+  registerMemorySyncIPC,
   registerMemorySystemIPC,
 
   // Initialization and Lifecycle
