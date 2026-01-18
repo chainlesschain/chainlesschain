@@ -626,6 +626,12 @@ const routes = [
         meta: { title: "会话管理" },
       },
       {
+        path: "tags",
+        name: "TagManager",
+        component: () => import("../pages/TagManagerPage.vue"),
+        meta: { title: "标签管理" },
+      },
+      {
         path: "error/monitor",
         name: "ErrorMonitor",
         component: () => import("../pages/ErrorMonitorPage.vue"),

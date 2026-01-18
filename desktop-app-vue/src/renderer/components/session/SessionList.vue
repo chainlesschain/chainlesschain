@@ -4,6 +4,7 @@
     <div class="toolbar">
       <div class="left">
         <a-input-search
+          ref="searchInputRef"
           v-model:value="searchQuery"
           placeholder="搜索会话标题或内容..."
           style="width: 300px"
@@ -76,9 +77,23 @@
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'title'">
           <div class="session-title">
-            <a @click="$emit('view', record.id)">
-              {{ record.title || "未命名会话" }}
-            </a>
+            <a-popover
+              placement="right"
+              trigger="hover"
+              :mouseEnterDelay="0.5"
+              :mouseLeaveDelay="0.1"
+              @openChange="(visible) => handlePreviewOpen(visible, record)"
+            >
+              <template #content>
+                <SessionPreviewCard
+                  :session="previewSession || record"
+                  :loading="previewLoading"
+                />
+              </template>
+              <a @click="$emit('view', record.id)">
+                {{ record.title || "未命名会话" }}
+              </a>
+            </a-popover>
             <div class="session-meta">
               <span class="message-count">
                 <MessageOutlined /> {{ record.message_count || 0 }} 条消息
@@ -128,6 +143,15 @@
                 <EyeOutlined />
               </a-button>
             </a-tooltip>
+            <a-tooltip title="复制会话">
+              <a-button
+                type="text"
+                size="small"
+                @click="$emit('duplicate', record.id)"
+              >
+                <CopyOutlined />
+              </a-button>
+            </a-tooltip>
             <a-tooltip title="删除">
               <a-button
                 type="text"
@@ -164,7 +188,9 @@ import {
   DownOutlined,
   EyeOutlined,
   DeleteOutlined,
+  CopyOutlined,
 } from "@ant-design/icons-vue";
+import SessionPreviewCard from "./SessionPreviewCard.vue";
 
 // Debounce utility function
 const debounce = (fn, delay) => {
@@ -207,6 +233,7 @@ const emit = defineEmits([
   "select",
   "view",
   "delete",
+  "duplicate",
   "search",
   "filter-tags",
   "clear-filters",
@@ -216,6 +243,12 @@ const emit = defineEmits([
 // 本地状态
 const searchQuery = ref(props.filters.searchQuery);
 const selectedTagsLocal = ref([...props.filters.selectedTags]);
+const searchInputRef = ref(null);
+
+// 预览状态
+const previewSession = ref(null);
+const previewLoading = ref(false);
+const previewSessionId = ref(null);
 
 // 监听 props 变化
 watch(
@@ -342,6 +375,49 @@ const handleTableChange = (pag, filters, sorter) => {
     emit("sort-change", sorter.field, sortOrder);
   }
 };
+
+// 处理预览打开
+const handlePreviewOpen = async (visible, record) => {
+  if (visible && record.id !== previewSessionId.value) {
+    previewLoading.value = true;
+    previewSessionId.value = record.id;
+    previewSession.value = null;
+
+    try {
+      // 加载完整会话信息
+      const fullSession = await window.electronAPI.invoke(
+        "session:load",
+        record.id,
+      );
+      previewSession.value = fullSession;
+    } catch (error) {
+      console.error("[SessionList] 加载预览会话失败:", error);
+      // 使用基本信息作为回退
+      previewSession.value = record;
+    } finally {
+      previewLoading.value = false;
+    }
+  } else if (!visible) {
+    // 关闭时清空状态（延迟，避免闪烁）
+    setTimeout(() => {
+      if (!previewLoading.value) {
+        previewSessionId.value = null;
+      }
+    }, 200);
+  }
+};
+
+// 聚焦搜索框
+const focusSearchInput = () => {
+  if (searchInputRef.value) {
+    searchInputRef.value.focus();
+  }
+};
+
+// 暴露给父组件的方法
+defineExpose({
+  focusSearchInput,
+});
 
 // 格式化相对时间
 const formatRelativeTime = (timestamp) => {
