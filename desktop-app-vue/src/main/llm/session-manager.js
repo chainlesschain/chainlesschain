@@ -34,6 +34,10 @@ class SessionManager extends EventEmitter {
    * @param {number} [options.compressionThreshold=10] - 触发压缩的消息数阈值
    * @param {boolean} [options.enableAutoSave=true] - 启用自动保存
    * @param {boolean} [options.enableCompression=true] - 启用智能压缩
+   * @param {boolean} [options.enableAutoSummary=true] - 启用自动摘要生成
+   * @param {number} [options.autoSummaryThreshold=5] - 触发自动摘要的消息数阈值
+   * @param {number} [options.autoSummaryInterval=300000] - 后台自动摘要检查间隔（毫秒，默认5分钟）
+   * @param {boolean} [options.enableBackgroundSummary=true] - 启用后台摘要生成
    */
   constructor(options = {}) {
     super();
@@ -51,6 +55,17 @@ class SessionManager extends EventEmitter {
     this.compressionThreshold = options.compressionThreshold || 10;
     this.enableAutoSave = options.enableAutoSave !== false;
     this.enableCompression = options.enableCompression !== false;
+
+    // 自动摘要配置
+    this.enableAutoSummary = options.enableAutoSummary !== false;
+    this.autoSummaryThreshold = options.autoSummaryThreshold || 5;
+    this.autoSummaryInterval = options.autoSummaryInterval || 5 * 60 * 1000; // 默认5分钟
+    this.enableBackgroundSummary = options.enableBackgroundSummary !== false;
+
+    // 后台任务状态
+    this._backgroundSummaryTimer = null;
+    this._isGeneratingSummary = false;
+    this._summaryQueue = [];
 
     // 初始化 PromptCompressor
     this.promptCompressor = new PromptCompressor({
@@ -71,6 +86,9 @@ class SessionManager extends EventEmitter {
       压缩阈值: this.compressionThreshold,
       自动保存: this.enableAutoSave,
       智能压缩: this.enableCompression,
+      自动摘要: this.enableAutoSummary,
+      摘要阈值: this.autoSummaryThreshold,
+      后台摘要: this.enableBackgroundSummary,
     });
   }
 
@@ -81,10 +99,24 @@ class SessionManager extends EventEmitter {
     try {
       await fs.mkdir(this.sessionsDir, { recursive: true });
       console.log("[SessionManager] 会话目录已创建:", this.sessionsDir);
+
+      // 启动后台摘要生成器
+      if (this.enableBackgroundSummary && this.llmManager) {
+        this.startBackgroundSummaryGenerator();
+      }
     } catch (error) {
       console.error("[SessionManager] 初始化失败:", error);
       throw error;
     }
+  }
+
+  /**
+   * 销毁实例（清理后台任务）
+   */
+  destroy() {
+    this.stopBackgroundSummaryGenerator();
+    this.sessionCache.clear();
+    console.log("[SessionManager] 实例已销毁");
   }
 
   /**
@@ -255,11 +287,127 @@ class SessionManager extends EventEmitter {
         await this.saveSession(sessionId);
       }
 
+      // 检查是否需要自动生成摘要
+      if (this.enableAutoSummary && this._shouldAutoGenerateSummary(session)) {
+        // 异步生成摘要，不阻塞消息添加
+        this._queueAutoSummary(sessionId);
+      }
+
       this.emit("message-added", { sessionId, message });
 
       return session;
     } catch (error) {
       console.error("[SessionManager] 添加消息失败:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * 检查是否应该自动生成摘要
+   * @private
+   */
+  _shouldAutoGenerateSummary(session) {
+    // 已有摘要且最近更新过，不重新生成
+    if (session.metadata.summary && session.metadata.summaryGeneratedAt) {
+      const timeSinceLastSummary =
+        Date.now() - session.metadata.summaryGeneratedAt;
+      // 如果摘要生成后消息数增加不多，不重新生成
+      const messagesAfterSummary =
+        session.metadata.messageCount -
+        (session.metadata.messageCountAtSummary || 0);
+      if (messagesAfterSummary < this.autoSummaryThreshold) {
+        return false;
+      }
+    }
+
+    // 消息数达到阈值才生成
+    return session.messages.length >= this.autoSummaryThreshold;
+  }
+
+  /**
+   * 将会话加入自动摘要队列
+   * @private
+   */
+  _queueAutoSummary(sessionId) {
+    // 避免重复加入队列
+    if (!this._summaryQueue.includes(sessionId)) {
+      this._summaryQueue.push(sessionId);
+      console.log(
+        `[SessionManager] 会话 ${sessionId} 加入自动摘要队列，队列长度: ${this._summaryQueue.length}`,
+      );
+    }
+
+    // 如果没有正在进行的摘要生成，立即处理
+    if (!this._isGeneratingSummary) {
+      this._processAutoSummaryQueue();
+    }
+  }
+
+  /**
+   * 处理自动摘要队列
+   * @private
+   */
+  async _processAutoSummaryQueue() {
+    if (this._isGeneratingSummary || this._summaryQueue.length === 0) {
+      return;
+    }
+
+    this._isGeneratingSummary = true;
+
+    while (this._summaryQueue.length > 0) {
+      const sessionId = this._summaryQueue.shift();
+
+      try {
+        await this._generateAutoSummary(sessionId);
+      } catch (error) {
+        console.error(
+          `[SessionManager] 自动摘要生成失败 ${sessionId}:`,
+          error.message,
+        );
+      }
+
+      // 短暂延迟，避免过于频繁的 LLM 调用
+      await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+
+    this._isGeneratingSummary = false;
+  }
+
+  /**
+   * 生成自动摘要
+   * @private
+   */
+  async _generateAutoSummary(sessionId) {
+    try {
+      const session = await this.loadSession(sessionId);
+
+      // 再次检查是否需要生成
+      if (!this._shouldAutoGenerateSummary(session)) {
+        console.log(`[SessionManager] 会话 ${sessionId} 不需要自动摘要，跳过`);
+        return null;
+      }
+
+      console.log(`[SessionManager] 开始自动生成摘要: ${sessionId}`);
+
+      const summary = await this.generateSummary(sessionId, {
+        useLLM: true,
+        maxLength: 200,
+      });
+
+      // 记录摘要生成时的消息数
+      session.metadata.messageCountAtSummary = session.metadata.messageCount;
+      session.metadata.autoSummaryGenerated = true;
+      await this.saveSession(sessionId);
+
+      console.log(`[SessionManager] 自动摘要完成: ${sessionId}`);
+      this.emit("auto-summary-generated", { sessionId, summary });
+
+      return summary;
+    } catch (error) {
+      console.error(
+        `[SessionManager] 自动摘要生成失败 ${sessionId}:`,
+        error.message,
+      );
       throw error;
     }
   }

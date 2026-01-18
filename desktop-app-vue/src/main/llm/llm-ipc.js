@@ -9,6 +9,50 @@
 const ipcGuard = require("../ipc-guard");
 
 /**
+ * 🔥 检测任务类型（用于 Multi-Agent 路由）
+ * @param {string} content - 用户消息内容
+ * @returns {string} 任务类型
+ */
+function detectTaskType(content) {
+  if (!content || typeof content !== "string") {
+    return "general";
+  }
+
+  const lowerContent = content.toLowerCase();
+
+  // 代码相关任务
+  if (
+    /写代码|编写|实现|代码|函数|class|function|重构|优化代码|bug|修复|调试/i.test(
+      content,
+    ) ||
+    /```|代码块/.test(content)
+  ) {
+    return "code_generation";
+  }
+
+  // 数据分析任务
+  if (
+    /分析数据|统计|图表|可视化|趋势|预测|数据集|excel|csv|json.*数据/i.test(
+      content,
+    )
+  ) {
+    return "data_analysis";
+  }
+
+  // 文档相关任务
+  if (/写文档|文档|翻译|摘要|总结|格式化|markdown|报告|文章/i.test(content)) {
+    return "document";
+  }
+
+  // 知识问答
+  if (/什么是|如何|怎么|为什么|解释|介绍|告诉我/i.test(content)) {
+    return "knowledge_qa";
+  }
+
+  return "general";
+}
+
+/**
  * 注册所有 LLM IPC 处理器
  * @param {Object} dependencies - 依赖对象
  * @param {Object} dependencies.llmManager - LLM 管理器
@@ -24,6 +68,9 @@ const ipcGuard = require("../ipc-guard");
  * @param {Object} [dependencies.ipcMain] - IPC主进程对象（可选，用于测试注入）
  * @param {Object} [dependencies.mcpClientManager] - MCP 客户端管理器（可选，用于MCP工具调用）
  * @param {Object} [dependencies.mcpToolAdapter] - MCP 工具适配器（可选，用于MCP工具调用）
+ * @param {Object} [dependencies.sessionManager] - 会话管理器（可选，用于自动会话追踪）
+ * @param {Object} [dependencies.agentOrchestrator] - Agent 协调器（可选，用于Multi-Agent路由）
+ * @param {Object} [dependencies.errorMonitor] - 错误监控器（可选，用于AI诊断）
  */
 function registerLLMIPC({
   llmManager,
@@ -39,6 +86,10 @@ function registerLLMIPC({
   ipcMain: injectedIpcMain,
   mcpClientManager,
   mcpToolAdapter,
+  // 🔥 新增：高级特性依赖
+  sessionManager,
+  agentOrchestrator,
+  errorMonitor,
 }) {
   // 防止重复注册
   if (ipcGuard.isModuleRegistered("llm-ipc")) {
@@ -100,6 +151,13 @@ function registerLLMIPC({
 
   /**
    * LLM 聊天对话（支持 messages 数组格式，保留完整对话历史，自动RAG增强）
+   *
+   * 🔥 v2.0 增强版：集成以下高级特性
+   * - SessionManager: 自动会话追踪和压缩
+   * - Manus Optimizations: Context Engineering + Tool Masking
+   * - Multi-Agent: 复杂任务自动路由到专用Agent
+   * - ErrorMonitor: AI诊断预检查
+   *
    * Channel: 'llm:chat'
    */
   ipcMain.handle(
@@ -112,6 +170,13 @@ function registerLLMIPC({
         enableRAG = true,
         enableCache = true,
         enableCompression = true,
+        // 🔥 新增：高级特性控制
+        enableSessionTracking = true,
+        enableManusOptimization = true,
+        enableMultiAgent = true,
+        enableErrorPrecheck = true,
+        sessionId = null,
+        conversationId = null,
         ...options
       },
     ) => {
@@ -131,11 +196,207 @@ function registerLLMIPC({
           enableCache,
           "Compress:",
           enableCompression,
+          "Session:",
+          enableSessionTracking,
+          "Manus:",
+          enableManusOptimization,
+          "MultiAgent:",
+          enableMultiAgent,
         );
+
+        // 🔥 高级特性集成结果
+        let integrationResults = {
+          sessionUsed: false,
+          sessionId: null,
+          manusOptimized: false,
+          multiAgentRouted: false,
+          agentUsed: null,
+          errorPrechecked: false,
+        };
 
         const provider = managerRef.current.provider;
         const model =
           options.model || managerRef.current.config.model || "unknown";
+
+        // ============================================================
+        // 🔥 高级特性整合 - 步骤 0: 预检查和会话管理
+        // ============================================================
+
+        // 🔥 0.1: ErrorMonitor 预检查（如果启用）
+        if (enableErrorPrecheck && errorMonitor) {
+          try {
+            // 检查系统状态，提前发现可能的问题
+            const prechecks = [];
+
+            // 检查 LLM 服务是否暂停（预算超限）
+            if (managerRef.current.paused) {
+              throw new Error(
+                "LLM服务已暂停：预算超限。请前往设置页面调整预算或恢复服务。",
+              );
+            }
+
+            integrationResults.errorPrechecked = true;
+            console.log("[LLM IPC] ✓ ErrorMonitor 预检查通过");
+          } catch (precheckError) {
+            console.warn(
+              "[LLM IPC] ErrorMonitor 预检查失败:",
+              precheckError.message,
+            );
+            // 记录错误但不阻塞（除非是服务暂停）
+            if (precheckError.message.includes("预算超限")) {
+              throw precheckError;
+            }
+          }
+        }
+
+        // 🔥 0.2: SessionManager 会话追踪（如果启用）
+        let currentSessionId = sessionId;
+        let currentConversationId =
+          conversationId || options.conversationId || `conv-${Date.now()}`;
+
+        if (enableSessionTracking && sessionManager) {
+          try {
+            // 如果有 sessionId，加载现有会话
+            if (currentSessionId) {
+              try {
+                const session =
+                  await sessionManager.loadSession(currentSessionId);
+                currentConversationId = session.conversationId;
+                console.log("[LLM IPC] ✓ 加载现有会话:", currentSessionId);
+              } catch (loadError) {
+                console.warn("[LLM IPC] 会话不存在，将创建新会话");
+                currentSessionId = null;
+              }
+            }
+
+            // 如果没有 sessionId，创建新会话
+            if (!currentSessionId) {
+              const lastUserMsg = [...messages]
+                .reverse()
+                .find((msg) => msg.role === "user");
+              const sessionTitle = lastUserMsg
+                ? typeof lastUserMsg.content === "string"
+                  ? lastUserMsg.content.substring(0, 50)
+                  : "AI对话"
+                : "AI对话";
+
+              const newSession = await sessionManager.createSession({
+                conversationId: currentConversationId,
+                title: sessionTitle,
+                metadata: { provider, model },
+              });
+              currentSessionId = newSession.id;
+              console.log("[LLM IPC] ✓ 创建新会话:", currentSessionId);
+            }
+
+            // 添加用户消息到会话
+            const lastUserMsg = [...messages]
+              .reverse()
+              .find((msg) => msg.role === "user");
+            if (lastUserMsg) {
+              await sessionManager.addMessage(currentSessionId, {
+                role: "user",
+                content: lastUserMsg.content,
+              });
+            }
+
+            integrationResults.sessionUsed = true;
+            integrationResults.sessionId = currentSessionId;
+          } catch (sessionError) {
+            console.warn(
+              "[LLM IPC] SessionManager 会话追踪失败:",
+              sessionError.message,
+            );
+            // 不阻塞主流程
+          }
+        }
+
+        // 🔥 0.3: Multi-Agent 路由检查（如果启用）
+        let agentResult = null;
+        if (enableMultiAgent && agentOrchestrator) {
+          try {
+            const lastUserMsg = [...messages]
+              .reverse()
+              .find((msg) => msg.role === "user");
+            if (lastUserMsg) {
+              const userContent =
+                typeof lastUserMsg.content === "string"
+                  ? lastUserMsg.content
+                  : JSON.stringify(lastUserMsg.content);
+
+              // 构建任务对象
+              const task = {
+                type: detectTaskType(userContent),
+                input: userContent,
+                context: { messages, provider, model },
+              };
+
+              // 检查是否有 Agent 能处理此任务
+              const capableAgents = agentOrchestrator.getCapableAgents(task);
+
+              if (capableAgents.length > 0 && capableAgents[0].score > 0.7) {
+                console.log(
+                  "[LLM IPC] 🤖 发现高匹配度 Agent:",
+                  capableAgents[0].agentId,
+                  "得分:",
+                  capableAgents[0].score,
+                );
+
+                // 分发任务到 Agent
+                try {
+                  agentResult = await agentOrchestrator.dispatch(task);
+                  integrationResults.multiAgentRouted = true;
+                  integrationResults.agentUsed = capableAgents[0].agentId;
+                  console.log("[LLM IPC] ✓ Multi-Agent 任务执行完成");
+
+                  // 如果 Agent 返回了完整的响应，直接返回
+                  if (agentResult && agentResult.response) {
+                    // 记录到 SessionManager
+                    if (
+                      enableSessionTracking &&
+                      sessionManager &&
+                      currentSessionId
+                    ) {
+                      await sessionManager.addMessage(currentSessionId, {
+                        role: "assistant",
+                        content: agentResult.response,
+                      });
+                    }
+
+                    return {
+                      content: agentResult.response,
+                      message: {
+                        role: "assistant",
+                        content: agentResult.response,
+                      },
+                      usage: agentResult.usage || { total_tokens: 0 },
+                      retrievedDocs: [],
+                      wasCached: false,
+                      wasCompressed: false,
+                      ...integrationResults,
+                      agentResult: agentResult,
+                    };
+                  }
+                } catch (agentError) {
+                  console.warn(
+                    "[LLM IPC] Agent 执行失败，回退到标准流程:",
+                    agentError.message,
+                  );
+                }
+              }
+            }
+          } catch (agentCheckError) {
+            console.warn(
+              "[LLM IPC] Multi-Agent 路由检查失败:",
+              agentCheckError.message,
+            );
+            // 不阻塞主流程
+          }
+        }
+
+        // ============================================================
+        // 原有逻辑继续
+        // ============================================================
 
         // 🔥 优化步骤 1: 检查缓存
         if (enableCache && responseCache && !stream) {
@@ -617,14 +878,56 @@ function registerLLMIPC({
         }
         // 🔥 标准对话（无工具调用）
         else if (!usedMCPTools) {
-          // 使用标准的 chatWithMessages 方法，保留完整的 messages 历史
-          response = await managerRef.current.chatWithMessages(
-            enhancedMessages,
-            options,
-          );
+          // 🔥 使用 Manus 优化的 chatWithOptimizedPrompt（如果启用）
+          if (
+            enableManusOptimization &&
+            managerRef.current.manusOptimizations
+          ) {
+            console.log("[LLM IPC] 使用 Manus Context Engineering 优化");
+            response = await managerRef.current.chatWithOptimizedPrompt(
+              enhancedMessages,
+              {
+                ...options,
+                systemPrompt: options.systemPrompt,
+              },
+            );
+            integrationResults.manusOptimized = true;
+            console.log("[LLM IPC] ✓ Manus 优化已应用");
+          } else {
+            // 使用标准的 chatWithMessages 方法，保留完整的 messages 历史
+            response = await managerRef.current.chatWithMessages(
+              enhancedMessages,
+              options,
+            );
+          }
         }
 
         console.log("[LLM IPC] LLM 聊天响应成功, tokens:", response.tokens);
+
+        // 🔥 记录 AI 响应到 SessionManager
+        if (
+          enableSessionTracking &&
+          sessionManager &&
+          currentSessionId &&
+          response
+        ) {
+          try {
+            const assistantContent =
+              response.text || response.message?.content || "";
+            if (assistantContent) {
+              await sessionManager.addMessage(currentSessionId, {
+                role: "assistant",
+                content: assistantContent,
+              });
+              console.log("[LLM IPC] ✓ AI响应已记录到会话");
+            }
+          } catch (sessionRecordError) {
+            console.warn(
+              "[LLM IPC] 记录AI响应到会话失败:",
+              sessionRecordError.message,
+            );
+          }
+        }
 
         // 🔥 优化步骤 3: 缓存响应（缓存未命中的情况）
         if (enableCache && responseCache && !stream) {
@@ -676,11 +979,39 @@ function registerLLMIPC({
           // 🔥 MCP 工具使用信息
           usedMCPTools: usedMCPTools,
           mcpToolsAvailable: mcpFunctions.length,
+          // 🔥 高级特性集成信息
+          ...integrationResults,
+          // Manus 优化详情（如果启用）
+          promptOptimization: response.promptOptimization || null,
         };
 
         return finalResponse;
       } catch (error) {
         console.error("[LLM IPC] LLM 聊天失败:", error);
+
+        // 🔥 使用 ErrorMonitor 进行错误分析（如果启用）
+        if (errorMonitor) {
+          try {
+            const analysis = await errorMonitor.analyzeError(error);
+            console.log("[LLM IPC] ErrorMonitor 错误分析完成:", {
+              classification: analysis.classification,
+              severity: analysis.severity,
+              hasAIDiagnosis: !!analysis.aiDiagnosis,
+            });
+
+            // 如果有 AI 诊断，附加到错误信息
+            if (analysis.aiDiagnosis) {
+              error.aiDiagnosis = analysis.aiDiagnosis;
+              error.recommendations = analysis.recommendations;
+            }
+          } catch (analysisError) {
+            console.warn(
+              "[LLM IPC] ErrorMonitor 分析失败:",
+              analysisError.message,
+            );
+          }
+        }
+
         throw error;
       }
     },

@@ -632,6 +632,12 @@ const routes = [
         meta: { title: "标签管理" },
       },
       {
+        path: "memory",
+        name: "MemoryDashboard",
+        component: () => import("../pages/MemoryDashboardPage.vue"),
+        meta: { title: "Memory Bank 仪表板" },
+      },
+      {
         path: "error/monitor",
         name: "ErrorMonitor",
         component: () => import("../pages/ErrorMonitorPage.vue"),

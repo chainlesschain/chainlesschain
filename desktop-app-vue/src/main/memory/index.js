@@ -39,6 +39,9 @@ const { registerBehaviorTrackerIPC } = require("./behavior-tracker-ipc");
 const { ContextAssociator } = require("./context-associator");
 const { registerContextAssociatorIPC } = require("./context-associator-ipc");
 
+// Dashboard IPC (v2.1.0)
+const { registerMemoryDashboardIPC } = require("./memory-dashboard-ipc");
+
 /**
  * Initialize all memory managers
  * @param {Object} options - Initialization options
@@ -161,6 +164,8 @@ async function initializeMemorySystem(options) {
  * @param {Object} options.usageReportGenerator - UsageReportGenerator instance
  * @param {Object} options.behaviorTracker - BehaviorTracker instance
  * @param {Object} options.contextAssociator - ContextAssociator instance
+ * @param {Object} [options.sessionManager] - SessionManager instance (for dashboard)
+ * @param {Object} [options.configManager] - UnifiedConfigManager instance (for dashboard)
  * @param {Object} [options.ipcMain] - IPC main object (for testing)
  * @returns {Object} IPC handler update functions
  */
@@ -172,6 +177,8 @@ function registerMemorySystemIPC(options) {
     usageReportGenerator,
     behaviorTracker,
     contextAssociator,
+    sessionManager,
+    configManager,
     ipcMain,
   } = options;
 
@@ -218,6 +225,20 @@ function registerMemorySystemIPC(options) {
     });
   }
 
+  // Register dashboard IPC handlers (aggregates all managers)
+  let dashboardIPC;
+  dashboardIPC = registerMemoryDashboardIPC({
+    preferenceManager,
+    learnedPatternManager,
+    autoBackupManager,
+    usageReportGenerator,
+    behaviorTracker,
+    contextAssociator,
+    sessionManager,
+    configManager,
+    ipcMain,
+  });
+
   console.log("[MemorySystem] IPC handlers registered");
 
   return {
@@ -227,6 +248,7 @@ function registerMemorySystemIPC(options) {
     updateUsageReportGenerator: reportIPC?.updateUsageReportGenerator,
     updateBehaviorTracker: behaviorIPC?.updateBehaviorTracker,
     updateContextAssociator: contextIPC?.updateContextAssociator,
+    updateDashboard: dashboardIPC?.updateManagers,
   };
 }
 
@@ -270,6 +292,7 @@ module.exports = {
   registerUsageReportGeneratorIPC,
   registerBehaviorTrackerIPC,
   registerContextAssociatorIPC,
+  registerMemoryDashboardIPC,
   registerMemorySystemIPC,
 
   // Initialization and Lifecycle
