@@ -626,6 +626,10 @@ const metrics = reactive({
   toolCallLatencies: new Map(),
 });
 
+// 用户数据路径（用于默认配置）
+const userDataPath = ref("");
+const projectPath = ref("");
+
 // 配置对话框
 const configModalVisible = ref(false);
 const configEditMode = ref("form"); // 'form' | 'json'
@@ -643,13 +647,19 @@ const getDefaultConfig = (serverId) => {
     timeout: 30000,
   };
 
+  // 计算默认路径
+  const dataPath = userDataPath.value
+    ? `${userDataPath.value}/data`.replace(/\\/g, "/")
+    : "";
+  const dbPath = dataPath ? `${dataPath}/chainlesschain.db` : "";
+
   switch (serverId) {
     case "filesystem":
       return {
         ...baseConfig,
-        rootPath: "",
+        rootPath: dataPath,
         permissions: {
-          allowedPaths: ["notes/", "imports/", "exports/"],
+          allowedPaths: ["notes/", "imports/", "exports/", "projects/"],
           forbiddenPaths: [
             "chainlesschain.db",
             "ukey/",
@@ -666,8 +676,8 @@ const getDefaultConfig = (serverId) => {
         connection: {
           host: "localhost",
           port: 5432,
-          database: "",
-          user: "",
+          database: "chainlesschain",
+          user: "chainlesschain",
           password: "",
         },
         permissions: {
@@ -680,10 +690,23 @@ const getDefaultConfig = (serverId) => {
     case "sqlite":
       return {
         ...baseConfig,
-        databasePath: "",
+        databasePath: dbPath,
         permissions: {
-          allowedTables: ["notes", "tags", "bookmarks"],
-          forbiddenTables: ["users", "credentials", "private_keys"],
+          allowedTables: [
+            "notes",
+            "tags",
+            "bookmarks",
+            "projects",
+            "project_categories",
+            "chat_conversations",
+            "knowledge_base",
+          ],
+          forbiddenTables: [
+            "did_identities",
+            "p2p_keys",
+            "ukey_data",
+            "credentials",
+          ],
           readOnly: true,
           maxResultRows: 1000,
         },
@@ -695,7 +718,7 @@ const getDefaultConfig = (serverId) => {
     case "git":
       return {
         ...baseConfig,
-        repositoryPath: "",
+        repositoryPath: projectPath.value || "",
         permissions: {
           allowedOperations: ["status", "log", "diff", "show"],
           readOnly: true,
@@ -1104,6 +1127,25 @@ const getSecurityLabel = (level) => {
 
 // 生命周期
 onMounted(async () => {
+  // 获取用户数据路径用于默认配置
+  try {
+    const result = await window.electronAPI.invoke(
+      "system:get-path",
+      "userData",
+    );
+    if (result.success) {
+      userDataPath.value = result.path;
+    }
+    // 获取项目路径（当前工作目录）
+    const cwd = await window.electronAPI.invoke("system:get-path", "exe");
+    if (cwd.success) {
+      // exe 路径的父目录通常是项目目录
+      projectPath.value = cwd.path.replace(/[/\\][^/\\]+$/, "");
+    }
+  } catch (error) {
+    console.error("获取路径失败:", error);
+  }
+
   await loadConfig();
   await loadAvailableServers();
   await loadConnectedServers();

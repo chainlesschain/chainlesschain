@@ -6,22 +6,23 @@
  * @description 提供 U-Key 硬件检测、PIN验证、签名加密、认证等 IPC 接口
  */
 
-const ipcGuard = require('../ipc-guard');
-
 /**
  * 注册所有 U-Key IPC 处理器
  * @param {Object} dependencies - 依赖对象
  * @param {Object} dependencies.ukeyManager - U-Key 管理器
  * @param {Object} dependencies.ipcMain - IPC主进程对象（可选，用于测试注入）
+ * @param {Object} dependencies.ipcGuard - IPC Guard模块（可选，用于测试注入）
  */
-function registerUKeyIPC({ ukeyManager, ipcMain: injectedIpcMain }) {
+function registerUKeyIPC({ ukeyManager, ipcMain: injectedIpcMain, ipcGuard: injectedIpcGuard }) {
+  // 支持依赖注入，用于测试
+  const ipcGuard = injectedIpcGuard || require('../ipc-guard');
+
   // 防止重复注册
   if (ipcGuard.isModuleRegistered('ukey-ipc')) {
     console.log('[UKey IPC] Handlers already registered, skipping...');
     return;
   }
 
-  // 支持依赖注入，用于测试
   const electron = require('electron');
   const ipcMain = injectedIpcMain || electron.ipcMain;
 

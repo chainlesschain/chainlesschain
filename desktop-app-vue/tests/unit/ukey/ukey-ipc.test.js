@@ -7,6 +7,23 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
+// Mock ipc-guard at the top level to prevent registration blocking
+vi.mock('../../../src/main/ipc-guard', () => ({
+  isModuleRegistered: vi.fn().mockReturnValue(false),
+  markModuleRegistered: vi.fn(),
+  isChannelRegistered: vi.fn().mockReturnValue(false),
+  markChannelRegistered: vi.fn(),
+  resetAll: vi.fn(),
+}));
+
+// Mock electron to avoid import errors
+vi.mock('electron', () => ({
+  ipcMain: {
+    handle: vi.fn(),
+    removeHandler: vi.fn(),
+  },
+}));
+
 describe('U-Key IPC 处理器', () => {
   let handlers = {};
   let mockUkeyManager;
@@ -52,14 +69,24 @@ describe('U-Key IPC 处理器', () => {
       }),
     };
 
+    // 创建 mock ipcGuard (使用依赖注入)
+    const mockIpcGuard = {
+      isModuleRegistered: vi.fn().mockReturnValue(false),
+      markModuleRegistered: vi.fn(),
+      isChannelRegistered: vi.fn().mockReturnValue(false),
+      markChannelRegistered: vi.fn(),
+      resetAll: vi.fn(),
+    };
+
     // 动态导入
     const module = await import('../../../src/main/ukey/ukey-ipc.js');
     registerUKeyIPC = module.registerUKeyIPC;
 
-    // 注册 U-Key IPC 并注入 mock 对象
+    // 注册 U-Key IPC 并注入所有 mock 对象
     registerUKeyIPC({
       ukeyManager: mockUkeyManager,
-      ipcMain: mockIpcMain
+      ipcMain: mockIpcMain,
+      ipcGuard: mockIpcGuard,
     });
   });
 
@@ -250,9 +277,14 @@ describe('U-Key IPC 处理器', () => {
           handlers2[channel] = handler;
         },
       };
+      const mockIpcGuard2 = {
+        isModuleRegistered: vi.fn().mockReturnValue(false),
+        markModuleRegistered: vi.fn(),
+      };
       registerUKeyIPC({
         ukeyManager: null,
-        ipcMain: mockIpcMain2
+        ipcMain: mockIpcMain2,
+        ipcGuard: mockIpcGuard2,
       });
       const handler = handlers2['ukey:get-device-info'];
       await expect(handler({})).rejects.toThrow();
@@ -432,9 +464,14 @@ describe('U-Key IPC 处理器', () => {
           handlers2[channel] = handler;
         },
       };
+      const mockIpcGuard2 = {
+        isModuleRegistered: vi.fn().mockReturnValue(false),
+        markModuleRegistered: vi.fn(),
+      };
       registerUKeyIPC({
         ukeyManager: mockUkeyManager,
-        ipcMain: mockIpcMain2
+        ipcMain: mockIpcMain2,
+        ipcGuard: mockIpcGuard2,
       });
       expect(Object.keys(handlers2).length).toBe(9);
     });
