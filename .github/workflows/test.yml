@@ -38,6 +38,7 @@ jobs:
 
       - name: Run stable unit tests
         working-directory: ./desktop-app-vue
+        shell: bash
         run: |
           npx vitest run tests/unit \
             --exclude="**/ocr-service.test.js" \
