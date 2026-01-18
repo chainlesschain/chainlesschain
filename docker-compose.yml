@@ -76,7 +76,7 @@ services:
     container_name: chainlesschain-postgres
     volumes:
       - ./data/postgres:/var/lib/postgresql/data
-      - ./backend/project-service/src/main/resources/db/migration:/docker-entrypoint-initdb.d
+      # Note: Flyway handles migrations, don't use docker-entrypoint-initdb.d
     ports:
       - "5432:5432"
     environment:
