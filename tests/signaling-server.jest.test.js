@@ -93,7 +93,8 @@ jest.mock('ws', () => {
         const server = servers.get(port);
 
         if (!server) {
-          throw new Error(`No WebSocket server listening on port ${port}`);
+          const available = Array.from(servers.keys()).join(', ');
+          throw new Error(`No WebSocket server listening on port ${port}. Available: ${available}`);
         }
 
         this.serverSocket = new MockServerSocket(this, server);
@@ -246,6 +247,8 @@ describe('SignalingServer', () => {
   let serverInstance;
 
   beforeAll(() => {
+    if (WebSocket.__reset) WebSocket.__reset();
+    if (http.__reset) http.__reset();
     // 创建测试服务器实例
     serverInstance = new SignalingServer({ port: 9101, healthPort: 9102 });
     serverInstance.start();
