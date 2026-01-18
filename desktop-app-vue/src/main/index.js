@@ -2039,6 +2039,25 @@ class ChainlessChainApp {
           ipcMain.handle(channel, async () => {
             return { success: true, servers: [] };
           });
+        } else if (channel === "mcp:update-config") {
+          // Allow updating config even when MCP is disabled (to enable it)
+          ipcMain.handle(channel, async (event, { config }) => {
+            try {
+              const {
+                getUnifiedConfigManager,
+              } = require("./config/unified-config-manager");
+              const configManager = getUnifiedConfigManager();
+              configManager.updateConfig({ mcp: config });
+              console.log(
+                "[Main] MCP config updated via fallback handler:",
+                config.enabled ? "enabled" : "disabled",
+              );
+              return { success: true };
+            } catch (error) {
+              console.error("[Main] Failed to update MCP config:", error);
+              return { success: false, error: error.message };
+            }
+          });
         } else {
           // All other handlers return disabled response
           ipcMain.handle(channel, async () => disabledResponse);

@@ -536,6 +536,28 @@ class DatabaseManager {
       return stmt;
     };
 
+    // 添加 transaction 方法兼容性（模拟 better-sqlite3 的 transaction API）
+    if (!this.db.transaction) {
+      this.db.transaction = (fn) => {
+        // 返回一个可调用的函数，执行时会包裹在事务中
+        return (...args) => {
+          try {
+            manager.inTransaction = true;
+            manager.db.run("BEGIN TRANSACTION");
+            const result = fn(...args);
+            manager.db.run("COMMIT");
+            manager.saveToFile();
+            return result;
+          } catch (error) {
+            manager.db.run("ROLLBACK");
+            throw error;
+          } finally {
+            manager.inTransaction = false;
+          }
+        };
+      };
+    }
+
     this.db.__betterSqliteCompat = true;
   }
 
