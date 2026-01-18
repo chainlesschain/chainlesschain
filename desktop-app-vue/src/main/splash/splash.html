@@ -26,9 +26,11 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+      background-size: 400% 400%;
+      animation: gradientMove 8s ease infinite;
       border-radius: 12px;
-      padding: 30px;
+      padding: 20px;
       opacity: 1;
       transition: opacity 0.3s ease-out;
       -webkit-app-region: drag;
@@ -38,136 +40,347 @@
       opacity: 0;
     }
 
-    .logo-container {
-      width: 80px;
-      height: 80px;
-      margin-bottom: 20px;
-      background: rgba(255, 255, 255, 0.2);
-      border-radius: 16px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      backdrop-filter: blur(10px);
+    /* Background gradient animation */
+    @keyframes gradientMove {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
     }
 
-    .logo-container img {
-      width: 60px;
-      height: 60px;
+    /* Logo wrapper with floating animation */
+    .logo-wrapper {
+      position: relative;
+      width: 100px;
+      height: 100px;
+      margin-bottom: 15px;
+      animation: logoFloat 3s ease-in-out infinite;
+    }
+
+    @keyframes logoFloat {
+      0%, 100% {
+        transform: translateY(0) scale(1);
+      }
+      50% {
+        transform: translateY(-5px) scale(1.03);
+      }
+    }
+
+    /* Outer glow effect */
+    .outer-glow {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      background: radial-gradient(circle,
+        rgba(255, 255, 255, 0.2) 0%,
+        transparent 70%);
+      animation: glowBreathe 4s ease-in-out infinite;
+      z-index: 0;
+    }
+
+    @keyframes glowBreathe {
+      0%, 100% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 0.6;
+      }
+      50% {
+        transform: translate(-50%, -50%) scale(1.15);
+        opacity: 1;
+      }
+    }
+
+    /* 3D shadow layer */
+    .logo-shadow {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%,
+        rgba(255, 255, 255, 0.9) 0%,
+        rgba(255, 182, 193, 0.4) 30%,
+        rgba(186, 85, 211, 0.2) 60%,
+        transparent 70%);
+      filter: blur(1px);
+      animation: shadowPulse 3s ease-in-out infinite;
+    }
+
+    @keyframes shadowPulse {
+      0%, 100% { opacity: 0.7; }
+      50% { opacity: 1; }
+    }
+
+    /* Rotating rings */
+    .ring {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      z-index: 1;
+    }
+
+    .ring-1 {
+      width: 115px;
+      height: 115px;
+      margin-left: -57.5px;
+      margin-top: -57.5px;
+      border-top-color: #fff;
+      border-right-color: rgba(255, 255, 255, 0.5);
+      animation: ringRotate 2s linear infinite;
+      box-shadow: 0 0 12px rgba(255, 255, 255, 0.3);
+    }
+
+    .ring-2 {
+      width: 130px;
+      height: 130px;
+      margin-left: -65px;
+      margin-top: -65px;
+      border-bottom-color: rgba(255, 255, 255, 0.8);
+      border-left-color: rgba(255, 255, 255, 0.4);
+      animation: ringRotate 2.5s linear infinite reverse;
+      box-shadow: 0 0 15px rgba(255, 255, 255, 0.25);
+    }
+
+    @keyframes ringRotate {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    /* Logo image */
+    .logo-image {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      z-index: 2;
       object-fit: contain;
+      box-shadow:
+        inset 3px 3px 8px rgba(255, 255, 255, 0.8),
+        inset -2px -2px 6px rgba(0, 0, 0, 0.1),
+        0 4px 12px rgba(102, 126, 234, 0.3),
+        0 8px 24px rgba(118, 75, 162, 0.25),
+        0 0 20px rgba(240, 147, 251, 0.2);
+      animation: logoGlow 3s ease-in-out infinite;
     }
 
-    .logo-placeholder {
-      width: 60px;
-      height: 60px;
-      background: linear-gradient(135deg, #fff 0%, #e0e0e0 100%);
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 24px;
-      font-weight: bold;
-      color: #667eea;
+    @keyframes logoGlow {
+      0%, 100% {
+        box-shadow:
+          inset 3px 3px 8px rgba(255, 255, 255, 0.8),
+          inset -2px -2px 6px rgba(0, 0, 0, 0.1),
+          0 4px 12px rgba(102, 126, 234, 0.3),
+          0 8px 24px rgba(118, 75, 162, 0.25),
+          0 0 20px rgba(240, 147, 251, 0.2);
+      }
+      50% {
+        box-shadow:
+          inset 4px 4px 12px rgba(255, 255, 255, 0.9),
+          inset -3px -3px 10px rgba(0, 0, 0, 0.15),
+          0 6px 20px rgba(102, 126, 234, 0.4),
+          0 12px 35px rgba(118, 75, 162, 0.35),
+          0 0 30px rgba(240, 147, 251, 0.3);
+      }
     }
 
+    /* Shine sweep effect */
+    .shine {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      background: linear-gradient(
+        135deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.5) 40%,
+        rgba(255, 255, 255, 0.8) 50%,
+        rgba(255, 255, 255, 0.5) 60%,
+        transparent 100%
+      );
+      z-index: 3;
+      opacity: 0;
+      animation: shineMove 4s ease-in-out infinite;
+      pointer-events: none;
+    }
+
+    @keyframes shineMove {
+      0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) rotate(-45deg) translateX(-80px);
+      }
+      50% {
+        opacity: 1;
+      }
+      100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) rotate(-45deg) translateX(80px);
+      }
+    }
+
+    /* App name */
     .app-name {
-      font-size: 22px;
+      font-size: 20px;
       font-weight: 600;
       color: #ffffff;
-      margin-bottom: 6px;
-      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      margin-bottom: 4px;
+      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+      letter-spacing: 1px;
     }
 
     .app-version {
-      font-size: 12px;
+      font-size: 11px;
       color: rgba(255, 255, 255, 0.7);
-      margin-bottom: 30px;
+      margin-bottom: 20px;
+      letter-spacing: 2px;
     }
 
+    /* Loading dots */
+    .loading-dots {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      background: linear-gradient(135deg, #fff 0%, rgba(255, 255, 255, 0.8) 100%);
+      border-radius: 50%;
+      box-shadow:
+        0 2px 8px rgba(255, 255, 255, 0.4),
+        inset 0 1px 2px rgba(255, 255, 255, 0.5);
+      animation: dotBounce 1.4s ease-in-out infinite;
+    }
+
+    .dot:nth-child(1) { animation-delay: 0s; }
+    .dot:nth-child(2) { animation-delay: 0.2s; }
+    .dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes dotBounce {
+      0%, 80%, 100% {
+        transform: scale(0.5);
+        opacity: 0.5;
+      }
+      40% {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    /* Progress section */
     .progress-container {
       width: 100%;
-      max-width: 280px;
-      margin-bottom: 15px;
+      max-width: 240px;
+      margin-bottom: 12px;
     }
 
     .progress-bar {
       width: 100%;
-      height: 6px;
+      height: 5px;
       background: rgba(255, 255, 255, 0.2);
       border-radius: 3px;
       overflow: hidden;
+      backdrop-filter: blur(4px);
     }
 
     .progress-fill {
       height: 100%;
-      background: linear-gradient(90deg, #fff 0%, rgba(255, 255, 255, 0.8) 100%);
+      background: linear-gradient(90deg,
+        rgba(255, 255, 255, 0.9) 0%,
+        rgba(255, 255, 255, 0.7) 50%,
+        rgba(255, 255, 255, 0.9) 100%);
+      background-size: 200% 100%;
       border-radius: 3px;
       width: 0%;
       transition: width 0.3s ease-out;
+      animation: progressShine 2s ease-in-out infinite;
+    }
+
+    @keyframes progressShine {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
     }
 
     .status-container {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
     }
 
     .step-text {
-      font-size: 13px;
+      font-size: 12px;
       color: rgba(255, 255, 255, 0.9);
       text-align: center;
+      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
     }
 
     .percentage-text {
-      font-size: 13px;
+      font-size: 12px;
       color: rgba(255, 255, 255, 0.7);
-      min-width: 40px;
+      min-width: 35px;
       text-align: right;
     }
 
     .error-container {
       display: none;
       background: rgba(255, 107, 107, 0.9);
-      padding: 12px 20px;
+      padding: 10px 16px;
       border-radius: 8px;
-      margin-top: 15px;
-      max-width: 280px;
+      margin-top: 12px;
+      max-width: 240px;
+      backdrop-filter: blur(4px);
     }
 
     .error-container.show {
       display: block;
+      animation: errorShake 0.5s ease-in-out;
+    }
+
+    @keyframes errorShake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-5px); }
+      40%, 80% { transform: translateX(5px); }
     }
 
     .error-text {
-      font-size: 12px;
+      font-size: 11px;
       color: #ffffff;
       text-align: center;
-    }
-
-    /* Loading animation for the logo */
-    @keyframes pulse {
-      0%, 100% {
-        transform: scale(1);
-        opacity: 1;
-      }
-      50% {
-        transform: scale(1.05);
-        opacity: 0.8;
-      }
-    }
-
-    .logo-container {
-      animation: pulse 2s ease-in-out infinite;
     }
   </style>
 </head>
 <body>
   <div class="splash-container" id="splashContainer">
-    <div class="logo-container">
-      <div class="logo-placeholder">CC</div>
+    <!-- Logo with animation effects -->
+    <div class="logo-wrapper">
+      <div class="outer-glow"></div>
+      <div class="logo-shadow"></div>
+      <div class="ring ring-1"></div>
+      <div class="ring ring-2"></div>
+      <img src="./logo.png" alt="ChainlessChain Logo" class="logo-image" />
+      <div class="shine"></div>
     </div>
+
     <div class="app-name">ChainlessChain</div>
     <div class="app-version" id="appVersion">v0.24.0</div>
 
+    <!-- Loading dots animation -->
+    <div class="loading-dots">
+      <div class="dot"></div>
+      <div class="dot"></div>
+      <div class="dot"></div>
+    </div>
+
+    <!-- Progress bar -->
     <div class="progress-container">
       <div class="progress-bar">
         <div class="progress-fill" id="progressFill"></div>

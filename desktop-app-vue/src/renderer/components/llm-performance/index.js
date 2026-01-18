@@ -19,6 +19,7 @@ export { default as LLMWelcomeCard } from "./LLMWelcomeCard.vue";
 export { default as LLMStatsOverview } from "./LLMStatsOverview.vue";
 export { default as LLMCachePanel } from "./LLMCachePanel.vue";
 export { default as LLMBudgetPanel } from "./LLMBudgetPanel.vue";
+export { default as LLMModelBudgetPanel } from "./LLMModelBudgetPanel.vue";
 
 // Analysis and recommendations components
 export { default as LLMRecommendations } from "./LLMRecommendations.vue";
