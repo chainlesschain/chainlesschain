@@ -23,18 +23,73 @@ class DBSyncManager extends EventEmitter {
     this.syncLocks = new Map();
     this.isOnline = true;
     this.periodicSyncTimer = null;
+    this.isAuthenticated = false;
 
     // 需要同步的表（按优先级排序）
     this.syncTables = config.syncTables;
   }
 
+  // ==================== 认证方法 ====================
+
+  /**
+   * 设置授权Token
+   * @param {string} token - JWT token
+   */
+  setAuthToken(token) {
+    this.httpClient.setAuthToken(token);
+    this.isAuthenticated = !!token;
+
+    if (token) {
+      console.log('[DBSyncManager] 认证Token已设置');
+      this.emit('auth:set', { hasToken: true });
+    } else {
+      console.log('[DBSyncManager] 认证Token已清除');
+      this.emit('auth:cleared');
+    }
+  }
+
+  /**
+   * 检查是否已认证
+   * @returns {boolean}
+   */
+  hasAuth() {
+    return this.isAuthenticated && this.httpClient.hasAuthToken();
+  }
+
+  /**
+   * 检查认证状态，如果未认证则抛出错误或警告
+   * @param {boolean} throwOnError - 是否在未认证时抛出错误
+   * @returns {boolean}
+   */
+  checkAuth(throwOnError = false) {
+    if (!this.hasAuth()) {
+      const message = '[DBSyncManager] 警告: 未设置认证Token，同步请求可能会失败';
+      console.warn(message);
+      this.emit('auth:missing');
+
+      if (throwOnError) {
+        throw new Error('未授权: 请先登录或设置认证Token');
+      }
+      return false;
+    }
+    return true;
+  }
+
   /**
    * 初始化同步管理器
+   * @param {string} deviceId - 设备ID
+   * @param {Object} options - 可选配置
+   * @param {string} options.authToken - 认证Token
    */
-  async initialize(deviceId) {
+  async initialize(deviceId, options = {}) {
     this.deviceId = deviceId;
     this.timeOffset = 0; // 客户端与服务器的时间偏移（毫秒）
     console.log("[DBSyncManager] 初始化，设备ID:", deviceId);
+
+    // 设置认证Token（如果提供）
+    if (options.authToken) {
+      this.setAuthToken(options.authToken);
+    }
 
     // 同步服务器时间
     await this.syncServerTime();
@@ -48,7 +103,7 @@ class DBSyncManager extends EventEmitter {
     // 监听网络状态
     this.setupNetworkListeners();
 
-    this.emit("initialized", { deviceId });
+    this.emit("initialized", { deviceId, hasAuth: this.hasAuth() });
   }
 
   /**
@@ -122,8 +177,25 @@ class DBSyncManager extends EventEmitter {
 
   /**
    * 登录后的完整同步流程（并发版本）
+   * @param {Object} options - 可选配置
+   * @param {boolean} options.requireAuth - 是否要求认证（默认true）
    */
-  async syncAfterLogin() {
+  async syncAfterLogin(options = {}) {
+    const { requireAuth = true } = options;
+
+    // 检查认证状态
+    if (requireAuth && !this.checkAuth(false)) {
+      console.warn("[DBSyncManager] 未认证，跳过登录后同步");
+      this.emit("sync:skipped", { reason: "未认证" });
+      return {
+        success: 0,
+        failed: 0,
+        conflicts: 0,
+        errors: [{ table: "*", error: "未授权: 请先设置认证Token" }],
+        skipped: true,
+      };
+    }
+
     console.log("[DBSyncManager] 开始登录后同步（并发模式）");
 
     this.emit("sync:started", {
@@ -666,19 +738,31 @@ class DBSyncManager extends EventEmitter {
     }
 
     this.periodicSyncTimer = setInterval(() => {
-      if (this.isOnline) {
+      if (this.isOnline && this.hasAuth()) {
         console.log("[DBSyncManager] 执行定期增量同步");
         this.syncIncremental().catch((error) => {
           console.error("[DBSyncManager] 定期同步失败:", error);
         });
+      } else if (this.isOnline && !this.hasAuth()) {
+        // 静默跳过，避免日志刷屏
       }
     }, config.syncInterval);
   }
 
   /**
    * 增量同步（只同步有变更的表，并发版本）
+   * @param {Object} options - 可选配置
+   * @param {boolean} options.requireAuth - 是否要求认证（默认true）
    */
-  async syncIncremental() {
+  async syncIncremental(options = {}) {
+    const { requireAuth = true } = options;
+
+    // 检查认证状态
+    if (requireAuth && !this.checkAuth(false)) {
+      console.warn("[DBSyncManager] 未认证，跳过增量同步");
+      return { success: 0, failed: 0, skipped: true };
+    }
+
     console.log("[DBSyncManager] 开始增量同步（并发模式）");
 
     // 先检查哪些表有待同步的数据
