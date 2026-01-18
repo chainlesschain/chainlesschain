@@ -63,12 +63,7 @@ function setupTestFiles() {
     "Hello from MCP integration test!",
   );
 
-  fs.writeFileSync(
-    path.join(testDir, "notes", "sample.md").replace(/\\/g, "/"),
-    "# Sample Note\n\nThis is a sample note for testing.",
-  );
-
-  // Create notes directory
+  // Create notes directory first, then write sample.md
   const notesDir = path.join(testDir, "notes");
   if (!fs.existsSync(notesDir)) {
     fs.mkdirSync(notesDir, { recursive: true });
@@ -237,47 +232,40 @@ describe.skipIf(SKIP_INTEGRATION)("MCP Integration Tests", () => {
     let securityPolicy;
 
     beforeAll(() => {
-      securityPolicy = new MCPSecurityPolicy({
+      securityPolicy = new MCPSecurityPolicy({});
+      // Configure permissions for the filesystem server
+      securityPolicy.setServerPermissions("filesystem", {
         allowedPaths: ["notes/", "imports/", "exports/"],
         forbiddenPaths: ["chainlesschain.db", "ukey/", "did/private-keys/"],
+        readOnly: false,
       });
     });
 
-    it("should allow access to allowed paths", () => {
-      const result = securityPolicy.validateToolCall(
-        "filesystem",
-        "read_file",
-        {
+    it("should allow access to allowed paths", async () => {
+      // validateToolExecution resolves for allowed paths
+      await expect(
+        securityPolicy.validateToolExecution("filesystem", "read_file", {
           path: "notes/sample.md",
-        },
-      );
-
-      expect(result.allowed).toBe(true);
+        }),
+      ).resolves.toBeUndefined();
     });
 
-    it("should block access to forbidden paths", () => {
-      const result = securityPolicy.validateToolCall(
-        "filesystem",
-        "read_file",
-        {
+    it("should block access to forbidden paths", async () => {
+      // validateToolExecution throws for forbidden paths
+      await expect(
+        securityPolicy.validateToolExecution("filesystem", "read_file", {
           path: "chainlesschain.db",
-        },
-      );
-
-      expect(result.allowed).toBe(false);
-      expect(result.reason).toContain("forbidden");
+        }),
+      ).rejects.toThrow(/forbidden/i);
     });
 
-    it("should block path traversal attempts", () => {
-      const result = securityPolicy.validateToolCall(
-        "filesystem",
-        "read_file",
-        {
+    it("should block path traversal attempts", async () => {
+      // validateToolExecution throws for path traversal attempts
+      await expect(
+        securityPolicy.validateToolExecution("filesystem", "read_file", {
           path: "../../../etc/passwd",
-        },
-      );
-
-      expect(result.allowed).toBe(false);
+        }),
+      ).rejects.toThrow();
     });
   });
 
