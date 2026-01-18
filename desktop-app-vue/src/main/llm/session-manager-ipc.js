@@ -642,6 +642,125 @@ function registerSessionManagerIPC({
     }
   });
 
+  // ============================================================
+  // 会话复制功能
+  // ============================================================
+
+  /**
+   * 复制会话
+   * Channel: 'session:duplicate'
+   */
+  ipcMain.handle(
+    "session:duplicate",
+    async (_event, sessionId, options = {}) => {
+      try {
+        if (!managerRef.current) {
+          throw new Error("SessionManager 未初始化");
+        }
+
+        return await managerRef.current.duplicateSession(sessionId, options);
+      } catch (error) {
+        console.error("[SessionManager IPC] 复制会话失败:", error);
+        throw error;
+      }
+    },
+  );
+
+  // ============================================================
+  // 标签管理功能
+  // ============================================================
+
+  /**
+   * 重命名标签
+   * Channel: 'session:rename-tag'
+   */
+  ipcMain.handle("session:rename-tag", async (_event, oldTag, newTag) => {
+    try {
+      if (!managerRef.current) {
+        throw new Error("SessionManager 未初始化");
+      }
+
+      return await managerRef.current.renameTag(oldTag, newTag);
+    } catch (error) {
+      console.error("[SessionManager IPC] 重命名标签失败:", error);
+      throw error;
+    }
+  });
+
+  /**
+   * 合并标签
+   * Channel: 'session:merge-tags'
+   */
+  ipcMain.handle(
+    "session:merge-tags",
+    async (_event, sourceTags, targetTag) => {
+      try {
+        if (!managerRef.current) {
+          throw new Error("SessionManager 未初始化");
+        }
+
+        return await managerRef.current.mergeTags(sourceTags, targetTag);
+      } catch (error) {
+        console.error("[SessionManager IPC] 合并标签失败:", error);
+        throw error;
+      }
+    },
+  );
+
+  /**
+   * 删除标签
+   * Channel: 'session:delete-tag'
+   */
+  ipcMain.handle("session:delete-tag", async (_event, tag) => {
+    try {
+      if (!managerRef.current) {
+        throw new Error("SessionManager 未初始化");
+      }
+
+      return await managerRef.current.deleteTag(tag);
+    } catch (error) {
+      console.error("[SessionManager IPC] 删除标签失败:", error);
+      throw error;
+    }
+  });
+
+  /**
+   * 批量删除标签
+   * Channel: 'session:delete-tags'
+   */
+  ipcMain.handle("session:delete-tags", async (_event, tags) => {
+    try {
+      if (!managerRef.current) {
+        throw new Error("SessionManager 未初始化");
+      }
+
+      return await managerRef.current.deleteTags(tags);
+    } catch (error) {
+      console.error("[SessionManager IPC] 批量删除标签失败:", error);
+      throw error;
+    }
+  });
+
+  /**
+   * 获取标签详情
+   * Channel: 'session:get-tag-details'
+   */
+  ipcMain.handle(
+    "session:get-tag-details",
+    async (_event, tag, options = {}) => {
+      try {
+        if (!managerRef.current) {
+          throw new Error("SessionManager 未初始化");
+        }
+
+        return await managerRef.current.getTagDetails(tag, options);
+      } catch (error) {
+        console.error("[SessionManager IPC] 获取标签详情失败:", error);
+        throw error;
+      }
+    },
+  );
+
   /**
    * 更新 SessionManager 引用
    * 用于热重载或重新初始化

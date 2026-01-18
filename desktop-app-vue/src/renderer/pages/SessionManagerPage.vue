@@ -2,11 +2,19 @@
   <div class="session-manager-page">
     <!-- 页面头部 -->
     <div class="page-header">
-      <h1>
-        <HistoryOutlined />
-        会话管理
-      </h1>
-      <p class="page-description">管理 AI 对话历史、标签、模板和导出</p>
+      <div class="header-left">
+        <h1>
+          <HistoryOutlined />
+          会话管理
+        </h1>
+        <p class="page-description">管理 AI 对话历史、标签、模板和导出</p>
+      </div>
+      <div class="header-right">
+        <a-button @click="$router.push('/tags')">
+          <TagsOutlined />
+          标签管理
+        </a-button>
+      </div>
     </div>
 
     <!-- 统计卡片 -->
@@ -23,6 +31,7 @@
         <!-- 会话列表标签页 -->
         <a-tab-pane key="sessions" tab="会话列表">
           <SessionList
+            ref="sessionListRef"
             :sessions="sessions"
             :loading="loading"
             :selected-ids="selectedIds"
@@ -31,6 +40,7 @@
             @select="handleSelect"
             @view="handleViewSession"
             @delete="handleDeleteSession"
+            @duplicate="handleDuplicateSession"
             @search="handleSearch"
             @filter-tags="handleFilterTags"
             @clear-filters="handleClearFilters"
@@ -145,14 +155,71 @@
         @create-tag="handleCreateTag"
       />
     </a-modal>
+
+    <!-- 快捷键帮助模态框 -->
+    <a-modal
+      v-model:open="shortcutsHelpVisible"
+      title="键盘快捷键"
+      :footer="null"
+      width="480px"
+    >
+      <div class="shortcuts-help">
+        <div class="shortcut-category">
+          <h4>搜索和筛选</h4>
+          <div class="shortcut-item">
+            <kbd>Ctrl</kbd> + <kbd>F</kbd>
+            <span>聚焦搜索框</span>
+          </div>
+          <div class="shortcut-item">
+            <kbd>Escape</kbd>
+            <span>清空选择/关闭抽屉</span>
+          </div>
+        </div>
+        <div class="shortcut-category">
+          <h4>会话操作</h4>
+          <div class="shortcut-item">
+            <kbd>Ctrl</kbd> + <kbd>A</kbd>
+            <span>全选会话</span>
+          </div>
+          <div class="shortcut-item">
+            <kbd>Ctrl</kbd> + <kbd>D</kbd>
+            <span>复制选中会话</span>
+          </div>
+          <div class="shortcut-item">
+            <kbd>Ctrl</kbd> + <kbd>E</kbd>
+            <span>导出选中会话</span>
+          </div>
+          <div class="shortcut-item">
+            <kbd>Delete</kbd>
+            <span>删除选中会话</span>
+          </div>
+        </div>
+        <div class="shortcut-category">
+          <h4>导航</h4>
+          <div class="shortcut-item">
+            <kbd>Ctrl</kbd> + <kbd>N</kbd>
+            <span>从模板新建会话</span>
+          </div>
+          <div class="shortcut-item">
+            <kbd>?</kbd>
+            <span>显示快捷键帮助</span>
+          </div>
+        </div>
+      </div>
+    </a-modal>
+
+    <!-- 快捷键提示栏 -->
+    <div class="shortcuts-hint">
+      <span>按 <kbd>?</kbd> 查看快捷键</span>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from "vue";
+import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { message, Modal } from "ant-design-vue";
-import { HistoryOutlined } from "@ant-design/icons-vue";
+import { HistoryOutlined, TagsOutlined } from "@ant-design/icons-vue";
 import { useSessionStore } from "../stores/session";
 
 // Router for URL state preservation
@@ -177,10 +244,14 @@ const detailDrawerVisible = ref(false);
 const exportModalVisible = ref(false);
 const templateModalVisible = ref(false);
 const batchTagModalVisible = ref(false);
+const shortcutsHelpVisible = ref(false);
 const exportSessionId = ref(null);
 const isBatchExport = ref(false);
 const savingTemplate = ref(false);
 const addingTags = ref(false);
+
+// 组件引用
+const sessionListRef = ref(null);
 
 // 模板表单
 const templateForm = ref({
@@ -290,6 +361,111 @@ watch(activeTab, async (newTab) => {
 });
 
 // ============================================================
+// 键盘快捷键
+// ============================================================
+
+/**
+ * 快捷键处理
+ */
+const handleKeyDown = (e) => {
+  // 如果正在输入框中，不处理快捷键（除了 Escape）
+  const isInputActive =
+    document.activeElement?.tagName === "INPUT" ||
+    document.activeElement?.tagName === "TEXTAREA" ||
+    document.activeElement?.contentEditable === "true";
+
+  // Escape - 清空选择或关闭抽屉
+  if (e.key === "Escape") {
+    if (detailDrawerVisible.value) {
+      detailDrawerVisible.value = false;
+      return;
+    }
+    if (shortcutsHelpVisible.value) {
+      shortcutsHelpVisible.value = false;
+      return;
+    }
+    if (selectedIds.value.length > 0) {
+      store.deselectAll();
+      return;
+    }
+  }
+
+  // 不处理输入框中的其他快捷键
+  if (isInputActive && e.key !== "Escape") {
+    return;
+  }
+
+  // ? - 显示快捷键帮助
+  if (e.key === "?" || (e.shiftKey && e.key === "/")) {
+    e.preventDefault();
+    shortcutsHelpVisible.value = true;
+    return;
+  }
+
+  // Ctrl+F - 聚焦搜索框
+  if (e.ctrlKey && e.key === "f") {
+    e.preventDefault();
+    if (sessionListRef.value?.focusSearchInput) {
+      sessionListRef.value.focusSearchInput();
+    }
+    return;
+  }
+
+  // Ctrl+A - 全选
+  if (e.ctrlKey && e.key === "a") {
+    e.preventDefault();
+    store.selectAll();
+    return;
+  }
+
+  // Ctrl+D - 复制选中会话
+  if (e.ctrlKey && e.key === "d") {
+    e.preventDefault();
+    duplicateSelectedSessions();
+    return;
+  }
+
+  // Ctrl+E - 导出选中会话
+  if (e.ctrlKey && e.key === "e") {
+    e.preventDefault();
+    if (selectedIds.value.length > 0) {
+      handleBatchExport();
+    } else {
+      message.info("请先选择要导出的会话");
+    }
+    return;
+  }
+
+  // Ctrl+N - 从模板新建
+  if (e.ctrlKey && e.key === "n") {
+    e.preventDefault();
+    activeTab.value = "templates";
+    message.info("请选择一个模板创建新会话");
+    return;
+  }
+
+  // Delete - 删除选中
+  if (e.key === "Delete") {
+    e.preventDefault();
+    if (selectedIds.value.length > 0) {
+      handleBatchDelete();
+    } else {
+      message.info("请先选择要删除的会话");
+    }
+    return;
+  }
+};
+
+// 注册/注销键盘事件
+onMounted(() => {
+  window.addEventListener("keydown", handleKeyDown);
+});
+
+onUnmounted(() => {
+  window.removeEventListener("keydown", handleKeyDown);
+});
+
+// ============================================================
 // 会话列表操作
 // ============================================================
 
@@ -332,6 +508,47 @@ const handleDeleteSession = (sessionId) => {
       }
     },
   });
+};
+
+/**
+ * 复制会话
+ */
+const handleDuplicateSession = async (sessionId) => {
+  try {
+    message.loading({ content: "正在复制会话...", key: "duplicate" });
+    await store.duplicateSession(sessionId);
+    message.success({ content: "会话已复制", key: "duplicate" });
+  } catch (error) {
+    message.error({ content: "复制失败: " + error.message, key: "duplicate" });
+  }
+};
+
+/**
+ * 复制选中的会话
+ */
+const duplicateSelectedSessions = async () => {
+  if (selectedIds.value.length === 0) {
+    message.info("请先选择要复制的会话");
+    return;
+  }
+
+  if (selectedIds.value.length === 1) {
+    await handleDuplicateSession(selectedIds.value[0]);
+    return;
+  }
+
+  // 批量复制
+  message.loading({ content: "正在复制会话...", key: "duplicate" });
+  let success = 0;
+  for (const id of selectedIds.value) {
+    try {
+      await store.duplicateSession(id);
+      success++;
+    } catch (error) {
+      console.error(`复制会话 ${id} 失败:`, error);
+    }
+  }
+  message.success({ content: `已复制 ${success} 个会话`, key: "duplicate" });
 };
 
 /**
@@ -707,22 +924,33 @@ const downloadFile = (content, filename, type) => {
   background: #f5f7fa;
 
   .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
     margin-bottom: 24px;
 
-    h1 {
-      font-size: 28px;
-      font-weight: 600;
-      color: #1a202c;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 8px;
+    .header-left {
+      h1 {
+        font-size: 28px;
+        font-weight: 600;
+        color: #1a202c;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 8px;
+      }
+
+      .page-description {
+        font-size: 14px;
+        color: #718096;
+        margin: 0;
+      }
     }
 
-    .page-description {
-      font-size: 14px;
-      color: #718096;
-      margin: 0;
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
   }
 
@@ -740,6 +968,78 @@ const downloadFile = (content, filename, type) => {
   }
 }
 
+// 快捷键帮助弹窗
+.shortcuts-help {
+  .shortcut-category {
+    margin-bottom: 20px;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    h4 {
+      margin: 0 0 12px 0;
+      font-size: 13px;
+      font-weight: 600;
+      color: #1a202c;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .shortcut-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 0;
+      font-size: 13px;
+
+      kbd {
+        display: inline-block;
+        padding: 2px 8px;
+        background: #f5f5f5;
+        border: 1px solid #d9d9d9;
+        border-radius: 4px;
+        font-family: monospace;
+        font-size: 12px;
+        color: #262626;
+      }
+
+      span {
+        color: #595959;
+        margin-left: auto;
+      }
+    }
+  }
+}
+
+// 快捷键提示栏
+.shortcuts-hint {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  padding: 8px 16px;
+  background: rgba(0, 0, 0, 0.75);
+  border-radius: 6px;
+  font-size: 12px;
+  color: #fff;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+  z-index: 100;
+
+  &:hover {
+    opacity: 1;
+  }
+
+  kbd {
+    display: inline-block;
+    padding: 1px 6px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+    margin: 0 2px;
+    font-family: monospace;
+  }
+}
+
 // 响应式布局
 @media (max-width: 768px) {
   .session-manager-page {
@@ -748,6 +1048,10 @@ const downloadFile = (content, filename, type) => {
     .page-header h1 {
       font-size: 22px;
     }
+  }
+
+  .shortcuts-hint {
+    display: none;
   }
 }
 </style>

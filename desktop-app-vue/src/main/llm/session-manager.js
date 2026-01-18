@@ -1592,6 +1592,344 @@ class SessionManager extends EventEmitter {
       throw error;
     }
   }
+
+  // ============================================================
+  // 增强功能 - 会话复制
+  // ============================================================
+
+  /**
+   * 复制会话
+   * @param {string} sessionId - 源会话 ID
+   * @param {Object} options - 复制选项
+   * @param {string} [options.titleSuffix=' - 副本'] - 标题后缀
+   * @param {boolean} [options.includeMessages=true] - 包含消息
+   * @param {boolean} [options.includeTags=true] - 包含标签
+   * @param {boolean} [options.resetMetadata=true] - 重置元数据（压缩计数、Token节省等）
+   * @returns {Promise<Object>} 复制后的新会话
+   */
+  async duplicateSession(sessionId, options = {}) {
+    const {
+      titleSuffix = " - 副本",
+      includeMessages = true,
+      includeTags = true,
+      resetMetadata = true,
+    } = options;
+
+    try {
+      // 1. 加载原会话
+      const originalSession = await this.loadSession(sessionId);
+
+      if (!originalSession) {
+        throw new Error(`会话不存在: ${sessionId}`);
+      }
+
+      // 2. 生成新 ID 和标题
+      const newSessionId = uuidv4();
+      const newTitle = `${originalSession.title}${titleSuffix}`;
+      const now = Date.now();
+
+      // 3. 深拷贝消息
+      const newMessages = includeMessages
+        ? JSON.parse(JSON.stringify(originalSession.messages))
+        : [];
+
+      // 4. 构建新会话元数据
+      const newMetadata = {
+        createdAt: now,
+        updatedAt: now,
+        messageCount: newMessages.length,
+        duplicatedFrom: sessionId,
+        duplicatedAt: now,
+      };
+
+      // 复制标签
+      if (includeTags && originalSession.metadata?.tags) {
+        newMetadata.tags = [...originalSession.metadata.tags];
+      }
+
+      // 保留或重置统计数据
+      if (!resetMetadata) {
+        newMetadata.totalTokens = originalSession.metadata?.totalTokens || 0;
+        newMetadata.compressionCount =
+          originalSession.metadata?.compressionCount || 0;
+        newMetadata.totalTokensSaved =
+          originalSession.metadata?.totalTokensSaved || 0;
+      } else {
+        newMetadata.totalTokens = 0;
+        newMetadata.compressionCount = 0;
+        newMetadata.totalTokensSaved = 0;
+      }
+
+      // 5. 创建新会话对象
+      const newSession = {
+        id: newSessionId,
+        conversationId: `dup-${newSessionId}`,
+        title: newTitle,
+        messages: newMessages,
+        compressedHistory: null, // 重置压缩历史
+        metadata: newMetadata,
+      };
+
+      // 6. 保存到数据库
+      const stmt = this.db.prepare(`
+        INSERT INTO llm_sessions (
+          id, conversation_id, title, messages, compressed_history,
+          metadata, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+
+      stmt.run(
+        newSessionId,
+        newSession.conversationId,
+        newSession.title,
+        JSON.stringify(newSession.messages),
+        null,
+        JSON.stringify(newSession.metadata),
+        now,
+        now,
+      );
+
+      // 7. 保存到文件
+      await this.saveSessionToFile(newSession);
+
+      // 8. 缓存
+      this.sessionCache.set(newSessionId, newSession);
+
+      console.log(
+        `[SessionManager] 会话已复制: ${sessionId} -> ${newSessionId}`,
+      );
+      this.emit("session-duplicated", {
+        originalId: sessionId,
+        newId: newSessionId,
+        newSession,
+      });
+
+      return newSession;
+    } catch (error) {
+      console.error("[SessionManager] 复制会话失败:", error);
+      throw error;
+    }
+  }
+
+  // ============================================================
+  // 增强功能 - 标签管理
+  // ============================================================
+
+  /**
+   * 重命名标签
+   * @param {string} oldTag - 原标签名
+   * @param {string} newTag - 新标签名
+   * @returns {Promise<Object>} 更新结果
+   */
+  async renameTag(oldTag, newTag) {
+    if (!oldTag || !newTag) {
+      throw new Error("标签名不能为空");
+    }
+
+    if (oldTag === newTag) {
+      return { updated: 0 };
+    }
+
+    try {
+      // 获取所有包含该标签的会话
+      const sessions = await this.findSessionsByTags([oldTag], {
+        limit: 10000,
+      });
+      let updated = 0;
+
+      for (const session of sessions) {
+        const fullSession = await this.loadSession(session.id);
+        const tags = fullSession.metadata?.tags || [];
+        const tagIndex = tags.indexOf(oldTag);
+
+        if (tagIndex !== -1) {
+          // 替换标签
+          tags[tagIndex] = newTag;
+          // 去重
+          fullSession.metadata.tags = [...new Set(tags)];
+          fullSession.metadata.updatedAt = Date.now();
+
+          // 保存
+          await this.saveSession(session.id);
+          updated++;
+        }
+      }
+
+      console.log(
+        `[SessionManager] 标签重命名: "${oldTag}" -> "${newTag}"，更新 ${updated} 个会话`,
+      );
+      this.emit("tag-renamed", { oldTag, newTag, updated });
+
+      return { updated, oldTag, newTag };
+    } catch (error) {
+      console.error("[SessionManager] 重命名标签失败:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * 合并标签
+   * @param {string[]} sourceTags - 源标签（将被删除）
+   * @param {string} targetTag - 目标标签
+   * @returns {Promise<Object>} 合并结果
+   */
+  async mergeTags(sourceTags, targetTag) {
+    if (!sourceTags || sourceTags.length === 0 || !targetTag) {
+      throw new Error("源标签和目标标签不能为空");
+    }
+
+    // 移除目标标签（如果在源标签中）
+    const tagsToMerge = sourceTags.filter((t) => t !== targetTag);
+
+    if (tagsToMerge.length === 0) {
+      return { updated: 0, merged: 0 };
+    }
+
+    try {
+      // 获取所有包含这些标签的会话
+      const sessions = await this.findSessionsByTags(tagsToMerge, {
+        limit: 10000,
+      });
+      let updated = 0;
+
+      for (const session of sessions) {
+        const fullSession = await this.loadSession(session.id);
+        const tags = fullSession.metadata?.tags || [];
+        let modified = false;
+
+        // 移除源标签，添加目标标签
+        const newTags = tags.filter((t) => !tagsToMerge.includes(t));
+        if (!newTags.includes(targetTag)) {
+          newTags.push(targetTag);
+        }
+
+        // 检查是否有变化
+        if (
+          newTags.length !== tags.length ||
+          !newTags.every((t) => tags.includes(t))
+        ) {
+          fullSession.metadata.tags = newTags;
+          fullSession.metadata.updatedAt = Date.now();
+          await this.saveSession(session.id);
+          updated++;
+          modified = true;
+        }
+      }
+
+      console.log(
+        `[SessionManager] 标签合并: [${tagsToMerge.join(", ")}] -> "${targetTag}"，更新 ${updated} 个会话`,
+      );
+      this.emit("tags-merged", {
+        sourceTags: tagsToMerge,
+        targetTag,
+        updated,
+      });
+
+      return { updated, merged: tagsToMerge.length, targetTag };
+    } catch (error) {
+      console.error("[SessionManager] 合并标签失败:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * 删除标签
+   * @param {string} tag - 要删除的标签
+   * @returns {Promise<Object>} 删除结果
+   */
+  async deleteTag(tag) {
+    if (!tag) {
+      throw new Error("标签名不能为空");
+    }
+
+    try {
+      // 获取所有包含该标签的会话
+      const sessions = await this.findSessionsByTags([tag], { limit: 10000 });
+      let updated = 0;
+
+      for (const session of sessions) {
+        const fullSession = await this.loadSession(session.id);
+        const tags = fullSession.metadata?.tags || [];
+        const newTags = tags.filter((t) => t !== tag);
+
+        if (newTags.length !== tags.length) {
+          fullSession.metadata.tags = newTags;
+          fullSession.metadata.updatedAt = Date.now();
+          await this.saveSession(session.id);
+          updated++;
+        }
+      }
+
+      console.log(
+        `[SessionManager] 标签已删除: "${tag}"，影响 ${updated} 个会话`,
+      );
+      this.emit("tag-deleted", { tag, updated });
+
+      return { deleted: tag, updated };
+    } catch (error) {
+      console.error("[SessionManager] 删除标签失败:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * 批量删除标签
+   * @param {string[]} tags - 要删除的标签数组
+   * @returns {Promise<Object>} 删除结果
+   */
+  async deleteTags(tags) {
+    if (!tags || tags.length === 0) {
+      return { deleted: 0, updated: 0 };
+    }
+
+    try {
+      let totalUpdated = 0;
+
+      for (const tag of tags) {
+        const result = await this.deleteTag(tag);
+        totalUpdated += result.updated;
+      }
+
+      console.log(
+        `[SessionManager] 批量删除标签: ${tags.length} 个标签，影响 ${totalUpdated} 个会话`,
+      );
+
+      return { deleted: tags.length, updated: totalUpdated };
+    } catch (error) {
+      console.error("[SessionManager] 批量删除标签失败:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * 获取标签详细信息（包含关联会话列表）
+   * @param {string} tag - 标签名
+   * @param {Object} options - 查询选项
+   * @param {number} [options.limit=50] - 最大会话数量
+   * @returns {Promise<Object>} 标签信息
+   */
+  async getTagDetails(tag, options = {}) {
+    const { limit = 50 } = options;
+
+    try {
+      const sessions = await this.findSessionsByTags([tag], { limit });
+      const allTags = await this.getAllTags();
+      const tagInfo = allTags.find((t) => t.name === tag);
+
+      return {
+        name: tag,
+        count: tagInfo?.count || sessions.length,
+        sessions: sessions.map((s) => ({
+          id: s.id,
+          title: s.title,
+          updatedAt: s.updatedAt,
+        })),
+      };
+    } catch (error) {
+      console.error("[SessionManager] 获取标签详情失败:", error);
+      throw error;
+    }
+  }
 }
 
 module.exports = {

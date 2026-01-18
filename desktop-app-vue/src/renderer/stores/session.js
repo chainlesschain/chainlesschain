@@ -680,6 +680,154 @@ export const useSessionStore = defineStore("session", {
       }
     },
 
+    // ============================================================
+    // 会话复制功能
+    // ============================================================
+
+    /**
+     * 复制会话
+     */
+    async duplicateSession(sessionId, options = {}) {
+      try {
+        const result = await window.electronAPI.invoke(
+          "session:duplicate",
+          sessionId,
+          options,
+        );
+
+        // 刷新会话列表
+        await this.loadSessions({ offset: 0 });
+
+        // 刷新全局统计
+        await this.loadGlobalStats();
+
+        return result;
+      } catch (error) {
+        console.error("[SessionStore] 复制会话失败:", error);
+        this.error = error.message;
+        throw error;
+      }
+    },
+
+    // ============================================================
+    // 标签管理功能
+    // ============================================================
+
+    /**
+     * 重命名标签
+     */
+    async renameTag(oldTag, newTag) {
+      try {
+        const result = await window.electronAPI.invoke(
+          "session:rename-tag",
+          oldTag,
+          newTag,
+        );
+
+        // 刷新标签列表
+        await this.loadAllTags();
+
+        // 刷新会话列表
+        await this.loadSessions({ offset: 0 });
+
+        return result;
+      } catch (error) {
+        console.error("[SessionStore] 重命名标签失败:", error);
+        this.error = error.message;
+        throw error;
+      }
+    },
+
+    /**
+     * 合并标签
+     */
+    async mergeTags(sourceTags, targetTag) {
+      try {
+        const result = await window.electronAPI.invoke(
+          "session:merge-tags",
+          sourceTags,
+          targetTag,
+        );
+
+        // 刷新标签列表
+        await this.loadAllTags();
+
+        // 刷新会话列表
+        await this.loadSessions({ offset: 0 });
+
+        return result;
+      } catch (error) {
+        console.error("[SessionStore] 合并标签失败:", error);
+        this.error = error.message;
+        throw error;
+      }
+    },
+
+    /**
+     * 删除标签
+     */
+    async deleteTag(tag) {
+      try {
+        const result = await window.electronAPI.invoke(
+          "session:delete-tag",
+          tag,
+        );
+
+        // 刷新标签列表
+        await this.loadAllTags();
+
+        // 刷新会话列表
+        await this.loadSessions({ offset: 0 });
+
+        return result;
+      } catch (error) {
+        console.error("[SessionStore] 删除标签失败:", error);
+        this.error = error.message;
+        throw error;
+      }
+    },
+
+    /**
+     * 批量删除标签
+     */
+    async deleteTags(tags) {
+      try {
+        const result = await window.electronAPI.invoke(
+          "session:delete-tags",
+          tags,
+        );
+
+        // 刷新标签列表
+        await this.loadAllTags();
+
+        // 刷新会话列表
+        await this.loadSessions({ offset: 0 });
+
+        return result;
+      } catch (error) {
+        console.error("[SessionStore] 批量删除标签失败:", error);
+        this.error = error.message;
+        throw error;
+      }
+    },
+
+    /**
+     * 获取标签详情
+     */
+    async getTagDetails(tag, options = {}) {
+      try {
+        return await window.electronAPI.invoke(
+          "session:get-tag-details",
+          tag,
+          options,
+        );
+      } catch (error) {
+        console.error("[SessionStore] 获取标签详情失败:", error);
+        this.error = error.message;
+        throw error;
+      }
+    },
+
     /**
      * 设置筛选条件
      */
