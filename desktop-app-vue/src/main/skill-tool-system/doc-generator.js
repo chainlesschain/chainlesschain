@@ -545,24 +545,45 @@ const result = await window.electronAPI.invoke('tool:test', toolId, ${JSON.strin
         .replace(/\r/g, "\n")
         // 移除时间戳行
         .replace(/\*\*文档生成时间\*\*: .+\n/g, "")
-        // 规范化表格：移除多余空格，统一列分隔
-        .replace(/\|\s+/g, "| ")
-        .replace(/\s+\|/g, " |")
-        // 规范化表格分隔行
-        .replace(/\|[-:]+\|/g, (match) =>
-          match.replace(/[-]+/g, "----").replace(/:/g, ""),
-        )
-        // 统一引号风格（在代码块外）
-        .replace(
-          /```[\s\S]*?```/g,
-          (codeBlock) => codeBlock.replace(/'/g, '"'), // 代码块内统一用双引号
-        )
+        // 规范化表格数据行：移除单元格内多余空格
+        .replace(/\|[^|\n]+/g, (cell) => {
+          // 保持 | 开头，去除内部多余空格
+          const trimmed = cell.replace(/^\|\s*/, "| ").replace(/\s+$/, " ");
+          return trimmed;
+        })
+        // 规范化表格分隔行（匹配整行如 | --- | --- |）
+        .replace(/^\|[\s-:]+\|[\s-:|]*$/gm, (line) => {
+          // 统一为简单的 |------|------|
+          const cols = line
+            .split("|")
+            .filter((c) => c.trim())
+            .map(() => "------");
+          return "|" + cols.join("|") + "|";
+        })
+        // 规范化代码块内容（JavaScript 代码风格统一）
+        .replace(/```javascript[\s\S]*?```/g, (codeBlock) => {
+          return (
+            codeBlock
+              // 统一引号为双引号
+              .replace(/'/g, '"')
+              // 移除对象/数组中的尾随逗号
+              .replace(/,(\s*[}\]])/g, "$1")
+              // 统一 JSON key 的引号（有引号的保持，无引号的加上）
+              .replace(/(\s)(\w+):/g, '$1"$2":')
+          );
+        })
         // 移除尾随逗号（JSON 风格差异）
         .replace(/,(\s*[}\]])/g, "$1")
+        // 规范化 Markdown heading 前的空行（统一为一个空行）
+        .replace(/\n*^(#{1,6} )/gm, "\n\n$1")
+        // 规范化 --- 分隔线前的空行
+        .replace(/\n*^---$/gm, "\n\n---")
         // 规范化空行：多个连续空行变成单个
         .replace(/\n{3,}/g, "\n\n")
         // 移除行尾空格
         .replace(/[ \t]+$/gm, "")
+        // 移除文件开头多余空行
+        .replace(/^\n+/, "")
         // 移除文件末尾多余空行
         .replace(/\n+$/, "\n")
     );
