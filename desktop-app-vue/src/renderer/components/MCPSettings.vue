@@ -34,6 +34,16 @@
         </a-form-item>
       </a-form>
 
+      <!-- MCP禁用警告 -->
+      <a-alert
+        v-if="!config.enabled"
+        type="warning"
+        show-icon
+        style="margin-bottom: 16px"
+        message="MCP系统已禁用"
+        description="请先开启上方的「启用MCP系统」开关，然后重启应用后才能连接服务器。"
+      />
+
       <!-- 服务器列表 -->
       <a-divider orientation="left">服务器列表</a-divider>
 
@@ -92,6 +102,8 @@
                 size="small"
                 @click="handleConnect(record)"
                 :loading="connectingServers.has(record.id)"
+                :disabled="!config.enabled"
+                :title="!config.enabled ? '请先启用MCP系统' : ''"
               >
                 连接
               </a-button>
