@@ -15,11 +15,11 @@
  * @param {import('better-sqlite3').Database} db - SQLite 数据库实例
  */
 async function migrate(db) {
-  console.log('[Migration] 开始执行 Token 追踪迁移...');
+  console.log("[Migration] 开始执行 Token 追踪迁移...");
 
   try {
     // ========== 1. 创建 llm_usage_log 表 ==========
-    console.log('[Migration] 创建 llm_usage_log 表...');
+    console.log("[Migration] 创建 llm_usage_log 表...");
     db.exec(`
       CREATE TABLE IF NOT EXISTS llm_usage_log (
         id TEXT PRIMARY KEY,
@@ -75,40 +75,34 @@ async function migrate(db) {
       CREATE INDEX IF NOT EXISTS idx_llm_usage_log_user_date
         ON llm_usage_log(user_id, created_at);
     `);
-    console.log('[Migration] ✓ llm_usage_log 表创建成功');
+    console.log("[Migration] ✓ llm_usage_log 表创建成功");
 
     // ========== 2. 创建 llm_cache 表 ==========
-    console.log('[Migration] 创建 llm_cache 表...');
+    // 注意: 此表结构应与 005_llm_sessions.sql 保持一致
+    console.log("[Migration] 创建 llm_cache 表...");
     db.exec(`
       CREATE TABLE IF NOT EXISTS llm_cache (
         id TEXT PRIMARY KEY,
         cache_key TEXT NOT NULL UNIQUE,
-        prompt_hash TEXT NOT NULL,
 
         -- 请求上下文
         provider TEXT NOT NULL,
         model TEXT NOT NULL,
-        messages TEXT NOT NULL,
-        system_prompt TEXT,
-        temperature REAL,
+        request_messages TEXT NOT NULL,
 
         -- 缓存响应
         response_content TEXT NOT NULL,
-        response_tokens INTEGER,
-        response_metadata TEXT,
-
-        -- 可选: 语义搜索
-        embedding_vector BLOB,
+        response_tokens INTEGER DEFAULT 0,
 
         -- 缓存统计
         hit_count INTEGER DEFAULT 0,
-        last_hit_at INTEGER,
-        created_at INTEGER NOT NULL,
+        tokens_saved INTEGER DEFAULT 0,
+
+        -- 过期管理
         expires_at INTEGER NOT NULL,
 
-        -- 节省追踪
-        tokens_saved INTEGER DEFAULT 0,
-        cost_saved_usd REAL DEFAULT 0
+        created_at INTEGER NOT NULL,
+        last_accessed_at INTEGER NOT NULL
       );
     `);
 
@@ -118,17 +112,17 @@ async function migrate(db) {
         ON llm_cache(cache_key);
     `);
     db.exec(`
-      CREATE INDEX IF NOT EXISTS idx_llm_cache_hash
-        ON llm_cache(prompt_hash);
-    `);
-    db.exec(`
       CREATE INDEX IF NOT EXISTS idx_llm_cache_expires
         ON llm_cache(expires_at);
     `);
-    console.log('[Migration] ✓ llm_cache 表创建成功');
+    db.exec(`
+      CREATE INDEX IF NOT EXISTS idx_llm_cache_provider_model
+        ON llm_cache(provider, model);
+    `);
+    console.log("[Migration] ✓ llm_cache 表创建成功");
 
     // ========== 3. 创建 llm_budget_config 表 ==========
-    console.log('[Migration] 创建 llm_budget_config 表...');
+    console.log("[Migration] 创建 llm_budget_config 表...");
     db.exec(`
       CREATE TABLE IF NOT EXISTS llm_budget_config (
         id TEXT PRIMARY KEY,
@@ -165,23 +159,41 @@ async function migrate(db) {
         updated_at INTEGER NOT NULL
       );
     `);
-    console.log('[Migration] ✓ llm_budget_config 表创建成功');
+    console.log("[Migration] ✓ llm_budget_config 表创建成功");
 
     // ========== 4. 扩展 conversations 表 ==========
-    console.log('[Migration] 扩展 conversations 表...');
+    console.log("[Migration] 扩展 conversations 表...");
 
     // 检查列是否已存在 (避免重复迁移错误)
     const columns = db.prepare("PRAGMA table_info(conversations)").all();
-    const existingColumns = columns.map(col => col.name);
+    const existingColumns = columns.map((col) => col.name);
 
     const newColumns = [
-      { name: 'total_input_tokens', sql: 'ALTER TABLE conversations ADD COLUMN total_input_tokens INTEGER DEFAULT 0' },
-      { name: 'total_output_tokens', sql: 'ALTER TABLE conversations ADD COLUMN total_output_tokens INTEGER DEFAULT 0' },
-      { name: 'total_cost_usd', sql: 'ALTER TABLE conversations ADD COLUMN total_cost_usd REAL DEFAULT 0' },
-      { name: 'total_cost_cny', sql: 'ALTER TABLE conversations ADD COLUMN total_cost_cny REAL DEFAULT 0' },
-      { name: 'cached_tokens_saved', sql: 'ALTER TABLE conversations ADD COLUMN cached_tokens_saved INTEGER DEFAULT 0' },
-      { name: 'provider', sql: 'ALTER TABLE conversations ADD COLUMN provider TEXT' },
-      { name: 'model', sql: 'ALTER TABLE conversations ADD COLUMN model TEXT' },
+      {
+        name: "total_input_tokens",
+        sql: "ALTER TABLE conversations ADD COLUMN total_input_tokens INTEGER DEFAULT 0",
+      },
+      {
+        name: "total_output_tokens",
+        sql: "ALTER TABLE conversations ADD COLUMN total_output_tokens INTEGER DEFAULT 0",
+      },
+      {
+        name: "total_cost_usd",
+        sql: "ALTER TABLE conversations ADD COLUMN total_cost_usd REAL DEFAULT 0",
+      },
+      {
+        name: "total_cost_cny",
+        sql: "ALTER TABLE conversations ADD COLUMN total_cost_cny REAL DEFAULT 0",
+      },
+      {
+        name: "cached_tokens_saved",
+        sql: "ALTER TABLE conversations ADD COLUMN cached_tokens_saved INTEGER DEFAULT 0",
+      },
+      {
+        name: "provider",
+        sql: "ALTER TABLE conversations ADD COLUMN provider TEXT",
+      },
+      { name: "model", sql: "ALTER TABLE conversations ADD COLUMN model TEXT" },
     ];
 
     for (const column of newColumns) {
@@ -194,12 +206,15 @@ async function migrate(db) {
     }
 
     // ========== 5. 插入默认预算配置 ==========
-    console.log('[Migration] 插入默认预算配置...');
-    const existingBudget = db.prepare("SELECT COUNT(*) as count FROM llm_budget_config").get();
+    console.log("[Migration] 插入默认预算配置...");
+    const existingBudget = db
+      .prepare("SELECT COUNT(*) as count FROM llm_budget_config")
+      .get();
 
     if (existingBudget.count === 0) {
       const now = Date.now();
-      db.prepare(`
+      db.prepare(
+        `
         INSERT INTO llm_budget_config (
           id, user_id,
           daily_limit_usd, weekly_limit_usd, monthly_limit_usd,
@@ -217,23 +232,25 @@ async function migrate(db) {
           1, 0,
           ?, ?
         )
-      `).run(
-        now + 24 * 60 * 60 * 1000,  // daily_reset_at (明天)
-        now + 7 * 24 * 60 * 60 * 1000,  // weekly_reset_at (下周)
-        now + 30 * 24 * 60 * 60 * 1000,  // monthly_reset_at (下月)
+      `,
+      ).run(
+        now + 24 * 60 * 60 * 1000, // daily_reset_at (明天)
+        now + 7 * 24 * 60 * 60 * 1000, // weekly_reset_at (下周)
+        now + 30 * 24 * 60 * 60 * 1000, // monthly_reset_at (下月)
         now,
-        now
+        now,
       );
-      console.log('[Migration]   ✓ 默认预算配置已创建 (每日$1, 每周$5, 每月$20)');
+      console.log(
+        "[Migration]   ✓ 默认预算配置已创建 (每日$1, 每周$5, 每月$20)",
+      );
     } else {
-      console.log('[Migration]   ⊘ 预算配置已存在，跳过');
+      console.log("[Migration]   ⊘ 预算配置已存在，跳过");
     }
 
-    console.log('[Migration] ✅ Token 追踪迁移完成!');
+    console.log("[Migration] ✅ Token 追踪迁移完成!");
     return { success: true };
-
   } catch (error) {
-    console.error('[Migration] ❌ 迁移失败:', error);
+    console.error("[Migration] ❌ 迁移失败:", error);
     throw error;
   }
 }
@@ -243,23 +260,24 @@ async function migrate(db) {
  * @param {import('better-sqlite3').Database} db
  */
 async function rollback(db) {
-  console.log('[Migration] 开始回滚 Token 追踪迁移...');
+  console.log("[Migration] 开始回滚 Token 追踪迁移...");
 
   try {
     // 删除新表
-    db.exec('DROP TABLE IF EXISTS llm_usage_log;');
-    db.exec('DROP TABLE IF EXISTS llm_cache;');
-    db.exec('DROP TABLE IF EXISTS llm_budget_config;');
+    db.exec("DROP TABLE IF EXISTS llm_usage_log;");
+    db.exec("DROP TABLE IF EXISTS llm_cache;");
+    db.exec("DROP TABLE IF EXISTS llm_budget_config;");
 
     // 注意: SQLite 不支持 DROP COLUMN, 需要重建表来删除列
     // 这里暂不实现 conversations 表的回滚
-    console.warn('[Migration] ⚠️  conversations 表的新增列无法通过 SQLite 自动删除');
+    console.warn(
+      "[Migration] ⚠️  conversations 表的新增列无法通过 SQLite 自动删除",
+    );
 
-    console.log('[Migration] ✅ 回滚完成');
+    console.log("[Migration] ✅ 回滚完成");
     return { success: true };
-
   } catch (error) {
-    console.error('[Migration] ❌ 回滚失败:', error);
+    console.error("[Migration] ❌ 回滚失败:", error);
     throw error;
   }
 }
@@ -267,6 +285,6 @@ async function rollback(db) {
 module.exports = {
   migrate,
   rollback,
-  version: '20260116_add_token_tracking',
-  description: 'Add LLM token tracking and cost optimization support'
+  version: "20260116_add_token_tracking",
+  description: "Add LLM token tracking and cost optimization support",
 };

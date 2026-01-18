@@ -21,76 +21,83 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Hoist mock worker so it can be accessed from the mock
-const mockWorker = {
-  loadLanguage: vi.fn().mockResolvedValue(undefined),
-  initialize: vi.fn().mockResolvedValue(undefined),
-  setParameters: vi.fn().mockResolvedValue(undefined),
-  recognize: vi.fn().mockResolvedValue({
-    data: {
-      text: "Sample OCR text\n这是测试文字",
-      confidence: 85.5,
-      words: [
-        {
-          text: "Sample",
-          confidence: 90.0,
-          bbox: { x0: 0, y0: 0, x1: 50, y1: 20 },
-        },
-        {
-          text: "OCR",
-          confidence: 88.0,
-          bbox: { x0: 55, y0: 0, x1: 80, y1: 20 },
-        },
-        {
-          text: "text",
-          confidence: 92.0,
-          bbox: { x0: 85, y0: 0, x1: 120, y1: 20 },
-        },
-        {
-          text: "这是测试文字",
-          confidence: 75.0,
-          bbox: { x0: 0, y0: 25, x1: 100, y1: 45 },
-        },
-      ],
-      lines: [
-        {
-          text: "Sample OCR text",
-          confidence: 90.0,
-          bbox: { x0: 0, y0: 0, x1: 120, y1: 20 },
-        },
-        {
-          text: "这是测试文字",
-          confidence: 75.0,
-          bbox: { x0: 0, y0: 25, x1: 100, y1: 45 },
-        },
-      ],
-      paragraphs: [
-        {
-          text: "Sample OCR text\n这是测试文字",
-          confidence: 85.5,
-          bbox: { x0: 0, y0: 0, x1: 120, y1: 45 },
-        },
-      ],
-      blocks: [
-        {
-          text: "Sample OCR text\n这是测试文字",
-          confidence: 85.5,
-          bbox: { x0: 0, y0: 0, x1: 120, y1: 45 },
-        },
-      ],
-    },
-  }),
-  terminate: vi.fn().mockResolvedValue(undefined),
-};
+// Create mock worker object - will be reset in beforeEach
+let mockWorker;
 
-// Mock tesseract.js BEFORE any imports - must be at module level
-vi.mock("tesseract.js", () => ({
-  createWorker: vi.fn(() => {
-    // Don't call logger callback - it causes DataCloneError in worker
-    // The callback would be called by the real worker, not our mock
-    return Promise.resolve(mockWorker);
-  }),
-}));
+// Create a factory function for mock data
+function createMockOCRData() {
+  return {
+    text: "Sample OCR text\n这是测试文字",
+    confidence: 85.5,
+    words: [
+      {
+        text: "Sample",
+        confidence: 90.0,
+        bbox: { x0: 0, y0: 0, x1: 50, y1: 20 },
+      },
+      {
+        text: "OCR",
+        confidence: 88.0,
+        bbox: { x0: 55, y0: 0, x1: 80, y1: 20 },
+      },
+      {
+        text: "text",
+        confidence: 92.0,
+        bbox: { x0: 85, y0: 0, x1: 120, y1: 20 },
+      },
+      {
+        text: "这是测试文字",
+        confidence: 75.0,
+        bbox: { x0: 0, y0: 25, x1: 100, y1: 45 },
+      },
+    ],
+    lines: [
+      {
+        text: "Sample OCR text",
+        confidence: 90.0,
+        bbox: { x0: 0, y0: 0, x1: 120, y1: 20 },
+      },
+      {
+        text: "这是测试文字",
+        confidence: 75.0,
+        bbox: { x0: 0, y0: 25, x1: 100, y1: 45 },
+      },
+    ],
+    paragraphs: [
+      {
+        text: "Sample OCR text\n这是测试文字",
+        confidence: 85.5,
+        bbox: { x0: 0, y0: 0, x1: 120, y1: 45 },
+      },
+    ],
+    blocks: [
+      {
+        text: "Sample OCR text\n这是测试文字",
+        confidence: 85.5,
+        bbox: { x0: 0, y0: 0, x1: 120, y1: 45 },
+      },
+    ],
+  };
+}
+
+// Mock tesseract.js at module level - this mock will be used for all tests
+// The key is to NOT pass the logger callback to the worker - our mock ignores it
+vi.mock("tesseract.js", () => {
+  // Create fresh mock worker for each createWorker call
+  return {
+    createWorker: vi.fn().mockImplementation(() => {
+      // Return the shared mockWorker - it will be set up in beforeEach
+      // The logger callback passed by ocr-service.js is simply ignored by our mock
+      return Promise.resolve({
+        loadLanguage: vi.fn().mockResolvedValue(undefined),
+        initialize: vi.fn().mockResolvedValue(undefined),
+        setParameters: vi.fn().mockResolvedValue(undefined),
+        recognize: vi.fn().mockResolvedValue({ data: createMockOCRData() }),
+        terminate: vi.fn().mockResolvedValue(undefined),
+      });
+    }),
+  };
+});
 
 describe("OCRService - OCR文字识别服务", () => {
   let OCRService;
