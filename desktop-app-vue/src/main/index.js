@@ -2123,6 +2123,7 @@ class ChainlessChainApp {
       minWidth: 800,
       minHeight: 600,
       backgroundColor: "#ffffff",
+      show: process.env.NODE_ENV === 'test', // 测试环境直接显示，生产环境等启动画面关闭后再显示
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,

@@ -1401,7 +1401,8 @@ class ErrorMonitor extends EventEmitter {
       // 构建 Prompt
       const prompt = this.buildDiagnosisPrompt(error);
 
-      // 使用本地 Ollama 模型（免费）
+      const { provider, model } = await this._resolveDiagnosisLLMOptions();
+
       const response = await this.llmManager.chat(
         [
           {
@@ -1415,9 +1416,9 @@ class ErrorMonitor extends EventEmitter {
           },
         ],
         {
-          provider: "ollama", // 使用本地免费模型
-          model: "qwen2:7b", // 或其他可用的本地模型
-          temperature: 0.1, // 低温度，更确定性的输出
+          ...(provider ? { provider } : {}),
+          ...(model ? { model } : {}),
+          temperature: 0.1,
           stream: false,
         },
       );
@@ -1429,7 +1430,7 @@ class ErrorMonitor extends EventEmitter {
         available: true,
         rawResponse: response.content,
         analysis,
-        model: "ollama/qwen2:7b",
+        model: provider && model ? `${provider}/${model}` : model || provider,
         timestamp: Date.now(),
       };
     } catch (error) {
@@ -1439,6 +1440,89 @@ class ErrorMonitor extends EventEmitter {
         error: error.message,
       };
     }
+  }
+
+  /**
+   * 解析当前配置，挑选可用的诊断模型，若配置模型不可用则自动回退
+   * @returns {Promise<{provider: string|null, model: string|null}>}
+   * @private
+   */
+  async _resolveDiagnosisLLMOptions() {
+    const provider =
+      this.llmManager.provider ||
+      this.llmManager.config?.provider ||
+      "ollama";
+
+    let model =
+      this.llmManager.config?.model ||
+      (provider === "ollama" ? "qwen2:7b" : null);
+
+    if (model) {
+      model = await this._pickAvailableModel(model);
+    } else if (provider === "ollama") {
+      model = await this._pickAvailableModel("qwen2:7b");
+    }
+
+    return { provider, model };
+  }
+
+  /**
+   * 检查模型是否存在，不存在则返回第一个可用模型
+   * @param {string} preferred - 期望模型
+   * @returns {Promise<string|null>}
+   * @private
+   */
+  async _pickAvailableModel(preferred) {
+    try {
+      const models = await this.llmManager.listModels();
+      if (!models || models.length === 0) {
+        return preferred;
+      }
+
+      const normalizedPreferred = preferred;
+      const hintedModels = models.map((item) => this._extractModelName(item));
+
+      if (normalizedPreferred && hintedModels.includes(normalizedPreferred)) {
+        return normalizedPreferred;
+      }
+
+      const fallback = hintedModels.find(Boolean);
+      if (fallback && normalizedPreferred && fallback !== normalizedPreferred) {
+        console.warn(
+          `[ErrorMonitor] 模型 ${normalizedPreferred} 不可用，回退到 ${fallback}`,
+        );
+      }
+
+      return fallback || normalizedPreferred;
+    } catch (error) {
+      console.warn(
+        "[ErrorMonitor] 检查诊断模型可用性失败:",
+        error.message,
+      );
+      return preferred;
+    }
+  }
+
+  /**
+   * 从模型描述中提取名称
+   * @param {any} modelInfo - 模型对象或字符串
+   * @returns {string|null}
+   * @private
+   */
+  _extractModelName(modelInfo) {
+    if (!modelInfo) {
+      return null;
+    }
+
+    if (typeof modelInfo === "string") {
+      return modelInfo;
+    }
+
+    if (typeof modelInfo === "object") {
+      return modelInfo.name || modelInfo.id || modelInfo.model || null;
+    }
+
+    return null;
   }
 
   /**

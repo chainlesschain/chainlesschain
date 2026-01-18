@@ -4,10 +4,10 @@
  * 测试框架: Jest
  */
 
-jest.mock('ws', () => {
-  const { EventEmitter } = require('events');
-  const { URL } = require('url');
+const { EventEmitter } = require('events');
+const { URL } = require('url');
 
+function createMockWebSocketModule() {
   const servers = new Map();
 
   class MockServerSocket extends EventEmitter {
@@ -24,9 +24,7 @@ jest.mock('ws', () => {
     send(data) {
       if (!this.client) return;
       const payload = Buffer.isBuffer(data) ? data : Buffer.from(data);
-      setImmediate(() => {
-        this.client.emit('message', payload);
-      });
+      setImmediate(() => this.client.emit('message', payload));
     }
 
     _receiveFromClient(data) {
@@ -67,9 +65,7 @@ jest.mock('ws', () => {
       this.clients.add(serverSocket);
       const req = { socket: { remoteAddress: 'mock-address' } };
       this.emit('connection', serverSocket, req);
-      serverSocket.on('close', () => {
-        this.clients.delete(serverSocket);
-      });
+      serverSocket.on('close', () => this.clients.delete(serverSocket));
     }
 
     close(cb) {
@@ -139,17 +135,13 @@ jest.mock('ws', () => {
   MockWebSocket.CLOSING = 2;
   MockWebSocket.CLOSED = 3;
   MockWebSocket.Server = MockWebSocketServer;
-  MockWebSocket.__reset = () => {
-    servers.clear();
-  };
+  MockWebSocket.__reset = () => servers.clear();
+  MockWebSocket.__getServerPorts = () => Array.from(servers.keys());
 
   return MockWebSocket;
-});
+}
 
-jest.mock('http', () => {
-  const { EventEmitter } = require('events');
-  const { URL } = require('url');
-
+function createMockHttpModule() {
   const servers = new Map();
 
   class MockServerResponse extends EventEmitter {
@@ -162,10 +154,6 @@ jest.mock('http', () => {
     writeHead(statusCode, headers = {}) {
       this.statusCode = statusCode;
       this.headers = headers;
-    }
-
-    setHeader(name, value) {
-      this.headers[name] = value;
     }
 
     end(body = '') {
@@ -198,7 +186,7 @@ jest.mock('http', () => {
     }
   }
 
-  const httpMock = {
+  return {
     createServer: (handler) => new MockHttpServer(handler),
     get: (url, callback) => {
       const emitter = new EventEmitter();
@@ -234,23 +222,28 @@ jest.mock('http', () => {
     },
     __reset: () => servers.clear(),
   };
+}
 
-  return httpMock;
-});
+jest.mock('ws', () => createMockWebSocketModule());
+jest.mock('http', () => createMockHttpModule());
 
 const SignalingServer = require('../signaling-server/index');
-const WebSocket = require('ws');
-const http = require('http');
+let WebSocket;
+let httpModule;
 
 describe('SignalingServer', () => {
-  let server;
   let serverInstance;
 
   beforeAll(() => {
-    if (WebSocket.__reset) WebSocket.__reset();
-    if (http.__reset) http.__reset();
-    // 创建测试服务器实例
-    serverInstance = new SignalingServer({ port: 9101, healthPort: 9102 });
+    WebSocket = createMockWebSocketModule();
+    httpModule = createMockHttpModule();
+
+    serverInstance = new SignalingServer({
+      port: 9101,
+      healthPort: 9102,
+      websocketModule: WebSocket,
+      httpModule,
+    });
     serverInstance.start();
   });
 
@@ -259,11 +252,6 @@ describe('SignalingServer', () => {
     if (serverInstance) {
       serverInstance.stop();
     }
-  });
-
-  afterAll(() => {
-    if (WebSocket.__reset) WebSocket.__reset();
-    if (http.__reset) http.__reset();
   });
 
   describe('节点注册', () => {
