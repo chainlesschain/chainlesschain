@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v0.24.0-blue.svg)
+![Version](https://img.shields.io/badge/version-v0.20.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![GitHub release](https://img.shields.io/github/v/release/chainlesschain/chainlesschain?color=blue)
@@ -28,13 +28,16 @@
 
 ---
 
-## ⭐ 当前版本: v0.25.0 (2026-01-17)
+## ⭐ 当前版本: v0.20.0 (2026-01-18)
 
 ### 最新更新
 
-- ✅ **Manus AI 优化系统** - 基于Manus/OpenManus最佳实践，Context Engineering(KV-Cache优化)、Tool Masking(工具掩码)、TaskTrackerFile(todo.md机制)、可恢复压缩，理论Token成本降低50-90% ⭐最新
-- ✅ **Multi-Agent 多智能体系统** - Agent协调器、3个专用Agent(代码生成/数据分析/文档处理)、并行执行、链式执行、Agent间通信，复杂任务完成时间降低30% ⭐最新
-- ✅ **MCP Chat Integration** - MCP工具集成到AI聊天，通过Function Calling调用MCP服务器工具 ⭐最新
+- ✅ **P2P WebRTC兼容层** - 新增WebRTC兼容性层，优化P2P通信稳定性，完善测试覆盖 ⭐最新
+- ✅ **代码结构重构** - src/main目录按功能分类重组(api/config/database/monitoring/system等)，提升代码可维护性 ⭐最新
+- ✅ **测试框架优化** - 修复不稳定测试，跳过依赖特定环境的测试，提升CI/CD稳定性 ⭐最新
+- ✅ **Manus AI 优化系统** - 基于Manus/OpenManus最佳实践，Context Engineering(KV-Cache优化)、Tool Masking(工具掩码)、TaskTrackerFile(todo.md机制)、可恢复压缩，理论Token成本降低50-90%
+- ✅ **Multi-Agent 多智能体系统** - Agent协调器、3个专用Agent(代码生成/数据分析/文档处理)、并行执行、链式执行、Agent间通信，复杂任务完成时间降低30%
+- ✅ **MCP Chat Integration** - MCP工具集成到AI聊天，通过Function Calling调用MCP服务器工具
 - ✅ **MCP (Model Context Protocol) 集成** - POC v0.1.0，支持Filesystem/PostgreSQL/SQLite/Git/Fetch服务器，多重安全防护，UI管理界面，完整文档
 - ✅ **统一配置目录系统** - `.chainlesschain/`目录集中管理配置、日志、缓存、会话数据，参考OpenClaude最佳实践，支持自动初始化和配置迁移 ⭐最新
 - ✅ **Token预算管理系统** - LLM使用成本跟踪、每月预算控制、超支告警、详细使用统计 ⭐最新
