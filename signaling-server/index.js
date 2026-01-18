@@ -19,6 +19,8 @@ class SignalingServer {
     this.wss = null;
     this.httpServer = null;
     this.healthServer = null;
+    this.heartbeatInterval = null;
+    this.cleanupInterval = null;
 
     // 连接管理
     this.clients = new Map(); // peerId -> { ws, deviceInfo, connectedAt }
@@ -450,7 +452,7 @@ class SignalingServer {
    * 启动心跳检测
    */
   startHeartbeat() {
-    setInterval(() => {
+    this.heartbeatInterval = setInterval(() => {
       this.wss.clients.forEach((ws) => {
         if (ws.isAlive === false) {
           console.log(`[SignalingServer] 心跳超时，关闭连接: ${ws.peerId || ws.connectionId}`);
@@ -467,7 +469,7 @@ class SignalingServer {
    * 启动离线消息清理定时器
    */
   startCleanupTimer() {
-    setInterval(() => {
+    this.cleanupInterval = setInterval(() => {
       const now = Date.now();
       let cleanedCount = 0;
 
@@ -521,6 +523,16 @@ class SignalingServer {
       this.wss.close(() => {
         console.log('[SignalingServer] WebSocket服务器已关闭');
       });
+    }
+
+    // 停止定时器
+    if (this.heartbeatInterval) {
+      clearInterval(this.heartbeatInterval);
+      this.heartbeatInterval = null;
+    }
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
     }
 
     // 关闭HTTP健康检查服务器

@@ -3,15 +3,24 @@
  * 使用Electron的printToPDF功能将HTML转换为PDF
  */
 const path = require('path');
-const fs = require('fs-extra');
 
-// Lazy load BrowserWindow to support test environments
-let BrowserWindow;
-try {
-  BrowserWindow = require('electron').BrowserWindow;
-} catch (e) {
-  // In test environment, BrowserWindow may not be available
-  console.warn('[PDFEngine] BrowserWindow not available, PDF generation will be disabled');
+let browserWindowWarningLogged = false;
+
+function getFsExtra() {
+  return require('fs-extra');
+}
+
+function getBrowserWindow() {
+  try {
+    const { BrowserWindow } = require('electron');
+    return BrowserWindow;
+  } catch (error) {
+    if (!browserWindowWarningLogged) {
+      console.warn('[PDFEngine] BrowserWindow not available, PDF generation will be disabled');
+      browserWindowWarningLogged = true;
+    }
+    return null;
+  }
 }
 
 class PDFEngine {
@@ -23,6 +32,7 @@ class PDFEngine {
    * 将Markdown转换为PDF
    */
   async markdownToPDF(markdownContent, outputPath, options = {}) {
+    const fs = getFsExtra();
     try {
       console.log('[PDFEngine] 开始Markdown转PDF:', outputPath);
 
@@ -231,8 +241,11 @@ class PDFEngine {
    * HTML转PDF（使用Electron的printToPDF）
    */
   async htmlToPDF(html, outputPath, options = {}) {
+    const fs = getFsExtra();
+    const BrowserWindowCtor = getBrowserWindow();
+
     // Check if BrowserWindow is available
-    if (!BrowserWindow) {
+    if (!BrowserWindowCtor) {
       throw new Error('BrowserWindow is not available. PDF generation requires Electron runtime.');
     }
 
@@ -240,7 +253,7 @@ class PDFEngine {
 
     try {
       // 创建隐藏的浏览器窗口
-      win = new BrowserWindow({
+      win = new BrowserWindowCtor({
         show: false,
         width: 800,
         height: 600,
@@ -297,6 +310,7 @@ class PDFEngine {
    * HTML文件转PDF
    */
   async htmlFileToPDF(htmlPath, outputPath, options = {}) {
+    const fs = getFsExtra();
     try {
       const html = await fs.readFile(htmlPath, 'utf-8');
       await this.htmlToPDF(html, outputPath, options);
@@ -316,6 +330,7 @@ class PDFEngine {
    * 文本文件转PDF
    */
   async textFileToPDF(textPath, outputPath, options = {}) {
+    const fs = getFsExtra();
     try {
       const content = await fs.readFile(textPath, 'utf-8');
 
@@ -359,6 +374,7 @@ class PDFEngine {
    * 批量转换
    */
   async batchConvert(files, outputDir, options = {}) {
+    const fs = getFsExtra();
     const results = [];
 
     for (const file of files) {

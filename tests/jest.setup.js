@@ -86,6 +86,7 @@ jest.mock('electron', () => ({
 // Mock crypto 模块
 jest.mock('crypto', () => ({
   randomUUID: jest.fn(() => 'test-uuid-1234'),
+  randomBytes: jest.fn((size = 16) => Buffer.alloc(size, 1)),
   createHash: jest.fn(() => ({
     update: jest.fn(() => ({
       digest: jest.fn(() => 'test-hash-1234'),

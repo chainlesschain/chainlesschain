@@ -1,7 +1,10 @@
 import { defineConfig } from "vite";
 import uni from "@dcloudio/vite-plugin-uni";
 
-export default defineConfig({
+export default defineConfig(({ mode }) => {
+  const isH5 = process.env.UNI_PLATFORM === 'h5';
+
+  return {
   plugins: [uni()],
   server: {
     port: 8080,
@@ -16,20 +19,34 @@ export default defineConfig({
       compress: {
         drop_console: true,
         drop_debugger: true,
+        pure_funcs: ['console.log', 'console.info', 'console.debug'],
+      },
+      mangle: {
+        safari10: true,
       },
     },
     // 资源内联阈值
     assetsInlineLimit: 4096,
-    // 块大小警告阈值
-    chunkSizeWarningLimit: 2000,
+    // 块大小警告阈值（降低以便更早发现问题）
+    chunkSizeWarningLimit: 500,
     rollupOptions: {
       output: {
-        // uni-app IIFE 格式要求内联动态导入
-        inlineDynamicImports: true,
+        // H5平台启用代码分割，小程序和App保持内联
+        inlineDynamicImports: !isH5,
         // 资源文件命名
         assetFileNames: "static/[name].[hash][extname]",
+        // 块文件命名
+        chunkFileNames: "static/js/[name]-[hash].js",
         // 入口文件命名
         entryFileNames: "[name].js",
+        // H5平台手动分包配置
+        ...(isH5 && {
+          manualChunks: {
+            'vendor-vue': ['vue', 'pinia'],
+            'vendor-crypto': ['crypto-js', 'tweetnacl', 'tweetnacl-util', 'bs58'],
+            'vendor-ui': ['mp-html'],
+          },
+        }),
       },
       // 外部依赖（uni-app 运行时已包含）
       external: [],
@@ -44,8 +61,8 @@ export default defineConfig({
       "tweetnacl",
       "tweetnacl-util",
       "bs58",
-      "highlight.js",
     ],
+    exclude: ['highlight.js'], // 延迟加载，不预构建
   },
   // 解析配置
   resolve: {

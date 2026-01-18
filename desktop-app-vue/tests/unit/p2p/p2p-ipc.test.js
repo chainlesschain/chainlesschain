@@ -91,8 +91,8 @@ describe('P2P Network IPC', () => {
   });
 
   describe('基本功能测试', () => {
-    it('should register all 18 IPC handlers', () => {
-      expect(Object.keys(handlers).length).toBe(18);
+    it('should register all 21 IPC handlers', () => {
+      expect(Object.keys(handlers).length).toBe(21);
     });
 
     it('should have all expected handler channels', () => {

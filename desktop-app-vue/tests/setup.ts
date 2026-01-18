@@ -38,46 +38,153 @@ vi.mock('../../../src/main/ipc-guard', () => ({
 }));
 
 // Global mock for electron to avoid import errors in tests
-vi.mock('electron', () => ({
-  ipcMain: {
-    handle: vi.fn(),
-    removeHandler: vi.fn(),
-    on: vi.fn(),
-    once: vi.fn(),
-  },
-  ipcRenderer: {
-    invoke: vi.fn(),
-    on: vi.fn(),
-    send: vi.fn(),
-  },
-  app: {
-    getPath: vi.fn().mockReturnValue('/mock/path'),
-    getName: vi.fn().mockReturnValue('test-app'),
-    getVersion: vi.fn().mockReturnValue('1.0.0'),
-    isReady: vi.fn().mockReturnValue(true),
-    on: vi.fn(),
-  },
-  BrowserWindow: vi.fn().mockImplementation(() => ({
-    loadURL: vi.fn(),
-    webContents: {
+vi.mock('electron', () => {
+  const mockDesktopCapturer = {
+    getSources: vi.fn().mockResolvedValue([]),
+  };
+
+  return {
+    ipcMain: {
+      handle: vi.fn(),
+      removeHandler: vi.fn(),
+      on: vi.fn(),
+      once: vi.fn(),
+    },
+    ipcRenderer: {
+      invoke: vi.fn(),
+      on: vi.fn(),
       send: vi.fn(),
+    },
+    app: {
+      getPath: vi.fn().mockReturnValue('/mock/path'),
+      getName: vi.fn().mockReturnValue('test-app'),
+      getVersion: vi.fn().mockReturnValue('1.0.0'),
+      isReady: vi.fn().mockReturnValue(true),
       on: vi.fn(),
     },
-    on: vi.fn(),
-    show: vi.fn(),
-    hide: vi.fn(),
-    close: vi.fn(),
-  })),
-  dialog: {
-    showOpenDialog: vi.fn(),
-    showSaveDialog: vi.fn(),
-    showMessageBox: vi.fn(),
-  },
-  shell: {
-    openExternal: vi.fn(),
-    openPath: vi.fn(),
-  },
-}));
+    BrowserWindow: vi.fn().mockImplementation(() => ({
+      loadURL: vi.fn(),
+      webContents: {
+        send: vi.fn(),
+        on: vi.fn(),
+      },
+      on: vi.fn(),
+      show: vi.fn(),
+      hide: vi.fn(),
+      close: vi.fn(),
+    })),
+    dialog: {
+      showOpenDialog: vi.fn(),
+      showSaveDialog: vi.fn(),
+      showMessageBox: vi.fn(),
+    },
+    shell: {
+      openExternal: vi.fn(),
+      openPath: vi.fn(),
+    },
+    desktopCapturer: mockDesktopCapturer,
+  };
+});
+
+// Mock wrtc compatibility layer to avoid native dependencies in tests
+const createWrtcMock = () => {
+  class MockPeerConnection {
+    public localDescription: any;
+    public remoteDescription: any;
+    public connectionState = 'connected';
+    public onicecandidate: ((event: any) => void) | null = null;
+    public onconnectionstatechange: (() => void) | null = null;
+    public ontrack: ((event: any) => void) | null = null;
+
+    async createOffer() {
+      return { type: 'offer', sdp: 'mock-offer-sdp' };
+    }
+
+    async createAnswer() {
+      return { type: 'answer', sdp: 'mock-answer-sdp' };
+    }
+
+    async setLocalDescription(desc: any) {
+      this.localDescription = desc;
+    }
+
+    async setRemoteDescription(desc: any) {
+      this.remoteDescription = desc;
+    }
+
+    addTrack() {}
+
+    async addIceCandidate() {}
+
+    close() {}
+
+    async getStats() {
+      return new Map();
+    }
+  }
+
+  class MockMediaStream {
+    private tracks: any[] = [];
+    public id = `mock-stream-${Math.random().toString(36).slice(2)}`;
+
+    getTracks() {
+      return this.tracks;
+    }
+
+    getAudioTracks() {
+      return [{ enabled: true, stop: vi.fn() }];
+    }
+
+    getVideoTracks() {
+      return [{ enabled: true, stop: vi.fn() }];
+    }
+
+    addTrack(track: any) {
+      this.tracks.push(track);
+    }
+
+    stop() {
+      this.tracks.forEach((track) => track.stop?.());
+    }
+  }
+
+  const mockModule = {
+    available: true,
+    loadError: null,
+    RTCPeerConnection: MockPeerConnection,
+    RTCSessionDescription: class {
+      type: string;
+      sdp: string;
+      constructor(init: { type?: string; sdp?: string } = {}) {
+        this.type = init.type || '';
+        this.sdp = init.sdp || '';
+      }
+    },
+    RTCIceCandidate: class {
+      candidate?: string;
+      sdpMid?: string | null;
+      sdpMLineIndex?: number | null;
+      constructor(init: { candidate?: string; sdpMid?: string; sdpMLineIndex?: number } = {}) {
+        this.candidate = init.candidate;
+        this.sdpMid = init.sdpMid ?? null;
+        this.sdpMLineIndex = init.sdpMLineIndex ?? null;
+      }
+    },
+    MediaStream: MockMediaStream,
+  };
+
+  return mockModule;
+};
+
+vi.mock('../src/main/p2p/wrtc-compat.js', () => createWrtcMock());
+vi.mock('../src/main/p2p/wrtc-compat', () => createWrtcMock());
+vi.mock('wrtc', () => {
+  const mock = createWrtcMock();
+  return {
+    ...mock,
+    default: mock,
+  };
+});
 
 // 全局测试配置
 config.global.mocks = {

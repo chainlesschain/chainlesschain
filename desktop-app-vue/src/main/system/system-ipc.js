@@ -10,6 +10,16 @@ const { ipcMain, BrowserWindow } = require('electron');
 
 // 防止重复注册的标志
 let isRegistered = false;
+const registeredChannels = new Set();
+
+function cleanupRegisteredHandlers() {
+  registeredChannels.forEach((channel) => {
+    if (typeof ipcMain.removeHandler === 'function') {
+      ipcMain.removeHandler(channel);
+    }
+  });
+  registeredChannels.clear();
+}
 
 /**
  * 注册所有系统 IPC 处理器
@@ -18,17 +28,22 @@ let isRegistered = false;
  */
 function registerSystemIPC({ mainWindow }) {
   if (isRegistered) {
-    console.log('[System IPC] Handlers already registered, skipping...');
-    return;
+    console.log('[System IPC] Handlers already registered, refreshing...');
+    cleanupRegisteredHandlers();
+  } else {
+    console.log('[System IPC] Registering System IPC handlers...');
   }
 
-  console.log('[System IPC] Registering System IPC handlers...');
+  const registerHandler = (channel, handler) => {
+    ipcMain.handle(channel, handler);
+    registeredChannels.add(channel);
+  };
 
   /**
    * 最大化窗口
    * Channel: 'system:maximize'
    */
-  ipcMain.handle('system:maximize', async () => {
+  registerHandler('system:maximize', async () => {
     try {
       if (mainWindow && !mainWindow.isDestroyed()) {
         if (mainWindow.isMaximized()) {
@@ -49,7 +64,7 @@ function registerSystemIPC({ mainWindow }) {
    * 最小化窗口
    * Channel: 'system:minimize'
    */
-  ipcMain.handle('system:minimize', async () => {
+  registerHandler('system:minimize', async () => {
     try {
       if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.minimize();
@@ -66,7 +81,7 @@ function registerSystemIPC({ mainWindow }) {
    * 关闭窗口
    * Channel: 'system:close'
    */
-  ipcMain.handle('system:close', async () => {
+  registerHandler('system:close', async () => {
     try {
       if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.close();
@@ -83,7 +98,7 @@ function registerSystemIPC({ mainWindow }) {
    * 重启应用
    * Channel: 'system:restart'
    */
-  ipcMain.handle('system:restart', async () => {
+  registerHandler('system:restart', async () => {
     try {
       const { app } = require('electron');
       app.relaunch();
@@ -99,7 +114,7 @@ function registerSystemIPC({ mainWindow }) {
    * 获取窗口状态
    * Channel: 'system:get-window-state'
    */
-  ipcMain.handle('system:get-window-state', async () => {
+  registerHandler('system:get-window-state', async () => {
     try {
       if (mainWindow && !mainWindow.isDestroyed()) {
         return {
@@ -123,7 +138,7 @@ function registerSystemIPC({ mainWindow }) {
    * 设置窗口总在最前
    * Channel: 'system:set-always-on-top'
    */
-  ipcMain.handle('system:set-always-on-top', async (_event, flag) => {
+  registerHandler('system:set-always-on-top', async (_event, flag) => {
     try {
       if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.setAlwaysOnTop(flag);
@@ -140,7 +155,7 @@ function registerSystemIPC({ mainWindow }) {
    * 获取系统信息
    * Channel: 'system:get-system-info'
    */
-  ipcMain.handle('system:get-system-info', async () => {
+  registerHandler('system:get-system-info', async () => {
     try {
       const { app } = require('electron');
       const os = require('os');
@@ -170,7 +185,7 @@ function registerSystemIPC({ mainWindow }) {
    * 获取应用信息
    * Channel: 'system:get-app-info'
    */
-  ipcMain.handle('system:get-app-info', async () => {
+  registerHandler('system:get-app-info', async () => {
     try {
       const { app } = require('electron');
       return {
@@ -190,7 +205,7 @@ function registerSystemIPC({ mainWindow }) {
    * 获取平台信息
    * Channel: 'system:get-platform'
    */
-  ipcMain.handle('system:get-platform', async () => {
+  registerHandler('system:get-platform', async () => {
     try {
       return {
         success: true,
@@ -206,7 +221,7 @@ function registerSystemIPC({ mainWindow }) {
    * 获取版本信息
    * Channel: 'system:get-version'
    */
-  ipcMain.handle('system:get-version', async () => {
+  registerHandler('system:get-version', async () => {
     try {
       const { app } = require('electron');
       return {
@@ -223,7 +238,7 @@ function registerSystemIPC({ mainWindow }) {
    * 获取路径
    * Channel: 'system:get-path'
    */
-  ipcMain.handle('system:get-path', async (_event, name) => {
+  registerHandler('system:get-path', async (_event, name) => {
     try {
       const { app } = require('electron');
       return {
@@ -240,7 +255,7 @@ function registerSystemIPC({ mainWindow }) {
    * 打开外部链接
    * Channel: 'system:open-external'
    */
-  ipcMain.handle('system:open-external', async (_event, url) => {
+  registerHandler('system:open-external', async (_event, url) => {
     try {
       const { shell } = require('electron');
       await shell.openExternal(url);
@@ -255,7 +270,7 @@ function registerSystemIPC({ mainWindow }) {
    * 在文件夹中显示文件
    * Channel: 'system:show-item-in-folder'
    */
-  ipcMain.handle('system:show-item-in-folder', async (_event, path) => {
+  registerHandler('system:show-item-in-folder', async (_event, path) => {
     try {
       const { shell } = require('electron');
       shell.showItemInFolder(path);
@@ -270,7 +285,7 @@ function registerSystemIPC({ mainWindow }) {
    * 选择目录
    * Channel: 'system:select-directory'
    */
-  ipcMain.handle('system:select-directory', async () => {
+  registerHandler('system:select-directory', async () => {
     try {
       const { dialog } = require('electron');
       const result = await dialog.showOpenDialog(mainWindow, {
@@ -291,7 +306,7 @@ function registerSystemIPC({ mainWindow }) {
    * 选择文件
    * Channel: 'system:select-file'
    */
-  ipcMain.handle('system:select-file', async (_event, options = {}) => {
+  registerHandler('system:select-file', async (_event, options = {}) => {
     try {
       const { dialog } = require('electron');
       const result = await dialog.showOpenDialog(mainWindow, {
@@ -313,7 +328,7 @@ function registerSystemIPC({ mainWindow }) {
    * 退出应用
    * Channel: 'system:quit'
    */
-  ipcMain.handle('system:quit', async () => {
+  registerHandler('system:quit', async () => {
     try {
       const { app } = require('electron');
       app.quit();
@@ -332,7 +347,7 @@ function registerSystemIPC({ mainWindow }) {
    * 选择文件夹（通用对话框）
    * Channel: 'dialog:select-folder'
    */
-  ipcMain.handle('dialog:select-folder', async (_event, options = {}) => {
+  registerHandler('dialog:select-folder', async (_event, options = {}) => {
     try {
       const { dialog } = require('electron');
       const result = await dialog.showOpenDialog(mainWindow, {
@@ -354,7 +369,7 @@ function registerSystemIPC({ mainWindow }) {
    * 显示打开文件对话框
    * Channel: 'dialog:showOpenDialog'
    */
-  ipcMain.handle('dialog:showOpenDialog', async (_event, options = {}) => {
+  registerHandler('dialog:showOpenDialog', async (_event, options = {}) => {
     try {
       const { dialog } = require('electron');
       const result = await dialog.showOpenDialog(mainWindow, options);
@@ -373,7 +388,7 @@ function registerSystemIPC({ mainWindow }) {
    * 显示保存文件对话框
    * Channel: 'dialog:showSaveDialog'
    */
-  ipcMain.handle('dialog:showSaveDialog', async (_event, options = {}) => {
+  registerHandler('dialog:showSaveDialog', async (_event, options = {}) => {
     try {
       const { dialog } = require('electron');
       const result = await dialog.showSaveDialog(mainWindow, options);
@@ -392,7 +407,7 @@ function registerSystemIPC({ mainWindow }) {
    * 显示消息框
    * Channel: 'dialog:showMessageBox'
    */
-  ipcMain.handle('dialog:showMessageBox', async (_event, options = {}) => {
+  registerHandler('dialog:showMessageBox', async (_event, options = {}) => {
     try {
       const { dialog } = require('electron');
       const result = await dialog.showMessageBox(mainWindow, options);
