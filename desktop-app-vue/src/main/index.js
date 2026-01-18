@@ -19,8 +19,8 @@ const path = require("path");
 const fs = require("fs");
 const crypto = require("crypto");
 const DatabaseManager = require("./database");
-const GraphExtractor = require("./graph-extractor");
-const { getAppConfig } = require("./app-config");
+const GraphExtractor = require("./knowledge-graph/graph-extractor");
+const { getAppConfig } = require("./config/database-config");
 const { UKeyManager, DriverTypes } = require("./ukey/ukey-manager");
 const { ProjectStatsCollector } = require("./project/stats-collector");
 const GitManager = require("./git/git-manager");
@@ -41,8 +41,8 @@ const NativeMessagingHTTPServer = require("./native-messaging/http-server");
 const FileSyncManager = require("./file-sync/sync-manager");
 const PreviewManager = require("./preview/preview-manager");
 const { getProjectConfig } = require("./project/project-config");
-const MenuManager = require("./menu-manager");
-const AdvancedFeaturesIPC = require("./advanced-features-ipc");
+const MenuManager = require("./system/menu-manager");
+const AdvancedFeaturesIPC = require("./ipc/advanced-features-ipc");
 // Trade modules
 const KnowledgePaymentManager = require("./trade/knowledge-payment");
 const CreditScoreManager = require("./trade/credit-score");
@@ -66,7 +66,7 @@ const getAIEngineManager = getAIEngineManagerP1;
 const WebEngine = require("./engines/web-engine");
 const DocumentEngine = require("./engines/document-engine");
 const DataEngine = require("./engines/data-engine");
-const ProjectStructureManager = require("./project-structure");
+const ProjectStructureManager = require("./project/project-structure");
 const GitAutoCommit = require("./git-auto-commit");
 
 // File operation IPC
@@ -90,7 +90,7 @@ const { KnowledgeVersionManager } = require("./knowledge/version-manager");
 const { PluginManager, setPluginManager } = require("./plugins/plugin-manager");
 
 // Backend Service Manager (for production packaging)
-const { getBackendServiceManager } = require("./backend-service-manager");
+const { getBackendServiceManager } = require("./api/backend-service-manager");
 
 // Skill and Tool Management System
 const ToolManager = require("./skill-tool-system/tool-manager");
@@ -124,7 +124,7 @@ const {
 } = require("./ai-engine/multi-agent/multi-agent-ipc");
 
 // Error Monitor AI Diagnosis System
-const { registerErrorMonitorIPC } = require("./error-monitor-ipc");
+const { registerErrorMonitorIPC } = require("./monitoring/error-monitor-ipc");
 
 // Memory Bank System (Preferences + Learned Patterns)
 const { initializeMemorySystem, registerMemorySystemIPC } = require("./memory");
@@ -137,10 +137,10 @@ const RSSIPCHandler = require("./api/rss-ipc");
 const EmailIPCHandler = require("./api/email-ipc");
 
 // Database Encryption IPC
-const DatabaseEncryptionIPC = require("./database-encryption-ipc");
+const DatabaseEncryptionIPC = require("./database/database-encryption-ipc");
 
 // Initial Setup IPC
-const InitialSetupIPC = require("./initial-setup-ipc");
+const InitialSetupIPC = require("./config/initial-setup-ipc");
 
 // Identity Context Manager (Enterprise)
 const {
@@ -148,7 +148,7 @@ const {
 } = require("./identity/identity-context-manager");
 
 // Deep Link Handler (Enterprise DID Invitation Links)
-const DeepLinkHandler = require("./deep-link-handler");
+const DeepLinkHandler = require("./system/deep-link-handler");
 
 // Performance Monitor
 const { getPerformanceMonitor } = require("../../utils/performance-monitor");
@@ -280,7 +280,7 @@ class ChainlessChainApp {
     // 测试环境下重置IPC Guard，防止重复注册被跳过
     if (process.env.NODE_ENV === "test") {
       try {
-        const { ipcGuard } = require("./ipc-registry");
+        const { ipcGuard } = require("./ipc/ipc-registry");
         console.log(
           "[Main] Test environment detected - resetting IPC Guard...",
         );
@@ -401,7 +401,7 @@ class ChainlessChainApp {
     this.dbEncryptionIPC = new DatabaseEncryptionIPC(app);
 
     // 初始化全局设置 IPC（在数据库初始化之前，因为可能需要设置数据库路径）
-    const { getAppConfig } = require("./app-config");
+    const { getAppConfig } = require("./config/database-config");
     const { getLLMConfig } = require("./llm/llm-config");
     // 注意：this.database 此时为 null，会在 onReady 中初始化后传入
     this.initialSetupIPC = null;
@@ -524,7 +524,7 @@ class ChainlessChainApp {
 
       // 初始化全局设置 IPC（在数据库初始化之后）
       if (!this.initialSetupIPC) {
-        const { getAppConfig } = require("./app-config");
+        const { getAppConfig } = require("./config/database-config");
         const { getLLMConfig } = require("./llm/llm-config");
         this.initialSetupIPC = new InitialSetupIPC(
           app,
@@ -740,7 +740,7 @@ class ChainlessChainApp {
       console.log("初始化LLM管理器...");
 
       // 🔥 检查是否在测试模式下使用Mock LLM服务
-      const { getTestModeConfig } = require("./test-mode-config");
+      const { getTestModeConfig } = require("./config/test-mode-config");
       const testModeConfig = getTestModeConfig();
 
       if (testModeConfig.mockLLM) {
@@ -840,7 +840,7 @@ class ChainlessChainApp {
     // 初始化 ErrorMonitor（错误智能诊断）
     try {
       console.log("初始化错误智能诊断系统...");
-      const { ErrorMonitor } = require("./error-monitor");
+      const { ErrorMonitor } = require("./monitoring/error-monitor");
 
       this.errorMonitor = new ErrorMonitor({
         llmManager: this.llmManager,
@@ -1945,7 +1945,7 @@ class ChainlessChainApp {
 
       // 重新设置 InitialSetupIPC
       if (this.initialSetupIPC) {
-        const { getAppConfig } = require("./app-config");
+        const { getAppConfig } = require("./config/database-config");
         const { getLLMConfig } = require("./llm/llm-config");
         this.initialSetupIPC = new InitialSetupIPC(
           app,
@@ -3201,7 +3201,7 @@ class ChainlessChainApp {
     console.log("[ChainlessChainApp] ========================================");
 
     // 导入注册中心
-    const { registerAllIPC } = require("./ipc-registry");
+    const { registerAllIPC } = require("./ipc/ipc-registry");
 
     // 注册所有模块化的 IPC 处理器
     try {

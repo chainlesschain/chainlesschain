@@ -10,32 +10,32 @@
  * - 崩溃报告
  */
 
-const { app, dialog } = require('electron');
-const fs = require('fs');
-const path = require('path');
-const { getLogger } = require('./logger');
+const { app, dialog } = require("electron");
+const fs = require("fs");
+const path = require("path");
+const { getLogger } = require("../logging/logger");
 
-const logger = getLogger('ErrorHandler');
+const logger = getLogger("ErrorHandler");
 
 // 错误类型
 const ErrorType = {
-  FATAL: 'FATAL',           // 致命错误，需要重启
-  CRITICAL: 'CRITICAL',     // 严重错误，影响核心功能
-  ERROR: 'ERROR',           // 一般错误，影响部分功能
-  WARNING: 'WARNING',       // 警告，不影响功能
-  RECOVERABLE: 'RECOVERABLE' // 可恢复错误
+  FATAL: "FATAL", // 致命错误，需要重启
+  CRITICAL: "CRITICAL", // 严重错误，影响核心功能
+  ERROR: "ERROR", // 一般错误，影响部分功能
+  WARNING: "WARNING", // 警告，不影响功能
+  RECOVERABLE: "RECOVERABLE", // 可恢复错误
 };
 
 // 错误分类
 const ErrorCategory = {
-  DATABASE: 'DATABASE',
-  NETWORK: 'NETWORK',
-  FILE_SYSTEM: 'FILE_SYSTEM',
-  UKEY: 'UKEY',
-  LLM: 'LLM',
-  P2P: 'P2P',
-  PLUGIN: 'PLUGIN',
-  UNKNOWN: 'UNKNOWN'
+  DATABASE: "DATABASE",
+  NETWORK: "NETWORK",
+  FILE_SYSTEM: "FILE_SYSTEM",
+  UKEY: "UKEY",
+  LLM: "LLM",
+  P2P: "P2P",
+  PLUGIN: "PLUGIN",
+  UNKNOWN: "UNKNOWN",
 };
 
 /**
@@ -51,7 +51,9 @@ class ErrorHandler {
       autoRestart: options.autoRestart !== false,
 
       // 错误报告目录
-      reportDir: options.reportDir || path.join(app.getPath('userData'), 'crash-reports'),
+      reportDir:
+        options.reportDir ||
+        path.join(app.getPath("userData"), "crash-reports"),
 
       // 最大错误报告数量
       maxReports: options.maxReports || 50,
@@ -60,7 +62,7 @@ class ErrorHandler {
       onError: options.onError || null,
 
       // 是否在开发模式
-      isDev: options.isDev || process.env.NODE_ENV === 'development'
+      isDev: options.isDev || process.env.NODE_ENV === "development",
     };
 
     // 错误统计
@@ -68,7 +70,7 @@ class ErrorHandler {
       total: 0,
       byType: {},
       byCategory: {},
-      recent: []
+      recent: [],
     };
 
     // 错误恢复策略
@@ -96,10 +98,10 @@ class ErrorHandler {
     // 清理旧报告
     this.cleanOldReports();
 
-    logger.info('Error handler initialized', {
+    logger.info("Error handler initialized", {
       reportDir: this.options.reportDir,
       showDialog: this.options.showDialog,
-      autoRestart: this.options.autoRestart
+      autoRestart: this.options.autoRestart,
     });
   }
 
@@ -108,40 +110,41 @@ class ErrorHandler {
    */
   registerGlobalHandlers() {
     // 未捕获的异常
-    process.on('uncaughtException', (error) => {
-      logger.fatal('Uncaught exception', error);
+    process.on("uncaughtException", (error) => {
+      logger.fatal("Uncaught exception", error);
       this.handleError(error, {
         type: ErrorType.FATAL,
         category: ErrorCategory.UNKNOWN,
-        source: 'uncaughtException'
+        source: "uncaughtException",
       });
     });
 
     // 未处理的Promise拒绝
-    process.on('unhandledRejection', (reason, promise) => {
-      logger.error('Unhandled promise rejection', {
+    process.on("unhandledRejection", (reason, promise) => {
+      logger.error("Unhandled promise rejection", {
         reason: reason instanceof Error ? reason.message : reason,
-        stack: reason instanceof Error ? reason.stack : undefined
+        stack: reason instanceof Error ? reason.stack : undefined,
       });
 
-      const error = reason instanceof Error ? reason : new Error(String(reason));
+      const error =
+        reason instanceof Error ? reason : new Error(String(reason));
       this.handleError(error, {
         type: ErrorType.CRITICAL,
         category: ErrorCategory.UNKNOWN,
-        source: 'unhandledRejection'
+        source: "unhandledRejection",
       });
     });
 
     // 警告
-    process.on('warning', (warning) => {
-      logger.warn('Process warning', {
+    process.on("warning", (warning) => {
+      logger.warn("Process warning", {
         name: warning.name,
         message: warning.message,
-        stack: warning.stack
+        stack: warning.stack,
       });
     });
 
-    logger.info('Global error handlers registered');
+    logger.info("Global error handlers registered");
   }
 
   /**
@@ -149,69 +152,78 @@ class ErrorHandler {
    */
   registerDefaultRecoveryStrategies() {
     // 数据库错误恢复
-    this.registerRecoveryStrategy(ErrorCategory.DATABASE, async (error, context) => {
-      logger.info('Attempting database error recovery');
+    this.registerRecoveryStrategy(
+      ErrorCategory.DATABASE,
+      async (error, context) => {
+        logger.info("Attempting database error recovery");
 
-      // 尝试重新连接
-      if (context.db && typeof context.db.reconnect === 'function') {
-        try {
-          await context.db.reconnect();
-          logger.info('Database reconnected successfully');
-          return { success: true, message: '数据库已重新连接' };
-        } catch (reconnectError) {
-          logger.error('Database reconnection failed', reconnectError);
-          return { success: false, message: '数据库重连失败' };
+        // 尝试重新连接
+        if (context.db && typeof context.db.reconnect === "function") {
+          try {
+            await context.db.reconnect();
+            logger.info("Database reconnected successfully");
+            return { success: true, message: "数据库已重新连接" };
+          } catch (reconnectError) {
+            logger.error("Database reconnection failed", reconnectError);
+            return { success: false, message: "数据库重连失败" };
+          }
         }
-      }
 
-      return { success: false, message: '无法恢复数据库连接' };
-    });
+        return { success: false, message: "无法恢复数据库连接" };
+      },
+    );
 
     // 网络错误恢复
-    this.registerRecoveryStrategy(ErrorCategory.NETWORK, async (error, context) => {
-      logger.info('Attempting network error recovery');
+    this.registerRecoveryStrategy(
+      ErrorCategory.NETWORK,
+      async (error, context) => {
+        logger.info("Attempting network error recovery");
 
-      // 等待一段时间后重试
-      await new Promise(resolve => setTimeout(resolve, 2000));
+        // 等待一段时间后重试
+        await new Promise((resolve) => setTimeout(resolve, 2000));
 
-      if (context.retry && typeof context.retry === 'function') {
-        try {
-          await context.retry();
-          logger.info('Network operation retried successfully');
-          return { success: true, message: '网络操作已重试' };
-        } catch (retryError) {
-          logger.error('Network retry failed', retryError);
-          return { success: false, message: '网络重试失败' };
+        if (context.retry && typeof context.retry === "function") {
+          try {
+            await context.retry();
+            logger.info("Network operation retried successfully");
+            return { success: true, message: "网络操作已重试" };
+          } catch (retryError) {
+            logger.error("Network retry failed", retryError);
+            return { success: false, message: "网络重试失败" };
+          }
         }
-      }
 
-      return { success: false, message: '无法恢复网络连接' };
-    });
+        return { success: false, message: "无法恢复网络连接" };
+      },
+    );
 
     // 文件系统错误恢复
-    this.registerRecoveryStrategy(ErrorCategory.FILE_SYSTEM, async (error, context) => {
-      logger.info('Attempting file system error recovery');
+    this.registerRecoveryStrategy(
+      ErrorCategory.FILE_SYSTEM,
+      async (error, context) => {
+        logger.info("Attempting file system error recovery");
 
-      // 检查磁盘空间
-      if (error.code === 'ENOSPC') {
-        return {
-          success: false,
-          message: '磁盘空间不足，请清理磁盘后重试',
-          userAction: 'CLEAN_DISK'
-        };
-      }
+        // 检查磁盘空间
+        if (error.code === "ENOSPC") {
+          return {
+            success: false,
+            message: "磁盘空间不足，请清理磁盘后重试",
+            userAction: "CLEAN_DISK",
+          };
+        }
 
-      // 检查权限
-      if (error.code === 'EACCES' || error.code === 'EPERM') {
-        return {
-          success: false,
-          message: '文件权限不足，请检查文件权限',
-          userAction: 'CHECK_PERMISSIONS'
-        };
-      }
+        // 检查权限
+        if (error.code === "EACCES" || error.code === "EPERM") {
+          return {
+            success: false,
+            message: "文件权限不足，请检查文件权限",
+            userAction: "CHECK_PERMISSIONS",
+          };
+        }
 
-      return { success: false, message: '文件系统错误无法自动恢复' };
-    });
+        return { success: false, message: "文件系统错误无法自动恢复" };
+      },
+    );
   }
 
   /**
@@ -229,10 +241,10 @@ class ErrorHandler {
     const {
       type = ErrorType.ERROR,
       category = ErrorCategory.UNKNOWN,
-      source = 'unknown',
+      source = "unknown",
       context = {},
       showDialog = this.options.showDialog,
-      attemptRecovery = true
+      attemptRecovery = true,
     } = options;
 
     // 更新统计
@@ -243,7 +255,7 @@ class ErrorHandler {
       message: error.message,
       stack: error.stack,
       source,
-      context
+      context,
     });
 
     // 生成错误报告
@@ -251,7 +263,7 @@ class ErrorHandler {
       type,
       category,
       source,
-      context
+      context,
     });
 
     // 保存错误报告
@@ -263,9 +275,9 @@ class ErrorHandler {
       try {
         const strategy = this.recoveryStrategies.get(category);
         recoveryResult = await strategy(error, context);
-        logger.info('Recovery attempt result', recoveryResult);
+        logger.info("Recovery attempt result", recoveryResult);
       } catch (recoveryError) {
-        logger.error('Recovery strategy failed', recoveryError);
+        logger.error("Recovery strategy failed", recoveryError);
       }
     }
 
@@ -274,7 +286,7 @@ class ErrorHandler {
       this.showErrorDialog(error, {
         type,
         category,
-        recoveryResult
+        recoveryResult,
       });
     }
 
@@ -286,10 +298,10 @@ class ErrorHandler {
           category,
           source,
           context,
-          recoveryResult
+          recoveryResult,
         });
       } catch (callbackError) {
-        logger.error('Error callback failed', callbackError);
+        logger.error("Error callback failed", callbackError);
       }
     }
 
@@ -301,7 +313,7 @@ class ErrorHandler {
     return {
       handled: true,
       recoveryResult,
-      report
+      report,
     };
   }
 
@@ -309,16 +321,16 @@ class ErrorHandler {
    * 处理致命错误
    */
   handleFatalError(error, report) {
-    logger.fatal('Fatal error occurred, application will exit', {
+    logger.fatal("Fatal error occurred, application will exit", {
       error: error.message,
-      reportId: report.id
+      reportId: report.id,
     });
 
     // 显示致命错误对话框
     if (this.options.showDialog) {
       dialog.showErrorBox(
-        '应用程序遇到致命错误',
-        `应用程序遇到无法恢复的错误，将自动退出。\n\n错误信息：${error.message}\n\n错误报告已保存到：${this.options.reportDir}`
+        "应用程序遇到致命错误",
+        `应用程序遇到无法恢复的错误，将自动退出。\n\n错误信息：${error.message}\n\n错误报告已保存到：${this.options.reportDir}`,
       );
     }
 
@@ -336,22 +348,22 @@ class ErrorHandler {
   showErrorDialog(error, options = {}) {
     const { type, category, recoveryResult } = options;
 
-    let title = '错误';
-    let message = error.message || '发生了一个未知错误';
+    let title = "错误";
+    let message = error.message || "发生了一个未知错误";
 
     // 根据错误类型设置标题
     switch (type) {
       case ErrorType.FATAL:
-        title = '致命错误';
+        title = "致命错误";
         break;
       case ErrorType.CRITICAL:
-        title = '严重错误';
+        title = "严重错误";
         break;
       case ErrorType.ERROR:
-        title = '错误';
+        title = "错误";
         break;
       case ErrorType.WARNING:
-        title = '警告';
+        title = "警告";
         break;
     }
 
@@ -376,11 +388,14 @@ class ErrorHandler {
     }
 
     dialog.showMessageBox({
-      type: type === ErrorType.FATAL || type === ErrorType.CRITICAL ? 'error' : 'warning',
+      type:
+        type === ErrorType.FATAL || type === ErrorType.CRITICAL
+          ? "error"
+          : "warning",
       title,
       message,
-      buttons: ['确定'],
-      defaultId: 0
+      buttons: ["确定"],
+      defaultId: 0,
     });
   }
 
@@ -389,16 +404,16 @@ class ErrorHandler {
    */
   getCategoryText(category) {
     const texts = {
-      [ErrorCategory.DATABASE]: '数据库错误',
-      [ErrorCategory.NETWORK]: '网络错误',
-      [ErrorCategory.FILE_SYSTEM]: '文件系统错误',
-      [ErrorCategory.UKEY]: 'U-Key错误',
-      [ErrorCategory.LLM]: 'AI模型错误',
-      [ErrorCategory.P2P]: 'P2P网络错误',
-      [ErrorCategory.PLUGIN]: '插件错误'
+      [ErrorCategory.DATABASE]: "数据库错误",
+      [ErrorCategory.NETWORK]: "网络错误",
+      [ErrorCategory.FILE_SYSTEM]: "文件系统错误",
+      [ErrorCategory.UKEY]: "U-Key错误",
+      [ErrorCategory.LLM]: "AI模型错误",
+      [ErrorCategory.P2P]: "P2P网络错误",
+      [ErrorCategory.PLUGIN]: "插件错误",
     };
 
-    return texts[category] || '';
+    return texts[category] || "";
   }
 
   /**
@@ -417,7 +432,7 @@ class ErrorHandler {
         name: error.name,
         message: error.message,
         stack: error.stack,
-        code: error.code
+        code: error.code,
       },
       context,
       system: {
@@ -427,8 +442,8 @@ class ErrorHandler {
         electronVersion: process.versions.electron,
         appVersion: app.getVersion(),
         memory: process.memoryUsage(),
-        uptime: process.uptime()
-      }
+        uptime: process.uptime(),
+      },
     };
 
     return report;
@@ -442,14 +457,14 @@ class ErrorHandler {
       const filename = `${report.id}.json`;
       const filepath = path.join(this.options.reportDir, filename);
 
-      fs.writeFileSync(filepath, JSON.stringify(report, null, 2), 'utf8');
+      fs.writeFileSync(filepath, JSON.stringify(report, null, 2), "utf8");
 
-      logger.info('Error report saved', {
+      logger.info("Error report saved", {
         reportId: report.id,
-        filepath
+        filepath,
       });
     } catch (saveError) {
-      logger.error('Failed to save error report', saveError);
+      logger.error("Failed to save error report", saveError);
     }
   }
 
@@ -476,7 +491,7 @@ class ErrorHandler {
       timestamp: new Date().toISOString(),
       type,
       category,
-      message: error.message
+      message: error.message,
     });
 
     // 限制最近错误数量
@@ -500,7 +515,7 @@ class ErrorHandler {
       total: 0,
       byType: {},
       byCategory: {},
-      recent: []
+      recent: [],
     };
   }
 
@@ -513,9 +528,10 @@ class ErrorHandler {
         return [];
       }
 
-      return fs.readdirSync(this.options.reportDir)
-        .filter(f => f.endsWith('.json'))
-        .map(f => {
+      return fs
+        .readdirSync(this.options.reportDir)
+        .filter((f) => f.endsWith(".json"))
+        .map((f) => {
           const filepath = path.join(this.options.reportDir, f);
           const stats = fs.statSync(filepath);
           return {
@@ -523,12 +539,12 @@ class ErrorHandler {
             path: filepath,
             size: stats.size,
             created: stats.birthtime,
-            modified: stats.mtime
+            modified: stats.mtime,
           };
         })
         .sort((a, b) => b.modified.getTime() - a.modified.getTime());
     } catch (error) {
-      logger.error('Failed to get error reports', error);
+      logger.error("Failed to get error reports", error);
       return [];
     }
   }
@@ -544,10 +560,10 @@ class ErrorHandler {
         throw new Error(`Error report not found: ${filename}`);
       }
 
-      const content = fs.readFileSync(filepath, 'utf8');
+      const content = fs.readFileSync(filepath, "utf8");
       return JSON.parse(content);
     } catch (error) {
-      logger.error('Failed to read error report', error);
+      logger.error("Failed to read error report", error);
       throw error;
     }
   }
@@ -562,19 +578,22 @@ class ErrorHandler {
       if (reports.length > this.options.maxReports) {
         const reportsToDelete = reports.slice(this.options.maxReports);
 
-        reportsToDelete.forEach(report => {
+        reportsToDelete.forEach((report) => {
           try {
             fs.unlinkSync(report.path);
             logger.debug(`Deleted old error report: ${report.filename}`);
           } catch (error) {
-            logger.error(`Failed to delete error report: ${report.filename}`, error);
+            logger.error(
+              `Failed to delete error report: ${report.filename}`,
+              error,
+            );
           }
         });
 
         logger.info(`Cleaned ${reportsToDelete.length} old error reports`);
       }
     } catch (error) {
-      logger.error('Failed to clean old reports', error);
+      logger.error("Failed to clean old reports", error);
     }
   }
 
@@ -600,40 +619,40 @@ class ErrorHandler {
       let filtered = allReports;
 
       if (options.startDate) {
-        filtered = filtered.filter(r =>
-          new Date(r.timestamp) >= new Date(options.startDate)
+        filtered = filtered.filter(
+          (r) => new Date(r.timestamp) >= new Date(options.startDate),
         );
       }
 
       if (options.endDate) {
-        filtered = filtered.filter(r =>
-          new Date(r.timestamp) <= new Date(options.endDate)
+        filtered = filtered.filter(
+          (r) => new Date(r.timestamp) <= new Date(options.endDate),
         );
       }
 
       if (options.type) {
-        filtered = filtered.filter(r => r.type === options.type);
+        filtered = filtered.filter((r) => r.type === options.type);
       }
 
       if (options.category) {
-        filtered = filtered.filter(r => r.category === options.category);
+        filtered = filtered.filter((r) => r.category === options.category);
       }
 
       // 导出
-      fs.writeFileSync(outputPath, JSON.stringify(filtered, null, 2), 'utf8');
+      fs.writeFileSync(outputPath, JSON.stringify(filtered, null, 2), "utf8");
 
-      logger.info('Error reports exported', {
+      logger.info("Error reports exported", {
         outputPath,
-        count: filtered.length
+        count: filtered.length,
       });
 
       return {
         success: true,
         count: filtered.length,
-        path: outputPath
+        path: outputPath,
       };
     } catch (error) {
-      logger.error('Failed to export error reports', error);
+      logger.error("Failed to export error reports", error);
       throw error;
     }
   }
@@ -674,5 +693,5 @@ module.exports = {
   ErrorCategory,
   getErrorHandler,
   initErrorHandler,
-  handleError
+  handleError,
 };

@@ -46,7 +46,7 @@ try {
 
 let getAppConfig;
 try {
-  getAppConfig = require("./app-config").getAppConfig;
+  getAppConfig = require("./config/database-config").getAppConfig;
 } catch (e) {
   // Fallback for testing
   getAppConfig = () => ({ enableEncryption: false });
