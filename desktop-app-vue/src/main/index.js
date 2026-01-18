@@ -456,14 +456,16 @@ class ChainlessChainApp {
   async onReady() {
     console.log("ChainlessChain Vue 启动中...");
 
-    // 创建并显示启动画面
-    this.splashWindow = new SplashWindow();
-    try {
-      await this.splashWindow.create();
-      this.splashWindow.updateProgress("正在启动...", 0);
-    } catch (error) {
-      console.error("[Main] 创建启动画面失败:", error);
-      // 降级处理：即使启动画面创建失败，也继续启动应用
+    // 创建并显示启动画面 (跳过测试环境)
+    if (process.env.NODE_ENV !== 'test') {
+      this.splashWindow = new SplashWindow();
+      try {
+        await this.splashWindow.create();
+        this.splashWindow.updateProgress("正在启动...", 0);
+      } catch (error) {
+        console.error("[Main] 创建启动画面失败:", error);
+        // 降级处理：即使启动画面创建失败，也继续启动应用
+      }
     }
 
     // 启动后端服务（仅在生产环境）
@@ -546,193 +548,186 @@ class ChainlessChainApp {
       // 即使数据库初始化失败，也继续启动应用
     }
 
-    // 初始化性能监控器
-    try {
-      console.log("初始化性能监控器...");
-      this.performanceMonitor = getPerformanceMonitor();
-      this.performanceMonitor.start();
-      console.log("性能监控器初始化成功");
-    } catch (error) {
-      console.error("性能监控器初始化失败:", error);
-    }
+    // 🚀 并行初始化独立的管理器（性能优化）
+    this.splashWindow?.updateProgress("并行初始化管理器...", 15);
+    console.log("🚀 开始并行初始化独立管理器...");
 
-    // 初始化文件导入器
-    try {
-      console.log("初始化文件导入器...");
-      this.fileImporter = new FileImporter(this.database);
-      console.log("文件导入器初始化成功");
-    } catch (error) {
-      console.error("文件导入器初始化失败:", error);
-    }
-
-    // 初始化视频导入器
-    try {
-      console.log("初始化视频导入器...");
-      this.videoImporter = new VideoImporter(
-        this.database,
-        app.getPath("userData"),
-      );
-      await this.videoImporter.initializeStorageDirectories();
-      console.log("视频导入器初始化成功");
-    } catch (error) {
-      console.error("视频导入器初始化失败:", error);
-    }
-
-    // 初始化项目模板管理器
-    try {
-      console.log("初始化项目模板管理器...");
-      this.templateManager = new ProjectTemplateManager(this.database);
-      await this.templateManager.initialize();
-      console.log("项目模板管理器初始化成功");
-    } catch (error) {
-      console.error("项目模板管理器初始化失败:", error);
-    }
-
-    // 初始化U盾管理器
-    try {
-      // console.log('初始化U盾管理器...');
-      this.ukeyManager = new UKeyManager({
-        driverType: DriverTypes.XINJINKE,
-      });
-      await this.ukeyManager.initialize();
-
-      // 启动设备监听
-      this.ukeyManager.startDeviceMonitor(5000);
-
-      // 监听U盾事件
-      this.setupUKeyEvents();
-
-      // console.log('U盾管理器初始化成功');
-    } catch (error) {
-      // console.error('U盾管理器初始化失败:', error);
-      // 即使U盾初始化失败，也继续启动应用（将使用模拟模式）
-    }
-
-    // 初始化Git管理器
-    try {
-      this.splashWindow?.updateProgress("初始化Git管理器...", 25);
-      console.log("初始化Git管理器...");
-      const gitConfig = getGitConfig();
-
-      if (gitConfig.isEnabled()) {
-        const repoPath =
-          gitConfig.getRepoPath() ||
-          path.join(app.getPath("userData"), "git-repo");
-        const exportPath = path.join(repoPath, gitConfig.getExportPath());
-
-        this.gitManager = new GitManager({
-          repoPath,
-          remoteUrl: gitConfig.getRemoteUrl(),
-          authorName: gitConfig.get("authorName"),
-          authorEmail: gitConfig.get("authorEmail"),
-          auth: gitConfig.getAuth(),
-        });
-
-        await this.gitManager.initialize();
-
-        // 创建Markdown导出器
-        this.markdownExporter = new MarkdownExporter(this.database, exportPath);
-
-        // 初始化Git热重载
+    await Promise.all([
+      // 性能监控器
+      (async () => {
         try {
-          console.log("初始化Git热重载...");
-          const GitHotReload = require("./git/git-hot-reload");
-          this.gitHotReload = new GitHotReload(this.gitManager, {
-            enabled: gitConfig.get("hotReloadEnabled") !== false, // 默认启用
-            debounceDelay: gitConfig.get("hotReloadDebounceDelay") || 1000,
-          });
-
-          // 启动热重载
-          this.gitHotReload.start();
-          console.log("Git热重载初始化成功");
+          console.log("初始化性能监控器...");
+          this.performanceMonitor = getPerformanceMonitor();
+          this.performanceMonitor.start();
+          console.log("✓ 性能监控器初始化成功");
         } catch (error) {
-          console.error("Git热重载初始化失败:", error);
-          // 热重载失败不影响Git基本功能
+          console.error("性能监控器初始化失败:", error);
         }
+      })(),
 
-        // 监听Git事件
-        this.setupGitEvents();
-
-        // 启动自动同步
-        if (gitConfig.isAutoSyncEnabled()) {
-          this.startAutoSync(gitConfig.getAutoSyncInterval());
+      // 文件导入器
+      (async () => {
+        try {
+          console.log("初始化文件导入器...");
+          this.fileImporter = new FileImporter(this.database);
+          console.log("✓ 文件导入器初始化成功");
+        } catch (error) {
+          console.error("文件导入器初始化失败:", error);
         }
+      })(),
 
-        console.log("Git管理器初始化成功");
-      } else {
-        console.log("Git同步未启用");
-      }
-    } catch (error) {
-      console.error("Git管理器初始化失败:", error);
-      // 即使Git初始化失败，也继续启动应用
-    }
+      // 视频导入器
+      (async () => {
+        try {
+          console.log("初始化视频导入器...");
+          this.videoImporter = new VideoImporter(
+            this.database,
+            app.getPath("userData"),
+          );
+          await this.videoImporter.initializeStorageDirectories();
+          console.log("✓ 视频导入器初始化成功");
+        } catch (error) {
+          console.error("视频导入器初始化失败:", error);
+        }
+      })(),
 
-    // 初始化LLM选择器
-    try {
-      console.log("初始化LLM选择器...");
-      this.llmSelector = new LLMSelector(this.database);
-      console.log("LLM选择器初始化成功");
-    } catch (error) {
-      console.error("LLM选择器初始化失败:", error);
-    }
+      // 项目模板管理器
+      (async () => {
+        try {
+          console.log("初始化项目模板管理器...");
+          this.templateManager = new ProjectTemplateManager(this.database);
+          await this.templateManager.initialize();
+          console.log("✓ 项目模板管理器初始化成功");
+        } catch (error) {
+          console.error("项目模板管理器初始化失败:", error);
+        }
+      })(),
 
-    // 初始化 TokenTracker (Token 追踪和成本管理)
-    try {
-      console.log("初始化 Token 追踪器...");
-      const { TokenTracker } = require("./llm/token-tracker");
-      this.tokenTracker = new TokenTracker(this.database, {
-        enableCostTracking: true,
-        enableBudgetAlerts: true,
-        exchangeRate: 7.2, // USD to CNY
-      });
+      // U盾管理器
+      (async () => {
+        try {
+          this.ukeyManager = new UKeyManager({
+            driverType: DriverTypes.XINJINKE,
+          });
+          await this.ukeyManager.initialize();
+          this.ukeyManager.startDeviceMonitor(5000);
+          this.setupUKeyEvents();
+        } catch (error) {
+          // 即使U盾初始化失败，也继续启动应用（将使用模拟模式）
+        }
+      })(),
+    ]);
 
-      // 🔥 监听预算告警事件
-      this.tokenTracker.on("budget-alert", (alert) => {
-        console.log("[Main] 预算告警:", alert);
-        this.handleBudgetAlert(alert);
-      });
+    console.log("✓ 并行初始化完成");
 
-      console.log("✓ Token 追踪器初始化成功");
-    } catch (error) {
-      console.error("Token 追踪器初始化失败:", error);
-      // Token 追踪失败不影响应用启动
-      this.tokenTracker = null;
-    }
+    // 🚀 并行初始化 Git 和 LLM 相关管理器（最耗时的部分）
+    this.splashWindow?.updateProgress("并行初始化 Git 和 LLM...", 25);
+    console.log("🚀 开始并行初始化 Git 和 LLM 管理器...");
 
-    // 初始化 PromptCompressor (Prompt 压缩优化)
-    try {
-      console.log("初始化 Prompt 压缩器...");
-      const { PromptCompressor } = require("./llm/prompt-compressor");
-      this.promptCompressor = new PromptCompressor({
-        enableDeduplication: true,
-        enableSummarization: false, // 暂时禁用总结（需要 LLM）
-        enableTruncation: true,
-        maxHistoryMessages: 10,
-        maxTotalTokens: 4000,
-        similarityThreshold: 0.9,
-        llmManager: null, // 稍后会设置
-      });
-      console.log("✓ Prompt 压缩器初始化成功");
-    } catch (error) {
-      console.error("Prompt 压缩器初始化失败:", error);
-      this.promptCompressor = null;
-    }
+    await Promise.all([
+      // Git 管理器
+      (async () => {
+        try {
+          console.log("初始化Git管理器...");
+          const gitConfig = getGitConfig();
 
-    // 初始化 ResponseCache (响应缓存)
-    try {
-      console.log("初始化响应缓存...");
-      const { ResponseCache } = require("./llm/response-cache");
-      this.responseCache = new ResponseCache(this.database, {
-        ttl: 7 * 24 * 60 * 60 * 1000, // 7 天
-        maxSize: 1000,
-        enableAutoCleanup: true,
-        cleanupInterval: 60 * 60 * 1000, // 1 小时
-      });
-      console.log("✓ 响应缓存初始化成功");
-    } catch (error) {
-      console.error("响应缓存初始化失败:", error);
-      this.responseCache = null;
-    }
+          if (gitConfig.isEnabled()) {
+            const repoPath =
+              gitConfig.getRepoPath() ||
+              path.join(app.getPath("userData"), "git-repo");
+            const exportPath = path.join(repoPath, gitConfig.getExportPath());
+
+            this.gitManager = new GitManager({
+              repoPath,
+              remoteUrl: gitConfig.getRemoteUrl(),
+              authorName: gitConfig.get("authorName"),
+              authorEmail: gitConfig.get("authorEmail"),
+              auth: gitConfig.getAuth(),
+            });
+
+            await this.gitManager.initialize();
+            this.markdownExporter = new MarkdownExporter(this.database, exportPath);
+
+            // Git热重载
+            try {
+              const GitHotReload = require("./git/git-hot-reload");
+              this.gitHotReload = new GitHotReload(this.gitManager, {
+                enabled: gitConfig.get("hotReloadEnabled") !== false,
+                debounceDelay: gitConfig.get("hotReloadDebounceDelay") || 1000,
+              });
+              this.gitHotReload.start();
+            } catch (error) {
+              console.error("Git热重载初始化失败:", error);
+            }
+
+            this.setupGitEvents();
+            if (gitConfig.isAutoSyncEnabled()) {
+              this.startAutoSync(gitConfig.getAutoSyncInterval());
+            }
+            console.log("✓ Git管理器初始化成功");
+          } else {
+            console.log("Git同步未启用");
+          }
+        } catch (error) {
+          console.error("Git管理器初始化失败:", error);
+        }
+      })(),
+
+      // LLM 相关管理器
+      (async () => {
+        try {
+          // LLM选择器
+          console.log("初始化LLM选择器...");
+          this.llmSelector = new LLMSelector(this.database);
+          console.log("✓ LLM选择器初始化成功");
+
+          // TokenTracker
+          console.log("初始化 Token 追踪器...");
+          const { TokenTracker } = require("./llm/token-tracker");
+          this.tokenTracker = new TokenTracker(this.database, {
+            enableCostTracking: true,
+            enableBudgetAlerts: true,
+            exchangeRate: 7.2,
+          });
+          this.tokenTracker.on("budget-alert", (alert) => {
+            console.log("[Main] 预算告警:", alert);
+            this.handleBudgetAlert(alert);
+          });
+          console.log("✓ Token 追踪器初始化成功");
+
+          // PromptCompressor
+          console.log("初始化 Prompt 压缩器...");
+          const { PromptCompressor } = require("./llm/prompt-compressor");
+          this.promptCompressor = new PromptCompressor({
+            enableDeduplication: true,
+            enableSummarization: false,
+            enableTruncation: true,
+            maxHistoryMessages: 10,
+            maxTotalTokens: 4000,
+            similarityThreshold: 0.9,
+            llmManager: null,
+          });
+          console.log("✓ Prompt 压缩器初始化成功");
+
+          // ResponseCache
+          console.log("初始化响应缓存...");
+          const { ResponseCache } = require("./llm/response-cache");
+          this.responseCache = new ResponseCache(this.database, {
+            ttl: 7 * 24 * 60 * 60 * 1000,
+            maxSize: 1000,
+            enableAutoCleanup: true,
+            cleanupInterval: 60 * 60 * 1000,
+          });
+          console.log("✓ 响应缓存初始化成功");
+        } catch (error) {
+          console.error("LLM 辅助服务初始化失败:", error);
+          this.promptCompressor = null;
+          this.responseCache = null;
+        }
+      })(),
+    ]);
+
+    console.log("✓ Git 和 LLM 并行初始化完成");
 
     // 初始化LLM管理器
     try {

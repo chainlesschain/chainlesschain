@@ -72,7 +72,11 @@ test.describe('项目详情页 - 基础功能验证', () => {
       const newUrl = await window.evaluate(() => window.location.href);
       console.log('[Test] 导航后URL:', newUrl);
 
-      await window.screenshot({ path: 'test-results/04-navigated-to-detail.png' });
+      await window.screenshot({
+        path: 'test-results/04-navigated-to-detail.png',
+        timeout: 10000,
+        animations: 'disabled'
+      });
 
       console.log('[Test] Step 6: 检查页面内容');
       const htmlAfterNav = await window.evaluate(() => document.body.innerHTML);
@@ -87,12 +91,20 @@ test.describe('项目详情页 - 基础功能验证', () => {
         console.log(`[Test]   - [data-testid="${testId}"]`);
       }
 
-      await window.screenshot({ path: 'test-results/05-detail-page-state.png' });
+      await window.screenshot({
+        path: 'test-results/05-detail-page-state.png',
+        timeout: 10000,
+        animations: 'disabled'
+      });
 
       console.log('[Test] ✅ 基础测试完成');
     } catch (error) {
       console.error('[Test] ❌ 测试失败:', error);
-      await window.screenshot({ path: 'test-results/99-error.png' });
+      await window.screenshot({
+        path: 'test-results/99-error.png',
+        timeout: 10000,
+        animations: 'disabled'
+      });
       throw error;
     } finally {
       await closeElectronApp(app);

@@ -6,6 +6,46 @@ import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { VoiceVideoManager, CallState, CallType } from '../../../src/main/p2p/voice-video-manager.js';
 import EventEmitter from 'events';
 
+const createMockPeerConnection = () => ({
+  close: vi.fn(),
+  addTrack: vi.fn(),
+  addIceCandidate: vi.fn().mockResolvedValue(undefined),
+  setRemoteDescription: vi.fn().mockResolvedValue(undefined),
+  setLocalDescription: vi.fn().mockResolvedValue(undefined),
+  createAnswer: vi.fn().mockResolvedValue({ type: 'answer', sdp: 'mock-sdp' }),
+  createOffer: vi.fn().mockResolvedValue({ type: 'offer', sdp: 'mock-sdp' }),
+  connectionState: 'connected',
+  getStats: vi.fn().mockResolvedValue(new Map())
+});
+
+const createMockStream = ({ audio = true, video = false } = {}) => {
+  const tracks = [];
+  if (audio) {
+    tracks.push({ kind: 'audio', enabled: true, stop: vi.fn() });
+  }
+  if (video) {
+    tracks.push({ kind: 'video', enabled: true, stop: vi.fn() });
+  }
+  return {
+    getTracks: () => tracks,
+    getAudioTracks: () => tracks.filter((t) => t.kind === 'audio'),
+    getVideoTracks: () => tracks.filter((t) => t.kind === 'video'),
+    addTrack: (track) => tracks.push(track)
+  };
+};
+
+const createMockSession = (callId, peerId, type) => ({
+  callId,
+  peerId,
+  type,
+  state: CallState.IDLE,
+  startTime: Date.now(),
+  getDuration() {
+    const endTime = this.endTime || Date.now();
+    return Math.floor((endTime - this.startTime) / 1000);
+  }
+});
+
 // Mock wrtc-compat (our WebRTC compatibility layer)
 vi.mock('../../../src/main/p2p/wrtc-compat', () => ({
   available: true,
@@ -142,14 +182,9 @@ describe('VoiceVideoManager', () => {
       const session = voiceVideoManager.sessions.get(callId);
       if (!session) {
         // 创建模拟会话
-        const CallSession = require('../../../src/main/p2p/voice-video-manager').CallSession;
-        const mockSession = {
-          callId,
-          peerId,
-          type: CallType.AUDIO,
-          state: CallState.RINGING,
-          peerConnection: new (await import('wrtc').RTCPeerConnection)()
-        };
+        const mockSession = createMockSession(callId, peerId, CallType.AUDIO);
+        mockSession.state = CallState.RINGING;
+        mockSession.peerConnection = createMockPeerConnection();
         voiceVideoManager.sessions.set(callId, mockSession);
         voiceVideoManager.peerSessions.set(peerId, callId);
       }
@@ -178,13 +213,9 @@ describe('VoiceVideoManager', () => {
       const callId = 'call-reject-123';
 
       // 创建模拟会话
-      const mockSession = {
-        callId,
-        peerId,
-        type: CallType.AUDIO,
-        state: CallState.RINGING,
-        peerConnection: new (await import('wrtc').RTCPeerConnection)()
-      };
+      const mockSession = createMockSession(callId, peerId, CallType.AUDIO);
+      mockSession.state = CallState.RINGING;
+      mockSession.peerConnection = createMockPeerConnection();
       voiceVideoManager.sessions.set(callId, mockSession);
       voiceVideoManager.peerSessions.set(peerId, callId);
 
@@ -223,18 +254,18 @@ describe('VoiceVideoManager', () => {
     beforeEach(async () => {
       const peerId = 'peer-control';
       callId = await voiceVideoManager.startCall(peerId, CallType.VIDEO);
-      session = voiceVideoManager.sessions.get(callId);
-      session.state = CallState.CONNECTED;
-      session.localStream = new (await import('wrtc').MediaStream)();
+    session = voiceVideoManager.sessions.get(callId);
+    session.state = CallState.CONNECTED;
+    session.localStream = createMockStream({ audio: true, video: true });
     });
 
     test('应该能够切换静音', () => {
       const muteChangedSpy = vi.fn();
       voiceVideoManager.on('call:mute-changed', muteChangedSpy);
 
-      const isMuted = voiceVideoManager.toggleMute(callId);
+    const isMuted = voiceVideoManager.toggleMute(callId);
 
-      expect(isMuted).toBe(false); // 第一次切换应该是静音
+    expect(isMuted).toBe(true); // 第一次切换应为静音
       expect(muteChangedSpy).toHaveBeenCalledWith({
         callId,
         isMuted: false
@@ -452,9 +483,9 @@ describe('VoiceVideoManager', () => {
       const peerId = 'peer-cleanup-stream';
       const callId = await voiceVideoManager.startCall(peerId, CallType.VIDEO);
 
-      const session = voiceVideoManager.sessions.get(callId);
-      session.state = CallState.CONNECTED;
-      session.localStream = new (await import('wrtc').MediaStream)();
+    const session = voiceVideoManager.sessions.get(callId);
+    session.state = CallState.CONNECTED;
+    session.localStream = createMockStream({ audio: true, video: true });
 
       const stopSpy = vi.spyOn(session.localStream.getAudioTracks()[0], 'stop');
 

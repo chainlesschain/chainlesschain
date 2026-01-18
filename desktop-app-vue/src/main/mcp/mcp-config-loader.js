@@ -10,17 +10,16 @@
 const fs = require('fs');
 const path = require('path');
 const EventEmitter = require('events');
+const {
+  getUnifiedConfigManager,
+} = require('../config/unified-config-manager');
 
 class MCPConfigLoader extends EventEmitter {
   constructor(configPath = null) {
     super();
 
     // Default config path
-    this.configPath = configPath || path.join(
-      process.cwd(),
-      '.chainlesschain',
-      'config.json'
-    );
+    this.configPath = configPath || this._resolveConfigPath();
 
     this.config = null;
     this.lastLoadTime = null;
@@ -162,6 +161,30 @@ class MCPConfigLoader extends EventEmitter {
   // ===================================
   // Private Methods
   // ===================================
+
+  /**
+   * Resolve config path by reusing the UnifiedConfigManager's directory.
+   * Falls back to the project root when the manager is unavailable.
+   * @private
+   */
+  _resolveConfigPath() {
+    try {
+      const configManager = getUnifiedConfigManager();
+      if (configManager?.paths?.config) {
+        return configManager.paths.config;
+      }
+      if (configManager?.configPath) {
+        return configManager.configPath;
+      }
+    } catch (error) {
+      console.warn(
+        '[MCPConfigLoader] Failed to resolve config path from UnifiedConfigManager:',
+        error.message
+      );
+    }
+
+    return path.join(process.cwd(), '.chainlesschain', 'config.json');
+  }
 
   /**
    * Get default configuration

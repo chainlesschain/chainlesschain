@@ -66,8 +66,8 @@ describe('Sync IPC', () => {
   // ============================================================
 
   describe('基本功能测试', () => {
-    it('should register all 4 IPC handlers', () => {
-      expect(Object.keys(handlers).length).toBe(4);
+    it('should register all 8 IPC handlers', () => {
+      expect(Object.keys(handlers).length).toBe(8);
     });
 
     it('should have all expected handler channels', () => {
@@ -76,6 +76,10 @@ describe('Sync IPC', () => {
         'sync:get-status',
         'sync:incremental',
         'sync:resolve-conflict',
+        'sync:set-auth-token',
+        'sync:clear-auth-token',
+        'sync:has-auth',
+        'sync:get-config'
       ];
 
       expectedChannels.forEach(channel => {

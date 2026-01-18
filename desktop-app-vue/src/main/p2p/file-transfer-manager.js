@@ -21,23 +21,23 @@ class FileTransferManager extends EventEmitter {
 
     this.messageManager = messageManager;
 
+    const opts = options || {};
     this.options = {
+      ...opts,
       // 分块配置
-      chunkSize: options.chunkSize || 64 * 1024,        // 64KB per chunk
-      maxConcurrentChunks: options.maxConcurrentChunks || 3,
+      chunkSize: opts.chunkSize || 64 * 1024, // 64KB per chunk
+      maxConcurrentChunks: opts.maxConcurrentChunks || 3,
 
       // 断点续传
-      enableResume: options.enableResume !== false,
-      resumeCheckInterval: options.resumeCheckInterval || 5000,
+      enableResume: opts.enableResume !== false,
+      resumeCheckInterval: opts.resumeCheckInterval || 5000,
 
       // 传输配置
-      timeout: options.timeout || 30000,
-      maxRetries: options.maxRetries || 3,
+      timeout: opts.timeout || 30000,
+      maxRetries: opts.maxRetries || 3,
 
       // 临时目录
-      tempDir: options.tempDir || path.join(process.cwd(), '.temp'),
-
-      ...options
+      tempDir: opts.tempDir || path.join(process.cwd(), '.temp')
     };
 
     // 传输任务

@@ -12,6 +12,10 @@ const path = require("path");
 const fs = require("fs");
 const { v4: uuidv4 } = require("uuid");
 
+const disableNativeDb =
+  process.env.CHAINLESSCHAIN_DISABLE_NATIVE_DB === "1" ||
+  process.env.CHAINLESSCHAIN_FORCE_SQLJS === "1";
+
 // 导入数据库加密模块
 let createDatabaseAdapter;
 let createBetterSQLiteAdapter;
@@ -24,11 +28,18 @@ try {
 }
 
 // 导入 Better-SQLite3 适配器（用于开发环境）
-try {
-  const betterSqliteModule = require("./database/better-sqlite-adapter");
-  createBetterSQLiteAdapter = betterSqliteModule.createBetterSQLiteAdapter;
-} catch (e) {
-  console.warn("[Database] Better-SQLite3 适配器不可用:", e.message);
+if (!disableNativeDb) {
+  try {
+    const betterSqliteModule = require("./database/better-sqlite-adapter");
+    createBetterSQLiteAdapter = betterSqliteModule.createBetterSQLiteAdapter;
+  } catch (e) {
+    console.warn("[Database] Better-SQLite3 适配器不可用:", e.message);
+    createBetterSQLiteAdapter = null;
+  }
+} else {
+  console.log(
+    "[Database] 本地 Better-SQLite3 适配器已通过环境变量禁用，直接使用 sql.js",
+  );
   createBetterSQLiteAdapter = null;
 }
 
@@ -174,6 +185,12 @@ class DatabaseManager {
       };
     }
 
+    // 启用 WAL 模式以提高并发性能
+    if (this.db.pragma) {
+      this.db.pragma("journal_mode = WAL");
+      this.db.pragma("synchronous = NORMAL");
+    }
+
     // 临时禁用外键约束以允许表创建和迁移
     if (this.db.pragma) {
       this.db.pragma("foreign_keys = OFF");
@@ -182,8 +199,8 @@ class DatabaseManager {
     // 创建表
     this.createTables();
 
-    // 运行数据库迁移
-    this.runMigrations();
+    // 运行数据库迁移（带版本检查优化）
+    this.runMigrationsOptimized();
 
     // 重新启用外键约束
     if (this.db.pragma) {
@@ -212,18 +229,22 @@ class DatabaseManager {
     // 应用兼容性补丁
     this.applyStatementCompat();
 
-    // 启用外键约束
+    // 启用 WAL 模式以提高并发性能
     if (this.db.pragma) {
+      this.db.pragma("journal_mode = WAL");
+      this.db.pragma("synchronous = NORMAL");
       this.db.pragma("foreign_keys = ON");
     } else if (this.db.run) {
+      this.db.run("PRAGMA journal_mode = WAL");
+      this.db.run("PRAGMA synchronous = NORMAL");
       this.db.run("PRAGMA foreign_keys = ON");
     }
 
     // 创建表
     this.createTables();
 
-    // 运行数据库迁移
-    this.runMigrations();
+    // 运行数据库迁移（带版本检查优化）
+    this.runMigrationsOptimized();
   }
 
   /**
@@ -324,8 +345,8 @@ class DatabaseManager {
     // 创建表
     this.createTables();
 
-    // 运行数据库迁移
-    this.runMigrations();
+    // 运行数据库迁移（带版本检查优化）
+    this.runMigrationsOptimized();
   }
 
   /**
@@ -2009,7 +2030,8 @@ class DatabaseManager {
         activity_type TEXT NOT NULL CHECK(activity_type IN ('create', 'edit', 'view', 'comment', 'share', 'delete', 'restore')),
         metadata TEXT,
         created_at INTEGER NOT NULL,
-        FOREIGN KEY (knowledge_id) REFERENCES knowledge_items(id) ON DELETE CASCADE
+        FOREIGN KEY (knowledge_id) REFERENCES knowledge_items(id) ON DELETE CASCADE,
+        FOREIGN KEY (org_id) REFERENCES organization_info(org_id) ON DELETE SET NULL
       );
 
       -- ============================
@@ -2653,6 +2675,58 @@ class DatabaseManager {
       console.log("[Database] 数据库迁移完成");
     } catch (error) {
       console.error("[Database] 数据库迁移失败:", error);
+    }
+  }
+
+  /**
+   * 运行数据库迁移（优化版）- 使用版本跟踪跳过不必要的迁移
+   */
+  runMigrationsOptimized() {
+    try {
+      // 创建迁移版本表（如果不存在）
+      this.db.exec(`
+        CREATE TABLE IF NOT EXISTS migration_version (
+          id INTEGER PRIMARY KEY CHECK (id = 1),
+          version INTEGER NOT NULL,
+          last_updated INTEGER NOT NULL
+        )
+      `);
+
+      // 获取当前迁移版本
+      const currentVersion = this.db.prepare(
+        "SELECT version FROM migration_version WHERE id = 1"
+      ).get();
+
+      // 定义最新迁移版本号
+      const LATEST_VERSION = 2; // 增加版本号当有新迁移时
+
+      // 如果版本已是最新，跳过迁移
+      if (currentVersion && currentVersion.version >= LATEST_VERSION) {
+        console.log(`[Database] 迁移已是最新版本 v${LATEST_VERSION}，跳过迁移`);
+        return;
+      }
+
+      console.log("[Database] 运行数据库迁移...");
+
+      // 运行实际的迁移逻辑
+      this.runMigrations();
+
+      // 更新迁移版本
+      if (currentVersion) {
+        this.db.prepare(
+          "UPDATE migration_version SET version = ?, last_updated = ? WHERE id = 1"
+        ).run(LATEST_VERSION, Date.now());
+      } else {
+        this.db.prepare(
+          "INSERT INTO migration_version (id, version, last_updated) VALUES (1, ?, ?)"
+        ).run(LATEST_VERSION, Date.now());
+      }
+
+      console.log(`[Database] 迁移版本已更新到 v${LATEST_VERSION}`);
+    } catch (error) {
+      console.error("[Database] 优化迁移失败:", error);
+      // 降级到普通迁移
+      this.runMigrations();
     }
   }
 

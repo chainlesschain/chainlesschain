@@ -4,8 +4,242 @@
  * 测试框架: Jest
  */
 
+jest.mock('ws', () => {
+  const { EventEmitter } = require('events');
+  const { URL } = require('url');
+
+  const servers = new Map();
+
+  class MockServerSocket extends EventEmitter {
+    constructor(client, server) {
+      super();
+      this.client = client;
+      this.server = server;
+      this.isAlive = true;
+      this.readyState = MockWebSocket.OPEN;
+      this.peerId = null;
+      this.connectionId = null;
+    }
+
+    send(data) {
+      if (!this.client) return;
+      const payload = Buffer.isBuffer(data) ? data : Buffer.from(data);
+      setImmediate(() => {
+        this.client.emit('message', payload);
+      });
+    }
+
+    _receiveFromClient(data) {
+      const payload = Buffer.isBuffer(data) ? data : Buffer.from(data);
+      setImmediate(() => this.emit('message', payload));
+    }
+
+    close() {
+      if (this.readyState === MockWebSocket.CLOSED) return;
+      this.readyState = MockWebSocket.CLOSED;
+      this.emit('close');
+      this.server.clients.delete(this);
+      if (this.client) {
+        const client = this.client;
+        this.client = null;
+        client._handleServerClose();
+      }
+    }
+
+    terminate() {
+      this.close();
+    }
+
+    ping() {
+      setImmediate(() => this.emit('pong'));
+    }
+  }
+
+  class MockWebSocketServer extends EventEmitter {
+    constructor(options = {}) {
+      super();
+      this.port = options.port || 0;
+      this.clients = new Set();
+      servers.set(this.port, this);
+    }
+
+    _attach(serverSocket) {
+      this.clients.add(serverSocket);
+      const req = { socket: { remoteAddress: 'mock-address' } };
+      this.emit('connection', serverSocket, req);
+      serverSocket.on('close', () => {
+        this.clients.delete(serverSocket);
+      });
+    }
+
+    close(cb) {
+      servers.delete(this.port);
+      Array.from(this.clients).forEach((client) => client.close());
+      cb && cb();
+      this.emit('close');
+    }
+  }
+
+  class MockWebSocket extends EventEmitter {
+    constructor(address) {
+      super();
+      this.readyState = MockWebSocket.CONNECTING;
+      this.isAlive = true;
+      this.serverSocket = null;
+
+      try {
+        const parsed = new URL(address);
+        const port = Number(parsed.port) || 80;
+        const server = servers.get(port);
+
+        if (!server) {
+          throw new Error(`No WebSocket server listening on port ${port}`);
+        }
+
+        this.serverSocket = new MockServerSocket(this, server);
+        server._attach(this.serverSocket);
+
+        setImmediate(() => {
+          this.readyState = MockWebSocket.OPEN;
+          this.emit('open');
+        });
+      } catch (error) {
+        setImmediate(() => this.emit('error', error));
+      }
+    }
+
+    send(data) {
+      if (!this.serverSocket) return;
+      this.serverSocket._receiveFromClient(data);
+    }
+
+    close() {
+      if (this.readyState === MockWebSocket.CLOSED) return;
+      this.readyState = MockWebSocket.CLOSED;
+      this.emit('close');
+      if (this.serverSocket && this.serverSocket.readyState !== MockWebSocket.CLOSED) {
+        const socket = this.serverSocket;
+        this.serverSocket = null;
+        socket.close();
+      }
+    }
+
+    _handleServerClose() {
+      this.serverSocket = null;
+      if (this.readyState !== MockWebSocket.CLOSED) {
+        this.readyState = MockWebSocket.CLOSED;
+        this.emit('close');
+      }
+    }
+  }
+
+  MockWebSocket.CONNECTING = 0;
+  MockWebSocket.OPEN = 1;
+  MockWebSocket.CLOSING = 2;
+  MockWebSocket.CLOSED = 3;
+  MockWebSocket.Server = MockWebSocketServer;
+  MockWebSocket.__reset = () => {
+    servers.clear();
+  };
+
+  return MockWebSocket;
+});
+
+jest.mock('http', () => {
+  const { EventEmitter } = require('events');
+  const { URL } = require('url');
+
+  const servers = new Map();
+
+  class MockServerResponse extends EventEmitter {
+    constructor() {
+      super();
+      this.statusCode = 200;
+      this.headers = {};
+    }
+
+    writeHead(statusCode, headers = {}) {
+      this.statusCode = statusCode;
+      this.headers = headers;
+    }
+
+    setHeader(name, value) {
+      this.headers[name] = value;
+    }
+
+    end(body = '') {
+      if (body) {
+        this.emit('data', Buffer.from(body));
+      }
+      setImmediate(() => this.emit('end'));
+    }
+  }
+
+  class MockHttpServer extends EventEmitter {
+    constructor(handler) {
+      super();
+      this.handler = handler;
+      this.port = null;
+    }
+
+    listen(port, cb) {
+      this.port = port;
+      servers.set(port, this);
+      cb && cb();
+    }
+
+    close(cb) {
+      if (this.port !== null) {
+        servers.delete(this.port);
+        this.port = null;
+      }
+      cb && cb();
+    }
+  }
+
+  const httpMock = {
+    createServer: (handler) => new MockHttpServer(handler),
+    get: (url, callback) => {
+      const emitter = new EventEmitter();
+
+      process.nextTick(() => {
+        try {
+          const parsed = new URL(url);
+          const port = Number(parsed.port) || 80;
+          const server = servers.get(port);
+
+          if (!server) {
+            throw new Error(`No HTTP server listening on port ${port}`);
+          }
+
+          const req = new EventEmitter();
+          req.url = parsed.pathname;
+          req.method = 'GET';
+
+          const res = new MockServerResponse();
+          callback && callback(res);
+          server.handler(req, res);
+        } catch (error) {
+          emitter.emit('error', error);
+        }
+      });
+
+      emitter.on = function (event, handler) {
+        EventEmitter.prototype.on.call(this, event, handler);
+        return this;
+      };
+
+      return emitter;
+    },
+    __reset: () => servers.clear(),
+  };
+
+  return httpMock;
+});
+
 const SignalingServer = require('../signaling-server/index');
 const WebSocket = require('ws');
+const http = require('http');
 
 describe('SignalingServer', () => {
   let server;
@@ -22,6 +256,11 @@ describe('SignalingServer', () => {
     if (serverInstance) {
       serverInstance.stop();
     }
+  });
+
+  afterAll(() => {
+    if (WebSocket.__reset) WebSocket.__reset();
+    if (http.__reset) http.__reset();
   });
 
   describe('节点注册', () => {
@@ -337,8 +576,6 @@ describe('SignalingServer', () => {
 
   describe('健康检查', () => {
     test('应该返回健康状态', async () => {
-      const http = require('http');
-
       const response = await new Promise((resolve, reject) => {
         http.get('http://localhost:9102/health', (res) => {
           let data = '';
@@ -356,8 +593,6 @@ describe('SignalingServer', () => {
     });
 
     test('应该返回统计信息', async () => {
-      const http = require('http');
-
       const response = await new Promise((resolve, reject) => {
         http.get('http://localhost:9102/stats', (res) => {
           let data = '';
