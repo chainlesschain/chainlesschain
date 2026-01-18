@@ -9,8 +9,8 @@
  * - CANCEL_TASK: 取消任务
  */
 
-const { getLogger } = require('../logger');
-const logger = getLogger('FollowupIntentClassifier');
+const { getLogger } = require("../logging/logger");
+const logger = getLogger("FollowupIntentClassifier");
 
 class FollowupIntentClassifier {
   constructor(llmService) {
@@ -19,42 +19,75 @@ class FollowupIntentClassifier {
     // 规则库：高置信度的快速判断
     this.rules = {
       CONTINUE_EXECUTION: {
-        keywords: ['继续', '开始', '好的', '好', '嗯', '行', 'ok', 'OK', '快点', '去吧', '执行'],
+        keywords: [
+          "继续",
+          "开始",
+          "好的",
+          "好",
+          "嗯",
+          "行",
+          "ok",
+          "OK",
+          "快点",
+          "去吧",
+          "执行",
+        ],
         patterns: [
           /^(继续|好的?|嗯|行|OK|ok)$/i,
           /^快点|赶紧|马上/,
-          /^开始(吧|执行)/
-        ]
+          /^开始(吧|执行)/,
+        ],
       },
 
       MODIFY_REQUIREMENT: {
-        keywords: ['改', '修改', '换成', '不要', '去掉', '删除', '加上', '增加', '还要', '另外'],
+        keywords: [
+          "改",
+          "修改",
+          "换成",
+          "不要",
+          "去掉",
+          "删除",
+          "加上",
+          "增加",
+          "还要",
+          "另外",
+        ],
         patterns: [
           /(改|换)成/,
           /(加|增加|还要|另外).+(功能|页面|按钮|模块)/,
           /不要|去掉|删除/,
-          /等等|等一下|先别/
-        ]
+          /等等|等一下|先别/,
+        ],
       },
 
       CLARIFICATION: {
-        keywords: ['用', '采用', '使用', '应该是', '具体是', '颜色', '字体', '大小', '位置'],
+        keywords: [
+          "用",
+          "采用",
+          "使用",
+          "应该是",
+          "具体是",
+          "颜色",
+          "字体",
+          "大小",
+          "位置",
+        ],
         patterns: [
           /^(用|采用|使用)/,
           /(颜色|字体|大小|位置)(是|用|为)/,
           /^.{1,20}(应该|具体)(是|为)/,
-          /^数据(来源|是)/
-        ]
+          /^数据(来源|是)/,
+        ],
       },
 
       CANCEL_TASK: {
-        keywords: ['算了', '不用', '停止', '取消', '暂停', '先不'],
+        keywords: ["算了", "不用", "停止", "取消", "暂停", "先不"],
         patterns: [
           /^(算了|不用|停止|取消|暂停)/,
           /^先不.*(了|吧)/,
-          /不做了|别做了/
-        ]
-      }
+          /不做了|别做了/,
+        ],
+      },
     };
   }
 
@@ -73,34 +106,42 @@ class FollowupIntentClassifier {
     // Step 1: 快速规则匹配（覆盖80%的常见场景）
     const ruleResult = this._ruleBasedClassify(userInput);
     if (ruleResult.confidence > 0.8) {
-      logger.info(`[规则匹配] 输入: "${userInput}" → ${ruleResult.intent} (${ruleResult.confidence})`);
+      logger.info(
+        `[规则匹配] 输入: "${userInput}" → ${ruleResult.intent} (${ruleResult.confidence})`,
+      );
       return {
         ...ruleResult,
-        method: 'rule',
-        latency: Date.now() - startTime
+        method: "rule",
+        latency: Date.now() - startTime,
       };
     }
 
     // Step 2: LLM 深度分析（处理模糊场景）
     try {
       const llmResult = await this._llmBasedClassify(userInput, context);
-      logger.info(`[LLM分析] 输入: "${userInput}" → ${llmResult.intent} (${llmResult.confidence})`);
+      logger.info(
+        `[LLM分析] 输入: "${userInput}" → ${llmResult.intent} (${llmResult.confidence})`,
+      );
       return {
         ...llmResult,
-        method: 'llm',
-        latency: Date.now() - startTime
+        method: "llm",
+        latency: Date.now() - startTime,
       };
     } catch (error) {
-      logger.error('[LLM分析失败] 降级到规则结果:', error);
+      logger.error("[LLM分析失败] 降级到规则结果:", error);
       // 降级：返回规则结果或默认为 CLARIFICATION
       return ruleResult.confidence > 0
-        ? { ...ruleResult, method: 'rule_fallback', latency: Date.now() - startTime }
+        ? {
+            ...ruleResult,
+            method: "rule_fallback",
+            latency: Date.now() - startTime,
+          }
         : {
-            intent: 'CLARIFICATION',
+            intent: "CLARIFICATION",
             confidence: 0.5,
-            reason: '无法明确判断，默认为补充说明',
-            method: 'default',
-            latency: Date.now() - startTime
+            reason: "无法明确判断，默认为补充说明",
+            method: "default",
+            latency: Date.now() - startTime,
           };
     }
   }
@@ -114,9 +155,9 @@ class FollowupIntentClassifier {
     // 空输入或过短输入 → 继续执行
     if (input.length === 0 || input.length <= 2) {
       return {
-        intent: 'CONTINUE_EXECUTION',
+        intent: "CONTINUE_EXECUTION",
         confidence: 0.9,
-        reason: '输入过短，判定为确认继续'
+        reason: "输入过短，判定为确认继续",
       };
     }
 
@@ -124,7 +165,7 @@ class FollowupIntentClassifier {
       CONTINUE_EXECUTION: 0,
       MODIFY_REQUIREMENT: 0,
       CLARIFICATION: 0,
-      CANCEL_TASK: 0
+      CANCEL_TASK: 0,
     };
 
     // 遍历每个意图类型，计算匹配分数
@@ -151,7 +192,7 @@ class FollowupIntentClassifier {
 
     // 找到最高分数的意图
     const maxIntent = Object.keys(scores).reduce((a, b) =>
-      scores[a] > scores[b] ? a : b
+      scores[a] > scores[b] ? a : b,
     );
 
     const maxScore = scores[maxIntent];
@@ -160,7 +201,7 @@ class FollowupIntentClassifier {
       intent: maxIntent,
       confidence: Math.min(maxScore, 1.0),
       reason: `规则匹配分数: ${JSON.stringify(scores)}`,
-      scores
+      scores,
     };
   }
 
@@ -202,13 +243,18 @@ class FollowupIntentClassifier {
 
     const userPrompt = `
 # 上下文信息
-${currentTask ? `**当前任务**: ${JSON.stringify(currentTask, null, 2)}` : ''}
+${currentTask ? `**当前任务**: ${JSON.stringify(currentTask, null, 2)}` : ""}
 
-${taskPlan ? `**任务计划**: ${JSON.stringify(taskPlan, null, 2)}` : ''}
+${taskPlan ? `**任务计划**: ${JSON.stringify(taskPlan, null, 2)}` : ""}
 
-${conversationHistory && conversationHistory.length > 0
-  ? `**对话历史**:\n${conversationHistory.slice(-5).map(m => `- ${m.role}: ${m.content}`).join('\n')}`
-  : ''}
+${
+  conversationHistory && conversationHistory.length > 0
+    ? `**对话历史**:\n${conversationHistory
+        .slice(-5)
+        .map((m) => `- ${m.role}: ${m.content}`)
+        .join("\n")}`
+    : ""
+}
 
 # 用户输入
 "${userInput}"
@@ -217,11 +263,11 @@ ${conversationHistory && conversationHistory.length > 0
 
     const response = await this.llmService.complete({
       messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt }
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
       ],
       temperature: 0.1, // 低温度确保一致性
-      max_tokens: 300
+      max_tokens: 300,
     });
 
     // 解析 JSON
@@ -235,22 +281,30 @@ ${conversationHistory && conversationHistory.length > 0
   _parseJSON(text) {
     try {
       // 移除可能的 markdown 代码块
-      const cleaned = text.replace(/```json\s*|\s*```/g, '').trim();
+      const cleaned = text.replace(/```json\s*|\s*```/g, "").trim();
       const parsed = JSON.parse(cleaned);
 
       // 验证必要字段
-      if (!parsed.intent || !['CONTINUE_EXECUTION', 'MODIFY_REQUIREMENT', 'CLARIFICATION', 'CANCEL_TASK'].includes(parsed.intent)) {
-        throw new Error('Invalid intent type');
+      if (
+        !parsed.intent ||
+        ![
+          "CONTINUE_EXECUTION",
+          "MODIFY_REQUIREMENT",
+          "CLARIFICATION",
+          "CANCEL_TASK",
+        ].includes(parsed.intent)
+      ) {
+        throw new Error("Invalid intent type");
       }
 
       return {
         intent: parsed.intent,
         confidence: parsed.confidence || 0.7,
-        reason: parsed.reason || '无理由',
-        extractedInfo: parsed.extractedInfo
+        reason: parsed.reason || "无理由",
+        extractedInfo: parsed.extractedInfo,
       };
     } catch (error) {
-      logger.error('[JSON解析失败]', error);
+      logger.error("[JSON解析失败]", error);
       throw new Error(`Failed to parse LLM response: ${text}`);
     }
   }
@@ -273,8 +327,14 @@ ${conversationHistory && conversationHistory.length > 0
   getStats() {
     return {
       rulesCount: Object.keys(this.rules).length,
-      keywordsCount: Object.values(this.rules).reduce((sum, r) => sum + r.keywords.length, 0),
-      patternsCount: Object.values(this.rules).reduce((sum, r) => sum + r.patterns.length, 0)
+      keywordsCount: Object.values(this.rules).reduce(
+        (sum, r) => sum + r.keywords.length,
+        0,
+      ),
+      patternsCount: Object.values(this.rules).reduce(
+        (sum, r) => sum + r.patterns.length,
+        0,
+      ),
     };
   }
 }

@@ -5,15 +5,15 @@
  * 使用标准输入/输出进行通信
  */
 
-const { getLogger } = require('./logger');
-const logger = getLogger('NativeMessaging');
+const { getLogger } = require("../logging/logger");
+const logger = getLogger("NativeMessaging");
 
 class NativeMessagingServer {
   constructor(databaseManager, options = {}) {
     this.db = databaseManager;
     this.options = {
       maxMessageSize: options.maxMessageSize || 1024 * 1024, // 1MB
-      ...options
+      ...options,
     };
 
     this.messageHandlers = new Map();
@@ -24,7 +24,7 @@ class NativeMessagingServer {
    * 启动服务器
    */
   start() {
-    logger.info('Native messaging server starting');
+    logger.info("Native messaging server starting");
 
     // 设置标准输入为二进制模式
     process.stdin.setEncoding(null);
@@ -32,7 +32,7 @@ class NativeMessagingServer {
     // 读取消息
     let messageBuffer = Buffer.alloc(0);
 
-    process.stdin.on('data', (chunk) => {
+    process.stdin.on("data", (chunk) => {
       messageBuffer = Buffer.concat([messageBuffer, chunk]);
 
       // 尝试解析消息
@@ -51,26 +51,26 @@ class NativeMessagingServer {
 
         // 解析并处理消息
         try {
-          const message = JSON.parse(messageData.toString('utf8'));
+          const message = JSON.parse(messageData.toString("utf8"));
           this.handleMessage(message);
         } catch (error) {
-          logger.error('Failed to parse message', error);
-          this.sendError(null, 'Invalid message format');
+          logger.error("Failed to parse message", error);
+          this.sendError(null, "Invalid message format");
         }
       }
     });
 
-    process.stdin.on('end', () => {
-      logger.info('Native messaging server stopped');
+    process.stdin.on("end", () => {
+      logger.info("Native messaging server stopped");
       process.exit(0);
     });
 
-    process.stdin.on('error', (error) => {
-      logger.error('stdin error', error);
+    process.stdin.on("error", (error) => {
+      logger.error("stdin error", error);
       process.exit(1);
     });
 
-    logger.info('Native messaging server started');
+    logger.info("Native messaging server started");
   }
 
   /**
@@ -79,7 +79,7 @@ class NativeMessagingServer {
   async handleMessage(message) {
     const { id, action, data } = message;
 
-    logger.debug('Received message', { id, action });
+    logger.debug("Received message", { id, action });
 
     try {
       // 查找处理器
@@ -95,7 +95,11 @@ class NativeMessagingServer {
       // 发送响应
       this.sendResponse(id, result);
     } catch (error) {
-      logger.error('Message handling failed', { id, action, error: error.message });
+      logger.error("Message handling failed", {
+        id,
+        action,
+        error: error.message,
+      });
       this.sendError(id, error.message);
     }
   }
@@ -107,7 +111,7 @@ class NativeMessagingServer {
     const response = {
       id,
       success: true,
-      data
+      data,
     };
 
     this.sendMessage(response);
@@ -120,7 +124,7 @@ class NativeMessagingServer {
     const response = {
       id,
       success: false,
-      error
+      error,
     };
 
     this.sendMessage(response);
@@ -132,11 +136,11 @@ class NativeMessagingServer {
   sendMessage(message) {
     try {
       const messageJson = JSON.stringify(message);
-      const messageBuffer = Buffer.from(messageJson, 'utf8');
+      const messageBuffer = Buffer.from(messageJson, "utf8");
 
       // 检查消息大小
       if (messageBuffer.length > this.options.maxMessageSize) {
-        throw new Error('Message too large');
+        throw new Error("Message too large");
       }
 
       // 写入消息长度（4字节，小端序）
@@ -147,7 +151,7 @@ class NativeMessagingServer {
       process.stdout.write(lengthBuffer);
       process.stdout.write(messageBuffer);
     } catch (error) {
-      logger.error('Failed to send message', error);
+      logger.error("Failed to send message", error);
     }
   }
 
@@ -164,32 +168,32 @@ class NativeMessagingServer {
    */
   registerDefaultHandlers() {
     // Ping - 检查连接
-    this.registerHandler('ping', async () => {
+    this.registerHandler("ping", async () => {
       return { pong: true, timestamp: Date.now() };
     });
 
     // 保存剪藏
-    this.registerHandler('saveClip', async (data) => {
+    this.registerHandler("saveClip", async (data) => {
       return await this.handleSaveClip(data);
     });
 
     // 获取标签
-    this.registerHandler('getTags', async () => {
+    this.registerHandler("getTags", async () => {
       return await this.handleGetTags();
     });
 
     // 搜索知识库
-    this.registerHandler('searchKnowledge', async (data) => {
+    this.registerHandler("searchKnowledge", async (data) => {
       return await this.handleSearchKnowledge(data);
     });
 
     // 获取最近剪藏
-    this.registerHandler('getRecentClips', async (data) => {
+    this.registerHandler("getRecentClips", async (data) => {
       return await this.handleGetRecentClips(data);
     });
 
     // 上传图片
-    this.registerHandler('uploadImage', async (data) => {
+    this.registerHandler("uploadImage", async (data) => {
       return await this.handleUploadImage(data);
     });
   }
@@ -198,18 +202,29 @@ class NativeMessagingServer {
    * 处理保存剪藏
    */
   async handleSaveClip(data) {
-    const { type, content, html, url, title, tags = [], images = [], links = [], dataUrl, timestamp } = data;
+    const {
+      type,
+      content,
+      html,
+      url,
+      title,
+      tags = [],
+      images = [],
+      links = [],
+      dataUrl,
+      timestamp,
+    } = data;
 
-    logger.info('Saving clip', { type, title, url });
+    logger.info("Saving clip", { type, title, url });
 
     try {
       // 创建知识库项
       const item = {
-        title: title || '无标题',
-        content: content || '',
-        type: 'web-clip',
+        title: title || "无标题",
+        content: content || "",
+        type: "web-clip",
         source: url,
-        tags: ['web-clip', ...tags],
+        tags: ["web-clip", ...tags],
         metadata: {
           clipType: type,
           url,
@@ -217,22 +232,22 @@ class NativeMessagingServer {
           images,
           links,
           dataUrl,
-          timestamp
-        }
+          timestamp,
+        },
       };
 
       // 保存到数据库
       const savedItem = await this.db.addKnowledgeItem(item);
 
-      logger.info('Clip saved', { id: savedItem.id });
+      logger.info("Clip saved", { id: savedItem.id });
 
       return {
         id: savedItem.id,
         title: savedItem.title,
-        created_at: savedItem.created_at
+        created_at: savedItem.created_at,
       };
     } catch (error) {
-      logger.error('Failed to save clip', error);
+      logger.error("Failed to save clip", error);
       throw error;
     }
   }
@@ -245,7 +260,7 @@ class NativeMessagingServer {
       const tags = await this.db.getAllTags();
       return { tags };
     } catch (error) {
-      logger.error('Failed to get tags', error);
+      logger.error("Failed to get tags", error);
       throw error;
     }
   }
@@ -260,7 +275,7 @@ class NativeMessagingServer {
       const results = await this.db.searchKnowledge(query);
       return { results };
     } catch (error) {
-      logger.error('Failed to search knowledge', error);
+      logger.error("Failed to search knowledge", error);
       throw error;
     }
   }
@@ -275,7 +290,7 @@ class NativeMessagingServer {
       const clips = await this.db.getKnowledgeItems(limit, 0);
       return { clips };
     } catch (error) {
-      logger.error('Failed to get recent clips', error);
+      logger.error("Failed to get recent clips", error);
       throw error;
     }
   }
@@ -293,7 +308,7 @@ class NativeMessagingServer {
       // 简单实现：返回dataUrl
       return { url: dataUrl };
     } catch (error) {
-      logger.error('Failed to upload image', error);
+      logger.error("Failed to upload image", error);
       throw error;
     }
   }
