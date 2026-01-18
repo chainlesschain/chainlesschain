@@ -341,6 +341,20 @@ class UnifiedConfigManager {
         maxFileSize: 10, // MB
         maxFiles: 30,
       },
+      mcp: {
+        enabled: false,
+        servers: {},
+        trustedServers: [
+          "@modelcontextprotocol/server-filesystem",
+          "@modelcontextprotocol/server-postgres",
+          "@modelcontextprotocol/server-github",
+        ],
+        allowUntrustedServers: false,
+        defaultPermissions: {
+          requireConsent: true,
+          readOnly: false,
+        },
+      },
       paths: {
         logsDir: this.paths.logs,
         cacheDir: this.paths.cache,
