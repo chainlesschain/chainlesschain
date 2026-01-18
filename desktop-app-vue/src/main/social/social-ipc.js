@@ -289,6 +289,24 @@ function registerSocialIPC({ contactManager, friendManager, postManager, databas
   });
 
   /**
+   * 获取好友列表（返回包装格式，供前端使用）
+   * Channel: 'friend:get-list'
+   */
+  ipcMain.handle('friend:get-list', async () => {
+    try {
+      if (!friendManager) {
+        return { success: false, error: '好友管理器未初始化', friends: [] };
+      }
+
+      const friends = await friendManager.getFriends();
+      return { success: true, friends: friends || [] };
+    } catch (error) {
+      console.error('[Social IPC] 获取好友列表失败:', error);
+      return { success: false, error: error.message, friends: [] };
+    }
+  });
+
+  /**
    * 删除好友
    * Channel: 'friend:remove'
    */
