@@ -466,7 +466,7 @@ class ChainlessChainApp {
     console.log("ChainlessChain Vue 启动中...");
 
     // 创建并显示启动画面 (跳过测试环境)
-    if (process.env.NODE_ENV !== 'test') {
+    if (process.env.NODE_ENV !== "test") {
       this.splashWindow = new SplashWindow();
       try {
         await this.splashWindow.create();
@@ -643,7 +643,10 @@ class ChainlessChainApp {
             });
 
             await this.gitManager.initialize();
-            this.markdownExporter = new MarkdownExporter(this.database, exportPath);
+            this.markdownExporter = new MarkdownExporter(
+              this.database,
+              exportPath,
+            );
 
             // Git热重载
             try {
@@ -920,7 +923,9 @@ class ChainlessChainApp {
     this.speechInitialized = false;
     this.imageUploaderInitialized = false;
     this.videoImporterInitialized = false;
-    console.log("✓ 语音管理器、图片上传器和视频导入器已配置为懒加载（按需初始化）");
+    console.log(
+      "✓ 语音管理器、图片上传器和视频导入器已配置为懒加载（按需初始化）",
+    );
 
     // 初始化提示词模板管理器
     try {
@@ -1681,7 +1686,9 @@ class ChainlessChainApp {
       }
 
       // 初始化交易监控器
-      const { TransactionMonitor } = require("./blockchain/transaction-monitor");
+      const {
+        TransactionMonitor,
+      } = require("./blockchain/transaction-monitor");
       this.transactionMonitor = new TransactionMonitor(
         this.blockchainAdapter,
         this.database,
@@ -1697,7 +1704,9 @@ class ChainlessChainApp {
       await this.bridgeManager.initialize();
 
       // 初始化外部钱包连接器
-      const { ExternalWalletConnector } = require("./blockchain/external-wallet-connector");
+      const {
+        ExternalWalletConnector,
+      } = require("./blockchain/external-wallet-connector");
       this.externalWalletConnector = new ExternalWalletConnector(this.database);
       await this.externalWalletConnector.initialize();
 
@@ -2165,7 +2174,7 @@ class ChainlessChainApp {
       minWidth: 800,
       minHeight: 600,
       backgroundColor: "#ffffff",
-      show: process.env.NODE_ENV === 'test', // 测试环境直接显示，生产环境等启动画面关闭后再显示
+      show: process.env.NODE_ENV === "test", // 测试环境直接显示，生产环境等启动画面关闭后再显示
       webPreferences: {
         nodeIntegration: false,
         contextIsolation: true,
@@ -2186,14 +2195,25 @@ class ChainlessChainApp {
       this.mainWindow.loadFile(path.join(__dirname, "../renderer/index.html"));
     }
 
-    // 主窗口加载完成后关闭启动画面
+    // 主窗口加载完成后关闭启动画面并显示主窗口
     this.mainWindow.webContents.on("did-finish-load", () => {
       this.splashWindow?.updateProgress("加载完成", 100);
       if (this.splashWindow) {
         setTimeout(() => {
           this.splashWindow?.close();
           this.splashWindow = null;
+          // 启动画面关闭后显示主窗口
+          if (this.mainWindow) {
+            this.mainWindow.show();
+            this.mainWindow.focus();
+          }
         }, 300);
+      } else {
+        // 没有启动画面时直接显示主窗口
+        if (this.mainWindow) {
+          this.mainWindow.show();
+          this.mainWindow.focus();
+        }
       }
 
       // 初始化日志转发器 - 将主进程日志转发到渲染进程 DevTools
