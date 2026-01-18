@@ -414,10 +414,19 @@ function registerSpeechIPC({ initializeSpeechManager }) {
    * 添加实时音频数据
    * 注意：从渲染进程传来的可能是 ArrayBuffer、Uint8Array 或 Buffer
    */
+  // 计数器用于调试
+  let audioDataCounter = 0;
+
   ipcMain.handle(
     "speech:add-realtime-audio-data",
     async (_event, audioData) => {
       try {
+        audioDataCounter++;
+        // 每10次打印一次调试日志
+        if (audioDataCounter % 10 === 1) {
+          console.log(`[Speech IPC] 收到音频数据 #${audioDataCounter}, 类型: ${audioData?.constructor?.name}, 大小: ${audioData?.length || audioData?.byteLength || 'unknown'}`);
+        }
+
         const manager = await initializeSpeechManager();
 
         // 确保数据是 Buffer 类型

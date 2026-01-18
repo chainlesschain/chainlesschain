@@ -369,6 +369,8 @@ class WhisperLocalRecognizer extends BaseSpeechRecognizer {
 
     try {
       console.log('[WhisperLocal] 开始识别:', path.basename(audioPath));
+      console.log('[WhisperLocal] 服务器URL:', this.serverUrl);
+      console.log('[WhisperLocal] 超时设置:', this.timeout, 'ms');
 
       // 检查文件是否存在
       const fileExists = await fs.promises.access(audioPath)

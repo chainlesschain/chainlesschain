@@ -4,18 +4,33 @@
  * 在渲染进程中处理媒体流获取和管理
  */
 
-const { ipcRenderer } = window.electron;
+// Defer access to window.electron until it's needed (after preload completes)
+const getIpcRenderer = () => window.electron?.ipcRenderer;
+const getDesktopCapturer = () => window.electron?.desktopCapturer;
 
 class MediaStreamHandler {
   constructor() {
     this.streams = new Map(); // streamId -> MediaStream
-    this.setupListeners();
+    // Defer setup until DOM is ready to ensure preload has completed
+    if (typeof window !== 'undefined') {
+      if (document.readyState === 'complete') {
+        this.setupListeners();
+      } else {
+        window.addEventListener('DOMContentLoaded', () => this.setupListeners());
+      }
+    }
   }
 
   /**
    * 设置事件监听
    */
   setupListeners() {
+    const ipcRenderer = getIpcRenderer();
+    if (!ipcRenderer) {
+      console.warn('[MediaStreamHandler] ipcRenderer not available, skipping listener setup');
+      return;
+    }
+
     // 监听主进程的媒体流请求
     ipcRenderer.on('media-stream:request', (event, data) => {
       this.handleStreamRequest(data);
@@ -92,7 +107,7 @@ class MediaStreamHandler {
       });
 
       // 通知主进程
-      ipcRenderer.send('media-stream:ready', {
+      getIpcRenderer()?.send('media-stream:ready', {
         requestId,
         streamId,
         tracks,
@@ -111,7 +126,7 @@ class MediaStreamHandler {
       console.error('[MediaStreamHandler] 获取媒体流失败:', error);
 
       // 通知主进程失败
-      ipcRenderer.send('media-stream:error', {
+      getIpcRenderer()?.send('media-stream:error', {
         requestId,
         error: {
           name: error.name,
@@ -127,7 +142,10 @@ class MediaStreamHandler {
    * 获取屏幕共享流
    */
   async getScreenStream(constraints = {}) {
-    const { desktopCapturer } = window.electron;
+    const desktopCapturer = getDesktopCapturer();
+    if (!desktopCapturer) {
+      throw new Error('desktopCapturer not available');
+    }
 
     try {
       // 获取可用的屏幕和窗口源
@@ -179,7 +197,10 @@ class MediaStreamHandler {
    * 获取可用的屏幕源列表（用于UI选择）
    */
   async getAvailableScreenSources() {
-    const { desktopCapturer } = window.electron;
+    const desktopCapturer = getDesktopCapturer();
+    if (!desktopCapturer) {
+      throw new Error('desktopCapturer not available');
+    }
 
     try {
       const sources = await desktopCapturer.getSources({
@@ -216,7 +237,7 @@ class MediaStreamHandler {
       this.streams.delete(streamId);
 
       // 通知主进程
-      ipcRenderer.send('media-stream:stopped', { streamId });
+      getIpcRenderer()?.send('media-stream:stopped', { streamId });
 
       console.log('[MediaStreamHandler] 媒体流已停止:', streamId);
     }
@@ -251,7 +272,7 @@ class MediaStreamHandler {
    * 通知track状态变化
    */
   notifyTrackChanged(streamId, trackId, kind, enabled) {
-    ipcRenderer.send('media-stream:track-changed', {
+    getIpcRenderer()?.send('media-stream:track-changed', {
       streamId,
       trackId,
       kind,

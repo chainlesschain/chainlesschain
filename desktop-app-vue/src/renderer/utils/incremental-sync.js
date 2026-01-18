@@ -15,6 +15,9 @@ class IncrementalSyncManager {
   constructor(options = {}) {
     // Configuration
     this.options = {
+      // TEMPORARILY DISABLED: Set to true to re-enable sync once backend is available
+      // See: SecurityConfig.java needs /api/sync/** added to permitAll
+      enabled: options.enabled || false,
       syncInterval: options.syncInterval || 30000, // 30 seconds
       enableAutoSync: options.enableAutoSync !== false,
       enableRealtime: options.enableRealtime || false,
@@ -52,6 +55,12 @@ class IncrementalSyncManager {
    * Initialize sync manager
    */
   init() {
+    // Skip initialization if sync is disabled
+    if (!this.options.enabled) {
+      console.log('[IncrementalSync] Sync is disabled, skipping initialization');
+      return;
+    }
+
     // Setup online/offline listeners
     window.addEventListener("online", () => {
       this.isOnline = true;
@@ -306,6 +315,11 @@ class IncrementalSyncManager {
    * @returns {Promise<Array>} Remote changes
    */
   async fetchRemoteChanges() {
+    // Skip if sync is disabled
+    if (!this.options.enabled) {
+      return [];
+    }
+
     try {
       const backendUrl =
         import.meta.env.VITE_BACKEND_URL || "http://localhost:9090";
@@ -465,6 +479,12 @@ class IncrementalSyncManager {
    * Start automatic synchronization
    */
   startAutoSync() {
+    // Skip if sync is disabled
+    if (!this.options.enabled) {
+      console.log('[IncrementalSync] Sync disabled, skipping auto-sync setup');
+      return;
+    }
+
     if (this.syncTimer) {
       clearInterval(this.syncTimer);
     }
