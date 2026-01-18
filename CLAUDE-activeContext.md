@@ -2,7 +2,7 @@
 
 > 记录当前开发会话的状态和上下文，帮助 AI 助手快速了解工作进度
 >
-> **最后更新**: 2026-01-18 (SessionManager UI 增强)
+> **最后更新**: 2026-01-18 (LLM 按模型预算限制)
 
 ---
 
@@ -17,10 +17,19 @@
 - [x] 配置 Pre-commit Hooks (Husky)
 - [x] 修复应用启动稳定性问题
 - [x] SessionManager 前端 UI 增强（预览、快捷键、复制、标签管理）
+- [x] LLM 按模型预算限制功能（LLMModelBudgetPanel）
 
 ### 最近完成
 
-1. **SessionManager 前端 UI 增强** (2026-01-18):
+1. **LLM 按模型预算限制** (2026-01-18):
+   - 新建 LLMModelBudgetPanel.vue 组件（588 行）
+   - 支持按模型设置日/周/月预算限额（USD）
+   - 进度条显示当前支出 vs 限额
+   - 支持启用/禁用、超限告警、超限阻止选项
+   - 支持 8 个提供商：Ollama、OpenAI、Anthropic、DeepSeek、火山引擎、阿里云、智谱AI、Moonshot
+   - 集成到 LLM Performance Dashboard
+   - 后端已有：llm_model_budgets 表、IPC 通道
+2. **SessionManager 前端 UI 增强** (2026-01-18):
    - 会话预览 Popover：悬停 0.5 秒显示摘要、最近消息、标签、时间
    - 键盘快捷键：Ctrl+F/A/D/E、Delete、Escape、? 帮助
    - 会话复制：深拷贝会话及消息、标签，标题加"- 副本"后缀
@@ -28,11 +37,11 @@
    - 新建 SessionPreviewCard.vue、TagManagerPage.vue
    - 修改 SessionList.vue、SessionManagerPage.vue、router/index.js
    - 新增 6 个 IPC 通道（duplicate、rename-tag、merge-tags、delete-tag 等）
-2. **应用启动稳定性修复** (2026-01-18):
+3. **应用启动稳定性修复** (2026-01-18):
    - 修复 UnifiedConfigManager EISDIR 错误（config.json/rules.md 被错误创建为目录）
    - 修复 MobileBridge 信令服务器连接失败阻塞后续初始化的问题
    - 清理 desktop-app-vue/.chainlesschain/ 下错误创建的目录
-3. **SessionManager v0.21.0 增强** (2026-01-16):
+4. **SessionManager v0.21.0 增强** (2026-01-16):
    - 会话搜索：按标题和内容全文搜索
    - 标签系统：添加/移除标签、按标签过滤
    - 导出/导入：JSON 和 Markdown 格式导出、JSON 导入
@@ -44,13 +53,13 @@
    - 新增 20+ IPC 通道
    - 新增数据库迁移 008_session_templates.sql
    - 更新测试脚本（13 项测试）
-4. ErrorMonitor 增强：添加了 `optimizeSQLiteForConcurrency()`、`releaseDatabaseLock()`、`attemptServiceReconnection()` 等实际修复方法
-5. Session 压缩测试：压缩率 0.76-0.93，节省 7-24% Token
-6. Memory Bank 系统：创建了 CLAUDE-patterns.md、CLAUDE-decisions.md、CLAUDE-troubleshooting.md
+5. ErrorMonitor 增强：添加了 `optimizeSQLiteForConcurrency()`、`releaseDatabaseLock()`、`attemptServiceReconnection()` 等实际修复方法
+6. Session 压缩测试：压缩率 0.76-0.93，节省 7-24% Token
+7. Memory Bank 系统：创建了 CLAUDE-patterns.md、CLAUDE-decisions.md、CLAUDE-troubleshooting.md
 
 ### 待处理
 
-- [ ] LLM Performance Dashboard UI 完善
+- [x] LLM Performance Dashboard UI 完善 ✅ 按模型预算已完成
 - [x] SessionManager 前端 UI 组件（会话管理页面）✅ 已完成
 - [ ] 增强 .chainlesschain/memory/ 目录实际使用
 
@@ -62,6 +71,9 @@
 
 | 文件                        | 修改类型 | 说明                                      |
 | --------------------------- | -------- | ----------------------------------------- |
+| `LLMModelBudgetPanel.vue`   | 新建     | 按模型预算限制组件（588 行）              |
+| `llm-performance/index.js`  | 修改     | 导出 LLMModelBudgetPanel                  |
+| `LLMPerformancePage.vue`    | 修改     | 集成按模型预算面板                        |
 | `session-manager.js`        | 新增     | duplicateSession、renameTag、mergeTags 等 |
 | `session-manager-ipc.js`    | 新增     | 6 个新 IPC 通道                           |
 | `stores/session.js`         | 新增     | 对应 store actions                        |
@@ -72,7 +84,7 @@
 | `router/index.js`           | 修改     | 添加 /tags 路由                           |
 | `unified-config-manager.js` | 修复     | 防止将 config.json/rules.md 创建为目录    |
 | `index.js`                  | 修复     | 信令服务器连接失败时不阻塞后续初始化      |
-| `CLAUDE-activeContext.md`   | 更新     | 记录 SessionManager UI 增强进度           |
+| `CLAUDE-activeContext.md`   | 更新     | 记录按模型预算限制功能                    |
 
 ---
 
@@ -179,6 +191,12 @@ npm run test:session # Session 压缩测试
 
 ### 2026-01-18
 
+- **LLM 按模型预算限制**:
+  - 新建 LLMModelBudgetPanel.vue 组件
+  - 支持设置日/周/月预算限额（USD）
+  - 支持 8 个 LLM 提供商
+  - 支持超限告警和超限阻止
+  - 集成到 LLM Performance Dashboard
 - **SessionManager 前端 UI 增强**:
   - 新增会话预览 Popover（悬停显示摘要、消息、标签）
   - 新增键盘快捷键（Ctrl+F/A/D/E、Delete、Escape、?）
