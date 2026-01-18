@@ -126,10 +126,7 @@ class UnifiedConfigManager {
         return;
       }
 
-      const oldConfigPath = path.join(
-        this.projectRootConfigDir,
-        "config.json",
-      );
+      const oldConfigPath = path.join(this.projectRootConfigDir, "config.json");
       const oldRulesPath = path.join(this.projectRootConfigDir, "rules.md");
 
       // 检查旧配置是否存在
@@ -137,7 +134,9 @@ class UnifiedConfigManager {
         return;
       }
 
-      console.log("[UnifiedConfigManager] 检测到项目根目录的旧配置，开始迁移...");
+      console.log(
+        "[UnifiedConfigManager] 检测到项目根目录的旧配置，开始迁移...",
+      );
 
       // 确保目标目录存在
       if (!fs.existsSync(this.configDir)) {
@@ -163,9 +162,7 @@ class UnifiedConfigManager {
       );
 
       console.log("[UnifiedConfigManager] 配置迁移完成");
-      console.log(
-        `[UnifiedConfigManager] 从: ${this.projectRootConfigDir}`,
-      );
+      console.log(`[UnifiedConfigManager] 从: ${this.projectRootConfigDir}`);
       console.log(`[UnifiedConfigManager] 到: ${this.configDir}`);
     } catch (error) {
       console.error("[UnifiedConfigManager] 迁移配置失败:", error);
@@ -651,12 +648,69 @@ class UnifiedConfigManager {
       cacheEnabled: this.config.performance.cacheEnabled,
       monthlyBudget: this.config.cost.monthlyBudget,
       configPath: this.configPath,
+      configDir: this.configDir,
       paths: {
+        root: this.paths.root,
         logs: this.paths.logs,
         cache: this.paths.cache,
         memory: this.paths.memory,
+        sessions: this.paths.sessions,
+        preferences: this.paths.preferences,
+        learnedPatterns: this.paths.learnedPatterns,
       },
     };
+  }
+
+  /**
+   * 获取目录统计信息
+   * @returns {Object} 目录统计
+   */
+  getDirectoryStats() {
+    const stats = {};
+
+    Object.entries(this.paths).forEach(([key, dirPath]) => {
+      // 跳过文件路径
+      if (key === "config" || key === "rules") {
+        stats[key] = {
+          path: dirPath,
+          exists: fs.existsSync(dirPath),
+          type: "file",
+        };
+        return;
+      }
+
+      try {
+        if (fs.existsSync(dirPath)) {
+          const files = fs.readdirSync(dirPath);
+          const fileCount = files.filter((f) => {
+            const filePath = path.join(dirPath, f);
+            return fs.statSync(filePath).isFile();
+          }).length;
+
+          stats[key] = {
+            path: dirPath,
+            exists: true,
+            fileCount,
+            type: "directory",
+          };
+        } else {
+          stats[key] = {
+            path: dirPath,
+            exists: false,
+            type: "directory",
+          };
+        }
+      } catch {
+        stats[key] = {
+          path: dirPath,
+          exists: false,
+          error: true,
+          type: "directory",
+        };
+      }
+    });
+
+    return stats;
   }
 }
 

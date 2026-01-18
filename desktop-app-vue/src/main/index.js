@@ -2007,12 +2007,14 @@ class ChainlessChainApp {
       console.error("[Main] System IPC registration failed:", error);
     }
 
-    // 注册 Config IPC
+    // 注册 Config IPC（包含 AppConfig 和 UnifiedConfigManager）
     try {
       console.log("[Main] Registering Config IPC...");
       const { registerConfigIPC } = require("./config/config-ipc");
       registerConfigIPC({ appConfig: getAppConfig() });
-      console.log("[Main] ✓ Config IPC registered (5 handlers)");
+      console.log(
+        "[Main] ✓ Config IPC registered (10 handlers: 5 config + 5 unified-config)",
+      );
     } catch (error) {
       console.error("[Main] Config IPC registration failed:", error);
     }
