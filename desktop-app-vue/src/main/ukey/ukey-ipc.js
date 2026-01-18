@@ -204,12 +204,17 @@ function registerUKeyIPC({ ukeyManager, ipcMain: injectedIpcMain, ipcGuard: inje
       const DEFAULT_USERNAME = process.env.DEFAULT_USERNAME || 'admin';
       const DEFAULT_PASSWORD = process.env.DEFAULT_PASSWORD || '123456';
 
-      console.log('[UKey IPC] 收到登录请求 - 用户名:', username, '密码长度:', password?.length);
-      console.log('[UKey IPC] 期望用户名:', DEFAULT_USERNAME, '期望密码:', DEFAULT_PASSWORD);
+      console.log('[UKey IPC] ========================================');
+      console.log('[UKey IPC] 收到登录请求');
+      console.log('[UKey IPC] 接收到的用户名:', JSON.stringify(username), '类型:', typeof username);
+      console.log('[UKey IPC] 接收到的密码:', JSON.stringify(password), '类型:', typeof password, '长度:', password?.length);
+      console.log('[UKey IPC] 期望用户名:', JSON.stringify(DEFAULT_USERNAME), '类型:', typeof DEFAULT_USERNAME);
+      console.log('[UKey IPC] 期望密码:', JSON.stringify(DEFAULT_PASSWORD), '类型:', typeof DEFAULT_PASSWORD);
+      console.log('[UKey IPC] ========================================');
 
       // 简单的密码验证（生产环境应使用加密存储）
       if (username === DEFAULT_USERNAME && password === DEFAULT_PASSWORD) {
-        console.log('[UKey IPC] 密码验证成功');
+        console.log('[UKey IPC] ✅ 密码验证成功');
         return {
           success: true,
           userId: 'local-user',
@@ -217,14 +222,17 @@ function registerUKeyIPC({ ukeyManager, ipcMain: injectedIpcMain, ipcGuard: inje
         };
       }
 
-      console.log('[UKey IPC] 密码验证失败: 用户名或密码错误');
-      console.log('[UKey IPC] 用户名匹配:', username === DEFAULT_USERNAME, '密码匹配:', password === DEFAULT_PASSWORD);
+      console.log('[UKey IPC] ❌ 密码验证失败');
+      console.log('[UKey IPC] 用户名匹配:', username === DEFAULT_USERNAME);
+      console.log('[UKey IPC] 密码匹配:', password === DEFAULT_PASSWORD);
+      console.log('[UKey IPC] 用户名严格相等:', username === DEFAULT_USERNAME, '宽松相等:', username == DEFAULT_USERNAME);
+      console.log('[UKey IPC] 密码严格相等:', password === DEFAULT_PASSWORD, '宽松相等:', password == DEFAULT_PASSWORD);
       return {
         success: false,
         error: '用户名或密码错误',
       };
     } catch (error) {
-      console.error('[UKey IPC] 密码验证异常:', error);
+      console.error('[UKey IPC] ❌ 密码验证异常:', error);
       return {
         success: false,
         error: error.message,
