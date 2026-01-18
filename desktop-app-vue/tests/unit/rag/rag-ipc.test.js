@@ -28,25 +28,25 @@ vi.mock("electron", () => ({
 describe("RAG IPC 处理器注册", () => {
   let handlers;
   let mockIpcMain;
+  let mockIpcGuard;
   let mockRagManager;
   let mockLlmManager;
   let registerRAGIPC;
 
   beforeEach(async () => {
-    // Reset all mocks and module cache
+    // Reset all mocks
     vi.resetAllMocks();
-    vi.resetModules();
-
-    // Mock ipc-guard for this test run - must be after resetModules
-    vi.doMock("../../../src/main/ipc-guard", () => ({
-      isModuleRegistered: () => false,
-      markModuleRegistered: () => {},
-      isChannelRegistered: () => false,
-      markChannelRegistered: () => {},
-      resetAll: () => {},
-    }));
 
     handlers = new Map();
+
+    // 创建 mock ipcGuard (使用依赖注入)
+    mockIpcGuard = {
+      isModuleRegistered: vi.fn().mockReturnValue(false),
+      markModuleRegistered: vi.fn(),
+      isChannelRegistered: vi.fn().mockReturnValue(false),
+      markChannelRegistered: vi.fn(),
+      resetAll: vi.fn(),
+    };
 
     // 创建 mock ipcMain
     mockIpcMain = {
@@ -94,15 +94,16 @@ describe("RAG IPC 处理器注册", () => {
       embed: vi.fn().mockResolvedValue([0.1, 0.2, 0.3]),
     };
 
-    // Import rag-ipc AFTER setting up mocks
-    const module = await import("../../../src/main/rag/rag-ipc.js");
+    // Import rag-ipc using require (CommonJS module)
+    const module = require("../../../src/main/rag/rag-ipc.js");
     registerRAGIPC = module.registerRAGIPC;
 
-    // 注册 RAG IPC 并注入 mock 对象
+    // 注册 RAG IPC 并注入所有 mock 对象
     registerRAGIPC({
       ragManager: mockRagManager,
       llmManager: mockLlmManager,
       ipcMain: mockIpcMain,
+      ipcGuard: mockIpcGuard,
     });
   });
 
@@ -178,10 +179,16 @@ describe("RAG IPC 处理器注册", () => {
         },
       };
 
+      // Use fresh mock ipcGuard for re-registration with null ragManager
+      const mockIpcGuardNoMgr = {
+        isModuleRegistered: vi.fn().mockReturnValue(false),
+        markModuleRegistered: vi.fn(),
+      };
       registerRAGIPC({
         ragManager: null,
         llmManager: mockLlmManager,
         ipcMain: mockIpcMainNoMgr,
+        ipcGuard: mockIpcGuardNoMgr,
       });
 
       const result = await mockIpcMainNoMgr.invoke("rag:retrieve", "query");
@@ -231,10 +238,16 @@ describe("RAG IPC 处理器注册", () => {
         },
       };
 
+      // Use fresh mock ipcGuard for re-registration with null ragManager
+      const mockIpcGuardNoMgr = {
+        isModuleRegistered: vi.fn().mockReturnValue(false),
+        markModuleRegistered: vi.fn(),
+      };
       registerRAGIPC({
         ragManager: null,
         llmManager: mockLlmManager,
         ipcMain: mockIpcMainNoMgr,
+        ipcGuard: mockIpcGuardNoMgr,
       });
 
       const result = await mockIpcMainNoMgr.invoke(
@@ -279,10 +292,16 @@ describe("RAG IPC 处理器注册", () => {
         },
       };
 
+      // Use fresh mock ipcGuard for re-registration with null ragManager
+      const mockIpcGuardNoMgr = {
+        isModuleRegistered: vi.fn().mockReturnValue(false),
+        markModuleRegistered: vi.fn(),
+      };
       registerRAGIPC({
         ragManager: null,
         llmManager: mockLlmManager,
         ipcMain: mockIpcMainNoMgr,
+        ipcGuard: mockIpcGuardNoMgr,
       });
 
       await expect(
@@ -327,10 +346,16 @@ describe("RAG IPC 处理器注册", () => {
         },
       };
 
+      // Use fresh mock ipcGuard for re-registration with null ragManager
+      const mockIpcGuardNoMgr = {
+        isModuleRegistered: vi.fn().mockReturnValue(false),
+        markModuleRegistered: vi.fn(),
+      };
       registerRAGIPC({
         ragManager: null,
         llmManager: mockLlmManager,
         ipcMain: mockIpcMainNoMgr,
+        ipcGuard: mockIpcGuardNoMgr,
       });
 
       const result = await mockIpcMainNoMgr.invoke("rag:get-stats");
@@ -376,10 +401,16 @@ describe("RAG IPC 处理器注册", () => {
         },
       };
 
+      // Use fresh mock ipcGuard for re-registration with null ragManager
+      const mockIpcGuardNoMgr = {
+        isModuleRegistered: vi.fn().mockReturnValue(false),
+        markModuleRegistered: vi.fn(),
+      };
       registerRAGIPC({
         ragManager: null,
         llmManager: mockLlmManager,
         ipcMain: mockIpcMainNoMgr,
+        ipcGuard: mockIpcGuardNoMgr,
       });
 
       await expect(
@@ -423,10 +454,16 @@ describe("RAG IPC 处理器注册", () => {
         },
       };
 
+      // Use fresh mock ipcGuard for re-registration with null ragManager
+      const mockIpcGuardNoMgr = {
+        isModuleRegistered: vi.fn().mockReturnValue(false),
+        markModuleRegistered: vi.fn(),
+      };
       registerRAGIPC({
         ragManager: null,
         llmManager: mockLlmManager,
         ipcMain: mockIpcMainNoMgr,
+        ipcGuard: mockIpcGuardNoMgr,
       });
 
       const result = await mockIpcMainNoMgr.invoke("rag:get-rerank-config");
@@ -469,10 +506,16 @@ describe("RAG IPC 处理器注册", () => {
         },
       };
 
+      // Use fresh mock ipcGuard for re-registration with null ragManager
+      const mockIpcGuardNoMgr = {
+        isModuleRegistered: vi.fn().mockReturnValue(false),
+        markModuleRegistered: vi.fn(),
+      };
       registerRAGIPC({
         ragManager: null,
         llmManager: mockLlmManager,
         ipcMain: mockIpcMainNoMgr,
+        ipcGuard: mockIpcGuardNoMgr,
       });
 
       await expect(
@@ -502,6 +545,8 @@ describe("RAG IPC 处理器注册", () => {
         handle: (channel, handler) => handlersTest.set(channel, handler),
       };
 
+      // Reset ipc-guard to allow re-registration
+      ipcGuard.resetAll();
       registerRAGIPC({
         ragManager: mockRagManager,
         llmManager: mockLlmManager,
