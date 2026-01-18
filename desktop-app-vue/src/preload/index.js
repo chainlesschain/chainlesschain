@@ -2445,3 +2445,14 @@ contextBridge.exposeInMainWorld("electron", {
     getSources: (options) => desktopCapturer.getSources(options),
   },
 });
+
+// Expose window.ipc for components that use window.ipc.invoke pattern
+contextBridge.exposeInMainWorld("ipc", {
+  invoke: (channel, ...args) => ipcRenderer.invoke(channel, ...args),
+  on: (channel, func) =>
+    ipcRenderer.on(channel, (event, ...args) => func(event, ...args)),
+  once: (channel, func) =>
+    ipcRenderer.once(channel, (event, ...args) => func(event, ...args)),
+  removeListener: (channel, func) => ipcRenderer.removeListener(channel, func),
+  removeAllListeners: (channel) => ipcRenderer.removeAllListeners(channel),
+});
