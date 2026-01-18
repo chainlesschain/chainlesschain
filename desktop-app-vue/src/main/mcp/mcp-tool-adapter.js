@@ -7,7 +7,7 @@
  * @module MCPToolAdapter
  */
 
-const EventEmitter = require('events');
+const EventEmitter = require("events");
 
 /**
  * @typedef {Object} ChainlessChainTool
@@ -38,7 +38,7 @@ class MCPToolAdapter extends EventEmitter {
     // Server name -> tool IDs
     this.serverTools = new Map();
 
-    console.log('[MCPToolAdapter] Initialized');
+    console.log("[MCPToolAdapter] Initialized");
   }
 
   /**
@@ -47,10 +47,10 @@ class MCPToolAdapter extends EventEmitter {
    */
   async initializeServers(config) {
     try {
-      console.log('[MCPToolAdapter] Initializing MCP servers...');
+      console.log("[MCPToolAdapter] Initializing MCP servers...");
 
       if (!config || !config.servers) {
-        console.log('[MCPToolAdapter] No MCP servers configured');
+        console.log("[MCPToolAdapter] No MCP servers configured");
         return;
       }
 
@@ -58,31 +58,38 @@ class MCPToolAdapter extends EventEmitter {
 
       for (const [serverName, serverConfig] of Object.entries(config.servers)) {
         if (!serverConfig.enabled) {
-          console.log(`[MCPToolAdapter] Server ${serverName} is disabled, skipping`);
+          console.log(
+            `[MCPToolAdapter] Server ${serverName} is disabled, skipping`,
+          );
           continue;
         }
 
         if (!serverConfig.autoConnect) {
-          console.log(`[MCPToolAdapter] Server ${serverName} has autoConnect=false, skipping`);
+          console.log(
+            `[MCPToolAdapter] Server ${serverName} has autoConnect=false, skipping`,
+          );
           continue;
         }
 
         // Connect and register tools
         connectPromises.push(
-          this.registerMCPServerTools(serverName, serverConfig)
-            .catch(err => {
-              console.error(`[MCPToolAdapter] Failed to initialize ${serverName}:`, err);
-              // Continue with other servers even if one fails
-            })
+          this.registerMCPServerTools(serverName, serverConfig).catch((err) => {
+            console.error(
+              `[MCPToolAdapter] Failed to initialize ${serverName}:`,
+              err,
+            );
+            // Continue with other servers even if one fails
+          }),
         );
       }
 
       await Promise.all(connectPromises);
 
-      console.log(`[MCPToolAdapter] Initialization complete. Registered tools from ${connectPromises.length} servers`);
-
+      console.log(
+        `[MCPToolAdapter] Initialization complete. Registered tools from ${connectPromises.length} servers`,
+      );
     } catch (error) {
-      console.error('[MCPToolAdapter] Error initializing servers:', error);
+      console.error("[MCPToolAdapter] Error initializing servers:", error);
       throw error;
     }
   }
@@ -95,10 +102,15 @@ class MCPToolAdapter extends EventEmitter {
    */
   async registerMCPServerTools(serverName, serverConfig) {
     try {
-      console.log(`[MCPToolAdapter] Registering tools from server: ${serverName}`);
+      console.log(
+        `[MCPToolAdapter] Registering tools from server: ${serverName}`,
+      );
 
       // Connect to MCP server
-      const capabilities = await this.mcpClientManager.connectServer(serverName, serverConfig);
+      const capabilities = await this.mcpClientManager.connectServer(
+        serverName,
+        serverConfig,
+      );
 
       const toolIds = [];
 
@@ -108,7 +120,10 @@ class MCPToolAdapter extends EventEmitter {
           const toolId = await this._registerSingleTool(serverName, mcpTool);
           toolIds.push(toolId);
         } catch (err) {
-          console.error(`[MCPToolAdapter] Failed to register tool ${mcpTool.name}:`, err);
+          console.error(
+            `[MCPToolAdapter] Failed to register tool ${mcpTool.name}:`,
+            err,
+          );
           // Continue with other tools
         }
       }
@@ -116,14 +131,18 @@ class MCPToolAdapter extends EventEmitter {
       // Track server -> tools mapping
       this.serverTools.set(serverName, toolIds);
 
-      console.log(`[MCPToolAdapter] Registered ${toolIds.length} tools from ${serverName}`);
+      console.log(
+        `[MCPToolAdapter] Registered ${toolIds.length} tools from ${serverName}`,
+      );
 
-      this.emit('server-registered', { serverName, toolIds });
+      this.emit("server-registered", { serverName, toolIds });
 
       return toolIds;
-
     } catch (error) {
-      console.error(`[MCPToolAdapter] Failed to register server ${serverName}:`, error);
+      console.error(
+        `[MCPToolAdapter] Failed to register server ${serverName}:`,
+        error,
+      );
       throw error;
     }
   }
@@ -134,7 +153,9 @@ class MCPToolAdapter extends EventEmitter {
    */
   async unregisterMCPServerTools(serverName) {
     try {
-      console.log(`[MCPToolAdapter] Unregistering tools from server: ${serverName}`);
+      console.log(
+        `[MCPToolAdapter] Unregistering tools from server: ${serverName}`,
+      );
 
       const toolIds = this.serverTools.get(serverName) || [];
 
@@ -143,7 +164,10 @@ class MCPToolAdapter extends EventEmitter {
           await this.toolManager.unregisterTool(toolId);
           this.mcpToolRegistry.delete(toolId);
         } catch (err) {
-          console.error(`[MCPToolAdapter] Failed to unregister tool ${toolId}:`, err);
+          console.error(
+            `[MCPToolAdapter] Failed to unregister tool ${toolId}:`,
+            err,
+          );
         }
       }
 
@@ -152,12 +176,16 @@ class MCPToolAdapter extends EventEmitter {
       // Disconnect from MCP server
       await this.mcpClientManager.disconnectServer(serverName);
 
-      console.log(`[MCPToolAdapter] Unregistered ${toolIds.length} tools from ${serverName}`);
+      console.log(
+        `[MCPToolAdapter] Unregistered ${toolIds.length} tools from ${serverName}`,
+      );
 
-      this.emit('server-unregistered', { serverName });
-
+      this.emit("server-unregistered", { serverName });
     } catch (error) {
-      console.error(`[MCPToolAdapter] Failed to unregister server ${serverName}:`, error);
+      console.error(
+        `[MCPToolAdapter] Failed to unregister server ${serverName}:`,
+        error,
+      );
       throw error;
     }
   }
@@ -173,7 +201,7 @@ class MCPToolAdapter extends EventEmitter {
       tools.push({
         toolId,
         serverName: info.serverName,
-        originalToolName: info.originalToolName
+        originalToolName: info.originalToolName,
       });
     }
 
@@ -223,7 +251,7 @@ class MCPToolAdapter extends EventEmitter {
       }
 
       // Find new tools to add
-      const newTools = tools.filter(t => !currentToolNames.has(t.name));
+      const newTools = tools.filter((t) => !currentToolNames.has(t.name));
 
       // Register new tools
       for (const mcpTool of newTools) {
@@ -231,16 +259,23 @@ class MCPToolAdapter extends EventEmitter {
           const toolId = await this._registerSingleTool(serverName, mcpTool);
           currentToolIds.push(toolId);
         } catch (err) {
-          console.error(`[MCPToolAdapter] Failed to register new tool ${mcpTool.name}:`, err);
+          console.error(
+            `[MCPToolAdapter] Failed to register new tool ${mcpTool.name}:`,
+            err,
+          );
         }
       }
 
       this.serverTools.set(serverName, currentToolIds);
 
-      console.log(`[MCPToolAdapter] Refreshed ${serverName}: added ${newTools.length} new tools`);
-
+      console.log(
+        `[MCPToolAdapter] Refreshed ${serverName}: added ${newTools.length} new tools`,
+      );
     } catch (error) {
-      console.error(`[MCPToolAdapter] Failed to refresh server ${serverName}:`, error);
+      console.error(
+        `[MCPToolAdapter] Failed to refresh server ${serverName}:`,
+        error,
+      );
       throw error;
     }
   }
@@ -257,21 +292,28 @@ class MCPToolAdapter extends EventEmitter {
     // Convert MCP tool to ChainlessChain format
     const chainlessChainTool = this._convertMCPToolFormat(serverName, mcpTool);
 
+    // Use deterministic ID based on tool name to enable upsert behavior
+    // This ensures ON CONFLICT(id) DO UPDATE works correctly
+    const toolId = `mcp_${serverName}_${mcpTool.name}`;
+    chainlessChainTool.id = toolId;
+
     // Create handler function that proxies to MCP server
     const handler = async (params) => {
       return await this._executeMCPTool(serverName, mcpTool.name, params);
     };
 
-    // Register with ToolManager
-    const toolId = await this.toolManager.registerTool(chainlessChainTool, handler);
+    // Register with ToolManager (will upsert if tool already exists)
+    await this.toolManager.registerTool(chainlessChainTool, handler);
 
     // Track MCP tool mapping
     this.mcpToolRegistry.set(toolId, {
       serverName,
-      originalToolName: mcpTool.name
+      originalToolName: mcpTool.name,
     });
 
-    console.log(`[MCPToolAdapter] Registered MCP tool: ${chainlessChainTool.name} -> ${toolId}`);
+    console.log(
+      `[MCPToolAdapter] Registered MCP tool: ${chainlessChainTool.name} -> ${toolId}`,
+    );
 
     return toolId;
   }
@@ -286,29 +328,29 @@ class MCPToolAdapter extends EventEmitter {
       name: `mcp_${serverName}_${mcpTool.name}`,
       display_name: `${mcpTool.name} (MCP)`,
       description: mcpTool.description || `MCP tool from ${serverName}`,
-      category: 'mcp',
-      tool_type: 'mcp-proxy',
+      category: "mcp",
+      tool_type: "mcp-proxy",
 
       // MCP uses JSON Schema for input
       parameters_schema: mcpTool.inputSchema || {
-        type: 'object',
+        type: "object",
         properties: {},
-        required: []
+        required: [],
       },
 
       // MCP doesn't define return schema, use generic
       return_schema: {
-        type: 'object',
+        type: "object",
         properties: {
           content: {
-            type: 'array',
-            description: 'MCP result content'
+            type: "array",
+            description: "MCP result content",
           },
           isError: {
-            type: 'boolean',
-            description: 'Whether the result is an error'
-          }
-        }
+            type: "boolean",
+            description: "Whether the result is an error",
+          },
+        },
       },
 
       is_builtin: 0,
@@ -318,10 +360,10 @@ class MCPToolAdapter extends EventEmitter {
       config: JSON.stringify({
         mcpServer: serverName,
         originalToolName: mcpTool.name,
-        isMCPTool: true
+        isMCPTool: true,
       }),
 
-      examples: []
+      examples: [],
     };
   }
 
@@ -333,16 +375,23 @@ class MCPToolAdapter extends EventEmitter {
     try {
       // Apply security policy if configured
       if (this.securityPolicy) {
-        await this.securityPolicy.validateToolExecution(serverName, toolName, params);
+        await this.securityPolicy.validateToolExecution(
+          serverName,
+          toolName,
+          params,
+        );
       }
 
       // Call MCP server
-      const result = await this.mcpClientManager.callTool(serverName, toolName, params);
+      const result = await this.mcpClientManager.callTool(
+        serverName,
+        toolName,
+        params,
+      );
 
       // MCP returns { content: [...], isError: boolean }
       // Transform to ChainlessChain expected format
       return this._transformMCPResult(result);
-
     } catch (error) {
       console.error(`[MCPToolAdapter] MCP tool execution failed:`, error);
 
@@ -351,7 +400,7 @@ class MCPToolAdapter extends EventEmitter {
         success: false,
         error: error.message,
         mcpError: true,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
     }
   }
@@ -368,7 +417,7 @@ class MCPToolAdapter extends EventEmitter {
         success: false,
         error: this._extractErrorMessage(mcpResult.content),
         mcpResult: mcpResult,
-        timestamp: Date.now()
+        timestamp: Date.now(),
       };
     }
 
@@ -379,7 +428,7 @@ class MCPToolAdapter extends EventEmitter {
       success: true,
       data: extractedData,
       mcpResult: mcpResult, // Keep original for debugging
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
   }
 
@@ -399,13 +448,13 @@ class MCPToolAdapter extends EventEmitter {
     }
 
     // Multiple items: combine text or return array
-    const texts = content.filter(c => c.type === 'text').map(c => c.text);
+    const texts = content.filter((c) => c.type === "text").map((c) => c.text);
     if (texts.length > 0) {
-      return texts.join('\n');
+      return texts.join("\n");
     }
 
     // Return array of data
-    return content.map(c => c.data || c);
+    return content.map((c) => c.data || c);
   }
 
   /**
@@ -418,10 +467,10 @@ class MCPToolAdapter extends EventEmitter {
     }
 
     const errorTexts = content
-      .filter(c => c.type === 'text')
-      .map(c => c.text);
+      .filter((c) => c.type === "text")
+      .map((c) => c.text);
 
-    return errorTexts.join('\n') || 'MCP tool execution failed';
+    return errorTexts.join("\n") || "MCP tool execution failed";
   }
 }
 

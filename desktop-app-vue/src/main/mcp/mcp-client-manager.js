@@ -181,14 +181,38 @@ class MCPClientManager extends EventEmitter {
         console.log(
           `[MCPClientManager] Using stdio transport for ${serverName}`,
         );
+
+        // Build environment variables for the server process
+        const serverEnv = {
+          ...process.env,
+          CHAINLESSCHAIN_DATA_PATH: serverConfig.dataPath || process.cwd(),
+        };
+
+        // Add database connection env vars for postgres
+        if (serverConfig.connection) {
+          const conn = serverConfig.connection;
+          if (conn.host && conn.database && conn.user) {
+            const password = conn.password || "";
+            const port = conn.port || 5432;
+            serverEnv.POSTGRES_CONNECTION_STRING = `postgresql://${conn.user}:${password}@${conn.host}:${port}/${conn.database}`;
+            serverEnv.DATABASE_URL = serverEnv.POSTGRES_CONNECTION_STRING;
+          }
+        }
+
+        // Add database path for sqlite
+        if (serverConfig.databasePath) {
+          serverEnv.SQLITE_DB_PATH = serverConfig.databasePath;
+        }
+
+        // Add repository path for git
+        if (serverConfig.repositoryPath) {
+          serverEnv.GIT_REPOSITORY_PATH = serverConfig.repositoryPath;
+        }
+
         transport = new this._deps.StdioClientTransport({
           command: serverConfig.command,
           args: serverConfig.args,
-          env: {
-            ...process.env,
-            // Add any custom environment variables
-            CHAINLESSCHAIN_DATA_PATH: serverConfig.dataPath || process.cwd(),
-          },
+          env: serverEnv,
         });
 
         // Connect to server
