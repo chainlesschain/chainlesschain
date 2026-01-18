@@ -14,7 +14,6 @@ const defaultMcpStdio = require("@modelcontextprotocol/sdk/client/stdio.js");
 const defaultMcpTypes = require("@modelcontextprotocol/sdk/types.js");
 const defaultHttpSseTransport = require("./transports/http-sse-transport");
 const EventEmitter = require("events");
-const { spawn } = require("child_process");
 
 /**
  * Transport types
@@ -517,7 +516,7 @@ class MCPClientManager extends EventEmitter {
     console.log("[MCPClientManager] Shutting down all connections...");
 
     const disconnectPromises = [];
-    for (const [serverName, _] of this.servers) {
+    for (const serverName of this.servers.keys()) {
       disconnectPromises.push(
         this.disconnectServer(serverName).catch((err) => {
           console.error(`Error disconnecting ${serverName}:`, err);
@@ -728,7 +727,7 @@ class MCPClientManager extends EventEmitter {
    * This creates a bridge between the MCP SDK client and our HTTP+SSE transport
    * @private
    */
-  async _connectWithHttpSse(client, transport, serverName) {
+  async _connectWithHttpSse(client, transport, _serverName) {
     // Create a transport adapter that bridges HTTP+SSE to the MCP SDK interface
     const transportAdapter = {
       start: async () => {
@@ -745,11 +744,17 @@ class MCPClientManager extends EventEmitter {
 
     // Override client methods to use our transport
     // This is a workaround since the SDK doesn't natively support HTTP+SSE
-    const originalCallTool = client.callTool.bind(client);
-    const originalListTools = client.listTools.bind(client);
-    const originalListResources = client.listResources.bind(client);
-    const originalListPrompts = client.listPrompts.bind(client);
-    const originalReadResource = client.readResource.bind(client);
+    // Original methods are saved for potential future restoration
+    const _originalCallTool = client.callTool.bind(client);
+    const _originalListTools = client.listTools.bind(client);
+    const _originalListResources = client.listResources.bind(client);
+    const _originalListPrompts = client.listPrompts.bind(client);
+    const _originalReadResource = client.readResource.bind(client);
+    (void _originalCallTool,
+      _originalListTools,
+      _originalListResources,
+      _originalListPrompts,
+      _originalReadResource);
 
     // Wrap methods to use HTTP+SSE transport
     client.callTool = async (params) => {
