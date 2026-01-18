@@ -470,20 +470,24 @@ class DIDManager extends EventEmitter {
         .prepare("SELECT * FROM identities ORDER BY created_at DESC")
         .all();
 
-      if (!result || result.length === 0 || !result[0] || !result[0].values) {
+      if (!result || result.length === 0) {
         return [];
       }
 
-      const columns = result[0].columns;
-      const rows = result[0].values;
-
-      return rows.map((row) => {
-        const identity = {};
-        columns.forEach((col, index) => {
-          identity[col] = row[index];
+      // Handle both sql.js format (columns/values) and better-sqlite3 format (objects)
+      if (result[0] && result[0].values && result[0].columns) {
+        const columns = result[0].columns;
+        const rows = result[0].values;
+        return rows.map((row) => {
+          const identity = {};
+          columns.forEach((col, index) => {
+            identity[col] = row[index];
+          });
+          return identity;
         });
-        return identity;
-      });
+      }
+      // better-sqlite3 format - result is array of objects
+      return result;
     } catch (error) {
       console.error("[DIDManager] 获取身份列表失败:", error);
       return [];
@@ -501,24 +505,25 @@ class DIDManager extends EventEmitter {
         .prepare("SELECT * FROM identities WHERE did = ?")
         .all([did]);
 
-      if (
-        !result ||
-        result.length === 0 ||
-        !result[0].values ||
-        result[0].values.length === 0
-      ) {
+      if (!result || result.length === 0) {
         return null;
       }
 
-      const columns = result[0].columns;
-      const row = result[0].values[0];
-
-      const identity = {};
-      columns.forEach((col, index) => {
-        identity[col] = row[index];
-      });
-
-      return identity;
+      // Handle both sql.js format (columns/values) and better-sqlite3 format (objects)
+      if (result[0] && result[0].values && result[0].columns) {
+        if (result[0].values.length === 0) {
+          return null;
+        }
+        const columns = result[0].columns;
+        const row = result[0].values[0];
+        const identity = {};
+        columns.forEach((col, index) => {
+          identity[col] = row[index];
+        });
+        return identity;
+      }
+      // better-sqlite3 format - result is array of objects
+      return result[0];
     } catch (error) {
       console.error("[DIDManager] 获取身份失败:", error);
       return null;
@@ -561,25 +566,31 @@ class DIDManager extends EventEmitter {
         .prepare("SELECT * FROM identities WHERE is_default = 1 LIMIT 1")
         .all();
 
-      if (
-        result &&
-        result.length > 0 &&
-        result[0].values &&
-        result[0].values.length > 0
-      ) {
+      if (!result || result.length === 0) {
+        console.log("[DIDManager] 未找到默认身份");
+        return;
+      }
+
+      // Handle both sql.js format (columns/values) and better-sqlite3 format (objects)
+      let identity;
+      if (result[0] && result[0].values && result[0].columns) {
+        if (result[0].values.length === 0) {
+          console.log("[DIDManager] 未找到默认身份");
+          return;
+        }
         const columns = result[0].columns;
         const row = result[0].values[0];
-
-        const identity = {};
+        identity = {};
         columns.forEach((col, index) => {
           identity[col] = row[index];
         });
-
-        this.currentIdentity = identity;
-        console.log("[DIDManager] 已加载默认身份:", identity.did);
       } else {
-        console.log("[DIDManager] 未找到默认身份");
+        // better-sqlite3 format - result is array of objects
+        identity = result[0];
       }
+
+      this.currentIdentity = identity;
+      console.log("[DIDManager] 已加载默认身份:", identity.did);
     } catch (error) {
       console.error("[DIDManager] 加载默认身份失败:", error);
     }
