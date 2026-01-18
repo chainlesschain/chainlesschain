@@ -1,6 +1,6 @@
-const axios = require('axios');
-const config = require('./sync-config');
-const crypto = require('crypto');
+const axios = require("axios");
+const config = require("./sync-config");
+const crypto = require("crypto");
 
 /**
  * 同步 HTTP 客户端
@@ -10,43 +10,45 @@ class SyncHTTPClient {
   constructor(baseURL = null) {
     this.client = axios.create({
       baseURL: baseURL || config.backendUrl,
-      timeout: 60000,  // 60秒超时
+      timeout: 60000, // 60秒超时
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
     });
 
     // 请求拦截器
     this.client.interceptors.request.use(
-      config => {
+      (config) => {
         if (config.enableLogging) {
-          console.log(`[SyncHTTP] ${config.method.toUpperCase()} ${config.url}`);
+          console.log(
+            `[SyncHTTP] ${config.method.toUpperCase()} ${config.url}`,
+          );
         }
         return config;
       },
-      error => {
-        console.error('[SyncHTTP] Request error:', error);
+      (error) => {
+        console.error("[SyncHTTP] Request error:", error);
         return Promise.reject(error);
-      }
+      },
     );
 
     // 响应拦截器
     this.client.interceptors.response.use(
-      response => {
+      (response) => {
         // 后端返回格式: { code: 200, message: "success", data: ... }
         const { code, message, data } = response.data;
 
         if (code !== 200) {
-          const error = new Error(message || '请求失败');
+          const error = new Error(message || "请求失败");
           error.code = code;
           error.response = response;
           throw error;
         }
 
-        return data;  // 只返回data部分
+        return data; // 只返回data部分
       },
-      error => {
-        console.error('[SyncHTTP] Response error:', error.message);
+      (error) => {
+        console.error("[SyncHTTP] Response error:", error.message);
 
         if (error.response) {
           const status = error.response.status;
@@ -56,27 +58,28 @@ class SyncHTTPClient {
             case 400:
               throw new Error(`请求参数错误: ${errorMessage}`);
             case 401:
-              throw new Error('未授权，请登录');
+              throw new Error("未授权，请登录");
             case 403:
-              throw new Error('权限不足');
+              throw new Error("权限不足");
             case 404:
-              throw new Error('资源不存在');
-            case 409:
+              throw new Error("资源不存在");
+            case 409: {
               // 冲突错误，包含冲突数据
-              const conflictError = new Error('检测到数据冲突');
+              const conflictError = new Error("检测到数据冲突");
               conflictError.conflicts = error.response.data?.conflicts || [];
               throw conflictError;
+            }
             case 500:
-              throw new Error('服务器内部错误');
+              throw new Error("服务器内部错误");
             default:
-              throw new Error(errorMessage || '未知错误');
+              throw new Error(errorMessage || "未知错误");
           }
         } else if (error.request) {
-          throw new Error('网络连接失败，请检查网络');
+          throw new Error("网络连接失败，请检查网络");
         } else {
-          throw new Error(error.message || '请求失败');
+          throw new Error(error.message || "请求失败");
         }
-      }
+      },
     );
   }
 
@@ -95,7 +98,7 @@ class SyncHTTPClient {
    * @returns {Promise<Object>} 服务器时间信息 { timestamp, timezone, iso8601 }
    */
   async getServerTime() {
-    return this.client.get('/api/sync/server-time');
+    return this.client.get("/api/sync/server-time");
   }
 
   /**
@@ -110,12 +113,12 @@ class SyncHTTPClient {
     // 如果没有提供requestId，自动生成一个
     const finalRequestId = requestId || this.generateRequestId();
 
-    return this.client.post('/api/sync/upload', {
+    return this.client.post("/api/sync/upload", {
       tableName,
       records,
       deviceId,
       requestId: finalRequestId,
-      lastSyncedAt: Date.now()
+      lastSyncedAt: Date.now(),
     });
   }
 
@@ -128,7 +131,7 @@ class SyncHTTPClient {
    */
   async downloadIncremental(tableName, lastSyncedAt, deviceId) {
     return this.client.get(`/api/sync/download/${tableName}`, {
-      params: { lastSyncedAt, deviceId }
+      params: { lastSyncedAt, deviceId },
     });
   }
 
@@ -138,8 +141,8 @@ class SyncHTTPClient {
    * @returns {Promise<Object>} 同步状态
    */
   async getSyncStatus(deviceId) {
-    return this.client.get('/api/sync/status', {
-      params: { deviceId }
+    return this.client.get("/api/sync/status", {
+      params: { deviceId },
     });
   }
 
@@ -151,10 +154,10 @@ class SyncHTTPClient {
    * @returns {Promise<void>}
    */
   async resolveConflict(conflictId, resolution, selectedVersion) {
-    return this.client.post('/api/sync/resolve-conflict', {
+    return this.client.post("/api/sync/resolve-conflict", {
       conflictId,
       resolution,
-      selectedVersion
+      selectedVersion,
     });
   }
 
@@ -163,7 +166,7 @@ class SyncHTTPClient {
    * @returns {Promise<Object>} 健康状态
    */
   async health() {
-    return this.client.get('/api/sync/health');
+    return this.client.get("/api/sync/health");
   }
 
   // ==================== 认证方法 ====================
@@ -174,11 +177,11 @@ class SyncHTTPClient {
    */
   setAuthToken(token) {
     if (token) {
-      this.client.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      console.log('[SyncHTTP] Auth token set');
+      this.client.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+      console.log("[SyncHTTP] Auth token set");
     } else {
-      delete this.client.defaults.headers.common['Authorization'];
-      console.log('[SyncHTTP] Auth token cleared');
+      delete this.client.defaults.headers.common["Authorization"];
+      console.log("[SyncHTTP] Auth token cleared");
     }
   }
 
@@ -187,7 +190,7 @@ class SyncHTTPClient {
    * @returns {boolean}
    */
   hasAuthToken() {
-    return !!this.client.defaults.headers.common['Authorization'];
+    return !!this.client.defaults.headers.common["Authorization"];
   }
 
   /**
@@ -196,7 +199,7 @@ class SyncHTTPClient {
    */
   setBaseURL(newBaseURL) {
     this.client.defaults.baseURL = newBaseURL;
-    console.log('[SyncHTTP] Base URL updated:', newBaseURL);
+    console.log("[SyncHTTP] Base URL updated:", newBaseURL);
   }
 
   /**
