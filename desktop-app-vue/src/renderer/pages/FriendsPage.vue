@@ -7,7 +7,10 @@
           <div class="header-left">
             <TeamOutlined class="header-icon" />
             <span class="header-title">好友列表</span>
-            <a-badge :count="onlineFriendsCount" :number-style="{ backgroundColor: '#52c41a' }" />
+            <a-badge
+              :count="onlineFriendsCount"
+              :number-style="{ backgroundColor: '#52c41a' }"
+            />
           </div>
           <div class="header-right">
             <a-input-search
@@ -30,7 +33,10 @@
           <template #tab>
             <span>
               全部好友
-              <a-badge :count="allFriends.length" :number-style="{ backgroundColor: '#1890ff', fontSize: '10px' }" />
+              <a-badge
+                :count="allFriends.length"
+                :number-style="{ backgroundColor: '#1890ff', fontSize: '10px' }"
+              />
             </span>
           </template>
         </a-tab-pane>
@@ -38,15 +44,14 @@
           <template #tab>
             <span>
               在线好友
-              <a-badge :count="onlineFriendsCount" :number-style="{ backgroundColor: '#52c41a', fontSize: '10px' }" />
+              <a-badge
+                :count="onlineFriendsCount"
+                :number-style="{ backgroundColor: '#52c41a', fontSize: '10px' }"
+              />
             </span>
           </template>
         </a-tab-pane>
-        <a-tab-pane
-          v-for="group in friendGroups"
-          :key="group"
-          :tab="group"
-        >
+        <a-tab-pane v-for="group in friendGroups" :key="group" :tab="group">
           <template #tab>
             <span>
               {{ group }}
@@ -70,15 +75,20 @@
             <a-list-item class="friend-item" @click="handleFriendClick(item)">
               <a-list-item-meta>
                 <template #avatar>
-                  <a-badge :dot="item.onlineStatus?.status === 'online'" :offset="[-5, 35]">
+                  <a-badge
+                    :dot="item.onlineStatus?.status === 'online'"
+                    :offset="[-5, 35]"
+                  >
                     <a-avatar :size="48" :src="item.avatar">
-                      {{ item.nickname?.charAt(0) || 'U' }}
+                      {{ item.nickname?.charAt(0) || "U" }}
                     </a-avatar>
                   </a-badge>
                 </template>
                 <template #title>
                   <div class="friend-title">
-                    <span class="friend-nickname">{{ item.nickname || item.friend_did }}</span>
+                    <span class="friend-nickname">{{
+                      item.nickname || item.friend_did
+                    }}</span>
                     <OnlineStatusIndicator
                       :status="item.onlineStatus?.status || 'offline'"
                       :last-seen="item.onlineStatus?.lastSeen || 0"
@@ -90,8 +100,12 @@
                 </template>
                 <template #description>
                   <div class="friend-description">
-                    <div class="friend-did">DID: {{ formatDID(item.friend_did) }}</div>
-                    <div v-if="item.notes" class="friend-notes">{{ item.notes }}</div>
+                    <div class="friend-did">
+                      DID: {{ formatDID(item.friend_did) }}
+                    </div>
+                    <div v-if="item.notes" class="friend-notes">
+                      {{ item.notes }}
+                    </div>
                   </div>
                 </template>
               </a-list-item-meta>
@@ -175,11 +189,18 @@
     >
       <a-form :model="editForm" layout="vertical">
         <a-form-item label="备注名称">
-          <a-input v-model:value="editForm.nickname" placeholder="输入备注名称" />
+          <a-input
+            v-model:value="editForm.nickname"
+            placeholder="输入备注名称"
+          />
         </a-form-item>
         <a-form-item label="分组">
           <a-select v-model:value="editForm.groupName" placeholder="选择分组">
-            <a-select-option v-for="group in friendGroups" :key="group" :value="group">
+            <a-select-option
+              v-for="group in friendGroups"
+              :key="group"
+              :value="group"
+            >
               {{ group }}
             </a-select-option>
           </a-select>
@@ -197,8 +218,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, computed, onMounted, onUnmounted } from "vue";
+import { message } from "ant-design-vue";
 import {
   TeamOutlined,
   UserAddOutlined,
@@ -209,30 +230,30 @@ import {
   EditOutlined,
   FolderOutlined,
   DeleteOutlined,
-} from '@ant-design/icons-vue';
-import OnlineStatusIndicator from '@/components/OnlineStatusIndicator.vue';
+} from "@ant-design/icons-vue";
+import OnlineStatusIndicator from "@/components/OnlineStatusIndicator.vue";
 
-const { ipcRenderer } = window.electron;
+const { ipcRenderer } = window.electron || {};
 
 // 状态
 const loading = ref(false);
 const allFriends = ref([]);
-const activeGroup = ref('all');
-const searchKeyword = ref('');
+const activeGroup = ref("all");
+const searchKeyword = ref("");
 const showAddFriendModal = ref(false);
 const showEditModal = ref(false);
 
 // 表单
 const addFriendForm = ref({
-  did: '',
-  message: '',
+  did: "",
+  message: "",
 });
 
 const editForm = ref({
-  friendDid: '',
-  nickname: '',
-  groupName: '我的好友',
-  notes: '',
+  friendDid: "",
+  nickname: "",
+  groupName: "我的好友",
+  notes: "",
 });
 
 // 计算属性
@@ -247,18 +268,17 @@ const friendGroups = computed(() => {
 });
 
 const onlineFriendsCount = computed(() => {
-  return allFriends.value.filter(
-    (f) => f.onlineStatus?.status === 'online'
-  ).length;
+  return allFriends.value.filter((f) => f.onlineStatus?.status === "online")
+    .length;
 });
 
 const filteredFriends = computed(() => {
   let friends = allFriends.value;
 
   // 按分组过滤
-  if (activeGroup.value === 'online') {
-    friends = friends.filter((f) => f.onlineStatus?.status === 'online');
-  } else if (activeGroup.value !== 'all') {
+  if (activeGroup.value === "online") {
+    friends = friends.filter((f) => f.onlineStatus?.status === "online");
+  } else if (activeGroup.value !== "all") {
     friends = friends.filter((f) => f.group_name === activeGroup.value);
   }
 
@@ -269,7 +289,7 @@ const filteredFriends = computed(() => {
       (f) =>
         f.nickname?.toLowerCase().includes(keyword) ||
         f.friend_did?.toLowerCase().includes(keyword) ||
-        f.notes?.toLowerCase().includes(keyword)
+        f.notes?.toLowerCase().includes(keyword),
     );
   }
 
@@ -280,15 +300,15 @@ const filteredFriends = computed(() => {
 async function loadFriends() {
   loading.value = true;
   try {
-    const result = await ipcRenderer.invoke('friend:get-list');
+    const result = await ipcRenderer.invoke("friend:get-list");
     if (result.success) {
       allFriends.value = result.friends || [];
     } else {
-      message.error('加载好友列表失败: ' + result.error);
+      message.error("加载好友列表失败: " + result.error);
     }
   } catch (error) {
-    console.error('加载好友列表失败:', error);
-    message.error('加载好友列表失败: ' + error.message);
+    console.error("加载好友列表失败:", error);
+    message.error("加载好友列表失败: " + error.message);
   } finally {
     loading.value = false;
   }
@@ -307,7 +327,7 @@ function getFriendsByGroup(groupName) {
 }
 
 function formatDID(did) {
-  if (!did) return '';
+  if (!did) return "";
   if (did.length <= 20) return did;
   return `${did.slice(0, 10)}...${did.slice(-10)}`;
 }
@@ -319,58 +339,58 @@ function handleFriendClick(friend) {
 
 async function handleAddFriend() {
   if (!addFriendForm.value.did) {
-    message.warning('请输入好友DID');
+    message.warning("请输入好友DID");
     return;
   }
 
   try {
-    const result = await ipcRenderer.invoke('friend:send-request', {
+    const result = await ipcRenderer.invoke("friend:send-request", {
       targetDid: addFriendForm.value.did,
       message: addFriendForm.value.message,
     });
 
     if (result.success) {
-      message.success('好友请求已发送');
+      message.success("好友请求已发送");
       showAddFriendModal.value = false;
-      addFriendForm.value = { did: '', message: '' };
+      addFriendForm.value = { did: "", message: "" };
     } else {
-      message.error('发送好友请求失败: ' + result.error);
+      message.error("发送好友请求失败: " + result.error);
     }
   } catch (error) {
-    console.error('发送好友请求失败:', error);
-    message.error('发送好友请求失败: ' + error.message);
+    console.error("发送好友请求失败:", error);
+    message.error("发送好友请求失败: " + error.message);
   }
 }
 
 function handleSendMessage(friend) {
   // TODO: 打开聊天窗口
-  message.info('聊天功能开发中...');
+  message.info("聊天功能开发中...");
 }
 
 function handleVoiceCall(friend) {
-  message.info('语音通话功能开发中...');
+  message.info("语音通话功能开发中...");
 }
 
 function handleVideoCall(friend) {
-  message.info('视频通话功能开发中...');
+  message.info("视频通话功能开发中...");
 }
 
 function handleMenuAction(action, friend) {
   switch (action) {
-    case 'edit':
+    case "edit":
       editForm.value = {
         friendDid: friend.friend_did,
-        nickname: friend.nickname || '',
-        groupName: friend.group_name || '我的好友',
-        notes: friend.notes || '',
+        nickname: friend.nickname || "",
+        groupName: friend.group_name || "我的好友",
+        notes: friend.notes || "",
       };
       showEditModal.value = true;
       break;
-    case 'move':
+    case "move":
       // TODO: 移动分组
-      message.info('移动分组功能开发中...');
+      message.info("移动分组功能开发中...");
       break;
-    case 'delete':
+    case "delete":
       handleDeleteFriend(friend);
       break;
   }
@@ -378,7 +398,7 @@ function handleMenuAction(action, friend) {
 
 async function handleSaveEdit() {
   try {
-    const result = await ipcRenderer.invoke('friend:update', {
+    const result = await ipcRenderer.invoke("friend:update", {
       friendDid: editForm.value.friendDid,
       nickname: editForm.value.nickname,
       groupName: editForm.value.groupName,
@@ -386,21 +406,21 @@ async function handleSaveEdit() {
     });
 
     if (result.success) {
-      message.success('好友信息已更新');
+      message.success("好友信息已更新");
       showEditModal.value = false;
       await loadFriends();
     } else {
-      message.error('更新好友信息失败: ' + result.error);
+      message.error("更新好友信息失败: " + result.error);
     }
   } catch (error) {
-    console.error('更新好友信息失败:', error);
-    message.error('更新好友信息失败: ' + error.message);
+    console.error("更新好友信息失败:", error);
+    message.error("更新好友信息失败: " + error.message);
   }
 }
 
 async function handleDeleteFriend(friend) {
   // TODO: 删除好友确认
-  message.info('删除好友功能开发中...');
+  message.info("删除好友功能开发中...");
 }
 
 // 监听在线状态变化事件
@@ -409,7 +429,7 @@ function handleFriendOnline(event, data) {
   const friend = allFriends.value.find((f) => f.friend_did === friendDid);
   if (friend) {
     friend.onlineStatus = {
-      status: 'online',
+      status: "online",
       lastSeen: Date.now(),
       deviceCount: friend.onlineStatus?.deviceCount || 1,
     };
@@ -421,7 +441,7 @@ function handleFriendOffline(event, data) {
   const friend = allFriends.value.find((f) => f.friend_did === friendDid);
   if (friend) {
     friend.onlineStatus = {
-      status: 'offline',
+      status: "offline",
       lastSeen: Date.now(),
       deviceCount: 0,
     };
@@ -433,14 +453,14 @@ onMounted(async () => {
   await loadFriends();
 
   // 监听好友在线状态变化
-  ipcRenderer.on('friend:online', handleFriendOnline);
-  ipcRenderer.on('friend:offline', handleFriendOffline);
+  ipcRenderer.on("friend:online", handleFriendOnline);
+  ipcRenderer.on("friend:offline", handleFriendOffline);
 });
 
 onUnmounted(() => {
   // 移除事件监听
-  ipcRenderer.removeListener('friend:online', handleFriendOnline);
-  ipcRenderer.removeListener('friend:offline', handleFriendOffline);
+  ipcRenderer.removeListener("friend:online", handleFriendOnline);
+  ipcRenderer.removeListener("friend:offline", handleFriendOffline);
 });
 </script>
 

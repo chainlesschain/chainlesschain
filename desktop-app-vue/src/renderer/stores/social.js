@@ -1,16 +1,16 @@
-import { defineStore } from 'pinia'
-import { createRetryableIPC } from '../utils/ipc'
+import { defineStore } from "pinia";
+import { createRetryableIPC } from "../utils/ipc";
 
 // 创建带重试的 IPC 对象
-const ipcRenderer = createRetryableIPC(window.electron.ipcRenderer, {
+const ipcRenderer = createRetryableIPC(window.electron?.ipcRenderer, {
   silentErrors: true, // 静默错误以避免控制台污染
-})
+});
 
 /**
  * 社交模块统一状态管理
  * 管理好友、聊天、动态、通知等社交功能的状态
  */
-export const useSocialStore = defineStore('social', {
+export const useSocialStore = defineStore("social", {
   state: () => ({
     // ========== 好友相关 ==========
     friends: [], // 好友列表
@@ -51,24 +51,29 @@ export const useSocialStore = defineStore('social', {
      * 在线好友列表
      */
     onlineFriends: (state) =>
-      state.friends.filter((f) => state.onlineStatus.get(f.friend_did) === 'online'),
+      state.friends.filter(
+        (f) => state.onlineStatus.get(f.friend_did) === "online",
+      ),
 
     /**
      * 离线好友列表
      */
     offlineFriends: (state) =>
-      state.friends.filter((f) => state.onlineStatus.get(f.friend_did) !== 'online'),
+      state.friends.filter(
+        (f) => state.onlineStatus.get(f.friend_did) !== "online",
+      ),
 
     /**
      * 待处理的好友请求数
      */
     pendingRequestsCount: (state) =>
-      state.friendRequests.filter((r) => r.status === 'pending').length,
+      state.friendRequests.filter((r) => r.status === "pending").length,
 
     /**
      * 置顶的聊天会话
      */
-    pinnedSessions: (state) => state.chatSessions.filter((s) => s.is_pinned === 1),
+    pinnedSessions: (state) =>
+      state.chatSessions.filter((s) => s.is_pinned === 1),
 
     /**
      * 未读消息会话数
@@ -90,25 +95,28 @@ export const useSocialStore = defineStore('social', {
      * 加载好友列表
      */
     async loadFriends() {
-      this.friendsLoading = true
+      this.friendsLoading = true;
       try {
-        const result = await ipcRenderer.invoke('friend:get-list')
+        const result = await ipcRenderer.invoke("friend:get-list");
         if (result.success) {
-          this.friends = result.friends || []
+          this.friends = result.friends || [];
 
           // 加载好友在线状态
           for (const friend of this.friends) {
             if (friend.onlineStatus) {
-              this.onlineStatus.set(friend.friend_did, friend.onlineStatus.status || 'offline')
+              this.onlineStatus.set(
+                friend.friend_did,
+                friend.onlineStatus.status || "offline",
+              );
             } else {
-              this.onlineStatus.set(friend.friend_did, 'offline')
+              this.onlineStatus.set(friend.friend_did, "offline");
             }
           }
         }
       } catch (error) {
-        console.error('加载好友列表失败:', error)
+        console.error("加载好友列表失败:", error);
       } finally {
-        this.friendsLoading = false
+        this.friendsLoading = false;
       }
     },
 
@@ -117,10 +125,12 @@ export const useSocialStore = defineStore('social', {
      */
     async loadFriendRequests() {
       try {
-        const requests = await ipcRenderer.invoke('friend:get-pending-requests')
-        this.friendRequests = requests
+        const requests = await ipcRenderer.invoke(
+          "friend:get-pending-requests",
+        );
+        this.friendRequests = requests;
       } catch (error) {
-        console.error('加载好友请求失败:', error)
+        console.error("加载好友请求失败:", error);
       }
     },
 
@@ -129,16 +139,16 @@ export const useSocialStore = defineStore('social', {
      */
     async sendFriendRequest(friendDid, message) {
       try {
-        await ipcRenderer.invoke('friend:send-request', friendDid, message)
+        await ipcRenderer.invoke("friend:send-request", friendDid, message);
         // 添加通知
         this.addNotification({
-          type: 'system',
-          title: '好友请求已发送',
+          type: "system",
+          title: "好友请求已发送",
           content: `已向 ${friendDid.substring(0, 16)}... 发送好友请求`,
-        })
+        });
       } catch (error) {
-        console.error('发送好友请求失败:', error)
-        throw error
+        console.error("发送好友请求失败:", error);
+        throw error;
       }
     },
 
@@ -147,18 +157,18 @@ export const useSocialStore = defineStore('social', {
      */
     async acceptFriendRequest(requestId) {
       try {
-        await ipcRenderer.invoke('friend:accept-request', requestId)
-        await this.loadFriends()
-        await this.loadFriendRequests()
+        await ipcRenderer.invoke("friend:accept-request", requestId);
+        await this.loadFriends();
+        await this.loadFriendRequests();
 
         this.addNotification({
-          type: 'friend_request',
-          title: '好友请求已接受',
-          content: '你们现在是好友了',
-        })
+          type: "friend_request",
+          title: "好友请求已接受",
+          content: "你们现在是好友了",
+        });
       } catch (error) {
-        console.error('接受好友请求失败:', error)
-        throw error
+        console.error("接受好友请求失败:", error);
+        throw error;
       }
     },
 
@@ -167,11 +177,11 @@ export const useSocialStore = defineStore('social', {
      */
     async rejectFriendRequest(requestId) {
       try {
-        await ipcRenderer.invoke('friend:reject-request', requestId)
-        await this.loadFriendRequests()
+        await ipcRenderer.invoke("friend:reject-request", requestId);
+        await this.loadFriendRequests();
       } catch (error) {
-        console.error('拒绝好友请求失败:', error)
-        throw error
+        console.error("拒绝好友请求失败:", error);
+        throw error;
       }
     },
 
@@ -179,7 +189,7 @@ export const useSocialStore = defineStore('social', {
      * 设置好友在线状态
      */
     setFriendOnlineStatus(did, status) {
-      this.onlineStatus.set(did, status)
+      this.onlineStatus.set(did, status);
     },
 
     // ========== 聊天管理 ==========
@@ -190,38 +200,41 @@ export const useSocialStore = defineStore('social', {
     async openChatWithFriend(friend) {
       try {
         // 查找或创建聊天会话
-        let session = this.chatSessions.find((s) => s.participant_did === friend.friend_did)
+        let session = this.chatSessions.find(
+          (s) => s.participant_did === friend.friend_did,
+        );
 
         if (!session) {
           // 创建新会话
-          const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+          const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
           session = {
             id: sessionId,
             participant_did: friend.friend_did,
-            friend_nickname: friend.nickname || friend.friend_did.substring(0, 16),
+            friend_nickname:
+              friend.nickname || friend.friend_did.substring(0, 16),
             last_message: null,
             last_message_time: null,
             unread_count: 0,
             is_pinned: 0,
             created_at: Date.now(),
             updated_at: Date.now(),
-          }
-          this.chatSessions.unshift(session)
+          };
+          this.chatSessions.unshift(session);
         }
 
-        this.currentChatSession = session
-        this.chatWindowVisible = true
+        this.currentChatSession = session;
+        this.chatWindowVisible = true;
 
         // 加载聊天消息
-        await this.loadMessages(session.id)
+        await this.loadMessages(session.id);
 
         // 标记为已读
         if (session.unread_count > 0) {
-          await this.markAsRead(session.id)
+          await this.markAsRead(session.id);
         }
       } catch (error) {
-        console.error('打开聊天失败:', error)
-        throw error
+        console.error("打开聊天失败:", error);
+        throw error;
       }
     },
 
@@ -230,13 +243,16 @@ export const useSocialStore = defineStore('social', {
      */
     async loadChatSessions() {
       try {
-        const sessions = await ipcRenderer.invoke('chat:get-sessions')
-        this.chatSessions = sessions
+        const sessions = await ipcRenderer.invoke("chat:get-sessions");
+        this.chatSessions = sessions;
 
         // 计算未读消息总数
-        this.unreadCount = sessions.reduce((sum, s) => sum + (s.unread_count || 0), 0)
+        this.unreadCount = sessions.reduce(
+          (sum, s) => sum + (s.unread_count || 0),
+          0,
+        );
       } catch (error) {
-        console.error('加载聊天会话失败:', error)
+        console.error("加载聊天会话失败:", error);
       }
     },
 
@@ -244,24 +260,27 @@ export const useSocialStore = defineStore('social', {
      * 加载聊天消息
      */
     async loadMessages(sessionId, limit = 50, offset = 0) {
-      this.messagesLoading = true
+      this.messagesLoading = true;
       try {
         const messages = await ipcRenderer.invoke(
-          'chat:get-messages',
+          "chat:get-messages",
           sessionId,
           limit,
-          offset
-        )
+          offset,
+        );
 
         if (offset === 0) {
-          this.currentMessages = messages.reverse() // 反转为时间升序
+          this.currentMessages = messages.reverse(); // 反转为时间升序
         } else {
-          this.currentMessages = [...messages.reverse(), ...this.currentMessages]
+          this.currentMessages = [
+            ...messages.reverse(),
+            ...this.currentMessages,
+          ];
         }
       } catch (error) {
-        console.error('加载消息失败:', error)
+        console.error("加载消息失败:", error);
       } finally {
-        this.messagesLoading = false
+        this.messagesLoading = false;
       }
     },
 
@@ -270,13 +289,13 @@ export const useSocialStore = defineStore('social', {
      */
     async sendMessage(message) {
       try {
-        const session = this.currentChatSession
+        const session = this.currentChatSession;
         if (!session) {
-          throw new Error('没有打开的聊天会话')
+          throw new Error("没有打开的聊天会话");
         }
 
         // 生成消息ID
-        const messageId = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+        const messageId = `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
         const messageData = {
           id: messageId,
@@ -284,44 +303,45 @@ export const useSocialStore = defineStore('social', {
           senderDid: await this.getCurrentUserDid(),
           receiverDid: session.participant_did,
           content: message.content,
-          messageType: message.type || 'text',
-          status: 'sent',
+          messageType: message.type || "text",
+          status: "sent",
           timestamp: Date.now(),
-        }
+        };
 
         // 添加到当前消息列表（乐观更新）
-        this.currentMessages.push(messageData)
+        this.currentMessages.push(messageData);
 
         // 保存到数据库
-        await ipcRenderer.invoke('chat:save-message', messageData)
+        await ipcRenderer.invoke("chat:save-message", messageData);
 
         // 通过P2P发送加密消息
         await ipcRenderer.invoke(
-          'p2p:send-encrypted-message',
+          "p2p:send-encrypted-message",
           session.participant_did,
           {
-            type: 'chat-message',
+            type: "chat-message",
             messageId: messageId,
             content: message.content,
-            messageType: message.type || 'text',
+            messageType: message.type || "text",
             timestamp: Date.now(),
-          }
-        )
+          },
+        );
 
         // 更新会话最后消息
-        session.last_message = message.content
-        session.last_message_time = Date.now()
-        session.updated_at = Date.now()
+        session.last_message = message.content;
+        session.last_message_time = Date.now();
+        session.updated_at = Date.now();
 
-        return messageData
+        return messageData;
       } catch (error) {
-        console.error('发送消息失败:', error)
+        console.error("发送消息失败:", error);
         // 更新消息状态为失败
-        const lastMessage = this.currentMessages[this.currentMessages.length - 1]
+        const lastMessage =
+          this.currentMessages[this.currentMessages.length - 1];
         if (lastMessage) {
-          lastMessage.status = 'failed'
+          lastMessage.status = "failed";
         }
-        throw error
+        throw error;
       }
     },
 
@@ -331,11 +351,13 @@ export const useSocialStore = defineStore('social', {
     async receiveMessage(message) {
       try {
         // 查找或创建会话
-        let session = this.chatSessions.find((s) => s.participant_did === message.senderDid)
+        let session = this.chatSessions.find(
+          (s) => s.participant_did === message.senderDid,
+        );
 
         if (!session) {
           // 创建新会话
-          const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+          const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
           session = {
             id: sessionId,
             participant_did: message.senderDid,
@@ -346,18 +368,21 @@ export const useSocialStore = defineStore('social', {
             is_pinned: 0,
             created_at: Date.now(),
             updated_at: Date.now(),
-          }
-          this.chatSessions.unshift(session)
+          };
+          this.chatSessions.unshift(session);
         } else {
           // 更新现有会话
-          session.last_message = message.content
-          session.last_message_time = message.timestamp
-          session.updated_at = Date.now()
+          session.last_message = message.content;
+          session.last_message_time = message.timestamp;
+          session.updated_at = Date.now();
 
           // 如果不是当前会话，增加未读数
-          if (!this.currentChatSession || this.currentChatSession.id !== session.id) {
-            session.unread_count = (session.unread_count || 0) + 1
-            this.unreadCount++
+          if (
+            !this.currentChatSession ||
+            this.currentChatSession.id !== session.id
+          ) {
+            session.unread_count = (session.unread_count || 0) + 1;
+            this.unreadCount++;
           }
         }
 
@@ -368,29 +393,35 @@ export const useSocialStore = defineStore('social', {
           senderDid: message.senderDid,
           receiverDid: await this.getCurrentUserDid(),
           content: message.content,
-          messageType: message.messageType || 'text',
-          status: 'received',
+          messageType: message.messageType || "text",
+          status: "received",
           timestamp: message.timestamp,
-        }
+        };
 
-        await ipcRenderer.invoke('chat:save-message', messageData)
+        await ipcRenderer.invoke("chat:save-message", messageData);
 
         // 如果是当前会话，添加到消息列表
-        if (this.currentChatSession && this.currentChatSession.id === session.id) {
-          this.currentMessages.push(messageData)
+        if (
+          this.currentChatSession &&
+          this.currentChatSession.id === session.id
+        ) {
+          this.currentMessages.push(messageData);
         }
 
         // 发送桌面通知
-        if (!this.currentChatSession || this.currentChatSession.id !== session.id) {
+        if (
+          !this.currentChatSession ||
+          this.currentChatSession.id !== session.id
+        ) {
           this.addNotification({
-            type: 'message',
-            title: '新消息',
+            type: "message",
+            title: "新消息",
             content: `${session.friend_nickname}: ${message.content.substring(0, 50)}`,
             data: JSON.stringify({ sessionId: session.id }),
-          })
+          });
         }
       } catch (error) {
-        console.error('接收消息失败:', error)
+        console.error("接收消息失败:", error);
       }
     },
 
@@ -399,15 +430,15 @@ export const useSocialStore = defineStore('social', {
      */
     async markAsRead(sessionId) {
       try {
-        await ipcRenderer.invoke('chat:mark-as-read', sessionId)
+        await ipcRenderer.invoke("chat:mark-as-read", sessionId);
 
-        const session = this.chatSessions.find((s) => s.id === sessionId)
+        const session = this.chatSessions.find((s) => s.id === sessionId);
         if (session) {
-          this.unreadCount -= session.unread_count || 0
-          session.unread_count = 0
+          this.unreadCount -= session.unread_count || 0;
+          session.unread_count = 0;
         }
       } catch (error) {
-        console.error('标记已读失败:', error)
+        console.error("标记已读失败:", error);
       }
     },
 
@@ -416,14 +447,14 @@ export const useSocialStore = defineStore('social', {
      */
     async getCurrentUserDid() {
       try {
-        const identities = await ipcRenderer.invoke('did:get-identities')
+        const identities = await ipcRenderer.invoke("did:get-identities");
         if (identities && identities.length > 0) {
-          return identities[0].did
+          return identities[0].did;
         }
-        throw new Error('未找到用户身份')
+        throw new Error("未找到用户身份");
       } catch (error) {
-        console.error('获取当前用户DID失败:', error)
-        return 'unknown'
+        console.error("获取当前用户DID失败:", error);
+        return "unknown";
       }
     },
 
@@ -432,15 +463,15 @@ export const useSocialStore = defineStore('social', {
     /**
      * 加载动态列表
      */
-    async loadPosts(filter = 'all') {
-      this.postsLoading = true
+    async loadPosts(filter = "all") {
+      this.postsLoading = true;
       try {
-        const posts = await ipcRenderer.invoke('post:get-feed', filter)
-        this.posts = posts
+        const posts = await ipcRenderer.invoke("post:get-feed", filter);
+        this.posts = posts;
       } catch (error) {
-        console.error('加载动态失败:', error)
+        console.error("加载动态失败:", error);
       } finally {
-        this.postsLoading = false
+        this.postsLoading = false;
       }
     },
 
@@ -449,13 +480,13 @@ export const useSocialStore = defineStore('social', {
      */
     async createPost(post) {
       try {
-        const newPost = await ipcRenderer.invoke('post:create', post)
-        this.posts.unshift(newPost)
-        this.myPosts.unshift(newPost)
-        return newPost
+        const newPost = await ipcRenderer.invoke("post:create", post);
+        this.posts.unshift(newPost);
+        this.myPosts.unshift(newPost);
+        return newPost;
       } catch (error) {
-        console.error('创建动态失败:', error)
-        throw error
+        console.error("创建动态失败:", error);
+        throw error;
       }
     },
 
@@ -464,16 +495,16 @@ export const useSocialStore = defineStore('social', {
      */
     async likePost(postId) {
       try {
-        await ipcRenderer.invoke('post:like', postId)
+        await ipcRenderer.invoke("post:like", postId);
 
-        const post = this.posts.find((p) => p.id === postId)
+        const post = this.posts.find((p) => p.id === postId);
         if (post) {
-          post.like_count = (post.like_count || 0) + 1
-          post.is_liked = true
+          post.like_count = (post.like_count || 0) + 1;
+          post.is_liked = true;
         }
       } catch (error) {
-        console.error('点赞失败:', error)
-        throw error
+        console.error("点赞失败:", error);
+        throw error;
       }
     },
 
@@ -482,16 +513,16 @@ export const useSocialStore = defineStore('social', {
      */
     async unlikePost(postId) {
       try {
-        await ipcRenderer.invoke('post:unlike', postId)
+        await ipcRenderer.invoke("post:unlike", postId);
 
-        const post = this.posts.find((p) => p.id === postId)
+        const post = this.posts.find((p) => p.id === postId);
         if (post) {
-          post.like_count = Math.max((post.like_count || 0) - 1, 0)
-          post.is_liked = false
+          post.like_count = Math.max((post.like_count || 0) - 1, 0);
+          post.is_liked = false;
         }
       } catch (error) {
-        console.error('取消点赞失败:', error)
-        throw error
+        console.error("取消点赞失败:", error);
+        throw error;
       }
     },
 
@@ -501,55 +532,59 @@ export const useSocialStore = defineStore('social', {
      * 加载通知列表
      */
     async loadNotifications(limit = 50) {
-      this.notificationsLoading = true
+      this.notificationsLoading = true;
       try {
         // 检查IPC API是否可用
         if (!window.electronAPI || !ipcRenderer) {
-          console.warn('[Social Store] Electron API 未就绪，跳过加载通知')
-          this.notifications = []
-          this.unreadNotifications = 0
-          return
+          console.warn("[Social Store] Electron API 未就绪，跳过加载通知");
+          this.notifications = [];
+          this.unreadNotifications = 0;
+          return;
         }
 
-        const result = await ipcRenderer.invoke('notification:get-all', { limit })
+        const result = await ipcRenderer.invoke("notification:get-all", {
+          limit,
+        });
         const notifications = Array.isArray(result)
           ? result
-          : result?.notifications || result?.data || []
+          : result?.notifications || result?.data || [];
 
-        this.notifications = notifications
-        this.unreadNotifications = notifications.filter((n) => n.is_read === 0).length
+        this.notifications = notifications;
+        this.unreadNotifications = notifications.filter(
+          (n) => n.is_read === 0,
+        ).length;
       } catch (error) {
         // 如果是用户中断请求（页面刷新、导航等），静默处理
-        if (error.message && error.message.includes('interrupted')) {
-          console.log('[Social Store] 通知加载被中断（用户操作）')
-          this.notifications = []
-          this.unreadNotifications = 0
-          return
+        if (error.message && error.message.includes("interrupted")) {
+          console.log("[Social Store] 通知加载被中断（用户操作）");
+          this.notifications = [];
+          this.unreadNotifications = 0;
+          return;
         }
 
-        console.error('加载通知失败:', error)
+        console.error("加载通知失败:", error);
 
         // 如果是"No handler registered"错误，说明后端还未初始化完成
-        if (error.message && error.message.includes('No handler registered')) {
-          console.warn('[Social Store] IPC处理器未注册，将在稍后重试')
+        if (error.message && error.message.includes("No handler registered")) {
+          console.warn("[Social Store] IPC处理器未注册，将在稍后重试");
           // 设置空数据，避免前端报错
-          this.notifications = []
-          this.unreadNotifications = 0
+          this.notifications = [];
+          this.unreadNotifications = 0;
 
           // 延迟重试一次
           setTimeout(() => {
-            console.log('[Social Store] 重试加载通知...')
-            this.loadNotifications(limit).catch(err => {
-              console.error('[Social Store] 重试加载通知失败:', err)
-            })
-          }, 2000)
+            console.log("[Social Store] 重试加载通知...");
+            this.loadNotifications(limit).catch((err) => {
+              console.error("[Social Store] 重试加载通知失败:", err);
+            });
+          }, 2000);
         } else {
           // 其他错误，设置空数据
-          this.notifications = []
-          this.unreadNotifications = 0
+          this.notifications = [];
+          this.unreadNotifications = 0;
         }
       } finally {
-        this.notificationsLoading = false
+        this.notificationsLoading = false;
       }
     },
 
@@ -565,13 +600,17 @@ export const useSocialStore = defineStore('social', {
         data: notification.data || null,
         is_read: 0,
         created_at: Date.now(),
-      }
+      };
 
-      this.notifications.unshift(notificationData)
-      this.unreadNotifications++
+      this.notifications.unshift(notificationData);
+      this.unreadNotifications++;
 
       // 发送桌面通知
-      ipcRenderer.invoke('notification:send-desktop', notification.title, notification.content)
+      ipcRenderer.invoke(
+        "notification:send-desktop",
+        notification.title,
+        notification.content,
+      );
     },
 
     /**
@@ -579,15 +618,15 @@ export const useSocialStore = defineStore('social', {
      */
     async markNotificationAsRead(id) {
       try {
-        await ipcRenderer.invoke('notification:mark-read', id)
+        await ipcRenderer.invoke("notification:mark-read", id);
 
-        const notification = this.notifications.find((n) => n.id === id)
+        const notification = this.notifications.find((n) => n.id === id);
         if (notification && notification.is_read === 0) {
-          notification.is_read = 1
-          this.unreadNotifications = Math.max(this.unreadNotifications - 1, 0)
+          notification.is_read = 1;
+          this.unreadNotifications = Math.max(this.unreadNotifications - 1, 0);
         }
       } catch (error) {
-        console.error('标记通知已读失败:', error)
+        console.error("标记通知已读失败:", error);
       }
     },
 
@@ -596,14 +635,14 @@ export const useSocialStore = defineStore('social', {
      */
     async markAllNotificationsAsRead() {
       try {
-        await ipcRenderer.invoke('notification:mark-all-read')
+        await ipcRenderer.invoke("notification:mark-all-read");
 
         this.notifications.forEach((n) => {
-          n.is_read = 1
-        })
-        this.unreadNotifications = 0
+          n.is_read = 1;
+        });
+        this.unreadNotifications = 0;
       } catch (error) {
-        console.error('全部标记已读失败:', error)
+        console.error("全部标记已读失败:", error);
       }
     },
 
@@ -611,8 +650,8 @@ export const useSocialStore = defineStore('social', {
      * 清空所有通知
      */
     clearAllNotifications() {
-      this.notifications = []
-      this.unreadNotifications = 0
+      this.notifications = [];
+      this.unreadNotifications = 0;
     },
 
     // ========== UI状态管理 ==========
@@ -621,14 +660,16 @@ export const useSocialStore = defineStore('social', {
      * 打开/关闭聊天窗口
      */
     toggleChatWindow(visible) {
-      this.chatWindowVisible = visible !== undefined ? visible : !this.chatWindowVisible
+      this.chatWindowVisible =
+        visible !== undefined ? visible : !this.chatWindowVisible;
     },
 
     /**
      * 打开/关闭通知面板
      */
     toggleNotificationPanel(visible) {
-      this.notificationPanelVisible = visible !== undefined ? visible : !this.notificationPanelVisible
+      this.notificationPanelVisible =
+        visible !== undefined ? visible : !this.notificationPanelVisible;
     },
 
     // ========== 在线状态管理 ==========
@@ -638,64 +679,65 @@ export const useSocialStore = defineStore('social', {
      */
     initOnlineStatusListeners() {
       // 监听好友上线事件
-      ipcRenderer.on('friend:online', (_event, data) => {
-        const { friendDid } = data
-        console.log('[SocialStore] 好友上线:', friendDid)
+      ipcRenderer.on("friend:online", (_event, data) => {
+        const { friendDid } = data;
+        console.log("[SocialStore] 好友上线:", friendDid);
 
         // 更新在线状态
-        this.onlineStatus.set(friendDid, 'online')
+        this.onlineStatus.set(friendDid, "online");
 
         // 更新好友列表中的在线状态
-        const friend = this.friends.find(f => f.friend_did === friendDid)
+        const friend = this.friends.find((f) => f.friend_did === friendDid);
         if (friend) {
           if (!friend.onlineStatus) {
-            friend.onlineStatus = {}
+            friend.onlineStatus = {};
           }
-          friend.onlineStatus.status = 'online'
-          friend.onlineStatus.lastSeen = Date.now()
-          friend.onlineStatus.deviceCount = (friend.onlineStatus.deviceCount || 0) + 1
+          friend.onlineStatus.status = "online";
+          friend.onlineStatus.lastSeen = Date.now();
+          friend.onlineStatus.deviceCount =
+            (friend.onlineStatus.deviceCount || 0) + 1;
         }
 
         // 添加通知
         if (friend) {
           this.addNotification({
-            type: 'system',
-            title: '好友上线',
+            type: "system",
+            title: "好友上线",
             content: `${friend.nickname || friendDid.substring(0, 16)}... 已上线`,
-          })
+          });
         }
-      })
+      });
 
       // 监听好友离线事件
-      ipcRenderer.on('friend:offline', (_event, data) => {
-        const { friendDid } = data
-        console.log('[SocialStore] 好友离线:', friendDid)
+      ipcRenderer.on("friend:offline", (_event, data) => {
+        const { friendDid } = data;
+        console.log("[SocialStore] 好友离线:", friendDid);
 
         // 更新在线状态
-        this.onlineStatus.set(friendDid, 'offline')
+        this.onlineStatus.set(friendDid, "offline");
 
         // 更新好友列表中的在线状态
-        const friend = this.friends.find(f => f.friend_did === friendDid)
+        const friend = this.friends.find((f) => f.friend_did === friendDid);
         if (friend) {
           if (!friend.onlineStatus) {
-            friend.onlineStatus = {}
+            friend.onlineStatus = {};
           }
-          friend.onlineStatus.status = 'offline'
-          friend.onlineStatus.lastSeen = Date.now()
-          friend.onlineStatus.deviceCount = 0
+          friend.onlineStatus.status = "offline";
+          friend.onlineStatus.lastSeen = Date.now();
+          friend.onlineStatus.deviceCount = 0;
         }
-      })
+      });
 
-      console.log('[SocialStore] 在线状态监听器已初始化')
+      console.log("[SocialStore] 在线状态监听器已初始化");
     },
 
     /**
      * 移除在线状态监听
      */
     removeOnlineStatusListeners() {
-      ipcRenderer.removeAllListeners('friend:online')
-      ipcRenderer.removeAllListeners('friend:offline')
-      console.log('[SocialStore] 在线状态监听器已移除')
+      ipcRenderer.removeAllListeners("friend:online");
+      ipcRenderer.removeAllListeners("friend:offline");
+      console.log("[SocialStore] 在线状态监听器已移除");
     },
   },
-})
+});
