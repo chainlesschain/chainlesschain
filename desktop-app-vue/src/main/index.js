@@ -2058,6 +2058,43 @@ class ChainlessChainApp {
               return { success: false, error: error.message };
             }
           });
+        } else if (channel === "mcp:update-server-config") {
+          // Allow updating server config even when MCP is disabled
+          ipcMain.handle(channel, async (event, { serverName, config }) => {
+            try {
+              const {
+                getUnifiedConfigManager,
+              } = require("./config/unified-config-manager");
+              const configManager = getUnifiedConfigManager();
+              const currentConfig = configManager.getConfig("mcp") || {};
+              const servers = currentConfig.servers || {};
+              servers[serverName] = { ...servers[serverName], ...config };
+              configManager.updateConfig({
+                mcp: { ...currentConfig, servers },
+              });
+              console.log(`[Main] MCP server config updated for ${serverName}`);
+              return { success: true };
+            } catch (error) {
+              console.error("[Main] Failed to update server config:", error);
+              return { success: false, error: error.message };
+            }
+          });
+        } else if (channel === "mcp:get-server-config") {
+          // Allow reading server config even when MCP is disabled
+          ipcMain.handle(channel, async (event, { serverName }) => {
+            try {
+              const {
+                getUnifiedConfigManager,
+              } = require("./config/unified-config-manager");
+              const configManager = getUnifiedConfigManager();
+              const mcpConfig = configManager.getConfig("mcp") || {};
+              const serverConfig = mcpConfig.servers?.[serverName] || {};
+              return { success: true, config: serverConfig };
+            } catch (error) {
+              console.error("[Main] Failed to get server config:", error);
+              return { success: false, error: error.message, config: {} };
+            }
+          });
         } else {
           // All other handlers return disabled response
           ipcMain.handle(channel, async () => disabledResponse);
