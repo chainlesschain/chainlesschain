@@ -6,60 +6,74 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
-// Mock the MCP client manager
-const mockMCPClientManager = {
-  getConnectedServers: vi.fn().mockReturnValue(["filesystem"]),
-  callTool: vi.fn().mockResolvedValue({
-    content: [{ type: "text", text: "File content here" }],
-    isError: false,
-  }),
-};
+// Factory functions to create fresh mocks
+function createMockMCPClientManager() {
+  return {
+    getConnectedServers: vi.fn().mockReturnValue(["filesystem"]),
+    callTool: vi.fn().mockResolvedValue({
+      content: [{ type: "text", text: "File content here" }],
+      isError: false,
+    }),
+  };
+}
 
-// Mock the tool manager
-const mockToolManager = {
-  getTool: vi.fn().mockResolvedValue({
-    name: "mcp_filesystem_read_file",
-    description: "Read a file from the filesystem",
-    parameters_schema: {
-      type: "object",
-      properties: {
-        path: { type: "string", description: "File path" },
+function createMockToolManager() {
+  return {
+    getTool: vi.fn().mockResolvedValue({
+      name: "mcp_filesystem_read_file",
+      description: "Read a file from the filesystem",
+      parameters_schema: {
+        type: "object",
+        properties: {
+          path: { type: "string", description: "File path" },
+        },
+        required: ["path"],
       },
-      required: ["path"],
-    },
-  }),
-};
+    }),
+  };
+}
 
-// Mock the MCP tool adapter
-const mockMCPToolAdapter = {
-  getMCPTools: vi.fn().mockReturnValue([
-    {
-      toolId: "tool_filesystem_read_file",
-      serverName: "filesystem",
-      originalToolName: "read_file",
-    },
-    {
-      toolId: "tool_filesystem_list_directory",
-      serverName: "filesystem",
-      originalToolName: "list_directory",
-    },
-  ]),
-  toolManager: mockToolManager,
-};
+function createMockMCPToolAdapter(toolManager) {
+  return {
+    getMCPTools: vi.fn().mockReturnValue([
+      {
+        toolId: "mcp_filesystem_read_file",
+        serverName: "filesystem",
+        originalToolName: "read_file",
+      },
+      {
+        toolId: "mcp_filesystem_list_directory",
+        serverName: "filesystem",
+        originalToolName: "list_directory",
+      },
+    ]),
+    toolManager: toolManager,
+  };
+}
 
 // Import the executor
 const MCPFunctionExecutor = require("../../../src/main/mcp/mcp-function-executor");
 
 describe("MCPFunctionExecutor", () => {
   let executor;
+  let mockMCPClientManager;
+  let mockToolManager;
+  let mockMCPToolAdapter;
 
   beforeEach(() => {
-    vi.clearAllMocks();
-    executor = new MCPFunctionExecutor(mockMCPClientManager, mockMCPToolAdapter);
+    // Create fresh mocks for each test
+    mockMCPClientManager = createMockMCPClientManager();
+    mockToolManager = createMockToolManager();
+    mockMCPToolAdapter = createMockMCPToolAdapter(mockToolManager);
+    executor = new MCPFunctionExecutor(
+      mockMCPClientManager,
+      mockMCPToolAdapter,
+    );
   });
 
   afterEach(() => {
     executor = null;
+    vi.clearAllMocks();
   });
 
   describe("Constructor", () => {
@@ -93,12 +107,15 @@ describe("MCPFunctionExecutor", () => {
 
     it("should return cached functions on subsequent calls", async () => {
       await executor.getFunctions();
-      mockMCPToolAdapter.getMCPTools.mockClear();
+      const callCountAfterFirst =
+        mockMCPToolAdapter.getMCPTools.mock.calls.length;
 
       await executor.getFunctions();
+      const callCountAfterSecond =
+        mockMCPToolAdapter.getMCPTools.mock.calls.length;
 
       // getMCPTools should only be called once due to caching
-      expect(mockMCPToolAdapter.getMCPTools).not.toHaveBeenCalled();
+      expect(callCountAfterSecond).toBe(callCountAfterFirst);
     });
 
     it("should include name, description, and parameters in each function", async () => {
@@ -133,7 +150,7 @@ describe("MCPFunctionExecutor", () => {
       expect(mockMCPClientManager.callTool).toHaveBeenCalledWith(
         "filesystem",
         "read_file",
-        params
+        params,
       );
     });
 
@@ -162,14 +179,14 @@ describe("MCPFunctionExecutor", () => {
     });
 
     it("should throw error for unknown function name", async () => {
-      await expect(
-        executor.execute("unknown_function", {})
-      ).rejects.toThrow("Unknown MCP function");
+      await expect(executor.execute("unknown_function", {})).rejects.toThrow(
+        "Unknown MCP function",
+      );
     });
 
     it("should throw error for malformed function name", async () => {
       await expect(executor.execute("not_mcp_format", {})).rejects.toThrow(
-        "Unknown MCP function"
+        "Unknown MCP function",
       );
     });
   });
@@ -186,7 +203,7 @@ describe("MCPFunctionExecutor", () => {
 
     it("should handle tool names with underscores", () => {
       const result = executor._parseFunctionName(
-        "mcp_filesystem_list_all_files"
+        "mcp_filesystem_list_all_files",
       );
 
       expect(result).toEqual({
@@ -255,10 +272,14 @@ describe("MCPFunctionExecutor", () => {
     });
 
     it("should return false when no MCP tools are available", () => {
-      mockMCPToolAdapter.getMCPTools.mockReturnValueOnce([]);
+      // Create executor with empty tools adapter
+      const emptyToolAdapter = {
+        getMCPTools: vi.fn().mockReturnValue([]),
+        toolManager: mockToolManager,
+      };
       const emptyExecutor = new MCPFunctionExecutor(
         mockMCPClientManager,
-        { ...mockMCPToolAdapter, getMCPTools: () => [] }
+        emptyToolAdapter,
       );
 
       expect(emptyExecutor.hasTools()).toBe(false);
@@ -271,7 +292,7 @@ describe("MCPFunctionExecutor", () => {
     });
 
     it("should return 0 when no servers connected", () => {
-      mockMCPClientManager.getConnectedServers.mockReturnValueOnce([]);
+      mockMCPClientManager.getConnectedServers.mockReturnValue([]);
       expect(executor.getConnectedServerCount()).toBe(0);
     });
   });
