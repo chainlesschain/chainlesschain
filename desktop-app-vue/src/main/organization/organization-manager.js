@@ -85,7 +85,7 @@ class OrganizationManager {
       const orgDID = await this.didManager.createOrganizationDID(orgId, orgData.name);
 
       // 2. 获取当前用户DID
-      const currentIdentity = await this.didManager.getDefaultIdentity();
+      const currentIdentity = await this.didManager.getCurrentIdentity();
       if (!currentIdentity) {
         throw new Error('未找到当前用户身份');
       }
@@ -196,7 +196,7 @@ class OrganizationManager {
       }
 
       // 3. 获取当前用户DID
-      const currentIdentity = await this.didManager.getDefaultIdentity();
+      const currentIdentity = await this.didManager.getCurrentIdentity();
       if (!currentIdentity) {
         throw new Error('未找到当前用户身份');
       }
@@ -425,7 +425,7 @@ class OrganizationManager {
    */
   async updateMemberRole(orgId, memberDID, newRole) {
     // 检查操作者权限
-    const currentIdentity = await this.didManager.getDefaultIdentity();
+    const currentIdentity = await this.didManager.getCurrentIdentity();
     const canManage = await this.checkPermission(orgId, currentIdentity.did, 'member.manage');
 
     if (!canManage) {
@@ -452,7 +452,7 @@ class OrganizationManager {
    */
   async removeMember(orgId, memberDID) {
     // 检查操作者权限
-    const currentIdentity = await this.didManager.getDefaultIdentity();
+    const currentIdentity = await this.didManager.getCurrentIdentity();
     const canRemove = await this.checkPermission(orgId, currentIdentity.did, 'member.remove');
 
     if (!canRemove) {
@@ -706,7 +706,7 @@ class OrganizationManager {
       }
 
       // 2. 获取当前用户DID
-      const currentIdentity = await this.didManager.getDefaultIdentity();
+      const currentIdentity = await this.didManager.getCurrentIdentity();
       if (!currentIdentity) {
         throw new Error('未找到当前用户身份');
       }
@@ -852,7 +852,7 @@ class OrganizationManager {
       }
 
       // 4. 获取当前用户DID
-      const currentIdentity = await this.didManager.getDefaultIdentity();
+      const currentIdentity = await this.didManager.getCurrentIdentity();
       if (!currentIdentity) {
         throw new Error('未找到当前用户身份');
       }
@@ -958,7 +958,7 @@ class OrganizationManager {
       }
 
       // 3. 获取当前用户DID
-      const currentIdentity = await this.didManager.getDefaultIdentity();
+      const currentIdentity = await this.didManager.getCurrentIdentity();
       if (!currentIdentity) {
         throw new Error('未找到当前用户身份');
       }
@@ -1004,7 +1004,7 @@ class OrganizationManager {
    */
   async getPendingDIDInvitations() {
     try {
-      const currentIdentity = await this.didManager.getDefaultIdentity();
+      const currentIdentity = await this.didManager.getCurrentIdentity();
       if (!currentIdentity) {
         return [];
       }
