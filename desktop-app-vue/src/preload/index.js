@@ -1045,6 +1045,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
     aiChatStream: (chatData) =>
       ipcRenderer.invoke("project:aiChatStream", removeUndefined(chatData)),
 
+    // 意图理解 - 分析用户输入的意图
+    understandIntent: (data) =>
+      ipcRenderer.invoke("project:understandIntent", removeUndefined(data)),
+
     // 路径解析
     resolvePath: (relativePath) =>
       ipcRenderer.invoke("project:resolve-path", relativePath),
@@ -2425,6 +2429,99 @@ contextBridge.exposeInMainWorld("electronAPI", {
    * @returns {Promise<{success: boolean, error?: string}>}
    */
   logError: (errorInfo) => ipcRenderer.invoke("log:error", errorInfo),
+
+  // ==========================================
+  // Memory Sync Service (数据同步到文件系统)
+  // ==========================================
+  /**
+   * 内存数据同步服务 API
+   * 将数据库中的数据同步到 .chainlesschain/ 文件系统目录
+   *
+   * @example
+   * // 触发全量同步
+   * const result = await window.electronAPI.memorySync.syncAll();
+   *
+   * // 同步特定类别
+   * await window.electronAPI.memorySync.syncCategory('sessions');
+   */
+  memorySync: {
+    /**
+     * 触发全量同步
+     * @returns {Promise<{success: boolean, results?: object, duration?: number, error?: string}>}
+     */
+    syncAll: () => ipcRenderer.invoke("memory-sync:sync-all"),
+
+    /**
+     * 同步特定类别
+     * @param {string} category - 类别名称: 'preferences' | 'patterns' | 'sessions' | 'behaviors' | 'contexts'
+     * @returns {Promise<{success: boolean, count?: number, error?: string}>}
+     */
+    syncCategory: (category) =>
+      ipcRenderer.invoke("memory-sync:sync-category", category),
+
+    /**
+     * 获取同步状态
+     * @returns {Promise<{initialized: boolean, isSyncing: boolean, lastSyncTime: number|null, stats: object}>}
+     */
+    getStatus: () => ipcRenderer.invoke("memory-sync:get-status"),
+
+    /**
+     * 启动定期同步
+     * @returns {Promise<{success: boolean}>}
+     */
+    startPeriodicSync: () => ipcRenderer.invoke("memory-sync:start-periodic"),
+
+    /**
+     * 停止定期同步
+     * @returns {Promise<{success: boolean}>}
+     */
+    stopPeriodicSync: () => ipcRenderer.invoke("memory-sync:stop-periodic"),
+
+    /**
+     * 生成同步报告
+     * @returns {Promise<object>} 同步报告
+     */
+    generateReport: () => ipcRenderer.invoke("memory-sync:generate-report"),
+
+    /**
+     * 确保所有目录存在
+     * @returns {Promise<{success: boolean}>}
+     */
+    ensureDirectories: () =>
+      ipcRenderer.invoke("memory-sync:ensure-directories"),
+  },
+
+  // ==========================================
+  // 主进程日志转发
+  // ==========================================
+  /**
+   * 监听主进程日志
+   * 用于在 DevTools 中显示主进程的 console 输出
+   *
+   * @example
+   * window.electronAPI.mainLog.onLog((log) => {
+   *   console[log.level](`[Main ${log.time}]`, ...log.args);
+   * });
+   */
+  mainLog: {
+    /**
+     * 监听主进程日志
+     * @param {Function} callback - 回调函数，接收 {level, timestamp, time, args}
+     * @returns {Function} 取消监听的函数
+     */
+    onLog: (callback) => {
+      const handler = (_event, log) => callback(log);
+      ipcRenderer.on("main:log", handler);
+      return () => ipcRenderer.removeListener("main:log", handler);
+    },
+
+    /**
+     * 移除所有日志监听器
+     */
+    removeAllListeners: () => {
+      ipcRenderer.removeAllListeners("main:log");
+    },
+  },
 });
 
 // Also expose a direct electron object for components that use window.electron.ipcRenderer

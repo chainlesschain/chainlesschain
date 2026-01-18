@@ -287,11 +287,9 @@ class MemorySyncService extends EventEmitter {
     }
 
     try {
-      // 获取最近的会话
-      const { sessions } = await this.sessionManager.loadSessions({
+      // 获取最近的会话（listSessions 返回数组）
+      const sessions = await this.sessionManager.listSessions({
         limit: 100,
-        sortBy: "updated_at",
-        sortOrder: "desc",
       });
 
       let syncedCount = 0;
@@ -323,7 +321,7 @@ class MemorySyncService extends EventEmitter {
             sessions: sessions.map((s) => ({
               id: s.id,
               title: s.title,
-              updatedAt: s.updatedAt || s.updated_at,
+              updatedAt: s.updatedAt,
             })),
           },
           null,
