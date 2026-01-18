@@ -1409,6 +1409,439 @@ function registerLLMIPC({
     },
   );
 
+  // ============================================================
+  // Alert History (告警历史)
+  // ============================================================
+
+  /**
+   * 获取告警历史
+   * Channel: 'llm:get-alert-history'
+   */
+  ipcMain.handle("llm:get-alert-history", async (_event, options = {}) => {
+    try {
+      if (!database) {
+        return [];
+      }
+
+      const {
+        limit = 100,
+        userId = "default",
+        level,
+        includesDismissed = true,
+      } = options;
+
+      let sql = `
+        SELECT * FROM llm_alert_history
+        WHERE user_id = ?
+      `;
+      const params = [userId];
+
+      if (level) {
+        sql += " AND level = ?";
+        params.push(level);
+      }
+
+      if (!includesDismissed) {
+        sql += " AND dismissed = 0";
+      }
+
+      sql += " ORDER BY created_at DESC LIMIT ?";
+      params.push(limit);
+
+      const alerts = database.prepare(sql).all(...params);
+
+      return alerts.map((alert) => ({
+        ...alert,
+        details: alert.details ? JSON.parse(alert.details) : null,
+        dismissed: alert.dismissed === 1,
+      }));
+    } catch (error) {
+      console.error("[LLM IPC] 获取告警历史失败:", error);
+      return [];
+    }
+  });
+
+  /**
+   * 添加告警到历史记录
+   * Channel: 'llm:add-alert'
+   */
+  ipcMain.handle("llm:add-alert", async (_event, alert) => {
+    try {
+      if (!database) {
+        throw new Error("数据库未初始化");
+      }
+
+      const { v4: uuidv4 } = require("uuid");
+      const now = Date.now();
+
+      const id = uuidv4();
+      const insert = database.prepare(`
+        INSERT INTO llm_alert_history (
+          id, user_id, type, level, title, message, details,
+          dismissed, dismissed_at, dismissed_by,
+          related_provider, related_model,
+          created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, 0, NULL, NULL, ?, ?, ?, ?)
+      `);
+
+      insert.run(
+        id,
+        alert.userId || "default",
+        alert.type,
+        alert.level,
+        alert.title,
+        alert.message,
+        alert.details ? JSON.stringify(alert.details) : null,
+        alert.provider || null,
+        alert.model || null,
+        now,
+        now,
+      );
+
+      return { success: true, id };
+    } catch (error) {
+      console.error("[LLM IPC] 添加告警失败:", error);
+      throw error;
+    }
+  });
+
+  /**
+   * 忽略/处理告警
+   * Channel: 'llm:dismiss-alert'
+   */
+  ipcMain.handle(
+    "llm:dismiss-alert",
+    async (_event, alertId, dismissedBy = "user") => {
+      try {
+        if (!database) {
+          throw new Error("数据库未初始化");
+        }
+
+        const now = Date.now();
+        const update = database.prepare(`
+        UPDATE llm_alert_history
+        SET dismissed = 1, dismissed_at = ?, dismissed_by = ?, updated_at = ?
+        WHERE id = ?
+      `);
+
+        update.run(now, dismissedBy, now, alertId);
+
+        return { success: true };
+      } catch (error) {
+        console.error("[LLM IPC] 忽略告警失败:", error);
+        throw error;
+      }
+    },
+  );
+
+  /**
+   * 清除告警历史
+   * Channel: 'llm:clear-alert-history'
+   */
+  ipcMain.handle("llm:clear-alert-history", async (_event, options = {}) => {
+    try {
+      if (!database) {
+        throw new Error("数据库未初始化");
+      }
+
+      const { userId = "default", olderThanDays } = options;
+
+      if (olderThanDays) {
+        const cutoff = Date.now() - olderThanDays * 24 * 60 * 60 * 1000;
+        database
+          .prepare(
+            "DELETE FROM llm_alert_history WHERE user_id = ? AND created_at < ?",
+          )
+          .run(userId, cutoff);
+      } else {
+        database
+          .prepare("DELETE FROM llm_alert_history WHERE user_id = ?")
+          .run(userId);
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error("[LLM IPC] 清除告警历史失败:", error);
+      throw error;
+    }
+  });
+
+  // ============================================================
+  // Model-specific Budgets (按模型预算)
+  // ============================================================
+
+  /**
+   * 获取模型预算列表
+   * Channel: 'llm:get-model-budgets'
+   */
+  ipcMain.handle(
+    "llm:get-model-budgets",
+    async (_event, userId = "default") => {
+      try {
+        if (!database) {
+          return [];
+        }
+
+        const budgets = database
+          .prepare(
+            "SELECT * FROM llm_model_budgets WHERE user_id = ? ORDER BY total_cost_usd DESC",
+          )
+          .all(userId);
+
+        return budgets.map((b) => ({
+          ...b,
+          enabled: b.enabled === 1,
+          alertOnLimit: b.alert_on_limit === 1,
+          blockOnLimit: b.block_on_limit === 1,
+        }));
+      } catch (error) {
+        console.error("[LLM IPC] 获取模型预算失败:", error);
+        return [];
+      }
+    },
+  );
+
+  /**
+   * 设置模型预算
+   * Channel: 'llm:set-model-budget'
+   */
+  ipcMain.handle("llm:set-model-budget", async (_event, config) => {
+    try {
+      if (!database) {
+        throw new Error("数据库未初始化");
+      }
+
+      const { v4: uuidv4 } = require("uuid");
+      const now = Date.now();
+
+      const upsert = database.prepare(`
+        INSERT INTO llm_model_budgets (
+          id, user_id, provider, model,
+          daily_limit_usd, weekly_limit_usd, monthly_limit_usd,
+          current_daily_spend, current_weekly_spend, current_monthly_spend,
+          total_calls, total_tokens, total_cost_usd,
+          enabled, alert_on_limit, block_on_limit,
+          created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 0, 0, 0, ?, ?, ?, ?, ?)
+        ON CONFLICT(user_id, provider, model) DO UPDATE SET
+          daily_limit_usd = excluded.daily_limit_usd,
+          weekly_limit_usd = excluded.weekly_limit_usd,
+          monthly_limit_usd = excluded.monthly_limit_usd,
+          enabled = excluded.enabled,
+          alert_on_limit = excluded.alert_on_limit,
+          block_on_limit = excluded.block_on_limit,
+          updated_at = excluded.updated_at
+      `);
+
+      upsert.run(
+        uuidv4(),
+        config.userId || "default",
+        config.provider,
+        config.model,
+        config.dailyLimitUsd || 0,
+        config.weeklyLimitUsd || 0,
+        config.monthlyLimitUsd || 0,
+        config.enabled !== false ? 1 : 0,
+        config.alertOnLimit !== false ? 1 : 0,
+        config.blockOnLimit === true ? 1 : 0,
+        now,
+        now,
+      );
+
+      return { success: true };
+    } catch (error) {
+      console.error("[LLM IPC] 设置模型预算失败:", error);
+      throw error;
+    }
+  });
+
+  /**
+   * 删除模型预算
+   * Channel: 'llm:delete-model-budget'
+   */
+  ipcMain.handle(
+    "llm:delete-model-budget",
+    async (_event, { userId = "default", provider, model }) => {
+      try {
+        if (!database) {
+          throw new Error("数据库未初始化");
+        }
+
+        database
+          .prepare(
+            "DELETE FROM llm_model_budgets WHERE user_id = ? AND provider = ? AND model = ?",
+          )
+          .run(userId, provider, model);
+
+        return { success: true };
+      } catch (error) {
+        console.error("[LLM IPC] 删除模型预算失败:", error);
+        throw error;
+      }
+    },
+  );
+
+  // ============================================================
+  // Data Retention (数据保留设置)
+  // ============================================================
+
+  /**
+   * 获取数据保留配置
+   * Channel: 'llm:get-retention-config'
+   */
+  ipcMain.handle(
+    "llm:get-retention-config",
+    async (_event, userId = "default") => {
+      try {
+        if (!database) {
+          return null;
+        }
+
+        const config = database
+          .prepare("SELECT * FROM llm_data_retention_config WHERE user_id = ?")
+          .get(userId);
+
+        if (config) {
+          return {
+            ...config,
+            autoCleanupEnabled: config.auto_cleanup_enabled === 1,
+            usageLogRetentionDays: config.usage_log_retention_days,
+            cacheRetentionDays: config.cache_retention_days,
+            alertHistoryRetentionDays: config.alert_history_retention_days,
+          };
+        }
+
+        return null;
+      } catch (error) {
+        console.error("[LLM IPC] 获取数据保留配置失败:", error);
+        return null;
+      }
+    },
+  );
+
+  /**
+   * 设置数据保留配置
+   * Channel: 'llm:set-retention-config'
+   */
+  ipcMain.handle("llm:set-retention-config", async (_event, config) => {
+    try {
+      if (!database) {
+        throw new Error("数据库未初始化");
+      }
+
+      const now = Date.now();
+
+      database
+        .prepare(
+          `
+        UPDATE llm_data_retention_config SET
+          usage_log_retention_days = ?,
+          cache_retention_days = ?,
+          alert_history_retention_days = ?,
+          auto_cleanup_enabled = ?,
+          updated_at = ?
+        WHERE user_id = ?
+      `,
+        )
+        .run(
+          config.usageLogRetentionDays || 90,
+          config.cacheRetentionDays || 7,
+          config.alertHistoryRetentionDays || 30,
+          config.autoCleanupEnabled !== false ? 1 : 0,
+          now,
+          config.userId || "default",
+        );
+
+      return { success: true };
+    } catch (error) {
+      console.error("[LLM IPC] 设置数据保留配置失败:", error);
+      throw error;
+    }
+  });
+
+  /**
+   * 手动清理旧数据
+   * Channel: 'llm:cleanup-old-data'
+   */
+  ipcMain.handle("llm:cleanup-old-data", async (_event, userId = "default") => {
+    try {
+      if (!database) {
+        throw new Error("数据库未初始化");
+      }
+
+      // 获取保留配置
+      const config = database
+        .prepare("SELECT * FROM llm_data_retention_config WHERE user_id = ?")
+        .get(userId);
+
+      if (!config) {
+        return { success: false, error: "配置不存在" };
+      }
+
+      const now = Date.now();
+      let deletedCounts = {
+        usageLogs: 0,
+        cache: 0,
+        alerts: 0,
+      };
+
+      // 清理使用日志
+      if (config.usage_log_retention_days > 0) {
+        const usageCutoff =
+          now - config.usage_log_retention_days * 24 * 60 * 60 * 1000;
+        const usageResult = database
+          .prepare(
+            "DELETE FROM llm_usage_log WHERE created_at < ? AND user_id = ?",
+          )
+          .run(usageCutoff, userId);
+        deletedCounts.usageLogs = usageResult.changes;
+      }
+
+      // 清理缓存
+      if (config.cache_retention_days > 0) {
+        const cacheCutoff =
+          now - config.cache_retention_days * 24 * 60 * 60 * 1000;
+        const cacheResult = database
+          .prepare("DELETE FROM llm_cache WHERE created_at < ?")
+          .run(cacheCutoff);
+        deletedCounts.cache = cacheResult.changes;
+      }
+
+      // 清理告警历史
+      if (config.alert_history_retention_days > 0) {
+        const alertCutoff =
+          now - config.alert_history_retention_days * 24 * 60 * 60 * 1000;
+        const alertResult = database
+          .prepare(
+            "DELETE FROM llm_alert_history WHERE created_at < ? AND user_id = ?",
+          )
+          .run(alertCutoff, userId);
+        deletedCounts.alerts = alertResult.changes;
+      }
+
+      // 更新最后清理时间
+      database
+        .prepare(
+          `
+        UPDATE llm_data_retention_config SET last_cleanup_at = ?, updated_at = ?
+        WHERE user_id = ?
+      `,
+        )
+        .run(now, now, userId);
+
+      console.log("[LLM IPC] 数据清理完成:", deletedCounts);
+
+      return { success: true, deletedCounts };
+    } catch (error) {
+      console.error("[LLM IPC] 清理旧数据失败:", error);
+      throw error;
+    }
+  });
+
+  // ============================================================
+  // Test Data Generation (测试数据生成)
+  // ============================================================
+
   /**
    * 生成 LLM 测试数据（仅用于开发测试）
    * Channel: 'llm:generate-test-data'
@@ -1574,7 +2007,7 @@ function registerLLMIPC({
   ipcGuard.markModuleRegistered("llm-ipc");
 
   console.log(
-    "[LLM IPC] ✓ All LLM IPC handlers registered successfully (33 handlers: 14 basic + 6 stream + 13 token tracking)",
+    "[LLM IPC] ✓ All LLM IPC handlers registered successfully (44 handlers: 14 basic + 6 stream + 13 token tracking + 4 alerts + 4 model budgets + 3 retention)",
   );
 }
 
