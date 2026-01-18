@@ -371,6 +371,152 @@ function registerMemoryDashboardIPC(dependencies) {
   );
 
   // ============================================================
+  // Auto-Summary Management
+  // ============================================================
+
+  /**
+   * Get auto-summary configuration and statistics
+   * Channel: 'memory:get-auto-summary-info'
+   */
+  ipcMain.handle("memory:get-auto-summary-info", async () => {
+    try {
+      if (!refs.sessionManager) {
+        return {
+          config: null,
+          stats: null,
+          enabled: false,
+        };
+      }
+
+      const config = refs.sessionManager.getAutoSummaryConfig();
+      const stats = await refs.sessionManager.getAutoSummaryStats();
+
+      return {
+        config,
+        stats,
+        enabled: config.enabled,
+      };
+    } catch (error) {
+      console.error(
+        "[MemoryDashboard IPC] Get auto-summary info failed:",
+        error,
+      );
+      throw error;
+    }
+  });
+
+  /**
+   * Update auto-summary configuration
+   * Channel: 'memory:update-auto-summary-config'
+   */
+  ipcMain.handle(
+    "memory:update-auto-summary-config",
+    async (_event, config) => {
+      try {
+        if (!refs.sessionManager) {
+          throw new Error("SessionManager not initialized");
+        }
+
+        return refs.sessionManager.updateAutoSummaryConfig(config);
+      } catch (error) {
+        console.error(
+          "[MemoryDashboard IPC] Update auto-summary config failed:",
+          error,
+        );
+        throw error;
+      }
+    },
+  );
+
+  /**
+   * Toggle background summary generator
+   * Channel: 'memory:toggle-background-summary'
+   */
+  ipcMain.handle("memory:toggle-background-summary", async (_event, enable) => {
+    try {
+      if (!refs.sessionManager) {
+        throw new Error("SessionManager not initialized");
+      }
+
+      if (enable) {
+        refs.sessionManager.startBackgroundSummaryGenerator();
+      } else {
+        refs.sessionManager.stopBackgroundSummaryGenerator();
+      }
+
+      return {
+        success: true,
+        isRunning: refs.sessionManager.getAutoSummaryConfig().isRunning,
+      };
+    } catch (error) {
+      console.error(
+        "[MemoryDashboard IPC] Toggle background summary failed:",
+        error,
+      );
+      throw error;
+    }
+  });
+
+  /**
+   * Trigger bulk summary generation for sessions without summaries
+   * Channel: 'memory:trigger-auto-summaries'
+   */
+  ipcMain.handle(
+    "memory:trigger-auto-summaries",
+    async (_event, options = {}) => {
+      try {
+        if (!refs.sessionManager) {
+          throw new Error("SessionManager not initialized");
+        }
+
+        const result = await refs.sessionManager.triggerBulkSummaryGeneration({
+          overwrite: options.overwrite || false,
+          limit: options.limit || 50,
+        });
+
+        return result;
+      } catch (error) {
+        console.error(
+          "[MemoryDashboard IPC] Trigger auto-summaries failed:",
+          error,
+        );
+        throw error;
+      }
+    },
+  );
+
+  /**
+   * Get sessions without summaries
+   * Channel: 'memory:get-sessions-without-summary'
+   */
+  ipcMain.handle(
+    "memory:get-sessions-without-summary",
+    async (_event, options = {}) => {
+      try {
+        if (!refs.sessionManager) {
+          return { sessions: [], total: 0 };
+        }
+
+        const sessions = await refs.sessionManager.getSessionsWithoutSummary({
+          limit: options.limit || 50,
+          minMessages: options.minMessages || 5,
+        });
+
+        return {
+          sessions,
+          total: sessions.length,
+        };
+      } catch (error) {
+        console.error(
+          "[MemoryDashboard IPC] Get sessions without summary failed:",
+          error,
+        );
+        throw error;
+      }
+    },
+  );
+
+  // ============================================================
   // Storage Management
   // ============================================================
 
