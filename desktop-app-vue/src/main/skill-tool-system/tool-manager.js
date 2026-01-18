@@ -3,8 +3,8 @@
  * 负责工具的注册、管理、统计和与FunctionCaller的集成
  */
 
-const { v4: uuidv4 } = require('uuid');
-const DocGenerator = require('./doc-generator');
+const { v4: uuidv4 } = require("uuid");
+const DocGenerator = require("./doc-generator");
 
 class ToolManager {
   constructor(database, functionCaller, dependencies = {}) {
@@ -30,7 +30,7 @@ class ToolManager {
    */
   async initialize() {
     try {
-      console.log('[ToolManager] 初始化工具管理器...');
+      console.log("[ToolManager] 初始化工具管理器...");
 
       // 1. 初始化文档生成器
       await this.docGenerator.initialize();
@@ -52,7 +52,7 @@ class ToolManager {
 
       return true;
     } catch (error) {
-      console.error('[ToolManager] 初始化失败:', error);
+      console.error("[ToolManager] 初始化失败:", error);
       throw error;
     }
   }
@@ -74,14 +74,16 @@ class ToolManager {
 
       // 1. 验证必填字段
       if (!toolData.name) {
-        throw new Error('工具名称(name)是必填字段');
+        throw new Error("工具名称(name)是必填字段");
       }
 
       // 2. 验证参数schema
       if (toolData.parameters_schema) {
-        const isValid = this.validateParametersSchema(toolData.parameters_schema);
+        const isValid = this.validateParametersSchema(
+          toolData.parameters_schema,
+        );
         if (!isValid) {
-          throw new Error('参数schema验证失败：schema必须包含type字段');
+          throw new Error("参数schema验证失败：schema必须包含type字段");
         }
       }
 
@@ -90,30 +92,35 @@ class ToolManager {
         id: toolId,
         name: toolData.name,
         display_name: toolData.display_name || toolData.name,
-        description: toolData.description || '',
-        tool_type: toolData.tool_type || 'function',
-        category: toolData.category || 'general',
-        parameters_schema: typeof toolData.parameters_schema === 'string'
-          ? toolData.parameters_schema
-          : JSON.stringify(toolData.parameters_schema || {}),
-        return_schema: typeof toolData.return_schema === 'string'
-          ? toolData.return_schema
-          : JSON.stringify(toolData.return_schema || {}),
+        description: toolData.description || "",
+        tool_type: toolData.tool_type || "function",
+        category: toolData.category || "general",
+        parameters_schema:
+          typeof toolData.parameters_schema === "string"
+            ? toolData.parameters_schema
+            : JSON.stringify(toolData.parameters_schema || {}),
+        return_schema:
+          typeof toolData.return_schema === "string"
+            ? toolData.return_schema
+            : JSON.stringify(toolData.return_schema || {}),
         is_builtin: toolData.is_builtin || 0,
         plugin_id: toolData.plugin_id || null,
         handler_path: toolData.handler_path || null,
         enabled: toolData.enabled !== undefined ? toolData.enabled : 1,
         deprecated: toolData.deprecated || 0,
-        config: typeof toolData.config === 'string'
-          ? toolData.config
-          : JSON.stringify(toolData.config || {}),
-        examples: typeof toolData.examples === 'string'
-          ? toolData.examples
-          : JSON.stringify(toolData.examples || []),
+        config:
+          typeof toolData.config === "string"
+            ? toolData.config
+            : JSON.stringify(toolData.config || {}),
+        examples:
+          typeof toolData.examples === "string"
+            ? toolData.examples
+            : JSON.stringify(toolData.examples || []),
         doc_path: toolData.doc_path || null,
-        required_permissions: typeof toolData.required_permissions === 'string'
-          ? toolData.required_permissions
-          : JSON.stringify(toolData.required_permissions || []),
+        required_permissions:
+          typeof toolData.required_permissions === "string"
+            ? toolData.required_permissions
+            : JSON.stringify(toolData.required_permissions || []),
         risk_level: toolData.risk_level || 1,
         usage_count: 0,
         success_count: 0,
@@ -124,6 +131,8 @@ class ToolManager {
       };
 
       // 4. 保存到数据库
+      // Use ON CONFLICT(name) since both id and name can be unique constraints
+      // This ensures upsert works even if the same tool is re-registered
       const sql = `
         INSERT INTO tools (
           id, name, display_name, description, tool_type, category,
@@ -133,7 +142,8 @@ class ToolManager {
           success_count, avg_execution_time, last_used_at,
           created_at, updated_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ON CONFLICT(id) DO UPDATE SET
+        ON CONFLICT(name) DO UPDATE SET
+          id = excluded.id,
           display_name = excluded.display_name,
           description = excluded.description,
           parameters_schema = excluded.parameters_schema,
@@ -142,15 +152,30 @@ class ToolManager {
       `;
 
       await this.db.run(sql, [
-        toolRecord.id, toolRecord.name, toolRecord.display_name,
-        toolRecord.description, toolRecord.tool_type, toolRecord.category,
-        toolRecord.parameters_schema, toolRecord.return_schema,
-        toolRecord.is_builtin, toolRecord.plugin_id, toolRecord.handler_path,
-        toolRecord.enabled, toolRecord.deprecated, toolRecord.config,
-        toolRecord.examples, toolRecord.doc_path, toolRecord.required_permissions,
-        toolRecord.risk_level, toolRecord.usage_count, toolRecord.success_count,
-        toolRecord.avg_execution_time, toolRecord.last_used_at,
-        toolRecord.created_at, toolRecord.updated_at,
+        toolRecord.id,
+        toolRecord.name,
+        toolRecord.display_name,
+        toolRecord.description,
+        toolRecord.tool_type,
+        toolRecord.category,
+        toolRecord.parameters_schema,
+        toolRecord.return_schema,
+        toolRecord.is_builtin,
+        toolRecord.plugin_id,
+        toolRecord.handler_path,
+        toolRecord.enabled,
+        toolRecord.deprecated,
+        toolRecord.config,
+        toolRecord.examples,
+        toolRecord.doc_path,
+        toolRecord.required_permissions,
+        toolRecord.risk_level,
+        toolRecord.usage_count,
+        toolRecord.success_count,
+        toolRecord.avg_execution_time,
+        toolRecord.last_used_at,
+        toolRecord.created_at,
+        toolRecord.updated_at,
       ]);
 
       // 5. 注册到FunctionCaller
@@ -173,7 +198,7 @@ class ToolManager {
 
       return toolId;
     } catch (error) {
-      console.error('[ToolManager] 注册工具失败:', error);
+      console.error("[ToolManager] 注册工具失败:", error);
       throw error;
     }
   }
@@ -195,14 +220,14 @@ class ToolManager {
       }
 
       // 2. 从数据库删除
-      await this.db.run('DELETE FROM tools WHERE id = ?', [toolId]);
+      await this.db.run("DELETE FROM tools WHERE id = ?", [toolId]);
 
       // 3. 从缓存中移除
       this.tools.delete(toolId);
 
       console.log(`[ToolManager] 工具注销成功: ${tool.name}`);
     } catch (error) {
-      console.error('[ToolManager] 注销工具失败:', error);
+      console.error("[ToolManager] 注销工具失败:", error);
       throw error;
     }
   }
@@ -220,9 +245,17 @@ class ToolManager {
       }
 
       const allowedFields = [
-        'display_name', 'description', 'parameters_schema', 'return_schema',
-        'config', 'examples', 'doc_path', 'enabled', 'deprecated',
-        'required_permissions', 'risk_level',
+        "display_name",
+        "description",
+        "parameters_schema",
+        "return_schema",
+        "config",
+        "examples",
+        "doc_path",
+        "enabled",
+        "deprecated",
+        "required_permissions",
+        "risk_level",
       ];
 
       const updatePairs = [];
@@ -233,8 +266,18 @@ class ToolManager {
           updatePairs.push(`${key} = ?`);
 
           // 处理JSON字段
-          if (['parameters_schema', 'return_schema', 'config', 'examples', 'required_permissions'].includes(key)) {
-            updateValues.push(typeof value === 'string' ? value : JSON.stringify(value));
+          if (
+            [
+              "parameters_schema",
+              "return_schema",
+              "config",
+              "examples",
+              "required_permissions",
+            ].includes(key)
+          ) {
+            updateValues.push(
+              typeof value === "string" ? value : JSON.stringify(value),
+            );
           } else {
             updateValues.push(value);
           }
@@ -245,11 +288,11 @@ class ToolManager {
         return { success: true, changes: 0 };
       }
 
-      updatePairs.push('updated_at = ?');
+      updatePairs.push("updated_at = ?");
       updateValues.push(Date.now());
       updateValues.push(toolId);
 
-      const sql = `UPDATE tools SET ${updatePairs.join(', ')} WHERE id = ?`;
+      const sql = `UPDATE tools SET ${updatePairs.join(", ")} WHERE id = ?`;
       const result = await this.db.run(sql, updateValues);
 
       // 更新缓存
@@ -259,7 +302,7 @@ class ToolManager {
       console.log(`[ToolManager] 工具更新成功: ${tool.name}`);
       return { success: true, changes: result.changes || 1 };
     } catch (error) {
-      console.error('[ToolManager] 更新工具失败:', error);
+      console.error("[ToolManager] 更新工具失败:", error);
       return { success: false, changes: 0, error: error.message };
     }
   }
@@ -277,13 +320,15 @@ class ToolManager {
       }
 
       // 查数据库
-      const tool = await this.db.get('SELECT * FROM tools WHERE id = ?', [toolId]);
+      const tool = await this.db.get("SELECT * FROM tools WHERE id = ?", [
+        toolId,
+      ]);
       if (tool) {
         this.tools.set(toolId, tool);
       }
       return tool;
     } catch (error) {
-      console.error('[ToolManager] 获取工具失败:', error);
+      console.error("[ToolManager] 获取工具失败:", error);
       return null;
     }
   }
@@ -295,10 +340,12 @@ class ToolManager {
    */
   async getToolByName(name) {
     try {
-      const tool = await this.db.get('SELECT * FROM tools WHERE name = ?', [name]);
+      const tool = await this.db.get("SELECT * FROM tools WHERE name = ?", [
+        name,
+      ]);
       return tool;
     } catch (error) {
-      console.error('[ToolManager] 获取工具失败:', error);
+      console.error("[ToolManager] 获取工具失败:", error);
       return null;
     }
   }
@@ -324,45 +371,45 @@ class ToolManager {
         offset = 0,
       } = options;
 
-      let sql = 'SELECT * FROM tools WHERE 1=1';
+      let sql = "SELECT * FROM tools WHERE 1=1";
       const params = [];
 
       if (enabled !== null) {
-        sql += ' AND enabled = ?';
+        sql += " AND enabled = ?";
         params.push(enabled);
       }
 
       if (category !== null) {
-        sql += ' AND category = ?';
+        sql += " AND category = ?";
         params.push(category);
       }
 
       if (plugin_id !== null) {
-        sql += ' AND plugin_id = ?';
+        sql += " AND plugin_id = ?";
         params.push(plugin_id);
       }
 
       if (is_builtin !== null) {
-        sql += ' AND is_builtin = ?';
+        sql += " AND is_builtin = ?";
         params.push(is_builtin);
       }
 
       if (deprecated !== null) {
-        sql += ' AND deprecated = ?';
+        sql += " AND deprecated = ?";
         params.push(deprecated);
       }
 
-      sql += ' ORDER BY usage_count DESC';
+      sql += " ORDER BY usage_count DESC";
 
       if (limit !== null) {
-        sql += ' LIMIT ? OFFSET ?';
+        sql += " LIMIT ? OFFSET ?";
         params.push(limit, offset);
       }
 
       const tools = await this.db.all(sql, params);
       return tools;
     } catch (error) {
-      console.error('[ToolManager] 获取工具列表失败:', error);
+      console.error("[ToolManager] 获取工具列表失败:", error);
       return [];
     }
   }
@@ -392,7 +439,7 @@ class ToolManager {
       const tools = await this.db.all(sql, [skillId]);
       return tools;
     } catch (error) {
-      console.error('[ToolManager] 获取技能工具失败:', error);
+      console.error("[ToolManager] 获取技能工具失败:", error);
       return [];
     }
   }
@@ -448,23 +495,28 @@ class ToolManager {
       }
 
       const newUsageCount = tool.usage_count + 1;
-      const newSuccessCount = success ? tool.success_count + 1 : tool.success_count;
-      const newAvgTime = ((tool.avg_execution_time * tool.usage_count) + duration) / newUsageCount;
+      const newSuccessCount = success
+        ? tool.success_count + 1
+        : tool.success_count;
+      const newAvgTime =
+        (tool.avg_execution_time * tool.usage_count + duration) / newUsageCount;
 
-      await this.db.run(`
+      await this.db.run(
+        `
         UPDATE tools
         SET usage_count = ?,
             success_count = ?,
             avg_execution_time = ?,
             last_used_at = ?
         WHERE id = ?
-      `, [newUsageCount, newSuccessCount, newAvgTime, Date.now(), tool.id]);
+      `,
+        [newUsageCount, newSuccessCount, newAvgTime, Date.now(), tool.id],
+      );
 
       // 2. 更新每日统计表
       await this.updateDailyStats(tool.id, success, duration, errorType);
-
     } catch (error) {
-      console.error('[ToolManager] 记录工具使用失败:', error);
+      console.error("[ToolManager] 记录工具使用失败:", error);
     }
   }
 
@@ -477,20 +529,24 @@ class ToolManager {
    */
   async updateDailyStats(toolId, success, duration, errorType) {
     try {
-      const statDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+      const statDate = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
       const now = Date.now();
 
       // 查询今日统计
       const stat = await this.db.get(
-        'SELECT * FROM tool_stats WHERE tool_id = ? AND stat_date = ?',
-        [toolId, statDate]
+        "SELECT * FROM tool_stats WHERE tool_id = ? AND stat_date = ?",
+        [toolId, statDate],
       );
 
       if (stat) {
         // 更新现有统计
         const newInvokeCount = stat.invoke_count + 1;
-        const newSuccessCount = success ? stat.success_count + 1 : stat.success_count;
-        const newFailureCount = success ? stat.failure_count : stat.failure_count + 1;
+        const newSuccessCount = success
+          ? stat.success_count + 1
+          : stat.success_count;
+        const newFailureCount = success
+          ? stat.failure_count
+          : stat.failure_count + 1;
         const newTotalDuration = stat.total_duration + duration;
         const newAvgDuration = newTotalDuration / newInvokeCount;
 
@@ -506,7 +562,8 @@ class ToolManager {
           errorTypes[errorType] = (errorTypes[errorType] || 0) + 1;
         }
 
-        await this.db.run(`
+        await this.db.run(
+          `
           UPDATE tool_stats
           SET invoke_count = ?,
               success_count = ?,
@@ -516,11 +573,18 @@ class ToolManager {
               error_types = ?,
               updated_at = ?
           WHERE id = ?
-        `, [
-          newInvokeCount, newSuccessCount, newFailureCount,
-          newAvgDuration, newTotalDuration, JSON.stringify(errorTypes),
-          now, stat.id
-        ]);
+        `,
+          [
+            newInvokeCount,
+            newSuccessCount,
+            newFailureCount,
+            newAvgDuration,
+            newTotalDuration,
+            JSON.stringify(errorTypes),
+            now,
+            stat.id,
+          ],
+        );
       } else {
         // 创建新统计
         const errorTypes = {};
@@ -528,21 +592,31 @@ class ToolManager {
           errorTypes[errorType] = 1;
         }
 
-        await this.db.run(`
+        await this.db.run(
+          `
           INSERT INTO tool_stats (
             id, tool_id, stat_date, invoke_count, success_count,
             failure_count, avg_duration, total_duration, error_types,
             created_at, updated_at
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `, [
-          `stat_${uuidv4()}`, toolId, statDate, 1,
-          success ? 1 : 0, success ? 0 : 1,
-          duration, duration, JSON.stringify(errorTypes),
-          now, now
-        ]);
+        `,
+          [
+            `stat_${uuidv4()}`,
+            toolId,
+            statDate,
+            1,
+            success ? 1 : 0,
+            success ? 0 : 1,
+            duration,
+            duration,
+            JSON.stringify(errorTypes),
+            now,
+            now,
+          ],
+        );
       }
     } catch (error) {
-      console.error('[ToolManager] 更新每日统计失败:', error);
+      console.error("[ToolManager] 更新每日统计失败:", error);
     }
   }
 
@@ -558,7 +632,7 @@ class ToolManager {
       if (!toolId) {
         const allTools = await this.getAllTools();
         // getAllTools 可能返回数组或 { tools: [] } 对象
-        const tools = Array.isArray(allTools) ? allTools : (allTools.tools || []);
+        const tools = Array.isArray(allTools) ? allTools : allTools.tools || [];
 
         const stats = {
           totalTools: tools.length,
@@ -566,14 +640,16 @@ class ToolManager {
           types: {},
         };
 
-        tools.forEach(tool => {
+        tools.forEach((tool) => {
           // 统计分类
           if (tool.category) {
-            stats.categories[tool.category] = (stats.categories[tool.category] || 0) + 1;
+            stats.categories[tool.category] =
+              (stats.categories[tool.category] || 0) + 1;
           }
           // 统计类型
           if (tool.tool_type) {
-            stats.types[tool.tool_type] = (stats.types[tool.tool_type] || 0) + 1;
+            stats.types[tool.tool_type] =
+              (stats.types[tool.tool_type] || 0) + 1;
           }
         });
 
@@ -581,20 +657,20 @@ class ToolManager {
       }
 
       // 如果提供了toolId，返回该工具的统计数据
-      let sql = 'SELECT * FROM tool_stats WHERE tool_id = ?';
+      let sql = "SELECT * FROM tool_stats WHERE tool_id = ?";
       const params = [toolId];
 
       if (dateRange) {
-        sql += ' AND stat_date >= ? AND stat_date <= ?';
+        sql += " AND stat_date >= ? AND stat_date <= ?";
         params.push(dateRange.start, dateRange.end);
       }
 
-      sql += ' ORDER BY stat_date DESC';
+      sql += " ORDER BY stat_date DESC";
 
       const stats = await this.db.all(sql, params);
       return stats;
     } catch (error) {
-      console.error('[ToolManager] 获取工具统计失败:', error);
+      console.error("[ToolManager] 获取工具统计失败:", error);
       return toolId ? [] : { success: false, error: error.message };
     }
   }
@@ -610,10 +686,11 @@ class ToolManager {
    */
   validateParametersSchema(schema) {
     try {
-      const schemaObj = typeof schema === 'string' ? JSON.parse(schema) : schema;
+      const schemaObj =
+        typeof schema === "string" ? JSON.parse(schema) : schema;
 
       // 基本验证：确保是对象
-      if (typeof schemaObj !== 'object' || schemaObj === null) {
+      if (typeof schemaObj !== "object" || schemaObj === null) {
         return false;
       }
 
@@ -623,28 +700,36 @@ class ToolManager {
       }
 
       // 验证 type 字段的值是否有效
-      const validTypes = ['object', 'array', 'string', 'number', 'integer', 'boolean', 'null'];
+      const validTypes = [
+        "object",
+        "array",
+        "string",
+        "number",
+        "integer",
+        "boolean",
+        "null",
+      ];
       if (!validTypes.includes(schemaObj.type)) {
         return false;
       }
 
       // 如果 type 是 object，且有 properties，验证 properties 的结构
-      if (schemaObj.type === 'object' && schemaObj.properties) {
-        if (typeof schemaObj.properties !== 'object') {
+      if (schemaObj.type === "object" && schemaObj.properties) {
+        if (typeof schemaObj.properties !== "object") {
           return false;
         }
       }
 
       // 如果 type 是 array，且有 items，验证 items 的结构
-      if (schemaObj.type === 'array' && schemaObj.items) {
-        if (typeof schemaObj.items !== 'object') {
+      if (schemaObj.type === "array" && schemaObj.items) {
+        if (typeof schemaObj.items !== "object") {
           return false;
         }
       }
 
       return true;
     } catch (error) {
-      console.error('[ToolManager] Schema验证失败:', error);
+      console.error("[ToolManager] Schema验证失败:", error);
       return false;
     }
   }
@@ -673,10 +758,10 @@ class ToolManager {
    */
   async loadBuiltInTools() {
     try {
-      console.log('[ToolManager] 加载内置工具...');
+      console.log("[ToolManager] 加载内置工具...");
 
       if (!this.functionCaller) {
-        console.warn('[ToolManager] FunctionCaller未设置，跳过内置工具加载');
+        console.warn("[ToolManager] FunctionCaller未设置，跳过内置工具加载");
         return;
       }
 
@@ -697,7 +782,7 @@ class ToolManager {
           id: toolId,
           name: toolSchema.name,
           display_name: toolSchema.name,
-          description: toolSchema.description || '',
+          description: toolSchema.description || "",
           category: this.inferCategory(toolSchema.name),
           parameters_schema: toolSchema.parameters,
           is_builtin: 1,
@@ -705,27 +790,39 @@ class ToolManager {
         };
 
         // 直接插入数据库，不调用registerTool避免重复注册到FunctionCaller
-        await this.db.run(`
+        await this.db.run(
+          `
           INSERT OR IGNORE INTO tools (
             id, name, display_name, description, category,
             parameters_schema, is_builtin, enabled,
             tool_type, usage_count, success_count, avg_execution_time,
             created_at, updated_at
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `, [
-          toolId, toolData.name, toolData.display_name,
-          toolData.description, toolData.category,
-          JSON.stringify(toolData.parameters_schema),
-          1, 1, 'function', 0, 0, 0,
-          Date.now(), Date.now()
-        ]);
+        `,
+          [
+            toolId,
+            toolData.name,
+            toolData.display_name,
+            toolData.description,
+            toolData.category,
+            JSON.stringify(toolData.parameters_schema),
+            1,
+            1,
+            "function",
+            0,
+            0,
+            0,
+            Date.now(),
+            Date.now(),
+          ],
+        );
 
         console.log(`[ToolManager] 内置工具已加载: ${toolSchema.name}`);
       }
 
-      console.log('[ToolManager] 内置工具加载完成');
+      console.log("[ToolManager] 内置工具加载完成");
     } catch (error) {
-      console.error('[ToolManager] 加载内置工具失败:', error);
+      console.error("[ToolManager] 加载内置工具失败:", error);
     }
   }
 
@@ -736,11 +833,11 @@ class ToolManager {
    */
   inferCategory(toolName) {
     const categoryMap = {
-      file: ['file_reader', 'file_writer', 'file_editor'],
-      code: ['html_generator', 'css_generator', 'js_generator'],
-      project: ['create_project_structure', 'git_init', 'git_commit'],
-      system: ['generic_handler', 'info_searcher'],
-      output: ['format_output'],
+      file: ["file_reader", "file_writer", "file_editor"],
+      code: ["html_generator", "css_generator", "js_generator"],
+      project: ["create_project_structure", "git_init", "git_commit"],
+      system: ["generic_handler", "info_searcher"],
+      output: ["format_output"],
     };
 
     for (const [category, tools] of Object.entries(categoryMap)) {
@@ -749,7 +846,7 @@ class ToolManager {
       }
     }
 
-    return 'general';
+    return "general";
   }
 
   /**
@@ -757,20 +854,22 @@ class ToolManager {
    */
   async loadPluginTools() {
     try {
-      console.log('[ToolManager] 加载插件工具...');
+      console.log("[ToolManager] 加载插件工具...");
 
       // 查询数据库中plugin_id不为空的工具
       const pluginTools = await this.db.all(
-        'SELECT * FROM tools WHERE plugin_id IS NOT NULL AND enabled = 1'
+        "SELECT * FROM tools WHERE plugin_id IS NOT NULL AND enabled = 1",
       );
 
       for (const tool of pluginTools) {
         this.tools.set(tool.id, tool);
       }
 
-      console.log(`[ToolManager] 插件工具加载完成，共 ${pluginTools.length} 个`);
+      console.log(
+        `[ToolManager] 插件工具加载完成，共 ${pluginTools.length} 个`,
+      );
     } catch (error) {
-      console.error('[ToolManager] 加载插件工具失败:', error);
+      console.error("[ToolManager] 加载插件工具失败:", error);
     }
   }
 
@@ -780,31 +879,31 @@ class ToolManager {
    */
   async loadAdditionalToolsV3() {
     try {
-      console.log('[ToolManager] 加载Additional Tools V3...');
+      console.log("[ToolManager] 加载Additional Tools V3...");
 
       if (!this.functionCaller) {
-        console.warn('[ToolManager] FunctionCaller未设置，跳过V3工具加载');
+        console.warn("[ToolManager] FunctionCaller未设置，跳过V3工具加载");
         return;
       }
 
       // 动态导入Handler
-      const AdditionalToolsV3Handler = require('./additional-tools-v3-handler');
-      const additionalToolsV3 = require('./additional-tools-v3');
+      const AdditionalToolsV3Handler = require("./additional-tools-v3-handler");
+      const additionalToolsV3 = require("./additional-tools-v3");
 
       // 初始化Handler实例
-      const path = require('path');
-      const workDir = path.join(process.cwd(), 'data', 'workspace');
+      const path = require("path");
+      const workDir = path.join(process.cwd(), "data", "workspace");
       const handler = new AdditionalToolsV3Handler({
         workDir,
-        logger: console
+        logger: console,
       });
 
       console.log(`[ToolManager] Handler实例化成功 (workDir: ${workDir})`);
 
       // 从数据库加载V3工具
       const v3Tools = await this.db.all(
-        'SELECT * FROM tools WHERE handler_path LIKE ? AND enabled = 1',
-        ['%additional-tools-v3-handler%']
+        "SELECT * FROM tools WHERE handler_path LIKE ? AND enabled = 1",
+        ["%additional-tools-v3-handler%"],
       );
 
       console.log(`[ToolManager] 从数据库加载了 ${v3Tools.length} 个V3工具`);
@@ -819,7 +918,7 @@ class ToolManager {
           const methodName = `tool_${tool.name}`;
 
           // 检查Handler方法是否存在
-          if (typeof handler[methodName] !== 'function') {
+          if (typeof handler[methodName] !== "function") {
             console.warn(`[ToolManager] Handler方法不存在: ${methodName}`);
             failed++;
             continue;
@@ -827,13 +926,15 @@ class ToolManager {
 
           // 检查是否已在FunctionCaller中注册
           if (this.functionCaller.hasTool(tool.name)) {
-            console.log(`[ToolManager] V3工具已在FunctionCaller中，跳过: ${tool.name}`);
+            console.log(
+              `[ToolManager] V3工具已在FunctionCaller中，跳过: ${tool.name}`,
+            );
             skipped++;
 
             // 仍然加入缓存
             this.tools.set(tool.id, {
               ...tool,
-              handler: handler[methodName].bind(handler)
+              handler: handler[methodName].bind(handler),
             });
             continue;
           }
@@ -841,12 +942,12 @@ class ToolManager {
           // 准备schema
           const schema = {
             name: tool.name,
-            description: tool.description || '',
+            description: tool.description || "",
             parameters: tool.parameters_schema
-              ? (typeof tool.parameters_schema === 'string'
-                  ? JSON.parse(tool.parameters_schema)
-                  : tool.parameters_schema)
-              : {}
+              ? typeof tool.parameters_schema === "string"
+                ? JSON.parse(tool.parameters_schema)
+                : tool.parameters_schema
+              : {},
           };
 
           // 绑定handler实例的上下文
@@ -858,24 +959,29 @@ class ToolManager {
           // 加入缓存
           this.tools.set(tool.id, {
             ...tool,
-            handler: boundHandler
+            handler: boundHandler,
           });
 
           registered++;
-          console.log(`[ToolManager] ✅ V3工具注册成功: ${tool.name} (${tool.id})`);
-
+          console.log(
+            `[ToolManager] ✅ V3工具注册成功: ${tool.name} (${tool.id})`,
+          );
         } catch (error) {
-          console.error(`[ToolManager] ❌ V3工具注册失败: ${tool.name}`, error.message);
+          console.error(
+            `[ToolManager] ❌ V3工具注册失败: ${tool.name}`,
+            error.message,
+          );
           failed++;
         }
       }
 
-      console.log(`[ToolManager] Additional Tools V3加载完成: 注册 ${registered} 个, 跳过 ${skipped} 个, 失败 ${failed} 个`);
+      console.log(
+        `[ToolManager] Additional Tools V3加载完成: 注册 ${registered} 个, 跳过 ${skipped} 个, 失败 ${failed} 个`,
+      );
 
       return { registered, skipped, failed };
-
     } catch (error) {
-      console.error('[ToolManager] 加载Additional Tools V3失败:', error);
+      console.error("[ToolManager] 加载Additional Tools V3失败:", error);
       // 不抛出错误，允许系统继续运行
     }
   }
@@ -889,14 +995,14 @@ class ToolManager {
    */
   async generateAllDocs() {
     try {
-      console.log('[ToolManager] 生成工具文档...');
+      console.log("[ToolManager] 生成工具文档...");
 
       const tools = Array.from(this.tools.values());
       const count = await this.docGenerator.generateAllToolDocs(tools);
 
       console.log(`[ToolManager] 工具文档生成完成，共 ${count} 个`);
     } catch (error) {
-      console.error('[ToolManager] 生成工具文档失败:', error);
+      console.error("[ToolManager] 生成工具文档失败:", error);
       // 文档生成失败不影响系统运行
     }
   }
@@ -923,7 +1029,7 @@ class ToolManager {
 
       return content;
     } catch (error) {
-      console.error('[ToolManager] 获取工具文档失败:', error);
+      console.error("[ToolManager] 获取工具文档失败:", error);
       throw error;
     }
   }
@@ -942,7 +1048,7 @@ class ToolManager {
       await this.docGenerator.generateToolDoc(tool);
       console.log(`[ToolManager] 工具文档已重新生成: ${tool.name}`);
     } catch (error) {
-      console.error('[ToolManager] 重新生成工具文档失败:', error);
+      console.error("[ToolManager] 重新生成工具文档失败:", error);
       throw error;
     }
   }
@@ -1043,7 +1149,9 @@ class ToolManager {
    */
   async toggleToolEnabled(toolId, enabled) {
     try {
-      const result = await this.updateTool(toolId, { enabled: enabled ? 1 : 0 });
+      const result = await this.updateTool(toolId, {
+        enabled: enabled ? 1 : 0,
+      });
       return result;
     } catch (error) {
       return { success: false, changes: 0, error: error.message };
