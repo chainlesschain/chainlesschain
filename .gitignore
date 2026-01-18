@@ -158,12 +158,14 @@ packaging/redis/
 test-results/
 playwright-report/
 
-# ChainlessChain unified configuration
+# ChainlessChain unified configuration (root and subdirectories)
 .chainlesschain/memory/
 .chainlesschain/logs/
 .chainlesschain/cache/
 .chainlesschain/checkpoints/
+.chainlesschain/tasks/
 .chainlesschain/config.json
+**/.chainlesschain/
 
 # Keep templates, rules, and documentation (version controlled)
 !.chainlesschain/config.json.example
