@@ -937,6 +937,12 @@ const handleEnableChange = async (enabled) => {
 };
 
 const handleConnect = async (server) => {
+  // 检查 MCP 系统是否启用
+  if (!config.enabled) {
+    message.warning("请先启用 MCP 系统");
+    return;
+  }
+
   connectingServers.value.add(server.id);
   try {
     // 加载服务器配置
