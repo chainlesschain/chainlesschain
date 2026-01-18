@@ -69,9 +69,9 @@ async function initializeMemorySystem(options) {
   }
 
   const paths = configManager.getPaths();
-  const memoryBaseDir = path.join(process.cwd(), ".chainlesschain", "memory");
 
   console.log("[MemorySystem] Initializing memory system...");
+  console.log("[MemorySystem] Memory base directory:", paths.memory);
 
   // Initialize PreferenceManager
   const preferenceManager = new PreferenceManager({
@@ -89,18 +89,18 @@ async function initializeMemorySystem(options) {
   });
   await learnedPatternManager.initialize();
 
-  // Initialize AutoBackupManager
+  // Initialize AutoBackupManager - 使用 configManager.paths 而不是 process.cwd()
   const autoBackupManager = new AutoBackupManager({
     database,
-    backupsDir: path.join(memoryBaseDir, "backups"),
+    backupsDir: paths.backups || path.join(paths.memory, "backups"),
     configManager,
   });
   await autoBackupManager.initialize();
 
-  // Initialize UsageReportGenerator
+  // Initialize UsageReportGenerator - 使用 configManager.paths
   const usageReportGenerator = new UsageReportGenerator({
     database,
-    reportsDir: path.join(memoryBaseDir, "reports"),
+    reportsDir: paths.reports || path.join(paths.memory, "reports"),
     tokenTracker,
     configManager,
   });

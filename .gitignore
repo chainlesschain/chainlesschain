@@ -173,3 +173,9 @@ playwright-report/
 !.chainlesschain/*.md
 !.chainlesschain/examples/
 !.chainlesschain/examples/*.js
+docs/skills/skill-1.md
+desktop-app-vue/docs/api/SkillExecutor.md
+desktop-app-vue/docs/api/README.md
+desktop-app-vue/docs/api/SkillManager.md
+desktop-app-vue/docs/api/ToolManager.md
+docs/skills/skill-1.md

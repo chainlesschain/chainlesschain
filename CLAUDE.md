@@ -20,6 +20,14 @@ ChainlessChain is a decentralized personal AI management system with hardware-le
 
 **Inspired by OpenClaude best practices**, this project uses a unified `.chainlesschain/` directory to centralize all configuration, logs, cache, and session data.
 
+**Location:**
+
+- **Production/Development**: `{Electron userData}/.chainlesschain/`
+  - Windows: `%APPDATA%/chainlesschain-desktop-vue/.chainlesschain/`
+  - macOS: `~/Library/Application Support/chainlesschain-desktop-vue/.chainlesschain/`
+  - Linux: `~/.config/chainlesschain-desktop-vue/.chainlesschain/`
+- **Project Root** (for Claude Code/AI assistants): `{project}/.chainlesschain/` - Contains rules.md and config templates
+
 **Directory Structure:**
 
 ```
@@ -28,13 +36,15 @@ ChainlessChain is a decentralized personal AI management system with hardware-le
 ├── config.json.example      # Configuration template (version controlled)
 ├── rules.md                 # Project-specific coding rules and constraints
 ├── memory/                  # Session and learning data
-│   ├── sessions/            # Conversation history
-│   ├── preferences/         # User preferences
-│   └── learned-patterns/    # Learned patterns from usage
+│   ├── sessions/            # Conversation history (JSON files)
+│   ├── preferences/         # User preferences (JSON files)
+│   ├── learned-patterns/    # Learned patterns from usage
+│   ├── reports/             # Usage reports
+│   └── backups/             # Automatic backups
 ├── logs/                    # Operation logs
 │   ├── error.log
 │   ├── performance.log
-│   └── llm-usage.log        # LLM token usage tracking (planned)
+│   └── llm-usage.log        # LLM token usage tracking
 ├── cache/                   # Cached data
 │   ├── embeddings/          # Vector embeddings cache
 │   ├── query-results/       # Query results cache
@@ -93,7 +103,10 @@ configManager.clearCache("embeddings");
 
 - Existing `app-config.js` still works for backward compatibility
 - New code should use `UnifiedConfigManager` for centralized configuration
-- Logs will gradually migrate from `userData/logs` to `.chainlesschain/logs/`
+- **v1.1.0 (2026-01-18)**: Configuration directory moved from `process.cwd()` to Electron's `userData`
+  - Automatic migration: Old config from project root is copied to userData on first run
+  - Data is now stored in both SQLite database AND file system (JSON files)
+  - IPC channels available: `unified-config:get-summary`, `unified-config:get-directory-stats`, `unified-config:get-paths`
 
 ## Memory Bank System (OpenClaude Best Practice)
 
@@ -299,9 +312,9 @@ MCP is an open protocol that enables AI assistants to connect with various tools
 
 ### Supported Transports
 
-| Transport | Use Case | Status |
-|-----------|----------|--------|
-| **Stdio** | Local MCP servers (file system, git, etc.) | ✅ Implemented |
+| Transport    | Use Case                                      | Status         |
+| ------------ | --------------------------------------------- | -------------- |
+| **Stdio**    | Local MCP servers (file system, git, etc.)    | ✅ Implemented |
 | **HTTP+SSE** | Remote MCP servers (cloud APIs, web services) | ✅ Implemented |
 
 ### Supported MCP Servers
@@ -1008,20 +1021,20 @@ llm.transitionToPhase('executing');
 #### FunctionCaller API
 
 ```javascript
-const FunctionCaller = require('./ai-engine/function-caller');
+const FunctionCaller = require("./ai-engine/function-caller");
 const fc = new FunctionCaller();
 
 // 工具掩码控制
-fc.setToolAvailable('git_commit', true);
-fc.setToolsByPrefix('file', false);
+fc.setToolAvailable("git_commit", true);
+fc.setToolsByPrefix("file", false);
 fc.enableAllTools();
 fc.disableAllTools();
-fc.setOnlyAvailable(['file_reader', 'file_writer']);
+fc.setOnlyAvailable(["file_reader", "file_writer"]);
 
 // 任务阶段状态机
 fc.configureTaskPhases(); // 使用默认配置
-fc.transitionToPhase('planning');
-fc.transitionToPhase('executing');
+fc.transitionToPhase("planning");
+fc.transitionToPhase("executing");
 
 // 获取统计
 const stats = fc.getMaskingStats();
@@ -1031,73 +1044,76 @@ const stats = fc.getMaskingStats();
 
 **Manus 优化通道**:
 
-| 通道 | 功能 |
-|------|------|
-| `manus:start-task` | 开始任务追踪 |
-| `manus:update-progress` | 更新任务进度 |
-| `manus:complete-step` | 完成当前步骤 |
-| `manus:complete-task` | 完成任务 |
-| `manus:cancel-task` | 取消任务 |
-| `manus:get-current-task` | 获取当前任务 |
-| `manus:set-tool-available` | 设置工具可用性 |
-| `manus:set-tools-by-prefix` | 按前缀设置可用性 |
-| `manus:validate-tool-call` | 验证工具调用 |
-| `manus:configure-phases` | 配置阶段状态机 |
-| `manus:transition-to-phase` | 切换阶段 |
-| `manus:get-stats` | 获取统计信息 |
-| `manus:build-optimized-prompt` | 构建优化 Prompt |
-| `manus:compress-content` | 压缩内容 |
+| 通道                           | 功能             |
+| ------------------------------ | ---------------- |
+| `manus:start-task`             | 开始任务追踪     |
+| `manus:update-progress`        | 更新任务进度     |
+| `manus:complete-step`          | 完成当前步骤     |
+| `manus:complete-task`          | 完成任务         |
+| `manus:cancel-task`            | 取消任务         |
+| `manus:get-current-task`       | 获取当前任务     |
+| `manus:set-tool-available`     | 设置工具可用性   |
+| `manus:set-tools-by-prefix`    | 按前缀设置可用性 |
+| `manus:validate-tool-call`     | 验证工具调用     |
+| `manus:configure-phases`       | 配置阶段状态机   |
+| `manus:transition-to-phase`    | 切换阶段         |
+| `manus:get-stats`              | 获取统计信息     |
+| `manus:build-optimized-prompt` | 构建优化 Prompt  |
+| `manus:compress-content`       | 压缩内容         |
 
 **🆕 TaskTracker 通道**:
 
-| 通道 | 功能 |
-|------|------|
-| `task-tracker:create` | 创建任务 |
-| `task-tracker:start` | 开始任务 |
-| `task-tracker:update-progress` | 更新进度 |
-| `task-tracker:complete-step` | 完成当前步骤 |
-| `task-tracker:complete` | 完成任务 |
-| `task-tracker:cancel` | 取消任务 |
+| 通道                            | 功能              |
+| ------------------------------- | ----------------- |
+| `task-tracker:create`           | 创建任务          |
+| `task-tracker:start`            | 开始任务          |
+| `task-tracker:update-progress`  | 更新进度          |
+| `task-tracker:complete-step`    | 完成当前步骤      |
+| `task-tracker:complete`         | 完成任务          |
+| `task-tracker:cancel`           | 取消任务          |
 | `task-tracker:get-todo-context` | 获取 todo.md 内容 |
-| `task-tracker:load-unfinished` | 恢复未完成任务 |
-| `task-tracker:get-history` | 获取任务历史 |
+| `task-tracker:load-unfinished`  | 恢复未完成任务    |
+| `task-tracker:get-history`      | 获取任务历史      |
 
 **🆕 Multi-Agent 通道**:
 
-| 通道 | 功能 |
-|------|------|
-| `agent:list` | 获取所有 Agent |
-| `agent:dispatch` | 分发任务到 Agent |
-| `agent:execute-parallel` | 并行执行多个任务 |
-| `agent:execute-chain` | 链式执行任务 |
-| `agent:get-capable` | 获取能处理任务的 Agent |
-| `agent:send-message` | Agent 间发送消息 |
-| `agent:get-stats` | 获取统计信息 |
+| 通道                     | 功能                   |
+| ------------------------ | ---------------------- |
+| `agent:list`             | 获取所有 Agent         |
+| `agent:dispatch`         | 分发任务到 Agent       |
+| `agent:execute-parallel` | 并行执行多个任务       |
+| `agent:execute-chain`    | 链式执行任务           |
+| `agent:get-capable`      | 获取能处理任务的 Agent |
+| `agent:send-message`     | Agent 间发送消息       |
+| `agent:get-stats`        | 获取统计信息           |
 
 ### 任务阶段状态机
 
 预定义的任务阶段：
 
-| 阶段 | 可用工具 | 说明 |
-|------|----------|------|
-| `planning` | file_reader, info_searcher, search_* | 只读操作 |
-| `executing` | file_*, html_*, css_*, js_*, git_*, code_* | 写入和修改 |
-| `validating` | file_reader, test_*, validate_*, check_* | 只读和测试 |
-| `committing` | git_init, git_commit | Git 操作 |
+| 阶段         | 可用工具                                       | 说明       |
+| ------------ | ---------------------------------------------- | ---------- |
+| `planning`   | file*reader, info_searcher, search*\*          | 只读操作   |
+| `executing`  | file*\*, html*_, css\__, js*\*, git*_, code\__ | 写入和修改 |
+| `validating` | file*reader, test*_, validate\__, check\_\*    | 只读和测试 |
+| `committing` | git_init, git_commit                           | Git 操作   |
 
 ### 实现文件
 
 **Context Engineering & Tool Masking**:
+
 - `desktop-app-vue/src/main/llm/context-engineering.js`
 - `desktop-app-vue/src/main/ai-engine/tool-masking.js`
 - `desktop-app-vue/src/main/llm/manus-optimizations.js`
 - `desktop-app-vue/src/main/llm/manus-ipc.js`
 
 **🆕 TaskTrackerFile (todo.md 机制)**:
+
 - `desktop-app-vue/src/main/ai-engine/task-tracker-file.js`
 - `desktop-app-vue/src/main/ai-engine/task-tracker-ipc.js`
 
 **🆕 Multi-Agent 系统**:
+
 - `desktop-app-vue/src/main/ai-engine/multi-agent/agent-orchestrator.js`
 - `desktop-app-vue/src/main/ai-engine/multi-agent/specialized-agent.js`
 - `desktop-app-vue/src/main/ai-engine/multi-agent/agents/code-generation-agent.js`
@@ -1107,12 +1123,12 @@ const stats = fc.getMaskingStats();
 
 ### 性能指标
 
-| 指标 | 优化前 | 优化后 |
-|------|--------|--------|
-| KV-Cache 命中率 | ~30% | >80% |
-| Token 成本 | 基准 | -50~90% |
-| 长任务成功率 | ~70% | >90% |
-| 工具调用验证 | 无 | 100% |
+| 指标            | 优化前 | 优化后  |
+| --------------- | ------ | ------- |
+| KV-Cache 命中率 | ~30%   | >80%    |
+| Token 成本      | 基准   | -50~90% |
+| 长任务成功率    | ~70%   | >90%    |
+| 工具调用验证    | 无     | 100%    |
 
 ### 参考资料
 
@@ -1322,8 +1338,8 @@ Prefixes: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`, `perf`
 
 1. **U-Key**: Windows only (macOS/Linux use simulation mode)
 2. **Mobile App**: uni-app version only 10% complete
-4. **P2P**: E2E encryption implemented but needs more testing
-5. **GPU**: Docker Ollama service requires NVIDIA GPU for optimal performance
+3. **P2P**: E2E encryption implemented but needs more testing
+4. **GPU**: Docker Ollama service requires NVIDIA GPU for optimal performance
 
 ## Important File Locations
 
