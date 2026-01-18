@@ -335,3 +335,35 @@ import BudgetAlertListener from "./components/BudgetAlertListener.vue";
 
 // 自动监听预算事件,无需手动调用
 ```
+
+
+#### 2.11.6 技术选型与实现 (v0.20.0)
+
+**MCP集成**:
+- **@modelcontextprotocol/sdk 1.25.2** - Model Context Protocol SDK
+- **状态**: POC v0.1.0 (生产就绪)
+
+**支持的MCP服务器** (5种):
+- Filesystem - 文件系统操作
+- PostgreSQL - 数据库查询
+- SQLite - 本地数据库
+- Git - 版本控制
+- HTTP/Fetch - 网络请求
+
+**实现文件** (16个文件):
+- `mcp-client-manager.js` (24KB) - MCP客户端编排
+- `mcp-security-policy.js` (20KB) - 深度防御安全策略
+- `mcp-tool-adapter.js` (12KB) - 工具集成层
+- `mcp-config-loader.js` (7KB) - 配置管理
+- `mcp-ipc.js` (15KB) - IPC通信
+- `mcp-performance-monitor.js` (12KB) - 性能追踪
+
+**安全特性**:
+- 工具屏蔽和权限控制
+- 性能监控
+- 配置UI管理
+- IPC序列化处理
+- MCP禁用时的降级处理
+
+**完成状态**: POC v0.1.0 ✅ (多服务器支持,安全策略,性能监控)
+
