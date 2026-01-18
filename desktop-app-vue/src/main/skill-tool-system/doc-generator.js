@@ -532,7 +532,44 @@ const result = await window.electronAPI.invoke('tool:test', toolId, ${JSON.strin
   }
 
   /**
-   * 比较文档内容是否需要更新（忽略时间戳）
+   * 规范化文档内容用于比较（忽略格式差异）
+   * @private
+   * @param {string} content - 文档内容
+   * @returns {string} 规范化后的内容
+   */
+  _normalizeDocContent(content) {
+    return (
+      content
+        // 统一换行符为 LF
+        .replace(/\r\n/g, "\n")
+        .replace(/\r/g, "\n")
+        // 移除时间戳行
+        .replace(/\*\*文档生成时间\*\*: .+\n/g, "")
+        // 规范化表格：移除多余空格，统一列分隔
+        .replace(/\|\s+/g, "| ")
+        .replace(/\s+\|/g, " |")
+        // 规范化表格分隔行
+        .replace(/\|[-:]+\|/g, (match) =>
+          match.replace(/[-]+/g, "----").replace(/:/g, ""),
+        )
+        // 统一引号风格（在代码块外）
+        .replace(
+          /```[\s\S]*?```/g,
+          (codeBlock) => codeBlock.replace(/'/g, '"'), // 代码块内统一用双引号
+        )
+        // 移除尾随逗号（JSON 风格差异）
+        .replace(/,(\s*[}\]])/g, "$1")
+        // 规范化空行：多个连续空行变成单个
+        .replace(/\n{3,}/g, "\n\n")
+        // 移除行尾空格
+        .replace(/[ \t]+$/gm, "")
+        // 移除文件末尾多余空行
+        .replace(/\n+$/, "\n")
+    );
+  }
+
+  /**
+   * 比较文档内容是否需要更新（忽略格式差异）
    * @private
    * @param {string} filePath - 文件路径
    * @param {string} newContent - 新内容
@@ -542,10 +579,9 @@ const result = await window.electronAPI.invoke('tool:test', toolId, ${JSON.strin
     try {
       const existingContent = await fs.readFile(filePath, "utf-8");
 
-      // 移除时间戳行进行比较
-      const timestampPattern = /\*\*文档生成时间\*\*: .+\n/g;
-      const normalizedExisting = existingContent.replace(timestampPattern, "");
-      const normalizedNew = newContent.replace(timestampPattern, "");
+      // 规范化内容进行比较（忽略格式差异）
+      const normalizedExisting = this._normalizeDocContent(existingContent);
+      const normalizedNew = this._normalizeDocContent(newContent);
 
       return normalizedExisting !== normalizedNew;
     } catch (error) {

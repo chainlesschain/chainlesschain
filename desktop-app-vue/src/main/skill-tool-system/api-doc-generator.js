@@ -464,17 +464,42 @@ const ${module.name.toLowerCase()} = new ${module.name}(/* 参数 */);
   }
 
   /**
-   * 比较文档内容是否需要更新（忽略时间戳）
+   * 规范化文档内容用于比较（忽略格式差异）
+   * @private
+   */
+  _normalizeDocContent(content) {
+    return (
+      content
+        // 统一换行符为 LF
+        .replace(/\r\n/g, "\n")
+        .replace(/\r/g, "\n")
+        // 移除时间戳行
+        .replace(/(?:> 自动生成时间|\*\*文档生成时间\*\*): .+\n/g, "")
+        // 规范化注释后的空格 (// 后面的空格)
+        .replace(/\/\/\s*/g, "// ")
+        // 移除行尾空格
+        .replace(/[ \t]+$/gm, "")
+        // 规范化空行
+        .replace(/\n{3,}/g, "\n\n")
+        // 移除括号前后多余空格
+        .replace(/\(\s+/g, "(")
+        .replace(/\s+\)/g, ")")
+        // 移除文件末尾多余空行
+        .replace(/\n+$/, "\n")
+    );
+  }
+
+  /**
+   * 比较文档内容是否需要更新（忽略格式差异）
    * @private
    */
   async _shouldUpdateDoc(filePath, newContent) {
     try {
       const existingContent = await fs.readFile(filePath, "utf-8");
 
-      // 移除时间戳行进行比较
-      const timestampPattern = /(?:> 自动生成时间|\*\*文档生成时间\*\*): .+\n/g;
-      const normalizedExisting = existingContent.replace(timestampPattern, "");
-      const normalizedNew = newContent.replace(timestampPattern, "");
+      // 规范化内容进行比较（忽略格式差异）
+      const normalizedExisting = this._normalizeDocContent(existingContent);
+      const normalizedNew = this._normalizeDocContent(newContent);
 
       return normalizedExisting !== normalizedNew;
     } catch (error) {
