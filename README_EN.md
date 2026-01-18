@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v0.25.0-blue.svg)
+![Version](https://img.shields.io/badge/version-v0.20.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Phase 1](https://img.shields.io/badge/Phase%201-100%25-brightgreen.svg)
@@ -23,13 +23,16 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 
 ---
 
-## ⭐ Current Version: v0.25.0 (2026-01-17)
+## ⭐ Current Version: v0.20.0 (2026-01-18)
 
 ### Latest Updates
 
-- ✅ **Manus AI Optimization System** - Based on Manus/OpenManus best practices, Context Engineering (KV-Cache optimization), Tool Masking, TaskTrackerFile (todo.md mechanism), Recoverable Compression, theoretical 50-90% Token cost reduction ⭐LATEST
-- ✅ **Multi-Agent System** - Agent Orchestrator, 3 specialized agents (Code Generation/Data Analysis/Document Processing), parallel execution, chain execution, inter-agent communication, 30% reduction in complex task completion time ⭐LATEST
-- ✅ **MCP Chat Integration** - MCP tools integrated into AI chat, invoke MCP server tools via Function Calling ⭐LATEST
+- ✅ **P2P WebRTC Compatibility Layer** - Added WebRTC compatibility layer, optimized P2P communication stability, enhanced test coverage ⭐LATEST
+- ✅ **Code Structure Refactoring** - Reorganized src/main directory by functional categories (api/config/database/monitoring/system etc.), improved code maintainability ⭐LATEST
+- ✅ **Test Framework Optimization** - Fixed flaky tests, skipped environment-dependent tests, improved CI/CD stability ⭐LATEST
+- ✅ **Manus AI Optimization System** - Based on Manus/OpenManus best practices, Context Engineering (KV-Cache optimization), Tool Masking, TaskTrackerFile (todo.md mechanism), Recoverable Compression, theoretical 50-90% Token cost reduction
+- ✅ **Multi-Agent System** - Agent Orchestrator, 3 specialized agents (Code Generation/Data Analysis/Document Processing), parallel execution, chain execution, inter-agent communication, 30% reduction in complex task completion time
+- ✅ **MCP Chat Integration** - MCP tools integrated into AI chat, invoke MCP server tools via Function Calling
 - ✅ **MCP (Model Context Protocol) Integration** - POC v0.1.0, supports Filesystem/PostgreSQL/SQLite/Git/Fetch servers, multi-layer security protection, UI management interface, complete documentation
 - ✅ **Unified Configuration Directory System** - `.chainlesschain/` directory for centralized config/logs/cache/session management, inspired by OpenClaude best practices, auto-initialization, config migration support ⭐LATEST
 - ✅ **Token Budget Management System** - LLM usage cost tracking, monthly budget control, overspending alerts, detailed statistics ⭐LATEST
