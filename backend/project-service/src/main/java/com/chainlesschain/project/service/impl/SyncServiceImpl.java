@@ -47,6 +47,15 @@ public class SyncServiceImpl implements SyncService {
     @Autowired
     private ProjectCommentMapper projectCommentMapper;
 
+    @Autowired
+    private ConversationMapper conversationMapper;
+
+    @Autowired
+    private ConversationMessageMapper conversationMessageMapper;
+
+    @Autowired
+    private KnowledgeItemMapper knowledgeItemMapper;
+
     @Autowired(required = true)
     private SyncLogMapper syncLogMapper;
 
@@ -284,6 +293,9 @@ public class SyncServiceImpl implements SyncService {
         pendingCounts.put("project_tasks", countPendingRecords("project_tasks", deviceId));
         pendingCounts.put("project_collaborators", countPendingRecords("project_collaborators", deviceId));
         pendingCounts.put("project_comments", countPendingRecords("project_comments", deviceId));
+        pendingCounts.put("conversations", countPendingRecords("conversations", deviceId));
+        pendingCounts.put("messages", countPendingRecords("messages", deviceId));
+        pendingCounts.put("knowledge_items", countPendingRecords("knowledge_items", deviceId));
 
         status.put("pendingCounts", pendingCounts);
         status.put("isOnline", true);
@@ -340,6 +352,12 @@ public class SyncServiceImpl implements SyncService {
                 return upsertProjectCollaborator(record, deviceId);
             case "project_comments":
                 return upsertProjectComment(record, deviceId);
+            case "conversations":
+                return upsertConversation(record, deviceId);
+            case "messages":
+                return upsertMessage(record, deviceId);
+            case "knowledge_items":
+                return upsertKnowledgeItem(record, deviceId);
             default:
                 throw new IllegalArgumentException("不支持的表: " + tableName);
         }
@@ -382,6 +400,21 @@ public class SyncServiceImpl implements SyncService {
                 QueryWrapper<ProjectComment> commentWrapper = new QueryWrapper<>();
                 commentWrapper.gt("updated_at", lastSyncTime);
                 return projectCommentMapper.selectMaps(commentWrapper);
+
+            case "conversations":
+                QueryWrapper<Conversation> conversationWrapper = new QueryWrapper<>();
+                conversationWrapper.gt("updated_at", lastSyncTime);
+                return conversationMapper.selectMaps(conversationWrapper);
+
+            case "messages":
+                QueryWrapper<ConversationMessage> messageWrapper = new QueryWrapper<>();
+                messageWrapper.gt("created_at", lastSyncTime);
+                return conversationMessageMapper.selectMaps(messageWrapper);
+
+            case "knowledge_items":
+                QueryWrapper<KnowledgeItem> knowledgeWrapper = new QueryWrapper<>();
+                knowledgeWrapper.gt("updated_at", lastSyncTime);
+                return knowledgeItemMapper.selectMaps(knowledgeWrapper);
 
             default:
                 return new ArrayList<>();
@@ -682,6 +715,134 @@ public class SyncServiceImpl implements SyncService {
     }
 
     /**
+     * 插入或更新 Conversation 记录
+     */
+    private boolean upsertConversation(Map<String, Object> record, String deviceId) {
+        String id = (String) record.get("id");
+        Conversation existing = conversationMapper.selectById(id);
+
+        LocalDateTime clientUpdatedAt = parseDateTime(record.get("updatedAt"));
+
+        // 检测冲突
+        if (existing != null) {
+            LocalDateTime serverUpdatedAt = existing.getUpdatedAt();
+            if (serverUpdatedAt != null && clientUpdatedAt != null &&
+                serverUpdatedAt.isAfter(clientUpdatedAt) &&
+                !deviceId.equals(existing.getDeviceId())) {
+                log.warn("[SyncService] 检测到 Conversation 冲突: id={}", id);
+                return true;
+            }
+        }
+
+        // 构建 Conversation 实体
+        Conversation conversation = new Conversation();
+        conversation.setId(id);
+        conversation.setTitle((String) record.get("title"));
+        conversation.setProjectId((String) record.get("projectId"));
+        conversation.setUserId((String) record.get("userId"));
+        conversation.setContextMode((String) record.get("contextMode"));
+        conversation.setContextData((String) record.get("contextData"));
+        conversation.setMessageCount(getInteger(record.get("messageCount")));
+        conversation.setCreatedAt(parseDateTime(record.get("createdAt")));
+        conversation.setUpdatedAt(clientUpdatedAt);
+        conversation.setSyncStatus("synced");
+        conversation.setSyncedAt(LocalDateTime.now());
+        conversation.setDeviceId(deviceId);
+        conversation.setDeleted(getInteger(record.get("deleted")));
+
+        if (existing == null) {
+            conversationMapper.insert(conversation);
+            log.debug("[SyncService] 插入新 Conversation: id={}", id);
+        } else {
+            conversationMapper.updateById(conversation);
+            log.debug("[SyncService] 更新 Conversation: id={}", id);
+        }
+
+        return false;
+    }
+
+    /**
+     * 插入或更新 Message (ConversationMessage) 记录
+     */
+    private boolean upsertMessage(Map<String, Object> record, String deviceId) {
+        String id = (String) record.get("id");
+        ConversationMessage existing = conversationMessageMapper.selectById(id);
+
+        // 消息一般不会更新，只插入
+        if (existing != null) {
+            log.debug("[SyncService] ConversationMessage 已存在，跳过: id={}", id);
+            return false;
+        }
+
+        // 构建 ConversationMessage 实体
+        ConversationMessage message = new ConversationMessage();
+        message.setId(id);
+        message.setConversationId((String) record.get("conversationId"));
+        message.setRole((String) record.get("role"));
+        message.setContent((String) record.get("content"));
+        message.setMessageType((String) record.get("messageType"));
+        message.setMetadata((String) record.get("metadata"));
+        message.setCreatedAt(parseDateTime(record.get("createdAt")));
+        message.setSyncStatus("synced");
+        message.setSyncedAt(LocalDateTime.now());
+        message.setDeviceId(deviceId);
+        message.setDeleted(getInteger(record.get("deleted")));
+
+        conversationMessageMapper.insert(message);
+        log.debug("[SyncService] 插入新 ConversationMessage: id={}", id);
+
+        return false;
+    }
+
+    /**
+     * 插入或更新 KnowledgeItem 记录
+     */
+    private boolean upsertKnowledgeItem(Map<String, Object> record, String deviceId) {
+        String id = (String) record.get("id");
+        KnowledgeItem existing = knowledgeItemMapper.selectById(id);
+
+        LocalDateTime clientUpdatedAt = parseDateTime(record.get("updatedAt"));
+
+        // 检测冲突
+        if (existing != null) {
+            LocalDateTime serverUpdatedAt = existing.getUpdatedAt();
+            if (serverUpdatedAt != null && clientUpdatedAt != null &&
+                serverUpdatedAt.isAfter(clientUpdatedAt) &&
+                !deviceId.equals(existing.getDeviceId())) {
+                log.warn("[SyncService] 检测到 KnowledgeItem 冲突: id={}", id);
+                return true;
+            }
+        }
+
+        // 构建 KnowledgeItem 实体
+        KnowledgeItem item = new KnowledgeItem();
+        item.setId(id);
+        item.setTitle((String) record.get("title"));
+        item.setType((String) record.get("type"));
+        item.setContent((String) record.get("content"));
+        item.setContentPath((String) record.get("contentPath"));
+        item.setEmbeddingPath((String) record.get("embeddingPath"));
+        item.setUserId((String) record.get("userId"));
+        item.setCreatedAt(parseDateTime(record.get("createdAt")));
+        item.setUpdatedAt(clientUpdatedAt);
+        item.setGitCommitHash((String) record.get("gitCommitHash"));
+        item.setSyncStatus("synced");
+        item.setSyncedAt(LocalDateTime.now());
+        item.setDeviceId(deviceId);
+        item.setDeleted(getInteger(record.get("deleted")));
+
+        if (existing == null) {
+            knowledgeItemMapper.insert(item);
+            log.debug("[SyncService] 插入新 KnowledgeItem: id={}", id);
+        } else {
+            knowledgeItemMapper.updateById(item);
+            log.debug("[SyncService] 更新 KnowledgeItem: id={}", id);
+        }
+
+        return false;
+    }
+
+    /**
      * 统计待同步记录数
      */
     private int countPendingRecords(String tableName, String deviceId) {
@@ -728,6 +889,27 @@ public class SyncServiceImpl implements SyncService {
                                   .or()
                                   .isNull("sync_status");
                     return Math.toIntExact(projectCommentMapper.selectCount(commentWrapper));
+
+                case "conversations":
+                    QueryWrapper<Conversation> conversationWrapper = new QueryWrapper<>();
+                    conversationWrapper.eq("sync_status", "pending")
+                                       .or()
+                                       .isNull("sync_status");
+                    return Math.toIntExact(conversationMapper.selectCount(conversationWrapper));
+
+                case "messages":
+                    QueryWrapper<ConversationMessage> messageWrapper = new QueryWrapper<>();
+                    messageWrapper.eq("sync_status", "pending")
+                                  .or()
+                                  .isNull("sync_status");
+                    return Math.toIntExact(conversationMessageMapper.selectCount(messageWrapper));
+
+                case "knowledge_items":
+                    QueryWrapper<KnowledgeItem> knowledgeWrapper = new QueryWrapper<>();
+                    knowledgeWrapper.eq("sync_status", "pending")
+                                    .or()
+                                    .isNull("sync_status");
+                    return Math.toIntExact(knowledgeItemMapper.selectCount(knowledgeWrapper));
 
                 default:
                     return 0;
