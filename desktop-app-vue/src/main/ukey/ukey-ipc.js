@@ -15,7 +15,7 @@
  */
 function registerUKeyIPC({ ukeyManager, ipcMain: injectedIpcMain, ipcGuard: injectedIpcGuard }) {
   // 支持依赖注入，用于测试
-  const ipcGuard = injectedIpcGuard || require('../ipc-guard');
+  const ipcGuard = injectedIpcGuard || require('../ipc/ipc-guard');
 
   // 防止重复注册
   if (ipcGuard.isModuleRegistered('ukey-ipc')) {

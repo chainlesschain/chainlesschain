@@ -1,11 +1,11 @@
 /**
  * Knowledge Graph IPC 单元测试
- * 测试11个知识图谱 IPC 处理器的正确注册和功能
+ * 测试21个知识图谱 IPC 处理器的正确注册和功能
  *
  * @module graph-ipc.test
  * @description
  * 本测试文件验证知识图谱 IPC 处理器的注册和功能实现。通过源代码分析和模块导出验证，
- * 确保所有 11 个 handler 都被正确定义和注册。
+ * 确保所有 21 个 handler 都被正确定义和注册。
  *
  * 测试策略：
  * - 验证 registerGraphIPC 函数的导出
@@ -66,7 +66,7 @@ describe('Knowledge Graph IPC 处理器注册', () => {
   // ============================================================
 
   describe('源代码 handler 注册验证', () => {
-    it('should have ipcMain.handle calls for all 11 handlers', () => {
+    it('should have ipcMain.handle calls for all 21 handlers', () => {
       // 检查源代码中是否包含所有 handler 注册
       const requiredHandlers = [
         'graph:get-graph-data',
@@ -84,20 +84,20 @@ describe('Knowledge Graph IPC 处理器注册', () => {
 
       requiredHandlers.forEach((channel) => {
         const pattern = new RegExp(
-          `ipcMain\\.handle\\s*\\(\\s*['\"]${channel}['\"]`,
+          `ipcMain\\.handle\\s*\\(\\s*['"]${channel}['"]`,
           'g'
         );
         expect(sourceCode).toMatch(pattern);
       });
     });
 
-    it('should have exactly 11 ipcMain.handle calls', () => {
+    it('should have exactly 21 ipcMain.handle calls', () => {
       // 计算 ipcMain.handle 调用的数量
       const matches = sourceCode.match(
         /ipcMain\.handle\s*\(\s*['"]/g
       );
       expect(matches).not.toBeNull();
-      expect(matches.length).toBe(11);
+      expect(matches.length).toBe(21);
     });
 
     it('graph:get-graph-data handler should be registered', () => {
@@ -343,15 +343,15 @@ describe('Knowledge Graph IPC 处理器注册', () => {
 
       // 检查源代码中有足够的 try-catch 块
       const tryCatchCount = (sourceCode.match(/try\s*\{/g) || []).length;
-      expect(tryCatchCount).toBeGreaterThanOrEqual(11);
+      expect(tryCatchCount).toBeGreaterThanOrEqual(21);
 
       const catchCount = (sourceCode.match(/catch\s*\(\s*error\s*\)/g) || []).length;
-      expect(catchCount).toBeGreaterThanOrEqual(11);
+      expect(catchCount).toBeGreaterThanOrEqual(21);
     });
 
     it('should have error logging for graph operations', () => {
       // 检查是否有Graph IPC相关的错误日志
-      expect(sourceCode).toMatch(/console\.error\(\s*['"][^\'"]*Graph IPC[^\'"]*['"]/);
+      expect(sourceCode).toMatch(/console\.error\(\s*['"][^'"]*Graph IPC[^'"]*['"]/);
     });
 
     it('get-graph-data should return empty data on error', () => {
@@ -612,7 +612,7 @@ describe('Knowledge Graph IPC 处理器注册', () => {
   // ============================================================
 
   describe('完整性检查', () => {
-    it('should have all 11 unique handler channels', () => {
+    it('should have all 21 unique handler channels', () => {
       const expectedHandlers = [
         'graph:get-graph-data',
         'graph:process-note',
@@ -625,6 +625,16 @@ describe('Knowledge Graph IPC 处理器注册', () => {
         'graph:build-tag-relations',
         'graph:build-temporal-relations',
         'graph:extract-semantic-relations',
+        'graph:calculate-centrality',
+        'graph:detect-communities',
+        'graph:cluster-nodes',
+        'graph:find-key-nodes',
+        'graph:analyze-stats',
+        'graph:export-graph',
+        'graph:extract-entities',
+        'graph:extract-keywords',
+        'graph:process-notes-entities',
+        'graph:build-entity-graph',
       ];
 
       expectedHandlers.forEach((channel) => {
@@ -662,7 +672,7 @@ describe('Knowledge Graph IPC 处理器注册', () => {
     it('should have proper summary console log', () => {
       // 检查是否有完成日志
       const summaryPattern =
-        /console\.log\s*\(\s*['"][^\'"]*11[^\'"]*知识图谱[^\'"]*IPC[^\'"]*处理器[^\'"]*['"]\s*\)/;
+        /console\.log\s*\(\s*['"][^'"]*11[^'"]*知识图谱[^'"]*IPC[^'"]*处理器[^'"]*['"]\s*\)/;
       expect(sourceCode).toMatch(summaryPattern);
     });
 

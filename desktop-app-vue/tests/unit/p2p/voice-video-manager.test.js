@@ -6,8 +6,10 @@ import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
 import { VoiceVideoManager, CallState, CallType } from '../../../src/main/p2p/voice-video-manager.js';
 import EventEmitter from 'events';
 
-// Mock wrtc
-vi.mock('wrtc', () => ({
+// Mock wrtc-compat (our WebRTC compatibility layer)
+vi.mock('../../../src/main/p2p/wrtc-compat', () => ({
+  available: true,
+  loadError: null,
   RTCPeerConnection: vi.fn().mockImplementation(() => ({
     createOffer: vi.fn().mockResolvedValue({ type: 'offer', sdp: 'mock-offer-sdp' }),
     createAnswer: vi.fn().mockResolvedValue({ type: 'answer', sdp: 'mock-answer-sdp' }),
@@ -418,7 +420,7 @@ describe('VoiceVideoManager', () => {
       const callId = await voiceVideoManager.startCall(peerId, CallType.AUDIO);
 
       const session = voiceVideoManager.sessions.get(callId);
-      const addIceCandidateSpy = jest.spyOn(session.peerConnection, 'addIceCandidate');
+      const addIceCandidateSpy = vi.spyOn(session.peerConnection, 'addIceCandidate');
 
       await voiceVideoManager._handleCallSignaling(peerId, {
         type: 'ice-candidate',
@@ -454,7 +456,7 @@ describe('VoiceVideoManager', () => {
       session.state = CallState.CONNECTED;
       session.localStream = new (await import('wrtc').MediaStream)();
 
-      const stopSpy = jest.spyOn(session.localStream.getAudioTracks()[0], 'stop');
+      const stopSpy = vi.spyOn(session.localStream.getAudioTracks()[0], 'stop');
 
       await voiceVideoManager.cleanup();
 

@@ -18,136 +18,155 @@ import os from "os";
 let messageCounter = 0;
 const encryptedMessages = [];
 
-// Mock that simulates real encryption behavior
-const createMockCipher = () => {
-  const sessions = new Map();
-  const messageChains = new Map();
-
-  return {
-    encrypt: vi.fn().mockImplementation(async (plaintext) => {
-      messageCounter++;
-      const sessionKey = `session_${messageCounter}`;
-
-      // Simulate different keys for each message (forward secrecy)
-      const messageKey = new Uint8Array(32);
-      for (let i = 0; i < 32; i++) {
-        messageKey[i] = Math.floor(Math.random() * 256);
-      }
-
-      // Simulate encryption
-      const plaintextBytes =
-        typeof plaintext === "string"
-          ? new TextEncoder().encode(plaintext)
-          : new Uint8Array(plaintext);
-
-      // XOR with "key" to simulate encryption (NOT SECURE, just for testing)
-      const encrypted = new Uint8Array(plaintextBytes.length + 32);
-      encrypted.set(messageKey, 0);
-      for (let i = 0; i < plaintextBytes.length; i++) {
-        encrypted[32 + i] = plaintextBytes[i] ^ messageKey[i % 32];
-      }
-
-      const ciphertext = {
-        type: sessions.has(sessionKey) ? 3 : 1, // PreKeyWhisperMessage or WhisperMessage
-        body: encrypted,
-        registrationId: 12345,
-        messageCounter,
-        timestamp: Date.now(),
-      };
-
-      sessions.set(sessionKey, true);
-      encryptedMessages.push({
-        counter: messageCounter,
-        ciphertext: { ...ciphertext },
-        plaintext:
-          typeof plaintext === "string"
-            ? plaintext
-            : Buffer.from(plaintext).toString(),
-      });
-
-      return ciphertext;
-    }),
-
-    decryptPreKeyWhisperMessage: vi.fn().mockImplementation(async (body) => {
-      const encrypted = new Uint8Array(body);
-      const messageKey = encrypted.slice(0, 32);
-      const cipherBytes = encrypted.slice(32);
-
-      // Decrypt
-      const decrypted = new Uint8Array(cipherBytes.length);
-      for (let i = 0; i < cipherBytes.length; i++) {
-        decrypted[i] = cipherBytes[i] ^ messageKey[i % 32];
-      }
-
-      return decrypted;
-    }),
-
-    decryptWhisperMessage: vi.fn().mockImplementation(async (body) => {
-      const encrypted = new Uint8Array(body);
-      const messageKey = encrypted.slice(0, 32);
-      const cipherBytes = encrypted.slice(32);
-
-      // Decrypt
-      const decrypted = new Uint8Array(cipherBytes.length);
-      for (let i = 0; i < cipherBytes.length; i++) {
-        decrypted[i] = cipherBytes[i] ^ messageKey[i % 32];
-      }
-
-      return decrypted;
-    }),
-  };
+// Mock objects - will be populated with implementations in beforeEach
+const mockKeyHelper = {
+  generateIdentityKeyPair: vi.fn(),
+  generateRegistrationId: vi.fn(),
+  generateSignedPreKey: vi.fn(),
+  generatePreKey: vi.fn(),
 };
 
-// Mock the Signal library
-const mockKeyHelper = {
-  generateIdentityKeyPair: vi.fn().mockImplementation(async () => {
+const mockSessionBuilder = {
+  processPreKey: vi.fn(),
+};
+
+const mockCipher = {
+  encrypt: vi.fn(),
+  decryptPreKeyWhisperMessage: vi.fn(),
+  decryptWhisperMessage: vi.fn(),
+};
+
+// Store references to constructor mocks so we can re-apply implementations
+const MockSessionBuilder = vi.fn();
+const MockSessionCipher = vi.fn();
+const MockSignalProtocolAddress = vi.fn();
+
+vi.mock("@privacyresearch/libsignal-protocol-typescript", () => ({
+  KeyHelper: mockKeyHelper,
+  SessionBuilder: MockSessionBuilder,
+  SessionCipher: MockSessionCipher,
+  SignalProtocolAddress: MockSignalProtocolAddress,
+}));
+
+// Helper function to setup mock implementations
+// Called in beforeEach to ensure mocks are properly set after mockReset
+function setupMockImplementations() {
+  const sessions = new Map();
+
+  // Setup KeyHelper mocks
+  mockKeyHelper.generateIdentityKeyPair.mockImplementation(async () => {
     const pubKey = new ArrayBuffer(33);
     const privKey = new ArrayBuffer(32);
-    // Generate unique keys
     const pubView = new Uint8Array(pubKey);
     const privView = new Uint8Array(privKey);
     for (let i = 0; i < 33; i++) pubView[i] = Math.floor(Math.random() * 256);
     for (let i = 0; i < 32; i++) privView[i] = Math.floor(Math.random() * 256);
     return { pubKey, privKey };
-  }),
-  generateRegistrationId: vi
-    .fn()
-    .mockImplementation(() => Math.floor(Math.random() * 16777215)),
-  generateSignedPreKey: vi
-    .fn()
-    .mockImplementation(async (identityKeyPair, keyId) => ({
+  });
+
+  mockKeyHelper.generateRegistrationId.mockImplementation(
+    () => Math.floor(Math.random() * 16777215)
+  );
+
+  mockKeyHelper.generateSignedPreKey.mockImplementation(
+    async (identityKeyPair, keyId) => ({
       keyId,
       keyPair: {
         pubKey: new ArrayBuffer(33),
         privKey: new ArrayBuffer(32),
       },
       signature: new ArrayBuffer(64),
-    })),
-  generatePreKey: vi.fn().mockImplementation(async (keyId) => ({
+    })
+  );
+
+  mockKeyHelper.generatePreKey.mockImplementation(async (keyId) => ({
     keyId,
     keyPair: {
       pubKey: new ArrayBuffer(33),
       privKey: new ArrayBuffer(32),
     },
-  })),
-};
+  }));
 
-const mockSessionBuilder = {
-  processPreKey: vi.fn().mockResolvedValue(undefined),
-};
+  // Setup SessionBuilder constructor mock
+  MockSessionBuilder.mockImplementation(() => mockSessionBuilder);
+  mockSessionBuilder.processPreKey.mockResolvedValue(undefined);
 
-const mockCipher = createMockCipher();
+  // Setup SessionCipher constructor mock
+  MockSessionCipher.mockImplementation(() => mockCipher);
+  mockCipher.encrypt.mockImplementation(async (plaintext) => {
+    messageCounter++;
+    const sessionKey = `session_${messageCounter}`;
 
-vi.mock("@privacyresearch/libsignal-protocol-typescript", () => ({
-  KeyHelper: mockKeyHelper,
-  SessionBuilder: vi.fn().mockImplementation(() => mockSessionBuilder),
-  SessionCipher: vi.fn().mockImplementation(() => mockCipher),
-  SignalProtocolAddress: vi.fn().mockImplementation((name, deviceId) => ({
+    const messageKey = new Uint8Array(32);
+    for (let i = 0; i < 32; i++) {
+      messageKey[i] = Math.floor(Math.random() * 256);
+    }
+
+    const plaintextBytes =
+      typeof plaintext === "string"
+        ? new TextEncoder().encode(plaintext)
+        : new Uint8Array(plaintext);
+
+    const encrypted = new Uint8Array(plaintextBytes.length + 32);
+    encrypted.set(messageKey, 0);
+    for (let i = 0; i < plaintextBytes.length; i++) {
+      encrypted[32 + i] = plaintextBytes[i] ^ messageKey[i % 32];
+    }
+
+    const ciphertext = {
+      type: sessions.has(sessionKey) ? 3 : 1,
+      body: encrypted,
+      registrationId: 12345,
+      messageCounter,
+      timestamp: Date.now(),
+    };
+
+    sessions.set(sessionKey, true);
+    encryptedMessages.push({
+      counter: messageCounter,
+      ciphertext: { ...ciphertext },
+      plaintext:
+        typeof plaintext === "string"
+          ? plaintext
+          : Buffer.from(plaintext).toString(),
+    });
+
+    return ciphertext;
+  });
+
+  mockCipher.decryptPreKeyWhisperMessage.mockImplementation(async (body) => {
+    const encrypted = new Uint8Array(body);
+    const messageKey = encrypted.slice(0, 32);
+    const cipherBytes = encrypted.slice(32);
+
+    const decrypted = new Uint8Array(cipherBytes.length);
+    for (let i = 0; i < cipherBytes.length; i++) {
+      decrypted[i] = cipherBytes[i] ^ messageKey[i % 32];
+    }
+
+    return decrypted;
+  });
+
+  mockCipher.decryptWhisperMessage.mockImplementation(async (body) => {
+    const encrypted = new Uint8Array(body);
+    const messageKey = encrypted.slice(0, 32);
+    const cipherBytes = encrypted.slice(32);
+
+    const decrypted = new Uint8Array(cipherBytes.length);
+    for (let i = 0; i < cipherBytes.length; i++) {
+      decrypted[i] = cipherBytes[i] ^ messageKey[i % 32];
+    }
+
+    return decrypted;
+  });
+
+  // Setup SignalProtocolAddress constructor mock
+  MockSignalProtocolAddress.mockImplementation((name, deviceId) => ({
     getName: () => name,
     getDeviceId: () => deviceId,
     toString: () => `${name}.${deviceId}`,
-  })),
-}));
+  }));
+}
 
 describe("Signal Protocol Security Tests", () => {
   let SignalSessionManager;
@@ -158,9 +177,15 @@ describe("Signal Protocol Security Tests", () => {
     testDir = path.join(os.tmpdir(), "signal-security-test-" + Date.now());
     fs.mkdirSync(testDir, { recursive: true });
 
-    vi.clearAllMocks();
+    // Reset counters
     messageCounter = 0;
     encryptedMessages.length = 0;
+
+    // Re-apply mock implementations after vitest's mockReset
+    setupMockImplementations();
+
+    // Reset modules to ensure fresh import with mocks
+    vi.resetModules();
 
     SignalSessionManager = (
       await import("../../../src/main/p2p/signal-session-manager.js")
@@ -464,10 +489,12 @@ describe("Signal Protocol Security Tests", () => {
       try {
         await alice.processPreKeyBundle("test", 1, null);
       } catch (error) {
-        // Error should be informative but not leak sensitive data
-        expect(error.message).not.toContain("key");
+        // Error should be informative but not leak sensitive key values or secrets
+        // Note: "key" can appear in context like "pre key bundle" which is acceptable
         expect(error.message).not.toContain("secret");
         expect(error.message).not.toContain("private");
+        expect(error.message).not.toContain("privKey");
+        expect(error.message).not.toContain("0x"); // hex key values
       }
     });
 
@@ -523,7 +550,11 @@ describe("Cryptographic Properties", () => {
     testDir = path.join(os.tmpdir(), "signal-crypto-test-" + Date.now());
     fs.mkdirSync(testDir, { recursive: true });
 
-    vi.clearAllMocks();
+    // Re-apply mock implementations after vitest's mockReset
+    setupMockImplementations();
+
+    // Reset modules to ensure fresh import with mocks
+    vi.resetModules();
 
     SignalSessionManager = (
       await import("../../../src/main/p2p/signal-session-manager.js")

@@ -285,7 +285,7 @@ function registerAllIPC(dependencies) {
       console.log("[IPC Registry] Registering Identity Context IPC...");
       const {
         registerIdentityContextIPC,
-      } = require("./identity-context/identity-context-ipc");
+      } = require("../identity-context/identity-context-ipc");
       registerIdentityContextIPC({ identityContextManager });
       console.log(
         "[IPC Registry] ✓ Identity Context IPC registered (7 handlers)",
@@ -324,7 +324,7 @@ function registerAllIPC(dependencies) {
     // 项目核心管理 (函数模式 - 大模块，34 handlers)
     if (database) {
       console.log("[IPC Registry] Registering Project Core IPC...");
-      const { registerProjectCoreIPC } = require("./project/project-core-ipc");
+      const { registerProjectCoreIPC } = require("../project/project-core-ipc");
       registerProjectCoreIPC({
         database,
         fileSyncManager,
@@ -337,7 +337,7 @@ function registerAllIPC(dependencies) {
     // 项目AI功能 (函数模式 - 中等模块，16 handlers)
     if (database && llmManager) {
       console.log("[IPC Registry] Registering Project AI IPC...");
-      const { registerProjectAIIPC } = require("./project/project-ai-ipc");
+      const { registerProjectAIIPC } = require("../project/project-ai-ipc");
       registerProjectAIIPC({
         database,
         llmManager,
@@ -354,11 +354,11 @@ function registerAllIPC(dependencies) {
       console.log("[IPC Registry] Registering Project Export/Share IPC...");
       const {
         registerProjectExportIPC,
-      } = require("./project/project-export-ipc");
+      } = require("../project/project-export-ipc");
 
       // 获取必要的依赖函数
       const { getDatabaseConnection, saveDatabase } = require("../database");
-      const { getProjectConfig } = require("./project/project-config");
+      const { getProjectConfig } = require("../project/project-config");
       const { copyDirectory } = require("../utils/file-utils");
 
       registerProjectExportIPC({
@@ -378,14 +378,14 @@ function registerAllIPC(dependencies) {
 
     // 项目RAG检索 (函数模式 - 中等模块，10 handlers)
     console.log("[IPC Registry] Registering Project RAG IPC...");
-    const { registerProjectRAGIPC } = require("./project/project-rag-ipc");
+    const { registerProjectRAGIPC } = require("../project/project-rag-ipc");
 
     // 获取必要的依赖函数
-    const { getProjectRAGManager } = require("./project/project-rag");
+    const { getProjectRAGManager } = require("../project/project-rag");
     const {
       getProjectConfig: getRagProjectConfig,
-    } = require("./project/project-config");
-    const RAGAPI = require("./project/rag-api");
+    } = require("../project/project-config");
+    const RAGAPI = require("../project/rag-api");
 
     registerProjectRAGIPC({
       getProjectRAGManager,
@@ -396,13 +396,13 @@ function registerAllIPC(dependencies) {
 
     // 项目Git集成 (函数模式 - 大模块，14 handlers)
     console.log("[IPC Registry] Registering Project Git IPC...");
-    const { registerProjectGitIPC } = require("./project/project-git-ipc");
+    const { registerProjectGitIPC } = require("../project/project-git-ipc");
 
     // 获取必要的依赖函数
     const {
       getProjectConfig: getGitProjectConfig,
-    } = require("./project/project-config");
-    const GitAPI = require("./project/git-api");
+    } = require("../project/project-config");
+    const GitAPI = require("../project/git-api");
 
     registerProjectGitIPC({
       getProjectConfig: getGitProjectConfig,
@@ -426,8 +426,8 @@ function registerAllIPC(dependencies) {
     // 文件操作 (函数模式 - 中等模块，17 handlers)
     if (database) {
       console.log("[IPC Registry] Registering File IPC...");
-      const { registerFileIPC } = require("./file/file-ipc");
-      const { getProjectConfig } = require("./project/project-config");
+      const { registerFileIPC } = require("../file/file-ipc");
+      const { getProjectConfig } = require("../project/project-config");
 
       registerFileIPC({
         database,
@@ -439,7 +439,7 @@ function registerAllIPC(dependencies) {
 
     // 模板管理 (函数模式 - 大模块，20 handlers)
     console.log("[IPC Registry] Registering Template IPC...");
-    const { registerTemplateIPC } = require("./template/template-ipc");
+    const { registerTemplateIPC } = require("../template/template-ipc");
 
     registerTemplateIPC({
       templateManager: app.templateManager,
@@ -449,7 +449,7 @@ function registerAllIPC(dependencies) {
     // 知识管理 (函数模式 - 中等模块，17 handlers)
     if (dbManager || versionManager || knowledgePaymentManager) {
       console.log("[IPC Registry] Registering Knowledge IPC...");
-      const { registerKnowledgeIPC } = require("./knowledge/knowledge-ipc");
+      const { registerKnowledgeIPC } = require("../knowledge/knowledge-ipc");
 
       registerKnowledgeIPC({
         dbManager,
@@ -464,7 +464,7 @@ function registerAllIPC(dependencies) {
       console.log("[IPC Registry] Registering Prompt Template IPC...");
       const {
         registerPromptTemplateIPC,
-      } = require("./prompt-template/prompt-template-ipc");
+      } = require("../prompt-template/prompt-template-ipc");
 
       registerPromptTemplateIPC({
         promptTemplateManager,
@@ -477,7 +477,7 @@ function registerAllIPC(dependencies) {
     // 图像管理 (函数模式 - 大模块，22 handlers)
     if (imageUploader) {
       console.log("[IPC Registry] Registering Image IPC...");
-      const { registerImageIPC } = require("./image/image-ipc");
+      const { registerImageIPC } = require("../image/image-ipc");
 
       registerImageIPC({
         imageUploader,
@@ -505,7 +505,7 @@ function registerAllIPC(dependencies) {
     ) {
       try {
         console.log("[IPC Registry] Registering Speech IPC...");
-        const { registerSpeechIPC } = require("./speech/speech-ipc");
+        const { registerSpeechIPC } = require("../speech/speech-ipc");
 
         // 获取 initializeSpeechManager 函数
         const initializeSpeechManager = app.initializeSpeechManager.bind(app);
@@ -532,7 +532,7 @@ function registerAllIPC(dependencies) {
     // 视频处理 (函数模式 - 大模块，18 handlers)
     if (app.videoImporter) {
       console.log("[IPC Registry] Registering Video IPC...");
-      const { registerVideoIPC } = require("./video/video-ipc");
+      const { registerVideoIPC } = require("../video/video-ipc");
 
       registerVideoIPC({
         videoImporter: app.videoImporter,
@@ -544,10 +544,10 @@ function registerAllIPC(dependencies) {
 
     // PDF 处理 (函数模式 - 小模块，4 handlers)
     console.log("[IPC Registry] Registering PDF IPC...");
-    const { registerPDFIPC } = require("./pdf/pdf-ipc");
+    const { registerPDFIPC } = require("../pdf/pdf-ipc");
 
     // 获取 getPDFEngine 函数
-    const { getPDFEngine } = require("./engines/pdf-engine");
+    const { getPDFEngine } = require("../engines/pdf-engine");
 
     registerPDFIPC({
       getPDFEngine,
@@ -556,7 +556,7 @@ function registerAllIPC(dependencies) {
 
     // 文档处理 (函数模式 - 小模块，1 handler)
     console.log("[IPC Registry] Registering Document IPC...");
-    const { registerDocumentIPC } = require("./document/document-ipc");
+    const { registerDocumentIPC } = require("../document/document-ipc");
 
     registerDocumentIPC({
       convertSlidesToOutline: app.convertSlidesToOutline.bind(app),
@@ -576,7 +576,7 @@ function registerAllIPC(dependencies) {
     // 区块链核心 (7个模块, 75 handlers)
     if (app.walletManager) {
       console.log("[IPC Registry] Registering Blockchain Wallet IPC...");
-      const { registerWalletIPC } = require("./blockchain/wallet-ipc");
+      const { registerWalletIPC } = require("../blockchain/wallet-ipc");
       registerWalletIPC({
         walletManager: app.walletManager,
         externalWalletConnector: app.externalWalletConnector,
@@ -588,7 +588,7 @@ function registerAllIPC(dependencies) {
 
     if (app.contractEngine) {
       console.log("[IPC Registry] Registering Smart Contract IPC...");
-      const { registerContractIPC } = require("./blockchain/contract-ipc");
+      const { registerContractIPC } = require("../blockchain/contract-ipc");
       registerContractIPC({ contractEngine: app.contractEngine });
       console.log(
         "[IPC Registry] ✓ Smart Contract IPC registered (15 handlers)",
@@ -597,7 +597,7 @@ function registerAllIPC(dependencies) {
 
     if (app.blockchainAdapter || app.transactionMonitor) {
       console.log("[IPC Registry] Registering Blockchain IPC...");
-      const { registerBlockchainIPC } = require("./blockchain/blockchain-ipc");
+      const { registerBlockchainIPC } = require("../blockchain/blockchain-ipc");
       registerBlockchainIPC({
         blockchainAdapter: app.blockchainAdapter,
         transactionMonitor: app.transactionMonitor,
@@ -609,7 +609,7 @@ function registerAllIPC(dependencies) {
 
     if (app.assetManager) {
       console.log("[IPC Registry] Registering Asset IPC...");
-      const { registerAssetIPC } = require("./blockchain/asset-ipc");
+      const { registerAssetIPC } = require("../blockchain/asset-ipc");
       registerAssetIPC({ assetManager: app.assetManager });
       console.log("[IPC Registry] ✓ Asset IPC registered (10 handlers)");
     }
@@ -618,21 +618,21 @@ function registerAllIPC(dependencies) {
       console.log("[IPC Registry] Registering Marketplace IPC...");
       const {
         registerMarketplaceIPC,
-      } = require("./blockchain/marketplace-ipc");
+      } = require("../blockchain/marketplace-ipc");
       registerMarketplaceIPC({ marketplaceManager: app.marketplaceManager });
       console.log("[IPC Registry] ✓ Marketplace IPC registered (9 handlers)");
     }
 
     if (app.bridgeManager) {
       console.log("[IPC Registry] Registering Bridge IPC...");
-      const { registerBridgeIPC } = require("./blockchain/bridge-ipc");
+      const { registerBridgeIPC } = require("../blockchain/bridge-ipc");
       registerBridgeIPC(app.bridgeManager);
       console.log("[IPC Registry] ✓ Bridge IPC registered (7 handlers)");
     }
 
     if (app.escrowManager) {
       console.log("[IPC Registry] Registering Escrow IPC...");
-      const { registerEscrowIPC } = require("./blockchain/escrow-ipc");
+      const { registerEscrowIPC } = require("../blockchain/escrow-ipc");
       registerEscrowIPC(app.escrowManager);
       console.log("[IPC Registry] ✓ Escrow IPC registered (5 handlers)");
     }
@@ -640,14 +640,14 @@ function registerAllIPC(dependencies) {
     // 代码工具 (2个模块, 20 handlers)
     if (llmManager) {
       console.log("[IPC Registry] Registering Code Tools IPC...");
-      const { registerCodeIPC } = require("./code-tools/code-ipc");
+      const { registerCodeIPC } = require("../code-tools/code-ipc");
       registerCodeIPC({ llmManager });
       console.log("[IPC Registry] ✓ Code Tools IPC registered (10 handlers)");
     }
 
     if (reviewManager) {
       console.log("[IPC Registry] Registering Review System IPC...");
-      const { registerReviewIPC } = require("./code-tools/review-ipc");
+      const { registerReviewIPC } = require("../code-tools/review-ipc");
       registerReviewIPC({ reviewManager });
       console.log(
         "[IPC Registry] ✓ Review System IPC registered (10 handlers)",
@@ -658,7 +658,7 @@ function registerAllIPC(dependencies) {
     console.log("[IPC Registry] Registering Collaboration IPC...");
     const {
       registerCollaborationIPC,
-    } = require("./collaboration/collaboration-ipc");
+    } = require("../collaboration/collaboration-ipc");
     registerCollaborationIPC();
     console.log("[IPC Registry] ✓ Collaboration IPC registered (8 handlers)");
 
@@ -666,20 +666,20 @@ function registerAllIPC(dependencies) {
       console.log("[IPC Registry] Registering VC Template IPC...");
       const {
         registerVCTemplateIPC,
-      } = require("./vc-template/vc-template-ipc");
+      } = require("../vc-template/vc-template-ipc");
       registerVCTemplateIPC(vcTemplateManager);
       console.log("[IPC Registry] ✓ VC Template IPC registered (11 handlers)");
     }
 
     console.log("[IPC Registry] Registering Automation IPC...");
-    const { registerAutomationIPC } = require("./automation/automation-ipc");
+    const { registerAutomationIPC } = require("../automation/automation-ipc");
     registerAutomationIPC();
     console.log("[IPC Registry] ✓ Automation IPC registered (9 handlers)");
 
     // 知识图谱与信用 (2个模块, 18 handlers)
     if (database || app.graphExtractor) {
       console.log("[IPC Registry] Registering Knowledge Graph IPC...");
-      const { registerGraphIPC } = require("./knowledge-graph/graph-ipc");
+      const { registerGraphIPC } = require("../knowledge-graph/graph-ipc");
       registerGraphIPC({
         database,
         graphExtractor: app.graphExtractor,
@@ -692,14 +692,14 @@ function registerAllIPC(dependencies) {
 
     if (creditScoreManager) {
       console.log("[IPC Registry] Registering Credit Score IPC...");
-      const { registerCreditIPC } = require("./credit/credit-ipc");
+      const { registerCreditIPC } = require("../credit/credit-ipc");
       registerCreditIPC({ creditScoreManager });
       console.log("[IPC Registry] ✓ Credit Score IPC registered (7 handlers)");
     }
 
     if (pluginManager) {
       console.log("[IPC Registry] Registering Plugin IPC...");
-      const { registerPluginIPC } = require("./plugins/plugin-ipc");
+      const { registerPluginIPC } = require("../plugins/plugin-ipc");
       registerPluginIPC({ pluginManager });
       console.log("[IPC Registry] ✓ Plugin IPC registered");
     } else {
@@ -711,7 +711,7 @@ function registerAllIPC(dependencies) {
     // 其他功能 (3个模块, 13 handlers)
     if (fileImporter) {
       console.log("[IPC Registry] Registering Import IPC...");
-      const { registerImportIPC } = require("./import/import-ipc");
+      const { registerImportIPC } = require("../import/import-ipc");
       registerImportIPC({
         fileImporter,
         mainWindow,
@@ -727,7 +727,7 @@ function registerAllIPC(dependencies) {
         "[IPC Registry] ⚠️ syncManager 未初始化，将注册降级的 Sync IPC handlers",
       );
     }
-    const { registerSyncIPC } = require("./sync/sync-ipc");
+    const { registerSyncIPC } = require("../sync/sync-ipc");
     registerSyncIPC({ syncManager: syncManager || null });
     console.log("[IPC Registry] ✓ Sync IPC registered (4 handlers)");
 
@@ -740,7 +740,7 @@ function registerAllIPC(dependencies) {
     }
     const {
       registerNotificationIPC,
-    } = require("./notification/notification-ipc");
+    } = require("../notification/notification-ipc");
     registerNotificationIPC({ database: database || null });
     console.log("[IPC Registry] ✓ Notification IPC registered (5 handlers)");
 
@@ -750,7 +750,7 @@ function registerAllIPC(dependencies) {
     console.log("[IPC Registry] Registering Conversation IPC...");
     const {
       registerConversationIPC,
-    } = require("./conversation/conversation-ipc");
+    } = require("../conversation/conversation-ipc");
     registerConversationIPC({
       database: database || null,
       llmManager: llmManager || null,
@@ -791,7 +791,7 @@ function registerAllIPC(dependencies) {
           "[IPC Registry] ⚠️ fileSyncManager 未初始化，将注册降级的 File Sync IPC handlers",
         );
       }
-      const { registerFileSyncIPC } = require("./file-sync/file-sync-ipc");
+      const { registerFileSyncIPC } = require("../file-sync/file-sync-ipc");
       registerFileSyncIPC({
         fileSyncManager: fileSyncManager || null,
         database,
@@ -803,7 +803,7 @@ function registerAllIPC(dependencies) {
 
     // 配置管理 (函数模式 - 小模块，4 handlers)
     console.log("[IPC Registry] Registering Config IPC...");
-    const { registerConfigIPC } = require("./config/config-ipc");
+    const { registerConfigIPC } = require("../config/config-ipc");
     // getAppConfig 已在第145行声明，此处复用
     registerConfigIPC({ appConfig: getAppConfig() });
     console.log("[IPC Registry] ✓ Config IPC registered (4 handlers)");
@@ -829,7 +829,7 @@ function registerAllIPC(dependencies) {
     );
     if (mainWindow) {
       console.log("[IPC Registry] Registering System IPC...");
-      const { registerSystemIPC } = require("./system/system-ipc");
+      const { registerSystemIPC } = require("../system/system-ipc");
       registerSystemIPC({ mainWindow });
       console.log("[IPC Registry] ✓ System IPC registered (16 handlers)");
     } else {

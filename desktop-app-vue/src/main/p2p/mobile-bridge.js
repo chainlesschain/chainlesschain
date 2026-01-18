@@ -11,18 +11,20 @@
 const WebSocket = require("ws");
 const EventEmitter = require("events");
 
-// wrtc is an optional dependency - not available on all platforms (e.g., darwin-arm64)
-let wrtc = null;
-let wrtcAvailable = false;
-try {
-  wrtc = require("wrtc");
-  wrtcAvailable = true;
-} catch (e) {
+// Use wrtc-compat which provides WebRTC via werift (pure JavaScript, no native binaries)
+// This replaces the deprecated 'wrtc' package which doesn't support modern Electron/Node.js
+const wrtcCompat = require("./wrtc-compat");
+const wrtc = wrtcCompat;
+const wrtcAvailable = wrtcCompat.available;
+
+if (!wrtcAvailable) {
   console.warn(
-    "[MobileBridge] wrtc not available on this platform:",
-    e.message,
+    "[MobileBridge] WebRTC (werift) not available:",
+    wrtcCompat.loadError?.message || "unknown error",
   );
   console.warn("[MobileBridge] Mobile bridging via WebRTC will be disabled");
+} else {
+  console.log("[MobileBridge] WebRTC initialized via werift");
 }
 
 class MobileBridge extends EventEmitter {
