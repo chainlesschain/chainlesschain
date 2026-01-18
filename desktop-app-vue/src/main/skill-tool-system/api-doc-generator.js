@@ -3,38 +3,38 @@
  * 从JSDoc注释自动生成Markdown格式的API文档
  */
 
-const fs = require('fs').promises;
-const path = require('path');
+const fs = require("fs").promises;
+const path = require("path");
 
 class ApiDocGenerator {
   constructor(outputDir) {
-    this.outputDir = outputDir || path.join(process.cwd(), 'docs', 'api');
+    this.outputDir = outputDir || path.join(process.cwd(), "docs", "api");
     this.moduleFiles = [
       {
-        name: 'SkillManager',
-        file: path.join(__dirname, 'skill-manager.js'),
-        description: '技能管理器 - 负责技能的CRUD操作、状态管理和统计'
+        name: "SkillManager",
+        file: path.join(__dirname, "skill-manager.js"),
+        description: "技能管理器 - 负责技能的CRUD操作、状态管理和统计",
       },
       {
-        name: 'ToolManager',
-        file: path.join(__dirname, 'tool-manager.js'),
-        description: '工具管理器 - 负责工具的注册、执行和参数验证'
+        name: "ToolManager",
+        file: path.join(__dirname, "tool-manager.js"),
+        description: "工具管理器 - 负责工具的注册、执行和参数验证",
       },
       {
-        name: 'SkillExecutor',
-        file: path.join(__dirname, 'skill-executor.js'),
-        description: '技能执行器 - 负责执行技能和调度工具'
+        name: "SkillExecutor",
+        file: path.join(__dirname, "skill-executor.js"),
+        description: "技能执行器 - 负责执行技能和调度工具",
       },
       {
-        name: 'ToolRunner',
-        file: path.join(__dirname, 'tool-runner.js'),
-        description: '工具运行器 - 负责工具的安全执行和错误处理'
+        name: "ToolRunner",
+        file: path.join(__dirname, "tool-runner.js"),
+        description: "工具运行器 - 负责工具的安全执行和错误处理",
       },
       {
-        name: 'StatsCleaner',
-        file: path.join(__dirname, 'stats-cleaner.js'),
-        description: '统计数据清理器 - 定期清理过期数据和优化数据库'
-      }
+        name: "StatsCleaner",
+        file: path.join(__dirname, "stats-cleaner.js"),
+        description: "统计数据清理器 - 定期清理过期数据和优化数据库",
+      },
     ];
   }
 
@@ -42,7 +42,7 @@ class ApiDocGenerator {
    * 生成所有模块的API文档
    */
   async generateAll() {
-    console.log('[ApiDocGenerator] 开始生成API文档...');
+    console.log("[ApiDocGenerator] 开始生成API文档...");
 
     try {
       // 确保输出目录存在
@@ -59,7 +59,7 @@ class ApiDocGenerator {
       console.log(`[ApiDocGenerator] API文档已生成到: ${this.outputDir}`);
       return { success: true, outputDir: this.outputDir };
     } catch (error) {
-      console.error('[ApiDocGenerator] 生成API文档失败:', error);
+      console.error("[ApiDocGenerator] 生成API文档失败:", error);
       return { success: false, error: error.message };
     }
   }
@@ -70,7 +70,7 @@ class ApiDocGenerator {
   async generateIndex() {
     let content = `# 技能工具系统 API 文档
 
-> 自动生成时间: ${new Date().toLocaleString('zh-CN')}
+> 自动生成时间: ${new Date().toLocaleString("zh-CN")}
 
 ## 概述
 
@@ -207,9 +207,15 @@ await skillManager.addToolToSkill(skill.id, tool.id);
 > 更多信息请参考各模块的详细文档
 `;
 
-    const indexFile = path.join(this.outputDir, 'README.md');
-    await fs.writeFile(indexFile, content, 'utf-8');
-    console.log(`[ApiDocGenerator] 索引文件已生成: ${indexFile}`);
+    const indexFile = path.join(this.outputDir, "README.md");
+
+    // 只在内容实际变化时才写入（忽略时间戳比较）
+    if (await this._shouldUpdateDoc(indexFile, content)) {
+      await fs.writeFile(indexFile, content, "utf-8");
+      console.log(`[ApiDocGenerator] 索引文件已生成: ${indexFile}`);
+    } else {
+      console.log(`[ApiDocGenerator] 索引文件无变化，跳过: ${indexFile}`);
+    }
   }
 
   /**
@@ -217,7 +223,7 @@ await skillManager.addToolToSkill(skill.id, tool.id);
    */
   async generateModuleDoc(module) {
     try {
-      const sourceCode = await fs.readFile(module.file, 'utf-8');
+      const sourceCode = await fs.readFile(module.file, "utf-8");
       const methods = this.extractMethods(sourceCode);
       const properties = this.extractProperties(sourceCode);
 
@@ -231,14 +237,14 @@ ${module.description}
 
 \`\`\`javascript
 class ${module.name} {
-${properties.map(p => `  ${p.name}; // ${p.description || ''}`).join('\n')}
+${properties.map((p) => `  ${p.name}; // ${p.description || ""}`).join("\n")}
 }
 \`\`\`
 
 ## 构造函数
 
 \`\`\`javascript
-new ${module.name}(${methods.find(m => m.name === 'constructor')?.params.join(', ') || ''})
+new ${module.name}(${methods.find((m) => m.name === "constructor")?.params.join(", ") || ""})
 \`\`\`
 
 ## 方法
@@ -246,16 +252,18 @@ new ${module.name}(${methods.find(m => m.name === 'constructor')?.params.join(',
 `;
 
       // 按类别分组方法
-      const publicMethods = methods.filter(m => !m.name.startsWith('_') && m.name !== 'constructor');
-      const privateMethods = methods.filter(m => m.name.startsWith('_'));
+      const publicMethods = methods.filter(
+        (m) => !m.name.startsWith("_") && m.name !== "constructor",
+      );
+      const privateMethods = methods.filter((m) => m.name.startsWith("_"));
 
-      content += '### 公开方法\n\n';
+      content += "### 公开方法\n\n";
       for (const method of publicMethods) {
         content += this.formatMethodDoc(method);
       }
 
       if (privateMethods.length > 0) {
-        content += '\n### 私有方法\n\n';
+        content += "\n### 私有方法\n\n";
         for (const method of privateMethods) {
           content += this.formatMethodDoc(method);
         }
@@ -266,7 +274,11 @@ new ${module.name}(${methods.find(m => m.name === 'constructor')?.params.join(',
 
 如果该类继承自EventEmitter,可以监听以下事件:
 
-${this.extractEvents(sourceCode).map(e => `- \`${e.name}\` - ${e.description}`).join('\n') || '(无)'}
+${
+  this.extractEvents(sourceCode)
+    .map((e) => `- \`${e.name}\` - ${e.description}`)
+    .join("\n") || "(无)"
+}
 
 ## 示例
 
@@ -279,12 +291,18 @@ const ${module.name.toLowerCase()} = new ${module.name}(/* 参数 */);
 
 ---
 
-> 自动生成时间: ${new Date().toLocaleString('zh-CN')}
+> 自动生成时间: ${new Date().toLocaleString("zh-CN")}
 `;
 
       const outputFile = path.join(this.outputDir, `${module.name}.md`);
-      await fs.writeFile(outputFile, content, 'utf-8');
-      console.log(`[ApiDocGenerator] 模块文档已生成: ${outputFile}`);
+
+      // 只在内容实际变化时才写入（忽略时间戳比较）
+      if (await this._shouldUpdateDoc(outputFile, content)) {
+        await fs.writeFile(outputFile, content, "utf-8");
+        console.log(`[ApiDocGenerator] 模块文档已生成: ${outputFile}`);
+      } else {
+        console.log(`[ApiDocGenerator] 模块文档无变化，跳过: ${outputFile}`);
+      }
     } catch (error) {
       console.error(`[ApiDocGenerator] 生成 ${module.name} 文档失败:`, error);
     }
@@ -295,7 +313,8 @@ const ${module.name.toLowerCase()} = new ${module.name}(/* 参数 */);
    */
   extractMethods(sourceCode) {
     const methods = [];
-    const methodRegex = /(?:\/\*\*[\s\S]*?\*\/\s*)?(async\s+)?(\w+)\s*\(([^)]*)\)\s*{/g;
+    const methodRegex =
+      /(?:\/\*\*[\s\S]*?\*\/\s*)?(async\s+)?(\w+)\s*\(([^)]*)\)\s*{/g;
     const docCommentRegex = /\/\*\*([\s\S]*?)\*\//;
 
     let match;
@@ -304,39 +323,48 @@ const ${module.name.toLowerCase()} = new ${module.name}(/* 参数 */);
       const startPos = match.index;
 
       // 查找前面的文档注释
-      const precedingCode = sourceCode.substring(Math.max(0, startPos - 500), startPos);
+      const precedingCode = sourceCode.substring(
+        Math.max(0, startPos - 500),
+        startPos,
+      );
       const docMatch = docCommentRegex.exec(precedingCode);
 
-      let description = '';
+      let description = "";
       let paramDocs = [];
-      let returns = '';
+      let returns = "";
 
       if (docMatch) {
         const docText = docMatch[1];
-        const lines = docText.split('\n').map(l => l.trim().replace(/^\*\s?/, ''));
+        const lines = docText
+          .split("\n")
+          .map((l) => l.trim().replace(/^\*\s?/, ""));
 
-        description = lines.find(l => l && !l.startsWith('@'))?.trim() || '';
+        description = lines.find((l) => l && !l.startsWith("@"))?.trim() || "";
 
         paramDocs = lines
-          .filter(l => l.startsWith('@param'))
-          .map(l => {
-            const paramMatch = l.match(/@param\s+(?:\{([^}]+)\}\s+)?(\w+)\s*-?\s*(.*)/);
+          .filter((l) => l.startsWith("@param"))
+          .map((l) => {
+            const paramMatch = l.match(
+              /@param\s+(?:\{([^}]+)\}\s+)?(\w+)\s*-?\s*(.*)/,
+            );
             if (paramMatch) {
               return {
-                type: paramMatch[1] || 'any',
+                type: paramMatch[1] || "any",
                 name: paramMatch[2],
-                description: paramMatch[3]
+                description: paramMatch[3],
               };
             }
             return null;
           })
           .filter(Boolean);
 
-        const returnLine = lines.find(l => l.startsWith('@returns'));
+        const returnLine = lines.find((l) => l.startsWith("@returns"));
         if (returnLine) {
-          const returnMatch = returnLine.match(/@returns\s+(?:\{([^}]+)\}\s+)?(.*)/);
+          const returnMatch = returnLine.match(
+            /@returns\s+(?:\{([^}]+)\}\s+)?(.*)/,
+          );
           if (returnMatch) {
-            returns = `\`${returnMatch[1] || 'void'}\` - ${returnMatch[2]}`;
+            returns = `\`${returnMatch[1] || "void"}\` - ${returnMatch[2]}`;
           }
         }
       }
@@ -344,10 +372,13 @@ const ${module.name.toLowerCase()} = new ${module.name}(/* 参数 */);
       methods.push({
         name: methodName,
         isAsync: !!isAsync,
-        params: params.split(',').map(p => p.trim()).filter(Boolean),
+        params: params
+          .split(",")
+          .map((p) => p.trim())
+          .filter(Boolean),
         paramDocs,
         description,
-        returns
+        returns,
       });
     }
 
@@ -366,7 +397,7 @@ const ${module.name.toLowerCase()} = new ${module.name}(/* 参数 */);
       properties.push({
         name: match[1],
         initialValue: match[2].trim(),
-        description: ''
+        description: "",
       });
     }
 
@@ -394,14 +425,14 @@ const ${module.name.toLowerCase()} = new ${module.name}(/* 参数 */);
     while ((match = eventRegex.exec(sourceCode)) !== null) {
       events.push({
         name: match[1],
-        description: '(待补充说明)'
+        description: "(待补充说明)",
       });
     }
 
     // 去重
-    return [...new Set(events.map(e => e.name))].map(name => ({
+    return [...new Set(events.map((e) => e.name))].map((name) => ({
       name,
-      description: events.find(e => e.name === name)?.description || ''
+      description: events.find((e) => e.name === name)?.description || "",
     }));
   }
 
@@ -409,34 +440,57 @@ const ${module.name.toLowerCase()} = new ${module.name}(/* 参数 */);
    * 格式化方法文档
    */
   formatMethodDoc(method) {
-    let doc = `#### \`${method.isAsync ? 'async ' : ''}${method.name}(${method.params.join(', ')})\`\n\n`;
+    let doc = `#### \`${method.isAsync ? "async " : ""}${method.name}(${method.params.join(", ")})\`\n\n`;
 
     if (method.description) {
       doc += `${method.description}\n\n`;
     }
 
     if (method.paramDocs.length > 0) {
-      doc += '**参数:**\n\n';
+      doc += "**参数:**\n\n";
       for (const param of method.paramDocs) {
         doc += `- \`${param.name}\` (\`${param.type}\`) - ${param.description}\n`;
       }
-      doc += '\n';
+      doc += "\n";
     }
 
     if (method.returns) {
       doc += `**返回:** ${method.returns}\n\n`;
     }
 
-    doc += '---\n\n';
+    doc += "---\n\n";
 
     return doc;
+  }
+
+  /**
+   * 比较文档内容是否需要更新（忽略时间戳）
+   * @private
+   */
+  async _shouldUpdateDoc(filePath, newContent) {
+    try {
+      const existingContent = await fs.readFile(filePath, "utf-8");
+
+      // 移除时间戳行进行比较
+      const timestampPattern = /(?:> 自动生成时间|\*\*文档生成时间\*\*): .+\n/g;
+      const normalizedExisting = existingContent.replace(timestampPattern, "");
+      const normalizedNew = newContent.replace(timestampPattern, "");
+
+      return normalizedExisting !== normalizedNew;
+    } catch (error) {
+      if (error.code === "ENOENT") {
+        // 文件不存在，需要创建
+        return true;
+      }
+      throw error;
+    }
   }
 
   /**
    * 手动生成单个模块文档
    */
   async generateSingleModule(moduleName) {
-    const module = this.moduleFiles.find(m => m.name === moduleName);
+    const module = this.moduleFiles.find((m) => m.name === moduleName);
     if (!module) {
       throw new Error(`模块不存在: ${moduleName}`);
     }
@@ -444,7 +498,10 @@ const ${module.name.toLowerCase()} = new ${module.name}(/* 参数 */);
     await fs.mkdir(this.outputDir, { recursive: true });
     await this.generateModuleDoc(module);
 
-    return { success: true, file: path.join(this.outputDir, `${moduleName}.md`) };
+    return {
+      success: true,
+      file: path.join(this.outputDir, `${moduleName}.md`),
+    };
   }
 }
 
@@ -453,18 +510,19 @@ module.exports = ApiDocGenerator;
 // 如果直接运行此文件,则生成所有文档
 if (require.main === module) {
   const generator = new ApiDocGenerator();
-  generator.generateAll()
-    .then(result => {
+  generator
+    .generateAll()
+    .then((result) => {
       if (result.success) {
-        console.log('✅ API文档生成成功!');
+        console.log("✅ API文档生成成功!");
         process.exit(0);
       } else {
-        console.error('❌ API文档生成失败:', result.error);
+        console.error("❌ API文档生成失败:", result.error);
         process.exit(1);
       }
     })
-    .catch(error => {
-      console.error('❌ 发生错误:', error);
+    .catch((error) => {
+      console.error("❌ 发生错误:", error);
       process.exit(1);
     });
 }
