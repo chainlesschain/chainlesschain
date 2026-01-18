@@ -3,7 +3,7 @@
  *
  * 基于 OpenClaude 最佳实践，集中管理所有配置、日志、缓存和会话数据
  *
- * 目录结构：
+ * 目录结构（位于 Electron userData 目录下）：
  * .chainlesschain/
  * ├── config.json              # 核心配置
  * ├── rules.md                 # 项目规则
@@ -22,23 +22,54 @@
  * └── checkpoints/             # 检查点和备份
  *     └── auto-backup/
  *
- * @version 1.0.0
+ * @version 1.1.0
  * @since 2026-01-16
+ * @updated 2026-01-18 - 使用 Electron userData 目录替代 process.cwd()
  */
 
 const fs = require("fs");
 const path = require("path");
+const { app } = require("electron");
 
-// 统一配置目录（项目根目录下）
-const CONFIG_DIR = path.join(process.cwd(), ".chainlesschain");
+/**
+ * 获取配置目录路径
+ * 优先使用 Electron 的 userData 目录，确保开发和生产环境一致
+ * @returns {string} 配置目录路径
+ */
+function getConfigDir() {
+  try {
+    // 使用 Electron 的 userData 目录
+    const userDataPath = app.getPath("userData");
+    return path.join(userDataPath, ".chainlesschain");
+  } catch (error) {
+    // 回退到 process.cwd()（仅用于测试或非 Electron 环境）
+    console.warn(
+      "[UnifiedConfigManager] Electron app not available, falling back to cwd",
+    );
+    return path.join(process.cwd(), ".chainlesschain");
+  }
+}
+
+// 延迟初始化的配置目录（在第一次访问时确定）
+let CONFIG_DIR = null;
 
 /**
  * 统一配置管理器类
  */
 class UnifiedConfigManager {
   constructor() {
+    // 确保 CONFIG_DIR 已初始化
+    if (!CONFIG_DIR) {
+      CONFIG_DIR = getConfigDir();
+    }
+
+    this.configDir = CONFIG_DIR;
     this.configPath = path.join(CONFIG_DIR, "config.json");
     this.config = null;
+
+    // 项目根目录的配置（用于迁移）
+    this.projectRootConfigDir = path.join(process.cwd(), ".chainlesschain");
+
     this.paths = {
       root: CONFIG_DIR,
       config: path.join(CONFIG_DIR, "config.json"),
@@ -54,16 +85,23 @@ class UnifiedConfigManager {
       modelOutputs: path.join(CONFIG_DIR, "cache", "model-outputs"),
       checkpoints: path.join(CONFIG_DIR, "checkpoints"),
       autoBackup: path.join(CONFIG_DIR, "checkpoints", "auto-backup"),
+      // 新增：报告和备份目录
+      reports: path.join(CONFIG_DIR, "memory", "reports"),
+      backups: path.join(CONFIG_DIR, "memory", "backups"),
     };
   }
 
   /**
    * 初始化配置管理器
+   * - 迁移旧配置（从项目根目录）
    * - 创建目录结构
    * - 加载配置文件
    * - 合并环境变量
    */
   initialize() {
+    // 0. 尝试从项目根目录迁移配置
+    this.migrateFromProjectRoot();
+
     // 1. 确保目录结构存在
     this.ensureDirectoryStructure();
 
@@ -74,7 +112,93 @@ class UnifiedConfigManager {
     this.validateConfig();
 
     console.log("[UnifiedConfigManager] 配置已加载");
-    console.log("[UnifiedConfigManager] 配置目录:", CONFIG_DIR);
+    console.log("[UnifiedConfigManager] 配置目录:", this.configDir);
+  }
+
+  /**
+   * 从项目根目录迁移配置到 userData 目录
+   * 仅在 userData 目录没有配置文件时执行
+   */
+  migrateFromProjectRoot() {
+    try {
+      // 如果 userData 配置已存在，跳过迁移
+      if (fs.existsSync(this.configPath)) {
+        return;
+      }
+
+      const oldConfigPath = path.join(
+        this.projectRootConfigDir,
+        "config.json",
+      );
+      const oldRulesPath = path.join(this.projectRootConfigDir, "rules.md");
+
+      // 检查旧配置是否存在
+      if (!fs.existsSync(oldConfigPath)) {
+        return;
+      }
+
+      console.log("[UnifiedConfigManager] 检测到项目根目录的旧配置，开始迁移...");
+
+      // 确保目标目录存在
+      if (!fs.existsSync(this.configDir)) {
+        fs.mkdirSync(this.configDir, { recursive: true });
+      }
+
+      // 迁移配置文件
+      if (fs.existsSync(oldConfigPath)) {
+        fs.copyFileSync(oldConfigPath, this.configPath);
+        console.log("[UnifiedConfigManager] 已迁移 config.json");
+      }
+
+      // 迁移规则文件
+      if (fs.existsSync(oldRulesPath)) {
+        fs.copyFileSync(oldRulesPath, this.paths.rules);
+        console.log("[UnifiedConfigManager] 已迁移 rules.md");
+      }
+
+      // 迁移 memory 目录下的文件
+      this.migrateDirectory(
+        path.join(this.projectRootConfigDir, "memory"),
+        this.paths.memory,
+      );
+
+      console.log("[UnifiedConfigManager] 配置迁移完成");
+      console.log(
+        `[UnifiedConfigManager] 从: ${this.projectRootConfigDir}`,
+      );
+      console.log(`[UnifiedConfigManager] 到: ${this.configDir}`);
+    } catch (error) {
+      console.error("[UnifiedConfigManager] 迁移配置失败:", error);
+      // 迁移失败不影响应用启动
+    }
+  }
+
+  /**
+   * 递归迁移目录
+   * @param {string} srcDir - 源目录
+   * @param {string} destDir - 目标目录
+   */
+  migrateDirectory(srcDir, destDir) {
+    if (!fs.existsSync(srcDir)) {
+      return;
+    }
+
+    if (!fs.existsSync(destDir)) {
+      fs.mkdirSync(destDir, { recursive: true });
+    }
+
+    const items = fs.readdirSync(srcDir);
+    for (const item of items) {
+      const srcPath = path.join(srcDir, item);
+      const destPath = path.join(destDir, item);
+
+      const stat = fs.statSync(srcPath);
+      if (stat.isDirectory()) {
+        this.migrateDirectory(srcPath, destPath);
+      } else if (stat.isFile() && !fs.existsSync(destPath)) {
+        fs.copyFileSync(srcPath, destPath);
+      }
+    }
   }
 
   /**
@@ -92,12 +216,23 @@ class UnifiedConfigManager {
       }
       if (!fs.existsSync(dirPath)) {
         fs.mkdirSync(dirPath, { recursive: true });
+        console.log(`[UnifiedConfigManager] 已创建目录: ${key}`);
       }
     });
 
-    // 如果配置文件不存在，从模板复制
+    // 如果配置文件不存在，尝试从多个位置获取模板
     if (!fs.existsSync(this.configPath)) {
-      const examplePath = path.join(CONFIG_DIR, "config.json.example");
+      // 尝试从 userData 目录的模板
+      let examplePath = path.join(this.configDir, "config.json.example");
+
+      // 如果不存在，尝试从项目根目录的模板
+      if (!fs.existsSync(examplePath)) {
+        examplePath = path.join(
+          this.projectRootConfigDir,
+          "config.json.example",
+        );
+      }
+
       if (fs.existsSync(examplePath)) {
         fs.copyFileSync(examplePath, this.configPath);
         console.log("[UnifiedConfigManager] 已从模板创建配置文件");
@@ -110,6 +245,42 @@ class UnifiedConfigManager {
         console.log("[UnifiedConfigManager] 已创建默认配置文件");
       }
     }
+
+    // 创建 .gitkeep 文件保持空目录
+    this.createGitkeepFiles();
+  }
+
+  /**
+   * 在空目录中创建 .gitkeep 文件
+   */
+  createGitkeepFiles() {
+    const dirsToKeep = [
+      this.paths.sessions,
+      this.paths.preferences,
+      this.paths.learnedPatterns,
+      this.paths.logs,
+      this.paths.embeddings,
+      this.paths.queryResults,
+      this.paths.modelOutputs,
+      this.paths.autoBackup,
+      this.paths.reports,
+      this.paths.backups,
+    ];
+
+    dirsToKeep.forEach((dir) => {
+      const gitkeepPath = path.join(dir, ".gitkeep");
+      if (fs.existsSync(dir) && !fs.existsSync(gitkeepPath)) {
+        try {
+          // 检查目录是否为空
+          const files = fs.readdirSync(dir);
+          if (files.length === 0) {
+            fs.writeFileSync(gitkeepPath, "");
+          }
+        } catch {
+          // 忽略错误
+        }
+      }
+    });
   }
 
   /**
@@ -503,8 +674,24 @@ function getUnifiedConfigManager() {
   return unifiedConfigInstance;
 }
 
+/**
+ * 获取当前配置目录路径
+ * @returns {string} 配置目录路径
+ */
+function getCurrentConfigDir() {
+  if (!CONFIG_DIR) {
+    CONFIG_DIR = getConfigDir();
+  }
+  return CONFIG_DIR;
+}
+
 module.exports = {
   UnifiedConfigManager,
   getUnifiedConfigManager,
-  CONFIG_DIR,
+  getConfigDir,
+  getCurrentConfigDir,
+  // 为了向后兼容，导出一个 getter
+  get CONFIG_DIR() {
+    return getCurrentConfigDir();
+  },
 };
