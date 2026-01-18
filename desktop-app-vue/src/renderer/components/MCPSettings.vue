@@ -600,7 +600,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, watch } from "vue";
+import { ref, reactive, computed, onMounted, watch, toRaw } from "vue";
 import { message } from "ant-design-vue";
 import {
   CheckCircleOutlined,
@@ -898,7 +898,7 @@ const loadServerConfig = async (serverId) => {
 const handleEnableChange = async (enabled) => {
   try {
     const result = await window.electronAPI.invoke("mcp:update-config", {
-      config: { ...config, enabled },
+      config: { ...toRaw(config), enabled },
     });
 
     if (result.success) {
@@ -921,7 +921,7 @@ const handleConnect = async (server) => {
 
     const result = await window.electronAPI.invoke("mcp:connect-server", {
       serverName: server.id,
-      config: serverConfig,
+      config: JSON.parse(JSON.stringify(toRaw(serverConfig))),
     });
 
     if (result.success) {
@@ -1006,7 +1006,7 @@ const handleSaveConfig = async () => {
     // 保存配置到后端
     const result = await window.electronAPI.invoke("mcp:update-server-config", {
       serverName: selectedServer.value.id,
-      config: serverConfig,
+      config: JSON.parse(JSON.stringify(toRaw(serverConfig))),
     });
 
     if (result.success) {
