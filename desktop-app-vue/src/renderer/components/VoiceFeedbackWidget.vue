@@ -574,6 +574,9 @@ const initAudioVisualization = async () => {
     source.connect(audioProcessor.value);
     audioProcessor.value.connect(audioContext.value.destination);
 
+    // 计数器用于调试
+    let sendCount = 0;
+
     audioProcessor.value.onaudioprocess = (e) => {
       if (!isRecording.value) {
         return;
@@ -583,6 +586,12 @@ const initAudioVisualization = async () => {
 
       // 转换为 PCM 并发送到主进程
       const pcmData = floatTo16BitPCM(inputData);
+
+      sendCount++;
+      // 每10次打印一次调试日志
+      if (sendCount % 10 === 1) {
+        console.log(`[VoiceFeedback] 发送音频数据 #${sendCount}, 大小: ${pcmData.byteLength} bytes`);
+      }
 
       // 发送音频数据到主进程进行识别
       window.electron.ipcRenderer.invoke(

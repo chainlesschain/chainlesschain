@@ -4,34 +4,40 @@
  * 使用 Tesseract.js 进行图片文字识别
  */
 
-const { createWorker } = require('tesseract.js');
-const { EventEmitter } = require('events');
+const defaultTesseract = require("tesseract.js");
+const { EventEmitter } = require("events");
 
 /**
  * OCR 配置
  */
 const DEFAULT_CONFIG = {
   // 语言设置
-  languages: ['chi_sim', 'eng'],  // 中文简体 + 英文
+  languages: ["chi_sim", "eng"], // 中文简体 + 英文
 
   // Tesseract 配置
-  tessedit_pageseg_mode: '1',      // 页面分割模式 (1=自动)
-  tessedit_char_whitelist: '',     // 字符白名单 (空=全部)
+  tessedit_pageseg_mode: "1", // 页面分割模式 (1=自动)
+  tessedit_char_whitelist: "", // 字符白名单 (空=全部)
 
   // 性能配置
-  workerCount: 1,                  // Worker 数量
-  cacheMethod: 'refresh',          // 缓存策略
+  workerCount: 1, // Worker 数量
+  cacheMethod: "refresh", // 缓存策略
 };
 
 /**
  * OCR 服务类
  */
 class OCRService extends EventEmitter {
-  constructor(config = {}) {
+  /**
+   * @param {Object} config - OCR配置
+   * @param {Object} tesseract - Tesseract模块 (可选，用于测试注入)
+   */
+  constructor(config = {}, tesseract = null) {
     super();
     this.config = { ...DEFAULT_CONFIG, ...config };
     this.worker = null;
     this.isInitialized = false;
+    // Support dependency injection for testing
+    this._tesseract = tesseract || defaultTesseract;
   }
 
   /**
@@ -43,29 +49,29 @@ class OCRService extends EventEmitter {
     }
 
     try {
-      console.log('[OCRService] 初始化 OCR Worker...');
-      this.emit('initialize-start');
+      console.log("[OCRService] 初始化 OCR Worker...");
+      this.emit("initialize-start");
 
-      // 创建 Worker
-      this.worker = await createWorker({
+      // 创建 Worker (使用注入的tesseract模块或默认模块)
+      this.worker = await this._tesseract.createWorker({
         logger: (m) => {
           // 进度日志
-          if (m.status === 'recognizing text') {
-            this.emit('progress', {
+          if (m.status === "recognizing text") {
+            this.emit("progress", {
               status: m.status,
               progress: m.progress || 0,
             });
           }
-          console.log('[OCRService]', m);
+          console.log("[OCRService]", m);
         },
         errorHandler: (err) => {
-          console.error('[OCRService] Worker 错误:', err);
-          this.emit('error', err);
+          console.error("[OCRService] Worker 错误:", err);
+          this.emit("error", err);
         },
       });
 
       // 加载语言
-      const languageString = this.config.languages.join('+');
+      const languageString = this.config.languages.join("+");
       console.log(`[OCRService] 加载语言: ${languageString}`);
       await this.worker.loadLanguage(languageString);
       await this.worker.initialize(languageString);
@@ -76,12 +82,12 @@ class OCRService extends EventEmitter {
       });
 
       this.isInitialized = true;
-      console.log('[OCRService] OCR Worker 初始化成功');
-      this.emit('initialize-complete');
+      console.log("[OCRService] OCR Worker 初始化成功");
+      this.emit("initialize-complete");
     } catch (error) {
-      console.error('[OCRService] 初始化失败:', error);
+      console.error("[OCRService] 初始化失败:", error);
       this.isInitialized = false;
-      this.emit('initialize-error', error);
+      this.emit("initialize-error", error);
       throw error;
     }
   }
@@ -98,19 +104,22 @@ class OCRService extends EventEmitter {
     }
 
     const {
-      languages = null,  // 特定语言（覆盖默认）
-      rectangle = null,  // 识别区域 {left, top, width, height}
+      languages = null, // 特定语言（覆盖默认）
+      rectangle = null, // 识别区域 {left, top, width, height}
     } = options;
 
     try {
-      console.log('[OCRService] 开始识别...');
-      this.emit('recognize-start', { image });
+      console.log("[OCRService] 开始识别...");
+      this.emit("recognize-start", { image });
 
       // 如果指定了特定语言，重新加载
-      if (languages && languages.join('+') !== this.config.languages.join('+')) {
-        console.log(`[OCRService] 切换语言: ${languages.join('+')}`);
-        await this.worker.loadLanguage(languages.join('+'));
-        await this.worker.initialize(languages.join('+'));
+      if (
+        languages &&
+        languages.join("+") !== this.config.languages.join("+")
+      ) {
+        console.log(`[OCRService] 切换语言: ${languages.join("+")}`);
+        await this.worker.loadLanguage(languages.join("+"));
+        await this.worker.initialize(languages.join("+"));
       }
 
       // 执行识别
@@ -125,37 +134,37 @@ class OCRService extends EventEmitter {
       const result = {
         text: data.text.trim(),
         confidence: data.confidence,
-        words: data.words.map(word => ({
+        words: data.words.map((word) => ({
           text: word.text,
           confidence: word.confidence,
           bbox: word.bbox,
         })),
-        lines: data.lines.map(line => ({
+        lines: data.lines.map((line) => ({
           text: line.text,
           confidence: line.confidence,
           bbox: line.bbox,
         })),
-        paragraphs: data.paragraphs.map(para => ({
+        paragraphs: data.paragraphs.map((para) => ({
           text: para.text,
           confidence: para.confidence,
           bbox: para.bbox,
         })),
-        blocks: data.blocks.map(block => ({
+        blocks: data.blocks.map((block) => ({
           text: block.text,
           confidence: block.confidence,
           bbox: block.bbox,
         })),
       };
 
-      console.log('[OCRService] 识别完成');
+      console.log("[OCRService] 识别完成");
       console.log(`[OCRService] 识别到 ${result.words.length} 个单词`);
       console.log(`[OCRService] 平均置信度: ${result.confidence.toFixed(2)}%`);
 
-      this.emit('recognize-complete', result);
+      this.emit("recognize-complete", result);
       return result;
     } catch (error) {
-      console.error('[OCRService] 识别失败:', error);
-      this.emit('recognize-error', { image, error });
+      console.error("[OCRService] 识别失败:", error);
+      this.emit("recognize-error", { image, error });
       throw error;
     }
   }
@@ -175,7 +184,7 @@ class OCRService extends EventEmitter {
 
     for (let i = 0; i < images.length; i++) {
       try {
-        this.emit('batch-progress', {
+        this.emit("batch-progress", {
           current: i + 1,
           total: images.length,
           percentage: Math.round(((i + 1) / images.length) * 100),
@@ -196,10 +205,10 @@ class OCRService extends EventEmitter {
       }
     }
 
-    this.emit('batch-complete', {
+    this.emit("batch-complete", {
       total: images.length,
-      succeeded: results.filter(r => r.success).length,
-      failed: results.filter(r => !r.success).length,
+      succeeded: results.filter((r) => r.success).length,
+      failed: results.filter((r) => !r.success).length,
     });
 
     return results;
@@ -219,7 +228,7 @@ class OCRService extends EventEmitter {
       const { data } = await this.worker.recognize(image);
 
       // 提取所有文字区域
-      const regions = data.blocks.map(block => ({
+      const regions = data.blocks.map((block) => ({
         bbox: block.bbox,
         text: block.text,
         confidence: block.confidence,
@@ -227,7 +236,7 @@ class OCRService extends EventEmitter {
 
       return regions;
     } catch (error) {
-      console.error('[OCRService] 检测文字区域失败:', error);
+      console.error("[OCRService] 检测文字区域失败:", error);
       throw error;
     }
   }
@@ -238,16 +247,16 @@ class OCRService extends EventEmitter {
    */
   getSupportedLanguages() {
     return [
-      { code: 'chi_sim', name: '简体中文' },
-      { code: 'chi_tra', name: '繁体中文' },
-      { code: 'eng', name: '英语' },
-      { code: 'jpn', name: '日语' },
-      { code: 'kor', name: '韩语' },
-      { code: 'fra', name: '法语' },
-      { code: 'deu', name: '德语' },
-      { code: 'spa', name: '西班牙语' },
-      { code: 'rus', name: '俄语' },
-      { code: 'ara', name: '阿拉伯语' },
+      { code: "chi_sim", name: "简体中文" },
+      { code: "chi_tra", name: "繁体中文" },
+      { code: "eng", name: "英语" },
+      { code: "jpn", name: "日语" },
+      { code: "kor", name: "韩语" },
+      { code: "fra", name: "法语" },
+      { code: "deu", name: "德语" },
+      { code: "spa", name: "西班牙语" },
+      { code: "rus", name: "俄语" },
+      { code: "ara", name: "阿拉伯语" },
     ];
   }
 
@@ -260,20 +269,20 @@ class OCRService extends EventEmitter {
     const { confidence, words } = result;
 
     // 计算低置信度单词比例
-    const lowConfidenceWords = words.filter(w => w.confidence < 60).length;
-    const lowConfidenceRatio = words.length > 0 ?
-      (lowConfidenceWords / words.length) * 100 : 0;
+    const lowConfidenceWords = words.filter((w) => w.confidence < 60).length;
+    const lowConfidenceRatio =
+      words.length > 0 ? (lowConfidenceWords / words.length) * 100 : 0;
 
     // 质量等级
-    let quality = 'unknown';
+    let quality = "unknown";
     if (confidence >= 80) {
-      quality = 'high';
+      quality = "high";
     } else if (confidence >= 60) {
-      quality = 'medium';
+      quality = "medium";
     } else if (confidence >= 40) {
-      quality = 'low';
+      quality = "low";
     } else {
-      quality = 'very_low';
+      quality = "very_low";
     }
 
     return {
@@ -292,11 +301,11 @@ class OCRService extends EventEmitter {
    */
   getQualityRecommendation(quality) {
     const recommendations = {
-      high: '识别质量良好，可直接使用',
-      medium: '识别质量一般，建议检查并修正',
-      low: '识别质量较差，建议重新拍摄或手动输入',
-      very_low: '识别质量很差，建议重新拍摄清晰图片',
-      unknown: '无法评估质量',
+      high: "识别质量良好，可直接使用",
+      medium: "识别质量一般，建议检查并修正",
+      low: "识别质量较差，建议重新拍摄或手动输入",
+      very_low: "识别质量很差，建议重新拍摄清晰图片",
+      unknown: "无法评估质量",
     };
 
     return recommendations[quality] || recommendations.unknown;
@@ -308,13 +317,13 @@ class OCRService extends EventEmitter {
   async terminate() {
     if (this.worker) {
       try {
-        console.log('[OCRService] 终止 OCR Worker...');
+        console.log("[OCRService] 终止 OCR Worker...");
         await this.worker.terminate();
         this.worker = null;
         this.isInitialized = false;
-        console.log('[OCRService] OCR Worker 已终止');
+        console.log("[OCRService] OCR Worker 已终止");
       } catch (error) {
-        console.error('[OCRService] 终止 Worker 失败:', error);
+        console.error("[OCRService] 终止 Worker 失败:", error);
       }
     }
   }
@@ -328,12 +337,12 @@ class OCRService extends EventEmitter {
 
     // 如果语言配置改变，需要重新初始化
     if (newConfig.languages && this.isInitialized) {
-      console.log('[OCRService] 语言配置改变，重新初始化...');
+      console.log("[OCRService] 语言配置改变，重新初始化...");
       await this.terminate();
       await this.initialize();
     }
 
-    console.log('[OCRService] 配置已更新:', this.config);
+    console.log("[OCRService] 配置已更新:", this.config);
   }
 
   /**
