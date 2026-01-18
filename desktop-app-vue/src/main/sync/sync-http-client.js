@@ -63,12 +63,11 @@ class SyncHTTPClient {
               throw new Error("权限不足");
             case 404:
               throw new Error("资源不存在");
-            case 409: {
+            case 409:
               // 冲突错误，包含冲突数据
-              const conflictError = new Error("检测到数据冲突");
-              conflictError.conflicts = error.response.data?.conflicts || [];
-              throw conflictError;
-            }
+              throw Object.assign(new Error("检测到数据冲突"), {
+                conflicts: error.response.data?.conflicts || [],
+              });
             case 500:
               throw new Error("服务器内部错误");
             default:
