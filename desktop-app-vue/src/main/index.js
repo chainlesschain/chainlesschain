@@ -72,6 +72,9 @@ const GitAutoCommit = require("./git-auto-commit");
 // File operation IPC
 const FileIPC = require("./ipc/file-ipc");
 
+// Log forwarder - 主进程日志转发到渲染进程
+const { initLogForwarder } = require("./utils/log-forwarder");
+
 // Backend API clients
 const {
   ProjectFileAPI,
@@ -889,12 +892,20 @@ class ChainlessChainApp {
         configManager,
         llmManager: this.llmManager,
         errorMonitor: this.errorMonitor,
+        sessionManager: this.sessionManager, // 传入 sessionManager 以支持会话同步
       });
 
+      // 保存所有管理器引用
       this.preferenceManager = memoryManagers.preferenceManager;
       this.learnedPatternManager = memoryManagers.learnedPatternManager;
+      this.autoBackupManager = memoryManagers.autoBackupManager;
+      this.usageReportGenerator = memoryManagers.usageReportGenerator;
+      this.behaviorTracker = memoryManagers.behaviorTracker;
+      this.contextAssociator = memoryManagers.contextAssociator;
+      this.memorySyncService = memoryManagers.memorySyncService;
 
       console.log("Memory Bank 系统初始化成功");
+      console.log("MemorySyncService 已启动，数据将同步到文件系统");
     } catch (error) {
       console.error("Memory Bank 系统初始化失败:", error);
       // Memory Bank 初始化失败不影响应用启动
@@ -1588,12 +1599,24 @@ class ChainlessChainApp {
       // 注册 Memory Bank System IPC handlers
       try {
         if (this.preferenceManager && this.learnedPatternManager) {
+          const {
+            getUnifiedConfigManager,
+          } = require("./config/unified-config-manager");
+          const configManager = getUnifiedConfigManager();
+
           registerMemorySystemIPC({
             preferenceManager: this.preferenceManager,
             learnedPatternManager: this.learnedPatternManager,
+            autoBackupManager: this.autoBackupManager,
+            usageReportGenerator: this.usageReportGenerator,
+            behaviorTracker: this.behaviorTracker,
+            contextAssociator: this.contextAssociator,
+            memorySyncService: this.memorySyncService,
+            sessionManager: this.sessionManager,
+            configManager,
           });
           console.log(
-            "[Main] Memory Bank IPC handlers已注册 (preference + pattern)",
+            "[Main] Memory Bank IPC handlers已注册 (完整系统包含 sync service)",
           );
         } else {
           console.warn("[Main] Memory managers 未初始化，跳过IPC注册");
@@ -1991,6 +2014,9 @@ class ChainlessChainApp {
           this.splashWindow = null;
         }, 300);
       }
+
+      // 初始化日志转发器 - 将主进程日志转发到渲染进程 DevTools
+      initLogForwarder(this.mainWindow);
     });
 
     this.mainWindow.on("closed", () => {

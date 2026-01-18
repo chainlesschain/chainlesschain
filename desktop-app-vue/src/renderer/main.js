@@ -1,32 +1,35 @@
-import { createApp } from 'vue';
-import { createPinia } from 'pinia';
-import Antd from 'ant-design-vue';
-import App from './App.vue';
-import router from './router';
-import i18n from './locales';
-import { registerPermissionDirective } from './directives/permission';
-import 'ant-design-vue/dist/reset.css';
-import 'prosemirror-view/style/prosemirror.css';
-import './style.css';
+import { createApp } from "vue";
+import { createPinia } from "pinia";
+import Antd from "ant-design-vue";
+import App from "./App.vue";
+import router from "./router";
+import i18n from "./locales";
+import { registerPermissionDirective } from "./directives/permission";
+import "ant-design-vue/dist/reset.css";
+import "prosemirror-view/style/prosemirror.css";
+import "./style.css";
 
 // 导入优化组件
-import SkeletonLoader from '@/components/common/SkeletonLoader.vue';
-import LazyImage from '@/components/common/LazyImage.vue';
-import AsyncComponent from '@/components/common/AsyncComponent.vue';
-import CommandPalette from '@/components/common/CommandPalette.vue';
-import PerformanceMonitor from '@/components/common/PerformanceMonitor.vue';
+import SkeletonLoader from "@/components/common/SkeletonLoader.vue";
+import LazyImage from "@/components/common/LazyImage.vue";
+import AsyncComponent from "@/components/common/AsyncComponent.vue";
+import CommandPalette from "@/components/common/CommandPalette.vue";
+import PerformanceMonitor from "@/components/common/PerformanceMonitor.vue";
 
 // 导入过渡组件
-import FadeSlide from '@/components/common/transitions/FadeSlide.vue';
-import ScaleTransition from '@/components/common/transitions/ScaleTransition.vue';
-import CollapseTransition from '@/components/common/transitions/CollapseTransition.vue';
+import FadeSlide from "@/components/common/transitions/FadeSlide.vue";
+import ScaleTransition from "@/components/common/transitions/ScaleTransition.vue";
+import CollapseTransition from "@/components/common/transitions/CollapseTransition.vue";
 
 // 导入指令
-import { createLazyLoadDirective } from '@/directives/lazy-load';
-import { createContentVisibilityDirective } from '@/utils/content-visibility';
+import { createLazyLoadDirective } from "@/directives/lazy-load";
+import { createContentVisibilityDirective } from "@/utils/content-visibility";
 
 // 导入并初始化MediaStream处理器（用于P2P语音/视频通话）
-import '@/utils/mediaStreamHandler';
+import "@/utils/mediaStreamHandler";
+
+// 导入并初始化主进程日志监听器（在 DevTools 中显示主进程日志）
+import "@/utils/main-log-listener";
 
 const app = createApp(App);
 const pinia = createPinia();
@@ -40,21 +43,21 @@ app.use(Antd);
 registerPermissionDirective(app);
 
 // 注册优化组件
-app.component('SkeletonLoader', SkeletonLoader);
-app.component('LazyImage', LazyImage);
-app.component('AsyncComponent', AsyncComponent);
-app.component('CommandPalette', CommandPalette);
-app.component('PerformanceMonitor', PerformanceMonitor);
-app.component('FadeSlide', FadeSlide);
-app.component('ScaleTransition', ScaleTransition);
-app.component('CollapseTransition', CollapseTransition);
+app.component("SkeletonLoader", SkeletonLoader);
+app.component("LazyImage", LazyImage);
+app.component("AsyncComponent", AsyncComponent);
+app.component("CommandPalette", CommandPalette);
+app.component("PerformanceMonitor", PerformanceMonitor);
+app.component("FadeSlide", FadeSlide);
+app.component("ScaleTransition", ScaleTransition);
+app.component("CollapseTransition", CollapseTransition);
 
 // 注册懒加载指令
-app.directive('lazy', createLazyLoadDirective());
+app.directive("lazy", createLazyLoadDirective());
 
 // 注册 content-visibility 指令
-app.directive('content-visibility', createContentVisibilityDirective());
+app.directive("content-visibility", createContentVisibilityDirective());
 
-console.log('[App] Performance optimizations initialized');
+console.log("[App] Performance optimizations initialized");
 
-app.mount('#app');
+app.mount("#app");

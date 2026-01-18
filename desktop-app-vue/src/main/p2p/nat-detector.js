@@ -3,19 +3,19 @@
  * 使用STUN协议检测NAT类型和公网IP
  */
 
-const dgram = require('dgram');
-const { promisify } = require('util');
+const dgram = require("dgram");
+const { promisify } = require("util");
 
 /**
  * NAT类型枚举
  */
 const NAT_TYPES = {
-  NONE: 'none',                    // 无NAT（公网IP）
-  FULL_CONE: 'full-cone',          // 完全锥形NAT
-  RESTRICTED: 'restricted',        // 受限锥形NAT
-  PORT_RESTRICTED: 'port-restricted', // 端口受限NAT
-  SYMMETRIC: 'symmetric',          // 对称NAT
-  UNKNOWN: 'unknown'               // 未知
+  NONE: "none", // 无NAT（公网IP）
+  FULL_CONE: "full-cone", // 完全锥形NAT
+  RESTRICTED: "restricted", // 受限锥形NAT
+  PORT_RESTRICTED: "port-restricted", // 端口受限NAT
+  SYMMETRIC: "symmetric", // 对称NAT
+  UNKNOWN: "unknown", // 未知
 };
 
 class NATDetector {
@@ -33,13 +33,13 @@ class NATDetector {
     // 检查缓存
     const cached = this.getCachedResult();
     if (cached) {
-      console.log('[NAT Detector] 使用缓存的NAT检测结果');
+      console.log("[NAT Detector] 使用缓存的NAT检测结果");
       return cached;
     }
 
     if (!stunServers || stunServers.length === 0) {
-      console.warn('[NAT Detector] 未提供STUN服务器，使用默认配置');
-      stunServers = ['stun:stun.l.google.com:19302'];
+      console.warn("[NAT Detector] 未提供STUN服务器，使用默认配置");
+      stunServers = ["stun:stun.l.google.com:19302"];
     }
 
     try {
@@ -50,7 +50,7 @@ class NATDetector {
       const result1 = await this.querySTUNServer(stunServers[0]);
 
       if (!result1) {
-        throw new Error('STUN查询失败');
+        throw new Error("STUN查询失败");
       }
 
       const publicIP = result1.mappedAddress;
@@ -62,7 +62,7 @@ class NATDetector {
           publicIP: publicIP,
           localIP: localIP,
           timestamp: Date.now(),
-          description: '无NAT，设备拥有公网IP'
+          description: "无NAT，设备拥有公网IP",
         };
         this.cacheResult(result);
         return result;
@@ -74,15 +74,17 @@ class NATDetector {
 
         if (result2) {
           // 比较两个服务器返回的映射地址
-          if (result1.mappedAddress === result2.mappedAddress &&
-              result1.mappedPort === result2.mappedPort) {
+          if (
+            result1.mappedAddress === result2.mappedAddress &&
+            result1.mappedPort === result2.mappedPort
+          ) {
             // 映射地址一致，可能是Full Cone或Restricted NAT
             const result = {
               type: NAT_TYPES.FULL_CONE,
               publicIP: publicIP,
               localIP: localIP,
               timestamp: Date.now(),
-              description: '完全锥形NAT，NAT穿透能力最佳'
+              description: "完全锥形NAT，NAT穿透能力最佳",
             };
             this.cacheResult(result);
             return result;
@@ -93,7 +95,7 @@ class NATDetector {
               publicIP: publicIP,
               localIP: localIP,
               timestamp: Date.now(),
-              description: '对称NAT，需要中继或TURN服务器'
+              description: "对称NAT，需要中继或TURN服务器",
             };
             this.cacheResult(result);
             return result;
@@ -107,20 +109,19 @@ class NATDetector {
         publicIP: publicIP,
         localIP: localIP,
         timestamp: Date.now(),
-        description: '受限NAT，WebRTC可穿透'
+        description: "受限NAT，WebRTC可穿透",
       };
       this.cacheResult(result);
       return result;
-
     } catch (error) {
-      console.error('[NAT Detector] NAT检测失败:', error);
+      console.error("[NAT Detector] NAT检测失败:", error);
       return {
         type: NAT_TYPES.UNKNOWN,
         publicIP: null,
         localIP: await this.getLocalIP(),
         timestamp: Date.now(),
         error: error.message,
-        description: 'NAT检测失败，可能网络不可达'
+        description: "NAT检测失败，可能网络不可达",
       };
     }
   }
@@ -135,7 +136,7 @@ class NATDetector {
       // 解析STUN URL
       const match = stunServerUrl.match(/stun:([^:]+):(\d+)/);
       if (!match) {
-        console.error('[NAT Detector] 无效的STUN URL:', stunServerUrl);
+        console.error("[NAT Detector] 无效的STUN URL:", stunServerUrl);
         resolve(null);
         return;
       }
@@ -144,13 +145,26 @@ class NATDetector {
       const port = parseInt(match[2]);
 
       // 创建UDP socket
-      const socket = dgram.createSocket('udp4');
+      const socket = dgram.createSocket("udp4");
       let timeout;
+      let socketClosed = false;
+
+      // 安全关闭 socket 的辅助函数
+      const safeClose = () => {
+        if (!socketClosed) {
+          socketClosed = true;
+          try {
+            socket.close();
+          } catch (e) {
+            // 忽略关闭时的错误
+          }
+        }
+      };
 
       // 构建STUN绑定请求 (RFC 5389)
       const stunRequest = this.buildSTUNBindingRequest();
 
-      socket.on('message', (msg, rinfo) => {
+      socket.on("message", (msg, rinfo) => {
         clearTimeout(timeout);
 
         try {
@@ -158,40 +172,48 @@ class NATDetector {
           const response = this.parseSTUNResponse(msg);
 
           if (response) {
-            console.log(`[NAT Detector] STUN响应: ${rinfo.address}:${rinfo.port} -> 映射地址: ${response.mappedAddress}:${response.mappedPort}`);
-            socket.close();
+            console.log(
+              `[NAT Detector] STUN响应: ${rinfo.address}:${rinfo.port} -> 映射地址: ${response.mappedAddress}:${response.mappedPort}`,
+            );
+            safeClose();
             resolve(response);
           } else {
-            socket.close();
+            safeClose();
             resolve(null);
           }
         } catch (error) {
-          console.error('[NAT Detector] 解析STUN响应失败:', error);
-          socket.close();
+          console.error("[NAT Detector] 解析STUN响应失败:", error);
+          safeClose();
           resolve(null);
         }
       });
 
-      socket.on('error', (err) => {
-        console.error(`[NAT Detector] STUN查询错误 (${host}:${port}):`, err.message);
+      socket.on("error", (err) => {
+        console.error(
+          `[NAT Detector] STUN查询错误 (${host}:${port}):`,
+          err.message,
+        );
         clearTimeout(timeout);
-        socket.close();
+        safeClose();
         resolve(null);
       });
 
       // 设置5秒超时
       timeout = setTimeout(() => {
         console.warn(`[NAT Detector] STUN查询超时 (${host}:${port})`);
-        socket.close();
+        safeClose();
         resolve(null);
       }, 5000);
 
       // 发送STUN请求
       socket.send(stunRequest, port, host, (err) => {
         if (err) {
-          console.error(`[NAT Detector] 发送STUN请求失败 (${host}:${port}):`, err);
+          console.error(
+            `[NAT Detector] 发送STUN请求失败 (${host}:${port}):`,
+            err,
+          );
           clearTimeout(timeout);
-          socket.close();
+          safeClose();
           resolve(null);
         } else {
           console.log(`[NAT Detector] 已发送STUN请求到 ${host}:${port}`);
@@ -214,7 +236,7 @@ class NATDetector {
     buffer.writeUInt16BE(0x0000, 2);
 
     // Magic Cookie: 0x2112A442
-    buffer.writeUInt32BE(0x2112A442, 4);
+    buffer.writeUInt32BE(0x2112a442, 4);
 
     // Transaction ID: 12 random bytes
     for (let i = 0; i < 12; i++) {
@@ -236,7 +258,7 @@ class NATDetector {
 
     // 验证Magic Cookie
     const magicCookie = buffer.readUInt32BE(4);
-    if (magicCookie !== 0x2112A442) {
+    if (magicCookie !== 0x2112a442) {
       return null;
     }
 
@@ -259,10 +281,12 @@ class NATDetector {
       if (attrType === 0x0001 || attrType === 0x0020) {
         const family = attrValue[1];
 
-        if (family === 0x01) { // IPv4
+        if (family === 0x01) {
+          // IPv4
           let port, ip;
 
-          if (attrType === 0x0020) { // XOR-MAPPED-ADDRESS
+          if (attrType === 0x0020) {
+            // XOR-MAPPED-ADDRESS
             // XOR端口与Magic Cookie的前16位
             port = attrValue.readUInt16BE(2) ^ 0x2112;
 
@@ -271,15 +295,16 @@ class NATDetector {
             for (let i = 0; i < 4; i++) {
               xorIP[i] = attrValue[4 + i] ^ buffer[4 + i];
             }
-            ip = Array.from(xorIP).join('.');
-          } else { // MAPPED-ADDRESS
+            ip = Array.from(xorIP).join(".");
+          } else {
+            // MAPPED-ADDRESS
             port = attrValue.readUInt16BE(2);
-            ip = Array.from(attrValue.slice(4, 8)).join('.');
+            ip = Array.from(attrValue.slice(4, 8)).join(".");
           }
 
           return {
             mappedAddress: ip,
-            mappedPort: port
+            mappedPort: port,
           };
         }
       }
@@ -298,19 +323,19 @@ class NATDetector {
    * @returns {Promise<string>} 本地IP
    */
   async getLocalIP() {
-    const os = require('os');
+    const os = require("os");
     const interfaces = os.networkInterfaces();
 
     for (const name of Object.keys(interfaces)) {
       for (const iface of interfaces[name]) {
         // 跳过内部和IPv6地址
-        if (!iface.internal && iface.family === 'IPv4') {
+        if (!iface.internal && iface.family === "IPv4") {
           return iface.address;
         }
       }
     }
 
-    return '127.0.0.1';
+    return "127.0.0.1";
   }
 
   /**
@@ -333,7 +358,7 @@ class NATDetector {
 
     const now = Date.now();
     if (now - this.cache.timestamp > this.cacheTTL) {
-      console.log('[NAT Detector] 缓存已过期');
+      console.log("[NAT Detector] 缓存已过期");
       this.cache = null;
       return null;
     }
@@ -355,7 +380,7 @@ class NATDetector {
    */
   invalidateCache() {
     this.cache = null;
-    console.log('[NAT Detector] 缓存已清除');
+    console.log("[NAT Detector] 缓存已清除");
   }
 }
 
