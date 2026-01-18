@@ -64,6 +64,13 @@
         </a-col>
       </a-row>
 
+      <!-- Model Budget Panel -->
+      <LLMModelBudgetPanel
+        ref="modelBudgetPanelRef"
+        :loading="loading"
+        @refresh="refreshData"
+      />
+
       <!-- Control Panel -->
       <LLMControlPanel
         :time-range="timeRange"
@@ -144,6 +151,7 @@ import {
   LLMStatsOverview,
   LLMCachePanel,
   LLMBudgetPanel,
+  LLMModelBudgetPanel,
   LLMRecommendations,
   LLMTrendPrediction,
   LLMControlPanel,
@@ -227,6 +235,9 @@ let refreshIntervalId = null;
 const welcomeDismissed = ref(false);
 const alertDismissed = ref(false);
 const showExportModal = ref(false);
+
+// Component refs
+const modelBudgetPanelRef = ref(null);
 
 // Analysis data
 const costRecommendations = ref([]);

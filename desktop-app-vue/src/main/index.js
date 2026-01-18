@@ -2202,8 +2202,8 @@ class ChainlessChainApp {
       // 创建托盘图标（使用应用图标）
       const iconPath =
         process.platform === "win32"
-          ? path.join(__dirname, "../../public/icon.ico")
-          : path.join(__dirname, "../../public/icon.png");
+          ? path.join(__dirname, "../../assets/logo.png")
+          : path.join(__dirname, "../../assets/logo.png");
 
       // 如果图标文件不存在，使用空图标
       let trayIcon;
