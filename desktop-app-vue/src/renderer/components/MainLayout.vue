@@ -775,7 +775,7 @@
     <a-dropdown
       v-model:open="contextMenuVisible"
       :trigger="['contextmenu']"
-      :get-popup-container="() => document.body ?? document.documentElement"
+      :get-popup-container="() => document?.body ?? document?.documentElement"
     >
       <div
         :style="{
