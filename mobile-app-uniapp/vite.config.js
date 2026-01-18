@@ -32,23 +32,12 @@ export default defineConfig(({ mode }) => {
     rollupOptions: {
       output: {
         // H5平台启用代码分割，小程序和App保持内联
+        // 注意：不使用manualChunks以避免与uni-app构建系统冲突
         inlineDynamicImports: !isH5,
-        // 资源文件命名
         assetFileNames: "static/[name].[hash][extname]",
-        // 块文件命名
         chunkFileNames: "static/js/[name]-[hash].js",
-        // 入口文件命名
         entryFileNames: "[name].js",
-        // H5平台手动分包配置
-        ...(isH5 && {
-          manualChunks: {
-            'vendor-vue': ['vue', 'pinia'],
-            'vendor-crypto': ['crypto-js', 'tweetnacl', 'tweetnacl-util', 'bs58'],
-            'vendor-ui': ['mp-html'],
-          },
-        }),
       },
-      // 外部依赖（uni-app 运行时已包含）
       external: [],
     },
   },

@@ -74,8 +74,10 @@ test.describe('项目详情页 - 基础功能验证', () => {
 
       await window.screenshot({
         path: 'test-results/04-navigated-to-detail.png',
-        timeout: 10000,
+        timeout: 5000,
         animations: 'disabled'
+      }).catch(err => {
+        console.log('[Test] 截图失败，继续测试:', err.message);
       });
 
       console.log('[Test] Step 6: 检查页面内容');
@@ -93,8 +95,10 @@ test.describe('项目详情页 - 基础功能验证', () => {
 
       await window.screenshot({
         path: 'test-results/05-detail-page-state.png',
-        timeout: 10000,
+        timeout: 5000,
         animations: 'disabled'
+      }).catch(err => {
+        console.log('[Test] 截图失败，继续测试:', err.message);
       });
 
       console.log('[Test] ✅ 基础测试完成');
@@ -102,8 +106,10 @@ test.describe('项目详情页 - 基础功能验证', () => {
       console.error('[Test] ❌ 测试失败:', error);
       await window.screenshot({
         path: 'test-results/99-error.png',
-        timeout: 10000,
+        timeout: 5000,
         animations: 'disabled'
+      }).catch(err => {
+        console.log('[Test] 错误截图失败:', err.message);
       });
       throw error;
     } finally {
