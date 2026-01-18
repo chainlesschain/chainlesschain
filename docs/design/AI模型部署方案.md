@@ -236,3 +236,17 @@ class AIRouter:
 
         return "抱歉,当前没有可用的AI模型"
 ```
+
+
+## 实现状态 (v0.20.0)
+
+**LLM支持**:
+- **Ollama** - 本地部署(qwen2:7b等)
+- **14+云端API** - Anthropic, OpenAI, Dashscope, Zhipuai, Volcengine, Qianfan等
+
+**Embedding**:
+- **ChromaDB 3.1.8** - 向量数据库
+- **@chroma-core/default-embed 0.1.9** - 嵌入模型
+
+**完成度**: 100% ✅ (本地+云端混合部署)
+
