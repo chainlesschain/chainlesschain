@@ -4,7 +4,6 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { EventEmitter } from 'events';
 
 // Mock dependencies
 vi.mock('sharp', () => {
@@ -89,7 +88,10 @@ describe('图片引擎测试', () => {
   describe('基础功能', () => {
     it('should create ImageEngine instance', () => {
       expect(imageEngine).toBeDefined();
-      expect(imageEngine).toBeInstanceOf(EventEmitter);
+      // Check for EventEmitter methods instead of instanceof (avoids ESM/CJS issues)
+      expect(typeof imageEngine.emit).toBe('function');
+      expect(typeof imageEngine.on).toBe('function');
+      expect(typeof imageEngine.removeListener).toBe('function');
     });
 
     it('should have supported formats', () => {
