@@ -118,6 +118,13 @@ describe("ToolManager", () => {
 
   describe("enableTool / disableTool", () => {
     it("应该启用工具", async () => {
+      // Mock getTool to return an existing tool
+      const mockTool = {
+        id: "test_tool",
+        name: "test_tool",
+        enabled: 0,
+      };
+      mockDatabase.get.mockResolvedValue(mockTool);
       mockDatabase.run.mockResolvedValue({ changes: 1 });
 
       await toolManager.enableTool("test_tool");
@@ -126,6 +133,13 @@ describe("ToolManager", () => {
     });
 
     it("应该禁用工具", async () => {
+      // Mock getTool to return an existing tool
+      const mockTool = {
+        id: "test_tool",
+        name: "test_tool",
+        enabled: 1,
+      };
+      mockDatabase.get.mockResolvedValue(mockTool);
       mockDatabase.run.mockResolvedValue({ changes: 1 });
 
       await toolManager.disableTool("test_tool");
@@ -151,6 +165,15 @@ describe("ToolManager", () => {
 
   describe("recordToolUsage", () => {
     it("应该记录工具使用统计", async () => {
+      // Mock getToolByName to return an existing tool
+      const mockTool = {
+        id: "test_tool",
+        name: "test_tool",
+        usage_count: 0,
+        success_count: 0,
+        avg_execution_time: 0,
+      };
+      mockDatabase.get.mockResolvedValue(mockTool);
       mockDatabase.run.mockResolvedValue({ changes: 1 });
 
       await toolManager.recordToolUsage("test_tool", true, 500);
@@ -159,6 +182,15 @@ describe("ToolManager", () => {
     });
 
     it("应该记录失败的工具调用", async () => {
+      // Mock getToolByName to return an existing tool
+      const mockTool = {
+        id: "test_tool",
+        name: "test_tool",
+        usage_count: 0,
+        success_count: 0,
+        avg_execution_time: 0,
+      };
+      mockDatabase.get.mockResolvedValue(mockTool);
       mockDatabase.run.mockResolvedValue({ changes: 1 });
 
       await toolManager.recordToolUsage("test_tool", false, 100, "TypeError");
@@ -178,9 +210,8 @@ describe("ToolManager", () => {
         required: ["name"],
       };
 
-      expect(() =>
-        toolManager.validateParametersSchema(validSchema),
-      ).not.toThrow();
+      const result = toolManager.validateParametersSchema(validSchema);
+      expect(result).toBe(true);
     });
 
     it("应该拒绝无效的Schema", () => {
@@ -188,9 +219,9 @@ describe("ToolManager", () => {
         type: "invalid_type",
       };
 
-      expect(() =>
-        toolManager.validateParametersSchema(invalidSchema),
-      ).toThrow();
+      // validateParametersSchema returns false for invalid schemas (doesn't throw)
+      const result = toolManager.validateParametersSchema(invalidSchema);
+      expect(result).toBe(false);
     });
   });
 });
