@@ -6,7 +6,7 @@
  * @description 提供文件选择、导入、格式检查等 IPC 接口
  */
 
-const ipcGuard = require('../ipc-guard');
+const defaultIpcGuard = require("../ipc-guard");
 
 /**
  * 注册所有文件导入 IPC 处理器
@@ -15,8 +15,9 @@ const ipcGuard = require('../ipc-guard');
  * @param {Object} dependencies.mainWindow - 主窗口实例
  * @param {Object} dependencies.database - 数据库管理器
  * @param {Object} [dependencies.ragManager] - RAG 管理器（用于索引同步）
- * @param {Object} dependencies.ipcMain - IPC主进程对象（可选，用于测试注入）
- * @param {Object} dependencies.dialog - Dialog对象（可选，用于测试注入）
+ * @param {Object} [dependencies.ipcMain] - IPC主进程对象（可选，用于测试注入）
+ * @param {Object} [dependencies.dialog] - Dialog对象（可选，用于测试注入）
+ * @param {Object} [dependencies.ipcGuard] - IPC guard模块（可选，用于测试注入）
  */
 function registerImportIPC({
   fileImporter,
@@ -24,20 +25,24 @@ function registerImportIPC({
   database,
   ragManager,
   ipcMain: injectedIpcMain,
-  dialog: injectedDialog
+  dialog: injectedDialog,
+  ipcGuard: injectedIpcGuard,
 }) {
+  // 支持ipcGuard依赖注入，用于测试
+  const ipcGuard = injectedIpcGuard || defaultIpcGuard;
+
   // 防止重复注册
-  if (ipcGuard.isModuleRegistered('import-ipc')) {
-    console.log('[Import IPC] Handlers already registered, skipping...');
+  if (ipcGuard.isModuleRegistered("import-ipc")) {
+    console.log("[Import IPC] Handlers already registered, skipping...");
     return;
   }
 
   // 支持依赖注入，用于测试
-  const electron = require('electron');
+  const electron = require("electron");
   const ipcMain = injectedIpcMain || electron.ipcMain;
   const dialog = injectedDialog || electron.dialog;
 
-  console.log('[Import IPC] Registering Import IPC handlers...');
+  console.log("[Import IPC] Registering Import IPC handlers...");
 
   // ============================================================
   // 文件选择与导入 (File Selection and Import)
@@ -47,23 +52,23 @@ function registerImportIPC({
    * 选择要导入的文件
    * Channel: 'import:select-files'
    */
-  ipcMain.handle('import:select-files', async () => {
+  ipcMain.handle("import:select-files", async () => {
     try {
       if (!fileImporter) {
-        throw new Error('文件导入器未初始化');
+        throw new Error("文件导入器未初始化");
       }
 
       // 打开文件选择对话框
       const result = await dialog.showOpenDialog(mainWindow, {
-        title: '选择要导入的文件',
+        title: "选择要导入的文件",
         filters: [
-          { name: 'Markdown', extensions: ['md', 'markdown'] },
-          { name: 'PDF', extensions: ['pdf'] },
-          { name: 'Word', extensions: ['doc', 'docx'] },
-          { name: 'Text', extensions: ['txt'] },
-          { name: 'All Files', extensions: ['*'] },
+          { name: "Markdown", extensions: ["md", "markdown"] },
+          { name: "PDF", extensions: ["pdf"] },
+          { name: "Word", extensions: ["doc", "docx"] },
+          { name: "Text", extensions: ["txt"] },
+          { name: "All Files", extensions: ["*"] },
         ],
-        properties: ['openFile', 'multiSelections'],
+        properties: ["openFile", "multiSelections"],
       });
 
       if (result.canceled) {
@@ -75,7 +80,7 @@ function registerImportIPC({
         filePaths: result.filePaths,
       };
     } catch (error) {
-      console.error('[Import IPC] 选择文件失败:', error);
+      console.error("[Import IPC] 选择文件失败:", error);
       throw error;
     }
   });
@@ -88,28 +93,28 @@ function registerImportIPC({
    * @param {Object} options - 导入选项
    * @returns {Promise<Object>} 导入结果
    */
-  ipcMain.handle('import:import-file', async (_event, filePath, options) => {
+  ipcMain.handle("import:import-file", async (_event, filePath, options) => {
     try {
       if (!fileImporter) {
-        throw new Error('文件导入器未初始化');
+        throw new Error("文件导入器未初始化");
       }
 
       // 设置事件监听器，向渲染进程发送进度
-      fileImporter.on('import-start', (data) => {
+      fileImporter.on("import-start", (data) => {
         if (mainWindow) {
-          mainWindow.webContents.send('import:start', data);
+          mainWindow.webContents.send("import:start", data);
         }
       });
 
-      fileImporter.on('import-success', (data) => {
+      fileImporter.on("import-success", (data) => {
         if (mainWindow) {
-          mainWindow.webContents.send('import:success', data);
+          mainWindow.webContents.send("import:success", data);
         }
       });
 
-      fileImporter.on('import-error', (data) => {
+      fileImporter.on("import-error", (data) => {
         if (mainWindow) {
-          mainWindow.webContents.send('import:error', data);
+          mainWindow.webContents.send("import:error", data);
         }
       });
 
@@ -125,7 +130,7 @@ function registerImportIPC({
 
       return result;
     } catch (error) {
-      console.error('[Import IPC] 导入文件失败:', error);
+      console.error("[Import IPC] 导入文件失败:", error);
       throw error;
     }
   });
@@ -138,22 +143,22 @@ function registerImportIPC({
    * @param {Object} options - 导入选项
    * @returns {Promise<Object>} 导入结果统计
    */
-  ipcMain.handle('import:import-files', async (_event, filePaths, options) => {
+  ipcMain.handle("import:import-files", async (_event, filePaths, options) => {
     try {
       if (!fileImporter) {
-        throw new Error('文件导入器未初始化');
+        throw new Error("文件导入器未初始化");
       }
 
       // 设置事件监听器，向渲染进程发送进度
-      fileImporter.on('import-progress', (data) => {
+      fileImporter.on("import-progress", (data) => {
         if (mainWindow) {
-          mainWindow.webContents.send('import:progress', data);
+          mainWindow.webContents.send("import:progress", data);
         }
       });
 
-      fileImporter.on('import-complete', (data) => {
+      fileImporter.on("import-complete", (data) => {
         if (mainWindow) {
-          mainWindow.webContents.send('import:complete', data);
+          mainWindow.webContents.send("import:complete", data);
         }
       });
 
@@ -166,7 +171,7 @@ function registerImportIPC({
 
       return results;
     } catch (error) {
-      console.error('[Import IPC] 批量导入文件失败:', error);
+      console.error("[Import IPC] 批量导入文件失败:", error);
       throw error;
     }
   });
@@ -181,15 +186,15 @@ function registerImportIPC({
    *
    * @returns {Promise<string[]>} 支持的文件扩展名列表
    */
-  ipcMain.handle('import:get-supported-formats', async () => {
+  ipcMain.handle("import:get-supported-formats", async () => {
     try {
       if (!fileImporter) {
-        throw new Error('文件导入器未初始化');
+        throw new Error("文件导入器未初始化");
       }
 
       return fileImporter.getSupportedFormats();
     } catch (error) {
-      console.error('[Import IPC] 获取支持格式失败:', error);
+      console.error("[Import IPC] 获取支持格式失败:", error);
       throw error;
     }
   });
@@ -201,10 +206,10 @@ function registerImportIPC({
    * @param {string} filePath - 文件路径
    * @returns {Promise<Object>} 检查结果 { isSupported, fileType }
    */
-  ipcMain.handle('import:check-file', async (_event, filePath) => {
+  ipcMain.handle("import:check-file", async (_event, filePath) => {
     try {
       if (!fileImporter) {
-        throw new Error('文件导入器未初始化');
+        throw new Error("文件导入器未初始化");
       }
 
       const isSupported = fileImporter.isSupportedFile(filePath);
@@ -215,20 +220,20 @@ function registerImportIPC({
         fileType,
       };
     } catch (error) {
-      console.error('[Import IPC] 检查文件失败:', error);
+      console.error("[Import IPC] 检查文件失败:", error);
       throw error;
     }
   });
 
   // 标记模块为已注册
-  ipcGuard.markModuleRegistered('import-ipc');
+  ipcGuard.markModuleRegistered("import-ipc");
 
-  console.log('[Import IPC] ✓ Registered 5 import handlers:');
-  console.log('[Import IPC]   - import:select-files');
-  console.log('[Import IPC]   - import:import-file');
-  console.log('[Import IPC]   - import:import-files');
-  console.log('[Import IPC]   - import:get-supported-formats');
-  console.log('[Import IPC]   - import:check-file');
+  console.log("[Import IPC] ✓ Registered 5 import handlers:");
+  console.log("[Import IPC]   - import:select-files");
+  console.log("[Import IPC]   - import:import-file");
+  console.log("[Import IPC]   - import:import-files");
+  console.log("[Import IPC]   - import:get-supported-formats");
+  console.log("[Import IPC]   - import:check-file");
 }
 
 module.exports = { registerImportIPC };

@@ -6,7 +6,7 @@
  * @description 提供 LLM 服务的所有 IPC 接口，包括聊天、查询、配置管理、智能选择等
  */
 
-const ipcGuard = require("../ipc-guard");
+const defaultIpcGuard = require("../ipc-guard");
 
 /**
  * 🔥 检测任务类型（用于 Multi-Agent 路由）
@@ -90,14 +90,18 @@ function registerLLMIPC({
   sessionManager,
   agentOrchestrator,
   errorMonitor,
+  // 依赖注入支持（用于测试）
+  ipcGuard: injectedIpcGuard,
 }) {
+  // 支持依赖注入，用于测试
+  const ipcGuard = injectedIpcGuard || defaultIpcGuard;
+
   // 防止重复注册
   if (ipcGuard.isModuleRegistered("llm-ipc")) {
     console.log("[LLM IPC] Handlers already registered, skipping...");
     return;
   }
 
-  // 支持依赖注入，用于测试
   const electron = require("electron");
   const ipcMain = injectedIpcMain || electron.ipcMain;
 

@@ -5,6 +5,80 @@
 import { vi } from 'vitest';
 import { config } from '@vue/test-utils';
 
+// Global mock for ipc-guard to prevent IPC registration blocking in tests
+vi.mock('@main/ipc-guard', () => ({
+  isModuleRegistered: vi.fn().mockReturnValue(false),
+  markModuleRegistered: vi.fn(),
+  isChannelRegistered: vi.fn().mockReturnValue(false),
+  markChannelRegistered: vi.fn(),
+  resetAll: vi.fn(),
+  safeRegisterHandler: vi.fn().mockReturnValue(true),
+  safeRegisterHandlers: vi.fn().mockReturnValue({ registered: 0, skipped: 0 }),
+  safeRegisterModule: vi.fn().mockReturnValue(true),
+  unregisterChannel: vi.fn(),
+  unregisterModule: vi.fn(),
+  getStats: vi.fn().mockReturnValue({ totalChannels: 0, totalModules: 0, channels: [], modules: [] }),
+  printStats: vi.fn(),
+}));
+
+// Also mock the relative path version
+vi.mock('../../../src/main/ipc-guard', () => ({
+  isModuleRegistered: vi.fn().mockReturnValue(false),
+  markModuleRegistered: vi.fn(),
+  isChannelRegistered: vi.fn().mockReturnValue(false),
+  markChannelRegistered: vi.fn(),
+  resetAll: vi.fn(),
+  safeRegisterHandler: vi.fn().mockReturnValue(true),
+  safeRegisterHandlers: vi.fn().mockReturnValue({ registered: 0, skipped: 0 }),
+  safeRegisterModule: vi.fn().mockReturnValue(true),
+  unregisterChannel: vi.fn(),
+  unregisterModule: vi.fn(),
+  getStats: vi.fn().mockReturnValue({ totalChannels: 0, totalModules: 0, channels: [], modules: [] }),
+  printStats: vi.fn(),
+}));
+
+// Global mock for electron to avoid import errors in tests
+vi.mock('electron', () => ({
+  ipcMain: {
+    handle: vi.fn(),
+    removeHandler: vi.fn(),
+    on: vi.fn(),
+    once: vi.fn(),
+  },
+  ipcRenderer: {
+    invoke: vi.fn(),
+    on: vi.fn(),
+    send: vi.fn(),
+  },
+  app: {
+    getPath: vi.fn().mockReturnValue('/mock/path'),
+    getName: vi.fn().mockReturnValue('test-app'),
+    getVersion: vi.fn().mockReturnValue('1.0.0'),
+    isReady: vi.fn().mockReturnValue(true),
+    on: vi.fn(),
+  },
+  BrowserWindow: vi.fn().mockImplementation(() => ({
+    loadURL: vi.fn(),
+    webContents: {
+      send: vi.fn(),
+      on: vi.fn(),
+    },
+    on: vi.fn(),
+    show: vi.fn(),
+    hide: vi.fn(),
+    close: vi.fn(),
+  })),
+  dialog: {
+    showOpenDialog: vi.fn(),
+    showSaveDialog: vi.fn(),
+    showMessageBox: vi.fn(),
+  },
+  shell: {
+    openExternal: vi.fn(),
+    openPath: vi.fn(),
+  },
+}));
+
 // 全局测试配置
 config.global.mocks = {
   $t: (key: string) => key, // i18n mock
