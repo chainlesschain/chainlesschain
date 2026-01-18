@@ -573,69 +573,12 @@ function registerAllIPC(dependencies) {
     // 第八阶段模块 (新增模块 - 区块链、代码工具、知识图谱等)
     // ============================================================
 
-    // 区块链核心 (7个模块, 75 handlers)
-    if (app.walletManager) {
-      console.log("[IPC Registry] Registering Blockchain Wallet IPC...");
-      const { registerWalletIPC } = require("../blockchain/wallet-ipc");
-      registerWalletIPC({
-        walletManager: app.walletManager,
-        externalWalletConnector: app.externalWalletConnector,
-      });
-      console.log(
-        "[IPC Registry] ✓ Blockchain Wallet IPC registered (15 handlers)",
-      );
-    }
-
-    if (app.contractEngine) {
-      console.log("[IPC Registry] Registering Smart Contract IPC...");
-      const { registerContractIPC } = require("../blockchain/contract-ipc");
-      registerContractIPC({ contractEngine: app.contractEngine });
-      console.log(
-        "[IPC Registry] ✓ Smart Contract IPC registered (15 handlers)",
-      );
-    }
-
-    if (app.blockchainAdapter || app.transactionMonitor) {
-      console.log("[IPC Registry] Registering Blockchain IPC...");
-      const { registerBlockchainIPC } = require("../blockchain/blockchain-ipc");
-      registerBlockchainIPC({
-        blockchainAdapter: app.blockchainAdapter,
-        transactionMonitor: app.transactionMonitor,
-        database,
-        mainWindow,
-      });
-      console.log("[IPC Registry] ✓ Blockchain IPC registered (14 handlers)");
-    }
-
-    if (app.assetManager) {
-      console.log("[IPC Registry] Registering Asset IPC...");
-      const { registerAssetIPC } = require("../blockchain/asset-ipc");
-      registerAssetIPC({ assetManager: app.assetManager });
-      console.log("[IPC Registry] ✓ Asset IPC registered (10 handlers)");
-    }
-
-    if (app.marketplaceManager) {
-      console.log("[IPC Registry] Registering Marketplace IPC...");
-      const {
-        registerMarketplaceIPC,
-      } = require("../blockchain/marketplace-ipc");
-      registerMarketplaceIPC({ marketplaceManager: app.marketplaceManager });
-      console.log("[IPC Registry] ✓ Marketplace IPC registered (9 handlers)");
-    }
-
-    if (app.bridgeManager) {
-      console.log("[IPC Registry] Registering Bridge IPC...");
-      const { registerBridgeIPC } = require("../blockchain/bridge-ipc");
-      registerBridgeIPC(app.bridgeManager);
-      console.log("[IPC Registry] ✓ Bridge IPC registered (7 handlers)");
-    }
-
-    if (app.escrowManager) {
-      console.log("[IPC Registry] Registering Escrow IPC...");
-      const { registerEscrowIPC } = require("../blockchain/escrow-ipc");
-      registerEscrowIPC(app.escrowManager);
-      console.log("[IPC Registry] ✓ Escrow IPC registered (5 handlers)");
-    }
+    // 区块链核心 (7个模块, 75 handlers) - 懒加载模式
+    // 注册懒加载的区块链 IPC 处理器，在首次访问时才初始化区块链模块
+    console.log("[IPC Registry] Registering Blockchain IPC (Lazy Loading)...");
+    const { registerLazyBlockchainIPC } = require("../blockchain/blockchain-lazy-ipc");
+    registerLazyBlockchainIPC({ app, database, mainWindow });
+    console.log("[IPC Registry] ✓ Blockchain IPC registered (75 handlers, lazy loading enabled)");
 
     // 代码工具 (2个模块, 20 handlers)
     if (llmManager) {
@@ -697,16 +640,11 @@ function registerAllIPC(dependencies) {
       console.log("[IPC Registry] ✓ Credit Score IPC registered (7 handlers)");
     }
 
-    if (pluginManager) {
-      console.log("[IPC Registry] Registering Plugin IPC...");
-      const { registerPluginIPC } = require("../plugins/plugin-ipc");
-      registerPluginIPC({ pluginManager });
-      console.log("[IPC Registry] ✓ Plugin IPC registered");
-    } else {
-      console.warn(
-        "[IPC Registry] ⚠️ 插件管理器未初始化，跳过 Plugin IPC 注册",
-      );
-    }
+    // 插件系统 - 懒加载模式
+    console.log("[IPC Registry] Registering Plugin IPC (Lazy Loading)...");
+    const { registerLazyPluginIPC } = require("../plugins/plugin-lazy-ipc");
+    registerLazyPluginIPC({ app, mainWindow });
+    console.log("[IPC Registry] ✓ Plugin IPC registered (lazy loading enabled)");
 
     // 其他功能 (3个模块, 13 handlers)
     if (fileImporter) {

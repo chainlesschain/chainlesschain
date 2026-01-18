@@ -2,8 +2,43 @@
  * Vitest 测试环境设置
  */
 
-import { vi } from 'vitest';
+import { vi, beforeEach } from 'vitest';
 import { config } from '@vue/test-utils';
+
+// Centralized mocks that WordEngine reads via global overrides to avoid actual FS access.
+const createWordEngineFileHandlerMock = () => ({
+  getFileSize: vi.fn().mockResolvedValue(1024 * 1024),
+  checkAvailableMemory: vi.fn().mockReturnValue({
+    freeMem: 2 * 1024 * 1024,
+    totalMem: 4 * 1024 * 1024,
+    usageRatio: 0.5,
+    isAvailable: true,
+  }),
+  waitForMemory: vi.fn().mockResolvedValue(undefined),
+  writeFileStream: vi.fn().mockResolvedValue(undefined),
+});
+
+const createWordEngineFsMock = () => ({
+  writeFile: vi.fn().mockResolvedValue(undefined),
+  stat: vi.fn().mockResolvedValue({
+    size: 1024,
+    birthtime: new Date(0),
+    mtime: new Date(0),
+    isFile: () => true,
+  }),
+  mkdir: vi.fn().mockResolvedValue(undefined),
+});
+
+const resetWordEngineMocks = () => {
+  const fsMock = createWordEngineFsMock();
+  (globalThis as any).__WORD_ENGINE_FS__ = fsMock;
+  (globalThis as any).__WORD_ENGINE_FILE_HANDLER__ = createWordEngineFileHandlerMock();
+};
+
+resetWordEngineMocks();
+beforeEach(() => {
+  resetWordEngineMocks();
+});
 
 // Global mock for ipc-guard to prevent IPC registration blocking in tests
 vi.mock('@main/ipc-guard', () => ({

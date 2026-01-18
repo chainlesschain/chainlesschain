@@ -9,21 +9,6 @@ import path from 'path';
 import os from 'os';
 
 // Mock all dependencies before importing
-vi.mock('fs', () => ({
-  default: {
-    promises: {
-      stat: vi.fn(),
-      readFile: vi.fn(),
-      writeFile: vi.fn(),
-    },
-  },
-  promises: {
-    stat: vi.fn(),
-    readFile: vi.fn(),
-    writeFile: vi.fn(),
-  },
-}));
-
 vi.mock('docx', () => ({
   Document: vi.fn((config) => ({ config })),
   Packer: {
@@ -64,19 +49,11 @@ vi.mock('marked', () => ({
   marked: vi.fn(),
 }));
 
-vi.mock('../../src/main/utils/file-handler', () => ({
-  getFileHandler: vi.fn(() => ({
-    getFileSize: vi.fn().mockResolvedValue(1024 * 1024), // 1MB
-    checkAvailableMemory: vi.fn().mockReturnValue({ isAvailable: true }),
-    waitForMemory: vi.fn().mockResolvedValue(undefined),
-    writeFileStream: vi.fn().mockResolvedValue(undefined),
-  })),
-}));
-
 describe('Word引擎测试', () => {
   let WordEngine;
   let wordEngine;
-  let mockFs;
+  let wordEngineFsMock;
+  let fileHandlerMock;
   let mockDocx;
   let mockMammoth;
   let mockMarked;
@@ -92,7 +69,6 @@ describe('Word引擎测试', () => {
     testDocxPath = path.join(tmpDir, 'test.docx');
 
     // Import mocked modules
-    mockFs = await import('fs');
     mockDocx = await import('docx');
     mockMammoth = await import('mammoth');
     mockMarked = await import('marked');
@@ -101,6 +77,8 @@ describe('Word引擎测试', () => {
     const module = await import('../../src/main/engines/word-engine.js');
     WordEngine = module.default;
     wordEngine = WordEngine;
+    fileHandlerMock = globalThis.__WORD_ENGINE_FILE_HANDLER__;
+    wordEngineFsMock = globalThis.__WORD_ENGINE_FS__;
 
     // Setup default mock behaviors
     mockDocx.Packer.toBuffer.mockResolvedValue(Buffer.from('Word document'));
@@ -111,7 +89,7 @@ describe('Word引擎测试', () => {
     mockMammoth.extractRawText.mockResolvedValue({
       value: 'Test content',
     });
-    mockFs.promises.stat.mockResolvedValue({
+    wordEngineFsMock.stat.mockResolvedValue({
       size: 1024,
       birthtime: new Date(),
       mtime: new Date(),

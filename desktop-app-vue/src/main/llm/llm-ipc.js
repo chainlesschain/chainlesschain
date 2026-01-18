@@ -6,7 +6,7 @@
  * @description 提供 LLM 服务的所有 IPC 接口，包括聊天、查询、配置管理、智能选择等
  */
 
-const defaultIpcGuard = require("../ipc-guard");
+const defaultIpcGuard = require("../ipc/ipc-guard");
 
 /**
  * 🔥 检测任务类型（用于 Multi-Agent 路由）
