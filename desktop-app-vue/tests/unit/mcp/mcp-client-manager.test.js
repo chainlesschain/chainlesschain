@@ -2,55 +2,96 @@
  * MCP Client Manager Unit Tests
  *
  * Tests for server connection, tool management, and performance tracking.
+ *
+ * Uses dependency injection to provide mock MCP SDK modules,
+ * avoiding vitest worker isolation issues with CommonJS require().
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 
-// Mock the MCP SDK
-const mockClient = {
-  connect: vi.fn().mockResolvedValue(undefined),
-  close: vi.fn().mockResolvedValue(undefined),
-  listTools: vi.fn().mockResolvedValue({ tools: [] }),
-  listResources: vi.fn().mockResolvedValue({ resources: [] }),
-  listPrompts: vi.fn().mockResolvedValue({ prompts: [] }),
-  callTool: vi.fn().mockResolvedValue({ content: [{ text: "result" }] }),
-  readResource: vi.fn().mockResolvedValue({ contents: [{ text: "content" }] }),
-  setNotificationHandler: vi.fn(),
-  setLoggingHandler: vi.fn(),
-};
+// Import the actual module (will use injected deps)
+const {
+  MCPClientManager,
+} = require("../../../src/main/mcp/mcp-client-manager");
 
-vi.mock("@modelcontextprotocol/sdk/client/index.js", () => ({
-  Client: vi.fn().mockImplementation(() => mockClient),
-}));
+// Factory function to create mock client
+function createMockClient() {
+  return {
+    connect: vi.fn().mockResolvedValue(undefined),
+    close: vi.fn().mockResolvedValue(undefined),
+    listTools: vi.fn().mockResolvedValue({ tools: [] }),
+    listResources: vi.fn().mockResolvedValue({ resources: [] }),
+    listPrompts: vi.fn().mockResolvedValue({ prompts: [] }),
+    callTool: vi.fn().mockResolvedValue({ content: [{ text: "result" }] }),
+    readResource: vi
+      .fn()
+      .mockResolvedValue({ contents: [{ text: "content" }] }),
+    setNotificationHandler: vi.fn(),
+    setLoggingHandler: vi.fn(),
+  };
+}
 
-vi.mock("@modelcontextprotocol/sdk/client/stdio.js", () => ({
-  StdioClientTransport: vi.fn().mockImplementation(() => ({
+// Factory function to create mock stdio transport
+function createMockStdioTransport() {
+  return {
     start: vi.fn().mockResolvedValue(undefined),
     close: vi.fn().mockResolvedValue(undefined),
-  })),
-}));
+  };
+}
 
-// Mock the HTTP+SSE transport
-vi.mock("../../../src/main/mcp/transports/http-sse-transport", () => ({
-  HttpSseTransport: vi.fn().mockImplementation(() => ({
+// Factory function to create mock HTTP+SSE transport
+function createMockHttpSseTransport() {
+  return {
     start: vi.fn().mockResolvedValue(undefined),
     stop: vi.fn().mockResolvedValue(undefined),
     send: vi.fn().mockResolvedValue({ tools: [] }),
     on: vi.fn(),
     off: vi.fn(),
-  })),
-}));
+  };
+}
 
-// Import after mocking
-const {
-  MCPClientManager,
-} = require("../../../src/main/mcp/mcp-client-manager");
+// Factory function to create mock dependencies
+function createMockDeps(mockClient) {
+  return {
+    mcpClient: {
+      Client: vi.fn().mockImplementation(() => mockClient),
+    },
+    mcpStdio: {
+      StdioClientTransport: vi
+        .fn()
+        .mockImplementation(() => createMockStdioTransport()),
+    },
+    mcpTypes: {
+      LoggingMessageNotificationSchema: { method: "notifications/message" },
+      ResourceListChangedNotificationSchema: {
+        method: "notifications/resources/list_changed",
+      },
+      ToolListChangedNotificationSchema: {
+        method: "notifications/tools/list_changed",
+      },
+      PromptListChangedNotificationSchema: {
+        method: "notifications/prompts/list_changed",
+      },
+    },
+    httpSseTransport: {
+      HttpSseTransport: vi
+        .fn()
+        .mockImplementation(() => createMockHttpSseTransport()),
+    },
+  };
+}
 
 describe("MCPClientManager", () => {
   let manager;
+  let mockClient;
+  let mockDeps;
 
   beforeEach(() => {
-    manager = new MCPClientManager({});
+    // Create fresh mocks for each test
+    mockClient = createMockClient();
+    mockDeps = createMockDeps(mockClient);
+    // Create manager with injected mock dependencies
+    manager = new MCPClientManager({}, mockDeps);
   });
 
   afterEach(async () => {
@@ -70,7 +111,10 @@ describe("MCPClientManager", () => {
     });
 
     it("should accept configuration", () => {
-      const customManager = new MCPClientManager({ customOption: true });
+      const customManager = new MCPClientManager(
+        { customOption: true },
+        mockDeps,
+      );
       expect(customManager.config.customOption).toBe(true);
     });
   });
