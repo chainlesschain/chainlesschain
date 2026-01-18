@@ -76,6 +76,9 @@
             <a-tag v-if="record.isConnected" color="success">
               <check-circle-outlined /> 已连接
             </a-tag>
+            <a-tag v-else-if="record.serverState === 'error'" color="error">
+              <minus-circle-outlined /> 连接错误
+            </a-tag>
             <a-tag v-else color="default">
               <minus-circle-outlined /> 未连接
             </a-tag>
@@ -876,6 +879,12 @@ const getDefaultConfig = (serverId) => {
     case "filesystem":
       return {
         ...baseConfig,
+        command: "npx",
+        args: [
+          "-y",
+          "@modelcontextprotocol/server-filesystem",
+          dataPath || ".",
+        ],
         rootPath: dataPath,
         permissions: {
           allowedPaths: ["notes/", "imports/", "exports/", "projects/"],
@@ -892,12 +901,14 @@ const getDefaultConfig = (serverId) => {
     case "postgres":
       return {
         ...baseConfig,
+        command: "npx",
+        args: ["-y", "@modelcontextprotocol/server-postgres"],
         connection: {
           host: "localhost",
           port: 5432,
           database: "chainlesschain",
           user: "chainlesschain",
-          password: "",
+          password: "chainlesschain_pwd_2024",
         },
         permissions: {
           allowedSchemas: ["public"],
@@ -909,6 +920,8 @@ const getDefaultConfig = (serverId) => {
     case "sqlite":
       return {
         ...baseConfig,
+        command: "npx",
+        args: ["-y", "@modelcontextprotocol/server-sqlite", dbPath || ""],
         databasePath: dbPath,
         permissions: {
           allowedTables: [
@@ -937,6 +950,8 @@ const getDefaultConfig = (serverId) => {
     case "git":
       return {
         ...baseConfig,
+        command: "npx",
+        args: ["-y", "@modelcontextprotocol/server-git"],
         repositoryPath: projectPath.value || "",
         permissions: {
           allowedOperations: ["status", "log", "diff", "show"],
@@ -951,6 +966,8 @@ const getDefaultConfig = (serverId) => {
     case "fetch":
       return {
         ...baseConfig,
+        command: "npx",
+        args: ["-y", "@modelcontextprotocol/server-fetch"],
         permissions: {
           allowedDomains: [],
           forbiddenDomains: ["localhost", "127.0.0.1"],
@@ -959,7 +976,11 @@ const getDefaultConfig = (serverId) => {
         timeout: 30,
       };
     default:
-      return baseConfig;
+      return {
+        ...baseConfig,
+        command: "npx",
+        args: ["-y", `@modelcontextprotocol/server-${serverId}`],
+      };
   }
 };
 
@@ -1033,9 +1054,13 @@ const serversWithStatus = computed(() => {
     const connectedServer = connectedServers.value.find(
       (s) => s.name === server.id,
     );
+    // Only consider connected if server exists AND state is 'connected' (not 'error')
+    const isActuallyConnected =
+      connectedServer && connectedServer.state === "connected";
     return {
       ...server,
-      isConnected: !!connectedServer,
+      isConnected: isActuallyConnected,
+      serverState: connectedServer?.state || null,
       toolCount: connectedServer?.tools || 0,
     };
   });
