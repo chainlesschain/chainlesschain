@@ -1694,7 +1694,7 @@ class ChainlessChainApp {
         console.log("[Main] MCP IPC handlers已注册");
 
         // 自动连接配置中的服务器
-        await this.mcpAdapter.initializeServers();
+        await this.mcpAdapter.initializeServers(mcpConfig);
 
         console.log("[Main] MCP系统初始化完成");
       } else {
