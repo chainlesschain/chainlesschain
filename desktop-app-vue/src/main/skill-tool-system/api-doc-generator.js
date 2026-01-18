@@ -475,15 +475,52 @@ const ${module.name.toLowerCase()} = new ${module.name}(/* 参数 */);
         .replace(/\r/g, "\n")
         // 移除时间戳行
         .replace(/(?:> 自动生成时间|\*\*文档生成时间\*\*): .+\n/g, "")
-        // 规范化注释后的空格 (// 后面的空格)
-        .replace(/\/\/\s*/g, "// ")
+        // 规范化代码块内容（JavaScript 代码风格统一）
+        .replace(/```javascript[\s\S]*?```/g, (codeBlock) => {
+          return (
+            codeBlock
+              // 统一引号为双引号
+              .replace(/'/g, '"')
+              // 移除对象/数组中的尾随逗号
+              .replace(/,(\s*[}\]])/g, "$1")
+              // 移除行尾逗号（在注释或换行前）
+              .replace(/,(\s*\/\/)/g, "$1")
+              .replace(/,(\s*\n)/g, "$1")
+              // 移除行尾分号
+              .replace(/;(\s*\n)/g, "$1")
+              .replace(/;\s*```/g, "\n```")
+              // 统一 JSON key 的引号（有引号的保持，无引号的加上）
+              .replace(/(\s)(\w+):/g, '$1"$2":')
+              // 统一注释前的空格（多个空格变成一个）
+              .replace(/\s+\/\//g, " //")
+              // 移除代码块内的连续空行
+              .replace(/\n\n+/g, "\n")
+              // 统一缩进：移除所有行首空格用于比较
+              .replace(/^[ ]+/gm, "")
+          );
+        })
+        // 规范化注释后的空格 (// 后面的空格统一移除)
+        .replace(/\/\/\s*/g, "//")
         // 移除行尾空格
         .replace(/[ \t]+$/gm, "")
+        // 规范化 Markdown heading 前的空行（统一为一个空行）
+        .replace(/\n*^(#{1,6} )/gm, "\n\n$1")
         // 规范化空行
         .replace(/\n{3,}/g, "\n\n")
         // 移除括号前后多余空格
         .replace(/\(\s+/g, "(")
         .replace(/\s+\)/g, ")")
+        // 移除方法签名中的空行
+        .replace(/\(\s*\n\s*\n/g, "(\n")
+        // 移除 inline code 中的空行
+        .replace(/`[^`]+`/g, (code) => code.replace(/\n\n+/g, "\n"))
+        // 规范化函数参数分隔（处理 )},  和 )\n} 差异）
+        .replace(/\)\s*},?\s*\n\s*}/g, ")}")
+        .replace(/\)\s*,?\s*\n\s*async/g, ") async")
+        // 规范化转义的下划线
+        .replace(/\\_/g, "_")
+        // 移除文件开头多余空行
+        .replace(/^\n+/, "")
         // 移除文件末尾多余空行
         .replace(/\n+$/, "\n")
     );
