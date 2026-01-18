@@ -717,6 +717,131 @@ class MCPSecurityPolicy extends EventEmitter {
   }
 
   /**
+   * Request user consent for server connection (public method for IPC)
+   * @param {Object} request - Consent request details
+   * @param {string} request.operation - Operation type (e.g., 'connect-server')
+   * @param {string} request.serverName - Server name
+   * @param {string} request.securityLevel - Security level (e.g., 'high')
+   * @param {string[]} request.permissions - Required permissions
+   * @returns {Promise<boolean>} True if consent granted, false otherwise
+   */
+  async requestUserConsent(request) {
+    const { operation, serverName, securityLevel, permissions } = request;
+
+    console.log(
+      `[MCPSecurityPolicy] Requesting user consent for ${operation} on ${serverName}`,
+    );
+
+    // Generate consent request
+    const requestId = crypto.randomUUID();
+    const consentRequest = {
+      requestId,
+      serverName,
+      toolName: operation,
+      params: { permissions },
+      riskLevel:
+        securityLevel === "high"
+          ? this.RISK_LEVELS.HIGH
+          : this.RISK_LEVELS.MEDIUM,
+      operationType: operation,
+      timestamp: Date.now(),
+    };
+
+    // Check if main window is available
+    if (!this.mainWindow || this.mainWindow.isDestroyed()) {
+      console.warn(
+        "[MCPSecurityPolicy] No main window available for consent request, auto-allowing",
+      );
+      return true; // Auto-allow if no UI available
+    }
+
+    try {
+      await this._requestConsentViaIPC(
+        consentRequest,
+        `consent:${serverName}:${operation}`,
+      );
+      return true;
+    } catch (error) {
+      console.log(`[MCPSecurityPolicy] Consent denied: ${error.message}`);
+      return false;
+    }
+  }
+
+  /**
+   * Validate a tool call (synchronous check for IPC)
+   * @param {string} serverName - Server name
+   * @param {string} toolName - Tool name
+   * @param {Object} args - Tool arguments
+   * @returns {Object} { permitted: boolean, reason?: string }
+   */
+  validateToolCall(serverName, toolName, args) {
+    try {
+      // Check if server has permissions configured
+      const permissions = this.serverPermissions.get(serverName);
+
+      // Detect operation type
+      const operation = this._detectOperation(toolName, args);
+
+      // Check read-only constraint
+      if (permissions && permissions.readOnly && operation.type !== "read") {
+        return {
+          permitted: false,
+          reason: `Server ${serverName} is read-only, cannot perform ${operation.type} operation`,
+        };
+      }
+
+      // Validate path access if applicable
+      const targetPath = args?.path || args?.uri || args?.file;
+      if (targetPath) {
+        try {
+          this._validatePathAccess(serverName, operation.type, targetPath);
+        } catch (error) {
+          return {
+            permitted: false,
+            reason: error.message,
+          };
+        }
+      }
+
+      // Log the allowed operation
+      this._logAudit(
+        "ALLOWED",
+        serverName,
+        toolName,
+        args,
+        this._assessRiskLevel(toolName, args, operation),
+      );
+
+      return { permitted: true };
+    } catch (error) {
+      return {
+        permitted: false,
+        reason: error.message,
+      };
+    }
+  }
+
+  /**
+   * Validate resource access (synchronous check for IPC)
+   * @param {string} serverName - Server name
+   * @param {string} resourceUri - Resource URI
+   * @returns {Object} { permitted: boolean, reason?: string }
+   */
+  validateResourceAccess(serverName, resourceUri) {
+    try {
+      // Validate path access for the resource
+      this._validatePathAccess(serverName, "read", resourceUri);
+
+      return { permitted: true };
+    } catch (error) {
+      return {
+        permitted: false,
+        reason: error.message,
+      };
+    }
+  }
+
+  /**
    * Get security statistics
    */
   getStatistics() {
