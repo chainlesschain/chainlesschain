@@ -326,6 +326,13 @@ class SignalingServer {
         timestamp: Date.now()
       });
       console.log(`[SignalingServer] ⚠️  目标离线，消息已存储: ${to}`);
+
+      // 通知发送方目标处于离线状态
+      this.sendMessage(ws, {
+        type: 'peer-offline',
+        peerId: to,
+        messageId: uuidv4()
+      });
     }
   }
 

@@ -435,17 +435,30 @@ class ChainlessChainApp {
   }
 
   /**
-   * 初始化语音管理器（供IPC注册使用）
-   * 这是一个延迟初始化函数，确保在需要时才创建管理器
+   * 🚀 懒加载语音管理器
+   * 仅在用户首次使用语音功能时初始化
    */
   async initializeSpeechManager() {
-    if (!this.speechManager) {
-      console.log("[Main] 延迟初始化语音管理器...");
+    if (this.speechInitialized) {
+      return this.speechManager; // 已初始化，直接返回
+    }
+
+    console.log("🚀 开始懒加载语音管理器...");
+    const startTime = Date.now();
+
+    try {
       const { SpeechManager } = require("./speech/speech-manager");
       this.speechManager = new SpeechManager(this.database, this.ragManager);
       await this.speechManager.initialize();
-      console.log("[Main] 语音管理器延迟初始化成功");
+
+      this.speechInitialized = true;
+      const elapsed = Date.now() - startTime;
+      console.log(`✓ 语音管理器懒加载完成 (耗时: ${elapsed}ms)`);
+    } catch (error) {
+      console.error("语音管理器懒加载失败:", error);
+      throw error;
     }
+
     return this.speechManager;
   }
 
@@ -1767,6 +1780,32 @@ class ChainlessChainApp {
       console.log(`✓ 图片上传器懒加载完成 (耗时: ${elapsed}ms)`);
     } catch (error) {
       console.error("图片上传器懒加载失败:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * 🚀 懒加载视频导入器
+   * 仅在用户首次使用视频导入功能时初始化
+   */
+  async initializeVideoImporter() {
+    if (this.videoImporterInitialized) {
+      return; // 已初始化，直接返回
+    }
+
+    console.log("🚀 开始懒加载视频导入器...");
+    const startTime = Date.now();
+
+    try {
+      const VideoImporter = require("./video/video-importer");
+      this.videoImporter = new VideoImporter(this.database, this.ragManager);
+      await this.videoImporter.initialize();
+
+      this.videoImporterInitialized = true;
+      const elapsed = Date.now() - startTime;
+      console.log(`✓ 视频导入器懒加载完成 (耗时: ${elapsed}ms)`);
+    } catch (error) {
+      console.error("视频导入器懒加载失败:", error);
       throw error;
     }
   }
