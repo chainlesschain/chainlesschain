@@ -3,12 +3,12 @@
  * 测试 Word 文档读取、写入、转换和模板创建功能
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import fs from 'fs/promises';
-import path from 'path';
-import os from 'os';
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import fs from "fs/promises";
+import path from "path";
+import os from "os";
 
-describe('Word引擎测试', () => {
+describe("Word引擎测试", () => {
   let WordEngine;
   let wordEngine;
   let wordEngineFsMock;
@@ -20,96 +20,87 @@ describe('Word引擎测试', () => {
   let testDocxPath;
 
   beforeEach(async () => {
-    // Clear all mocks
+    // Clear all mocks and reset module cache for fresh imports
     vi.clearAllMocks();
+    vi.resetModules();
 
-    if (!globalThis.__WORD_ENGINE_FS__) {
-      globalThis.__WORD_ENGINE_FS__ = {
-        writeFile: vi.fn().mockResolvedValue(undefined),
-        stat: vi.fn().mockResolvedValue({
-          size: 1024,
-          birthtime: new Date(),
-          mtime: new Date(),
-          isFile: () => true,
-        }),
-        mkdir: vi.fn().mockResolvedValue(undefined),
-      };
-    }
+    // Always reset global mocks to ensure clean state
+    globalThis.__WORD_ENGINE_FS__ = {
+      writeFile: vi.fn().mockResolvedValue(undefined),
+      stat: vi.fn().mockResolvedValue({
+        size: 1024,
+        birthtime: new Date(),
+        mtime: new Date(),
+        isFile: () => true,
+      }),
+      mkdir: vi.fn().mockResolvedValue(undefined),
+    };
 
-    if (!globalThis.__WORD_ENGINE_FILE_HANDLER__) {
-      globalThis.__WORD_ENGINE_FILE_HANDLER__ = {
-        getFileSize: vi.fn().mockResolvedValue(1024 * 1024),
-        checkAvailableMemory: vi.fn().mockReturnValue({ isAvailable: true }),
-        waitForMemory: vi.fn().mockResolvedValue(undefined),
-        writeFileStream: vi.fn().mockResolvedValue(undefined),
-      };
-    }
+    globalThis.__WORD_ENGINE_FILE_HANDLER__ = {
+      getFileSize: vi.fn().mockResolvedValue(1024 * 1024),
+      checkAvailableMemory: vi.fn().mockReturnValue({ isAvailable: true }),
+      waitForMemory: vi.fn().mockResolvedValue(undefined),
+      writeFileStream: vi.fn().mockResolvedValue(undefined),
+    };
 
-    if (!globalThis.__WORD_ENGINE_DOCX__) {
-      globalThis.__WORD_ENGINE_DOCX__ = {
-        Document: vi.fn((config) => ({ type: 'document', config })),
-        Packer: { toBuffer: vi.fn() },
-        Paragraph: vi.fn((config) => ({ type: 'paragraph', config })),
-        TextRun: vi.fn((config) => ({ config })),
-        HeadingLevel: {
-          TITLE: 'TITLE',
-          HEADING_1: 'H1',
-          HEADING_2: 'H2',
-          HEADING_3: 'H3',
-          HEADING_4: 'H4',
-          HEADING_5: 'H5',
-          HEADING_6: 'H6',
-        },
-        AlignmentType: {
-          LEFT: 'LEFT',
-          CENTER: 'CENTER',
-          RIGHT: 'RIGHT',
-          JUSTIFIED: 'JUSTIFIED',
-        },
-        UnderlineType: {
-          SINGLE: 'SINGLE',
-        },
-      };
-    }
+    globalThis.__WORD_ENGINE_DOCX__ = {
+      Document: vi.fn((config) => ({ type: "document", config })),
+      Packer: { toBuffer: vi.fn() },
+      Paragraph: vi.fn((config) => ({ type: "paragraph", config })),
+      TextRun: vi.fn((config) => ({ config })),
+      HeadingLevel: {
+        TITLE: "TITLE",
+        HEADING_1: "H1",
+        HEADING_2: "H2",
+        HEADING_3: "H3",
+        HEADING_4: "H4",
+        HEADING_5: "H5",
+        HEADING_6: "H6",
+      },
+      AlignmentType: {
+        LEFT: "LEFT",
+        CENTER: "CENTER",
+        RIGHT: "RIGHT",
+        JUSTIFIED: "JUSTIFIED",
+      },
+      UnderlineType: {
+        SINGLE: "SINGLE",
+      },
+    };
 
-    if (!globalThis.__WORD_ENGINE_MAMMOTH__) {
-      globalThis.__WORD_ENGINE_MAMMOTH__ = {
-        convertToHtml: vi.fn(),
-        extractRawText: vi.fn(),
-      };
-    }
+    globalThis.__WORD_ENGINE_MAMMOTH__ = {
+      convertToHtml: vi.fn(),
+      extractRawText: vi.fn(),
+    };
 
-    if (!globalThis.__WORD_ENGINE_MARKED__) {
-      globalThis.__WORD_ENGINE_MARKED__ = {
-        marked: vi.fn(),
-      };
-    }
+    globalThis.__WORD_ENGINE_MARKED__ = {
+      marked: vi.fn(),
+    };
 
     // Create temporary directory for test files
-    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'word-test-'));
-    testDocxPath = path.join(tmpDir, 'test.docx');
+    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "word-test-"));
+    testDocxPath = path.join(tmpDir, "test.docx");
 
     // Access shared mocks configured in setup
     mockDocx = globalThis.__WORD_ENGINE_DOCX__;
     mockMammoth = globalThis.__WORD_ENGINE_MAMMOTH__;
     mockMarked = globalThis.__WORD_ENGINE_MARKED__;
-
-    // Import WordEngine after mocks are set up
-    const module = await import('../../src/main/engines/word-engine.js');
-    WordEngine = module.default;
-    wordEngine = WordEngine;
     fileHandlerMock = globalThis.__WORD_ENGINE_FILE_HANDLER__;
     wordEngineFsMock = globalThis.__WORD_ENGINE_FS__;
-    wordEngine.fileHandler = fileHandlerMock;
+
+    // Import WordEngine after mocks are set up (fresh import due to resetModules)
+    const module = await import("../../src/main/engines/word-engine.js");
+    WordEngine = module.default;
+    wordEngine = WordEngine;
 
     // Setup default mock behaviors
-    mockDocx.Packer.toBuffer.mockResolvedValue(Buffer.from('Word document'));
+    mockDocx.Packer.toBuffer.mockResolvedValue(Buffer.from("Word document"));
     mockMammoth.convertToHtml.mockResolvedValue({
-      value: '<p>Test content</p>',
+      value: "<p>Test content</p>",
       messages: [],
     });
     mockMammoth.extractRawText.mockResolvedValue({
-      value: 'Test content',
+      value: "Test content",
     });
     wordEngineFsMock.stat.mockResolvedValue({
       size: 1024,
@@ -125,56 +116,58 @@ describe('Word引擎测试', () => {
       try {
         await fs.rm(tmpDir, { recursive: true, force: true });
       } catch (error) {
-        console.warn('Failed to clean up temp directory:', error);
+        console.warn("Failed to clean up temp directory:", error);
       }
     }
   });
 
-  describe('基础功能', () => {
-    it('should have all required methods', () => {
-      expect(typeof wordEngine.readWord).toBe('function');
-      expect(typeof wordEngine.writeWord).toBe('function');
-      expect(typeof wordEngine.createParagraph).toBe('function');
-      expect(typeof wordEngine.getHeadingLevel).toBe('function');
-      expect(typeof wordEngine.getAlignment).toBe('function');
-      expect(typeof wordEngine.parseHtmlToContent).toBe('function');
-      expect(typeof wordEngine.extractMetadata).toBe('function');
-      expect(typeof wordEngine.markdownToWord).toBe('function');
-      expect(typeof wordEngine.wordToMarkdown).toBe('function');
-      expect(typeof wordEngine.htmlToWord).toBe('function');
-      expect(typeof wordEngine.createTemplate).toBe('function');
+  describe("基础功能", () => {
+    it("should have all required methods", () => {
+      expect(typeof wordEngine.readWord).toBe("function");
+      expect(typeof wordEngine.writeWord).toBe("function");
+      expect(typeof wordEngine.createParagraph).toBe("function");
+      expect(typeof wordEngine.getHeadingLevel).toBe("function");
+      expect(typeof wordEngine.getAlignment).toBe("function");
+      expect(typeof wordEngine.parseHtmlToContent).toBe("function");
+      expect(typeof wordEngine.extractMetadata).toBe("function");
+      expect(typeof wordEngine.markdownToWord).toBe("function");
+      expect(typeof wordEngine.wordToMarkdown).toBe("function");
+      expect(typeof wordEngine.htmlToWord).toBe("function");
+      expect(typeof wordEngine.createTemplate).toBe("function");
     });
 
-    it('should have supportedFormats array', () => {
-      expect(wordEngine.supportedFormats).toEqual(['.docx', '.doc']);
+    it("should have supportedFormats array", () => {
+      expect(wordEngine.supportedFormats).toEqual([".docx", ".doc"]);
     });
   });
 
-  describe('readWord', () => {
-    it('should read Word document successfully', async () => {
+  describe("readWord", () => {
+    it("should read Word document successfully", async () => {
       const result = await wordEngine.readWord(testDocxPath);
 
       expect(mockMammoth.convertToHtml).toHaveBeenCalled();
       expect(mockMammoth.extractRawText).toHaveBeenCalled();
       expect(result.success).toBe(true);
-      expect(result.html).toBe('<p>Test content</p>');
-      expect(result.text).toBe('Test content');
+      expect(result.html).toBe("<p>Test content</p>");
+      expect(result.text).toBe("Test content");
       expect(result.content).toBeDefined();
       expect(result.metadata).toBeDefined();
       expect(result.fileSize).toBeDefined();
     });
 
-    it('should handle large files', async () => {
+    it("should handle large files", async () => {
       fileHandlerMock.getFileSize.mockResolvedValue(20 * 1024 * 1024); // 20MB
 
-      const result = await wordEngine.readWord('/large.docx');
+      const result = await wordEngine.readWord("/large.docx");
 
       expect(result.success).toBe(true);
       expect(fileHandlerMock.checkAvailableMemory).toHaveBeenCalled();
     });
 
-    it('should handle memory availability issues', async () => {
-      fileHandlerMock.checkAvailableMemory.mockReturnValue({ isAvailable: false });
+    it("should handle memory availability issues", async () => {
+      fileHandlerMock.checkAvailableMemory.mockReturnValue({
+        isAvailable: false,
+      });
 
       const result = await wordEngine.readWord(testDocxPath);
 
@@ -182,152 +175,149 @@ describe('Word引擎测试', () => {
       expect(result.success).toBe(true);
     });
 
-    it('should handle read errors', async () => {
-      mockMammoth.convertToHtml.mockRejectedValue(new Error('Read failed'));
+    it("should handle read errors", async () => {
+      mockMammoth.convertToHtml.mockRejectedValue(new Error("Read failed"));
 
-      await expect(wordEngine.readWord(testDocxPath)).rejects.toThrow('Read failed');
+      await expect(wordEngine.readWord(testDocxPath)).rejects.toThrow(
+        "Read failed",
+      );
     });
 
-    it('should parse mammoth messages', async () => {
+    it("should parse mammoth messages", async () => {
       mockMammoth.convertToHtml.mockResolvedValue({
-        value: '<p>Content</p>',
-        messages: [
-          { type: 'warning', message: 'Unknown style' }
-        ],
+        value: "<p>Content</p>",
+        messages: [{ type: "warning", message: "Unknown style" }],
       });
 
       const result = await wordEngine.readWord(testDocxPath);
 
       expect(result.messages).toHaveLength(1);
-      expect(result.messages[0].type).toBe('warning');
+      expect(result.messages[0].type).toBe("warning");
     });
   });
 
-  describe('writeWord', () => {
+  describe("writeWord", () => {
     beforeEach(() => {
       wordEngineFsMock.writeFile.mockResolvedValue(undefined);
     });
 
-    it('should write Word document successfully', async () => {
+    it("should write Word document successfully", async () => {
       const content = {
-        title: 'Test Document',
-        paragraphs: [
-          { text: 'Paragraph 1' },
-          { text: 'Paragraph 2' },
-        ],
+        title: "Test Document",
+        paragraphs: [{ text: "Paragraph 1" }, { text: "Paragraph 2" }],
       };
 
-      const result = await wordEngine.writeWord('/output.docx', content);
+      const result = await wordEngine.writeWord("/output.docx", content);
 
       expect(mockDocx.Document).toHaveBeenCalled();
       expect(mockDocx.Packer.toBuffer).toHaveBeenCalled();
       expect(result.success).toBe(true);
-      expect(result.filePath).toBe('/output.docx');
+      expect(result.filePath).toBe("/output.docx");
     });
 
-    it('should create document with title', async () => {
+    it("should create document with title", async () => {
       const content = {
-        title: 'My Document',
+        title: "My Document",
         paragraphs: [],
       };
 
-      await wordEngine.writeWord('/output.docx', content);
+      await wordEngine.writeWord("/output.docx", content);
 
       expect(mockDocx.Paragraph).toHaveBeenCalledWith(
         expect.objectContaining({
-          text: 'My Document',
-        })
+          text: "My Document",
+        }),
       );
     });
 
-    it('should handle large documents with streaming', async () => {
+    it("should handle large documents with streaming", async () => {
       const largeBuffer = Buffer.alloc(15 * 1024 * 1024); // 15MB
       mockDocx.Packer.toBuffer.mockResolvedValue(largeBuffer);
 
-      const content = { title: 'Large Doc', paragraphs: [] };
-      await wordEngine.writeWord('/large.docx', content);
+      const content = { title: "Large Doc", paragraphs: [] };
+      await wordEngine.writeWord("/large.docx", content);
 
       expect(fileHandlerMock.writeFileStream).toHaveBeenCalled();
     });
 
-    it('should handle small documents without streaming', async () => {
+    it("should handle small documents without streaming", async () => {
       const smallBuffer = Buffer.alloc(1024); // 1KB
       mockDocx.Packer.toBuffer.mockResolvedValue(smallBuffer);
 
-      const content = { title: 'Small Doc', paragraphs: [] };
-      await wordEngine.writeWord('/small.docx', content);
+      const content = { title: "Small Doc", paragraphs: [] };
+      await wordEngine.writeWord("/small.docx", content);
 
       expect(wordEngineFsMock.writeFile).toHaveBeenCalledWith(
-        '/small.docx',
-        smallBuffer
+        "/small.docx",
+        smallBuffer,
       );
     });
 
-    it('should handle write errors', async () => {
-      mockDocx.Packer.toBuffer.mockRejectedValue(new Error('Pack failed'));
+    it("should handle write errors", async () => {
+      mockDocx.Packer.toBuffer.mockRejectedValue(new Error("Pack failed"));
 
-      const content = { title: 'Test', paragraphs: [] };
+      const content = { title: "Test", paragraphs: [] };
 
       await expect(
-        wordEngine.writeWord('/output.docx', content)
-      ).rejects.toThrow('Pack failed');
+        wordEngine.writeWord("/output.docx", content),
+      ).rejects.toThrow("Pack failed");
     });
 
-    it('should create document with metadata', async () => {
+    it("should create document with metadata", async () => {
       const content = { paragraphs: [] };
 
-      await wordEngine.writeWord('/output.docx', content);
+      await wordEngine.writeWord("/output.docx", content);
 
       expect(mockDocx.Document).toHaveBeenCalledWith(
         expect.objectContaining({
-          creator: 'ChainlessChain',
-          description: 'Generated by ChainlessChain',
-        })
+          creator: "ChainlessChain",
+          description: "Generated by ChainlessChain",
+        }),
       );
     });
   });
 
-  describe('createParagraph', () => {
-    it('should create simple paragraph', () => {
-      const paraData = { text: 'Simple text' };
+  describe("createParagraph", () => {
+    it("should create simple paragraph", () => {
+      const paraData = { text: "Simple text" };
 
       const result = wordEngine.createParagraph(paraData);
 
-      expect(result.type).toBe('paragraph');
+      expect(result.type).toBe("paragraph");
       expect(mockDocx.TextRun).toHaveBeenCalledWith(
-        expect.objectContaining({ text: 'Simple text' })
+        expect.objectContaining({ text: "Simple text" }),
       );
     });
 
-    it('should create paragraph with bold text', () => {
+    it("should create paragraph with bold text", () => {
       const paraData = {
-        text: 'Bold text',
+        text: "Bold text",
         style: { bold: true },
       };
 
       wordEngine.createParagraph(paraData);
 
       expect(mockDocx.TextRun).toHaveBeenCalledWith(
-        expect.objectContaining({ bold: true })
+        expect.objectContaining({ bold: true }),
       );
     });
 
-    it('should create paragraph with italic text', () => {
+    it("should create paragraph with italic text", () => {
       const paraData = {
-        text: 'Italic text',
+        text: "Italic text",
         style: { italic: true },
       };
 
       wordEngine.createParagraph(paraData);
 
       expect(mockDocx.TextRun).toHaveBeenCalledWith(
-        expect.objectContaining({ italics: true })
+        expect.objectContaining({ italics: true }),
       );
     });
 
-    it('should create paragraph with underline', () => {
+    it("should create paragraph with underline", () => {
       const paraData = {
-        text: 'Underlined',
+        text: "Underlined",
         style: { underline: true },
       };
 
@@ -335,16 +325,16 @@ describe('Word引擎测试', () => {
 
       expect(mockDocx.TextRun).toHaveBeenCalledWith(
         expect.objectContaining({
-          underline: { type: 'SINGLE' },
-        })
+          underline: { type: "SINGLE" },
+        }),
       );
     });
 
-    it('should create paragraph with multiple text runs', () => {
+    it("should create paragraph with multiple text runs", () => {
       const paraData = {
         text: [
-          { text: 'Part 1', bold: true },
-          { text: 'Part 2', italic: true },
+          { text: "Part 1", bold: true },
+          { text: "Part 2", italic: true },
         ],
       };
 
@@ -353,31 +343,31 @@ describe('Word引擎测试', () => {
       expect(mockDocx.TextRun).toHaveBeenCalledTimes(2);
     });
 
-    it('should handle heading level', () => {
+    it("should handle heading level", () => {
       const paraData = {
-        text: 'Heading',
+        text: "Heading",
         heading: 1,
       };
 
       const result = wordEngine.createParagraph(paraData);
 
-      expect(result.config.heading).toBe('H1');
+      expect(result.config.heading).toBe("H1");
     });
 
-    it('should handle alignment', () => {
+    it("should handle alignment", () => {
       const paraData = {
-        text: 'Centered',
-        alignment: 'center',
+        text: "Centered",
+        alignment: "center",
       };
 
       const result = wordEngine.createParagraph(paraData);
 
-      expect(result.config.alignment).toBe('CENTER');
+      expect(result.config.alignment).toBe("CENTER");
     });
 
-    it('should handle custom font size', () => {
+    it("should handle custom font size", () => {
       const paraData = {
-        text: 'Large text',
+        text: "Large text",
         style: { fontSize: 24 },
       };
 
@@ -386,102 +376,102 @@ describe('Word引擎测试', () => {
       expect(mockDocx.TextRun).toHaveBeenCalledWith(
         expect.objectContaining({
           size: 48, // 24 * 2 (Word uses half-points)
-        })
+        }),
       );
     });
 
-    it('should handle font family', () => {
+    it("should handle font family", () => {
       const paraData = {
-        text: 'Custom font',
-        style: { fontFamily: 'Times New Roman' },
+        text: "Custom font",
+        style: { fontFamily: "Times New Roman" },
       };
 
       wordEngine.createParagraph(paraData);
 
       expect(mockDocx.TextRun).toHaveBeenCalledWith(
         expect.objectContaining({
-          font: 'Times New Roman',
-        })
+          font: "Times New Roman",
+        }),
       );
     });
 
-    it('should handle custom color', () => {
+    it("should handle custom color", () => {
       const paraData = {
-        text: 'Colored text',
-        style: { color: 'FF0000' },
+        text: "Colored text",
+        style: { color: "FF0000" },
       };
 
       wordEngine.createParagraph(paraData);
 
       expect(mockDocx.TextRun).toHaveBeenCalledWith(
         expect.objectContaining({
-          color: 'FF0000',
-        })
+          color: "FF0000",
+        }),
       );
     });
   });
 
-  describe('getHeadingLevel', () => {
-    it('should return correct heading levels', () => {
-      expect(wordEngine.getHeadingLevel(1)).toBe('H1');
-      expect(wordEngine.getHeadingLevel(2)).toBe('H2');
-      expect(wordEngine.getHeadingLevel(3)).toBe('H3');
-      expect(wordEngine.getHeadingLevel(4)).toBe('H4');
-      expect(wordEngine.getHeadingLevel(5)).toBe('H5');
-      expect(wordEngine.getHeadingLevel(6)).toBe('H6');
+  describe("getHeadingLevel", () => {
+    it("should return correct heading levels", () => {
+      expect(wordEngine.getHeadingLevel(1)).toBe("H1");
+      expect(wordEngine.getHeadingLevel(2)).toBe("H2");
+      expect(wordEngine.getHeadingLevel(3)).toBe("H3");
+      expect(wordEngine.getHeadingLevel(4)).toBe("H4");
+      expect(wordEngine.getHeadingLevel(5)).toBe("H5");
+      expect(wordEngine.getHeadingLevel(6)).toBe("H6");
     });
 
-    it('should return undefined for invalid levels', () => {
+    it("should return undefined for invalid levels", () => {
       expect(wordEngine.getHeadingLevel(0)).toBeUndefined();
       expect(wordEngine.getHeadingLevel(7)).toBeUndefined();
       expect(wordEngine.getHeadingLevel(null)).toBeUndefined();
     });
   });
 
-  describe('getAlignment', () => {
-    it('should return correct alignment types', () => {
-      expect(wordEngine.getAlignment('left')).toBe('LEFT');
-      expect(wordEngine.getAlignment('center')).toBe('CENTER');
-      expect(wordEngine.getAlignment('right')).toBe('RIGHT');
-      expect(wordEngine.getAlignment('justify')).toBe('JUSTIFIED');
+  describe("getAlignment", () => {
+    it("should return correct alignment types", () => {
+      expect(wordEngine.getAlignment("left")).toBe("LEFT");
+      expect(wordEngine.getAlignment("center")).toBe("CENTER");
+      expect(wordEngine.getAlignment("right")).toBe("RIGHT");
+      expect(wordEngine.getAlignment("justify")).toBe("JUSTIFIED");
     });
 
-    it('should return LEFT for unknown alignment', () => {
-      expect(wordEngine.getAlignment('unknown')).toBe('LEFT');
-      expect(wordEngine.getAlignment(null)).toBe('LEFT');
-      expect(wordEngine.getAlignment()).toBe('LEFT');
+    it("should return LEFT for unknown alignment", () => {
+      expect(wordEngine.getAlignment("unknown")).toBe("LEFT");
+      expect(wordEngine.getAlignment(null)).toBe("LEFT");
+      expect(wordEngine.getAlignment()).toBe("LEFT");
     });
   });
 
-  describe('parseHtmlToContent', () => {
-    it('should parse simple HTML', () => {
-      const html = '<p>Paragraph 1</p><p>Paragraph 2</p>';
+  describe("parseHtmlToContent", () => {
+    it("should parse simple HTML", () => {
+      const html = "<p>Paragraph 1</p><p>Paragraph 2</p>";
 
       const result = wordEngine.parseHtmlToContent(html);
 
       expect(result.paragraphs).toHaveLength(2);
-      expect(result.paragraphs[0].text).toBe('Paragraph 1');
-      expect(result.paragraphs[1].text).toBe('Paragraph 2');
+      expect(result.paragraphs[0].text).toBe("Paragraph 1");
+      expect(result.paragraphs[1].text).toBe("Paragraph 2");
     });
 
-    it('should detect bold text', () => {
-      const html = '<p><strong>Bold text</strong></p>';
+    it("should detect bold text", () => {
+      const html = "<p><strong>Bold text</strong></p>";
 
       const result = wordEngine.parseHtmlToContent(html);
 
       expect(result.paragraphs[0].style.bold).toBe(true);
     });
 
-    it('should detect italic text', () => {
-      const html = '<p><em>Italic text</em></p>';
+    it("should detect italic text", () => {
+      const html = "<p><em>Italic text</em></p>";
 
       const result = wordEngine.parseHtmlToContent(html);
 
       expect(result.paragraphs[0].style.italic).toBe(true);
     });
 
-    it('should detect headings', () => {
-      const html = '<h1>Heading 1</h1><h2>Heading 2</h2>';
+    it("should detect headings", () => {
+      const html = "<h1>Heading 1</h1><h2>Heading 2</h2>";
 
       const result = wordEngine.parseHtmlToContent(html);
 
@@ -489,22 +479,22 @@ describe('Word引擎测试', () => {
       expect(result.paragraphs[1].heading).toBe(2);
     });
 
-    it('should handle empty HTML', () => {
-      const result = wordEngine.parseHtmlToContent('');
+    it("should handle empty HTML", () => {
+      const result = wordEngine.parseHtmlToContent("");
 
       expect(result.paragraphs).toHaveLength(0);
     });
 
-    it('should strip HTML tags', () => {
+    it("should strip HTML tags", () => {
       const html = '<p><span class="highlight">Text</span></p>';
 
       const result = wordEngine.parseHtmlToContent(html);
 
-      expect(result.paragraphs[0].text).toBe('Text');
+      expect(result.paragraphs[0].text).toBe("Text");
     });
 
-    it('should handle mixed formatting', () => {
-      const html = '<p><strong><em>Bold and italic</em></strong></p>';
+    it("should handle mixed formatting", () => {
+      const html = "<p><strong><em>Bold and italic</em></strong></p>";
 
       const result = wordEngine.parseHtmlToContent(html);
 
@@ -513,199 +503,231 @@ describe('Word引擎测试', () => {
     });
   });
 
-  describe('markdownToWord', () => {
+  describe("markdownToWord", () => {
     beforeEach(() => {
-      mockMarked.marked.mockReturnValue('<p>Converted content</p>');
-      mockDocx.Packer.toBuffer.mockResolvedValue(Buffer.from('Word'));
+      mockMarked.marked.mockReturnValue("<p>Converted content</p>");
+      mockDocx.Packer.toBuffer.mockResolvedValue(Buffer.from("Word"));
       wordEngineFsMock.writeFile.mockResolvedValue(undefined);
     });
 
-    it('should convert markdown to Word', async () => {
-      const result = await wordEngine.markdownToWord('# Test', '/output.docx');
+    it("should convert markdown to Word", async () => {
+      const result = await wordEngine.markdownToWord("# Test", "/output.docx");
 
-      expect(mockMarked.marked).toHaveBeenCalledWith('# Test');
+      expect(mockMarked.marked).toHaveBeenCalledWith("# Test");
       expect(mockDocx.Document).toHaveBeenCalled();
       expect(result.success).toBe(true);
     });
 
-    it('should use custom title', async () => {
-      await wordEngine.markdownToWord('# Test', '/output.docx', { title: 'Custom' });
+    it("should use custom title", async () => {
+      await wordEngine.markdownToWord("# Test", "/output.docx", {
+        title: "Custom",
+      });
 
       expect(mockDocx.Document).toHaveBeenCalledWith(
         expect.objectContaining({
-          title: 'Custom',
-        })
+          title: "Custom",
+        }),
       );
     });
 
-    it('should handle markdown conversion errors', async () => {
+    it("should handle markdown conversion errors", async () => {
       mockMarked.marked.mockImplementation(() => {
-        throw new Error('Markdown parse failed');
+        throw new Error("Markdown parse failed");
       });
 
       await expect(
-        wordEngine.markdownToWord('# Test', '/output.docx')
-      ).rejects.toThrow('Markdown parse failed');
+        wordEngine.markdownToWord("# Test", "/output.docx"),
+      ).rejects.toThrow("Markdown parse failed");
     });
   });
 
-  describe('wordToMarkdown', () => {
+  describe("wordToMarkdown", () => {
     beforeEach(() => {
       mockMammoth.convertToHtml.mockResolvedValue({
-        value: '<h1>Title</h1><p><strong>Bold</strong> text</p>',
+        value: "<h1>Title</h1><p><strong>Bold</strong> text</p>",
         messages: [],
       });
       mockMammoth.extractRawText.mockResolvedValue({
-        value: 'Title\nBold text',
+        value: "Title\nBold text",
       });
     });
 
-    it('should convert Word to Markdown', async () => {
-      const result = await wordEngine.wordToMarkdown(path.join(tmpDir, 'input.docx'));
+    it("should convert Word to Markdown", async () => {
+      const result = await wordEngine.wordToMarkdown(
+        path.join(tmpDir, "input.docx"),
+      );
 
       expect(result.success).toBe(true);
-      expect(result.markdown).toContain('# Title');
+      expect(result.markdown).toContain("# Title");
     });
 
-    it('should handle headings', async () => {
+    it("should handle headings", async () => {
       mockMammoth.convertToHtml.mockResolvedValue({
-        value: '<h1>H1</h1><h2>H2</h2><h3>H3</h3>',
+        value: "<h1>H1</h1><h2>H2</h2><h3>H3</h3>",
         messages: [],
       });
 
-      const result = await wordEngine.wordToMarkdown(path.join(tmpDir, 'input.docx'));
+      const result = await wordEngine.wordToMarkdown(
+        path.join(tmpDir, "input.docx"),
+      );
 
-      expect(result.markdown).toContain('# H1');
-      expect(result.markdown).toContain('## H2');
-      expect(result.markdown).toContain('### H3');
+      expect(result.markdown).toContain("# H1");
+      expect(result.markdown).toContain("## H2");
+      expect(result.markdown).toContain("### H3");
     });
 
-    it('should handle bold text', async () => {
+    it("should handle bold text", async () => {
       mockMammoth.convertToHtml.mockResolvedValue({
-        value: '<p><strong>Bold</strong></p>',
+        value: "<p><strong>Bold</strong></p>",
         messages: [],
       });
 
-      const result = await wordEngine.wordToMarkdown(path.join(tmpDir, 'input.docx'));
+      const result = await wordEngine.wordToMarkdown(
+        path.join(tmpDir, "input.docx"),
+      );
 
-      expect(result.markdown).toContain('**Bold**');
+      expect(result.markdown).toContain("**Bold**");
     });
 
-    it('should handle italic text', async () => {
+    it("should handle italic text", async () => {
       mockMammoth.convertToHtml.mockResolvedValue({
-        value: '<p><em>Italic</em></p>',
+        value: "<p><em>Italic</em></p>",
         messages: [],
       });
 
-      const result = await wordEngine.wordToMarkdown(path.join(tmpDir, 'input.docx'));
+      const result = await wordEngine.wordToMarkdown(
+        path.join(tmpDir, "input.docx"),
+      );
 
-      expect(result.markdown).toContain('*Italic*');
+      expect(result.markdown).toContain("*Italic*");
     });
 
-    it('should handle conversion errors', async () => {
-      mockMammoth.convertToHtml.mockRejectedValue(new Error('Conversion failed'));
+    it("should handle conversion errors", async () => {
+      mockMammoth.convertToHtml.mockRejectedValue(
+        new Error("Conversion failed"),
+      );
 
       await expect(
-        wordEngine.wordToMarkdown(path.join(tmpDir, 'input.docx'))
-      ).rejects.toThrow('Conversion failed');
+        wordEngine.wordToMarkdown(path.join(tmpDir, "input.docx")),
+      ).rejects.toThrow("Conversion failed");
     });
   });
 
-  describe('createTemplate', () => {
+  describe("createTemplate", () => {
     beforeEach(() => {
-      mockDocx.Packer.toBuffer.mockResolvedValue(Buffer.from('Template'));
+      mockDocx.Packer.toBuffer.mockResolvedValue(Buffer.from("Template"));
       wordEngineFsMock.writeFile.mockResolvedValue(undefined);
     });
 
-    it('should create report template', async () => {
-      const result = await wordEngine.createTemplate('report', path.join(tmpDir, 'report.docx'), {
-        title: 'Q1 Report',
-        author: 'John Doe',
-      });
+    it("should create report template", async () => {
+      const result = await wordEngine.createTemplate(
+        "report",
+        path.join(tmpDir, "report.docx"),
+        {
+          title: "Q1 Report",
+          author: "John Doe",
+        },
+      );
 
       expect(result.success).toBe(true);
       expect(mockDocx.Document).toHaveBeenCalled();
     });
 
-    it('should create letter template', async () => {
-      const result = await wordEngine.createTemplate('letter', path.join(tmpDir, 'letter.docx'), {
-        recipient: 'Jane Smith',
-        sender: 'John Doe',
-      });
+    it("should create letter template", async () => {
+      const result = await wordEngine.createTemplate(
+        "letter",
+        path.join(tmpDir, "letter.docx"),
+        {
+          recipient: "Jane Smith",
+          sender: "John Doe",
+        },
+      );
 
       expect(result.success).toBe(true);
     });
 
-    it('should create resume template', async () => {
-      const result = await wordEngine.createTemplate('resume', path.join(tmpDir, 'resume.docx'), {
-        name: 'John Doe',
-        phone: '123-456-7890',
-        email: 'john@example.com',
-      });
+    it("should create resume template", async () => {
+      const result = await wordEngine.createTemplate(
+        "resume",
+        path.join(tmpDir, "resume.docx"),
+        {
+          name: "John Doe",
+          phone: "123-456-7890",
+          email: "john@example.com",
+        },
+      );
 
       expect(result.success).toBe(true);
     });
 
-    it('should throw error for unknown template type', async () => {
+    it("should throw error for unknown template type", async () => {
       await expect(
-        wordEngine.createTemplate('unknown', testDocxPath)
-      ).rejects.toThrow('未知的模板类型');
+        wordEngine.createTemplate("unknown", testDocxPath),
+      ).rejects.toThrow("未知的模板类型");
     });
   });
 
-  describe('模板创建辅助方法', () => {
-    it('should create report template with custom data', () => {
+  describe("模板创建辅助方法", () => {
+    it("should create report template with custom data", () => {
       const data = {
-        title: 'Annual Report',
-        author: 'Jane Doe',
-        date: '2025-01-01',
+        title: "Annual Report",
+        author: "Jane Doe",
+        date: "2025-01-01",
       };
 
       const content = wordEngine.createReportTemplate(data);
 
-      expect(content.title).toBe('Annual Report');
+      expect(content.title).toBe("Annual Report");
       expect(content.paragraphs).toBeDefined();
-      expect(content.paragraphs.some(p => p.text?.includes('Jane Doe'))).toBe(true);
+      expect(content.paragraphs.some((p) => p.text?.includes("Jane Doe"))).toBe(
+        true,
+      );
     });
 
-    it('should create letter template with custom data', () => {
+    it("should create letter template with custom data", () => {
       const data = {
-        recipient: 'CEO',
-        sender: 'Manager',
-        date: '2025-01-01',
+        recipient: "CEO",
+        sender: "Manager",
+        date: "2025-01-01",
       };
 
       const content = wordEngine.createLetterTemplate(data);
 
       expect(content.paragraphs).toBeDefined();
-      expect(content.paragraphs.some(p => p.text?.includes('CEO'))).toBe(true);
-      expect(content.paragraphs.some(p => p.text?.includes('Manager'))).toBe(true);
+      expect(content.paragraphs.some((p) => p.text?.includes("CEO"))).toBe(
+        true,
+      );
+      expect(content.paragraphs.some((p) => p.text?.includes("Manager"))).toBe(
+        true,
+      );
     });
 
-    it('should create resume template with custom data', () => {
+    it("should create resume template with custom data", () => {
       const data = {
-        name: 'John Smith',
-        phone: '555-1234',
-        email: 'john@email.com',
+        name: "John Smith",
+        phone: "555-1234",
+        email: "john@email.com",
       };
 
       const content = wordEngine.createResumeTemplate(data);
 
-      expect(content.title).toBe('John Smith');
-      expect(content.paragraphs.some(p => p.text?.includes('555-1234'))).toBe(true);
+      expect(content.title).toBe("John Smith");
+      expect(content.paragraphs.some((p) => p.text?.includes("555-1234"))).toBe(
+        true,
+      );
     });
 
-    it('should use default values when data is missing', () => {
+    it("should use default values when data is missing", () => {
       const content = wordEngine.createReportTemplate({});
 
-      expect(content.title).toBe('工作报告');
+      expect(content.title).toBe("工作报告");
       expect(content.paragraphs).toBeDefined();
     });
   });
 
-  describe('边界条件和错误处理', () => {
-    it('should handle null content for writeWord', async () => {
-      mockDocx.Packer.toBuffer.mockResolvedValue(Buffer.from('Doc'));
+  describe("边界条件和错误处理", () => {
+    it("should handle null content for writeWord", async () => {
+      mockDocx.Packer.toBuffer.mockResolvedValue(Buffer.from("Doc"));
       wordEngineFsMock.writeFile.mockResolvedValue(undefined);
 
       const result = await wordEngine.writeWord(testDocxPath, {});
@@ -713,22 +735,24 @@ describe('Word引擎测试', () => {
       expect(result.success).toBe(true);
     });
 
-    it('should handle empty paragraphs array', async () => {
-      mockDocx.Packer.toBuffer.mockResolvedValue(Buffer.from('Doc'));
+    it("should handle empty paragraphs array", async () => {
+      mockDocx.Packer.toBuffer.mockResolvedValue(Buffer.from("Doc"));
       wordEngineFsMock.writeFile.mockResolvedValue(undefined);
 
-      const result = await wordEngine.writeWord(testDocxPath, { paragraphs: [] });
+      const result = await wordEngine.writeWord(testDocxPath, {
+        paragraphs: [],
+      });
 
       expect(result.success).toBe(true);
     });
 
-    it('should handle Unicode characters', async () => {
+    it("should handle Unicode characters", async () => {
       const content = {
-        title: '你好世界 🌍',
-        paragraphs: [{ text: 'مرحبا العالم' }],
+        title: "你好世界 🌍",
+        paragraphs: [{ text: "مرحبا العالم" }],
       };
 
-      mockDocx.Packer.toBuffer.mockResolvedValue(Buffer.from('Doc'));
+      mockDocx.Packer.toBuffer.mockResolvedValue(Buffer.from("Doc"));
       wordEngineFsMock.writeFile.mockResolvedValue(undefined);
 
       const result = await wordEngine.writeWord(testDocxPath, content);
@@ -736,13 +760,13 @@ describe('Word引擎测试', () => {
       expect(result.success).toBe(true);
     });
 
-    it('should handle very long paragraphs', async () => {
-      const longText = 'a'.repeat(10000);
+    it("should handle very long paragraphs", async () => {
+      const longText = "a".repeat(10000);
       const content = {
         paragraphs: [{ text: longText }],
       };
 
-      mockDocx.Packer.toBuffer.mockResolvedValue(Buffer.from('Doc'));
+      mockDocx.Packer.toBuffer.mockResolvedValue(Buffer.from("Doc"));
       wordEngineFsMock.writeFile.mockResolvedValue(undefined);
 
       const result = await wordEngine.writeWord(testDocxPath, content);
