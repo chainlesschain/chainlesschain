@@ -138,7 +138,24 @@ function registerLazyPluginIPC({ app, mainWindow }) {
       if (!app.pluginManager) {
         throw new Error("插件管理器未初始化");
       }
-      return await app.pluginManager.getUIExtensions();
+      // 获取页面扩展
+      const pageExtensions =
+        app.pluginManager.registry.getExtensionsByPoint("ui.page");
+      // 获取菜单扩展
+      const menuExtensions =
+        app.pluginManager.registry.getExtensionsByPoint("ui.menu");
+      // 获取组件扩展
+      const componentExtensions =
+        app.pluginManager.registry.getExtensionsByPoint("ui.component");
+
+      return {
+        success: true,
+        extensions: {
+          pages: pageExtensions,
+          menus: menuExtensions,
+          components: componentExtensions,
+        },
+      };
     } catch (error) {
       console.error("[Plugin Lazy IPC] 获取 UI 扩展失败:", error);
       throw error;
@@ -151,7 +168,18 @@ function registerLazyPluginIPC({ app, mainWindow }) {
       if (!app.pluginManager) {
         throw new Error("插件管理器未初始化");
       }
-      return await app.pluginManager.getSlotExtensions(slotName);
+      const componentExtensions =
+        app.pluginManager.registry.getExtensionsByPoint("ui.component");
+      const slotExtensions = componentExtensions.filter(
+        (ext) => ext.config?.slot === slotName,
+      );
+
+      return {
+        success: true,
+        extensions: slotExtensions.sort(
+          (a, b) => (a.priority || 100) - (b.priority || 100),
+        ),
+      };
     } catch (error) {
       console.error("[Plugin Lazy IPC] 获取插槽扩展失败:", error);
       throw error;
@@ -162,18 +190,24 @@ function registerLazyPluginIPC({ app, mainWindow }) {
   // 设置管理
   // ============================================================
 
-  ipcMain.handle("plugin:get-settings-definitions", async (_event, pluginId) => {
-    try {
-      await ensurePluginInitialized(app);
-      if (!app.pluginManager) {
-        throw new Error("插件管理器未初始化");
+  ipcMain.handle(
+    "plugin:get-settings-definitions",
+    async (_event, pluginId) => {
+      try {
+        await ensurePluginInitialized(app);
+        if (!app.pluginManager) {
+          throw new Error("插件管理器未初始化");
+        }
+        const definitions =
+          app.pluginManager.registry.getPluginSettingDefinitions?.(pluginId) ||
+          [];
+        return { success: true, definitions };
+      } catch (error) {
+        console.error("[Plugin Lazy IPC] 获取设置定义失败:", error);
+        throw error;
       }
-      return await app.pluginManager.getSettingsDefinitions(pluginId);
-    } catch (error) {
-      console.error("[Plugin Lazy IPC] 获取设置定义失败:", error);
-      throw error;
-    }
-  });
+    },
+  );
 
   ipcMain.handle("plugin:get-settings", async (_event, pluginId) => {
     try {
@@ -181,7 +215,9 @@ function registerLazyPluginIPC({ app, mainWindow }) {
       if (!app.pluginManager) {
         throw new Error("插件管理器未初始化");
       }
-      return await app.pluginManager.getSettings(pluginId);
+      const settings =
+        app.pluginManager.registry.getPluginSettings?.(pluginId) || {};
+      return { success: true, settings };
     } catch (error) {
       console.error("[Plugin Lazy IPC] 获取插件设置失败:", error);
       throw error;
@@ -194,7 +230,8 @@ function registerLazyPluginIPC({ app, mainWindow }) {
       if (!app.pluginManager) {
         throw new Error("插件管理器未初始化");
       }
-      return await app.pluginManager.saveSettings(pluginId, settings);
+      await app.pluginManager.registry.savePluginSettings?.(pluginId, settings);
+      return { success: true };
     } catch (error) {
       console.error("[Plugin Lazy IPC] 保存插件设置失败:", error);
       throw error;
@@ -211,7 +248,9 @@ function registerLazyPluginIPC({ app, mainWindow }) {
       if (!app.pluginManager) {
         throw new Error("插件管理器未初始化");
       }
-      return await app.pluginManager.getDataImporters();
+      const importers =
+        app.pluginManager.registry.getExtensionsByPoint("data.importer");
+      return { success: true, importers };
     } catch (error) {
       console.error("[Plugin Lazy IPC] 获取数据导入器失败:", error);
       throw error;
@@ -224,38 +263,60 @@ function registerLazyPluginIPC({ app, mainWindow }) {
       if (!app.pluginManager) {
         throw new Error("插件管理器未初始化");
       }
-      return await app.pluginManager.getDataExporters();
+      const exporters =
+        app.pluginManager.registry.getExtensionsByPoint("data.exporter");
+      return { success: true, exporters };
     } catch (error) {
       console.error("[Plugin Lazy IPC] 获取数据导出器失败:", error);
       throw error;
     }
   });
 
-  ipcMain.handle("plugin:execute-import", async (_event, importerId, options) => {
-    try {
-      await ensurePluginInitialized(app);
-      if (!app.pluginManager) {
-        throw new Error("插件管理器未初始化");
+  ipcMain.handle(
+    "plugin:execute-import",
+    async (_event, importerId, options) => {
+      try {
+        await ensurePluginInitialized(app);
+        if (!app.pluginManager) {
+          throw new Error("插件管理器未初始化");
+        }
+        const result = await app.pluginManager.triggerExtensionPoint(
+          "data.importer",
+          {
+            importerId,
+            ...options,
+          },
+        );
+        return { success: true, result };
+      } catch (error) {
+        console.error("[Plugin Lazy IPC] 执行数据导入失败:", error);
+        throw error;
       }
-      return await app.pluginManager.executeImport(importerId, options);
-    } catch (error) {
-      console.error("[Plugin Lazy IPC] 执行数据导入失败:", error);
-      throw error;
-    }
-  });
+    },
+  );
 
-  ipcMain.handle("plugin:execute-export", async (_event, exporterId, options) => {
-    try {
-      await ensurePluginInitialized(app);
-      if (!app.pluginManager) {
-        throw new Error("插件管理器未初始化");
+  ipcMain.handle(
+    "plugin:execute-export",
+    async (_event, exporterId, options) => {
+      try {
+        await ensurePluginInitialized(app);
+        if (!app.pluginManager) {
+          throw new Error("插件管理器未初始化");
+        }
+        const result = await app.pluginManager.triggerExtensionPoint(
+          "data.exporter",
+          {
+            exporterId,
+            ...options,
+          },
+        );
+        return { success: true, result };
+      } catch (error) {
+        console.error("[Plugin Lazy IPC] 执行数据导出失败:", error);
+        throw error;
       }
-      return await app.pluginManager.executeExport(exporterId, options);
-    } catch (error) {
-      console.error("[Plugin Lazy IPC] 执行数据导出失败:", error);
-      throw error;
-    }
-  });
+    },
+  );
 
   // ============================================================
   // 工具和技能
@@ -267,7 +328,13 @@ function registerLazyPluginIPC({ app, mainWindow }) {
       if (!app.pluginManager) {
         throw new Error("插件管理器未初始化");
       }
-      return await app.pluginManager.getTools(pluginId);
+      const plugin = app.pluginManager.getPlugin(pluginId);
+      if (!plugin) {
+        throw new Error(`插件不存在: ${pluginId}`);
+      }
+      // 从 manifest 中获取工具列表
+      const tools = plugin.manifest?.tools || [];
+      return { success: true, tools };
     } catch (error) {
       console.error("[Plugin Lazy IPC] 获取插件工具失败:", error);
       throw error;
@@ -280,28 +347,50 @@ function registerLazyPluginIPC({ app, mainWindow }) {
       if (!app.pluginManager) {
         throw new Error("插件管理器未初始化");
       }
-      return await app.pluginManager.getSkills(pluginId);
+      const plugin = app.pluginManager.getPlugin(pluginId);
+      if (!plugin) {
+        throw new Error(`插件不存在: ${pluginId}`);
+      }
+      // 从 manifest 中获取技能列表
+      const skills = plugin.manifest?.skills || [];
+      return { success: true, skills };
     } catch (error) {
       console.error("[Plugin Lazy IPC] 获取插件技能失败:", error);
       throw error;
     }
   });
 
-  ipcMain.handle("plugin:execute-tool", async (_event, pluginId, toolId, params) => {
-    try {
-      await ensurePluginInitialized(app);
-      if (!app.pluginManager) {
-        throw new Error("插件管理器未初始化");
+  ipcMain.handle(
+    "plugin:execute-tool",
+    async (_event, pluginId, toolId, params) => {
+      try {
+        await ensurePluginInitialized(app);
+        if (!app.pluginManager) {
+          throw new Error("插件管理器未初始化");
+        }
+        const plugin = app.pluginManager.getPlugin(pluginId);
+        if (!plugin || plugin.state !== "enabled") {
+          throw new Error(`插件不存在或未启用: ${pluginId}`);
+        }
+        // 获取沙箱并执行工具
+        const sandbox = app.pluginManager.plugins?.get(pluginId)?.sandbox;
+        if (!sandbox) {
+          throw new Error(`插件沙箱不存在: ${pluginId}`);
+        }
+        // 调用工具执行方法
+        const result = await sandbox.callMethod("executeTool", toolId, params);
+        return { success: true, result };
+      } catch (error) {
+        console.error("[Plugin Lazy IPC] 执行插件工具失败:", error);
+        throw error;
       }
-      return await app.pluginManager.executeTool(pluginId, toolId, params);
-    } catch (error) {
-      console.error("[Plugin Lazy IPC] 执行插件工具失败:", error);
-      throw error;
-    }
-  });
+    },
+  );
 
   console.log("[Plugin Lazy IPC] ✓ 懒加载插件 IPC 处理器注册完成");
-  console.log("[Plugin Lazy IPC] ✓ 已注册核心处理器，完整功能将在首次访问时加载");
+  console.log(
+    "[Plugin Lazy IPC] ✓ 已注册核心处理器，完整功能将在首次访问时加载",
+  );
 }
 
 module.exports = {
