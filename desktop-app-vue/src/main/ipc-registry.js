@@ -744,8 +744,9 @@ function registerAllIPC(dependencies) {
     registerNotificationIPC({ database: database || null });
     console.log("[IPC Registry] ✓ Notification IPC registered (5 handlers)");
 
-    // 对话管理 (函数模式 - 中等模块，15 handlers)
+    // 对话管理 (函数模式 - 中等模块，17 handlers)
     // 注意：即使 database 为 null 也注册，handler 内部会处理 null 情况
+    // 🔥 v2.0: 整合高级特性（SessionManager, Manus, Multi-Agent, RAG等）
     console.log("[IPC Registry] Registering Conversation IPC...");
     const {
       registerConversationIPC,
@@ -754,6 +755,14 @@ function registerAllIPC(dependencies) {
       database: database || null,
       llmManager: llmManager || null,
       mainWindow: mainWindow || null,
+      // 🔥 高级特性依赖
+      sessionManager,
+      agentOrchestrator,
+      ragManager: ragManager || null,
+      promptCompressor,
+      responseCache,
+      tokenTracker,
+      errorMonitor,
     });
     if (!database) {
       console.log(
@@ -765,7 +774,14 @@ function registerAllIPC(dependencies) {
         "[IPC Registry] ⚠️  LLM manager not initialized (handlers registered with degraded functionality)",
       );
     }
-    console.log("[IPC Registry] ✓ Conversation IPC registered (15 handlers)");
+    // 🔥 打印高级特性状态
+    console.log("[IPC Registry] ✓ Conversation IPC registered (17 handlers)", {
+      sessionManager: !!sessionManager,
+      agentOrchestrator: !!agentOrchestrator,
+      ragManager: !!ragManager,
+      promptCompressor: !!promptCompressor,
+      tokenTracker: !!tokenTracker,
+    });
 
     // 文件同步监听 (函数模式 - 小模块，3 handlers)
     if (database) {

@@ -104,8 +104,7 @@ const { MCPSecurityPolicy } = require("./mcp/mcp-security-policy");
 const { MCPConfigLoader } = require("./mcp/mcp-config-loader");
 const { registerMCPIPC } = require("./mcp/mcp-ipc");
 
-// Speech/Voice Input System
-const { registerSpeechIPC } = require("./speech/speech-ipc");
+// Speech/Voice Input System - IPC handlers registered in ipc-registry.js
 
 // Session Management System
 const { registerSessionManagerIPC } = require("./llm/session-manager-ipc");
@@ -1556,15 +1555,7 @@ class ChainlessChainApp {
         console.error("[Main] 安全存储IPC注册失败:", error);
       }
 
-      // 注册语音/语音输入IPC handlers
-      try {
-        registerSpeechIPC({
-          initializeSpeechManager: this.initializeSpeechManager.bind(this),
-        });
-        console.log("[Main] 语音输入IPC handlers已注册 (34 handlers)");
-      } catch (error) {
-        console.error("[Main] 语音输入IPC注册失败:", error);
-      }
+      // 语音/语音输入IPC handlers 已在 ipc-registry.js 中注册
 
       // 注册会话管理IPC handlers
       try {

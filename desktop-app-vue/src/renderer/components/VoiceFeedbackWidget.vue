@@ -67,7 +67,10 @@
       </div>
 
       <!-- 命令提示 -->
-      <div class="command-hints" v-if="showCommandHints && suggestedCommands.length > 0">
+      <div
+        class="command-hints"
+        v-if="showCommandHints && suggestedCommands.length > 0"
+      >
         <div class="hints-label">
           <BulbOutlined />
           <span>推荐命令</span>
@@ -223,8 +226,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
-import { message } from 'ant-design-vue';
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from "vue";
+import { message } from "ant-design-vue";
 import {
   AudioOutlined,
   AudioMutedOutlined,
@@ -237,25 +240,25 @@ import {
   SettingOutlined,
   ExportOutlined,
   ImportOutlined,
-  DeleteOutlined
-} from '@ant-design/icons-vue';
+  DeleteOutlined,
+} from "@ant-design/icons-vue";
 
 const props = defineProps({
   autoStart: {
     type: Boolean,
-    default: false
+    default: false,
   },
   showPanel: {
     type: Boolean,
-    default: true
+    default: true,
   },
   enableCommandHints: {
     type: Boolean,
-    default: true
-  }
+    default: true,
+  },
 });
 
-const emit = defineEmits(['result', 'error', 'interim', 'command']);
+const emit = defineEmits(["result", "error", "interim", "command"]);
 
 // 状态
 const isRecording = ref(false);
@@ -265,33 +268,33 @@ const showFeedbackPanel = ref(false);
 const showSettingsDrawer = ref(false);
 
 // 转录相关
-const interimTranscript = ref('');
-const finalTranscript = ref('');
+const interimTranscript = ref("");
+const finalTranscript = ref("");
 const currentConfidence = ref(0);
-const detectedLanguage = ref('');
+const detectedLanguage = ref("");
 
 // 语言相关
-const selectedLanguage = ref('zh-CN');
+const selectedLanguage = ref("zh-CN");
 const autoDetectLanguage = ref(true);
 const availableLanguages = ref([]);
 const isRTL = ref(false);
 
 // 引擎相关
-const selectedEngine = ref('whisper-api');
+const selectedEngine = ref("whisper-api");
 
 // 显示选项
-const displayOptions = ref(['waveform', 'confidence', 'interim', 'commands']);
+const displayOptions = ref(["waveform", "confidence", "interim", "commands"]);
 
 // 命令提示
 const showCommandHints = ref(true);
 const suggestedCommands = ref([]);
 
 // 状态消息
-const statusMessage = ref('');
-const statusType = ref('info');
+const statusMessage = ref("");
+const statusType = ref("info");
 
 // 录音时间
-const recordingTime = ref('00:00');
+const recordingTime = ref("00:00");
 const recordingStartTime = ref(null);
 const recordingTimer = ref(null);
 
@@ -305,7 +308,7 @@ const animationFrame = ref(null);
 const learningStats = ref({
   totalTranscriptions: 0,
   averageConfidence: 0,
-  vocabularySize: 0
+  vocabularySize: 0,
 });
 
 // 计算属性
@@ -316,32 +319,34 @@ const currentIcon = computed(() => {
 });
 
 const buttonType = computed(() => {
-  if (isRecording.value) return 'primary';
-  if (isActive.value) return 'primary';
-  return 'default';
+  if (isRecording.value) return "primary";
+  if (isActive.value) return "primary";
+  return "default";
 });
 
 const tooltipText = computed(() => {
-  if (isRecording.value) return '点击停止录音';
-  if (isProcessing.value) return '正在处理...';
-  return '点击开始语音输入';
+  if (isRecording.value) return "点击停止录音";
+  if (isProcessing.value) return "正在处理...";
+  return "点击开始语音输入";
 });
 
 const currentLanguageName = computed(() => {
-  const lang = availableLanguages.value.find(l => l.code === selectedLanguage.value);
-  return lang ? lang.nativeName : '未知语言';
+  const lang = availableLanguages.value.find(
+    (l) => l.code === selectedLanguage.value,
+  );
+  return lang ? lang.nativeName : "未知语言";
 });
 
 const confidenceStatus = computed(() => {
-  if (currentConfidence.value >= 0.8) return 'success';
-  if (currentConfidence.value >= 0.6) return 'normal';
-  return 'exception';
+  if (currentConfidence.value >= 0.8) return "success";
+  if (currentConfidence.value >= 0.6) return "normal";
+  return "exception";
 });
 
 const confidenceColor = computed(() => {
-  if (currentConfidence.value >= 0.8) return '#52c41a';
-  if (currentConfidence.value >= 0.6) return '#1890ff';
-  return '#ff4d4f';
+  if (currentConfidence.value >= 0.8) return "#52c41a";
+  if (currentConfidence.value >= 0.6) return "#1890ff";
+  return "#ff4d4f";
 });
 
 // 生命周期
@@ -358,7 +363,7 @@ onUnmounted(() => {
 
 // 监听语言变化
 watch(selectedLanguage, (newLang) => {
-  const lang = availableLanguages.value.find(l => l.code === newLang);
+  const lang = availableLanguages.value.find((l) => l.code === newLang);
   isRTL.value = lang?.rtl || false;
 });
 
@@ -366,21 +371,27 @@ watch(selectedLanguage, (newLang) => {
 const initializeVoiceSystem = async () => {
   try {
     // 加载可用语言
-    const languages = await window.electron.ipcRenderer.invoke('speech:getLanguages');
+    const languages = await window.electron.ipcRenderer.invoke(
+      "speech:getLanguages",
+    );
     availableLanguages.value = languages;
 
     // 加载学习统计
-    const stats = await window.electron.ipcRenderer.invoke('speech:getLearningStats');
+    const stats = await window.electron.ipcRenderer.invoke(
+      "speech:getLearningStats",
+    );
     learningStats.value = stats;
 
     // 加载命令建议
-    const commands = await window.electron.ipcRenderer.invoke('speech:getCommandSuggestions');
+    const commands = await window.electron.ipcRenderer.invoke(
+      "speech:getCommandSuggestions",
+    );
     suggestedCommands.value = commands;
 
-    console.log('[VoiceFeedback] 语音系统已初始化');
+    console.log("[VoiceFeedback] 语音系统已初始化");
   } catch (error) {
-    console.error('[VoiceFeedback] 初始化失败:', error);
-    message.error('语音系统初始化失败');
+    console.error("[VoiceFeedback] 初始化失败:", error);
+    message.error("语音系统初始化失败");
   }
 };
 
@@ -408,19 +419,19 @@ const startRecording = async () => {
     await initAudioVisualization();
 
     // 开始录音
-    await window.electron.ipcRenderer.invoke('speech:startRecording', {
+    await window.electron.ipcRenderer.invoke("speech:startRecording", {
       language: selectedLanguage.value,
       engine: selectedEngine.value,
-      autoDetect: autoDetectLanguage.value
+      autoDetect: autoDetectLanguage.value,
     });
 
-    statusMessage.value = '正在录音...';
-    statusType.value = 'info';
+    statusMessage.value = "正在录音...";
+    statusType.value = "info";
 
-    console.log('[VoiceFeedback] 开始录音');
+    console.log("[VoiceFeedback] 开始录音");
   } catch (error) {
-    console.error('[VoiceFeedback] 开始录音失败:', error);
-    message.error('开始录音失败: ' + error.message);
+    console.error("[VoiceFeedback] 开始录音失败:", error);
+    message.error("开始录音失败: " + error.message);
     isRecording.value = false;
     isActive.value = false;
   }
@@ -434,34 +445,36 @@ const stopRecording = async () => {
     stopRecordingTimer();
     stopAudioVisualization();
 
-    statusMessage.value = '正在处理...';
-    statusType.value = 'info';
+    statusMessage.value = "正在处理...";
+    statusType.value = "info";
 
     // 停止录音并获取结果
-    const result = await window.electron.ipcRenderer.invoke('speech:stopRecording');
+    const result = await window.electron.ipcRenderer.invoke(
+      "speech:stopRecording",
+    );
 
     if (result.success) {
       finalTranscript.value = result.text;
       currentConfidence.value = result.confidence;
       detectedLanguage.value = result.language;
 
-      emit('result', result);
+      emit("result", result);
 
-      statusMessage.value = '识别完成';
-      statusType.value = 'success';
+      statusMessage.value = "识别完成";
+      statusType.value = "success";
 
       // 更新学习统计
       await updateLearningStats();
     } else {
-      throw new Error(result.error || '识别失败');
+      throw new Error(result.error || "识别失败");
     }
   } catch (error) {
-    console.error('[VoiceFeedback] 停止录音失败:', error);
-    message.error('识别失败: ' + error.message);
-    emit('error', error);
+    console.error("[VoiceFeedback] 停止录音失败:", error);
+    message.error("识别失败: " + error.message);
+    emit("error", error);
 
-    statusMessage.value = '识别失败';
-    statusType.value = 'error';
+    statusMessage.value = "识别失败";
+    statusType.value = "error";
   } finally {
     isProcessing.value = false;
     setTimeout(() => {
@@ -474,19 +487,19 @@ const stopRecording = async () => {
 // 取消录音
 const cancelRecording = async () => {
   try {
-    await window.electron.ipcRenderer.invoke('speech:cancelRecording');
+    await window.electron.ipcRenderer.invoke("speech:cancelRecording");
     isRecording.value = false;
     isActive.value = false;
     showFeedbackPanel.value = false;
     stopRecordingTimer();
     stopAudioVisualization();
 
-    statusMessage.value = '';
-    interimTranscript.value = '';
+    statusMessage.value = "";
+    interimTranscript.value = "";
 
-    console.log('[VoiceFeedback] 已取消录音');
+    console.log("[VoiceFeedback] 已取消录音");
   } catch (error) {
-    console.error('[VoiceFeedback] 取消录音失败:', error);
+    console.error("[VoiceFeedback] 取消录音失败:", error);
   }
 };
 
@@ -496,7 +509,7 @@ const startRecordingTimer = () => {
     const elapsed = Date.now() - recordingStartTime.value;
     const minutes = Math.floor(elapsed / 60000);
     const seconds = Math.floor((elapsed % 60000) / 1000);
-    recordingTime.value = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    recordingTime.value = `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
   }, 1000);
 };
 
@@ -505,40 +518,94 @@ const stopRecordingTimer = () => {
     clearInterval(recordingTimer.value);
     recordingTimer.value = null;
   }
-  recordingTime.value = '00:00';
+  recordingTime.value = "00:00";
 };
 
-// 音频可视化
-const initAudioVisualization = async () => {
-  if (!displayOptions.value.includes('waveform')) return;
+// 音频处理器引用
+const audioProcessor = ref(null);
+const mediaStream = ref(null);
 
+/**
+ * 浮点数组转16位PCM
+ */
+const floatTo16BitPCM = (float32Array) => {
+  const buffer = new ArrayBuffer(float32Array.length * 2);
+  const view = new DataView(buffer);
+
+  for (let i = 0; i < float32Array.length; i++) {
+    const s = Math.max(-1, Math.min(1, float32Array[i]));
+    view.setInt16(i * 2, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+  }
+
+  return buffer;
+};
+
+// 音频可视化和录音处理
+const initAudioVisualization = async () => {
   try {
     await nextTick();
 
-    if (!waveformCanvas.value) return;
-
-    const canvas = waveformCanvas.value;
-    const ctx = canvas.getContext('2d');
-
-    // 设置画布大小
-    canvas.width = canvas.offsetWidth * window.devicePixelRatio;
-    canvas.height = canvas.offsetHeight * window.devicePixelRatio;
-    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-
-    // 创建音频上下文
-    audioContext.value = new (window.AudioContext || window.webkitAudioContext)();
+    // 创建音频上下文 (16kHz 采样率用于语音识别)
+    audioContext.value = new (window.AudioContext || window.webkitAudioContext)(
+      {
+        sampleRate: 16000,
+      },
+    );
     analyser.value = audioContext.value.createAnalyser();
     analyser.value.fftSize = 256;
 
     // 获取麦克风流
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        sampleRate: 16000,
+        channelCount: 1,
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+      },
+    });
+    mediaStream.value = stream;
+
     const source = audioContext.value.createMediaStreamSource(stream);
     source.connect(analyser.value);
 
-    // 开始绘制波形
-    drawWaveform(ctx, canvas);
+    // 创建 ScriptProcessor 来捕获音频数据并发送到主进程
+    audioProcessor.value = audioContext.value.createScriptProcessor(4096, 1, 1);
+    source.connect(audioProcessor.value);
+    audioProcessor.value.connect(audioContext.value.destination);
+
+    audioProcessor.value.onaudioprocess = (e) => {
+      if (!isRecording.value) {
+        return;
+      }
+
+      const inputData = e.inputBuffer.getChannelData(0);
+
+      // 转换为 PCM 并发送到主进程
+      const pcmData = floatTo16BitPCM(inputData);
+
+      // 发送音频数据到主进程进行识别
+      window.electron.ipcRenderer.invoke(
+        "speech:add-realtime-audio-data",
+        pcmData,
+      );
+    };
+
+    // 设置画布 (如果启用波形可视化)
+    if (displayOptions.value.includes("waveform") && waveformCanvas.value) {
+      const canvas = waveformCanvas.value;
+      const ctx = canvas.getContext("2d");
+
+      canvas.width = canvas.offsetWidth * window.devicePixelRatio;
+      canvas.height = canvas.offsetHeight * window.devicePixelRatio;
+      ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+      // 开始绘制波形
+      drawWaveform(ctx, canvas);
+    }
   } catch (error) {
-    console.error('[VoiceFeedback] 初始化音频可视化失败:', error);
+    console.error("[VoiceFeedback] 初始化音频可视化失败:", error);
+    message.error("无法访问麦克风: " + error.message);
   }
 };
 
@@ -556,12 +623,12 @@ const drawWaveform = (ctx, canvas) => {
     analyser.value.getByteTimeDomainData(dataArray);
 
     // 清空画布
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+    ctx.fillStyle = "rgba(255, 255, 255, 0.1)";
     ctx.fillRect(0, 0, canvas.offsetWidth, canvas.offsetHeight);
 
     // 绘制波形
     ctx.lineWidth = 2;
-    ctx.strokeStyle = '#1890ff';
+    ctx.strokeStyle = "#1890ff";
     ctx.beginPath();
 
     const sliceWidth = canvas.offsetWidth / bufferLength;
@@ -593,6 +660,18 @@ const stopAudioVisualization = () => {
     animationFrame.value = null;
   }
 
+  // 断开音频处理器
+  if (audioProcessor.value) {
+    audioProcessor.value.disconnect();
+    audioProcessor.value = null;
+  }
+
+  // 停止麦克风流
+  if (mediaStream.value) {
+    mediaStream.value.getTracks().forEach((track) => track.stop());
+    mediaStream.value = null;
+  }
+
   if (audioContext.value) {
     audioContext.value.close();
     audioContext.value = null;
@@ -603,7 +682,7 @@ const stopAudioVisualization = () => {
 
 // 执行命令
 const executeCommand = (command) => {
-  emit('command', command);
+  emit("command", command);
   message.success(`执行命令: ${command.name}`);
 };
 
@@ -614,56 +693,60 @@ const openSettings = () => {
 
 // 语言变化
 const onLanguageChange = (value) => {
-  console.log('[VoiceFeedback] 切换语言:', value);
+  console.log("[VoiceFeedback] 切换语言:", value);
 };
 
 // 语言过滤
 const filterLanguageOption = (input, option) => {
-  return option.children[0].children.toLowerCase().includes(input.toLowerCase());
+  return option.children[0].children
+    .toLowerCase()
+    .includes(input.toLowerCase());
 };
 
 // 更新学习统计
 const updateLearningStats = async () => {
   try {
-    const stats = await window.electron.ipcRenderer.invoke('speech:getLearningStats');
+    const stats = await window.electron.ipcRenderer.invoke(
+      "speech:getLearningStats",
+    );
     learningStats.value = stats;
   } catch (error) {
-    console.error('[VoiceFeedback] 更新学习统计失败:', error);
+    console.error("[VoiceFeedback] 更新学习统计失败:", error);
   }
 };
 
 // 导出语音数据
 const exportVoiceData = async () => {
   try {
-    await window.electron.ipcRenderer.invoke('speech:exportData');
-    message.success('语音数据已导出');
+    await window.electron.ipcRenderer.invoke("speech:exportData");
+    message.success("语音数据已导出");
   } catch (error) {
-    console.error('[VoiceFeedback] 导出失败:', error);
-    message.error('导出失败');
+    console.error("[VoiceFeedback] 导出失败:", error);
+    message.error("导出失败");
   }
 };
 
 // 导入语音数据
 const importVoiceData = async () => {
   try {
-    await window.electron.ipcRenderer.invoke('speech:importData');
-    message.success('语音数据已导入');
+    await window.electron.ipcRenderer.invoke("speech:importData");
+    message.success("语音数据已导入");
     await updateLearningStats();
   } catch (error) {
-    console.error('[VoiceFeedback] 导入失败:', error);
-    message.error('导入失败');
+    console.error("[VoiceFeedback] 导入失败:", error);
+    message.error("导入失败");
   }
 };
 
 // 重置语音数据
 const resetVoiceData = async () => {
   try {
-    await window.electron.ipcRenderer.invoke('speech:resetData');
-    message.success('语音数据已重置');
+    await window.electron.ipcRenderer.invoke("speech:resetData");
+    message.success("语音数据已重置");
     await updateLearningStats();
   } catch (error) {
-    console.error('[VoiceFeedback] 重置失败:', error);
-    message.error('重置失败');
+    console.error("[VoiceFeedback] 重置失败:", error);
+    message.error("重置失败");
   }
 };
 
@@ -772,7 +855,8 @@ const cleanup = () => {
           animation: pulse 1.5s ease-in-out infinite;
 
           @keyframes pulse {
-            0%, 100% {
+            0%,
+            100% {
               transform: scale(1);
               opacity: 1;
             }
