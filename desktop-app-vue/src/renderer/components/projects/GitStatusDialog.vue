@@ -507,10 +507,24 @@ const handleConfirmCommit = async () => {
     return;
   }
 
+  if (!props.projectId) {
+    message.error('项目ID不存在');
+    return;
+  }
+
+  if (!props.repoPath) {
+    message.error('仓库路径不存在');
+    return;
+  }
+
   committing.value = true;
   try {
     // 调用git commit
-    await window.electronAPI.project.gitCommit(props.repoPath, commitMessage.value.trim());
+    await window.electronAPI.project.gitCommit(
+      props.projectId,
+      props.repoPath,
+      commitMessage.value.trim()
+    );
 
     message.success('提交成功');
     showCommitModal.value = false;
