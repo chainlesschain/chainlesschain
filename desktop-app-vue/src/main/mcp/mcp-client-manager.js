@@ -8,21 +8,11 @@
  * @module MCPClientManager
  */
 
-const { Client } = require("@modelcontextprotocol/sdk/client/index.js");
-const {
-  StdioClientTransport,
-} = require("@modelcontextprotocol/sdk/client/stdio.js");
-const {
-  LoggingMessageNotificationSchema,
-  ResourceListChangedNotificationSchema,
-  ToolListChangedNotificationSchema,
-  PromptListChangedNotificationSchema,
-} = require("@modelcontextprotocol/sdk/types.js");
-const {
-  HttpSseTransport,
-  ConnectionState,
-  CircuitState,
-} = require("./transports/http-sse-transport");
+// Default imports - can be overridden via dependency injection for testing
+const defaultMcpClient = require("@modelcontextprotocol/sdk/client/index.js");
+const defaultMcpStdio = require("@modelcontextprotocol/sdk/client/stdio.js");
+const defaultMcpTypes = require("@modelcontextprotocol/sdk/types.js");
+const defaultHttpSseTransport = require("./transports/http-sse-transport");
 const EventEmitter = require("events");
 const { spawn } = require("child_process");
 
@@ -54,10 +44,41 @@ const TRANSPORT_TYPES = {
  */
 
 class MCPClientManager extends EventEmitter {
-  constructor(config = {}) {
+  /**
+   * @param {Object} config - Manager configuration
+   * @param {Object} deps - Optional dependencies for testing (dependency injection)
+   * @param {Object} deps.mcpClient - MCP SDK client module
+   * @param {Object} deps.mcpStdio - MCP SDK stdio transport module
+   * @param {Object} deps.mcpTypes - MCP SDK types module
+   * @param {Object} deps.httpSseTransport - HTTP+SSE transport module
+   */
+  constructor(config = {}, deps = {}) {
     super();
 
     this.config = config;
+
+    // Dependency injection for testing
+    this._deps = {
+      Client: deps.mcpClient?.Client || defaultMcpClient.Client,
+      StdioClientTransport:
+        deps.mcpStdio?.StdioClientTransport ||
+        defaultMcpStdio.StdioClientTransport,
+      LoggingMessageNotificationSchema:
+        deps.mcpTypes?.LoggingMessageNotificationSchema ||
+        defaultMcpTypes.LoggingMessageNotificationSchema,
+      ResourceListChangedNotificationSchema:
+        deps.mcpTypes?.ResourceListChangedNotificationSchema ||
+        defaultMcpTypes.ResourceListChangedNotificationSchema,
+      ToolListChangedNotificationSchema:
+        deps.mcpTypes?.ToolListChangedNotificationSchema ||
+        defaultMcpTypes.ToolListChangedNotificationSchema,
+      PromptListChangedNotificationSchema:
+        deps.mcpTypes?.PromptListChangedNotificationSchema ||
+        defaultMcpTypes.PromptListChangedNotificationSchema,
+      HttpSseTransport:
+        deps.httpSseTransport?.HttpSseTransport ||
+        defaultHttpSseTransport.HttpSseTransport,
+    };
 
     // Server name -> { client, transport, tools, resources, state }
     this.servers = new Map();
@@ -109,8 +130,8 @@ class MCPClientManager extends EventEmitter {
         }
       }
 
-      // Create MCP client
-      const client = new Client(
+      // Create MCP client (using injected dependency)
+      const client = new this._deps.Client(
         {
           name: "chainlesschain-desktop",
           version: "0.16.0",
@@ -136,7 +157,7 @@ class MCPClientManager extends EventEmitter {
         console.log(
           `[MCPClientManager] Using HTTP+SSE transport for ${serverName}`,
         );
-        transport = new HttpSseTransport({
+        transport = new this._deps.HttpSseTransport({
           baseURL: serverConfig.baseURL,
           apiKey: serverConfig.apiKey,
           headers: serverConfig.headers || {},
@@ -160,7 +181,7 @@ class MCPClientManager extends EventEmitter {
         console.log(
           `[MCPClientManager] Using stdio transport for ${serverName}`,
         );
-        transport = new StdioClientTransport({
+        transport = new this._deps.StdioClientTransport({
           command: serverConfig.command,
           args: serverConfig.args,
           env: {
@@ -542,7 +563,7 @@ class MCPClientManager extends EventEmitter {
   _setupClientHandlers(client, serverName) {
     // Handle logging notifications from server (new SDK API)
     client.setNotificationHandler(
-      LoggingMessageNotificationSchema,
+      this._deps.LoggingMessageNotificationSchema,
       (notification) => {
         console.log(
           `[MCPClientManager] Log from ${serverName} [${notification.params.level}]:`,
@@ -557,11 +578,9 @@ class MCPClientManager extends EventEmitter {
 
     // Handle resource list changes
     client.setNotificationHandler(
-      ResourceListChangedNotificationSchema,
+      this._deps.ResourceListChangedNotificationSchema,
       (notification) => {
-        console.log(
-          `[MCPClientManager] Resources changed on ${serverName}`,
-        );
+        console.log(`[MCPClientManager] Resources changed on ${serverName}`);
         this.emit("server-notification", {
           serverName,
           type: "resources-changed",
@@ -572,7 +591,7 @@ class MCPClientManager extends EventEmitter {
 
     // Handle tool list changes
     client.setNotificationHandler(
-      ToolListChangedNotificationSchema,
+      this._deps.ToolListChangedNotificationSchema,
       (notification) => {
         console.log(`[MCPClientManager] Tools changed on ${serverName}`);
         this.emit("server-notification", {
@@ -585,7 +604,7 @@ class MCPClientManager extends EventEmitter {
 
     // Handle prompt list changes
     client.setNotificationHandler(
-      PromptListChangedNotificationSchema,
+      this._deps.PromptListChangedNotificationSchema,
       (notification) => {
         console.log(`[MCPClientManager] Prompts changed on ${serverName}`);
         this.emit("server-notification", {
