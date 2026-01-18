@@ -1699,10 +1699,13 @@ class ChainlessChainApp {
         console.log("[Main] MCP系统初始化完成");
       } else {
         console.log("[Main] MCP系统已禁用（在配置中）");
+        // Register fallback handlers so renderer doesn't get "No handler registered" errors
+        this.registerMCPFallbackHandlers();
       }
     } catch (error) {
       console.error("[Main] MCP系统初始化失败:", error);
-      // 不影响主应用启动
+      // Register fallback handlers in case of initialization failure
+      this.registerMCPFallbackHandlers();
     }
 
     // 初始化交互式任务规划系统 (Claude Plan模式)
@@ -1965,6 +1968,90 @@ class ChainlessChainApp {
     } catch (error) {
       console.error("❌ 处理身份上下文切换失败:", error);
     }
+  }
+
+  /**
+   * Register fallback IPC handlers for MCP when MCP system is disabled or failed to initialize.
+   * This prevents "No handler registered" errors in the renderer process.
+   */
+  registerMCPFallbackHandlers() {
+    console.log("[Main] Registering MCP fallback handlers (MCP disabled)");
+
+    const disabledResponse = {
+      success: false,
+      error: "MCP system is disabled",
+    };
+
+    // Check if handlers are already registered to avoid duplicate registration
+    const handlersToRegister = [
+      "mcp:get-config",
+      "mcp:list-servers",
+      "mcp:get-connected-servers",
+      "mcp:connect-server",
+      "mcp:disconnect-server",
+      "mcp:list-tools",
+      "mcp:call-tool",
+      "mcp:list-resources",
+      "mcp:read-resource",
+      "mcp:get-metrics",
+      "mcp:update-config",
+      "mcp:consent-response",
+      "mcp:get-pending-consents",
+      "mcp:cancel-consent",
+      "mcp:clear-consent-cache",
+      "mcp:get-security-stats",
+      "mcp:get-audit-log",
+      "mcp:get-server-config",
+      "mcp:update-server-config",
+    ];
+
+    for (const channel of handlersToRegister) {
+      try {
+        // Special case for mcp:get-config - return config showing disabled state
+        if (channel === "mcp:get-config") {
+          ipcMain.handle(channel, async () => {
+            try {
+              const {
+                getUnifiedConfigManager,
+              } = require("./config/unified-config-manager");
+              const configManager = getUnifiedConfigManager();
+              const mcpConfig = configManager.getConfig("mcp") || {
+                enabled: false,
+                servers: {},
+              };
+              return { success: true, config: mcpConfig };
+            } catch {
+              return { success: true, config: { enabled: false, servers: {} } };
+            }
+          });
+        } else if (channel === "mcp:list-servers") {
+          // Return empty server list from registry
+          ipcMain.handle(channel, async () => {
+            try {
+              const registry = require("./mcp/servers/server-registry.json");
+              return { success: true, servers: registry.trustedServers || [] };
+            } catch {
+              return { success: true, servers: [] };
+            }
+          });
+        } else if (channel === "mcp:get-connected-servers") {
+          // Return empty connected servers list
+          ipcMain.handle(channel, async () => {
+            return { success: true, servers: [] };
+          });
+        } else {
+          // All other handlers return disabled response
+          ipcMain.handle(channel, async () => disabledResponse);
+        }
+      } catch (error) {
+        // Handler already registered, skip
+        console.log(
+          `[Main] MCP handler ${channel} already registered, skipping`,
+        );
+      }
+    }
+
+    console.log("[Main] MCP fallback handlers registered");
   }
 
   async createWindow() {
