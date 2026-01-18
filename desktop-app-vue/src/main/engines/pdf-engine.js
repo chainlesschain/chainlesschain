@@ -2,21 +2,65 @@
  * PDF生成引擎
  * 使用Electron的printToPDF功能将HTML转换为PDF
  */
-const path = require('path');
+const path = require("path");
 
 let browserWindowWarningLogged = false;
 
+// Allow injection for testing
+let _injectedBrowserWindow = null;
+let _injectedFsExtra = null;
+let _injectedMarked = null;
+
+/**
+ * Set BrowserWindow constructor for testing
+ * @param {Function|null} BrowserWindowCtor - The BrowserWindow constructor or null to reset
+ */
+function _setBrowserWindowForTesting(BrowserWindowCtor) {
+  _injectedBrowserWindow = BrowserWindowCtor;
+}
+
+/**
+ * Set fs-extra module for testing
+ * @param {Object|null} fsExtra - The fs-extra module or null to reset
+ */
+function _setFsExtraForTesting(fsExtra) {
+  _injectedFsExtra = fsExtra;
+}
+
+/**
+ * Set marked module for testing
+ * @param {Object|null} marked - The marked module or null to reset
+ */
+function _setMarkedForTesting(marked) {
+  _injectedMarked = marked;
+}
+
+function getMarked() {
+  if (_injectedMarked) {
+    return _injectedMarked;
+  }
+  return require("marked").marked;
+}
+
 function getFsExtra() {
-  return require('fs-extra');
+  if (_injectedFsExtra) {
+    return _injectedFsExtra;
+  }
+  return require("fs-extra");
 }
 
 function getBrowserWindow() {
+  if (_injectedBrowserWindow) {
+    return _injectedBrowserWindow;
+  }
   try {
-    const { BrowserWindow } = require('electron');
+    const { BrowserWindow } = require("electron");
     return BrowserWindow;
   } catch (error) {
     if (!browserWindowWarningLogged) {
-      console.warn('[PDFEngine] BrowserWindow not available, PDF generation will be disabled');
+      console.warn(
+        "[PDFEngine] BrowserWindow not available, PDF generation will be disabled",
+      );
       browserWindowWarningLogged = true;
     }
     return null;
@@ -25,7 +69,7 @@ function getBrowserWindow() {
 
 class PDFEngine {
   constructor() {
-    this.name = 'PDFEngine';
+    this.name = "PDFEngine";
   }
 
   /**
@@ -34,7 +78,7 @@ class PDFEngine {
   async markdownToPDF(markdownContent, outputPath, options = {}) {
     const fs = getFsExtra();
     try {
-      console.log('[PDFEngine] 开始Markdown转PDF:', outputPath);
+      console.log("[PDFEngine] 开始Markdown转PDF:", outputPath);
 
       // 1. Markdown → HTML
       const html = await this.markdownToHTML(markdownContent, options);
@@ -44,15 +88,19 @@ class PDFEngine {
 
       const stats = await fs.stat(outputPath);
 
-      console.log('[PDFEngine] PDF生成成功:', outputPath, `大小: ${(stats.size / 1024).toFixed(2)} KB`);
+      console.log(
+        "[PDFEngine] PDF生成成功:",
+        outputPath,
+        `大小: ${(stats.size / 1024).toFixed(2)} KB`,
+      );
 
       return {
         success: true,
         outputPath,
-        size: stats.size
+        size: stats.size,
       };
     } catch (error) {
-      console.error('[PDFEngine] PDF生成失败:', error);
+      console.error("[PDFEngine] PDF生成失败:", error);
       throw error;
     }
   }
@@ -60,18 +108,21 @@ class PDFEngine {
   /**
    * Markdown转HTML
    */
-  async markdownToHTML(markdown, options) {
-    const { marked } = require('marked');
+  async markdownToHTML(markdown, options = {}) {
+    const marked = getMarked();
+
+    // Handle null/undefined markdown
+    const content = markdown || "";
 
     // 配置marked
     marked.setOptions({
       breaks: true,
       gfm: true,
       headerIds: true,
-      mangle: false
+      mangle: false,
     });
 
-    const bodyContent = marked.parse(markdown);
+    const bodyContent = marked.parse(content);
 
     // 生成完整HTML
     const html = `
@@ -79,11 +130,11 @@ class PDFEngine {
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>${options.title || 'Document'}</title>
+  <title>${options.title || "Document"}</title>
   <style>
     @page {
       margin: 2cm;
-      size: ${options.pageSize || 'A4'};
+      size: ${options.pageSize || "A4"};
     }
 
     body {
@@ -225,7 +276,7 @@ class PDFEngine {
       border: 0;
     }
 
-    ${options.customCSS || ''}
+    ${options.customCSS || ""}
   </style>
 </head>
 <body>
@@ -246,7 +297,9 @@ class PDFEngine {
 
     // Check if BrowserWindow is available
     if (!BrowserWindowCtor) {
-      throw new Error('BrowserWindow is not available. PDF generation requires Electron runtime.');
+      throw new Error(
+        "BrowserWindow is not available. PDF generation requires Electron runtime.",
+      );
     }
 
     let win = null;
@@ -260,15 +313,17 @@ class PDFEngine {
         webPreferences: {
           nodeIntegration: false,
           contextIsolation: true,
-          sandbox: true
-        }
+          sandbox: true,
+        },
       });
 
       // 加载HTML内容
-      await win.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
+      await win.loadURL(
+        `data:text/html;charset=utf-8,${encodeURIComponent(html)}`,
+      );
 
       // 等待页面加载完成
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
       // 生成PDF
       const pdfData = await win.webContents.printToPDF({
@@ -276,14 +331,14 @@ class PDFEngine {
         printBackground: true,
         printSelectionOnly: false,
         landscape: options.landscape || false,
-        pageSize: options.pageSize || 'A4',
+        pageSize: options.pageSize || "A4",
         margins: {
           top: 0,
           bottom: 0,
           left: 0,
-          right: 0
+          right: 0,
         },
-        preferCSSPageSize: true
+        preferCSSPageSize: true,
       });
 
       // 确保输出目录存在
@@ -292,10 +347,9 @@ class PDFEngine {
       // 保存PDF文件
       await fs.writeFile(outputPath, pdfData);
 
-      console.log('[PDFEngine] PDF文件已保存:', outputPath);
-
+      console.log("[PDFEngine] PDF文件已保存:", outputPath);
     } catch (error) {
-      console.error('[PDFEngine] HTML转PDF失败:', error);
+      console.error("[PDFEngine] HTML转PDF失败:", error);
       throw error;
     } finally {
       // 关闭窗口
@@ -312,16 +366,16 @@ class PDFEngine {
   async htmlFileToPDF(htmlPath, outputPath, options = {}) {
     const fs = getFsExtra();
     try {
-      const html = await fs.readFile(htmlPath, 'utf-8');
+      const html = await fs.readFile(htmlPath, "utf-8");
       await this.htmlToPDF(html, outputPath, options);
 
       return {
         success: true,
         outputPath,
-        size: (await fs.stat(outputPath)).size
+        size: (await fs.stat(outputPath)).size,
       };
     } catch (error) {
-      console.error('[PDFEngine] HTML文件转PDF失败:', error);
+      console.error("[PDFEngine] HTML文件转PDF失败:", error);
       throw error;
     }
   }
@@ -332,7 +386,7 @@ class PDFEngine {
   async textFileToPDF(textPath, outputPath, options = {}) {
     const fs = getFsExtra();
     try {
-      const content = await fs.readFile(textPath, 'utf-8');
+      const content = await fs.readFile(textPath, "utf-8");
 
       const html = `
 <!DOCTYPE html>
@@ -362,10 +416,10 @@ class PDFEngine {
       return {
         success: true,
         outputPath,
-        size: (await fs.stat(outputPath)).size
+        size: (await fs.stat(outputPath)).size,
       };
     } catch (error) {
-      console.error('[PDFEngine] 文本文件转PDF失败:', error);
+      console.error("[PDFEngine] 文本文件转PDF失败:", error);
       throw error;
     }
   }
@@ -385,18 +439,18 @@ class PDFEngine {
 
         let result;
 
-        if (ext === '.md' || ext === '.markdown') {
-          const content = await fs.readFile(file, 'utf-8');
+        if (ext === ".md" || ext === ".markdown") {
+          const content = await fs.readFile(file, "utf-8");
           result = await this.markdownToPDF(content, outputPath, {
             ...options,
-            title: basename
+            title: basename,
           });
-        } else if (ext === '.html' || ext === '.htm') {
+        } else if (ext === ".html" || ext === ".htm") {
           result = await this.htmlFileToPDF(file, outputPath, options);
-        } else if (ext === '.txt') {
+        } else if (ext === ".txt") {
           result = await this.textFileToPDF(file, outputPath, {
             ...options,
-            title: basename
+            title: basename,
           });
         } else {
           throw new Error(`不支持的文件类型: ${ext}`);
@@ -406,15 +460,14 @@ class PDFEngine {
           input: file,
           output: outputPath,
           success: true,
-          ...result
+          ...result,
         });
-
       } catch (error) {
-        console.error('[PDFEngine] 转换失败:', file, error);
+        console.error("[PDFEngine] 转换失败:", file, error);
         results.push({
           input: file,
           success: false,
-          error: error.message
+          error: error.message,
         });
       }
     }
@@ -428,34 +481,42 @@ class PDFEngine {
    * @returns {Promise<Object>} 执行结果
    */
   async handleProjectTask(params) {
-    const { description, projectPath, llmManager, action = 'create_pdf' } = params;
+    const {
+      description,
+      projectPath,
+      llmManager,
+      action = "create_pdf",
+    } = params;
 
-    console.log('[PDFEngine] 处理PDF文档生成任务');
-    console.log('[PDFEngine] 描述:', description);
-    console.log('[PDFEngine] 操作:', action);
+    console.log("[PDFEngine] 处理PDF文档生成任务");
+    console.log("[PDFEngine] 描述:", description);
+    console.log("[PDFEngine] 操作:", action);
 
     try {
       // 使用LLM生成Markdown内容
-      const markdownContent = await this.generateMarkdownContentFromDescription(description, llmManager);
+      const markdownContent = await this.generateMarkdownContentFromDescription(
+        description,
+        llmManager,
+      );
 
       // 生成PDF文件
-      const title = this.extractTitle(markdownContent) || 'document';
+      const title = this.extractTitle(markdownContent) || "document";
       const fileName = `${title}.pdf`;
       const outputPath = path.join(projectPath, fileName);
 
       const result = await this.markdownToPDF(markdownContent, outputPath, {
         title,
-        pageSize: 'A4'
+        pageSize: "A4",
       });
 
       return {
-        type: 'pdf-document',
+        type: "pdf-document",
         success: true,
         ...result,
-        title
+        title,
       };
     } catch (error) {
-      console.error('[PDFEngine] 任务执行失败:', error);
+      console.error("[PDFEngine] 任务执行失败:", error);
       throw error;
     }
   }
@@ -486,21 +547,21 @@ ${description}
 
       // 尝试使用本地LLM
       if (llmManager && llmManager.isInitialized) {
-        console.log('[PDFEngine] 使用本地LLM生成文档内容');
+        console.log("[PDFEngine] 使用本地LLM生成文档内容");
         const response = await llmManager.query(prompt, {
           temperature: 0.7,
-          maxTokens: 3000
+          maxTokens: 3000,
         });
         responseText = response.text;
       } else {
         // 降级到后端AI服务
-        console.log('[PDFEngine] 本地LLM不可用，使用后端AI服务');
+        console.log("[PDFEngine] 本地LLM不可用，使用后端AI服务");
         responseText = await this.queryBackendAI(prompt);
       }
 
       return responseText.trim();
     } catch (error) {
-      console.error('[PDFEngine] 生成文档内容失败:', error);
+      console.error("[PDFEngine] 生成文档内容失败:", error);
       // 返回默认内容
       return `# ${description.substring(0, 50)}
 
@@ -522,63 +583,66 @@ ${description}
    * 从Markdown内容中提取标题
    */
   extractTitle(markdownContent) {
-    const lines = markdownContent.split('\n');
+    const lines = markdownContent.split("\n");
     for (const line of lines) {
-      if (line.startsWith('# ')) {
-        return line.substring(2).trim().replace(/[\/\\:*?"<>|]/g, '-');
+      if (line.startsWith("# ")) {
+        return line
+          .substring(2)
+          .trim()
+          .replace(/[/\\:*?"<>|]/g, "-");
       }
     }
-    return 'document';
+    return "document";
   }
 
   /**
    * 查询后端AI服务（降级方案）
    */
   async queryBackendAI(prompt) {
-    const http = require('http');
+    const http = require("http");
 
     return new Promise((resolve, reject) => {
       const postData = JSON.stringify({
         messages: [
-          { role: 'system', content: 'You are a helpful assistant.' },
-          { role: 'user', content: prompt }
+          { role: "system", content: "You are a helpful assistant." },
+          { role: "user", content: prompt },
         ],
-        temperature: 0.7
+        temperature: 0.7,
       });
 
       const options = {
-        hostname: 'localhost',
+        hostname: "localhost",
         port: 8001,
-        path: '/api/chat/stream',
-        method: 'POST',
+        path: "/api/chat/stream",
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Content-Length': Buffer.byteLength(postData)
+          "Content-Type": "application/json",
+          "Content-Length": Buffer.byteLength(postData),
         },
-        timeout: 60000
+        timeout: 60000,
       };
 
       const req = http.request(options, (res) => {
-        let fullText = '';
-        let buffer = '';
+        let fullText = "";
+        let buffer = "";
 
-        res.on('data', (chunk) => {
+        res.on("data", (chunk) => {
           buffer += chunk.toString();
 
           // 处理SSE流
-          const lines = buffer.split('\n');
-          buffer = lines.pop() || '';
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
 
           for (const line of lines) {
-            if (line.startsWith('data: ')) {
+            if (line.startsWith("data: ")) {
               try {
                 const data = JSON.parse(line.slice(6));
-                if (data.type === 'content' && data.content) {
+                if (data.type === "content" && data.content) {
                   fullText += data.content;
-                } else if (data.type === 'done') {
+                } else if (data.type === "done") {
                   resolve(fullText);
                   return;
-                } else if (data.type === 'error') {
+                } else if (data.type === "error") {
                   reject(new Error(data.error));
                   return;
                 }
@@ -589,21 +653,21 @@ ${description}
           }
         });
 
-        res.on('end', () => {
+        res.on("end", () => {
           if (fullText) {
             resolve(fullText);
           } else {
-            reject(new Error('后端AI服务未返回内容'));
+            reject(new Error("后端AI服务未返回内容"));
           }
         });
 
-        res.on('error', reject);
+        res.on("error", reject);
       });
 
-      req.on('error', reject);
-      req.on('timeout', () => {
+      req.on("error", reject);
+      req.on("timeout", () => {
         req.destroy();
-        reject(new Error('后端AI服务请求超时'));
+        reject(new Error("后端AI服务请求超时"));
       });
 
       req.write(postData);
@@ -627,5 +691,9 @@ function getPDFEngine() {
 
 module.exports = {
   PDFEngine,
-  getPDFEngine
+  getPDFEngine,
+  // Testing utilities
+  _setBrowserWindowForTesting,
+  _setFsExtraForTesting,
+  _setMarkedForTesting,
 };
