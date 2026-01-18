@@ -5,8 +5,12 @@
  * 支持流式识别和即时反馈
  */
 
-const { EventEmitter } = require('events');
-const { Readable } = require('stream');
+const { EventEmitter } = require("events");
+const { Readable } = require("stream");
+const fs = require("fs").promises;
+const path = require("path");
+const os = require("os");
+const { v4: uuidv4 } = require("uuid");
 
 /**
  * 实时语音输入类
@@ -24,7 +28,7 @@ class RealtimeVoiceInput extends EventEmitter {
       silenceThreshold: config.silenceThreshold || 0.01,
       silenceDuration: config.silenceDuration || 1000, // 1秒静音判定为停止
       maxRecordingTime: config.maxRecordingTime || 300000, // 最长5分钟
-      ...config
+      ...config,
     };
 
     // 状态
@@ -52,10 +56,10 @@ class RealtimeVoiceInput extends EventEmitter {
    */
   async startRecording(options = {}) {
     if (this.isRecording) {
-      throw new Error('已经在录音中');
+      throw new Error("已经在录音中");
     }
 
-    console.log('[RealtimeVoiceInput] 开始实时录音...');
+    console.log("[RealtimeVoiceInput] 开始实时录音...");
 
     this.isRecording = true;
     this.isPaused = false;
@@ -67,9 +71,9 @@ class RealtimeVoiceInput extends EventEmitter {
     this.lastSoundTime = Date.now();
 
     // 发送开始事件
-    this.emit('recording:started', {
+    this.emit("recording:started", {
       timestamp: this.recordingStartTime,
-      config: this.config
+      config: this.config,
     });
 
     // 启动定期处理
@@ -77,7 +81,7 @@ class RealtimeVoiceInput extends EventEmitter {
 
     // 设置最大录音时间限制
     this.maxTimeTimer = setTimeout(() => {
-      console.log('[RealtimeVoiceInput] 达到最大录音时间，自动停止');
+      console.log("[RealtimeVoiceInput] 达到最大录音时间，自动停止");
       this.stopRecording();
     }, this.config.maxRecordingTime);
   }
@@ -109,8 +113,8 @@ class RealtimeVoiceInput extends EventEmitter {
       // 检测静音
       if (!this.silenceTimer) {
         this.silenceTimer = setTimeout(() => {
-          console.log('[RealtimeVoiceInput] 检测到静音，准备停止');
-          this.emit('silence:detected');
+          console.log("[RealtimeVoiceInput] 检测到静音，准备停止");
+          this.emit("silence:detected");
 
           // 可以选择自动停止
           if (this.config.autoStopOnSilence) {
@@ -121,7 +125,7 @@ class RealtimeVoiceInput extends EventEmitter {
     }
 
     // 发送音量事件
-    this.emit('audio:volume', { volume, timestamp: Date.now() });
+    this.emit("audio:volume", { volume, timestamp: Date.now() });
   }
 
   /**
@@ -147,25 +151,36 @@ class RealtimeVoiceInput extends EventEmitter {
     const chunkData = Buffer.concat(this.currentChunk);
     this.audioChunks.push(chunkData);
 
-    console.log(`[RealtimeVoiceInput] 处理chunk ${this.audioChunks.length}, 大小: ${chunkData.length} bytes`);
+    console.log(
+      `[RealtimeVoiceInput] 处理chunk ${this.audioChunks.length}, 大小: ${chunkData.length} bytes`,
+    );
 
     // 清空当前chunk
     const processedChunk = this.currentChunk;
     this.currentChunk = [];
 
+    let tempWavFile = null;
+
     try {
       // 发送处理事件
-      this.emit('chunk:processing', {
+      this.emit("chunk:processing", {
         chunkIndex: this.audioChunks.length - 1,
-        size: chunkData.length
+        size: chunkData.length,
       });
 
-      // 转录当前chunk
-      const result = await this.recognizer.recognize(chunkData, {
-        language: this.config.language || 'zh',
-        format: 'wav',
-        sampleRate: this.config.sampleRate,
-        streaming: true
+      // 检查数据是否有效（至少需要一些音频数据）
+      if (chunkData.length < 1000) {
+        console.log("[RealtimeVoiceInput] Chunk 数据太小，跳过识别");
+        return;
+      }
+
+      // 将 PCM 数据保存为临时 WAV 文件
+      tempWavFile = await this.savePCMAsWav(chunkData);
+      console.log(`[RealtimeVoiceInput] 创建临时 WAV 文件: ${tempWavFile}`);
+
+      // 转录当前chunk（传递文件路径而不是 Buffer）
+      const result = await this.recognizer.recognize(tempWavFile, {
+        language: this.config.language || "zh",
       });
 
       if (result && result.text) {
@@ -174,36 +189,40 @@ class RealtimeVoiceInput extends EventEmitter {
           chunkIndex: this.audioChunks.length - 1,
           text: result.text,
           confidence: result.confidence || 0,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         });
 
         // 发送部分结果事件
-        this.emit('transcript:partial', {
+        this.emit("transcript:partial", {
           text: result.text,
           chunkIndex: this.audioChunks.length - 1,
           confidence: result.confidence,
-          allText: this.getFullTranscript()
+          allText: this.getFullTranscript(),
         });
       }
 
       // 发送完成事件
-      this.emit('chunk:processed', {
+      this.emit("chunk:processed", {
         chunkIndex: this.audioChunks.length - 1,
-        text: result?.text || '',
-        success: true
+        text: result?.text || "",
+        success: true,
       });
-
     } catch (error) {
-      console.error('[RealtimeVoiceInput] Chunk处理失败:', error);
+      console.error("[RealtimeVoiceInput] Chunk处理失败:", error);
 
-      this.emit('chunk:error', {
+      this.emit("chunk:error", {
         chunkIndex: this.audioChunks.length - 1,
-        error: error.message
+        error: error.message,
       });
 
       // 将chunk重新加入队列（或丢弃）
       if (this.config.retryOnError) {
         this.currentChunk = processedChunk;
+      }
+    } finally {
+      // 清理临时文件
+      if (tempWavFile) {
+        await this.cleanupTempFile(tempWavFile);
       }
     }
   }
@@ -216,12 +235,12 @@ class RealtimeVoiceInput extends EventEmitter {
       return;
     }
 
-    console.log('[RealtimeVoiceInput] 暂停录音');
+    console.log("[RealtimeVoiceInput] 暂停录音");
     this.isPaused = true;
 
-    this.emit('recording:paused', {
+    this.emit("recording:paused", {
       timestamp: Date.now(),
-      duration: Date.now() - this.recordingStartTime
+      duration: Date.now() - this.recordingStartTime,
     });
   }
 
@@ -233,11 +252,11 @@ class RealtimeVoiceInput extends EventEmitter {
       return;
     }
 
-    console.log('[RealtimeVoiceInput] 恢复录音');
+    console.log("[RealtimeVoiceInput] 恢复录音");
     this.isPaused = false;
 
-    this.emit('recording:resumed', {
-      timestamp: Date.now()
+    this.emit("recording:resumed", {
+      timestamp: Date.now(),
     });
   }
 
@@ -250,7 +269,7 @@ class RealtimeVoiceInput extends EventEmitter {
       return null;
     }
 
-    console.log('[RealtimeVoiceInput] 停止录音');
+    console.log("[RealtimeVoiceInput] 停止录音");
 
     // 清理定时器
     if (this.chunkTimer) {
@@ -280,9 +299,10 @@ class RealtimeVoiceInput extends EventEmitter {
     const fullTranscript = this.getFullTranscript();
 
     // 合并所有音频数据
-    const fullAudio = this.audioChunks.length > 0
-      ? Buffer.concat(this.audioChunks)
-      : Buffer.alloc(0);
+    const fullAudio =
+      this.audioChunks.length > 0
+        ? Buffer.concat(this.audioChunks)
+        : Buffer.alloc(0);
 
     const result = {
       transcript: fullTranscript,
@@ -291,11 +311,11 @@ class RealtimeVoiceInput extends EventEmitter {
       duration: duration,
       audioData: fullAudio,
       chunks: this.audioChunks.length,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
 
     // 发送停止事件
-    this.emit('recording:stopped', result);
+    this.emit("recording:stopped", result);
 
     return result;
   }
@@ -304,7 +324,7 @@ class RealtimeVoiceInput extends EventEmitter {
    * 取消录音
    */
   cancel() {
-    console.log('[RealtimeVoiceInput] 取消录音');
+    console.log("[RealtimeVoiceInput] 取消录音");
 
     // 清理所有状态
     if (this.chunkTimer) {
@@ -329,8 +349,8 @@ class RealtimeVoiceInput extends EventEmitter {
     this.partialResults = [];
     this.finalResults = [];
 
-    this.emit('recording:cancelled', {
-      timestamp: Date.now()
+    this.emit("recording:cancelled", {
+      timestamp: Date.now(),
     });
   }
 
@@ -340,9 +360,69 @@ class RealtimeVoiceInput extends EventEmitter {
    */
   getFullTranscript() {
     return this.partialResults
-      .map(r => r.text)
-      .filter(text => text && text.trim())
-      .join(' ');
+      .map((r) => r.text)
+      .filter((text) => text && text.trim())
+      .join(" ");
+  }
+
+  /**
+   * 将 PCM Buffer 保存为 WAV 文件
+   * @param {Buffer} pcmData - 16-bit PCM 数据
+   * @returns {Promise<string>} 临时 WAV 文件路径
+   */
+  async savePCMAsWav(pcmData) {
+    const sampleRate = this.config.sampleRate;
+    const channels = this.config.channels;
+    const bitsPerSample = this.config.bitsPerSample;
+    const byteRate = sampleRate * channels * (bitsPerSample / 8);
+    const blockAlign = channels * (bitsPerSample / 8);
+    const dataSize = pcmData.length;
+    const fileSize = 36 + dataSize;
+
+    // 创建 WAV 文件头 (44 bytes)
+    const header = Buffer.alloc(44);
+
+    // RIFF chunk descriptor
+    header.write("RIFF", 0); // ChunkID
+    header.writeUInt32LE(fileSize, 4); // ChunkSize
+    header.write("WAVE", 8); // Format
+
+    // fmt sub-chunk
+    header.write("fmt ", 12); // Subchunk1ID
+    header.writeUInt32LE(16, 16); // Subchunk1Size (16 for PCM)
+    header.writeUInt16LE(1, 20); // AudioFormat (1 = PCM)
+    header.writeUInt16LE(channels, 22); // NumChannels
+    header.writeUInt32LE(sampleRate, 24); // SampleRate
+    header.writeUInt32LE(byteRate, 28); // ByteRate
+    header.writeUInt16LE(blockAlign, 32); // BlockAlign
+    header.writeUInt16LE(bitsPerSample, 34); // BitsPerSample
+
+    // data sub-chunk
+    header.write("data", 36); // Subchunk2ID
+    header.writeUInt32LE(dataSize, 40); // Subchunk2Size
+
+    // 合并头和数据
+    const wavBuffer = Buffer.concat([header, pcmData]);
+
+    // 保存到临时文件
+    const tempDir = os.tmpdir();
+    const tempFile = path.join(tempDir, `realtime_${uuidv4()}.wav`);
+
+    await fs.writeFile(tempFile, wavBuffer);
+
+    return tempFile;
+  }
+
+  /**
+   * 删除临时文件
+   * @param {string} filePath - 文件路径
+   */
+  async cleanupTempFile(filePath) {
+    try {
+      await fs.unlink(filePath);
+    } catch (error) {
+      console.warn("[RealtimeVoiceInput] 清理临时文件失败:", error.message);
+    }
   }
 
   /**
@@ -380,7 +460,7 @@ class RealtimeVoiceInput extends EventEmitter {
       isPaused: this.isPaused,
       duration: this.isRecording ? Date.now() - this.recordingStartTime : 0,
       chunks: this.audioChunks.length,
-      transcriptLength: this.getFullTranscript().length
+      transcriptLength: this.getFullTranscript().length,
     };
   }
 }
