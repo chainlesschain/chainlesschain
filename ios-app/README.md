@@ -1,16 +1,29 @@
 # ChainlessChain iOS App
 
-## 项目概述
+[![iOS Version](https://img.shields.io/badge/iOS-15.0%2B-blue.svg)](https://www.apple.com/ios/)
+[![Swift Version](https://img.shields.io/badge/Swift-5.9%2B-orange.svg)](https://swift.org/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Status](https://img.shields.io/badge/Status-Alpha%20v0.2.0-yellow.svg)](QUICK_START.md)
 
 ChainlessChain iOS 原生应用，采用 SwiftUI + MVVM 架构，提供与 Android 版本对等的功能体验。
 
+**当前版本**: v0.2.0 Alpha | **完成度**: 55% | **最后更新**: 2026-01-19
+
+## 🚀 快速开始
+
+**新用户？** 查看 [快速开始指南](QUICK_START.md) 了解如何设置和运行项目。
+
+**需要详细设置？** 查看 [Xcode 项目设置指南](XCODE_PROJECT_SETUP.md)。
+
 ### 核心特性
 
-- **知识库管理**: 个人第二大脑，支持 RAG 增强搜索
-- **去中心化社交**: 基于 DID 的身份系统，P2P 加密消息
-- **去中心化交易**: 数字资产管理、市场、智能合约
-- **端到端加密**: Signal Protocol 实现
-- **跨设备同步**: 与桌面端和 Android 端数据同步
+- ✅ **知识库管理**: 个人第二大脑，支持 RAG 增强搜索（95% 完成）
+- ✅ **AI 对话**: 6 个 LLM 提供商，流式输出（95% 完成）
+- ✅ **认证系统**: PIN + Face ID/Touch ID（100% 完成）
+- ⚠️ **去中心化社交**: 基于 DID 的身份系统，P2P 加密消息（30% 完成）
+- ❌ **去中心化交易**: 数字资产管理、市场、智能合约（未开始）
+- ✅ **端到端加密**: Signal Protocol 框架（100% 完成）
+- ❌ **跨设备同步**: 与桌面端和 Android 端数据同步（未开始）
 
 ## 技术栈
 
