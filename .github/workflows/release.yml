@@ -1,0 +1,271 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version (e.g., v0.20.0)"
+        required: true
+        type: string
+      draft:
+        description: "Create as draft"
+        required: false
+        type: boolean
+        default: true
+      prerelease:
+        description: "Mark as prerelease"
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  # Build for Windows
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.12.0"
+          cache: "npm"
+          cache-dependency-path: desktop-app-vue/package-lock.json
+
+      - name: Install dependencies
+        working-directory: desktop-app-vue
+        run: npm ci
+
+      - name: Build main process
+        working-directory: desktop-app-vue
+        run: npm run build:main
+
+      - name: Build renderer
+        working-directory: desktop-app-vue
+        run: npm run build:renderer
+
+      - name: Package Windows
+        working-directory: desktop-app-vue
+        run: npm run make:win
+        env:
+          CHAINLESSCHAIN_DISABLE_NATIVE_DB: "1"
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-artifacts
+          path: |
+            desktop-app-vue/out/make/**/*.zip
+            desktop-app-vue/out/make/**/*.exe
+          retention-days: 7
+
+  # Build for macOS
+  build-macos:
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        arch: [x64, arm64]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.12.0"
+          cache: "npm"
+          cache-dependency-path: desktop-app-vue/package-lock.json
+
+      - name: Install dependencies
+        working-directory: desktop-app-vue
+        run: npm ci
+
+      - name: Build main process
+        working-directory: desktop-app-vue
+        run: npm run build:main
+
+      - name: Build renderer
+        working-directory: desktop-app-vue
+        run: npm run build:renderer
+
+      - name: Package macOS (${{ matrix.arch }})
+        working-directory: desktop-app-vue
+        run: npm run make:mac:${{ matrix.arch }}
+        env:
+          CHAINLESSCHAIN_DISABLE_NATIVE_DB: "1"
+
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-${{ matrix.arch }}-artifacts
+          path: |
+            desktop-app-vue/out/make/**/*.dmg
+            desktop-app-vue/out/make/**/*.zip
+          retention-days: 7
+
+  # Build for Linux
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22.12.0"
+          cache: "npm"
+          cache-dependency-path: desktop-app-vue/package-lock.json
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            rpm \
+            fakeroot \
+            dpkg \
+            libarchive-tools
+
+      - name: Install dependencies
+        working-directory: desktop-app-vue
+        run: npm ci
+
+      - name: Build main process
+        working-directory: desktop-app-vue
+        run: npm run build:main
+
+      - name: Build renderer
+        working-directory: desktop-app-vue
+        run: npm run build:renderer
+
+      - name: Package Linux
+        working-directory: desktop-app-vue
+        run: npm run make:linux:x64
+        env:
+          CHAINLESSCHAIN_DISABLE_NATIVE_DB: "1"
+
+      - name: Upload Linux artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-artifacts
+          path: |
+            desktop-app-vue/out/make/**/*.deb
+            desktop-app-vue/out/make/**/*.rpm
+            desktop-app-vue/out/make/**/*.AppImage
+            desktop-app-vue/out/make/**/*.zip
+          retention-days: 7
+
+  # Create GitHub Release
+  create-release:
+    needs: [build-windows, build-macos, build-linux]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Fetch all history for changelog
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Display artifact structure
+        run: ls -R artifacts/
+
+      - name: Get version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "VERSION=${{ inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Generate changelog
+        id: changelog
+        run: |
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          PREV_TAG=$(git describe --tags --abbrev=0 ${VERSION}^ 2>/dev/null || echo "")
+
+          if [ -z "$PREV_TAG" ]; then
+            RANGE="${VERSION}"
+          else
+            RANGE="${PREV_TAG}..${VERSION}"
+          fi
+
+          CHANGELOG=$(git log ${RANGE} --pretty=format:"- %s (%h)" --no-merges || echo "Initial release")
+
+          # Create release notes
+          cat > release-notes.md << EOF
+          ## ChainlessChain ${VERSION}
+
+          ### What's Changed
+
+          ${CHANGELOG}
+
+          ### Installation
+
+          Download the appropriate file for your platform:
+
+          #### Windows
+          - \`ChainlessChain-win32-x64-${VERSION#v}.zip\` - Portable version (extract and run)
+
+          #### macOS
+          - \`ChainlessChain-darwin-x64-${VERSION#v}.dmg\` - Intel Mac installer
+          - \`ChainlessChain-darwin-arm64-${VERSION#v}.dmg\` - Apple Silicon installer
+
+          #### Linux
+          - \`ChainlessChain-${VERSION#v}.AppImage\` - Universal Linux package
+          - \`chainlesschain_${VERSION#v}_amd64.deb\` - Debian/Ubuntu package
+          - \`chainlesschain-${VERSION#v}.x86_64.rpm\` - Fedora/RHEL package
+
+          ### System Requirements
+
+          - **Windows**: Windows 10/11 (x64)
+          - **macOS**: macOS 10.15+ (Intel & Apple Silicon)
+          - **Linux**: Ubuntu 20.04+ / Fedora 34+ / Arch Linux (x64)
+
+          ### Notes
+
+          - U-Key hardware integration is Windows-only
+          - Backend services can run via Docker or bundled binaries
+          - First launch may take longer as services initialize
+
+          ### Verification
+
+          All binaries are built via GitHub Actions and can be verified against the workflow runs.
+
+          **Full Changelog**: https://github.com/\${{ github.repository }}/compare/${PREV_TAG}...${VERSION}
+          EOF
+
+          cat release-notes.md
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.version.outputs.VERSION }}
+          name: ChainlessChain ${{ steps.version.outputs.VERSION }}
+          body_path: release-notes.md
+          draft: ${{ github.event_name == 'workflow_dispatch' && inputs.draft || false }}
+          prerelease: ${{ github.event_name == 'workflow_dispatch' && inputs.prerelease || false }}
+          files: |
+            artifacts/**/*.zip
+            artifacts/**/*.dmg
+            artifacts/**/*.deb
+            artifacts/**/*.rpm
+            artifacts/**/*.AppImage
+            artifacts/**/*.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Release created
+        run: |
+          echo "✅ Release ${{ steps.version.outputs.VERSION }} created successfully!"
+          echo "🔗 View at: https://github.com/${{ github.repository }}/releases/tag/${{ steps.version.outputs.VERSION }}"

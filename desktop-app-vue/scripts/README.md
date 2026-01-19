@@ -4,10 +4,46 @@
 
 ## 📁 目录结构
 
+### 🚀 release/ - 发布自动化（新增）
+
+自动化发布流程，支持 GitHub Releases 和多平台构建
+
+**脚本列表**:
+
+- `release.js` - 主发布脚本（跨平台 Node.js）
+- `release.ps1` - Windows PowerShell 发布脚本
+- `pre-release-check.js` - 发布前检查验证
+
+**快速使用**:
+
+```bash
+# 发布前检查
+npm run release:check
+
+# 创建草稿发布
+npm run release:draft
+
+# 创建正式发布
+npm run release
+
+# 跳过构建（使用已有产物）
+npm run release:skip-build
+```
+
+**详细文档**:
+
+- 完整指南：`../../docs/RELEASE_GUIDE.md`
+- 快速参考：`../RELEASE.md`
+- 总结文档：`../../RELEASE_AUTOMATION_SUMMARY.md`
+
+---
+
 ### 🔍 analysis/ - 分析工具
+
 代码分析、质量检查、性能基准测试
 
 **脚本列表**:
+
 - `analyze-missing-fields.js` - 检查缺失字段
 - `analyze-permission-formats.js` - 分析权限格式
 - `analyze-skill-system.js` - 技能系统分析
@@ -18,9 +54,11 @@
 - `adaptive-threshold.js` - 自适应阈值
 
 ### 🔨 build/ - 构建脚本
+
 打包、编译、图标生成等构建相关脚本
 
 **脚本列表**:
+
 - `build-main.js` - 构建主进程
 - `build-installer.bat` - 构建安装程序（Windows）
 - `build-windows-package-standalone.bat` - 独立Windows打包
@@ -32,15 +70,19 @@
 - 其他构建辅助脚本
 
 ### ⚡ performance/ - 性能优化
+
 性能分析和优化工具
 
 **脚本列表**:
+
 - `advanced-optimizer.js` - 高级优化器
 
 ### 🛠️ tools/ - 通用工具
+
 修复、应用补丁、数据修复等工具脚本
 
 **脚本列表**:
+
 - `apply-*.js` - 应用各类补丁和示例
 - `fix-*.js` - 各类修复脚本
 - `comprehensive-fix.js` - 综合修复
@@ -49,6 +91,7 @@
 - `check-db-tables.js` - 检查数据库表
 
 ### 🧪 testing/ - 测试脚本
+
 已整合到 `tests/` 目录下的单元测试
 
 **说明**: 测试脚本已移至 `tests/unit/` 目录，使用统一的测试框架
@@ -56,6 +99,7 @@
 ## 🚀 常用命令
 
 ### 构建应用
+
 ```bash
 # 构建主进程
 node scripts/build/build-main.js
@@ -65,6 +109,7 @@ scripts/build/build-installer.bat
 ```
 
 ### 分析代码
+
 ```bash
 # 分析技能系统
 node scripts/analysis/analyze-skill-system.js
@@ -77,6 +122,7 @@ node scripts/analysis/benchmark-p2-intelligence.js
 ```
 
 ### 修复问题
+
 ```bash
 # 综合修复
 node scripts/tools/comprehensive-fix.js
@@ -89,6 +135,7 @@ node scripts/tools/fix-database-sync.js
 ```
 
 ### 性能优化
+
 ```bash
 # 高级优化
 node scripts/performance/advanced-optimizer.js
@@ -109,4 +156,4 @@ node scripts/performance/advanced-optimizer.js
 
 ---
 
-**最后更新**: 2026-01-03
+**最后更新**: 2024-01-19（添加发布自动化脚本）
