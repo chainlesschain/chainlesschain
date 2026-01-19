@@ -58,7 +58,12 @@ export default defineConfig({
     restoreMocks: true,
     clearMocks: true,
     testTimeout: 10000,
-    hookTimeout: 10000
+    hookTimeout: 10000,
+    server: {
+      deps: {
+        inline: ['electron']
+      }
+    }
   },
 
   resolve: {
@@ -67,7 +72,8 @@ export default defineConfig({
       '@renderer': resolve(__dirname, 'src/renderer'),
       '@main': resolve(__dirname, 'src/main'),
       '@shared': resolve(__dirname, 'src/shared'),
-      '@preload': resolve(__dirname, 'src/preload')
+      '@preload': resolve(__dirname, 'src/preload'),
+      'electron': resolve(__dirname, 'tests/__mocks__/electron.ts')
     }
   }
 });
