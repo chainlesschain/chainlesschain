@@ -28,6 +28,23 @@ class E2EESession(
         private const val TAG = "E2EESession"
 
         /**
+         * 从持久化状态恢复会话
+         *
+         * @param peerId 对等方ID
+         * @param ratchetState Ratchet 状态
+         * @param associatedData 关联数据
+         * @return 恢复的会话
+         */
+        internal fun restore(
+            peerId: String,
+            ratchetState: DoubleRatchet.RatchetState,
+            associatedData: ByteArray
+        ): E2EESession {
+            Log.d(TAG, "Restoring session for peer: $peerId")
+            return E2EESession(peerId, ratchetState, associatedData)
+        }
+
+        /**
          * 作为发送方初始化会话
          *
          * @param peerId 对等方ID
@@ -188,6 +205,24 @@ class E2EESession(
             receiveMessageNumber = ratchetState.receiveMessageNumber,
             skippedMessagesCount = ratchetState.skippedMessageKeys.size
         )
+    }
+
+    /**
+     * 获取 Ratchet 状态（用于持久化）
+     *
+     * @return Ratchet 状态
+     */
+    internal fun getRatchetState(): DoubleRatchet.RatchetState {
+        return ratchetState
+    }
+
+    /**
+     * 获取关联数据（用于持久化）
+     *
+     * @return 关联数据
+     */
+    internal fun getAssociatedData(): ByteArray {
+        return associatedData
     }
 }
 
