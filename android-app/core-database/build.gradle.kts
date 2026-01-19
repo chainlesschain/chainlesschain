@@ -48,6 +48,10 @@ dependencies {
     // Kotlin Serialization (for Converters)
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
 
+    // Paging (for PagingSource in DAO)
+    api("androidx.paging:paging-runtime:3.2.1")
+    api("androidx.paging:paging-common:3.2.1")
+
     // Hilt
     implementation("com.google.dagger:hilt-android:2.50")
     ksp("com.google.dagger:hilt-compiler:2.50")
