@@ -4,7 +4,7 @@
  * 提供多媒体组件的国际化支持
  */
 
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from '@/utils/logger';
 import { ref, computed } from 'vue';
 import type { ComputedRef } from 'vue';
 import { multimediaI18n, type MultimediaLocale } from '../i18n/multimedia';

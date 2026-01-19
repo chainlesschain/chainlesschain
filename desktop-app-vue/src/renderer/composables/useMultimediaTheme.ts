@@ -4,7 +4,7 @@
  * 提供明暗主题切换功能
  */
 
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from '@/utils/logger';
 import { ref, computed, watch } from 'vue';
 import type { ComputedRef } from 'vue';
 
