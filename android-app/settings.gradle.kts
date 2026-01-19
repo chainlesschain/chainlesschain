@@ -12,6 +12,7 @@ dependencyResolutionManagement {
         google()
         mavenCentral()
         maven { url = uri("https://jitpack.io") }
+        // SQLCipher现在在Maven Central可用,不再需要CommonsWare仓库
     }
 }
 

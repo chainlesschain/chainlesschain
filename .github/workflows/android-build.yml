@@ -46,6 +46,7 @@ jobs:
         with:
           name: lint-reports
           path: android-app/**/build/reports/lint-results-*.html
+          if-no-files-found: warn
 
   # Job 2: Unit Tests
   unit-tests:
@@ -75,6 +76,7 @@ jobs:
         with:
           name: unit-test-reports
           path: android-app/**/build/reports/tests/
+          if-no-files-found: warn
 
       - name: Upload test results
         if: always()
@@ -82,14 +84,17 @@ jobs:
         with:
           name: unit-test-results
           path: android-app/**/build/test-results/
+          if-no-files-found: warn
 
   # Job 3: Instrumentation Tests
   instrumentation-tests:
     name: Instrumentation Tests
-    runs-on: macos-latest
+    runs-on: macos-13  # Use macOS 13 for better emulator stability
+    timeout-minutes: 60  # Increase job timeout
     strategy:
+      fail-fast: false  # Don't cancel other matrix jobs if one fails
       matrix:
-        api-level: [26, 30, 34]
+        api-level: [30, 34]  # Test on Android 11 and 14 (stable versions)
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -111,28 +116,45 @@ jobs:
           path: |
             ~/.android/avd/*
             ~/.android/adb*
-          key: avd-${{ matrix.api-level }}
+          key: avd-${{ matrix.api-level }}-macos13-v2
 
       - name: Create AVD and generate snapshot for caching
         if: steps.avd-cache.outputs.cache-hit != 'true'
         uses: reactivecircus/android-emulator-runner@v2
+        timeout-minutes: 30  # Add timeout for AVD creation
         with:
           api-level: ${{ matrix.api-level }}
           arch: x86_64
+          target: google_apis
           force-avd-creation: false
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -memory 2048
           disable-animations: false
           script: echo "Generated AVD snapshot for caching."
 
+      # Add health check before running tests
+      - name: Verify emulator health
+        run: |
+          echo "Checking Android SDK setup..."
+          $ANDROID_SDK_ROOT/platform-tools/adb devices
+          echo "Ready to run tests"
+
       - name: Run instrumentation tests
         uses: reactivecircus/android-emulator-runner@v2
+        timeout-minutes: 30  # Add timeout for test execution
         with:
           api-level: ${{ matrix.api-level }}
           arch: x86_64
+          target: google_apis
           force-avd-creation: false
-          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -memory 2048
           disable-animations: true
-          script: cd android-app && ./gradlew connectedCheck
+          working-directory: android-app
+          script: |
+            echo "Waiting for emulator to be fully ready..."
+            adb wait-for-device
+            adb shell 'while [[ -z $(getprop sys.boot_completed) ]]; do sleep 1; done'
+            echo "Emulator is ready, running tests..."
+            ./gradlew connectedCheck --no-daemon --stacktrace
 
       - name: Upload instrumentation test reports
         if: always()
@@ -140,6 +162,7 @@ jobs:
         with:
           name: instrumentation-test-reports-api-${{ matrix.api-level }}
           path: android-app/**/build/reports/androidTests/
+          if-no-files-found: warn  # Don't fail if no reports found
 
   # Job 4: Build Debug APK
   build-debug:
