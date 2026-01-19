@@ -1,0 +1,24 @@
+# ktlint配置 - Kotlin代码格式化
+# https://pinterest.github.io/ktlint/
+
+[*.{kt,kts}]
+# 禁用的规则
+disabled_rules=import-ordering,no-wildcard-imports
+
+# 最大行长度
+max_line_length=120
+
+# 缩进大小
+indent_size=4
+
+# 使用空格而不是Tab
+indent_style=space
+
+# 文件末尾换行
+insert_final_newline=true
+
+# 移除行尾空格
+trim_trailing_whitespace=true
+
+# 字符编码
+charset=utf-8
