@@ -1,6 +1,6 @@
 /**
  * LLM Service IPC 单元测试
- * 测试14个 LLM IPC handlers 的注册和执行
+ * 测试43个 LLM IPC handlers 的注册和执行
  *
  * 使用依赖注入模式验证 IPC handlers，支持动态测试
  */
@@ -20,6 +20,7 @@ describe("LLM Service IPC", () => {
   let registerLLMIPC;
 
   const expectedChannels = [
+    // 基础功能 (14个)
     "llm:check-status",
     "llm:query",
     "llm:chat",
@@ -34,6 +35,42 @@ describe("LLM Service IPC", () => {
     "llm:select-best",
     "llm:generate-report",
     "llm:switch-provider",
+    // 流控制 (6个)
+    "llm:create-stream-controller",
+    "llm:pause-stream",
+    "llm:resume-stream",
+    "llm:cancel-stream",
+    "llm:get-stream-stats",
+    "llm:destroy-stream-controller",
+    // 使用统计和成本管理 (6个)
+    "llm:get-usage-stats",
+    "llm:get-time-series",
+    "llm:get-cost-breakdown",
+    "llm:get-budget",
+    "llm:set-budget",
+    "llm:export-cost-report",
+    // 缓存管理 (2个)
+    "llm:clear-cache",
+    "llm:get-cache-stats",
+    // 服务控制 (4个)
+    "llm:resume-service",
+    "llm:pause-service",
+    "llm:calculate-cost-estimate",
+    "llm:can-perform-operation",
+    // 告警管理 (4个)
+    "llm:get-alert-history",
+    "llm:add-alert",
+    "llm:dismiss-alert",
+    "llm:clear-alert-history",
+    // 模型预算管理 (3个)
+    "llm:get-model-budgets",
+    "llm:set-model-budget",
+    "llm:delete-model-budget",
+    // 数据保留和清理 (4个)
+    "llm:get-retention-config",
+    "llm:set-retention-config",
+    "llm:cleanup-old-data",
+    "llm:generate-test-data",
   ];
 
   beforeEach(async () => {
@@ -49,6 +86,13 @@ describe("LLM Service IPC", () => {
 
     // 创建 mock llmManager
     mockLlmManager = {
+      provider: "ollama",
+      config: {
+        model: "qwen2:7b",
+        provider: "ollama",
+        temperature: 0.7,
+        maxTokens: 2000,
+      },
       checkStatus: vi.fn().mockResolvedValue({
         available: true,
         service: "ollama",
@@ -169,7 +213,7 @@ describe("LLM Service IPC", () => {
 
   describe("Handler 注册验证", () => {
     it("should have exactly 14 handlers registered", () => {
-      expect(Object.keys(handlers).length).toBe(14);
+      expect(Object.keys(handlers).length).toBe(43);
     });
 
     it("should match all expected handler channels", () => {
@@ -310,8 +354,8 @@ describe("LLM Service IPC", () => {
   // ============================================================
 
   describe("按功能域分类验证", () => {
-    it("should have 4 + 1 + 3 + 2 + 4 = 14 total handlers", () => {
-      expect(Object.keys(handlers).length).toBe(14);
+    it("should have 14 + 6 + 6 + 2 + 4 + 4 + 3 + 4 = 43 total handlers", () => {
+      expect(Object.keys(handlers).length).toBe(43);
     });
 
     it("should group handlers correctly by functional domain", () => {

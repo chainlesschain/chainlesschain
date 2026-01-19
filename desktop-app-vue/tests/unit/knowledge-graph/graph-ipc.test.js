@@ -19,11 +19,11 @@
  * - 本测试通过源代码分析而非运行时 mock 来验证
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
-import { readFile } from 'fs/promises';
-import path from 'path';
+import { describe, it, expect, beforeEach } from "vitest";
+import { readFile } from "fs/promises";
+import path from "path";
 
-describe('Knowledge Graph IPC 处理器注册', () => {
+describe("Knowledge Graph IPC 处理器注册", () => {
   let sourceCode;
   let registerGraphIPC;
 
@@ -31,14 +31,13 @@ describe('Knowledge Graph IPC 处理器注册', () => {
     // 读取源文件内容用于验证
     const filePath = path.resolve(
       __dirname,
-      '../../../src/main/knowledge-graph/graph-ipc.js'
+      "../../../src/main/knowledge-graph/graph-ipc.js",
     );
-    sourceCode = await readFile(filePath, 'utf-8');
+    sourceCode = await readFile(filePath, "utf-8");
 
     // 导入模块以检查函数是否导出
-    const module = await import(
-      '../../../src/main/knowledge-graph/graph-ipc.js'
-    );
+    const module =
+      await import("../../../src/main/knowledge-graph/graph-ipc.js");
     registerGraphIPC = module.registerGraphIPC;
   });
 
@@ -46,16 +45,16 @@ describe('Knowledge Graph IPC 处理器注册', () => {
   // 模块导出验证
   // ============================================================
 
-  describe('模块导出验证', () => {
-    it('should export registerGraphIPC function', () => {
-      expect(typeof registerGraphIPC).toBe('function');
+  describe("模块导出验证", () => {
+    it("should export registerGraphIPC function", () => {
+      expect(typeof registerGraphIPC).toBe("function");
     });
 
-    it('registerGraphIPC should be a function', () => {
+    it("registerGraphIPC should be a function", () => {
       expect(registerGraphIPC instanceof Function).toBe(true);
     });
 
-    it('should not export null or undefined registerGraphIPC', () => {
+    it("should not export null or undefined registerGraphIPC", () => {
       expect(registerGraphIPC).not.toBeNull();
       expect(registerGraphIPC).not.toBeUndefined();
     });
@@ -65,104 +64,102 @@ describe('Knowledge Graph IPC 处理器注册', () => {
   // 源代码结构验证
   // ============================================================
 
-  describe('源代码 handler 注册验证', () => {
-    it('should have ipcMain.handle calls for all 21 handlers', () => {
+  describe("源代码 handler 注册验证", () => {
+    it("should have ipcMain.handle calls for all 21 handlers", () => {
       // 检查源代码中是否包含所有 handler 注册
       const requiredHandlers = [
-        'graph:get-graph-data',
-        'graph:process-note',
-        'graph:process-all-notes',
-        'graph:get-knowledge-relations',
-        'graph:find-related-notes',
-        'graph:find-potential-links',
-        'graph:add-relation',
-        'graph:delete-relations',
-        'graph:build-tag-relations',
-        'graph:build-temporal-relations',
-        'graph:extract-semantic-relations',
+        "graph:get-graph-data",
+        "graph:process-note",
+        "graph:process-all-notes",
+        "graph:get-knowledge-relations",
+        "graph:find-related-notes",
+        "graph:find-potential-links",
+        "graph:add-relation",
+        "graph:delete-relations",
+        "graph:build-tag-relations",
+        "graph:build-temporal-relations",
+        "graph:extract-semantic-relations",
       ];
 
       requiredHandlers.forEach((channel) => {
         const pattern = new RegExp(
           `ipcMain\\.handle\\s*\\(\\s*['"]${channel}['"]`,
-          'g'
+          "g",
         );
         expect(sourceCode).toMatch(pattern);
       });
     });
 
-    it('should have exactly 21 ipcMain.handle calls', () => {
+    it("should have exactly 21 ipcMain.handle calls", () => {
       // 计算 ipcMain.handle 调用的数量
-      const matches = sourceCode.match(
-        /ipcMain\.handle\s*\(\s*['"]/g
-      );
+      const matches = sourceCode.match(/ipcMain\.handle\s*\(\s*['"]/g);
       expect(matches).not.toBeNull();
       expect(matches.length).toBe(21);
     });
 
-    it('graph:get-graph-data handler should be registered', () => {
+    it("graph:get-graph-data handler should be registered", () => {
       expect(sourceCode).toMatch(
-        /ipcMain\.handle\s*\(\s*['"]graph:get-graph-data['"]/
+        /ipcMain\.handle\s*\(\s*['"]graph:get-graph-data['"]/,
       );
     });
 
-    it('graph:process-note handler should be registered', () => {
+    it("graph:process-note handler should be registered", () => {
       expect(sourceCode).toMatch(
-        /ipcMain\.handle\s*\(\s*['"]graph:process-note['"]/
+        /ipcMain\.handle\s*\(\s*['"]graph:process-note['"]/,
       );
     });
 
-    it('graph:process-all-notes handler should be registered', () => {
+    it("graph:process-all-notes handler should be registered", () => {
       expect(sourceCode).toMatch(
-        /ipcMain\.handle\s*\(\s*['"]graph:process-all-notes['"]/
+        /ipcMain\.handle\s*\(\s*['"]graph:process-all-notes['"]/,
       );
     });
 
-    it('graph:get-knowledge-relations handler should be registered', () => {
+    it("graph:get-knowledge-relations handler should be registered", () => {
       expect(sourceCode).toMatch(
-        /ipcMain\.handle\s*\(\s*['"]graph:get-knowledge-relations['"]/
+        /ipcMain\.handle\s*\(\s*['"]graph:get-knowledge-relations['"]/,
       );
     });
 
-    it('graph:find-related-notes handler should be registered', () => {
+    it("graph:find-related-notes handler should be registered", () => {
       expect(sourceCode).toMatch(
-        /ipcMain\.handle\s*\(\s*['"]graph:find-related-notes['"]/
+        /ipcMain\.handle\s*\(\s*['"]graph:find-related-notes['"]/,
       );
     });
 
-    it('graph:find-potential-links handler should be registered', () => {
+    it("graph:find-potential-links handler should be registered", () => {
       expect(sourceCode).toMatch(
-        /ipcMain\.handle\s*\(\s*['"]graph:find-potential-links['"]/
+        /ipcMain\.handle\s*\(\s*['"]graph:find-potential-links['"]/,
       );
     });
 
-    it('graph:add-relation handler should be registered', () => {
+    it("graph:add-relation handler should be registered", () => {
       expect(sourceCode).toMatch(
-        /ipcMain\.handle\s*\(\s*['"]graph:add-relation['"]/
+        /ipcMain\.handle\s*\(\s*['"]graph:add-relation['"]/,
       );
     });
 
-    it('graph:delete-relations handler should be registered', () => {
+    it("graph:delete-relations handler should be registered", () => {
       expect(sourceCode).toMatch(
-        /ipcMain\.handle\s*\(\s*['"]graph:delete-relations['"]/
+        /ipcMain\.handle\s*\(\s*['"]graph:delete-relations['"]/,
       );
     });
 
-    it('graph:build-tag-relations handler should be registered', () => {
+    it("graph:build-tag-relations handler should be registered", () => {
       expect(sourceCode).toMatch(
-        /ipcMain\.handle\s*\(\s*['"]graph:build-tag-relations['"]/
+        /ipcMain\.handle\s*\(\s*['"]graph:build-tag-relations['"]/,
       );
     });
 
-    it('graph:build-temporal-relations handler should be registered', () => {
+    it("graph:build-temporal-relations handler should be registered", () => {
       expect(sourceCode).toMatch(
-        /ipcMain\.handle\s*\(\s*['"]graph:build-temporal-relations['"]/
+        /ipcMain\.handle\s*\(\s*['"]graph:build-temporal-relations['"]/,
       );
     });
 
-    it('graph:extract-semantic-relations handler should be registered', () => {
+    it("graph:extract-semantic-relations handler should be registered", () => {
       expect(sourceCode).toMatch(
-        /ipcMain\.handle\s*\(\s*['"]graph:extract-semantic-relations['"]/
+        /ipcMain\.handle\s*\(\s*['"]graph:extract-semantic-relations['"]/,
       );
     });
   });
@@ -171,33 +168,33 @@ describe('Knowledge Graph IPC 处理器注册', () => {
   // Handler 异步特性验证
   // ============================================================
 
-  describe('Handler 异步特性验证', () => {
-    it('all handlers should be async functions', () => {
+  describe("Handler 异步特性验证", () => {
+    it("all handlers should be async functions", () => {
       const requiredHandlers = [
-        'graph:get-graph-data',
-        'graph:process-note',
-        'graph:process-all-notes',
-        'graph:get-knowledge-relations',
-        'graph:find-related-notes',
-        'graph:find-potential-links',
-        'graph:add-relation',
-        'graph:delete-relations',
-        'graph:build-tag-relations',
-        'graph:build-temporal-relations',
-        'graph:extract-semantic-relations',
+        "graph:get-graph-data",
+        "graph:process-note",
+        "graph:process-all-notes",
+        "graph:get-knowledge-relations",
+        "graph:find-related-notes",
+        "graph:find-potential-links",
+        "graph:add-relation",
+        "graph:delete-relations",
+        "graph:build-tag-relations",
+        "graph:build-temporal-relations",
+        "graph:extract-semantic-relations",
       ];
 
       requiredHandlers.forEach((channel) => {
         // 检查每个 handler 是否使用 async 函数
         const pattern = new RegExp(
           `ipcMain\\.handle\\s*\\(\\s*['"]${channel}['"]\\s*,\\s*async\\s`,
-          'g'
+          "g",
         );
         expect(sourceCode).toMatch(pattern);
       });
     });
 
-    it('should have async handlers for graph data operations', () => {
+    it("should have async handlers for graph data operations", () => {
       const getDataPattern =
         /ipcMain\.handle\s*\(\s*['"]graph:get-graph-data['"],\s*async/;
       const getRelationsPattern =
@@ -207,7 +204,7 @@ describe('Knowledge Graph IPC 处理器注册', () => {
       expect(sourceCode).toMatch(getRelationsPattern);
     });
 
-    it('should have async handlers for note processing', () => {
+    it("should have async handlers for note processing", () => {
       const processNotePattern =
         /ipcMain\.handle\s*\(\s*['"]graph:process-note['"],\s*async/;
       const processAllPattern =
@@ -217,7 +214,7 @@ describe('Knowledge Graph IPC 处理器注册', () => {
       expect(sourceCode).toMatch(processAllPattern);
     });
 
-    it('should have async handlers for relation management', () => {
+    it("should have async handlers for relation management", () => {
       const addPattern =
         /ipcMain\.handle\s*\(\s*['"]graph:add-relation['"],\s*async/;
       const deletePattern =
@@ -227,7 +224,7 @@ describe('Knowledge Graph IPC 处理器注册', () => {
       expect(sourceCode).toMatch(deletePattern);
     });
 
-    it('should have async handlers for graph analysis', () => {
+    it("should have async handlers for graph analysis", () => {
       const findPattern =
         /ipcMain\.handle\s*\(\s*['"]graph:find-related-notes['"],\s*async/;
       const potentialPattern =
@@ -237,7 +234,7 @@ describe('Knowledge Graph IPC 处理器注册', () => {
       expect(sourceCode).toMatch(potentialPattern);
     });
 
-    it('should have async handlers for relation building', () => {
+    it("should have async handlers for relation building", () => {
       const tagPattern =
         /ipcMain\.handle\s*\(\s*['"]graph:build-tag-relations['"],\s*async/;
       const temporalPattern =
@@ -247,7 +244,7 @@ describe('Knowledge Graph IPC 处理器注册', () => {
       expect(sourceCode).toMatch(temporalPattern);
     });
 
-    it('should have async handler for semantic extraction', () => {
+    it("should have async handler for semantic extraction", () => {
       const semanticPattern =
         /ipcMain\.handle\s*\(\s*['"]graph:extract-semantic-relations['"],\s*async/;
 
@@ -259,62 +256,62 @@ describe('Knowledge Graph IPC 处理器注册', () => {
   // Handler 参数验证
   // ============================================================
 
-  describe('Handler 参数验证', () => {
-    it('get-graph-data handler should accept _event and options parameters', () => {
+  describe("Handler 参数验证", () => {
+    it("get-graph-data handler should accept _event and options parameters", () => {
       const pattern =
         /ipcMain\.handle\s*\(\s*['"]graph:get-graph-data['"],\s*async\s*\(\s*_event\s*,\s*options/;
       expect(sourceCode).toMatch(pattern);
     });
 
-    it('process-note handler should accept _event, noteId, content, and tags parameters', () => {
+    it("process-note handler should accept _event, noteId, content, and tags parameters", () => {
       const pattern =
         /ipcMain\.handle\s*\(\s*['"]graph:process-note['"],\s*async\s*\(\s*_event\s*,\s*noteId\s*,\s*content\s*,\s*tags/;
       expect(sourceCode).toMatch(pattern);
     });
 
-    it('process-all-notes handler should accept _event and noteIds parameters', () => {
+    it("process-all-notes handler should accept _event and noteIds parameters", () => {
       const pattern =
         /ipcMain\.handle\s*\(\s*['"]graph:process-all-notes['"],\s*async\s*\(\s*_event\s*,\s*noteIds/;
       expect(sourceCode).toMatch(pattern);
     });
 
-    it('get-knowledge-relations handler should accept _event and knowledgeId parameters', () => {
+    it("get-knowledge-relations handler should accept _event and knowledgeId parameters", () => {
       const pattern =
         /ipcMain\.handle\s*\(\s*['"]graph:get-knowledge-relations['"],\s*async\s*\(\s*_event\s*,\s*knowledgeId/;
       expect(sourceCode).toMatch(pattern);
     });
 
-    it('find-related-notes handler should accept _event, sourceId, targetId, and maxDepth parameters', () => {
+    it("find-related-notes handler should accept _event, sourceId, targetId, and maxDepth parameters", () => {
       const pattern =
         /ipcMain\.handle\s*\(\s*['"]graph:find-related-notes['"],\s*async\s*\(\s*_event\s*,\s*sourceId\s*,\s*targetId\s*,\s*maxDepth/;
       expect(sourceCode).toMatch(pattern);
     });
 
-    it('find-potential-links handler should accept _event, noteId, and content parameters', () => {
+    it("find-potential-links handler should accept _event, noteId, and content parameters", () => {
       const pattern =
         /ipcMain\.handle\s*\(\s*['"]graph:find-potential-links['"],\s*async\s*\(\s*_event\s*,\s*noteId\s*,\s*content/;
       expect(sourceCode).toMatch(pattern);
     });
 
-    it('add-relation handler should accept _event and multiple relation parameters', () => {
+    it("add-relation handler should accept _event and multiple relation parameters", () => {
       const pattern =
         /ipcMain\.handle\s*\(\s*['"]graph:add-relation['"],\s*async\s*\(\s*_event\s*,\s*sourceId\s*,\s*targetId\s*,\s*type\s*,\s*weight\s*,\s*metadata/;
       expect(sourceCode).toMatch(pattern);
     });
 
-    it('delete-relations handler should accept _event, noteId, and types parameters', () => {
+    it("delete-relations handler should accept _event, noteId, and types parameters", () => {
       const pattern =
         /ipcMain\.handle\s*\(\s*['"]graph:delete-relations['"],\s*async\s*\(\s*_event\s*,\s*noteId\s*,\s*types/;
       expect(sourceCode).toMatch(pattern);
     });
 
-    it('build-temporal-relations handler should accept _event and windowDays parameters', () => {
+    it("build-temporal-relations handler should accept _event and windowDays parameters", () => {
       const pattern =
         /ipcMain\.handle\s*\(\s*['"]graph:build-temporal-relations['"],\s*async\s*\(\s*_event\s*,\s*windowDays/;
       expect(sourceCode).toMatch(pattern);
     });
 
-    it('extract-semantic-relations handler should accept _event, noteId, and content parameters', () => {
+    it("extract-semantic-relations handler should accept _event, noteId, and content parameters", () => {
       const pattern =
         /ipcMain\.handle\s*\(\s*['"]graph:extract-semantic-relations['"],\s*async\s*\(\s*_event\s*,\s*noteId\s*,\s*content/;
       expect(sourceCode).toMatch(pattern);
@@ -325,71 +322,84 @@ describe('Knowledge Graph IPC 处理器注册', () => {
   // 错误处理验证
   // ============================================================
 
-  describe('错误处理验证', () => {
-    it('all handlers should have try-catch blocks', () => {
+  describe("错误处理验证", () => {
+    it("all handlers should have try-catch blocks", () => {
       const requiredHandlers = [
-        'graph:get-graph-data',
-        'graph:process-note',
-        'graph:process-all-notes',
-        'graph:get-knowledge-relations',
-        'graph:find-related-notes',
-        'graph:find-potential-links',
-        'graph:add-relation',
-        'graph:delete-relations',
-        'graph:build-tag-relations',
-        'graph:build-temporal-relations',
-        'graph:extract-semantic-relations',
+        "graph:get-graph-data",
+        "graph:process-note",
+        "graph:process-all-notes",
+        "graph:get-knowledge-relations",
+        "graph:find-related-notes",
+        "graph:find-potential-links",
+        "graph:add-relation",
+        "graph:delete-relations",
+        "graph:build-tag-relations",
+        "graph:build-temporal-relations",
+        "graph:extract-semantic-relations",
       ];
 
       // 检查源代码中有足够的 try-catch 块
       const tryCatchCount = (sourceCode.match(/try\s*\{/g) || []).length;
       expect(tryCatchCount).toBeGreaterThanOrEqual(21);
 
-      const catchCount = (sourceCode.match(/catch\s*\(\s*error\s*\)/g) || []).length;
+      const catchCount = (sourceCode.match(/catch\s*\(\s*error\s*\)/g) || [])
+        .length;
       expect(catchCount).toBeGreaterThanOrEqual(21);
     });
 
-    it('should have error logging for graph operations', () => {
+    it("should have error logging for graph operations", () => {
       // 检查是否有Graph IPC相关的错误日志
-      expect(sourceCode).toMatch(/console\.error\(\s*['"][^'"]*Graph IPC[^'"]*['"]/);
+      expect(sourceCode).toMatch(
+        /console\.error\(\s*['"][^'"]*Graph IPC[^'"]*['"]/,
+      );
     });
 
-    it('get-graph-data should return empty data on error', () => {
+    it("get-graph-data should return empty data on error", () => {
       // 检查错误处理返回空数据结构
-      expect(sourceCode).toMatch(/return\s*\{\s*nodes:\s*\[\s*\]\s*,\s*edges:\s*\[\s*\]\s*\}/);
+      expect(sourceCode).toMatch(
+        /return\s*\{\s*nodes:\s*\[\s*\]\s*,\s*edges:\s*\[\s*\]\s*\}/,
+      );
     });
 
-    it('process handlers should return zero on error', () => {
+    it("process handlers should return zero on error", () => {
       // 检查处理器在错误时返回 0
-      const processNoteReturn = /graph:process-note[\s\S]*?catch[\s\S]*?return\s+0/;
+      const processNoteReturn =
+        /graph:process-note[\s\S]*?catch[\s\S]*?return\s+0/;
       expect(sourceCode).toMatch(processNoteReturn);
     });
 
-    it('process-all-notes should return zero stats on error', () => {
+    it("process-all-notes should return zero stats on error", () => {
       // 检查批量处理在错误时返回零统计
-      expect(sourceCode).toMatch(/processed:\s*0,\s*linkRelations:\s*0,\s*tagRelations:\s*0,\s*temporalRelations:\s*0/);
+      expect(sourceCode).toMatch(
+        /processed:\s*0,\s*linkRelations:\s*0,\s*tagRelations:\s*0,\s*temporalRelations:\s*0/,
+      );
     });
 
-    it('relation handlers should return empty arrays on error', () => {
+    it("relation handlers should return empty arrays on error", () => {
       // 检查关系查询在错误时返回空数组
-      const getRelationsReturn = /graph:get-knowledge-relations[\s\S]*?catch[\s\S]*?return\s+\[\s*\]/;
-      const findLinksReturn = /graph:find-potential-links[\s\S]*?catch[\s\S]*?return\s+\[\s*\]/;
-      const semanticReturn = /graph:extract-semantic-relations[\s\S]*?catch[\s\S]*?return\s+\[\s*\]/;
+      const getRelationsReturn =
+        /graph:get-knowledge-relations[\s\S]*?catch[\s\S]*?return\s+\[\s*\]/;
+      const findLinksReturn =
+        /graph:find-potential-links[\s\S]*?catch[\s\S]*?return\s+\[\s*\]/;
+      const semanticReturn =
+        /graph:extract-semantic-relations[\s\S]*?catch[\s\S]*?return\s+\[\s*\]/;
 
       expect(sourceCode).toMatch(getRelationsReturn);
       expect(sourceCode).toMatch(findLinksReturn);
       expect(sourceCode).toMatch(semanticReturn);
     });
 
-    it('find-related-notes should return null on error', () => {
+    it("find-related-notes should return null on error", () => {
       // 检查路径查找在错误时返回 null
-      const findRelatedReturn = /graph:find-related-notes[\s\S]*?catch[\s\S]*?return\s+null/;
+      const findRelatedReturn =
+        /graph:find-related-notes[\s\S]*?catch[\s\S]*?return\s+null/;
       expect(sourceCode).toMatch(findRelatedReturn);
     });
 
-    it('add-relation should throw error on failure', () => {
+    it("add-relation should throw error on failure", () => {
       // 检查添加关系在失败时抛出错误
-      const addRelationThrow = /graph:add-relation[\s\S]*?catch[\s\S]*?throw\s+error/;
+      const addRelationThrow =
+        /graph:add-relation[\s\S]*?catch[\s\S]*?throw\s+error/;
       expect(sourceCode).toMatch(addRelationThrow);
     });
   });
@@ -398,62 +408,73 @@ describe('Knowledge Graph IPC 处理器注册', () => {
   // 未初始化处理验证
   // ============================================================
 
-  describe('未初始化管理器处理验证', () => {
-    it('should check database initialization in get-graph-data', () => {
+  describe("未初始化管理器处理验证", () => {
+    it("should check database initialization in get-graph-data", () => {
       const pattern = /if\s*\(\s*!\s*database\s*\)/;
       expect(sourceCode).toMatch(pattern);
     });
 
-    it('should check graphExtractor initialization in process-note', () => {
+    it("should check graphExtractor initialization in process-note", () => {
       const pattern = /if\s*\(\s*!\s*graphExtractor\s*\)/;
       expect(sourceCode).toMatch(pattern);
     });
 
-    it('should check graphExtractor initialization in process-all-notes', () => {
-      const processAllPattern = /graph:process-all-notes[\s\S]*?if\s*\(\s*!\s*graphExtractor\s*\)/;
+    it("should check graphExtractor initialization in process-all-notes", () => {
+      const processAllPattern =
+        /graph:process-all-notes[\s\S]*?if\s*\(\s*!\s*graphExtractor\s*\)/;
       expect(sourceCode).toMatch(processAllPattern);
     });
 
-    it('should check database initialization in relation queries', () => {
-      const getRelationsPattern = /graph:get-knowledge-relations[\s\S]*?if\s*\(\s*!\s*database\s*\)/;
-      const findRelatedPattern = /graph:find-related-notes[\s\S]*?if\s*\(\s*!\s*database\s*\)/;
+    it("should check database initialization in relation queries", () => {
+      const getRelationsPattern =
+        /graph:get-knowledge-relations[\s\S]*?if\s*\(\s*!\s*database\s*\)/;
+      const findRelatedPattern =
+        /graph:find-related-notes[\s\S]*?if\s*\(\s*!\s*database\s*\)/;
 
       expect(sourceCode).toMatch(getRelationsPattern);
       expect(sourceCode).toMatch(findRelatedPattern);
     });
 
-    it('should check graphExtractor initialization in find-potential-links', () => {
-      const pattern = /graph:find-potential-links[\s\S]*?if\s*\(\s*!\s*graphExtractor\s*\)/;
+    it("should check graphExtractor initialization in find-potential-links", () => {
+      const pattern =
+        /graph:find-potential-links[\s\S]*?if\s*\(\s*!\s*graphExtractor\s*\)/;
       expect(sourceCode).toMatch(pattern);
     });
 
-    it('should throw error when database not initialized in add-relation', () => {
-      const pattern = /graph:add-relation[\s\S]*?if\s*\(\s*!\s*database\s*\)[\s\S]*?throw\s+new\s+Error/;
+    it("should throw error when database not initialized in add-relation", () => {
+      const pattern =
+        /graph:add-relation[\s\S]*?if\s*\(\s*!\s*database\s*\)[\s\S]*?throw\s+new\s+Error/;
       expect(sourceCode).toMatch(pattern);
     });
 
-    it('should check database initialization in delete-relations', () => {
-      const pattern = /graph:delete-relations[\s\S]*?if\s*\(\s*!\s*database\s*\)/;
+    it("should check database initialization in delete-relations", () => {
+      const pattern =
+        /graph:delete-relations[\s\S]*?if\s*\(\s*!\s*database\s*\)/;
       expect(sourceCode).toMatch(pattern);
     });
 
-    it('should check database initialization in build-tag-relations', () => {
-      const pattern = /graph:build-tag-relations[\s\S]*?if\s*\(\s*!\s*database\s*\)/;
+    it("should check database initialization in build-tag-relations", () => {
+      const pattern =
+        /graph:build-tag-relations[\s\S]*?if\s*\(\s*!\s*database\s*\)/;
       expect(sourceCode).toMatch(pattern);
     });
 
-    it('should check database initialization in build-temporal-relations', () => {
-      const pattern = /graph:build-temporal-relations[\s\S]*?if\s*\(\s*!\s*database\s*\)/;
+    it("should check database initialization in build-temporal-relations", () => {
+      const pattern =
+        /graph:build-temporal-relations[\s\S]*?if\s*\(\s*!\s*database\s*\)/;
       expect(sourceCode).toMatch(pattern);
     });
 
-    it('should check both graphExtractor and llmManager in extract-semantic-relations', () => {
-      const pattern = /graph:extract-semantic-relations[\s\S]*?if\s*\(\s*!\s*graphExtractor\s*\|\|\s*!\s*llmManager\s*\)/;
+    it("should check both graphExtractor and llmManager in extract-semantic-relations", () => {
+      const pattern =
+        /graph:extract-semantic-relations[\s\S]*?if\s*\(\s*!\s*graphExtractor\s*\|\|\s*!\s*llmManager\s*\)/;
       expect(sourceCode).toMatch(pattern);
     });
 
-    it('should have warning logs for uninitialized managers', () => {
-      expect(sourceCode).toMatch(/console\.warn\([^)]*GraphExtractor\s+未初始化/);
+    it("should have warning logs for uninitialized managers", () => {
+      expect(sourceCode).toMatch(
+        /console\.warn\([^)]*GraphExtractor\s+未初始化/,
+      );
     });
   });
 
@@ -461,11 +482,11 @@ describe('Knowledge Graph IPC 处理器注册', () => {
   // 功能分类验证
   // ============================================================
 
-  describe('图谱数据查询处理器 (2 handlers)', () => {
-    it('should have 2 data query handlers', () => {
+  describe("图谱数据查询处理器 (2 handlers)", () => {
+    it("should have 2 data query handlers", () => {
       const queryHandlers = [
-        'graph:get-graph-data',
-        'graph:get-knowledge-relations',
+        "graph:get-graph-data",
+        "graph:get-knowledge-relations",
       ];
 
       let count = 0;
@@ -478,21 +499,20 @@ describe('Knowledge Graph IPC 处理器注册', () => {
       expect(count).toBe(2);
     });
 
-    it('data query handlers should use database', () => {
-      const getGraphPattern = /graph:get-graph-data[\s\S]*?database\.getGraphData/;
-      const getRelationsPattern = /graph:get-knowledge-relations[\s\S]*?database\.getKnowledgeRelations/;
+    it("data query handlers should use database", () => {
+      const getGraphPattern =
+        /graph:get-graph-data[\s\S]*?database\.getGraphData/;
+      const getRelationsPattern =
+        /graph:get-knowledge-relations[\s\S]*?database\.getKnowledgeRelations/;
 
       expect(sourceCode).toMatch(getGraphPattern);
       expect(sourceCode).toMatch(getRelationsPattern);
     });
   });
 
-  describe('笔记处理器 (2 handlers)', () => {
-    it('should have 2 note processing handlers', () => {
-      const processHandlers = [
-        'graph:process-note',
-        'graph:process-all-notes',
-      ];
+  describe("笔记处理器 (2 handlers)", () => {
+    it("should have 2 note processing handlers", () => {
+      const processHandlers = ["graph:process-note", "graph:process-all-notes"];
 
       let count = 0;
       processHandlers.forEach((handler) => {
@@ -504,21 +524,20 @@ describe('Knowledge Graph IPC 处理器注册', () => {
       expect(count).toBe(2);
     });
 
-    it('note processing handlers should use graphExtractor', () => {
-      const processNotePattern = /graph:process-note[\s\S]*?graphExtractor\.processNote/;
-      const processAllPattern = /graph:process-all-notes[\s\S]*?graphExtractor\.processAllNotes/;
+    it("note processing handlers should use graphExtractor", () => {
+      const processNotePattern =
+        /graph:process-note[\s\S]*?graphExtractor\.processNote/;
+      const processAllPattern =
+        /graph:process-all-notes[\s\S]*?graphExtractor\.processAllNotes/;
 
       expect(sourceCode).toMatch(processNotePattern);
       expect(sourceCode).toMatch(processAllPattern);
     });
   });
 
-  describe('关系管理处理器 (2 handlers)', () => {
-    it('should have 2 relation management handlers', () => {
-      const relationHandlers = [
-        'graph:add-relation',
-        'graph:delete-relations',
-      ];
+  describe("关系管理处理器 (2 handlers)", () => {
+    it("should have 2 relation management handlers", () => {
+      const relationHandlers = ["graph:add-relation", "graph:delete-relations"];
 
       let count = 0;
       relationHandlers.forEach((handler) => {
@@ -530,20 +549,21 @@ describe('Knowledge Graph IPC 处理器注册', () => {
       expect(count).toBe(2);
     });
 
-    it('relation management handlers should use database methods', () => {
+    it("relation management handlers should use database methods", () => {
       const addPattern = /graph:add-relation[\s\S]*?database\.addRelation/;
-      const deletePattern = /graph:delete-relations[\s\S]*?database\.deleteRelations/;
+      const deletePattern =
+        /graph:delete-relations[\s\S]*?database\.deleteRelations/;
 
       expect(sourceCode).toMatch(addPattern);
       expect(sourceCode).toMatch(deletePattern);
     });
   });
 
-  describe('图谱分析处理器 (2 handlers)', () => {
-    it('should have 2 graph analysis handlers', () => {
+  describe("图谱分析处理器 (2 handlers)", () => {
+    it("should have 2 graph analysis handlers", () => {
       const analysisHandlers = [
-        'graph:find-related-notes',
-        'graph:find-potential-links',
+        "graph:find-related-notes",
+        "graph:find-potential-links",
       ];
 
       let count = 0;
@@ -556,20 +576,22 @@ describe('Knowledge Graph IPC 处理器注册', () => {
       expect(count).toBe(2);
     });
 
-    it('graph analysis handlers should have proper logic', () => {
-      const findRelatedPattern = /graph:find-related-notes[\s\S]*?database\.findRelatedNotes/;
-      const potentialLinksPattern = /graph:find-potential-links[\s\S]*?graphExtractor\.findPotentialLinks/;
+    it("graph analysis handlers should have proper logic", () => {
+      const findRelatedPattern =
+        /graph:find-related-notes[\s\S]*?database\.findRelatedNotes/;
+      const potentialLinksPattern =
+        /graph:find-potential-links[\s\S]*?graphExtractor\.findPotentialLinks/;
 
       expect(sourceCode).toMatch(findRelatedPattern);
       expect(sourceCode).toMatch(potentialLinksPattern);
     });
   });
 
-  describe('关系构建处理器 (2 handlers)', () => {
-    it('should have 2 relation building handlers', () => {
+  describe("关系构建处理器 (2 handlers)", () => {
+    it("should have 2 relation building handlers", () => {
       const buildHandlers = [
-        'graph:build-tag-relations',
-        'graph:build-temporal-relations',
+        "graph:build-tag-relations",
+        "graph:build-temporal-relations",
       ];
 
       let count = 0;
@@ -582,27 +604,31 @@ describe('Knowledge Graph IPC 处理器注册', () => {
       expect(count).toBe(2);
     });
 
-    it('relation building handlers should use database methods', () => {
-      const tagPattern = /graph:build-tag-relations[\s\S]*?database\.buildTagRelations/;
-      const temporalPattern = /graph:build-temporal-relations[\s\S]*?database\.buildTemporalRelations/;
+    it("relation building handlers should use database methods", () => {
+      const tagPattern =
+        /graph:build-tag-relations[\s\S]*?database\.buildTagRelations/;
+      const temporalPattern =
+        /graph:build-temporal-relations[\s\S]*?database\.buildTemporalRelations/;
 
       expect(sourceCode).toMatch(tagPattern);
       expect(sourceCode).toMatch(temporalPattern);
     });
   });
 
-  describe('语义关系提取处理器 (1 handler)', () => {
-    it('should have semantic extraction handler', () => {
+  describe("语义关系提取处理器 (1 handler)", () => {
+    it("should have semantic extraction handler", () => {
       expect(sourceCode).toContain("'graph:extract-semantic-relations'");
     });
 
-    it('semantic extraction should use both graphExtractor and llmManager', () => {
-      const pattern = /graph:extract-semantic-relations[\s\S]*?await\s+graphExtractor\.extractSemanticRelations\([^)]*llmManager/;
+    it("semantic extraction should use both graphExtractor and llmManager", () => {
+      const pattern =
+        /graph:extract-semantic-relations[\s\S]*?await\s+graphExtractor\.extractSemanticRelations\([^)]*llmManager/;
       expect(sourceCode).toMatch(pattern);
     });
 
-    it('semantic extraction should be async with await', () => {
-      const pattern = /graph:extract-semantic-relations['"],\s*async[\s\S]*?await/;
+    it("semantic extraction should be async with await", () => {
+      const pattern =
+        /graph:extract-semantic-relations['"],\s*async[\s\S]*?await/;
       expect(sourceCode).toMatch(pattern);
     });
   });
@@ -611,30 +637,30 @@ describe('Knowledge Graph IPC 处理器注册', () => {
   // 完整性检查
   // ============================================================
 
-  describe('完整性检查', () => {
-    it('should have all 21 unique handler channels', () => {
+  describe("完整性检查", () => {
+    it("should have all 21 unique handler channels", () => {
       const expectedHandlers = [
-        'graph:get-graph-data',
-        'graph:process-note',
-        'graph:process-all-notes',
-        'graph:get-knowledge-relations',
-        'graph:find-related-notes',
-        'graph:find-potential-links',
-        'graph:add-relation',
-        'graph:delete-relations',
-        'graph:build-tag-relations',
-        'graph:build-temporal-relations',
-        'graph:extract-semantic-relations',
-        'graph:calculate-centrality',
-        'graph:detect-communities',
-        'graph:cluster-nodes',
-        'graph:find-key-nodes',
-        'graph:analyze-stats',
-        'graph:export-graph',
-        'graph:extract-entities',
-        'graph:extract-keywords',
-        'graph:process-notes-entities',
-        'graph:build-entity-graph',
+        "graph:get-graph-data",
+        "graph:process-note",
+        "graph:process-all-notes",
+        "graph:get-knowledge-relations",
+        "graph:find-related-notes",
+        "graph:find-potential-links",
+        "graph:add-relation",
+        "graph:delete-relations",
+        "graph:build-tag-relations",
+        "graph:build-temporal-relations",
+        "graph:extract-semantic-relations",
+        "graph:calculate-centrality",
+        "graph:detect-communities",
+        "graph:cluster-nodes",
+        "graph:find-key-nodes",
+        "graph:analyze-stats",
+        "graph:export-graph",
+        "graph:extract-entities",
+        "graph:extract-keywords",
+        "graph:process-notes-entities",
+        "graph:build-entity-graph",
       ];
 
       expectedHandlers.forEach((channel) => {
@@ -642,73 +668,76 @@ describe('Knowledge Graph IPC 处理器注册', () => {
       });
     });
 
-    it('should have no duplicate handler registrations in source', () => {
+    it("should have no duplicate handler registrations in source", () => {
       const requiredHandlers = [
-        'graph:get-graph-data',
-        'graph:process-note',
-        'graph:process-all-notes',
-        'graph:get-knowledge-relations',
-        'graph:find-related-notes',
-        'graph:find-potential-links',
-        'graph:add-relation',
-        'graph:delete-relations',
-        'graph:build-tag-relations',
-        'graph:build-temporal-relations',
-        'graph:extract-semantic-relations',
+        "graph:get-graph-data",
+        "graph:process-note",
+        "graph:process-all-notes",
+        "graph:get-knowledge-relations",
+        "graph:find-related-notes",
+        "graph:find-potential-links",
+        "graph:add-relation",
+        "graph:delete-relations",
+        "graph:build-tag-relations",
+        "graph:build-temporal-relations",
+        "graph:extract-semantic-relations",
       ];
 
       requiredHandlers.forEach((channel) => {
         // 每个 handler 应该只在 ipcMain.handle 中被注册一次
-        const countMatches = (sourceCode.match(
-          new RegExp(
-            `ipcMain\\.handle\\s*\\(\\s*['"]${channel}['"]`,
-            'g'
-          )
-        ) || []).length;
+        const countMatches = (
+          sourceCode.match(
+            new RegExp(`ipcMain\\.handle\\s*\\(\\s*['"]${channel}['"]`, "g"),
+          ) || []
+        ).length;
         expect(countMatches).toBe(1);
       });
     });
 
-    it('should have proper summary console log', () => {
+    it("should have proper summary console log", () => {
       // 检查是否有完成日志
       const summaryPattern =
         /console\.log\s*\(\s*['"][^'"]*11[^'"]*知识图谱[^'"]*IPC[^'"]*处理器[^'"]*['"]\s*\)/;
       expect(sourceCode).toMatch(summaryPattern);
     });
 
-    it('should accept context parameter with required properties', () => {
+    it("should accept context parameter with required properties", () => {
       // 检查函数签名和上下文解构
-      expect(sourceCode).toMatch(/function\s+registerGraphIPC\s*\(\s*context\s*\)/);
-      expect(sourceCode).toMatch(/const\s*\{\s*database\s*,\s*graphExtractor\s*,\s*llmManager\s*\}\s*=\s*context/);
+      expect(sourceCode).toMatch(
+        /function\s+registerGraphIPC\s*\(\s*context\s*\)/,
+      );
+      expect(sourceCode).toMatch(
+        /const\s*\{\s*database\s*,\s*graphExtractor\s*,\s*llmManager\s*\}\s*=\s*context/,
+      );
     });
 
-    it('should use Electron ipcMain module', () => {
-      expect(sourceCode).toMatch(/const\s*\{\s*ipcMain\s*\}\s*=\s*require\s*\(\s*['"]electron['"]\s*\)/);
+    it("should use Electron ipcMain module", () => {
+      expect(sourceCode).toMatch(
+        /const\s*\{\s*ipcMain\s*\}\s*=\s*require\s*\(\s*['"]electron['"]\s*\)/,
+      );
     });
 
-    it('summary: all 11 Knowledge Graph IPC handlers should be properly defined in source', () => {
+    it("summary: all 11 Knowledge Graph IPC handlers should be properly defined in source", () => {
       const expectedHandlers = [
-        'graph:get-graph-data',
-        'graph:process-note',
-        'graph:process-all-notes',
-        'graph:get-knowledge-relations',
-        'graph:find-related-notes',
-        'graph:find-potential-links',
-        'graph:add-relation',
-        'graph:delete-relations',
-        'graph:build-tag-relations',
-        'graph:build-temporal-relations',
-        'graph:extract-semantic-relations',
+        "graph:get-graph-data",
+        "graph:process-note",
+        "graph:process-all-notes",
+        "graph:get-knowledge-relations",
+        "graph:find-related-notes",
+        "graph:find-potential-links",
+        "graph:add-relation",
+        "graph:delete-relations",
+        "graph:build-tag-relations",
+        "graph:build-temporal-relations",
+        "graph:extract-semantic-relations",
       ];
 
       // 计算总数
       const handlerCount = (
-        sourceCode.match(
-          /ipcMain\.handle\s*\(\s*['"]/g
-        ) || []
+        sourceCode.match(/ipcMain\.handle\s*\(\s*['"]/g) || []
       ).length;
 
-      expect(handlerCount).toBe(11);
+      expect(handlerCount).toBe(21);
 
       // 验证每个 handler 都存在
       expectedHandlers.forEach((channel) => {
@@ -716,7 +745,7 @@ describe('Knowledge Graph IPC 处理器注册', () => {
       });
 
       // 验证导出
-      expect(typeof registerGraphIPC).toBe('function');
+      expect(typeof registerGraphIPC).toBe("function");
     });
   });
 
@@ -724,24 +753,30 @@ describe('Knowledge Graph IPC 处理器注册', () => {
   // 文档和注释验证
   // ============================================================
 
-  describe('文档和注释验证', () => {
-    it('should have file header documentation', () => {
+  describe("文档和注释验证", () => {
+    it("should have file header documentation", () => {
       expect(sourceCode).toMatch(/\/\*\*[\s\S]*?Knowledge Graph IPC Handlers/);
       expect(sourceCode).toMatch(/知识图谱系统 IPC 处理器/);
     });
 
-    it('should document the number of handlers', () => {
+    it("should document the number of handlers", () => {
       expect(sourceCode).toMatch(/11\s*个\s*IPC/);
     });
 
-    it('should have JSDoc for registerGraphIPC function', () => {
+    it("should have JSDoc for registerGraphIPC function", () => {
       expect(sourceCode).toMatch(/@param\s*\{\s*Object\s*\}\s*context/);
-      expect(sourceCode).toMatch(/@param\s*\{\s*Object\s*\}\s*context\.database/);
-      expect(sourceCode).toMatch(/@param\s*\{\s*Object\s*\}\s*context\.graphExtractor/);
-      expect(sourceCode).toMatch(/@param\s*\{\s*Object\s*\}\s*context\.llmManager/);
+      expect(sourceCode).toMatch(
+        /@param\s*\{\s*Object\s*\}\s*context\.database/,
+      );
+      expect(sourceCode).toMatch(
+        /@param\s*\{\s*Object\s*\}\s*context\.graphExtractor/,
+      );
+      expect(sourceCode).toMatch(
+        /@param\s*\{\s*Object\s*\}\s*context\.llmManager/,
+      );
     });
 
-    it('should have numbered comments for each handler', () => {
+    it("should have numbered comments for each handler", () => {
       // 检查是否有 1-11 的编号注释
       for (let i = 1; i <= 11; i++) {
         const pattern = new RegExp(`//\\s*${i}\\.`);
@@ -749,7 +784,7 @@ describe('Knowledge Graph IPC 处理器注册', () => {
       }
     });
 
-    it('should have descriptive Chinese comments for handlers', () => {
+    it("should have descriptive Chinese comments for handlers", () => {
       // 检查关键功能的中文注释
       expect(sourceCode).toMatch(/获取图谱数据/);
       expect(sourceCode).toMatch(/处理单个笔记/);
