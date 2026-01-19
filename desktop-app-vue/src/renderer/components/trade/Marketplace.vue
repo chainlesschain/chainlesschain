@@ -475,6 +475,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, reactive, computed, onMounted, watch } from "vue";
 import { message as antMessage, Modal } from "ant-design-vue";
 import {
@@ -720,9 +722,9 @@ const isMyOrder = (order) => {
 const loadOrders = async () => {
   try {
     await tradeStore.loadOrders({ status: "open" });
-    console.log("[Marketplace] 订单列表已加载:", orders.value.length);
+    logger.info("[Marketplace] 订单列表已加载:", orders.value.length);
   } catch (error) {
-    console.error("[Marketplace] 加载订单列表失败:", error);
+    logger.error("[Marketplace] 加载订单列表失败:", error);
     antMessage.error("加载订单列表失败: " + error.message);
   }
 };
@@ -732,9 +734,9 @@ const loadMyOrders = async () => {
   try {
     if (!currentDid.value) {return;}
     await tradeStore.loadMyOrders(currentDid.value);
-    console.log("[Marketplace] 我的订单已加载");
+    logger.info("[Marketplace] 我的订单已加载");
   } catch (error) {
-    console.error("[Marketplace] 加载我的订单失败:", error);
+    logger.error("[Marketplace] 加载我的订单失败:", error);
     antMessage.error("加载我的订单失败: " + error.message);
   }
 };
@@ -815,7 +817,7 @@ const handleConfirmPurchase = async () => {
     await loadOrders();
     await loadMyOrders();
   } catch (error) {
-    console.error("[Marketplace] 购买失败:", error);
+    logger.error("[Marketplace] 购买失败:", error);
     antMessage.error(error.message || "购买失败");
   }
 };
@@ -834,7 +836,7 @@ const handleCancelOrder = (order) => {
         await loadOrders();
         await loadMyOrders();
       } catch (error) {
-        console.error("[Marketplace] 取消订单失败:", error);
+        logger.error("[Marketplace] 取消订单失败:", error);
         antMessage.error(error.message || "取消订单失败");
       }
     },
@@ -886,7 +888,7 @@ const handleShareOrder = (order) => {
 
 // 订单分享成功
 const handleOrderShared = (shareInfo) => {
-  console.log("[Marketplace] 订单已分享:", shareInfo);
+  logger.info("[Marketplace] 订单已分享:", shareInfo);
 };
 
 // 获取可用余额
@@ -910,7 +912,7 @@ const handleConfirmDelivery = (transaction) => {
         antMessage.success("已确认收货");
         await loadMyOrders();
       } catch (error) {
-        console.error("[Marketplace] 确认收货失败:", error);
+        logger.error("[Marketplace] 确认收货失败:", error);
         antMessage.error(error.message || "确认收货失败");
       }
     },
@@ -930,7 +932,7 @@ const handleRequestRefund = (transaction) => {
         antMessage.success("已申请退款");
         await loadMyOrders();
       } catch (error) {
-        console.error("[Marketplace] 申请退款失败:", error);
+        logger.error("[Marketplace] 申请退款失败:", error);
         antMessage.error(error.message || "申请退款失败");
       }
     },
@@ -972,7 +974,7 @@ const handleSearchInput = async (value) => {
         searchSuggestions.value = localSuggestions;
       }
     } catch (error) {
-      console.warn("[Marketplace] 获取搜索建议失败:", error);
+      logger.warn("[Marketplace] 获取搜索建议失败:", error);
       searchSuggestions.value = [];
     }
   }, 300);

@@ -1,3 +1,4 @@
+const { logger, createLogger } = require('../utils/logger.js');
 const { v4: uuidv4 } = require("uuid");
 
 /**
@@ -23,11 +24,11 @@ class CategoryManager {
         .get(userId);
 
       if (result && result.count > 0) {
-        console.log("[CategoryManager] 默认分类已存在，跳过初始化");
+        logger.info("[CategoryManager] 默认分类已存在，跳过初始化");
         return;
       }
 
-      console.log("[CategoryManager] 初始化默认项目分类...");
+      logger.info("[CategoryManager] 初始化默认项目分类...");
 
       const now = Date.now();
       const categories = [
@@ -569,9 +570,9 @@ class CategoryManager {
       if (this.db.saveToFile && typeof this.db.saveToFile === "function") {
         this.db.saveToFile();
       }
-      console.log("[CategoryManager] 默认项目分类初始化完成");
+      logger.info("[CategoryManager] 默认项目分类初始化完成");
     } catch (error) {
-      console.error("[CategoryManager] 初始化默认分类失败:", error);
+      logger.error("[CategoryManager] 初始化默认分类失败:", error);
       throw error;
     }
   }
@@ -779,7 +780,7 @@ class CategoryManager {
 
       return true;
     } catch (error) {
-      console.error("[CategoryManager] 批量更新分类排序失败:", error);
+      logger.error("[CategoryManager] 批量更新分类排序失败:", error);
       return false;
     }
   }

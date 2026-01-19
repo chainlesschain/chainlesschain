@@ -3,6 +3,7 @@
  * 定期检查各个服务和组件的健康状态,并尝试自动修复问题
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const axios = require("axios");
 const fs = require("fs").promises;
 const path = require("path");
@@ -42,7 +43,7 @@ class HealthCheckService {
       return;
     }
 
-    console.log("[Health Check] Starting health check service...");
+    logger.info("[Health Check] Starting health check service...");
     this.runChecks(); // 立即执行一次
 
     this.intervalId = setInterval(() => {
@@ -57,7 +58,7 @@ class HealthCheckService {
     if (this.intervalId) {
       clearInterval(this.intervalId);
       this.intervalId = null;
-      console.log("[Health Check] Health check service stopped");
+      logger.info("[Health Check] Health check service stopped");
     }
   }
 
@@ -65,7 +66,7 @@ class HealthCheckService {
    * 运行所有检查
    */
   async runChecks() {
-    console.log("[Health Check] Running health checks...");
+    logger.info("[Health Check] Running health checks...");
     const results = {};
     const timestamp = new Date().toISOString();
 
@@ -82,7 +83,7 @@ class HealthCheckService {
 
         // 如果检查失败,尝试自动修复
         if (!result.healthy && result.autoFix) {
-          console.log(`[Health Check] Attempting to auto-fix ${name}...`);
+          logger.info(`[Health Check] Attempting to auto-fix ${name}...`);
           const fixResult = await result.autoFix();
           results[name].autoFixAttempted = true;
           results[name].autoFixResult = fixResult;
@@ -473,7 +474,7 @@ class HealthCheckService {
       const logEntry = `${new Date().toISOString()} - ${JSON.stringify(results, null, 2)}\n---\n`;
       await fs.appendFile(logFile, logEntry);
     } catch (error) {
-      console.error("Failed to save health check log:", error);
+      logger.error("Failed to save health check log:", error);
     }
   }
 

@@ -5,6 +5,7 @@
  * 支持平滑迁移和fallback
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require('fs');
 const path = require('path');
 const { KeyManager } = require('./key-manager');
@@ -63,22 +64,22 @@ class DatabaseAdapter {
     const encryptedDbPath = this.getEncryptedDbPath();
 
     if (fs.existsSync(encryptedDbPath)) {
-      console.log('[DatabaseAdapter] 检测到加密数据库，使用 SQLCipher');
+      logger.info('[DatabaseAdapter] 检测到加密数据库，使用 SQLCipher');
       return DatabaseEngine.SQLCIPHER;
     }
 
     // 开发模式：如果没有密码，直接使用 sql.js
     if (this.developmentMode && !this.password) {
-      console.log('[DatabaseAdapter] 开发模式且未设置密码，使用 sql.js（跳过加密）');
+      logger.info('[DatabaseAdapter] 开发模式且未设置密码，使用 sql.js（跳过加密）');
       return DatabaseEngine.SQL_JS;
     }
 
     if (this.encryptionEnabled) {
-      console.log('[DatabaseAdapter] 加密已启用，使用 SQLCipher');
+      logger.info('[DatabaseAdapter] 加密已启用，使用 SQLCipher');
       return DatabaseEngine.SQLCIPHER;
     }
 
-    console.log('[DatabaseAdapter] 使用 sql.js');
+    logger.info('[DatabaseAdapter] 使用 sql.js');
     return DatabaseEngine.SQL_JS;
   }
 
@@ -96,7 +97,7 @@ class DatabaseAdapter {
    * 初始化适配器
    */
   async initialize() {
-    console.log('[DatabaseAdapter] 初始化数据库适配器...');
+    logger.info('[DatabaseAdapter] 初始化数据库适配器...');
 
     // 1. 检测引擎
     this.engine = this.detectEngine();
@@ -111,14 +112,14 @@ class DatabaseAdapter {
       }
     }
 
-    console.log('[DatabaseAdapter] 数据库适配器初始化完成，引擎:', this.engine);
+    logger.info('[DatabaseAdapter] 数据库适配器初始化完成，引擎:', this.engine);
   }
 
   /**
    * 初始化加密功能
    */
   async initializeEncryption() {
-    console.log('[DatabaseAdapter] 初始化加密功能...');
+    logger.info('[DatabaseAdapter] 初始化加密功能...');
 
     // 创建密钥管理器
     // 注意：如果提供了密码，禁用U-Key以使用密码模式
@@ -146,7 +147,7 @@ class DatabaseAdapter {
    * 执行数据库迁移
    */
   async performMigration() {
-    console.log('[DatabaseAdapter] 开始自动迁移...');
+    logger.info('[DatabaseAdapter] 开始自动迁移...');
 
     try {
       // 获取加密密钥
@@ -166,10 +167,10 @@ class DatabaseAdapter {
         encryptionKey: keyResult.key
       });
 
-      console.log('[DatabaseAdapter] 迁移完成:', migrationResult);
+      logger.info('[DatabaseAdapter] 迁移完成:', migrationResult);
       return migrationResult;
     } catch (error) {
-      console.error('[DatabaseAdapter] 迁移失败:', error);
+      logger.error('[DatabaseAdapter] 迁移失败:', error);
       throw error;
     }
   }
@@ -187,7 +188,7 @@ class DatabaseAdapter {
     let effectivePassword = this.password;
     if (this.developmentMode && !effectivePassword) {
       effectivePassword = this.getDevDefaultPassword();
-      console.log('[DatabaseAdapter] 开发模式：使用默认密码');
+      logger.info('[DatabaseAdapter] 开发模式：使用默认密码');
     }
 
     // 加载已保存的元数据
@@ -226,7 +227,7 @@ class DatabaseAdapter {
     const db = createEncryptedDatabase(encryptedDbPath, keyResult.key);
     db.open();
 
-    console.log('[DatabaseAdapter] SQLCipher 数据库已创建');
+    logger.info('[DatabaseAdapter] SQLCipher 数据库已创建');
     return db;
   }
 
@@ -253,11 +254,11 @@ class DatabaseAdapter {
 
         for (const filePath of possiblePaths) {
           if (fs.existsSync(filePath)) {
-            console.log('[DatabaseAdapter] Found sql.js WASM at:', filePath);
+            logger.info('[DatabaseAdapter] Found sql.js WASM at:', filePath);
             return filePath;
           }
         }
-        console.error('[DatabaseAdapter] Could not find sql.js WASM file. Tried:', possiblePaths);
+        logger.error('[DatabaseAdapter] Could not find sql.js WASM file. Tried:', possiblePaths);
         return file;
       }
     });
@@ -271,7 +272,7 @@ class DatabaseAdapter {
       db = new SQL.Database();
     }
 
-    console.log('[DatabaseAdapter] sql.js 数据库已创建');
+    logger.info('[DatabaseAdapter] sql.js 数据库已创建');
     return db;
   }
 
@@ -293,7 +294,7 @@ class DatabaseAdapter {
 
         fs.writeFileSync(this.dbPath, buffer);
       } catch (error) {
-        console.error('[DatabaseAdapter] 保存数据库失败:', error);
+        logger.error('[DatabaseAdapter] 保存数据库失败:', error);
       }
     }
     // SQLCipher 会自动保存，不需要手动操作
@@ -303,13 +304,13 @@ class DatabaseAdapter {
    * 关闭数据库适配器
    */
   async close() {
-    console.log('[DatabaseAdapter] 关闭数据库适配器...');
+    logger.info('[DatabaseAdapter] 关闭数据库适配器...');
 
     if (this.keyManager) {
       await this.keyManager.close();
     }
 
-    console.log('[DatabaseAdapter] 数据库适配器已关闭');
+    logger.info('[DatabaseAdapter] 数据库适配器已关闭');
   }
 
   /**
@@ -379,13 +380,13 @@ class DatabaseAdapter {
       // 5. 更新当前密码
       this.password = newPassword;
 
-      console.log('[DatabaseAdapter] 数据库密码修改成功');
+      logger.info('[DatabaseAdapter] 数据库密码修改成功');
       return {
         success: true,
         message: '密码修改成功'
       };
     } catch (error) {
-      console.error('[DatabaseAdapter] 密码修改失败:', error);
+      logger.error('[DatabaseAdapter] 密码修改失败:', error);
       throw error;
     }
   }

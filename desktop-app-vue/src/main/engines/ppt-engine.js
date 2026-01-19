@@ -4,6 +4,7 @@
  * 使用PptxGenJS库实现
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const pptxgen = require('pptxgenjs');
 const fs = require('fs').promises;
 const path = require('path');
@@ -58,7 +59,7 @@ class PPTEngine {
       llmManager
     } = options;
 
-    console.log('[PPT Engine] 开始生成PPT:', outline.title);
+    logger.info('[PPT Engine] 开始生成PPT:', outline.title);
 
     try {
       const ppt = new pptxgen();
@@ -102,24 +103,24 @@ class PPTEngine {
         // 使用系统临时目录作为默认路径
         const tempDir = os.tmpdir();
         filePath = path.join(tempDir, fileName);
-        console.log('[PPT Engine] 未指定输出路径，使用临时目录:', filePath);
+        logger.info('[PPT Engine] 未指定输出路径，使用临时目录:', filePath);
       }
 
       // 确保目录存在
       const fs = require('fs').promises;
       const dirPath = path.dirname(filePath);
-      console.log('[PPT Engine] 检查目录:', dirPath);
+      logger.info('[PPT Engine] 检查目录:', dirPath);
       try {
         await fs.mkdir(dirPath, { recursive: true });
-        console.log('[PPT Engine] ✓ 目录已确保存在');
+        logger.info('[PPT Engine] ✓ 目录已确保存在');
       } catch (mkdirError) {
-        console.error('[PPT Engine] 创建目录失败:', mkdirError.message);
+        logger.error('[PPT Engine] 创建目录失败:', mkdirError.message);
         throw new Error(`无法创建目录 ${dirPath}: ${mkdirError.message}`);
       }
 
       await ppt.writeFile({ fileName: filePath });
 
-      console.log('[PPT Engine] PPT生成成功:', filePath);
+      logger.info('[PPT Engine] PPT生成成功:', filePath);
 
       return {
         success: true,
@@ -129,7 +130,7 @@ class PPTEngine {
         theme
       };
     } catch (error) {
-      console.error('[PPT Engine] 生成PPT失败:', error);
+      logger.error('[PPT Engine] 生成PPT失败:', error);
       throw new Error(`生成PPT失败: ${error.message}`);
     }
   }
@@ -241,7 +242,7 @@ class PPTEngine {
   async handleProjectTask(params) {
     const { description, projectPath, llmManager } = params;
 
-    console.log('[PPT Engine] 处理PPT生成任务');
+    logger.info('[PPT Engine] 处理PPT生成任务');
 
     try {
       const outline = await this.generateOutlineFromDescription(description, llmManager);
@@ -255,7 +256,7 @@ class PPTEngine {
         ...result
       };
     } catch (error) {
-      console.error('[PPT Engine] 任务执行失败:', error);
+      logger.error('[PPT Engine] 任务执行失败:', error);
       throw error;
     }
   }
@@ -274,7 +275,7 @@ class PPTEngine {
       llmManager
     } = options;
 
-    console.log('[PPT Engine] 从Markdown生成PPT');
+    logger.info('[PPT Engine] 从Markdown生成PPT');
 
     try {
       // 解析Markdown结构
@@ -282,7 +283,7 @@ class PPTEngine {
 
       // 如果解析失败或内容不够，使用LLM增强
       if (!outline.sections || outline.sections.length === 0) {
-        console.log('[PPT Engine] Markdown解析内容不足，使用LLM增强...');
+        logger.info('[PPT Engine] Markdown解析内容不足，使用LLM增强...');
         const enhancedOutline = await this.generateOutlineFromDescription(
           markdownContent.substring(0, 1000),
           llmManager
@@ -298,7 +299,7 @@ class PPTEngine {
         llmManager
       });
     } catch (error) {
-      console.error('[PPT Engine] 从Markdown生成PPT失败:', error);
+      logger.error('[PPT Engine] 从Markdown生成PPT失败:', error);
       throw new Error(`从Markdown生成PPT失败: ${error.message}`);
     }
   }
@@ -461,7 +462,7 @@ ${description}
 
       // 尝试使用本地LLM
       if (llmManager && llmManager.isInitialized) {
-        console.log('[PPT Engine] 使用本地LLM服务');
+        logger.info('[PPT Engine] 使用本地LLM服务');
         const response = await llmManager.query(prompt, {
           temperature: 0.7,
           maxTokens: 2000
@@ -469,7 +470,7 @@ ${description}
         responseText = response.text;
       } else {
         // 降级到后端AI服务
-        console.log('[PPT Engine] 本地LLM不可用，使用后端AI服务');
+        logger.info('[PPT Engine] 本地LLM不可用，使用后端AI服务');
         responseText = await this.queryBackendAI(prompt);
       }
 
@@ -479,7 +480,7 @@ ${description}
       }
       return this.getDefaultOutline(description);
     } catch (error) {
-      console.error('[PPT Engine] 生成大纲失败:', error);
+      logger.error('[PPT Engine] 生成大纲失败:', error);
       return this.getDefaultOutline(description);
     }
   }
@@ -633,7 +634,7 @@ ${description}
       // 根据类型添加图表
       slide.addChart(type, data, chartConfig);
     } catch (error) {
-      console.error('[PPT Engine] 添加图表失败:', error);
+      logger.error('[PPT Engine] 添加图表失败:', error);
     }
   }
 
@@ -667,7 +668,7 @@ ${description}
 
       slide.addImage(imageConfig);
     } catch (error) {
-      console.error('[PPT Engine] 添加图片失败:', error);
+      logger.error('[PPT Engine] 添加图片失败:', error);
     }
   }
 }

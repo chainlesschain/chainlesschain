@@ -158,6 +158,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { message, Modal } from 'ant-design-vue';
@@ -245,17 +247,17 @@ const handleLogin = async () => {
         return;
       }
 
-      console.log('[Login] 尝试登录 - 用户名:', username.value, '密码长度:', password.value.length);
+      logger.info('[Login] 尝试登录 - 用户名:', username.value, '密码长度:', password.value.length);
       const result = await authAPI.verifyPassword(username.value, password.value);
-      console.log('[Login] 登录结果:', result);
+      logger.info('[Login] 登录结果:', result);
       success = result.success;
 
       if (success) {
-        console.log('[Login] 登录成功');
+        logger.info('[Login] 登录成功');
         // 设置用户信息
         store.setDeviceId(result.userId || 'local-user');
       } else {
-        console.log('[Login] 登录失败:', result.error);
+        logger.info('[Login] 登录失败:', result.error);
         message.error(result.error || '用户名或密码错误');
         password.value = '';
       }
@@ -278,11 +280,11 @@ const handleLogin = async () => {
       // 启动后台同步（异步，不阻塞）
       window.electronAPI.sync.start(deviceId)
         .then(() => {
-          console.log('[Login] 数据同步完成');
+          logger.info('[Login] 数据同步完成');
           message.success('数据同步完成', 2);
         })
         .catch(error => {
-          console.error('[Login] 数据同步失败:', error);
+          logger.error('[Login] 数据同步失败:', error);
           message.warning('数据同步失败，请稍后手动同步', 3);
         });
 
@@ -290,14 +292,14 @@ const handleLogin = async () => {
       try {
         await systemAPI.maximize();
       } catch (error) {
-        console.error('窗口最大化失败:', error);
+        logger.error('窗口最大化失败:', error);
       }
 
       // 立即跳转到我的项目
       router.push('/projects');
     }
   } catch (error) {
-    console.error('登录失败:', error);
+    logger.error('登录失败:', error);
     message.error('登录失败,请重试');
   } finally {
     loading.value = false;
@@ -319,7 +321,7 @@ const handleSettingsComplete = async () => {
       try {
         await window.electronAPI.app.restart();
       } catch (error) {
-        console.error('重启应用失败:', error);
+        logger.error('重启应用失败:', error);
         message.error('重启失败，请手动重启应用');
       }
     },

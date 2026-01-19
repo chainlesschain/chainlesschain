@@ -3,6 +3,7 @@
  * 负责技能的注册、管理、统计和与工具的关联
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { v4: uuidv4 } = require('uuid');
 const DocGenerator = require('./doc-generator');
 
@@ -30,7 +31,7 @@ class SkillManager {
    */
   async initialize() {
     try {
-      console.log('[SkillManager] 初始化技能管理器...');
+      logger.info('[SkillManager] 初始化技能管理器...');
 
       // 1. 初始化文档生成器
       await this.docGenerator.initialize();
@@ -45,11 +46,11 @@ class SkillManager {
       await this.generateAllDocs();
 
       this.isInitialized = true;
-      console.log(`[SkillManager] 初始化完成，共加载 ${this.skills.size} 个技能`);
+      logger.info(`[SkillManager] 初始化完成，共加载 ${this.skills.size} 个技能`);
 
       return true;
     } catch (error) {
-      console.error('[SkillManager] 初始化失败:', error);
+      logger.error('[SkillManager] 初始化失败:', error);
       throw error;
     }
   }
@@ -127,11 +128,11 @@ class SkillManager {
       // 缓存技能元数据
       this.skills.set(skillId, skillRecord);
 
-      console.log(`[SkillManager] 技能注册成功: ${skillRecord.name} (${skillId})`);
+      logger.info(`[SkillManager] 技能注册成功: ${skillRecord.name} (${skillId})`);
 
       return skillId;
     } catch (error) {
-      console.error('[SkillManager] 注册技能失败:', error);
+      logger.error('[SkillManager] 注册技能失败:', error);
       throw error;
     }
   }
@@ -153,9 +154,9 @@ class SkillManager {
       // 从缓存中移除
       this.skills.delete(skillId);
 
-      console.log(`[SkillManager] 技能注销成功: ${skill.name}`);
+      logger.info(`[SkillManager] 技能注销成功: ${skill.name}`);
     } catch (error) {
-      console.error('[SkillManager] 注销技能失败:', error);
+      logger.error('[SkillManager] 注销技能失败:', error);
       throw error;
     }
   }
@@ -208,10 +209,10 @@ class SkillManager {
       const updatedSkill = await this.getSkill(skillId);
       this.skills.set(skillId, updatedSkill);
 
-      console.log(`[SkillManager] 技能更新成功: ${skill.name}`);
+      logger.info(`[SkillManager] 技能更新成功: ${skill.name}`);
       return { success: true, changes: result.changes || 1 };
     } catch (error) {
-      console.error('[SkillManager] 更新技能失败:', error);
+      logger.error('[SkillManager] 更新技能失败:', error);
       return { success: false, changes: 0, error: error.message };
     }
   }
@@ -235,7 +236,7 @@ class SkillManager {
       }
       return skill;
     } catch (error) {
-      console.error('[SkillManager] 获取技能失败:', error);
+      logger.error('[SkillManager] 获取技能失败:', error);
       return null;
     }
   }
@@ -254,7 +255,7 @@ class SkillManager {
       const skills = await this._getAllSkillsArray(options);
       return { success: true, skills };
     } catch (error) {
-      console.error('[SkillManager] 获取技能列表失败:', error);
+      logger.error('[SkillManager] 获取技能列表失败:', error);
       return { success: false, skills: [], error: error.message };
     }
   }
@@ -269,7 +270,7 @@ class SkillManager {
       const skills = await this._getAllSkillsArray({ category });
       return { success: true, skills };
     } catch (error) {
-      console.error('[SkillManager] 获取技能列表失败:', error);
+      logger.error('[SkillManager] 获取技能列表失败:', error);
       return { success: false, skills: [], error: error.message };
     }
   }
@@ -292,7 +293,7 @@ class SkillManager {
    */
   async enableSkill(skillId) {
     await this.updateSkill(skillId, { enabled: 1 });
-    console.log(`[SkillManager] 技能已启用: ${skillId}`);
+    logger.info(`[SkillManager] 技能已启用: ${skillId}`);
   }
 
   /**
@@ -301,7 +302,7 @@ class SkillManager {
    */
   async disableSkill(skillId) {
     await this.updateSkill(skillId, { enabled: 0 });
-    console.log(`[SkillManager] 技能已禁用: ${skillId}`);
+    logger.info(`[SkillManager] 技能已禁用: ${skillId}`);
   }
 
   // ===================================
@@ -338,9 +339,9 @@ class SkillManager {
           priority = excluded.priority
       `, [id, skillId, toolId, role, priority, now]);
 
-      console.log(`[SkillManager] 工具已添加到技能: ${tool.name} -> ${skill.name}`);
+      logger.info(`[SkillManager] 工具已添加到技能: ${tool.name} -> ${skill.name}`);
     } catch (error) {
-      console.error('[SkillManager] 添加工具到技能失败:', error);
+      logger.error('[SkillManager] 添加工具到技能失败:', error);
       throw error;
     }
   }
@@ -357,9 +358,9 @@ class SkillManager {
         [skillId, toolId]
       );
 
-      console.log(`[SkillManager] 工具已从技能移除`);
+      logger.info(`[SkillManager] 工具已从技能移除`);
     } catch (error) {
-      console.error('[SkillManager] 移除工具失败:', error);
+      logger.error('[SkillManager] 移除工具失败:', error);
       throw error;
     }
   }
@@ -382,7 +383,7 @@ class SkillManager {
       const tools = await this.db.all(sql, [skillId]);
       return tools;
     } catch (error) {
-      console.error('[SkillManager] 获取技能工具失败:', error);
+      logger.error('[SkillManager] 获取技能工具失败:', error);
       return [];
     }
   }
@@ -405,7 +406,7 @@ class SkillManager {
       const skills = await this.db.all(sql, [toolId]);
       return skills;
     } catch (error) {
-      console.error('[SkillManager] 获取工具关联技能失败:', error);
+      logger.error('[SkillManager] 获取工具关联技能失败:', error);
       return [];
     }
   }
@@ -425,7 +426,7 @@ class SkillManager {
       // 1. 更新技能表的统计字段
       const skill = await this.getSkill(skillId);
       if (!skill) {
-        console.warn(`[SkillManager] 技能不存在，跳过统计: ${skillId}`);
+        logger.warn(`[SkillManager] 技能不存在，跳过统计: ${skillId}`);
         return;
       }
 
@@ -444,7 +445,7 @@ class SkillManager {
       await this.updateDailyStats(skillId, success, duration);
 
     } catch (error) {
-      console.error('[SkillManager] 记录技能使用失败:', error);
+      logger.error('[SkillManager] 记录技能使用失败:', error);
     }
   }
 
@@ -501,7 +502,7 @@ class SkillManager {
         ]);
       }
     } catch (error) {
-      console.error('[SkillManager] 更新每日统计失败:', error);
+      logger.error('[SkillManager] 更新每日统计失败:', error);
     }
   }
 
@@ -547,7 +548,7 @@ class SkillManager {
       const stats = await this.db.all(sql, params);
       return stats;
     } catch (error) {
-      console.error('[SkillManager] 获取技能统计失败:', error);
+      logger.error('[SkillManager] 获取技能统计失败:', error);
       return [];
     }
   }
@@ -606,7 +607,7 @@ class SkillManager {
       return this.getAllSkills({ enabled: 1, limit: 5 });
 
     } catch (error) {
-      console.error('[SkillManager] 技能推荐失败:', error);
+      logger.error('[SkillManager] 技能推荐失败:', error);
       return [];
     }
   }
@@ -620,7 +621,7 @@ class SkillManager {
    */
   async loadBuiltInSkills() {
     try {
-      console.log('[SkillManager] 加载内置技能...');
+      logger.info('[SkillManager] 加载内置技能...');
 
       // 导入内置技能定义
       const builtInSkills = require('./builtin-skills');
@@ -633,7 +634,7 @@ class SkillManager {
         );
 
         if (existing) {
-          console.log(`[SkillManager] 技能已存在，跳过: ${skillDef.name}`);
+          logger.info(`[SkillManager] 技能已存在，跳过: ${skillDef.name}`);
           continue;
         }
 
@@ -658,15 +659,15 @@ class SkillManager {
                 skillDef.tools.length - i
               );
             } else {
-              console.warn(`[SkillManager] 工具不存在，跳过关联: ${toolName}`);
+              logger.warn(`[SkillManager] 工具不存在，跳过关联: ${toolName}`);
             }
           }
         }
       }
 
-      console.log('[SkillManager] 内置技能加载完成');
+      logger.info('[SkillManager] 内置技能加载完成');
     } catch (error) {
-      console.error('[SkillManager] 加载内置技能失败:', error);
+      logger.error('[SkillManager] 加载内置技能失败:', error);
       // 如果builtin-skills.js还不存在，不要抛出错误
       if (error.code !== 'MODULE_NOT_FOUND') {
         throw error;
@@ -679,7 +680,7 @@ class SkillManager {
    */
   async loadPluginSkills() {
     try {
-      console.log('[SkillManager] 加载插件技能...');
+      logger.info('[SkillManager] 加载插件技能...');
 
       // 查询数据库中plugin_id不为空的技能
       const pluginSkills = await this.db.all(
@@ -690,9 +691,9 @@ class SkillManager {
         this.skills.set(skill.id, skill);
       }
 
-      console.log(`[SkillManager] 插件技能加载完成，共 ${pluginSkills.length} 个`);
+      logger.info(`[SkillManager] 插件技能加载完成，共 ${pluginSkills.length} 个`);
     } catch (error) {
-      console.error('[SkillManager] 加载插件技能失败:', error);
+      logger.error('[SkillManager] 加载插件技能失败:', error);
     }
   }
 
@@ -705,7 +706,7 @@ class SkillManager {
    */
   async generateAllDocs() {
     try {
-      console.log('[SkillManager] 生成技能文档...');
+      logger.info('[SkillManager] 生成技能文档...');
 
       const skillsWithTools = [];
 
@@ -716,9 +717,9 @@ class SkillManager {
       }
 
       const count = await this.docGenerator.generateAllSkillDocs(skillsWithTools);
-      console.log(`[SkillManager] 技能文档生成完成，共 ${count} 个`);
+      logger.info(`[SkillManager] 技能文档生成完成，共 ${count} 个`);
     } catch (error) {
-      console.error('[SkillManager] 生成技能文档失败:', error);
+      logger.error('[SkillManager] 生成技能文档失败:', error);
       // 文档生成失败不影响系统运行
     }
   }
@@ -744,7 +745,7 @@ class SkillManager {
 
       return content;
     } catch (error) {
-      console.error('[SkillManager] 获取技能文档失败:', error);
+      logger.error('[SkillManager] 获取技能文档失败:', error);
       throw error;
     }
   }
@@ -763,9 +764,9 @@ class SkillManager {
       const tools = await this.getSkillTools(skillId);
       await this.docGenerator.generateSkillDoc(skill, tools);
 
-      console.log(`[SkillManager] 技能文档已重新生成: ${skillId}`);
+      logger.info(`[SkillManager] 技能文档已重新生成: ${skillId}`);
     } catch (error) {
-      console.error('[SkillManager] 重新生成技能文档失败:', error);
+      logger.error('[SkillManager] 重新生成技能文档失败:', error);
       throw error;
     }
   }
@@ -906,7 +907,7 @@ class SkillManager {
       const skills = await this.db.all(sql, params);
       return skills;
     } catch (error) {
-      console.error('[SkillManager] 获取技能列表失败:', error);
+      logger.error('[SkillManager] 获取技能列表失败:', error);
       return [];
     }
   }

@@ -192,6 +192,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, reactive, watch } from 'vue';
 import { message } from 'ant-design-vue';
 import {
@@ -264,7 +266,7 @@ const handleCreate = async () => {
     // 使用 store 创建内容
     const content = await tradeStore.createKnowledgeContent(contentData);
 
-    console.log('[ContentCreate] 内容创建成功:', content.id);
+    logger.info('[ContentCreate] 内容创建成功:', content.id);
     message.success('内容发布成功！');
 
     // 通知父组件
@@ -276,7 +278,7 @@ const handleCreate = async () => {
     // 重置表单
     resetForm();
   } catch (error) {
-    console.error('[ContentCreate] 创建内容失败:', error);
+    logger.error('[ContentCreate] 创建内容失败:', error);
     message.error(error.message || '创建内容失败');
   } finally {
     creating.value = false;

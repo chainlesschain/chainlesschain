@@ -15,6 +15,7 @@
  * - review:get-my-reviews - 获取我的评价列表
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { ipcMain } = require('electron');
 
 /**
@@ -32,7 +33,7 @@ function registerReviewIPC(context) {
       }
       return await reviewManager.createReview(options);
     } catch (error) {
-      console.error('[Main] 创建评价失败:', error);
+      logger.error('[Main] 创建评价失败:', error);
       throw error;
     }
   });
@@ -45,7 +46,7 @@ function registerReviewIPC(context) {
       }
       return await reviewManager.updateReview(reviewId, updates);
     } catch (error) {
-      console.error('[Main] 更新评价失败:', error);
+      logger.error('[Main] 更新评价失败:', error);
       throw error;
     }
   });
@@ -58,7 +59,7 @@ function registerReviewIPC(context) {
       }
       return await reviewManager.deleteReview(reviewId);
     } catch (error) {
-      console.error('[Main] 删除评价失败:', error);
+      logger.error('[Main] 删除评价失败:', error);
       throw error;
     }
   });
@@ -71,7 +72,7 @@ function registerReviewIPC(context) {
       }
       return await reviewManager.getReview(reviewId);
     } catch (error) {
-      console.error('[Main] 获取评价失败:', error);
+      logger.error('[Main] 获取评价失败:', error);
       return null;
     }
   });
@@ -84,7 +85,7 @@ function registerReviewIPC(context) {
       }
       return await reviewManager.getReviewsByTarget(targetId, targetType, filters);
     } catch (error) {
-      console.error('[Main] 获取目标评价失败:', error);
+      logger.error('[Main] 获取目标评价失败:', error);
       return [];
     }
   });
@@ -97,7 +98,7 @@ function registerReviewIPC(context) {
       }
       return await reviewManager.replyToReview(reviewId, content);
     } catch (error) {
-      console.error('[Main] 回复评价失败:', error);
+      logger.error('[Main] 回复评价失败:', error);
       throw error;
     }
   });
@@ -110,7 +111,7 @@ function registerReviewIPC(context) {
       }
       return await reviewManager.markHelpful(reviewId, helpful);
     } catch (error) {
-      console.error('[Main] 标记有帮助失败:', error);
+      logger.error('[Main] 标记有帮助失败:', error);
       throw error;
     }
   });
@@ -123,7 +124,7 @@ function registerReviewIPC(context) {
       }
       return await reviewManager.reportReview(reviewId, reason, description);
     } catch (error) {
-      console.error('[Main] 举报评价失败:', error);
+      logger.error('[Main] 举报评价失败:', error);
       throw error;
     }
   });
@@ -136,7 +137,7 @@ function registerReviewIPC(context) {
       }
       return await reviewManager.getStatistics(targetId, targetType);
     } catch (error) {
-      console.error('[Main] 获取评价统计失败:', error);
+      logger.error('[Main] 获取评价统计失败:', error);
       return null;
     }
   });
@@ -149,12 +150,12 @@ function registerReviewIPC(context) {
       }
       return await reviewManager.getMyReviews(userDid);
     } catch (error) {
-      console.error('[Main] 获取我的评价失败:', error);
+      logger.error('[Main] 获取我的评价失败:', error);
       return [];
     }
   });
 
-  console.log('[IPC] 评价系统IPC handlers已注册 (10个)');
+  logger.info('[IPC] 评价系统IPC handlers已注册 (10个)');
 }
 
 module.exports = {

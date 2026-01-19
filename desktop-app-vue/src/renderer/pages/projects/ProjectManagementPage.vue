@@ -384,6 +384,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted, reactive } from 'vue';
 import { useRouter } from 'vue-router';
 import { message, Modal } from 'ant-design-vue';
@@ -665,7 +667,7 @@ const handleDelete = async (id) => {
       projectStore.setPagination(projectStore.pagination.current - 1);
     }
   } catch (error) {
-    console.error('删除项目失败:', error);
+    logger.error('删除项目失败:', error);
     message.error('删除失败：' + error.message);
   } finally {
     loading.value = false;
@@ -701,7 +703,7 @@ const handleBatchDelete = () => {
           projectStore.setPagination(1);
         }
       } catch (error) {
-        console.error('批量删除失败:', error);
+        logger.error('批量删除失败:', error);
         message.error('批量删除失败：' + error.message);
       } finally {
         loading.value = false;
@@ -741,7 +743,7 @@ const handleModalOk = async () => {
       // 表单验证失败
       return;
     }
-    console.error('保存项目失败:', error);
+    logger.error('保存项目失败:', error);
     message.error('保存失败：' + error.message);
   } finally {
     loading.value = false;
@@ -775,7 +777,7 @@ const handleExport = () => {
 
     message.success('导出成功');
   } catch (error) {
-    console.error('导出失败:', error);
+    logger.error('导出失败:', error);
     message.error('导出失败：' + error.message);
   }
 };
@@ -787,7 +789,7 @@ const loadProjects = async () => {
     const userId = authStore.currentUser?.id || 'default-user';
     await projectStore.fetchProjects(userId);
   } catch (error) {
-    console.error('加载项目列表失败:', error);
+    logger.error('加载项目列表失败:', error);
     message.error('加载失败：' + error.message);
   } finally {
     loading.value = false;

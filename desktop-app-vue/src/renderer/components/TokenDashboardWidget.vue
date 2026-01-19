@@ -109,6 +109,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import dayjs from 'dayjs';
@@ -201,7 +203,7 @@ async function loadStats() {
     todayCalls.value = todayStats.totalCalls || 0;
     todayCost.value = todayStats.totalCost || 0;
   } catch (error) {
-    console.error('加载 Dashboard 统计失败:', error);
+    logger.error('加载 Dashboard 统计失败:', error);
   } finally {
     loading.value = false;
   }

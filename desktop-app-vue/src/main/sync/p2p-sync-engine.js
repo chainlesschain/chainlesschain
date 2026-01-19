@@ -1,3 +1,4 @@
+const { logger, createLogger } = require('../utils/logger.js');
 const { v4: uuidv4 } = require('uuid');
 const crypto = require('crypto');
 
@@ -36,7 +37,7 @@ class P2PSyncEngine {
    * @returns {Promise<void>}
    */
   async initialize() {
-    console.log('[P2PSyncEngine] 初始化同步引擎...');
+    logger.info('[P2PSyncEngine] 初始化同步引擎...');
 
     // 注册 P2P 消息处理器
     if (this.p2pManager) {
@@ -46,7 +47,7 @@ class P2PSyncEngine {
       this.p2pManager.on('sync:conflict', this.handleSyncConflict.bind(this));
     }
 
-    console.log('[P2PSyncEngine] ✓ 同步引擎初始化完成');
+    logger.info('[P2PSyncEngine] ✓ 同步引擎初始化完成');
   }
 
   /**
@@ -58,14 +59,14 @@ class P2PSyncEngine {
       this.stopAutoSync();
     }
 
-    console.log(`[P2PSyncEngine] 启动自动同步: ${orgId}`);
+    logger.info(`[P2PSyncEngine] 启动自动同步: ${orgId}`);
 
     // 定期同步
     this.syncTimer = setInterval(async () => {
       try {
         await this.sync(orgId);
       } catch (error) {
-        console.error('[P2PSyncEngine] 自动同步失败:', error);
+        logger.error('[P2PSyncEngine] 自动同步失败:', error);
       }
     }, this.config.syncInterval);
 
@@ -74,13 +75,13 @@ class P2PSyncEngine {
       try {
         await this.processQueue(orgId);
       } catch (error) {
-        console.error('[P2PSyncEngine] 队列处理失败:', error);
+        logger.error('[P2PSyncEngine] 队列处理失败:', error);
       }
     }, this.config.queueProcessInterval);
 
     // 立即执行一次同步
     this.sync(orgId).catch(error => {
-      console.error('[P2PSyncEngine] 初始同步失败:', error);
+      logger.error('[P2PSyncEngine] 初始同步失败:', error);
     });
   }
 
@@ -98,7 +99,7 @@ class P2PSyncEngine {
       this.queueTimer = null;
     }
 
-    console.log('[P2PSyncEngine] 自动同步已停止');
+    logger.info('[P2PSyncEngine] 自动同步已停止');
   }
 
   /**
@@ -109,7 +110,7 @@ class P2PSyncEngine {
    */
   async sync(orgId, options = {}) {
     if (this.syncing) {
-      console.log('[P2PSyncEngine] 同步进行中，跳过');
+      logger.info('[P2PSyncEngine] 同步进行中，跳过');
       return { skipped: true };
     }
 
@@ -117,15 +118,15 @@ class P2PSyncEngine {
     const startTime = Date.now();
 
     try {
-      console.log(`[P2PSyncEngine] 开始同步: ${orgId}`);
+      logger.info(`[P2PSyncEngine] 开始同步: ${orgId}`);
 
       // 1. 获取待同步的资源
       const pendingResources = await this.getPendingResources(orgId);
-      console.log(`[P2PSyncEngine] 待同步资源: ${pendingResources.length} 个`);
+      logger.info(`[P2PSyncEngine] 待同步资源: ${pendingResources.length} 个`);
 
       // 2. 请求远程变更
       const remoteChanges = await this.requestRemoteChanges(orgId, options);
-      console.log(`[P2PSyncEngine] 远程变更: ${remoteChanges.length} 个`);
+      logger.info(`[P2PSyncEngine] 远程变更: ${remoteChanges.length} 个`);
 
       // 3. 应用远程变更
       const applied = await this.applyRemoteChanges(orgId, remoteChanges);
@@ -144,10 +145,10 @@ class P2PSyncEngine {
         conflicts: applied.conflicts || 0
       };
 
-      console.log(`[P2PSyncEngine] ✓ 同步完成:`, result);
+      logger.info(`[P2PSyncEngine] ✓ 同步完成:`, result);
       return result;
     } catch (error) {
-      console.error('[P2PSyncEngine] 同步失败:', error);
+      logger.error('[P2PSyncEngine] 同步失败:', error);
       throw error;
     } finally {
       this.syncing = false;
@@ -178,7 +179,7 @@ class P2PSyncEngine {
    */
   async requestRemoteChanges(orgId, options = {}) {
     if (!this.p2pManager) {
-      console.log('[P2PSyncEngine] P2P管理器未初始化，跳过远程同步');
+      logger.info('[P2PSyncEngine] P2P管理器未初始化，跳过远程同步');
       return [];
     }
 
@@ -197,7 +198,7 @@ class P2PSyncEngine {
       // TODO: 实现响应收集和聚合机制
       return [];
     } catch (error) {
-      console.error('[P2PSyncEngine] 请求远程变更失败:', error);
+      logger.error('[P2PSyncEngine] 请求远程变更失败:', error);
       return [];
     }
   }
@@ -223,7 +224,7 @@ class P2PSyncEngine {
           applied++;
         }
       } catch (error) {
-        console.error(`[P2PSyncEngine] 应用变更失败:`, change, error);
+        logger.error(`[P2PSyncEngine] 应用变更失败:`, change, error);
         errors++;
       }
     }
@@ -300,7 +301,7 @@ class P2PSyncEngine {
    */
   async pushLocalChanges(orgId, resources) {
     if (!this.p2pManager) {
-      console.log('[P2PSyncEngine] P2P管理器未初始化，跳过推送');
+      logger.info('[P2PSyncEngine] P2P管理器未初始化，跳过推送');
       return 0;
     }
 
@@ -315,7 +316,7 @@ class P2PSyncEngine {
         );
 
         if (!data) {
-          console.warn(`[P2PSyncEngine] 资源不存在: ${resource.resource_type}/${resource.resource_id}`);
+          logger.warn(`[P2PSyncEngine] 资源不存在: ${resource.resource_type}/${resource.resource_id}`);
           continue;
         }
 
@@ -348,7 +349,7 @@ class P2PSyncEngine {
 
         pushed++;
       } catch (error) {
-        console.error(`[P2PSyncEngine] 推送变更失败:`, resource, error);
+        logger.error(`[P2PSyncEngine] 推送变更失败:`, resource, error);
       }
     }
 
@@ -444,7 +445,7 @@ class P2PSyncEngine {
       now
     ]);
 
-    console.log(`[P2PSyncEngine] 冲突已记录: ${conflictId}`);
+    logger.info(`[P2PSyncEngine] 冲突已记录: ${conflictId}`);
     return conflictId;
   }
 
@@ -460,7 +461,7 @@ class P2PSyncEngine {
   async resolveConflict(orgId, resourceType, resourceId, localState, remoteChange) {
     const strategy = this.getConflictResolutionStrategy(resourceType);
 
-    console.log(`[P2PSyncEngine] 解决冲突: ${resourceType}/${resourceId}, 策略: ${strategy}`);
+    logger.info(`[P2PSyncEngine] 解决冲突: ${resourceType}/${resourceId}, 策略: ${strategy}`);
 
     switch (strategy) {
       case 'lww':
@@ -468,11 +469,11 @@ class P2PSyncEngine {
 
       case 'manual':
         // 手动解决，不自动处理
-        console.log('[P2PSyncEngine] 需要手动解决冲突');
+        logger.info('[P2PSyncEngine] 需要手动解决冲突');
         return false;
 
       default:
-        console.warn(`[P2PSyncEngine] 未知冲突解决策略: ${strategy}`);
+        logger.warn(`[P2PSyncEngine] 未知冲突解决策略: ${strategy}`);
         return false;
     }
   }
@@ -516,7 +517,7 @@ class P2PSyncEngine {
       last_synced_at: Date.now()
     });
 
-    console.log(`[P2PSyncEngine] LWW冲突已解决, 获胜者: ${winner}`);
+    logger.info(`[P2PSyncEngine] LWW冲突已解决, 获胜者: ${winner}`);
     return true;
   }
 
@@ -607,7 +608,7 @@ class P2PSyncEngine {
 
     const table = tableMap[resourceType];
     if (!table) {
-      console.warn(`[P2PSyncEngine] 未知资源类型: ${resourceType}`);
+      logger.warn(`[P2PSyncEngine] 未知资源类型: ${resourceType}`);
       return null;
     }
 
@@ -649,7 +650,7 @@ class P2PSyncEngine {
       `, values);
     }
 
-    console.log(`[P2PSyncEngine] 资源变更已应用: ${action} ${resourceType}/${resourceId}`);
+    logger.info(`[P2PSyncEngine] 资源变更已应用: ${action} ${resourceType}/${resourceId}`);
   }
 
   /**
@@ -681,7 +682,7 @@ class P2PSyncEngine {
    * @param {Object} message - 同步请求消息
    */
   async handleSyncRequest(message) {
-    console.log('[P2PSyncEngine] 收到同步请求:', message);
+    logger.info('[P2PSyncEngine] 收到同步请求:', message);
 
     const { org_id, last_sync_time, resource_types } = message;
 
@@ -696,7 +697,7 @@ class P2PSyncEngine {
     };
 
     // TODO: 发送给请求者
-    console.log('[P2PSyncEngine] 同步响应:', response);
+    logger.info('[P2PSyncEngine] 同步响应:', response);
   }
 
   /**
@@ -704,7 +705,7 @@ class P2PSyncEngine {
    * @param {Object} message - 同步响应消息
    */
   async handleSyncResponse(message) {
-    console.log('[P2PSyncEngine] 收到同步响应:', message);
+    logger.info('[P2PSyncEngine] 收到同步响应:', message);
 
     const { org_id, changes } = message;
 
@@ -717,14 +718,14 @@ class P2PSyncEngine {
    * @param {Object} message - 同步变更消息
    */
   async handleSyncChange(message) {
-    console.log('[P2PSyncEngine] 收到同步变更:', message);
+    logger.info('[P2PSyncEngine] 收到同步变更:', message);
 
     const { org_id } = message;
 
     // 验证签名
     const isValid = await this.verifyMessage(message);
     if (!isValid) {
-      console.error('[P2PSyncEngine] 消息签名验证失败');
+      logger.error('[P2PSyncEngine] 消息签名验证失败');
       return;
     }
 
@@ -737,7 +738,7 @@ class P2PSyncEngine {
    * @param {Object} message - 同步冲突消息
    */
   async handleSyncConflict(message) {
-    console.log('[P2PSyncEngine] 收到同步冲突:', message);
+    logger.info('[P2PSyncEngine] 收到同步冲突:', message);
     // TODO: 显示冲突通知给用户
   }
 
@@ -770,7 +771,7 @@ class P2PSyncEngine {
       return 0;
     }
 
-    console.log(`[P2PSyncEngine] 处理离线队列: ${items.length} 项`);
+    logger.info(`[P2PSyncEngine] 处理离线队列: ${items.length} 项`);
 
     let processed = 0;
 
@@ -791,7 +792,7 @@ class P2PSyncEngine {
 
         processed++;
       } catch (error) {
-        console.error('[P2PSyncEngine] 队列项处理失败:', item, error);
+        logger.error('[P2PSyncEngine] 队列项处理失败:', item, error);
 
         // 更新重试计数
         const retryCount = item.retry_count + 1;
@@ -814,7 +815,7 @@ class P2PSyncEngine {
       }
     }
 
-    console.log(`[P2PSyncEngine] ✓ 离线队列处理完成: ${processed}/${items.length}`);
+    logger.info(`[P2PSyncEngine] ✓ 离线队列处理完成: ${processed}/${items.length}`);
     return processed;
   }
 
@@ -851,7 +852,7 @@ class P2PSyncEngine {
       'pending'
     ]);
 
-    console.log(`[P2PSyncEngine] 已添加到离线队列: ${id}`);
+    logger.info(`[P2PSyncEngine] 已添加到离线队列: ${id}`);
     return id;
   }
 

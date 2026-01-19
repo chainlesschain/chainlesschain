@@ -9,6 +9,7 @@
  * - 市场洞察
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const EventEmitter = require('events');
 
 /**
@@ -54,16 +55,16 @@ class TradingAnalytics extends EventEmitter {
    * 初始化分析引擎
    */
   async initialize() {
-    console.log('[TradingAnalytics] 初始化交易分析引擎...');
+    logger.info('[TradingAnalytics] 初始化交易分析引擎...');
 
     try {
       // 初始化数据库表
       await this.initializeTables();
 
       this.initialized = true;
-      console.log('[TradingAnalytics] 交易分析引擎初始化成功');
+      logger.info('[TradingAnalytics] 交易分析引擎初始化成功');
     } catch (error) {
-      console.error('[TradingAnalytics] 初始化失败:', error);
+      logger.error('[TradingAnalytics] 初始化失败:', error);
       throw error;
     }
   }
@@ -120,7 +121,7 @@ class TradingAnalytics extends EventEmitter {
       this.setCache(cacheKey, overview);
       return overview;
     } catch (error) {
-      console.error('[TradingAnalytics] 获取交易概览失败:', error);
+      logger.error('[TradingAnalytics] 获取交易概览失败:', error);
       throw error;
     }
   }
@@ -223,7 +224,7 @@ class TradingAnalytics extends EventEmitter {
       this.setCache(cacheKey, analysis);
       return analysis;
     } catch (error) {
-      console.error('[TradingAnalytics] 获取盈亏分析失败:', error);
+      logger.error('[TradingAnalytics] 获取盈亏分析失败:', error);
       throw error;
     }
   }
@@ -335,7 +336,7 @@ class TradingAnalytics extends EventEmitter {
       this.setCache(cacheKey, performance);
       return performance;
     } catch (error) {
-      console.error('[TradingAnalytics] 获取资产表现失败:', error);
+      logger.error('[TradingAnalytics] 获取资产表现失败:', error);
       throw error;
     }
   }
@@ -379,7 +380,7 @@ class TradingAnalytics extends EventEmitter {
       this.setCache(cacheKey, assessment);
       return assessment;
     } catch (error) {
-      console.error('[TradingAnalytics] 获取风险评估失败:', error);
+      logger.error('[TradingAnalytics] 获取风险评估失败:', error);
       throw error;
     }
   }
@@ -574,7 +575,7 @@ class TradingAnalytics extends EventEmitter {
       this.setCache(cacheKey, trend);
       return trend;
     } catch (error) {
-      console.error('[TradingAnalytics] 获取市场趋势失败:', error);
+      logger.error('[TradingAnalytics] 获取市场趋势失败:', error);
       throw error;
     }
   }

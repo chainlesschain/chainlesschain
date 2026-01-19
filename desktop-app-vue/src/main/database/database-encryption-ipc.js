@@ -2,6 +2,7 @@
  * 数据库加密 IPC 处理程序
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { ipcMain } = require("electron");
 const path = require("path");
 const EncryptionConfigManager = require("./config-manager");
@@ -53,7 +54,7 @@ class DatabaseEncryptionIPC {
           canSkipPassword: config.canSkipPassword(),
         };
       } catch (error) {
-        console.error("[DatabaseEncryptionIPC] 获取加密状态失败:", error);
+        logger.error("[DatabaseEncryptionIPC] 获取加密状态失败:", error);
         return {
           isEncrypted: false,
           method: null,
@@ -79,7 +80,7 @@ class DatabaseEncryptionIPC {
             firstTimeSetup: false,
           });
 
-          console.log("[DatabaseEncryptionIPC] 开发模式：跳过密码，禁用加密");
+          logger.info("[DatabaseEncryptionIPC] 开发模式：跳过密码，禁用加密");
 
           return {
             success: true,
@@ -94,7 +95,7 @@ class DatabaseEncryptionIPC {
           firstTimeSetup: false,
         });
 
-        console.log("[DatabaseEncryptionIPC] 加密配置已保存:", {
+        logger.info("[DatabaseEncryptionIPC] 加密配置已保存:", {
           method: options.method,
           enabled: true,
         });
@@ -104,7 +105,7 @@ class DatabaseEncryptionIPC {
           message: "加密设置成功，将在下次启动时生效",
         };
       } catch (error) {
-        console.error("[DatabaseEncryptionIPC] 设置加密失败:", error);
+        logger.error("[DatabaseEncryptionIPC] 设置加密失败:", error);
         return {
           success: false,
           error: error.message,
@@ -139,7 +140,7 @@ class DatabaseEncryptionIPC {
             message: result.message || "密码修改成功",
           };
         } catch (error) {
-          console.error("[DatabaseEncryptionIPC] 修改密码失败:", error);
+          logger.error("[DatabaseEncryptionIPC] 修改密码失败:", error);
           return {
             success: false,
             error: error.message,
@@ -160,7 +161,7 @@ class DatabaseEncryptionIPC {
           requiresRestart: true,
         };
       } catch (error) {
-        console.error("[DatabaseEncryptionIPC] 启用加密失败:", error);
+        logger.error("[DatabaseEncryptionIPC] 启用加密失败:", error);
         return {
           success: false,
           error: error.message,
@@ -181,7 +182,7 @@ class DatabaseEncryptionIPC {
           warning: "禁用加密会降低数据安全性",
         };
       } catch (error) {
-        console.error("[DatabaseEncryptionIPC] 禁用加密失败:", error);
+        logger.error("[DatabaseEncryptionIPC] 禁用加密失败:", error);
         return {
           success: false,
           error: error.message,
@@ -198,7 +199,7 @@ class DatabaseEncryptionIPC {
           config: config.getAll(),
         };
       } catch (error) {
-        console.error("[DatabaseEncryptionIPC] 获取配置失败:", error);
+        logger.error("[DatabaseEncryptionIPC] 获取配置失败:", error);
         return {
           success: false,
           error: error.message,
@@ -219,7 +220,7 @@ class DatabaseEncryptionIPC {
             message: "配置已更新",
           };
         } catch (error) {
-          console.error("[DatabaseEncryptionIPC] 更新配置失败:", error);
+          logger.error("[DatabaseEncryptionIPC] 更新配置失败:", error);
           return {
             success: false,
             error: error.message,
@@ -239,7 +240,7 @@ class DatabaseEncryptionIPC {
           message: "配置已重置",
         };
       } catch (error) {
-        console.error("[DatabaseEncryptionIPC] 重置配置失败:", error);
+        logger.error("[DatabaseEncryptionIPC] 重置配置失败:", error);
         return {
           success: false,
           error: error.message,
@@ -247,7 +248,7 @@ class DatabaseEncryptionIPC {
       }
     });
 
-    console.log("[DatabaseEncryptionIPC] IPC 处理程序已注册");
+    logger.info("[DatabaseEncryptionIPC] IPC 处理程序已注册");
   }
 
   /**

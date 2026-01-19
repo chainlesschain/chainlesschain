@@ -1,3 +1,5 @@
+import { logger, createLogger } from '@/utils/logger';
+
 /**
  * 多媒体API工具类
  *
@@ -49,7 +51,7 @@ class MultimediaAPI {
 
       return await window.electronAPI.invoke(channel, params);
     } catch (error) {
-      console.error(`[MultimediaAPI] ${channel} 调用失败:`, error);
+      logger.error(`[MultimediaAPI] ${channel} 调用失败:`, error);
       throw error;
     }
   }

@@ -8,6 +8,7 @@
  * <div v-lazy:background="imageUrl" />
  */
 
+import { logger, createLogger } from '@/utils/logger';
 import { getLazyLoader } from '@/utils/image-lazy-loader'
 
 /**
@@ -67,7 +68,7 @@ function handleImageElement(img, binding, lazyLoader) {
   }
 
   if (!src) {
-    console.warn('[v-lazy] No image src provided')
+    logger.warn('[v-lazy] No image src provided')
     return
   }
 
@@ -101,7 +102,7 @@ function handleBackgroundImage(el, binding, lazyLoader) {
   }
 
   if (!src) {
-    console.warn('[v-lazy:background] No image src provided')
+    logger.warn('[v-lazy:background] No image src provided')
     return
   }
 

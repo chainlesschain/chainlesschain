@@ -476,6 +476,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { message } from 'ant-design-vue';
 import { VueDraggable } from 'vue-draggable-plus';
@@ -572,25 +574,25 @@ const isBinaryPPTX = ref(false);
 // 初始化PPT
 const initPPT = async () => {
   try {
-    console.log('[PPTEditor] 初始化PPT编辑器, file:', props.file);
+    logger.info('[PPTEditor] 初始化PPT编辑器, file:', props.file);
 
     // 🔥 检测是否为二进制.pptx文件（无content或content无效）
     if (!props.file.content || props.file.content.trim() === '') {
-      console.warn('[PPTEditor] 文件内容为空，尝试从磁盘加载...');
+      logger.warn('[PPTEditor] 文件内容为空，尝试从磁盘加载...');
 
       // 尝试从磁盘读取文件内容
       try {
         const result = await window.electronAPI.file.readContent(props.file.file_path);
         if (result && result.success && result.content) {
           props.file.content = result.content;
-          console.log('[PPTEditor] 从磁盘加载内容成功');
+          logger.info('[PPTEditor] 从磁盘加载内容成功');
         } else {
-          console.warn('[PPTEditor] 检测到二进制.pptx文件，无法编辑');
+          logger.warn('[PPTEditor] 检测到二进制.pptx文件，无法编辑');
           isBinaryPPTX.value = true;
           return;
         }
       } catch (readError) {
-        console.error('[PPTEditor] 读取文件失败:', readError);
+        logger.error('[PPTEditor] 读取文件失败:', readError);
         isBinaryPPTX.value = true;
         return;
       }
@@ -604,16 +606,16 @@ const initPPT = async () => {
     if (data.slides && Array.isArray(data.slides)) {
       slides.value = data.slides;
       isBinaryPPTX.value = false;
-      console.log('[PPTEditor] 加载了', slides.value.length, '张幻灯片');
+      logger.info('[PPTEditor] 加载了', slides.value.length, '张幻灯片');
     } else {
-      console.log('[PPTEditor] 创建默认幻灯片');
+      logger.info('[PPTEditor] 创建默认幻灯片');
       createDefaultSlide();
       isBinaryPPTX.value = false;
     }
   } catch (error) {
-    console.error('[PPTEditor] 解析PPT数据失败:', error);
+    logger.error('[PPTEditor] 解析PPT数据失败:', error);
     // JSON解析失败，可能是二进制文件
-    console.warn('[PPTEditor] 这是一个二进制.pptx文件，显示下载提示');
+    logger.warn('[PPTEditor] 这是一个二进制.pptx文件，显示下载提示');
     isBinaryPPTX.value = true;
   }
 };
@@ -742,7 +744,7 @@ const insertImage = async () => {
     hasChanges.value = true;
     message.success('已插入图片');
   } catch (error) {
-    console.error('插入图片失败:', error);
+    logger.error('插入图片失败:', error);
     message.error('插入图片失败: ' + error.message);
   }
 };
@@ -934,7 +936,7 @@ const handleSave = async () => {
     emit('save');
     message.success('文件已保存');
   } catch (error) {
-    console.error('保存文件失败:', error);
+    logger.error('保存文件失败:', error);
     message.error('保存文件失败: ' + error.message);
   } finally {
     saving.value = false;
@@ -992,7 +994,7 @@ const handleDownload = async () => {
     }
   } catch (error) {
     message.destroy('export');
-    console.error('导出PPT失败:', error);
+    logger.error('导出PPT失败:', error);
     message.error('导出PPT失败: ' + error.message);
   }
 };

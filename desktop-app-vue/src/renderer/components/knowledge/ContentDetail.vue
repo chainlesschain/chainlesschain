@@ -197,6 +197,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, watch } from 'vue';
 import { message } from 'ant-design-vue';
 import {
@@ -313,7 +315,7 @@ const checkAccess = async () => {
       await loadFullContent();
     }
   } catch (error) {
-    console.error('[ContentDetail] 检查访问权限失败:', error);
+    logger.error('[ContentDetail] 检查访问权限失败:', error);
     hasPurchased.value = false;
   }
 };
@@ -330,9 +332,9 @@ const loadFullContent = async () => {
 
     contentDetail.value = result.decryptedContent || result.content;
 
-    console.log('[ContentDetail] 完整内容已加载');
+    logger.info('[ContentDetail] 完整内容已加载');
   } catch (error) {
-    console.error('[ContentDetail] 加载完整内容失败:', error);
+    logger.error('[ContentDetail] 加载完整内容失败:', error);
     message.error(error.message || '加载完整内容失败');
   } finally {
     loadingContent.value = false;
@@ -349,7 +351,7 @@ const handlePurchase = async () => {
     // 使用 store 购买内容
     await tradeStore.purchaseContent(props.content.id, paymentAssetId.value);
 
-    console.log('[ContentDetail] 购买成功:', props.content.id);
+    logger.info('[ContentDetail] 购买成功:', props.content.id);
     message.success('购买成功！');
 
     // 通知父组件
@@ -358,7 +360,7 @@ const handlePurchase = async () => {
     // 重新检查访问权限并加载内容
     await checkAccess();
   } catch (error) {
-    console.error('[ContentDetail] 购买失败:', error);
+    logger.error('[ContentDetail] 购买失败:', error);
     message.error(error.message || '购买失败');
   } finally {
     purchasing.value = false;

@@ -1,3 +1,5 @@
+const { logger, createLogger } = require('../utils/logger.js');
+
 /**
  * 第九批扩展工具实现 (177-196)
  * 涵盖物联网、边缘计算、数字孪生、工业自动化、智能家居、
@@ -831,7 +833,7 @@ class ExtendedTools9 {
       };
     });
 
-    console.log('第九批扩展工具(177-196)注册完成');
+    logger.info('第九批扩展工具(177-196)注册完成');
   }
 }
 

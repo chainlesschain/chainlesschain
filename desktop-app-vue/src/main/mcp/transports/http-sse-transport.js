@@ -15,6 +15,7 @@
  * @module HttpSseTransport
  */
 
+const { logger, createLogger } = require('../../utils/logger.js');
 const EventEmitter = require("events");
 const https = require("https");
 const http = require("http");
@@ -117,7 +118,7 @@ class HttpSseTransport extends EventEmitter {
       lastDisconnectedAt: null,
     };
 
-    console.log(
+    logger.info(
       "[HttpSseTransport] Initialized with baseURL:",
       this.config.baseURL,
     );
@@ -129,7 +130,7 @@ class HttpSseTransport extends EventEmitter {
    */
   async start() {
     try {
-      console.log("[HttpSseTransport] Starting connection...");
+      logger.info("[HttpSseTransport] Starting connection...");
       this.connectionState = ConnectionState.CONNECTING;
       this.stats.connectionAttempts++;
 
@@ -143,7 +144,7 @@ class HttpSseTransport extends EventEmitter {
         }
         // Try half-open state
         this.circuitState = CircuitState.HALF_OPEN;
-        console.log(
+        logger.info(
           "[HttpSseTransport] Circuit breaker half-open, testing connection...",
         );
       }
@@ -169,9 +170,9 @@ class HttpSseTransport extends EventEmitter {
       }
 
       this.emit("connected");
-      console.log("[HttpSseTransport] Connection established");
+      logger.info("[HttpSseTransport] Connection established");
     } catch (error) {
-      console.error("[HttpSseTransport] Failed to start:", error);
+      logger.error("[HttpSseTransport] Failed to start:", error);
       this.connectionState = ConnectionState.ERROR;
       this.stats.failedConnections++;
       this.stats.lastError = {
@@ -210,7 +211,7 @@ class HttpSseTransport extends EventEmitter {
           return;
         }
 
-        console.log("[HttpSseTransport] SSE connection established");
+        logger.info("[HttpSseTransport] SSE connection established");
 
         let buffer = "";
 
@@ -228,7 +229,7 @@ class HttpSseTransport extends EventEmitter {
                 const message = JSON.parse(data);
                 this._handleMessage(message);
               } catch (error) {
-                console.error(
+                logger.error(
                   "[HttpSseTransport] Failed to parse SSE message:",
                   error,
                 );
@@ -238,13 +239,13 @@ class HttpSseTransport extends EventEmitter {
         });
 
         res.on("error", (error) => {
-          console.error("[HttpSseTransport] SSE error:", error);
+          logger.error("[HttpSseTransport] SSE error:", error);
           this.emit("error", error);
           this._reconnectSSE();
         });
 
         res.on("end", () => {
-          console.log("[HttpSseTransport] SSE connection closed");
+          logger.info("[HttpSseTransport] SSE connection closed");
           this.isConnected = false;
           this.emit("disconnected");
           this._reconnectSSE();
@@ -255,7 +256,7 @@ class HttpSseTransport extends EventEmitter {
       });
 
       req.on("error", (error) => {
-        console.error("[HttpSseTransport] SSE request error:", error);
+        logger.error("[HttpSseTransport] SSE request error:", error);
         reject(error);
       });
 
@@ -272,7 +273,7 @@ class HttpSseTransport extends EventEmitter {
    */
   async _reconnectSSE() {
     if (this.retryCount >= this.config.maxRetries) {
-      console.error("[HttpSseTransport] Max retries reached, giving up");
+      logger.error("[HttpSseTransport] Max retries reached, giving up");
       this.emit("error", new Error("Failed to reconnect after max retries"));
       return;
     }
@@ -280,7 +281,7 @@ class HttpSseTransport extends EventEmitter {
     this.retryCount++;
     const delay = this.config.retryDelay * Math.pow(2, this.retryCount - 1);
 
-    console.log(
+    logger.info(
       `[HttpSseTransport] Reconnecting in ${delay}ms (attempt ${this.retryCount}/${this.config.maxRetries})`,
     );
 
@@ -291,7 +292,7 @@ class HttpSseTransport extends EventEmitter {
         this.isConnected = true;
         this.emit("reconnected");
       } catch (error) {
-        console.error("[HttpSseTransport] Reconnect failed:", error);
+        logger.error("[HttpSseTransport] Reconnect failed:", error);
         this._reconnectSSE();
       }
     }, delay);
@@ -367,7 +368,7 @@ class HttpSseTransport extends EventEmitter {
         reject(error);
       });
 
-      console.log(
+      logger.info(
         "[HttpSseTransport] Sent message:",
         message.method || "response",
         requestId,
@@ -445,7 +446,7 @@ class HttpSseTransport extends EventEmitter {
    * @param {Object} message - JSON-RPC message
    */
   _handleMessage(message) {
-    console.log(
+    logger.info(
       "[HttpSseTransport] Received message:",
       message.method || "response",
       message.id,
@@ -474,7 +475,7 @@ class HttpSseTransport extends EventEmitter {
    * @returns {Promise<void>}
    */
   async stop() {
-    console.log("[HttpSseTransport] Stopping connection");
+    logger.info("[HttpSseTransport] Stopping connection");
 
     // Stop heartbeat
     this._stopHeartbeat();
@@ -528,14 +529,14 @@ class HttpSseTransport extends EventEmitter {
         this.lastHeartbeatResponse = Date.now();
       } catch (error) {
         this.missedHeartbeats++;
-        console.warn(
+        logger.warn(
           `[HttpSseTransport] Heartbeat failed (missed: ${this.missedHeartbeats}):`,
           error.message,
         );
 
         // If too many heartbeats missed, trigger reconnection
         if (this.missedHeartbeats >= 3) {
-          console.error(
+          logger.error(
             "[HttpSseTransport] Too many missed heartbeats, reconnecting...",
           );
           this._reconnectSSE();
@@ -543,7 +544,7 @@ class HttpSseTransport extends EventEmitter {
       }
     }, this.config.heartbeatInterval);
 
-    console.log(
+    logger.info(
       `[HttpSseTransport] Heartbeat started (interval: ${this.config.heartbeatInterval}ms)`,
     );
   }
@@ -598,7 +599,7 @@ class HttpSseTransport extends EventEmitter {
       this.emit("health-check", health);
     }, this.config.healthCheckInterval);
 
-    console.log(
+    logger.info(
       `[HttpSseTransport] Health check started (interval: ${this.config.healthCheckInterval}ms)`,
     );
   }
@@ -703,7 +704,7 @@ class HttpSseTransport extends EventEmitter {
    * @private
    */
   _openCircuit() {
-    console.warn(
+    logger.warn(
       `[HttpSseTransport] Circuit breaker OPENED after ${this.consecutiveFailures} failures`,
     );
     this.circuitState = CircuitState.OPEN;
@@ -719,7 +720,7 @@ class HttpSseTransport extends EventEmitter {
     // Schedule circuit breaker half-open check
     this.circuitBreakerTimer = setTimeout(() => {
       if (this.circuitState === CircuitState.OPEN) {
-        console.log(
+        logger.info(
           "[HttpSseTransport] Circuit breaker transitioning to half-open",
         );
         this.circuitState = CircuitState.HALF_OPEN;
@@ -734,7 +735,7 @@ class HttpSseTransport extends EventEmitter {
    */
   _resetCircuitBreaker() {
     if (this.circuitState !== CircuitState.CLOSED) {
-      console.log("[HttpSseTransport] Circuit breaker CLOSED");
+      logger.info("[HttpSseTransport] Circuit breaker CLOSED");
       this.circuitState = CircuitState.CLOSED;
       this.consecutiveFailures = 0;
       this.emit("circuit-closed");
@@ -755,11 +756,11 @@ class HttpSseTransport extends EventEmitter {
         const newToken = await this.config.onTokenRefresh();
         if (newToken) {
           this.config.apiKey = newToken;
-          console.log("[HttpSseTransport] Token refreshed successfully");
+          logger.info("[HttpSseTransport] Token refreshed successfully");
           this.emit("token-refreshed");
         }
       } catch (error) {
-        console.error("[HttpSseTransport] Token refresh failed:", error);
+        logger.error("[HttpSseTransport] Token refresh failed:", error);
         this.emit("token-refresh-failed", error);
         throw error;
       }
@@ -772,7 +773,7 @@ class HttpSseTransport extends EventEmitter {
    */
   updateApiKey(apiKey) {
     this.config.apiKey = apiKey;
-    console.log("[HttpSseTransport] API key updated");
+    logger.info("[HttpSseTransport] API key updated");
   }
 
   /**
@@ -849,7 +850,7 @@ class HttpSseTransport extends EventEmitter {
       lastDisconnectedAt: null,
     };
     this.healthCheckResults = [];
-    console.log("[HttpSseTransport] Statistics reset");
+    logger.info("[HttpSseTransport] Statistics reset");
   }
 
   // ===================================
@@ -911,7 +912,7 @@ class HttpSseTransport extends EventEmitter {
         lastError = error;
         if (attempt < maxRetries - 1) {
           const delay = baseDelay * Math.pow(2, attempt);
-          console.log(
+          logger.info(
             `[HttpSseTransport] Retry ${attempt + 1}/${maxRetries} in ${delay}ms`,
           );
           await new Promise((resolve) => setTimeout(resolve, delay));

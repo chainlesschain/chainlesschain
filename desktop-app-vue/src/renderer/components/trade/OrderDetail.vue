@@ -267,6 +267,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, watch } from 'vue';
 import { message as antMessage, Modal } from 'ant-design-vue';
 import {
@@ -409,9 +411,9 @@ const loadTransactions = async () => {
   try {
     // 使用 store 加载交易记录
     await tradeStore.loadTransactions({ orderId: props.order.id });
-    console.log('[OrderDetail] 交易记录已加载:', transactions.value.length);
+    logger.info('[OrderDetail] 交易记录已加载:', transactions.value.length);
   } catch (error) {
-    console.error('[OrderDetail] 加载交易列表失败:', error);
+    logger.error('[OrderDetail] 加载交易列表失败:', error);
   }
 };
 
@@ -439,13 +441,13 @@ const handleConfirmPurchase = async () => {
     // 使用 store 购买订单
     await tradeStore.purchaseOrder(props.order.id, purchaseQuantity.value);
 
-    console.log('[OrderDetail] 订单购买成功:', props.order.id);
+    logger.info('[OrderDetail] 订单购买成功:', props.order.id);
     antMessage.success('购买成功！');
     showPurchaseModal.value = false;
     emit('purchased');
     emit('update:open', false);
   } catch (error) {
-    console.error('[OrderDetail] 购买失败:', error);
+    logger.error('[OrderDetail] 购买失败:', error);
     antMessage.error(error.message || '购买失败');
   }
 };
@@ -462,12 +464,12 @@ const handleCancel = () => {
         // 使用 store 取消订单
         await tradeStore.cancelOrder(props.order.id);
 
-        console.log('[OrderDetail] 订单已取消:', props.order.id);
+        logger.info('[OrderDetail] 订单已取消:', props.order.id);
         antMessage.success('订单已取消');
         emit('cancelled');
         emit('update:open', false);
       } catch (error) {
-        console.error('[OrderDetail] 取消订单失败:', error);
+        logger.error('[OrderDetail] 取消订单失败:', error);
         antMessage.error(error.message || '取消订单失败');
       }
     },

@@ -1,3 +1,5 @@
+const { logger, createLogger } = require('../utils/logger.js');
+
 /**
  * RAG API - Project RAG indexing and query API
  * 提供项目级别的 RAG 索引和查询功能
@@ -14,7 +16,7 @@
  */
 async function indexProject(projectId, projectPath) {
   try {
-    console.log(`[RAG API] 索引项目: ${projectId}, 路径: ${projectPath}`);
+    logger.info(`[RAG API] 索引项目: ${projectId}, 路径: ${projectPath}`);
 
     // TODO: Implement actual RAG indexing logic
     // This is a placeholder that needs to be implemented with actual RAG functionality
@@ -26,7 +28,7 @@ async function indexProject(projectId, projectPath) {
       projectPath
     };
   } catch (error) {
-    console.error('[RAG API] 索引项目失败:', error);
+    logger.error('[RAG API] 索引项目失败:', error);
     return { success: false, error: error.message };
   }
 }
@@ -38,7 +40,7 @@ async function indexProject(projectId, projectPath) {
  */
 async function getIndexStats(projectId) {
   try {
-    console.log(`[RAG API] 获取索引统计: ${projectId}`);
+    logger.info(`[RAG API] 获取索引统计: ${projectId}`);
 
     // TODO: Implement actual stats retrieval
 
@@ -53,7 +55,7 @@ async function getIndexStats(projectId) {
       }
     };
   } catch (error) {
-    console.error('[RAG API] 获取索引统计失败:', error);
+    logger.error('[RAG API] 获取索引统计失败:', error);
     return { success: false, error: error.message };
   }
 }
@@ -67,7 +69,7 @@ async function getIndexStats(projectId) {
  */
 async function enhancedQuery(projectId, query, topK = 5) {
   try {
-    console.log(`[RAG API] RAG查询: ${projectId}, query: ${query}, topK: ${topK}`);
+    logger.info(`[RAG API] RAG查询: ${projectId}, query: ${query}, topK: ${topK}`);
 
     // TODO: Implement actual vector search
 
@@ -77,7 +79,7 @@ async function enhancedQuery(projectId, query, topK = 5) {
       message: 'RAG query not yet implemented'
     };
   } catch (error) {
-    console.error('[RAG API] RAG查询失败:', error);
+    logger.error('[RAG API] RAG查询失败:', error);
     return { success: false, error: error.message };
   }
 }
@@ -91,7 +93,7 @@ async function enhancedQuery(projectId, query, topK = 5) {
  */
 async function updateFileIndex(projectId, filePath, content) {
   try {
-    console.log(`[RAG API] 更新文件索引: ${projectId}, 文件: ${filePath}`);
+    logger.info(`[RAG API] 更新文件索引: ${projectId}, 文件: ${filePath}`);
 
     // TODO: Implement file index update
 
@@ -100,7 +102,7 @@ async function updateFileIndex(projectId, filePath, content) {
       message: 'File index update not yet implemented'
     };
   } catch (error) {
-    console.error('[RAG API] 更新文件索引失败:', error);
+    logger.error('[RAG API] 更新文件索引失败:', error);
     return { success: false, error: error.message };
   }
 }
@@ -112,7 +114,7 @@ async function updateFileIndex(projectId, filePath, content) {
  */
 async function deleteProjectIndex(projectId) {
   try {
-    console.log(`[RAG API] 删除项目索引: ${projectId}`);
+    logger.info(`[RAG API] 删除项目索引: ${projectId}`);
 
     // TODO: Implement index deletion
 
@@ -121,7 +123,7 @@ async function deleteProjectIndex(projectId) {
       message: 'Project index deletion not yet implemented'
     };
   } catch (error) {
-    console.error('[RAG API] 删除项目索引失败:', error);
+    logger.error('[RAG API] 删除项目索引失败:', error);
     return { success: false, error: error.message };
   }
 }

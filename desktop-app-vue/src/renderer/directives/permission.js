@@ -6,6 +6,7 @@
  * - v-permission:hide="'member.manage'" - 如果没有权限则隐藏元素（默认）
  */
 
+import { logger, createLogger } from '@/utils/logger';
 import { useIdentityStore } from '../stores/identity';
 
 /**
@@ -24,7 +25,7 @@ async function checkPermission(permission) {
   try {
     return await identityStore.checkPermission(permission);
   } catch (error) {
-    console.error('权限检查失败:', error);
+    logger.error('权限检查失败:', error);
     return false;
   }
 }
@@ -104,7 +105,7 @@ export const permission = {
 
     // 如果没有指定权限，直接返回
     if (!value) {
-      console.warn('v-permission 指令需要指定权限字符串');
+      logger.warn('v-permission 指令需要指定权限字符串');
       return;
     }
 

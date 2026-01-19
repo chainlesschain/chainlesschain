@@ -1,3 +1,5 @@
+const { logger, createLogger } = require('../utils/logger.js');
+
 /**
  * WebRTC Compatibility Layer
  *
@@ -20,7 +22,7 @@ try {
   available = true;
 } catch (e) {
   loadError = e;
-  console.warn("[wrtc-compat] werift not available:", e.message);
+  logger.warn("[wrtc-compat] werift not available:", e.message);
 }
 
 /**

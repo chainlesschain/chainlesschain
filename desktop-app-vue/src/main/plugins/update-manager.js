@@ -5,6 +5,7 @@
  * 支持自动更新和手动更新
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { EventEmitter } = require("events");
 const fs = require("fs");
 const path = require("path");
@@ -41,11 +42,11 @@ class PluginUpdateManager extends EventEmitter {
       return;
     }
 
-    console.log("[PluginUpdateManager] Starting auto-check for updates");
+    logger.info("[PluginUpdateManager] Starting auto-check for updates");
 
     // 立即检查一次
     this.checkForUpdates().catch((error) => {
-      console.error(
+      logger.error(
         "[PluginUpdateManager] Initial update check failed:",
         error,
       );
@@ -54,7 +55,7 @@ class PluginUpdateManager extends EventEmitter {
     // 定期检查
     this.updateTimer = setInterval(() => {
       this.checkForUpdates().catch((error) => {
-        console.error(
+        logger.error(
           "[PluginUpdateManager] Periodic update check failed:",
           error,
         );
@@ -69,7 +70,7 @@ class PluginUpdateManager extends EventEmitter {
     if (this.updateTimer) {
       clearInterval(this.updateTimer);
       this.updateTimer = null;
-      console.log("[PluginUpdateManager] Stopped auto-check for updates");
+      logger.info("[PluginUpdateManager] Stopped auto-check for updates");
     }
   }
 
@@ -78,7 +79,7 @@ class PluginUpdateManager extends EventEmitter {
    */
   async checkForUpdates(force = false) {
     if (this.checking && !force) {
-      console.log("[PluginUpdateManager] Update check already in progress");
+      logger.info("[PluginUpdateManager] Update check already in progress");
       return this.availableUpdates;
     }
 
@@ -86,13 +87,13 @@ class PluginUpdateManager extends EventEmitter {
     this.emit("check-start");
 
     try {
-      console.log("[PluginUpdateManager] Checking for plugin updates...");
+      logger.info("[PluginUpdateManager] Checking for plugin updates...");
 
       // 获取已安装的插件
       const installedPlugins = this.pluginManager.getPlugins();
 
       if (installedPlugins.length === 0) {
-        console.log("[PluginUpdateManager] No plugins installed");
+        logger.info("[PluginUpdateManager] No plugins installed");
         this.checking = false;
         this.emit("check-complete", []);
         return new Map();
@@ -116,7 +117,7 @@ class PluginUpdateManager extends EventEmitter {
           downloadUrl: update.downloadUrl,
         });
 
-        console.log(
+        logger.info(
           `[PluginUpdateManager] Update available for ${update.pluginId}: ${update.currentVersion} -> ${update.latestVersion}`,
         );
       }
@@ -130,7 +131,7 @@ class PluginUpdateManager extends EventEmitter {
 
       return this.availableUpdates;
     } catch (error) {
-      console.error("[PluginUpdateManager] Check for updates failed:", error);
+      logger.error("[PluginUpdateManager] Check for updates failed:", error);
       this.emit("check-error", error);
       throw error;
     } finally {
@@ -142,7 +143,7 @@ class PluginUpdateManager extends EventEmitter {
    * 自动安装更新
    */
   async autoInstallUpdates() {
-    console.log("[PluginUpdateManager] Auto-installing updates...");
+    logger.info("[PluginUpdateManager] Auto-installing updates...");
 
     const updates = Array.from(this.availableUpdates.values());
 
@@ -153,7 +154,7 @@ class PluginUpdateManager extends EventEmitter {
           await this.updatePlugin(update.pluginId);
         }
       } catch (error) {
-        console.error(
+        logger.error(
           `[PluginUpdateManager] Auto-update failed for ${update.pluginId}:`,
           error,
         );
@@ -165,7 +166,7 @@ class PluginUpdateManager extends EventEmitter {
    * 更新单个插件
    */
   async updatePlugin(pluginId, version = "latest") {
-    console.log(`[PluginUpdateManager] Updating plugin: ${pluginId}`);
+    logger.info(`[PluginUpdateManager] Updating plugin: ${pluginId}`);
 
     this.emit("update-start", pluginId);
 
@@ -177,7 +178,7 @@ class PluginUpdateManager extends EventEmitter {
       }
 
       // 下载新版本
-      console.log(
+      logger.info(
         `[PluginUpdateManager] Downloading ${pluginId} ${version}...`,
       );
       const pluginData = await this.marketplaceAPI.downloadPlugin(
@@ -195,13 +196,13 @@ class PluginUpdateManager extends EventEmitter {
       fs.writeFileSync(tempFile, pluginData);
 
       // 卸载旧版本
-      console.log(
+      logger.info(
         `[PluginUpdateManager] Uninstalling old version of ${pluginId}...`,
       );
       await this.pluginManager.uninstallPlugin(pluginId);
 
       // 安装新版本
-      console.log(
+      logger.info(
         `[PluginUpdateManager] Installing new version of ${pluginId}...`,
       );
       await this.pluginManager.installPlugin(tempFile);
@@ -212,12 +213,12 @@ class PluginUpdateManager extends EventEmitter {
       // 从更新列表中移除
       this.availableUpdates.delete(pluginId);
 
-      console.log(`[PluginUpdateManager] Successfully updated ${pluginId}`);
+      logger.info(`[PluginUpdateManager] Successfully updated ${pluginId}`);
       this.emit("update-complete", pluginId);
 
       return true;
     } catch (error) {
-      console.error(
+      logger.error(
         `[PluginUpdateManager] Update failed for ${pluginId}:`,
         error,
       );
@@ -230,7 +231,7 @@ class PluginUpdateManager extends EventEmitter {
    * 批量更新插件
    */
   async updateMultiplePlugins(pluginIds) {
-    console.log(
+    logger.info(
       `[PluginUpdateManager] Updating ${pluginIds.length} plugins...`,
     );
 
@@ -251,7 +252,7 @@ class PluginUpdateManager extends EventEmitter {
       }
     }
 
-    console.log(
+    logger.info(
       `[PluginUpdateManager] Batch update complete: ${results.success.length} succeeded, ${results.failed.length} failed`,
     );
 
@@ -323,7 +324,7 @@ class PluginUpdateManager extends EventEmitter {
    */
   setAutoUpdate(enabled) {
     this.autoUpdateEnabled = enabled;
-    console.log(
+    logger.info(
       `[PluginUpdateManager] Auto-update ${enabled ? "enabled" : "disabled"}`,
     );
   }

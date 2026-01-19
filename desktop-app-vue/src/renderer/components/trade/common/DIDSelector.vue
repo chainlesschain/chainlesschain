@@ -105,6 +105,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, watch, onMounted } from 'vue';
 import { message, Empty } from 'ant-design-vue';
 import {
@@ -223,7 +225,7 @@ const loadDids = async () => {
     const result = await window.electronAPI.did.getAllIdentities();
     dids.value = result || [];
   } catch (error) {
-    console.error('加载DID列表失败:', error);
+    logger.error('加载DID列表失败:', error);
     message.error('加载DID列表失败: ' + error.message);
     dids.value = [];
   } finally {
@@ -295,7 +297,7 @@ const handleCopy = async (did) => {
     await navigator.clipboard.writeText(did);
     message.success('已复制到剪贴板');
   } catch (error) {
-    console.error('复制失败:', error);
+    logger.error('复制失败:', error);
     message.error('复制失败');
   }
 };
@@ -321,7 +323,7 @@ const handleChange = (value) => {
   emit('change', value);
   const selectedDid = dids.value.find(did => did.did === value);
   if (selectedDid) {
-    console.log('[DIDSelector] 选择了DID:', selectedDid);
+    logger.info('[DIDSelector] 选择了DID:', selectedDid);
   }
 };
 
@@ -352,7 +354,7 @@ watch(
   () => props.modelValue,
   (newValue) => {
     if (newValue && !filteredDids.value.find(did => did.did === newValue)) {
-      console.warn('[DIDSelector] 选中的DID不在列表中:', newValue);
+      logger.warn('[DIDSelector] 选中的DID不在列表中:', newValue);
     }
   }
 );

@@ -5,6 +5,7 @@
  * 使用MD5哈希作为缓存键
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const crypto = require('crypto');
 const fs = require('fs').promises;
 const path = require('path');
@@ -32,12 +33,12 @@ class AudioCache {
   async initialize() {
     try {
       await fs.mkdir(this.cacheDir, { recursive: true });
-      console.log('[AudioCache] 缓存目录初始化:', this.cacheDir);
+      logger.info('[AudioCache] 缓存目录初始化:', this.cacheDir);
 
       // 清理过期缓存
       await this.cleanup();
     } catch (error) {
-      console.error('[AudioCache] 初始化失败:', error);
+      logger.error('[AudioCache] 初始化失败:', error);
     }
   }
 
@@ -132,7 +133,7 @@ class AudioCache {
         cacheKey = await this.generateCacheKey(hash, params);
       } catch (error) {
         // 生成新键失败，使用原始哈希
-        console.warn('[AudioCache] 生成缓存键失败，使用原始哈希:', error.message);
+        logger.warn('[AudioCache] 生成缓存键失败，使用原始哈希:', error.message);
       }
     }
 
@@ -143,7 +144,7 @@ class AudioCache {
       // 更新访问时间
       entry.lastAccessed = Date.now();
 
-      console.log('[AudioCache] 内存缓存命中 (新格式):', cacheKey);
+      logger.info('[AudioCache] 内存缓存命中 (新格式):', cacheKey);
       return entry.data;
     }
 
@@ -156,7 +157,7 @@ class AudioCache {
       const data = await fs.readFile(cachePath, 'utf-8');
       cacheEntry = JSON.parse(data);
       foundInDisk = true;
-      console.log('[AudioCache] 磁盘缓存命中 (新格式):', cacheKey);
+      logger.info('[AudioCache] 磁盘缓存命中 (新格式):', cacheKey);
     } catch (error) {
       // 新格式未找到，尝试旧格式（向后兼容）
       if (error.code === 'ENOENT' && cacheKey !== hash) {
@@ -165,7 +166,7 @@ class AudioCache {
           const data = await fs.readFile(cachePath, 'utf-8');
           cacheEntry = JSON.parse(data);
           foundInDisk = true;
-          console.log('[AudioCache] 磁盘缓存命中 (旧格式，自动迁移):', hash);
+          logger.info('[AudioCache] 磁盘缓存命中 (旧格式，自动迁移):', hash);
 
           // 自动迁移到新格式
           if (params) {
@@ -173,12 +174,12 @@ class AudioCache {
           }
         } catch (oldError) {
           if (oldError.code !== 'ENOENT') {
-            console.error('[AudioCache] 读取旧格式缓存失败:', oldError);
+            logger.error('[AudioCache] 读取旧格式缓存失败:', oldError);
           }
           return null;
         }
       } else if (error.code !== 'ENOENT') {
-        console.error('[AudioCache] 读取缓存失败:', error);
+        logger.error('[AudioCache] 读取缓存失败:', error);
         return null;
       } else {
         return null;
@@ -188,7 +189,7 @@ class AudioCache {
     if (foundInDisk && cacheEntry) {
       // 检查是否过期
       if (Date.now() - cacheEntry.timestamp > this.maxCacheAge) {
-        console.log('[AudioCache] 缓存已过期:', cacheKey);
+        logger.info('[AudioCache] 缓存已过期:', cacheKey);
         await fs.unlink(cachePath);
         return null;
       }
@@ -231,7 +232,7 @@ class AudioCache {
       try {
         cacheKey = await this.generateCacheKey(hash, params);
       } catch (error) {
-        console.warn('[AudioCache] 生成缓存键失败，使用原始哈希:', error.message);
+        logger.warn('[AudioCache] 生成缓存键失败，使用原始哈希:', error.message);
       }
     }
 
@@ -264,7 +265,7 @@ class AudioCache {
     this.writeQueue.push({ cachePath, cacheEntry });
     this.processWriteQueue(); // 异步处理，不阻塞
 
-    console.log('[AudioCache] 缓存已加入队列:', cacheKey);
+    logger.info('[AudioCache] 缓存已加入队列:', cacheKey);
   }
 
   /**
@@ -280,10 +281,10 @@ class AudioCache {
     const cachePath = this.getCachePath(hash);
     try {
       await fs.unlink(cachePath);
-      console.log('[AudioCache] 缓存已删除:', hash);
+      logger.info('[AudioCache] 缓存已删除:', hash);
     } catch (error) {
       if (error.code !== 'ENOENT') {
-        console.error('[AudioCache] 删除缓存失败:', error);
+        logger.error('[AudioCache] 删除缓存失败:', error);
       }
     }
   }
@@ -324,11 +325,11 @@ class AudioCache {
       }
 
       if (cleanedCount > 0) {
-        console.log(`[AudioCache] 清理了 ${cleanedCount} 个过期缓存`);
+        logger.info(`[AudioCache] 清理了 ${cleanedCount} 个过期缓存`);
       }
 
     } catch (error) {
-      console.error('[AudioCache] 清理失败:', error);
+      logger.error('[AudioCache] 清理失败:', error);
     }
 
     return cleanedCount;
@@ -357,7 +358,7 @@ class AudioCache {
     });
 
     if (toDelete.length > 0) {
-      console.log(`[AudioCache] 按条目数驱逐了 ${toDelete.length} 个内存缓存`);
+      logger.info(`[AudioCache] 按条目数驱逐了 ${toDelete.length} 个内存缓存`);
     }
   }
 
@@ -396,8 +397,8 @@ class AudioCache {
     });
 
     if (toDelete.length > 0) {
-      console.log(`[AudioCache] 按大小驱逐了 ${toDelete.length} 个条目，释放 ${(freedSize / 1024 / 1024).toFixed(2)}MB`);
-      console.log(`[AudioCache] 当前内存使用: ${(this.currentMemorySize / 1024 / 1024).toFixed(2)}MB / ${(this.maxMemorySize / 1024 / 1024).toFixed(2)}MB`);
+      logger.info(`[AudioCache] 按大小驱逐了 ${toDelete.length} 个条目，释放 ${(freedSize / 1024 / 1024).toFixed(2)}MB`);
+      logger.info(`[AudioCache] 当前内存使用: ${(this.currentMemorySize / 1024 / 1024).toFixed(2)}MB / ${(this.maxMemorySize / 1024 / 1024).toFixed(2)}MB`);
     }
   }
 
@@ -419,9 +420,9 @@ class AudioCache {
 
       try {
         await fs.writeFile(cachePath, JSON.stringify(cacheEntry, null, 2), 'utf-8');
-        // console.log('[AudioCache] 缓存已写入磁盘:', cacheEntry.hash); // 减少日志输出
+        // logger.info('[AudioCache] 缓存已写入磁盘:', cacheEntry.hash); // 减少日志输出
       } catch (error) {
-        console.error('[AudioCache] 批量写入失败:', error.message);
+        logger.error('[AudioCache] 批量写入失败:', error.message);
       }
     }
 
@@ -466,7 +467,7 @@ class AudioCache {
       };
 
     } catch (error) {
-      console.error('[AudioCache] 获取统计失败:', error);
+      logger.error('[AudioCache] 获取统计失败:', error);
       return {
         diskEntries: 0,
         memoryEntries: this.memoryCache.size,
@@ -492,9 +493,9 @@ class AudioCache {
           await fs.unlink(path.join(this.cacheDir, file));
         }
       }
-      console.log('[AudioCache] 所有缓存已清空');
+      logger.info('[AudioCache] 所有缓存已清空');
     } catch (error) {
-      console.error('[AudioCache] 清空缓存失败:', error);
+      logger.error('[AudioCache] 清空缓存失败:', error);
     }
   }
 }

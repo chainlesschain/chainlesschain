@@ -6,6 +6,7 @@
  * @description 提供系统窗口控制的 IPC 接口
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { ipcMain, BrowserWindow } = require('electron');
 
 // 防止重复注册的标志
@@ -28,10 +29,10 @@ function cleanupRegisteredHandlers() {
  */
 function registerSystemIPC({ mainWindow }) {
   if (isRegistered) {
-    console.log('[System IPC] Handlers already registered, refreshing...');
+    logger.info('[System IPC] Handlers already registered, refreshing...');
     cleanupRegisteredHandlers();
   } else {
-    console.log('[System IPC] Registering System IPC handlers...');
+    logger.info('[System IPC] Registering System IPC handlers...');
   }
 
   const registerHandler = (channel, handler) => {
@@ -55,7 +56,7 @@ function registerSystemIPC({ mainWindow }) {
       }
       return { success: false, error: '主窗口未初始化' };
     } catch (error) {
-      console.error('[System IPC] 最大化窗口失败:', error);
+      logger.error('[System IPC] 最大化窗口失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -72,7 +73,7 @@ function registerSystemIPC({ mainWindow }) {
       }
       return { success: false, error: '主窗口未初始化' };
     } catch (error) {
-      console.error('[System IPC] 最小化窗口失败:', error);
+      logger.error('[System IPC] 最小化窗口失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -89,7 +90,7 @@ function registerSystemIPC({ mainWindow }) {
       }
       return { success: false, error: '主窗口未初始化' };
     } catch (error) {
-      console.error('[System IPC] 关闭窗口失败:', error);
+      logger.error('[System IPC] 关闭窗口失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -105,7 +106,7 @@ function registerSystemIPC({ mainWindow }) {
       app.exit(0);
       return { success: true };
     } catch (error) {
-      console.error('[System IPC] 重启应用失败:', error);
+      logger.error('[System IPC] 重启应用失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -129,7 +130,7 @@ function registerSystemIPC({ mainWindow }) {
       }
       return { success: false, error: '主窗口未初始化' };
     } catch (error) {
-      console.error('[System IPC] 获取窗口状态失败:', error);
+      logger.error('[System IPC] 获取窗口状态失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -146,7 +147,7 @@ function registerSystemIPC({ mainWindow }) {
       }
       return { success: false, error: '主窗口未初始化' };
     } catch (error) {
-      console.error('[System IPC] 设置窗口置顶失败:', error);
+      logger.error('[System IPC] 设置窗口置顶失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -176,7 +177,7 @@ function registerSystemIPC({ mainWindow }) {
         cpus: os.cpus().length,
       };
     } catch (error) {
-      console.error('[System IPC] 获取系统信息失败:', error);
+      logger.error('[System IPC] 获取系统信息失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -196,7 +197,7 @@ function registerSystemIPC({ mainWindow }) {
         isPackaged: app.isPackaged,
       };
     } catch (error) {
-      console.error('[System IPC] 获取应用信息失败:', error);
+      logger.error('[System IPC] 获取应用信息失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -212,7 +213,7 @@ function registerSystemIPC({ mainWindow }) {
         platform: process.platform,
       };
     } catch (error) {
-      console.error('[System IPC] 获取平台信息失败:', error);
+      logger.error('[System IPC] 获取平台信息失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -229,7 +230,7 @@ function registerSystemIPC({ mainWindow }) {
         version: app.getVersion(),
       };
     } catch (error) {
-      console.error('[System IPC] 获取版本信息失败:', error);
+      logger.error('[System IPC] 获取版本信息失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -246,7 +247,7 @@ function registerSystemIPC({ mainWindow }) {
         path: app.getPath(name),
       };
     } catch (error) {
-      console.error('[System IPC] 获取路径失败:', error);
+      logger.error('[System IPC] 获取路径失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -261,7 +262,7 @@ function registerSystemIPC({ mainWindow }) {
       await shell.openExternal(url);
       return { success: true };
     } catch (error) {
-      console.error('[System IPC] 打开外部链接失败:', error);
+      logger.error('[System IPC] 打开外部链接失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -276,7 +277,7 @@ function registerSystemIPC({ mainWindow }) {
       shell.showItemInFolder(path);
       return { success: true };
     } catch (error) {
-      console.error('[System IPC] 显示文件失败:', error);
+      logger.error('[System IPC] 显示文件失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -297,7 +298,7 @@ function registerSystemIPC({ mainWindow }) {
         filePaths: result.filePaths,
       };
     } catch (error) {
-      console.error('[System IPC] 选择目录失败:', error);
+      logger.error('[System IPC] 选择目录失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -319,7 +320,7 @@ function registerSystemIPC({ mainWindow }) {
         filePaths: result.filePaths,
       };
     } catch (error) {
-      console.error('[System IPC] 选择文件失败:', error);
+      logger.error('[System IPC] 选择文件失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -334,7 +335,7 @@ function registerSystemIPC({ mainWindow }) {
       app.quit();
       return { success: true };
     } catch (error) {
-      console.error('[System IPC] 退出应用失败:', error);
+      logger.error('[System IPC] 退出应用失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -360,7 +361,7 @@ function registerSystemIPC({ mainWindow }) {
         filePaths: result.filePaths,
       };
     } catch (error) {
-      console.error('[System IPC] 选择文件夹失败:', error);
+      logger.error('[System IPC] 选择文件夹失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -379,7 +380,7 @@ function registerSystemIPC({ mainWindow }) {
         filePaths: result.filePaths,
       };
     } catch (error) {
-      console.error('[System IPC] 打开文件对话框失败:', error);
+      logger.error('[System IPC] 打开文件对话框失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -398,7 +399,7 @@ function registerSystemIPC({ mainWindow }) {
         filePath: result.filePath,
       };
     } catch (error) {
-      console.error('[System IPC] 保存文件对话框失败:', error);
+      logger.error('[System IPC] 保存文件对话框失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -417,35 +418,35 @@ function registerSystemIPC({ mainWindow }) {
         checkboxChecked: result.checkboxChecked,
       };
     } catch (error) {
-      console.error('[System IPC] 消息框显示失败:', error);
+      logger.error('[System IPC] 消息框显示失败:', error);
       return { success: false, error: error.message };
     }
   });
 
-  console.log('[System IPC] Registered 20 handlers (16 system + 4 dialog)');
-  console.log('[System IPC] - system:maximize');
-  console.log('[System IPC] - system:minimize');
-  console.log('[System IPC] - system:close');
-  console.log('[System IPC] - system:restart');
-  console.log('[System IPC] - system:get-window-state');
-  console.log('[System IPC] - system:set-always-on-top');
-  console.log('[System IPC] - system:get-system-info');
-  console.log('[System IPC] - system:get-app-info');
-  console.log('[System IPC] - system:get-platform');
-  console.log('[System IPC] - system:get-version');
-  console.log('[System IPC] - system:get-path');
-  console.log('[System IPC] - system:open-external');
-  console.log('[System IPC] - system:show-item-in-folder');
-  console.log('[System IPC] - system:select-directory');
-  console.log('[System IPC] - system:select-file');
-  console.log('[System IPC] - system:quit');
-  console.log('[System IPC] - dialog:select-folder');
-  console.log('[System IPC] - dialog:showOpenDialog');
-  console.log('[System IPC] - dialog:showSaveDialog');
-  console.log('[System IPC] - dialog:showMessageBox');
+  logger.info('[System IPC] Registered 20 handlers (16 system + 4 dialog)');
+  logger.info('[System IPC] - system:maximize');
+  logger.info('[System IPC] - system:minimize');
+  logger.info('[System IPC] - system:close');
+  logger.info('[System IPC] - system:restart');
+  logger.info('[System IPC] - system:get-window-state');
+  logger.info('[System IPC] - system:set-always-on-top');
+  logger.info('[System IPC] - system:get-system-info');
+  logger.info('[System IPC] - system:get-app-info');
+  logger.info('[System IPC] - system:get-platform');
+  logger.info('[System IPC] - system:get-version');
+  logger.info('[System IPC] - system:get-path');
+  logger.info('[System IPC] - system:open-external');
+  logger.info('[System IPC] - system:show-item-in-folder');
+  logger.info('[System IPC] - system:select-directory');
+  logger.info('[System IPC] - system:select-file');
+  logger.info('[System IPC] - system:quit');
+  logger.info('[System IPC] - dialog:select-folder');
+  logger.info('[System IPC] - dialog:showOpenDialog');
+  logger.info('[System IPC] - dialog:showSaveDialog');
+  logger.info('[System IPC] - dialog:showMessageBox');
 
   isRegistered = true;
-  console.log('[System IPC] ✓ All handlers registered successfully');
+  logger.info('[System IPC] ✓ All handlers registered successfully');
 }
 
 module.exports = { registerSystemIPC };

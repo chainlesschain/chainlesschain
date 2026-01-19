@@ -4,6 +4,7 @@
  * 负责知识库检索和增强生成
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const EventEmitter = require('events');
 const { EmbeddingsService } = require('./embeddings-service');
 const VectorStore = require('../vector/vector-store');
@@ -109,7 +110,7 @@ class RAGManager extends EventEmitter {
    * 初始化RAG管理器
    */
   async initialize() {
-    console.log('[RAGManager] 初始化RAG管理器...');
+    logger.info('[RAGManager] 初始化RAG管理器...');
 
     try {
       // 初始化嵌入服务
@@ -120,9 +121,9 @@ class RAGManager extends EventEmitter {
         this.useChromaDB = await this.vectorStore.initialize();
 
         if (this.useChromaDB) {
-          console.log('[RAGManager] 使用ChromaDB向量存储');
+          logger.info('[RAGManager] 使用ChromaDB向量存储');
         } else {
-          console.warn('[RAGManager] ChromaDB不可用，使用内存存储');
+          logger.warn('[RAGManager] ChromaDB不可用，使用内存存储');
         }
       }
 
@@ -130,8 +131,8 @@ class RAGManager extends EventEmitter {
       await this.buildVectorIndex();
 
       this.isInitialized = true;
-      console.log('[RAGManager] RAG管理器初始化成功');
-      console.log('[RAGManager] 存储模式:', this.useChromaDB ? 'ChromaDB' : 'Memory');
+      logger.info('[RAGManager] RAG管理器初始化成功');
+      logger.info('[RAGManager] 存储模式:', this.useChromaDB ? 'ChromaDB' : 'Memory');
 
       this.emit('initialized', {
         useChromaDB: this.useChromaDB,
@@ -141,7 +142,7 @@ class RAGManager extends EventEmitter {
       });
       return true;
     } catch (error) {
-      console.error('[RAGManager] 初始化失败:', error);
+      logger.error('[RAGManager] 初始化失败:', error);
       this.isInitialized = false;
       return false;
     }
@@ -152,22 +153,22 @@ class RAGManager extends EventEmitter {
    */
   async buildVectorIndex() {
     if (!this.config.enableRAG) {
-      console.log('[RAGManager] RAG未启用，跳过索引构建');
+      logger.info('[RAGManager] RAG未启用，跳过索引构建');
       return;
     }
 
-    console.log('[RAGManager] 开始构建向量索引...');
+    logger.info('[RAGManager] 开始构建向量索引...');
 
     try {
       // 获取所有知识库项
       const items = this.db ? this.db.getKnowledgeItems(10000, 0) : [];
 
       if (!items || items.length === 0) {
-        console.log('[RAGManager] 知识库为空');
+        logger.info('[RAGManager] 知识库为空');
         return;
       }
 
-      console.log(`[RAGManager] 为 ${items.length} 个项目生成向量...`);
+      logger.info(`[RAGManager] 为 ${items.length} 个项目生成向量...`);
 
       // 批量处理 (优化批次大小以提升性能)
       const batchSize = 20;
@@ -206,7 +207,7 @@ class RAGManager extends EventEmitter {
           processed += batch.length;
 
           if (processed % 10 === 0) {
-            console.log(`[RAGManager] 已处理 ${processed}/${items.length} 个项目`);
+            logger.info(`[RAGManager] 已处理 ${processed}/${items.length} 个项目`);
             this.emit('index-progress', {
               processed,
               total: items.length,
@@ -214,7 +215,7 @@ class RAGManager extends EventEmitter {
             });
           }
         } catch (error) {
-          console.error(`[RAGManager] 处理批次失败:`, error);
+          logger.error(`[RAGManager] 处理批次失败:`, error);
         }
       }
 
@@ -222,10 +223,10 @@ class RAGManager extends EventEmitter {
         (await this.vectorStore.getStats()).count :
         this.vectorIndex.size;
 
-      console.log(`[RAGManager] 向量索引构建完成，共 ${finalCount} 个项目`);
+      logger.info(`[RAGManager] 向量索引构建完成，共 ${finalCount} 个项目`);
       this.emit('index-complete', { count: finalCount });
     } catch (error) {
-      console.error('[RAGManager] 构建向量索引失败:', error);
+      logger.error('[RAGManager] 构建向量索引失败:', error);
       throw error;
     }
   }
@@ -251,7 +252,7 @@ class RAGManager extends EventEmitter {
       enableQueryRewrite = this.config.enableQueryRewrite,
     } = options;
 
-    console.log(`[RAGManager] 检索查询: "${query}"`);
+    logger.info(`[RAGManager] 检索查询: "${query}"`);
 
     try {
       let queries = [query];
@@ -262,10 +263,10 @@ class RAGManager extends EventEmitter {
         try {
           const rewriteResult = await this.queryRewriter.rewriteQuery(query, options);
           queries = rewriteResult.rewrittenQueries || [query];
-          console.log(`[RAGManager] 查询重写生成 ${queries.length} 个变体`);
+          logger.info(`[RAGManager] 查询重写生成 ${queries.length} 个变体`);
           if (rewriteTimer) {rewriteTimer({ queryCount: queries.length });}
         } catch (error) {
-          console.error('[RAGManager] 查询重写失败:', error);
+          logger.error('[RAGManager] 查询重写失败:', error);
           if (this.metricsEnabled) {this.metrics.recordError('query_rewrite', error);}
           if (rewriteTimer) {rewriteTimer();}
         }
@@ -302,16 +303,16 @@ class RAGManager extends EventEmitter {
       let finalResults = uniqueResults;
       if (this.config.enableReranking && uniqueResults.length > 0) {
         const rerankTimer = this.metricsEnabled ? this.metrics.startTimer(MetricTypes.RERANK) : null;
-        console.log(`[RAGManager] 应用重排序，方法: ${this.config.rerankMethod}`);
+        logger.info(`[RAGManager] 应用重排序，方法: ${this.config.rerankMethod}`);
         try {
           finalResults = await this.reranker.rerank(query, uniqueResults, {
             topK: this.config.rerankTopK || topK,
             method: this.config.rerankMethod,
           });
-          console.log(`[RAGManager] 重排序后剩余 ${finalResults.length} 个文档`);
+          logger.info(`[RAGManager] 重排序后剩余 ${finalResults.length} 个文档`);
           if (rerankTimer) {rerankTimer({ rerankCount: finalResults.length });}
         } catch (error) {
-          console.error('[RAGManager] 重排序失败，使用原始结果:', error);
+          logger.error('[RAGManager] 重排序失败，使用原始结果:', error);
           if (this.metricsEnabled) {this.metrics.recordError('rerank', error);}
           if (rerankTimer) {rerankTimer();}
         }
@@ -323,14 +324,14 @@ class RAGManager extends EventEmitter {
       // 限制数量
       finalResults = finalResults.slice(0, topK);
 
-      console.log(`[RAGManager] 检索到 ${finalResults.length} 个相关项目`);
+      logger.info(`[RAGManager] 检索到 ${finalResults.length} 个相关项目`);
 
       // 记录总时间
       if (totalTimer) {totalTimer({ resultCount: finalResults.length });}
 
       return finalResults;
     } catch (error) {
-      console.error('[RAGManager] 检索失败:', error);
+      logger.error('[RAGManager] 检索失败:', error);
       if (this.metricsEnabled) {this.metrics.recordError('retrieve', error);}
       if (totalTimer) {totalTimer();}
       return [];
@@ -435,7 +436,7 @@ class RAGManager extends EventEmitter {
         source: 'keyword',
       }));
     } catch (error) {
-      console.error('[RAGManager] 关键词搜索失败:', error);
+      logger.error('[RAGManager] 关键词搜索失败:', error);
       return [];
     }
   }
@@ -542,7 +543,7 @@ class RAGManager extends EventEmitter {
         retrievedDocs: retrievedDocs,
       };
     } catch (error) {
-      console.error('[RAGManager] 增强查询失败:', error);
+      logger.error('[RAGManager] 增强查询失败:', error);
       return {
         query: query,
         context: '',
@@ -567,7 +568,7 @@ class RAGManager extends EventEmitter {
 
       // 如果启用分块且文档较长
       if (this.config.enableChunking && text.length > this.config.chunkSize) {
-        console.log(`[RAGManager] 文档较长 (${text.length}字符)，启用分块`);
+        logger.info(`[RAGManager] 文档较长 (${text.length}字符)，启用分块`);
 
         const chunks = this.textSplitter.splitText(text, {
           sourceId: item.id,
@@ -575,7 +576,7 @@ class RAGManager extends EventEmitter {
           sourceType: item.type,
         });
 
-        console.log(`[RAGManager] 分块为 ${chunks.length} 个片段`);
+        logger.info(`[RAGManager] 分块为 ${chunks.length} 个片段`);
 
         // 为每个块生成嵌入并添加
         for (let i = 0; i < chunks.length; i++) {
@@ -605,7 +606,7 @@ class RAGManager extends EventEmitter {
           }
         }
 
-        console.log(`[RAGManager] 添加 ${chunks.length} 个文档块到索引: ${item.id}`);
+        logger.info(`[RAGManager] 添加 ${chunks.length} 个文档块到索引: ${item.id}`);
       } else {
         // 正常添加（不分块）
         const embedding = await this.embeddingsService.generateEmbedding(text);
@@ -623,12 +624,12 @@ class RAGManager extends EventEmitter {
           });
         }
 
-        console.log(`[RAGManager] 添加项目到索引: ${item.id}`);
+        logger.info(`[RAGManager] 添加项目到索引: ${item.id}`);
       }
 
       if (embeddingTimer) {embeddingTimer();}
     } catch (error) {
-      console.error('[RAGManager] 添加到索引失败:', error);
+      logger.error('[RAGManager] 添加到索引失败:', error);
       if (this.metricsEnabled) {this.metrics.recordError('add_to_index', error);}
       if (embeddingTimer) {embeddingTimer();}
     }
@@ -647,9 +648,9 @@ class RAGManager extends EventEmitter {
           this.vectorIndex.delete(itemId);
         }
       }
-      console.log(`[RAGManager] 从索引移除项目: ${itemId}`);
+      logger.info(`[RAGManager] 从索引移除项目: ${itemId}`);
     } catch (error) {
-      console.error(`[RAGManager] 移除项目失败:`, error);
+      logger.error(`[RAGManager] 移除项目失败:`, error);
     }
   }
 
@@ -666,7 +667,7 @@ class RAGManager extends EventEmitter {
    * 重建索引
    */
   async rebuildIndex() {
-    console.log('[RAGManager] 重建向量索引...');
+    logger.info('[RAGManager] 重建向量索引...');
     this.vectorIndex.clear();
     this.embeddingsService.clearCache();
     await this.buildVectorIndex();
@@ -712,7 +713,7 @@ class RAGManager extends EventEmitter {
       });
     }
 
-    console.log('[RAGManager] 配置已更新:', this.config);
+    logger.info('[RAGManager] 配置已更新:', this.config);
   }
 
   /**
@@ -730,7 +731,7 @@ class RAGManager extends EventEmitter {
     if (this.reranker) {
       this.reranker.setEnabled(enabled);
     }
-    console.log(`[RAGManager] 重排序${enabled ? '已启用' : '已禁用'}`);
+    logger.info(`[RAGManager] 重排序${enabled ? '已启用' : '已禁用'}`);
   }
 
   /**
@@ -789,7 +790,7 @@ class RAGManager extends EventEmitter {
   resetMetrics() {
     if (this.metricsEnabled && this.metrics) {
       this.metrics.reset();
-      console.log('[RAGManager] 性能指标已重置');
+      logger.info('[RAGManager] 性能指标已重置');
     }
   }
 
@@ -798,7 +799,7 @@ class RAGManager extends EventEmitter {
    */
   setMetricsEnabled(enabled) {
     this.metricsEnabled = enabled;
-    console.log(`[RAGManager] 性能监控${enabled ? '已启用' : '已禁用'}`);
+    logger.info(`[RAGManager] 性能监控${enabled ? '已启用' : '已禁用'}`);
   }
 
   /**
@@ -817,7 +818,7 @@ class RAGManager extends EventEmitter {
     };
 
     await this.addToIndex(item);
-    console.log(`[RAGManager] 添加文档: ${item.id}`);
+    logger.info(`[RAGManager] 添加文档: ${item.id}`);
   }
 
   /**
@@ -858,7 +859,7 @@ class RAGManager extends EventEmitter {
 
       return null;
     } catch (error) {
-      console.error(`[RAGManager] 获取文档失败 ${id}:`, error);
+      logger.error(`[RAGManager] 获取文档失败 ${id}:`, error);
       return null;
     }
   }
@@ -870,7 +871,7 @@ class RAGManager extends EventEmitter {
    */
   async deleteDocument(id) {
     await this.removeFromIndex(id);
-    console.log(`[RAGManager] 删除文档: ${id}`);
+    logger.info(`[RAGManager] 删除文档: ${id}`);
   }
 
   /**
@@ -918,7 +919,7 @@ class RAGManager extends EventEmitter {
    */
   async rerank(query, documents, options = {}) {
     if (!this.config.enableReranking || !this.reranker) {
-      console.log('[RAGManager] 重排序未启用，返回原始结果');
+      logger.info('[RAGManager] 重排序未启用，返回原始结果');
       return documents;
     }
 
@@ -928,7 +929,7 @@ class RAGManager extends EventEmitter {
         method: options.method || this.config.rerankMethod,
       });
     } catch (error) {
-      console.error('[RAGManager] 重排序失败:', error);
+      logger.error('[RAGManager] 重排序失败:', error);
       return documents;
     }
   }

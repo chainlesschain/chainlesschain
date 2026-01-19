@@ -6,6 +6,7 @@
  * 完整的类型安全支持
  */
 
+import { logger, createLogger } from '@/utils/logger';
 import type {
   IMultimediaAPI,
   ProgressCallback,
@@ -97,7 +98,7 @@ class MultimediaAPI implements IMultimediaAPI {
 
       return await window.electronAPI!.invoke(channel, params);
     } catch (error) {
-      console.error(`[MultimediaAPI] ${channel} 调用失败:`, error);
+      logger.error(`[MultimediaAPI] ${channel} 调用失败:`, error);
       throw error;
     }
   }

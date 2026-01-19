@@ -6,6 +6,7 @@
  * @description 提供可验证凭证的创建、验证、撤销、导出、导入、统计等 IPC 接口
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { ipcMain } = require('electron');
 
 /**
@@ -14,7 +15,7 @@ const { ipcMain } = require('electron');
  * @param {Object} dependencies.vcManager - 可验证凭证管理器
  */
 function registerVCIPC({ vcManager }) {
-  console.log('[VC IPC] Registering VC IPC handlers...');
+  logger.info('[VC IPC] Registering VC IPC handlers...');
 
   // ============================================================
   // 凭证基础操作 (Basic Credential Operations)
@@ -32,7 +33,7 @@ function registerVCIPC({ vcManager }) {
 
       return await vcManager.createCredential(params);
     } catch (error) {
-      console.error('[VC IPC] 创建凭证失败:', error);
+      logger.error('[VC IPC] 创建凭证失败:', error);
       throw error;
     }
   });
@@ -49,7 +50,7 @@ function registerVCIPC({ vcManager }) {
 
       return vcManager.getCredentials(filters);
     } catch (error) {
-      console.error('[VC IPC] 获取凭证列表失败:', error);
+      logger.error('[VC IPC] 获取凭证列表失败:', error);
       return [];
     }
   });
@@ -66,7 +67,7 @@ function registerVCIPC({ vcManager }) {
 
       return vcManager.getCredentialById(id);
     } catch (error) {
-      console.error('[VC IPC] 获取凭证失败:', error);
+      logger.error('[VC IPC] 获取凭证失败:', error);
       return null;
     }
   });
@@ -83,7 +84,7 @@ function registerVCIPC({ vcManager }) {
 
       return await vcManager.verifyCredential(vcDocument);
     } catch (error) {
-      console.error('[VC IPC] 验证凭证失败:', error);
+      logger.error('[VC IPC] 验证凭证失败:', error);
       return false;
     }
   });
@@ -100,7 +101,7 @@ function registerVCIPC({ vcManager }) {
 
       return await vcManager.revokeCredential(id, issuerDID);
     } catch (error) {
-      console.error('[VC IPC] 撤销凭证失败:', error);
+      logger.error('[VC IPC] 撤销凭证失败:', error);
       throw error;
     }
   });
@@ -117,7 +118,7 @@ function registerVCIPC({ vcManager }) {
 
       return await vcManager.deleteCredential(id);
     } catch (error) {
-      console.error('[VC IPC] 删除凭证失败:', error);
+      logger.error('[VC IPC] 删除凭证失败:', error);
       throw error;
     }
   });
@@ -138,7 +139,7 @@ function registerVCIPC({ vcManager }) {
 
       return vcManager.exportCredential(id);
     } catch (error) {
-      console.error('[VC IPC] 导出凭证失败:', error);
+      logger.error('[VC IPC] 导出凭证失败:', error);
       throw error;
     }
   });
@@ -155,7 +156,7 @@ function registerVCIPC({ vcManager }) {
 
       return await vcManager.generateShareData(id);
     } catch (error) {
-      console.error('[VC IPC] 生成分享数据失败:', error);
+      logger.error('[VC IPC] 生成分享数据失败:', error);
       throw error;
     }
   });
@@ -172,7 +173,7 @@ function registerVCIPC({ vcManager }) {
 
       return await vcManager.importFromShareData(shareData);
     } catch (error) {
-      console.error('[VC IPC] 导入分享凭证失败:', error);
+      logger.error('[VC IPC] 导入分享凭证失败:', error);
       throw error;
     }
   });
@@ -193,12 +194,12 @@ function registerVCIPC({ vcManager }) {
 
       return vcManager.getStatistics(did);
     } catch (error) {
-      console.error('[VC IPC] 获取凭证统计失败:', error);
+      logger.error('[VC IPC] 获取凭证统计失败:', error);
       return { issued: 0, received: 0, total: 0, byType: {} };
     }
   });
 
-  console.log('[VC IPC] ✓ All VC IPC handlers registered successfully (10 handlers)');
+  logger.info('[VC IPC] ✓ All VC IPC handlers registered successfully (10 handlers)');
 }
 
 module.exports = {

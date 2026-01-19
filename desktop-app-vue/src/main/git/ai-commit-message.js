@@ -2,6 +2,7 @@
  * AI Git提交信息生成器
  * 使用LLM分析git diff并生成符合Conventional Commits规范的提交信息
  */
+const { logger, createLogger } = require('../utils/logger.js');
 const { execSync } = require('child_process');
 const path = require('path');
 
@@ -34,7 +35,7 @@ class AICommitMessageGenerator {
         diff: diff.substring(0, 500) // 返回部分diff用于展示
       };
     } catch (error) {
-      console.error('[AICommitMessage] 生成失败:', error);
+      logger.error('[AICommitMessage] 生成失败:', error);
       throw error;
     }
   }
@@ -63,7 +64,7 @@ class AICommitMessageGenerator {
 
       return stagedDiff;
     } catch (error) {
-      console.error('[AICommitMessage] 获取git diff失败:', error);
+      logger.error('[AICommitMessage] 获取git diff失败:', error);
       return '';
     }
   }
@@ -113,7 +114,7 @@ ${diff.substring(0, 1000)}
 
       return message;
     } catch (error) {
-      console.error('[AICommitMessage] LLM调用失败:', error);
+      logger.error('[AICommitMessage] LLM调用失败:', error);
       return this.generateFallbackMessage(diff);
     }
   }
@@ -175,7 +176,7 @@ ${diff.substring(0, 1000)}
     }
 
     // 如果不符合规范，尝试修复
-    console.warn('[AICommitMessage] 提交信息不符合规范，尝试修复:', message);
+    logger.warn('[AICommitMessage] 提交信息不符合规范，尝试修复:', message);
 
     // 移除前缀空格和换行
     message = message.trim().split('\n')[0];

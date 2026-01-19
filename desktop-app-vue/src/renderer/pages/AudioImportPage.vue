@@ -347,6 +347,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, onMounted, computed } from "vue";
 import { message } from "ant-design-vue";
 import {
@@ -430,7 +432,7 @@ const loadAvailableEngines = async () => {
     availableEngines.value =
       await window.electronAPI.speech.getAvailableEngines();
   } catch (error) {
-    console.error("加载引擎列表失败:", error);
+    logger.error("加载引擎列表失败:", error);
   }
 };
 
@@ -446,7 +448,7 @@ const loadHistory = async () => {
     historyList.value = list || [];
     pagination.value.total = list.length;
   } catch (error) {
-    console.error("加载历史失败:", error);
+    logger.error("加载历史失败:", error);
     message.error("加载历史失败");
   } finally {
     loading.value = false;
@@ -472,7 +474,7 @@ const loadLibrary = async () => {
     libraryList.value = list || [];
     libraryPagination.value.total = list.length;
   } catch (error) {
-    console.error("加载文件库失败:", error);
+    logger.error("加载文件库失败:", error);
     message.error("加载文件库失败");
   } finally {
     libraryLoading.value = false;
@@ -493,7 +495,7 @@ const searchLibrary = async () => {
     );
     libraryList.value = list || [];
   } catch (error) {
-    console.error("搜索失败:", error);
+    logger.error("搜索失败:", error);
     message.error("搜索失败");
   } finally {
     libraryLoading.value = false;
@@ -505,7 +507,7 @@ const loadStats = async () => {
   try {
     stats.value = await window.electronAPI.speech.getStats();
   } catch (error) {
-    console.error("加载统计失败:", error);
+    logger.error("加载统计失败:", error);
   }
 };
 
@@ -516,7 +518,7 @@ const deleteHistory = async (id) => {
     message.success("删除成功");
     await loadHistory();
   } catch (error) {
-    console.error("删除失败:", error);
+    logger.error("删除失败:", error);
     message.error("删除失败");
   }
 };
@@ -529,7 +531,7 @@ const deleteAudioFile = async (id) => {
     await loadLibrary();
     await loadStats();
   } catch (error) {
-    console.error("删除失败:", error);
+    logger.error("删除失败:", error);
     message.error("删除失败");
   }
 };
@@ -591,7 +593,7 @@ const generateSubtitleForHistory = async (item) => {
 
     message.success({ content: "字幕生成成功！", key: "subtitle" });
   } catch (error) {
-    console.error("生成字幕失败:", error);
+    logger.error("生成字幕失败:", error);
     message.error({
       content: `生成字幕失败: ${error.message}`,
       key: "subtitle",
@@ -614,7 +616,7 @@ const copyText = (text) => {
 // 插入文本
 const handleInsertText = (text) => {
   // TODO: 实现插入到编辑器的功能
-  console.log("插入文本:", text);
+  logger.info("插入文本:", text);
   message.success("文本已准备插入");
 };
 
@@ -632,7 +634,7 @@ const saveSettings = async () => {
     });
     message.success("设置已保存");
   } catch (error) {
-    console.error("保存设置失败:", error);
+    logger.error("保存设置失败:", error);
     message.error("保存设置失败");
   }
 };

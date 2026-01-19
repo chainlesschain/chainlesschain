@@ -12,6 +12,7 @@
  * - Worker生命周期管理
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { EventEmitter } = require('events');
 const os = require('os');
 
@@ -41,7 +42,7 @@ class OCRWorkerPool extends EventEmitter {
     this.isInitialized = false;
     this.isShuttingDown = false;
 
-    console.log(`[OCRWorkerPool] 初始化: maxWorkers=${this.maxWorkers}, language=${this.language}`);
+    logger.info(`[OCRWorkerPool] 初始化: maxWorkers=${this.maxWorkers}, language=${this.language}`);
   }
 
   /**
@@ -51,7 +52,7 @@ class OCRWorkerPool extends EventEmitter {
    */
   async initialize(lang) {
     if (this.isInitialized) {
-      console.warn('[OCRWorkerPool] 已初始化，跳过');
+      logger.warn('[OCRWorkerPool] 已初始化，跳过');
       return;
     }
 
@@ -63,7 +64,7 @@ class OCRWorkerPool extends EventEmitter {
       // 动态加载Tesseract.js
       const Tesseract = require('tesseract.js');
 
-      console.log(`[OCRWorkerPool] 并发创建 ${this.maxWorkers} 个Workers...`);
+      logger.info(`[OCRWorkerPool] 并发创建 ${this.maxWorkers} 个Workers...`);
       const startTime = Date.now();
 
       // 并发创建所有Workers
@@ -82,7 +83,7 @@ class OCRWorkerPool extends EventEmitter {
           },
           ...(this.workerPath && { workerPath: this.workerPath }),
         }).then((worker) => {
-          console.log(`[OCRWorkerPool] Worker ${i} 初始化完成`);
+          logger.info(`[OCRWorkerPool] Worker ${i} 初始化完成`);
           return worker;
         });
 
@@ -92,7 +93,7 @@ class OCRWorkerPool extends EventEmitter {
       this.workers = await Promise.all(workerPromises);
 
       const duration = Date.now() - startTime;
-      console.log(
+      logger.info(
         `[OCRWorkerPool] 所有Workers初始化完成: ` +
           `${this.workers.length}个Workers, 耗时: ${duration}ms`
       );
@@ -104,7 +105,7 @@ class OCRWorkerPool extends EventEmitter {
         duration: duration,
       });
     } catch (error) {
-      console.error('[OCRWorkerPool] 初始化失败:', error);
+      logger.error('[OCRWorkerPool] 初始化失败:', error);
       throw new Error(`OCR Worker池初始化失败: ${error.message}`);
     }
   }
@@ -152,7 +153,7 @@ class OCRWorkerPool extends EventEmitter {
       throw new Error('Worker池未初始化，请先调用initialize()');
     }
 
-    console.log(`[OCRWorkerPool] 批量识别开始: ${images.length}张图片`);
+    logger.info(`[OCRWorkerPool] 批量识别开始: ${images.length}张图片`);
     const startTime = Date.now();
 
     try {
@@ -176,7 +177,7 @@ class OCRWorkerPool extends EventEmitter {
       const duration = Date.now() - startTime;
       const successCount = results.filter((r) => r.success).length;
 
-      console.log(
+      logger.info(
         `[OCRWorkerPool] 批量识别完成: ` +
           `${successCount}/${images.length}成功, 耗时: ${duration}ms, ` +
           `平均: ${(duration / images.length).toFixed(0)}ms/张`
@@ -192,7 +193,7 @@ class OCRWorkerPool extends EventEmitter {
 
       return results;
     } catch (error) {
-      console.error('[OCRWorkerPool] 批量识别失败:', error);
+      logger.error('[OCRWorkerPool] 批量识别失败:', error);
       throw error;
     }
   }
@@ -254,7 +255,7 @@ class OCRWorkerPool extends EventEmitter {
         workerId: idleWorkerIndex,
       });
     } catch (error) {
-      console.error(`[OCRWorkerPool] Worker ${idleWorkerIndex} 识别失败:`, error);
+      logger.error(`[OCRWorkerPool] Worker ${idleWorkerIndex} 识别失败:`, error);
 
       this.stats.totalErrors++;
 
@@ -297,19 +298,19 @@ class OCRWorkerPool extends EventEmitter {
    */
   async terminate() {
     if (this.isShuttingDown) {
-      console.warn('[OCRWorkerPool] 已在关闭中');
+      logger.warn('[OCRWorkerPool] 已在关闭中');
       return;
     }
 
     this.isShuttingDown = true;
-    console.log('[OCRWorkerPool] 开始关闭Workers...');
+    logger.info('[OCRWorkerPool] 开始关闭Workers...');
 
     try {
       // 等待所有任务完成（最多等待5秒）
       const waitStart = Date.now();
       while (this.queue.length > 0 || this.busyWorkers.size > 0) {
         if (Date.now() - waitStart > 5000) {
-          console.warn('[OCRWorkerPool] 等待任务完成超时，强制关闭');
+          logger.warn('[OCRWorkerPool] 等待任务完成超时，强制关闭');
           break;
         }
         await new Promise((resolve) => setTimeout(resolve, 100));
@@ -319,7 +320,7 @@ class OCRWorkerPool extends EventEmitter {
       await Promise.all(
         this.workers.map((worker, i) =>
           worker.terminate().then(() => {
-            console.log(`[OCRWorkerPool] Worker ${i} 已关闭`);
+            logger.info(`[OCRWorkerPool] Worker ${i} 已关闭`);
           })
         )
       );
@@ -329,10 +330,10 @@ class OCRWorkerPool extends EventEmitter {
       this.busyWorkers.clear();
       this.isInitialized = false;
 
-      console.log('[OCRWorkerPool] 所有Workers已关闭');
+      logger.info('[OCRWorkerPool] 所有Workers已关闭');
       this.emit('terminated');
     } catch (error) {
-      console.error('[OCRWorkerPool] 关闭失败:', error);
+      logger.error('[OCRWorkerPool] 关闭失败:', error);
       throw error;
     }
   }

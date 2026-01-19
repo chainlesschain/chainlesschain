@@ -3,6 +3,7 @@
  * 管理文档和数据的自动保存
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const EventEmitter = require("events");
 
 class AutoSaveManager extends EventEmitter {
@@ -19,7 +20,7 @@ class AutoSaveManager extends EventEmitter {
     this.saveQueue = [];
     this.isSaving = false;
 
-    console.log("[AutoSaveManager] Initialized");
+    logger.info("[AutoSaveManager] Initialized");
   }
 
   /**
@@ -48,7 +49,7 @@ class AutoSaveManager extends EventEmitter {
       this.startAutoSave(documentId);
     }
 
-    console.log("[AutoSaveManager] Document registered:", documentId);
+    logger.info("[AutoSaveManager] Document registered:", documentId);
 
     return () => this.unregister(documentId);
   }
@@ -59,7 +60,7 @@ class AutoSaveManager extends EventEmitter {
   unregister(documentId) {
     this.stopAutoSave(documentId);
     this.documents.delete(documentId);
-    console.log("[AutoSaveManager] Document unregistered:", documentId);
+    logger.info("[AutoSaveManager] Document unregistered:", documentId);
   }
 
   /**
@@ -117,7 +118,7 @@ class AutoSaveManager extends EventEmitter {
 
     this.timers.set(`autosave-${documentId}`, timer);
 
-    console.log("[AutoSaveManager] Auto-save started:", documentId);
+    logger.info("[AutoSaveManager] Auto-save started:", documentId);
   }
 
   /**
@@ -136,7 +137,7 @@ class AutoSaveManager extends EventEmitter {
       this.timers.delete(`autosave-${documentId}`);
     }
 
-    console.log("[AutoSaveManager] Auto-save stopped:", documentId);
+    logger.info("[AutoSaveManager] Auto-save stopped:", documentId);
   }
 
   /**
@@ -145,7 +146,7 @@ class AutoSaveManager extends EventEmitter {
   async save(documentId, force = false) {
     const document = this.documents.get(documentId);
     if (!document) {
-      console.warn("[AutoSaveManager] Document not found:", documentId);
+      logger.warn("[AutoSaveManager] Document not found:", documentId);
       return { success: false, error: "Document not found" };
     }
 
@@ -177,14 +178,14 @@ class AutoSaveManager extends EventEmitter {
 
       this.emit("saved", documentId);
 
-      console.log("[AutoSaveManager] Document saved:", documentId);
+      logger.info("[AutoSaveManager] Document saved:", documentId);
 
       // 处理队列中的下一个保存
       this.processQueue();
 
       return { success: true };
     } catch (error) {
-      console.error("[AutoSaveManager] Save error:", documentId, error);
+      logger.error("[AutoSaveManager] Save error:", documentId, error);
 
       document.isSaving = false;
       document.retryCount++;
@@ -193,7 +194,7 @@ class AutoSaveManager extends EventEmitter {
 
       // 重试
       if (document.retryCount < this.maxRetries) {
-        console.log(
+        logger.info(
           "[AutoSaveManager] Retrying save:",
           documentId,
           `(${document.retryCount}/${this.maxRetries})`,
@@ -245,7 +246,7 @@ class AutoSaveManager extends EventEmitter {
       this.startAutoSave(documentId);
     }
 
-    console.log("[AutoSaveManager] Auto-save enabled");
+    logger.info("[AutoSaveManager] Auto-save enabled");
   }
 
   /**
@@ -258,7 +259,7 @@ class AutoSaveManager extends EventEmitter {
       this.stopAutoSave(documentId);
     }
 
-    console.log("[AutoSaveManager] Auto-save disabled");
+    logger.info("[AutoSaveManager] Auto-save disabled");
   }
 
   /**
@@ -325,7 +326,7 @@ class AutoSaveManager extends EventEmitter {
     this.timers.clear();
     this.saveQueue = [];
 
-    console.log("[AutoSaveManager] Destroyed");
+    logger.info("[AutoSaveManager] Destroyed");
   }
 }
 

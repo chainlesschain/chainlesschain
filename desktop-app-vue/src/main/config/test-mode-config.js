@@ -3,6 +3,7 @@
  * 根据环境变量启用不同的Mock服务
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const path = require("path");
 
 class TestModeConfig {
@@ -49,9 +50,9 @@ class TestModeConfig {
       const MockLLMService = require("../../../tests/mocks/mock-llm-service");
       return new MockLLMService();
     } catch (error) {
-      console.error("[TestMode] Failed to load Mock LLM Service:", error);
-      console.error("[TestMode] Error details:", error.message);
-      console.error("[TestMode] Stack:", error.stack);
+      logger.error("[TestMode] Failed to load Mock LLM Service:", error);
+      logger.error("[TestMode] Error details:", error.message);
+      logger.error("[TestMode] Stack:", error.stack);
       return null;
     }
   }
@@ -69,7 +70,7 @@ class TestModeConfig {
       const MockDatabase = require("../../../tests/mocks/mock-database");
       return new MockDatabase();
     } catch (error) {
-      console.error("[TestMode] Failed to load Mock Database:", error);
+      logger.error("[TestMode] Failed to load Mock Database:", error);
       return null;
     }
   }
@@ -103,13 +104,13 @@ class TestModeConfig {
    * 打印测试模式配置
    */
   printConfig() {
-    console.log("\n========== 测试模式配置 ==========");
-    console.log("测试模式:", this.isTestMode ? "✓ 已启用" : "✗ 未启用");
-    console.log("跳过慢速初始化:", this.skipSlowInit ? "✓ 是" : "✗ 否");
-    console.log("Mock硬件:", this.mockHardware ? "✓ 是" : "✗ 否");
-    console.log("Mock LLM:", this.mockLLM ? "✓ 是" : "✗ 否");
-    console.log("Mock数据库:", this.mockDatabase ? "✓ 是" : "✗ 否");
-    console.log("==================================\n");
+    logger.info("\n========== 测试模式配置 ==========");
+    logger.info("测试模式:", this.isTestMode ? "✓ 已启用" : "✗ 未启用");
+    logger.info("跳过慢速初始化:", this.skipSlowInit ? "✓ 是" : "✗ 否");
+    logger.info("Mock硬件:", this.mockHardware ? "✓ 是" : "✗ 否");
+    logger.info("Mock LLM:", this.mockLLM ? "✓ 是" : "✗ 否");
+    logger.info("Mock数据库:", this.mockDatabase ? "✓ 是" : "✗ 否");
+    logger.info("==================================\n");
   }
 }
 

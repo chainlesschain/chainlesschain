@@ -3,6 +3,7 @@
  * 提供前端调用的插件管理接口
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const path = require("path");
 const {
   getPermissionDialogManager,
@@ -39,7 +40,7 @@ function registerPluginIPC({
     }
   }
 
-  console.log("[Plugin IPC] Registering plugin IPC handlers...");
+  logger.info("[Plugin IPC] Registering plugin IPC handlers...");
 
   const ensureManager = () => {
     if (!pluginManager) {
@@ -51,7 +52,7 @@ function registerPluginIPC({
     try {
       return await handler();
     } catch (error) {
-      console.error("[Plugin IPC] 调用失败:", error);
+      logger.error("[Plugin IPC] 调用失败:", error);
       return { success: false, error: error.message };
     }
   };
@@ -485,7 +486,7 @@ function registerPluginIPC({
     }),
   );
 
-  console.log(
+  logger.info(
     "[Plugin IPC] ✓ Handlers registered (including permission dialog, UI extensions, settings, data import/export, method calls)",
   );
 }

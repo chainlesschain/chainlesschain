@@ -162,6 +162,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, reactive, computed, watch } from 'vue';
 import { Empty, message } from 'ant-design-vue';
 import {
@@ -249,7 +251,7 @@ const handleCheckConditions = async () => {
       allMet: result.allMet,
     };
 
-    console.log('[ContractExecute] 条件检查完成:', result);
+    logger.info('[ContractExecute] 条件检查完成:', result);
 
     if (result.allMet) {
       message.success('所有必需条件已满足');
@@ -257,7 +259,7 @@ const handleCheckConditions = async () => {
       message.warning('存在未满足的必需条件');
     }
   } catch (error) {
-    console.error('[ContractExecute] 检查条件失败:', error);
+    logger.error('[ContractExecute] 检查条件失败:', error);
     message.error(error.message || '检查条件失败');
   } finally {
     checkingConditions.value = false;
@@ -277,7 +279,7 @@ const handleExecute = async () => {
     // 使用 store 执行合约
     await tradeStore.executeContract(props.contract.id);
 
-    console.log('[ContractExecute] 合约执行成功:', props.contract.id);
+    logger.info('[ContractExecute] 合约执行成功:', props.contract.id);
     message.success('合约执行成功！');
 
     // 通知父组件
@@ -292,7 +294,7 @@ const handleExecute = async () => {
     // 重置表单
     resetForm();
   } catch (error) {
-    console.error('[ContractExecute] 执行失败:', error);
+    logger.error('[ContractExecute] 执行失败:', error);
     message.error(error.message || '执行失败');
   } finally {
     executing.value = false;

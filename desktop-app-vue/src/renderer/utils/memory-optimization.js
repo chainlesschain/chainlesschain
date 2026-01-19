@@ -1,3 +1,5 @@
+import { logger, createLogger } from '@/utils/logger';
+
 /**
  * Object Pool and Memory Optimization Utilities
  * 对象池和内存优化工具
@@ -36,7 +38,7 @@ export class ObjectPool {
     }
 
     if (this.options.debug) {
-      console.log(
+      logger.info(
         `[ObjectPool] Created with ${this.available.length} initial objects`,
       );
     }
@@ -52,7 +54,7 @@ export class ObjectPool {
       obj = this.available.pop();
 
       if (this.options.debug) {
-        console.log(
+        logger.info(
           `[ObjectPool] Reused object (${this.available.length} available)`,
         );
       }
@@ -60,7 +62,7 @@ export class ObjectPool {
       obj = this.factory();
 
       if (this.options.debug) {
-        console.log("[ObjectPool] Created new object (pool exhausted)");
+        logger.info("[ObjectPool] Created new object (pool exhausted)");
       }
     }
 
@@ -73,7 +75,7 @@ export class ObjectPool {
    */
   release(obj) {
     if (!this.inUse.has(obj)) {
-      console.warn("[ObjectPool] Attempted to release object not from pool");
+      logger.warn("[ObjectPool] Attempted to release object not from pool");
       return false;
     }
 
@@ -87,7 +89,7 @@ export class ObjectPool {
     // Validate before returning to pool
     if (this.options.validateFn && !this.options.validateFn(obj)) {
       if (this.options.debug) {
-        console.warn("[ObjectPool] Object failed validation, discarding");
+        logger.warn("[ObjectPool] Object failed validation, discarding");
       }
       return false;
     }
@@ -95,7 +97,7 @@ export class ObjectPool {
     // Check pool size limit
     if (this.available.length >= this.options.maxSize) {
       if (this.options.debug) {
-        console.log("[ObjectPool] Pool at max size, discarding object");
+        logger.info("[ObjectPool] Pool at max size, discarding object");
       }
       return false;
     }
@@ -103,7 +105,7 @@ export class ObjectPool {
     this.available.push(obj);
 
     if (this.options.debug) {
-      console.log(
+      logger.info(
         `[ObjectPool] Released object (${this.available.length} available)`,
       );
     }
@@ -130,7 +132,7 @@ export class ObjectPool {
     this.inUse.clear();
 
     if (this.options.debug) {
-      console.log("[ObjectPool] Cleared");
+      logger.info("[ObjectPool] Cleared");
     }
   }
 
@@ -142,7 +144,7 @@ export class ObjectPool {
     this.available = [];
 
     if (this.options.debug) {
-      console.log(`[ObjectPool] Drained ${count} objects`);
+      logger.info(`[ObjectPool] Drained ${count} objects`);
     }
 
     return count;
@@ -172,7 +174,7 @@ export class MemoryLeakDetector {
    */
   start() {
     if (this.intervalId) {
-      console.warn("[MemoryLeakDetector] Already monitoring");
+      logger.warn("[MemoryLeakDetector] Already monitoring");
       return;
     }
 
@@ -182,7 +184,7 @@ export class MemoryLeakDetector {
       this.checkMemory();
     }, this.options.checkInterval);
 
-    console.log("[MemoryLeakDetector] Started monitoring");
+    logger.info("[MemoryLeakDetector] Started monitoring");
   }
 
   /**
@@ -192,7 +194,7 @@ export class MemoryLeakDetector {
     if (this.intervalId) {
       clearInterval(this.intervalId);
       this.intervalId = null;
-      console.log("[MemoryLeakDetector] Stopped monitoring");
+      logger.info("[MemoryLeakDetector] Stopped monitoring");
     }
   }
 
@@ -201,7 +203,7 @@ export class MemoryLeakDetector {
    */
   checkMemory() {
     if (!performance.memory) {
-      console.warn("[MemoryLeakDetector] performance.memory not available");
+      logger.warn("[MemoryLeakDetector] performance.memory not available");
       return;
     }
 
@@ -218,7 +220,7 @@ export class MemoryLeakDetector {
     }
 
     if (this.options.debug) {
-      console.log(`[MemoryLeakDetector] Memory: ${usedMB.toFixed(2)} MB`);
+      logger.info(`[MemoryLeakDetector] Memory: ${usedMB.toFixed(2)} MB`);
     }
 
     // Analyze trend
@@ -248,7 +250,7 @@ export class MemoryLeakDetector {
         samples: [...this.samples],
       };
 
-      console.warn(
+      logger.warn(
         "[MemoryLeakDetector] ⚠️ Potential memory leak detected:",
         leak,
       );
@@ -339,12 +341,12 @@ export class MemoryOptimizer {
    */
   static requestGC() {
     if (global.gc) {
-      console.log("[MemoryOptimizer] Requesting garbage collection");
+      logger.info("[MemoryOptimizer] Requesting garbage collection");
       global.gc();
       return true;
     }
 
-    console.warn(
+    logger.warn(
       "[MemoryOptimizer] GC not available (run with --expose-gc flag)",
     );
     return false;

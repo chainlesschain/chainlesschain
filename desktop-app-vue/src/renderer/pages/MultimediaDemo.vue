@@ -113,7 +113,7 @@ const result = await multimediaAPI.uploadImage(imagePath, {
   performOCR: true,
   addToKnowledge: true
 }, (progress) => {
-  console.log('进度:', progress.percent);
+  logger.info('进度:', progress.percent);
 });</code></pre>
               </a-typography-paragraph>
             </a-collapse-panel>
@@ -158,7 +158,7 @@ const result = await multimediaAPI.transcribeAudio(audioPath, {
   engine: 'whisper',
   language: 'zh'
 }, (progress) => {
-  console.log('转录进度:', progress.percent);
+  logger.info('转录进度:', progress.percent);
 });</code></pre>
               </a-typography-paragraph>
             </a-collapse-panel>
@@ -217,7 +217,7 @@ await multimediaAPI.applyVideoFilter(inputPath, outputPath, {
   filterType: 'sepia',
   intensity: 1.5
 }, (progress) => {
-  console.log('处理进度:', progress.percent);
+  logger.info('处理进度:', progress.percent);
 });
 
 // 添加字幕（使用预设）
@@ -335,6 +335,8 @@ const processor = new ResumableProcessor({
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref } from 'vue';
 import ProgressMonitor from '../components/multimedia/ProgressMonitor.vue';
 import MediaProcessor from '../components/multimedia/MediaProcessor.vue';

@@ -164,6 +164,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, watch, onMounted } from 'vue';
 import { message } from 'ant-design-vue';
 import {
@@ -404,7 +406,7 @@ const handleCopyHash = async (hash) => {
     await navigator.clipboard.writeText(hash);
     message.success('交易哈希已复制');
   } catch (error) {
-    console.error('[TransactionList] 复制失败:', error);
+    logger.error('[TransactionList] 复制失败:', error);
     message.error('复制失败');
   }
 };
@@ -447,7 +449,7 @@ const handleRefresh = async () => {
     });
     message.success('刷新成功');
   } catch (error) {
-    console.error('[TransactionList] 刷新失败:', error);
+    logger.error('[TransactionList] 刷新失败:', error);
     message.error('刷新失败: ' + error.message);
   } finally {
     loading.value = false;

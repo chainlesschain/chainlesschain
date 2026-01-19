@@ -12,6 +12,7 @@
  * - Rate limiting for sensitive operations
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const EventEmitter = require('events');
 
 class PermissionMiddleware extends EventEmitter {
@@ -68,7 +69,7 @@ class PermissionMiddleware extends EventEmitter {
         return true;
 
       } catch (error) {
-        console.error('[PermissionMiddleware] Permission check failed:', error);
+        logger.error('[PermissionMiddleware] Permission check failed:', error);
         throw error;
       }
     };
@@ -445,7 +446,7 @@ class PermissionMiddleware extends EventEmitter {
 
       this.emit('permission:granted', { orgId, userDID, permission, context });
     } catch (error) {
-      console.error('[PermissionMiddleware] Failed to log permission grant:', error);
+      logger.error('[PermissionMiddleware] Failed to log permission grant:', error);
     }
   }
 
@@ -463,7 +464,7 @@ class PermissionMiddleware extends EventEmitter {
 
       this.emit('permission:denied', { orgId, userDID, permission, context });
     } catch (error) {
-      console.error('[PermissionMiddleware] Failed to log permission denial:', error);
+      logger.error('[PermissionMiddleware] Failed to log permission denial:', error);
     }
   }
 
@@ -487,7 +488,7 @@ class PermissionMiddleware extends EventEmitter {
 
       this.emit('role:denied', { orgId, userDID, requiredRoles, userRole, context });
     } catch (error) {
-      console.error('[PermissionMiddleware] Failed to log role denial:', error);
+      logger.error('[PermissionMiddleware] Failed to log role denial:', error);
     }
   }
 
@@ -511,7 +512,7 @@ class PermissionMiddleware extends EventEmitter {
 
       this.emit('ownership:denied', { orgId, userDID, resourceType, resourceId, context });
     } catch (error) {
-      console.error('[PermissionMiddleware] Failed to log ownership denial:', error);
+      logger.error('[PermissionMiddleware] Failed to log ownership denial:', error);
     }
   }
 
@@ -535,7 +536,7 @@ class PermissionMiddleware extends EventEmitter {
 
       this.emit('ratelimit:exceeded', { orgId, userDID, operation, context });
     } catch (error) {
-      console.error('[PermissionMiddleware] Failed to log rate limit:', error);
+      logger.error('[PermissionMiddleware] Failed to log rate limit:', error);
     }
   }
 
@@ -616,7 +617,7 @@ class PermissionMiddleware extends EventEmitter {
       }));
 
     } catch (error) {
-      console.error('[PermissionMiddleware] Failed to get audit log:', error);
+      logger.error('[PermissionMiddleware] Failed to get audit log:', error);
       return [];
     }
   }

@@ -1,3 +1,4 @@
+import { logger, createLogger } from '@/utils/logger';
 import { createRouter, createWebHashHistory } from "vue-router";
 import { useAppStore } from "../stores/app";
 import {
@@ -685,7 +686,7 @@ router.beforeEach((to, from, next) => {
   const hasQueryParam = to.query && to.query.e2e === "true";
   const isTestEnv = hasTestFlag || hasQueryParam;
 
-  console.log("[Router] beforeEach:", {
+  logger.info("[Router] beforeEach:", {
     to: to.path,
     from: from.path,
     hasTestFlag,
@@ -695,7 +696,7 @@ router.beforeEach((to, from, next) => {
   });
 
   if (isTestEnv) {
-    console.log("[Router] ✓ E2E测试环境，跳过认证检查");
+    logger.info("[Router] ✓ E2E测试环境，跳过认证检查");
     next();
     return;
   }
@@ -703,13 +704,13 @@ router.beforeEach((to, from, next) => {
   const store = useAppStore();
 
   if (to.meta.requiresAuth && !store.isAuthenticated) {
-    console.log("[Router] ⚠️  需要认证但未登录，重定向到 /login");
+    logger.info("[Router] ⚠️  需要认证但未登录，重定向到 /login");
     next("/login");
   } else if (to.path === "/login" && store.isAuthenticated) {
-    console.log("[Router] 已登录，重定向到首页");
+    logger.info("[Router] 已登录，重定向到首页");
     next("/");
   } else {
-    console.log("[Router] ✓ 放行");
+    logger.info("[Router] ✓ 放行");
     next();
   }
 });
@@ -756,7 +757,7 @@ router.afterEach((to) => {
     });
   }
 
-  console.log("[Router] Resource hints applied for:", to.path);
+  logger.info("[Router] Resource hints applied for:", to.path);
 });
 
 export default router;

@@ -1005,6 +1005,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, reactive, computed, onMounted, watch, toRaw } from "vue";
 import { message } from "ant-design-vue";
 import {
@@ -1337,7 +1339,7 @@ const loadAvailableServers = async () => {
       throw new Error(result.error);
     }
   } catch (error) {
-    console.error("加载服务器列表失败:", error);
+    logger.error("加载服务器列表失败:", error);
     message.error("加载服务器列表失败: " + error.message);
   } finally {
     serversLoading.value = false;
@@ -1351,7 +1353,7 @@ const loadConnectedServers = async () => {
       connectedServers.value = result.servers;
     }
   } catch (error) {
-    console.error("加载连接状态失败:", error);
+    logger.error("加载连接状态失败:", error);
   }
 };
 
@@ -1362,7 +1364,7 @@ const loadMetrics = async () => {
       Object.assign(metrics, result.metrics);
     }
   } catch (error) {
-    console.error("加载指标失败:", error);
+    logger.error("加载指标失败:", error);
   }
 };
 
@@ -1374,7 +1376,7 @@ const loadConfig = async () => {
       config.enabled = result.config.enabled || false;
     }
   } catch (error) {
-    console.error("加载配置失败:", error);
+    logger.error("加载配置失败:", error);
   } finally {
     loading.value = false;
   }
@@ -1395,7 +1397,7 @@ const loadServerConfig = async (serverId) => {
       Object.assign(serverConfig, getDefaultConfig(serverId));
     }
   } catch (error) {
-    console.error("加载服务器配置失败:", error);
+    logger.error("加载服务器配置失败:", error);
     // 使用默认配置
     Object.assign(serverConfig, getDefaultConfig(serverId));
   }
@@ -1417,7 +1419,7 @@ const handleEnableChange = async (enabled) => {
       throw new Error(result.error);
     }
   } catch (error) {
-    console.error("更新配置失败:", error);
+    logger.error("更新配置失败:", error);
     message.error("更新配置失败: " + error.message);
     config.enabled = !enabled;
   }
@@ -1447,7 +1449,7 @@ const handleConnect = async (server) => {
       throw new Error(result.error);
     }
   } catch (error) {
-    console.error(`连接 ${server.name} 失败:`, error);
+    logger.error(`连接 ${server.name} 失败:`, error);
     message.error(`连接失败: ${error.message}`);
     // Refresh server list to sync error state from backend
     await loadConnectedServers();
@@ -1470,7 +1472,7 @@ const handleDisconnect = async (server) => {
       throw new Error(result.error);
     }
   } catch (error) {
-    console.error(`断开 ${server.name} 失败:`, error);
+    logger.error(`断开 ${server.name} 失败:`, error);
     message.error(`断开失败: ${error.message}`);
   } finally {
     disconnectingServers.value.delete(server.id);
@@ -1534,7 +1536,7 @@ const handleSaveConfig = async () => {
       throw new Error(result.error);
     }
   } catch (error) {
-    console.error("保存配置失败:", error);
+    logger.error("保存配置失败:", error);
     message.error("保存配置失败: " + error.message);
   } finally {
     savingConfig.value = false;
@@ -1568,7 +1570,7 @@ const showServerTools = async (server) => {
       throw new Error(result.error);
     }
   } catch (error) {
-    console.error("加载工具列表失败:", error);
+    logger.error("加载工具列表失败:", error);
     message.error("加载工具列表失败: " + error.message);
     // Refresh server list to sync state
     await loadConnectedServers();
@@ -1662,7 +1664,7 @@ const executeToolTest = async () => {
       }
     }
 
-    console.log(`[MCP Test] Executing tool: ${selectedTool.value.name}`, args);
+    logger.info(`[MCP Test] Executing tool: ${selectedTool.value.name}`, args);
 
     // 调用 MCP 工具
     const result = await window.electronAPI.invoke("mcp:call-tool", {
@@ -1679,7 +1681,7 @@ const executeToolTest = async () => {
       message.error("工具执行失败: " + result.error);
     }
   } catch (error) {
-    console.error("[MCP Test] Tool execution failed:", error);
+    logger.error("[MCP Test] Tool execution failed:", error);
     toolTestResult.value = {
       success: false,
       error: error.message,
@@ -1805,7 +1807,7 @@ onMounted(async () => {
       projectPath.value = cwd.path.replace(/[/\\][^/\\]+$/, "");
     }
   } catch (error) {
-    console.error("获取路径失败:", error);
+    logger.error("获取路径失败:", error);
   }
 
   await loadConfig();

@@ -1,3 +1,4 @@
+const { logger, createLogger } = require('../utils/logger.js');
 const { v4: uuidv4 } = require('uuid');
 const EventEmitter = require('events');
 
@@ -89,7 +90,7 @@ class ReviewManager extends EventEmitter {
       )
     `);
 
-    console.log('[ReviewManager] 数据库表初始化完成');
+    logger.info('[ReviewManager] 数据库表初始化完成');
   }
 
   /**
@@ -202,7 +203,7 @@ class ReviewManager extends EventEmitter {
       transactionId
     });
 
-    console.log('[ReviewManager] 评价已创建:', reviewId);
+    logger.info('[ReviewManager] 评价已创建:', reviewId);
     return reviewData;
   }
 
@@ -276,7 +277,7 @@ class ReviewManager extends EventEmitter {
     }
 
     this.emit('review:updated', { reviewId });
-    console.log('[ReviewManager] 评价已修改:', reviewId);
+    logger.info('[ReviewManager] 评价已修改:', reviewId);
   }
 
   /**
@@ -319,7 +320,7 @@ class ReviewManager extends EventEmitter {
     }
 
     this.emit('review:replied', { reviewId, replyId });
-    console.log('[ReviewManager] 评价已回复:', replyId);
+    logger.info('[ReviewManager] 评价已回复:', replyId);
     return { replyId };
   }
 
@@ -356,7 +357,7 @@ class ReviewManager extends EventEmitter {
         UPDATE reviews SET helpful_count = helpful_count - 1 WHERE id = ?
       `).run(reviewId);
 
-      console.log('[ReviewManager] 取消有帮助标记:', reviewId);
+      logger.info('[ReviewManager] 取消有帮助标记:', reviewId);
       return { helpful: false };
     } else {
       // 添加标记
@@ -370,7 +371,7 @@ class ReviewManager extends EventEmitter {
         UPDATE reviews SET helpful_count = helpful_count + 1 WHERE id = ?
       `).run(reviewId);
 
-      console.log('[ReviewManager] 标记为有帮助:', reviewId);
+      logger.info('[ReviewManager] 标记为有帮助:', reviewId);
       return { helpful: true };
     }
   }
@@ -411,7 +412,7 @@ class ReviewManager extends EventEmitter {
     `).run(reportId, reviewId, this.currentUserDid, reason, description, now);
 
     this.emit('review:reported', { reviewId, reportId, reason });
-    console.log('[ReviewManager] 评价已被举报:', reviewId);
+    logger.info('[ReviewManager] 评价已被举报:', reviewId);
     return { reportId };
   }
 
@@ -450,7 +451,7 @@ class ReviewManager extends EventEmitter {
     }
 
     this.emit('review:report-resolved', { reportId, action });
-    console.log('[ReviewManager] 举报已处理:', reportId);
+    logger.info('[ReviewManager] 举报已处理:', reportId);
   }
 
   /**
@@ -664,7 +665,7 @@ class ReviewManager extends EventEmitter {
     });
 
     transaction(reviewIds);
-    console.log('[ReviewManager] 批量删除评价:', reviewIds.length);
+    logger.info('[ReviewManager] 批量删除评价:', reviewIds.length);
   }
 }
 

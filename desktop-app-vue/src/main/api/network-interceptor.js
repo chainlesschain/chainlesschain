@@ -3,6 +3,7 @@
  * 拦截和管理应用的网络请求
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { session } = require("electron");
 
 class NetworkInterceptor {
@@ -42,7 +43,7 @@ class NetworkInterceptor {
       this.handleError(details);
     });
 
-    console.log("[NetworkInterceptor] Initialized");
+    logger.info("[NetworkInterceptor] Initialized");
   }
 
   /**
@@ -55,11 +56,11 @@ class NetworkInterceptor {
     for (const rule of this.rules) {
       if (this.matchRule(rule, details)) {
         if (rule.action === "block") {
-          console.log("[NetworkInterceptor] Blocked:", url);
+          logger.info("[NetworkInterceptor] Blocked:", url);
           callback({ cancel: true });
           return;
         } else if (rule.action === "redirect" && rule.redirectURL) {
-          console.log(
+          logger.info(
             "[NetworkInterceptor] Redirected:",
             url,
             "->",
@@ -126,7 +127,7 @@ class NetworkInterceptor {
       });
     }
 
-    console.log("[NetworkInterceptor] Completed:", url, statusCode);
+    logger.info("[NetworkInterceptor] Completed:", url, statusCode);
   }
 
   /**
@@ -143,7 +144,7 @@ class NetworkInterceptor {
       });
     }
 
-    console.error("[NetworkInterceptor] Error:", url, error);
+    logger.error("[NetworkInterceptor] Error:", url, error);
   }
 
   /**
@@ -188,7 +189,7 @@ class NetworkInterceptor {
       enabled: rule.enabled !== false,
     });
 
-    console.log("[NetworkInterceptor] Rule added:", rule.id);
+    logger.info("[NetworkInterceptor] Rule added:", rule.id);
   }
 
   /**
@@ -198,7 +199,7 @@ class NetworkInterceptor {
     const index = this.rules.findIndex((r) => r.id === ruleId);
     if (index > -1) {
       this.rules.splice(index, 1);
-      console.log("[NetworkInterceptor] Rule removed:", ruleId);
+      logger.info("[NetworkInterceptor] Rule removed:", ruleId);
       return true;
     }
     return false;
@@ -209,7 +210,7 @@ class NetworkInterceptor {
    */
   clearRules() {
     this.rules = [];
-    console.log("[NetworkInterceptor] All rules cleared");
+    logger.info("[NetworkInterceptor] All rules cleared");
   }
 
   /**
@@ -271,7 +272,7 @@ class NetworkInterceptor {
    */
   clearRequestLog() {
     this.requestLog = [];
-    console.log("[NetworkInterceptor] Request log cleared");
+    logger.info("[NetworkInterceptor] Request log cleared");
   }
 
   /**
@@ -307,7 +308,7 @@ class NetworkInterceptor {
    */
   setCache(enabled) {
     this.enableCache = enabled;
-    console.log(
+    logger.info(
       "[NetworkInterceptor] Cache:",
       enabled ? "enabled" : "disabled",
     );
@@ -319,10 +320,10 @@ class NetworkInterceptor {
   async clearCache() {
     try {
       await this.session.clearCache();
-      console.log("[NetworkInterceptor] Cache cleared");
+      logger.info("[NetworkInterceptor] Cache cleared");
       return true;
     } catch (error) {
-      console.error("[NetworkInterceptor] Clear cache error:", error);
+      logger.error("[NetworkInterceptor] Clear cache error:", error);
       return false;
     }
   }
@@ -332,7 +333,7 @@ class NetworkInterceptor {
    */
   setUserAgent(userAgent) {
     this.session.setUserAgent(userAgent);
-    console.log("[NetworkInterceptor] User agent set:", userAgent);
+    logger.info("[NetworkInterceptor] User agent set:", userAgent);
   }
 }
 

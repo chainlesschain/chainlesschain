@@ -1,3 +1,5 @@
+const { logger, createLogger } = require('../utils/logger.js');
+
 /**
  * Credit Score System IPC Handlers
  * 信用评分系统 IPC 处理器
@@ -26,7 +28,7 @@ function registerCreditIPC(context) {
       }
       return await creditScoreManager.getUserCredit(userDid);
     } catch (error) {
-      console.error('[Credit IPC] 获取用户信用失败:', error);
+      logger.error('[Credit IPC] 获取用户信用失败:', error);
       return null;
     }
   });
@@ -39,7 +41,7 @@ function registerCreditIPC(context) {
       }
       return await creditScoreManager.calculateScore(userDid);
     } catch (error) {
-      console.error('[Credit IPC] 更新信用评分失败:', error);
+      logger.error('[Credit IPC] 更新信用评分失败:', error);
       throw error;
     }
   });
@@ -52,7 +54,7 @@ function registerCreditIPC(context) {
       }
       return await creditScoreManager.getScoreHistory(userDid, limit);
     } catch (error) {
-      console.error('[Credit IPC] 获取评分历史失败:', error);
+      logger.error('[Credit IPC] 获取评分历史失败:', error);
       return [];
     }
   });
@@ -65,7 +67,7 @@ function registerCreditIPC(context) {
       }
       return await creditScoreManager.getCreditLevel(score);
     } catch (error) {
-      console.error('[Credit IPC] 获取信用等级失败:', error);
+      logger.error('[Credit IPC] 获取信用等级失败:', error);
       return null;
     }
   });
@@ -78,7 +80,7 @@ function registerCreditIPC(context) {
       }
       return await creditScoreManager.getLeaderboard(limit);
     } catch (error) {
-      console.error('[Credit IPC] 获取排行榜失败:', error);
+      logger.error('[Credit IPC] 获取排行榜失败:', error);
       return [];
     }
   });
@@ -94,7 +96,7 @@ function registerCreditIPC(context) {
       const level = await creditScoreManager.getCreditLevel(credit.credit_score);
       return level ? level.benefits : [];
     } catch (error) {
-      console.error('[Credit IPC] 获取信用权益失败:', error);
+      logger.error('[Credit IPC] 获取信用权益失败:', error);
       return [];
     }
   });
@@ -107,12 +109,12 @@ function registerCreditIPC(context) {
       }
       return await creditScoreManager.getStatistics();
     } catch (error) {
-      console.error('[Credit IPC] 获取统计信息失败:', error);
+      logger.error('[Credit IPC] 获取统计信息失败:', error);
       return null;
     }
   });
 
-  console.log('[Credit IPC] 已注册 7 个信用评分 IPC 处理器');
+  logger.info('[Credit IPC] 已注册 7 个信用评分 IPC 处理器');
 }
 
 module.exports = {

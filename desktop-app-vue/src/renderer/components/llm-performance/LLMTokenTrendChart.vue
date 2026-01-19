@@ -61,7 +61,7 @@
 <script setup>
 import { ref, watch, onMounted, onUnmounted, nextTick } from "vue";
 import { Empty } from "ant-design-vue";
-import * as echarts from "echarts";
+import { init } from "../../utils/echartsConfig";
 
 const props = defineProps({
   data: {
@@ -110,7 +110,7 @@ const renderChart = () => {
   if (!chartRef.value || props.data.length === 0) {return;}
 
   if (!chartInstance) {
-    chartInstance = echarts.init(chartRef.value);
+    chartInstance = init(chartRef.value);
   }
 
   const option = {

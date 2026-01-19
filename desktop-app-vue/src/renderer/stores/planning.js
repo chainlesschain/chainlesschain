@@ -1,3 +1,4 @@
+import { logger, createLogger } from '@/utils/logger';
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { message } from 'ant-design-vue';
@@ -124,7 +125,7 @@ export const usePlanningStore = defineStore('planning', () => {
         recommendedSkills.value = result.recommendedSkills || [];
         recommendedTools.value = result.recommendedTools || [];
 
-        console.log('[PlanningStore] Plan会话已启动:', result);
+        logger.info('[PlanningStore] Plan会话已启动:', result);
         return result;
       } else {
         message.error(`启动Plan会话失败: ${result.error}`);
@@ -133,7 +134,7 @@ export const usePlanningStore = defineStore('planning', () => {
       }
     } catch (error) {
       message.error('启动Plan会话异常');
-      console.error('[PlanningStore] 启动Plan会话异常:', error);
+      logger.error('[PlanningStore] 启动Plan会话异常:', error);
       sessionStatus.value = 'failed';
       return null;
     } finally {
@@ -186,7 +187,7 @@ export const usePlanningStore = defineStore('planning', () => {
           reset();
         }
 
-        console.log('[PlanningStore] 用户响应已处理:', result);
+        logger.info('[PlanningStore] 用户响应已处理:', result);
         return result;
       } else {
         message.error(`处理用户响应失败: ${result.error}`);
@@ -194,7 +195,7 @@ export const usePlanningStore = defineStore('planning', () => {
       }
     } catch (error) {
       message.error('处理用户响应异常');
-      console.error('[PlanningStore] 处理用户响应异常:', error);
+      logger.error('[PlanningStore] 处理用户响应异常:', error);
       return null;
     } finally {
       loading.value = false;
@@ -226,7 +227,7 @@ export const usePlanningStore = defineStore('planning', () => {
       }
     } catch (error) {
       message.error('提交反馈异常');
-      console.error('[PlanningStore] 提交反馈异常:', error);
+      logger.error('[PlanningStore] 提交反馈异常:', error);
       return false;
     }
   }
@@ -244,11 +245,11 @@ export const usePlanningStore = defineStore('planning', () => {
       if (result.success) {
         return result.session;
       } else {
-        console.error('[PlanningStore] 获取会话失败:', result.error);
+        logger.error('[PlanningStore] 获取会话失败:', result.error);
         return null;
       }
     } catch (error) {
-      console.error('[PlanningStore] 获取会话异常:', error);
+      logger.error('[PlanningStore] 获取会话异常:', error);
       return null;
     }
   }
@@ -299,7 +300,7 @@ export const usePlanningStore = defineStore('planning', () => {
    */
   if (window.ipc) {
     window.ipc.on('interactive-planning:plan-generated', (data) => {
-      console.log('[PlanningStore] Plan已生成:', data);
+      logger.info('[PlanningStore] Plan已生成:', data);
       if (currentSession.value?.sessionId === data.sessionId) {
         taskPlan.value = data.plan;
         recommendedTemplates.value = data.recommendedTemplates || [];
@@ -313,7 +314,7 @@ export const usePlanningStore = defineStore('planning', () => {
      * 监听执行开始事件
      */
     window.ipc.on('interactive-planning:execution-started', (data) => {
-      console.log('[PlanningStore] 执行已开始:', data);
+      logger.info('[PlanningStore] 执行已开始:', data);
       if (currentSession.value?.sessionId === data.sessionId) {
         sessionStatus.value = 'executing';
         executionProgress.value = {
@@ -329,7 +330,7 @@ export const usePlanningStore = defineStore('planning', () => {
      * 监听执行进度事件
      */
     window.ipc.on('interactive-planning:execution-progress', (data) => {
-      console.log('[PlanningStore] 执行进度更新:', data);
+      logger.info('[PlanningStore] 执行进度更新:', data);
       if (currentSession.value?.sessionId === data.sessionId) {
         executionProgress.value.currentStep = data.currentStep;
         executionProgress.value.status = data.status;
@@ -346,7 +347,7 @@ export const usePlanningStore = defineStore('planning', () => {
      * 监听执行完成事件
      */
     window.ipc.on('interactive-planning:execution-completed', (data) => {
-      console.log('[PlanningStore] 执行已完成:', data);
+      logger.info('[PlanningStore] 执行已完成:', data);
       if (currentSession.value?.sessionId === data.sessionId) {
         sessionStatus.value = 'completed';
         executionResult.value = data.result;
@@ -361,7 +362,7 @@ export const usePlanningStore = defineStore('planning', () => {
      * 监听执行失败事件
      */
     window.ipc.on('interactive-planning:execution-failed', (data) => {
-      console.error('[PlanningStore] 执行失败:', data);
+      logger.error('[PlanningStore] 执行失败:', data);
       if (currentSession.value?.sessionId === data.sessionId) {
         sessionStatus.value = 'failed';
         executionProgress.value.status = `执行失败: ${data.error}`;
@@ -374,7 +375,7 @@ export const usePlanningStore = defineStore('planning', () => {
      * 监听反馈提交事件
      */
     window.ipc.on('interactive-planning:feedback-submitted', (data) => {
-      console.log('[PlanningStore] 反馈已提交:', data);
+      logger.info('[PlanningStore] 反馈已提交:', data);
     });
   }
 

@@ -238,6 +238,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted, h } from 'vue';
 import { message } from 'ant-design-vue';
 import {
@@ -329,7 +331,7 @@ const refreshStats = async () => {
 
     message.success('统计信息已刷新');
   } catch (error) {
-    console.error('刷新统计失败:', error);
+    logger.error('刷新统计失败:', error);
     message.error('刷新统计失败');
   } finally {
     loading.value = false;
@@ -350,7 +352,7 @@ const resetStats = async () => {
       message.error(result.error || '重置失败');
     }
   } catch (error) {
-    console.error('重置统计失败:', error);
+    logger.error('重置统计失败:', error);
     message.error('重置统计失败');
   } finally {
     resetting.value = false;
@@ -371,7 +373,7 @@ const clearCache = async () => {
       message.error(result.error || '清空缓存失败');
     }
   } catch (error) {
-    console.error('清空缓存失败:', error);
+    logger.error('清空缓存失败:', error);
     message.error('清空缓存失败');
   } finally {
     clearingCache.value = false;
@@ -392,7 +394,7 @@ const optimizeDatabase = async () => {
       message.error(result.error || '优化失败');
     }
   } catch (error) {
-    console.error('优化数据库失败:', error);
+    logger.error('优化数据库失败:', error);
     message.error('优化数据库失败');
   } finally {
     optimizing.value = false;
@@ -413,7 +415,7 @@ const applyIndexSuggestion = async (suggestion) => {
       message.error(result.error || '创建索引失败');
     }
   } catch (error) {
-    console.error('应用索引建议失败:', error);
+    logger.error('应用索引建议失败:', error);
     message.error('应用索引建议失败');
   } finally {
     applyingIndex.value = false;
@@ -442,7 +444,7 @@ const applyAllIndexSuggestions = async () => {
       message.error(result.error || '批量创建索引失败');
     }
   } catch (error) {
-    console.error('应用所有索引建议失败:', error);
+    logger.error('应用所有索引建议失败:', error);
     message.error('应用所有索引建议失败');
   } finally {
     applyingAllIndexes.value = false;

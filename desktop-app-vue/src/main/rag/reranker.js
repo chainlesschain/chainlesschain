@@ -3,6 +3,7 @@
  * 用于对检索结果进行二次排序，提升 RAG 检索质量
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { EventEmitter } = require('events');
 
 class Reranker extends EventEmitter {
@@ -47,7 +48,7 @@ class Reranker extends EventEmitter {
           rerankedDocs = await this.rerankHybrid(query, documents, topK);
           break;
         default:
-          console.warn(`[Reranker] 未知的重排序方法: ${method}，使用默认 LLM 方法`);
+          logger.warn(`[Reranker] 未知的重排序方法: ${method}，使用默认 LLM 方法`);
           rerankedDocs = await this.rerankWithLLM(query, documents, topK);
       }
 
@@ -62,7 +63,7 @@ class Reranker extends EventEmitter {
 
       return filtered;
     } catch (error) {
-      console.error('[Reranker] 重排序失败:', error);
+      logger.error('[Reranker] 重排序失败:', error);
       this.emit('rerank-error', { query, error });
       // 失败时返回原始结果
       return documents.slice(0, topK);
@@ -75,7 +76,7 @@ class Reranker extends EventEmitter {
    */
   async rerankWithLLM(query, documents, topK) {
     if (!this.llmManager) {
-      console.warn('[Reranker] LLM 管理器未初始化，跳过重排序');
+      logger.warn('[Reranker] LLM 管理器未初始化，跳过重排序');
       return documents.slice(0, topK);
     }
 
@@ -103,7 +104,7 @@ class Reranker extends EventEmitter {
 
       return scoredDocs.slice(0, topK);
     } catch (error) {
-      console.error('[Reranker] LLM 重排序失败:', error);
+      logger.error('[Reranker] LLM 重排序失败:', error);
       return documents.slice(0, topK);
     }
   }
@@ -144,7 +145,7 @@ ${docList}
       // 尝试从响应中提取分数
       const scoreMatch = response.match(/[\d.]+(?:\s*,\s*[\d.]+)*/);
       if (!scoreMatch) {
-        console.warn('[Reranker] 无法解析 LLM 评分，使用默认值');
+        logger.warn('[Reranker] 无法解析 LLM 评分，使用默认值');
         return Array(expectedCount).fill(0.5);
       }
 
@@ -163,7 +164,7 @@ ${docList}
 
       return scores;
     } catch (error) {
-      console.error('[Reranker] 解析评分失败:', error);
+      logger.error('[Reranker] 解析评分失败:', error);
       return Array(expectedCount).fill(0.5);
     }
   }
@@ -209,15 +210,15 @@ ${docList}
           };
         });
 
-        console.log('[Reranker] CrossEncoder重排序成功');
+        logger.info('[Reranker] CrossEncoder重排序成功');
         return rerankedDocs.slice(0, topK);
       }
     } catch (error) {
-      console.warn('[Reranker] CrossEncoder API调用失败，使用关键词回退:', error.message);
+      logger.warn('[Reranker] CrossEncoder API调用失败，使用关键词回退:', error.message);
     }
 
     // API不可用时，回退到关键词匹配
-    console.log('[Reranker] 使用关键词匹配作为CrossEncoder回退方案');
+    logger.info('[Reranker] 使用关键词匹配作为CrossEncoder回退方案');
     return this.rerankWithKeywordMatch(query, documents, topK);
   }
 
@@ -246,7 +247,7 @@ ${docList}
 
       return hybridScored.slice(0, topK);
     } catch (error) {
-      console.error('[Reranker] 混合重排序失败:', error);
+      logger.error('[Reranker] 混合重排序失败:', error);
       return documents.slice(0, topK);
     }
   }
@@ -306,7 +307,7 @@ ${docList}
       ...this.config,
       ...newConfig,
     };
-    console.log('[Reranker] 配置已更新:', this.config);
+    logger.info('[Reranker] 配置已更新:', this.config);
   }
 
   /**
@@ -321,7 +322,7 @@ ${docList}
    */
   setEnabled(enabled) {
     this.config.enabled = enabled;
-    console.log(`[Reranker] 重排序${enabled ? '已启用' : '已禁用'}`);
+    logger.info(`[Reranker] 重排序${enabled ? '已启用' : '已禁用'}`);
   }
 }
 

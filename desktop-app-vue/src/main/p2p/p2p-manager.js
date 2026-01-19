@@ -5,6 +5,7 @@
  * 功能：节点发现、DHT、消息传输、NAT穿透、端到端加密
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const EventEmitter = require("events");
 const fs = require("fs");
 const path = require("path");
@@ -136,7 +137,7 @@ class P2PManager extends EventEmitter {
         },
       };
     } catch (error) {
-      console.warn("[P2PManager] 加载P2P配置失败，使用默认值:", error);
+      logger.warn("[P2PManager] 加载P2P配置失败，使用默认值:", error);
       // 返回默认配置
       return {
         transports: {
@@ -196,12 +197,12 @@ class P2PManager extends EventEmitter {
    * 初始化 P2P 节点
    */
   async initialize() {
-    console.log("[P2PManager] 初始化 P2P 节点...");
+    logger.info("[P2PManager] 初始化 P2P 节点...");
 
     try {
       // 动态导入 ESM 模块
       if (!createLibp2p) {
-        console.log("[P2PManager] 加载 libp2p 模块...");
+        logger.info("[P2PManager] 加载 libp2p 模块...");
         const libp2pModule = await import("libp2p");
         createLibp2p = libp2pModule.createLibp2p;
 
@@ -227,7 +228,7 @@ class P2PManager extends EventEmitter {
         multiaddr = multiaddrModule.multiaddr;
 
         // 新增传输层模块
-        console.log("[P2PManager] 加载新传输层模块...");
+        logger.info("[P2PManager] 加载新传输层模块...");
         const webSocketsModule = await import("@libp2p/websockets");
         webSockets = webSocketsModule.webSockets;
 
@@ -235,13 +236,13 @@ class P2PManager extends EventEmitter {
         try {
           const webRTCModule = await import("@libp2p/webrtc");
           webRTC = webRTCModule.webRTC;
-          console.log("[P2PManager] WebRTC传输模块加载成功");
+          logger.info("[P2PManager] WebRTC传输模块加载成功");
         } catch (webrtcError) {
-          console.warn(
+          logger.warn(
             "[P2PManager] WebRTC传输模块不可用 (node-datachannel native module未构建):",
             webrtcError.message,
           );
-          console.warn(
+          logger.warn(
             "[P2PManager] P2P将使用WebSocket和TCP传输，WebRTC功能已禁用",
           );
           webRTC = null;
@@ -265,7 +266,7 @@ class P2PManager extends EventEmitter {
 
       // 加载P2P配置
       this.p2pConfig = await this.loadP2PConfig();
-      console.log("[P2PManager] P2P配置已加载");
+      logger.info("[P2PManager] P2P配置已加载");
 
       // 初始化NAT检测器
       this.natDetector = new NATDetector();
@@ -273,12 +274,12 @@ class P2PManager extends EventEmitter {
       // NAT类型检测
       this.natInfo = null;
       if (this.p2pConfig.nat.autoDetect) {
-        console.log("[P2P] 正在检测NAT类型...");
+        logger.info("[P2P] 正在检测NAT类型...");
         try {
           this.natInfo = await this.natDetector.detectNATType(
             this.p2pConfig.stun.servers,
           );
-          console.log(
+          logger.info(
             `[P2P] NAT类型: ${this.natInfo.type}, 公网IP: ${this.natInfo.publicIP || "未知"}`,
           );
 
@@ -288,21 +289,21 @@ class P2PManager extends EventEmitter {
               .detectNATType(this.p2pConfig.stun.servers)
               .then((info) => {
                 this.natInfo = info;
-                console.log(`[P2P] NAT重新检测: ${this.natInfo.type}`);
+                logger.info(`[P2P] NAT重新检测: ${this.natInfo.type}`);
               })
               .catch((err) => {
-                console.warn("[P2P] NAT重新检测失败:", err.message);
+                logger.warn("[P2P] NAT重新检测失败:", err.message);
               });
           }, this.p2pConfig.nat.detectionInterval);
         } catch (error) {
-          console.warn("[P2P] NAT检测失败:", error.message);
+          logger.warn("[P2P] NAT检测失败:", error.message);
         }
       }
 
       // 加载或生成 PeerId
       this.peerId = await this.loadOrGeneratePeerId();
       if (!this.peerId) {
-        console.warn("[P2PManager] PeerId 不可用，跳过 P2P 初始化");
+        logger.warn("[P2PManager] PeerId 不可用，跳过 P2P 初始化");
         return false;
       }
 
@@ -327,9 +328,9 @@ class P2PManager extends EventEmitter {
         const webrtcPort = this.p2pConfig.webrtc.port || 9095;
         listenAddresses.push(`/ip4/0.0.0.0/udp/${webrtcPort}/webrtc`);
         listenAddresses.push(`/ip4/127.0.0.1/udp/${webrtcPort}/webrtc`);
-        console.log(`[P2PManager] WebRTC监听端口: ${webrtcPort}`);
+        logger.info(`[P2PManager] WebRTC监听端口: ${webrtcPort}`);
       } else if (this.p2pConfig.transports.webrtc && !webRTC) {
-        console.log(
+        logger.info(
           `[P2PManager] WebRTC已配置但模块不可用，跳过WebRTC监听地址`,
         );
       }
@@ -344,7 +345,7 @@ class P2PManager extends EventEmitter {
         natInfo: this.natInfo,
       });
 
-      console.log(`[P2PManager] 启用传输层: ${transports.length} 个`);
+      logger.info(`[P2PManager] 启用传输层: ${transports.length} 个`);
 
       // 创建 libp2p 节点
       this.node = await createLibp2p({
@@ -384,7 +385,7 @@ class P2PManager extends EventEmitter {
 
       // 初始化传输诊断工具
       this.transportDiagnostics = new TransportDiagnostics(this);
-      console.log("[P2PManager] 传输诊断工具已初始化");
+      logger.info("[P2PManager] 传输诊断工具已初始化");
 
       // 可选：启动健康监控
       if (this.p2pConfig.connection.healthCheckInterval > 0) {
@@ -394,7 +395,7 @@ class P2PManager extends EventEmitter {
       }
 
       // 初始化连接池
-      console.log("[P2PManager] 初始化连接池...");
+      logger.info("[P2PManager] 初始化连接池...");
       this.connectionPool = new ConnectionPool({
         maxConnections: parseInt(process.env.P2P_MAX_CONNECTIONS) || 100,
         minConnections: parseInt(process.env.P2P_MIN_CONNECTIONS) || 5,
@@ -409,26 +410,26 @@ class P2PManager extends EventEmitter {
 
       // 监听连接池事件
       this.connectionPool.on("connection:created", ({ peerId }) => {
-        console.log(`[P2P Pool] 连接已创建: ${peerId}`);
+        logger.info(`[P2P Pool] 连接已创建: ${peerId}`);
       });
 
       this.connectionPool.on("connection:reused", ({ peerId, count }) => {
-        console.log(`[P2P Pool] 连接已复用: ${peerId}, 使用次数: ${count}`);
+        logger.info(`[P2P Pool] 连接已复用: ${peerId}, 使用次数: ${count}`);
       });
 
       this.connectionPool.on("connection:closed", ({ peerId, reason }) => {
-        console.log(`[P2P Pool] 连接已关闭: ${peerId}, 原因: ${reason}`);
+        logger.info(`[P2P Pool] 连接已关闭: ${peerId}, 原因: ${reason}`);
       });
 
       this.connectionPool.on("pool:full", () => {
-        console.warn("[P2P Pool] 连接池已满，正在清理空闲连接");
+        logger.warn("[P2P Pool] 连接池已满，正在清理空闲连接");
       });
 
-      console.log("[P2PManager] 连接池已初始化");
+      logger.info("[P2PManager] 连接池已初始化");
 
       // 初始化WebRTC质量监控器（如果启用WebRTC）
       if (this.p2pConfig.transports.webrtc) {
-        console.log("[P2PManager] 初始化WebRTC质量监控器...");
+        logger.info("[P2PManager] 初始化WebRTC质量监控器...");
         this.webrtcQualityMonitor = new WebRTCQualityMonitor(this, {
           monitorInterval: 5000,
           statsRetention: 100,
@@ -442,7 +443,7 @@ class P2PManager extends EventEmitter {
         this.webrtcQualityMonitor.on(
           "quality:change",
           ({ peerId, previousQuality, currentQuality }) => {
-            console.log(
+            logger.info(
               `[WebRTC] ${peerId} 连接质量变化: ${previousQuality} -> ${currentQuality}`,
             );
             this.emit("webrtc:quality:change", {
@@ -455,13 +456,13 @@ class P2PManager extends EventEmitter {
 
         // 监听告警事件
         this.webrtcQualityMonitor.on("alert", ({ peerId, alerts, metrics }) => {
-          console.warn(`[WebRTC] ${peerId} 连接告警:`, alerts);
+          logger.warn(`[WebRTC] ${peerId} 连接告警:`, alerts);
           this.emit("webrtc:alert", { peerId, alerts, metrics });
         });
 
         // 启动监控
         this.webrtcQualityMonitor.start();
-        console.log("[P2PManager] WebRTC质量监控器已启动");
+        logger.info("[P2PManager] WebRTC质量监控器已启动");
       }
 
       // 初始化设备管理器
@@ -492,9 +493,9 @@ class P2PManager extends EventEmitter {
       this.initialized = true;
 
       const addresses = this.node.getMultiaddrs();
-      console.log("[P2PManager] P2P 节点已启动");
-      console.log("[P2PManager] PeerId:", this.peerId.toString());
-      console.log(
+      logger.info("[P2PManager] P2P 节点已启动");
+      logger.info("[P2PManager] PeerId:", this.peerId.toString());
+      logger.info(
         "[P2PManager] 监听地址:",
         addresses.map((a) => a.toString()),
       );
@@ -506,7 +507,7 @@ class P2PManager extends EventEmitter {
 
       return true;
     } catch (error) {
-      console.error("[P2PManager] 初始化失败:", error);
+      logger.error("[P2PManager] 初始化失败:", error);
       throw error;
     }
   }
@@ -519,7 +520,7 @@ class P2PManager extends EventEmitter {
     try {
       peerFactory = await import("@libp2p/peer-id-factory");
     } catch (error) {
-      console.warn(
+      logger.warn(
         "[P2PManager] 缺少 @libp2p/peer-id-factory，P2P 功能将被禁用:",
         error.message,
       );
@@ -530,7 +531,7 @@ class P2PManager extends EventEmitter {
 
     if (!this.config.dataPath) {
       // 无数据路径，生成临时 PeerId
-      console.log("[P2PManager] 生成临时 PeerId");
+      logger.info("[P2PManager] 生成临时 PeerId");
       return await createEd25519PeerId();
     }
 
@@ -540,23 +541,23 @@ class P2PManager extends EventEmitter {
       // 尝试加载现有 PeerId
       if (fs.existsSync(peerIdPath)) {
         const peerIdJSON = JSON.parse(fs.readFileSync(peerIdPath, "utf8"));
-        console.log("[P2PManager] 加载现有 PeerId");
+        logger.info("[P2PManager] 加载现有 PeerId");
         return await createFromJSON(peerIdJSON);
       }
     } catch (error) {
-      console.warn("[P2PManager] 加载 PeerId 失败，将生成新的:", error.message);
+      logger.warn("[P2PManager] 加载 PeerId 失败，将生成新的:", error.message);
     }
 
     // 生成新 PeerId 并保存
-    console.log("[P2PManager] 生成新 PeerId");
+    logger.info("[P2PManager] 生成新 PeerId");
     const peerId = await createEd25519PeerId();
 
     try {
       fs.mkdirSync(path.dirname(peerIdPath), { recursive: true });
       fs.writeFileSync(peerIdPath, JSON.stringify(peerId.toJSON(), null, 2));
-      console.log("[P2PManager] PeerId 已保存到:", peerIdPath);
+      logger.info("[P2PManager] PeerId 已保存到:", peerIdPath);
     } catch (error) {
-      console.warn("[P2PManager] 保存 PeerId 失败:", error.message);
+      logger.warn("[P2PManager] 保存 PeerId 失败:", error.message);
     }
 
     return peerId;
@@ -596,7 +597,7 @@ class P2PManager extends EventEmitter {
     // 对等节点连接
     this.node.addEventListener("peer:connect", (evt) => {
       const peerId = evt.detail.toString();
-      console.log("[P2PManager] 对等节点已连接:", peerId);
+      logger.info("[P2PManager] 对等节点已连接:", peerId);
 
       this.peers.set(peerId, {
         peerId,
@@ -609,7 +610,7 @@ class P2PManager extends EventEmitter {
     // 对等节点断开
     this.node.addEventListener("peer:disconnect", (evt) => {
       const peerId = evt.detail.toString();
-      console.log("[P2PManager] 对等节点已断开:", peerId);
+      logger.info("[P2PManager] 对等节点已断开:", peerId);
 
       this.peers.delete(peerId);
 
@@ -619,7 +620,7 @@ class P2PManager extends EventEmitter {
     // 对等节点发现
     this.node.addEventListener("peer:discovery", (evt) => {
       const peer = evt.detail;
-      console.log("[P2PManager] 发现对等节点:", peer.id.toString());
+      logger.info("[P2PManager] 发现对等节点:", peer.id.toString());
 
       this.emit("peer:discovered", {
         peerId: peer.id.toString(),
@@ -630,7 +631,7 @@ class P2PManager extends EventEmitter {
     // 自我地址更新
     this.node.addEventListener("self:peer:update", () => {
       const addresses = this.node.getMultiaddrs();
-      console.log(
+      logger.info(
         "[P2PManager] 节点地址已更新:",
         addresses.map((a) => a.toString()),
       );
@@ -645,7 +646,7 @@ class P2PManager extends EventEmitter {
    * 初始化设备管理器
    */
   async initializeDeviceManager() {
-    console.log("[P2PManager] 初始化设备管理器...");
+    logger.info("[P2PManager] 初始化设备管理器...");
 
     try {
       this.deviceManager = new DeviceManager({
@@ -656,13 +657,13 @@ class P2PManager extends EventEmitter {
 
       await this.deviceManager.initialize();
 
-      console.log("[P2PManager] 设备管理器已初始化");
-      console.log(
+      logger.info("[P2PManager] 设备管理器已初始化");
+      logger.info(
         "[P2PManager] 当前设备 ID:",
         this.deviceManager.getCurrentDevice().deviceId,
       );
     } catch (error) {
-      console.error("[P2PManager] 初始化设备管理器失败:", error);
+      logger.error("[P2PManager] 初始化设备管理器失败:", error);
       // 不抛出错误，允许 P2P 网络继续工作
       this.deviceManager = null;
     }
@@ -672,7 +673,7 @@ class P2PManager extends EventEmitter {
    * 初始化 Signal 会话管理器
    */
   async initializeSignalManager() {
-    console.log("[P2PManager] 初始化 Signal 会话管理器...");
+    logger.info("[P2PManager] 初始化 Signal 会话管理器...");
 
     try {
       // 获取设备 ID
@@ -688,9 +689,9 @@ class P2PManager extends EventEmitter {
 
       await this.signalManager.initialize();
 
-      console.log("[P2PManager] Signal 会话管理器已初始化");
+      logger.info("[P2PManager] Signal 会话管理器已初始化");
     } catch (error) {
-      console.error("[P2PManager] 初始化 Signal 会话管理器失败:", error);
+      logger.error("[P2PManager] 初始化 Signal 会话管理器失败:", error);
       // 不抛出错误，允许 P2P 网络继续工作（无加密模式）
       this.signalManager = null;
     }
@@ -700,7 +701,7 @@ class P2PManager extends EventEmitter {
    * 初始化设备同步管理器
    */
   async initializeSyncManager() {
-    console.log("[P2PManager] 初始化设备同步管理器...");
+    logger.info("[P2PManager] 初始化设备同步管理器...");
 
     try {
       const deviceId = this.deviceManager
@@ -726,14 +727,14 @@ class P2PManager extends EventEmitter {
           await this.syncManager.markMessageDelivered(message.id);
           await this.syncManager.removeMessage(message.id);
         } catch (error) {
-          console.error("[P2PManager] 发送同步消息失败:", error);
+          logger.error("[P2PManager] 发送同步消息失败:", error);
           await this.syncManager.markMessageFailed(message.id, error.message);
         }
       });
 
-      console.log("[P2PManager] 设备同步管理器已初始化");
+      logger.info("[P2PManager] 设备同步管理器已初始化");
     } catch (error) {
-      console.error("[P2PManager] 初始化设备同步管理器失败:", error);
+      logger.error("[P2PManager] 初始化设备同步管理器失败:", error);
       // 不抛出错误，允许 P2P 网络继续工作（无同步模式）
       this.syncManager = null;
     }
@@ -744,7 +745,7 @@ class P2PManager extends EventEmitter {
    */
   registerEncryptedMessageHandlers() {
     if (!this.signalManager) {
-      console.warn("[P2PManager] Signal 未初始化，跳过加密消息处理器注册");
+      logger.warn("[P2PManager] Signal 未初始化，跳过加密消息处理器注册");
       return;
     }
 
@@ -761,7 +762,7 @@ class P2PManager extends EventEmitter {
           const encryptedMessage = Buffer.concat(data);
           const senderId = connection.remotePeer.toString();
 
-          console.log("[P2PManager] 收到加密消息:", senderId);
+          logger.info("[P2PManager] 收到加密消息:", senderId);
 
           // 解析加密消息
           const ciphertext = JSON.parse(encryptedMessage.toString());
@@ -773,14 +774,14 @@ class P2PManager extends EventEmitter {
             ciphertext,
           );
 
-          console.log("[P2PManager] 消息已解密");
+          logger.info("[P2PManager] 消息已解密");
 
           this.emit("encrypted-message:received", {
             from: senderId,
             message: plaintext,
           });
         } catch (error) {
-          console.error("[P2PManager] 处理加密消息失败:", error);
+          logger.error("[P2PManager] 处理加密消息失败:", error);
         }
       },
     );
@@ -810,7 +811,7 @@ class P2PManager extends EventEmitter {
             };
           }
 
-          console.log(
+          logger.info(
             "[P2PManager] 收到密钥交换请求:",
             requesterId,
             "请求设备:",
@@ -835,14 +836,14 @@ class P2PManager extends EventEmitter {
           await stream.write(responseData);
           await stream.close();
 
-          console.log("[P2PManager] 已发送预密钥包，设备:", currentDeviceId);
+          logger.info("[P2PManager] 已发送预密钥包，设备:", currentDeviceId);
         } catch (error) {
-          console.error("[P2PManager] 处理密钥交换失败:", error);
+          logger.error("[P2PManager] 处理密钥交换失败:", error);
         }
       },
     );
 
-    console.log("[P2PManager] 加密消息协议处理器已注册");
+    logger.info("[P2PManager] 加密消息协议处理器已注册");
   }
 
   /**
@@ -850,7 +851,7 @@ class P2PManager extends EventEmitter {
    */
   registerDeviceBroadcastHandlers() {
     if (!this.deviceManager) {
-      console.warn("[P2PManager] 设备管理器未初始化，跳过设备广播处理器注册");
+      logger.warn("[P2PManager] 设备管理器未初始化，跳过设备广播处理器注册");
       return;
     }
 
@@ -868,7 +869,7 @@ class P2PManager extends EventEmitter {
           const broadcast = JSON.parse(broadcastData.toString());
           const peerId = connection.remotePeer.toString();
 
-          console.log("[P2PManager] 收到设备广播:", peerId);
+          logger.info("[P2PManager] 收到设备广播:", peerId);
 
           // 处理设备广播
           await this.deviceManager.handleDeviceBroadcast(peerId, broadcast);
@@ -877,12 +878,12 @@ class P2PManager extends EventEmitter {
           await stream.write(Buffer.from(JSON.stringify({ success: true })));
           await stream.close();
         } catch (error) {
-          console.error("[P2PManager] 处理设备广播失败:", error);
+          logger.error("[P2PManager] 处理设备广播失败:", error);
         }
       },
     );
 
-    console.log("[P2PManager] 设备广播协议处理器已注册");
+    logger.info("[P2PManager] 设备广播协议处理器已注册");
   }
 
   /**
@@ -890,7 +891,7 @@ class P2PManager extends EventEmitter {
    */
   registerDeviceSyncHandlers() {
     if (!this.syncManager) {
-      console.warn("[P2PManager] 设备同步管理器未初始化，跳过同步处理器注册");
+      logger.warn("[P2PManager] 设备同步管理器未初始化，跳过同步处理器注册");
       return;
     }
 
@@ -908,7 +909,7 @@ class P2PManager extends EventEmitter {
           const request = JSON.parse(requestData.toString());
           const peerId = connection.remotePeer.toString();
 
-          console.log(
+          logger.info(
             "[P2PManager] 收到同步请求:",
             peerId,
             "type:",
@@ -952,19 +953,19 @@ class P2PManager extends EventEmitter {
               break;
 
             default:
-              console.warn("[P2PManager] 未知同步消息类型:", request.type);
+              logger.warn("[P2PManager] 未知同步消息类型:", request.type);
           }
 
           // 发送响应
           await stream.write(Buffer.from(JSON.stringify(response)));
           await stream.close();
         } catch (error) {
-          console.error("[P2PManager] 处理同步请求失败:", error);
+          logger.error("[P2PManager] 处理同步请求失败:", error);
         }
       },
     );
 
-    console.log("[P2PManager] 设备同步协议处理器已注册");
+    logger.info("[P2PManager] 设备同步协议处理器已注册");
   }
 
   /**
@@ -981,7 +982,7 @@ class P2PManager extends EventEmitter {
       return;
     }
 
-    console.log("[P2PManager] 广播设备信息到所有连接的节点");
+    logger.info("[P2PManager] 广播设备信息到所有连接的节点");
 
     // 向所有连接的节点广播设备信息
     const connections = this.node.getConnections();
@@ -1005,9 +1006,9 @@ class P2PManager extends EventEmitter {
 
         await stream.close();
 
-        console.log("[P2PManager] 设备信息已广播到:", peerId.toString());
+        logger.info("[P2PManager] 设备信息已广播到:", peerId.toString());
       } catch (error) {
-        console.error("[P2PManager] 广播设备信息失败:", error);
+        logger.error("[P2PManager] 广播设备信息失败:", error);
       }
     }
   }
@@ -1023,7 +1024,7 @@ class P2PManager extends EventEmitter {
     }
 
     try {
-      console.log(
+      logger.info(
         "[P2PManager] 发起密钥交换:",
         peerIdStr,
         "deviceId:",
@@ -1068,7 +1069,7 @@ class P2PManager extends EventEmitter {
         preKeyBundle,
       );
 
-      console.log("[P2PManager] 密钥交换成功，设备:", remoteDeviceId);
+      logger.info("[P2PManager] 密钥交换成功，设备:", remoteDeviceId);
 
       this.emit("key-exchange:success", {
         peerId: peerIdStr,
@@ -1077,7 +1078,7 @@ class P2PManager extends EventEmitter {
 
       return { success: true, deviceId: remoteDeviceId };
     } catch (error) {
-      console.error("[P2PManager] 密钥交换失败:", error);
+      logger.error("[P2PManager] 密钥交换失败:", error);
       throw error;
     }
   }
@@ -1100,19 +1101,19 @@ class P2PManager extends EventEmitter {
    */
   async connectToPeer(multiaddrStr) {
     try {
-      console.log("[P2PManager] 连接到对等节点:", multiaddrStr);
+      logger.info("[P2PManager] 连接到对等节点:", multiaddrStr);
 
       const ma = multiaddr(multiaddrStr);
       const connection = await this.node.dial(ma);
 
-      console.log("[P2PManager] 连接成功:", connection.remotePeer.toString());
+      logger.info("[P2PManager] 连接成功:", connection.remotePeer.toString());
 
       return {
         success: true,
         peerId: connection.remotePeer.toString(),
       };
     } catch (error) {
-      console.error("[P2PManager] 连接失败:", error);
+      logger.error("[P2PManager] 连接失败:", error);
       throw error;
     }
   }
@@ -1128,11 +1129,11 @@ class P2PManager extends EventEmitter {
 
       await this.node.hangUp(peerId);
 
-      console.log("[P2PManager] 已断开连接:", peerIdStr);
+      logger.info("[P2PManager] 已断开连接:", peerIdStr);
 
       return { success: true };
     } catch (error) {
-      console.error("[P2PManager] 断开连接失败:", error);
+      logger.error("[P2PManager] 断开连接失败:", error);
       throw error;
     }
   }
@@ -1185,15 +1186,15 @@ class P2PManager extends EventEmitter {
     }
 
     try {
-      console.log("[P2PManager] DHT PUT:", key);
+      logger.info("[P2PManager] DHT PUT:", key);
 
       await this.dht.put(Buffer.from(key), value);
 
-      console.log("[P2PManager] DHT PUT 成功");
+      logger.info("[P2PManager] DHT PUT 成功");
 
       return { success: true };
     } catch (error) {
-      console.error("[P2PManager] DHT PUT 失败:", error);
+      logger.error("[P2PManager] DHT PUT 失败:", error);
       throw error;
     }
   }
@@ -1208,15 +1209,15 @@ class P2PManager extends EventEmitter {
     }
 
     try {
-      console.log("[P2PManager] DHT GET:", key);
+      logger.info("[P2PManager] DHT GET:", key);
 
       const value = await this.dht.get(Buffer.from(key));
 
-      console.log("[P2PManager] DHT GET 成功");
+      logger.info("[P2PManager] DHT GET 成功");
 
       return value;
     } catch (error) {
-      console.error("[P2PManager] DHT GET 失败:", error);
+      logger.error("[P2PManager] DHT GET 失败:", error);
       throw error;
     }
   }
@@ -1231,7 +1232,7 @@ class P2PManager extends EventEmitter {
     }
 
     try {
-      console.log("[P2PManager] DHT 查找提供者:", cid);
+      logger.info("[P2PManager] DHT 查找提供者:", cid);
 
       const providers = [];
       for await (const provider of this.dht.findProviders(cid)) {
@@ -1241,11 +1242,11 @@ class P2PManager extends EventEmitter {
         });
       }
 
-      console.log("[P2PManager] 找到", providers.length, "个提供者");
+      logger.info("[P2PManager] 找到", providers.length, "个提供者");
 
       return providers;
     } catch (error) {
-      console.error("[P2PManager] DHT 查找提供者失败:", error);
+      logger.error("[P2PManager] DHT 查找提供者失败:", error);
       throw error;
     }
   }
@@ -1270,7 +1271,7 @@ class P2PManager extends EventEmitter {
         peerIdStr,
         async (id) => {
           // 连接工厂函数 - 创建新连接
-          console.log(`[P2P Pool] 创建新连接: ${id}`);
+          logger.info(`[P2P Pool] 创建新连接: ${id}`);
           const conn = await this.node.dial(peerId);
           return conn;
         },
@@ -1278,7 +1279,7 @@ class P2PManager extends EventEmitter {
 
       return connection;
     } catch (error) {
-      console.error("[P2PManager] 获取连接失败:", error);
+      logger.error("[P2PManager] 获取连接失败:", error);
       throw error;
     }
   }
@@ -1324,11 +1325,11 @@ class P2PManager extends EventEmitter {
       await stream.write(data);
       await stream.close();
 
-      console.log("[P2PManager] 消息已发送到:", peerIdStr);
+      logger.info("[P2PManager] 消息已发送到:", peerIdStr);
 
       return { success: true };
     } catch (error) {
-      console.error("[P2PManager] 发送消息失败:", error);
+      logger.error("[P2PManager] 发送消息失败:", error);
       throw error;
     }
   }
@@ -1354,7 +1355,7 @@ class P2PManager extends EventEmitter {
     const autoQueue = options.autoQueue !== false; // 默认启用自动入队
 
     try {
-      console.log(
+      logger.info(
         "[P2PManager] 发送加密消息到:",
         peerIdStr,
         "deviceId:",
@@ -1367,7 +1368,7 @@ class P2PManager extends EventEmitter {
         const userDevices = this.deviceManager.getUserDevices(peerIdStr);
         if (userDevices && userDevices.length > 0) {
           deviceId = userDevices[0].deviceId;
-          console.log("[P2PManager] 使用默认设备:", deviceId);
+          logger.info("[P2PManager] 使用默认设备:", deviceId);
         }
       }
       if (!deviceId) {
@@ -1382,7 +1383,7 @@ class P2PManager extends EventEmitter {
 
       if (!hasSession) {
         // 先发起密钥交换
-        console.log("[P2PManager] 会话不存在，先发起密钥交换");
+        logger.info("[P2PManager] 会话不存在，先发起密钥交换");
         await this.initiateKeyExchange(peerIdStr, deviceId);
       }
 
@@ -1413,7 +1414,7 @@ class P2PManager extends EventEmitter {
       await stream.write(encryptedData);
       await stream.close();
 
-      console.log("[P2PManager] 加密消息已发送");
+      logger.info("[P2PManager] 加密消息已发送");
 
       this.emit("encrypted-message:sent", {
         to: peerIdStr,
@@ -1427,7 +1428,7 @@ class P2PManager extends EventEmitter {
         deviceId,
       };
     } catch (error) {
-      console.error("[P2PManager] 发送加密消息失败:", error);
+      logger.error("[P2PManager] 发送加密消息失败:", error);
 
       // 如果启用自动入队且同步管理器可用，则将消息加入队列
       if (autoQueue && this.syncManager) {
@@ -1439,7 +1440,7 @@ class P2PManager extends EventEmitter {
             encrypted: true,
           });
 
-          console.log("[P2PManager] 消息已加入队列:", messageId);
+          logger.info("[P2PManager] 消息已加入队列:", messageId);
 
           return {
             success: true,
@@ -1449,7 +1450,7 @@ class P2PManager extends EventEmitter {
             reason: error.message,
           };
         } catch (queueError) {
-          console.error("[P2PManager] 消息入队失败:", queueError);
+          logger.error("[P2PManager] 消息入队失败:", queueError);
           throw new Error(`发送失败且无法入队: ${error.message}`);
         }
       }
@@ -1474,7 +1475,7 @@ class P2PManager extends EventEmitter {
 
         const message = Buffer.concat(data);
 
-        console.log("[P2PManager] 收到消息:", message.length, "字节");
+        logger.info("[P2PManager] 收到消息:", message.length, "字节");
 
         // 调用处理函数
         if (handler) {
@@ -1483,7 +1484,7 @@ class P2PManager extends EventEmitter {
 
         this.emit("message:received", { message });
       } catch (error) {
-        console.error("[P2PManager] 处理消息失败:", error);
+        logger.error("[P2PManager] 处理消息失败:", error);
       }
     });
   }
@@ -1537,7 +1538,7 @@ class P2PManager extends EventEmitter {
     // 注册好友请求协议处理器
     this.registerFriendProtocols();
 
-    console.log("[P2PManager] 好友管理器已设置");
+    logger.info("[P2PManager] 好友管理器已设置");
   }
 
   /**
@@ -1545,7 +1546,7 @@ class P2PManager extends EventEmitter {
    */
   registerFriendProtocols() {
     if (!this.friendManager) {
-      console.warn("[P2PManager] 好友管理器未设置，跳过协议注册");
+      logger.warn("[P2PManager] 好友管理器未设置，跳过协议注册");
       return;
     }
 
@@ -1563,7 +1564,7 @@ class P2PManager extends EventEmitter {
           const request = JSON.parse(requestData.toString());
           const senderId = connection.remotePeer.toString();
 
-          console.log("[P2PManager] 收到好友请求:", senderId);
+          logger.info("[P2PManager] 收到好友请求:", senderId);
 
           // 解密消息内容（如果已建立加密会话）
           let decryptedMessage = request.message;
@@ -1575,7 +1576,7 @@ class P2PManager extends EventEmitter {
                 request.message,
               );
             } catch (error) {
-              console.warn(
+              logger.warn(
                 "[P2PManager] 解密好友请求失败，使用原始消息:",
                 error,
               );
@@ -1593,7 +1594,7 @@ class P2PManager extends EventEmitter {
           await stream.write(Buffer.from(JSON.stringify({ success: true })));
           await stream.close();
         } catch (error) {
-          console.error("[P2PManager] 处理好友请求失败:", error);
+          logger.error("[P2PManager] 处理好友请求失败:", error);
         }
       },
     );
@@ -1612,7 +1613,7 @@ class P2PManager extends EventEmitter {
           const response = JSON.parse(responseData.toString());
           const friendDid = connection.remotePeer.toString();
 
-          console.log("[P2PManager] 好友请求已被接受:", friendDid);
+          logger.info("[P2PManager] 好友请求已被接受:", friendDid);
 
           // 触发事件通知 UI
           this.emit("friend-request:accepted", {
@@ -1622,12 +1623,12 @@ class P2PManager extends EventEmitter {
 
           await stream.close();
         } catch (error) {
-          console.error("[P2PManager] 处理好友请求接受通知失败:", error);
+          logger.error("[P2PManager] 处理好友请求接受通知失败:", error);
         }
       },
     );
 
-    console.log("[P2PManager] 好友协议处理器已注册");
+    logger.info("[P2PManager] 好友协议处理器已注册");
   }
 
   /**
@@ -1644,7 +1645,7 @@ class P2PManager extends EventEmitter {
       this.pendingPostProtocolRegistration = true;
     }
 
-    console.log("[P2PManager] 动态管理器已设置");
+    logger.info("[P2PManager] 动态管理器已设置");
   }
 
   /**
@@ -1652,11 +1653,11 @@ class P2PManager extends EventEmitter {
    */
   registerPostProtocols() {
     if (!this.postManager) {
-      console.warn("[P2PManager] 动态管理器未设置，跳过协议注册");
+      logger.warn("[P2PManager] 动态管理器未设置，跳过协议注册");
       return;
     }
     if (!this.node) {
-      console.warn("[P2PManager] P2P 节点未初始化，跳过动态协议注册");
+      logger.warn("[P2PManager] P2P 节点未初始化，跳过动态协议注册");
       this.pendingPostProtocolRegistration = true;
       return;
     }
@@ -1678,7 +1679,7 @@ class P2PManager extends EventEmitter {
           const message = JSON.parse(postData.toString());
           const senderId = connection.remotePeer.toString();
 
-          console.log("[P2PManager] 收到动态同步:", message.post?.id);
+          logger.info("[P2PManager] 收到动态同步:", message.post?.id);
 
           // 验证消息类型
           if (message.type === "post-sync" && message.post) {
@@ -1690,7 +1691,7 @@ class P2PManager extends EventEmitter {
           await stream.write(Buffer.from(JSON.stringify({ success: true })));
           await stream.close();
         } catch (error) {
-          console.error("[P2PManager] 处理动态同步失败:", error);
+          logger.error("[P2PManager] 处理动态同步失败:", error);
         }
       },
     );
@@ -1709,7 +1710,7 @@ class P2PManager extends EventEmitter {
           const message = JSON.parse(likeData.toString());
           const senderId = connection.remotePeer.toString();
 
-          console.log("[P2PManager] 收到点赞通知:", message.postId);
+          logger.info("[P2PManager] 收到点赞通知:", message.postId);
 
           // 验证消息类型
           if (message.type === "post-like") {
@@ -1721,7 +1722,7 @@ class P2PManager extends EventEmitter {
 
           await stream.close();
         } catch (error) {
-          console.error("[P2PManager] 处理点赞通知失败:", error);
+          logger.error("[P2PManager] 处理点赞通知失败:", error);
         }
       },
     );
@@ -1740,7 +1741,7 @@ class P2PManager extends EventEmitter {
           const message = JSON.parse(commentData.toString());
           const senderId = connection.remotePeer.toString();
 
-          console.log("[P2PManager] 收到评论通知:", message.comment?.id);
+          logger.info("[P2PManager] 收到评论通知:", message.comment?.id);
 
           // 验证消息类型
           if (message.type === "post-comment" && message.comment) {
@@ -1749,27 +1750,27 @@ class P2PManager extends EventEmitter {
 
           await stream.close();
         } catch (error) {
-          console.error("[P2PManager] 处理评论通知失败:", error);
+          logger.error("[P2PManager] 处理评论通知失败:", error);
         }
       },
     );
 
     this.postProtocolsRegistered = true;
     this.pendingPostProtocolRegistration = false;
-    console.log("[P2PManager] 动态协议处理器已注册");
+    logger.info("[P2PManager] 动态协议处理器已注册");
   }
 
   /**
    * 关闭 P2P 节点
    */
   async close() {
-    console.log("[P2PManager] 关闭 P2P 节点");
+    logger.info("[P2PManager] 关闭 P2P 节点");
 
     // 停止WebRTC质量监控器
     if (this.webrtcQualityMonitor) {
       this.webrtcQualityMonitor.stop();
       this.webrtcQualityMonitor = null;
-      console.log("[P2PManager] WebRTC质量监控器已停止");
+      logger.info("[P2PManager] WebRTC质量监控器已停止");
     }
 
     if (this.syncManager) {
@@ -1820,7 +1821,7 @@ class P2PManager extends EventEmitter {
     const addWebRTCTransport = (priority = "后备") => {
       // Skip if WebRTC module is not available (e.g., node-datachannel not built for Electron)
       if (!webRTC) {
-        console.log(`[P2PManager] 跳过WebRTC传输 - 模块不可用`);
+        logger.info(`[P2PManager] 跳过WebRTC传输 - 模块不可用`);
         return false;
       }
 
@@ -1841,15 +1842,15 @@ class P2PManager extends EventEmitter {
         }
 
         transports.push(webRTC(webrtcConfig));
-        console.log(`[P2PManager] 添加WebRTC传输（${priority}）`);
-        console.log(`[P2PManager] WebRTC配置:`, {
+        logger.info(`[P2PManager] 添加WebRTC传输（${priority}）`);
+        logger.info(`[P2PManager] WebRTC配置:`, {
           iceServers: webrtcConfig.iceServers.length,
           iceTransportPolicy: webrtcConfig.iceTransportPolicy,
           iceCandidatePoolSize: webrtcConfig.iceCandidatePoolSize,
         });
         return true;
       } catch (error) {
-        console.warn("[P2PManager] WebRTC传输初始化失败，跳过:", error.message);
+        logger.warn("[P2PManager] WebRTC传输初始化失败，跳过:", error.message);
         // Note: WebRTC may not be fully supported in Node.js/Electron environments
         // Consider using @libp2p/webrtc-direct for peer-to-peer in Node.js
         return false;
@@ -1858,7 +1859,7 @@ class P2PManager extends EventEmitter {
 
     // 根据NAT类型和配置智能选择（优先顺序）
     if (config.transports.autoSelect && natInfo) {
-      console.log(`[P2PManager] 智能传输选择: NAT类型=${natInfo.type}`);
+      logger.info(`[P2PManager] 智能传输选择: NAT类型=${natInfo.type}`);
 
       // 基于NAT类型优化传输层顺序，但仍然启用所有配置的传输
       if (natInfo.type === "full-cone" || natInfo.type === "restricted") {
@@ -1868,34 +1869,34 @@ class P2PManager extends EventEmitter {
         }
         if (config.transports.websocket) {
           transports.push(webSockets());
-          console.log("[P2PManager] 添加WebSocket传输（后备）");
+          logger.info("[P2PManager] 添加WebSocket传输（后备）");
         }
         if (config.transports.tcp) {
           transports.push(tcp());
-          console.log("[P2PManager] 添加TCP传输（后备）");
+          logger.info("[P2PManager] 添加TCP传输（后备）");
         }
       } else if (natInfo.type === "symmetric") {
         // 对称NAT: WebSocket优先，然后WebRTC，最后TCP
         if (config.transports.websocket) {
           transports.push(webSockets());
-          console.log("[P2PManager] 添加WebSocket传输（优先 - 适合对称NAT）");
+          logger.info("[P2PManager] 添加WebSocket传输（优先 - 适合对称NAT）");
         }
         if (config.transports.webrtc) {
           addWebRTCTransport("后备");
         }
         if (config.transports.tcp) {
           transports.push(tcp());
-          console.log("[P2PManager] 添加TCP传输（后备）");
+          logger.info("[P2PManager] 添加TCP传输（后备）");
         }
       } else {
         // 本地网络或未知: TCP优先，然后WebSocket，最后WebRTC
         if (config.transports.tcp) {
           transports.push(tcp());
-          console.log("[P2PManager] 添加TCP传输（优先 - 无NAT或未知）");
+          logger.info("[P2PManager] 添加TCP传输（优先 - 无NAT或未知）");
         }
         if (config.transports.websocket) {
           transports.push(webSockets());
-          console.log("[P2PManager] 添加WebSocket传输（后备）");
+          logger.info("[P2PManager] 添加WebSocket传输（后备）");
         }
         if (config.transports.webrtc) {
           addWebRTCTransport("后备");
@@ -1903,7 +1904,7 @@ class P2PManager extends EventEmitter {
       }
     } else {
       // 非智能模式：启用所有配置的传输层
-      console.log("[P2PManager] 标准模式：启用所有配置的传输");
+      logger.info("[P2PManager] 标准模式：启用所有配置的传输");
       if (config.transports.tcp) {
         transports.push(tcp());
       }
@@ -1923,7 +1924,7 @@ class P2PManager extends EventEmitter {
           reservationCompletionTimeout: 10000,
         }),
       );
-      console.log("[P2PManager] 添加Circuit Relay传输（通用后备）");
+      logger.info("[P2PManager] 添加Circuit Relay传输（通用后备）");
     }
 
     return transports;
@@ -1965,7 +1966,7 @@ class P2PManager extends EventEmitter {
       });
     }
 
-    console.log(`[P2PManager] ICE服务器配置: ${iceServers.length} 个服务器`);
+    logger.info(`[P2PManager] ICE服务器配置: ${iceServers.length} 个服务器`);
     return iceServers;
   }
 

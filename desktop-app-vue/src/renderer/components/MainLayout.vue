@@ -981,6 +981,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, watch, onMounted, onUnmounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { message } from "ant-design-vue";
@@ -1736,7 +1738,7 @@ const insertTextAtCursor = (element, text) => {
 
 // 执行语音命令
 const executeVoiceCommand = (command) => {
-  console.log("[MainLayout] 执行语音命令:", command);
+  logger.info("[MainLayout] 执行语音命令:", command);
 
   switch (command.type) {
     // ==================== 聊天面板控制 ====================
@@ -1837,7 +1839,7 @@ const simulateKeyboardShortcut = (command) => {
 
 // 处理语音识别结果
 const handleVoiceResult = (result) => {
-  console.log("[MainLayout] 语音识别结果:", result);
+  logger.info("[MainLayout] 语音识别结果:", result);
 
   const text = result.text?.trim();
   if (!text) {
@@ -1886,13 +1888,13 @@ const handleVoiceResult = (result) => {
 
 // 处理语音识别错误
 const handleVoiceError = (error) => {
-  console.error("[MainLayout] 语音识别错误:", error);
+  logger.error("[MainLayout] 语音识别错误:", error);
   message.error("语音识别失败: " + error.message);
 };
 
 // 处理语音命令（从VoiceFeedbackWidget触发）
 const handleVoiceCommand = (command) => {
-  console.log("[MainLayout] 收到语音命令:", command);
+  logger.info("[MainLayout] 收到语音命令:", command);
   executeVoiceCommand(command);
 };
 
@@ -2308,7 +2310,7 @@ onMounted(async () => {
       socialStore.loadFriends(),
     ]);
   } catch (error) {
-    console.error("加载社交数据失败:", error);
+    logger.error("加载社交数据失败:", error);
   }
 
   // 添加快捷键监听
@@ -2353,7 +2355,7 @@ const handleSyncClick = async () => {
     syncStatus.value = "synced";
     message.success("同步完成");
   } catch (error) {
-    console.error("[MainLayout] 手动同步失败:", error);
+    logger.error("[MainLayout] 手动同步失败:", error);
     syncStatus.value = "error";
     syncError.value = error.message;
     message.error("同步失败：" + error.message);

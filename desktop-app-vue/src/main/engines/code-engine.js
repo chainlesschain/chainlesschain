@@ -44,9 +44,9 @@ class CodeEngine {
       }
 
       this.initialized = true;
-      console.log('[CodeEngine] 初始化完成');
+      logger.info('[CodeEngine] 初始化完成');
     } catch (error) {
-      console.error('[CodeEngine] 初始化失败:', error);
+      logger.error('[CodeEngine] 初始化失败:', error);
       throw error;
     }
   }
@@ -79,7 +79,7 @@ class CodeEngine {
       onProgress = null
     } = options;
 
-    console.log(`[CodeEngine] 生成代码: ${language}`, description);
+    logger.info(`[CodeEngine] 生成代码: ${language}`, description);
 
     try {
       // 构建提示词
@@ -122,7 +122,7 @@ class CodeEngine {
       };
 
     } catch (error) {
-      console.error('[CodeEngine] 代码生成失败:', error);
+      logger.error('[CodeEngine] 代码生成失败:', error);
       throw error;
     }
   }
@@ -238,7 +238,7 @@ class CodeEngine {
     const langInfo = this.supportedLanguages[language] || { testFramework: 'standard' };
     const framework = langInfo.testFramework;
 
-    console.log(`[CodeEngine] 生成单元测试: ${language} (${framework})`);
+    logger.info(`[CodeEngine] 生成单元测试: ${language} (${framework})`);
 
     const prompt = `
 你是一位专业的测试工程师。
@@ -268,7 +268,7 @@ ${code}
       return this.extractCodeBlock(response, language);
 
     } catch (error) {
-      console.error('[CodeEngine] 测试生成失败:', error);
+      logger.error('[CodeEngine] 测试生成失败:', error);
       throw error;
     }
   }
@@ -289,7 +289,7 @@ ${code}
       detailed = true
     } = options;
 
-    console.log(`[CodeEngine] 代码审查: ${language} (增强版)`);
+    logger.info(`[CodeEngine] 代码审查: ${language} (增强版)`);
 
     try {
       // 并行执行基础审查、复杂度分析和安全扫描
@@ -353,7 +353,7 @@ ${code}
       };
 
     } catch (error) {
-      console.error('[CodeEngine] 代码审查失败:', error);
+      logger.error('[CodeEngine] 代码审查失败:', error);
       throw error;
     }
   }
@@ -540,7 +540,7 @@ ${code}
 
     const description = refactoringDescriptions[refactoringType] || '改进代码质量';
 
-    console.log(`[CodeEngine] 代码重构: ${refactoringType}`);
+    logger.info(`[CodeEngine] 代码重构: ${refactoringType}`);
 
     const prompt = `
 你是一位代码重构专家。
@@ -590,7 +590,7 @@ ${code}
       };
 
     } catch (error) {
-      console.error('[CodeEngine] 代码重构失败:', error);
+      logger.error('[CodeEngine] 代码重构失败:', error);
       throw error;
     }
   }
@@ -604,7 +604,7 @@ ${code}
   async explainCode(code, language) {
     this.ensureInitialized();
 
-    console.log(`[CodeEngine] 解释代码: ${language}`);
+    logger.info(`[CodeEngine] 解释代码: ${language}`);
 
     const prompt = `
 请详细解释以下${language}代码的功能和实现原理:
@@ -635,7 +635,7 @@ ${code}
       };
 
     } catch (error) {
-      console.error('[CodeEngine] 代码解释失败:', error);
+      logger.error('[CodeEngine] 代码解释失败:', error);
       throw error;
     }
   }
@@ -650,7 +650,7 @@ ${code}
   async fixBug(code, language, errorMessage = null) {
     this.ensureInitialized();
 
-    console.log(`[CodeEngine] 修复bug: ${language}`);
+    logger.info(`[CodeEngine] 修复bug: ${language}`);
 
     let prompt = `
 你是一位专业的调试专家。
@@ -697,7 +697,7 @@ ${code}
       };
 
     } catch (error) {
-      console.error('[CodeEngine] bug修复失败:', error);
+      logger.error('[CodeEngine] bug修复失败:', error);
       throw error;
     }
   }
@@ -713,7 +713,7 @@ ${code}
 
     const { projectName = 'my-project', features = [] } = options;
 
-    console.log(`[CodeEngine] 生成项目脚手架: ${projectType}`);
+    logger.info(`[CodeEngine] 生成项目脚手架: ${projectType}`);
 
     // 预定义模板
     const templates = {
@@ -763,6 +763,7 @@ ${code}
         {
           path: 'app.js',
           content: `const express = require('express');
+const { logger, createLogger } = require('../utils/logger.js');
 const cors = require('cors');
 require('dotenv').config();
 
@@ -784,7 +785,7 @@ app.get('/api/health', (req, res) => {
 
 // Start server
 app.listen(port, () => {
-  console.log(\`Server running on port \${port}\`);
+  logger.info(\`Server running on port \${port}\`);
 });
 
 module.exports = app;
@@ -1290,7 +1291,7 @@ uvicorn main:app --reload
       singleQuotes = true
     } = options;
 
-    console.log(`[CodeEngine] 格式化代码: ${language} (${style})`);
+    logger.info(`[CodeEngine] 格式化代码: ${language} (${style})`);
 
     const prompt = `
 你是一位代码格式化专家。
@@ -1330,7 +1331,7 @@ ${code}
       };
 
     } catch (error) {
-      console.error('[CodeEngine] 代码格式化失败:', error);
+      logger.error('[CodeEngine] 代码格式化失败:', error);
       throw error;
     }
   }
@@ -1344,7 +1345,7 @@ ${code}
   async analyzeComplexity(code, language) {
     this.ensureInitialized();
 
-    console.log(`[CodeEngine] 分析代码复杂度: ${language}`);
+    logger.info(`[CodeEngine] 分析代码复杂度: ${language}`);
 
     const prompt = `
 你是一位代码复杂度分析专家。
@@ -1400,7 +1401,7 @@ ${code}
       };
 
     } catch (error) {
-      console.error('[CodeEngine] 复杂度分析失败:', error);
+      logger.error('[CodeEngine] 复杂度分析失败:', error);
       throw error;
     }
   }
@@ -1460,7 +1461,7 @@ ${code}
   async scanSecurity(code, language) {
     this.ensureInitialized();
 
-    console.log(`[CodeEngine] 安全漏洞扫描: ${language}`);
+    logger.info(`[CodeEngine] 安全漏洞扫描: ${language}`);
 
     const prompt = `
 你是一位网络安全专家和代码安全审计师。
@@ -1530,7 +1531,7 @@ ${code}
       };
 
     } catch (error) {
-      console.error('[CodeEngine] 安全扫描失败:', error);
+      logger.error('[CodeEngine] 安全扫描失败:', error);
       throw error;
     }
   }
@@ -1596,7 +1597,7 @@ ${code}
 
     const { preserveComments = true, modernize = true } = options;
 
-    console.log(`[CodeEngine] 代码转换: ${fromLanguage} -> ${toLanguage}`);
+    logger.info(`[CodeEngine] 代码转换: ${fromLanguage} -> ${toLanguage}`);
 
     const conversionTypes = {
       'javascript-typescript': 'JavaScript转TypeScript（添加类型注解）',
@@ -1664,7 +1665,7 @@ ${code}
       };
 
     } catch (error) {
-      console.error('[CodeEngine] 代码转换失败:', error);
+      logger.error('[CodeEngine] 代码转换失败:', error);
       throw error;
     }
   }
@@ -1683,7 +1684,7 @@ ${code}
     const langInfo = this.supportedLanguages[language] || { testFramework: 'standard' };
     const testFramework = framework || langInfo.testFramework;
 
-    console.log(`[CodeEngine] 生成集成测试: ${language} (${testFramework})`);
+    logger.info(`[CodeEngine] 生成集成测试: ${language} (${testFramework})`);
 
     let scenariosText = '';
     if (testScenarios.length > 0) {
@@ -1727,7 +1728,7 @@ ${scenariosText}
       };
 
     } catch (error) {
-      console.error('[CodeEngine] 集成测试生成失败:', error);
+      logger.error('[CodeEngine] 集成测试生成失败:', error);
       throw error;
     }
   }
@@ -1744,7 +1745,7 @@ ${scenariosText}
 
     const { userFlows = [], baseUrl = 'http://localhost:3000' } = options;
 
-    console.log(`[CodeEngine] 生成E2E测试: ${framework}`);
+    logger.info(`[CodeEngine] 生成E2E测试: ${framework}`);
 
     let flowsText = '';
     if (userFlows.length > 0) {
@@ -1789,7 +1790,7 @@ E2E测试要求:
       };
 
     } catch (error) {
-      console.error('[CodeEngine] E2E测试生成失败:', error);
+      logger.error('[CodeEngine] E2E测试生成失败:', error);
       throw error;
     }
   }

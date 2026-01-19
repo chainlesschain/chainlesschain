@@ -129,6 +129,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, watch, nextTick } from 'vue';
 import { message } from 'ant-design-vue';
 import {
@@ -357,7 +359,7 @@ const handleVoiceResult = (text) => {
 
 // 处理语音输入错误
 const handleVoiceError = (error) => {
-  console.error('语音输入错误:', error);
+  logger.error('语音输入错误:', error);
 };
 
 // 处理聚焦
@@ -390,7 +392,7 @@ const handleSubmit = async () => {
     attachments.value = [];
     autoResize();
   } catch (error) {
-    console.error('Submit failed:', error);
+    logger.error('Submit failed:', error);
   } finally {
     submitting.value = false;
   }

@@ -180,6 +180,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, reactive, watch } from 'vue';
 import { message } from 'ant-design-vue';
 import {
@@ -315,7 +317,7 @@ const handleCreate = async () => {
     // 使用 store 创建评价
     const review = await tradeStore.createReview(reviewData);
 
-    console.log('[ReviewCreate] 评价创建成功:', review.id);
+    logger.info('[ReviewCreate] 评价创建成功:', review.id);
     message.success('评价发布成功！');
 
     // 通知父组件
@@ -327,7 +329,7 @@ const handleCreate = async () => {
     // 重置表单
     resetForm();
   } catch (error) {
-    console.error('[ReviewCreate] 创建评价失败:', error);
+    logger.error('[ReviewCreate] 创建评价失败:', error);
     message.error(error.message || '创建评价失败');
   } finally {
     creating.value = false;

@@ -10,6 +10,7 @@
  * - 余额查询
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const EventEmitter = require('events');
 const { ethers } = require('ethers');
 const { v4: uuidv4 } = require('uuid');
@@ -67,16 +68,16 @@ class WalletManager extends EventEmitter {
    * 初始化钱包管理器
    */
   async initialize() {
-    console.log('[WalletManager] 初始化钱包管理器...');
+    logger.info('[WalletManager] 初始化钱包管理器...');
 
     try {
       // 初始化数据库表
       await this.initializeTables();
 
       this.initialized = true;
-      console.log('[WalletManager] 钱包管理器初始化成功');
+      logger.info('[WalletManager] 钱包管理器初始化成功');
     } catch (error) {
-      console.error('[WalletManager] 初始化失败:', error);
+      logger.error('[WalletManager] 初始化失败:', error);
       throw error;
     }
   }
@@ -153,7 +154,7 @@ class WalletManager extends EventEmitter {
         createdAt
       );
 
-      console.log(`[WalletManager] 创建钱包成功: ${address}`);
+      logger.info(`[WalletManager] 创建钱包成功: ${address}`);
 
       this.emit('wallet:created', { walletId, address });
 
@@ -165,7 +166,7 @@ class WalletManager extends EventEmitter {
         createdAt,
       };
     } catch (error) {
-      console.error('[WalletManager] 创建钱包失败:', error);
+      logger.error('[WalletManager] 创建钱包失败:', error);
       throw error;
     }
   }
@@ -236,7 +237,7 @@ class WalletManager extends EventEmitter {
         createdAt
       );
 
-      console.log(`[WalletManager] 导入钱包成功: ${address}`);
+      logger.info(`[WalletManager] 导入钱包成功: ${address}`);
 
       this.emit('wallet:imported', { walletId, address });
 
@@ -247,7 +248,7 @@ class WalletManager extends EventEmitter {
         createdAt,
       };
     } catch (error) {
-      console.error('[WalletManager] 导入钱包失败:', error);
+      logger.error('[WalletManager] 导入钱包失败:', error);
       throw error;
     }
   }
@@ -316,7 +317,7 @@ class WalletManager extends EventEmitter {
         createdAt
       );
 
-      console.log(`[WalletManager] 从私钥导入钱包成功: ${address}`);
+      logger.info(`[WalletManager] 从私钥导入钱包成功: ${address}`);
 
       this.emit('wallet:imported', { walletId, address });
 
@@ -327,7 +328,7 @@ class WalletManager extends EventEmitter {
         createdAt,
       };
     } catch (error) {
-      console.error('[WalletManager] 从私钥导入失败:', error);
+      logger.error('[WalletManager] 从私钥导入失败:', error);
       throw error;
     }
   }
@@ -369,7 +370,7 @@ class WalletManager extends EventEmitter {
       // 缓存钱包
       this.unlockedWallets.set(walletId, wallet);
 
-      console.log(`[WalletManager] 解锁钱包成功: ${wallet.address}`);
+      logger.info(`[WalletManager] 解锁钱包成功: ${wallet.address}`);
 
       this.emit('wallet:unlocked', { walletId, address: wallet.address });
 
@@ -378,7 +379,7 @@ class WalletManager extends EventEmitter {
       if (error.message.includes('Unsupported state or unable to authenticate')) {
         throw new Error('密码错误');
       }
-      console.error('[WalletManager] 解锁钱包失败:', error);
+      logger.error('[WalletManager] 解锁钱包失败:', error);
       throw error;
     }
   }
@@ -390,7 +391,7 @@ class WalletManager extends EventEmitter {
   lockWallet(walletId) {
     this.unlockedWallets.delete(walletId);
     this.emit('wallet:locked', { walletId });
-    console.log(`[WalletManager] 锁定钱包: ${walletId}`);
+    logger.info(`[WalletManager] 锁定钱包: ${walletId}`);
   }
 
   /**
@@ -422,7 +423,7 @@ class WalletManager extends EventEmitter {
         }
       }
     } catch (error) {
-      console.error('[WalletManager] 签名交易失败:', error);
+      logger.error('[WalletManager] 签名交易失败:', error);
       throw error;
     }
   }
@@ -449,7 +450,7 @@ class WalletManager extends EventEmitter {
         return await wallet.signMessage(message);
       }
     } catch (error) {
-      console.error('[WalletManager] 签名消息失败:', error);
+      logger.error('[WalletManager] 签名消息失败:', error);
       throw error;
     }
   }
@@ -474,7 +475,7 @@ class WalletManager extends EventEmitter {
       const unsignedTx = ethers.Transaction.from(transaction);
       const txHash = unsignedTx.unsignedHash;
 
-      console.log('[WalletManager] 交易哈希:', txHash);
+      logger.info('[WalletManager] 交易哈希:', txHash);
 
       // 3. 使用 U-Key 签名哈希
       // 将十六进制哈希转换为 Buffer
@@ -525,11 +526,11 @@ class WalletManager extends EventEmitter {
       unsignedTx.signature = signature;
       const signedTx = unsignedTx.serialized;
 
-      console.log('[WalletManager] U-Key 签名交易成功');
+      logger.info('[WalletManager] U-Key 签名交易成功');
 
       return signedTx;
     } catch (error) {
-      console.error('[WalletManager] U-Key 签名交易失败:', error);
+      logger.error('[WalletManager] U-Key 签名交易失败:', error);
       throw error;
     }
   }
@@ -553,7 +554,7 @@ class WalletManager extends EventEmitter {
       // 2. 计算消息哈希（符合 EIP-191 标准）
       const messageHash = ethers.hashMessage(message);
 
-      console.log('[WalletManager] 消息哈希:', messageHash);
+      logger.info('[WalletManager] 消息哈希:', messageHash);
 
       // 3. 使用 U-Key 签名哈希
       const hashBuffer = Buffer.from(messageHash.substring(2), 'hex');
@@ -591,11 +592,11 @@ class WalletManager extends EventEmitter {
         throw new Error('不支持的 U-Key 签名格式');
       }
 
-      console.log('[WalletManager] U-Key 签名消息成功');
+      logger.info('[WalletManager] U-Key 签名消息成功');
 
       return signature;
     } catch (error) {
-      console.error('[WalletManager] U-Key 签名消息失败:', error);
+      logger.error('[WalletManager] U-Key 签名消息失败:', error);
       throw error;
     }
   }
@@ -636,7 +637,7 @@ class WalletManager extends EventEmitter {
         return balance.toString();
       }
     } catch (error) {
-      console.error('[WalletManager] 获取余额失败:', error);
+      logger.error('[WalletManager] 获取余额失败:', error);
       throw error;
     }
   }
@@ -693,7 +694,7 @@ class WalletManager extends EventEmitter {
     })();
 
     this.emit('wallet:default-changed', { walletId });
-    console.log(`[WalletManager] 设置默认钱包: ${walletId}`);
+    logger.info(`[WalletManager] 设置默认钱包: ${walletId}`);
   }
 
   /**
@@ -710,7 +711,7 @@ class WalletManager extends EventEmitter {
     db.prepare('DELETE FROM blockchain_wallets WHERE id = ?').run(walletId);
 
     this.emit('wallet:deleted', { walletId });
-    console.log(`[WalletManager] 删除钱包: ${walletId}`);
+    logger.info(`[WalletManager] 删除钱包: ${walletId}`);
   }
 
   /**
@@ -738,7 +739,7 @@ class WalletManager extends EventEmitter {
       if (error.message.includes('Unsupported state or unable to authenticate')) {
         throw new Error('密码错误');
       }
-      console.error('[WalletManager] 导出私钥失败:', error);
+      logger.error('[WalletManager] 导出私钥失败:', error);
       throw error;
     }
   }
@@ -768,7 +769,7 @@ class WalletManager extends EventEmitter {
       if (error.message.includes('Unsupported state or unable to authenticate')) {
         throw new Error('密码错误');
       }
-      console.error('[WalletManager] 导出助记词失败:', error);
+      logger.error('[WalletManager] 导出助记词失败:', error);
       throw error;
     }
   }
@@ -816,7 +817,7 @@ class WalletManager extends EventEmitter {
 
       return combined.toString('base64');
     } catch (error) {
-      console.error('[WalletManager] 加密失败:', error);
+      logger.error('[WalletManager] 加密失败:', error);
       throw new Error('数据加密失败');
     }
   }
@@ -865,7 +866,7 @@ class WalletManager extends EventEmitter {
 
       return decrypted;
     } catch (error) {
-      console.error('[WalletManager] 解密失败:', error);
+      logger.error('[WalletManager] 解密失败:', error);
       throw new Error('数据解密失败（密码可能错误）');
     }
   }
@@ -874,7 +875,7 @@ class WalletManager extends EventEmitter {
    * 清理资源
    */
   async cleanup() {
-    console.log('[WalletManager] 清理资源...');
+    logger.info('[WalletManager] 清理资源...');
 
     // 锁定所有钱包
     this.unlockedWallets.clear();

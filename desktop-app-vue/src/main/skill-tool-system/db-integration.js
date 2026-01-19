@@ -3,6 +3,7 @@
  * 运行方式: node src/main/skill-tool-system/db-integration.js
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 
@@ -25,22 +26,22 @@ class DatabaseIntegration {
    */
   async initialize() {
     try {
-      console.log('[DB Integration] 初始化数据库连接...');
+      logger.info('[DB Integration] 初始化数据库连接...');
 
       // 使用自定义路径或默认路径
       const dbPath = process.env.DB_PATH || path.join(__dirname, '../../../../data/chainlesschain.db');
-      console.log(`[DB Integration] 数据库路径: ${dbPath}`);
+      logger.info(`[DB Integration] 数据库路径: ${dbPath}`);
 
       this.db = new DatabaseManager(dbPath, {
         encryptionEnabled: false, // 开发环境不使用加密
       });
 
       await this.db.initialize();
-      console.log('[DB Integration] 数据库连接成功');
+      logger.info('[DB Integration] 数据库连接成功');
 
       return true;
     } catch (error) {
-      console.error('[DB Integration] 数据库初始化失败:', error);
+      logger.error('[DB Integration] 数据库初始化失败:', error);
       throw error;
     }
   }
@@ -50,8 +51,8 @@ class DatabaseIntegration {
    */
   async insertTools() {
     try {
-      console.log('\n[DB Integration] ===== 开始插入工具 =====');
-      console.log(`[DB Integration] 待插入工具数量: ${additionalToolsV3.length}`);
+      logger.info('\n[DB Integration] ===== 开始插入工具 =====');
+      logger.info(`[DB Integration] 待插入工具数量: ${additionalToolsV3.length}`);
 
       let inserted = 0;
       let skipped = 0;
@@ -65,7 +66,7 @@ class DatabaseIntegration {
           );
 
           if (existing) {
-            console.log(`[DB Integration] ⚠️  工具已存在，跳过: ${tool.name}`);
+            logger.info(`[DB Integration] ⚠️  工具已存在，跳过: ${tool.name}`);
             this.insertedTools.set(tool.name, existing.id);
             skipped++;
             continue;
@@ -116,18 +117,18 @@ class DatabaseIntegration {
 
           this.insertedTools.set(tool.name, tool.id);
           inserted++;
-          console.log(`[DB Integration] ✅ 工具插入成功: ${tool.name} (${tool.id})`);
+          logger.info(`[DB Integration] ✅ 工具插入成功: ${tool.name} (${tool.id})`);
 
         } catch (error) {
-          console.error(`[DB Integration] ❌ 工具插入失败: ${tool.name}`, error.message);
+          logger.error(`[DB Integration] ❌ 工具插入失败: ${tool.name}`, error.message);
         }
       }
 
-      console.log(`\n[DB Integration] 工具插入完成: 成功 ${inserted} 个, 跳过 ${skipped} 个`);
+      logger.info(`\n[DB Integration] 工具插入完成: 成功 ${inserted} 个, 跳过 ${skipped} 个`);
       return { inserted, skipped };
 
     } catch (error) {
-      console.error('[DB Integration] 插入工具失败:', error);
+      logger.error('[DB Integration] 插入工具失败:', error);
       throw error;
     }
   }
@@ -137,8 +138,8 @@ class DatabaseIntegration {
    */
   async insertSkills() {
     try {
-      console.log('\n[DB Integration] ===== 开始插入技能 =====');
-      console.log(`[DB Integration] 待插入技能数量: ${additionalSkillsV3.length}`);
+      logger.info('\n[DB Integration] ===== 开始插入技能 =====');
+      logger.info(`[DB Integration] 待插入技能数量: ${additionalSkillsV3.length}`);
 
       let inserted = 0;
       let skipped = 0;
@@ -152,7 +153,7 @@ class DatabaseIntegration {
           );
 
           if (existing) {
-            console.log(`[DB Integration] ⚠️  技能已存在，跳过: ${skill.name}`);
+            logger.info(`[DB Integration] ⚠️  技能已存在，跳过: ${skill.name}`);
             this.insertedSkills.set(skill.id, skill);
             skipped++;
             continue;
@@ -193,18 +194,18 @@ class DatabaseIntegration {
 
           this.insertedSkills.set(skill.id, skill);
           inserted++;
-          console.log(`[DB Integration] ✅ 技能插入成功: ${skill.name} (${skill.id})`);
+          logger.info(`[DB Integration] ✅ 技能插入成功: ${skill.name} (${skill.id})`);
 
         } catch (error) {
-          console.error(`[DB Integration] ❌ 技能插入失败: ${skill.name}`, error.message);
+          logger.error(`[DB Integration] ❌ 技能插入失败: ${skill.name}`, error.message);
         }
       }
 
-      console.log(`\n[DB Integration] 技能插入完成: 成功 ${inserted} 个, 跳过 ${skipped} 个`);
+      logger.info(`\n[DB Integration] 技能插入完成: 成功 ${inserted} 个, 跳过 ${skipped} 个`);
       return { inserted, skipped };
 
     } catch (error) {
-      console.error('[DB Integration] 插入技能失败:', error);
+      logger.error('[DB Integration] 插入技能失败:', error);
       throw error;
     }
   }
@@ -214,7 +215,7 @@ class DatabaseIntegration {
    */
   async createSkillToolRelations() {
     try {
-      console.log('\n[DB Integration] ===== 开始创建技能-工具关联 =====');
+      logger.info('\n[DB Integration] ===== 开始创建技能-工具关联 =====');
 
       let created = 0;
       let skipped = 0;
@@ -222,12 +223,12 @@ class DatabaseIntegration {
 
       for (const [skillId, skill] of this.insertedSkills) {
         if (!skill.tools || skill.tools.length === 0) {
-          console.log(`[DB Integration] ⚠️  技能无关联工具，跳过: ${skill.name}`);
+          logger.info(`[DB Integration] ⚠️  技能无关联工具，跳过: ${skill.name}`);
           continue;
         }
 
-        console.log(`\n[DB Integration] 处理技能: ${skill.name}`);
-        console.log(`[DB Integration] 需关联工具: ${skill.tools.join(', ')}`);
+        logger.info(`\n[DB Integration] 处理技能: ${skill.name}`);
+        logger.info(`[DB Integration] 需关联工具: ${skill.tools.join(', ')}`);
 
         for (let i = 0; i < skill.tools.length; i++) {
           const toolName = skill.tools[i];
@@ -247,7 +248,7 @@ class DatabaseIntegration {
             }
 
             if (!toolId) {
-              console.log(`[DB Integration] ⚠️  工具不存在，跳过关联: ${toolName}`);
+              logger.info(`[DB Integration] ⚠️  工具不存在，跳过关联: ${toolName}`);
               failed++;
               continue;
             }
@@ -259,7 +260,7 @@ class DatabaseIntegration {
             );
 
             if (existing) {
-              console.log(`[DB Integration] ⚠️  关联已存在，跳过: ${skill.name} -> ${toolName}`);
+              logger.info(`[DB Integration] ⚠️  关联已存在，跳过: ${skill.name} -> ${toolName}`);
               skipped++;
               continue;
             }
@@ -281,20 +282,20 @@ class DatabaseIntegration {
             ]);
 
             created++;
-            console.log(`[DB Integration] ✅ 关联创建成功: ${skill.name} -> ${toolName} (${role}, priority=${priority})`);
+            logger.info(`[DB Integration] ✅ 关联创建成功: ${skill.name} -> ${toolName} (${role}, priority=${priority})`);
 
           } catch (error) {
-            console.error(`[DB Integration] ❌ 创建关联失败: ${skill.name} -> ${toolName}`, error.message);
+            logger.error(`[DB Integration] ❌ 创建关联失败: ${skill.name} -> ${toolName}`, error.message);
             failed++;
           }
         }
       }
 
-      console.log(`\n[DB Integration] 关联创建完成: 成功 ${created} 个, 跳过 ${skipped} 个, 失败 ${failed} 个`);
+      logger.info(`\n[DB Integration] 关联创建完成: 成功 ${created} 个, 跳过 ${skipped} 个, 失败 ${failed} 个`);
       return { created, skipped, failed };
 
     } catch (error) {
-      console.error('[DB Integration] 创建技能-工具关联失败:', error);
+      logger.error('[DB Integration] 创建技能-工具关联失败:', error);
       throw error;
     }
   }
@@ -304,22 +305,22 @@ class DatabaseIntegration {
    */
   async verify() {
     try {
-      console.log('\n[DB Integration] ===== 验证数据 =====');
+      logger.info('\n[DB Integration] ===== 验证数据 =====');
 
       // 验证工具数量
       const toolCount = await this.db.get('SELECT COUNT(*) as count FROM tools WHERE is_builtin = 1');
-      console.log(`[DB Integration] 数据库中的内置工具数量: ${toolCount.count}`);
+      logger.info(`[DB Integration] 数据库中的内置工具数量: ${toolCount.count}`);
 
       // 验证技能数量
       const skillCount = await this.db.get('SELECT COUNT(*) as count FROM skills WHERE is_builtin = 1');
-      console.log(`[DB Integration] 数据库中的内置技能数量: ${skillCount.count}`);
+      logger.info(`[DB Integration] 数据库中的内置技能数量: ${skillCount.count}`);
 
       // 验证关联数量
       const relationCount = await this.db.get('SELECT COUNT(*) as count FROM skill_tools');
-      console.log(`[DB Integration] 数据库中的技能-工具关联数量: ${relationCount.count}`);
+      logger.info(`[DB Integration] 数据库中的技能-工具关联数量: ${relationCount.count}`);
 
       // 列出所有插入的技能及其工具
-      console.log('\n[DB Integration] 技能列表及其关联工具:');
+      logger.info('\n[DB Integration] 技能列表及其关联工具:');
       for (const [skillId, skill] of this.insertedSkills) {
         const tools = await this.db.all(`
           SELECT t.name, st.role, st.priority
@@ -329,12 +330,12 @@ class DatabaseIntegration {
           ORDER BY st.priority DESC
         `, [skillId]);
 
-        console.log(`  - ${skill.name}: ${tools.map(t => `${t.name}(${t.role})`).join(', ') || '无工具'}`);
+        logger.info(`  - ${skill.name}: ${tools.map(t => `${t.name}(${t.role})`).join(', ') || '无工具'}`);
       }
 
       return true;
     } catch (error) {
-      console.error('[DB Integration] 验证失败:', error);
+      logger.error('[DB Integration] 验证失败:', error);
       return false;
     }
   }
@@ -346,10 +347,10 @@ class DatabaseIntegration {
     try {
       if (this.db && this.db.db) {
         await this.db.db.close();
-        console.log('\n[DB Integration] 数据库连接已关闭');
+        logger.info('\n[DB Integration] 数据库连接已关闭');
       }
     } catch (error) {
-      console.error('[DB Integration] 关闭数据库失败:', error);
+      logger.error('[DB Integration] 关闭数据库失败:', error);
     }
   }
 
@@ -358,10 +359,10 @@ class DatabaseIntegration {
    */
   async run() {
     try {
-      console.log('========================================');
-      console.log('  ChainlessChain 数据库集成脚本 V3');
-      console.log('  插入技能和工具到数据库');
-      console.log('========================================\n');
+      logger.info('========================================');
+      logger.info('  ChainlessChain 数据库集成脚本 V3');
+      logger.info('  插入技能和工具到数据库');
+      logger.info('========================================\n');
 
       // 1. 初始化数据库
       await this.initialize();
@@ -379,18 +380,18 @@ class DatabaseIntegration {
       await this.verify();
 
       // 6. 汇总报告
-      console.log('\n========================================');
-      console.log('  集成完成汇总');
-      console.log('========================================');
-      console.log(`工具: 插入 ${toolsResult.inserted} 个, 跳过 ${toolsResult.skipped} 个`);
-      console.log(`技能: 插入 ${skillsResult.inserted} 个, 跳过 ${skillsResult.skipped} 个`);
-      console.log(`关联: 创建 ${relationsResult.created} 个, 跳过 ${relationsResult.skipped} 个, 失败 ${relationsResult.failed} 个`);
-      console.log('========================================\n');
+      logger.info('\n========================================');
+      logger.info('  集成完成汇总');
+      logger.info('========================================');
+      logger.info(`工具: 插入 ${toolsResult.inserted} 个, 跳过 ${toolsResult.skipped} 个`);
+      logger.info(`技能: 插入 ${skillsResult.inserted} 个, 跳过 ${skillsResult.skipped} 个`);
+      logger.info(`关联: 创建 ${relationsResult.created} 个, 跳过 ${relationsResult.skipped} 个, 失败 ${relationsResult.failed} 个`);
+      logger.info('========================================\n');
 
       return true;
 
     } catch (error) {
-      console.error('\n[DB Integration] 集成失败:', error);
+      logger.error('\n[DB Integration] 集成失败:', error);
       return false;
     } finally {
       await this.close();
@@ -406,7 +407,7 @@ if (require.main === module) {
       process.exit(success ? 0 : 1);
     })
     .catch(error => {
-      console.error('Fatal error:', error);
+      logger.error('Fatal error:', error);
       process.exit(1);
     });
 }

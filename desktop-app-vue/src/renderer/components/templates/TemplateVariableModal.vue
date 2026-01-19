@@ -244,6 +244,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, watch, nextTick } from 'vue'
 import { message } from 'ant-design-vue'
 import {
@@ -469,7 +471,7 @@ function initFormData() {
     }
   })
   formData.value = data
-  console.log('[TemplateVariableModal] 初始化表单数据:', formData.value)
+  logger.info('[TemplateVariableModal] 初始化表单数据:', formData.value)
 }
 
 // 检查所有必填字段是否已填写
@@ -490,7 +492,7 @@ function checkRequiredFields() {
 // 渲染预览
 async function renderPreview() {
   if (!props.template || !props.template.id) {
-    console.warn('[TemplateVariableModal] 模板或模板ID为空')
+    logger.warn('[TemplateVariableModal] 模板或模板ID为空')
     return
   }
 
@@ -505,7 +507,7 @@ async function renderPreview() {
     renderingPreview.value = true
     renderError.value = ''
 
-    console.log('[TemplateVariableModal] 开始渲染预览:', {
+    logger.info('[TemplateVariableModal] 开始渲染预览:', {
       templateId: props.template.id,
       templateName: props.template.display_name,
       variables: formData.value
@@ -518,9 +520,9 @@ async function renderPreview() {
     )
 
     renderedPrompt.value = prompt
-    console.log('[TemplateVariableModal] 预览渲染成功, 长度:', prompt?.length || 0)
+    logger.info('[TemplateVariableModal] 预览渲染成功, 长度:', prompt?.length || 0)
   } catch (error) {
-    console.error('[TemplateVariableModal] 预览渲染失败:', error)
+    logger.error('[TemplateVariableModal] 预览渲染失败:', error)
     renderError.value = error.message || '渲染失败'
     renderedPrompt.value = ''
   } finally {
@@ -531,13 +533,13 @@ async function renderPreview() {
 // 切换编辑/预览模式
 function toggleEditMode() {
   isEditMode.value = !isEditMode.value
-  console.log('[TemplateVariableModal] 切换编辑模式:', isEditMode.value)
+  logger.info('[TemplateVariableModal] 切换编辑模式:', isEditMode.value)
 }
 
 // 处理内容编辑
 function handleContentEdit() {
   hasEdited.value = true
-  console.log('[TemplateVariableModal] 内容已编辑')
+  logger.info('[TemplateVariableModal] 内容已编辑')
 }
 
 // 重置编辑内容
@@ -545,7 +547,7 @@ function resetEditedContent() {
   editedPrompt.value = renderedPrompt.value
   hasEdited.value = false
   message.success('已重置为原始内容')
-  console.log('[TemplateVariableModal] 重置编辑内容')
+  logger.info('[TemplateVariableModal] 重置编辑内容')
 }
 
 async function handleSubmit() {
@@ -559,7 +561,7 @@ async function handleSubmit() {
 
     // 如果没有编辑过且没有渲染内容，则重新渲染
     if (!finalPrompt) {
-      console.log('[TemplateVariableModal] 渲染 prompt...', {
+      logger.info('[TemplateVariableModal] 渲染 prompt...', {
         templateId: props.template.id,
         variables: formData.value
       })
@@ -570,7 +572,7 @@ async function handleSubmit() {
       )
     }
 
-    console.log('[TemplateVariableModal] 使用最终内容:', {
+    logger.info('[TemplateVariableModal] 使用最终内容:', {
       length: finalPrompt?.length || 0,
       hasEdited: hasEdited.value
     })
@@ -583,7 +585,7 @@ async function handleSubmit() {
     }
 
     // 4. Emit 创建事件，让父组件处理流式创建和进度展示
-    console.log('[TemplateVariableModal] Emit start-create 事件')
+    logger.info('[TemplateVariableModal] Emit start-create 事件')
     emit('start-create', {
       templateId: props.template.id,
       projectName: projectName,
@@ -602,7 +604,7 @@ async function handleSubmit() {
       // 表单验证错误
       message.warning('请填写必填项')
     } else {
-      console.error('[TemplateVariableModal] 提交失败:', error)
+      logger.error('[TemplateVariableModal] 提交失败:', error)
       message.error('创建失败: ' + (error.message || '未知错误'))
     }
     creating.value = false

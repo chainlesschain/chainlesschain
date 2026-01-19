@@ -3,6 +3,7 @@
  * 使用STUN协议检测NAT类型和公网IP
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const dgram = require("dgram");
 const { promisify } = require("util");
 
@@ -33,12 +34,12 @@ class NATDetector {
     // 检查缓存
     const cached = this.getCachedResult();
     if (cached) {
-      console.log("[NAT Detector] 使用缓存的NAT检测结果");
+      logger.info("[NAT Detector] 使用缓存的NAT检测结果");
       return cached;
     }
 
     if (!stunServers || stunServers.length === 0) {
-      console.warn("[NAT Detector] 未提供STUN服务器，使用默认配置");
+      logger.warn("[NAT Detector] 未提供STUN服务器，使用默认配置");
       stunServers = ["stun:stun.l.google.com:19302"];
     }
 
@@ -114,7 +115,7 @@ class NATDetector {
       this.cacheResult(result);
       return result;
     } catch (error) {
-      console.error("[NAT Detector] NAT检测失败:", error);
+      logger.error("[NAT Detector] NAT检测失败:", error);
       return {
         type: NAT_TYPES.UNKNOWN,
         publicIP: null,
@@ -136,7 +137,7 @@ class NATDetector {
       // 解析STUN URL
       const match = stunServerUrl.match(/stun:([^:]+):(\d+)/);
       if (!match) {
-        console.error("[NAT Detector] 无效的STUN URL:", stunServerUrl);
+        logger.error("[NAT Detector] 无效的STUN URL:", stunServerUrl);
         resolve(null);
         return;
       }
@@ -172,7 +173,7 @@ class NATDetector {
           const response = this.parseSTUNResponse(msg);
 
           if (response) {
-            console.log(
+            logger.info(
               `[NAT Detector] STUN响应: ${rinfo.address}:${rinfo.port} -> 映射地址: ${response.mappedAddress}:${response.mappedPort}`,
             );
             safeClose();
@@ -182,14 +183,14 @@ class NATDetector {
             resolve(null);
           }
         } catch (error) {
-          console.error("[NAT Detector] 解析STUN响应失败:", error);
+          logger.error("[NAT Detector] 解析STUN响应失败:", error);
           safeClose();
           resolve(null);
         }
       });
 
       socket.on("error", (err) => {
-        console.error(
+        logger.error(
           `[NAT Detector] STUN查询错误 (${host}:${port}):`,
           err.message,
         );
@@ -200,7 +201,7 @@ class NATDetector {
 
       // 设置5秒超时
       timeout = setTimeout(() => {
-        console.warn(`[NAT Detector] STUN查询超时 (${host}:${port})`);
+        logger.warn(`[NAT Detector] STUN查询超时 (${host}:${port})`);
         safeClose();
         resolve(null);
       }, 5000);
@@ -208,7 +209,7 @@ class NATDetector {
       // 发送STUN请求
       socket.send(stunRequest, port, host, (err) => {
         if (err) {
-          console.error(
+          logger.error(
             `[NAT Detector] 发送STUN请求失败 (${host}:${port}):`,
             err,
           );
@@ -216,7 +217,7 @@ class NATDetector {
           safeClose();
           resolve(null);
         } else {
-          console.log(`[NAT Detector] 已发送STUN请求到 ${host}:${port}`);
+          logger.info(`[NAT Detector] 已发送STUN请求到 ${host}:${port}`);
         }
       });
     });
@@ -358,7 +359,7 @@ class NATDetector {
 
     const now = Date.now();
     if (now - this.cache.timestamp > this.cacheTTL) {
-      console.log("[NAT Detector] 缓存已过期");
+      logger.info("[NAT Detector] 缓存已过期");
       this.cache = null;
       return null;
     }
@@ -372,7 +373,7 @@ class NATDetector {
    */
   cacheResult(result) {
     this.cache = result;
-    console.log(`[NAT Detector] 已缓存NAT检测结果，类型: ${result.type}`);
+    logger.info(`[NAT Detector] 已缓存NAT检测结果，类型: ${result.type}`);
   }
 
   /**
@@ -380,7 +381,7 @@ class NATDetector {
    */
   invalidateCache() {
     this.cache = null;
-    console.log("[NAT Detector] 缓存已清除");
+    logger.info("[NAT Detector] 缓存已清除");
   }
 }
 

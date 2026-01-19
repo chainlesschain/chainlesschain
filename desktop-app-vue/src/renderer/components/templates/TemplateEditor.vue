@@ -422,6 +422,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, reactive, computed, watch, onMounted } from 'vue'
 import {
   InfoCircleOutlined,
@@ -534,7 +536,7 @@ async function save() {
 
     emit('save', { ...formData })
   } catch (error) {
-    console.error('表单验证失败:', error)
+    logger.error('表单验证失败:', error)
     message.error('请检查必填项')
   }
 }

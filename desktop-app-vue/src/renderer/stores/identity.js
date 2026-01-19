@@ -1,3 +1,4 @@
+import { logger, createLogger } from '@/utils/logger';
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 
@@ -95,9 +96,9 @@ export const useIdentityStore = defineStore('identity', () => {
       // 3. 加载身份上下文（从数据库）
       // TODO: 从identity-contexts表加载已保存的上下文
 
-      console.log('[IdentityStore] 身份Store初始化成功');
+      logger.info('[IdentityStore] 身份Store初始化成功');
     } catch (error) {
-      console.error('[IdentityStore] 初始化失败:', error);
+      logger.error('[IdentityStore] 初始化失败:', error);
     } finally {
       loading.value = false;
     }
@@ -108,7 +109,7 @@ export const useIdentityStore = defineStore('identity', () => {
    */
   async function loadUserOrganizations() {
     if (!primaryDID.value) {
-      console.warn('[IdentityStore] 未设置主DID，跳过加载组织');
+      logger.warn('[IdentityStore] 未设置主DID，跳过加载组织');
       return;
     }
 
@@ -130,9 +131,9 @@ export const useIdentityStore = defineStore('identity', () => {
         };
       });
 
-      console.log('[IdentityStore] 加载了', orgs.length, '个组织');
+      logger.info('[IdentityStore] 加载了', orgs.length, '个组织');
     } catch (error) {
-      console.error('[IdentityStore] 加载组织失败:', error);
+      logger.error('[IdentityStore] 加载组织失败:', error);
     }
   }
 
@@ -146,22 +147,22 @@ export const useIdentityStore = defineStore('identity', () => {
     }
 
     if (currentContext.value === contextId) {
-      console.log('[IdentityStore] 已经是当前身份，无需切换');
+      logger.info('[IdentityStore] 已经是当前身份，无需切换');
       return;
     }
 
     loading.value = true;
 
     try {
-      console.log('[IdentityStore] 切换身份:', contextId);
+      logger.info('[IdentityStore] 切换身份:', contextId);
 
       // 1. 保存当前上下文状态
       await saveCurrentContext();
 
       // 2. 切换数据库文件
-      console.log('[IdentityStore] 切换数据库到:', contextId);
+      logger.info('[IdentityStore] 切换数据库到:', contextId);
       const result = await window.ipc.invoke('db:switch-database', contextId);
-      console.log('[IdentityStore] 数据库切换结果:', result);
+      logger.info('[IdentityStore] 数据库切换结果:', result);
 
       // 3. 切换上下文
       currentContext.value = contextId;
@@ -175,12 +176,12 @@ export const useIdentityStore = defineStore('identity', () => {
       // 5. 保存身份切换记录
       await saveContextSwitch(contextId);
 
-      console.log('[IdentityStore] ✓ 身份切换成功:', contexts.value[contextId].displayName);
+      logger.info('[IdentityStore] ✓ 身份切换成功:', contexts.value[contextId].displayName);
 
       // 刷新页面以加载新身份的数据
       window.location.reload();
     } catch (error) {
-      console.error('[IdentityStore] 切换身份失败:', error);
+      logger.error('[IdentityStore] 切换身份失败:', error);
       throw error;
     } finally {
       loading.value = false;
@@ -196,7 +197,7 @@ export const useIdentityStore = defineStore('identity', () => {
     loading.value = true;
 
     try {
-      console.log('[IdentityStore] 创建组织:', orgData.name);
+      logger.info('[IdentityStore] 创建组织:', orgData.name);
 
       // 1. 调用后端创建组织
       const org = await window.ipc.invoke('org:create-organization', orgData);
@@ -224,11 +225,11 @@ export const useIdentityStore = defineStore('identity', () => {
         localDB: `data/${org.org_id}.db`
       };
 
-      console.log('[IdentityStore] ✓ 组织创建成功:', org.org_id);
+      logger.info('[IdentityStore] ✓ 组织创建成功:', org.org_id);
 
       return org;
     } catch (error) {
-      console.error('[IdentityStore] 创建组织失败:', error);
+      logger.error('[IdentityStore] 创建组织失败:', error);
       throw error;
     } finally {
       loading.value = false;
@@ -244,7 +245,7 @@ export const useIdentityStore = defineStore('identity', () => {
     loading.value = true;
 
     try {
-      console.log('[IdentityStore] 通过邀请码加入组织:', inviteCode);
+      logger.info('[IdentityStore] 通过邀请码加入组织:', inviteCode);
 
       // 1. 调用后端加入组织
       const org = await window.ipc.invoke('org:join-organization', inviteCode);
@@ -252,11 +253,11 @@ export const useIdentityStore = defineStore('identity', () => {
       // 2. 重新加载组织列表
       await loadUserOrganizations();
 
-      console.log('[IdentityStore] ✓ 成功加入组织:', org.org_id);
+      logger.info('[IdentityStore] ✓ 成功加入组织:', org.org_id);
 
       return org;
     } catch (error) {
-      console.error('[IdentityStore] 加入组织失败:', error);
+      logger.error('[IdentityStore] 加入组织失败:', error);
       throw error;
     } finally {
       loading.value = false;
@@ -275,7 +276,7 @@ export const useIdentityStore = defineStore('identity', () => {
     loading.value = true;
 
     try {
-      console.log('[IdentityStore] 离开组织:', orgId);
+      logger.info('[IdentityStore] 离开组织:', orgId);
 
       // 1. 调用后端离开组织
       await window.ipc.invoke('org:leave-organization', orgId, primaryDID.value);
@@ -292,9 +293,9 @@ export const useIdentityStore = defineStore('identity', () => {
         await switchContext('personal');
       }
 
-      console.log('[IdentityStore] ✓ 已离开组织:', orgId);
+      logger.info('[IdentityStore] ✓ 已离开组织:', orgId);
     } catch (error) {
-      console.error('[IdentityStore] 离开组织失败:', error);
+      logger.error('[IdentityStore] 离开组织失败:', error);
       throw error;
     } finally {
       loading.value = false;
@@ -306,7 +307,7 @@ export const useIdentityStore = defineStore('identity', () => {
    */
   async function saveCurrentContext() {
     // TODO: 保存到identity-contexts表
-    console.log('[IdentityStore] 保存当前上下文:', currentContext.value);
+    logger.info('[IdentityStore] 保存当前上下文:', currentContext.value);
   }
 
   /**
@@ -315,7 +316,7 @@ export const useIdentityStore = defineStore('identity', () => {
    */
   async function saveContextSwitch(contextId) {
     // TODO: 保存到数据库，记录切换时间
-    console.log('[IdentityStore] 记录身份切换:', contextId);
+    logger.info('[IdentityStore] 记录身份切换:', contextId);
   }
 
   /**
@@ -326,7 +327,7 @@ export const useIdentityStore = defineStore('identity', () => {
     try {
       return await window.ipc.invoke('org:get-organization', orgId);
     } catch (error) {
-      console.error('[IdentityStore] 获取组织信息失败:', error);
+      logger.error('[IdentityStore] 获取组织信息失败:', error);
       return null;
     }
   }
@@ -339,7 +340,7 @@ export const useIdentityStore = defineStore('identity', () => {
     try {
       return await window.ipc.invoke('org:get-members', orgId);
     } catch (error) {
-      console.error('[IdentityStore] 获取成员列表失败:', error);
+      logger.error('[IdentityStore] 获取成员列表失败:', error);
       return [];
     }
   }
@@ -362,7 +363,7 @@ export const useIdentityStore = defineStore('identity', () => {
         permission
       );
     } catch (error) {
-      console.error('[IdentityStore] 检查权限失败:', error);
+      logger.error('[IdentityStore] 检查权限失败:', error);
       return false;
     }
   }
@@ -383,7 +384,7 @@ export const useIdentityStore = defineStore('identity', () => {
         invitedBy: primaryDID.value
       });
     } catch (error) {
-      console.error('[IdentityStore] 创建邀请失败:', error);
+      logger.error('[IdentityStore] 创建邀请失败:', error);
       throw error;
     }
   }

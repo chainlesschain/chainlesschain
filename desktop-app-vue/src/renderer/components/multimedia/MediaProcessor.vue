@@ -432,6 +432,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed } from 'vue';
 import { message } from 'ant-design-vue';
 import {
@@ -488,15 +490,15 @@ const processingCount = computed(() => {
 
 // 方法
 const handleImageChange = (info) => {
-  console.log('Image files changed:', info.fileList);
+  logger.info('Image files changed:', info.fileList);
 };
 
 const handleAudioChange = (info) => {
-  console.log('Audio files changed:', info.fileList);
+  logger.info('Audio files changed:', info.fileList);
 };
 
 const handleOCRChange = (info) => {
-  console.log('OCR files changed:', info.fileList);
+  logger.info('OCR files changed:', info.fileList);
 };
 
 const processImages = async () => {

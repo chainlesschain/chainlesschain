@@ -290,6 +290,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from "vue";
 import { message } from "ant-design-vue";
 import {
@@ -452,9 +454,9 @@ const initializeVoiceSystem = async () => {
     );
     suggestedCommands.value = commands;
 
-    console.log("[VoiceFeedback] 语音系统已初始化");
+    logger.info("[VoiceFeedback] 语音系统已初始化");
   } catch (error) {
-    console.error("[VoiceFeedback] 初始化失败:", error);
+    logger.error("[VoiceFeedback] 初始化失败:", error);
     message.error("语音系统初始化失败");
   }
 };
@@ -492,9 +494,9 @@ const startRecording = async () => {
     statusMessage.value = "正在录音...";
     statusType.value = "info";
 
-    console.log("[VoiceFeedback] 开始录音");
+    logger.info("[VoiceFeedback] 开始录音");
   } catch (error) {
-    console.error("[VoiceFeedback] 开始录音失败:", error);
+    logger.error("[VoiceFeedback] 开始录音失败:", error);
     message.error("开始录音失败: " + error.message);
     isRecording.value = false;
     isActive.value = false;
@@ -533,7 +535,7 @@ const stopRecording = async () => {
       throw new Error(result.error || "识别失败");
     }
   } catch (error) {
-    console.error("[VoiceFeedback] 停止录音失败:", error);
+    logger.error("[VoiceFeedback] 停止录音失败:", error);
     message.error("识别失败: " + error.message);
     emit("error", error);
 
@@ -561,9 +563,9 @@ const cancelRecording = async () => {
     statusMessage.value = "";
     interimTranscript.value = "";
 
-    console.log("[VoiceFeedback] 已取消录音");
+    logger.info("[VoiceFeedback] 已取消录音");
   } catch (error) {
-    console.error("[VoiceFeedback] 取消录音失败:", error);
+    logger.error("[VoiceFeedback] 取消录音失败:", error);
   }
 };
 
@@ -654,7 +656,7 @@ const initAudioVisualization = async () => {
       sendCount++;
       // 每10次打印一次调试日志
       if (sendCount % 10 === 1) {
-        console.log(`[VoiceFeedback] 发送音频数据 #${sendCount}, 大小: ${pcmData.byteLength} bytes`);
+        logger.info(`[VoiceFeedback] 发送音频数据 #${sendCount}, 大小: ${pcmData.byteLength} bytes`);
       }
 
       // 发送音频数据到主进程进行识别
@@ -677,7 +679,7 @@ const initAudioVisualization = async () => {
       drawWaveform(ctx, canvas);
     }
   } catch (error) {
-    console.error("[VoiceFeedback] 初始化音频可视化失败:", error);
+    logger.error("[VoiceFeedback] 初始化音频可视化失败:", error);
     message.error("无法访问麦克风: " + error.message);
   }
 };
@@ -766,7 +768,7 @@ const openSettings = () => {
 
 // 语言变化
 const onLanguageChange = (value) => {
-  console.log("[VoiceFeedback] 切换语言:", value);
+  logger.info("[VoiceFeedback] 切换语言:", value);
 };
 
 // 语言过滤
@@ -784,7 +786,7 @@ const updateLearningStats = async () => {
     );
     learningStats.value = stats;
   } catch (error) {
-    console.error("[VoiceFeedback] 更新学习统计失败:", error);
+    logger.error("[VoiceFeedback] 更新学习统计失败:", error);
   }
 };
 
@@ -794,7 +796,7 @@ const exportVoiceData = async () => {
     await window.electron.ipcRenderer.invoke("speech:exportData");
     message.success("语音数据已导出");
   } catch (error) {
-    console.error("[VoiceFeedback] 导出失败:", error);
+    logger.error("[VoiceFeedback] 导出失败:", error);
     message.error("导出失败");
   }
 };
@@ -806,7 +808,7 @@ const importVoiceData = async () => {
     message.success("语音数据已导入");
     await updateLearningStats();
   } catch (error) {
-    console.error("[VoiceFeedback] 导入失败:", error);
+    logger.error("[VoiceFeedback] 导入失败:", error);
     message.error("导入失败");
   }
 };
@@ -818,7 +820,7 @@ const resetVoiceData = async () => {
     message.success("语音数据已重置");
     await updateLearningStats();
   } catch (error) {
-    console.error("[VoiceFeedback] 重置失败:", error);
+    logger.error("[VoiceFeedback] 重置失败:", error);
     message.error("重置失败");
   }
 };

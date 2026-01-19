@@ -85,6 +85,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, watch } from 'vue';
 import { message } from 'ant-design-vue';
 import {
@@ -155,7 +157,7 @@ const handleShareConfirm = async () => {
 
     visible.value = false;
   } catch (error) {
-    console.error('分享失败:', error);
+    logger.error('分享失败:', error);
     message.error({ content: `分享失败: ${error.message}`, key: 'share', duration: 3 });
   }
 };
@@ -180,7 +182,7 @@ const copyShareLink = async () => {
     await navigator.clipboard.writeText(shareLink.value);
     message.success('链接已复制到剪贴板');
   } catch (error) {
-    console.error('复制失败:', error);
+    logger.error('复制失败:', error);
 
     // 降级方案：使用传统方法
     try {
@@ -217,7 +219,7 @@ const shareToWechat = async () => {
 
     message.info('请使用微信扫描二维码分享');
   } catch (error) {
-    console.error('微信分享失败:', error);
+    logger.error('微信分享失败:', error);
     message.error('微信分享功能暂未实现，请使用复制链接');
   }
 };

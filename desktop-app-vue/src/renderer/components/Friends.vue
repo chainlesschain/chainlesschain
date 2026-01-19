@@ -382,6 +382,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, reactive, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { message as antMessage } from 'ant-design-vue';
@@ -531,9 +533,9 @@ const loadFriends = async () => {
   try {
     loading.value = true;
     friends.value = await window.electronAPI.friend.getFriends(selectedGroup.value || null);
-    console.log('好友列表已加载:', friends.value.length);
+    logger.info('好友列表已加载:', friends.value.length);
   } catch (error) {
-    console.error('加载好友列表失败:', error);
+    logger.error('加载好友列表失败:', error);
     antMessage.error('加载好友列表失败: ' + error.message);
   } finally {
     loading.value = false;
@@ -545,7 +547,7 @@ const loadStatistics = async () => {
   try {
     statistics.value = await window.electronAPI.friend.getStatistics();
   } catch (error) {
-    console.error('加载统计信息失败:', error);
+    logger.error('加载统计信息失败:', error);
   }
 };
 
@@ -555,7 +557,7 @@ const loadPendingRequests = async () => {
     loadingRequests.value = true;
     pendingRequests.value = await window.electronAPI.friend.getPendingRequests();
   } catch (error) {
-    console.error('加载好友请求失败:', error);
+    logger.error('加载好友请求失败:', error);
   } finally {
     loadingRequests.value = false;
   }
@@ -588,7 +590,7 @@ const handleAddFriend = async () => {
     addFriendForm.targetDid = '';
     addFriendForm.message = '';
   } catch (error) {
-    console.error('发送好友请求失败:', error);
+    logger.error('发送好友请求失败:', error);
     antMessage.error('发送好友请求失败: ' + error.message);
   } finally {
     adding.value = false;
@@ -609,7 +611,7 @@ const handleAcceptRequest = async (requestId) => {
       loadStatistics(),
     ]);
   } catch (error) {
-    console.error('接受好友请求失败:', error);
+    logger.error('接受好友请求失败:', error);
     antMessage.error('接受好友请求失败: ' + error.message);
   } finally {
     processingRequest.value = null;
@@ -626,7 +628,7 @@ const handleRejectRequest = async (requestId) => {
     // 刷新列表
     await loadPendingRequests();
   } catch (error) {
-    console.error('拒绝好友请求失败:', error);
+    logger.error('拒绝好友请求失败:', error);
     antMessage.error('拒绝好友请求失败: ' + error.message);
   } finally {
     processingRequest.value = null;
@@ -644,7 +646,7 @@ const handleOpenChat = async (friend) => {
 
     antMessage.success(`已打开与 ${friend.nickname || friend.friend_did.substring(0, 16)} 的聊天`);
   } catch (error) {
-    console.error('打开聊天失败:', error);
+    logger.error('打开聊天失败:', error);
     antMessage.error('打开聊天失败');
   }
 };
@@ -668,7 +670,7 @@ const handleVoiceCall = async (friend) => {
     }
   } catch (error) {
     antMessage.destroy();
-    console.error('发起语音通话失败:', error);
+    logger.error('发起语音通话失败:', error);
     antMessage.error('发起语音通话失败');
   }
 };
@@ -692,7 +694,7 @@ const handleVideoCall = async (friend) => {
     }
   } catch (error) {
     antMessage.destroy();
-    console.error('发起视频通话失败:', error);
+    logger.error('发起视频通话失败:', error);
     antMessage.error('发起视频通话失败');
   }
 };
@@ -714,7 +716,7 @@ const handleSaveNickname = async () => {
     showEditNicknameModal.value = false;
     await loadFriends();
   } catch (error) {
-    console.error('更新备注失败:', error);
+    logger.error('更新备注失败:', error);
     antMessage.error('更新备注失败: ' + error.message);
   }
 };
@@ -736,7 +738,7 @@ const handleSaveGroup = async () => {
     showChangeGroupModal.value = false;
     await Promise.all([loadFriends(), loadStatistics()]);
   } catch (error) {
-    console.error('更新分组失败:', error);
+    logger.error('更新分组失败:', error);
     antMessage.error('更新分组失败: ' + error.message);
   }
 };
@@ -752,7 +754,7 @@ const handleRemoveFriend = (friend) => {
         antMessage.success('已删除好友');
         await Promise.all([loadFriends(), loadStatistics()]);
       } catch (error) {
-        console.error('删除好友失败:', error);
+        logger.error('删除好友失败:', error);
         antMessage.error('删除好友失败: ' + error.message);
       }
     },

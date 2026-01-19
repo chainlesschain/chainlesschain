@@ -468,6 +468,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, reactive, computed, onMounted } from "vue";
 import { message } from "ant-design-vue";
 import TokenStatsCard from "./TokenStatsCard.vue";
@@ -603,7 +605,7 @@ const loadConfig = async () => {
       Object.assign(form, config);
     }
   } catch (error) {
-    console.error("加载配置失败:", error);
+    logger.error("加载配置失败:", error);
     message.error("加载配置失败: " + error.message);
   } finally {
     loading.value = false;
@@ -620,7 +622,7 @@ const handleSave = async () => {
     message.success("配置已保存");
     await checkStatus();
   } catch (error) {
-    console.error("保存配置失败:", error);
+    logger.error("保存配置失败:", error);
     message.error("保存配置失败: " + error.message);
   } finally {
     saving.value = false;
@@ -663,7 +665,7 @@ const handleTest = async () => {
       status.value = result;
     }
   } catch (error) {
-    console.error("测试连接失败:", error);
+    logger.error("测试连接失败:", error);
     message.error("测试失败: " + error.message);
   } finally {
     testing.value = false;
@@ -726,7 +728,7 @@ const checkStatus = async () => {
     const result = await window.electronAPI.llm.checkStatus();
     status.value = result;
   } catch (error) {
-    console.error("检查状态失败:", error);
+    logger.error("检查状态失败:", error);
   }
 };
 
@@ -739,7 +741,7 @@ const loadModels = async () => {
     const models = await window.electronAPI.llm.listModels();
     availableModels.value = models;
   } catch (error) {
-    console.error("加载模型列表失败:", error);
+    logger.error("加载模型列表失败:", error);
   } finally {
     modelsLoading.value = false;
   }

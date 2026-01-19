@@ -1,3 +1,5 @@
+const { logger, createLogger } = require('../utils/logger.js');
+
 /**
  * 检查点校验器
  *
@@ -402,7 +404,7 @@ ${this.formatResultForDisplay(result)}
       }
 
     } catch (error) {
-      console.error('LLM质量检查失败:', error);
+      logger.error('LLM质量检查失败:', error);
       validation.passed = true;  // 检查失败时默认通过
       validation.reason = `LLM质量评估异常: ${error.message}`;
     }
@@ -483,7 +485,7 @@ ${this.formatResultForDisplay(result)}
       ]);
 
     } catch (error) {
-      console.error('保存校验历史失败:', error);
+      logger.error('保存校验历史失败:', error);
     }
   }
 
@@ -523,7 +525,7 @@ ${this.formatResultForDisplay(result)}
       };
 
     } catch (error) {
-      console.error('获取校验统计失败:', error);
+      logger.error('获取校验统计失败:', error);
       return null;
     }
   }
@@ -542,7 +544,7 @@ ${this.formatResultForDisplay(result)}
         try {
           return JSON.parse(jsonMatch[0]);
         } catch (e) {
-          console.error('JSON解析失败:', e);
+          logger.error('JSON解析失败:', e);
           return null;
         }
       }

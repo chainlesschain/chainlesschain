@@ -1,3 +1,5 @@
+const { logger, createLogger } = require('../utils/logger.js');
+
 /**
  * PluginAPI - 插件API接口层
  *
@@ -201,21 +203,21 @@ class PluginAPI {
       // 注册组件
       registerComponent: this.createSecureMethod('ui:component', (componentDef) => {
         // TODO: 实现组件注册
-        console.log(`[PluginAPI] 注册组件:`, componentDef);
+        logger.info(`[PluginAPI] 注册组件:`, componentDef);
         return { success: true };
       }),
 
       // 注册页面
       registerPage: this.createSecureMethod('ui:page', (pageDef) => {
         // TODO: 实现页面注册
-        console.log(`[PluginAPI] 注册页面:`, pageDef);
+        logger.info(`[PluginAPI] 注册页面:`, pageDef);
         return { success: true };
       }),
 
       // 注册菜单
       registerMenu: this.createSecureMethod('ui:menu', (menuDef) => {
         // TODO: 实现菜单注册
-        console.log(`[PluginAPI] 注册菜单:`, menuDef);
+        logger.info(`[PluginAPI] 注册菜单:`, menuDef);
         return { success: true };
       }),
 
@@ -404,15 +406,15 @@ class PluginAPI {
     return {
       // 日志
       log: (...args) => {
-        console.log(`[Plugin:${this.pluginId}]`, ...args);
+        logger.info(`[Plugin:${this.pluginId}]`, ...args);
       },
 
       warn: (...args) => {
-        console.warn(`[Plugin:${this.pluginId}]`, ...args);
+        logger.warn(`[Plugin:${this.pluginId}]`, ...args);
       },
 
       error: (...args) => {
-        console.error(`[Plugin:${this.pluginId}]`, ...args);
+        logger.error(`[Plugin:${this.pluginId}]`, ...args);
       },
 
       // 延迟
@@ -531,7 +533,7 @@ class PluginAPI {
       );
       stmt.free();
     } catch (err) {
-      console.error('[PluginAPI] 记录API调用失败:', err);
+      logger.error('[PluginAPI] 记录API调用失败:', err);
     }
   }
 

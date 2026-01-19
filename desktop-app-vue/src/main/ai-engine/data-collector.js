@@ -1,3 +1,5 @@
+const { logger, createLogger } = require('../utils/logger.js');
+
 /**
  * DataCollector - 数据收集模块
  * P2智能层数据收集基础设施
@@ -61,7 +63,7 @@ class DataCollector {
       if (this.config.enableValidation) {
         const validation = this.validateToolUsageEvent(event);
         if (!validation.valid) {
-          console.warn('[DataCollector] 事件验证失败:', validation.errors);
+          logger.warn('[DataCollector] 事件验证失败:', validation.errors);
           this.stats.validationErrors++;
           return;
         }
@@ -84,7 +86,7 @@ class DataCollector {
         await this.flush();
       }
     } catch (error) {
-      console.error('[DataCollector] 收集工具使用事件失败:', error);
+      logger.error('[DataCollector] 收集工具使用事件失败:', error);
       this.stats.failedWrites++;
     }
   }
@@ -101,7 +103,7 @@ class DataCollector {
     try {
       const validation = this.validateRecommendation(recommendation);
       if (!validation.valid) {
-        console.warn('[DataCollector] 推荐验证失败:', validation.errors);
+        logger.warn('[DataCollector] 推荐验证失败:', validation.errors);
         this.stats.validationErrors++;
         return;
       }
@@ -120,7 +122,7 @@ class DataCollector {
         await this.flush();
       }
     } catch (error) {
-      console.error('[DataCollector] 收集推荐事件失败:', error);
+      logger.error('[DataCollector] 收集推荐事件失败:', error);
       this.stats.failedWrites++;
     }
   }
@@ -166,7 +168,7 @@ class DataCollector {
 
       this.stats.successfulWrites++;
     } catch (error) {
-      console.error('[DataCollector] 更新用户画像失败:', error);
+      logger.error('[DataCollector] 更新用户画像失败:', error);
       this.stats.failedWrites++;
     }
   }
@@ -198,10 +200,10 @@ class DataCollector {
         initialData.successRate || 0
       );
 
-      console.log(`[DataCollector] 创建用户画像: ${userId}`);
+      logger.info(`[DataCollector] 创建用户画像: ${userId}`);
       this.stats.successfulWrites++;
     } catch (error) {
-      console.error('[DataCollector] 创建用户画像失败:', error);
+      logger.error('[DataCollector] 创建用户画像失败:', error);
       this.stats.failedWrites++;
     }
   }
@@ -232,9 +234,9 @@ class DataCollector {
       transaction(eventsToWrite);
       this.stats.successfulWrites += eventsToWrite.length;
 
-      console.log(`[DataCollector] 刷新 ${eventsToWrite.length} 个事件到数据库`);
+      logger.info(`[DataCollector] 刷新 ${eventsToWrite.length} 个事件到数据库`);
     } catch (error) {
-      console.error('[DataCollector] 刷新缓冲区失败:', error);
+      logger.error('[DataCollector] 刷新缓冲区失败:', error);
       this.stats.failedWrites += eventsToWrite.length;
 
       // 失败的事件放回缓冲区
@@ -441,7 +443,7 @@ class DataCollector {
 
     this.flushTimer = setInterval(() => {
       this.flush().catch(error => {
-        console.error('[DataCollector] 定时刷新失败:', error);
+        logger.error('[DataCollector] 定时刷新失败:', error);
       });
     }, this.config.flushInterval);
   }
@@ -466,7 +468,7 @@ class DataCollector {
    * 清理资源
    */
   async cleanup() {
-    console.log('[DataCollector] 清理资源...');
+    logger.info('[DataCollector] 清理资源...');
 
     // 停止定时器
     if (this.flushTimer) {
@@ -478,7 +480,7 @@ class DataCollector {
     await this.flush();
 
     this.db = null;
-    console.log('[DataCollector] 资源清理完成');
+    logger.info('[DataCollector] 资源清理完成');
   }
 }
 

@@ -9,6 +9,7 @@
  * 5. 持久化到数据库
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
 const EventEmitter = require('events');
@@ -46,9 +47,9 @@ class TaskPlannerEnhanced extends EventEmitter {
           throw new Error(`引擎模块格式不正确: ${engineName}`);
         }
 
-        console.log(`[TaskPlannerEnhanced] 加载引擎: ${engineName}`);
+        logger.info(`[TaskPlannerEnhanced] 加载引擎: ${engineName}`);
       } catch (error) {
-        console.error(`[TaskPlannerEnhanced] 加载引擎失败 ${engineName}:`, error);
+        logger.error(`[TaskPlannerEnhanced] 加载引擎失败 ${engineName}:`, error);
         throw new Error(`引擎 ${engineName} 不存在或加载失败`);
       }
     }
@@ -62,7 +63,7 @@ class TaskPlannerEnhanced extends EventEmitter {
    * @returns {Promise<Object>} 任务计划
    */
   async decomposeTask(userRequest, projectContext = {}) {
-    console.log('[TaskPlannerEnhanced] 开始拆解任务:', userRequest);
+    logger.info('[TaskPlannerEnhanced] 开始拆解任务:', userRequest);
 
     try {
       // 1. RAG增强: 检索相关上下文
@@ -83,7 +84,7 @@ class TaskPlannerEnhanced extends EventEmitter {
           maxTokens: 2000
         });
       } catch (llmError) {
-        console.warn('[TaskPlannerEnhanced] 本地LLM失败，尝试使用后端AI服务:', llmError.message);
+        logger.warn('[TaskPlannerEnhanced] 本地LLM失败，尝试使用后端AI服务:', llmError.message);
         // 降级到后端AI服务
         response = await this.queryBackendAI(prompt, {
           systemPrompt: '你是一个专业的项目管理AI助手，擅长将用户需求拆解为清晰、可执行的步骤。你必须返回标准的JSON格式。',
@@ -91,7 +92,7 @@ class TaskPlannerEnhanced extends EventEmitter {
         });
       }
 
-      console.log('[TaskPlannerEnhanced] LLM响应:', response.text.substring(0, 200) + '...');
+      logger.info('[TaskPlannerEnhanced] LLM响应:', response.text.substring(0, 200) + '...');
 
       // 3. 解析JSON响应
       let taskPlan;
@@ -102,7 +103,7 @@ class TaskPlannerEnhanced extends EventEmitter {
         const jsonText = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : response.text;
         taskPlan = JSON.parse(jsonText);
       } catch (parseError) {
-        console.error('[TaskPlannerEnhanced] JSON解析失败:', parseError);
+        logger.error('[TaskPlannerEnhanced] JSON解析失败:', parseError);
         // 如果解析失败，尝试修复常见问题
         const cleanedText = response.text
           .replace(/```json\n?/g, '')
@@ -119,26 +120,26 @@ class TaskPlannerEnhanced extends EventEmitter {
         await this.saveTaskPlan(projectContext.projectId, normalizedPlan);
       }
 
-      console.log('[TaskPlannerEnhanced] 任务拆解成功，共', normalizedPlan.subtasks.length, '个子任务');
+      logger.info('[TaskPlannerEnhanced] 任务拆解成功，共', normalizedPlan.subtasks.length, '个子任务');
 
       return normalizedPlan;
     } catch (error) {
-      console.error('[TaskPlannerEnhanced] ❌❌❌ 任务拆解失败 ❌❌❌');
-      console.error('[TaskPlannerEnhanced] 错误类型:', error?.constructor?.name || 'Unknown');
-      console.error('[TaskPlannerEnhanced] 错误信息:', error?.message || String(error));
-      console.error('[TaskPlannerEnhanced] 错误堆栈:', error?.stack?.substring(0, 500) || 'No stack');
+      logger.error('[TaskPlannerEnhanced] ❌❌❌ 任务拆解失败 ❌❌❌');
+      logger.error('[TaskPlannerEnhanced] 错误类型:', error?.constructor?.name || 'Unknown');
+      logger.error('[TaskPlannerEnhanced] 错误信息:', error?.message || String(error));
+      logger.error('[TaskPlannerEnhanced] 错误堆栈:', error?.stack?.substring(0, 500) || 'No stack');
 
       // 降级方案：使用简单的单步任务
-      console.log('[TaskPlannerEnhanced] 使用降级方案创建简单任务计划');
+      logger.info('[TaskPlannerEnhanced] 使用降级方案创建简单任务计划');
       const fallbackPlan = this.createFallbackPlan(userRequest, projectContext);
 
       // 🔧 修复：降级方案也需要保存到数据库
       if (projectContext.projectId) {
         try {
           await this.saveTaskPlan(projectContext.projectId, fallbackPlan);
-          console.log('[TaskPlannerEnhanced] 降级任务计划已保存到数据库');
+          logger.info('[TaskPlannerEnhanced] 降级任务计划已保存到数据库');
         } catch (saveError) {
-          console.error('[TaskPlannerEnhanced] 降级任务计划保存失败:', saveError);
+          logger.error('[TaskPlannerEnhanced] 降级任务计划保存失败:', saveError);
           // 即使保存失败，也返回任务计划（至少可以在内存中使用）
         }
       }
@@ -168,11 +169,11 @@ class TaskPlannerEnhanced extends EventEmitter {
         }
       );
 
-      console.log('[TaskPlannerEnhanced] RAG检索完成，找到', ragResult.totalDocs, '条相关文档');
+      logger.info('[TaskPlannerEnhanced] RAG检索完成，找到', ragResult.totalDocs, '条相关文档');
 
       return ragResult;
     } catch (error) {
-      console.warn('[TaskPlannerEnhanced] RAG检索失败，继续使用基础上下文:', error);
+      logger.warn('[TaskPlannerEnhanced] RAG检索失败，继续使用基础上下文:', error);
       return null;
     }
   }
@@ -358,7 +359,7 @@ ${userRequest}
    * 创建降级方案（当LLM失败时）
    */
   createFallbackPlan(userRequest, projectContext) {
-    console.log('[TaskPlannerEnhanced] 使用降级方案');
+    logger.info('[TaskPlannerEnhanced] 使用降级方案');
 
     const timestamp = Date.now();
     const { projectType = 'web', subType, toolEngine } = projectContext;
@@ -442,29 +443,29 @@ ${userRequest}
    */
   async saveTaskPlan(projectId, taskPlan) {
     try {
-      console.log('[TaskPlannerEnhanced] 准备保存任务计划');
-      console.log('[TaskPlannerEnhanced] projectId:', projectId);
-      console.log('[TaskPlannerEnhanced] taskPlan.id:', taskPlan.id);
+      logger.info('[TaskPlannerEnhanced] 准备保存任务计划');
+      logger.info('[TaskPlannerEnhanced] projectId:', projectId);
+      logger.info('[TaskPlannerEnhanced] taskPlan.id:', taskPlan.id);
 
       // 🔍 诊断：打印 taskPlan 对象的关键字段
-      console.log('[TaskPlannerEnhanced] 🔍 诊断 taskPlan 对象:');
-      console.log('[TaskPlannerEnhanced] - current_step:', taskPlan.current_step, '(类型:', typeof taskPlan.current_step, ')');
-      console.log('[TaskPlannerEnhanced] - total_steps:', taskPlan.total_steps, '(类型:', typeof taskPlan.total_steps, ')');
-      console.log('[TaskPlannerEnhanced] - progress_percentage:', taskPlan.progress_percentage, '(类型:', typeof taskPlan.progress_percentage, ')');
-      console.log('[TaskPlannerEnhanced] - final_output:', JSON.stringify(taskPlan.final_output || {}).substring(0, 100));
+      logger.info('[TaskPlannerEnhanced] 🔍 诊断 taskPlan 对象:');
+      logger.info('[TaskPlannerEnhanced] - current_step:', taskPlan.current_step, '(类型:', typeof taskPlan.current_step, ')');
+      logger.info('[TaskPlannerEnhanced] - total_steps:', taskPlan.total_steps, '(类型:', typeof taskPlan.total_steps, ')');
+      logger.info('[TaskPlannerEnhanced] - progress_percentage:', taskPlan.progress_percentage, '(类型:', typeof taskPlan.progress_percentage, ')');
+      logger.info('[TaskPlannerEnhanced] - final_output:', JSON.stringify(taskPlan.final_output || {}).substring(0, 100));
 
       // 验证projectId
       if (!projectId) {
-        console.warn('[TaskPlannerEnhanced] 警告: projectId为空，跳过保存任务计划');
+        logger.warn('[TaskPlannerEnhanced] 警告: projectId为空，跳过保存任务计划');
         return;
       }
 
       // 验证project是否存在
       const projectExists = this.database.get('SELECT id FROM projects WHERE id = ?', [projectId]);
-      console.log('[TaskPlannerEnhanced] 项目存在?', !!projectExists);
+      logger.info('[TaskPlannerEnhanced] 项目存在?', !!projectExists);
 
       if (!projectExists) {
-        console.warn('[TaskPlannerEnhanced] 警告: 项目不存在 (projectId:', projectId, ')，跳过保存任务计划');
+        logger.warn('[TaskPlannerEnhanced] 警告: 项目不存在 (projectId:', projectId, ')，跳过保存任务计划');
         return;
       }
 
@@ -479,10 +480,10 @@ ${userRequest}
       `;
 
       // 🔍 诊断：在构建 params 前再次检查这三个字段
-      console.log('[TaskPlannerEnhanced] ⚠️ 构建params前最后检查:');
-      console.log('[TaskPlannerEnhanced] - taskPlan.current_step:', taskPlan.current_step);
-      console.log('[TaskPlannerEnhanced] - taskPlan.total_steps:', taskPlan.total_steps);
-      console.log('[TaskPlannerEnhanced] - taskPlan.progress_percentage:', taskPlan.progress_percentage);
+      logger.info('[TaskPlannerEnhanced] ⚠️ 构建params前最后检查:');
+      logger.info('[TaskPlannerEnhanced] - taskPlan.current_step:', taskPlan.current_step);
+      logger.info('[TaskPlannerEnhanced] - taskPlan.total_steps:', taskPlan.total_steps);
+      logger.info('[TaskPlannerEnhanced] - taskPlan.progress_percentage:', taskPlan.progress_percentage);
 
       // 确保数字字段类型正确
       const ensureNumber = (value, defaultValue = 0) => {
@@ -507,14 +508,14 @@ ${userRequest}
         taskPlan.updated_at || Date.now()
       ];
 
-      console.log('[TaskPlannerEnhanced] ========== SQL参数摘要 ==========');
-      console.log('[TaskPlannerEnhanced] 参数数量:', params.length);
-      console.log('[TaskPlannerEnhanced] id:', params[0]);
-      console.log('[TaskPlannerEnhanced] project_id:', params[1]);
-      console.log('[TaskPlannerEnhanced] task_title:', params[2]);
-      console.log('[TaskPlannerEnhanced] status:', params[8]);
-      console.log('[TaskPlannerEnhanced] current_step:', params[9], 'total_steps:', params[10], 'progress:', params[11]);
-      console.log('[TaskPlannerEnhanced] ============ 摘要结束 ============');
+      logger.info('[TaskPlannerEnhanced] ========== SQL参数摘要 ==========');
+      logger.info('[TaskPlannerEnhanced] 参数数量:', params.length);
+      logger.info('[TaskPlannerEnhanced] id:', params[0]);
+      logger.info('[TaskPlannerEnhanced] project_id:', params[1]);
+      logger.info('[TaskPlannerEnhanced] task_title:', params[2]);
+      logger.info('[TaskPlannerEnhanced] status:', params[8]);
+      logger.info('[TaskPlannerEnhanced] current_step:', params[9], 'total_steps:', params[10], 'progress:', params[11]);
+      logger.info('[TaskPlannerEnhanced] ============ 摘要结束 ============');
 
       // 检查是否有undefined、NaN或Infinity值
       const invalidIndices = [];
@@ -538,7 +539,7 @@ ${userRequest}
 
       if (invalidIndices.length > 0) {
         const errorMsg = `参数验证失败:\n${invalidIndices.join('\n')}`;
-        console.error('[TaskPlannerEnhanced]', errorMsg);
+        logger.error('[TaskPlannerEnhanced]', errorMsg);
         throw new Error(errorMsg);
       }
 
@@ -546,30 +547,30 @@ ${userRequest}
         throw new Error(`参数数组长度错误：期望14个，实际${params.length}个`);
       }
 
-      console.log('[TaskPlannerEnhanced] 参数验证通过，准备执行SQL插入');
-      console.log('[TaskPlannerEnhanced] 🔹 调用 database.run() 开始...');
+      logger.info('[TaskPlannerEnhanced] 参数验证通过，准备执行SQL插入');
+      logger.info('[TaskPlannerEnhanced] 🔹 调用 database.run() 开始...');
 
       this.database.run(sql, params);
 
-      console.log('[TaskPlannerEnhanced] 🔹 database.run() 调用完成');
-      console.log('[TaskPlannerEnhanced] ✅ 任务计划已保存到数据库:', taskPlan.id);
+      logger.info('[TaskPlannerEnhanced] 🔹 database.run() 调用完成');
+      logger.info('[TaskPlannerEnhanced] ✅ 任务计划已保存到数据库:', taskPlan.id);
 
       // 验证保存成功
-      console.log('[TaskPlannerEnhanced] 开始验证保存结果...');
+      logger.info('[TaskPlannerEnhanced] 开始验证保存结果...');
       const saved = this.database.get('SELECT id FROM project_task_plans WHERE id = ?', [taskPlan.id]);
-      console.log('[TaskPlannerEnhanced] 保存验证结果:', saved ? '✅ 成功找到记录' : '❌ 未找到记录');
+      logger.info('[TaskPlannerEnhanced] 保存验证结果:', saved ? '✅ 成功找到记录' : '❌ 未找到记录');
 
       if (!saved) {
-        console.error('[TaskPlannerEnhanced] ❌ 警告: 数据库插入后查询不到记录，可能保存失败！');
+        logger.error('[TaskPlannerEnhanced] ❌ 警告: 数据库插入后查询不到记录，可能保存失败！');
         throw new Error('任务计划保存失败：插入后无法查询到记录');
       }
     } catch (error) {
-      console.error('[TaskPlannerEnhanced] ❌❌❌ 保存任务计划失败 ❌❌❌');
-      console.error('[TaskPlannerEnhanced] Error类型:', error?.constructor?.name || 'Unknown');
-      console.error('[TaskPlannerEnhanced] Error信息:', error?.message || String(error));
-      console.error('[TaskPlannerEnhanced] Error stack前500字:', error?.stack?.substring(0, 500) || 'No stack');
-      console.error('[TaskPlannerEnhanced] projectId:', projectId);
-      console.error('[TaskPlannerEnhanced] taskPlan.id:', taskPlan.id);
+      logger.error('[TaskPlannerEnhanced] ❌❌❌ 保存任务计划失败 ❌❌❌');
+      logger.error('[TaskPlannerEnhanced] Error类型:', error?.constructor?.name || 'Unknown');
+      logger.error('[TaskPlannerEnhanced] Error信息:', error?.message || String(error));
+      logger.error('[TaskPlannerEnhanced] Error stack前500字:', error?.stack?.substring(0, 500) || 'No stack');
+      logger.error('[TaskPlannerEnhanced] projectId:', projectId);
+      logger.error('[TaskPlannerEnhanced] taskPlan.id:', taskPlan.id);
       // 重新抛出错误，让上层处理
       throw error;
     }
@@ -600,7 +601,7 @@ ${userRequest}
       const sql = `UPDATE project_task_plans SET ${fields.join(', ')} WHERE id = ?`;
       this.database.run(sql, params);
     } catch (error) {
-      console.error('[TaskPlannerEnhanced] 更新任务计划失败:', error);
+      logger.error('[TaskPlannerEnhanced] 更新任务计划失败:', error);
     }
   }
 
@@ -612,7 +613,7 @@ ${userRequest}
    * @returns {Promise<Object>} 执行结果
    */
   async executeTaskPlan(taskPlan, projectContext, progressCallback) {
-    console.log('[TaskPlannerEnhanced] 开始执行任务计划:', taskPlan.task_title);
+    logger.info('[TaskPlannerEnhanced] 开始执行任务计划:', taskPlan.task_title);
 
     try {
       const results = [];
@@ -635,7 +636,7 @@ ${userRequest}
 
       // 解析执行顺序（基于依赖关系）
       const executionOrder = this.resolveExecutionOrder(taskPlan.subtasks);
-      console.log('[TaskPlannerEnhanced] 执行顺序:', executionOrder);
+      logger.info('[TaskPlannerEnhanced] 执行顺序:', executionOrder);
 
       // 按顺序执行子任务
       for (const step of executionOrder) {
@@ -692,7 +693,7 @@ ${userRequest}
             });
           }
         } catch (error) {
-          console.error(`[TaskPlannerEnhanced] 子任务 ${subtask.step} 执行失败:`, error);
+          logger.error(`[TaskPlannerEnhanced] 子任务 ${subtask.step} 执行失败:`, error);
 
           // 更新子任务状态为失败
           subtask.status = 'failed';
@@ -738,7 +739,7 @@ ${userRequest}
         });
       }
 
-      console.log('[TaskPlannerEnhanced] 任务计划执行完成');
+      logger.info('[TaskPlannerEnhanced] 任务计划执行完成');
 
       return {
         success: true,
@@ -746,7 +747,7 @@ ${userRequest}
         results: results
       };
     } catch (error) {
-      console.error('[TaskPlannerEnhanced] 任务计划执行失败:', error);
+      logger.error('[TaskPlannerEnhanced] 任务计划执行失败:', error);
 
       taskPlan.status = 'failed';
       taskPlan.error_message = error.message;
@@ -808,7 +809,7 @@ ${userRequest}
 
       // 如果这一轮没有添加任何任务，说明存在循环依赖
       if (!addedInThisRound) {
-        console.warn('[TaskPlannerEnhanced] 检测到循环依赖或无效依赖，强制添加剩余任务');
+        logger.warn('[TaskPlannerEnhanced] 检测到循环依赖或无效依赖，强制添加剩余任务');
         // 强制添加剩余任务（忽略依赖）
         for (const step of remaining) {
           order.push(step);
@@ -824,7 +825,7 @@ ${userRequest}
    * 执行单个子任务
    */
   async executeSubtask(subtask, projectContext, progressCallback) {
-    console.log(`[TaskPlannerEnhanced] 执行子任务 ${subtask.step}: ${subtask.title}`);
+    logger.info(`[TaskPlannerEnhanced] 执行子任务 ${subtask.step}: ${subtask.title}`);
 
     const { tool, action, description } = subtask;
 
@@ -859,7 +860,7 @@ ${userRequest}
           return await this.executeGenericTask(subtask, projectContext, progressCallback);
       }
     } catch (error) {
-      console.error(`[TaskPlannerEnhanced] 子任务执行失败:`, error);
+      logger.error(`[TaskPlannerEnhanced] 子任务执行失败:`, error);
       throw error;
     }
   }
@@ -871,7 +872,7 @@ ${userRequest}
     const webEngine = this.loadEngine('web-engine');
     const { action, description, output_files } = subtask;
 
-    console.log(`[TaskPlannerEnhanced] Web引擎 - ${action}`);
+    logger.info(`[TaskPlannerEnhanced] Web引擎 - ${action}`);
 
     // 根据action执行不同操作
     const result = await webEngine.handleProjectTask({
@@ -892,7 +893,7 @@ ${userRequest}
     const documentEngine = this.loadEngine('document-engine');
     const { action, description, output_files } = subtask;
 
-    console.log(`[TaskPlannerEnhanced] 文档引擎 - ${action}`);
+    logger.info(`[TaskPlannerEnhanced] 文档引擎 - ${action}`);
 
     const result = await documentEngine.handleProjectTask({
       action: action,
@@ -912,7 +913,7 @@ ${userRequest}
     const dataEngine = this.loadEngine('data-engine');
     const { action, description, output_files } = subtask;
 
-    console.log(`[TaskPlannerEnhanced] 数据引擎 - ${action}`);
+    logger.info(`[TaskPlannerEnhanced] 数据引擎 - ${action}`);
 
     const result = await dataEngine.handleProjectTask({
       action: action,
@@ -933,7 +934,7 @@ ${userRequest}
       const pptEngine = this.loadEngine('ppt-engine');
       const { action, description, output_files } = subtask;
 
-      console.log(`[TaskPlannerEnhanced] PPT引擎 - ${action}`);
+      logger.info(`[TaskPlannerEnhanced] PPT引擎 - ${action}`);
 
       const result = await pptEngine.handleProjectTask({
         action: action,
@@ -946,7 +947,7 @@ ${userRequest}
       return result;
     } catch (error) {
       if (error.message.includes('不存在或加载失败')) {
-        console.warn('[TaskPlannerEnhanced] PPT引擎未实现，使用LLM生成大纲');
+        logger.warn('[TaskPlannerEnhanced] PPT引擎未实现，使用LLM生成大纲');
         return await this.executeGenericTask(subtask, projectContext, progressCallback);
       }
       throw error;
@@ -961,7 +962,7 @@ ${userRequest}
       const wordEngine = this.loadEngine('word-engine');
       const { action, description, output_files } = subtask;
 
-      console.log(`[TaskPlannerEnhanced] Word引擎 - ${action}`);
+      logger.info(`[TaskPlannerEnhanced] Word引擎 - ${action}`);
 
       const result = await wordEngine.handleProjectTask({
         action: action,
@@ -973,7 +974,7 @@ ${userRequest}
 
       return result;
     } catch (error) {
-      console.error('[TaskPlannerEnhanced] Word引擎执行失败:', error);
+      logger.error('[TaskPlannerEnhanced] Word引擎执行失败:', error);
       throw error;
     }
   }
@@ -982,7 +983,7 @@ ${userRequest}
    * 执行代码引擎任务
    */
   async executeCodeEngineTask(subtask, projectContext, progressCallback) {
-    console.log(`[TaskPlannerEnhanced] 代码引擎 - ${subtask.action}`);
+    logger.info(`[TaskPlannerEnhanced] 代码引擎 - ${subtask.action}`);
 
     // 使用LLM生成代码
     const response = await this.llmManager.query(
@@ -1004,7 +1005,7 @@ ${userRequest}
    * 执行图像引擎任务
    */
   async executeImageEngineTask(subtask, projectContext, progressCallback) {
-    console.log(`[TaskPlannerEnhanced] 图像引擎 - ${subtask.action}`);
+    logger.info(`[TaskPlannerEnhanced] 图像引擎 - ${subtask.action}`);
 
     // 图像引擎通常需要调用外部API（Stable Diffusion等）
     // 这里返回一个占位结果
@@ -1019,7 +1020,7 @@ ${userRequest}
    * 执行通用任务（使用LLM）
    */
   async executeGenericTask(subtask, projectContext, progressCallback) {
-    console.log(`[TaskPlannerEnhanced] 通用任务执行: ${subtask.title}`);
+    logger.info(`[TaskPlannerEnhanced] 通用任务执行: ${subtask.title}`);
 
     const response = await this.llmManager.query(
       subtask.description,
@@ -1056,7 +1057,7 @@ ${userRequest}
         final_output: JSON.parse(plan.final_output || 'null')
       }));
     } catch (error) {
-      console.error('[TaskPlannerEnhanced] 获取任务计划历史失败:', error);
+      logger.error('[TaskPlannerEnhanced] 获取任务计划历史失败:', error);
       return [];
     }
   }
@@ -1066,11 +1067,11 @@ ${userRequest}
    */
   async getTaskPlan(taskPlanId) {
     try {
-      console.log('[TaskPlannerEnhanced] 查询任务计划:', taskPlanId);
+      logger.info('[TaskPlannerEnhanced] 查询任务计划:', taskPlanId);
       const sql = `SELECT * FROM project_task_plans WHERE id = ?`;
       const plan = this.database.get(sql, [taskPlanId]);
 
-      console.log('[TaskPlannerEnhanced] 查询结果:', plan ? '找到' : '未找到');
+      logger.info('[TaskPlannerEnhanced] 查询结果:', plan ? '找到' : '未找到');
 
       if (plan) {
         plan.subtasks = JSON.parse(plan.subtasks);
@@ -1079,8 +1080,8 @@ ${userRequest}
 
       return plan;
     } catch (error) {
-      console.error('[TaskPlannerEnhanced] 获取任务计划失败:', error);
-      console.error('[TaskPlannerEnhanced] Error stack:', error.stack);
+      logger.error('[TaskPlannerEnhanced] 获取任务计划失败:', error);
+      logger.error('[TaskPlannerEnhanced] Error stack:', error.stack);
       return null;
     }
   }
@@ -1094,7 +1095,7 @@ ${userRequest}
     const { URL } = require('url');
 
     const backendURL = process.env.AI_SERVICE_URL || 'http://localhost:8001';
-    console.log('[TaskPlannerEnhanced] 调用后端AI服务:', backendURL);
+    logger.info('[TaskPlannerEnhanced] 调用后端AI服务:', backendURL);
 
     return new Promise((resolve, reject) => {
       const url = new URL('/api/chat/stream', backendURL);
@@ -1147,7 +1148,7 @@ ${userRequest}
                     reject(new Error(data.error));
                     return;
                   } else if (data.type === 'done') {
-                    console.log('[TaskPlannerEnhanced] 后端AI响应长度:', fullText.length);
+                    logger.info('[TaskPlannerEnhanced] 后端AI响应长度:', fullText.length);
                     resolve({
                       text: fullText,
                       tokens: Math.ceil(fullText.length / 4)
@@ -1165,7 +1166,7 @@ ${userRequest}
         res.on('end', () => {
           // 如果没有收到done事件，直接返回累积的文本
           if (fullText) {
-            console.log('[TaskPlannerEnhanced] 后端AI响应完成，长度:', fullText.length);
+            logger.info('[TaskPlannerEnhanced] 后端AI响应完成，长度:', fullText.length);
             resolve({
               text: fullText,
               tokens: Math.ceil(fullText.length / 4)
@@ -1176,13 +1177,13 @@ ${userRequest}
         });
 
         res.on('error', (err) => {
-          console.error('[TaskPlannerEnhanced] 响应错误:', err);
+          logger.error('[TaskPlannerEnhanced] 响应错误:', err);
           reject(err);
         });
       });
 
       req.on('error', (err) => {
-        console.error('[TaskPlannerEnhanced] 请求错误:', err);
+        logger.error('[TaskPlannerEnhanced] 请求错误:', err);
         reject(err);
       });
 
@@ -1208,9 +1209,9 @@ ${userRequest}
 
       this.emit('task-cancelled', { taskPlanId });
 
-      console.log('[TaskPlannerEnhanced] 任务计划已取消:', taskPlanId);
+      logger.info('[TaskPlannerEnhanced] 任务计划已取消:', taskPlanId);
     } catch (error) {
-      console.error('[TaskPlannerEnhanced] 取消任务计划失败:', error);
+      logger.error('[TaskPlannerEnhanced] 取消任务计划失败:', error);
       throw error;
     }
   }

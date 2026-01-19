@@ -1,3 +1,4 @@
+import { logger, createLogger } from '@/utils/logger';
 import { defineStore } from 'pinia';
 
 export const useConversationStore = defineStore('conversation', {
@@ -105,7 +106,7 @@ export const useConversationStore = defineStore('conversation', {
           }
         }
       } catch (error) {
-        console.error('加载对话列表失败:', error);
+        logger.error('加载对话列表失败:', error);
         // 如果加载失败，使用内存中的对话
         if (offset === 0) {
           this.conversations = [];
@@ -134,7 +135,7 @@ export const useConversationStore = defineStore('conversation', {
 
         return conversation;
       } catch (error) {
-        console.error('加载对话失败:', error);
+        logger.error('加载对话失败:', error);
         throw error;
       }
     },
@@ -172,7 +173,7 @@ export const useConversationStore = defineStore('conversation', {
           this.conversations.unshift({ ...this.currentConversation });
         }
       } catch (error) {
-        console.error('保存对话失败:', error);
+        logger.error('保存对话失败:', error);
         throw error;
       }
     },
@@ -218,13 +219,13 @@ export const useConversationStore = defineStore('conversation', {
             await window.electronAPI.db.saveConversation(conv);
           }
 
-          console.log(`[ConversationStore] 批量保存完成: ${conversationMap.size} 个对话`);
+          logger.info(`[ConversationStore] 批量保存完成: ${conversationMap.size} 个对话`);
         }
 
         // 清空队列
         this.pendingMessages = [];
       } catch (error) {
-        console.error('批量保存对话失败:', error);
+        logger.error('批量保存对话失败:', error);
         // 保留队列，下次重试
       }
     },
@@ -345,7 +346,7 @@ export const useConversationStore = defineStore('conversation', {
           }
         }
       } catch (error) {
-        console.error('更新对话失败:', error);
+        logger.error('更新对话失败:', error);
         throw error;
       }
     },
@@ -376,7 +377,7 @@ export const useConversationStore = defineStore('conversation', {
           }
         }
       } catch (error) {
-        console.error('删除对话失败:', error);
+        logger.error('删除对话失败:', error);
         throw error;
       }
     },
@@ -442,7 +443,7 @@ export const useConversationStore = defineStore('conversation', {
 
         return newConversation;
       } catch (error) {
-        console.error('导入对话失败:', error);
+        logger.error('导入对话失败:', error);
         throw error;
       }
     },

@@ -9,6 +9,7 @@
  * @module secure-config-storage
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
@@ -113,11 +114,11 @@ class SecureConfigStorage {
         typeof safeStorage.isEncryptionAvailable === "function"
       ) {
         const available = safeStorage.isEncryptionAvailable();
-        console.log(`[SecureConfigStorage] safeStorage 可用性: ${available}`);
+        logger.info(`[SecureConfigStorage] safeStorage 可用性: ${available}`);
         return available;
       }
     } catch (error) {
-      console.warn(
+      logger.warn(
         "[SecureConfigStorage] safeStorage 检查失败:",
         error.message,
       );
@@ -284,7 +285,7 @@ class SecureConfigStorage {
       try {
         return this._encryptWithSafeStorage(data);
       } catch (error) {
-        console.warn(
+        logger.warn(
           "[SecureConfigStorage] safeStorage 加密失败，使用后备方案:",
           error.message,
         );
@@ -367,10 +368,10 @@ class SecureConfigStorage {
       this._cache = null;
       this._cacheTimestamp = null;
 
-      console.log("[SecureConfigStorage] 配置已加密保存");
+      logger.info("[SecureConfigStorage] 配置已加密保存");
       return true;
     } catch (error) {
-      console.error("[SecureConfigStorage] 保存失败:", error);
+      logger.error("[SecureConfigStorage] 保存失败:", error);
       return false;
     }
   }
@@ -390,7 +391,7 @@ class SecureConfigStorage {
       }
 
       if (!fs.existsSync(this.storagePath)) {
-        console.log("[SecureConfigStorage] 加密配置文件不存在");
+        logger.info("[SecureConfigStorage] 加密配置文件不存在");
         return null;
       }
 
@@ -401,10 +402,10 @@ class SecureConfigStorage {
       this._cache = config;
       this._cacheTimestamp = Date.now();
 
-      console.log("[SecureConfigStorage] 配置已解密加载");
+      logger.info("[SecureConfigStorage] 配置已解密加载");
       return config;
     } catch (error) {
-      console.error("[SecureConfigStorage] 加载失败:", error);
+      logger.error("[SecureConfigStorage] 加载失败:", error);
       return null;
     }
   }
@@ -427,11 +428,11 @@ class SecureConfigStorage {
         fs.unlinkSync(this.storagePath);
         this._cache = null;
         this._cacheTimestamp = null;
-        console.log("[SecureConfigStorage] 加密配置已删除");
+        logger.info("[SecureConfigStorage] 加密配置已删除");
       }
       return true;
     } catch (error) {
-      console.error("[SecureConfigStorage] 删除失败:", error);
+      logger.error("[SecureConfigStorage] 删除失败:", error);
       return false;
     }
   }
@@ -443,7 +444,7 @@ class SecureConfigStorage {
   createBackup() {
     try {
       if (!this.exists()) {
-        console.log("[SecureConfigStorage] 没有配置可备份");
+        logger.info("[SecureConfigStorage] 没有配置可备份");
         return null;
       }
 
@@ -459,11 +460,11 @@ class SecureConfigStorage {
       );
 
       fs.copyFileSync(this.storagePath, backupPath);
-      console.log("[SecureConfigStorage] 备份已创建:", backupPath);
+      logger.info("[SecureConfigStorage] 备份已创建:", backupPath);
 
       return backupPath;
     } catch (error) {
-      console.error("[SecureConfigStorage] 创建备份失败:", error);
+      logger.error("[SecureConfigStorage] 创建备份失败:", error);
       return null;
     }
   }
@@ -476,7 +477,7 @@ class SecureConfigStorage {
   restoreFromBackup(backupPath) {
     try {
       if (!fs.existsSync(backupPath)) {
-        console.error("[SecureConfigStorage] 备份文件不存在:", backupPath);
+        logger.error("[SecureConfigStorage] 备份文件不存在:", backupPath);
         return false;
       }
 
@@ -495,10 +496,10 @@ class SecureConfigStorage {
       this._cache = null;
       this._cacheTimestamp = null;
 
-      console.log("[SecureConfigStorage] 从备份恢复成功");
+      logger.info("[SecureConfigStorage] 从备份恢复成功");
       return true;
     } catch (error) {
-      console.error("[SecureConfigStorage] 从备份恢复失败:", error);
+      logger.error("[SecureConfigStorage] 从备份恢复失败:", error);
       return false;
     }
   }
@@ -531,7 +532,7 @@ class SecureConfigStorage {
 
       return files;
     } catch (error) {
-      console.error("[SecureConfigStorage] 列出备份失败:", error);
+      logger.error("[SecureConfigStorage] 列出备份失败:", error);
       return [];
     }
   }
@@ -546,7 +547,7 @@ class SecureConfigStorage {
     try {
       const config = this.load(false);
       if (!config) {
-        console.error("[SecureConfigStorage] 没有配置可导出");
+        logger.error("[SecureConfigStorage] 没有配置可导出");
         return false;
       }
 
@@ -579,10 +580,10 @@ class SecureConfigStorage {
       const exportData = Buffer.concat([header, salt, iv, authTag, encrypted]);
 
       fs.writeFileSync(exportPath, exportData);
-      console.log("[SecureConfigStorage] 配置已导出:", exportPath);
+      logger.info("[SecureConfigStorage] 配置已导出:", exportPath);
       return true;
     } catch (error) {
-      console.error("[SecureConfigStorage] 导出失败:", error);
+      logger.error("[SecureConfigStorage] 导出失败:", error);
       return false;
     }
   }
@@ -596,7 +597,7 @@ class SecureConfigStorage {
   importWithPassword(password, importPath) {
     try {
       if (!fs.existsSync(importPath)) {
-        console.error("[SecureConfigStorage] 导入文件不存在");
+        logger.error("[SecureConfigStorage] 导入文件不存在");
         return false;
       }
 
@@ -607,7 +608,7 @@ class SecureConfigStorage {
         fileData.length < 3 ||
         fileData.subarray(0, 2).toString("ascii") !== "EX"
       ) {
-        console.error("[SecureConfigStorage] 无效的导入文件格式");
+        logger.error("[SecureConfigStorage] 无效的导入文件格式");
         return false;
       }
 
@@ -645,10 +646,10 @@ class SecureConfigStorage {
       this.createBackup();
       this.save(parsed.data);
 
-      console.log("[SecureConfigStorage] 配置已导入");
+      logger.info("[SecureConfigStorage] 配置已导入");
       return true;
     } catch (error) {
-      console.error("[SecureConfigStorage] 导入失败:", error);
+      logger.error("[SecureConfigStorage] 导入失败:", error);
       return false;
     }
   }
@@ -679,7 +680,7 @@ class SecureConfigStorage {
         info.encryptionType = this._getEncryptionType(data);
         info.version = data.length > 2 ? data[2] : 1;
       } catch (error) {
-        console.warn("[SecureConfigStorage] 获取存储信息失败:", error.message);
+        logger.warn("[SecureConfigStorage] 获取存储信息失败:", error.message);
       }
     }
 
@@ -694,14 +695,14 @@ class SecureConfigStorage {
    */
   migrateToSafeStorage() {
     if (!this.safeStorageAvailable) {
-      console.warn("[SecureConfigStorage] safeStorage 不可用，无法迁移");
+      logger.warn("[SecureConfigStorage] safeStorage 不可用，无法迁移");
       return false;
     }
 
     try {
       const config = this.load(false);
       if (!config) {
-        console.log("[SecureConfigStorage] 没有配置需要迁移");
+        logger.info("[SecureConfigStorage] 没有配置需要迁移");
         return true;
       }
 
@@ -715,10 +716,10 @@ class SecureConfigStorage {
       this._cache = null;
       this._cacheTimestamp = null;
 
-      console.log("[SecureConfigStorage] 已迁移到 safeStorage");
+      logger.info("[SecureConfigStorage] 已迁移到 safeStorage");
       return true;
     } catch (error) {
-      console.error("[SecureConfigStorage] 迁移失败:", error);
+      logger.error("[SecureConfigStorage] 迁移失败:", error);
       return false;
     }
   }

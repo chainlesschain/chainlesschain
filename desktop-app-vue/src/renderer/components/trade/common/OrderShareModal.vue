@@ -228,6 +228,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed } from 'vue';
 import { message } from 'ant-design-vue';
 import {
@@ -282,7 +284,7 @@ const generateShareLink = async () => {
       message.error(result.error || '生成链接失败');
     }
   } catch (error) {
-    console.error('生成分享链接失败:', error);
+    logger.error('生成分享链接失败:', error);
     // Fallback: generate local link
     const baseUrl = 'chainlesschain://order/';
     shareLink.value = `${baseUrl}${props.order.id}`;
@@ -296,7 +298,7 @@ const copyShareLink = async () => {
     await navigator.clipboard.writeText(shareLink.value);
     message.success('链接已复制到剪贴板');
   } catch (error) {
-    console.error('复制链接失败:', error);
+    logger.error('复制链接失败:', error);
     message.error('复制链接失败');
   }
 };
@@ -328,7 +330,7 @@ const shareToInternalSocial = async () => {
       message.error(result.error || '分享失败');
     }
   } catch (error) {
-    console.error('分享到社交网络失败:', error);
+    logger.error('分享到社交网络失败:', error);
     message.error('分享失败');
   }
 };
@@ -347,7 +349,7 @@ const shareToClipboard = async () => {
     await navigator.clipboard.writeText(shareText);
     message.success('分享文本已复制到剪贴板');
   } catch (error) {
-    console.error('复制分享文本失败:', error);
+    logger.error('复制分享文本失败:', error);
     message.error('复制失败');
   }
 };
@@ -365,7 +367,7 @@ const exportAsJSON = () => {
     URL.revokeObjectURL(url);
     message.success('订单已导出为 JSON');
   } catch (error) {
-    console.error('导出 JSON 失败:', error);
+    logger.error('导出 JSON 失败:', error);
     message.error('导出失败');
   }
 };
@@ -399,7 +401,7 @@ const exportAsCSV = () => {
     URL.revokeObjectURL(url);
     message.success('订单已导出为 CSV');
   } catch (error) {
-    console.error('导出 CSV 失败:', error);
+    logger.error('导出 CSV 失败:', error);
     message.error('导出失败');
   }
 };
@@ -417,7 +419,7 @@ const exportAsPDF = async () => {
       message.error(result.error || '导出失败');
     }
   } catch (error) {
-    console.error('导出 PDF 失败:', error);
+    logger.error('导出 PDF 失败:', error);
     message.warning('PDF导出功能需要后端支持，已复制订单信息到剪贴板');
     // Fallback: copy order info
     await shareToClipboard();
@@ -437,7 +439,7 @@ const exportAsImage = async () => {
       message.error(result.error || '导出失败');
     }
   } catch (error) {
-    console.error('导出图片失败:', error);
+    logger.error('导出图片失败:', error);
     message.warning('图片导出功能需要后端支持，请使用二维码功能');
   }
 };

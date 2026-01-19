@@ -212,6 +212,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted } from 'vue';
 import { message as antMessage, Modal } from 'ant-design-vue';
 import {
@@ -317,7 +319,7 @@ const handleDelete = () => {
         antMessage.success('动态已删除');
         emit('deleted', props.post.id);
       } catch (error) {
-        console.error('删除动态失败:', error);
+        logger.error('删除动态失败:', error);
         antMessage.error('删除动态失败: ' + error.message);
       }
     },
@@ -339,7 +341,7 @@ const handleLike = async () => {
       emit('liked', props.post.id);
     }
   } catch (error) {
-    console.error('点赞操作失败:', error);
+    logger.error('点赞操作失败:', error);
     antMessage.error(error.message);
   }
 };
@@ -359,7 +361,7 @@ const loadComments = async () => {
     loadingComments.value = true;
     comments.value = await window.electronAPI.post.getComments(props.post.id);
   } catch (error) {
-    console.error('加载评论失败:', error);
+    logger.error('加载评论失败:', error);
     antMessage.error('加载评论失败: ' + error.message);
   } finally {
     loadingComments.value = false;
@@ -387,7 +389,7 @@ const handleComment = async () => {
     antMessage.success('评论已发表');
     emit('commented', props.post.id);
   } catch (error) {
-    console.error('发表评论失败:', error);
+    logger.error('发表评论失败:', error);
     antMessage.error('发表评论失败: ' + error.message);
   } finally {
     commenting.value = false;
@@ -409,7 +411,7 @@ const handleDeleteComment = async (commentId) => {
         props.post.comment_count--;
         antMessage.success('评论已删除');
       } catch (error) {
-        console.error('删除评论失败:', error);
+        logger.error('删除评论失败:', error);
         antMessage.error('删除评论失败: ' + error.message);
       }
     },

@@ -19,6 +19,7 @@ const createIpcMainStub = () => ({
 });
 
 const { ipcMain = createIpcMainStub() } = electron || {};
+const { logger, createLogger } = require('../utils/logger.js');
 const EventEmitter = require('events');
 
 class MediaStreamBridge extends EventEmitter {
@@ -93,7 +94,7 @@ class MediaStreamBridge extends EventEmitter {
   handleStreamReady(data) {
     const { requestId, streamId, tracks, type } = data;
 
-    console.log('[MediaStreamBridge] 媒体流已就绪:', {
+    logger.info('[MediaStreamBridge] 媒体流已就绪:', {
       requestId,
       streamId,
       trackCount: tracks.length
@@ -135,7 +136,7 @@ class MediaStreamBridge extends EventEmitter {
   handleStreamStopped(data) {
     const { streamId } = data;
 
-    console.log('[MediaStreamBridge] 媒体流已停止:', streamId);
+    logger.info('[MediaStreamBridge] 媒体流已停止:', streamId);
 
     const streamInfo = this.streams.get(streamId);
     if (streamInfo) {
@@ -258,7 +259,7 @@ class MediaStreamBridge extends EventEmitter {
     }
     this.streams.clear();
 
-    console.log('[MediaStreamBridge] 资源已清理');
+    logger.info('[MediaStreamBridge] 资源已清理');
   }
 }
 

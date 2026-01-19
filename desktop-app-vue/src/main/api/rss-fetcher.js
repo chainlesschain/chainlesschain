@@ -5,6 +5,7 @@
  * v0.20.0: 新增 RSS 订阅功能
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const Parser = require('rss-parser');
 const { EventEmitter } = require('events');
 const https = require('https');
@@ -59,7 +60,7 @@ class RSSFetcher extends EventEmitter {
       if (!options.skipCache) {
         const cached = this.cache.get(feedUrl);
         if (cached) {
-          console.log(`[RSSFetcher] 使用 LRU 缓存数据: ${feedUrl}`);
+          logger.info(`[RSSFetcher] 使用 LRU 缓存数据: ${feedUrl}`);
           this.emit('fetch-success', { feedUrl, feed: cached, fromCache: true });
           return cached;
         }
@@ -78,7 +79,7 @@ class RSSFetcher extends EventEmitter {
       return normalizedFeed;
     } catch (error) {
       this.emit('fetch-error', { feedUrl, error });
-      console.error(`[RSSFetcher] 获取 Feed 失败 (${feedUrl}):`, error.message);
+      logger.error(`[RSSFetcher] 获取 Feed 失败 (${feedUrl}):`, error.message);
       throw new Error(`获取 Feed 失败: ${error.message}`);
     }
   }
@@ -98,7 +99,7 @@ class RSSFetcher extends EventEmitter {
         const feed = await this.parser.parseURL(feedUrl);
 
         if (attempt > 0) {
-          console.log(`[RSSFetcher] 重试成功 (尝试 ${attempt + 1}/${maxRetries}): ${feedUrl}`);
+          logger.info(`[RSSFetcher] 重试成功 (尝试 ${attempt + 1}/${maxRetries}): ${feedUrl}`);
         }
 
         return feed;
@@ -108,7 +109,7 @@ class RSSFetcher extends EventEmitter {
         if (attempt < maxRetries - 1) {
           // 指数退避策略
           const delay = this.retryDelay * Math.pow(2, attempt);
-          console.log(`[RSSFetcher] 获取失败，${delay}ms 后重试 (尝试 ${attempt + 1}/${maxRetries}): ${feedUrl}`);
+          logger.info(`[RSSFetcher] 获取失败，${delay}ms 后重试 (尝试 ${attempt + 1}/${maxRetries}): ${feedUrl}`);
           await this.sleep(delay);
         }
       }
@@ -133,10 +134,10 @@ class RSSFetcher extends EventEmitter {
   clearCache(feedUrl = null) {
     if (feedUrl) {
       this.cache.delete(feedUrl);
-      console.log(`[RSSFetcher] 已清除 LRU 缓存: ${feedUrl}`);
+      logger.info(`[RSSFetcher] 已清除 LRU 缓存: ${feedUrl}`);
     } else {
       this.cache.reset();
-      console.log('[RSSFetcher] 已清除所有 LRU 缓存');
+      logger.info('[RSSFetcher] 已清除所有 LRU 缓存');
     }
   }
 
@@ -167,7 +168,7 @@ class RSSFetcher extends EventEmitter {
    */
   pruneCache() {
     this.cache.prune();
-    console.log('[RSSFetcher] 已清理过期的 LRU 缓存条目');
+    logger.info('[RSSFetcher] 已清理过期的 LRU 缓存条目');
   }
 
   /**
@@ -312,7 +313,7 @@ class RSSFetcher extends EventEmitter {
 
       return feeds;
     } catch (error) {
-      console.error(`[RSSFetcher] 发现 Feed 失败 (${websiteUrl}):`, error.message);
+      logger.error(`[RSSFetcher] 发现 Feed 失败 (${websiteUrl}):`, error.message);
       throw new Error(`发现 Feed 失败: ${error.message}`);
     }
   }

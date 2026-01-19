@@ -200,6 +200,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted } from 'vue'
 import { message, Modal } from 'ant-design-vue'
 import { useP2PCall } from '../composables/useP2PCall'
@@ -240,7 +242,7 @@ const loadCallHistory = async () => {
       message.error('加载通话记录失败')
     }
   } catch (error) {
-    console.error('加载通话记录失败:', error)
+    logger.error('加载通话记录失败:', error)
     message.error('加载通话记录失败')
   } finally {
     loading.value = false
@@ -271,7 +273,7 @@ const handleClearAll = () => {
           message.error('清空失败')
         }
       } catch (error) {
-        console.error('清空通话记录失败:', error)
+        logger.error('清空通话记录失败:', error)
         message.error('清空失败')
       }
     }
@@ -296,7 +298,7 @@ const handleCallAgain = async (record) => {
       message.info('请在聊天窗口中发起屏幕共享')
     }
   } catch (error) {
-    console.error('发起通话失败:', error)
+    logger.error('发起通话失败:', error)
     message.error('发起通话失败')
   }
 }
@@ -317,7 +319,7 @@ const handleDelete = (record) => {
           message.error('删除失败')
         }
       } catch (error) {
-        console.error('删除通话记录失败:', error)
+        logger.error('删除通话记录失败:', error)
         message.error('删除失败')
       }
     }

@@ -44,6 +44,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, onErrorCaptured, provide } from 'vue';
 import { handleError, ErrorType, ErrorLevel } from '@/utils/errorHandler';
 
@@ -100,9 +102,9 @@ const retryCount = ref(0);
 
 // 捕获子组件错误
 onErrorCaptured((err, instance, info) => {
-  console.error('[ErrorBoundary] Captured error:', err);
-  console.error('[ErrorBoundary] Error info:', info);
-  console.error('[ErrorBoundary] Component instance:', instance);
+  logger.error('[ErrorBoundary] Captured error:', err);
+  logger.error('[ErrorBoundary] Error info:', info);
+  logger.error('[ErrorBoundary] Component instance:', instance);
 
   hasError.value = true;
   errorInfo.value = {
@@ -143,7 +145,7 @@ ${err.stack || '无堆栈信息'}
   // 自动重试逻辑
   if (props.autoRetry && retryCount.value < props.maxRetries) {
     retryCount.value++;
-    console.log(`[ErrorBoundary] 自动重试 ${retryCount.value}/${props.maxRetries}`);
+    logger.info(`[ErrorBoundary] 自动重试 ${retryCount.value}/${props.maxRetries}`);
 
     setTimeout(() => {
       handleReset();
@@ -190,20 +192,20 @@ const handleReport = () => {
   // 触发report事件
   emit('report', report);
 
-  console.log('[ErrorBoundary] Error report:', report);
+  logger.info('[ErrorBoundary] Error report:', report);
 
   // 复制错误信息到剪贴板
   const reportText = JSON.stringify(report, null, 2);
   navigator.clipboard.writeText(reportText).then(() => {
-    console.log('[ErrorBoundary] 错误信息已复制到剪贴板');
+    logger.info('[ErrorBoundary] 错误信息已复制到剪贴板');
   }).catch((err) => {
-    console.error('[ErrorBoundary] 复制失败:', err);
+    logger.error('[ErrorBoundary] 复制失败:', err);
   });
 
   // 可以在这里添加错误上报逻辑（如发送到日志服务）
   if (window.electronAPI && window.electronAPI.logError) {
     window.electronAPI.logError(report).catch(err => {
-      console.error('[ErrorBoundary] 上报错误失败:', err);
+      logger.error('[ErrorBoundary] 上报错误失败:', err);
     });
   }
 };

@@ -1,3 +1,5 @@
+import { logger, createLogger } from '@/utils/logger';
+
 /**
  * Critical Rendering Path Optimization
  * 关键渲染路径优化
@@ -57,14 +59,14 @@ export class CriticalCSSManager {
       this.criticalCSS = criticalRules.join("\n");
 
       if (this.options.debug) {
-        console.log(
+        logger.info(
           `[CriticalCSS] Extracted ${criticalRules.length} critical rules`,
         );
       }
 
       return this.criticalCSS;
     } catch (error) {
-      console.error("[CriticalCSS] Extraction failed:", error);
+      logger.error("[CriticalCSS] Extraction failed:", error);
       return "";
     }
   }
@@ -97,7 +99,7 @@ export class CriticalCSSManager {
     }
 
     if (this.options.debug) {
-      console.log("[CriticalCSS] Inlined critical CSS");
+      logger.info("[CriticalCSS] Inlined critical CSS");
     }
   }
 
@@ -115,7 +117,7 @@ export class CriticalCSSManager {
       link.media = "all";
 
       if (this.options.debug) {
-        console.log(`[CriticalCSS] Loaded non-critical CSS: ${href}`);
+        logger.info(`[CriticalCSS] Loaded non-critical CSS: ${href}`);
       }
     };
 
@@ -143,7 +145,7 @@ export class CriticalCSSManager {
     });
 
     if (this.options.debug) {
-      console.log(`[CriticalCSS] Deferred ${stylesheets.length} stylesheets`);
+      logger.info(`[CriticalCSS] Deferred ${stylesheets.length} stylesheets`);
     }
   }
 }
@@ -184,7 +186,7 @@ export class FontOptimizationManager {
       document.head.appendChild(link);
 
       if (this.options.debug) {
-        console.log(`[FontOptimization] Preloaded font: ${font.href}`);
+        logger.info(`[FontOptimization] Preloaded font: ${font.href}`);
       }
     });
   }
@@ -210,7 +212,7 @@ export class FontOptimizationManager {
               rule.style.fontDisplay = this.options.fontDisplay;
 
               if (this.options.debug) {
-                console.log(
+                logger.info(
                   `[FontOptimization] Applied font-display: ${this.options.fontDisplay}`,
                 );
               }
@@ -220,7 +222,7 @@ export class FontOptimizationManager {
       } catch (error) {
         // Cross-origin stylesheets might throw errors
         if (this.options.debug) {
-          console.warn(
+          logger.warn(
             "[FontOptimization] Could not access stylesheet:",
             error,
           );
@@ -236,7 +238,7 @@ export class FontOptimizationManager {
     // 确保 document.body 存在
     if (!document.body) {
       if (this.options.debug) {
-        console.log(
+        logger.info(
           "[FontOptimization] document.body not ready, skipping system fonts",
         );
       }
@@ -256,7 +258,7 @@ export class FontOptimizationManager {
     document.body.style.fontFamily = systemFontStack;
 
     if (this.options.debug) {
-      console.log("[FontOptimization] Using system fonts for initial render");
+      logger.info("[FontOptimization] Using system fonts for initial render");
     }
   }
 
@@ -272,7 +274,7 @@ export class FontOptimizationManager {
    */
   async loadFontsWithAPI(fonts) {
     if (!this.supportsFontLoading()) {
-      console.warn("[FontOptimization] Font Loading API not supported");
+      logger.warn("[FontOptimization] Font Loading API not supported");
       return;
     }
 
@@ -287,7 +289,7 @@ export class FontOptimizationManager {
         document.fonts.add(loaded);
 
         if (this.options.debug) {
-          console.log(`[FontOptimization] Loaded font: ${font.family}`);
+          logger.info(`[FontOptimization] Loaded font: ${font.family}`);
         }
 
         return loaded;
@@ -298,10 +300,10 @@ export class FontOptimizationManager {
       await Promise.all(promises);
 
       if (this.options.debug) {
-        console.log("[FontOptimization] All fonts loaded");
+        logger.info("[FontOptimization] All fonts loaded");
       }
     } catch (error) {
-      console.error("[FontOptimization] Font loading failed:", error);
+      logger.error("[FontOptimization] Font loading failed:", error);
     }
   }
 }
@@ -349,14 +351,14 @@ export class AboveTheFoldOptimizer {
         img.loading = "eager";
 
         if (this.options.debug) {
-          console.log("[AboveTheFold] Eager load image:", img.src);
+          logger.info("[AboveTheFold] Eager load image:", img.src);
         }
       } else if (this.options.lazyLoadImages) {
         // Below the fold - lazy loading
         img.loading = "lazy";
 
         if (this.options.debug) {
-          console.log("[AboveTheFold] Lazy load image:", img.src);
+          logger.info("[AboveTheFold] Lazy load image:", img.src);
         }
       }
     });
@@ -380,7 +382,7 @@ export class AboveTheFoldOptimizer {
         script.defer = true;
 
         if (this.options.debug) {
-          console.log("[AboveTheFold] Deferred script:", script.src);
+          logger.info("[AboveTheFold] Deferred script:", script.src);
         }
       }
     });
@@ -394,7 +396,7 @@ export class AboveTheFoldOptimizer {
     this.optimizeScripts();
 
     if (this.options.debug) {
-      console.log("[AboveTheFold] Optimization complete");
+      logger.info("[AboveTheFold] Optimization complete");
     }
   }
 }
@@ -437,7 +439,7 @@ export class RenderBlockingOptimizer {
         };
 
         if (this.options.debug) {
-          console.log("[RenderBlocking] Made stylesheet async:", link.href);
+          logger.info("[RenderBlocking] Made stylesheet async:", link.href);
         }
       }
     });
@@ -456,7 +458,7 @@ export class RenderBlockingOptimizer {
         script.defer = true;
 
         if (this.options.debug) {
-          console.log("[RenderBlocking] Deferred script:", script.src);
+          logger.info("[RenderBlocking] Deferred script:", script.src);
         }
       }
     });
@@ -475,7 +477,7 @@ export class RenderBlockingOptimizer {
       document.head.appendChild(link);
 
       if (this.options.debug) {
-        console.log("[RenderBlocking] Added preconnect:", domain);
+        logger.info("[RenderBlocking] Added preconnect:", domain);
       }
     });
   }
@@ -489,7 +491,7 @@ export class RenderBlockingOptimizer {
     this.addPreconnects();
 
     if (this.options.debug) {
-      console.log("[RenderBlocking] Optimization complete");
+      logger.info("[RenderBlocking] Optimization complete");
     }
   }
 }
@@ -523,7 +525,7 @@ export const renderBlockingOptimizer = new RenderBlockingOptimizer();
  * Initialize all optimizations
  */
 export function initializeCriticalPath(options = {}) {
-  console.log("[CriticalPath] Initializing optimizations...");
+  logger.info("[CriticalPath] Initializing optimizations...");
 
   // Font optimization
   if (options.fonts) {
@@ -541,7 +543,7 @@ export function initializeCriticalPath(options = {}) {
     renderBlockingOptimizer.optimize();
   }
 
-  console.log("[CriticalPath] Optimizations complete");
+  logger.info("[CriticalPath] Optimizations complete");
 }
 
 /**

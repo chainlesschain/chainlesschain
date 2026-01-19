@@ -2,6 +2,7 @@
  * 交易市场 IPC
  * 处理订单创建、取消、匹配、交易等操作
  */
+const { logger, createLogger } = require('../utils/logger.js');
 const { ipcMain, clipboard, dialog, shell } = require("electron");
 const crypto = require("crypto");
 const path = require("path");
@@ -19,7 +20,7 @@ function registerMarketplaceIPC({ marketplaceManager, database }) {
   if (database && !shareLinkManager) {
     shareLinkManager = new ShareLinkManager(database);
   }
-  console.log("[Marketplace IPC] Registering Marketplace IPC handlers...");
+  logger.info("[Marketplace IPC] Registering Marketplace IPC handlers...");
 
   // 创建订单
   ipcMain.handle("marketplace:create-order", async (_event, options) => {
@@ -30,7 +31,7 @@ function registerMarketplaceIPC({ marketplaceManager, database }) {
 
       return await marketplaceManager.createOrder(options);
     } catch (error) {
-      console.error("[Main] 创建订单失败:", error);
+      logger.error("[Main] 创建订单失败:", error);
       throw error;
     }
   });
@@ -44,7 +45,7 @@ function registerMarketplaceIPC({ marketplaceManager, database }) {
 
       return await marketplaceManager.cancelOrder(orderId);
     } catch (error) {
-      console.error("[Main] 取消订单失败:", error);
+      logger.error("[Main] 取消订单失败:", error);
       throw error;
     }
   });
@@ -58,7 +59,7 @@ function registerMarketplaceIPC({ marketplaceManager, database }) {
 
       return await marketplaceManager.getOrders(filters);
     } catch (error) {
-      console.error("[Main] 获取订单列表失败:", error);
+      logger.error("[Main] 获取订单列表失败:", error);
       throw error;
     }
   });
@@ -98,7 +99,7 @@ function registerMarketplaceIPC({ marketplaceManager, database }) {
         pageSize,
       });
     } catch (error) {
-      console.error("[Main] 搜索订单失败:", error);
+      logger.error("[Main] 搜索订单失败:", error);
       throw error;
     }
   });
@@ -114,7 +115,7 @@ function registerMarketplaceIPC({ marketplaceManager, database }) {
 
         return await marketplaceManager.getSearchSuggestions(prefix, limit);
       } catch (error) {
-        console.error("[Main] 获取搜索建议失败:", error);
+        logger.error("[Main] 获取搜索建议失败:", error);
         return [];
       }
     },
@@ -129,7 +130,7 @@ function registerMarketplaceIPC({ marketplaceManager, database }) {
 
       return await marketplaceManager.getOrder(orderId);
     } catch (error) {
-      console.error("[Main] 获取订单详情失败:", error);
+      logger.error("[Main] 获取订单详情失败:", error);
       throw error;
     }
   });
@@ -145,7 +146,7 @@ function registerMarketplaceIPC({ marketplaceManager, database }) {
 
         return await marketplaceManager.matchOrder(orderId, quantity);
       } catch (error) {
-        console.error("[Main] 匹配订单失败:", error);
+        logger.error("[Main] 匹配订单失败:", error);
         throw error;
       }
     },
@@ -160,7 +161,7 @@ function registerMarketplaceIPC({ marketplaceManager, database }) {
 
       return await marketplaceManager.getTransactions(filters);
     } catch (error) {
-      console.error("[Main] 获取交易列表失败:", error);
+      logger.error("[Main] 获取交易列表失败:", error);
       throw error;
     }
   });
@@ -176,7 +177,7 @@ function registerMarketplaceIPC({ marketplaceManager, database }) {
 
         return await marketplaceManager.confirmDelivery(transactionId);
       } catch (error) {
-        console.error("[Main] 确认交付失败:", error);
+        logger.error("[Main] 确认交付失败:", error);
         throw error;
       }
     },
@@ -193,7 +194,7 @@ function registerMarketplaceIPC({ marketplaceManager, database }) {
 
         return await marketplaceManager.requestRefund(transactionId, reason);
       } catch (error) {
-        console.error("[Main] 申请退款失败:", error);
+        logger.error("[Main] 申请退款失败:", error);
         throw error;
       }
     },
@@ -208,7 +209,7 @@ function registerMarketplaceIPC({ marketplaceManager, database }) {
 
       return await marketplaceManager.getMyOrders(userDid);
     } catch (error) {
-      console.error("[Main] 获取我的订单失败:", error);
+      logger.error("[Main] 获取我的订单失败:", error);
       throw error;
     }
   });
@@ -241,7 +242,7 @@ function registerMarketplaceIPC({ marketplaceManager, database }) {
 
       return { success: true, order: updatedOrder };
     } catch (error) {
-      console.error("[Main] 更新订单失败:", error);
+      logger.error("[Main] 更新订单失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -276,7 +277,7 @@ function registerMarketplaceIPC({ marketplaceManager, database }) {
           expiresAt: expiryTimestamp,
         });
         if (!saveResult.success) {
-          console.warn("[Main] 分享链接持久化失败:", saveResult.error);
+          logger.warn("[Main] 分享链接持久化失败:", saveResult.error);
         }
       }
 
@@ -286,7 +287,7 @@ function registerMarketplaceIPC({ marketplaceManager, database }) {
 
       return { success: true, link, token, expiry: expiryTimestamp };
     } catch (error) {
-      console.error("[Main] 生成分享链接失败:", error);
+      logger.error("[Main] 生成分享链接失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -299,7 +300,7 @@ function registerMarketplaceIPC({ marketplaceManager, database }) {
       }
       return await shareLinkManager.validateLink(token);
     } catch (error) {
-      console.error("[Main] 验证分享链接失败:", error);
+      logger.error("[Main] 验证分享链接失败:", error);
       return { valid: false, error: error.message };
     }
   });
@@ -312,7 +313,7 @@ function registerMarketplaceIPC({ marketplaceManager, database }) {
       }
       return await shareLinkManager.revokeLink(orderId, token);
     } catch (error) {
-      console.error("[Main] 撤销分享链接失败:", error);
+      logger.error("[Main] 撤销分享链接失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -325,7 +326,7 @@ function registerMarketplaceIPC({ marketplaceManager, database }) {
       }
       return await shareLinkManager.getLinksForOrder(orderId);
     } catch (error) {
-      console.error("[Main] 获取分享链接列表失败:", error);
+      logger.error("[Main] 获取分享链接列表失败:", error);
       return [];
     }
   });
@@ -336,7 +337,7 @@ function registerMarketplaceIPC({ marketplaceManager, database }) {
       clipboard.writeText(link);
       return { success: true };
     } catch (error) {
-      console.error("[Main] 复制链接失败:", error);
+      logger.error("[Main] 复制链接失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -382,7 +383,7 @@ function registerMarketplaceIPC({ marketplaceManager, database }) {
 
       return exportResult;
     } catch (error) {
-      console.error("[Main] 导出 PDF 失败:", error);
+      logger.error("[Main] 导出 PDF 失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -442,12 +443,12 @@ function registerMarketplaceIPC({ marketplaceManager, database }) {
 
       return exportResult;
     } catch (error) {
-      console.error("[Main] 导出图片失败:", error);
+      logger.error("[Main] 导出图片失败:", error);
       return { success: false, error: error.message };
     }
   });
 
-  console.log("[Marketplace IPC] ✓ 20 handlers registered");
+  logger.info("[Marketplace IPC] ✓ 20 handlers registered");
 }
 
 module.exports = { registerMarketplaceIPC };

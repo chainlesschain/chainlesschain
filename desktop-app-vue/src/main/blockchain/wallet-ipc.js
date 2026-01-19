@@ -2,10 +2,11 @@
  * 钱包管理 IPC
  * 处理钱包创建、导入、签名等操作
  */
+const { logger, createLogger } = require('../utils/logger.js');
 const { ipcMain } = require('electron');
 
 function registerWalletIPC({ walletManager, externalWalletConnector }) {
-  console.log('[Wallet IPC] Registering Wallet IPC handlers...');
+  logger.info('[Wallet IPC] Registering Wallet IPC handlers...');
 
   // 创建钱包
   ipcMain.handle('wallet:create', async (_event, { password, chainId = 1 }) => {
@@ -16,7 +17,7 @@ function registerWalletIPC({ walletManager, externalWalletConnector }) {
 
       return await walletManager.createWallet(password, chainId);
     } catch (error) {
-      console.error('[Main] 创建钱包失败:', error);
+      logger.error('[Main] 创建钱包失败:', error);
       throw error;
     }
   });
@@ -30,7 +31,7 @@ function registerWalletIPC({ walletManager, externalWalletConnector }) {
 
       return await walletManager.importFromMnemonic(mnemonic, password, chainId);
     } catch (error) {
-      console.error('[Main] 导入钱包失败:', error);
+      logger.error('[Main] 导入钱包失败:', error);
       throw error;
     }
   });
@@ -44,7 +45,7 @@ function registerWalletIPC({ walletManager, externalWalletConnector }) {
 
       return await walletManager.importFromPrivateKey(privateKey, password, chainId);
     } catch (error) {
-      console.error('[Main] 从私钥导入钱包失败:', error);
+      logger.error('[Main] 从私钥导入钱包失败:', error);
       throw error;
     }
   });
@@ -59,7 +60,7 @@ function registerWalletIPC({ walletManager, externalWalletConnector }) {
       const wallet = await walletManager.unlockWallet(walletId, password);
       return { address: wallet.address };
     } catch (error) {
-      console.error('[Main] 解锁钱包失败:', error);
+      logger.error('[Main] 解锁钱包失败:', error);
       throw error;
     }
   });
@@ -74,7 +75,7 @@ function registerWalletIPC({ walletManager, externalWalletConnector }) {
       walletManager.lockWallet(walletId);
       return { success: true };
     } catch (error) {
-      console.error('[Main] 锁定钱包失败:', error);
+      logger.error('[Main] 锁定钱包失败:', error);
       throw error;
     }
   });
@@ -88,7 +89,7 @@ function registerWalletIPC({ walletManager, externalWalletConnector }) {
 
       return await walletManager.signTransaction(walletId, transaction, useUKey);
     } catch (error) {
-      console.error('[Main] 签名交易失败:', error);
+      logger.error('[Main] 签名交易失败:', error);
       throw error;
     }
   });
@@ -102,7 +103,7 @@ function registerWalletIPC({ walletManager, externalWalletConnector }) {
 
       return await walletManager.signMessage(walletId, message, useUKey);
     } catch (error) {
-      console.error('[Main] 签名消息失败:', error);
+      logger.error('[Main] 签名消息失败:', error);
       throw error;
     }
   });
@@ -116,7 +117,7 @@ function registerWalletIPC({ walletManager, externalWalletConnector }) {
 
       return await walletManager.getBalance(address, chainId, tokenAddress);
     } catch (error) {
-      console.error('[Main] 获取余额失败:', error);
+      logger.error('[Main] 获取余额失败:', error);
       throw error;
     }
   });
@@ -130,7 +131,7 @@ function registerWalletIPC({ walletManager, externalWalletConnector }) {
 
       return await walletManager.getAllWallets();
     } catch (error) {
-      console.error('[Main] 获取钱包列表失败:', error);
+      logger.error('[Main] 获取钱包列表失败:', error);
       throw error;
     }
   });
@@ -144,7 +145,7 @@ function registerWalletIPC({ walletManager, externalWalletConnector }) {
 
       return await walletManager.getWallet(walletId);
     } catch (error) {
-      console.error('[Main] 获取钱包详情失败:', error);
+      logger.error('[Main] 获取钱包详情失败:', error);
       throw error;
     }
   });
@@ -159,7 +160,7 @@ function registerWalletIPC({ walletManager, externalWalletConnector }) {
       await walletManager.setDefaultWallet(walletId);
       return { success: true };
     } catch (error) {
-      console.error('[Main] 设置默认钱包失败:', error);
+      logger.error('[Main] 设置默认钱包失败:', error);
       throw error;
     }
   });
@@ -174,7 +175,7 @@ function registerWalletIPC({ walletManager, externalWalletConnector }) {
       await walletManager.deleteWallet(walletId);
       return { success: true };
     } catch (error) {
-      console.error('[Main] 删除钱包失败:', error);
+      logger.error('[Main] 删除钱包失败:', error);
       throw error;
     }
   });
@@ -188,7 +189,7 @@ function registerWalletIPC({ walletManager, externalWalletConnector }) {
 
       return await walletManager.exportPrivateKey(walletId, password);
     } catch (error) {
-      console.error('[Main] 导出私钥失败:', error);
+      logger.error('[Main] 导出私钥失败:', error);
       throw error;
     }
   });
@@ -202,7 +203,7 @@ function registerWalletIPC({ walletManager, externalWalletConnector }) {
 
       return await walletManager.exportMnemonic(walletId, password);
     } catch (error) {
-      console.error('[Main] 导出助记词失败:', error);
+      logger.error('[Main] 导出助记词失败:', error);
       throw error;
     }
   });
@@ -217,12 +218,12 @@ function registerWalletIPC({ walletManager, externalWalletConnector }) {
       await externalWalletConnector._saveExternalWallet({ address, provider, chainId });
       return { success: true };
     } catch (error) {
-      console.error('[Main] 保存外部钱包失败:', error);
+      logger.error('[Main] 保存外部钱包失败:', error);
       throw error;
     }
   });
 
-  console.log('[Wallet IPC] ✓ 15 handlers registered');
+  logger.info('[Wallet IPC] ✓ 15 handlers registered');
 }
 
 module.exports = { registerWalletIPC };

@@ -2,6 +2,7 @@
  * 操作历史记录 Store
  */
 
+import { logger, createLogger } from '@/utils/logger';
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 
@@ -98,7 +99,7 @@ export const useHistoryStore = defineStore('history', () => {
     try {
       localStorage.setItem('skill-tool-history', JSON.stringify(records.value));
     } catch (error) {
-      console.error('Failed to save history:', error);
+      logger.error('Failed to save history:', error);
     }
   }
 
@@ -110,7 +111,7 @@ export const useHistoryStore = defineStore('history', () => {
         records.value = JSON.parse(saved);
       }
     } catch (error) {
-      console.error('Failed to load history:', error);
+      logger.error('Failed to load history:', error);
     }
   }
 

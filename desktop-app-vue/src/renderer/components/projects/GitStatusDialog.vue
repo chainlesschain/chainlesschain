@@ -379,6 +379,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, watch } from 'vue';
 import { message } from 'ant-design-vue';
 import {
@@ -496,7 +498,7 @@ const loadStatus = async () => {
     const result = await window.electronAPI.project.gitStatus(props.repoPath);
     status.value = result;
   } catch (error) {
-    console.error('Load git status failed:', error);
+    logger.error('Load git status failed:', error);
     message.error('获取Git状态失败：' + error.message);
   } finally {
     loading.value = false;
@@ -511,7 +513,7 @@ const handleStageFile = async (file) => {
     message.success(`已暂存: ${filePath}`);
     await loadStatus();
   } catch (error) {
-    console.error('Stage file failed:', error);
+    logger.error('Stage file failed:', error);
     message.error('暂存失败：' + error.message);
   }
 };
@@ -523,7 +525,7 @@ const handleStageAll = async () => {
     message.success('已暂存全部更改');
     await loadStatus();
   } catch (error) {
-    console.error('Stage all failed:', error);
+    logger.error('Stage all failed:', error);
     message.error('暂存失败：' + error.message);
   }
 };
@@ -536,7 +538,7 @@ const handleUnstageFile = async (file) => {
     message.success(`已取消暂存: ${filePath}`);
     await loadStatus();
   } catch (error) {
-    console.error('Unstage file failed:', error);
+    logger.error('Unstage file failed:', error);
     message.error('取消暂存失败：' + error.message);
   }
 };
@@ -548,7 +550,7 @@ const handleUnstageAll = async () => {
     message.success('已取消暂存全部');
     await loadStatus();
   } catch (error) {
-    console.error('Unstage all failed:', error);
+    logger.error('Unstage all failed:', error);
     message.error('取消暂存失败：' + error.message);
   }
 };
@@ -571,7 +573,7 @@ const handleViewDiff = async (file) => {
     currentDiff.value = diff || '没有差异';
     showDiffModal.value = true;
   } catch (error) {
-    console.error('View diff failed:', error);
+    logger.error('View diff failed:', error);
     message.error('查看差异失败：' + error.message);
   }
 };
@@ -602,7 +604,7 @@ const handleGenerateAICommit = async () => {
       message.error(result.error || 'AI生成失败');
     }
   } catch (error) {
-    console.error('Generate AI commit message failed:', error);
+    logger.error('Generate AI commit message failed:', error);
     message.error('AI生成失败：' + error.message);
   } finally {
     generatingAI.value = false;
@@ -644,7 +646,7 @@ const handleConfirmCommit = async () => {
     await loadStatus();
     emit('commit');
   } catch (error) {
-    console.error('Commit failed:', error);
+    logger.error('Commit failed:', error);
     message.error('提交失败：' + error.message);
   } finally {
     committing.value = false;

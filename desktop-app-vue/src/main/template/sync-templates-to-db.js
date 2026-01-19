@@ -3,6 +3,7 @@
  * 更新 required_skills, required_tools, execution_engine 字段
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require('fs').promises;
 const path = require('path');
 const DatabaseManager = require('./database');
@@ -21,13 +22,13 @@ class TemplateSynchronizer {
   }
 
   async initialize() {
-    console.log('='.repeat(70));
-    console.log('同步模板到数据库');
-    console.log('='.repeat(70));
-    console.log('\n1. 初始化数据库...');
+    logger.info('='.repeat(70));
+    logger.info('同步模板到数据库');
+    logger.info('='.repeat(70));
+    logger.info('\n1. 初始化数据库...');
 
     await this.db.initialize();
-    console.log('   ✓ 数据库连接成功\n');
+    logger.info('   ✓ 数据库连接成功\n');
   }
 
   async syncTemplate(filePath, templateName) {
@@ -42,7 +43,7 @@ class TemplateSynchronizer {
       ).get(template.name);
 
       if (!existing) {
-        console.log(`   ⚠️  数据库中不存在: ${templateName}`);
+        logger.info(`   ⚠️  数据库中不存在: ${templateName}`);
         this.stats.skipped++;
         return;
       }
@@ -79,20 +80,20 @@ class TemplateSynchronizer {
         existing.id
       );
 
-      console.log(`   ✅ 已更新: ${templateName}`);
-      console.log(`      - 技能: ${template.required_skills?.length || 0} 个`);
-      console.log(`      - 工具: ${template.required_tools?.length || 0} 个`);
-      console.log(`      - 执行引擎: ${newEngine}`);
+      logger.info(`   ✅ 已更新: ${templateName}`);
+      logger.info(`      - 技能: ${template.required_skills?.length || 0} 个`);
+      logger.info(`      - 工具: ${template.required_tools?.length || 0} 个`);
+      logger.info(`      - 执行引擎: ${newEngine}`);
 
       this.stats.updated++;
     } catch (error) {
-      console.log(`   ✗ 失败: ${templateName} - ${error.message}`);
+      logger.info(`   ✗ 失败: ${templateName} - ${error.message}`);
       this.stats.failed++;
     }
   }
 
   async scanAndSync() {
-    console.log('2. 开始扫描和同步模板...\n');
+    logger.info('2. 开始扫描和同步模板...\n');
 
     const categories = await fs.readdir(this.templatesDir);
 
@@ -102,7 +103,7 @@ class TemplateSynchronizer {
 
       if (!stat.isDirectory()) {continue;}
 
-      console.log(`\n📂 处理分类: ${category}`);
+      logger.info(`\n📂 处理分类: ${category}`);
 
       const files = await fs.readdir(categoryPath);
       const jsonFiles = files.filter(f => f.endsWith('.json'));
@@ -116,13 +117,13 @@ class TemplateSynchronizer {
   }
 
   async printReport() {
-    console.log('\n' + '='.repeat(70));
-    console.log('📊 同步统计:');
-    console.log(`   - 总计: ${this.stats.total} 个模板`);
-    console.log(`   - 已更新: ${this.stats.updated} 个`);
-    console.log(`   - 已跳过: ${this.stats.skipped} 个`);
-    console.log(`   - 失败: ${this.stats.failed} 个`);
-    console.log('='.repeat(70));
+    logger.info('\n' + '='.repeat(70));
+    logger.info('📊 同步统计:');
+    logger.info(`   - 总计: ${this.stats.total} 个模板`);
+    logger.info(`   - 已更新: ${this.stats.updated} 个`);
+    logger.info(`   - 已跳过: ${this.stats.skipped} 个`);
+    logger.info(`   - 失败: ${this.stats.failed} 个`);
+    logger.info('='.repeat(70));
 
     // 打印数据库最新统计
     const dbStats = this.db.prepare(`
@@ -134,12 +135,12 @@ class TemplateSynchronizer {
       FROM project_templates WHERE deleted = 0
     `).get();
 
-    console.log('\n数据库最新统计:');
-    console.log(`   - 总模板数: ${dbStats.total}`);
-    console.log(`   - 已配置技能: ${dbStats.with_skills} (${(dbStats.with_skills/dbStats.total*100).toFixed(1)}%)`);
-    console.log(`   - 已配置工具: ${dbStats.with_tools} (${(dbStats.with_tools/dbStats.total*100).toFixed(1)}%)`);
-    console.log(`   - 已配置执行引擎: ${dbStats.with_engine} (${(dbStats.with_engine/dbStats.total*100).toFixed(1)}%)`);
-    console.log('='.repeat(70));
+    logger.info('\n数据库最新统计:');
+    logger.info(`   - 总模板数: ${dbStats.total}`);
+    logger.info(`   - 已配置技能: ${dbStats.with_skills} (${(dbStats.with_skills/dbStats.total*100).toFixed(1)}%)`);
+    logger.info(`   - 已配置工具: ${dbStats.with_tools} (${(dbStats.with_tools/dbStats.total*100).toFixed(1)}%)`);
+    logger.info(`   - 已配置执行引擎: ${dbStats.with_engine} (${(dbStats.with_engine/dbStats.total*100).toFixed(1)}%)`);
+    logger.info('='.repeat(70));
   }
 
   async run() {
@@ -148,12 +149,12 @@ class TemplateSynchronizer {
       await this.scanAndSync();
       await this.printReport();
     } catch (error) {
-      console.error('\n❌ 同步失败:', error);
+      logger.error('\n❌ 同步失败:', error);
       throw error;
     } finally {
       if (this.db) {
         this.db.close();
-        console.log('\n数据库连接已关闭');
+        logger.info('\n数据库连接已关闭');
       }
     }
   }
@@ -163,7 +164,7 @@ class TemplateSynchronizer {
 if (require.main === module) {
   const synchronizer = new TemplateSynchronizer();
   synchronizer.run().catch(error => {
-    console.error('同步过程出错:', error);
+    logger.error('同步过程出错:', error);
     process.exit(1);
   });
 }

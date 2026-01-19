@@ -11,6 +11,7 @@
  * 创建: 2026-01-01
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const DatabaseManager = require('../database');
 
 /**
@@ -159,12 +160,12 @@ class IntentFusion {
       this.performanceStats.totalFusions++;
       this.performanceStats.totalTime += fusionTime;
 
-      console.log(`[IntentFusion] 融合完成: ${intents.length} -> ${fused.length} (节省${saved}个意图, 耗时${fusionTime}ms)`);
+      logger.info(`[IntentFusion] 融合完成: ${intents.length} -> ${fused.length} (节省${saved}个意图, 耗时${fusionTime}ms)`);
 
       return fused;
 
     } catch (error) {
-      console.error('[IntentFusion] 融合失败:', error);
+      logger.error('[IntentFusion] 融合失败:', error);
       return intents; // 融合失败则返回原意图列表
     }
   }
@@ -648,7 +649,7 @@ class IntentFusion {
       return null;
 
     } catch (error) {
-      console.error('[IntentFusion] LLM融合失败:', error);
+      logger.error('[IntentFusion] LLM融合失败:', error);
       return null;
     }
   }
@@ -717,7 +718,7 @@ ${intentsJson}
       };
 
     } catch (error) {
-      console.error('[IntentFusion] 解析LLM响应失败:', error);
+      logger.error('[IntentFusion] 解析LLM响应失败:', error);
       return null;
     }
   }
@@ -754,7 +755,7 @@ ${intentsJson}
       ]);
 
     } catch (error) {
-      console.error('[IntentFusion] 记录融合历史失败:', error);
+      logger.error('[IntentFusion] 记录融合历史失败:', error);
     }
   }
 
@@ -821,7 +822,7 @@ ${intentsJson}
       };
 
     } catch (error) {
-      console.error('[IntentFusion] 获取融合统计失败:', error);
+      logger.error('[IntentFusion] 获取融合统计失败:', error);
       return null;
     }
   }

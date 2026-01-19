@@ -3,6 +3,7 @@
  * 递归字符文本分块器，用于将长文档切分为小块以提升RAG检索精度
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const EventEmitter = require('events');
 
 /**
@@ -286,7 +287,7 @@ class RecursiveCharacterTextSplitter extends EventEmitter {
    */
   updateConfig(newConfig) {
     this.config = { ...this.config, ...newConfig };
-    console.log('[TextSplitter] 配置已更新:', this.config);
+    logger.info('[TextSplitter] 配置已更新:', this.config);
   }
 
   /**

@@ -316,6 +316,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted, watch } from 'vue';
 import { Empty } from 'ant-design-vue';
 import draggable from 'vuedraggable';
@@ -426,7 +428,7 @@ function filterBy(type, value) {
 
 function handleSearch() {
   // TODO: 实现搜索功能
-  console.log('Search:', searchKeyword.value);
+  logger.info('Search:', searchKeyword.value);
 }
 
 function handleBoardChange(boardId) {
@@ -474,7 +476,7 @@ function handleTaskEdit(task) {
 
 function handleTaskDelete() {
   // Task deletion is handled in TaskCard
-  console.log('Task deleted');
+  logger.info('Task deleted');
 }
 
 async function handleSaveTask() {

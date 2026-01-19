@@ -6,6 +6,7 @@
  * @description 提供组织创建、成员管理、权限控制、邀请管理、知识库等完整的企业协作功能 IPC 接口
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require('fs').promises;
 const path = require('path');
 
@@ -33,7 +34,7 @@ function registerOrganizationIPC({
   const dialog = injectedDialog || electron.dialog;
   const electronApp = injectedApp || electron.app;
 
-  console.log('[Organization IPC] Registering Organization IPC handlers...');
+  logger.info('[Organization IPC] Registering Organization IPC handlers...');
 
   // ============================================================
   // 组织基础操作 (Basic Organization Operations) - 12 handlers
@@ -51,7 +52,7 @@ function registerOrganizationIPC({
 
       return await organizationManager.createOrganization(orgData);
     } catch (error) {
-      console.error('[Organization IPC] 创建组织失败:', error);
+      logger.error('[Organization IPC] 创建组织失败:', error);
       throw error;
     }
   });
@@ -68,7 +69,7 @@ function registerOrganizationIPC({
 
       return await organizationManager.joinOrganization(inviteCode);
     } catch (error) {
-      console.error('[Organization IPC] 加入组织失败:', error);
+      logger.error('[Organization IPC] 加入组织失败:', error);
       throw error;
     }
   });
@@ -85,7 +86,7 @@ function registerOrganizationIPC({
 
       return await organizationManager.getOrganization(orgId);
     } catch (error) {
-      console.error('[Organization IPC] 获取组织信息失败:', error);
+      logger.error('[Organization IPC] 获取组织信息失败:', error);
       throw error;
     }
   });
@@ -113,7 +114,7 @@ function registerOrganizationIPC({
 
       return result;
     } catch (error) {
-      console.error('[Organization IPC] 更新组织失败:', error);
+      logger.error('[Organization IPC] 更新组织失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -130,7 +131,7 @@ function registerOrganizationIPC({
 
       return await organizationManager.getUserOrganizations(userDID);
     } catch (error) {
-      console.error('[Organization IPC] 获取用户组织列表失败:', error);
+      logger.error('[Organization IPC] 获取用户组织列表失败:', error);
       return [];
     }
   });
@@ -148,7 +149,7 @@ function registerOrganizationIPC({
       await organizationManager.leaveOrganization(orgId, userDID);
       return { success: true };
     } catch (error) {
-      console.error('[Organization IPC] 离开组织失败:', error);
+      logger.error('[Organization IPC] 离开组织失败:', error);
       throw error;
     }
   });
@@ -166,7 +167,7 @@ function registerOrganizationIPC({
       await organizationManager.deleteOrganization(orgId, userDID);
       return { success: true };
     } catch (error) {
-      console.error('[Organization IPC] 删除组织失败:', error);
+      logger.error('[Organization IPC] 删除组织失败:', error);
       throw error;
     }
   });
@@ -183,7 +184,7 @@ function registerOrganizationIPC({
 
       return await organizationManager.getOrganizationMembers(orgId);
     } catch (error) {
-      console.error('[Organization IPC] 获取组织成员失败:', error);
+      logger.error('[Organization IPC] 获取组织成员失败:', error);
       return [];
     }
   });
@@ -201,7 +202,7 @@ function registerOrganizationIPC({
       await organizationManager.updateMemberRole(orgId, memberDID, newRole);
       return { success: true };
     } catch (error) {
-      console.error('[Organization IPC] 更新成员角色失败:', error);
+      logger.error('[Organization IPC] 更新成员角色失败:', error);
       throw error;
     }
   });
@@ -219,7 +220,7 @@ function registerOrganizationIPC({
       await organizationManager.removeMember(orgId, memberDID);
       return { success: true };
     } catch (error) {
-      console.error('[Organization IPC] 移除成员失败:', error);
+      logger.error('[Organization IPC] 移除成员失败:', error);
       throw error;
     }
   });
@@ -236,7 +237,7 @@ function registerOrganizationIPC({
 
       return await organizationManager.checkPermission(orgId, userDID, permission);
     } catch (error) {
-      console.error('[Organization IPC] 检查权限失败:', error);
+      logger.error('[Organization IPC] 检查权限失败:', error);
       return false;
     }
   });
@@ -255,7 +256,7 @@ function registerOrganizationIPC({
       const activities = organizationManager.getMemberActivities(orgId, memberDID, limit);
       return { success: true, activities };
     } catch (error) {
-      console.error('[Organization IPC] 获取成员活动失败:', error);
+      logger.error('[Organization IPC] 获取成员活动失败:', error);
       return { success: false, error: error.message, activities: [] };
     }
   });
@@ -276,7 +277,7 @@ function registerOrganizationIPC({
 
       return await organizationManager.createInvitation(orgId, inviteData);
     } catch (error) {
-      console.error('[Organization IPC] 创建邀请失败:', error);
+      logger.error('[Organization IPC] 创建邀请失败:', error);
       throw error;
     }
   });
@@ -294,7 +295,7 @@ function registerOrganizationIPC({
       const invitation = await organizationManager.inviteByDID(orgId, inviteData);
       return invitation;
     } catch (error) {
-      console.error('[Organization IPC] 通过DID邀请失败:', error);
+      logger.error('[Organization IPC] 通过DID邀请失败:', error);
       throw error;
     }
   });
@@ -312,7 +313,7 @@ function registerOrganizationIPC({
       const org = await organizationManager.acceptDIDInvitation(invitationId);
       return org;
     } catch (error) {
-      console.error('[Organization IPC] 接受DID邀请失败:', error);
+      logger.error('[Organization IPC] 接受DID邀请失败:', error);
       throw error;
     }
   });
@@ -330,7 +331,7 @@ function registerOrganizationIPC({
       const result = await organizationManager.rejectDIDInvitation(invitationId);
       return { success: result };
     } catch (error) {
-      console.error('[Organization IPC] 拒绝DID邀请失败:', error);
+      logger.error('[Organization IPC] 拒绝DID邀请失败:', error);
       throw error;
     }
   });
@@ -348,7 +349,7 @@ function registerOrganizationIPC({
       const invitations = await organizationManager.getPendingDIDInvitations();
       return invitations;
     } catch (error) {
-      console.error('[Organization IPC] 获取待处理DID邀请失败:', error);
+      logger.error('[Organization IPC] 获取待处理DID邀请失败:', error);
       return [];
     }
   });
@@ -366,7 +367,7 @@ function registerOrganizationIPC({
       const invitations = await organizationManager.getDIDInvitations(orgId, options);
       return invitations;
     } catch (error) {
-      console.error('[Organization IPC] 获取DID邀请列表失败:', error);
+      logger.error('[Organization IPC] 获取DID邀请列表失败:', error);
       return [];
     }
   });
@@ -384,7 +385,7 @@ function registerOrganizationIPC({
       const invitations = organizationManager.getInvitations(orgId);
       return { success: true, invitations };
     } catch (error) {
-      console.error('[Organization IPC] 获取邀请列表失败:', error);
+      logger.error('[Organization IPC] 获取邀请列表失败:', error);
       return { success: false, error: error.message, invitations: [] };
     }
   });
@@ -403,7 +404,7 @@ function registerOrganizationIPC({
       const result = await organizationManager.revokeInvitation(orgId, invitationId);
       return result;
     } catch (error) {
-      console.error('[Organization IPC] 撤销邀请失败:', error);
+      logger.error('[Organization IPC] 撤销邀请失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -422,7 +423,7 @@ function registerOrganizationIPC({
       const result = await organizationManager.deleteInvitation(orgId, invitationId);
       return result;
     } catch (error) {
-      console.error('[Organization IPC] 删除邀请失败:', error);
+      logger.error('[Organization IPC] 删除邀请失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -444,7 +445,7 @@ function registerOrganizationIPC({
       const invitationLink = await organizationManager.didInvitationManager.createInvitationLink(params);
       return { success: true, invitationLink };
     } catch (error) {
-      console.error('[Organization IPC] 创建邀请链接失败:', error);
+      logger.error('[Organization IPC] 创建邀请链接失败:', error);
       throw error;
     }
   });
@@ -462,7 +463,7 @@ function registerOrganizationIPC({
       const linkInfo = await organizationManager.didInvitationManager.validateInvitationToken(token);
       return { success: true, linkInfo };
     } catch (error) {
-      console.error('[Organization IPC] 验证邀请令牌失败:', error);
+      logger.error('[Organization IPC] 验证邀请令牌失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -480,7 +481,7 @@ function registerOrganizationIPC({
       const org = await organizationManager.didInvitationManager.acceptInvitationLink(token, options);
       return { success: true, org };
     } catch (error) {
-      console.error('[Organization IPC] 通过邀请链接加入失败:', error);
+      logger.error('[Organization IPC] 通过邀请链接加入失败:', error);
       throw error;
     }
   });
@@ -498,7 +499,7 @@ function registerOrganizationIPC({
       const links = organizationManager.didInvitationManager.getInvitationLinks(orgId, options);
       return { success: true, links };
     } catch (error) {
-      console.error('[Organization IPC] 获取邀请链接列表失败:', error);
+      logger.error('[Organization IPC] 获取邀请链接列表失败:', error);
       return { success: false, error: error.message, links: [] };
     }
   });
@@ -516,7 +517,7 @@ function registerOrganizationIPC({
       const link = organizationManager.didInvitationManager.getInvitationLink(linkId);
       return { success: true, link };
     } catch (error) {
-      console.error('[Organization IPC] 获取邀请链接详情失败:', error);
+      logger.error('[Organization IPC] 获取邀请链接详情失败:', error);
       return { success: false, error: error.message, link: null };
     }
   });
@@ -534,7 +535,7 @@ function registerOrganizationIPC({
       await organizationManager.didInvitationManager.revokeInvitationLink(linkId);
       return { success: true };
     } catch (error) {
-      console.error('[Organization IPC] 撤销邀请链接失败:', error);
+      logger.error('[Organization IPC] 撤销邀请链接失败:', error);
       throw error;
     }
   });
@@ -552,7 +553,7 @@ function registerOrganizationIPC({
       await organizationManager.didInvitationManager.deleteInvitationLink(linkId);
       return { success: true };
     } catch (error) {
-      console.error('[Organization IPC] 删除邀请链接失败:', error);
+      logger.error('[Organization IPC] 删除邀请链接失败:', error);
       throw error;
     }
   });
@@ -582,7 +583,7 @@ function registerOrganizationIPC({
       const stats = organizationManager.didInvitationManager.getInvitationLinkStats(orgId);
       return { success: true, stats };
     } catch (error) {
-      console.error('[Organization IPC] 获取邀请链接统计失败:', error);
+      logger.error('[Organization IPC] 获取邀请链接统计失败:', error);
       return {
         success: false,
         error: error.message,
@@ -609,7 +610,7 @@ function registerOrganizationIPC({
       clipboard.writeText(invitationUrl);
       return { success: true };
     } catch (error) {
-      console.error('[Organization IPC] 复制邀请链接失败:', error);
+      logger.error('[Organization IPC] 复制邀请链接失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -631,7 +632,7 @@ function registerOrganizationIPC({
       const qrCode = await organizationManager.didInvitationManager.generateInvitationQRCode(linkId, options);
       return { success: true, qrCode };
     } catch (error) {
-      console.error('[Organization IPC] 生成邀请QR码失败:', error);
+      logger.error('[Organization IPC] 生成邀请QR码失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -649,7 +650,7 @@ function registerOrganizationIPC({
       const qrCode = await organizationManager.didInvitationManager.generateDIDInvitationQRCode(invitationId, options);
       return { success: true, qrCode };
     } catch (error) {
-      console.error('[Organization IPC] 生成DID邀请QR码失败:', error);
+      logger.error('[Organization IPC] 生成DID邀请QR码失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -667,7 +668,7 @@ function registerOrganizationIPC({
       const qrCodes = await organizationManager.didInvitationManager.generateBatchInvitationQRCodes(orgId, options);
       return { success: true, qrCodes };
     } catch (error) {
-      console.error('[Organization IPC] 批量生成QR码失败:', error);
+      logger.error('[Organization IPC] 批量生成QR码失败:', error);
       return { success: false, error: error.message, qrCodes: [] };
     }
   });
@@ -685,7 +686,7 @@ function registerOrganizationIPC({
       const invitationInfo = await organizationManager.didInvitationManager.parseInvitationQRCode(qrData);
       return { success: true, invitationInfo };
     } catch (error) {
-      console.error('[Organization IPC] 解析QR码失败:', error);
+      logger.error('[Organization IPC] 解析QR码失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -719,7 +720,7 @@ function registerOrganizationIPC({
 
       return { success: true, filePath: result.filePath };
     } catch (error) {
-      console.error('[Organization IPC] 下载QR码失败:', error);
+      logger.error('[Organization IPC] 下载QR码失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -741,7 +742,7 @@ function registerOrganizationIPC({
       const roles = await organizationManager.getRoles(orgId);
       return roles;
     } catch (error) {
-      console.error('[Organization IPC] 获取角色列表失败:', error);
+      logger.error('[Organization IPC] 获取角色列表失败:', error);
       throw error;
     }
   });
@@ -759,7 +760,7 @@ function registerOrganizationIPC({
       const role = await organizationManager.getRole(roleId);
       return role;
     } catch (error) {
-      console.error('[Organization IPC] 获取角色失败:', error);
+      logger.error('[Organization IPC] 获取角色失败:', error);
       throw error;
     }
   });
@@ -777,7 +778,7 @@ function registerOrganizationIPC({
       const role = await organizationManager.createCustomRole(orgId, roleData, creatorDID);
       return role;
     } catch (error) {
-      console.error('[Organization IPC] 创建自定义角色失败:', error);
+      logger.error('[Organization IPC] 创建自定义角色失败:', error);
       throw error;
     }
   });
@@ -795,7 +796,7 @@ function registerOrganizationIPC({
       const role = await organizationManager.updateRole(roleId, updates, updaterDID);
       return role;
     } catch (error) {
-      console.error('[Organization IPC] 更新角色失败:', error);
+      logger.error('[Organization IPC] 更新角色失败:', error);
       throw error;
     }
   });
@@ -813,7 +814,7 @@ function registerOrganizationIPC({
       await organizationManager.deleteRole(roleId, deleterDID);
       return { success: true };
     } catch (error) {
-      console.error('[Organization IPC] 删除角色失败:', error);
+      logger.error('[Organization IPC] 删除角色失败:', error);
       throw error;
     }
   });
@@ -831,7 +832,7 @@ function registerOrganizationIPC({
       const permissions = organizationManager.getAllPermissions();
       return permissions;
     } catch (error) {
-      console.error('[Organization IPC] 获取权限列表失败:', error);
+      logger.error('[Organization IPC] 获取权限列表失败:', error);
       throw error;
     }
   });
@@ -854,7 +855,7 @@ function registerOrganizationIPC({
       const activities = await organizationManager.getOrganizationActivities(orgId, limit);
       return { success: true, activities };
     } catch (error) {
-      console.error('[Organization IPC] 获取活动日志失败:', error);
+      logger.error('[Organization IPC] 获取活动日志失败:', error);
       return { success: false, error: error.message, activities: [] };
     }
   });
@@ -917,7 +918,7 @@ function registerOrganizationIPC({
 
       return { success: true, filePath };
     } catch (error) {
-      console.error('[Organization IPC] 导出活动日志失败:', error);
+      logger.error('[Organization IPC] 导出活动日志失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -945,7 +946,7 @@ function registerOrganizationIPC({
 
       return { success: true, items };
     } catch (error) {
-      console.error('[Organization IPC] 获取组织知识列表失败:', error);
+      logger.error('[Organization IPC] 获取组织知识列表失败:', error);
       return { success: false, error: error.message, items: [] };
     }
   });
@@ -1035,7 +1036,7 @@ function registerOrganizationIPC({
 
       return { success: true, id: knowledgeId };
     } catch (error) {
-      console.error('[Organization IPC] 创建组织知识失败:', error);
+      logger.error('[Organization IPC] 创建组织知识失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -1063,12 +1064,12 @@ function registerOrganizationIPC({
 
       return { success: true };
     } catch (error) {
-      console.error('[Organization IPC] 删除组织知识失败:', error);
+      logger.error('[Organization IPC] 删除组织知识失败:', error);
       return { success: false, error: error.message };
     }
   });
 
-  console.log('[Organization IPC] ✓ All Organization IPC handlers registered successfully (41 handlers)');
+  logger.info('[Organization IPC] ✓ All Organization IPC handlers registered successfully (41 handlers)');
 }
 
 module.exports = {

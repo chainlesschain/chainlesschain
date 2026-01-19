@@ -281,6 +281,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted } from "vue";
 import { message } from "ant-design-vue";
 import {
@@ -393,7 +395,7 @@ async function loadQueue() {
       message.error("加载离线队列失败: " + result.error);
     }
   } catch (error) {
-    console.error("加载离线队列失败:", error);
+    logger.error("加载离线队列失败:", error);
     message.error("加载离线队列失败: " + error.message);
   } finally {
     loading.value = false;
@@ -410,7 +412,7 @@ async function handleRetry(record) {
       message.error("重试失败: " + result.error);
     }
   } catch (error) {
-    console.error("重试消息失败:", error);
+    logger.error("重试消息失败:", error);
     message.error("重试失败: " + error.message);
   }
 }
@@ -425,7 +427,7 @@ async function handleRetryAll() {
       message.error("批量重试失败: " + result.error);
     }
   } catch (error) {
-    console.error("批量重试失败:", error);
+    logger.error("批量重试失败:", error);
     message.error("批量重试失败: " + error.message);
   } finally {
     showRetryAllModal.value = false;
@@ -442,7 +444,7 @@ async function handleDelete(record) {
       message.error("删除失败: " + result.error);
     }
   } catch (error) {
-    console.error("删除消息失败:", error);
+    logger.error("删除消息失败:", error);
     message.error("删除失败: " + error.message);
   }
 }
@@ -457,7 +459,7 @@ async function handleClearAll() {
       message.error("清空队列失败: " + result.error);
     }
   } catch (error) {
-    console.error("清空队列失败:", error);
+    logger.error("清空队列失败:", error);
     message.error("清空队列失败: " + error.message);
   } finally {
     showClearAllModal.value = false;

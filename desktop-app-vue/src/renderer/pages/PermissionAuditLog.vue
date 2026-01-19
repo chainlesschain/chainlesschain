@@ -181,6 +181,8 @@
 </template>
 
 <script>
+import { logger, createLogger } from '@/utils/logger';
+
 import { defineComponent, ref, computed, watch } from 'vue';
 import { message } from 'ant-design-vue';
 import { ExportOutlined } from '@ant-design/icons-vue';
@@ -385,7 +387,7 @@ export default defineComponent({
 
     const handleViewDetail = (record) => {
       // Expand row to show details
-      console.log('View detail:', record);
+      logger.info('View detail:', record);
     };
 
     const handleExport = async () => {
@@ -408,7 +410,7 @@ export default defineComponent({
           message.error(result.error || '导出失败');
         }
       } catch (error) {
-        console.error('Failed to export audit log:', error);
+        logger.error('Failed to export audit log:', error);
         message.error('导出失败');
       } finally {
         loading.value = false;

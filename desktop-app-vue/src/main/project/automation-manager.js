@@ -3,6 +3,7 @@
  * 提供定时任务、文件监听、事件触发等自动化功能
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const cron = require('node-cron');
 const chokidar = require('chokidar');
 const { EventEmitter } = require('events');
@@ -32,9 +33,9 @@ class AutomationManager extends EventEmitter {
       await this.createTables();
 
       this.initialized = true;
-      console.log('[AutomationManager] 初始化完成');
+      logger.info('[AutomationManager] 初始化完成');
     } catch (error) {
-      console.error('[AutomationManager] 初始化失败:', error);
+      logger.error('[AutomationManager] 初始化失败:', error);
       throw error;
     }
   }
@@ -73,9 +74,9 @@ class AutomationManager extends EventEmitter {
         ON project_automation_rules(is_enabled)
       `);
 
-      console.log('[AutomationManager] 数据库表创建成功');
+      logger.info('[AutomationManager] 数据库表创建成功');
     } catch (error) {
-      console.error('[AutomationManager] 创建数据库表失败:', error);
+      logger.error('[AutomationManager] 创建数据库表失败:', error);
       throw error;
     }
   }
@@ -92,7 +93,7 @@ class AutomationManager extends EventEmitter {
         WHERE project_id = ? AND is_enabled = 1
       `).all(projectId);
 
-      console.log(`[AutomationManager] 加载项目 ${projectId} 的 ${rules.length} 条规则`);
+      logger.info(`[AutomationManager] 加载项目 ${projectId} 的 ${rules.length} 条规则`);
 
       // 注册所有规则
       for (const rule of rules) {
@@ -101,7 +102,7 @@ class AutomationManager extends EventEmitter {
 
       return rules;
     } catch (error) {
-      console.error('[AutomationManager] 加载规则失败:', error);
+      logger.error('[AutomationManager] 加载规则失败:', error);
       throw error;
     }
   }
@@ -147,11 +148,11 @@ class AutomationManager extends EventEmitter {
       // 注册规则
       await this.registerRule(rule);
 
-      console.log('[AutomationManager] 规则创建成功:', id);
+      logger.info('[AutomationManager] 规则创建成功:', id);
       return rule;
 
     } catch (error) {
-      console.error('[AutomationManager] 创建规则失败:', error);
+      logger.error('[AutomationManager] 创建规则失败:', error);
       throw error;
     }
   }
@@ -191,14 +192,14 @@ class AutomationManager extends EventEmitter {
           break;
 
         default:
-          console.warn(`[AutomationManager] 未知触发类型: ${trigger_type}`);
+          logger.warn(`[AutomationManager] 未知触发类型: ${trigger_type}`);
       }
 
       this.rules.set(id, rule);
-      console.log(`[AutomationManager] 规则已注册: ${id}`);
+      logger.info(`[AutomationManager] 规则已注册: ${id}`);
 
     } catch (error) {
-      console.error('[AutomationManager] 注册规则失败:', error);
+      logger.error('[AutomationManager] 注册规则失败:', error);
       throw error;
     }
   }
@@ -218,7 +219,7 @@ class AutomationManager extends EventEmitter {
     }
 
     const task = cron.schedule(cronExpression, async () => {
-      console.log(`[AutomationManager] 执行定时任务: ${ruleId}`);
+      logger.info(`[AutomationManager] 执行定时任务: ${ruleId}`);
 
       try {
         await this.executeAction(actionType, actionConfig);
@@ -227,13 +228,13 @@ class AutomationManager extends EventEmitter {
         // 发送事件
         this.emit('rule:executed', { ruleId, actionType, success: true });
       } catch (error) {
-        console.error(`[AutomationManager] 定时任务执行失败: ${ruleId}`, error);
+        logger.error(`[AutomationManager] 定时任务执行失败: ${ruleId}`, error);
         this.emit('rule:error', { ruleId, error: error.message });
       }
     });
 
     this.scheduledTasks.set(ruleId, task);
-    console.log(`[AutomationManager] 定时任务已注册: ${cronExpression}`);
+    logger.info(`[AutomationManager] 定时任务已注册: ${cronExpression}`);
   }
 
   /**
@@ -258,7 +259,7 @@ class AutomationManager extends EventEmitter {
     // 监听指定事件
     for (const event of events) {
       watcher.on(event, async (filePath) => {
-        console.log(`[AutomationManager] 文件${event}触发: ${filePath}`);
+        logger.info(`[AutomationManager] 文件${event}触发: ${filePath}`);
 
         try {
           await this.executeAction(actionType, {
@@ -269,14 +270,14 @@ class AutomationManager extends EventEmitter {
 
           this.emit('rule:executed', { ruleId, actionType, filePath, success: true });
         } catch (error) {
-          console.error(`[AutomationManager] 文件监听任务执行失败:`, error);
+          logger.error(`[AutomationManager] 文件监听任务执行失败:`, error);
           this.emit('rule:error', { ruleId, error: error.message });
         }
       });
     }
 
     this.fileWatchers.set(ruleId, watcher);
-    console.log(`[AutomationManager] 文件监听已注册: ${watchPath}`);
+    logger.info(`[AutomationManager] 文件监听已注册: ${watchPath}`);
   }
 
   /**
@@ -285,7 +286,7 @@ class AutomationManager extends EventEmitter {
    * @param {Object} actionConfig - 动作配置
    */
   async executeAction(actionType, actionConfig) {
-    console.log(`[AutomationManager] 执行动作: ${actionType}`);
+    logger.info(`[AutomationManager] 执行动作: ${actionType}`);
 
     switch (actionType) {
       case 'run_task':
@@ -313,7 +314,7 @@ class AutomationManager extends EventEmitter {
         break;
 
       default:
-        console.warn(`[AutomationManager] 未知动作类型: ${actionType}`);
+        logger.warn(`[AutomationManager] 未知动作类型: ${actionType}`);
     }
   }
 
@@ -323,7 +324,7 @@ class AutomationManager extends EventEmitter {
   async runTask(config) {
     const { taskDescription, projectId } = config;
 
-    console.log(`[AutomationManager] 执行任务: ${taskDescription}`);
+    logger.info(`[AutomationManager] 执行任务: ${taskDescription}`);
 
     // 调用AI引擎处理任务 (使用单例 - 优化版)
     const { getAIEngineManagerOptimized } = require('../ai-engine/ai-engine-manager-optimized');
@@ -351,7 +352,7 @@ class AutomationManager extends EventEmitter {
   async generateReport(config) {
     const { reportType, projectId, outputPath } = config;
 
-    console.log(`[AutomationManager] 生成报告: ${reportType}`);
+    logger.info(`[AutomationManager] 生成报告: ${reportType}`);
 
     // 根据类型生成不同报告
     switch (reportType) {
@@ -375,7 +376,7 @@ class AutomationManager extends EventEmitter {
   async sendNotification(config) {
     const { title, message, channels = ['desktop'] } = config;
 
-    console.log(`[AutomationManager] 发送通知: ${title}`);
+    logger.info(`[AutomationManager] 发送通知: ${title}`);
 
     // 发送到不同渠道
     for (const channel of channels) {
@@ -407,7 +408,7 @@ class AutomationManager extends EventEmitter {
   async gitCommit(config) {
     const { projectPath, commitMessage } = config;
 
-    console.log(`[AutomationManager] Git提交: ${commitMessage}`);
+    logger.info(`[AutomationManager] Git提交: ${commitMessage}`);
 
     const GitManager = require('../git/git-manager');
     const gitManager = new GitManager();
@@ -429,7 +430,7 @@ class AutomationManager extends EventEmitter {
   async exportFile(config) {
     const { sourcePath, format, outputPath } = config;
 
-    console.log(`[AutomationManager] 导出文件: ${format}`);
+    logger.info(`[AutomationManager] 导出文件: ${format}`);
 
     const DocumentEngine = require('../engines/document-engine');
     const docEngine = new DocumentEngine();
@@ -443,7 +444,7 @@ class AutomationManager extends EventEmitter {
   async runScript(config) {
     const { scriptPath, args = [] } = config;
 
-    console.log(`[AutomationManager] 运行脚本: ${scriptPath}`);
+    logger.info(`[AutomationManager] 运行脚本: ${scriptPath}`);
 
     const { spawn } = require('child_process');
 
@@ -516,7 +517,7 @@ class AutomationManager extends EventEmitter {
    * @param {string} ruleId - 规则ID
    */
   stopRule(ruleId) {
-    console.log(`[AutomationManager] 停止规则: ${ruleId}`);
+    logger.info(`[AutomationManager] 停止规则: ${ruleId}`);
 
     // 停止定时任务
     if (this.scheduledTasks.has(ruleId)) {
@@ -580,7 +581,7 @@ class AutomationManager extends EventEmitter {
       await this.registerRule(rule);
     }
 
-    console.log('[AutomationManager] 规则更新成功:', ruleId);
+    logger.info('[AutomationManager] 规则更新成功:', ruleId);
     return rule;
   }
 
@@ -597,7 +598,7 @@ class AutomationManager extends EventEmitter {
       DELETE FROM project_automation_rules WHERE id = ?
     `).run(ruleId);
 
-    console.log('[AutomationManager] 规则删除成功:', ruleId);
+    logger.info('[AutomationManager] 规则删除成功:', ruleId);
   }
 
   /**
@@ -634,7 +635,7 @@ class AutomationManager extends EventEmitter {
       throw new Error(`规则不存在: ${ruleId}`);
     }
 
-    console.log(`[AutomationManager] 手动触发规则: ${ruleId}`);
+    logger.info(`[AutomationManager] 手动触发规则: ${ruleId}`);
 
     const actionConfig = JSON.parse(rule.action_config);
 
@@ -646,7 +647,7 @@ class AutomationManager extends EventEmitter {
 
       return { success: true };
     } catch (error) {
-      console.error('[AutomationManager] 手动触发失败:', error);
+      logger.error('[AutomationManager] 手动触发失败:', error);
       this.emit('rule:error', { ruleId, error: error.message });
       throw error;
     }

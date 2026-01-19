@@ -2,6 +2,7 @@
  * 文件操作工具函数
  */
 
+import { logger, createLogger } from '@/utils/logger';
 import { fileMetadataCache } from './lru-cache';
 
 // 文件类型检测缓存（使用LRU Cache优化）
@@ -47,7 +48,7 @@ export function sanitizePath(basePath, relativePath) {
   const fullPathLower = normalizedFull.toLowerCase();
 
   if (!fullPathLower.startsWith(basePathLower)) {
-    console.error('[Security] 路径遍历检测失败:', {
+    logger.error('[Security] 路径遍历检测失败:', {
       basePath: normalizedBase,
       fullPath: normalizedFull,
     });

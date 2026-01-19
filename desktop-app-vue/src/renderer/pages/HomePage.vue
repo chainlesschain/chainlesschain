@@ -113,6 +113,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAppStore } from '../stores/app';
@@ -275,7 +277,7 @@ const handleCategoryChange = (category) => {
 
 // 处理模板使用
 const handleTemplateUse = (template) => {
-  console.log('[HomePage] 使用模板:', template);
+  logger.info('[HomePage] 使用模板:', template);
 
   // 使用交互式规划模式
   const userRequest = template.description || `使用${template.name}模板创建项目`;
@@ -292,7 +294,7 @@ const handleTemplateUse = (template) => {
 
 // 处理模板创建成功
 const handleTemplateSuccess = (result) => {
-  console.log('[HomePage] 项目创建成功:', result);
+  logger.info('[HomePage] 项目创建成功:', result);
   // 跳转到项目详情页
   if (result.projectId) {
     router.push(`/projects/${result.projectId}`);

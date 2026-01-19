@@ -225,6 +225,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, reactive, onMounted, computed } from 'vue';
 import { message as antMessage } from 'ant-design-vue';
 import {
@@ -287,7 +289,7 @@ const loadMoments = async (page = 1) => {
       antMessage.error(result.error || '加载动态失败');
     }
   } catch (error) {
-    console.error('加载动态失败:', error);
+    logger.error('加载动态失败:', error);
     antMessage.error('加载动态失败');
   } finally {
     loading.value = false;
@@ -328,7 +330,7 @@ const handlePublish = async () => {
       antMessage.error(result.error || '发布失败');
     }
   } catch (error) {
-    console.error('发布动态失败:', error);
+    logger.error('发布动态失败:', error);
     antMessage.error('发布失败');
   } finally {
     publishing.value = false;
@@ -359,7 +361,7 @@ const handleLike = async (moment) => {
       moment.likes_count = (moment.likes_count || 0) + (moment.liked ? 1 : -1);
     }
   } catch (error) {
-    console.error('点赞失败:', error);
+    logger.error('点赞失败:', error);
     antMessage.error('操作失败');
   }
 };
@@ -392,7 +394,7 @@ const handleSubmitComment = async (moment) => {
       antMessage.success('评论成功');
     }
   } catch (error) {
-    console.error('评论失败:', error);
+    logger.error('评论失败:', error);
     antMessage.error('评论失败');
   }
 };
@@ -424,7 +426,7 @@ const handleDelete = async (momentId) => {
       antMessage.success('删除成功');
     }
   } catch (error) {
-    console.error('删除失败:', error);
+    logger.error('删除失败:', error);
     antMessage.error('删除失败');
   }
 };

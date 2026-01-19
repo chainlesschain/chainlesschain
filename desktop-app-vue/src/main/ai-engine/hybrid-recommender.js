@@ -12,6 +12,7 @@
  * Date: 2026-01-02
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const MLToolMatcher = require('./ml-tool-matcher');
 const CollaborativeFilter = require('./collaborative-filter');
 const ContentRecommender = require('./content-recommender');
@@ -66,7 +67,7 @@ class HybridRecommender {
    */
   async recommend(task, userId) {
     try {
-      console.log('[HybridRecommender] 开始混合推荐...');
+      logger.info('[HybridRecommender] 开始混合推荐...');
 
       // 1. 获取三种算法的推荐结果
       const [mlRecs, cfRecs, cbRecs] = await Promise.all([
@@ -75,7 +76,7 @@ class HybridRecommender {
         this.contentRecommender.recommendTools(userId, 10).catch(() => [])
       ]);
 
-      console.log(`[HybridRecommender] ML: ${mlRecs.length}, CF: ${cfRecs.length}, CB: ${cbRecs.length}`);
+      logger.info(`[HybridRecommender] ML: ${mlRecs.length}, CF: ${cfRecs.length}, CB: ${cbRecs.length}`);
 
       // 2. 计算权重 (可选自适应)
       const weights = this.config.enableAdaptiveWeights
@@ -111,11 +112,11 @@ class HybridRecommender {
       // 7. 统计
       this.updateStats(recommendations);
 
-      console.log(`[HybridRecommender] 最终推荐${recommendations.length}个工具`);
+      logger.info(`[HybridRecommender] 最终推荐${recommendations.length}个工具`);
 
       return recommendations;
     } catch (error) {
-      console.error('[HybridRecommender] 推荐失败:', error);
+      logger.error('[HybridRecommender] 推荐失败:', error);
       return [];
     }
   }
@@ -400,19 +401,19 @@ class HybridRecommender {
    * 初始化推荐器
    */
   async initialize() {
-    console.log('[HybridRecommender] 初始化推荐器...');
+    logger.info('[HybridRecommender] 初始化推荐器...');
     await Promise.all([
       this.collaborativeFilter.buildUserToolMatrix().catch(e =>
-        console.log('[HybridRecommender] CF矩阵构建失败:', e.message)
+        logger.info('[HybridRecommender] CF矩阵构建失败:', e.message)
       ),
       this.contentRecommender.buildToolFeatures().catch(e =>
-        console.log('[HybridRecommender] CB特征构建失败:', e.message)
+        logger.info('[HybridRecommender] CB特征构建失败:', e.message)
       ),
       this.contentRecommender.buildToolChains().catch(e =>
-        console.log('[HybridRecommender] 工具链构建失败:', e.message)
+        logger.info('[HybridRecommender] 工具链构建失败:', e.message)
       )
     ]);
-    console.log('[HybridRecommender] 初始化完成');
+    logger.info('[HybridRecommender] 初始化完成');
   }
 }
 

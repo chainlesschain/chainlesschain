@@ -11,6 +11,7 @@
  * v0.18.0: 新建文件，统一多媒体处理的进度通知
  */
 
+const { logger, createLogger } = require('./logger.js');
 const { EventEmitter } = require('events');
 
 /**
@@ -54,7 +55,7 @@ class ProgressEmitter extends EventEmitter {
     // IPC 窗口引用（Electron）
     this.mainWindow = null;
 
-    console.log('[ProgressEmitter] 初始化统一进度通知系统');
+    logger.info('[ProgressEmitter] 初始化统一进度通知系统');
   }
 
   /**
@@ -63,7 +64,7 @@ class ProgressEmitter extends EventEmitter {
    */
   setMainWindow(window) {
     this.mainWindow = window;
-    console.log('[ProgressEmitter] IPC 转发已启用');
+    logger.info('[ProgressEmitter] IPC 转发已启用');
   }
 
   /**
@@ -329,7 +330,7 @@ class ProgressEmitter extends EventEmitter {
         this.mainWindow.webContents.send('task-progress', eventData);
         this.mainWindow.webContents.send(`task-progress:${taskId}`, eventData);
       } catch (error) {
-        console.warn('[ProgressEmitter] IPC 转发失败:', error.message);
+        logger.warn('[ProgressEmitter] IPC 转发失败:', error.message);
       }
     }
 
@@ -401,7 +402,7 @@ class ProgressEmitter extends EventEmitter {
   persistTaskProgress(taskId, eventData) {
     // TODO: 实现进度持久化（如保存到数据库或文件）
     // 这里仅记录日志作为占位
-    console.log(`[ProgressEmitter] 持久化进度: ${taskId} - ${eventData.percent}%`);
+    logger.info(`[ProgressEmitter] 持久化进度: ${taskId} - ${eventData.percent}%`);
   }
 
   /**
@@ -442,7 +443,7 @@ class ProgressEmitter extends EventEmitter {
     this.tasks.clear();
     this.taskHierarchy.clear();
     this.lastEmitTime.clear();
-    console.log('[ProgressEmitter] 所有任务已清空');
+    logger.info('[ProgressEmitter] 所有任务已清空');
   }
 }
 

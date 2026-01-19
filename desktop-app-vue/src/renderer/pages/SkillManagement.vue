@@ -315,6 +315,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue';
 import { message, Modal } from 'ant-design-vue';
 import { useKeyboardShortcuts, SHORTCUTS } from '../composables/useKeyboardShortcuts';
@@ -490,7 +492,7 @@ const handleToggleEnabled = async (skill) => {
       message.error(`${action}技能失败`);
     }
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     message.error(`${action}技能失败`);
   }
 };
@@ -505,7 +507,7 @@ const handleViewDoc = async (skill) => {
     const doc = await skillStore.fetchDoc(skill.id);
     currentDoc.value = doc;
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     message.error('加载文档失败');
   } finally {
     loadingDoc.value = false;
@@ -550,7 +552,7 @@ const handleSaveSkill = async (skillData) => {
       message.error(editingSkill.value ? '更新失败' : '创建失败');
     }
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     message.error('操作失败');
   }
 };
@@ -568,7 +570,7 @@ const showDependencyGraph = async () => {
     allSkillTools.value = relations;
     graphVisible.value = true;
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     message.error('加载依赖关系失败');
   }
 };
@@ -613,7 +615,7 @@ const handleBatchEnable = () => {
         handleClearSelection();
         await skillStore.fetchAll();
       } catch (error) {
-        console.error(error);
+        logger.error(error);
         message.error('批量启用失败');
       }
     },
@@ -643,7 +645,7 @@ const handleBatchDisable = () => {
         handleClearSelection();
         await skillStore.fetchAll();
       } catch (error) {
-        console.error(error);
+        logger.error(error);
         message.error('批量禁用失败');
       }
     },
@@ -681,7 +683,7 @@ const handleBatchDelete = () => {
         handleClearSelection();
         await skillStore.fetchAll();
       } catch (error) {
-        console.error(error);
+        logger.error(error);
         message.error('批量删除失败');
       }
     },

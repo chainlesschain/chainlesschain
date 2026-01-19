@@ -1,3 +1,4 @@
+import { logger, createLogger } from '@/utils/logger';
 import { defineStore } from 'pinia'
 import { ref, computed, toRaw } from 'vue'
 import { electronAPI } from '../utils/ipc'
@@ -47,15 +48,15 @@ export const useTemplateStore = defineStore('template', () => {
 
       if (result.success) {
         templates.value = result.templates || []
-        console.log('[TemplateStore] 成功加载项目模板:', templates.value.length)
+        logger.info('[TemplateStore] 成功加载项目模板:', templates.value.length)
       } else {
-        console.error('[TemplateStore] 加载项目模板失败:', result.error)
+        logger.error('[TemplateStore] 加载项目模板失败:', result.error)
         templates.value = []
       }
 
       return templates.value
     } catch (error) {
-      console.error('[TemplateStore] 加载模板异常:', error)
+      logger.error('[TemplateStore] 加载模板异常:', error)
       templates.value = []
       throw error
     } finally {
@@ -72,7 +73,7 @@ export const useTemplateStore = defineStore('template', () => {
       await fetchTemplates()
     }
 
-    console.log('[TemplateStore] 过滤模板:', {
+    logger.info('[TemplateStore] 过滤模板:', {
       category,
       subcategory,
       count: filteredTemplates.value.length
@@ -100,14 +101,14 @@ export const useTemplateStore = defineStore('template', () => {
         if (template) {
           template.usage_count = (template.usage_count || 0) + 1
         }
-        console.log('[TemplateStore] 记录使用成功:', templateId)
+        logger.info('[TemplateStore] 记录使用成功:', templateId)
       } else {
-        console.error('[TemplateStore] 记录使用失败:', result.error)
+        logger.error('[TemplateStore] 记录使用失败:', result.error)
       }
 
       return result
     } catch (error) {
-      console.error('[TemplateStore] 记录使用异常:', error)
+      logger.error('[TemplateStore] 记录使用异常:', error)
       throw error
     }
   }
@@ -128,7 +129,7 @@ export const useTemplateStore = defineStore('template', () => {
         throw new Error(result.error || '获取模板失败')
       }
     } catch (error) {
-      console.error('[TemplateStore] 获取模板异常:', error)
+      logger.error('[TemplateStore] 获取模板异常:', error)
       throw error
     }
   }
@@ -144,7 +145,7 @@ export const useTemplateStore = defineStore('template', () => {
         throw new Error(result.error || '搜索失败')
       }
     } catch (error) {
-      console.error('[TemplateStore] 搜索模板异常:', error)
+      logger.error('[TemplateStore] 搜索模板异常:', error)
       throw error
     } finally {
       loading.value = false
@@ -166,7 +167,7 @@ export const useTemplateStore = defineStore('template', () => {
         throw new Error(result.error || '渲染失败')
       }
     } catch (error) {
-      console.error('[TemplateStore] 渲染 prompt 异常:', error)
+      logger.error('[TemplateStore] 渲染 prompt 异常:', error)
       throw error
     }
   }
@@ -179,13 +180,13 @@ export const useTemplateStore = defineStore('template', () => {
       if (result.success) {
         // 添加到本地列表
         templates.value.push(result.template)
-        console.log('[TemplateStore] 创建模板成功:', result.template.id)
+        logger.info('[TemplateStore] 创建模板成功:', result.template.id)
         return result.template
       } else {
         throw new Error(result.error || '创建模板失败')
       }
     } catch (error) {
-      console.error('[TemplateStore] 创建模板异常:', error)
+      logger.error('[TemplateStore] 创建模板异常:', error)
       throw error
     }
   }
@@ -201,13 +202,13 @@ export const useTemplateStore = defineStore('template', () => {
         if (index !== -1) {
           templates.value[index] = result.template
         }
-        console.log('[TemplateStore] 更新模板成功:', templateId)
+        logger.info('[TemplateStore] 更新模板成功:', templateId)
         return result.template
       } else {
         throw new Error(result.error || '更新模板失败')
       }
     } catch (error) {
-      console.error('[TemplateStore] 更新模板异常:', error)
+      logger.error('[TemplateStore] 更新模板异常:', error)
       throw error
     }
   }
@@ -222,13 +223,13 @@ export const useTemplateStore = defineStore('template', () => {
         if (index !== -1) {
           templates.value.splice(index, 1)
         }
-        console.log('[TemplateStore] 删除模板成功:', templateId)
+        logger.info('[TemplateStore] 删除模板成功:', templateId)
         return true
       } else {
         throw new Error(result.error || '删除模板失败')
       }
     } catch (error) {
-      console.error('[TemplateStore] 删除模板异常:', error)
+      logger.error('[TemplateStore] 删除模板异常:', error)
       throw error
     }
   }
@@ -240,13 +241,13 @@ export const useTemplateStore = defineStore('template', () => {
       if (result.success) {
         // 添加到本地列表
         templates.value.push(result.template)
-        console.log('[TemplateStore] 复制模板成功:', result.template.id)
+        logger.info('[TemplateStore] 复制模板成功:', result.template.id)
         return result.template
       } else {
         throw new Error(result.error || '复制模板失败')
       }
     } catch (error) {
-      console.error('[TemplateStore] 复制模板异常:', error)
+      logger.error('[TemplateStore] 复制模板异常:', error)
       throw error
     }
   }
@@ -256,7 +257,7 @@ export const useTemplateStore = defineStore('template', () => {
       const stats = await electronAPI.template.getStats()
       return stats
     } catch (error) {
-      console.error('[TemplateStore] 获取模板统计异常:', error)
+      logger.error('[TemplateStore] 获取模板统计异常:', error)
       throw error
     }
   }

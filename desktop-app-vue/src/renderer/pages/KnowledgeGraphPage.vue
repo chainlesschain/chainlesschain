@@ -208,6 +208,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, reactive, onMounted } from 'vue';
 import { message } from 'ant-design-vue';
 import { useRouter } from 'vue-router';
@@ -320,7 +322,7 @@ const handleRefresh = async () => {
  * 处理节点点击
  */
 const handleNodeClick = (node) => {
-  console.log('节点被点击:', node);
+  logger.info('节点被点击:', node);
 };
 
 /**

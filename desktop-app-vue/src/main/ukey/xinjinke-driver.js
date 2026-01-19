@@ -1,3 +1,4 @@
+const { logger, createLogger } = require('../utils/logger.js');
 const BaseUKeyDriver = require('./base-driver');
 const XinJinKeNativeBinding = require('./native-binding');
 const crypto = require('crypto');
@@ -75,25 +76,25 @@ class XinJinKeDriver extends BaseUKeyDriver {
    * 初始化驱动
    */
   async initialize() {
-    // console.log('[XinJinKe] 初始化芯劲科U盾驱动...');
+    // logger.info('[XinJinKe] 初始化芯劲科U盾驱动...');
 
     try {
       // 尝试加载原生模块
       const loaded = this.nativeBinding.load();
 
       if (loaded) {
-        // console.log('[XinJinKe] 原生DLL加载成功');
+        // logger.info('[XinJinKe] 原生DLL加载成功');
         this.simulationMode = false;
       } else {
-        // console.warn('[XinJinKe] 未找到DLL或加载失败，使用模拟模式');
+        // logger.warn('[XinJinKe] 未找到DLL或加载失败，使用模拟模式');
         this.simulationMode = true;
       }
 
       this.isInitialized = true;
-      // console.log('[XinJinKe] 驱动初始化成功');
+      // logger.info('[XinJinKe] 驱动初始化成功');
       return true;
     } catch (error) {
-      // console.error('[XinJinKe] 驱动初始化失败:', error);
+      // logger.error('[XinJinKe] 驱动初始化失败:', error);
       this.simulationMode = true;
       this.isInitialized = true; // 使用模拟模式继续
       return true;
@@ -104,7 +105,7 @@ class XinJinKeDriver extends BaseUKeyDriver {
    * 检测U盾设备
    */
   async detect() {
-    // console.log('[XinJinKe] 检测U盾设备...');
+    // logger.info('[XinJinKe] 检测U盾设备...');
 
     try {
       // 调用U盾特定的DLL函数来检测设备
@@ -129,7 +130,7 @@ class XinJinKeDriver extends BaseUKeyDriver {
         model: 'U盾加密狗',
       };
     } catch (error) {
-      console.error('[XinJinKe] 检测失败:', error);
+      logger.error('[XinJinKe] 检测失败:', error);
       return {
         detected: false,
         unlocked: false,
@@ -160,7 +161,7 @@ class XinJinKeDriver extends BaseUKeyDriver {
         }
       }
     } catch (error) {
-      console.error('[XinJinKe] 查找磁盘失败:', error);
+      logger.error('[XinJinKe] 查找磁盘失败:', error);
     }
 
     return drives;
@@ -175,7 +176,7 @@ class XinJinKeDriver extends BaseUKeyDriver {
    * - 默认密码：888888
    */
   async verifyPIN(pin) {
-    console.log('[XinJinKe] 验证PIN码...');
+    logger.info('[XinJinKe] 验证PIN码...');
 
     try {
       if (!this.driveLetter) {
@@ -201,17 +202,17 @@ class XinJinKeDriver extends BaseUKeyDriver {
         this.totalSectors = await this.callNativeFunction('xjkGetSectors');
         this.totalClusters = await this.callNativeFunction('xjkGetClusters');
 
-        console.log('[XinJinKe] PIN码验证成功');
-        console.log('[XinJinKe] 序列号:', this.serialNumber);
-        console.log('[XinJinKe] 扇区总数:', this.totalSectors);
-        console.log('[XinJinKe] 簇总数:', this.totalClusters);
+        logger.info('[XinJinKe] PIN码验证成功');
+        logger.info('[XinJinKe] 序列号:', this.serialNumber);
+        logger.info('[XinJinKe] 扇区总数:', this.totalSectors);
+        logger.info('[XinJinKe] 簇总数:', this.totalClusters);
 
         return {
           success: true,
           remainingAttempts: null,
         };
       } else {
-        console.log('[XinJinKe] PIN码验证失败');
+        logger.info('[XinJinKe] PIN码验证失败');
         return {
           success: false,
           error: 'PIN码错误',
@@ -219,7 +220,7 @@ class XinJinKeDriver extends BaseUKeyDriver {
         };
       }
     } catch (error) {
-      console.error('[XinJinKe] 验证失败:', error);
+      logger.error('[XinJinKe] 验证失败:', error);
       return {
         success: false,
         error: error.message,
@@ -261,18 +262,18 @@ class XinJinKeDriver extends BaseUKeyDriver {
           case 'xjkFindPort':
             return this.nativeBinding.findPort();
           default:
-            console.warn(`[XinJinKe] 未知的DLL函数: ${funcName}`);
+            logger.warn(`[XinJinKe] 未知的DLL函数: ${funcName}`);
             return null;
         }
       } catch (error) {
-        console.error(`[XinJinKe] DLL调用失败: ${funcName}`, error);
+        logger.error(`[XinJinKe] DLL调用失败: ${funcName}`, error);
         // 出错时回退到模拟模式
         this.simulationMode = true;
       }
     }
 
     // 模拟模式
-    // console.log(`[XinJinKe] 模拟调用: ${funcName}(${args.join(', ')})`);
+    // logger.info(`[XinJinKe] 模拟调用: ${funcName}(${args.join(', ')})`);
 
     switch (funcName) {
       case 'xjkOpenKeyEx':
@@ -322,7 +323,7 @@ class XinJinKeDriver extends BaseUKeyDriver {
       throw new Error('U盾未解锁');
     }
 
-    console.log('[XinJinKe] 对数据进行签名...');
+    logger.info('[XinJinKe] 对数据进行签名...');
 
     try {
       // 从U盾读取密钥（假设存储在第0个扇区）
@@ -333,10 +334,10 @@ class XinJinKeDriver extends BaseUKeyDriver {
       hmac.update(data);
       const signature = hmac.digest('base64');
 
-      console.log('[XinJinKe] 签名完成');
+      logger.info('[XinJinKe] 签名完成');
       return signature;
     } catch (error) {
-      console.error('[XinJinKe] 签名失败:', error);
+      logger.error('[XinJinKe] 签名失败:', error);
       throw error;
     }
   }
@@ -349,16 +350,16 @@ class XinJinKeDriver extends BaseUKeyDriver {
       throw new Error('U盾未解锁');
     }
 
-    console.log('[XinJinKe] 验证签名...');
+    logger.info('[XinJinKe] 验证签名...');
 
     try {
       const expectedSignature = await this.sign(data);
       const verified = expectedSignature === signature;
 
-      console.log('[XinJinKe] 签名验证结果:', verified);
+      logger.info('[XinJinKe] 签名验证结果:', verified);
       return verified;
     } catch (error) {
-      console.error('[XinJinKe] 签名验证失败:', error);
+      logger.error('[XinJinKe] 签名验证失败:', error);
       return false;
     }
   }
@@ -367,7 +368,7 @@ class XinJinKeDriver extends BaseUKeyDriver {
    * 加密数据
    */
   async encrypt(data) {
-    console.log('[XinJinKe] 加密数据...');
+    logger.info('[XinJinKe] 加密数据...');
 
     try {
       // 从U盾读取加密密钥
@@ -380,10 +381,10 @@ class XinJinKeDriver extends BaseUKeyDriver {
       let encrypted = cipher.update(data, 'utf8', 'base64');
       encrypted += cipher.final('base64');
 
-      console.log('[XinJinKe] 数据加密完成');
+      logger.info('[XinJinKe] 数据加密完成');
       return encrypted;
     } catch (error) {
-      console.error('[XinJinKe] 加密失败:', error);
+      logger.error('[XinJinKe] 加密失败:', error);
       throw error;
     }
   }
@@ -396,7 +397,7 @@ class XinJinKeDriver extends BaseUKeyDriver {
       throw new Error('U盾未解锁');
     }
 
-    console.log('[XinJinKe] 解密数据...');
+    logger.info('[XinJinKe] 解密数据...');
 
     try {
       // 从U盾读取解密密钥
@@ -409,10 +410,10 @@ class XinJinKeDriver extends BaseUKeyDriver {
       let decrypted = decipher.update(encryptedData, 'base64', 'utf8');
       decrypted += decipher.final('utf8');
 
-      console.log('[XinJinKe] 数据解密完成');
+      logger.info('[XinJinKe] 数据解密完成');
       return decrypted;
     } catch (error) {
-      console.error('[XinJinKe] 解密失败:', error);
+      logger.error('[XinJinKe] 解密失败:', error);
       throw error;
     }
   }
@@ -434,7 +435,7 @@ class XinJinKeDriver extends BaseUKeyDriver {
       throw new Error(`扇区号超出范围: ${sectorNumber}`);
     }
 
-    console.log(`[XinJinKe] 读取扇区 ${sectorNumber}...`);
+    logger.info(`[XinJinKe] 读取扇区 ${sectorNumber}...`);
 
     const data = await this.callNativeFunction('xjkReadSector', sectorNumber);
     return data;
@@ -460,7 +461,7 @@ class XinJinKeDriver extends BaseUKeyDriver {
       throw new Error('扇区数据必须是512字节');
     }
 
-    console.log(`[XinJinKe] 写入扇区 ${sectorNumber}...`);
+    logger.info(`[XinJinKe] 写入扇区 ${sectorNumber}...`);
 
     const result = await this.callNativeFunction('xjkWriteSector', data, sectorNumber);
     return result;
@@ -482,7 +483,7 @@ class XinJinKeDriver extends BaseUKeyDriver {
       throw new Error(`簇号超出范围: ${clusterNumber}`);
     }
 
-    console.log(`[XinJinKe] 读取簇 ${clusterNumber}...`);
+    logger.info(`[XinJinKe] 读取簇 ${clusterNumber}...`);
 
     const data = await this.callNativeFunction('xjkReadCluster', clusterNumber);
     return data;
@@ -504,7 +505,7 @@ class XinJinKeDriver extends BaseUKeyDriver {
       throw new Error('簇数据必须是4096字节');
     }
 
-    console.log(`[XinJinKe] 写入簇 ${clusterNumber}...`);
+    logger.info(`[XinJinKe] 写入簇 ${clusterNumber}...`);
 
     const result = await this.callNativeFunction('xjkWriteCluster', data, clusterNumber);
     return result;
@@ -527,15 +528,15 @@ class XinJinKeDriver extends BaseUKeyDriver {
       throw new Error('新密码长度不能超过200');
     }
 
-    console.log('[XinJinKe] 更改密码...');
-    console.warn('[XinJinKe] 警告：密码忘记后无法恢复！');
+    logger.info('[XinJinKe] 更改密码...');
+    logger.warn('[XinJinKe] 警告：密码忘记后无法恢复！');
 
     const result = await this.callNativeFunction('xjkChangePwd', oldPassword, newPassword);
 
     if (result) {
-      console.log('[XinJinKe] 密码更改成功');
+      logger.info('[XinJinKe] 密码更改成功');
     } else {
-      console.error('[XinJinKe] 密码更改失败');
+      logger.error('[XinJinKe] 密码更改失败');
     }
 
     return result;
@@ -550,7 +551,7 @@ class XinJinKeDriver extends BaseUKeyDriver {
     }
 
     // 从U盾读取存储的公钥，或基于序列号生成
-    console.log('[XinJinKe] 获取公钥...');
+    logger.info('[XinJinKe] 获取公钥...');
 
     // 简化实现：基于序列号生成确定性的"公钥"标识
     const publicKeyId = `xjk-pubkey-${this.serialNumber}`;
@@ -580,14 +581,14 @@ class XinJinKeDriver extends BaseUKeyDriver {
    * 关闭驱动
    */
   async close() {
-    // console.log('[XinJinKe] 关闭U盾连接...');
+    // logger.info('[XinJinKe] 关闭U盾连接...');
 
     if (this.isUnlocked) {
       await this.callNativeFunction('xjkCloseKey');
     }
 
     await super.close();
-    // console.log('[XinJinKe] U盾连接已关闭');
+    // logger.info('[XinJinKe] U盾连接已关闭');
   }
 
   /**

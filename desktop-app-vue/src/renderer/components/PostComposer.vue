@@ -128,6 +128,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, reactive, computed } from 'vue';
 import { message as antMessage } from 'ant-design-vue';
 import {
@@ -203,7 +205,7 @@ const selectImages = async () => {
 
           images.value.push(base64);
         } catch (error) {
-          console.error('读取图片失败:', filePath, error);
+          logger.error('读取图片失败:', filePath, error);
         }
       }
 
@@ -212,7 +214,7 @@ const selectImages = async () => {
       }
     }
   } catch (error) {
-    console.error('选择图片失败:', error);
+    logger.error('选择图片失败:', error);
     antMessage.error('选择图片失败: ' + error.message);
   }
 };
@@ -257,7 +259,7 @@ const handlePublish = async () => {
       handleClear();
     }
   } catch (error) {
-    console.error('发布动态失败:', error);
+    logger.error('发布动态失败:', error);
     antMessage.error('发布动态失败: ' + error.message);
   } finally {
     publishing.value = false;

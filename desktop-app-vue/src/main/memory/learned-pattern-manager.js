@@ -14,6 +14,7 @@
  * @since 2026-01-17
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require("fs").promises;
 const path = require("path");
 const { EventEmitter } = require("events");
@@ -53,7 +54,7 @@ class LearnedPatternManager extends EventEmitter {
       workflow: "workflow_patterns",
     };
 
-    console.log("[LearnedPatternManager] Initialized", {
+    logger.info("[LearnedPatternManager] Initialized", {
       patternsDir: this.patternsDir,
       hasLLM: !!this.llmManager,
       hasErrorMonitor: !!this.errorMonitor,
@@ -71,9 +72,9 @@ class LearnedPatternManager extends EventEmitter {
       // Ensure tables exist
       await this._ensureTables();
 
-      console.log("[LearnedPatternManager] Initialization complete");
+      logger.info("[LearnedPatternManager] Initialization complete");
     } catch (error) {
-      console.error("[LearnedPatternManager] Initialization failed:", error);
+      logger.error("[LearnedPatternManager] Initialization failed:", error);
       throw error;
     }
   }
@@ -211,10 +212,10 @@ class LearnedPatternManager extends EventEmitter {
           )
           .run();
 
-        console.log("[LearnedPatternManager] Database tables created");
+        logger.info("[LearnedPatternManager] Database tables created");
       }
     } catch (error) {
-      console.error("[LearnedPatternManager] Failed to ensure tables:", error);
+      logger.error("[LearnedPatternManager] Failed to ensure tables:", error);
       throw error;
     }
   }
@@ -272,11 +273,11 @@ class LearnedPatternManager extends EventEmitter {
       };
 
       this.emit("prompt-pattern-recorded", pattern);
-      console.log(`[LearnedPatternManager] Prompt pattern recorded: ${id}`);
+      logger.info(`[LearnedPatternManager] Prompt pattern recorded: ${id}`);
 
       return pattern;
     } catch (error) {
-      console.error(
+      logger.error(
         "[LearnedPatternManager] Failed to record prompt pattern:",
         error,
       );
@@ -318,9 +319,9 @@ class LearnedPatternManager extends EventEmitter {
       params.push(id);
 
       this.db.prepare(sql).run(...params);
-      console.log(`[LearnedPatternManager] Prompt pattern updated: ${id}`);
+      logger.info(`[LearnedPatternManager] Prompt pattern updated: ${id}`);
     } catch (error) {
-      console.error(
+      logger.error(
         "[LearnedPatternManager] Failed to update prompt pattern:",
         error,
       );
@@ -374,7 +375,7 @@ class LearnedPatternManager extends EventEmitter {
         lastUsedAt: row.last_used_at,
       }));
     } catch (error) {
-      console.error(
+      logger.error(
         "[LearnedPatternManager] Failed to get prompt suggestions:",
         error,
       );
@@ -410,7 +411,7 @@ class LearnedPatternManager extends EventEmitter {
         useCount: row.use_count,
       }));
     } catch (error) {
-      console.error(
+      logger.error(
         "[LearnedPatternManager] Failed to search prompt patterns:",
         error,
       );
@@ -499,11 +500,11 @@ class LearnedPatternManager extends EventEmitter {
       };
 
       this.emit("error-fix-recorded", pattern);
-      console.log(`[LearnedPatternManager] Error fix pattern recorded: ${id}`);
+      logger.info(`[LearnedPatternManager] Error fix pattern recorded: ${id}`);
 
       return pattern;
     } catch (error) {
-      console.error(
+      logger.error(
         "[LearnedPatternManager] Failed to record error fix:",
         error,
       );
@@ -567,7 +568,7 @@ class LearnedPatternManager extends EventEmitter {
         autoApply: row.auto_apply === 1,
       }));
     } catch (error) {
-      console.error(
+      logger.error(
         "[LearnedPatternManager] Failed to get error fix suggestions:",
         error,
       );
@@ -625,11 +626,11 @@ class LearnedPatternManager extends EventEmitter {
       };
 
       this.emit("snippet-saved", saved);
-      console.log(`[LearnedPatternManager] Code snippet saved: ${id}`);
+      logger.info(`[LearnedPatternManager] Code snippet saved: ${id}`);
 
       return saved;
     } catch (error) {
-      console.error("[LearnedPatternManager] Failed to save snippet:", error);
+      logger.error("[LearnedPatternManager] Failed to save snippet:", error);
       throw error;
     }
   }
@@ -688,7 +689,7 @@ class LearnedPatternManager extends EventEmitter {
 
       return result;
     } catch (error) {
-      console.error("[LearnedPatternManager] Failed to get snippets:", error);
+      logger.error("[LearnedPatternManager] Failed to get snippets:", error);
       return [];
     }
   }
@@ -710,7 +711,7 @@ class LearnedPatternManager extends EventEmitter {
         )
         .run(now, now, id);
     } catch (error) {
-      console.error("[LearnedPatternManager] Failed to update snippet:", error);
+      logger.error("[LearnedPatternManager] Failed to update snippet:", error);
     }
   }
 
@@ -740,7 +741,7 @@ class LearnedPatternManager extends EventEmitter {
 
       return newStatus === 1;
     } catch (error) {
-      console.error(
+      logger.error(
         "[LearnedPatternManager] Failed to toggle favorite:",
         error,
       );
@@ -756,9 +757,9 @@ class LearnedPatternManager extends EventEmitter {
     try {
       this.db.prepare(`DELETE FROM code_snippets WHERE id = ?`).run(id);
       this.emit("snippet-deleted", { id });
-      console.log(`[LearnedPatternManager] Snippet deleted: ${id}`);
+      logger.info(`[LearnedPatternManager] Snippet deleted: ${id}`);
     } catch (error) {
-      console.error("[LearnedPatternManager] Failed to delete snippet:", error);
+      logger.error("[LearnedPatternManager] Failed to delete snippet:", error);
       throw error;
     }
   }
@@ -812,11 +813,11 @@ class LearnedPatternManager extends EventEmitter {
       };
 
       this.emit("workflow-recorded", recorded);
-      console.log(`[LearnedPatternManager] Workflow recorded: ${id}`);
+      logger.info(`[LearnedPatternManager] Workflow recorded: ${id}`);
 
       return recorded;
     } catch (error) {
-      console.error(
+      logger.error(
         "[LearnedPatternManager] Failed to record workflow:",
         error,
       );
@@ -860,7 +861,7 @@ class LearnedPatternManager extends EventEmitter {
         avgDurationMs: row.avg_duration_ms,
       }));
     } catch (error) {
-      console.error(
+      logger.error(
         "[LearnedPatternManager] Failed to get workflow suggestions:",
         error,
       );
@@ -904,7 +905,7 @@ class LearnedPatternManager extends EventEmitter {
 
       this.db.prepare(sql).run(...params);
     } catch (error) {
-      console.error(
+      logger.error(
         "[LearnedPatternManager] Failed to update workflow usage:",
         error,
       );
@@ -959,7 +960,7 @@ class LearnedPatternManager extends EventEmitter {
         },
       };
     } catch (error) {
-      console.error("[LearnedPatternManager] Failed to get stats:", error);
+      logger.error("[LearnedPatternManager] Failed to get stats:", error);
       return {};
     }
   }
@@ -992,10 +993,10 @@ class LearnedPatternManager extends EventEmitter {
       );
       results.snippets = { success: true, count: snippets.length };
 
-      console.log("[LearnedPatternManager] Backup complete");
+      logger.info("[LearnedPatternManager] Backup complete");
       return { success: true, results };
     } catch (error) {
-      console.error("[LearnedPatternManager] Backup failed:", error);
+      logger.error("[LearnedPatternManager] Backup failed:", error);
       return { success: false, error: error.message };
     }
   }
@@ -1036,12 +1037,12 @@ class LearnedPatternManager extends EventEmitter {
         .run(cutoff);
       deleted += errorResult.changes;
 
-      console.log(
+      logger.info(
         `[LearnedPatternManager] Cleanup complete: ${deleted} deleted`,
       );
       return { success: true, deleted };
     } catch (error) {
-      console.error("[LearnedPatternManager] Cleanup failed:", error);
+      logger.error("[LearnedPatternManager] Cleanup failed:", error);
       return { success: false, error: error.message };
     }
   }

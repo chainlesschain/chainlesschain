@@ -14,6 +14,7 @@
  * @since 2026-01-16
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require("fs").promises;
 const path = require("path");
 const { EventEmitter } = require("events");
@@ -80,7 +81,7 @@ class SessionManager extends EventEmitter {
     // 内存缓存
     this.sessionCache = new Map();
 
-    console.log("[SessionManager] 初始化完成", {
+    logger.info("[SessionManager] 初始化完成", {
       会话目录: this.sessionsDir,
       最大消息数: this.maxHistoryMessages,
       压缩阈值: this.compressionThreshold,
@@ -98,14 +99,14 @@ class SessionManager extends EventEmitter {
   async initialize() {
     try {
       await fs.mkdir(this.sessionsDir, { recursive: true });
-      console.log("[SessionManager] 会话目录已创建:", this.sessionsDir);
+      logger.info("[SessionManager] 会话目录已创建:", this.sessionsDir);
 
       // 启动后台摘要生成器
       if (this.enableBackgroundSummary && this.llmManager) {
         this.startBackgroundSummaryGenerator();
       }
     } catch (error) {
-      console.error("[SessionManager] 初始化失败:", error);
+      logger.error("[SessionManager] 初始化失败:", error);
       throw error;
     }
   }
@@ -116,7 +117,7 @@ class SessionManager extends EventEmitter {
   destroy() {
     this.stopBackgroundSummaryGenerator();
     this.sessionCache.clear();
-    console.log("[SessionManager] 实例已销毁");
+    logger.info("[SessionManager] 实例已销毁");
   }
 
   /**
@@ -179,12 +180,12 @@ class SessionManager extends EventEmitter {
       // 缓存
       this.sessionCache.set(sessionId, session);
 
-      console.log("[SessionManager] 会话已创建:", sessionId);
+      logger.info("[SessionManager] 会话已创建:", sessionId);
       this.emit("session-created", session);
 
       return session;
     } catch (error) {
-      console.error("[SessionManager] 创建会话失败:", error);
+      logger.error("[SessionManager] 创建会话失败:", error);
       throw error;
     }
   }
@@ -203,7 +204,7 @@ class SessionManager extends EventEmitter {
     try {
       // 1. 尝试从缓存加载
       if (fromCache && this.sessionCache.has(sessionId)) {
-        console.log("[SessionManager] 从缓存加载会话:", sessionId);
+        logger.info("[SessionManager] 从缓存加载会话:", sessionId);
         return this.sessionCache.get(sessionId);
       }
 
@@ -214,7 +215,7 @@ class SessionManager extends EventEmitter {
           this.sessionCache.set(sessionId, session);
           return session;
         } catch (fileError) {
-          console.warn("[SessionManager] 从文件加载失败，尝试从数据库加载");
+          logger.warn("[SessionManager] 从文件加载失败，尝试从数据库加载");
         }
       }
 
@@ -244,10 +245,10 @@ class SessionManager extends EventEmitter {
       // 缓存
       this.sessionCache.set(sessionId, session);
 
-      console.log("[SessionManager] 从数据库加载会话:", sessionId);
+      logger.info("[SessionManager] 从数据库加载会话:", sessionId);
       return session;
     } catch (error) {
-      console.error("[SessionManager] 加载会话失败:", error);
+      logger.error("[SessionManager] 加载会话失败:", error);
       throw error;
     }
   }
@@ -278,7 +279,7 @@ class SessionManager extends EventEmitter {
         this.enableCompression &&
         session.messages.length >= this.compressionThreshold
       ) {
-        console.log("[SessionManager] 消息数达到阈值，触发压缩");
+        logger.info("[SessionManager] 消息数达到阈值，触发压缩");
         await this.compressSession(sessionId);
       }
 
@@ -297,7 +298,7 @@ class SessionManager extends EventEmitter {
 
       return session;
     } catch (error) {
-      console.error("[SessionManager] 添加消息失败:", error);
+      logger.error("[SessionManager] 添加消息失败:", error);
       throw error;
     }
   }
@@ -332,7 +333,7 @@ class SessionManager extends EventEmitter {
     // 避免重复加入队列
     if (!this._summaryQueue.includes(sessionId)) {
       this._summaryQueue.push(sessionId);
-      console.log(
+      logger.info(
         `[SessionManager] 会话 ${sessionId} 加入自动摘要队列，队列长度: ${this._summaryQueue.length}`,
       );
     }
@@ -360,7 +361,7 @@ class SessionManager extends EventEmitter {
       try {
         await this._generateAutoSummary(sessionId);
       } catch (error) {
-        console.error(
+        logger.error(
           `[SessionManager] 自动摘要生成失败 ${sessionId}:`,
           error.message,
         );
@@ -383,11 +384,11 @@ class SessionManager extends EventEmitter {
 
       // 再次检查是否需要生成
       if (!this._shouldAutoGenerateSummary(session)) {
-        console.log(`[SessionManager] 会话 ${sessionId} 不需要自动摘要，跳过`);
+        logger.info(`[SessionManager] 会话 ${sessionId} 不需要自动摘要，跳过`);
         return null;
       }
 
-      console.log(`[SessionManager] 开始自动生成摘要: ${sessionId}`);
+      logger.info(`[SessionManager] 开始自动生成摘要: ${sessionId}`);
 
       const summary = await this.generateSummary(sessionId, {
         useLLM: true,
@@ -399,12 +400,12 @@ class SessionManager extends EventEmitter {
       session.metadata.autoSummaryGenerated = true;
       await this.saveSession(sessionId);
 
-      console.log(`[SessionManager] 自动摘要完成: ${sessionId}`);
+      logger.info(`[SessionManager] 自动摘要完成: ${sessionId}`);
       this.emit("auto-summary-generated", { sessionId, summary });
 
       return summary;
     } catch (error) {
-      console.error(
+      logger.error(
         `[SessionManager] 自动摘要生成失败 ${sessionId}:`,
         error.message,
       );
@@ -422,11 +423,11 @@ class SessionManager extends EventEmitter {
       const session = await this.loadSession(sessionId);
 
       if (session.messages.length <= this.maxHistoryMessages) {
-        console.log("[SessionManager] 消息数未超过最大限制，跳过压缩");
+        logger.info("[SessionManager] 消息数未超过最大限制，跳过压缩");
         return { compressed: false };
       }
 
-      console.log("[SessionManager] 开始压缩会话:", sessionId);
+      logger.info("[SessionManager] 开始压缩会话:", sessionId);
 
       // 使用 PromptCompressor 压缩
       const result = await this.promptCompressor.compress(session.messages, {
@@ -454,7 +455,7 @@ class SessionManager extends EventEmitter {
       // 保存
       await this.saveSession(sessionId);
 
-      console.log("[SessionManager] 压缩完成:", {
+      logger.info("[SessionManager] 压缩完成:", {
         原始Tokens: result.originalTokens,
         压缩后Tokens: result.compressedTokens,
         压缩率: result.compressionRatio.toFixed(2),
@@ -472,7 +473,7 @@ class SessionManager extends EventEmitter {
         ...result,
       };
     } catch (error) {
-      console.error("[SessionManager] 压缩会话失败:", error);
+      logger.error("[SessionManager] 压缩会话失败:", error);
       throw error;
     }
   }
@@ -512,12 +513,12 @@ class SessionManager extends EventEmitter {
 
       // 保存到文件（后台异步）
       this.saveSessionToFile(session).catch((err) => {
-        console.error("[SessionManager] 保存文件失败:", err);
+        logger.error("[SessionManager] 保存文件失败:", err);
       });
 
-      console.log("[SessionManager] 会话已保存:", sessionId);
+      logger.info("[SessionManager] 会话已保存:", sessionId);
     } catch (error) {
-      console.error("[SessionManager] 保存会话失败:", error);
+      logger.error("[SessionManager] 保存会话失败:", error);
       throw error;
     }
   }
@@ -532,7 +533,7 @@ class SessionManager extends EventEmitter {
       const filePath = path.join(this.sessionsDir, `${session.id}.json`);
       await fs.writeFile(filePath, JSON.stringify(session, null, 2), "utf-8");
     } catch (error) {
-      console.error("[SessionManager] 保存文件失败:", error);
+      logger.error("[SessionManager] 保存文件失败:", error);
       throw error;
     }
   }
@@ -548,7 +549,7 @@ class SessionManager extends EventEmitter {
       const content = await fs.readFile(filePath, "utf-8");
       return JSON.parse(content);
     } catch (error) {
-      console.error("[SessionManager] 从文件加载失败:", error);
+      logger.error("[SessionManager] 从文件加载失败:", error);
       throw error;
     }
   }
@@ -564,7 +565,7 @@ class SessionManager extends EventEmitter {
 
       // 如果已压缩，返回压缩后的消息
       if (session.compressedHistory) {
-        console.log("[SessionManager] 返回压缩后的消息");
+        logger.info("[SessionManager] 返回压缩后的消息");
         return session.messages;
       }
 
@@ -577,7 +578,7 @@ class SessionManager extends EventEmitter {
 
       return session.messages;
     } catch (error) {
-      console.error("[SessionManager] 获取有效消息失败:", error);
+      logger.error("[SessionManager] 获取有效消息失败:", error);
       throw error;
     }
   }
@@ -601,16 +602,16 @@ class SessionManager extends EventEmitter {
       try {
         await fs.unlink(filePath);
       } catch (fileError) {
-        console.warn(
+        logger.warn(
           "[SessionManager] 删除文件失败（可能不存在）:",
           fileError.message,
         );
       }
 
-      console.log("[SessionManager] 会话已删除:", sessionId);
+      logger.info("[SessionManager] 会话已删除:", sessionId);
       this.emit("session-deleted", { sessionId });
     } catch (error) {
-      console.error("[SessionManager] 删除会话失败:", error);
+      logger.error("[SessionManager] 删除会话失败:", error);
       throw error;
     }
   }
@@ -653,7 +654,7 @@ class SessionManager extends EventEmitter {
         updatedAt: row.updated_at,
       }));
     } catch (error) {
-      console.error("[SessionManager] 列出会话失败:", error);
+      logger.error("[SessionManager] 列出会话失败:", error);
       throw error;
     }
   }
@@ -689,7 +690,7 @@ class SessionManager extends EventEmitter {
 
       return stats;
     } catch (error) {
-      console.error("[SessionManager] 获取统计失败:", error);
+      logger.error("[SessionManager] 获取统计失败:", error);
       throw error;
     }
   }
@@ -714,11 +715,11 @@ class SessionManager extends EventEmitter {
         await this.deleteSession(session.id);
       }
 
-      console.log(`[SessionManager] 已清理 ${oldSessions.length} 个旧会话`);
+      logger.info(`[SessionManager] 已清理 ${oldSessions.length} 个旧会话`);
 
       return oldSessions.length;
     } catch (error) {
-      console.error("[SessionManager] 清理旧会话失败:", error);
+      logger.error("[SessionManager] 清理旧会话失败:", error);
       throw error;
     }
   }
@@ -815,12 +816,12 @@ class SessionManager extends EventEmitter {
         });
       }
 
-      console.log(
+      logger.info(
         `[SessionManager] 搜索 "${query}" 找到 ${results.length} 个会话`,
       );
       return results.slice(0, limit);
     } catch (error) {
-      console.error("[SessionManager] 搜索会话失败:", error);
+      logger.error("[SessionManager] 搜索会话失败:", error);
       throw error;
     }
   }
@@ -865,12 +866,12 @@ class SessionManager extends EventEmitter {
 
       await this.saveSession(sessionId);
 
-      console.log(`[SessionManager] 会话 ${sessionId} 添加标签:`, newTags);
+      logger.info(`[SessionManager] 会话 ${sessionId} 添加标签:`, newTags);
       this.emit("tags-updated", { sessionId, tags: mergedTags });
 
       return session;
     } catch (error) {
-      console.error("[SessionManager] 添加标签失败:", error);
+      logger.error("[SessionManager] 添加标签失败:", error);
       throw error;
     }
   }
@@ -894,12 +895,12 @@ class SessionManager extends EventEmitter {
 
       await this.saveSession(sessionId);
 
-      console.log(`[SessionManager] 会话 ${sessionId} 移除标签:`, tagsToRemove);
+      logger.info(`[SessionManager] 会话 ${sessionId} 移除标签:`, tagsToRemove);
       this.emit("tags-updated", { sessionId, tags: session.metadata.tags });
 
       return session;
     } catch (error) {
-      console.error("[SessionManager] 移除标签失败:", error);
+      logger.error("[SessionManager] 移除标签失败:", error);
       throw error;
     }
   }
@@ -928,7 +929,7 @@ class SessionManager extends EventEmitter {
         .map(([name, count]) => ({ name, count }))
         .sort((a, b) => b.count - a.count);
     } catch (error) {
-      console.error("[SessionManager] 获取标签列表失败:", error);
+      logger.error("[SessionManager] 获取标签列表失败:", error);
       throw error;
     }
   }
@@ -957,7 +958,7 @@ class SessionManager extends EventEmitter {
         })
         .slice(0, limit);
     } catch (error) {
-      console.error("[SessionManager] 按标签查找失败:", error);
+      logger.error("[SessionManager] 按标签查找失败:", error);
       throw error;
     }
   }
@@ -996,12 +997,12 @@ class SessionManager extends EventEmitter {
         exportData.session.compressedHistory = session.compressedHistory;
       }
 
-      console.log(`[SessionManager] 导出会话 ${sessionId} 为 JSON`);
+      logger.info(`[SessionManager] 导出会话 ${sessionId} 为 JSON`);
       return prettify
         ? JSON.stringify(exportData, null, 2)
         : JSON.stringify(exportData);
     } catch (error) {
-      console.error("[SessionManager] 导出 JSON 失败:", error);
+      logger.error("[SessionManager] 导出 JSON 失败:", error);
       throw error;
     }
   }
@@ -1050,10 +1051,10 @@ class SessionManager extends EventEmitter {
       md += "---\n\n";
       md += `*导出时间: ${new Date().toLocaleString()}*\n`;
 
-      console.log(`[SessionManager] 导出会话 ${sessionId} 为 Markdown`);
+      logger.info(`[SessionManager] 导出会话 ${sessionId} 为 Markdown`);
       return md;
     } catch (error) {
-      console.error("[SessionManager] 导出 Markdown 失败:", error);
+      logger.error("[SessionManager] 导出 Markdown 失败:", error);
       throw error;
     }
   }
@@ -1101,14 +1102,14 @@ class SessionManager extends EventEmitter {
         });
       }
 
-      console.log(
+      logger.info(
         `[SessionManager] 导入会话成功，新会话ID: ${newSession.id}，消息数: ${importSession.messages.length}`,
       );
       this.emit("session-imported", { sessionId: newSession.id });
 
       return newSession;
     } catch (error) {
-      console.error("[SessionManager] 导入 JSON 失败:", error);
+      logger.error("[SessionManager] 导入 JSON 失败:", error);
       throw error;
     }
   }
@@ -1141,10 +1142,10 @@ class SessionManager extends EventEmitter {
         sessions,
       };
 
-      console.log(`[SessionManager] 批量导出 ${sessions.length} 个会话`);
+      logger.info(`[SessionManager] 批量导出 ${sessions.length} 个会话`);
       return JSON.stringify(exportData, null, 2);
     } catch (error) {
-      console.error("[SessionManager] 批量导出失败:", error);
+      logger.error("[SessionManager] 批量导出失败:", error);
       throw error;
     }
   }
@@ -1198,10 +1199,10 @@ class SessionManager extends EventEmitter {
           session.metadata.summaryGeneratedAt = Date.now();
           await this.saveSession(sessionId);
 
-          console.log(`[SessionManager] LLM 生成摘要: ${summary}`);
+          logger.info(`[SessionManager] LLM 生成摘要: ${summary}`);
           return summary;
         } catch (llmError) {
-          console.warn(
+          logger.warn(
             "[SessionManager] LLM 摘要生成失败，使用简单摘要:",
             llmError.message,
           );
@@ -1230,7 +1231,7 @@ class SessionManager extends EventEmitter {
 
       return "无用户消息";
     } catch (error) {
-      console.error("[SessionManager] 生成摘要失败:", error);
+      logger.error("[SessionManager] 生成摘要失败:", error);
       throw error;
     }
   }
@@ -1260,19 +1261,19 @@ class SessionManager extends EventEmitter {
           await this.generateSummary(session.id, { useLLM: true });
           processed++;
         } catch (err) {
-          console.warn(
+          logger.warn(
             `[SessionManager] 会话 ${session.id} 摘要生成失败:`,
             err.message,
           );
         }
       }
 
-      console.log(
+      logger.info(
         `[SessionManager] 批量摘要完成: 处理 ${processed}, 跳过 ${skipped}`,
       );
       return { processed, skipped };
     } catch (error) {
-      console.error("[SessionManager] 批量生成摘要失败:", error);
+      logger.error("[SessionManager] 批量生成摘要失败:", error);
       throw error;
     }
   }
@@ -1310,12 +1311,12 @@ class SessionManager extends EventEmitter {
         result.contextPrompt = this._generateContextPrompt(session);
       }
 
-      console.log(`[SessionManager] 恢复会话: ${sessionId}`);
+      logger.info(`[SessionManager] 恢复会话: ${sessionId}`);
       this.emit("session-resumed", { sessionId });
 
       return result;
     } catch (error) {
-      console.error("[SessionManager] 恢复会话失败:", error);
+      logger.error("[SessionManager] 恢复会话失败:", error);
       throw error;
     }
   }
@@ -1369,7 +1370,7 @@ class SessionManager extends EventEmitter {
       const rows = stmt.all(count);
       return rows.map((row) => this._parseSessionRow(row));
     } catch (error) {
-      console.error("[SessionManager] 获取最近会话失败:", error);
+      logger.error("[SessionManager] 获取最近会话失败:", error);
       throw error;
     }
   }
@@ -1432,7 +1433,7 @@ class SessionManager extends EventEmitter {
         now,
       );
 
-      console.log(`[SessionManager] 会话 ${sessionId} 保存为模板: ${name}`);
+      logger.info(`[SessionManager] 会话 ${sessionId} 保存为模板: ${name}`);
       this.emit("template-created", { templateId, name });
 
       return template;
@@ -1442,7 +1443,7 @@ class SessionManager extends EventEmitter {
         await this._ensureTemplateTable();
         return this.saveAsTemplate(sessionId, templateInfo);
       }
-      console.error("[SessionManager] 保存模板失败:", error);
+      logger.error("[SessionManager] 保存模板失败:", error);
       throw error;
     }
   }
@@ -1469,7 +1470,7 @@ class SessionManager extends EventEmitter {
       )`,
       )
       .run();
-    console.log("[SessionManager] 模板表已创建");
+    logger.info("[SessionManager] 模板表已创建");
   }
 
   /**
@@ -1517,10 +1518,10 @@ class SessionManager extends EventEmitter {
       `);
       updateStmt.run(Date.now(), templateId);
 
-      console.log(`[SessionManager] 从模板 ${template.name} 创建会话`);
+      logger.info(`[SessionManager] 从模板 ${template.name} 创建会话`);
       return newSession;
     } catch (error) {
-      console.error("[SessionManager] 从模板创建失败:", error);
+      logger.error("[SessionManager] 从模板创建失败:", error);
       throw error;
     }
   }
@@ -1567,7 +1568,7 @@ class SessionManager extends EventEmitter {
         updatedAt: row.updated_at,
       }));
     } catch (error) {
-      console.error("[SessionManager] 列出模板失败:", error);
+      logger.error("[SessionManager] 列出模板失败:", error);
       throw error;
     }
   }
@@ -1584,10 +1585,10 @@ class SessionManager extends EventEmitter {
       );
       stmt.run(templateId);
 
-      console.log(`[SessionManager] 模板已删除: ${templateId}`);
+      logger.info(`[SessionManager] 模板已删除: ${templateId}`);
       this.emit("template-deleted", { templateId });
     } catch (error) {
-      console.error("[SessionManager] 删除模板失败:", error);
+      logger.error("[SessionManager] 删除模板失败:", error);
       throw error;
     }
   }
@@ -1611,7 +1612,7 @@ class SessionManager extends EventEmitter {
           await this.deleteSession(sessionId);
           deleted++;
         } catch (err) {
-          console.warn(
+          logger.warn(
             `[SessionManager] 删除会话 ${sessionId} 失败:`,
             err.message,
           );
@@ -1619,12 +1620,12 @@ class SessionManager extends EventEmitter {
         }
       }
 
-      console.log(
+      logger.info(
         `[SessionManager] 批量删除完成: 成功 ${deleted}, 失败 ${failed}`,
       );
       return { deleted, failed };
     } catch (error) {
-      console.error("[SessionManager] 批量删除失败:", error);
+      logger.error("[SessionManager] 批量删除失败:", error);
       throw error;
     }
   }
@@ -1644,17 +1645,17 @@ class SessionManager extends EventEmitter {
           await this.addTags(sessionId, tags);
           updated++;
         } catch (err) {
-          console.warn(
+          logger.warn(
             `[SessionManager] 会话 ${sessionId} 添加标签失败:`,
             err.message,
           );
         }
       }
 
-      console.log(`[SessionManager] 批量添加标签完成: ${updated} 个会话`);
+      logger.info(`[SessionManager] 批量添加标签完成: ${updated} 个会话`);
       return { updated };
     } catch (error) {
-      console.error("[SessionManager] 批量添加标签失败:", error);
+      logger.error("[SessionManager] 批量添加标签失败:", error);
       throw error;
     }
   }
@@ -1706,7 +1707,7 @@ class SessionManager extends EventEmitter {
         recentActivityCount: activity.recentSessions || 0,
       };
     } catch (error) {
-      console.error("[SessionManager] 获取全局统计失败:", error);
+      logger.error("[SessionManager] 获取全局统计失败:", error);
       throw error;
     }
   }
@@ -1731,12 +1732,12 @@ class SessionManager extends EventEmitter {
       // 更新缓存
       this.sessionCache.set(sessionId, session);
 
-      console.log(`[SessionManager] 会话标题已更新: ${sessionId}`);
+      logger.info(`[SessionManager] 会话标题已更新: ${sessionId}`);
       this.emit("session-updated", { sessionId, title });
 
       return session;
     } catch (error) {
-      console.error("[SessionManager] 更新标题失败:", error);
+      logger.error("[SessionManager] 更新标题失败:", error);
       throw error;
     }
   }
@@ -1843,7 +1844,7 @@ class SessionManager extends EventEmitter {
       // 8. 缓存
       this.sessionCache.set(newSessionId, newSession);
 
-      console.log(
+      logger.info(
         `[SessionManager] 会话已复制: ${sessionId} -> ${newSessionId}`,
       );
       this.emit("session-duplicated", {
@@ -1854,7 +1855,7 @@ class SessionManager extends EventEmitter {
 
       return newSession;
     } catch (error) {
-      console.error("[SessionManager] 复制会话失败:", error);
+      logger.error("[SessionManager] 复制会话失败:", error);
       throw error;
     }
   }
@@ -1903,14 +1904,14 @@ class SessionManager extends EventEmitter {
         }
       }
 
-      console.log(
+      logger.info(
         `[SessionManager] 标签重命名: "${oldTag}" -> "${newTag}"，更新 ${updated} 个会话`,
       );
       this.emit("tag-renamed", { oldTag, newTag, updated });
 
       return { updated, oldTag, newTag };
     } catch (error) {
-      console.error("[SessionManager] 重命名标签失败:", error);
+      logger.error("[SessionManager] 重命名标签失败:", error);
       throw error;
     }
   }
@@ -1964,7 +1965,7 @@ class SessionManager extends EventEmitter {
         }
       }
 
-      console.log(
+      logger.info(
         `[SessionManager] 标签合并: [${tagsToMerge.join(", ")}] -> "${targetTag}"，更新 ${updated} 个会话`,
       );
       this.emit("tags-merged", {
@@ -1975,7 +1976,7 @@ class SessionManager extends EventEmitter {
 
       return { updated, merged: tagsToMerge.length, targetTag };
     } catch (error) {
-      console.error("[SessionManager] 合并标签失败:", error);
+      logger.error("[SessionManager] 合并标签失败:", error);
       throw error;
     }
   }
@@ -2008,14 +2009,14 @@ class SessionManager extends EventEmitter {
         }
       }
 
-      console.log(
+      logger.info(
         `[SessionManager] 标签已删除: "${tag}"，影响 ${updated} 个会话`,
       );
       this.emit("tag-deleted", { tag, updated });
 
       return { deleted: tag, updated };
     } catch (error) {
-      console.error("[SessionManager] 删除标签失败:", error);
+      logger.error("[SessionManager] 删除标签失败:", error);
       throw error;
     }
   }
@@ -2038,13 +2039,13 @@ class SessionManager extends EventEmitter {
         totalUpdated += result.updated;
       }
 
-      console.log(
+      logger.info(
         `[SessionManager] 批量删除标签: ${tags.length} 个标签，影响 ${totalUpdated} 个会话`,
       );
 
       return { deleted: tags.length, updated: totalUpdated };
     } catch (error) {
-      console.error("[SessionManager] 批量删除标签失败:", error);
+      logger.error("[SessionManager] 批量删除标签失败:", error);
       throw error;
     }
   }
@@ -2074,7 +2075,7 @@ class SessionManager extends EventEmitter {
         })),
       };
     } catch (error) {
-      console.error("[SessionManager] 获取标签详情失败:", error);
+      logger.error("[SessionManager] 获取标签详情失败:", error);
       throw error;
     }
   }
@@ -2089,11 +2090,11 @@ class SessionManager extends EventEmitter {
    */
   startBackgroundSummaryGenerator() {
     if (this._backgroundSummaryTimer) {
-      console.log("[SessionManager] 后台摘要生成器已在运行");
+      logger.info("[SessionManager] 后台摘要生成器已在运行");
       return;
     }
 
-    console.log(
+    logger.info(
       `[SessionManager] 启动后台摘要生成器，间隔: ${this.autoSummaryInterval}ms`,
     );
 
@@ -2114,7 +2115,7 @@ class SessionManager extends EventEmitter {
     if (this._backgroundSummaryTimer) {
       clearInterval(this._backgroundSummaryTimer);
       this._backgroundSummaryTimer = null;
-      console.log("[SessionManager] 后台摘要生成器已停止");
+      logger.info("[SessionManager] 后台摘要生成器已停止");
       this.emit("background-summary-stopped");
     }
   }
@@ -2125,17 +2126,17 @@ class SessionManager extends EventEmitter {
    */
   async _runBackgroundSummaryGeneration() {
     if (!this.llmManager) {
-      console.log("[SessionManager] 无 LLM 管理器，跳过后台摘要生成");
+      logger.info("[SessionManager] 无 LLM 管理器，跳过后台摘要生成");
       return;
     }
 
     if (this._isGeneratingSummary) {
-      console.log("[SessionManager] 摘要生成正在进行中，跳过本轮");
+      logger.info("[SessionManager] 摘要生成正在进行中，跳过本轮");
       return;
     }
 
     try {
-      console.log("[SessionManager] 开始后台摘要生成检查...");
+      logger.info("[SessionManager] 开始后台摘要生成检查...");
 
       // 获取没有摘要的会话
       const sessionsWithoutSummary = await this.getSessionsWithoutSummary({
@@ -2144,11 +2145,11 @@ class SessionManager extends EventEmitter {
       });
 
       if (sessionsWithoutSummary.length === 0) {
-        console.log("[SessionManager] 所有会话都已有摘要");
+        logger.info("[SessionManager] 所有会话都已有摘要");
         return;
       }
 
-      console.log(
+      logger.info(
         `[SessionManager] 发现 ${sessionsWithoutSummary.length} 个会话需要生成摘要`,
       );
 
@@ -2161,7 +2162,7 @@ class SessionManager extends EventEmitter {
         count: sessionsWithoutSummary.length,
       });
     } catch (error) {
-      console.error("[SessionManager] 后台摘要生成失败:", error.message);
+      logger.error("[SessionManager] 后台摘要生成失败:", error.message);
     }
   }
 
@@ -2199,7 +2200,7 @@ class SessionManager extends EventEmitter {
         updatedAt: row.updated_at,
       }));
     } catch (error) {
-      console.error("[SessionManager] 获取无摘要会话列表失败:", error);
+      logger.error("[SessionManager] 获取无摘要会话列表失败:", error);
       throw error;
     }
   }
@@ -2252,7 +2253,7 @@ class SessionManager extends EventEmitter {
       }
     }
 
-    console.log(
+    logger.info(
       "[SessionManager] 自动摘要配置已更新:",
       this.getAutoSummaryConfig(),
     );
@@ -2285,7 +2286,7 @@ class SessionManager extends EventEmitter {
         });
       }
 
-      console.log(
+      logger.info(
         `[SessionManager] 触发批量摘要生成: ${sessions.length} 个会话`,
       );
 
@@ -2301,7 +2302,7 @@ class SessionManager extends EventEmitter {
         queueLength: this._summaryQueue.length,
       };
     } catch (error) {
-      console.error("[SessionManager] 触发批量摘要生成失败:", error);
+      logger.error("[SessionManager] 触发批量摘要生成失败:", error);
       throw error;
     }
   }
@@ -2358,7 +2359,7 @@ class SessionManager extends EventEmitter {
         config: this.getAutoSummaryConfig(),
       };
     } catch (error) {
-      console.error("[SessionManager] 获取自动摘要统计失败:", error);
+      logger.error("[SessionManager] 获取自动摘要统计失败:", error);
       throw error;
     }
   }

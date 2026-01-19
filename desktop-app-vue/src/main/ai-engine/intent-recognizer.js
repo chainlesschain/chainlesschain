@@ -1,3 +1,5 @@
+const { logger, createLogger } = require('../utils/logger.js');
+
 /**
  * 智能意图识别器（增强版）
  * 使用 LLM 进行准确的用户意图识别
@@ -127,7 +129,7 @@ async function recognizeProjectIntent(userInput, llmManager) {
       }
     ];
 
-    console.log('[IntentRecognizer] 开始LLM意图识别...');
+    logger.info('[IntentRecognizer] 开始LLM意图识别...');
     const startTime = Date.now();
 
     const result = await llmManager.chatWithMessages(messages, {
@@ -136,11 +138,11 @@ async function recognizeProjectIntent(userInput, llmManager) {
     });
 
     const duration = Date.now() - startTime;
-    console.log(`[IntentRecognizer] LLM响应完成，耗时: ${duration}ms`);
+    logger.info(`[IntentRecognizer] LLM响应完成，耗时: ${duration}ms`);
 
     // 提取JSON响应
     let responseText = result.content || result.text || '';
-    console.log('[IntentRecognizer] LLM原始响应:', responseText.substring(0, 300));
+    logger.info('[IntentRecognizer] LLM原始响应:', responseText.substring(0, 300));
 
     // 尝试提取JSON（可能被包裹在```json...```中）
     const jsonMatch = responseText.match(/```json\s*([\s\S]*?)```/) ||
@@ -162,7 +164,7 @@ async function recognizeProjectIntent(userInput, llmManager) {
     // 规范化projectType
     const validTypes = ['document', 'web', 'app', 'data', 'code', 'media'];
     if (!validTypes.includes(intentData.projectType)) {
-      console.warn(`[IntentRecognizer] 无效的projectType: ${intentData.projectType}，使用默认值`);
+      logger.warn(`[IntentRecognizer] 无效的projectType: ${intentData.projectType}，使用默认值`);
       intentData.projectType = 'document';
     }
 
@@ -175,7 +177,7 @@ async function recognizeProjectIntent(userInput, llmManager) {
     intentData.outputFormat = intentData.outputFormat || inferOutputFormat(intentData.subType);
     intentData.toolEngine = intentData.toolEngine || inferToolEngine(intentData.subType);
 
-    console.log('[IntentRecognizer] 意图识别成功:', intentData);
+    logger.info('[IntentRecognizer] 意图识别成功:', intentData);
 
     return {
       success: true,
@@ -185,10 +187,10 @@ async function recognizeProjectIntent(userInput, llmManager) {
     };
 
   } catch (error) {
-    console.error('[IntentRecognizer] LLM意图识别失败:', error);
+    logger.error('[IntentRecognizer] LLM意图识别失败:', error);
 
     // 降级到简单规则识别
-    console.log('[IntentRecognizer] 降级使用规则匹配...');
+    logger.info('[IntentRecognizer] 降级使用规则匹配...');
     return fallbackRuleBasedRecognition(userInput);
   }
 }

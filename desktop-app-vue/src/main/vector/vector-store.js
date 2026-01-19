@@ -4,6 +4,7 @@
  * 使用ChromaDB进行向量存储和检索
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { ChromaClient } = require('chromadb');
 const EventEmitter = require('events');
 const path = require('path');
@@ -58,8 +59,8 @@ class VectorStore extends EventEmitter {
    * 初始化向量存储
    */
   async initialize() {
-    console.log('[VectorStore] 初始化向量存储...');
-    console.log('[VectorStore] ChromaDB地址:', this.config.chromaUrl);
+    logger.info('[VectorStore] 初始化向量存储...');
+    logger.info('[VectorStore] ChromaDB地址:', this.config.chromaUrl);
 
     try {
       // 确保缓存目录存在
@@ -81,15 +82,15 @@ class VectorStore extends EventEmitter {
       await this.getOrCreateCollection();
 
       this.isInitialized = true;
-      console.log('[VectorStore] 向量存储初始化成功');
+      logger.info('[VectorStore] 向量存储初始化成功');
       this.emit('initialized');
 
       return true;
     } catch (error) {
-      console.error('[VectorStore] 初始化失败:', error);
+      logger.error('[VectorStore] 初始化失败:', error);
 
       // 如果ChromaDB未运行，使用内存模式
-      console.warn('[VectorStore] 切换到内存模式');
+      logger.warn('[VectorStore] 切换到内存模式');
       this.isInitialized = false;
       this.emit('fallback-memory');
 
@@ -103,7 +104,7 @@ class VectorStore extends EventEmitter {
   async checkConnection() {
     try {
       const version = await this.client.version();
-      console.log('[VectorStore] ChromaDB版本:', version);
+      logger.info('[VectorStore] ChromaDB版本:', version);
       return true;
     } catch (error) {
       throw new Error('无法连接到ChromaDB服务');
@@ -120,10 +121,10 @@ class VectorStore extends EventEmitter {
         name: this.config.collectionName,
       });
 
-      console.log('[VectorStore] 使用现有集合:', this.config.collectionName);
+      logger.info('[VectorStore] 使用现有集合:', this.config.collectionName);
     } catch (error) {
       // 集合不存在，创建新集合
-      console.log('[VectorStore] 创建新集合:', this.config.collectionName);
+      logger.info('[VectorStore] 创建新集合:', this.config.collectionName);
 
       this.collection = await this.client.createCollection({
         name: this.config.collectionName,
@@ -136,7 +137,7 @@ class VectorStore extends EventEmitter {
 
     // 获取集合统计
     const count = await this.collection.count();
-    console.log('[VectorStore] 集合中的向量数:', count);
+    logger.info('[VectorStore] 集合中的向量数:', count);
   }
 
   /**
@@ -164,12 +165,12 @@ class VectorStore extends EventEmitter {
         documents: [item.content || item.title],
       });
 
-      console.log(`[VectorStore] 添加向量: ${item.title}`);
+      logger.info(`[VectorStore] 添加向量: ${item.title}`);
       this.emit('vector-added', item.id);
 
       return true;
     } catch (error) {
-      console.error('[VectorStore] 添加向量失败:', error);
+      logger.error('[VectorStore] 添加向量失败:', error);
       throw error;
     }
   }
@@ -205,12 +206,12 @@ class VectorStore extends EventEmitter {
         documents,
       });
 
-      console.log(`[VectorStore] 批量添加 ${items.length} 个向量`);
+      logger.info(`[VectorStore] 批量添加 ${items.length} 个向量`);
       this.emit('vectors-added-batch', items.length);
 
       return items.length;
     } catch (error) {
-      console.error('[VectorStore] 批量添加向量失败:', error);
+      logger.error('[VectorStore] 批量添加向量失败:', error);
       throw error;
     }
   }
@@ -241,12 +242,12 @@ class VectorStore extends EventEmitter {
         metadatas: metadata ? [metadata] : undefined,
       });
 
-      console.log(`[VectorStore] 更新向量: ${id}`);
+      logger.info(`[VectorStore] 更新向量: ${id}`);
       this.emit('vector-updated', id);
 
       return true;
     } catch (error) {
-      console.error('[VectorStore] 更新向量失败:', error);
+      logger.error('[VectorStore] 更新向量失败:', error);
       throw error;
     }
   }
@@ -267,12 +268,12 @@ class VectorStore extends EventEmitter {
         ids: [id],
       });
 
-      console.log(`[VectorStore] 删除向量: ${id}`);
+      logger.info(`[VectorStore] 删除向量: ${id}`);
       this.emit('vector-deleted', id);
 
       return true;
     } catch (error) {
-      console.error('[VectorStore] 删除向量失败:', error);
+      logger.error('[VectorStore] 删除向量失败:', error);
       throw error;
     }
   }
@@ -316,11 +317,11 @@ class VectorStore extends EventEmitter {
         }
       }
 
-      console.log(`[VectorStore] 搜索返回 ${formatted.length} 个结果`);
+      logger.info(`[VectorStore] 搜索返回 ${formatted.length} 个结果`);
 
       return formatted;
     } catch (error) {
-      console.error('[VectorStore] 搜索失败:', error);
+      logger.error('[VectorStore] 搜索失败:', error);
       throw error;
     }
   }
@@ -403,7 +404,7 @@ class VectorStore extends EventEmitter {
         chromaUrl: this.config.chromaUrl,
       };
     } catch (error) {
-      console.error('[VectorStore] 获取统计失败:', error);
+      logger.error('[VectorStore] 获取统计失败:', error);
       return {
         mode: 'error',
         error: error.message,
@@ -428,12 +429,12 @@ class VectorStore extends EventEmitter {
 
       await this.getOrCreateCollection();
 
-      console.log('[VectorStore] 向量存储已清空');
+      logger.info('[VectorStore] 向量存储已清空');
       this.emit('cleared');
 
       return true;
     } catch (error) {
-      console.error('[VectorStore] 清空失败:', error);
+      logger.error('[VectorStore] 清空失败:', error);
       throw error;
     }
   }
@@ -444,7 +445,7 @@ class VectorStore extends EventEmitter {
    * @param {Function} embeddingFn - 嵌入函数
    */
   async rebuildIndex(items, embeddingFn) {
-    console.log(`[VectorStore] 开始重建索引，共 ${items.length} 项`);
+    logger.info(`[VectorStore] 开始重建索引，共 ${items.length} 项`);
 
     try {
       // 清空现有索引
@@ -473,15 +474,15 @@ class VectorStore extends EventEmitter {
           percentage: Math.round((processed / items.length) * 100),
         });
 
-        console.log(`[VectorStore] 重建进度: ${processed}/${items.length}`);
+        logger.info(`[VectorStore] 重建进度: ${processed}/${items.length}`);
       }
 
-      console.log('[VectorStore] 索引重建完成');
+      logger.info('[VectorStore] 索引重建完成');
       this.emit('rebuild-complete');
 
       return true;
     } catch (error) {
-      console.error('[VectorStore] 重建索引失败:', error);
+      logger.error('[VectorStore] 重建索引失败:', error);
       throw error;
     }
   }
@@ -490,7 +491,7 @@ class VectorStore extends EventEmitter {
    * 关闭连接
    */
   async close() {
-    console.log('[VectorStore] 关闭向量存储');
+    logger.info('[VectorStore] 关闭向量存储');
 
     this.client = null;
     this.collection = null;

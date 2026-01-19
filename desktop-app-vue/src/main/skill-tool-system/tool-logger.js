@@ -3,6 +3,7 @@
  * 提供结构化的日志记录和错误追踪功能
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require('fs').promises;
 const path = require('path');
 
@@ -37,7 +38,7 @@ class ToolLogger {
     try {
       await fs.mkdir(this.logDir, { recursive: true });
     } catch (error) {
-      console.error('[ToolLogger] 创建日志目录失败:', error);
+      logger.error('[ToolLogger] 创建日志目录失败:', error);
     }
   }
 
@@ -114,13 +115,13 @@ class ToolLogger {
 
     switch (level) {
       case 'error':
-        console.error(output);
+        logger.error(output);
         break;
       case 'warn':
-        console.warn(output);
+        logger.warn(output);
         break;
       default:
-        console.log(output);
+        logger.info(output);
     }
   }
 
@@ -135,7 +136,7 @@ class ToolLogger {
       const logLine = JSON.stringify(logEntry) + '\n';
       await fs.appendFile(logFile, logLine, 'utf-8');
     } catch (error) {
-      console.error('[ToolLogger] 写入日志文件失败:', error);
+      logger.error('[ToolLogger] 写入日志文件失败:', error);
     }
   }
 

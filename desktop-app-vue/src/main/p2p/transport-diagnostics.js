@@ -1,3 +1,5 @@
+const { logger, createLogger } = require('../utils/logger.js');
+
 /**
  * 传输层诊断工具
  * 测试P2P传输层的健康状况和性能
@@ -90,7 +92,7 @@ class TransportDiagnostics {
       // 只在状态变化时记录
       const prevHealth = this.getTransportHealth(transport);
       if (prevHealth.lastCheck === null || prevHealth.successCount === 0) {
-        console.log(`[Transport Diagnostics] ${transport} 测试完成: 可用`);
+        logger.info(`[Transport Diagnostics] ${transport} 测试完成: 可用`);
       }
 
     } catch (error) {
@@ -104,9 +106,9 @@ class TransportDiagnostics {
       if (shouldLog) {
         // Special handling for WebRTC - log as info instead of error
         if (transport === 'webrtc' && error.message.includes('未启用或未监听')) {
-          console.info(`[Transport Diagnostics] ${transport} 在Node.js环境中不可用（这是正常的）`);
+          logger.info(`[Transport Diagnostics] ${transport} 在Node.js环境中不可用（这是正常的）`);
         } else {
-          console.error(`[Transport Diagnostics] ${transport} 测试失败:`, error);
+          logger.error(`[Transport Diagnostics] ${transport} 测试失败:`, error);
         }
       }
     }
@@ -120,7 +122,7 @@ class TransportDiagnostics {
    * @returns {Promise<Object>} 完整诊断结果
    */
   async runFullDiagnostics() {
-    console.log('[Transport Diagnostics] 开始完整诊断...');
+    logger.info('[Transport Diagnostics] 开始完整诊断...');
 
     const results = {
       timestamp: Date.now(),
@@ -184,7 +186,7 @@ class TransportDiagnostics {
           };
         }
 
-        console.log(`[Transport Diagnostics] 诊断完成: ${results.summary.availableTransports}/${results.summary.totalTransports} 传输层可用, ${results.summary.activeConnections} 活跃连接`);
+        logger.info(`[Transport Diagnostics] 诊断完成: ${results.summary.availableTransports}/${results.summary.totalTransports} 传输层可用, ${results.summary.activeConnections} 活跃连接`);
 
       } else {
         throw new Error('P2P节点未初始化');
@@ -192,7 +194,7 @@ class TransportDiagnostics {
 
     } catch (error) {
       results.error = error.message;
-      console.error('[Transport Diagnostics] 诊断失败:', error);
+      logger.error('[Transport Diagnostics] 诊断失败:', error);
     }
 
     return results;
@@ -253,7 +255,7 @@ class TransportDiagnostics {
     // 只在首次检测或成功率变化超过10%时记录
     const rateChanged = Math.abs(health.successRate - oldSuccessRate) > 10;
     if (total === 1 || rateChanged) {
-      console.log(`[Transport Diagnostics] ${transport} 健康更新: 成功率 ${health.successRate.toFixed(1)}%, 平均延迟 ${health.avgLatency.toFixed(0)}ms`);
+      logger.info(`[Transport Diagnostics] ${transport} 健康更新: 成功率 ${health.successRate.toFixed(1)}%, 平均延迟 ${health.avgLatency.toFixed(0)}ms`);
     }
   }
 
@@ -263,11 +265,11 @@ class TransportDiagnostics {
    */
   startHealthMonitoring(interval = 60000) {
     if (this.monitoringInterval) {
-      console.warn('[Transport Diagnostics] 健康监控已在运行');
+      logger.warn('[Transport Diagnostics] 健康监控已在运行');
       return;
     }
 
-    console.log(`[Transport Diagnostics] 启动健康监控，间隔: ${interval}ms`);
+    logger.info(`[Transport Diagnostics] 启动健康监控，间隔: ${interval}ms`);
 
     this.monitoringInterval = setInterval(async () => {
       try {
@@ -278,7 +280,7 @@ class TransportDiagnostics {
           this.updateTransportHealth(transport, result.available, result.latency);
         }
       } catch (error) {
-        console.error('[Transport Diagnostics] 健康监控错误:', error);
+        logger.error('[Transport Diagnostics] 健康监控错误:', error);
       }
     }, interval);
   }
@@ -290,7 +292,7 @@ class TransportDiagnostics {
     if (this.monitoringInterval) {
       clearInterval(this.monitoringInterval);
       this.monitoringInterval = null;
-      console.log('[Transport Diagnostics] 健康监控已停止');
+      logger.info('[Transport Diagnostics] 健康监控已停止');
     }
   }
 
@@ -316,7 +318,7 @@ class TransportDiagnostics {
    */
   clearHealthData() {
     this.healthData.clear();
-    console.log('[Transport Diagnostics] 健康数据已清除');
+    logger.info('[Transport Diagnostics] 健康数据已清除');
   }
 }
 

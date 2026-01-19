@@ -6,6 +6,7 @@
  * node import-templates-to-db.js
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require('fs').promises;
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
@@ -36,14 +37,14 @@ class TemplateImporter {
   }
 
   async initialize() {
-    console.log('='.repeat(70));
-    console.log('模板导入工具');
-    console.log('='.repeat(70));
-    console.log('\n数据库路径:', dbPath);
+    logger.info('='.repeat(70));
+    logger.info('模板导入工具');
+    logger.info('='.repeat(70));
+    logger.info('\n数据库路径:', dbPath);
 
     this.db = new DatabaseManager(dbPath, { encryptionEnabled: false });
     await this.db.initialize();
-    console.log('✓ 数据库连接成功\n');
+    logger.info('✓ 数据库连接成功\n');
   }
 
   /**
@@ -61,7 +62,7 @@ class TemplateImporter {
       ).get(template.name);
 
       if (existing) {
-        console.log(`⏭️  跳过（已存在）: ${template.name}`);
+        logger.info(`⏭️  跳过（已存在）: ${template.name}`);
         this.stats.skipped++;
         return;
       }
@@ -142,12 +143,12 @@ class TemplateImporter {
         template.execution_engine || 'default'
       );
 
-      console.log(`✅ 已导入: ${template.display_name || template.name}`);
+      logger.info(`✅ 已导入: ${template.display_name || template.name}`);
       this.stats.imported++;
 
     } catch (error) {
-      console.error(`❌ 导入失败: ${path.basename(templatePath)}`);
-      console.error(`   错误: ${error.message}`);
+      logger.error(`❌ 导入失败: ${path.basename(templatePath)}`);
+      logger.error(`   错误: ${error.message}`);
       this.stats.failed++;
     }
   }
@@ -167,7 +168,7 @@ class TemplateImporter {
 
         if (jsonFiles.length === 0) {continue;}
 
-        console.log(`\n📂 分类: ${category} (${jsonFiles.length} 个模板)`);
+        logger.info(`\n📂 分类: ${category} (${jsonFiles.length} 个模板)`);
 
         for (const file of jsonFiles) {
           const templatePath = path.join(categoryDir, file);
@@ -177,7 +178,7 @@ class TemplateImporter {
 
       } catch (error) {
         if (error.code !== 'ENOENT') {
-          console.error(`⚠️  读取分类 ${category} 失败:`, error.message);
+          logger.error(`⚠️  读取分类 ${category} 失败:`, error.message);
         }
       }
     }
@@ -187,20 +188,20 @@ class TemplateImporter {
    * 显示统计信息
    */
   showStats() {
-    console.log('\n' + '='.repeat(70));
-    console.log('📊 导入统计:');
-    console.log('='.repeat(70));
-    console.log(`   - 总计: ${this.stats.total} 个`);
-    console.log(`   - 已导入: ${this.stats.imported} 个`);
-    console.log(`   - 已跳过: ${this.stats.skipped} 个`);
-    console.log(`   - 失败: ${this.stats.failed} 个`);
-    console.log('='.repeat(70));
+    logger.info('\n' + '='.repeat(70));
+    logger.info('📊 导入统计:');
+    logger.info('='.repeat(70));
+    logger.info(`   - 总计: ${this.stats.total} 个`);
+    logger.info(`   - 已导入: ${this.stats.imported} 个`);
+    logger.info(`   - 已跳过: ${this.stats.skipped} 个`);
+    logger.info(`   - 失败: ${this.stats.failed} 个`);
+    logger.info('='.repeat(70));
 
     if (this.stats.imported > 0) {
-      console.log('\n✅ 导入完成！');
-      console.log('\n下一步:');
-      console.log('   1. 重启应用查看模板');
-      console.log('   2. 运行测试验证: node test-template-execution.js');
+      logger.info('\n✅ 导入完成！');
+      logger.info('\n下一步:');
+      logger.info('   1. 重启应用查看模板');
+      logger.info('   2. 运行测试验证: node test-template-execution.js');
     }
   }
 
@@ -210,7 +211,7 @@ class TemplateImporter {
   cleanup() {
     if (this.db && this.db.close) {
       this.db.close();
-      console.log('\n数据库连接已关闭');
+      logger.info('\n数据库连接已关闭');
     }
   }
 
@@ -223,8 +224,8 @@ class TemplateImporter {
       await this.importAll();
       this.showStats();
     } catch (error) {
-      console.error('\n❌ 导入过程出错:', error.message);
-      console.error(error.stack);
+      logger.error('\n❌ 导入过程出错:', error.message);
+      logger.error(error.stack);
       process.exit(1);
     } finally {
       this.cleanup();
@@ -236,7 +237,7 @@ class TemplateImporter {
 if (require.main === module) {
   const importer = new TemplateImporter();
   importer.run().catch(error => {
-    console.error('执行失败:', error);
+    logger.error('执行失败:', error);
     process.exit(1);
   });
 }

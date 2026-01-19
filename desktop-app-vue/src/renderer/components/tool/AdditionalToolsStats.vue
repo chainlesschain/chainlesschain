@@ -517,8 +517,10 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
-import * as echarts from 'echarts';
+import { init } from '../../utils/echartsConfig';
 import { message, Modal } from 'ant-design-vue';
 import dayjs from 'dayjs';
 import {
@@ -601,7 +603,7 @@ const loadSavedFilters = () => {
       savedFiltersList.value = JSON.parse(saved);
     }
   } catch (error) {
-    console.error('[SavedFilters] 加载失败:', error);
+    logger.error('[SavedFilters] 加载失败:', error);
   }
 };
 
@@ -610,7 +612,7 @@ const saveSavedFilters = () => {
   try {
     localStorage.setItem(SAVED_FILTERS_KEY, JSON.stringify(savedFiltersList.value));
   } catch (error) {
-    console.error('[SavedFilters] 保存失败:', error);
+    logger.error('[SavedFilters] 保存失败:', error);
   }
 };
 
@@ -748,7 +750,7 @@ const loadDashboardData = async () => {
       message.error('加载统计数据失败: ' + result.error);
     }
   } catch (error) {
-    console.error('[AdditionalToolsStats] 加载数据失败:', error);
+    logger.error('[AdditionalToolsStats] 加载数据失败:', error);
     message.error('加载统计数据失败');
   } finally {
     loading.value = false;
@@ -848,7 +850,7 @@ const exportToCSV = () => {
 
     message.success('CSV导出成功');
   } catch (error) {
-    console.error('[Export] CSV导出失败:', error);
+    logger.error('[Export] CSV导出失败:', error);
     message.error('CSV导出失败: ' + error.message);
   }
 };
@@ -908,7 +910,7 @@ const exportToExcel = () => {
 
     message.success('Excel导出成功');
   } catch (error) {
-    console.error('[Export] Excel导出失败:', error);
+    logger.error('[Export] Excel导出失败:', error);
     message.error('Excel导出失败: ' + error.message);
   }
 };
@@ -970,7 +972,7 @@ const exportToPDF = () => {
 
     message.success('PDF文本报告导出成功');
   } catch (error) {
-    console.error('[Export] PDF导出失败:', error);
+    logger.error('[Export] PDF导出失败:', error);
     message.error('PDF导出失败: ' + error.message);
   }
 };
@@ -1004,7 +1006,7 @@ const exportChartAsImage = (chart, chartName) => {
 
     message.success(`${chartName}图表导出成功`);
   } catch (error) {
-    console.error(`[Export] ${chartName}图表导出失败:`, error);
+    logger.error(`[Export] ${chartName}图表导出失败:`, error);
     message.error(`${chartName}图表导出失败: ` + error.message);
   }
 };
@@ -1034,7 +1036,7 @@ const exportAllCharts = async () => {
 
     message.success({ content: `成功导出 ${successCount} 个图表`, key: 'exportAllCharts' });
   } catch (error) {
-    console.error('[Export] 导出所有图表失败:', error);
+    logger.error('[Export] 导出所有图表失败:', error);
     message.error({ content: '导出所有图表失败: ' + error.message, key: 'exportAllCharts' });
   }
 };
@@ -1161,7 +1163,7 @@ const loadSavedFilter = (index) => {
     loadDashboardData();
     message.success(`已加载筛选条件: ${filter.name}`);
   } catch (error) {
-    console.error('[SavedFilters] 加载筛选条件失败:', error);
+    logger.error('[SavedFilters] 加载筛选条件失败:', error);
     message.error('加载筛选条件失败: ' + error.message);
   }
 };
@@ -1187,7 +1189,7 @@ const deleteSavedFilter = (index) => {
       }
     });
   } catch (error) {
-    console.error('[SavedFilters] 删除筛选条件失败:', error);
+    logger.error('[SavedFilters] 删除筛选条件失败:', error);
     message.error('删除筛选条件失败: ' + error.message);
   }
 };
@@ -1252,7 +1254,7 @@ const initCharts = async () => {
 const initUsageChart = () => {
   if (!usageChartRef.value) {return;}
 
-  usageChart = echarts.init(usageChartRef.value);
+  usageChart = init(usageChartRef.value);
 
   const data = rankings.value.mostUsed.slice(0, 10);
 
@@ -1307,7 +1309,7 @@ const initUsageChart = () => {
 const initSuccessRateChart = () => {
   if (!successRateChartRef.value) {return;}
 
-  successRateChart = echarts.init(successRateChartRef.value);
+  successRateChart = init(successRateChartRef.value);
 
   const data = rankings.value.highestSuccessRate.slice(0, 10);
 
@@ -1366,7 +1368,7 @@ const initSuccessRateChart = () => {
 const initPerformanceChart = () => {
   if (!performanceChartRef.value) {return;}
 
-  performanceChart = echarts.init(performanceChartRef.value);
+  performanceChart = init(performanceChartRef.value);
 
   const dist = performanceMetrics.value.distribution;
 
@@ -1407,7 +1409,7 @@ const initPerformanceChart = () => {
 const initTrendChart = () => {
   if (!trendChartRef.value) {return;}
 
-  trendChart = echarts.init(trendChartRef.value);
+  trendChart = init(trendChartRef.value);
 
   const data = dailyStats.value;
 

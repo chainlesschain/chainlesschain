@@ -3,6 +3,7 @@
  * 提供流式处理、分块读写、内存管理等功能
  */
 
+const { logger, createLogger } = require('./logger.js');
 const fs = require('fs');
 const fsPromises = require('fs').promises;
 const path = require('path');
@@ -39,7 +40,7 @@ class FileHandler {
       const stats = await fsPromises.stat(filePath);
       return stats.size > CONFIG.LARGE_FILE_THRESHOLD;
     } catch (error) {
-      console.error('[FileHandler] 检查文件大小失败:', error);
+      logger.error('[FileHandler] 检查文件大小失败:', error);
       return false;
     }
   }
@@ -129,7 +130,7 @@ class FileHandler {
           // 检查内存使用情况
           const memStatus = this.checkAvailableMemory();
           if (!memStatus.isAvailable) {
-            console.warn('[FileHandler] 内存使用率过高，暂停处理');
+            logger.warn('[FileHandler] 内存使用率过高，暂停处理');
             await this.waitForMemory();
           }
 
@@ -143,7 +144,7 @@ class FileHandler {
 
       readStream.on('end', () => {
         const duration = Date.now() - startTime;
-        console.log(
+        logger.info(
           `[FileHandler] 流式读取完成: ${filePath}, ` +
             `大小: ${(fileSize / 1024 / 1024).toFixed(2)}MB, ` +
             `耗时: ${duration}ms, ` +
@@ -161,7 +162,7 @@ class FileHandler {
       });
 
       readStream.on('error', (error) => {
-        console.error('[FileHandler] 流式读取失败:', error);
+        logger.error('[FileHandler] 流式读取失败:', error);
         reject(error);
       });
     });
@@ -225,7 +226,7 @@ class FileHandler {
 
       writeStream.on('finish', () => {
         const duration = Date.now() - startTime;
-        console.log(
+        logger.info(
           `[FileHandler] 流式写入完成: ${filePath}, ` +
             `大小: ${(writtenSize / 1024 / 1024).toFixed(2)}MB, ` +
             `耗时: ${duration}ms, ` +
@@ -242,7 +243,7 @@ class FileHandler {
       });
 
       writeStream.on('error', (error) => {
-        console.error('[FileHandler] 流式写入失败:', error);
+        logger.error('[FileHandler] 流式写入失败:', error);
         reject(error);
       });
 
@@ -277,7 +278,7 @@ class FileHandler {
       await pipeline(readStream, writeStream);
 
       const duration = Date.now() - startTime;
-      console.log(
+      logger.info(
         `[FileHandler] 文件复制完成: ${sourcePath} -> ${destPath}, ` +
           `大小: ${(fileSize / 1024 / 1024).toFixed(2)}MB, ` +
           `耗时: ${duration}ms`
@@ -291,7 +292,7 @@ class FileHandler {
         duration,
       };
     } catch (error) {
-      console.error('[FileHandler] 文件复制失败:', error);
+      logger.error('[FileHandler] 文件复制失败:', error);
       throw error;
     }
   }
@@ -397,7 +398,7 @@ class FileHandler {
           throw error;
         }
 
-        console.warn(`[FileHandler] 处理失败，重试 ${attempt}/${maxRetries}:`, file, error.message);
+        logger.warn(`[FileHandler] 处理失败，重试 ${attempt}/${maxRetries}:`, file, error.message);
         await new Promise((resolve) => setTimeout(resolve, retryDelay * attempt));
       }
     }
@@ -424,7 +425,7 @@ class FileHandler {
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
 
-    console.warn('[FileHandler] 等待内存释放超时');
+    logger.warn('[FileHandler] 等待内存释放超时');
     return false;
   }
 

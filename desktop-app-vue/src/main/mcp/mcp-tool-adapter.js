@@ -7,6 +7,7 @@
  * @module MCPToolAdapter
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const EventEmitter = require("events");
 
 /**
@@ -38,7 +39,7 @@ class MCPToolAdapter extends EventEmitter {
     // Server name -> tool IDs
     this.serverTools = new Map();
 
-    console.log("[MCPToolAdapter] Initialized");
+    logger.info("[MCPToolAdapter] Initialized");
   }
 
   /**
@@ -47,10 +48,10 @@ class MCPToolAdapter extends EventEmitter {
    */
   async initializeServers(config) {
     try {
-      console.log("[MCPToolAdapter] Initializing MCP servers...");
+      logger.info("[MCPToolAdapter] Initializing MCP servers...");
 
       if (!config || !config.servers) {
-        console.log("[MCPToolAdapter] No MCP servers configured");
+        logger.info("[MCPToolAdapter] No MCP servers configured");
         return;
       }
 
@@ -58,14 +59,14 @@ class MCPToolAdapter extends EventEmitter {
 
       for (const [serverName, serverConfig] of Object.entries(config.servers)) {
         if (!serverConfig.enabled) {
-          console.log(
+          logger.info(
             `[MCPToolAdapter] Server ${serverName} is disabled, skipping`,
           );
           continue;
         }
 
         if (!serverConfig.autoConnect) {
-          console.log(
+          logger.info(
             `[MCPToolAdapter] Server ${serverName} has autoConnect=false, skipping`,
           );
           continue;
@@ -74,7 +75,7 @@ class MCPToolAdapter extends EventEmitter {
         // Connect and register tools
         connectPromises.push(
           this.registerMCPServerTools(serverName, serverConfig).catch((err) => {
-            console.error(
+            logger.error(
               `[MCPToolAdapter] Failed to initialize ${serverName}:`,
               err,
             );
@@ -85,11 +86,11 @@ class MCPToolAdapter extends EventEmitter {
 
       await Promise.all(connectPromises);
 
-      console.log(
+      logger.info(
         `[MCPToolAdapter] Initialization complete. Registered tools from ${connectPromises.length} servers`,
       );
     } catch (error) {
-      console.error("[MCPToolAdapter] Error initializing servers:", error);
+      logger.error("[MCPToolAdapter] Error initializing servers:", error);
       throw error;
     }
   }
@@ -102,7 +103,7 @@ class MCPToolAdapter extends EventEmitter {
    */
   async registerMCPServerTools(serverName, serverConfig) {
     try {
-      console.log(
+      logger.info(
         `[MCPToolAdapter] Registering tools from server: ${serverName}`,
       );
 
@@ -120,7 +121,7 @@ class MCPToolAdapter extends EventEmitter {
           const toolId = await this._registerSingleTool(serverName, mcpTool);
           toolIds.push(toolId);
         } catch (err) {
-          console.error(
+          logger.error(
             `[MCPToolAdapter] Failed to register tool ${mcpTool.name}:`,
             err,
           );
@@ -131,7 +132,7 @@ class MCPToolAdapter extends EventEmitter {
       // Track server -> tools mapping
       this.serverTools.set(serverName, toolIds);
 
-      console.log(
+      logger.info(
         `[MCPToolAdapter] Registered ${toolIds.length} tools from ${serverName}`,
       );
 
@@ -139,7 +140,7 @@ class MCPToolAdapter extends EventEmitter {
 
       return toolIds;
     } catch (error) {
-      console.error(
+      logger.error(
         `[MCPToolAdapter] Failed to register server ${serverName}:`,
         error,
       );
@@ -153,7 +154,7 @@ class MCPToolAdapter extends EventEmitter {
    */
   async unregisterMCPServerTools(serverName) {
     try {
-      console.log(
+      logger.info(
         `[MCPToolAdapter] Unregistering tools from server: ${serverName}`,
       );
 
@@ -164,7 +165,7 @@ class MCPToolAdapter extends EventEmitter {
           await this.toolManager.unregisterTool(toolId);
           this.mcpToolRegistry.delete(toolId);
         } catch (err) {
-          console.error(
+          logger.error(
             `[MCPToolAdapter] Failed to unregister tool ${toolId}:`,
             err,
           );
@@ -176,13 +177,13 @@ class MCPToolAdapter extends EventEmitter {
       // Disconnect from MCP server
       await this.mcpClientManager.disconnectServer(serverName);
 
-      console.log(
+      logger.info(
         `[MCPToolAdapter] Unregistered ${toolIds.length} tools from ${serverName}`,
       );
 
       this.emit("server-unregistered", { serverName });
     } catch (error) {
-      console.error(
+      logger.error(
         `[MCPToolAdapter] Failed to unregister server ${serverName}:`,
         error,
       );
@@ -233,7 +234,7 @@ class MCPToolAdapter extends EventEmitter {
    */
   async refreshServerTools(serverName) {
     try {
-      console.log(`[MCPToolAdapter] Refreshing tools from ${serverName}`);
+      logger.info(`[MCPToolAdapter] Refreshing tools from ${serverName}`);
 
       // Get updated tool list
       const tools = await this.mcpClientManager.listTools(serverName);
@@ -259,7 +260,7 @@ class MCPToolAdapter extends EventEmitter {
           const toolId = await this._registerSingleTool(serverName, mcpTool);
           currentToolIds.push(toolId);
         } catch (err) {
-          console.error(
+          logger.error(
             `[MCPToolAdapter] Failed to register new tool ${mcpTool.name}:`,
             err,
           );
@@ -268,11 +269,11 @@ class MCPToolAdapter extends EventEmitter {
 
       this.serverTools.set(serverName, currentToolIds);
 
-      console.log(
+      logger.info(
         `[MCPToolAdapter] Refreshed ${serverName}: added ${newTools.length} new tools`,
       );
     } catch (error) {
-      console.error(
+      logger.error(
         `[MCPToolAdapter] Failed to refresh server ${serverName}:`,
         error,
       );
@@ -311,7 +312,7 @@ class MCPToolAdapter extends EventEmitter {
       originalToolName: mcpTool.name,
     });
 
-    console.log(
+    logger.info(
       `[MCPToolAdapter] Registered MCP tool: ${chainlessChainTool.name} -> ${toolId}`,
     );
 
@@ -393,7 +394,7 @@ class MCPToolAdapter extends EventEmitter {
       // Transform to ChainlessChain expected format
       return this._transformMCPResult(result);
     } catch (error) {
-      console.error(`[MCPToolAdapter] MCP tool execution failed:`, error);
+      logger.error(`[MCPToolAdapter] MCP tool execution failed:`, error);
 
       // Wrap error in standard format
       return {

@@ -6,6 +6,7 @@
  * @description 项目 Git 模块，支持 Git 初始化、提交、推送、拉取、分支管理等
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { ipcMain } = require('electron');
 const path = require('path');
 
@@ -25,7 +26,7 @@ function registerProjectGitIPC({
   fileSyncManager,
   mainWindow
 }) {
-  console.log('[Project Git IPC] Registering Project Git IPC handlers...');
+  logger.info('[Project Git IPC] Registering Project Git IPC handlers...');
 
   // ============================================================
   // Git 基础操作 (5 handlers)
@@ -46,7 +47,7 @@ function registerProjectGitIPC({
 
       // 如果后端不可用，降级到本地Git
       if (!result.success || result.status === 0) {
-        console.warn('[Main] 后端服务不可用，使用本地Git');
+        logger.warn('[Main] 后端服务不可用，使用本地Git');
         const git = require('isomorphic-git');
         const fs = require('fs');
         await git.init({ fs, dir: resolvedPath, defaultBranch: 'main' });
@@ -55,7 +56,7 @@ function registerProjectGitIPC({
 
       return result;
     } catch (error) {
-      console.error('[Main] Git初始化失败:', error);
+      logger.error('[Main] Git初始化失败:', error);
       throw error;
     }
   });
@@ -75,7 +76,7 @@ function registerProjectGitIPC({
 
       // 如果后端不可用，降级到本地Git
       if (!result.success || result.status === 0) {
-        console.warn('[Main] 后端服务不可用，使用本地Git');
+        logger.warn('[Main] 后端服务不可用，使用本地Git');
         const git = require('isomorphic-git');
         const fs = require('fs');
         const statusMatrix = await git.statusMatrix({ fs, dir: resolvedPath });
@@ -104,7 +105,7 @@ function registerProjectGitIPC({
 
       return result.data || {};
     } catch (error) {
-      console.error('[Main] Git状态查询失败:', error);
+      logger.error('[Main] Git状态查询失败:', error);
       throw error;
     }
   });
@@ -123,20 +124,20 @@ function registerProjectGitIPC({
       // 0. 检查并初始化 Git 仓库（如果需要）
       const gitDir = path.join(resolvedPath, '.git');
       if (!fs.existsSync(gitDir)) {
-        console.log('[Main] Git 仓库未初始化，正在初始化...');
+        logger.info('[Main] Git 仓库未初始化，正在初始化...');
         const git = require('isomorphic-git');
         await git.init({ fs, dir: resolvedPath, defaultBranch: 'main' });
-        console.log('[Main] Git 仓库初始化完成');
+        logger.info('[Main] Git 仓库初始化完成');
       }
 
       // 1. 提交前：刷新所有数据库更改到文件系统
-      console.log('[Main] Git 提交前，刷新数据库更改到文件系统...');
+      logger.info('[Main] Git 提交前，刷新数据库更改到文件系统...');
       if (fileSyncManager && projectId) {
         try {
           await fileSyncManager.flushAllChanges(projectId);
-          console.log('[Main] 文件刷新完成');
+          logger.info('[Main] 文件刷新完成');
         } catch (syncError) {
-          console.warn('[Main] 文件刷新失败（继续提交）:', syncError);
+          logger.warn('[Main] 文件刷新失败（继续提交）:', syncError);
         }
       }
 
@@ -149,7 +150,7 @@ function registerProjectGitIPC({
 
       // 如果后端不可用，降级到本地Git
       if (!result.success || result.status === 0) {
-        console.warn('[Main] 后端服务不可用，使用本地Git');
+        logger.warn('[Main] 后端服务不可用，使用本地Git');
         const git = require('isomorphic-git');
         const status = await git.statusMatrix({ fs, dir: resolvedPath });
 
@@ -165,20 +166,20 @@ function registerProjectGitIPC({
 
         // 如果没有变更，返回成功但提示无变更
         if (!hasChanges) {
-          console.log('[Main] 没有需要提交的变更');
+          logger.info('[Main] 没有需要提交的变更');
           return { success: true, message: 'No changes to commit' };
         }
 
         // 执行提交
         const sha = await git.commit({ fs, dir: resolvedPath, message, author });
-        console.log('[Main] Git 提交成功:', sha);
+        logger.info('[Main] Git 提交成功:', sha);
         return { success: true, sha };
       }
 
-      console.log('[Main] Git 提交成功:', result.data?.sha);
+      logger.info('[Main] Git 提交成功:', result.data?.sha);
       return result;
     } catch (error) {
-      console.error('[Main] Git提交失败:', error);
+      logger.error('[Main] Git提交失败:', error);
       throw error;
     }
   });
@@ -198,7 +199,7 @@ function registerProjectGitIPC({
 
       // 如果后端不可用，降级到本地Git
       if (!result.success || result.status === 0) {
-        console.warn('[Main] 后端服务不可用，使用本地Git');
+        logger.warn('[Main] 后端服务不可用，使用本地Git');
         const git = require('isomorphic-git');
         const fs = require('fs');
         const http = require('isomorphic-git/http/node');
@@ -215,7 +216,7 @@ function registerProjectGitIPC({
 
       return result;
     } catch (error) {
-      console.error('[Main] Git推送失败:', error);
+      logger.error('[Main] Git推送失败:', error);
       throw error;
     }
   });
@@ -238,12 +239,12 @@ function registerProjectGitIPC({
       }
 
       // 1. 调用后端API
-      console.log('[Main] 执行 Git pull...');
+      logger.info('[Main] 执行 Git pull...');
       const result = await GitAPI.pull(resolvedPath, remote, branch);
 
       // 如果后端不可用，降级到本地Git
       if (!result.success || result.status === 0) {
-        console.warn('[Main] 后端服务不可用，使用本地Git');
+        logger.warn('[Main] 后端服务不可用，使用本地Git');
         const git = require('isomorphic-git');
         const http = require('isomorphic-git/http/node');
         await git.pull({
@@ -254,20 +255,20 @@ function registerProjectGitIPC({
           singleBranch: true,
           onAuth: () => gitManager?.auth || {}
         });
-        console.log('[Main] Git pull 完成');
+        logger.info('[Main] Git pull 完成');
       } else {
-        console.log('[Main] Git pull 完成');
+        logger.info('[Main] Git pull 完成');
       }
 
       // 2. 拉取后：通知前端刷新项目文件列表
       if (mainWindow && projectId) {
-        console.log('[Main] 通知前端刷新项目文件...');
+        logger.info('[Main] 通知前端刷新项目文件...');
         mainWindow.webContents.send('git:pulled', { projectId });
       }
 
       return result.success ? result : { success: true };
     } catch (error) {
-      console.error('[Main] Git拉取失败:', error);
+      logger.error('[Main] Git拉取失败:', error);
       throw error;
     }
   });
@@ -291,7 +292,7 @@ function registerProjectGitIPC({
 
       // 如果后端不可用，降级到本地Git
       if (!result.success || result.status === 0) {
-        console.warn('[Main] 后端服务不可用，使用本地Git获取提交历史');
+        logger.warn('[Main] 后端服务不可用，使用本地Git获取提交历史');
         const git = require('isomorphic-git');
         const fs = require('fs');
 
@@ -351,7 +352,7 @@ function registerProjectGitIPC({
 
       return result;
     } catch (error) {
-      console.error('[Main] 获取提交历史失败:', error);
+      logger.error('[Main] 获取提交历史失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -368,7 +369,7 @@ function registerProjectGitIPC({
       const result = await GitAPI.diff(resolvedPath, sha + '^', sha);
       return result;
     } catch (error) {
-      console.error('[Main] 获取提交详情失败:', error);
+      logger.error('[Main] 获取提交详情失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -383,7 +384,7 @@ function registerProjectGitIPC({
       const resolvedPath = projectConfig.resolveProjectPath(repoPath);
       return await GitAPI.diff(resolvedPath, commit1, commit2);
     } catch (error) {
-      console.error('[Main] 获取差异失败:', error);
+      logger.error('[Main] 获取差异失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -402,7 +403,7 @@ function registerProjectGitIPC({
       const resolvedPath = projectConfig.resolveProjectPath(repoPath);
       return await GitAPI.branches(resolvedPath);
     } catch (error) {
-      console.error('[Main] 获取分支列表失败:', error);
+      logger.error('[Main] 获取分支列表失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -417,7 +418,7 @@ function registerProjectGitIPC({
       const resolvedPath = projectConfig.resolveProjectPath(repoPath);
       return await GitAPI.createBranch(resolvedPath, branchName, fromBranch);
     } catch (error) {
-      console.error('[Main] 创建分支失败:', error);
+      logger.error('[Main] 创建分支失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -432,7 +433,7 @@ function registerProjectGitIPC({
       const resolvedPath = projectConfig.resolveProjectPath(repoPath);
       return await GitAPI.checkoutBranch(resolvedPath, branchName);
     } catch (error) {
-      console.error('[Main] 切换分支失败:', error);
+      logger.error('[Main] 切换分支失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -447,7 +448,7 @@ function registerProjectGitIPC({
       const resolvedPath = projectConfig.resolveProjectPath(repoPath);
       return await GitAPI.merge(resolvedPath, sourceBranch, targetBranch);
     } catch (error) {
-      console.error('[Main] 合并分支失败:', error);
+      logger.error('[Main] 合并分支失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -462,7 +463,7 @@ function registerProjectGitIPC({
       const resolvedPath = projectConfig.resolveProjectPath(repoPath);
       return await GitAPI.resolveConflicts(resolvedPath, filePath, false, strategy);
     } catch (error) {
-      console.error('[Main] 解决冲突失败:', error);
+      logger.error('[Main] 解决冲突失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -477,15 +478,15 @@ function registerProjectGitIPC({
       const resolvedPath = projectConfig.resolveProjectPath(repoPath);
       return await GitAPI.generateCommitMessage(resolvedPath);
     } catch (error) {
-      console.error('[Main] 生成提交消息失败:', error);
+      logger.error('[Main] 生成提交消息失败:', error);
       return { success: false, error: error.message };
     }
   });
 
-  console.log('[Project Git IPC] ✓ 14 handlers registered');
-  console.log('[Project Git IPC] - 5 basic Git operation handlers');
-  console.log('[Project Git IPC] - 3 history & diff handlers');
-  console.log('[Project Git IPC] - 6 branch management handlers');
+  logger.info('[Project Git IPC] ✓ 14 handlers registered');
+  logger.info('[Project Git IPC] - 5 basic Git operation handlers');
+  logger.info('[Project Git IPC] - 3 history & diff handlers');
+  logger.info('[Project Git IPC] - 6 branch management handlers');
 }
 
 module.exports = {

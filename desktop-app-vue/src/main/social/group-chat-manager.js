@@ -6,6 +6,7 @@
  * @module group-chat-manager
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { v4: uuidv4 } = require('uuid');
 const EventEmitter = require('events');
 const crypto = require('crypto');
@@ -24,7 +25,7 @@ class GroupChatManager extends EventEmitter {
     // 当前用户DID
     this.currentUserDid = null;
 
-    console.log('[GroupChatManager] 群聊管理器已初始化');
+    logger.info('[GroupChatManager] 群聊管理器已初始化');
   }
 
   /**
@@ -32,7 +33,7 @@ class GroupChatManager extends EventEmitter {
    */
   setCurrentUserDid(did) {
     this.currentUserDid = did;
-    console.log('[GroupChatManager] 当前用户DID已设置:', did);
+    logger.info('[GroupChatManager] 当前用户DID已设置:', did);
   }
 
   /**
@@ -116,7 +117,7 @@ class GroupChatManager extends EventEmitter {
 
       this.database.saveToFile();
 
-      console.log('[GroupChatManager] 群聊已创建:', groupId);
+      logger.info('[GroupChatManager] 群聊已创建:', groupId);
 
       this.emit('group:created', {
         groupId,
@@ -131,7 +132,7 @@ class GroupChatManager extends EventEmitter {
         memberCount: memberDids.length + 1
       };
     } catch (error) {
-      console.error('[GroupChatManager] 创建群聊失败:', error);
+      logger.error('[GroupChatManager] 创建群聊失败:', error);
       throw error;
     }
   }
@@ -156,7 +157,7 @@ class GroupChatManager extends EventEmitter {
       const groups = stmt.all(this.currentUserDid);
       return groups || [];
     } catch (error) {
-      console.error('[GroupChatManager] 获取群聊列表失败:', error);
+      logger.error('[GroupChatManager] 获取群聊列表失败:', error);
       return [];
     }
   }
@@ -188,7 +189,7 @@ class GroupChatManager extends EventEmitter {
         members: members || []
       };
     } catch (error) {
-      console.error('[GroupChatManager] 获取群聊详情失败:', error);
+      logger.error('[GroupChatManager] 获取群聊详情失败:', error);
       throw error;
     }
   }
@@ -216,11 +217,11 @@ class GroupChatManager extends EventEmitter {
       `);
       updateStmt.run(now, groupId);
 
-      console.log('[GroupChatManager] 成员已添加:', memberDid, '到群聊:', groupId);
+      logger.info('[GroupChatManager] 成员已添加:', memberDid, '到群聊:', groupId);
 
       return { success: true, memberId };
     } catch (error) {
-      console.error('[GroupChatManager] 添加成员失败:', error);
+      logger.error('[GroupChatManager] 添加成员失败:', error);
       throw error;
     }
   }
@@ -255,11 +256,11 @@ class GroupChatManager extends EventEmitter {
 
       this.database.saveToFile();
 
-      console.log('[GroupChatManager] 成员已移除:', memberDid);
+      logger.info('[GroupChatManager] 成员已移除:', memberDid);
 
       return { success: true };
     } catch (error) {
-      console.error('[GroupChatManager] 移除成员失败:', error);
+      logger.error('[GroupChatManager] 移除成员失败:', error);
       throw error;
     }
   }
@@ -288,11 +289,11 @@ class GroupChatManager extends EventEmitter {
       // 发送系统消息
       await this.sendSystemMessage(groupId, `成员 ${this.currentUserDid} 已退出群聊`);
 
-      console.log('[GroupChatManager] 已退出群聊:', groupId);
+      logger.info('[GroupChatManager] 已退出群聊:', groupId);
 
       return { success: true };
     } catch (error) {
-      console.error('[GroupChatManager] 退出群聊失败:', error);
+      logger.error('[GroupChatManager] 退出群聊失败:', error);
       throw error;
     }
   }
@@ -313,11 +314,11 @@ class GroupChatManager extends EventEmitter {
 
       this.database.saveToFile();
 
-      console.log('[GroupChatManager] 群聊已解散:', groupId);
+      logger.info('[GroupChatManager] 群聊已解散:', groupId);
 
       return { success: true };
     } catch (error) {
-      console.error('[GroupChatManager] 解散群聊失败:', error);
+      logger.error('[GroupChatManager] 解散群聊失败:', error);
       throw error;
     }
   }
@@ -417,7 +418,7 @@ class GroupChatManager extends EventEmitter {
         timestamp: now
       });
 
-      console.log('[GroupChatManager] 群消息已发送:', messageId);
+      logger.info('[GroupChatManager] 群消息已发送:', messageId);
 
       this.emit('message:sent', {
         messageId,
@@ -431,7 +432,7 @@ class GroupChatManager extends EventEmitter {
         timestamp: now
       };
     } catch (error) {
-      console.error('[GroupChatManager] 发送群消息失败:', error);
+      logger.error('[GroupChatManager] 发送群消息失败:', error);
       throw error;
     }
   }
@@ -468,7 +469,7 @@ class GroupChatManager extends EventEmitter {
               decrypted: true
             });
           } catch (error) {
-            console.error('[GroupChatManager] 解密消息失败:', error);
+            logger.error('[GroupChatManager] 解密消息失败:', error);
             decryptedMessages.push({
               ...msg,
               content: '[加密消息]',
@@ -482,7 +483,7 @@ class GroupChatManager extends EventEmitter {
 
       return decryptedMessages;
     } catch (error) {
-      console.error('[GroupChatManager] 获取群消息失败:', error);
+      logger.error('[GroupChatManager] 获取群消息失败:', error);
       return [];
     }
   }
@@ -511,7 +512,7 @@ class GroupChatManager extends EventEmitter {
 
       return { success: true };
     } catch (error) {
-      console.error('[GroupChatManager] 标记已读失败:', error);
+      logger.error('[GroupChatManager] 标记已读失败:', error);
       return { success: false };
     }
   }
@@ -527,7 +528,7 @@ class GroupChatManager extends EventEmitter {
       `);
       return stmt.get(groupId, memberDid);
     } catch (error) {
-      console.error('[GroupChatManager] 获取群成员失败:', error);
+      logger.error('[GroupChatManager] 获取群成员失败:', error);
       return null;
     }
   }
@@ -560,7 +561,7 @@ class GroupChatManager extends EventEmitter {
 
       return { success: true, messageId };
     } catch (error) {
-      console.error('[GroupChatManager] 发送系统消息失败:', error);
+      logger.error('[GroupChatManager] 发送系统消息失败:', error);
       return { success: false };
     }
   }
@@ -603,11 +604,11 @@ class GroupChatManager extends EventEmitter {
         iteration: 0
       });
 
-      console.log('[GroupChatManager] 群组加密密钥已生成:', keyId);
+      logger.info('[GroupChatManager] 群组加密密钥已生成:', keyId);
 
       return { keyId, chainKey, signatureKey };
     } catch (error) {
-      console.error('[GroupChatManager] 生成加密密钥失败:', error);
+      logger.error('[GroupChatManager] 生成加密密钥失败:', error);
       throw error;
     }
   }
@@ -667,7 +668,7 @@ class GroupChatManager extends EventEmitter {
         keyId: keyData.keyId
       };
     } catch (error) {
-      console.error('[GroupChatManager] 加密消息失败:', error);
+      logger.error('[GroupChatManager] 加密消息失败:', error);
       throw error;
     }
   }
@@ -704,7 +705,7 @@ class GroupChatManager extends EventEmitter {
 
       return decrypted;
     } catch (error) {
-      console.error('[GroupChatManager] 解密消息失败:', error);
+      logger.error('[GroupChatManager] 解密消息失败:', error);
       throw error;
     }
   }
@@ -731,13 +732,13 @@ class GroupChatManager extends EventEmitter {
             });
           }
         } catch (error) {
-          console.error('[GroupChatManager] 发送消息给成员失败:', member.member_did, error);
+          logger.error('[GroupChatManager] 发送消息给成员失败:', member.member_did, error);
         }
       }
 
-      console.log('[GroupChatManager] 群消息已广播给', members.length, '个成员');
+      logger.info('[GroupChatManager] 群消息已广播给', members.length, '个成员');
     } catch (error) {
-      console.error('[GroupChatManager] 广播群消息失败:', error);
+      logger.error('[GroupChatManager] 广播群消息失败:', error);
     }
   }
 
@@ -758,11 +759,11 @@ class GroupChatManager extends EventEmitter {
             await this.p2pManager.sendMessage(member.member_did, notification);
           }
         } catch (error) {
-          console.error('[GroupChatManager] 通知成员失败:', member.member_did, error);
+          logger.error('[GroupChatManager] 通知成员失败:', member.member_did, error);
         }
       }
     } catch (error) {
-      console.error('[GroupChatManager] 通知群成员失败:', error);
+      logger.error('[GroupChatManager] 通知群成员失败:', error);
     }
   }
 
@@ -819,7 +820,7 @@ class GroupChatManager extends EventEmitter {
 
       return { success: true };
     } catch (error) {
-      console.error('[GroupChatManager] 更新群信息失败:', error);
+      logger.error('[GroupChatManager] 更新群信息失败:', error);
       throw error;
     }
   }
@@ -830,7 +831,7 @@ class GroupChatManager extends EventEmitter {
   cleanup() {
     this.groupKeys.clear();
     this.removeAllListeners();
-    console.log('[GroupChatManager] 资源已清理');
+    logger.info('[GroupChatManager] 资源已清理');
   }
 }
 

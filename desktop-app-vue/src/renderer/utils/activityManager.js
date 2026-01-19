@@ -3,6 +3,7 @@
  * 跟踪用户活动、最近文件、操作历史等
  */
 
+import { logger, createLogger } from '@/utils/logger';
 import { ref, computed } from 'vue';
 
 /**
@@ -297,7 +298,7 @@ class ActivityManager {
       try {
         listener(event, data);
       } catch (error) {
-        console.error('[ActivityManager] Listener error:', error);
+        logger.error('[ActivityManager] Listener error:', error);
       }
     });
   }
@@ -313,7 +314,7 @@ class ActivityManager {
       };
       localStorage.setItem('activities', JSON.stringify(data));
     } catch (error) {
-      console.error('[ActivityManager] Save to storage error:', error);
+      logger.error('[ActivityManager] Save to storage error:', error);
     }
   }
 
@@ -335,7 +336,7 @@ class ActivityManager {
         }
       }
     } catch (error) {
-      console.error('[ActivityManager] Load from storage error:', error);
+      logger.error('[ActivityManager] Load from storage error:', error);
     }
   }
 
@@ -366,7 +367,7 @@ class ActivityManager {
       this.saveToStorage();
       return true;
     } catch (error) {
-      console.error('[ActivityManager] Import data error:', error);
+      logger.error('[ActivityManager] Import data error:', error);
       return false;
     }
   }

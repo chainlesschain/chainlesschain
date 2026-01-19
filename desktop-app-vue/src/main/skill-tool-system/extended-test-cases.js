@@ -3,6 +3,7 @@
  * 为27个工具提供更全面的测试覆盖
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const path = require('path');
 const { createEnhancedHandler } = require('./enhanced-handler-example');
 
@@ -419,17 +420,17 @@ class ExtendedTestRunner {
    * 初始化
    */
   async initialize() {
-    console.log('========================================');
-    console.log('  扩展测试套件');
-    console.log('  更全面的功能和边界测试');
-    console.log('========================================\n');
+    logger.info('========================================');
+    logger.info('  扩展测试套件');
+    logger.info('  更全面的功能和边界测试');
+    logger.info('========================================\n');
 
     this.handler = createEnhancedHandler({
       logLevel: 'warn',  // 减少日志输出
       workDir: path.join(__dirname, '../../../../data/workspace/test')
     });
 
-    console.log('[Test] Handler初始化成功\n');
+    logger.info('[Test] Handler初始化成功\n');
   }
 
   /**
@@ -439,7 +440,7 @@ class ExtendedTestRunner {
     const methodName = `tool_${toolName}`;
 
     if (!this.handler[methodName]) {
-      console.error(`  ❌ 工具方法不存在: ${methodName}`);
+      logger.error(`  ❌ 工具方法不存在: ${methodName}`);
       return { success: false, error: 'Method not found' };
     }
 
@@ -458,10 +459,10 @@ class ExtendedTestRunner {
       };
 
       if (testResult.success) {
-        console.log(`  ✅ ${testCase.name} (${duration}ms)`);
+        logger.info(`  ✅ ${testCase.name} (${duration}ms)`);
       } else {
-        console.log(`  ❌ ${testCase.name} (${duration}ms)`);
-        console.log(`     期望: ${testCase.expectedSuccess}, 实际: ${result.success}`);
+        logger.info(`  ❌ ${testCase.name} (${duration}ms)`);
+        logger.info(`     期望: ${testCase.expectedSuccess}, 实际: ${result.success}`);
       }
 
       this.results.push(testResult);
@@ -469,7 +470,7 @@ class ExtendedTestRunner {
 
     } catch (error) {
       const duration = Date.now() - startTime;
-      console.error(`  ❌ ${testCase.name} - 异常: ${error.message}`);
+      logger.error(`  ❌ ${testCase.name} - 异常: ${error.message}`);
 
       const testResult = {
         toolName,
@@ -488,7 +489,7 @@ class ExtendedTestRunner {
    * 运行所有测试
    */
   async runAllTests() {
-    console.log('[Test] 开始运行扩展测试...\n');
+    logger.info('[Test] 开始运行扩展测试...\n');
 
     let totalTests = 0;
     let toolsWithTests = 0;
@@ -496,7 +497,7 @@ class ExtendedTestRunner {
     for (const [toolName, cases] of Object.entries(testCases)) {
       if (cases.length === 0) {continue;}
 
-      console.log(`\n========== ${toolName} (${cases.length}个测试) ==========`);
+      logger.info(`\n========== ${toolName} (${cases.length}个测试) ==========`);
       toolsWithTests++;
 
       for (const testCase of cases) {
@@ -505,21 +506,21 @@ class ExtendedTestRunner {
       }
     }
 
-    console.log('\n========================================');
-    console.log('  测试统计');
-    console.log('========================================');
-    console.log(`测试的工具数: ${toolsWithTests}`);
-    console.log(`总测试用例数: ${totalTests}`);
-    console.log(`成功: ${this.results.filter(r => r.success).length}`);
-    console.log(`失败: ${this.results.filter(r => !r.success).length}`);
-    console.log(`成功率: ${(this.results.filter(r => r.success).length / totalTests * 100).toFixed(1)}%`);
-    console.log('========================================\n');
+    logger.info('\n========================================');
+    logger.info('  测试统计');
+    logger.info('========================================');
+    logger.info(`测试的工具数: ${toolsWithTests}`);
+    logger.info(`总测试用例数: ${totalTests}`);
+    logger.info(`成功: ${this.results.filter(r => r.success).length}`);
+    logger.info(`失败: ${this.results.filter(r => !r.success).length}`);
+    logger.info(`成功率: ${(this.results.filter(r => r.success).length / totalTests * 100).toFixed(1)}%`);
+    logger.info('========================================\n');
 
     // 错误统计
     const errorStats = this.handler.getErrorStats();
     if (Object.keys(errorStats).length > 0) {
-      console.log('错误统计:');
-      console.log(JSON.stringify(errorStats, null, 2));
+      logger.info('错误统计:');
+      logger.info(JSON.stringify(errorStats, null, 2));
     }
 
     return {
@@ -539,7 +540,7 @@ class ExtendedTestRunner {
       const summary = await this.runAllTests();
       return summary.failed === 0;
     } catch (error) {
-      console.error('\n[Test] 测试过程失败:', error);
+      logger.error('\n[Test] 测试过程失败:', error);
       return false;
     }
   }
@@ -553,7 +554,7 @@ if (require.main === module) {
       process.exit(success ? 0 : 1);
     })
     .catch(error => {
-      console.error('Fatal error:', error);
+      logger.error('Fatal error:', error);
       process.exit(1);
     });
 }

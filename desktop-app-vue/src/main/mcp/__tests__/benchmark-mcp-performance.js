@@ -5,6 +5,7 @@
  * Run with: node src/main/mcp/__tests__/benchmark-mcp-performance.js
  */
 
+const { logger, createLogger } = require('../../utils/logger.js');
 const { MCPClientManager } = require('../mcp-client-manager');
 const MCPPerformanceMonitor = require('../mcp-performance-monitor');
 const path = require('path');
@@ -35,7 +36,7 @@ class MCPBenchmark {
   }
 
   async setup() {
-    console.log('\n🔧 Setting up benchmark environment...\n');
+    logger.info('\n🔧 Setting up benchmark environment...\n');
 
     // Ensure test data directory exists
     if (!fs.existsSync(TEST_CONFIG.testDataPath)) {
@@ -46,25 +47,25 @@ class MCPBenchmark {
     const testFilePath = path.join(TEST_CONFIG.testDataPath, 'test-file.txt');
     fs.writeFileSync(testFilePath, 'This is a test file for MCP benchmarking.\n'.repeat(100));
 
-    console.log('✅ Test environment ready\n');
+    logger.info('✅ Test environment ready\n');
   }
 
   async cleanup() {
-    console.log('\n🧹 Cleaning up...\n');
+    logger.info('\n🧹 Cleaning up...\n');
 
     if (this.mcpManager) {
       await this.mcpManager.shutdown();
     }
 
-    console.log('✅ Cleanup complete\n');
+    logger.info('✅ Cleanup complete\n');
   }
 
   /**
    * Benchmark 1: Connection time
    */
   async benchmarkConnection() {
-    console.log('📊 BENCHMARK 1: Connection Time');
-    console.log('─────────────────────────────────────────\n');
+    logger.info('📊 BENCHMARK 1: Connection Time');
+    logger.info('─────────────────────────────────────────\n');
 
     const times = [];
 
@@ -82,7 +83,7 @@ class MCPBenchmark {
         await manager.shutdown();
 
       } catch (error) {
-        console.error(`❌ Connection failed:`, error.message);
+        logger.error(`❌ Connection failed:`, error.message);
         this.monitor.recordConnection('filesystem', Date.now() - startTime, false);
       }
 
@@ -97,20 +98,20 @@ class MCPBenchmark {
     const max = Math.max(...times);
     const p95 = this._percentile(times, 95);
 
-    console.log(`\n  Results:`);
-    console.log(`    Avg: ${avg.toFixed(2)}ms`);
-    console.log(`    Min: ${min}ms`);
-    console.log(`    Max: ${max}ms`);
-    console.log(`    P95: ${p95.toFixed(2)}ms`);
-    console.log();
+    logger.info(`\n  Results:`);
+    logger.info(`    Avg: ${avg.toFixed(2)}ms`);
+    logger.info(`    Min: ${min}ms`);
+    logger.info(`    Max: ${max}ms`);
+    logger.info(`    P95: ${p95.toFixed(2)}ms`);
+    logger.info();
   }
 
   /**
    * Benchmark 2: Direct file read (baseline)
    */
   async benchmarkDirectFileRead() {
-    console.log('📊 BENCHMARK 2: Direct File Read (Baseline)');
-    console.log('─────────────────────────────────────────\n');
+    logger.info('📊 BENCHMARK 2: Direct File Read (Baseline)');
+    logger.info('─────────────────────────────────────────\n');
 
     const testFilePath = path.join(TEST_CONFIG.testDataPath, 'test-file.txt');
     const times = [];
@@ -136,19 +137,19 @@ class MCPBenchmark {
 
     this.monitor.setBaseline('directCall', avg);
 
-    console.log(`  Results:`);
-    console.log(`    Avg: ${avg.toFixed(2)}ms`);
-    console.log(`    Min: ${min}ms`);
-    console.log(`    Max: ${max}ms`);
-    console.log();
+    logger.info(`  Results:`);
+    logger.info(`    Avg: ${avg.toFixed(2)}ms`);
+    logger.info(`    Min: ${min}ms`);
+    logger.info(`    Max: ${max}ms`);
+    logger.info();
   }
 
   /**
    * Benchmark 3: MCP file read
    */
   async benchmarkMCPFileRead() {
-    console.log('📊 BENCHMARK 3: MCP File Read');
-    console.log('─────────────────────────────────────────\n');
+    logger.info('📊 BENCHMARK 3: MCP File Read');
+    logger.info('─────────────────────────────────────────\n');
 
     // Connect to MCP server
     this.mcpManager = new MCPClientManager();
@@ -184,7 +185,7 @@ class MCPBenchmark {
 
       } catch (error) {
         const duration = Date.now() - startTime;
-        console.error(`❌ MCP call failed:`, error.message);
+        logger.error(`❌ MCP call failed:`, error.message);
         this.monitor.recordToolCall('filesystem', 'read_file', duration, false);
       }
 
@@ -201,23 +202,23 @@ class MCPBenchmark {
 
     this.monitor.setBaseline('stdioCall', avg);
 
-    console.log(`\n  Results:`);
-    console.log(`    Avg: ${avg.toFixed(2)}ms`);
-    console.log(`    Min: ${min}ms`);
-    console.log(`    Max: ${max}ms`);
-    console.log(`    P95: ${p95.toFixed(2)}ms`);
-    console.log();
+    logger.info(`\n  Results:`);
+    logger.info(`    Avg: ${avg.toFixed(2)}ms`);
+    logger.info(`    Min: ${min}ms`);
+    logger.info(`    Max: ${max}ms`);
+    logger.info(`    P95: ${p95.toFixed(2)}ms`);
+    logger.info();
   }
 
   /**
    * Calculate overhead
    */
   calculateOverhead() {
-    console.log('📊 BENCHMARK 4: Overhead Analysis');
-    console.log('─────────────────────────────────────────\n');
+    logger.info('📊 BENCHMARK 4: Overhead Analysis');
+    logger.info('─────────────────────────────────────────\n');
 
     if (this.results.directCall.length === 0 || this.results.mcpCall.length === 0) {
-      console.log('  ⚠️  Insufficient data for overhead calculation\n');
+      logger.info('  ⚠️  Insufficient data for overhead calculation\n');
       return;
     }
 
@@ -236,42 +237,42 @@ class MCPBenchmark {
     const maxOverhead = Math.max(...this.results.overhead);
     const p95Overhead = this._percentile(this.results.overhead, 95);
 
-    console.log(`  Direct Call Avg: ${avgDirect.toFixed(2)}ms`);
-    console.log(`  MCP Call Avg: ${avgMCP.toFixed(2)}ms`);
-    console.log();
-    console.log(`  Overhead:`);
-    console.log(`    Avg: ${avgOverhead.toFixed(2)}ms (${overheadPercent.toFixed(1)}%)`);
-    console.log(`    Min: ${minOverhead.toFixed(2)}ms`);
-    console.log(`    Max: ${maxOverhead.toFixed(2)}ms`);
-    console.log(`    P95: ${p95Overhead.toFixed(2)}ms`);
-    console.log();
+    logger.info(`  Direct Call Avg: ${avgDirect.toFixed(2)}ms`);
+    logger.info(`  MCP Call Avg: ${avgMCP.toFixed(2)}ms`);
+    logger.info();
+    logger.info(`  Overhead:`);
+    logger.info(`    Avg: ${avgOverhead.toFixed(2)}ms (${overheadPercent.toFixed(1)}%)`);
+    logger.info(`    Min: ${minOverhead.toFixed(2)}ms`);
+    logger.info(`    Max: ${maxOverhead.toFixed(2)}ms`);
+    logger.info(`    P95: ${p95Overhead.toFixed(2)}ms`);
+    logger.info();
 
     // Performance assessment
-    console.log(`  Assessment:`);
+    logger.info(`  Assessment:`);
     if (avgOverhead < 50) {
-      console.log(`    ✅ EXCELLENT - Overhead < 50ms`);
+      logger.info(`    ✅ EXCELLENT - Overhead < 50ms`);
     } else if (avgOverhead < 100) {
-      console.log(`    ✅ ACCEPTABLE - Overhead < 100ms`);
+      logger.info(`    ✅ ACCEPTABLE - Overhead < 100ms`);
     } else if (avgOverhead < 200) {
-      console.log(`    ⚠️  MARGINAL - Overhead < 200ms`);
+      logger.info(`    ⚠️  MARGINAL - Overhead < 200ms`);
     } else {
-      console.log(`    ❌ UNACCEPTABLE - Overhead > 200ms`);
+      logger.info(`    ❌ UNACCEPTABLE - Overhead > 200ms`);
     }
-    console.log();
+    logger.info();
   }
 
   /**
    * Generate final report
    */
   generateReport() {
-    console.log('═══════════════════════════════════════════════════');
-    console.log('  BENCHMARK SUMMARY');
-    console.log('═══════════════════════════════════════════════════\n');
+    logger.info('═══════════════════════════════════════════════════');
+    logger.info('  BENCHMARK SUMMARY');
+    logger.info('═══════════════════════════════════════════════════\n');
 
-    console.log(this.monitor.generateReport());
+    logger.info(this.monitor.generateReport());
 
-    console.log('\n📈 POC SUCCESS CRITERIA EVALUATION\n');
-    console.log('─────────────────────────────────────────\n');
+    logger.info('\n📈 POC SUCCESS CRITERIA EVALUATION\n');
+    logger.info('─────────────────────────────────────────\n');
 
     const summary = this.monitor.getSummary();
     const overhead = this.monitor.baselines.overhead;
@@ -309,40 +310,40 @@ class MCPBenchmark {
 
     criteria.forEach(c => {
       const status = c.passed ? '✅' : '❌';
-      console.log(`  ${status} ${c.name}`);
-      console.log(`      Target: ${c.target} | Acceptable: ${c.acceptable}`);
-      console.log(`      Actual: ${c.actual}`);
-      console.log();
+      logger.info(`  ${status} ${c.name}`);
+      logger.info(`      Target: ${c.target} | Acceptable: ${c.acceptable}`);
+      logger.info(`      Actual: ${c.actual}`);
+      logger.info();
     });
 
     const passedCount = criteria.filter(c => c.passed).length;
     const totalCount = criteria.length;
 
-    console.log('─────────────────────────────────────────\n');
-    console.log(`  Overall: ${passedCount}/${totalCount} criteria met\n`);
+    logger.info('─────────────────────────────────────────\n');
+    logger.info(`  Overall: ${passedCount}/${totalCount} criteria met\n`);
 
     if (passedCount === totalCount) {
-      console.log('  🎉 POC SUCCESSFUL - All criteria met!\n');
+      logger.info('  🎉 POC SUCCESSFUL - All criteria met!\n');
     } else if (passedCount >= totalCount * 0.75) {
-      console.log('  ✅ POC PASSED - Most criteria met\n');
+      logger.info('  ✅ POC PASSED - Most criteria met\n');
     } else {
-      console.log('  ⚠️  POC NEEDS IMPROVEMENT\n');
+      logger.info('  ⚠️  POC NEEDS IMPROVEMENT\n');
     }
 
-    console.log('═══════════════════════════════════════════════════\n');
+    logger.info('═══════════════════════════════════════════════════\n');
   }
 
   /**
    * Run all benchmarks
    */
   async run() {
-    console.log('\n');
-    console.log('═══════════════════════════════════════════════════');
-    console.log('  MCP PERFORMANCE BENCHMARK');
-    console.log('═══════════════════════════════════════════════════');
-    console.log(`  Iterations: ${TEST_CONFIG.iterations}`);
-    console.log(`  Warmup: ${TEST_CONFIG.warmupIterations}`);
-    console.log('═══════════════════════════════════════════════════\n');
+    logger.info('\n');
+    logger.info('═══════════════════════════════════════════════════');
+    logger.info('  MCP PERFORMANCE BENCHMARK');
+    logger.info('═══════════════════════════════════════════════════');
+    logger.info(`  Iterations: ${TEST_CONFIG.iterations}`);
+    logger.info(`  Warmup: ${TEST_CONFIG.warmupIterations}`);
+    logger.info('═══════════════════════════════════════════════════\n');
 
     try {
       await this.setup();
@@ -355,8 +356,8 @@ class MCPBenchmark {
       this.generateReport();
 
     } catch (error) {
-      console.error('\n❌ Benchmark failed:', error);
-      console.error(error.stack);
+      logger.error('\n❌ Benchmark failed:', error);
+      logger.error(error.stack);
 
     } finally {
       await this.cleanup();
@@ -375,7 +376,7 @@ class MCPBenchmark {
 if (require.main === module) {
   const benchmark = new MCPBenchmark();
   benchmark.run().catch(err => {
-    console.error('Fatal error:', err);
+    logger.error('Fatal error:', err);
     process.exit(1);
   });
 }

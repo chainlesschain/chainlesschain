@@ -293,6 +293,8 @@
 </template>
 
 <script>
+import { logger, createLogger } from '@/utils/logger';
+
 import { defineComponent, ref, reactive, computed, watch } from 'vue';
 import { message } from 'ant-design-vue';
 import { PlusOutlined } from '@ant-design/icons-vue';
@@ -479,7 +481,7 @@ export default defineComponent({
         emit('create', data);
         overrideModalVisible.value = false;
       } catch (error) {
-        console.error('Failed to submit override:', error);
+        logger.error('Failed to submit override:', error);
         message.error('操作失败');
       } finally {
         loading.value = false;

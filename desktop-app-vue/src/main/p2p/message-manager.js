@@ -9,6 +9,7 @@
  * - 消息压缩（可选）
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const crypto = require('crypto');
 const EventEmitter = require('events');
 
@@ -144,7 +145,7 @@ class MessageManager extends EventEmitter {
 
     // 去重检查
     if (this.isDuplicate(id)) {
-      console.log('[MessageManager] 重复消息，已忽略:', id);
+      logger.info('[MessageManager] 重复消息，已忽略:', id);
       this.stats.messagesDuplicated++;
       return null;
     }
@@ -185,7 +186,7 @@ class MessageManager extends EventEmitter {
    * 接收批量消息
    */
   async receiveBatchMessages(peerId, messages) {
-    console.log(`[MessageManager] 接收批量消息: ${messages.length}条`);
+    logger.info(`[MessageManager] 接收批量消息: ${messages.length}条`);
 
     const results = [];
     for (const message of messages) {
@@ -195,7 +196,7 @@ class MessageManager extends EventEmitter {
           results.push(result);
         }
       } catch (error) {
-        console.error('[MessageManager] 处理消息失败:', error);
+        logger.error('[MessageManager] 处理消息失败:', error);
       }
     }
 
@@ -253,7 +254,7 @@ class MessageManager extends EventEmitter {
     const queue = this.outgoingQueue.get(peerId);
     if (!queue || queue.length === 0) {return;}
 
-    console.log(`[MessageManager] 批量发送 ${queue.length} 条消息到:`, peerId);
+    logger.info(`[MessageManager] 批量发送 ${queue.length} 条消息到:`, peerId);
 
     // 清除定时器
     if (this.batchTimers.has(peerId)) {
@@ -266,7 +267,7 @@ class MessageManager extends EventEmitter {
       await this.sendBatch(peerId, queue);
       this.stats.batchesSent++;
     } catch (error) {
-      console.error('[MessageManager] 批量发送失败:', error);
+      logger.error('[MessageManager] 批量发送失败:', error);
       // 失败的消息重新加入队列
       // 这里简化处理，实际应该有更复杂的重试逻辑
     }
@@ -279,7 +280,7 @@ class MessageManager extends EventEmitter {
    * 立即发送单条消息
    */
   async sendImmediately(peerId, message) {
-    console.log('[MessageManager] 立即发送消息:', message.id);
+    logger.info('[MessageManager] 立即发送消息:', message.id);
 
     // 触发发送事件（由P2P Manager处理实际发送）
     this.emit('send', {
@@ -292,7 +293,7 @@ class MessageManager extends EventEmitter {
    * 发送批量消息
    */
   async sendBatch(peerId, messages) {
-    console.log(`[MessageManager] 发送批量消息: ${messages.length}条`);
+    logger.info(`[MessageManager] 发送批量消息: ${messages.length}条`);
 
     // 触发批量发送事件
     this.emit('send-batch', {
@@ -322,7 +323,7 @@ class MessageManager extends EventEmitter {
    */
   waitForAck(messageId, peerId, message) {
     const timeout = setTimeout(() => {
-      console.warn('[MessageManager] 消息确认超时:', messageId);
+      logger.warn('[MessageManager] 消息确认超时:', messageId);
       this.handleAckTimeout(messageId, peerId, message);
     }, this.options.retryInterval * this.options.maxRetries);
 
@@ -342,7 +343,7 @@ class MessageManager extends EventEmitter {
       clearTimeout(timer);
       this.pendingAcks.delete(ackFor);
 
-      console.log('[MessageManager] 收到消息确认:', ackFor);
+      logger.info('[MessageManager] 收到消息确认:', ackFor);
 
       // 从已发送消息中移除
       this.sentMessages.delete(ackFor);
@@ -358,7 +359,7 @@ class MessageManager extends EventEmitter {
 
     if (sentInfo.retries < this.options.maxRetries) {
       // 重试
-      console.log(`[MessageManager] 重试发送消息 (${sentInfo.retries + 1}/${this.options.maxRetries}):`, messageId);
+      logger.info(`[MessageManager] 重试发送消息 (${sentInfo.retries + 1}/${this.options.maxRetries}):`, messageId);
 
       sentInfo.retries++;
       sentInfo.sentAt = Date.now();
@@ -370,7 +371,7 @@ class MessageManager extends EventEmitter {
       this.waitForAck(messageId, peerId, message);
     } else {
       // 达到最大重试次数
-      console.error('[MessageManager] 消息发送失败，已达最大重试次数:', messageId);
+      logger.error('[MessageManager] 消息发送失败，已达最大重试次数:', messageId);
 
       this.emit('send-failed', {
         messageId,
@@ -466,7 +467,7 @@ class MessageManager extends EventEmitter {
     }
 
     if (cleanedCount > 0) {
-      console.log(`[MessageManager] 清理 ${cleanedCount} 条过期消息记录`);
+      logger.info(`[MessageManager] 清理 ${cleanedCount} 条过期消息记录`);
     }
   }
 

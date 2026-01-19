@@ -231,6 +231,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, watch } from 'vue';
 import { message, Modal } from 'ant-design-vue';
 import {
@@ -377,14 +379,14 @@ const loadCommits = async (append = false) => {
   }
 
   try {
-    console.log('[GitHistory] 加载提交历史，repoPath:', props.repoPath, 'page:', currentPage.value);
+    logger.info('[GitHistory] 加载提交历史，repoPath:', props.repoPath, 'page:', currentPage.value);
     const result = await window.electronAPI.project.gitLog(
       props.repoPath,
       currentPage.value,
       pageSize.value
     );
 
-    console.log('[GitHistory] Git log 结果:', result);
+    logger.info('[GitHistory] Git log 结果:', result);
 
     // 检查结果是否成功
     if (result && result.success === false) {
@@ -392,7 +394,7 @@ const loadCommits = async (append = false) => {
     }
 
     const newCommits = result.commits || [];
-    console.log('[GitHistory] 获取到的提交数:', newCommits.length);
+    logger.info('[GitHistory] 获取到的提交数:', newCommits.length);
 
     if (append) {
       commits.value = [...commits.value, ...newCommits];
@@ -403,10 +405,10 @@ const loadCommits = async (append = false) => {
     hasMore.value = result.hasMore || false;
 
     if (newCommits.length === 0) {
-      console.warn('[GitHistory] 没有找到提交历史');
+      logger.warn('[GitHistory] 没有找到提交历史');
     }
   } catch (error) {
-    console.error('[GitHistory] 加载提交历史失败:', error);
+    logger.error('[GitHistory] 加载提交历史失败:', error);
     message.error('加载提交历史失败：' + error.message);
   } finally {
     loading.value = false;
@@ -427,7 +429,7 @@ const toggleCommitDetails = async (sha) => {
         const files = await window.electronAPI.project.gitShowCommit(props.repoPath, sha);
         commitFiles.value[sha] = files;
       } catch (error) {
-        console.error('Load commit files failed:', error);
+        logger.error('Load commit files failed:', error);
       }
     }
   }
@@ -470,7 +472,7 @@ const handleCheckout = (commit) => {
         await loadCommits();
         emit('refresh');
       } catch (error) {
-        console.error('Checkout failed:', error);
+        logger.error('Checkout failed:', error);
         message.error('回退失败：' + error.message);
       }
     },

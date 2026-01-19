@@ -231,6 +231,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, reactive, onMounted } from 'vue';
 import { message } from 'ant-design-vue';
 
@@ -270,7 +272,7 @@ onMounted(async () => {
     const dbConfig = await window.electronAPI.db.getConfig();
     currentPaths.database = dbConfig.path || '未设置';
   } catch (error) {
-    console.error('加载当前路径失败:', error);
+    logger.error('加载当前路径失败:', error);
   }
 });
 
@@ -294,7 +296,7 @@ const browseProjectPath = async () => {
       newPaths.project = result.filePaths[0];
     }
   } catch (error) {
-    console.error('选择路径失败:', error);
+    logger.error('选择路径失败:', error);
     message.error('打开文件夹选择对话框失败');
   }
 };
@@ -310,7 +312,7 @@ const browseDatabasePath = async () => {
       newPaths.database = result.filePaths[0] + '/chainlesschain.db';
     }
   } catch (error) {
-    console.error('选择路径失败:', error);
+    logger.error('选择路径失败:', error);
     message.error('打开文件夹选择对话框失败');
   }
 };
@@ -381,7 +383,7 @@ const handleMigrate = async () => {
 
     emit('complete');
   } catch (error) {
-    console.error('迁移失败:', error);
+    logger.error('迁移失败:', error);
     migrationStatus.value = 'error';
     migrationMessage.value = '迁移失败: ' + error.message;
     message.error('迁移失败: ' + error.message);

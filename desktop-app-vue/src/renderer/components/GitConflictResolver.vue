@@ -199,6 +199,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, watch } from 'vue';
 import { message } from 'ant-design-vue';
 import {
@@ -273,7 +275,7 @@ const loadConflictContent = async (filepath) => {
       manualContent.value[filepath] = result.fullContent;
     }
   } catch (error) {
-    console.error('加载冲突内容失败:', error);
+    logger.error('加载冲突内容失败:', error);
     message.error(`加载冲突内容失败: ${filepath}`);
   }
 };
@@ -297,7 +299,7 @@ const resolveConflict = async (filepath, resolution, content = null) => {
       message.success('所有冲突已解决，可以完成合并');
     }
   } catch (error) {
-    console.error('解决冲突失败:', error);
+    logger.error('解决冲突失败:', error);
     message.error(`解决冲突失败: ${error.message}`);
   } finally {
     loading.value = false;
@@ -315,7 +317,7 @@ const handleCompleteMerge = async () => {
     emit('resolved');
     emit('update:open', false);
   } catch (error) {
-    console.error('完成合并失败:', error);
+    logger.error('完成合并失败:', error);
     message.error(`完成合并失败: ${error.message}`);
   } finally {
     loading.value = false;
@@ -333,7 +335,7 @@ const handleAbortMerge = async () => {
     emit('aborted');
     emit('update:open', false);
   } catch (error) {
-    console.error('中止合并失败:', error);
+    logger.error('中止合并失败:', error);
     message.error(`中止合并失败: ${error.message}`);
   } finally {
     loading.value = false;

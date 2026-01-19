@@ -284,6 +284,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted } from "vue";
 import { message } from "ant-design-vue";
 import {
@@ -373,7 +375,7 @@ const loadModelBudgets = async () => {
     const budgets = await window.electronAPI.invoke("llm:get-model-budgets");
     modelBudgets.value = budgets;
   } catch (error) {
-    console.error("加载模型预算失败:", error);
+    logger.error("加载模型预算失败:", error);
     message.error("加载模型预算失败");
   }
 };
@@ -438,7 +440,7 @@ const saveBudget = async () => {
     await loadModelBudgets();
     emit("refresh");
   } catch (error) {
-    console.error("保存预算失败:", error);
+    logger.error("保存预算失败:", error);
     message.error("保存预算失败: " + error.message);
   } finally {
     saving.value = false;
@@ -460,7 +462,7 @@ const toggleBudget = async (budget, enabled) => {
     });
     message.success(enabled ? "预算已启用" : "预算已禁用");
   } catch (error) {
-    console.error("切换预算状态失败:", error);
+    logger.error("切换预算状态失败:", error);
     message.error("操作失败");
     // Revert the switch
     budget.enabled = !enabled;
@@ -478,7 +480,7 @@ const deleteBudget = async (budget) => {
     await loadModelBudgets();
     emit("refresh");
   } catch (error) {
-    console.error("删除预算失败:", error);
+    logger.error("删除预算失败:", error);
     message.error("删除预算失败: " + error.message);
   }
 };

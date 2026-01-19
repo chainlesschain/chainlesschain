@@ -178,6 +178,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted, onUnmounted, h, nextTick } from 'vue';
 import { message } from 'ant-design-vue';
 import {
@@ -270,12 +272,12 @@ button:hover {
 }`);
 
 const jsCode = ref(`// 欢迎使用 Web IDE
-console.log('Web IDE Ready!');
+logger.info('Web IDE Ready!');
 
 const btn = document.getElementById('testBtn');
 if (btn) {
   btn.addEventListener('click', () => {
-    console.log('按钮被点击了！');
+    logger.info('按钮被点击了！');
     alert('Hello from Web IDE!');
   });
 }`);
@@ -359,7 +361,7 @@ const handleSave = async () => {
             return Promise.reject();
           }
         } catch (error) {
-          console.error('[WebIDE] 保存失败:', error);
+          logger.error('[WebIDE] 保存失败:', error);
 
           let errorMessage = '保存失败';
           if (error.message) {
@@ -378,7 +380,7 @@ const handleSave = async () => {
       }
     });
   } catch (error) {
-    console.error('[WebIDE] 打开保存对话框失败:', error);
+    logger.error('[WebIDE] 打开保存对话框失败:', error);
     message.error({ content: '打开保存对话框失败', key: 'save', duration: 3 });
   }
 };
@@ -471,7 +473,7 @@ const handleExport = async () => {
             return Promise.reject();
           }
         } catch (error) {
-          console.error('[WebIDE] 导出失败:', error);
+          logger.error('[WebIDE] 导出失败:', error);
 
           let errorMessage = '导出失败';
           if (error.message) {
@@ -494,7 +496,7 @@ const handleExport = async () => {
       }
     });
   } catch (error) {
-    console.error('[WebIDE] 打开导出对话框失败:', error);
+    logger.error('[WebIDE] 打开导出对话框失败:', error);
     message.error({ content: '打开导出对话框失败', key: 'export', duration: 3 });
   }
 };
@@ -513,7 +515,7 @@ const startDevServer = async () => {
   try {
     message.loading({ content: '启动服务器...', key: 'server' });
 
-    console.log('[WebIDE] 开始启动开发服务器...');
+    logger.info('[WebIDE] 开始启动开发服务器...');
 
     // 调用后端API启动服务器
     const result = await window.electronAPI.webIDE.startDevServer({
@@ -523,7 +525,7 @@ const startDevServer = async () => {
       port: 3000 // 默认端口
     });
 
-    console.log('[WebIDE] 服务器启动结果:', result);
+    logger.info('[WebIDE] 服务器启动结果:', result);
 
     if (result.success) {
       serverRunning.value = true;
@@ -535,10 +537,10 @@ const startDevServer = async () => {
         duration: 3
       });
 
-      console.log('[WebIDE] ✅ 服务器启动成功:', serverUrl.value);
+      logger.info('[WebIDE] ✅ 服务器启动成功:', serverUrl.value);
     } else {
       const errorMsg = result.error || '未知错误';
-      console.error('[WebIDE] ❌ 服务器启动失败:', errorMsg);
+      logger.error('[WebIDE] ❌ 服务器启动失败:', errorMsg);
 
       message.error({
         content: `启动失败: ${errorMsg}`,
@@ -547,8 +549,8 @@ const startDevServer = async () => {
       });
     }
   } catch (error) {
-    console.error('[WebIDE] ❌ 启动服务器异常:', error);
-    console.error('[WebIDE] 错误堆栈:', error.stack);
+    logger.error('[WebIDE] ❌ 启动服务器异常:', error);
+    logger.error('[WebIDE] 错误堆栈:', error.stack);
 
     let errorMessage = '启动服务器失败';
     if (error.message) {
@@ -574,14 +576,14 @@ const startDevServer = async () => {
 // 停止开发服务器
 const stopDevServer = async () => {
   try {
-    console.log('[WebIDE] 开始停止开发服务器...');
+    logger.info('[WebIDE] 开始停止开发服务器...');
 
     message.loading({ content: '停止服务器...', key: 'server-stop' });
 
     // 调用后端API停止服务器
     const result = await window.electronAPI.webIDE.stopDevServer(3000); // 传入端口号
 
-    console.log('[WebIDE] 服务器停止结果:', result);
+    logger.info('[WebIDE] 服务器停止结果:', result);
 
     if (result.success) {
       serverRunning.value = false;
@@ -593,10 +595,10 @@ const stopDevServer = async () => {
         duration: 2
       });
 
-      console.log('[WebIDE] ✅ 服务器停止成功');
+      logger.info('[WebIDE] ✅ 服务器停止成功');
     } else {
       const errorMsg = result.error || '未知错误';
-      console.error('[WebIDE] ❌ 服务器停止失败:', errorMsg);
+      logger.error('[WebIDE] ❌ 服务器停止失败:', errorMsg);
 
       message.error({
         content: `停止失败: ${errorMsg}`,
@@ -605,8 +607,8 @@ const stopDevServer = async () => {
       });
     }
   } catch (error) {
-    console.error('[WebIDE] ❌ 停止服务器异常:', error);
-    console.error('[WebIDE] 错误堆栈:', error.stack);
+    logger.error('[WebIDE] ❌ 停止服务器异常:', error);
+    logger.error('[WebIDE] 错误堆栈:', error.stack);
 
     let errorMessage = '停止服务器失败';
     if (error.message) {

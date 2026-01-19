@@ -13,6 +13,7 @@
  * - Version history integration
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const Y = require('yjs');
 const { encoding, decoding } = require('lib0');
 const EventEmitter = require('events');
@@ -45,7 +46,7 @@ class YjsCollabManager extends EventEmitter {
    */
   _initializeProtocolHandlers() {
     if (!this.p2pManager || !this.p2pManager.node) {
-      console.warn('[YjsCollab] P2P manager not ready, will initialize handlers later');
+      logger.warn('[YjsCollab] P2P manager not ready, will initialize handlers later');
       return;
     }
 
@@ -53,7 +54,7 @@ class YjsCollabManager extends EventEmitter {
     this.p2pManager.node.handle(this.PROTOCOL_YIJS_SYNC, async ({ stream, connection }) => {
       try {
         const peerId = connection.remotePeer.toString();
-        console.log(`[YjsCollab] Received sync connection from ${peerId}`);
+        logger.info(`[YjsCollab] Received sync connection from ${peerId}`);
 
         // Read document ID
         const docIdBuffer = await this._readFromStream(stream);
@@ -72,7 +73,7 @@ class YjsCollabManager extends EventEmitter {
             Y.applyUpdate(ydoc, data);
             this.emit('document-updated', { docId, peerId });
           } catch (error) {
-            console.error('[YjsCollab] Error applying update:', error);
+            logger.error('[YjsCollab] Error applying update:', error);
           }
         });
 
@@ -88,11 +89,11 @@ class YjsCollabManager extends EventEmitter {
           if (peers) {
             peers.delete(peerId);
           }
-          console.log(`[YjsCollab] Peer ${peerId} disconnected from document ${docId}`);
+          logger.info(`[YjsCollab] Peer ${peerId} disconnected from document ${docId}`);
         });
 
       } catch (error) {
-        console.error('[YjsCollab] Error handling sync:', error);
+        logger.error('[YjsCollab] Error handling sync:', error);
       }
     });
 
@@ -114,7 +115,7 @@ class YjsCollabManager extends EventEmitter {
         this.emit('awareness-updated', { docId, peerId });
 
       } catch (error) {
-        console.error('[YjsCollab] Error handling awareness:', error);
+        logger.error('[YjsCollab] Error handling awareness:', error);
       }
     });
   }
@@ -197,7 +198,7 @@ class YjsCollabManager extends EventEmitter {
       };
 
     } catch (error) {
-      console.error('[YjsCollab] Error opening document:', error);
+      logger.error('[YjsCollab] Error opening document:', error);
       throw error;
     }
   }
@@ -223,10 +224,10 @@ class YjsCollabManager extends EventEmitter {
       // Keep document in memory for a while in case user reopens
       // Will be garbage collected eventually
 
-      console.log(`[YjsCollab] Closed document ${docId}`);
+      logger.info(`[YjsCollab] Closed document ${docId}`);
 
     } catch (error) {
-      console.error('[YjsCollab] Error closing document:', error);
+      logger.error('[YjsCollab] Error closing document:', error);
     }
   }
 
@@ -247,7 +248,7 @@ class YjsCollabManager extends EventEmitter {
       }
 
     } catch (error) {
-      console.error('[YjsCollab] Error updating cursor:', error);
+      logger.error('[YjsCollab] Error updating cursor:', error);
     }
   }
 
@@ -303,7 +304,7 @@ class YjsCollabManager extends EventEmitter {
       return result.lastInsertRowid;
 
     } catch (error) {
-      console.error('[YjsCollab] Error creating snapshot:', error);
+      logger.error('[YjsCollab] Error creating snapshot:', error);
       throw error;
     }
   }
@@ -340,7 +341,7 @@ class YjsCollabManager extends EventEmitter {
       return restoredDoc;
 
     } catch (error) {
-      console.error('[YjsCollab] Error restoring snapshot:', error);
+      logger.error('[YjsCollab] Error restoring snapshot:', error);
       throw error;
     }
   }
@@ -366,7 +367,7 @@ class YjsCollabManager extends EventEmitter {
       }));
 
     } catch (error) {
-      console.error('[YjsCollab] Error getting version history:', error);
+      logger.error('[YjsCollab] Error getting version history:', error);
       return [];
     }
   }
@@ -395,12 +396,12 @@ class YjsCollabManager extends EventEmitter {
           stream.close();
 
         } catch (error) {
-          console.error(`[YjsCollab] Error broadcasting to ${peerId}:`, error);
+          logger.error(`[YjsCollab] Error broadcasting to ${peerId}:`, error);
         }
       }
 
     } catch (error) {
-      console.error('[YjsCollab] Error broadcasting update:', error);
+      logger.error('[YjsCollab] Error broadcasting update:', error);
     }
   }
 
@@ -446,14 +447,14 @@ class YjsCollabManager extends EventEmitter {
               stream.close();
 
             } catch (error) {
-              console.error(`[YjsCollab] Error broadcasting awareness to ${peerId}:`, error);
+              logger.error(`[YjsCollab] Error broadcasting awareness to ${peerId}:`, error);
             }
           }
         }
       }
 
     } catch (error) {
-      console.error('[YjsCollab] Error broadcasting awareness:', error);
+      logger.error('[YjsCollab] Error broadcasting awareness:', error);
     }
   }
 
@@ -477,7 +478,7 @@ class YjsCollabManager extends EventEmitter {
       // Will receive connections from other peers via protocol handlers
 
     } catch (error) {
-      console.error('[YjsCollab] Error connecting to peers:', error);
+      logger.error('[YjsCollab] Error connecting to peers:', error);
     }
   }
 
@@ -496,7 +497,7 @@ class YjsCollabManager extends EventEmitter {
       stmt.run(docId, Buffer.from(update), Date.now());
 
     } catch (error) {
-      console.error('[YjsCollab] Error saving update:', error);
+      logger.error('[YjsCollab] Error saving update:', error);
     }
   }
 
@@ -518,10 +519,10 @@ class YjsCollabManager extends EventEmitter {
         Y.applyUpdate(ydoc, update_data, 'network');
       }
 
-      console.log(`[YjsCollab] Loaded ${updates.length} updates for document ${docId}`);
+      logger.info(`[YjsCollab] Loaded ${updates.length} updates for document ${docId}`);
 
     } catch (error) {
-      console.error('[YjsCollab] Error loading document:', error);
+      logger.error('[YjsCollab] Error loading document:', error);
     }
   }
 
@@ -586,7 +587,7 @@ class YjsCollabManager extends EventEmitter {
       }
 
     } catch (error) {
-      console.error('[YjsCollab] Error applying awareness update:', error);
+      logger.error('[YjsCollab] Error applying awareness update:', error);
     }
   }
 

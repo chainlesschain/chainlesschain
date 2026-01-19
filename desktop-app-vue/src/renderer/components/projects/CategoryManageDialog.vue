@@ -204,6 +204,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, watch } from 'vue';
 import { message, Empty } from 'ant-design-vue';
 import { useCategoryStore } from '@/stores/category';
@@ -309,7 +311,7 @@ const handleSave = async () => {
     editDialogVisible.value = false;
     emit('refresh');
   } catch (error) {
-    console.error('保存分类失败:', error);
+    logger.error('保存分类失败:', error);
     if (error.errorFields) {
       // 表单验证失败
       return;
@@ -325,7 +327,7 @@ const handleDelete = async (categoryId) => {
     message.success('分类删除成功');
     emit('refresh');
   } catch (error) {
-    console.error('删除分类失败:', error);
+    logger.error('删除分类失败:', error);
     message.error(error.message || '删除分类失败');
   }
 };

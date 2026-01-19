@@ -243,6 +243,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, reactive, computed, watch, onMounted } from 'vue';
 import { message as antMessage } from 'ant-design-vue';
 import {
@@ -364,9 +366,9 @@ const loadMyAssets = async () => {
     // 使用 store 加载资产
     await tradeStore.loadMyAssets(currentDid.value);
 
-    console.log('[OrderCreate] 资产列表已加载:', myAssets.value.length);
+    logger.info('[OrderCreate] 资产列表已加载:', myAssets.value.length);
   } catch (error) {
-    console.error('[OrderCreate] 加载资产列表失败:', error);
+    logger.error('[OrderCreate] 加载资产列表失败:', error);
     antMessage.error('加载资产列表失败: ' + error.message);
   }
 };
@@ -412,7 +414,7 @@ const handleCreate = async () => {
     // 使用 store 创建订单
     const order = await tradeStore.createOrder(options);
 
-    console.log('[OrderCreate] 订单创建成功:', order.id);
+    logger.info('[OrderCreate] 订单创建成功:', order.id);
     antMessage.success('订单创建成功！');
 
     // 通知父组件
@@ -424,7 +426,7 @@ const handleCreate = async () => {
     // 重置表单
     resetForm();
   } catch (error) {
-    console.error('[OrderCreate] 创建订单失败:', error);
+    logger.error('[OrderCreate] 创建订单失败:', error);
     antMessage.error(error.message || '创建订单失败');
   }
 };

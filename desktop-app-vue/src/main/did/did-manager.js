@@ -5,6 +5,7 @@
  * DID 格式: did:chainlesschain:<identifier>
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const nacl = require("tweetnacl");
 const naclUtil = require("tweetnacl-util");
 const crypto = require("crypto");
@@ -54,14 +55,14 @@ class DIDManager extends EventEmitter {
    */
   setP2PManager(p2pManager) {
     this.p2pManager = p2pManager;
-    console.log("[DIDManager] P2P 管理器已设置");
+    logger.info("[DIDManager] P2P 管理器已设置");
   }
 
   /**
    * 初始化 DID 管理器
    */
   async initialize() {
-    console.log("[DIDManager] 初始化 DID 管理器...");
+    logger.info("[DIDManager] 初始化 DID 管理器...");
 
     try {
       // 确保数据库表存在
@@ -76,12 +77,12 @@ class DIDManager extends EventEmitter {
       // 加载默认身份
       await this.loadDefaultIdentity();
 
-      console.log("[DIDManager] DID 管理器初始化成功");
+      logger.info("[DIDManager] DID 管理器初始化成功");
       this.emit("initialized");
 
       return true;
     } catch (error) {
-      console.error("[DIDManager] 初始化失败:", error);
+      logger.error("[DIDManager] 初始化失败:", error);
       throw error;
     }
   }
@@ -115,10 +116,10 @@ class DIDManager extends EventEmitter {
             is_default INTEGER DEFAULT 0
           )
         `);
-        console.log("[DIDManager] identities 表已创建");
+        logger.info("[DIDManager] identities 表已创建");
       }
     } catch (error) {
-      console.error("[DIDManager] 检查数据库表失败:", error);
+      logger.error("[DIDManager] 检查数据库表失败:", error);
       throw error;
     }
   }
@@ -130,7 +131,7 @@ class DIDManager extends EventEmitter {
    * @returns {Promise<Object>} DID 身份对象
    */
   async createIdentity(profile = {}, options = {}) {
-    console.log("[DIDManager] 创建新身份...");
+    logger.info("[DIDManager] 创建新身份...");
 
     try {
       // 1. 获取或生成密钥对
@@ -189,7 +190,7 @@ class DIDManager extends EventEmitter {
         await this.setDefaultIdentity(did);
       }
 
-      console.log("[DIDManager] 新身份已创建:", did);
+      logger.info("[DIDManager] 新身份已创建:", did);
       this.emit("identity-created", { did, identity });
 
       return {
@@ -201,7 +202,7 @@ class DIDManager extends EventEmitter {
         createdAt: identity.created_at,
       };
     } catch (error) {
-      console.error("[DIDManager] 创建身份失败:", error);
+      logger.error("[DIDManager] 创建身份失败:", error);
       throw error;
     }
   }
@@ -213,7 +214,7 @@ class DIDManager extends EventEmitter {
    * @returns {Promise<string>} 组织DID
    */
   async createOrganizationDID(orgId, orgName) {
-    console.log("[DIDManager] 为组织创建DID:", orgName);
+    logger.info("[DIDManager] 为组织创建DID:", orgName);
 
     try {
       // 1. 生成组织专用密钥对
@@ -261,12 +262,12 @@ class DIDManager extends EventEmitter {
 
       await this.saveIdentity(identity);
 
-      console.log("[DIDManager] ✓ 组织DID创建成功:", did);
+      logger.info("[DIDManager] ✓ 组织DID创建成功:", did);
       this.emit("organization-did-created", { did, orgId, orgName });
 
       return did;
     } catch (error) {
-      console.error("[DIDManager] 创建组织DID失败:", error);
+      logger.error("[DIDManager] 创建组织DID失败:", error);
       throw error;
     }
   }
@@ -419,7 +420,7 @@ class DIDManager extends EventEmitter {
       // 验证签名
       return nacl.sign.detached.verify(messageBytes, signature, publicKey);
     } catch (error) {
-      console.error("[DIDManager] 验证 DID 文档失败:", error);
+      logger.error("[DIDManager] 验证 DID 文档失败:", error);
       return false;
     }
   }
@@ -455,7 +456,7 @@ class DIDManager extends EventEmitter {
 
       this.db.saveToFile();
     } catch (error) {
-      console.error("[DIDManager] 保存身份失败:", error);
+      logger.error("[DIDManager] 保存身份失败:", error);
       throw error;
     }
   }
@@ -489,7 +490,7 @@ class DIDManager extends EventEmitter {
       // better-sqlite3 format - result is array of objects
       return result;
     } catch (error) {
-      console.error("[DIDManager] 获取身份列表失败:", error);
+      logger.error("[DIDManager] 获取身份列表失败:", error);
       return [];
     }
   }
@@ -525,7 +526,7 @@ class DIDManager extends EventEmitter {
       // better-sqlite3 format - result is array of objects
       return result[0];
     } catch (error) {
-      console.error("[DIDManager] 获取身份失败:", error);
+      logger.error("[DIDManager] 获取身份失败:", error);
       return null;
     }
   }
@@ -549,10 +550,10 @@ class DIDManager extends EventEmitter {
       // 更新当前身份
       this.currentIdentity = this.getIdentityByDID(did);
 
-      console.log("[DIDManager] 默认身份已更新:", did);
+      logger.info("[DIDManager] 默认身份已更新:", did);
       this.emit("default-identity-changed", { did });
     } catch (error) {
-      console.error("[DIDManager] 设置默认身份失败:", error);
+      logger.error("[DIDManager] 设置默认身份失败:", error);
       throw error;
     }
   }
@@ -567,7 +568,7 @@ class DIDManager extends EventEmitter {
         .all();
 
       if (!result || result.length === 0) {
-        console.log("[DIDManager] 未找到默认身份");
+        logger.info("[DIDManager] 未找到默认身份");
         return;
       }
 
@@ -575,7 +576,7 @@ class DIDManager extends EventEmitter {
       let identity;
       if (result[0] && result[0].values && result[0].columns) {
         if (result[0].values.length === 0) {
-          console.log("[DIDManager] 未找到默认身份");
+          logger.info("[DIDManager] 未找到默认身份");
           return;
         }
         const columns = result[0].columns;
@@ -590,9 +591,9 @@ class DIDManager extends EventEmitter {
       }
 
       this.currentIdentity = identity;
-      console.log("[DIDManager] 已加载默认身份:", identity.did);
+      logger.info("[DIDManager] 已加载默认身份:", identity.did);
     } catch (error) {
-      console.error("[DIDManager] 加载默认身份失败:", error);
+      logger.error("[DIDManager] 加载默认身份失败:", error);
     }
   }
 
@@ -651,12 +652,12 @@ class DIDManager extends EventEmitter {
         // TODO: 实现重新签名逻辑
       }
 
-      console.log("[DIDManager] 身份资料已更新:", did);
+      logger.info("[DIDManager] 身份资料已更新:", did);
       this.emit("identity-updated", { did, updates });
 
       return this.getIdentityByDID(did);
     } catch (error) {
-      console.error("[DIDManager] 更新身份资料失败:", error);
+      logger.error("[DIDManager] 更新身份资料失败:", error);
       throw error;
     }
   }
@@ -681,12 +682,12 @@ class DIDManager extends EventEmitter {
       this.db.prepare("DELETE FROM identities WHERE did = ?").run([did]);
       this.db.saveToFile();
 
-      console.log("[DIDManager] 身份已删除:", did);
+      logger.info("[DIDManager] 身份已删除:", did);
       this.emit("identity-deleted", { did });
 
       return true;
     } catch (error) {
-      console.error("[DIDManager] 删除身份失败:", error);
+      logger.error("[DIDManager] 删除身份失败:", error);
       throw error;
     }
   }
@@ -749,7 +750,7 @@ class DIDManager extends EventEmitter {
     }
 
     try {
-      console.log("[DIDManager] 发布 DID 到 DHT:", did);
+      logger.info("[DIDManager] 发布 DID 到 DHT:", did);
 
       // 获取 DID 文档
       const identity = this.getIdentityByDID(did);
@@ -777,7 +778,7 @@ class DIDManager extends EventEmitter {
         Buffer.from(JSON.stringify(publishData)),
       );
 
-      console.log("[DIDManager] DID 已发布到 DHT:", dhtKey);
+      logger.info("[DIDManager] DID 已发布到 DHT:", dhtKey);
       this.emit("did-published", {
         did,
         dhtKey,
@@ -790,7 +791,7 @@ class DIDManager extends EventEmitter {
         publishedAt: publishData.publishedAt,
       };
     } catch (error) {
-      console.error("[DIDManager] 发布 DID 到 DHT 失败:", error);
+      logger.error("[DIDManager] 发布 DID 到 DHT 失败:", error);
       throw error;
     }
   }
@@ -810,12 +811,12 @@ class DIDManager extends EventEmitter {
     }
 
     try {
-      console.log("[DIDManager] 从 DHT 解析 DID:", did);
+      logger.info("[DIDManager] 从 DHT 解析 DID:", did);
 
       // 1. 先尝试从缓存获取
       const cachedDoc = await this.cache.get(did);
       if (cachedDoc) {
-        console.log("[DIDManager] 从缓存获取 DID:", did);
+        logger.info("[DIDManager] 从缓存获取 DID:", did);
         return cachedDoc;
       }
 
@@ -851,12 +852,12 @@ class DIDManager extends EventEmitter {
       // 3. 缓存DID文档
       await this.cache.set(did, publishData);
 
-      console.log("[DIDManager] 成功从 DHT 解析 DID:", did);
+      logger.info("[DIDManager] 成功从 DHT 解析 DID:", did);
       this.emit("did-resolved", { did, data: publishData });
 
       return publishData;
     } catch (error) {
-      console.error("[DIDManager] 从 DHT 解析 DID 失败:", error);
+      logger.error("[DIDManager] 从 DHT 解析 DID 失败:", error);
       throw error;
     }
   }
@@ -876,7 +877,7 @@ class DIDManager extends EventEmitter {
     }
 
     try {
-      console.log("[DIDManager] 从 DHT 取消发布 DID:", did);
+      logger.info("[DIDManager] 从 DHT 取消发布 DID:", did);
 
       // 构建 DHT key
       const didParts = did.split(":");
@@ -888,7 +889,7 @@ class DIDManager extends EventEmitter {
         Buffer.from(JSON.stringify({ deleted: true, deletedAt: Date.now() })),
       );
 
-      console.log("[DIDManager] DID 已从 DHT 取消发布:", dhtKey);
+      logger.info("[DIDManager] DID 已从 DHT 取消发布:", dhtKey);
       this.emit("did-unpublished", { did, dhtKey });
 
       return {
@@ -896,7 +897,7 @@ class DIDManager extends EventEmitter {
         key: dhtKey,
       };
     } catch (error) {
-      console.error("[DIDManager] 从 DHT 取消发布失败:", error);
+      logger.error("[DIDManager] 从 DHT 取消发布失败:", error);
       throw error;
     }
   }
@@ -929,7 +930,7 @@ class DIDManager extends EventEmitter {
       this.stopAutoRepublish();
     }
 
-    console.log(
+    logger.info(
       `[DIDManager] 启动自动重新发布，间隔: ${this.autoRepublishInterval / 1000 / 60} 分钟`,
     );
 
@@ -937,7 +938,7 @@ class DIDManager extends EventEmitter {
 
     // 立即执行一次重新发布
     this.republishAllDIDs().catch((error) => {
-      console.error("[DIDManager] 初始重新发布失败:", error);
+      logger.error("[DIDManager] 初始重新发布失败:", error);
     });
 
     // 设置定时器
@@ -945,7 +946,7 @@ class DIDManager extends EventEmitter {
       try {
         await this.republishAllDIDs();
       } catch (error) {
-        console.error("[DIDManager] 自动重新发布失败:", error);
+        logger.error("[DIDManager] 自动重新发布失败:", error);
       }
     }, this.autoRepublishInterval);
 
@@ -963,7 +964,7 @@ class DIDManager extends EventEmitter {
       this.autoRepublishTimer = null;
       this.autoRepublishEnabled = false;
 
-      console.log("[DIDManager] 停止自动重新发布");
+      logger.info("[DIDManager] 停止自动重新发布");
       this.emit("auto-republish-stopped");
     }
   }
@@ -974,7 +975,7 @@ class DIDManager extends EventEmitter {
    */
   async republishAllDIDs() {
     if (!this.p2pManager || !this.p2pManager.isInitialized()) {
-      console.log("[DIDManager] P2P 未初始化，跳过重新发布");
+      logger.info("[DIDManager] P2P 未初始化，跳过重新发布");
       return {
         success: 0,
         failed: 0,
@@ -982,7 +983,7 @@ class DIDManager extends EventEmitter {
       };
     }
 
-    console.log("[DIDManager] 开始重新发布所有 DID...");
+    logger.info("[DIDManager] 开始重新发布所有 DID...");
 
     const result = {
       success: 0,
@@ -1001,7 +1002,7 @@ class DIDManager extends EventEmitter {
           const isPublished = await this.isPublishedToDHT(identity.did);
 
           if (!isPublished) {
-            console.log(`[DIDManager] DID ${identity.did} 未发布，跳过`);
+            logger.info(`[DIDManager] DID ${identity.did} 未发布，跳过`);
             result.skipped++;
             continue;
           }
@@ -1010,9 +1011,9 @@ class DIDManager extends EventEmitter {
           await this.publishToDHT(identity.did);
           result.success++;
 
-          console.log(`[DIDManager] 成功重新发布 DID: ${identity.did}`);
+          logger.info(`[DIDManager] 成功重新发布 DID: ${identity.did}`);
         } catch (error) {
-          console.error(
+          logger.error(
             `[DIDManager] 重新发布 DID 失败: ${identity.did}`,
             error,
           );
@@ -1024,12 +1025,12 @@ class DIDManager extends EventEmitter {
         }
       }
 
-      console.log("[DIDManager] 重新发布完成:", result);
+      logger.info("[DIDManager] 重新发布完成:", result);
       this.emit("dids-republished", result);
 
       return result;
     } catch (error) {
-      console.error("[DIDManager] 重新发布所有 DID 失败:", error);
+      logger.error("[DIDManager] 重新发布所有 DID 失败:", error);
       throw error;
     }
   }
@@ -1058,7 +1059,7 @@ class DIDManager extends EventEmitter {
       this.startAutoRepublish();
     }
 
-    console.log(
+    logger.info(
       `[DIDManager] 自动重新发布间隔已设置为: ${interval / 1000 / 60 / 60} 小时`,
     );
   }
@@ -1130,7 +1131,7 @@ class DIDManager extends EventEmitter {
    * @returns {Promise<Object>} 创建的身份
    */
   async createIdentityFromMnemonic(profile, mnemonic, options = {}) {
-    console.log("[DIDManager] 使用助记词创建身份...");
+    logger.info("[DIDManager] 使用助记词创建身份...");
 
     try {
       // 验证助记词
@@ -1148,11 +1149,11 @@ class DIDManager extends EventEmitter {
         mnemonic: mnemonic, // 保存助记词（加密存储）
       });
 
-      console.log("[DIDManager] 身份已从助记词创建:", identity.did);
+      logger.info("[DIDManager] 身份已从助记词创建:", identity.did);
 
       return identity;
     } catch (error) {
-      console.error("[DIDManager] 从助记词创建身份失败:", error);
+      logger.error("[DIDManager] 从助记词创建身份失败:", error);
       throw error;
     }
   }
@@ -1176,7 +1177,7 @@ class DIDManager extends EventEmitter {
       // 返回助记词（如果有）
       return privateKeyRef.mnemonic || null;
     } catch (error) {
-      console.error("[DIDManager] 导出助记词失败:", error);
+      logger.error("[DIDManager] 导出助记词失败:", error);
       throw error;
     }
   }
@@ -1199,7 +1200,7 @@ class DIDManager extends EventEmitter {
    * 关闭管理器
    */
   async close() {
-    console.log("[DIDManager] 关闭 DID 管理器");
+    logger.info("[DIDManager] 关闭 DID 管理器");
 
     // 停止自动重新发布
     this.stopAutoRepublish();

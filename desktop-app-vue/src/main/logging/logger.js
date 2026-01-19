@@ -11,6 +11,7 @@
  * - 向后兼容旧的Logger接口
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require('fs');
 const path = require('path');
 const util = require('util');
@@ -87,12 +88,12 @@ function cleanOldLogs() {
         try {
           fs.unlinkSync(file.path);
         } catch (error) {
-          console.error(`Failed to delete log file: ${file.name}`, error);
+          logger.error(`Failed to delete log file: ${file.name}`, error);
         }
       });
     }
   } catch (error) {
-    console.error('Failed to clean old logs:', error);
+    logger.error('Failed to clean old logs:', error);
   }
 }
 
@@ -137,7 +138,7 @@ function writeToFile(message) {
       fs.appendFileSync(logFile, message + '\n', 'utf8');
     }
   } catch (error) {
-    console.error('Failed to write log file:', error);
+    logger.error('Failed to write log file:', error);
   }
 }
 
@@ -240,20 +241,20 @@ class Logger {
 
       switch (level) {
         case 'DEBUG':
-          console.debug(consoleMsg);
+          logger.debug(consoleMsg);
           break;
         case 'INFO':
-          console.log(consoleMsg);
+          logger.info(consoleMsg);
           break;
         case 'WARN':
-          console.warn(consoleMsg);
+          logger.warn(consoleMsg);
           break;
         case 'ERROR':
         case 'FATAL':
-          console.error(consoleMsg);
+          logger.error(consoleMsg);
           break;
         default:
-          console.log(consoleMsg);
+          logger.info(consoleMsg);
       }
     }
 
@@ -356,7 +357,7 @@ function getLogFiles() {
       })
       .sort((a, b) => b.modified.getTime() - a.modified.getTime());
   } catch (error) {
-    console.error('Failed to get log files:', error);
+    logger.error('Failed to get log files:', error);
     return [];
   }
 }
@@ -411,7 +412,7 @@ function readLogFile(filename, options = {}) {
       logs: filtered.slice(offset, offset + limit)
     };
   } catch (error) {
-    console.error('Failed to read log file:', error);
+    logger.error('Failed to read log file:', error);
     throw error;
   }
 }
@@ -475,7 +476,7 @@ function exportLogs(outputPath, options = {}) {
       path: outputPath
     };
   } catch (error) {
-    console.error('Failed to export logs:', error);
+    logger.error('Failed to export logs:', error);
     throw error;
   }
 }

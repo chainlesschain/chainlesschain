@@ -4,6 +4,7 @@
  * 管理音频文件的存储和数据库记录
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const path = require('path');
 const fs = require('fs').promises;
 const { v4: uuidv4 } = require('uuid');
@@ -24,11 +25,11 @@ class AudioStorage {
     try {
       // 确保存储目录存在
       await fs.mkdir(this.storagePath, { recursive: true });
-      console.log('[AudioStorage] 存储目录已创建:', this.storagePath);
+      logger.info('[AudioStorage] 存储目录已创建:', this.storagePath);
 
       return true;
     } catch (error) {
-      console.error('[AudioStorage] 初始化失败:', error);
+      logger.error('[AudioStorage] 初始化失败:', error);
       return false;
     }
   }
@@ -49,7 +50,7 @@ class AudioStorage {
 
       // 复制文件到存储目录
       await fs.copyFile(sourcePath, destPath);
-      console.log('[AudioStorage] 文件已保存:', destFileName);
+      logger.info('[AudioStorage] 文件已保存:', destFileName);
 
       // 获取文件信息
       const stats = await fs.stat(destPath);
@@ -71,7 +72,7 @@ class AudioStorage {
         size: stats.size,
       };
     } catch (error) {
-      console.error('[AudioStorage] 保存文件失败:', error);
+      logger.error('[AudioStorage] 保存文件失败:', error);
       throw error;
     }
   }
@@ -117,7 +118,7 @@ class AudioStorage {
         language, knowledge_id, user_id,
       ]);
 
-      console.log('[AudioStorage] 音频记录已创建:', id);
+      logger.info('[AudioStorage] 音频记录已创建:', id);
 
       return {
         id,
@@ -129,7 +130,7 @@ class AudioStorage {
         transcription_text,
       };
     } catch (error) {
-      console.error('[AudioStorage] 创建音频记录失败:', error);
+      logger.error('[AudioStorage] 创建音频记录失败:', error);
       throw error;
     }
   }
@@ -169,11 +170,11 @@ class AudioStorage {
 
     try {
       await this.db.run(sql, values);
-      console.log('[AudioStorage] 音频记录已更新:', id);
+      logger.info('[AudioStorage] 音频记录已更新:', id);
 
       return { success: true, id };
     } catch (error) {
-      console.error('[AudioStorage] 更新音频记录失败:', error);
+      logger.error('[AudioStorage] 更新音频记录失败:', error);
       throw error;
     }
   }
@@ -190,7 +191,7 @@ class AudioStorage {
       const record = await this.db.get(sql, [id]);
       return record || null;
     } catch (error) {
-      console.error('[AudioStorage] 获取音频记录失败:', error);
+      logger.error('[AudioStorage] 获取音频记录失败:', error);
       throw error;
     }
   }
@@ -220,7 +221,7 @@ class AudioStorage {
       const records = await this.db.all(sql, [user_id, limit, offset]);
       return records || [];
     } catch (error) {
-      console.error('[AudioStorage] 获取音频列表失败:', error);
+      logger.error('[AudioStorage] 获取音频列表失败:', error);
       throw error;
     }
   }
@@ -254,7 +255,7 @@ class AudioStorage {
       const records = await this.db.all(sql, [user_id, searchPattern, searchPattern, limit]);
       return records || [];
     } catch (error) {
-      console.error('[AudioStorage] 搜索音频失败:', error);
+      logger.error('[AudioStorage] 搜索音频失败:', error);
       throw error;
     }
   }
@@ -276,20 +277,20 @@ class AudioStorage {
       // 删除物理文件
       try {
         await fs.unlink(record.file_path);
-        console.log('[AudioStorage] 文件已删除:', record.file_path);
+        logger.info('[AudioStorage] 文件已删除:', record.file_path);
       } catch (error) {
-        console.warn('[AudioStorage] 删除文件失败:', error);
+        logger.warn('[AudioStorage] 删除文件失败:', error);
       }
 
       // 删除数据库记录
       const sql = `DELETE FROM audio_files WHERE id = ?`;
       await this.db.run(sql, [id]);
 
-      console.log('[AudioStorage] 音频记录已删除:', id);
+      logger.info('[AudioStorage] 音频记录已删除:', id);
 
       return { success: true, id };
     } catch (error) {
-      console.error('[AudioStorage] 删除音频失败:', error);
+      logger.error('[AudioStorage] 删除音频失败:', error);
       throw error;
     }
   }
@@ -324,11 +325,11 @@ class AudioStorage {
         duration, status, error,
       ]);
 
-      console.log('[AudioStorage] 转录历史已添加:', id);
+      logger.info('[AudioStorage] 转录历史已添加:', id);
 
       return { id, audio_file_id, engine, text, status };
     } catch (error) {
-      console.error('[AudioStorage] 添加转录历史失败:', error);
+      logger.error('[AudioStorage] 添加转录历史失败:', error);
       throw error;
     }
   }
@@ -349,7 +350,7 @@ class AudioStorage {
       const records = await this.db.all(sql, [audio_file_id]);
       return records || [];
     } catch (error) {
-      console.error('[AudioStorage] 获取转录历史失败:', error);
+      logger.error('[AudioStorage] 获取转录历史失败:', error);
       throw error;
     }
   }
@@ -377,7 +378,7 @@ class AudioStorage {
       const records = await this.db.all(sql, [limit, offset]);
       return records || [];
     } catch (error) {
-      console.error('[AudioStorage] 获取转录历史失败:', error);
+      logger.error('[AudioStorage] 获取转录历史失败:', error);
       throw error;
     }
   }
@@ -392,11 +393,11 @@ class AudioStorage {
 
     try {
       await this.db.run(sql, [id]);
-      console.log('[AudioStorage] 转录历史已删除:', id);
+      logger.info('[AudioStorage] 转录历史已删除:', id);
 
       return { success: true, id };
     } catch (error) {
-      console.error('[AudioStorage] 删除转录历史失败:', error);
+      logger.error('[AudioStorage] 删除转录历史失败:', error);
       throw error;
     }
   }
@@ -434,7 +435,7 @@ class AudioStorage {
         transcribedFiles: transcribedResult.count || 0,
       };
     } catch (error) {
-      console.error('[AudioStorage] 获取统计信息失败:', error);
+      logger.error('[AudioStorage] 获取统计信息失败:', error);
       throw error;
     }
   }
@@ -459,11 +460,11 @@ class AudioStorage {
           await this.deleteAudioFile(file.id);
           deletedCount++;
         } catch (error) {
-          console.warn('[AudioStorage] 清理文件失败:', file.id, error);
+          logger.warn('[AudioStorage] 清理文件失败:', file.id, error);
         }
       }
 
-      console.log(`[AudioStorage] 已清理 ${deletedCount} 个旧文件`);
+      logger.info(`[AudioStorage] 已清理 ${deletedCount} 个旧文件`);
 
       return {
         success: true,
@@ -471,7 +472,7 @@ class AudioStorage {
         totalFound: oldFiles.length,
       };
     } catch (error) {
-      console.error('[AudioStorage] 清理旧文件失败:', error);
+      logger.error('[AudioStorage] 清理旧文件失败:', error);
       throw error;
     }
   }

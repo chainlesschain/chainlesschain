@@ -3,6 +3,7 @@
  * 提供Word、Excel、PPT的生成和操作功能
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require('fs').promises;
 const path = require('path');
 const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, HeadingLevel, AlignmentType, WidthType } = require('docx');
@@ -71,7 +72,7 @@ class OfficeToolsHandler {
         pageCount: Math.ceil(content.length / 3000) // 粗略估算页数
       };
     } catch (error) {
-      console.error('[Word Generator] 生成失败:', error);
+      logger.error('[Word Generator] 生成失败:', error);
       throw new Error(`Word文档生成失败: ${error.message}`);
     }
   }
@@ -200,7 +201,7 @@ class OfficeToolsHandler {
         rowCount: tableData.rows.length
       };
     } catch (error) {
-      console.error('[Word Table Creator] 创建失败:', error);
+      logger.error('[Word Table Creator] 创建失败:', error);
       throw new Error(`Word表格创建失败: ${error.message}`);
     }
   }
@@ -287,7 +288,7 @@ class OfficeToolsHandler {
         totalRows: totalRows
       };
     } catch (error) {
-      console.error('[Excel Generator] 生成失败:', error);
+      logger.error('[Excel Generator] 生成失败:', error);
       throw new Error(`Excel文件生成失败: ${error.message}`);
     }
   }
@@ -354,7 +355,7 @@ class OfficeToolsHandler {
         description: description
       };
     } catch (error) {
-      console.error('[Excel Formula Builder] 构建失败:', error);
+      logger.error('[Excel Formula Builder] 构建失败:', error);
       throw new Error(`Excel公式构建失败: ${error.message}`);
     }
   }
@@ -396,7 +397,7 @@ class OfficeToolsHandler {
       // 保存工作簿
       await workbook.xlsx.writeFile(workbookPath);
 
-      console.warn('[Excel Chart] exceljs不直接支持图表创建，已添加图表配置说明');
+      logger.warn('[Excel Chart] exceljs不直接支持图表创建，已添加图表配置说明');
 
       return {
         success: true,
@@ -404,7 +405,7 @@ class OfficeToolsHandler {
         note: '图表配置已保存，需要在Excel中手动创建图表'
       };
     } catch (error) {
-      console.error('[Excel Chart Creator] 创建失败:', error);
+      logger.error('[Excel Chart Creator] 创建失败:', error);
       throw new Error(`Excel图表创建失败: ${error.message}`);
     }
   }
@@ -520,11 +521,11 @@ class OfficeToolsHandler {
         slideCount: slides.length
       };
     } catch (error) {
-      console.error('[PPT Generator] 生成失败:', error);
+      logger.error('[PPT Generator] 生成失败:', error);
 
       // 如果pptxgenjs未安装，提供降级处理
       if (error.message.includes('Cannot find module')) {
-        console.warn('[PPT Generator] pptxgenjs未安装，创建占位文件');
+        logger.warn('[PPT Generator] pptxgenjs未安装，创建占位文件');
 
         // 创建一个说明文件
         const readme = `# PPT生成说明
@@ -568,7 +569,7 @@ npm install pptxgenjs
     functionCaller.registerTool('tool_excel_chart_creator', this.tool_excel_chart_creator.bind(this));
     functionCaller.registerTool('tool_ppt_generator', this.tool_ppt_generator.bind(this));
 
-    console.log('[OfficeToolsHandler] Office工具已注册（6个）');
+    logger.info('[OfficeToolsHandler] Office工具已注册（6个）');
   }
 }
 

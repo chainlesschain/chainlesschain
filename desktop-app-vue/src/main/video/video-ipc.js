@@ -6,6 +6,7 @@
  * @description 视频处理模块，提供视频导入、批量处理、编辑、转码、字幕处理等功能
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { ipcMain, dialog } = require('electron');
 
 /**
@@ -20,7 +21,7 @@ function registerVideoIPC({
   mainWindow,
   llmManager
 }) {
-  console.log('[Video IPC] Registering Video IPC handlers...');
+  logger.info('[Video IPC] Registering Video IPC handlers...');
 
   // ============================================================
   // 文件选择与导入操作 (4 handlers)
@@ -53,7 +54,7 @@ function registerVideoIPC({
         filePaths: result.filePaths,
       };
     } catch (error) {
-      console.error('[Video] 选择视频文件失败:', error);
+      logger.error('[Video] 选择视频文件失败:', error);
       throw error;
     }
   });
@@ -119,7 +120,7 @@ function registerVideoIPC({
       const result = await videoImporter.importVideo(filePath, options);
       return result;
     } catch (error) {
-      console.error('[Video] 导入视频失败:', error);
+      logger.error('[Video] 导入视频失败:', error);
       throw error;
     }
   });
@@ -155,7 +156,7 @@ function registerVideoIPC({
       const results = await videoImporter.importVideoBatch(filePaths, options);
       return results;
     } catch (error) {
-      console.error('[Video] 批量导入视频失败:', error);
+      logger.error('[Video] 批量导入视频失败:', error);
       throw error;
     }
   });
@@ -170,7 +171,7 @@ function registerVideoIPC({
       }
       return await videoImporter.storage.getVideoFile(videoId);
     } catch (error) {
-      console.error('[Video] 获取视频信息失败:', error);
+      logger.error('[Video] 获取视频信息失败:', error);
       throw error;
     }
   });
@@ -189,7 +190,7 @@ function registerVideoIPC({
       }
       return await videoImporter.storage.getAllVideos(options);
     } catch (error) {
-      console.error('[Video] 获取视频列表失败:', error);
+      logger.error('[Video] 获取视频列表失败:', error);
       throw error;
     }
   });
@@ -204,7 +205,7 @@ function registerVideoIPC({
       }
       return await videoImporter.storage.getVideoAnalysisByVideoId(videoId);
     } catch (error) {
-      console.error('[Video] 获取视频分析失败:', error);
+      logger.error('[Video] 获取视频分析失败:', error);
       throw error;
     }
   });
@@ -219,7 +220,7 @@ function registerVideoIPC({
       }
       return await videoImporter.storage.getKeyframesByVideoId(videoId);
     } catch (error) {
-      console.error('[Video] 获取关键帧失败:', error);
+      logger.error('[Video] 获取关键帧失败:', error);
       throw error;
     }
   });
@@ -235,7 +236,7 @@ function registerVideoIPC({
       await videoImporter.storage.deleteVideoFile(videoId);
       return { success: true };
     } catch (error) {
-      console.error('[Video] 删除视频失败:', error);
+      logger.error('[Video] 删除视频失败:', error);
       throw error;
     }
   });
@@ -260,7 +261,7 @@ function registerVideoIPC({
         statusStats
       };
     } catch (error) {
-      console.error('[Video] 获取统计信息失败:', error);
+      logger.error('[Video] 获取统计信息失败:', error);
       throw error;
     }
   });
@@ -274,7 +275,7 @@ function registerVideoIPC({
    */
   ipcMain.handle('video:convert', async (_event, params) => {
     try {
-      console.log('[Video] 转换视频格式');
+      logger.info('[Video] 转换视频格式');
 
       const { getVideoEngine } = require('../engines/video-engine');
       const videoEngine = getVideoEngine(llmManager);
@@ -288,10 +289,10 @@ function registerVideoIPC({
         }
       });
 
-      console.log('[Video] 格式转换完成');
+      logger.info('[Video] 格式转换完成');
       return result;
     } catch (error) {
-      console.error('[Video] 格式转换失败:', error);
+      logger.error('[Video] 格式转换失败:', error);
       throw error;
     }
   });
@@ -301,7 +302,7 @@ function registerVideoIPC({
    */
   ipcMain.handle('video:trim', async (_event, params) => {
     try {
-      console.log('[Video] 裁剪视频');
+      logger.info('[Video] 裁剪视频');
 
       const { getVideoEngine } = require('../engines/video-engine');
       const videoEngine = getVideoEngine(llmManager);
@@ -315,10 +316,10 @@ function registerVideoIPC({
         }
       });
 
-      console.log('[Video] 视频裁剪完成');
+      logger.info('[Video] 视频裁剪完成');
       return result;
     } catch (error) {
-      console.error('[Video] 视频裁剪失败:', error);
+      logger.error('[Video] 视频裁剪失败:', error);
       throw error;
     }
   });
@@ -328,7 +329,7 @@ function registerVideoIPC({
    */
   ipcMain.handle('video:merge', async (_event, params) => {
     try {
-      console.log('[Video] 合并视频:', params.videoList.length, '个');
+      logger.info('[Video] 合并视频:', params.videoList.length, '个');
 
       const { getVideoEngine } = require('../engines/video-engine');
       const videoEngine = getVideoEngine(llmManager);
@@ -342,10 +343,10 @@ function registerVideoIPC({
         }
       });
 
-      console.log('[Video] 视频合并完成');
+      logger.info('[Video] 视频合并完成');
       return result;
     } catch (error) {
-      console.error('[Video] 视频合并失败:', error);
+      logger.error('[Video] 视频合并失败:', error);
       throw error;
     }
   });
@@ -355,7 +356,7 @@ function registerVideoIPC({
    */
   ipcMain.handle('video:addSubtitles', async (_event, params) => {
     try {
-      console.log('[Video] 添加字幕');
+      logger.info('[Video] 添加字幕');
 
       const { getVideoEngine } = require('../engines/video-engine');
       const videoEngine = getVideoEngine(llmManager);
@@ -365,10 +366,10 @@ function registerVideoIPC({
         ...params
       });
 
-      console.log('[Video] 字幕添加完成');
+      logger.info('[Video] 字幕添加完成');
       return result;
     } catch (error) {
-      console.error('[Video] 字幕添加失败:', error);
+      logger.error('[Video] 字幕添加失败:', error);
       throw error;
     }
   });
@@ -378,7 +379,7 @@ function registerVideoIPC({
    */
   ipcMain.handle('video:generateSubtitles', async (_event, params) => {
     try {
-      console.log('[Video] 生成字幕');
+      logger.info('[Video] 生成字幕');
 
       const { getVideoEngine } = require('../engines/video-engine');
       const videoEngine = getVideoEngine(llmManager);
@@ -392,10 +393,10 @@ function registerVideoIPC({
         }
       });
 
-      console.log('[Video] 字幕生成完成');
+      logger.info('[Video] 字幕生成完成');
       return result;
     } catch (error) {
-      console.error('[Video] 字幕生成失败:', error);
+      logger.error('[Video] 字幕生成失败:', error);
       throw error;
     }
   });
@@ -405,7 +406,7 @@ function registerVideoIPC({
    */
   ipcMain.handle('video:extractAudio', async (_event, params) => {
     try {
-      console.log('[Video] 提取音频');
+      logger.info('[Video] 提取音频');
 
       const { getVideoEngine } = require('../engines/video-engine');
       const videoEngine = getVideoEngine(llmManager);
@@ -415,10 +416,10 @@ function registerVideoIPC({
         ...params
       });
 
-      console.log('[Video] 音频提取完成');
+      logger.info('[Video] 音频提取完成');
       return result;
     } catch (error) {
-      console.error('[Video] 音频提取失败:', error);
+      logger.error('[Video] 音频提取失败:', error);
       throw error;
     }
   });
@@ -428,7 +429,7 @@ function registerVideoIPC({
    */
   ipcMain.handle('video:generateThumbnail', async (_event, params) => {
     try {
-      console.log('[Video] 生成缩略图');
+      logger.info('[Video] 生成缩略图');
 
       const { getVideoEngine } = require('../engines/video-engine');
       const videoEngine = getVideoEngine(llmManager);
@@ -438,10 +439,10 @@ function registerVideoIPC({
         ...params
       });
 
-      console.log('[Video] 缩略图生成完成');
+      logger.info('[Video] 缩略图生成完成');
       return result;
     } catch (error) {
-      console.error('[Video] 缩略图生成失败:', error);
+      logger.error('[Video] 缩略图生成失败:', error);
       throw error;
     }
   });
@@ -451,7 +452,7 @@ function registerVideoIPC({
    */
   ipcMain.handle('video:compress', async (_event, params) => {
     try {
-      console.log('[Video] 压缩视频');
+      logger.info('[Video] 压缩视频');
 
       const { getVideoEngine } = require('../engines/video-engine');
       const videoEngine = getVideoEngine(llmManager);
@@ -465,10 +466,10 @@ function registerVideoIPC({
         }
       });
 
-      console.log('[Video] 视频压缩完成');
+      logger.info('[Video] 视频压缩完成');
       return result;
     } catch (error) {
-      console.error('[Video] 视频压缩失败:', error);
+      logger.error('[Video] 视频压缩失败:', error);
       throw error;
     }
   });
@@ -484,7 +485,7 @@ function registerVideoIPC({
       const info = await videoEngine.getVideoInfo(videoPath);
       return info;
     } catch (error) {
-      console.error('[Video] 获取视频信息失败:', error);
+      logger.error('[Video] 获取视频信息失败:', error);
       throw error;
     }
   });
@@ -498,7 +499,7 @@ function registerVideoIPC({
    */
   ipcMain.handle('video:applyFilter', async (_event, params) => {
     try {
-      console.log('[Video] 应用滤镜:', params.options?.filterType);
+      logger.info('[Video] 应用滤镜:', params.options?.filterType);
 
       const { getVideoEngine } = require('../engines/video-engine');
       const videoEngine = getVideoEngine(llmManager);
@@ -512,10 +513,10 @@ function registerVideoIPC({
         }
       });
 
-      console.log('[Video] 滤镜应用完成');
+      logger.info('[Video] 滤镜应用完成');
       return result;
     } catch (error) {
-      console.error('[Video] 滤镜应用失败:', error);
+      logger.error('[Video] 滤镜应用失败:', error);
       throw error;
     }
   });
@@ -525,7 +526,7 @@ function registerVideoIPC({
    */
   ipcMain.handle('video:applyFilterChain', async (_event, params) => {
     try {
-      console.log('[Video] 应用滤镜链:', params.options?.filters?.length, '个滤镜');
+      logger.info('[Video] 应用滤镜链:', params.options?.filters?.length, '个滤镜');
 
       const { getVideoEngine } = require('../engines/video-engine');
       const videoEngine = getVideoEngine(llmManager);
@@ -539,10 +540,10 @@ function registerVideoIPC({
         }
       });
 
-      console.log('[Video] 滤镜链应用完成');
+      logger.info('[Video] 滤镜链应用完成');
       return result;
     } catch (error) {
-      console.error('[Video] 滤镜链应用失败:', error);
+      logger.error('[Video] 滤镜链应用失败:', error);
       throw error;
     }
   });
@@ -552,7 +553,7 @@ function registerVideoIPC({
    */
   ipcMain.handle('video:separateAudio', async (_event, params) => {
     try {
-      console.log('[Video] 分离音轨');
+      logger.info('[Video] 分离音轨');
 
       const { getVideoEngine } = require('../engines/video-engine');
       const videoEngine = getVideoEngine(llmManager);
@@ -562,10 +563,10 @@ function registerVideoIPC({
         ...params
       });
 
-      console.log('[Video] 音轨分离完成');
+      logger.info('[Video] 音轨分离完成');
       return result;
     } catch (error) {
-      console.error('[Video] 音轨分离失败:', error);
+      logger.error('[Video] 音轨分离失败:', error);
       throw error;
     }
   });
@@ -575,7 +576,7 @@ function registerVideoIPC({
    */
   ipcMain.handle('video:replaceAudio', async (_event, params) => {
     try {
-      console.log('[Video] 替换音轨');
+      logger.info('[Video] 替换音轨');
 
       const { getVideoEngine } = require('../engines/video-engine');
       const videoEngine = getVideoEngine(llmManager);
@@ -589,10 +590,10 @@ function registerVideoIPC({
         }
       });
 
-      console.log('[Video] 音轨替换完成');
+      logger.info('[Video] 音轨替换完成');
       return result;
     } catch (error) {
-      console.error('[Video] 音轨替换失败:', error);
+      logger.error('[Video] 音轨替换失败:', error);
       throw error;
     }
   });
@@ -602,7 +603,7 @@ function registerVideoIPC({
    */
   ipcMain.handle('video:adjustVolume', async (_event, params) => {
     try {
-      console.log('[Video] 调节音量:', params.options?.volumeLevel);
+      logger.info('[Video] 调节音量:', params.options?.volumeLevel);
 
       const { getVideoEngine } = require('../engines/video-engine');
       const videoEngine = getVideoEngine(llmManager);
@@ -616,10 +617,10 @@ function registerVideoIPC({
         }
       });
 
-      console.log('[Video] 音量调节完成');
+      logger.info('[Video] 音量调节完成');
       return result;
     } catch (error) {
-      console.error('[Video] 音量调节失败:', error);
+      logger.error('[Video] 音量调节失败:', error);
       throw error;
     }
   });
@@ -629,7 +630,7 @@ function registerVideoIPC({
    */
   ipcMain.handle('video:addSubtitlesWithPreset', async (_event, params) => {
     try {
-      console.log('[Video] 应用字幕预设:', params.presetName);
+      logger.info('[Video] 应用字幕预设:', params.presetName);
 
       const { getVideoEngine } = require('../engines/video-engine');
       const videoEngine = getVideoEngine(llmManager);
@@ -646,19 +647,19 @@ function registerVideoIPC({
         }
       );
 
-      console.log('[Video] 预设字幕添加完成');
+      logger.info('[Video] 预设字幕添加完成');
       return result;
     } catch (error) {
-      console.error('[Video] 预设字幕添加失败:', error);
+      logger.error('[Video] 预设字幕添加失败:', error);
       throw error;
     }
   });
 
-  console.log('[Video IPC] ✓ 24 handlers registered (+6 new)');
-  console.log('[Video IPC] - 4 file selection & import handlers');
-  console.log('[Video IPC] - 5 video management handlers');
-  console.log('[Video IPC] - 9 video editing handlers');
-  console.log('[Video IPC] - 6 advanced editing handlers (filters, audio, subtitles)');
+  logger.info('[Video IPC] ✓ 24 handlers registered (+6 new)');
+  logger.info('[Video IPC] - 4 file selection & import handlers');
+  logger.info('[Video IPC] - 5 video management handlers');
+  logger.info('[Video IPC] - 9 video editing handlers');
+  logger.info('[Video IPC] - 6 advanced editing handlers (filters, audio, subtitles)');
 }
 
 module.exports = {

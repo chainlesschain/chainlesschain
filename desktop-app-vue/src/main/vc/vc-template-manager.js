@@ -4,6 +4,7 @@
  * 提供预定义的凭证模板，简化凭证创建流程
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { v4: uuidv4 } = require("uuid");
 const EventEmitter = require("events");
 
@@ -248,18 +249,18 @@ class VCTemplateManager extends EventEmitter {
    * 初始化模板管理器
    */
   async initialize() {
-    console.log("[VCTemplateManager] 初始化凭证模板管理器...");
+    logger.info("[VCTemplateManager] 初始化凭证模板管理器...");
 
     try {
       // 确保数据库表存在
       await this.ensureTables();
 
-      console.log("[VCTemplateManager] 凭证模板管理器初始化成功");
+      logger.info("[VCTemplateManager] 凭证模板管理器初始化成功");
       this.emit("initialized");
 
       return true;
     } catch (error) {
-      console.error("[VCTemplateManager] 初始化失败:", error);
+      logger.error("[VCTemplateManager] 初始化失败:", error);
       throw error;
     }
   }
@@ -319,10 +320,10 @@ class VCTemplateManager extends EventEmitter {
           )
           .run();
 
-        console.log("[VCTemplateManager] vc_templates 表已创建");
+        logger.info("[VCTemplateManager] vc_templates 表已创建");
       }
     } catch (error) {
-      console.error("[VCTemplateManager] 检查数据库表失败:", error);
+      logger.error("[VCTemplateManager] 检查数据库表失败:", error);
       throw error;
     }
   }
@@ -382,7 +383,7 @@ class VCTemplateManager extends EventEmitter {
       // 合并内置模板和用户模板
       return [...builtInTemplates, ...userTemplates];
     } catch (error) {
-      console.error("[VCTemplateManager] 获取模板列表失败:", error);
+      logger.error("[VCTemplateManager] 获取模板列表失败:", error);
       return Object.values(BUILT_IN_TEMPLATES);
     }
   }
@@ -428,7 +429,7 @@ class VCTemplateManager extends EventEmitter {
 
       return template;
     } catch (error) {
-      console.error("[VCTemplateManager] 获取模板失败:", error);
+      logger.error("[VCTemplateManager] 获取模板失败:", error);
       return null;
     }
   }
@@ -442,7 +443,7 @@ class VCTemplateManager extends EventEmitter {
     const { name, type, description, icon, fields, createdBy, isPublic } =
       templateData;
 
-    console.log("[VCTemplateManager] 创建自定义模板:", name);
+    logger.info("[VCTemplateManager] 创建自定义模板:", name);
 
     try {
       const id = `custom:${uuidv4()}`;
@@ -485,7 +486,7 @@ class VCTemplateManager extends EventEmitter {
 
       this.db.saveToFile();
 
-      console.log("[VCTemplateManager] 自定义模板已创建:", id);
+      logger.info("[VCTemplateManager] 自定义模板已创建:", id);
       this.emit("template-created", { id, name, type });
 
       return {
@@ -494,7 +495,7 @@ class VCTemplateManager extends EventEmitter {
         isBuiltIn: false,
       };
     } catch (error) {
-      console.error("[VCTemplateManager] 创建模板失败:", error);
+      logger.error("[VCTemplateManager] 创建模板失败:", error);
       throw error;
     }
   }
@@ -557,12 +558,12 @@ class VCTemplateManager extends EventEmitter {
 
       this.db.saveToFile();
 
-      console.log("[VCTemplateManager] 模板已更新:", id);
+      logger.info("[VCTemplateManager] 模板已更新:", id);
       this.emit("template-updated", { id });
 
       return true;
     } catch (error) {
-      console.error("[VCTemplateManager] 更新模板失败:", error);
+      logger.error("[VCTemplateManager] 更新模板失败:", error);
       throw error;
     }
   }
@@ -587,12 +588,12 @@ class VCTemplateManager extends EventEmitter {
       this.db.prepare("DELETE FROM vc_templates WHERE id = ?").run([id]);
       this.db.saveToFile();
 
-      console.log("[VCTemplateManager] 模板已删除:", id);
+      logger.info("[VCTemplateManager] 模板已删除:", id);
       this.emit("template-deleted", { id });
 
       return true;
     } catch (error) {
-      console.error("[VCTemplateManager] 删除模板失败:", error);
+      logger.error("[VCTemplateManager] 删除模板失败:", error);
       throw error;
     }
   }
@@ -616,7 +617,7 @@ class VCTemplateManager extends EventEmitter {
 
       this.db.saveToFile();
     } catch (error) {
-      console.error("[VCTemplateManager] 更新使用次数失败:", error);
+      logger.error("[VCTemplateManager] 更新使用次数失败:", error);
     }
   }
 
@@ -683,7 +684,7 @@ class VCTemplateManager extends EventEmitter {
         total: builtInCount + customCount,
       };
     } catch (error) {
-      console.error("[VCTemplateManager] 获取统计信息失败:", error);
+      logger.error("[VCTemplateManager] 获取统计信息失败:", error);
       return {
         builtIn: Object.keys(BUILT_IN_TEMPLATES).length,
         custom: 0,
@@ -719,10 +720,10 @@ class VCTemplateManager extends EventEmitter {
         },
       };
 
-      console.log("[VCTemplateManager] 模板已导出:", id);
+      logger.info("[VCTemplateManager] 模板已导出:", id);
       return exportData;
     } catch (error) {
-      console.error("[VCTemplateManager] 导出模板失败:", error);
+      logger.error("[VCTemplateManager] 导出模板失败:", error);
       throw error;
     }
   }
@@ -738,7 +739,7 @@ class VCTemplateManager extends EventEmitter {
         .map((id) => {
           const template = this.getTemplateById(id);
           if (!template) {
-            console.warn(`[VCTemplateManager] 模板不存在: ${id}`);
+            logger.warn(`[VCTemplateManager] 模板不存在: ${id}`);
             return null;
           }
 
@@ -759,10 +760,10 @@ class VCTemplateManager extends EventEmitter {
         templates,
       };
 
-      console.log("[VCTemplateManager] 批量导出完成:", templates.length);
+      logger.info("[VCTemplateManager] 批量导出完成:", templates.length);
       return exportData;
     } catch (error) {
-      console.error("[VCTemplateManager] 批量导出失败:", error);
+      logger.error("[VCTemplateManager] 批量导出失败:", error);
       throw error;
     }
   }
@@ -776,7 +777,7 @@ class VCTemplateManager extends EventEmitter {
    */
   async importTemplate(importData, createdBy, options = {}) {
     try {
-      console.log("[VCTemplateManager] 开始导入模板...");
+      logger.info("[VCTemplateManager] 开始导入模板...");
 
       // 验证导入数据格式
       if (!importData || !importData.version) {
@@ -827,10 +828,10 @@ class VCTemplateManager extends EventEmitter {
         }
       }
 
-      console.log("[VCTemplateManager] 导入完成:", results);
+      logger.info("[VCTemplateManager] 导入完成:", results);
       return results;
     } catch (error) {
-      console.error("[VCTemplateManager] 导入模板失败:", error);
+      logger.error("[VCTemplateManager] 导入模板失败:", error);
       throw error;
     }
   }
@@ -905,7 +906,7 @@ class VCTemplateManager extends EventEmitter {
    * 关闭管理器
    */
   async close() {
-    console.log("[VCTemplateManager] 关闭凭证模板管理器");
+    logger.info("[VCTemplateManager] 关闭凭证模板管理器");
     this.emit("closed");
   }
 }

@@ -1,3 +1,4 @@
+import { logger, createLogger } from '@/utils/logger';
 import { defineStore } from 'pinia';
 
 export const useLLMStore = defineStore('llm', {
@@ -176,7 +177,7 @@ export const useLLMStore = defineStore('llm', {
           this.config = config;
         }
       } catch (error) {
-        console.error('加载LLM配置失败:', error);
+        logger.error('加载LLM配置失败:', error);
         throw error;
       }
     },
@@ -189,7 +190,7 @@ export const useLLMStore = defineStore('llm', {
           this.config = config;
         }
       } catch (error) {
-        console.error('保存LLM配置失败:', error);
+        logger.error('保存LLM配置失败:', error);
         throw error;
       }
     },
@@ -220,7 +221,7 @@ export const useLLMStore = defineStore('llm', {
         this.status = status;
         return status;
       } catch (error) {
-        console.error('检查LLM状态失败:', error);
+        logger.error('检查LLM状态失败:', error);
         this.status = {
           available: false,
           provider: this.config.provider,
@@ -238,7 +239,7 @@ export const useLLMStore = defineStore('llm', {
         this.status.models = models;
         return models;
       } catch (error) {
-        console.error('获取模型列表失败:', error);
+        logger.error('获取模型列表失败:', error);
         throw error;
       }
     },
@@ -268,7 +269,7 @@ export const useLLMStore = defineStore('llm', {
 
         return response;
       } catch (error) {
-        console.error('LLM查询失败:', error);
+        logger.error('LLM查询失败:', error);
         throw error;
       } finally {
         this.isQuerying = false;
@@ -314,7 +315,7 @@ export const useLLMStore = defineStore('llm', {
 
         return response;
       } catch (error) {
-        console.error('LLM流式查询失败:', error);
+        logger.error('LLM流式查询失败:', error);
         throw error;
       } finally {
         this.isStreaming = false;
@@ -327,7 +328,7 @@ export const useLLMStore = defineStore('llm', {
       try {
         return await window.electronAPI.llm.embeddings(text);
       } catch (error) {
-        console.error('生成嵌入向量失败:', error);
+        logger.error('生成嵌入向量失败:', error);
         throw error;
       }
     },
@@ -340,7 +341,7 @@ export const useLLMStore = defineStore('llm', {
           this.currentConversationId = null;
         }
       } catch (error) {
-        console.error('清除上下文失败:', error);
+        logger.error('清除上下文失败:', error);
         throw error;
       }
     },
@@ -349,7 +350,7 @@ export const useLLMStore = defineStore('llm', {
     async cancelStream(reason = '用户取消') {
       try {
         if (!this.currentStreamControllerId) {
-          console.warn('[LLM Store] 没有正在进行的流式输出');
+          logger.warn('[LLM Store] 没有正在进行的流式输出');
           return { success: false, message: '没有正在进行的流式输出' };
         }
 
@@ -366,7 +367,7 @@ export const useLLMStore = defineStore('llm', {
 
         return result;
       } catch (error) {
-        console.error('取消流式输出失败:', error);
+        logger.error('取消流式输出失败:', error);
         // 即使取消失败，也重置状态
         this.isStreaming = false;
         this.isQuerying = false;
@@ -428,7 +429,7 @@ export const useLLMStore = defineStore('llm', {
         }
         return stats;
       } catch (error) {
-        console.error('加载 Token 使用统计失败:', error);
+        logger.error('加载 Token 使用统计失败:', error);
         throw error;
       }
     },
@@ -438,7 +439,7 @@ export const useLLMStore = defineStore('llm', {
       try {
         return await window.electronAPI.llm.getTimeSeries(options);
       } catch (error) {
-        console.error('获取时间序列数据失败:', error);
+        logger.error('获取时间序列数据失败:', error);
         throw error;
       }
     },
@@ -448,7 +449,7 @@ export const useLLMStore = defineStore('llm', {
       try {
         return await window.electronAPI.llm.getCostBreakdown(options);
       } catch (error) {
-        console.error('获取成本分解失败:', error);
+        logger.error('获取成本分解失败:', error);
         throw error;
       }
     },
@@ -462,7 +463,7 @@ export const useLLMStore = defineStore('llm', {
         }
         return budget;
       } catch (error) {
-        console.error('加载预算配置失败:', error);
+        logger.error('加载预算配置失败:', error);
         throw error;
       }
     },
@@ -474,7 +475,7 @@ export const useLLMStore = defineStore('llm', {
         await this.loadBudget(userId);
         return true;
       } catch (error) {
-        console.error('保存预算配置失败:', error);
+        logger.error('保存预算配置失败:', error);
         throw error;
       }
     },
@@ -484,7 +485,7 @@ export const useLLMStore = defineStore('llm', {
       try {
         return await window.electronAPI.llm.exportCostReport(options);
       } catch (error) {
-        console.error('导出成本报告失败:', error);
+        logger.error('导出成本报告失败:', error);
         throw error;
       }
     },
@@ -497,7 +498,7 @@ export const useLLMStore = defineStore('llm', {
         await this.loadCacheStats();
         return result;
       } catch (error) {
-        console.error('清除缓存失败:', error);
+        logger.error('清除缓存失败:', error);
         throw error;
       }
     },
@@ -519,7 +520,7 @@ export const useLLMStore = defineStore('llm', {
         }
         return stats;
       } catch (error) {
-        console.error('加载缓存统计失败:', error);
+        logger.error('加载缓存统计失败:', error);
         throw error;
       }
     },
@@ -533,7 +534,7 @@ export const useLLMStore = defineStore('llm', {
           this.loadCacheStats(),
         ]);
       } catch (error) {
-        console.error('初始化 Token 追踪数据失败:', error);
+        logger.error('初始化 Token 追踪数据失败:', error);
       }
     },
   },

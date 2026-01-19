@@ -9,6 +9,7 @@
  * - 争议处理
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const EventEmitter = require('events');
 const { v4: uuidv4 } = require('uuid');
 
@@ -42,16 +43,16 @@ class EscrowManager extends EventEmitter {
    * 初始化托管管理器
    */
   async initialize() {
-    console.log('[EscrowManager] 初始化托管管理器...');
+    logger.info('[EscrowManager] 初始化托管管理器...');
 
     try {
       // 初始化数据库表
       await this.initializeTables();
 
       this.initialized = true;
-      console.log('[EscrowManager] 托管管理器初始化成功');
+      logger.info('[EscrowManager] 托管管理器初始化成功');
     } catch (error) {
-      console.error('[EscrowManager] 初始化失败:', error);
+      logger.error('[EscrowManager] 初始化失败:', error);
       throw error;
     }
   }
@@ -102,7 +103,7 @@ class EscrowManager extends EventEmitter {
       CREATE INDEX IF NOT EXISTS idx_escrow_history_escrow ON escrow_history(escrow_id);
     `);
 
-    console.log('[EscrowManager] 数据库表初始化完成');
+    logger.info('[EscrowManager] 数据库表初始化完成');
   }
 
   /**
@@ -177,13 +178,13 @@ class EscrowManager extends EventEmitter {
         metadata,
       };
 
-      console.log('[EscrowManager] 已创建托管:', escrowId);
+      logger.info('[EscrowManager] 已创建托管:', escrowId);
 
       this.emit('escrow:created', { escrow });
 
       return escrow;
     } catch (error) {
-      console.error('[EscrowManager] 创建托管失败:', error);
+      logger.error('[EscrowManager] 创建托管失败:', error);
       throw error;
     }
   }
@@ -230,13 +231,13 @@ class EscrowManager extends EventEmitter {
       // 记录历史
       this.recordHistory(escrowId, EscrowStatus.CREATED, EscrowStatus.LOCKED, escrow.buyer_did, '资金已锁定');
 
-      console.log('[EscrowManager] 托管资金已锁定:', escrowId);
+      logger.info('[EscrowManager] 托管资金已锁定:', escrowId);
 
       this.emit('escrow:locked', { escrowId });
 
       return { success: true };
     } catch (error) {
-      console.error('[EscrowManager] 锁定托管资金失败:', error);
+      logger.error('[EscrowManager] 锁定托管资金失败:', error);
       throw error;
     }
   }
@@ -282,13 +283,13 @@ class EscrowManager extends EventEmitter {
       // 记录历史
       this.recordHistory(escrowId, EscrowStatus.LOCKED, EscrowStatus.RELEASED, recipientDid, '资金已释放给卖家');
 
-      console.log('[EscrowManager] 托管资金已释放:', escrowId);
+      logger.info('[EscrowManager] 托管资金已释放:', escrowId);
 
       this.emit('escrow:released', { escrowId, recipientDid });
 
       return { success: true };
     } catch (error) {
-      console.error('[EscrowManager] 释放托管资金失败:', error);
+      logger.error('[EscrowManager] 释放托管资金失败:', error);
       throw error;
     }
   }
@@ -330,13 +331,13 @@ class EscrowManager extends EventEmitter {
       // 记录历史
       this.recordHistory(escrowId, escrow.status, EscrowStatus.REFUNDED, escrow.buyer_did, reason || '资金已退款给买家');
 
-      console.log('[EscrowManager] 托管资金已退款:', escrowId);
+      logger.info('[EscrowManager] 托管资金已退款:', escrowId);
 
       this.emit('escrow:refunded', { escrowId, reason });
 
       return { success: true };
     } catch (error) {
-      console.error('[EscrowManager] 退款失败:', error);
+      logger.error('[EscrowManager] 退款失败:', error);
       throw error;
     }
   }
@@ -370,13 +371,13 @@ class EscrowManager extends EventEmitter {
       // 记录历史
       this.recordHistory(escrowId, EscrowStatus.LOCKED, EscrowStatus.DISPUTED, currentDid, reason);
 
-      console.log('[EscrowManager] 托管已标记为争议:', escrowId);
+      logger.info('[EscrowManager] 托管已标记为争议:', escrowId);
 
       this.emit('escrow:disputed', { escrowId, reason });
 
       return { success: true };
     } catch (error) {
-      console.error('[EscrowManager] 标记争议失败:', error);
+      logger.error('[EscrowManager] 标记争议失败:', error);
       throw error;
     }
   }
@@ -409,13 +410,13 @@ class EscrowManager extends EventEmitter {
       // 记录历史
       this.recordHistory(escrowId, EscrowStatus.CREATED, EscrowStatus.CANCELLED, currentDid, '托管已取消');
 
-      console.log('[EscrowManager] 托管已取消:', escrowId);
+      logger.info('[EscrowManager] 托管已取消:', escrowId);
 
       this.emit('escrow:cancelled', { escrowId });
 
       return { success: true };
     } catch (error) {
-      console.error('[EscrowManager] 取消托管失败:', error);
+      logger.error('[EscrowManager] 取消托管失败:', error);
       throw error;
     }
   }
@@ -438,7 +439,7 @@ class EscrowManager extends EventEmitter {
         metadata: escrow.metadata ? JSON.parse(escrow.metadata) : {},
       };
     } catch (error) {
-      console.error('[EscrowManager] 获取托管详情失败:', error);
+      logger.error('[EscrowManager] 获取托管详情失败:', error);
       throw error;
     }
   }
@@ -488,7 +489,7 @@ class EscrowManager extends EventEmitter {
         metadata: e.metadata ? JSON.parse(e.metadata) : {},
       }));
     } catch (error) {
-      console.error('[EscrowManager] 获取托管列表失败:', error);
+      logger.error('[EscrowManager] 获取托管列表失败:', error);
       throw error;
     }
   }
@@ -509,7 +510,7 @@ class EscrowManager extends EventEmitter {
 
       return history;
     } catch (error) {
-      console.error('[EscrowManager] 获取托管历史失败:', error);
+      logger.error('[EscrowManager] 获取托管历史失败:', error);
       throw error;
     }
   }
@@ -533,7 +534,7 @@ class EscrowManager extends EventEmitter {
         VALUES (?, ?, ?, ?, ?, ?)
       `).run(escrowId, fromStatus, toStatus, operatedBy || null, reason || null, now);
     } catch (error) {
-      console.error('[EscrowManager] 记录托管历史失败:', error);
+      logger.error('[EscrowManager] 记录托管历史失败:', error);
       // 不抛出错误，避免影响主流程
     }
   }
@@ -570,7 +571,7 @@ class EscrowManager extends EventEmitter {
 
       return stats;
     } catch (error) {
-      console.error('[EscrowManager] 获取统计信息失败:', error);
+      logger.error('[EscrowManager] 获取统计信息失败:', error);
       throw error;
     }
   }
@@ -579,7 +580,7 @@ class EscrowManager extends EventEmitter {
    * 关闭托管管理器
    */
   async close() {
-    console.log('[EscrowManager] 关闭托管管理器');
+    logger.info('[EscrowManager] 关闭托管管理器');
 
     this.removeAllListeners();
     this.initialized = false;

@@ -181,6 +181,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, watch, onMounted } from 'vue';
 import { message, Empty } from 'ant-design-vue';
 import {
@@ -352,7 +354,7 @@ const loadWallets = async () => {
   try {
     await blockchainStore.loadWallets();
   } catch (error) {
-    console.error('[WalletSelector] 加载钱包失败:', error);
+    logger.error('[WalletSelector] 加载钱包失败:', error);
     message.error('加载钱包失败: ' + error.message);
   } finally {
     loading.value = false;
@@ -363,7 +365,7 @@ const loadWallets = async () => {
  * 选择变化处理
  */
 const handleChange = async (value) => {
-  console.log('[WalletSelector] 选择钱包:', value);
+  logger.info('[WalletSelector] 选择钱包:', value);
 
   // 处理特殊值
   if (value === '__metamask__') {
@@ -407,7 +409,7 @@ const handleConnectMetaMask = async () => {
       chainId: result.chainId,
     });
   } catch (error) {
-    console.error('[WalletSelector] 连接 MetaMask 失败:', error);
+    logger.error('[WalletSelector] 连接 MetaMask 失败:', error);
     message.error('连接 MetaMask 失败: ' + error.message);
     // 重置选择
     selectedValue.value = props.modelValue;
@@ -430,7 +432,7 @@ const handleConnectWalletConnect = async () => {
       chainId: result.chainId,
     });
   } catch (error) {
-    console.error('[WalletSelector] 连接 WalletConnect 失败:', error);
+    logger.error('[WalletSelector] 连接 WalletConnect 失败:', error);
     message.error('连接 WalletConnect 失败: ' + error.message);
     // 重置选择
     selectedValue.value = props.modelValue;
@@ -452,7 +454,7 @@ const handleCopyAddress = async () => {
     await navigator.clipboard.writeText(currentAddress.value);
     message.success('地址已复制到剪贴板');
   } catch (error) {
-    console.error('[WalletSelector] 复制失败:', error);
+    logger.error('[WalletSelector] 复制失败:', error);
     message.error('复制失败');
   }
 };

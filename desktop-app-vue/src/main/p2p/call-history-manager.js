@@ -4,6 +4,7 @@
  * 管理通话历史记录
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const EventEmitter = require('events');
 
 class CallHistoryManager extends EventEmitter {
@@ -59,9 +60,9 @@ class CallHistoryManager extends EventEmitter {
       `);
 
       this.initialized = true;
-      console.log('[CallHistoryManager] 初始化完成');
+      logger.info('[CallHistoryManager] 初始化完成');
     } catch (error) {
-      console.error('[CallHistoryManager] 初始化失败:', error);
+      logger.error('[CallHistoryManager] 初始化失败:', error);
       throw error;
     }
   }
@@ -96,13 +97,13 @@ class CallHistoryManager extends EventEmitter {
         now
       ]);
 
-      console.log('[CallHistoryManager] 通话记录已创建:', callId);
+      logger.info('[CallHistoryManager] 通话记录已创建:', callId);
 
       this.emit('call-recorded', { callId, peerId, type });
 
       return callId;
     } catch (error) {
-      console.error('[CallHistoryManager] 记录通话开始失败:', error);
+      logger.error('[CallHistoryManager] 记录通话开始失败:', error);
       throw error;
     }
   }
@@ -151,11 +152,11 @@ class CallHistoryManager extends EventEmitter {
         WHERE call_id = ?
       `, values);
 
-      console.log('[CallHistoryManager] 通话状态已更新:', callId, status);
+      logger.info('[CallHistoryManager] 通话状态已更新:', callId, status);
 
       this.emit('call-updated', { callId, status, ...additionalData });
     } catch (error) {
-      console.error('[CallHistoryManager] 更新通话状态失败:', error);
+      logger.error('[CallHistoryManager] 更新通话状态失败:', error);
       throw error;
     }
   }
@@ -174,7 +175,7 @@ class CallHistoryManager extends EventEmitter {
       );
 
       if (!call) {
-        console.warn('[CallHistoryManager] 通话记录不存在:', callId);
+        logger.warn('[CallHistoryManager] 通话记录不存在:', callId);
         return;
       }
 
@@ -187,11 +188,11 @@ class CallHistoryManager extends EventEmitter {
         qualityStats: endData.qualityStats
       });
 
-      console.log('[CallHistoryManager] 通话已结束:', callId, `${Math.floor(duration / 1000)}秒`);
+      logger.info('[CallHistoryManager] 通话已结束:', callId, `${Math.floor(duration / 1000)}秒`);
 
       this.emit('call-ended', { callId, duration });
     } catch (error) {
-      console.error('[CallHistoryManager] 记录通话结束失败:', error);
+      logger.error('[CallHistoryManager] 记录通话结束失败:', error);
       throw error;
     }
   }
@@ -253,7 +254,7 @@ class CallHistoryManager extends EventEmitter {
         qualityStats: call.quality_stats ? JSON.parse(call.quality_stats) : null
       }));
     } catch (error) {
-      console.error('[CallHistoryManager] 获取通话历史失败:', error);
+      logger.error('[CallHistoryManager] 获取通话历史失败:', error);
       throw error;
     }
   }
@@ -278,7 +279,7 @@ class CallHistoryManager extends EventEmitter {
         qualityStats: call.quality_stats ? JSON.parse(call.quality_stats) : null
       };
     } catch (error) {
-      console.error('[CallHistoryManager] 获取通话详情失败:', error);
+      logger.error('[CallHistoryManager] 获取通话详情失败:', error);
       throw error;
     }
   }
@@ -317,7 +318,7 @@ class CallHistoryManager extends EventEmitter {
         avgDuration: Math.round(stats.avg_duration || 0)
       };
     } catch (error) {
-      console.error('[CallHistoryManager] 获取通话统计失败:', error);
+      logger.error('[CallHistoryManager] 获取通话统计失败:', error);
       throw error;
     }
   }
@@ -332,11 +333,11 @@ class CallHistoryManager extends EventEmitter {
         [callId]
       );
 
-      console.log('[CallHistoryManager] 通话记录已删除:', callId);
+      logger.info('[CallHistoryManager] 通话记录已删除:', callId);
 
       this.emit('call-deleted', { callId });
     } catch (error) {
-      console.error('[CallHistoryManager] 删除通话记录失败:', error);
+      logger.error('[CallHistoryManager] 删除通话记录失败:', error);
       throw error;
     }
   }
@@ -351,15 +352,15 @@ class CallHistoryManager extends EventEmitter {
           'DELETE FROM call_history WHERE peer_id = ?',
           [peerId]
         );
-        console.log('[CallHistoryManager] 已清空指定用户的通话历史:', peerId);
+        logger.info('[CallHistoryManager] 已清空指定用户的通话历史:', peerId);
       } else {
         await this.database.run('DELETE FROM call_history');
-        console.log('[CallHistoryManager] 已清空所有通话历史');
+        logger.info('[CallHistoryManager] 已清空所有通话历史');
       }
 
       this.emit('history-cleared', { peerId });
     } catch (error) {
-      console.error('[CallHistoryManager] 清空通话历史失败:', error);
+      logger.error('[CallHistoryManager] 清空通话历史失败:', error);
       throw error;
     }
   }
@@ -369,7 +370,7 @@ class CallHistoryManager extends EventEmitter {
    */
   cleanup() {
     this.removeAllListeners();
-    console.log('[CallHistoryManager] 资源已清理');
+    logger.info('[CallHistoryManager] 资源已清理');
   }
 }
 

@@ -3,6 +3,7 @@
  * 支持多种格式导出：PNG, SVG, JSON, GraphML, GEXF, DOT
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require('fs');
 const path = require('path');
 
@@ -371,7 +372,7 @@ async function saveExportFile(content, format, defaultName = 'knowledge-graph') 
       path: result.filePath,
     };
   } catch (error) {
-    console.error('[Export] 保存文件失败:', error);
+    logger.error('[Export] 保存文件失败:', error);
     throw error;
   }
 }

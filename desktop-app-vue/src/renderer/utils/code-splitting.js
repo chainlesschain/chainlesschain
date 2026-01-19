@@ -10,6 +10,7 @@
  * - Bundle size tracking
  */
 
+import { logger, createLogger } from '@/utils/logger';
 import { defineAsyncComponent, h } from 'vue';
 import { prefetch } from './resource-hints';
 
@@ -68,10 +69,10 @@ export function lazyLoad(loader, options = {}) {
         onLoaded(component);
       }
 
-      console.log(`[CodeSplitting] ✓ Component loaded: ${chunkName}`);
+      logger.info(`[CodeSplitting] ✓ Component loaded: ${chunkName}`);
       return component;
     } catch (error) {
-      console.error(`[CodeSplitting] ✗ Load failed (attempt ${retryCount + 1}/${retryAttempts}):`, chunkName, error);
+      logger.error(`[CodeSplitting] ✗ Load failed (attempt ${retryCount + 1}/${retryAttempts}):`, chunkName, error);
 
       if (retryCount < retryAttempts - 1) {
         retryCount++;
@@ -97,13 +98,13 @@ export function lazyLoad(loader, options = {}) {
 
     // Handle loading errors
     onError(error, retry, fail, attempts) {
-      console.error(`[CodeSplitting] Error loading ${chunkName} (attempt ${attempts}):`, error);
+      logger.error(`[CodeSplitting] Error loading ${chunkName} (attempt ${attempts}):`, error);
 
       if (attempts <= retryAttempts) {
-        console.log(`[CodeSplitting] Retrying... (${attempts}/${retryAttempts})`);
+        logger.info(`[CodeSplitting] Retrying... (${attempts}/${retryAttempts})`);
         setTimeout(() => retry(), retryDelay * attempts);
       } else {
-        console.error(`[CodeSplitting] Failed to load ${chunkName} after ${retryAttempts} attempts`);
+        logger.error(`[CodeSplitting] Failed to load ${chunkName} after ${retryAttempts} attempts`);
         fail();
       }
     },
@@ -152,11 +153,11 @@ export function lazyRoute(loader, options = {}) {
  * @param {string} chunkName - Chunk name
  */
 export function prefetchComponent(loader, chunkName = 'component') {
-  console.log(`[CodeSplitting] Prefetching: ${chunkName}`);
+  logger.info(`[CodeSplitting] Prefetching: ${chunkName}`);
 
   // Trigger loader to prefetch chunk
   loader().catch(error => {
-    console.warn(`[CodeSplitting] Prefetch failed for ${chunkName}:`, error);
+    logger.warn(`[CodeSplitting] Prefetch failed for ${chunkName}:`, error);
   });
 }
 
@@ -196,7 +197,7 @@ export function trackBundleSize(chunkName, size) {
     const sizeKB = (size / 1024).toFixed(2);
     const sizeColor = size > 100 * 1024 ? 'red' : size > 50 * 1024 ? 'orange' : 'green';
 
-    console.log(
+    logger.info(
       `%c[BundleSize] ${chunkName}: ${sizeKB} KB`,
       `color: ${sizeColor}; font-weight: bold`
     );
@@ -347,12 +348,12 @@ export class ProgressiveLoader {
     }
 
     try {
-      console.log(`[ProgressiveLoader] Loading: ${item.chunkName} (priority: ${item.priority})`);
+      logger.info(`[ProgressiveLoader] Loading: ${item.chunkName} (priority: ${item.priority})`);
       await item.loader();
       this.loaded.add(item.chunkName);
-      console.log(`[ProgressiveLoader] ✓ Loaded: ${item.chunkName}`);
+      logger.info(`[ProgressiveLoader] ✓ Loaded: ${item.chunkName}`);
     } catch (error) {
-      console.error(`[ProgressiveLoader] ✗ Failed: ${item.chunkName}`, error);
+      logger.error(`[ProgressiveLoader] ✗ Failed: ${item.chunkName}`, error);
     }
 
     // Continue with next item

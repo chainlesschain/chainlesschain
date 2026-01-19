@@ -188,6 +188,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, watch } from 'vue';
 import { message } from 'ant-design-vue';
 import {
@@ -224,7 +226,7 @@ const handleRefresh = async () => {
     emit('refresh', props.transaction);
     message.success('刷新成功');
   } catch (error) {
-    console.error('刷新失败:', error);
+    logger.error('刷新失败:', error);
     message.error('刷新失败');
   } finally {
     refreshing.value = false;

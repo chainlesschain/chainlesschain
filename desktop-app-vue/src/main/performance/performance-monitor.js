@@ -1,3 +1,4 @@
+const { logger, createLogger } = require('../utils/logger.js');
 const os = require('os');
 const { performance } = require('perf_hooks');
 const EventEmitter = require('events');
@@ -52,11 +53,11 @@ class PerformanceMonitor extends EventEmitter {
    */
   start() {
     if (this.monitoring) {
-      console.log('[PerformanceMonitor] 监控已在运行');
+      logger.info('[PerformanceMonitor] 监控已在运行');
       return;
     }
 
-    console.log('[PerformanceMonitor] 启动性能监控');
+    logger.info('[PerformanceMonitor] 启动性能监控');
     this.monitoring = true;
     this.metrics.app.startupTime = Date.now() - this.startTime;
 
@@ -80,7 +81,7 @@ class PerformanceMonitor extends EventEmitter {
       return;
     }
 
-    console.log('[PerformanceMonitor] 停止性能监控');
+    logger.info('[PerformanceMonitor] 停止性能监控');
     this.monitoring = false;
 
     if (this.monitoringInterval) {
@@ -200,7 +201,7 @@ class PerformanceMonitor extends EventEmitter {
     if (duration > this.config.slowQueryThreshold) {
       this.addMetric('database.slowQueries', record);
       this.emit('slowQuery', record);
-      console.warn(`[PerformanceMonitor] 慢查询检测: ${duration}ms - ${query.substring(0, 100)}`);
+      logger.warn(`[PerformanceMonitor] 慢查询检测: ${duration}ms - ${query.substring(0, 100)}`);
     }
   }
 
@@ -221,7 +222,7 @@ class PerformanceMonitor extends EventEmitter {
     if (duration > this.config.slowIPCThreshold) {
       this.addMetric('ipc.slowCalls', record);
       this.emit('slowIPC', record);
-      console.warn(`[PerformanceMonitor] 慢IPC调用检测: ${duration}ms - ${channel}`);
+      logger.warn(`[PerformanceMonitor] 慢IPC调用检测: ${duration}ms - ${channel}`);
     }
   }
 
@@ -362,7 +363,7 @@ class PerformanceMonitor extends EventEmitter {
     this.metrics.database.slowQueries = [];
     this.metrics.ipc.calls = [];
     this.metrics.ipc.slowCalls = [];
-    console.log('[PerformanceMonitor] 历史数据已清除');
+    logger.info('[PerformanceMonitor] 历史数据已清除');
   }
 
   /**
@@ -373,7 +374,7 @@ class PerformanceMonitor extends EventEmitter {
       ...this.config,
       ...newConfig
     };
-    console.log('[PerformanceMonitor] 配置已更新:', this.config);
+    logger.info('[PerformanceMonitor] 配置已更新:', this.config);
   }
 
   /**

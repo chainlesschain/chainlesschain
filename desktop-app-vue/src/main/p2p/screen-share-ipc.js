@@ -1,3 +1,5 @@
+const { logger, createLogger } = require('../utils/logger.js');
+
 /**
  * 屏幕共享IPC处理器
  *
@@ -36,11 +38,11 @@ class ScreenShareIPC {
    */
   register() {
     if (this.registered) {
-      console.log('[ScreenShareIPC] IPC处理器已注册');
+      logger.info('[ScreenShareIPC] IPC处理器已注册');
       return;
     }
 
-    console.log('[ScreenShareIPC] 注册IPC处理器...');
+    logger.info('[ScreenShareIPC] 注册IPC处理器...');
 
     // 获取屏幕源列表
     ipcMain.handle('screen-share:get-sources', async (event, options = {}) => {
@@ -63,7 +65,7 @@ class ScreenShareIPC {
           }))
         };
       } catch (error) {
-        console.error('[ScreenShareIPC] 获取屏幕源失败:', error);
+        logger.error('[ScreenShareIPC] 获取屏幕源失败:', error);
         return {
           success: false,
           error: error.message
@@ -98,7 +100,7 @@ class ScreenShareIPC {
           }
         };
       } catch (error) {
-        console.error('[ScreenShareIPC] 获取屏幕源信息失败:', error);
+        logger.error('[ScreenShareIPC] 获取屏幕源信息失败:', error);
         return {
           success: false,
           error: error.message
@@ -107,7 +109,7 @@ class ScreenShareIPC {
     });
 
     this.registered = true;
-    console.log('[ScreenShareIPC] IPC处理器注册完成');
+    logger.info('[ScreenShareIPC] IPC处理器注册完成');
   }
 
   /**
@@ -118,13 +120,13 @@ class ScreenShareIPC {
       return;
     }
 
-    console.log('[ScreenShareIPC] 注销IPC处理器...');
+    logger.info('[ScreenShareIPC] 注销IPC处理器...');
 
     ipcMain.removeHandler('screen-share:get-sources');
     ipcMain.removeHandler('screen-share:get-source-info');
 
     this.registered = false;
-    console.log('[ScreenShareIPC] IPC处理器注销完成');
+    logger.info('[ScreenShareIPC] IPC处理器注销完成');
   }
 }
 

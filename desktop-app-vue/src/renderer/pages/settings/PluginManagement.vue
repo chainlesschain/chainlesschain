@@ -383,6 +383,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, onMounted } from 'vue';
 import { message } from 'ant-design-vue';
 import {
@@ -423,8 +425,8 @@ const loadPlugins = async () => {
   try {
     // 检查 API 是否可用
     if (!window.electronAPI || !window.electronAPI.plugin) {
-      console.error('[PluginManagement] electronAPI.plugin 不可用');
-      console.log('[PluginManagement] electronAPI:', window.electronAPI);
+      logger.error('[PluginManagement] electronAPI.plugin 不可用');
+      logger.info('[PluginManagement] electronAPI:', window.electronAPI);
       message.error('插件 API 不可用，请重启应用');
       return;
     }
@@ -459,7 +461,7 @@ const loadPlugins = async () => {
       extensionPoints: p.extension_points ? JSON.parse(p.extension_points) : []
     }));
   } catch (error) {
-    console.error('加载插件列表失败:', error);
+    logger.error('加载插件列表失败:', error);
     message.error('加载插件列表失败: ' + error.message);
   } finally {
     loading.value = false;
@@ -478,7 +480,7 @@ const handleTogglePlugin = async (plugin) => {
       message.success(`插件 ${plugin.name} 已禁用`);
     }
   } catch (error) {
-    console.error('切换插件状态失败:', error);
+    logger.error('切换插件状态失败:', error);
     message.error('操作失败: ' + error.message);
     // 恢复开关状态
     plugin.enabled = !plugin.enabled;
@@ -510,7 +512,7 @@ const handleInstallPlugin = async () => {
     installSource.value = '';
     await loadPlugins();
   } catch (error) {
-    console.error('安装插件失败:', error);
+    logger.error('安装插件失败:', error);
     message.error('安装失败: ' + error.message);
   } finally {
     installing.value = false;
@@ -525,7 +527,7 @@ const handleUninstallPlugin = async (plugin) => {
     message.success(`插件 ${plugin.name} 已卸载`);
     await loadPlugins();
   } catch (error) {
-    console.error('卸载插件失败:', error);
+    logger.error('卸载插件失败:', error);
     message.error('卸载失败: ' + error.message);
   } finally {
     loading.value = false;
@@ -552,7 +554,7 @@ const showPluginPermissions = async (plugin) => {
     pluginPermissions.value = result?.permissions || [];
     showPermissionsModal.value = true;
   } catch (error) {
-    console.error('获取插件权限失败:', error);
+    logger.error('获取插件权限失败:', error);
     message.error('获取权限失败: ' + error.message);
   }
 };
@@ -571,7 +573,7 @@ const handleSavePermissions = async () => {
     message.success('权限设置已保存');
     showPermissionsModal.value = false;
   } catch (error) {
-    console.error('保存权限失败:', error);
+    logger.error('保存权限失败:', error);
     message.error('保存失败: ' + error.message);
   } finally {
     savingPermissions.value = false;
@@ -588,7 +590,7 @@ const handleOpenPluginsDir = async () => {
     }
     await window.electronAPI.plugin.openPluginsDir();
   } catch (error) {
-    console.error('打开插件目录失败:', error);
+    logger.error('打开插件目录失败:', error);
     message.error('操作失败: ' + error.message);
   }
 };
@@ -603,7 +605,7 @@ const handleSelectPluginFolder = async () => {
       installSource.value = result.filePaths[0];
     }
   } catch (error) {
-    console.error('选择目录失败:', error);
+    logger.error('选择目录失败:', error);
     message.error('选择目录失败');
   }
 };
@@ -619,7 +621,7 @@ const handleSelectPluginZip = async () => {
       installSource.value = result.filePaths[0];
     }
   } catch (error) {
-    console.error('选择文件失败:', error);
+    logger.error('选择文件失败:', error);
     message.error('选择文件失败');
   }
 };

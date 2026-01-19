@@ -231,6 +231,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted, watch, h } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { message, Modal, Empty } from 'ant-design-vue';
@@ -382,7 +384,7 @@ const handleQuickCreateSubmit = async () => {
     // 跳转到项目详情页
     router.push(`/projects/${project.id || project.projectId}`);
   } catch (error) {
-    console.error('快速创建项目失败:', error);
+    logger.error('快速创建项目失败:', error);
     message.error({ content: '创建失败：' + error.message, key: 'quick-create', duration: 3 });
   }
 };
@@ -459,11 +461,11 @@ const loadProjects = async () => {
   try {
     // 从authStore获取用户ID，或使用默认值
     const userId = authStore.currentUser?.id || 'default-user';
-    console.log('[ProjectSidebar] 加载项目列表, userId:', userId);
+    logger.info('[ProjectSidebar] 加载项目列表, userId:', userId);
     await projectStore.fetchProjects(userId);
-    console.log('[ProjectSidebar] 项目列表加载完成, 项目数量:', projectStore.projects.length);
+    logger.info('[ProjectSidebar] 项目列表加载完成, 项目数量:', projectStore.projects.length);
   } catch (error) {
-    console.error('[ProjectSidebar] 加载项目列表失败:', error);
+    logger.error('[ProjectSidebar] 加载项目列表失败:', error);
     message.error('加载项目列表失败');
   } finally {
     loading.value = false;
@@ -476,7 +478,7 @@ watch(
   (newId) => {
     if (newId) {
       currentProjectId.value = newId;
-      console.log('[ProjectSidebar] 路由变化，当前项目ID:', newId);
+      logger.info('[ProjectSidebar] 路由变化，当前项目ID:', newId);
     }
   },
   { immediate: true }

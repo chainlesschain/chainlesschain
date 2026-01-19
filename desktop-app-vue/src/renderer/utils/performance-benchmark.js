@@ -1,3 +1,5 @@
+import { logger, createLogger } from '@/utils/logger';
+
 /**
  * Performance Benchmark Utility
  * 性能基准测试工具
@@ -50,7 +52,7 @@ class PerformanceBenchmark {
     }
 
     if (this.options.debug) {
-      console.log('[PerformanceBenchmark] Initialized')
+      logger.info('[PerformanceBenchmark] Initialized')
     }
   }
 
@@ -93,7 +95,7 @@ class PerformanceBenchmark {
       }
 
       if (this.options.debug) {
-        console.log('[PerformanceBenchmark] Page load metrics:', this.metrics.pageLoad)
+        logger.info('[PerformanceBenchmark] Page load metrics:', this.metrics.pageLoad)
       }
     })
   }
@@ -155,7 +157,7 @@ class PerformanceBenchmark {
     requestAnimationFrame(measureFPS)
 
     if (this.options.debug) {
-      console.log('[PerformanceBenchmark] FPS monitoring started')
+      logger.info('[PerformanceBenchmark] FPS monitoring started')
     }
   }
 
@@ -164,7 +166,7 @@ class PerformanceBenchmark {
    */
   startMemoryMonitoring() {
     if (!performance.memory) {
-      console.warn('[PerformanceBenchmark] Memory API not available')
+      logger.warn('[PerformanceBenchmark] Memory API not available')
       return
     }
 
@@ -185,7 +187,7 @@ class PerformanceBenchmark {
     }, this.options.sampleInterval)
 
     if (this.options.debug) {
-      console.log('[PerformanceBenchmark] Memory monitoring started')
+      logger.info('[PerformanceBenchmark] Memory monitoring started')
     }
   }
 
@@ -258,7 +260,7 @@ class PerformanceBenchmark {
       })
 
       if (this.options.debug) {
-        console.log(`[PerformanceBenchmark] Mark: ${name}`)
+        logger.info(`[PerformanceBenchmark] Mark: ${name}`)
       }
     }
   }
@@ -274,12 +276,12 @@ class PerformanceBenchmark {
         const measure = performance.getEntriesByName(name, 'measure')[0]
 
         if (this.options.debug) {
-          console.log(`[PerformanceBenchmark] Measure: ${name} = ${Math.round(measure.duration)}ms`)
+          logger.info(`[PerformanceBenchmark] Measure: ${name} = ${Math.round(measure.duration)}ms`)
         }
 
         return measure.duration
       } catch (error) {
-        console.error('[PerformanceBenchmark] Measure error:', error)
+        logger.error('[PerformanceBenchmark] Measure error:', error)
         return null
       }
     }
@@ -360,7 +362,7 @@ class PerformanceBenchmark {
     }
 
     if (this.options.debug) {
-      console.log('[PerformanceBenchmark] Performance Report:', report)
+      logger.info('[PerformanceBenchmark] Performance Report:', report)
     }
 
     return report
@@ -383,7 +385,7 @@ class PerformanceBenchmark {
     URL.revokeObjectURL(url)
 
     if (this.options.debug) {
-      console.log(`[PerformanceBenchmark] Report exported: ${filename}`)
+      logger.info(`[PerformanceBenchmark] Report exported: ${filename}`)
     }
   }
 
@@ -394,12 +396,12 @@ class PerformanceBenchmark {
     const report = this.generateReport()
 
     console.group('📊 Performance Report')
-    console.log(`Score: ${report.score}/100`)
-    console.log(`Page Load Time: ${report.pageLoad.totalTime}ms`)
-    console.log(`Average FPS: ${report.fps.average}`)
-    console.log(`Memory Usage: ${report.memory.current?.usedJSHeapSizeMB}MB`)
-    console.log(`Network Requests: ${report.network.totalRequests}`)
-    console.log(`Transfer Size: ${Math.round(report.network.totalTransferSize / 1024)}KB`)
+    logger.info(`Score: ${report.score}/100`)
+    logger.info(`Page Load Time: ${report.pageLoad.totalTime}ms`)
+    logger.info(`Average FPS: ${report.fps.average}`)
+    logger.info(`Memory Usage: ${report.memory.current?.usedJSHeapSizeMB}MB`)
+    logger.info(`Network Requests: ${report.network.totalRequests}`)
+    logger.info(`Transfer Size: ${Math.round(report.network.totalTransferSize / 1024)}KB`)
     console.groupEnd()
 
     return report
@@ -435,7 +437,7 @@ class PerformanceBenchmark {
       },
     }
 
-    console.log('📈 Performance Comparison:', comparison)
+    logger.info('📈 Performance Comparison:', comparison)
 
     return comparison
   }
@@ -450,7 +452,7 @@ class PerformanceBenchmark {
     }
 
     if (this.options.debug) {
-      console.log('[PerformanceBenchmark] Stopped')
+      logger.info('[PerformanceBenchmark] Stopped')
     }
   }
 }

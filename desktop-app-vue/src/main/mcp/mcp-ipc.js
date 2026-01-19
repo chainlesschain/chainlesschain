@@ -7,6 +7,7 @@
  * @module MCP_IPC
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { ipcMain } = require("electron");
 
 /**
@@ -16,7 +17,7 @@ const { ipcMain } = require("electron");
  * @param {MCPSecurityPolicy} securityPolicy - Security policy instance
  */
 function registerMCPIPC(mcpManager, mcpAdapter, securityPolicy) {
-  console.log("[MCP IPC] Registering IPC handlers");
+  logger.info("[MCP IPC] Registering IPC handlers");
 
   // ==================== Server Management ====================
 
@@ -31,7 +32,7 @@ function registerMCPIPC(mcpManager, mcpAdapter, securityPolicy) {
         servers: registry.trustedServers,
       };
     } catch (error) {
-      console.error("[MCP IPC] Failed to list servers:", error);
+      logger.error("[MCP IPC] Failed to list servers:", error);
       return {
         success: false,
         error: error.message,
@@ -61,7 +62,7 @@ function registerMCPIPC(mcpManager, mcpAdapter, securityPolicy) {
         servers,
       };
     } catch (error) {
-      console.error("[MCP IPC] Failed to get connected servers:", error);
+      logger.error("[MCP IPC] Failed to get connected servers:", error);
       return {
         success: false,
         error: error.message,
@@ -76,7 +77,7 @@ function registerMCPIPC(mcpManager, mcpAdapter, securityPolicy) {
     "mcp:connect-server",
     async (event, { serverName, config }) => {
       try {
-        console.log(`[MCP IPC] Connecting to server: ${serverName}`);
+        logger.info(`[MCP IPC] Connecting to server: ${serverName}`);
 
         // Validate server is in trusted registry
         const registry = require("./servers/server-registry.json");
@@ -108,7 +109,7 @@ function registerMCPIPC(mcpManager, mcpAdapter, securityPolicy) {
         // Register server permissions with security policy
         if (config && config.permissions) {
           securityPolicy.setServerPermissions(serverName, config.permissions);
-          console.log(`[MCP IPC] Registered permissions for ${serverName}`);
+          logger.info(`[MCP IPC] Registered permissions for ${serverName}`);
         } else {
           // Set default permissive permissions if none provided
           securityPolicy.setServerPermissions(serverName, {
@@ -117,7 +118,7 @@ function registerMCPIPC(mcpManager, mcpAdapter, securityPolicy) {
             readOnly: false,
             requireConsent: true,
           });
-          console.log(`[MCP IPC] Set default permissions for ${serverName}`);
+          logger.info(`[MCP IPC] Set default permissions for ${serverName}`);
         }
 
         // Register tools with ToolManager
@@ -148,7 +149,7 @@ function registerMCPIPC(mcpManager, mcpAdapter, securityPolicy) {
           capabilities: serializableCapabilities,
         };
       } catch (error) {
-        console.error(`[MCP IPC] Failed to connect to ${serverName}:`, error);
+        logger.error(`[MCP IPC] Failed to connect to ${serverName}:`, error);
         return {
           success: false,
           error: error.message,
@@ -162,7 +163,7 @@ function registerMCPIPC(mcpManager, mcpAdapter, securityPolicy) {
    */
   ipcMain.handle("mcp:disconnect-server", async (event, { serverName }) => {
     try {
-      console.log(`[MCP IPC] Disconnecting from server: ${serverName}`);
+      logger.info(`[MCP IPC] Disconnecting from server: ${serverName}`);
 
       await mcpManager.disconnectServer(serverName);
 
@@ -170,7 +171,7 @@ function registerMCPIPC(mcpManager, mcpAdapter, securityPolicy) {
         success: true,
       };
     } catch (error) {
-      console.error(
+      logger.error(
         `[MCP IPC] Failed to disconnect from ${serverName}:`,
         error,
       );
@@ -216,7 +217,7 @@ function registerMCPIPC(mcpManager, mcpAdapter, securityPolicy) {
         tools,
       };
     } catch (error) {
-      console.error("[MCP IPC] Failed to list tools:", error);
+      logger.error("[MCP IPC] Failed to list tools:", error);
       return {
         success: false,
         error: error.message,
@@ -231,7 +232,7 @@ function registerMCPIPC(mcpManager, mcpAdapter, securityPolicy) {
     "mcp:call-tool",
     async (event, { serverName, toolName, arguments: args }) => {
       try {
-        console.log(`[MCP IPC] Calling tool: ${toolName} on ${serverName}`);
+        logger.info(`[MCP IPC] Calling tool: ${toolName} on ${serverName}`);
 
         // Security validation
         const allowed = securityPolicy.validateToolCall(
@@ -253,7 +254,7 @@ function registerMCPIPC(mcpManager, mcpAdapter, securityPolicy) {
           result,
         };
       } catch (error) {
-        console.error(`[MCP IPC] Failed to call tool ${toolName}:`, error);
+        logger.error(`[MCP IPC] Failed to call tool ${toolName}:`, error);
         return {
           success: false,
           error: error.message,
@@ -298,7 +299,7 @@ function registerMCPIPC(mcpManager, mcpAdapter, securityPolicy) {
         resources,
       };
     } catch (error) {
-      console.error("[MCP IPC] Failed to list resources:", error);
+      logger.error("[MCP IPC] Failed to list resources:", error);
       return {
         success: false,
         error: error.message,
@@ -313,7 +314,7 @@ function registerMCPIPC(mcpManager, mcpAdapter, securityPolicy) {
     "mcp:read-resource",
     async (event, { serverName, resourceUri }) => {
       try {
-        console.log(
+        logger.info(
           `[MCP IPC] Reading resource: ${resourceUri} from ${serverName}`,
         );
 
@@ -333,7 +334,7 @@ function registerMCPIPC(mcpManager, mcpAdapter, securityPolicy) {
           content,
         };
       } catch (error) {
-        console.error(
+        logger.error(
           `[MCP IPC] Failed to read resource ${resourceUri}:`,
           error,
         );
@@ -372,7 +373,7 @@ function registerMCPIPC(mcpManager, mcpAdapter, securityPolicy) {
         metrics,
       };
     } catch (error) {
-      console.error("[MCP IPC] Failed to get metrics:", error);
+      logger.error("[MCP IPC] Failed to get metrics:", error);
       return {
         success: false,
         error: error.message,
@@ -402,7 +403,7 @@ function registerMCPIPC(mcpManager, mcpAdapter, securityPolicy) {
         config: mcpConfig,
       };
     } catch (error) {
-      console.error("[MCP IPC] Failed to get config:", error);
+      logger.error("[MCP IPC] Failed to get config:", error);
       return {
         success: false,
         error: error.message,
@@ -426,7 +427,7 @@ function registerMCPIPC(mcpManager, mcpAdapter, securityPolicy) {
         success: true,
       };
     } catch (error) {
-      console.error("[MCP IPC] Failed to update config:", error);
+      logger.error("[MCP IPC] Failed to update config:", error);
       return {
         success: false,
         error: error.message,
@@ -443,7 +444,7 @@ function registerMCPIPC(mcpManager, mcpAdapter, securityPolicy) {
     "mcp:consent-response",
     async (event, { requestId, decision }) => {
       try {
-        console.log(`[MCP IPC] Consent response: ${requestId} -> ${decision}`);
+        logger.info(`[MCP IPC] Consent response: ${requestId} -> ${decision}`);
 
         const result = securityPolicy.handleConsentResponse(
           requestId,
@@ -456,7 +457,7 @@ function registerMCPIPC(mcpManager, mcpAdapter, securityPolicy) {
           error: result.error,
         };
       } catch (error) {
-        console.error("[MCP IPC] Failed to handle consent response:", error);
+        logger.error("[MCP IPC] Failed to handle consent response:", error);
         return {
           success: false,
           error: error.message,
@@ -477,7 +478,7 @@ function registerMCPIPC(mcpManager, mcpAdapter, securityPolicy) {
         requests: pending,
       };
     } catch (error) {
-      console.error("[MCP IPC] Failed to get pending consents:", error);
+      logger.error("[MCP IPC] Failed to get pending consents:", error);
       return {
         success: false,
         error: error.message,
@@ -497,7 +498,7 @@ function registerMCPIPC(mcpManager, mcpAdapter, securityPolicy) {
         error: cancelled ? null : "Request not found",
       };
     } catch (error) {
-      console.error("[MCP IPC] Failed to cancel consent:", error);
+      logger.error("[MCP IPC] Failed to cancel consent:", error);
       return {
         success: false,
         error: error.message,
@@ -516,7 +517,7 @@ function registerMCPIPC(mcpManager, mcpAdapter, securityPolicy) {
         success: true,
       };
     } catch (error) {
-      console.error("[MCP IPC] Failed to clear consent cache:", error);
+      logger.error("[MCP IPC] Failed to clear consent cache:", error);
       return {
         success: false,
         error: error.message,
@@ -536,7 +537,7 @@ function registerMCPIPC(mcpManager, mcpAdapter, securityPolicy) {
         stats,
       };
     } catch (error) {
-      console.error("[MCP IPC] Failed to get security stats:", error);
+      logger.error("[MCP IPC] Failed to get security stats:", error);
       return {
         success: false,
         error: error.message,
@@ -556,7 +557,7 @@ function registerMCPIPC(mcpManager, mcpAdapter, securityPolicy) {
         log,
       };
     } catch (error) {
-      console.error("[MCP IPC] Failed to get audit log:", error);
+      logger.error("[MCP IPC] Failed to get audit log:", error);
       return {
         success: false,
         error: error.message,
@@ -582,7 +583,7 @@ function registerMCPIPC(mcpManager, mcpAdapter, securityPolicy) {
         config: serverConfig,
       };
     } catch (error) {
-      console.error("[MCP IPC] Failed to get server config:", error);
+      logger.error("[MCP IPC] Failed to get server config:", error);
       return {
         success: false,
         error: error.message,
@@ -622,7 +623,7 @@ function registerMCPIPC(mcpManager, mcpAdapter, securityPolicy) {
           success: true,
         };
       } catch (error) {
-        console.error("[MCP IPC] Failed to update server config:", error);
+        logger.error("[MCP IPC] Failed to update server config:", error);
         return {
           success: false,
           error: error.message,
@@ -631,7 +632,7 @@ function registerMCPIPC(mcpManager, mcpAdapter, securityPolicy) {
     },
   );
 
-  console.log("[MCP IPC] All handlers registered successfully");
+  logger.info("[MCP IPC] All handlers registered successfully");
 }
 
 module.exports = { registerMCPIPC };

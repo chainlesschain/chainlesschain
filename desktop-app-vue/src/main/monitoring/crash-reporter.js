@@ -3,6 +3,7 @@
  * 捕获和报告应用崩溃信息
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { app, crashReporter, dialog } = require("electron");
 const fs = require("fs");
 const path = require("path");
@@ -49,13 +50,13 @@ class CrashReporter {
         },
       });
 
-      console.log("[CrashReporter] Initialized");
-      console.log("[CrashReporter] Crashes directory:", this.crashesDir);
+      logger.info("[CrashReporter] Initialized");
+      logger.info("[CrashReporter] Crashes directory:", this.crashesDir);
 
       // 监听未捕获的异常
       this.setupExceptionHandlers();
     } catch (error) {
-      console.error("[CrashReporter] Init error:", error);
+      logger.error("[CrashReporter] Init error:", error);
     }
   }
 
@@ -65,7 +66,7 @@ class CrashReporter {
   setupExceptionHandlers() {
     // 捕获未处理的Promise拒绝
     process.on("unhandledRejection", (reason, promise) => {
-      console.error("[CrashReporter] Unhandled Rejection:", reason);
+      logger.error("[CrashReporter] Unhandled Rejection:", reason);
       this.saveCrashReport({
         type: "unhandledRejection",
         reason: String(reason),
@@ -78,11 +79,11 @@ class CrashReporter {
     process.on("uncaughtException", (error) => {
       // 忽略 EPIPE 错误（管道已关闭，通常发生在应用关闭时）
       if (error.code === "EPIPE") {
-        console.log("[CrashReporter] Ignoring EPIPE error (broken pipe)");
+        logger.info("[CrashReporter] Ignoring EPIPE error (broken pipe)");
         return;
       }
 
-      console.error("[CrashReporter] Uncaught Exception:", error);
+      logger.error("[CrashReporter] Uncaught Exception:", error);
       this.saveCrashReport({
         type: "uncaughtException",
         message: error.message,
@@ -98,7 +99,7 @@ class CrashReporter {
 
     // 监听渲染进程崩溃
     app.on("render-process-gone", (event, webContents, details) => {
-      console.error("[CrashReporter] Render process gone:", details);
+      logger.error("[CrashReporter] Render process gone:", details);
       this.saveCrashReport({
         type: "renderProcessGone",
         reason: details.reason,
@@ -115,7 +116,7 @@ class CrashReporter {
 
     // 监听子进程崩溃
     app.on("child-process-gone", (event, details) => {
-      console.error("[CrashReporter] Child process gone:", details);
+      logger.error("[CrashReporter] Child process gone:", details);
       this.saveCrashReport({
         type: "childProcessGone",
         processType: details.type,
@@ -177,14 +178,14 @@ class CrashReporter {
       // 写入文件
       fs.writeFileSync(filepath, JSON.stringify(report, null, 2));
 
-      console.log("[CrashReporter] Crash report saved:", filepath);
+      logger.info("[CrashReporter] Crash report saved:", filepath);
 
       // 清理旧报告
       this.cleanOldReports();
 
       return filepath;
     } catch (error) {
-      console.error("[CrashReporter] Save crash report error:", error);
+      logger.error("[CrashReporter] Save crash report error:", error);
       return null;
     }
   }
@@ -233,7 +234,7 @@ class CrashReporter {
 
       return files;
     } catch (error) {
-      console.error("[CrashReporter] Get crash reports error:", error);
+      logger.error("[CrashReporter] Get crash reports error:", error);
       return [];
     }
   }
@@ -247,7 +248,7 @@ class CrashReporter {
       const content = fs.readFileSync(filepath, "utf8");
       return JSON.parse(content);
     } catch (error) {
-      console.error("[CrashReporter] Read crash report error:", error);
+      logger.error("[CrashReporter] Read crash report error:", error);
       return null;
     }
   }
@@ -259,10 +260,10 @@ class CrashReporter {
     try {
       const filepath = path.join(this.crashesDir, filename);
       fs.unlinkSync(filepath);
-      console.log("[CrashReporter] Crash report deleted:", filename);
+      logger.info("[CrashReporter] Crash report deleted:", filename);
       return true;
     } catch (error) {
-      console.error("[CrashReporter] Delete crash report error:", error);
+      logger.error("[CrashReporter] Delete crash report error:", error);
       return false;
     }
   }
@@ -279,10 +280,10 @@ class CrashReporter {
         for (const report of toDelete) {
           this.deleteCrashReport(report.name);
         }
-        console.log("[CrashReporter] Cleaned old reports:", toDelete.length);
+        logger.info("[CrashReporter] Cleaned old reports:", toDelete.length);
       }
     } catch (error) {
-      console.error("[CrashReporter] Clean old reports error:", error);
+      logger.error("[CrashReporter] Clean old reports error:", error);
     }
   }
 
@@ -295,10 +296,10 @@ class CrashReporter {
       for (const report of reports) {
         this.deleteCrashReport(report.name);
       }
-      console.log("[CrashReporter] All reports cleared");
+      logger.info("[CrashReporter] All reports cleared");
       return true;
     } catch (error) {
-      console.error("[CrashReporter] Clear all reports error:", error);
+      logger.error("[CrashReporter] Clear all reports error:", error);
       return false;
     }
   }
@@ -319,10 +320,10 @@ class CrashReporter {
       }
 
       fs.writeFileSync(outputPath, JSON.stringify(allReports, null, 2));
-      console.log("[CrashReporter] Reports exported to:", outputPath);
+      logger.info("[CrashReporter] Reports exported to:", outputPath);
       return true;
     } catch (error) {
-      console.error("[CrashReporter] Export reports error:", error);
+      logger.error("[CrashReporter] Export reports error:", error);
       return false;
     }
   }
@@ -349,7 +350,7 @@ class CrashReporter {
 
       return stats;
     } catch (error) {
-      console.error("[CrashReporter] Get crash statistics error:", error);
+      logger.error("[CrashReporter] Get crash statistics error:", error);
       return { total: 0, byType: {}, recent: [] };
     }
   }

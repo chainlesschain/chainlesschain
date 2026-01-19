@@ -1,3 +1,4 @@
+const { logger, createLogger } = require('../utils/logger.js');
 const { EventEmitter } = require('events');
 const express = require('express');
 const path = require('path');
@@ -35,7 +36,7 @@ class PreviewManager extends EventEmitter {
     if (this.staticServers.size >= this.maxServers) {
       const oldestProjectId = this.staticServers.keys().next().value;
       await this.stopStaticServer(oldestProjectId);
-      console.log(`[PreviewManager] 淘汰旧服务器: ${oldestProjectId}`);
+      logger.info(`[PreviewManager] 淘汰旧服务器: ${oldestProjectId}`);
     }
 
     try {
@@ -67,13 +68,13 @@ class PreviewManager extends EventEmitter {
         rootPath,
       });
 
-      console.log(`[PreviewManager] 静态服务器已启动: ${url}`);
+      logger.info(`[PreviewManager] 静态服务器已启动: ${url}`);
 
       this.emit('static-server-started', { projectId, url, port });
 
       return { url, port };
     } catch (error) {
-      console.error('[PreviewManager] 启动静态服务器失败:', error);
+      logger.error('[PreviewManager] 启动静态服务器失败:', error);
       throw error;
     }
   }
@@ -86,14 +87,14 @@ class PreviewManager extends EventEmitter {
     const serverInfo = this.staticServers.get(projectId);
 
     if (!serverInfo) {
-      console.log(`[PreviewManager] 没有运行的静态服务器: ${projectId}`);
+      logger.info(`[PreviewManager] 没有运行的静态服务器: ${projectId}`);
       return;
     }
 
     return new Promise((resolve) => {
       serverInfo.server.close(() => {
         this.staticServers.delete(projectId);
-        console.log(`[PreviewManager] 静态服务器已停止: ${projectId}`);
+        logger.info(`[PreviewManager] 静态服务器已停止: ${projectId}`);
         this.emit('static-server-stopped', { projectId });
         resolve();
       });
@@ -117,11 +118,11 @@ class PreviewManager extends EventEmitter {
     if (this.devServers.size >= this.maxServers) {
       const oldestProjectId = this.devServers.keys().next().value;
       await this.stopDevServer(oldestProjectId);
-      console.log(`[PreviewManager] 淘汰旧开发服务器: ${oldestProjectId}`);
+      logger.info(`[PreviewManager] 淘汰旧开发服务器: ${oldestProjectId}`);
     }
 
     try {
-      console.log(`[PreviewManager] 启动开发服务器: ${command} in ${rootPath}`);
+      logger.info(`[PreviewManager] 启动开发服务器: ${command} in ${rootPath}`);
 
       // 解析命令
       const [cmd, ...args] = command.split(' ');
@@ -139,7 +140,7 @@ class PreviewManager extends EventEmitter {
       // 监听输出，尝试解析端口和URL
       proc.stdout.on('data', (data) => {
         const output = data.toString();
-        console.log(`[DevServer] ${output}`);
+        logger.info(`[DevServer] ${output}`);
 
         // 尝试匹配常见的开发服务器输出格式
         // 例如：http://localhost:5173, http://127.0.0.1:3000
@@ -155,7 +156,7 @@ class PreviewManager extends EventEmitter {
             rootPath,
           });
 
-          console.log(`[PreviewManager] 开发服务器已启动: ${url}`);
+          logger.info(`[PreviewManager] 开发服务器已启动: ${url}`);
 
           this.emit('dev-server-started', { projectId, url, port });
 
@@ -171,11 +172,11 @@ class PreviewManager extends EventEmitter {
       });
 
       proc.stderr.on('data', (data) => {
-        console.error(`[DevServer Error] ${data.toString()}`);
+        logger.error(`[DevServer Error] ${data.toString()}`);
       });
 
       proc.on('close', (code) => {
-        console.log(`[PreviewManager] 开发服务器已关闭，代码: ${code}`);
+        logger.info(`[PreviewManager] 开发服务器已关闭，代码: ${code}`);
         this.devServers.delete(projectId);
         this.emit('dev-server-stopped', { projectId, code });
       });
@@ -206,7 +207,7 @@ class PreviewManager extends EventEmitter {
 
       return { url, port, process: proc };
     } catch (error) {
-      console.error('[PreviewManager] 启动开发服务器失败:', error);
+      logger.error('[PreviewManager] 启动开发服务器失败:', error);
       throw error;
     }
   }
@@ -219,14 +220,14 @@ class PreviewManager extends EventEmitter {
     const serverInfo = this.devServers.get(projectId);
 
     if (!serverInfo) {
-      console.log(`[PreviewManager] 没有运行的开发服务器: ${projectId}`);
+      logger.info(`[PreviewManager] 没有运行的开发服务器: ${projectId}`);
       return;
     }
 
     return new Promise((resolve) => {
       serverInfo.process.on('close', () => {
         this.devServers.delete(projectId);
-        console.log(`[PreviewManager] 开发服务器已停止: ${projectId}`);
+        logger.info(`[PreviewManager] 开发服务器已停止: ${projectId}`);
         resolve();
       });
 
@@ -257,10 +258,10 @@ class PreviewManager extends EventEmitter {
   async openInExplorer(rootPath) {
     try {
       await shell.openPath(rootPath);
-      console.log(`[PreviewManager] 已在文件管理器中打开: ${rootPath}`);
+      logger.info(`[PreviewManager] 已在文件管理器中打开: ${rootPath}`);
       return { success: true };
     } catch (error) {
-      console.error('[PreviewManager] 打开文件管理器失败:', error);
+      logger.error('[PreviewManager] 打开文件管理器失败:', error);
       throw error;
     }
   }
@@ -272,10 +273,10 @@ class PreviewManager extends EventEmitter {
   async openInBrowser(url) {
     try {
       await shell.openExternal(url);
-      console.log(`[PreviewManager] 已在浏览器中打开: ${url}`);
+      logger.info(`[PreviewManager] 已在浏览器中打开: ${url}`);
       return { success: true };
     } catch (error) {
-      console.error('[PreviewManager] 打开浏览器失败:', error);
+      logger.error('[PreviewManager] 打开浏览器失败:', error);
       throw error;
     }
   }
@@ -304,7 +305,7 @@ class PreviewManager extends EventEmitter {
    * 停止所有服务器
    */
   async stopAll() {
-    console.log('[PreviewManager] 停止所有服务器...');
+    logger.info('[PreviewManager] 停止所有服务器...');
 
     const stopPromises = [];
 
@@ -320,7 +321,7 @@ class PreviewManager extends EventEmitter {
 
     await Promise.all(stopPromises);
 
-    console.log('[PreviewManager] 所有服务器已停止');
+    logger.info('[PreviewManager] 所有服务器已停止');
   }
 }
 

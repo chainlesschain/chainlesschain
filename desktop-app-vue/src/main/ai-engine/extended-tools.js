@@ -5,6 +5,7 @@
  * 这些工具需要在 FunctionCaller 中注册才能使用
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const crypto = require('crypto');
 const { URL } = require('url');
 
@@ -799,7 +800,7 @@ class ExtendedTools {
 
     // 注意: template_renderer 已移至 ExtendedTools3，避免重复注册
 
-    console.log('[Extended Tools] 已注册所有扩展工具');
+    logger.info('[Extended Tools] 已注册所有扩展工具');
   }
 
   // === 辅助方法 ===

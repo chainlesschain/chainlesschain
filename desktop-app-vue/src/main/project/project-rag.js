@@ -3,6 +3,7 @@
  * 负责项目文件的向量化索引、检索增强和知识库集成
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const path = require('path');
 const fs = require('fs').promises;
 const chokidar = require('chokidar');
@@ -33,9 +34,9 @@ class ProjectRAGManager extends EventEmitter {
       this.database = getDatabase();
 
       this.initialized = true;
-      console.log('[ProjectRAG] 初始化完成');
+      logger.info('[ProjectRAG] 初始化完成');
     } catch (error) {
-      console.error('[ProjectRAG] 初始化失败:', error);
+      logger.error('[ProjectRAG] 初始化失败:', error);
       throw error;
     }
   }
@@ -65,7 +66,7 @@ class ProjectRAGManager extends EventEmitter {
       enableWatcher = true    // 是否启用文件监听
     } = options;
 
-    console.log(`[ProjectRAG] 开始索引项目文件: ${projectId}`);
+    logger.info(`[ProjectRAG] 开始索引项目文件: ${projectId}`);
 
     try {
       // 1. 获取项目信息
@@ -92,7 +93,7 @@ class ProjectRAGManager extends EventEmitter {
 
       const files = this.database.prepare(query).all(...params);
 
-      console.log(`[ProjectRAG] 找到 ${files.length} 个文件待索引`);
+      logger.info(`[ProjectRAG] 找到 ${files.length} 个文件待索引`);
 
       // 3. 向量化文件内容
       let indexedCount = 0;
@@ -149,10 +150,10 @@ class ProjectRAGManager extends EventEmitter {
           });
 
           indexedCount++;
-          console.log(`[ProjectRAG] 已索引: ${file.file_name}`);
+          logger.info(`[ProjectRAG] 已索引: ${file.file_name}`);
 
         } catch (error) {
-          console.error(`[ProjectRAG] 索引文件失败: ${file.file_name}`, error);
+          logger.error(`[ProjectRAG] 索引文件失败: ${file.file_name}`, error);
           errors.push({
             fileId: file.id,
             fileName: file.file_name,
@@ -170,7 +171,7 @@ class ProjectRAGManager extends EventEmitter {
         errors: errors
       };
 
-      console.log('[ProjectRAG] 索引完成:', result);
+      logger.info('[ProjectRAG] 索引完成:', result);
 
       // 4. 启动文件监听
       if (enableWatcher && project.path) {
@@ -182,7 +183,7 @@ class ProjectRAGManager extends EventEmitter {
       return result;
 
     } catch (error) {
-      console.error('[ProjectRAG] 索引项目文件失败:', error);
+      logger.error('[ProjectRAG] 索引项目文件失败:', error);
       throw error;
     }
   }
@@ -206,7 +207,7 @@ class ProjectRAGManager extends EventEmitter {
       const content = await fs.readFile(file_path, 'utf-8');
       return content;
     } catch (error) {
-      console.error(`[ProjectRAG] 读取文件失败: ${file_path}`, error);
+      logger.error(`[ProjectRAG] 读取文件失败: ${file_path}`, error);
       return null;
     }
   }
@@ -228,7 +229,7 @@ class ProjectRAGManager extends EventEmitter {
       useReranker = true     // 是否使用重排序
     } = options;
 
-    console.log(`[ProjectRAG] 增强查询: ${query}`);
+    logger.info(`[ProjectRAG] 增强查询: ${query}`);
 
     try {
       // 1. 检索项目相关文档
@@ -240,7 +241,7 @@ class ProjectRAGManager extends EventEmitter {
         limit: projectLimit
       });
 
-      console.log(`[ProjectRAG] 项目文档检索: ${projectDocs.length} 条`);
+      logger.info(`[ProjectRAG] 项目文档检索: ${projectDocs.length} 条`);
 
       // 2. 检索知识库相关内容
       const knowledgeDocs = await this.ragManager.search(query, {
@@ -248,12 +249,12 @@ class ProjectRAGManager extends EventEmitter {
         limit: knowledgeLimit
       });
 
-      console.log(`[ProjectRAG] 知识库检索: ${knowledgeDocs.length} 条`);
+      logger.info(`[ProjectRAG] 知识库检索: ${knowledgeDocs.length} 条`);
 
       // 3. 检索项目对话历史
       const conversationDocs = await this.searchConversationHistory(projectId, query, conversationLimit);
 
-      console.log(`[ProjectRAG] 对话历史检索: ${conversationDocs.length} 条`);
+      logger.info(`[ProjectRAG] 对话历史检索: ${conversationDocs.length} 条`);
 
       // 4. 合并所有文档
       const allDocs = [
@@ -267,9 +268,9 @@ class ProjectRAGManager extends EventEmitter {
       if (useReranker && allDocs.length > 0) {
         try {
           rerankedDocs = await this.ragManager.rerank(query, allDocs);
-          console.log(`[ProjectRAG] 重排序完成`);
+          logger.info(`[ProjectRAG] 重排序完成`);
         } catch (error) {
-          console.warn('[ProjectRAG] 重排序失败，使用原始结果', error);
+          logger.warn('[ProjectRAG] 重排序失败，使用原始结果', error);
         }
       }
 
@@ -290,7 +291,7 @@ class ProjectRAGManager extends EventEmitter {
       return result;
 
     } catch (error) {
-      console.error('[ProjectRAG] 增强查询失败:', error);
+      logger.error('[ProjectRAG] 增强查询失败:', error);
       throw error;
     }
   }
@@ -315,11 +316,11 @@ class ProjectRAGManager extends EventEmitter {
         });
 
         if (vectorResults && vectorResults.length > 0) {
-          console.log(`[ProjectRAG] 使用向量搜索对话历史: ${vectorResults.length} 条`);
+          logger.info(`[ProjectRAG] 使用向量搜索对话历史: ${vectorResults.length} 条`);
           return vectorResults;
         }
       } catch (vectorError) {
-        console.warn('[ProjectRAG] 向量搜索对话失败，使用SQL查询', vectorError);
+        logger.warn('[ProjectRAG] 向量搜索对话失败，使用SQL查询', vectorError);
       }
 
       // 降级方案: 使用SQL全文搜索对话历史
@@ -348,7 +349,7 @@ class ProjectRAGManager extends EventEmitter {
       }));
 
     } catch (error) {
-      console.error('[ProjectRAG] 搜索对话历史失败:', error);
+      logger.error('[ProjectRAG] 搜索对话历史失败:', error);
       return [];
     }
   }
@@ -382,7 +383,7 @@ class ProjectRAGManager extends EventEmitter {
   async deleteProjectIndex(projectId) {
     this.ensureInitialized();
 
-    console.log(`[ProjectRAG] 删除项目索引: ${projectId}`);
+    logger.info(`[ProjectRAG] 删除项目索引: ${projectId}`);
 
     try {
       // 获取项目所有文件
@@ -397,11 +398,11 @@ class ProjectRAGManager extends EventEmitter {
           await this.ragManager.deleteDocument(`project_file_${file.id}`);
           deletedCount++;
         } catch (error) {
-          console.warn(`[ProjectRAG] 删除文件索引失败: ${file.id}`, error);
+          logger.warn(`[ProjectRAG] 删除文件索引失败: ${file.id}`, error);
         }
       }
 
-      console.log(`[ProjectRAG] 已删除 ${deletedCount} 个文件索引`);
+      logger.info(`[ProjectRAG] 已删除 ${deletedCount} 个文件索引`);
 
       return {
         success: true,
@@ -410,7 +411,7 @@ class ProjectRAGManager extends EventEmitter {
       };
 
     } catch (error) {
-      console.error('[ProjectRAG] 删除项目索引失败:', error);
+      logger.error('[ProjectRAG] 删除项目索引失败:', error);
       throw error;
     }
   }
@@ -440,7 +441,7 @@ class ProjectRAGManager extends EventEmitter {
       const content = await this.readFileContent(file);
 
       if (!content || content.trim().length === 0) {
-        console.log(`[ProjectRAG] 文件无内容，跳过索引: ${file.file_name}`);
+        logger.info(`[ProjectRAG] 文件无内容，跳过索引: ${file.file_name}`);
         return { success: true, skipped: true };
       }
 
@@ -464,7 +465,7 @@ class ProjectRAGManager extends EventEmitter {
         }
       });
 
-      console.log(`[ProjectRAG] 文件索引已更新: ${file.file_name}`);
+      logger.info(`[ProjectRAG] 文件索引已更新: ${file.file_name}`);
 
       return {
         success: true,
@@ -473,7 +474,7 @@ class ProjectRAGManager extends EventEmitter {
       };
 
     } catch (error) {
-      console.error('[ProjectRAG] 更新文件索引失败:', error);
+      logger.error('[ProjectRAG] 更新文件索引失败:', error);
       throw error;
     }
   }
@@ -515,7 +516,7 @@ class ProjectRAGManager extends EventEmitter {
       };
 
     } catch (error) {
-      console.error('[ProjectRAG] 获取索引统计失败:', error);
+      logger.error('[ProjectRAG] 获取索引统计失败:', error);
       throw error;
     }
   }
@@ -531,7 +532,7 @@ class ProjectRAGManager extends EventEmitter {
       this.stopFileWatcher(projectId);
     }
 
-    console.log(`[ProjectRAG] 启动文件监听: ${projectPath}`);
+    logger.info(`[ProjectRAG] 启动文件监听: ${projectPath}`);
 
     const watcher = chokidar.watch(projectPath, {
       ignored: /(^|[\/\\])\../, // 忽略隐藏文件
@@ -546,19 +547,19 @@ class ProjectRAGManager extends EventEmitter {
     // 监听文件变化
     watcher
       .on('add', async (filePath) => {
-        console.log(`[ProjectRAG] 文件新增: ${filePath}`);
+        logger.info(`[ProjectRAG] 文件新增: ${filePath}`);
         await this.handleFileChange(projectId, filePath, 'add');
       })
       .on('change', async (filePath) => {
-        console.log(`[ProjectRAG] 文件修改: ${filePath}`);
+        logger.info(`[ProjectRAG] 文件修改: ${filePath}`);
         await this.handleFileChange(projectId, filePath, 'change');
       })
       .on('unlink', async (filePath) => {
-        console.log(`[ProjectRAG] 文件删除: ${filePath}`);
+        logger.info(`[ProjectRAG] 文件删除: ${filePath}`);
         await this.handleFileChange(projectId, filePath, 'delete');
       })
       .on('error', (error) => {
-        console.error('[ProjectRAG] 文件监听错误:', error);
+        logger.error('[ProjectRAG] 文件监听错误:', error);
       });
 
     this.fileWatchers.set(projectId, watcher);
@@ -573,7 +574,7 @@ class ProjectRAGManager extends EventEmitter {
     if (watcher) {
       watcher.close();
       this.fileWatchers.delete(projectId);
-      console.log(`[ProjectRAG] 已停止文件监听: ${projectId}`);
+      logger.info(`[ProjectRAG] 已停止文件监听: ${projectId}`);
     }
   }
 
@@ -595,13 +596,13 @@ class ProjectRAGManager extends EventEmitter {
         if (file) {
           // 删除向量索引
           await this.ragManager.deleteDocument(`project_file_${file.id}`);
-          console.log(`[ProjectRAG] 已删除文件索引: ${filePath}`);
+          logger.info(`[ProjectRAG] 已删除文件索引: ${filePath}`);
         }
       } else if (changeType === 'add' || changeType === 'change') {
         if (file) {
           // 更新索引
           await this.updateFileIndex(file.id);
-          console.log(`[ProjectRAG] 已更新文件索引: ${filePath}`);
+          logger.info(`[ProjectRAG] 已更新文件索引: ${filePath}`);
 
           this.emit('file-indexed', {
             projectId,
@@ -612,7 +613,7 @@ class ProjectRAGManager extends EventEmitter {
         }
       }
     } catch (error) {
-      console.error(`[ProjectRAG] 处理文件变化失败: ${filePath}`, error);
+      logger.error(`[ProjectRAG] 处理文件变化失败: ${filePath}`, error);
     }
   }
 
@@ -627,7 +628,7 @@ class ProjectRAGManager extends EventEmitter {
 
     const { limit = 100 } = options;
 
-    console.log(`[ProjectRAG] 开始索引对话历史: ${projectId}`);
+    logger.info(`[ProjectRAG] 开始索引对话历史: ${projectId}`);
 
     try {
       // 获取项目对话历史
@@ -639,7 +640,7 @@ class ProjectRAGManager extends EventEmitter {
         LIMIT ?
       `).all(projectId, limit);
 
-      console.log(`[ProjectRAG] 找到 ${conversations.length} 条对话记录`);
+      logger.info(`[ProjectRAG] 找到 ${conversations.length} 条对话记录`);
 
       let indexedCount = 0;
       const errors = [];
@@ -666,7 +667,7 @@ class ProjectRAGManager extends EventEmitter {
 
           indexedCount++;
         } catch (error) {
-          console.error(`[ProjectRAG] 索引对话失败: ${conv.id}`, error);
+          logger.error(`[ProjectRAG] 索引对话失败: ${conv.id}`, error);
           errors.push({
             conversationId: conv.id,
             error: error.message
@@ -682,11 +683,11 @@ class ProjectRAGManager extends EventEmitter {
         errors: errors
       };
 
-      console.log('[ProjectRAG] 对话历史索引完成:', result);
+      logger.info('[ProjectRAG] 对话历史索引完成:', result);
       return result;
 
     } catch (error) {
-      console.error('[ProjectRAG] 索引对话历史失败:', error);
+      logger.error('[ProjectRAG] 索引对话历史失败:', error);
       throw error;
     }
   }

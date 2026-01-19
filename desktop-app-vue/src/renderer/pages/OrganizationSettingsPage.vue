@@ -436,6 +436,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { message, Modal } from 'ant-design-vue';
@@ -555,7 +557,7 @@ const loadOrganizationInfo = async () => {
     // 加载活动日志
     await loadActivities();
   } catch (error) {
-    console.error('加载组织信息失败:', error);
+    logger.error('加载组织信息失败:', error);
     message.error('加载组织信息失败');
   } finally {
     loading.value = false;
@@ -570,7 +572,7 @@ const loadActivities = async () => {
     const activities = await window.ipc.invoke('org:get-activities', orgId, 20);
     recentActivities.value = activities || [];
   } catch (error) {
-    console.error('加载活动日志失败:', error);
+    logger.error('加载活动日志失败:', error);
   } finally {
     loadingActivities.value = false;
   }
@@ -601,7 +603,7 @@ const handleSaveBasicInfo = async () => {
       message.error(result.error || '保存失败');
     }
   } catch (error) {
-    console.error('保存失败:', error);
+    logger.error('保存失败:', error);
     message.error('保存失败');
   } finally {
     saving.value = false;
@@ -631,7 +633,7 @@ const handleSaveSettings = async () => {
       message.error(result.error || '保存设置失败');
     }
   } catch (error) {
-    console.error('保存设置失败:', error);
+    logger.error('保存设置失败:', error);
     message.error('保存设置失败');
   } finally {
     saving.value = false;
@@ -672,7 +674,7 @@ const handleAvatarUpload = async (file) => {
     };
     reader.readAsDataURL(file);
   } catch (error) {
-    console.error('头像上传失败:', error);
+    logger.error('头像上传失败:', error);
     message.error('头像上传失败');
   }
   return false; // Prevent default upload behavior
@@ -689,7 +691,7 @@ const handleBackupDatabase = async () => {
       message.error(result.error || '备份失败');
     }
   } catch (error) {
-    console.error('备份失败:', error);
+    logger.error('备份失败:', error);
     message.error('备份失败');
   }
 };
@@ -713,7 +715,7 @@ const handleSyncNow = async () => {
       message.error(result.error || '同步失败');
     }
   } catch (error) {
-    console.error('同步失败:', error);
+    logger.error('同步失败:', error);
     message.error('同步失败');
   } finally {
     syncing.value = false;
@@ -735,7 +737,7 @@ const handleLeaveOrg = () => {
         message.success('已离开组织');
         router.push('/');
       } catch (error) {
-        console.error('离开组织失败:', error);
+        logger.error('离开组织失败:', error);
         message.error('离开组织失败');
       }
     },
@@ -761,7 +763,7 @@ const handleDeleteOrg = async () => {
     await identityStore.switchContext('personal');
     router.push('/');
   } catch (error) {
-    console.error('删除组织失败:', error);
+    logger.error('删除组织失败:', error);
     message.error('删除组织失败');
   } finally {
     deleting.value = false;

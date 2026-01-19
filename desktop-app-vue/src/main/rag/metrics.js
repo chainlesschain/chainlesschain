@@ -3,6 +3,7 @@
  * 用于跟踪和分析RAG系统的性能指标
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const EventEmitter = require('events');
 
 /**
@@ -402,7 +403,7 @@ class RAGMetrics extends EventEmitter {
     this.startTime = Date.now();
 
     this.emit('reset');
-    console.log('[RAGMetrics] 指标已重置');
+    logger.info('[RAGMetrics] 指标已重置');
   }
 
   /**

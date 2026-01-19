@@ -174,6 +174,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted } from 'vue';
 import {
   CodeOutlined,
@@ -236,7 +238,7 @@ import { ref, computed, onMounted } from 'vue';
 const title = ref('Hello World');
 
 onMounted(() => {
-  console.log('Component mounted');
+  logger.info('Component mounted');
 });
 </script>
 
@@ -294,7 +296,7 @@ export function useDebounce(value, delay = 300) {
 
     return await response.json();
   } catch (error) {
-    console.error('API request failed:', error);
+    logger.error('API request failed:', error);
     throw error;
   }
 }`,
@@ -422,7 +424,7 @@ const handleCategoryClick = (categoryKey) => {
 // 处理片段点击
 const handleSnippetClick = (snippet) => {
   // 可以展开显示详情
-  console.log('Snippet clicked:', snippet);
+  logger.info('Snippet clicked:', snippet);
 };
 
 // 复制代码片段

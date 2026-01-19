@@ -9,6 +9,7 @@
  * - 性能监控和统计
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const EventEmitter = require('events');
 const MessageManager = require('./message-manager');
 const KnowledgeSyncManager = require('./knowledge-sync-manager');
@@ -53,11 +54,11 @@ class P2PEnhancedManager extends EventEmitter {
    */
   async initialize() {
     if (this.initialized) {
-      console.log('[P2PEnhanced] 已经初始化');
+      logger.info('[P2PEnhanced] 已经初始化');
       return;
     }
 
-    console.log('[P2PEnhanced] 初始化增强管理器...');
+    logger.info('[P2PEnhanced] 初始化增强管理器...');
 
     try {
       // 1. 初始化消息管理器
@@ -124,12 +125,12 @@ class P2PEnhancedManager extends EventEmitter {
       this.isRunning = true;
       this.stats.startTime = Date.now();
 
-      console.log('[P2PEnhanced] ✅ 增强管理器初始化完成');
+      logger.info('[P2PEnhanced] ✅ 增强管理器初始化完成');
 
       this.emit('initialized');
 
     } catch (error) {
-      console.error('[P2PEnhanced] ❌ 初始化失败:', error);
+      logger.error('[P2PEnhanced] ❌ 初始化失败:', error);
       throw error;
     }
   }
@@ -141,7 +142,7 @@ class P2PEnhancedManager extends EventEmitter {
     // 监听VoiceVideoManager的媒体流请求
     this.voiceVideoManager.on('media:stream-required', async (data) => {
       try {
-        console.log('[P2PEnhanced] 请求媒体流:', data.type);
+        logger.info('[P2PEnhanced] 请求媒体流:', data.type);
 
         // 通过桥接服务请求媒体流
         const streamInfo = await this.mediaStreamBridge.requestMediaStream(
@@ -154,14 +155,14 @@ class P2PEnhancedManager extends EventEmitter {
           }
         );
 
-        console.log('[P2PEnhanced] 媒体流已获取:', streamInfo.streamId);
+        logger.info('[P2PEnhanced] 媒体流已获取:', streamInfo.streamId);
 
         // 通知回调
         if (data.callback) {
           data.callback(streamInfo);
         }
       } catch (error) {
-        console.error('[P2PEnhanced] 获取媒体流失败:', error);
+        logger.error('[P2PEnhanced] 获取媒体流失败:', error);
       }
     });
 
@@ -198,25 +199,25 @@ class P2PEnhancedManager extends EventEmitter {
     });
 
     this.messageManager.on('send-failed', ({ messageId, peerId, message }) => {
-      console.error('[P2PEnhanced] 消息发送失败:', messageId);
+      logger.error('[P2PEnhanced] 消息发送失败:', messageId);
       this.emit('message:send-failed', { messageId, peerId, message });
       this.stats.errors++;
     });
 
     // 知识库同步事件
     this.knowledgeSyncManager.on('sync:started', ({ peerId }) => {
-      console.log('[P2PEnhanced] 知识库同步开始:', peerId);
+      logger.info('[P2PEnhanced] 知识库同步开始:', peerId);
       this.emit('knowledge:sync-started', { peerId });
     });
 
     this.knowledgeSyncManager.on('sync:completed', (data) => {
-      console.log('[P2PEnhanced] 知识库同步完成:', data);
+      logger.info('[P2PEnhanced] 知识库同步完成:', data);
       this.emit('knowledge:sync-completed', data);
       this.stats.totalSyncs++;
     });
 
     this.knowledgeSyncManager.on('sync:failed', ({ peerId, error }) => {
-      console.error('[P2PEnhanced] 知识库同步失败:', peerId, error);
+      logger.error('[P2PEnhanced] 知识库同步失败:', peerId, error);
       this.emit('knowledge:sync-failed', { peerId, error });
       this.stats.errors++;
     });
@@ -226,24 +227,24 @@ class P2PEnhancedManager extends EventEmitter {
     });
 
     this.knowledgeSyncManager.on('conflict:detected', (conflict) => {
-      console.warn('[P2PEnhanced] 检测到冲突:', conflict.noteId);
+      logger.warn('[P2PEnhanced] 检测到冲突:', conflict.noteId);
       this.emit('knowledge:conflict', conflict);
     });
 
     this.knowledgeSyncManager.on('conflict:resolved', (data) => {
-      console.log('[P2PEnhanced] 冲突已解决:', data.noteId);
+      logger.info('[P2PEnhanced] 冲突已解决:', data.noteId);
       this.emit('knowledge:conflict-resolved', data);
     });
 
     // 文件传输事件
     this.fileTransferManager.on('upload:completed', (data) => {
-      console.log('[P2PEnhanced] 文件上传完成:', data.fileName);
+      logger.info('[P2PEnhanced] 文件上传完成:', data.fileName);
       this.emit('file:upload-completed', data);
       this.stats.totalFileTransfers++;
     });
 
     this.fileTransferManager.on('upload:failed', ({ transferId, fileName, error }) => {
-      console.error('[P2PEnhanced] 文件上传失败:', fileName, error);
+      logger.error('[P2PEnhanced] 文件上传失败:', fileName, error);
       this.emit('file:upload-failed', { transferId, fileName, error });
       this.stats.errors++;
     });
@@ -253,13 +254,13 @@ class P2PEnhancedManager extends EventEmitter {
     });
 
     this.fileTransferManager.on('download:completed', (data) => {
-      console.log('[P2PEnhanced] 文件下载完成:', data.fileName);
+      logger.info('[P2PEnhanced] 文件下载完成:', data.fileName);
       this.emit('file:download-completed', data);
       this.stats.totalFileTransfers++;
     });
 
     this.fileTransferManager.on('download:failed', ({ transferId, fileName, error }) => {
-      console.error('[P2PEnhanced] 文件下载失败:', fileName, error);
+      logger.error('[P2PEnhanced] 文件下载失败:', fileName, error);
       this.emit('file:download-failed', { transferId, fileName, error });
       this.stats.errors++;
     });
@@ -269,23 +270,23 @@ class P2PEnhancedManager extends EventEmitter {
     });
 
     this.fileTransferManager.on('transfer:request', (data) => {
-      console.log('[P2PEnhanced] 收到文件传输请求:', data.fileName);
+      logger.info('[P2PEnhanced] 收到文件传输请求:', data.fileName);
       this.emit('file:transfer-request', data);
     });
 
     // 语音/视频通话事件
     this.voiceVideoManager.on('call:started', (data) => {
-      console.log('[P2PEnhanced] 通话已发起:', data.callId);
+      logger.info('[P2PEnhanced] 通话已发起:', data.callId);
       this.emit('call:started', data);
 
       // 记录通话历史
       this.callHistoryManager.recordCallStart(data).catch(err => {
-        console.error('[P2PEnhanced] 记录通话开始失败:', err);
+        logger.error('[P2PEnhanced] 记录通话开始失败:', err);
       });
     });
 
     this.voiceVideoManager.on('call:incoming', (data) => {
-      console.log('[P2PEnhanced] 收到来电:', data.callId);
+      logger.info('[P2PEnhanced] 收到来电:', data.callId);
       this.emit('call:incoming', data);
 
       // 记录来电
@@ -293,24 +294,24 @@ class P2PEnhancedManager extends EventEmitter {
         ...data,
         isInitiator: false
       }).catch(err => {
-        console.error('[P2PEnhanced] 记录来电失败:', err);
+        logger.error('[P2PEnhanced] 记录来电失败:', err);
       });
     });
 
     this.voiceVideoManager.on('call:accepted', (data) => {
-      console.log('[P2PEnhanced] 通话已接受:', data.callId);
+      logger.info('[P2PEnhanced] 通话已接受:', data.callId);
       this.emit('call:accepted', data);
 
       // 更新通话状态
       this.callHistoryManager.updateCallStatus(data.callId, 'accepted', {
         isAnswered: true
       }).catch(err => {
-        console.error('[P2PEnhanced] 更新通话状态失败:', err);
+        logger.error('[P2PEnhanced] 更新通话状态失败:', err);
       });
     });
 
     this.voiceVideoManager.on('call:rejected', (data) => {
-      console.log('[P2PEnhanced] 通话已拒绝:', data.callId);
+      logger.info('[P2PEnhanced] 通话已拒绝:', data.callId);
       this.emit('call:rejected', data);
 
       // 更新通话状态
@@ -318,22 +319,22 @@ class P2PEnhancedManager extends EventEmitter {
         isAnswered: false,
         rejectReason: data.reason
       }).catch(err => {
-        console.error('[P2PEnhanced] 更新通话状态失败:', err);
+        logger.error('[P2PEnhanced] 更新通话状态失败:', err);
       });
     });
 
     this.voiceVideoManager.on('call:connected', (data) => {
-      console.log('[P2PEnhanced] 通话已连接:', data.callId);
+      logger.info('[P2PEnhanced] 通话已连接:', data.callId);
       this.emit('call:connected', data);
 
       // 更新通话状态
       this.callHistoryManager.updateCallStatus(data.callId, 'connected').catch(err => {
-        console.error('[P2PEnhanced] 更新通话状态失败:', err);
+        logger.error('[P2PEnhanced] 更新通话状态失败:', err);
       });
     });
 
     this.voiceVideoManager.on('call:ended', (data) => {
-      console.log('[P2PEnhanced] 通话已结束:', data.callId);
+      logger.info('[P2PEnhanced] 通话已结束:', data.callId);
       this.emit('call:ended', data);
 
       // 记录通话结束
@@ -342,7 +343,7 @@ class P2PEnhancedManager extends EventEmitter {
         duration: callInfo ? callInfo.duration * 1000 : 0,
         qualityStats: callInfo ? callInfo.stats : null
       }).catch(err => {
-        console.error('[P2PEnhanced] 记录通话结束失败:', err);
+        logger.error('[P2PEnhanced] 记录通话结束失败:', err);
       });
     });
 
@@ -368,7 +369,7 @@ class P2PEnhancedManager extends EventEmitter {
    */
   connectToP2PNetwork() {
     if (!this.p2pManager) {
-      console.warn('[P2PEnhanced] P2P管理器未初始化');
+      logger.warn('[P2PEnhanced] P2P管理器未初始化');
       return;
     }
 
@@ -377,19 +378,19 @@ class P2PEnhancedManager extends EventEmitter {
       try {
         await this.messageManager.receiveMessage(peerId, message);
       } catch (error) {
-        console.error('[P2PEnhanced] 处理P2P消息失败:', error);
+        logger.error('[P2PEnhanced] 处理P2P消息失败:', error);
         this.stats.errors++;
       }
     });
 
     // 监听P2P连接事件
     this.p2pManager.on('peer:connected', ({ peerId }) => {
-      console.log('[P2PEnhanced] 节点已连接:', peerId);
+      logger.info('[P2PEnhanced] 节点已连接:', peerId);
       this.emit('peer:connected', { peerId });
     });
 
     this.p2pManager.on('peer:disconnected', ({ peerId }) => {
-      console.log('[P2PEnhanced] 节点已断开:', peerId);
+      logger.info('[P2PEnhanced] 节点已断开:', peerId);
       this.emit('peer:disconnected', { peerId });
     });
   }
@@ -421,7 +422,7 @@ class P2PEnhancedManager extends EventEmitter {
           this.emit('message', { peerId, messageId, type, payload });
       }
     } catch (error) {
-      console.error('[P2PEnhanced] 处理消息失败:', error);
+      logger.error('[P2PEnhanced] 处理消息失败:', error);
       this.stats.errors++;
     }
   }
@@ -438,7 +439,7 @@ class P2PEnhancedManager extends EventEmitter {
       // 使用P2P管理器发送消息
       await this.p2pManager.sendMessage(peerId, message);
     } catch (error) {
-      console.error('[P2PEnhanced] 发送消息失败:', error);
+      logger.error('[P2PEnhanced] 发送消息失败:', error);
       throw error;
     }
   }
@@ -462,7 +463,7 @@ class P2PEnhancedManager extends EventEmitter {
         timestamp: Date.now()
       });
     } catch (error) {
-      console.error('[P2PEnhanced] 批量发送消息失败:', error);
+      logger.error('[P2PEnhanced] 批量发送消息失败:', error);
       throw error;
     }
   }
@@ -692,7 +693,7 @@ class P2PEnhancedManager extends EventEmitter {
    * 停止增强管理器
    */
   async stop() {
-    console.log('[P2PEnhanced] 停止增强管理器...');
+    logger.info('[P2PEnhanced] 停止增强管理器...');
 
     this.isRunning = false;
 
@@ -723,7 +724,7 @@ class P2PEnhancedManager extends EventEmitter {
 
     this.emit('stopped');
 
-    console.log('[P2PEnhanced] ✅ 增强管理器已停止');
+    logger.info('[P2PEnhanced] ✅ 增强管理器已停止');
   }
 }
 

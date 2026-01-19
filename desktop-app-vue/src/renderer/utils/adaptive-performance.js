@@ -3,6 +3,7 @@
  * Dynamically adjusts performance parameters based on device capabilities and runtime metrics
  */
 
+import { logger, createLogger } from '@/utils/logger';
 import performanceTracker from './performance-tracker'
 
 class AdaptivePerformance {
@@ -120,7 +121,7 @@ class AdaptivePerformance {
       this.deviceProfile.tier = 'low'
     }
 
-    console.log('[AdaptivePerf] Device tier:', this.deviceProfile.tier, { score, cores, memoryMB: memory.totalMB })
+    logger.info('[AdaptivePerf] Device tier:', this.deviceProfile.tier, { score, cores, memoryMB: memory.totalMB })
   }
 
   /**
@@ -170,7 +171,7 @@ class AdaptivePerformance {
         break
     }
 
-    console.log('[AdaptivePerf] Initial settings:', this.settings)
+    logger.info('[AdaptivePerf] Initial settings:', this.settings)
   }
 
   /**
@@ -344,7 +345,7 @@ class AdaptivePerformance {
     }
 
     if (adjustments.length > 0) {
-      console.log('[AdaptivePerf] Adjustments:', adjustments)
+      logger.info('[AdaptivePerf] Adjustments:', adjustments)
 
       this.tuningHistory.push({
         timestamp: now,
@@ -372,7 +373,7 @@ class AdaptivePerformance {
     this.settings.prefetchEnabled = false
     this.settings.workerPoolSize = 1
 
-    console.log('[AdaptivePerf] Page hidden, reduced resource usage')
+    logger.info('[AdaptivePerf] Page hidden, reduced resource usage')
   }
 
   /**
@@ -384,7 +385,7 @@ class AdaptivePerformance {
       this.settings = { ...this.savedSettings }
       delete this.savedSettings
 
-      console.log('[AdaptivePerf] Page visible, restored settings')
+      logger.info('[AdaptivePerf] Page visible, restored settings')
     }
   }
 
@@ -437,7 +438,7 @@ class AdaptivePerformance {
     if (Object.prototype.hasOwnProperty.call(this.settings, key)) {
       this.settings[key] = value
 
-      console.log('[AdaptivePerf] Manual setting change:', { [key]: value })
+      logger.info('[AdaptivePerf] Manual setting change:', { [key]: value })
       this.emitSettingsChange()
 
       return true
@@ -455,7 +456,7 @@ class AdaptivePerformance {
     this.tuningHistory = []
     this.lastTuning = Date.now()
 
-    console.log('[AdaptivePerf] Reset to defaults')
+    logger.info('[AdaptivePerf] Reset to defaults')
     this.emitSettingsChange()
   }
 
@@ -473,7 +474,7 @@ class AdaptivePerformance {
       this.fpsMonitoringId = null
     }
 
-    console.log('[AdaptivePerf] Monitoring stopped')
+    logger.info('[AdaptivePerf] Monitoring stopped')
   }
 }
 

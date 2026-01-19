@@ -1,3 +1,5 @@
+const { logger, createLogger } = require('../utils/logger.js');
+
 /**
  * 槽位填充器 (Slot Filler)
  * 负责识别缺失的必需参数，并通过上下文推断或用户询问来填充
@@ -94,13 +96,13 @@ class SlotFiller {
       }
     }
 
-    console.log(`[SlotFiller] 意图: ${intentType}, 缺失必需槽位: ${missing.join(', ') || '无'}`);
+    logger.info(`[SlotFiller] 意图: ${intentType}, 缺失必需槽位: ${missing.join(', ') || '无'}`);
 
     // 2. 尝试从上下文推断
     if (missing.length > 0) {
       const inferred = await this.inferFromContext(missing, context, entities);
       Object.assign(entities, inferred);
-      console.log(`[SlotFiller] 上下文推断结果:`, inferred);
+      logger.info(`[SlotFiller] 上下文推断结果:`, inferred);
     }
 
     // 3. 过滤仍然缺失的槽位
@@ -108,7 +110,7 @@ class SlotFiller {
 
     // 4. 如果仍有缺失且提供了询问回调，询问用户
     if (stillMissing.length > 0 && askUserCallback) {
-      console.log(`[SlotFiller] 需要询问用户: ${stillMissing.join(', ')}`);
+      logger.info(`[SlotFiller] 需要询问用户: ${stillMissing.join(', ')}`);
 
       for (const slot of stillMissing) {
         const userAnswer = await this.askUser(slot, askUserCallback);
@@ -125,7 +127,7 @@ class SlotFiller {
         const inferredValue = await this.inferOptionalSlot(slot, intent, context, entities);
         if (inferredValue) {
           entities[slot] = inferredValue;
-          console.log(`[SlotFiller] 推断可选槽位 ${slot}: ${inferredValue}`);
+          logger.info(`[SlotFiller] 推断可选槽位 ${slot}: ${inferredValue}`);
         }
       }
     }
@@ -201,7 +203,7 @@ class SlotFiller {
           break;
 
         default:
-          console.log(`[SlotFiller] 无法从上下文推断槽位: ${slot}`);
+          logger.info(`[SlotFiller] 无法从上下文推断槽位: ${slot}`);
       }
     }
 
@@ -266,7 +268,7 @@ class SlotFiller {
 
       return answer;
     } catch (error) {
-      console.error(`[SlotFiller] LLM推断槽位失败:`, error);
+      logger.error(`[SlotFiller] LLM推断槽位失败:`, error);
       return null;
     }
   }
@@ -343,9 +345,9 @@ class SlotFiller {
         VALUES (?, ?, ?, ?)
       `, [userId, intentType, JSON.stringify(entities), Date.now()]);
 
-      console.log(`[SlotFiller] 记录槽位填充历史: ${intentType}`);
+      logger.info(`[SlotFiller] 记录槽位填充历史: ${intentType}`);
     } catch (error) {
-      console.error('[SlotFiller] 记录历史失败:', error);
+      logger.error('[SlotFiller] 记录历史失败:', error);
     }
   }
 
@@ -384,13 +386,13 @@ class SlotFiller {
       const sorted = Object.entries(valueCounts).sort((a, b) => b[1] - a[1]);
 
       if (sorted.length > 0 && sorted[0][1] >= 2) {
-        console.log(`[SlotFiller] 学习到用户偏好 ${slot}: ${sorted[0][0]} (使用${sorted[0][1]}次)`);
+        logger.info(`[SlotFiller] 学习到用户偏好 ${slot}: ${sorted[0][0]} (使用${sorted[0][1]}次)`);
         return sorted[0][0];
       }
 
       return null;
     } catch (error) {
-      console.error('[SlotFiller] 学习用户偏好失败:', error);
+      logger.error('[SlotFiller] 学习用户偏好失败:', error);
       return null;
     }
   }

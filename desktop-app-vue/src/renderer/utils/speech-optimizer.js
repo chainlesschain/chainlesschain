@@ -1,3 +1,5 @@
+import { logger, createLogger } from '@/utils/logger';
+
 /**
  * 语音识别性能优化模块
  * 优化音频处理、缓存管理和识别速度
@@ -51,11 +53,11 @@ class SpeechPerformanceOptimizer {
       const normalizedBuffer = this.normalizeVolume(filteredBuffer);
 
       const processingTime = performance.now() - startTime;
-      console.log(`[SpeechOptimizer] 音频优化完成: ${processingTime.toFixed(2)}ms`);
+      logger.info(`[SpeechOptimizer] 音频优化完成: ${processingTime.toFixed(2)}ms`);
 
       return normalizedBuffer;
     } catch (error) {
-      console.error('[SpeechOptimizer] 音频优化失败:', error);
+      logger.error('[SpeechOptimizer] 音频优化失败:', error);
       return audioBlob;
     }
   }
@@ -183,7 +185,7 @@ class SpeechPerformanceOptimizer {
     workerPool.forEach(worker => worker.terminate());
 
     const totalTime = performance.now() - startTime;
-    console.log(`[SpeechOptimizer] 批量识别完成: ${totalTime.toFixed(2)}ms`);
+    logger.info(`[SpeechOptimizer] 批量识别完成: ${totalTime.toFixed(2)}ms`);
 
     return results;
   }
@@ -258,7 +260,7 @@ class SpeechPerformanceOptimizer {
       settings.chunkSize = Math.max(settings.chunkSize, 8192);
     }
 
-    console.log('[SpeechOptimizer] 优化设置:', settings);
+    logger.info('[SpeechOptimizer] 优化设置:', settings);
     return settings;
   }
 
@@ -267,7 +269,7 @@ class SpeechPerformanceOptimizer {
    * 提前加载识别模型以减少首次识别延迟
    */
   async preloadModels() {
-    console.log('[SpeechOptimizer] 预加载识别模型...');
+    logger.info('[SpeechOptimizer] 预加载识别模型...');
 
     try {
       // 创建一个临时的SpeechRecognition实例
@@ -280,10 +282,10 @@ class SpeechPerformanceOptimizer {
         recognition.start();
         setTimeout(() => recognition.stop(), 100);
 
-        console.log('[SpeechOptimizer] 模型预加载完成');
+        logger.info('[SpeechOptimizer] 模型预加载完成');
       }
     } catch (error) {
-      console.warn('[SpeechOptimizer] 模型预加载失败:', error);
+      logger.warn('[SpeechOptimizer] 模型预加载失败:', error);
     }
   }
 
@@ -309,7 +311,7 @@ class SpeechPerformanceOptimizer {
   clearCache() {
     this.recognitionCache.clear();
     this.audioBufferPool.clear();
-    console.log('[SpeechOptimizer] 缓存已清理');
+    logger.info('[SpeechOptimizer] 缓存已清理');
   }
 
   /**
@@ -327,7 +329,7 @@ class SpeechPerformanceOptimizer {
     }
 
     if (cleaned > 0) {
-      console.log(`[SpeechOptimizer] 清理了 ${cleaned} 个过期缓存项`);
+      logger.info(`[SpeechOptimizer] 清理了 ${cleaned} 个过期缓存项`);
     }
   }
 

@@ -112,7 +112,7 @@
 
 <script setup>
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
-import * as echarts from 'echarts';
+import { init } from '../../utils/echartsConfig';
 import {
   AppstoreOutlined,
   CheckCircleOutlined,
@@ -169,7 +169,7 @@ const calculateStats = () => {
 const initCategoryChart = () => {
   if (!categoryChartRef.value) {return;}
 
-  categoryChart = echarts.init(categoryChartRef.value);
+  categoryChart = init(categoryChartRef.value);
 
   // 统计各分类的技能数量
   const categoryCount = {};
@@ -229,7 +229,7 @@ const initCategoryChart = () => {
 const initUsageChart = () => {
   if (!usageChartRef.value) {return;}
 
-  usageChart = echarts.init(usageChartRef.value);
+  usageChart = init(usageChartRef.value);
 
   // Top 10 使用次数
   const sorted = [...props.skills]
@@ -279,7 +279,7 @@ const initUsageChart = () => {
 const initTrendChart = () => {
   if (!trendChartRef.value) {return;}
 
-  trendChart = echarts.init(trendChartRef.value);
+  trendChart = init(trendChartRef.value);
 
   // 获取最近7天的日期
   const dates = [];

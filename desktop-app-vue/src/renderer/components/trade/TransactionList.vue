@@ -208,6 +208,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted } from 'vue';
 import { message } from 'ant-design-vue';
 import {
@@ -395,9 +397,9 @@ const canRequestRefund = (transaction) => {
 const loadTransactions = async () => {
   try {
     await tradeStore.loadTransactions();
-    console.log('[TransactionList] 交易记录已加载:', transactions.value.length);
+    logger.info('[TransactionList] 交易记录已加载:', transactions.value.length);
   } catch (error) {
-    console.error('[TransactionList] 加载交易记录失败:', error);
+    logger.error('[TransactionList] 加载交易记录失败:', error);
     message.error('加载交易记录失败: ' + error.message);
   }
 };
@@ -421,7 +423,7 @@ const handleConfirmDelivery = async (transaction) => {
     message.success('已确认收货');
     await loadTransactions();
   } catch (error) {
-    console.error('[TransactionList] 确认收货失败:', error);
+    logger.error('[TransactionList] 确认收货失败:', error);
     message.error(error.message || '确认收货失败');
   }
 };
@@ -433,7 +435,7 @@ const handleRequestRefund = async (transaction) => {
     message.success('已申请退款');
     await loadTransactions();
   } catch (error) {
-    console.error('[TransactionList] 申请退款失败:', error);
+    logger.error('[TransactionList] 申请退款失败:', error);
     message.error(error.message || '申请退款失败');
   }
 };
@@ -446,7 +448,7 @@ const loadCurrentUserDid = async () => {
       currentUserDid.value = identity.did;
     }
   } catch (error) {
-    console.error('[TransactionList] 获取当前用户 DID 失败:', error);
+    logger.error('[TransactionList] 获取当前用户 DID 失败:', error);
   }
 };
 

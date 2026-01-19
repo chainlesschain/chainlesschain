@@ -1,3 +1,4 @@
+const { logger, createLogger } = require('../utils/logger.js');
 const axios = require('axios');
 
 /**
@@ -20,11 +21,11 @@ class ProjectHTTPClient {
     // 请求拦截器
     this.client.interceptors.request.use(
       config => {
-        console.log(`[ProjectHTTP] ${config.method.toUpperCase()} ${config.url}`);
+        logger.info(`[ProjectHTTP] ${config.method.toUpperCase()} ${config.url}`);
         return config;
       },
       error => {
-        console.error('[ProjectHTTP] Request error:', error);
+        logger.error('[ProjectHTTP] Request error:', error);
         return Promise.reject(error);
       }
     );
@@ -91,19 +92,19 @@ class ProjectHTTPClient {
               enhancedError.message = `请求失败 (${status}): ${errorMessage}`;
           }
 
-          console.error(`[ProjectHTTP] ${enhancedError.message}`);
+          logger.error(`[ProjectHTTP] ${enhancedError.message}`);
           throw enhancedError;
         } else if (error.request) {
           // 请求已发送但没有收到响应（连接失败）
           const connectionError = new Error('无法连接到项目服务');
           connectionError.isConnectionError = true;
           connectionError.isExpectedError = true; // 后端服务可能未启动，这是预期的
-          console.warn('[ProjectHTTP] 无法连接到后端服务（这是正常的，将使用本地数据）');
+          logger.warn('[ProjectHTTP] 无法连接到后端服务（这是正常的，将使用本地数据）');
           throw connectionError;
         } else {
           // 请求配置出错
           const configError = new Error(`请求配置错误: ${error.message}`);
-          console.error('[ProjectHTTP] Request config error:', configError.message);
+          logger.error('[ProjectHTTP] Request config error:', configError.message);
           throw configError;
         }
       }
@@ -191,7 +192,7 @@ class ProjectHTTPClient {
         backendData.metadata = createData.metadata;
       }
 
-      console.log('[ProjectHTTP] Stream request data:', backendData);
+      logger.info('[ProjectHTTP] Stream request data:', backendData);
 
       const response = await this.client.post(
         `${AI_SERVICE_URL}/api/projects/create/stream`,
@@ -235,7 +236,7 @@ class ProjectHTTPClient {
                   break;
               }
             } catch (err) {
-              console.error('[StreamParse] Failed to parse SSE:', err);
+              logger.error('[StreamParse] Failed to parse SSE:', err);
             }
           }
         }
@@ -257,7 +258,7 @@ class ProjectHTTPClient {
         }
       };
     } catch (error) {
-      console.error('[ProjectHTTP] Stream create failed:', error);
+      logger.error('[ProjectHTTP] Stream create failed:', error);
       onError?.(error);
       throw error;
     }

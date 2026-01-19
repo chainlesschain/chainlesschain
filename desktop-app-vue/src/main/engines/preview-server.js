@@ -3,6 +3,7 @@
  * 提供Web项目的本地预览功能
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
@@ -119,8 +120,8 @@ class PreviewServer {
           this.isRunning = true;
           const url = `http://localhost:${this.port}`;
 
-          console.log(`[Preview Server] 预览服务器已启动: ${url}`);
-          console.log(`[Preview Server] 项目路径: ${projectPath}`);
+          logger.info(`[Preview Server] 预览服务器已启动: ${url}`);
+          logger.info(`[Preview Server] 项目路径: ${projectPath}`);
 
           resolve({
             success: true,
@@ -132,12 +133,12 @@ class PreviewServer {
 
         // 处理服务器错误
         this.server.on('error', (error) => {
-          console.error('[Preview Server] 服务器错误:', error);
+          logger.error('[Preview Server] 服务器错误:', error);
           this.isRunning = false;
 
           // 如果端口被占用,尝试使用其他端口
           if (error.code === 'EADDRINUSE') {
-            console.log(`[Preview Server] 端口 ${this.port} 被占用,尝试使用端口 ${this.port + 1}`);
+            logger.info(`[Preview Server] 端口 ${this.port} 被占用,尝试使用端口 ${this.port + 1}`);
             this.start(projectPath, this.port + 1)
               .then(resolve)
               .catch(reject);
@@ -146,7 +147,7 @@ class PreviewServer {
           }
         });
       } catch (error) {
-        console.error('[Preview Server] 启动失败:', error);
+        logger.error('[Preview Server] 启动失败:', error);
         reject(error);
       }
     });
@@ -169,10 +170,10 @@ class PreviewServer {
       try {
         this.server.close((error) => {
           if (error) {
-            console.error('[Preview Server] 停止失败:', error);
+            logger.error('[Preview Server] 停止失败:', error);
             reject(error);
           } else {
-            console.log('[Preview Server] 预览服务器已停止');
+            logger.info('[Preview Server] 预览服务器已停止');
             this.isRunning = false;
             this.server = null;
             this.app = null;
@@ -185,7 +186,7 @@ class PreviewServer {
           }
         });
       } catch (error) {
-        console.error('[Preview Server] 停止失败:', error);
+        logger.error('[Preview Server] 停止失败:', error);
         reject(error);
       }
     });
@@ -197,7 +198,7 @@ class PreviewServer {
    * @returns {Promise<Object>}
    */
   async restart(projectPath = null) {
-    console.log('[Preview Server] 重启预览服务器...');
+    logger.info('[Preview Server] 重启预览服务器...');
 
     await this.stop();
 
@@ -222,7 +223,7 @@ class PreviewServer {
     try {
       files = fs.readdirSync(directoryPath);
     } catch (error) {
-      console.error('[Preview Server] 读取目录失败:', error);
+      logger.error('[Preview Server] 读取目录失败:', error);
     }
 
     const fileLinks = files

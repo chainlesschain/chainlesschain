@@ -1,3 +1,5 @@
+const { logger, createLogger } = require('../utils/logger.js');
+
 /**
  * 多意图识别器
  *
@@ -181,7 +183,7 @@ ${JSON.stringify(context, null, 2)}
       return parsed.intents;
 
     } catch (error) {
-      console.error('LLM多意图拆分失败:', error);
+      logger.error('LLM多意图拆分失败:', error);
 
       // 降级策略：使用规则引擎拆分
       return this.ruleBasedSplit(text, context);
@@ -322,7 +324,7 @@ ${JSON.stringify(context, null, 2)}
         });
 
       } catch (error) {
-        console.error(`意图丰富失败: ${intent.description}`, error);
+        logger.error(`意图丰富失败: ${intent.description}`, error);
 
         // 失败时保留原始意图
         enriched.push({
@@ -353,13 +355,13 @@ ${JSON.stringify(context, null, 2)}
       intent.dependencies = intent.dependencies.filter(dep => {
         // 依赖的任务必须存在
         if (!prioritySet.has(dep)) {
-          console.warn(`任务${intent.priority}依赖不存在的任务${dep}`);
+          logger.warn(`任务${intent.priority}依赖不存在的任务${dep}`);
           return false;
         }
 
         // 依赖的任务必须优先级更高（数字更小）
         if (dep >= intent.priority) {
-          console.warn(`任务${intent.priority}依赖了优先级更低的任务${dep}`);
+          logger.warn(`任务${intent.priority}依赖了优先级更低的任务${dep}`);
           return false;
         }
 
@@ -370,7 +372,7 @@ ${JSON.stringify(context, null, 2)}
     // 检测循环依赖
     const hasCycle = this.detectCyclicDependency(intents);
     if (hasCycle) {
-      console.error('检测到循环依赖，清除所有依赖关系');
+      logger.error('检测到循环依赖，清除所有依赖关系');
       intents.forEach(intent => intent.dependencies = []);
     }
 
@@ -438,7 +440,7 @@ ${JSON.stringify(context, null, 2)}
         try {
           return JSON.parse(jsonMatch[0]);
         } catch (e) {
-          console.error('JSON解析失败:', e);
+          logger.error('JSON解析失败:', e);
           return null;
         }
       }

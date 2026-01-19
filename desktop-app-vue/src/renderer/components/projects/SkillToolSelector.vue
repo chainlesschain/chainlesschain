@@ -223,6 +223,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, watch, onMounted } from 'vue';
 import { message } from 'ant-design-vue';
 import { useSkillStore } from '@/stores/skill';
@@ -437,7 +439,7 @@ const loadData = async () => {
   try {
     await Promise.all([skillStore.fetchAll(), toolStore.fetchAll()]);
   } catch (error) {
-    console.error('加载技能和工具失败:', error);
+    logger.error('加载技能和工具失败:', error);
   }
 };
 

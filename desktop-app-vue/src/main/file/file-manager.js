@@ -3,6 +3,7 @@
  * 负责文件上传、下载、共享、锁定等核心功能
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
@@ -59,7 +60,7 @@ class FileManager {
     `).get(checksum, project_id);
 
     if (existingFile) {
-      console.log('[FileManager] 文件已存在（基于checksum），返回现有文件');
+      logger.info('[FileManager] 文件已存在（基于checksum），返回现有文件');
       return this.getFile(existingFile.id);
     }
 
@@ -106,7 +107,7 @@ class FileManager {
       );
     }
 
-    console.log('[FileManager] 文件上传成功:', file_name);
+    logger.info('[FileManager] 文件上传成功:', file_name);
 
     return this.getFile(fileId);
   }
@@ -245,7 +246,7 @@ class FileManager {
     // 记录访问日志
     await this._logFileAccess(fileId, updaterDID, 'edit');
 
-    console.log('[FileManager] 文件元数据更新成功');
+    logger.info('[FileManager] 文件元数据更新成功');
 
     return { success: true };
   }
@@ -283,7 +284,7 @@ class FileManager {
         fs.unlinkSync(file.file_path);
       }
     } catch (error) {
-      console.error('[FileManager] 删除磁盘文件失败:', error);
+      logger.error('[FileManager] 删除磁盘文件失败:', error);
     }
 
     // 删除数据库记录（级联删除版本、权限等）
@@ -302,7 +303,7 @@ class FileManager {
       );
     }
 
-    console.log('[FileManager] 文件删除成功');
+    logger.info('[FileManager] 文件删除成功');
 
     return { success: true };
   }
@@ -355,7 +356,7 @@ class FileManager {
     // 记录访问日志
     await this._logFileAccess(fileId, lockerDID, 'lock');
 
-    console.log('[FileManager] 文件锁定成功');
+    logger.info('[FileManager] 文件锁定成功');
 
     return { success: true, expiresAt };
   }
@@ -400,7 +401,7 @@ class FileManager {
     // 记录访问日志
     await this._logFileAccess(fileId, unlockerDID, 'unlock');
 
-    console.log('[FileManager] 文件解锁成功');
+    logger.info('[FileManager] 文件解锁成功');
 
     return { success: true };
   }
@@ -419,7 +420,7 @@ class FileManager {
       VALUES (?, ?, ?, ?, ?)
     `).run(tagId, fileId, tag, adderDID, Date.now());
 
-    console.log('[FileManager] 标签添加成功:', tag);
+    logger.info('[FileManager] 标签添加成功:', tag);
   }
 
   /**
@@ -429,7 +430,7 @@ class FileManager {
    */
   removeTag(fileId, tag) {
     this.db.prepare('DELETE FROM file_tags WHERE file_id = ? AND tag = ?').run(fileId, tag);
-    console.log('[FileManager] 标签移除成功:', tag);
+    logger.info('[FileManager] 标签移除成功:', tag);
   }
 
   /**

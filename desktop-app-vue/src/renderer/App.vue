@@ -64,6 +64,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted, onUnmounted, onErrorCaptured } from "vue";
 import { useI18n } from "vue-i18n";
 import { message } from "ant-design-vue";
@@ -162,8 +164,8 @@ const currentAntdLocale = computed(() => {
 
 // 全局错误捕获
 onErrorCaptured((err, instance, info) => {
-  console.error("[App] Global error captured:", err);
-  console.error("[App] Component info:", info);
+  logger.error("[App] Global error captured:", err);
+  logger.error("[App] Component info:", info);
 
   // 使用统一错误处理
   handleError(err, {
@@ -184,7 +186,7 @@ onErrorCaptured((err, instance, info) => {
 // 监听未捕获的 Promise 错误
 if (typeof window !== "undefined") {
   window.addEventListener("unhandledrejection", (event) => {
-    console.error("[App] Unhandled promise rejection:", event.reason);
+    logger.error("[App] Unhandled promise rejection:", event.reason);
 
     handleError(event.reason, {
       showMessage: true,
@@ -201,18 +203,18 @@ if (typeof window !== "undefined") {
 
 // 深链接事件处理器（企业版DID邀请链接）
 const handleInvitationDeepLink = (event, token) => {
-  console.log("收到邀请链接:", token);
+  logger.info("收到邀请链接:", token);
   invitationToken.value = token;
   showInvitationDialog.value = true;
 };
 
 const handleInvitationAccepted = (org) => {
-  console.log("已加入组织:", org.name);
+  logger.info("已加入组织:", org.name);
   message.success(`成功加入组织: ${org.name}`);
 };
 
 const handleInvitationRejected = () => {
-  console.log("已拒绝邀请");
+  logger.info("已拒绝邀请");
 };
 
 onMounted(async () => {
@@ -267,7 +269,7 @@ onMounted(async () => {
           }, 1000);
         }
       } catch (error) {
-        console.error("检查设置状态失败:", error);
+        logger.error("检查设置状态失败:", error);
       }
     }
 
@@ -279,7 +281,7 @@ onMounted(async () => {
 
       // 监听数据库切换事件(身份上下文切换)
       window.electron.ipcRenderer.on("database-switched", (data) => {
-        console.log("数据库已切换:", data);
+        logger.info("数据库已切换:", data);
         // 刷新页面以重新加载新身份的数据
         setTimeout(() => {
           window.location.reload();
@@ -287,7 +289,7 @@ onMounted(async () => {
       });
     }
   } catch (error) {
-    console.error("应用初始化失败", error);
+    logger.error("应用初始化失败", error);
   } finally {
     loading.value = false;
   }
@@ -327,7 +329,7 @@ const handleGlobalSetupComplete = async () => {
       message.success("全局设置已保存，部分配置将在重启后生效");
     }
   } catch (error) {
-    console.error("检查加密状态失败:", error);
+    logger.error("检查加密状态失败:", error);
     message.success("全局设置已保存");
   }
 };

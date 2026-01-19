@@ -6,6 +6,7 @@
  * @description 提供应用配置的读取和设置 IPC 接口
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { ipcMain } = require("electron");
 
 // 防止重复注册的标志
@@ -18,11 +19,11 @@ let isRegistered = false;
  */
 function registerConfigIPC({ appConfig }) {
   if (isRegistered) {
-    console.log("[Config IPC] Handlers already registered, skipping...");
+    logger.info("[Config IPC] Handlers already registered, skipping...");
     return;
   }
 
-  console.log("[Config IPC] Registering Config IPC handlers...");
+  logger.info("[Config IPC] Registering Config IPC handlers...");
 
   /**
    * 获取配置项
@@ -35,7 +36,7 @@ function registerConfigIPC({ appConfig }) {
   ipcMain.handle("config:get", async (_event, key, defaultValue = null) => {
     try {
       if (!appConfig) {
-        console.warn(
+        logger.warn(
           "[Config IPC] AppConfig not initialized, returning default value",
         );
         return defaultValue;
@@ -44,7 +45,7 @@ function registerConfigIPC({ appConfig }) {
       const value = appConfig.get(key, defaultValue);
       return value;
     } catch (error) {
-      console.error("[Config IPC] 获取配置失败:", error);
+      logger.error("[Config IPC] 获取配置失败:", error);
       return defaultValue;
     }
   });
@@ -66,7 +67,7 @@ function registerConfigIPC({ appConfig }) {
       appConfig.set(key, value);
       return { success: true };
     } catch (error) {
-      console.error("[Config IPC] 设置配置失败:", error);
+      logger.error("[Config IPC] 设置配置失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -80,7 +81,7 @@ function registerConfigIPC({ appConfig }) {
   ipcMain.handle("config:get-all", async () => {
     try {
       if (!appConfig) {
-        console.warn(
+        logger.warn(
           "[Config IPC] AppConfig not initialized, returning empty config",
         );
         return {};
@@ -94,7 +95,7 @@ function registerConfigIPC({ appConfig }) {
         const llmConfig = getLLMConfig();
         const llmData = llmConfig.getAll();
 
-        console.log("[Config IPC] 从llm-config.json加载LLM配置:", {
+        logger.info("[Config IPC] 从llm-config.json加载LLM配置:", {
           provider: llmData.provider,
           volcengineModel: llmData.volcengine?.model,
         });
@@ -148,15 +149,15 @@ function registerConfigIPC({ appConfig }) {
         // 合并LLM配置
         allConfig.llm = { ...allConfig.llm, ...mappedLLMConfig };
 
-        console.log("[Config IPC] LLM配置已合并到返回数据");
+        logger.info("[Config IPC] LLM配置已合并到返回数据");
       } catch (llmError) {
-        console.error("[Config IPC] 加载LLM配置失败:", llmError);
+        logger.error("[Config IPC] 加载LLM配置失败:", llmError);
         // 即使失败也继续返回其他配置
       }
 
       return allConfig;
     } catch (error) {
-      console.error("[Config IPC] 获取全部配置失败:", error);
+      logger.error("[Config IPC] 获取全部配置失败:", error);
       return {};
     }
   });
@@ -187,7 +188,7 @@ function registerConfigIPC({ appConfig }) {
           const { getLLMConfig } = require("../llm/llm-config");
           const llmConfig = getLLMConfig();
 
-          console.log("[Config IPC] 检测到LLM配置更新，同步到llm-config.json");
+          logger.info("[Config IPC] 检测到LLM配置更新，同步到llm-config.json");
 
           // 更新LLM配置
           if (config.llm.provider) {
@@ -234,7 +235,7 @@ function registerConfigIPC({ appConfig }) {
               }
 
               llmConfig.setProviderConfig(provider, providerConfig);
-              console.log(
+              logger.info(
                 `[Config IPC] 已更新 ${provider} 配置:`,
                 providerConfig,
               );
@@ -255,16 +256,16 @@ function registerConfigIPC({ appConfig }) {
             llmConfig.set("selectionStrategy", config.llm.selectionStrategy);
           }
 
-          console.log("[Config IPC] LLM配置已同步到llm-config.json");
+          logger.info("[Config IPC] LLM配置已同步到llm-config.json");
         } catch (llmError) {
-          console.error("[Config IPC] 同步LLM配置失败:", llmError);
+          logger.error("[Config IPC] 同步LLM配置失败:", llmError);
           // 不抛出错误，允许通用配置继续保存
         }
       }
 
       return { success: true };
     } catch (error) {
-      console.error("[Config IPC] 更新配置失败:", error);
+      logger.error("[Config IPC] 更新配置失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -284,7 +285,7 @@ function registerConfigIPC({ appConfig }) {
       appConfig.reset();
       return { success: true };
     } catch (error) {
-      console.error("[Config IPC] 重置配置失败:", error);
+      logger.error("[Config IPC] 重置配置失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -304,7 +305,7 @@ function registerConfigIPC({ appConfig }) {
       const configManager = getUnifiedConfigManager();
       return configManager.getConfigSummary();
     } catch (error) {
-      console.error("[Config IPC] 获取统一配置摘要失败:", error);
+      logger.error("[Config IPC] 获取统一配置摘要失败:", error);
       return { error: error.message };
     }
   });
@@ -320,7 +321,7 @@ function registerConfigIPC({ appConfig }) {
       const configManager = getUnifiedConfigManager();
       return configManager.getDirectoryStats();
     } catch (error) {
-      console.error("[Config IPC] 获取目录统计失败:", error);
+      logger.error("[Config IPC] 获取目录统计失败:", error);
       return { error: error.message };
     }
   });
@@ -336,7 +337,7 @@ function registerConfigIPC({ appConfig }) {
       const configManager = getUnifiedConfigManager();
       return configManager.getPaths();
     } catch (error) {
-      console.error("[Config IPC] 获取路径配置失败:", error);
+      logger.error("[Config IPC] 获取路径配置失败:", error);
       return { error: error.message };
     }
   });
@@ -353,7 +354,7 @@ function registerConfigIPC({ appConfig }) {
       const configManager = getUnifiedConfigManager();
       return configManager.clearCache(type);
     } catch (error) {
-      console.error("[Config IPC] 清理缓存失败:", error);
+      logger.error("[Config IPC] 清理缓存失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -372,28 +373,28 @@ function registerConfigIPC({ appConfig }) {
         const configManager = getUnifiedConfigManager();
         return configManager.cleanOldLogs(maxFiles);
       } catch (error) {
-        console.error("[Config IPC] 清理日志失败:", error);
+        logger.error("[Config IPC] 清理日志失败:", error);
         return { success: false, error: error.message };
       }
     },
   );
 
-  console.log(
+  logger.info(
     "[Config IPC] Registered 5 config: handlers + 5 unified-config: handlers",
   );
-  console.log("[Config IPC] - config:get");
-  console.log("[Config IPC] - config:set");
-  console.log("[Config IPC] - config:get-all");
-  console.log("[Config IPC] - config:update");
-  console.log("[Config IPC] - config:reset");
-  console.log("[Config IPC] - unified-config:get-summary");
-  console.log("[Config IPC] - unified-config:get-directory-stats");
-  console.log("[Config IPC] - unified-config:get-paths");
-  console.log("[Config IPC] - unified-config:clear-cache");
-  console.log("[Config IPC] - unified-config:clean-old-logs");
+  logger.info("[Config IPC] - config:get");
+  logger.info("[Config IPC] - config:set");
+  logger.info("[Config IPC] - config:get-all");
+  logger.info("[Config IPC] - config:update");
+  logger.info("[Config IPC] - config:reset");
+  logger.info("[Config IPC] - unified-config:get-summary");
+  logger.info("[Config IPC] - unified-config:get-directory-stats");
+  logger.info("[Config IPC] - unified-config:get-paths");
+  logger.info("[Config IPC] - unified-config:clear-cache");
+  logger.info("[Config IPC] - unified-config:clean-old-logs");
 
   isRegistered = true;
-  console.log("[Config IPC] ✓ All handlers registered successfully");
+  logger.info("[Config IPC] ✓ All handlers registered successfully");
 }
 
 module.exports = { registerConfigIPC };

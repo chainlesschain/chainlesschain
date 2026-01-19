@@ -8,6 +8,7 @@
  * - Editor instance pooling
  */
 
+import { logger, createLogger } from '@/utils/logger';
 import performanceTracker from '@/utils/performance-tracker'
 import serviceWorkerManager from '@/utils/service-worker-manager'
 import { createEditorPoolManager, createMonacoEditorFactory } from '@/utils/editor-pool'
@@ -24,31 +25,31 @@ export async function initializeOptimizations(options = {}) {
 
   try {
     // Initialize performance tracker
-    console.log('[Optimizations] Initializing performance tracker...')
+    logger.info('[Optimizations] Initializing performance tracker...')
     results.performanceTracker = true
 
     // Register service worker for offline functionality
     if (options.enableOffline !== false) {
-      console.log('[Optimizations] Registering service worker...')
+      logger.info('[Optimizations] Registering service worker...')
       results.serviceWorker = await serviceWorkerManager.register()
 
       if (results.serviceWorker) {
-        console.log('[Optimizations] Service worker registered successfully')
+        logger.info('[Optimizations] Service worker registered successfully')
       } else {
-        console.warn('[Optimizations] Service worker registration failed')
+        logger.warn('[Optimizations] Service worker registration failed')
       }
     }
 
     // Initialize editor pool
     if (options.enableEditorPool !== false) {
-      console.log('[Optimizations] Initializing editor pool...')
+      logger.info('[Optimizations] Initializing editor pool...')
       results.editorPool = true
     }
 
-    console.log('[Optimizations] Initialization complete:', results)
+    logger.info('[Optimizations] Initialization complete:', results)
     return results
   } catch (error) {
-    console.error('[Optimizations] Initialization failed:', error)
+    logger.error('[Optimizations] Initialization failed:', error)
     return results
   }
 }
@@ -110,7 +111,7 @@ export function setupFileOperationTracking() {
 export function setupAiResponseTracking(conversationStore) {
   const unsubscribe = performanceTracker.addListener((event, data) => {
     if (event === 'aiResponse') {
-      console.log('[AI Response]', data)
+      logger.info('[AI Response]', data)
     }
   })
 
@@ -125,14 +126,14 @@ export async function prefetchProjectForOffline(projectId) {
     const success = await serviceWorkerManager.prefetchProject(projectId)
 
     if (success) {
-      console.log(`[Offline] Project ${projectId} prefetched successfully`)
+      logger.info(`[Offline] Project ${projectId} prefetched successfully`)
       return true
     } else {
-      console.warn(`[Offline] Failed to prefetch project ${projectId}`)
+      logger.warn(`[Offline] Failed to prefetch project ${projectId}`)
       return false
     }
   } catch (error) {
-    console.error('[Offline] Prefetch error:', error)
+    logger.error('[Offline] Prefetch error:', error)
     return false
   }
 }
@@ -144,7 +145,7 @@ export async function isProjectAvailableOffline(projectId) {
   try {
     return await serviceWorkerManager.isProjectCached(projectId)
   } catch (error) {
-    console.error('[Offline] Cache check error:', error)
+    logger.error('[Offline] Cache check error:', error)
     return false
   }
 }
@@ -164,7 +165,7 @@ export async function getCacheStatistics() {
     const cacheSize = await serviceWorkerManager.getCacheSize()
     return cacheSize
   } catch (error) {
-    console.error('[Cache] Failed to get statistics:', error)
+    logger.error('[Cache] Failed to get statistics:', error)
     return null
   }
 }
@@ -175,10 +176,10 @@ export async function getCacheStatistics() {
 export async function clearAllCaches() {
   try {
     await serviceWorkerManager.clearCache()
-    console.log('[Cache] All caches cleared')
+    logger.info('[Cache] All caches cleared')
     return true
   } catch (error) {
-    console.error('[Cache] Failed to clear caches:', error)
+    logger.error('[Cache] Failed to clear caches:', error)
     return false
   }
 }
@@ -276,14 +277,14 @@ export function measureRenderTime(componentName) {
     try {
       performance.measure(measureName, startMark, endMark)
       const measure = performance.getEntriesByName(measureName)[0]
-      console.log(`[Render] ${componentName}: ${Math.round(measure.duration)}ms`)
+      logger.info(`[Render] ${componentName}: ${Math.round(measure.duration)}ms`)
 
       // Clean up
       performance.clearMarks(startMark)
       performance.clearMarks(endMark)
       performance.clearMeasures(measureName)
     } catch (error) {
-      console.error('[Render] Measurement failed:', error)
+      logger.error('[Render] Measurement failed:', error)
     }
   }
 }
@@ -355,7 +356,7 @@ export function batchDOMUpdates(updates) {
  */
 export function monitorMemoryUsage(callback, interval = 5000) {
   if (!performance.memory) {
-    console.warn('[Memory] Performance.memory not available')
+    logger.warn('[Memory] Performance.memory not available')
     return () => {}
   }
 

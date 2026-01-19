@@ -1,3 +1,4 @@
+const { logger, createLogger } = require('../utils/logger.js');
 const { v4: uuidv4 } = require('uuid');
 const EventEmitter = require('events');
 const crypto = require('crypto');
@@ -21,14 +22,14 @@ class KnowledgePaymentManager extends EventEmitter {
    * 初始化知识付费管理器
    */
   async initialize() {
-    console.log('[KnowledgePayment] 初始化知识付费管理器...');
+    logger.info('[KnowledgePayment] 初始化知识付费管理器...');
 
     try {
       // 数据库表已在构造函数中初始化
-      console.log('[KnowledgePayment] 知识付费管理器初始化成功');
+      logger.info('[KnowledgePayment] 知识付费管理器初始化成功');
       return true;
     } catch (error) {
-      console.error('[KnowledgePayment] 初始化失败:', error);
+      logger.error('[KnowledgePayment] 初始化失败:', error);
       return false;
     }
   }
@@ -124,7 +125,7 @@ class KnowledgePaymentManager extends EventEmitter {
       )
     `);
 
-    console.log('[KnowledgePayment] 数据库表初始化完成');
+    logger.info('[KnowledgePayment] 数据库表初始化完成');
   }
 
   /**
@@ -214,7 +215,7 @@ class KnowledgePaymentManager extends EventEmitter {
       this.p2pManager.broadcast('knowledge:new-content', contentData);
     }
 
-    console.log('[KnowledgePayment] 付费内容已创建:', contentId);
+    logger.info('[KnowledgePayment] 付费内容已创建:', contentId);
     return contentData;
   }
 
@@ -317,7 +318,7 @@ class KnowledgePaymentManager extends EventEmitter {
       amount: content.price_amount
     });
 
-    console.log('[KnowledgePayment] 内容购买成功:', contentId);
+    logger.info('[KnowledgePayment] 内容购买成功:', contentId);
     return { purchaseId, contentId };
   }
 
@@ -477,7 +478,7 @@ class KnowledgePaymentManager extends EventEmitter {
       now
     );
 
-    console.log('[KnowledgePayment] 订阅计划已创建:', planId);
+    logger.info('[KnowledgePayment] 订阅计划已创建:', planId);
     return { planId, planName };
   }
 
@@ -564,7 +565,7 @@ class KnowledgePaymentManager extends EventEmitter {
       creatorDid: plan.creator_did
     });
 
-    console.log('[KnowledgePayment] 订阅成功:', subscriptionId);
+    logger.info('[KnowledgePayment] 订阅成功:', subscriptionId);
     return { subscriptionId, endDate };
   }
 
@@ -592,7 +593,7 @@ class KnowledgePaymentManager extends EventEmitter {
     `).run(subscriptionId);
 
     this.emit('subscription:cancelled', { subscriptionId });
-    console.log('[KnowledgePayment] 订阅已取消:', subscriptionId);
+    logger.info('[KnowledgePayment] 订阅已取消:', subscriptionId);
   }
 
   /**

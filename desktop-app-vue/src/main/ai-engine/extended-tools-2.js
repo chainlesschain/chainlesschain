@@ -3,6 +3,7 @@
  * 包含第二批20个新增工具的处理函数
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const crypto = require('crypto');
 const fs = require('fs').promises;
 const dns = require('dns').promises;
@@ -927,7 +928,7 @@ class ExtendedTools2 {
       }
     );
 
-    console.log('[Extended Tools 2] 已注册20个扩展工具');
+    logger.info('[Extended Tools 2] 已注册20个扩展工具');
   }
 }
 

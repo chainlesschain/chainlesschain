@@ -4,6 +4,7 @@
  * 提供多媒体组件的国际化支持
  */
 
+import { logger, createLogger } from '@/utils/logger';
 import { ref, computed } from 'vue';
 import type { ComputedRef } from 'vue';
 import { multimediaI18n, type MultimediaLocale } from '../i18n/multimedia';
@@ -69,10 +70,10 @@ export function useMultimediaI18n() {
       try {
         localStorage.setItem('multimedia-locale', locale);
       } catch (e) {
-        console.warn('[useMultimediaI18n] Failed to save locale to localStorage:', e);
+        logger.warn('[useMultimediaI18n] Failed to save locale to localStorage:', e);
       }
     } else {
-      console.warn(`[useMultimediaI18n] Locale "${locale}" not found, using default`);
+      logger.warn(`[useMultimediaI18n] Locale "${locale}" not found, using default`);
     }
   };
 
@@ -149,7 +150,7 @@ export function initMultimediaI18n() {
       currentLocale.value = savedLocale as MultimediaLocale;
     }
   } catch (e) {
-    console.warn('[initMultimediaI18n] Failed to load locale from localStorage:', e);
+    logger.warn('[initMultimediaI18n] Failed to load locale from localStorage:', e);
   }
 }
 

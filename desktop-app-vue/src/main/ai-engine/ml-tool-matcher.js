@@ -13,6 +13,7 @@
  * Date: 2026-01-02
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const FeatureExtractor = require('./feature-extractor');
 
 class MLToolMatcher {
@@ -96,7 +97,7 @@ class MLToolMatcher {
 
       return recommendations;
     } catch (error) {
-      console.error('[MLToolMatcher] 推荐失败:', error);
+      logger.error('[MLToolMatcher] 推荐失败:', error);
       return [];
     }
   }
@@ -279,7 +280,7 @@ class MLToolMatcher {
 
       return smoothedRate;
     } catch (error) {
-      console.error('[MLToolMatcher] 查询历史成功率失败:', error);
+      logger.error('[MLToolMatcher] 查询历史成功率失败:', error);
       return 0.5;
     }
   }
@@ -370,7 +371,7 @@ class MLToolMatcher {
         this.config.enableML ? 'ml_model' : 'rule_based'
       );
     } catch (error) {
-      console.error('[MLToolMatcher] 记录推荐失败:', error);
+      logger.error('[MLToolMatcher] 记录推荐失败:', error);
     }
   }
 
@@ -401,7 +402,7 @@ class MLToolMatcher {
         this.stats.rejectedRecommendations++;
       }
     } catch (error) {
-      console.error('[MLToolMatcher] 反馈失败:', error);
+      logger.error('[MLToolMatcher] 反馈失败:', error);
     }
   }
 

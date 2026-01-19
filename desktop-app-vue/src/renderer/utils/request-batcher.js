@@ -1,3 +1,5 @@
+import { logger, createLogger } from '@/utils/logger';
+
 /**
  * Request Batcher and Deduplication System
  * 请求批处理和去重系统
@@ -46,7 +48,7 @@ class RequestBatcher {
     this.startCacheCleanup()
 
     if (this.options.debug) {
-      console.log('[RequestBatcher] Initialized with options:', this.options)
+      logger.info('[RequestBatcher] Initialized with options:', this.options)
     }
   }
 
@@ -69,7 +71,7 @@ class RequestBatcher {
       if (cached !== null) {
         this.stats.cachedRequests++
         if (this.options.debug) {
-          console.log(`[RequestBatcher] Cache hit: ${endpoint}`)
+          logger.info(`[RequestBatcher] Cache hit: ${endpoint}`)
         }
         return cached
       }
@@ -81,7 +83,7 @@ class RequestBatcher {
       if (inflight) {
         this.stats.deduplicatedRequests++
         if (this.options.debug) {
-          console.log(`[RequestBatcher] Deduplicated: ${endpoint}`)
+          logger.info(`[RequestBatcher] Deduplicated: ${endpoint}`)
         }
         return inflight
       }
@@ -155,7 +157,7 @@ class RequestBatcher {
     this.stats.batchedRequests += batchSize
 
     if (this.options.debug) {
-      console.log(`[RequestBatcher] Executing batch: ${endpoint} (${batchSize} requests)`)
+      logger.info(`[RequestBatcher] Executing batch: ${endpoint} (${batchSize} requests)`)
     }
 
     try {
@@ -186,10 +188,10 @@ class RequestBatcher {
       })
 
       if (this.options.debug) {
-        console.log(`[RequestBatcher] Batch completed: ${endpoint} (${Math.round(responseTime)}ms)`)
+        logger.info(`[RequestBatcher] Batch completed: ${endpoint} (${Math.round(responseTime)}ms)`)
       }
     } catch (error) {
-      console.error(`[RequestBatcher] Batch failed: ${endpoint}`, error)
+      logger.error(`[RequestBatcher] Batch failed: ${endpoint}`, error)
       this.stats.failedRequests += batchSize
 
       // Reject all promises
@@ -338,7 +340,7 @@ class RequestBatcher {
   clearCache() {
     this.cache.clear()
     if (this.options.debug) {
-      console.log('[RequestBatcher] Cache cleared')
+      logger.info('[RequestBatcher] Cache cleared')
     }
   }
 
@@ -358,7 +360,7 @@ class RequestBatcher {
       }
 
       if (cleaned > 0 && this.options.debug) {
-        console.log(`[RequestBatcher] Cleaned ${cleaned} expired cache entries`)
+        logger.info(`[RequestBatcher] Cleaned ${cleaned} expired cache entries`)
       }
     }, 60 * 1000) // Clean every minute
   }
@@ -422,7 +424,7 @@ class RequestBatcher {
     this.cache.clear()
 
     if (this.options.debug) {
-      console.log('[RequestBatcher] Destroyed')
+      logger.info('[RequestBatcher] Destroyed')
     }
   }
 }

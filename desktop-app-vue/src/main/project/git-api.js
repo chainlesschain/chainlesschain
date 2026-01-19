@@ -1,3 +1,5 @@
+const { logger, createLogger } = require('../utils/logger.js');
+
 /**
  * Git API 封装
  * 提供项目 Git 操作的后端API调用
@@ -36,7 +38,7 @@ class GitAPI {
         data: null
       };
     } catch (error) {
-      console.error(`[GitAPI] Error calling ${endpoint}:`, error);
+      logger.error(`[GitAPI] Error calling ${endpoint}:`, error);
       return {
         success: false,
         status: 0,

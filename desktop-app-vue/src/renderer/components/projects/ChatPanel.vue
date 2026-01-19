@@ -210,6 +210,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, watch, onMounted, nextTick, reactive } from "vue";
 import { message as antMessage } from "ant-design-vue";
 import {
@@ -360,7 +362,7 @@ const cleanForIPC = (obj) => {
     // 使用JSON序列化来清理不可序列化的对象
     return JSON.parse(JSON.stringify(obj));
   } catch (error) {
-    console.error("[ChatPanel] 清理对象失败，使用手动清理:", error);
+    logger.error("[ChatPanel] 清理对象失败，使用手动清理:", error);
 
     // 如果JSON.stringify失败（可能是循环引用），手动清理
     const seen = new WeakSet();
@@ -466,7 +468,7 @@ const renderMarkdown = (content) => {
     const rawHTML = marked.parse(textContent);
     return rawHTML;
   } catch (error) {
-    console.error("Markdown 渲染失败:", error);
+    logger.error("Markdown 渲染失败:", error);
     // 发生错误时，转义文本以防止 XSS
     const div = document.createElement("div");
     div.textContent = String(content || "");
@@ -521,7 +523,7 @@ const formatTime = (timestamp) => {
 const openFile = (source) => {
   if (!source) {return;}
 
-  console.log("[ChatPanel] 打开文件:", source);
+  logger.info("[ChatPanel] 打开文件:", source);
 
   // 获取文件路径
   const filePath = source.filePath || source.path || source.metadata?.filePath;
@@ -545,7 +547,7 @@ const openFile = (source) => {
 const handleFileClick = (file) => {
   if (!file) {return;}
 
-  console.log("[ChatPanel] 打开附件文件:", file);
+  logger.info("[ChatPanel] 打开附件文件:", file);
 
   // 触发事件通知父组件打开文件
   emit("open-file", {
@@ -593,7 +595,7 @@ const buildSmartContextHistory = () => {
     }
   });
 
-  console.log("[ChatPanel] 📊 消息分类:", {
+  logger.info("[ChatPanel] 📊 消息分类:", {
     total: messages.value.length,
     important: importantMessages.length,
     regular: regularMessages.length,
@@ -647,7 +649,7 @@ const buildSmartContextHistory = () => {
     type: msg.type,
   }));
 
-  console.log("[ChatPanel] 📝 智能上下文历史:", {
+  logger.info("[ChatPanel] 📝 智能上下文历史:", {
     selectedMessages: conversationHistory.length,
     fromTotal: messages.value.length,
     turns: Math.floor(
@@ -686,7 +688,7 @@ const buildProjectContext = async () => {
 
     return context;
   } catch (error) {
-    console.error("构建项目上下文失败:", error);
+    logger.error("构建项目上下文失败:", error);
     return "";
   }
 };
@@ -731,13 +733,13 @@ const handleSendMessage = async () => {
 
   // 检查API是否可用
   if (!window.electronAPI?.project) {
-    console.error("[ChatPanel] Project API 不可用:", window.electronAPI);
+    logger.error("[ChatPanel] Project API 不可用:", window.electronAPI);
     antMessage.error("Project API 不可用，请重启应用");
     return;
   }
 
   if (!window.electronAPI?.conversation) {
-    console.error("[ChatPanel] Conversation API 不可用:", window.electronAPI);
+    logger.error("[ChatPanel] Conversation API 不可用:", window.electronAPI);
     antMessage.error("对话 API 不可用，请重启应用");
     return;
   }
@@ -751,17 +753,17 @@ const handleSendMessage = async () => {
   isLoading.value = true;
   userInput.value = "";
 
-  console.log("[ChatPanel] 准备发送消息，input:", input);
+  logger.info("[ChatPanel] 准备发送消息，input:", input);
 
   // 🔥 NEW: 检查是否有正在执行的任务，判断后续输入意图
   const executingTask = findExecutingTask(messages.value);
   if (executingTask && executingTask.metadata?.status === "executing") {
-    console.log("[ChatPanel] 🎯 检测到正在执行的任务，分析后续输入意图");
+    logger.info("[ChatPanel] 🎯 检测到正在执行的任务，分析后续输入意图");
 
     try {
       // 检查 followupIntent API 是否可用
       if (!window.electronAPI?.followupIntent) {
-        console.warn(
+        logger.warn(
           "[ChatPanel] followupIntent API 不可用，跳过后续输入意图分类",
         );
       } else {
@@ -777,7 +779,7 @@ const handleSendMessage = async () => {
           const { intent, confidence, reason, extractedInfo } =
             classifyResult.data;
 
-          console.log(formatIntentLog(classifyResult, input));
+          logger.info(formatIntentLog(classifyResult, input));
 
           // 根据意图类型采取不同的行动
           await handleFollowupIntent(
@@ -791,25 +793,25 @@ const handleSendMessage = async () => {
           isLoading.value = false;
           return;
         } else {
-          console.error("[ChatPanel] 意图分类失败:", classifyResult.error);
+          logger.error("[ChatPanel] 意图分类失败:", classifyResult.error);
         }
       }
     } catch (error) {
-      console.error("[ChatPanel] 后续输入意图分类异常:", error);
+      logger.error("[ChatPanel] 后续输入意图分类异常:", error);
       // 继续执行原有逻辑
     }
   }
 
   // 🔥 任务规划模式：对复杂任务进行需求分析和任务规划
   if (enablePlanning.value && shouldUsePlanning(input)) {
-    console.log("[ChatPanel] 检测到复杂任务，启动任务规划模式");
+    logger.info("[ChatPanel] 检测到复杂任务，启动任务规划模式");
     await startTaskPlanning(input);
     isLoading.value = false;
     return;
   }
 
   // 🔥 新增：意图理解和确认步骤
-  console.log("[ChatPanel] 🎯 启动意图理解流程");
+  logger.info("[ChatPanel] 🎯 启动意图理解流程");
   try {
     await understandUserIntent(input);
     // 意图理解后，等待用户确认或纠正
@@ -817,7 +819,7 @@ const handleSendMessage = async () => {
     isLoading.value = false;
     return;
   } catch (error) {
-    console.error("[ChatPanel] 意图理解失败，继续执行原流程:", error);
+    logger.error("[ChatPanel] 意图理解失败，继续执行原流程:", error);
     // 如果意图理解失败，继续原有流程（已在 understandUserIntent 中处理）
     isLoading.value = false;
     return;
@@ -834,7 +836,7 @@ const getProjectFiles = async () => {
     const result = await window.electronAPI.project.getFiles(props.projectId);
     return result.files || [];
   } catch (error) {
-    console.error("获取文件列表失败:", error);
+    logger.error("获取文件列表失败:", error);
     return [];
   }
 };
@@ -864,7 +866,7 @@ const handleClearConversation = async () => {
 
     antMessage.success("对话已清空");
   } catch (error) {
-    console.error("清空对话失败:", error);
+    logger.error("清空对话失败:", error);
     antMessage.error("清空对话失败");
   }
 };
@@ -933,13 +935,13 @@ const handleLoadMoreMessages = async () => {
       );
 
       messageLoadState.currentPage = nextPage;
-      console.log(`[ChatPanel] 📜 加载了${loadedMessages.length}条历史消息`);
+      logger.info(`[ChatPanel] 📜 加载了${loadedMessages.length}条历史消息`);
     } else {
       messageLoadState.hasMore = false;
-      console.log("[ChatPanel] 📜 没有更多历史消息");
+      logger.info("[ChatPanel] 📜 没有更多历史消息");
     }
   } catch (error) {
-    console.error("[ChatPanel] 加载历史消息失败:", error);
+    logger.error("[ChatPanel] 加载历史消息失败:", error);
     antMessage.error("加载历史消息失败");
   } finally {
     messageLoadState.isLoadingMore = false;
@@ -951,14 +953,14 @@ const handleLoadMoreMessages = async () => {
  */
 const handleScrollToBottom = () => {
   // 可以在这里添加逻辑，比如标记消息为已读
-  console.log("[ChatPanel] 📍 已滚动到底部");
+  logger.info("[ChatPanel] 📍 已滚动到底部");
 };
 
 /**
  * 取消AI思考/生成
  */
 const handleCancelThinking = () => {
-  console.log("[ChatPanel] ⛔ 用户取消了AI思考");
+  logger.info("[ChatPanel] ⛔ 用户取消了AI思考");
   isLoading.value = false;
   thinkingState.show = false;
 
@@ -980,7 +982,7 @@ const createConversation = async () => {
   try {
     // 检查API是否可用
     if (!window.electronAPI?.conversation) {
-      console.warn("[ChatPanel] 对话API未实现，跳过创建");
+      logger.warn("[ChatPanel] 对话API未实现，跳过创建");
       return;
     }
 
@@ -1014,7 +1016,7 @@ const createConversation = async () => {
       throw new Error(result?.error || "创建对话失败");
     }
   } catch (error) {
-    console.error("创建对话失败:", error);
+    logger.error("创建对话失败:", error);
     antMessage.error("创建对话失败");
   }
 };
@@ -1026,7 +1028,7 @@ const loadConversation = async () => {
   try {
     // 检查对话API是否可用
     if (!window.electronAPI?.conversation) {
-      console.warn("[ChatPanel] 对话API未实现，跳过加载");
+      logger.warn("[ChatPanel] 对话API未实现，跳过加载");
       messages.value = [];
       currentConversation.value = null;
       return;
@@ -1048,7 +1050,7 @@ const loadConversation = async () => {
       ) {
         conversation = result.data[0]; // 取第一个对话
       } else if (result && !result.success) {
-        console.warn("[ChatPanel] 获取项目对话失败:", result.error);
+        logger.warn("[ChatPanel] 获取项目对话失败:", result.error);
       }
 
       if (conversation) {
@@ -1079,7 +1081,7 @@ const loadConversation = async () => {
             try {
               metadata = JSON.parse(metadata);
             } catch (e) {
-              console.error("[ChatPanel] metadata 解析失败:", e, metadata);
+              logger.error("[ChatPanel] metadata 解析失败:", e, metadata);
             }
           }
 
@@ -1104,7 +1106,7 @@ const loadConversation = async () => {
             const currentIdx = msg.metadata.currentIndex || 0;
             const totalQuestions = msg.metadata.questions?.length || 0;
 
-            console.log("[ChatPanel] 🔍 检查采访消息", {
+            logger.info("[ChatPanel] 🔍 检查采访消息", {
               messageId: msg.id,
               currentIndex: currentIdx,
               totalQuestions: totalQuestions,
@@ -1113,7 +1115,7 @@ const loadConversation = async () => {
             });
 
             if (currentIdx > totalQuestions) {
-              console.warn("[ChatPanel] 🔧 修复损坏的采访消息数据", {
+              logger.warn("[ChatPanel] 🔧 修复损坏的采访消息数据", {
                 messageId: msg.id,
                 原currentIndex: currentIdx,
                 问题总数: totalQuestions,
@@ -1124,7 +1126,7 @@ const loadConversation = async () => {
           }
         });
 
-        console.log(
+        logger.info(
           "[ChatPanel] 💾 从数据库恢复了",
           messages.value.length,
           "条消息",
@@ -1146,7 +1148,7 @@ const loadConversation = async () => {
       currentConversation.value = null;
     }
   } catch (error) {
-    console.error("加载对话失败:", error);
+    logger.error("加载对话失败:", error);
     // 不显示错误消息，因为API可能未实现
   }
 };
@@ -1180,7 +1182,7 @@ watch(
  * 开始AI创建项目
  */
 const startAICreation = async (createData) => {
-  console.log("[ChatPanel] 开始AI创建项目:", createData);
+  logger.info("[ChatPanel] 开始AI创建项目:", createData);
 
   // 创建一个系统消息来展示创建过程
   const creationMessage = {
@@ -1208,7 +1210,7 @@ const startAICreation = async (createData) => {
 
     // 调用流式创建
     await projectStore.createProjectStream(createData, (progressUpdate) => {
-      console.log("[ChatPanel] 收到创建进度更新:", progressUpdate);
+      logger.info("[ChatPanel] 收到创建进度更新:", progressUpdate);
 
       // 更新消息中的进度信息
       const message = messages.value.find((m) => m.id === creationMessage.id);
@@ -1258,7 +1260,7 @@ const startAICreation = async (createData) => {
       }
     });
   } catch (error) {
-    console.error("[ChatPanel] AI创建失败:", error);
+    logger.error("[ChatPanel] AI创建失败:", error);
 
     const message = messages.value.find((m) => m.id === creationMessage.id);
     if (message) {
@@ -1306,12 +1308,12 @@ const shouldUsePlanning = (input) => {
  * @param {string} userInput - 用户输入
  */
 const startTaskPlanning = async (userInput) => {
-  console.log("[ChatPanel] 🚀 启动任务规划流程:", userInput);
+  logger.info("[ChatPanel] 🚀 启动任务规划流程:", userInput);
 
   try {
     // 0. 确保对话已创建
     if (!currentConversation.value) {
-      console.log("[ChatPanel] 对话不存在，创建新对话...");
+      logger.info("[ChatPanel] 对话不存在，创建新对话...");
       await createConversation();
 
       if (!currentConversation.value) {
@@ -1327,11 +1329,11 @@ const startTaskPlanning = async (userInput) => {
       currentConversation.value.id,
     );
     messages.value.push(userMessage);
-    console.log(
+    logger.info(
       "[ChatPanel] 💬 用户消息已添加到列表，当前消息数:",
       messages.value.length,
     );
-    console.log("[ChatPanel] 💬 用户消息内容:", userMessage);
+    logger.info("[ChatPanel] 💬 用户消息内容:", userMessage);
 
     // 🔥 立即滚动到底部，确保用户能看到自己的消息
     await nextTick();
@@ -1347,9 +1349,9 @@ const startTaskPlanning = async (userInput) => {
           content: userInput,
           timestamp: userMessage.timestamp,
         });
-        console.log("[ChatPanel] 💾 用户消息已保存，id:", userMessage.id);
+        logger.info("[ChatPanel] 💾 用户消息已保存，id:", userMessage.id);
       } catch (error) {
-        console.error("[ChatPanel] 保存用户消息失败:", error);
+        logger.error("[ChatPanel] 保存用户消息失败:", error);
       }
     }
 
@@ -1359,7 +1361,7 @@ const startTaskPlanning = async (userInput) => {
       { type: "loading" },
     );
     messages.value.push(analyzingMsg);
-    console.log(
+    logger.info(
       "[ChatPanel] 📝 系统消息已添加，当前消息数:",
       messages.value.length,
     );
@@ -1384,10 +1386,10 @@ const startTaskPlanning = async (userInput) => {
 
           // 监听流式chunk事件
           const handleChunk = (chunkData) => {
-            console.log("[ChatPanel] 📥 收到 chunk 事件:", chunkData);
+            logger.info("[ChatPanel] 📥 收到 chunk 事件:", chunkData);
             if (!streamStarted) {
               streamStarted = true;
-              console.log("[ChatPanel] 🎬 流式输出开始");
+              logger.info("[ChatPanel] 🎬 流式输出开始");
               // 第一次收到chunk时，更新消息类型
               thinkingMsg.content = ""; // 清空初始文本
               thinkingMsg.metadata.type = "streaming";
@@ -1408,7 +1410,7 @@ const startTaskPlanning = async (userInput) => {
               };
               messages.value = [...messages.value]; // 触发数组更新
             }
-            console.log("[ChatPanel] 📝 更新内容，长度:", fullResponse.length);
+            logger.info("[ChatPanel] 📝 更新内容，长度:", fullResponse.length);
 
             nextTick(() => scrollToBottom());
           };
@@ -1465,7 +1467,7 @@ const startTaskPlanning = async (userInput) => {
           };
 
           // 注册事件监听器
-          console.log("[ChatPanel] 📡 注册流式事件监听器");
+          logger.info("[ChatPanel] 📡 注册流式事件监听器");
           window.electronAPI.project.on(
             "project:aiChatStream-chunk",
             handleChunk,
@@ -1480,7 +1482,7 @@ const startTaskPlanning = async (userInput) => {
           );
 
           // 调用流式API
-          console.log("[ChatPanel] 🚀 开始调用流式 API");
+          logger.info("[ChatPanel] 🚀 开始调用流式 API");
           window.electronAPI.project
             .aiChatStream({
               projectId: props.projectId,
@@ -1492,7 +1494,7 @@ const startTaskPlanning = async (userInput) => {
               fileList: [],
             })
             .catch((error) => {
-              console.error("[ChatPanel] ❌ API 调用失败:", error);
+              logger.error("[ChatPanel] ❌ API 调用失败:", error);
               handleError(error);
             });
         });
@@ -1504,7 +1506,7 @@ const startTaskPlanning = async (userInput) => {
       projectType,
       llmService,
     );
-    console.log("[ChatPanel] ✅ 需求分析完成:", analysis);
+    logger.info("[ChatPanel] ✅ 需求分析完成:", analysis);
 
     // 更新"正在分析"消息为完成状态
     analyzingMsg.content = "✅ 需求分析完成";
@@ -1525,7 +1527,7 @@ const startTaskPlanning = async (userInput) => {
 
     // 4. 如果需求完整，直接生成计划
     if (analysis.isComplete && analysis.confidence > 0.7) {
-      console.log("[ChatPanel] 需求完整，直接生成任务计划");
+      logger.info("[ChatPanel] 需求完整，直接生成任务计划");
 
       // 添加系统消息
       const completeMsgContent = createSystemMessage(
@@ -1548,11 +1550,11 @@ const startTaskPlanning = async (userInput) => {
       analysis.suggestedQuestions &&
       analysis.suggestedQuestions.length > 0
     ) {
-      console.log(
+      logger.info(
         "[ChatPanel] 需求不完整，启动采访模式，问题数:",
         analysis.suggestedQuestions.length,
       );
-      console.log("[ChatPanel] 问题列表:", analysis.suggestedQuestions);
+      logger.info("[ChatPanel] 问题列表:", analysis.suggestedQuestions);
 
       // 创建采访消息
       const interviewMsg = createInterviewMessage(
@@ -1563,17 +1565,17 @@ const startTaskPlanning = async (userInput) => {
       interviewMsg.metadata.userInput = userInput;
       interviewMsg.metadata.analysis = analysis;
 
-      console.log("[ChatPanel] 创建的采访消息:", interviewMsg);
-      console.log("[ChatPanel] 添加前 messages 数量:", messages.value.length);
+      logger.info("[ChatPanel] 创建的采访消息:", interviewMsg);
+      logger.info("[ChatPanel] 添加前 messages 数量:", messages.value.length);
 
       messages.value.push(interviewMsg);
 
-      console.log("[ChatPanel] 添加后 messages 数量:", messages.value.length);
-      console.log(
+      logger.info("[ChatPanel] 添加后 messages 数量:", messages.value.length);
+      logger.info(
         "[ChatPanel] 最后一条消息类型:",
         messages.value[messages.value.length - 1]?.type,
       );
-      console.log(
+      logger.info(
         "[ChatPanel] 最后一条消息内容:",
         messages.value[messages.value.length - 1],
       );
@@ -1590,12 +1592,12 @@ const startTaskPlanning = async (userInput) => {
             type: MessageType.INTERVIEW,
             metadata: cleanForIPC(interviewMsg.metadata), // 🔥 清理不可序列化的对象
           });
-          console.log(
+          logger.info(
             "[ChatPanel] 💾 采访消息已保存到数据库，id:",
             interviewMsg.id,
           );
         } catch (error) {
-          console.error("[ChatPanel] 保存采访消息失败:", error);
+          logger.error("[ChatPanel] 保存采访消息失败:", error);
         }
       }
 
@@ -1618,7 +1620,7 @@ const startTaskPlanning = async (userInput) => {
     );
     messages.value.push(errorMsg);
   } catch (error) {
-    console.error("[ChatPanel] ❌ 任务规划启动失败:", error);
+    logger.error("[ChatPanel] ❌ 任务规划启动失败:", error);
 
     const errorMsg = createSystemMessage(`任务规划失败: ${error.message}`, {
       type: "error",
@@ -1640,7 +1642,7 @@ const generateTaskPlanMessage = async (
   analysis,
   interviewAnswers = {},
 ) => {
-  console.log("[ChatPanel] 🔨 开始生成任务计划...");
+  logger.info("[ChatPanel] 🔨 开始生成任务计划...");
 
   try {
     // 添加"正在生成"系统消息
@@ -1786,7 +1788,7 @@ const generateTaskPlanMessage = async (
     };
 
     const plan = await TaskPlanner.generatePlan(fakeSession, llmService);
-    console.log("[ChatPanel] ✅ 任务计划生成完成:", plan);
+    logger.info("[ChatPanel] ✅ 任务计划生成完成:", plan);
 
     // 移除"正在生成"消息
     const generatingIndex = messages.value.findIndex(
@@ -1812,18 +1814,18 @@ const generateTaskPlanMessage = async (
           type: MessageType.TASK_PLAN,
           metadata: cleanForIPC(planMsg.metadata), // 🔥 清理不可序列化的对象
         });
-        console.log(
+        logger.info(
           "[ChatPanel] 💾 任务计划消息已保存到数据库，id:",
           planMsg.id,
         );
       } catch (error) {
-        console.error("[ChatPanel] 保存任务计划消息失败:", error);
+        logger.error("[ChatPanel] 保存任务计划消息失败:", error);
       }
     }
 
     // 🎨 检测是否是PPT任务，如果是则自动生成PPT文件
-    console.log("[ChatPanel] 🔍 检测PPT任务，userInput:", userInput);
-    console.log("[ChatPanel] 🔍 plan.title:", plan.title);
+    logger.info("[ChatPanel] 🔍 检测PPT任务，userInput:", userInput);
+    logger.info("[ChatPanel] 🔍 plan.title:", plan.title);
     const isPPTTask =
       userInput.toLowerCase().includes("ppt") ||
       userInput.toLowerCase().includes("演示") ||
@@ -1831,7 +1833,7 @@ const generateTaskPlanMessage = async (
       userInput.toLowerCase().includes("powerpoint") ||
       (plan.title && plan.title.toLowerCase().includes("ppt"));
 
-    console.log("[ChatPanel] 🔍 isPPTTask:", isPPTTask);
+    logger.info("[ChatPanel] 🔍 isPPTTask:", isPPTTask);
 
     // 📝 检测是否是Word文档任务
     const isWordTask =
@@ -1846,7 +1848,7 @@ const generateTaskPlanMessage = async (
           plan.title.toLowerCase().includes("报告") ||
           plan.title.toLowerCase().includes("总结")));
 
-    console.log("[ChatPanel] 🔍 isWordTask:", isWordTask);
+    logger.info("[ChatPanel] 🔍 isWordTask:", isWordTask);
 
     // 📊 检测是否是Excel/数据分析任务
     const isExcelTask =
@@ -1860,7 +1862,7 @@ const generateTaskPlanMessage = async (
           plan.title.toLowerCase().includes("表格") ||
           plan.title.toLowerCase().includes("数据")));
 
-    console.log("[ChatPanel] 🔍 isExcelTask:", isExcelTask);
+    logger.info("[ChatPanel] 🔍 isExcelTask:", isExcelTask);
 
     // 📄 检测是否是Markdown任务
     const isMarkdownTask =
@@ -1872,7 +1874,7 @@ const generateTaskPlanMessage = async (
         (plan.title.toLowerCase().includes("markdown") ||
           plan.title.toLowerCase().includes("技术文档")));
 
-    console.log("[ChatPanel] 🔍 isMarkdownTask:", isMarkdownTask);
+    logger.info("[ChatPanel] 🔍 isMarkdownTask:", isMarkdownTask);
 
     // 🌐 检测是否是网页任务
     const isWebTask =
@@ -1885,9 +1887,9 @@ const generateTaskPlanMessage = async (
           plan.title.toLowerCase().includes("html") ||
           plan.title.toLowerCase().includes("网站")));
 
-    console.log("[ChatPanel] 🔍 isWebTask:", isWebTask);
+    logger.info("[ChatPanel] 🔍 isWebTask:", isWebTask);
     if (isPPTTask) {
-      console.log("[ChatPanel] 🎨 检测到PPT任务，开始生成PPT文件...");
+      logger.info("[ChatPanel] 🎨 检测到PPT任务，开始生成PPT文件...");
 
       // 显示"正在生成PPT"消息
       const generatingPPTMsg = createSystemMessage("⏳ 正在生成PPT文件...", {
@@ -1928,7 +1930,7 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
 \`\`\``;
 
         const outlineResponse = await llmService.chat(outlinePrompt);
-        console.log("[ChatPanel] 📄 LLM生成的PPT大纲:", outlineResponse);
+        logger.info("[ChatPanel] 📄 LLM生成的PPT大纲:", outlineResponse);
 
         // 提取JSON大纲
         const jsonMatch =
@@ -1941,13 +1943,13 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
 
         // 🔥 清理JSON字符串中的控制字符，防止解析错误
         const sanitizedJSON = sanitizeJSONString(jsonMatch[1]);
-        console.log(
+        logger.info(
           "[ChatPanel] 🧹 JSON字符串已清理，长度:",
           sanitizedJSON.length,
         );
 
         const outline = JSON.parse(sanitizedJSON);
-        console.log("[ChatPanel] ✅ PPT大纲解析成功:", outline);
+        logger.info("[ChatPanel] ✅ PPT大纲解析成功:", outline);
 
         // 更新消息为"正在写入文件"
         generatingPPTMsg.content = "⏳ 正在写入PPT文件...";
@@ -1975,7 +1977,7 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
         });
 
         if (result.success) {
-          console.log("[ChatPanel] ✅ PPT文件生成成功:", result.fileName);
+          logger.info("[ChatPanel] ✅ PPT文件生成成功:", result.fileName);
 
           // 移除"正在生成"消息
           const genPPTIndex = messages.value.findIndex(
@@ -1996,14 +1998,14 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
 
           // 🔄 延迟2秒后刷新文件树，避免立即刷新导致对话面板重新渲染
           setTimeout(() => {
-            console.log("[ChatPanel] 延迟刷新文件树");
+            logger.info("[ChatPanel] 延迟刷新文件树");
             emit("files-changed");
           }, 2000);
         } else {
           throw new Error(result.error || "生成PPT失败");
         }
       } catch (error) {
-        console.error("[ChatPanel] ❌ 生成PPT文件失败:", error);
+        logger.error("[ChatPanel] ❌ 生成PPT文件失败:", error);
 
         // 移除"正在生成"消息
         const genPPTIndex = messages.value.findIndex(
@@ -2026,7 +2028,7 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
 
     // 📝 如果是Word文档任务，自动生成Word文件
     if (isWordTask) {
-      console.log("[ChatPanel] 📝 检测到Word文档任务，开始生成Word文件...");
+      logger.info("[ChatPanel] 📝 检测到Word文档任务，开始生成Word文件...");
 
       // 显示"正在生成Word"消息
       const generatingWordMsg = createSystemMessage("⏳ 正在生成Word文档...", {
@@ -2062,7 +2064,7 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
 \`\`\``;
 
         const structureResponse = await llmService.chat(structurePrompt);
-        console.log("[ChatPanel] 📄 LLM生成的文档结构:", structureResponse);
+        logger.info("[ChatPanel] 📄 LLM生成的文档结构:", structureResponse);
 
         // 提取JSON结构
         const jsonMatch =
@@ -2075,13 +2077,13 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
 
         // 🔥 清理JSON字符串中的控制字符，防止解析错误
         const sanitizedJSON = sanitizeJSONString(jsonMatch[1]);
-        console.log(
+        logger.info(
           "[ChatPanel] 🧹 JSON字符串已清理，长度:",
           sanitizedJSON.length,
         );
 
         const documentStructure = JSON.parse(sanitizedJSON);
-        console.log("[ChatPanel] ✅ 文档结构解析成功:", documentStructure);
+        logger.info("[ChatPanel] ✅ 文档结构解析成功:", documentStructure);
 
         // 更新消息为"正在写入文件"
         generatingWordMsg.content = "⏳ 正在写入Word文件...";
@@ -2106,7 +2108,7 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
         });
 
         if (result.success) {
-          console.log("[ChatPanel] ✅ Word文件生成成功:", result.fileName);
+          logger.info("[ChatPanel] ✅ Word文件生成成功:", result.fileName);
 
           // 移除"正在生成"消息
           const genWordIndex = messages.value.findIndex(
@@ -2127,14 +2129,14 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
 
           // 🔄 延迟2秒后刷新文件树
           setTimeout(() => {
-            console.log("[ChatPanel] 延迟刷新文件树");
+            logger.info("[ChatPanel] 延迟刷新文件树");
             emit("files-changed");
           }, 2000);
         } else {
           throw new Error(result.error || "生成Word文档失败");
         }
       } catch (error) {
-        console.error("[ChatPanel] ❌ 生成Word文件失败:", error);
+        logger.error("[ChatPanel] ❌ 生成Word文件失败:", error);
 
         // 移除"正在生成"消息
         const genWordIndex = messages.value.findIndex(
@@ -2157,7 +2159,7 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
 
     // 📊 如果是Excel任务，自动生成Excel文件
     if (isExcelTask) {
-      console.log("[ChatPanel] 📊 检测到Excel任务，开始生成Excel文件...");
+      logger.info("[ChatPanel] 📊 检测到Excel任务，开始生成Excel文件...");
 
       const generatingExcelMsg = createSystemMessage(
         "⏳ 正在生成Excel文件...",
@@ -2191,7 +2193,7 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
 \`\`\``;
 
         const dataResponse = await llmService.chat(dataPrompt);
-        console.log("[ChatPanel] 📄 LLM生成的数据结构:", dataResponse);
+        logger.info("[ChatPanel] 📄 LLM生成的数据结构:", dataResponse);
 
         const jsonMatch =
           dataResponse.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/) ||
@@ -2203,13 +2205,13 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
 
         // 🔥 清理JSON字符串中的控制字符，防止解析错误
         const sanitizedJSON = sanitizeJSONString(jsonMatch[1]);
-        console.log(
+        logger.info(
           "[ChatPanel] 🧹 JSON字符串已清理，长度:",
           sanitizedJSON.length,
         );
 
         const dataStructure = JSON.parse(sanitizedJSON);
-        console.log("[ChatPanel] ✅ 数据结构解析成功:", dataStructure);
+        logger.info("[ChatPanel] ✅ 数据结构解析成功:", dataStructure);
 
         generatingExcelMsg.content = "⏳ 正在写入Excel文件...";
         messages.value = [...messages.value];
@@ -2232,7 +2234,7 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
           data: dataStructure.data,
         });
 
-        console.log("[ChatPanel] ✅ Excel文件生成成功");
+        logger.info("[ChatPanel] ✅ Excel文件生成成功");
 
         const genExcelIndex = messages.value.findIndex(
           (m) => m.id === generatingExcelMsg.id,
@@ -2253,7 +2255,7 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
           emit("files-changed");
         }, 2000);
       } catch (error) {
-        console.error("[ChatPanel] ❌ 生成Excel文件失败:", error);
+        logger.error("[ChatPanel] ❌ 生成Excel文件失败:", error);
 
         const genExcelIndex = messages.value.findIndex(
           (m) => m.id === generatingExcelMsg.id,
@@ -2274,7 +2276,7 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
 
     // 📄 如果是Markdown任务，自动生成Markdown文件
     if (isMarkdownTask) {
-      console.log("[ChatPanel] 📄 检测到Markdown任务，开始生成Markdown文件...");
+      logger.info("[ChatPanel] 📄 检测到Markdown任务，开始生成Markdown文件...");
 
       const generatingMdMsg = createSystemMessage(
         "⏳ 正在生成Markdown文档...",
@@ -2295,7 +2297,7 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
 请生成完整的Markdown格式内容，包含标题、章节、列表等。`;
 
         const mdResponse = await llmService.chat(mdPrompt);
-        console.log("[ChatPanel] 📄 LLM生成的Markdown内容");
+        logger.info("[ChatPanel] 📄 LLM生成的Markdown内容");
 
         generatingMdMsg.content = "⏳ 正在写入Markdown文件...";
         messages.value = [...messages.value];
@@ -2314,7 +2316,7 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
         // 写入Markdown文件
         await window.electronAPI.file.write(outputPath, mdResponse);
 
-        console.log("[ChatPanel] ✅ Markdown文件生成成功");
+        logger.info("[ChatPanel] ✅ Markdown文件生成成功");
 
         const genMdIndex = messages.value.findIndex(
           (m) => m.id === generatingMdMsg.id,
@@ -2335,7 +2337,7 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
           emit("files-changed");
         }, 2000);
       } catch (error) {
-        console.error("[ChatPanel] ❌ 生成Markdown文件失败:", error);
+        logger.error("[ChatPanel] ❌ 生成Markdown文件失败:", error);
 
         const genMdIndex = messages.value.findIndex(
           (m) => m.id === generatingMdMsg.id,
@@ -2356,7 +2358,7 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
 
     // 🌐 如果是网页任务，自动生成HTML文件
     if (isWebTask) {
-      console.log("[ChatPanel] 🌐 检测到网页任务，开始生成HTML文件...");
+      logger.info("[ChatPanel] 🌐 检测到网页任务，开始生成HTML文件...");
 
       const generatingWebMsg = createSystemMessage("⏳ 正在生成网页文件...", {
         type: "info",
@@ -2376,7 +2378,7 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
 请生成包含HTML、CSS和基本交互的完整网页代码。`;
 
         const htmlResponse = await llmService.chat(htmlPrompt);
-        console.log("[ChatPanel] 📄 LLM生成的HTML内容");
+        logger.info("[ChatPanel] 📄 LLM生成的HTML内容");
 
         // 提取HTML代码
         let htmlContent = htmlResponse;
@@ -2402,7 +2404,7 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
         // 写入HTML文件
         await window.electronAPI.file.write(outputPath, htmlContent);
 
-        console.log("[ChatPanel] ✅ 网页文件生成成功");
+        logger.info("[ChatPanel] ✅ 网页文件生成成功");
 
         const genWebIndex = messages.value.findIndex(
           (m) => m.id === generatingWebMsg.id,
@@ -2423,7 +2425,7 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
           emit("files-changed");
         }, 2000);
       } catch (error) {
-        console.error("[ChatPanel] ❌ 生成网页文件失败:", error);
+        logger.error("[ChatPanel] ❌ 生成网页文件失败:", error);
 
         const genWebIndex = messages.value.findIndex(
           (m) => m.id === generatingWebMsg.id,
@@ -2445,7 +2447,7 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
     await nextTick();
     scrollToBottom();
   } catch (error) {
-    console.error("[ChatPanel] ❌ 任务计划生成失败:", error);
+    logger.error("[ChatPanel] ❌ 任务计划生成失败:", error);
 
     // 移除"正在生成"消息
     const generatingIndex = messages.value.findIndex(
@@ -2470,7 +2472,7 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
  * 处理采访问题回答
  */
 const handleInterviewAnswer = async ({ questionKey, answer, index }) => {
-  console.log("[ChatPanel] 💬 用户回答问题:", questionKey, answer);
+  logger.info("[ChatPanel] 💬 用户回答问题:", questionKey, answer);
 
   // 🆕 记录答案类型（结构化 vs 传统）
   if (
@@ -2478,12 +2480,12 @@ const handleInterviewAnswer = async ({ questionKey, answer, index }) => {
     answer !== null &&
     answer.selectedOption !== undefined
   ) {
-    console.log("[ChatPanel] 📝 结构化答案:", {
+    logger.info("[ChatPanel] 📝 结构化答案:", {
       选项: answer.selectedOption,
       补充说明: answer.additionalInput || "(无)",
     });
   } else {
-    console.log("[ChatPanel] 📝 传统文本答案:", answer);
+    logger.info("[ChatPanel] 📝 传统文本答案:", answer);
   }
 
   // 找到采访消息的索引
@@ -2491,7 +2493,7 @@ const handleInterviewAnswer = async ({ questionKey, answer, index }) => {
     (m) => m.type === MessageType.INTERVIEW,
   );
   if (interviewMsgIndex === -1) {
-    console.error("[ChatPanel] 找不到采访消息");
+    logger.error("[ChatPanel] 找不到采访消息");
     return;
   }
 
@@ -2502,7 +2504,7 @@ const handleInterviewAnswer = async ({ questionKey, answer, index }) => {
   const totalQuestions = interviewMsg.metadata.questions?.length || 0;
 
   if (currentIdx >= totalQuestions) {
-    console.error("[ChatPanel] ⚠️ 数据异常：currentIndex 超出范围", {
+    logger.error("[ChatPanel] ⚠️ 数据异常：currentIndex 超出范围", {
       currentIndex: currentIdx,
       totalQuestions: totalQuestions,
     });
@@ -2535,7 +2537,7 @@ const handleInterviewAnswer = async ({ questionKey, answer, index }) => {
   // 🔥 强制刷新虚拟列表组件
   messagesRefreshKey.value++;
 
-  console.log("[ChatPanel] 📝 已更新到下一个问题", {
+  logger.info("[ChatPanel] 📝 已更新到下一个问题", {
     currentIndex: newMetadata.currentIndex,
     nextQuestionKey: newMetadata.questions[newMetadata.currentIndex]?.key,
     refreshKey: messagesRefreshKey.value,
@@ -2548,10 +2550,10 @@ const handleInterviewAnswer = async ({ questionKey, answer, index }) => {
         id: messages.value[interviewMsgIndex].id,
         metadata: cleanForIPC(newMetadata), // 🔥 清理不可序列化的对象
       });
-      console.log("[ChatPanel] 💾 采访进度已保存到数据库");
+      logger.info("[ChatPanel] 💾 采访进度已保存到数据库");
     } catch (error) {
-      console.error("[ChatPanel] 保存采访进度失败:", error);
-      console.error("[ChatPanel] 失败的metadata:", newMetadata);
+      logger.error("[ChatPanel] 保存采访进度失败:", error);
+      logger.error("[ChatPanel] 失败的metadata:", newMetadata);
     }
   }
 
@@ -2564,7 +2566,7 @@ const handleInterviewAnswer = async ({ questionKey, answer, index }) => {
 
   // 检查是否所有问题都已回答
   if (newMetadata.currentIndex >= newMetadata.questions.length) {
-    console.log("[ChatPanel] 所有问题已回答，自动触发完成");
+    logger.info("[ChatPanel] 所有问题已回答，自动触发完成");
     handleInterviewComplete();
   }
 };
@@ -2573,14 +2575,14 @@ const handleInterviewAnswer = async ({ questionKey, answer, index }) => {
  * 处理跳过问题
  */
 const handleInterviewSkip = async ({ questionKey, index }) => {
-  console.log("[ChatPanel] ⏭️ 用户跳过问题:", questionKey);
+  logger.info("[ChatPanel] ⏭️ 用户跳过问题:", questionKey);
 
   // 找到采访消息的索引
   const interviewMsgIndex = messages.value.findIndex(
     (m) => m.type === MessageType.INTERVIEW,
   );
   if (interviewMsgIndex === -1) {
-    console.error("[ChatPanel] 找不到采访消息");
+    logger.error("[ChatPanel] 找不到采访消息");
     return;
   }
 
@@ -2591,7 +2593,7 @@ const handleInterviewSkip = async ({ questionKey, index }) => {
   const totalQuestions = interviewMsg.metadata.questions?.length || 0;
 
   if (currentIdx >= totalQuestions) {
-    console.error("[ChatPanel] ⚠️ 数据异常：currentIndex 超出范围", {
+    logger.error("[ChatPanel] ⚠️ 数据异常：currentIndex 超出范围", {
       currentIndex: currentIdx,
       totalQuestions: totalQuestions,
     });
@@ -2623,7 +2625,7 @@ const handleInterviewSkip = async ({ questionKey, index }) => {
   // 🔥 强制刷新虚拟列表组件
   messagesRefreshKey.value++;
 
-  console.log("[ChatPanel] 📝 已跳过问题", {
+  logger.info("[ChatPanel] 📝 已跳过问题", {
     currentIndex: newMetadata.currentIndex,
     refreshKey: messagesRefreshKey.value,
   });
@@ -2635,10 +2637,10 @@ const handleInterviewSkip = async ({ questionKey, index }) => {
         id: messages.value[interviewMsgIndex].id,
         metadata: cleanForIPC(newMetadata), // 🔥 清理不可序列化的对象
       });
-      console.log("[ChatPanel] 💾 采访进度已保存到数据库（跳过）");
+      logger.info("[ChatPanel] 💾 采访进度已保存到数据库（跳过）");
     } catch (error) {
-      console.error("[ChatPanel] 保存采访进度失败:", error);
-      console.error("[ChatPanel] 失败的metadata:", newMetadata);
+      logger.error("[ChatPanel] 保存采访进度失败:", error);
+      logger.error("[ChatPanel] 失败的metadata:", newMetadata);
     }
   }
 
@@ -2651,7 +2653,7 @@ const handleInterviewSkip = async ({ questionKey, index }) => {
 
   // 检查是否所有问题都已回答
   if (newMetadata.currentIndex >= newMetadata.questions.length) {
-    console.log("[ChatPanel] 所有问题已回答/跳过，自动触发完成");
+    logger.info("[ChatPanel] 所有问题已回答/跳过，自动触发完成");
     handleInterviewComplete();
   }
 };
@@ -2660,14 +2662,14 @@ const handleInterviewSkip = async ({ questionKey, index }) => {
  * 处理采访完成
  */
 const handleInterviewComplete = async () => {
-  console.log("[ChatPanel] ✅ 采访完成，开始生成任务计划");
+  logger.info("[ChatPanel] ✅ 采访完成，开始生成任务计划");
 
   // 找到采访消息
   const interviewMsg = messages.value.find(
     (m) => m.type === MessageType.INTERVIEW,
   );
   if (!interviewMsg) {
-    console.error("[ChatPanel] 找不到采访消息");
+    logger.error("[ChatPanel] 找不到采访消息");
     return;
   }
 
@@ -2684,7 +2686,7 @@ const handleInterviewComplete = async () => {
  * 处理计划确认
  */
 const handlePlanConfirm = async (message) => {
-  console.log("[ChatPanel] ✅ 用户确认计划，开始执行");
+  logger.info("[ChatPanel] ✅ 用户确认计划，开始执行");
 
   // 更新计划消息状态为"已确认"
   message.metadata.status = "confirmed";
@@ -2716,7 +2718,7 @@ const handlePlanConfirm = async (message) => {
 
     // 检查PPT生成结果
     if (response.pptGenerated && response.pptResult) {
-      console.log("[ChatPanel] ✅ PPT已生成:", response.pptResult);
+      logger.info("[ChatPanel] ✅ PPT已生成:", response.pptResult);
       antMessage.success({
         content: `🎉 PPT文件已生成！\n文件名: ${response.pptResult.fileName}\n幻灯片数: ${response.pptResult.slideCount}`,
         duration: 5,
@@ -2724,14 +2726,14 @@ const handlePlanConfirm = async (message) => {
 
       // 🔄 延迟2秒后刷新文件树，避免立即刷新导致对话面板重新渲染
       setTimeout(() => {
-        console.log("[ChatPanel] 延迟刷新文件树");
+        logger.info("[ChatPanel] 延迟刷新文件树");
         emit("files-changed");
       }, 2000);
     }
 
     // 检查Word生成结果
     if (response.wordGenerated && response.wordResult) {
-      console.log("[ChatPanel] ✅ Word文档已生成:", response.wordResult);
+      logger.info("[ChatPanel] ✅ Word文档已生成:", response.wordResult);
       antMessage.success({
         content: `📝 Word文档已生成！\n文件名: ${response.wordResult.fileName}\n文件大小: ${(response.wordResult.fileSize / 1024).toFixed(2)} KB`,
         duration: 5,
@@ -2739,7 +2741,7 @@ const handlePlanConfirm = async (message) => {
 
       // 🔄 延迟2秒后刷新文件树，避免立即刷新导致对话面板重新渲染
       setTimeout(() => {
-        console.log("[ChatPanel] 延迟刷新文件树（Word）");
+        logger.info("[ChatPanel] 延迟刷新文件树（Word）");
         emit("files-changed");
       }, 2000);
     }
@@ -2753,7 +2755,7 @@ const handlePlanConfirm = async (message) => {
     await nextTick();
     scrollToBottom();
   } catch (error) {
-    console.error("[ChatPanel] ❌ 任务执行失败:", error);
+    logger.error("[ChatPanel] ❌ 任务执行失败:", error);
 
     // 恢复为待确认状态
     message.metadata.status = "pending";
@@ -2772,7 +2774,7 @@ const handlePlanConfirm = async (message) => {
  * 处理取消计划
  */
 const handlePlanCancel = (message) => {
-  console.log("[ChatPanel] ❌ 用户取消计划");
+  logger.info("[ChatPanel] ❌ 用户取消计划");
 
   // 更新计划消息状态
   message.metadata.status = "cancelled";
@@ -2788,7 +2790,7 @@ const handlePlanCancel = (message) => {
  * 处理修改计划
  */
 const handlePlanModify = (message) => {
-  console.log("[ChatPanel] ✏️ 用户请求修改计划");
+  logger.info("[ChatPanel] ✏️ 用户请求修改计划");
 
   // 添加提示消息
   const modifyMsg = createSystemMessage(
@@ -2817,7 +2819,7 @@ const handleFollowupIntent = async (
   reason,
   executingTask,
 ) => {
-  console.log(`[ChatPanel] 📋 处理后续输入意图: ${intent}`);
+  logger.info(`[ChatPanel] 📋 处理后续输入意图: ${intent}`);
 
   // 创建用户消息（记录用户的输入）
   const userMessage = createUserMessage(
@@ -2837,14 +2839,14 @@ const handleFollowupIntent = async (
         timestamp: userMessage.timestamp,
       });
     } catch (error) {
-      console.error("[ChatPanel] 保存用户消息失败:", error);
+      logger.error("[ChatPanel] 保存用户消息失败:", error);
     }
   }
 
   switch (intent) {
     case "CONTINUE_EXECUTION":
       // 用户催促继续执行，不做任何修改
-      console.log("[ChatPanel] ✅ 用户催促继续执行，无需操作");
+      logger.info("[ChatPanel] ✅ 用户催促继续执行，无需操作");
 
       // 添加一条确认消息
       const continueMessage = createIntentSystemMessage(intent, userInput, {
@@ -2860,7 +2862,7 @@ const handleFollowupIntent = async (
 
     case "MODIFY_REQUIREMENT":
       // 用户修改需求，需要暂停并重新规划
-      console.log("[ChatPanel] ⚠️ 用户修改需求:", extractedInfo);
+      logger.info("[ChatPanel] ⚠️ 用户修改需求:", extractedInfo);
 
       // 1. 暂停当前任务
       if (executingTask) {
@@ -2895,7 +2897,7 @@ const handleFollowupIntent = async (
 
     case "CLARIFICATION":
       // 用户补充说明，追加到上下文继续执行
-      console.log("[ChatPanel] 📝 用户补充说明:", extractedInfo);
+      logger.info("[ChatPanel] 📝 用户补充说明:", extractedInfo);
 
       // 1. 将信息追加到任务计划的上下文中
       if (
@@ -2928,7 +2930,7 @@ const handleFollowupIntent = async (
 
     case "CANCEL_TASK":
       // 用户取消任务
-      console.log("[ChatPanel] ❌ 用户取消任务");
+      logger.info("[ChatPanel] ❌ 用户取消任务");
 
       // 1. 停止任务执行
       if (executingTask) {
@@ -2949,7 +2951,7 @@ const handleFollowupIntent = async (
       break;
 
     default:
-      console.warn("[ChatPanel] ⚠️ 未知意图类型:", intent);
+      logger.warn("[ChatPanel] ⚠️ 未知意图类型:", intent);
       antMessage.warning("无法识别您的意图，请重新表述");
   }
 
@@ -2963,7 +2965,7 @@ const handleFollowupIntent = async (
  */
 const saveMessageToDb = async (message) => {
   if (!currentConversation.value || !currentConversation.value.id) {
-    console.warn("[ChatPanel] 无当前对话，无法保存消息");
+    logger.warn("[ChatPanel] 无当前对话，无法保存消息");
     return;
   }
 
@@ -2978,7 +2980,7 @@ const saveMessageToDb = async (message) => {
       metadata: cleanForIPC(message.metadata), // 🔥 清理不可序列化的对象
     });
   } catch (error) {
-    console.error("[ChatPanel] 保存消息失败:", error);
+    logger.error("[ChatPanel] 保存消息失败:", error);
   }
 };
 
@@ -2987,7 +2989,7 @@ const saveMessageToDb = async (message) => {
  */
 const updateMessageInDb = async (message) => {
   if (!currentConversation.value || !currentConversation.value.id) {
-    console.warn("[ChatPanel] 无当前对话，无法更新消息");
+    logger.warn("[ChatPanel] 无当前对话，无法更新消息");
     return;
   }
 
@@ -2998,7 +3000,7 @@ const updateMessageInDb = async (message) => {
       metadata: cleanForIPC(message.metadata), // 🔥 清理不可序列化的对象
     });
   } catch (error) {
-    console.error("[ChatPanel] 更新消息失败:", error);
+    logger.error("[ChatPanel] 更新消息失败:", error);
   }
 };
 
@@ -3013,7 +3015,7 @@ const handleIntentConfirm = async ({
   originalInput,
   understanding,
 }) => {
-  console.log("[ChatPanel] ✅ 用户确认意图理解正确");
+  logger.info("[ChatPanel] ✅ 用户确认意图理解正确");
 
   // 找到意图确认消息并更新状态
   const intentMsg = messages.value.find((m) => m.id === messageId);
@@ -3036,7 +3038,7 @@ const handleIntentCorrect = async ({
   originalInput,
   correction,
 }) => {
-  console.log("[ChatPanel] 🔄 用户提供了纠正内容:", correction);
+  logger.info("[ChatPanel] 🔄 用户提供了纠正内容:", correction);
 
   // 找到意图确认消息并更新状态
   const intentMsg = messages.value.find((m) => m.id === messageId);
@@ -3056,7 +3058,7 @@ const handleIntentCorrect = async ({
  * @returns {Promise<Object>} - 返回理解结果
  */
 const understandUserIntent = async (input) => {
-  console.log("[ChatPanel] 🤔 开始理解用户意图:", input);
+  logger.info("[ChatPanel] 🤔 开始理解用户意图:", input);
 
   try {
     // 调用意图理解API
@@ -3066,7 +3068,7 @@ const understandUserIntent = async (input) => {
       contextMode: contextMode.value,
     });
 
-    console.log("[ChatPanel] ✅ 意图理解完成:", result);
+    logger.info("[ChatPanel] ✅ 意图理解完成:", result);
 
     // 创建意图确认消息
     const confirmationMsg = createIntentConfirmationMessage(input, result);
@@ -3090,7 +3092,7 @@ const understandUserIntent = async (input) => {
 
     return result;
   } catch (error) {
-    console.error("[ChatPanel] ❌ 意图理解失败:", error);
+    logger.error("[ChatPanel] ❌ 意图理解失败:", error);
     antMessage.error("意图理解失败: " + error.message);
 
     // 如果理解失败，直接执行原始输入
@@ -3104,7 +3106,7 @@ const understandUserIntent = async (input) => {
  * @param {string} input - 确认后的输入
  */
 const executeChatWithInput = async (input) => {
-  console.log("[ChatPanel] 🚀 执行对话，输入:", input);
+  logger.info("[ChatPanel] 🚀 执行对话，输入:", input);
 
   isLoading.value = true;
 
@@ -3145,7 +3147,7 @@ const executeChatWithInput = async (input) => {
 
     // 确保 messages.value 是数组
     if (!Array.isArray(messages.value)) {
-      console.warn("[ChatPanel] messages.value 不是数组，重新初始化为空数组");
+      logger.warn("[ChatPanel] messages.value 不是数组，重新初始化为空数组");
       messages.value = [];
     }
 
@@ -3242,7 +3244,7 @@ const executeChatWithInput = async (input) => {
       fileList: fileList,
     });
 
-    console.log("[ChatPanel] AI响应:", response);
+    logger.info("[ChatPanel] AI响应:", response);
 
     // 🔥 更新思考状态：生成完成
     thinkingState.steps[2].status = "completed";
@@ -3255,7 +3257,7 @@ const executeChatWithInput = async (input) => {
 
     // 检查PPT生成结果
     if (response.pptGenerated && response.pptResult) {
-      console.log("[ChatPanel] ✅ PPT已生成:", response.pptResult);
+      logger.info("[ChatPanel] ✅ PPT已生成:", response.pptResult);
       antMessage.success({
         content: `🎉 PPT文件已生成！\n文件名: ${response.pptResult.fileName}\n幻灯片数: ${response.pptResult.slideCount}`,
         duration: 5,
@@ -3263,14 +3265,14 @@ const executeChatWithInput = async (input) => {
 
       // 🔄 延迟2秒后刷新文件树，避免立即刷新导致对话面板重新渲染
       setTimeout(() => {
-        console.log("[ChatPanel] 延迟刷新文件树");
+        logger.info("[ChatPanel] 延迟刷新文件树");
         emit("files-changed");
       }, 2000);
     }
 
     // 检查Word生成结果
     if (response.wordGenerated && response.wordResult) {
-      console.log("[ChatPanel] ✅ Word文档已生成:", response.wordResult);
+      logger.info("[ChatPanel] ✅ Word文档已生成:", response.wordResult);
       antMessage.success({
         content: `📝 Word文档已生成！\n文件名: ${response.wordResult.fileName}\n文件大小: ${(response.wordResult.fileSize / 1024).toFixed(2)} KB`,
         duration: 5,
@@ -3278,7 +3280,7 @@ const executeChatWithInput = async (input) => {
 
       // 🔄 延迟2秒后刷新文件树，避免立即刷新导致对话面板重新渲染
       setTimeout(() => {
-        console.log("[ChatPanel] 延迟刷新文件树（Word）");
+        logger.info("[ChatPanel] 延迟刷新文件树（Word）");
         emit("files-changed");
       }, 2000);
     }
@@ -3301,7 +3303,7 @@ const executeChatWithInput = async (input) => {
 
     // 确保 messages.value 是数组
     if (!Array.isArray(messages.value)) {
-      console.warn(
+      logger.warn(
         "[ChatPanel] messages.value 不是数组（assistant），重新初始化为空数组",
       );
       messages.value = [];
@@ -3324,7 +3326,7 @@ const executeChatWithInput = async (input) => {
         }), // 🔥 清理不可序列化的对象
       });
     } else {
-      console.warn("[ChatPanel] 无法保存助手消息：当前对话不存在");
+      logger.warn("[ChatPanel] 无法保存助手消息：当前对话不存在");
     }
 
     // 处理文件操作
@@ -3336,7 +3338,7 @@ const executeChatWithInput = async (input) => {
         (op) => op.success === false || op.status === "error",
       ).length;
 
-      console.log("[ChatPanel] 文件操作统计:", {
+      logger.info("[ChatPanel] 文件操作统计:", {
         total: response.fileOperations.length,
         successCount,
         errorCount,
@@ -3370,7 +3372,7 @@ const executeChatWithInput = async (input) => {
     await nextTick();
     scrollToBottom();
   } catch (error) {
-    console.error("[ChatPanel] 执行对话失败:", error);
+    logger.error("[ChatPanel] 执行对话失败:", error);
     antMessage.error("对话失败: " + error.message);
 
     // 🔥 更新思考状态为错误
@@ -3396,7 +3398,7 @@ watch(
   () => props.aiCreationData,
   (newData) => {
     if (newData) {
-      console.log("[ChatPanel] 检测到AI创建数据:", newData);
+      logger.info("[ChatPanel] 检测到AI创建数据:", newData);
       startAICreation(newData);
     }
   },
@@ -3408,7 +3410,7 @@ watch(
   () => props.autoSendMessage,
   async (newMessage) => {
     if (newMessage && newMessage.trim()) {
-      console.log("[ChatPanel] 检测到自动发送消息:", newMessage);
+      logger.info("[ChatPanel] 检测到自动发送消息:", newMessage);
 
       // 检查是否已经处理过（避免重复处理）
       if (currentConversation.value && currentConversation.value.context_data) {
@@ -3417,7 +3419,7 @@ watch(
             currentConversation.value.context_data,
           );
           if (contextData.autoMessageHandled) {
-            console.log("[ChatPanel] 自动消息已处理过，跳过");
+            logger.info("[ChatPanel] 自动消息已处理过，跳过");
             return;
           }
         } catch (e) {
@@ -3445,9 +3447,9 @@ watch(
               context_data: JSON.stringify(contextData),
             },
           );
-          console.log("[ChatPanel] 自动消息已标记为已处理");
+          logger.info("[ChatPanel] 自动消息已标记为已处理");
         } catch (error) {
-          console.error("[ChatPanel] 保存处理标记失败:", error);
+          logger.error("[ChatPanel] 保存处理标记失败:", error);
         }
       }
 

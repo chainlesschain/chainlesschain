@@ -130,6 +130,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted, onErrorCaptured } from "vue";
 import {
   AppstoreOutlined,
@@ -314,7 +316,7 @@ async function executeAction(actionName) {
       });
     }
   } catch (err) {
-    console.error("[PluginComponentWrapper] 执行动作失败:", err);
+    logger.error("[PluginComponentWrapper] 执行动作失败:", err);
     emit("error", err);
   }
 }
@@ -345,7 +347,7 @@ onMounted(async () => {
         props.context,
       );
     } catch (err) {
-      console.error("[PluginComponentWrapper] 初始化失败:", err);
+      logger.error("[PluginComponentWrapper] 初始化失败:", err);
       hasError.value = true;
       errorMessage.value = err.message;
     } finally {

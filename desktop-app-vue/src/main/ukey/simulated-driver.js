@@ -9,6 +9,7 @@
  * - 设备信息
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const BaseUKeyDriver = require('./base-driver');
 const crypto = require('crypto');
 const fs = require('fs');
@@ -106,10 +107,10 @@ class SimulatedDriver extends BaseUKeyDriver {
         this.isLocked = state.isLocked || false;
         this.serialNumber = state.serialNumber || this.serialNumber;
 
-        console.log('[Simulated] State loaded from:', this.stateFilePath);
+        logger.info('[Simulated] State loaded from:', this.stateFilePath);
       }
     } catch (error) {
-      console.warn('[Simulated] Failed to load state:', error.message);
+      logger.warn('[Simulated] Failed to load state:', error.message);
     }
   }
 
@@ -127,9 +128,9 @@ class SimulatedDriver extends BaseUKeyDriver {
       };
 
       fs.writeFileSync(this.stateFilePath, JSON.stringify(state, null, 2), 'utf8');
-      console.log('[Simulated] State saved to:', this.stateFilePath);
+      logger.info('[Simulated] State saved to:', this.stateFilePath);
     } catch (error) {
-      console.warn('[Simulated] Failed to save state:', error.message);
+      logger.warn('[Simulated] Failed to save state:', error.message);
     }
   }
 
@@ -137,7 +138,7 @@ class SimulatedDriver extends BaseUKeyDriver {
    * 初始化驱动
    */
   async initialize() {
-    console.log('[Simulated] Initializing simulated driver...');
+    logger.info('[Simulated] Initializing simulated driver...');
 
     try {
       // 加载之前的状态
@@ -147,14 +148,14 @@ class SimulatedDriver extends BaseUKeyDriver {
       this.generateKeyPair();
 
       this.isInitialized = true;
-      console.log('[Simulated] Driver initialized successfully');
-      console.log(`[Simulated] Device ID: ${this.deviceId}`);
-      console.log(`[Simulated] Serial Number: ${this.serialNumber}`);
-      console.log(`[Simulated] Default PIN: ${this.defaultPin}`);
+      logger.info('[Simulated] Driver initialized successfully');
+      logger.info(`[Simulated] Device ID: ${this.deviceId}`);
+      logger.info(`[Simulated] Serial Number: ${this.serialNumber}`);
+      logger.info(`[Simulated] Default PIN: ${this.defaultPin}`);
 
       return true;
     } catch (error) {
-      console.error('[Simulated] Initialization failed:', error);
+      logger.error('[Simulated] Initialization failed:', error);
       throw error;
     }
   }
@@ -177,9 +178,9 @@ class SimulatedDriver extends BaseUKeyDriver {
         },
       });
 
-      console.log('[Simulated] Key pair generated');
+      logger.info('[Simulated] Key pair generated');
     } catch (error) {
-      console.error('[Simulated] Failed to generate key pair:', error);
+      logger.error('[Simulated] Failed to generate key pair:', error);
     }
   }
 
@@ -187,7 +188,7 @@ class SimulatedDriver extends BaseUKeyDriver {
    * 检测设备
    */
   async detect() {
-    console.log('[Simulated] Detecting simulated device...');
+    logger.info('[Simulated] Detecting simulated device...');
 
     // 模拟驱动可以配置为总是检测到或不检测到
     if (!this.autoDetect) {
@@ -211,7 +212,7 @@ class SimulatedDriver extends BaseUKeyDriver {
    * 验证PIN码
    */
   async verifyPIN(pin) {
-    console.log('[Simulated] Verifying PIN...');
+    logger.info('[Simulated] Verifying PIN...');
 
     // 检查是否已锁定
     if (this.isLocked) {
@@ -229,7 +230,7 @@ class SimulatedDriver extends BaseUKeyDriver {
       this.retryCount = 0;
       this.saveState();
 
-      console.log('[Simulated] PIN verification successful');
+      logger.info('[Simulated] PIN verification successful');
 
       return {
         success: true,
@@ -245,7 +246,7 @@ class SimulatedDriver extends BaseUKeyDriver {
         this.isUnlocked = false;
         this.saveState();
 
-        console.log('[Simulated] PIN locked after too many failed attempts');
+        logger.info('[Simulated] PIN locked after too many failed attempts');
 
         return {
           success: false,
@@ -256,7 +257,7 @@ class SimulatedDriver extends BaseUKeyDriver {
         this.saveState();
 
         const remainingAttempts = this.maxRetryCount - this.retryCount;
-        console.log('[Simulated] PIN verification failed, remaining attempts:', remainingAttempts);
+        logger.info('[Simulated] PIN verification failed, remaining attempts:', remainingAttempts);
 
         return {
           success: false,
@@ -271,7 +272,7 @@ class SimulatedDriver extends BaseUKeyDriver {
    * 修改PIN码
    */
   async changePIN(oldPin, newPin) {
-    console.log('[Simulated] Changing PIN...');
+    logger.info('[Simulated] Changing PIN...');
 
     // 验证旧PIN
     if (oldPin !== this.currentPin) {
@@ -285,7 +286,7 @@ class SimulatedDriver extends BaseUKeyDriver {
     this.currentPin = newPin;
     this.saveState();
 
-    console.log('[Simulated] PIN changed successfully');
+    logger.info('[Simulated] PIN changed successfully');
 
     return {
       success: true,
@@ -300,7 +301,7 @@ class SimulatedDriver extends BaseUKeyDriver {
       throw new Error('设备未解锁');
     }
 
-    console.log('[Simulated] Signing data...');
+    logger.info('[Simulated] Signing data...');
 
     try {
       // 使用私钥签名
@@ -308,10 +309,10 @@ class SimulatedDriver extends BaseUKeyDriver {
       sign.update(data);
       const signature = sign.sign(this.keyPair.privateKey, 'base64');
 
-      console.log('[Simulated] Data signed successfully');
+      logger.info('[Simulated] Data signed successfully');
       return signature;
     } catch (error) {
-      console.error('[Simulated] Signing failed:', error);
+      logger.error('[Simulated] Signing failed:', error);
       throw error;
     }
   }
@@ -320,17 +321,17 @@ class SimulatedDriver extends BaseUKeyDriver {
    * 验证签名
    */
   async verifySignature(data, signature) {
-    console.log('[Simulated] Verifying signature...');
+    logger.info('[Simulated] Verifying signature...');
 
     try {
       const verify = crypto.createVerify('RSA-SHA256');
       verify.update(data);
       const isValid = verify.verify(this.keyPair.publicKey, signature, 'base64');
 
-      console.log('[Simulated] Signature verification result:', isValid);
+      logger.info('[Simulated] Signature verification result:', isValid);
       return isValid;
     } catch (error) {
-      console.error('[Simulated] Signature verification failed:', error);
+      logger.error('[Simulated] Signature verification failed:', error);
       return false;
     }
   }
@@ -343,7 +344,7 @@ class SimulatedDriver extends BaseUKeyDriver {
       throw new Error('设备未解锁');
     }
 
-    console.log('[Simulated] Encrypting data...');
+    logger.info('[Simulated] Encrypting data...');
 
     try {
       // 生成会话密钥
@@ -361,10 +362,10 @@ class SimulatedDriver extends BaseUKeyDriver {
       // 返回格式：IV|加密数据
       const result = iv.toString('base64') + '|' + encrypted;
 
-      console.log('[Simulated] Data encrypted successfully');
+      logger.info('[Simulated] Data encrypted successfully');
       return result;
     } catch (error) {
-      console.error('[Simulated] Encryption failed:', error);
+      logger.error('[Simulated] Encryption failed:', error);
       throw error;
     }
   }
@@ -377,7 +378,7 @@ class SimulatedDriver extends BaseUKeyDriver {
       throw new Error('设备未解锁');
     }
 
-    console.log('[Simulated] Decrypting data...');
+    logger.info('[Simulated] Decrypting data...');
 
     try {
       // 解析IV和加密数据
@@ -390,10 +391,10 @@ class SimulatedDriver extends BaseUKeyDriver {
       let decrypted = decipher.update(dataBase64, 'base64', 'utf8');
       decrypted += decipher.final('utf8');
 
-      console.log('[Simulated] Data decrypted successfully');
+      logger.info('[Simulated] Data decrypted successfully');
       return decrypted;
     } catch (error) {
-      console.error('[Simulated] Decryption failed:', error);
+      logger.error('[Simulated] Decryption failed:', error);
       throw error;
     }
   }
@@ -402,7 +403,7 @@ class SimulatedDriver extends BaseUKeyDriver {
    * 获取公钥
    */
   async getPublicKey() {
-    console.log('[Simulated] Getting public key...');
+    logger.info('[Simulated] Getting public key...');
 
     if (!this.keyPair) {
       throw new Error('密钥对未生成');
@@ -434,7 +435,7 @@ class SimulatedDriver extends BaseUKeyDriver {
    */
   lock() {
     super.lock();
-    console.log('[Simulated] Device locked');
+    logger.info('[Simulated] Device locked');
   }
 
   /**
@@ -444,7 +445,7 @@ class SimulatedDriver extends BaseUKeyDriver {
     this.isLocked = false;
     this.retryCount = 0;
     this.saveState();
-    console.log('[Simulated] Device unlocked for testing');
+    logger.info('[Simulated] Device unlocked for testing');
   }
 
   /**
@@ -456,20 +457,20 @@ class SimulatedDriver extends BaseUKeyDriver {
     this.isLocked = false;
     this.isUnlocked = false;
     this.saveState();
-    console.log('[Simulated] Device reset for testing');
+    logger.info('[Simulated] Device reset for testing');
   }
 
   /**
    * 关闭驱动
    */
   async close() {
-    console.log('[Simulated] Closing driver...');
+    logger.info('[Simulated] Closing driver...');
 
     // 保存状态
     this.saveState();
 
     await super.close();
-    console.log('[Simulated] Driver closed');
+    logger.info('[Simulated] Driver closed');
   }
 
   /**
@@ -491,7 +492,7 @@ class SimulatedDriver extends BaseUKeyDriver {
    */
   setAutoDetect(enabled) {
     this.autoDetect = enabled;
-    console.log('[Simulated] Auto-detect set to:', enabled);
+    logger.info('[Simulated] Auto-detect set to:', enabled);
   }
 
   /**

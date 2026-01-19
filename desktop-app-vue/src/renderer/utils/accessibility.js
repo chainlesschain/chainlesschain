@@ -1,3 +1,5 @@
+import { logger, createLogger } from '@/utils/logger';
+
 /**
  * Accessibility Utilities
  * 无障碍性工具集 - 提升应用的可访问性 (WCAG 2.1 AA)
@@ -30,7 +32,7 @@ class AccessibilityManager {
     this.init();
 
     if (this.options.debug) {
-      console.log("[AccessibilityManager] Initialized");
+      logger.info("[AccessibilityManager] Initialized");
     }
   }
 
@@ -80,7 +82,7 @@ class AccessibilityManager {
     document.body.appendChild(this.announcerElement);
 
     if (this.options.debug) {
-      console.log("[AccessibilityManager] Created announcer element");
+      logger.info("[AccessibilityManager] Created announcer element");
     }
   }
 
@@ -104,7 +106,7 @@ class AccessibilityManager {
       this.announcerElement.textContent = message;
 
       if (this.options.debug) {
-        console.log(
+        logger.info(
           `[AccessibilityManager] Announced: "${message}" (${priority})`,
         );
       }
@@ -125,7 +127,7 @@ class AccessibilityManager {
       typeof element === "string" ? document.querySelector(element) : element;
 
     if (!el) {
-      console.warn("[AccessibilityManager] Element not found for focusing");
+      logger.warn("[AccessibilityManager] Element not found for focusing");
       return false;
     }
 
@@ -138,12 +140,12 @@ class AccessibilityManager {
       el.focus(options.focusOptions || {});
 
       if (this.options.debug) {
-        console.log("[AccessibilityManager] Focused element:", el);
+        logger.info("[AccessibilityManager] Focused element:", el);
       }
 
       return true;
     } catch (error) {
-      console.error("[AccessibilityManager] Focus error:", error);
+      logger.error("[AccessibilityManager] Focus error:", error);
       return false;
     }
   }
@@ -162,7 +164,7 @@ class AccessibilityManager {
       previousElement.focus();
 
       if (this.options.debug) {
-        console.log(
+        logger.info(
           "[AccessibilityManager] Restored focus to:",
           previousElement,
         );
@@ -184,7 +186,7 @@ class AccessibilityManager {
     const focusableElements = this.getFocusableElements(container);
 
     if (focusableElements.length === 0) {
-      console.warn("[AccessibilityManager] No focusable elements in container");
+      logger.warn("[AccessibilityManager] No focusable elements in container");
       return;
     }
 
@@ -221,7 +223,7 @@ class AccessibilityManager {
     };
 
     if (this.options.debug) {
-      console.log("[AccessibilityManager] Focus trap activated");
+      logger.info("[AccessibilityManager] Focus trap activated");
     }
   }
 
@@ -238,7 +240,7 @@ class AccessibilityManager {
     this.activeFocusTrap = null;
 
     if (this.options.debug) {
-      console.log("[AccessibilityManager] Focus trap released");
+      logger.info("[AccessibilityManager] Focus trap released");
     }
   }
 
@@ -289,7 +291,7 @@ class AccessibilityManager {
     });
 
     if (this.options.debug) {
-      console.log("[AccessibilityManager] Keyboard navigation setup complete");
+      logger.info("[AccessibilityManager] Keyboard navigation setup complete");
     }
   }
 
@@ -311,7 +313,7 @@ class AccessibilityManager {
     window.dispatchEvent(new CustomEvent("show-keyboard-shortcuts"));
 
     if (this.options.debug) {
-      console.log("[AccessibilityManager] Keyboard shortcuts dialog triggered");
+      logger.info("[AccessibilityManager] Keyboard shortcuts dialog triggered");
     }
   }
 
@@ -331,7 +333,7 @@ class AccessibilityManager {
     });
 
     if (this.options.debug) {
-      console.log("[AccessibilityManager] Set ARIA attributes:", attributes);
+      logger.info("[AccessibilityManager] Set ARIA attributes:", attributes);
     }
   }
 
@@ -466,7 +468,7 @@ class AccessibilityManager {
     this.focusHistory = [];
 
     if (this.options.debug) {
-      console.log("[AccessibilityManager] Destroyed");
+      logger.info("[AccessibilityManager] Destroyed");
     }
   }
 }

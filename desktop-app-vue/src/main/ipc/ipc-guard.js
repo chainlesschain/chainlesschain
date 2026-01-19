@@ -6,6 +6,7 @@
  * @description 提供全局的IPC handler注册状态管理，防止重复注册导致的问题
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { ipcMain } = require('electron');
 
 /**
@@ -70,7 +71,7 @@ function markModuleRegistered(moduleName) {
 function safeRegisterHandler(channel, handler, moduleName = 'unknown') {
   if (isChannelRegistered(channel)) {
     const existing = registeredChannels.get(channel);
-    console.log(`[IPC Guard] Channel "${channel}" already registered by ${existing.module}, skipping...`);
+    logger.info(`[IPC Guard] Channel "${channel}" already registered by ${existing.module}, skipping...`);
     return false;
   }
 
@@ -79,7 +80,7 @@ function safeRegisterHandler(channel, handler, moduleName = 'unknown') {
     markChannelRegistered(channel, moduleName);
     return true;
   } catch (error) {
-    console.error(`[IPC Guard] Failed to register channel "${channel}":`, error);
+    logger.error(`[IPC Guard] Failed to register channel "${channel}":`, error);
     return false;
   }
 }
@@ -113,17 +114,17 @@ function safeRegisterHandlers(handlers, moduleName = 'unknown') {
  */
 function safeRegisterModule(moduleName, registerFunc) {
   if (isModuleRegistered(moduleName)) {
-    console.log(`[IPC Guard] Module "${moduleName}" already registered, skipping...`);
+    logger.info(`[IPC Guard] Module "${moduleName}" already registered, skipping...`);
     return false;
   }
 
   try {
     registerFunc();
     markModuleRegistered(moduleName);
-    console.log(`[IPC Guard] Module "${moduleName}" registered successfully`);
+    logger.info(`[IPC Guard] Module "${moduleName}" registered successfully`);
     return true;
   } catch (error) {
-    console.error(`[IPC Guard] Failed to register module "${moduleName}":`, error);
+    logger.error(`[IPC Guard] Failed to register module "${moduleName}":`, error);
     return false;
   }
 }
@@ -137,9 +138,9 @@ function unregisterChannel(channel) {
     try {
       ipcMain.removeHandler(channel);
       registeredChannels.delete(channel);
-      console.log(`[IPC Guard] Channel "${channel}" unregistered`);
+      logger.info(`[IPC Guard] Channel "${channel}" unregistered`);
     } catch (error) {
-      console.error(`[IPC Guard] Failed to unregister channel "${channel}":`, error);
+      logger.error(`[IPC Guard] Failed to unregister channel "${channel}":`, error);
     }
   }
 }
@@ -159,15 +160,15 @@ function unregisterModule(moduleName) {
 
   channelsToRemove.forEach(channel => unregisterChannel(channel));
   registeredModules.delete(moduleName);
-  console.log(`[IPC Guard] Module "${moduleName}" unregistered (${channelsToRemove.length} channels)`);
+  logger.info(`[IPC Guard] Module "${moduleName}" unregistered (${channelsToRemove.length} channels)`);
 }
 
 /**
  * 重置所有注册状态（用于测试和热重载）
  */
 function resetAll() {
-  console.log('[IPC Guard] Resetting all registrations...');
-  console.log('[IPC Guard] Current state before reset:', {
+  logger.info('[IPC Guard] Resetting all registrations...');
+  logger.info('[IPC Guard] Current state before reset:', {
     channels: registeredChannels.size,
     modules: Array.from(registeredModules)
   });
@@ -182,14 +183,14 @@ function resetAll() {
       }
     }
   } catch (error) {
-    console.error('[IPC Guard] Failed to remove handlers:', error);
+    logger.error('[IPC Guard] Failed to remove handlers:', error);
   }
 
   // 清空注册状态
   registeredChannels.clear();
   registeredModules.clear();
 
-  console.log('[IPC Guard] All registrations reset - channels and modules cleared');
+  logger.info('[IPC Guard] All registrations reset - channels and modules cleared');
 }
 
 /**
@@ -214,10 +215,10 @@ function getStats() {
  */
 function printStats() {
   const stats = getStats();
-  console.log('[IPC Guard] Registration Statistics:');
-  console.log(`  Total Modules: ${stats.totalModules}`);
-  console.log(`  Total Channels: ${stats.totalChannels}`);
-  console.log(`  Registered Modules:`, stats.modules);
+  logger.info('[IPC Guard] Registration Statistics:');
+  logger.info(`  Total Modules: ${stats.totalModules}`);
+  logger.info(`  Total Channels: ${stats.totalChannels}`);
+  logger.info(`  Registered Modules:`, stats.modules);
 }
 
 module.exports = {

@@ -6,6 +6,7 @@
  * @description 项目导出分享模块，包括文档导出、PPT生成、分享功能、文件操作等
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { ipcMain, dialog } = require('electron');
 const path = require('path');
 
@@ -31,7 +32,7 @@ function registerProjectExportIPC({
   copyDirectory,
   convertSlidesToOutline
 }) {
-  console.log('[Project Export IPC] Registering Project Export/Share IPC handlers...');
+  logger.info('[Project Export IPC] Registering Project Export/Share IPC handlers...');
 
   // ============================================================
   // 文档导出相关 (4 handlers)
@@ -50,7 +51,7 @@ function registerProjectExportIPC({
       const resolvedSourcePath = projectConfig.resolveProjectPath(sourcePath);
       const resolvedOutputPath = outputPath ? projectConfig.resolveProjectPath(outputPath) : null;
 
-      console.log(`[Main] 导出文档: ${resolvedSourcePath} -> ${format}`);
+      logger.info(`[Main] 导出文档: ${resolvedSourcePath} -> ${format}`);
 
       const DocumentEngine = require('../engines/document-engine');
       const documentEngine = new DocumentEngine();
@@ -62,7 +63,7 @@ function registerProjectExportIPC({
         path: result.path
       };
     } catch (error) {
-      console.error('[Main] 文档导出失败:', error);
+      logger.error('[Main] 文档导出失败:', error);
       throw error;
     }
   });
@@ -79,7 +80,7 @@ function registerProjectExportIPC({
       const projectConfig = getProjectConfig();
       const resolvedSourcePath = projectConfig.resolveProjectPath(sourcePath);
 
-      console.log(`[Main] 生成PPT: ${resolvedSourcePath}`);
+      logger.info(`[Main] 生成PPT: ${resolvedSourcePath}`);
 
       const fs = require('fs').promises;
       const PPTEngine = require('../engines/ppt-engine');
@@ -101,7 +102,7 @@ function registerProjectExportIPC({
         slideCount: result.slideCount
       };
     } catch (error) {
-      console.error('[Main] PPT生成失败:', error);
+      logger.error('[Main] PPT生成失败:', error);
       throw error;
     }
   });
@@ -118,7 +119,7 @@ function registerProjectExportIPC({
       const projectConfig = getProjectConfig();
       const resolvedSourcePath = projectConfig.resolveProjectPath(sourcePath);
 
-      console.log(`[Main] 生成播客脚本: ${resolvedSourcePath}`);
+      logger.info(`[Main] 生成播客脚本: ${resolvedSourcePath}`);
 
       const fs = require('fs').promises;
 
@@ -152,7 +153,7 @@ ${content}
         content: response.text
       };
     } catch (error) {
-      console.error('[Main] 播客脚本生成失败:', error);
+      logger.error('[Main] 播客脚本生成失败:', error);
       throw error;
     }
   });
@@ -169,7 +170,7 @@ ${content}
       const projectConfig = getProjectConfig();
       const resolvedSourcePath = projectConfig.resolveProjectPath(sourcePath);
 
-      console.log(`[Main] 生成文章配图: ${resolvedSourcePath}`);
+      logger.info(`[Main] 生成文章配图: ${resolvedSourcePath}`);
 
       const fs = require('fs').promises;
 
@@ -204,7 +205,7 @@ ${content.substring(0, 2000)}
           themes = JSON.parse(jsonMatch[0]);
         }
       } catch (parseError) {
-        console.warn('[Main] 解析主题失败，使用默认主题');
+        logger.warn('[Main] 解析主题失败，使用默认主题');
         themes = [
           { title: '文章插图1', description: '根据文章内容创作的插图' }
         ];
@@ -225,7 +226,7 @@ ${content.substring(0, 2000)}
         message: '主题已生成，请使用AI绘图工具生成实际图片'
       };
     } catch (error) {
-      console.error('[Main] 文章配图生成失败:', error);
+      logger.error('[Main] 文章配图生成失败:', error);
       throw error;
     }
   });
@@ -241,7 +242,7 @@ ${content.substring(0, 2000)}
   ipcMain.handle('project:shareProject', async (_event, params) => {
     try {
       const { projectId, shareMode, expiresInDays, regenerateToken } = params;
-      console.log(`[Main] 分享项目: ${projectId}, 模式: ${shareMode}`);
+      logger.info(`[Main] 分享项目: ${projectId}, 模式: ${shareMode}`);
 
       if (!database) {
         throw new Error('数据库未初始化');
@@ -262,7 +263,7 @@ ${content.substring(0, 2000)}
 
       // 如果是公开模式，可以发布到社交模块（暂未实现）
       if (shareMode === 'public') {
-        console.log('[Main] 项目设置为公开访问');
+        logger.info('[Main] 项目设置为公开访问');
         // TODO: 集成社交模块
       }
 
@@ -274,7 +275,7 @@ ${content.substring(0, 2000)}
         share: result.share
       };
     } catch (error) {
-      console.error('[Main] 项目分享失败:', error);
+      logger.error('[Main] 项目分享失败:', error);
       throw error;
     }
   });
@@ -284,7 +285,7 @@ ${content.substring(0, 2000)}
    */
   ipcMain.handle('project:getShare', async (_event, projectId) => {
     try {
-      console.log(`[Main] 获取项目分享信息: ${projectId}`);
+      logger.info(`[Main] 获取项目分享信息: ${projectId}`);
 
       if (!database) {
         throw new Error('数据库未初始化');
@@ -300,7 +301,7 @@ ${content.substring(0, 2000)}
         share
       };
     } catch (error) {
-      console.error('[Main] 获取分享信息失败:', error);
+      logger.error('[Main] 获取分享信息失败:', error);
       throw error;
     }
   });
@@ -310,7 +311,7 @@ ${content.substring(0, 2000)}
    */
   ipcMain.handle('project:deleteShare', async (_event, projectId) => {
     try {
-      console.log(`[Main] 删除项目分享: ${projectId}`);
+      logger.info(`[Main] 删除项目分享: ${projectId}`);
 
       if (!database) {
         throw new Error('数据库未初始化');
@@ -325,7 +326,7 @@ ${content.substring(0, 2000)}
         success
       };
     } catch (error) {
-      console.error('[Main] 删除分享失败:', error);
+      logger.error('[Main] 删除分享失败:', error);
       throw error;
     }
   });
@@ -335,7 +336,7 @@ ${content.substring(0, 2000)}
    */
   ipcMain.handle('project:accessShare', async (_event, token) => {
     try {
-      console.log(`[Main] 访问分享项目: ${token}`);
+      logger.info(`[Main] 访问分享项目: ${token}`);
 
       if (!database) {
         throw new Error('数据库未初始化');
@@ -366,7 +367,7 @@ ${content.substring(0, 2000)}
         share
       };
     } catch (error) {
-      console.error('[Main] 访问分享失败:', error);
+      logger.error('[Main] 访问分享失败:', error);
       throw error;
     }
   });
@@ -377,7 +378,7 @@ ${content.substring(0, 2000)}
   ipcMain.handle('project:shareToWechat', async (_event, params) => {
     try {
       const { projectId, shareLink } = params;
-      console.log(`[Main] 微信分享: ${shareLink}`);
+      logger.info(`[Main] 微信分享: ${shareLink}`);
 
       // TODO: 集成二维码生成库
       // const QRCode = require('qrcode');
@@ -388,7 +389,7 @@ ${content.substring(0, 2000)}
         message: '微信分享功能开发中，请使用复制链接'
       };
     } catch (error) {
-      console.error('[Main] 微信分享失败:', error);
+      logger.error('[Main] 微信分享失败:', error);
       throw error;
     }
   });
@@ -409,7 +410,7 @@ ${content.substring(0, 2000)}
       const resolvedSourcePath = projectConfig.resolveProjectPath(sourcePath);
       const resolvedTargetPath = projectConfig.resolveProjectPath(targetPath);
 
-      console.log(`[Main] 复制文件: ${resolvedSourcePath} -> ${resolvedTargetPath}`);
+      logger.info(`[Main] 复制文件: ${resolvedSourcePath} -> ${resolvedTargetPath}`);
 
       const fs = require('fs').promises;
       await fs.copyFile(resolvedSourcePath, resolvedTargetPath);
@@ -420,7 +421,7 @@ ${content.substring(0, 2000)}
         path: resolvedTargetPath
       };
     } catch (error) {
-      console.error('[Main] 文件复制失败:', error);
+      logger.error('[Main] 文件复制失败:', error);
       throw error;
     }
   });
@@ -431,7 +432,7 @@ ${content.substring(0, 2000)}
   ipcMain.handle('project:move-file', async (_event, params) => {
     try {
       const { projectId, fileId, sourcePath, targetPath } = params;
-      console.log(`[Main] 移动文件: ${sourcePath} -> ${targetPath}`);
+      logger.info(`[Main] 移动文件: ${sourcePath} -> ${targetPath}`);
 
       const fs = require('fs').promises;
       const projectConfig = getProjectConfig();
@@ -460,7 +461,7 @@ ${content.substring(0, 2000)}
         `;
         await db.run(updateSQL, [newFileName, newFilePath, fileId, projectId]);
         await saveDatabase();
-        console.log(`[Main] 文件记录已更新: ${fileId}`);
+        logger.info(`[Main] 文件记录已更新: ${fileId}`);
       }
 
       return {
@@ -469,7 +470,7 @@ ${content.substring(0, 2000)}
         path: resolvedTargetPath
       };
     } catch (error) {
-      console.error('[Main] 文件移动失败:', error);
+      logger.error('[Main] 文件移动失败:', error);
       throw error;
     }
   });
@@ -480,7 +481,7 @@ ${content.substring(0, 2000)}
   ipcMain.handle('project:import-file', async (_event, params) => {
     try {
       const { projectId, externalPath, targetPath } = params;
-      console.log(`[Main] 导入文件: ${externalPath} -> ${targetPath}`);
+      logger.info(`[Main] 导入文件: ${externalPath} -> ${targetPath}`);
 
       const fs = require('fs').promises;
       const projectConfig = getProjectConfig();
@@ -523,7 +524,7 @@ ${content.substring(0, 2000)}
       ]);
       await saveDatabase();
 
-      console.log(`[Main] 文件导入成功: ${fileId}`);
+      logger.info(`[Main] 文件导入成功: ${fileId}`);
 
       return {
         success: true,
@@ -533,7 +534,7 @@ ${content.substring(0, 2000)}
         size: stats.size
       };
     } catch (error) {
-      console.error('[Main] 文件导入失败:', error);
+      logger.error('[Main] 文件导入失败:', error);
       throw error;
     }
   });
@@ -544,21 +545,21 @@ ${content.substring(0, 2000)}
   ipcMain.handle('project:export-file', async (_event, params) => {
     try {
       const { projectPath, targetPath, isDirectory } = params;
-      console.log(`[Main] 导出文件参数:`, params);
+      logger.info(`[Main] 导出文件参数:`, params);
 
       const fs = require('fs').promises;
       const projectConfig = getProjectConfig();
 
       // 解析项目内路径
       const resolvedSourcePath = projectConfig.resolveProjectPath(projectPath);
-      console.log(`[Main] 解析后的源路径: ${resolvedSourcePath}`);
-      console.log(`[Main] 目标路径: ${targetPath}`);
+      logger.info(`[Main] 解析后的源路径: ${resolvedSourcePath}`);
+      logger.info(`[Main] 目标路径: ${targetPath}`);
 
       // 检查源文件/文件夹是否存在
       try {
         await fs.access(resolvedSourcePath);
       } catch (err) {
-        console.error(`[Main] 源文件不存在: ${resolvedSourcePath}`);
+        logger.error(`[Main] 源文件不存在: ${resolvedSourcePath}`);
         throw new Error(`源文件不存在: ${projectPath}`);
       }
 
@@ -566,7 +567,7 @@ ${content.substring(0, 2000)}
 
       if (stats.isDirectory()) {
         // 递归复制目录
-        console.log(`[Main] 复制目录: ${resolvedSourcePath} -> ${targetPath}`);
+        logger.info(`[Main] 复制目录: ${resolvedSourcePath} -> ${targetPath}`);
         await copyDirectory(resolvedSourcePath, targetPath);
       } else {
         // 确保目标目录存在
@@ -574,11 +575,11 @@ ${content.substring(0, 2000)}
         await fs.mkdir(targetDir, { recursive: true });
 
         // 复制单个文件
-        console.log(`[Main] 复制文件: ${resolvedSourcePath} -> ${targetPath}`);
+        logger.info(`[Main] 复制文件: ${resolvedSourcePath} -> ${targetPath}`);
         await fs.copyFile(resolvedSourcePath, targetPath);
       }
 
-      console.log(`[Main] 文件导出成功: ${targetPath}`);
+      logger.info(`[Main] 文件导出成功: ${targetPath}`);
 
       return {
         success: true,
@@ -586,7 +587,7 @@ ${content.substring(0, 2000)}
         isDirectory: stats.isDirectory()
       };
     } catch (error) {
-      console.error('[Main] 文件导出失败:', error);
+      logger.error('[Main] 文件导出失败:', error);
       return {
         success: false,
         error: error.message
@@ -600,7 +601,7 @@ ${content.substring(0, 2000)}
   ipcMain.handle('project:export-files', async (_event, params) => {
     try {
       const { files, targetDirectory } = params;
-      console.log(`[Main] 批量导出 ${files.length} 个文件到: ${targetDirectory}`);
+      logger.info(`[Main] 批量导出 ${files.length} 个文件到: ${targetDirectory}`);
 
       const fs = require('fs').promises;
       const projectConfig = getProjectConfig();
@@ -628,7 +629,7 @@ ${content.substring(0, 2000)}
             path: targetPath
           });
         } catch (error) {
-          console.error(`[Main] 导出文件失败: ${file.name}`, error);
+          logger.error(`[Main] 导出文件失败: ${file.name}`, error);
           results.push({
             success: false,
             name: file.name,
@@ -638,7 +639,7 @@ ${content.substring(0, 2000)}
       }
 
       const successCount = results.filter(r => r.success).length;
-      console.log(`[Main] 批量导出完成: ${successCount}/${files.length} 成功`);
+      logger.info(`[Main] 批量导出完成: ${successCount}/${files.length} 成功`);
 
       return {
         success: true,
@@ -647,7 +648,7 @@ ${content.substring(0, 2000)}
         totalCount: files.length
       };
     } catch (error) {
-      console.error('[Main] 批量导出失败:', error);
+      logger.error('[Main] 批量导出失败:', error);
       throw error;
     }
   });
@@ -674,7 +675,7 @@ ${content.substring(0, 2000)}
         path: result.filePaths[0]
       };
     } catch (error) {
-      console.error('[Main] 选择导出目录失败:', error);
+      logger.error('[Main] 选择导出目录失败:', error);
       throw error;
     }
   });
@@ -713,7 +714,7 @@ ${content.substring(0, 2000)}
         filePaths: result.filePaths
       };
     } catch (error) {
-      console.error('[Main] 选择导入文件失败:', error);
+      logger.error('[Main] 选择导入文件失败:', error);
       throw error;
     }
   });
@@ -724,7 +725,7 @@ ${content.substring(0, 2000)}
   ipcMain.handle('project:import-files', async (_event, params) => {
     try {
       const { projectId, externalPaths, targetDirectory } = params;
-      console.log(`[Main] 批量导入 ${externalPaths.length} 个文件到: ${targetDirectory}`);
+      logger.info(`[Main] 批量导入 ${externalPaths.length} 个文件到: ${targetDirectory}`);
 
       const fs = require('fs').promises;
       const projectConfig = getProjectConfig();
@@ -759,7 +760,7 @@ ${content.substring(0, 2000)}
               fileSize = stats.size;
             } catch (err) {
               // 如果是二进制文件，忽略内容读取错误
-              console.log(`[Main] 无法读取文件内容（可能是二进制文件）: ${fileName}`);
+              logger.info(`[Main] 无法读取文件内容（可能是二进制文件）: ${fileName}`);
               fileSize = stats.size;
             }
           }
@@ -793,9 +794,9 @@ ${content.substring(0, 2000)}
             path: resolvedTargetPath
           });
 
-          console.log(`[Main] 文件导入成功: ${fileName}`);
+          logger.info(`[Main] 文件导入成功: ${fileName}`);
         } catch (error) {
-          console.error(`[Main] 导入文件失败: ${path.basename(externalPath)}`, error);
+          logger.error(`[Main] 导入文件失败: ${path.basename(externalPath)}`, error);
           results.push({
             success: false,
             name: path.basename(externalPath),
@@ -807,7 +808,7 @@ ${content.substring(0, 2000)}
       await saveDatabase();
 
       const successCount = results.filter(r => r.success).length;
-      console.log(`[Main] 批量导入完成: ${successCount}/${externalPaths.length} 成功`);
+      logger.info(`[Main] 批量导入完成: ${successCount}/${externalPaths.length} 成功`);
 
       return {
         success: true,
@@ -816,15 +817,15 @@ ${content.substring(0, 2000)}
         totalCount: externalPaths.length
       };
     } catch (error) {
-      console.error('[Main] 批量导入失败:', error);
+      logger.error('[Main] 批量导入失败:', error);
       throw error;
     }
   });
 
-  console.log('[Project Export IPC] ✓ 17 handlers registered');
-  console.log('[Project Export IPC] - 4 document export handlers');
-  console.log('[Project Export IPC] - 5 sharing handlers');
-  console.log('[Project Export IPC] - 8 file operation handlers');
+  logger.info('[Project Export IPC] ✓ 17 handlers registered');
+  logger.info('[Project Export IPC] - 4 document export handlers');
+  logger.info('[Project Export IPC] - 5 sharing handlers');
+  logger.info('[Project Export IPC] - 8 file operation handlers');
 }
 
 module.exports = {

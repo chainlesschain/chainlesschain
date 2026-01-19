@@ -5,6 +5,7 @@
  * 协调各子模块：配置、音频处理、识别引擎、存储
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { EventEmitter } = require('events');
 const path = require('path');
 const os = require('os'); // 新增：用于动态并发数
@@ -67,7 +68,7 @@ class SpeechManager extends EventEmitter {
    */
   async initialize() {
     try {
-      console.log('[SpeechManager] 初始化语音识别管理器...');
+      logger.info('[SpeechManager] 初始化语音识别管理器...');
 
       // 加载配置（使用注入的或默认的类）
       this.config = new this.dependencies.ConfigClass();
@@ -82,7 +83,7 @@ class SpeechManager extends EventEmitter {
       // 检查 FFmpeg
       const ffmpegAvailable = await this.processor.checkFFmpeg();
       if (!ffmpegAvailable) {
-        console.warn('[SpeechManager] FFmpeg 不可用，某些音频处理功能可能无法使用');
+        logger.warn('[SpeechManager] FFmpeg 不可用，某些音频处理功能可能无法使用');
       }
 
       // 初始化存储（使用注入的或默认的类）
@@ -132,14 +133,14 @@ class SpeechManager extends EventEmitter {
       }
       // else: 保持构造函数中设置的动态并发数
 
-      console.log(`[SpeechManager] 并发任务数: ${this.maxConcurrentTasks} (CPU核心数: ${os.cpus().length})`);
+      logger.info(`[SpeechManager] 并发任务数: ${this.maxConcurrentTasks} (CPU核心数: ${os.cpus().length})`);
 
       this.initialized = true;
-      console.log('[SpeechManager] 初始化完成（含实时语音输入）');
+      logger.info('[SpeechManager] 初始化完成（含实时语音输入）');
 
       return true;
     } catch (error) {
-      console.error('[SpeechManager] 初始化失败:', error);
+      logger.error('[SpeechManager] 初始化失败:', error);
       return false;
     }
   }
@@ -214,14 +215,14 @@ class SpeechManager extends EventEmitter {
 
     try {
       this.emit('transcribe-start', { filePath });
-      console.log('[SpeechManager] 开始转录:', path.basename(filePath));
+      logger.info('[SpeechManager] 开始转录:', path.basename(filePath));
 
       const audioId = uuidv4();
       const startTime = Date.now();
 
       // 1. 获取音频元数据
       const metadata = await this.processor.getMetadata(filePath);
-      console.log('[SpeechManager] 音频时长:', metadata.duration.toFixed(2), '秒');
+      logger.info('[SpeechManager] 音频时长:', metadata.duration.toFixed(2), '秒');
 
       this.emit('transcribe-progress', {
         filePath,
@@ -235,7 +236,7 @@ class SpeechManager extends EventEmitter {
       let needsSegmentation = false;
 
       if (metadata.duration > segmentDuration) {
-        console.log('[SpeechManager] 音频较长，进行分段处理');
+        logger.info('[SpeechManager] 音频较长，进行分段处理');
         needsSegmentation = true;
         segments = await this.processor.segmentAudio(filePath, segmentDuration);
       }
@@ -256,7 +257,7 @@ class SpeechManager extends EventEmitter {
         metadata.channels !== 1;
 
       if (shouldConvert) {
-        console.log(`[SpeechManager] 并发转换 ${segments.length} 个音频段...`);
+        logger.info(`[SpeechManager] 并发转换 ${segments.length} 个音频段...`);
 
         // 并发转换所有分段（关键优化：从顺序改为并发）
         const convertPromises = segments.map((segment, i) =>
@@ -277,15 +278,15 @@ class SpeechManager extends EventEmitter {
         const convertedPaths = await Promise.all(convertPromises);
         processedSegments.push(...convertedPaths);
 
-        console.log(`[SpeechManager] 并发转换完成，共 ${convertedPaths.length} 个文件`);
+        logger.info(`[SpeechManager] 并发转换完成，共 ${convertedPaths.length} 个文件`);
       } else {
         // 无需转换，直接使用原始分段
         processedSegments.push(...segments);
-        console.log(`[SpeechManager] 音频格式已符合要求，跳过转换`);
+        logger.info(`[SpeechManager] 音频格式已符合要求，跳过转换`);
       }
 
       // 4. 语音识别
-      console.log('[SpeechManager] 开始语音识别，引擎:', engine);
+      logger.info('[SpeechManager] 开始语音识别，引擎:', engine);
 
       const transcriptions = [];
 
@@ -313,7 +314,7 @@ class SpeechManager extends EventEmitter {
 
       const processingTime = Date.now() - startTime;
 
-      console.log('[SpeechManager] 识别完成，文本长度:', fullText.length);
+      logger.info('[SpeechManager] 识别完成，文本长度:', fullText.length);
 
       // 5. 保存到数据库
       let savedAudioId = null;
@@ -344,7 +345,7 @@ class SpeechManager extends EventEmitter {
           status: 'completed',
         });
 
-        console.log('[SpeechManager] 已保存到数据库');
+        logger.info('[SpeechManager] 已保存到数据库');
       }
 
       this.emit('transcribe-progress', {
@@ -380,20 +381,20 @@ class SpeechManager extends EventEmitter {
               });
             }
 
-            console.log('[SpeechManager] 已添加到知识库:', knowledgeId);
+            logger.info('[SpeechManager] 已添加到知识库:', knowledgeId);
 
             // 添加到 RAG 索引
             if (addToIndex && this.ragManager) {
               try {
                 await this.ragManager.addToIndex(addedItem);
-                console.log('[SpeechManager] 已添加到 RAG 索引');
+                logger.info('[SpeechManager] 已添加到 RAG 索引');
               } catch (error) {
-                console.error('[SpeechManager] 添加到 RAG 索引失败:', error);
+                logger.error('[SpeechManager] 添加到 RAG 索引失败:', error);
               }
             }
           }
         } catch (error) {
-          console.error('[SpeechManager] 添加到知识库失败:', error);
+          logger.error('[SpeechManager] 添加到知识库失败:', error);
         }
       }
 
@@ -431,7 +432,7 @@ class SpeechManager extends EventEmitter {
 
       return result;
     } catch (error) {
-      console.error('[SpeechManager] 转录失败:', error);
+      logger.error('[SpeechManager] 转录失败:', error);
       this.emit('transcribe-error', { filePath, error });
 
       // 记录失败到数据库
@@ -445,7 +446,7 @@ class SpeechManager extends EventEmitter {
             error: error.message,
           });
         } catch (dbError) {
-          console.error('[SpeechManager] 记录失败状态到数据库失败:', dbError);
+          logger.error('[SpeechManager] 记录失败状态到数据库失败:', dbError);
         }
       }
 
@@ -462,7 +463,7 @@ class SpeechManager extends EventEmitter {
   async transcribeBatch(filePaths, options = {}) {
     this.ensureInitialized();
 
-    console.log(`[SpeechManager] 开始批量转录 ${filePaths.length} 个文件`);
+    logger.info(`[SpeechManager] 开始批量转录 ${filePaths.length} 个文件`);
     this.emit('batch-start', { total: filePaths.length });
 
     const results = [];
@@ -499,7 +500,7 @@ class SpeechManager extends EventEmitter {
     };
 
     this.emit('batch-complete', summary);
-    console.log('[SpeechManager] 批量转录完成:', summary);
+    logger.info('[SpeechManager] 批量转录完成:', summary);
 
     return summary;
   }
@@ -533,7 +534,7 @@ class SpeechManager extends EventEmitter {
     await this.config.set('defaultEngine', engineType);
     await this.config.save();
 
-    console.log('[SpeechManager] 识别引擎已切换到:', engineType);
+    logger.info('[SpeechManager] 识别引擎已切换到:', engineType);
 
     return { success: true, engine: engineType };
   }
@@ -613,15 +614,15 @@ class SpeechManager extends EventEmitter {
     this.ensureInitialized();
 
     try {
-      console.log('[SpeechManager] 开始音频降噪:', path.basename(inputPath));
+      logger.info('[SpeechManager] 开始音频降噪:', path.basename(inputPath));
 
       const result = await this.processor.denoiseAudio(inputPath, outputPath, options);
 
-      console.log('[SpeechManager] 降噪完成');
+      logger.info('[SpeechManager] 降噪完成');
 
       return result;
     } catch (error) {
-      console.error('[SpeechManager] 降噪失败:', error);
+      logger.error('[SpeechManager] 降噪失败:', error);
       throw error;
     }
   }
@@ -637,15 +638,15 @@ class SpeechManager extends EventEmitter {
     this.ensureInitialized();
 
     try {
-      console.log('[SpeechManager] 开始音频增强:', path.basename(inputPath));
+      logger.info('[SpeechManager] 开始音频增强:', path.basename(inputPath));
 
       const result = await this.processor.enhanceAudio(inputPath, outputPath, options);
 
-      console.log('[SpeechManager] 增强完成，应用了', result.appliedFilters, '个滤镜');
+      logger.info('[SpeechManager] 增强完成，应用了', result.appliedFilters, '个滤镜');
 
       return result;
     } catch (error) {
-      console.error('[SpeechManager] 增强失败:', error);
+      logger.error('[SpeechManager] 增强失败:', error);
       throw error;
     }
   }
@@ -660,15 +661,15 @@ class SpeechManager extends EventEmitter {
     this.ensureInitialized();
 
     try {
-      console.log('[SpeechManager] 开始语音增强:', path.basename(inputPath));
+      logger.info('[SpeechManager] 开始语音增强:', path.basename(inputPath));
 
       const result = await this.processor.enhanceForSpeechRecognition(inputPath, outputPath);
 
-      console.log('[SpeechManager] 语音增强完成');
+      logger.info('[SpeechManager] 语音增强完成');
 
       return result;
     } catch (error) {
-      console.error('[SpeechManager] 语音增强失败:', error);
+      logger.error('[SpeechManager] 语音增强失败:', error);
       throw error;
     }
   }
@@ -682,16 +683,16 @@ class SpeechManager extends EventEmitter {
     this.ensureInitialized();
 
     try {
-      console.log('[SpeechManager] 开始检测语言:', path.basename(audioPath));
+      logger.info('[SpeechManager] 开始检测语言:', path.basename(audioPath));
 
       // 使用识别器的语言检测功能
       const result = await this.recognizer.engine.detectLanguage(audioPath);
 
-      console.log('[SpeechManager] 检测到语言:', result.languageName, `(${result.language})`);
+      logger.info('[SpeechManager] 检测到语言:', result.languageName, `(${result.language})`);
 
       return result;
     } catch (error) {
-      console.error('[SpeechManager] 语言检测失败:', error);
+      logger.error('[SpeechManager] 语言检测失败:', error);
       throw error;
     }
   }
@@ -705,7 +706,7 @@ class SpeechManager extends EventEmitter {
     this.ensureInitialized();
 
     try {
-      console.log('[SpeechManager] 开始批量语言检测，文件数:', audioPaths.length);
+      logger.info('[SpeechManager] 开始批量语言检测，文件数:', audioPaths.length);
 
       const results = await this.recognizer.engine.detectLanguages(audioPaths);
 
@@ -716,11 +717,11 @@ class SpeechManager extends EventEmitter {
         results: results,
       };
 
-      console.log('[SpeechManager] 批量语言检测完成:', summary);
+      logger.info('[SpeechManager] 批量语言检测完成:', summary);
 
       return summary;
     } catch (error) {
-      console.error('[SpeechManager] 批量语言检测失败:', error);
+      logger.error('[SpeechManager] 批量语言检测失败:', error);
       throw error;
     }
   }
@@ -736,7 +737,7 @@ class SpeechManager extends EventEmitter {
     this.ensureInitialized();
 
     try {
-      console.log('[SpeechManager] 开始生成字幕:', audioId);
+      logger.info('[SpeechManager] 开始生成字幕:', audioId);
 
       // 获取音频记录
       const audioRecord = await this.storage.getAudioRecord(audioId);
@@ -762,11 +763,11 @@ class SpeechManager extends EventEmitter {
         format
       );
 
-      console.log('[SpeechManager] 字幕生成完成:', result.outputPath);
+      logger.info('[SpeechManager] 字幕生成完成:', result.outputPath);
 
       return result;
     } catch (error) {
-      console.error('[SpeechManager] 字幕生成失败:', error);
+      logger.error('[SpeechManager] 字幕生成失败:', error);
       throw error;
     }
   }
@@ -788,7 +789,7 @@ class SpeechManager extends EventEmitter {
     } = options;
 
     try {
-      console.log('[SpeechManager] 开始转录并生成字幕:', path.basename(audioPath));
+      logger.info('[SpeechManager] 开始转录并生成字幕:', path.basename(audioPath));
 
       let processedPath = audioPath;
 
@@ -821,7 +822,7 @@ class SpeechManager extends EventEmitter {
           format
         );
 
-        console.log('[SpeechManager] 使用 Whisper API 直接生成字幕完成');
+        logger.info('[SpeechManager] 使用 Whisper API 直接生成字幕完成');
 
         return {
           success: true,
@@ -844,7 +845,7 @@ class SpeechManager extends EventEmitter {
 
         await this.subtitleGenerator.saveSubtitleFile(subtitles, subtitlePath, format);
 
-        console.log('[SpeechManager] 转录并生成字幕完成');
+        logger.info('[SpeechManager] 转录并生成字幕完成');
 
         return {
           success: true,
@@ -856,7 +857,7 @@ class SpeechManager extends EventEmitter {
         };
       }
     } catch (error) {
-      console.error('[SpeechManager] 转录并生成字幕失败:', error);
+      logger.error('[SpeechManager] 转录并生成字幕失败:', error);
       throw error;
     }
   }
@@ -872,7 +873,7 @@ class SpeechManager extends EventEmitter {
     this.ensureInitialized();
 
     try {
-      console.log('[SpeechManager] 开始批量生成字幕，数量:', audioIds.length);
+      logger.info('[SpeechManager] 开始批量生成字幕，数量:', audioIds.length);
 
       const results = [];
 
@@ -905,11 +906,11 @@ class SpeechManager extends EventEmitter {
         results: results,
       };
 
-      console.log('[SpeechManager] 批量字幕生成完成:', summary);
+      logger.info('[SpeechManager] 批量字幕生成完成:', summary);
 
       return summary;
     } catch (error) {
-      console.error('[SpeechManager] 批量字幕生成失败:', error);
+      logger.error('[SpeechManager] 批量字幕生成失败:', error);
       throw error;
     }
   }
@@ -921,7 +922,7 @@ class SpeechManager extends EventEmitter {
    */
   async startRealtimeRecording(options = {}) {
     this.ensureInitialized();
-    console.log('[SpeechManager] 开始实时录音');
+    logger.info('[SpeechManager] 开始实时录音');
     return await this.realtimeInput.startRecording(options);
   }
 
@@ -956,7 +957,7 @@ class SpeechManager extends EventEmitter {
    */
   async stopRealtimeRecording() {
     this.ensureInitialized();
-    console.log('[SpeechManager] 停止实时录音');
+    logger.info('[SpeechManager] 停止实时录音');
     return await this.realtimeInput.stopRecording();
   }
 
@@ -1037,7 +1038,7 @@ class SpeechManager extends EventEmitter {
    * 终止服务
    */
   async terminate() {
-    console.log('[SpeechManager] 终止服务...');
+    logger.info('[SpeechManager] 终止服务...');
 
     // 停止实时录音
     if (this.realtimeInput && this.realtimeInput.isRecording) {

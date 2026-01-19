@@ -3,6 +3,7 @@
  * 演示如何使用ToolLogger和ErrorHandler包装工具Handler
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const AdditionalToolsV3Handler = require('./additional-tools-v3-handler');
 const ToolLogger = require('./tool-logger');
 const { ErrorHandler, ValidationError, ExecutionError } = require('./tool-errors');
@@ -75,7 +76,7 @@ async function exampleUsage() {
     securityFocus: true
   });
 
-  console.log('Result 1:', result1);
+  logger.info('Result 1:', result1);
 
   // 3. 调用失败会自动处理
   const result2 = await handler.tool_financial_calculator({
@@ -83,11 +84,11 @@ async function exampleUsage() {
     // 缺少必需的cashFlows参数，会被捕获
   });
 
-  console.log('Result 2:', result2);
+  logger.info('Result 2:', result2);
 
   // 4. 查看错误统计
   const errorStats = handler.getErrorStats();
-  console.log('Error Stats:', errorStats);
+  logger.info('Error Stats:', errorStats);
 
   // 5. 查看日志（日志已自动写入文件）
   // 日志文件位置: logs/tool-system-YYYY-MM-DD.log

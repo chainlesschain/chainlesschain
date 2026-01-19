@@ -5,6 +5,7 @@
  * 支持握奇的各系列U盾产品
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const SKFDriver = require('./skf-driver');
 const path = require('path');
 const fs = require('fs');
@@ -35,7 +36,7 @@ class WatchDataDriver extends SKFDriver {
    */
   findDllPath() {
     if (process.platform !== 'win32') {
-      console.warn('[WatchData] Only Windows platform is supported');
+      logger.warn('[WatchData] Only Windows platform is supported');
       return null;
     }
 
@@ -69,12 +70,12 @@ class WatchDataDriver extends SKFDriver {
     // 查找第一个存在的DLL
     for (const dllPath of possiblePaths) {
       if (fs.existsSync(dllPath)) {
-        console.log(`[WatchData] Found DLL: ${dllPath}`);
+        logger.info(`[WatchData] Found DLL: ${dllPath}`);
         return dllPath;
       }
     }
 
-    console.warn('[WatchData] DLL not found in any standard location');
+    logger.warn('[WatchData] DLL not found in any standard location');
     return null;
   }
 
@@ -82,7 +83,7 @@ class WatchDataDriver extends SKFDriver {
    * 初始化驱动
    */
   async initialize() {
-    console.log('[WatchData] Initializing WatchData driver...');
+    logger.info('[WatchData] Initializing WatchData driver...');
 
     try {
       // 调用父类初始化
@@ -91,10 +92,10 @@ class WatchDataDriver extends SKFDriver {
       // 握奇特定初始化
       // 例如：加载特定配置、检查驱动版本等
 
-      console.log('[WatchData] WatchData driver initialized successfully');
+      logger.info('[WatchData] WatchData driver initialized successfully');
       return true;
     } catch (error) {
-      console.error('[WatchData] Initialization failed:', error);
+      logger.error('[WatchData] Initialization failed:', error);
       this.simulationMode = true;
       this.isInitialized = true;
       return true;
@@ -135,7 +136,7 @@ class WatchDataDriver extends SKFDriver {
    * 握奇特定的检测逻辑
    */
   async detect() {
-    console.log('[WatchData] Detecting WatchData device...');
+    logger.info('[WatchData] Detecting WatchData device...');
 
     try {
       // 调用父类的检测方法
@@ -149,7 +150,7 @@ class WatchDataDriver extends SKFDriver {
 
       return result;
     } catch (error) {
-      console.error('[WatchData] Detection failed:', error);
+      logger.error('[WatchData] Detection failed:', error);
       return {
         detected: false,
         unlocked: false,
@@ -196,7 +197,7 @@ class WatchDataDriver extends SKFDriver {
       throw new Error('设备未解锁');
     }
 
-    console.log('[WatchData] Getting device serial number...');
+    logger.info('[WatchData] Getting device serial number...');
 
     if (this.simulationMode) {
       // 模拟序列号
@@ -216,7 +217,7 @@ class WatchDataDriver extends SKFDriver {
       throw new Error('设备未解锁');
     }
 
-    console.log('[WatchData] Getting device certificate...');
+    logger.info('[WatchData] Getting device certificate...');
 
     if (this.simulationMode) {
       return null;
@@ -231,7 +232,7 @@ class WatchDataDriver extends SKFDriver {
    * 握奇特定功能：检查设备健康状态
    */
   async checkDeviceHealth() {
-    console.log('[WatchData] Checking device health...');
+    logger.info('[WatchData] Checking device health...');
 
     try {
       if (this.simulationMode) {
@@ -272,7 +273,7 @@ class WatchDataDriver extends SKFDriver {
       throw new Error('设备未连接');
     }
 
-    console.log('[WatchData] Setting device label:', label);
+    logger.info('[WatchData] Setting device label:', label);
 
     if (this.simulationMode) {
       return true;

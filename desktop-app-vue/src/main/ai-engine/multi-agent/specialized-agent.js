@@ -6,6 +6,7 @@
  * @see https://github.com/FoundationAgents/OpenManus
  */
 
+const { logger, createLogger } = require('../../utils/logger.js');
 const EventEmitter = require("events");
 
 /**
@@ -130,7 +131,7 @@ class SpecializedAgent extends EventEmitter {
         return result;
       } catch (error) {
         lastError = error;
-        console.warn(`[${this.agentId}] 执行失败 (attempt ${attempt + 1}):`, error.message);
+        logger.warn(`[${this.agentId}] 执行失败 (attempt ${attempt + 1}):`, error.message);
 
         if (attempt < this.config.maxRetries - 1) {
           await this._delay(this.config.retryDelay * (attempt + 1));
@@ -154,7 +155,7 @@ class SpecializedAgent extends EventEmitter {
    */
   async receiveMessage(message, metadata = {}) {
     // 默认实现：记录消息并返回确认
-    console.log(`[${this.agentId}] 收到消息 from ${metadata.from}:`, message);
+    logger.info(`[${this.agentId}] 收到消息 from ${metadata.from}:`, message);
     return { received: true, agentId: this.agentId };
   }
 

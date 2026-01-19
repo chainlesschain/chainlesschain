@@ -235,6 +235,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, reactive, computed, onMounted } from 'vue';
 import { message } from 'ant-design-vue';
 import {
@@ -288,9 +290,9 @@ const loadPlans = async () => {
     const result = await window.electronAPI.knowledge.getSubscriptionPlans(userDid);
     tradeStore.knowledge.subscriptionPlans = result || [];
 
-    console.log('[SubscriptionPlans] 计划列表已加载:', plans.value.length);
+    logger.info('[SubscriptionPlans] 计划列表已加载:', plans.value.length);
   } catch (error) {
-    console.error('[SubscriptionPlans] 加载计划失败:', error);
+    logger.error('[SubscriptionPlans] 加载计划失败:', error);
     message.error(error.message || '加载计划失败');
   }
 };
@@ -335,13 +337,13 @@ const handleSave = async () => {
         planData
       );
 
-      console.log('[SubscriptionPlans] 计划已更新:', editingPlan.value.id);
+      logger.info('[SubscriptionPlans] 计划已更新:', editingPlan.value.id);
       message.success('计划已更新！');
     } else {
       // 创建计划
       await window.electronAPI.knowledge.createSubscriptionPlan(planData);
 
-      console.log('[SubscriptionPlans] 计划已创建');
+      logger.info('[SubscriptionPlans] 计划已创建');
       message.success('计划创建成功！');
     }
 
@@ -351,7 +353,7 @@ const handleSave = async () => {
 
     await loadPlans();
   } catch (error) {
-    console.error('[SubscriptionPlans] 保存计划失败:', error);
+    logger.error('[SubscriptionPlans] 保存计划失败:', error);
     message.error(error.message || '保存计划失败');
   } finally {
     saving.value = false;
@@ -395,12 +397,12 @@ const deletePlan = async (planId) => {
   try {
     await window.electronAPI.knowledge.deleteSubscriptionPlan(planId);
 
-    console.log('[SubscriptionPlans] 计划已删除:', planId);
+    logger.info('[SubscriptionPlans] 计划已删除:', planId);
     message.success('计划已删除！');
 
     await loadPlans();
   } catch (error) {
-    console.error('[SubscriptionPlans] 删除计划失败:', error);
+    logger.error('[SubscriptionPlans] 删除计划失败:', error);
     message.error(error.message || '删除计划失败');
   }
 };

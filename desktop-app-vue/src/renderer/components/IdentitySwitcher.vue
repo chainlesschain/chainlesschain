@@ -255,6 +255,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed } from 'vue';
 import { message } from 'ant-design-vue';
 import {
@@ -347,7 +349,7 @@ async function handleSwitch(contextId) {
       message.error(result.error || '切换身份失败');
     }
   } catch (error) {
-    console.error('切换身份失败:', error);
+    logger.error('切换身份失败:', error);
     message.error(error.message || '切换身份失败');
   }
 }
@@ -404,7 +406,7 @@ async function handleCreateOrg() {
     // 刷新上下文列表
     await identityStore.loadContexts();
   } catch (error) {
-    console.error('创建组织失败:', error);
+    logger.error('创建组织失败:', error);
     message.error(error.message || '创建组织失败');
   } finally {
     creating.value = false;
@@ -454,7 +456,7 @@ async function handleJoinOrg() {
     // 刷新上下文列表
     await identityStore.loadContexts();
   } catch (error) {
-    console.error('加入组织失败:', error);
+    logger.error('加入组织失败:', error);
     message.error(error.message || '加入组织失败，请检查邀请码是否正确');
   } finally {
     joining.value = false;

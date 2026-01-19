@@ -3,6 +3,7 @@
  * 支持依赖分析、并发控制、优先级队列
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const EventEmitter = require('events');
 
 /**
@@ -145,7 +146,7 @@ class TaskExecutor extends EventEmitter {
     this.taskGraph.set(node.id, node);
     this.stats.total++;
 
-    console.log(`[TaskExecutor] 添加任务: ${node.id}, 依赖: [${node.dependencies.join(', ')}]`);
+    logger.info(`[TaskExecutor] 添加任务: ${node.id}, 依赖: [${node.dependencies.join(', ')}]`);
 
     return node.id;
   }
@@ -183,7 +184,7 @@ class TaskExecutor extends EventEmitter {
         if (depNode) {
           depNode.dependents.push(node.id);
         } else {
-          console.warn(`[TaskExecutor] 任务 ${node.id} 的依赖 ${depId} 不存在`);
+          logger.warn(`[TaskExecutor] 任务 ${node.id} 的依赖 ${depId} 不存在`);
         }
       }
     }
@@ -227,7 +228,7 @@ class TaskExecutor extends EventEmitter {
       }
     }
 
-    console.log('[TaskExecutor] 依赖检查通过，无循环依赖');
+    logger.info('[TaskExecutor] 依赖检查通过，无循环依赖');
   }
 
   /**
@@ -255,7 +256,7 @@ class TaskExecutor extends EventEmitter {
   async executeTask(node, executor) {
     const taskId = node.id;
 
-    console.log(`[TaskExecutor] 开始执行任务: ${taskId}`);
+    logger.info(`[TaskExecutor] 开始执行任务: ${taskId}`);
 
     node.markRunning();
     this.runningTasks.add(taskId);
@@ -285,7 +286,7 @@ class TaskExecutor extends EventEmitter {
       this.stats.completed++;
       this.stats.totalDuration += node.getDuration();
 
-      console.log(`[TaskExecutor] 任务完成: ${taskId}, 耗时: ${node.getDuration()}ms`);
+      logger.info(`[TaskExecutor] 任务完成: ${taskId}, 耗时: ${node.getDuration()}ms`);
 
       this.emit('task-completed', {
         taskId,
@@ -296,7 +297,7 @@ class TaskExecutor extends EventEmitter {
 
       return result;
     } catch (error) {
-      console.error(`[TaskExecutor] 任务失败: ${taskId}, 错误:`, error.message);
+      logger.error(`[TaskExecutor] 任务失败: ${taskId}, 错误:`, error.message);
 
       // 重试逻辑
       if (node.retries < node.maxRetries) {
@@ -304,7 +305,7 @@ class TaskExecutor extends EventEmitter {
         node.status = TaskStatus.PENDING;
         this.runningTasks.delete(taskId);
 
-        console.log(`[TaskExecutor] 任务重试 (${node.retries}/${node.maxRetries}): ${taskId}`);
+        logger.info(`[TaskExecutor] 任务重试 (${node.retries}/${node.maxRetries}): ${taskId}`);
 
         this.emit('task-retry', {
           taskId,
@@ -347,8 +348,8 @@ class TaskExecutor extends EventEmitter {
     this.isExecuting = true;
     this.cancelled = false;
 
-    console.log(`[TaskExecutor] 开始执行任务图，共 ${this.taskGraph.size} 个任务`);
-    console.log(`[TaskExecutor] 并发数: ${this.config.MAX_CONCURRENCY}`);
+    logger.info(`[TaskExecutor] 开始执行任务图，共 ${this.taskGraph.size} 个任务`);
+    logger.info(`[TaskExecutor] 并发数: ${this.config.MAX_CONCURRENCY}`);
 
     // 检测循环依赖
     this.detectCyclicDependencies();
@@ -372,7 +373,7 @@ class TaskExecutor extends EventEmitter {
         if (readyTasks.length === 0 && this.runningTasks.size === 0) {
           // 没有可执行的任务，且没有正在运行的任务
           // 可能存在未满足依赖的任务
-          console.warn('[TaskExecutor] 无法继续执行，可能存在依赖问题');
+          logger.warn('[TaskExecutor] 无法继续执行，可能存在依赖问题');
           break;
         }
 
@@ -415,8 +416,8 @@ class TaskExecutor extends EventEmitter {
         });
       }
 
-      console.log('[TaskExecutor] 任务图执行完成');
-      console.log(`[TaskExecutor] 成功: ${this.stats.completed}, 失败: ${this.stats.failed}`);
+      logger.info('[TaskExecutor] 任务图执行完成');
+      logger.info(`[TaskExecutor] 成功: ${this.stats.completed}, 失败: ${this.stats.failed}`);
 
       this.emit('execution-completed', {
         results,
@@ -431,7 +432,7 @@ class TaskExecutor extends EventEmitter {
         stats: this.getStats(),
       };
     } catch (error) {
-      console.error('[TaskExecutor] 执行失败:', error);
+      logger.error('[TaskExecutor] 执行失败:', error);
 
       this.emit('execution-failed', {
         error: error.message,
@@ -452,7 +453,7 @@ class TaskExecutor extends EventEmitter {
     this.cancelled = true;
     this.stats.cancelled = this.taskGraph.size - this.completedTasks.size - this.failedTasks.size;
 
-    console.log('[TaskExecutor] 执行已取消');
+    logger.info('[TaskExecutor] 执行已取消');
 
     this.emit('execution-cancelled', {
       completed: this.completedTasks.size,
@@ -496,7 +497,7 @@ class TaskExecutor extends EventEmitter {
    * 可视化任务图
    */
   visualize() {
-    console.log('\n=== 任务执行图 ===\n');
+    logger.info('\n=== 任务执行图 ===\n');
 
     for (const node of this.taskGraph.values()) {
       const statusIcon = {
@@ -508,16 +509,16 @@ class TaskExecutor extends EventEmitter {
         [TaskStatus.CANCELLED]: '⛔',
       }[node.status];
 
-      console.log(`${statusIcon} ${node.id}`);
-      console.log(`   优先级: ${node.priority}`);
-      console.log(`   依赖: [${node.dependencies.join(', ') || '无'}]`);
-      console.log(`   被依赖: [${node.dependents.join(', ') || '无'}]`);
+      logger.info(`${statusIcon} ${node.id}`);
+      logger.info(`   优先级: ${node.priority}`);
+      logger.info(`   依赖: [${node.dependencies.join(', ') || '无'}]`);
+      logger.info(`   被依赖: [${node.dependents.join(', ') || '无'}]`);
 
       if (node.getDuration()) {
-        console.log(`   耗时: ${node.getDuration()}ms`);
+        logger.info(`   耗时: ${node.getDuration()}ms`);
       }
 
-      console.log('');
+      logger.info('');
     }
   }
 }

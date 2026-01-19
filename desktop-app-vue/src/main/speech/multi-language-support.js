@@ -4,6 +4,7 @@
  * 支持多种语言的语音识别和自动语言检测
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { EventEmitter } = require('events');
 
 /**
@@ -423,13 +424,13 @@ class MultiLanguageSupport extends EventEmitter {
    */
   setCurrentLanguage(languageCode) {
     if (!this.isLanguageSupported(languageCode)) {
-      console.warn(`[MultiLanguage] 不支持的语言: ${languageCode}`);
+      logger.warn(`[MultiLanguage] 不支持的语言: ${languageCode}`);
       return false;
     }
 
     this.currentLanguage = languageCode;
     this.emit('languageChanged', languageCode);
-    console.log(`[MultiLanguage] 切换语言: ${languageCode}`);
+    logger.info(`[MultiLanguage] 切换语言: ${languageCode}`);
     return true;
   }
 
@@ -502,7 +503,7 @@ class MultiLanguageSupport extends EventEmitter {
     // 如果置信度足够高，自动切换语言
     if (this.config.autoDetect && result.confidence >= this.config.detectionConfidence) {
       if (result.language !== this.currentLanguage) {
-        console.log(`[MultiLanguage] 自动检测到语言: ${result.language} (置信度: ${result.confidence.toFixed(2)})`);
+        logger.info(`[MultiLanguage] 自动检测到语言: ${result.language} (置信度: ${result.confidence.toFixed(2)})`);
         this.setCurrentLanguage(result.language);
       }
     }

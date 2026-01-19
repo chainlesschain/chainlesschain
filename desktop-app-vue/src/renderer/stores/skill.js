@@ -1,6 +1,7 @@
 /**
  * 技能管理 Store
  */
+import { logger, createLogger } from '@/utils/logger';
 import { defineStore } from 'pinia';
 
 export const useSkillStore = defineStore('skill', {
@@ -97,7 +98,7 @@ export const useSkillStore = defineStore('skill', {
       try {
         const skillAPI = window.electronAPI?.skill || window.electron?.api?.skill;
         if (!skillAPI?.getAll) {
-          console.error('[SkillStore] skill API 不可用 (缺少 getAll)');
+          logger.error('[SkillStore] skill API 不可用 (缺少 getAll)');
           return;
         }
         const result = await skillAPI.getAll(options);
@@ -109,10 +110,10 @@ export const useSkillStore = defineStore('skill', {
             config: typeof skill.config === 'string' ? JSON.parse(skill.config) : (skill.config || {}),
           }));
         } else {
-          console.error('获取技能失败:', result.error);
+          logger.error('获取技能失败:', result.error);
         }
       } catch (error) {
-        console.error('获取技能失败:', error);
+        logger.error('获取技能失败:', error);
       } finally {
         this.loading = false;
       }
@@ -125,7 +126,7 @@ export const useSkillStore = defineStore('skill', {
       try {
         const skillAPI = window.electronAPI?.skill || window.electron?.api?.skill;
         if (!skillAPI?.getById) {
-          console.error('[SkillStore] skill API 不可用 (缺少 getById)');
+          logger.error('[SkillStore] skill API 不可用 (缺少 getById)');
           return null;
         }
         const result = await skillAPI.getById(skillId);
@@ -140,11 +141,11 @@ export const useSkillStore = defineStore('skill', {
             : null;
           return this.currentSkill;
         } else {
-          console.error('获取技能失败:', result.error);
+          logger.error('获取技能失败:', result.error);
           return null;
         }
       } catch (error) {
-        console.error('获取技能失败:', error);
+        logger.error('获取技能失败:', error);
         return null;
       }
     },
@@ -156,18 +157,18 @@ export const useSkillStore = defineStore('skill', {
       try {
         const skillAPI = window.electronAPI?.skill || window.electron?.api?.skill;
         if (!skillAPI?.getByCategory) {
-          console.error('[SkillStore] skill API 不可用 (缺少 getByCategory)');
+          logger.error('[SkillStore] skill API 不可用 (缺少 getByCategory)');
           return [];
         }
         const result = await skillAPI.getByCategory(category);
         if (result.success) {
           return result.content ?? result.data ?? result.skills ?? [];
         } else {
-          console.error('获取技能失败:', result.error);
+          logger.error('获取技能失败:', result.error);
           return [];
         }
       } catch (error) {
-        console.error('获取技能失败:', error);
+        logger.error('获取技能失败:', error);
         return [];
       }
     },
@@ -186,11 +187,11 @@ export const useSkillStore = defineStore('skill', {
           }
           return true;
         } else {
-          console.error('启用技能失败:', result.error);
+          logger.error('启用技能失败:', result.error);
           return false;
         }
       } catch (error) {
-        console.error('启用技能失败:', error);
+        logger.error('启用技能失败:', error);
         return false;
       }
     },
@@ -209,11 +210,11 @@ export const useSkillStore = defineStore('skill', {
           }
           return true;
         } else {
-          console.error('禁用技能失败:', result.error);
+          logger.error('禁用技能失败:', result.error);
           return false;
         }
       } catch (error) {
-        console.error('禁用技能失败:', error);
+        logger.error('禁用技能失败:', error);
         return false;
       }
     },
@@ -232,11 +233,11 @@ export const useSkillStore = defineStore('skill', {
           }
           return true;
         } else {
-          console.error('更新技能配置失败:', result.error);
+          logger.error('更新技能配置失败:', result.error);
           return false;
         }
       } catch (error) {
-        console.error('更新技能配置失败:', error);
+        logger.error('更新技能配置失败:', error);
         return false;
       }
     },
@@ -255,11 +256,11 @@ export const useSkillStore = defineStore('skill', {
           }
           return true;
         } else {
-          console.error('更新技能失败:', result.error);
+          logger.error('更新技能失败:', result.error);
           return false;
         }
       } catch (error) {
-        console.error('更新技能失败:', error);
+        logger.error('更新技能失败:', error);
         return false;
       }
     },
@@ -273,11 +274,11 @@ export const useSkillStore = defineStore('skill', {
         if (result.success) {
           return result.data;
         } else {
-          console.error('获取技能统计失败:', result.error);
+          logger.error('获取技能统计失败:', result.error);
           return null;
         }
       } catch (error) {
-        console.error('获取技能统计失败:', error);
+        logger.error('获取技能统计失败:', error);
         return null;
       }
     },
@@ -291,11 +292,11 @@ export const useSkillStore = defineStore('skill', {
         if (result.success) {
           return result.data;
         } else {
-          console.error('获取技能工具失败:', result.error);
+          logger.error('获取技能工具失败:', result.error);
           return [];
         }
       } catch (error) {
-        console.error('获取技能工具失败:', error);
+        logger.error('获取技能工具失败:', error);
         return [];
       }
     },
@@ -309,11 +310,11 @@ export const useSkillStore = defineStore('skill', {
         if (result.success) {
           return true;
         } else {
-          console.error('添加工具失败:', result.error);
+          logger.error('添加工具失败:', result.error);
           return false;
         }
       } catch (error) {
-        console.error('添加工具失败:', error);
+        logger.error('添加工具失败:', error);
         return false;
       }
     },
@@ -327,11 +328,11 @@ export const useSkillStore = defineStore('skill', {
         if (result.success) {
           return true;
         } else {
-          console.error('移除工具失败:', result.error);
+          logger.error('移除工具失败:', result.error);
           return false;
         }
       } catch (error) {
-        console.error('移除工具失败:', error);
+        logger.error('移除工具失败:', error);
         return false;
       }
     },
@@ -345,11 +346,11 @@ export const useSkillStore = defineStore('skill', {
         if (result.success) {
           return result.data;
         } else {
-          console.error('获取技能文档失败:', result.error);
+          logger.error('获取技能文档失败:', result.error);
           return null;
         }
       } catch (error) {
-        console.error('获取技能文档失败:', error);
+        logger.error('获取技能文档失败:', error);
         return null;
       }
     },

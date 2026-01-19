@@ -3,6 +3,7 @@
  * 优化请求处理、连接管理和响应速度
  */
 
+const { logger, createLogger } = require('./logger.js');
 const { EventEmitter } = require('events');
 
 class HTTPServerOptimizer extends EventEmitter {
@@ -165,14 +166,14 @@ class HTTPServerOptimizer extends EventEmitter {
         });
       });
 
-      console.log(`[HTTPOptimizer] 压缩: ${dataStr.length} -> ${compressed.length} bytes`);
+      logger.info(`[HTTPOptimizer] 压缩: ${dataStr.length} -> ${compressed.length} bytes`);
 
       return {
         compressed: true,
         data: compressed.toString('base64'),
       };
     } catch (error) {
-      console.error('[HTTPOptimizer] 压缩失败:', error);
+      logger.error('[HTTPOptimizer] 压缩失败:', error);
       return data;
     }
   }
@@ -216,7 +217,7 @@ class HTTPServerOptimizer extends EventEmitter {
     }
 
     const batch = this.batchQueue.splice(0, this.config.batchSize);
-    console.log(`[HTTPOptimizer] 处理批次: ${batch.length} 个请求`);
+    logger.info(`[HTTPOptimizer] 处理批次: ${batch.length} 个请求`);
 
     // 并行处理所有请求
     const results = await Promise.allSettled(
@@ -341,7 +342,7 @@ class HTTPServerOptimizer extends EventEmitter {
    */
   clearCache() {
     this.responseCache.clear();
-    console.log('[HTTPOptimizer] 缓存已清理');
+    logger.info('[HTTPOptimizer] 缓存已清理');
   }
 
   /**

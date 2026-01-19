@@ -164,6 +164,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { message as antMessage, Modal } from 'ant-design-vue';
@@ -208,9 +210,9 @@ const loadPurchases = async () => {
     // 使用 store 加载购买记录
     await tradeStore.loadMyPurchases(userDid);
 
-    console.log('[MyPurchases] 购买列表已加载:', purchases.value.length);
+    logger.info('[MyPurchases] 购买列表已加载:', purchases.value.length);
   } catch (error) {
-    console.error('[MyPurchases] 加载购买列表失败:', error);
+    logger.error('[MyPurchases] 加载购买列表失败:', error);
     antMessage.error(error.message || '加载购买列表失败');
   }
 };
@@ -231,9 +233,9 @@ const loadSubscriptions = async () => {
     // 使用 store 加载订阅记录
     await tradeStore.loadMySubscriptions(userDid);
 
-    console.log('[MyPurchases] 订阅列表已加载:', subscriptions.value.length);
+    logger.info('[MyPurchases] 订阅列表已加载:', subscriptions.value.length);
   } catch (error) {
-    console.error('[MyPurchases] 加载订阅列表失败:', error);
+    logger.error('[MyPurchases] 加载订阅列表失败:', error);
     antMessage.error(error.message || '加载订阅列表失败');
   } finally {
     loadingSubscriptions.value = false;
@@ -253,7 +255,7 @@ const viewContent = async (purchase) => {
     };
     showDetailModal.value = true;
   } catch (error) {
-    console.error('[MyPurchases] 打开内容失败:', error);
+    logger.error('[MyPurchases] 打开内容失败:', error);
     antMessage.error(error.message || '打开内容失败');
   }
 };
@@ -271,7 +273,7 @@ const cancelSubscription = (subscriptionId) => {
         antMessage.success('已取消自动续订');
         loadSubscriptions();
       } catch (error) {
-        console.error('取消订阅失败:', error);
+        logger.error('取消订阅失败:', error);
         antMessage.error('取消订阅失败: ' + error.message);
       }
     },

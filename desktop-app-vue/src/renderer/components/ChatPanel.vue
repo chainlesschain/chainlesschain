@@ -300,6 +300,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { message, Empty } from 'ant-design-vue';
@@ -412,11 +414,11 @@ const handleSend = async () => {
 
         // 如果有检索到的文档，在消息中添加引用信息
         if (retrievedDocs.length > 0) {
-          console.log(`[ChatPanel] RAG检索到 ${retrievedDocs.length} 个相关文档`);
+          logger.info(`[ChatPanel] RAG检索到 ${retrievedDocs.length} 个相关文档`);
         }
       }
     } catch (error) {
-      console.warn('[ChatPanel] RAG增强失败，使用原始查询:', error);
+      logger.warn('[ChatPanel] RAG增强失败，使用原始查询:', error);
       // RAG失败不影响主流程，继续使用原始查询
     }
 
@@ -487,14 +489,14 @@ const handleSend = async () => {
       try {
         await conversationStore.saveCurrentConversation();
       } catch (saveError) {
-        console.error('[ChatPanel] 自动保存失败:', saveError);
+        logger.error('[ChatPanel] 自动保存失败:', saveError);
         message.warning('对话保存失败，但消息已添加到当前会话');
       }
     }
 
     scrollToBottom();
   } catch (error) {
-    console.error('[ChatPanel] 发送消息失败:', error);
+    logger.error('[ChatPanel] 发送消息失败:', error);
 
     // 根据错误类型提供更友好的错误消息
     let errorMessage = '发送失败';
@@ -554,7 +556,7 @@ const handleStop = async () => {
 
     message.success('已停止生成');
   } catch (error) {
-    console.error('停止生成失败:', error);
+    logger.error('停止生成失败:', error);
     message.error('停止失败: ' + (error.message || '未知错误'));
 
     // 确保状态被重置
@@ -627,7 +629,7 @@ const renderMarkdown = (text) => {
     // MarkdownIt 已配置为 html: false，会自动转义 HTML 标签，防止 XSS
     return md.render(text);
   } catch (error) {
-    console.error('Markdown 渲染失败:', error);
+    logger.error('Markdown 渲染失败:', error);
     // 发生错误时，转义文本以防止 XSS
     const div = document.createElement('div');
     div.textContent = text;

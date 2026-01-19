@@ -5,6 +5,7 @@
  * v0.20.0: 新增邮件集成功能
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const Imap = require('imap');
 const { simpleParser } = require('mailparser');
 const nodemailer = require('nodemailer');
@@ -60,7 +61,7 @@ class EmailClient extends EventEmitter {
 
       // 检查连接是否仍然有效
       if (poolEntry.connection && this.isConnectionValid(poolEntry)) {
-        console.log(`[EmailClient] 使用连接池中的连接: ${accountId}`);
+        logger.info(`[EmailClient] 使用连接池中的连接: ${accountId}`);
         poolEntry.lastUsed = Date.now();
         return poolEntry.connection;
       } else {
@@ -85,7 +86,7 @@ class EmailClient extends EventEmitter {
       lastUsed: Date.now(),
     });
 
-    console.log(`[EmailClient] 创建新连接并加入连接池: ${accountId}`);
+    logger.info(`[EmailClient] 创建新连接并加入连接池: ${accountId}`);
     return connection;
   }
 
@@ -131,11 +132,11 @@ class EmailClient extends EventEmitter {
         try {
           entry.connection.end();
         } catch (error) {
-          console.error('[EmailClient] 关闭连接失败:', error);
+          logger.error('[EmailClient] 关闭连接失败:', error);
         }
       }
       this.connectionPool.delete(oldestKey);
-      console.log(`[EmailClient] 清理最久未使用的连接: ${oldestKey}`);
+      logger.info(`[EmailClient] 清理最久未使用的连接: ${oldestKey}`);
     }
   }
 
@@ -158,14 +159,14 @@ class EmailClient extends EventEmitter {
         try {
           entry.connection.end();
         } catch (error) {
-          console.error('[EmailClient] 关闭连接失败:', error);
+          logger.error('[EmailClient] 关闭连接失败:', error);
         }
       }
       this.connectionPool.delete(key);
     }
 
     if (expiredKeys.length > 0) {
-      console.log(`[EmailClient] 清理了 ${expiredKeys.length} 个过期连接`);
+      logger.info(`[EmailClient] 清理了 ${expiredKeys.length} 个过期连接`);
     }
   }
 
@@ -198,19 +199,19 @@ class EmailClient extends EventEmitter {
       this.imapConnection = new Imap(this.config.imap);
 
       this.imapConnection.once('ready', () => {
-        console.log('[EmailClient] IMAP 连接成功');
+        logger.info('[EmailClient] IMAP 连接成功');
         this.emit('connected');
         resolve(this.imapConnection);
       });
 
       this.imapConnection.once('error', (err) => {
-        console.error('[EmailClient] IMAP 连接错误:', err);
+        logger.error('[EmailClient] IMAP 连接错误:', err);
         this.emit('error', err);
         reject(err);
       });
 
       this.imapConnection.once('end', () => {
-        console.log('[EmailClient] IMAP 连接关闭');
+        logger.info('[EmailClient] IMAP 连接关闭');
         this.emit('disconnected');
       });
 
@@ -230,10 +231,10 @@ class EmailClient extends EventEmitter {
         try {
           entry.connection.end();
         } catch (error) {
-          console.error('[EmailClient] 断开连接失败:', error);
+          logger.error('[EmailClient] 断开连接失败:', error);
         }
         this.connectionPool.delete(accountId);
-        console.log(`[EmailClient] 已断开连接: ${accountId}`);
+        logger.info(`[EmailClient] 已断开连接: ${accountId}`);
       }
     } else {
       // 断开所有连接
@@ -242,12 +243,12 @@ class EmailClient extends EventEmitter {
           try {
             entry.connection.end();
           } catch (error) {
-            console.error('[EmailClient] 断开连接失败:', error);
+            logger.error('[EmailClient] 断开连接失败:', error);
           }
         }
       }
       this.connectionPool.clear();
-      console.log('[EmailClient] 已断开所有连接');
+      logger.info('[EmailClient] 已断开所有连接');
     }
 
     // 清理主连接
@@ -255,7 +256,7 @@ class EmailClient extends EventEmitter {
       try {
         this.imapConnection.end();
       } catch (error) {
-        console.error('[EmailClient] 断开主连接失败:', error);
+        logger.error('[EmailClient] 断开主连接失败:', error);
       }
       this.imapConnection = null;
     }
@@ -368,7 +369,7 @@ class EmailClient extends EventEmitter {
                 const parsed = await simpleParser(buffer);
                 emails.push(this.normalizeEmail(parsed, seqno));
               } catch (error) {
-                console.error('[EmailClient] 解析邮件失败:', error);
+                logger.error('[EmailClient] 解析邮件失败:', error);
               }
             });
           });
@@ -383,7 +384,7 @@ class EmailClient extends EventEmitter {
         });
       });
     } catch (error) {
-      console.error('[EmailClient] 获取邮件失败:', error);
+      logger.error('[EmailClient] 获取邮件失败:', error);
       throw error;
     }
   }
@@ -424,7 +425,7 @@ class EmailClient extends EventEmitter {
         fetch.once('error', reject);
       });
     } catch (error) {
-      console.error('[EmailClient] 获取邮件失败:', error);
+      logger.error('[EmailClient] 获取邮件失败:', error);
       throw error;
     }
   }
@@ -447,7 +448,7 @@ class EmailClient extends EventEmitter {
         });
       });
     } catch (error) {
-      console.error('[EmailClient] 标记已读失败:', error);
+      logger.error('[EmailClient] 标记已读失败:', error);
       throw error;
     }
   }
@@ -477,7 +478,7 @@ class EmailClient extends EventEmitter {
         });
       });
     } catch (error) {
-      console.error('[EmailClient] 删除邮件失败:', error);
+      logger.error('[EmailClient] 删除邮件失败:', error);
       throw error;
     }
   }
@@ -501,7 +502,7 @@ class EmailClient extends EventEmitter {
         attachments: mailOptions.attachments,
       });
 
-      console.log('[EmailClient] 邮件发送成功:', info.messageId);
+      logger.info('[EmailClient] 邮件发送成功:', info.messageId);
       this.emit('email-sent', info);
 
       return {
@@ -509,7 +510,7 @@ class EmailClient extends EventEmitter {
         messageId: info.messageId,
       };
     } catch (error) {
-      console.error('[EmailClient] 发送邮件失败:', error);
+      logger.error('[EmailClient] 发送邮件失败:', error);
       this.emit('email-send-error', error);
       throw error;
     }

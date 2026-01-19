@@ -3,6 +3,7 @@
  * 包含二维码和文件压缩的真实库集成
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const QRCode = require('qrcode');
 const jsQR = require('jsqr');
 const { createCanvas, loadImage } = require('canvas');
@@ -84,7 +85,7 @@ async function generateQRCodeReal(params) {
         await fsp.writeFile(output_path, buffer);
       } catch (logoError) {
         // Logo加载失败，生成普通二维码
-        console.warn('Logo加载失败，生成普通二维码:', logoError.message);
+        logger.warn('Logo加载失败，生成普通二维码:', logoError.message);
         await QRCode.toFile(output_path, content, qrOptions);
       }
     } else {
@@ -241,7 +242,7 @@ async function compressFilesReal(params) {
 
       archive.on('warning', (err) => {
         if (err.code !== 'ENOENT') {
-          console.warn('压缩警告:', err);
+          logger.warn('压缩警告:', err);
         }
       });
 
@@ -260,13 +261,13 @@ async function compressFilesReal(params) {
             archive.file(file, { name: path.basename(file) });
           }
         } catch (fileError) {
-          console.warn(`文件 ${file} 添加失败:`, fileError.message);
+          logger.warn(`文件 ${file} 添加失败:`, fileError.message);
         }
       }
 
       // 如果有密码（注意：archiver本身不直接支持密码，需要额外处理）
       if (password) {
-        console.warn('注意：当前实现不支持密码加密，请使用7-Zip命令行工具');
+        logger.warn('注意：当前实现不支持密码加密，请使用7-Zip命令行工具');
       }
 
       // 完成归档
@@ -627,12 +628,12 @@ async function cutVideoReal(params) {
       command
         .output(output_path)
         .on('start', (commandLine) => {
-          console.log('FFmpeg命令:', commandLine);
+          logger.info('FFmpeg命令:', commandLine);
         })
         .on('progress', (progress) => {
           // 可以在这里报告进度
           if (progress.percent) {
-            console.log(`处理进度: ${progress.percent.toFixed(2)}%`);
+            logger.info(`处理进度: ${progress.percent.toFixed(2)}%`);
           }
         })
         .on('end', async () => {
@@ -734,11 +735,11 @@ async function mergeVideosReal(params) {
 
       command
         .on('start', (commandLine) => {
-          console.log('FFmpeg命令:', commandLine);
+          logger.info('FFmpeg命令:', commandLine);
         })
         .on('progress', (progress) => {
           if (progress.percent) {
-            console.log(`合并进度: ${progress.percent.toFixed(2)}%`);
+            logger.info(`合并进度: ${progress.percent.toFixed(2)}%`);
           }
         })
         .on('end', async () => {
@@ -1258,7 +1259,7 @@ async function calendarManagerReal(params) {
                 events.push(event);
               }
             } catch (err) {
-              console.warn(`解析文件 ${file} 失败:`, err.message);
+              logger.warn(`解析文件 ${file} 失败:`, err.message);
             }
           }
 
@@ -1406,7 +1407,7 @@ async function searchNotesReal(params) {
           relevance: relevance
         });
       } catch (err) {
-        console.warn(`读取笔记 ${file} 失败:`, err.message);
+        logger.warn(`读取笔记 ${file} 失败:`, err.message);
       }
     }
 
@@ -1971,7 +1972,7 @@ async function networkSpeedTesterReal(params) {
   } = params;
 
   try {
-    console.log('开始网速测试，请稍候...');
+    logger.info('开始网速测试，请稍候...');
 
     // 配置测试选项
     const options = {

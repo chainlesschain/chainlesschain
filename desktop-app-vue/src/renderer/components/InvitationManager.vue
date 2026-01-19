@@ -483,6 +483,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted } from 'vue';
 import { message } from 'ant-design-vue';
 import {
@@ -641,7 +643,7 @@ const loadInvitations = async () => {
       invitations.value = [];
     }
   } catch (error) {
-    console.error('加载邀请列表失败:', error);
+    logger.error('加载邀请列表失败:', error);
     message.error('加载邀请列表失败');
     invitations.value = [];
   } finally {
@@ -717,7 +719,7 @@ const handleCreateInvitation = async () => {
     // 刷新列表
     await loadInvitations();
   } catch (error) {
-    console.error('创建邀请失败:', error);
+    logger.error('创建邀请失败:', error);
     message.error(`创建邀请失败: ${error.message}`);
   } finally {
     creating.value = false;
@@ -788,7 +790,7 @@ const toggleInvitationStatus = async (invitation) => {
       message.info('已禁用的邀请无法重新启用，请创建新邀请');
     }
   } catch (error) {
-    console.error('切换状态失败:', error);
+    logger.error('切换状态失败:', error);
     message.error('切换状态失败');
   }
 };
@@ -810,7 +812,7 @@ const handleDeleteInvitation = async (invitation) => {
       message.error(result.error || '删除邀请失败');
     }
   } catch (error) {
-    console.error('删除邀请失败:', error);
+    logger.error('删除邀请失败:', error);
     message.error('删除邀请失败');
   }
 };

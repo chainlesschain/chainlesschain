@@ -201,6 +201,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted, onBeforeUnmount, watch } from "vue";
 import { message } from "ant-design-vue";
 import DOMPurify from "dompurify";
@@ -273,23 +275,23 @@ const initEditor = async () => {
         }
       }
 
-      console.log("[RichTextEditor] 读取Word文件:", fullPath);
+      logger.info("[RichTextEditor] 读取Word文件:", fullPath);
       const result = await window.electronAPI.file.readWord(fullPath);
       if (result.success) {
         content = result.html;
-        console.log(
+        logger.info(
           "[RichTextEditor] Word内容加载成功，HTML长度:",
           content?.length || 0,
         );
       } else {
-        console.error("[RichTextEditor] Word读取失败:", result.error);
+        logger.error("[RichTextEditor] Word读取失败:", result.error);
         message.error("读取Word文件失败: " + (result.error || "未知错误"));
       }
     }
 
     // 异步操作后再次检查 DOM 是否仍然有效（防止组件在加载期间被卸载）
     if (!editorRef.value) {
-      console.warn("[RichTextEditor] 编辑器 DOM 已卸载，取消内容设置");
+      logger.warn("[RichTextEditor] 编辑器 DOM 已卸载，取消内容设置");
       return;
     }
 
@@ -298,7 +300,7 @@ const initEditor = async () => {
     );
     updateWordCount();
   } catch (error) {
-    console.error("[RichTextEditor] 初始化失败:", error);
+    logger.error("[RichTextEditor] 初始化失败:", error);
     message.error("初始化编辑器失败: " + error.message);
   }
 };
@@ -443,7 +445,7 @@ const handleSave = async () => {
         }
       }
 
-      console.log("[RichTextEditor] 保存Word文件:", fullPath);
+      logger.info("[RichTextEditor] 保存Word文件:", fullPath);
       // 保存为Word文件
       await window.electronAPI.file.writeWord(fullPath, {
         html,
@@ -461,7 +463,7 @@ const handleSave = async () => {
     emit("save", { html, text });
     message.success("已保存");
   } catch (error) {
-    console.error("[RichTextEditor] 保存失败:", error);
+    logger.error("[RichTextEditor] 保存失败:", error);
     message.error("保存失败: " + error.message);
   } finally {
     saving.value = false;
@@ -489,43 +491,43 @@ const handleExport = async ({ key }) => {
         break;
     }
   } catch (error) {
-    console.error("[RichTextEditor] 导出失败:", error);
+    logger.error("[RichTextEditor] 导出失败:", error);
     message.error("导出失败: " + error.message);
   }
 };
 
 // 导出为Word
 const exportToWord = async (html) => {
-  console.log("[RichTextEditor] 🔄 开始导出Word...");
-  console.log("[RichTextEditor] 文件名:", props.file?.file_name);
-  console.log("[RichTextEditor] HTML长度:", html?.length, "字符");
+  logger.info("[RichTextEditor] 🔄 开始导出Word...");
+  logger.info("[RichTextEditor] 文件名:", props.file?.file_name);
+  logger.info("[RichTextEditor] HTML长度:", html?.length, "字符");
 
   try {
-    console.log("[RichTextEditor] 📂 打开保存对话框...");
+    logger.info("[RichTextEditor] 📂 打开保存对话框...");
     const result = await window.electronAPI.dialog.showSaveDialog({
       defaultPath:
         props.file?.file_name?.replace(/\.[^.]+$/, ".docx") || "document.docx",
       filters: [{ name: "Word文档", extensions: ["docx"] }],
     });
 
-    console.log("[RichTextEditor] 对话框结果:", {
+    logger.info("[RichTextEditor] 对话框结果:", {
       canceled: result.canceled,
       filePath: result.filePath,
     });
 
     if (result.canceled) {
-      console.log("[RichTextEditor] ❌ 用户取消了导出");
+      logger.info("[RichTextEditor] ❌ 用户取消了导出");
       return;
     }
 
     if (!result.filePath) {
-      console.error("[RichTextEditor] ❌ 没有选择文件路径");
+      logger.error("[RichTextEditor] ❌ 没有选择文件路径");
       message.error("请选择保存位置");
       return;
     }
 
-    console.log("[RichTextEditor] ✅ 用户选择路径:", result.filePath);
-    console.log("[RichTextEditor] 📝 调用 htmlToWord IPC...");
+    logger.info("[RichTextEditor] ✅ 用户选择路径:", result.filePath);
+    logger.info("[RichTextEditor] 📝 调用 htmlToWord IPC...");
 
     const exportResult = await window.electronAPI.file.htmlToWord(
       html,
@@ -535,18 +537,18 @@ const exportToWord = async (html) => {
       },
     );
 
-    console.log("[RichTextEditor] IPC返回结果:", exportResult);
+    logger.info("[RichTextEditor] IPC返回结果:", exportResult);
 
     if (exportResult && exportResult.success) {
-      console.log("[RichTextEditor] ✅ 导出成功!");
+      logger.info("[RichTextEditor] ✅ 导出成功!");
       message.success("导出成功: " + result.filePath);
     } else {
-      console.error("[RichTextEditor] ❌ 导出失败:", exportResult);
+      logger.error("[RichTextEditor] ❌ 导出失败:", exportResult);
       message.error("导出失败: " + (exportResult?.error || "未知错误"));
     }
   } catch (error) {
-    console.error("[RichTextEditor] ❌ 导出过程发生异常:", error);
-    console.error("[RichTextEditor] 错误堆栈:", error.stack);
+    logger.error("[RichTextEditor] ❌ 导出过程发生异常:", error);
+    logger.error("[RichTextEditor] 错误堆栈:", error.stack);
     message.error("导出失败: " + error.message);
   }
 };
@@ -614,36 +616,36 @@ const exportToHTML = async (html) => {
 
 // 导出为PDF
 const exportToPDF = async (html) => {
-  console.log("[RichTextEditor] 🔄 开始导出PDF...");
-  console.log("[RichTextEditor] 文件名:", props.file?.file_name);
-  console.log("[RichTextEditor] HTML长度:", html?.length, "字符");
+  logger.info("[RichTextEditor] 🔄 开始导出PDF...");
+  logger.info("[RichTextEditor] 文件名:", props.file?.file_name);
+  logger.info("[RichTextEditor] HTML长度:", html?.length, "字符");
 
   try {
-    console.log("[RichTextEditor] 📂 打开保存对话框...");
+    logger.info("[RichTextEditor] 📂 打开保存对话框...");
     const result = await window.electronAPI.dialog.showSaveDialog({
       defaultPath:
         props.file?.file_name?.replace(/\.[^.]+$/, ".pdf") || "document.pdf",
       filters: [{ name: "PDF文档", extensions: ["pdf"] }],
     });
 
-    console.log("[RichTextEditor] 对话框结果:", {
+    logger.info("[RichTextEditor] 对话框结果:", {
       canceled: result.canceled,
       filePath: result.filePath,
     });
 
     if (result.canceled) {
-      console.log("[RichTextEditor] ❌ 用户取消导出");
+      logger.info("[RichTextEditor] ❌ 用户取消导出");
       return;
     }
 
     if (!result.filePath) {
-      console.error("[RichTextEditor] ❌ 未获取到文件路径");
+      logger.error("[RichTextEditor] ❌ 未获取到文件路径");
       message.error("未选择保存路径");
       return;
     }
 
-    console.log("[RichTextEditor] 📝 准备转换内容...");
-    console.log("[RichTextEditor] HTML内容:", html?.substring(0, 100) + "...");
+    logger.info("[RichTextEditor] 📝 准备转换内容...");
+    logger.info("[RichTextEditor] HTML内容:", html?.substring(0, 100) + "...");
 
     message.loading({ content: "正在生成PDF...", key: "pdf-export" });
 
@@ -734,13 +736,13 @@ const exportToPDF = async (html) => {
       },
     });
 
-    console.log("[RichTextEditor] PDF转换结果:", pdfResult);
+    logger.info("[RichTextEditor] PDF转换结果:", pdfResult);
 
     // 删除临时HTML文件
     try {
       await window.electronAPI.file.deleteFile(tempHtmlPath);
     } catch (e) {
-      console.warn("[RichTextEditor] 删除临时文件失败:", e);
+      logger.warn("[RichTextEditor] 删除临时文件失败:", e);
     }
 
     if (pdfResult.success) {
@@ -749,10 +751,10 @@ const exportToPDF = async (html) => {
         key: "pdf-export",
         duration: 3,
       });
-      console.log("[RichTextEditor] ✅ PDF导出成功");
+      logger.info("[RichTextEditor] ✅ PDF导出成功");
     } else {
       const errorMsg = pdfResult.error || "未知错误";
-      console.error("[RichTextEditor] ❌ PDF转换失败:", errorMsg);
+      logger.error("[RichTextEditor] ❌ PDF转换失败:", errorMsg);
       message.error({
         content: `PDF导出失败: ${errorMsg}`,
         key: "pdf-export",
@@ -760,8 +762,8 @@ const exportToPDF = async (html) => {
       });
     }
   } catch (error) {
-    console.error("[RichTextEditor] ❌ PDF导出异常:", error);
-    console.error("[RichTextEditor] 错误堆栈:", error.stack);
+    logger.error("[RichTextEditor] ❌ PDF导出异常:", error);
+    logger.error("[RichTextEditor] 错误堆栈:", error.stack);
 
     let errorMessage = "PDF导出失败";
     if (error.message) {

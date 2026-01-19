@@ -3,6 +3,7 @@
  * 将三大高级特性集成到主应用的IPC系统
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { ipcMain } = require("electron");
 const { spawn } = require("child_process");
 const path = require("path");
@@ -19,13 +20,13 @@ class AdvancedFeaturesIPC {
 
   setupHandlers() {
     if (handlersRegistered) {
-      console.log(
+      logger.info(
         "[AdvancedFeaturesIPC] Handlers already registered, skipping...",
       );
       return;
     }
 
-    console.log("[AdvancedFeaturesIPC] Registering handlers...");
+    logger.info("[AdvancedFeaturesIPC] Registering handlers...");
 
     // ===== 总览 =====
     ipcMain.handle(
@@ -140,7 +141,7 @@ class AdvancedFeaturesIPC {
     });
 
     handlersRegistered = true;
-    console.log("[AdvancedFeaturesIPC] ✓ All handlers registered successfully");
+    logger.info("[AdvancedFeaturesIPC] ✓ All handlers registered successfully");
   }
 
   /**

@@ -18,6 +18,7 @@
  * @updated 2026-01-18
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const path = require("path");
 
 // Existing managers
@@ -78,8 +79,8 @@ async function initializeMemorySystem(options) {
 
   const paths = configManager.getPaths();
 
-  console.log("[MemorySystem] Initializing memory system...");
-  console.log("[MemorySystem] Memory base directory:", paths.memory);
+  logger.info("[MemorySystem] Initializing memory system...");
+  logger.info("[MemorySystem] Memory base directory:", paths.memory);
 
   // Initialize PreferenceManager
   const preferenceManager = new PreferenceManager({
@@ -137,13 +138,13 @@ async function initializeMemorySystem(options) {
       try {
         const stats = await learnedPatternManager.getStats();
         if (stats.promptPatterns?.count % 10 === 0) {
-          console.log(
+          logger.info(
             "[MemorySystem] Triggering auto-backup after pattern changes",
           );
           await autoBackupManager.createIncrementalBackup("patterns");
         }
       } catch (error) {
-        console.error("[MemorySystem] Auto-backup trigger failed:", error);
+        logger.error("[MemorySystem] Auto-backup trigger failed:", error);
       }
     });
   }
@@ -165,8 +166,8 @@ async function initializeMemorySystem(options) {
   // Initialize and perform first sync
   await memorySyncService.initialize();
 
-  console.log("[MemorySystem] Memory system initialized successfully");
-  console.log("[MemorySystem] Data synced to filesystem:", paths.memory);
+  logger.info("[MemorySystem] Memory system initialized successfully");
+  logger.info("[MemorySystem] Data synced to filesystem:", paths.memory);
 
   return {
     preferenceManager,
@@ -208,7 +209,7 @@ function registerMemorySystemIPC(options) {
     ipcMain,
   } = options;
 
-  console.log("[MemorySystem] Registering IPC handlers...");
+  logger.info("[MemorySystem] Registering IPC handlers...");
 
   const preferenceIPC = registerPreferenceManagerIPC({
     preferenceManager,
@@ -273,7 +274,7 @@ function registerMemorySystemIPC(options) {
     ipcMain,
   });
 
-  console.log("[MemorySystem] IPC handlers registered");
+  logger.info("[MemorySystem] IPC handlers registered");
 
   return {
     updatePreferenceManager: preferenceIPC?.updatePreferenceManager,
@@ -292,7 +293,7 @@ function registerMemorySystemIPC(options) {
  * @param {Object} managers - Manager instances
  */
 function stopMemorySystem(managers) {
-  console.log("[MemorySystem] Stopping memory system...");
+  logger.info("[MemorySystem] Stopping memory system...");
 
   if (managers.autoBackupManager) {
     managers.autoBackupManager.stopScheduleChecker();
@@ -311,7 +312,7 @@ function stopMemorySystem(managers) {
     managers.memorySyncService.stop();
   }
 
-  console.log("[MemorySystem] Memory system stopped");
+  logger.info("[MemorySystem] Memory system stopped");
 }
 
 module.exports = {

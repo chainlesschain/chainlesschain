@@ -96,6 +96,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, onMounted } from 'vue';
 import { message } from 'ant-design-vue';
 import {
@@ -154,7 +156,7 @@ const loadArchiveContents = async () => {
       throw new Error(listResult.error || '加载压缩包内容失败');
     }
   } catch (err) {
-    console.error('[Archive Preview] 加载失败:', err);
+    logger.error('[Archive Preview] 加载失败:', err);
     error.value = err.message || '加载压缩包内容失败';
     message.error(error.value);
   } finally {
@@ -200,7 +202,7 @@ const handlePreview = async () => {
       throw new Error(result.error || '提取文件失败');
     }
   } catch (err) {
-    console.error('[Archive Preview] 预览失败:', err);
+    logger.error('[Archive Preview] 预览失败:', err);
     message.error(err.message || '预览文件失败');
   } finally {
     loading.value = false;
@@ -246,7 +248,7 @@ const handleExtract = async () => {
       throw new Error(result.error || '提取文件失败');
     }
   } catch (err) {
-    console.error('[Archive Preview] 提取失败:', err);
+    logger.error('[Archive Preview] 提取失败:', err);
     message.error(err.message || '提取文件失败');
   } finally {
     loading.value = false;

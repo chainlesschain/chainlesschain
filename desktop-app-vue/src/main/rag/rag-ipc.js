@@ -1,3 +1,5 @@
+const { logger, createLogger } = require('../utils/logger.js');
+
 /**
  * RAG（检索增强生成）IPC 处理器
  * 负责处理 RAG 知识库检索相关的前后端通信
@@ -25,14 +27,14 @@ function registerRAGIPC({
 
   // 防止重复注册
   if (ipcGuard.isModuleRegistered("rag-ipc")) {
-    console.log("[RAG IPC] Handlers already registered, skipping...");
+    logger.info("[RAG IPC] Handlers already registered, skipping...");
     return;
   }
 
   const electron = require("electron");
   const ipcMain = injectedIpcMain || electron.ipcMain;
 
-  console.log("[RAG IPC] Registering RAG IPC handlers...");
+  logger.info("[RAG IPC] Registering RAG IPC handlers...");
 
   // ============================================================
   // RAG 知识库检索
@@ -50,7 +52,7 @@ function registerRAGIPC({
 
       return await ragManager.retrieve(query, options);
     } catch (error) {
-      console.error("[RAG IPC] RAG检索失败:", error);
+      logger.error("[RAG IPC] RAG检索失败:", error);
       return [];
     }
   });
@@ -71,7 +73,7 @@ function registerRAGIPC({
 
       return await ragManager.enhanceQuery(query, options);
     } catch (error) {
-      console.error("[RAG IPC] RAG增强查询失败:", error);
+      logger.error("[RAG IPC] RAG增强查询失败:", error);
       return {
         query,
         context: "",
@@ -97,7 +99,7 @@ function registerRAGIPC({
       await ragManager.rebuildIndex();
       return { success: true };
     } catch (error) {
-      console.error("[RAG IPC] RAG重建索引失败:", error);
+      logger.error("[RAG IPC] RAG重建索引失败:", error);
       throw error;
     }
   });
@@ -118,7 +120,7 @@ function registerRAGIPC({
 
       return ragManager.getIndexStats();
     } catch (error) {
-      console.error("[RAG IPC] 获取RAG统计失败:", error);
+      logger.error("[RAG IPC] 获取RAG统计失败:", error);
       return {
         totalItems: 0,
         cacheStats: { size: 0, maxSize: 0 },
@@ -144,7 +146,7 @@ function registerRAGIPC({
       ragManager.updateConfig(config);
       return { success: true };
     } catch (error) {
-      console.error("[RAG IPC] 更新RAG配置失败:", error);
+      logger.error("[RAG IPC] 更新RAG配置失败:", error);
       throw error;
     }
   });
@@ -165,7 +167,7 @@ function registerRAGIPC({
 
       return ragManager.getRerankConfig();
     } catch (error) {
-      console.error("[RAG IPC] 获取重排序配置失败:", error);
+      logger.error("[RAG IPC] 获取重排序配置失败:", error);
       return null;
     }
   });
@@ -183,7 +185,7 @@ function registerRAGIPC({
       ragManager.setRerankingEnabled(enabled);
       return { success: true };
     } catch (error) {
-      console.error("[RAG IPC] 设置重排序状态失败:", error);
+      logger.error("[RAG IPC] 设置重排序状态失败:", error);
       throw error;
     }
   });
@@ -191,7 +193,7 @@ function registerRAGIPC({
   // 标记模块为已注册
   ipcGuard.markModuleRegistered("rag-ipc");
 
-  console.log(
+  logger.info(
     "[RAG IPC] ✓ All RAG IPC handlers registered successfully (7 handlers)",
   );
 }

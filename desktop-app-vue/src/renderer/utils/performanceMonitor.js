@@ -3,6 +3,7 @@
  * 监控应用性能指标，包括内存、CPU、渲染性能等
  */
 
+import { logger, createLogger } from '@/utils/logger';
 import { ref, computed } from 'vue';
 
 /**
@@ -85,7 +86,7 @@ class PerformanceMonitor {
     // 启动渲染性能监控
     this.startRenderMonitoring();
 
-    console.log('[PerformanceMonitor] Monitoring started');
+    logger.info('[PerformanceMonitor] Monitoring started');
   }
 
   /**
@@ -104,7 +105,7 @@ class PerformanceMonitor {
     this.stopFPSMonitoring();
     this.stopRenderMonitoring();
 
-    console.log('[PerformanceMonitor] Monitoring stopped');
+    logger.info('[PerformanceMonitor] Monitoring stopped');
   }
 
   /**
@@ -137,7 +138,7 @@ class PerformanceMonitor {
         this.currentMetrics.value.storage = storage;
         this.addMetric(MetricType.STORAGE, storage.percentage, { ...storage });
       } catch (error) {
-        console.error('[PerformanceMonitor] Storage estimate error:', error);
+        logger.error('[PerformanceMonitor] Storage estimate error:', error);
       }
     }
 
@@ -247,7 +248,7 @@ class PerformanceMonitor {
 
       this.renderObserver.observe({ entryTypes: ['measure'] });
     } catch (error) {
-      console.error('[PerformanceMonitor] Render monitoring error:', error);
+      logger.error('[PerformanceMonitor] Render monitoring error:', error);
     }
   }
 
@@ -326,7 +327,7 @@ class PerformanceMonitor {
       try {
         performance.measure(name, startMark, endMark);
       } catch (error) {
-        console.error('[PerformanceMonitor] Measure error:', error);
+        logger.error('[PerformanceMonitor] Measure error:', error);
       }
     }
   }

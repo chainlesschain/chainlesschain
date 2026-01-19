@@ -3,6 +3,7 @@
  * 处理并发写入冲突、死锁和重试逻辑
  */
 
+const { logger, createLogger } = require('./logger.js');
 const { EventEmitter } = require('events');
 
 /**
@@ -79,7 +80,7 @@ class DatabaseConcurrencyController extends EventEmitter {
 
         if (attempt > 0) {
           this.statistics.retriedOperations++;
-          console.log(`[Concurrency] ${operationName} 成功（第 ${attempt + 1} 次尝试）`);
+          logger.info(`[Concurrency] ${operationName} 成功（第 ${attempt + 1} 次尝试）`);
         }
 
         return result;
@@ -94,7 +95,7 @@ class DatabaseConcurrencyController extends EventEmitter {
 
         // 检查是否应该重试
         if (!this._shouldRetry(errorType, attempt, maxRetries)) {
-          console.error(`[Concurrency] ${operationName} 失败，不再重试:`, error);
+          logger.error(`[Concurrency] ${operationName} 失败，不再重试:`, error);
           this.statistics.failedOperations++;
           throw error;
         }
@@ -102,7 +103,7 @@ class DatabaseConcurrencyController extends EventEmitter {
         // 计算延迟时间
         const delay = this._calculateRetryDelay(attempt);
 
-        console.warn(
+        logger.warn(
           `[Concurrency] ${operationName} 遇到 ${errorType} 错误，` +
           `${delay}ms 后重试 (${attempt + 1}/${maxRetries})`
         );

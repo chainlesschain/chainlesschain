@@ -262,6 +262,8 @@
 </template>
 
 <script>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, reactive, onMounted, onUnmounted } from 'vue';
 import { message } from 'ant-design-vue';
 
@@ -320,7 +322,7 @@ export default {
         const result = await window.electron.invoke('asset:list');
         localAssets.value = result.assets || [];
       } catch (error) {
-        console.error('加载本地资产失败:', error);
+        logger.error('加载本地资产失败:', error);
         message.error('加载本地资产失败');
         localAssets.value = [];
       }
@@ -330,7 +332,7 @@ export default {
       try {
         wallets.value = await window.electron.invoke('wallet:list');
       } catch (error) {
-        console.error('加载钱包列表失败:', error);
+        logger.error('加载钱包列表失败:', error);
       }
     };
 
@@ -339,7 +341,7 @@ export default {
       try {
         onChainAssets.value = await window.electron.invoke('blockchain-integration:get-all-assets');
       } catch (error) {
-        console.error('加载链上资产失败:', error);
+        logger.error('加载链上资产失败:', error);
         message.error('加载链上资产失败');
       } finally {
         loadingAssets.value = false;
@@ -351,7 +353,7 @@ export default {
       try {
         pendingTransactions.value = await window.electron.invoke('blockchain-integration:get-pending-transactions');
       } catch (error) {
-        console.error('加载待确认交易失败:', error);
+        logger.error('加载待确认交易失败:', error);
         message.error('加载待确认交易失败');
       } finally {
         loadingTxs.value = false;
@@ -385,7 +387,7 @@ export default {
         // 刷新列表
         await loadOnChainAssets();
       } catch (error) {
-        console.error('创建链上资产失败:', error);
+        logger.error('创建链上资产失败:', error);
         message.error(`创建失败: ${error.message}`);
       } finally {
         creating.value = false;
@@ -409,7 +411,7 @@ export default {
         message.success(`余额同步成功: ${balance}`);
         await loadOnChainAssets();
       } catch (error) {
-        console.error('同步余额失败:', error);
+        logger.error('同步余额失败:', error);
         message.error(`同步余额失败: ${error.message}`);
       }
     };
@@ -430,7 +432,7 @@ export default {
         message.success('交易监控已启动');
         await loadPendingTransactions();
       } catch (error) {
-        console.error('监控交易失败:', error);
+        logger.error('监控交易失败:', error);
         message.error('监控交易失败');
       }
     };
@@ -449,7 +451,7 @@ export default {
         await window.electron.invoke('blockchain-integration:start-auto-sync', syncInterval.value * 60 * 1000);
         message.success('自动同步已启动');
       } catch (error) {
-        console.error('启动自动同步失败:', error);
+        logger.error('启动自动同步失败:', error);
         message.error('启动自动同步失败');
       }
     };
@@ -459,7 +461,7 @@ export default {
         await window.electron.invoke('blockchain-integration:stop-auto-sync');
         message.success('自动同步已停止');
       } catch (error) {
-        console.error('停止自动同步失败:', error);
+        logger.error('停止自动同步失败:', error);
         message.error('停止自动同步失败');
       }
     };
@@ -473,7 +475,7 @@ export default {
         await loadOnChainAssets();
         await loadPendingTransactions();
       } catch (error) {
-        console.error('手动同步失败:', error);
+        logger.error('手动同步失败:', error);
         message.error('同步失败');
       } finally {
         syncing.value = false;

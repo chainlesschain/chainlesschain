@@ -147,6 +147,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, watch } from 'vue';
 import { message } from 'ant-design-vue';
 import { CopyOutlined, QrcodeOutlined } from '@ant-design/icons-vue';
@@ -216,7 +218,7 @@ const loadLinkDetail = async () => {
       message.error(result.error || '加载链接详情失败');
     }
   } catch (error) {
-    console.error('加载链接详情失败:', error);
+    logger.error('加载链接详情失败:', error);
     message.error('加载链接详情失败');
   } finally {
     loading.value = false;
@@ -234,7 +236,7 @@ const copyLink = async () => {
       message.success('链接已复制到剪贴板');
     }
   } catch (error) {
-    console.error('复制链接失败:', error);
+    logger.error('复制链接失败:', error);
     message.error('复制链接失败');
   }
 };

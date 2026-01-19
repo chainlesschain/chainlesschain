@@ -4,6 +4,7 @@
  * 负责文本向量化和相似度计算
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const EventEmitter = require('events');
 
 // 尝试使用lru-cache，如果不可用则降级到Map
@@ -11,7 +12,7 @@ let LRUCache;
 try {
   LRUCache = require('lru-cache');
 } catch (error) {
-  console.warn('[EmbeddingsService] lru-cache未安装，使用Map作为降级方案');
+  logger.warn('[EmbeddingsService] lru-cache未安装，使用Map作为降级方案');
   LRUCache = null;
 }
 
@@ -31,11 +32,11 @@ class EmbeddingsService extends EventEmitter {
         updateAgeOnGet: true,     // 访问时更新时间
       });
       this.useLRU = true;
-      console.log('[EmbeddingsService] 使用LRU缓存');
+      logger.info('[EmbeddingsService] 使用LRU缓存');
     } else {
       this.cache = new Map();
       this.useLRU = false;
-      console.log('[EmbeddingsService] 使用Map缓存（降级）');
+      logger.info('[EmbeddingsService] 使用Map缓存（降级）');
     }
 
     this.cacheHits = 0; // 缓存命中次数
@@ -47,21 +48,21 @@ class EmbeddingsService extends EventEmitter {
    * 初始化服务
    */
   async initialize() {
-    console.log('[EmbeddingsService] 初始化嵌入向量服务...');
+    logger.info('[EmbeddingsService] 初始化嵌入向量服务...');
 
     try {
       // 检查LLM服务是否可用
       if (!this.llmManager || !this.llmManager.isInitialized) {
-        console.warn('[EmbeddingsService] LLM服务未初始化');
+        logger.warn('[EmbeddingsService] LLM服务未初始化');
         this.isInitialized = false;
         return false;
       }
 
       this.isInitialized = true;
-      console.log('[EmbeddingsService] 嵌入向量服务初始化成功');
+      logger.info('[EmbeddingsService] 嵌入向量服务初始化成功');
       return true;
     } catch (error) {
-      console.error('[EmbeddingsService] 初始化失败:', error);
+      logger.error('[EmbeddingsService] 初始化失败:', error);
       this.isInitialized = false;
       return false;
     }
@@ -82,7 +83,7 @@ class EmbeddingsService extends EventEmitter {
     const cacheKey = this.getCacheKey(text);
     if (this.cache.has(cacheKey) && !options.skipCache) {
       this.cacheHits++;
-      console.log('[EmbeddingsService] 使用缓存的向量');
+      logger.info('[EmbeddingsService] 使用缓存的向量');
       return this.cache.get(cacheKey);
     }
 
@@ -94,7 +95,7 @@ class EmbeddingsService extends EventEmitter {
 
       if (!embedding || !Array.isArray(embedding)) {
         // 如果LLM不支持embeddings，使用简单的文本特征
-        console.warn('[EmbeddingsService] LLM不支持embeddings，使用简单特征');
+        logger.warn('[EmbeddingsService] LLM不支持embeddings，使用简单特征');
         const simpleEmbedding = this.generateSimpleEmbedding(text);
         this.cache.set(cacheKey, simpleEmbedding);
         return simpleEmbedding;
@@ -111,10 +112,10 @@ class EmbeddingsService extends EventEmitter {
 
       return embedding;
     } catch (error) {
-      console.error('[EmbeddingsService] 生成嵌入失败:', error);
+      logger.error('[EmbeddingsService] 生成嵌入失败:', error);
 
       // 降级到简单嵌入
-      console.log('[EmbeddingsService] 使用简单嵌入作为降级方案');
+      logger.info('[EmbeddingsService] 使用简单嵌入作为降级方案');
       return this.generateSimpleEmbedding(text);
     }
   }
@@ -133,7 +134,7 @@ class EmbeddingsService extends EventEmitter {
         const embedding = await this.generateEmbedding(text, options);
         embeddings.push(embedding);
       } catch (error) {
-        console.error('[EmbeddingsService] 批量生成失败:', error);
+        logger.error('[EmbeddingsService] 批量生成失败:', error);
         embeddings.push(null);
       }
     }
@@ -244,7 +245,7 @@ class EmbeddingsService extends EventEmitter {
     }
     this.cacheHits = 0;
     this.cacheMisses = 0;
-    console.log('[EmbeddingsService] 缓存已清除');
+    logger.info('[EmbeddingsService] 缓存已清除');
   }
 
   /**

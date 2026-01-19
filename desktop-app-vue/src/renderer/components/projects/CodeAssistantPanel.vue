@@ -375,6 +375,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, h } from 'vue';
 import { message } from 'ant-design-vue';
 import {
@@ -447,7 +449,7 @@ async function handleGenerate() {
     message.success('代码生成成功！');
 
   } catch (error) {
-    console.error('代码生成失败:', error);
+    logger.error('代码生成失败:', error);
     message.error('代码生成失败: ' + error.message);
   } finally {
     generating.value = false;
@@ -476,7 +478,7 @@ async function handleReview() {
     message.success(`代码审查完成！评分: ${result.score}/10`);
 
   } catch (error) {
-    console.error('代码审查失败:', error);
+    logger.error('代码审查失败:', error);
     message.error('代码审查失败: ' + error.message);
   } finally {
     reviewing.value = false;
@@ -506,7 +508,7 @@ async function handleRefactor() {
     message.success('代码重构完成！');
 
   } catch (error) {
-    console.error('代码重构失败:', error);
+    logger.error('代码重构失败:', error);
     message.error('代码重构失败: ' + error.message);
   } finally {
     refactoring.value = false;

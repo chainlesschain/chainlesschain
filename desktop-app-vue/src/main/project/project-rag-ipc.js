@@ -6,6 +6,7 @@
  * @description 项目 RAG 模块，支持文件索引、增强查询、统计等功能
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { ipcMain } = require('electron');
 
 /**
@@ -20,7 +21,7 @@ function registerProjectRAGIPC({
   getProjectConfig,
   RAGAPI
 }) {
-  console.log('[Project RAG IPC] Registering Project RAG IPC handlers...');
+  logger.info('[Project RAG IPC] Registering Project RAG IPC handlers...');
 
   // ============================================================
   // 旧版 RAG 接口 (通过 ProjectRAGManager) - 5 handlers
@@ -32,7 +33,7 @@ function registerProjectRAGIPC({
    */
   ipcMain.handle('project:indexFiles', async (_event, projectId, options = {}) => {
     try {
-      console.log(`[Main] 索引项目文件: ${projectId}`);
+      logger.info(`[Main] 索引项目文件: ${projectId}`);
 
       const projectRAG = getProjectRAGManager();
 
@@ -42,10 +43,10 @@ function registerProjectRAGIPC({
       // 执行索引
       const result = await projectRAG.indexProjectFiles(projectId, options);
 
-      console.log('[Main] 索引完成:', result);
+      logger.info('[Main] 索引完成:', result);
       return result;
     } catch (error) {
-      console.error('[Main] 索引项目文件失败:', error);
+      logger.error('[Main] 索引项目文件失败:', error);
       throw error;
     }
   });
@@ -56,7 +57,7 @@ function registerProjectRAGIPC({
    */
   ipcMain.handle('project:ragQuery', async (_event, projectId, query, options = {}) => {
     try {
-      console.log(`[Main] RAG增强查询: ${query}`);
+      logger.info(`[Main] RAG增强查询: ${query}`);
 
       const projectRAG = getProjectRAGManager();
 
@@ -66,10 +67,10 @@ function registerProjectRAGIPC({
       // 执行增强查询
       const result = await projectRAG.enhancedQuery(projectId, query, options);
 
-      console.log('[Main] RAG查询完成，找到', result.totalDocs, '个相关文档');
+      logger.info('[Main] RAG查询完成，找到', result.totalDocs, '个相关文档');
       return result;
     } catch (error) {
-      console.error('[Main] RAG查询失败:', error);
+      logger.error('[Main] RAG查询失败:', error);
       throw error;
     }
   });
@@ -80,7 +81,7 @@ function registerProjectRAGIPC({
    */
   ipcMain.handle('project:updateFileIndex', async (_event, fileId) => {
     try {
-      console.log(`[Main] 更新文件索引: ${fileId}`);
+      logger.info(`[Main] 更新文件索引: ${fileId}`);
 
       const projectRAG = getProjectRAGManager();
 
@@ -88,10 +89,10 @@ function registerProjectRAGIPC({
 
       const result = await projectRAG.updateFileIndex(fileId);
 
-      console.log('[Main] 文件索引更新完成');
+      logger.info('[Main] 文件索引更新完成');
       return result;
     } catch (error) {
-      console.error('[Main] 更新文件索引失败:', error);
+      logger.error('[Main] 更新文件索引失败:', error);
       throw error;
     }
   });
@@ -102,7 +103,7 @@ function registerProjectRAGIPC({
    */
   ipcMain.handle('project:deleteIndex', async (_event, projectId) => {
     try {
-      console.log(`[Main] 删除项目索引: ${projectId}`);
+      logger.info(`[Main] 删除项目索引: ${projectId}`);
 
       const projectRAG = getProjectRAGManager();
 
@@ -110,10 +111,10 @@ function registerProjectRAGIPC({
 
       const result = await projectRAG.deleteProjectIndex(projectId);
 
-      console.log('[Main] 项目索引删除完成');
+      logger.info('[Main] 项目索引删除完成');
       return result;
     } catch (error) {
-      console.error('[Main] 删除项目索引失败:', error);
+      logger.error('[Main] 删除项目索引失败:', error);
       throw error;
     }
   });
@@ -132,7 +133,7 @@ function registerProjectRAGIPC({
 
       return stats;
     } catch (error) {
-      console.error('[Main] 获取索引统计失败:', error);
+      logger.error('[Main] 获取索引统计失败:', error);
       throw error;
     }
   });
@@ -151,7 +152,7 @@ function registerProjectRAGIPC({
       const resolvedPath = projectConfig.resolveProjectPath(repoPath);
       return await RAGAPI.indexProject(projectId, resolvedPath);
     } catch (error) {
-      console.error('[Main] RAG索引失败:', error);
+      logger.error('[Main] RAG索引失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -164,7 +165,7 @@ function registerProjectRAGIPC({
     try {
       return await RAGAPI.getIndexStats(projectId);
     } catch (error) {
-      console.error('[Main] 获取索引统计失败:', error);
+      logger.error('[Main] 获取索引统计失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -177,7 +178,7 @@ function registerProjectRAGIPC({
     try {
       return await RAGAPI.enhancedQuery(projectId, query, topK);
     } catch (error) {
-      console.error('[Main] RAG查询失败:', error);
+      logger.error('[Main] RAG查询失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -190,7 +191,7 @@ function registerProjectRAGIPC({
     try {
       return await RAGAPI.updateFileIndex(projectId, filePath, content);
     } catch (error) {
-      console.error('[Main] 更新文件索引失败:', error);
+      logger.error('[Main] 更新文件索引失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -203,14 +204,14 @@ function registerProjectRAGIPC({
     try {
       return await RAGAPI.deleteProjectIndex(projectId);
     } catch (error) {
-      console.error('[Main] 删除项目索引失败:', error);
+      logger.error('[Main] 删除项目索引失败:', error);
       return { success: false, error: error.message };
     }
   });
 
-  console.log('[Project RAG IPC] ✓ 10 handlers registered');
-  console.log('[Project RAG IPC] - 5 legacy RAG handlers (via ProjectRAGManager)');
-  console.log('[Project RAG IPC] - 5 new RAG handlers (via RAGAPI)');
+  logger.info('[Project RAG IPC] ✓ 10 handlers registered');
+  logger.info('[Project RAG IPC] - 5 legacy RAG handlers (via ProjectRAGManager)');
+  logger.info('[Project RAG IPC] - 5 new RAG handlers (via RAGAPI)');
 }
 
 module.exports = {

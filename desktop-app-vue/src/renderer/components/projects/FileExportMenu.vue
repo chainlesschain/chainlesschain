@@ -42,6 +42,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { message } from 'ant-design-vue';
 import {
   DownloadOutlined,
@@ -116,7 +118,7 @@ const handleExportClick = async ({ key }) => {
       await window.electronAPI.shell.openPath(result.path);
     }
   } catch (error) {
-    console.error('导出失败:', error);
+    logger.error('导出失败:', error);
     message.error({ content: `导出失败: ${error.message}`, key: 'export', duration: 3 });
     emit('export-error', { exportType, error });
   }
@@ -185,7 +187,7 @@ const exportToPDF = async (fileName) => {
       path: result.outputPath
     };
   } catch (error) {
-    console.error('[FileExportMenu] PDF导出失败:', error);
+    logger.error('[FileExportMenu] PDF导出失败:', error);
     throw new Error(`PDF导出失败: ${error.message}`);
   }
 };

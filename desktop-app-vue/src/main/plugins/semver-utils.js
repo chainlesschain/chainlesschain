@@ -1,3 +1,5 @@
+const { logger, createLogger } = require('../utils/logger.js');
+
 /**
  * 轻量级 Semver 版本检查工具
  * 支持基本的语义化版本比较和范围检查
@@ -237,7 +239,7 @@ function satisfies(version, range) {
   const rangeObj = parseRange(range);
 
   if (!rangeObj.valid) {
-    console.warn(`[SemverUtils] 无效的版本范围: ${range}`);
+    logger.warn(`[SemverUtils] 无效的版本范围: ${range}`);
     return false;
   }
 

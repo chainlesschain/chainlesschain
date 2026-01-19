@@ -8,6 +8,7 @@
  * - 托管集成
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const EventEmitter = require("events");
 const { v4: uuidv4 } = require("uuid");
 
@@ -64,16 +65,16 @@ class MarketplaceManager extends EventEmitter {
    * 初始化交易市场管理器
    */
   async initialize() {
-    console.log("[MarketplaceManager] 初始化交易市场管理器...");
+    logger.info("[MarketplaceManager] 初始化交易市场管理器...");
 
     try {
       // 初始化数据库表
       await this.initializeTables();
 
       this.initialized = true;
-      console.log("[MarketplaceManager] 交易市场管理器初始化成功");
+      logger.info("[MarketplaceManager] 交易市场管理器初始化成功");
     } catch (error) {
-      console.error("[MarketplaceManager] 初始化失败:", error);
+      logger.error("[MarketplaceManager] 初始化失败:", error);
       throw error;
     }
   }
@@ -197,16 +198,16 @@ class MarketplaceManager extends EventEmitter {
         ).run();
       }
 
-      console.log("[MarketplaceManager] FTS5 全文搜索已启用");
+      logger.info("[MarketplaceManager] FTS5 全文搜索已启用");
     } catch (ftsError) {
-      console.warn(
+      logger.warn(
         "[MarketplaceManager] FTS5 不可用，将使用 LIKE 搜索:",
         ftsError.message,
       );
       this.ftsAvailable = false;
     }
 
-    console.log("[MarketplaceManager] 数据库表初始化完成");
+    logger.info("[MarketplaceManager] 数据库表初始化完成");
   }
 
   /**
@@ -298,13 +299,13 @@ class MarketplaceManager extends EventEmitter {
         updated_at: now,
       };
 
-      console.log("[MarketplaceManager] 已创建订单:", orderId);
+      logger.info("[MarketplaceManager] 已创建订单:", orderId);
 
       this.emit("order:created", { order });
 
       return order;
     } catch (error) {
-      console.error("[MarketplaceManager] 创建订单失败:", error);
+      logger.error("[MarketplaceManager] 创建订单失败:", error);
       throw error;
     }
   }
@@ -347,13 +348,13 @@ class MarketplaceManager extends EventEmitter {
         "UPDATE orders SET status = ?, updated_at = ? WHERE id = ?",
       ).run(OrderStatus.CANCELLED, now, orderId);
 
-      console.log("[MarketplaceManager] 已取消订单:", orderId);
+      logger.info("[MarketplaceManager] 已取消订单:", orderId);
 
       this.emit("order:cancelled", { orderId });
 
       return { success: true };
     } catch (error) {
-      console.error("[MarketplaceManager] 取消订单失败:", error);
+      logger.error("[MarketplaceManager] 取消订单失败:", error);
       throw error;
     }
   }
@@ -540,7 +541,7 @@ class MarketplaceManager extends EventEmitter {
         totalPages,
       };
     } catch (error) {
-      console.error("[MarketplaceManager] 获取订单列表失败:", error);
+      logger.error("[MarketplaceManager] 获取订单列表失败:", error);
       throw error;
     }
   }
@@ -601,7 +602,7 @@ class MarketplaceManager extends EventEmitter {
 
       return [...typeSuggestions, ...titleSuggestions].slice(0, limit);
     } catch (error) {
-      console.error("[MarketplaceManager] 获取搜索建议失败:", error);
+      logger.error("[MarketplaceManager] 获取搜索建议失败:", error);
       return [];
     }
   }
@@ -626,7 +627,7 @@ class MarketplaceManager extends EventEmitter {
         metadata: order.metadata ? JSON.parse(order.metadata) : {},
       };
     } catch (error) {
-      console.error("[MarketplaceManager] 获取订单详情失败:", error);
+      logger.error("[MarketplaceManager] 获取订单详情失败:", error);
       throw error;
     }
   }
@@ -689,13 +690,13 @@ class MarketplaceManager extends EventEmitter {
         ).run(OrderStatus.MATCHED, now, orderId);
       }
 
-      console.log("[MarketplaceManager] 订单已匹配:", orderId);
+      logger.info("[MarketplaceManager] 订单已匹配:", orderId);
 
       this.emit("order:matched", { orderId, transactionId: transaction.id });
 
       return transaction;
     } catch (error) {
-      console.error("[MarketplaceManager] 匹配订单失败:", error);
+      logger.error("[MarketplaceManager] 匹配订单失败:", error);
       throw error;
     }
   }
@@ -770,13 +771,13 @@ class MarketplaceManager extends EventEmitter {
         created_at: now,
       };
 
-      console.log("[MarketplaceManager] 已创建交易:", transactionId);
+      logger.info("[MarketplaceManager] 已创建交易:", transactionId);
 
       this.emit("transaction:created", { transaction });
 
       return transaction;
     } catch (error) {
-      console.error("[MarketplaceManager] 创建交易失败:", error);
+      logger.error("[MarketplaceManager] 创建交易失败:", error);
       throw error;
     }
   }
@@ -840,13 +841,13 @@ class MarketplaceManager extends EventEmitter {
         );
       }
 
-      console.log("[MarketplaceManager] 交易已完成:", transactionId);
+      logger.info("[MarketplaceManager] 交易已完成:", transactionId);
 
       this.emit("transaction:completed", { transactionId });
 
       return { success: true };
     } catch (error) {
-      console.error("[MarketplaceManager] 确认交付失败:", error);
+      logger.error("[MarketplaceManager] 确认交付失败:", error);
       throw error;
     }
   }
@@ -887,13 +888,13 @@ class MarketplaceManager extends EventEmitter {
         transactionId,
       );
 
-      console.log("[MarketplaceManager] 已申请退款:", transactionId);
+      logger.info("[MarketplaceManager] 已申请退款:", transactionId);
 
       this.emit("transaction:refund-requested", { transactionId, reason });
 
       return { success: true };
     } catch (error) {
-      console.error("[MarketplaceManager] 申请退款失败:", error);
+      logger.error("[MarketplaceManager] 申请退款失败:", error);
       throw error;
     }
   }
@@ -938,7 +939,7 @@ class MarketplaceManager extends EventEmitter {
 
       return db.prepare(query).all(...params);
     } catch (error) {
-      console.error("[MarketplaceManager] 获取交易列表失败:", error);
+      logger.error("[MarketplaceManager] 获取交易列表失败:", error);
       throw error;
     }
   }
@@ -962,7 +963,7 @@ class MarketplaceManager extends EventEmitter {
         purchasedOrders: myTransactions,
       };
     } catch (error) {
-      console.error("[MarketplaceManager] 获取我的订单失败:", error);
+      logger.error("[MarketplaceManager] 获取我的订单失败:", error);
       throw error;
     }
   }
@@ -1048,13 +1049,13 @@ class MarketplaceManager extends EventEmitter {
         }
       }
 
-      console.log("[MarketplaceManager] 已更新订单:", orderId);
+      logger.info("[MarketplaceManager] 已更新订单:", orderId);
 
       this.emit("order:updated", { order: updatedOrder });
 
       return updatedOrder;
     } catch (error) {
-      console.error("[MarketplaceManager] 更新订单失败:", error);
+      logger.error("[MarketplaceManager] 更新订单失败:", error);
       throw error;
     }
   }
@@ -1063,7 +1064,7 @@ class MarketplaceManager extends EventEmitter {
    * 关闭交易市场管理器
    */
   async close() {
-    console.log("[MarketplaceManager] 关闭交易市场管理器");
+    logger.info("[MarketplaceManager] 关闭交易市场管理器");
 
     this.removeAllListeners();
     this.initialized = false;

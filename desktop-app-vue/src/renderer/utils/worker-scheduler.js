@@ -1,3 +1,5 @@
+import { logger, createLogger } from '@/utils/logger';
+
 /**
  * Web Workers Task Scheduler
  * Web Workers任务调度系统
@@ -45,7 +47,7 @@ export class WorkerPool {
     }
 
     if (this.options.debug) {
-      console.log(`[WorkerPool] Created pool with ${this.options.size} workers`);
+      logger.info(`[WorkerPool] Created pool with ${this.options.size} workers`);
     }
   }
 
@@ -119,7 +121,7 @@ export class WorkerPool {
     this.sortQueue();
 
     if (this.options.debug) {
-      console.log(`[WorkerPool] Task ${task.id} enqueued (priority: ${task.priority})`);
+      logger.info(`[WorkerPool] Task ${task.id} enqueued (priority: ${task.priority})`);
     }
   }
 
@@ -178,7 +180,7 @@ export class WorkerPool {
     });
 
     if (this.options.debug) {
-      console.log(`[WorkerPool] Task ${task.id} assigned to worker ${worker.poolId}`);
+      logger.info(`[WorkerPool] Task ${task.id} assigned to worker ${worker.poolId}`);
     }
   }
 
@@ -192,7 +194,7 @@ export class WorkerPool {
       const task = worker.currentTask;
 
       if (!task || task.id !== id) {
-        console.warn(`[WorkerPool] Received result for unknown task: ${id}`);
+        logger.warn(`[WorkerPool] Received result for unknown task: ${id}`);
         return;
       }
 
@@ -220,7 +222,7 @@ export class WorkerPool {
 
     if (this.options.debug) {
       const duration = Date.now() - task.createdAt;
-      console.log(`[WorkerPool] Task ${task.id} completed in ${duration}ms`);
+      logger.info(`[WorkerPool] Task ${task.id} completed in ${duration}ms`);
     }
 
     this.releaseWorker(worker);
@@ -234,7 +236,7 @@ export class WorkerPool {
       task.remainingRetries--;
 
       if (this.options.debug) {
-        console.log(`[WorkerPool] Retrying task ${task.id} (${task.remainingRetries} retries left)`);
+        logger.info(`[WorkerPool] Retrying task ${task.id} (${task.remainingRetries} retries left)`);
       }
 
       // Re-enqueue task
@@ -245,7 +247,7 @@ export class WorkerPool {
       task.reject(new Error(error || 'Worker task failed'));
 
       if (this.options.debug) {
-        console.error(`[WorkerPool] Task ${task.id} failed:`, error);
+        logger.error(`[WorkerPool] Task ${task.id} failed:`, error);
       }
 
       this.releaseWorker(worker);
@@ -256,7 +258,7 @@ export class WorkerPool {
    * Handle task timeout
    */
   handleTaskTimeout(worker, task) {
-    console.warn(`[WorkerPool] Task ${task.id} timed out after ${task.timeout}ms`);
+    logger.warn(`[WorkerPool] Task ${task.id} timed out after ${task.timeout}ms`);
 
     // Terminate worker (it's stuck)
     worker.terminate();
@@ -283,7 +285,7 @@ export class WorkerPool {
    * Handle worker error
    */
   handleWorkerError(worker, error) {
-    console.error(`[WorkerPool] Worker ${worker.poolId} error:`, error);
+    logger.error(`[WorkerPool] Worker ${worker.poolId} error:`, error);
 
     if (worker.currentTask) {
       this.handleTaskError(worker, worker.currentTask, error.message);
@@ -308,7 +310,7 @@ export class WorkerPool {
     worker.idleTimer = setTimeout(() => {
       // Worker has been idle for too long, could terminate if needed
       if (this.options.debug) {
-        console.log(`[WorkerPool] Worker ${worker.poolId} has been idle for ${this.options.idleTimeout}ms`);
+        logger.info(`[WorkerPool] Worker ${worker.poolId} has been idle for ${this.options.idleTimeout}ms`);
       }
     }, this.options.idleTimeout);
 
@@ -330,7 +332,7 @@ export class WorkerPool {
     this.taskQueue = [];
 
     if (this.options.debug) {
-      console.log('[WorkerPool] Pool terminated');
+      logger.info('[WorkerPool] Pool terminated');
     }
   }
 
@@ -363,14 +365,14 @@ export class TaskScheduler {
    */
   registerPool(name, workerScript, options) {
     if (this.pools.has(name)) {
-      console.warn(`[TaskScheduler] Pool "${name}" already exists`);
+      logger.warn(`[TaskScheduler] Pool "${name}" already exists`);
       return;
     }
 
     const pool = new WorkerPool(workerScript, options);
     this.pools.set(name, pool);
 
-    console.log(`[TaskScheduler] Registered pool: ${name}`);
+    logger.info(`[TaskScheduler] Registered pool: ${name}`);
   }
 
   /**
@@ -396,7 +398,7 @@ export class TaskScheduler {
       try {
         await this.schedule(poolName, data, options);
       } catch (error) {
-        console.error(`[TaskScheduler] Recurring task error:`, error);
+        logger.error(`[TaskScheduler] Recurring task error:`, error);
       }
     };
 
@@ -424,7 +426,7 @@ export class TaskScheduler {
     if (task) {
       clearInterval(task.intervalId);
       this.scheduledTasks.delete(taskId);
-      console.log(`[TaskScheduler] Cancelled recurring task: ${taskId}`);
+      logger.info(`[TaskScheduler] Cancelled recurring task: ${taskId}`);
     }
   }
 
@@ -462,7 +464,7 @@ export class TaskScheduler {
     });
     this.scheduledTasks.clear();
 
-    console.log('[TaskScheduler] All pools terminated');
+    logger.info('[TaskScheduler] All pools terminated');
   }
 }
 

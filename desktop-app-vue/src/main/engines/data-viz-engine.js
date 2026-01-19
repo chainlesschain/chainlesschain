@@ -4,6 +4,7 @@
  * 使用ECharts库实现
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require('fs').promises;
 const path = require('path');
 
@@ -76,7 +77,7 @@ class DataVizEngine {
       showGrid = true
     } = chartConfig;
 
-    console.log('[Data Viz Engine] 生成图表配置:', chartType);
+    logger.info('[Data Viz Engine] 生成图表配置:', chartType);
 
     try {
       // 处理数据
@@ -202,7 +203,7 @@ class DataVizEngine {
 
       return option;
     } catch (error) {
-      console.error('[Data Viz Engine] 生成图表配置失败:', error);
+      logger.error('[Data Viz Engine] 生成图表配置失败:', error);
       throw error;
     }
   }
@@ -376,7 +377,7 @@ class DataVizEngine {
    * @returns {Promise<Object>} 生成结果
    */
   async generateChartHTML(chartOption, outputPath) {
-    console.log('[Data Viz Engine] 生成图表HTML:', outputPath);
+    logger.info('[Data Viz Engine] 生成图表HTML:', outputPath);
 
     try {
       const html = `<!DOCTYPE html>
@@ -435,7 +436,7 @@ class DataVizEngine {
         path: outputPath
       };
     } catch (error) {
-      console.error('[Data Viz Engine] 生成图表HTML失败:', error);
+      logger.error('[Data Viz Engine] 生成图表HTML失败:', error);
       throw error;
     }
   }
@@ -447,7 +448,7 @@ class DataVizEngine {
    * @returns {Promise<Object>} 生成结果
    */
   async generateChartFromCSV(csvPath, chartConfig) {
-    console.log('[Data Viz Engine] 从CSV生成图表:', csvPath);
+    logger.info('[Data Viz Engine] 从CSV生成图表:', csvPath);
 
     try {
       // 读取CSV文件
@@ -469,7 +470,7 @@ class DataVizEngine {
         chartOption
       };
     } catch (error) {
-      console.error('[Data Viz Engine] 从CSV生成图表失败:', error);
+      logger.error('[Data Viz Engine] 从CSV生成图表失败:', error);
       throw error;
     }
   }

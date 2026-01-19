@@ -55,6 +55,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, onMounted, computed, watch } from 'vue';
 import { LockOutlined } from '@ant-design/icons-vue';
 import { useIdentityStore } from '../stores/identity';
@@ -167,7 +169,7 @@ async function checkPermission() {
       }
     }
   } catch (error) {
-    console.error('权限检查失败:', error);
+    logger.error('权限检查失败:', error);
     hasPermission.value = false;
     emit('permission-checked', false);
     emit('permission-denied', {

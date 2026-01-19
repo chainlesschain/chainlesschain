@@ -3,6 +3,7 @@
  * 负责管理Electron桌面通知和应用内通知
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { Notification, app } = require("electron");
 const path = require("path");
 const EventEmitter = require("events");
@@ -30,22 +31,22 @@ class NotificationManager extends EventEmitter {
    */
   async initialize() {
     try {
-      console.log("[NotificationManager] 初始化通知管理器...");
+      logger.info("[NotificationManager] 初始化通知管理器...");
 
       // 加载通知配置
       await this.loadConfig();
 
       // 请求通知权限（仅在某些平台需要）
       if (Notification.isSupported()) {
-        console.log("[NotificationManager] 系统支持桌面通知");
+        logger.info("[NotificationManager] 系统支持桌面通知");
       } else {
-        console.warn("[NotificationManager] 系统不支持桌面通知");
+        logger.warn("[NotificationManager] 系统不支持桌面通知");
       }
 
-      console.log("[NotificationManager] 通知管理器初始化完成");
+      logger.info("[NotificationManager] 通知管理器初始化完成");
       return true;
     } catch (error) {
-      console.error("[NotificationManager] 初始化失败:", error);
+      logger.error("[NotificationManager] 初始化失败:", error);
       throw error;
     }
   }
@@ -66,9 +67,9 @@ class NotificationManager extends EventEmitter {
         this.config = { ...this.config, ...JSON.parse(setting.value) };
       }
 
-      console.log("[NotificationManager] 通知配置已加载:", this.config);
+      logger.info("[NotificationManager] 通知配置已加载:", this.config);
     } catch (error) {
-      console.error("[NotificationManager] 加载配置失败:", error);
+      logger.error("[NotificationManager] 加载配置失败:", error);
     }
   }
 
@@ -86,9 +87,9 @@ class NotificationManager extends EventEmitter {
       ).run(JSON.stringify(this.config), Date.now());
 
       this.database.saveToFile();
-      console.log("[NotificationManager] 通知配置已保存");
+      logger.info("[NotificationManager] 通知配置已保存");
     } catch (error) {
-      console.error("[NotificationManager] 保存配置失败:", error);
+      logger.error("[NotificationManager] 保存配置失败:", error);
     }
   }
 
@@ -145,7 +146,7 @@ class NotificationManager extends EventEmitter {
 
       return notificationId;
     } catch (error) {
-      console.error("[NotificationManager] 创建通知失败:", error);
+      logger.error("[NotificationManager] 创建通知失败:", error);
       throw error;
     }
   }
@@ -156,18 +157,18 @@ class NotificationManager extends EventEmitter {
   async showDesktopNotification(title, body, data = {}) {
     try {
       if (!Notification.isSupported()) {
-        console.warn("[NotificationManager] 系统不支持桌面通知");
+        logger.warn("[NotificationManager] 系统不支持桌面通知");
         return;
       }
 
       if (!this.config.enableDesktopNotifications) {
-        console.log("[NotificationManager] 桌面通知已禁用");
+        logger.info("[NotificationManager] 桌面通知已禁用");
         return;
       }
 
       // 检查静默时段
       if (this.isInQuietHours()) {
-        console.log("[NotificationManager] 当前处于静默时段");
+        logger.info("[NotificationManager] 当前处于静默时段");
         return;
       }
 
@@ -183,15 +184,15 @@ class NotificationManager extends EventEmitter {
 
       // 点击通知时的处理
       notification.on("click", () => {
-        console.log("[NotificationManager] 通知被点击");
+        logger.info("[NotificationManager] 通知被点击");
         this.emit("notification-clicked", data);
       });
 
       notification.show();
 
-      console.log("[NotificationManager] 桌面通知已显示:", title);
+      logger.info("[NotificationManager] 桌面通知已显示:", title);
     } catch (error) {
-      console.error("[NotificationManager] 显示桌面通知失败:", error);
+      logger.error("[NotificationManager] 显示桌面通知失败:", error);
     }
   }
 
@@ -209,7 +210,7 @@ class NotificationManager extends EventEmitter {
 
       return results;
     } catch (error) {
-      console.error("[NotificationManager] 批量创建通知失败:", error);
+      logger.error("[NotificationManager] 批量创建通知失败:", error);
       throw error;
     }
   }
@@ -226,7 +227,7 @@ class NotificationManager extends EventEmitter {
 
       return notifications;
     } catch (error) {
-      console.error("[NotificationManager] 获取通知失败:", error);
+      logger.error("[NotificationManager] 获取通知失败:", error);
       throw error;
     }
   }
@@ -245,7 +246,7 @@ class NotificationManager extends EventEmitter {
 
       return notifications;
     } catch (error) {
-      console.error("[NotificationManager] 获取未读通知失败:", error);
+      logger.error("[NotificationManager] 获取未读通知失败:", error);
       throw error;
     }
   }
@@ -264,7 +265,7 @@ class NotificationManager extends EventEmitter {
 
       return result.count || 0;
     } catch (error) {
-      console.error("[NotificationManager] 获取未读数量失败:", error);
+      logger.error("[NotificationManager] 获取未读数量失败:", error);
       throw error;
     }
   }
@@ -283,7 +284,7 @@ class NotificationManager extends EventEmitter {
       this.emit("notification-read", notificationId);
       return true;
     } catch (error) {
-      console.error("[NotificationManager] 标记已读失败:", error);
+      logger.error("[NotificationManager] 标记已读失败:", error);
       throw error;
     }
   }
@@ -300,7 +301,7 @@ class NotificationManager extends EventEmitter {
       this.emit("all-notifications-read");
       return true;
     } catch (error) {
-      console.error("[NotificationManager] 全部标记已读失败:", error);
+      logger.error("[NotificationManager] 全部标记已读失败:", error);
       throw error;
     }
   }
@@ -317,7 +318,7 @@ class NotificationManager extends EventEmitter {
       this.emit("notification-deleted", notificationId);
       return true;
     } catch (error) {
-      console.error("[NotificationManager] 删除通知失败:", error);
+      logger.error("[NotificationManager] 删除通知失败:", error);
       throw error;
     }
   }
@@ -334,7 +335,7 @@ class NotificationManager extends EventEmitter {
       this.emit("all-notifications-cleared");
       return true;
     } catch (error) {
-      console.error("[NotificationManager] 清空通知失败:", error);
+      logger.error("[NotificationManager] 清空通知失败:", error);
       throw error;
     }
   }
@@ -353,7 +354,7 @@ class NotificationManager extends EventEmitter {
 
       return notifications;
     } catch (error) {
-      console.error("[NotificationManager] 按类型获取通知失败:", error);
+      logger.error("[NotificationManager] 按类型获取通知失败:", error);
       throw error;
     }
   }
@@ -369,7 +370,7 @@ class NotificationManager extends EventEmitter {
       this.emit("config-updated", this.config);
       return true;
     } catch (error) {
-      console.error("[NotificationManager] 更新配置失败:", error);
+      logger.error("[NotificationManager] 更新配置失败:", error);
       throw error;
     }
   }
@@ -425,7 +426,7 @@ class NotificationManager extends EventEmitter {
       // 返回第一个存在的路径，或者默认路径
       return possiblePaths[0];
     } catch (error) {
-      console.error("[NotificationManager] 获取图标路径失败:", error);
+      logger.error("[NotificationManager] 获取图标路径失败:", error);
       return null;
     }
   }
@@ -439,7 +440,7 @@ class NotificationManager extends EventEmitter {
         app.setBadgeCount(count);
       }
     } catch (error) {
-      console.error("[NotificationManager] 设置徽标失败:", error);
+      logger.error("[NotificationManager] 设置徽标失败:", error);
     }
   }
 
@@ -456,7 +457,7 @@ class NotificationManager extends EventEmitter {
   destroy() {
     this.removeAllListeners();
     this.notificationQueue = [];
-    console.log("[NotificationManager] 通知管理器已销毁");
+    logger.info("[NotificationManager] 通知管理器已销毁");
   }
 }
 

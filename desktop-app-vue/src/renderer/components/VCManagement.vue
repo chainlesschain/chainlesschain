@@ -648,6 +648,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, reactive, computed, onMounted, nextTick } from 'vue';
 import { message, Modal } from 'ant-design-vue';
 import {
@@ -1168,7 +1170,7 @@ function handleDeleteTemplate(id) {
 // 分享凭证
 async function handleShareCredential(id) {
   try {
-    console.log('[VCManagement] 生成分享数据:', id);
+    logger.info('[VCManagement] 生成分享数据:', id);
 
     // 生成分享数据
     const data = await window.electronAPI.vc.generateShareData(id);
@@ -1191,7 +1193,7 @@ async function handleShareCredential(id) {
         // 转换为图片URL
         qrcodeImage.value = qrcodeCanvas.value.toDataURL();
       } catch (error) {
-        console.error('[VCManagement] 生成二维码失败:', error);
+        logger.error('[VCManagement] 生成二维码失败:', error);
         message.error('生成二维码失败');
         return;
       }
@@ -1200,9 +1202,9 @@ async function handleShareCredential(id) {
     // 显示分享模态框
     showShareModal.value = true;
 
-    console.log('[VCManagement] 分享数据已生成');
+    logger.info('[VCManagement] 分享数据已生成');
   } catch (error) {
-    console.error('[VCManagement] 生成分享数据失败:', error);
+    logger.error('[VCManagement] 生成分享数据失败:', error);
     message.error('生成分享数据失败: ' + error.message);
   }
 }
@@ -1216,7 +1218,7 @@ function copyShareUrl() {
       message.success('链接已复制到剪贴板');
     })
     .catch((error) => {
-      console.error('[VCManagement] 复制链接失败:', error);
+      logger.error('[VCManagement] 复制链接失败:', error);
       message.error('复制链接失败');
     });
 }
@@ -1231,7 +1233,7 @@ function copyShareJson() {
       message.success('JSON数据已复制到剪贴板');
     })
     .catch((error) => {
-      console.error('[VCManagement] 复制JSON失败:', error);
+      logger.error('[VCManagement] 复制JSON失败:', error);
       message.error('复制JSON失败');
     });
 }
@@ -1245,7 +1247,7 @@ async function handleImportShare() {
 
   importing.value = true;
   try {
-    console.log('[VCManagement] 导入分享凭证...');
+    logger.info('[VCManagement] 导入分享凭证...');
 
     // 解析JSON
     let shareData;
@@ -1260,7 +1262,7 @@ async function handleImportShare() {
     const result = await window.electronAPI.vc.importFromShare(shareData);
 
     message.success('凭证已成功导入');
-    console.log('[VCManagement] 凭证已导入:', result.id);
+    logger.info('[VCManagement] 凭证已导入:', result.id);
 
     // 关闭模态框并刷新列表
     showImportShareModal.value = false;
@@ -1270,7 +1272,7 @@ async function handleImportShare() {
     // 重新加载凭证列表
     await loadCredentials();
   } catch (error) {
-    console.error('[VCManagement] 导入凭证失败:', error);
+    logger.error('[VCManagement] 导入凭证失败:', error);
     message.error('导入失败: ' + error.message);
   } finally {
     importing.value = false;

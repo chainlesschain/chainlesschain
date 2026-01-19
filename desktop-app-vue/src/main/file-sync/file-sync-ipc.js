@@ -1,3 +1,5 @@
+const { logger, createLogger } = require('../utils/logger.js');
+
 /**
  * 文件同步 IPC 处理器
  * 负责处理所有文件同步相关的前后端通信
@@ -17,7 +19,7 @@ function registerFileSyncIPC({ fileSyncManager, database, ipcMain: injectedIpcMa
   // 支持依赖注入，用于测试
   const ipcMain = injectedIpcMain || require('electron').ipcMain;
 
-  console.log('[File Sync IPC] Registering File Sync IPC handlers...');
+  logger.info('[File Sync IPC] Registering File Sync IPC handlers...');
 
   // ============================================================
   // 文件监听控制 (File Watching)
@@ -40,7 +42,7 @@ function registerFileSyncIPC({ fileSyncManager, database, ipcMain: injectedIpcMa
         return { success: false, error: '项目ID不能为空' };
       }
 
-      console.log('[File Sync IPC] 启动项目文件监听:', projectId);
+      logger.info('[File Sync IPC] 启动项目文件监听:', projectId);
 
       // 获取项目信息
       const project = database.db.prepare('SELECT id, root_path FROM projects WHERE id = ?').get(projectId);
@@ -56,10 +58,10 @@ function registerFileSyncIPC({ fileSyncManager, database, ipcMain: injectedIpcMa
       // 启动文件监听
       await fileSyncManager.watchProject(projectId, project.root_path);
 
-      console.log('[File Sync IPC] 文件监听已启动:', projectId);
+      logger.info('[File Sync IPC] 文件监听已启动:', projectId);
       return { success: true };
     } catch (error) {
-      console.error('[File Sync IPC] 启动文件监听失败:', error);
+      logger.error('[File Sync IPC] 启动文件监听失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -81,17 +83,17 @@ function registerFileSyncIPC({ fileSyncManager, database, ipcMain: injectedIpcMa
         return { success: false, error: '项目ID不能为空' };
       }
 
-      console.log('[File Sync IPC] 停止项目文件监听:', projectId);
+      logger.info('[File Sync IPC] 停止项目文件监听:', projectId);
 
       // 停止文件监听
       if (fileSyncManager.stopWatching) {
         fileSyncManager.stopWatching(projectId);
       }
 
-      console.log('[File Sync IPC] 文件监听已停止:', projectId);
+      logger.info('[File Sync IPC] 文件监听已停止:', projectId);
       return { success: true };
     } catch (error) {
-      console.error('[File Sync IPC] 停止文件监听失败:', error);
+      logger.error('[File Sync IPC] 停止文件监听失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -119,15 +121,15 @@ function registerFileSyncIPC({ fileSyncManager, database, ipcMain: injectedIpcMa
 
       return { success: true, data: status || null };
     } catch (error) {
-      console.error('[File Sync IPC] 获取同步状态失败:', error);
+      logger.error('[File Sync IPC] 获取同步状态失败:', error);
       return { success: false, error: error.message };
     }
   });
 
-  console.log('[File Sync IPC] Registered 3 file-sync: handlers');
-  console.log('[File Sync IPC] - file-sync:watch-project');
-  console.log('[File Sync IPC] - file-sync:stop-watch');
-  console.log('[File Sync IPC] - file-sync:get-status');
+  logger.info('[File Sync IPC] Registered 3 file-sync: handlers');
+  logger.info('[File Sync IPC] - file-sync:watch-project');
+  logger.info('[File Sync IPC] - file-sync:stop-watch');
+  logger.info('[File Sync IPC] - file-sync:get-status');
 }
 
 module.exports = { registerFileSyncIPC };

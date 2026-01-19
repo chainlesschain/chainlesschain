@@ -227,6 +227,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, onMounted, h } from 'vue';
 import { message } from 'ant-design-vue';
 import {
@@ -288,7 +290,7 @@ async function handleRefresh() {
     const result = await window.electronAPI.project.getIndexStats(props.projectId);
     stats.value = result;
   } catch (error) {
-    console.error('获取索引统计失败:', error);
+    logger.error('获取索引统计失败:', error);
     message.error('获取索引统计失败');
   }
 }
@@ -329,7 +331,7 @@ async function handleIndex() {
     await handleRefresh();
 
   } catch (error) {
-    console.error('索引失败:', error);
+    logger.error('索引失败:', error);
 
     indexHistory.value.unshift({
       timestamp: Date.now(),
@@ -371,7 +373,7 @@ async function handleTestQuery() {
     message.success(`找到 ${result.totalDocs} 个相关文档`);
 
   } catch (error) {
-    console.error('RAG查询失败:', error);
+    logger.error('RAG查询失败:', error);
     message.error('查询失败: ' + error.message);
   } finally {
     querying.value = false;

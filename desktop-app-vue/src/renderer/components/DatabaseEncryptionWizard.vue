@@ -339,6 +339,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, reactive, computed, watch } from 'vue';
 import {
   SafetyOutlined,
@@ -467,7 +469,7 @@ const loadDevelopmentMode = async () => {
       canSkipPassword.value = result.canSkipPassword || false;
     }
   } catch (error) {
-    console.error('获取开发模式状态失败:', error);
+    logger.error('获取开发模式状态失败:', error);
   }
 };
 
@@ -521,7 +523,7 @@ const handlePasswordSubmit = async () => {
       throw new Error(result.error || '设置失败');
     }
   } catch (error) {
-    console.error('密码提交失败:', error);
+    logger.error('密码提交失败:', error);
     if (error.message) {
       setupSuccess.value = false;
       errorMessage.value = error.message;

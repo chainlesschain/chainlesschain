@@ -1,3 +1,4 @@
+import { logger, createLogger } from '@/utils/logger';
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { message } from 'ant-design-vue';
@@ -108,13 +109,13 @@ export const useFileStore = defineStore('file', () => {
 
       if (result.success) {
         files.value = result.files || [];
-        console.log('[FileStore] 文件列表加载成功', files.value.length);
+        logger.info('[FileStore] 文件列表加载成功', files.value.length);
       } else {
         message.error(`加载文件列表失败: ${result.error}`);
       }
     } catch (error) {
       message.error('加载文件列表异常');
-      console.error('[FileStore] 加载文件列表异常:', error);
+      logger.error('[FileStore] 加载文件列表异常:', error);
     } finally {
       loading.value = false;
     }
@@ -133,7 +134,7 @@ export const useFileStore = defineStore('file', () => {
 
       if (result.success) {
         message.success('文件上传成功');
-        console.log('[FileStore] 文件上传成功:', result.file);
+        logger.info('[FileStore] 文件上传成功:', result.file);
 
         // 重新加载文件列表
         await loadFiles();
@@ -145,7 +146,7 @@ export const useFileStore = defineStore('file', () => {
       }
     } catch (error) {
       message.error('上传文件异常');
-      console.error('[FileStore] 上传文件异常:', error);
+      logger.error('[FileStore] 上传文件异常:', error);
       return null;
     } finally {
       loading.value = false;
@@ -185,7 +186,7 @@ export const useFileStore = defineStore('file', () => {
       }
     } catch (error) {
       message.error('删除文件异常');
-      console.error('[FileStore] 删除文件异常:', error);
+      logger.error('[FileStore] 删除文件异常:', error);
       return false;
     } finally {
       loading.value = false;
@@ -212,7 +213,7 @@ export const useFileStore = defineStore('file', () => {
       }
     } catch (error) {
       message.error('锁定文件异常');
-      console.error('[FileStore] 锁定文件异常:', error);
+      logger.error('[FileStore] 锁定文件异常:', error);
       return false;
     }
   }
@@ -236,7 +237,7 @@ export const useFileStore = defineStore('file', () => {
       }
     } catch (error) {
       message.error('解锁文件异常');
-      console.error('[FileStore] 解锁文件异常:', error);
+      logger.error('[FileStore] 解锁文件异常:', error);
       return false;
     }
   }
@@ -252,13 +253,13 @@ export const useFileStore = defineStore('file', () => {
 
       if (result.success) {
         currentFileVersions.value = result.versions || [];
-        console.log('[FileStore] 版本列表加载成功', currentFileVersions.value.length);
+        logger.info('[FileStore] 版本列表加载成功', currentFileVersions.value.length);
       } else {
         message.error(`加载版本列表失败: ${result.error}`);
       }
     } catch (error) {
       message.error('加载版本列表异常');
-      console.error('[FileStore] 加载版本列表异常:', error);
+      logger.error('[FileStore] 加载版本列表异常:', error);
     }
   }
 
@@ -285,7 +286,7 @@ export const useFileStore = defineStore('file', () => {
       }
     } catch (error) {
       message.error('回滚异常');
-      console.error('[FileStore] 回滚异常:', error);
+      logger.error('[FileStore] 回滚异常:', error);
       return false;
     } finally {
       loading.value = false;
@@ -310,7 +311,7 @@ export const useFileStore = defineStore('file', () => {
       }
     } catch (error) {
       message.error('共享异常');
-      console.error('[FileStore] 共享异常:', error);
+      logger.error('[FileStore] 共享异常:', error);
       return null;
     }
   }
@@ -328,13 +329,13 @@ export const useFileStore = defineStore('file', () => {
 
       if (result.success) {
         sharedFiles.value = result.files || [];
-        console.log('[FileStore] 共享文件加载成功', sharedFiles.value.length);
+        logger.info('[FileStore] 共享文件加载成功', sharedFiles.value.length);
       } else {
         message.error(`加载共享文件失败: ${result.error}`);
       }
     } catch (error) {
       message.error('加载共享文件异常');
-      console.error('[FileStore] 加载共享文件异常:', error);
+      logger.error('[FileStore] 加载共享文件异常:', error);
     } finally {
       loading.value = false;
     }
@@ -360,7 +361,7 @@ export const useFileStore = defineStore('file', () => {
       }
     } catch (error) {
       message.error('加载文件详情异常');
-      console.error('[FileStore] 加载文件详情异常:', error);
+      logger.error('[FileStore] 加载文件详情异常:', error);
     }
   }
 

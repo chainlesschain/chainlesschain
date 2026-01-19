@@ -4,6 +4,7 @@
  * 使用 Koffi (Foreign Function Interface) 调用 xjk.dll
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const koffi = require('koffi');
 const path = require('path');
 const os = require('os');
@@ -90,10 +91,10 @@ class XinJinKeNativeBinding {
       this.xjkDecrypt = this.lib.func('xjkDecrypt', 'int', [koffi.pointer('char'), 'int', koffi.out(koffi.pointer('char'))]);
 
       this.isLoaded = true;
-      console.log(`XinJinKe DLL loaded successfully: ${this.dllPath}`);
+      logger.info(`XinJinKe DLL loaded successfully: ${this.dllPath}`);
       return true;
     } catch (error) {
-      console.error('Failed to load XinJinKe DLL:', error.message);
+      logger.error('Failed to load XinJinKe DLL:', error.message);
       this.isLoaded = false;
       return false;
     }
@@ -107,7 +108,7 @@ class XinJinKeNativeBinding {
       try {
         this.closeKey();
       } catch (error) {
-        console.error('Error closing key:', error);
+        logger.error('Error closing key:', error);
       }
       this.lib = null;
       this.isLoaded = false;

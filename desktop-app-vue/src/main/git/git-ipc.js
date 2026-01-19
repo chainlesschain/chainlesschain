@@ -6,6 +6,7 @@
  * @description 提供 Git 同步、冲突解决、配置管理、Markdown 导出、AI 提交信息生成等 IPC 接口
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { ipcMain } = require('electron');
 const ipcGuard = require('../ipc/ipc-guard');
 
@@ -22,11 +23,11 @@ const ipcGuard = require('../ipc/ipc-guard');
 function registerGitIPC({ gitManager, markdownExporter, getGitConfig, llmManager, gitHotReload, mainWindow }) {
   // 防止重复注册
   if (ipcGuard.isModuleRegistered('git-ipc')) {
-    console.log('[Git IPC] Handlers already registered, skipping...');
+    logger.info('[Git IPC] Handlers already registered, skipping...');
     return;
   }
 
-  console.log('[Git IPC] Registering Git IPC handlers...');
+  logger.info('[Git IPC] Registering Git IPC handlers...');
 
   // ============================================================
   // Git 基础操作 (Basic Operations)
@@ -51,7 +52,7 @@ function registerGitIPC({ gitManager, markdownExporter, getGitConfig, llmManager
         ...status,
       };
     } catch (error) {
-      console.error('[Git IPC] 获取Git状态失败:', error);
+      logger.error('[Git IPC] 获取Git状态失败:', error);
       return {
         enabled: false,
         error: error.message,
@@ -77,7 +78,7 @@ function registerGitIPC({ gitManager, markdownExporter, getGitConfig, llmManager
 
       return result;
     } catch (error) {
-      console.error('[Git IPC] Git同步失败:', error);
+      logger.error('[Git IPC] Git同步失败:', error);
       throw error;
     }
   });
@@ -95,7 +96,7 @@ function registerGitIPC({ gitManager, markdownExporter, getGitConfig, llmManager
       await gitManager.push();
       return true;
     } catch (error) {
-      console.error('[Git IPC] Git推送失败:', error);
+      logger.error('[Git IPC] Git推送失败:', error);
       throw error;
     }
   });
@@ -113,7 +114,7 @@ function registerGitIPC({ gitManager, markdownExporter, getGitConfig, llmManager
       const result = await gitManager.pull();
       return result;
     } catch (error) {
-      console.error('[Git IPC] Git拉取失败:', error);
+      logger.error('[Git IPC] Git拉取失败:', error);
       throw error;
     }
   });
@@ -136,7 +137,7 @@ function registerGitIPC({ gitManager, markdownExporter, getGitConfig, llmManager
       await gitManager.clone(url, targetPath);
       return { success: true, path: targetPath };
     } catch (error) {
-      console.error('[Git IPC] Git克隆失败:', error);
+      logger.error('[Git IPC] Git克隆失败:', error);
       throw error;
     }
   });
@@ -153,7 +154,7 @@ function registerGitIPC({ gitManager, markdownExporter, getGitConfig, llmManager
 
       return await gitManager.getLog(depth);
     } catch (error) {
-      console.error('[Git IPC] 获取Git日志失败:', error);
+      logger.error('[Git IPC] 获取Git日志失败:', error);
       throw error;
     }
   });
@@ -174,7 +175,7 @@ function registerGitIPC({ gitManager, markdownExporter, getGitConfig, llmManager
 
       return await gitManager.getConflictFiles();
     } catch (error) {
-      console.error('[Git IPC] 获取冲突文件失败:', error);
+      logger.error('[Git IPC] 获取冲突文件失败:', error);
       throw error;
     }
   });
@@ -191,7 +192,7 @@ function registerGitIPC({ gitManager, markdownExporter, getGitConfig, llmManager
 
       return await gitManager.getConflictContent(filepath);
     } catch (error) {
-      console.error('[Git IPC] 获取冲突内容失败:', error);
+      logger.error('[Git IPC] 获取冲突内容失败:', error);
       throw error;
     }
   });
@@ -208,7 +209,7 @@ function registerGitIPC({ gitManager, markdownExporter, getGitConfig, llmManager
 
       return await gitManager.resolveConflict(filepath, resolution, content);
     } catch (error) {
-      console.error('[Git IPC] 解决冲突失败:', error);
+      logger.error('[Git IPC] 解决冲突失败:', error);
       throw error;
     }
   });
@@ -225,7 +226,7 @@ function registerGitIPC({ gitManager, markdownExporter, getGitConfig, llmManager
 
       return await gitManager.abortMerge();
     } catch (error) {
-      console.error('[Git IPC] 中止合并失败:', error);
+      logger.error('[Git IPC] 中止合并失败:', error);
       throw error;
     }
   });
@@ -242,7 +243,7 @@ function registerGitIPC({ gitManager, markdownExporter, getGitConfig, llmManager
 
       return await gitManager.completeMerge(message);
     } catch (error) {
-      console.error('[Git IPC] 完成合并失败:', error);
+      logger.error('[Git IPC] 完成合并失败:', error);
       throw error;
     }
   });
@@ -260,7 +261,7 @@ function registerGitIPC({ gitManager, markdownExporter, getGitConfig, llmManager
       const gitConfig = getGitConfig();
       return gitConfig.getAll();
     } catch (error) {
-      console.error('[Git IPC] 获取Git配置失败:', error);
+      logger.error('[Git IPC] 获取Git配置失败:', error);
       throw error;
     }
   });
@@ -284,7 +285,7 @@ function registerGitIPC({ gitManager, markdownExporter, getGitConfig, llmManager
         remoteUrl: config.remoteUrl || null,
       };
     } catch (error) {
-      console.error('[Git IPC] 获取同步状态失败:', error);
+      logger.error('[Git IPC] 获取同步状态失败:', error);
       throw error;
     }
   });
@@ -318,18 +319,18 @@ function registerGitIPC({ gitManager, markdownExporter, getGitConfig, llmManager
             auth: gitConfig.getAuth()
           });
           await gitManager.initialize();
-          console.log('[Git IPC] Git管理器已启用（热重载）');
+          logger.info('[Git IPC] Git管理器已启用（热重载）');
         } else if (!config.enabled && gitManager) {
           // 禁用Git - 关闭管理器
           await gitManager.close();
           gitManager = null;
-          console.log('[Git IPC] Git管理器已禁用（热重载）');
+          logger.info('[Git IPC] Git管理器已禁用（热重载）');
         }
       }
 
       return true;
     } catch (error) {
-      console.error('[Git IPC] 设置Git配置失败:', error);
+      logger.error('[Git IPC] 设置Git配置失败:', error);
       throw error;
     }
   });
@@ -352,7 +353,7 @@ function registerGitIPC({ gitManager, markdownExporter, getGitConfig, llmManager
 
       return true;
     } catch (error) {
-      console.error('[Git IPC] 设置远程仓库失败:', error);
+      logger.error('[Git IPC] 设置远程仓库失败:', error);
       throw error;
     }
   });
@@ -375,7 +376,7 @@ function registerGitIPC({ gitManager, markdownExporter, getGitConfig, llmManager
 
       return true;
     } catch (error) {
-      console.error('[Git IPC] 设置认证信息失败:', error);
+      logger.error('[Git IPC] 设置认证信息失败:', error);
       throw error;
     }
   });
@@ -397,7 +398,7 @@ function registerGitIPC({ gitManager, markdownExporter, getGitConfig, llmManager
       const files = await markdownExporter.exportAll();
       return files;
     } catch (error) {
-      console.error('[Git IPC] 导出Markdown失败:', error);
+      logger.error('[Git IPC] 导出Markdown失败:', error);
       throw error;
     }
   });
@@ -417,10 +418,10 @@ function registerGitIPC({ gitManager, markdownExporter, getGitConfig, llmManager
 
       const result = await generator.generateCommitMessage(projectPath);
 
-      console.log('[Git IPC] AI生成提交信息成功');
+      logger.info('[Git IPC] AI生成提交信息成功');
       return result;
     } catch (error) {
-      console.error('[Git IPC] AI生成提交信息失败:', error);
+      logger.error('[Git IPC] AI生成提交信息失败:', error);
       throw error;
     }
   });
@@ -442,7 +443,7 @@ function registerGitIPC({ gitManager, markdownExporter, getGitConfig, llmManager
       gitHotReload.start();
       return { success: true };
     } catch (error) {
-      console.error('[Git IPC] 启动Git热重载失败:', error);
+      logger.error('[Git IPC] 启动Git热重载失败:', error);
       throw error;
     }
   });
@@ -460,7 +461,7 @@ function registerGitIPC({ gitManager, markdownExporter, getGitConfig, llmManager
       await gitHotReload.stop();
       return { success: true };
     } catch (error) {
-      console.error('[Git IPC] 停止Git热重载失败:', error);
+      logger.error('[Git IPC] 停止Git热重载失败:', error);
       throw error;
     }
   });
@@ -481,7 +482,7 @@ function registerGitIPC({ gitManager, markdownExporter, getGitConfig, llmManager
 
       return gitHotReload.getStatus();
     } catch (error) {
-      console.error('[Git IPC] 获取Git热重载状态失败:', error);
+      logger.error('[Git IPC] 获取Git热重载状态失败:', error);
       throw error;
     }
   });
@@ -499,7 +500,7 @@ function registerGitIPC({ gitManager, markdownExporter, getGitConfig, llmManager
       await gitHotReload.refresh();
       return { success: true };
     } catch (error) {
-      console.error('[Git IPC] 刷新Git状态失败:', error);
+      logger.error('[Git IPC] 刷新Git状态失败:', error);
       throw error;
     }
   });
@@ -524,7 +525,7 @@ function registerGitIPC({ gitManager, markdownExporter, getGitConfig, llmManager
 
       return { success: true };
     } catch (error) {
-      console.error('[Git IPC] 配置Git热重载失败:', error);
+      logger.error('[Git IPC] 配置Git热重载失败:', error);
       throw error;
     }
   });
@@ -582,7 +583,7 @@ function registerGitIPC({ gitManager, markdownExporter, getGitConfig, llmManager
   // 标记模块为已注册
   ipcGuard.markModuleRegistered('git-ipc');
 
-  console.log('[Git IPC] ✓ All Git IPC handlers registered successfully (23 handlers)');
+  logger.info('[Git IPC] ✓ All Git IPC handlers registered successfully (23 handlers)');
 }
 
 module.exports = {

@@ -4,6 +4,7 @@
  * 提供前端与P2P增强功能的通信接口
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { ipcMain } = require('electron');
 
 class P2PEnhancedIPC {
@@ -16,7 +17,7 @@ class P2PEnhancedIPC {
    * 注册所有IPC处理器
    */
   register() {
-    console.log('[P2PEnhancedIPC] 注册IPC处理器...');
+    logger.info('[P2PEnhancedIPC] 注册IPC处理器...');
 
     // 消息相关
     this.registerHandler('p2p-enhanced:send-message', this.handleSendMessage.bind(this));
@@ -51,7 +52,7 @@ class P2PEnhancedIPC {
     // 设置事件转发
     this.setupEventForwarding();
 
-    console.log('[P2PEnhancedIPC] ✅ IPC处理器注册完成');
+    logger.info('[P2PEnhancedIPC] ✅ IPC处理器注册完成');
   }
 
   /**
@@ -221,7 +222,7 @@ class P2PEnhancedIPC {
         messageId
       };
     } catch (error) {
-      console.error('[P2PEnhancedIPC] 发送消息失败:', error);
+      logger.error('[P2PEnhancedIPC] 发送消息失败:', error);
       return {
         success: false,
         error: error.message
@@ -241,7 +242,7 @@ class P2PEnhancedIPC {
         stats
       };
     } catch (error) {
-      console.error('[P2PEnhancedIPC] 获取消息统计失败:', error);
+      logger.error('[P2PEnhancedIPC] 获取消息统计失败:', error);
       return {
         success: false,
         error: error.message
@@ -260,7 +261,7 @@ class P2PEnhancedIPC {
         success: true
       };
     } catch (error) {
-      console.error('[P2PEnhancedIPC] 知识库同步失败:', error);
+      logger.error('[P2PEnhancedIPC] 知识库同步失败:', error);
       return {
         success: false,
         error: error.message
@@ -280,7 +281,7 @@ class P2PEnhancedIPC {
         stats
       };
     } catch (error) {
-      console.error('[P2PEnhancedIPC] 获取同步统计失败:', error);
+      logger.error('[P2PEnhancedIPC] 获取同步统计失败:', error);
       return {
         success: false,
         error: error.message
@@ -300,7 +301,7 @@ class P2PEnhancedIPC {
         conflicts
       };
     } catch (error) {
-      console.error('[P2PEnhancedIPC] 获取冲突列表失败:', error);
+      logger.error('[P2PEnhancedIPC] 获取冲突列表失败:', error);
       return {
         success: false,
         error: error.message
@@ -319,7 +320,7 @@ class P2PEnhancedIPC {
         success: true
       };
     } catch (error) {
-      console.error('[P2PEnhancedIPC] 解决冲突失败:', error);
+      logger.error('[P2PEnhancedIPC] 解决冲突失败:', error);
       return {
         success: false,
         error: error.message
@@ -339,7 +340,7 @@ class P2PEnhancedIPC {
         transferId
       };
     } catch (error) {
-      console.error('[P2PEnhancedIPC] 文件上传失败:', error);
+      logger.error('[P2PEnhancedIPC] 文件上传失败:', error);
       return {
         success: false,
         error: error.message
@@ -359,7 +360,7 @@ class P2PEnhancedIPC {
         filePath
       };
     } catch (error) {
-      console.error('[P2PEnhancedIPC] 文件下载失败:', error);
+      logger.error('[P2PEnhancedIPC] 文件下载失败:', error);
       return {
         success: false,
         error: error.message
@@ -379,7 +380,7 @@ class P2PEnhancedIPC {
         progress
       };
     } catch (error) {
-      console.error('[P2PEnhancedIPC] 获取传输进度失败:', error);
+      logger.error('[P2PEnhancedIPC] 获取传输进度失败:', error);
       return {
         success: false,
         error: error.message
@@ -398,7 +399,7 @@ class P2PEnhancedIPC {
         success: true
       };
     } catch (error) {
-      console.error('[P2PEnhancedIPC] 取消传输失败:', error);
+      logger.error('[P2PEnhancedIPC] 取消传输失败:', error);
       return {
         success: false,
         error: error.message
@@ -418,7 +419,7 @@ class P2PEnhancedIPC {
         stats
       };
     } catch (error) {
-      console.error('[P2PEnhancedIPC] 获取传输统计失败:', error);
+      logger.error('[P2PEnhancedIPC] 获取传输统计失败:', error);
       return {
         success: false,
         error: error.message
@@ -438,7 +439,7 @@ class P2PEnhancedIPC {
         stats
       };
     } catch (error) {
-      console.error('[P2PEnhancedIPC] 获取统计信息失败:', error);
+      logger.error('[P2PEnhancedIPC] 获取统计信息失败:', error);
       return {
         success: false,
         error: error.message
@@ -458,7 +459,7 @@ class P2PEnhancedIPC {
         callId
       };
     } catch (error) {
-      console.error('[P2PEnhancedIPC] 发起通话失败:', error);
+      logger.error('[P2PEnhancedIPC] 发起通话失败:', error);
       return {
         success: false,
         error: error.message
@@ -477,7 +478,7 @@ class P2PEnhancedIPC {
         success: true
       };
     } catch (error) {
-      console.error('[P2PEnhancedIPC] 接受通话失败:', error);
+      logger.error('[P2PEnhancedIPC] 接受通话失败:', error);
       return {
         success: false,
         error: error.message
@@ -496,7 +497,7 @@ class P2PEnhancedIPC {
         success: true
       };
     } catch (error) {
-      console.error('[P2PEnhancedIPC] 拒绝通话失败:', error);
+      logger.error('[P2PEnhancedIPC] 拒绝通话失败:', error);
       return {
         success: false,
         error: error.message
@@ -515,7 +516,7 @@ class P2PEnhancedIPC {
         success: true
       };
     } catch (error) {
-      console.error('[P2PEnhancedIPC] 结束通话失败:', error);
+      logger.error('[P2PEnhancedIPC] 结束通话失败:', error);
       return {
         success: false,
         error: error.message
@@ -535,7 +536,7 @@ class P2PEnhancedIPC {
         isMuted
       };
     } catch (error) {
-      console.error('[P2PEnhancedIPC] 切换静音失败:', error);
+      logger.error('[P2PEnhancedIPC] 切换静音失败:', error);
       return {
         success: false,
         error: error.message
@@ -555,7 +556,7 @@ class P2PEnhancedIPC {
         isVideoEnabled
       };
     } catch (error) {
-      console.error('[P2PEnhancedIPC] 切换视频失败:', error);
+      logger.error('[P2PEnhancedIPC] 切换视频失败:', error);
       return {
         success: false,
         error: error.message
@@ -575,7 +576,7 @@ class P2PEnhancedIPC {
         info
       };
     } catch (error) {
-      console.error('[P2PEnhancedIPC] 获取通话信息失败:', error);
+      logger.error('[P2PEnhancedIPC] 获取通话信息失败:', error);
       return {
         success: false,
         error: error.message
@@ -595,7 +596,7 @@ class P2PEnhancedIPC {
         calls
       };
     } catch (error) {
-      console.error('[P2PEnhancedIPC] 获取活动通话失败:', error);
+      logger.error('[P2PEnhancedIPC] 获取活动通话失败:', error);
       return {
         success: false,
         error: error.message
@@ -607,7 +608,7 @@ class P2PEnhancedIPC {
    * 注销所有处理器
    */
   unregister() {
-    console.log('[P2PEnhancedIPC] 注销IPC处理器...');
+    logger.info('[P2PEnhancedIPC] 注销IPC处理器...');
 
     this.registeredHandlers.forEach(channel => {
       ipcMain.removeHandler(channel);
@@ -615,7 +616,7 @@ class P2PEnhancedIPC {
 
     this.registeredHandlers = [];
 
-    console.log('[P2PEnhancedIPC] ✅ IPC处理器已注销');
+    logger.info('[P2PEnhancedIPC] ✅ IPC处理器已注销');
   }
 }
 

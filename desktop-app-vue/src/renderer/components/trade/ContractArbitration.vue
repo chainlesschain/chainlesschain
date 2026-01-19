@@ -251,6 +251,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, reactive, onMounted } from 'vue';
 import { message } from 'ant-design-vue';
 import {
@@ -298,9 +300,9 @@ const loadArbitrations = async () => {
     // 暂时使用空数组
     arbitrations.value = await window.electronAPI.contract.getArbitrations?.(filters) || [];
 
-    console.log('[ContractArbitration] 仲裁列表已加载:', arbitrations.value.length);
+    logger.info('[ContractArbitration] 仲裁列表已加载:', arbitrations.value.length);
   } catch (error) {
-    console.error('[ContractArbitration] 加载仲裁列表失败:', error);
+    logger.error('[ContractArbitration] 加载仲裁列表失败:', error);
     message.error(error.message || '加载仲裁列表失败');
   } finally {
     loading.value = false;
@@ -312,12 +314,12 @@ const acceptArbitration = async (arbitration) => {
   try {
     await window.electronAPI.contract.acceptArbitration?.(arbitration.id);
 
-    console.log('[ContractArbitration] 已接受仲裁:', arbitration.id);
+    logger.info('[ContractArbitration] 已接受仲裁:', arbitration.id);
     message.success('已接受仲裁，开始调查');
 
     await loadArbitrations();
   } catch (error) {
-    console.error('[ContractArbitration] 接受仲裁失败:', error);
+    logger.error('[ContractArbitration] 接受仲裁失败:', error);
     message.error(error.message || '接受仲裁失败');
   }
 };
@@ -352,7 +354,7 @@ const handleSubmitResolution = async () => {
       resolutionData
     );
 
-    console.log('[ContractArbitration] 裁决已提交:', selectedArbitration.value.id);
+    logger.info('[ContractArbitration] 裁决已提交:', selectedArbitration.value.id);
     message.success('裁决已提交');
 
     showResolutionModal.value = false;
@@ -360,7 +362,7 @@ const handleSubmitResolution = async () => {
 
     await loadArbitrations();
   } catch (error) {
-    console.error('[ContractArbitration] 提交裁决失败:', error);
+    logger.error('[ContractArbitration] 提交裁决失败:', error);
     message.error(error.message || '提交裁决失败');
   } finally {
     submitting.value = false;
@@ -370,7 +372,7 @@ const handleSubmitResolution = async () => {
 // 查看合约
 const viewContract = (contractId) => {
   // 这里应该打开合约详情对话框或跳转
-  console.log('[ContractArbitration] 查看合约:', contractId);
+  logger.info('[ContractArbitration] 查看合约:', contractId);
   message.info('跳转到合约详情');
 };
 

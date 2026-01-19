@@ -1,3 +1,5 @@
+const { logger, createLogger } = require('../utils/logger.js');
+
 /**
  * P2P IPC 处理器
  * 负责处理 P2P 网络通信相关的前后端通信
@@ -16,7 +18,7 @@ function registerP2PIPC({ p2pManager, ipcMain: injectedIpcMain }) {
   // 支持依赖注入，用于测试
   const ipcMain = injectedIpcMain || require('electron').ipcMain;
 
-  console.log('[P2P IPC] Registering P2P IPC handlers...');
+  logger.info('[P2P IPC] Registering P2P IPC handlers...');
 
   // ============================================================
   // P2P 基础操作 (Basic Operations)
@@ -34,7 +36,7 @@ function registerP2PIPC({ p2pManager, ipcMain: injectedIpcMain }) {
 
       return p2pManager.getNodeInfo();
     } catch (error) {
-      console.error('[P2P IPC] 获取节点信息失败:', error);
+      logger.error('[P2P IPC] 获取节点信息失败:', error);
       return null;
     }
   });
@@ -51,7 +53,7 @@ function registerP2PIPC({ p2pManager, ipcMain: injectedIpcMain }) {
 
       return await p2pManager.connectToPeer(multiaddr);
     } catch (error) {
-      console.error('[P2P IPC] 连接对等节点失败:', error);
+      logger.error('[P2P IPC] 连接对等节点失败:', error);
       throw error;
     }
   });
@@ -68,7 +70,7 @@ function registerP2PIPC({ p2pManager, ipcMain: injectedIpcMain }) {
 
       return await p2pManager.disconnectFromPeer(peerId);
     } catch (error) {
-      console.error('[P2P IPC] 断开对等节点失败:', error);
+      logger.error('[P2P IPC] 断开对等节点失败:', error);
       throw error;
     }
   });
@@ -85,7 +87,7 @@ function registerP2PIPC({ p2pManager, ipcMain: injectedIpcMain }) {
 
       return p2pManager.getConnectedPeers();
     } catch (error) {
-      console.error('[P2P IPC] 获取对等节点列表失败:', error);
+      logger.error('[P2P IPC] 获取对等节点列表失败:', error);
       return [];
     }
   });
@@ -106,7 +108,7 @@ function registerP2PIPC({ p2pManager, ipcMain: injectedIpcMain }) {
 
       return await p2pManager.sendEncryptedMessage(peerId, message, deviceId, options);
     } catch (error) {
-      console.error('[P2P IPC] 发送加密消息失败:', error);
+      logger.error('[P2P IPC] 发送加密消息失败:', error);
       throw error;
     }
   });
@@ -123,7 +125,7 @@ function registerP2PIPC({ p2pManager, ipcMain: injectedIpcMain }) {
 
       return await p2pManager.hasEncryptedSession(peerId);
     } catch (error) {
-      console.error('[P2P IPC] 检查加密会话失败:', error);
+      logger.error('[P2P IPC] 检查加密会话失败:', error);
       return false;
     }
   });
@@ -140,7 +142,7 @@ function registerP2PIPC({ p2pManager, ipcMain: injectedIpcMain }) {
 
       return await p2pManager.initiateKeyExchange(peerId, deviceId);
     } catch (error) {
-      console.error('[P2P IPC] 密钥交换失败:', error);
+      logger.error('[P2P IPC] 密钥交换失败:', error);
       throw error;
     }
   });
@@ -161,7 +163,7 @@ function registerP2PIPC({ p2pManager, ipcMain: injectedIpcMain }) {
 
       return p2pManager.getUserDevices(userId);
     } catch (error) {
-      console.error('[P2P IPC] 获取用户设备列表失败:', error);
+      logger.error('[P2P IPC] 获取用户设备列表失败:', error);
       return [];
     }
   });
@@ -178,7 +180,7 @@ function registerP2PIPC({ p2pManager, ipcMain: injectedIpcMain }) {
 
       return p2pManager.getCurrentDevice();
     } catch (error) {
-      console.error('[P2P IPC] 获取当前设备失败:', error);
+      logger.error('[P2P IPC] 获取当前设备失败:', error);
       return null;
     }
   });
@@ -199,7 +201,7 @@ function registerP2PIPC({ p2pManager, ipcMain: injectedIpcMain }) {
 
       return p2pManager.getDeviceStatistics();
     } catch (error) {
-      console.error('[P2P IPC] 获取设备统计失败:', error);
+      logger.error('[P2P IPC] 获取设备统计失败:', error);
       return {
         userCount: 0,
         totalDevices: 0,
@@ -230,7 +232,7 @@ function registerP2PIPC({ p2pManager, ipcMain: injectedIpcMain }) {
 
       return p2pManager.syncManager.getStatistics();
     } catch (error) {
-      console.error('[P2P IPC] 获取同步统计失败:', error);
+      logger.error('[P2P IPC] 获取同步统计失败:', error);
       return {
         totalMessages: 0,
         deviceCount: 0,
@@ -253,7 +255,7 @@ function registerP2PIPC({ p2pManager, ipcMain: injectedIpcMain }) {
 
       return p2pManager.syncManager.messageStatus.get(messageId) || null;
     } catch (error) {
-      console.error('[P2P IPC] 获取消息状态失败:', error);
+      logger.error('[P2P IPC] 获取消息状态失败:', error);
       return null;
     }
   });
@@ -271,7 +273,7 @@ function registerP2PIPC({ p2pManager, ipcMain: injectedIpcMain }) {
       p2pManager.syncManager.startDeviceSync(deviceId);
       return { success: true };
     } catch (error) {
-      console.error('[P2P IPC] 启动设备同步失败:', error);
+      logger.error('[P2P IPC] 启动设备同步失败:', error);
       throw error;
     }
   });
@@ -289,7 +291,7 @@ function registerP2PIPC({ p2pManager, ipcMain: injectedIpcMain }) {
       p2pManager.syncManager.stopDeviceSync(deviceId);
       return { success: true };
     } catch (error) {
-      console.error('[P2P IPC] 停止设备同步失败:', error);
+      logger.error('[P2P IPC] 停止设备同步失败:', error);
       throw error;
     }
   });
@@ -311,7 +313,7 @@ function registerP2PIPC({ p2pManager, ipcMain: injectedIpcMain }) {
         p2pManager.p2pConfig.stun.servers
       );
     } catch (error) {
-      console.error('[P2P IPC] NAT检测失败:', error);
+      logger.error('[P2P IPC] NAT检测失败:', error);
       throw error;
     }
   });
@@ -327,7 +329,7 @@ function registerP2PIPC({ p2pManager, ipcMain: injectedIpcMain }) {
       }
       return p2pManager.natInfo;
     } catch (error) {
-      console.error('[P2P IPC] 获取NAT信息失败:', error);
+      logger.error('[P2P IPC] 获取NAT信息失败:', error);
       throw error;
     }
   });
@@ -353,7 +355,7 @@ function registerP2PIPC({ p2pManager, ipcMain: injectedIpcMain }) {
         status: relay.status,
       }));
     } catch (error) {
-      console.error('[P2P IPC] 获取中继信息失败:', error);
+      logger.error('[P2P IPC] 获取中继信息失败:', error);
       throw error;
     }
   });
@@ -369,7 +371,7 @@ function registerP2PIPC({ p2pManager, ipcMain: injectedIpcMain }) {
       }
       return await p2pManager.transportDiagnostics.runFullDiagnostics();
     } catch (error) {
-      console.error('[P2P IPC] 运行诊断失败:', error);
+      logger.error('[P2P IPC] 运行诊断失败:', error);
       throw error;
     }
   });
@@ -391,7 +393,7 @@ function registerP2PIPC({ p2pManager, ipcMain: injectedIpcMain }) {
 
       return p2pManager.getWebRTCQualityReport(peerId);
     } catch (error) {
-      console.error('[P2P IPC] 获取WebRTC质量报告失败:', error);
+      logger.error('[P2P IPC] 获取WebRTC质量报告失败:', error);
       return null;
     }
   });
@@ -409,7 +411,7 @@ function registerP2PIPC({ p2pManager, ipcMain: injectedIpcMain }) {
 
       return p2pManager.getWebRTCOptimizationSuggestions(peerId);
     } catch (error) {
-      console.error('[P2P IPC] 获取WebRTC优化建议失败:', error);
+      logger.error('[P2P IPC] 获取WebRTC优化建议失败:', error);
       return [];
     }
   });
@@ -426,12 +428,12 @@ function registerP2PIPC({ p2pManager, ipcMain: injectedIpcMain }) {
 
       return p2pManager.getConnectionPoolStats();
     } catch (error) {
-      console.error('[P2P IPC] 获取连接池统计失败:', error);
+      logger.error('[P2P IPC] 获取连接池统计失败:', error);
       return null;
     }
   });
 
-  console.log('[P2P IPC] ✓ All P2P IPC handlers registered successfully (21 handlers)');
+  logger.info('[P2P IPC] ✓ All P2P IPC handlers registered successfully (21 handlers)');
 }
 
 module.exports = {

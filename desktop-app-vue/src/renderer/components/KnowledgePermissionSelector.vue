@@ -183,6 +183,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, watch, onMounted } from 'vue';
 import {
   LockOutlined,
@@ -268,7 +270,7 @@ async function loadOrgMembers() {
       orgMembers.value = result.members || [];
     }
   } catch (error) {
-    console.error('加载组织成员失败:', error);
+    logger.error('加载组织成员失败:', error);
   }
 }
 

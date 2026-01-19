@@ -3,6 +3,7 @@
  * 负责协调意图识别、任务规划和Function Calling
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const IntentClassifier = require('./intent-classifier');
 const { TaskPlanner } = require('./task-planner');
 const TaskPlannerEnhanced = require('./task-planner-enhanced');
@@ -56,12 +57,12 @@ class AIEngineManager {
           projectConfig: this.projectConfig
         });
 
-        console.log('[AIEngineManager] 增强版任务规划器已初始化');
+        logger.info('[AIEngineManager] 增强版任务规划器已初始化');
       }
 
       return true;
     } catch (error) {
-      console.error('[AIEngineManager] 初始化失败:', error);
+      logger.error('[AIEngineManager] 初始化失败:', error);
       throw error;
     }
   }
@@ -89,7 +90,7 @@ class AIEngineManager {
     const executionId = `exec_${Date.now()}`;
 
     try {
-      console.log(`[AI Engine] 开始处理用户输入: "${userInput}"`);
+      logger.info(`[AI Engine] 开始处理用户输入: "${userInput}"`);
 
       // 步骤1: 意图识别
       const intentStep = {
@@ -110,7 +111,7 @@ class AIEngineManager {
 
       if (onStepUpdate) {onStepUpdate(intentStep);}
 
-      console.log(`[AI Engine] 识别意图:`, intent);
+      logger.info(`[AI Engine] 识别意图:`, intent);
 
       // 步骤2: 任务规划
       const planStep = {
@@ -131,7 +132,7 @@ class AIEngineManager {
 
       if (onStepUpdate) {onStepUpdate(planStep);}
 
-      console.log(`[AI Engine] 生成计划:`, plan);
+      logger.info(`[AI Engine] 生成计划:`, plan);
 
       // 步骤3: 执行任务步骤
       const results = [];
@@ -164,7 +165,7 @@ class AIEngineManager {
 
           results.push(result);
         } catch (error) {
-          console.error(`[AI Engine] 执行步骤失败:`, error);
+          logger.error(`[AI Engine] 执行步骤失败:`, error);
 
           execStep.status = 'failed';
           execStep.endTime = Date.now();
@@ -200,11 +201,11 @@ class AIEngineManager {
         this.executionHistory = this.executionHistory.slice(-100);
       }
 
-      console.log(`[AI Engine] 执行完成，耗时 ${execution.duration}ms`);
+      logger.info(`[AI Engine] 执行完成，耗时 ${execution.duration}ms`);
 
       return execution;
     } catch (error) {
-      console.error(`[AI Engine] 处理失败:`, error);
+      logger.error(`[AI Engine] 处理失败:`, error);
 
       throw new Error(`AI引擎处理失败: ${error.message}`);
     }

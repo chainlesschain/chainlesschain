@@ -2,6 +2,7 @@
  * Git配置管理
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require('fs');
 const path = require('path');
 const { app } = require('electron');
@@ -75,16 +76,16 @@ class GitConfig {
         this.loaded = true;
         // 加载配置时使用直接console.log，因为gitLog还未初始化
         if (this.config.enableLogging) {
-          console.log('[GitConfig] 配置加载成功');
+          logger.info('[GitConfig] 配置加载成功');
         }
       } else {
         if (DEFAULT_CONFIG.enableLogging) {
-          console.log('[GitConfig] 配置文件不存在，使用默认配置');
+          logger.info('[GitConfig] 配置文件不存在，使用默认配置');
         }
         this.loaded = false;
       }
     } catch (error) {
-      console.error('[GitConfig] 配置加载失败:', error);
+      logger.error('[GitConfig] 配置加载失败:', error);
       this.config = { ...DEFAULT_CONFIG };
       this.loaded = false;
     }
@@ -105,11 +106,11 @@ class GitConfig {
       fs.writeFileSync(this.configPath, JSON.stringify(this.config, null, 2), 'utf8');
 
       if (this.config.enableLogging) {
-        console.log('[GitConfig] 配置保存成功');
+        logger.info('[GitConfig] 配置保存成功');
       }
       return true;
     } catch (error) {
-      console.error('[GitConfig] 配置保存失败:', error);
+      logger.error('[GitConfig] 配置保存失败:', error);
       return false;
     }
   }
@@ -267,19 +268,19 @@ class GitConfig {
 function gitLog(tag, ...args) {
   const config = getGitConfig();
   if (config.isLoggingEnabled()) {
-    console.log(`[${tag}]`, ...args);
+    logger.info(`[${tag}]`, ...args);
   }
 }
 
 function gitError(tag, ...args) {
   // 错误日志始终输出
-  console.error(`[${tag}]`, ...args);
+  logger.error(`[${tag}]`, ...args);
 }
 
 function gitWarn(tag, ...args) {
   const config = getGitConfig();
   if (config.isLoggingEnabled()) {
-    console.warn(`[${tag}]`, ...args);
+    logger.warn(`[${tag}]`, ...args);
   }
 }
 

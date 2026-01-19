@@ -218,6 +218,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, onMounted } from 'vue';
 import { message } from 'ant-design-vue';
 import { useIdentityStore } from '@/stores/identityStore';
@@ -286,7 +288,7 @@ async function loadVersionHistory() {
       message.error(result.error || '加载版本历史失败');
     }
   } catch (error) {
-    console.error('加载版本历史失败:', error);
+    logger.error('加载版本历史失败:', error);
     message.error('加载版本历史失败');
   } finally {
     loading.value = false;
@@ -342,7 +344,7 @@ async function handleRestoreVersion(version) {
       message.error(result.error || '版本恢复失败');
     }
   } catch (error) {
-    console.error('版本恢复失败:', error);
+    logger.error('版本恢复失败:', error);
     message.error('版本恢复失败');
   }
 }

@@ -86,6 +86,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, reactive, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import {
   FileOutlined,
@@ -175,7 +177,7 @@ const initTree = async () => {
 
     emit('load', { total: totalCount.value })
   } catch (error) {
-    console.error('Failed to load file tree:', error)
+    logger.error('Failed to load file tree:', error)
     emit('error', error)
   } finally {
     loading.value = false
@@ -323,7 +325,7 @@ const onLoadData = async (treeNode) => {
       startTime
     )
   } catch (error) {
-    console.error('Failed to load directory:', error)
+    logger.error('Failed to load directory:', error)
     emit('error', error)
   } finally {
     dataRef.loading = false
@@ -439,7 +441,7 @@ const handleSearch = async (value) => {
       startTime
     )
   } catch (error) {
-    console.error('Search failed:', error)
+    logger.error('Search failed:', error)
     emit('error', error)
   }
 }

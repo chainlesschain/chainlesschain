@@ -4,6 +4,7 @@
  * 仅在生产环境（打包后）自动启动和管理这些服务
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { spawn, exec, execSync } = require("child_process");
 const path = require("path");
 const fs = require("fs");
@@ -89,27 +90,27 @@ class BackendServiceManager {
   async startServices() {
     // 开发环境下不启动后端服务（假设使用 Docker）
     if (!this.isProduction) {
-      console.log(
+      logger.info(
         "[Backend Services] Running in development mode, skipping backend service startup",
       );
-      console.log(
+      logger.info(
         "[Backend Services] Please ensure Docker services are running (docker-compose up)",
       );
       return;
     }
 
-    console.log("[Backend Services] Starting backend services...");
-    console.log("[Backend Services] App path:", this.appPath);
-    console.log("[Backend Services] Backend dir:", this.backendDir);
-    console.log("[Backend Services] Data dir:", this.dataDir);
+    logger.info("[Backend Services] Starting backend services...");
+    logger.info("[Backend Services] App path:", this.appPath);
+    logger.info("[Backend Services] Backend dir:", this.backendDir);
+    logger.info("[Backend Services] Data dir:", this.dataDir);
 
     try {
       // 检查启动脚本是否存在
       if (!fs.existsSync(this.startupScript)) {
-        console.warn(
+        logger.warn(
           `[Backend Services] Startup script not found: ${this.startupScript}`,
         );
-        console.warn(
+        logger.warn(
           "[Backend Services] Attempting to start services individually...",
         );
         await this.startIndividualServices();
@@ -124,25 +125,25 @@ class BackendServiceManager {
       });
 
       startProcess.stdout.on("data", (data) => {
-        console.log(`[Backend Services] ${data.toString().trim()}`);
+        logger.info(`[Backend Services] ${data.toString().trim()}`);
       });
 
       startProcess.stderr.on("data", (data) => {
         const message = data.toString().trim();
         if (message) {
-          console.error(`[Backend Services Error] ${message}`);
+          logger.error(`[Backend Services Error] ${message}`);
         }
       });
 
       startProcess.on("error", (error) => {
-        console.error("[Backend Services] Failed to start services:", error);
+        logger.error("[Backend Services] Failed to start services:", error);
       });
 
       startProcess.on("exit", (code) => {
         if (code === 0) {
-          console.log("[Backend Services] All services started successfully");
+          logger.info("[Backend Services] All services started successfully");
         } else {
-          console.error(
+          logger.error(
             `[Backend Services] Startup script exited with code ${code}`,
           );
         }
@@ -153,7 +154,7 @@ class BackendServiceManager {
       // 等待服务启动
       await this.waitForServices();
     } catch (error) {
-      console.error("[Backend Services] Error starting services:", error);
+      logger.error("[Backend Services] Error starting services:", error);
     }
   }
 
@@ -171,11 +172,11 @@ class BackendServiceManager {
     for (const service of services) {
       const isRunning = await this.checkService(service.name, service.port);
       if (isRunning) {
-        console.log(
+        logger.info(
           `[Backend Services] ${service.name} is already running on port ${service.port}`,
         );
       } else {
-        console.log(
+        logger.info(
           `[Backend Services] ${service.name} is not running, may need manual start`,
         );
       }
@@ -209,11 +210,11 @@ class BackendServiceManager {
       }
 
       if (isRunning) {
-        console.log(
+        logger.info(
           `[Backend Services] ✓ ${service.name} is ready (port ${service.port})`,
         );
       } else {
-        console.warn(
+        logger.warn(
           `[Backend Services] ✗ ${service.name} failed to start (port ${service.port})`,
         );
       }
@@ -225,13 +226,13 @@ class BackendServiceManager {
    */
   async stopServices() {
     if (!this.isProduction) {
-      console.log(
+      logger.info(
         "[Backend Services] Running in development mode, skipping service shutdown",
       );
       return;
     }
 
-    console.log("[Backend Services] Stopping backend services...");
+    logger.info("[Backend Services] Stopping backend services...");
 
     try {
       if (fs.existsSync(this.stopScript)) {
@@ -246,13 +247,13 @@ class BackendServiceManager {
           windowsHide: true,
           timeout: 10000,
         });
-        console.log("[Backend Services] All services stopped successfully");
+        logger.info("[Backend Services] All services stopped successfully");
       } else {
         // 备用方案：直接杀进程
         await this.killServiceProcesses();
       }
     } catch (error) {
-      console.error("[Backend Services] Error stopping services:", error);
+      logger.error("[Backend Services] Error stopping services:", error);
       // 强制杀进程
       await this.killServiceProcesses();
     }
@@ -281,7 +282,7 @@ class BackendServiceManager {
           windowsHide: true,
           timeout: 3000,
         });
-        console.log(`[Backend Services] Killed ${processName}`);
+        logger.info(`[Backend Services] Killed ${processName}`);
       } catch (error) {
         // 进程可能不存在，忽略错误
       }
@@ -316,7 +317,7 @@ class BackendServiceManager {
    * 重启服务
    */
   async restartServices() {
-    console.log("[Backend Services] Restarting services...");
+    logger.info("[Backend Services] Restarting services...");
     await this.stopServices();
     await new Promise((resolve) => setTimeout(resolve, 3000)); // 等待3秒
     await this.startServices();

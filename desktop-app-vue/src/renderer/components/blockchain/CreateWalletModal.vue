@@ -213,6 +213,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, watch } from 'vue';
 import { message } from 'ant-design-vue';
 import {
@@ -346,7 +348,7 @@ const handleCopyMnemonic = async () => {
     await navigator.clipboard.writeText(mnemonic);
     message.success('助记词已复制到剪贴板');
   } catch (error) {
-    console.error('[CreateWalletModal] 复制失败:', error);
+    logger.error('[CreateWalletModal] 复制失败:', error);
     message.error('复制失败');
   }
 };
@@ -368,7 +370,7 @@ const handleCopyAddress = async () => {
     await navigator.clipboard.writeText(walletAddress.value);
     message.success('地址已复制到剪贴板');
   } catch (error) {
-    console.error('[CreateWalletModal] 复制地址失败:', error);
+    logger.error('[CreateWalletModal] 复制地址失败:', error);
     message.error('复制失败');
   }
 };
@@ -421,7 +423,7 @@ const handleCreate = async () => {
       message.success('钱包创建成功');
       emit('created', wallet);
     } catch (error) {
-      console.error('[CreateWalletModal] 创建钱包失败:', error);
+      logger.error('[CreateWalletModal] 创建钱包失败:', error);
       message.error('创建钱包失败: ' + error.message);
     } finally {
       loading.value = false;

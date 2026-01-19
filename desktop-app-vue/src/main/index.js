@@ -3,7 +3,7 @@ try {
   require("dotenv").config();
 } catch (err) {
   // dotenv is optional in production builds
-  console.log("dotenv not available (production mode)");
+  logger.info("dotenv not available (production mode)");
 }
 
 const {
@@ -15,6 +15,7 @@ const {
   Menu,
   nativeImage,
 } = require("electron");
+const { logger, createLogger } = require('./utils/logger.js');
 const path = require("path");
 const fs = require("fs");
 const crypto = require("crypto");
@@ -277,15 +278,15 @@ class ChainlessChainApp {
     if (process.env.NODE_ENV === "test") {
       try {
         const { ipcGuard } = require("./ipc/ipc-registry");
-        console.log(
+        logger.info(
           "[Main] Test environment detected - resetting IPC Guard...",
         );
         if (ipcGuard && typeof ipcGuard.resetAll === "function") {
           ipcGuard.resetAll();
-          console.log("[Main] IPC Guard reset successfully");
+          logger.info("[Main] IPC Guard reset successfully");
         }
       } catch (error) {
-        console.error("[Main] Failed to reset IPC Guard:", error);
+        logger.error("[Main] Failed to reset IPC Guard:", error);
         // 继续启动，不影响应用
       }
     }
@@ -410,7 +411,7 @@ class ChainlessChainApp {
     // 应用退出时停止后端服务
     app.on("will-quit", async (event) => {
       event.preventDefault();
-      console.log(
+      logger.info(
         "[Main] Application is quitting, stopping backend services...",
       );
 
@@ -443,7 +444,7 @@ class ChainlessChainApp {
       return this.speechManager; // 已初始化，直接返回
     }
 
-    console.log("🚀 开始懒加载语音管理器...");
+    logger.info("🚀 开始懒加载语音管理器...");
     const startTime = Date.now();
 
     try {
@@ -453,9 +454,9 @@ class ChainlessChainApp {
 
       this.speechInitialized = true;
       const elapsed = Date.now() - startTime;
-      console.log(`✓ 语音管理器懒加载完成 (耗时: ${elapsed}ms)`);
+      logger.info(`✓ 语音管理器懒加载完成 (耗时: ${elapsed}ms)`);
     } catch (error) {
-      console.error("语音管理器懒加载失败:", error);
+      logger.error("语音管理器懒加载失败:", error);
       throw error;
     }
 
@@ -463,7 +464,7 @@ class ChainlessChainApp {
   }
 
   async onReady() {
-    console.log("ChainlessChain Vue 启动中...");
+    logger.info("ChainlessChain Vue 启动中...");
 
     // 创建并显示启动画面 (跳过测试环境)
     if (process.env.NODE_ENV !== "test") {
@@ -472,7 +473,7 @@ class ChainlessChainApp {
         await this.splashWindow.create();
         this.splashWindow.updateProgress("正在启动...", 0);
       } catch (error) {
-        console.error("[Main] 创建启动画面失败:", error);
+        logger.error("[Main] 创建启动画面失败:", error);
         // 降级处理：即使启动画面创建失败，也继续启动应用
       }
     }
@@ -483,7 +484,7 @@ class ChainlessChainApp {
       const backendManager = getBackendServiceManager();
       await backendManager.startServices();
     } catch (error) {
-      console.error("[Main] Failed to start backend services:", error);
+      logger.error("[Main] Failed to start backend services:", error);
       // 继续启动应用，即使后端服务启动失败
     }
 
@@ -491,30 +492,30 @@ class ChainlessChainApp {
     // setupIPC() 将在所有管理器初始化完成后调用
 
     // 显示后端服务配置
-    console.log("=".repeat(60));
-    console.log("后端服务配置:");
-    console.log(
+    logger.info("=".repeat(60));
+    logger.info("后端服务配置:");
+    logger.info(
       "  Java Service (Project):",
       process.env.PROJECT_SERVICE_URL || "http://localhost:9090",
     );
-    console.log(
+    logger.info(
       "  Python Service (AI):",
       process.env.AI_SERVICE_URL || "http://localhost:8001",
     );
-    console.log("  备注: 后端不可用时将自动降级到本地处理");
-    console.log("=".repeat(60));
+    logger.info("  备注: 后端不可用时将自动降级到本地处理");
+    logger.info("=".repeat(60));
 
     // 初始化数据库
     try {
       this.splashWindow?.updateProgress("初始化数据库...", 10);
-      console.log("初始化数据库...");
+      logger.info("初始化数据库...");
 
       // 检查加密配置（只有用户启用加密后才使用加密数据库）
       const EncryptionConfigManager = require("./database/config-manager");
       const encryptionConfig = new EncryptionConfigManager(app);
       const encryptionEnabled = encryptionConfig.isEncryptionEnabled();
 
-      console.log(`数据库加密状态: ${encryptionEnabled ? "已启用" : "未启用"}`);
+      logger.info(`数据库加密状态: ${encryptionEnabled ? "已启用" : "未启用"}`);
 
       // 使用默认密码进行数据库加密（与认证密码一致）
       const DEFAULT_PASSWORD = process.env.DEFAULT_PASSWORD || "123456";
@@ -551,37 +552,37 @@ class ChainlessChainApp {
       // 初始化版本管理器
       this.versionManager = new KnowledgeVersionManager(this.database.db);
 
-      console.log("数据库初始化成功");
+      logger.info("数据库初始化成功");
     } catch (error) {
-      console.error("数据库初始化失败:", error);
+      logger.error("数据库初始化失败:", error);
       // 即使数据库初始化失败，也继续启动应用
     }
 
     // 🚀 并行初始化独立的管理器（性能优化）
     this.splashWindow?.updateProgress("并行初始化管理器...", 15);
-    console.log("🚀 开始并行初始化独立管理器...");
+    logger.info("🚀 开始并行初始化独立管理器...");
 
     await Promise.all([
       // 性能监控器
       (async () => {
         try {
-          console.log("初始化性能监控器...");
+          logger.info("初始化性能监控器...");
           this.performanceMonitor = getPerformanceMonitor();
           this.performanceMonitor.start();
-          console.log("✓ 性能监控器初始化成功");
+          logger.info("✓ 性能监控器初始化成功");
         } catch (error) {
-          console.error("性能监控器初始化失败:", error);
+          logger.error("性能监控器初始化失败:", error);
         }
       })(),
 
       // 文件导入器
       (async () => {
         try {
-          console.log("初始化文件导入器...");
+          logger.info("初始化文件导入器...");
           this.fileImporter = new FileImporter(this.database);
-          console.log("✓ 文件导入器初始化成功");
+          logger.info("✓ 文件导入器初始化成功");
         } catch (error) {
-          console.error("文件导入器初始化失败:", error);
+          logger.error("文件导入器初始化失败:", error);
         }
       })(),
 
@@ -591,12 +592,12 @@ class ChainlessChainApp {
       // 项目模板管理器
       (async () => {
         try {
-          console.log("初始化项目模板管理器...");
+          logger.info("初始化项目模板管理器...");
           this.templateManager = new ProjectTemplateManager(this.database);
           await this.templateManager.initialize();
-          console.log("✓ 项目模板管理器初始化成功");
+          logger.info("✓ 项目模板管理器初始化成功");
         } catch (error) {
-          console.error("项目模板管理器初始化失败:", error);
+          logger.error("项目模板管理器初始化失败:", error);
         }
       })(),
 
@@ -615,17 +616,17 @@ class ChainlessChainApp {
       })(),
     ]);
 
-    console.log("✓ 并行初始化完成");
+    logger.info("✓ 并行初始化完成");
 
     // 🚀 并行初始化 Git 和 LLM 相关管理器（最耗时的部分）
     this.splashWindow?.updateProgress("并行初始化 Git 和 LLM...", 25);
-    console.log("🚀 开始并行初始化 Git 和 LLM 管理器...");
+    logger.info("🚀 开始并行初始化 Git 和 LLM 管理器...");
 
     await Promise.all([
       // Git 管理器
       (async () => {
         try {
-          console.log("初始化Git管理器...");
+          logger.info("初始化Git管理器...");
           const gitConfig = getGitConfig();
 
           if (gitConfig.isEnabled()) {
@@ -657,19 +658,19 @@ class ChainlessChainApp {
               });
               this.gitHotReload.start();
             } catch (error) {
-              console.error("Git热重载初始化失败:", error);
+              logger.error("Git热重载初始化失败:", error);
             }
 
             this.setupGitEvents();
             if (gitConfig.isAutoSyncEnabled()) {
               this.startAutoSync(gitConfig.getAutoSyncInterval());
             }
-            console.log("✓ Git管理器初始化成功");
+            logger.info("✓ Git管理器初始化成功");
           } else {
-            console.log("Git同步未启用");
+            logger.info("Git同步未启用");
           }
         } catch (error) {
-          console.error("Git管理器初始化失败:", error);
+          logger.error("Git管理器初始化失败:", error);
         }
       })(),
 
@@ -677,12 +678,12 @@ class ChainlessChainApp {
       (async () => {
         try {
           // LLM选择器
-          console.log("初始化LLM选择器...");
+          logger.info("初始化LLM选择器...");
           this.llmSelector = new LLMSelector(this.database);
-          console.log("✓ LLM选择器初始化成功");
+          logger.info("✓ LLM选择器初始化成功");
 
           // TokenTracker
-          console.log("初始化 Token 追踪器...");
+          logger.info("初始化 Token 追踪器...");
           const { TokenTracker } = require("./llm/token-tracker");
           this.tokenTracker = new TokenTracker(this.database, {
             enableCostTracking: true,
@@ -690,13 +691,13 @@ class ChainlessChainApp {
             exchangeRate: 7.2,
           });
           this.tokenTracker.on("budget-alert", (alert) => {
-            console.log("[Main] 预算告警:", alert);
+            logger.info("[Main] 预算告警:", alert);
             this.handleBudgetAlert(alert);
           });
-          console.log("✓ Token 追踪器初始化成功");
+          logger.info("✓ Token 追踪器初始化成功");
 
           // PromptCompressor
-          console.log("初始化 Prompt 压缩器...");
+          logger.info("初始化 Prompt 压缩器...");
           const { PromptCompressor } = require("./llm/prompt-compressor");
           this.promptCompressor = new PromptCompressor({
             enableDeduplication: true,
@@ -707,10 +708,10 @@ class ChainlessChainApp {
             similarityThreshold: 0.9,
             llmManager: null,
           });
-          console.log("✓ Prompt 压缩器初始化成功");
+          logger.info("✓ Prompt 压缩器初始化成功");
 
           // ResponseCache
-          console.log("初始化响应缓存...");
+          logger.info("初始化响应缓存...");
           const { ResponseCache } = require("./llm/response-cache");
           this.responseCache = new ResponseCache(this.database, {
             ttl: 7 * 24 * 60 * 60 * 1000,
@@ -718,40 +719,40 @@ class ChainlessChainApp {
             enableAutoCleanup: true,
             cleanupInterval: 60 * 60 * 1000,
           });
-          console.log("✓ 响应缓存初始化成功");
+          logger.info("✓ 响应缓存初始化成功");
         } catch (error) {
-          console.error("LLM 辅助服务初始化失败:", error);
+          logger.error("LLM 辅助服务初始化失败:", error);
           this.promptCompressor = null;
           this.responseCache = null;
         }
       })(),
     ]);
 
-    console.log("✓ Git 和 LLM 并行初始化完成");
+    logger.info("✓ Git 和 LLM 并行初始化完成");
 
     // 初始化LLM管理器
     try {
       this.splashWindow?.updateProgress("初始化LLM服务...", 40);
-      console.log("初始化LLM管理器...");
+      logger.info("初始化LLM管理器...");
 
       // 🔥 检查是否在测试模式下使用Mock LLM服务
       const { getTestModeConfig } = require("./config/test-mode-config");
       const testModeConfig = getTestModeConfig();
 
       if (testModeConfig.mockLLM) {
-        console.log("[Main] ✓ 测试模式：使用Mock LLM服务");
+        logger.info("[Main] ✓ 测试模式：使用Mock LLM服务");
         this.llmManager = testModeConfig.getMockLLMService();
 
         if (!this.llmManager) {
           throw new Error("Mock LLM服务加载失败");
         }
 
-        console.log("[Main] ✓ Mock LLM服务初始化成功");
+        logger.info("[Main] ✓ Mock LLM服务初始化成功");
       } else {
         // 从llm-config.json加载配置
         const llmConfig = getLLMConfig();
         const provider = llmConfig.getProvider();
-        console.log(`[Main] 当前LLM提供商: ${provider}`);
+        logger.info(`[Main] 当前LLM提供商: ${provider}`);
 
         const autoSelect = this.database.getSetting("llm.autoSelect");
 
@@ -759,16 +760,16 @@ class ChainlessChainApp {
         // 如果启用了智能选择，自动选择最优LLM
         // if (autoSelect && this.llmSelector) {
         //   const selectedProvider = this.llmSelector.selectBestLLM({ taskType: 'chat' });
-        //   console.log(`[Main] 智能选择LLM: ${selectedProvider}`);
+        //   logger.info(`[Main] 智能选择LLM: ${selectedProvider}`);
         //   llmConfig.setProvider(selectedProvider);
         // }
         if (autoSelect && this.llmSelector) {
-          console.log(`[Main] 智能选择已禁用，使用配置的提供商: ${provider}`);
+          logger.info(`[Main] 智能选择已禁用，使用配置的提供商: ${provider}`);
         }
 
         // 使用LLMConfig的getManagerConfig方法获取完整配置
         const managerConfig = llmConfig.getManagerConfig();
-        console.log(`[Main] LLM管理器配置:`, {
+        logger.info(`[Main] LLM管理器配置:`, {
           provider: managerConfig.provider,
           model: managerConfig.model,
           baseURL: managerConfig.baseURL,
@@ -791,22 +792,22 @@ class ChainlessChainApp {
         this.llmManager = new LLMManager(managerConfig);
         await this.llmManager.initialize();
 
-        console.log("LLM管理器初始化成功");
+        logger.info("LLM管理器初始化成功");
 
         // 🔥 将 LLM Manager 设置到 Prompt 压缩器（用于智能总结）
         if (this.promptCompressor) {
           this.promptCompressor.llmManager = this.llmManager;
-          console.log("✓ Prompt 压缩器已关联 LLM 管理器");
+          logger.info("✓ Prompt 压缩器已关联 LLM 管理器");
         }
       }
     } catch (error) {
-      console.error("LLM管理器初始化失败:", error);
+      logger.error("LLM管理器初始化失败:", error);
       // LLM初始化失败不影响应用启动
     }
 
     // 初始化 SessionManager（会话管理器）
     try {
-      console.log("初始化会话管理器...");
+      logger.info("初始化会话管理器...");
       const { SessionManager } = require("./llm/session-manager");
       const {
         getUnifiedConfigManager,
@@ -826,15 +827,15 @@ class ChainlessChainApp {
       });
 
       await this.sessionManager.initialize();
-      console.log("会话管理器初始化成功");
+      logger.info("会话管理器初始化成功");
     } catch (error) {
-      console.error("会话管理器初始化失败:", error);
+      logger.error("会话管理器初始化失败:", error);
       // SessionManager 初始化失败不影响应用启动
     }
 
     // 初始化 ErrorMonitor（错误智能诊断）
     try {
-      console.log("初始化错误智能诊断系统...");
+      logger.info("初始化错误智能诊断系统...");
       const { ErrorMonitor } = require("./monitoring/error-monitor");
 
       this.errorMonitor = new ErrorMonitor({
@@ -849,15 +850,15 @@ class ChainlessChainApp {
         ],
       });
 
-      console.log("错误智能诊断系统初始化成功");
+      logger.info("错误智能诊断系统初始化成功");
     } catch (error) {
-      console.error("错误智能诊断系统初始化失败:", error);
+      logger.error("错误智能诊断系统初始化失败:", error);
       // ErrorMonitor 初始化失败不影响应用启动
     }
 
     // 初始化 Multi-Agent 系统（基于 Manus/OpenManus 架构）
     try {
-      console.log("初始化 Multi-Agent 系统...");
+      logger.info("初始化 Multi-Agent 系统...");
       const { createMultiAgentSystem } = require("./ai-engine/multi-agent");
 
       const { orchestrator, agents } = createMultiAgentSystem({
@@ -868,15 +869,15 @@ class ChainlessChainApp {
       this.agentOrchestrator = orchestrator;
       this.agents = agents;
 
-      console.log("Multi-Agent 系统初始化成功（3 个专用 Agent 已注册）");
+      logger.info("Multi-Agent 系统初始化成功（3 个专用 Agent 已注册）");
     } catch (error) {
-      console.error("Multi-Agent 系统初始化失败:", error);
+      logger.error("Multi-Agent 系统初始化失败:", error);
       // Multi-Agent 初始化失败不影响应用启动
     }
 
     // 初始化 Memory Bank System（偏好和学习模式管理）
     try {
-      console.log("初始化 Memory Bank 系统...");
+      logger.info("初始化 Memory Bank 系统...");
       const {
         getUnifiedConfigManager,
       } = require("./config/unified-config-manager");
@@ -899,22 +900,22 @@ class ChainlessChainApp {
       this.contextAssociator = memoryManagers.contextAssociator;
       this.memorySyncService = memoryManagers.memorySyncService;
 
-      console.log("Memory Bank 系统初始化成功");
-      console.log("MemorySyncService 已启动，数据将同步到文件系统");
+      logger.info("Memory Bank 系统初始化成功");
+      logger.info("MemorySyncService 已启动，数据将同步到文件系统");
     } catch (error) {
-      console.error("Memory Bank 系统初始化失败:", error);
+      logger.error("Memory Bank 系统初始化失败:", error);
       // Memory Bank 初始化失败不影响应用启动
     }
 
     // 初始化RAG管理器
     try {
       this.splashWindow?.updateProgress("初始化RAG系统...", 55);
-      console.log("初始化RAG管理器...");
+      logger.info("初始化RAG管理器...");
       this.ragManager = new RAGManager(this.database, this.llmManager);
       await this.ragManager.initialize();
-      console.log("RAG管理器初始化成功");
+      logger.info("RAG管理器初始化成功");
     } catch (error) {
-      console.error("RAG管理器初始化失败:", error);
+      logger.error("RAG管理器初始化失败:", error);
       // RAG初始化失败不影响应用启动
     }
 
@@ -923,38 +924,38 @@ class ChainlessChainApp {
     this.speechInitialized = false;
     this.imageUploaderInitialized = false;
     this.videoImporterInitialized = false;
-    console.log(
+    logger.info(
       "✓ 语音管理器、图片上传器和视频导入器已配置为懒加载（按需初始化）",
     );
 
     // 初始化提示词模板管理器
     try {
-      console.log("初始化提示词模板管理器...");
+      logger.info("初始化提示词模板管理器...");
       this.promptTemplateManager = new PromptTemplateManager(this.database);
       await this.promptTemplateManager.initialize();
-      console.log("提示词模板管理器初始化成功");
+      logger.info("提示词模板管理器初始化成功");
     } catch (error) {
-      console.error("提示词模板管理器初始化失败:", error);
+      logger.error("提示词模板管理器初始化失败:", error);
       // 提示词模板管理器初始化失败不影响应用启动
     }
 
     // 初始化DID管理器
     try {
       this.splashWindow?.updateProgress("初始化DID身份...", 65);
-      console.log("初始化DID管理器...");
+      logger.info("初始化DID管理器...");
       const DIDManager = require("./did/did-manager");
       this.didManager = new DIDManager(this.database);
       await this.didManager.initialize();
-      console.log("DID管理器初始化成功");
+      logger.info("DID管理器初始化成功");
     } catch (error) {
-      console.error("DID管理器初始化失败:", error);
+      logger.error("DID管理器初始化失败:", error);
       // DID初始化失败不影响应用启动
     }
 
     // 初始化P2P管理器
     this.splashWindow?.updateProgress("初始化P2P网络...", 75);
     try {
-      console.log("初始化P2P管理器...");
+      logger.info("初始化P2P管理器...");
       const P2PManager = require("./p2p/p2p-manager");
       this.p2pManager = new P2PManager({
         port: 9000,
@@ -967,49 +968,49 @@ class ChainlessChainApp {
         .initialize()
         .then((initialized) => {
           if (!initialized) {
-            console.warn("P2P管理器未启用");
+            logger.warn("P2P管理器未启用");
             return;
           }
-          console.log("P2P管理器初始化成功");
+          logger.info("P2P管理器初始化成功");
 
           // 设置 P2P 加密消息事件监听
           this.setupP2PEncryptionEvents();
 
           // 初始化移动端桥接
           this.initializeMobileBridge().catch((error) => {
-            console.error("移动端桥接初始化失败:", error);
+            logger.error("移动端桥接初始化失败:", error);
           });
 
           // P2P初始化成功后，设置到DID管理器中以启用DHT功能
           if (this.didManager) {
             this.didManager.setP2PManager(this.p2pManager);
-            console.log("P2P管理器已设置到DID管理器");
+            logger.info("P2P管理器已设置到DID管理器");
 
             // 启动自动重新发布 DID（默认 24 小时间隔）
             try {
               this.didManager.startAutoRepublish(24 * 60 * 60 * 1000);
-              console.log("DID 自动重新发布已启动");
+              logger.info("DID 自动重新发布已启动");
             } catch (error) {
-              console.error("启动 DID 自动重新发布失败:", error);
+              logger.error("启动 DID 自动重新发布失败:", error);
             }
           }
 
           // 设置好友管理器到 P2P 管理器 (在 friend manager 初始化后)
           if (this.friendManager) {
             this.p2pManager.setFriendManager(this.friendManager);
-            console.log("好友管理器已设置到 P2P 管理器");
+            logger.info("好友管理器已设置到 P2P 管理器");
           }
         })
         .catch((error) => {
-          console.error("P2P管理器初始化失败:", error);
+          logger.error("P2P管理器初始化失败:", error);
         });
     } catch (error) {
-      console.error("P2P管理器初始化失败:", error);
+      logger.error("P2P管理器初始化失败:", error);
     }
 
     // 初始化联系人管理器
     try {
-      console.log("初始化联系人管理器...");
+      logger.info("初始化联系人管理器...");
       const ContactManager = require("./contacts/contact-manager");
       this.contactManager = new ContactManager(
         this.database,
@@ -1017,9 +1018,9 @@ class ChainlessChainApp {
         this.didManager,
       );
       await this.contactManager.initialize();
-      console.log("联系人管理器初始化成功");
+      logger.info("联系人管理器初始化成功");
     } catch (error) {
-      console.error("联系人管理器初始化失败:", error);
+      logger.error("联系人管理器初始化失败:", error);
     }
 
     // 初始化身份上下文管理器（企业版）
@@ -1032,7 +1033,7 @@ class ChainlessChainApp {
 
         // 只有在用户已有DID时才初始化身份上下文管理器
         if (currentDID) {
-          console.log('初始化身份上下文管理器...');
+          logger.info('初始化身份上下文管理器...');
           const dataDir = path.join(app.getPath('userData'), 'data');
           this.identityContextManager = getIdentityContextManager(dataDir);
           await this.identityContextManager.initialize();
@@ -1045,51 +1046,51 @@ class ChainlessChainApp {
             await this.handleContextSwitch(eventData);
           });
 
-          console.log('身份上下文管理器初始化成功');
+          logger.info('身份上下文管理器初始化成功');
         } else {
-          console.log('用户尚未创建DID,跳过身份上下文管理器初始化');
+          logger.info('用户尚未创建DID,跳过身份上下文管理器初始化');
         }
       }
     } catch (error) {
-      console.error('身份上下文管理器初始化失败:', error);
+      logger.error('身份上下文管理器初始化失败:', error);
       // 身份上下文管理器初始化失败不影响应用启动
     }
     */
-    console.log(
+    logger.info(
       "⚠️ 企业版功能已临时禁用，使用传统个人版模式 (chainlesschain.db)",
     );
 
     // 初始化组织管理器（企业版）
     try {
-      console.log("初始化组织管理器...");
+      logger.info("初始化组织管理器...");
       const OrganizationManager = require("./organization/organization-manager");
       this.organizationManager = new OrganizationManager(
         this.database,
         this.didManager,
         this.p2pManager,
       );
-      console.log("组织管理器初始化成功");
+      logger.info("组织管理器初始化成功");
     } catch (error) {
-      console.error("组织管理器初始化失败:", error);
+      logger.error("组织管理器初始化失败:", error);
       // 组织管理器初始化失败不影响应用启动
     }
 
     // 初始化深链接处理器（企业版DID邀请链接）
     try {
-      console.log("初始化深链接处理器...");
+      logger.info("初始化深链接处理器...");
       this.deepLinkHandler = new DeepLinkHandler(
         this.mainWindow,
         this.organizationManager,
       );
       this.deepLinkHandler.register(app);
-      console.log("深链接处理器初始化成功");
+      logger.info("深链接处理器初始化成功");
     } catch (error) {
-      console.error("深链接处理器初始化失败:", error);
+      logger.error("深链接处理器初始化失败:", error);
     }
 
     // 初始化协作管理器（企业版集成）
     try {
-      console.log("初始化协作管理器...");
+      logger.info("初始化协作管理器...");
       const {
         getCollaborationManager,
       } = require("./collaboration/collaboration-manager");
@@ -1100,18 +1101,18 @@ class ChainlessChainApp {
         this.collaborationManager.setOrganizationManager(
           this.organizationManager,
         );
-        console.log("✓ 协作管理器已集成组织权限系统");
+        logger.info("✓ 协作管理器已集成组织权限系统");
       }
 
-      console.log("协作管理器初始化成功");
+      logger.info("协作管理器初始化成功");
     } catch (error) {
-      console.error("协作管理器初始化失败:", error);
+      logger.error("协作管理器初始化失败:", error);
       // 协作管理器初始化失败不影响应用启动
     }
 
     // 初始化P2P同步引擎
     try {
-      console.log("初始化P2P同步引擎...");
+      logger.info("初始化P2P同步引擎...");
       const P2PSyncEngine = require("./sync/p2p-sync-engine");
       this.syncEngine = new P2PSyncEngine(
         this.database,
@@ -1119,15 +1120,15 @@ class ChainlessChainApp {
         this.p2pManager,
       );
       await this.syncEngine.initialize();
-      console.log("P2P同步引擎初始化成功");
+      logger.info("P2P同步引擎初始化成功");
     } catch (error) {
-      console.error("P2P同步引擎初始化失败:", error);
+      logger.error("P2P同步引擎初始化失败:", error);
       // 同步引擎初始化失败不影响应用启动
     }
 
     // 初始化好友管理器
     try {
-      console.log("初始化好友管理器...");
+      logger.info("初始化好友管理器...");
       const { FriendManager } = require("./social/friend-manager");
       this.friendManager = new FriendManager(
         this.database,
@@ -1135,15 +1136,15 @@ class ChainlessChainApp {
         this.p2pManager,
       );
       await this.friendManager.initialize();
-      console.log("好友管理器初始化成功");
+      logger.info("好友管理器初始化成功");
     } catch (error) {
-      console.error("好友管理器初始化失败:", error);
+      logger.error("好友管理器初始化失败:", error);
       // 不影响应用启动
     }
 
     // 初始化动态管理器
     try {
-      console.log("初始化动态管理器...");
+      logger.info("初始化动态管理器...");
       const { PostManager } = require("./social/post-manager");
       this.postManager = new PostManager(
         this.database,
@@ -1158,15 +1159,15 @@ class ChainlessChainApp {
         this.p2pManager.setPostManager(this.postManager);
       }
 
-      console.log("动态管理器初始化成功");
+      logger.info("动态管理器初始化成功");
     } catch (error) {
-      console.error("动态管理器初始化失败:", error);
+      logger.error("动态管理器初始化失败:", error);
       // 不影响应用启动
     }
 
     // 初始化资产管理器
     try {
-      console.log("初始化资产管理器...");
+      logger.info("初始化资产管理器...");
       const { AssetManager } = require("./trade/asset-manager");
       this.assetManager = new AssetManager(
         this.database,
@@ -1174,15 +1175,15 @@ class ChainlessChainApp {
         this.p2pManager,
       );
       await this.assetManager.initialize();
-      console.log("资产管理器初始化成功");
+      logger.info("资产管理器初始化成功");
     } catch (error) {
-      console.error("资产管理器初始化失败:", error);
+      logger.error("资产管理器初始化失败:", error);
       // 不影响应用启动
     }
 
     // 初始化托管管理器
     try {
-      console.log("初始化托管管理器...");
+      logger.info("初始化托管管理器...");
       const { EscrowManager } = require("./trade/escrow-manager");
       this.escrowManager = new EscrowManager(
         this.database,
@@ -1190,25 +1191,25 @@ class ChainlessChainApp {
         this.assetManager,
       );
       await this.escrowManager.initialize();
-      console.log("托管管理器初始化成功");
+      logger.info("托管管理器初始化成功");
     } catch (error) {
-      console.error("托管管理器初始化失败:", error);
+      logger.error("托管管理器初始化失败:", error);
       // 不影响应用启动
     }
 
     // 初始化项目统计收集器
     try {
-      console.log("初始化项目统计收集器...");
+      logger.info("初始化项目统计收集器...");
       this.statsCollector = new ProjectStatsCollector(this.database.db);
-      console.log("项目统计收集器初始化成功");
+      logger.info("项目统计收集器初始化成功");
     } catch (error) {
-      console.error("项目统计收集器初始化失败:", error);
+      logger.error("项目统计收集器初始化失败:", error);
       // 不影响应用启动
     }
 
     // 初始化交易市场管理器
     try {
-      console.log("初始化交易市场管理器...");
+      logger.info("初始化交易市场管理器...");
       const { MarketplaceManager } = require("./trade/marketplace-manager");
       this.marketplaceManager = new MarketplaceManager(
         this.database,
@@ -1217,15 +1218,15 @@ class ChainlessChainApp {
         this.escrowManager,
       );
       await this.marketplaceManager.initialize();
-      console.log("交易市场管理器初始化成功");
+      logger.info("交易市场管理器初始化成功");
     } catch (error) {
-      console.error("交易市场管理器初始化失败:", error);
+      logger.error("交易市场管理器初始化失败:", error);
       // 不影响应用启动
     }
 
     // 初始化智能合约引擎
     try {
-      console.log("初始化智能合约引擎...");
+      logger.info("初始化智能合约引擎...");
       const { SmartContractEngine } = require("./trade/contract-engine");
       this.contractEngine = new SmartContractEngine(
         this.database,
@@ -1234,44 +1235,44 @@ class ChainlessChainApp {
         this.escrowManager,
       );
       await this.contractEngine.initialize();
-      console.log("智能合约引擎初始化成功");
+      logger.info("智能合约引擎初始化成功");
     } catch (error) {
-      console.error("智能合约引擎初始化失败:", error);
+      logger.error("智能合约引擎初始化失败:", error);
       // 不影响应用启动
     }
 
     // 初始化知识付费管理器
     try {
-      console.log("初始化知识付费管理器...");
+      logger.info("初始化知识付费管理器...");
       this.knowledgePaymentManager = new KnowledgePaymentManager(
         this.database,
         this.assetManager,
         this.p2pManager,
       );
       await this.knowledgePaymentManager.initialize();
-      console.log("知识付费管理器初始化成功");
+      logger.info("知识付费管理器初始化成功");
     } catch (error) {
-      console.error("知识付费管理器初始化失败:", error);
+      logger.error("知识付费管理器初始化失败:", error);
       // 不影响应用启动
     }
 
     // 初始化信用评分管理器
     try {
-      console.log("初始化信用评分管理器...");
+      logger.info("初始化信用评分管理器...");
       this.creditScoreManager = new CreditScoreManager(this.database);
-      console.log("信用评分管理器初始化成功");
+      logger.info("信用评分管理器初始化成功");
     } catch (error) {
-      console.error("信用评分管理器初始化失败:", error);
+      logger.error("信用评分管理器初始化失败:", error);
       // 不影响应用启动
     }
 
     // 初始化评价管理器
     try {
-      console.log("初始化评价管理器...");
+      logger.info("初始化评价管理器...");
       this.reviewManager = new ReviewManager(this.database);
-      console.log("评价管理器初始化成功");
+      logger.info("评价管理器初始化成功");
     } catch (error) {
-      console.error("评价管理器初始化失败:", error);
+      logger.error("评价管理器初始化失败:", error);
       // 不影响应用启动
     }
 
@@ -1285,54 +1286,54 @@ class ChainlessChainApp {
     // 这可以节省 5-10 秒的启动时间
     // ============================
     this.blockchainInitialized = false;
-    console.log("✓ 区块链模块已配置为懒加载（按需初始化）");
+    logger.info("✓ 区块链模块已配置为懒加载（按需初始化）");
 
     // 初始化可验证凭证管理器
     try {
-      console.log("初始化可验证凭证管理器...");
+      logger.info("初始化可验证凭证管理器...");
       const { VCManager } = require("./vc/vc-manager");
       this.vcManager = new VCManager(this.database, this.didManager);
       await this.vcManager.initialize();
-      console.log("可验证凭证管理器初始化成功");
+      logger.info("可验证凭证管理器初始化成功");
     } catch (error) {
-      console.error("可验证凭证管理器初始化失败:", error);
+      logger.error("可验证凭证管理器初始化失败:", error);
     }
 
     // 初始化可验证凭证模板管理器
     try {
-      console.log("初始化凭证模板管理器...");
+      logger.info("初始化凭证模板管理器...");
       const VCTemplateManager = require("./vc/vc-template-manager");
       this.vcTemplateManager = new VCTemplateManager(this.database);
       await this.vcTemplateManager.initialize();
-      console.log("凭证模板管理器初始化成功");
+      logger.info("凭证模板管理器初始化成功");
     } catch (error) {
-      console.error("凭证模板管理器初始化失败:", error);
+      logger.error("凭证模板管理器初始化失败:", error);
     }
 
     // 初始化 Native Messaging HTTP Server (用于浏览器扩展通信)
     try {
-      console.log("初始化 Native Messaging HTTP Server...");
+      logger.info("初始化 Native Messaging HTTP Server...");
       this.nativeMessagingServer = new NativeMessagingHTTPServer(
         this.database,
         this.ragManager,
       );
       await this.nativeMessagingServer.start();
-      console.log("Native Messaging HTTP Server 初始化成功");
+      logger.info("Native Messaging HTTP Server 初始化成功");
     } catch (error) {
-      console.error("Native Messaging HTTP Server 初始化失败:", error);
+      logger.error("Native Messaging HTTP Server 初始化失败:", error);
       // 不影响主应用启动
     }
 
     // 初始化AI引擎和相关模块
     try {
       this.splashWindow?.updateProgress("初始化AI引擎...", 85);
-      console.log("初始化AI引擎...");
+      logger.info("初始化AI引擎...");
 
       // 创建引擎实例
       this.webEngine = new WebEngine();
       this.documentEngine = new DocumentEngine();
       // 初始化 Web IDE
-      console.log("[Main] 初始化 Web IDE...");
+      logger.info("[Main] 初始化 Web IDE...");
       const WebIDEManager = require("./webide/webide-manager");
       const WebIDEIPC = require("./webide/webide-ipc");
       const PreviewServer = require("./engines/preview-server");
@@ -1345,7 +1346,7 @@ class ChainlessChainApp {
       this.webideManager = new WebIDEManager();
       this.webideIPC = new WebIDEIPC(this.webideManager, this.previewServer);
       this.webideIPC.registerHandlers();
-      console.log("[Main] Web IDE 管理器初始化完成");
+      logger.info("[Main] Web IDE 管理器初始化完成");
 
       this.dataEngine = new DataEngine();
       this.projectStructureManager = new ProjectStructureManager();
@@ -1359,7 +1360,7 @@ class ChainlessChainApp {
 
       // 初始化AI引擎管理器（异步初始化增强版任务规划器）
       this.aiEngineManager.initialize().catch((error) => {
-        console.error("[ChainlessChainApp] AI引擎管理器初始化失败:", error);
+        logger.error("[ChainlessChainApp] AI引擎管理器初始化失败:", error);
       });
 
       // 注册自定义工具（集成到Function Caller）
@@ -1383,15 +1384,15 @@ class ChainlessChainApp {
         },
       );
 
-      console.log("AI引擎初始化成功");
+      logger.info("AI引擎初始化成功");
     } catch (error) {
-      console.error("AI引擎初始化失败:", error);
+      logger.error("AI引擎初始化失败:", error);
       // 不影响主应用启动
     }
 
     // 初始化技能和工具管理系统
     try {
-      console.log("[Main] 初始化技能和工具管理系统...");
+      logger.info("[Main] 初始化技能和工具管理系统...");
 
       const functionCaller = this.aiEngineManager?.functionCaller;
       if (!functionCaller) {
@@ -1435,14 +1436,14 @@ class ChainlessChainApp {
         skillManager: this.skillManager,
         toolManager: this.toolManager,
       });
-      console.log("[Main] 技能和工具IPC handlers已注册");
+      logger.info("[Main] 技能和工具IPC handlers已注册");
 
       // 注册火山引擎工具调用IPC handlers
       try {
         registerVolcengineIPC();
-        console.log("[Main] 火山引擎工具调用IPC handlers已注册");
+        logger.info("[Main] 火山引擎工具调用IPC handlers已注册");
       } catch (error) {
-        console.warn(
+        logger.warn(
           "[Main] 火山引擎IPC注册失败（可能API Key未配置）:",
           error.message,
         );
@@ -1451,9 +1452,9 @@ class ChainlessChainApp {
       // 注册安全存储IPC handlers
       try {
         registerSecureStorageIPC();
-        console.log("[Main] 安全存储IPC handlers已注册 (23 handlers)");
+        logger.info("[Main] 安全存储IPC handlers已注册 (23 handlers)");
       } catch (error) {
-        console.error("[Main] 安全存储IPC注册失败:", error);
+        logger.error("[Main] 安全存储IPC注册失败:", error);
       }
 
       // 语音/语音输入IPC handlers 已在 ipc-registry.js 中注册
@@ -1464,12 +1465,12 @@ class ChainlessChainApp {
           registerSessionManagerIPC({
             sessionManager: this.sessionManager,
           });
-          console.log("[Main] 会话管理IPC handlers已注册 (10 handlers)");
+          logger.info("[Main] 会话管理IPC handlers已注册 (10 handlers)");
         } else {
-          console.warn("[Main] SessionManager 未初始化，跳过IPC注册");
+          logger.warn("[Main] SessionManager 未初始化，跳过IPC注册");
         }
       } catch (error) {
-        console.error("[Main] 会话管理IPC注册失败:", error);
+        logger.error("[Main] 会话管理IPC注册失败:", error);
       }
 
       // 注册错误智能诊断IPC handlers
@@ -1478,12 +1479,12 @@ class ChainlessChainApp {
           registerErrorMonitorIPC({
             errorMonitor: this.errorMonitor,
           });
-          console.log("[Main] 错误智能诊断IPC handlers已注册 (11 handlers)");
+          logger.info("[Main] 错误智能诊断IPC handlers已注册 (11 handlers)");
         } else {
-          console.warn("[Main] ErrorMonitor 未初始化，跳过IPC注册");
+          logger.warn("[Main] ErrorMonitor 未初始化，跳过IPC注册");
         }
       } catch (error) {
-        console.error("[Main] 错误智能诊断IPC注册失败:", error);
+        logger.error("[Main] 错误智能诊断IPC注册失败:", error);
       }
 
       // 注册 Memory Bank System IPC handlers
@@ -1505,34 +1506,34 @@ class ChainlessChainApp {
             sessionManager: this.sessionManager,
             configManager,
           });
-          console.log(
+          logger.info(
             "[Main] Memory Bank IPC handlers已注册 (完整系统包含 sync service)",
           );
         } else {
-          console.warn("[Main] Memory managers 未初始化，跳过IPC注册");
+          logger.warn("[Main] Memory managers 未初始化，跳过IPC注册");
         }
       } catch (error) {
-        console.error("[Main] Memory Bank IPC注册失败:", error);
+        logger.error("[Main] Memory Bank IPC注册失败:", error);
       }
 
       // 🔥 注册 Manus 优化 IPC handlers (Context Engineering + Tool Masking)
       try {
         registerManusIPC();
-        console.log(
+        logger.info(
           "[Main] Manus 优化 IPC handlers已注册 (Context Engineering + Tool Masking)",
         );
       } catch (error) {
-        console.error("[Main] Manus 优化 IPC注册失败:", error);
+        logger.error("[Main] Manus 优化 IPC注册失败:", error);
       }
 
       // 🔥 注册 Task Tracker IPC handlers (todo.md 机制)
       try {
         registerTaskTrackerIPC();
-        console.log(
+        logger.info(
           "[Main] Task Tracker IPC handlers已注册 (todo.md mechanism)",
         );
       } catch (error) {
-        console.error("[Main] Task Tracker IPC注册失败:", error);
+        logger.error("[Main] Task Tracker IPC注册失败:", error);
       }
 
       // 🔥 注册 Multi-Agent IPC handlers (Agent 协调器和专用 Agent)
@@ -1541,29 +1542,29 @@ class ChainlessChainApp {
           llmManager: this.llmManager,
           functionCaller: this.functionCaller,
         });
-        console.log(
+        logger.info(
           "[Main] Multi-Agent IPC handlers已注册 (Agent orchestrator + specialized agents)",
         );
       } catch (error) {
-        console.error("[Main] Multi-Agent IPC注册失败:", error);
+        logger.error("[Main] Multi-Agent IPC注册失败:", error);
       }
 
-      console.log("[Main] 技能和工具管理系统初始化完成（含桥接器）");
+      logger.info("[Main] 技能和工具管理系统初始化完成（含桥接器）");
     } catch (error) {
-      console.error("[Main] 技能和工具管理系统初始化失败:", error);
+      logger.error("[Main] 技能和工具管理系统初始化失败:", error);
       // 不影响主应用启动
     }
 
     // 🔥 初始化MCP (Model Context Protocol) 系统
     try {
-      console.log("[Main] 检查MCP系统配置...");
+      logger.info("[Main] 检查MCP系统配置...");
 
       // 动态加载MCP配置加载器
       const { MCPConfigLoader } = require("./mcp/mcp-config-loader");
       this.mcpConfigLoader = new MCPConfigLoader();
       const mcpConfig = this.mcpConfigLoader.load();
 
-      console.log(
+      logger.info(
         "[Main] MCP配置加载结果:",
         JSON.stringify({
           enabled: mcpConfig.enabled,
@@ -1573,7 +1574,7 @@ class ChainlessChainApp {
       );
 
       if (mcpConfig.enabled) {
-        console.log("[Main] MCP系统已启用，开始初始化...");
+        logger.info("[Main] MCP系统已启用，开始初始化...");
 
         // 动态加载MCP模块（仅在启用时加载）
         const { MCPClientManager } = require("./mcp/mcp-client-manager");
@@ -1599,26 +1600,26 @@ class ChainlessChainApp {
 
         // 注册MCP IPC handlers
         registerMCPIPC(this.mcpManager, this.mcpAdapter, this.mcpSecurity);
-        console.log("[Main] MCP IPC handlers已注册");
+        logger.info("[Main] MCP IPC handlers已注册");
 
         // 自动连接配置中的服务器
         await this.mcpAdapter.initializeServers(mcpConfig);
 
-        console.log("[Main] MCP系统初始化完成");
+        logger.info("[Main] MCP系统初始化完成");
       } else {
-        console.log("[Main] MCP系统已禁用（在配置中），跳过模块加载");
+        logger.info("[Main] MCP系统已禁用（在配置中），跳过模块加载");
         // Register fallback handlers so renderer doesn't get "No handler registered" errors
         this.registerMCPFallbackHandlers();
       }
     } catch (error) {
-      console.error("[Main] MCP系统初始化失败:", error);
+      logger.error("[Main] MCP系统初始化失败:", error);
       // Register fallback handlers in case of initialization failure
       this.registerMCPFallbackHandlers();
     }
 
     // 初始化交互式任务规划系统 (Claude Plan模式)
     try {
-      console.log("[Main] 初始化交互式任务规划系统...");
+      logger.info("[Main] 初始化交互式任务规划系统...");
 
       this.interactiveTaskPlanner = new InteractiveTaskPlanner({
         database: this.database,
@@ -1629,9 +1630,9 @@ class ChainlessChainApp {
         aiEngineManager: this.aiEngineManager,
       });
 
-      console.log("[Main] 交互式任务规划系统初始化完成");
+      logger.info("[Main] 交互式任务规划系统初始化完成");
     } catch (error) {
-      console.error("[Main] 交互式任务规划系统初始化失败:", error);
+      logger.error("[Main] 交互式任务规划系统初始化失败:", error);
       // 不影响主应用启动
     }
 
@@ -1639,7 +1640,7 @@ class ChainlessChainApp {
     // 插件系统仅在用户访问插件功能时才初始化
     // 这可以节省 2-3 秒的启动时间
     this.pluginInitialized = false;
-    console.log("✓ 插件系统已配置为懒加载（按需初始化）");
+    logger.info("✓ 插件系统已配置为懒加载（按需初始化）");
 
     // Note: setupIPC() will be called after all managers are initialized
     // including syncManager, previewManager, etc.
@@ -1662,7 +1663,7 @@ class ChainlessChainApp {
       return; // 已初始化，直接返回
     }
 
-    console.log("🚀 开始懒加载区块链模块...");
+    logger.info("🚀 开始懒加载区块链模块...");
     const startTime = Date.now();
 
     try {
@@ -1721,9 +1722,9 @@ class ChainlessChainApp {
 
       this.blockchainInitialized = true;
       const elapsed = Date.now() - startTime;
-      console.log(`✓ 区块链模块懒加载完成 (耗时: ${elapsed}ms)`);
+      logger.info(`✓ 区块链模块懒加载完成 (耗时: ${elapsed}ms)`);
     } catch (error) {
-      console.error("区块链模块懒加载失败:", error);
+      logger.error("区块链模块懒加载失败:", error);
       throw error;
     }
   }
@@ -1737,7 +1738,7 @@ class ChainlessChainApp {
       return; // 已初始化，直接返回
     }
 
-    console.log("🚀 开始懒加载插件系统...");
+    logger.info("🚀 开始懒加载插件系统...");
     const startTime = Date.now();
 
     try {
@@ -1769,9 +1770,9 @@ class ChainlessChainApp {
 
       this.pluginInitialized = true;
       const elapsed = Date.now() - startTime;
-      console.log(`✓ 插件系统懒加载完成 (耗时: ${elapsed}ms)`);
+      logger.info(`✓ 插件系统懒加载完成 (耗时: ${elapsed}ms)`);
     } catch (error) {
-      console.error("插件系统懒加载失败:", error);
+      logger.error("插件系统懒加载失败:", error);
       throw error;
     }
   }
@@ -1785,7 +1786,7 @@ class ChainlessChainApp {
       return; // 已初始化，直接返回
     }
 
-    console.log("🚀 开始懒加载图片上传器...");
+    logger.info("🚀 开始懒加载图片上传器...");
     const startTime = Date.now();
 
     try {
@@ -1795,9 +1796,9 @@ class ChainlessChainApp {
 
       this.imageUploaderInitialized = true;
       const elapsed = Date.now() - startTime;
-      console.log(`✓ 图片上传器懒加载完成 (耗时: ${elapsed}ms)`);
+      logger.info(`✓ 图片上传器懒加载完成 (耗时: ${elapsed}ms)`);
     } catch (error) {
-      console.error("图片上传器懒加载失败:", error);
+      logger.error("图片上传器懒加载失败:", error);
       throw error;
     }
   }
@@ -1811,7 +1812,7 @@ class ChainlessChainApp {
       return; // 已初始化，直接返回
     }
 
-    console.log("🚀 开始懒加载视频导入器...");
+    logger.info("🚀 开始懒加载视频导入器...");
     const startTime = Date.now();
 
     try {
@@ -1821,9 +1822,9 @@ class ChainlessChainApp {
 
       this.videoImporterInitialized = true;
       const elapsed = Date.now() - startTime;
-      console.log(`✓ 视频导入器懒加载完成 (耗时: ${elapsed}ms)`);
+      logger.info(`✓ 视频导入器懒加载完成 (耗时: ${elapsed}ms)`);
     } catch (error) {
-      console.error("视频导入器懒加载失败:", error);
+      logger.error("视频导入器懒加载失败:", error);
       throw error;
     }
   }
@@ -1838,7 +1839,7 @@ class ChainlessChainApp {
     try {
       // 1. 获取预算配置，检查是否启用桌面通知
       if (!alert.desktopAlerts) {
-        console.log("[Main] 桌面通知已禁用，跳过通知");
+        logger.info("[Main] 桌面通知已禁用，跳过通知");
         return;
       }
 
@@ -1879,24 +1880,24 @@ class ChainlessChainApp {
         });
 
         notification.show();
-        console.log(`[Main] 桌面通知已发送: ${title}`);
+        logger.info(`[Main] 桌面通知已发送: ${title}`);
       } else {
-        console.warn("[Main] 当前系统不支持桌面通知");
+        logger.warn("[Main] 当前系统不支持桌面通知");
       }
 
       // 4. 发送 IPC 消息到渲染进程
       if (this.mainWindow && this.mainWindow.webContents) {
         this.mainWindow.webContents.send("llm:budget-alert", alert);
-        console.log("[Main] 预算告警已发送到渲染进程");
+        logger.info("[Main] 预算告警已发送到渲染进程");
       }
 
       // 5. 如果达到临界阈值且启用了自动暂停，暂停 LLM 服务
       if (alert.level === "critical" && alert.autoPauseOnLimit) {
-        console.warn("[Main] 预算超限，自动暂停 LLM 服务");
+        logger.warn("[Main] 预算超限，自动暂停 LLM 服务");
         this.pauseLLMService(alert);
       }
     } catch (error) {
-      console.error("[Main] 处理预算告警失败:", error);
+      logger.error("[Main] 处理预算告警失败:", error);
     }
   }
 
@@ -1908,7 +1909,7 @@ class ChainlessChainApp {
       // 设置一个标志，阻止新的 LLM 请求
       if (this.llmManager) {
         this.llmManager.paused = true;
-        console.log("[Main] LLM 服务已暂停");
+        logger.info("[Main] LLM 服务已暂停");
       }
 
       // 通知渲染进程
@@ -1919,7 +1920,7 @@ class ChainlessChainApp {
         });
       }
     } catch (error) {
-      console.error("[Main] 暂停 LLM 服务失败:", error);
+      logger.error("[Main] 暂停 LLM 服务失败:", error);
     }
   }
 
@@ -1930,7 +1931,7 @@ class ChainlessChainApp {
     try {
       if (this.llmManager) {
         this.llmManager.paused = false;
-        console.log("[Main] LLM 服务已恢复");
+        logger.info("[Main] LLM 服务已恢复");
       }
 
       // 通知渲染进程
@@ -1938,7 +1939,7 @@ class ChainlessChainApp {
         this.mainWindow.webContents.send("llm:service-resumed");
       }
     } catch (error) {
-      console.error("[Main] 恢复 LLM 服务失败:", error);
+      logger.error("[Main] 恢复 LLM 服务失败:", error);
     }
   }
 
@@ -1949,7 +1950,7 @@ class ChainlessChainApp {
   async handleContextSwitch(eventData) {
     try {
       const { from, to } = eventData;
-      console.log(
+      logger.info(
         `\n🔄 处理身份上下文切换: ${from?.display_name || "无"} → ${to.display_name}`,
       );
 
@@ -1957,23 +1958,23 @@ class ChainlessChainApp {
       const newDbPath = to.db_path;
 
       if (!fs.existsSync(newDbPath)) {
-        console.error(`❌ 数据库文件不存在: ${newDbPath}`);
+        logger.error(`❌ 数据库文件不存在: ${newDbPath}`);
         return;
       }
 
       // 2. 关闭当前数据库连接
       if (this.database && this.database.db) {
-        console.log("关闭当前数据库连接...");
+        logger.info("关闭当前数据库连接...");
         try {
           // SQLite 不需要显式关闭,但清理引用
           this.database.db = null;
         } catch (error) {
-          console.error("关闭数据库失败:", error);
+          logger.error("关闭数据库失败:", error);
         }
       }
 
       // 3. 重新初始化数据库管理器到新路径
-      console.log(`初始化新数据库: ${newDbPath}`);
+      logger.info(`初始化新数据库: ${newDbPath}`);
       const DEFAULT_PASSWORD = process.env.DEFAULT_PASSWORD || "123456";
       this.database = new DatabaseManager(newDbPath, {
         password: DEFAULT_PASSWORD,
@@ -1986,7 +1987,7 @@ class ChainlessChainApp {
       setDatabase(this.database);
 
       // 5. 重新初始化依赖数据库的模块
-      console.log("重新初始化数据库依赖模块...");
+      logger.info("重新初始化数据库依赖模块...");
 
       // 重新初始化知识图谱提取器
       if (this.graphExtractor) {
@@ -2019,9 +2020,9 @@ class ChainlessChainApp {
         });
       }
 
-      console.log(`✅ 身份上下文切换完成: ${to.display_name}\n`);
+      logger.info(`✅ 身份上下文切换完成: ${to.display_name}\n`);
     } catch (error) {
-      console.error("❌ 处理身份上下文切换失败:", error);
+      logger.error("❌ 处理身份上下文切换失败:", error);
     }
   }
 
@@ -2030,7 +2031,7 @@ class ChainlessChainApp {
    * This prevents "No handler registered" errors in the renderer process.
    */
   registerMCPFallbackHandlers() {
-    console.log("[Main] Registering MCP fallback handlers (MCP disabled)");
+    logger.info("[Main] Registering MCP fallback handlers (MCP disabled)");
 
     const disabledResponse = {
       success: false,
@@ -2103,13 +2104,13 @@ class ChainlessChainApp {
               } = require("./config/unified-config-manager");
               const configManager = getUnifiedConfigManager();
               configManager.updateConfig({ mcp: config });
-              console.log(
+              logger.info(
                 "[Main] MCP config updated via fallback handler:",
                 config.enabled ? "enabled" : "disabled",
               );
               return { success: true };
             } catch (error) {
-              console.error("[Main] Failed to update MCP config:", error);
+              logger.error("[Main] Failed to update MCP config:", error);
               return { success: false, error: error.message };
             }
           });
@@ -2127,10 +2128,10 @@ class ChainlessChainApp {
               configManager.updateConfig({
                 mcp: { ...currentConfig, servers },
               });
-              console.log(`[Main] MCP server config updated for ${serverName}`);
+              logger.info(`[Main] MCP server config updated for ${serverName}`);
               return { success: true };
             } catch (error) {
-              console.error("[Main] Failed to update server config:", error);
+              logger.error("[Main] Failed to update server config:", error);
               return { success: false, error: error.message };
             }
           });
@@ -2146,7 +2147,7 @@ class ChainlessChainApp {
               const serverConfig = mcpConfig.servers?.[serverName] || {};
               return { success: true, config: serverConfig };
             } catch (error) {
-              console.error("[Main] Failed to get server config:", error);
+              logger.error("[Main] Failed to get server config:", error);
               return { success: false, error: error.message, config: {} };
             }
           });
@@ -2156,13 +2157,13 @@ class ChainlessChainApp {
         }
       } catch (error) {
         // Handler already registered, skip
-        console.log(
+        logger.info(
           `[Main] MCP handler ${channel} already registered, skipping`,
         );
       }
     }
 
-    console.log("[Main] MCP fallback handlers registered");
+    logger.info("[Main] MCP fallback handlers registered");
   }
 
   async createWindow() {
@@ -2171,9 +2172,9 @@ class ChainlessChainApp {
       const { session } = require("electron");
       try {
         await session.defaultSession.clearCache();
-        console.log("[Main] 会话缓存已清除");
+        logger.info("[Main] 会话缓存已清除");
       } catch (error) {
-        console.error("[Main] 清除缓存失败:", error);
+        logger.error("[Main] 清除缓存失败:", error);
       }
     }
 
@@ -2245,87 +2246,87 @@ class ChainlessChainApp {
 
     // 注册 System IPC（需要 mainWindow）
     try {
-      console.log("[Main] Registering System IPC (deferred)...");
+      logger.info("[Main] Registering System IPC (deferred)...");
       const { registerSystemIPC } = require("./system/system-ipc");
       registerSystemIPC({ mainWindow: this.mainWindow });
-      console.log("[Main] ✓ System IPC registered (16 handlers)");
+      logger.info("[Main] ✓ System IPC registered (16 handlers)");
     } catch (error) {
-      console.error("[Main] System IPC registration failed:", error);
+      logger.error("[Main] System IPC registration failed:", error);
     }
 
     // 注册 Config IPC（包含 AppConfig 和 UnifiedConfigManager）
     try {
-      console.log("[Main] Registering Config IPC...");
+      logger.info("[Main] Registering Config IPC...");
       const { registerConfigIPC } = require("./config/config-ipc");
       registerConfigIPC({ appConfig: getAppConfig() });
-      console.log(
+      logger.info(
         "[Main] ✓ Config IPC registered (10 handlers: 5 config + 5 unified-config)",
       );
     } catch (error) {
-      console.error("[Main] Config IPC registration failed:", error);
+      logger.error("[Main] Config IPC registration failed:", error);
     }
 
     // 初始化文件同步管理器
     try {
-      console.log("初始化文件同步管理器...");
+      logger.info("初始化文件同步管理器...");
       this.fileSyncManager = new FileSyncManager(
         this.database,
         this.mainWindow,
       );
-      console.log("文件同步管理器初始化成功");
+      logger.info("文件同步管理器初始化成功");
     } catch (error) {
-      console.error("文件同步管理器初始化失败:", error);
+      logger.error("文件同步管理器初始化失败:", error);
     }
 
     // 初始化数据库同步管理器
     try {
-      console.log("初始化数据库同步管理器...");
+      logger.info("初始化数据库同步管理器...");
       const DBSyncManager = require("./sync/db-sync-manager");
       this.syncManager = new DBSyncManager(this.database, this.mainWindow);
 
       // 监听同步事件
       this.syncManager.on("sync:conflicts-detected", (data) => {
-        console.log("[Main] 检测到同步冲突:", data.conflicts.length);
+        logger.info("[Main] 检测到同步冲突:", data.conflicts.length);
       });
 
-      console.log("数据库同步管理器初始化成功");
+      logger.info("数据库同步管理器初始化成功");
     } catch (error) {
-      console.error("数据库同步管理器初始化失败:", error);
+      logger.error("数据库同步管理器初始化失败:", error);
       // 同步功能可选，不影响应用启动
     }
 
     // 初始化预览管理器
     try {
-      console.log("初始化预览管理器...");
+      logger.info("初始化预览管理器...");
       this.previewManager = new PreviewManager(this.mainWindow);
-      console.log("预览管理器初始化成功");
+      logger.info("预览管理器初始化成功");
     } catch (error) {
-      console.error("预览管理器初始化失败:", error);
+      logger.error("预览管理器初始化失败:", error);
     }
 
     // 创建应用菜单
     try {
-      console.log("创建应用菜单...");
+      logger.info("创建应用菜单...");
       this.menuManager = new MenuManager(this.mainWindow);
       this.menuManager.createMenu();
-      console.log("✓ 应用菜单已创建");
+      logger.info("✓ 应用菜单已创建");
     } catch (error) {
-      console.error("应用菜单创建失败:", error);
+      logger.error("应用菜单创建失败:", error);
     }
 
     // 注册高级特性IPC handlers
     try {
-      console.log("注册高级特性IPC handlers...");
+      logger.info("注册高级特性IPC handlers...");
       this.advancedFeaturesIPC = new AdvancedFeaturesIPC(this.mainWindow);
-      console.log("✓ 高级特性IPC handlers注册成功");
+      logger.info("✓ 高级特性IPC handlers注册成功");
     } catch (error) {
-      console.error("高级特性IPC注册失败:", error);
+      logger.error("高级特性IPC注册失败:", error);
     }
 
     // 注册AI引擎IPC handlers
     if (this.aiEngineManager && !this.aiEngineIPC) {
       try {
-        console.log("注册AI引擎IPC handlers...");
+        logger.info("注册AI引擎IPC handlers...");
 
         // 设置主窗口引用用于发送任务事件
         if (this.webEngine) {
@@ -2346,16 +2347,16 @@ class ChainlessChainApp {
           this.gitAutoCommit,
         );
         this.aiEngineIPC.registerHandlers(this.mainWindow);
-        console.log("AI引擎IPC handlers注册成功");
+        logger.info("AI引擎IPC handlers注册成功");
       } catch (error) {
-        console.error("AI引擎IPC handlers注册失败:", error);
+        logger.error("AI引擎IPC handlers注册失败:", error);
       }
     }
 
     // 注册文件操作IPC handlers
     if (!this.fileIPC) {
       try {
-        console.log("注册文件操作IPC handlers...");
+        logger.info("注册文件操作IPC handlers...");
 
         this.fileIPC = new FileIPC();
 
@@ -2369,25 +2370,25 @@ class ChainlessChainApp {
         });
 
         this.fileIPC.registerHandlers(this.mainWindow);
-        console.log("文件操作IPC handlers注册成功");
+        logger.info("文件操作IPC handlers注册成功");
       } catch (error) {
-        console.error("文件操作IPC handlers注册失败:", error);
+        logger.error("文件操作IPC handlers注册失败:", error);
       }
     }
 
     // 所有管理器初始化完成（包括 syncManager），现在注册IPC handlers
     try {
-      console.log("[Main] 开始注册 IPC handlers...");
+      logger.info("[Main] 开始注册 IPC handlers...");
       this.setupIPC();
-      console.log("[Main] IPC handlers 注册完成");
+      logger.info("[Main] IPC handlers 注册完成");
     } catch (error) {
-      console.error("[Main] IPC setup failed:", error);
+      logger.error("[Main] IPC setup failed:", error);
     }
 
     // 启动 RSS 自动同步
     if (this.rssIPCHandler) {
       try {
-        console.log("[Main] 启动 RSS 自动同步...");
+        logger.info("[Main] 启动 RSS 自动同步...");
         const feeds = this.database.db
           .prepare("SELECT id FROM rss_feeds WHERE status = 'active'")
           .all();
@@ -2396,9 +2397,9 @@ class ChainlessChainApp {
           this.rssIPCHandler.startAutoSync(feed.id);
         }
 
-        console.log(`[Main] ✓ 已启动 ${feeds.length} 个 RSS 订阅源的自动同步`);
+        logger.info(`[Main] ✓ 已启动 ${feeds.length} 个 RSS 订阅源的自动同步`);
       } catch (error) {
-        console.error("[Main] RSS 自动同步启动失败:", error);
+        logger.error("[Main] RSS 自动同步启动失败:", error);
       }
     }
 
@@ -2420,7 +2421,7 @@ class ChainlessChainApp {
       const registered = globalShortcut.register(
         "CommandOrControl+Shift+V",
         () => {
-          console.log("[Main] 全局快捷键触发: Ctrl+Shift+V - 语音输入");
+          logger.info("[Main] 全局快捷键触发: Ctrl+Shift+V - 语音输入");
 
           // 聚焦主窗口
           if (this.mainWindow) {
@@ -2436,12 +2437,12 @@ class ChainlessChainApp {
       );
 
       if (registered) {
-        console.log("[Main] 全局快捷键注册成功: Ctrl+Shift+V");
+        logger.info("[Main] 全局快捷键注册成功: Ctrl+Shift+V");
       } else {
-        console.warn("[Main] 全局快捷键注册失败: Ctrl+Shift+V (可能已被占用)");
+        logger.warn("[Main] 全局快捷键注册失败: Ctrl+Shift+V (可能已被占用)");
       }
     } catch (error) {
-      console.error("[Main] 注册全局快捷键失败:", error);
+      logger.error("[Main] 注册全局快捷键失败:", error);
     }
   }
 
@@ -2543,37 +2544,37 @@ class ChainlessChainApp {
         }
       });
 
-      console.log("系统托盘创建成功");
+      logger.info("系统托盘创建成功");
     } catch (error) {
-      console.error("创建系统托盘失败:", error);
+      logger.error("创建系统托盘失败:", error);
     }
   }
 
   setupGitEvents() {
     // 监听Git事件并转发给渲染进程
     this.gitManager.on("committed", (data) => {
-      console.log("[Main] Git提交完成:", data.sha);
+      logger.info("[Main] Git提交完成:", data.sha);
       if (this.mainWindow) {
         this.mainWindow.webContents.send("git:committed", data);
       }
     });
 
     this.gitManager.on("pushed", () => {
-      console.log("[Main] Git推送完成");
+      logger.info("[Main] Git推送完成");
       if (this.mainWindow) {
         this.mainWindow.webContents.send("git:pushed");
       }
     });
 
     this.gitManager.on("pulled", () => {
-      console.log("[Main] Git拉取完成");
+      logger.info("[Main] Git拉取完成");
       if (this.mainWindow) {
         this.mainWindow.webContents.send("git:pulled");
       }
     });
 
     this.gitManager.on("auto-synced", (data) => {
-      console.log("[Main] Git自动同步完成:", data);
+      logger.info("[Main] Git自动同步完成:", data);
       if (this.mainWindow) {
         this.mainWindow.webContents.send("git:auto-synced", data);
       }
@@ -2593,11 +2594,11 @@ class ChainlessChainApp {
   }
 
   startAutoSync(interval) {
-    console.log(`[Main] 启动Git自动同步，间隔: ${interval}ms`);
+    logger.info(`[Main] 启动Git自动同步，间隔: ${interval}ms`);
 
     this.autoSyncTimer = setInterval(async () => {
       try {
-        console.log("[Main] 执行自动同步...");
+        logger.info("[Main] 执行自动同步...");
 
         // 导出数据为Markdown
         await this.markdownExporter.sync();
@@ -2605,7 +2606,7 @@ class ChainlessChainApp {
         // Git同步
         await this.gitManager.autoSync("Auto sync from ChainlessChain");
       } catch (error) {
-        console.error("[Main] 自动同步失败:", error);
+        logger.error("[Main] 自动同步失败:", error);
       }
     }, interval);
   }
@@ -2614,35 +2615,35 @@ class ChainlessChainApp {
     if (this.autoSyncTimer) {
       clearInterval(this.autoSyncTimer);
       this.autoSyncTimer = null;
-      console.log("[Main] 停止Git自动同步");
+      logger.info("[Main] 停止Git自动同步");
     }
   }
 
   setupUKeyEvents() {
     // 监听U盾事件并转发给渲染进程
     this.ukeyManager.on("device-connected", (status) => {
-      // console.log('[Main] U盾设备已连接');
+      // logger.info('[Main] U盾设备已连接');
       if (this.mainWindow) {
         this.mainWindow.webContents.send("ukey:device-connected", status);
       }
     });
 
     this.ukeyManager.on("device-disconnected", () => {
-      // console.log('[Main] U盾设备已断开');
+      // logger.info('[Main] U盾设备已断开');
       if (this.mainWindow) {
         this.mainWindow.webContents.send("ukey:device-disconnected");
       }
     });
 
     this.ukeyManager.on("unlocked", (result) => {
-      // console.log('[Main] U盾已解锁');
+      // logger.info('[Main] U盾已解锁');
       if (this.mainWindow) {
         this.mainWindow.webContents.send("ukey:unlocked", result);
       }
     });
 
     this.ukeyManager.on("locked", () => {
-      // console.log('[Main] U盾已锁定');
+      // logger.info('[Main] U盾已锁定');
       if (this.mainWindow) {
         this.mainWindow.webContents.send("ukey:locked");
       }
@@ -2656,7 +2657,7 @@ class ChainlessChainApp {
 
     // 监听加密消息接收事件
     this.p2pManager.on("encrypted-message:received", (data) => {
-      console.log("[Main] 收到加密消息:", data.from);
+      logger.info("[Main] 收到加密消息:", data.from);
       if (this.mainWindow) {
         this.mainWindow.webContents.send("p2p:encrypted-message", data);
       }
@@ -2664,7 +2665,7 @@ class ChainlessChainApp {
 
     // 监听加密消息发送事件
     this.p2pManager.on("encrypted-message:sent", (data) => {
-      console.log("[Main] 加密消息已发送:", data.to);
+      logger.info("[Main] 加密消息已发送:", data.to);
       if (this.mainWindow) {
         this.mainWindow.webContents.send("p2p:encrypted-message-sent", data);
       }
@@ -2672,17 +2673,17 @@ class ChainlessChainApp {
 
     // 监听密钥交换成功事件
     this.p2pManager.on("key-exchange:success", (data) => {
-      console.log("[Main] 密钥交换成功:", data.peerId);
+      logger.info("[Main] 密钥交换成功:", data.peerId);
       if (this.mainWindow) {
         this.mainWindow.webContents.send("p2p:key-exchange-success", data);
       }
     });
 
-    console.log("[Main] P2P 加密事件监听已设置");
+    logger.info("[Main] P2P 加密事件监听已设置");
   }
 
   async initializeMobileBridge() {
-    console.log("[Main] 初始化移动端桥接...");
+    logger.info("[Main] 初始化移动端桥接...");
 
     try {
       // 导入Mobile Bridge相关模块
@@ -2709,9 +2710,9 @@ class ChainlessChainApp {
       // 尝试连接信令服务器，失败不阻塞后续初始化
       try {
         await this.mobileBridge.connect();
-        console.log("[Main] 信令服务器连接成功");
+        logger.info("[Main] 信令服务器连接成功");
       } catch (signalingError) {
-        console.warn(
+        logger.warn(
           "[Main] ⚠️ 信令服务器连接失败（移动端桥接将使用自动重连）:",
           signalingError.message,
         );
@@ -2746,12 +2747,12 @@ class ChainlessChainApp {
       // 设置消息路由
       this.setupMobileBridgeMessageRouting();
 
-      console.log("[Main] ✅ 移动端桥接初始化成功");
+      logger.info("[Main] ✅ 移动端桥接初始化成功");
 
       // 初始化P2P增强管理器（包含语音/视频功能）
       await this.initializeP2PEnhancedManager();
     } catch (error) {
-      console.error("[Main] ❌ 移动端桥接初始化失败:", error);
+      logger.error("[Main] ❌ 移动端桥接初始化失败:", error);
       throw error;
     }
   }
@@ -2760,7 +2761,7 @@ class ChainlessChainApp {
    * 初始化P2P增强管理器（包含消息、文件传输、知识库同步、语音/视频）
    */
   async initializeP2PEnhancedManager() {
-    console.log("[Main] 初始化P2P增强管理器...");
+    logger.info("[Main] 初始化P2P增强管理器...");
 
     try {
       // 导入P2P增强管理器
@@ -2823,7 +2824,7 @@ class ChainlessChainApp {
       const ScreenShareIPC = require("./p2p/screen-share-ipc");
       this.screenShareIPC = new ScreenShareIPC();
       this.screenShareIPC.register();
-      console.log("[Main] ✅ 屏幕共享IPC处理器已注册");
+      logger.info("[Main] ✅ 屏幕共享IPC处理器已注册");
 
       // 注册通话历史IPC处理器
       const CallHistoryIPC = require("./p2p/call-history-ipc");
@@ -2831,7 +2832,7 @@ class ChainlessChainApp {
         this.p2pEnhancedManager.callHistoryManager,
       );
       this.callHistoryIPC.register();
-      console.log("[Main] ✅ 通话历史IPC处理器已注册");
+      logger.info("[Main] ✅ 通话历史IPC处理器已注册");
 
       // 初始化连接健康管理器
       const P2PConnectionHealthManager = require("./p2p/connection-health-manager");
@@ -2847,11 +2848,11 @@ class ChainlessChainApp {
         },
       );
       await this.connectionHealthManager.initialize();
-      console.log("[Main] ✅ 连接健康管理器已初始化");
+      logger.info("[Main] ✅ 连接健康管理器已初始化");
 
-      console.log("[Main] ✅ P2P增强管理器初始化成功（包含语音/视频功能）");
+      logger.info("[Main] ✅ P2P增强管理器初始化成功（包含语音/视频功能）");
     } catch (error) {
-      console.error("[Main] ❌ P2P增强管理器初始化失败:", error);
+      logger.error("[Main] ❌ P2P增强管理器初始化失败:", error);
       throw error;
     }
   }
@@ -2861,7 +2862,7 @@ class ChainlessChainApp {
    */
   setupMobileBridgeMessageRouting() {
     if (!this.mobileBridge) {
-      console.warn("[Main] MobileBridge未初始化，无法设置消息路由");
+      logger.warn("[Main] MobileBridge未初始化，无法设置消息路由");
       return;
     }
 
@@ -2871,7 +2872,7 @@ class ChainlessChainApp {
       async ({ mobilePeerId, message }) => {
         const { type, requestId, params } = message;
 
-        console.log(`[Main] 收到移动端消息: ${type} from ${mobilePeerId}`);
+        logger.info(`[Main] 收到移动端消息: ${type} from ${mobilePeerId}`);
 
         try {
           let handler;
@@ -2887,7 +2888,7 @@ class ChainlessChainApp {
           } else if (type.startsWith("pairing:")) {
             handler = this.devicePairingHandler;
           } else {
-            console.warn(`[Main] 未知消息类型: ${type}`);
+            logger.warn(`[Main] 未知消息类型: ${type}`);
             this.mobileBridge.send({
               type: "message",
               to: mobilePeerId,
@@ -2907,7 +2908,7 @@ class ChainlessChainApp {
           if (handler && typeof handler.handleMessage === "function") {
             response = await handler.handleMessage(mobilePeerId, message);
           } else {
-            console.warn(`[Main] 处理器不支持handleMessage方法: ${type}`);
+            logger.warn(`[Main] 处理器不支持handleMessage方法: ${type}`);
             response = {
               error: {
                 code: "NOT_IMPLEMENTED",
@@ -2929,7 +2930,7 @@ class ChainlessChainApp {
             });
           }
         } catch (error) {
-          console.error(`[Main] 处理移动端消息失败 (${type}):`, error);
+          logger.error(`[Main] 处理移动端消息失败 (${type}):`, error);
 
           // 发送错误响应
           this.mobileBridge.send({
@@ -2949,7 +2950,7 @@ class ChainlessChainApp {
       },
     );
 
-    console.log("[Main] ✓ 移动端桥接消息路由已设置");
+    logger.info("[Main] ✓ 移动端桥接消息路由已设置");
   }
 
   setupPluginEvents() {
@@ -2959,55 +2960,55 @@ class ChainlessChainApp {
 
     // 监听插件事件并转发给渲染进程
     this.pluginManager.on("initialized", (data) => {
-      console.log("[Main] 插件系统已初始化:", data);
+      logger.info("[Main] 插件系统已初始化:", data);
       if (this.mainWindow) {
         this.mainWindow.webContents.send("plugin:initialized", data);
       }
     });
 
     this.pluginManager.on("plugin:installed", (data) => {
-      console.log("[Main] 插件已安装:", data.pluginId);
+      logger.info("[Main] 插件已安装:", data.pluginId);
       if (this.mainWindow) {
         this.mainWindow.webContents.send("plugin:installed", data);
       }
     });
 
     this.pluginManager.on("plugin:uninstalled", (data) => {
-      console.log("[Main] 插件已卸载:", data.pluginId);
+      logger.info("[Main] 插件已卸载:", data.pluginId);
       if (this.mainWindow) {
         this.mainWindow.webContents.send("plugin:uninstalled", data);
       }
     });
 
     this.pluginManager.on("plugin:enabled", (data) => {
-      console.log("[Main] 插件已启用:", data.pluginId);
+      logger.info("[Main] 插件已启用:", data.pluginId);
       if (this.mainWindow) {
         this.mainWindow.webContents.send("plugin:enabled", data);
       }
     });
 
     this.pluginManager.on("plugin:disabled", (data) => {
-      console.log("[Main] 插件已禁用:", data.pluginId);
+      logger.info("[Main] 插件已禁用:", data.pluginId);
       if (this.mainWindow) {
         this.mainWindow.webContents.send("plugin:disabled", data);
       }
     });
 
     this.pluginManager.on("plugin:load-failed", (data) => {
-      console.error("[Main] 插件加载失败:", data.pluginId, data.error);
+      logger.error("[Main] 插件加载失败:", data.pluginId, data.error);
       if (this.mainWindow) {
         this.mainWindow.webContents.send("plugin:load-failed", data);
       }
     });
 
     this.pluginManager.on("extension:error", (data) => {
-      console.error("[Main] 扩展执行失败:", data.extension, data.error);
+      logger.error("[Main] 扩展执行失败:", data.extension, data.error);
       if (this.mainWindow) {
         this.mainWindow.webContents.send("plugin:extension-error", data);
       }
     });
 
-    console.log("[Main] 插件系统事件监听已设置");
+    logger.info("[Main] 插件系统事件监听已设置");
   }
 
   /**
@@ -3068,7 +3069,7 @@ class ChainlessChainApp {
         config.apiKey = this.database.getSetting("llm.customApiKey") || "";
         config.baseURL = this.database.getSetting("llm.customBaseUrl") || "";
         config.model = this.database.getSetting("llm.customModel") || "";
-        console.log("[Main] Custom LLM配置:", {
+        logger.info("[Main] Custom LLM配置:", {
           baseURL: config.baseURL,
           model: config.model,
         });
@@ -3136,7 +3137,7 @@ class ChainlessChainApp {
   _ensureNoUndefined(obj, path = "root") {
     if (obj === null || obj === undefined) {
       if (obj === undefined) {
-        console.error(`[Main] 发现 undefined 在路径: ${path}`);
+        logger.error(`[Main] 发现 undefined 在路径: ${path}`);
       }
       return;
     }
@@ -3152,7 +3153,7 @@ class ChainlessChainApp {
     } else {
       Object.entries(obj).forEach(([key, value]) => {
         if (value === undefined) {
-          console.error(`[Main] 发现 undefined 值在路径: ${path}.${key}`);
+          logger.error(`[Main] 发现 undefined 值在路径: ${path}.${key}`);
         }
         this._ensureNoUndefined(value, `${path}.${key}`);
       });
@@ -3263,9 +3264,9 @@ class ChainlessChainApp {
     // ========================================================================
     // 模块化 IPC 注册中心
     // ========================================================================
-    console.log("[ChainlessChainApp] ========================================");
-    console.log("[ChainlessChainApp] Starting IPC setup (Modular Mode)...");
-    console.log("[ChainlessChainApp] ========================================");
+    logger.info("[ChainlessChainApp] ========================================");
+    logger.info("[ChainlessChainApp] Starting IPC setup (Modular Mode)...");
+    logger.info("[ChainlessChainApp] ========================================");
 
     // 导入注册中心
     const { registerAllIPC } = require("./ipc/ipc-registry");
@@ -3327,10 +3328,10 @@ class ChainlessChainApp {
         sessionManager: this.sessionManager,
       });
 
-      console.log("[ChainlessChainApp] ✓ Modular IPC registration complete");
-      console.log("[ChainlessChainApp] ✓ Total handlers registered: 765+");
+      logger.info("[ChainlessChainApp] ✓ Modular IPC registration complete");
+      logger.info("[ChainlessChainApp] ✓ Total handlers registered: 765+");
     } catch (error) {
-      console.error(
+      logger.error(
         "[ChainlessChainApp] ❌ Modular IPC registration failed:",
         error,
       );
@@ -3349,9 +3350,9 @@ class ChainlessChainApp {
     // 注册移动端桥接 IPC handlers
     this.setupMobileBridgeIPC();
 
-    console.log("[ChainlessChainApp] ========================================");
-    console.log("[ChainlessChainApp] IPC setup complete!");
-    console.log("[ChainlessChainApp] ========================================");
+    logger.info("[ChainlessChainApp] ========================================");
+    logger.info("[ChainlessChainApp] IPC setup complete!");
+    logger.info("[ChainlessChainApp] ========================================");
   }
 
   /**
@@ -3363,7 +3364,7 @@ class ChainlessChainApp {
     // 获取性能监控实例
     const performanceMonitor = this.performanceMonitor;
     if (!performanceMonitor) {
-      console.warn("[Performance IPC] Performance monitor not initialized");
+      logger.warn("[Performance IPC] Performance monitor not initialized");
       return;
     }
 
@@ -3372,7 +3373,7 @@ class ChainlessChainApp {
       try {
         return performanceMonitor.getMetrics();
       } catch (error) {
-        console.error("[Performance IPC] Failed to get metrics:", error);
+        logger.error("[Performance IPC] Failed to get metrics:", error);
         throw error;
       }
     });
@@ -3382,7 +3383,7 @@ class ChainlessChainApp {
       try {
         return performanceMonitor.generateReport();
       } catch (error) {
-        console.error("[Performance IPC] Failed to get report:", error);
+        logger.error("[Performance IPC] Failed to get report:", error);
         throw error;
       }
     });
@@ -3397,7 +3398,7 @@ class ChainlessChainApp {
         );
         return { success: true };
       } catch (error) {
-        console.error("[Performance IPC] Failed to log slow query:", error);
+        logger.error("[Performance IPC] Failed to log slow query:", error);
         throw error;
       }
     });
@@ -3414,7 +3415,7 @@ class ChainlessChainApp {
           );
           return { success: true };
         } catch (error) {
-          console.error("[Performance IPC] Failed to track operation:", error);
+          logger.error("[Performance IPC] Failed to track operation:", error);
           throw error;
         }
       },
@@ -3431,7 +3432,7 @@ class ChainlessChainApp {
         newMonitor.reset();
         return { success: true };
       } catch (error) {
-        console.error(
+        logger.error(
           "[Performance IPC] Failed to clear performance data:",
           error,
         );
@@ -3439,7 +3440,7 @@ class ChainlessChainApp {
       }
     });
 
-    console.log(
+    logger.info(
       "[Performance IPC] ✓ Performance monitoring IPC handlers registered",
     );
   }
@@ -3449,7 +3450,7 @@ class ChainlessChainApp {
    */
   setupPluginMarketplaceIPC() {
     if (!this.pluginManager) {
-      console.warn("[Plugin Marketplace IPC] Plugin manager not initialized");
+      logger.warn("[Plugin Marketplace IPC] Plugin manager not initialized");
       return;
     }
 
@@ -3459,11 +3460,11 @@ class ChainlessChainApp {
         pluginManager: this.pluginManager,
       });
 
-      console.log(
+      logger.info(
         "[Plugin Marketplace IPC] ✓ Plugin marketplace IPC handlers registered (20 handlers)",
       );
     } catch (error) {
-      console.error(
+      logger.error(
         "[Plugin Marketplace IPC] Failed to register handlers:",
         error,
       );
@@ -3477,9 +3478,9 @@ class ChainlessChainApp {
       this.rssIPCHandler = new RSSIPCHandler(this.database);
       this.emailIPCHandler = new EmailIPCHandler(this.database, appDataPath);
 
-      console.log("[API Integration] ✓ RSS and Email IPC handlers registered");
+      logger.info("[API Integration] ✓ RSS and Email IPC handlers registered");
     } catch (error) {
-      console.error(
+      logger.error(
         "[API Integration] Failed to register RSS/Email handlers:",
         error,
       );
@@ -3499,7 +3500,7 @@ class ChainlessChainApp {
         const result = await this.devicePairingHandler.startQRCodeScanner();
         return { success: true, device: result.device };
       } catch (error) {
-        console.error("[IPC] 扫描失败:", error);
+        logger.error("[IPC] 扫描失败:", error);
         return { success: false, error: error.message };
       }
     });
@@ -3517,7 +3518,7 @@ class ChainlessChainApp {
         );
         return { success: true, device: result.device };
       } catch (error) {
-        console.error("[IPC] 配对失败:", error);
+        logger.error("[IPC] 配对失败:", error);
         return { success: false, error: error.message };
       }
     });
@@ -3531,7 +3532,7 @@ class ChainlessChainApp {
         const devices = await this.deviceManager.getAllDevices();
         return { success: true, devices };
       } catch (error) {
-        console.error("[IPC] 获取设备列表失败:", error);
+        logger.error("[IPC] 获取设备列表失败:", error);
         return { success: false, error: error.message };
       }
     });
@@ -3545,7 +3546,7 @@ class ChainlessChainApp {
         await this.deviceManager.removeDevice(deviceId);
         return { success: true };
       } catch (error) {
-        console.error("[IPC] 移除设备失败:", error);
+        logger.error("[IPC] 移除设备失败:", error);
         return { success: false, error: error.message };
       }
     });
@@ -3562,12 +3563,12 @@ class ChainlessChainApp {
           },
         };
       } catch (error) {
-        console.error("[IPC] 获取统计失败:", error);
+        logger.error("[IPC] 获取统计失败:", error);
         return { success: false, error: error.message };
       }
     });
 
-    console.log("[Mobile Bridge IPC] ✓ Mobile bridge IPC handlers registered");
+    logger.info("[Mobile Bridge IPC] ✓ Mobile bridge IPC handlers registered");
   }
 
   /**
@@ -3576,7 +3577,7 @@ class ChainlessChainApp {
   setupInteractivePlanningIPC() {
     // 检查交互式任务规划器是否已初始化
     if (!this.interactiveTaskPlanner) {
-      console.warn(
+      logger.warn(
         "[Interactive Planning IPC] Interactive task planner not initialized",
       );
       return;
@@ -3587,11 +3588,11 @@ class ChainlessChainApp {
       this.interactivePlanningIPC = new InteractivePlanningIPC(
         this.interactiveTaskPlanner,
       );
-      console.log(
+      logger.info(
         "[Interactive Planning IPC] ✓ Interactive planning IPC handlers registered",
       );
     } catch (error) {
-      console.error(
+      logger.error(
         "[Interactive Planning IPC] Failed to register IPC handlers:",
         error,
       );
@@ -3606,14 +3607,14 @@ class ChainlessChainApp {
     const path = require("path");
     const crypto = require("crypto");
 
-    console.log(`[Main] 扫描项目目录: ${projectPath}`);
+    logger.info(`[Main] 扫描项目目录: ${projectPath}`);
 
     try {
       // 检查目录是否存在
       try {
         await fs.access(projectPath);
       } catch (error) {
-        console.warn(`[Main] 项目目录不存在: ${projectPath}`);
+        logger.warn(`[Main] 项目目录不存在: ${projectPath}`);
         return;
       }
 
@@ -3621,7 +3622,7 @@ class ChainlessChainApp {
       const entries = await fs.readdir(projectPath, { withFileTypes: true });
       const files = entries.filter((entry) => entry.isFile());
 
-      console.log(`[Main] 找到 ${files.length} 个文件`);
+      logger.info(`[Main] 找到 ${files.length} 个文件`);
 
       let registeredCount = 0;
 
@@ -3638,7 +3639,7 @@ class ChainlessChainApp {
           .get(projectId, relativePath);
 
         if (existingFile) {
-          console.log(`[Main] 文件已存在于数据库: ${relativePath}`);
+          logger.info(`[Main] 文件已存在于数据库: ${relativePath}`);
           continue;
         }
 
@@ -3705,9 +3706,9 @@ class ChainlessChainApp {
           );
 
           registeredCount++;
-          console.log(`[Main] 注册新文件: ${fileName} (ID: ${fileId})`);
+          logger.info(`[Main] 注册新文件: ${fileName} (ID: ${fileId})`);
         } catch (fileError) {
-          console.error(`[Main] 处理文件失败: ${fileName}`, fileError);
+          logger.error(`[Main] 处理文件失败: ${fileName}`, fileError);
           // 继续处理其他文件
         }
       }
@@ -3723,7 +3724,7 @@ class ChainlessChainApp {
             .get(projectId);
 
           const fileCount = totalFiles ? totalFiles.count : 0;
-          console.log(`[Main] 项目 ${projectId} 当前共有 ${fileCount} 个文件`);
+          logger.info(`[Main] 项目 ${projectId} 当前共有 ${fileCount} 个文件`);
 
           // 更新projects表的file_count字段
           this.database.db.run(
@@ -3731,23 +3732,23 @@ class ChainlessChainApp {
             [fileCount, Date.now(), projectId],
           );
 
-          console.log(`[Main] 已更新项目的file_count为 ${fileCount}`);
+          logger.info(`[Main] 已更新项目的file_count为 ${fileCount}`);
         } catch (updateError) {
-          console.error("[Main] 更新项目file_count失败:", updateError);
+          logger.error("[Main] 更新项目file_count失败:", updateError);
         }
       }
 
       // 保存数据库
       if (registeredCount > 0) {
         this.database.saveToFile();
-        console.log(`[Main] 成功注册 ${registeredCount} 个新文件`);
+        logger.info(`[Main] 成功注册 ${registeredCount} 个新文件`);
       } else {
-        console.log("[Main] 没有新文件需要注册");
+        logger.info("[Main] 没有新文件需要注册");
       }
 
       return registeredCount;
     } catch (error) {
-      console.error("[Main] 扫描并注册文件失败:", error);
+      logger.error("[Main] 扫描并注册文件失败:", error);
       throw error;
     }
   }

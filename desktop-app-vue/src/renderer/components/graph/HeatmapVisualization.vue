@@ -102,7 +102,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
-import * as echarts from 'echarts';
+import { init } from '../../utils/echartsConfig';
 
 const props = defineProps({
   nodes: {
@@ -301,7 +301,7 @@ const getColorScheme = () => {
 const initChart = () => {
   if (!chartRef.value) {return;}
 
-  chartInstance = echarts.init(chartRef.value);
+  chartInstance = init(chartRef.value);
 
   chartInstance.on('click', (params) => {
     if (params.componentType === 'series') {

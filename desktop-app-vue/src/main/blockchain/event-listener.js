@@ -9,6 +9,7 @@
  * - 悬赏合约事件
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const EventEmitter = require('events');
 const { ethers } = require('ethers');
 
@@ -34,7 +35,7 @@ class BlockchainEventListener extends EventEmitter {
    * 初始化事件监听器
    */
   async initialize() {
-    console.log('[EventListener] 初始化事件监听器...');
+    logger.info('[EventListener] 初始化事件监听器...');
 
     try {
       // 初始化数据库表
@@ -44,9 +45,9 @@ class BlockchainEventListener extends EventEmitter {
       await this.restoreListeners();
 
       this.initialized = true;
-      console.log('[EventListener] 事件监听器初始化成功');
+      logger.info('[EventListener] 事件监听器初始化成功');
     } catch (error) {
-      console.error('[EventListener] 初始化失败:', error);
+      logger.error('[EventListener] 初始化失败:', error);
       throw error;
     }
   }
@@ -95,7 +96,7 @@ class BlockchainEventListener extends EventEmitter {
       CREATE INDEX IF NOT EXISTS idx_processed_events_tx ON processed_events(transaction_hash);
     `);
 
-    console.log('[EventListener] 数据库表初始化完成');
+    logger.info('[EventListener] 数据库表初始化完成');
   }
 
   /**
@@ -162,11 +163,11 @@ class BlockchainEventListener extends EventEmitter {
         handler
       });
 
-      console.log(`[EventListener] 已添加监听器: ${listenerId}`);
+      logger.info(`[EventListener] 已添加监听器: ${listenerId}`);
 
       return listenerId;
     } catch (error) {
-      console.error('[EventListener] 添加监听器失败:', error);
+      logger.error('[EventListener] 添加监听器失败:', error);
       throw error;
     }
   }
@@ -196,11 +197,11 @@ class BlockchainEventListener extends EventEmitter {
       ).get(eventId);
 
       if (existing) {
-        console.log(`[EventListener] 事件已处理，跳过: ${eventId}`);
+        logger.info(`[EventListener] 事件已处理，跳过: ${eventId}`);
         return;
       }
 
-      console.log(`[EventListener] 处理事件: ${eventName} @ ${contractAddress}`);
+      logger.info(`[EventListener] 处理事件: ${eventName} @ ${contractAddress}`);
 
       // 调用自定义处理器
       if (handler) {
@@ -240,9 +241,9 @@ class BlockchainEventListener extends EventEmitter {
         eventData
       });
 
-      console.log(`[EventListener] 事件处理完成: ${eventId}`);
+      logger.info(`[EventListener] 事件处理完成: ${eventId}`);
     } catch (error) {
-      console.error('[EventListener] 处理事件失败:', error);
+      logger.error('[EventListener] 处理事件失败:', error);
       this.emit('event:error', { error, eventData });
     }
   }
@@ -276,7 +277,7 @@ class BlockchainEventListener extends EventEmitter {
         break;
 
       default:
-        console.log(`[EventListener] 未知合约类型: ${contractType}`);
+        logger.info(`[EventListener] 未知合约类型: ${contractType}`);
     }
   }
 
@@ -286,7 +287,7 @@ class BlockchainEventListener extends EventEmitter {
   async processERC20Event(eventName, eventData) {
     if (eventName === 'Transfer') {
       const [from, to, value] = eventData.args;
-      console.log(`[EventListener] ERC-20 转账: ${from} -> ${to}, 数量: ${value.toString()}`);
+      logger.info(`[EventListener] ERC-20 转账: ${from} -> ${to}, 数量: ${value.toString()}`);
 
       // 同步到本地资产管理器
       // TODO: 实现资产余额同步逻辑
@@ -299,7 +300,7 @@ class BlockchainEventListener extends EventEmitter {
   async processERC721Event(eventName, eventData) {
     if (eventName === 'Transfer') {
       const [from, to, tokenId] = eventData.args;
-      console.log(`[EventListener] NFT 转账: ${from} -> ${to}, Token ID: ${tokenId.toString()}`);
+      logger.info(`[EventListener] NFT 转账: ${from} -> ${to}, Token ID: ${tokenId.toString()}`);
 
       // 同步到本地资产管理器
       // TODO: 实现 NFT 所有权同步逻辑
@@ -310,28 +311,28 @@ class BlockchainEventListener extends EventEmitter {
    * 处理托管合约事件
    */
   async processEscrowEvent(eventName, eventData) {
-    console.log(`[EventListener] 托管事件: ${eventName}`, eventData.args);
+    logger.info(`[EventListener] 托管事件: ${eventName}`, eventData.args);
 
     switch (eventName) {
       case 'EscrowCreated':
         // 托管创建事件
         const [escrowId, buyer, seller, amount] = eventData.args;
-        console.log(`[EventListener] 托管已创建: ${escrowId}, 买家: ${buyer}, 卖家: ${seller}, 金额: ${amount.toString()}`);
+        logger.info(`[EventListener] 托管已创建: ${escrowId}, 买家: ${buyer}, 卖家: ${seller}, 金额: ${amount.toString()}`);
         break;
 
       case 'EscrowCompleted':
         // 托管完成事件
-        console.log(`[EventListener] 托管已完成`);
+        logger.info(`[EventListener] 托管已完成`);
         break;
 
       case 'EscrowRefunded':
         // 托管退款事件
-        console.log(`[EventListener] 托管已退款`);
+        logger.info(`[EventListener] 托管已退款`);
         break;
 
       case 'EscrowDisputed':
         // 托管争议事件
-        console.log(`[EventListener] 托管发生争议`);
+        logger.info(`[EventListener] 托管发生争议`);
         break;
     }
   }
@@ -340,28 +341,28 @@ class BlockchainEventListener extends EventEmitter {
    * 处理订阅合约事件
    */
   async processSubscriptionEvent(eventName, eventData) {
-    console.log(`[EventListener] 订阅事件: ${eventName}`, eventData.args);
+    logger.info(`[EventListener] 订阅事件: ${eventName}`, eventData.args);
 
     switch (eventName) {
       case 'Subscribed':
         // 订阅事件
         const [planId, subscriber, endTime] = eventData.args;
-        console.log(`[EventListener] 新订阅: 计划 ${planId}, 订阅者: ${subscriber}, 结束时间: ${endTime.toString()}`);
+        logger.info(`[EventListener] 新订阅: 计划 ${planId}, 订阅者: ${subscriber}, 结束时间: ${endTime.toString()}`);
         break;
 
       case 'SubscriptionRenewed':
         // 续订事件
-        console.log(`[EventListener] 订阅已续订`);
+        logger.info(`[EventListener] 订阅已续订`);
         break;
 
       case 'SubscriptionCancelled':
         // 取消订阅事件
-        console.log(`[EventListener] 订阅已取消`);
+        logger.info(`[EventListener] 订阅已取消`);
         break;
 
       case 'PaymentReceived':
         // 支付事件
-        console.log(`[EventListener] 收到订阅支付`);
+        logger.info(`[EventListener] 收到订阅支付`);
         break;
     }
   }
@@ -370,7 +371,7 @@ class BlockchainEventListener extends EventEmitter {
    * 处理悬赏合约事件
    */
   async processBountyEvent(eventName, eventData) {
-    console.log(`[EventListener] 悬赏事件: ${eventName}`, eventData.args);
+    logger.info(`[EventListener] 悬赏事件: ${eventName}`, eventData.args);
 
     // TODO: 实现悬赏合约事件处理逻辑
   }
@@ -413,9 +414,9 @@ class BlockchainEventListener extends EventEmitter {
         }
       }
 
-      console.log(`[EventListener] 已移除监听器: ${listenerId}`);
+      logger.info(`[EventListener] 已移除监听器: ${listenerId}`);
     } catch (error) {
-      console.error('[EventListener] 移除监听器失败:', error);
+      logger.error('[EventListener] 移除监听器失败:', error);
       throw error;
     }
   }
@@ -431,7 +432,7 @@ class BlockchainEventListener extends EventEmitter {
         'SELECT * FROM event_listeners WHERE active = 1'
       ).all();
 
-      console.log(`[EventListener] 恢复 ${listeners.length} 个监听器...`);
+      logger.info(`[EventListener] 恢复 ${listeners.length} 个监听器...`);
 
       for (const listener of listeners) {
         try {
@@ -445,13 +446,13 @@ class BlockchainEventListener extends EventEmitter {
             abi
           });
 
-          console.log(`[EventListener] 已恢复监听器: ${listener.id}`);
+          logger.info(`[EventListener] 已恢复监听器: ${listener.id}`);
         } catch (error) {
-          console.error(`[EventListener] 恢复监听器失败: ${listener.id}`, error);
+          logger.error(`[EventListener] 恢复监听器失败: ${listener.id}`, error);
         }
       }
     } catch (error) {
-      console.error('[EventListener] 恢复监听器失败:', error);
+      logger.error('[EventListener] 恢复监听器失败:', error);
     }
   }
 
@@ -495,7 +496,7 @@ class BlockchainEventListener extends EventEmitter {
         event_data: JSON.parse(e.event_data)
       }));
     } catch (error) {
-      console.error('[EventListener] 获取已处理事件失败:', error);
+      logger.error('[EventListener] 获取已处理事件失败:', error);
       throw error;
     }
   }
@@ -504,7 +505,7 @@ class BlockchainEventListener extends EventEmitter {
    * 清理资源
    */
   async cleanup() {
-    console.log('[EventListener] 清理资源...');
+    logger.info('[EventListener] 清理资源...');
 
     // 停止所有监听器
     for (const [contractAddress, listeners] of this.activeListeners.entries()) {
@@ -512,7 +513,7 @@ class BlockchainEventListener extends EventEmitter {
         try {
           await this.removeListener(contractAddress, listener.chainId, listener.eventName);
         } catch (error) {
-          console.error('[EventListener] 停止监听器失败:', error);
+          logger.error('[EventListener] 停止监听器失败:', error);
         }
       }
     }

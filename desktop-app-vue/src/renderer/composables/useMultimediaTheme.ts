@@ -4,6 +4,7 @@
  * 提供明暗主题切换功能
  */
 
+import { logger, createLogger } from '@/utils/logger';
 import { ref, computed, watch } from 'vue';
 import type { ComputedRef } from 'vue';
 
@@ -138,7 +139,7 @@ export function useMultimediaTheme() {
     try {
       localStorage.setItem('multimedia-theme', mode);
     } catch (e) {
-      console.warn('[useMultimediaTheme] Failed to save theme to localStorage:', e);
+      logger.warn('[useMultimediaTheme] Failed to save theme to localStorage:', e);
     }
 
     // 应用主题
@@ -266,7 +267,7 @@ export function initMultimediaTheme() {
       currentMode.value = savedTheme as ThemeMode;
     }
   } catch (e) {
-    console.warn('[initMultimediaTheme] Failed to load theme from localStorage:', e);
+    logger.warn('[initMultimediaTheme] Failed to load theme from localStorage:', e);
   }
 
   // 监听系统主题

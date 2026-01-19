@@ -7,6 +7,7 @@
  * @since 2026-01-16
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const ipcGuard = require("../ipc/ipc-guard");
 
 /**
@@ -21,7 +22,7 @@ function registerSessionManagerIPC({
 }) {
   // 防止重复注册
   if (ipcGuard.isModuleRegistered("session-manager-ipc")) {
-    console.log(
+    logger.info(
       "[SessionManager IPC] Handlers already registered, skipping...",
     );
     return;
@@ -31,7 +32,7 @@ function registerSessionManagerIPC({
   const electron = require("electron");
   const ipcMain = injectedIpcMain || electron.ipcMain;
 
-  console.log(
+  logger.info(
     "[SessionManager IPC] Registering SessionManager IPC handlers...",
   );
 
@@ -54,7 +55,7 @@ function registerSessionManagerIPC({
 
       return await managerRef.current.createSession(params);
     } catch (error) {
-      console.error("[SessionManager IPC] 创建会话失败:", error);
+      logger.error("[SessionManager IPC] 创建会话失败:", error);
       throw error;
     }
   });
@@ -71,7 +72,7 @@ function registerSessionManagerIPC({
 
       return await managerRef.current.loadSession(sessionId, options);
     } catch (error) {
-      console.error("[SessionManager IPC] 加载会话失败:", error);
+      logger.error("[SessionManager IPC] 加载会话失败:", error);
       throw error;
     }
   });
@@ -90,7 +91,7 @@ function registerSessionManagerIPC({
 
         return await managerRef.current.addMessage(sessionId, message, options);
       } catch (error) {
-        console.error("[SessionManager IPC] 添加消息失败:", error);
+        logger.error("[SessionManager IPC] 添加消息失败:", error);
         throw error;
       }
     },
@@ -108,7 +109,7 @@ function registerSessionManagerIPC({
 
       return await managerRef.current.compressSession(sessionId);
     } catch (error) {
-      console.error("[SessionManager IPC] 压缩会话失败:", error);
+      logger.error("[SessionManager IPC] 压缩会话失败:", error);
       throw error;
     }
   });
@@ -126,7 +127,7 @@ function registerSessionManagerIPC({
       await managerRef.current.saveSession(sessionId);
       return { success: true };
     } catch (error) {
-      console.error("[SessionManager IPC] 保存会话失败:", error);
+      logger.error("[SessionManager IPC] 保存会话失败:", error);
       throw error;
     }
   });
@@ -145,7 +146,7 @@ function registerSessionManagerIPC({
 
         return await managerRef.current.getEffectiveMessages(sessionId);
       } catch (error) {
-        console.error("[SessionManager IPC] 获取有效消息失败:", error);
+        logger.error("[SessionManager IPC] 获取有效消息失败:", error);
         throw error;
       }
     },
@@ -164,7 +165,7 @@ function registerSessionManagerIPC({
       await managerRef.current.deleteSession(sessionId);
       return { success: true };
     } catch (error) {
-      console.error("[SessionManager IPC] 删除会话失败:", error);
+      logger.error("[SessionManager IPC] 删除会话失败:", error);
       throw error;
     }
   });
@@ -181,7 +182,7 @@ function registerSessionManagerIPC({
 
       return await managerRef.current.listSessions(options);
     } catch (error) {
-      console.error("[SessionManager IPC] 列出会话失败:", error);
+      logger.error("[SessionManager IPC] 列出会话失败:", error);
       throw error;
     }
   });
@@ -198,7 +199,7 @@ function registerSessionManagerIPC({
 
       return await managerRef.current.getSessionStats(sessionId);
     } catch (error) {
-      console.error("[SessionManager IPC] 获取统计失败:", error);
+      logger.error("[SessionManager IPC] 获取统计失败:", error);
       throw error;
     }
   });
@@ -220,7 +221,7 @@ function registerSessionManagerIPC({
         deletedCount,
       };
     } catch (error) {
-      console.error("[SessionManager IPC] 清理旧会话失败:", error);
+      logger.error("[SessionManager IPC] 清理旧会话失败:", error);
       throw error;
     }
   });
@@ -241,7 +242,7 @@ function registerSessionManagerIPC({
 
       return await managerRef.current.searchSessions(query, options);
     } catch (error) {
-      console.error("[SessionManager IPC] 搜索会话失败:", error);
+      logger.error("[SessionManager IPC] 搜索会话失败:", error);
       throw error;
     }
   });
@@ -262,7 +263,7 @@ function registerSessionManagerIPC({
 
       return await managerRef.current.addTags(sessionId, tags);
     } catch (error) {
-      console.error("[SessionManager IPC] 添加标签失败:", error);
+      logger.error("[SessionManager IPC] 添加标签失败:", error);
       throw error;
     }
   });
@@ -279,7 +280,7 @@ function registerSessionManagerIPC({
 
       return await managerRef.current.removeTags(sessionId, tags);
     } catch (error) {
-      console.error("[SessionManager IPC] 移除标签失败:", error);
+      logger.error("[SessionManager IPC] 移除标签失败:", error);
       throw error;
     }
   });
@@ -296,7 +297,7 @@ function registerSessionManagerIPC({
 
       return await managerRef.current.getAllTags();
     } catch (error) {
-      console.error("[SessionManager IPC] 获取标签失败:", error);
+      logger.error("[SessionManager IPC] 获取标签失败:", error);
       throw error;
     }
   });
@@ -313,7 +314,7 @@ function registerSessionManagerIPC({
 
       return await managerRef.current.findSessionsByTags(tags, options);
     } catch (error) {
-      console.error("[SessionManager IPC] 按标签查找失败:", error);
+      logger.error("[SessionManager IPC] 按标签查找失败:", error);
       throw error;
     }
   });
@@ -336,7 +337,7 @@ function registerSessionManagerIPC({
 
         return await managerRef.current.exportToJSON(sessionId, options);
       } catch (error) {
-        console.error("[SessionManager IPC] 导出 JSON 失败:", error);
+        logger.error("[SessionManager IPC] 导出 JSON 失败:", error);
         throw error;
       }
     },
@@ -356,7 +357,7 @@ function registerSessionManagerIPC({
 
         return await managerRef.current.exportToMarkdown(sessionId, options);
       } catch (error) {
-        console.error("[SessionManager IPC] 导出 Markdown 失败:", error);
+        logger.error("[SessionManager IPC] 导出 Markdown 失败:", error);
         throw error;
       }
     },
@@ -376,7 +377,7 @@ function registerSessionManagerIPC({
 
         return await managerRef.current.importFromJSON(jsonData, options);
       } catch (error) {
-        console.error("[SessionManager IPC] 导入 JSON 失败:", error);
+        logger.error("[SessionManager IPC] 导入 JSON 失败:", error);
         throw error;
       }
     },
@@ -396,7 +397,7 @@ function registerSessionManagerIPC({
 
         return await managerRef.current.exportMultiple(sessionIds, options);
       } catch (error) {
-        console.error("[SessionManager IPC] 批量导出失败:", error);
+        logger.error("[SessionManager IPC] 批量导出失败:", error);
         throw error;
       }
     },
@@ -420,7 +421,7 @@ function registerSessionManagerIPC({
 
         return await managerRef.current.generateSummary(sessionId, options);
       } catch (error) {
-        console.error("[SessionManager IPC] 生成摘要失败:", error);
+        logger.error("[SessionManager IPC] 生成摘要失败:", error);
         throw error;
       }
     },
@@ -440,7 +441,7 @@ function registerSessionManagerIPC({
 
         return await managerRef.current.generateSummariesBatch(options);
       } catch (error) {
-        console.error("[SessionManager IPC] 批量生成摘要失败:", error);
+        logger.error("[SessionManager IPC] 批量生成摘要失败:", error);
         throw error;
       }
     },
@@ -462,7 +463,7 @@ function registerSessionManagerIPC({
 
       return managerRef.current.getAutoSummaryConfig();
     } catch (error) {
-      console.error("[SessionManager IPC] 获取自动摘要配置失败:", error);
+      logger.error("[SessionManager IPC] 获取自动摘要配置失败:", error);
       throw error;
     }
   });
@@ -481,7 +482,7 @@ function registerSessionManagerIPC({
 
         return managerRef.current.updateAutoSummaryConfig(config);
       } catch (error) {
-        console.error("[SessionManager IPC] 更新自动摘要配置失败:", error);
+        logger.error("[SessionManager IPC] 更新自动摘要配置失败:", error);
         throw error;
       }
     },
@@ -500,7 +501,7 @@ function registerSessionManagerIPC({
       managerRef.current.startBackgroundSummaryGenerator();
       return { success: true };
     } catch (error) {
-      console.error("[SessionManager IPC] 启动后台摘要生成器失败:", error);
+      logger.error("[SessionManager IPC] 启动后台摘要生成器失败:", error);
       throw error;
     }
   });
@@ -518,7 +519,7 @@ function registerSessionManagerIPC({
       managerRef.current.stopBackgroundSummaryGenerator();
       return { success: true };
     } catch (error) {
-      console.error("[SessionManager IPC] 停止后台摘要生成器失败:", error);
+      logger.error("[SessionManager IPC] 停止后台摘要生成器失败:", error);
       throw error;
     }
   });
@@ -537,7 +538,7 @@ function registerSessionManagerIPC({
 
         return await managerRef.current.getSessionsWithoutSummary(options);
       } catch (error) {
-        console.error("[SessionManager IPC] 获取无摘要会话失败:", error);
+        logger.error("[SessionManager IPC] 获取无摘要会话失败:", error);
         throw error;
       }
     },
@@ -557,7 +558,7 @@ function registerSessionManagerIPC({
 
         return await managerRef.current.triggerBulkSummaryGeneration(options);
       } catch (error) {
-        console.error("[SessionManager IPC] 触发批量摘要生成失败:", error);
+        logger.error("[SessionManager IPC] 触发批量摘要生成失败:", error);
         throw error;
       }
     },
@@ -575,7 +576,7 @@ function registerSessionManagerIPC({
 
       return await managerRef.current.getAutoSummaryStats();
     } catch (error) {
-      console.error("[SessionManager IPC] 获取自动摘要统计失败:", error);
+      logger.error("[SessionManager IPC] 获取自动摘要统计失败:", error);
       throw error;
     }
   });
@@ -596,7 +597,7 @@ function registerSessionManagerIPC({
 
       return await managerRef.current.resumeSession(sessionId, options);
     } catch (error) {
-      console.error("[SessionManager IPC] 恢复会话失败:", error);
+      logger.error("[SessionManager IPC] 恢复会话失败:", error);
       throw error;
     }
   });
@@ -613,7 +614,7 @@ function registerSessionManagerIPC({
 
       return await managerRef.current.getRecentSessions(count);
     } catch (error) {
-      console.error("[SessionManager IPC] 获取最近会话失败:", error);
+      logger.error("[SessionManager IPC] 获取最近会话失败:", error);
       throw error;
     }
   });
@@ -636,7 +637,7 @@ function registerSessionManagerIPC({
 
         return await managerRef.current.saveAsTemplate(sessionId, templateInfo);
       } catch (error) {
-        console.error("[SessionManager IPC] 保存模板失败:", error);
+        logger.error("[SessionManager IPC] 保存模板失败:", error);
         throw error;
       }
     },
@@ -656,7 +657,7 @@ function registerSessionManagerIPC({
 
         return await managerRef.current.createFromTemplate(templateId, options);
       } catch (error) {
-        console.error("[SessionManager IPC] 从模板创建失败:", error);
+        logger.error("[SessionManager IPC] 从模板创建失败:", error);
         throw error;
       }
     },
@@ -674,7 +675,7 @@ function registerSessionManagerIPC({
 
       return await managerRef.current.listTemplates(options);
     } catch (error) {
-      console.error("[SessionManager IPC] 列出模板失败:", error);
+      logger.error("[SessionManager IPC] 列出模板失败:", error);
       throw error;
     }
   });
@@ -692,7 +693,7 @@ function registerSessionManagerIPC({
       await managerRef.current.deleteTemplate(templateId);
       return { success: true };
     } catch (error) {
-      console.error("[SessionManager IPC] 删除模板失败:", error);
+      logger.error("[SessionManager IPC] 删除模板失败:", error);
       throw error;
     }
   });
@@ -713,7 +714,7 @@ function registerSessionManagerIPC({
 
       return await managerRef.current.deleteMultiple(sessionIds);
     } catch (error) {
-      console.error("[SessionManager IPC] 批量删除失败:", error);
+      logger.error("[SessionManager IPC] 批量删除失败:", error);
       throw error;
     }
   });
@@ -732,7 +733,7 @@ function registerSessionManagerIPC({
 
         return await managerRef.current.addTagsToMultiple(sessionIds, tags);
       } catch (error) {
-        console.error("[SessionManager IPC] 批量添加标签失败:", error);
+        logger.error("[SessionManager IPC] 批量添加标签失败:", error);
         throw error;
       }
     },
@@ -754,7 +755,7 @@ function registerSessionManagerIPC({
 
       return await managerRef.current.getGlobalStats();
     } catch (error) {
-      console.error("[SessionManager IPC] 获取全局统计失败:", error);
+      logger.error("[SessionManager IPC] 获取全局统计失败:", error);
       throw error;
     }
   });
@@ -771,7 +772,7 @@ function registerSessionManagerIPC({
 
       return await managerRef.current.updateTitle(sessionId, title);
     } catch (error) {
-      console.error("[SessionManager IPC] 更新标题失败:", error);
+      logger.error("[SessionManager IPC] 更新标题失败:", error);
       throw error;
     }
   });
@@ -794,7 +795,7 @@ function registerSessionManagerIPC({
 
         return await managerRef.current.duplicateSession(sessionId, options);
       } catch (error) {
-        console.error("[SessionManager IPC] 复制会话失败:", error);
+        logger.error("[SessionManager IPC] 复制会话失败:", error);
         throw error;
       }
     },
@@ -816,7 +817,7 @@ function registerSessionManagerIPC({
 
       return await managerRef.current.renameTag(oldTag, newTag);
     } catch (error) {
-      console.error("[SessionManager IPC] 重命名标签失败:", error);
+      logger.error("[SessionManager IPC] 重命名标签失败:", error);
       throw error;
     }
   });
@@ -835,7 +836,7 @@ function registerSessionManagerIPC({
 
         return await managerRef.current.mergeTags(sourceTags, targetTag);
       } catch (error) {
-        console.error("[SessionManager IPC] 合并标签失败:", error);
+        logger.error("[SessionManager IPC] 合并标签失败:", error);
         throw error;
       }
     },
@@ -853,7 +854,7 @@ function registerSessionManagerIPC({
 
       return await managerRef.current.deleteTag(tag);
     } catch (error) {
-      console.error("[SessionManager IPC] 删除标签失败:", error);
+      logger.error("[SessionManager IPC] 删除标签失败:", error);
       throw error;
     }
   });
@@ -870,7 +871,7 @@ function registerSessionManagerIPC({
 
       return await managerRef.current.deleteTags(tags);
     } catch (error) {
-      console.error("[SessionManager IPC] 批量删除标签失败:", error);
+      logger.error("[SessionManager IPC] 批量删除标签失败:", error);
       throw error;
     }
   });
@@ -889,7 +890,7 @@ function registerSessionManagerIPC({
 
         return await managerRef.current.getTagDetails(tag, options);
       } catch (error) {
-        console.error("[SessionManager IPC] 获取标签详情失败:", error);
+        logger.error("[SessionManager IPC] 获取标签详情失败:", error);
         throw error;
       }
     },
@@ -902,13 +903,13 @@ function registerSessionManagerIPC({
    */
   function updateSessionManager(newSessionManager) {
     managerRef.current = newSessionManager;
-    console.log("[SessionManager IPC] SessionManager 引用已更新");
+    logger.info("[SessionManager IPC] SessionManager 引用已更新");
   }
 
   // 标记为已注册
   ipcGuard.markModuleRegistered("session-manager-ipc");
 
-  console.log(
+  logger.info(
     "[SessionManager IPC] SessionManager IPC handlers registered successfully",
   );
 

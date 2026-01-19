@@ -3,6 +3,7 @@
  * 测试各个工具的Handler执行功能
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const path = require('path');
 const AdditionalToolsV3Handler = require('./additional-tools-v3-handler');
 
@@ -16,14 +17,14 @@ class HandlerTester {
    * 初始化
    */
   initialize() {
-    console.log('========================================');
-    console.log('  Handler功能测试');
-    console.log('  测试29个工具的Handler执行');
-    console.log('========================================\n');
+    logger.info('========================================');
+    logger.info('  Handler功能测试');
+    logger.info('  测试29个工具的Handler执行');
+    logger.info('========================================\n');
 
     const workDir = path.join(__dirname, '../../../../data/workspace/test');
     this.handler = new AdditionalToolsV3Handler({ workDir });
-    console.log(`[Test] Handler初始化成功 (workDir: ${workDir})\n`);
+    logger.info(`[Test] Handler初始化成功 (workDir: ${workDir})\n`);
   }
 
   /**
@@ -34,8 +35,8 @@ class HandlerTester {
     const startTime = Date.now();
 
     try {
-      console.log(`\n[Test] 测试工具: ${toolName}`);
-      console.log(`[Test] 参数: ${JSON.stringify(params, null, 2)}`);
+      logger.info(`\n[Test] 测试工具: ${toolName}`);
+      logger.info(`[Test] 参数: ${JSON.stringify(params, null, 2)}`);
 
       if (typeof this.handler[methodName] !== 'function') {
         throw new Error(`Handler方法不存在: ${methodName}`);
@@ -44,8 +45,8 @@ class HandlerTester {
       const result = await this.handler[methodName](params);
       const duration = Date.now() - startTime;
 
-      console.log(`[Test] ✅ 执行成功 (${duration}ms)`);
-      console.log(`[Test] 结果: ${JSON.stringify(result, null, 2).substring(0, 500)}...`);
+      logger.info(`[Test] ✅ 执行成功 (${duration}ms)`);
+      logger.info(`[Test] 结果: ${JSON.stringify(result, null, 2).substring(0, 500)}...`);
 
       this.testResults.push({
         tool: toolName,
@@ -58,7 +59,7 @@ class HandlerTester {
 
     } catch (error) {
       const duration = Date.now() - startTime;
-      console.error(`[Test] ❌ 执行失败 (${duration}ms):`, error.message);
+      logger.error(`[Test] ❌ 执行失败 (${duration}ms):`, error.message);
 
       this.testResults.push({
         tool: toolName,
@@ -75,10 +76,10 @@ class HandlerTester {
    * 运行所有测试
    */
   async runAllTests() {
-    console.log('[Test] ===== 开始测试 =====\n');
+    logger.info('[Test] ===== 开始测试 =====\n');
 
     // 1. 区块链工具测试
-    console.log('\n========== 区块链工具 ==========');
+    logger.info('\n========== 区块链工具 ==========');
 
     await this.testTool('contract_analyzer', {
       contractCode: `
@@ -114,7 +115,7 @@ class HandlerTester {
     });
 
     // 2. 法律工具测试
-    console.log('\n========== 法律工具 ==========');
+    logger.info('\n========== 法律工具 ==========');
 
     await this.testTool('legal_template_generator', {
       documentType: 'nda',
@@ -134,7 +135,7 @@ class HandlerTester {
     });
 
     // 3. 财务工具测试
-    console.log('\n========== 财务工具 ==========');
+    logger.info('\n========== 财务工具 ==========');
 
     await this.testTool('real_estate_calculator', {
       initialInvestment: 5000000,
@@ -164,7 +165,7 @@ class HandlerTester {
     });
 
     // 4. CRM工具测试
-    console.log('\n========== CRM工具 ==========');
+    logger.info('\n========== CRM工具 ==========');
 
     await this.testTool('health_score_calculator', {
       customerId: 'CUST001',
@@ -196,7 +197,7 @@ class HandlerTester {
     });
 
     // 5. 项目管理工具测试
-    console.log('\n========== 项目管理工具 ==========');
+    logger.info('\n========== 项目管理工具 ==========');
 
     await this.testTool('stakeholder_analyzer', {
       projectId: 'PRJ001',
@@ -218,7 +219,7 @@ class HandlerTester {
     });
 
     // 6. HR工具测试
-    console.log('\n========== HR工具 ==========');
+    logger.info('\n========== HR工具 ==========');
 
     await this.testTool('org_chart_generator', {
       organizationData: [
@@ -252,7 +253,7 @@ class HandlerTester {
     });
 
     // 7. 变革管理工具测试
-    console.log('\n========== 变革管理工具 ==========');
+    logger.info('\n========== 变革管理工具 ==========');
 
     await this.testTool('readiness_assessor', {
       organizationId: 'ORG001',
@@ -268,7 +269,7 @@ class HandlerTester {
     });
 
     // 8. 活动策划工具测试
-    console.log('\n========== 活动策划工具 ==========');
+    logger.info('\n========== 活动策划工具 ==========');
 
     await this.testTool('event_timeline_generator', {
       eventName: '2026年技术大会',
@@ -278,7 +279,7 @@ class HandlerTester {
     });
 
     // 9. 营销工具测试
-    console.log('\n========== 营销工具 ==========');
+    logger.info('\n========== 营销工具 ==========');
 
     await this.testTool('press_release_generator', {
       headline: '科技公司发布创新产品',
@@ -308,7 +309,7 @@ class HandlerTester {
     });
 
     // 10. 审计工具测试
-    console.log('\n========== 审计工具 ==========');
+    logger.info('\n========== 审计工具 ==========');
 
     await this.testTool('risk_assessor', {
       auditArea: '财务报表',
@@ -345,7 +346,7 @@ class HandlerTester {
     });
 
     // 11. 代码工具测试
-    console.log('\n========== 代码工具 ==========');
+    logger.info('\n========== 代码工具 ==========');
 
     await this.testTool('code_generator', {
       language: 'javascript',
@@ -360,7 +361,7 @@ class HandlerTester {
     });
 
     // 12. 模拟工具测试
-    console.log('\n========== 模拟工具 ==========');
+    logger.info('\n========== 模拟工具 ==========');
 
     await this.testTool('simulation_runner', {
       simulationType: 'monte-carlo',
@@ -374,7 +375,7 @@ class HandlerTester {
     });
 
     // 13. 采购工具测试
-    console.log('\n========== 采购工具 ==========');
+    logger.info('\n========== 采购工具 ==========');
 
     await this.testTool('vendor_manager', {
       action: 'evaluate',
@@ -383,7 +384,7 @@ class HandlerTester {
     });
 
     // 14. 市场分析工具测试
-    console.log('\n========== 市场分析工具 ==========');
+    logger.info('\n========== 市场分析工具 ==========');
 
     await this.testTool('market_data_analyzer', {
       marketSegment: '人工智能软件',
@@ -396,39 +397,39 @@ class HandlerTester {
    * 生成测试报告
    */
   generateReport() {
-    console.log('\n\n========================================');
-    console.log('  测试报告');
-    console.log('========================================\n');
+    logger.info('\n\n========================================');
+    logger.info('  测试报告');
+    logger.info('========================================\n');
 
     const totalTests = this.testResults.length;
     const successTests = this.testResults.filter(r => r.success).length;
     const failedTests = this.testResults.filter(r => !r.success).length;
     const avgDuration = this.testResults.reduce((sum, r) => sum + r.duration, 0) / totalTests;
 
-    console.log(`总测试数: ${totalTests}`);
-    console.log(`成功: ${successTests} (${(successTests / totalTests * 100).toFixed(1)}%)`);
-    console.log(`失败: ${failedTests} (${(failedTests / totalTests * 100).toFixed(1)}%)`);
-    console.log(`平均执行时间: ${avgDuration.toFixed(0)}ms`);
+    logger.info(`总测试数: ${totalTests}`);
+    logger.info(`成功: ${successTests} (${(successTests / totalTests * 100).toFixed(1)}%)`);
+    logger.info(`失败: ${failedTests} (${(failedTests / totalTests * 100).toFixed(1)}%)`);
+    logger.info(`平均执行时间: ${avgDuration.toFixed(0)}ms`);
 
     if (failedTests > 0) {
-      console.log('\n失败的测试:');
+      logger.info('\n失败的测试:');
       this.testResults
         .filter(r => !r.success)
         .forEach(r => {
-          console.log(`  ❌ ${r.tool}: ${r.error}`);
+          logger.info(`  ❌ ${r.tool}: ${r.error}`);
         });
     }
 
-    console.log('\n执行时间统计:');
+    logger.info('\n执行时间统计:');
     const sortedByDuration = [...this.testResults]
       .sort((a, b) => b.duration - a.duration)
       .slice(0, 5);
 
     sortedByDuration.forEach((r, i) => {
-      console.log(`  ${i + 1}. ${r.tool}: ${r.duration}ms`);
+      logger.info(`  ${i + 1}. ${r.tool}: ${r.duration}ms`);
     });
 
-    console.log('\n========================================\n');
+    logger.info('\n========================================\n');
 
     return {
       total: totalTests,
@@ -451,7 +452,7 @@ class HandlerTester {
       return report;
 
     } catch (error) {
-      console.error('\n[Test] 测试过程中发生错误:', error);
+      logger.error('\n[Test] 测试过程中发生错误:', error);
       this.generateReport();
       throw error;
     }
@@ -464,11 +465,11 @@ if (require.main === module) {
   tester.run()
     .then(report => {
       const success = report.failed === 0;
-      console.log(`\n测试${success ? '全部通过' : '部分失败'}! 成功率: ${report.successRate}`);
+      logger.info(`\n测试${success ? '全部通过' : '部分失败'}! 成功率: ${report.successRate}`);
       process.exit(success ? 0 : 1);
     })
     .catch(error => {
-      console.error('测试失败:', error);
+      logger.error('测试失败:', error);
       process.exit(1);
     });
 }

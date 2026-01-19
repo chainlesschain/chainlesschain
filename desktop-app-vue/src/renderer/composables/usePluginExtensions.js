@@ -4,6 +4,7 @@
  * 提供获取和使用插件UI扩展的Vue Composition API
  */
 
+import { logger, createLogger } from '@/utils/logger';
 import {
   ref,
   computed,
@@ -115,7 +116,7 @@ export function usePluginExtensions() {
    */
   async function loadExtensions() {
     if (!window.electronAPI?.plugin?.getUIExtensions) {
-      console.warn("[usePluginExtensions] Plugin API not available");
+      logger.warn("[usePluginExtensions] Plugin API not available");
       return;
     }
 
@@ -136,7 +137,7 @@ export function usePluginExtensions() {
         throw new Error(result.error || "获取UI扩展失败");
       }
     } catch (err) {
-      console.error("[usePluginExtensions] Failed to load extensions:", err);
+      logger.error("[usePluginExtensions] Failed to load extensions:", err);
       error.value = err.message;
     } finally {
       isLoading.value = false;
@@ -291,7 +292,7 @@ export function usePluginExtensions() {
  */
 export async function getSlotExtensions(slotName) {
   if (!window.electronAPI?.plugin?.getSlotExtensions) {
-    console.warn("[getSlotExtensions] Plugin API not available");
+    logger.warn("[getSlotExtensions] Plugin API not available");
     return [];
   }
 
@@ -304,7 +305,7 @@ export async function getSlotExtensions(slotName) {
       throw new Error(result.error || "获取插槽扩展失败");
     }
   } catch (err) {
-    console.error(`[getSlotExtensions] Failed to get slot ${slotName}:`, err);
+    logger.error(`[getSlotExtensions] Failed to get slot ${slotName}:`, err);
     return [];
   }
 }
@@ -315,7 +316,7 @@ export async function getSlotExtensions(slotName) {
  */
 export async function registerPluginRoutes(router) {
   if (!window.electronAPI?.plugin?.getUIExtensions) {
-    console.warn("[registerPluginRoutes] Plugin API not available");
+    logger.warn("[registerPluginRoutes] Plugin API not available");
     return;
   }
 
@@ -371,10 +372,10 @@ export async function registerPluginRoutes(router) {
       };
 
       router.addRoute(route);
-      console.log(`[registerPluginRoutes] Route registered: ${routePath}`);
+      logger.info(`[registerPluginRoutes] Route registered: ${routePath}`);
     }
   } catch (err) {
-    console.error("[registerPluginRoutes] Failed to register routes:", err);
+    logger.error("[registerPluginRoutes] Failed to register routes:", err);
   }
 }
 
@@ -391,7 +392,7 @@ export async function registerPluginRoutes(router) {
  */
 export async function callPluginMethod(pluginId, methodName, ...args) {
   if (!window.electronAPI?.plugin?.callPluginMethod) {
-    console.warn("[callPluginMethod] Plugin API not available");
+    logger.warn("[callPluginMethod] Plugin API not available");
     return null;
   }
 
@@ -408,7 +409,7 @@ export async function callPluginMethod(pluginId, methodName, ...args) {
       throw new Error(result.error || "调用插件方法失败");
     }
   } catch (err) {
-    console.error(`[callPluginMethod] ${pluginId}.${methodName} 失败:`, err);
+    logger.error(`[callPluginMethod] ${pluginId}.${methodName} 失败:`, err);
     throw err;
   }
 }
@@ -430,7 +431,7 @@ export async function getPluginPageContent(pluginId, pageId = "main") {
       pageId,
     );
   } catch (err) {
-    console.error(`[getPluginPageContent] ${pluginId}/${pageId} 失败:`, err);
+    logger.error(`[getPluginPageContent] ${pluginId}/${pageId} 失败:`, err);
     return { success: false, error: err.message };
   }
 }
@@ -471,7 +472,7 @@ export async function getPluginMenuItems() {
       })),
     }));
   } catch (err) {
-    console.error("[getPluginMenuItems] 失败:", err);
+    logger.error("[getPluginMenuItems] 失败:", err);
     return [];
   }
 }
@@ -488,7 +489,7 @@ export function usePluginMenus() {
     try {
       menuItems.value = await getPluginMenuItems();
     } catch (err) {
-      console.error("[usePluginMenus] 加载失败:", err);
+      logger.error("[usePluginMenus] 加载失败:", err);
       menuItems.value = [];
     } finally {
       loading.value = false;
@@ -569,7 +570,7 @@ export function usePluginSlot(slotName) {
         throw new Error(result?.error || "获取插槽扩展失败");
       }
     } catch (err) {
-      console.error(`[usePluginSlot:${slotName}]`, err);
+      logger.error(`[usePluginSlot:${slotName}]`, err);
       error.value = err.message;
     } finally {
       loading.value = false;

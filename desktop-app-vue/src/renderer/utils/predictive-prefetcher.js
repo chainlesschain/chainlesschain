@@ -3,6 +3,7 @@
  * Predicts which files user will open next based on access patterns and prefetches them
  */
 
+import { logger, createLogger } from '@/utils/logger';
 import indexedDBCache from './indexeddb-cache'
 import performanceTracker from './performance-tracker'
 
@@ -51,13 +52,13 @@ class PredictivePrefetcher {
         // Rebuild patterns from history
         this.rebuildPatterns()
 
-        console.log('[Prefetcher] Loaded history:', {
+        logger.info('[Prefetcher] Loaded history:', {
           entries: this.accessHistory.length,
           sequences: this.fileSequences.size
         })
       }
     } catch (error) {
-      console.error('[Prefetcher] Failed to load history:', error)
+      logger.error('[Prefetcher] Failed to load history:', error)
     }
   }
 
@@ -71,7 +72,7 @@ class PredictivePrefetcher {
         stats: this.stats
       }))
     } catch (error) {
-      console.error('[Prefetcher] Failed to save history:', error)
+      logger.error('[Prefetcher] Failed to save history:', error)
     }
   }
 
@@ -299,7 +300,7 @@ class PredictivePrefetcher {
         return
       }
 
-      console.log('[Prefetcher] Predictions:', predictions.map(p => ({
+      logger.info('[Prefetcher] Predictions:', predictions.map(p => ({
         path: p.path.split('/').pop(),
         confidence: Math.round(p.confidence * 100) + '%',
         reason: p.reason
@@ -317,7 +318,7 @@ class PredictivePrefetcher {
         setTimeout(() => this.processPrefetchQueue(), this.prefetchDelay)
       }
     } catch (error) {
-      console.error('[Prefetcher] Prediction error:', error)
+      logger.error('[Prefetcher] Prediction error:', error)
     }
   }
 
@@ -372,10 +373,10 @@ class PredictivePrefetcher {
           startTime
         )
 
-        console.log('[Prefetcher] Prefetched:', prediction.path.split('/').pop())
+        logger.info('[Prefetcher] Prefetched:', prediction.path.split('/').pop())
       }
     } catch (error) {
-      console.error('[Prefetcher] Prefetch error:', error)
+      logger.error('[Prefetcher] Prefetch error:', error)
     } finally {
       // Clean up old prefetched files (keep for 5 minutes)
       const now = Date.now()
@@ -400,7 +401,7 @@ class PredictivePrefetcher {
       this.stats.hits++
       this.stats.accuracy = this.stats.hits / (this.stats.hits + this.stats.misses)
 
-      console.log('[Prefetcher] Prefetch hit:', path.split('/').pop())
+      logger.info('[Prefetcher] Prefetch hit:', path.split('/').pop())
       return data.content
     }
 

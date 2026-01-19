@@ -225,6 +225,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue';
 import { message, Empty } from 'ant-design-vue';
 import {
@@ -385,7 +387,7 @@ const handleSearch = () => {
       searchResults.value = results;
       selectedResultIndex.value = 0;
     } catch (error) {
-      console.error('[GlobalSearch] Search error:', error);
+      logger.error('[GlobalSearch] Search error:', error);
       message.error('搜索失败');
     }
   }, 300);

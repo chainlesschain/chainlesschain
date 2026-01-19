@@ -4,6 +4,7 @@
  * 支持3种模板: 商务报告、学术论文、用户手册
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require('fs').promises;
 const path = require('path');
 
@@ -18,9 +19,9 @@ class DocumentEngine {
       try {
         const { getPythonBridge } = require('../project/python-bridge');
         this.pythonBridge = getPythonBridge();
-        console.log('[Document Engine] Python工具已启用');
+        logger.info('[Document Engine] Python工具已启用');
       } catch (error) {
-        console.warn('[Document Engine] Python工具加载失败，将使用npm包实现:', error.message);
+        logger.warn('[Document Engine] Python工具加载失败，将使用npm包实现:', error.message);
         this.usePythonTools = false;
       }
     }
@@ -65,7 +66,7 @@ class DocumentEngine {
       throw new Error('未指定项目路径');
     }
 
-    console.log(`[Document Engine] 生成${this.templates[template]?.name || template}...`);
+    logger.info(`[Document Engine] 生成${this.templates[template]?.name || template}...`);
 
     try {
       // 创建项目目录
@@ -114,7 +115,7 @@ class DocumentEngine {
         'utf-8'
       );
 
-      console.log(`[Document Engine] 文档生成成功: ${filePath}`);
+      logger.info(`[Document Engine] 文档生成成功: ${filePath}`);
 
       return {
         success: true,
@@ -125,7 +126,7 @@ class DocumentEngine {
         filePath,
       };
     } catch (error) {
-      console.error('[Document Engine] 生成文档失败:', error);
+      logger.error('[Document Engine] 生成文档失败:', error);
       throw new Error(`生成文档失败: ${error.message}`);
     }
   }
@@ -644,7 +645,7 @@ pandoc document.md -o document.docx
    * @param {string} outputPath - 输出PDF路径
    */
   async exportToPDF(markdownPath, outputPath) {
-    console.log('[Document Engine] 导出PDF:', markdownPath);
+    logger.info('[Document Engine] 导出PDF:', markdownPath);
 
     try {
       // 读取Markdown内容
@@ -696,13 +697,13 @@ pandoc document.md -o document.docx
       // 方案1: 使用puppeteer（需要安装）
       // 方案2: 提示用户使用浏览器打印或pandoc工具
 
-      console.log('[Document Engine] 提示：完整的PDF导出需要安装puppeteer');
-      console.log('[Document Engine] 临时方案：已生成HTML文件，可通过浏览器打印为PDF');
+      logger.info('[Document Engine] 提示：完整的PDF导出需要安装puppeteer');
+      logger.info('[Document Engine] 临时方案：已生成HTML文件，可通过浏览器打印为PDF');
 
       // 尝试使用puppeteer（如果已安装）
       try {
         const puppeteer = require('puppeteer');
-        console.log('[Document Engine] 使用puppeteer生成PDF...');
+        logger.info('[Document Engine] 使用puppeteer生成PDF...');
 
         const browser = await puppeteer.launch({ headless: 'new' });
         const page = await browser.newPage();
@@ -724,13 +725,13 @@ pandoc document.md -o document.docx
         try {
           await fs.unlink(tempHTMLPath);
         } catch (unlinkError) {
-          console.warn('[Document Engine] 清理临时文件失败:', unlinkError.message);
+          logger.warn('[Document Engine] 清理临时文件失败:', unlinkError.message);
         }
 
-        console.log('[Document Engine] PDF生成成功:', outputPath);
+        logger.info('[Document Engine] PDF生成成功:', outputPath);
         return { success: true, path: outputPath };
       } catch (puppeteerError) {
-        console.warn('[Document Engine] puppeteer不可用，已生成HTML文件作为替代');
+        logger.warn('[Document Engine] puppeteer不可用，已生成HTML文件作为替代');
 
         // 返回HTML路径作为替代（保留临时文件供用户使用）
         return {
@@ -741,12 +742,12 @@ pandoc document.md -o document.docx
         };
       }
     } catch (error) {
-      console.error('[Document Engine] 导出PDF失败:', error);
+      logger.error('[Document Engine] 导出PDF失败:', error);
       // 尝试清理可能存在的临时文件
       const tempHTMLPath = markdownPath.replace(/\.md$/, '_temp.html');
       try {
         await fs.unlink(tempHTMLPath);
-        console.log('[Document Engine] 已清理临时文件');
+        logger.info('[Document Engine] 已清理临时文件');
       } catch (unlinkError) {
         // 临时文件可能不存在，忽略错误
       }
@@ -764,7 +765,7 @@ pandoc document.md -o document.docx
       throw new Error('Python工具未启用');
     }
 
-    console.log('[Document Engine] 使用Python生成Word文档');
+    logger.info('[Document Engine] 使用Python生成Word文档');
 
     const {
       title = '文档标题',
@@ -784,10 +785,10 @@ pandoc document.md -o document.docx
         metadata
       });
 
-      console.log('[Document Engine] Python Word文档生成成功:', result);
+      logger.info('[Document Engine] Python Word文档生成成功:', result);
       return result;
     } catch (error) {
-      console.error('[Document Engine] Python Word生成失败:', error);
+      logger.error('[Document Engine] Python Word生成失败:', error);
       throw error;
     }
   }
@@ -798,12 +799,12 @@ pandoc document.md -o document.docx
    * @param {string} outputPath - 输出Docx路径
    */
   async exportToDocx(markdownPath, outputPath) {
-    console.log('[Document Engine] 导出Word文档:', markdownPath);
+    logger.info('[Document Engine] 导出Word文档:', markdownPath);
 
     // 如果启用了Python工具，优先使用Python
     if (this.usePythonTools && this.pythonBridge) {
       try {
-        console.log('[Document Engine] 尝试使用Python工具生成Word...');
+        logger.info('[Document Engine] 尝试使用Python工具生成Word...');
 
         // 读取Markdown内容
         const markdownContent = await fs.readFile(markdownPath, 'utf-8');
@@ -826,7 +827,7 @@ pandoc document.md -o document.docx
           ...result
         };
       } catch (pythonError) {
-        console.warn('[Document Engine] Python工具失败，降级到npm包实现:', pythonError.message);
+        logger.warn('[Document Engine] Python工具失败，降级到npm包实现:', pythonError.message);
         // 继续使用下面的npm包实现
       }
     }
@@ -843,10 +844,10 @@ pandoc document.md -o document.docx
       try {
         // 尝试使用pandoc
         await execPromise(`pandoc "${markdownPath}" -o "${outputPath}"`);
-        console.log('[Document Engine] Word文档生成成功（使用pandoc）');
+        logger.info('[Document Engine] Word文档生成成功（使用pandoc）');
         return { success: true, path: outputPath, method: 'pandoc' };
       } catch (pandocError) {
-        console.warn('[Document Engine] pandoc不可用，尝试使用docx库...');
+        logger.warn('[Document Engine] pandoc不可用，尝试使用docx库...');
 
         // 尝试使用docx库（如果已安装）
         try {
@@ -859,10 +860,10 @@ pandoc document.md -o document.docx
           const buffer = await docx.Packer.toBuffer(doc);
           await fs.writeFile(outputPath, buffer);
 
-          console.log('[Document Engine] Word文档生成成功（使用docx库）');
+          logger.info('[Document Engine] Word文档生成成功（使用docx库）');
           return { success: true, path: outputPath, method: 'docx' };
         } catch (docxError) {
-          console.warn('[Document Engine] docx库不可用');
+          logger.warn('[Document Engine] docx库不可用');
 
           // 降级方案：生成HTML并提示用户
           const htmlPath = outputPath.replace(/\.docx?$/, '.html');
@@ -886,7 +887,7 @@ pandoc document.md -o document.docx
         }
       }
     } catch (error) {
-      console.error('[Document Engine] 导出Word文档失败:', error);
+      logger.error('[Document Engine] 导出Word文档失败:', error);
       throw error;
     }
   }
@@ -1097,7 +1098,7 @@ pandoc document.md -o document.docx
    * @param {string} outputPath - 输出路径（可选）
    */
   async exportTo(sourcePath, format, outputPath = null) {
-    console.log(`[Document Engine] 导出为${format}:`, sourcePath);
+    logger.info(`[Document Engine] 导出为${format}:`, sourcePath);
 
     // 确定输出路径
     if (!outputPath) {
@@ -1147,16 +1148,16 @@ pandoc document.md -o document.docx
   async handleProjectTask(params) {
     let { action, description, outputFiles, projectPath, llmManager } = params;
 
-    console.log(`[Document Engine] 处理任务 - ${action}`);
-    console.log(`[Document Engine] 项目路径: ${projectPath}`);
-    console.log(`[Document Engine] 描述: ${description}`);
+    logger.info(`[Document Engine] 处理任务 - ${action}`);
+    logger.info(`[Document Engine] 项目路径: ${projectPath}`);
+    logger.info(`[Document Engine] 描述: ${description}`);
 
     // 如果没有提供项目路径，创建临时目录
     if (!projectPath) {
       const { app } = require('electron');
       const userDataPath = app.getPath('userData');
       projectPath = path.join(userDataPath, 'temp', `doc_${Date.now()}`);
-      console.log('[Document Engine] 未提供项目路径，使用临时目录:', projectPath);
+      logger.info('[Document Engine] 未提供项目路径，使用临时目录:', projectPath);
 
       // 确保目录存在
       await fs.mkdir(projectPath, { recursive: true });
@@ -1166,7 +1167,7 @@ pandoc document.md -o document.docx
     try {
       await fs.access(projectPath);
     } catch (error) {
-      console.log('[Document Engine] 项目目录不存在，创建目录:', projectPath);
+      logger.info('[Document Engine] 项目目录不存在，创建目录:', projectPath);
       await fs.mkdir(projectPath, { recursive: true });
     }
 
@@ -1185,7 +1186,7 @@ pandoc document.md -o document.docx
           // 如果没有Markdown文件，先创建一个
           const mdFilesForPDF = await this.findMarkdownFiles(projectPath);
           if (mdFilesForPDF.length === 0 && description) {
-            console.log('[Document Engine] 未找到Markdown文件，先创建文档...');
+            logger.info('[Document Engine] 未找到Markdown文件，先创建文档...');
             await this.createDocumentFromDescription(description, projectPath, llmManager);
           }
           result = await this.exportDocumentToPDF(projectPath, outputFiles);
@@ -1195,7 +1196,7 @@ pandoc document.md -o document.docx
           // 如果没有Markdown文件，先创建一个
           const mdFilesForDocx = await this.findMarkdownFiles(projectPath);
           if (mdFilesForDocx.length === 0 && description) {
-            console.log('[Document Engine] 未找到Markdown文件，先创建文档...');
+            logger.info('[Document Engine] 未找到Markdown文件，先创建文档...');
             await this.createDocumentFromDescription(description, projectPath, llmManager);
           }
           result = await this.exportDocumentToDocx(projectPath, outputFiles);
@@ -1205,7 +1206,7 @@ pandoc document.md -o document.docx
           // 如果没有Markdown文件，先创建一个
           const mdFilesForHTML = await this.findMarkdownFiles(projectPath);
           if (mdFilesForHTML.length === 0 && description) {
-            console.log('[Document Engine] 未找到Markdown文件，先创建文档...');
+            logger.info('[Document Engine] 未找到Markdown文件，先创建文档...');
             await this.createDocumentFromDescription(description, projectPath, llmManager);
           }
           result = await this.exportDocumentToHTML(projectPath, outputFiles);
@@ -1222,7 +1223,7 @@ pandoc document.md -o document.docx
 
       return result;
     } catch (error) {
-      console.error('[Document Engine] 任务执行失败:', error);
+      logger.error('[Document Engine] 任务执行失败:', error);
       throw error;
     }
   }
@@ -1231,7 +1232,7 @@ pandoc document.md -o document.docx
    * 根据描述创建文档（使用LLM）
    */
   async createDocumentFromDescription(description, projectPath, llmManager) {
-    console.log('[Document Engine] 使用LLM生成文档');
+    logger.info('[Document Engine] 使用LLM生成文档');
 
     const prompt = `请根据以下描述生成一份完整的文档内容（Markdown格式）：
 
@@ -1250,7 +1251,7 @@ ${description}
         maxTokens: 3000
       });
     } catch (llmError) {
-      console.warn('[Document Engine] 本地LLM失败，尝试使用后端AI服务:', llmError.message);
+      logger.warn('[Document Engine] 本地LLM失败，尝试使用后端AI服务:', llmError.message);
       // 降级到后端AI服务
       response = await this.queryBackendAI(prompt, {
         temperature: 0.7
@@ -1262,7 +1263,7 @@ ${description}
     const filePath = path.join(projectPath, fileName);
     await fs.writeFile(filePath, response.text, 'utf-8');
 
-    console.log('[Document Engine] 文档生成成功:', filePath);
+    logger.info('[Document Engine] 文档生成成功:', filePath);
 
     return {
       type: 'document',
@@ -1280,7 +1281,7 @@ ${description}
     const { URL } = require('url');
 
     const backendURL = process.env.AI_SERVICE_URL || 'http://localhost:8001';
-    console.log('[Document Engine] 调用后端AI服务:', backendURL);
+    logger.info('[Document Engine] 调用后端AI服务:', backendURL);
 
     return new Promise((resolve, reject) => {
       const url = new URL('/api/chat/stream', backendURL);
@@ -1388,22 +1389,22 @@ ${description}
    * 导出项目文档为PDF
    */
   async exportDocumentToPDF(projectPath, outputFiles) {
-    console.log('[Document Engine] 查找Markdown文件:', projectPath);
+    logger.info('[Document Engine] 查找Markdown文件:', projectPath);
 
     const mdFiles = await this.findMarkdownFiles(projectPath);
 
     if (mdFiles.length === 0) {
-      console.warn('[Document Engine] 未找到Markdown文件，检查是否有其他文档...');
+      logger.warn('[Document Engine] 未找到Markdown文件，检查是否有其他文档...');
 
       // 尝试查找所有文件
       const allFiles = await fs.readdir(projectPath);
-      console.log('[Document Engine] 项目目录文件列表:', allFiles);
+      logger.info('[Document Engine] 项目目录文件列表:', allFiles);
 
       // 检查是否有 document_*.md 或 *.md 文件
       const docFiles = allFiles.filter(f => f.includes('document') || f.endsWith('.md'));
 
       if (docFiles.length > 0) {
-        console.log('[Document Engine] 找到可能的文档文件:', docFiles);
+        logger.info('[Document Engine] 找到可能的文档文件:', docFiles);
         const sourcePath = path.join(projectPath, docFiles[0]);
         const outputPath = outputFiles && outputFiles[0]
           ? path.join(projectPath, outputFiles[0])
@@ -1415,7 +1416,7 @@ ${description}
     }
 
     const sourcePath = mdFiles[0];
-    console.log('[Document Engine] 使用Markdown文件:', sourcePath);
+    logger.info('[Document Engine] 使用Markdown文件:', sourcePath);
 
     const outputPath = outputFiles && outputFiles[0]
       ? path.join(projectPath, outputFiles[0])
@@ -1428,22 +1429,22 @@ ${description}
    * 导出项目文档为Word
    */
   async exportDocumentToDocx(projectPath, outputFiles) {
-    console.log('[Document Engine] 查找Markdown文件:', projectPath);
+    logger.info('[Document Engine] 查找Markdown文件:', projectPath);
 
     const mdFiles = await this.findMarkdownFiles(projectPath);
 
     if (mdFiles.length === 0) {
-      console.warn('[Document Engine] 未找到Markdown文件，检查是否有其他文档...');
+      logger.warn('[Document Engine] 未找到Markdown文件，检查是否有其他文档...');
 
       // 尝试查找所有文件
       const allFiles = await fs.readdir(projectPath);
-      console.log('[Document Engine] 项目目录文件列表:', allFiles);
+      logger.info('[Document Engine] 项目目录文件列表:', allFiles);
 
       // 检查是否有 document_*.md 或 *.md 文件
       const docFiles = allFiles.filter(f => f.includes('document') || f.endsWith('.md'));
 
       if (docFiles.length > 0) {
-        console.log('[Document Engine] 找到可能的文档文件:', docFiles);
+        logger.info('[Document Engine] 找到可能的文档文件:', docFiles);
         const sourcePath = path.join(projectPath, docFiles[0]);
         const outputPath = outputFiles && outputFiles[0]
           ? path.join(projectPath, outputFiles[0])
@@ -1455,7 +1456,7 @@ ${description}
     }
 
     const sourcePath = mdFiles[0];
-    console.log('[Document Engine] 使用Markdown文件:', sourcePath);
+    logger.info('[Document Engine] 使用Markdown文件:', sourcePath);
 
     const outputPath = outputFiles && outputFiles[0]
       ? path.join(projectPath, outputFiles[0])

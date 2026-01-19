@@ -201,6 +201,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, reactive, onMounted } from 'vue';
 import { message } from 'ant-design-vue';
 import {
@@ -263,7 +265,7 @@ onMounted(async () => {
     const projectPath = await window.electronAPI.config.get('project.rootPath');
     defaultPaths.project = projectPath || '';
   } catch (error) {
-    console.error('加载默认配置失败:', error);
+    logger.error('加载默认配置失败:', error);
   }
 });
 
@@ -335,7 +337,7 @@ const handleComplete = async () => {
       message.error('保存设置失败: ' + (result.error || '未知错误'));
     }
   } catch (error) {
-    console.error('保存配置失败:', error);
+    logger.error('保存配置失败:', error);
     message.error('保存配置失败: ' + error.message);
   } finally {
     saving.value = false;
@@ -360,7 +362,7 @@ const handleExport = async () => {
       message.error('导出配置失败: ' + (result.error || '未知错误'));
     }
   } catch (error) {
-    console.error('导出配置失败:', error);
+    logger.error('导出配置失败:', error);
     message.error('导出配置失败: ' + error.message);
   } finally {
     exporting.value = false;
@@ -405,7 +407,7 @@ const handleImport = async () => {
       message.error('导入配置失败: ' + (result.error || '未知错误'));
     }
   } catch (error) {
-    console.error('导入配置失败:', error);
+    logger.error('导入配置失败:', error);
     message.error('导入配置失败: ' + error.message);
   } finally {
     importing.value = false;

@@ -256,6 +256,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { message } from 'ant-design-vue';
 import {
@@ -400,7 +402,7 @@ const handleClear = () => {
 // 生成详细报告
 const handleGenerateReport = () => {
   const report = getPerformanceReport();
-  console.log('Performance Report:', report);
+  logger.info('Performance Report:', report);
   message.success('详细报告已生成，请查看控制台');
 };
 

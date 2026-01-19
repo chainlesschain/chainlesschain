@@ -128,6 +128,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, reactive, computed, watch, onMounted } from 'vue';
 import { message as antMessage } from 'ant-design-vue';
 import {
@@ -262,7 +264,7 @@ const handleTransfer = async () => {
     // 重置表单
     resetForm();
   } catch (error) {
-    console.error('[AssetTransfer] 转账失败:', error);
+    logger.error('[AssetTransfer] 转账失败:', error);
     antMessage.error(error.message || '转账失败');
   }
 };
@@ -289,7 +291,7 @@ const loadCurrentUserDid = async () => {
       currentUserDid.value = identity.did;
     }
   } catch (error) {
-    console.error('[AssetTransfer] 获取当前用户 DID 失败:', error);
+    logger.error('[AssetTransfer] 获取当前用户 DID 失败:', error);
   }
 };
 

@@ -192,6 +192,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, nextTick, watch, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
 import { useSocialStore } from '../../stores/social'
@@ -241,7 +243,7 @@ const handleSessionClick = async (session) => {
       scrollToBottom()
     }
   } catch (error) {
-    console.error('打开会话失败:', error)
+    logger.error('打开会话失败:', error)
     message.error('打开会话失败')
   }
 }
@@ -260,7 +262,7 @@ const handleSend = async () => {
     await nextTick()
     scrollToBottom()
   } catch (error) {
-    console.error('发送消息失败:', error)
+    logger.error('发送消息失败:', error)
     message.error('发送失败')
   } finally {
     sending.value = false
@@ -293,7 +295,7 @@ const handleSendImage = async () => {
       message.error(result.error || '图片发送失败')
     }
   } catch (error) {
-    console.error('发送图片失败:', error)
+    logger.error('发送图片失败:', error)
     message.error('发送图片失败')
   }
 }
@@ -320,7 +322,7 @@ const handleSendFile = async () => {
       message.error(result.error || '文件发送失败')
     }
   } catch (error) {
-    console.error('发送文件失败:', error)
+    logger.error('发送文件失败:', error)
     message.error('发送文件失败')
   }
 }
@@ -350,7 +352,7 @@ const handleVoiceRecorded = async (voiceData) => {
       message.error(result.error || '语音消息发送失败')
     }
   } catch (error) {
-    console.error('发送语音消息失败:', error)
+    logger.error('发送语音消息失败:', error)
     message.error('发送语音消息失败')
   }
 }
@@ -366,7 +368,7 @@ const handleVoiceCall = async () => {
     await startAudioCall(peerId)
     message.success('正在发起语音通话...')
   } catch (error) {
-    console.error('发起语音通话失败:', error)
+    logger.error('发起语音通话失败:', error)
     message.error('发起语音通话失败')
   }
 }
@@ -382,7 +384,7 @@ const handleVideoCall = async () => {
     await startVideoCall(peerId)
     message.success('正在发起视频通话...')
   } catch (error) {
-    console.error('发起视频通话失败:', error)
+    logger.error('发起视频通话失败:', error)
     message.error('发起视频通话失败')
   }
 }
@@ -408,7 +410,7 @@ const handleScreenSourceSelect = async (source) => {
     await startScreenShare(peerId, source.id)
     message.success('正在发起屏幕共享...')
   } catch (error) {
-    console.error('发起屏幕共享失败:', error)
+    logger.error('发起屏幕共享失败:', error)
     message.error('发起屏幕共享失败')
   }
 }
@@ -448,7 +450,7 @@ const loadMoreMessages = async () => {
       hasMore.value = false
     }
   } catch (error) {
-    console.error('加载更多消息失败:', error)
+    logger.error('加载更多消息失败:', error)
     message.error('加载失败')
   } finally {
     loadingMore.value = false

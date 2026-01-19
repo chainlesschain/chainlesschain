@@ -13,6 +13,7 @@
  * @since 2026-01-18
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require("fs").promises;
 const path = require("path");
 const { EventEmitter } = require("events");
@@ -55,7 +56,7 @@ class BehaviorTracker extends EventEmitter {
     this.minSequenceOccurrences = 3;
     this.minPatternConfidence = 0.5;
 
-    console.log("[BehaviorTracker] Initialized", {
+    logger.info("[BehaviorTracker] Initialized", {
       patternsDir: this.patternsDir,
       sessionId: this.currentSessionId,
     });
@@ -75,9 +76,9 @@ class BehaviorTracker extends EventEmitter {
       // Start periodic analysis
       this._startPeriodicAnalysis();
 
-      console.log("[BehaviorTracker] Initialization complete");
+      logger.info("[BehaviorTracker] Initialization complete");
     } catch (error) {
-      console.error("[BehaviorTracker] Initialization failed:", error);
+      logger.error("[BehaviorTracker] Initialization failed:", error);
       throw error;
     }
   }
@@ -204,10 +205,10 @@ class BehaviorTracker extends EventEmitter {
           )
           .run();
 
-        console.log("[BehaviorTracker] Database tables created");
+        logger.info("[BehaviorTracker] Database tables created");
       }
     } catch (error) {
-      console.error("[BehaviorTracker] Failed to ensure tables:", error);
+      logger.error("[BehaviorTracker] Failed to ensure tables:", error);
       throw error;
     }
   }
@@ -225,7 +226,7 @@ class BehaviorTracker extends EventEmitter {
       await this.analyzePatterns();
     }, this.analysisInterval);
 
-    console.log("[BehaviorTracker] Periodic analysis started");
+    logger.info("[BehaviorTracker] Periodic analysis started");
   }
 
   /**
@@ -235,7 +236,7 @@ class BehaviorTracker extends EventEmitter {
     if (this.analysisTimer) {
       clearInterval(this.analysisTimer);
       this.analysisTimer = null;
-      console.log("[BehaviorTracker] Periodic analysis stopped");
+      logger.info("[BehaviorTracker] Periodic analysis stopped");
     }
   }
 
@@ -411,7 +412,7 @@ class BehaviorTracker extends EventEmitter {
 
       return tracked;
     } catch (error) {
-      console.error("[BehaviorTracker] Failed to track event:", error);
+      logger.error("[BehaviorTracker] Failed to track event:", error);
       throw error;
     }
   }
@@ -425,7 +426,7 @@ class BehaviorTracker extends EventEmitter {
    * @returns {Promise<Object>} Analysis results
    */
   async analyzePatterns() {
-    console.log("[BehaviorTracker] Starting pattern analysis");
+    logger.info("[BehaviorTracker] Starting pattern analysis");
     const startTime = Date.now();
 
     try {
@@ -456,13 +457,13 @@ class BehaviorTracker extends EventEmitter {
       results.duration = Date.now() - startTime;
       this.emit("analysis-completed", results);
 
-      console.log(
+      logger.info(
         `[BehaviorTracker] Analysis complete: ${results.sequencesDetected} sequences, ${results.recommendationsGenerated} recommendations`,
       );
 
       return results;
     } catch (error) {
-      console.error("[BehaviorTracker] Pattern analysis failed:", error);
+      logger.error("[BehaviorTracker] Pattern analysis failed:", error);
       throw error;
     }
   }
@@ -491,7 +492,7 @@ class BehaviorTracker extends EventEmitter {
         await this._recordSequence(sequence, sequenceKey);
       }
     } catch (error) {
-      console.error("[BehaviorTracker] Sequence detection failed:", error);
+      logger.error("[BehaviorTracker] Sequence detection failed:", error);
     }
   }
 
@@ -535,7 +536,7 @@ class BehaviorTracker extends EventEmitter {
           .run(uuidv4(), sequenceKey, sequence.length, now, now, now);
       }
     } catch (error) {
-      console.error("[BehaviorTracker] Failed to record sequence:", error);
+      logger.error("[BehaviorTracker] Failed to record sequence:", error);
     }
   }
 
@@ -619,7 +620,7 @@ class BehaviorTracker extends EventEmitter {
 
       return patterns;
     } catch (error) {
-      console.error("[BehaviorTracker] Sequence analysis failed:", error);
+      logger.error("[BehaviorTracker] Sequence analysis failed:", error);
       return [];
     }
   }
@@ -708,7 +709,7 @@ class BehaviorTracker extends EventEmitter {
 
       return { updated };
     } catch (error) {
-      console.error(
+      logger.error(
         "[BehaviorTracker] Time preference analysis failed:",
         error,
       );
@@ -789,7 +790,7 @@ class BehaviorTracker extends EventEmitter {
 
       return recommendations;
     } catch (error) {
-      console.error(
+      logger.error(
         "[BehaviorTracker] Recommendation generation failed:",
         error,
       );
@@ -885,7 +886,7 @@ class BehaviorTracker extends EventEmitter {
 
       return suggestions;
     } catch (error) {
-      console.error("[BehaviorTracker] Feature suggestion failed:", error);
+      logger.error("[BehaviorTracker] Feature suggestion failed:", error);
       return [];
     }
   }
@@ -923,7 +924,7 @@ class BehaviorTracker extends EventEmitter {
         )
         .run(Date.now());
     } catch (error) {
-      console.error("[BehaviorTracker] Confidence update failed:", error);
+      logger.error("[BehaviorTracker] Confidence update failed:", error);
     }
   }
 
@@ -950,7 +951,7 @@ class BehaviorTracker extends EventEmitter {
       const backupPath = path.join(this.patternsDir, "behavior-summary.json");
       await fs.writeFile(backupPath, JSON.stringify(backup, null, 2));
     } catch (error) {
-      console.error("[BehaviorTracker] Pattern backup failed:", error);
+      logger.error("[BehaviorTracker] Pattern backup failed:", error);
     }
   }
 
@@ -997,7 +998,7 @@ class BehaviorTracker extends EventEmitter {
         acceptedCount: r.accepted_count,
       }));
     } catch (error) {
-      console.error("[BehaviorTracker] Failed to get recommendations:", error);
+      logger.error("[BehaviorTracker] Failed to get recommendations:", error);
       return [];
     }
   }
@@ -1018,7 +1019,7 @@ class BehaviorTracker extends EventEmitter {
         )
         .run(Date.now(), id);
     } catch (error) {
-      console.error(
+      logger.error(
         "[BehaviorTracker] Failed to mark recommendation shown:",
         error,
       );
@@ -1061,7 +1062,7 @@ class BehaviorTracker extends EventEmitter {
 
       this.emit("recommendation-accepted", { id });
     } catch (error) {
-      console.error(
+      logger.error(
         "[BehaviorTracker] Failed to accept recommendation:",
         error,
       );
@@ -1088,7 +1089,7 @@ class BehaviorTracker extends EventEmitter {
 
       this.emit("recommendation-dismissed", { id });
     } catch (error) {
-      console.error(
+      logger.error(
         "[BehaviorTracker] Failed to dismiss recommendation:",
         error,
       );
@@ -1186,7 +1187,7 @@ class BehaviorTracker extends EventEmitter {
         currentSessionId: this.currentSessionId,
       };
     } catch (error) {
-      console.error("[BehaviorTracker] Failed to get stats:", error);
+      logger.error("[BehaviorTracker] Failed to get stats:", error);
       return {};
     }
   }
@@ -1198,7 +1199,7 @@ class BehaviorTracker extends EventEmitter {
   startNewSession() {
     this.currentSessionId = uuidv4();
     this.recentEvents = [];
-    console.log(
+    logger.info(
       `[BehaviorTracker] New session started: ${this.currentSessionId}`,
     );
     return this.currentSessionId;

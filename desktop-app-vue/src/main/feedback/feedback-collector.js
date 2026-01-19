@@ -6,6 +6,7 @@
  * 日期: 2026-01-02
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { app } = require('electron');
 
 class FeedbackCollector {
@@ -60,7 +61,7 @@ class FeedbackCollector {
         this.platform
       ]);
 
-      console.log('[FeedbackCollector] 用户反馈已提交:', {
+      logger.info('[FeedbackCollector] 用户反馈已提交:', {
         id: result.lastInsertRowid,
         type,
         feature: relatedFeature,
@@ -74,7 +75,7 @@ class FeedbackCollector {
       };
 
     } catch (error) {
-      console.error('[FeedbackCollector] 提交反馈失败:', error);
+      logger.error('[FeedbackCollector] 提交反馈失败:', error);
       return {
         success: false,
         error: error.message
@@ -133,7 +134,7 @@ class FeedbackCollector {
         suggestions
       ]);
 
-      console.log('[FeedbackCollector] 满意度调查已提交:', {
+      logger.info('[FeedbackCollector] 满意度调查已提交:', {
         id: result.lastInsertRowid,
         overallScore: overallSatisfaction
       });
@@ -145,7 +146,7 @@ class FeedbackCollector {
       };
 
     } catch (error) {
-      console.error('[FeedbackCollector] 提交调查失败:', error);
+      logger.error('[FeedbackCollector] 提交调查失败:', error);
       return {
         success: false,
         error: error.message
@@ -245,10 +246,10 @@ class FeedbackCollector {
         ]);
       }
 
-      console.log(`[FeedbackCollector] 功能使用已记录: ${featureName} (${success ? '成功' : '失败'}, ${durationMs}ms)`);
+      logger.info(`[FeedbackCollector] 功能使用已记录: ${featureName} (${success ? '成功' : '失败'}, ${durationMs}ms)`);
 
     } catch (error) {
-      console.error('[FeedbackCollector] 记录功能使用失败:', error);
+      logger.error('[FeedbackCollector] 记录功能使用失败:', error);
     }
   }
 
@@ -300,10 +301,10 @@ class FeedbackCollector {
         reportToUser ? 1 : 0
       ]);
 
-      console.warn(`[FeedbackCollector] 性能问题已报告: ${featureName} - ${type}`);
+      logger.warn(`[FeedbackCollector] 性能问题已报告: ${featureName} - ${type}`);
 
     } catch (error) {
-      console.error('[FeedbackCollector] 报告性能问题失败:', error);
+      logger.error('[FeedbackCollector] 报告性能问题失败:', error);
     }
   }
 
@@ -332,7 +333,7 @@ class FeedbackCollector {
       };
 
     } catch (error) {
-      console.error('[FeedbackCollector] 获取统计失败:', error);
+      logger.error('[FeedbackCollector] 获取统计失败:', error);
       return null;
     }
   }
@@ -351,7 +352,7 @@ class FeedbackCollector {
       return features || [];
 
     } catch (error) {
-      console.error('[FeedbackCollector] 获取功能热度失败:', error);
+      logger.error('[FeedbackCollector] 获取功能热度失败:', error);
       return [];
     }
   }
@@ -370,7 +371,7 @@ class FeedbackCollector {
       return hotspots || [];
 
     } catch (error) {
-      console.error('[FeedbackCollector] 获取性能热点失败:', error);
+      logger.error('[FeedbackCollector] 获取性能热点失败:', error);
       return [];
     }
   }

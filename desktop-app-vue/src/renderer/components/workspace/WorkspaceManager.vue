@@ -285,6 +285,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, h } from 'vue';
 import { Modal, message } from 'ant-design-vue';
 import {
@@ -444,7 +446,7 @@ async function handleRestore(workspace) {
           message.error(result.error || '恢复工作区失败');
         }
       } catch (error) {
-        console.error('恢复工作区失败:', error);
+        logger.error('恢复工作区失败:', error);
         message.error('恢复工作区失败');
       }
     }
@@ -471,7 +473,7 @@ async function handleDelete(workspace) {
           message.error(result.error || '删除工作区失败');
         }
       } catch (error) {
-        console.error('删除工作区失败:', error);
+        logger.error('删除工作区失败:', error);
         message.error('删除工作区失败');
       }
     }
@@ -540,7 +542,7 @@ function handleAddMember() {
           return Promise.reject();
         }
       } catch (error) {
-        console.error('添加成员失败:', error);
+        logger.error('添加成员失败:', error);
         message.error('添加成员失败');
         return Promise.reject();
       }

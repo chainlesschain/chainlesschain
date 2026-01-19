@@ -96,6 +96,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, onMounted, onUnmounted } from 'vue';
 import { message } from 'ant-design-vue';
 import { ClockCircleOutlined } from '@ant-design/icons-vue';
@@ -110,7 +112,7 @@ const removeListener = null;
 onMounted(() => {
   if (window.electronAPI && window.electronAPI.sync) {
     window.electronAPI.sync.onShowConflicts((data) => {
-      console.log('[SyncConflictDialog] 收到冲突数据:', data);
+      logger.info('[SyncConflictDialog] 收到冲突数据:', data);
       conflicts.value = data;
       visible.value = true;
     });
@@ -158,7 +160,7 @@ const resolveConflict = async (conflictId, resolution) => {
   try {
     resolving.value = conflictId;
 
-    console.log('[SyncConflictDialog] 解决冲突:', conflictId, resolution);
+    logger.info('[SyncConflictDialog] 解决冲突:', conflictId, resolution);
 
     const result = await window.electronAPI.sync.resolveConflict(conflictId, resolution);
 
@@ -177,7 +179,7 @@ const resolveConflict = async (conflictId, resolution) => {
       message.error('解决冲突失败: ' + result.error);
     }
   } catch (error) {
-    console.error('[SyncConflictDialog] 解决冲突失败:', error);
+    logger.error('[SyncConflictDialog] 解决冲突失败:', error);
     message.error('解决冲突失败: ' + error.message);
   } finally {
     resolving.value = null;

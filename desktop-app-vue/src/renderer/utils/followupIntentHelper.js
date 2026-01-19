@@ -1,3 +1,5 @@
+import { logger, createLogger } from '@/utils/logger';
+
 /**
  * 后续输入意图处理助手
  * 简化的工具函数，用于在 ChatPanel.vue 中集成后续输入意图分类
@@ -205,7 +207,7 @@ export function createConfirmationDialogConfig(classifyResult, userInput) {
  * @returns {Object} 降级结果
  */
 export function handleClassificationError(error, userInput) {
-  console.error('[FollowupIntent] 分类失败:', error);
+  logger.error('[FollowupIntent] 分类失败:', error);
 
   // 返回默认降级结果
   return {
@@ -249,7 +251,7 @@ export function formatIntentLog(classifyResult, userInput) {
  */
 export async function batchTestIntents(testInputs) {
   if (!window.electronAPI?.followupIntent) {
-    console.error('[FollowupIntent] API 不可用');
+    logger.error('[FollowupIntent] API 不可用');
     return [];
   }
 
@@ -269,7 +271,7 @@ export async function batchTestIntents(testInputs) {
         method: result.data.method
       });
 
-      console.log(formatIntentLog(result, input));
+      logger.info(formatIntentLog(result, input));
     } catch (error) {
       results.push({
         input,
@@ -293,17 +295,17 @@ if (typeof window !== 'undefined') {
         context: {}
       });
 
-      console.log('=== 意图分类结果 ===');
-      console.log('输入:', input);
-      console.log('意图:', getIntentDescription(result.data.intent), `(${result.data.intent})`);
-      console.log('置信度:', (result.data.confidence * 100).toFixed(1) + '%');
-      console.log('方法:', result.data.method);
-      console.log('理由:', result.data.reason);
-      console.log('耗时:', result.data.latency + 'ms');
+      logger.info('=== 意图分类结果 ===');
+      logger.info('输入:', input);
+      logger.info('意图:', getIntentDescription(result.data.intent), `(${result.data.intent})`);
+      logger.info('置信度:', (result.data.confidence * 100).toFixed(1) + '%');
+      logger.info('方法:', result.data.method);
+      logger.info('理由:', result.data.reason);
+      logger.info('耗时:', result.data.latency + 'ms');
 
       return result.data;
     } catch (error) {
-      console.error('测试失败:', error);
+      logger.error('测试失败:', error);
       return null;
     }
   };

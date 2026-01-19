@@ -3,6 +3,7 @@
  * 负责技能和工具配置的导入导出
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require('fs').promises;
 const path = require('path');
 
@@ -178,7 +179,7 @@ class ConfigManager {
     }
 
     await fs.writeFile(filePath, content, 'utf-8');
-    console.log(`[ConfigManager] 配置已导出到: ${filePath}`);
+    logger.info(`[ConfigManager] 配置已导出到: ${filePath}`);
 
     return { success: true, filePath };
   }
@@ -351,7 +352,7 @@ class ConfigManager {
                   toolRef.priority || 0
                 );
               } catch (error) {
-                console.warn(`[ConfigManager] 添加工具关联失败: ${skillData.id} -> ${toolRef.tool_id}`, error);
+                logger.warn(`[ConfigManager] 添加工具关联失败: ${skillData.id} -> ${toolRef.tool_id}`, error);
               }
             }
           }
@@ -370,7 +371,7 @@ class ConfigManager {
       }
     }
 
-    console.log('[ConfigManager] 配置导入完成:', result);
+    logger.info('[ConfigManager] 配置导入完成:', result);
     return result;
   }
 
@@ -485,7 +486,7 @@ class ConfigManager {
    */
   yamlToJson(yaml) {
     // 简单实现,建议使用js-yaml库
-    console.warn('[ConfigManager] YAML解析使用简化实现,建议使用js-yaml库');
+    logger.warn('[ConfigManager] YAML解析使用简化实现,建议使用js-yaml库');
     throw new Error('YAML导入需要安装js-yaml库');
   }
 }

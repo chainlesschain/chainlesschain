@@ -3,6 +3,7 @@
  * 负责工具的注册、管理、统计和与FunctionCaller的集成
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { v4: uuidv4 } = require("uuid");
 const DocGenerator = require("./doc-generator");
 
@@ -30,7 +31,7 @@ class ToolManager {
    */
   async initialize() {
     try {
-      console.log("[ToolManager] 初始化工具管理器...");
+      logger.info("[ToolManager] 初始化工具管理器...");
 
       // 1. 初始化文档生成器
       await this.docGenerator.initialize();
@@ -48,11 +49,11 @@ class ToolManager {
       await this.generateAllDocs();
 
       this.isInitialized = true;
-      console.log(`[ToolManager] 初始化完成，共加载 ${this.tools.size} 个工具`);
+      logger.info(`[ToolManager] 初始化完成，共加载 ${this.tools.size} 个工具`);
 
       return true;
     } catch (error) {
-      console.error("[ToolManager] 初始化失败:", error);
+      logger.error("[ToolManager] 初始化失败:", error);
       throw error;
     }
   }
@@ -194,11 +195,11 @@ class ToolManager {
         handler,
       });
 
-      console.log(`[ToolManager] 工具注册成功: ${toolRecord.name} (${toolId})`);
+      logger.info(`[ToolManager] 工具注册成功: ${toolRecord.name} (${toolId})`);
 
       return toolId;
     } catch (error) {
-      console.error("[ToolManager] 注册工具失败:", error);
+      logger.error("[ToolManager] 注册工具失败:", error);
       throw error;
     }
   }
@@ -225,9 +226,9 @@ class ToolManager {
       // 3. 从缓存中移除
       this.tools.delete(toolId);
 
-      console.log(`[ToolManager] 工具注销成功: ${tool.name}`);
+      logger.info(`[ToolManager] 工具注销成功: ${tool.name}`);
     } catch (error) {
-      console.error("[ToolManager] 注销工具失败:", error);
+      logger.error("[ToolManager] 注销工具失败:", error);
       throw error;
     }
   }
@@ -299,10 +300,10 @@ class ToolManager {
       const updatedTool = await this.getTool(toolId);
       this.tools.set(toolId, updatedTool);
 
-      console.log(`[ToolManager] 工具更新成功: ${tool.name}`);
+      logger.info(`[ToolManager] 工具更新成功: ${tool.name}`);
       return { success: true, changes: result.changes || 1 };
     } catch (error) {
-      console.error("[ToolManager] 更新工具失败:", error);
+      logger.error("[ToolManager] 更新工具失败:", error);
       return { success: false, changes: 0, error: error.message };
     }
   }
@@ -328,7 +329,7 @@ class ToolManager {
       }
       return tool;
     } catch (error) {
-      console.error("[ToolManager] 获取工具失败:", error);
+      logger.error("[ToolManager] 获取工具失败:", error);
       return null;
     }
   }
@@ -345,7 +346,7 @@ class ToolManager {
       ]);
       return tool;
     } catch (error) {
-      console.error("[ToolManager] 获取工具失败:", error);
+      logger.error("[ToolManager] 获取工具失败:", error);
       return null;
     }
   }
@@ -409,7 +410,7 @@ class ToolManager {
       const tools = await this.db.all(sql, params);
       return tools;
     } catch (error) {
-      console.error("[ToolManager] 获取工具列表失败:", error);
+      logger.error("[ToolManager] 获取工具列表失败:", error);
       return [];
     }
   }
@@ -439,7 +440,7 @@ class ToolManager {
       const tools = await this.db.all(sql, [skillId]);
       return tools;
     } catch (error) {
-      console.error("[ToolManager] 获取技能工具失败:", error);
+      logger.error("[ToolManager] 获取技能工具失败:", error);
       return [];
     }
   }
@@ -462,7 +463,7 @@ class ToolManager {
    */
   async enableTool(toolId) {
     await this.updateTool(toolId, { enabled: 1 });
-    console.log(`[ToolManager] 工具已启用: ${toolId}`);
+    logger.info(`[ToolManager] 工具已启用: ${toolId}`);
   }
 
   /**
@@ -471,7 +472,7 @@ class ToolManager {
    */
   async disableTool(toolId) {
     await this.updateTool(toolId, { enabled: 0 });
-    console.log(`[ToolManager] 工具已禁用: ${toolId}`);
+    logger.info(`[ToolManager] 工具已禁用: ${toolId}`);
   }
 
   // ===================================
@@ -490,7 +491,7 @@ class ToolManager {
       // 1. 更新工具表的统计字段
       const tool = await this.getToolByName(toolName);
       if (!tool) {
-        console.warn(`[ToolManager] 工具不存在，跳过统计: ${toolName}`);
+        logger.warn(`[ToolManager] 工具不存在，跳过统计: ${toolName}`);
         return;
       }
 
@@ -516,7 +517,7 @@ class ToolManager {
       // 2. 更新每日统计表
       await this.updateDailyStats(tool.id, success, duration, errorType);
     } catch (error) {
-      console.error("[ToolManager] 记录工具使用失败:", error);
+      logger.error("[ToolManager] 记录工具使用失败:", error);
     }
   }
 
@@ -616,7 +617,7 @@ class ToolManager {
         );
       }
     } catch (error) {
-      console.error("[ToolManager] 更新每日统计失败:", error);
+      logger.error("[ToolManager] 更新每日统计失败:", error);
     }
   }
 
@@ -670,7 +671,7 @@ class ToolManager {
       const stats = await this.db.all(sql, params);
       return stats;
     } catch (error) {
-      console.error("[ToolManager] 获取工具统计失败:", error);
+      logger.error("[ToolManager] 获取工具统计失败:", error);
       return toolId ? [] : { success: false, error: error.message };
     }
   }
@@ -729,7 +730,7 @@ class ToolManager {
 
       return true;
     } catch (error) {
-      console.error("[ToolManager] Schema验证失败:", error);
+      logger.error("[ToolManager] Schema验证失败:", error);
       return false;
     }
   }
@@ -758,10 +759,10 @@ class ToolManager {
    */
   async loadBuiltInTools() {
     try {
-      console.log("[ToolManager] 加载内置工具...");
+      logger.info("[ToolManager] 加载内置工具...");
 
       if (!this.functionCaller) {
-        console.warn("[ToolManager] FunctionCaller未设置，跳过内置工具加载");
+        logger.warn("[ToolManager] FunctionCaller未设置，跳过内置工具加载");
         return;
       }
 
@@ -772,7 +773,7 @@ class ToolManager {
         // 检查是否已存在
         const existing = await this.getToolByName(toolSchema.name);
         if (existing) {
-          console.log(`[ToolManager] 工具已存在，跳过: ${toolSchema.name}`);
+          logger.info(`[ToolManager] 工具已存在，跳过: ${toolSchema.name}`);
           continue;
         }
 
@@ -817,12 +818,12 @@ class ToolManager {
           ],
         );
 
-        console.log(`[ToolManager] 内置工具已加载: ${toolSchema.name}`);
+        logger.info(`[ToolManager] 内置工具已加载: ${toolSchema.name}`);
       }
 
-      console.log("[ToolManager] 内置工具加载完成");
+      logger.info("[ToolManager] 内置工具加载完成");
     } catch (error) {
-      console.error("[ToolManager] 加载内置工具失败:", error);
+      logger.error("[ToolManager] 加载内置工具失败:", error);
     }
   }
 
@@ -854,7 +855,7 @@ class ToolManager {
    */
   async loadPluginTools() {
     try {
-      console.log("[ToolManager] 加载插件工具...");
+      logger.info("[ToolManager] 加载插件工具...");
 
       // 查询数据库中plugin_id不为空的工具
       const pluginTools = await this.db.all(
@@ -865,11 +866,11 @@ class ToolManager {
         this.tools.set(tool.id, tool);
       }
 
-      console.log(
+      logger.info(
         `[ToolManager] 插件工具加载完成，共 ${pluginTools.length} 个`,
       );
     } catch (error) {
-      console.error("[ToolManager] 加载插件工具失败:", error);
+      logger.error("[ToolManager] 加载插件工具失败:", error);
     }
   }
 
@@ -879,10 +880,10 @@ class ToolManager {
    */
   async loadAdditionalToolsV3() {
     try {
-      console.log("[ToolManager] 加载Additional Tools V3...");
+      logger.info("[ToolManager] 加载Additional Tools V3...");
 
       if (!this.functionCaller) {
-        console.warn("[ToolManager] FunctionCaller未设置，跳过V3工具加载");
+        logger.warn("[ToolManager] FunctionCaller未设置，跳过V3工具加载");
         return;
       }
 
@@ -898,7 +899,7 @@ class ToolManager {
         logger: console,
       });
 
-      console.log(`[ToolManager] Handler实例化成功 (workDir: ${workDir})`);
+      logger.info(`[ToolManager] Handler实例化成功 (workDir: ${workDir})`);
 
       // 从数据库加载V3工具
       const v3Tools = await this.db.all(
@@ -906,7 +907,7 @@ class ToolManager {
         ["%additional-tools-v3-handler%"],
       );
 
-      console.log(`[ToolManager] 从数据库加载了 ${v3Tools.length} 个V3工具`);
+      logger.info(`[ToolManager] 从数据库加载了 ${v3Tools.length} 个V3工具`);
 
       let registered = 0;
       let skipped = 0;
@@ -919,14 +920,14 @@ class ToolManager {
 
           // 检查Handler方法是否存在
           if (typeof handler[methodName] !== "function") {
-            console.warn(`[ToolManager] Handler方法不存在: ${methodName}`);
+            logger.warn(`[ToolManager] Handler方法不存在: ${methodName}`);
             failed++;
             continue;
           }
 
           // 检查是否已在FunctionCaller中注册
           if (this.functionCaller.hasTool(tool.name)) {
-            console.log(
+            logger.info(
               `[ToolManager] V3工具已在FunctionCaller中，跳过: ${tool.name}`,
             );
             skipped++;
@@ -963,11 +964,11 @@ class ToolManager {
           });
 
           registered++;
-          console.log(
+          logger.info(
             `[ToolManager] ✅ V3工具注册成功: ${tool.name} (${tool.id})`,
           );
         } catch (error) {
-          console.error(
+          logger.error(
             `[ToolManager] ❌ V3工具注册失败: ${tool.name}`,
             error.message,
           );
@@ -975,13 +976,13 @@ class ToolManager {
         }
       }
 
-      console.log(
+      logger.info(
         `[ToolManager] Additional Tools V3加载完成: 注册 ${registered} 个, 跳过 ${skipped} 个, 失败 ${failed} 个`,
       );
 
       return { registered, skipped, failed };
     } catch (error) {
-      console.error("[ToolManager] 加载Additional Tools V3失败:", error);
+      logger.error("[ToolManager] 加载Additional Tools V3失败:", error);
       // 不抛出错误，允许系统继续运行
     }
   }
@@ -995,14 +996,14 @@ class ToolManager {
    */
   async generateAllDocs() {
     try {
-      console.log("[ToolManager] 生成工具文档...");
+      logger.info("[ToolManager] 生成工具文档...");
 
       const tools = Array.from(this.tools.values());
       const count = await this.docGenerator.generateAllToolDocs(tools);
 
-      console.log(`[ToolManager] 工具文档生成完成，共 ${count} 个`);
+      logger.info(`[ToolManager] 工具文档生成完成，共 ${count} 个`);
     } catch (error) {
-      console.error("[ToolManager] 生成工具文档失败:", error);
+      logger.error("[ToolManager] 生成工具文档失败:", error);
       // 文档生成失败不影响系统运行
     }
   }
@@ -1029,7 +1030,7 @@ class ToolManager {
 
       return content;
     } catch (error) {
-      console.error("[ToolManager] 获取工具文档失败:", error);
+      logger.error("[ToolManager] 获取工具文档失败:", error);
       throw error;
     }
   }
@@ -1046,9 +1047,9 @@ class ToolManager {
       }
 
       await this.docGenerator.generateToolDoc(tool);
-      console.log(`[ToolManager] 工具文档已重新生成: ${tool.name}`);
+      logger.info(`[ToolManager] 工具文档已重新生成: ${tool.name}`);
     } catch (error) {
-      console.error("[ToolManager] 重新生成工具文档失败:", error);
+      logger.error("[ToolManager] 重新生成工具文档失败:", error);
       throw error;
     }
   }

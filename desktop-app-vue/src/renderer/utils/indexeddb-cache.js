@@ -1,3 +1,5 @@
+import { logger, createLogger } from '@/utils/logger';
+
 /**
  * IndexedDB Cache Manager
  * 用于缓存文件内容、解析结果等大数据，支持离线访问
@@ -42,14 +44,14 @@ class IndexedDBWrapper {
       const request = indexedDB.open(DB_NAME, DB_VERSION);
 
       request.onerror = () => {
-        console.error('IndexedDB open error:', request.error);
+        logger.error('IndexedDB open error:', request.error);
         reject(request.error);
       };
 
       request.onsuccess = () => {
         this.db = request.result;
         this.initialized = true;
-        console.log('IndexedDB initialized successfully');
+        logger.info('IndexedDB initialized successfully');
         resolve(this.db);
       };
 
@@ -101,7 +103,7 @@ class IndexedDBWrapper {
           thumbnailStore.createIndex('fileId', 'fileId', { unique: false });
         }
 
-        console.log('IndexedDB schema upgraded to version', DB_VERSION);
+        logger.info('IndexedDB schema upgraded to version', DB_VERSION);
       };
     });
 
@@ -278,12 +280,12 @@ export class FileCacheManager {
 
     try {
       await this.db.put(STORES.FILE_CONTENT, data);
-      console.log(`Cached file content: ${filePath} (${data.size} bytes)`);
+      logger.info(`Cached file content: ${filePath} (${data.size} bytes)`);
 
       // 检查缓存大小
       await this.checkCacheSize();
     } catch (error) {
-      console.error('Failed to cache file content:', error);
+      logger.error('Failed to cache file content:', error);
       throw error;
     }
   }
@@ -310,10 +312,10 @@ export class FileCacheManager {
         return null;
       }
 
-      console.log(`Cache hit: ${filePath}`);
+      logger.info(`Cache hit: ${filePath}`);
       return data;
     } catch (error) {
-      console.error('Failed to get cached file content:', error);
+      logger.error('Failed to get cached file content:', error);
       return null;
     }
   }
@@ -338,9 +340,9 @@ export class FileCacheManager {
 
     try {
       await this.db.put(STORES.PARSE_RESULTS, data);
-      console.log(`Cached parse result: ${fileId} (${fileType})`);
+      logger.info(`Cached parse result: ${fileId} (${fileType})`);
     } catch (error) {
-      console.error('Failed to cache parse result:', error);
+      logger.error('Failed to cache parse result:', error);
       throw error;
     }
   }
@@ -369,7 +371,7 @@ export class FileCacheManager {
 
       return data.result;
     } catch (error) {
-      console.error('Failed to get cached parse result:', error);
+      logger.error('Failed to get cached parse result:', error);
       return null;
     }
   }
@@ -394,9 +396,9 @@ export class FileCacheManager {
 
     try {
       await this.db.put(STORES.SYNTAX_CACHE, data);
-      console.log(`Cached syntax result: ${fileId} (${language})`);
+      logger.info(`Cached syntax result: ${fileId} (${language})`);
     } catch (error) {
-      console.error('Failed to cache syntax result:', error);
+      logger.error('Failed to cache syntax result:', error);
       throw error;
     }
   }
@@ -425,7 +427,7 @@ export class FileCacheManager {
 
       return data.result;
     } catch (error) {
-      console.error('Failed to get cached syntax result:', error);
+      logger.error('Failed to get cached syntax result:', error);
       return null;
     }
   }
@@ -443,9 +445,9 @@ export class FileCacheManager {
         await this.db.delete(STORES.FILE_CONTENT, file.id);
       }
 
-      console.log(`Cleared cache for project: ${projectId}`);
+      logger.info(`Cleared cache for project: ${projectId}`);
     } catch (error) {
-      console.error('Failed to clear project cache:', error);
+      logger.error('Failed to clear project cache:', error);
       throw error;
     }
   }
@@ -462,7 +464,7 @@ export class FileCacheManager {
       const totalSize = allFiles.reduce((sum, file) => sum + (file.size || 0), 0);
 
       if (totalSize > this.maxCacheSize) {
-        console.log(`Cache size (${totalSize}) exceeds limit (${this.maxCacheSize}), cleaning...`);
+        logger.info(`Cache size (${totalSize}) exceeds limit (${this.maxCacheSize}), cleaning...`);
 
         // 按时间戳排序，删除最旧的
         allFiles.sort((a, b) => a.timestamp - b.timestamp);
@@ -477,10 +479,10 @@ export class FileCacheManager {
           index++;
         }
 
-        console.log(`Cleaned ${index} old cache entries`);
+        logger.info(`Cleaned ${index} old cache entries`);
       }
     } catch (error) {
-      console.error('Failed to check cache size:', error);
+      logger.error('Failed to check cache size:', error);
     }
   }
 
@@ -513,7 +515,7 @@ export class FileCacheManager {
         usage: ((totalSize / this.maxCacheSize) * 100).toFixed(2) + '%',
       };
     } catch (error) {
-      console.error('Failed to get cache stats:', error);
+      logger.error('Failed to get cache stats:', error);
       return null;
     }
   }
@@ -545,9 +547,9 @@ export class FileCacheManager {
       await this.db.clear(STORES.SYNTAX_CACHE);
       await this.db.clear(STORES.THUMBNAILS);
 
-      console.log('All caches cleared');
+      logger.info('All caches cleared');
     } catch (error) {
-      console.error('Failed to clear all caches:', error);
+      logger.error('Failed to clear all caches:', error);
       throw error;
     }
   }

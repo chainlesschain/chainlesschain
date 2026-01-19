@@ -9,6 +9,7 @@
  * - 双向同步支持
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const EventEmitter = require('events');
 const crypto = require('crypto');
 
@@ -73,7 +74,7 @@ class KnowledgeSyncManager extends EventEmitter {
       throw new Error('同步正在进行中');
     }
 
-    console.log('[KnowledgeSync] 开始同步:', peerId);
+    logger.info('[KnowledgeSync] 开始同步:', peerId);
 
     this.isSyncing = true;
     this.emit('sync:started', { peerId });
@@ -84,16 +85,16 @@ class KnowledgeSyncManager extends EventEmitter {
 
       // 2. 检测本地变更
       const localChanges = await this.detectLocalChanges(lastSync);
-      console.log(`[KnowledgeSync] 检测到 ${localChanges.length} 个本地变更`);
+      logger.info(`[KnowledgeSync] 检测到 ${localChanges.length} 个本地变更`);
 
       // 3. 请求远程变更
       const remoteChanges = await this.requestRemoteChanges(peerId, lastSync);
-      console.log(`[KnowledgeSync] 收到 ${remoteChanges.length} 个远程变更`);
+      logger.info(`[KnowledgeSync] 收到 ${remoteChanges.length} 个远程变更`);
 
       // 4. 检测冲突
       const conflicts = this.detectConflicts(localChanges, remoteChanges);
       if (conflicts.length > 0) {
-        console.log(`[KnowledgeSync] 检测到 ${conflicts.length} 个冲突`);
+        logger.info(`[KnowledgeSync] 检测到 ${conflicts.length} 个冲突`);
         this.stats.conflictsDetected += conflicts.length;
       }
 
@@ -109,7 +110,7 @@ class KnowledgeSyncManager extends EventEmitter {
       // 8. 更新同步时间
       this.lastSyncTime.set(peerId, Date.now());
 
-      console.log('[KnowledgeSync] ✅ 同步完成');
+      logger.info('[KnowledgeSync] ✅ 同步完成');
 
       this.emit('sync:completed', {
         peerId,
@@ -121,7 +122,7 @@ class KnowledgeSyncManager extends EventEmitter {
       this.stats.totalSyncs++;
 
     } catch (error) {
-      console.error('[KnowledgeSync] ❌ 同步失败:', error);
+      logger.error('[KnowledgeSync] ❌ 同步失败:', error);
 
       this.emit('sync:failed', {
         peerId,
@@ -139,7 +140,7 @@ class KnowledgeSyncManager extends EventEmitter {
    * 检测本地变更
    */
   async detectLocalChanges(since) {
-    console.log('[KnowledgeSync] 检测本地变更，since:', new Date(since));
+    logger.info('[KnowledgeSync] 检测本地变更，since:', new Date(since));
 
     const changes = [];
 
@@ -173,7 +174,7 @@ class KnowledgeSyncManager extends EventEmitter {
    * 请求远程变更
    */
   async requestRemoteChanges(peerId, since) {
-    console.log('[KnowledgeSync] 请求远程变更');
+    logger.info('[KnowledgeSync] 请求远程变更');
 
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
@@ -206,7 +207,7 @@ class KnowledgeSyncManager extends EventEmitter {
    * 检测冲突
    */
   detectConflicts(localChanges, remoteChanges) {
-    console.log('[KnowledgeSync] 检测冲突...');
+    logger.info('[KnowledgeSync] 检测冲突...');
 
     const conflicts = [];
     const localMap = new Map(localChanges.map(c => [c.noteId, c]));
@@ -274,7 +275,7 @@ class KnowledgeSyncManager extends EventEmitter {
    * 解决冲突
    */
   async resolveConflicts(conflicts) {
-    console.log(`[KnowledgeSync] 解决 ${conflicts.length} 个冲突`);
+    logger.info(`[KnowledgeSync] 解决 ${conflicts.length} 个冲突`);
 
     const resolved = [];
 
@@ -319,7 +320,7 @@ class KnowledgeSyncManager extends EventEmitter {
    * 合并变更
    */
   async mergeChanges(local, remote) {
-    console.log('[KnowledgeSync] 合并变更:', local.noteId);
+    logger.info('[KnowledgeSync] 合并变更:', local.noteId);
 
     // 简单的合并策略：
     // 1. 标题使用最新的
@@ -346,7 +347,7 @@ class KnowledgeSyncManager extends EventEmitter {
    * 应用远程变更
    */
   async applyRemoteChanges(remoteChanges, resolved) {
-    console.log(`[KnowledgeSync] 应用 ${remoteChanges.length} 个远程变更`);
+    logger.info(`[KnowledgeSync] 应用 ${remoteChanges.length} 个远程变更`);
 
     const resolvedMap = new Map(resolved.map(r => [r.noteId, r.resolution]));
 
@@ -377,7 +378,7 @@ class KnowledgeSyncManager extends EventEmitter {
         this.stats.notesDownloaded++;
 
       } catch (error) {
-        console.error('[KnowledgeSync] 应用变更失败:', error);
+        logger.error('[KnowledgeSync] 应用变更失败:', error);
       }
     }
   }
@@ -386,7 +387,7 @@ class KnowledgeSyncManager extends EventEmitter {
    * 上传本地变更
    */
   async uploadLocalChanges(peerId, localChanges) {
-    console.log(`[KnowledgeSync] 上传 ${localChanges.length} 个本地变更`);
+    logger.info(`[KnowledgeSync] 上传 ${localChanges.length} 个本地变更`);
 
     // 批量上传
     const batches = this.chunkArray(localChanges, this.options.batchSize);
@@ -423,7 +424,7 @@ class KnowledgeSyncManager extends EventEmitter {
    * 处理同步请求（作为服务端）
    */
   async handleSyncRequest(peerId, since) {
-    console.log('[KnowledgeSync] 处理同步请求:', peerId, since);
+    logger.info('[KnowledgeSync] 处理同步请求:', peerId, since);
 
     try {
       const changes = await this.detectLocalChanges(since);
@@ -436,7 +437,7 @@ class KnowledgeSyncManager extends EventEmitter {
       });
 
     } catch (error) {
-      console.error('[KnowledgeSync] 处理同步请求失败:', error);
+      logger.error('[KnowledgeSync] 处理同步请求失败:', error);
     }
   }
 
@@ -444,7 +445,7 @@ class KnowledgeSyncManager extends EventEmitter {
    * 处理同步推送（作为客户端）
    */
   async handleSyncPush(peerId, changes) {
-    console.log(`[KnowledgeSync] 处理同步推送: ${changes.length}条`);
+    logger.info(`[KnowledgeSync] 处理同步推送: ${changes.length}条`);
 
     try {
       await this.applyRemoteChanges(changes, []);
@@ -456,7 +457,7 @@ class KnowledgeSyncManager extends EventEmitter {
       });
 
     } catch (error) {
-      console.error('[KnowledgeSync] 处理同步推送失败:', error);
+      logger.error('[KnowledgeSync] 处理同步推送失败:', error);
     }
   }
 

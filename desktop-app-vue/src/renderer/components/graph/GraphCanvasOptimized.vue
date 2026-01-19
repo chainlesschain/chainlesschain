@@ -132,7 +132,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, watch, computed } from 'vue';
-import * as echarts from 'echarts';
+import { init } from '../../utils/echartsConfig';
 import {
   ReloadOutlined,
   CompressOutlined,
@@ -262,7 +262,7 @@ const clusterNodes = (nodes, edges, threshold = 50) => {
 const initChart = () => {
   if (!chartRef.value) {return;}
 
-  chartInstance = echarts.init(chartRef.value);
+  chartInstance = init(chartRef.value);
 
   // 监听点击事件
   chartInstance.on('click', (params) => {

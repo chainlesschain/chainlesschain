@@ -9,6 +9,7 @@
  * @see https://manus.im/blog/Context-Engineering-for-AI-Agents-Lessons-from-Building-Manus
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require('fs').promises;
 const path = require('path');
 const ExtendedTools = require('./extended-tools');
@@ -50,9 +51,9 @@ class FunctionCaller {
           logMaskChanges: options.logMaskChanges !== false,
           defaultAvailable: true,
         });
-        console.log('[FunctionCaller] 工具掩码系统已启用');
+        logger.info('[FunctionCaller] 工具掩码系统已启用');
       } catch (error) {
-        console.warn('[FunctionCaller] 工具掩码系统初始化失败:', error.message);
+        logger.warn('[FunctionCaller] 工具掩码系统初始化失败:', error.message);
         this.enableToolMasking = false;
       }
     }
@@ -82,7 +83,7 @@ class FunctionCaller {
       });
     }
 
-    console.log(`[FunctionCaller] 已同步 ${this.tools.size} 个工具到掩码系统`);
+    logger.info(`[FunctionCaller] 已同步 ${this.tools.size} 个工具到掩码系统`);
   }
 
   /**
@@ -91,7 +92,7 @@ class FunctionCaller {
    */
   setToolManager(toolManager) {
     this.toolManager = toolManager;
-    console.log('[Function Caller] ToolManager已设置');
+    logger.info('[Function Caller] ToolManager已设置');
   }
 
   /**
@@ -113,7 +114,7 @@ class FunctionCaller {
         let resolvedPath = filePath;
         if (context.projectPath && !path.isAbsolute(filePath)) {
           resolvedPath = path.join(context.projectPath, filePath);
-          console.log(`[FunctionCaller] 相对路径解析: ${filePath} -> ${resolvedPath}`);
+          logger.info(`[FunctionCaller] 相对路径解析: ${filePath} -> ${resolvedPath}`);
         }
 
         try {
@@ -155,7 +156,7 @@ class FunctionCaller {
         let resolvedPath = filePath;
         if (context.projectPath && !path.isAbsolute(filePath)) {
           resolvedPath = path.join(context.projectPath, filePath);
-          console.log(`[FunctionCaller] 相对路径解析: ${filePath} -> ${resolvedPath}`);
+          logger.info(`[FunctionCaller] 相对路径解析: ${filePath} -> ${resolvedPath}`);
         }
 
         try {
@@ -169,7 +170,7 @@ class FunctionCaller {
           // 写入文件
           await fs.writeFile(resolvedPath, contentStr, 'utf-8');
 
-          console.log(`[FunctionCaller] 文件已写入: ${resolvedPath}, 大小: ${contentStr.length} 字节`);
+          logger.info(`[FunctionCaller] 文件已写入: ${resolvedPath}, 大小: ${contentStr.length} 字节`);
 
           return {
             success: true,
@@ -319,7 +320,7 @@ footer {
 
         const js = `// 页面初始化
 document.addEventListener('DOMContentLoaded', function() {
-  console.log('页面加载完成');
+  logger.info('页面加载完成');
 
   // 添加交互功能
   initializeInteractions();
@@ -359,7 +360,7 @@ function initializeInteractions() {
         let resolvedPath = filePath;
         if (context.projectPath && !path.isAbsolute(filePath)) {
           resolvedPath = path.join(context.projectPath, filePath);
-          console.log(`[FunctionCaller] 相对路径解析: ${filePath} -> ${resolvedPath}`);
+          logger.info(`[FunctionCaller] 相对路径解析: ${filePath} -> ${resolvedPath}`);
         }
 
         try {
@@ -370,7 +371,7 @@ function initializeInteractions() {
           for (const mod of modifications) {
             if (mod.type === 'general') {
               // 通用修改，这里需要更智能的实现
-              console.log(`[File Editor] 应用修改: ${mod.description}`);
+              logger.info(`[File Editor] 应用修改: ${mod.description}`);
             } else if (mod.target && mod.action) {
               // 结构化修改
               if (mod.action === '改' || mod.action === '修改' || mod.action === '改成') {
@@ -552,7 +553,7 @@ function initializeInteractions() {
     this.registerTool(
       'generic_handler',
       async (params, context) => {
-        console.log('[Generic Handler] 处理请求:', params);
+        logger.info('[Generic Handler] 处理请求:', params);
 
         return {
           success: true,
@@ -610,30 +611,30 @@ function initializeInteractions() {
     try {
       const officeTools = new OfficeToolsHandler();
       officeTools.register(this);
-      console.log('[FunctionCaller] ✓ Office工具已注册（6个工具）');
+      logger.info('[FunctionCaller] ✓ Office工具已注册（6个工具）');
     } catch (error) {
-      console.error('[FunctionCaller] Office工具注册失败:', error.message);
+      logger.error('[FunctionCaller] Office工具注册失败:', error.message);
     }
 
     // 注册数据科学工具
     try {
       const dataScienceTools = new DataScienceToolsHandler();
       dataScienceTools.register(this);
-      console.log('[FunctionCaller] ✓ 数据科学工具已注册（4个工具）');
+      logger.info('[FunctionCaller] ✓ 数据科学工具已注册（4个工具）');
     } catch (error) {
-      console.error('[FunctionCaller] 数据科学工具注册失败:', error.message);
+      logger.error('[FunctionCaller] 数据科学工具注册失败:', error.message);
     }
 
     // 注册项目初始化工具
     try {
       const projectTools = new ProjectToolsHandler();
       projectTools.register(this);
-      console.log('[FunctionCaller] ✓ 项目初始化工具已注册（6个工具）');
+      logger.info('[FunctionCaller] ✓ 项目初始化工具已注册（6个工具）');
     } catch (error) {
-      console.error('[FunctionCaller] 项目初始化工具注册失败:', error.message);
+      logger.error('[FunctionCaller] 项目初始化工具注册失败:', error.message);
     }
 
-    console.log('[FunctionCaller] 所有工具注册完成（包括16个新增工具）');
+    logger.info('[FunctionCaller] 所有工具注册完成（包括16个新增工具）');
   }
 
   /**
@@ -667,7 +668,7 @@ function initializeInteractions() {
    */
   registerTool(name, handler, schema) {
     if (this.tools.has(name)) {
-      console.warn(`[Function Caller] 工具 "${name}" 已存在，将被覆盖`);
+      logger.warn(`[Function Caller] 工具 "${name}" 已存在，将被覆盖`);
     }
 
     this.tools.set(name, {
@@ -686,7 +687,7 @@ function initializeInteractions() {
       });
     }
 
-    console.log(`[Function Caller] 注册工具: ${name}`);
+    logger.info(`[Function Caller] 注册工具: ${name}`);
   }
 
   /**
@@ -696,7 +697,7 @@ function initializeInteractions() {
   unregisterTool(name) {
     if (this.tools.has(name)) {
       this.tools.delete(name);
-      console.log(`[Function Caller] 注销工具: ${name}`);
+      logger.info(`[Function Caller] 注销工具: ${name}`);
     }
   }
 
@@ -718,7 +719,7 @@ function initializeInteractions() {
     if (this.toolMasking && this.enableToolMasking) {
       const validation = this.toolMasking.validateCall(toolName);
       if (!validation.allowed) {
-        console.warn(`[Function Caller] 工具调用被阻止: ${toolName} - ${validation.message}`);
+        logger.warn(`[Function Caller] 工具调用被阻止: ${toolName} - ${validation.message}`);
         throw new Error(validation.message);
       }
     }
@@ -729,7 +730,7 @@ function initializeInteractions() {
       throw new Error(`工具 "${toolName}" 不存在`);
     }
 
-    console.log(`[Function Caller] 调用工具: ${toolName}`, params);
+    logger.info(`[Function Caller] 调用工具: ${toolName}`, params);
 
     try {
       const result = await tool.handler(params, context);
@@ -738,20 +739,20 @@ function initializeInteractions() {
       if (this.toolManager) {
         const duration = Date.now() - startTime;
         this.toolManager.recordToolUsage(toolName, true, duration).catch(err => {
-          console.error('[Function Caller] 记录统计失败:', err);
+          logger.error('[Function Caller] 记录统计失败:', err);
         });
       }
 
       return result;
     } catch (error) {
-      console.error(`[Function Caller] 工具 "${toolName}" 执行失败:`, error);
+      logger.error(`[Function Caller] 工具 "${toolName}" 执行失败:`, error);
 
       // 记录失败统计
       if (this.toolManager) {
         const duration = Date.now() - startTime;
         const errorType = error.name || 'Error';
         this.toolManager.recordToolUsage(toolName, false, duration, errorType).catch(err => {
-          console.error('[Function Caller] 记录统计失败:', err);
+          logger.error('[Function Caller] 记录统计失败:', err);
         });
       }
 

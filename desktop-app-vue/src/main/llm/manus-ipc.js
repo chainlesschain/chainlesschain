@@ -4,6 +4,7 @@
  * 提供前端访问 Context Engineering 和 Tool Masking 功能的接口
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { ipcMain } = require("electron");
 const { getManusOptimizations } = require("./manus-optimizations");
 const { getLLMManager } = require("./llm-manager");
@@ -12,7 +13,7 @@ const { getLLMManager } = require("./llm-manager");
  * 注册 Manus 优化相关的 IPC 处理器
  */
 function registerManusIPC() {
-  console.log("[ManusIPC] 注册 Manus 优化 IPC 处理器...");
+  logger.info("[ManusIPC] 注册 Manus 优化 IPC 处理器...");
 
   // ==========================================
   // 任务追踪 API
@@ -30,7 +31,7 @@ function registerManusIPC() {
       const result = manus.startTask(task);
       return { success: true, task: result };
     } catch (error) {
-      console.error("[ManusIPC] 开始任务失败:", error);
+      logger.error("[ManusIPC] 开始任务失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -46,7 +47,7 @@ function registerManusIPC() {
       manus.updateTaskProgress(stepIndex, status);
       return { success: true };
     } catch (error) {
-      console.error("[ManusIPC] 更新进度失败:", error);
+      logger.error("[ManusIPC] 更新进度失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -60,7 +61,7 @@ function registerManusIPC() {
       manus.completeCurrentStep();
       return { success: true };
     } catch (error) {
-      console.error("[ManusIPC] 完成步骤失败:", error);
+      logger.error("[ManusIPC] 完成步骤失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -74,7 +75,7 @@ function registerManusIPC() {
       manus.completeTask();
       return { success: true };
     } catch (error) {
-      console.error("[ManusIPC] 完成任务失败:", error);
+      logger.error("[ManusIPC] 完成任务失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -88,7 +89,7 @@ function registerManusIPC() {
       manus.cancelTask();
       return { success: true };
     } catch (error) {
-      console.error("[ManusIPC] 取消任务失败:", error);
+      logger.error("[ManusIPC] 取消任务失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -102,7 +103,7 @@ function registerManusIPC() {
       const task = manus.getCurrentTask();
       return { success: true, task };
     } catch (error) {
-      console.error("[ManusIPC] 获取任务失败:", error);
+      logger.error("[ManusIPC] 获取任务失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -122,7 +123,7 @@ function registerManusIPC() {
       manus.setToolAvailable(toolName, available);
       return { success: true };
     } catch (error) {
-      console.error("[ManusIPC] 设置工具可用性失败:", error);
+      logger.error("[ManusIPC] 设置工具可用性失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -138,7 +139,7 @@ function registerManusIPC() {
       manus.setToolsByPrefix(prefix, available);
       return { success: true };
     } catch (error) {
-      console.error("[ManusIPC] 设置前缀工具可用性失败:", error);
+      logger.error("[ManusIPC] 设置前缀工具可用性失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -153,7 +154,7 @@ function registerManusIPC() {
       const result = manus.validateToolCall(toolName);
       return { success: true, validation: result };
     } catch (error) {
-      console.error("[ManusIPC] 验证工具调用失败:", error);
+      logger.error("[ManusIPC] 验证工具调用失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -167,7 +168,7 @@ function registerManusIPC() {
       const tools = manus.getAvailableTools();
       return { success: true, tools };
     } catch (error) {
-      console.error("[ManusIPC] 获取可用工具失败:", error);
+      logger.error("[ManusIPC] 获取可用工具失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -186,7 +187,7 @@ function registerManusIPC() {
       manus.configureTaskPhases(config);
       return { success: true };
     } catch (error) {
-      console.error("[ManusIPC] 配置阶段失败:", error);
+      logger.error("[ManusIPC] 配置阶段失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -201,7 +202,7 @@ function registerManusIPC() {
       const success = manus.transitionToPhase(phase);
       return { success, phase: manus.getCurrentPhase() };
     } catch (error) {
-      console.error("[ManusIPC] 切换阶段失败:", error);
+      logger.error("[ManusIPC] 切换阶段失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -215,7 +216,7 @@ function registerManusIPC() {
       const phase = manus.getCurrentPhase();
       return { success: true, phase };
     } catch (error) {
-      console.error("[ManusIPC] 获取阶段失败:", error);
+      logger.error("[ManusIPC] 获取阶段失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -234,7 +235,7 @@ function registerManusIPC() {
       manus.recordError(error);
       return { success: true };
     } catch (error) {
-      console.error("[ManusIPC] 记录错误失败:", error);
+      logger.error("[ManusIPC] 记录错误失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -249,7 +250,7 @@ function registerManusIPC() {
       manus.resolveLastError(resolution);
       return { success: true };
     } catch (error) {
-      console.error("[ManusIPC] 解决错误失败:", error);
+      logger.error("[ManusIPC] 解决错误失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -267,7 +268,7 @@ function registerManusIPC() {
       const stats = manus.getStats();
       return { success: true, stats };
     } catch (error) {
-      console.error("[ManusIPC] 获取统计失败:", error);
+      logger.error("[ManusIPC] 获取统计失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -281,7 +282,7 @@ function registerManusIPC() {
       manus.resetStats();
       return { success: true };
     } catch (error) {
-      console.error("[ManusIPC] 重置统计失败:", error);
+      logger.error("[ManusIPC] 重置统计失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -295,7 +296,7 @@ function registerManusIPC() {
       const debugInfo = manus.exportDebugInfo();
       return { success: true, debugInfo };
     } catch (error) {
-      console.error("[ManusIPC] 导出调试信息失败:", error);
+      logger.error("[ManusIPC] 导出调试信息失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -314,7 +315,7 @@ function registerManusIPC() {
       const result = llmManager.buildOptimizedPrompt(options);
       return { success: true, ...result };
     } catch (error) {
-      console.error("[ManusIPC] 构建优化 Prompt 失败:", error);
+      logger.error("[ManusIPC] 构建优化 Prompt 失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -330,12 +331,12 @@ function registerManusIPC() {
       const compressed = manus.compress(content, type);
       return { success: true, compressed };
     } catch (error) {
-      console.error("[ManusIPC] 压缩内容失败:", error);
+      logger.error("[ManusIPC] 压缩内容失败:", error);
       return { success: false, error: error.message };
     }
   });
 
-  console.log("[ManusIPC] Manus 优化 IPC 处理器注册完成");
+  logger.info("[ManusIPC] Manus 优化 IPC 处理器注册完成");
 }
 
 module.exports = { registerManusIPC };

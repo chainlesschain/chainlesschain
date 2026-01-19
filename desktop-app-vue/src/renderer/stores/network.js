@@ -2,6 +2,7 @@
  * Network Store
  * 管理网络连接状态
  */
+import { logger, createLogger } from '@/utils/logger';
 import { defineStore } from 'pinia';
 import { ref, onMounted, onUnmounted } from 'vue';
 
@@ -12,7 +13,7 @@ export const useNetworkStore = defineStore('network', () => {
   // 更新在线状态
   const updateOnlineStatus = () => {
     isOnline.value = navigator.onLine;
-    console.log('[Network] 网络状态:', isOnline.value ? '在线' : '离线');
+    logger.info('[Network] 网络状态:', isOnline.value ? '在线' : '离线');
   };
 
   // 监听在线事件
@@ -29,14 +30,14 @@ export const useNetworkStore = defineStore('network', () => {
   const initNetworkListeners = () => {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
-    console.log('[Network] 网络监听已启动');
+    logger.info('[Network] 网络监听已启动');
   };
 
   // 移除网络监听
   const removeNetworkListeners = () => {
     window.removeEventListener('online', handleOnline);
     window.removeEventListener('offline', handleOffline);
-    console.log('[Network] 网络监听已移除');
+    logger.info('[Network] 网络监听已移除');
   };
 
   return {

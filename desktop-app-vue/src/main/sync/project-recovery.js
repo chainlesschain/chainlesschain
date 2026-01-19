@@ -1,3 +1,5 @@
+const { logger, createLogger } = require('../utils/logger.js');
+
 /**
  * 项目恢复工具
  * 用于恢复被同步逻辑错误标记为删除的项目
@@ -14,7 +16,7 @@ class ProjectRecovery {
    */
   scanRecoverableProjects() {
     if (!this.database || !this.database.db) {
-      console.error('[ProjectRecovery] 数据库未初始化');
+      logger.error('[ProjectRecovery] 数据库未初始化');
       return [];
     }
 
@@ -32,7 +34,7 @@ class ProjectRecovery {
         `)
         .all();
 
-      console.log(`[ProjectRecovery] 找到 ${deletedProjects.length} 个已删除的项目`);
+      logger.info(`[ProjectRecovery] 找到 ${deletedProjects.length} 个已删除的项目`);
 
       // 过滤出可能被错误删除的项目（有文件目录存在的）
       const recoverableProjects = [];
@@ -56,10 +58,10 @@ class ProjectRecovery {
         }
       }
 
-      console.log(`[ProjectRecovery] 找到 ${recoverableProjects.length} 个可恢复的项目`);
+      logger.info(`[ProjectRecovery] 找到 ${recoverableProjects.length} 个可恢复的项目`);
       return recoverableProjects;
     } catch (error) {
-      console.error('[ProjectRecovery] 扫描失败:', error);
+      logger.error('[ProjectRecovery] 扫描失败:', error);
       return [];
     }
   }
@@ -71,7 +73,7 @@ class ProjectRecovery {
    */
   recoverProject(projectId) {
     if (!this.database || !this.database.db) {
-      console.error('[ProjectRecovery] 数据库未初始化');
+      logger.error('[ProjectRecovery] 数据库未初始化');
       return false;
     }
 
@@ -87,10 +89,10 @@ class ProjectRecovery {
       stmt.run(Date.now(), projectId);
       this.database.saveToFile();
 
-      console.log(`[ProjectRecovery] 成功恢复项目: ${projectId}`);
+      logger.info(`[ProjectRecovery] 成功恢复项目: ${projectId}`);
       return true;
     } catch (error) {
-      console.error(`[ProjectRecovery] 恢复项目失败: ${projectId}`, error);
+      logger.error(`[ProjectRecovery] 恢复项目失败: ${projectId}`, error);
       return false;
     }
   }
@@ -114,7 +116,7 @@ class ProjectRecovery {
       }
     }
 
-    console.log(`[ProjectRecovery] 批量恢复完成: 成功 ${results.success.length}, 失败 ${results.failed.length}`);
+    logger.info(`[ProjectRecovery] 批量恢复完成: 成功 ${results.success.length}, 失败 ${results.failed.length}`);
     return results;
   }
 
@@ -126,7 +128,7 @@ class ProjectRecovery {
     const recoverableProjects = this.scanRecoverableProjects();
 
     if (recoverableProjects.length === 0) {
-      console.log('[ProjectRecovery] 没有需要恢复的项目');
+      logger.info('[ProjectRecovery] 没有需要恢复的项目');
       return { success: [], failed: [] };
     }
 

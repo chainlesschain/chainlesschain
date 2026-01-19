@@ -50,6 +50,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
 import { Virtualizer } from '@tanstack/virtual-core';
 
@@ -84,7 +86,7 @@ const virtualItems = computed(() => {
 // 初始化虚拟滚动器
 const initVirtualizer = () => {
   if (!scrollContainer.value) {
-    console.warn('[VirtualMessageList] scrollContainer not ready');
+    logger.warn('[VirtualMessageList] scrollContainer not ready');
     return;
   }
 
@@ -118,7 +120,7 @@ const initVirtualizer = () => {
       }
     });
   } catch (error) {
-    console.error('[VirtualMessageList] Failed to initialize virtualizer:', error);
+    logger.error('[VirtualMessageList] Failed to initialize virtualizer:', error);
   }
 };
 

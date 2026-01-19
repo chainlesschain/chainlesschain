@@ -223,6 +223,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted } from 'vue';
 import { message } from 'ant-design-vue';
 import {
@@ -415,9 +417,9 @@ const canDispute = (escrow) => {
 const loadEscrows = async () => {
   try {
     await tradeStore.loadEscrows();
-    console.log('[EscrowList] 托管记录已加载:', escrows.value.length);
+    logger.info('[EscrowList] 托管记录已加载:', escrows.value.length);
   } catch (error) {
-    console.error('[EscrowList] 加载托管记录失败:', error);
+    logger.error('[EscrowList] 加载托管记录失败:', error);
     message.error('加载托管记录失败: ' + error.message);
   }
 };
@@ -461,7 +463,7 @@ const loadCurrentUserDid = async () => {
       currentUserDid.value = identity.did;
     }
   } catch (error) {
-    console.error('[EscrowList] 获取当前用户 DID 失败:', error);
+    logger.error('[EscrowList] 获取当前用户 DID 失败:', error);
   }
 };
 

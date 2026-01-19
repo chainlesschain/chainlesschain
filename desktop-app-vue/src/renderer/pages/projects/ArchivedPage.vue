@@ -311,6 +311,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { message, Modal } from 'ant-design-vue';
@@ -472,7 +474,7 @@ const handleRefresh = async () => {
     await projectStore.fetchProjects(userId, true);
     message.success('刷新成功');
   } catch (error) {
-    console.error('Refresh failed:', error);
+    logger.error('Refresh failed:', error);
     message.error('刷新失败：' + error.message);
   } finally {
     loading.value = false;
@@ -509,7 +511,7 @@ const handleRestore = async (projectId) => {
         });
         message.success('项目已恢复');
       } catch (error) {
-        console.error('Restore project failed:', error);
+        logger.error('Restore project failed:', error);
         message.error('恢复失败：' + error.message);
       }
     },
@@ -529,7 +531,7 @@ const handleDelete = async (projectId) => {
         await projectStore.deleteProject(projectId);
         message.success('项目已永久删除');
       } catch (error) {
-        console.error('Delete project failed:', error);
+        logger.error('Delete project failed:', error);
         message.error('删除失败：' + error.message);
       }
     },
@@ -559,7 +561,7 @@ onMounted(async () => {
     const userId = authStore.currentUser?.id || 'default-user';
     await projectStore.fetchProjects(userId);
   } catch (error) {
-    console.error('Failed to load archived projects:', error);
+    logger.error('Failed to load archived projects:', error);
     message.error('加载失败：' + error.message);
   } finally {
     loading.value = false;

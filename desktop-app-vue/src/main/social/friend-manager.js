@@ -8,6 +8,7 @@
  * - 好友分组和备注
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const EventEmitter = require('events');
 
 /**
@@ -59,7 +60,7 @@ class FriendManager extends EventEmitter {
    * 初始化好友管理器
    */
   async initialize() {
-    console.log('[FriendManager] 初始化好友管理器...');
+    logger.info('[FriendManager] 初始化好友管理器...');
 
     try {
       // 初始化数据库表
@@ -72,9 +73,9 @@ class FriendManager extends EventEmitter {
       this.setupP2PListeners();
 
       this.initialized = true;
-      console.log('[FriendManager] 好友管理器初始化成功');
+      logger.info('[FriendManager] 好友管理器初始化成功');
     } catch (error) {
-      console.error('[FriendManager] 初始化失败:', error);
+      logger.error('[FriendManager] 初始化失败:', error);
       throw error;
     }
   }
@@ -125,7 +126,7 @@ class FriendManager extends EventEmitter {
       )
     `);
 
-    console.log('[FriendManager] 数据库表初始化完成');
+    logger.info('[FriendManager] 数据库表初始化完成');
   }
 
   /**
@@ -144,7 +145,7 @@ class FriendManager extends EventEmitter {
       });
     }
 
-    console.log('[FriendManager] 已加载', statuses.length, '个好友状态');
+    logger.info('[FriendManager] 已加载', statuses.length, '个好友状态');
   }
 
   /**
@@ -165,7 +166,7 @@ class FriendManager extends EventEmitter {
       this.handlePeerDisconnected(peerId);
     });
 
-    console.log('[FriendManager] P2P 事件监听器已设置');
+    logger.info('[FriendManager] P2P 事件监听器已设置');
   }
 
   /**
@@ -179,7 +180,7 @@ class FriendManager extends EventEmitter {
       // 更新好友在线状态
       await this.updateFriendStatus(peerId, FriendOnlineStatus.ONLINE);
 
-      console.log('[FriendManager] 好友上线:', peerId);
+      logger.info('[FriendManager] 好友上线:', peerId);
 
       this.emit('friend:online', { friendDid: peerId });
     }
@@ -195,7 +196,7 @@ class FriendManager extends EventEmitter {
       // 更新好友离线状态
       await this.updateFriendStatus(peerId, FriendOnlineStatus.OFFLINE);
 
-      console.log('[FriendManager] 好友离线:', peerId);
+      logger.info('[FriendManager] 好友离线:', peerId);
 
       this.emit('friend:offline', { friendDid: peerId });
     }
@@ -258,7 +259,7 @@ class FriendManager extends EventEmitter {
         }));
       }
 
-      console.log('[FriendManager] 已发送好友请求到:', targetDid);
+      logger.info('[FriendManager] 已发送好友请求到:', targetDid);
 
       this.emit('friend-request:sent', {
         targetDid,
@@ -270,7 +271,7 @@ class FriendManager extends EventEmitter {
         requestId: stmt.lastInsertRowid,
       };
     } catch (error) {
-      console.error('[FriendManager] 发送好友请求失败:', error);
+      logger.error('[FriendManager] 发送好友请求失败:', error);
       throw error;
     }
   }
@@ -286,13 +287,13 @@ class FriendManager extends EventEmitter {
       const currentDid = this.didManager?.getCurrentIdentity()?.did;
 
       if (!currentDid) {
-        console.warn('[FriendManager] 未登录，忽略好友请求');
+        logger.warn('[FriendManager] 未登录，忽略好友请求');
         return;
       }
 
       // 检查是否已经是好友
       if (await this.isFriend(fromDid)) {
-        console.log('[FriendManager] 已经是好友，忽略请求');
+        logger.info('[FriendManager] 已经是好友，忽略请求');
         return;
       }
 
@@ -315,7 +316,7 @@ class FriendManager extends EventEmitter {
         now
       );
 
-      console.log('[FriendManager] 收到好友请求:', fromDid);
+      logger.info('[FriendManager] 收到好友请求:', fromDid);
 
       this.emit('friend-request:received', {
         fromDid,
@@ -323,7 +324,7 @@ class FriendManager extends EventEmitter {
         timestamp,
       });
     } catch (error) {
-      console.error('[FriendManager] 处理好友请求失败:', error);
+      logger.error('[FriendManager] 处理好友请求失败:', error);
     }
   }
 
@@ -377,7 +378,7 @@ class FriendManager extends EventEmitter {
         }));
       }
 
-      console.log('[FriendManager] 已接受好友请求:', request.from_did);
+      logger.info('[FriendManager] 已接受好友请求:', request.from_did);
 
       this.emit('friend-request:accepted', {
         friendDid: request.from_did,
@@ -385,7 +386,7 @@ class FriendManager extends EventEmitter {
 
       return { success: true };
     } catch (error) {
-      console.error('[FriendManager] 接受好友请求失败:', error);
+      logger.error('[FriendManager] 接受好友请求失败:', error);
       throw error;
     }
   }
@@ -421,7 +422,7 @@ class FriendManager extends EventEmitter {
       db.prepare('UPDATE friend_requests SET status = ?, updated_at = ? WHERE id = ?')
         .run(FriendRequestStatus.REJECTED, now, requestId);
 
-      console.log('[FriendManager] 已拒绝好友请求:', request.from_did);
+      logger.info('[FriendManager] 已拒绝好友请求:', request.from_did);
 
       this.emit('friend-request:rejected', {
         fromDid: request.from_did,
@@ -429,7 +430,7 @@ class FriendManager extends EventEmitter {
 
       return { success: true };
     } catch (error) {
-      console.error('[FriendManager] 拒绝好友请求失败:', error);
+      logger.error('[FriendManager] 拒绝好友请求失败:', error);
       throw error;
     }
   }
@@ -518,13 +519,13 @@ class FriendManager extends EventEmitter {
       db.prepare('DELETE FROM friendships WHERE user_did = ? AND friend_did = ?')
         .run(friendDid, currentDid);
 
-      console.log('[FriendManager] 已删除好友:', friendDid);
+      logger.info('[FriendManager] 已删除好友:', friendDid);
 
       this.emit('friend:removed', { friendDid });
 
       return { success: true };
     } catch (error) {
-      console.error('[FriendManager] 删除好友失败:', error);
+      logger.error('[FriendManager] 删除好友失败:', error);
       throw error;
     }
   }
@@ -548,13 +549,13 @@ class FriendManager extends EventEmitter {
       db.prepare('UPDATE friendships SET nickname = ?, updated_at = ? WHERE user_did = ? AND friend_did = ?')
         .run(nickname, now, currentDid, friendDid);
 
-      console.log('[FriendManager] 已更新好友备注:', friendDid);
+      logger.info('[FriendManager] 已更新好友备注:', friendDid);
 
       this.emit('friend:nickname-updated', { friendDid, nickname });
 
       return { success: true };
     } catch (error) {
-      console.error('[FriendManager] 更新好友备注失败:', error);
+      logger.error('[FriendManager] 更新好友备注失败:', error);
       throw error;
     }
   }
@@ -578,13 +579,13 @@ class FriendManager extends EventEmitter {
       db.prepare('UPDATE friendships SET group_name = ?, updated_at = ? WHERE user_did = ? AND friend_did = ?')
         .run(groupName, now, currentDid, friendDid);
 
-      console.log('[FriendManager] 已更新好友分组:', friendDid);
+      logger.info('[FriendManager] 已更新好友分组:', friendDid);
 
       this.emit('friend:group-updated', { friendDid, groupName });
 
       return { success: true };
     } catch (error) {
-      console.error('[FriendManager] 更新好友分组失败:', error);
+      logger.error('[FriendManager] 更新好友分组失败:', error);
       throw error;
     }
   }
@@ -679,7 +680,7 @@ class FriendManager extends EventEmitter {
    * 关闭好友管理器
    */
   async close() {
-    console.log('[FriendManager] 关闭好友管理器');
+    logger.info('[FriendManager] 关闭好友管理器');
 
     this.onlineStatus.clear();
     this.removeAllListeners();

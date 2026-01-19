@@ -1,3 +1,5 @@
+const { logger, createLogger } = require('../utils/logger.js');
+
 /**
  * FeatureExtractor - 特征工程模块
  * P2智能层Phase 3 - ML工具匹配器
@@ -182,7 +184,7 @@ class FeatureExtractor {
         experience: this.calculateExperience(profile.total_tasks)
       };
     } catch (error) {
-      console.error('[FeatureExtractor] 提取用户特征失败:', error);
+      logger.error('[FeatureExtractor] 提取用户特征失败:', error);
       return this.getDefaultUserFeatures();
     }
   }
@@ -447,7 +449,7 @@ class FeatureExtractor {
         const feature = await this.extractFeatures(task, userId);
         features.push(feature);
       } catch (error) {
-        console.error('[FeatureExtractor] 批量提取失败:', error);
+        logger.error('[FeatureExtractor] 批量提取失败:', error);
       }
     }
     return features;

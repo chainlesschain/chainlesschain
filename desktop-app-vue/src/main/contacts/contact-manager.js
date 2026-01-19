@@ -4,6 +4,7 @@
  * 管理 DID 联系人、好友关系、信任评分
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const EventEmitter = require('events');
 
 /**
@@ -22,18 +23,18 @@ class ContactManager extends EventEmitter {
    * 初始化联系人管理器
    */
   async initialize() {
-    console.log('[ContactManager] 初始化联系人管理器...');
+    logger.info('[ContactManager] 初始化联系人管理器...');
 
     try {
       // 确保数据库表存在
       await this.ensureTables();
 
-      console.log('[ContactManager] 联系人管理器初始化成功');
+      logger.info('[ContactManager] 联系人管理器初始化成功');
       this.emit('initialized');
 
       return true;
     } catch (error) {
-      console.error('[ContactManager] 初始化失败:', error);
+      logger.error('[ContactManager] 初始化失败:', error);
       throw error;
     }
   }
@@ -66,7 +67,7 @@ class ContactManager extends EventEmitter {
           )
         `);
 
-        console.log('[ContactManager] contacts 表已创建');
+        logger.info('[ContactManager] contacts 表已创建');
       }
 
       // 创建好友请求表
@@ -87,10 +88,10 @@ class ContactManager extends EventEmitter {
           )
         `);
 
-        console.log('[ContactManager] friend_requests 表已创建');
+        logger.info('[ContactManager] friend_requests 表已创建');
       }
     } catch (error) {
-      console.error('[ContactManager] 检查数据库表失败:', error);
+      logger.error('[ContactManager] 检查数据库表失败:', error);
       throw error;
     }
   }
@@ -101,7 +102,7 @@ class ContactManager extends EventEmitter {
    */
   async addContact(contact) {
     try {
-      console.log('[ContactManager] 添加联系人:', contact.did);
+      logger.info('[ContactManager] 添加联系人:', contact.did);
 
       // 验证必填字段
       if (!contact.did || !contact.public_key_sign || !contact.public_key_encrypt) {
@@ -145,12 +146,12 @@ class ContactManager extends EventEmitter {
 
       this.db.saveToFile();
 
-      console.log('[ContactManager] 联系人已添加:', contact.did);
+      logger.info('[ContactManager] 联系人已添加:', contact.did);
       this.emit('contact:added', contactData);
 
       return contactData;
     } catch (error) {
-      console.error('[ContactManager] 添加联系人失败:', error);
+      logger.error('[ContactManager] 添加联系人失败:', error);
       throw error;
     }
   }
@@ -163,7 +164,7 @@ class ContactManager extends EventEmitter {
     try {
       const data = JSON.parse(qrData);
 
-      console.log('[ContactManager] 从二维码添加联系人:', data.did);
+      logger.info('[ContactManager] 从二维码添加联系人:', data.did);
 
       // 验证 DID 格式
       if (!data.did || !data.did.startsWith('did:chainlesschain:')) {
@@ -180,7 +181,7 @@ class ContactManager extends EventEmitter {
 
       return await this.addContact(contact);
     } catch (error) {
-      console.error('[ContactManager] 从二维码添加联系人失败:', error);
+      logger.error('[ContactManager] 从二维码添加联系人失败:', error);
       throw error;
     }
   }
@@ -207,7 +208,7 @@ class ContactManager extends EventEmitter {
         return contact;
       });
     } catch (error) {
-      console.error('[ContactManager] 获取联系人列表失败:', error);
+      logger.error('[ContactManager] 获取联系人列表失败:', error);
       return [];
     }
   }
@@ -234,7 +235,7 @@ class ContactManager extends EventEmitter {
 
       return contact;
     } catch (error) {
-      console.error('[ContactManager] 获取联系人失败:', error);
+      logger.error('[ContactManager] 获取联系人失败:', error);
       return null;
     }
   }
@@ -274,12 +275,12 @@ class ContactManager extends EventEmitter {
 
       this.db.saveToFile();
 
-      console.log('[ContactManager] 联系人已更新:', did);
+      logger.info('[ContactManager] 联系人已更新:', did);
       this.emit('contact:updated', { did, updates });
 
       return this.getContactByDID(did);
     } catch (error) {
-      console.error('[ContactManager] 更新联系人失败:', error);
+      logger.error('[ContactManager] 更新联系人失败:', error);
       throw error;
     }
   }
@@ -299,12 +300,12 @@ class ContactManager extends EventEmitter {
       this.db.prepare('DELETE FROM contacts WHERE did = ?').run([did]);
       this.db.saveToFile();
 
-      console.log('[ContactManager] 联系人已删除:', did);
+      logger.info('[ContactManager] 联系人已删除:', did);
       this.emit('contact:deleted', { did });
 
       return true;
     } catch (error) {
-      console.error('[ContactManager] 删除联系人失败:', error);
+      logger.error('[ContactManager] 删除联系人失败:', error);
       throw error;
     }
   }
@@ -336,7 +337,7 @@ class ContactManager extends EventEmitter {
         return contact;
       });
     } catch (error) {
-      console.error('[ContactManager] 搜索联系人失败:', error);
+      logger.error('[ContactManager] 搜索联系人失败:', error);
       return [];
     }
   }
@@ -365,7 +366,7 @@ class ContactManager extends EventEmitter {
         return contact;
       });
     } catch (error) {
-      console.error('[ContactManager] 获取好友列表失败:', error);
+      logger.error('[ContactManager] 获取好友列表失败:', error);
       return [];
     }
   }
@@ -382,7 +383,7 @@ class ContactManager extends EventEmitter {
 
       this.emit('contact:last-seen-updated', { did });
     } catch (error) {
-      console.error('[ContactManager] 更新最后在线时间失败:', error);
+      logger.error('[ContactManager] 更新最后在线时间失败:', error);
     }
   }
 
@@ -408,12 +409,12 @@ class ContactManager extends EventEmitter {
 
       this.db.saveToFile();
 
-      console.log('[ContactManager] 信任评分已更新:', did, newScore);
+      logger.info('[ContactManager] 信任评分已更新:', did, newScore);
       this.emit('contact:trust-score-updated', { did, score: newScore });
 
       return newScore;
     } catch (error) {
-      console.error('[ContactManager] 更新信任评分失败:', error);
+      logger.error('[ContactManager] 更新信任评分失败:', error);
       throw error;
     }
   }
@@ -449,7 +450,7 @@ class ContactManager extends EventEmitter {
         byRelationship,
       };
     } catch (error) {
-      console.error('[ContactManager] 获取统计信息失败:', error);
+      logger.error('[ContactManager] 获取统计信息失败:', error);
       return { total: 0, friends: 0, byRelationship: {} };
     }
   }
@@ -458,7 +459,7 @@ class ContactManager extends EventEmitter {
    * 关闭管理器
    */
   async close() {
-    console.log('[ContactManager] 关闭联系人管理器');
+    logger.info('[ContactManager] 关闭联系人管理器');
     this.emit('closed');
   }
 }

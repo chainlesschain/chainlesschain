@@ -5,6 +5,7 @@
  * 支持数据完整性校验和回滚
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require('fs');
 const path = require('path');
 
@@ -13,7 +14,7 @@ let initSqlJs = null;
 try {
   initSqlJs = require('sql.js');
 } catch (err) {
-  console.log('[Migration] sql.js not available');
+  logger.info('[Migration] sql.js not available');
 }
 
 const { createEncryptedDatabase, createUnencryptedDatabase } = require('./sqlcipher-wrapper');
@@ -62,12 +63,12 @@ class DatabaseMigrator {
 
         for (const filePath of possiblePaths) {
           if (fs.existsSync(filePath)) {
-            console.log('[Migration] Found sql.js WASM at:', filePath);
+            logger.info('[Migration] Found sql.js WASM at:', filePath);
             return filePath;
           }
         }
 
-        console.error('[Migration] Could not find sql.js WASM file. Tried:', possiblePaths);
+        logger.error('[Migration] Could not find sql.js WASM file. Tried:', possiblePaths);
         return file;
       }
     });
@@ -103,7 +104,7 @@ class DatabaseMigrator {
 
     try {
       fs.copyFileSync(this.sourcePath, backupPath);
-      console.log('[Migration] 备份已创建:', backupPath);
+      logger.info('[Migration] 备份已创建:', backupPath);
       this.backupPath = backupPath;
       return backupPath;
     } catch (error) {
@@ -187,7 +188,7 @@ class DatabaseMigrator {
    * 执行迁移
    */
   async migrate() {
-    console.log('[Migration] 开始数据库迁移...');
+    logger.info('[Migration] 开始数据库迁移...');
     this.status = MigrationStatus.IN_PROGRESS;
 
     try {
@@ -198,12 +199,12 @@ class DatabaseMigrator {
       await this.createBackup();
 
       // 3. 加载源数据库（sql.js）
-      console.log('[Migration] 加载源数据库:', this.sourcePath);
+      logger.info('[Migration] 加载源数据库:', this.sourcePath);
       const sourceBuffer = fs.readFileSync(this.sourcePath);
       const sourceDb = new this.SQL.Database(sourceBuffer);
 
       // 4. 创建目标数据库（SQLCipher）
-      console.log('[Migration] 创建目标数据库:', this.targetPath);
+      logger.info('[Migration] 创建目标数据库:', this.targetPath);
       const targetDb = this.encryptionKey
         ? createEncryptedDatabase(this.targetPath, this.encryptionKey)
         : createUnencryptedDatabase(this.targetPath);
@@ -211,25 +212,25 @@ class DatabaseMigrator {
       targetDb.open();
 
       // 5. 迁移表结构
-      console.log('[Migration] 迁移表结构...');
+      logger.info('[Migration] 迁移表结构...');
       const tables = this.getTables(sourceDb);
 
       for (const table of tables) {
-        console.log(`[Migration] 创建表: ${table.name}`);
+        logger.info(`[Migration] 创建表: ${table.name}`);
         targetDb.exec(table.sql);
       }
 
       // 6. 迁移数据
-      console.log('[Migration] 迁移数据...');
+      logger.info('[Migration] 迁移数据...');
       for (const table of tables) {
         const data = this.getTableData(sourceDb, table.name);
 
         if (data.length === 0) {
-          console.log(`[Migration] 表 ${table.name} 无数据`);
+          logger.info(`[Migration] 表 ${table.name} 无数据`);
           continue;
         }
 
-        console.log(`[Migration] 迁移表 ${table.name}，共 ${data.length} 行`);
+        logger.info(`[Migration] 迁移表 ${table.name}，共 ${data.length} 行`);
 
         // 准备插入语句
         const columns = Object.keys(data[0]);
@@ -248,20 +249,20 @@ class DatabaseMigrator {
       }
 
       // 7. 迁移索引
-      console.log('[Migration] 迁移索引...');
+      logger.info('[Migration] 迁移索引...');
       const indexes = this.getIndexes(sourceDb);
 
       for (const index of indexes) {
-        console.log(`[Migration] 创建索引: ${index.name}`);
+        logger.info(`[Migration] 创建索引: ${index.name}`);
         try {
           targetDb.exec(index.sql);
         } catch (error) {
-          console.warn(`[Migration] 索引创建失败: ${index.name}`, error.message);
+          logger.warn(`[Migration] 索引创建失败: ${index.name}`, error.message);
         }
       }
 
       // 8. 验证数据完整性
-      console.log('[Migration] 验证数据完整性...');
+      logger.info('[Migration] 验证数据完整性...');
       await this.verifyMigration(sourceDb, targetDb, tables);
 
       // 9. 清理
@@ -271,10 +272,10 @@ class DatabaseMigrator {
       // 10. 重命名文件
       const oldDbPath = `${this.sourcePath}.old`;
       fs.renameSync(this.sourcePath, oldDbPath);
-      console.log('[Migration] 原数据库已重命名为:', oldDbPath);
+      logger.info('[Migration] 原数据库已重命名为:', oldDbPath);
 
       this.status = MigrationStatus.COMPLETED;
-      console.log('[Migration] 迁移完成！');
+      logger.info('[Migration] 迁移完成！');
 
       return {
         success: true,
@@ -284,14 +285,14 @@ class DatabaseMigrator {
       };
     } catch (error) {
       this.status = MigrationStatus.FAILED;
-      console.error('[Migration] 迁移失败:', error);
+      logger.error('[Migration] 迁移失败:', error);
 
       // 尝试清理失败的目标数据库
       if (fs.existsSync(this.targetPath)) {
         try {
           fs.unlinkSync(this.targetPath);
         } catch (cleanupError) {
-          console.error('[Migration] 清理失败的目标数据库时出错:', cleanupError);
+          logger.error('[Migration] 清理失败的目标数据库时出错:', cleanupError);
         }
       }
 
@@ -324,7 +325,7 @@ class DatabaseMigrator {
         );
       }
 
-      console.log(`[Migration] 验证表 ${table.name}: ${sourceCount} 行 ✓`);
+      logger.info(`[Migration] 验证表 ${table.name}: ${sourceCount} 行 ✓`);
     }
   }
 
@@ -332,7 +333,7 @@ class DatabaseMigrator {
    * 回滚迁移
    */
   async rollback() {
-    console.log('[Migration] 回滚迁移...');
+    logger.info('[Migration] 回滚迁移...');
 
     try {
       // 如果备份存在，恢复备份
@@ -344,16 +345,16 @@ class DatabaseMigrator {
 
         // 恢复备份
         fs.copyFileSync(this.backupPath, this.sourcePath);
-        console.log('[Migration] 已从备份恢复数据库');
+        logger.info('[Migration] 已从备份恢复数据库');
 
         this.status = MigrationStatus.ROLLED_BACK;
         return true;
       } else {
-        console.warn('[Migration] 备份文件不存在，无法回滚');
+        logger.warn('[Migration] 备份文件不存在，无法回滚');
         return false;
       }
     } catch (error) {
-      console.error('[Migration] 回滚失败:', error);
+      logger.error('[Migration] 回滚失败:', error);
       throw new Error(`回滚失败: ${error.message}`);
     }
   }
@@ -365,10 +366,10 @@ class DatabaseMigrator {
     if (this.backupPath && fs.existsSync(this.backupPath)) {
       try {
         fs.unlinkSync(this.backupPath);
-        console.log('[Migration] 备份已删除:', this.backupPath);
+        logger.info('[Migration] 备份已删除:', this.backupPath);
         return true;
       } catch (error) {
-        console.error('[Migration] 删除备份失败:', error);
+        logger.error('[Migration] 删除备份失败:', error);
         return false;
       }
     }
@@ -385,7 +386,7 @@ async function migrateDatabase(options) {
   const migrator = new DatabaseMigrator(options);
 
   if (!migrator.needsMigration()) {
-    console.log('[Migration] 不需要迁移');
+    logger.info('[Migration] 不需要迁移');
     return { success: true, skipped: true };
   }
 

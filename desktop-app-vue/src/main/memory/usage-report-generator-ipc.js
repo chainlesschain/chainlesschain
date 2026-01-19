@@ -7,6 +7,7 @@
  * @since 2026-01-18
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const ipcGuard = require("../ipc/ipc-guard");
 
 /**
@@ -21,7 +22,7 @@ function registerUsageReportGeneratorIPC({
 }) {
   // Prevent duplicate registration
   if (ipcGuard.isModuleRegistered("usage-report-generator-ipc")) {
-    console.log(
+    logger.info(
       "[UsageReportGenerator IPC] Handlers already registered, skipping...",
     );
     return;
@@ -30,7 +31,7 @@ function registerUsageReportGeneratorIPC({
   const electron = require("electron");
   const ipcMain = injectedIpcMain || electron.ipcMain;
 
-  console.log(
+  logger.info(
     "[UsageReportGenerator IPC] Registering UsageReportGenerator IPC handlers...",
   );
 
@@ -52,7 +53,7 @@ function registerUsageReportGeneratorIPC({
       }
       return await generatorRef.current.generateWeeklyReport(options);
     } catch (error) {
-      console.error(
+      logger.error(
         "[UsageReportGenerator IPC] Generate weekly report failed:",
         error,
       );
@@ -71,7 +72,7 @@ function registerUsageReportGeneratorIPC({
       }
       return await generatorRef.current.generateMonthlyReport(options);
     } catch (error) {
-      console.error(
+      logger.error(
         "[UsageReportGenerator IPC] Generate monthly report failed:",
         error,
       );
@@ -95,7 +96,7 @@ function registerUsageReportGeneratorIPC({
           endDate,
         );
       } catch (error) {
-        console.error(
+        logger.error(
           "[UsageReportGenerator IPC] Get cost analysis failed:",
           error,
         );
@@ -119,7 +120,7 @@ function registerUsageReportGeneratorIPC({
       }
       return await generatorRef.current.exportReport(reportId, options);
     } catch (error) {
-      console.error("[UsageReportGenerator IPC] Export report failed:", error);
+      logger.error("[UsageReportGenerator IPC] Export report failed:", error);
       throw error;
     }
   });
@@ -135,7 +136,7 @@ function registerUsageReportGeneratorIPC({
       }
       return await generatorRef.current.getReport(reportId);
     } catch (error) {
-      console.error("[UsageReportGenerator IPC] Get report failed:", error);
+      logger.error("[UsageReportGenerator IPC] Get report failed:", error);
       throw error;
     }
   });
@@ -151,7 +152,7 @@ function registerUsageReportGeneratorIPC({
       }
       return await generatorRef.current.listReports(options);
     } catch (error) {
-      console.error("[UsageReportGenerator IPC] List reports failed:", error);
+      logger.error("[UsageReportGenerator IPC] List reports failed:", error);
       throw error;
     }
   });
@@ -171,7 +172,7 @@ function registerUsageReportGeneratorIPC({
       }
       return await generatorRef.current.configureSubscription(config);
     } catch (error) {
-      console.error(
+      logger.error(
         "[UsageReportGenerator IPC] Configure subscription failed:",
         error,
       );
@@ -190,7 +191,7 @@ function registerUsageReportGeneratorIPC({
       }
       return await generatorRef.current.getSubscriptions();
     } catch (error) {
-      console.error(
+      logger.error(
         "[UsageReportGenerator IPC] Get subscriptions failed:",
         error,
       );
@@ -210,7 +211,7 @@ function registerUsageReportGeneratorIPC({
       await generatorRef.current.deleteSubscription(id);
       return { success: true };
     } catch (error) {
-      console.error(
+      logger.error(
         "[UsageReportGenerator IPC] Delete subscription failed:",
         error,
       );
@@ -225,13 +226,13 @@ function registerUsageReportGeneratorIPC({
    */
   function updateUsageReportGenerator(newGenerator) {
     generatorRef.current = newGenerator;
-    console.log("[UsageReportGenerator IPC] Reference updated");
+    logger.info("[UsageReportGenerator IPC] Reference updated");
   }
 
   // Mark as registered
   ipcGuard.markModuleRegistered("usage-report-generator-ipc");
 
-  console.log(
+  logger.info(
     "[UsageReportGenerator IPC] UsageReportGenerator IPC handlers registered successfully",
   );
 

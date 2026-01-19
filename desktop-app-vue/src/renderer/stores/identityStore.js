@@ -6,6 +6,7 @@
  * @module identityStore
  */
 
+import { logger, createLogger } from '@/utils/logger';
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 
@@ -105,7 +106,7 @@ export const useIdentityStore = defineStore('identity', () => {
         activeContext.value = result.context;
       } else if (result.error && result.error.includes('未初始化')) {
         // 身份上下文管理器未初始化(用户尚未创建DID),这是正常情况
-        console.log('身份上下文管理器未初始化,跳过身份上下文加载');
+        logger.info('身份上下文管理器未初始化,跳过身份上下文加载');
         return { success: true, skipped: true };
       } else {
         // 如果没有激活的上下文,创建并激活个人上下文
@@ -114,7 +115,7 @@ export const useIdentityStore = defineStore('identity', () => {
 
       return { success: true };
     } catch (error) {
-      console.error('初始化身份上下文失败:', error);
+      logger.error('初始化身份上下文失败:', error);
       // 不阻止应用启动,只记录错误
       return { success: true, error: error.message };
     } finally {
@@ -140,7 +141,7 @@ export const useIdentityStore = defineStore('identity', () => {
 
       return result;
     } catch (error) {
-      console.error('加载上下文列表失败:', error);
+      logger.error('加载上下文列表失败:', error);
       contexts.value = [];
       return { success: false, error: error.message };
     }
@@ -166,13 +167,13 @@ export const useIdentityStore = defineStore('identity', () => {
         }
       } else if (result.error && result.error.includes('未初始化')) {
         // 管理器未初始化,跳过
-        console.log('身份上下文管理器未初始化,跳过创建个人上下文');
+        logger.info('身份上下文管理器未初始化,跳过创建个人上下文');
         return { success: true, skipped: true };
       }
 
       return result;
     } catch (error) {
-      console.error('创建个人上下文失败:', error);
+      logger.error('创建个人上下文失败:', error);
       return { success: true, error: error.message };
     }
   }
@@ -197,7 +198,7 @@ export const useIdentityStore = defineStore('identity', () => {
 
       return result;
     } catch (error) {
-      console.error('创建组织上下文失败:', error);
+      logger.error('创建组织上下文失败:', error);
       return { success: false, error: error.message };
     }
   }
@@ -208,7 +209,7 @@ export const useIdentityStore = defineStore('identity', () => {
   async function switchContext(targetContextId) {
     try {
       if (targetContextId === currentContextId.value) {
-        console.log('已经是当前上下文');
+        logger.info('已经是当前上下文');
         return { success: true, context: activeContext.value };
       }
 
@@ -226,12 +227,12 @@ export const useIdentityStore = defineStore('identity', () => {
         // 刷新上下文列表
         await loadContexts();
 
-        console.log(`✓ 已切换到: ${result.context.display_name}`);
+        logger.info(`✓ 已切换到: ${result.context.display_name}`);
       }
 
       return result;
     } catch (error) {
-      console.error('切换身份上下文失败:', error);
+      logger.error('切换身份上下文失败:', error);
       return { success: false, error: error.message };
     } finally {
       switching.value = false;
@@ -269,7 +270,7 @@ export const useIdentityStore = defineStore('identity', () => {
 
       return result;
     } catch (error) {
-      console.error('删除组织上下文失败:', error);
+      logger.error('删除组织上下文失败:', error);
       return { success: false, error: error.message };
     }
   }
@@ -286,7 +287,7 @@ export const useIdentityStore = defineStore('identity', () => {
 
       return result.success ? result.history : [];
     } catch (error) {
-      console.error('获取切换历史失败:', error);
+      logger.error('获取切换历史失败:', error);
       return [];
     }
   }
@@ -313,7 +314,7 @@ export const useIdentityStore = defineStore('identity', () => {
 
       return result;
     } catch (error) {
-      console.error('刷新当前上下文失败:', error);
+      logger.error('刷新当前上下文失败:', error);
       return { success: false, error: error.message };
     }
   }

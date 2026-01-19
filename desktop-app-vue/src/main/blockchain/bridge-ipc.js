@@ -3,6 +3,7 @@
  * 处理所有 bridge: 相关的 IPC 通信
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { ipcMain } = require('electron');
 
 /**
@@ -21,7 +22,7 @@ function registerBridgeIPC(bridgeManager) {
 
       return await bridgeManager.bridgeAsset(options);
     } catch (error) {
-      console.error('[Main] 桥接资产失败:', error);
+      logger.error('[Main] 桥接资产失败:', error);
       throw error;
     }
   });
@@ -35,7 +36,7 @@ function registerBridgeIPC(bridgeManager) {
 
       return await bridgeManager.getBridgeHistory(filters);
     } catch (error) {
-      console.error('[Main] 获取桥接历史失败:', error);
+      logger.error('[Main] 获取桥接历史失败:', error);
       throw error;
     }
   });
@@ -49,7 +50,7 @@ function registerBridgeIPC(bridgeManager) {
 
       return await bridgeManager.getBridgeRecord(bridgeId);
     } catch (error) {
-      console.error('[Main] 获取桥接记录失败:', error);
+      logger.error('[Main] 获取桥接记录失败:', error);
       throw error;
     }
   });
@@ -64,7 +65,7 @@ function registerBridgeIPC(bridgeManager) {
       bridgeManager.registerBridgeContract(chainId, contractAddress);
       return { success: true };
     } catch (error) {
-      console.error('[Main] 注册桥接合约失败:', error);
+      logger.error('[Main] 注册桥接合约失败:', error);
       throw error;
     }
   });
@@ -78,7 +79,7 @@ function registerBridgeIPC(bridgeManager) {
 
       return await bridgeManager.getAssetBalance(address, tokenAddress, chainId);
     } catch (error) {
-      console.error('[Main] 查询资产余额失败:', error);
+      logger.error('[Main] 查询资产余额失败:', error);
       throw error;
     }
   });
@@ -92,7 +93,7 @@ function registerBridgeIPC(bridgeManager) {
 
       return await bridgeManager.getBatchBalances(address, assets);
     } catch (error) {
-      console.error('[Main] 批量查询余额失败:', error);
+      logger.error('[Main] 批量查询余额失败:', error);
       throw error;
     }
   });
@@ -106,12 +107,12 @@ function registerBridgeIPC(bridgeManager) {
 
       return await bridgeManager.getLockedBalance(tokenAddress, chainId);
     } catch (error) {
-      console.error('[Main] 查询锁定余额失败:', error);
+      logger.error('[Main] 查询锁定余额失败:', error);
       throw error;
     }
   });
 
-  console.log('[Bridge IPC] 跨链桥 IPC 处理器注册完成 (7个处理器)');
+  logger.info('[Bridge IPC] 跨链桥 IPC 处理器注册完成 (7个处理器)');
 }
 
 module.exports = { registerBridgeIPC };

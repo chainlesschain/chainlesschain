@@ -126,10 +126,52 @@ class P2PDeviceViewModel @Inject constructor(
      */
     suspend fun getVerificationInfo(peerId: String): CompleteVerificationInfo? {
         return try {
-            // 这里应该从会话中获取验证信息
-            // 简化版：返回 null
-            null
+            // 获取会话
+            val session = sessionManager.getSession(peerId)
+            if (session == null) {
+                android.util.Log.w("P2PDeviceViewModel", "No session found for peer: $peerId")
+                return null
+            }
+
+            // 获取本地和远程身份公钥
+            val localPublicKey = sessionManager.getLocalIdentityPublicKey()
+            val remotePublicKey = sessionManager.getPeerIdentityPublicKey(peerId)
+            if (remotePublicKey == null) {
+                android.util.Log.w("P2PDeviceViewModel", "No peer identity key found for: $peerId")
+                return null
+            }
+
+            // 获取会话关联数据
+            val associatedData = session.getAssociatedData()
+
+            // 使用 peerId 作为标识符（简化版，实际应该使用 DID）
+            val localIdentifier = "local" // TODO: 从 DID 管理器获取
+            val remoteIdentifier = peerId
+
+            // 生成完整验证信息
+            val verificationInfo = verificationManager.generateVerificationInfo(
+                peerId = peerId,
+                localIdentifier = localIdentifier,
+                localPublicKey = localPublicKey,
+                remoteIdentifier = remoteIdentifier,
+                remotePublicKey = remotePublicKey,
+                associatedData = associatedData
+            )
+
+            // 检查是否已验证
+            val isVerified = verificationManager.isVerified(peerId)
+
+            // 返回更新后的验证信息
+            verificationInfo.copy(
+                isVerified = isVerified,
+                verifiedAt = if (isVerified) {
+                    verificationManager.getVerificationInfo(peerId)?.verifiedAt
+                } else {
+                    null
+                }
+            )
         } catch (e: Exception) {
+            android.util.Log.e("P2PDeviceViewModel", "Failed to get verification info", e)
             null
         }
     }

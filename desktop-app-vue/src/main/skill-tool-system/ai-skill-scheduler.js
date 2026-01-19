@@ -3,6 +3,7 @@
  * 根据用户意图自动选择和调度技能
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const EventEmitter = require('events');
 
 class AISkillScheduler extends EventEmitter {
@@ -27,24 +28,24 @@ class AISkillScheduler extends EventEmitter {
    * @param {object} context - 上下文信息
    */
   async smartSchedule(userInput, context = {}) {
-    console.log(`[AIScheduler] 处理用户输入: "${userInput}"`);
+    logger.info(`[AIScheduler] 处理用户输入: "${userInput}"`);
 
     try {
       // 1. 分析用户意图
       const intent = await this.analyzeIntent(userInput, context);
-      console.log(`[AIScheduler] 识别意图:`, intent);
+      logger.info(`[AIScheduler] 识别意图:`, intent);
 
       // 2. 推荐技能
       const recommendations = await this.recommendSkills(intent, context);
-      console.log(`[AIScheduler] 推荐 ${recommendations.length} 个技能`);
+      logger.info(`[AIScheduler] 推荐 ${recommendations.length} 个技能`);
 
       // 3. 选择最佳技能
       const selectedSkill = this.selectBestSkill(recommendations, intent, context);
-      console.log(`[AIScheduler] 选择技能: ${selectedSkill.name}`);
+      logger.info(`[AIScheduler] 选择技能: ${selectedSkill.name}`);
 
       // 4. 生成执行参数
       const params = await this.generateParams(selectedSkill, intent, context);
-      console.log(`[AIScheduler] 生成参数:`, params);
+      logger.info(`[AIScheduler] 生成参数:`, params);
 
       // 5. 执行技能
       const result = await this.skillExecutor.executeSkill(
@@ -65,7 +66,7 @@ class AISkillScheduler extends EventEmitter {
       };
 
     } catch (error) {
-      console.error(`[AIScheduler] 智能调度失败:`, error);
+      logger.error(`[AIScheduler] 智能调度失败:`, error);
       return {
         success: false,
         error: error.message
@@ -86,7 +87,7 @@ class AISkillScheduler extends EventEmitter {
         const llmIntent = await this.analyzeByLLM(userInput, context);
         return this.mergeIntents(keywordIntent, llmIntent);
       } catch (error) {
-        console.warn('[AIScheduler] LLM分析失败，使用关键词分析:', error.message);
+        logger.warn('[AIScheduler] LLM分析失败，使用关键词分析:', error.message);
         return keywordIntent;
       }
     }
@@ -238,7 +239,7 @@ class AISkillScheduler extends EventEmitter {
         rawResponse: response
       };
     } catch (error) {
-      console.error('[AIScheduler] LLM响应解析失败:', error);
+      logger.error('[AIScheduler] LLM响应解析失败:', error);
       return {
         action: null,
         target: null,
@@ -385,7 +386,7 @@ class AISkillScheduler extends EventEmitter {
         const llmParams = await this.generateParamsByLLM(skill, intent, context);
         Object.assign(params, llmParams);
       } catch (error) {
-        console.warn('[AIScheduler] LLM参数生成失败:', error.message);
+        logger.warn('[AIScheduler] LLM参数生成失败:', error.message);
       }
     }
 
@@ -420,7 +421,7 @@ class AISkillScheduler extends EventEmitter {
 
       return {};
     } catch (error) {
-      console.error('[AIScheduler] 参数解析失败:', error);
+      logger.error('[AIScheduler] 参数解析失败:', error);
       return {};
     }
   }
@@ -498,7 +499,7 @@ class AISkillScheduler extends EventEmitter {
    * 批量处理用户请求
    */
   async processBatch(userInputs, context = {}) {
-    console.log(`[AIScheduler] 批量处理 ${userInputs.length} 个请求`);
+    logger.info(`[AIScheduler] 批量处理 ${userInputs.length} 个请求`);
 
     const results = [];
 

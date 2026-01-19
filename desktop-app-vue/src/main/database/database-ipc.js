@@ -6,6 +6,7 @@
  * @description 提供知识库 CRUD、标签管理、统计、备份恢复、多身份切换等 IPC 接口
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { ipcMain } = require('electron');
 const ipcGuard = require('../ipc/ipc-guard');
 
@@ -19,11 +20,11 @@ const ipcGuard = require('../ipc/ipc-guard');
 function registerDatabaseIPC({ database, ragManager, getAppConfig }) {
   // 防止重复注册
   if (ipcGuard.isModuleRegistered('database-ipc')) {
-    console.log('[Database IPC] Handlers already registered, skipping...');
+    logger.info('[Database IPC] Handlers already registered, skipping...');
     return;
   }
 
-  console.log('[Database IPC] Registering Database IPC handlers...');
+  logger.info('[Database IPC] Registering Database IPC handlers...');
 
   // ============================================================
   // 知识库操作 (Knowledge Items CRUD)
@@ -37,7 +38,7 @@ function registerDatabaseIPC({ database, ragManager, getAppConfig }) {
     try {
       return database?.getKnowledgeItems(limit, offset) || [];
     } catch (error) {
-      console.error('[Database IPC] 获取知识库项失败:', error);
+      logger.error('[Database IPC] 获取知识库项失败:', error);
       return [];
     }
   });
@@ -50,7 +51,7 @@ function registerDatabaseIPC({ database, ragManager, getAppConfig }) {
     try {
       return database?.getKnowledgeItemById(id) || null;
     } catch (error) {
-      console.error('[Database IPC] 获取知识库项失败:', error);
+      logger.error('[Database IPC] 获取知识库项失败:', error);
       return null;
     }
   });
@@ -70,7 +71,7 @@ function registerDatabaseIPC({ database, ragManager, getAppConfig }) {
 
       return newItem;
     } catch (error) {
-      console.error('[Database IPC] 添加知识库项失败:', error);
+      logger.error('[Database IPC] 添加知识库项失败:', error);
       throw error;
     }
   });
@@ -90,7 +91,7 @@ function registerDatabaseIPC({ database, ragManager, getAppConfig }) {
 
       return updatedItem;
     } catch (error) {
-      console.error('[Database IPC] 更新知识库项失败:', error);
+      logger.error('[Database IPC] 更新知识库项失败:', error);
       throw error;
     }
   });
@@ -110,7 +111,7 @@ function registerDatabaseIPC({ database, ragManager, getAppConfig }) {
 
       return result;
     } catch (error) {
-      console.error('[Database IPC] 删除知识库项失败:', error);
+      logger.error('[Database IPC] 删除知识库项失败:', error);
       return false;
     }
   });
@@ -123,7 +124,7 @@ function registerDatabaseIPC({ database, ragManager, getAppConfig }) {
     try {
       return database?.searchKnowledge(query) || [];
     } catch (error) {
-      console.error('[Database IPC] 搜索知识库项失败:', error);
+      logger.error('[Database IPC] 搜索知识库项失败:', error);
       return [];
     }
   });
@@ -140,7 +141,7 @@ function registerDatabaseIPC({ database, ragManager, getAppConfig }) {
     try {
       return database?.getAllTags() || [];
     } catch (error) {
-      console.error('[Database IPC] 获取标签失败:', error);
+      logger.error('[Database IPC] 获取标签失败:', error);
       return [];
     }
   });
@@ -153,7 +154,7 @@ function registerDatabaseIPC({ database, ragManager, getAppConfig }) {
     try {
       return database?.createTag(name, color);
     } catch (error) {
-      console.error('[Database IPC] 创建标签失败:', error);
+      logger.error('[Database IPC] 创建标签失败:', error);
       throw error;
     }
   });
@@ -166,7 +167,7 @@ function registerDatabaseIPC({ database, ragManager, getAppConfig }) {
     try {
       return database?.getKnowledgeTags(knowledgeId) || [];
     } catch (error) {
-      console.error('[Database IPC] 获取知识库项标签失败:', error);
+      logger.error('[Database IPC] 获取知识库项标签失败:', error);
       return [];
     }
   });
@@ -183,7 +184,7 @@ function registerDatabaseIPC({ database, ragManager, getAppConfig }) {
     try {
       return database?.getStatistics() || { total: 0, today: 0, byType: {} };
     } catch (error) {
-      console.error('[Database IPC] 获取统计数据失败:', error);
+      logger.error('[Database IPC] 获取统计数据失败:', error);
       return { total: 0, today: 0, byType: {} };
     }
   });
@@ -199,7 +200,7 @@ function registerDatabaseIPC({ database, ragManager, getAppConfig }) {
       }
       return database.getDatabaseStats();
     } catch (error) {
-      console.error('[Database IPC] 获取数据库统计失败:', error);
+      logger.error('[Database IPC] 获取数据库统计失败:', error);
       return { error: error.message };
     }
   });
@@ -224,7 +225,7 @@ function registerDatabaseIPC({ database, ragManager, getAppConfig }) {
     try {
       return database?.getCurrentDatabasePath() || null;
     } catch (error) {
-      console.error('[Database IPC] 获取当前数据库路径失败:', error);
+      logger.error('[Database IPC] 获取当前数据库路径失败:', error);
       return null;
     }
   });
@@ -240,7 +241,7 @@ function registerDatabaseIPC({ database, ragManager, getAppConfig }) {
       }
       return database.getDatabasePath(contextId);
     } catch (error) {
-      console.error('[Database IPC] 获取数据库路径失败:', error);
+      logger.error('[Database IPC] 获取数据库路径失败:', error);
       return null;
     }
   });
@@ -257,15 +258,15 @@ function registerDatabaseIPC({ database, ragManager, getAppConfig }) {
 
       // 获取新数据库路径
       const newDbPath = database.getDatabasePath(contextId);
-      console.log('[Database IPC] 切换数据库到:', newDbPath, 'contextId:', contextId);
+      logger.info('[Database IPC] 切换数据库到:', newDbPath, 'contextId:', contextId);
 
       // 切换数据库
       await database.switchDatabase(newDbPath, options);
 
-      console.log('[Database IPC] ✓ 数据库切换成功');
+      logger.info('[Database IPC] ✓ 数据库切换成功');
       return { success: true, path: newDbPath };
     } catch (error) {
-      console.error('[Database IPC] 切换数据库失败:', error);
+      logger.error('[Database IPC] 切换数据库失败:', error);
       throw error;
     }
   });
@@ -283,7 +284,7 @@ function registerDatabaseIPC({ database, ragManager, getAppConfig }) {
       await database?.backup(backupPath);
       return true;
     } catch (error) {
-      console.error('[Database IPC] 备份数据库失败:', error);
+      logger.error('[Database IPC] 备份数据库失败:', error);
       return false;
     }
   });
@@ -298,7 +299,7 @@ function registerDatabaseIPC({ database, ragManager, getAppConfig }) {
       const backupPath = appConfig.createDatabaseBackup();
       return backupPath;
     } catch (error) {
-      console.error('[Database IPC] 创建数据库备份失败:', error);
+      logger.error('[Database IPC] 创建数据库备份失败:', error);
       throw error;
     }
   });
@@ -312,7 +313,7 @@ function registerDatabaseIPC({ database, ragManager, getAppConfig }) {
       const appConfig = getAppConfig();
       return appConfig.listBackups();
     } catch (error) {
-      console.error('[Database IPC] 列出备份失败:', error);
+      logger.error('[Database IPC] 列出备份失败:', error);
       throw error;
     }
   });
@@ -327,10 +328,10 @@ function registerDatabaseIPC({ database, ragManager, getAppConfig }) {
       appConfig.restoreFromBackup(backupPath);
 
       // 需要重启应用才能加载恢复的数据库
-      console.log('[Database IPC] ✓ 数据库恢复成功，需要重启应用');
+      logger.info('[Database IPC] ✓ 数据库恢复成功，需要重启应用');
       return { success: true, needsRestart: true };
     } catch (error) {
-      console.error('[Database IPC] 恢复数据库失败:', error);
+      logger.error('[Database IPC] 恢复数据库失败:', error);
       throw error;
     }
   });
@@ -354,7 +355,7 @@ function registerDatabaseIPC({ database, ragManager, getAppConfig }) {
         maxBackups: appConfig.get('database.maxBackups'),
       };
     } catch (error) {
-      console.error('[Database IPC] 获取数据库配置失败:', error);
+      logger.error('[Database IPC] 获取数据库配置失败:', error);
       throw error;
     }
   });
@@ -367,10 +368,10 @@ function registerDatabaseIPC({ database, ragManager, getAppConfig }) {
     try {
       const appConfig = getAppConfig();
       appConfig.setDatabasePath(newPath);
-      console.log(`[Database IPC] 数据库路径已设置为: ${newPath}`);
+      logger.info(`[Database IPC] 数据库路径已设置为: ${newPath}`);
       return true;
     } catch (error) {
-      console.error('[Database IPC] 设置数据库路径失败:', error);
+      logger.error('[Database IPC] 设置数据库路径失败:', error);
       throw error;
     }
   });
@@ -385,12 +386,12 @@ function registerDatabaseIPC({ database, ragManager, getAppConfig }) {
 
       // 先备份当前数据库
       const backupPath = appConfig.createDatabaseBackup();
-      console.log(`[Database IPC] 已创建备份: ${backupPath}`);
+      logger.info(`[Database IPC] 已创建备份: ${backupPath}`);
 
       // 执行迁移
       await appConfig.migrateDatabaseTo(newPath);
 
-      console.log(`[Database IPC] 数据库已迁移到: ${newPath}`);
+      logger.info(`[Database IPC] 数据库已迁移到: ${newPath}`);
 
       return {
         success: true,
@@ -398,7 +399,7 @@ function registerDatabaseIPC({ database, ragManager, getAppConfig }) {
         backupPath,
       };
     } catch (error) {
-      console.error('[Database IPC] 数据库迁移失败:', error);
+      logger.error('[Database IPC] 数据库迁移失败:', error);
       throw error;
     }
   });
@@ -406,7 +407,7 @@ function registerDatabaseIPC({ database, ragManager, getAppConfig }) {
   // 标记模块为已注册
   ipcGuard.markModuleRegistered('database-ipc');
 
-  console.log('[Database IPC] ✓ All Database IPC handlers registered successfully (22 handlers)');
+  logger.info('[Database IPC] ✓ All Database IPC handlers registered successfully (22 handlers)');
 }
 
 module.exports = {

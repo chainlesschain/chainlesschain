@@ -1,3 +1,5 @@
+import { logger, createLogger } from '@/utils/logger';
+
 /**
  * Smart Image Optimization System
  * 智能图片优化系统
@@ -37,7 +39,7 @@ export class ImageFormatDetector {
     // Detect AVIF
     this.support.avif = await this.detectAVIF();
 
-    console.log("[ImageFormat] Browser support:", this.support);
+    logger.info("[ImageFormat] Browser support:", this.support);
   }
 
   /**
@@ -138,7 +140,7 @@ export class SmartImageLoader {
     const cacheKey = this.getCacheKey(src, width, height, quality);
     if (this.cache.has(cacheKey)) {
       if (this.options.debug) {
-        console.log("[SmartImage] Cache hit:", src);
+        logger.info("[SmartImage] Cache hit:", src);
       }
       return this.cache.get(cacheKey);
     }
@@ -222,7 +224,7 @@ export class SmartImageLoader {
 
       img.onload = () => {
         if (this.options.debug) {
-          console.log("[SmartImage] Loaded:", src);
+          logger.info("[SmartImage] Loaded:", src);
         }
 
         resolve({
@@ -236,7 +238,7 @@ export class SmartImageLoader {
       };
 
       img.onerror = (error) => {
-        console.error("[SmartImage] Failed to load:", src, error);
+        logger.error("[SmartImage] Failed to load:", src, error);
         reject(error);
         this.loading.delete(src);
       };
@@ -276,7 +278,7 @@ export class SmartImageLoader {
   clearCache() {
     this.cache.clear();
     if (this.options.debug) {
-      console.log("[SmartImage] Cache cleared");
+      logger.info("[SmartImage] Cache cleared");
     }
   }
 
@@ -482,7 +484,7 @@ export class ProgressiveImageLoader {
 
       return img;
     } catch (error) {
-      console.error("[ProgressiveImage] Load failed:", error);
+      logger.error("[ProgressiveImage] Load failed:", error);
 
       if (this.options.onError) {
         this.options.onError(error);

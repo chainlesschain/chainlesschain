@@ -1,3 +1,5 @@
+const { logger, createLogger } = require('../utils/logger.js');
+
 /**
  * 交互式任务规划 IPC 接口
  * 供前端调用交互式任务规划器
@@ -33,11 +35,11 @@ class InteractivePlanningIPC {
      */
     this.ipcMain.handle('interactive-planning:start-session', async (event, { userRequest, projectContext }) => {
       try {
-        console.log('[InteractivePlanningIPC] 开始Plan会话:', userRequest);
+        logger.info('[InteractivePlanningIPC] 开始Plan会话:', userRequest);
         const result = await this.planner.startPlanSession(userRequest, projectContext);
         return { success: true, ...result };
       } catch (error) {
-        console.error('[InteractivePlanningIPC] 开始会话失败:', error);
+        logger.error('[InteractivePlanningIPC] 开始会话失败:', error);
         return {
           success: false,
           error: error.message
@@ -50,11 +52,11 @@ class InteractivePlanningIPC {
      */
     this.ipcMain.handle('interactive-planning:respond', async (event, { sessionId, userResponse }) => {
       try {
-        console.log('[InteractivePlanningIPC] 用户响应:', sessionId, userResponse.action);
+        logger.info('[InteractivePlanningIPC] 用户响应:', sessionId, userResponse.action);
         const result = await this.planner.handleUserResponse(sessionId, userResponse);
         return { success: true, ...result };
       } catch (error) {
-        console.error('[InteractivePlanningIPC] 处理响应失败:', error);
+        logger.error('[InteractivePlanningIPC] 处理响应失败:', error);
         return {
           success: false,
           error: error.message
@@ -67,11 +69,11 @@ class InteractivePlanningIPC {
      */
     this.ipcMain.handle('interactive-planning:submit-feedback', async (event, { sessionId, feedback }) => {
       try {
-        console.log('[InteractivePlanningIPC] 提交反馈:', sessionId);
+        logger.info('[InteractivePlanningIPC] 提交反馈:', sessionId);
         const result = await this.planner.submitUserFeedback(sessionId, feedback);
         return { success: true, ...result };
       } catch (error) {
-        console.error('[InteractivePlanningIPC] 提交反馈失败:', error);
+        logger.error('[InteractivePlanningIPC] 提交反馈失败:', error);
         return {
           success: false,
           error: error.message
@@ -107,7 +109,7 @@ class InteractivePlanningIPC {
           }
         };
       } catch (error) {
-        console.error('[InteractivePlanningIPC] 获取会话失败:', error);
+        logger.error('[InteractivePlanningIPC] 获取会话失败:', error);
         return {
           success: false,
           error: error.message
@@ -126,7 +128,7 @@ class InteractivePlanningIPC {
           cleanedCount: count
         };
       } catch (error) {
-        console.error('[InteractivePlanningIPC] 清理失败:', error);
+        logger.error('[InteractivePlanningIPC] 清理失败:', error);
         return {
           success: false,
           error: error.message

@@ -475,6 +475,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, reactive, computed, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
 import {
@@ -669,7 +671,7 @@ async function loadStats() {
     const stats = await templateStore.getTemplateStats()
     templateStats.value = stats
   } catch (error) {
-    console.error('加载统计信息失败:', error)
+    logger.error('加载统计信息失败:', error)
   }
 }
 

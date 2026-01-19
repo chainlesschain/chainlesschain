@@ -1,3 +1,4 @@
+import { logger, createLogger } from '@/utils/logger';
 import { defineStore } from 'pinia';
 
 // Strip Vue proxies before IPC/state updates to avoid structured clone errors.
@@ -121,14 +122,14 @@ export const useGraphStore = defineStore('graph', {
         this.stats.semanticRelations = typeCount.semantic;
         this.stats.temporalRelations = typeCount.temporal;
 
-        console.log('[GraphStore] 图谱数据加载完成:', {
+        logger.info('[GraphStore] 图谱数据加载完成:', {
           nodes: this.nodes.length,
           edges: this.edges.length,
         });
 
         return { nodes: this.nodes, edges: this.edges };
       } catch (error) {
-        console.error('[GraphStore] 加载图谱数据失败:', error);
+        logger.error('[GraphStore] 加载图谱数据失败:', error);
         throw error;
       } finally {
         this.loading = false;
@@ -141,10 +142,10 @@ export const useGraphStore = defineStore('graph', {
     async processNote(noteId, content, tags = []) {
       try {
         const count = await window.electronAPI.graph.processNote(noteId, content, tags);
-        console.log(`[GraphStore] 处理笔记 ${noteId}，创建了 ${count} 个关系`);
+        logger.info(`[GraphStore] 处理笔记 ${noteId}，创建了 ${count} 个关系`);
         return count;
       } catch (error) {
-        console.error('[GraphStore] 处理笔记失败:', error);
+        logger.error('[GraphStore] 处理笔记失败:', error);
         throw error;
       }
     },
@@ -157,14 +158,14 @@ export const useGraphStore = defineStore('graph', {
 
       try {
         const result = await window.electronAPI.graph.processAllNotes(noteIds);
-        console.log('[GraphStore] 批量处理完成:', result);
+        logger.info('[GraphStore] 批量处理完成:', result);
 
         // 重新加载图谱数据
         await this.loadGraphData();
 
         return result;
       } catch (error) {
-        console.error('[GraphStore] 批量处理失败:', error);
+        logger.error('[GraphStore] 批量处理失败:', error);
         throw error;
       } finally {
         this.processing = false;
@@ -179,7 +180,7 @@ export const useGraphStore = defineStore('graph', {
         const relations = await window.electronAPI.graph.getKnowledgeRelations(knowledgeId);
         return relations;
       } catch (error) {
-        console.error('[GraphStore] 获取笔记关系失败:', error);
+        logger.error('[GraphStore] 获取笔记关系失败:', error);
         return [];
       }
     },
@@ -192,7 +193,7 @@ export const useGraphStore = defineStore('graph', {
         const path = await window.electronAPI.graph.findRelatedNotes(sourceId, targetId, maxDepth);
         return path;
       } catch (error) {
-        console.error('[GraphStore] 查找关联路径失败:', error);
+        logger.error('[GraphStore] 查找关联路径失败:', error);
         return null;
       }
     },
@@ -205,7 +206,7 @@ export const useGraphStore = defineStore('graph', {
         const suggestions = await window.electronAPI.graph.findPotentialLinks(noteId, content);
         return suggestions;
       } catch (error) {
-        console.error('[GraphStore] 查找潜在链接失败:', error);
+        logger.error('[GraphStore] 查找潜在链接失败:', error);
         return [];
       }
     },
@@ -228,7 +229,7 @@ export const useGraphStore = defineStore('graph', {
 
         return relation;
       } catch (error) {
-        console.error('[GraphStore] 添加关系失败:', error);
+        logger.error('[GraphStore] 添加关系失败:', error);
         throw error;
       }
     },
@@ -245,7 +246,7 @@ export const useGraphStore = defineStore('graph', {
 
         return count;
       } catch (error) {
-        console.error('[GraphStore] 删除关系失败:', error);
+        logger.error('[GraphStore] 删除关系失败:', error);
         throw error;
       }
     },
@@ -258,14 +259,14 @@ export const useGraphStore = defineStore('graph', {
 
       try {
         const count = await window.electronAPI.graph.buildTagRelations();
-        console.log(`[GraphStore] 重建标签关系完成，创建了 ${count} 个关系`);
+        logger.info(`[GraphStore] 重建标签关系完成，创建了 ${count} 个关系`);
 
         // 重新加载图谱数据
         await this.loadGraphData();
 
         return count;
       } catch (error) {
-        console.error('[GraphStore] 重建标签关系失败:', error);
+        logger.error('[GraphStore] 重建标签关系失败:', error);
         throw error;
       } finally {
         this.processing = false;
@@ -280,14 +281,14 @@ export const useGraphStore = defineStore('graph', {
 
       try {
         const count = await window.electronAPI.graph.buildTemporalRelations(windowDays);
-        console.log(`[GraphStore] 重建时间关系完成，创建了 ${count} 个关系`);
+        logger.info(`[GraphStore] 重建时间关系完成，创建了 ${count} 个关系`);
 
         // 重新加载图谱数据
         await this.loadGraphData();
 
         return count;
       } catch (error) {
-        console.error('[GraphStore] 重建时间关系失败:', error);
+        logger.error('[GraphStore] 重建时间关系失败:', error);
         throw error;
       } finally {
         this.processing = false;
@@ -300,14 +301,14 @@ export const useGraphStore = defineStore('graph', {
     async extractSemanticRelations(noteId, content) {
       try {
         const relations = await window.electronAPI.graph.extractSemanticRelations(noteId, content);
-        console.log(`[GraphStore] 提取语义关系完成，找到了 ${relations.length} 个关系`);
+        logger.info(`[GraphStore] 提取语义关系完成，找到了 ${relations.length} 个关系`);
 
         // 重新加载图谱数据
         await this.loadGraphData();
 
         return relations;
       } catch (error) {
-        console.error('[GraphStore] 提取语义关系失败:', error);
+        logger.error('[GraphStore] 提取语义关系失败:', error);
         throw error;
       }
     },
@@ -363,7 +364,7 @@ export const useGraphStore = defineStore('graph', {
         );
         return new Map(result);
       } catch (error) {
-        console.error('[GraphStore] 计算中心性失败:', error);
+        logger.error('[GraphStore] 计算中心性失败:', error);
         return new Map();
       }
     },
@@ -379,7 +380,7 @@ export const useGraphStore = defineStore('graph', {
         );
         return new Map(result);
       } catch (error) {
-        console.error('[GraphStore] 社区检测失败:', error);
+        logger.error('[GraphStore] 社区检测失败:', error);
         return new Map();
       }
     },
@@ -396,7 +397,7 @@ export const useGraphStore = defineStore('graph', {
         );
         return new Map(result);
       } catch (error) {
-        console.error('[GraphStore] 节点聚类失败:', error);
+        logger.error('[GraphStore] 节点聚类失败:', error);
         return new Map();
       }
     },
@@ -413,7 +414,7 @@ export const useGraphStore = defineStore('graph', {
         );
         return keyNodes;
       } catch (error) {
-        console.error('[GraphStore] 查找关键节点失败:', error);
+        logger.error('[GraphStore] 查找关键节点失败:', error);
         return [];
       }
     },
@@ -429,7 +430,7 @@ export const useGraphStore = defineStore('graph', {
         );
         return stats;
       } catch (error) {
-        console.error('[GraphStore] 分析图谱统计失败:', error);
+        logger.error('[GraphStore] 分析图谱统计失败:', error);
         return null;
       }
     },
@@ -446,7 +447,7 @@ export const useGraphStore = defineStore('graph', {
         );
         return result;
       } catch (error) {
-        console.error('[GraphStore] 导出图谱失败:', error);
+        logger.error('[GraphStore] 导出图谱失败:', error);
         throw error;
       }
     },

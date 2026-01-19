@@ -1,3 +1,5 @@
+const { logger, createLogger } = require('../utils/logger.js');
+
 /**
  * 额外工具定义（第二批）
  * 15个新增的实用工具
@@ -436,7 +438,7 @@ const additionalToolsV2 = [
       {
         description: '格式化JavaScript代码',
         params: {
-          code: 'function hello(){console.log("Hello")}',
+          code: 'function hello(){logger.info("Hello")}',
           language: 'javascript'
         }
       }

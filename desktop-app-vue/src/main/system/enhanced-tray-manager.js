@@ -3,6 +3,7 @@
  * 提供丰富的托盘菜单和快捷操作
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { Tray, Menu, nativeImage, app } = require("electron");
 const path = require("path");
 
@@ -40,9 +41,9 @@ class EnhancedTrayManager {
         this.showWindow();
       });
 
-      console.log("[TrayManager] Tray created successfully");
+      logger.info("[TrayManager] Tray created successfully");
     } catch (error) {
-      console.error("[TrayManager] Failed to create tray:", error);
+      logger.error("[TrayManager] Failed to create tray:", error);
     }
   }
 

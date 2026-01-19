@@ -22,6 +22,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
 import * as fabric from 'fabric';
 import { useDesignStore } from '../../../stores/design';
@@ -81,9 +83,9 @@ async function initializeCanvas() {
     // 加载画板数据
     await loadArtboardObjects();
 
-    console.log('[DesignCanvas] Canvas initialized successfully');
+    logger.info('[DesignCanvas] Canvas initialized successfully');
   } catch (error) {
-    console.error('[DesignCanvas] Failed to initialize canvas:', error);
+    logger.error('[DesignCanvas] Failed to initialize canvas:', error);
   }
 }
 
@@ -114,7 +116,7 @@ async function loadArtboardObjects() {
             fabricCanvas.value.add(fabricObj);
           });
         } catch (error) {
-          console.error('[DesignCanvas] Failed to load object:', error);
+          logger.error('[DesignCanvas] Failed to load object:', error);
         }
       }
 
@@ -162,7 +164,7 @@ async function handleObjectModified(event) {
 
       emit('objectsModified');
     } catch (error) {
-      console.error('[DesignCanvas] Failed to save object:', error);
+      logger.error('[DesignCanvas] Failed to save object:', error);
     }
   }
 }
@@ -318,7 +320,7 @@ async function handleMouseUp() {
 
       emit('objectsModified');
     } catch (error) {
-      console.error('[DesignCanvas] Failed to save new object:', error);
+      logger.error('[DesignCanvas] Failed to save new object:', error);
     }
 
     currentShape = null;
@@ -339,7 +341,7 @@ async function deleteSelected() {
         await window.electronAPI.invoke('design:delete-object', obj.id);
         fabricCanvas.value.remove(obj);
       } catch (error) {
-        console.error('[DesignCanvas] Failed to delete object:', error);
+        logger.error('[DesignCanvas] Failed to delete object:', error);
       }
     }
   }

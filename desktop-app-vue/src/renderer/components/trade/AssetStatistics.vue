@@ -162,9 +162,11 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, reactive, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import { message } from 'ant-design-vue';
-import * as echarts from 'echarts';
+import { init } from '../../utils/echartsConfig';
 import {
   PieChartOutlined,
   ReloadOutlined,
@@ -221,13 +223,13 @@ const loadStatistics = async () => {
     statistics.totalTransfers = data.totalTransfers;
     statistics.totalHolders = data.totalHolders;
 
-    console.log('[AssetStatistics] 统计数据已加载');
+    logger.info('[AssetStatistics] 统计数据已加载');
 
     // 渲染图表
     await nextTick();
     renderCharts(data);
   } catch (error) {
-    console.error('[AssetStatistics] 加载统计失败:', error);
+    logger.error('[AssetStatistics] 加载统计失败:', error);
     message.error(error.message || '加载统计失败');
   } finally {
     loading.value = false;
@@ -288,7 +290,7 @@ const renderTypeChart = (data) => {
   if (!typeChartRef.value) {return;}
 
   if (!typeChart) {
-    typeChart = echarts.init(typeChartRef.value);
+    typeChart = init(typeChartRef.value);
   }
 
   const option = {
@@ -326,7 +328,7 @@ const renderHoldingChart = (data) => {
   if (!holdingChartRef.value) {return;}
 
   if (!holdingChart) {
-    holdingChart = echarts.init(holdingChartRef.value);
+    holdingChart = init(holdingChartRef.value);
   }
 
   const option = {
@@ -369,7 +371,7 @@ const renderGrowthChart = (data) => {
   if (!growthChartRef.value) {return;}
 
   if (!growthChart) {
-    growthChart = echarts.init(growthChartRef.value);
+    growthChart = init(growthChartRef.value);
   }
 
   const option = {
@@ -411,7 +413,7 @@ const renderActivityChart = (data) => {
   if (!activityChartRef.value) {return;}
 
   if (!activityChart) {
-    activityChart = echarts.init(activityChartRef.value);
+    activityChart = init(activityChartRef.value);
   }
 
   const option = {
@@ -453,7 +455,7 @@ const renderCreationChart = (data) => {
   if (!creationChartRef.value) {return;}
 
   if (!creationChart) {
-    creationChart = echarts.init(creationChartRef.value);
+    creationChart = init(creationChartRef.value);
   }
 
   const option = {

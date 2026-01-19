@@ -4,6 +4,7 @@
  * 参考: 系统设计文档 2.4.6节
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { getLLMService } = require('../llm/llm-manager');
 const { getProjectRAGManager } = require('../project/project-rag');
 
@@ -28,9 +29,9 @@ class TaskPlanner {
       this.ragManager = getProjectRAGManager();
       await this.ragManager.initialize();
       this.initialized = true;
-      console.log('[TaskPlanner] 初始化完成');
+      logger.info('[TaskPlanner] 初始化完成');
     } catch (error) {
-      console.warn('[TaskPlanner] 初始化失败，部分功能可能不可用:', error.message);
+      logger.warn('[TaskPlanner] 初始化失败，部分功能可能不可用:', error.message);
     }
   }
 
@@ -41,7 +42,7 @@ class TaskPlanner {
    * @returns {Promise<Object>} 任务计划
    */
   async decomposeTask(userRequest, projectContext) {
-    console.log('[TaskPlanner] 开始拆解任务:', userRequest);
+    logger.info('[TaskPlanner] 开始拆解任务:', userRequest);
 
     await this.initialize();
 
@@ -66,7 +67,7 @@ class TaskPlanner {
               .join('\n');
           }
         } catch (error) {
-          console.warn('[TaskPlanner] RAG增强失败，继续执行', error);
+          logger.warn('[TaskPlanner] RAG增强失败，继续执行', error);
         }
       }
 
@@ -98,18 +99,18 @@ class TaskPlanner {
 
         taskPlan = JSON.parse(jsonStr);
       } catch (error) {
-        console.error('[TaskPlanner] 解析JSON失败，使用快速拆解模式');
+        logger.error('[TaskPlanner] 解析JSON失败，使用快速拆解模式');
         return this.quickDecompose(userRequest, projectContext);
       }
 
       // 5. 验证和增强任务计划
       const validatedPlan = this.validateAndEnhancePlan(taskPlan, projectContext);
 
-      console.log('[TaskPlanner] 任务拆解完成:', validatedPlan);
+      logger.info('[TaskPlanner] 任务拆解完成:', validatedPlan);
       return validatedPlan;
 
     } catch (error) {
-      console.error('[TaskPlanner] 任务拆解失败，使用快速拆解模式:', error);
+      logger.error('[TaskPlanner] 任务拆解失败，使用快速拆解模式:', error);
       return this.quickDecompose(userRequest, projectContext);
     }
   }
@@ -310,7 +311,7 @@ class TaskPlanner {
    * 用于一些明确的单步任务或LLM调用失败时的fallback
    */
   quickDecompose(userRequest, projectContext) {
-    console.log('[TaskPlanner] 使用快速拆解模式');
+    logger.info('[TaskPlanner] 使用快速拆解模式');
 
     const tool = this.recommendTool(userRequest);
     const complexity = this.assessComplexity(userRequest);

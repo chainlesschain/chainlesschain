@@ -296,6 +296,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, reactive, watch, computed } from 'vue';
 import { message as antMessage } from 'ant-design-vue';
 import {
@@ -430,7 +432,7 @@ const fetchGasEstimate = async () => {
 
     antMessage.success('Gas 估算已更新');
   } catch (error) {
-    console.error('[AssetCreate] Gas 估算失败:', error);
+    logger.error('[AssetCreate] Gas 估算失败:', error);
     antMessage.error('Gas 估算失败');
   }
 };
@@ -553,7 +555,7 @@ const handleCreate = async () => {
     // 重置表单
     resetForm();
   } catch (error) {
-    console.error('[AssetCreate] 创建资产失败:', error);
+    logger.error('[AssetCreate] 创建资产失败:', error);
     antMessage.error(error.message || '创建资产失败');
   }
 };

@@ -3,6 +3,7 @@
  * 负责项目分享功能的创建、查询、更新和删除
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { v4: uuidv4 } = require('uuid');
 const crypto = require('crypto');
 
@@ -75,7 +76,7 @@ class ShareManager {
           WHERE id = ?
         `).run(shareMode, shareLink, shareToken, now, expiresAt, shareId);
 
-        console.log(`[ShareManager] 更新分享: ${projectId}, 模式: ${shareMode}`);
+        logger.info(`[ShareManager] 更新分享: ${projectId}, 模式: ${shareMode}`);
       } else {
         // 创建新分享
         this.database.prepare(`
@@ -95,7 +96,7 @@ class ShareManager {
           expiresAt
         );
 
-        console.log(`[ShareManager] 创建分享: ${projectId}, 模式: ${shareMode}`);
+        logger.info(`[ShareManager] 创建分享: ${projectId}, 模式: ${shareMode}`);
       }
 
       // 获取完整的分享信息
@@ -107,7 +108,7 @@ class ShareManager {
       };
 
     } catch (error) {
-      console.error('[ShareManager] 创建/更新分享失败:', error);
+      logger.error('[ShareManager] 创建/更新分享失败:', error);
       throw error;
     }
   }
@@ -177,7 +178,7 @@ class ShareManager {
       };
 
     } catch (error) {
-      console.error('[ShareManager] 获取分享信息失败:', error);
+      logger.error('[ShareManager] 获取分享信息失败:', error);
       return null;
     }
   }
@@ -227,7 +228,7 @@ class ShareManager {
       };
 
     } catch (error) {
-      console.error('[ShareManager] 根据token获取分享失败:', error);
+      logger.error('[ShareManager] 根据token获取分享失败:', error);
       return null;
     }
   }
@@ -247,7 +248,7 @@ class ShareManager {
 
       return result.changes > 0;
     } catch (error) {
-      console.error('[ShareManager] 增加访问计数失败:', error);
+      logger.error('[ShareManager] 增加访问计数失败:', error);
       return false;
     }
   }
@@ -263,11 +264,11 @@ class ShareManager {
         DELETE FROM project_shares WHERE project_id = ?
       `).run(projectId);
 
-      console.log(`[ShareManager] 删除分享: ${projectId}`);
+      logger.info(`[ShareManager] 删除分享: ${projectId}`);
       return result.changes > 0;
 
     } catch (error) {
-      console.error('[ShareManager] 删除分享失败:', error);
+      logger.error('[ShareManager] 删除分享失败:', error);
       return false;
     }
   }
@@ -314,7 +315,7 @@ class ShareManager {
       return shares;
 
     } catch (error) {
-      console.error('[ShareManager] 获取公开分享失败:', error);
+      logger.error('[ShareManager] 获取公开分享失败:', error);
       return [];
     }
   }
@@ -348,7 +349,7 @@ class ShareManager {
       };
 
     } catch (error) {
-      console.error('[ShareManager] 获取分享统计失败:', error);
+      logger.error('[ShareManager] 获取分享统计失败:', error);
       return {
         hasShare: false,
         accessCount: 0,
@@ -372,13 +373,13 @@ class ShareManager {
 
       const count = result.changes;
       if (count > 0) {
-        console.log(`[ShareManager] 清理了 ${count} 个过期分享`);
+        logger.info(`[ShareManager] 清理了 ${count} 个过期分享`);
       }
 
       return count;
 
     } catch (error) {
-      console.error('[ShareManager] 清理过期分享失败:', error);
+      logger.error('[ShareManager] 清理过期分享失败:', error);
       return 0;
     }
   }

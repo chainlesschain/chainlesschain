@@ -46,6 +46,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, onMounted, onUnmounted, watch } from "vue";
 import {
   LoadingOutlined,
@@ -165,7 +167,7 @@ const loadComponent = async () => {
     // Auto-retry
     if (props.autoRetry && retryCount.value < props.maxRetries) {
       retryCount.value++;
-      console.log(
+      logger.info(
         `[AsyncComponent] Auto-retry ${retryCount.value}/${props.maxRetries}`,
       );
 

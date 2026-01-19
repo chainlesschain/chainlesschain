@@ -8,6 +8,7 @@
  * - 提供优化建议
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const EventEmitter = require('events');
 
 /**
@@ -50,11 +51,11 @@ class WebRTCQualityMonitor extends EventEmitter {
    */
   start() {
     if (this.isMonitoring) {
-      console.warn('[WebRTC Monitor] 监控已在运行');
+      logger.warn('[WebRTC Monitor] 监控已在运行');
       return;
     }
 
-    console.log('[WebRTC Monitor] 开始监控WebRTC连接质量');
+    logger.info('[WebRTC Monitor] 开始监控WebRTC连接质量');
     this.isMonitoring = true;
 
     // 定期收集统计信息
@@ -74,7 +75,7 @@ class WebRTCQualityMonitor extends EventEmitter {
       return;
     }
 
-    console.log('[WebRTC Monitor] 停止监控');
+    logger.info('[WebRTC Monitor] 停止监控');
     this.isMonitoring = false;
 
     if (this.monitorTimer) {
@@ -94,14 +95,14 @@ class WebRTCQualityMonitor extends EventEmitter {
     // 监听新连接
     this.p2pManager.node.addEventListener('peer:connect', (event) => {
       const peerId = event.detail.toString();
-      console.log(`[WebRTC Monitor] 新连接: ${peerId}`);
+      logger.info(`[WebRTC Monitor] 新连接: ${peerId}`);
       this.initializeConnectionStats(peerId);
     });
 
     // 监听连接断开
     this.p2pManager.node.addEventListener('peer:disconnect', (event) => {
       const peerId = event.detail.toString();
-      console.log(`[WebRTC Monitor] 连接断开: ${peerId}`);
+      logger.info(`[WebRTC Monitor] 连接断开: ${peerId}`);
       this.connections.delete(peerId);
     });
   }
@@ -144,7 +145,7 @@ class WebRTCQualityMonitor extends EventEmitter {
         }
       }
     } catch (error) {
-      console.error('[WebRTC Monitor] 收集统计信息失败:', error);
+      logger.error('[WebRTC Monitor] 收集统计信息失败:', error);
     }
   }
 
@@ -186,7 +187,7 @@ class WebRTCQualityMonitor extends EventEmitter {
 
       return stats;
     } catch (error) {
-      console.warn('[WebRTC Monitor] 获取连接统计失败:', error.message);
+      logger.warn('[WebRTC Monitor] 获取连接统计失败:', error.message);
       return null;
     }
   }
@@ -216,7 +217,7 @@ class WebRTCQualityMonitor extends EventEmitter {
 
     // 检测质量变化
     if (quality !== previousQuality) {
-      console.log(`[WebRTC Monitor] ${peerId} 连接质量变化: ${previousQuality} -> ${quality}`);
+      logger.info(`[WebRTC Monitor] ${peerId} 连接质量变化: ${previousQuality} -> ${quality}`);
       this.emit('quality:change', {
         peerId,
         previousQuality,

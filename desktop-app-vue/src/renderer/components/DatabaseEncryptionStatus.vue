@@ -37,6 +37,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted } from 'vue';
 import { SafetyOutlined, WarningOutlined } from '@ant-design/icons-vue';
 
@@ -79,7 +81,7 @@ const fetchEncryptionStatus = async () => {
     const status = await window.electronAPI.db.getEncryptionStatus();
     encryptionInfo.value = status;
   } catch (error) {
-    console.error('获取加密状态失败:', error);
+    logger.error('获取加密状态失败:', error);
   }
 };
 

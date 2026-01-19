@@ -4,6 +4,7 @@
  * 使用 EventEmitter 模式发送进度和状态更新
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { EventEmitter } = require('events');
 const fs = require('fs').promises;
 const fsSync = require('fs');
@@ -48,12 +49,12 @@ class VideoImporter extends EventEmitter {
       try {
         await fs.mkdir(dirPath, { recursive: true });
       } catch (error) {
-        console.error(`[Video Importer] 创建目录失败: ${dirPath}`, error);
+        logger.error(`[Video Importer] 创建目录失败: ${dirPath}`, error);
         throw error;
       }
     }
 
-    console.log('[Video Importer] 存储目录初始化完成');
+    logger.info('[Video Importer] 存储目录初始化完成');
   }
 
   /**
@@ -72,7 +73,7 @@ class VideoImporter extends EventEmitter {
       extractMetadata = true
     } = options;
 
-    console.log(`[Video Importer] 开始导入视频: ${filePath}`);
+    logger.info(`[Video Importer] 开始导入视频: ${filePath}`);
     this.emit('import:start', { taskId, filePath });
 
     try {
@@ -124,7 +125,7 @@ class VideoImporter extends EventEmitter {
         this.emit('import:progress', { taskId, progress: 90, message: '开始分析...' });
         // 异步执行分析，不阻塞导入完成
         this.analyzeVideo(videoRecord.id).catch(error => {
-          console.error('[Video Importer] 视频分析失败:', error);
+          logger.error('[Video Importer] 视频分析失败:', error);
           this.emit('analysis:error', { videoId: videoRecord.id, error: error.message });
         });
       }
@@ -132,7 +133,7 @@ class VideoImporter extends EventEmitter {
       this.emit('import:progress', { taskId, progress: 100, message: '导入完成' });
       this.emit('import:complete', { taskId, video: videoRecord });
 
-      console.log(`[Video Importer] 视频导入完成: ${videoRecord.id}`);
+      logger.info(`[Video Importer] 视频导入完成: ${videoRecord.id}`);
       return {
         success: true,
         video: videoRecord,
@@ -140,7 +141,7 @@ class VideoImporter extends EventEmitter {
       };
 
     } catch (error) {
-      console.error('[Video Importer] 导入失败:', error);
+      logger.error('[Video Importer] 导入失败:', error);
       this.emit('import:error', { taskId, error: error.message });
       throw error;
     }
@@ -157,7 +158,7 @@ class VideoImporter extends EventEmitter {
     const results = [];
     const concurrency = this.config.import.batchConcurrency;
 
-    console.log(`[Video Importer] 批量导入 ${filePaths.length} 个视频文件`);
+    logger.info(`[Video Importer] 批量导入 ${filePaths.length} 个视频文件`);
     this.emit('batch:start', { batchId, count: filePaths.length });
 
     for (let i = 0; i < filePaths.length; i += concurrency) {
@@ -183,7 +184,7 @@ class VideoImporter extends EventEmitter {
     }
 
     this.emit('batch:complete', { batchId, results });
-    console.log(`[Video Importer] 批量导入完成: ${results.length} 个文件`);
+    logger.info(`[Video Importer] 批量导入完成: ${results.length} 个文件`);
 
     return results;
   }
@@ -212,7 +213,7 @@ class VideoImporter extends EventEmitter {
       throw new Error(`文件大小超过限制: ${stats.size} 字节`);
     }
 
-    console.log('[Video Importer] 文件验证通过');
+    logger.info('[Video Importer] 文件验证通过');
   }
 
   /**
@@ -224,7 +225,7 @@ class VideoImporter extends EventEmitter {
     return new Promise((resolve, reject) => {
       ffmpeg.ffprobe(filePath, (error, metadata) => {
         if (error) {
-          console.error('[Video Importer] 元数据提取失败:', error);
+          logger.error('[Video Importer] 元数据提取失败:', error);
           reject(error);
           return;
         }
@@ -249,10 +250,10 @@ class VideoImporter extends EventEmitter {
             sampleRate: audioStream?.sample_rate || 0
           };
 
-          console.log('[Video Importer] 元数据提取成功:', result);
+          logger.info('[Video Importer] 元数据提取成功:', result);
           resolve(result);
         } catch (parseError) {
-          console.error('[Video Importer] 元数据解析失败:', parseError);
+          logger.error('[Video Importer] 元数据解析失败:', parseError);
           reject(parseError);
         }
       });
@@ -286,7 +287,7 @@ class VideoImporter extends EventEmitter {
     await fs.mkdir(destDir, { recursive: true });
     await fs.copyFile(sourceFilePath, destPath);
 
-    console.log(`[Video Importer] 文件已复制: ${destPath}`);
+    logger.info(`[Video Importer] 文件已复制: ${destPath}`);
     return destPath;
   }
 
@@ -308,7 +309,7 @@ class VideoImporter extends EventEmitter {
       size: `${this.config.thumbnail.width}x${this.config.thumbnail.height}`
     });
 
-    console.log(`[Video Importer] 缩略图已生成: ${thumbnailPath}`);
+    logger.info(`[Video Importer] 缩略图已生成: ${thumbnailPath}`);
     return result.outputPath;
   }
 
@@ -318,7 +319,7 @@ class VideoImporter extends EventEmitter {
    * @returns {Promise<Object>} 分析结果
    */
   async analyzeVideo(videoId) {
-    console.log(`[Video Importer] 开始分析视频: ${videoId}`);
+    logger.info(`[Video Importer] 开始分析视频: ${videoId}`);
     this.emit('analysis:start', { videoId });
 
     try {
@@ -345,7 +346,7 @@ class VideoImporter extends EventEmitter {
           const audioPath = await this.extractAudio(video);
           analysisResult.audioPath = audioPath;
         } catch (error) {
-          console.warn('[Video Importer] 音频提取失败:', error);
+          logger.warn('[Video Importer] 音频提取失败:', error);
         }
       }
 
@@ -355,7 +356,7 @@ class VideoImporter extends EventEmitter {
         try {
           await this.extractKeyframes(video);
         } catch (error) {
-          console.warn('[Video Importer] 关键帧提取失败:', error);
+          logger.warn('[Video Importer] 关键帧提取失败:', error);
         }
       }
 
@@ -365,7 +366,7 @@ class VideoImporter extends EventEmitter {
         try {
           await this.detectScenes(video);
         } catch (error) {
-          console.warn('[Video Importer] 场景检测失败:', error);
+          logger.warn('[Video Importer] 场景检测失败:', error);
         }
       }
 
@@ -379,7 +380,7 @@ class VideoImporter extends EventEmitter {
             analysisResult.ocrConfidence = 0.8; // 示例值
           }
         } catch (error) {
-          console.warn('[Video Importer] OCR 识别失败:', error);
+          logger.warn('[Video Importer] OCR 识别失败:', error);
         }
       }
 
@@ -396,11 +397,11 @@ class VideoImporter extends EventEmitter {
       this.emit('analysis:progress', { videoId, progress: 100, message: '分析完成' });
       this.emit('analysis:complete', { videoId, result: analysisResult });
 
-      console.log(`[Video Importer] 视频分析完成: ${videoId}`);
+      logger.info(`[Video Importer] 视频分析完成: ${videoId}`);
       return analysisResult;
 
     } catch (error) {
-      console.error('[Video Importer] 视频分析失败:', error);
+      logger.error('[Video Importer] 视频分析失败:', error);
 
       // 更新状态为失败
       await this.storage.updateVideoFile(videoId, {
@@ -431,7 +432,7 @@ class VideoImporter extends EventEmitter {
       channels: this.config.audio.channels
     });
 
-    console.log(`[Video Importer] 音频已提取: ${audioPath}`);
+    logger.info(`[Video Importer] 音频已提取: ${audioPath}`);
     return audioPath;
   }
 
@@ -471,11 +472,11 @@ class VideoImporter extends EventEmitter {
 
         keyframes.push(keyframe);
       } catch (error) {
-        console.warn(`[Video Importer] 关键帧提取失败 (${timestamp}s):`, error);
+        logger.warn(`[Video Importer] 关键帧提取失败 (${timestamp}s):`, error);
       }
     }
 
-    console.log(`[Video Importer] 已提取 ${keyframes.length} 个关键帧`);
+    logger.info(`[Video Importer] 已提取 ${keyframes.length} 个关键帧`);
     return keyframes;
   }
 
@@ -509,7 +510,7 @@ class VideoImporter extends EventEmitter {
       scenes.push(scene);
     }
 
-    console.log(`[Video Importer] 已检测 ${scenes.length} 个场景`);
+    logger.info(`[Video Importer] 已检测 ${scenes.length} 个场景`);
     return scenes;
   }
 
@@ -527,7 +528,7 @@ class VideoImporter extends EventEmitter {
 
     // 这里应该调用 OCR 服务（如 Tesseract.js）
     // 作为示例，返回空字符串
-    console.log(`[Video Importer] OCR 识别已跳过（需要集成 OCR 服务）`);
+    logger.info(`[Video Importer] OCR 识别已跳过（需要集成 OCR 服务）`);
     return '';
   }
 
@@ -549,7 +550,7 @@ class VideoImporter extends EventEmitter {
    * @returns {Promise<void>}
    */
   async cancelImport(taskId) {
-    console.log(`[Video Importer] 取消导入任务: ${taskId}`);
+    logger.info(`[Video Importer] 取消导入任务: ${taskId}`);
     this.emit('import:cancelled', { taskId });
     // 实际应用中需要中断正在进行的 FFmpeg 进程
   }

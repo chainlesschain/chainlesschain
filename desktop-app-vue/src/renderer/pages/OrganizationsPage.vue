@@ -176,6 +176,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { message } from 'ant-design-vue';
@@ -221,7 +223,7 @@ async function loadOrganizations() {
       message.error(result.error || '加载组织列表失败');
     }
   } catch (error) {
-    console.error('加载组织列表失败:', error);
+    logger.error('加载组织列表失败:', error);
     message.error('加载组织列表失败');
   } finally {
     loading.value = false;
@@ -259,7 +261,7 @@ async function handleCreate() {
       message.error(result.error || '创建组织失败');
     }
   } catch (error) {
-    console.error('创建组织失败:', error);
+    logger.error('创建组织失败:', error);
     message.error('创建组织失败');
   } finally {
     creating.value = false;

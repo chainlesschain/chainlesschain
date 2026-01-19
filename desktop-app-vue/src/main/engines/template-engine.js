@@ -2,6 +2,7 @@
  * 模板变量替换引擎
  * 使用Handlebars模板引擎，支持变量定义、验证和文件批量生成
  */
+const { logger, createLogger } = require('../utils/logger.js');
 const Handlebars = require('handlebars');
 const fs = require('fs').promises;
 const path = require('path');
@@ -139,7 +140,7 @@ class TemplateEngine {
       const compiledTemplate = this.handlebars.compile(templateString);
       return compiledTemplate(context);
     } catch (error) {
-      console.error('[TemplateEngine] 渲染失败:', error);
+      logger.error('[TemplateEngine] 渲染失败:', error);
       throw new Error(`模板渲染失败: ${error.message}`);
     }
   }
@@ -298,7 +299,7 @@ class TemplateEngine {
    */
   async createProjectFromTemplate(template, variables, targetPath) {
     try {
-      console.log('[TemplateEngine] 开始从模板创建项目:', template.name);
+      logger.info('[TemplateEngine] 开始从模板创建项目:', template.name);
 
       // 1. 验证变量
       if (template.variables) {
@@ -355,9 +356,9 @@ class TemplateEngine {
             await fs.writeFile(fullPath, renderedContent, 'utf-8');
             filesCreated.push(fullPath);
 
-            console.log('[TemplateEngine] 文件已创建:', renderedPath);
+            logger.info('[TemplateEngine] 文件已创建:', renderedPath);
           } catch (error) {
-            console.error('[TemplateEngine] 文件创建失败:', error);
+            logger.error('[TemplateEngine] 文件创建失败:', error);
             errors.push({
               file: fileTemplate.path,
               message: error.message
@@ -373,7 +374,7 @@ class TemplateEngine {
         errors
       };
     } catch (error) {
-      console.error('[TemplateEngine] 创建项目失败:', error);
+      logger.error('[TemplateEngine] 创建项目失败:', error);
       return {
         success: false,
         filesCreated: 0,
@@ -413,7 +414,7 @@ class TemplateEngine {
       const content = await fs.readFile(templatePath, 'utf-8');
       return JSON.parse(content);
     } catch (error) {
-      console.error('[TemplateEngine] 加载模板失败:', error);
+      logger.error('[TemplateEngine] 加载模板失败:', error);
       throw new Error(`加载模板失败: ${error.message}`);
     }
   }
@@ -428,9 +429,9 @@ class TemplateEngine {
     try {
       const content = JSON.stringify(template, null, 2);
       await fs.writeFile(outputPath, content, 'utf-8');
-      console.log('[TemplateEngine] 模板已保存:', outputPath);
+      logger.info('[TemplateEngine] 模板已保存:', outputPath);
     } catch (error) {
-      console.error('[TemplateEngine] 保存模板失败:', error);
+      logger.error('[TemplateEngine] 保存模板失败:', error);
       throw new Error(`保存模板失败: ${error.message}`);
     }
   }

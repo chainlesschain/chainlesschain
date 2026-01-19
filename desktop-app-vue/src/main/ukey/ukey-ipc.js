@@ -1,3 +1,5 @@
+const { logger, createLogger } = require('../utils/logger.js');
+
 /**
  * U-Key 硬件 IPC 处理器
  * 负责处理 U-Key 硬件设备相关的前后端通信
@@ -19,14 +21,14 @@ function registerUKeyIPC({ ukeyManager, ipcMain: injectedIpcMain, ipcGuard: inje
 
   // 防止重复注册
   if (ipcGuard.isModuleRegistered('ukey-ipc')) {
-    console.log('[UKey IPC] Handlers already registered, skipping...');
+    logger.info('[UKey IPC] Handlers already registered, skipping...');
     return;
   }
 
   const electron = require('electron');
   const ipcMain = injectedIpcMain || electron.ipcMain;
 
-  console.log('[UKey IPC] Registering U-Key IPC handlers...');
+  logger.info('[UKey IPC] Registering U-Key IPC handlers...');
 
   // ============================================================
   // U-Key 硬件检测与管理
@@ -55,7 +57,7 @@ function registerUKeyIPC({ ukeyManager, ipcMain: injectedIpcMain, ipcGuard: inje
 
       return result;
     } catch (error) {
-      console.error('[UKey IPC] U盾检测失败:', error);
+      logger.error('[UKey IPC] U盾检测失败:', error);
       return {
         detected: false,
         unlocked: false,
@@ -79,7 +81,7 @@ function registerUKeyIPC({ ukeyManager, ipcMain: injectedIpcMain, ipcGuard: inje
 
       return await ukeyManager.verifyPIN(pin);
     } catch (error) {
-      console.error('[UKey IPC] PIN验证失败:', error);
+      logger.error('[UKey IPC] PIN验证失败:', error);
       return {
         success: false,
         error: error.message,
@@ -99,7 +101,7 @@ function registerUKeyIPC({ ukeyManager, ipcMain: injectedIpcMain, ipcGuard: inje
 
       return await ukeyManager.getDeviceInfo();
     } catch (error) {
-      console.error('[UKey IPC] 获取设备信息失败:', error);
+      logger.error('[UKey IPC] 获取设备信息失败:', error);
       throw error;
     }
   });
@@ -116,7 +118,7 @@ function registerUKeyIPC({ ukeyManager, ipcMain: injectedIpcMain, ipcGuard: inje
 
       return await ukeyManager.sign(data);
     } catch (error) {
-      console.error('[UKey IPC] 签名失败:', error);
+      logger.error('[UKey IPC] 签名失败:', error);
       throw error;
     }
   });
@@ -133,7 +135,7 @@ function registerUKeyIPC({ ukeyManager, ipcMain: injectedIpcMain, ipcGuard: inje
 
       return await ukeyManager.encrypt(data);
     } catch (error) {
-      console.error('[UKey IPC] 加密失败:', error);
+      logger.error('[UKey IPC] 加密失败:', error);
       throw error;
     }
   });
@@ -150,7 +152,7 @@ function registerUKeyIPC({ ukeyManager, ipcMain: injectedIpcMain, ipcGuard: inje
 
       return await ukeyManager.decrypt(encryptedData);
     } catch (error) {
-      console.error('[UKey IPC] 解密失败:', error);
+      logger.error('[UKey IPC] 解密失败:', error);
       throw error;
     }
   });
@@ -168,7 +170,7 @@ function registerUKeyIPC({ ukeyManager, ipcMain: injectedIpcMain, ipcGuard: inje
       ukeyManager.lock();
       return true;
     } catch (error) {
-      console.error('[UKey IPC] 锁定失败:', error);
+      logger.error('[UKey IPC] 锁定失败:', error);
       throw error;
     }
   });
@@ -185,7 +187,7 @@ function registerUKeyIPC({ ukeyManager, ipcMain: injectedIpcMain, ipcGuard: inje
 
       return await ukeyManager.getPublicKey();
     } catch (error) {
-      console.error('[UKey IPC] 获取公钥失败:', error);
+      logger.error('[UKey IPC] 获取公钥失败:', error);
       throw error;
     }
   });
@@ -204,17 +206,17 @@ function registerUKeyIPC({ ukeyManager, ipcMain: injectedIpcMain, ipcGuard: inje
       const DEFAULT_USERNAME = process.env.DEFAULT_USERNAME || 'admin';
       const DEFAULT_PASSWORD = process.env.DEFAULT_PASSWORD || '123456';
 
-      console.log('[UKey IPC] ========================================');
-      console.log('[UKey IPC] 收到登录请求');
-      console.log('[UKey IPC] 接收到的用户名:', JSON.stringify(username), '类型:', typeof username);
-      console.log('[UKey IPC] 接收到的密码:', JSON.stringify(password), '类型:', typeof password, '长度:', password?.length);
-      console.log('[UKey IPC] 期望用户名:', JSON.stringify(DEFAULT_USERNAME), '类型:', typeof DEFAULT_USERNAME);
-      console.log('[UKey IPC] 期望密码:', JSON.stringify(DEFAULT_PASSWORD), '类型:', typeof DEFAULT_PASSWORD);
-      console.log('[UKey IPC] ========================================');
+      logger.info('[UKey IPC] ========================================');
+      logger.info('[UKey IPC] 收到登录请求');
+      logger.info('[UKey IPC] 接收到的用户名:', JSON.stringify(username), '类型:', typeof username);
+      logger.info('[UKey IPC] 接收到的密码:', JSON.stringify(password), '类型:', typeof password, '长度:', password?.length);
+      logger.info('[UKey IPC] 期望用户名:', JSON.stringify(DEFAULT_USERNAME), '类型:', typeof DEFAULT_USERNAME);
+      logger.info('[UKey IPC] 期望密码:', JSON.stringify(DEFAULT_PASSWORD), '类型:', typeof DEFAULT_PASSWORD);
+      logger.info('[UKey IPC] ========================================');
 
       // 简单的密码验证（生产环境应使用加密存储）
       if (username === DEFAULT_USERNAME && password === DEFAULT_PASSWORD) {
-        console.log('[UKey IPC] ✅ 密码验证成功');
+        logger.info('[UKey IPC] ✅ 密码验证成功');
         return {
           success: true,
           userId: 'local-user',
@@ -222,17 +224,17 @@ function registerUKeyIPC({ ukeyManager, ipcMain: injectedIpcMain, ipcGuard: inje
         };
       }
 
-      console.log('[UKey IPC] ❌ 密码验证失败');
-      console.log('[UKey IPC] 用户名匹配:', username === DEFAULT_USERNAME);
-      console.log('[UKey IPC] 密码匹配:', password === DEFAULT_PASSWORD);
-      console.log('[UKey IPC] 用户名严格相等:', username === DEFAULT_USERNAME, '宽松相等:', username == DEFAULT_USERNAME);
-      console.log('[UKey IPC] 密码严格相等:', password === DEFAULT_PASSWORD, '宽松相等:', password == DEFAULT_PASSWORD);
+      logger.info('[UKey IPC] ❌ 密码验证失败');
+      logger.info('[UKey IPC] 用户名匹配:', username === DEFAULT_USERNAME);
+      logger.info('[UKey IPC] 密码匹配:', password === DEFAULT_PASSWORD);
+      logger.info('[UKey IPC] 用户名严格相等:', username === DEFAULT_USERNAME, '宽松相等:', username == DEFAULT_USERNAME);
+      logger.info('[UKey IPC] 密码严格相等:', password === DEFAULT_PASSWORD, '宽松相等:', password == DEFAULT_PASSWORD);
       return {
         success: false,
         error: '用户名或密码错误',
       };
     } catch (error) {
-      console.error('[UKey IPC] ❌ 密码验证异常:', error);
+      logger.error('[UKey IPC] ❌ 密码验证异常:', error);
       return {
         success: false,
         error: error.message,
@@ -243,7 +245,7 @@ function registerUKeyIPC({ ukeyManager, ipcMain: injectedIpcMain, ipcGuard: inje
   // 标记模块为已注册
   ipcGuard.markModuleRegistered('ukey-ipc');
 
-  console.log('[UKey IPC] ✓ All U-Key IPC handlers registered successfully (9 handlers)');
+  logger.info('[UKey IPC] ✓ All U-Key IPC handlers registered successfully (9 handlers)');
 }
 
 module.exports = {

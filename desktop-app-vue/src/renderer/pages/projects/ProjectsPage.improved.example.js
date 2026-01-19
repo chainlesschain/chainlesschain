@@ -7,6 +7,7 @@
 // This is an example/documentation file - not meant to be executed
 
 // 在 <script setup> 中导入工具
+import { logger, createLogger } from '@/utils/logger';
 import {
   handleError,
   withRetry,
@@ -35,7 +36,7 @@ async function loadProjects() {
     await projectStore.fetchProjects(userId);
     await loadRecentConversations();
   } catch (error) {
-    console.error('Failed to load projects:', error);
+    logger.error('Failed to load projects:', error);
     message.error('加载项目失败：' + error.message);
   }
 }
@@ -80,7 +81,7 @@ async function handleConversationalCreate(userInput) {
       router.push(`/projects/${result.projectId}`);
     }
   } catch (error) {
-    console.error('Failed to create project:', error);
+    logger.error('Failed to create project:', error);
     message.error({ content: '创建失败：' + error.message, key: 'ai-create', duration: 3 });
   }
 }
@@ -167,7 +168,7 @@ async function handleDeleteProject(projectId) {
     await projectStore.deleteProject(projectId);
     message.success('项目已删除');
   } catch (error) {
-    console.error('Delete project failed:', error);
+    logger.error('Delete project failed:', error);
     message.error('删除失败：' + error.message);
   }
 }
@@ -180,7 +181,7 @@ async function handleDeleteProject(projectId) {
       maxRetries: 2,
       retryDelay: 1000,
       onRetry: (error, attempt) => {
-        console.log(`删除项目重试 ${attempt + 1}/2...`);
+        logger.info(`删除项目重试 ${attempt + 1}/2...`);
       },
       shouldRetry: (error) => {
         // 只在网络错误时重试
@@ -213,7 +214,7 @@ async function handleRenameConversation(conversationId, oldTitle) {
       await loadConversations();
     }
   } catch (error) {
-    console.error('[ProjectsPage] 重命名失败:', error);
+    logger.error('[ProjectsPage] 重命名失败:', error);
     let errorMessage = '重命名失败';
     if (error.message.includes('已存在')) {
       errorMessage = '该名称已存在，请使用其他名称';

@@ -3,6 +3,7 @@
  * 监视文件系统变化
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require("fs");
 const path = require("path");
 const EventEmitter = require("events");
@@ -15,7 +16,7 @@ class FileWatcher extends EventEmitter {
     this.debounceTimers = new Map(); // path -> timer
     this.debounceDelay = options.debounceDelay || 300;
 
-    console.log("[FileWatcher] Initialized");
+    logger.info("[FileWatcher] Initialized");
   }
 
   /**
@@ -23,7 +24,7 @@ class FileWatcher extends EventEmitter {
    */
   watch(targetPath, options = {}) {
     if (this.watchers.has(targetPath)) {
-      console.warn("[FileWatcher] Already watching:", targetPath);
+      logger.warn("[FileWatcher] Already watching:", targetPath);
       return;
     }
 
@@ -44,11 +45,11 @@ class FileWatcher extends EventEmitter {
         options,
       });
 
-      console.log("[FileWatcher] Watching:", targetPath);
+      logger.info("[FileWatcher] Watching:", targetPath);
 
       return () => this.unwatch(targetPath);
     } catch (error) {
-      console.error("[FileWatcher] Watch error:", error);
+      logger.error("[FileWatcher] Watch error:", error);
       throw error;
     }
   }
@@ -71,7 +72,7 @@ class FileWatcher extends EventEmitter {
       this.debounceTimers.delete(targetPath);
     }
 
-    console.log("[FileWatcher] Stopped watching:", targetPath);
+    logger.info("[FileWatcher] Stopped watching:", targetPath);
     return true;
   }
 
@@ -83,7 +84,7 @@ class FileWatcher extends EventEmitter {
       this.unwatch(targetPath);
     }
 
-    console.log("[FileWatcher] Stopped all watchers");
+    logger.info("[FileWatcher] Stopped all watchers");
   }
 
   /**
@@ -149,9 +150,9 @@ class FileWatcher extends EventEmitter {
         exists,
       });
 
-      console.log("[FileWatcher] Change detected:", eventType, fullPath);
+      logger.info("[FileWatcher] Change detected:", eventType, fullPath);
     } catch (error) {
-      console.error("[FileWatcher] Process change error:", error);
+      logger.error("[FileWatcher] Process change error:", error);
       this.emit("error", error);
     }
   }
@@ -183,7 +184,7 @@ class FileWatcher extends EventEmitter {
   destroy() {
     this.unwatchAll();
     this.removeAllListeners();
-    console.log("[FileWatcher] Destroyed");
+    logger.info("[FileWatcher] Destroyed");
   }
 }
 

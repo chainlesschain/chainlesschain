@@ -7,6 +7,7 @@
  * @since 2026-01-18
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require("fs").promises;
 const path = require("path");
 const ipcGuard = require("../ipc/ipc-guard");
@@ -27,7 +28,7 @@ const ipcGuard = require("../ipc/ipc-guard");
 function registerMemoryDashboardIPC(dependencies) {
   // Prevent duplicate registration
   if (ipcGuard.isModuleRegistered("memory-dashboard-ipc")) {
-    console.log(
+    logger.info(
       "[MemoryDashboard IPC] Handlers already registered, skipping...",
     );
     return;
@@ -36,7 +37,7 @@ function registerMemoryDashboardIPC(dependencies) {
   const electron = require("electron");
   const ipcMain = dependencies.ipcMain || electron.ipcMain;
 
-  console.log("[MemoryDashboard IPC] Registering handlers...");
+  logger.info("[MemoryDashboard IPC] Registering handlers...");
 
   // Create mutable references for hot-reload support
   const refs = {
@@ -84,7 +85,7 @@ function registerMemoryDashboardIPC(dependencies) {
             workflow: patternStats.workflows?.count || 0,
           };
         } catch (e) {
-          console.warn("[MemoryDashboard] Failed to get pattern stats:", e);
+          logger.warn("[MemoryDashboard] Failed to get pattern stats:", e);
         }
       }
 
@@ -97,7 +98,7 @@ function registerMemoryDashboardIPC(dependencies) {
             categories: prefStats.categories?.length || 0,
           };
         } catch (e) {
-          console.warn("[MemoryDashboard] Failed to get preference stats:", e);
+          logger.warn("[MemoryDashboard] Failed to get preference stats:", e);
         }
       }
 
@@ -110,7 +111,7 @@ function registerMemoryDashboardIPC(dependencies) {
             withSummary: sessionStats.sessionsWithSummary || 0,
           };
         } catch (e) {
-          console.warn("[MemoryDashboard] Failed to get session stats:", e);
+          logger.warn("[MemoryDashboard] Failed to get session stats:", e);
         }
       }
 
@@ -123,7 +124,7 @@ function registerMemoryDashboardIPC(dependencies) {
             behaviors: behaviorStats.totalBehaviors || 0,
           };
         } catch (e) {
-          console.warn("[MemoryDashboard] Failed to get behavior stats:", e);
+          logger.warn("[MemoryDashboard] Failed to get behavior stats:", e);
         }
       }
 
@@ -136,13 +137,13 @@ function registerMemoryDashboardIPC(dependencies) {
             backups: backupStats.totalBackups || 0,
           };
         } catch (e) {
-          console.warn("[MemoryDashboard] Failed to get backup stats:", e);
+          logger.warn("[MemoryDashboard] Failed to get backup stats:", e);
         }
       }
 
       return stats;
     } catch (error) {
-      console.error("[MemoryDashboard IPC] Get dashboard stats failed:", error);
+      logger.error("[MemoryDashboard IPC] Get dashboard stats failed:", error);
       throw error;
     }
   });
@@ -175,7 +176,7 @@ function registerMemoryDashboardIPC(dependencies) {
         workflows: stats.workflows?.recentWorkflows || [],
       };
     } catch (error) {
-      console.error("[MemoryDashboard IPC] Get all patterns failed:", error);
+      logger.error("[MemoryDashboard IPC] Get all patterns failed:", error);
       throw error;
     }
   });
@@ -211,7 +212,7 @@ function registerMemoryDashboardIPC(dependencies) {
 
       return list;
     } catch (error) {
-      console.error("[MemoryDashboard IPC] Get all preferences failed:", error);
+      logger.error("[MemoryDashboard IPC] Get all preferences failed:", error);
       throw error;
     }
   });
@@ -240,13 +241,13 @@ function registerMemoryDashboardIPC(dependencies) {
           const stats = await refs.behaviorTracker.getStats();
           insights.usageHabits = stats.usageHabits || [];
         } catch (e) {
-          console.warn("[MemoryDashboard] Failed to get behavior insights:", e);
+          logger.warn("[MemoryDashboard] Failed to get behavior insights:", e);
         }
       }
 
       return insights;
     } catch (error) {
-      console.error(
+      logger.error(
         "[MemoryDashboard IPC] Get behavior insights failed:",
         error,
       );
@@ -279,7 +280,7 @@ function registerMemoryDashboardIPC(dependencies) {
 
         return result;
       } catch (error) {
-        console.error(
+        logger.error(
           "[MemoryDashboard IPC] Get session summaries failed:",
           error,
         );
@@ -307,7 +308,7 @@ function registerMemoryDashboardIPC(dependencies) {
 
         return result;
       } catch (error) {
-        console.error(
+        logger.error(
           "[MemoryDashboard IPC] Generate summaries failed:",
           error,
         );
@@ -361,7 +362,7 @@ function registerMemoryDashboardIPC(dependencies) {
 
         return { success: true, filePath, filename };
       } catch (error) {
-        console.error(
+        logger.error(
           "[MemoryDashboard IPC] Export session summary failed:",
           error,
         );
@@ -397,7 +398,7 @@ function registerMemoryDashboardIPC(dependencies) {
         enabled: config.enabled,
       };
     } catch (error) {
-      console.error(
+      logger.error(
         "[MemoryDashboard IPC] Get auto-summary info failed:",
         error,
       );
@@ -419,7 +420,7 @@ function registerMemoryDashboardIPC(dependencies) {
 
         return refs.sessionManager.updateAutoSummaryConfig(config);
       } catch (error) {
-        console.error(
+        logger.error(
           "[MemoryDashboard IPC] Update auto-summary config failed:",
           error,
         );
@@ -449,7 +450,7 @@ function registerMemoryDashboardIPC(dependencies) {
         isRunning: refs.sessionManager.getAutoSummaryConfig().isRunning,
       };
     } catch (error) {
-      console.error(
+      logger.error(
         "[MemoryDashboard IPC] Toggle background summary failed:",
         error,
       );
@@ -476,7 +477,7 @@ function registerMemoryDashboardIPC(dependencies) {
 
         return result;
       } catch (error) {
-        console.error(
+        logger.error(
           "[MemoryDashboard IPC] Trigger auto-summaries failed:",
           error,
         );
@@ -507,7 +508,7 @@ function registerMemoryDashboardIPC(dependencies) {
           total: sessions.length,
         };
       } catch (error) {
-        console.error(
+        logger.error(
           "[MemoryDashboard IPC] Get sessions without summary failed:",
           error,
         );
@@ -544,7 +545,7 @@ function registerMemoryDashboardIPC(dependencies) {
             lastBackup: backupStats.lastBackupTime || null,
           };
         } catch (e) {
-          console.warn("[MemoryDashboard] Failed to get backup stats:", e);
+          logger.warn("[MemoryDashboard] Failed to get backup stats:", e);
         }
       }
 
@@ -559,7 +560,7 @@ function registerMemoryDashboardIPC(dependencies) {
             (patternStats.workflows?.count || 0);
           stats.patterns.estimatedSize = stats.patterns.count * 2048; // ~2KB per pattern
         } catch (e) {
-          console.warn("[MemoryDashboard] Failed to get pattern stats:", e);
+          logger.warn("[MemoryDashboard] Failed to get pattern stats:", e);
         }
       }
 
@@ -570,7 +571,7 @@ function registerMemoryDashboardIPC(dependencies) {
           stats.preferences.count = prefStats.totalPreferences || 0;
           stats.preferences.estimatedSize = stats.preferences.count * 512; // ~512B per pref
         } catch (e) {
-          console.warn("[MemoryDashboard] Failed to get preference stats:", e);
+          logger.warn("[MemoryDashboard] Failed to get preference stats:", e);
         }
       }
 
@@ -581,7 +582,7 @@ function registerMemoryDashboardIPC(dependencies) {
           stats.sessions.count = sessionStats.totalSessions || 0;
           stats.sessions.totalMessages = sessionStats.totalMessages || 0;
         } catch (e) {
-          console.warn("[MemoryDashboard] Failed to get session stats:", e);
+          logger.warn("[MemoryDashboard] Failed to get session stats:", e);
         }
       }
 
@@ -592,7 +593,7 @@ function registerMemoryDashboardIPC(dependencies) {
 
       return stats;
     } catch (error) {
-      console.error("[MemoryDashboard IPC] Get storage stats failed:", error);
+      logger.error("[MemoryDashboard IPC] Get storage stats failed:", error);
       throw error;
     }
   });
@@ -616,7 +617,7 @@ function registerMemoryDashboardIPC(dependencies) {
 
       return result;
     } catch (error) {
-      console.error("[MemoryDashboard IPC] Create backup failed:", error);
+      logger.error("[MemoryDashboard IPC] Create backup failed:", error);
       throw error;
     }
   });
@@ -641,7 +642,7 @@ function registerMemoryDashboardIPC(dependencies) {
           });
           results.preferences = cleaned?.deletedCount || 0;
         } catch (e) {
-          console.warn("[MemoryDashboard] Failed to cleanup preferences:", e);
+          logger.warn("[MemoryDashboard] Failed to cleanup preferences:", e);
         }
       }
 
@@ -653,13 +654,13 @@ function registerMemoryDashboardIPC(dependencies) {
           });
           results.backups = cleaned?.deletedCount || 0;
         } catch (e) {
-          console.warn("[MemoryDashboard] Failed to cleanup backups:", e);
+          logger.warn("[MemoryDashboard] Failed to cleanup backups:", e);
         }
       }
 
       return results;
     } catch (error) {
-      console.error("[MemoryDashboard IPC] Cleanup expired failed:", error);
+      logger.error("[MemoryDashboard IPC] Cleanup expired failed:", error);
       throw error;
     }
   });
@@ -704,7 +705,7 @@ function registerMemoryDashboardIPC(dependencies) {
           );
           exportedFiles.push({ type: "preferences", file: prefFile });
         } catch (e) {
-          console.warn("[MemoryDashboard] Failed to export preferences:", e);
+          logger.warn("[MemoryDashboard] Failed to export preferences:", e);
         }
       }
 
@@ -732,7 +733,7 @@ function registerMemoryDashboardIPC(dependencies) {
           );
           exportedFiles.push({ type: "patterns", file: patternFile });
         } catch (e) {
-          console.warn("[MemoryDashboard] Failed to export patterns:", e);
+          logger.warn("[MemoryDashboard] Failed to export patterns:", e);
         }
       }
 
@@ -753,7 +754,7 @@ function registerMemoryDashboardIPC(dependencies) {
           );
           exportedFiles.push({ type: "sessions", file: sessionFile });
         } catch (e) {
-          console.warn("[MemoryDashboard] Failed to export sessions:", e);
+          logger.warn("[MemoryDashboard] Failed to export sessions:", e);
         }
       }
 
@@ -781,7 +782,7 @@ function registerMemoryDashboardIPC(dependencies) {
           );
           exportedFiles.push({ type: "insights", file: insightsFile });
         } catch (e) {
-          console.warn("[MemoryDashboard] Failed to export insights:", e);
+          logger.warn("[MemoryDashboard] Failed to export insights:", e);
         }
       }
 
@@ -792,7 +793,7 @@ function registerMemoryDashboardIPC(dependencies) {
         timestamp,
       };
     } catch (error) {
-      console.error("[MemoryDashboard IPC] Export data failed:", error);
+      logger.error("[MemoryDashboard IPC] Export data failed:", error);
       throw error;
     }
   });
@@ -800,12 +801,12 @@ function registerMemoryDashboardIPC(dependencies) {
   // Mark as registered
   ipcGuard.markModuleRegistered("memory-dashboard-ipc");
 
-  console.log("[MemoryDashboard IPC] Handlers registered successfully");
+  logger.info("[MemoryDashboard IPC] Handlers registered successfully");
 
   return {
     updateManagers: (newDeps) => {
       Object.assign(refs, newDeps);
-      console.log("[MemoryDashboard IPC] Manager references updated");
+      logger.info("[MemoryDashboard IPC] Manager references updated");
     },
   };
 }

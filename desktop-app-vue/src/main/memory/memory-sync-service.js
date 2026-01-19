@@ -15,6 +15,7 @@
  * @since 2026-01-18
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require("fs").promises;
 const path = require("path");
 const { EventEmitter } = require("events");
@@ -69,7 +70,7 @@ class MemorySyncService extends EventEmitter {
     // 获取路径
     this.paths = this.configManager.getPaths();
 
-    console.log("[MemorySyncService] Initialized", {
+    logger.info("[MemorySyncService] Initialized", {
       syncInterval: this.syncInterval,
       enablePeriodicSync: this.enablePeriodicSync,
       memoryDir: this.paths.memory,
@@ -81,7 +82,7 @@ class MemorySyncService extends EventEmitter {
    */
   async initialize() {
     try {
-      console.log("[MemorySyncService] Starting initialization sync...");
+      logger.info("[MemorySyncService] Starting initialization sync...");
 
       // 确保所有目录存在
       await this.ensureDirectories();
@@ -94,9 +95,9 @@ class MemorySyncService extends EventEmitter {
         this.startPeriodicSync();
       }
 
-      console.log("[MemorySyncService] Initialization complete");
+      logger.info("[MemorySyncService] Initialization complete");
     } catch (error) {
-      console.error("[MemorySyncService] Initialization failed:", error);
+      logger.error("[MemorySyncService] Initialization failed:", error);
       throw error;
     }
   }
@@ -126,7 +127,7 @@ class MemorySyncService extends EventEmitter {
         await fs.mkdir(dir, { recursive: true });
       } catch (error) {
         if (error.code !== "EEXIST") {
-          console.warn(
+          logger.warn(
             `[MemorySyncService] Failed to create directory: ${dir}`,
             error.message,
           );
@@ -134,7 +135,7 @@ class MemorySyncService extends EventEmitter {
       }
     }
 
-    console.log("[MemorySyncService] Directories ensured");
+    logger.info("[MemorySyncService] Directories ensured");
   }
 
   /**
@@ -143,7 +144,7 @@ class MemorySyncService extends EventEmitter {
    */
   async syncAll() {
     if (this._isSyncing) {
-      console.log("[MemorySyncService] Sync already in progress, skipping...");
+      logger.info("[MemorySyncService] Sync already in progress, skipping...");
       return { success: false, reason: "already_syncing" };
     }
 
@@ -152,7 +153,7 @@ class MemorySyncService extends EventEmitter {
     const results = {};
 
     try {
-      console.log("[MemorySyncService] Starting full sync...");
+      logger.info("[MemorySyncService] Starting full sync...");
 
       // 同步偏好设置
       results.preferences = await this.syncPreferences();
@@ -178,13 +179,13 @@ class MemorySyncService extends EventEmitter {
       this._lastSyncTime = Date.now();
 
       const duration = Date.now() - startTime;
-      console.log(`[MemorySyncService] Full sync complete in ${duration}ms`);
+      logger.info(`[MemorySyncService] Full sync complete in ${duration}ms`);
 
       this.emit("sync-complete", { results, duration });
 
       return { success: true, results, duration };
     } catch (error) {
-      console.error("[MemorySyncService] Full sync failed:", error);
+      logger.error("[MemorySyncService] Full sync failed:", error);
       this._syncStats.totalSyncs++;
       this._syncStats.failedSyncs++;
       this._syncStats.lastError = error.message;
@@ -232,12 +233,12 @@ class MemorySyncService extends EventEmitter {
         "utf-8",
       );
 
-      console.log(
+      logger.info(
         `[MemorySyncService] Synced ${syncedCount} preference categories`,
       );
       return { success: true, count: syncedCount };
     } catch (error) {
-      console.error("[MemorySyncService] Preference sync failed:", error);
+      logger.error("[MemorySyncService] Preference sync failed:", error);
       return { success: false, error: error.message };
     }
   }
@@ -270,10 +271,10 @@ class MemorySyncService extends EventEmitter {
         "utf-8",
       );
 
-      console.log("[MemorySyncService] Patterns synced");
+      logger.info("[MemorySyncService] Patterns synced");
       return result;
     } catch (error) {
-      console.error("[MemorySyncService] Pattern sync failed:", error);
+      logger.error("[MemorySyncService] Pattern sync failed:", error);
       return { success: false, error: error.message };
     }
   }
@@ -303,7 +304,7 @@ class MemorySyncService extends EventEmitter {
             syncedCount++;
           }
         } catch (error) {
-          console.warn(
+          logger.warn(
             `[MemorySyncService] Failed to sync session ${session.id}:`,
             error.message,
           );
@@ -330,10 +331,10 @@ class MemorySyncService extends EventEmitter {
         "utf-8",
       );
 
-      console.log(`[MemorySyncService] Synced ${syncedCount} sessions`);
+      logger.info(`[MemorySyncService] Synced ${syncedCount} sessions`);
       return { success: true, count: syncedCount };
     } catch (error) {
-      console.error("[MemorySyncService] Session sync failed:", error);
+      logger.error("[MemorySyncService] Session sync failed:", error);
       return { success: false, error: error.message };
     }
   }
@@ -355,7 +356,7 @@ class MemorySyncService extends EventEmitter {
         try {
           stats = await this.behaviorTracker.getStats();
         } catch (e) {
-          console.warn(
+          logger.warn(
             "[MemorySyncService] Failed to get behavior stats:",
             e.message,
           );
@@ -367,7 +368,7 @@ class MemorySyncService extends EventEmitter {
         try {
           recommendations = await this.behaviorTracker.getRecommendations();
         } catch (e) {
-          console.warn(
+          logger.warn(
             "[MemorySyncService] Failed to get recommendations:",
             e.message,
           );
@@ -392,10 +393,10 @@ class MemorySyncService extends EventEmitter {
         "utf-8",
       );
 
-      console.log("[MemorySyncService] Behaviors synced");
+      logger.info("[MemorySyncService] Behaviors synced");
       return { success: true };
     } catch (error) {
-      console.error("[MemorySyncService] Behavior sync failed:", error);
+      logger.error("[MemorySyncService] Behavior sync failed:", error);
       return { success: false, error: error.message };
     }
   }
@@ -435,10 +436,10 @@ class MemorySyncService extends EventEmitter {
         "utf-8",
       );
 
-      console.log("[MemorySyncService] Contexts synced");
+      logger.info("[MemorySyncService] Contexts synced");
       return { success: true };
     } catch (error) {
-      console.error("[MemorySyncService] Context sync failed:", error);
+      logger.error("[MemorySyncService] Context sync failed:", error);
       return { success: false, error: error.message };
     }
   }
@@ -492,7 +493,7 @@ class MemorySyncService extends EventEmitter {
 
       return report;
     } catch (error) {
-      console.error("[MemorySyncService] Generate report failed:", error);
+      logger.error("[MemorySyncService] Generate report failed:", error);
       return { error: error.message };
     }
   }
@@ -506,15 +507,15 @@ class MemorySyncService extends EventEmitter {
     }
 
     this._syncTimer = setInterval(async () => {
-      console.log("[MemorySyncService] Running periodic sync...");
+      logger.info("[MemorySyncService] Running periodic sync...");
       try {
         await this.syncAll();
       } catch (error) {
-        console.error("[MemorySyncService] Periodic sync failed:", error);
+        logger.error("[MemorySyncService] Periodic sync failed:", error);
       }
     }, this.syncInterval);
 
-    console.log(
+    logger.info(
       `[MemorySyncService] Periodic sync started (interval: ${this.syncInterval}ms)`,
     );
   }
@@ -526,7 +527,7 @@ class MemorySyncService extends EventEmitter {
     if (this._syncTimer) {
       clearInterval(this._syncTimer);
       this._syncTimer = null;
-      console.log("[MemorySyncService] Periodic sync stopped");
+      logger.info("[MemorySyncService] Periodic sync stopped");
     }
   }
 
@@ -593,7 +594,7 @@ class MemorySyncService extends EventEmitter {
       this.contextAssociator = managers.contextAssociator;
     }
 
-    console.log("[MemorySyncService] Manager references updated");
+    logger.info("[MemorySyncService] Manager references updated");
   }
 
   /**
@@ -601,7 +602,7 @@ class MemorySyncService extends EventEmitter {
    */
   stop() {
     this.stopPeriodicSync();
-    console.log("[MemorySyncService] Service stopped");
+    logger.info("[MemorySyncService] Service stopped");
   }
 }
 

@@ -3,6 +3,7 @@
  * 优化P2P连接的生命周期管理、健康检查和资源复用
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const EventEmitter = require('events');
 
 /**
@@ -129,7 +130,7 @@ class ConnectionPool extends EventEmitter {
    * 初始化连接池
    */
   async initialize() {
-    console.log('[ConnectionPool] 初始化连接池...');
+    logger.info('[ConnectionPool] 初始化连接池...');
 
     // 启动健康检查
     this.startHealthCheck();
@@ -156,11 +157,11 @@ class ConnectionPool extends EventEmitter {
         this.stats.totalHits++;
         this.updateStats();
 
-        console.log(`[ConnectionPool] 复用连接: ${peerId}`);
+        logger.info(`[ConnectionPool] 复用连接: ${peerId}`);
         return conn.connection;
       } else if (!conn.isHealthy()) {
         // 连接不健康，关闭并重建
-        console.log(`[ConnectionPool] 连接不健康，重建: ${peerId}`);
+        logger.info(`[ConnectionPool] 连接不健康，重建: ${peerId}`);
         await this.closeConnection(peerId);
       }
     }
@@ -177,13 +178,13 @@ class ConnectionPool extends EventEmitter {
 
     // 3. 创建新连接
     try {
-      console.log(`[ConnectionPool] 创建新连接: ${peerId}`);
+      logger.info(`[ConnectionPool] 创建新连接: ${peerId}`);
       const connection = await this.createConnection(peerId, createConnectionFn);
       this.stats.totalMisses++;
       return connection;
     } catch (error) {
       this.stats.totalErrors++;
-      console.error(`[ConnectionPool] 创建连接失败: ${peerId}`, error);
+      logger.error(`[ConnectionPool] 创建连接失败: ${peerId}`, error);
       throw error;
     }
   }
@@ -239,7 +240,7 @@ class ConnectionPool extends EventEmitter {
       this.idleConnections.add(peerId);
       this.updateStats();
 
-      console.log(`[ConnectionPool] 释放连接: ${peerId}`);
+      logger.info(`[ConnectionPool] 释放连接: ${peerId}`);
       this.emit('connection:released', { peerId });
     }
   }
@@ -262,7 +263,7 @@ class ConnectionPool extends EventEmitter {
 
       conn.state = ConnectionState.CLOSED;
     } catch (error) {
-      console.error(`[ConnectionPool] 关闭连接失败: ${peerId}`, error);
+      logger.error(`[ConnectionPool] 关闭连接失败: ${peerId}`, error);
       conn.state = ConnectionState.ERROR;
     } finally {
       // 从连接池移除
@@ -292,7 +293,7 @@ class ConnectionPool extends EventEmitter {
     const toEvict = idleConnections.slice(0, count);
 
     for (const peerId of toEvict) {
-      console.log(`[ConnectionPool] 驱逐空闲连接: ${peerId}`);
+      logger.info(`[ConnectionPool] 驱逐空闲连接: ${peerId}`);
       await this.closeConnection(peerId);
     }
 
@@ -309,14 +310,14 @@ class ConnectionPool extends EventEmitter {
     for (const [peerId, conn] of this.connections.entries()) {
       // 检查连接是否超时
       if (conn.isIdle() && conn.isTimedOut(this.maxIdleTime)) {
-        console.log(`[ConnectionPool] 连接超时: ${peerId}`);
+        logger.info(`[ConnectionPool] 连接超时: ${peerId}`);
         unhealthyConnections.push(peerId);
         continue;
       }
 
       // 检查连接健康状态
       if (!conn.isHealthy()) {
-        console.log(`[ConnectionPool] 连接不健康: ${peerId}`);
+        logger.info(`[ConnectionPool] 连接不健康: ${peerId}`);
         unhealthyConnections.push(peerId);
       }
     }
@@ -326,7 +327,7 @@ class ConnectionPool extends EventEmitter {
       await this.closeConnection(peerId);
     }
 
-    console.log(`[ConnectionPool] 健康检查完成，关闭 ${unhealthyConnections.length} 个连接`);
+    logger.info(`[ConnectionPool] 健康检查完成，关闭 ${unhealthyConnections.length} 个连接`);
   }
 
   /**
@@ -341,7 +342,7 @@ class ConnectionPool extends EventEmitter {
       this.performHealthCheck();
     }, this.healthCheckInterval);
 
-    console.log('[ConnectionPool] 健康检查已启动');
+    logger.info('[ConnectionPool] 健康检查已启动');
   }
 
   /**
@@ -361,7 +362,7 @@ class ConnectionPool extends EventEmitter {
       }
     }, 60000);
 
-    console.log('[ConnectionPool] 清理任务已启动');
+    logger.info('[ConnectionPool] 清理任务已启动');
   }
 
   /**
@@ -411,7 +412,7 @@ class ConnectionPool extends EventEmitter {
    * 关闭所有连接
    */
   async closeAll() {
-    console.log('[ConnectionPool] 关闭所有连接...');
+    logger.info('[ConnectionPool] 关闭所有连接...');
 
     const peerIds = Array.from(this.connections.keys());
 
@@ -419,14 +420,14 @@ class ConnectionPool extends EventEmitter {
       await this.closeConnection(peerId);
     }
 
-    console.log(`[ConnectionPool] 已关闭 ${peerIds.length} 个连接`);
+    logger.info(`[ConnectionPool] 已关闭 ${peerIds.length} 个连接`);
   }
 
   /**
    * 销毁连接池
    */
   async destroy() {
-    console.log('[ConnectionPool] 销毁连接池...');
+    logger.info('[ConnectionPool] 销毁连接池...');
 
     // 停止定时器
     if (this.healthCheckTimer) {

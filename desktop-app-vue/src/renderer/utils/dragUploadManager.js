@@ -3,6 +3,7 @@
  * 提供全局拖拽上传功能
  */
 
+import { logger, createLogger } from '@/utils/logger';
 import { ref } from 'vue';
 
 /**
@@ -103,7 +104,7 @@ class DragUploadManager {
     const validFiles = files.filter(file => this.validateFile(file));
 
     if (validFiles.length === 0) {
-      console.warn('[DragUpload] No valid files');
+      logger.warn('[DragUpload] No valid files');
       return;
     }
 
@@ -112,7 +113,7 @@ class DragUploadManager {
       try {
         await handler(validFiles);
       } catch (error) {
-        console.error('[DragUpload] Handler error:', error);
+        logger.error('[DragUpload] Handler error:', error);
       }
     }
   }
@@ -123,7 +124,7 @@ class DragUploadManager {
   validateFile(file) {
     // 检查文件大小
     if (file.size > this.maxFileSize) {
-      console.warn(`[DragUpload] File too large: ${file.name}`);
+      logger.warn(`[DragUpload] File too large: ${file.name}`);
       return false;
     }
 
@@ -140,7 +141,7 @@ class DragUploadManager {
       });
 
       if (!isAllowed) {
-        console.warn(`[DragUpload] File type not allowed: ${file.name}`);
+        logger.warn(`[DragUpload] File type not allowed: ${file.name}`);
         return false;
       }
     }

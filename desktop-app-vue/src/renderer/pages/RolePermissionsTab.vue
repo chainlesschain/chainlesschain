@@ -251,6 +251,8 @@
 </template>
 
 <script>
+import { logger, createLogger } from '@/utils/logger';
+
 import { defineComponent, ref, reactive, computed, watch } from 'vue';
 import { message } from 'ant-design-vue';
 import { PlusOutlined } from '@ant-design/icons-vue';
@@ -374,7 +376,7 @@ export default defineComponent({
           message.error(result.error || '加载角色失败');
         }
       } catch (error) {
-        console.error('Failed to load roles:', error);
+        logger.error('Failed to load roles:', error);
         message.error('加载角色失败');
       } finally {
         loading.value = false;
@@ -431,7 +433,7 @@ export default defineComponent({
           message.error(result.error || '操作失败');
         }
       } catch (error) {
-        console.error('Failed to submit role:', error);
+        logger.error('Failed to submit role:', error);
         message.error('操作失败');
       } finally {
         loading.value = false;
@@ -455,7 +457,7 @@ export default defineComponent({
           message.error(result.error || '删除失败');
         }
       } catch (error) {
-        console.error('Failed to delete role:', error);
+        logger.error('Failed to delete role:', error);
         message.error('删除失败');
       } finally {
         loading.value = false;
@@ -479,7 +481,7 @@ export default defineComponent({
           message.error(result.error || '加载成员失败');
         }
       } catch (error) {
-        console.error('Failed to load members:', error);
+        logger.error('Failed to load members:', error);
         message.error('加载成员失败');
       } finally {
         loading.value = false;
@@ -505,7 +507,7 @@ export default defineComponent({
           message.error(result.error || '移除失败');
         }
       } catch (error) {
-        console.error('Failed to remove member:', error);
+        logger.error('Failed to remove member:', error);
         message.error('移除失败');
       } finally {
         loading.value = false;

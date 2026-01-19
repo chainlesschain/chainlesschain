@@ -1,3 +1,5 @@
+const { logger, createLogger } = require('../utils/logger.js');
+
 /**
  * 提示词模板 IPC
  * 处理提示词模板的 CRUD、搜索、分类、导入导出等操作
@@ -19,7 +21,7 @@ function registerPromptTemplateIPC({
   // 支持依赖注入，用于测试
   const ipcMain = injectedIpcMain || require('electron').ipcMain;
 
-  console.log('[Prompt Template IPC] Registering Prompt Template IPC handlers...');
+  logger.info('[Prompt Template IPC] Registering Prompt Template IPC handlers...');
 
   // ============================================================
   // 模板查询操作 (3 handlers)
@@ -36,7 +38,7 @@ function registerPromptTemplateIPC({
 
       return await promptTemplateManager.getTemplates(filters);
     } catch (error) {
-      console.error('[PromptTemplate] 获取模板列表失败:', error);
+      logger.error('[PromptTemplate] 获取模板列表失败:', error);
       return [];
     }
   });
@@ -52,7 +54,7 @@ function registerPromptTemplateIPC({
 
       return await promptTemplateManager.getTemplateById(id);
     } catch (error) {
-      console.error('[PromptTemplate] 获取模板失败:', error);
+      logger.error('[PromptTemplate] 获取模板失败:', error);
       return null;
     }
   });
@@ -68,7 +70,7 @@ function registerPromptTemplateIPC({
 
       return await promptTemplateManager.searchTemplates(query);
     } catch (error) {
-      console.error('[PromptTemplate] 搜索模板失败:', error);
+      logger.error('[PromptTemplate] 搜索模板失败:', error);
       return [];
     }
   });
@@ -88,7 +90,7 @@ function registerPromptTemplateIPC({
 
       return await promptTemplateManager.createTemplate(templateData);
     } catch (error) {
-      console.error('[PromptTemplate] 创建模板失败:', error);
+      logger.error('[PromptTemplate] 创建模板失败:', error);
       throw error;
     }
   });
@@ -104,7 +106,7 @@ function registerPromptTemplateIPC({
 
       return await promptTemplateManager.updateTemplate(id, updates);
     } catch (error) {
-      console.error('[PromptTemplate] 更新模板失败:', error);
+      logger.error('[PromptTemplate] 更新模板失败:', error);
       throw error;
     }
   });
@@ -120,7 +122,7 @@ function registerPromptTemplateIPC({
 
       return await promptTemplateManager.deleteTemplate(id);
     } catch (error) {
-      console.error('[PromptTemplate] 删除模板失败:', error);
+      logger.error('[PromptTemplate] 删除模板失败:', error);
       throw error;
     }
   });
@@ -140,7 +142,7 @@ function registerPromptTemplateIPC({
 
       return await promptTemplateManager.fillTemplate(id, values);
     } catch (error) {
-      console.error('[PromptTemplate] 填充模板失败:', error);
+      logger.error('[PromptTemplate] 填充模板失败:', error);
       throw error;
     }
   });
@@ -160,7 +162,7 @@ function registerPromptTemplateIPC({
 
       return await promptTemplateManager.getCategories();
     } catch (error) {
-      console.error('[PromptTemplate] 获取分类失败:', error);
+      logger.error('[PromptTemplate] 获取分类失败:', error);
       return [];
     }
   });
@@ -176,7 +178,7 @@ function registerPromptTemplateIPC({
 
       return await promptTemplateManager.getStatistics();
     } catch (error) {
-      console.error('[PromptTemplate] 获取统计信息失败:', error);
+      logger.error('[PromptTemplate] 获取统计信息失败:', error);
       return { total: 0, system: 0, custom: 0, byCategory: {}, mostUsed: [] };
     }
   });
@@ -196,7 +198,7 @@ function registerPromptTemplateIPC({
 
       return await promptTemplateManager.exportTemplate(id);
     } catch (error) {
-      console.error('[PromptTemplate] 导出模板失败:', error);
+      logger.error('[PromptTemplate] 导出模板失败:', error);
       throw error;
     }
   });
@@ -212,17 +214,17 @@ function registerPromptTemplateIPC({
 
       return await promptTemplateManager.importTemplate(importData);
     } catch (error) {
-      console.error('[PromptTemplate] 导入模板失败:', error);
+      logger.error('[PromptTemplate] 导入模板失败:', error);
       throw error;
     }
   });
 
-  console.log('[Prompt Template IPC] ✓ 11 handlers registered');
-  console.log('[Prompt Template IPC] - 3 template query handlers');
-  console.log('[Prompt Template IPC] - 3 template management handlers');
-  console.log('[Prompt Template IPC] - 1 template usage handler');
-  console.log('[Prompt Template IPC] - 2 category & statistics handlers');
-  console.log('[Prompt Template IPC] - 2 import/export handlers');
+  logger.info('[Prompt Template IPC] ✓ 11 handlers registered');
+  logger.info('[Prompt Template IPC] - 3 template query handlers');
+  logger.info('[Prompt Template IPC] - 3 template management handlers');
+  logger.info('[Prompt Template IPC] - 1 template usage handler');
+  logger.info('[Prompt Template IPC] - 2 category & statistics handlers');
+  logger.info('[Prompt Template IPC] - 2 import/export handlers');
 }
 
 module.exports = {

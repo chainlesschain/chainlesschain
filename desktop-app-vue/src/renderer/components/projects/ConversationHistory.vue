@@ -218,6 +218,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue';
 import { message as antMessage } from 'ant-design-vue';
 import {
@@ -310,7 +312,7 @@ const renderMarkdown = (content) => {
   try {
     return marked(content);
   } catch (error) {
-    console.error('Markdown render error:', error);
+    logger.error('Markdown render error:', error);
     return content;
   }
 };
@@ -381,7 +383,7 @@ const handleLoadMore = async () => {
   try {
     emit('load-more');
   } catch (error) {
-    console.error('Load more failed:', error);
+    logger.error('Load more failed:', error);
     antMessage.error('加载失败');
   } finally {
     loadingMore.value = false;
@@ -402,7 +404,7 @@ const handleCopyMessage = async (msg) => {
     antMessage.success('已复制到剪贴板');
     emit('copy', msg);
   } catch (error) {
-    console.error('Copy failed:', error);
+    logger.error('Copy failed:', error);
     antMessage.error('复制失败');
   }
 };

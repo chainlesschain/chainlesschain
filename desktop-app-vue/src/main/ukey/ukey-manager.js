@@ -6,6 +6,7 @@
  * 支持跨平台 PKCS#11 标准驱动
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const XinJinKeDriver = require("./xinjinke-driver");
 const FeiTianDriver = require("./feitian-driver");
 const WatchDataDriver = require("./watchdata-driver");
@@ -55,7 +56,7 @@ class UKeyManager extends EventEmitter {
    * 初始化管理器
    */
   async initialize() {
-    // console.log('[UKeyManager] 初始化U盾管理器...');
+    // logger.info('[UKeyManager] 初始化U盾管理器...');
 
     // 创建驱动实例
     this.currentDriver = await this.createDriver(this.driverType);
@@ -64,7 +65,7 @@ class UKeyManager extends EventEmitter {
     await this.currentDriver.initialize();
 
     this.isInitialized = true;
-    // console.log('[UKeyManager] U盾管理器初始化成功');
+    // logger.info('[UKeyManager] U盾管理器初始化成功');
 
     // 发射初始化事件
     this.emit("initialized");
@@ -128,7 +129,7 @@ class UKeyManager extends EventEmitter {
    * @param {string} driverType - 驱动类型
    */
   async switchDriver(driverType) {
-    // console.log('[UKeyManager] 切换驱动类型:', driverType);
+    // logger.info('[UKeyManager] 切换驱动类型:', driverType);
 
     // 关闭当前驱动
     if (this.currentDriver) {
@@ -144,7 +145,7 @@ class UKeyManager extends EventEmitter {
     // 发射驱动切换事件
     this.emit("driver-changed", driverType);
 
-    // console.log('[UKeyManager] 驱动切换成功');
+    // logger.info('[UKeyManager] 驱动切换成功');
     return true;
   }
 
@@ -156,7 +157,7 @@ class UKeyManager extends EventEmitter {
    * macOS/Linux: 优先使用 PKCS#11（跨平台支持）
    */
   async autoDetect() {
-    // console.log('[UKeyManager] 自动检测U盾类型...');
+    // logger.info('[UKeyManager] 自动检测U盾类型...');
 
     const platform = os.platform();
     let driverTypes;
@@ -186,7 +187,7 @@ class UKeyManager extends EventEmitter {
         const status = await driver.detect();
 
         if (status.detected) {
-          // console.log('[UKeyManager] 检测到U盾:', type);
+          // logger.info('[UKeyManager] 检测到U盾:', type);
           this.currentDriver = driver;
           this.driverType = type;
 
@@ -199,12 +200,12 @@ class UKeyManager extends EventEmitter {
           };
         }
       } catch (error) {
-        // console.log(`[UKeyManager] ${type} 检测失败:`, error.message);
+        // logger.info(`[UKeyManager] ${type} 检测失败:`, error.message);
         // 继续尝试下一个
       }
     }
 
-    // console.log('[UKeyManager] 未检测到任何U盾设备');
+    // logger.info('[UKeyManager] 未检测到任何U盾设备');
     return {
       detected: false,
       driverType: null,
@@ -420,14 +421,14 @@ class UKeyManager extends EventEmitter {
    * 关闭管理器
    */
   async close() {
-    // console.log('[UKeyManager] 关闭U盾管理器...');
+    // logger.info('[UKeyManager] 关闭U盾管理器...');
 
     // 关闭所有驱动
     for (const driver of this.drivers.values()) {
       try {
         await driver.close();
       } catch (error) {
-        // console.error('[UKeyManager] 关闭驱动失败:', error);
+        // logger.error('[UKeyManager] 关闭驱动失败:', error);
       }
     }
 
@@ -444,7 +445,7 @@ class UKeyManager extends EventEmitter {
    * 使用轮询方式检测设备变化
    */
   startDeviceMonitor(interval = 5000) {
-    // console.log('[UKeyManager] 启动设备监听...');
+    // logger.info('[UKeyManager] 启动设备监听...');
 
     let lastDetected = false;
 
@@ -465,7 +466,7 @@ class UKeyManager extends EventEmitter {
           this.lock();
         }
       } catch (error) {
-        // console.error('[UKeyManager] 设备监听错误:', error);
+        // logger.error('[UKeyManager] 设备监听错误:', error);
       }
     }, interval);
   }
@@ -477,7 +478,7 @@ class UKeyManager extends EventEmitter {
     if (this.monitorInterval) {
       clearInterval(this.monitorInterval);
       this.monitorInterval = null;
-      // console.log('[UKeyManager] 停止设备监听');
+      // logger.info('[UKeyManager] 停止设备监听');
     }
   }
 }

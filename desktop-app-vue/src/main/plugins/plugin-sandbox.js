@@ -8,6 +8,7 @@
  * - 生命周期钩子调用
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const vm = require('vm');
 const EventEmitter = require('events');
 
@@ -42,7 +43,7 @@ class PluginSandbox extends EventEmitter {
    * @returns {Promise<Object>} 插件实例
    */
   async load() {
-    console.log(`[PluginSandbox] 加载插件: ${this.pluginId}`);
+    logger.info(`[PluginSandbox] 加载插件: ${this.pluginId}`);
 
     try {
       this.state = 'loading';
@@ -120,13 +121,13 @@ class PluginSandbox extends EventEmitter {
       this.state = 'loaded';
       this.emit('loaded', { pluginId: this.pluginId });
 
-      console.log(`[PluginSandbox] 插件加载成功: ${this.pluginId}`);
+      logger.info(`[PluginSandbox] 插件加载成功: ${this.pluginId}`);
 
       return this.instance;
     } catch (error) {
       this.state = 'error';
       this.emit('error', { pluginId: this.pluginId, error });
-      console.error(`[PluginSandbox] 插件加载失败: ${this.pluginId}`, error);
+      logger.error(`[PluginSandbox] 插件加载失败: ${this.pluginId}`, error);
       throw error;
     }
   }
@@ -151,7 +152,7 @@ class PluginSandbox extends EventEmitter {
           try {
             fn();
           } catch (error) {
-            console.error(`[PluginSandbox] setTimeout错误:`, error);
+            logger.error(`[PluginSandbox] setTimeout错误:`, error);
           }
         }, Math.min(delay, 60000)); // 最大60秒
       },
@@ -161,7 +162,7 @@ class PluginSandbox extends EventEmitter {
           try {
             fn();
           } catch (error) {
-            console.error(`[PluginSandbox] setInterval错误:`, error);
+            logger.error(`[PluginSandbox] setInterval错误:`, error);
           }
         }, Math.max(delay, 100)); // 最小100ms
       },
@@ -263,7 +264,7 @@ class PluginSandbox extends EventEmitter {
 
     optionalMethods.forEach(method => {
       if (this.instance[method] && typeof this.instance[method] !== 'function') {
-        console.warn(`[PluginSandbox] ${method} 应该是一个函数`);
+        logger.warn(`[PluginSandbox] ${method} 应该是一个函数`);
       }
     });
   }
@@ -282,11 +283,11 @@ class PluginSandbox extends EventEmitter {
     const hook = this.instance[hookName];
 
     if (!hook || typeof hook !== 'function') {
-      console.log(`[PluginSandbox] 插件没有 ${hookName} 钩子，跳过`);
+      logger.info(`[PluginSandbox] 插件没有 ${hookName} 钩子，跳过`);
       return null;
     }
 
-    console.log(`[PluginSandbox] 调用钩子: ${this.pluginId}.${hookName}`);
+    logger.info(`[PluginSandbox] 调用钩子: ${this.pluginId}.${hookName}`);
 
     try {
       // 使用Promise.race实现超时控制
@@ -300,11 +301,11 @@ class PluginSandbox extends EventEmitter {
 
       const result = await Promise.race([hookPromise, timeoutPromise]);
 
-      console.log(`[PluginSandbox] 钩子执行成功: ${this.pluginId}.${hookName}`);
+      logger.info(`[PluginSandbox] 钩子执行成功: ${this.pluginId}.${hookName}`);
 
       return result;
     } catch (error) {
-      console.error(`[PluginSandbox] 钩子执行失败: ${this.pluginId}.${hookName}`, error);
+      logger.error(`[PluginSandbox] 钩子执行失败: ${this.pluginId}.${hookName}`, error);
       this.emit('hook-error', { pluginId: this.pluginId, hookName, error });
       throw error;
     }
@@ -316,7 +317,7 @@ class PluginSandbox extends EventEmitter {
    */
   async enable() {
     if (this.state === 'enabled') {
-      console.log(`[PluginSandbox] 插件已启用: ${this.pluginId}`);
+      logger.info(`[PluginSandbox] 插件已启用: ${this.pluginId}`);
       return;
     }
 
@@ -324,7 +325,7 @@ class PluginSandbox extends EventEmitter {
       await this.callHook('onEnable');
       this.state = 'enabled';
       this.emit('enabled', { pluginId: this.pluginId });
-      console.log(`[PluginSandbox] 插件已启用: ${this.pluginId}`);
+      logger.info(`[PluginSandbox] 插件已启用: ${this.pluginId}`);
     } catch (error) {
       this.state = 'error';
       throw error;
@@ -337,7 +338,7 @@ class PluginSandbox extends EventEmitter {
    */
   async disable() {
     if (this.state === 'disabled') {
-      console.log(`[PluginSandbox] 插件已禁用: ${this.pluginId}`);
+      logger.info(`[PluginSandbox] 插件已禁用: ${this.pluginId}`);
       return;
     }
 
@@ -345,7 +346,7 @@ class PluginSandbox extends EventEmitter {
       await this.callHook('onDisable');
       this.state = 'disabled';
       this.emit('disabled', { pluginId: this.pluginId });
-      console.log(`[PluginSandbox] 插件已禁用: ${this.pluginId}`);
+      logger.info(`[PluginSandbox] 插件已禁用: ${this.pluginId}`);
     } catch (error) {
       this.state = 'error';
       throw error;
@@ -363,7 +364,7 @@ class PluginSandbox extends EventEmitter {
       this.context = null;
       this.state = 'unloaded';
       this.emit('unloaded', { pluginId: this.pluginId });
-      console.log(`[PluginSandbox] 插件已卸载: ${this.pluginId}`);
+      logger.info(`[PluginSandbox] 插件已卸载: ${this.pluginId}`);
     } catch (error) {
       this.state = 'error';
       throw error;
@@ -387,7 +388,7 @@ class PluginSandbox extends EventEmitter {
       throw new Error(`插件方法不存在: ${methodName}`);
     }
 
-    console.log(`[PluginSandbox] 调用方法: ${this.pluginId}.${methodName}`);
+    logger.info(`[PluginSandbox] 调用方法: ${this.pluginId}.${methodName}`);
 
     try {
       // 超时控制
@@ -401,11 +402,11 @@ class PluginSandbox extends EventEmitter {
 
       const result = await Promise.race([methodPromise, timeoutPromise]);
 
-      console.log(`[PluginSandbox] 方法执行成功: ${this.pluginId}.${methodName}`);
+      logger.info(`[PluginSandbox] 方法执行成功: ${this.pluginId}.${methodName}`);
 
       return result;
     } catch (error) {
-      console.error(`[PluginSandbox] 方法执行失败: ${this.pluginId}.${methodName}`, error);
+      logger.error(`[PluginSandbox] 方法执行失败: ${this.pluginId}.${methodName}`, error);
       this.emit('method-error', { pluginId: this.pluginId, methodName, error });
       throw error;
     }

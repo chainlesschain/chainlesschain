@@ -116,6 +116,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, reactive, watch } from 'vue';
 import { message } from 'ant-design-vue';
 import { MessageOutlined } from '@ant-design/icons-vue';
@@ -182,7 +184,7 @@ const handleReply = async () => {
       form.content
     );
 
-    console.log('[ReviewReply] 回复成功:', reply.id);
+    logger.info('[ReviewReply] 回复成功:', reply.id);
     message.success('回复发布成功！');
 
     // 通知父组件
@@ -194,7 +196,7 @@ const handleReply = async () => {
     // 重置表单
     resetForm();
   } catch (error) {
-    console.error('[ReviewReply] 回复失败:', error);
+    logger.error('[ReviewReply] 回复失败:', error);
     message.error(error.message || '回复失败');
   } finally {
     replying.value = false;

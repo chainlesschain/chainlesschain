@@ -1,3 +1,5 @@
+const { logger, createLogger } = require('../utils/logger.js');
+
 /**
  * 知识管理 IPC
  * 处理知识库标签、版本管理、付费内容等操作
@@ -23,7 +25,7 @@ function registerKnowledgeIPC({
   // 支持依赖注入，用于测试
   const ipcMain = injectedIpcMain || require('electron').ipcMain;
 
-  console.log('[Knowledge IPC] Registering Knowledge IPC handlers...');
+  logger.info('[Knowledge IPC] Registering Knowledge IPC handlers...');
 
   // ============================================================
   // 标签管理操作 (1 handler)
@@ -38,7 +40,7 @@ function registerKnowledgeIPC({
       const tags = db.prepare('SELECT * FROM tags ORDER BY name').all();
       return { success: true, tags };
     } catch (error) {
-      console.error('[Knowledge] 获取标签列表失败:', error);
+      logger.error('[Knowledge] 获取标签列表失败:', error);
       return { success: false, error: error.message, tags: [] };
     }
   });
@@ -66,7 +68,7 @@ function registerKnowledgeIPC({
 
       return { success: true, versions, stats };
     } catch (error) {
-      console.error('[Knowledge] 获取版本历史失败:', error);
+      logger.error('[Knowledge] 获取版本历史失败:', error);
       return { success: false, error: error.message, versions: [] };
     }
   });
@@ -91,7 +93,7 @@ function registerKnowledgeIPC({
 
       return result;
     } catch (error) {
-      console.error('[Knowledge] 恢复版本失败:', error);
+      logger.error('[Knowledge] 恢复版本失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -112,7 +114,7 @@ function registerKnowledgeIPC({
 
       return result;
     } catch (error) {
-      console.error('[Knowledge] 对比版本失败:', error);
+      logger.error('[Knowledge] 对比版本失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -131,7 +133,7 @@ function registerKnowledgeIPC({
       }
       return await knowledgePaymentManager.createPaidContent(options);
     } catch (error) {
-      console.error('[Knowledge] 创建付费内容失败:', error);
+      logger.error('[Knowledge] 创建付费内容失败:', error);
       throw error;
     }
   });
@@ -146,7 +148,7 @@ function registerKnowledgeIPC({
       }
       return await knowledgePaymentManager.updateContent(contentId, updates);
     } catch (error) {
-      console.error('[Knowledge] 更新内容失败:', error);
+      logger.error('[Knowledge] 更新内容失败:', error);
       throw error;
     }
   });
@@ -161,7 +163,7 @@ function registerKnowledgeIPC({
       }
       return await knowledgePaymentManager.deleteContent(contentId);
     } catch (error) {
-      console.error('[Knowledge] 删除内容失败:', error);
+      logger.error('[Knowledge] 删除内容失败:', error);
       throw error;
     }
   });
@@ -176,7 +178,7 @@ function registerKnowledgeIPC({
       }
       return await knowledgePaymentManager.getContent(contentId);
     } catch (error) {
-      console.error('[Knowledge] 获取内容失败:', error);
+      logger.error('[Knowledge] 获取内容失败:', error);
       return null;
     }
   });
@@ -198,7 +200,7 @@ function registerKnowledgeIPC({
         contents: contents || [],
       };
     } catch (error) {
-      console.error('[Knowledge] 列出内容失败:', error);
+      logger.error('[Knowledge] 列出内容失败:', error);
       return {
         success: false,
         contents: [],
@@ -217,7 +219,7 @@ function registerKnowledgeIPC({
       }
       return await knowledgePaymentManager.purchaseContent(contentId, paymentAssetId);
     } catch (error) {
-      console.error('[Knowledge] 购买内容失败:', error);
+      logger.error('[Knowledge] 购买内容失败:', error);
       throw error;
     }
   });
@@ -232,7 +234,7 @@ function registerKnowledgeIPC({
       }
       return await knowledgePaymentManager.subscribe(planId, paymentAssetId);
     } catch (error) {
-      console.error('[Knowledge] 订阅失败:', error);
+      logger.error('[Knowledge] 订阅失败:', error);
       throw error;
     }
   });
@@ -247,7 +249,7 @@ function registerKnowledgeIPC({
       }
       return await knowledgePaymentManager.unsubscribe(planId);
     } catch (error) {
-      console.error('[Knowledge] 取消订阅失败:', error);
+      logger.error('[Knowledge] 取消订阅失败:', error);
       throw error;
     }
   });
@@ -262,7 +264,7 @@ function registerKnowledgeIPC({
       }
       return await knowledgePaymentManager.getMyPurchases(userDid);
     } catch (error) {
-      console.error('[Knowledge] 获取购买记录失败:', error);
+      logger.error('[Knowledge] 获取购买记录失败:', error);
       return [];
     }
   });
@@ -277,7 +279,7 @@ function registerKnowledgeIPC({
       }
       return await knowledgePaymentManager.getMySubscriptions(userDid);
     } catch (error) {
-      console.error('[Knowledge] 获取订阅记录失败:', error);
+      logger.error('[Knowledge] 获取订阅记录失败:', error);
       return [];
     }
   });
@@ -292,7 +294,7 @@ function registerKnowledgeIPC({
       }
       return await knowledgePaymentManager.accessContent(contentId);
     } catch (error) {
-      console.error('[Knowledge] 访问内容失败:', error);
+      logger.error('[Knowledge] 访问内容失败:', error);
       throw error;
     }
   });
@@ -307,7 +309,7 @@ function registerKnowledgeIPC({
       }
       return await knowledgePaymentManager.checkAccess(contentId, userDid);
     } catch (error) {
-      console.error('[Knowledge] 检查访问权限失败:', error);
+      logger.error('[Knowledge] 检查访问权限失败:', error);
       return false;
     }
   });
@@ -322,15 +324,15 @@ function registerKnowledgeIPC({
       }
       return await knowledgePaymentManager.getStatistics(creatorDid);
     } catch (error) {
-      console.error('[Knowledge] 获取统计信息失败:', error);
+      logger.error('[Knowledge] 获取统计信息失败:', error);
       return null;
     }
   });
 
-  console.log('[Knowledge IPC] ✓ 17 handlers registered');
-  console.log('[Knowledge IPC] - 1 tag management handler');
-  console.log('[Knowledge IPC] - 3 version management handlers');
-  console.log('[Knowledge IPC] - 13 paid content handlers');
+  logger.info('[Knowledge IPC] ✓ 17 handlers registered');
+  logger.info('[Knowledge IPC] - 1 tag management handler');
+  logger.info('[Knowledge IPC] - 3 version management handlers');
+  logger.info('[Knowledge IPC] - 13 paid content handlers');
 }
 
 module.exports = {

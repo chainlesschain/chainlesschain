@@ -5,6 +5,7 @@
  * 在应用启动时显示一个轻量级的启动画面，展示启动进度和状态
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { BrowserWindow } = require("electron");
 const path = require("path");
 
@@ -45,10 +46,10 @@ class SplashWindow {
       this.window.show();
       this.isCreated = true;
 
-      console.log("[Splash] 启动画面已创建");
+      logger.info("[Splash] 启动画面已创建");
       return true;
     } catch (error) {
-      console.error("[Splash] 创建启动画面失败:", error);
+      logger.error("[Splash] 创建启动画面失败:", error);
       this.isCreated = false;
       return false;
     }
@@ -70,7 +71,7 @@ class SplashWindow {
         percentage: Math.min(100, Math.max(0, percentage)),
       });
     } catch (error) {
-      console.error("[Splash] 更新进度失败:", error);
+      logger.error("[Splash] 更新进度失败:", error);
     }
   }
 
@@ -86,7 +87,7 @@ class SplashWindow {
     try {
       this.window.webContents.send("splash:show-error", { message });
     } catch (error) {
-      console.error("[Splash] 显示错误失败:", error);
+      logger.error("[Splash] 显示错误失败:", error);
     }
   }
 
@@ -119,9 +120,9 @@ class SplashWindow {
         this.isCreated = false;
       }
 
-      console.log("[Splash] 启动画面已关闭");
+      logger.info("[Splash] 启动画面已关闭");
     } catch (error) {
-      console.error("[Splash] 关闭启动画面失败:", error);
+      logger.error("[Splash] 关闭启动画面失败:", error);
       this.window = null;
       this.isCreated = false;
     }

@@ -3,6 +3,7 @@
  * 提供统一的通知管理，支持多种通知类型和持久化
  */
 
+import { logger, createLogger } from '@/utils/logger';
 import { ref, computed } from 'vue';
 import { notification } from 'ant-design-vue';
 
@@ -316,7 +317,7 @@ class NotificationManager {
       try {
         listener(event, data);
       } catch (error) {
-        console.error('[NotificationManager] Listener error:', error);
+        logger.error('[NotificationManager] Listener error:', error);
       }
     });
   }
@@ -332,7 +333,7 @@ class NotificationManager {
 
       localStorage.setItem('notifications', JSON.stringify(persistentNotifications));
     } catch (error) {
-      console.error('[NotificationManager] Save to storage error:', error);
+      logger.error('[NotificationManager] Save to storage error:', error);
     }
   }
 
@@ -347,7 +348,7 @@ class NotificationManager {
         this.notifications.value = data.map(n => new Notification(n));
       }
     } catch (error) {
-      console.error('[NotificationManager] Load from storage error:', error);
+      logger.error('[NotificationManager] Load from storage error:', error);
     }
   }
 }

@@ -3,6 +3,7 @@
  * 负责Node.js与Python脚本之间的通信
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { spawn } = require("child_process");
 const path = require("path");
 const fs = require("fs");
@@ -50,7 +51,7 @@ class PythonBridge {
         });
         if (result.status === 0) {
           const version = (result.stdout || result.stderr || "").trim();
-          console.log(
+          logger.info(
             `[PythonBridge] 找到Python: ${pythonCmd}, 版本: ${version}`,
           );
           return pythonCmd;
@@ -60,7 +61,7 @@ class PythonBridge {
       }
     }
 
-    console.warn('[PythonBridge] 未找到Python，将使用默认的"python"命令');
+    logger.warn('[PythonBridge] 未找到Python，将使用默认的"python"命令');
     return "python";
   }
 
@@ -79,8 +80,8 @@ class PythonBridge {
       throw new Error(`Python工具不存在: ${scriptPath}`);
     }
 
-    console.log(`[PythonBridge] 调用Python工具: ${toolName}`);
-    console.log(`[PythonBridge] 参数:`, args);
+    logger.info(`[PythonBridge] 调用Python工具: ${toolName}`);
+    logger.info(`[PythonBridge] 参数:`, args);
 
     return new Promise((resolve, reject) => {
       // 创建子进程
@@ -103,7 +104,7 @@ class PythonBridge {
 
         // 实时输出（用于调试）
         if (options.verbose) {
-          console.log("[Python stdout]", chunk);
+          logger.info("[Python stdout]", chunk);
         }
       });
 
@@ -114,13 +115,13 @@ class PythonBridge {
 
         // Python的print()默认输出到stderr，这里也收集
         if (options.verbose) {
-          console.error("[Python stderr]", chunk);
+          logger.error("[Python stderr]", chunk);
         }
       });
 
       // 进程退出
       python.on("close", (code) => {
-        console.log(`[PythonBridge] Python进程退出，代码: ${code}`);
+        logger.info(`[PythonBridge] Python进程退出，代码: ${code}`);
 
         if (code === 0) {
           try {
@@ -129,7 +130,7 @@ class PythonBridge {
             resolve(result);
           } catch (e) {
             // 如果不是JSON，返回原始文本
-            console.warn("[PythonBridge] 输出不是有效的JSON，返回原始文本");
+            logger.warn("[PythonBridge] 输出不是有效的JSON，返回原始文本");
             resolve({
               success: true,
               output: stdout,
@@ -148,7 +149,7 @@ class PythonBridge {
 
       // 错误处理
       python.on("error", (err) => {
-        console.error("[PythonBridge] 进程错误:", err);
+        logger.error("[PythonBridge] 进程错误:", err);
         reject(new Error(`Python进程启动失败: ${err.message}`));
       });
 
@@ -168,7 +169,7 @@ class PythonBridge {
    * @returns {Promise<Array>} 所有调用的结果
    */
   async callBatch(calls) {
-    console.log(`[PythonBridge] 批量调用${calls.length}个Python工具`);
+    logger.info(`[PythonBridge] 批量调用${calls.length}个Python工具`);
 
     const promises = calls.map(({ tool, args, options }) =>
       this.callTool(tool, args, options).catch((err) => ({
@@ -193,7 +194,7 @@ class PythonBridge {
       );
       return result;
     } catch (error) {
-      console.error("[PythonBridge] 环境检查失败:", error.message);
+      logger.error("[PythonBridge] 环境检查失败:", error.message);
       return {
         success: false,
         error: error.message,

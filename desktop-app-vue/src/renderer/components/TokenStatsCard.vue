@@ -112,6 +112,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, reactive, onMounted, computed } from "vue";
 import { useRouter } from "vue-router";
 import dayjs from "dayjs";
@@ -196,7 +198,7 @@ async function loadStats() {
     // 生成优化建议
     generateOptimizationTip();
   } catch (error) {
-    console.error("加载 Token 统计失败:", error);
+    logger.error("加载 Token 统计失败:", error);
   } finally {
     loading.value = false;
   }

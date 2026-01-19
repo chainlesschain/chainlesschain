@@ -12,6 +12,7 @@
  * - 会话持久化
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const EventEmitter = require("events");
 const crypto = require("crypto");
 const fs = require("fs");
@@ -47,7 +48,7 @@ class SignalSessionManager extends EventEmitter {
    * 初始化 Signal 会话管理器
    */
   async initialize() {
-    console.log("[SignalSession] 初始化 Signal 会话管理器...");
+    logger.info("[SignalSession] 初始化 Signal 会话管理器...");
 
     try {
       // 动态导入 Signal 协议库
@@ -64,10 +65,10 @@ class SignalSessionManager extends EventEmitter {
 
       this.initialized = true;
 
-      console.log("[SignalSession] Signal 会话管理器已初始化");
-      console.log("[SignalSession] 用户 ID:", this.config.userId);
-      console.log("[SignalSession] 设备 ID:", this.config.deviceId);
-      console.log("[SignalSession] 注册 ID:", this.registrationId);
+      logger.info("[SignalSession] Signal 会话管理器已初始化");
+      logger.info("[SignalSession] 用户 ID:", this.config.userId);
+      logger.info("[SignalSession] 设备 ID:", this.config.deviceId);
+      logger.info("[SignalSession] 注册 ID:", this.registrationId);
 
       this.emit("initialized", {
         userId: this.config.userId,
@@ -77,7 +78,7 @@ class SignalSessionManager extends EventEmitter {
 
       return true;
     } catch (error) {
-      console.error("[SignalSession] 初始化失败:", error);
+      logger.error("[SignalSession] 初始化失败:", error);
       throw error;
     }
   }
@@ -95,9 +96,9 @@ class SignalSessionManager extends EventEmitter {
       SessionCipher = signal.SessionCipher;
       SignalProtocolAddress = signal.SignalProtocolAddress;
 
-      console.log("[SignalSession] Signal 协议库已加载");
+      logger.info("[SignalSession] Signal 协议库已加载");
     } catch (error) {
-      console.error("[SignalSession] 加载 Signal 协议库失败:", error);
+      logger.error("[SignalSession] 加载 Signal 协议库失败:", error);
       throw new Error("Failed to load Signal protocol library");
     }
   }
@@ -137,11 +138,11 @@ class SignalSessionManager extends EventEmitter {
         await this.store.put("identityKey", this.identityKeyPair);
         await this.store.put("registrationId", this.registrationId);
 
-        console.log("[SignalSession] 已加载现有身份");
+        logger.info("[SignalSession] 已加载现有身份");
         return;
       }
     } catch (error) {
-      console.warn("[SignalSession] 加载身份失败，将生成新的:", error.message);
+      logger.warn("[SignalSession] 加载身份失败，将生成新的:", error.message);
     }
 
     // 生成新身份并保存
@@ -163,9 +164,9 @@ class SignalSessionManager extends EventEmitter {
         identityPath,
         JSON.stringify(serializableIdentity, null, 2),
       );
-      console.log("[SignalSession] 身份已保存到:", identityPath);
+      logger.info("[SignalSession] 身份已保存到:", identityPath);
     } catch (error) {
-      console.warn("[SignalSession] 保存身份失败:", error.message);
+      logger.warn("[SignalSession] 保存身份失败:", error.message);
     }
   }
 
@@ -173,7 +174,7 @@ class SignalSessionManager extends EventEmitter {
    * 生成新身份
    */
   async generateIdentity() {
-    console.log("[SignalSession] 生成新身份...");
+    logger.info("[SignalSession] 生成新身份...");
 
     // 生成身份密钥对
     this.identityKeyPair = await KeyHelper.generateIdentityKeyPair();
@@ -185,14 +186,14 @@ class SignalSessionManager extends EventEmitter {
     await this.store.put("identityKey", this.identityKeyPair);
     await this.store.put("registrationId", this.registrationId);
 
-    console.log("[SignalSession] 新身份已生成");
+    logger.info("[SignalSession] 新身份已生成");
   }
 
   /**
    * 生成预密钥
    */
   async generatePreKeys() {
-    console.log("[SignalSession] 生成预密钥...");
+    logger.info("[SignalSession] 生成预密钥...");
 
     // 生成签名预密钥
     const signedPreKeyId = Math.floor(Math.random() * 16777215);
@@ -222,7 +223,7 @@ class SignalSessionManager extends EventEmitter {
       this.preKeys.set(preKey.keyId, preKey);
     }
 
-    console.log("[SignalSession] 预密钥已生成:", preKeys.length, "个");
+    logger.info("[SignalSession] 预密钥已生成:", preKeys.length, "个");
   }
 
   /**
@@ -264,7 +265,7 @@ class SignalSessionManager extends EventEmitter {
    * @param {Object} preKeyBundle - 预密钥包
    */
   async processPreKeyBundle(recipientId, deviceId, preKeyBundle) {
-    console.log(
+    logger.info(
       "[SignalSession] 处理预密钥包，建立会话:",
       recipientId,
       deviceId,
@@ -316,22 +317,22 @@ class SignalSessionManager extends EventEmitter {
 
       // Debug: 检查会话是否正确存储
       const storedSession = await this.store.loadSession(address.toString());
-      console.log("[SignalSession] 会话已建立:", recipientId);
-      console.log(
+      logger.info("[SignalSession] 会话已建立:", recipientId);
+      logger.info(
         "[SignalSession] 存储的会话:",
         storedSession ? "存在" : "不存在",
       );
       if (storedSession) {
-        console.log("[SignalSession] 会话类型:", typeof storedSession);
-        console.log(
+        logger.info("[SignalSession] 会话类型:", typeof storedSession);
+        logger.info(
           "[SignalSession] 会话是 ArrayBuffer:",
           storedSession instanceof ArrayBuffer,
         );
-        console.log(
+        logger.info(
           "[SignalSession] 会话是 Uint8Array:",
           storedSession instanceof Uint8Array,
         );
-        console.log(
+        logger.info(
           "[SignalSession] 会话长度:",
           storedSession.length || storedSession.byteLength,
         );
@@ -341,7 +342,7 @@ class SignalSessionManager extends EventEmitter {
 
       return { success: true };
     } catch (error) {
-      console.error("[SignalSession] 建立会话失败:", error);
+      logger.error("[SignalSession] 建立会话失败:", error);
       throw error;
     }
   }
@@ -365,7 +366,7 @@ class SignalSessionManager extends EventEmitter {
    * @param {string|Buffer|ArrayBuffer} plaintext - 明文消息
    */
   async encryptMessage(recipientId, deviceId, plaintext) {
-    console.log("[SignalSession] 加密消息:", recipientId);
+    logger.info("[SignalSession] 加密消息:", recipientId);
 
     try {
       const address = new SignalProtocolAddress(recipientId, deviceId);
@@ -403,7 +404,7 @@ class SignalSessionManager extends EventEmitter {
       // 加密消息
       const ciphertext = await sessionCipher.encrypt(plaintextBuffer);
 
-      console.log("[SignalSession] 消息已加密");
+      logger.info("[SignalSession] 消息已加密");
 
       return {
         type: ciphertext.type, // 1: PreKeyWhisperMessage, 3: WhisperMessage
@@ -411,7 +412,7 @@ class SignalSessionManager extends EventEmitter {
         registrationId: ciphertext.registrationId,
       };
     } catch (error) {
-      console.error("[SignalSession] 加密消息失败:", error);
+      logger.error("[SignalSession] 加密消息失败:", error);
       throw error;
     }
   }
@@ -423,7 +424,7 @@ class SignalSessionManager extends EventEmitter {
    * @param {Object} ciphertext - 密文消息
    */
   async decryptMessage(senderId, deviceId, ciphertext) {
-    console.log("[SignalSession] 解密消息:", senderId);
+    logger.info("[SignalSession] 解密消息:", senderId);
 
     try {
       const address = new SignalProtocolAddress(senderId, deviceId);
@@ -454,7 +455,7 @@ class SignalSessionManager extends EventEmitter {
         throw new Error("Unknown message type: " + ciphertext.type);
       }
 
-      console.log("[SignalSession] 消息已解密");
+      logger.info("[SignalSession] 消息已解密");
 
       // 将解密结果转换为字符串
       const decoder = new TextDecoder("utf-8");
@@ -466,7 +467,7 @@ class SignalSessionManager extends EventEmitter {
         return Buffer.from(plaintext).toString("utf8");
       }
     } catch (error) {
-      console.error("[SignalSession] 解密消息失败:", error);
+      logger.error("[SignalSession] 解密消息失败:", error);
       throw error;
     }
   }
@@ -487,19 +488,19 @@ class SignalSessionManager extends EventEmitter {
    * @param {number} deviceId - 设备 ID
    */
   async deleteSession(recipientId, deviceId) {
-    console.log("[SignalSession] 删除会话:", recipientId);
+    logger.info("[SignalSession] 删除会话:", recipientId);
 
     try {
       const address = new SignalProtocolAddress(recipientId, deviceId);
       await this.store.removeSession(address.toString());
 
-      console.log("[SignalSession] 会话已删除");
+      logger.info("[SignalSession] 会话已删除");
 
       this.emit("session:deleted", { recipientId, deviceId });
 
       return { success: true };
     } catch (error) {
-      console.error("[SignalSession] 删除会话失败:", error);
+      logger.error("[SignalSession] 删除会话失败:", error);
       throw error;
     }
   }
@@ -512,7 +513,7 @@ class SignalSessionManager extends EventEmitter {
       const sessions = await this.store.getAllSessions();
       return Array.from(sessions.keys());
     } catch (error) {
-      console.error("[SignalSession] 获取会话列表失败:", error);
+      logger.error("[SignalSession] 获取会话列表失败:", error);
       return [];
     }
   }
@@ -571,7 +572,7 @@ class SignalSessionManager extends EventEmitter {
       if (typeof obj.length === "number") {
         array = Array.from({ length: obj.length }, (_, i) => obj[i] || 0);
       } else {
-        console.warn(
+        logger.warn(
           "[SignalSession] 未知的 ArrayBuffer 格式:",
           typeof obj,
           obj,
@@ -579,7 +580,7 @@ class SignalSessionManager extends EventEmitter {
         return new ArrayBuffer(0);
       }
     } else {
-      console.warn("[SignalSession] 未知的 ArrayBuffer 格式:", typeof obj);
+      logger.warn("[SignalSession] 未知的 ArrayBuffer 格式:", typeof obj);
       return new ArrayBuffer(0);
     }
 
@@ -619,7 +620,7 @@ class SignalSessionManager extends EventEmitter {
    * 关闭会话管理器
    */
   async close() {
-    console.log("[SignalSession] 关闭会话管理器");
+    logger.info("[SignalSession] 关闭会话管理器");
 
     this.initialized = false;
     this.sessions.clear();
@@ -665,7 +666,7 @@ class LocalSignalProtocolStore {
   async loadSession(identifier) {
     const session = this.store.get(`session_${identifier}`);
     // Debug: 输出会话加载信息
-    console.log(
+    logger.info(
       `[SignalStore] loadSession(${identifier}): ${session ? "找到会话" : "无会话"}`,
     );
     // 重要：Signal 库期望返回 undefined 表示没有会话，而不是 null
@@ -674,28 +675,28 @@ class LocalSignalProtocolStore {
   }
 
   async storeSession(identifier, record) {
-    console.log(`[SignalStore] storeSession(${identifier}): 保存会话`);
+    logger.info(`[SignalStore] storeSession(${identifier}): 保存会话`);
     // Debug: 检查会话内容
     if (typeof record === "string") {
       try {
         const parsed = JSON.parse(record);
-        console.log(`[SignalStore] 会话结构 keys:`, Object.keys(parsed));
+        logger.info(`[SignalStore] 会话结构 keys:`, Object.keys(parsed));
         // sessions 是一个对象，键是 base key identifier
         if (parsed.sessions && typeof parsed.sessions === "object") {
           const sessionKeys = Object.keys(parsed.sessions);
-          console.log(`[SignalStore] sessions 数量:`, sessionKeys.length);
+          logger.info(`[SignalStore] sessions 数量:`, sessionKeys.length);
           if (sessionKeys.length > 0) {
             const firstSession = parsed.sessions[sessionKeys[0]];
-            console.log(
+            logger.info(
               `[SignalStore] 第一个 session keys:`,
               Object.keys(firstSession),
             );
-            console.log(
+            logger.info(
               `[SignalStore] 会话包含 pendingPreKey:`,
               !!firstSession.pendingPreKey,
             );
             if (firstSession.pendingPreKey) {
-              console.log(
+              logger.info(
                 `[SignalStore] pendingPreKey:`,
                 JSON.stringify(firstSession.pendingPreKey).substring(0, 200),
               );
@@ -703,7 +704,7 @@ class LocalSignalProtocolStore {
           }
         }
       } catch (e) {
-        console.log(`[SignalStore] 无法解析会话内容:`, e.message);
+        logger.info(`[SignalStore] 无法解析会话内容:`, e.message);
       }
     }
     this.store.set(`session_${identifier}`, record);

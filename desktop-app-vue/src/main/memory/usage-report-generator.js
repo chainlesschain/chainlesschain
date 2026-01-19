@@ -12,6 +12,7 @@
  * @since 2026-01-18
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require("fs").promises;
 const path = require("path");
 const { EventEmitter } = require("events");
@@ -50,7 +51,7 @@ class UsageReportGenerator extends EventEmitter {
     this.scheduleTimer = null;
     this.scheduleCheckInterval = 60 * 60 * 1000; // Check every hour
 
-    console.log("[UsageReportGenerator] Initialized", {
+    logger.info("[UsageReportGenerator] Initialized", {
       reportsDir: this.reportsDir,
       hasTokenTracker: !!this.tokenTracker,
     });
@@ -70,9 +71,9 @@ class UsageReportGenerator extends EventEmitter {
       // Start schedule checker
       this._startScheduleChecker();
 
-      console.log("[UsageReportGenerator] Initialization complete");
+      logger.info("[UsageReportGenerator] Initialization complete");
     } catch (error) {
-      console.error("[UsageReportGenerator] Initialization failed:", error);
+      logger.error("[UsageReportGenerator] Initialization failed:", error);
       throw error;
     }
   }
@@ -152,10 +153,10 @@ class UsageReportGenerator extends EventEmitter {
           )
           .run();
 
-        console.log("[UsageReportGenerator] Database tables created");
+        logger.info("[UsageReportGenerator] Database tables created");
       }
     } catch (error) {
-      console.error("[UsageReportGenerator] Failed to ensure tables:", error);
+      logger.error("[UsageReportGenerator] Failed to ensure tables:", error);
       throw error;
     }
   }
@@ -173,7 +174,7 @@ class UsageReportGenerator extends EventEmitter {
       await this._checkAndRunSubscriptions();
     }, this.scheduleCheckInterval);
 
-    console.log("[UsageReportGenerator] Schedule checker started");
+    logger.info("[UsageReportGenerator] Schedule checker started");
   }
 
   /**
@@ -183,7 +184,7 @@ class UsageReportGenerator extends EventEmitter {
     if (this.scheduleTimer) {
       clearInterval(this.scheduleTimer);
       this.scheduleTimer = null;
-      console.log("[UsageReportGenerator] Schedule checker stopped");
+      logger.info("[UsageReportGenerator] Schedule checker stopped");
     }
   }
 
@@ -201,7 +202,7 @@ class UsageReportGenerator extends EventEmitter {
       const dueSubscriptions = stmt.all(now);
 
       for (const sub of dueSubscriptions) {
-        console.log(
+        logger.info(
           `[UsageReportGenerator] Running subscription: ${sub.subscription_name}`,
         );
 
@@ -239,7 +240,7 @@ class UsageReportGenerator extends EventEmitter {
 
           this.emit("subscription-completed", { subscription: sub, report });
         } catch (error) {
-          console.error(
+          logger.error(
             `[UsageReportGenerator] Subscription failed: ${sub.subscription_name}`,
             error,
           );
@@ -250,7 +251,7 @@ class UsageReportGenerator extends EventEmitter {
         }
       }
     } catch (error) {
-      console.error("[UsageReportGenerator] Schedule check failed:", error);
+      logger.error("[UsageReportGenerator] Schedule check failed:", error);
     }
   }
 
@@ -293,7 +294,7 @@ class UsageReportGenerator extends EventEmitter {
     const { scope = "full", endDate = Date.now() } = options;
     const startDate = endDate - 7 * 24 * 60 * 60 * 1000;
 
-    console.log(
+    logger.info(
       `[UsageReportGenerator] Generating weekly report: scope=${scope}`,
     );
     const startTime = Date.now();
@@ -352,13 +353,13 @@ class UsageReportGenerator extends EventEmitter {
       });
 
       this.emit("report-generated", report);
-      console.log(
+      logger.info(
         `[UsageReportGenerator] Weekly report generated: ${report.id}`,
       );
 
       return report;
     } catch (error) {
-      console.error("[UsageReportGenerator] Weekly report failed:", error);
+      logger.error("[UsageReportGenerator] Weekly report failed:", error);
       throw error;
     }
   }
@@ -372,7 +373,7 @@ class UsageReportGenerator extends EventEmitter {
     const { scope = "full", endDate = Date.now() } = options;
     const startDate = endDate - 30 * 24 * 60 * 60 * 1000;
 
-    console.log(
+    logger.info(
       `[UsageReportGenerator] Generating monthly report: scope=${scope}`,
     );
     const startTime = Date.now();
@@ -432,13 +433,13 @@ class UsageReportGenerator extends EventEmitter {
       });
 
       this.emit("report-generated", report);
-      console.log(
+      logger.info(
         `[UsageReportGenerator] Monthly report generated: ${report.id}`,
       );
 
       return report;
     } catch (error) {
-      console.error("[UsageReportGenerator] Monthly report failed:", error);
+      logger.error("[UsageReportGenerator] Monthly report failed:", error);
       throw error;
     }
   }
@@ -450,7 +451,7 @@ class UsageReportGenerator extends EventEmitter {
    * @returns {Promise<Object>} Cost analysis
    */
   async generateCostAnalysis(startDate, endDate) {
-    console.log("[UsageReportGenerator] Generating cost analysis");
+    logger.info("[UsageReportGenerator] Generating cost analysis");
 
     try {
       const llmStats = await this._getLLMStats(startDate, endDate);
@@ -528,7 +529,7 @@ class UsageReportGenerator extends EventEmitter {
         cacheHitRate: llmStats.cacheHitRate,
       };
     } catch (error) {
-      console.error("[UsageReportGenerator] Cost analysis failed:", error);
+      logger.error("[UsageReportGenerator] Cost analysis failed:", error);
       throw error;
     }
   }
@@ -601,11 +602,11 @@ class UsageReportGenerator extends EventEmitter {
         )
         .run(filePath, format, reportId);
 
-      console.log(`[UsageReportGenerator] Report exported: ${filePath}`);
+      logger.info(`[UsageReportGenerator] Report exported: ${filePath}`);
 
       return { success: true, filePath, format };
     } catch (error) {
-      console.error("[UsageReportGenerator] Export failed:", error);
+      logger.error("[UsageReportGenerator] Export failed:", error);
       throw error;
     }
   }
@@ -720,7 +721,7 @@ class UsageReportGenerator extends EventEmitter {
         weeklyTrend,
       };
     } catch (error) {
-      console.error("[UsageReportGenerator] Failed to get LLM stats:", error);
+      logger.error("[UsageReportGenerator] Failed to get LLM stats:", error);
       return this._getEmptyLLMStats();
     }
   }
@@ -810,7 +811,7 @@ class UsageReportGenerator extends EventEmitter {
         breakdown,
       };
     } catch (error) {
-      console.error(
+      logger.error(
         "[UsageReportGenerator] Failed to get feature stats:",
         error,
       );
@@ -1091,7 +1092,7 @@ class UsageReportGenerator extends EventEmitter {
         generatedAt: report.generated_at,
       };
     } catch (error) {
-      console.error("[UsageReportGenerator] Failed to get report:", error);
+      logger.error("[UsageReportGenerator] Failed to get report:", error);
       return null;
     }
   }
@@ -1128,7 +1129,7 @@ class UsageReportGenerator extends EventEmitter {
         generatedAt: r.generated_at,
       }));
     } catch (error) {
-      console.error("[UsageReportGenerator] Failed to list reports:", error);
+      logger.error("[UsageReportGenerator] Failed to list reports:", error);
       return [];
     }
   }
@@ -1197,7 +1198,7 @@ class UsageReportGenerator extends EventEmitter {
           now,
         );
 
-      console.log(`[UsageReportGenerator] Subscription created: ${name}`);
+      logger.info(`[UsageReportGenerator] Subscription created: ${name}`);
 
       return {
         id,
@@ -1209,7 +1210,7 @@ class UsageReportGenerator extends EventEmitter {
         enabled,
       };
     } catch (error) {
-      console.error(
+      logger.error(
         "[UsageReportGenerator] Failed to create subscription:",
         error,
       );
@@ -1243,7 +1244,7 @@ class UsageReportGenerator extends EventEmitter {
         nextGenerationAt: s.next_generation_at,
       }));
     } catch (error) {
-      console.error(
+      logger.error(
         "[UsageReportGenerator] Failed to get subscriptions:",
         error,
       );
@@ -1258,9 +1259,9 @@ class UsageReportGenerator extends EventEmitter {
   async deleteSubscription(id) {
     try {
       this.db.prepare(`DELETE FROM report_subscriptions WHERE id = ?`).run(id);
-      console.log(`[UsageReportGenerator] Subscription deleted: ${id}`);
+      logger.info(`[UsageReportGenerator] Subscription deleted: ${id}`);
     } catch (error) {
-      console.error(
+      logger.error(
         "[UsageReportGenerator] Failed to delete subscription:",
         error,
       );

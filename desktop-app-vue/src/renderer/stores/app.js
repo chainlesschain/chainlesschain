@@ -1,3 +1,4 @@
+import { logger, createLogger } from '@/utils/logger';
 import { defineStore } from "pinia";
 
 export const useAppStore = defineStore("app", {
@@ -412,7 +413,7 @@ export const useAppStore = defineStore("app", {
           return;
         }
       } catch (error) {
-        console.warn(
+        logger.warn(
           "[AppStore] PreferenceManager not available, using localStorage",
         );
       }
@@ -423,7 +424,7 @@ export const useAppStore = defineStore("app", {
           JSON.stringify(this.favoriteMenus),
         );
       } catch (error) {
-        console.error("[AppStore] Failed to save favorites:", error);
+        logger.error("[AppStore] Failed to save favorites:", error);
       }
     },
 
@@ -442,14 +443,14 @@ export const useAppStore = defineStore("app", {
           return;
         }
       } catch (error) {
-        console.warn(
+        logger.warn(
           "[AppStore] PreferenceManager not available, using localStorage",
         );
       }
       try {
         localStorage.setItem("recentMenus", JSON.stringify(this.recentMenus));
       } catch (error) {
-        console.error("[AppStore] Failed to save recents:", error);
+        logger.error("[AppStore] Failed to save recents:", error);
       }
     },
 
@@ -468,14 +469,14 @@ export const useAppStore = defineStore("app", {
           return;
         }
       } catch (error) {
-        console.warn(
+        logger.warn(
           "[AppStore] PreferenceManager not available, using localStorage",
         );
       }
       try {
         localStorage.setItem("pinnedMenus", JSON.stringify(this.pinnedMenus));
       } catch (error) {
-        console.error("[AppStore] Failed to save pinned:", error);
+        logger.error("[AppStore] Failed to save pinned:", error);
       }
     },
 
@@ -498,7 +499,7 @@ export const useAppStore = defineStore("app", {
           }
         }
       } catch (error) {
-        console.warn(
+        logger.warn(
           "[AppStore] PreferenceManager not available, using localStorage",
         );
       }
@@ -509,7 +510,7 @@ export const useAppStore = defineStore("app", {
           this.favoriteMenus = JSON.parse(data);
         }
       } catch (error) {
-        console.error("[AppStore] Failed to load favorites:", error);
+        logger.error("[AppStore] Failed to load favorites:", error);
       }
     },
 
@@ -531,7 +532,7 @@ export const useAppStore = defineStore("app", {
           }
         }
       } catch (error) {
-        console.warn(
+        logger.warn(
           "[AppStore] PreferenceManager not available, using localStorage",
         );
       }
@@ -541,7 +542,7 @@ export const useAppStore = defineStore("app", {
           this.recentMenus = JSON.parse(data);
         }
       } catch (error) {
-        console.error("[AppStore] Failed to load recents:", error);
+        logger.error("[AppStore] Failed to load recents:", error);
       }
     },
 
@@ -563,7 +564,7 @@ export const useAppStore = defineStore("app", {
           }
         }
       } catch (error) {
-        console.warn(
+        logger.warn(
           "[AppStore] PreferenceManager not available, using localStorage",
         );
       }
@@ -573,7 +574,7 @@ export const useAppStore = defineStore("app", {
           this.pinnedMenus = JSON.parse(data);
         }
       } catch (error) {
-        console.error("[AppStore] Failed to load pinned:", error);
+        logger.error("[AppStore] Failed to load pinned:", error);
       }
     },
 
@@ -605,7 +606,7 @@ export const useAppStore = defineStore("app", {
         );
         if (migrated) {return;}
 
-        console.log(
+        logger.info(
           "[AppStore] Migrating data from localStorage to PreferenceManager...",
         );
 
@@ -655,9 +656,9 @@ export const useAppStore = defineStore("app", {
           "localStorageMigrated",
           true,
         );
-        console.log("[AppStore] Migration complete");
+        logger.info("[AppStore] Migration complete");
       } catch (error) {
-        console.error("[AppStore] Migration failed:", error);
+        logger.error("[AppStore] Migration failed:", error);
       }
     },
   },

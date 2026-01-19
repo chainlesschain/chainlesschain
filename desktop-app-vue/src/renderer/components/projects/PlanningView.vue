@@ -242,6 +242,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted, watch } from 'vue';
 import {
   LoadingOutlined,
@@ -338,18 +340,18 @@ const handleModifyPlan = () => {
 
 // 组件挂载时输出日志
 onMounted(() => {
-  console.log('[PlanningView] 组件已挂载');
-  console.log('[PlanningView] state:', props.state);
-  console.log('[PlanningView] session:', props.session);
+  logger.info('[PlanningView] 组件已挂载');
+  logger.info('[PlanningView] state:', props.state);
+  logger.info('[PlanningView] session:', props.session);
 });
 
 // 监听状态变化
 watch(() => props.state, (newState, oldState) => {
-  console.log('[PlanningView] 状态变化:', oldState, '→', newState);
+  logger.info('[PlanningView] 状态变化:', oldState, '→', newState);
 });
 
 watch(() => props.session, (newSession) => {
-  console.log('[PlanningView] session变化:', newSession);
+  logger.info('[PlanningView] session变化:', newSession);
 }, { deep: true });
 
 // 暴露方法供父组件调用

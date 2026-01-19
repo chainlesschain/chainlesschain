@@ -1,3 +1,5 @@
+import { logger, createLogger } from '@/utils/logger';
+
 /**
  * Performance Tracker
  * Tracks file operations, AI responses, and system metrics
@@ -39,7 +41,7 @@ class PerformanceTracker {
       try {
         listener(event, data)
       } catch (error) {
-        console.error('Performance tracker listener error:', error)
+        logger.error('Performance tracker listener error:', error)
       }
     })
   }
@@ -267,11 +269,11 @@ class PerformanceTracker {
     try {
       const result = await fn()
       const duration = performance.now() - startTime
-      console.log(`[Performance] ${name}: ${Math.round(duration)}ms`)
+      logger.info(`[Performance] ${name}: ${Math.round(duration)}ms`)
       return result
     } catch (error) {
       const duration = performance.now() - startTime
-      console.error(`[Performance] ${name} failed after ${Math.round(duration)}ms:`, error)
+      logger.error(`[Performance] ${name} failed after ${Math.round(duration)}ms:`, error)
       throw error
     }
   }
@@ -292,7 +294,7 @@ class PerformanceTracker {
       const measure = performance.getEntriesByName(name)[0]
       return measure.duration
     } catch (error) {
-      console.error('Performance measure error:', error)
+      logger.error('Performance measure error:', error)
       return 0
     }
   }

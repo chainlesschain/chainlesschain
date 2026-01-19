@@ -3,6 +3,7 @@
  * 为 Native Messaging Host 提供 HTTP API，用于接收浏览器扩展的剪藏请求
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const http = require('http');
 
 const DEFAULT_PORT = 23456;
@@ -28,15 +29,15 @@ class NativeMessagingHTTPServer {
 
     return new Promise((resolve, reject) => {
       this.server.listen(this.port, 'localhost', () => {
-        console.log(`[NativeMessagingHTTPServer] 服务器已启动: http://localhost:${this.port}`);
+        logger.info(`[NativeMessagingHTTPServer] 服务器已启动: http://localhost:${this.port}`);
         resolve();
       });
 
       this.server.on('error', (error) => {
         if (error.code === 'EADDRINUSE') {
-          console.error(`[NativeMessagingHTTPServer] 端口 ${this.port} 已被占用`);
+          logger.error(`[NativeMessagingHTTPServer] 端口 ${this.port} 已被占用`);
         } else {
-          console.error('[NativeMessagingHTTPServer] 服务器错误:', error);
+          logger.error('[NativeMessagingHTTPServer] 服务器错误:', error);
         }
         reject(error);
       });
@@ -50,7 +51,7 @@ class NativeMessagingHTTPServer {
     return new Promise((resolve) => {
       if (this.server) {
         this.server.close(() => {
-          console.log('[NativeMessagingHTTPServer] 服务器已停止');
+          logger.info('[NativeMessagingHTTPServer] 服务器已停止');
           resolve();
         });
       } else {
@@ -121,7 +122,7 @@ class NativeMessagingHTTPServer {
       const body = await this.readRequestBody(req);
       const data = JSON.parse(body);
 
-      console.log('[NativeMessagingHTTPServer] 收到剪藏请求:', data.title);
+      logger.info('[NativeMessagingHTTPServer] 收到剪藏请求:', data.title);
 
       // 验证数据
       if (!data.title || !data.content) {
@@ -147,15 +148,15 @@ class NativeMessagingHTTPServer {
 
       const savedItem = await this.database.addKnowledgeItem(knowledgeItem);
 
-      console.log('[NativeMessagingHTTPServer] 知识库项已保存:', savedItem.id);
+      logger.info('[NativeMessagingHTTPServer] 知识库项已保存:', savedItem.id);
 
       // 添加到 RAG 索引
       if (data.autoIndex && this.ragManager) {
         try {
           await this.ragManager.addToIndex(savedItem);
-          console.log('[NativeMessagingHTTPServer] 已添加到 RAG 索引');
+          logger.info('[NativeMessagingHTTPServer] 已添加到 RAG 索引');
         } catch (error) {
-          console.error('[NativeMessagingHTTPServer] 添加到 RAG 索引失败:', error);
+          logger.error('[NativeMessagingHTTPServer] 添加到 RAG 索引失败:', error);
           // 不抛出错误，因为保存已成功
         }
       }
@@ -167,7 +168,7 @@ class NativeMessagingHTTPServer {
       });
 
     } catch (error) {
-      console.error('[NativeMessagingHTTPServer] 处理剪藏请求失败:', error);
+      logger.error('[NativeMessagingHTTPServer] 处理剪藏请求失败:', error);
       this.sendError(res, 500, error.message);
     }
   }
@@ -181,7 +182,7 @@ class NativeMessagingHTTPServer {
       const body = await this.readRequestBody(req);
       const data = JSON.parse(body);
 
-      console.log('[NativeMessagingHTTPServer] 收到AI标签生成请求');
+      logger.info('[NativeMessagingHTTPServer] 收到AI标签生成请求');
 
       // 验证数据
       if (!data.title) {
@@ -191,7 +192,7 @@ class NativeMessagingHTTPServer {
 
       // 检查LLM服务
       if (!this.llmManager) {
-        console.warn('[NativeMessagingHTTPServer] LLM服务未配置，使用fallback');
+        logger.warn('[NativeMessagingHTTPServer] LLM服务未配置，使用fallback');
         // 使用简单的关键词提取作为fallback
         const tags = this.extractSimpleTags(data);
         this.sendSuccess(res, { tags });
@@ -205,11 +206,11 @@ class NativeMessagingHTTPServer {
         url: data.url || '',
       });
 
-      console.log('[NativeMessagingHTTPServer] AI生成标签:', tags);
+      logger.info('[NativeMessagingHTTPServer] AI生成标签:', tags);
 
       this.sendSuccess(res, { tags });
     } catch (error) {
-      console.error('[NativeMessagingHTTPServer] 标签生成失败:', error);
+      logger.error('[NativeMessagingHTTPServer] 标签生成失败:', error);
       this.sendError(res, 500, error.message);
     }
   }
@@ -223,7 +224,7 @@ class NativeMessagingHTTPServer {
       const body = await this.readRequestBody(req);
       const data = JSON.parse(body);
 
-      console.log('[NativeMessagingHTTPServer] 收到AI摘要生成请求');
+      logger.info('[NativeMessagingHTTPServer] 收到AI摘要生成请求');
 
       // 验证数据
       if (!data.content) {
@@ -233,7 +234,7 @@ class NativeMessagingHTTPServer {
 
       // 检查LLM服务
       if (!this.llmManager) {
-        console.warn('[NativeMessagingHTTPServer] LLM服务未配置，使用fallback');
+        logger.warn('[NativeMessagingHTTPServer] LLM服务未配置，使用fallback');
         // 使用简单的截取作为fallback
         const summary = this.extractSimpleSummary(data.content);
         this.sendSuccess(res, { summary });
@@ -246,11 +247,11 @@ class NativeMessagingHTTPServer {
         content: data.content,
       });
 
-      console.log('[NativeMessagingHTTPServer] AI生成摘要:', summary.substring(0, 50) + '...');
+      logger.info('[NativeMessagingHTTPServer] AI生成摘要:', summary.substring(0, 50) + '...');
 
       this.sendSuccess(res, { summary });
     } catch (error) {
-      console.error('[NativeMessagingHTTPServer] 摘要生成失败:', error);
+      logger.error('[NativeMessagingHTTPServer] 摘要生成失败:', error);
       this.sendError(res, 500, error.message);
     }
   }
@@ -307,7 +308,7 @@ class NativeMessagingHTTPServer {
       const body = await this.readRequestBody(req);
       const data = JSON.parse(body);
 
-      console.log('[NativeMessagingHTTPServer] 收到截图上传请求');
+      logger.info('[NativeMessagingHTTPServer] 收到截图上传请求');
 
       // 验证数据
       if (!data.image) {
@@ -335,7 +336,7 @@ class NativeMessagingHTTPServer {
       // 保存文件
       await fs.writeFile(filepath, buffer);
 
-      console.log('[NativeMessagingHTTPServer] 截图已保存:', filepath);
+      logger.info('[NativeMessagingHTTPServer] 截图已保存:', filepath);
 
       // 保存到数据库
       const { v4: uuidv4 } = require('uuid');
@@ -358,7 +359,7 @@ class NativeMessagingHTTPServer {
           now
         ]);
 
-        console.log('[NativeMessagingHTTPServer] 截图记录已保存到数据库');
+        logger.info('[NativeMessagingHTTPServer] 截图记录已保存到数据库');
       }
 
       // 返回成功响应
@@ -368,7 +369,7 @@ class NativeMessagingHTTPServer {
       });
 
     } catch (error) {
-      console.error('[NativeMessagingHTTPServer] 截图上传失败:', error);
+      logger.error('[NativeMessagingHTTPServer] 截图上传失败:', error);
       this.sendError(res, 500, error.message);
     }
   }
@@ -424,7 +425,7 @@ class NativeMessagingHTTPServer {
       const body = await this.readRequestBody(req);
       const data = JSON.parse(body);
 
-      console.log('[NativeMessagingHTTPServer] 收到批量剪藏请求:', data.items?.length);
+      logger.info('[NativeMessagingHTTPServer] 收到批量剪藏请求:', data.items?.length);
 
       if (!data.items || !Array.isArray(data.items)) {
         this.sendError(res, 400, '缺少必要字段: items (array)');
@@ -456,7 +457,7 @@ class NativeMessagingHTTPServer {
             try {
               await this.ragManager.addToIndex(savedItem);
             } catch (error) {
-              console.error('[NativeMessagingHTTPServer] 添加到 RAG 索引失败:', error);
+              logger.error('[NativeMessagingHTTPServer] 添加到 RAG 索引失败:', error);
             }
           }
 
@@ -480,14 +481,14 @@ class NativeMessagingHTTPServer {
         failed: results.filter(r => !r.success).length,
       };
 
-      console.log('[NativeMessagingHTTPServer] 批量剪藏完成:', summary);
+      logger.info('[NativeMessagingHTTPServer] 批量剪藏完成:', summary);
 
       this.sendSuccess(res, {
         summary,
         results,
       });
     } catch (error) {
-      console.error('[NativeMessagingHTTPServer] 批量剪藏失败:', error);
+      logger.error('[NativeMessagingHTTPServer] 批量剪藏失败:', error);
       this.sendError(res, 500, error.message);
     }
   }
@@ -500,7 +501,7 @@ class NativeMessagingHTTPServer {
       const body = await this.readRequestBody(req);
       const data = JSON.parse(body);
 
-      console.log('[NativeMessagingHTTPServer] 收到搜索请求:', data.query);
+      logger.info('[NativeMessagingHTTPServer] 收到搜索请求:', data.query);
 
       if (!data.query) {
         this.sendError(res, 400, '缺少必要字段: query');
@@ -519,7 +520,7 @@ class NativeMessagingHTTPServer {
         total: results.length,
       });
     } catch (error) {
-      console.error('[NativeMessagingHTTPServer] 搜索失败:', error);
+      logger.error('[NativeMessagingHTTPServer] 搜索失败:', error);
       this.sendError(res, 500, error.message);
     }
   }
@@ -529,7 +530,7 @@ class NativeMessagingHTTPServer {
    */
   async handleStatsRequest(req, res) {
     try {
-      console.log('[NativeMessagingHTTPServer] 收到统计请求');
+      logger.info('[NativeMessagingHTTPServer] 收到统计请求');
 
       // 获取统计信息
       const stats = {
@@ -588,7 +589,7 @@ class NativeMessagingHTTPServer {
 
       this.sendSuccess(res, stats);
     } catch (error) {
-      console.error('[NativeMessagingHTTPServer] 获取统计失败:', error);
+      logger.error('[NativeMessagingHTTPServer] 获取统计失败:', error);
       this.sendError(res, 500, error.message);
     }
   }

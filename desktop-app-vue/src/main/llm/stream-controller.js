@@ -6,6 +6,7 @@
  * @description 管理流式输出的生命周期，支持AbortController和自定义控制逻辑
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { EventEmitter } = require('events');
 
 /**
@@ -104,7 +105,7 @@ class StreamController extends EventEmitter {
    */
   pause() {
     if (this.status !== StreamStatus.RUNNING) {
-      console.warn(`[StreamController] 无法暂停：当前状态为 ${this.status}`);
+      logger.warn(`[StreamController] 无法暂停：当前状态为 ${this.status}`);
       return;
     }
 
@@ -118,7 +119,7 @@ class StreamController extends EventEmitter {
    */
   resume() {
     if (this.status !== StreamStatus.PAUSED) {
-      console.warn(`[StreamController] 无法恢复：当前状态为 ${this.status}`);
+      logger.warn(`[StreamController] 无法恢复：当前状态为 ${this.status}`);
       return;
     }
 

@@ -230,6 +230,8 @@ npm install pdf-parse mammoth</pre>
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, reactive, computed, onMounted, onUnmounted } from 'vue';
 import { message } from 'ant-design-vue';
 import {
@@ -295,7 +297,7 @@ async function loadTags() {
     const tags = await window.electronAPI.db.getAllTags();
     availableTags.value = tags;
   } catch (error) {
-    console.error('加载标签失败:', error);
+    logger.error('加载标签失败:', error);
   }
 }
 

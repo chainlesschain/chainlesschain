@@ -136,6 +136,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, onMounted } from "vue";
 import { message } from "ant-design-vue";
 import {
@@ -174,7 +176,7 @@ async function loadConflicts() {
     const result = await ipcRenderer.invoke("sync:get-conflicts", orgId);
     conflicts.value = result || [];
   } catch (error) {
-    console.error("加载冲突列表失败:", error);
+    logger.error("加载冲突列表失败:", error);
     message.error("加载冲突列表失败");
   } finally {
     loading.value = false;
@@ -195,7 +197,7 @@ async function handleResolve(conflict, strategy) {
     // 移除已解决的冲突
     conflicts.value = conflicts.value.filter((c) => c.id !== conflict.id);
   } catch (error) {
-    console.error("解决冲突失败:", error);
+    logger.error("解决冲突失败:", error);
     message.error(error.message || "解决冲突失败");
   }
 }
@@ -242,7 +244,7 @@ async function handleManualMergeOk() {
     if (error instanceof SyntaxError) {
       mergeError.value = "JSON格式错误: " + error.message;
     } else {
-      console.error("解决冲突失败:", error);
+      logger.error("解决冲突失败:", error);
       message.error(error.message || "解决冲突失败");
     }
   }

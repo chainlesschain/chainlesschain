@@ -14,6 +14,7 @@
 // 步骤1: 在文件顶部添加导入（约第67行之后）
 // ==========================================
 /*
+const { logger, createLogger } = require('../utils/logger.js');
 const { getBackendServiceManager } = require('./backend-service-manager');
 */
 
@@ -28,7 +29,7 @@ const { getBackendServiceManager } = require('./backend-service-manager');
     // 添加以下代码：
     app.on('will-quit', async (event) => {
       event.preventDefault();
-      console.log('[Main] Application is quitting, stopping backend services...');
+      logger.info('[Main] Application is quitting, stopping backend services...');
       const backendManager = getBackendServiceManager();
       await backendManager.stopServices();
       app.exit(0);
@@ -40,7 +41,7 @@ const { getBackendServiceManager } = require('./backend-service-manager');
 // ==========================================
 /*
   async onReady() {
-    console.log('ChainlessChain Vue 启动中...');
+    logger.info('ChainlessChain Vue 启动中...');
 
     // 添加以下代码：
     // 启动后端服务（仅在生产环境）
@@ -48,7 +49,7 @@ const { getBackendServiceManager } = require('./backend-service-manager');
       const backendManager = getBackendServiceManager();
       await backendManager.startServices();
     } catch (error) {
-      console.error('[Main] Failed to start backend services:', error);
+      logger.error('[Main] Failed to start backend services:', error);
       // 继续启动应用，即使后端服务启动失败
     }
 
@@ -67,7 +68,7 @@ const { getBackendServiceManager } = require('./backend-service-manager');
         const backendManager = getBackendServiceManager();
         return await backendManager.getServicesStatus();
       } catch (error) {
-        console.error('[Main] Failed to get backend service status:', error);
+        logger.error('[Main] Failed to get backend service status:', error);
         return { error: error.message };
       }
     });
@@ -78,7 +79,7 @@ const { getBackendServiceManager } = require('./backend-service-manager');
         await backendManager.restartServices();
         return { success: true };
       } catch (error) {
-        console.error('[Main] Failed to restart backend services:', error);
+        logger.error('[Main] Failed to restart backend services:', error);
         return { error: error.message };
       }
     });
@@ -97,7 +98,7 @@ module.exports = {
     // 应用退出时停止后端服务
     app.on('will-quit', async (event) => {
       event.preventDefault();
-      console.log('[Main] Application is quitting, stopping backend services...');
+      logger.info('[Main] Application is quitting, stopping backend services...');
       const backendManager = getBackendServiceManager();
       await backendManager.stopServices();
       app.exit(0);
@@ -110,7 +111,7 @@ module.exports = {
       const backendManager = getBackendServiceManager();
       await backendManager.startServices();
     } catch (error) {
-      console.error('[Main] Failed to start backend services:', error);
+      logger.error('[Main] Failed to start backend services:', error);
       // 继续启动应用，即使后端服务启动失败
     }`,
 
@@ -122,7 +123,7 @@ module.exports = {
         const backendManager = getBackendServiceManager();
         return await backendManager.getServicesStatus();
       } catch (error) {
-        console.error('[Main] Failed to get backend service status:', error);
+        logger.error('[Main] Failed to get backend service status:', error);
         return { error: error.message };
       }
     });
@@ -133,7 +134,7 @@ module.exports = {
         await backendManager.restartServices();
         return { success: true };
       } catch (error) {
-        console.error('[Main] Failed to restart backend services:', error);
+        logger.error('[Main] Failed to restart backend services:', error);
         return { error: error.message };
       }
     });`,

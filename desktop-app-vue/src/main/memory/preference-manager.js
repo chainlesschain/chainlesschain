@@ -15,6 +15,7 @@
  * @since 2026-01-17
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require("fs").promises;
 const path = require("path");
 const { EventEmitter } = require("events");
@@ -49,7 +50,7 @@ class PreferenceManager extends EventEmitter {
     // Default preference categories
     this.defaultCategories = ["ui", "feature", "llm", "search", "system"];
 
-    console.log("[PreferenceManager] Initialized", {
+    logger.info("[PreferenceManager] Initialized", {
       preferencesDir: this.preferencesDir,
     });
   }
@@ -68,9 +69,9 @@ class PreferenceManager extends EventEmitter {
       // Load preferences into cache
       await this._loadCache();
 
-      console.log("[PreferenceManager] Initialization complete");
+      logger.info("[PreferenceManager] Initialization complete");
     } catch (error) {
-      console.error("[PreferenceManager] Initialization failed:", error);
+      logger.error("[PreferenceManager] Initialization failed:", error);
       throw error;
     }
   }
@@ -185,10 +186,10 @@ class PreferenceManager extends EventEmitter {
           )
           .run();
 
-        console.log("[PreferenceManager] Database tables created");
+        logger.info("[PreferenceManager] Database tables created");
       }
     } catch (error) {
-      console.error("[PreferenceManager] Failed to ensure tables:", error);
+      logger.error("[PreferenceManager] Failed to ensure tables:", error);
       throw error;
     }
   }
@@ -217,9 +218,9 @@ class PreferenceManager extends EventEmitter {
       }
 
       this.cacheInitialized = true;
-      console.log(`[PreferenceManager] Loaded ${rows.length} preferences`);
+      logger.info(`[PreferenceManager] Loaded ${rows.length} preferences`);
     } catch (error) {
-      console.error("[PreferenceManager] Failed to load cache:", error);
+      logger.error("[PreferenceManager] Failed to load cache:", error);
     }
   }
 
@@ -263,7 +264,7 @@ class PreferenceManager extends EventEmitter {
         return row.value;
       }
     } catch (error) {
-      console.error(
+      logger.error(
         `[PreferenceManager] Failed to get ${category}:${key}:`,
         error,
       );
@@ -322,12 +323,12 @@ class PreferenceManager extends EventEmitter {
 
       // Backup to file (async, don't wait)
       this._backupCategory(category).catch((err) => {
-        console.warn("[PreferenceManager] Backup failed:", err.message);
+        logger.warn("[PreferenceManager] Backup failed:", err.message);
       });
 
       return true;
     } catch (error) {
-      console.error(
+      logger.error(
         `[PreferenceManager] Failed to set ${category}:${key}:`,
         error,
       );
@@ -356,7 +357,7 @@ class PreferenceManager extends EventEmitter {
       this.emit("preference-deleted", { category, key });
       return true;
     } catch (error) {
-      console.error(
+      logger.error(
         `[PreferenceManager] Failed to delete ${category}:${key}:`,
         error,
       );
@@ -389,7 +390,7 @@ class PreferenceManager extends EventEmitter {
 
       return result;
     } catch (error) {
-      console.error(
+      logger.error(
         `[PreferenceManager] Failed to get category ${category}:`,
         error,
       );
@@ -410,7 +411,7 @@ class PreferenceManager extends EventEmitter {
       }
       return true;
     } catch (error) {
-      console.error(
+      logger.error(
         `[PreferenceManager] Failed to set category ${category}:`,
         error,
       );
@@ -445,7 +446,7 @@ class PreferenceManager extends EventEmitter {
 
       return result;
     } catch (error) {
-      console.error(
+      logger.error(
         "[PreferenceManager] Failed to get all preferences:",
         error,
       );
@@ -490,7 +491,7 @@ class PreferenceManager extends EventEmitter {
       this.emit("usage-recorded", { id, feature, action: options.action });
       return id;
     } catch (error) {
-      console.error(`[PreferenceManager] Failed to record usage:`, error);
+      logger.error(`[PreferenceManager] Failed to record usage:`, error);
       throw error;
     }
   }
@@ -536,7 +537,7 @@ class PreferenceManager extends EventEmitter {
         createdAt: row.created_at,
       }));
     } catch (error) {
-      console.error("[PreferenceManager] Failed to get history:", error);
+      logger.error("[PreferenceManager] Failed to get history:", error);
       return [];
     }
   }
@@ -579,7 +580,7 @@ class PreferenceManager extends EventEmitter {
         })),
       };
     } catch (error) {
-      console.error("[PreferenceManager] Failed to get usage stats:", error);
+      logger.error("[PreferenceManager] Failed to get usage stats:", error);
       return { period: { days }, features: [] };
     }
   }
@@ -620,7 +621,7 @@ class PreferenceManager extends EventEmitter {
 
       return id;
     } catch (error) {
-      console.error("[PreferenceManager] Failed to add search history:", error);
+      logger.error("[PreferenceManager] Failed to add search history:", error);
       throw error;
     }
   }
@@ -653,7 +654,7 @@ class PreferenceManager extends EventEmitter {
       const stmt = this.db.prepare(sql);
       return stmt.all(...params);
     } catch (error) {
-      console.error("[PreferenceManager] Failed to get search history:", error);
+      logger.error("[PreferenceManager] Failed to get search history:", error);
       return [];
     }
   }
@@ -684,7 +685,7 @@ class PreferenceManager extends EventEmitter {
         count: row.count,
       }));
     } catch (error) {
-      console.error("[PreferenceManager] Failed to get suggestions:", error);
+      logger.error("[PreferenceManager] Failed to get suggestions:", error);
       return [];
     }
   }
@@ -709,12 +710,12 @@ class PreferenceManager extends EventEmitter {
       const stmt = this.db.prepare(sql);
       const result = stmt.run(...params);
 
-      console.log(
+      logger.info(
         `[PreferenceManager] Cleared ${result.changes} search records`,
       );
       return result.changes;
     } catch (error) {
-      console.error("[PreferenceManager] Failed to clear history:", error);
+      logger.error("[PreferenceManager] Failed to clear history:", error);
       return 0;
     }
   }
@@ -734,7 +735,7 @@ class PreferenceManager extends EventEmitter {
       const filePath = path.join(this.preferencesDir, `${category}.json`);
       await fs.writeFile(filePath, JSON.stringify(prefs, null, 2), "utf-8");
     } catch (error) {
-      console.error(
+      logger.error(
         `[PreferenceManager] Backup failed for ${category}:`,
         error,
       );
@@ -764,10 +765,10 @@ class PreferenceManager extends EventEmitter {
         }
       }
 
-      console.log("[PreferenceManager] Backup complete");
+      logger.info("[PreferenceManager] Backup complete");
       return { success: true, categories: results };
     } catch (error) {
-      console.error("[PreferenceManager] Backup all failed:", error);
+      logger.error("[PreferenceManager] Backup all failed:", error);
       return { success: false, error: error.message };
     }
   }
@@ -811,10 +812,10 @@ class PreferenceManager extends EventEmitter {
         }
       }
 
-      console.log("[PreferenceManager] Restore complete");
+      logger.info("[PreferenceManager] Restore complete");
       return { success: true, categories: results };
     } catch (error) {
-      console.error("[PreferenceManager] Restore failed:", error);
+      logger.error("[PreferenceManager] Restore failed:", error);
       return { success: false, error: error.message };
     }
   }
@@ -859,7 +860,7 @@ class PreferenceManager extends EventEmitter {
         cacheSize: this.cache.size,
       };
     } catch (error) {
-      console.error("[PreferenceManager] Failed to get stats:", error);
+      logger.error("[PreferenceManager] Failed to get stats:", error);
       return {};
     }
   }
@@ -870,7 +871,7 @@ class PreferenceManager extends EventEmitter {
   clearCache() {
     this.cache.clear();
     this.cacheInitialized = false;
-    console.log("[PreferenceManager] Cache cleared");
+    logger.info("[PreferenceManager] Cache cleared");
   }
 
   /**
@@ -897,7 +898,7 @@ class PreferenceManager extends EventEmitter {
       `);
       const searchResult = searchStmt.run(searchCutoff);
 
-      console.log("[PreferenceManager] Cleanup complete:", {
+      logger.info("[PreferenceManager] Cleanup complete:", {
         usageDeleted: usageResult.changes,
         searchDeleted: searchResult.changes,
       });
@@ -908,7 +909,7 @@ class PreferenceManager extends EventEmitter {
         searchDeleted: searchResult.changes,
       };
     } catch (error) {
-      console.error("[PreferenceManager] Cleanup failed:", error);
+      logger.error("[PreferenceManager] Cleanup failed:", error);
       return { success: false, error: error.message };
     }
   }

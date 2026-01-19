@@ -146,6 +146,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, onMounted } from 'vue';
 import { message } from 'ant-design-vue';
 import {
@@ -207,7 +209,7 @@ const refreshCacheStats = async () => {
       cacheStats.value = result.stats;
     }
   } catch (error) {
-    console.error('获取缓存统计失败:', error);
+    logger.error('获取缓存统计失败:', error);
     message.error('获取缓存统计失败');
   } finally {
     loadingCacheStats.value = false;
@@ -223,7 +225,7 @@ const clearCache = async () => {
       await refreshCacheStats();
     }
   } catch (error) {
-    console.error('清空缓存失败:', error);
+    logger.error('清空缓存失败:', error);
     message.error('清空缓存失败');
   }
 };
@@ -262,7 +264,7 @@ const loadAvailableCommands = async () => {
       ];
     }
   } catch (error) {
-    console.error('加载可用命令失败:', error);
+    logger.error('加载可用命令失败:', error);
   }
 };
 

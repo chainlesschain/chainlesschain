@@ -4,6 +4,7 @@
  * 提供前端调用区块链集成功能的接口
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { ipcMain } = require('electron');
 
 class BlockchainIntegrationIPC {
@@ -15,7 +16,7 @@ class BlockchainIntegrationIPC {
    * 注册所有IPC处理器
    */
   registerHandlers() {
-    console.log('[BlockchainIntegrationIPC] 注册IPC处理器...');
+    logger.info('[BlockchainIntegrationIPC] 注册IPC处理器...');
 
     // ==================== 资产相关 ====================
 
@@ -24,7 +25,7 @@ class BlockchainIntegrationIPC {
       try {
         return await this.integration.createOnChainToken(localAssetId, options);
       } catch (error) {
-        console.error('[BlockchainIntegrationIPC] 创建Token失败:', error);
+        logger.error('[BlockchainIntegrationIPC] 创建Token失败:', error);
         throw error;
       }
     });
@@ -34,7 +35,7 @@ class BlockchainIntegrationIPC {
       try {
         return await this.integration.createOnChainNFT(localAssetId, options);
       } catch (error) {
-        console.error('[BlockchainIntegrationIPC] 创建NFT失败:', error);
+        logger.error('[BlockchainIntegrationIPC] 创建NFT失败:', error);
         throw error;
       }
     });
@@ -44,7 +45,7 @@ class BlockchainIntegrationIPC {
       try {
         return await this.integration.transferOnChainAsset(localAssetId, options);
       } catch (error) {
-        console.error('[BlockchainIntegrationIPC] 转账失败:', error);
+        logger.error('[BlockchainIntegrationIPC] 转账失败:', error);
         throw error;
       }
     });
@@ -54,7 +55,7 @@ class BlockchainIntegrationIPC {
       try {
         return await this.integration.syncAssetBalance(localAssetId, ownerAddress);
       } catch (error) {
-        console.error('[BlockchainIntegrationIPC] 同步余额失败:', error);
+        logger.error('[BlockchainIntegrationIPC] 同步余额失败:', error);
         throw error;
       }
     });
@@ -64,7 +65,7 @@ class BlockchainIntegrationIPC {
       try {
         return this.integration.getAssetMapping(localAssetId);
       } catch (error) {
-        console.error('[BlockchainIntegrationIPC] 获取资产映射失败:', error);
+        logger.error('[BlockchainIntegrationIPC] 获取资产映射失败:', error);
         throw error;
       }
     });
@@ -74,7 +75,7 @@ class BlockchainIntegrationIPC {
       try {
         return this.integration.getAllOnChainAssets();
       } catch (error) {
-        console.error('[BlockchainIntegrationIPC] 获取资产列表失败:', error);
+        logger.error('[BlockchainIntegrationIPC] 获取资产列表失败:', error);
         throw error;
       }
     });
@@ -86,7 +87,7 @@ class BlockchainIntegrationIPC {
       try {
         return await this.integration.createOnChainEscrow(localEscrowId, options);
       } catch (error) {
-        console.error('[BlockchainIntegrationIPC] 创建托管失败:', error);
+        logger.error('[BlockchainIntegrationIPC] 创建托管失败:', error);
         throw error;
       }
     });
@@ -96,7 +97,7 @@ class BlockchainIntegrationIPC {
       try {
         return await this.integration.syncEscrowStatus(localEscrowId);
       } catch (error) {
-        console.error('[BlockchainIntegrationIPC] 同步托管失败:', error);
+        logger.error('[BlockchainIntegrationIPC] 同步托管失败:', error);
         throw error;
       }
     });
@@ -106,7 +107,7 @@ class BlockchainIntegrationIPC {
       try {
         return this.integration.getEscrowMapping(localEscrowId);
       } catch (error) {
-        console.error('[BlockchainIntegrationIPC] 获取托管映射失败:', error);
+        logger.error('[BlockchainIntegrationIPC] 获取托管映射失败:', error);
         throw error;
       }
     });
@@ -118,7 +119,7 @@ class BlockchainIntegrationIPC {
       try {
         return await this.integration.monitorTransaction(txHash, confirmations);
       } catch (error) {
-        console.error('[BlockchainIntegrationIPC] 监控交易失败:', error);
+        logger.error('[BlockchainIntegrationIPC] 监控交易失败:', error);
         throw error;
       }
     });
@@ -128,7 +129,7 @@ class BlockchainIntegrationIPC {
       try {
         return this.integration.getTransactionMapping(localTxId);
       } catch (error) {
-        console.error('[BlockchainIntegrationIPC] 获取交易映射失败:', error);
+        logger.error('[BlockchainIntegrationIPC] 获取交易映射失败:', error);
         throw error;
       }
     });
@@ -138,7 +139,7 @@ class BlockchainIntegrationIPC {
       try {
         return this.integration.getPendingTransactions();
       } catch (error) {
-        console.error('[BlockchainIntegrationIPC] 获取待确认交易失败:', error);
+        logger.error('[BlockchainIntegrationIPC] 获取待确认交易失败:', error);
         throw error;
       }
     });
@@ -150,7 +151,7 @@ class BlockchainIntegrationIPC {
       try {
         return await this.integration.syncAll();
       } catch (error) {
-        console.error('[BlockchainIntegrationIPC] 全量同步失败:', error);
+        logger.error('[BlockchainIntegrationIPC] 全量同步失败:', error);
         throw error;
       }
     });
@@ -161,7 +162,7 @@ class BlockchainIntegrationIPC {
         this.integration.startAutoSync(interval);
         return { success: true };
       } catch (error) {
-        console.error('[BlockchainIntegrationIPC] 启动自动同步失败:', error);
+        logger.error('[BlockchainIntegrationIPC] 启动自动同步失败:', error);
         throw error;
       }
     });
@@ -172,7 +173,7 @@ class BlockchainIntegrationIPC {
         this.integration.stopAutoSync();
         return { success: true };
       } catch (error) {
-        console.error('[BlockchainIntegrationIPC] 停止自动同步失败:', error);
+        logger.error('[BlockchainIntegrationIPC] 停止自动同步失败:', error);
         throw error;
       }
     });
@@ -200,7 +201,7 @@ class BlockchainIntegrationIPC {
       this.sendToRenderer('blockchain-integration:sync-completed', data);
     });
 
-    console.log('[BlockchainIntegrationIPC] IPC处理器注册完成');
+    logger.info('[BlockchainIntegrationIPC] IPC处理器注册完成');
   }
 
   /**
@@ -223,7 +224,7 @@ class BlockchainIntegrationIPC {
    * 移除所有处理器
    */
   removeHandlers() {
-    console.log('[BlockchainIntegrationIPC] 移除IPC处理器...');
+    logger.info('[BlockchainIntegrationIPC] 移除IPC处理器...');
 
     const handlers = [
       'blockchain-integration:create-token',
@@ -247,7 +248,7 @@ class BlockchainIntegrationIPC {
       ipcMain.removeHandler(handler);
     });
 
-    console.log('[BlockchainIntegrationIPC] IPC处理器移除完成');
+    logger.info('[BlockchainIntegrationIPC] IPC处理器移除完成');
   }
 }
 

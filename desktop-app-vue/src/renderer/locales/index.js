@@ -1,3 +1,4 @@
+import { logger, createLogger } from '@/utils/logger';
 import { createI18n } from 'vue-i18n';
 import zhCN from './zh-CN';
 import enUS from './en-US';
@@ -10,7 +11,7 @@ const getSavedLocale = () => {
   try {
     return localStorage.getItem('app-locale') || 'zh-CN';
   } catch (error) {
-    console.error('Failed to get saved locale:', error);
+    logger.error('Failed to get saved locale:', error);
     return 'zh-CN';
   }
 };
@@ -38,7 +39,7 @@ export const setLocale = (locale) => {
   try {
     localStorage.setItem('app-locale', locale);
   } catch (error) {
-    console.error('Failed to save locale:', error);
+    logger.error('Failed to save locale:', error);
   }
 };
 

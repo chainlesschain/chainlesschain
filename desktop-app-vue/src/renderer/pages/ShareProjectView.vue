@@ -232,6 +232,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { message } from 'ant-design-vue';
@@ -314,7 +316,7 @@ const loadShareInfo = async () => {
       showError('403', '无法访问', '该分享不存在或已失效');
     }
   } catch (err) {
-    console.error('加载分享失败:', err);
+    logger.error('加载分享失败:', err);
 
     if (err.message.includes('过期')) {
       showError('410', '分享已过期', '该分享链接已过期，请联系分享者');
@@ -336,7 +338,7 @@ const loadProjectFiles = async (projectId) => {
       projectFiles.value = result.files;
     }
   } catch (err) {
-    console.error('加载项目文件失败:', err);
+    logger.error('加载项目文件失败:', err);
     message.error('加载文件列表失败');
   }
 };
@@ -386,7 +388,7 @@ const handlePreview = async (file) => {
       previewContent.value = result.file.content || '无法预览此文件';
     }
   } catch (err) {
-    console.error('加载文件内容失败:', err);
+    logger.error('加载文件内容失败:', err);
     previewContent.value = '加载失败';
   }
 };

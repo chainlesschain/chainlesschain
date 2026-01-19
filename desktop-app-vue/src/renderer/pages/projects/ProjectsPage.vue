@@ -233,6 +233,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted, onUnmounted, nextTick, h } from 'vue';
 import { useRouter } from 'vue-router';
 import { message, Modal } from 'ant-design-vue';
@@ -777,11 +779,11 @@ const handleRenameConversation = async (conversation) => {
         // await loadRecentConversations();
 
         message.info('对话重命名功能正在开发中');
-        console.log('[ProjectsPage] TODO: Rename conversation:', conversation.id, 'to', newTitle);
+        logger.info('[ProjectsPage] TODO: Rename conversation:', conversation.id, 'to', newTitle);
       }
     });
   } catch (error) {
-    console.error('[ProjectsPage] 打开重命名对话框失败:', error);
+    logger.error('[ProjectsPage] 打开重命名对话框失败:', error);
     message.error('打开重命名对话框失败');
   }
 };
@@ -796,7 +798,7 @@ const handleStarConversation = async (conversation) => {
   // await loadRecentConversations();
 
   message.info('对话收藏功能正在开发中');
-  console.log('[ProjectsPage] TODO: Star conversation:', conversation.id, 'newState:', newStarredState);
+  logger.info('[ProjectsPage] TODO: Star conversation:', conversation.id, 'newState:', newStarredState);
 };
 
 // 处理导航点击
@@ -927,7 +929,7 @@ const handleConversationalCreate = async ({ text, attachments }) => {
 
     // 3. 如果是纯聊天意图且不是项目创建意图，则跳转到AI对话
     if (isChatIntent && !isProjectCreationIntent) {
-      console.log('[ProjectsPage] 检测到聊天咨询意图，不创建项目');
+      logger.info('[ProjectsPage] 检测到聊天咨询意图，不创建项目');
 
       // 添加用户消息到对话
       addMessage('user', text);
@@ -952,7 +954,7 @@ const handleConversationalCreate = async ({ text, attachments }) => {
     const projectName = text.substring(0, 50) || '未命名项目';
 
     try {
-      console.log('[ProjectsPage] 🚀 直接创建项目:', projectName);
+      logger.info('[ProjectsPage] 🚀 直接创建项目:', projectName);
 
       // 直接创建项目（不进行意图识别）
       const createData = {
@@ -963,7 +965,7 @@ const handleConversationalCreate = async ({ text, attachments }) => {
       };
 
       const createdProject = await window.electronAPI.project.createQuick(createData);
-      console.log('[ProjectsPage] ✅ 项目创建成功:', createdProject.id);
+      logger.info('[ProjectsPage] ✅ 项目创建成功:', createdProject.id);
 
       // 显示成功提示
       addMessage('system', '项目创建成功！正在进入...');
@@ -979,7 +981,7 @@ const handleConversationalCreate = async ({ text, attachments }) => {
       }, 300);
 
     } catch (error) {
-      console.error('[ProjectsPage] ❌ 项目创建失败:', error);
+      logger.error('[ProjectsPage] ❌ 项目创建失败:', error);
       message.error('项目创建失败: ' + error.message);
       addMessage('system', `项目创建失败: ${error.message}`);
     }
@@ -991,18 +993,18 @@ const handleConversationalCreate = async ({ text, attachments }) => {
       message.loading({ content: 'AI正在拆解任务...', key: 'ai-decompose', duration: 0 });
 
       // 使用正确的projectId（从createProjectStream的回调中获取）
-      console.log('[ProjectsPage] 准备拆解任务');
-      console.log('[ProjectsPage] createdProjectId.value:', createdProjectId.value);
-      console.log('[ProjectsPage] project:', project);
-      console.log('[ProjectsPage] project?.projectId:', project?.projectId);
-      console.log('[ProjectsPage] project?.id:', project?.id);
+      logger.info('[ProjectsPage] 准备拆解任务');
+      logger.info('[ProjectsPage] createdProjectId.value:', createdProjectId.value);
+      logger.info('[ProjectsPage] project:', project);
+      logger.info('[ProjectsPage] project?.projectId:', project?.projectId);
+      logger.info('[ProjectsPage] project?.id:', project?.id);
 
       const projectId = createdProjectId.value || project?.projectId || project?.id;
 
-      console.log('[ProjectsPage] 最终使用的projectId:', projectId);
+      logger.info('[ProjectsPage] 最终使用的projectId:', projectId);
 
       if (!projectId) {
-        console.error('[ProjectsPage] 错误：projectId为空！');
+        logger.error('[ProjectsPage] 错误：projectId为空！');
         throw new Error('项目ID不存在，无法进行任务拆解');
       }
 
@@ -1013,7 +1015,7 @@ const handleConversationalCreate = async ({ text, attachments }) => {
         root_path: project?.root_path || project?.rootPath
       };
 
-      console.log('[ProjectsPage] 任务拆解上下文:', contextData);
+      logger.info('[ProjectsPage] 任务拆解上下文:', contextData);
 
       const taskPlan = await window.electronAPI.project.decomposeTask(text, contextData);
 
@@ -1026,7 +1028,7 @@ const handleConversationalCreate = async ({ text, attachments }) => {
       // 4. 自动开始执行
       executeTaskPlan(taskPlan);
     } catch (decomposeError) {
-      console.error('Task decompose failed:', decomposeError);
+      logger.error('Task decompose failed:', decomposeError);
       message.warning({
         content: '任务拆解失败，已创建项目。您可以手动编辑。',
         key: 'ai-decompose',
@@ -1038,14 +1040,14 @@ const handleConversationalCreate = async ({ text, attachments }) => {
     }
     */
   } catch (error) {
-    console.error('Failed to create project:', error);
+    logger.error('Failed to create project:', error);
     message.error({ content: '创建失败：' + error.message, key: 'ai-create', duration: 3 });
   }
 };
 
 // 处理文件上传
 const handleFileUpload = (files) => {
-  console.log('Files uploaded:', files);
+  logger.info('Files uploaded:', files);
   // TODO: 处理文件上传
 };
 
@@ -1074,7 +1076,7 @@ const handleTypeQuickSelect = (typeKey) => {
 // 处理建议点击（来自TaskExecutionMonitor组件）
 const handleSuggestionClick = (params) => {
   if (params && params.question) {
-    console.log('Suggestion clicked from TaskMonitor:', params.question);
+    logger.info('Suggestion clicked from TaskMonitor:', params.question);
     message.info(`正在处理建议：${params.question}`);
     // TODO: 将建议作为新的对话输入，发送给AI处理
   }
@@ -1082,7 +1084,7 @@ const handleSuggestionClick = (params) => {
 
 // 处理模板使用
 const handleTemplateUse = (template) => {
-  console.log('[ProjectsPage] 使用模板:', template);
+  logger.info('[ProjectsPage] 使用模板:', template);
   selectedTemplate.value = template;
   showTemplateModal.value = true;
 };
@@ -1090,7 +1092,7 @@ const handleTemplateUse = (template) => {
 // 处理模板创建开始（跳转到 ai-creating 模式，在 ProjectDetailPage 的 AI对话面板中展示进度）
 const handleTemplateCreateStart = async (createData) => {
   try {
-    console.log('[ProjectsPage] 模板创建开始，跳转到 ai-creating 模式:', createData);
+    logger.info('[ProjectsPage] 模板创建开始，跳转到 ai-creating 模式:', createData);
 
     // 获取用户ID
     const userId = authStore.currentUser?.id || 'default-user';
@@ -1119,17 +1121,17 @@ const handleTemplateCreateStart = async (createData) => {
       null,
       createData.variables
     ).catch(err => {
-      console.error('[ProjectsPage] 记录模板使用失败:', err);
+      logger.error('[ProjectsPage] 记录模板使用失败:', err);
     });
   } catch (error) {
-    console.error('[ProjectsPage] Failed to start template creation:', error);
+    logger.error('[ProjectsPage] Failed to start template creation:', error);
     message.error({ content: '启动创建失败：' + error.message, key: 'template-create', duration: 3 });
   }
 };
 
 // 处理模板创建成功（已废弃，由 handleTemplateCreateStart 替代）
 const handleTemplateSuccess = (result) => {
-  console.log('[ProjectsPage] 项目创建成功:', result);
+  logger.info('[ProjectsPage] 项目创建成功:', result);
   // 跳转到项目详情页
   if (result.projectId) {
     router.push(`/projects/${result.projectId}`);
@@ -1185,7 +1187,7 @@ const handleDeleteProject = async (projectId) => {
         await projectStore.deleteProject(projectId);
         message.success('项目已删除');
       } catch (error) {
-        console.error('Delete project failed:', error);
+        logger.error('Delete project failed:', error);
         message.error('删除失败：' + error.message);
       }
     },
@@ -1235,7 +1237,7 @@ const executeTaskPlan = async (taskPlan) => {
     }
   } catch (error) {
     isExecutingTask.value = false;
-    console.error('Execute task plan failed:', error);
+    logger.error('Execute task plan failed:', error);
     message.error('任务执行失败：' + error.message);
   }
 };
@@ -1251,9 +1253,9 @@ const handleTaskProgressUpdate = (progress) => {
 
   // 根据进度类型显示消息
   if (progress.type === 'subtask-started') {
-    console.log(`开始执行: ${progress.subtask.title}`);
+    logger.info(`开始执行: ${progress.subtask.title}`);
   } else if (progress.type === 'subtask-completed') {
-    console.log(`已完成: ${progress.subtask.title}`);
+    logger.info(`已完成: ${progress.subtask.title}`);
   } else if (progress.type === 'task-completed') {
     message.success('所有任务已完成！');
     isExecutingTask.value = false;
@@ -1279,7 +1281,7 @@ const handleCancelTask = async (taskPlanId) => {
         currentTaskPlan.value = null;
         isExecutingTask.value = false;
       } catch (error) {
-        console.error('Cancel task failed:', error);
+        logger.error('Cancel task failed:', error);
         message.error('取消失败：' + error.message);
       }
     }
@@ -1322,14 +1324,14 @@ const handleRetryTask = async (taskPlan) => {
 
 // 处理文件点击（预览）
 const handleFileClick = ({ file, subtask, taskPlan }) => {
-  console.log('Preview file:', file);
+  logger.info('Preview file:', file);
   message.info(`预览文件: ${file}`);
   // TODO: 实现文件预览功能
 };
 
 // 处理继续编辑（根据这个来改）
 const handleContinueEdit = ({ file, taskPlan }) => {
-  console.log('Continue edit file:', file);
+  logger.info('Continue edit file:', file);
   message.success(`将基于 ${file.name} 继续编辑`);
   // TODO: 打开编辑器并加载文件内容
   // router.push(`/projects/${taskPlan.project_id}/edit?file=${file.path}`);
@@ -1339,14 +1341,14 @@ const handleContinueEdit = ({ file, taskPlan }) => {
 // 组件挂载时加载项目并监听进度
 // 处理文件更新事件
 const handleFilesUpdated = async (data) => {
-  console.log('项目文件已更新:', data);
+  logger.info('项目文件已更新:', data);
   try {
     // 重新加载项目列表以显示最新文件数
     const userId = authStore.currentUser?.id || 'default-user';
     await projectStore.fetchProjects(userId);
     message.success(`成功注册 ${data.filesCount} 个新文件`);
   } catch (error) {
-    console.error('刷新项目失败:', error);
+    logger.error('刷新项目失败:', error);
   }
 };
 
@@ -1357,14 +1359,14 @@ onMounted(async () => {
     await projectStore.fetchProjects(userId);
     await loadRecentConversations();
   } catch (error) {
-    console.error('Failed to load projects:', error);
+    logger.error('Failed to load projects:', error);
     message.error('加载项目失败：' + error.message);
   }
 
   try {
     await templateStore.fetchTemplates();
   } catch (error) {
-    console.error('[ProjectsPage] 加载模板失败:', error);
+    logger.error('[ProjectsPage] 加载模板失败:', error);
     message.error('加载模板失败：' + error.message);
   }
 

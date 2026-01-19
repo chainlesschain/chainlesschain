@@ -5,6 +5,7 @@
  * v0.20.0: 新增 RSS 订阅功能
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { ipcMain } = require('electron');
 const { v4: uuidv4 } = require('uuid');
 const RSSFetcher = require('./rss-fetcher');
@@ -109,7 +110,7 @@ class RSSIPCHandler {
       return this.stopAutoSync(feedId);
     });
 
-    console.log('[RSSIPCHandler] RSS IPC handlers registered');
+    logger.info('[RSSIPCHandler] RSS IPC handlers registered');
   }
 
   /**
@@ -163,7 +164,7 @@ class RSSIPCHandler {
         feed: feedData,
       };
     } catch (error) {
-      console.error('[RSSIPCHandler] 添加订阅源失败:', error);
+      logger.error('[RSSIPCHandler] 添加订阅源失败:', error);
       throw error;
     }
   }
@@ -181,7 +182,7 @@ class RSSIPCHandler {
 
       return { success: true };
     } catch (error) {
-      console.error('[RSSIPCHandler] 删除订阅源失败:', error);
+      logger.error('[RSSIPCHandler] 删除订阅源失败:', error);
       throw error;
     }
   }
@@ -210,7 +211,7 @@ class RSSIPCHandler {
 
       return { success: true };
     } catch (error) {
-      console.error('[RSSIPCHandler] 更新订阅源失败:', error);
+      logger.error('[RSSIPCHandler] 更新订阅源失败:', error);
       throw error;
     }
   }
@@ -245,7 +246,7 @@ class RSSIPCHandler {
 
       return { success: true, feeds };
     } catch (error) {
-      console.error('[RSSIPCHandler] 获取订阅源列表失败:', error);
+      logger.error('[RSSIPCHandler] 获取订阅源列表失败:', error);
       throw error;
     }
   }
@@ -264,7 +265,7 @@ class RSSIPCHandler {
 
       return { success: true, feed };
     } catch (error) {
-      console.error('[RSSIPCHandler] 获取订阅源失败:', error);
+      logger.error('[RSSIPCHandler] 获取订阅源失败:', error);
       throw error;
     }
   }
@@ -313,7 +314,7 @@ class RSSIPCHandler {
 
       return { success: true, items };
     } catch (error) {
-      console.error('[RSSIPCHandler] 获取文章列表失败:', error);
+      logger.error('[RSSIPCHandler] 获取文章列表失败:', error);
       throw error;
     }
   }
@@ -332,7 +333,7 @@ class RSSIPCHandler {
 
       return { success: true, item };
     } catch (error) {
-      console.error('[RSSIPCHandler] 获取文章失败:', error);
+      logger.error('[RSSIPCHandler] 获取文章失败:', error);
       throw error;
     }
   }
@@ -347,7 +348,7 @@ class RSSIPCHandler {
 
       return { success: true };
     } catch (error) {
-      console.error('[RSSIPCHandler] 标记已读失败:', error);
+      logger.error('[RSSIPCHandler] 标记已读失败:', error);
       throw error;
     }
   }
@@ -362,7 +363,7 @@ class RSSIPCHandler {
 
       return { success: true };
     } catch (error) {
-      console.error('[RSSIPCHandler] 标记未读失败:', error);
+      logger.error('[RSSIPCHandler] 标记未读失败:', error);
       throw error;
     }
   }
@@ -377,7 +378,7 @@ class RSSIPCHandler {
 
       return { success: true };
     } catch (error) {
-      console.error('[RSSIPCHandler] 标记收藏失败:', error);
+      logger.error('[RSSIPCHandler] 标记收藏失败:', error);
       throw error;
     }
   }
@@ -392,7 +393,7 @@ class RSSIPCHandler {
 
       return { success: true };
     } catch (error) {
-      console.error('[RSSIPCHandler] 归档文章失败:', error);
+      logger.error('[RSSIPCHandler] 归档文章失败:', error);
       throw error;
     }
   }
@@ -437,7 +438,7 @@ class RSSIPCHandler {
 
       return { success: true, knowledgeId };
     } catch (error) {
-      console.error('[RSSIPCHandler] 保存到知识库失败:', error);
+      logger.error('[RSSIPCHandler] 保存到知识库失败:', error);
       throw error;
     }
   }
@@ -487,7 +488,7 @@ class RSSIPCHandler {
 
       return { success: true, itemCount: feedData.items.length, newItemsCount };
     } catch (error) {
-      console.error('[RSSIPCHandler] 获取 Feed 更新失败:', error);
+      logger.error('[RSSIPCHandler] 获取 Feed 更新失败:', error);
 
       // 获取 feed 信息用于通知
       const feedStmt = this.database.db.prepare('SELECT title FROM rss_feeds WHERE id = ?');
@@ -533,7 +534,7 @@ class RSSIPCHandler {
 
       return { success: true, results };
     } catch (error) {
-      console.error('[RSSIPCHandler] 批量获取更新失败:', error);
+      logger.error('[RSSIPCHandler] 批量获取更新失败:', error);
       throw error;
     }
   }
@@ -592,7 +593,7 @@ class RSSIPCHandler {
 
       return { success: true, categoryId };
     } catch (error) {
-      console.error('[RSSIPCHandler] 添加分类失败:', error);
+      logger.error('[RSSIPCHandler] 添加分类失败:', error);
       throw error;
     }
   }
@@ -607,7 +608,7 @@ class RSSIPCHandler {
 
       return { success: true, categories };
     } catch (error) {
-      console.error('[RSSIPCHandler] 获取分类列表失败:', error);
+      logger.error('[RSSIPCHandler] 获取分类列表失败:', error);
       throw error;
     }
   }
@@ -626,7 +627,7 @@ class RSSIPCHandler {
 
       return { success: true };
     } catch (error) {
-      console.error('[RSSIPCHandler] 分配分类失败:', error);
+      logger.error('[RSSIPCHandler] 分配分类失败:', error);
       throw error;
     }
   }
@@ -639,7 +640,7 @@ class RSSIPCHandler {
       const feeds = await this.rssFetcher.discoverFeeds(websiteUrl);
       return { success: true, feeds };
     } catch (error) {
-      console.error('[RSSIPCHandler] 发现 Feed 失败:', error);
+      logger.error('[RSSIPCHandler] 发现 Feed 失败:', error);
       throw error;
     }
   }
@@ -652,7 +653,7 @@ class RSSIPCHandler {
       const validation = await this.rssFetcher.validateFeed(feedUrl);
       return { success: true, validation };
     } catch (error) {
-      console.error('[RSSIPCHandler] 验证 Feed 失败:', error);
+      logger.error('[RSSIPCHandler] 验证 Feed 失败:', error);
       throw error;
     }
   }
@@ -675,9 +676,9 @@ class RSSIPCHandler {
       const interval = setInterval(async () => {
         try {
           await this.fetchFeed(feedId);
-          console.log(`[RSSIPCHandler] 自动同步完成: ${feedId}`);
+          logger.info(`[RSSIPCHandler] 自动同步完成: ${feedId}`);
         } catch (error) {
-          console.error(`[RSSIPCHandler] 自动同步失败: ${feedId}`, error);
+          logger.error(`[RSSIPCHandler] 自动同步失败: ${feedId}`, error);
         }
       }, feed.update_frequency * 1000);
 
@@ -685,7 +686,7 @@ class RSSIPCHandler {
 
       return { success: true };
     } catch (error) {
-      console.error('[RSSIPCHandler] 启动自动同步失败:', error);
+      logger.error('[RSSIPCHandler] 启动自动同步失败:', error);
       throw error;
     }
   }

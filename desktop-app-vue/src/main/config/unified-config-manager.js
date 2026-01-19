@@ -27,6 +27,7 @@
  * @updated 2026-01-18 - 使用 Electron userData 目录替代 process.cwd()
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require("fs");
 const path = require("path");
 const { app } = require("electron");
@@ -43,7 +44,7 @@ function getConfigDir() {
     return path.join(userDataPath, ".chainlesschain");
   } catch (error) {
     // 回退到 process.cwd()（仅用于测试或非 Electron 环境）
-    console.warn(
+    logger.warn(
       "[UnifiedConfigManager] Electron app not available, falling back to cwd",
     );
     return path.join(process.cwd(), ".chainlesschain");
@@ -111,8 +112,8 @@ class UnifiedConfigManager {
     // 3. 验证配置
     this.validateConfig();
 
-    console.log("[UnifiedConfigManager] 配置已加载");
-    console.log("[UnifiedConfigManager] 配置目录:", this.configDir);
+    logger.info("[UnifiedConfigManager] 配置已加载");
+    logger.info("[UnifiedConfigManager] 配置目录:", this.configDir);
   }
 
   /**
@@ -134,7 +135,7 @@ class UnifiedConfigManager {
         return;
       }
 
-      console.log(
+      logger.info(
         "[UnifiedConfigManager] 检测到项目根目录的旧配置，开始迁移...",
       );
 
@@ -146,13 +147,13 @@ class UnifiedConfigManager {
       // 迁移配置文件
       if (fs.existsSync(oldConfigPath)) {
         fs.copyFileSync(oldConfigPath, this.configPath);
-        console.log("[UnifiedConfigManager] 已迁移 config.json");
+        logger.info("[UnifiedConfigManager] 已迁移 config.json");
       }
 
       // 迁移规则文件
       if (fs.existsSync(oldRulesPath)) {
         fs.copyFileSync(oldRulesPath, this.paths.rules);
-        console.log("[UnifiedConfigManager] 已迁移 rules.md");
+        logger.info("[UnifiedConfigManager] 已迁移 rules.md");
       }
 
       // 迁移 memory 目录下的文件
@@ -161,11 +162,11 @@ class UnifiedConfigManager {
         this.paths.memory,
       );
 
-      console.log("[UnifiedConfigManager] 配置迁移完成");
-      console.log(`[UnifiedConfigManager] 从: ${this.projectRootConfigDir}`);
-      console.log(`[UnifiedConfigManager] 到: ${this.configDir}`);
+      logger.info("[UnifiedConfigManager] 配置迁移完成");
+      logger.info(`[UnifiedConfigManager] 从: ${this.projectRootConfigDir}`);
+      logger.info(`[UnifiedConfigManager] 到: ${this.configDir}`);
     } catch (error) {
-      console.error("[UnifiedConfigManager] 迁移配置失败:", error);
+      logger.error("[UnifiedConfigManager] 迁移配置失败:", error);
       // 迁移失败不影响应用启动
     }
   }
@@ -213,7 +214,7 @@ class UnifiedConfigManager {
       }
       if (!fs.existsSync(dirPath)) {
         fs.mkdirSync(dirPath, { recursive: true });
-        console.log(`[UnifiedConfigManager] 已创建目录: ${key}`);
+        logger.info(`[UnifiedConfigManager] 已创建目录: ${key}`);
       }
     });
 
@@ -232,14 +233,14 @@ class UnifiedConfigManager {
 
       if (fs.existsSync(examplePath)) {
         fs.copyFileSync(examplePath, this.configPath);
-        console.log("[UnifiedConfigManager] 已从模板创建配置文件");
+        logger.info("[UnifiedConfigManager] 已从模板创建配置文件");
       } else {
         // 创建默认配置
         fs.writeFileSync(
           this.configPath,
           JSON.stringify(this.getDefaultConfig(), null, 2),
         );
-        console.log("[UnifiedConfigManager] 已创建默认配置文件");
+        logger.info("[UnifiedConfigManager] 已创建默认配置文件");
       }
     }
 
@@ -302,7 +303,7 @@ class UnifiedConfigManager {
       // 保存合并后的配置
       this.saveConfig();
     } catch (error) {
-      console.error("[UnifiedConfigManager] 加载配置失败:", error);
+      logger.error("[UnifiedConfigManager] 加载配置失败:", error);
       this.config = this.getDefaultConfig();
     }
   }
@@ -426,16 +427,16 @@ class UnifiedConfigManager {
   validateConfig() {
     // 验证必需的配置项
     if (!this.config.model || !this.config.model.defaultProvider) {
-      console.warn("[UnifiedConfigManager] 缺少 LLM 提供商配置");
+      logger.warn("[UnifiedConfigManager] 缺少 LLM 提供商配置");
     }
 
     if (!this.config.logging || !this.config.logging.level) {
-      console.warn("[UnifiedConfigManager] 缺少日志级别配置");
+      logger.warn("[UnifiedConfigManager] 缺少日志级别配置");
     }
 
     // 验证预算设置
     if (this.config.cost.monthlyBudget <= 0) {
-      console.warn("[UnifiedConfigManager] 月度预算必须大于 0");
+      logger.warn("[UnifiedConfigManager] 月度预算必须大于 0");
     }
   }
 
@@ -450,7 +451,7 @@ class UnifiedConfigManager {
         "utf-8",
       );
     } catch (error) {
-      console.error("[UnifiedConfigManager] 保存配置失败:", error);
+      logger.error("[UnifiedConfigManager] 保存配置失败:", error);
     }
   }
 
@@ -476,7 +477,7 @@ class UnifiedConfigManager {
   updateConfig(updates) {
     this.config = this.mergeConfigs(this.config, updates);
     this.saveConfig();
-    console.log("[UnifiedConfigManager] 配置已更新");
+    logger.info("[UnifiedConfigManager] 配置已更新");
   }
 
   /**
@@ -485,7 +486,7 @@ class UnifiedConfigManager {
   resetConfig() {
     this.config = this.getDefaultConfig();
     this.saveConfig();
-    console.log("[UnifiedConfigManager] 配置已重置为默认值");
+    logger.info("[UnifiedConfigManager] 配置已重置为默认值");
   }
 
   /**
@@ -552,16 +553,16 @@ class UnifiedConfigManager {
                 fs.unlinkSync(filePath);
               }
             } catch (err) {
-              console.error(`Failed to delete cache file: ${filePath}`, err);
+              logger.error(`Failed to delete cache file: ${filePath}`, err);
             }
           });
         }
       });
 
-      console.log(`[UnifiedConfigManager] 已清理缓存: ${type}`);
+      logger.info(`[UnifiedConfigManager] 已清理缓存: ${type}`);
       return { success: true, type };
     } catch (error) {
-      console.error("[UnifiedConfigManager] 清理缓存失败:", error);
+      logger.error("[UnifiedConfigManager] 清理缓存失败:", error);
       return { success: false, error: error.message };
     }
   }
@@ -589,17 +590,17 @@ class UnifiedConfigManager {
           try {
             fs.unlinkSync(file.path);
           } catch (error) {
-            console.error(`Failed to delete log file: ${file.name}`, error);
+            logger.error(`Failed to delete log file: ${file.name}`, error);
           }
         });
-        console.log(
+        logger.info(
           `[UnifiedConfigManager] 已清理 ${filesToDelete.length} 个旧日志文件`,
         );
       }
 
       return { success: true, cleaned: logFiles.length - maxFiles };
     } catch (error) {
-      console.error("[UnifiedConfigManager] 清理日志失败:", error);
+      logger.error("[UnifiedConfigManager] 清理日志失败:", error);
       return { success: false, error: error.message };
     }
   }
@@ -621,10 +622,10 @@ class UnifiedConfigManager {
         JSON.stringify(exportData, null, 2),
         "utf-8",
       );
-      console.log("[UnifiedConfigManager] 配置已导出到:", exportPath);
+      logger.info("[UnifiedConfigManager] 配置已导出到:", exportPath);
       return { success: true, path: exportPath };
     } catch (error) {
-      console.error("[UnifiedConfigManager] 导出配置失败:", error);
+      logger.error("[UnifiedConfigManager] 导出配置失败:", error);
       return { success: false, error: error.message };
     }
   }
@@ -641,13 +642,13 @@ class UnifiedConfigManager {
       if (importData.config) {
         this.config = importData.config;
         this.saveConfig();
-        console.log("[UnifiedConfigManager] 配置已从文件导入:", importPath);
+        logger.info("[UnifiedConfigManager] 配置已从文件导入:", importPath);
         return { success: true };
       } else {
         throw new Error("Invalid config file format");
       }
     } catch (error) {
-      console.error("[UnifiedConfigManager] 导入配置失败:", error);
+      logger.error("[UnifiedConfigManager] 导入配置失败:", error);
       return { success: false, error: error.message };
     }
   }

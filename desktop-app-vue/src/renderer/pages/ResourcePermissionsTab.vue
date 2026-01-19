@@ -331,6 +331,8 @@
 </template>
 
 <script>
+import { logger, createLogger } from '@/utils/logger';
+
 import { defineComponent, ref, reactive, computed, watch } from 'vue';
 import { message } from 'ant-design-vue';
 import { PlusOutlined } from '@ant-design/icons-vue';
@@ -479,7 +481,7 @@ export default defineComponent({
           message.error(result.error || '加载资源失败');
         }
       } catch (error) {
-        console.error('Failed to load resources:', error);
+        logger.error('Failed to load resources:', error);
         message.error('加载资源失败');
       } finally {
         loading.value = false;
@@ -556,7 +558,7 @@ export default defineComponent({
           message.error(result.error || '操作失败');
         }
       } catch (error) {
-        console.error('Failed to submit resource:', error);
+        logger.error('Failed to submit resource:', error);
         message.error('操作失败');
       } finally {
         loading.value = false;
@@ -580,7 +582,7 @@ export default defineComponent({
           message.error(result.error || '删除失败');
         }
       } catch (error) {
-        console.error('Failed to delete resource:', error);
+        logger.error('Failed to delete resource:', error);
         message.error('删除失败');
       } finally {
         loading.value = false;
@@ -621,7 +623,7 @@ export default defineComponent({
           message.error(result.error || '添加失败');
         }
       } catch (error) {
-        console.error('Failed to add ACL:', error);
+        logger.error('Failed to add ACL:', error);
         message.error('添加失败');
       } finally {
         loading.value = false;
@@ -646,7 +648,7 @@ export default defineComponent({
           message.error(result.error || '移除失败');
         }
       } catch (error) {
-        console.error('Failed to remove ACL:', error);
+        logger.error('Failed to remove ACL:', error);
         message.error('移除失败');
       } finally {
         loading.value = false;

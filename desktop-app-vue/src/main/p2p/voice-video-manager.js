@@ -9,6 +9,7 @@
  * - 多人会议支持
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const EventEmitter = require("events");
 
 // Use wrtc-compat which provides WebRTC via werift (pure JavaScript, no native binaries)
@@ -152,7 +153,7 @@ if (isTestEnv) {
   };
   wrtcAvailable = true;
 } else if (!wrtcAvailable) {
-  console.warn(
+  logger.warn(
     "[VoiceVideoManager] WebRTC native module unavailable, falling back to mock implementation",
   );
   wrtc = {
@@ -163,17 +164,17 @@ if (isTestEnv) {
 }
 
 if (!wrtcAvailable) {
-  console.warn(
+  logger.warn(
     "[VoiceVideoManager] WebRTC (werift) not available:",
     wrtcCompat.loadError?.message || "unknown error",
   );
-  console.warn(
+  logger.warn(
     "[VoiceVideoManager] Voice/video calls will be disabled in main process",
   );
 } else if (isTestEnv) {
-  console.log("[VoiceVideoManager] WebRTC mock initialized for tests");
+  logger.info("[VoiceVideoManager] WebRTC mock initialized for tests");
 } else {
-  console.log("[VoiceVideoManager] WebRTC initialized via werift");
+  logger.info("[VoiceVideoManager] WebRTC initialized via werift");
 }
 
 /**
@@ -291,12 +292,12 @@ class VoiceVideoManager extends EventEmitter {
    */
   _registerProtocolHandlers() {
     if (!this.p2pManager || !this.p2pManager.node) {
-      console.warn("[VoiceVideoManager] P2P节点未初始化，延迟注册协议处理器");
+      logger.warn("[VoiceVideoManager] P2P节点未初始化，延迟注册协议处理器");
 
       // 监听P2P管理器初始化完成事件
       if (this.p2pManager) {
         this.p2pManager.once("initialized", () => {
-          console.log("[VoiceVideoManager] P2P节点已初始化，注册协议处理器");
+          logger.info("[VoiceVideoManager] P2P节点已初始化，注册协议处理器");
           this._registerProtocolHandlers();
         });
       }
@@ -320,12 +321,12 @@ class VoiceVideoManager extends EventEmitter {
 
           await this._handleCallSignaling(peerId, message);
         } catch (error) {
-          console.error("[VoiceVideoManager] 处理通话信令失败:", error);
+          logger.error("[VoiceVideoManager] 处理通话信令失败:", error);
         }
       },
     );
 
-    console.log("[VoiceVideoManager] 协议处理器注册完成");
+    logger.info("[VoiceVideoManager] 协议处理器注册完成");
   }
 
   /**
@@ -333,7 +334,7 @@ class VoiceVideoManager extends EventEmitter {
    */
   async startCall(peerId, type = CallType.AUDIO, options = {}) {
     try {
-      console.log(`[VoiceVideoManager] 发起${type}通话:`, peerId);
+      logger.info(`[VoiceVideoManager] 发起${type}通话:`, peerId);
 
       // 检查wrtc是否可用
       if (!this.wrtcAvailable) {
@@ -404,7 +405,7 @@ class VoiceVideoManager extends EventEmitter {
 
       return callId;
     } catch (error) {
-      console.error("[VoiceVideoManager] 发起通话失败:", error);
+      logger.error("[VoiceVideoManager] 发起通话失败:", error);
       this.stats.failedCalls++;
       throw error;
     }
@@ -415,7 +416,7 @@ class VoiceVideoManager extends EventEmitter {
    */
   async acceptCall(callId) {
     try {
-      console.log("[VoiceVideoManager] 接受通话:", callId);
+      logger.info("[VoiceVideoManager] 接受通话:", callId);
 
       const session = this.sessions.get(callId);
       if (!session) {
@@ -461,7 +462,7 @@ class VoiceVideoManager extends EventEmitter {
 
       return true;
     } catch (error) {
-      console.error("[VoiceVideoManager] 接受通话失败:", error);
+      logger.error("[VoiceVideoManager] 接受通话失败:", error);
       throw error;
     }
   }
@@ -471,7 +472,7 @@ class VoiceVideoManager extends EventEmitter {
    */
   async rejectCall(callId, reason = "rejected") {
     try {
-      console.log("[VoiceVideoManager] 拒绝通话:", callId);
+      logger.info("[VoiceVideoManager] 拒绝通话:", callId);
 
       const session = this.sessions.get(callId);
       if (!session) {
@@ -490,7 +491,7 @@ class VoiceVideoManager extends EventEmitter {
 
       return true;
     } catch (error) {
-      console.error("[VoiceVideoManager] 拒绝通话失败:", error);
+      logger.error("[VoiceVideoManager] 拒绝通话失败:", error);
       throw error;
     }
   }
@@ -500,7 +501,7 @@ class VoiceVideoManager extends EventEmitter {
    */
   async endCall(callId) {
     try {
-      console.log("[VoiceVideoManager] 结束通话:", callId);
+      logger.info("[VoiceVideoManager] 结束通话:", callId);
 
       const session = this.sessions.get(callId);
       if (!session) {
@@ -518,7 +519,7 @@ class VoiceVideoManager extends EventEmitter {
 
       return true;
     } catch (error) {
-      console.error("[VoiceVideoManager] 结束通话失败:", error);
+      logger.error("[VoiceVideoManager] 结束通话失败:", error);
       throw error;
     }
   }
@@ -626,7 +627,7 @@ class VoiceVideoManager extends EventEmitter {
    */
   async _handleCallSignaling(peerId, message) {
     try {
-      console.log("[VoiceVideoManager] 收到通话信令:", message.type);
+      logger.info("[VoiceVideoManager] 收到通话信令:", message.type);
 
       switch (message.type) {
         case "call-request":
@@ -650,10 +651,10 @@ class VoiceVideoManager extends EventEmitter {
           break;
 
         default:
-          console.warn("[VoiceVideoManager] 未知信令类型:", message.type);
+          logger.warn("[VoiceVideoManager] 未知信令类型:", message.type);
       }
     } catch (error) {
-      console.error("[VoiceVideoManager] 处理通话信令失败:", error);
+      logger.error("[VoiceVideoManager] 处理通话信令失败:", error);
     }
   }
 
@@ -705,7 +706,7 @@ class VoiceVideoManager extends EventEmitter {
 
     const session = this.sessions.get(callId);
     if (!session) {
-      console.warn("[VoiceVideoManager] 通话会话不存在:", callId);
+      logger.warn("[VoiceVideoManager] 通话会话不存在:", callId);
       return;
     }
 
@@ -775,7 +776,7 @@ class VoiceVideoManager extends EventEmitter {
 
     const session = this.sessions.get(callId);
     if (!session || !session.peerConnection) {
-      console.warn("[VoiceVideoManager] 通话会话不存在:", callId);
+      logger.warn("[VoiceVideoManager] 通话会话不存在:", callId);
       return;
     }
 
@@ -798,7 +799,7 @@ class VoiceVideoManager extends EventEmitter {
       await stream.sink([data]);
       await stream.close();
     } catch (error) {
-      console.error("[VoiceVideoManager] 发送通话信令失败:", error);
+      logger.error("[VoiceVideoManager] 发送通话信令失败:", error);
       throw error;
     }
   }
@@ -822,14 +823,14 @@ class VoiceVideoManager extends EventEmitter {
           callId: session.callId,
           candidate: event.candidate,
         }).catch((error) => {
-          console.error("[VoiceVideoManager] 发送ICE候选失败:", error);
+          logger.error("[VoiceVideoManager] 发送ICE候选失败:", error);
         });
       }
     };
 
     // 连接状态变化
     pc.onconnectionstatechange = () => {
-      console.log("[VoiceVideoManager] 连接状态:", pc.connectionState);
+      logger.info("[VoiceVideoManager] 连接状态:", pc.connectionState);
 
       if (pc.connectionState === "failed" || pc.connectionState === "closed") {
         this._endCall(session.callId, "connection-failed");
@@ -838,7 +839,7 @@ class VoiceVideoManager extends EventEmitter {
 
     // 接收远程流
     pc.ontrack = (event) => {
-      console.log("[VoiceVideoManager] 收到远程流");
+      logger.info("[VoiceVideoManager] 收到远程流");
       session.remoteStream = event.streams[0];
 
       this.emit("call:remote-stream", {
@@ -890,7 +891,7 @@ class VoiceVideoManager extends EventEmitter {
       constraints.audio = false;
     }
 
-    console.log("[VoiceVideoManager] 请求媒体流:", { type, constraints });
+    logger.info("[VoiceVideoManager] 请求媒体流:", { type, constraints });
 
     // 测试环境直接返回模拟媒体流，避免依赖 renderer
     if (isTestEnv) {
@@ -922,7 +923,7 @@ class VoiceVideoManager extends EventEmitter {
           clearTimeout(timeout);
 
           if (streamInfo && streamInfo.tracks) {
-            console.log("[VoiceVideoManager] 收到来自renderer的媒体流信息:", {
+            logger.info("[VoiceVideoManager] 收到来自renderer的媒体流信息:", {
               streamId: streamInfo.streamId,
               trackCount: streamInfo.tracks.length,
             });
@@ -990,7 +991,7 @@ class VoiceVideoManager extends EventEmitter {
           stats: session.stats,
         });
       } catch (error) {
-        console.error("[VoiceVideoManager] 质量监控失败:", error);
+        logger.error("[VoiceVideoManager] 质量监控失败:", error);
       }
     }, this.options.qualityCheckInterval);
   }
@@ -1004,7 +1005,7 @@ class VoiceVideoManager extends EventEmitter {
       return;
     }
 
-    console.log("[VoiceVideoManager] 结束通话:", callId, reason);
+    logger.info("[VoiceVideoManager] 结束通话:", callId, reason);
 
     // 清除超时
     if (session.timeout) {
@@ -1059,7 +1060,7 @@ class VoiceVideoManager extends EventEmitter {
    * 清理资源
    */
   async cleanup() {
-    console.log("[VoiceVideoManager] 清理资源...");
+    logger.info("[VoiceVideoManager] 清理资源...");
 
     // 结束所有通话
     for (const [callId] of this.sessions) {
@@ -1069,7 +1070,7 @@ class VoiceVideoManager extends EventEmitter {
     this.sessions.clear();
     this.peerSessions.clear();
 
-    console.log("[VoiceVideoManager] 资源清理完成");
+    logger.info("[VoiceVideoManager] 资源清理完成");
   }
 }
 

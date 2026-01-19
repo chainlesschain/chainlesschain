@@ -143,6 +143,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed } from 'vue';
 import {
   CheckCircleOutlined,
@@ -182,7 +184,7 @@ const correction = computed(() => props.message.metadata?.correction || null);
 
 // 处理确认
 const handleConfirm = () => {
-  console.log('[IntentConfirmation] 用户确认理解正确');
+  logger.info('[IntentConfirmation] 用户确认理解正确');
   emit('confirm', {
     messageId: props.message.id,
     originalInput: originalInput.value,
@@ -192,7 +194,7 @@ const handleConfirm = () => {
 
 // 显示纠正输入框
 const handleCorrect = () => {
-  console.log('[IntentConfirmation] 用户请求纠正');
+  logger.info('[IntentConfirmation] 用户请求纠正');
   showCorrectionInput.value = true;
   correctionInput.value = correctedInput.value; // 预填充当前理解的内容
 };
@@ -203,7 +205,7 @@ const handleSubmitCorrection = () => {
     return;
   }
 
-  console.log('[IntentConfirmation] 用户提交纠正:', correctionInput.value);
+  logger.info('[IntentConfirmation] 用户提交纠正:', correctionInput.value);
   emit('correct', {
     messageId: props.message.id,
     originalInput: originalInput.value,

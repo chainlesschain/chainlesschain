@@ -3,6 +3,7 @@
  * 负责项目保存、加载、导出等核心功能
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require('fs').promises;
 const path = require('path');
 const { app } = require('electron');
@@ -26,9 +27,9 @@ class WebIDEManager {
     try {
       await fs.mkdir(this.projectsPath, { recursive: true });
       await fs.mkdir(this.tempPath, { recursive: true });
-      console.log('[WebIDE Manager] 目录初始化完成');
+      logger.info('[WebIDE Manager] 目录初始化完成');
     } catch (error) {
-      console.error('[WebIDE Manager] 目录初始化失败:', error);
+      logger.error('[WebIDE Manager] 目录初始化失败:', error);
     }
   }
 
@@ -49,7 +50,7 @@ class WebIDEManager {
         tags = [],
       } = projectData;
 
-      console.log(`[WebIDE Manager] 保存项目: ${name} (ID: ${id})`);
+      logger.info(`[WebIDE Manager] 保存项目: ${name} (ID: ${id})`);
 
       // 创建项目目录
       const projectDir = path.join(this.projectsPath, id);
@@ -78,7 +79,7 @@ class WebIDEManager {
         ),
       ]);
 
-      console.log(`[WebIDE Manager] 项目保存成功: ${projectDir}`);
+      logger.info(`[WebIDE Manager] 项目保存成功: ${projectDir}`);
 
       return {
         success: true,
@@ -88,7 +89,7 @@ class WebIDEManager {
         message: '项目保存成功',
       };
     } catch (error) {
-      console.error('[WebIDE Manager] 保存项目失败:', error);
+      logger.error('[WebIDE Manager] 保存项目失败:', error);
       return {
         success: false,
         error: error.message,
@@ -103,7 +104,7 @@ class WebIDEManager {
    */
   async loadProject(projectId) {
     try {
-      console.log(`[WebIDE Manager] 加载项目: ${projectId}`);
+      logger.info(`[WebIDE Manager] 加载项目: ${projectId}`);
 
       const projectDir = path.join(this.projectsPath, projectId);
 
@@ -123,7 +124,7 @@ class WebIDEManager {
 
       const meta = JSON.parse(metaJson);
 
-      console.log(`[WebIDE Manager] 项目加载成功: ${meta.name}`);
+      logger.info(`[WebIDE Manager] 项目加载成功: ${meta.name}`);
 
       return {
         success: true,
@@ -135,7 +136,7 @@ class WebIDEManager {
         },
       };
     } catch (error) {
-      console.error('[WebIDE Manager] 加载项目失败:', error);
+      logger.error('[WebIDE Manager] 加载项目失败:', error);
       return {
         success: false,
         error: error.message,
@@ -149,7 +150,7 @@ class WebIDEManager {
    */
   async getProjectList() {
     try {
-      console.log('[WebIDE Manager] 获取项目列表');
+      logger.info('[WebIDE Manager] 获取项目列表');
 
       const dirs = await fs.readdir(this.projectsPath);
       const projects = [];
@@ -165,21 +166,21 @@ class WebIDEManager {
             projects.push(meta);
           }
         } catch (error) {
-          console.warn(`[WebIDE Manager] 读取项目元数据失败: ${dir}`, error);
+          logger.warn(`[WebIDE Manager] 读取项目元数据失败: ${dir}`, error);
         }
       }
 
       // 按更新时间倒序排列
       projects.sort((a, b) => b.updatedAt - a.updatedAt);
 
-      console.log(`[WebIDE Manager] 找到 ${projects.length} 个项目`);
+      logger.info(`[WebIDE Manager] 找到 ${projects.length} 个项目`);
 
       return {
         success: true,
         projects,
       };
     } catch (error) {
-      console.error('[WebIDE Manager] 获取项目列表失败:', error);
+      logger.error('[WebIDE Manager] 获取项目列表失败:', error);
       return {
         success: false,
         error: error.message,
@@ -195,7 +196,7 @@ class WebIDEManager {
    */
   async deleteProject(projectId) {
     try {
-      console.log(`[WebIDE Manager] 删除项目: ${projectId}`);
+      logger.info(`[WebIDE Manager] 删除项目: ${projectId}`);
 
       const projectDir = path.join(this.projectsPath, projectId);
 
@@ -208,14 +209,14 @@ class WebIDEManager {
       // 递归删除目录
       await fs.rm(projectDir, { recursive: true, force: true });
 
-      console.log(`[WebIDE Manager] 项目删除成功: ${projectId}`);
+      logger.info(`[WebIDE Manager] 项目删除成功: ${projectId}`);
 
       return {
         success: true,
         message: '项目删除成功',
       };
     } catch (error) {
-      console.error('[WebIDE Manager] 删除项目失败:', error);
+      logger.error('[WebIDE Manager] 删除项目失败:', error);
       return {
         success: false,
         error: error.message,
@@ -232,7 +233,7 @@ class WebIDEManager {
     try {
       const { html, css, js, filename = 'index.html' } = exportData;
 
-      console.log(`[WebIDE Manager] 导出 HTML: ${filename}`);
+      logger.info(`[WebIDE Manager] 导出 HTML: ${filename}`);
 
       // 生成完整的 HTML
       const fullHTML = `<!DOCTYPE html>
@@ -257,7 +258,7 @@ ${js}
       const tempFilePath = path.join(this.tempPath, filename);
       await fs.writeFile(tempFilePath, fullHTML, 'utf-8');
 
-      console.log(`[WebIDE Manager] HTML 导出成功: ${tempFilePath}`);
+      logger.info(`[WebIDE Manager] HTML 导出成功: ${tempFilePath}`);
 
       return {
         success: true,
@@ -265,7 +266,7 @@ ${js}
         content: fullHTML,
       };
     } catch (error) {
-      console.error('[WebIDE Manager] 导出 HTML 失败:', error);
+      logger.error('[WebIDE Manager] 导出 HTML 失败:', error);
       return {
         success: false,
         error: error.message,
@@ -282,7 +283,7 @@ ${js}
     try {
       const { html, css, js, filename = 'webide-project.zip' } = exportData;
 
-      console.log(`[WebIDE Manager] 导出 ZIP: ${filename}`);
+      logger.info(`[WebIDE Manager] 导出 ZIP: ${filename}`);
 
       // 创建临时目录
       const tempDir = path.join(this.tempPath, this.generateId());
@@ -322,14 +323,14 @@ ${html}
       // 清理临时目录
       await fs.rm(tempDir, { recursive: true, force: true });
 
-      console.log(`[WebIDE Manager] ZIP 导出成功: ${zipPath}`);
+      logger.info(`[WebIDE Manager] ZIP 导出成功: ${zipPath}`);
 
       return {
         success: true,
         path: zipPath,
       };
     } catch (error) {
-      console.error('[WebIDE Manager] 导出 ZIP 失败:', error);
+      logger.error('[WebIDE Manager] 导出 ZIP 失败:', error);
       return {
         success: false,
         error: error.message,
@@ -349,7 +350,7 @@ ${html}
       });
 
       output.on('close', () => {
-        console.log(`[WebIDE Manager] ZIP 创建完成: ${archive.pointer()} bytes`);
+        logger.info(`[WebIDE Manager] ZIP 创建完成: ${archive.pointer()} bytes`);
         resolve();
       });
 

@@ -110,6 +110,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { message } from 'ant-design-vue';
@@ -177,7 +179,7 @@ const startCreateProcess = async (createData) => {
       },
     });
   } catch (error) {
-    console.error('Start create process failed:', error);
+    logger.error('Start create process failed:', error);
     message.error('启动创建流程失败：' + error.message);
   }
 };

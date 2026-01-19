@@ -185,6 +185,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
 import { message } from 'ant-design-vue';
 import jspreadsheet from 'jspreadsheet-ce';
@@ -265,7 +267,7 @@ const initSpreadsheet = async () => {
     // 渲染当前工作表
     await renderSheet(activeSheetIndex.value);
   } catch (error) {
-    console.error('[ExcelEditor] Init error:', error);
+    logger.error('[ExcelEditor] Init error:', error);
     message.error('初始化Excel编辑器失败: ' + error.message);
   }
 };
@@ -275,24 +277,24 @@ const renderSheet = async (sheetIndex) => {
   await nextTick();
 
   if (!spreadsheetRef.value) {
-    console.error('[ExcelEditor] Spreadsheet ref not available');
+    logger.error('[ExcelEditor] Spreadsheet ref not available');
     return;
   }
 
   const sheet = sheets.value[sheetIndex];
   if (!sheet) {
-    console.error('[ExcelEditor] Sheet not found:', sheetIndex);
+    logger.error('[ExcelEditor] Sheet not found:', sheetIndex);
     return;
   }
 
   // 验证sheet结构
   if (!sheet.rows || !Array.isArray(sheet.rows)) {
-    console.error('[ExcelEditor] Invalid sheet structure: rows missing or not an array');
+    logger.error('[ExcelEditor] Invalid sheet structure: rows missing or not an array');
     return;
   }
 
   if (!sheet.columns || !Array.isArray(sheet.columns)) {
-    console.error('[ExcelEditor] Invalid sheet structure: columns missing or not an array');
+    logger.error('[ExcelEditor] Invalid sheet structure: columns missing or not an array');
     return;
   }
 
@@ -301,7 +303,7 @@ const renderSheet = async (sheetIndex) => {
     try {
       jspreadsheet.destroy(spreadsheetRef.value);
     } catch (destroyError) {
-      console.warn('[ExcelEditor] Failed to destroy previous instance:', destroyError);
+      logger.warn('[ExcelEditor] Failed to destroy previous instance:', destroyError);
     }
     spreadsheet.value = null;
   }
@@ -343,7 +345,7 @@ const renderSheet = async (sheetIndex) => {
 
   // 创建jspreadsheet实例 - v5 API 使用worksheets
   try {
-    console.log('[ExcelEditor] Creating jspreadsheet with data:', {
+    logger.info('[ExcelEditor] Creating jspreadsheet with data:', {
       rows: data.length,
       cols: columns.length,
       readOnly: props.readOnly
@@ -353,15 +355,15 @@ const renderSheet = async (sheetIndex) => {
       worksheets: [worksheetConfig],
     });
 
-    console.log('[ExcelEditor] jspreadsheet created successfully');
+    logger.info('[ExcelEditor] jspreadsheet created successfully');
   } catch (error) {
-    console.error('[ExcelEditor] jspreadsheet init error:', error);
-    console.error('[ExcelEditor] Error stack:', error.stack);
+    logger.error('[ExcelEditor] jspreadsheet init error:', error);
+    logger.error('[ExcelEditor] Error stack:', error.stack);
     message.error('创建表格失败: ' + error.message);
 
     // 尝试使用最简单的配置作为fallback
     try {
-      console.log('[ExcelEditor] Attempting fallback initialization...');
+      logger.info('[ExcelEditor] Attempting fallback initialization...');
       spreadsheet.value = jspreadsheet(spreadsheetRef.value, {
         worksheets: [{
           name: 'Sheet1',
@@ -369,9 +371,9 @@ const renderSheet = async (sheetIndex) => {
           minDimensions: [10, 20],
         }],
       });
-      console.log('[ExcelEditor] Fallback initialization successful');
+      logger.info('[ExcelEditor] Fallback initialization successful');
     } catch (fallbackError) {
-      console.error('[ExcelEditor] Fallback init also failed:', fallbackError);
+      logger.error('[ExcelEditor] Fallback init also failed:', fallbackError);
     }
   }
 };
@@ -666,7 +668,7 @@ const handleExport = async ({ key }) => {
         break;
     }
   } catch (error) {
-    console.error('[ExcelEditor] Export error:', error);
+    logger.error('[ExcelEditor] Export error:', error);
     message.error('导出失败: ' + error.message);
   }
 };
@@ -761,7 +763,7 @@ const saveChanges = async () => {
     emit('save', data);
     message.success('已保存');
   } catch (error) {
-    console.error('[ExcelEditor] Save error:', error);
+    logger.error('[ExcelEditor] Save error:', error);
     message.error('保存失败: ' + error.message);
   }
 };

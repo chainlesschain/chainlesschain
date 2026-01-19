@@ -6,6 +6,7 @@
  * @description 提供对话创建、查询、更新、删除等 IPC 接口
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const ipcGuard = require("../ipc/ipc-guard");
 const { getStreamControllerManager } = require("./stream-controller-manager");
 
@@ -80,7 +81,7 @@ function registerConversationIPC({
   tokenTracker,
   errorMonitor,
 }) {
-  console.log("[Conversation IPC] registerConversationIPC called with:", {
+  logger.info("[Conversation IPC] registerConversationIPC called with:", {
     hasDatabase: !!database,
     hasLLMManager: !!llmManager,
     hasMainWindow: !!mainWindow,
@@ -89,10 +90,10 @@ function registerConversationIPC({
 
   // 防止重复注册
   if (ipcGuard.isModuleRegistered("conversation-ipc")) {
-    console.log(
+    logger.info(
       "[Conversation IPC] ⚠️  Handlers already registered, skipping...",
     );
-    console.log(
+    logger.info(
       "[Conversation IPC] If you see this message but handlers are missing, there may be a registration state mismatch",
     );
     return;
@@ -104,7 +105,7 @@ function registerConversationIPC({
   // 获取StreamController管理器
   const streamManager = getStreamControllerManager();
 
-  console.log("[Conversation IPC] Registering Conversation IPC handlers...");
+  logger.info("[Conversation IPC] Registering Conversation IPC handlers...");
 
   // ============================================================
   // 对话查询 (Conversation Query)
@@ -127,7 +128,7 @@ function registerConversationIPC({
         return { success: false, error: "项目ID不能为空" };
       }
 
-      console.log("[Conversation IPC] 查询项目对话:", projectId);
+      logger.info("[Conversation IPC] 查询项目对话:", projectId);
 
       // 从 conversations 表查询对话元数据
       // 注意：project_conversations 是消息表，不是对话表
@@ -144,14 +145,14 @@ function registerConversationIPC({
           )
           .all(projectId);
       } catch (tableError) {
-        console.error("[Conversation IPC] 查询对话表失败:", tableError.message);
+        logger.error("[Conversation IPC] 查询对话表失败:", tableError.message);
         conversations = [];
       }
 
-      console.log("[Conversation IPC] 找到对话数量:", conversations.length);
+      logger.info("[Conversation IPC] 找到对话数量:", conversations.length);
       return { success: true, data: conversations };
     } catch (error) {
-      console.error("[Conversation IPC] 查询对话失败:", error);
+      logger.error("[Conversation IPC] 查询对话失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -173,7 +174,7 @@ function registerConversationIPC({
         return { success: false, error: "对话ID不能为空" };
       }
 
-      console.log("[Conversation IPC] 查询对话详情:", conversationId);
+      logger.info("[Conversation IPC] 查询对话详情:", conversationId);
 
       // 从 conversations 表查询对话元数据
       let conversation = null;
@@ -187,7 +188,7 @@ function registerConversationIPC({
           )
           .get(conversationId);
       } catch (tableError) {
-        console.error(
+        logger.error(
           "[Conversation IPC] 查询对话详情失败:",
           tableError.message,
         );
@@ -200,7 +201,7 @@ function registerConversationIPC({
 
       return { success: true, data: conversation };
     } catch (error) {
-      console.error("[Conversation IPC] 查询对话详情失败:", error);
+      logger.error("[Conversation IPC] 查询对话详情失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -232,7 +233,7 @@ function registerConversationIPC({
         return { success: false, error: "缺少必要参数：id" };
       }
 
-      console.log("[Conversation IPC] 创建对话:", id);
+      logger.info("[Conversation IPC] 创建对话:", id);
 
       // 插入对话到 conversations 表
       // 注意：conversations 表没有 messages 列，messages 存储在单独的表中
@@ -265,7 +266,7 @@ function registerConversationIPC({
 
       return { success: true, data: conversationData_result };
     } catch (error) {
-      console.error("[Conversation IPC] 创建对话失败:", error);
+      logger.error("[Conversation IPC] 创建对话失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -290,7 +291,7 @@ function registerConversationIPC({
           return { success: false, error: "对话ID不能为空" };
         }
 
-        console.log("[Conversation IPC] 更新对话:", conversationId);
+        logger.info("[Conversation IPC] 更新对话:", conversationId);
 
         const { title, context_type, context_data } = updates;
         const updated_at = Date.now();
@@ -318,7 +319,7 @@ function registerConversationIPC({
 
         return { success: true };
       } catch (error) {
-        console.error("[Conversation IPC] 更新对话失败:", error);
+        logger.error("[Conversation IPC] 更新对话失败:", error);
         return { success: false, error: error.message };
       }
     },
@@ -341,7 +342,7 @@ function registerConversationIPC({
         return { success: false, error: "对话ID不能为空" };
       }
 
-      console.log("[Conversation IPC] 删除对话:", conversationId);
+      logger.info("[Conversation IPC] 删除对话:", conversationId);
 
       // 删除对话元数据
       database.db
@@ -352,7 +353,7 @@ function registerConversationIPC({
 
       return { success: true };
     } catch (error) {
-      console.error("[Conversation IPC] 删除对话失败:", error);
+      logger.error("[Conversation IPC] 删除对话失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -386,7 +387,7 @@ function registerConversationIPC({
           : null, // 序列化 metadata
       };
 
-      console.log(
+      logger.info(
         "[Conversation IPC] 创建消息:",
         flatData.id,
         "type:",
@@ -400,7 +401,7 @@ function registerConversationIPC({
           return { success: true, data: result };
         }
       } catch (methodError) {
-        console.warn(
+        logger.warn(
           "[Conversation IPC] createMessage 方法不存在，尝试直接插入:",
           methodError.message,
         );
@@ -472,7 +473,7 @@ function registerConversationIPC({
 
       return { success: true, data: flatData };
     } catch (error) {
-      console.error("[Conversation IPC] 创建消息失败:", error);
+      logger.error("[Conversation IPC] 创建消息失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -499,7 +500,7 @@ function registerConversationIPC({
         return { success: false, error: "消息ID不能为空" };
       }
 
-      console.log("[Conversation IPC] 更新消息:", id);
+      logger.info("[Conversation IPC] 更新消息:", id);
 
       // 检查 metadata 列是否存在
       const tableInfo = database.db
@@ -536,10 +537,10 @@ function registerConversationIPC({
         return { success: false, error: "消息不存在或未更新" };
       }
 
-      console.log("[Conversation IPC] 消息更新成功:", id);
+      logger.info("[Conversation IPC] 消息更新成功:", id);
       return { success: true };
     } catch (error) {
-      console.error("[Conversation IPC] 更新消息失败:", error);
+      logger.error("[Conversation IPC] 更新消息失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -564,7 +565,7 @@ function registerConversationIPC({
           return { success: false, error: "对话ID不能为空" };
         }
 
-        console.log("[Conversation IPC] 获取对话消息:", conversationId);
+        logger.info("[Conversation IPC] 获取对话消息:", conversationId);
 
         const { offset = 0, limit = 100 } = options;
 
@@ -589,7 +590,7 @@ function registerConversationIPC({
                 try {
                   processed.metadata = JSON.parse(msg.metadata);
                 } catch (e) {
-                  console.warn("[Conversation IPC] 解析 metadata 失败:", e);
+                  logger.warn("[Conversation IPC] 解析 metadata 失败:", e);
                   processed.metadata = null;
                 }
               }
@@ -603,7 +604,7 @@ function registerConversationIPC({
             };
           }
         } catch (methodError) {
-          console.warn(
+          logger.warn(
             "[Conversation IPC] getMessagesByConversation 方法不存在，尝试直接查询:",
             methodError.message,
           );
@@ -633,14 +634,14 @@ function registerConversationIPC({
             try {
               processed.metadata = JSON.parse(msg.metadata);
             } catch (e) {
-              console.warn("[Conversation IPC] 解析 metadata 失败:", e);
+              logger.warn("[Conversation IPC] 解析 metadata 失败:", e);
               processed.metadata = null;
             }
           }
           return processed;
         });
 
-        console.log(
+        logger.info(
           "[Conversation IPC] 找到消息数量:",
           processedMessages.length,
         );
@@ -650,7 +651,7 @@ function registerConversationIPC({
           total: processedMessages.length,
         };
       } catch (error) {
-        console.error("[Conversation IPC] 获取对话消息失败:", error);
+        logger.error("[Conversation IPC] 获取对话消息失败:", error);
         return { success: false, error: error.message };
       }
     },
@@ -683,7 +684,7 @@ function registerConversationIPC({
           return { success: false, error: "搜索关键词不能为空" };
         }
 
-        console.log("[Conversation IPC] 搜索消息:", query);
+        logger.info("[Conversation IPC] 搜索消息:", query);
 
         // 尝试使用 searchMessages 方法
         try {
@@ -712,7 +713,7 @@ function registerConversationIPC({
             };
           }
         } catch (methodError) {
-          console.warn(
+          logger.warn(
             "[Conversation IPC] searchMessages 方法不存在，尝试直接查询:",
             methodError.message,
           );
@@ -777,14 +778,14 @@ function registerConversationIPC({
             try {
               processed.metadata = JSON.parse(msg.metadata);
             } catch (e) {
-              console.warn("[Conversation IPC] 解析 metadata 失败:", e);
+              logger.warn("[Conversation IPC] 解析 metadata 失败:", e);
               processed.metadata = null;
             }
           }
           return processed;
         });
 
-        console.log(
+        logger.info(
           "[Conversation IPC] 搜索到消息数量:",
           processedMessages.length,
         );
@@ -797,7 +798,7 @@ function registerConversationIPC({
           },
         };
       } catch (error) {
-        console.error("[Conversation IPC] 搜索消息失败:", error);
+        logger.error("[Conversation IPC] 搜索消息失败:", error);
         return { success: false, error: error.message };
       }
     },
@@ -833,7 +834,7 @@ function registerConversationIPC({
    */
   ipcMain.handle("conversation:chat-stream", async (_event, chatData) => {
     try {
-      console.log(
+      logger.info(
         "[Conversation IPC] conversation:chat-stream 调用，llmManager状态:",
         {
           exists: !!llmManager,
@@ -847,7 +848,7 @@ function registerConversationIPC({
       );
 
       if (!llmManager) {
-        console.error(
+        logger.error(
           "[Conversation IPC] LLM管理器未初始化！请检查主进程启动日志",
         );
         return {
@@ -886,7 +887,7 @@ function registerConversationIPC({
         return { success: false, error: "用户消息不能为空" };
       }
 
-      console.log("[Conversation IPC] 流式AI对话:", conversationId, {
+      logger.info("[Conversation IPC] 流式AI对话:", conversationId, {
         enableRAG,
         enableCompression,
         enableSessionTracking,
@@ -925,9 +926,9 @@ function registerConversationIPC({
             );
           }
           integrationResults.errorPrechecked = true;
-          console.log("[Conversation IPC] ✓ ErrorMonitor 预检查通过");
+          logger.info("[Conversation IPC] ✓ ErrorMonitor 预检查通过");
         } catch (precheckError) {
-          console.warn(
+          logger.warn(
             "[Conversation IPC] ErrorMonitor 预检查失败:",
             precheckError.message,
           );
@@ -945,12 +946,12 @@ function registerConversationIPC({
             try {
               const session =
                 await sessionManager.loadSession(currentSessionId);
-              console.log(
+              logger.info(
                 "[Conversation IPC] ✓ 加载现有会话:",
                 currentSessionId,
               );
             } catch (loadError) {
-              console.warn("[Conversation IPC] 会话不存在，将创建新会话");
+              logger.warn("[Conversation IPC] 会话不存在，将创建新会话");
               currentSessionId = null;
             }
           }
@@ -963,7 +964,7 @@ function registerConversationIPC({
               metadata: { provider, model },
             });
             currentSessionId = newSession.id;
-            console.log("[Conversation IPC] ✓ 创建新会话:", currentSessionId);
+            logger.info("[Conversation IPC] ✓ 创建新会话:", currentSessionId);
           }
 
           // 添加用户消息到会话
@@ -975,7 +976,7 @@ function registerConversationIPC({
           integrationResults.sessionUsed = true;
           integrationResults.sessionId = currentSessionId;
         } catch (sessionError) {
-          console.warn(
+          logger.warn(
             "[Conversation IPC] SessionManager 会话追踪失败:",
             sessionError.message,
           );
@@ -995,7 +996,7 @@ function registerConversationIPC({
 
           // 只有高置信度的Agent才会接管（避免误路由）
           if (capableAgents.length > 0 && capableAgents[0].score > 0.8) {
-            console.log(
+            logger.info(
               "[Conversation IPC] 🤖 发现高匹配度 Agent:",
               capableAgents[0].agentId,
               "得分:",
@@ -1006,7 +1007,7 @@ function registerConversationIPC({
             // 注：流式对话仍然使用LLM，Agent结果可作为参考上下文
           }
         } catch (agentCheckError) {
-          console.warn(
+          logger.warn(
             "[Conversation IPC] Multi-Agent 路由检查失败:",
             agentCheckError.message,
           );
@@ -1058,7 +1059,7 @@ function registerConversationIPC({
           });
 
           if (ragResult.retrievedDocs && ragResult.retrievedDocs.length > 0) {
-            console.log(
+            logger.info(
               "[Conversation IPC] RAG检索到",
               ragResult.retrievedDocs.length,
               "条相关知识",
@@ -1102,7 +1103,7 @@ function registerConversationIPC({
             }
           }
         } catch (ragError) {
-          console.warn(
+          logger.warn(
             "[Conversation IPC] RAG检索失败，继续普通对话:",
             ragError.message,
           );
@@ -1125,7 +1126,7 @@ function registerConversationIPC({
           );
 
           if (compressionResult.compressionRatio < 0.95) {
-            console.log(
+            logger.info(
               "[Conversation IPC] ⚡ Prompt 压缩成功! 压缩率:",
               compressionResult.compressionRatio.toFixed(2),
               "节省",
@@ -1139,7 +1140,7 @@ function registerConversationIPC({
             integrationResults.tokensSaved = compressionResult.tokensSaved;
           }
         } catch (compressError) {
-          console.warn(
+          logger.warn(
             "[Conversation IPC] Prompt 压缩失败，使用原始消息:",
             compressError.message,
           );
@@ -1205,7 +1206,7 @@ function registerConversationIPC({
           enableManusOptimization &&
           llmManager.chatStreamWithOptimizedPrompt
         ) {
-          console.log("[Conversation IPC] 使用 Manus Context Engineering 优化");
+          logger.info("[Conversation IPC] 使用 Manus Context Engineering 优化");
           llmResult = await llmManager.chatStreamWithOptimizedPrompt(
             enhancedMessages,
             onChunk,
@@ -1214,7 +1215,7 @@ function registerConversationIPC({
           integrationResults.manusOptimized = true;
         } else if (enableManusOptimization && llmManager.manusOptimizations) {
           // 如果有 manusOptimizations 但没有 chatStreamWithOptimizedPrompt，手动优化
-          console.log("[Conversation IPC] 应用 Manus 优化到消息");
+          logger.info("[Conversation IPC] 应用 Manus 优化到消息");
           const optimized = llmManager.buildOptimizedPrompt({
             systemPrompt: options.systemPrompt,
             messages: enhancedMessages,
@@ -1235,7 +1236,7 @@ function registerConversationIPC({
           );
         }
 
-        console.log("[Conversation IPC] 流式对话完成");
+        logger.info("[Conversation IPC] 流式对话完成");
 
         // 🔥 记录 AI 响应到 SessionManager
         if (
@@ -1249,9 +1250,9 @@ function registerConversationIPC({
               role: "assistant",
               content: fullResponse,
             });
-            console.log("[Conversation IPC] ✓ AI响应已记录到会话");
+            logger.info("[Conversation IPC] ✓ AI响应已记录到会话");
           } catch (sessionRecordError) {
-            console.warn(
+            logger.warn(
               "[Conversation IPC] 记录AI响应到会话失败:",
               sessionRecordError.message,
             );
@@ -1277,7 +1278,7 @@ function registerConversationIPC({
               userId: options.userId || "default",
             });
           } catch (trackError) {
-            console.warn(
+            logger.warn(
               "[Conversation IPC] Token 追踪失败:",
               trackError.message,
             );
@@ -1350,18 +1351,18 @@ function registerConversationIPC({
           ...integrationResults,
         };
       } catch (llmError) {
-        console.error("[Conversation IPC] LLM流式对话失败:", llmError);
+        logger.error("[Conversation IPC] LLM流式对话失败:", llmError);
 
         // 🔥 使用 ErrorMonitor 进行错误分析（如果启用）
         if (errorMonitor) {
           try {
             const analysis = await errorMonitor.analyzeError(llmError);
-            console.log("[Conversation IPC] ErrorMonitor 错误分析完成:", {
+            logger.info("[Conversation IPC] ErrorMonitor 错误分析完成:", {
               classification: analysis.classification,
               severity: analysis.severity,
             });
           } catch (analysisError) {
-            console.warn(
+            logger.warn(
               "[Conversation IPC] ErrorMonitor 分析失败:",
               analysisError.message,
             );
@@ -1383,7 +1384,7 @@ function registerConversationIPC({
         };
       }
     } catch (error) {
-      console.error("[Conversation IPC] 流式对话处理失败:", error);
+      logger.error("[Conversation IPC] 流式对话处理失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -1407,12 +1408,12 @@ function registerConversationIPC({
           return { success: false, error: "对话ID不能为空" };
         }
 
-        console.log("[Conversation IPC] 暂停流式输出:", conversationId);
+        logger.info("[Conversation IPC] 暂停流式输出:", conversationId);
 
         const result = streamManager.pause(conversationId);
         return result;
       } catch (error) {
-        console.error("[Conversation IPC] 暂停流式输出失败:", error);
+        logger.error("[Conversation IPC] 暂停流式输出失败:", error);
         return { success: false, error: error.message };
       }
     },
@@ -1433,12 +1434,12 @@ function registerConversationIPC({
           return { success: false, error: "对话ID不能为空" };
         }
 
-        console.log("[Conversation IPC] 恢复流式输出:", conversationId);
+        logger.info("[Conversation IPC] 恢复流式输出:", conversationId);
 
         const result = streamManager.resume(conversationId);
         return result;
       } catch (error) {
-        console.error("[Conversation IPC] 恢复流式输出失败:", error);
+        logger.error("[Conversation IPC] 恢复流式输出失败:", error);
         return { success: false, error: error.message };
       }
     },
@@ -1460,7 +1461,7 @@ function registerConversationIPC({
           return { success: false, error: "对话ID不能为空" };
         }
 
-        console.log(
+        logger.info(
           "[Conversation IPC] 取消流式输出:",
           conversationId,
           reason || "",
@@ -1469,7 +1470,7 @@ function registerConversationIPC({
         const result = streamManager.cancel(conversationId, reason);
         return result;
       } catch (error) {
-        console.error("[Conversation IPC] 取消流式输出失败:", error);
+        logger.error("[Conversation IPC] 取消流式输出失败:", error);
         return { success: false, error: error.message };
       }
     },
@@ -1490,12 +1491,12 @@ function registerConversationIPC({
           return { success: false, error: "对话ID不能为空" };
         }
 
-        console.log("[Conversation IPC] 获取流式输出统计:", conversationId);
+        logger.info("[Conversation IPC] 获取流式输出统计:", conversationId);
 
         const result = streamManager.getStats(conversationId);
         return result;
       } catch (error) {
-        console.error("[Conversation IPC] 获取流式输出统计失败:", error);
+        logger.error("[Conversation IPC] 获取流式输出统计失败:", error);
         return { success: false, error: error.message };
       }
     },
@@ -1509,7 +1510,7 @@ function registerConversationIPC({
    */
   ipcMain.handle("conversation:stream-list", async (_event) => {
     try {
-      console.log("[Conversation IPC] 获取所有活动流式会话");
+      logger.info("[Conversation IPC] 获取所有活动流式会话");
 
       const sessions = streamManager.getAllActiveSessions();
       return {
@@ -1518,7 +1519,7 @@ function registerConversationIPC({
         count: sessions.length,
       };
     } catch (error) {
-      console.error("[Conversation IPC] 获取活动会话失败:", error);
+      logger.error("[Conversation IPC] 获取活动会话失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -1531,7 +1532,7 @@ function registerConversationIPC({
    */
   ipcMain.handle("conversation:stream-cleanup", async (_event) => {
     try {
-      console.log("[Conversation IPC] 清理已完成的流式会话");
+      logger.info("[Conversation IPC] 清理已完成的流式会话");
 
       const cleanedCount = streamManager.cleanup();
       return {
@@ -1539,7 +1540,7 @@ function registerConversationIPC({
         cleanedCount,
       };
     } catch (error) {
-      console.error("[Conversation IPC] 清理会话失败:", error);
+      logger.error("[Conversation IPC] 清理会话失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -1552,7 +1553,7 @@ function registerConversationIPC({
    */
   ipcMain.handle("conversation:stream-manager-stats", async (_event) => {
     try {
-      console.log("[Conversation IPC] 获取StreamController管理器状态");
+      logger.info("[Conversation IPC] 获取StreamController管理器状态");
 
       const stats = streamManager.getManagerStats();
       return {
@@ -1560,7 +1561,7 @@ function registerConversationIPC({
         stats,
       };
     } catch (error) {
-      console.error("[Conversation IPC] 获取管理器状态失败:", error);
+      logger.error("[Conversation IPC] 获取管理器状态失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -1568,36 +1569,36 @@ function registerConversationIPC({
   // 标记模块为已注册
   ipcGuard.markModuleRegistered("conversation-ipc");
 
-  console.log(
+  logger.info(
     "[Conversation IPC] ✅ Successfully registered 17 conversation handlers",
   );
-  console.log("[Conversation IPC] - conversation:get-by-project");
-  console.log("[Conversation IPC] - conversation:get-by-id");
-  console.log("[Conversation IPC] - conversation:create ✓");
-  console.log("[Conversation IPC] - conversation:update");
-  console.log("[Conversation IPC] - conversation:delete");
-  console.log("[Conversation IPC] - conversation:create-message");
-  console.log("[Conversation IPC] - conversation:update-message");
-  console.log("[Conversation IPC] - conversation:get-messages");
-  console.log("[Conversation IPC] - conversation:search-messages ✓");
-  console.log("[Conversation IPC] - conversation:chat-stream");
-  console.log("[Conversation IPC] - conversation:stream-pause");
-  console.log("[Conversation IPC] - conversation:stream-resume");
-  console.log("[Conversation IPC] - conversation:stream-cancel");
-  console.log("[Conversation IPC] - conversation:stream-stats");
-  console.log("[Conversation IPC] - conversation:stream-list");
-  console.log("[Conversation IPC] - conversation:stream-cleanup");
-  console.log("[Conversation IPC] - conversation:stream-manager-stats");
+  logger.info("[Conversation IPC] - conversation:get-by-project");
+  logger.info("[Conversation IPC] - conversation:get-by-id");
+  logger.info("[Conversation IPC] - conversation:create ✓");
+  logger.info("[Conversation IPC] - conversation:update");
+  logger.info("[Conversation IPC] - conversation:delete");
+  logger.info("[Conversation IPC] - conversation:create-message");
+  logger.info("[Conversation IPC] - conversation:update-message");
+  logger.info("[Conversation IPC] - conversation:get-messages");
+  logger.info("[Conversation IPC] - conversation:search-messages ✓");
+  logger.info("[Conversation IPC] - conversation:chat-stream");
+  logger.info("[Conversation IPC] - conversation:stream-pause");
+  logger.info("[Conversation IPC] - conversation:stream-resume");
+  logger.info("[Conversation IPC] - conversation:stream-cancel");
+  logger.info("[Conversation IPC] - conversation:stream-stats");
+  logger.info("[Conversation IPC] - conversation:stream-list");
+  logger.info("[Conversation IPC] - conversation:stream-cleanup");
+  logger.info("[Conversation IPC] - conversation:stream-manager-stats");
 
   // Verify handler is actually registered
   try {
     const { ipcMain: electronIpcMain } = require("electron");
-    console.log(
+    logger.info(
       "[Conversation IPC] Verification: conversation:create handler exists:",
       typeof electronIpcMain._events !== "undefined",
     );
   } catch (err) {
-    console.warn(
+    logger.warn(
       "[Conversation IPC] Could not verify handler registration:",
       err.message,
     );

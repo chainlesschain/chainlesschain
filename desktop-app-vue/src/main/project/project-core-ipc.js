@@ -6,6 +6,7 @@
  * @description 提供项目的 CRUD、文件管理、同步恢复、监听器等核心 IPC 接口
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { ipcMain } = require('electron');
 const crypto = require('crypto');
 
@@ -23,7 +24,7 @@ function registerProjectCoreIPC({
   removeUndefinedValues,
   _replaceUndefinedWithNull
 }) {
-  console.log('[Project Core IPC] Registering Project Core IPC handlers...');
+  logger.info('[Project Core IPC] Registering Project Core IPC handlers...');
 
   // ============================================================
   // 项目 CRUD 操作 (Project CRUD Operations)
@@ -35,45 +36,45 @@ function registerProjectCoreIPC({
    */
   ipcMain.handle('project:get-all', async (_event, userId) => {
     try {
-      console.log('[Main] ===== 开始获取项目列表 =====');
+      logger.info('[Main] ===== 开始获取项目列表 =====');
       if (!database) {
         throw new Error('数据库未初始化');
       }
 
-      console.log('[Main] 获取项目列表，userId:', userId);
+      logger.info('[Main] 获取项目列表，userId:', userId);
       const projects = database.getProjects(userId);
-      console.log('[Main] 原始项目数量:', projects ? projects.length : 0);
+      logger.info('[Main] 原始项目数量:', projects ? projects.length : 0);
 
       if (!projects || projects.length === 0) {
-        console.log('[Main] 没有项目，返回空数组');
+        logger.info('[Main] 没有项目，返回空数组');
         return [];
       }
 
       // 打印第一个项目的键，帮助调试
       if (projects[0]) {
-        console.log('[Main] 第一个项目的键:', Object.keys(projects[0]));
-        console.log('[Main] 第一个项目的部分数据:', {
+        logger.info('[Main] 第一个项目的键:', Object.keys(projects[0]));
+        logger.info('[Main] 第一个项目的部分数据:', {
           id: projects[0].id,
           name: projects[0].name,
           project_type: projects[0].project_type
         });
       }
 
-      console.log('[Main] 开始清理数据...');
+      logger.info('[Main] 开始清理数据...');
       const cleaned = removeUndefinedValues(projects);
-      console.log('[Main] 清理完成，清理后的项目数量:', cleaned ? cleaned.length : 0);
+      logger.info('[Main] 清理完成，清理后的项目数量:', cleaned ? cleaned.length : 0);
 
       // 确保返回的是有效的数组
       if (!cleaned || !Array.isArray(cleaned)) {
-        console.warn('[Main] 清理后的结果不是数组，返回空数组');
+        logger.warn('[Main] 清理后的结果不是数组，返回空数组');
         return [];
       }
 
-      console.log('[Main] 准备返回项目列表');
+      logger.info('[Main] 准备返回项目列表');
       return cleaned;
     } catch (error) {
-      console.error('[Main] 获取项目列表失败:', error);
-      console.error('[Main] 错误堆栈:', error.stack);
+      logger.error('[Main] 获取项目列表失败:', error);
+      logger.error('[Main] 错误堆栈:', error.stack);
       // 出错时返回空数组而不是抛出异常，避免IPC序列化错误
       return [];
     }
@@ -91,7 +92,7 @@ function registerProjectCoreIPC({
       const project = database.getProjectById(projectId);
       return removeUndefinedValues(project);
     } catch (error) {
-      console.error('[Main] 获取项目失败:', error);
+      logger.error('[Main] 获取项目失败:', error);
       throw error;
     }
   });
@@ -104,20 +105,20 @@ function registerProjectCoreIPC({
     try {
       // 首先清理输入数据中的 undefined 值（IPC 已经不应该传递 undefined，但双重保险）
       const cleanedCreateData = _replaceUndefinedWithNull(createData);
-      console.log('[Main] 开始创建项目，参数:', JSON.stringify(cleanedCreateData, null, 2));
+      logger.info('[Main] 开始创建项目，参数:', JSON.stringify(cleanedCreateData, null, 2));
 
       const { getProjectHTTPClient } = require('./http-client');
       const httpClient = getProjectHTTPClient();
 
       // 调用后端API
       const project = await httpClient.createProject(cleanedCreateData);
-      console.log('[Main] 后端返回项目，键:', Object.keys(project || {}));
+      logger.info('[Main] 后端返回项目，键:', Object.keys(project || {}));
 
       // 保存到本地数据库
       if (database && project) {
         // 先清理 project 中的 undefined，再保存到数据库
         const cleanedProject = _replaceUndefinedWithNull(project);
-        console.log('[Main] 清理后的项目:', JSON.stringify(cleanedProject, null, 2));
+        logger.info('[Main] 清理后的项目:', JSON.stringify(cleanedProject, null, 2));
 
         const localProject = {
           ...cleanedProject,
@@ -128,19 +129,19 @@ function registerProjectCoreIPC({
         };
 
         // 检查 localProject 中是否有 undefined
-        console.log('[Main] localProject 准备保存到数据库');
+        logger.info('[Main] localProject 准备保存到数据库');
         Object.keys(localProject).forEach(key => {
           const value = localProject[key];
-          console.log(`[Main]   ${key}: ${typeof value === 'undefined' ? 'UNDEFINED!' : typeof value} = ${JSON.stringify(value).substring(0, 100)}`);
+          logger.info(`[Main]   ${key}: ${typeof value === 'undefined' ? 'UNDEFINED!' : typeof value} = ${JSON.stringify(value).substring(0, 100)}`);
         });
 
         try {
-          console.log('[Main] 调用 saveProject...');
+          logger.info('[Main] 调用 saveProject...');
           await database.saveProject(localProject);
-          console.log('[Main] 项目已保存到本地数据库');
+          logger.info('[Main] 项目已保存到本地数据库');
         } catch (saveError) {
-          console.error('[Main] saveProject 失败:', saveError.message);
-          console.error('[Main] saveProject 堆栈:', saveError.stack);
+          logger.error('[Main] saveProject 失败:', saveError.message);
+          logger.error('[Main] saveProject 堆栈:', saveError.stack);
           throw saveError;
         }
 
@@ -154,7 +155,7 @@ function registerProjectCoreIPC({
             cleanedProject.id
           );
 
-          console.log('[Main] 创建项目目录:', projectRootPath, '项目类型:', projectType);
+          logger.info('[Main] 创建项目目录:', projectRootPath, '项目类型:', projectType);
           await require('fs').promises.mkdir(projectRootPath, { recursive: true });
 
           // 立即更新项目的root_path（无论项目类型和是否有文件）
@@ -162,57 +163,57 @@ function registerProjectCoreIPC({
           database.updateProject(cleanedProject.id, {
             root_path: projectRootPath,
           });
-          console.log('[Main] 项目root_path已设置:', projectRootPath);
+          logger.info('[Main] 项目root_path已设置:', projectRootPath);
         } catch (dirError) {
-          console.error('[Main] 创建项目目录失败:', dirError);
+          logger.error('[Main] 创建项目目录失败:', dirError);
           // 继续执行，不影响项目创建
         }
 
         // 保存项目文件
         if (cleanedProject.files && cleanedProject.files.length > 0) {
           try {
-            console.log('[Main] 开始保存文件，数量:', cleanedProject.files.length);
+            logger.info('[Main] 开始保存文件，数量:', cleanedProject.files.length);
             // 清理文件数组中的 undefined
             const cleanedFiles = _replaceUndefinedWithNull(cleanedProject.files);
             await database.saveProjectFiles(cleanedProject.id, cleanedFiles);
-            console.log('[Main] 项目文件已保存');
+            logger.info('[Main] 项目文件已保存');
           } catch (fileError) {
-            console.error('[Main] saveProjectFiles 失败:', fileError.message);
-            console.error('[Main] saveProjectFiles 堆栈:', fileError.stack);
+            logger.error('[Main] saveProjectFiles 失败:', fileError.message);
+            logger.error('[Main] saveProjectFiles 堆栈:', fileError.stack);
             throw fileError;
           }
         }
       }
 
       // 清理undefined值（IPC无法序列化undefined）
-      console.log('[Main] 开始清理 undefined 值');
-      console.log('[Main] 清理前的项目键值:', JSON.stringify(Object.keys(project)));
+      logger.info('[Main] 开始清理 undefined 值');
+      logger.info('[Main] 清理前的项目键值:', JSON.stringify(Object.keys(project)));
 
       // 检查每个键的值
       Object.keys(project).forEach(key => {
         if (project[key] === undefined) {
-          console.warn(`[Main] 发现 undefined 值在键: ${key}`);
+          logger.warn(`[Main] 发现 undefined 值在键: ${key}`);
         }
       });
 
       const cleanProject = removeUndefinedValues(project);
-      console.log('[Main] 清理完成，返回项目');
-      console.log('[Main] 清理后的项目键:', Object.keys(cleanProject));
+      logger.info('[Main] 清理完成，返回项目');
+      logger.info('[Main] 清理后的项目键:', Object.keys(cleanProject));
 
       // 再次检查清理后的值
       Object.keys(cleanProject).forEach(key => {
         if (cleanProject[key] === undefined) {
-          console.error(`[Main] 清理后仍有 undefined 值在键: ${key}`);
+          logger.error(`[Main] 清理后仍有 undefined 值在键: ${key}`);
         }
       });
 
       // 最终安全检查：递归替换所有undefined为null
       const safeProject = _replaceUndefinedWithNull(cleanProject);
-      console.log('[Main] 最终安全检查完成');
+      logger.info('[Main] 最终安全检查完成');
 
       return safeProject;
     } catch (error) {
-      console.error('[Main] 创建项目失败:', error);
+      logger.error('[Main] 创建项目失败:', error);
       throw error;
     }
   });
@@ -240,7 +241,7 @@ function registerProjectCoreIPC({
     try {
       // 清理输入数据中的 undefined 值
       const cleanedCreateData = _replaceUndefinedWithNull(createData);
-      console.log('[Main] 开始流式创建项目，参数:', JSON.stringify(cleanedCreateData, null, 2));
+      logger.info('[Main] 开始流式创建项目，参数:', JSON.stringify(cleanedCreateData, null, 2));
 
       streamControl = await httpClient.createProjectStream(cleanedCreateData, {
         // 进度回调
@@ -250,7 +251,7 @@ function registerProjectCoreIPC({
             message: data.message,
             timestamp: Date.now(),
           });
-          console.log(`[Main] 流式进度: ${data.stage} - ${data.message}`);
+          logger.info(`[Main] 流式进度: ${data.stage} - ${data.message}`);
 
           // 发送流式进度事件
           event.sender.send('project:stream-chunk', {
@@ -275,7 +276,7 @@ function registerProjectCoreIPC({
           }
           accumulatedData.contentByStage[data.stage] += data.content;
 
-          console.log(`[Main] 流式内容: ${data.stage}, 长度: ${data.content.length}`);
+          logger.info(`[Main] 流式内容: ${data.stage}, 长度: ${data.content.length}`);
           event.sender.send('project:stream-chunk', {
             type: 'content',
             data,
@@ -291,8 +292,8 @@ function registerProjectCoreIPC({
           accumulatedData.files = result.files || [];
           accumulatedData.metadata = result.metadata || {};
 
-          console.log('[Main] 流式创建完成，文件数量:', accumulatedData.files.length);
-          console.log('[Main] 项目类型:', data.project_type);
+          logger.info('[Main] 流式创建完成，文件数量:', accumulatedData.files.length);
+          logger.info('[Main] 项目类型:', data.project_type);
 
           // 统一数据结构：将result中的数据提升到顶层
           if (data.result) {
@@ -320,7 +321,7 @@ function registerProjectCoreIPC({
                 file_count: accumulatedData.files.length, // 设置文件数量
               };
 
-              console.log('[Main] 保存项目到数据库，ID:', localProject.id);
+              logger.info('[Main] 保存项目到数据库，ID:', localProject.id);
               await database.saveProject(localProject);
 
               // 为所有类型项目创建根目录并设置root_path（统一从系统配置读取）
@@ -331,7 +332,7 @@ function registerProjectCoreIPC({
                   localProject.id
                 );
 
-                console.log('[Main] 创建项目目录:', projectRootPath, '项目类型:', projectType);
+                logger.info('[Main] 创建项目目录:', projectRootPath, '项目类型:', projectType);
                 await fs.mkdir(projectRootPath, { recursive: true });
 
                 // 立即更新项目的root_path（无论项目类型和是否有文件）
@@ -339,19 +340,19 @@ function registerProjectCoreIPC({
                 database.updateProject(localProject.id, {
                   root_path: projectRootPath,
                 });
-                console.log('[Main] 项目root_path已设置:', projectRootPath);
+                logger.info('[Main] 项目root_path已设置:', projectRootPath);
 
                 // 如果有文件，写入到文件系统
                 if (accumulatedData.files.length > 0) {
                   for (const file of accumulatedData.files) {
                     const filePath = path.join(projectRootPath, file.path);
-                    console.log('[Main] 写入文件:', filePath);
+                    logger.info('[Main] 写入文件:', filePath);
 
                     // 解码base64内容
                     let fileContent;
                     if (file.content_encoding === 'base64') {
                       fileContent = Buffer.from(file.content, 'base64');
-                      console.log('[Main] 已解码base64内容，大小:', fileContent.length, 'bytes');
+                      logger.info('[Main] 已解码base64内容，大小:', fileContent.length, 'bytes');
                     } else if (typeof file.content === 'string') {
                       fileContent = Buffer.from(file.content, 'utf-8');
                     } else {
@@ -359,20 +360,20 @@ function registerProjectCoreIPC({
                     }
 
                     await fs.writeFile(filePath, fileContent);
-                    console.log('[Main] 文件写入成功:', file.path);
+                    logger.info('[Main] 文件写入成功:', file.path);
                   }
                 }
               } catch (writeError) {
-                console.error('[Main] 创建项目目录或写入文件失败:', writeError);
-                console.error('[Main] 错误堆栈:', writeError.stack);
+                logger.error('[Main] 创建项目目录或写入文件失败:', writeError);
+                logger.error('[Main] 错误堆栈:', writeError.stack);
                 // 不抛出错误，继续处理
               }
 
               // 保存项目文件到数据库
               const cleanedFiles = _replaceUndefinedWithNull(accumulatedData.files);
-              console.log('[Main] 准备保存文件到数据库，文件数量:', cleanedFiles.length);
+              logger.info('[Main] 准备保存文件到数据库，文件数量:', cleanedFiles.length);
               if (cleanedFiles.length > 0) {
-                console.log('[Main] 第一个文件:', {
+                logger.info('[Main] 第一个文件:', {
                   path: cleanedFiles[0].path,
                   type: cleanedFiles[0].type,
                   hasContent: !!cleanedFiles[0].content,
@@ -380,11 +381,11 @@ function registerProjectCoreIPC({
                 });
               }
               await database.saveProjectFiles(localProject.id, cleanedFiles);
-              console.log('[Main] 项目文件已保存到数据库');
+              logger.info('[Main] 项目文件已保存到数据库');
 
               // 验证保存是否成功
               const savedFiles = database.getProjectFiles(localProject.id);
-              console.log('[Main] 验证：数据库中的文件数量:', savedFiles?.length || 0);
+              logger.info('[Main] 验证：数据库中的文件数量:', savedFiles?.length || 0);
 
               // 更新项目的file_count
               if (savedFiles && savedFiles.length > 0) {
@@ -393,13 +394,13 @@ function registerProjectCoreIPC({
                   file_count: savedFiles.length,
                   updated_at: Date.now()
                 });
-                console.log('[Main] 已更新项目的file_count为:', savedFiles.length);
+                logger.info('[Main] 已更新项目的file_count为:', savedFiles.length);
               }
 
               // 返回包含本地ID的完整数据
               data.projectId = localProject.id;
             } catch (saveError) {
-              console.error('[Main] 保存项目失败:', saveError);
+              logger.error('[Main] 保存项目失败:', saveError);
               event.sender.send('project:stream-chunk', {
                 type: 'error',
                 error: `保存失败: ${saveError.message}`,
@@ -409,21 +410,21 @@ function registerProjectCoreIPC({
           }
 
           // 发送完成事件
-          console.log('[Main] ===== 发送complete事件到前端 =====');
-          console.log('[Main] Complete data keys:', Object.keys(data));
-          console.log('[Main] Complete data.projectId:', data.projectId);
+          logger.info('[Main] ===== 发送complete事件到前端 =====');
+          logger.info('[Main] Complete data keys:', Object.keys(data));
+          logger.info('[Main] Complete data.projectId:', data.projectId);
 
           event.sender.send('project:stream-chunk', {
             type: 'complete',
             data: data,  // 直接发送，不使用_replaceUndefinedWithNull
           });
 
-          console.log('[Main] ===== Complete事件已发送 =====');
+          logger.info('[Main] ===== Complete事件已发送 =====');
         },
 
         // 错误回调
         onError: (error) => {
-          console.error('[Main] 流式创建错误:', error);
+          logger.error('[Main] 流式创建错误:', error);
           event.sender.send('project:stream-chunk', {
             type: 'error',
             error: error.message,
@@ -433,7 +434,7 @@ function registerProjectCoreIPC({
 
       // 监听取消事件
       const handleCancel = () => {
-        console.log('[Main] 收到取消请求');
+        logger.info('[Main] 收到取消请求');
         if (streamControl) {
           streamControl.cancel();
         }
@@ -443,7 +444,7 @@ function registerProjectCoreIPC({
       return { success: true };
 
     } catch (error) {
-      console.error('[Main] Stream create failed:', error);
+      logger.error('[Main] Stream create failed:', error);
       event.sender.send('project:stream-chunk', {
         type: 'error',
         error: error.message,
@@ -457,7 +458,7 @@ function registerProjectCoreIPC({
    * Channel: 'project:stream-cancel'
    */
   ipcMain.handle('project:stream-cancel', () => {
-    console.log('[Main] 触发取消事件');
+    logger.info('[Main] 触发取消事件');
     // 触发取消事件
     ipcMain.emit('project:stream-cancel-event');
     return { success: true };
@@ -473,7 +474,7 @@ function registerProjectCoreIPC({
       const path = require('path');
       const { getProjectConfig } = require('./project-config');
 
-      console.log('[Main] 开始快速创建项目，参数:', createData);
+      logger.info('[Main] 开始快速创建项目，参数:', createData);
 
       // 生成项目ID
       const projectId = crypto.randomUUID();
@@ -486,7 +487,7 @@ function registerProjectCoreIPC({
         projectId
       );
 
-      console.log('[Main] 创建项目目录:', projectRootPath);
+      logger.info('[Main] 创建项目目录:', projectRootPath);
       await fs.mkdir(projectRootPath, { recursive: true });
 
       // 创建一个默认的README.md文件
@@ -515,7 +516,7 @@ function registerProjectCoreIPC({
       // 保存到本地数据库
       if (database) {
         await database.saveProject(project);
-        console.log('[Main] 项目已保存到本地数据库');
+        logger.info('[Main] 项目已保存到本地数据库');
 
         // 保存项目文件记录
         const file = {
@@ -528,13 +529,13 @@ function registerProjectCoreIPC({
           updated_at: timestamp,
         };
         await database.saveProjectFiles(projectId, [file]);
-        console.log('[Main] 项目文件已保存到数据库');
+        logger.info('[Main] 项目文件已保存到数据库');
       }
 
-      console.log('[Main] 快速创建项目成功，ID:', projectId);
+      logger.info('[Main] 快速创建项目成功，ID:', projectId);
       return _replaceUndefinedWithNull(project);
     } catch (error) {
-      console.error('[Main] 快速创建项目失败:', error);
+      logger.error('[Main] 快速创建项目失败:', error);
       throw error;
     }
   });
@@ -553,7 +554,7 @@ function registerProjectCoreIPC({
       const saved = database.saveProject(cleanProject);
       return removeUndefinedValues(saved);
     } catch (error) {
-      console.error('[Main] 保存项目失败:', error);
+      logger.error('[Main] 保存项目失败:', error);
       throw error;
     }
   });
@@ -580,7 +581,7 @@ function registerProjectCoreIPC({
       const result = database.updateProject(projectId, updatedProject);
       return removeUndefinedValues(result);
     } catch (error) {
-      console.error('[Main] 更新项目失败:', error);
+      logger.error('[Main] 更新项目失败:', error);
       throw error;
     }
   });
@@ -595,9 +596,9 @@ function registerProjectCoreIPC({
       if (database) {
         try {
           await database.deleteProject(projectId);
-          console.log('[Main] 本地项目已删除:', projectId);
+          logger.info('[Main] 本地项目已删除:', projectId);
         } catch (dbError) {
-          console.warn('[Main] 删除本地项目失败（继续删除后端）:', dbError.message);
+          logger.warn('[Main] 删除本地项目失败（继续删除后端）:', dbError.message);
         }
       }
 
@@ -606,19 +607,19 @@ function registerProjectCoreIPC({
         const { getProjectHTTPClient } = require('./http-client');
         const httpClient = getProjectHTTPClient();
         await httpClient.deleteProject(projectId);
-        console.log('[Main] 后端项目已删除:', projectId);
+        logger.info('[Main] 后端项目已删除:', projectId);
       } catch (httpError) {
         // 如果是"项目不存在"，视为成功（幂等性）
         if (httpError.message && httpError.message.includes('项目不存在')) {
-          console.log('[Main] 后端项目不存在，视为删除成功');
+          logger.info('[Main] 后端项目不存在，视为删除成功');
         } else {
-          console.warn('[Main] 删除后端项目失败（已删除本地）:', httpError.message);
+          logger.warn('[Main] 删除后端项目失败（已删除本地）:', httpError.message);
         }
       }
 
       return { success: true };
     } catch (error) {
-      console.error('[Main] 删除项目失败:', error);
+      logger.error('[Main] 删除项目失败:', error);
       throw error;
     }
   });
@@ -634,7 +635,7 @@ function registerProjectCoreIPC({
       }
       return database.deleteProject(projectId);
     } catch (error) {
-      console.error('[Main] 删除本地项目失败:', error);
+      logger.error('[Main] 删除本地项目失败:', error);
       throw error;
     }
   });
@@ -661,7 +662,7 @@ function registerProjectCoreIPC({
 
       return removeUndefinedValues(project);
     } catch (error) {
-      console.error('[Main] 从后端获取项目失败:', error);
+      logger.error('[Main] 从后端获取项目失败:', error);
       throw error;
     }
   });
@@ -691,7 +692,7 @@ function registerProjectCoreIPC({
 
       // 如果已经有 root_path，不需要修复
       if (project.root_path) {
-        console.log('[Main] 项目已有 root_path，无需修复:', project.root_path);
+        logger.info('[Main] 项目已有 root_path，无需修复:', project.root_path);
         return { success: true, message: '项目路径正常', path: project.root_path };
       }
 
@@ -703,7 +704,7 @@ function registerProjectCoreIPC({
         projectId
       );
 
-      console.log('[Main] 为项目创建目录:', projectRootPath);
+      logger.info('[Main] 为项目创建目录:', projectRootPath);
       await fs.mkdir(projectRootPath, { recursive: true });
 
       // 更新项目的 root_path
@@ -718,7 +719,7 @@ function registerProjectCoreIPC({
 
       let fileCount = 0;
       if (projectFiles && projectFiles.length > 0) {
-        console.log(`[Main] 写入 ${projectFiles.length} 个文件到文件系统`);
+        logger.info(`[Main] 写入 ${projectFiles.length} 个文件到文件系统`);
 
         for (const file of projectFiles) {
           try {
@@ -738,14 +739,14 @@ function registerProjectCoreIPC({
 
             fileCount++;
           } catch (fileError) {
-            console.error(`[Main] 写入文件失败: ${file.file_name}`, fileError);
+            logger.error(`[Main] 写入文件失败: ${file.file_name}`, fileError);
           }
         }
       }
 
       database.saveToFile();
 
-      console.log('[Main] 项目路径修复完成:', projectRootPath);
+      logger.info('[Main] 项目路径修复完成:', projectRootPath);
       return {
         success: true,
         message: `路径已修复，写入 ${fileCount} 个文件`,
@@ -754,7 +755,7 @@ function registerProjectCoreIPC({
       };
 
     } catch (error) {
-      console.error('[Main] 修复项目路径失败:', error);
+      logger.error('[Main] 修复项目路径失败:', error);
       throw error;
     }
   });
@@ -781,7 +782,7 @@ function registerProjectCoreIPC({
 
       // 检查是否已有root_path
       if (project.root_path) {
-        console.log('[Main] 项目已有root_path:', project.root_path);
+        logger.info('[Main] 项目已有root_path:', project.root_path);
         return { success: true, message: '项目已有root_path', rootPath: project.root_path };
       }
 
@@ -793,7 +794,7 @@ function registerProjectCoreIPC({
         projectId
       );
 
-      console.log('[Main] 修复项目root_path，创建目录:', projectRootPath);
+      logger.info('[Main] 修复项目root_path，创建目录:', projectRootPath);
       await require('fs').promises.mkdir(projectRootPath, { recursive: true });
 
       // 更新数据库（updateProject 是同步函数）
@@ -801,10 +802,10 @@ function registerProjectCoreIPC({
         root_path: projectRootPath,
       });
 
-      console.log('[Main] 项目root_path修复完成:', projectRootPath);
+      logger.info('[Main] 项目root_path修复完成:', projectRootPath);
       return { success: true, message: '修复成功', rootPath: projectRootPath };
     } catch (error) {
-      console.error('[Main] 修复项目root_path失败:', error);
+      logger.error('[Main] 修复项目root_path失败:', error);
       throw error;
     }
   });
@@ -819,7 +820,7 @@ function registerProjectCoreIPC({
         throw new Error('数据库未初始化');
       }
 
-      console.log('[Main] ========== 开始批量修复项目root_path ==========');
+      logger.info('[Main] ========== 开始批量修复项目root_path ==========');
 
       // 查找所有缺失root_path的document项目
       const brokenProjects = database.db.prepare(`
@@ -830,7 +831,7 @@ function registerProjectCoreIPC({
         ORDER BY created_at DESC
       `).all();
 
-      console.log(`[Main] 发现 ${brokenProjects.length} 个缺失root_path的项目`);
+      logger.info(`[Main] 发现 ${brokenProjects.length} 个缺失root_path的项目`);
 
       if (brokenProjects.length === 0) {
         return {
@@ -859,8 +860,8 @@ function registerProjectCoreIPC({
             project.id
           );
 
-          console.log(`[Main] 修复项目: ${project.name} (${project.id})`);
-          console.log(`[Main]   创建目录: ${projectRootPath}`);
+          logger.info(`[Main] 修复项目: ${project.name} (${project.id})`);
+          logger.info(`[Main]   创建目录: ${projectRootPath}`);
 
           // 创建目录
           await require('fs').promises.mkdir(projectRootPath, { recursive: true });
@@ -878,9 +879,9 @@ function registerProjectCoreIPC({
             rootPath: projectRootPath
           });
 
-          console.log(`[Main]   ✅ 修复成功`);
+          logger.info(`[Main]   ✅ 修复成功`);
         } catch (error) {
-          console.error(`[Main]   ❌ 修复失败:`, error.message);
+          logger.error(`[Main]   ❌ 修复失败:`, error.message);
           results.failed++;
           results.details.push({
             id: project.id,
@@ -891,14 +892,14 @@ function registerProjectCoreIPC({
         }
       }
 
-      console.log(`[Main] ========== 批量修复完成 ==========`);
-      console.log(`[Main] 修复成功: ${results.fixed} 个`);
-      console.log(`[Main] 修复失败: ${results.failed} 个`);
+      logger.info(`[Main] ========== 批量修复完成 ==========`);
+      logger.info(`[Main] 修复成功: ${results.fixed} 个`);
+      logger.info(`[Main] 修复失败: ${results.failed} 个`);
 
       results.message = `修复完成：成功 ${results.fixed} 个，失败 ${results.failed} 个`;
       return results;
     } catch (error) {
-      console.error('[Main] 批量修复失败:', error);
+      logger.error('[Main] 批量修复失败:', error);
       throw error;
     }
   });
@@ -913,7 +914,7 @@ function registerProjectCoreIPC({
    */
   ipcMain.handle('project:get-files', async (_event, projectId, fileType = null, pageNum = 1, pageSize = 50) => {
     try {
-      console.log('[Main] 获取项目文件, ProjectId:', projectId, ', FileType:', fileType);
+      logger.info('[Main] 获取项目文件, ProjectId:', projectId, ', FileType:', fileType);
 
       if (!database) {
         throw new Error('数据库未初始化');
@@ -925,7 +926,7 @@ function registerProjectCoreIPC({
       }
 
       const rootPath = project.root_path || project.folder_path;
-      console.log('[Main] 项目根路径:', rootPath);
+      logger.info('[Main] 项目根路径:', rootPath);
 
       if (!rootPath) {
         // 尝试自动修复
@@ -937,7 +938,7 @@ function registerProjectCoreIPC({
             projectId
           );
 
-          console.log('[Main] 自动修复：创建项目目录:', projectRootPath);
+          logger.info('[Main] 自动修复：创建项目目录:', projectRootPath);
           await require('fs').promises.mkdir(projectRootPath, { recursive: true });
 
           await database.updateProject(projectId, {
@@ -946,7 +947,7 @@ function registerProjectCoreIPC({
 
           project.root_path = projectRootPath;
         } catch (repairError) {
-          console.error('[Main] 自动修复失败:', repairError.message);
+          logger.error('[Main] 自动修复失败:', repairError.message);
           return [];
         }
       }
@@ -963,7 +964,7 @@ function registerProjectCoreIPC({
       try {
         await fs.access(finalRootPath);
       } catch (error) {
-        console.error('[Main] 项目目录不存在:', finalRootPath);
+        logger.error('[Main] 项目目录不存在:', finalRootPath);
         return [];
       }
 
@@ -1008,11 +1009,11 @@ function registerProjectCoreIPC({
                 await scanDirectory(fullPath, fileRelativePath);
               }
             } catch (statError) {
-              console.error(`[Main] 无法读取文件状态 ${fileRelativePath}:`, statError.message);
+              logger.error(`[Main] 无法读取文件状态 ${fileRelativePath}:`, statError.message);
             }
           }
         } catch (readError) {
-          console.error(`[Main] 无法读取目录 ${dirPath}:`, readError.message);
+          logger.error(`[Main] 无法读取目录 ${dirPath}:`, readError.message);
         }
       }
 
@@ -1048,11 +1049,11 @@ function registerProjectCoreIPC({
       }
 
       const result = removeUndefinedValues(filteredFiles);
-      console.log(`[Main] 返回 ${result.length} 个文件`);
+      logger.info(`[Main] 返回 ${result.length} 个文件`);
 
       return result;
     } catch (error) {
-      console.error('[Main] 获取项目文件失败:', error);
+      logger.error('[Main] 获取项目文件失败:', error);
       throw error;
     }
   });
@@ -1070,7 +1071,7 @@ function registerProjectCoreIPC({
       const file = stmt.get(fileId);
       return removeUndefinedValues(file);
     } catch (error) {
-      console.error('[Main] 获取文件失败:', error);
+      logger.error('[Main] 获取文件失败:', error);
       throw error;
     }
   });
@@ -1087,7 +1088,7 @@ function registerProjectCoreIPC({
       database.saveProjectFiles(projectId, files);
       return { success: true };
     } catch (error) {
-      console.error('[Main] 保存项目文件失败:', error);
+      logger.error('[Main] 保存项目文件失败:', error);
       throw error;
     }
   });
@@ -1109,7 +1110,7 @@ function registerProjectCoreIPC({
 
       // 如果后端不可用，降级到本地数据库
       if (!result.success || result.status === 0) {
-        console.warn('[Main] 后端服务不可用，使用本地数据库');
+        logger.warn('[Main] 后端服务不可用，使用本地数据库');
         if (!database) {
           throw new Error('数据库未初始化');
         }
@@ -1119,7 +1120,7 @@ function registerProjectCoreIPC({
 
       return result;
     } catch (error) {
-      console.error('[Main] 更新文件失败:', error);
+      logger.error('[Main] 更新文件失败:', error);
       // 降级到本地数据库
       if (database) {
         database.updateProjectFile(fileUpdate);
@@ -1150,10 +1151,10 @@ function registerProjectCoreIPC({
         try {
           // 解析文件路径并删除物理文件
           const resolvedPath = projectConfig.resolveProjectPath(file.file_path);
-          console.log('[Main] 删除物理文件:', resolvedPath);
+          logger.info('[Main] 删除物理文件:', resolvedPath);
           await fs.unlink(resolvedPath);
         } catch (error) {
-          console.warn('[Main] 删除物理文件失败 (可能已不存在):', error.message);
+          logger.warn('[Main] 删除物理文件失败 (可能已不存在):', error.message);
         }
       }
 
@@ -1172,15 +1173,15 @@ function registerProjectCoreIPC({
           [fileCount, Date.now(), projectId]
         );
       } catch (updateError) {
-        console.error('[Main] 更新项目file_count失败:', updateError);
+        logger.error('[Main] 更新项目file_count失败:', updateError);
       }
 
       database.saveToFile();
 
-      console.log('[Main] 文件删除成功:', fileId);
+      logger.info('[Main] 文件删除成功:', fileId);
       return { success: true };
     } catch (error) {
-      console.error('[Main] 删除文件失败:', error);
+      logger.error('[Main] 删除文件失败:', error);
       throw error;
     }
   });
@@ -1202,10 +1203,10 @@ function registerProjectCoreIPC({
 
       const result = await projectRAG.indexConversationHistory(projectId, options);
 
-      console.log('[Main] 对话历史索引完成:', result);
+      logger.info('[Main] 对话历史索引完成:', result);
       return result;
     } catch (error) {
-      console.error('[Main] 索引对话历史失败:', error);
+      logger.error('[Main] 索引对话历史失败:', error);
       throw error;
     }
   });
@@ -1223,10 +1224,10 @@ function registerProjectCoreIPC({
 
       await projectRAG.startFileWatcher(projectId, projectPath);
 
-      console.log('[Main] 文件监听已启动:', projectPath);
+      logger.info('[Main] 文件监听已启动:', projectPath);
       return { success: true };
     } catch (error) {
-      console.error('[Main] 启动文件监听失败:', error);
+      logger.error('[Main] 启动文件监听失败:', error);
       throw error;
     }
   });
@@ -1244,10 +1245,10 @@ function registerProjectCoreIPC({
 
       projectRAG.stopFileWatcher(projectId);
 
-      console.log('[Main] 文件监听已停止:', projectId);
+      logger.info('[Main] 文件监听已停止:', projectId);
       return { success: true };
     } catch (error) {
-      console.error('[Main] 停止文件监听失败:', error);
+      logger.error('[Main] 停止文件监听失败:', error);
       throw error;
     }
   });
@@ -1267,7 +1268,7 @@ function registerProjectCoreIPC({
       const resolvedPath = projectConfig.resolveProjectPath(relativePath);
       return { success: true, path: resolvedPath };
     } catch (error) {
-      console.error('[Main] 解析路径失败:', error);
+      logger.error('[Main] 解析路径失败:', error);
       throw error;
     }
   });
@@ -1282,7 +1283,7 @@ function registerProjectCoreIPC({
    */
   ipcMain.handle('project:sync', async (_event, userId) => {
     try {
-      console.log('[Main] project:sync 开始同步，userId:', userId);
+      logger.info('[Main] project:sync 开始同步，userId:', userId);
 
       const { getProjectHTTPClient } = require('./http-client');
       const httpClient = getProjectHTTPClient();
@@ -1290,7 +1291,7 @@ function registerProjectCoreIPC({
       // 1. 获取后端项目列表
       const response = await httpClient.listProjects(userId, 1, 1000);
       const backendProjects = (response && response.records) ? response.records : [];
-      console.log('[Main] 从后端获取到项目数量:', backendProjects.length);
+      logger.info('[Main] 从后端获取到项目数量:', backendProjects.length);
 
       // 2. 获取本地项目
       const localProjects = database ? database.getProjects(userId) : [];
@@ -1305,7 +1306,7 @@ function registerProjectCoreIPC({
               try {
                 projectDetail = await httpClient.getProject(project.id);
               } catch (detailError) {
-                console.warn(`[Main] 获取项目 ${project.id} 详情失败:`, detailError.message);
+                logger.warn(`[Main] 获取项目 ${project.id} 详情失败:`, detailError.message);
                 projectDetail = project;
               }
             }
@@ -1342,11 +1343,11 @@ function registerProjectCoreIPC({
               try {
                 database.saveProjectFiles(projectDetail.id, projectDetail.files);
               } catch (fileError) {
-                console.error(`[Main] 同步项目 ${projectDetail.id} 文件失败:`, fileError);
+                logger.error(`[Main] 同步项目 ${projectDetail.id} 文件失败:`, fileError);
               }
             }
           } catch (projectError) {
-            console.error(`[Main] 同步项目 ${project.id} 失败:`, projectError);
+            logger.error(`[Main] 同步项目 ${project.id} 失败:`, projectError);
           }
         }
       }
@@ -1365,13 +1366,13 @@ function registerProjectCoreIPC({
             });
           }
         } catch (syncError) {
-          console.error(`[Main] 同步项目 ${project.id} 失败:`, syncError);
+          logger.error(`[Main] 同步项目 ${project.id} 失败:`, syncError);
         }
       }
 
       return { success: true };
     } catch (error) {
-      console.error('[Main] 同步项目失败:', error);
+      logger.error('[Main] 同步项目失败:', error);
       throw error;
     }
   });
@@ -1404,7 +1405,7 @@ function registerProjectCoreIPC({
 
       return { success: true };
     } catch (error) {
-      console.error('[Main] 同步单个项目失败:', error);
+      logger.error('[Main] 同步单个项目失败:', error);
       throw error;
     }
   });
@@ -1423,13 +1424,13 @@ function registerProjectCoreIPC({
       const recovery = new ProjectRecovery(database);
       const recoverableProjects = recovery.scanRecoverableProjects();
 
-      console.log(`[Main] 扫描到 ${recoverableProjects.length} 个可恢复的项目`);
+      logger.info(`[Main] 扫描到 ${recoverableProjects.length} 个可恢复的项目`);
       return {
         success: true,
         projects: recoverableProjects,
       };
     } catch (error) {
-      console.error('[Main] 扫描可恢复项目失败:', error);
+      logger.error('[Main] 扫描可恢复项目失败:', error);
       return {
         success: false,
         error: error.message,
@@ -1449,13 +1450,13 @@ function registerProjectCoreIPC({
       const success = recovery.recoverProject(projectId);
 
       if (success) {
-        console.log(`[Main] 成功恢复项目: ${projectId}`);
+        logger.info(`[Main] 成功恢复项目: ${projectId}`);
         return { success: true };
       } else {
         throw new Error('恢复失败');
       }
     } catch (error) {
-      console.error(`[Main] 恢复项目失败: ${projectId}`, error);
+      logger.error(`[Main] 恢复项目失败: ${projectId}`, error);
       return {
         success: false,
         error: error.message,
@@ -1473,13 +1474,13 @@ function registerProjectCoreIPC({
       const recovery = new ProjectRecovery(database);
       const results = recovery.recoverProjects(projectIds);
 
-      console.log(`[Main] 批量恢复完成: 成功 ${results.success.length}, 失败 ${results.failed.length}`);
+      logger.info(`[Main] 批量恢复完成: 成功 ${results.success.length}, 失败 ${results.failed.length}`);
       return {
         success: true,
         results,
       };
     } catch (error) {
-      console.error('[Main] 批量恢复项目失败:', error);
+      logger.error('[Main] 批量恢复项目失败:', error);
       return {
         success: false,
         error: error.message,
@@ -1497,13 +1498,13 @@ function registerProjectCoreIPC({
       const recovery = new ProjectRecovery(database);
       const results = recovery.autoRecoverAll();
 
-      console.log(`[Main] 自动恢复完成: 成功 ${results.success.length}, 失败 ${results.failed.length}`);
+      logger.info(`[Main] 自动恢复完成: 成功 ${results.success.length}, 失败 ${results.failed.length}`);
       return {
         success: true,
         results,
       };
     } catch (error) {
-      console.error('[Main] 自动恢复失败:', error);
+      logger.error('[Main] 自动恢复失败:', error);
       return {
         success: false,
         error: error.message,
@@ -1526,7 +1527,7 @@ function registerProjectCoreIPC({
         stats,
       };
     } catch (error) {
-      console.error('[Main] 获取恢复统计失败:', error);
+      logger.error('[Main] 获取恢复统计失败:', error);
       return {
         success: false,
         error: error.message,
@@ -1545,7 +1546,7 @@ function registerProjectCoreIPC({
   ipcMain.handle('project:stats:start', async (_event, projectId, projectPath) => {
     try {
       if (!database || !database.db) {
-        console.warn('[Main] 数据库未初始化，跳过统计收集');
+        logger.warn('[Main] 数据库未初始化，跳过统计收集');
         return { success: false, error: '数据库未初始化' };
       }
 
@@ -1553,16 +1554,16 @@ function registerProjectCoreIPC({
       const statsCollector = getStatsCollector(database.db);
 
       if (!statsCollector) {
-        console.warn('[Main] 统计收集器初始化失败');
+        logger.warn('[Main] 统计收集器初始化失败');
         return { success: false, error: '统计收集器初始化失败' };
       }
 
       statsCollector.startWatching(projectId, projectPath);
 
-      console.log('[Main] 项目统计已启动:', projectId);
+      logger.info('[Main] 项目统计已启动:', projectId);
       return { success: true };
     } catch (error) {
-      console.error('[Main] 启动项目统计失败:', error);
+      logger.error('[Main] 启动项目统计失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -1574,7 +1575,7 @@ function registerProjectCoreIPC({
   ipcMain.handle('project:stats:stop', async (_event, projectId) => {
     try {
       if (!database || !database.db) {
-        console.warn('[Main] 数据库未初始化，跳过统计收集');
+        logger.warn('[Main] 数据库未初始化，跳过统计收集');
         return { success: false, error: '数据库未初始化' };
       }
 
@@ -1582,16 +1583,16 @@ function registerProjectCoreIPC({
       const statsCollector = getStatsCollector(database.db);
 
       if (!statsCollector) {
-        console.warn('[Main] 统计收集器初始化失败');
+        logger.warn('[Main] 统计收集器初始化失败');
         return { success: false, error: '统计收集器初始化失败' };
       }
 
       statsCollector.stopWatching(projectId);
 
-      console.log('[Main] 项目统计已停止:', projectId);
+      logger.info('[Main] 项目统计已停止:', projectId);
       return { success: true };
     } catch (error) {
-      console.error('[Main] 停止项目统计失败:', error);
+      logger.error('[Main] 停止项目统计失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -1617,7 +1618,7 @@ function registerProjectCoreIPC({
 
       return { success: true, stats };
     } catch (error) {
-      console.error('[Main] 获取项目统计失败:', error);
+      logger.error('[Main] 获取项目统计失败:', error);
       throw error;
     }
   });
@@ -1641,15 +1642,15 @@ function registerProjectCoreIPC({
 
       await statsCollector.updateStats(projectId, 'manual', '');
 
-      console.log('[Main] 项目统计已更新:', projectId);
+      logger.info('[Main] 项目统计已更新:', projectId);
       return { success: true };
     } catch (error) {
-      console.error('[Main] 更新项目统计失败:', error);
+      logger.error('[Main] 更新项目统计失败:', error);
       throw error;
     }
   });
 
-  console.log('[Project Core IPC] ✓ All Project Core IPC handlers registered successfully (34 handlers)');
+  logger.info('[Project Core IPC] ✓ All Project Core IPC handlers registered successfully (34 handlers)');
 }
 
 module.exports = {

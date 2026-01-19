@@ -9,6 +9,7 @@
  * - 处理离线缓存
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const EventEmitter = require('events');
 
 class KnowledgeSyncHandler extends EventEmitter {
@@ -56,7 +57,7 @@ class KnowledgeSyncHandler extends EventEmitter {
         break;
 
       default:
-        console.warn(`[KnowledgeSync] 未知消息类型: ${type}`);
+        logger.warn(`[KnowledgeSync] 未知消息类型: ${type}`);
         return {
           error: {
             code: 'UNKNOWN_TYPE',
@@ -73,7 +74,7 @@ class KnowledgeSyncHandler extends EventEmitter {
    * 处理获取笔记列表请求
    */
   async handleListNotes(mobilePeerId, message) {
-    console.log('[KnowledgeSync] 处理笔记列表请求:', message);
+    logger.info('[KnowledgeSync] 处理笔记列表请求:', message);
 
     try {
       const { folderId, limit = 50, offset = 0, sortBy = 'updated_at', sortOrder = 'DESC' } = message.params || {};
@@ -129,10 +130,10 @@ class KnowledgeSyncHandler extends EventEmitter {
 
       this.stats.notesSynced += notes.length;
 
-      console.log('[KnowledgeSync] ✅ 笔记列表已发送:', notes.length);
+      logger.info('[KnowledgeSync] ✅ 笔记列表已发送:', notes.length);
 
     } catch (error) {
-      console.error('[KnowledgeSync] 处理笔记列表请求失败:', error);
+      logger.error('[KnowledgeSync] 处理笔记列表请求失败:', error);
 
       // 如果是表不存在错误，返回空数组
       if (error.message && error.message.includes('no such table')) {
@@ -146,7 +147,7 @@ class KnowledgeSyncHandler extends EventEmitter {
             offset: message.params?.offset || 0
           }
         });
-        console.log('[KnowledgeSync] ⚠️  数据库表不存在，返回空列表');
+        logger.info('[KnowledgeSync] ⚠️  数据库表不存在，返回空列表');
       } else {
         await this.sendError(mobilePeerId, message.requestId, error.message);
       }
@@ -157,7 +158,7 @@ class KnowledgeSyncHandler extends EventEmitter {
    * 处理获取笔记详情请求
    */
   async handleGetNote(mobilePeerId, message) {
-    console.log('[KnowledgeSync] 处理笔记详情请求:', message);
+    logger.info('[KnowledgeSync] 处理笔记详情请求:', message);
 
     try {
       const { noteId } = message.params || {};
@@ -188,10 +189,10 @@ class KnowledgeSyncHandler extends EventEmitter {
 
       this.stats.bytesTransferred += (note.content || '').length;
 
-      console.log('[KnowledgeSync] ✅ 笔记详情已发送:', noteId);
+      logger.info('[KnowledgeSync] ✅ 笔记详情已发送:', noteId);
 
     } catch (error) {
-      console.error('[KnowledgeSync] 处理笔记详情请求失败:', error);
+      logger.error('[KnowledgeSync] 处理笔记详情请求失败:', error);
 
       await this.sendError(mobilePeerId, message.requestId, error.message);
     }
@@ -201,7 +202,7 @@ class KnowledgeSyncHandler extends EventEmitter {
    * 处理搜索请求
    */
   async handleSearch(mobilePeerId, message) {
-    console.log('[KnowledgeSync] 处理搜索请求:', message);
+    logger.info('[KnowledgeSync] 处理搜索请求:', message);
 
     try {
       const { query, limit = 20, offset = 0 } = message.params || {};
@@ -251,10 +252,10 @@ class KnowledgeSyncHandler extends EventEmitter {
 
       this.stats.searchQueries++;
 
-      console.log('[KnowledgeSync] ✅ 搜索结果已发送:', notes.length);
+      logger.info('[KnowledgeSync] ✅ 搜索结果已发送:', notes.length);
 
     } catch (error) {
-      console.error('[KnowledgeSync] 处理搜索请求失败:', error);
+      logger.error('[KnowledgeSync] 处理搜索请求失败:', error);
 
       // 如果是表不存在错误，返回空数组
       if (error.message && error.message.includes('no such table')) {
@@ -269,7 +270,7 @@ class KnowledgeSyncHandler extends EventEmitter {
             query: message.params?.query || ''
           }
         });
-        console.log('[KnowledgeSync] ⚠️  数据库表不存在，返回空搜索结果');
+        logger.info('[KnowledgeSync] ⚠️  数据库表不存在，返回空搜索结果');
       } else {
         await this.sendError(mobilePeerId, message.requestId, error.message);
       }
@@ -280,7 +281,7 @@ class KnowledgeSyncHandler extends EventEmitter {
    * 处理获取文件夹列表请求
    */
   async handleGetFolders(mobilePeerId, message) {
-    console.log('[KnowledgeSync] 处理文件夹列表请求');
+    logger.info('[KnowledgeSync] 处理文件夹列表请求');
 
     try {
       // 获取所有文件夹
@@ -304,10 +305,10 @@ class KnowledgeSyncHandler extends EventEmitter {
         data: { folders: folderTree }
       });
 
-      console.log('[KnowledgeSync] ✅ 文件夹列表已发送:', folders.length);
+      logger.info('[KnowledgeSync] ✅ 文件夹列表已发送:', folders.length);
 
     } catch (error) {
-      console.error('[KnowledgeSync] 处理文件夹列表请求失败:', error);
+      logger.error('[KnowledgeSync] 处理文件夹列表请求失败:', error);
 
       // 如果是表不存在错误，返回空数组
       if (error.message && error.message.includes('no such table')) {
@@ -316,7 +317,7 @@ class KnowledgeSyncHandler extends EventEmitter {
           requestId: message.requestId,
           data: { folders: [] }
         });
-        console.log('[KnowledgeSync] ⚠️  数据库表不存在，返回空文件夹列表');
+        logger.info('[KnowledgeSync] ⚠️  数据库表不存在，返回空文件夹列表');
       } else {
         await this.sendError(mobilePeerId, message.requestId, error.message);
       }
@@ -327,7 +328,7 @@ class KnowledgeSyncHandler extends EventEmitter {
    * 处理获取标签列表请求
    */
   async handleGetTags(mobilePeerId, message) {
-    console.log('[KnowledgeSync] 处理标签列表请求');
+    logger.info('[KnowledgeSync] 处理标签列表请求');
 
     try {
       // 从所有笔记的tags字段中提取标签并统计
@@ -360,10 +361,10 @@ class KnowledgeSyncHandler extends EventEmitter {
         data: { tags }
       });
 
-      console.log('[KnowledgeSync] ✅ 标签列表已发送:', tags.length);
+      logger.info('[KnowledgeSync] ✅ 标签列表已发送:', tags.length);
 
     } catch (error) {
-      console.error('[KnowledgeSync] 处理标签列表请求失败:', error);
+      logger.error('[KnowledgeSync] 处理标签列表请求失败:', error);
 
       // 如果是表不存在错误，返回空数组
       if (error.message && error.message.includes('no such table')) {
@@ -372,7 +373,7 @@ class KnowledgeSyncHandler extends EventEmitter {
           requestId: message.requestId,
           data: { tags: [] }
         });
-        console.log('[KnowledgeSync] ⚠️  数据库表不存在，返回空标签列表');
+        logger.info('[KnowledgeSync] ⚠️  数据库表不存在，返回空标签列表');
       } else {
         await this.sendError(mobilePeerId, message.requestId, error.message);
       }
@@ -417,7 +418,7 @@ class KnowledgeSyncHandler extends EventEmitter {
         payload: message
       });
     } else {
-      console.error('[KnowledgeSync] MobileBridge未初始化');
+      logger.error('[KnowledgeSync] MobileBridge未初始化');
     }
   }
 

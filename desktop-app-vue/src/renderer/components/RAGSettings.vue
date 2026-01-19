@@ -340,6 +340,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted } from 'vue';
 import { message } from 'ant-design-vue';
 import { ReloadOutlined, SyncOutlined } from '@ant-design/icons-vue';
@@ -386,7 +388,7 @@ const loadStats = async () => {
     const result = await window.electronAPI.rag.getStats();
     stats.value = result;
   } catch (error) {
-    console.error('[RAGSettings] 加载统计失败:', error);
+    logger.error('[RAGSettings] 加载统计失败:', error);
     message.error('加载统计信息失败');
   } finally {
     loadingStats.value = false;
@@ -417,7 +419,7 @@ const handleSave = async () => {
     await window.electronAPI.rag.updateConfig(plainConfig);
     message.success('RAG 配置已保存');
   } catch (error) {
-    console.error('[RAGSettings] 保存配置失败:', error);
+    logger.error('[RAGSettings] 保存配置失败:', error);
     message.error('保存配置失败');
   } finally {
     saving.value = false;
@@ -447,7 +449,7 @@ const handleRebuildIndex = async () => {
     message.success('向量索引重建成功');
     await loadStats(); // 重新加载统计
   } catch (error) {
-    console.error('[RAGSettings] 重建索引失败:', error);
+    logger.error('[RAGSettings] 重建索引失败:', error);
     message.error('重建索引失败');
   } finally {
     rebuilding.value = false;

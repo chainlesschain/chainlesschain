@@ -9,6 +9,7 @@
  * - 注册移动设备
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const EventEmitter = require('events');
 
 class DevicePairingHandler extends EventEmitter {
@@ -36,7 +37,7 @@ class DevicePairingHandler extends EventEmitter {
    * @returns {Promise<Object>} 配对结果
    */
   async handleQRCodeScan(qrCodeData) {
-    console.log('[DevicePairingHandler] 处理二维码扫描...');
+    logger.info('[DevicePairingHandler] 处理二维码扫描...');
 
     try {
       // 1. 解析二维码数据
@@ -75,7 +76,7 @@ class DevicePairingHandler extends EventEmitter {
       // 8. 等待移动端连接
       await this.waitForMobileConnection(qrData.did);
 
-      console.log('[DevicePairingHandler] ✅ 配对成功');
+      logger.info('[DevicePairingHandler] ✅ 配对成功');
 
       // 9. 清理配对请求
       this.pendingPairings.delete(qrData.code);
@@ -86,7 +87,7 @@ class DevicePairingHandler extends EventEmitter {
       };
 
     } catch (error) {
-      console.error('[DevicePairingHandler] ❌ 配对失败:', error);
+      logger.error('[DevicePairingHandler] ❌ 配对失败:', error);
       throw error;
     }
   }
@@ -124,7 +125,7 @@ class DevicePairingHandler extends EventEmitter {
    * @returns {Promise<boolean>} 用户是否确认
    */
   async showConfirmationDialog(qrData) {
-    console.log('[DevicePairingHandler] 显示确认对话框...');
+    logger.info('[DevicePairingHandler] 显示确认对话框...');
 
     // 触发事件，让主窗口显示对话框
     return new Promise((resolve, reject) => {
@@ -145,7 +146,7 @@ class DevicePairingHandler extends EventEmitter {
    * 发送配对确认到移动端
    */
   async sendConfirmation(qrData) {
-    console.log('[DevicePairingHandler] 发送配对确认...');
+    logger.info('[DevicePairingHandler] 发送配对确认...');
 
     const confirmationMessage = {
       type: 'pairing:confirmation',
@@ -175,7 +176,7 @@ class DevicePairingHandler extends EventEmitter {
    * 注册移动设备
    */
   async registerMobileDevice(qrData) {
-    console.log('[DevicePairingHandler] 注册移动设备...');
+    logger.info('[DevicePairingHandler] 注册移动设备...');
 
     const device = {
       deviceId: qrData.deviceInfo.deviceId,
@@ -199,7 +200,7 @@ class DevicePairingHandler extends EventEmitter {
    * 等待移动端连接
    */
   async waitForMobileConnection(mobileDid) {
-    console.log('[DevicePairingHandler] 等待移动端连接...');
+    logger.info('[DevicePairingHandler] 等待移动端连接...');
 
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
@@ -224,7 +225,7 @@ class DevicePairingHandler extends EventEmitter {
    * @returns {Promise<Object>} 扫描结果
    */
   async startQRCodeScanner() {
-    console.log('[DevicePairingHandler] 启动二维码扫描器...');
+    logger.info('[DevicePairingHandler] 启动二维码扫描器...');
 
     // 触发事件，让主窗口打开摄像头界面
     return new Promise((resolve, reject) => {
@@ -248,7 +249,7 @@ class DevicePairingHandler extends EventEmitter {
    * 手动输入配对码
    */
   async pairWithCode(pairingCode, mobileDid, deviceInfo) {
-    console.log('[DevicePairingHandler] 手动配对:', pairingCode);
+    logger.info('[DevicePairingHandler] 手动配对:', pairingCode);
 
     const qrData = {
       type: 'device-pairing',
@@ -280,7 +281,7 @@ class DevicePairingHandler extends EventEmitter {
       }
 
       if (expired.length > 0) {
-        console.log(`[DevicePairingHandler] 清理 ${expired.length} 个过期配对请求`);
+        logger.info(`[DevicePairingHandler] 清理 ${expired.length} 个过期配对请求`);
       }
     }, 60000); // 每分钟清理一次
   }
@@ -296,7 +297,7 @@ class DevicePairingHandler extends EventEmitter {
    * 取消配对
    */
   cancelPairing(pairingCode) {
-    console.log('[DevicePairingHandler] 取消配对:', pairingCode);
+    logger.info('[DevicePairingHandler] 取消配对:', pairingCode);
     this.pendingPairings.delete(pairingCode);
     this.emit('pairing:cancelled', { pairingCode });
   }

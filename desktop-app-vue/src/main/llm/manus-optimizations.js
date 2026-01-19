@@ -25,6 +25,7 @@ const {
 } = require("../ai-engine/tool-masking");
 
 // 🔥 任务追踪文件系统 (todo.md 机制)
+const { logger, createLogger } = require('../utils/logger.js');
 const { getTaskTrackerFile } = require("../ai-engine/task-tracker-file");
 
 /**
@@ -63,7 +64,7 @@ class ManusOptimizations {
           preserveHistory: options.preserveTaskHistory !== false,
         });
       } catch (error) {
-        console.warn("[ManusOptimizations] TaskTrackerFile 初始化失败:", error.message);
+        logger.warn("[ManusOptimizations] TaskTrackerFile 初始化失败:", error.message);
       }
     }
 
@@ -81,7 +82,7 @@ class ManusOptimizations {
     // 当前任务上下文
     this.currentTask = null;
 
-    console.log("[ManusOptimizations] 初始化完成", {
+    logger.info("[ManusOptimizations] 初始化完成", {
       kvCache: this.config.enableKVCacheOptimization,
       toolMasking: this.config.enableToolMasking,
       taskTracking: this.config.enableTaskTracking,
@@ -215,7 +216,7 @@ class ManusOptimizations {
         await this.taskTracker.startTask();
         this.currentTask = createdTask;
       } catch (error) {
-        console.warn("[ManusOptimizations] TaskTrackerFile 创建失败，使用内存模式:", error.message);
+        logger.warn("[ManusOptimizations] TaskTrackerFile 创建失败，使用内存模式:", error.message);
         this._createMemoryTask(task);
       }
     } else {
@@ -229,7 +230,7 @@ class ManusOptimizations {
       this.toolMasking.transitionTo("planning");
     }
 
-    console.log(`[ManusOptimizations] 开始任务: ${task.objective}`);
+    logger.info(`[ManusOptimizations] 开始任务: ${task.objective}`);
     return this.currentTask;
   }
 
@@ -265,7 +266,7 @@ class ManusOptimizations {
       try {
         await this.taskTracker.updateProgress(stepIndex, status);
       } catch (error) {
-        console.warn("[ManusOptimizations] TaskTrackerFile 更新失败:", error.message);
+        logger.warn("[ManusOptimizations] TaskTrackerFile 更新失败:", error.message);
       }
     }
 
@@ -283,7 +284,7 @@ class ManusOptimizations {
       }
     }
 
-    console.log(`[ManusOptimizations] 任务进度: 步骤 ${stepIndex + 1}, 状态: ${status}`);
+    logger.info(`[ManusOptimizations] 任务进度: 步骤 ${stepIndex + 1}, 状态: ${status}`);
   }
 
   /**
@@ -300,7 +301,7 @@ class ManusOptimizations {
         this.currentTask = this.taskTracker.getCurrentTask();
         return;
       } catch (error) {
-        console.warn("[ManusOptimizations] TaskTrackerFile 完成步骤失败:", error.message);
+        logger.warn("[ManusOptimizations] TaskTrackerFile 完成步骤失败:", error.message);
       }
     }
 
@@ -324,14 +325,14 @@ class ManusOptimizations {
       try {
         await this.taskTracker.completeTask(result);
       } catch (error) {
-        console.warn("[ManusOptimizations] TaskTrackerFile 完成任务失败:", error.message);
+        logger.warn("[ManusOptimizations] TaskTrackerFile 完成任务失败:", error.message);
       }
     }
 
     this.currentTask.status = "completed";
     this.currentTask.completedAt = Date.now();
 
-    console.log(
+    logger.info(
       `[ManusOptimizations] 任务完成: ${this.currentTask.objective}`,
     );
 
@@ -356,14 +357,14 @@ class ManusOptimizations {
       try {
         await this.taskTracker.cancelTask(reason);
       } catch (error) {
-        console.warn("[ManusOptimizations] TaskTrackerFile 取消任务失败:", error.message);
+        logger.warn("[ManusOptimizations] TaskTrackerFile 取消任务失败:", error.message);
       }
     }
 
     this.currentTask.status = "cancelled";
     this.currentTask.cancelledAt = Date.now();
 
-    console.log(
+    logger.info(
       `[ManusOptimizations] 任务取消: ${this.currentTask.objective}`,
     );
 
@@ -409,11 +410,11 @@ class ManusOptimizations {
       if (task) {
         this.currentTask = task;
         this.contextEngineering.setCurrentTask(task);
-        console.log(`[ManusOptimizations] 已恢复未完成任务: ${task.objective}`);
+        logger.info(`[ManusOptimizations] 已恢复未完成任务: ${task.objective}`);
         return task;
       }
     } catch (error) {
-      console.warn("[ManusOptimizations] 恢复任务失败:", error.message);
+      logger.warn("[ManusOptimizations] 恢复任务失败:", error.message);
     }
 
     return null;
@@ -432,7 +433,7 @@ class ManusOptimizations {
     try {
       return await this.taskTracker.getTaskHistory(limit);
     } catch (error) {
-      console.warn("[ManusOptimizations] 获取任务历史失败:", error.message);
+      logger.warn("[ManusOptimizations] 获取任务历史失败:", error.message);
       return [];
     }
   }

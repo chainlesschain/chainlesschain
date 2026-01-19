@@ -4,6 +4,7 @@
  * 负责图片文件的存储、检索和管理
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require('fs').promises;
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
@@ -50,9 +51,9 @@ class ImageStorage {
       try {
         await fs.mkdir(this.storageBasePath, { recursive: true });
         await fs.mkdir(this.thumbnailBasePath, { recursive: true });
-        console.log('[ImageStorage] 存储目录已创建:', this.storageBasePath);
+        logger.info('[ImageStorage] 存储目录已创建:', this.storageBasePath);
       } catch (error) {
-        console.error('[ImageStorage] 创建存储目录失败:', error);
+        logger.error('[ImageStorage] 创建存储目录失败:', error);
         throw error;
       }
     }
@@ -87,9 +88,9 @@ class ImageStorage {
         )
       `);
 
-      console.log('[ImageStorage] 数据库表已初始化');
+      logger.info('[ImageStorage] 数据库表已初始化');
     } catch (error) {
-      console.error('[ImageStorage] 初始化数据库失败:', error);
+      logger.error('[ImageStorage] 初始化数据库失败:', error);
       throw error;
     }
   }
@@ -140,7 +141,7 @@ class ImageStorage {
       }
 
       if (diskCheck.warning) {
-        console.warn('[ImageStorage] 磁盘空间警告:', {
+        logger.warn('[ImageStorage] 磁盘空间警告:', {
           freeSpace: diskCheck.freeSpace,
           threshold: this.resourceMonitor.thresholds.diskWarning
         });
@@ -177,7 +178,7 @@ class ImageStorage {
       // 保存到数据库
       await this.addImageRecord(imageRecord);
 
-      console.log('[ImageStorage] 图片已保存:', newFilename);
+      logger.info('[ImageStorage] 图片已保存:', newFilename);
 
       return {
         success: true,
@@ -187,7 +188,7 @@ class ImageStorage {
         size: stats.size,
       };
     } catch (error) {
-      console.error('[ImageStorage] 保存图片失败:', error);
+      logger.error('[ImageStorage] 保存图片失败:', error);
       throw error;
     }
   }
@@ -224,14 +225,14 @@ class ImageStorage {
         updated_at: Date.now(),
       });
 
-      console.log('[ImageStorage] 缩略图已保存:', filename);
+      logger.info('[ImageStorage] 缩略图已保存:', filename);
 
       return {
         success: true,
         path: destPath,
       };
     } catch (error) {
-      console.error('[ImageStorage] 保存缩略图失败:', error);
+      logger.error('[ImageStorage] 保存缩略图失败:', error);
       throw error;
     }
   }
@@ -362,32 +363,32 @@ class ImageStorage {
       // 删除文件
       try {
         await fs.unlink(record.path);
-        console.log('[ImageStorage] 已删除图片文件:', record.path);
+        logger.info('[ImageStorage] 已删除图片文件:', record.path);
       } catch (error) {
-        console.warn('[ImageStorage] 删除图片文件失败:', error);
+        logger.warn('[ImageStorage] 删除图片文件失败:', error);
       }
 
       // 删除缩略图
       if (record.thumbnail_path) {
         try {
           await fs.unlink(record.thumbnail_path);
-          console.log('[ImageStorage] 已删除缩略图:', record.thumbnail_path);
+          logger.info('[ImageStorage] 已删除缩略图:', record.thumbnail_path);
         } catch (error) {
-          console.warn('[ImageStorage] 删除缩略图失败:', error);
+          logger.warn('[ImageStorage] 删除缩略图失败:', error);
         }
       }
 
       // 从数据库删除
       await this.db.run('DELETE FROM images WHERE id = ?', [imageId]);
 
-      console.log('[ImageStorage] 图片记录已删除:', imageId);
+      logger.info('[ImageStorage] 图片记录已删除:', imageId);
 
       return {
         success: true,
         id: imageId,
       };
     } catch (error) {
-      console.error('[ImageStorage] 删除图片失败:', error);
+      logger.error('[ImageStorage] 删除图片失败:', error);
       throw error;
     }
   }
@@ -408,7 +409,7 @@ class ImageStorage {
         averageOcrConfidence: avgConfidenceRow ? avgConfidenceRow.avgConfidence || 0 : 0,
       };
     } catch (error) {
-      console.error('[ImageStorage] 获取统计信息失败:', error);
+      logger.error('[ImageStorage] 获取统计信息失败:', error);
       return {
         totalImages: 0,
         totalSize: 0,
@@ -437,7 +438,7 @@ class ImageStorage {
           const filePath = path.join(this.storageBasePath, filename);
           await fs.unlink(filePath);
           cleaned++;
-          console.log('[ImageStorage] 已清理孤立文件:', filename);
+          logger.info('[ImageStorage] 已清理孤立文件:', filename);
         }
       }
 
@@ -446,7 +447,7 @@ class ImageStorage {
         cleaned: cleaned,
       };
     } catch (error) {
-      console.error('[ImageStorage] 清理孤立文件失败:', error);
+      logger.error('[ImageStorage] 清理孤立文件失败:', error);
       throw error;
     }
   }

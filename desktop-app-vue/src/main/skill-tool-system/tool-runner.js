@@ -3,6 +3,7 @@
  * 实际执行工具的底层实现
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require('fs').promises;
 const path = require('path');
 
@@ -46,10 +47,10 @@ class ToolRunner {
     const startTime = Date.now();
 
     try {
-      console.log(`[ToolRunner] 执行工具: ${toolName}`);
-      console.log(`[ToolRunner] 参数:`, params);
-      console.log(`[ToolRunner] 选项:`, options);
-      console.log(`[ToolRunner] 项目路径:`, options.projectPath);
+      logger.info(`[ToolRunner] 执行工具: ${toolName}`);
+      logger.info(`[ToolRunner] 参数:`, params);
+      logger.info(`[ToolRunner] 选项:`, options);
+      logger.info(`[ToolRunner] 项目路径:`, options.projectPath);
 
       // 1. 获取工具信息
       const tool = await this.toolManager.getToolByName(toolName);
@@ -80,7 +81,7 @@ class ToolRunner {
       const executionTime = Date.now() - startTime;
       await this.toolManager.recordExecution(toolName, true, executionTime);
 
-      console.log(`[ToolRunner] 工具执行成功: ${toolName}, 耗时: ${executionTime}ms`);
+      logger.info(`[ToolRunner] 工具执行成功: ${toolName}, 耗时: ${executionTime}ms`);
 
       return {
         success: true,
@@ -93,7 +94,7 @@ class ToolRunner {
       const executionTime = Date.now() - startTime;
       await this.toolManager.recordExecution(toolName, false, executionTime);
 
-      console.error(`[ToolRunner] 工具执行失败: ${toolName}`, error);
+      logger.error(`[ToolRunner] 工具执行失败: ${toolName}`, error);
 
       return {
         success: false,
@@ -155,7 +156,7 @@ class ToolRunner {
       let resolvedPath = filePath;
       if (options.projectPath && !path.isAbsolute(filePath)) {
         resolvedPath = path.join(options.projectPath, filePath);
-        console.log(`[ToolRunner] 相对路径解析: ${filePath} -> ${resolvedPath}`);
+        logger.info(`[ToolRunner] 相对路径解析: ${filePath} -> ${resolvedPath}`);
       }
 
       // 安全检查：防止路径遍历
@@ -186,7 +187,7 @@ class ToolRunner {
       let resolvedPath = filePath;
       if (options.projectPath && !path.isAbsolute(filePath)) {
         resolvedPath = path.join(options.projectPath, filePath);
-        console.log(`[ToolRunner] 相对路径解析: ${filePath} -> ${resolvedPath}`);
+        logger.info(`[ToolRunner] 相对路径解析: ${filePath} -> ${resolvedPath}`);
       }
 
       // 安全检查
@@ -206,7 +207,7 @@ class ToolRunner {
         await fs.writeFile(safePath, content, 'utf8');
       }
 
-      console.log(`[ToolRunner] 文件已写入: ${safePath}, 大小: ${content.length} 字节`);
+      logger.info(`[ToolRunner] 文件已写入: ${safePath}, 大小: ${content.length} 字节`);
 
       return {
         success: true,
@@ -228,7 +229,7 @@ class ToolRunner {
       let resolvedPath = filePath;
       if (options.projectPath && !path.isAbsolute(filePath)) {
         resolvedPath = path.join(options.projectPath, filePath);
-        console.log(`[ToolRunner] 相对路径解析: ${filePath} -> ${resolvedPath}`);
+        logger.info(`[ToolRunner] 相对路径解析: ${filePath} -> ${resolvedPath}`);
       }
 
       const safePath = path.normalize(resolvedPath);
@@ -411,7 +412,7 @@ export class ${moduleName} {
   }
 
   init() {
-    console.log('${moduleName} 初始化完成');
+    logger.info('${moduleName} 初始化完成');
   }
 
   ${features.map(feature => `
@@ -429,7 +430,7 @@ var ${moduleName} = (function() {
   }
 
   ${moduleName}.prototype.init = function() {
-    console.log('${moduleName} 初始化完成');
+    logger.info('${moduleName} 初始化完成');
   };
 
   return ${moduleName};

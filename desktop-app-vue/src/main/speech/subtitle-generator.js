@@ -5,6 +5,7 @@
  * 用于音频/视频转录结果的字幕导出
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require('fs').promises;
 const path = require('path');
 
@@ -345,7 +346,7 @@ class SubtitleGenerator {
 
       await fs.writeFile(outputPath, content, 'utf-8');
 
-      console.log(`[SubtitleGenerator] 字幕已保存: ${outputPath}`);
+      logger.info(`[SubtitleGenerator] 字幕已保存: ${outputPath}`);
 
       return {
         success: true,
@@ -354,7 +355,7 @@ class SubtitleGenerator {
         subtitleCount: subtitles.length,
       };
     } catch (error) {
-      console.error('[SubtitleGenerator] 保存字幕失败:', error);
+      logger.error('[SubtitleGenerator] 保存字幕失败:', error);
       throw error;
     }
   }
@@ -370,7 +371,7 @@ class SubtitleGenerator {
     try {
       await fs.writeFile(outputPath, whisperResponse, 'utf-8');
 
-      console.log(`[SubtitleGenerator] Whisper 字幕已保存: ${outputPath}`);
+      logger.info(`[SubtitleGenerator] Whisper 字幕已保存: ${outputPath}`);
 
       return {
         success: true,
@@ -378,7 +379,7 @@ class SubtitleGenerator {
         format: format,
       };
     } catch (error) {
-      console.error('[SubtitleGenerator] 保存 Whisper 字幕失败:', error);
+      logger.error('[SubtitleGenerator] 保存 Whisper 字幕失败:', error);
       throw error;
     }
   }
@@ -471,7 +472,7 @@ class SubtitleGenerator {
         sourceFiles: subtitlePaths.length,
       };
     } catch (error) {
-      console.error('[SubtitleGenerator] 合并字幕失败:', error);
+      logger.error('[SubtitleGenerator] 合并字幕失败:', error);
       throw error;
     }
   }

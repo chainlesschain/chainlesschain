@@ -3,6 +3,7 @@
  * 提供NPM、Python、Docker等项目初始化功能
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require('fs').promises;
 const path = require('path');
 const { exec } = require('child_process');
@@ -64,7 +65,7 @@ app.get('/', (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(\`Server running on port \${PORT}\`);
+  logger.info(\`Server running on port \${PORT}\`);
 });
 `;
           await fs.writeFile(path.join(projectPath, 'server.js'), serverJs, 'utf-8');
@@ -98,7 +99,7 @@ app.listen(PORT, () => {
           };
 
           // 创建基础index.js
-          const indexJs = `console.log('Hello from ${projectName}!');
+          const indexJs = `logger.info('Hello from ${projectName}!');
 `;
           await fs.writeFile(path.join(projectPath, 'index.js'), indexJs, 'utf-8');
           filesCreated.push('index.js');
@@ -145,17 +146,17 @@ ${packageManager} start
           await execPromise('git init', { cwd: projectPath });
           filesCreated.push('.git');
         } catch (error) {
-          console.warn('[NPM Setup] Git初始化失败:', error.message);
+          logger.warn('[NPM Setup] Git初始化失败:', error.message);
         }
       }
 
       // 安装依赖
       if (installDeps && packageJson.dependencies) {
         try {
-          console.log(`[NPM Setup] 正在安装依赖...`);
+          logger.info(`[NPM Setup] 正在安装依赖...`);
           await execPromise(`${packageManager} install`, { cwd: projectPath });
         } catch (error) {
-          console.warn('[NPM Setup] 依赖安装失败:', error.message);
+          logger.warn('[NPM Setup] 依赖安装失败:', error.message);
         }
       }
 
@@ -165,7 +166,7 @@ ${packageManager} start
         filesCreated: filesCreated
       };
     } catch (error) {
-      console.error('[NPM Project Setup] 初始化失败:', error);
+      logger.error('[NPM Project Setup] 初始化失败:', error);
       throw new Error(`NPM项目初始化失败: ${error.message}`);
     }
   }
@@ -191,7 +192,7 @@ ${packageManager} start
         filePath: packageJsonPath
       };
     } catch (error) {
-      console.error('[Package.json Builder] 构建失败:', error);
+      logger.error('[Package.json Builder] 构建失败:', error);
       throw new Error(`package.json构建失败: ${error.message}`);
     }
   }
@@ -312,7 +313,7 @@ build/
           await execPromise(`python -m venv venv`, { cwd: projectPath });
           filesCreated.push('venv/');
         } catch (error) {
-          console.warn('[Python Setup] 虚拟环境创建失败:', error.message);
+          logger.warn('[Python Setup] 虚拟环境创建失败:', error.message);
         }
       }
 
@@ -322,7 +323,7 @@ build/
           await execPromise('git init', { cwd: projectPath });
           filesCreated.push('.git');
         } catch (error) {
-          console.warn('[Python Setup] Git初始化失败:', error.message);
+          logger.warn('[Python Setup] Git初始化失败:', error.message);
         }
       }
 
@@ -333,7 +334,7 @@ build/
         venvPath: venvPath
       };
     } catch (error) {
-      console.error('[Python Project Setup] 初始化失败:', error);
+      logger.error('[Python Project Setup] 初始化失败:', error);
       throw new Error(`Python项目初始化失败: ${error.message}`);
     }
   }
@@ -353,7 +354,7 @@ build/
           const { stdout } = await execPromise('pip freeze');
           content = stdout;
         } catch (error) {
-          console.warn('[Requirements Generator] 自动检测失败，使用手动指定的包');
+          logger.warn('[Requirements Generator] 自动检测失败，使用手动指定的包');
         }
       }
 
@@ -380,7 +381,7 @@ build/
         packageCount: content.split('\n').filter(l => l.trim()).length
       };
     } catch (error) {
-      console.error('[Requirements Generator] 生成失败:', error);
+      logger.error('[Requirements Generator] 生成失败:', error);
       throw new Error(`requirements.txt生成失败: ${error.message}`);
     }
   }
@@ -439,7 +440,7 @@ build/
         filePath: filePath
       };
     } catch (error) {
-      console.error('[Dockerfile Generator] 生成失败:', error);
+      logger.error('[Dockerfile Generator] 生成失败:', error);
       throw new Error(`Dockerfile生成失败: ${error.message}`);
     }
   }
@@ -473,7 +474,7 @@ build/
         patterns: patterns.size
       };
     } catch (error) {
-      console.error('[Gitignore Generator] 生成失败:', error);
+      logger.error('[Gitignore Generator] 生成失败:', error);
       throw new Error(`.gitignore生成失败: ${error.message}`);
     }
   }
@@ -553,7 +554,7 @@ build/
     functionCaller.registerTool('tool_dockerfile_generator', this.tool_dockerfile_generator.bind(this));
     functionCaller.registerTool('tool_gitignore_generator', this.tool_gitignore_generator.bind(this));
 
-    console.log('[ProjectToolsHandler] 项目初始化工具已注册（6个）');
+    logger.info('[ProjectToolsHandler] 项目初始化工具已注册（6个）');
   }
 }
 

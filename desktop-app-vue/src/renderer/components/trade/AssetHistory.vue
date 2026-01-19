@@ -230,6 +230,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, watch } from 'vue';
 import { message } from 'ant-design-vue';
 import {
@@ -476,9 +478,9 @@ const loadHistory = async () => {
     history.value = result || [];
     hasMore.value = result && result.length >= currentLimit.value;
 
-    console.log('[AssetHistory] 历史记录已加载:', history.value.length);
+    logger.info('[AssetHistory] 历史记录已加载:', history.value.length);
   } catch (error) {
-    console.error('[AssetHistory] 加载历史记录失败:', error);
+    logger.error('[AssetHistory] 加载历史记录失败:', error);
     message.error('加载历史记录失败: ' + error.message);
     history.value = [];
   } finally {

@@ -3,6 +3,7 @@
  * 为技能和工具生成 Markdown 文档
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require("fs").promises;
 const path = require("path");
 
@@ -33,9 +34,9 @@ class DocGenerator {
       await fs.mkdir(this.skillsDocsPath, { recursive: true });
       await fs.mkdir(this.toolsDocsPath, { recursive: true });
 
-      console.log("[DocGenerator] 文档目录初始化完成");
+      logger.info("[DocGenerator] 文档目录初始化完成");
     } catch (error) {
-      console.error("[DocGenerator] 初始化失败:", error);
+      logger.error("[DocGenerator] 初始化失败:", error);
       throw error;
     }
   }
@@ -55,14 +56,14 @@ class DocGenerator {
       // 只在内容实际变化时才写入（忽略时间戳比较）
       if (await this._shouldUpdateDoc(filePath, markdown)) {
         await fs.writeFile(filePath, markdown, "utf-8");
-        console.log(`[DocGenerator] 技能文档已生成: ${fileName}`);
+        logger.info(`[DocGenerator] 技能文档已生成: ${fileName}`);
       } else {
-        console.log(`[DocGenerator] 技能文档无变化，跳过: ${fileName}`);
+        logger.info(`[DocGenerator] 技能文档无变化，跳过: ${fileName}`);
       }
 
       return filePath;
     } catch (error) {
-      console.error("[DocGenerator] 生成技能文档失败:", error);
+      logger.error("[DocGenerator] 生成技能文档失败:", error);
       throw error;
     }
   }
@@ -81,14 +82,14 @@ class DocGenerator {
       // 只在内容实际变化时才写入（忽略时间戳比较）
       if (await this._shouldUpdateDoc(filePath, markdown)) {
         await fs.writeFile(filePath, markdown, "utf-8");
-        console.log(`[DocGenerator] 工具文档已生成: ${fileName}`);
+        logger.info(`[DocGenerator] 工具文档已生成: ${fileName}`);
       } else {
-        console.log(`[DocGenerator] 工具文档无变化，跳过: ${fileName}`);
+        logger.info(`[DocGenerator] 工具文档无变化，跳过: ${fileName}`);
       }
 
       return filePath;
     } catch (error) {
-      console.error("[DocGenerator] 生成工具文档失败:", error);
+      logger.error("[DocGenerator] 生成工具文档失败:", error);
       throw error;
     }
   }
@@ -437,7 +438,7 @@ const result = await aiEngineManager.processUserInput(
 \`\`\`javascript
 // 在渲染进程中
 const tools = await window.electronAPI.invoke('skill:get-tools', skillId);
-console.log('技能包含的工具:', tools);
+logger.info('技能包含的工具:', tools);
 \`\`\`
 `;
   }
@@ -467,7 +468,7 @@ console.log('技能包含的工具:', tools);
 // 通过 FunctionCaller 调用
 const result = await functionCaller.call('${toolName}', ${JSON.stringify(exampleParams, null, 2)});
 
-console.log('执行结果:', result);
+logger.info('执行结果:', result);
 \`\`\`
 
 \`\`\`javascript
@@ -667,7 +668,7 @@ const result = await window.electronAPI.invoke('tool:test', toolId, ${JSON.strin
       await this.generateSkillDoc(skill, tools);
       count++;
     }
-    console.log(`[DocGenerator] 批量生成了 ${count} 个技能文档`);
+    logger.info(`[DocGenerator] 批量生成了 ${count} 个技能文档`);
     return count;
   }
 
@@ -682,7 +683,7 @@ const result = await window.electronAPI.invoke('tool:test', toolId, ${JSON.strin
       await this.generateToolDoc(tool);
       count++;
     }
-    console.log(`[DocGenerator] 批量生成了 ${count} 个工具文档`);
+    logger.info(`[DocGenerator] 批量生成了 ${count} 个工具文档`);
     return count;
   }
 }

@@ -42,6 +42,9 @@ class PersistentSessionManager @Inject constructor(
     private val _activeSessions = MutableStateFlow<List<SessionInfo>>(emptyList())
     val activeSessions: StateFlow<List<SessionInfo>> = _activeSessions.asStateFlow()
 
+    // 对等方身份密钥（用于验证）
+    private val peerIdentityKeys = mutableMapOf<String, ByteArray>()
+
     // 预密钥轮转管理器
     private val rotationManager = PreKeyRotationManager(
         onSignedPreKeyRotation = { newSignedPreKeyPair ->
@@ -241,6 +244,9 @@ class PersistentSessionManager @Inject constructor(
         sessions[peerId] = session
         updateActiveSessions()
 
+        // 存储对等方身份密钥
+        peerIdentityKeys[peerId] = peerPreKeyBundle.identityKey
+
         // 保存会话
         try {
             sessionStorage.saveSession(
@@ -283,6 +289,9 @@ class PersistentSessionManager @Inject constructor(
 
         sessions[peerId] = session
         updateActiveSessions()
+
+        // 存储对等方身份密钥
+        peerIdentityKeys[peerId] = initialMessage.identityKey
 
         // 保存会话
         try {
@@ -489,5 +498,19 @@ class PersistentSessionManager @Inject constructor(
      */
     suspend fun rotateSignedPreKeyNow() {
         rotationManager.rotateSignedPreKey()
+    }
+
+    /**
+     * 获取本地身份公钥
+     */
+    fun getLocalIdentityPublicKey(): ByteArray {
+        return identityKeyPair.publicKey
+    }
+
+    /**
+     * 获取对等方身份公钥
+     */
+    fun getPeerIdentityPublicKey(peerId: String): ByteArray? {
+        return peerIdentityKeys[peerId]
     }
 }

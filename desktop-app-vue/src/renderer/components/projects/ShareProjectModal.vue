@@ -97,6 +97,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, watch } from 'vue';
 import { message } from 'ant-design-vue';
 import {
@@ -169,7 +171,7 @@ const loadShareInfo = async () => {
       currentShareInfo.value = null;
     }
   } catch (error) {
-    console.error('加载分享信息失败:', error);
+    logger.error('加载分享信息失败:', error);
     currentShareInfo.value = null;
   }
 };
@@ -191,7 +193,7 @@ const handleCopyLink = async () => {
       copyStatus.value = '';
     }, 3000);
   } catch (error) {
-    console.error('复制链接失败:', error);
+    logger.error('复制链接失败:', error);
     message.error('复制失败,请手动复制');
   }
 };
@@ -224,7 +226,7 @@ const handleConfirm = async () => {
       throw new Error('分享设置失败');
     }
   } catch (error) {
-    console.error('保存分享设置失败:', error);
+    logger.error('保存分享设置失败:', error);
     message.error('保存失败: ' + error.message);
   } finally {
     saving.value = false;

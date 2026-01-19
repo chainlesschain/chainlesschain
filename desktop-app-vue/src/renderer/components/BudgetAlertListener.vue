@@ -3,6 +3,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { onMounted, onUnmounted } from "vue";
 import { notification, Modal } from "ant-design-vue";
 import { useRouter } from "vue-router";
@@ -17,7 +19,7 @@ const router = useRouter();
 
 // 预算告警处理
 const handleBudgetAlert = (alert) => {
-  console.log("[BudgetAlertListener] 收到预算告警:", alert);
+  logger.info("[BudgetAlertListener] 收到预算告警:", alert);
 
   // 根据告警级别显示不同类型的通知
   if (alert.level === "critical") {
@@ -73,7 +75,7 @@ const handleBudgetAlert = (alert) => {
 
 // LLM 服务暂停处理
 const handleServicePaused = (data) => {
-  console.log("[BudgetAlertListener] LLM 服务已暂停:", data);
+  logger.info("[BudgetAlertListener] LLM 服务已暂停:", data);
 
   const { reason, alert } = data;
 
@@ -117,7 +119,7 @@ const handleServicePaused = (data) => {
 
 // LLM 服务恢复处理
 const handleServiceResumed = () => {
-  console.log("[BudgetAlertListener] LLM 服务已恢复");
+  logger.info("[BudgetAlertListener] LLM 服务已恢复");
 
   notification.success({
     message: "✅ LLM 服务已恢复",
@@ -128,13 +130,13 @@ const handleServiceResumed = () => {
 
 // 导航处理
 const handleNavigate = (path) => {
-  console.log("[BudgetAlertListener] 导航到:", path);
+  logger.info("[BudgetAlertListener] 导航到:", path);
   router.push(path);
 };
 
 // 生命周期
 onMounted(() => {
-  console.log("[BudgetAlertListener] 开始监听预算告警事件");
+  logger.info("[BudgetAlertListener] 开始监听预算告警事件");
 
   // 监听预算告警
   window.electronAPI?.llm?.on?.("llm:budget-alert", handleBudgetAlert);
@@ -150,7 +152,7 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
-  console.log("[BudgetAlertListener] 停止监听预算告警事件");
+  logger.info("[BudgetAlertListener] 停止监听预算告警事件");
 
   // 清理监听器
   window.electronAPI?.llm?.off?.("llm:budget-alert", handleBudgetAlert);

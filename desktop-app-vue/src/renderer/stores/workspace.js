@@ -1,3 +1,4 @@
+import { logger, createLogger } from '@/utils/logger';
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { message } from 'ant-design-vue';
@@ -111,7 +112,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
 
       if (result.success) {
         workspaces.value = result.workspaces || [];
-        console.log('[WorkspaceStore] 工作区列表加载成功', workspaces.value.length);
+        logger.info('[WorkspaceStore] 工作区列表加载成功', workspaces.value.length);
 
         // 如果当前没有选中工作区，自动选中默认工作区
         if (!currentWorkspace.value && workspaces.value.length > 0) {
@@ -120,11 +121,11 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         }
       } else {
         message.error(`加载工作区列表失败: ${result.error}`);
-        console.error('[WorkspaceStore] 加载工作区列表失败:', result.error);
+        logger.error('[WorkspaceStore] 加载工作区列表失败:', result.error);
       }
     } catch (error) {
       message.error('加载工作区列表异常');
-      console.error('[WorkspaceStore] 加载工作区列表异常:', error);
+      logger.error('[WorkspaceStore] 加载工作区列表异常:', error);
     } finally {
       loading.value = false;
     }
@@ -146,7 +147,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
 
       if (result.success) {
         message.success('工作区创建成功');
-        console.log('[WorkspaceStore] 工作区创建成功:', result.workspace);
+        logger.info('[WorkspaceStore] 工作区创建成功:', result.workspace);
 
         // 重新加载工作区列表
         await loadWorkspaces(orgId);
@@ -159,12 +160,12 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         return result.workspace;
       } else {
         message.error(`创建工作区失败: ${result.error}`);
-        console.error('[WorkspaceStore] 创建工作区失败:', result.error);
+        logger.error('[WorkspaceStore] 创建工作区失败:', result.error);
         return null;
       }
     } catch (error) {
       message.error('创建工作区异常');
-      console.error('[WorkspaceStore] 创建工作区异常:', error);
+      logger.error('[WorkspaceStore] 创建工作区异常:', error);
       return null;
     } finally {
       loading.value = false;
@@ -187,7 +188,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
 
       if (result.success) {
         message.success('工作区更新成功');
-        console.log('[WorkspaceStore] 工作区更新成功');
+        logger.info('[WorkspaceStore] 工作区更新成功');
 
         // 更新本地缓存
         const index = workspaces.value.findIndex(ws => ws.id === workspaceId);
@@ -211,12 +212,12 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         return true;
       } else {
         message.error(`更新工作区失败: ${result.error}`);
-        console.error('[WorkspaceStore] 更新工作区失败:', result.error);
+        logger.error('[WorkspaceStore] 更新工作区失败:', result.error);
         return false;
       }
     } catch (error) {
       message.error('更新工作区异常');
-      console.error('[WorkspaceStore] 更新工作区异常:', error);
+      logger.error('[WorkspaceStore] 更新工作区异常:', error);
       return false;
     } finally {
       loading.value = false;
@@ -237,7 +238,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
 
       if (result.success) {
         message.success('工作区已归档');
-        console.log('[WorkspaceStore] 工作区归档成功');
+        logger.info('[WorkspaceStore] 工作区归档成功');
 
         // 从列表中移除或标记为归档
         const workspace = workspaces.value.find(ws => ws.id === workspaceId);
@@ -258,12 +259,12 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         return true;
       } else {
         message.error(`归档工作区失败: ${result.error}`);
-        console.error('[WorkspaceStore] 归档工作区失败:', result.error);
+        logger.error('[WorkspaceStore] 归档工作区失败:', result.error);
         return false;
       }
     } catch (error) {
       message.error('归档工作区异常');
-      console.error('[WorkspaceStore] 归档工作区异常:', error);
+      logger.error('[WorkspaceStore] 归档工作区异常:', error);
       return false;
     } finally {
       loading.value = false;
@@ -278,13 +279,13 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     const workspace = workspaces.value.find(ws => ws.id === workspaceId);
     if (workspace) {
       currentWorkspace.value = workspace;
-      console.log('[WorkspaceStore] 切换到工作区:', workspace.name);
+      logger.info('[WorkspaceStore] 切换到工作区:', workspace.name);
 
       // 加载工作区成员和资源
       await loadWorkspaceMembers(workspaceId);
       await loadWorkspaceResources(workspaceId);
     } else {
-      console.error('[WorkspaceStore] 工作区不存在:', workspaceId);
+      logger.error('[WorkspaceStore] 工作区不存在:', workspaceId);
     }
   }
 
@@ -295,13 +296,13 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   async function loadWorkspaceMembers(workspaceId) {
     try {
       loading.value = true;
-      console.log('[WorkspaceStore] 开始加载工作区成员:', workspaceId);
+      logger.info('[WorkspaceStore] 开始加载工作区成员:', workspaceId);
 
       // 使用组织成员API获取成员列表
       // 工作区成员是组织成员的子集
       const workspace = workspaces.value.find(ws => ws.id === workspaceId);
       if (!workspace) {
-        console.error('[WorkspaceStore] 工作区不存在:', workspaceId);
+        logger.error('[WorkspaceStore] 工作区不存在:', workspaceId);
         message.error('工作区不存在');
         return;
       }
@@ -313,14 +314,14 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         // 过滤出属于当前工作区的成员
         // 如果工作区有特定成员列表，则过滤；否则显示所有组织成员
         currentWorkspaceMembers.value = result.members || [];
-        console.log('[WorkspaceStore] 工作区成员加载成功:', currentWorkspaceMembers.value.length, '个成员');
+        logger.info('[WorkspaceStore] 工作区成员加载成功:', currentWorkspaceMembers.value.length, '个成员');
       } else {
-        console.warn('[WorkspaceStore] 加载成员失败:', result?.error);
+        logger.warn('[WorkspaceStore] 加载成员失败:', result?.error);
         currentWorkspaceMembers.value = [];
         message.warning('加载成员失败: ' + (result?.error || '未知错误'));
       }
     } catch (error) {
-      console.error('[WorkspaceStore] 加载工作区成员异常:', error);
+      logger.error('[WorkspaceStore] 加载工作区成员异常:', error);
       currentWorkspaceMembers.value = [];
 
       let errorMessage = '加载成员失败';
@@ -347,11 +348,11 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   async function loadWorkspaceResources(workspaceId) {
     try {
       loading.value = true;
-      console.log('[WorkspaceStore] 开始加载工作区资源:', workspaceId);
+      logger.info('[WorkspaceStore] 开始加载工作区资源:', workspaceId);
 
       const workspace = workspaces.value.find(ws => ws.id === workspaceId);
       if (!workspace) {
-        console.error('[WorkspaceStore] 工作区不存在:', workspaceId);
+        logger.error('[WorkspaceStore] 工作区不存在:', workspaceId);
         message.error('工作区不存在');
         return;
       }
@@ -386,9 +387,9 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       // ...
 
       currentWorkspaceResources.value = resources;
-      console.log('[WorkspaceStore] 工作区资源加载成功:', resources.length, '个资源');
+      logger.info('[WorkspaceStore] 工作区资源加载成功:', resources.length, '个资源');
     } catch (error) {
-      console.error('[WorkspaceStore] 加载工作区资源异常:', error);
+      logger.error('[WorkspaceStore] 加载工作区资源异常:', error);
       currentWorkspaceResources.value = [];
 
       let errorMessage = '加载资源失败';
@@ -434,7 +435,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       }
     } catch (error) {
       message.error('添加成员异常');
-      console.error('[WorkspaceStore] 添加成员异常:', error);
+      logger.error('[WorkspaceStore] 添加成员异常:', error);
       return false;
     }
   }
@@ -461,7 +462,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       }
     } catch (error) {
       message.error('移除成员异常');
-      console.error('[WorkspaceStore] 移除成员异常:', error);
+      logger.error('[WorkspaceStore] 移除成员异常:', error);
       return false;
     }
   }
@@ -490,7 +491,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       }
     } catch (error) {
       message.error('添加资源异常');
-      console.error('[WorkspaceStore] 添加资源异常:', error);
+      logger.error('[WorkspaceStore] 添加资源异常:', error);
       return false;
     }
   }

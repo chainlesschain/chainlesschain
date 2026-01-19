@@ -9,6 +9,7 @@
  * 4. 支持多轮对话中的工具调用
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const EventEmitter = require('events');
 const ToolRunner = require('./tool-runner');
 
@@ -35,16 +36,16 @@ class ChatSkillBridge extends EventEmitter {
    * @returns {Object} 处理结果
    */
   async interceptAndProcess(userMessage, aiResponse, context = {}) {
-    console.log('[ChatSkillBridge] 开始拦截处理');
-    console.log('[ChatSkillBridge] 用户消息:', userMessage);
-    console.log('[ChatSkillBridge] AI响应长度:', aiResponse.length);
+    logger.info('[ChatSkillBridge] 开始拦截处理');
+    logger.info('[ChatSkillBridge] 用户消息:', userMessage);
+    logger.info('[ChatSkillBridge] AI响应长度:', aiResponse.length);
 
     try {
       // 1. 检测是否包含工具调用意图
       const toolCallIntent = this.detectToolCallIntent(userMessage, aiResponse);
 
       if (!toolCallIntent.detected) {
-        console.log('[ChatSkillBridge] 未检测到工具调用意图');
+        logger.info('[ChatSkillBridge] 未检测到工具调用意图');
         return {
           shouldIntercept: false,
           originalResponse: aiResponse,
@@ -52,13 +53,13 @@ class ChatSkillBridge extends EventEmitter {
         };
       }
 
-      console.log('[ChatSkillBridge] 检测到工具调用意图:', toolCallIntent);
+      logger.info('[ChatSkillBridge] 检测到工具调用意图:', toolCallIntent);
 
       // 2. 提取工具调用参数
       const toolCalls = this.extractToolCalls(aiResponse, toolCallIntent);
 
       if (toolCalls.length === 0) {
-        console.log('[ChatSkillBridge] 未能提取工具调用');
+        logger.info('[ChatSkillBridge] 未能提取工具调用');
         return {
           shouldIntercept: false,
           originalResponse: aiResponse,
@@ -66,7 +67,7 @@ class ChatSkillBridge extends EventEmitter {
         };
       }
 
-      console.log('[ChatSkillBridge] 提取到', toolCalls.length, '个工具调用');
+      logger.info('[ChatSkillBridge] 提取到', toolCalls.length, '个工具调用');
 
       // 3. 执行工具调用
       const executionResults = await this.executeToolCalls(toolCalls, context);
@@ -88,7 +89,7 @@ class ChatSkillBridge extends EventEmitter {
       };
 
     } catch (error) {
-      console.error('[ChatSkillBridge] 处理失败:', error);
+      logger.error('[ChatSkillBridge] 处理失败:', error);
       return {
         shouldIntercept: false,
         originalResponse: aiResponse,
@@ -297,7 +298,7 @@ class ChatSkillBridge extends EventEmitter {
         });
       }
     } catch (e) {
-      console.error('[ChatSkillBridge] JSON提取失败:', e);
+      logger.error('[ChatSkillBridge] JSON提取失败:', e);
     }
 
     return calls;
@@ -323,20 +324,20 @@ class ChatSkillBridge extends EventEmitter {
     const toolName = typeMap[opType];
 
     if (!toolName) {
-      console.warn('[ChatSkillBridge] 未知操作类型:', opType);
+      logger.warn('[ChatSkillBridge] 未知操作类型:', opType);
       return null;
     }
 
     // 验证必需参数
     if (!operation.path) {
-      console.error('[ChatSkillBridge] 操作缺少path参数:', operation);
+      logger.error('[ChatSkillBridge] 操作缺少path参数:', operation);
       return null;
     }
 
     // 对于写入操作，验证content参数
     if ((opType === 'CREATE' || opType === 'WRITE' || opType === 'UPDATE' || opType === 'EDIT') &&
         operation.content === undefined) {
-      console.error('[ChatSkillBridge] 写入操作缺少content参数:', operation);
+      logger.error('[ChatSkillBridge] 写入操作缺少content参数:', operation);
       return null;
     }
 
@@ -380,8 +381,8 @@ class ChatSkillBridge extends EventEmitter {
 
     for (const call of toolCalls) {
       try {
-        console.log(`[ChatSkillBridge] 执行工具: ${call.toolName}`);
-        console.log('[ChatSkillBridge] 参数:', call.parameters);
+        logger.info(`[ChatSkillBridge] 执行工具: ${call.toolName}`);
+        logger.info('[ChatSkillBridge] 参数:', call.parameters);
 
         // 获取工具
         const tool = await this.toolManager.getToolByName(call.toolName);
@@ -416,7 +417,7 @@ class ChatSkillBridge extends EventEmitter {
         });
 
       } catch (error) {
-        console.error(`[ChatSkillBridge] 工具执行失败:`, error);
+        logger.error(`[ChatSkillBridge] 工具执行失败:`, error);
         results.push({
           toolCall: call,
           success: false,
@@ -504,7 +505,7 @@ class ChatSkillBridge extends EventEmitter {
    * 智能模式：使用AI调度器选择技能
    */
   async intelligentMode(userMessage, context) {
-    console.log('[ChatSkillBridge] 使用智能模式');
+    logger.info('[ChatSkillBridge] 使用智能模式');
 
     try {
       const result = await this.aiScheduler.smartSchedule(userMessage, context);
@@ -515,7 +516,7 @@ class ChatSkillBridge extends EventEmitter {
         result: result.result
       };
     } catch (error) {
-      console.error('[ChatSkillBridge] 智能模式失败:', error);
+      logger.error('[ChatSkillBridge] 智能模式失败:', error);
       return {
         success: false,
         mode: 'intelligent',

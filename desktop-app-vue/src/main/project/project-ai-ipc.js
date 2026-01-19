@@ -6,6 +6,7 @@
  * @description 提供 AI 对话、任务规划、代码助手、内容处理等 IPC 接口
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { ipcMain } = require("electron");
 const axios = require("axios");
 const crypto = require("crypto");
@@ -26,7 +27,7 @@ function extractPPTOutline(aiResponse) {
     const endIndex = aiResponse.indexOf(endMarker);
 
     if (startIndex === -1 || endIndex === -1) {
-      console.log("[PPT Detector] 未找到PPT大纲标记");
+      logger.info("[PPT Detector] 未找到PPT大纲标记");
       return null;
     }
 
@@ -43,17 +44,17 @@ function extractPPTOutline(aiResponse) {
       outlineSection.match(/\{[\s\S]*\}/);
 
     if (!jsonMatch) {
-      console.warn("[PPT Detector] 未找到JSON格式的大纲");
+      logger.warn("[PPT Detector] 未找到JSON格式的大纲");
       return null;
     }
 
     const jsonText = jsonMatch[1] || jsonMatch[0];
     const outline = JSON.parse(jsonText);
 
-    console.log("[PPT Detector] 成功提取PPT大纲:", outline.title);
+    logger.info("[PPT Detector] 成功提取PPT大纲:", outline.title);
     return outline;
   } catch (error) {
-    console.error("[PPT Detector] 提取PPT大纲失败:", error);
+    logger.error("[PPT Detector] 提取PPT大纲失败:", error);
     return null;
   }
 }
@@ -76,8 +77,8 @@ async function generatePPTFile(outline, projectPath, project) {
       `${outline.title || "presentation"}.pptx`,
     );
 
-    console.log("[PPT Generator] 开始生成PPT:", outline.title);
-    console.log("[PPT Generator] 输出路径:", outputPath);
+    logger.info("[PPT Generator] 开始生成PPT:", outline.title);
+    logger.info("[PPT Generator] 输出路径:", outputPath);
 
     const result = await pptEngine.generateFromOutline(outline, {
       theme: "business",
@@ -85,7 +86,7 @@ async function generatePPTFile(outline, projectPath, project) {
       outputPath: outputPath,
     });
 
-    console.log("[PPT Generator] PPT生成成功:", result.fileName);
+    logger.info("[PPT Generator] PPT生成成功:", result.fileName);
 
     return {
       success: true,
@@ -96,7 +97,7 @@ async function generatePPTFile(outline, projectPath, project) {
       theme: result.theme,
     };
   } catch (error) {
-    console.error("[PPT Generator] 生成PPT失败:", error);
+    logger.error("[PPT Generator] 生成PPT失败:", error);
     return {
       success: false,
       generated: false,
@@ -131,7 +132,7 @@ function extractWordRequest(userMessage, aiResponse) {
     );
 
     if (!hasWordKeyword) {
-      console.log("[Word Detector] 未检测到Word生成请求");
+      logger.info("[Word Detector] 未检测到Word生成请求");
       return null;
     }
 
@@ -153,15 +154,15 @@ function extractWordRequest(userMessage, aiResponse) {
       }
     }
 
-    console.log("[Word Detector] 检测到Word生成请求");
-    console.log("[Word Detector] 文档描述:", description);
+    logger.info("[Word Detector] 检测到Word生成请求");
+    logger.info("[Word Detector] 文档描述:", description);
 
     return {
       description: description,
       format: "docx",
     };
   } catch (error) {
-    console.error("[Word Detector] 检测Word请求失败:", error);
+    logger.error("[Word Detector] 检测Word请求失败:", error);
     return null;
   }
 }
@@ -177,9 +178,9 @@ async function generateWordFile(wordRequest, projectPath, llmManager) {
   try {
     const wordEngine = require("../engines/word-engine");
 
-    console.log("[Word Generator] 开始生成Word文档");
-    console.log("[Word Generator] 描述:", wordRequest.description);
-    console.log("[Word Generator] 项目路径:", projectPath);
+    logger.info("[Word Generator] 开始生成Word文档");
+    logger.info("[Word Generator] 描述:", wordRequest.description);
+    logger.info("[Word Generator] 项目路径:", projectPath);
 
     const result = await wordEngine.handleProjectTask({
       description: wordRequest.description,
@@ -188,7 +189,7 @@ async function generateWordFile(wordRequest, projectPath, llmManager) {
       action: "create_document",
     });
 
-    console.log("[Word Generator] Word文档生成成功:", result.fileName);
+    logger.info("[Word Generator] Word文档生成成功:", result.fileName);
 
     return {
       success: true,
@@ -198,7 +199,7 @@ async function generateWordFile(wordRequest, projectPath, llmManager) {
       fileSize: result.fileSize,
     };
   } catch (error) {
-    console.error("[Word Generator] 生成Word文档失败:", error);
+    logger.error("[Word Generator] 生成Word文档失败:", error);
     return {
       success: false,
       generated: false,
@@ -225,7 +226,7 @@ function registerProjectAIIPC({
   mainWindow,
   scanAndRegisterProjectFiles,
 }) {
-  console.log("[Project AI IPC] Registering Project AI IPC handlers...");
+  logger.info("[Project AI IPC] Registering Project AI IPC handlers...");
 
   // ============================================================
   // AI 对话功能 (AI Chat)
@@ -244,7 +245,7 @@ function registerProjectAIIPC({
       } = require("../ai-engine/conversation-executor");
       const path = require("path");
 
-      console.log("[Main] 项目AI对话:", chatData);
+      logger.info("[Main] 项目AI对话:", chatData);
 
       const {
         projectId,
@@ -269,7 +270,7 @@ function registerProjectAIIPC({
       // 🔥 测试模式：如果项目不存在，创建虚拟测试项目
       const isTestMode = process.env.NODE_ENV === "test";
       if (!project && isTestMode) {
-        console.log("[Main] 测试模式：创建虚拟项目", projectId);
+        logger.info("[Main] 测试模式：创建虚拟项目", projectId);
         const os = require("os");
         const tmpDir = path.join(
           os.tmpdir(),
@@ -307,9 +308,9 @@ function registerProjectAIIPC({
               project.updated_at,
               project.description,
             );
-          console.log("[Main] 测试项目已写入数据库:", projectId);
+          logger.info("[Main] 测试项目已写入数据库:", projectId);
         } catch (dbError) {
-          console.warn(
+          logger.warn(
             "[Main] 无法在数据库中创建测试项目（继续使用虚拟对象）:",
             dbError.message,
           );
@@ -319,9 +320,9 @@ function registerProjectAIIPC({
         try {
           const fs = require("fs");
           fs.mkdirSync(tmpDir, { recursive: true });
-          console.log("[Main] 测试项目目录已创建:", tmpDir);
+          logger.info("[Main] 测试项目目录已创建:", tmpDir);
         } catch (fsError) {
-          console.warn("[Main] 无法创建测试项目目录:", fsError.message);
+          logger.warn("[Main] 无法创建测试项目目录:", fsError.message);
         }
       }
 
@@ -333,7 +334,7 @@ function registerProjectAIIPC({
 
       // 🔥 修复：如果项目路径不存在，自动创建（解决PPT生成失败问题）
       if (!projectPath) {
-        console.warn("[Main] 项目路径未设置，自动创建项目目录");
+        logger.warn("[Main] 项目路径未设置，自动创建项目目录");
 
         const fs = require("fs").promises;
         const { getProjectConfig } = require("../config/project-config");
@@ -347,7 +348,7 @@ function registerProjectAIIPC({
 
         // 创建目录
         await fs.mkdir(projectPath, { recursive: true });
-        console.log("[Main] 项目目录已自动创建:", projectPath);
+        logger.info("[Main] 项目目录已自动创建:", projectPath);
 
         // 更新数据库中的项目路径
         database.db
@@ -356,10 +357,10 @@ function registerProjectAIIPC({
           )
           .run(projectPath, Date.now(), projectId);
 
-        console.log("[Main] 项目路径已更新到数据库");
+        logger.info("[Main] 项目路径已更新到数据库");
       }
 
-      console.log("[Main] 项目路径:", projectPath);
+      logger.info("[Main] 项目路径:", projectPath);
 
       // 3. 确保日志表存在
       await ensureLogTable(database);
@@ -393,7 +394,7 @@ function registerProjectAIIPC({
           file_list: fileList || [],
         };
 
-        console.log("[Main] 尝试连接后端AI服务:", AI_SERVICE_URL);
+        logger.info("[Main] 尝试连接后端AI服务:", AI_SERVICE_URL);
 
         const response = await axios.post(
           `${AI_SERVICE_URL}/api/projects/${projectId}/chat`,
@@ -408,9 +409,9 @@ function registerProjectAIIPC({
         operations = responseData.operations || [];
         rag_sources = responseData.rag_sources || [];
 
-        console.log("[Main] 后端AI服务响应成功");
+        logger.info("[Main] 后端AI服务响应成功");
       } catch (backendError) {
-        console.warn(
+        logger.warn(
           "[Main] 后端AI服务不可用，切换到本地LLM:",
           backendError.message,
         );
@@ -541,7 +542,7 @@ ${currentFilePath ? `当前文件: ${currentFilePath}` : ""}
           content: userMessage,
         });
 
-        console.log("[Main] 使用本地LLM，消息数量:", messages.length);
+        logger.info("[Main] 使用本地LLM，消息数量:", messages.length);
 
         // 🔥 火山引擎智能模型选择 + 工具调用（根据项目类型和对话场景）
         const chatOptions = {
@@ -567,13 +568,13 @@ ${currentFilePath ? `当前文件: ${currentFilePath}` : ""}
               projectType === "web"
             ) {
               scenario.needsCodeGeneration = true;
-              console.log("[Main] 检测到代码项目，启用代码生成模式");
+              logger.info("[Main] 检测到代码项目，启用代码生成模式");
             }
 
             // 根据上下文模式调整
             if (contextMode === "file" || contextMode === "project") {
               scenario.needsLongContext = true;
-              console.log("[Main] 检测到需要长上下文（项目/文件模式）");
+              logger.info("[Main] 检测到需要长上下文（项目/文件模式）");
             }
 
             // 分析用户消息内容
@@ -581,7 +582,7 @@ ${currentFilePath ? `当前文件: ${currentFilePath}` : ""}
               // 检测深度思考需求
               if (/(分析|推理|思考|为什么|如何|怎么)/.test(userMessage)) {
                 scenario.needsThinking = true;
-                console.log("[Main] 检测到需要深度思考");
+                logger.info("[Main] 检测到需要深度思考");
               }
 
               // 🔥 检测是否需要联网搜索
@@ -591,7 +592,7 @@ ${currentFilePath ? `当前文件: ${currentFilePath}` : ""}
                 )
               ) {
                 toolsToUse.push("web_search");
-                console.log("[Main] 检测到需要联网搜索（获取最新文档/信息）");
+                logger.info("[Main] 检测到需要联网搜索（获取最新文档/信息）");
               }
             }
 
@@ -599,11 +600,11 @@ ${currentFilePath ? `当前文件: ${currentFilePath}` : ""}
             const selectedModel = llmManager.selectVolcengineModel(scenario);
             if (selectedModel) {
               chatOptions.model = selectedModel.modelId;
-              console.log(
+              logger.info(
                 "[Main] 项目AI对话智能选择模型:",
                 selectedModel.modelName,
               );
-              console.log(
+              logger.info(
                 "[Main] 预估成本: ¥",
                 llmManager
                   .estimateCost(
@@ -619,7 +620,7 @@ ${currentFilePath ? `当前文件: ${currentFilePath}` : ""}
               );
             }
           } catch (selectError) {
-            console.warn(
+            logger.warn(
               "[Main] 智能模型选择失败，使用默认配置:",
               selectError.message,
             );
@@ -630,7 +631,7 @@ ${currentFilePath ? `当前文件: ${currentFilePath}` : ""}
         let llmResult;
         if (toolsToUse.length > 0 && toolsToUse.includes("web_search")) {
           // 使用通用联网搜索（不依赖特定LLM提供商）
-          console.log("[Main] 项目AI对话使用联网搜索");
+          logger.info("[Main] 项目AI对话使用联网搜索");
           try {
             const { enhanceChatWithSearch } = require("../utils/web-search");
 
@@ -646,7 +647,7 @@ ${currentFilePath ? `当前文件: ${currentFilePath}` : ""}
               },
             );
           } catch (searchError) {
-            console.warn(
+            logger.warn(
               "[Main] 联网搜索失败，使用标准对话:",
               searchError.message,
             );
@@ -658,18 +659,18 @@ ${currentFilePath ? `当前文件: ${currentFilePath}` : ""}
         }
 
         aiResponse = llmResult.content || llmResult.text || llmResult;
-        console.log("[Main] 本地LLM响应成功");
+        logger.info("[Main] 本地LLM响应成功");
       }
 
-      console.log("[Main] AI响应:", aiResponse);
-      console.log("[Main] 文件操作数量:", operations ? operations.length : 0);
-      console.log("[Main] 使用本地LLM:", useLocalLLM);
+      logger.info("[Main] AI响应:", aiResponse);
+      logger.info("[Main] 文件操作数量:", operations ? operations.length : 0);
+      logger.info("[Main] 使用本地LLM:", useLocalLLM);
 
       // 6. 使用ChatSkillBridge拦截并处理
       let bridgeResult = null;
       if (chatSkillBridge) {
         try {
-          console.log("[Main] 使用ChatSkillBridge处理响应...");
+          logger.info("[Main] 使用ChatSkillBridge处理响应...");
           bridgeResult = await chatSkillBridge.interceptAndProcess(
             userMessage,
             aiResponse,
@@ -681,25 +682,25 @@ ${currentFilePath ? `当前文件: ${currentFilePath}` : ""}
             },
           );
 
-          console.log("[Main] 桥接器处理结果:", {
+          logger.info("[Main] 桥接器处理结果:", {
             shouldIntercept: bridgeResult.shouldIntercept,
             toolCallsCount: bridgeResult.toolCalls?.length || 0,
           });
         } catch (error) {
-          console.error("[Main] ChatSkillBridge处理失败:", error);
+          logger.error("[Main] ChatSkillBridge处理失败:", error);
         }
       }
 
       // 7. 如果桥接器成功处理，返回增强响应
       if (bridgeResult && bridgeResult.shouldIntercept) {
-        console.log("[Main] 使用桥接器处理结果");
+        logger.info("[Main] 使用桥接器处理结果");
 
         // 🔥 检测并生成PPT（桥接器分支）
         let pptResult = null;
         try {
           const pptOutline = extractPPTOutline(aiResponse);
           if (pptOutline) {
-            console.log("[Main] 🎨 检测到PPT生成请求（桥接器分支）...");
+            logger.info("[Main] 🎨 检测到PPT生成请求（桥接器分支）...");
             pptResult = await generatePPTFile(pptOutline, projectPath, project);
 
             if (pptResult.success && scanAndRegisterProjectFiles) {
@@ -707,7 +708,7 @@ ${currentFilePath ? `当前文件: ${currentFilePath}` : ""}
             }
           }
         } catch (pptError) {
-          console.error("[Main] PPT处理出错（桥接器分支）:", pptError);
+          logger.error("[Main] PPT处理出错（桥接器分支）:", pptError);
         }
 
         // 🔥 检测并生成Word文档（桥接器分支）
@@ -715,7 +716,7 @@ ${currentFilePath ? `当前文件: ${currentFilePath}` : ""}
         try {
           const wordRequest = extractWordRequest(userMessage, aiResponse);
           if (wordRequest) {
-            console.log("[Main] 📝 检测到Word文档生成请求（桥接器分支）...");
+            logger.info("[Main] 📝 检测到Word文档生成请求（桥接器分支）...");
             wordResult = await generateWordFile(
               wordRequest,
               projectPath,
@@ -727,7 +728,7 @@ ${currentFilePath ? `当前文件: ${currentFilePath}` : ""}
             }
           }
         } catch (wordError) {
-          console.error("[Main] Word处理出错（桥接器分支）:", wordError);
+          logger.error("[Main] Word处理出错（桥接器分支）:", wordError);
         }
 
         return {
@@ -750,13 +751,13 @@ ${currentFilePath ? `当前文件: ${currentFilePath}` : ""}
       }
 
       // 8. 否则使用原有的解析逻辑
-      console.log("[Main] 使用原有解析逻辑");
+      logger.info("[Main] 使用原有解析逻辑");
       const parsed = parseAIResponse(aiResponse, operations);
 
       // 9. 执行文件操作（仅当使用后端服务时才执行文件操作）
       let operationResults = [];
       if (!useLocalLLM && parsed.hasFileOperations) {
-        console.log(`[Main] 执行 ${parsed.operations.length} 个文件操作`);
+        logger.info(`[Main] 执行 ${parsed.operations.length} 个文件操作`);
 
         try {
           operationResults = await executeOperations(
@@ -765,9 +766,9 @@ ${currentFilePath ? `当前文件: ${currentFilePath}` : ""}
             database,
           );
 
-          console.log("[Main] 文件操作完成:", operationResults.length);
+          logger.info("[Main] 文件操作完成:", operationResults.length);
         } catch (error) {
-          console.error("[Main] 文件操作执行失败:", error);
+          logger.error("[Main] 文件操作执行失败:", error);
           operationResults = [
             {
               status: "error",
@@ -783,27 +784,27 @@ ${currentFilePath ? `当前文件: ${currentFilePath}` : ""}
         const pptOutline = extractPPTOutline(aiResponse);
 
         if (pptOutline) {
-          console.log("[Main] 🎨 检测到PPT生成请求，开始生成PPT文件...");
+          logger.info("[Main] 🎨 检测到PPT生成请求，开始生成PPT文件...");
           pptResult = await generatePPTFile(pptOutline, projectPath, project);
 
           if (pptResult.success) {
-            console.log("[Main] ✅ PPT文件已生成:", pptResult.fileName);
+            logger.info("[Main] ✅ PPT文件已生成:", pptResult.fileName);
 
             // 将生成的PPT文件添加到项目文件列表（可选）
             if (scanAndRegisterProjectFiles) {
               try {
                 await scanAndRegisterProjectFiles(projectId, projectPath);
-                console.log("[Main] PPT文件已注册到项目");
+                logger.info("[Main] PPT文件已注册到项目");
               } catch (scanError) {
-                console.warn("[Main] 注册PPT文件失败:", scanError.message);
+                logger.warn("[Main] 注册PPT文件失败:", scanError.message);
               }
             }
           } else {
-            console.error("[Main] ❌ PPT生成失败:", pptResult.error);
+            logger.error("[Main] ❌ PPT生成失败:", pptResult.error);
           }
         }
       } catch (pptError) {
-        console.error("[Main] PPT处理出错:", pptError);
+        logger.error("[Main] PPT处理出错:", pptError);
         pptResult = {
           success: false,
           generated: false,
@@ -817,7 +818,7 @@ ${currentFilePath ? `当前文件: ${currentFilePath}` : ""}
         const wordRequest = extractWordRequest(userMessage, aiResponse);
 
         if (wordRequest) {
-          console.log("[Main] 📝 检测到Word文档生成请求，开始生成Word文件...");
+          logger.info("[Main] 📝 检测到Word文档生成请求，开始生成Word文件...");
           wordResult = await generateWordFile(
             wordRequest,
             projectPath,
@@ -825,23 +826,23 @@ ${currentFilePath ? `当前文件: ${currentFilePath}` : ""}
           );
 
           if (wordResult.success) {
-            console.log("[Main] ✅ Word文档已生成:", wordResult.fileName);
+            logger.info("[Main] ✅ Word文档已生成:", wordResult.fileName);
 
             // 将生成的Word文件添加到项目文件列表（可选）
             if (scanAndRegisterProjectFiles) {
               try {
                 await scanAndRegisterProjectFiles(projectId, projectPath);
-                console.log("[Main] Word文件已注册到项目");
+                logger.info("[Main] Word文件已注册到项目");
               } catch (scanError) {
-                console.warn("[Main] 注册Word文件失败:", scanError.message);
+                logger.warn("[Main] 注册Word文件失败:", scanError.message);
               }
             }
           } else {
-            console.error("[Main] ❌ Word生成失败:", wordResult.error);
+            logger.error("[Main] ❌ Word生成失败:", wordResult.error);
           }
         }
       } catch (wordError) {
-        console.error("[Main] Word处理出错:", wordError);
+        logger.error("[Main] Word处理出错:", wordError);
         wordResult = {
           success: false,
           generated: false,
@@ -866,7 +867,7 @@ ${currentFilePath ? `当前文件: ${currentFilePath}` : ""}
         wordResult: wordResult,
       };
     } catch (error) {
-      console.error("[Main] 项目AI对话失败:", error);
+      logger.error("[Main] 项目AI对话失败:", error);
 
       // 提供更友好的错误信息
       if (error.message.includes("LLM管理器未初始化")) {
@@ -892,7 +893,7 @@ ${currentFilePath ? `当前文件: ${currentFilePath}` : ""}
    */
   ipcMain.handle("project:scan-files", async (_event, projectId) => {
     try {
-      console.log(`[Main] 扫描项目文件: ${projectId}`);
+      logger.info(`[Main] 扫描项目文件: ${projectId}`);
       const project = database.db
         .prepare("SELECT * FROM projects WHERE id = ?")
         .get(projectId);
@@ -925,7 +926,7 @@ ${currentFilePath ? `当前文件: ${currentFilePath}` : ""}
       }
 
       await scanDir(rootPath, rootPath);
-      console.log(`[Main] 找到 ${addedFiles.length} 个文件`);
+      logger.info(`[Main] 找到 ${addedFiles.length} 个文件`);
 
       let added = 0,
         skipped = 0;
@@ -978,7 +979,7 @@ ${currentFilePath ? `当前文件: ${currentFilePath}` : ""}
 
           added++;
         } catch (fileError) {
-          console.error(
+          logger.error(
             `[Main] 添加文件失败 ${relativePath}:`,
             fileError.message,
           );
@@ -986,7 +987,7 @@ ${currentFilePath ? `当前文件: ${currentFilePath}` : ""}
       }
 
       database.saveToFile();
-      console.log(`[Main] 扫描完成: 添加 ${added} 个，跳过 ${skipped} 个`);
+      logger.info(`[Main] 扫描完成: 添加 ${added} 个，跳过 ${skipped} 个`);
 
       return {
         success: true,
@@ -995,7 +996,7 @@ ${currentFilePath ? `当前文件: ${currentFilePath}` : ""}
         total: addedFiles.length,
       };
     } catch (error) {
-      console.error("[Main] 扫描文件失败:", error);
+      logger.error("[Main] 扫描文件失败:", error);
       throw error;
     }
   });
@@ -1012,7 +1013,7 @@ ${currentFilePath ? `当前文件: ${currentFilePath}` : ""}
     "project:decompose-task",
     async (_event, userRequest, projectContext) => {
       try {
-        console.log("[Main] AI任务拆解:", userRequest);
+        logger.info("[Main] AI任务拆解:", userRequest);
 
         if (!aiEngineManager) {
           const {
@@ -1028,7 +1029,7 @@ ${currentFilePath ? `当前文件: ${currentFilePath}` : ""}
         const taskPlanner = aiEngineManager.getTaskPlanner();
         return await taskPlanner.decomposeTask(userRequest, projectContext);
       } catch (error) {
-        console.error("[Main] AI任务拆解失败:", error);
+        logger.error("[Main] AI任务拆解失败:", error);
         throw error;
       }
     },
@@ -1042,7 +1043,7 @@ ${currentFilePath ? `当前文件: ${currentFilePath}` : ""}
     "project:execute-task-plan",
     async (_event, taskPlanId, projectContext) => {
       try {
-        console.log("[Main] 执行任务计划:", taskPlanId);
+        logger.info("[Main] 执行任务计划:", taskPlanId);
         const { getProjectConfig } = require("./project-config");
 
         if (!aiEngineManager) {
@@ -1062,7 +1063,7 @@ ${currentFilePath ? `当前文件: ${currentFilePath}` : ""}
         }
 
         const projectId = projectContext.projectId || projectContext.id;
-        console.log(
+        logger.info(
           "[Main] 检查项目路径 - projectId:",
           projectId,
           "root_path:",
@@ -1080,7 +1081,7 @@ ${currentFilePath ? `当前文件: ${currentFilePath}` : ""}
           );
 
           await fs.mkdir(projectRootPath, { recursive: true });
-          console.log("[Main] 项目目录已创建:", projectRootPath);
+          logger.info("[Main] 项目目录已创建:", projectRootPath);
 
           if (projectId) {
             database.updateProject(projectId, {
@@ -1133,13 +1134,13 @@ ${currentFilePath ? `当前文件: ${currentFilePath}` : ""}
               }
             }
           } catch (scanError) {
-            console.error("[Main] 扫描并注册文件失败:", scanError);
+            logger.error("[Main] 扫描并注册文件失败:", scanError);
           }
         }
 
         return result;
       } catch (error) {
-        console.error("[Main] 执行任务计划失败:", error);
+        logger.error("[Main] 执行任务计划失败:", error);
         throw error;
       }
     },
@@ -1163,7 +1164,7 @@ ${currentFilePath ? `当前文件: ${currentFilePath}` : ""}
       await aiEngineManager.initialize();
       return await aiEngineManager.getTaskPlanner().getTaskPlan(taskPlanId);
     } catch (error) {
-      console.error("[Main] 获取任务计划失败:", error);
+      logger.error("[Main] 获取任务计划失败:", error);
       throw error;
     }
   });
@@ -1192,7 +1193,7 @@ ${currentFilePath ? `当前文件: ${currentFilePath}` : ""}
           .getTaskPlanner()
           .getTaskPlanHistory(projectId, limit);
       } catch (error) {
-        console.error("[Main] 获取任务计划历史失败:", error);
+        logger.error("[Main] 获取任务计划历史失败:", error);
         throw error;
       }
     },
@@ -1218,7 +1219,7 @@ ${currentFilePath ? `当前文件: ${currentFilePath}` : ""}
       await aiEngineManager.getTaskPlanner().cancelTaskPlan(taskPlanId);
       return { success: true };
     } catch (error) {
-      console.error("[Main] 取消任务计划失败:", error);
+      logger.error("[Main] 取消任务计划失败:", error);
       throw error;
     }
   });
@@ -1234,7 +1235,7 @@ ${currentFilePath ? `当前文件: ${currentFilePath}` : ""}
   ipcMain.handle("project:polishContent", async (_event, params) => {
     try {
       const { content, style } = params;
-      console.log("[Main] AI内容润色");
+      logger.info("[Main] AI内容润色");
 
       const prompt = `请对以下内容进行润色，使其更加专业、流畅：
 
@@ -1257,7 +1258,7 @@ ${style ? `5. 风格：${style}` : ""}`;
         polished: response.text || response.content || response,
       };
     } catch (error) {
-      console.error("[Main] AI内容润色失败:", error);
+      logger.error("[Main] AI内容润色失败:", error);
       throw error;
     }
   });
@@ -1269,7 +1270,7 @@ ${style ? `5. 风格：${style}` : ""}`;
   ipcMain.handle("project:expandContent", async (_event, params) => {
     try {
       const { content, targetLength } = params;
-      console.log("[Main] AI内容扩写");
+      logger.info("[Main] AI内容扩写");
 
       const prompt = `请扩展以下内容，增加更多细节和例子${targetLength ? `，目标字数约${targetLength}字` : ""}：
 
@@ -1290,7 +1291,7 @@ ${content}
         expanded: response.text || response.content || response,
       };
     } catch (error) {
-      console.error("[Main] AI内容扩写失败:", error);
+      logger.error("[Main] AI内容扩写失败:", error);
       throw error;
     }
   });
@@ -1317,7 +1318,7 @@ ${content}
           options.context,
         );
       } catch (error) {
-        console.error("[Main] 代码生成失败:", error);
+        logger.error("[Main] 代码生成失败:", error);
         return { success: false, error: error.message };
       }
     },
@@ -1334,7 +1335,7 @@ ${content}
         const CodeAPI = require("./code-api");
         return await CodeAPI.review(code, language, focusAreas);
       } catch (error) {
-        console.error("[Main] 代码审查失败:", error);
+        logger.error("[Main] 代码审查失败:", error);
         return { success: false, error: error.message };
       }
     },
@@ -1351,7 +1352,7 @@ ${content}
         const CodeAPI = require("./code-api");
         return await CodeAPI.refactor(code, language, refactorType);
       } catch (error) {
-        console.error("[Main] 代码重构失败:", error);
+        logger.error("[Main] 代码重构失败:", error);
         return { success: false, error: error.message };
       }
     },
@@ -1366,7 +1367,7 @@ ${content}
       const CodeAPI = require("./code-api");
       return await CodeAPI.explain(code, language);
     } catch (error) {
-      console.error("[Main] 代码解释失败:", error);
+      logger.error("[Main] 代码解释失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -1382,7 +1383,7 @@ ${content}
         const CodeAPI = require("./code-api");
         return await CodeAPI.fixBug(code, language, bugDescription);
       } catch (error) {
-        console.error("[Main] Bug修复失败:", error);
+        logger.error("[Main] Bug修复失败:", error);
         return { success: false, error: error.message };
       }
     },
@@ -1399,7 +1400,7 @@ ${content}
         const CodeAPI = require("./code-api");
         return await CodeAPI.generateTests(code, language);
       } catch (error) {
-        console.error("[Main] 生成测试失败:", error);
+        logger.error("[Main] 生成测试失败:", error);
         return { success: false, error: error.message };
       }
     },
@@ -1414,7 +1415,7 @@ ${content}
       const CodeAPI = require("./code-api");
       return await CodeAPI.optimize(code, language);
     } catch (error) {
-      console.error("[Main] 代码优化失败:", error);
+      logger.error("[Main] 代码优化失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -1425,7 +1426,7 @@ ${content}
    */
   ipcMain.handle("project:aiChatStream", async (_event, chatData) => {
     try {
-      console.log("[Main] 项目AI对话（流式）:", chatData);
+      logger.info("[Main] 项目AI对话（流式）:", chatData);
 
       const {
         projectId,
@@ -1472,7 +1473,7 @@ ${content}
 
       // 🔥 修复：如果项目路径不存在，自动创建
       if (!projectPath) {
-        console.warn("[Main] 项目路径未设置（流式），自动创建项目目录");
+        logger.warn("[Main] 项目路径未设置（流式），自动创建项目目录");
 
         const fs = require("fs").promises;
         const { getProjectConfig } = require("../config/project-config");
@@ -1486,7 +1487,7 @@ ${content}
 
         // 创建目录
         await fs.mkdir(projectPath, { recursive: true });
-        console.log("[Main] 项目目录已自动创建:", projectPath);
+        logger.info("[Main] 项目目录已自动创建:", projectPath);
 
         // 更新数据库中的项目路径
         database.db
@@ -1495,10 +1496,10 @@ ${content}
           )
           .run(projectPath, Date.now(), projectId);
 
-        console.log("[Main] 项目路径已更新到数据库");
+        logger.info("[Main] 项目路径已更新到数据库");
       }
 
-      console.log("[Main] 项目路径:", projectPath);
+      logger.info("[Main] 项目路径:", projectPath);
 
       // 5. 构建消息列表
       const messages = [];
@@ -1524,7 +1525,7 @@ ${currentFile ? `当前文件: ${currentFile}` : ""}
         content: userMessage,
       });
 
-      console.log("[Main] 使用流式LLM，消息数量:", messages.length);
+      logger.info("[Main] 使用流式LLM，消息数量:", messages.length);
 
       // 6. 创建流式控制器
       const { createStreamController } = require("../llm/stream-controller");
@@ -1541,7 +1542,7 @@ ${currentFile ? `当前文件: ${currentFile}` : ""}
 
       // 8. 定义chunk回调函数
       const onChunk = async (chunk) => {
-        console.log(
+        logger.info(
           "[Main] 📥 收到 LLM chunk:",
           JSON.stringify(chunk).substring(0, 100),
         );
@@ -1549,20 +1550,20 @@ ${currentFile ? `当前文件: ${currentFile}` : ""}
         // 处理chunk
         const shouldContinue = await streamController.processChunk(chunk);
         if (!shouldContinue) {
-          console.log("[Main] ⏸️  Stream controller 指示停止");
+          logger.info("[Main] ⏸️  Stream controller 指示停止");
           return false;
         }
 
         // 提取chunk内容
         const chunkContent =
           chunk.content || chunk.text || chunk.delta?.content || "";
-        console.log("[Main] 📝 提取的 chunk 内容长度:", chunkContent.length);
+        logger.info("[Main] 📝 提取的 chunk 内容长度:", chunkContent.length);
 
         if (chunkContent) {
           fullResponse += chunkContent;
 
           // 发送chunk给前端
-          console.log(
+          logger.info(
             "[Main] 📤 发送 chunk 到前端，完整内容长度:",
             fullResponse.length,
           );
@@ -1604,20 +1605,20 @@ ${currentFile ? `当前文件: ${currentFile}` : ""}
             projectType === "web"
           ) {
             scenario.needsCodeGeneration = true;
-            console.log("[Main] 检测到代码项目，启用代码生成模式");
+            logger.info("[Main] 检测到代码项目，启用代码生成模式");
           }
 
           // 根据上下文模式调整
           if (contextMode === "file" || contextMode === "project") {
             scenario.needsLongContext = true;
-            console.log("[Main] 检测到需要长上下文（项目/文件模式）");
+            logger.info("[Main] 检测到需要长上下文（项目/文件模式）");
           }
 
           // 分析用户消息内容
           if (userMessage) {
             if (/(分析|推理|思考|为什么|如何|怎么)/.test(userMessage)) {
               scenario.needsThinking = true;
-              console.log("[Main] 检测到需要深度思考");
+              logger.info("[Main] 检测到需要深度思考");
             }
           }
 
@@ -1625,13 +1626,13 @@ ${currentFile ? `当前文件: ${currentFile}` : ""}
           const selectedModel = llmManager.selectVolcengineModel(scenario);
           if (selectedModel) {
             chatOptions.model = selectedModel.modelId;
-            console.log(
+            logger.info(
               "[Main] 项目AI对话（流式）智能选择模型:",
               selectedModel.modelName,
             );
           }
         } catch (selectError) {
-          console.warn(
+          logger.warn(
             "[Main] 智能模型选择失败，使用默认配置:",
             selectError.message,
           );
@@ -1640,14 +1641,14 @@ ${currentFile ? `当前文件: ${currentFile}` : ""}
 
       // 10. 调用LLM流式对话
       try {
-        console.log("[Main] 🚀 开始调用 llmManager.chatStream");
+        logger.info("[Main] 🚀 开始调用 llmManager.chatStream");
         const llmResult = await llmManager.chatStream(
           messages,
           onChunk,
           chatOptions,
         );
 
-        console.log("[Main] ✅ 流式对话完成，总长度:", fullResponse.length);
+        logger.info("[Main] ✅ 流式对话完成，总长度:", fullResponse.length);
 
         // 11. 通知前端完成
         streamController.complete({
@@ -1670,7 +1671,7 @@ ${currentFile ? `当前文件: ${currentFile}` : ""}
           response: fullResponse,
         };
       } catch (llmError) {
-        console.error("[Main] LLM流式对话失败:", llmError);
+        logger.error("[Main] LLM流式对话失败:", llmError);
 
         // 通知前端错误
         streamController.error(llmError);
@@ -1684,7 +1685,7 @@ ${currentFile ? `当前文件: ${currentFile}` : ""}
         throw llmError;
       }
     } catch (error) {
-      console.error("[Main] 项目AI对话（流式）失败:", error);
+      logger.error("[Main] 项目AI对话（流式）失败:", error);
 
       // 提供更友好的错误信息
       if (error.message.includes("LLM管理器未初始化")) {
@@ -1707,7 +1708,7 @@ ${currentFile ? `当前文件: ${currentFile}` : ""}
    */
   ipcMain.handle("project:understandIntent", async (_event, data) => {
     try {
-      console.log("[Main] 开始理解用户意图:", data);
+      logger.info("[Main] 开始理解用户意图:", data);
 
       const { userInput, projectId: _projectId, contextMode } = data;
 
@@ -1754,13 +1755,13 @@ ${currentFile ? `当前文件: ${currentFile}` : ""}
         { role: "user", content: userPrompt },
       ];
 
-      console.log("[Main] 调用LLM进行意图理解...");
+      logger.info("[Main] 调用LLM进行意图理解...");
       const llmResult = await llmManager.chat(messages, {
         temperature: 0.3, // 较低的温度以获得更准确的结果
         maxTokens: 500,
       });
 
-      console.log("[Main] LLM响应:", llmResult.content);
+      logger.info("[Main] LLM响应:", llmResult.content);
 
       // 解析LLM响应
       let understanding;
@@ -1789,14 +1790,14 @@ ${currentFile ? `当前文件: ${currentFile}` : ""}
           understanding.keyPoints = [];
         }
 
-        console.log("[Main] 意图理解成功:", understanding);
+        logger.info("[Main] 意图理解成功:", understanding);
 
         return {
           success: true,
           ...understanding,
         };
       } catch (parseError) {
-        console.error("[Main] 解析LLM响应失败:", parseError);
+        logger.error("[Main] 解析LLM响应失败:", parseError);
 
         // 如果解析失败，返回默认结果
         return {
@@ -1809,12 +1810,12 @@ ${currentFile ? `当前文件: ${currentFile}` : ""}
         };
       }
     } catch (error) {
-      console.error("[Main] 意图理解失败:", error);
+      logger.error("[Main] 意图理解失败:", error);
       throw error;
     }
   });
 
-  console.log(
+  logger.info(
     "[Project AI IPC] ✓ All Project AI IPC handlers registered successfully (17 handlers)",
   );
 }

@@ -7,6 +7,7 @@
  * @since 2026-01-17
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const ipcGuard = require("../ipc/ipc-guard");
 
 /**
@@ -21,7 +22,7 @@ function registerPreferenceManagerIPC({
 }) {
   // Prevent duplicate registration
   if (ipcGuard.isModuleRegistered("preference-manager-ipc")) {
-    console.log(
+    logger.info(
       "[PreferenceManager IPC] Handlers already registered, skipping...",
     );
     return;
@@ -30,7 +31,7 @@ function registerPreferenceManagerIPC({
   const electron = require("electron");
   const ipcMain = injectedIpcMain || electron.ipcMain;
 
-  console.log(
+  logger.info(
     "[PreferenceManager IPC] Registering PreferenceManager IPC handlers...",
   );
 
@@ -54,7 +55,7 @@ function registerPreferenceManagerIPC({
         }
         return await managerRef.current.get(category, key, defaultValue);
       } catch (error) {
-        console.error("[PreferenceManager IPC] Get failed:", error);
+        logger.error("[PreferenceManager IPC] Get failed:", error);
         throw error;
       }
     },
@@ -73,7 +74,7 @@ function registerPreferenceManagerIPC({
         }
         return await managerRef.current.set(category, key, value, options);
       } catch (error) {
-        console.error("[PreferenceManager IPC] Set failed:", error);
+        logger.error("[PreferenceManager IPC] Set failed:", error);
         throw error;
       }
     },
@@ -90,7 +91,7 @@ function registerPreferenceManagerIPC({
       }
       return await managerRef.current.delete(category, key);
     } catch (error) {
-      console.error("[PreferenceManager IPC] Delete failed:", error);
+      logger.error("[PreferenceManager IPC] Delete failed:", error);
       throw error;
     }
   });
@@ -106,7 +107,7 @@ function registerPreferenceManagerIPC({
       }
       return await managerRef.current.getCategory(category);
     } catch (error) {
-      console.error("[PreferenceManager IPC] Get category failed:", error);
+      logger.error("[PreferenceManager IPC] Get category failed:", error);
       throw error;
     }
   });
@@ -124,7 +125,7 @@ function registerPreferenceManagerIPC({
         }
         return await managerRef.current.setCategory(category, values);
       } catch (error) {
-        console.error("[PreferenceManager IPC] Set category failed:", error);
+        logger.error("[PreferenceManager IPC] Set category failed:", error);
         throw error;
       }
     },
@@ -141,7 +142,7 @@ function registerPreferenceManagerIPC({
       }
       return await managerRef.current.getAll();
     } catch (error) {
-      console.error("[PreferenceManager IPC] Get all failed:", error);
+      logger.error("[PreferenceManager IPC] Get all failed:", error);
       throw error;
     }
   });
@@ -163,7 +164,7 @@ function registerPreferenceManagerIPC({
         }
         return await managerRef.current.recordUsage(feature, options);
       } catch (error) {
-        console.error("[PreferenceManager IPC] Record usage failed:", error);
+        logger.error("[PreferenceManager IPC] Record usage failed:", error);
         throw error;
       }
     },
@@ -182,7 +183,7 @@ function registerPreferenceManagerIPC({
         }
         return await managerRef.current.getRecentHistory(options);
       } catch (error) {
-        console.error("[PreferenceManager IPC] Get history failed:", error);
+        logger.error("[PreferenceManager IPC] Get history failed:", error);
         throw error;
       }
     },
@@ -199,7 +200,7 @@ function registerPreferenceManagerIPC({
       }
       return await managerRef.current.getUsageStats(options);
     } catch (error) {
-      console.error("[PreferenceManager IPC] Get usage stats failed:", error);
+      logger.error("[PreferenceManager IPC] Get usage stats failed:", error);
       throw error;
     }
   });
@@ -221,7 +222,7 @@ function registerPreferenceManagerIPC({
         }
         return await managerRef.current.addSearchHistory(query, options);
       } catch (error) {
-        console.error(
+        logger.error(
           "[PreferenceManager IPC] Add search history failed:",
           error,
         );
@@ -243,7 +244,7 @@ function registerPreferenceManagerIPC({
         }
         return await managerRef.current.getSearchHistory(options);
       } catch (error) {
-        console.error(
+        logger.error(
           "[PreferenceManager IPC] Get search history failed:",
           error,
         );
@@ -265,7 +266,7 @@ function registerPreferenceManagerIPC({
         }
         return await managerRef.current.getSearchSuggestions(prefix, options);
       } catch (error) {
-        console.error("[PreferenceManager IPC] Get suggestions failed:", error);
+        logger.error("[PreferenceManager IPC] Get suggestions failed:", error);
         throw error;
       }
     },
@@ -284,7 +285,7 @@ function registerPreferenceManagerIPC({
         }
         return await managerRef.current.clearSearchHistory(options);
       } catch (error) {
-        console.error(
+        logger.error(
           "[PreferenceManager IPC] Clear search history failed:",
           error,
         );
@@ -308,7 +309,7 @@ function registerPreferenceManagerIPC({
       }
       return await managerRef.current.backupAll();
     } catch (error) {
-      console.error("[PreferenceManager IPC] Backup failed:", error);
+      logger.error("[PreferenceManager IPC] Backup failed:", error);
       throw error;
     }
   });
@@ -324,7 +325,7 @@ function registerPreferenceManagerIPC({
       }
       return await managerRef.current.restoreFromBackup(options);
     } catch (error) {
-      console.error("[PreferenceManager IPC] Restore failed:", error);
+      logger.error("[PreferenceManager IPC] Restore failed:", error);
       throw error;
     }
   });
@@ -344,7 +345,7 @@ function registerPreferenceManagerIPC({
       }
       return await managerRef.current.getStats();
     } catch (error) {
-      console.error("[PreferenceManager IPC] Get stats failed:", error);
+      logger.error("[PreferenceManager IPC] Get stats failed:", error);
       throw error;
     }
   });
@@ -361,7 +362,7 @@ function registerPreferenceManagerIPC({
       managerRef.current.clearCache();
       return { success: true };
     } catch (error) {
-      console.error("[PreferenceManager IPC] Clear cache failed:", error);
+      logger.error("[PreferenceManager IPC] Clear cache failed:", error);
       throw error;
     }
   });
@@ -377,7 +378,7 @@ function registerPreferenceManagerIPC({
       }
       return await managerRef.current.cleanup(options);
     } catch (error) {
-      console.error("[PreferenceManager IPC] Cleanup failed:", error);
+      logger.error("[PreferenceManager IPC] Cleanup failed:", error);
       throw error;
     }
   });
@@ -389,13 +390,13 @@ function registerPreferenceManagerIPC({
    */
   function updatePreferenceManager(newManager) {
     managerRef.current = newManager;
-    console.log("[PreferenceManager IPC] Reference updated");
+    logger.info("[PreferenceManager IPC] Reference updated");
   }
 
   // Mark as registered
   ipcGuard.markModuleRegistered("preference-manager-ipc");
 
-  console.log(
+  logger.info(
     "[PreferenceManager IPC] PreferenceManager IPC handlers registered successfully",
   );
 

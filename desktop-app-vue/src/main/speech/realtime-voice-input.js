@@ -5,6 +5,7 @@
  * 支持流式识别和即时反馈
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { EventEmitter } = require("events");
 const { Readable } = require("stream");
 const fs = require("fs").promises;
@@ -59,7 +60,7 @@ class RealtimeVoiceInput extends EventEmitter {
       throw new Error("已经在录音中");
     }
 
-    console.log("[RealtimeVoiceInput] 开始实时录音...");
+    logger.info("[RealtimeVoiceInput] 开始实时录音...");
 
     this.isRecording = true;
     this.isPaused = false;
@@ -81,7 +82,7 @@ class RealtimeVoiceInput extends EventEmitter {
 
     // 设置最大录音时间限制
     this.maxTimeTimer = setTimeout(() => {
-      console.log("[RealtimeVoiceInput] 达到最大录音时间，自动停止");
+      logger.info("[RealtimeVoiceInput] 达到最大录音时间，自动停止");
       this.stopRecording();
     }, this.config.maxRecordingTime);
   }
@@ -100,7 +101,7 @@ class RealtimeVoiceInput extends EventEmitter {
 
     // 调试日志：每10次打印一次接收状态
     if (this.currentChunk.length % 10 === 1) {
-      console.log(
+      logger.info(
         `[RealtimeVoiceInput] 接收音频数据: ${audioData.length} bytes, 当前chunk数量: ${this.currentChunk.length}`,
       );
     }
@@ -120,7 +121,7 @@ class RealtimeVoiceInput extends EventEmitter {
       // 检测静音
       if (!this.silenceTimer) {
         this.silenceTimer = setTimeout(() => {
-          console.log("[RealtimeVoiceInput] 检测到静音，准备停止");
+          logger.info("[RealtimeVoiceInput] 检测到静音，准备停止");
           this.emit("silence:detected");
 
           // 可以选择自动停止
@@ -158,7 +159,7 @@ class RealtimeVoiceInput extends EventEmitter {
     const chunkData = Buffer.concat(this.currentChunk);
     this.audioChunks.push(chunkData);
 
-    console.log(
+    logger.info(
       `[RealtimeVoiceInput] 处理chunk ${this.audioChunks.length}, 大小: ${chunkData.length} bytes`,
     );
 
@@ -177,20 +178,20 @@ class RealtimeVoiceInput extends EventEmitter {
 
       // 检查数据是否有效（至少需要一些音频数据）
       if (chunkData.length < 1000) {
-        console.log("[RealtimeVoiceInput] Chunk 数据太小，跳过识别");
+        logger.info("[RealtimeVoiceInput] Chunk 数据太小，跳过识别");
         return;
       }
 
       // 将 PCM 数据保存为临时 WAV 文件
       tempWavFile = await this.savePCMAsWav(chunkData);
-      console.log(`[RealtimeVoiceInput] 创建临时 WAV 文件: ${tempWavFile}`);
+      logger.info(`[RealtimeVoiceInput] 创建临时 WAV 文件: ${tempWavFile}`);
 
       // 转录当前chunk（传递文件路径而不是 Buffer）
-      console.log(`[RealtimeVoiceInput] 发送到 Whisper 识别: ${tempWavFile}`);
+      logger.info(`[RealtimeVoiceInput] 发送到 Whisper 识别: ${tempWavFile}`);
       const result = await this.recognizer.recognize(tempWavFile, {
         language: this.config.language || "zh",
       });
-      console.log(
+      logger.info(
         `[RealtimeVoiceInput] Whisper 返回结果:`,
         JSON.stringify(result),
       );
@@ -220,7 +221,7 @@ class RealtimeVoiceInput extends EventEmitter {
         success: true,
       });
     } catch (error) {
-      console.error("[RealtimeVoiceInput] Chunk处理失败:", error);
+      logger.error("[RealtimeVoiceInput] Chunk处理失败:", error);
 
       this.emit("chunk:error", {
         chunkIndex: this.audioChunks.length - 1,
@@ -247,7 +248,7 @@ class RealtimeVoiceInput extends EventEmitter {
       return;
     }
 
-    console.log("[RealtimeVoiceInput] 暂停录音");
+    logger.info("[RealtimeVoiceInput] 暂停录音");
     this.isPaused = true;
 
     this.emit("recording:paused", {
@@ -264,7 +265,7 @@ class RealtimeVoiceInput extends EventEmitter {
       return;
     }
 
-    console.log("[RealtimeVoiceInput] 恢复录音");
+    logger.info("[RealtimeVoiceInput] 恢复录音");
     this.isPaused = false;
 
     this.emit("recording:resumed", {
@@ -281,7 +282,7 @@ class RealtimeVoiceInput extends EventEmitter {
       return null;
     }
 
-    console.log("[RealtimeVoiceInput] 停止录音");
+    logger.info("[RealtimeVoiceInput] 停止录音");
 
     // 清理定时器
     if (this.chunkTimer) {
@@ -336,7 +337,7 @@ class RealtimeVoiceInput extends EventEmitter {
    * 取消录音
    */
   cancel() {
-    console.log("[RealtimeVoiceInput] 取消录音");
+    logger.info("[RealtimeVoiceInput] 取消录音");
 
     // 清理所有状态
     if (this.chunkTimer) {
@@ -433,7 +434,7 @@ class RealtimeVoiceInput extends EventEmitter {
     try {
       await fs.unlink(filePath);
     } catch (error) {
-      console.warn("[RealtimeVoiceInput] 清理临时文件失败:", error.message);
+      logger.warn("[RealtimeVoiceInput] 清理临时文件失败:", error.message);
     }
   }
 

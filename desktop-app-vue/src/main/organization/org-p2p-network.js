@@ -9,6 +9,7 @@
  * - 去中心化组织协作
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const EventEmitter = require('events');
 
 /**
@@ -78,7 +79,7 @@ class OrgP2PNetwork extends EventEmitter {
    * @returns {Promise<void>}
    */
   async initialize(orgId) {
-    console.log(`[OrgP2PNetwork] 初始化组织网络: ${orgId}`);
+    logger.info(`[OrgP2PNetwork] 初始化组织网络: ${orgId}`);
 
     try {
       // 1. 生成Topic名称
@@ -99,11 +100,11 @@ class OrgP2PNetwork extends EventEmitter {
       // 6. 广播上线消息
       await this.broadcastMemberOnline(orgId);
 
-      console.log(`[OrgP2PNetwork] ✓ 组织网络初始化完成: ${orgId}`);
+      logger.info(`[OrgP2PNetwork] ✓ 组织网络初始化完成: ${orgId}`);
 
       this.emit('network:initialized', { orgId, topic });
     } catch (error) {
-      console.error(`[OrgP2PNetwork] 初始化失败:`, error);
+      logger.error(`[OrgP2PNetwork] 初始化失败:`, error);
       throw error;
     }
   }
@@ -123,7 +124,7 @@ class OrgP2PNetwork extends EventEmitter {
       // 检查是否支持PubSub
       const pubsub = this.p2pManager.node.services?.pubsub;
       if (!pubsub) {
-        console.warn('[OrgP2PNetwork] PubSub服务不可用，使用直接消息模式');
+        logger.warn('[OrgP2PNetwork] PubSub服务不可用，使用直接消息模式');
         // 使用直接消息作为后备方案
         this.orgSubscriptions.set(orgId, {
           topic,
@@ -152,9 +153,9 @@ class OrgP2PNetwork extends EventEmitter {
         mode: 'pubsub'
       });
 
-      console.log(`[OrgP2PNetwork] ✓ 已订阅Topic: ${topic}`);
+      logger.info(`[OrgP2PNetwork] ✓ 已订阅Topic: ${topic}`);
     } catch (error) {
-      console.error(`[OrgP2PNetwork] 订阅Topic失败:`, error);
+      logger.error(`[OrgP2PNetwork] 订阅Topic失败:`, error);
       throw error;
     }
   }
@@ -190,9 +191,9 @@ class OrgP2PNetwork extends EventEmitter {
       this.orgSubscriptions.delete(orgId);
       this.onlineMembers.delete(orgId);
 
-      console.log(`[OrgP2PNetwork] ✓ 已取消订阅: ${orgId}`);
+      logger.info(`[OrgP2PNetwork] ✓ 已取消订阅: ${orgId}`);
     } catch (error) {
-      console.error(`[OrgP2PNetwork] 取消订阅失败:`, error);
+      logger.error(`[OrgP2PNetwork] 取消订阅失败:`, error);
     }
   }
 
@@ -220,7 +221,7 @@ class OrgP2PNetwork extends EventEmitter {
         return;
       }
 
-      console.log(`[OrgP2PNetwork] 收到消息: ${data.type} from ${data.senderDID}`);
+      logger.info(`[OrgP2PNetwork] 收到消息: ${data.type} from ${data.senderDID}`);
 
       // 更新最后活动时间
       const subscription = this.orgSubscriptions.get(orgId);
@@ -268,13 +269,13 @@ class OrgP2PNetwork extends EventEmitter {
           break;
 
         default:
-          console.warn(`[OrgP2PNetwork] 未知消息类型: ${data.type}`);
+          logger.warn(`[OrgP2PNetwork] 未知消息类型: ${data.type}`);
       }
 
       // 触发事件
       this.emit('message:received', { orgId, message: data });
     } catch (error) {
-      console.error(`[OrgP2PNetwork] 处理消息失败:`, error);
+      logger.error(`[OrgP2PNetwork] 处理消息失败:`, error);
     }
   }
 
@@ -310,9 +311,9 @@ class OrgP2PNetwork extends EventEmitter {
         await this.broadcastDirect(orgId, messageData);
       }
 
-      console.log(`[OrgP2PNetwork] ✓ 消息已广播: ${message.type}`);
+      logger.info(`[OrgP2PNetwork] ✓ 消息已广播: ${message.type}`);
     } catch (error) {
-      console.error(`[OrgP2PNetwork] 广播消息失败:`, error);
+      logger.error(`[OrgP2PNetwork] 广播消息失败:`, error);
       throw error;
     }
   }
@@ -326,7 +327,7 @@ class OrgP2PNetwork extends EventEmitter {
   async broadcastDirect(orgId, message) {
     const onlineMembers = this.onlineMembers.get(orgId);
     if (!onlineMembers || onlineMembers.size === 0) {
-      console.warn(`[OrgP2PNetwork] 没有在线成员可以接收消息`);
+      logger.warn(`[OrgP2PNetwork] 没有在线成员可以接收消息`);
       return;
     }
 
@@ -344,7 +345,7 @@ class OrgP2PNetwork extends EventEmitter {
         null,
         { autoQueue: true }
       ).catch(error => {
-        console.warn(`[OrgP2PNetwork] 发送消息到${memberDID}失败:`, error.message);
+        logger.warn(`[OrgP2PNetwork] 发送消息到${memberDID}失败:`, error.message);
       });
 
       promises.push(promise);
@@ -366,12 +367,12 @@ class OrgP2PNetwork extends EventEmitter {
       try {
         await this.sendHeartbeat(orgId);
       } catch (error) {
-        console.error(`[OrgP2PNetwork] 发送心跳失败:`, error);
+        logger.error(`[OrgP2PNetwork] 发送心跳失败:`, error);
       }
     }, this.config.heartbeatInterval);
 
     this.heartbeatIntervals.set(orgId, interval);
-    console.log(`[OrgP2PNetwork] ✓ 心跳已启动: ${orgId}`);
+    logger.info(`[OrgP2PNetwork] ✓ 心跳已启动: ${orgId}`);
   }
 
   /**
@@ -383,7 +384,7 @@ class OrgP2PNetwork extends EventEmitter {
     if (interval) {
       clearInterval(interval);
       this.heartbeatIntervals.delete(orgId);
-      console.log(`[OrgP2PNetwork] ✓ 心跳已停止: ${orgId}`);
+      logger.info(`[OrgP2PNetwork] ✓ 心跳已停止: ${orgId}`);
     }
   }
 
@@ -415,7 +416,7 @@ class OrgP2PNetwork extends EventEmitter {
 
     // 立即执行一次发现
     this.requestDiscovery(orgId).catch(error => {
-      console.error(`[OrgP2PNetwork] 初始发现失败:`, error);
+      logger.error(`[OrgP2PNetwork] 初始发现失败:`, error);
     });
 
     // 创建定时器
@@ -423,12 +424,12 @@ class OrgP2PNetwork extends EventEmitter {
       try {
         await this.requestDiscovery(orgId);
       } catch (error) {
-        console.error(`[OrgP2PNetwork] 成员发现失败:`, error);
+        logger.error(`[OrgP2PNetwork] 成员发现失败:`, error);
       }
     }, this.config.discoveryInterval);
 
     this.discoveryIntervals.set(orgId, interval);
-    console.log(`[OrgP2PNetwork] ✓ 成员发现已启动: ${orgId}`);
+    logger.info(`[OrgP2PNetwork] ✓ 成员发现已启动: ${orgId}`);
   }
 
   /**
@@ -440,7 +441,7 @@ class OrgP2PNetwork extends EventEmitter {
     if (interval) {
       clearInterval(interval);
       this.discoveryIntervals.delete(orgId);
-      console.log(`[OrgP2PNetwork] ✓ 成员发现已停止: ${orgId}`);
+      logger.info(`[OrgP2PNetwork] ✓ 成员发现已停止: ${orgId}`);
     }
   }
 
@@ -502,7 +503,7 @@ class OrgP2PNetwork extends EventEmitter {
    * @param {Object} data - 消息数据
    */
   async handleMemberOnline(orgId, data) {
-    console.log(`[OrgP2PNetwork] 成员上线: ${data.memberDID}`);
+    logger.info(`[OrgP2PNetwork] 成员上线: ${data.memberDID}`);
 
     this.addOnlineMember(orgId, data.memberDID);
 
@@ -521,7 +522,7 @@ class OrgP2PNetwork extends EventEmitter {
    * @param {Object} data - 消息数据
    */
   async handleMemberOffline(orgId, data) {
-    console.log(`[OrgP2PNetwork] 成员下线: ${data.memberDID}`);
+    logger.info(`[OrgP2PNetwork] 成员下线: ${data.memberDID}`);
 
     this.removeOnlineMember(orgId, data.memberDID);
 
@@ -580,7 +581,7 @@ class OrgP2PNetwork extends EventEmitter {
       return;
     }
 
-    console.log(`[OrgP2PNetwork] 发现成员: ${data.responderDID}`);
+    logger.info(`[OrgP2PNetwork] 发现成员: ${data.responderDID}`);
 
     this.addOnlineMember(orgId, data.responderDID);
 
@@ -648,7 +649,7 @@ class OrgP2PNetwork extends EventEmitter {
     members.add(memberDID);
 
     if (wasOffline) {
-      console.log(`[OrgP2PNetwork] 在线成员 +1: ${orgId} (${members.size})`);
+      logger.info(`[OrgP2PNetwork] 在线成员 +1: ${orgId} (${members.size})`);
     }
   }
 
@@ -661,7 +662,7 @@ class OrgP2PNetwork extends EventEmitter {
     const members = this.onlineMembers.get(orgId);
     if (members) {
       members.delete(memberDID);
-      console.log(`[OrgP2PNetwork] 在线成员 -1: ${orgId} (${members.size})`);
+      logger.info(`[OrgP2PNetwork] 在线成员 -1: ${orgId} (${members.size})`);
     }
   }
 
@@ -730,7 +731,7 @@ class OrgP2PNetwork extends EventEmitter {
    * 清理资源
    */
   async cleanup() {
-    console.log('[OrgP2PNetwork] 清理资源...');
+    logger.info('[OrgP2PNetwork] 清理资源...');
 
     // 取消所有订阅
     const orgIds = Array.from(this.orgSubscriptions.keys());
@@ -744,7 +745,7 @@ class OrgP2PNetwork extends EventEmitter {
     this.heartbeatIntervals.clear();
     this.discoveryIntervals.clear();
 
-    console.log('[OrgP2PNetwork] ✓ 资源清理完成');
+    logger.info('[OrgP2PNetwork] ✓ 资源清理完成');
   }
 }
 

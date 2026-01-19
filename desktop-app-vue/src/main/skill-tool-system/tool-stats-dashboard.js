@@ -3,6 +3,7 @@
  * 提供工具使用情况的实时统计和分析
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const path = require('path');
 const DatabaseManager = require('../database');
 
@@ -43,7 +44,7 @@ class ToolStatsDashboard {
         timestamp: Date.now()
       };
     } catch (error) {
-      console.error('[Dashboard] 获取概览失败:', error);
+      logger.error('[Dashboard] 获取概览失败:', error);
       throw error;
     }
   }
@@ -111,7 +112,7 @@ class ToolStatsDashboard {
         timestamp: Date.now()
       };
     } catch (error) {
-      console.error('[Dashboard] 获取排行榜失败:', error);
+      logger.error('[Dashboard] 获取排行榜失败:', error);
       throw error;
     }
   }
@@ -145,7 +146,7 @@ class ToolStatsDashboard {
         avgTime: parseFloat((stat.avgTime || 0).toFixed(2))
       }));
     } catch (error) {
-      console.error('[Dashboard] 获取分类统计失败:', error);
+      logger.error('[Dashboard] 获取分类统计失败:', error);
       throw error;
     }
   }
@@ -177,7 +178,7 @@ class ToolStatsDashboard {
         timeSinceLastUse: this._formatTimeSince(tool.last_used_at)
       }));
     } catch (error) {
-      console.error('[Dashboard] 获取最近使用失败:', error);
+      logger.error('[Dashboard] 获取最近使用失败:', error);
       throw error;
     }
   }
@@ -215,7 +216,7 @@ class ToolStatsDashboard {
         avgDuration: parseFloat((stat.avgDuration || 0).toFixed(2))
       }));
     } catch (error) {
-      console.error('[Dashboard] 获取每日统计失败:', error);
+      logger.error('[Dashboard] 获取每日统计失败:', error);
       throw error;
     }
   }
@@ -261,7 +262,7 @@ class ToolStatsDashboard {
         timestamp: Date.now()
       };
     } catch (error) {
-      console.error('[Dashboard] 获取性能指标失败:', error);
+      logger.error('[Dashboard] 获取性能指标失败:', error);
       throw error;
     }
   }
@@ -330,7 +331,7 @@ class ToolStatsDashboard {
         generatedAt: new Date().toISOString()
       };
     } catch (error) {
-      console.error('[Dashboard] 获取筛选仪表板数据失败:', error);
+      logger.error('[Dashboard] 获取筛选仪表板数据失败:', error);
       throw error;
     }
   }
@@ -376,7 +377,7 @@ class ToolStatsDashboard {
         timestamp: Date.now()
       };
     } catch (error) {
-      console.error('[Dashboard] 获取筛选概览失败:', error);
+      logger.error('[Dashboard] 获取筛选概览失败:', error);
       throw error;
     }
   }
@@ -443,7 +444,7 @@ class ToolStatsDashboard {
         fastest: bySpeed
       };
     } catch (error) {
-      console.error('[Dashboard] 获取筛选排行榜失败:', error);
+      logger.error('[Dashboard] 获取筛选排行榜失败:', error);
       throw error;
     }
   }
@@ -477,7 +478,7 @@ class ToolStatsDashboard {
         avgTime: parseFloat((stat.avgTime || 0).toFixed(2))
       }));
     } catch (error) {
-      console.error('[Dashboard] 获取筛选分类统计失败:', error);
+      logger.error('[Dashboard] 获取筛选分类统计失败:', error);
       throw error;
     }
   }
@@ -518,7 +519,7 @@ class ToolStatsDashboard {
         timeSinceLastUse: this._formatTimeSince(tool.last_used_at)
       }));
     } catch (error) {
-      console.error('[Dashboard] 获取筛选最近使用失败:', error);
+      logger.error('[Dashboard] 获取筛选最近使用失败:', error);
       throw error;
     }
   }
@@ -591,7 +592,7 @@ class ToolStatsDashboard {
         avgDuration: parseFloat((stat.avgDuration || 0).toFixed(2))
       }));
     } catch (error) {
-      console.error('[Dashboard] 获取筛选每日统计失败:', error);
+      logger.error('[Dashboard] 获取筛选每日统计失败:', error);
       throw error;
     }
   }
@@ -637,7 +638,7 @@ class ToolStatsDashboard {
         timestamp: Date.now()
       };
     } catch (error) {
-      console.error('[Dashboard] 获取筛选性能指标失败:', error);
+      logger.error('[Dashboard] 获取筛选性能指标失败:', error);
       throw error;
     }
   }
@@ -725,7 +726,7 @@ class ToolStatsDashboard {
  */
 async function showDashboard() {
   try {
-    console.log('正在加载统计数据...\n');
+    logger.info('正在加载统计数据...\n');
 
     // 初始化数据库
     const dbPath = process.env.DB_PATH || path.join(__dirname, '../../../../data/chainlesschain.db');
@@ -737,17 +738,17 @@ async function showDashboard() {
 
     // 生成并显示文本仪表板
     const textDashboard = await dashboard.generateTextDashboard();
-    console.log(textDashboard);
+    logger.info(textDashboard);
 
     // 可选：保存JSON格式
     const jsonData = await dashboard.getDashboardData();
-    console.log('\n完整JSON数据已准备就绪，可通过API访问。');
+    logger.info('\n完整JSON数据已准备就绪，可通过API访问。');
 
     // 关闭数据库
     await db.db.close();
 
   } catch (error) {
-    console.error('显示仪表板失败:', error);
+    logger.error('显示仪表板失败:', error);
     process.exit(1);
   }
 }

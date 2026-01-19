@@ -189,6 +189,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, watch } from 'vue';
 import {
   BulbOutlined,
@@ -240,13 +242,13 @@ const knowledgeRecommendations = computed(() =>
 
 // 生成智能推荐
 const generateRecommendations = () => {
-  console.log('[SmartContext] 🧠 生成智能推荐...');
+  logger.info('[SmartContext] 🧠 生成智能推荐...');
 
   const newRecommendations = [];
 
   // 1. 分析当前消息的关键词
   const keywords = extractKeywords(props.currentMessage);
-  console.log('[SmartContext] 关键词:', keywords);
+  logger.info('[SmartContext] 关键词:', keywords);
 
   // 2. 根据关键词推荐相关文件
   if (props.projectFiles.length > 0) {
@@ -315,7 +317,7 @@ const generateRecommendations = () => {
   }
 
   recommendations.value = newRecommendations;
-  console.log('[SmartContext] ✅ 生成了', newRecommendations.length, '条推荐');
+  logger.info('[SmartContext] ✅ 生成了', newRecommendations.length, '条推荐');
 };
 
 // 提取关键词（简单实现）

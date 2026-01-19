@@ -542,6 +542,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import {
   ref,
   computed,
@@ -695,22 +697,22 @@ const isDevelopment = computed(() => {
 });
 const projectFiles = computed(() => {
   const files = projectStore.projectFiles;
-  console.log("[ProjectDetail] projectFiles computed 执行");
-  console.log("  文件数量:", files?.length || 0);
-  console.log("  时间戳:", Date.now());
+  logger.info("[ProjectDetail] projectFiles computed 执行");
+  logger.info("  文件数量:", files?.length || 0);
+  logger.info("  时间戳:", Date.now());
 
   if (!files || files.length === 0) {
-    console.log("[ProjectDetail] 返回空数组");
+    logger.info("[ProjectDetail] 返回空数组");
     return [];
   }
 
   if (files.length > 0 && files.length <= 3) {
-    console.log(
+    logger.info(
       "[ProjectDetail] 文件列表:",
       files.map((f) => f.file_name).join(", "),
     );
   } else if (files.length > 3) {
-    console.log(
+    logger.info(
       "[ProjectDetail] 前3个文件:",
       files
         .slice(0, 3)
@@ -721,7 +723,7 @@ const projectFiles = computed(() => {
 
   // 🔑 关键：创建新数组引用确保响应式
   const newRef = [...files];
-  console.log("[ProjectDetail] 创建新引用，长度:", newRef.length);
+  logger.info("[ProjectDetail] 创建新引用，长度:", newRef.length);
   return newRef;
 });
 const currentFile = computed(() => projectStore.currentFile);
@@ -869,7 +871,7 @@ const getLocalProjectPath = async (path) => {
 
     return resolvedPath;
   } catch (error) {
-    console.error("解析项目路径失败:", error);
+    logger.error("解析项目路径失败:", error);
     // 降级：如果 API 调用失败，返回原路径
     return path;
   }
@@ -914,7 +916,7 @@ const refreshGitStatus = async () => {
       gitStatus.value = status;
     }
   } catch (error) {
-    console.error("[ProjectDetail] 获取 Git 状态失败:", error);
+    logger.error("[ProjectDetail] 获取 Git 状态失败:", error);
     // 不显示错误消息，因为可能项目不是 Git 仓库
   }
 };
@@ -950,7 +952,7 @@ const loadFileContent = async (file) => {
       );
 
       if (cachedContent) {
-        console.log("[ProjectDetail] 从缓存加载文件内容:", file.file_path);
+        logger.info("[ProjectDetail] 从缓存加载文件内容:", file.file_path);
         fileContent.value = cachedContent.content;
         return;
       }
@@ -974,12 +976,12 @@ const loadFileContent = async (file) => {
         }
       }
 
-      console.log(
+      logger.info(
         "[ProjectDetail] 项目根路径:",
         currentProject.value.root_path,
       );
-      console.log("[ProjectDetail] 文件相对路径:", file.file_path);
-      console.log("[ProjectDetail] 完整路径（已验证）:", fullPath);
+      logger.info("[ProjectDetail] 文件相对路径:", file.file_path);
+      logger.info("[ProjectDetail] 完整路径（已验证）:", fullPath);
 
       // 【修复2: 添加文件大小检查】
       try {
@@ -998,7 +1000,7 @@ const loadFileContent = async (file) => {
           }
         }
       } catch (statsError) {
-        console.warn(
+        logger.warn(
           "[ProjectDetail] 无法获取文件大小，跳过大小检查:",
           statsError,
         );
@@ -1015,7 +1017,7 @@ const loadFileContent = async (file) => {
             ? result.content
             : String(result.content || "");
         fileContent.value = content;
-        console.log(
+        logger.info(
           "[ProjectDetail] 文件内容加载成功，长度:",
           fileContent.value.length,
         );
@@ -1033,7 +1035,7 @@ const loadFileContent = async (file) => {
             },
           );
         } catch (cacheError) {
-          console.warn("[ProjectDetail] 缓存文件内容失败:", cacheError);
+          logger.warn("[ProjectDetail] 缓存文件内容失败:", cacheError);
           // 不影响主流程
         }
 
@@ -1047,14 +1049,14 @@ const loadFileContent = async (file) => {
             );
 
             if (parseResult.success) {
-              console.log(
+              logger.info(
                 "[ProjectDetail] 文件解析完成:",
                 parseResult.metadata,
               );
               // 可以将解析结果用于代码导航、大纲等功能
             }
           } catch (workerError) {
-            console.warn("[ProjectDetail] Worker解析失败:", workerError);
+            logger.warn("[ProjectDetail] Worker解析失败:", workerError);
             // 不影响主流程
           }
         }
@@ -1065,8 +1067,8 @@ const loadFileContent = async (file) => {
       fileContent.value = "";
     }
   } catch (error) {
-    console.error("[ProjectDetail] 加载文件内容失败:", error);
-    console.error("[ProjectDetail] 错误详情:", {
+    logger.error("[ProjectDetail] 加载文件内容失败:", error);
+    logger.error("[ProjectDetail] 错误详情:", {
       projectId: projectId.value,
       projectRootPath: currentProject.value?.root_path,
       fileRelativePath: file.file_path,
@@ -1111,7 +1113,7 @@ const handleFileSave = async (content) => {
 
     message.success("文件已保存");
   } catch (error) {
-    console.error("保存文件失败:", error);
+    logger.error("保存文件失败:", error);
     message.error("保存失败: " + error.message);
   } finally {
     saving.value = false;
@@ -1121,7 +1123,7 @@ const handleFileSave = async (content) => {
 // 处理Excel内容变化
 const handleExcelChange = (changeData) => {
   hasUnsavedChanges.value = true;
-  console.log("[ProjectDetail] Excel数据变化:", changeData);
+  logger.info("[ProjectDetail] Excel数据变化:", changeData);
 };
 
 // 处理Excel保存
@@ -1130,12 +1132,12 @@ const handleExcelSave = async (data) => {
 
   saving.value = true;
   try {
-    console.log("[ProjectDetail] 保存Excel文件:", currentFile.value.file_path);
+    logger.info("[ProjectDetail] 保存Excel文件:", currentFile.value.file_path);
 
     hasUnsavedChanges.value = false;
     message.success("Excel文件已保存");
   } catch (error) {
-    console.error("保存Excel文件失败:", error);
+    logger.error("保存Excel文件失败:", error);
     message.error("保存失败: " + error.message);
   } finally {
     saving.value = false;
@@ -1145,7 +1147,7 @@ const handleExcelSave = async (data) => {
 // 处理Word内容变化
 const handleWordChange = (changeData) => {
   hasUnsavedChanges.value = true;
-  console.log("[ProjectDetail] Word内容变化:", changeData);
+  logger.info("[ProjectDetail] Word内容变化:", changeData);
 };
 
 // 处理Word保存
@@ -1154,12 +1156,12 @@ const handleWordSave = async (data) => {
 
   saving.value = true;
   try {
-    console.log("[ProjectDetail] 保存Word文件:", currentFile.value.file_path);
+    logger.info("[ProjectDetail] 保存Word文件:", currentFile.value.file_path);
 
     hasUnsavedChanges.value = false;
     message.success("Word文档已保存");
   } catch (error) {
-    console.error("保存Word文件失败:", error);
+    logger.error("保存Word文件失败:", error);
     message.error("保存失败: " + error.message);
   } finally {
     saving.value = false;
@@ -1179,7 +1181,7 @@ const handleCodeSave = async (code) => {
 
 // 处理Markdown变化
 const handleMarkdownChange = (content) => {
-  console.log("[ProjectDetail] Markdown内容变化，长度:", content?.length);
+  logger.info("[ProjectDetail] Markdown内容变化，长度:", content?.length);
   hasUnsavedChanges.value = true;
   // 更新 fileContent 以保持同步
   fileContent.value = content;
@@ -1187,7 +1189,7 @@ const handleMarkdownChange = (content) => {
 
 // 处理Markdown保存
 const handleMarkdownSave = async (content) => {
-  console.log("[ProjectDetail] Markdown保存完成，长度:", content?.length);
+  logger.info("[ProjectDetail] Markdown保存完成，长度:", content?.length);
   hasUnsavedChanges.value = false;
   // 更新 fileContent
   fileContent.value = content;
@@ -1235,7 +1237,7 @@ const handleBackToList = () => {
  * @param {boolean} forceRerender - 是否强制重新渲染（默认false）
  */
 const loadFilesWithSync = async (targetProjectId, forceRerender = false) => {
-  console.log(
+  logger.info(
     "[ProjectDetail] loadFilesWithSync 开始, projectId:",
     targetProjectId,
     "forceRerender:",
@@ -1244,20 +1246,20 @@ const loadFilesWithSync = async (targetProjectId, forceRerender = false) => {
 
   // 1. 加载文件
   await projectStore.loadProjectFiles(targetProjectId);
-  console.log("[ProjectDetail]   ✓ Store 已更新");
+  logger.info("[ProjectDetail]   ✓ Store 已更新");
 
   // 2. 单次 nextTick 让 Vue 响应式自然传播（避免过度更新）
   await nextTick();
-  console.log("[ProjectDetail]   ✓ 响应式已传播");
+  logger.info("[ProjectDetail]   ✓ 响应式已传播");
 
   // 3. 仅在必要时强制重新渲染（避免编辑器状态冲突）
   if (forceRerender) {
     fileTreeKey.value++;
-    console.log("[ProjectDetail]   ✓ Key 已更新:", fileTreeKey.value);
+    logger.info("[ProjectDetail]   ✓ Key 已更新:", fileTreeKey.value);
     await nextTick();
   }
 
-  console.log("[ProjectDetail] loadFilesWithSync 完成");
+  logger.info("[ProjectDetail] loadFilesWithSync 完成");
 };
 
 // 根据文件数量自动选择文件树模式
@@ -1268,7 +1270,7 @@ const updateFileTreeMode = () => {
 
   if (shouldUseVirtual !== useVirtualFileTree.value) {
     useVirtualFileTree.value = shouldUseVirtual;
-    console.log(
+    logger.info(
       `[ProjectDetail] 文件数量: ${fileCount}，切换到 ${shouldUseVirtual ? "虚拟" : "标准"}模式`,
     );
   }
@@ -1278,17 +1280,17 @@ const updateFileTreeMode = () => {
 const handleRefreshFiles = async () => {
   refreshing.value = true;
   try {
-    console.log("[ProjectDetail] ===== 开始刷新文件列表 =====");
-    console.log("[ProjectDetail] 项目ID:", projectId.value);
+    logger.info("[ProjectDetail] ===== 开始刷新文件列表 =====");
+    logger.info("[ProjectDetail] 项目ID:", projectId.value);
 
     // 手动刷新时强制重新渲染文件树
     await loadFilesWithSync(projectId.value, true);
 
     message.success("文件列表已刷新");
-    console.log("[ProjectDetail] ===== 刷新完成 =====");
+    logger.info("[ProjectDetail] ===== 刷新完成 =====");
   } catch (error) {
-    console.error("[ProjectDetail] ===== 刷新失败 =====");
-    console.error("Refresh files failed:", error);
+    logger.error("[ProjectDetail] ===== 刷新失败 =====");
+    logger.error("Refresh files failed:", error);
     message.error("刷新失败：" + error.message);
   } finally {
     refreshing.value = false;
@@ -1316,11 +1318,11 @@ const handleSelectFile = async (fileData) => {
 };
 
 const selectFile = async (fileId) => {
-  console.log("[ProjectDetail] 选择文件, fileId:", fileId);
+  logger.info("[ProjectDetail] 选择文件, fileId:", fileId);
   const file = projectFiles.value.find((f) => f.id === fileId);
 
   if (file) {
-    console.log("[ProjectDetail] 找到文件:", file);
+    logger.info("[ProjectDetail] 找到文件:", file);
 
     // 使用乐观更新选择文件
     await optimisticManager.update({
@@ -1359,11 +1361,11 @@ const selectFile = async (fileId) => {
       },
 
       onFailure: (error) => {
-        console.error("选择文件失败:", error);
+        logger.error("选择文件失败:", error);
       },
     });
   } else {
-    console.warn(
+    logger.warn(
       "[ProjectDetail] 未找到文件, fileId:",
       fileId,
       "可用文件:",
@@ -1447,7 +1449,7 @@ const handleSave = async () => {
     },
 
     onFailure: (error) => {
-      console.error("Save file failed:", error);
+      logger.error("Save file failed:", error);
       message.error("保存失败：" + error.message);
     },
   });
@@ -1458,12 +1460,12 @@ const handleSave = async () => {
 // 处理视图模式变化
 const handleViewModeChange = (mode) => {
   viewMode.value = mode;
-  console.log("视图模式已切换为:", mode);
+  logger.info("视图模式已切换为:", mode);
 };
 
 // 处理导出
 const handleExport = (exportType) => {
-  console.log("导出类型:", exportType);
+  logger.info("导出类型:", exportType);
   message.info(`导出功能开发中: ${exportType}`);
   // 这里可以根据exportType调用不同的导出方法
   // 比如调用FileExportMenu中已有的导出功能
@@ -1482,7 +1484,7 @@ const checkGitInitialized = async () => {
     );
     return exists;
   } catch (error) {
-    console.error("检查 Git 初始化状态失败:", error);
+    logger.error("检查 Git 初始化状态失败:", error);
     return false;
   }
 };
@@ -1494,7 +1496,7 @@ const initializeGitRepo = async () => {
     message.success("Git 仓库初始化成功");
     return true;
   } catch (error) {
-    console.error("Git 初始化失败:", error);
+    logger.error("Git 初始化失败:", error);
     message.error("Git 初始化失败：" + error.message);
     return false;
   }
@@ -1579,7 +1581,7 @@ const handleConfirmCommit = async () => {
     showGitCommitModal.value = false;
     commitMessage.value = "";
   } catch (error) {
-    console.error("Git commit failed:", error);
+    logger.error("Git commit failed:", error);
     message.error("提交失败：" + error.message);
   } finally {
     committing.value = false;
@@ -1593,7 +1595,7 @@ const handleGitPush = async () => {
     await projectStore.gitPush(repoPath);
     message.success("推送成功");
   } catch (error) {
-    console.error("Git push failed:", error);
+    logger.error("Git push failed:", error);
     message.error("推送失败：" + error.message);
   }
 };
@@ -1606,7 +1608,7 @@ const handleGitPull = async () => {
     message.success("拉取成功");
     await handleRefreshFiles();
   } catch (error) {
-    console.error("Git pull failed:", error);
+    logger.error("Git pull failed:", error);
     message.error("拉取失败：" + error.message);
   }
 };
@@ -1635,7 +1637,7 @@ const handleFileDownloadFromModal = async (file) => {
     await window.electronAPI.file.saveAs(file.file_path);
     message.success("文件下载成功");
   } catch (error) {
-    console.error("Download file failed:", error);
+    logger.error("Download file failed:", error);
     message.error("下载失败：" + error.message);
   }
 };
@@ -1656,7 +1658,7 @@ const handleFileDeleteFromModal = async (file) => {
         // 刷新文件列表
         await handleRefreshFiles();
       } catch (error) {
-        console.error("Delete file failed:", error);
+        logger.error("Delete file failed:", error);
         message.error("删除失败：" + error.message);
       }
     },
@@ -1695,7 +1697,7 @@ const handleUpdateShareType = async (shareType) => {
       shareType === "public" ? "项目已设置为公开访问" : "项目已设置为私密访问",
     );
   } catch (error) {
-    console.error("Update share type failed:", error);
+    logger.error("Update share type failed:", error);
     message.error("更新分享设置失败：" + error.message);
   }
 };
@@ -1712,29 +1714,29 @@ const handleShareSuccess = async (shareData) => {
       });
     }
   } catch (error) {
-    console.error("Update share data failed:", error);
+    logger.error("Update share data failed:", error);
   }
 };
 
 // 处理导出开始
 const handleExportStart = ({ exportType, fileName }) => {
-  console.log("Export started:", exportType, fileName);
+  logger.info("Export started:", exportType, fileName);
 };
 
 // 处理导出完成
 const handleExportComplete = async (result) => {
-  console.log("Export completed:", result);
+  logger.info("Export completed:", result);
   // 可以在这里添加额外的处理，比如显示文件或打开目录
 };
 
 // 处理导出错误
 const handleExportError = ({ exportType, error }) => {
-  console.error("Export error:", exportType, error);
+  logger.error("Export error:", exportType, error);
 };
 
 // 处理AI创建完成
 const handleAICreationComplete = async (result) => {
-  console.log("[ProjectDetail] AI创建完成:", result);
+  logger.info("[ProjectDetail] AI创建完成:", result);
   // 清空AI创建数据
   aiCreationData.value = null;
 
@@ -1745,13 +1747,13 @@ const handleAICreationComplete = async (result) => {
     // 刷新项目信息和文件列表
     await projectStore.fetchProjectById(result.projectId);
     await loadFilesWithSync(result.projectId);
-    console.log("[ProjectDetail] AI创建完成，文件树已刷新");
+    logger.info("[ProjectDetail] AI创建完成，文件树已刷新");
   }
 };
 
 // 注册键盘快捷键
 const registerShortcuts = () => {
-  console.log("[ProjectDetail] 注册键盘快捷键");
+  logger.info("[ProjectDetail] 注册键盘快捷键");
 
   // 设置作用域
   keyboardShortcuts.setScope("project-detail");
@@ -1790,13 +1792,13 @@ onMounted(async () => {
     registerShortcuts();
     // 🔥 检查是否是AI创建模式（projectId为'ai-creating'）
     if (isAICreatingMode.value) {
-      console.log("[ProjectDetail] 检测到AI创建模式，开始自动创建项目");
+      logger.info("[ProjectDetail] 检测到AI创建模式，开始自动创建项目");
 
       // 如果有 createData 参数，解析并保存
       if (route.query.createData) {
         try {
           aiCreationData.value = JSON.parse(route.query.createData);
-          console.log("[ProjectDetail] AI创建数据:", aiCreationData.value);
+          logger.info("[ProjectDetail] AI创建数据:", aiCreationData.value);
 
           // 🔥 自动创建项目（使用快速创建方法，不调用后端）
           const createData = {
@@ -1806,10 +1808,10 @@ onMounted(async () => {
             status: "draft",
           };
 
-          console.log("[ProjectDetail] 创建项目参数:", createData);
+          logger.info("[ProjectDetail] 创建项目参数:", createData);
           const createdProject =
             await window.electronAPI.project.createQuick(createData);
-          console.log("[ProjectDetail] 项目创建成功:", createdProject);
+          logger.info("[ProjectDetail] 项目创建成功:", createdProject);
 
           // 添加到项目列表
           projectStore.projects.unshift(createdProject);
@@ -1821,7 +1823,7 @@ onMounted(async () => {
           aiCreationData.value = null;
 
           // 🔥 跳转到真实项目ID，并传递用户prompt以便ChatPanel自动发送
-          console.log("[ProjectDetail] 跳转到真实项目:", createdProject.id);
+          logger.info("[ProjectDetail] 跳转到真实项目:", createdProject.id);
           router.replace({
             path: `/projects/${createdProject.id}`,
             query: {
@@ -1832,7 +1834,7 @@ onMounted(async () => {
           loading.value = false;
           return;
         } catch (error) {
-          console.error("[ProjectDetail] 自动创建项目失败:", error);
+          logger.error("[ProjectDetail] 自动创建项目失败:", error);
           message.error("创建项目失败: " + error.message);
           // 失败时返回项目列表
           router.push("/projects");
@@ -1841,7 +1843,7 @@ onMounted(async () => {
         }
       } else {
         // 没有 createData 参数，显示空的ChatPanel让用户手动输入
-        console.log("[ProjectDetail] AI创建模式，等待用户输入创建请求");
+        logger.info("[ProjectDetail] AI创建模式，等待用户输入创建请求");
         loading.value = false;
         return;
       }
@@ -1858,7 +1860,7 @@ onMounted(async () => {
     // 加载项目文件（使用统一的加载函数）
     await loadFilesWithSync(projectId.value);
     updateFileTreeMode(); // 根据文件数量选择最佳模式
-    console.log("[ProjectDetail] 初始文件树已加载");
+    logger.info("[ProjectDetail] 初始文件树已加载");
 
     // 无障碍通知：项目已加载
     announce(
@@ -1869,11 +1871,11 @@ onMounted(async () => {
     // 🔥 检查是否有自动发送消息的请求
     if (route.query.autoSendMessage) {
       autoSendMessage.value = route.query.autoSendMessage;
-      console.log("[ProjectDetail] 检测到自动发送消息:", autoSendMessage.value);
+      logger.info("[ProjectDetail] 检测到自动发送消息:", autoSendMessage.value);
 
       // 🔄 延迟清除query参数，等ChatPanel处理完并保存到conversation（2秒足够）
       setTimeout(() => {
-        console.log("[ProjectDetail] 清除autoSendMessage query参数");
+        logger.info("[ProjectDetail] 清除autoSendMessage query参数");
         // 🔥 使用 replaceState 代替 router.replace，避免触发页面重新加载
         const url = new URL(window.location.href);
         url.searchParams.delete("autoSendMessage");
@@ -1893,7 +1895,7 @@ onMounted(async () => {
     // 每 10 秒刷新一次 Git 状态
     gitStatusInterval = setInterval(() => {
       refreshGitStatus().catch((err) => {
-        console.error("[ProjectDetail] Git status interval error:", err);
+        logger.error("[ProjectDetail] Git status interval error:", err);
       });
     }, 30000); // 优化：从10秒增加到30秒，减少资源消耗
 
@@ -1904,9 +1906,9 @@ onMounted(async () => {
           projectId.value,
           resolvedProjectPath.value,
         );
-        console.log("[ProjectDetail] 项目统计收集已启动");
+        logger.info("[ProjectDetail] 项目统计收集已启动");
       } catch (error) {
-        console.error("[ProjectDetail] 启动统计收集失败:", error);
+        logger.error("[ProjectDetail] 启动统计收集失败:", error);
       }
     }
 
@@ -1917,36 +1919,36 @@ onMounted(async () => {
           projectId.value,
           currentProject.value.root_path,
         );
-        console.log("[ProjectDetail] 文件系统监听已启动");
+        logger.info("[ProjectDetail] 文件系统监听已启动");
       } catch (error) {
-        console.error("[ProjectDetail] 启动文件监听失败:", error);
+        logger.error("[ProjectDetail] 启动文件监听失败:", error);
       }
     }
 
     // 监听文件变化事件 - 实现自动刷新
     window.electronAPI.onFileReloaded?.((event) => {
-      console.log("[ProjectDetail] 检测到文件内容更新:", event);
+      logger.info("[ProjectDetail] 检测到文件内容更新:", event);
       // 如果更新的文件是当前打开的文件，自动重新加载
       if (currentFile.value && currentFile.value.id === event.fileId) {
         selectFile(currentFile.value.id);
       }
       // 刷新文件列表（使用统一的加载函数）
       loadFilesWithSync(projectId.value).catch((err) => {
-        console.error("[ProjectDetail] 文件更新后刷新失败:", err);
+        logger.error("[ProjectDetail] 文件更新后刷新失败:", err);
       });
     });
 
     window.electronAPI.onFileAdded?.((event) => {
-      console.log("[ProjectDetail] 检测到新文件添加:", event);
+      logger.info("[ProjectDetail] 检测到新文件添加:", event);
       message.info(`新文件已添加: ${event.relativePath}`);
       // 刷新文件列表（使用统一的加载函数）
       loadFilesWithSync(projectId.value).catch((err) => {
-        console.error("[ProjectDetail] 文件添加后刷新失败:", err);
+        logger.error("[ProjectDetail] 文件添加后刷新失败:", err);
       });
     });
 
     window.electronAPI.onFileDeleted?.((event) => {
-      console.log("[ProjectDetail] 检测到文件删除:", event);
+      logger.info("[ProjectDetail] 检测到文件删除:", event);
       message.info(`文件已删除: ${event.relativePath}`);
       // 如果删除的是当前打开的文件，关闭编辑器
       if (currentFile.value && currentFile.value.id === event.fileId) {
@@ -1955,27 +1957,27 @@ onMounted(async () => {
       }
       // 刷新文件列表（使用统一的加载函数）
       loadFilesWithSync(projectId.value).catch((err) => {
-        console.error("[ProjectDetail] 文件删除后刷新失败:", err);
+        logger.error("[ProjectDetail] 文件删除后刷新失败:", err);
       });
     });
 
     window.electronAPI.onFileSyncConflict?.((event) => {
-      console.warn("[ProjectDetail] 检测到文件同步冲突:", event);
+      logger.warn("[ProjectDetail] 检测到文件同步冲突:", event);
       message.warning(`文件 "${event.fileName}" 存在同步冲突，请手动解决`);
     });
 
     // 监听文件列表更新事件（新增、删除、重命名、移动等操作）
     window.electronAPI.project.onFilesUpdated?.((event) => {
-      console.log("[ProjectDetail] 检测到文件列表更新:", event);
+      logger.info("[ProjectDetail] 检测到文件列表更新:", event);
       // 只刷新当前项目的文件列表（使用统一的加载函数）
       if (event.projectId === projectId.value) {
         loadFilesWithSync(projectId.value).catch((err) => {
-          console.error("[ProjectDetail] 刷新文件列表失败:", err);
+          logger.error("[ProjectDetail] 刷新文件列表失败:", err);
         });
       }
     });
   } catch (error) {
-    console.error("Load project failed:", error);
+    logger.error("Load project failed:", error);
     message.error("加载项目失败：" + error.message);
   } finally {
     loading.value = false;
@@ -1996,9 +1998,9 @@ onUnmounted(async () => {
   if (projectId.value) {
     try {
       await window.electronAPI.project.stopStats(projectId.value);
-      console.log("[ProjectDetail] 项目统计收集已停止");
+      logger.info("[ProjectDetail] 项目统计收集已停止");
     } catch (error) {
-      console.error("[ProjectDetail] 停止统计收集失败:", error);
+      logger.error("[ProjectDetail] 停止统计收集失败:", error);
     }
   }
 
@@ -2006,9 +2008,9 @@ onUnmounted(async () => {
   if (projectId.value) {
     try {
       await window.electronAPI.project.stopWatchProject(projectId.value);
-      console.log("[ProjectDetail] 文件系统监听已停止");
+      logger.info("[ProjectDetail] 文件系统监听已停止");
     } catch (error) {
-      console.error("[ProjectDetail] 停止文件监听失败:", error);
+      logger.error("[ProjectDetail] 停止文件监听失败:", error);
     }
   }
 
@@ -2027,17 +2029,17 @@ onUnmounted(async () => {
   try {
     fileWorker.destroy();
     syntaxWorker.destroy();
-    console.log("[ProjectDetail] Web Workers已清理");
+    logger.info("[ProjectDetail] Web Workers已清理");
   } catch (error) {
-    console.warn("[ProjectDetail] 清理Workers失败:", error);
+    logger.warn("[ProjectDetail] 清理Workers失败:", error);
   }
 
   // 【优化: 关闭IndexedDB连接】
   try {
     fileCacheManager.close();
-    console.log("[ProjectDetail] IndexedDB连接已关闭");
+    logger.info("[ProjectDetail] IndexedDB连接已关闭");
   } catch (error) {
-    console.warn("[ProjectDetail] 关闭IndexedDB失败:", error);
+    logger.warn("[ProjectDetail] 关闭IndexedDB失败:", error);
   }
 });
 
@@ -2046,7 +2048,7 @@ watch(
   () => route.params.id,
   async (newId, oldId) => {
     if (newId && newId !== oldId) {
-      console.log("[ProjectDetail] 路由变化，切换项目:", { oldId, newId });
+      logger.info("[ProjectDetail] 路由变化，切换项目:", { oldId, newId });
       loading.value = true;
 
       try {
@@ -2054,9 +2056,9 @@ watch(
         if (oldId && oldId !== "ai-creating") {
           try {
             await window.electronAPI.project.stopWatchProject(oldId);
-            console.log("[ProjectDetail] 已停止旧项目文件监听:", oldId);
+            logger.info("[ProjectDetail] 已停止旧项目文件监听:", oldId);
           } catch (error) {
-            console.error("[ProjectDetail] 停止旧项目监听失败:", error);
+            logger.error("[ProjectDetail] 停止旧项目监听失败:", error);
           }
         }
 
@@ -2068,21 +2070,21 @@ watch(
 
         // 🔥 检查是否是AI创建模式
         if (newId === "ai-creating") {
-          console.log("[ProjectDetail] Watch检测到AI创建模式，跳过项目加载");
+          logger.info("[ProjectDetail] Watch检测到AI创建模式，跳过项目加载");
           loading.value = false;
           return;
         }
 
         // 3. 加载新项目
         await projectStore.fetchProjectById(newId);
-        console.log(
+        logger.info(
           "[ProjectDetail] 项目数据已加载:",
           currentProject.value?.name,
         );
 
         // 4. 加载项目文件（使用统一的加载函数）
         await loadFilesWithSync(newId);
-        console.log(
+        logger.info(
           "[ProjectDetail] 项目文件已加载，数量:",
           projectStore.projectFiles?.length || 0,
         );
@@ -2092,7 +2094,7 @@ watch(
           resolvedProjectPath.value = await getLocalProjectPath(
             currentProject.value.root_path,
           );
-          console.log(
+          logger.info(
             "[ProjectDetail] 项目路径已解析:",
             resolvedProjectPath.value,
           );
@@ -2105,16 +2107,16 @@ watch(
               newId,
               currentProject.value.root_path,
             );
-            console.log("[ProjectDetail] 已启动新项目文件监听");
+            logger.info("[ProjectDetail] 已启动新项目文件监听");
           } catch (error) {
-            console.error("[ProjectDetail] 启动新项目监听失败:", error);
+            logger.error("[ProjectDetail] 启动新项目监听失败:", error);
           }
         }
 
         // 7. 刷新Git状态
         await refreshGitStatus();
       } catch (error) {
-        console.error("[ProjectDetail] 切换项目失败:", error);
+        logger.error("[ProjectDetail] 切换项目失败:", error);
         message.error("切换项目失败：" + error.message);
       } finally {
         loading.value = false;
@@ -2126,42 +2128,42 @@ watch(
 // 清理编辑器实例（避免内存泄漏）
 const cleanupEditorInstances = () => {
   try {
-    console.log("[ProjectDetail] 清理编辑器实例...");
+    logger.info("[ProjectDetail] 清理编辑器实例...");
 
     // 清理各类编辑器实例
     if (excelEditorRef.value?.destroy) {
-      console.log("[ProjectDetail] 清理Excel编辑器");
+      logger.info("[ProjectDetail] 清理Excel编辑器");
       excelEditorRef.value.destroy();
     }
     if (wordEditorRef.value?.destroy) {
-      console.log("[ProjectDetail] 清理Word编辑器");
+      logger.info("[ProjectDetail] 清理Word编辑器");
       wordEditorRef.value.destroy();
     }
     if (codeEditorRef.value?.dispose) {
       // Monaco Editor使用dispose方法
-      console.log("[ProjectDetail] 清理代码编辑器");
+      logger.info("[ProjectDetail] 清理代码编辑器");
       codeEditorRef.value.dispose();
     }
     if (markdownEditorRef.value?.destroy) {
-      console.log("[ProjectDetail] 清理Markdown编辑器");
+      logger.info("[ProjectDetail] 清理Markdown编辑器");
       markdownEditorRef.value.destroy();
     }
     if (webEditorRef.value?.destroy) {
-      console.log("[ProjectDetail] 清理Web编辑器");
+      logger.info("[ProjectDetail] 清理Web编辑器");
       webEditorRef.value.destroy();
     }
     if (pptEditorRef.value?.destroy) {
-      console.log("[ProjectDetail] 清理PPT编辑器");
+      logger.info("[ProjectDetail] 清理PPT编辑器");
       pptEditorRef.value.destroy();
     }
     if (editorRef.value?.destroy) {
-      console.log("[ProjectDetail] 清理简单编辑器");
+      logger.info("[ProjectDetail] 清理简单编辑器");
       editorRef.value.destroy();
     }
 
-    console.log("[ProjectDetail] ✓ 编辑器实例清理完成");
+    logger.info("[ProjectDetail] ✓ 编辑器实例清理完成");
   } catch (error) {
-    console.warn("[ProjectDetail] 清理编辑器实例时出错:", error);
+    logger.warn("[ProjectDetail] 清理编辑器实例时出错:", error);
   }
 };
 

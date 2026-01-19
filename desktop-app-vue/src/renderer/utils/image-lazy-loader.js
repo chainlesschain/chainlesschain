@@ -1,3 +1,5 @@
+import { logger, createLogger } from '@/utils/logger';
+
 /**
  * Image Lazy Loading Utility
  * 基于 Intersection Observer API 的图片懒加载工具
@@ -48,7 +50,7 @@ class ImageLazyLoader {
    */
   init() {
     if (!('IntersectionObserver' in window)) {
-      console.warn('[ImageLazyLoader] IntersectionObserver not supported, falling back to immediate loading')
+      logger.warn('[ImageLazyLoader] IntersectionObserver not supported, falling back to immediate loading')
       return
     }
 
@@ -65,7 +67,7 @@ class ImageLazyLoader {
       threshold: this.options.threshold
     })
 
-    console.log('[ImageLazyLoader] Initialized')
+    logger.info('[ImageLazyLoader] Initialized')
   }
 
   /**
@@ -75,13 +77,13 @@ class ImageLazyLoader {
    */
   observe(img, options = {}) {
     if (!img || !(img instanceof HTMLImageElement)) {
-      console.warn('[ImageLazyLoader] Invalid image element')
+      logger.warn('[ImageLazyLoader] Invalid image element')
       return
     }
 
     const src = img.dataset.src || img.getAttribute('data-src')
     if (!src) {
-      console.warn('[ImageLazyLoader] No data-src attribute found')
+      logger.warn('[ImageLazyLoader] No data-src attribute found')
       return
     }
 
@@ -150,7 +152,7 @@ class ImageLazyLoader {
       img.classList.add('lazy-loaded')
       img.dispatchEvent(new CustomEvent('lazyloaded', { detail: { loadTime } }))
 
-      console.log(`[ImageLazyLoader] Loaded: ${metadata.src} (${Math.round(loadTime)}ms)`)
+      logger.info(`[ImageLazyLoader] Loaded: ${metadata.src} (${Math.round(loadTime)}ms)`)
     } catch (error) {
       // Error handling
       await this.handleLoadError(img, metadata, error)
@@ -231,7 +233,7 @@ class ImageLazyLoader {
    * Handle load errors with retry mechanism
    */
   async handleLoadError(img, metadata, error) {
-    console.error(`[ImageLazyLoader] Failed to load: ${metadata.src}`, error)
+    logger.error(`[ImageLazyLoader] Failed to load: ${metadata.src}`, error)
 
     const currentRetries = this.failedImages.get(metadata.src) || 0
 
@@ -239,7 +241,7 @@ class ImageLazyLoader {
       // Retry after delay
       this.failedImages.set(metadata.src, currentRetries + 1)
 
-      console.log(`[ImageLazyLoader] Retrying (${currentRetries + 1}/${this.options.maxRetries}): ${metadata.src}`)
+      logger.info(`[ImageLazyLoader] Retrying (${currentRetries + 1}/${this.options.maxRetries}): ${metadata.src}`)
 
       await this.delay(this.options.retryDelay * (currentRetries + 1)) // Exponential backoff
 
@@ -282,7 +284,7 @@ class ImageLazyLoader {
       document.head.appendChild(link)
     })
 
-    console.log(`[ImageLazyLoader] Preloading ${imageSrcs.length} critical images`)
+    logger.info(`[ImageLazyLoader] Preloading ${imageSrcs.length} critical images`)
   }
 
   /**
@@ -327,7 +329,7 @@ class ImageLazyLoader {
     this.loadedImages.clear()
     this.failedImages.clear()
 
-    console.log('[ImageLazyLoader] Destroyed')
+    logger.info('[ImageLazyLoader] Destroyed')
   }
 }
 

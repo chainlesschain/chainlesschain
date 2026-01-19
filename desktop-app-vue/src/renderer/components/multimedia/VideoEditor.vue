@@ -473,6 +473,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed } from 'vue';
 import { message } from 'ant-design-vue';
 import {
@@ -542,7 +544,7 @@ const handleBeforeUpload = (file) => {
 };
 
 const handleFileChange = (info) => {
-  console.log('File changed:', info);
+  logger.info('File changed:', info);
 };
 
 const handleAudioFileChange = (info) => {

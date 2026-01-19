@@ -3,6 +3,7 @@
  * 用于存储无法存储在数据库中的配置（如数据库路径本身）
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require("fs");
 const path = require("path");
 const { app } = require("electron");
@@ -93,15 +94,15 @@ class AppConfigManager {
         };
 
         this.loaded = true;
-        console.log("[AppConfig] 配置加载成功");
+        logger.info("[AppConfig] 配置加载成功");
       } else {
-        console.log("[AppConfig] 配置文件不存在，使用默认配置");
+        logger.info("[AppConfig] 配置文件不存在，使用默认配置");
         this.loaded = false;
         // 创建默认配置文件
         this.save();
       }
     } catch (error) {
-      console.error("[AppConfig] 配置加载失败:", error);
+      logger.error("[AppConfig] 配置加载失败:", error);
       this.config = { ...DEFAULT_CONFIG };
       this.loaded = false;
     }
@@ -125,10 +126,10 @@ class AppConfigManager {
         "utf8",
       );
 
-      console.log("[AppConfig] 配置保存成功");
+      logger.info("[AppConfig] 配置保存成功");
       return true;
     } catch (error) {
-      console.error("[AppConfig] 配置保存失败:", error);
+      logger.error("[AppConfig] 配置保存失败:", error);
       return false;
     }
   }
@@ -221,7 +222,7 @@ class AppConfigManager {
     const dbDir = this.getDatabaseDir();
     if (!fs.existsSync(dbDir)) {
       fs.mkdirSync(dbDir, { recursive: true });
-      console.log(`[AppConfig] 创建数据库目录: ${dbDir}`);
+      logger.info(`[AppConfig] 创建数据库目录: ${dbDir}`);
     }
     return dbDir;
   }
@@ -245,14 +246,14 @@ class AppConfigManager {
 
       // 检查源文件是否存在
       if (!fs.existsSync(currentPath)) {
-        console.log("[AppConfig] 源数据库不存在，无需迁移");
+        logger.info("[AppConfig] 源数据库不存在，无需迁移");
         this.setDatabasePath(newPath);
         return true;
       }
 
       // 检查目标路径
       if (currentPath === newPath) {
-        console.log("[AppConfig] 新路径与当前路径相同，无需迁移");
+        logger.info("[AppConfig] 新路径与当前路径相同，无需迁移");
         return true;
       }
 
@@ -267,7 +268,7 @@ class AppConfigManager {
         throw new Error("目标路径已存在数据库文件");
       }
 
-      console.log(`[AppConfig] 开始迁移数据库: ${currentPath} -> ${newPath}`);
+      logger.info(`[AppConfig] 开始迁移数据库: ${currentPath} -> ${newPath}`);
 
       // 复制数据库文件
       fs.copyFileSync(currentPath, newPath);
@@ -289,16 +290,16 @@ class AppConfigManager {
       // 备份原数据库
       const backupPath = `${currentPath}.backup.${Date.now()}`;
       fs.copyFileSync(currentPath, backupPath);
-      console.log(`[AppConfig] 已备份原数据库到: ${backupPath}`);
+      logger.info(`[AppConfig] 已备份原数据库到: ${backupPath}`);
 
       // 更新配置
       this.setDatabasePath(newPath);
 
-      console.log("[AppConfig] 数据库迁移成功");
+      logger.info("[AppConfig] 数据库迁移成功");
 
       return true;
     } catch (error) {
-      console.error("[AppConfig] 数据库迁移失败:", error);
+      logger.error("[AppConfig] 数据库迁移失败:", error);
       throw error;
     }
   }
@@ -320,14 +321,14 @@ class AppConfigManager {
 
       fs.copyFileSync(dbPath, backupPath);
 
-      console.log(`[AppConfig] 数据库备份成功: ${backupPath}`);
+      logger.info(`[AppConfig] 数据库备份成功: ${backupPath}`);
 
       // 清理旧备份
       this.cleanupOldBackups();
 
       return backupPath;
     } catch (error) {
-      console.error("[AppConfig] 数据库备份失败:", error);
+      logger.error("[AppConfig] 数据库备份失败:", error);
       throw error;
     }
   }
@@ -358,10 +359,10 @@ class AppConfigManager {
 
       for (const file of toDelete) {
         fs.unlinkSync(file.path);
-        console.log(`[AppConfig] 删除旧备份: ${file.name}`);
+        logger.info(`[AppConfig] 删除旧备份: ${file.name}`);
       }
     } catch (error) {
-      console.error("[AppConfig] 清理旧备份失败:", error);
+      logger.error("[AppConfig] 清理旧备份失败:", error);
     }
   }
 
@@ -392,7 +393,7 @@ class AppConfigManager {
 
       return backupFiles;
     } catch (error) {
-      console.error("[AppConfig] 列出备份失败:", error);
+      logger.error("[AppConfig] 列出备份失败:", error);
       return [];
     }
   }
@@ -414,16 +415,16 @@ class AppConfigManager {
       if (fs.existsSync(dbPath)) {
         const tempBackup = `${dbPath}.temp.${Date.now()}`;
         fs.copyFileSync(dbPath, tempBackup);
-        console.log(`[AppConfig] 已创建临时备份: ${tempBackup}`);
+        logger.info(`[AppConfig] 已创建临时备份: ${tempBackup}`);
       }
 
       // 恢复备份
       fs.copyFileSync(backupPath, dbPath);
 
-      console.log(`[AppConfig] 数据库恢复成功: ${backupPath}`);
+      logger.info(`[AppConfig] 数据库恢复成功: ${backupPath}`);
       return true;
     } catch (error) {
-      console.error("[AppConfig] 数据库恢复失败:", error);
+      logger.error("[AppConfig] 数据库恢复失败:", error);
       throw error;
     }
   }
@@ -433,7 +434,7 @@ class AppConfigManager {
    * @param {Object} initialConfig - 来自 initial-setup-config.json 的配置
    */
   applyInitialSetup(initialConfig) {
-    console.log("[AppConfig] 应用初始设置配置:", initialConfig);
+    logger.info("[AppConfig] 应用初始设置配置:", initialConfig);
 
     // 应用数据库路径
     if (initialConfig.paths?.database) {
@@ -452,7 +453,7 @@ class AppConfigManager {
 
     // 保存配置
     this.save();
-    console.log("[AppConfig] 初始设置配置应用成功");
+    logger.info("[AppConfig] 初始设置配置应用成功");
   }
 }
 

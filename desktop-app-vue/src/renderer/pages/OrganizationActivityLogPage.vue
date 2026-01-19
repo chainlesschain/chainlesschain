@@ -227,6 +227,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, reactive, computed, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { message } from 'ant-design-vue';
@@ -363,7 +365,7 @@ async function loadActivities() {
       message.error(result.error || '加载活动日志失败');
     }
   } catch (error) {
-    console.error('加载活动日志失败:', error);
+    logger.error('加载活动日志失败:', error);
     message.error('加载活动日志失败');
   } finally {
     loading.value = false;
@@ -378,7 +380,7 @@ async function loadMembers() {
       members.value = result.members;
     }
   } catch (error) {
-    console.error('加载成员列表失败:', error);
+    logger.error('加载成员列表失败:', error);
   }
 }
 
@@ -418,7 +420,7 @@ async function exportLogs() {
       message.error('导出失败');
     }
   } catch (error) {
-    console.error('导出失败:', error);
+    logger.error('导出失败:', error);
     message.error('导出失败');
   }
 }

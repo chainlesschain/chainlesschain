@@ -48,6 +48,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
@@ -106,12 +108,12 @@ watch(
     const category = normalizeCategory(newCategory)
     const subcategory = normalizeSubcategory(newSubcategory)
 
-    console.log('[TemplateGallery] 分类变化:', { category, subcategory })
+    logger.info('[TemplateGallery] 分类变化:', { category, subcategory })
 
     try {
       await templateStore.loadTemplatesByCategory(category, subcategory)
     } catch (error) {
-      console.error('[TemplateGallery] 加载模板失败:', error)
+      logger.error('[TemplateGallery] 加载模板失败:', error)
       message.error('加载模板失败: ' + error.message)
     }
   },
@@ -119,12 +121,12 @@ watch(
 )
 
 function handleTemplateUse(template) {
-  console.log('[TemplateGallery] 使用模板:', template.display_name)
+  logger.info('[TemplateGallery] 使用模板:', template.display_name)
   emit('template-use', template)
 }
 
 function handleTemplateClick(template) {
-  console.log('[TemplateGallery] 点击模板:', template.display_name)
+  logger.info('[TemplateGallery] 点击模板:', template.display_name)
   emit('template-click', template)
 }
 

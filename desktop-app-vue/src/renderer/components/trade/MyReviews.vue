@@ -221,6 +221,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, reactive, computed, onMounted } from 'vue';
 import { message as antMessage } from 'ant-design-vue';
 import {
@@ -283,9 +285,9 @@ const loadMyReviews = async () => {
     // 使用 store 加载我的评价
     await tradeStore.loadMyReviews(userDid);
 
-    console.log('[MyReviews] 我的评价已加载:', reviews.value.length);
+    logger.info('[MyReviews] 我的评价已加载:', reviews.value.length);
   } catch (error) {
-    console.error('[MyReviews] 加载评价失败:', error);
+    logger.error('[MyReviews] 加载评价失败:', error);
     antMessage.error(error.message || '加载评价失败');
   }
 };
@@ -316,7 +318,7 @@ const handleUpdate = async () => {
       isRecommended: editForm.isRecommended,
     });
 
-    console.log('[MyReviews] 评价已更新:', editingReview.value.id);
+    logger.info('[MyReviews] 评价已更新:', editingReview.value.id);
     antMessage.success('评价已更新！');
 
     showEditModal.value = false;
@@ -324,7 +326,7 @@ const handleUpdate = async () => {
 
     await loadMyReviews();
   } catch (error) {
-    console.error('[MyReviews] 更新评价失败:', error);
+    logger.error('[MyReviews] 更新评价失败:', error);
     antMessage.error(error.message || '更新评价失败');
   } finally {
     updating.value = false;
@@ -336,12 +338,12 @@ const deleteReview = async (review) => {
   try {
     await window.electronAPI.review.delete(review.id);
 
-    console.log('[MyReviews] 评价已删除:', review.id);
+    logger.info('[MyReviews] 评价已删除:', review.id);
     antMessage.success('评价已删除！');
 
     await loadMyReviews();
   } catch (error) {
-    console.error('[MyReviews] 删除评价失败:', error);
+    logger.error('[MyReviews] 删除评价失败:', error);
     antMessage.error(error.message || '删除评价失败');
   }
 };

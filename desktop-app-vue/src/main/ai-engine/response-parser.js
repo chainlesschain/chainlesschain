@@ -1,3 +1,5 @@
+const { logger, createLogger } = require('../utils/logger.js');
+
 /**
  * AI响应解析器
  * 从AI的响应中提取文件操作指令
@@ -72,11 +74,11 @@ function extractJSONOperations(text) {
           operations.push(...parsed.operations);
         }
       } catch (e) {
-        console.error('Failed to parse JSON block:', e);
+        logger.error('Failed to parse JSON block:', e);
       }
     }
   } catch (e) {
-    console.error('Failed to extract JSON operations:', e);
+    logger.error('Failed to extract JSON operations:', e);
   }
 
   return operations;
@@ -123,7 +125,7 @@ function extractFileBlocks(text) {
       }
     }
   } catch (e) {
-    console.error('Failed to extract file blocks:', e);
+    logger.error('Failed to extract file blocks:', e);
   }
 
   return operations;
@@ -187,18 +189,18 @@ function normalizeOperations(operations) {
     // 验证操作类型
     const validTypes = ['CREATE', 'UPDATE', 'DELETE', 'READ'];
     if (!validTypes.includes(normalized.type)) {
-      console.warn(`Invalid operation type: ${normalized.type}, defaulting to CREATE`);
+      logger.warn(`Invalid operation type: ${normalized.type}, defaulting to CREATE`);
       normalized.type = 'CREATE';
     }
 
     // 验证路径
     if (!normalized.path) {
-      console.error('Operation missing path:', op);
+      logger.error('Operation missing path:', op);
     }
 
     // 对于CREATE和UPDATE操作，验证内容
     if (['CREATE', 'UPDATE'].includes(normalized.type) && !normalized.content) {
-      console.warn(`${normalized.type} operation missing content for path: ${normalized.path}`);
+      logger.warn(`${normalized.type} operation missing content for path: ${normalized.path}`);
     }
 
     return normalized;

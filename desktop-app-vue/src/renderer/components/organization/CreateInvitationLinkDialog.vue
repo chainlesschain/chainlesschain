@@ -313,6 +313,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, reactive, computed, watch, nextTick } from "vue";
 import { message } from "ant-design-vue";
 import {
@@ -442,7 +444,7 @@ const handleCreate = async () => {
       // 表单验证错误
       return;
     }
-    console.error("创建邀请链接失败:", error);
+    logger.error("创建邀请链接失败:", error);
     message.error("创建邀请链接失败");
   } finally {
     loading.value = false;
@@ -490,7 +492,7 @@ const copyCreatedLink = async () => {
       message.error("复制失败");
     }
   } catch (error) {
-    console.error("复制链接失败:", error);
+    logger.error("复制链接失败:", error);
     message.error("复制链接失败");
   }
 };
@@ -512,7 +514,7 @@ const generateQRCode = async () => {
       },
     });
   } catch (error) {
-    console.error("生成二维码失败:", error);
+    logger.error("生成二维码失败:", error);
   }
 };
 

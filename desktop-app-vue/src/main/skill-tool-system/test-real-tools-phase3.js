@@ -6,6 +6,7 @@
 // 设置环境变量启用真实实现
 process.env.USE_REAL_TOOLS = 'true';
 
+const { logger, createLogger } = require('../utils/logger.js');
 const FunctionCaller = require('../ai-engine/function-caller');
 const fs = require('fs').promises;
 const path = require('path');
@@ -18,9 +19,9 @@ ffmpeg.setFfmpegPath(ffmpegPath);
 ffmpeg.setFfprobePath(ffprobePath);
 
 async function testPhase3RealTools() {
-  console.log('========================================');
-  console.log('Phase 3 真实功能测试 - 视频处理');
-  console.log('========================================\n');
+  logger.info('========================================');
+  logger.info('Phase 3 真实功能测试 - 视频处理');
+  logger.info('========================================\n');
 
   const functionCaller = new FunctionCaller();
   const testDir = path.join(__dirname, '../../test-output');
@@ -33,7 +34,7 @@ async function testPhase3RealTools() {
   const results = [];
 
   // ==================== 准备测试视频 ====================
-  console.log('📝 准备测试视频\n');
+  logger.info('📝 准备测试视频\n');
 
   const video1Path = path.join(testDir, 'test-video1.mp4');
   const video2Path = path.join(testDir, 'test-video2.mp4');
@@ -41,24 +42,24 @@ async function testPhase3RealTools() {
   try {
     // 创建第一个测试视频（10秒，红色背景）
     await createTestVideo(video1Path, 10, 'red', '测试视频1');
-    console.log(`   ✅ 测试视频1创建成功`);
-    console.log(`   → 路径: ${video1Path}`);
-    console.log(`   → 时长: 10秒`);
-    console.log(`   → 背景: 红色\n`);
+    logger.info(`   ✅ 测试视频1创建成功`);
+    logger.info(`   → 路径: ${video1Path}`);
+    logger.info(`   → 时长: 10秒`);
+    logger.info(`   → 背景: 红色\n`);
 
     // 创建第二个测试视频（8秒，蓝色背景）
     await createTestVideo(video2Path, 8, 'blue', '测试视频2');
-    console.log(`   ✅ 测试视频2创建成功`);
-    console.log(`   → 路径: ${video2Path}`);
-    console.log(`   → 时长: 8秒`);
-    console.log(`   → 背景: 蓝色\n`);
+    logger.info(`   ✅ 测试视频2创建成功`);
+    logger.info(`   → 路径: ${video2Path}`);
+    logger.info(`   → 时长: 8秒`);
+    logger.info(`   → 背景: 蓝色\n`);
   } catch (error) {
-    console.log(`   ❌ 创建测试视频失败: ${error.message}\n`);
+    logger.info(`   ❌ 创建测试视频失败: ${error.message}\n`);
     process.exit(1);
   }
 
   // ==================== 测试1: 视频裁剪 (开始+时长) ====================
-  console.log('📝 测试1: 视频裁剪 (开始时间 + 时长)\n');
+  logger.info('📝 测试1: 视频裁剪 (开始时间 + 时长)\n');
   try {
     const result = await functionCaller.call('video_cutter', {
       input_path: video1Path,
@@ -71,35 +72,35 @@ async function testPhase3RealTools() {
       try {
         const stats = await fs.stat(result.output_path);
 
-        console.log('   ✅ 视频裁剪成功 (时长方式)!');
-        console.log(`   → 输出路径: ${result.output_path}`);
-        console.log(`   → 开始时间: ${result.start_time}`);
-        console.log(`   → 时长: ${result.duration}`);
-        console.log(`   → 文件大小: ${(stats.size / 1024).toFixed(2)} KB`);
-        if (result.video_codec) {console.log(`   → 视频编码: ${result.video_codec}`);}
-        if (result.resolution) {console.log(`   → 分辨率: ${result.resolution}`);}
-        console.log('');
+        logger.info('   ✅ 视频裁剪成功 (时长方式)!');
+        logger.info(`   → 输出路径: ${result.output_path}`);
+        logger.info(`   → 开始时间: ${result.start_time}`);
+        logger.info(`   → 时长: ${result.duration}`);
+        logger.info(`   → 文件大小: ${(stats.size / 1024).toFixed(2)} KB`);
+        if (result.video_codec) {logger.info(`   → 视频编码: ${result.video_codec}`);}
+        if (result.resolution) {logger.info(`   → 分辨率: ${result.resolution}`);}
+        logger.info('');
 
         passedTests++;
         results.push({ test: '视频裁剪(时长)', status: '通过', file: result.output_path });
       } catch (fileError) {
-        console.log(`   ❌ 文件验证失败: ${fileError.message}\n`);
+        logger.info(`   ❌ 文件验证失败: ${fileError.message}\n`);
         failedTests++;
         results.push({ test: '视频裁剪(时长)', status: '失败', error: '文件验证失败' });
       }
     } else {
-      console.log(`   ❌ 裁剪失败: ${result.error}\n`);
+      logger.info(`   ❌ 裁剪失败: ${result.error}\n`);
       failedTests++;
       results.push({ test: '视频裁剪(时长)', status: '失败', error: result.error });
     }
   } catch (error) {
-    console.log(`   ❌ 异常: ${error.message}\n`);
+    logger.info(`   ❌ 异常: ${error.message}\n`);
     failedTests++;
     results.push({ test: '视频裁剪(时长)', status: '异常', error: error.message });
   }
 
   // ==================== 测试2: 视频裁剪 (开始+结束) ====================
-  console.log('📝 测试2: 视频裁剪 (开始时间 + 结束时间)\n');
+  logger.info('📝 测试2: 视频裁剪 (开始时间 + 结束时间)\n');
   try {
     const result = await functionCaller.call('video_cutter', {
       input_path: video1Path,
@@ -112,35 +113,35 @@ async function testPhase3RealTools() {
       try {
         const stats = await fs.stat(result.output_path);
 
-        console.log('   ✅ 视频裁剪成功 (时间范围)!');
-        console.log(`   → 输出路径: ${result.output_path}`);
-        console.log(`   → 开始时间: ${result.start_time}`);
-        console.log(`   → 结束时间: ${result.end_time}`);
-        console.log(`   → 时长: ${result.duration}`);
-        console.log(`   → 文件大小: ${(stats.size / 1024).toFixed(2)} KB`);
-        if (result.video_codec) {console.log(`   → 视频编码: ${result.video_codec}`);}
-        console.log('');
+        logger.info('   ✅ 视频裁剪成功 (时间范围)!');
+        logger.info(`   → 输出路径: ${result.output_path}`);
+        logger.info(`   → 开始时间: ${result.start_time}`);
+        logger.info(`   → 结束时间: ${result.end_time}`);
+        logger.info(`   → 时长: ${result.duration}`);
+        logger.info(`   → 文件大小: ${(stats.size / 1024).toFixed(2)} KB`);
+        if (result.video_codec) {logger.info(`   → 视频编码: ${result.video_codec}`);}
+        logger.info('');
 
         passedTests++;
         results.push({ test: '视频裁剪(范围)', status: '通过', file: result.output_path });
       } catch (fileError) {
-        console.log(`   ❌ 文件验证失败: ${fileError.message}\n`);
+        logger.info(`   ❌ 文件验证失败: ${fileError.message}\n`);
         failedTests++;
         results.push({ test: '视频裁剪(范围)', status: '失败', error: '文件验证失败' });
       }
     } else {
-      console.log(`   ❌ 裁剪失败: ${result.error}\n`);
+      logger.info(`   ❌ 裁剪失败: ${result.error}\n`);
       failedTests++;
       results.push({ test: '视频裁剪(范围)', status: '失败', error: result.error });
     }
   } catch (error) {
-    console.log(`   ❌ 异常: ${error.message}\n`);
+    logger.info(`   ❌ 异常: ${error.message}\n`);
     failedTests++;
     results.push({ test: '视频裁剪(范围)', status: '异常', error: error.message });
   }
 
   // ==================== 测试3: 视频合并 (2个文件) ====================
-  console.log('📝 测试3: 视频合并 (2个文件)\n');
+  logger.info('📝 测试3: 视频合并 (2个文件)\n');
   try {
     const result = await functionCaller.call('video_merger', {
       input_files: [video1Path, video2Path],
@@ -151,35 +152,35 @@ async function testPhase3RealTools() {
       try {
         const stats = await fs.stat(result.output_path);
 
-        console.log('   ✅ 视频合并成功!');
-        console.log(`   → 输出路径: ${result.output_path}`);
-        console.log(`   → 合并文件数: ${result.files_merged}`);
-        console.log(`   → 总时长: ${result.total_duration}`);
-        console.log(`   → 文件大小: ${(stats.size / 1024).toFixed(2)} KB`);
-        if (result.video_codec) {console.log(`   → 视频编码: ${result.video_codec}`);}
-        if (result.resolution) {console.log(`   → 分辨率: ${result.resolution}`);}
-        console.log('');
+        logger.info('   ✅ 视频合并成功!');
+        logger.info(`   → 输出路径: ${result.output_path}`);
+        logger.info(`   → 合并文件数: ${result.files_merged}`);
+        logger.info(`   → 总时长: ${result.total_duration}`);
+        logger.info(`   → 文件大小: ${(stats.size / 1024).toFixed(2)} KB`);
+        if (result.video_codec) {logger.info(`   → 视频编码: ${result.video_codec}`);}
+        if (result.resolution) {logger.info(`   → 分辨率: ${result.resolution}`);}
+        logger.info('');
 
         passedTests++;
         results.push({ test: '视频合并(2文件)', status: '通过', file: result.output_path });
       } catch (fileError) {
-        console.log(`   ❌ 文件验证失败: ${fileError.message}\n`);
+        logger.info(`   ❌ 文件验证失败: ${fileError.message}\n`);
         failedTests++;
         results.push({ test: '视频合并(2文件)', status: '失败', error: '文件验证失败' });
       }
     } else {
-      console.log(`   ❌ 合并失败: ${result.error}\n`);
+      logger.info(`   ❌ 合并失败: ${result.error}\n`);
       failedTests++;
       results.push({ test: '视频合并(2文件)', status: '失败', error: result.error });
     }
   } catch (error) {
-    console.log(`   ❌ 异常: ${error.message}\n`);
+    logger.info(`   ❌ 异常: ${error.message}\n`);
     failedTests++;
     results.push({ test: '视频合并(2文件)', status: '异常', error: error.message });
   }
 
   // ==================== 测试4: 裁剪后合并 ====================
-  console.log('📝 测试4: 组合操作 - 裁剪后合并\n');
+  logger.info('📝 测试4: 组合操作 - 裁剪后合并\n');
   try {
     // 先裁剪两个视频片段
     const cut1Path = path.join(testDir, 'test-cut1-for-merge.mp4');
@@ -209,57 +210,57 @@ async function testPhase3RealTools() {
       if (mergeResult.success) {
         const stats = await fs.stat(mergeResult.output_path);
 
-        console.log('   ✅ 组合操作成功!');
-        console.log(`   → 步骤1: 裁剪视频1 (0-3秒) ✅`);
-        console.log(`   → 步骤2: 裁剪视频2 (0-3秒) ✅`);
-        console.log(`   → 步骤3: 合并两个片段 ✅`);
-        console.log(`   → 最终输出: ${mergeResult.output_path}`);
-        console.log(`   → 文件大小: ${(stats.size / 1024).toFixed(2)} KB`);
-        console.log('');
+        logger.info('   ✅ 组合操作成功!');
+        logger.info(`   → 步骤1: 裁剪视频1 (0-3秒) ✅`);
+        logger.info(`   → 步骤2: 裁剪视频2 (0-3秒) ✅`);
+        logger.info(`   → 步骤3: 合并两个片段 ✅`);
+        logger.info(`   → 最终输出: ${mergeResult.output_path}`);
+        logger.info(`   → 文件大小: ${(stats.size / 1024).toFixed(2)} KB`);
+        logger.info('');
 
         passedTests++;
         results.push({ test: '组合操作', status: '通过', file: mergeResult.output_path });
       } else {
-        console.log(`   ❌ 合并失败: ${mergeResult.error}\n`);
+        logger.info(`   ❌ 合并失败: ${mergeResult.error}\n`);
         failedTests++;
         results.push({ test: '组合操作', status: '失败', error: mergeResult.error });
       }
     } else {
-      console.log(`   ❌ 裁剪失败\n`);
+      logger.info(`   ❌ 裁剪失败\n`);
       failedTests++;
       results.push({ test: '组合操作', status: '失败', error: '裁剪阶段失败' });
     }
   } catch (error) {
-    console.log(`   ❌ 异常: ${error.message}\n`);
+    logger.info(`   ❌ 异常: ${error.message}\n`);
     failedTests++;
     results.push({ test: '组合操作', status: '异常', error: error.message });
   }
 
   // ==================== 测试总结 ====================
-  console.log('========================================');
-  console.log('测试总结');
-  console.log('========================================\n');
+  logger.info('========================================');
+  logger.info('测试总结');
+  logger.info('========================================\n');
 
   const totalTests = passedTests + failedTests;
   const successRate = totalTests > 0 ? ((passedTests / totalTests) * 100).toFixed(1) : 0;
 
-  console.log(`总测试数: ${totalTests}`);
-  console.log(`通过: ${passedTests} ✅`);
-  console.log(`失败: ${failedTests} ❌`);
-  console.log(`成功率: ${successRate}%\n`);
+  logger.info(`总测试数: ${totalTests}`);
+  logger.info(`通过: ${passedTests} ✅`);
+  logger.info(`失败: ${failedTests} ❌`);
+  logger.info(`成功率: ${successRate}%\n`);
 
-  console.log('详细结果:');
+  logger.info('详细结果:');
   results.forEach((result, index) => {
     const statusIcon = result.status === '通过' ? '✅' :
                       result.status === '跳过' ? '⏭️' : '❌';
-    console.log(`${index + 1}. ${statusIcon} ${result.test} - ${result.status}`);
-    if (result.file) {console.log(`   文件: ${result.file}`);}
-    if (result.error) {console.log(`   错误: ${result.error}`);}
+    logger.info(`${index + 1}. ${statusIcon} ${result.test} - ${result.status}`);
+    if (result.file) {logger.info(`   文件: ${result.file}`);}
+    if (result.error) {logger.info(`   错误: ${result.error}`);}
   });
 
-  console.log('\n========================================');
-  console.log(`测试输出目录: ${testDir}`);
-  console.log('========================================\n');
+  logger.info('\n========================================');
+  logger.info(`测试输出目录: ${testDir}`);
+  logger.info('========================================\n');
 
   return {
     total: totalTests,
@@ -307,16 +308,16 @@ if (require.main === module) {
   testPhase3RealTools()
     .then((summary) => {
       if (summary.failed === 0) {
-        console.log('🎉 所有测试通过!');
+        logger.info('🎉 所有测试通过!');
         process.exit(0);
       } else {
-        console.log('⚠️ 有测试失败');
+        logger.info('⚠️ 有测试失败');
         process.exit(1);
       }
     })
     .catch((error) => {
-      console.error('❌ 测试执行失败:', error);
-      console.error(error.stack);
+      logger.error('❌ 测试执行失败:', error);
+      logger.error(error.stack);
       process.exit(1);
     });
 }

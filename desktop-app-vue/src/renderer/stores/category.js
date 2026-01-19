@@ -1,3 +1,4 @@
+import { logger, createLogger } from '@/utils/logger';
 import { defineStore } from 'pinia';
 
 /**
@@ -86,7 +87,7 @@ export const useCategoryStore = defineStore('category', {
      */
     async initializeDefaults(userId = 'local-user') {
       if (this.initialized) {
-        console.log('[CategoryStore] 分类已初始化，跳过');
+        logger.info('[CategoryStore] 分类已初始化，跳过');
         return;
       }
 
@@ -95,9 +96,9 @@ export const useCategoryStore = defineStore('category', {
         await window.electronAPI.category.initializeDefaults(userId);
         await this.fetchCategories(userId);
         this.initialized = true;
-        console.log('[CategoryStore] 默认分类初始化成功');
+        logger.info('[CategoryStore] 默认分类初始化成功');
       } catch (error) {
-        console.error('[CategoryStore] 初始化默认分类失败:', error);
+        logger.error('[CategoryStore] 初始化默认分类失败:', error);
         throw error;
       } finally {
         this.loading = false;
@@ -116,10 +117,10 @@ export const useCategoryStore = defineStore('category', {
         // 构建扁平化列表
         this.flatCategories = this._flattenCategories(categories);
 
-        console.log('[CategoryStore] 分类列表获取成功:', categories.length);
+        logger.info('[CategoryStore] 分类列表获取成功:', categories.length);
         return categories;
       } catch (error) {
-        console.error('[CategoryStore] 获取分类列表失败:', error);
+        logger.error('[CategoryStore] 获取分类列表失败:', error);
         throw error;
       } finally {
         this.loading = false;
@@ -134,7 +135,7 @@ export const useCategoryStore = defineStore('category', {
         const category = await window.electronAPI.category.get(categoryId);
         return category;
       } catch (error) {
-        console.error('[CategoryStore] 获取分类失败:', error);
+        logger.error('[CategoryStore] 获取分类失败:', error);
         throw error;
       }
     },
@@ -146,14 +147,14 @@ export const useCategoryStore = defineStore('category', {
       try {
         this.loading = true;
         const category = await window.electronAPI.category.create(categoryData);
-        console.log('[CategoryStore] 分类创建成功:', category);
+        logger.info('[CategoryStore] 分类创建成功:', category);
 
         // 刷新分类列表
         await this.fetchCategories(categoryData.user_id || 'local-user');
 
         return category;
       } catch (error) {
-        console.error('[CategoryStore] 创建分类失败:', error);
+        logger.error('[CategoryStore] 创建分类失败:', error);
         throw error;
       } finally {
         this.loading = false;
@@ -167,14 +168,14 @@ export const useCategoryStore = defineStore('category', {
       try {
         this.loading = true;
         const category = await window.electronAPI.category.update(categoryId, updates);
-        console.log('[CategoryStore] 分类更新成功:', category);
+        logger.info('[CategoryStore] 分类更新成功:', category);
 
         // 刷新分类列表
         await this.fetchCategories();
 
         return category;
       } catch (error) {
-        console.error('[CategoryStore] 更新分类失败:', error);
+        logger.error('[CategoryStore] 更新分类失败:', error);
         throw error;
       } finally {
         this.loading = false;
@@ -188,7 +189,7 @@ export const useCategoryStore = defineStore('category', {
       try {
         this.loading = true;
         await window.electronAPI.category.delete(categoryId);
-        console.log('[CategoryStore] 分类删除成功');
+        logger.info('[CategoryStore] 分类删除成功');
 
         // 刷新分类列表
         await this.fetchCategories();
@@ -200,7 +201,7 @@ export const useCategoryStore = defineStore('category', {
 
         return true;
       } catch (error) {
-        console.error('[CategoryStore] 删除分类失败:', error);
+        logger.error('[CategoryStore] 删除分类失败:', error);
         throw error;
       } finally {
         this.loading = false;
@@ -213,14 +214,14 @@ export const useCategoryStore = defineStore('category', {
     async updateCategorySort(sortData) {
       try {
         await window.electronAPI.category.updateSort(sortData);
-        console.log('[CategoryStore] 分类排序更新成功');
+        logger.info('[CategoryStore] 分类排序更新成功');
 
         // 刷新分类列表
         await this.fetchCategories();
 
         return true;
       } catch (error) {
-        console.error('[CategoryStore] 更新分类排序失败:', error);
+        logger.error('[CategoryStore] 更新分类排序失败:', error);
         throw error;
       }
     },

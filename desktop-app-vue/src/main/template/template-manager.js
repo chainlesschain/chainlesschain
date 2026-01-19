@@ -1,3 +1,4 @@
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require('fs').promises;
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
@@ -141,7 +142,7 @@ class ProjectTemplateManager {
    */
   async initialize() {
     if (this.templatesLoaded) {
-      console.log('[TemplateManager] 模板已加载，跳过初始化');
+      logger.info('[TemplateManager] 模板已加载，跳过初始化');
       return;
     }
 
@@ -205,19 +206,19 @@ class ProjectTemplateManager {
               await this.saveTemplate(templateData);
               loadedCount++;
             } catch (err) {
-              console.error(`[TemplateManager] 加载模板失败 ${category}/${file}:`, err.message);
+              logger.error(`[TemplateManager] 加载模板失败 ${category}/${file}:`, err.message);
             }
           }
         }
       } catch (err) {
         if (err.code !== 'ENOENT') {
-          console.error(`[TemplateManager] 读取${category}目录失败:`, err.message);
+          logger.error(`[TemplateManager] 读取${category}目录失败:`, err.message);
         }
       }
     }
 
     this.templatesLoaded = true;
-    console.log(`[TemplateManager] ✓ 成功加载 ${loadedCount} 个项目模板`);
+    logger.info(`[TemplateManager] ✓ 成功加载 ${loadedCount} 个项目模板`);
   }
 
   /**
@@ -238,7 +239,7 @@ class ProjectTemplateManager {
         throw new Error(`模板 ${templateData.id} 缺少display_name字段`);
       }
       if (!templateData.prompt_template || templateData.prompt_template.trim() === '') {
-        console.warn(`[TemplateManager] 警告: 模板 ${templateData.id} (${templateData.display_name}) 缺少prompt_template字段`);
+        logger.warn(`[TemplateManager] 警告: 模板 ${templateData.id} (${templateData.display_name}) 缺少prompt_template字段`);
         // 不抛出错误，但记录警告
       }
 
@@ -255,9 +256,9 @@ class ProjectTemplateManager {
       const promptTemplate = templateData.prompt_template || '';
 
       // 调试日志：记录写入前的 prompt_template 长度
-      console.log(`[TemplateManager] 准备保存模板 ${templateData.id}:`);
-      console.log(`  - display_name: ${templateData.display_name}`);
-      console.log(`  - prompt_template 长度: ${promptTemplate.length}`);
+      logger.info(`[TemplateManager] 准备保存模板 ${templateData.id}:`);
+      logger.info(`  - display_name: ${templateData.display_name}`);
+      logger.info(`  - prompt_template 长度: ${promptTemplate.length}`);
 
       stmt.run([
         templateData.id,
@@ -290,9 +291,9 @@ class ProjectTemplateManager {
 
       // 调试日志：验证写入后的数据
       const verify = this.db.prepare('SELECT id, LENGTH(prompt_template) as len FROM project_templates WHERE id = ?').get([templateData.id]);
-      console.log(`[TemplateManager] 写入后验证: ${verify.id}, prompt_template长度=${verify.len}`);
+      logger.info(`[TemplateManager] 写入后验证: ${verify.id}, prompt_template长度=${verify.len}`);
     } catch (error) {
-      console.error('[TemplateManager] 保存模板失败:', templateData.id, error);
+      logger.error('[TemplateManager] 保存模板失败:', templateData.id, error);
       throw error;
     }
   }
@@ -302,7 +303,7 @@ class ProjectTemplateManager {
    */
   async getAllTemplates(filters = {}) {
     if (!this.db) {
-      console.error('[ProjectTemplateManager] 数据库未初始化');
+      logger.error('[ProjectTemplateManager] 数据库未初始化');
       return [];
     }
 
@@ -470,7 +471,7 @@ class ProjectTemplateManager {
 
       // 检查 prompt_template 是否存在（注意：空字符串也视为无效）
       if (!template.prompt_template || typeof template.prompt_template !== 'string' || template.prompt_template.trim() === '') {
-        console.error('[TemplateManager] 模板数据不完整:', {
+        logger.error('[TemplateManager] 模板数据不完整:', {
           id: template.id,
           name: template.name,
           display_name: template.display_name,
@@ -507,7 +508,7 @@ class ProjectTemplateManager {
       const compiledTemplate = this.handlebars.compile(template.prompt_template);
       return compiledTemplate(variables);
     } catch (error) {
-      console.error('[TemplateManager] 渲染模板失败:', error);
+      logger.error('[TemplateManager] 渲染模板失败:', error);
       throw new Error(`模板渲染失败: ${error.message}`);
     }
   }
@@ -543,7 +544,7 @@ class ProjectTemplateManager {
 
       this.db.saveToFile();
     } catch (error) {
-      console.error('[TemplateManager] 记录模板使用失败:', error);
+      logger.error('[TemplateManager] 记录模板使用失败:', error);
     }
   }
 
@@ -627,7 +628,7 @@ class ProjectTemplateManager {
 
       this.db.saveToFile();
     } catch (error) {
-      console.error('[TemplateManager] 提交评价失败:', error);
+      logger.error('[TemplateManager] 提交评价失败:', error);
       throw new Error(`提交评价失败: ${error.message}`);
     }
   }
@@ -714,7 +715,7 @@ class ProjectTemplateManager {
         updated_at: now
       };
     } catch (error) {
-      console.error('[TemplateManager] 创建模板失败:', error);
+      logger.error('[TemplateManager] 创建模板失败:', error);
       throw error;
     }
   }
@@ -816,7 +817,7 @@ class ProjectTemplateManager {
       // 返回更新后的模板
       return await this.getTemplateById(templateId);
     } catch (error) {
-      console.error('[TemplateManager] 更新模板失败:', error);
+      logger.error('[TemplateManager] 更新模板失败:', error);
       throw error;
     }
   }
@@ -882,13 +883,13 @@ class ProjectTemplateManager {
       }
 
       if (candidates.length === 0) {
-        console.log('[TemplateManager] 没有找到符合条件的模板');
+        logger.info('[TemplateManager] 没有找到符合条件的模板');
         return [];
       }
 
       // 2. 提取用户输入的关键词
       const keywords = this.extractKeywords(userInput);
-      console.log('[TemplateManager] 提取的关键词:', keywords);
+      logger.info('[TemplateManager] 提取的关键词:', keywords);
 
       // 3. 计算每个模板的相关性分数
       const scoredTemplates = candidates.map(template => {
@@ -935,11 +936,11 @@ class ProjectTemplateManager {
         .sort((a, b) => b.score - a.score)
         .slice(0, limit);
 
-      console.log(`[TemplateManager] 推荐了 ${recommended.length} 个模板，总候选: ${candidates.length}`);
+      logger.info(`[TemplateManager] 推荐了 ${recommended.length} 个模板，总候选: ${candidates.length}`);
 
       return recommended;
     } catch (error) {
-      console.error('[TemplateManager] 推荐模板失败:', error);
+      logger.error('[TemplateManager] 推荐模板失败:', error);
       return [];
     }
   }

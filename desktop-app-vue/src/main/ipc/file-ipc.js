@@ -3,6 +3,7 @@
  * 处理前端与文件系统之间的通信
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { ipcMain, dialog } = require('electron');
 const fs = require('fs').promises;
 const path = require('path');
@@ -44,7 +45,7 @@ class FileIPC {
   registerHandlers(mainWindow) {
     // 防止重复注册
     if (this.handlersRegistered) {
-      console.log('[File IPC] Handlers already registered, skipping');
+      logger.info('[File IPC] Handlers already registered, skipping');
       return;
     }
 
@@ -53,14 +54,14 @@ class FileIPC {
     // 读取Excel文件
     ipcMain.handle('file:readExcel', async (event, filePath) => {
       try {
-        console.log('[File IPC] 读取Excel文件:', filePath);
+        logger.info('[File IPC] 读取Excel文件:', filePath);
 
         // 解析路径（将 /data/projects/xxx 转换为绝对路径）
         const { getProjectConfig } = require('../project/project-config');
         const projectConfig = getProjectConfig();
         const resolvedPath = projectConfig.resolveProjectPath(filePath);
 
-        console.log('[File IPC] 解析后的路径:', resolvedPath);
+        logger.info('[File IPC] 解析后的路径:', resolvedPath);
 
         // 确保excelEngine已加载
         if (!this.excelEngine) {
@@ -74,7 +75,7 @@ class FileIPC {
           data,
         };
       } catch (error) {
-        console.error('[File IPC] 读取Excel失败:', error);
+        logger.error('[File IPC] 读取Excel失败:', error);
         return {
           success: false,
           error: error.message,
@@ -85,14 +86,14 @@ class FileIPC {
     // 写入Excel文件
     ipcMain.handle('file:writeExcel', async (event, filePath, data) => {
       try {
-        console.log('[File IPC] 写入Excel文件:', filePath);
+        logger.info('[File IPC] 写入Excel文件:', filePath);
 
         // 解析路径（将 /data/projects/xxx 转换为绝对路径）
         const { getProjectConfig } = require('../project/project-config');
         const projectConfig = getProjectConfig();
         const resolvedPath = projectConfig.resolveProjectPath(filePath);
 
-        console.log('[File IPC] 解析后的路径:', resolvedPath);
+        logger.info('[File IPC] 解析后的路径:', resolvedPath);
 
         if (!this.excelEngine) {
           this.excelEngine = require('../engines/excel-engine');
@@ -105,7 +106,7 @@ class FileIPC {
           ...result,
         };
       } catch (error) {
-        console.error('[File IPC] 写入Excel失败:', error);
+        logger.error('[File IPC] 写入Excel失败:', error);
         return {
           success: false,
           error: error.message,
@@ -116,14 +117,14 @@ class FileIPC {
     // Excel转JSON
     ipcMain.handle('file:excelToJSON', async (event, filePath, options) => {
       try {
-        console.log('[File IPC] Excel转JSON:', filePath);
+        logger.info('[File IPC] Excel转JSON:', filePath);
 
         // 解析路径（将 /data/projects/xxx 转换为绝对路径）
         const { getProjectConfig } = require('../project/project-config');
         const projectConfig = getProjectConfig();
         const resolvedPath = projectConfig.resolveProjectPath(filePath);
 
-        console.log('[File IPC] 解析后的路径:', resolvedPath);
+        logger.info('[File IPC] 解析后的路径:', resolvedPath);
 
         if (!this.excelEngine) {
           this.excelEngine = require('../engines/excel-engine');
@@ -136,7 +137,7 @@ class FileIPC {
           data,
         };
       } catch (error) {
-        console.error('[File IPC] Excel转JSON失败:', error);
+        logger.error('[File IPC] Excel转JSON失败:', error);
         return {
           success: false,
           error: error.message,
@@ -147,14 +148,14 @@ class FileIPC {
     // JSON转Excel
     ipcMain.handle('file:jsonToExcel', async (event, jsonData, filePath, options) => {
       try {
-        console.log('[File IPC] JSON转Excel:', filePath);
+        logger.info('[File IPC] JSON转Excel:', filePath);
 
         // 解析路径（将 /data/projects/xxx 转换为绝对路径）
         const { getProjectConfig } = require('../project/project-config');
         const projectConfig = getProjectConfig();
         const resolvedPath = projectConfig.resolveProjectPath(filePath);
 
-        console.log('[File IPC] 解析后的路径:', resolvedPath);
+        logger.info('[File IPC] 解析后的路径:', resolvedPath);
 
         if (!this.excelEngine) {
           this.excelEngine = require('../engines/excel-engine');
@@ -167,7 +168,7 @@ class FileIPC {
           ...result,
         };
       } catch (error) {
-        console.error('[File IPC] JSON转Excel失败:', error);
+        logger.error('[File IPC] JSON转Excel失败:', error);
         return {
           success: false,
           error: error.message,
@@ -180,14 +181,14 @@ class FileIPC {
     // 读取Word文档
     ipcMain.handle('file:readWord', async (event, filePath) => {
       try {
-        console.log('[File IPC] 读取Word文档:', filePath);
+        logger.info('[File IPC] 读取Word文档:', filePath);
 
         // 解析路径（将 /data/projects/xxx 转换为绝对路径）
         const { getProjectConfig } = require('../project/project-config');
         const projectConfig = getProjectConfig();
         const resolvedPath = projectConfig.resolveProjectPath(filePath);
 
-        console.log('[File IPC] 解析后的路径:', resolvedPath);
+        logger.info('[File IPC] 解析后的路径:', resolvedPath);
 
         if (!this.wordEngine) {
           this.wordEngine = require('../engines/word-engine');
@@ -200,7 +201,7 @@ class FileIPC {
           ...data,
         };
       } catch (error) {
-        console.error('[File IPC] 读取Word失败:', error);
+        logger.error('[File IPC] 读取Word失败:', error);
         return {
           success: false,
           error: error.message,
@@ -211,14 +212,14 @@ class FileIPC {
     // 写入Word文档
     ipcMain.handle('file:writeWord', async (event, filePath, content) => {
       try {
-        console.log('[File IPC] 写入Word文档:', filePath);
+        logger.info('[File IPC] 写入Word文档:', filePath);
 
         // 解析路径（将 /data/projects/xxx 转换为绝对路径）
         const { getProjectConfig } = require('../project/project-config');
         const projectConfig = getProjectConfig();
         const resolvedPath = projectConfig.resolveProjectPath(filePath);
 
-        console.log('[File IPC] 解析后的路径:', resolvedPath);
+        logger.info('[File IPC] 解析后的路径:', resolvedPath);
 
         if (!this.wordEngine) {
           this.wordEngine = require('../engines/word-engine');
@@ -231,7 +232,7 @@ class FileIPC {
           ...result,
         };
       } catch (error) {
-        console.error('[File IPC] 写入Word失败:', error);
+        logger.error('[File IPC] 写入Word失败:', error);
         return {
           success: false,
           error: error.message,
@@ -242,7 +243,7 @@ class FileIPC {
     // Markdown转Word
     ipcMain.handle('file:markdownToWord', async (event, markdown, outputPath, options) => {
       try {
-        console.log('[File IPC] Markdown转Word');
+        logger.info('[File IPC] Markdown转Word');
 
         if (!this.wordEngine) {
           this.wordEngine = require('../engines/word-engine');
@@ -255,7 +256,7 @@ class FileIPC {
           ...result,
         };
       } catch (error) {
-        console.error('[File IPC] Markdown转Word失败:', error);
+        logger.error('[File IPC] Markdown转Word失败:', error);
         return {
           success: false,
           error: error.message,
@@ -266,7 +267,7 @@ class FileIPC {
     // Word转Markdown
     ipcMain.handle('file:wordToMarkdown', async (event, filePath) => {
       try {
-        console.log('[File IPC] Word转Markdown');
+        logger.info('[File IPC] Word转Markdown');
 
         if (!this.wordEngine) {
           this.wordEngine = require('../engines/word-engine');
@@ -279,7 +280,7 @@ class FileIPC {
           ...result,
         };
       } catch (error) {
-        console.error('[File IPC] Word转Markdown失败:', error);
+        logger.error('[File IPC] Word转Markdown失败:', error);
         return {
           success: false,
           error: error.message,
@@ -290,7 +291,7 @@ class FileIPC {
     // HTML转Word
     ipcMain.handle('file:htmlToWord', async (event, html, outputPath, options) => {
       try {
-        console.log('[File IPC] HTML转Word');
+        logger.info('[File IPC] HTML转Word');
 
         if (!this.wordEngine) {
           this.wordEngine = require('../engines/word-engine');
@@ -303,7 +304,7 @@ class FileIPC {
           ...result,
         };
       } catch (error) {
-        console.error('[File IPC] HTML转Word失败:', error);
+        logger.error('[File IPC] HTML转Word失败:', error);
         return {
           success: false,
           error: error.message,
@@ -316,7 +317,7 @@ class FileIPC {
     // 读取PPT文件
     ipcMain.handle('file:readPPT', async (event, filePath) => {
       try {
-        console.log('[File IPC] 读取PPT文件:', filePath);
+        logger.info('[File IPC] 读取PPT文件:', filePath);
 
         if (!this.pptEngine) {
           const PPTEngine = require('../engines/ppt-engine');
@@ -340,7 +341,7 @@ class FileIPC {
           message: 'PPT文件已加载，使用预览模式查看内容',
         };
       } catch (error) {
-        console.error('[File IPC] 读取PPT失败:', error);
+        logger.error('[File IPC] 读取PPT失败:', error);
         return {
           success: false,
           error: error.message,
@@ -351,7 +352,7 @@ class FileIPC {
     // 写入PPT文件
     ipcMain.handle('file:writePPT', async (event, filePath, data) => {
       try {
-        console.log('[File IPC] 写入PPT文件:', filePath);
+        logger.info('[File IPC] 写入PPT文件:', filePath);
 
         if (!this.pptEngine) {
           const PPTEngine = require('../engines/ppt-engine');
@@ -403,7 +404,7 @@ class FileIPC {
           ...result,
         };
       } catch (error) {
-        console.error('[File IPC] 写入PPT失败:', error);
+        logger.error('[File IPC] 写入PPT失败:', error);
         return {
           success: false,
           error: error.message,
@@ -414,7 +415,7 @@ class FileIPC {
     // Markdown转PPT
     ipcMain.handle('file:markdownToPPT', async (event, markdown, outputPath, options) => {
       try {
-        console.log('[File IPC] Markdown转PPT');
+        logger.info('[File IPC] Markdown转PPT');
 
         if (!this.pptEngine) {
           const PPTEngine = require('../engines/ppt-engine');
@@ -431,7 +432,7 @@ class FileIPC {
           ...result,
         };
       } catch (error) {
-        console.error('[File IPC] Markdown转PPT失败:', error);
+        logger.error('[File IPC] Markdown转PPT失败:', error);
         return {
           success: false,
           error: error.message,
@@ -442,7 +443,7 @@ class FileIPC {
     // 创建PPT模板
     ipcMain.handle('file:createPPTTemplate', async (event, templateType, outputPath) => {
       try {
-        console.log('[File IPC] 创建PPT模板:', templateType);
+        logger.info('[File IPC] 创建PPT模板:', templateType);
 
         if (!this.pptEngine) {
           const PPTEngine = require('../engines/ppt-engine');
@@ -477,7 +478,7 @@ class FileIPC {
           ...result,
         };
       } catch (error) {
-        console.error('[File IPC] 创建PPT模板失败:', error);
+        logger.error('[File IPC] 创建PPT模板失败:', error);
         return {
           success: false,
           error: error.message,
@@ -490,17 +491,17 @@ class FileIPC {
     // 读取文件内容（优化：大文件流式读取）
     ipcMain.handle('file:readContent', async (event, filePath) => {
       try {
-        console.log('[File IPC] ========== 读取文件 ==========');
-        console.log('[File IPC] 接收到的路径:', filePath);
-        console.log('[File IPC] 路径类型:', typeof filePath);
-        console.log('[File IPC] 是否为绝对路径:', path.isAbsolute(filePath));
+        logger.info('[File IPC] ========== 读取文件 ==========');
+        logger.info('[File IPC] 接收到的路径:', filePath);
+        logger.info('[File IPC] 路径类型:', typeof filePath);
+        logger.info('[File IPC] 是否为绝对路径:', path.isAbsolute(filePath));
 
         // 检查文件是否存在
         try {
           await fs.access(filePath);
-          console.log('[File IPC] ✓ 文件存在');
+          logger.info('[File IPC] ✓ 文件存在');
         } catch (err) {
-          console.error('[File IPC] ✗ 文件不存在:', err.message);
+          logger.error('[File IPC] ✗ 文件不存在:', err.message);
           throw new Error(`文件不存在: ${filePath}`);
         }
 
@@ -509,11 +510,11 @@ class FileIPC {
         const fileSizeInMB = stats.size / (1024 * 1024);
         const LARGE_FILE_THRESHOLD = 5; // 5MB
 
-        console.log('[File IPC] 文件大小:', fileSizeInMB.toFixed(2), 'MB');
+        logger.info('[File IPC] 文件大小:', fileSizeInMB.toFixed(2), 'MB');
 
         // 大文件使用流式读取（优化：防止内存溢出）
         if (fileSizeInMB > LARGE_FILE_THRESHOLD) {
-          console.log('[File IPC] 使用流式读取（文件 > 5MB）');
+          logger.info('[File IPC] 使用流式读取（文件 > 5MB）');
 
           if (!this.largeFileReader) {
             const LargeFileReader = require('../file/large-file-reader');
@@ -524,7 +525,7 @@ class FileIPC {
           const lines = await this.largeFileReader.getFileHead(filePath, 1000);
           const content = lines.join('\n');
 
-          console.log('[File IPC] ✓ 流式读取成功，返回前1000行');
+          logger.info('[File IPC] ✓ 流式读取成功，返回前1000行');
 
           return {
             success: true,
@@ -537,8 +538,8 @@ class FileIPC {
 
         // 小文件直接读取
         const content = await fs.readFile(filePath, 'utf-8');
-        console.log('[File IPC] ✓ 读取成功，内容长度:', content.length);
-        console.log('[File IPC] 内容预览:', content.substring(0, 100));
+        logger.info('[File IPC] ✓ 读取成功，内容长度:', content.length);
+        logger.info('[File IPC] 内容预览:', content.substring(0, 100));
 
         return {
           success: true,
@@ -547,9 +548,9 @@ class FileIPC {
           fileSize: stats.size,
         };
       } catch (error) {
-        console.error('[File IPC] ========== 读取文件失败 ==========');
-        console.error('[File IPC] 错误:', error.message);
-        console.error('[File IPC] 堆栈:', error.stack);
+        logger.error('[File IPC] ========== 读取文件失败 ==========');
+        logger.error('[File IPC] 错误:', error.message);
+        logger.error('[File IPC] 堆栈:', error.stack);
         return {
           success: false,
           error: error.message,
@@ -560,7 +561,7 @@ class FileIPC {
     // 写入文件内容
     ipcMain.handle('file:writeContent', async (event, filePath, content) => {
       try {
-        console.log('[File IPC] 写入文件:', filePath);
+        logger.info('[File IPC] 写入文件:', filePath);
 
         // 确保目录存在
         const dir = path.dirname(filePath);
@@ -573,7 +574,7 @@ class FileIPC {
           filePath,
         };
       } catch (error) {
-        console.error('[File IPC] 写入文件失败:', error);
+        logger.error('[File IPC] 写入文件失败:', error);
         return {
           success: false,
           error: error.message,
@@ -584,7 +585,7 @@ class FileIPC {
     // 另存为文件
     ipcMain.handle('file:saveAs', async (event, sourceFilePath) => {
       try {
-        console.log('[File IPC] 另存为文件:', sourceFilePath);
+        logger.info('[File IPC] 另存为文件:', sourceFilePath);
 
         // 显示保存对话框
         const result = await dialog.showSaveDialog(mainWindow, {
@@ -606,7 +607,7 @@ class FileIPC {
           filePath: result.filePath,
         };
       } catch (error) {
-        console.error('[File IPC] 另存为失败:', error);
+        logger.error('[File IPC] 另存为失败:', error);
         return {
           success: false,
           error: error.message,
@@ -639,7 +640,7 @@ class FileIPC {
           },
         };
       } catch (error) {
-        console.error('[File IPC] 获取文件信息失败:', error);
+        logger.error('[File IPC] 获取文件信息失败:', error);
         return {
           success: false,
           error: error.message,
@@ -652,7 +653,7 @@ class FileIPC {
     // 预览Office文件 (Word, Excel, PowerPoint)
     ipcMain.handle('file:previewOffice', async (event, filePath, format) => {
       try {
-        console.log('[File IPC] 预览Office文件:', filePath, format);
+        logger.info('[File IPC] 预览Office文件:', filePath, format);
 
         // 确保documentEngine已加载
         if (!this.documentEngine) {
@@ -680,7 +681,7 @@ class FileIPC {
           data,
         };
       } catch (error) {
-        console.error('[File IPC] Office文件预览失败:', error);
+        logger.error('[File IPC] Office文件预览失败:', error);
         return {
           success: false,
           error: error.message,
@@ -693,7 +694,7 @@ class FileIPC {
     // 列出压缩包内容
     ipcMain.handle('archive:list', async (event, archivePath) => {
       try {
-        console.log('[File IPC] 列出压缩包内容:', archivePath);
+        logger.info('[File IPC] 列出压缩包内容:', archivePath);
 
         // 确保archiveManager已加载
         if (!this.archiveManager) {
@@ -708,7 +709,7 @@ class FileIPC {
           data: contents,
         };
       } catch (error) {
-        console.error('[File IPC] 列出压缩包内容失败:', error);
+        logger.error('[File IPC] 列出压缩包内容失败:', error);
         return {
           success: false,
           error: error.message,
@@ -719,7 +720,7 @@ class FileIPC {
     // 获取压缩包信息
     ipcMain.handle('archive:getInfo', async (event, archivePath) => {
       try {
-        console.log('[File IPC] 获取压缩包信息:', archivePath);
+        logger.info('[File IPC] 获取压缩包信息:', archivePath);
 
         if (!this.archiveManager) {
           const ArchiveManager = require('../archive/archive-manager');
@@ -733,7 +734,7 @@ class FileIPC {
           data: info,
         };
       } catch (error) {
-        console.error('[File IPC] 获取压缩包信息失败:', error);
+        logger.error('[File IPC] 获取压缩包信息失败:', error);
         return {
           success: false,
           error: error.message,
@@ -744,7 +745,7 @@ class FileIPC {
     // 提取文件到临时目录
     ipcMain.handle('archive:extract', async (event, archivePath, filePath) => {
       try {
-        console.log('[File IPC] 提取文件:', archivePath, filePath);
+        logger.info('[File IPC] 提取文件:', archivePath, filePath);
 
         if (!this.archiveManager) {
           const ArchiveManager = require('../archive/archive-manager');
@@ -760,7 +761,7 @@ class FileIPC {
           },
         };
       } catch (error) {
-        console.error('[File IPC] 提取文件失败:', error);
+        logger.error('[File IPC] 提取文件失败:', error);
         return {
           success: false,
           error: error.message,
@@ -771,7 +772,7 @@ class FileIPC {
     // 提取文件到指定位置
     ipcMain.handle('archive:extractTo', async (event, archivePath, filePath, outputPath) => {
       try {
-        console.log('[File IPC] 提取文件到:', archivePath, filePath, outputPath);
+        logger.info('[File IPC] 提取文件到:', archivePath, filePath, outputPath);
 
         if (!this.archiveManager) {
           const ArchiveManager = require('../archive/archive-manager');
@@ -791,7 +792,7 @@ class FileIPC {
           },
         };
       } catch (error) {
-        console.error('[File IPC] 提取文件到指定位置失败:', error);
+        logger.error('[File IPC] 提取文件到指定位置失败:', error);
         return {
           success: false,
           error: error.message,
@@ -804,7 +805,7 @@ class FileIPC {
     // 获取文件信息
     ipcMain.handle('largeFile:getInfo', async (event, filePath) => {
       try {
-        console.log('[File IPC] 获取大文件信息:', filePath);
+        logger.info('[File IPC] 获取大文件信息:', filePath);
 
         if (!this.largeFileReader) {
           const LargeFileReader = require('../file/large-file-reader');
@@ -818,7 +819,7 @@ class FileIPC {
           data: info,
         };
       } catch (error) {
-        console.error('[File IPC] 获取大文件信息失败:', error);
+        logger.error('[File IPC] 获取大文件信息失败:', error);
         return {
           success: false,
           error: error.message,
@@ -829,7 +830,7 @@ class FileIPC {
     // 读取文件行
     ipcMain.handle('largeFile:readLines', async (event, filePath, startLine, lineCount) => {
       try {
-        console.log('[File IPC] 读取文件行:', filePath, startLine, lineCount);
+        logger.info('[File IPC] 读取文件行:', filePath, startLine, lineCount);
 
         if (!this.largeFileReader) {
           const LargeFileReader = require('../file/large-file-reader');
@@ -843,7 +844,7 @@ class FileIPC {
           data: result,
         };
       } catch (error) {
-        console.error('[File IPC] 读取文件行失败:', error);
+        logger.error('[File IPC] 读取文件行失败:', error);
         return {
           success: false,
           error: error.message,
@@ -854,7 +855,7 @@ class FileIPC {
     // 搜索文件内容
     ipcMain.handle('largeFile:search', async (event, filePath, query, options) => {
       try {
-        console.log('[File IPC] 搜索文件:', filePath, query);
+        logger.info('[File IPC] 搜索文件:', filePath, query);
 
         if (!this.largeFileReader) {
           const LargeFileReader = require('../file/large-file-reader');
@@ -868,7 +869,7 @@ class FileIPC {
           data: result,
         };
       } catch (error) {
-        console.error('[File IPC] 搜索文件失败:', error);
+        logger.error('[File IPC] 搜索文件失败:', error);
         return {
           success: false,
           error: error.message,
@@ -879,7 +880,7 @@ class FileIPC {
     // 获取文件头部
     ipcMain.handle('largeFile:getHead', async (event, filePath, lineCount) => {
       try {
-        console.log('[File IPC] 获取文件头部:', filePath, lineCount);
+        logger.info('[File IPC] 获取文件头部:', filePath, lineCount);
 
         if (!this.largeFileReader) {
           const LargeFileReader = require('../file/large-file-reader');
@@ -893,7 +894,7 @@ class FileIPC {
           data: lines,
         };
       } catch (error) {
-        console.error('[File IPC] 获取文件头部失败:', error);
+        logger.error('[File IPC] 获取文件头部失败:', error);
         return {
           success: false,
           error: error.message,
@@ -904,7 +905,7 @@ class FileIPC {
     // 获取文件尾部
     ipcMain.handle('largeFile:getTail', async (event, filePath, lineCount) => {
       try {
-        console.log('[File IPC] 获取文件尾部:', filePath, lineCount);
+        logger.info('[File IPC] 获取文件尾部:', filePath, lineCount);
 
         if (!this.largeFileReader) {
           const LargeFileReader = require('../file/large-file-reader');
@@ -918,7 +919,7 @@ class FileIPC {
           data: lines,
         };
       } catch (error) {
-        console.error('[File IPC] 获取文件尾部失败:', error);
+        logger.error('[File IPC] 获取文件尾部失败:', error);
         return {
           success: false,
           error: error.message,
@@ -930,14 +931,14 @@ class FileIPC {
     // Note: 对话框处理器已在 system-ipc.js 中注册，此处不重复注册
 
     this.handlersRegistered = true;
-    console.log('[File IPC] 文件操作IPC处理器已注册');
+    logger.info('[File IPC] 文件操作IPC处理器已注册');
   }
 
   /**
    * 预览Word文档
    */
   async previewWord(filePath) {
-    console.log('[FileIPC] 开始预览Word文档:', filePath);
+    logger.info('[FileIPC] 开始预览Word文档:', filePath);
 
     try {
       // 检查文件是否存在
@@ -948,7 +949,7 @@ class FileIPC {
 
       // 读取文件
       const fileBuffer = await fs.readFile(filePath);
-      console.log('[FileIPC] Word文件已读取，大小:', fileBuffer.length, 'bytes');
+      logger.info('[FileIPC] Word文件已读取，大小:', fileBuffer.length, 'bytes');
 
       if (fileBuffer.length === 0) {
         throw new Error('Word文件为空');
@@ -1009,19 +1010,19 @@ class FileIPC {
           const article = section.querySelector('article');
           if (article) {
             htmlContent += article.innerHTML;
-            console.log('[FileIPC] 已移除wrapper和section标签，只保留article内容');
+            logger.info('[FileIPC] 已移除wrapper和section标签，只保留article内容');
           } else {
             // 如果没有article，则取section的全部内容
             htmlContent += section.innerHTML;
-            console.log('[FileIPC] 已移除wrapper标签，保留section内容');
+            logger.info('[FileIPC] 已移除wrapper标签，保留section内容');
           }
         } else {
           // 降级：如果找不到section，使用原始innerHTML
           htmlContent = container.innerHTML;
-          console.log('[FileIPC] 使用原始HTML内容');
+          logger.info('[FileIPC] 使用原始HTML内容');
         }
 
-        console.log('[FileIPC] Word预览HTML生成成功，长度:', htmlContent.length);
+        logger.info('[FileIPC] Word预览HTML生成成功，长度:', htmlContent.length);
 
         return {
           html: htmlContent,
@@ -1065,7 +1066,7 @@ class FileIPC {
         }
       }
     } catch (error) {
-      console.error('[FileIPC] Word预览失败:', error);
+      logger.error('[FileIPC] Word预览失败:', error);
       throw error;
     }
   }
@@ -1074,7 +1075,7 @@ class FileIPC {
    * 预览Excel表格
    */
   async previewExcel(filePath) {
-    console.log('[FileIPC] 开始预览Excel表格:', filePath);
+    logger.info('[FileIPC] 开始预览Excel表格:', filePath);
 
     try {
       // 检查文件是否存在
@@ -1085,7 +1086,7 @@ class FileIPC {
 
       const xlsx = require('xlsx');
       const workbook = xlsx.readFile(filePath);
-      console.log('[FileIPC] Excel文件已读取，工作表数量:', workbook.SheetNames.length);
+      logger.info('[FileIPC] Excel文件已读取，工作表数量:', workbook.SheetNames.length);
 
       const sheets = [];
 
@@ -1102,17 +1103,17 @@ class FileIPC {
           data: data,
         });
 
-        console.log(`[FileIPC] 工作表 "${sheetName}" 已解析，行数:`, data.length);
+        logger.info(`[FileIPC] 工作表 "${sheetName}" 已解析，行数:`, data.length);
       }
 
-      console.log('[FileIPC] Excel预览解析完成');
+      logger.info('[FileIPC] Excel预览解析完成');
 
       return {
         sheets,
         sheetNames: workbook.SheetNames,
       };
     } catch (error) {
-      console.error('[FileIPC] Excel预览失败:', error);
+      logger.error('[FileIPC] Excel预览失败:', error);
       throw error;
     }
   }
@@ -1121,7 +1122,7 @@ class FileIPC {
    * 预览PowerPoint
    */
   async previewPowerPoint(filePath) {
-    console.log('[FileIPC] 开始预览PowerPoint:', filePath);
+    logger.info('[FileIPC] 开始预览PowerPoint:', filePath);
 
     try {
       // 检查文件是否存在
@@ -1134,14 +1135,14 @@ class FileIPC {
       const { parsePPTX } = require('../utils/pptx-parser');
       const slides = await parsePPTX(filePath);
 
-      console.log('[FileIPC] PowerPoint预览解析完成，幻灯片数量:', slides.length);
+      logger.info('[FileIPC] PowerPoint预览解析完成，幻灯片数量:', slides.length);
 
       return {
         slides,
         slideCount: slides.length,
       };
     } catch (error) {
-      console.error('[FileIPC] PowerPoint预览外部失败:', error);
+      logger.error('[FileIPC] PowerPoint预览外部失败:', error);
       throw error;
     }
   }

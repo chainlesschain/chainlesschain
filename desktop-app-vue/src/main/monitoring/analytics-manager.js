@@ -3,6 +3,7 @@
  * 收集和分析应用使用数据
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { app } = require("electron");
 const fs = require("fs");
 const path = require("path");
@@ -46,7 +47,7 @@ class AnalyticsManager {
       events: [],
     };
 
-    console.log("[Analytics] Session started:", this.currentSession.id);
+    logger.info("[Analytics] Session started:", this.currentSession.id);
   }
 
   /**
@@ -65,8 +66,8 @@ class AnalyticsManager {
         this.data.sessions = this.data.sessions.slice(-100);
       }
 
-      console.log("[Analytics] Session ended:", this.currentSession.id);
-      console.log("[Analytics] Duration:", this.currentSession.duration, "ms");
+      logger.info("[Analytics] Session ended:", this.currentSession.id);
+      logger.info("[Analytics] Duration:", this.currentSession.duration, "ms");
     }
   }
 
@@ -86,7 +87,7 @@ class AnalyticsManager {
       this.currentSession.events.push(event);
     }
 
-    console.log("[Analytics] Event tracked:", category, action);
+    logger.info("[Analytics] Event tracked:", category, action);
   }
 
   /**
@@ -235,10 +236,10 @@ class AnalyticsManager {
       if (fs.existsSync(this.dataPath)) {
         const content = fs.readFileSync(this.dataPath, "utf8");
         this.data = JSON.parse(content);
-        console.log("[Analytics] Data loaded");
+        logger.info("[Analytics] Data loaded");
       }
     } catch (error) {
-      console.error("[Analytics] Load data error:", error);
+      logger.error("[Analytics] Load data error:", error);
     }
   }
 
@@ -248,9 +249,9 @@ class AnalyticsManager {
   saveData() {
     try {
       fs.writeFileSync(this.dataPath, JSON.stringify(this.data, null, 2));
-      console.log("[Analytics] Data saved");
+      logger.info("[Analytics] Data saved");
     } catch (error) {
-      console.error("[Analytics] Save data error:", error);
+      logger.error("[Analytics] Save data error:", error);
     }
   }
 
@@ -265,7 +266,7 @@ class AnalyticsManager {
       performance: [],
     };
     this.saveData();
-    console.log("[Analytics] Data cleared");
+    logger.info("[Analytics] Data cleared");
   }
 
   /**
@@ -280,10 +281,10 @@ class AnalyticsManager {
       };
 
       fs.writeFileSync(outputPath, JSON.stringify(exportData, null, 2));
-      console.log("[Analytics] Data exported to:", outputPath);
+      logger.info("[Analytics] Data exported to:", outputPath);
       return true;
     } catch (error) {
-      console.error("[Analytics] Export data error:", error);
+      logger.error("[Analytics] Export data error:", error);
       return false;
     }
   }

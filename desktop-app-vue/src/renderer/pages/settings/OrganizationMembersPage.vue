@@ -238,6 +238,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted, watch } from 'vue';
 import { message } from 'ant-design-vue';
 import { useIdentityStore } from '@/stores/identityStore';
@@ -342,7 +344,7 @@ async function loadMembers() {
       message.error(result.error || '加载成员列表失败');
     }
   } catch (error) {
-    console.error('加载成员列表失败:', error);
+    logger.error('加载成员列表失败:', error);
     message.error('加载成员列表失败');
   } finally {
     loading.value = false;
@@ -385,7 +387,7 @@ async function handleChangeRole(member, newRole) {
       message.error(result.error || '角色更新失败');
     }
   } catch (error) {
-    console.error('更改角色失败:', error);
+    logger.error('更改角色失败:', error);
     message.error('更改角色失败');
   }
 }
@@ -407,7 +409,7 @@ async function handleRemoveMember(member) {
       message.error(result.error || '移除成员失败');
     }
   } catch (error) {
-    console.error('移除成员失败:', error);
+    logger.error('移除成员失败:', error);
     message.error('移除成员失败');
   }
 }
@@ -474,7 +476,7 @@ async function handleViewMemberDetail(member) {
       memberActivities.value = result.activities;
     }
   } catch (error) {
-    console.error('加载活动历史失败:', error);
+    logger.error('加载活动历史失败:', error);
   }
 }
 

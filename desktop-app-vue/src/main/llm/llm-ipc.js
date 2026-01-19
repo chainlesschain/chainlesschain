@@ -6,6 +6,7 @@
  * @description 提供 LLM 服务的所有 IPC 接口，包括聊天、查询、配置管理、智能选择等
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const defaultIpcGuard = require("../ipc/ipc-guard");
 
 /**
@@ -98,28 +99,28 @@ function registerLLMIPC({
 
   // 防止重复注册
   if (ipcGuard.isModuleRegistered("llm-ipc")) {
-    console.log("[LLM IPC] Handlers already registered, skipping...");
+    logger.info("[LLM IPC] Handlers already registered, skipping...");
     return;
   }
 
   const electron = require("electron");
   const ipcMain = injectedIpcMain || electron.ipcMain;
 
-  console.log("[LLM IPC] Registering LLM IPC handlers...");
+  logger.info("[LLM IPC] Registering LLM IPC handlers...");
 
   // 🔥 在测试模式下，如果 llmManager 为 null，创建 Mock LLM 服务
   let effectiveManager = llmManager;
   const isTestMode = process.env.NODE_ENV === 'test' && process.env.MOCK_LLM === 'true';
 
   if (isTestMode && !effectiveManager) {
-    console.log("[LLM IPC] 测试模式且无 LLM Manager，创建 Mock LLM 服务");
+    logger.info("[LLM IPC] 测试模式且无 LLM Manager，创建 Mock LLM 服务");
     try {
       const { getTestModeConfig } = require("../config/test-mode-config");
       const testModeConfig = getTestModeConfig();
       effectiveManager = testModeConfig.getMockLLMService();
-      console.log("[LLM IPC] ✓ Mock LLM 服务已创建");
+      logger.info("[LLM IPC] ✓ Mock LLM 服务已创建");
     } catch (error) {
-      console.error("[LLM IPC] 创建 Mock LLM 服务失败:", error);
+      logger.error("[LLM IPC] 创建 Mock LLM 服务失败:", error);
     }
   }
 
@@ -164,7 +165,7 @@ function registerLLMIPC({
 
       return await managerRef.current.query(prompt, options);
     } catch (error) {
-      console.error("[LLM IPC] LLM查询失败:", error);
+      logger.error("[LLM IPC] LLM查询失败:", error);
       throw error;
     }
   });
@@ -205,7 +206,7 @@ function registerLLMIPC({
           throw new Error("LLM服务未初始化");
         }
 
-        console.log(
+        logger.info(
           "[LLM IPC] LLM 聊天请求, messages:",
           messages?.length || 0,
           "stream:",
@@ -256,9 +257,9 @@ function registerLLMIPC({
             }
 
             integrationResults.errorPrechecked = true;
-            console.log("[LLM IPC] ✓ ErrorMonitor 预检查通过");
+            logger.info("[LLM IPC] ✓ ErrorMonitor 预检查通过");
           } catch (precheckError) {
-            console.warn(
+            logger.warn(
               "[LLM IPC] ErrorMonitor 预检查失败:",
               precheckError.message,
             );
@@ -282,9 +283,9 @@ function registerLLMIPC({
                 const session =
                   await sessionManager.loadSession(currentSessionId);
                 currentConversationId = session.conversationId;
-                console.log("[LLM IPC] ✓ 加载现有会话:", currentSessionId);
+                logger.info("[LLM IPC] ✓ 加载现有会话:", currentSessionId);
               } catch (loadError) {
-                console.warn("[LLM IPC] 会话不存在，将创建新会话");
+                logger.warn("[LLM IPC] 会话不存在，将创建新会话");
                 currentSessionId = null;
               }
             }
@@ -306,7 +307,7 @@ function registerLLMIPC({
                 metadata: { provider, model },
               });
               currentSessionId = newSession.id;
-              console.log("[LLM IPC] ✓ 创建新会话:", currentSessionId);
+              logger.info("[LLM IPC] ✓ 创建新会话:", currentSessionId);
             }
 
             // 添加用户消息到会话
@@ -323,7 +324,7 @@ function registerLLMIPC({
             integrationResults.sessionUsed = true;
             integrationResults.sessionId = currentSessionId;
           } catch (sessionError) {
-            console.warn(
+            logger.warn(
               "[LLM IPC] SessionManager 会话追踪失败:",
               sessionError.message,
             );
@@ -355,7 +356,7 @@ function registerLLMIPC({
               const capableAgents = agentOrchestrator.getCapableAgents(task);
 
               if (capableAgents.length > 0 && capableAgents[0].score > 0.7) {
-                console.log(
+                logger.info(
                   "[LLM IPC] 🤖 发现高匹配度 Agent:",
                   capableAgents[0].agentId,
                   "得分:",
@@ -367,7 +368,7 @@ function registerLLMIPC({
                   agentResult = await agentOrchestrator.dispatch(task);
                   integrationResults.multiAgentRouted = true;
                   integrationResults.agentUsed = capableAgents[0].agentId;
-                  console.log("[LLM IPC] ✓ Multi-Agent 任务执行完成");
+                  logger.info("[LLM IPC] ✓ Multi-Agent 任务执行完成");
 
                   // 如果 Agent 返回了完整的响应，直接返回
                   if (agentResult && agentResult.response) {
@@ -398,7 +399,7 @@ function registerLLMIPC({
                     };
                   }
                 } catch (agentError) {
-                  console.warn(
+                  logger.warn(
                     "[LLM IPC] Agent 执行失败，回退到标准流程:",
                     agentError.message,
                   );
@@ -406,7 +407,7 @@ function registerLLMIPC({
               }
             }
           } catch (agentCheckError) {
-            console.warn(
+            logger.warn(
               "[LLM IPC] Multi-Agent 路由检查失败:",
               agentCheckError.message,
             );
@@ -429,7 +430,7 @@ function registerLLMIPC({
             );
 
             if (cached.hit) {
-              console.log(
+              logger.info(
                 "[LLM IPC] 🎯 缓存命中! 节省",
                 cached.tokensSaved,
                 "tokens",
@@ -472,7 +473,7 @@ function registerLLMIPC({
               };
             }
           } catch (cacheError) {
-            console.warn(
+            logger.warn(
               "[LLM IPC] 缓存检查失败，继续正常流程:",
               cacheError.message,
             );
@@ -500,7 +501,7 @@ function registerLLMIPC({
               // 检查是否需要深度思考（复杂问题、分析、推理）
               if (/(为什么|怎么|如何|分析|推理|思考|解释|原理)/.test(content)) {
                 scenario.needsThinking = true;
-                console.log("[LLM IPC] 检测到需要深度思考");
+                logger.info("[LLM IPC] 检测到需要深度思考");
               }
 
               // 检查是否包含代码（代码生成、调试）
@@ -509,7 +510,7 @@ function registerLLMIPC({
                 /```/.test(content)
               ) {
                 scenario.needsCodeGeneration = true;
-                console.log("[LLM IPC] 检测到代码相关任务");
+                logger.info("[LLM IPC] 检测到代码相关任务");
               }
 
               // 检查上下文长度，如果消息很多或很长，选择大上下文模型
@@ -519,7 +520,7 @@ function registerLLMIPC({
               );
               if (totalLength > 10000 || messages.length > 20) {
                 scenario.needsLongContext = true;
-                console.log(
+                logger.info(
                   "[LLM IPC] 检测到长上下文需求，总长度:",
                   totalLength,
                 );
@@ -532,7 +533,7 @@ function registerLLMIPC({
                 )
               ) {
                 toolsToUse.push("web_search");
-                console.log("[LLM IPC] 检测到需要联网搜索");
+                logger.info("[LLM IPC] 检测到需要联网搜索");
               }
 
               // 🔥 检测是否包含图片（多模态消息）
@@ -543,7 +544,7 @@ function registerLLMIPC({
                 if (hasImage) {
                   scenario.hasImage = true;
                   toolsToUse.push("image_process");
-                  console.log("[LLM IPC] 检测到图片输入");
+                  logger.info("[LLM IPC] 检测到图片输入");
                 }
               }
             }
@@ -553,7 +554,7 @@ function registerLLMIPC({
               managerRef.current.selectVolcengineModel(scenario);
             if (selectedModel) {
               options.model = selectedModel.modelId;
-              console.log(
+              logger.info(
                 "[LLM IPC] 智能选择火山引擎模型:",
                 selectedModel.modelName,
                 "(",
@@ -562,7 +563,7 @@ function registerLLMIPC({
               );
             }
           } catch (selectError) {
-            console.warn(
+            logger.warn(
               "[LLM IPC] 智能模型选择失败，使用默认配置:",
               selectError.message,
             );
@@ -589,14 +590,14 @@ function registerLLMIPC({
               mcpFunctions = await mcpExecutor.getFunctions();
 
               if (mcpFunctions.length > 0) {
-                console.log(
+                logger.info(
                   "[LLM IPC] MCP 工具可用:",
                   mcpFunctions.map((f) => f.name).join(", "),
                 );
               }
             }
           } catch (mcpError) {
-            console.warn("[LLM IPC] 获取 MCP 工具失败:", mcpError.message);
+            logger.warn("[LLM IPC] 获取 MCP 工具失败:", mcpError.message);
           }
         }
 
@@ -621,7 +622,7 @@ function registerLLMIPC({
                 ragResult.retrievedDocs &&
                 ragResult.retrievedDocs.length > 0
               ) {
-                console.log(
+                logger.info(
                   "[LLM IPC] RAG检索到",
                   ragResult.retrievedDocs.length,
                   "条相关知识",
@@ -660,7 +661,7 @@ function registerLLMIPC({
               }
             }
           } catch (ragError) {
-            console.error("[LLM IPC] RAG检索失败，继续普通对话:", ragError);
+            logger.error("[LLM IPC] RAG检索失败，继续普通对话:", ragError);
           }
         }
 
@@ -680,7 +681,7 @@ function registerLLMIPC({
             );
 
             if (compressionResult.compressionRatio < 0.95) {
-              console.log(
+              logger.info(
                 "[LLM IPC] ⚡ Prompt 压缩成功! 压缩率:",
                 compressionResult.compressionRatio.toFixed(2),
                 "节省",
@@ -689,11 +690,11 @@ function registerLLMIPC({
               );
               enhancedMessages = compressionResult.messages;
             } else {
-              console.log("[LLM IPC] Prompt 压缩效果不明显，使用原始消息");
+              logger.info("[LLM IPC] Prompt 压缩效果不明显，使用原始消息");
               compressionResult = null;
             }
           } catch (compressError) {
-            console.warn(
+            logger.warn(
               "[LLM IPC] Prompt 压缩失败，使用原始消息:",
               compressError.message,
             );
@@ -711,7 +712,7 @@ function registerLLMIPC({
 
           // 火山引擎使用 executeFunctionCalling 方法
           if (provider === "volcengine" && managerRef.current.toolsClient) {
-            console.log(
+            logger.info(
               "[LLM IPC] 使用火山引擎 Function Calling，MCP 工具数:",
               mcpFunctions.length,
             );
@@ -737,7 +738,7 @@ function registerLLMIPC({
               };
               usedMCPTools = true;
             } catch (fcError) {
-              console.warn(
+              logger.warn(
                 "[LLM IPC] 火山引擎 Function Calling 失败，回退到标准对话:",
                 fcError.message,
               );
@@ -745,7 +746,7 @@ function registerLLMIPC({
           }
           // OpenAI 和 DeepSeek 使用标准 chat 接口的 tools 参数
           else if (provider === "openai" || provider === "deepseek") {
-            console.log(
+            logger.info(
               "[LLM IPC] 使用 OpenAI 兼容 Function Calling，MCP 工具数:",
               mcpFunctions.length,
             );
@@ -771,7 +772,7 @@ function registerLLMIPC({
               let currentMessages = enhancedMessages;
               while (result.message?.tool_calls) {
                 const toolCalls = result.message.tool_calls;
-                console.log(
+                logger.info(
                   "[LLM IPC] LLM 请求调用",
                   toolCalls.length,
                   "个 MCP 工具",
@@ -783,7 +784,7 @@ function registerLLMIPC({
                   const functionName = toolCall.function.name;
                   const functionArgs = JSON.parse(toolCall.function.arguments);
 
-                  console.log("[LLM IPC] 执行 MCP 工具:", functionName);
+                  logger.info("[LLM IPC] 执行 MCP 工具:", functionName);
 
                   try {
                     const execResult = await mcpExecutor.execute(
@@ -796,7 +797,7 @@ function registerLLMIPC({
                       content: JSON.stringify(execResult),
                     });
                   } catch (execError) {
-                    console.error(
+                    logger.error(
                       "[LLM IPC] MCP 工具执行失败:",
                       execError.message,
                     );
@@ -829,7 +830,7 @@ function registerLLMIPC({
               response = result;
               usedMCPTools = true;
             } catch (fcError) {
-              console.warn(
+              logger.warn(
                 "[LLM IPC] OpenAI Function Calling 失败，回退到标准对话:",
                 fcError.message,
               );
@@ -844,7 +845,7 @@ function registerLLMIPC({
           managerRef.current.provider === "volcengine" &&
           managerRef.current.toolsClient
         ) {
-          console.log("[LLM IPC] 使用火山引擎内置工具:", toolsToUse.join(", "));
+          logger.info("[LLM IPC] 使用火山引擎内置工具:", toolsToUse.join(", "));
 
           // 如果只有一个工具，使用专用方法
           if (toolsToUse.length === 1) {
@@ -903,7 +904,7 @@ function registerLLMIPC({
             enableManusOptimization &&
             managerRef.current.manusOptimizations
           ) {
-            console.log("[LLM IPC] 使用 Manus Context Engineering 优化");
+            logger.info("[LLM IPC] 使用 Manus Context Engineering 优化");
             response = await managerRef.current.chatWithOptimizedPrompt(
               enhancedMessages,
               {
@@ -912,7 +913,7 @@ function registerLLMIPC({
               },
             );
             integrationResults.manusOptimized = true;
-            console.log("[LLM IPC] ✓ Manus 优化已应用");
+            logger.info("[LLM IPC] ✓ Manus 优化已应用");
           } else {
             // 使用标准的 chatWithMessages 方法，保留完整的 messages 历史
             response = await managerRef.current.chatWithMessages(
@@ -922,7 +923,7 @@ function registerLLMIPC({
           }
         }
 
-        console.log("[LLM IPC] LLM 聊天响应成功, tokens:", response.tokens);
+        logger.info("[LLM IPC] LLM 聊天响应成功, tokens:", response.tokens);
 
         // 🔥 记录 AI 响应到 SessionManager
         if (
@@ -939,10 +940,10 @@ function registerLLMIPC({
                 role: "assistant",
                 content: assistantContent,
               });
-              console.log("[LLM IPC] ✓ AI响应已记录到会话");
+              logger.info("[LLM IPC] ✓ AI响应已记录到会话");
             }
           } catch (sessionRecordError) {
-            console.warn(
+            logger.warn(
               "[LLM IPC] 记录AI响应到会话失败:",
               sessionRecordError.message,
             );
@@ -967,9 +968,9 @@ function registerLLMIPC({
               options,
             );
 
-            console.log("[LLM IPC] 响应已缓存");
+            logger.info("[LLM IPC] 响应已缓存");
           } catch (cacheError) {
-            console.warn("[LLM IPC] 缓存响应失败:", cacheError.message);
+            logger.warn("[LLM IPC] 缓存响应失败:", cacheError.message);
           }
         }
 
@@ -1007,13 +1008,13 @@ function registerLLMIPC({
 
         return finalResponse;
       } catch (error) {
-        console.error("[LLM IPC] LLM 聊天失败:", error);
+        logger.error("[LLM IPC] LLM 聊天失败:", error);
 
         // 🔥 使用 ErrorMonitor 进行错误分析（如果启用）
         if (errorMonitor) {
           try {
             const analysis = await errorMonitor.analyzeError(error);
-            console.log("[LLM IPC] ErrorMonitor 错误分析完成:", {
+            logger.info("[LLM IPC] ErrorMonitor 错误分析完成:", {
               classification: analysis.classification,
               severity: analysis.severity,
               hasAIDiagnosis: !!analysis.aiDiagnosis,
@@ -1025,7 +1026,7 @@ function registerLLMIPC({
               error.recommendations = analysis.recommendations;
             }
           } catch (analysisError) {
-            console.warn(
+            logger.warn(
               "[LLM IPC] ErrorMonitor 分析失败:",
               analysisError.message,
             );
@@ -1049,13 +1050,13 @@ function registerLLMIPC({
           throw new Error("LLM服务未初始化");
         }
 
-        console.log("[LLM IPC] 使用模板进行聊天, templateId:", templateId);
+        logger.info("[LLM IPC] 使用模板进行聊天, templateId:", templateId);
 
         let filledPrompt;
 
         // 🔥 在测试模式或 promptTemplateManager 未初始化时，使用简单的模板填充
         if (!promptTemplateManager || isTestMode) {
-          console.log("[LLM IPC] 测试模式：使用简单模板填充");
+          logger.info("[LLM IPC] 测试模式：使用简单模板填充");
           // 简单的模板填充逻辑
           const templates = {
             'code-review': `Please review the following ${variables?.language || 'code'}:\n\n${variables?.code || ''}`,
@@ -1071,7 +1072,7 @@ function registerLLMIPC({
           );
         }
 
-        console.log("[LLM IPC] 模板已填充");
+        logger.info("[LLM IPC] 模板已填充");
 
         // 构建消息数组，将填充后的模板作为用户消息
         const enhancedMessages = [
@@ -1088,7 +1089,7 @@ function registerLLMIPC({
           options,
         );
       } catch (error) {
-        console.error("[LLM IPC] 模板聊天失败:", error);
+        logger.error("[LLM IPC] 模板聊天失败:", error);
         throw error;
       }
     },
@@ -1121,7 +1122,7 @@ function registerLLMIPC({
 
       return result;
     } catch (error) {
-      console.error("[LLM IPC] LLM流式查询失败:", error);
+      logger.error("[LLM IPC] LLM流式查询失败:", error);
       throw error;
     }
   });
@@ -1136,7 +1137,7 @@ function registerLLMIPC({
       const llmConfig = getLLMConfig();
       return llmConfig.getAll();
     } catch (error) {
-      console.error("[LLM IPC] 获取LLM配置失败:", error);
+      logger.error("[LLM IPC] 获取LLM配置失败:", error);
       throw error;
     }
   });
@@ -1161,7 +1162,7 @@ function registerLLMIPC({
       const isTestMode = process.env.NODE_ENV === 'test' && process.env.MOCK_LLM === 'true';
 
       if (isTestMode) {
-        console.log("[LLM IPC] 测试模式：配置已更新，但保持使用 Mock LLM 服务");
+        logger.info("[LLM IPC] 测试模式：配置已更新，但保持使用 Mock LLM 服务");
         // 如果 managerRef.current 是 MockLLMService，更新其配置
         if (managerRef.current && typeof managerRef.current.setConfig === 'function') {
           await managerRef.current.setConfig(config);
@@ -1190,11 +1191,11 @@ function registerLLMIPC({
         app.llmManager = newManager;
       }
 
-      console.log("[LLM IPC] LLM配置已更新并重新初始化");
+      logger.info("[LLM IPC] LLM配置已更新并重新初始化");
 
       return true;
     } catch (error) {
-      console.error("[LLM IPC] 设置LLM配置失败:", error);
+      logger.error("[LLM IPC] 设置LLM配置失败:", error);
       throw error;
     }
   });
@@ -1211,7 +1212,7 @@ function registerLLMIPC({
 
       return await managerRef.current.listModels();
     } catch (error) {
-      console.error("[LLM IPC] 列出模型失败:", error);
+      logger.error("[LLM IPC] 列出模型失败:", error);
       return [];
     }
   });
@@ -1229,7 +1230,7 @@ function registerLLMIPC({
       managerRef.current.clearContext(conversationId);
       return true;
     } catch (error) {
-      console.error("[LLM IPC] 清除上下文失败:", error);
+      logger.error("[LLM IPC] 清除上下文失败:", error);
       throw error;
     }
   });
@@ -1246,7 +1247,7 @@ function registerLLMIPC({
 
       return await managerRef.current.embeddings(text);
     } catch (error) {
-      console.error("[LLM IPC] 生成嵌入失败:", error);
+      logger.error("[LLM IPC] 生成嵌入失败:", error);
       throw error;
     }
   });
@@ -1270,7 +1271,7 @@ function registerLLMIPC({
         taskTypes: llmSelector.getTaskTypes(),
       };
     } catch (error) {
-      console.error("[LLM IPC] 获取LLM选择器信息失败:", error);
+      logger.error("[LLM IPC] 获取LLM选择器信息失败:", error);
       throw error;
     }
   });
@@ -1288,7 +1289,7 @@ function registerLLMIPC({
       const provider = llmSelector.selectBestLLM(options);
       return provider;
     } catch (error) {
-      console.error("[LLM IPC] 智能选择LLM失败:", error);
+      logger.error("[LLM IPC] 智能选择LLM失败:", error);
       throw error;
     }
   });
@@ -1305,7 +1306,7 @@ function registerLLMIPC({
 
       return llmSelector.generateSelectionReport(taskType);
     } catch (error) {
-      console.error("[LLM IPC] 生成LLM选择报告失败:", error);
+      logger.error("[LLM IPC] 生成LLM选择报告失败:", error);
       throw error;
     }
   });
@@ -1333,7 +1334,7 @@ function registerLLMIPC({
       }
 
       const managerConfig = llmConfig.getManagerConfig();
-      console.log(`[LLM IPC] 切换到LLM提供商: ${provider}, 配置:`, {
+      logger.info(`[LLM IPC] 切换到LLM提供商: ${provider}, 配置:`, {
         model: managerConfig.model,
         baseURL: managerConfig.baseURL,
       });
@@ -1349,10 +1350,10 @@ function registerLLMIPC({
         app.llmManager = newManager;
       }
 
-      console.log(`[LLM IPC] 已切换到LLM提供商: ${provider}`);
+      logger.info(`[LLM IPC] 已切换到LLM提供商: ${provider}`);
       return true;
     } catch (error) {
-      console.error("[LLM IPC] 切换LLM提供商失败:", error);
+      logger.error("[LLM IPC] 切换LLM提供商失败:", error);
       throw error;
     }
   });
@@ -1438,7 +1439,7 @@ function registerLLMIPC({
 
         return { controllerId, status: controller.status };
       } catch (error) {
-        console.error("[LLM IPC] 创建流控制器失败:", error);
+        logger.error("[LLM IPC] 创建流控制器失败:", error);
         throw error;
       }
     },
@@ -1459,7 +1460,7 @@ function registerLLMIPC({
 
       return { success: true, status: controller.status };
     } catch (error) {
-      console.error("[LLM IPC] 暂停流失败:", error);
+      logger.error("[LLM IPC] 暂停流失败:", error);
       throw error;
     }
   });
@@ -1479,7 +1480,7 @@ function registerLLMIPC({
 
       return { success: true, status: controller.status };
     } catch (error) {
-      console.error("[LLM IPC] 恢复流失败:", error);
+      logger.error("[LLM IPC] 恢复流失败:", error);
       throw error;
     }
   });
@@ -1499,7 +1500,7 @@ function registerLLMIPC({
 
       return { success: true, status: controller.status };
     } catch (error) {
-      console.error("[LLM IPC] 取消流失败:", error);
+      logger.error("[LLM IPC] 取消流失败:", error);
       throw error;
     }
   });
@@ -1519,7 +1520,7 @@ function registerLLMIPC({
 
       return stats;
     } catch (error) {
-      console.error("[LLM IPC] 获取流统计失败:", error);
+      logger.error("[LLM IPC] 获取流统计失败:", error);
       throw error;
     }
   });
@@ -1545,7 +1546,7 @@ function registerLLMIPC({
 
         return { success: true };
       } catch (error) {
-        console.error("[LLM IPC] 销毁流控制器失败:", error);
+        logger.error("[LLM IPC] 销毁流控制器失败:", error);
         throw error;
       }
     },
@@ -1611,7 +1612,7 @@ function registerLLMIPC({
         avgResponseTime: Math.round(stats.avg_response_time || 0),
       };
     } catch (error) {
-      console.error("[LLM IPC] 获取使用统计失败:", error);
+      logger.error("[LLM IPC] 获取使用统计失败:", error);
       throw error;
     }
   });
@@ -1681,7 +1682,7 @@ function registerLLMIPC({
         costCny: row.cost_cny || 0,
       }));
     } catch (error) {
-      console.error("[LLM IPC] 获取时间序列数据失败:", error);
+      logger.error("[LLM IPC] 获取时间序列数据失败:", error);
       throw error;
     }
   });
@@ -1760,7 +1761,7 @@ function registerLLMIPC({
         })),
       };
     } catch (error) {
-      console.error("[LLM IPC] 获取成本分解失败:", error);
+      logger.error("[LLM IPC] 获取成本分解失败:", error);
       throw error;
     }
   });
@@ -1777,7 +1778,7 @@ function registerLLMIPC({
 
       return await tokenTracker.getBudgetConfig(userId);
     } catch (error) {
-      console.error("[LLM IPC] 获取预算配置失败:", error);
+      logger.error("[LLM IPC] 获取预算配置失败:", error);
       throw error;
     }
   });
@@ -1794,7 +1795,7 @@ function registerLLMIPC({
 
       return await tokenTracker.saveBudgetConfig(userId, config);
     } catch (error) {
-      console.error("[LLM IPC] 设置预算配置失败:", error);
+      logger.error("[LLM IPC] 设置预算配置失败:", error);
       throw error;
     }
   });
@@ -1811,7 +1812,7 @@ function registerLLMIPC({
 
       return await tokenTracker.exportCostReport(options);
     } catch (error) {
-      console.error("[LLM IPC] 导出成本报告失败:", error);
+      logger.error("[LLM IPC] 导出成本报告失败:", error);
       throw error;
     }
   });
@@ -1829,7 +1830,7 @@ function registerLLMIPC({
       const deletedCount = await responseCache.clear();
       return { success: true, deletedCount };
     } catch (error) {
-      console.error("[LLM IPC] 清除缓存失败:", error);
+      logger.error("[LLM IPC] 清除缓存失败:", error);
       throw error;
     }
   });
@@ -1846,7 +1847,7 @@ function registerLLMIPC({
 
       return await responseCache.getStats();
     } catch (error) {
-      console.error("[LLM IPC] 获取缓存统计失败:", error);
+      logger.error("[LLM IPC] 获取缓存统计失败:", error);
       throw error;
     }
   });
@@ -1863,11 +1864,11 @@ function registerLLMIPC({
 
       const result = await managerRef.current.resumeService(userId);
 
-      console.log("[LLM IPC] ✓ LLM 服务已恢复");
+      logger.info("[LLM IPC] ✓ LLM 服务已恢复");
 
       return result;
     } catch (error) {
-      console.error("[LLM IPC] 恢复 LLM 服务失败:", error);
+      logger.error("[LLM IPC] 恢复 LLM 服务失败:", error);
       throw error;
     }
   });
@@ -1884,11 +1885,11 @@ function registerLLMIPC({
 
       const result = await managerRef.current.pauseService();
 
-      console.log("[LLM IPC] ✓ LLM 服务已暂停");
+      logger.info("[LLM IPC] ✓ LLM 服务已暂停");
 
       return result;
     } catch (error) {
-      console.error("[LLM IPC] 暂停 LLM 服务失败:", error);
+      logger.error("[LLM IPC] 暂停 LLM 服务失败:", error);
       throw error;
     }
   });
@@ -1916,7 +1917,7 @@ function registerLLMIPC({
           cachedTokens,
         );
       } catch (error) {
-        console.error("[LLM IPC] 计算成本估算失败:", error);
+        logger.error("[LLM IPC] 计算成本估算失败:", error);
         throw error;
       }
     },
@@ -1936,7 +1937,7 @@ function registerLLMIPC({
 
         return await managerRef.current.canPerformOperation(estimatedTokens);
       } catch (error) {
-        console.error("[LLM IPC] 检查操作权限失败:", error);
+        logger.error("[LLM IPC] 检查操作权限失败:", error);
         throw error;
       }
     },
@@ -1989,7 +1990,7 @@ function registerLLMIPC({
         dismissed: alert.dismissed === 1,
       }));
     } catch (error) {
-      console.error("[LLM IPC] 获取告警历史失败:", error);
+      logger.error("[LLM IPC] 获取告警历史失败:", error);
       return [];
     }
   });
@@ -2033,7 +2034,7 @@ function registerLLMIPC({
 
       return { success: true, id };
     } catch (error) {
-      console.error("[LLM IPC] 添加告警失败:", error);
+      logger.error("[LLM IPC] 添加告警失败:", error);
       throw error;
     }
   });
@@ -2061,7 +2062,7 @@ function registerLLMIPC({
 
         return { success: true };
       } catch (error) {
-        console.error("[LLM IPC] 忽略告警失败:", error);
+        logger.error("[LLM IPC] 忽略告警失败:", error);
         throw error;
       }
     },
@@ -2094,7 +2095,7 @@ function registerLLMIPC({
 
       return { success: true };
     } catch (error) {
-      console.error("[LLM IPC] 清除告警历史失败:", error);
+      logger.error("[LLM IPC] 清除告警历史失败:", error);
       throw error;
     }
   });
@@ -2128,7 +2129,7 @@ function registerLLMIPC({
           blockOnLimit: b.block_on_limit === 1,
         }));
       } catch (error) {
-        console.error("[LLM IPC] 获取模型预算失败:", error);
+        logger.error("[LLM IPC] 获取模型预算失败:", error);
         return [];
       }
     },
@@ -2183,7 +2184,7 @@ function registerLLMIPC({
 
       return { success: true };
     } catch (error) {
-      console.error("[LLM IPC] 设置模型预算失败:", error);
+      logger.error("[LLM IPC] 设置模型预算失败:", error);
       throw error;
     }
   });
@@ -2208,7 +2209,7 @@ function registerLLMIPC({
 
         return { success: true };
       } catch (error) {
-        console.error("[LLM IPC] 删除模型预算失败:", error);
+        logger.error("[LLM IPC] 删除模型预算失败:", error);
         throw error;
       }
     },
@@ -2246,7 +2247,7 @@ function registerLLMIPC({
 
         return null;
       } catch (error) {
-        console.error("[LLM IPC] 获取数据保留配置失败:", error);
+        logger.error("[LLM IPC] 获取数据保留配置失败:", error);
         return null;
       }
     },
@@ -2287,7 +2288,7 @@ function registerLLMIPC({
 
       return { success: true };
     } catch (error) {
-      console.error("[LLM IPC] 设置数据保留配置失败:", error);
+      logger.error("[LLM IPC] 设置数据保留配置失败:", error);
       throw error;
     }
   });
@@ -2362,11 +2363,11 @@ function registerLLMIPC({
         )
         .run(now, now, userId);
 
-      console.log("[LLM IPC] 数据清理完成:", deletedCounts);
+      logger.info("[LLM IPC] 数据清理完成:", deletedCounts);
 
       return { success: true, deletedCounts };
     } catch (error) {
-      console.error("[LLM IPC] 清理旧数据失败:", error);
+      logger.error("[LLM IPC] 清理旧数据失败:", error);
       throw error;
     }
   });
@@ -2428,7 +2429,7 @@ function registerLLMIPC({
     try {
       if (clear) {
         database.prepare("DELETE FROM llm_usage_log").run();
-        console.log("[LLM IPC] 已清除现有测试数据");
+        logger.info("[LLM IPC] 已清除现有测试数据");
       }
 
       const now = Date.now();
@@ -2519,7 +2520,7 @@ function registerLLMIPC({
 
       insertMany(records);
 
-      console.log(
+      logger.info(
         `[LLM IPC] 测试数据生成完成: ${totalRecords} 条记录, ${totalTokens} tokens, $${totalCostUsd.toFixed(4)}`,
       );
 
@@ -2531,7 +2532,7 @@ function registerLLMIPC({
         totalCostCny: totalCostUsd * EXCHANGE_RATE,
       };
     } catch (error) {
-      console.error("[LLM IPC] 生成测试数据失败:", error);
+      logger.error("[LLM IPC] 生成测试数据失败:", error);
       throw error;
     }
   });
@@ -2539,7 +2540,7 @@ function registerLLMIPC({
   // 标记模块为已注册
   ipcGuard.markModuleRegistered("llm-ipc");
 
-  console.log(
+  logger.info(
     "[LLM IPC] ✓ All LLM IPC handlers registered successfully (44 handlers: 14 basic + 6 stream + 13 token tracking + 4 alerts + 4 model budgets + 3 retention)",
   );
 }

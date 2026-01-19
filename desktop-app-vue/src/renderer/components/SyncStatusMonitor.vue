@@ -87,6 +87,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { message } from 'ant-design-vue';
 import { SyncOutlined, WarningOutlined } from '@ant-design/icons-vue';
@@ -135,7 +137,7 @@ async function loadStats() {
     const result = await ipcRenderer.invoke('sync:get-stats', orgId);
     stats.value = result || stats.value;
   } catch (error) {
-    console.error('加载同步统计失败:', error);
+    logger.error('加载同步统计失败:', error);
   }
 }
 
@@ -165,7 +167,7 @@ async function handleSyncNow() {
       await loadStats();
     }
   } catch (error) {
-    console.error('同步失败:', error);
+    logger.error('同步失败:', error);
     message.error(error.message || '同步失败');
   } finally {
     syncing.value = false;

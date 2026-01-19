@@ -5,6 +5,7 @@
  * 支持 AES-256 加密
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const Database = require('better-sqlite3-multiple-ciphers');
 const fs = require('fs');
 
@@ -218,12 +219,12 @@ class SQLCipherWrapper {
       try {
         this.db.pragma('journal_mode = WAL');
         this.db.pragma('synchronous = NORMAL');
-        console.log('[SQLCipher] WAL 模式已启用');
+        logger.info('[SQLCipher] WAL 模式已启用');
       } catch (error) {
-        console.warn('[SQLCipher] 无法启用 WAL 模式:', error.message);
+        logger.warn('[SQLCipher] 无法启用 WAL 模式:', error.message);
       }
 
-      console.log('[SQLCipher] 数据库已打开:', this.dbPath);
+      logger.info('[SQLCipher] 数据库已打开:', this.dbPath);
     } catch (error) {
       throw new Error(`Failed to open database: ${error.message}`);
     }
@@ -255,7 +256,7 @@ class SQLCipherWrapper {
         throw new Error('Invalid encryption key or corrupted database');
       }
 
-      console.log('[SQLCipher] 加密已启用');
+      logger.info('[SQLCipher] 加密已启用');
     } catch (error) {
       throw new Error(`Encryption setup failed: ${error.message}`);
     }
@@ -353,9 +354,9 @@ class SQLCipherWrapper {
       try {
         this.db.close();
         this.db = null;
-        console.log('[SQLCipher] 数据库已关闭');
+        logger.info('[SQLCipher] 数据库已关闭');
       } catch (error) {
-        console.error('[SQLCipher] 关闭数据库失败:', error);
+        logger.error('[SQLCipher] 关闭数据库失败:', error);
       }
     }
   }
@@ -372,7 +373,7 @@ class SQLCipherWrapper {
     try {
       this.db.pragma(`rekey = "x'${newKey}'"`);
       this.key = newKey;
-      console.log('[SQLCipher] 数据库密钥已更新');
+      logger.info('[SQLCipher] 数据库密钥已更新');
     } catch (error) {
       throw new Error(`Rekey failed: ${error.message}`);
     }
@@ -389,7 +390,7 @@ class SQLCipherWrapper {
     try {
       this.db.pragma("rekey = ''");
       this.key = null;
-      console.log('[SQLCipher] 数据库加密已移除');
+      logger.info('[SQLCipher] 数据库加密已移除');
     } catch (error) {
       throw new Error(`Remove encryption failed: ${error.message}`);
     }
@@ -408,7 +409,7 @@ class SQLCipherWrapper {
       const backup = this.db.backup(backupPath);
       backup.step(-1); // 一次性完成备份
       backup.finish();
-      console.log('[SQLCipher] 数据库备份完成:', backupPath);
+      logger.info('[SQLCipher] 数据库备份完成:', backupPath);
     } catch (error) {
       throw new Error(`Backup failed: ${error.message}`);
     }

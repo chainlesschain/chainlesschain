@@ -224,6 +224,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, reactive, watch } from 'vue';
 import { message } from 'ant-design-vue';
 import {
@@ -344,7 +346,7 @@ const handleSubmit = async () => {
     // 使用 store 发起争议
     await tradeStore.disputeEscrow(props.escrow.id, form.reason, form.description);
 
-    console.log('[EscrowDispute] 争议已发起:', props.escrow.id);
+    logger.info('[EscrowDispute] 争议已发起:', props.escrow.id);
     message.success('争议已发起，等待仲裁处理');
 
     // 通知父组件
@@ -356,7 +358,7 @@ const handleSubmit = async () => {
     // 重置表单
     resetForm();
   } catch (error) {
-    console.error('[EscrowDispute] 发起争议失败:', error);
+    logger.error('[EscrowDispute] 发起争议失败:', error);
     message.error(error.message || '发起争议失败');
   } finally {
     disputing.value = false;
