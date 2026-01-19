@@ -235,12 +235,12 @@ if (ghVersion) {
   if (authStatus && !authStatus.includes("not logged")) {
     checkPass("Authenticated with GitHub");
   } else {
-    checkFail("Not authenticated with GitHub", "Run: gh auth login");
+    checkWarn("Not authenticated with GitHub", "Run: gh auth login");
   }
 } else {
-  checkFail(
+  checkWarn(
     "GitHub CLI not installed",
-    "Install from: https://cli.github.com/",
+    "Only required for GitHub releases. Install from: https://cli.github.com/",
   );
 }
 
