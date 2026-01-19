@@ -5,6 +5,84 @@
 import { vi, beforeEach } from 'vitest';
 import { config } from '@vue/test-utils';
 
+// ============================================================
+// CRITICAL: Mock electron and logger FIRST before any other imports
+// ============================================================
+
+// Mock electron module - must be hoisted to run before any module imports
+vi.mock('electron', () => ({
+  ipcMain: {
+    handle: vi.fn(),
+    removeHandler: vi.fn(),
+    on: vi.fn(),
+    once: vi.fn(),
+  },
+  ipcRenderer: {
+    invoke: vi.fn(),
+    on: vi.fn(),
+    send: vi.fn(),
+  },
+  app: {
+    getPath: vi.fn().mockReturnValue('/mock/path'),
+    getName: vi.fn().mockReturnValue('test-app'),
+    getVersion: vi.fn().mockReturnValue('1.0.0'),
+    isReady: vi.fn().mockReturnValue(true),
+    on: vi.fn(),
+  },
+  BrowserWindow: vi.fn().mockImplementation(() => ({
+    loadURL: vi.fn(),
+    webContents: {
+      send: vi.fn(),
+      on: vi.fn(),
+    },
+    on: vi.fn(),
+    show: vi.fn(),
+    hide: vi.fn(),
+    close: vi.fn(),
+  })),
+  dialog: {
+    showOpenDialog: vi.fn(),
+    showSaveDialog: vi.fn(),
+    showMessageBox: vi.fn(),
+  },
+  shell: {
+    openExternal: vi.fn(),
+    openPath: vi.fn(),
+  },
+  desktopCapturer: {
+    getSources: vi.fn().mockResolvedValue([]),
+  },
+}));
+
+// Mock logger module to prevent electron imports
+const mockLoggerInstance = {
+  info: vi.fn(),
+  warn: vi.fn(),
+  error: vi.fn(),
+  debug: vi.fn(),
+  log: vi.fn(),
+};
+
+vi.mock('@main/utils/logger.js', () => ({
+  logger: mockLoggerInstance,
+  createLogger: vi.fn().mockReturnValue(mockLoggerInstance),
+}));
+
+vi.mock('../src/main/utils/logger.js', () => ({
+  logger: mockLoggerInstance,
+  createLogger: vi.fn().mockReturnValue(mockLoggerInstance),
+}));
+
+vi.mock('../../src/main/utils/logger.js', () => ({
+  logger: mockLoggerInstance,
+  createLogger: vi.fn().mockReturnValue(mockLoggerInstance),
+}));
+
+vi.mock('../../../src/main/utils/logger.js', () => ({
+  logger: mockLoggerInstance,
+  createLogger: vi.fn().mockReturnValue(mockLoggerInstance),
+}));
+
 // Centralized mocks that WordEngine reads via global overrides to avoid actual FS access.
 const createDefaultWordStat = () => ({
   size: 1024,
@@ -130,55 +208,6 @@ vi.mock('../../../src/main/ipc-guard', () => ({
   getStats: vi.fn().mockReturnValue({ totalChannels: 0, totalModules: 0, channels: [], modules: [] }),
   printStats: vi.fn(),
 }));
-
-// Global mock for electron to avoid import errors in tests
-vi.mock('electron', () => {
-  const mockDesktopCapturer = {
-    getSources: vi.fn().mockResolvedValue([]),
-  };
-
-  return {
-    ipcMain: {
-      handle: vi.fn(),
-      removeHandler: vi.fn(),
-      on: vi.fn(),
-      once: vi.fn(),
-    },
-    ipcRenderer: {
-      invoke: vi.fn(),
-      on: vi.fn(),
-      send: vi.fn(),
-    },
-    app: {
-      getPath: vi.fn().mockReturnValue('/mock/path'),
-      getName: vi.fn().mockReturnValue('test-app'),
-      getVersion: vi.fn().mockReturnValue('1.0.0'),
-      isReady: vi.fn().mockReturnValue(true),
-      on: vi.fn(),
-    },
-    BrowserWindow: vi.fn().mockImplementation(() => ({
-      loadURL: vi.fn(),
-      webContents: {
-        send: vi.fn(),
-        on: vi.fn(),
-      },
-      on: vi.fn(),
-      show: vi.fn(),
-      hide: vi.fn(),
-      close: vi.fn(),
-    })),
-    dialog: {
-      showOpenDialog: vi.fn(),
-      showSaveDialog: vi.fn(),
-      showMessageBox: vi.fn(),
-    },
-    shell: {
-      openExternal: vi.fn(),
-      openPath: vi.fn(),
-    },
-    desktopCapturer: mockDesktopCapturer,
-  };
-});
 
 // Mock wrtc compatibility layer to avoid native dependencies in tests
 const createWrtcMock = () => {

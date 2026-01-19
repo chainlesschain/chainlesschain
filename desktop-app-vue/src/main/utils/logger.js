@@ -5,7 +5,6 @@
 
 import fs from 'fs';
 import path from 'path';
-import { app } from 'electron';
 import {
   LOG_LEVELS,
   LOG_LEVEL_NAMES,
@@ -15,11 +14,37 @@ import {
   sanitizeData,
 } from '../../shared/logger-config.js';
 
+// Lazy initialization for electron - avoid import errors in test environment
+let app = null;
+let appInitialized = false;
+
+function getApp() {
+  if (appInitialized) {
+    return app;
+  }
+
+  try {
+    // Use synchronous require for CommonJS compatibility
+    const electron = require('electron');
+    app = electron.app;
+  } catch (error) {
+    // In test environment, provide a mock with temp directory
+    const os = require('os');
+    const tmpDir = path.join(os.tmpdir(), 'chainlesschain-test');
+    app = {
+      getPath: () => tmpDir,
+    };
+  }
+
+  appInitialized = true;
+  return app;
+}
+
 class Logger {
   constructor(module = 'main') {
     this.module = module;
     this.config = { ...DEFAULT_CONFIG };
-    this.logDir = path.join(app.getPath('userData'), 'logs');
+    this.logDir = path.join(getApp().getPath('userData'), 'logs');
     this.currentLogFile = null;
     this.performanceMarks = new Map();
 
