@@ -7,7 +7,6 @@ import com.chainlesschain.android.core.database.dao.KnowledgeItemDao
 import com.chainlesschain.android.core.database.dao.ConversationDao
 import com.chainlesschain.android.core.database.entity.KnowledgeItemEntity
 import com.chainlesschain.android.core.database.entity.ConversationEntity
-import com.chainlesschain.android.core.database.entity.MessageEntity
 import com.chainlesschain.android.core.database.util.Converters
 
 /**
