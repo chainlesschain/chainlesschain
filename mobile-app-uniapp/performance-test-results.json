@@ -1,0 +1,41 @@
+{
+  "timestamp": "2026-01-19T05:44:37.132Z",
+  "url": "http://localhost:8081/",
+  "metrics": {
+    "domContentLoaded": 5585,
+    "loadComplete": 5585,
+    "domInteractive": 340,
+    "firstPaint": 0,
+    "firstContentfulPaint": 0,
+    "dnsLookup": 0,
+    "tcpConnect": 315,
+    "requestTime": 19,
+    "domProcessing": 5248,
+    "navigationType": "navigate",
+    "memory": {
+      "usedJSHeapSize": 12673141,
+      "totalJSHeapSize": 13516637,
+      "jsHeapSizeLimit": 4294967296
+    }
+  },
+  "resourceCount": {
+    "total": 39,
+    "byType": {
+      "script": {
+        "count": 38,
+        "size": 4035219
+      },
+      "other": {
+        "count": 1,
+        "size": 0
+      }
+    }
+  },
+  "performanceScore": {
+    "total": 67,
+    "fcp": 100,
+    "load": 0,
+    "dom": 100
+  },
+  "loadTime": 10799
+}

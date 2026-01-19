@@ -237,13 +237,54 @@ class ConversationViewModel @Inject constructor(
      */
     fun setCurrentModel(model: LLMModel) {
         _uiState.update { it.copy(currentModel = model) }
+
+        // 加载该模型对应的API Key
+        loadApiKey(model.provider)
     }
 
     /**
-     * 设置API Key
+     * 设置API Key（并加密保存）
      */
     fun setApiKey(apiKey: String) {
+        val currentModel = _uiState.value.currentModel ?: return
+
+        // 保存到加密存储
+        if (apiKey.isNotEmpty()) {
+            repository.saveApiKey(currentModel.provider, apiKey)
+        }
+
+        // 更新UI状态
         _uiState.update { it.copy(currentApiKey = apiKey) }
+    }
+
+    /**
+     * 加载API Key（从加密存储）
+     */
+    fun loadApiKey(provider: LLMProvider) {
+        val apiKey = repository.getApiKey(provider)
+        _uiState.update { it.copy(currentApiKey = apiKey) }
+    }
+
+    /**
+     * 获取API Key（从加密存储）
+     */
+    fun getApiKey(provider: LLMProvider): String? {
+        return repository.getApiKey(provider)
+    }
+
+    /**
+     * 检查是否已保存API Key
+     */
+    fun hasApiKey(provider: LLMProvider): Boolean {
+        return repository.hasApiKey(provider)
+    }
+
+    /**
+     * 清除API Key
+     */
+    fun clearApiKey(provider: LLMProvider) {
+        repository.clearApiKey(provider)
+        _uiState.update { it.copy(currentApiKey = null) }
     }
 
     /**

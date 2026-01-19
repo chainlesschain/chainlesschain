@@ -1,23 +1,14 @@
 <template>
   <div class="async-component-wrapper">
     <!-- Loading state -->
-    <div
-      v-if="loading"
-      class="async-loading"
-    >
+    <div v-if="loading" class="async-loading">
       <slot name="loading">
         <div class="default-loading">
-          <LoadingOutlined
-            class="loading-icon"
-            spin
-          />
+          <LoadingOutlined class="loading-icon" spin />
           <div class="loading-text">
             {{ loadingText }}
           </div>
-          <div
-            v-if="showProgress"
-            class="loading-progress"
-          >
+          <div v-if="showProgress" class="loading-progress">
             <a-progress
               :percent="loadProgress"
               :show-info="false"
@@ -29,28 +20,15 @@
     </div>
 
     <!-- Error state -->
-    <div
-      v-else-if="error"
-      class="async-error"
-    >
-      <slot
-        name="error"
-        :error="error"
-        :retry="loadComponent"
-      >
+    <div v-else-if="error" class="async-error">
+      <slot name="error" :error="error" :retry="loadComponent">
         <div class="default-error">
           <WarningOutlined class="error-icon" />
-          <div class="error-title">
-            Failed to load component
-          </div>
+          <div class="error-title">Failed to load component</div>
           <div class="error-message">
             {{ error.message }}
           </div>
-          <a-button
-            type="primary"
-            size="small"
-            @click="loadComponent"
-          >
+          <a-button type="primary" size="small" @click="loadComponent">
             <ReloadOutlined /> Retry
           </a-button>
         </div>
@@ -68,184 +46,195 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
-import { LoadingOutlined, WarningOutlined, ReloadOutlined } from '@ant-design/icons-vue'
+import { ref, onMounted, onUnmounted, watch } from "vue";
+import {
+  LoadingOutlined,
+  WarningOutlined,
+  ReloadOutlined,
+} from "@ant-design/icons-vue";
 
 const props = defineProps({
   // Component loader function (returns Promise)
   loader: {
     type: Function,
-    required: true
+    required: true,
   },
 
   // Loading text
   loadingText: {
     type: String,
-    default: 'Loading component...'
+    default: "Loading component...",
   },
 
   // Show loading progress bar
   showProgress: {
     type: Boolean,
-    default: false
+    default: false,
   },
 
   // Delay before showing loading (ms)
   delay: {
     type: Number,
-    default: 200
+    default: 200,
   },
 
   // Timeout for loading (ms)
   timeout: {
     type: Number,
-    default: 30000
+    default: 30000,
   },
 
   // Auto-retry on error
   autoRetry: {
     type: Boolean,
-    default: false
+    default: false,
   },
 
   // Max retry attempts
   maxRetries: {
     type: Number,
-    default: 3
+    default: 3,
   },
 
   // Retry delay (ms)
   retryDelay: {
     type: Number,
-    default: 1000
-  }
-})
+    default: 1000,
+  },
+});
 
-const emit = defineEmits(['loaded', 'error', 'mounted'])
+const emit = defineEmits(["loaded", "error", "mounted"]);
 
 // State
-const loading = ref(false)
-const error = ref(null)
-const loadedComponent = ref(null)
-const loadProgress = ref(0)
-const retryCount = ref(0)
+const loading = ref(false);
+const error = ref(null);
+const loadedComponent = ref(null);
+const loadProgress = ref(0);
+const retryCount = ref(0);
 
-let delayTimer = null
-let timeoutTimer = null
-let progressInterval = null
+let delayTimer = null;
+let timeoutTimer = null;
+let progressInterval = null;
 
 /**
  * Load component
  */
 const loadComponent = async () => {
-  loading.value = false
-  error.value = null
-  loadProgress.value = 0
-  clearTimers()
+  loading.value = false;
+  error.value = null;
+  loadProgress.value = 0;
+  clearTimers();
 
   // Start delay timer
   delayTimer = setTimeout(() => {
-    loading.value = true
-    startProgressSimulation()
-  }, props.delay)
+    loading.value = true;
+    startProgressSimulation();
+  }, props.delay);
 
   // Start timeout timer
   timeoutTimer = setTimeout(() => {
     if (loading.value) {
-      error.value = new Error('Component load timeout')
-      loading.value = false
-      clearTimers()
-      emit('error', error.value)
+      error.value = new Error("Component load timeout");
+      loading.value = false;
+      clearTimers();
+      emit("error", error.value);
     }
-  }, props.timeout)
+  }, props.timeout);
 
   try {
     // Load component
-    const component = await props.loader()
+    const component = await props.loader();
 
     // Success
-    loadedComponent.value = component.default || component
-    loadProgress.value = 100
-    loading.value = false
+    loadedComponent.value = component.default || component;
+    loadProgress.value = 100;
+    loading.value = false;
 
-    clearTimers()
-    emit('loaded', loadedComponent.value)
+    clearTimers();
+    emit("loaded", loadedComponent.value);
 
     // Reset retry count on success
-    retryCount.value = 0
+    retryCount.value = 0;
   } catch (err) {
-    error.value = err
-    loading.value = false
+    error.value = err;
+    loading.value = false;
 
-    clearTimers()
-    emit('error', err)
+    clearTimers();
+    emit("error", err);
 
     // Auto-retry
     if (props.autoRetry && retryCount.value < props.maxRetries) {
-      retryCount.value++
-      console.log(`[AsyncComponent] Auto-retry ${retryCount.value}/${props.maxRetries}`)
+      retryCount.value++;
+      console.log(
+        `[AsyncComponent] Auto-retry ${retryCount.value}/${props.maxRetries}`,
+      );
 
       setTimeout(() => {
-        loadComponent()
-      }, props.retryDelay * retryCount.value) // Exponential backoff
+        loadComponent();
+      }, props.retryDelay * retryCount.value); // Exponential backoff
     }
   }
-}
+};
 
 /**
  * Simulate loading progress (for better UX)
  */
 const startProgressSimulation = () => {
-  if (!props.showProgress) {return}
+  if (!props.showProgress) {
+    return;
+  }
 
   progressInterval = setInterval(() => {
     if (loadProgress.value < 90) {
-      loadProgress.value += Math.random() * 10
+      loadProgress.value += Math.random() * 10;
     }
-  }, 300)
-}
+  }, 300);
+};
 
 /**
  * Clear all timers
  */
 const clearTimers = () => {
   if (delayTimer) {
-    clearTimeout(delayTimer)
-    delayTimer = null
+    clearTimeout(delayTimer);
+    delayTimer = null;
   }
 
   if (timeoutTimer) {
-    clearTimeout(timeoutTimer)
-    timeoutTimer = null
+    clearTimeout(timeoutTimer);
+    timeoutTimer = null;
   }
 
   if (progressInterval) {
-    clearInterval(progressInterval)
-    progressInterval = null
+    clearInterval(progressInterval);
+    progressInterval = null;
   }
-}
+};
 
 /**
  * Handle component mounted
  */
 const handleMounted = () => {
-  emit('mounted')
-}
+  emit("mounted");
+};
 
 // Lifecycle
 onMounted(() => {
-  loadComponent()
-})
+  loadComponent();
+});
 
 // Watch loader changes
-watch(() => props.loader, () => {
-  loadComponent()
-})
+watch(
+  () => props.loader,
+  () => {
+    loadComponent();
+  },
+);
 
 // Cleanup
 onUnmounted(() => {
-  clearTimers()
-})
+  clearTimers();
+});
 </script>
 
 <style scoped>

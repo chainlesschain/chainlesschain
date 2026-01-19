@@ -28,17 +28,31 @@ dependencies {
     implementation(project(":core-common"))
     implementation(project(":core-security"))
 
-    // libp2p（需要后续集成）
-    // TODO: 添加libp2p-android依赖
+    // Android Core
+    implementation("androidx.core:core-ktx:1.12.0")
 
-    // WebRTC
-    // api("org.webrtc:google-webrtc:1.0.+")
+    // Kotlin Coroutines
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
 
     // Hilt
     implementation("com.google.dagger:hilt-android:2.50")
     ksp("com.google.dagger:hilt-compiler:2.50")
 
+    // WebRTC (for P2P connections)
+    implementation("org.webrtc:google-webrtc:1.0.32006")
+
+    // Protobuf (for message serialization)
+    implementation("com.google.protobuf:protobuf-javalite:3.25.1")
+
+    // JSON
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2")
+
     // Testing
     testImplementation("junit:junit:4.13.2")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
     testImplementation("io.mockk:mockk:1.13.9")
+    testImplementation("org.jetbrains.kotlin:kotlin-test:1.9.22")
+    androidTestImplementation("androidx.test.ext:junit:1.1.5")
+    androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
 }

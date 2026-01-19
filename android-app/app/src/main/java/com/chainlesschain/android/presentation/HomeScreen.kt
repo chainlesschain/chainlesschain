@@ -19,6 +19,7 @@ import com.chainlesschain.android.feature.auth.presentation.AuthViewModel
 fun HomeScreen(
     onLogout: () -> Unit,
     onNavigateToKnowledge: () -> Unit = {},
+    onNavigateToAI: () -> Unit = {},
     viewModel: AuthViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -115,6 +116,21 @@ fun HomeScreen(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("进入知识库")
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Button(
+                onClick = onNavigateToAI,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Chat,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("AI对话助手")
             }
 
             Spacer(modifier = Modifier.height(16.dp))

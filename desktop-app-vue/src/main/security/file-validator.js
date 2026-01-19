@@ -8,9 +8,9 @@
  * - 文件扩展名白名单
  */
 
-const fs = require('fs').promises;
-const path = require('path');
-const crypto = require('crypto');
+const fs = require("fs").promises;
+const path = require("path");
+const crypto = require("crypto");
 
 /**
  * 允许的文件类型配置
@@ -18,120 +18,147 @@ const crypto = require('crypto');
 const ALLOWED_FILE_TYPES = {
   // 文档类
   document: {
-    extensions: ['.md', '.txt', '.pdf', '.doc', '.docx', '.rtf', '.odt'],
+    extensions: [".md", ".txt", ".pdf", ".doc", ".docx", ".rtf", ".odt"],
     mimeTypes: [
-      'text/plain',
-      'text/markdown',
-      'application/pdf',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'application/rtf',
-      'application/vnd.oasis.opendocument.text',
+      "text/plain",
+      "text/markdown",
+      "application/pdf",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "application/rtf",
+      "application/vnd.oasis.opendocument.text",
     ],
     maxSize: 50 * 1024 * 1024, // 50MB
   },
 
   // 图片类
   image: {
-    extensions: ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg', '.ico'],
+    extensions: [
+      ".jpg",
+      ".jpeg",
+      ".png",
+      ".gif",
+      ".bmp",
+      ".webp",
+      ".svg",
+      ".ico",
+    ],
     mimeTypes: [
-      'image/jpeg',
-      'image/png',
-      'image/gif',
-      'image/bmp',
-      'image/webp',
-      'image/svg+xml',
-      'image/x-icon',
+      "image/jpeg",
+      "image/png",
+      "image/gif",
+      "image/bmp",
+      "image/webp",
+      "image/svg+xml",
+      "image/x-icon",
     ],
     maxSize: 20 * 1024 * 1024, // 20MB
   },
 
   // 音频类
   audio: {
-    extensions: ['.mp3', '.wav', '.ogg', '.m4a', '.flac', '.aac'],
+    extensions: [".mp3", ".wav", ".ogg", ".m4a", ".flac", ".aac"],
     mimeTypes: [
-      'audio/mpeg',
-      'audio/wav',
-      'audio/ogg',
-      'audio/mp4',
-      'audio/flac',
-      'audio/aac',
+      "audio/mpeg",
+      "audio/wav",
+      "audio/ogg",
+      "audio/mp4",
+      "audio/flac",
+      "audio/aac",
     ],
     maxSize: 100 * 1024 * 1024, // 100MB
   },
 
   // 视频类
   video: {
-    extensions: ['.mp4', '.avi', '.mkv', '.mov', '.wmv', '.flv', '.webm'],
+    extensions: [".mp4", ".avi", ".mkv", ".mov", ".wmv", ".flv", ".webm"],
     mimeTypes: [
-      'video/mp4',
-      'video/x-msvideo',
-      'video/x-matroska',
-      'video/quicktime',
-      'video/x-ms-wmv',
-      'video/x-flv',
-      'video/webm',
+      "video/mp4",
+      "video/x-msvideo",
+      "video/x-matroska",
+      "video/quicktime",
+      "video/x-ms-wmv",
+      "video/x-flv",
+      "video/webm",
     ],
     maxSize: 500 * 1024 * 1024, // 500MB
   },
 
   // 压缩包类
   archive: {
-    extensions: ['.zip', '.rar', '.7z', '.tar', '.gz', '.bz2'],
+    extensions: [".zip", ".rar", ".7z", ".tar", ".gz", ".bz2"],
     mimeTypes: [
-      'application/zip',
-      'application/x-rar-compressed',
-      'application/x-7z-compressed',
-      'application/x-tar',
-      'application/gzip',
-      'application/x-bzip2',
+      "application/zip",
+      "application/x-rar-compressed",
+      "application/x-7z-compressed",
+      "application/x-tar",
+      "application/gzip",
+      "application/x-bzip2",
     ],
     maxSize: 200 * 1024 * 1024, // 200MB
   },
 
   // 表格类
   spreadsheet: {
-    extensions: ['.xls', '.xlsx', '.csv', '.ods'],
+    extensions: [".xls", ".xlsx", ".csv", ".ods"],
     mimeTypes: [
-      'application/vnd.ms-excel',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'text/csv',
-      'application/vnd.oasis.opendocument.spreadsheet',
+      "application/vnd.ms-excel",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      "text/csv",
+      "application/vnd.oasis.opendocument.spreadsheet",
     ],
     maxSize: 20 * 1024 * 1024, // 20MB
   },
 
   // 演示文稿类
   presentation: {
-    extensions: ['.ppt', '.pptx', '.odp'],
+    extensions: [".ppt", ".pptx", ".odp"],
     mimeTypes: [
-      'application/vnd.ms-powerpoint',
-      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-      'application/vnd.oasis.opendocument.presentation',
+      "application/vnd.ms-powerpoint",
+      "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+      "application/vnd.oasis.opendocument.presentation",
     ],
     maxSize: 50 * 1024 * 1024, // 50MB
   },
 
   // 代码文件
   code: {
-    extensions: ['.js', '.ts', '.py', '.java', '.c', '.cpp', '.go', '.rs', '.php', '.rb', '.sh', '.html', '.css', '.json', '.xml', '.yaml', '.yml'],
+    extensions: [
+      ".js",
+      ".ts",
+      ".py",
+      ".java",
+      ".c",
+      ".cpp",
+      ".go",
+      ".rs",
+      ".php",
+      ".rb",
+      ".sh",
+      ".html",
+      ".css",
+      ".json",
+      ".xml",
+      ".yaml",
+      ".yml",
+    ],
     mimeTypes: [
-      'application/javascript',
-      'application/typescript',
-      'text/x-python',
-      'text/x-java',
-      'text/x-c',
-      'text/x-c++',
-      'text/x-go',
-      'text/x-rust',
-      'text/x-php',
-      'text/x-ruby',
-      'text/x-shellscript',
-      'text/html',
-      'text/css',
-      'application/json',
-      'application/xml',
-      'text/yaml',
+      "application/javascript",
+      "application/typescript",
+      "text/x-python",
+      "text/x-java",
+      "text/x-c",
+      "text/x-c++",
+      "text/x-go",
+      "text/x-rust",
+      "text/x-php",
+      "text/x-ruby",
+      "text/x-shellscript",
+      "text/html",
+      "text/css",
+      "application/json",
+      "application/xml",
+      "text/yaml",
     ],
     maxSize: 10 * 1024 * 1024, // 10MB
   },
@@ -141,11 +168,23 @@ const ALLOWED_FILE_TYPES = {
  * 危险文件扩展名黑名单
  */
 const DANGEROUS_EXTENSIONS = [
-  '.exe', '.dll', '.so', '.dylib',  // 可执行文件
-  '.bat', '.cmd', '.sh', '.ps1',     // 脚本文件
-  '.msi', '.app', '.deb', '.rpm',    // 安装包
-  '.vbs', '.wsf', '.scr',            // 系统脚本
-  '.jar', '.apk',                    // Java/Android应用
+  ".exe",
+  ".dll",
+  ".so",
+  ".dylib", // 可执行文件
+  ".bat",
+  ".cmd",
+  ".sh",
+  ".ps1", // 脚本文件
+  ".msi",
+  ".app",
+  ".deb",
+  ".rpm", // 安装包
+  ".vbs",
+  ".wsf",
+  ".scr", // 系统脚本
+  ".jar",
+  ".apk", // Java/Android应用
 ];
 
 /**
@@ -154,24 +193,24 @@ const DANGEROUS_EXTENSIONS = [
  */
 const FILE_SIGNATURES = {
   // 图片
-  'ffd8ff': 'image/jpeg',
-  '89504e47': 'image/png',
-  '47494638': 'image/gif',
-  '424d': 'image/bmp',
-  '52494646': 'image/webp',  // RIFF (WebP)
+  ffd8ff: "image/jpeg",
+  "89504e47": "image/png",
+  47494638: "image/gif",
+  "424d": "image/bmp",
+  // Note: '52494646' (RIFF) is also used for WAV files, see audio section
 
   // 文档
-  '25504446': 'application/pdf',
-  'd0cf11e0': 'application/msword',  // Office文档
-  '504b0304': 'application/zip',     // ZIP (也用于docx, xlsx等)
+  25504446: "application/pdf",
+  d0cf11e0: "application/msword", // Office文档
+  "504b0304": "application/zip", // ZIP (也用于docx, xlsx等)
 
   // 音频
-  '494433': 'audio/mp3',
-  '52494646': 'audio/wav',
+  494433: "audio/mp3",
+  52494646: "audio/wav",
 
   // 视频
-  '00000018': 'video/mp4',
-  '1a45dfa3': 'video/mkv',
+  "00000018": "video/mp4",
+  "1a45dfa3": "video/mkv",
 };
 
 class FileValidator {
@@ -195,7 +234,7 @@ class FileValidator {
       // 1. 检查文件是否存在
       const stats = await fs.stat(filePath);
       if (!stats.isFile()) {
-        result.errors.push('Path is not a file');
+        result.errors.push("Path is not a file");
         return result;
       }
 
@@ -233,13 +272,17 @@ class FileValidator {
 
       // 5. 检查扩展名是否允许
       if (!categoryConfig.extensions.includes(ext)) {
-        result.errors.push(`Extension ${ext} not allowed for category ${fileCategory}`);
+        result.errors.push(
+          `Extension ${ext} not allowed for category ${fileCategory}`,
+        );
         return result;
       }
 
       // 6. 检查文件大小
       if (stats.size > categoryConfig.maxSize) {
-        result.errors.push(`File size ${stats.size} exceeds limit ${categoryConfig.maxSize}`);
+        result.errors.push(
+          `File size ${stats.size} exceeds limit ${categoryConfig.maxSize}`,
+        );
         return result;
       }
 
@@ -249,8 +292,13 @@ class FileValidator {
 
       // 检查签名是否匹配
       const expectedMimeType = this.getMimeTypeFromSignature(signature);
-      if (expectedMimeType && !categoryConfig.mimeTypes.includes(expectedMimeType)) {
-        result.warnings.push(`File signature suggests ${expectedMimeType}, but expected ${fileCategory}`);
+      if (
+        expectedMimeType &&
+        !categoryConfig.mimeTypes.includes(expectedMimeType)
+      ) {
+        result.warnings.push(
+          `File signature suggests ${expectedMimeType}, but expected ${fileCategory}`,
+        );
       }
 
       // 8. 计算文件哈希 (用于检测恶意文件)
@@ -266,7 +314,6 @@ class FileValidator {
       }
 
       return result;
-
     } catch (error) {
       result.errors.push(`Validation error: ${error.message}`);
       return result;
@@ -290,11 +337,11 @@ class FileValidator {
    */
   static async readFileSignature(filePath, length = 8) {
     const buffer = Buffer.alloc(length);
-    const fd = await fs.open(filePath, 'r');
+    const fd = await fs.open(filePath, "r");
 
     try {
       await fd.read(buffer, 0, length, 0);
-      return buffer.toString('hex');
+      return buffer.toString("hex");
     } finally {
       await fd.close();
     }
@@ -316,10 +363,10 @@ class FileValidator {
    * 计算文件哈希值 (SHA256)
    */
   static async calculateFileHash(filePath) {
-    const hash = crypto.createHash('sha256');
+    const hash = crypto.createHash("sha256");
     const data = await fs.readFile(filePath);
     hash.update(data);
-    return hash.digest('hex');
+    return hash.digest("hex");
   }
 
   /**
@@ -329,37 +376,43 @@ class FileValidator {
     const ext = path.extname(filePath).toLowerCase();
 
     // 检查SVG文件中的脚本注入
-    if (ext === '.svg') {
-      const content = await fs.readFile(filePath, 'utf8');
+    if (ext === ".svg") {
+      const content = await fs.readFile(filePath, "utf8");
 
       // 检查是否包含脚本标签
       if (/<script[\s>]/i.test(content)) {
-        result.warnings.push('SVG file contains script tags - potential XSS risk');
+        result.warnings.push(
+          "SVG file contains script tags - potential XSS risk",
+        );
       }
 
       // 检查是否包含外部引用
       if (/xlink:href=['"](?!data:)/i.test(content)) {
-        result.warnings.push('SVG file contains external references');
+        result.warnings.push("SVG file contains external references");
       }
     }
 
     // 检查HTML文件中的危险内容
-    if (ext === '.html' || ext === '.htm') {
-      const content = await fs.readFile(filePath, 'utf8');
+    if (ext === ".html" || ext === ".htm") {
+      const content = await fs.readFile(filePath, "utf8");
 
       if (/<script[\s>]/i.test(content)) {
-        result.warnings.push('HTML file contains script tags');
+        result.warnings.push("HTML file contains script tags");
       }
 
       if (/on\w+\s*=/i.test(content)) {
-        result.warnings.push('HTML file contains inline event handlers');
+        result.warnings.push("HTML file contains inline event handlers");
       }
     }
 
     // 检查文件名中的路径遍历
     const basename = path.basename(filePath);
-    if (basename.includes('..') || basename.includes('/') || basename.includes('\\')) {
-      result.errors.push('Filename contains path traversal characters');
+    if (
+      basename.includes("..") ||
+      basename.includes("/") ||
+      basename.includes("\\")
+    ) {
+      result.errors.push("Filename contains path traversal characters");
     }
   }
 
@@ -388,7 +441,7 @@ class FileValidator {
     // 返回所有类别的扩展名
     const allExtensions = new Set();
     for (const config of Object.values(ALLOWED_FILE_TYPES)) {
-      config.extensions.forEach(ext => allExtensions.add(ext));
+      config.extensions.forEach((ext) => allExtensions.add(ext));
     }
     return Array.from(allExtensions);
   }
@@ -404,7 +457,7 @@ class FileValidator {
     // 返回所有类别的MIME类型
     const allMimeTypes = new Set();
     for (const config of Object.values(ALLOWED_FILE_TYPES)) {
-      config.mimeTypes.forEach(type => allMimeTypes.add(type));
+      config.mimeTypes.forEach((type) => allMimeTypes.add(type));
     }
     return Array.from(allMimeTypes);
   }

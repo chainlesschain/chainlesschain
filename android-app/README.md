@@ -4,8 +4,8 @@ ChainlessChain的Android原生旗舰版本，提供极致性能和完整硬件�
 
 ## 项目状态
 
-**当前版本**: v0.4.0 (MVP Phase 4 - Week 7-8 AI对话集成完成)
-**完成度**: 55%
+**当前版本**: v0.4.1 (MVP Phase 4 完整实现 - AI对话 + 向量搜索 + 全面测试)
+**完成度**: 60%
 
 ### ✅ 已完成（Phase 1 + Phase 2 + Phase 3 + Phase 4）
 
@@ -38,20 +38,41 @@ ChainlessChain的Android原生旗舰版本，提供极致性能和完整硬件�
 - [x] 收藏和置顶功能
 - [x] 单元测试和集成测试（17个用例）
 
-**Phase 4 (Week 7-8)：** ⭐新增
+**Phase 4 (Week 7-8)：** ⭐完成
+
+**核心功能：**
 
 - [x] LLM API适配器（OpenAI, DeepSeek, Ollama）
 - [x] SSE流式响应处理
-- [x] RAG检索增强（FTS5全文搜索）
+- [x] RAG检索增强（FTS5 + 向量搜索）
 - [x] 对话管理（创建/删除/置顶）
 - [x] 消息历史管理
 - [x] 多模型支持（GPT-4, DeepSeek, Qwen2等）
-- [x] API Key管理
+- [x] API Key加密存储（EncryptedSharedPreferences）
+
+**UI界面：**
+
 - [x] 对话列表UI（Material 3卡片）
 - [x] 聊天界面UI（流式打字机效果、跳动点动画）
 - [x] 模型选择器UI（多提供商支持）
 - [x] 新建对话界面（标题、模型、API Key）
-- [x] 单元测试（9个用例）
+- [x] 主导航集成（HomeScreen → AI对话）
+
+**向量搜索：**
+
+- [x] TF-IDF嵌入器（离线基础方案）
+- [x] Sentence Transformer占位器（待集成TFLite模型）
+- [x] 向量相似度计算（余弦相似度、欧几里得距离）
+- [x] 混合检索策略（FTS5 + Vector）
+- [x] 向量搜索指南文档
+
+**测试覆盖：**
+
+- [x] ConversationViewModelTest (9个用例)
+- [x] SecurePreferencesTest (20个用例)
+- [x] VectorEmbedderTest (19个用例)
+- [x] RAGRetrieverTest (16个用例)
+- [x] **总计64个测试用例，覆盖核心功能**
 
 ### 🚧 进行中
 

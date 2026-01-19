@@ -14,6 +14,9 @@ import com.chainlesschain.android.feature.auth.presentation.LoginScreen
 import com.chainlesschain.android.feature.auth.presentation.SetupPinScreen
 import com.chainlesschain.android.feature.knowledge.presentation.KnowledgeEditorScreen
 import com.chainlesschain.android.feature.knowledge.presentation.KnowledgeListScreen
+import com.chainlesschain.android.feature.ai.presentation.ConversationListScreen
+import com.chainlesschain.android.feature.ai.presentation.ChatScreen
+import com.chainlesschain.android.feature.ai.presentation.NewConversationScreen
 import com.chainlesschain.android.presentation.HomeScreen
 
 /**
@@ -60,6 +63,9 @@ fun NavGraph(
                 },
                 onNavigateToKnowledge = {
                     navController.navigate(Screen.KnowledgeList.route)
+                },
+                onNavigateToAI = {
+                    navController.navigate(Screen.ConversationList.route)
                 }
             )
         }
@@ -100,6 +106,54 @@ fun NavGraph(
                 }
             )
         }
+
+        // AI对话列表
+        composable(route = Screen.ConversationList.route) {
+            ConversationListScreen(
+                onConversationClick = { conversationId ->
+                    navController.navigate(Screen.Chat.createRoute(conversationId))
+                },
+                onNewConversation = {
+                    navController.navigate(Screen.NewConversation.route)
+                },
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        // 新建对话
+        composable(route = Screen.NewConversation.route) {
+            NewConversationScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onConversationCreated = { conversationId ->
+                    navController.navigate(Screen.Chat.createRoute(conversationId)) {
+                        popUpTo(Screen.ConversationList.route)
+                    }
+                }
+            )
+        }
+
+        // 聊天界面
+        composable(
+            route = "${Screen.Chat.route}/{conversationId}",
+            arguments = listOf(
+                navArgument("conversationId") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val conversationId = backStackEntry.arguments?.getString("conversationId") ?: return@composable
+            ChatScreen(
+                conversationId = conversationId,
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onSettings = {
+                    // TODO: Navigate to conversation settings
+                }
+            )
+        }
     }
 }
 
@@ -113,6 +167,11 @@ sealed class Screen(val route: String) {
     data object KnowledgeList : Screen("knowledge_list")
     data object KnowledgeEditor : Screen("knowledge_editor") {
         fun createRoute(itemId: String) = "knowledge_editor/$itemId"
+    }
+    data object ConversationList : Screen("conversation_list")
+    data object NewConversation : Screen("new_conversation")
+    data object Chat : Screen("chat") {
+        fun createRoute(conversationId: String) = "chat/$conversationId"
     }
 }
 
