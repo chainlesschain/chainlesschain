@@ -50,6 +50,12 @@ const ALLOWED_FILES = [
   "QUICK_START_OFFLINE.md",
   "RELEASE_GUIDE.md",
   "docker-compose.production.yml",
+  // Android 文档（包含示例密码和密钥）
+  "ANDROID_SIGNING_SETUP.md",
+  "GOOGLE_PLAY_SETUP.md",
+  "RELEASE_TESTING_GUIDE.md",
+  "ANDROID_CI_CD_GUIDE.md",
+  "APP_ICON_GUIDE.md",
 ];
 
 function checkFileForSecrets(filePath) {
