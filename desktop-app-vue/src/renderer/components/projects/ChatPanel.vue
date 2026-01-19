@@ -212,7 +212,7 @@
 <script setup>
 import { logger, createLogger } from '@/utils/logger';
 
-import { ref, computed, watch, onMounted, nextTick, reactive } from "vue";
+import { ref, computed, watch, onMounted, onUnmounted, nextTick, reactive } from "vue";
 import { message as antMessage } from "ant-design-vue";
 import {
   MessageOutlined,
@@ -328,6 +328,60 @@ const contextInfo = computed(() => {
   }
   return null;
 });
+
+// ============ 内存泄漏防护 ============
+// 🔥 跟踪所有需要清理的资源
+const activeTimers = ref([]); // 存储所有setTimeout/setInterval的ID
+const activeListeners = ref([]); // 存储所有事件监听器的清理函数
+
+/**
+ * 安全的setTimeout包装器 - 自动跟踪并在组件卸载时清理
+ * @param {Function} callback - 回调函数
+ * @param {number} delay - 延迟时间（毫秒）
+ * @returns {number} 定时器ID
+ */
+const safeSetTimeout = (callback, delay) => {
+  const timerId = setTimeout(() => {
+    // 执行回调前，从跟踪列表中移除
+    const index = activeTimers.value.indexOf(timerId);
+    if (index > -1) {
+      activeTimers.value.splice(index, 1);
+    }
+    callback();
+  }, delay);
+
+  activeTimers.value.push(timerId);
+  return timerId;
+};
+
+/**
+ * 安全的事件监听器注册 - 自动跟踪并在组件卸载时清理
+ * @param {string} eventName - 事件名称
+ * @param {Function} handler - 事件处理函数
+ * @returns {Function} 清理函数
+ */
+const safeRegisterListener = (eventName, handler) => {
+  window.electronAPI.project.on(eventName, handler);
+
+  const cleanup = () => {
+    window.electronAPI.project.off(eventName, handler);
+  };
+
+  activeListeners.value.push(cleanup);
+  return cleanup;
+};
+
+/**
+ * 手动清理单个定时器
+ * @param {number} timerId - 定时器ID
+ */
+const clearSafeTimeout = (timerId) => {
+  clearTimeout(timerId);
+  const index = activeTimers.value.indexOf(timerId);
+  if (index > -1) {
+    activeTimers.value.splice(index, 1);
+  }
+};
 
 // ============ 工具函数 ============
 
@@ -1466,17 +1520,17 @@ const startTaskPlanning = async (userInput) => {
             reject(new Error(error.message));
           };
 
-          // 注册事件监听器
+          // 注册事件监听器 (自动跟踪，组件卸载时清理)
           logger.info("[ChatPanel] 📡 注册流式事件监听器");
-          window.electronAPI.project.on(
+          safeRegisterListener(
             "project:aiChatStream-chunk",
             handleChunk,
           );
-          window.electronAPI.project.on(
+          safeRegisterListener(
             "project:aiChatStream-complete",
             handleComplete,
           );
-          window.electronAPI.project.on(
+          safeRegisterListener(
             "project:aiChatStream-error",
             handleError,
           );
@@ -1516,7 +1570,7 @@ const startTaskPlanning = async (userInput) => {
     await nextTick();
 
     // 短暂延迟后移除分析消息
-    setTimeout(() => {
+    safeSetTimeout(() => {
       const analyzingIndex = messages.value.findIndex(
         (m) => m.id === analyzingMsg.id,
       );
@@ -1606,7 +1660,7 @@ const startTaskPlanning = async (userInput) => {
       scrollToBottom();
 
       // 延迟再次滚动，确保采访组件完全渲染
-      setTimeout(() => {
+      safeSetTimeout(() => {
         scrollToBottom();
       }, 100);
 
@@ -1740,15 +1794,15 @@ const generateTaskPlanMessage = async (
             reject(new Error(error.message));
           };
 
-          window.electronAPI.project.on(
+          safeRegisterListener(
             "project:aiChatStream-chunk",
             handleChunk,
           );
-          window.electronAPI.project.on(
+          safeRegisterListener(
             "project:aiChatStream-complete",
             handleComplete,
           );
-          window.electronAPI.project.on(
+          safeRegisterListener(
             "project:aiChatStream-error",
             handleError,
           );
@@ -1997,7 +2051,7 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
           antMessage.success(`PPT文件已生成: ${result.fileName}`);
 
           // 🔄 延迟2秒后刷新文件树，避免立即刷新导致对话面板重新渲染
-          setTimeout(() => {
+          safeSetTimeout(() => {
             logger.info("[ChatPanel] 延迟刷新文件树");
             emit("files-changed");
           }, 2000);
@@ -2128,7 +2182,7 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
           antMessage.success(`Word文档已生成: ${result.fileName}`);
 
           // 🔄 延迟2秒后刷新文件树
-          setTimeout(() => {
+          safeSetTimeout(() => {
             logger.info("[ChatPanel] 延迟刷新文件树");
             emit("files-changed");
           }, 2000);
@@ -2251,7 +2305,7 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
 
         antMessage.success(`Excel文件已生成: ${fileName}`);
 
-        setTimeout(() => {
+        safeSetTimeout(() => {
           emit("files-changed");
         }, 2000);
       } catch (error) {
@@ -2333,7 +2387,7 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
 
         antMessage.success(`Markdown文档已生成: ${fileName}`);
 
-        setTimeout(() => {
+        safeSetTimeout(() => {
           emit("files-changed");
         }, 2000);
       } catch (error) {
@@ -3465,6 +3519,42 @@ watch(
 // 组件挂载时加载对话
 onMounted(() => {
   loadConversation();
+});
+
+// 🔥 组件卸载时清理所有资源 - 防止内存泄漏
+onUnmounted(() => {
+  logger.info('[ChatPanel] 组件卸载，开始清理资源...');
+
+  // 1. 清理所有定时器
+  if (activeTimers.value.length > 0) {
+    logger.info(`[ChatPanel] 清理 ${activeTimers.value.length} 个定时器`);
+    activeTimers.value.forEach(timerId => {
+      clearTimeout(timerId);
+    });
+    activeTimers.value = [];
+  }
+
+  // 2. 清理所有事件监听器
+  if (activeListeners.value.length > 0) {
+    logger.info(`[ChatPanel] 清理 ${activeListeners.value.length} 个事件监听器`);
+    activeListeners.value.forEach(cleanup => {
+      try {
+        cleanup();
+      } catch (error) {
+        logger.error('[ChatPanel] 清理监听器失败:', error);
+      }
+    });
+    activeListeners.value = [];
+  }
+
+  // 3. 清理思考状态
+  thinkingState.show = false;
+  thinkingState.streamingContent = '';
+
+  // 4. 清理消息引用
+  messages.value = [];
+
+  logger.info('[ChatPanel] 资源清理完成');
 });
 </script>
 
