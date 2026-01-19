@@ -1,0 +1,373 @@
+name: Android CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - "android-app/**"
+      - ".github/workflows/android-build.yml"
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - "android-app/**"
+  release:
+    types: [created]
+
+env:
+  JAVA_VERSION: "17"
+  GRADLE_VERSION: "8.2"
+
+jobs:
+  # Job 1: Code Quality & Linting
+  lint:
+    name: Code Quality Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: "temurin"
+          cache: gradle
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x android-app/gradlew
+
+      - name: Run Lint
+        working-directory: android-app
+        run: ./gradlew lint
+
+      - name: Upload lint reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lint-reports
+          path: android-app/**/build/reports/lint-results-*.html
+
+  # Job 2: Unit Tests
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: "temurin"
+          cache: gradle
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x android-app/gradlew
+
+      - name: Run Unit Tests
+        working-directory: android-app
+        run: ./gradlew test
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-reports
+          path: android-app/**/build/reports/tests/
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-results
+          path: android-app/**/build/test-results/
+
+  # Job 3: Instrumentation Tests
+  instrumentation-tests:
+    name: Instrumentation Tests
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        api-level: [26, 30, 34]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: "temurin"
+          cache: gradle
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x android-app/gradlew
+
+      - name: AVD cache
+        uses: actions/cache@v4
+        id: avd-cache
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-${{ matrix.api-level }}
+
+      - name: Create AVD and generate snapshot for caching
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.api-level }}
+          arch: x86_64
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: false
+          script: echo "Generated AVD snapshot for caching."
+
+      - name: Run instrumentation tests
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.api-level }}
+          arch: x86_64
+          force-avd-creation: false
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          script: cd android-app && ./gradlew connectedCheck
+
+      - name: Upload instrumentation test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: instrumentation-test-reports-api-${{ matrix.api-level }}
+          path: android-app/**/build/reports/androidTests/
+
+  # Job 4: Build Debug APK
+  build-debug:
+    name: Build Debug APK
+    runs-on: ubuntu-latest
+    needs: [lint, unit-tests]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: "temurin"
+          cache: gradle
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x android-app/gradlew
+
+      - name: Build Debug APK
+        working-directory: android-app
+        run: ./gradlew assembleDebug
+
+      - name: Upload Debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-apk
+          path: android-app/app/build/outputs/apk/debug/*.apk
+
+  # Job 5: Build Release APK (only on main/release)
+  build-release:
+    name: Build Release APK
+    runs-on: ubuntu-latest
+    needs: [lint, unit-tests]
+    if: github.ref == 'refs/heads/main' || github.event_name == 'release'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: "temurin"
+          cache: gradle
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x android-app/gradlew
+
+      - name: Decode Keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          echo $KEYSTORE_BASE64 | base64 -d > android-app/keystore.jks
+
+      - name: Build Release APK
+        working-directory: android-app
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: ./gradlew assembleRelease
+
+      - name: Upload Release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-apk
+          path: android-app/app/build/outputs/apk/release/*.apk
+
+      - name: Clean up keystore
+        if: always()
+        run: rm -f android-app/keystore.jks
+
+  # Job 6: Build App Bundle (for Play Store)
+  build-bundle:
+    name: Build App Bundle
+    runs-on: ubuntu-latest
+    needs: [lint, unit-tests]
+    if: github.ref == 'refs/heads/main' || github.event_name == 'release'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: "temurin"
+          cache: gradle
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x android-app/gradlew
+
+      - name: Decode Keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          echo $KEYSTORE_BASE64 | base64 -d > android-app/keystore.jks
+
+      - name: Build App Bundle
+        working-directory: android-app
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: ./gradlew bundleRelease
+
+      - name: Upload App Bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-bundle
+          path: android-app/app/build/outputs/bundle/release/*.aab
+
+      - name: Clean up keystore
+        if: always()
+        run: rm -f android-app/keystore.jks
+
+  # Job 7: Deploy to Play Store (only on release)
+  deploy-play-store:
+    name: Deploy to Google Play
+    runs-on: ubuntu-latest
+    needs: [build-bundle, instrumentation-tests]
+    if: github.event_name == 'release'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download App Bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: release-bundle
+          path: android-app/app/build/outputs/bundle/release/
+
+      - name: Setup Google Play Service Account
+        env:
+          PLAY_STORE_SERVICE_ACCOUNT: ${{ secrets.PLAY_STORE_SERVICE_ACCOUNT }}
+        run: |
+          echo $PLAY_STORE_SERVICE_ACCOUNT > service-account.json
+
+      - name: Deploy to Play Store
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJson: service-account.json
+          packageName: com.chainlesschain.android
+          releaseFiles: android-app/app/build/outputs/bundle/release/*.aab
+          track: internal
+          status: completed
+          inAppUpdatePriority: 2
+          whatsNewDirectory: android-app/whatsnew/
+
+      - name: Clean up service account
+        if: always()
+        run: rm -f service-account.json
+
+  # Job 8: Create GitHub Release
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [build-release]
+    if: github.event_name == 'release'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download Release APK
+        uses: actions/download-artifact@v4
+        with:
+          name: release-apk
+          path: apk/
+
+      - name: Get version from gradle
+        id: get_version
+        working-directory: android-app
+        run: |
+          VERSION_NAME=$(./gradlew -q printVersionName)
+          VERSION_CODE=$(./gradlew -q printVersionCode)
+          echo "version_name=$VERSION_NAME" >> $GITHUB_OUTPUT
+          echo "version_code=$VERSION_CODE" >> $GITHUB_OUTPUT
+
+      - name: Upload Release Asset
+        uses: softprops/action-gh-release@v1
+        with:
+          files: apk/*.apk
+          tag_name: v${{ steps.get_version.outputs.version_name }}
+          name: Release ${{ steps.get_version.outputs.version_name }}
+          body_path: android-app/CHANGELOG.md
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Job 9: Security Scan
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: [build-debug]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download Debug APK
+        uses: actions/download-artifact@v4
+        with:
+          name: debug-apk
+          path: apk/
+
+      - name: Run MobSF Scan
+        run: |
+          docker run --rm -v $(pwd)/apk:/apk opensecurity/mobile-security-framework-mobsf:latest \
+            python manage.py scan /apk/*.apk
+
+  # Job 10: Notify on Slack/Email
+  notify:
+    name: Notification
+    runs-on: ubuntu-latest
+    needs: [build-release, build-bundle]
+    if: always()
+    steps:
+      - name: Notify Slack
+        uses: 8398a7/action-slack@v3
+        if: always()
+        with:
+          status: ${{ job.status }}
+          text: |
+            Android Build ${{ job.status }}
+            Commit: ${{ github.sha }}
+            Author: ${{ github.actor }}
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
