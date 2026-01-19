@@ -40,8 +40,8 @@ dependencies {
     api("androidx.room:room-ktx:$roomVersion")
     ksp("androidx.room:room-compiler:$roomVersion")
 
-    // SQLCipher
-    api("net.zetetic:android-database-sqlcipher:4.5.3")
+    // SQLCipher (使用新的artifact ID和最新版本)
+    api("net.zetetic:sqlcipher-android:4.12.0")
     api("androidx.sqlite:sqlite-ktx:2.4.0")
 
     // Hilt
