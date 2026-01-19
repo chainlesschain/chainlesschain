@@ -4,6 +4,7 @@
  * 提供渲染进程与主进程之间的通信桥梁
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { ipcMain } = require('electron');
 const { VolcengineToolsClient } = require('./volcengine-tools');
 const { getLLMConfig } = require('./llm-config');
@@ -37,7 +38,7 @@ function getToolsClient() {
  * 注册所有 IPC 处理器
  */
 function registerVolcengineIPC() {
-  console.log('[VolcengineIPC] 注册火山引擎工具调用IPC处理器');
+  logger.info('[VolcengineIPC] 注册火山引擎工具调用IPC处理器');
 
   // ========== 模型选择器 ==========
 
@@ -62,7 +63,7 @@ function registerVolcengineIPC() {
         },
       };
     } catch (error) {
-      console.error('[VolcengineIPC] 模型选择失败:', error);
+      logger.error('[VolcengineIPC] 模型选择失败:', error);
       return {
         success: false,
         error: error.message,
@@ -88,7 +89,7 @@ function registerVolcengineIPC() {
         },
       };
     } catch (error) {
-      console.error('[VolcengineIPC] 任务模型选择失败:', error);
+      logger.error('[VolcengineIPC] 任务模型选择失败:', error);
       return {
         success: false,
         error: error.message,
@@ -112,7 +113,7 @@ function registerVolcengineIPC() {
         },
       };
     } catch (error) {
-      console.error('[VolcengineIPC] 成本估算失败:', error);
+      logger.error('[VolcengineIPC] 成本估算失败:', error);
       return {
         success: false,
         error: error.message,
@@ -140,7 +141,7 @@ function registerVolcengineIPC() {
         })),
       };
     } catch (error) {
-      console.error('[VolcengineIPC] 列出模型失败:', error);
+      logger.error('[VolcengineIPC] 列出模型失败:', error);
       return {
         success: false,
         error: error.message,
@@ -169,7 +170,7 @@ function registerVolcengineIPC() {
         },
       };
     } catch (error) {
-      console.error('[VolcengineIPC] 联网搜索对话失败:', error);
+      logger.error('[VolcengineIPC] 联网搜索对话失败:', error);
       return {
         success: false,
         error: error.message,
@@ -197,7 +198,7 @@ function registerVolcengineIPC() {
         },
       };
     } catch (error) {
-      console.error('[VolcengineIPC] 图像处理对话失败:', error);
+      logger.error('[VolcengineIPC] 图像处理对话失败:', error);
       return {
         success: false,
         error: error.message,
@@ -218,7 +219,7 @@ function registerVolcengineIPC() {
         data: result,
       };
     } catch (error) {
-      console.error('[VolcengineIPC] 图像理解失败:', error);
+      logger.error('[VolcengineIPC] 图像理解失败:', error);
       return {
         success: false,
         error: error.message,
@@ -241,7 +242,7 @@ function registerVolcengineIPC() {
         data: result,
       };
     } catch (error) {
-      console.error('[VolcengineIPC] 配置知识库失败:', error);
+      logger.error('[VolcengineIPC] 配置知识库失败:', error);
       return {
         success: false,
         error: error.message,
@@ -268,7 +269,7 @@ function registerVolcengineIPC() {
         },
       };
     } catch (error) {
-      console.error('[VolcengineIPC] 知识库搜索对话失败:', error);
+      logger.error('[VolcengineIPC] 知识库搜索对话失败:', error);
       return {
         success: false,
         error: error.message,
@@ -297,7 +298,7 @@ function registerVolcengineIPC() {
         },
       };
     } catch (error) {
-      console.error('[VolcengineIPC] 函数调用对话失败:', error);
+      logger.error('[VolcengineIPC] 函数调用对话失败:', error);
       return {
         success: false,
         error: error.message,
@@ -323,7 +324,7 @@ function registerVolcengineIPC() {
         data: result,
       };
     } catch (error) {
-      console.error('[VolcengineIPC] 执行函数调用流程失败:', error);
+      logger.error('[VolcengineIPC] 执行函数调用流程失败:', error);
       return {
         success: false,
         error: error.message,
@@ -351,7 +352,7 @@ function registerVolcengineIPC() {
         },
       };
     } catch (error) {
-      console.error('[VolcengineIPC] MCP对话失败:', error);
+      logger.error('[VolcengineIPC] MCP对话失败:', error);
       return {
         success: false,
         error: error.message,
@@ -379,7 +380,7 @@ function registerVolcengineIPC() {
         },
       };
     } catch (error) {
-      console.error('[VolcengineIPC] 多工具对话失败:', error);
+      logger.error('[VolcengineIPC] 多工具对话失败:', error);
       return {
         success: false,
         error: error.message,
@@ -426,7 +427,7 @@ function registerVolcengineIPC() {
         message: '配置已更新',
       };
     } catch (error) {
-      console.error('[VolcengineIPC] 更新配置失败:', error);
+      logger.error('[VolcengineIPC] 更新配置失败:', error);
       return {
         success: false,
         error: error.message,
@@ -434,7 +435,7 @@ function registerVolcengineIPC() {
     }
   });
 
-  console.log('[VolcengineIPC] IPC处理器注册完成');
+  logger.info('[VolcengineIPC] IPC处理器注册完成');
 }
 
 /**
@@ -447,7 +448,7 @@ function getFunctionExecutor(executorType) {
   // 示例：返回一个简单的执行器
   return {
     async execute(functionName, args) {
-      console.log(`[FunctionExecutor] 执行函数: ${functionName}`, args);
+      logger.info(`[FunctionExecutor] 执行函数: ${functionName}`, args);
 
       // TODO: 根据 functionName 调用实际的业务逻辑
       // 例如：调用数据库、文件系统、P2P网络等
@@ -476,7 +477,7 @@ function getFunctionExecutor(executorType) {
  * 注销所有 IPC 处理器
  */
 function unregisterVolcengineIPC() {
-  console.log('[VolcengineIPC] 注销火山引擎工具调用IPC处理器');
+  logger.info('[VolcengineIPC] 注销火山引擎工具调用IPC处理器');
 
   const channels = [
     'volcengine:select-model',
@@ -500,7 +501,7 @@ function unregisterVolcengineIPC() {
     ipcMain.removeHandler(channel);
   });
 
-  console.log('[VolcengineIPC] IPC处理器已注销');
+  logger.info('[VolcengineIPC] IPC处理器已注销');
 }
 
 module.exports = {

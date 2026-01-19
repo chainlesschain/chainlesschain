@@ -1,3 +1,5 @@
+const { logger, createLogger } = require('../utils/logger.js');
+
 /**
  * UserProfileManager - 用户画像管理器
  * P2智能层用户画像系统
@@ -154,7 +156,7 @@ class UserProfileManager {
         updatedAt: row.updated_at
       };
     } catch (error) {
-      console.error('[UserProfileManager] 加载画像失败:', error);
+      logger.error('[UserProfileManager] 加载画像失败:', error);
       return null;
     }
   }
@@ -172,7 +174,7 @@ class UserProfileManager {
       const history = await this.loadUserHistory(userId);
 
       if (history.length < this.config.minDataPoints) {
-        console.log(`[UserProfileManager] 数据点不足(${history.length}/${this.config.minDataPoints})，使用默认画像`);
+        logger.info(`[UserProfileManager] 数据点不足(${history.length}/${this.config.minDataPoints})，使用默认画像`);
         return await this.createDefaultProfile(userId);
       }
 
@@ -192,11 +194,11 @@ class UserProfileManager {
       await this.saveProfile(profile);
       this.stats.profilesCreated++;
 
-      console.log(`[UserProfileManager] 创建用户画像: ${userId}`);
+      logger.info(`[UserProfileManager] 创建用户画像: ${userId}`);
       return profile;
 
     } catch (error) {
-      console.error('[UserProfileManager] 构建画像失败:', error);
+      logger.error('[UserProfileManager] 构建画像失败:', error);
       return this.createDefaultProfile(userId);
     }
   }
@@ -254,7 +256,7 @@ class UserProfileManager {
         timestamp: e.timestamp
       }));
     } catch (error) {
-      console.error('[UserProfileManager] 加载历史数据失败:', error);
+      logger.error('[UserProfileManager] 加载历史数据失败:', error);
       return [];
     }
   }
@@ -528,7 +530,7 @@ class UserProfileManager {
       this.cache.set(profile.userId, profile);
 
     } catch (error) {
-      console.error('[UserProfileManager] 保存画像失败:', error);
+      logger.error('[UserProfileManager] 保存画像失败:', error);
     }
   }
 
@@ -566,7 +568,7 @@ class UserProfileManager {
     const history = await this.loadUserHistory(userId);
 
     if (history.length < this.config.minDataPoints) {
-      console.log(`[UserProfileManager] 数据点不足，跳过重新评估`);
+      logger.info(`[UserProfileManager] 数据点不足，跳过重新评估`);
       return null;
     }
 
@@ -583,7 +585,7 @@ class UserProfileManager {
     };
 
     await this.saveProfile(profile);
-    console.log(`[UserProfileManager] 重新评估画像: ${userId}`);
+    logger.info(`[UserProfileManager] 重新评估画像: ${userId}`);
 
     return profile;
   }
@@ -605,10 +607,10 @@ class UserProfileManager {
    * 清理资源
    */
   async cleanup() {
-    console.log('[UserProfileManager] 清理资源...');
+    logger.info('[UserProfileManager] 清理资源...');
     this.cache.clear();
     this.db = null;
-    console.log('[UserProfileManager] 资源清理完成');
+    logger.info('[UserProfileManager] 资源清理完成');
   }
 }
 

@@ -1,3 +1,4 @@
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require('fs');
 const path = require('path');
 const { app } = require('electron');
@@ -36,7 +37,7 @@ class AppConfig {
     // 加载配置
     this.loadConfig();
 
-    console.log('[AppConfig] 配置已加载');
+    logger.info('[AppConfig] 配置已加载');
   }
 
   /**
@@ -62,7 +63,7 @@ class AppConfig {
       // 保存合并后的配置
       this.saveConfig();
     } catch (error) {
-      console.error('[AppConfig] 加载配置失败:', error);
+      logger.error('[AppConfig] 加载配置失败:', error);
       this.config = this.getDefaultConfig();
     }
   }
@@ -232,9 +233,9 @@ class AppConfig {
   saveConfig() {
     try {
       fs.writeFileSync(this.configPath, JSON.stringify(this.config, null, 2), 'utf-8');
-      console.log('[AppConfig] 配置已保存');
+      logger.info('[AppConfig] 配置已保存');
     } catch (error) {
-      console.error('[AppConfig] 保存配置失败:', error);
+      logger.error('[AppConfig] 保存配置失败:', error);
     }
   }
 
@@ -258,7 +259,7 @@ class AppConfig {
   updateConfig(updates) {
     this.config = this.mergeConfigs(this.config, updates);
     this.saveConfig();
-    console.log('[AppConfig] 配置已更新');
+    logger.info('[AppConfig] 配置已更新');
   }
 
   /**
@@ -267,7 +268,7 @@ class AppConfig {
   resetConfig() {
     this.config = this.getDefaultConfig();
     this.saveConfig();
-    console.log('[AppConfig] 配置已重置为默认值');
+    logger.info('[AppConfig] 配置已重置为默认值');
   }
 
   /**
@@ -305,10 +306,10 @@ class AppConfig {
     try {
       const envContent = this.generateEnvContent();
       fs.writeFileSync(envPath, envContent, 'utf-8');
-      console.log('[AppConfig] 配置已导出到:', envPath);
+      logger.info('[AppConfig] 配置已导出到:', envPath);
       return true;
     } catch (error) {
-      console.error('[AppConfig] 导出配置失败:', error);
+      logger.error('[AppConfig] 导出配置失败:', error);
       return false;
     }
   }

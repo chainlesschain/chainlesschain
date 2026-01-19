@@ -249,6 +249,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, reactive, computed, onMounted } from 'vue';
 import { message } from 'ant-design-vue';
 import { useAuthStore } from '@/stores/auth';
@@ -429,7 +431,7 @@ const handleTemplateConfirm = async (template) => {
 
     message.success(`已选择模板：${template.display_name || template.name}`);
   } catch (error) {
-    console.error('处理模板选择失败:', error);
+    logger.error('处理模板选择失败:', error);
     message.error('处理模板失败：' + error.message);
   }
 };
@@ -445,7 +447,7 @@ const renderAndFillPrompt = async () => {
     );
     formData.userPrompt = renderedPrompt;
   } catch (error) {
-    console.error('渲染提示词失败:', error);
+    logger.error('渲染提示词失败:', error);
     // 如果渲染失败，直接使用原始模板
     formData.userPrompt = selectedTemplate.value.prompt_template || '';
   }
@@ -469,49 +471,49 @@ const handleTemplateCancel = () => {
 // 加载Prompt模板
 const loadPromptTemplates = async () => {
   try {
-    console.log('[AIProjectCreator] 开始加载Prompt模板...');
+    logger.info('[AIProjectCreator] 开始加载Prompt模板...');
     loadingPromptTemplates.value = true;
 
     // 检查electronAPI
     if (!window.electronAPI || !window.electronAPI.promptTemplate) {
-      console.error('[AIProjectCreator] ❌ electronAPI.promptTemplate 不可用');
+      logger.error('[AIProjectCreator] ❌ electronAPI.promptTemplate 不可用');
       message.error('Prompt模板API不可用');
       return;
     }
 
     // 通过electronAPI加载所有Prompt模板
-    console.log('[AIProjectCreator] 调用 electronAPI.promptTemplate.getAll()...');
+    logger.info('[AIProjectCreator] 调用 electronAPI.promptTemplate.getAll()...');
     const allTemplates = await window.electronAPI.promptTemplate.getAll();
-    console.log(`[AIProjectCreator] ✓ 获取到 ${allTemplates.length} 个模板`);
+    logger.info(`[AIProjectCreator] ✓ 获取到 ${allTemplates.length} 个模板`);
 
     // 显示所有分类
     const categories = [...new Set(allTemplates.map(t => t.category))];
-    console.log('[AIProjectCreator] 所有分类:', categories);
+    logger.info('[AIProjectCreator] 所有分类:', categories);
 
     // 统计每个分类的数量
     const categoryCounts = {};
     allTemplates.forEach(t => {
       categoryCounts[t.category] = (categoryCounts[t.category] || 0) + 1;
     });
-    console.log('[AIProjectCreator] 分类统计:', categoryCounts);
+    logger.info('[AIProjectCreator] 分类统计:', categoryCounts);
 
     // 只保留职业专用模板（medical, legal, education, research）
     promptTemplates.value = allTemplates.filter(t =>
       ['medical', 'legal', 'education', 'research'].includes(t.category)
     );
 
-    console.log(`[AIProjectCreator] ✓ 职业专用模板: ${promptTemplates.value.length} 个`);
-    console.log('[AIProjectCreator] 医疗:', allTemplates.filter(t => t.category === 'medical').length);
-    console.log('[AIProjectCreator] 法律:', allTemplates.filter(t => t.category === 'legal').length);
-    console.log('[AIProjectCreator] 教育:', allTemplates.filter(t => t.category === 'education').length);
-    console.log('[AIProjectCreator] 研究:', allTemplates.filter(t => t.category === 'research').length);
+    logger.info(`[AIProjectCreator] ✓ 职业专用模板: ${promptTemplates.value.length} 个`);
+    logger.info('[AIProjectCreator] 医疗:', allTemplates.filter(t => t.category === 'medical').length);
+    logger.info('[AIProjectCreator] 法律:', allTemplates.filter(t => t.category === 'legal').length);
+    logger.info('[AIProjectCreator] 教育:', allTemplates.filter(t => t.category === 'education').length);
+    logger.info('[AIProjectCreator] 研究:', allTemplates.filter(t => t.category === 'research').length);
 
     if (promptTemplates.value.length === 0) {
-      console.warn('[AIProjectCreator] ⚠️ 职业专用模板数量为0！');
+      logger.warn('[AIProjectCreator] ⚠️ 职业专用模板数量为0！');
       message.warning('未找到职业专用模板');
     }
   } catch (error) {
-    console.error('[AIProjectCreator] ❌ 加载Prompt模板失败:', error);
+    logger.error('[AIProjectCreator] ❌ 加载Prompt模板失败:', error);
     message.error('加载Prompt模板失败: ' + error.message);
     promptTemplates.value = [];
   } finally {
@@ -548,7 +550,7 @@ const fillPromptTemplate = async (template) => {
 
     message.success(`已选择模板：${template.name}`);
   } catch (error) {
-    console.error('Fill prompt template failed:', error);
+    logger.error('Fill prompt template failed:', error);
     // 如果填充失败，直接使用原始模板
     formData.userPrompt = template.template || template.description;
     message.warning('已填充模板，但部分变量需要手动替换');

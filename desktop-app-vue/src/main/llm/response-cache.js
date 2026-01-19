@@ -12,6 +12,7 @@
  * @module response-cache
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const crypto = require("crypto");
 
 /**
@@ -57,7 +58,7 @@ class ResponseCache {
       expirations: 0,
     };
 
-    console.log("[ResponseCache] 初始化完成，配置:", {
+    logger.info("[ResponseCache] 初始化完成，配置:", {
       TTL: `${this.ttl / 1000 / 60 / 60 / 24} 天`,
       最大条目数: this.maxSize,
       自动清理: this.enableAutoCleanup,
@@ -100,7 +101,7 @@ class ResponseCache {
 
       // 检查是否过期
       if (cached.expires_at < now) {
-        console.log("[ResponseCache] 缓存已过期，删除");
+        logger.info("[ResponseCache] 缓存已过期，删除");
         this._deleteCache(cached.id);
         this.stats.expirations++;
         this.stats.misses++;
@@ -117,7 +118,7 @@ class ResponseCache {
 
       this.stats.hits++;
 
-      console.log(
+      logger.info(
         `[ResponseCache] 缓存命中! 节省 ${cached.response_tokens} tokens`,
       );
 
@@ -131,7 +132,7 @@ class ResponseCache {
         cacheAge: now - (cached.expires_at - this.ttl), // 缓存年龄
       };
     } catch (error) {
-      console.error("[ResponseCache] 获取缓存失败:", error);
+      logger.error("[ResponseCache] 获取缓存失败:", error);
       this.stats.misses++;
       return { hit: false };
     }
@@ -192,13 +193,13 @@ class ResponseCache {
 
       this.stats.sets++;
 
-      console.log(
+      logger.info(
         `[ResponseCache] 缓存已保存: ${provider}/${model}, tokens: ${responseTokens}, 过期时间: ${new Date(expiresAt).toLocaleString()}`,
       );
 
       return true;
     } catch (error) {
-      console.error("[ResponseCache] 保存缓存失败:", error);
+      logger.error("[ResponseCache] 保存缓存失败:", error);
       return false;
     }
   }
@@ -212,7 +213,7 @@ class ResponseCache {
       const result = this.db.prepare("DELETE FROM llm_cache").run();
       const deletedCount = result.changes || 0;
 
-      console.log(`[ResponseCache] 已清除所有缓存: ${deletedCount} 条`);
+      logger.info(`[ResponseCache] 已清除所有缓存: ${deletedCount} 条`);
 
       // 重置统计
       this.stats = {
@@ -225,7 +226,7 @@ class ResponseCache {
 
       return deletedCount;
     } catch (error) {
-      console.error("[ResponseCache] 清除缓存失败:", error);
+      logger.error("[ResponseCache] 清除缓存失败:", error);
       return 0;
     }
   }
@@ -250,13 +251,13 @@ class ResponseCache {
       const deletedCount = result.changes || 0;
 
       if (deletedCount > 0) {
-        console.log(`[ResponseCache] 已清除过期缓存: ${deletedCount} 条`);
+        logger.info(`[ResponseCache] 已清除过期缓存: ${deletedCount} 条`);
         this.stats.expirations += deletedCount;
       }
 
       return deletedCount;
     } catch (error) {
-      console.error("[ResponseCache] 清除过期缓存失败:", error);
+      logger.error("[ResponseCache] 清除过期缓存失败:", error);
       return 0;
     }
   }
@@ -323,7 +324,7 @@ class ResponseCache {
         },
       };
     } catch (error) {
-      console.error("[ResponseCache] 获取统计信息失败:", error);
+      logger.error("[ResponseCache] 获取统计信息失败:", error);
       return null;
     }
   }
@@ -356,7 +357,7 @@ class ResponseCache {
         tokensSaved: stat.tokens_saved || 0,
       }));
     } catch (error) {
-      console.error("[ResponseCache] 获取提供商统计失败:", error);
+      logger.error("[ResponseCache] 获取提供商统计失败:", error);
       return [];
     }
   }
@@ -392,7 +393,7 @@ class ResponseCache {
           cacheId,
         );
     } catch (error) {
-      console.error("[ResponseCache] 更新命中统计失败:", error);
+      logger.error("[ResponseCache] 更新命中统计失败:", error);
     }
   }
 
@@ -404,7 +405,7 @@ class ResponseCache {
     try {
       this.db.prepare("DELETE FROM llm_cache WHERE id = ?").run(cacheId);
     } catch (error) {
-      console.error("[ResponseCache] 删除缓存失败:", error);
+      logger.error("[ResponseCache] 删除缓存失败:", error);
     }
   }
 
@@ -423,7 +424,7 @@ class ResponseCache {
         // 计算需要删除的条目数
         const toDelete = count.count - this.maxSize + 1;
 
-        console.log(
+        logger.info(
           `[ResponseCache] 缓存已满 (${count.count}/${this.maxSize})，执行 LRU 淘汰: ${toDelete} 条`,
         );
 
@@ -446,7 +447,7 @@ class ResponseCache {
         this.stats.evictions += toDelete;
       }
     } catch (error) {
-      console.error("[ResponseCache] LRU 淘汰失败:", error);
+      logger.error("[ResponseCache] LRU 淘汰失败:", error);
     }
   }
 
@@ -468,16 +469,16 @@ class ResponseCache {
    * @private
    */
   _startAutoCleanup() {
-    console.log(
+    logger.info(
       "[ResponseCache] 启动自动清理任务，间隔:",
       this.cleanupInterval / 1000 / 60,
       "分钟",
     );
 
     this.cleanupTimer = setInterval(async () => {
-      console.log("[ResponseCache] 执行定时清理...");
+      logger.info("[ResponseCache] 执行定时清理...");
       const deletedCount = await this.clearExpired();
-      console.log(
+      logger.info(
         `[ResponseCache] 定时清理完成，清除 ${deletedCount} 条过期缓存`,
       );
     }, this.cleanupInterval);
@@ -493,7 +494,7 @@ class ResponseCache {
     if (this.cleanupTimer) {
       clearInterval(this.cleanupTimer);
       this.cleanupTimer = null;
-      console.log("[ResponseCache] 自动清理任务已停止");
+      logger.info("[ResponseCache] 自动清理任务已停止");
     }
   }
 
@@ -502,7 +503,7 @@ class ResponseCache {
    */
   destroy() {
     this.stopAutoCleanup();
-    console.log("[ResponseCache] 缓存实例已销毁");
+    logger.info("[ResponseCache] 缓存实例已销毁");
   }
 }
 

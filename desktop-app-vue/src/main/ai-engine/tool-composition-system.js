@@ -1,3 +1,5 @@
+const { logger, createLogger } = require('../utils/logger.js');
+
 /**
  * 工具组合系统 (Tool Composition System)
  * P2 扩展功能之二
@@ -182,7 +184,7 @@ class ToolCompositionSystem {
         composition.length
       );
     } catch (error) {
-      console.error('[ToolComp] 记录组合历史失败:', error);
+      logger.error('[ToolComp] 记录组合历史失败:', error);
     }
   }
 

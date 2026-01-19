@@ -247,6 +247,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, watch, h, nextTick, onMounted, onUpdated } from 'vue';
 import { message, Modal, Input } from 'ant-design-vue';
 import {
@@ -361,20 +363,20 @@ const getFileIcon = (fileName, isFolder) => {
 
 // 构建树形数据
 const treeData = computed(() => {
-  console.log('[EnhancedFileTree] ========== treeData computed 执行 ==========');
-  console.log('[EnhancedFileTree] props.files:', props.files?.length || 0);
-  console.log('[EnhancedFileTree] 时间戳:', Date.now());
+  logger.info('[EnhancedFileTree] ========== treeData computed 执行 ==========');
+  logger.info('[EnhancedFileTree] props.files:', props.files?.length || 0);
+  logger.info('[EnhancedFileTree] 时间戳:', Date.now());
 
   if (!props.files || props.files.length === 0) {
-    console.log('[EnhancedFileTree] 文件列表为空，返回空数组');
+    logger.info('[EnhancedFileTree] 文件列表为空，返回空数组');
     return [];
   }
 
-  console.log('[EnhancedFileTree] 文件数量:', props.files.length);
+  logger.info('[EnhancedFileTree] 文件数量:', props.files.length);
 
-  console.log('[FileTree] 前3个文件对象:');
+  logger.info('[FileTree] 前3个文件对象:');
   props.files.slice(0, 3).forEach((file, idx) => {
-    console.log(`[FileTree] [${idx}]:`, {
+    logger.info(`[FileTree] [${idx}]:`, {
       id: file.id,
       file_name: file.file_name,
       file_path: file.file_path,
@@ -400,7 +402,7 @@ const treeData = computed(() => {
     // 如果仍然没有路径，跳过该文件
     if (parts.length === 0) {
       skippedFileCount++;
-      console.warn(`[FileTree] ⏭️  跳过文件 [${index}] (路径为空):`, file);
+      logger.warn(`[FileTree] ⏭️  跳过文件 [${index}] (路径为空):`, file);
       return;
     }
 
@@ -463,8 +465,8 @@ const treeData = computed(() => {
 
   const result = convertToTreeNodes(root);
 
-  console.log('[EnhancedFileTree] 树构建完成，节点数:', result.length);
-  console.log('[EnhancedFileTree] ========== treeData computed 结束 ==========');
+  logger.info('[EnhancedFileTree] 树构建完成，节点数:', result.length);
+  logger.info('[EnhancedFileTree] ========== treeData computed 结束 ==========');
 
   return result;
 });
@@ -473,15 +475,15 @@ const treeData = computed(() => {
 watch(
   () => props.files,
   (newFiles, oldFiles) => {
-    console.log('[EnhancedFileTree] Files prop 变化');
-    console.log('  旧:', oldFiles?.length || 0);
-    console.log('  新:', newFiles?.length || 0);
-    console.log('  引用:', newFiles !== oldFiles ? '已改变' : '相同');
+    logger.info('[EnhancedFileTree] Files prop 变化');
+    logger.info('  旧:', oldFiles?.length || 0);
+    logger.info('  新:', newFiles?.length || 0);
+    logger.info('  引用:', newFiles !== oldFiles ? '已改变' : '相同');
 
     // 强制 treeData computed 重新计算
     if (newFiles && newFiles.length > 0) {
       nextTick(() => {
-        console.log('[EnhancedFileTree] 触发 treeData 重新计算');
+        logger.info('[EnhancedFileTree] 触发 treeData 重新计算');
         const _ = treeData.value;  // 访问 computed 强制计算
       });
     }
@@ -494,7 +496,7 @@ watch(
   () => props.files?.length,
   (newLen, oldLen) => {
     if (newLen !== oldLen) {
-      console.log('[EnhancedFileTree] 文件数量变化:', oldLen, '->', newLen);
+      logger.info('[EnhancedFileTree] 文件数量变化:', oldLen, '->', newLen);
     }
   }
 );
@@ -678,7 +680,7 @@ const handleNewFile = async () => {
       message.success('文件创建成功');
       emit('refresh');
     } catch (error) {
-      console.error('创建文件失败:', error);
+      logger.error('创建文件失败:', error);
       message.error('创建文件失败：' + error.message);
     }
   };
@@ -732,7 +734,7 @@ const handleNewFolder = async () => {
       message.success('文件夹创建成功');
       emit('refresh');
     } catch (error) {
-      console.error('创建文件夹失败:', error);
+      logger.error('创建文件夹失败:', error);
       message.error('创建文件夹失败：' + error.message);
     }
   };
@@ -790,7 +792,7 @@ const handleRename = async () => {
       message.success('重命名成功');
       emit('refresh');
     } catch (error) {
-      console.error('重命名失败:', error);
+      logger.error('重命名失败:', error);
       message.error('重命名失败：' + error.message);
     }
   };
@@ -816,7 +818,7 @@ const handleDelete = async () => {
         message.success('删除成功');
         emit('refresh');
       } catch (error) {
-        console.error('删除失败:', error);
+        logger.error('删除失败:', error);
         message.error('删除失败：' + error.message);
       }
     }
@@ -846,10 +848,10 @@ const handleCopy = async () => {
       fileName: contextNode.value.title
     });
 
-    console.log('[EnhancedFileTree] 已复制文件到系统剪贴板:', contextNode.value.title);
+    logger.info('[EnhancedFileTree] 已复制文件到系统剪贴板:', contextNode.value.title);
     message.success(`已复制: ${contextNode.value.title}（可粘贴到任何位置）`);
   } catch (error) {
-    console.error('[EnhancedFileTree] 复制到系统剪贴板失败:', error);
+    logger.error('[EnhancedFileTree] 复制到系统剪贴板失败:', error);
     // 即使系统剪贴板失败，内部剪贴板仍然可用
     message.success(`已复制: ${contextNode.value.title}（仅限项目内粘贴）`);
   }
@@ -877,10 +879,10 @@ const handleCut = async () => {
       fileName: contextNode.value.title
     });
 
-    console.log('[EnhancedFileTree] 已剪切文件到系统剪贴板:', contextNode.value.title);
+    logger.info('[EnhancedFileTree] 已剪切文件到系统剪贴板:', contextNode.value.title);
     message.success(`已剪切: ${contextNode.value.title}（可移动到任何位置）`);
   } catch (error) {
-    console.error('[EnhancedFileTree] 剪切到系统剪贴板失败:', error);
+    logger.error('[EnhancedFileTree] 剪切到系统剪贴板失败:', error);
     message.success(`已剪切: ${contextNode.value.title}（仅限项目内移动）`);
   }
 };
@@ -892,9 +894,9 @@ const handlePaste = async () => {
     let systemClipboardResult = null;
     try {
       systemClipboardResult = await window.electronAPI.file.pasteFromSystemClipboard();
-      console.log('[EnhancedFileTree] 系统剪贴板内容:', systemClipboardResult);
+      logger.info('[EnhancedFileTree] 系统剪贴板内容:', systemClipboardResult);
     } catch (error) {
-      console.log('[EnhancedFileTree] 系统剪贴板为空或读取失败:', error);
+      logger.info('[EnhancedFileTree] 系统剪贴板为空或读取失败:', error);
     }
 
     // 确定目标路径
@@ -913,7 +915,7 @@ const handlePaste = async () => {
 
     // 2. 如果系统剪贴板有内容，优先从系统剪贴板粘贴
     if (systemClipboardResult && systemClipboardResult.hasFiles) {
-      console.log('[EnhancedFileTree] 从系统剪贴板粘贴文件:', systemClipboardResult);
+      logger.info('[EnhancedFileTree] 从系统剪贴板粘贴文件:', systemClipboardResult);
 
       const result = await window.electronAPI.file.importFromSystemClipboard({
         projectId: props.projectId,
@@ -936,7 +938,7 @@ const handlePaste = async () => {
 
     const { node, operation } = clipboard.value;
 
-    console.log('[EnhancedFileTree] 内部剪贴板粘贴操作:', {
+    logger.info('[EnhancedFileTree] 内部剪贴板粘贴操作:', {
       operation,
       sourcePath: node.filePath,
       targetPath,
@@ -976,7 +978,7 @@ const handlePaste = async () => {
 
     emit('refresh');
   } catch (error) {
-    console.error('[EnhancedFileTree] 粘贴失败:', error);
+    logger.error('[EnhancedFileTree] 粘贴失败:', error);
     message.error('粘贴失败：' + error.message);
   }
 };
@@ -992,7 +994,7 @@ const handleOpenDefault = async () => {
     });
     message.success('文件已打开');
   } catch (error) {
-    console.error('打开文件失败:', error);
+    logger.error('打开文件失败:', error);
     message.error('打开文件失败：' + error.message);
   }
 };
@@ -1009,7 +1011,7 @@ const handleOpenWith = async () => {
     // 注意：Windows 会显示"打开方式"对话框，用户可以选择程序
     // macOS 和 Linux 的行为可能不同
   } catch (error) {
-    console.error('打开"打开方式"对话框失败:', error);
+    logger.error('打开"打开方式"对话框失败:', error);
     message.error(error.message || '打开失败');
   }
 };
@@ -1032,7 +1034,7 @@ const handleReveal = async () => {
     });
     message.success('已在文件管理器中显示');
   } catch (error) {
-    console.error('打开文件管理器失败:', error);
+    logger.error('打开文件管理器失败:', error);
     message.error('打开文件管理器失败：' + error.message);
   }
 };
@@ -1113,7 +1115,7 @@ const handleDrop = async (event, targetNode) => {
       emit('refresh'); // 刷新文件树
     }
   } catch (error) {
-    console.error('拖拽失败:', error);
+    logger.error('拖拽失败:', error);
     message.error('拖拽操作失败: ' + error.message);
   } finally {
     draggedNode.value = null;
@@ -1142,7 +1144,7 @@ const handleExternalFileDrop = async (files, targetNode) => {
         message.success(`文件 ${file.name} 导入成功`);
       }
     } catch (error) {
-      console.error(`导入文件 ${file.name} 失败:`, error);
+      logger.error(`导入文件 ${file.name} 失败:`, error);
       message.error(`导入文件 ${file.name} 失败: ` + error.message);
     }
   }
@@ -1196,7 +1198,7 @@ const handleImportFiles = async () => {
       return;
     }
 
-    console.log('[EnhancedFileTree] 选择的文件:', result.filePaths);
+    logger.info('[EnhancedFileTree] 选择的文件:', result.filePaths);
 
     // 批量导入文件
     const importResult = await window.electron.project.importFiles({
@@ -1205,7 +1207,7 @@ const handleImportFiles = async () => {
       targetDirectory: `/data/projects/${props.projectId}/`
     });
 
-    console.log('[EnhancedFileTree] 导入结果:', importResult);
+    logger.info('[EnhancedFileTree] 导入结果:', importResult);
 
     if (importResult.success) {
       message.success(`成功导入 ${importResult.successCount}/${importResult.totalCount} 个文件`);
@@ -1214,7 +1216,7 @@ const handleImportFiles = async () => {
       message.error('文件导入失败');
     }
   } catch (error) {
-    console.error('[EnhancedFileTree] 导入文件失败:', error);
+    logger.error('[EnhancedFileTree] 导入文件失败:', error);
     message.error(`导入失败: ${error.message}`);
   } finally {
     importing.value = false;
@@ -1236,15 +1238,15 @@ const handleExport = async () => {
       return;
     }
 
-    console.log('[EnhancedFileTree] 导出节点:', contextNode.value);
-    console.log('[EnhancedFileTree] 导出到:', result.path);
+    logger.info('[EnhancedFileTree] 导出节点:', contextNode.value);
+    logger.info('[EnhancedFileTree] 导出到:', result.path);
 
     // 构建完整的项目路径
     const projectPath = `/data/projects/${props.projectId}/${contextNode.value.filePath}`;
     const targetPath = `${result.path}\\${contextNode.value.title}`;
 
-    console.log('[EnhancedFileTree] 项目路径:', projectPath);
-    console.log('[EnhancedFileTree] 目标路径:', targetPath);
+    logger.info('[EnhancedFileTree] 项目路径:', projectPath);
+    logger.info('[EnhancedFileTree] 目标路径:', targetPath);
 
     // 导出文件
     const exportResult = await window.electron.project.exportFile({
@@ -1253,7 +1255,7 @@ const handleExport = async () => {
       isDirectory: !contextNode.value.isLeaf
     });
 
-    console.log('[EnhancedFileTree] 导出结果:', exportResult);
+    logger.info('[EnhancedFileTree] 导出结果:', exportResult);
 
     if (exportResult.success) {
       message.success(`成功导出: ${contextNode.value.title}`);
@@ -1261,7 +1263,7 @@ const handleExport = async () => {
       message.error(`文件导出失败: ${exportResult.error || '未知错误'}`);
     }
   } catch (error) {
-    console.error('[EnhancedFileTree] 导出文件失败:', error);
+    logger.error('[EnhancedFileTree] 导出文件失败:', error);
     message.error(`导出失败: ${error.message}`);
   } finally {
     exporting.value = false;

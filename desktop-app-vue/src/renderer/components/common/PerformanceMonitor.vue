@@ -304,6 +304,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import {
   DashboardOutlined,
@@ -479,7 +481,7 @@ const refreshStats = () => {
       overallStats.memoryMB = Math.round(performance.memory.usedJSHeapSize / 1024 / 1024)
     }
   } catch (error) {
-    console.error('[PerformanceMonitor] Error refreshing stats:', error)
+    logger.error('[PerformanceMonitor] Error refreshing stats:', error)
   }
 }
 

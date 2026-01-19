@@ -258,6 +258,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { message } from 'ant-design-vue';
@@ -308,7 +310,7 @@ const loadPendingInvitations = async () => {
     const invitations = await window.ipc.invoke('org:get-pending-did-invitations');
     pendingInvitations.value = invitations || [];
   } catch (error) {
-    console.error('加载待处理邀请失败:', error);
+    logger.error('加载待处理邀请失败:', error);
   } finally {
     loading.value = false;
   }
@@ -327,7 +329,7 @@ const loadHistoryInvitations = async () => {
     rejectedInvitations.value = [];
     expiredInvitations.value = [];
   } catch (error) {
-    console.error('加载历史邀请失败:', error);
+    logger.error('加载历史邀请失败:', error);
   } finally {
     loadingHistory.value = false;
   }
@@ -369,7 +371,7 @@ const handleAccept = async (invitation) => {
       showInvitationsDrawer.value = false;
     }
   } catch (error) {
-    console.error('接受邀请失败:', error);
+    logger.error('接受邀请失败:', error);
     message.error(`接受邀请失败: ${error.message}`);
   } finally {
     acceptingIds.value = acceptingIds.value.filter(id => id !== invitation.id);
@@ -389,7 +391,7 @@ const handleReject = async (invitation) => {
       inv => inv.id !== invitation.id
     );
   } catch (error) {
-    console.error('拒绝邀请失败:', error);
+    logger.error('拒绝邀请失败:', error);
     message.error(`拒绝邀请失败: ${error.message}`);
   } finally {
     rejectingIds.value = rejectingIds.value.filter(id => id !== invitation.id);

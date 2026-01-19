@@ -1,3 +1,5 @@
+import { logger, createLogger } from '@/utils/logger';
+
 /**
  * Data Compression Utilities
  * 数据压缩工具 - 压缩大文件和数据传输
@@ -26,7 +28,7 @@ const loadPako = async () => {
     pako = await import('pako')
     return pako
   } catch {
-    console.warn('[DataCompression] pako library not available, compression disabled')
+    logger.warn('[DataCompression] pako library not available, compression disabled')
     return null
   }
 }
@@ -65,7 +67,7 @@ class DataCompressor {
     this.pako = await loadPako()
 
     if (this.options.debug && this.pako) {
-      console.log('[DataCompressor] Initialized with pako')
+      logger.info('[DataCompressor] Initialized with pako')
     }
   }
 
@@ -81,7 +83,7 @@ class DataCompressor {
     }
 
     if (!this.pako) {
-      console.warn('[DataCompressor] Compression not available, returning original data')
+      logger.warn('[DataCompressor] Compression not available, returning original data')
       return data
     }
 
@@ -96,7 +98,7 @@ class DataCompressor {
       // Check threshold
       if (this.options.autoCompress && originalSize < this.options.threshold) {
         if (this.options.debug) {
-          console.log('[DataCompressor] Data below threshold, skipping compression')
+          logger.info('[DataCompressor] Data below threshold, skipping compression')
         }
         return data
       }
@@ -115,7 +117,7 @@ class DataCompressor {
       const ratio = ((1 - compressedSize / originalSize) * 100).toFixed(2)
 
       if (this.options.debug) {
-        console.log(
+        logger.info(
           `[DataCompressor] Compressed: ${originalSize} → ${compressedSize} bytes (${ratio}% reduction)`
         )
       }
@@ -127,7 +129,7 @@ class DataCompressor {
 
       return compressed
     } catch (error) {
-      console.error('[DataCompressor] Compression error:', error)
+      logger.error('[DataCompressor] Compression error:', error)
       return data // Return original data on error
     }
   }
@@ -144,7 +146,7 @@ class DataCompressor {
     }
 
     if (!this.pako) {
-      console.warn('[DataCompressor] Decompression not available, returning original data')
+      logger.warn('[DataCompressor] Decompression not available, returning original data')
       return data
     }
 
@@ -160,7 +162,7 @@ class DataCompressor {
       this.stats.totalDecompressed++
 
       if (this.options.debug) {
-        console.log(`[DataCompressor] Decompressed: ${input.length} → ${decompressed.length} bytes`)
+        logger.info(`[DataCompressor] Decompressed: ${input.length} → ${decompressed.length} bytes`)
       }
 
       // Convert to string if requested
@@ -170,7 +172,7 @@ class DataCompressor {
 
       return decompressed
     } catch (error) {
-      console.error('[DataCompressor] Decompression error:', error)
+      logger.error('[DataCompressor] Decompression error:', error)
       throw error
     }
   }
@@ -186,7 +188,7 @@ class DataCompressor {
       const json = JSON.stringify(obj)
       return this.compress(json, options)
     } catch (error) {
-      console.error('[DataCompressor] JSON compression error:', error)
+      logger.error('[DataCompressor] JSON compression error:', error)
       throw error
     }
   }
@@ -202,7 +204,7 @@ class DataCompressor {
       const json = await this.decompress(data, { ...options, asString: true })
       return JSON.parse(json)
     } catch (error) {
-      console.error('[DataCompressor] JSON decompression error:', error)
+      logger.error('[DataCompressor] JSON decompression error:', error)
       throw error
     }
   }
@@ -214,7 +216,7 @@ class DataCompressor {
    */
   compressStream(stream) {
     if (!this.pako) {
-      console.warn('[DataCompressor] Stream compression not available')
+      logger.warn('[DataCompressor] Stream compression not available')
       return stream
     }
 
@@ -261,7 +263,7 @@ class DataCompressor {
    */
   decompressStream(stream) {
     if (!this.pako) {
-      console.warn('[DataCompressor] Stream decompression not available')
+      logger.warn('[DataCompressor] Stream decompression not available')
       return stream
     }
 
@@ -368,7 +370,7 @@ class DataCompressor {
     }
 
     if (this.options.debug) {
-      console.log('[DataCompressor] Statistics reset')
+      logger.info('[DataCompressor] Statistics reset')
     }
   }
 }

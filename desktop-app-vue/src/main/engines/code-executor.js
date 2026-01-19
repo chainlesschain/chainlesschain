@@ -3,6 +3,7 @@
  * 提供安全的Python代码执行功能
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { spawn } = require('child_process');
 const fs = require('fs').promises;
 const path = require('path');
@@ -51,9 +52,9 @@ class CodeExecutor {
       this.pythonPath = await this.detectPython();
 
       this.initialized = true;
-      console.log('[CodeExecutor] 初始化完成, Python路径:', this.pythonPath);
+      logger.info('[CodeExecutor] 初始化完成, Python路径:', this.pythonPath);
     } catch (error) {
-      console.error('[CodeExecutor] 初始化失败:', error);
+      logger.error('[CodeExecutor] 初始化失败:', error);
       // 即使没有Python也可以初始化,其他语言可能可用
       this.initialized = true;
     }
@@ -69,7 +70,7 @@ class CodeExecutor {
       try {
         const version = await this.getPythonVersion(cmd);
         if (version) {
-          console.log(`[CodeExecutor] 找到Python: ${cmd} (${version})`);
+          logger.info(`[CodeExecutor] 找到Python: ${cmd} (${version})`);
           return cmd;
         }
       } catch (error) {
@@ -130,7 +131,7 @@ class CodeExecutor {
       env = {}
     } = options;
 
-    console.log('[CodeExecutor] 执行Python代码...');
+    logger.info('[CodeExecutor] 执行Python代码...');
 
     try {
       // 创建临时文件
@@ -152,7 +153,7 @@ class CodeExecutor {
       try {
         await fs.unlink(filepath);
       } catch (error) {
-        console.warn('[CodeExecutor] 清理临时文件失败:', error.message);
+        logger.warn('[CodeExecutor] 清理临时文件失败:', error.message);
       }
 
       return {
@@ -164,7 +165,7 @@ class CodeExecutor {
       };
 
     } catch (error) {
-      console.error('[CodeExecutor] Python执行失败:', error);
+      logger.error('[CodeExecutor] Python执行失败:', error);
       throw error;
     }
   }
@@ -176,7 +177,7 @@ class CodeExecutor {
    * @returns {Promise<Object>} 执行结果
    */
   async executeFile(filepath, options = {}) {
-    console.log('[CodeExecutor] 执行文件:', filepath);
+    logger.info('[CodeExecutor] 执行文件:', filepath);
 
     // 检测文件类型
     const ext = path.extname(filepath);
@@ -222,7 +223,7 @@ class CodeExecutor {
       };
 
     } catch (error) {
-      console.error('[CodeExecutor] 文件执行失败:', error);
+      logger.error('[CodeExecutor] 文件执行失败:', error);
       throw error;
     }
   }
@@ -243,7 +244,7 @@ class CodeExecutor {
         env = {}
       } = options;
 
-      console.log(`[CodeExecutor] 运行命令: ${command} ${args.join(' ')}`);
+      logger.info(`[CodeExecutor] 运行命令: ${command} ${args.join(' ')}`);
 
       const startTime = Date.now();
       let stdout = '';
@@ -373,11 +374,11 @@ class CodeExecutor {
 
         if (now - stats.mtimeMs > maxAge) {
           await fs.unlink(filepath);
-          console.log('[CodeExecutor] 清理过期文件:', file);
+          logger.info('[CodeExecutor] 清理过期文件:', file);
         }
       }
     } catch (error) {
-      console.error('[CodeExecutor] 清理失败:', error);
+      logger.error('[CodeExecutor] 清理失败:', error);
     }
   }
 }

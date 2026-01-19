@@ -3,6 +3,7 @@
  * 从JSDoc注释自动生成Markdown格式的API文档
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require("fs").promises;
 const path = require("path");
 
@@ -42,7 +43,7 @@ class ApiDocGenerator {
    * 生成所有模块的API文档
    */
   async generateAll() {
-    console.log("[ApiDocGenerator] 开始生成API文档...");
+    logger.info("[ApiDocGenerator] 开始生成API文档...");
 
     try {
       // 确保输出目录存在
@@ -56,10 +57,10 @@ class ApiDocGenerator {
         await this.generateModuleDoc(module);
       }
 
-      console.log(`[ApiDocGenerator] API文档已生成到: ${this.outputDir}`);
+      logger.info(`[ApiDocGenerator] API文档已生成到: ${this.outputDir}`);
       return { success: true, outputDir: this.outputDir };
     } catch (error) {
-      console.error("[ApiDocGenerator] 生成API文档失败:", error);
+      logger.error("[ApiDocGenerator] 生成API文档失败:", error);
       return { success: false, error: error.message };
     }
   }
@@ -212,9 +213,9 @@ await skillManager.addToolToSkill(skill.id, tool.id);
     // 只在内容实际变化时才写入（忽略时间戳比较）
     if (await this._shouldUpdateDoc(indexFile, content)) {
       await fs.writeFile(indexFile, content, "utf-8");
-      console.log(`[ApiDocGenerator] 索引文件已生成: ${indexFile}`);
+      logger.info(`[ApiDocGenerator] 索引文件已生成: ${indexFile}`);
     } else {
-      console.log(`[ApiDocGenerator] 索引文件无变化，跳过: ${indexFile}`);
+      logger.info(`[ApiDocGenerator] 索引文件无变化，跳过: ${indexFile}`);
     }
   }
 
@@ -299,12 +300,12 @@ const ${module.name.toLowerCase()} = new ${module.name}(/* 参数 */);
       // 只在内容实际变化时才写入（忽略时间戳比较）
       if (await this._shouldUpdateDoc(outputFile, content)) {
         await fs.writeFile(outputFile, content, "utf-8");
-        console.log(`[ApiDocGenerator] 模块文档已生成: ${outputFile}`);
+        logger.info(`[ApiDocGenerator] 模块文档已生成: ${outputFile}`);
       } else {
-        console.log(`[ApiDocGenerator] 模块文档无变化，跳过: ${outputFile}`);
+        logger.info(`[ApiDocGenerator] 模块文档无变化，跳过: ${outputFile}`);
       }
     } catch (error) {
-      console.error(`[ApiDocGenerator] 生成 ${module.name} 文档失败:`, error);
+      logger.error(`[ApiDocGenerator] 生成 ${module.name} 文档失败:`, error);
     }
   }
 
@@ -576,15 +577,15 @@ if (require.main === module) {
     .generateAll()
     .then((result) => {
       if (result.success) {
-        console.log("✅ API文档生成成功!");
+        logger.info("✅ API文档生成成功!");
         process.exit(0);
       } else {
-        console.error("❌ API文档生成失败:", result.error);
+        logger.error("❌ API文档生成失败:", result.error);
         process.exit(1);
       }
     })
     .catch((error) => {
-      console.error("❌ 发生错误:", error);
+      logger.error("❌ 发生错误:", error);
       process.exit(1);
     });
 }

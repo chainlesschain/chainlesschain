@@ -2,6 +2,7 @@
  * 订单导出模块
  * 支持导出订单为 PDF 和图片格式
  */
+const { logger, createLogger } = require('../utils/logger.js');
 const puppeteer = require("puppeteer");
 const sharp = require("sharp");
 const path = require("path");
@@ -257,7 +258,7 @@ async function exportOrderToPDF(order, options = {}) {
   let browser = null;
 
   try {
-    console.log("[OrderExport] 开始导出 PDF...");
+    logger.info("[OrderExport] 开始导出 PDF...");
 
     const html = generateOrderHTML(order);
     const tempDir = getTempDir();
@@ -293,14 +294,14 @@ async function exportOrderToPDF(order, options = {}) {
     // 清理临时 HTML 文件
     fs.unlinkSync(htmlPath);
 
-    console.log("[OrderExport] PDF 导出成功:", pdfPath);
+    logger.info("[OrderExport] PDF 导出成功:", pdfPath);
 
     return {
       success: true,
       filePath: pdfPath,
     };
   } catch (error) {
-    console.error("[OrderExport] PDF 导出失败:", error);
+    logger.error("[OrderExport] PDF 导出失败:", error);
     return {
       success: false,
       error: error.message,
@@ -322,7 +323,7 @@ async function exportOrderToImage(order, options = {}) {
   let browser = null;
 
   try {
-    console.log("[OrderExport] 开始导出图片...");
+    logger.info("[OrderExport] 开始导出图片...");
 
     const html = generateOrderHTML(order);
     const tempDir = getTempDir();
@@ -383,14 +384,14 @@ async function exportOrderToImage(order, options = {}) {
     // 清理临时 HTML 文件
     fs.unlinkSync(htmlPath);
 
-    console.log("[OrderExport] 图片导出成功:", imagePath);
+    logger.info("[OrderExport] 图片导出成功:", imagePath);
 
     return {
       success: true,
       filePath: imagePath,
     };
   } catch (error) {
-    console.error("[OrderExport] 图片导出失败:", error);
+    logger.error("[OrderExport] 图片导出失败:", error);
     return {
       success: false,
       error: error.message,
@@ -438,9 +439,9 @@ class ShareLinkManager {
         CREATE INDEX IF NOT EXISTS idx_share_links_token ON order_share_links(token);
       `);
 
-      console.log("[ShareLinkManager] 表初始化完成");
+      logger.info("[ShareLinkManager] 表初始化完成");
     } catch (error) {
-      console.error("[ShareLinkManager] 表初始化失败:", error);
+      logger.error("[ShareLinkManager] 表初始化失败:", error);
     }
   }
 
@@ -472,7 +473,7 @@ class ShareLinkManager {
         id: result.lastInsertRowid,
       };
     } catch (error) {
-      console.error("[ShareLinkManager] 保存链接失败:", error);
+      logger.error("[ShareLinkManager] 保存链接失败:", error);
       return {
         success: false,
         error: error.message,
@@ -529,7 +530,7 @@ class ShareLinkManager {
         },
       };
     } catch (error) {
-      console.error("[ShareLinkManager] 验证链接失败:", error);
+      logger.error("[ShareLinkManager] 验证链接失败:", error);
       return {
         valid: false,
         error: error.message,
@@ -573,7 +574,7 @@ class ShareLinkManager {
         count: result.changes,
       };
     } catch (error) {
-      console.error("[ShareLinkManager] 撤销链接失败:", error);
+      logger.error("[ShareLinkManager] 撤销链接失败:", error);
       return {
         success: false,
         error: error.message,
@@ -602,7 +603,7 @@ class ShareLinkManager {
         )
         .all(orderId);
     } catch (error) {
-      console.error("[ShareLinkManager] 获取链接失败:", error);
+      logger.error("[ShareLinkManager] 获取链接失败:", error);
       return [];
     }
   }

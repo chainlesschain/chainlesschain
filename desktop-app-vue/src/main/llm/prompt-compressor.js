@@ -12,6 +12,7 @@
  * @module prompt-compressor
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const crypto = require('crypto');
 
 /**
@@ -82,7 +83,7 @@ class PromptCompressor {
     this.similarityThreshold = options.similarityThreshold || 0.9;
     this.llmManager = options.llmManager || null;
 
-    console.log('[PromptCompressor] 初始化完成，配置:', {
+    logger.info('[PromptCompressor] 初始化完成，配置:', {
       去重: this.enableDeduplication,
       总结: this.enableSummarization,
       截断: this.enableTruncation,
@@ -121,7 +122,7 @@ class PromptCompressor {
       return sum + estimateTokens(typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content));
     }, 0);
 
-    console.log(`[PromptCompressor] 开始压缩，原始消息数: ${messages.length}, 估算 Tokens: ${originalTokens}`);
+    logger.info(`[PromptCompressor] 开始压缩，原始消息数: ${messages.length}, 估算 Tokens: ${originalTokens}`);
 
     let compressedMessages = [...messages];
     const appliedStrategies = [];
@@ -159,7 +160,7 @@ class PromptCompressor {
           });
           appliedStrategies.push('summarization');
         } catch (summaryError) {
-          console.error('[PromptCompressor] 总结失败，跳过总结策略:', summaryError.message);
+          logger.error('[PromptCompressor] 总结失败，跳过总结策略:', summaryError.message);
         }
       }
     }
@@ -172,8 +173,8 @@ class PromptCompressor {
     const compressionRatio = originalTokens > 0 ? compressedTokens / originalTokens : 1.0;
     const processingTime = Date.now() - startTime;
 
-    console.log(`[PromptCompressor] 压缩完成，压缩后消息数: ${compressedMessages.length}, 估算 Tokens: ${compressedTokens}, 压缩率: ${compressionRatio.toFixed(2)}, 耗时: ${processingTime}ms`);
-    console.log(`[PromptCompressor] 应用策略: ${appliedStrategies.join(', ') || 'none'}`);
+    logger.info(`[PromptCompressor] 压缩完成，压缩后消息数: ${compressedMessages.length}, 估算 Tokens: ${compressedTokens}, 压缩率: ${compressionRatio.toFixed(2)}, 耗时: ${processingTime}ms`);
+    logger.info(`[PromptCompressor] 应用策略: ${appliedStrategies.join(', ') || 'none'}`);
 
     return {
       messages: compressedMessages,
@@ -219,7 +220,7 @@ class PromptCompressor {
 
       // 检查是否已存在相同消息
       if (seen.has(hash)) {
-        console.log(`[PromptCompressor] 发现重复消息 (exact match): ${content.substring(0, 50)}...`);
+        logger.info(`[PromptCompressor] 发现重复消息 (exact match): ${content.substring(0, 50)}...`);
         continue;
       }
 
@@ -232,7 +233,7 @@ class PromptCompressor {
 
         const similarity = calculateSimilarity(content, existingContent);
         if (similarity >= this.similarityThreshold) {
-          console.log(`[PromptCompressor] 发现相似消息 (similarity: ${similarity.toFixed(2)}): ${content.substring(0, 50)}...`);
+          logger.info(`[PromptCompressor] 发现相似消息 (similarity: ${similarity.toFixed(2)}): ${content.substring(0, 50)}...`);
           isDuplicate = true;
           break;
         }
@@ -254,7 +255,7 @@ class PromptCompressor {
       result.push(lastUserMessage);
     }
 
-    console.log(`[PromptCompressor] 去重: ${messages.length} -> ${result.length} 条消息`);
+    logger.info(`[PromptCompressor] 去重: ${messages.length} -> ${result.length} 条消息`);
     return result;
   }
 
@@ -295,7 +296,7 @@ class PromptCompressor {
       result.push(lastUserMessage);
     }
 
-    console.log(`[PromptCompressor] 截断: ${messages.length} -> ${result.length} 条消息（保留最近 ${this.maxHistoryMessages} 条）`);
+    logger.info(`[PromptCompressor] 截断: ${messages.length} -> ${result.length} 条消息（保留最近 ${this.maxHistoryMessages} 条）`);
     return result;
   }
 
@@ -322,7 +323,7 @@ class PromptCompressor {
     });
 
     if (messagesToSummarize.length < 3) {
-      console.log('[PromptCompressor] 消息太少，跳过总结');
+      logger.info('[PromptCompressor] 消息太少，跳过总结');
       return messages;
     }
 
@@ -340,7 +341,7 @@ ${historyText}
 总结：`;
 
     try {
-      console.log('[PromptCompressor] 调用 LLM 生成历史总结...');
+      logger.info('[PromptCompressor] 调用 LLM 生成历史总结...');
       const summaryResult = await this.llmManager.query(summaryPrompt, {
         max_tokens: 500,
         temperature: 0.3,
@@ -352,7 +353,7 @@ ${historyText}
         throw new Error('LLM 返回空总结');
       }
 
-      console.log(`[PromptCompressor] 生成总结成功: ${summary.substring(0, 100)}...`);
+      logger.info(`[PromptCompressor] 生成总结成功: ${summary.substring(0, 100)}...`);
 
       // 创建总结消息
       const summaryMessage = {
@@ -370,11 +371,11 @@ ${historyText}
         result.push(lastUserMessage);
       }
 
-      console.log(`[PromptCompressor] 总结: ${messages.length} -> ${result.length} 条消息`);
+      logger.info(`[PromptCompressor] 总结: ${messages.length} -> ${result.length} 条消息`);
       return result;
 
     } catch (error) {
-      console.error('[PromptCompressor] 生成总结失败:', error.message);
+      logger.error('[PromptCompressor] 生成总结失败:', error.message);
       throw error;
     }
   }
@@ -423,7 +424,7 @@ ${historyText}
       this.similarityThreshold = options.similarityThreshold;
     }
 
-    console.log('[PromptCompressor] 配置已更新:', this.getStats());
+    logger.info('[PromptCompressor] 配置已更新:', this.getStats());
   }
 }
 

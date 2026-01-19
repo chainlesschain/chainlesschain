@@ -91,6 +91,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, h } from 'vue';
 import { message } from 'ant-design-vue';
 import {
@@ -132,7 +134,7 @@ const highlightedCode = computed(() => {
       return hljs.highlightAuto(props.code).value;
     }
   } catch (e) {
-    console.error('代码高亮失败:', e);
+    logger.error('代码高亮失败:', e);
     return props.code;
   }
 });
@@ -154,7 +156,7 @@ const handleCopy = async () => {
       copied.value = false;
     }, 2000);
   } catch (error) {
-    console.error('复制失败:', error);
+    logger.error('复制失败:', error);
     message.error('复制失败');
   }
 };
@@ -185,7 +187,7 @@ const handleExplain = async () => {
 
     explanation.value = response.content || response.message?.content || '解释生成失败';
   } catch (error) {
-    console.error('代码解释失败:', error);
+    logger.error('代码解释失败:', error);
     message.error('代码解释失败');
     showExplanation.value = false;
   } finally {
@@ -230,7 +232,7 @@ const handleRun = async () => {
 
     runResult.value = result;
   } catch (error) {
-    console.error('代码运行失败:', error);
+    logger.error('代码运行失败:', error);
     runResult.value = {
       success: false,
       error: error.message,

@@ -3,6 +3,7 @@
  * 提供应用锁定和解锁功能，保护隐私
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { app, BrowserWindow } = require("electron");
 const crypto = require("crypto");
 const fs = require("fs");
@@ -42,10 +43,10 @@ class AppLockManager {
         this.lockTimeout = config.lockTimeout || this.lockTimeout;
         this.autoLock = config.autoLock !== false;
 
-        console.log("[AppLockManager] Config loaded");
+        logger.info("[AppLockManager] Config loaded");
       }
     } catch (error) {
-      console.error("[AppLockManager] Load config error:", error);
+      logger.error("[AppLockManager] Load config error:", error);
     }
   }
 
@@ -61,9 +62,9 @@ class AppLockManager {
       };
 
       fs.writeFileSync(this.lockFilePath, JSON.stringify(config, null, 2));
-      console.log("[AppLockManager] Config saved");
+      logger.info("[AppLockManager] Config saved");
     } catch (error) {
-      console.error("[AppLockManager] Save config error:", error);
+      logger.error("[AppLockManager] Save config error:", error);
     }
   }
 
@@ -78,7 +79,7 @@ class AppLockManager {
     this.passwordHash = this.hashPassword(password);
     this.saveConfig();
 
-    console.log("[AppLockManager] Password set");
+    logger.info("[AppLockManager] Password set");
     return true;
   }
 
@@ -106,7 +107,7 @@ class AppLockManager {
    */
   lock() {
     if (!this.passwordHash) {
-      console.warn("[AppLockManager] No password set, cannot lock");
+      logger.warn("[AppLockManager] No password set, cannot lock");
       return false;
     }
 
@@ -118,7 +119,7 @@ class AppLockManager {
       window.hide();
     }
 
-    console.log("[AppLockManager] App locked");
+    logger.info("[AppLockManager] App locked");
     return true;
   }
 
@@ -127,7 +128,7 @@ class AppLockManager {
    */
   unlock(password) {
     if (!this.verifyPassword(password)) {
-      console.warn("[AppLockManager] Invalid password");
+      logger.warn("[AppLockManager] Invalid password");
       return false;
     }
 
@@ -140,7 +141,7 @@ class AppLockManager {
       window.show();
     }
 
-    console.log("[AppLockManager] App unlocked");
+    logger.info("[AppLockManager] App unlocked");
     return true;
   }
 
@@ -167,7 +168,7 @@ class AppLockManager {
     }
 
     this.setPassword(newPassword);
-    console.log("[AppLockManager] Password changed");
+    logger.info("[AppLockManager] Password changed");
     return true;
   }
 
@@ -182,7 +183,7 @@ class AppLockManager {
     this.passwordHash = null;
     this.saveConfig();
 
-    console.log("[AppLockManager] Password removed");
+    logger.info("[AppLockManager] Password removed");
     return true;
   }
 
@@ -192,7 +193,7 @@ class AppLockManager {
   setLockTimeout(timeout) {
     this.lockTimeout = timeout;
     this.saveConfig();
-    console.log("[AppLockManager] Lock timeout set:", timeout);
+    logger.info("[AppLockManager] Lock timeout set:", timeout);
   }
 
   /**
@@ -208,7 +209,7 @@ class AppLockManager {
       this.stopActivityMonitor();
     }
 
-    console.log(
+    logger.info(
       "[AppLockManager] Auto lock:",
       enabled ? "enabled" : "disabled",
     );
@@ -231,12 +232,12 @@ class AppLockManager {
         !this.isLocked &&
         this.passwordHash
       ) {
-        console.log("[AppLockManager] Auto-locking due to inactivity");
+        logger.info("[AppLockManager] Auto-locking due to inactivity");
         this.lock();
       }
     }, 10000); // 每10秒检查一次
 
-    console.log("[AppLockManager] Activity monitor started");
+    logger.info("[AppLockManager] Activity monitor started");
   }
 
   /**
@@ -246,7 +247,7 @@ class AppLockManager {
     if (this.activityTimer) {
       clearInterval(this.activityTimer);
       this.activityTimer = null;
-      console.log("[AppLockManager] Activity monitor stopped");
+      logger.info("[AppLockManager] Activity monitor stopped");
     }
   }
 

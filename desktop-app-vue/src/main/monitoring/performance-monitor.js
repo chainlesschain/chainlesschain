@@ -1,3 +1,5 @@
+const { logger, createLogger } = require('../utils/logger.js');
+
 /**
  * 性能监控系统 (Performance Monitor)
  * 记录和分析AI Pipeline各阶段的性能指标
@@ -65,9 +67,9 @@ class PerformanceMonitor {
         ON performance_metrics(session_id);
       `);
 
-      console.log('[PerformanceMonitor] 数据库表初始化完成');
+      logger.info('[PerformanceMonitor] 数据库表初始化完成');
     } catch (error) {
-      console.error('[PerformanceMonitor] 数据库初始化失败:', error);
+      logger.error('[PerformanceMonitor] 数据库初始化失败:', error);
     }
   }
 
@@ -107,7 +109,7 @@ class PerformanceMonitor {
           VALUES (?, ?, ?, ?, ?, ?)
         `, [phase, duration, JSON.stringify(metadata), record.timestamp, userId, sessionId]);
       } catch (error) {
-        console.error('[PerformanceMonitor] 记录性能失败:', error);
+        logger.error('[PerformanceMonitor] 记录性能失败:', error);
       }
     }
 
@@ -124,10 +126,10 @@ class PerformanceMonitor {
     if (!threshold) {return;}
 
     if (duration > threshold.critical) {
-      console.error(`[PerformanceMonitor] 🔴 严重: ${phase} 耗时 ${duration}ms (阈值: ${threshold.critical}ms)`);
-      console.error(`[PerformanceMonitor] 元数据:`, metadata);
+      logger.error(`[PerformanceMonitor] 🔴 严重: ${phase} 耗时 ${duration}ms (阈值: ${threshold.critical}ms)`);
+      logger.error(`[PerformanceMonitor] 元数据:`, metadata);
     } else if (duration > threshold.warning) {
-      console.warn(`[PerformanceMonitor] ⚠️ 警告: ${phase} 耗时 ${duration}ms (阈值: ${threshold.warning}ms)`);
+      logger.warn(`[PerformanceMonitor] ⚠️ 警告: ${phase} 耗时 ${duration}ms (阈值: ${threshold.warning}ms)`);
     }
   }
 
@@ -187,7 +189,7 @@ class PerformanceMonitor {
         unit: 'ms'
       };
     } catch (error) {
-      console.error(`[PerformanceMonitor] 生成${phase}报告失败:`, error);
+      logger.error(`[PerformanceMonitor] 生成${phase}报告失败:`, error);
       return null;
     }
   }
@@ -229,7 +231,7 @@ class PerformanceMonitor {
         };
       });
     } catch (error) {
-      console.error('[PerformanceMonitor] 查找瓶颈失败:', error);
+      logger.error('[PerformanceMonitor] 查找瓶颈失败:', error);
       return [];
     }
   }
@@ -403,7 +405,7 @@ class PerformanceMonitor {
         }))
       };
     } catch (error) {
-      console.error('[PerformanceMonitor] 获取会话性能失败:', error);
+      logger.error('[PerformanceMonitor] 获取会话性能失败:', error);
       return null;
     }
   }
@@ -530,9 +532,9 @@ class PerformanceMonitor {
         WHERE created_at < ?
       `, [cutoff]);
 
-      console.log(`[PerformanceMonitor] 清理旧数据完成，删除 ${result.changes} 条记录`);
+      logger.info(`[PerformanceMonitor] 清理旧数据完成，删除 ${result.changes} 条记录`);
     } catch (error) {
-      console.error('[PerformanceMonitor] 清理旧数据失败:', error);
+      logger.error('[PerformanceMonitor] 清理旧数据失败:', error);
     }
   }
 
@@ -560,7 +562,7 @@ class PerformanceMonitor {
         created_at: new Date(row.created_at).toISOString()
       }));
     } catch (error) {
-      console.error('[PerformanceMonitor] 导出数据失败:', error);
+      logger.error('[PerformanceMonitor] 导出数据失败:', error);
       return [];
     }
   }

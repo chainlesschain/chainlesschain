@@ -1,9 +1,10 @@
+const { logger, createLogger } = require('./logger.js');
 const { ipcMain } = require("electron");
 
 // 扫描项目文件夹并添加到数据库
 ipcMain.handle("project:scan-files", async (_event, projectId) => {
   try {
-    console.log(`[Main] 扫描项目文件: ${projectId}`);
+    logger.info(`[Main] 扫描项目文件: ${projectId}`);
     const project = this.database.db
       .prepare("SELECT * FROM projects WHERE id = ?")
       .get(projectId);
@@ -32,7 +33,7 @@ ipcMain.handle("project:scan-files", async (_event, projectId) => {
     };
 
     await scanDir(rootPath, rootPath);
-    console.log(`[Main] 找到 ${addedFiles.length} 个文件`);
+    logger.info(`[Main] 找到 ${addedFiles.length} 个文件`);
 
     let added = 0,
       skipped = 0;
@@ -82,12 +83,12 @@ ipcMain.handle("project:scan-files", async (_event, projectId) => {
         );
         added++;
       } catch (err) {
-        console.error(`[Main] 文件处理失败 ${relativePath}:`, err.message);
+        logger.error(`[Main] 文件处理失败 ${relativePath}:`, err.message);
       }
     }
 
     this.database.saveToFile();
-    console.log(`[Main] 扫描完成: 添加${added}, 跳过${skipped}`);
+    logger.info(`[Main] 扫描完成: 添加${added}, 跳过${skipped}`);
 
     if (this.fileSyncManager) {
       await this.fileSyncManager.watchProject(projectId, rootPath);
@@ -95,7 +96,7 @@ ipcMain.handle("project:scan-files", async (_event, projectId) => {
 
     return { success: true, addedCount: added, skippedCount: skipped };
   } catch (error) {
-    console.error("[Main] 扫描失败:", error);
+    logger.error("[Main] 扫描失败:", error);
     throw error;
   }
 });

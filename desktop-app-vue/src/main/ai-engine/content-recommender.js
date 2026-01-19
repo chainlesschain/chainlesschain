@@ -1,3 +1,5 @@
+const { logger, createLogger } = require('../utils/logger.js');
+
 /**
  * ContentRecommender - 基于内容的推荐算法
  * P2智能层Phase 4 - 推荐系统
@@ -44,7 +46,7 @@ class ContentRecommender {
    * 构建工具特征
    */
   async buildToolFeatures() {
-    console.log('[ContentRecommender] 构建工具特征...');
+    logger.info('[ContentRecommender] 构建工具特征...');
 
     // 默认工具特征库
     const defaultTools = [
@@ -120,7 +122,7 @@ class ContentRecommender {
       });
     }
 
-    console.log(`[ContentRecommender] 工具特征构建完成: ${this.toolFeatures.size}个工具`);
+    logger.info(`[ContentRecommender] 工具特征构建完成: ${this.toolFeatures.size}个工具`);
     return this.toolFeatures;
   }
 
@@ -235,7 +237,7 @@ class ContentRecommender {
   async buildToolChains() {
     if (!this.db) {return;}
 
-    console.log('[ContentRecommender] 构建工具链统计...');
+    logger.info('[ContentRecommender] 构建工具链统计...');
 
     try {
       // 查询工具序列 (previous_tool → tool_name → next_tool)
@@ -272,9 +274,9 @@ class ContentRecommender {
         }
       }
 
-      console.log(`[ContentRecommender] 工具链构建完成: ${this.toolChains.size}个起始工具`);
+      logger.info(`[ContentRecommender] 工具链构建完成: ${this.toolChains.size}个起始工具`);
     } catch (error) {
-      console.error('[ContentRecommender] 构建工具链失败:', error);
+      logger.error('[ContentRecommender] 构建工具链失败:', error);
     }
   }
 
@@ -306,7 +308,7 @@ class ContentRecommender {
       `).all(userId);
 
       if (recentTools.length === 0) {
-        console.log('[ContentRecommender] 用户无最近使用记录');
+        logger.info('[ContentRecommender] 用户无最近使用记录');
         return [];
       }
 
@@ -357,7 +359,7 @@ class ContentRecommender {
 
       return recommendations.slice(0, topK);
     } catch (error) {
-      console.error('[ContentRecommender] 推荐失败:', error);
+      logger.error('[ContentRecommender] 推荐失败:', error);
       return [];
     }
   }

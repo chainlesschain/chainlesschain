@@ -3,6 +3,7 @@
  * 提供统一的日志记录、分级、轮转和查询功能
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require("fs");
 const path = require("path");
 const { app } = require("electron");
@@ -72,7 +73,7 @@ class LogManager {
       this.close();
     });
 
-    console.log("[LogManager] Initialized, log directory:", this.logDir);
+    logger.info("[LogManager] Initialized, log directory:", this.logDir);
   }
 
   /**
@@ -146,11 +147,11 @@ class LogManager {
         const toDelete = files.slice(this.maxFiles);
         for (const file of toDelete) {
           fs.unlinkSync(file.path);
-          console.log("[LogManager] Deleted old log file:", file.name);
+          logger.info("[LogManager] Deleted old log file:", file.name);
         }
       }
     } catch (error) {
-      console.error("[LogManager] Clean old logs error:", error);
+      logger.error("[LogManager] Clean old logs error:", error);
     }
   }
 
@@ -210,20 +211,20 @@ class LogManager {
   logToConsole(level, message) {
     switch (level) {
       case LogLevel.DEBUG:
-        console.debug(message.trim());
+        logger.debug(message.trim());
         break;
       case LogLevel.INFO:
-        console.info(message.trim());
+        logger.info(message.trim());
         break;
       case LogLevel.WARN:
-        console.warn(message.trim());
+        logger.warn(message.trim());
         break;
       case LogLevel.ERROR:
       case LogLevel.FATAL:
-        console.error(message.trim());
+        logger.error(message.trim());
         break;
       default:
-        console.log(message.trim());
+        logger.info(message.trim());
     }
   }
 
@@ -251,7 +252,7 @@ class LogManager {
 
       this.logBuffer = [];
     } catch (error) {
-      console.error("[LogManager] Flush error:", error);
+      logger.error("[LogManager] Flush error:", error);
     }
   }
 
@@ -330,7 +331,7 @@ class LogManager {
 
       return files;
     } catch (error) {
-      console.error("[LogManager] Get log files error:", error);
+      logger.error("[LogManager] Get log files error:", error);
       return [];
     }
   }
@@ -370,7 +371,7 @@ class LogManager {
 
       return filteredLines;
     } catch (error) {
-      console.error("[LogManager] Read log file error:", error);
+      logger.error("[LogManager] Read log file error:", error);
       throw error;
     }
   }
@@ -399,7 +400,7 @@ class LogManager {
 
       return results;
     } catch (error) {
-      console.error("[LogManager] Search logs error:", error);
+      logger.error("[LogManager] Search logs error:", error);
       return [];
     }
   }
@@ -420,10 +421,10 @@ class LogManager {
       // 重新创建日志文件
       this.createLogFile();
 
-      console.log("[LogManager] All logs cleared");
+      logger.info("[LogManager] All logs cleared");
       return true;
     } catch (error) {
-      console.error("[LogManager] Clear all logs error:", error);
+      logger.error("[LogManager] Clear all logs error:", error);
       return false;
     }
   }
@@ -443,10 +444,10 @@ class LogManager {
       }
 
       fs.writeFileSync(outputPath, allLogs.join("\n"), "utf8");
-      console.log("[LogManager] Logs exported to:", outputPath);
+      logger.info("[LogManager] Logs exported to:", outputPath);
       return true;
     } catch (error) {
-      console.error("[LogManager] Export logs error:", error);
+      logger.error("[LogManager] Export logs error:", error);
       return false;
     }
   }

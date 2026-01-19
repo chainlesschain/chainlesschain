@@ -11,6 +11,7 @@
  * @version 1.0.0
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const path = require('path');
 const fs = require('fs');
 const SQLite = require('better-sqlite3');
@@ -38,7 +39,7 @@ class IdentityContextManager extends EventEmitter {
    */
   async initialize() {
     try {
-      console.log('初始化身份上下文管理器...');
+      logger.info('初始化身份上下文管理器...');
 
       // 1. 创建数据目录
       if (!fs.existsSync(this.dataDir)) {
@@ -59,11 +60,11 @@ class IdentityContextManager extends EventEmitter {
       await this.loadDefaultContext();
 
       this.initialized = true;
-      console.log('✓ 身份上下文管理器初始化成功');
+      logger.info('✓ 身份上下文管理器初始化成功');
 
       return { success: true };
     } catch (error) {
-      console.error('身份上下文管理器初始化失败:', error);
+      logger.error('身份上下文管理器初始化失败:', error);
       return { success: false, error: error.message };
     }
   }
@@ -121,20 +122,20 @@ class IdentityContextManager extends EventEmitter {
     ).get();
 
     if (existingContexts.count > 0) {
-      console.log('身份上下文已存在,跳过迁移');
+      logger.info('身份上下文已存在,跳过迁移');
       return;
     }
 
     // 如果存在旧数据库,重命名为个人数据库
     if (fs.existsSync(oldDbPath) && !fs.existsSync(personalDbPath)) {
-      console.log('检测到个人版数据库,正在迁移到企业版...');
+      logger.info('检测到个人版数据库,正在迁移到企业版...');
       fs.renameSync(oldDbPath, personalDbPath);
-      console.log('✓ 数据库已重命名为 personal.db');
+      logger.info('✓ 数据库已重命名为 personal.db');
     }
 
     // 如果还没有个人数据库,创建一个空的
     if (!fs.existsSync(personalDbPath)) {
-      console.log('创建新的个人数据库...');
+      logger.info('创建新的个人数据库...');
       const personalDb = new SQLite(personalDbPath);
       personalDb.pragma('journal_mode = WAL');
       personalDb.close();
@@ -155,7 +156,7 @@ class IdentityContextManager extends EventEmitter {
       ).get(contextId);
 
       if (existing) {
-        console.log('个人上下文已存在');
+        logger.info('个人上下文已存在');
         return { success: true, context: existing };
       }
 
@@ -195,10 +196,10 @@ class IdentityContextManager extends EventEmitter {
         context.settings
       );
 
-      console.log('✓ 个人上下文创建成功');
+      logger.info('✓ 个人上下文创建成功');
       return { success: true, context };
     } catch (error) {
-      console.error('创建个人上下文失败:', error);
+      logger.error('创建个人上下文失败:', error);
       return { success: false, error: error.message };
     }
   }
@@ -217,7 +218,7 @@ class IdentityContextManager extends EventEmitter {
       ).get(contextId);
 
       if (existing) {
-        console.log(`组织上下文 ${displayName} 已存在`);
+        logger.info(`组织上下文 ${displayName} 已存在`);
         return { success: true, context: existing };
       }
 
@@ -257,10 +258,10 @@ class IdentityContextManager extends EventEmitter {
         context.settings
       );
 
-      console.log(`✓ 组织上下文 ${displayName} 创建成功`);
+      logger.info(`✓ 组织上下文 ${displayName} 创建成功`);
       return { success: true, context };
     } catch (error) {
-      console.error('创建组织上下文失败:', error);
+      logger.error('创建组织上下文失败:', error);
       return { success: false, error: error.message };
     }
   }
@@ -280,7 +281,7 @@ class IdentityContextManager extends EventEmitter {
         settings: ctx.settings ? JSON.parse(ctx.settings) : {}
       }));
     } catch (error) {
-      console.error('获取身份上下文列表失败:', error);
+      logger.error('获取身份上下文列表失败:', error);
       return [];
     }
   }
@@ -302,7 +303,7 @@ class IdentityContextManager extends EventEmitter {
         settings: context.settings ? JSON.parse(context.settings) : {}
       };
     } catch (error) {
-      console.error('获取当前上下文失败:', error);
+      logger.error('获取当前上下文失败:', error);
       return null;
     }
   }
@@ -312,7 +313,7 @@ class IdentityContextManager extends EventEmitter {
    */
   async switchContext(userDID, targetContextId) {
     try {
-      console.log(`切换身份上下文: ${targetContextId}`);
+      logger.info(`切换身份上下文: ${targetContextId}`);
 
       // 1. 获取目标上下文
       const targetContext = this.identityDb.prepare(
@@ -363,7 +364,7 @@ class IdentityContextManager extends EventEmitter {
         to: targetContext
       });
 
-      console.log(`✓ 已切换到: ${targetContext.display_name}`);
+      logger.info(`✓ 已切换到: ${targetContext.display_name}`);
 
       return {
         success: true,
@@ -374,7 +375,7 @@ class IdentityContextManager extends EventEmitter {
         }
       };
     } catch (error) {
-      console.error('切换身份上下文失败:', error);
+      logger.error('切换身份上下文失败:', error);
       return { success: false, error: error.message };
     }
   }
@@ -398,7 +399,7 @@ class IdentityContextManager extends EventEmitter {
 
         // 如果数据库文件不存在,创建一个新的
         if (!fs.existsSync(dbPath)) {
-          console.log(`创建新的数据库文件: ${dbPath}`);
+          logger.info(`创建新的数据库文件: ${dbPath}`);
           const db = new SQLite(dbPath);
           db.pragma('journal_mode = WAL');
           db.close();
@@ -409,12 +410,12 @@ class IdentityContextManager extends EventEmitter {
         db.pragma('journal_mode = WAL');
         this.contextDatabases.set(contextId, db);
 
-        console.log(`✓ 已加载上下文数据库: ${context.display_name}`);
+        logger.info(`✓ 已加载上下文数据库: ${context.display_name}`);
       }
 
       return { success: true };
     } catch (error) {
-      console.error('加载上下文失败:', error);
+      logger.error('加载上下文失败:', error);
       return { success: false, error: error.message };
     }
   }
@@ -430,12 +431,12 @@ class IdentityContextManager extends EventEmitter {
         db.close();
         this.contextDatabases.delete(contextId);
 
-        console.log(`✓ 已卸载上下文数据库: ${contextId}`);
+        logger.info(`✓ 已卸载上下文数据库: ${contextId}`);
       }
 
       return { success: true };
     } catch (error) {
-      console.error('卸载上下文失败:', error);
+      logger.error('卸载上下文失败:', error);
       return { success: false, error: error.message };
     }
   }
@@ -460,10 +461,10 @@ class IdentityContextManager extends EventEmitter {
       if (activeContext) {
         await this.loadContext(activeContext.context_id);
         this.activeContext = activeContext;
-        console.log(`✓ 已加载默认上下文: ${activeContext.display_name}`);
+        logger.info(`✓ 已加载默认上下文: ${activeContext.display_name}`);
       }
     } catch (error) {
-      console.error('加载默认上下文失败:', error);
+      logger.error('加载默认上下文失败:', error);
     }
   }
 
@@ -495,7 +496,7 @@ class IdentityContextManager extends EventEmitter {
       const dbPath = path.resolve(context.db_path);
       if (fs.existsSync(dbPath)) {
         fs.unlinkSync(dbPath);
-        console.log(`✓ 已删除数据库文件: ${dbPath}`);
+        logger.info(`✓ 已删除数据库文件: ${dbPath}`);
       }
 
       // 5. 删除上下文记录
@@ -503,11 +504,11 @@ class IdentityContextManager extends EventEmitter {
         'DELETE FROM identity_contexts WHERE context_id = ?'
       ).run(contextId);
 
-      console.log(`✓ 已删除组织上下文: ${context.display_name}`);
+      logger.info(`✓ 已删除组织上下文: ${context.display_name}`);
 
       return { success: true };
     } catch (error) {
-      console.error('删除组织上下文失败:', error);
+      logger.error('删除组织上下文失败:', error);
       return { success: false, error: error.message };
     }
   }
@@ -531,7 +532,7 @@ class IdentityContextManager extends EventEmitter {
 
       return history;
     } catch (error) {
-      console.error('获取切换历史失败:', error);
+      logger.error('获取切换历史失败:', error);
       return [];
     }
   }
@@ -544,9 +545,9 @@ class IdentityContextManager extends EventEmitter {
     for (const [contextId, db] of this.contextDatabases.entries()) {
       try {
         db.close();
-        console.log(`✓ 已关闭上下文数据库: ${contextId}`);
+        logger.info(`✓ 已关闭上下文数据库: ${contextId}`);
       } catch (error) {
-        console.error(`关闭上下文数据库失败 ${contextId}:`, error);
+        logger.error(`关闭上下文数据库失败 ${contextId}:`, error);
       }
     }
     this.contextDatabases.clear();
@@ -555,9 +556,9 @@ class IdentityContextManager extends EventEmitter {
     if (this.identityDb) {
       try {
         this.identityDb.close();
-        console.log('✓ 已关闭身份上下文数据库');
+        logger.info('✓ 已关闭身份上下文数据库');
       } catch (error) {
-        console.error('关闭身份上下文数据库失败:', error);
+        logger.error('关闭身份上下文数据库失败:', error);
       }
     }
   }

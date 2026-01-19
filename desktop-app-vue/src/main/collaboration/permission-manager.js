@@ -17,6 +17,7 @@
  * - manage: Can manage permissions
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const EventEmitter = require('events');
 
 class PermissionManager extends EventEmitter {
@@ -60,7 +61,7 @@ class PermissionManager extends EventEmitter {
       // Get user's role in organization
       const userRole = await this.getUserRole(orgId, userDID);
       if (!userRole) {
-        console.log(`[PermissionManager] User ${userDID} not found in org ${orgId}`);
+        logger.info(`[PermissionManager] User ${userDID} not found in org ${orgId}`);
         return false;
       }
 
@@ -76,7 +77,7 @@ class PermissionManager extends EventEmitter {
       } else if (resourceType === 'knowledge') {
         permissions = await this.getKnowledgePermissions(resourceId);
       } else {
-        console.warn(`[PermissionManager] Unknown resource type: ${resourceType}`);
+        logger.warn(`[PermissionManager] Unknown resource type: ${resourceType}`);
         return false;
       }
 
@@ -84,12 +85,12 @@ class PermissionManager extends EventEmitter {
       const allowedRoles = permissions[action] || [];
       const hasPermission = allowedRoles.includes(userRole);
 
-      console.log(`[PermissionManager] User ${userDID} (${userRole}) ${hasPermission ? 'HAS' : 'DOES NOT HAVE'} ${action} permission on ${resourceType} ${resourceId}`);
+      logger.info(`[PermissionManager] User ${userDID} (${userRole}) ${hasPermission ? 'HAS' : 'DOES NOT HAVE'} ${action} permission on ${resourceType} ${resourceId}`);
 
       return hasPermission;
 
     } catch (error) {
-      console.error('[PermissionManager] Error checking permission:', error);
+      logger.error('[PermissionManager] Error checking permission:', error);
       return false;
     }
   }
@@ -108,7 +109,7 @@ class PermissionManager extends EventEmitter {
       return member?.role || null;
 
     } catch (error) {
-      console.error('[PermissionManager] Error getting user role:', error);
+      logger.error('[PermissionManager] Error getting user role:', error);
       return null;
     }
   }
@@ -131,7 +132,7 @@ class PermissionManager extends EventEmitter {
       return JSON.parse(folder.permissions);
 
     } catch (error) {
-      console.error('[PermissionManager] Error getting folder permissions:', error);
+      logger.error('[PermissionManager] Error getting folder permissions:', error);
       return this.defaultFolderPermissions;
     }
   }
@@ -154,7 +155,7 @@ class PermissionManager extends EventEmitter {
       return JSON.parse(orgKnowledge.permissions);
 
     } catch (error) {
-      console.error('[PermissionManager] Error getting knowledge permissions:', error);
+      logger.error('[PermissionManager] Error getting knowledge permissions:', error);
       return this.defaultKnowledgePermissions;
     }
   }
@@ -191,7 +192,7 @@ class PermissionManager extends EventEmitter {
       return validatedPermissions;
 
     } catch (error) {
-      console.error('[PermissionManager] Error updating folder permissions:', error);
+      logger.error('[PermissionManager] Error updating folder permissions:', error);
       throw error;
     }
   }
@@ -228,7 +229,7 @@ class PermissionManager extends EventEmitter {
       return validatedPermissions;
 
     } catch (error) {
-      console.error('[PermissionManager] Error updating knowledge permissions:', error);
+      logger.error('[PermissionManager] Error updating knowledge permissions:', error);
       throw error;
     }
   }
@@ -288,7 +289,7 @@ class PermissionManager extends EventEmitter {
       return effectivePermissions;
 
     } catch (error) {
-      console.error('[PermissionManager] Error getting effective permissions:', error);
+      logger.error('[PermissionManager] Error getting effective permissions:', error);
       return [];
     }
   }
@@ -335,7 +336,7 @@ class PermissionManager extends EventEmitter {
       return accessibleFolders;
 
     } catch (error) {
-      console.error('[PermissionManager] Error getting accessible folders:', error);
+      logger.error('[PermissionManager] Error getting accessible folders:', error);
       return [];
     }
   }
@@ -386,7 +387,7 @@ class PermissionManager extends EventEmitter {
       return accessibleKnowledge;
 
     } catch (error) {
-      console.error('[PermissionManager] Error getting accessible knowledge:', error);
+      logger.error('[PermissionManager] Error getting accessible knowledge:', error);
       return [];
     }
   }
@@ -456,7 +457,7 @@ class PermissionManager extends EventEmitter {
       return results;
 
     } catch (error) {
-      console.error('[PermissionManager] Error in bulk update:', error);
+      logger.error('[PermissionManager] Error in bulk update:', error);
       throw error;
     }
   }
@@ -478,7 +479,7 @@ class PermissionManager extends EventEmitter {
       return parentPermissions;
 
     } catch (error) {
-      console.error('[PermissionManager] Error inheriting folder permissions:', error);
+      logger.error('[PermissionManager] Error inheriting folder permissions:', error);
       throw error;
     }
   }
@@ -521,7 +522,7 @@ class PermissionManager extends EventEmitter {
       };
 
     } catch (error) {
-      console.error('[PermissionManager] Error getting permission summary:', error);
+      logger.error('[PermissionManager] Error getting permission summary:', error);
       return null;
     }
   }

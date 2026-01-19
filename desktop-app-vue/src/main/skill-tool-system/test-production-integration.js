@@ -3,6 +3,7 @@
  * 测试ToolManager在主进程环境中加载Additional Tools V3
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const path = require('path');
 const DatabaseManager = require('../database');
 const ToolManager = require('./tool-manager');
@@ -17,7 +18,7 @@ class MockFunctionCaller {
   registerTool(name, handler, schema) {
     this.tools.set(name, { handler, schema });
     this.registeredTools.push(name);
-    console.log(`  [FunctionCaller] ✅ 注册工具: ${name}`);
+    logger.info(`  [FunctionCaller] ✅ 注册工具: ${name}`);
   }
 
   unregisterTool(name) {
@@ -45,7 +46,7 @@ class MockFunctionCaller {
 
   setToolManager(toolManager) {
     this.toolManager = toolManager;
-    console.log('[FunctionCaller] ToolManager引用已设置');
+    logger.info('[FunctionCaller] ToolManager引用已设置');
   }
 }
 
@@ -61,38 +62,38 @@ class ProductionIntegrationTester {
    */
   async initialize() {
     try {
-      console.log('========================================');
-      console.log('  生产环境集成测试');
-      console.log('  模拟Electron主进程环境');
-      console.log('========================================\n');
+      logger.info('========================================');
+      logger.info('  生产环境集成测试');
+      logger.info('  模拟Electron主进程环境');
+      logger.info('========================================\n');
 
       // 1. 初始化数据库
       const dbPath = process.env.DB_PATH || path.join(__dirname, '../../../../data/chainlesschain.db');
-      console.log(`[Test] 数据库路径: ${dbPath}`);
+      logger.info(`[Test] 数据库路径: ${dbPath}`);
 
       this.db = new DatabaseManager(dbPath, {
         encryptionEnabled: false,
       });
 
       await this.db.initialize();
-      console.log('[Test] ✅ 数据库连接成功\n');
+      logger.info('[Test] ✅ 数据库连接成功\n');
 
       // 2. 初始化FunctionCaller (模拟主进程中的FunctionCaller)
       this.functionCaller = new MockFunctionCaller();
-      console.log('[Test] ✅ FunctionCaller初始化成功\n');
+      logger.info('[Test] ✅ FunctionCaller初始化成功\n');
 
       // 3. 初始化ToolManager (这是关键测试点)
-      console.log('[Test] 开始初始化ToolManager...\n');
+      logger.info('[Test] 开始初始化ToolManager...\n');
       this.toolManager = new ToolManager(this.db, this.functionCaller);
 
       await this.toolManager.initialize();
 
-      console.log('\n[Test] ✅ ToolManager初始化完成\n');
+      logger.info('\n[Test] ✅ ToolManager初始化完成\n');
 
       return true;
 
     } catch (error) {
-      console.error('[Test] ❌ 初始化失败:', error);
+      logger.error('[Test] ❌ 初始化失败:', error);
       throw error;
     }
   }
@@ -102,9 +103,9 @@ class ProductionIntegrationTester {
    */
   async verifyV3ToolsLoaded() {
     try {
-      console.log('========================================');
-      console.log('  验证V3工具加载状态');
-      console.log('========================================\n');
+      logger.info('========================================');
+      logger.info('  验证V3工具加载状态');
+      logger.info('========================================\n');
 
       // 1. 检查数据库中的V3工具
       const dbTools = await this.db.all(
@@ -112,7 +113,7 @@ class ProductionIntegrationTester {
         ['%additional-tools-v3-handler%']
       );
 
-      console.log(`[Verify] 数据库中V3工具数量: ${dbTools.length}\n`);
+      logger.info(`[Verify] 数据库中V3工具数量: ${dbTools.length}\n`);
 
       // 2. 检查FunctionCaller中的V3工具
       const fcToolNames = this.functionCaller.registeredTools;
@@ -120,14 +121,14 @@ class ProductionIntegrationTester {
         return dbTools.some(tool => tool.name === name);
       });
 
-      console.log(`[Verify] FunctionCaller中V3工具数量: ${v3InFC.length}`);
-      console.log(`[Verify] 注册成功率: ${(v3InFC.length / dbTools.length * 100).toFixed(1)}%\n`);
+      logger.info(`[Verify] FunctionCaller中V3工具数量: ${v3InFC.length}`);
+      logger.info(`[Verify] 注册成功率: ${(v3InFC.length / dbTools.length * 100).toFixed(1)}%\n`);
 
       // 3. 检查ToolManager缓存
       const cachedV3Tools = Array.from(this.toolManager.tools.values())
         .filter(tool => tool.handler_path && tool.handler_path.includes('additional-tools-v3-handler'));
 
-      console.log(`[Verify] ToolManager缓存中V3工具数量: ${cachedV3Tools.length}\n`);
+      logger.info(`[Verify] ToolManager缓存中V3工具数量: ${cachedV3Tools.length}\n`);
 
       // 4. 按分类统计
       const toolsByCategory = {};
@@ -139,15 +140,15 @@ class ProductionIntegrationTester {
         toolsByCategory[category].push(tool.name);
       });
 
-      console.log('[Verify] V3工具分类统计:\n');
+      logger.info('[Verify] V3工具分类统计:\n');
       Object.entries(toolsByCategory).forEach(([category, tools]) => {
-        console.log(`  ${category.toUpperCase()} (${tools.length}个):`);
+        logger.info(`  ${category.toUpperCase()} (${tools.length}个):`);
         tools.forEach(tool => {
           const inFC = fcToolNames.includes(tool);
           const status = inFC ? '✅' : '❌';
-          console.log(`    ${status} ${tool}`);
+          logger.info(`    ${status} ${tool}`);
         });
-        console.log('');
+        logger.info('');
       });
 
       return {
@@ -158,7 +159,7 @@ class ProductionIntegrationTester {
       };
 
     } catch (error) {
-      console.error('[Verify] ❌ 验证失败:', error);
+      logger.error('[Verify] ❌ 验证失败:', error);
       throw error;
     }
   }
@@ -168,9 +169,9 @@ class ProductionIntegrationTester {
    */
   async testToolExecution() {
     try {
-      console.log('========================================');
-      console.log('  测试工具执行');
-      console.log('========================================\n');
+      logger.info('========================================');
+      logger.info('  测试工具执行');
+      logger.info('========================================\n');
 
       const testCases = [
         {
@@ -204,10 +205,10 @@ class ProductionIntegrationTester {
 
       for (const testCase of testCases) {
         try {
-          console.log(`[Execute] 测试工具: ${testCase.name}`);
+          logger.info(`[Execute] 测试工具: ${testCase.name}`);
 
           if (!this.functionCaller.hasTool(testCase.name)) {
-            console.log(`  ⚠️  工具未在FunctionCaller中注册，跳过\n`);
+            logger.info(`  ⚠️  工具未在FunctionCaller中注册，跳过\n`);
             continue;
           }
 
@@ -216,27 +217,27 @@ class ProductionIntegrationTester {
           const duration = Date.now() - startTime;
 
           if (result && result.success) {
-            console.log(`  ✅ 执行成功 (${duration}ms)`);
+            logger.info(`  ✅ 执行成功 (${duration}ms)`);
             passed++;
           } else {
-            console.log(`  ❌ 执行失败: ${result ? result.error : 'No result'}`);
+            logger.info(`  ❌ 执行失败: ${result ? result.error : 'No result'}`);
             failed++;
           }
 
         } catch (error) {
-          console.error(`  ❌ 执行异常: ${error.message}`);
+          logger.error(`  ❌ 执行异常: ${error.message}`);
           failed++;
         }
 
-        console.log('');
+        logger.info('');
       }
 
-      console.log(`[Execute] 测试完成: 成功 ${passed} 个, 失败 ${failed} 个\n`);
+      logger.info(`[Execute] 测试完成: 成功 ${passed} 个, 失败 ${failed} 个\n`);
 
       return { passed, failed, total: testCases.length };
 
     } catch (error) {
-      console.error('[Execute] ❌ 测试执行失败:', error);
+      logger.error('[Execute] ❌ 测试执行失败:', error);
       throw error;
     }
   }
@@ -246,20 +247,20 @@ class ProductionIntegrationTester {
    */
   async performanceTest() {
     try {
-      console.log('========================================');
-      console.log('  性能测试');
-      console.log('========================================\n');
+      logger.info('========================================');
+      logger.info('  性能测试');
+      logger.info('========================================\n');
 
       const testTool = 'financial_calculator';
       const iterations = 100;
 
       if (!this.functionCaller.hasTool(testTool)) {
-        console.log(`[Perf] 工具未注册，跳过性能测试\n`);
+        logger.info(`[Perf] 工具未注册，跳过性能测试\n`);
         return;
       }
 
-      console.log(`[Perf] 测试工具: ${testTool}`);
-      console.log(`[Perf] 迭代次数: ${iterations}\n`);
+      logger.info(`[Perf] 测试工具: ${testTool}`);
+      logger.info(`[Perf] 迭代次数: ${iterations}\n`);
 
       const durations = [];
       const params = {
@@ -279,10 +280,10 @@ class ProductionIntegrationTester {
       const minDuration = Math.min(...durations);
       const maxDuration = Math.max(...durations);
 
-      console.log(`[Perf] 平均执行时间: ${avgDuration.toFixed(2)}ms`);
-      console.log(`[Perf] 最快: ${minDuration}ms`);
-      console.log(`[Perf] 最慢: ${maxDuration}ms`);
-      console.log(`[Perf] 吞吐量: ${(1000 / avgDuration).toFixed(2)} 次/秒\n`);
+      logger.info(`[Perf] 平均执行时间: ${avgDuration.toFixed(2)}ms`);
+      logger.info(`[Perf] 最快: ${minDuration}ms`);
+      logger.info(`[Perf] 最慢: ${maxDuration}ms`);
+      logger.info(`[Perf] 吞吐量: ${(1000 / avgDuration).toFixed(2)} 次/秒\n`);
 
       return {
         avgDuration,
@@ -292,7 +293,7 @@ class ProductionIntegrationTester {
       };
 
     } catch (error) {
-      console.error('[Perf] ❌ 性能测试失败:', error);
+      logger.error('[Perf] ❌ 性能测试失败:', error);
     }
   }
 
@@ -300,41 +301,41 @@ class ProductionIntegrationTester {
    * 生成最终报告
    */
   generateReport(verifyResult, executeResult, perfResult) {
-    console.log('\n========================================');
-    console.log('  集成测试报告');
-    console.log('========================================\n');
+    logger.info('\n========================================');
+    logger.info('  集成测试报告');
+    logger.info('========================================\n');
 
-    console.log('【加载状态】');
-    console.log(`  数据库工具数: ${verifyResult.dbCount}`);
-    console.log(`  FunctionCaller注册数: ${verifyResult.fcCount}`);
-    console.log(`  ToolManager缓存数: ${verifyResult.cacheCount}`);
-    console.log(`  注册成功率: ${verifyResult.successRate}`);
+    logger.info('【加载状态】');
+    logger.info(`  数据库工具数: ${verifyResult.dbCount}`);
+    logger.info(`  FunctionCaller注册数: ${verifyResult.fcCount}`);
+    logger.info(`  ToolManager缓存数: ${verifyResult.cacheCount}`);
+    logger.info(`  注册成功率: ${verifyResult.successRate}`);
 
     if (executeResult) {
-      console.log('\n【功能测试】');
-      console.log(`  总测试数: ${executeResult.total}`);
-      console.log(`  成功: ${executeResult.passed}`);
-      console.log(`  失败: ${executeResult.failed}`);
-      console.log(`  成功率: ${(executeResult.passed / executeResult.total * 100).toFixed(1)}%`);
+      logger.info('\n【功能测试】');
+      logger.info(`  总测试数: ${executeResult.total}`);
+      logger.info(`  成功: ${executeResult.passed}`);
+      logger.info(`  失败: ${executeResult.failed}`);
+      logger.info(`  成功率: ${(executeResult.passed / executeResult.total * 100).toFixed(1)}%`);
     }
 
     if (perfResult) {
-      console.log('\n【性能指标】');
-      console.log(`  平均响应时间: ${perfResult.avgDuration}ms`);
-      console.log(`  吞吐量: ${perfResult.throughput} 次/秒`);
+      logger.info('\n【性能指标】');
+      logger.info(`  平均响应时间: ${perfResult.avgDuration}ms`);
+      logger.info(`  吞吐量: ${perfResult.throughput} 次/秒`);
     }
 
-    console.log('\n【结论】');
+    logger.info('\n【结论】');
     const allPassed = verifyResult.fcCount === verifyResult.dbCount &&
                       (!executeResult || executeResult.failed === 0);
 
     if (allPassed) {
-      console.log('  ✅ 生产环境集成成功！所有V3工具已正确加载并可正常使用。');
+      logger.info('  ✅ 生产环境集成成功！所有V3工具已正确加载并可正常使用。');
     } else {
-      console.log('  ⚠️  存在部分问题，请检查上述报告。');
+      logger.info('  ⚠️  存在部分问题，请检查上述报告。');
     }
 
-    console.log('\n========================================\n');
+    logger.info('\n========================================\n');
 
     return allPassed;
   }
@@ -346,10 +347,10 @@ class ProductionIntegrationTester {
     try {
       if (this.db && this.db.db) {
         await this.db.db.close();
-        console.log('[Test] 数据库连接已关闭');
+        logger.info('[Test] 数据库连接已关闭');
       }
     } catch (error) {
-      console.error('[Test] 清理失败:', error);
+      logger.error('[Test] 清理失败:', error);
     }
   }
 
@@ -376,7 +377,7 @@ class ProductionIntegrationTester {
       return success;
 
     } catch (error) {
-      console.error('\n[Test] 测试失败:', error);
+      logger.error('\n[Test] 测试失败:', error);
       return false;
     } finally {
       await this.cleanup();
@@ -392,7 +393,7 @@ if (require.main === module) {
       process.exit(success ? 0 : 1);
     })
     .catch(error => {
-      console.error('Fatal error:', error);
+      logger.error('Fatal error:', error);
       process.exit(1);
     });
 }

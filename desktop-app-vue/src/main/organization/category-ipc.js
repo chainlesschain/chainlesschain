@@ -1,3 +1,4 @@
+const { logger, createLogger } = require('../utils/logger.js');
 const { ipcMain } = require("electron");
 const CategoryManager = require("./category-manager");
 
@@ -31,7 +32,7 @@ function registerCategoryIPCHandlers(database, mainWindow) {
         manager.initializeDefaultCategories(userId);
         return { success: true };
       } catch (error) {
-        console.error("[CategoryIPC] 初始化默认分类失败:", error);
+        logger.error("[CategoryIPC] 初始化默认分类失败:", error);
         throw error;
       }
     },
@@ -44,7 +45,7 @@ function registerCategoryIPCHandlers(database, mainWindow) {
       const categories = manager.getProjectCategories(userId);
       return categories;
     } catch (error) {
-      console.error("[CategoryIPC] 获取分类列表失败:", error);
+      logger.error("[CategoryIPC] 获取分类列表失败:", error);
       throw error;
     }
   });
@@ -56,7 +57,7 @@ function registerCategoryIPCHandlers(database, mainWindow) {
       const category = manager.getProjectCategoryById(categoryId);
       return category;
     } catch (error) {
-      console.error("[CategoryIPC] 获取分类失败:", error);
+      logger.error("[CategoryIPC] 获取分类失败:", error);
       throw error;
     }
   });
@@ -66,10 +67,10 @@ function registerCategoryIPCHandlers(database, mainWindow) {
     try {
       const manager = getCategoryManager();
       const category = manager.createProjectCategory(categoryData);
-      console.log("[CategoryIPC] 分类创建成功:", category);
+      logger.info("[CategoryIPC] 分类创建成功:", category);
       return category;
     } catch (error) {
-      console.error("[CategoryIPC] 创建分类失败:", error);
+      logger.error("[CategoryIPC] 创建分类失败:", error);
       throw error;
     }
   });
@@ -79,10 +80,10 @@ function registerCategoryIPCHandlers(database, mainWindow) {
     try {
       const manager = getCategoryManager();
       const category = manager.updateProjectCategory(categoryId, updates);
-      console.log("[CategoryIPC] 分类更新成功:", category);
+      logger.info("[CategoryIPC] 分类更新成功:", category);
       return category;
     } catch (error) {
-      console.error("[CategoryIPC] 更新分类失败:", error);
+      logger.error("[CategoryIPC] 更新分类失败:", error);
       throw error;
     }
   });
@@ -92,10 +93,10 @@ function registerCategoryIPCHandlers(database, mainWindow) {
     try {
       const manager = getCategoryManager();
       const result = manager.deleteProjectCategory(categoryId);
-      console.log("[CategoryIPC] 分类删除成功");
+      logger.info("[CategoryIPC] 分类删除成功");
       return { success: result };
     } catch (error) {
-      console.error("[CategoryIPC] 删除分类失败:", error);
+      logger.error("[CategoryIPC] 删除分类失败:", error);
       throw error;
     }
   });
@@ -105,15 +106,15 @@ function registerCategoryIPCHandlers(database, mainWindow) {
     try {
       const manager = getCategoryManager();
       const result = manager.batchUpdateCategorySort(sortData);
-      console.log("[CategoryIPC] 分类排序更新成功");
+      logger.info("[CategoryIPC] 分类排序更新成功");
       return { success: result };
     } catch (error) {
-      console.error("[CategoryIPC] 更新分类排序失败:", error);
+      logger.error("[CategoryIPC] 更新分类排序失败:", error);
       throw error;
     }
   });
 
-  console.log("[CategoryIPC] 项目分类管理IPC处理函数已注册");
+  logger.info("[CategoryIPC] 项目分类管理IPC处理函数已注册");
 }
 
 module.exports = {

@@ -3,6 +3,7 @@
  * 提供数据预处理、机器学习、可视化等功能
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require('fs').promises;
 const path = require('path');
 const { spawn } = require('child_process');
@@ -161,7 +162,7 @@ print(json.dumps(result))
 
       return result;
     } catch (error) {
-      console.error('[Data Preprocessor] 处理失败:', error);
+      logger.error('[Data Preprocessor] 处理失败:', error);
 
       // 如果Python不可用，返回说明
       if (error.message.includes('spawn python ENOENT')) {
@@ -267,7 +268,7 @@ print(json.dumps({
 
       return result;
     } catch (error) {
-      console.error('[Chart Generator] 生成失败:', error);
+      logger.error('[Chart Generator] 生成失败:', error);
 
       if (error.message.includes('spawn python ENOENT')) {
         return {
@@ -391,7 +392,7 @@ print(json.dumps(result))
 
       return result;
     } catch (error) {
-      console.error('[ML Model Trainer] 训练失败:', error);
+      logger.error('[ML Model Trainer] 训练失败:', error);
 
       if (error.message.includes('spawn python ENOENT')) {
         return {
@@ -464,7 +465,7 @@ print(json.dumps({
 
       return result;
     } catch (error) {
-      console.error('[Statistical Analyzer] 分析失败:', error);
+      logger.error('[Statistical Analyzer] 分析失败:', error);
       throw new Error(`统计分析失败: ${error.message}`);
     }
   }
@@ -478,7 +479,7 @@ print(json.dumps({
     functionCaller.registerTool('tool_ml_model_trainer', this.tool_ml_model_trainer.bind(this));
     functionCaller.registerTool('tool_statistical_analyzer', this.tool_statistical_analyzer.bind(this));
 
-    console.log('[DataScienceToolsHandler] 数据科学工具已注册（4个）');
+    logger.info('[DataScienceToolsHandler] 数据科学工具已注册（4个）');
   }
 }
 

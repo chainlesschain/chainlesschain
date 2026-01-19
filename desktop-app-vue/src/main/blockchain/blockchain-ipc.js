@@ -3,6 +3,7 @@
  * 处理区块链操作、合约部署、资产管理等功能
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { ipcMain } = require('electron');
 
 /**
@@ -24,7 +25,7 @@ function registerBlockchainIPC({ blockchainAdapter, transactionMonitor, database
       await blockchainAdapter.switchChain(chainId);
       return { success: true };
     } catch (error) {
-      console.error('[Main] 切换网络失败:', error);
+      logger.error('[Main] 切换网络失败:', error);
       throw error;
     }
   });
@@ -38,7 +39,7 @@ function registerBlockchainIPC({ blockchainAdapter, transactionMonitor, database
 
       return await transactionMonitor.getTxHistory({ address, chainId, limit, offset });
     } catch (error) {
-      console.error('[Main] 获取交易历史失败:', error);
+      logger.error('[Main] 获取交易历史失败:', error);
       throw error;
     }
   });
@@ -52,7 +53,7 @@ function registerBlockchainIPC({ blockchainAdapter, transactionMonitor, database
 
       return await transactionMonitor.getTxDetail(txHash);
     } catch (error) {
-      console.error('[Main] 获取交易详情失败:', error);
+      logger.error('[Main] 获取交易详情失败:', error);
       throw error;
     }
   });
@@ -73,7 +74,7 @@ function registerBlockchainIPC({ blockchainAdapter, transactionMonitor, database
         chainId,
       });
     } catch (error) {
-      console.error('[Main] 部署 ERC-20 代币失败:', error);
+      logger.error('[Main] 部署 ERC-20 代币失败:', error);
       throw error;
     }
   });
@@ -92,7 +93,7 @@ function registerBlockchainIPC({ blockchainAdapter, transactionMonitor, database
         chainId,
       });
     } catch (error) {
-      console.error('[Main] 部署 NFT 失败:', error);
+      logger.error('[Main] 部署 NFT 失败:', error);
       throw error;
     }
   });
@@ -107,7 +108,7 @@ function registerBlockchainIPC({ blockchainAdapter, transactionMonitor, database
       const { walletId, contractAddress, to, metadataURI, chainId } = options;
       return await blockchainAdapter.mintNFT(walletId, contractAddress, to, metadataURI, chainId);
     } catch (error) {
-      console.error('[Main] 铸造 NFT 失败:', error);
+      logger.error('[Main] 铸造 NFT 失败:', error);
       throw error;
     }
   });
@@ -122,7 +123,7 @@ function registerBlockchainIPC({ blockchainAdapter, transactionMonitor, database
       const { walletId, tokenAddress, to, amount, chainId } = options;
       return await blockchainAdapter.transferToken(walletId, tokenAddress, to, amount, chainId);
     } catch (error) {
-      console.error('[Main] 转账代币失败:', error);
+      logger.error('[Main] 转账代币失败:', error);
       throw error;
     }
   });
@@ -136,7 +137,7 @@ function registerBlockchainIPC({ blockchainAdapter, transactionMonitor, database
 
       return await blockchainAdapter.getGasPrice(chainId);
     } catch (error) {
-      console.error('[Main] 获取 Gas 价格失败:', error);
+      logger.error('[Main] 获取 Gas 价格失败:', error);
       throw error;
     }
   });
@@ -150,7 +151,7 @@ function registerBlockchainIPC({ blockchainAdapter, transactionMonitor, database
 
       return await blockchainAdapter.estimateGas(transaction, chainId);
     } catch (error) {
-      console.error('[Main] 估算 Gas 失败:', error);
+      logger.error('[Main] 估算 Gas 失败:', error);
       throw error;
     }
   });
@@ -164,7 +165,7 @@ function registerBlockchainIPC({ blockchainAdapter, transactionMonitor, database
 
       return await blockchainAdapter.getBlock(blockNumber, chainId);
     } catch (error) {
-      console.error('[Main] 获取区块信息失败:', error);
+      logger.error('[Main] 获取区块信息失败:', error);
       throw error;
     }
   });
@@ -178,7 +179,7 @@ function registerBlockchainIPC({ blockchainAdapter, transactionMonitor, database
 
       return await blockchainAdapter.getBlockNumber(chainId);
     } catch (error) {
-      console.error('[Main] 获取区块号失败:', error);
+      logger.error('[Main] 获取区块号失败:', error);
       throw error;
     }
   });
@@ -203,7 +204,7 @@ function registerBlockchainIPC({ blockchainAdapter, transactionMonitor, database
 
       return { success: true };
     } catch (error) {
-      console.error('[Main] 监听合约事件失败:', error);
+      logger.error('[Main] 监听合约事件失败:', error);
       throw error;
     }
   });
@@ -231,7 +232,7 @@ function registerBlockchainIPC({ blockchainAdapter, transactionMonitor, database
         });
       });
     } catch (error) {
-      console.error('[Main] 获取合约部署记录失败:', error);
+      logger.error('[Main] 获取合约部署记录失败:', error);
       throw error;
     }
   });
@@ -259,12 +260,12 @@ function registerBlockchainIPC({ blockchainAdapter, transactionMonitor, database
         });
       });
     } catch (error) {
-      console.error('[Main] 获取链上资产失败:', error);
+      logger.error('[Main] 获取链上资产失败:', error);
       throw error;
     }
   });
 
-  console.log('[Blockchain IPC] 已注册 14 个区块链 IPC 处理器');
+  logger.info('[Blockchain IPC] 已注册 14 个区块链 IPC 处理器');
 }
 
 module.exports = { registerBlockchainIPC };

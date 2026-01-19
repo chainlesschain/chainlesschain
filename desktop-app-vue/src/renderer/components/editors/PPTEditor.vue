@@ -358,6 +358,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, watch, onMounted, nextTick } from 'vue';
 import { message } from 'ant-design-vue';
 import {
@@ -725,7 +727,7 @@ const exportPPT = async () => {
       message.success('导出成功: ' + result.filePath);
     }
   } catch (error) {
-    console.error('[PPTEditor] 导出失败:', error);
+    logger.error('[PPTEditor] 导出失败:', error);
     message.error('导出失败: ' + error.message);
   }
 };
@@ -740,7 +742,7 @@ const save = async () => {
     hasChanges.value = false;
     message.success('已保存');
   } catch (error) {
-    console.error('[PPTEditor] 保存失败:', error);
+    logger.error('[PPTEditor] 保存失败:', error);
     message.error('保存失败: ' + error.message);
   } finally {
     saving.value = false;

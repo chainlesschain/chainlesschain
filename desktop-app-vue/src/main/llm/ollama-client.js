@@ -4,6 +4,7 @@
  * 支持本地Ollama服务
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const axios = require('axios');
 const EventEmitter = require('events');
 
@@ -81,7 +82,7 @@ class OllamaClient extends EventEmitter {
         tokens: response.data.eval_count || 0,
       };
     } catch (error) {
-      console.error('[OllamaClient] 生成失败:', error);
+      logger.error('[OllamaClient] 生成失败:', error);
       throw error;
     }
   }
@@ -163,7 +164,7 @@ class OllamaClient extends EventEmitter {
         });
       });
     } catch (error) {
-      console.error('[OllamaClient] 流式生成失败:', error);
+      logger.error('[OllamaClient] 流式生成失败:', error);
       throw error;
     }
   }
@@ -194,7 +195,7 @@ class OllamaClient extends EventEmitter {
         tokens: response.data.eval_count || 0,
       };
     } catch (error) {
-      console.error('[OllamaClient] 聊天失败:', error);
+      logger.error('[OllamaClient] 聊天失败:', error);
       throw error;
     }
   }
@@ -269,7 +270,7 @@ class OllamaClient extends EventEmitter {
         });
       });
     } catch (error) {
-      console.error('[OllamaClient] 流式聊天失败:', error);
+      logger.error('[OllamaClient] 流式聊天失败:', error);
       throw error;
     }
   }
@@ -318,7 +319,7 @@ class OllamaClient extends EventEmitter {
         });
       });
     } catch (error) {
-      console.error('[OllamaClient] 拉取模型失败:', error);
+      logger.error('[OllamaClient] 拉取模型失败:', error);
       throw error;
     }
   }
@@ -337,7 +338,7 @@ class OllamaClient extends EventEmitter {
 
       return true;
     } catch (error) {
-      console.error('[OllamaClient] 删除模型失败:', error);
+      logger.error('[OllamaClient] 删除模型失败:', error);
       throw error;
     }
   }
@@ -354,7 +355,7 @@ class OllamaClient extends EventEmitter {
 
       return response.data;
     } catch (error) {
-      console.error('[OllamaClient] 获取模型信息失败:', error);
+      logger.error('[OllamaClient] 获取模型信息失败:', error);
       throw error;
     }
   }
@@ -373,7 +374,7 @@ class OllamaClient extends EventEmitter {
 
       return response.data.embedding;
     } catch (error) {
-      console.error('[OllamaClient] 生成嵌入失败:', error);
+      logger.error('[OllamaClient] 生成嵌入失败:', error);
       throw error;
     }
   }

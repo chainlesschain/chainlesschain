@@ -6,14 +6,15 @@
 // 设置环境变量启用真实实现
 process.env.USE_REAL_TOOLS = 'true';
 
+const { logger, createLogger } = require('../utils/logger.js');
 const FunctionCaller = require('../ai-engine/function-caller');
 const fs = require('fs').promises;
 const path = require('path');
 
 async function testPhase5RealTools() {
-  console.log('========================================');
-  console.log('Phase 5 真实功能测试 - 日历和笔记搜索');
-  console.log('========================================\n');
+  logger.info('========================================');
+  logger.info('Phase 5 真实功能测试 - 日历和笔记搜索');
+  logger.info('========================================\n');
 
   const functionCaller = new FunctionCaller();
   const testDir = path.join(__dirname, '../../test-output');
@@ -27,14 +28,14 @@ async function testPhase5RealTools() {
 
   // ==================== 日历管理器测试 ====================
 
-  console.log('🗓️  日历管理器测试\n');
-  console.log('═══════════════════════════════════════\n');
+  logger.info('🗓️  日历管理器测试\n');
+  logger.info('═══════════════════════════════════════\n');
 
   let createdEventId = null;
   let createdEventPath = null;
 
   // ==================== 测试1: 创建日历事件 ====================
-  console.log('📝 测试1: 创建日历事件\n');
+  logger.info('📝 测试1: 创建日历事件\n');
   try {
     const result = await functionCaller.call('calendar_manager', {
       action: 'create',
@@ -60,31 +61,31 @@ async function testPhase5RealTools() {
       // 验证文件是否创建
       const stats = await fs.stat(createdEventPath);
 
-      console.log('   ✅ 日历事件创建成功!');
-      console.log(`   → 事件ID: ${result.event_id}`);
-      console.log(`   → 标题: ${result.event.title}`);
-      console.log(`   → 开始时间: ${result.event.start_time}`);
-      console.log(`   → 结束时间: ${result.event.end_time}`);
-      console.log(`   → 地点: ${result.event.location}`);
-      console.log(`   → 参与者: ${result.event.attendees.length}人`);
-      console.log(`   → 文件路径: ${result.calendar_path}`);
-      console.log(`   → 文件大小: ${stats.size} 字节\n`);
+      logger.info('   ✅ 日历事件创建成功!');
+      logger.info(`   → 事件ID: ${result.event_id}`);
+      logger.info(`   → 标题: ${result.event.title}`);
+      logger.info(`   → 开始时间: ${result.event.start_time}`);
+      logger.info(`   → 结束时间: ${result.event.end_time}`);
+      logger.info(`   → 地点: ${result.event.location}`);
+      logger.info(`   → 参与者: ${result.event.attendees.length}人`);
+      logger.info(`   → 文件路径: ${result.calendar_path}`);
+      logger.info(`   → 文件大小: ${stats.size} 字节\n`);
 
       passedTests++;
       results.push({ test: '创建日历事件', status: '通过', event_id: result.event_id });
     } else {
-      console.log(`   ❌ 创建失败: ${result.error}\n`);
+      logger.info(`   ❌ 创建失败: ${result.error}\n`);
       failedTests++;
       results.push({ test: '创建日历事件', status: '失败', error: result.error });
     }
   } catch (error) {
-    console.log(`   ❌ 异常: ${error.message}\n`);
+    logger.info(`   ❌ 异常: ${error.message}\n`);
     failedTests++;
     results.push({ test: '创建日历事件', status: '异常', error: error.message });
   }
 
   // ==================== 测试2: 创建重复事件 ====================
-  console.log('📝 测试2: 创建重复日历事件 (每周)\n');
+  logger.info('📝 测试2: 创建重复日历事件 (每周)\n');
   try {
     const result = await functionCaller.call('calendar_manager', {
       action: 'create',
@@ -101,27 +102,27 @@ async function testPhase5RealTools() {
     });
 
     if (result.success) {
-      console.log('   ✅ 重复事件创建成功!');
-      console.log(`   → 事件ID: ${result.event_id}`);
-      console.log(`   → 标题: ${result.event.title}`);
-      console.log(`   → 重复规则: ${result.event.recurrence}`);
-      console.log(`   → 文件路径: ${result.calendar_path}\n`);
+      logger.info('   ✅ 重复事件创建成功!');
+      logger.info(`   → 事件ID: ${result.event_id}`);
+      logger.info(`   → 标题: ${result.event.title}`);
+      logger.info(`   → 重复规则: ${result.event.recurrence}`);
+      logger.info(`   → 文件路径: ${result.calendar_path}\n`);
 
       passedTests++;
       results.push({ test: '创建重复事件', status: '通过' });
     } else {
-      console.log(`   ❌ 创建失败: ${result.error}\n`);
+      logger.info(`   ❌ 创建失败: ${result.error}\n`);
       failedTests++;
       results.push({ test: '创建重复事件', status: '失败', error: result.error });
     }
   } catch (error) {
-    console.log(`   ❌ 异常: ${error.message}\n`);
+    logger.info(`   ❌ 异常: ${error.message}\n`);
     failedTests++;
     results.push({ test: '创建重复事件', status: '异常', error: error.message });
   }
 
   // ==================== 测试3: 查询日历事件 ====================
-  console.log('📝 测试3: 查询日历事件\n');
+  logger.info('📝 测试3: 查询日历事件\n');
   try {
     const result = await functionCaller.call('calendar_manager', {
       action: 'query',
@@ -132,30 +133,30 @@ async function testPhase5RealTools() {
     });
 
     if (result.success) {
-      console.log('   ✅ 事件查询成功!');
-      console.log(`   → 日期范围: ${result.date_range.start} 至 ${result.date_range.end}`);
-      console.log(`   → 找到事件: ${result.count}个`);
-      console.log(`   → 事件列表:`);
+      logger.info('   ✅ 事件查询成功!');
+      logger.info(`   → 日期范围: ${result.date_range.start} 至 ${result.date_range.end}`);
+      logger.info(`   → 找到事件: ${result.count}个`);
+      logger.info(`   → 事件列表:`);
       result.events.forEach((evt, idx) => {
-        console.log(`      ${idx + 1}. ${evt.title} (${evt.start_time})`);
+        logger.info(`      ${idx + 1}. ${evt.title} (${evt.start_time})`);
       });
-      console.log('');
+      logger.info('');
 
       passedTests++;
       results.push({ test: '查询日历事件', status: '通过', count: result.count });
     } else {
-      console.log(`   ❌ 查询失败: ${result.error}\n`);
+      logger.info(`   ❌ 查询失败: ${result.error}\n`);
       failedTests++;
       results.push({ test: '查询日历事件', status: '失败', error: result.error });
     }
   } catch (error) {
-    console.log(`   ❌ 异常: ${error.message}\n`);
+    logger.info(`   ❌ 异常: ${error.message}\n`);
     failedTests++;
     results.push({ test: '查询日历事件', status: '异常', error: error.message });
   }
 
   // ==================== 测试4: 更新日历事件 ====================
-  console.log('📝 测试4: 更新日历事件\n');
+  logger.info('📝 测试4: 更新日历事件\n');
   if (createdEventId) {
     try {
       const result = await functionCaller.call('calendar_manager', {
@@ -171,30 +172,30 @@ async function testPhase5RealTools() {
       });
 
       if (result.success) {
-        console.log('   ✅ 事件更新成功!');
-        console.log(`   → 事件ID: ${result.event_id}`);
-        console.log(`   → 修改项: ${result.changes.join(', ')}`);
-        console.log(`   → 文件路径: ${result.calendar_path}\n`);
+        logger.info('   ✅ 事件更新成功!');
+        logger.info(`   → 事件ID: ${result.event_id}`);
+        logger.info(`   → 修改项: ${result.changes.join(', ')}`);
+        logger.info(`   → 文件路径: ${result.calendar_path}\n`);
 
         passedTests++;
         results.push({ test: '更新日历事件', status: '通过' });
       } else {
-        console.log(`   ❌ 更新失败: ${result.error}\n`);
+        logger.info(`   ❌ 更新失败: ${result.error}\n`);
         failedTests++;
         results.push({ test: '更新日历事件', status: '失败', error: result.error });
       }
     } catch (error) {
-      console.log(`   ❌ 异常: ${error.message}\n`);
+      logger.info(`   ❌ 异常: ${error.message}\n`);
       failedTests++;
       results.push({ test: '更新日历事件', status: '异常', error: error.message });
     }
   } else {
-    console.log('   ⏭️  跳过: 无法获取创建的事件ID\n');
+    logger.info('   ⏭️  跳过: 无法获取创建的事件ID\n');
     results.push({ test: '更新日历事件', status: '跳过' });
   }
 
   // ==================== 测试5: 删除日历事件 ====================
-  console.log('📝 测试5: 删除日历事件\n');
+  logger.info('📝 测试5: 删除日历事件\n');
   if (createdEventId && createdEventPath) {
     try {
       const result = await functionCaller.call('calendar_manager', {
@@ -209,39 +210,39 @@ async function testPhase5RealTools() {
         // 验证文件是否被删除
         try {
           await fs.access(createdEventPath);
-          console.log(`   ❌ 删除失败: 文件仍然存在\n`);
+          logger.info(`   ❌ 删除失败: 文件仍然存在\n`);
           failedTests++;
           results.push({ test: '删除日历事件', status: '失败', error: '文件未删除' });
         } catch {
-          console.log('   ✅ 事件删除成功!');
-          console.log(`   → 事件ID: ${result.event_id}`);
-          console.log(`   → 消息: ${result.message}\n`);
+          logger.info('   ✅ 事件删除成功!');
+          logger.info(`   → 事件ID: ${result.event_id}`);
+          logger.info(`   → 消息: ${result.message}\n`);
 
           passedTests++;
           results.push({ test: '删除日历事件', status: '通过' });
         }
       } else {
-        console.log(`   ❌ 删除失败: ${result.error}\n`);
+        logger.info(`   ❌ 删除失败: ${result.error}\n`);
         failedTests++;
         results.push({ test: '删除日历事件', status: '失败', error: result.error });
       }
     } catch (error) {
-      console.log(`   ❌ 异常: ${error.message}\n`);
+      logger.info(`   ❌ 异常: ${error.message}\n`);
       failedTests++;
       results.push({ test: '删除日历事件', status: '异常', error: error.message });
     }
   } else {
-    console.log('   ⏭️  跳过: 无法获取创建的事件信息\n');
+    logger.info('   ⏭️  跳过: 无法获取创建的事件信息\n');
     results.push({ test: '删除日历事件', status: '跳过' });
   }
 
   // ==================== 笔记搜索器测试 ====================
 
-  console.log('🔍 笔记搜索器测试\n');
-  console.log('═══════════════════════════════════════\n');
+  logger.info('🔍 笔记搜索器测试\n');
+  logger.info('═══════════════════════════════════════\n');
 
   // 先创建一些测试笔记（使用Phase 4的note_editor）
-  console.log('📝 准备测试数据: 创建测试笔记\n');
+  logger.info('📝 准备测试数据: 创建测试笔记\n');
 
   const testNotes = [
     {
@@ -279,10 +280,10 @@ async function testPhase5RealTools() {
     });
   }
 
-  console.log(`   ✅ 创建了 ${testNotes.length} 个测试笔记\n`);
+  logger.info(`   ✅ 创建了 ${testNotes.length} 个测试笔记\n`);
 
   // ==================== 测试6: 基本笔记搜索 ====================
-  console.log('📝 测试6: 基本笔记搜索 (关键词: "学习")\n');
+  logger.info('📝 测试6: 基本笔记搜索 (关键词: "学习")\n');
   try {
     const result = await functionCaller.call('note_searcher', {
       query: '学习',
@@ -290,32 +291,32 @@ async function testPhase5RealTools() {
     });
 
     if (result.success) {
-      console.log('   ✅ 笔记搜索成功!');
-      console.log(`   → 搜索关键词: "${result.query}"`);
-      console.log(`   → 找到笔记: ${result.total_count}个 (总共 ${result.total_found}个)`);
-      console.log(`   → 搜索结果:`);
+      logger.info('   ✅ 笔记搜索成功!');
+      logger.info(`   → 搜索关键词: "${result.query}"`);
+      logger.info(`   → 找到笔记: ${result.total_count}个 (总共 ${result.total_found}个)`);
+      logger.info(`   → 搜索结果:`);
       result.results.forEach((note, idx) => {
-        console.log(`      ${idx + 1}. ${note.title} (相关度: ${(note.relevance * 100).toFixed(0)}%)`);
-        console.log(`         片段: ${note.snippet}`);
-        console.log(`         标签: [${note.tags.join(', ')}]`);
+        logger.info(`      ${idx + 1}. ${note.title} (相关度: ${(note.relevance * 100).toFixed(0)}%)`);
+        logger.info(`         片段: ${note.snippet}`);
+        logger.info(`         标签: [${note.tags.join(', ')}]`);
       });
-      console.log('');
+      logger.info('');
 
       passedTests++;
       results.push({ test: '基本笔记搜索', status: '通过', count: result.total_count });
     } else {
-      console.log(`   ❌ 搜索失败: ${result.error}\n`);
+      logger.info(`   ❌ 搜索失败: ${result.error}\n`);
       failedTests++;
       results.push({ test: '基本笔记搜索', status: '失败', error: result.error });
     }
   } catch (error) {
-    console.log(`   ❌ 异常: ${error.message}\n`);
+    logger.info(`   ❌ 异常: ${error.message}\n`);
     failedTests++;
     results.push({ test: '基本笔记搜索', status: '异常', error: error.message });
   }
 
   // ==================== 测试7: 标签过滤搜索 ====================
-  console.log('📝 测试7: 标签过滤搜索 (标签: "项目")\n');
+  logger.info('📝 测试7: 标签过滤搜索 (标签: "项目")\n');
   try {
     const result = await functionCaller.call('note_searcher', {
       query: '',
@@ -326,31 +327,31 @@ async function testPhase5RealTools() {
     });
 
     if (result.success) {
-      console.log('   ✅ 标签过滤成功!');
-      console.log(`   → 过滤标签: ["项目"]`);
-      console.log(`   → 找到笔记: ${result.total_count}个`);
-      console.log(`   → 搜索结果:`);
+      logger.info('   ✅ 标签过滤成功!');
+      logger.info(`   → 过滤标签: ["项目"]`);
+      logger.info(`   → 找到笔记: ${result.total_count}个`);
+      logger.info(`   → 搜索结果:`);
       result.results.forEach((note, idx) => {
-        console.log(`      ${idx + 1}. ${note.title}`);
-        console.log(`         标签: [${note.tags.join(', ')}]`);
+        logger.info(`      ${idx + 1}. ${note.title}`);
+        logger.info(`         标签: [${note.tags.join(', ')}]`);
       });
-      console.log('');
+      logger.info('');
 
       passedTests++;
       results.push({ test: '标签过滤搜索', status: '通过', count: result.total_count });
     } else {
-      console.log(`   ❌ 搜索失败: ${result.error}\n`);
+      logger.info(`   ❌ 搜索失败: ${result.error}\n`);
       failedTests++;
       results.push({ test: '标签过滤搜索', status: '失败', error: result.error });
     }
   } catch (error) {
-    console.log(`   ❌ 异常: ${error.message}\n`);
+    logger.info(`   ❌ 异常: ${error.message}\n`);
     failedTests++;
     results.push({ test: '标签过滤搜索', status: '异常', error: error.message });
   }
 
   // ==================== 测试8: 按相关度排序 ====================
-  console.log('📝 测试8: 按相关度排序搜索 (关键词: "Phase")\n');
+  logger.info('📝 测试8: 按相关度排序搜索 (关键词: "Phase")\n');
   try {
     const result = await functionCaller.call('note_searcher', {
       query: 'Phase',
@@ -359,15 +360,15 @@ async function testPhase5RealTools() {
     });
 
     if (result.success) {
-      console.log('   ✅ 相关度排序成功!');
-      console.log(`   → 搜索关键词: "${result.query}"`);
-      console.log(`   → 排序方式: ${result.sort_by}`);
-      console.log(`   → 找到笔记: ${result.total_count}个`);
-      console.log(`   → 搜索结果 (按相关度降序):`);
+      logger.info('   ✅ 相关度排序成功!');
+      logger.info(`   → 搜索关键词: "${result.query}"`);
+      logger.info(`   → 排序方式: ${result.sort_by}`);
+      logger.info(`   → 找到笔记: ${result.total_count}个`);
+      logger.info(`   → 搜索结果 (按相关度降序):`);
       result.results.forEach((note, idx) => {
-        console.log(`      ${idx + 1}. ${note.title} (相关度: ${(note.relevance * 100).toFixed(0)}%)`);
+        logger.info(`      ${idx + 1}. ${note.title} (相关度: ${(note.relevance * 100).toFixed(0)}%)`);
       });
-      console.log('');
+      logger.info('');
 
       // 验证排序是否正确
       let isSorted = true;
@@ -382,23 +383,23 @@ async function testPhase5RealTools() {
         passedTests++;
         results.push({ test: '按相关度排序', status: '通过' });
       } else {
-        console.log('   ⚠️  排序验证失败\n');
+        logger.info('   ⚠️  排序验证失败\n');
         failedTests++;
         results.push({ test: '按相关度排序', status: '失败', error: '排序不正确' });
       }
     } else {
-      console.log(`   ❌ 搜索失败: ${result.error}\n`);
+      logger.info(`   ❌ 搜索失败: ${result.error}\n`);
       failedTests++;
       results.push({ test: '按相关度排序', status: '失败', error: result.error });
     }
   } catch (error) {
-    console.log(`   ❌ 异常: ${error.message}\n`);
+    logger.info(`   ❌ 异常: ${error.message}\n`);
     failedTests++;
     results.push({ test: '按相关度排序', status: '异常', error: error.message });
   }
 
   // ==================== 测试9: 限制结果数量 ====================
-  console.log('📝 测试9: 限制结果数量 (limit=2)\n');
+  logger.info('📝 测试9: 限制结果数量 (limit=2)\n');
   try {
     const result = await functionCaller.call('note_searcher', {
       query: '',
@@ -407,57 +408,57 @@ async function testPhase5RealTools() {
     });
 
     if (result.success) {
-      console.log('   ✅ 限制结果成功!');
-      console.log(`   → 限制数量: 2`);
-      console.log(`   → 返回结果: ${result.total_count}个`);
-      console.log(`   → 总共找到: ${result.total_found}个`);
+      logger.info('   ✅ 限制结果成功!');
+      logger.info(`   → 限制数量: 2`);
+      logger.info(`   → 返回结果: ${result.total_count}个`);
+      logger.info(`   → 总共找到: ${result.total_found}个`);
 
       if (result.total_count <= 2) {
         passedTests++;
         results.push({ test: '限制结果数量', status: '通过' });
       } else {
-        console.log('   ⚠️  结果数量超出限制\n');
+        logger.info('   ⚠️  结果数量超出限制\n');
         failedTests++;
         results.push({ test: '限制结果数量', status: '失败', error: '结果数量超出限制' });
       }
-      console.log('');
+      logger.info('');
     } else {
-      console.log(`   ❌ 搜索失败: ${result.error}\n`);
+      logger.info(`   ❌ 搜索失败: ${result.error}\n`);
       failedTests++;
       results.push({ test: '限制结果数量', status: '失败', error: result.error });
     }
   } catch (error) {
-    console.log(`   ❌ 异常: ${error.message}\n`);
+    logger.info(`   ❌ 异常: ${error.message}\n`);
     failedTests++;
     results.push({ test: '限制结果数量', status: '异常', error: error.message });
   }
 
   // ==================== 测试总结 ====================
-  console.log('========================================');
-  console.log('测试总结');
-  console.log('========================================\n');
+  logger.info('========================================');
+  logger.info('测试总结');
+  logger.info('========================================\n');
 
   const totalTests = passedTests + failedTests;
   const successRate = totalTests > 0 ? ((passedTests / totalTests) * 100).toFixed(1) : 0;
 
-  console.log(`总测试数: ${totalTests}`);
-  console.log(`通过: ${passedTests} ✅`);
-  console.log(`失败: ${failedTests} ❌`);
-  console.log(`成功率: ${successRate}%\n`);
+  logger.info(`总测试数: ${totalTests}`);
+  logger.info(`通过: ${passedTests} ✅`);
+  logger.info(`失败: ${failedTests} ❌`);
+  logger.info(`成功率: ${successRate}%\n`);
 
-  console.log('详细结果:');
+  logger.info('详细结果:');
   results.forEach((result, index) => {
     const statusIcon = result.status === '通过' ? '✅' :
                       result.status === '跳过' ? '⏭️' : '❌';
-    console.log(`${index + 1}. ${statusIcon} ${result.test} - ${result.status}`);
-    if (result.event_id) {console.log(`   事件ID: ${result.event_id}`);}
-    if (result.error) {console.log(`   错误: ${result.error}`);}
-    if (result.count !== undefined) {console.log(`   数量: ${result.count}`);}
+    logger.info(`${index + 1}. ${statusIcon} ${result.test} - ${result.status}`);
+    if (result.event_id) {logger.info(`   事件ID: ${result.event_id}`);}
+    if (result.error) {logger.info(`   错误: ${result.error}`);}
+    if (result.count !== undefined) {logger.info(`   数量: ${result.count}`);}
   });
 
-  console.log('\n========================================');
-  console.log(`测试输出目录: ${testDir}`);
-  console.log('========================================\n');
+  logger.info('\n========================================');
+  logger.info(`测试输出目录: ${testDir}`);
+  logger.info('========================================\n');
 
   return {
     total: totalTests,
@@ -473,16 +474,16 @@ if (require.main === module) {
   testPhase5RealTools()
     .then((summary) => {
       if (summary.failed === 0) {
-        console.log('🎉 所有测试通过!');
+        logger.info('🎉 所有测试通过!');
         process.exit(0);
       } else {
-        console.log('⚠️ 有测试失败');
+        logger.info('⚠️ 有测试失败');
         process.exit(1);
       }
     })
     .catch((error) => {
-      console.error('❌ 测试执行失败:', error);
-      console.error(error.stack);
+      logger.error('❌ 测试执行失败:', error);
+      logger.error(error.stack);
       process.exit(1);
     });
 }

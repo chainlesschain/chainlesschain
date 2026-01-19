@@ -3,6 +3,7 @@
  * Provides insights into usage patterns, performance trends, and optimization opportunities
  */
 
+import { logger, createLogger } from '@/utils/logger';
 import performanceTracker from './performance-tracker'
 import predictivePrefetcher from './predictive-prefetcher'
 import adaptivePerformance from './adaptive-performance'
@@ -66,10 +67,10 @@ class AdvancedAnalytics {
         this.performanceTrends = data.performanceTrends || this.performanceTrends
         this.featureUsage = new Map(data.featureUsage || [])
 
-        console.log('[Analytics] Loaded historical data')
+        logger.info('[Analytics] Loaded historical data')
       }
     } catch (error) {
-      console.error('[Analytics] Failed to load history:', error)
+      logger.error('[Analytics] Failed to load history:', error)
     }
   }
 
@@ -83,7 +84,7 @@ class AdvancedAnalytics {
         featureUsage: Array.from(this.featureUsage.entries())
       }))
     } catch (error) {
-      console.error('[Analytics] Failed to save data:', error)
+      logger.error('[Analytics] Failed to save data:', error)
     }
   }
 
@@ -275,7 +276,7 @@ class AdvancedAnalytics {
       patterns: this.analyzePatterns()
     }
 
-    console.log('[Analytics] Analysis:', insights)
+    logger.info('[Analytics] Analysis:', insights)
     return insights
   }
 
@@ -462,7 +463,7 @@ class AdvancedAnalytics {
       }
     }
 
-    console.log('[Analytics] Generated', this.recommendations.length, 'recommendations')
+    logger.info('[Analytics] Generated', this.recommendations.length, 'recommendations')
   }
 
   /**
@@ -550,7 +551,7 @@ class AdvancedAnalytics {
     this.recommendations = []
 
     localStorage.removeItem('analytics-history')
-    console.log('[Analytics] Data cleared')
+    logger.info('[Analytics] Data cleared')
   }
 
   /**
@@ -573,7 +574,7 @@ class AdvancedAnalytics {
     }
 
     this.saveData()
-    console.log('[Analytics] Collection stopped')
+    logger.info('[Analytics] Collection stopped')
   }
 }
 

@@ -1,3 +1,5 @@
+const { logger, createLogger } = require('../utils/logger.js');
+
 /**
  * 第十一批扩展工具 (217-236): 前沿物理与尖端科学工具
  * 包含引力波探测、粒子物理、暗物质、核聚变、光子计算、
@@ -64,12 +66,12 @@ class ExtendedTools11 {
         // 带通滤波
         if (bandpass.low_freq && bandpass.high_freq) {
           // 简化实现:仅标记已滤波
-          console.log(`Applied bandpass filter: ${bandpass.low_freq}-${bandpass.high_freq} Hz`);
+          logger.info(`Applied bandpass filter: ${bandpass.low_freq}-${bandpass.high_freq} Hz`);
         }
 
         // 陷波滤波器(去除线谱噪声)
         if (notch_filters.length > 0) {
-          console.log(`Applied notch filters at: ${notch_filters.join(', ')} Hz`);
+          logger.info(`Applied notch filters at: ${notch_filters.join(', ')} Hz`);
         }
 
         // 计算功率谱密度 (PSD)
@@ -2175,7 +2177,7 @@ class ExtendedTools11 {
       }
     });
 
-    console.log('ExtendedTools11: 已注册第十一批全部20个工具 (217-236)');
+    logger.info('ExtendedTools11: 已注册第十一批全部20个工具 (217-236)');
   }
 }
 

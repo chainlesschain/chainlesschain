@@ -72,6 +72,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, watch } from 'vue';
 import {
   FolderOpenOutlined,
@@ -133,7 +135,7 @@ const browsePath = async () => {
       handleInputChange();
     }
   } catch (error) {
-    console.error('选择路径失败:', error);
+    logger.error('选择路径失败:', error);
     message.error('打开文件夹选择对话框失败');
   }
 };
@@ -178,7 +180,7 @@ const validatePathAccess = async (path) => {
       }, 2000);
     }
   } catch (error) {
-    console.error('路径验证失败:', error);
+    logger.error('路径验证失败:', error);
     validation.value.error = '路径验证失败: ' + error.message;
   } finally {
     validation.value.checking = false;

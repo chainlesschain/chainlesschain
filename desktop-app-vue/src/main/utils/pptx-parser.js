@@ -3,6 +3,7 @@
  * 使用 JSZip 和 xml2js 直接解析 PPTX 文件
  */
 
+const { logger, createLogger } = require('./logger.js');
 const fs = require('fs').promises;
 const JSZip = require('jszip');
 const xml2js = require('xml2js');
@@ -14,7 +15,7 @@ const xml2js = require('xml2js');
  */
 async function parsePPTX(filePath) {
   try {
-    console.log('[PPTX Parser] 开始解析:', filePath);
+    logger.info('[PPTX Parser] 开始解析:', filePath);
 
     // 读取文件
     const data = await fs.readFile(filePath);
@@ -40,7 +41,7 @@ async function parsePPTX(filePath) {
       return numA - numB;
     });
 
-    console.log(`[PPTX Parser] 找到 ${slideFiles.length} 张幻灯片`);
+    logger.info(`[PPTX Parser] 找到 ${slideFiles.length} 张幻灯片`);
 
     // 解析每张幻灯片
     const slides = [];
@@ -60,7 +61,7 @@ async function parsePPTX(filePath) {
           allTexts: texts
         });
       } catch (err) {
-        console.error(`[PPTX Parser] 解析幻灯片 ${path} 失败:`, err);
+        logger.error(`[PPTX Parser] 解析幻灯片 ${path} 失败:`, err);
         slides.push({
           title: '',
           content: [],
@@ -70,11 +71,11 @@ async function parsePPTX(filePath) {
       }
     }
 
-    console.log('[PPTX Parser] 解析完成');
+    logger.info('[PPTX Parser] 解析完成');
     return slides;
 
   } catch (error) {
-    console.error('[PPTX Parser] 解析失败:', error);
+    logger.error('[PPTX Parser] 解析失败:', error);
     throw error;
   }
 }

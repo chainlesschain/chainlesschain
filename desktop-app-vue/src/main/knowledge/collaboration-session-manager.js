@@ -12,6 +12,7 @@
  * - Session statistics
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const EventEmitter = require('events');
 const { v4: uuidv4 } = require('uuid');
 
@@ -98,11 +99,11 @@ class CollaborationSessionManager extends EventEmitter {
 
       this.emit('session:created', sessionInfo);
 
-      console.log(`[CollabSession] Created session ${sessionId} for knowledge ${knowledgeId}`);
+      logger.info(`[CollabSession] Created session ${sessionId} for knowledge ${knowledgeId}`);
       return sessionInfo;
 
     } catch (error) {
-      console.error('[CollabSession] Error creating session:', error);
+      logger.error('[CollabSession] Error creating session:', error);
       throw error;
     }
   }
@@ -165,7 +166,7 @@ class CollaborationSessionManager extends EventEmitter {
       }
 
     } catch (error) {
-      console.error('[CollabSession] Error updating session:', error);
+      logger.error('[CollabSession] Error updating session:', error);
       throw error;
     }
   }
@@ -193,7 +194,7 @@ class CollaborationSessionManager extends EventEmitter {
       }
 
       if (!sessionInfo) {
-        console.warn(`[CollabSession] Session ${sessionId} not found`);
+        logger.warn(`[CollabSession] Session ${sessionId} not found`);
         return;
       }
 
@@ -213,10 +214,10 @@ class CollaborationSessionManager extends EventEmitter {
 
       this.emit('session:ended', sessionInfo);
 
-      console.log(`[CollabSession] Ended session ${sessionId}`);
+      logger.info(`[CollabSession] Ended session ${sessionId}`);
 
     } catch (error) {
-      console.error('[CollabSession] Error ending session:', error);
+      logger.error('[CollabSession] Error ending session:', error);
       throw error;
     }
   }
@@ -296,7 +297,7 @@ class CollaborationSessionManager extends EventEmitter {
       const message = JSON.stringify(event);
       await this.p2pManager.pubsub.publish(topic, Buffer.from(message));
     } catch (error) {
-      console.error('[CollabSession] Error broadcasting event:', error);
+      logger.error('[CollabSession] Error broadcasting event:', error);
     }
   }
 
@@ -312,7 +313,7 @@ class CollaborationSessionManager extends EventEmitter {
         for (const session of sessions) {
           // Check if session has timed out
           if (now - session.lastActivity > this.sessionTimeout) {
-            console.log(`[CollabSession] Session ${session.id} timed out`);
+            logger.info(`[CollabSession] Session ${session.id} timed out`);
             this.endSession(session.id);
           }
         }
@@ -342,7 +343,7 @@ class CollaborationSessionManager extends EventEmitter {
    * Clean up all sessions
    */
   async cleanup() {
-    console.log('[CollabSession] Cleaning up all sessions');
+    logger.info('[CollabSession] Cleaning up all sessions');
 
     for (const [knowledgeId, sessions] of this.activeSessions.entries()) {
       for (const session of sessions) {

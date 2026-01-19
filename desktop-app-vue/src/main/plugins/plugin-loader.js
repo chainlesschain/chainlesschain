@@ -7,6 +7,7 @@
  * - 插件代码加载和安装
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const path = require('path');
 const fs = require('fs');
 const { app } = require('electron');
@@ -49,19 +50,19 @@ class PluginLoader {
    * @returns {Promise<string>} 插件路径
    */
   async resolve(source, options = {}) {
-    console.log(`[PluginLoader] 解析插件来源: ${source}`);
+    logger.info(`[PluginLoader] 解析插件来源: ${source}`);
 
     // 1. 检查是否为本地路径
     if (fs.existsSync(source)) {
       const stat = fs.statSync(source);
 
       if (stat.isDirectory()) {
-        console.log(`[PluginLoader] 识别为本地目录: ${source}`);
+        logger.info(`[PluginLoader] 识别为本地目录: ${source}`);
         return source; // 开发模式：直接使用本地目录
       }
 
       if (stat.isFile() && source.endsWith('.zip')) {
-        console.log(`[PluginLoader] 识别为ZIP文件: ${source}`);
+        logger.info(`[PluginLoader] 识别为ZIP文件: ${source}`);
         // 解压ZIP到临时目录
         const extractPath = path.join(this.tempDir, `extract_${Date.now()}`);
         await this.extractZip(source, extractPath);
@@ -71,7 +72,7 @@ class PluginLoader {
 
     // 2. 尝试作为NPM包处理
     if (this.isNpmPackage(source)) {
-      console.log(`[PluginLoader] 识别为NPM包: ${source}`);
+      logger.info(`[PluginLoader] 识别为NPM包: ${source}`);
       return await this.installFromNpm(source, options);
     }
 
@@ -170,7 +171,7 @@ class PluginLoader {
       throw new Error(`无效的插件ID格式: ${manifest.id}，只能包含小写字母、数字、点和短横线`);
     }
 
-    console.log(`[PluginLoader] Manifest验证通过: ${manifest.id}`);
+    logger.info(`[PluginLoader] Manifest验证通过: ${manifest.id}`);
   }
 
   /**
@@ -183,11 +184,11 @@ class PluginLoader {
     const category = manifest.category || 'custom';
     const targetPath = path.join(this.pluginsDir, category, manifest.id);
 
-    console.log(`[PluginLoader] 安装插件: ${manifest.id} -> ${targetPath}`);
+    logger.info(`[PluginLoader] 安装插件: ${manifest.id} -> ${targetPath}`);
 
     // 如果目标已存在，先删除
     if (fs.existsSync(targetPath)) {
-      console.warn(`[PluginLoader] 目标路径已存在，将被覆盖: ${targetPath}`);
+      logger.warn(`[PluginLoader] 目标路径已存在，将被覆盖: ${targetPath}`);
       await fs.promises.rm(targetPath, { recursive: true, force: true });
     }
 
@@ -199,11 +200,11 @@ class PluginLoader {
 
     // 安装NPM依赖（如果有）
     if (manifest.dependencies && Object.keys(manifest.dependencies).length > 0) {
-      console.log(`[PluginLoader] 安装NPM依赖...`);
+      logger.info(`[PluginLoader] 安装NPM依赖...`);
       await this.installNpmDependencies(targetPath);
     }
 
-    console.log(`[PluginLoader] 插件安装成功: ${targetPath}`);
+    logger.info(`[PluginLoader] 插件安装成功: ${targetPath}`);
 
     return targetPath;
   }
@@ -222,7 +223,7 @@ class PluginLoader {
     const installPath = path.join(this.tempDir, `npm_${Date.now()}`);
     fs.mkdirSync(installPath, { recursive: true });
 
-    console.log(`[PluginLoader] 从NPM安装: ${fullPackage}`);
+    logger.info(`[PluginLoader] 从NPM安装: ${fullPackage}`);
 
     // 执行 npm install
     await this.execCommand('npm', ['install', fullPackage, '--prefix', installPath]);
@@ -267,9 +268,9 @@ class PluginLoader {
    */
   async uninstall(pluginPath) {
     if (fs.existsSync(pluginPath)) {
-      console.log(`[PluginLoader] 卸载插件: ${pluginPath}`);
+      logger.info(`[PluginLoader] 卸载插件: ${pluginPath}`);
       await fs.promises.rm(pluginPath, { recursive: true, force: true });
-      console.log(`[PluginLoader] 插件已删除`);
+      logger.info(`[PluginLoader] 插件已删除`);
     }
   }
 
@@ -287,7 +288,7 @@ class PluginLoader {
       fs.mkdirSync(extractPath, { recursive: true });
       zip.extractAllTo(extractPath, true);
 
-      console.log(`[PluginLoader] ZIP解压成功: ${extractPath}`);
+      logger.info(`[PluginLoader] ZIP解压成功: ${extractPath}`);
     } catch (error) {
       // 如果没有 adm-zip，使用系统命令
       if (process.platform === 'win32') {
@@ -352,10 +353,10 @@ class PluginLoader {
 
       child.on('close', (code) => {
         if (code === 0) {
-          console.log('[PluginLoader] NPM依赖安装成功');
+          logger.info('[PluginLoader] NPM依赖安装成功');
           resolve();
         } else {
-          console.error('[PluginLoader] NPM依赖安装失败:', output);
+          logger.error('[PluginLoader] NPM依赖安装失败:', output);
           reject(new Error(`NPM依赖安装失败，退出代码: ${code}`));
         }
       });

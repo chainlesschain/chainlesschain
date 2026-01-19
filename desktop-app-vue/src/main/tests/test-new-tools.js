@@ -3,6 +3,7 @@
  * 验证 Office、数据科学和项目初始化工具
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const path = require('path');
 const fs = require('fs').promises;
 const FunctionCaller = require('./ai-engine/function-caller');
@@ -20,39 +21,39 @@ class NewToolsTester {
   }
 
   async initialize() {
-    console.log('='.repeat(70));
-    console.log('新工具功能测试');
-    console.log('='.repeat(70));
-    console.log('\n1. 初始化测试环境...\n');
+    logger.info('='.repeat(70));
+    logger.info('新工具功能测试');
+    logger.info('='.repeat(70));
+    logger.info('\n1. 初始化测试环境...\n');
 
     // 创建输出目录
     try {
       await fs.mkdir(this.outputDir, { recursive: true });
-      console.log(`   ✓ 输出目录: ${this.outputDir}\n`);
+      logger.info(`   ✓ 输出目录: ${this.outputDir}\n`);
     } catch (error) {
-      console.log(`   ⚠️  创建目录失败: ${error.message}\n`);
+      logger.info(`   ⚠️  创建目录失败: ${error.message}\n`);
     }
 
     // 注册内置工具
     try {
       await this.functionCaller.registerBuiltInTools();
-      console.log('   ✓ 工具注册成功\n');
+      logger.info('   ✓ 工具注册成功\n');
     } catch (error) {
-      console.log(`   ✗ 工具注册失败: ${error.message}\n`);
+      logger.info(`   ✗ 工具注册失败: ${error.message}\n`);
       throw error;
     }
   }
 
   async testTool(toolName, params, description) {
     this.results.total++;
-    console.log(`\n测试 ${this.results.total}: ${description}`);
-    console.log('-'.repeat(70));
+    logger.info(`\n测试 ${this.results.total}: ${description}`);
+    logger.info('-'.repeat(70));
 
     try {
       const result = await this.functionCaller.call(toolName, params);
 
-      console.log('✅ 测试通过');
-      console.log('结果:', JSON.stringify(result, null, 2).substring(0, 200));
+      logger.info('✅ 测试通过');
+      logger.info('结果:', JSON.stringify(result, null, 2).substring(0, 200));
 
       this.results.passed++;
       this.results.tests.push({
@@ -64,8 +65,8 @@ class NewToolsTester {
 
       return result;
     } catch (error) {
-      console.log('❌ 测试失败');
-      console.log('错误:', error.message);
+      logger.info('❌ 测试失败');
+      logger.info('错误:', error.message);
 
       this.results.failed++;
       this.results.tests.push({
@@ -80,9 +81,9 @@ class NewToolsTester {
   }
 
   async runOfficeToolsTests() {
-    console.log('\n' + '='.repeat(70));
-    console.log('Office 工具测试');
-    console.log('='.repeat(70));
+    logger.info('\n' + '='.repeat(70));
+    logger.info('Office 工具测试');
+    logger.info('='.repeat(70));
 
     // 测试 Word 生成器
     await this.testTool(
@@ -156,9 +157,9 @@ class NewToolsTester {
   }
 
   async runProjectToolsTests() {
-    console.log('\n' + '='.repeat(70));
-    console.log('项目初始化工具测试');
-    console.log('='.repeat(70));
+    logger.info('\n' + '='.repeat(70));
+    logger.info('项目初始化工具测试');
+    logger.info('='.repeat(70));
 
     // 测试 NPM 项目初始化
     const projectPath = path.join(this.outputDir, 'test-npm-project');
@@ -188,60 +189,60 @@ class NewToolsTester {
   }
 
   async runDataScienceToolsTests() {
-    console.log('\n' + '='.repeat(70));
-    console.log('数据科学工具测试（模拟）');
-    console.log('='.repeat(70));
+    logger.info('\n' + '='.repeat(70));
+    logger.info('数据科学工具测试（模拟）');
+    logger.info('='.repeat(70));
 
-    console.log('\n⚠️  数据科学工具需要Python环境，跳过实际测试');
-    console.log('   这些工具在有Python环境时可以正常工作：');
-    console.log('   - tool_data_preprocessor: 数据预处理');
-    console.log('   - tool_ml_model_trainer: 模型训练');
-    console.log('   - tool_data_visualizer: 数据可视化');
-    console.log('   - tool_feature_engineer: 特征工程');
+    logger.info('\n⚠️  数据科学工具需要Python环境，跳过实际测试');
+    logger.info('   这些工具在有Python环境时可以正常工作：');
+    logger.info('   - tool_data_preprocessor: 数据预处理');
+    logger.info('   - tool_ml_model_trainer: 模型训练');
+    logger.info('   - tool_data_visualizer: 数据可视化');
+    logger.info('   - tool_feature_engineer: 特征工程');
   }
 
   async printSummary() {
-    console.log('\n' + '='.repeat(70));
-    console.log('测试总结');
-    console.log('='.repeat(70));
+    logger.info('\n' + '='.repeat(70));
+    logger.info('测试总结');
+    logger.info('='.repeat(70));
 
-    console.log(`\n总测试数: ${this.results.total}`);
-    console.log(`通过: ${this.results.passed} ✅`);
-    console.log(`失败: ${this.results.failed} ❌`);
-    console.log(`成功率: ${((this.results.passed / this.results.total) * 100).toFixed(1)}%`);
+    logger.info(`\n总测试数: ${this.results.total}`);
+    logger.info(`通过: ${this.results.passed} ✅`);
+    logger.info(`失败: ${this.results.failed} ❌`);
+    logger.info(`成功率: ${((this.results.passed / this.results.total) * 100).toFixed(1)}%`);
 
-    console.log('\n详细结果:');
+    logger.info('\n详细结果:');
     this.results.tests.forEach((test, index) => {
       const icon = test.status === 'passed' ? '✅' : '❌';
-      console.log(`${index + 1}. ${icon} ${test.description}`);
+      logger.info(`${index + 1}. ${icon} ${test.description}`);
       if (test.status === 'failed') {
-        console.log(`   错误: ${test.error}`);
+        logger.info(`   错误: ${test.error}`);
       }
     });
 
-    console.log('\n输出文件位置:');
-    console.log(`   ${this.outputDir}`);
+    logger.info('\n输出文件位置:');
+    logger.info(`   ${this.outputDir}`);
 
-    console.log('\n' + '='.repeat(70));
+    logger.info('\n' + '='.repeat(70));
 
     // 检查生成的文件
     try {
       const files = await fs.readdir(this.outputDir);
-      console.log('\n生成的文件:');
+      logger.info('\n生成的文件:');
       for (const file of files) {
         const filePath = path.join(this.outputDir, file);
         const stats = await fs.stat(filePath);
         if (stats.isFile()) {
-          console.log(`   - ${file} (${(stats.size / 1024).toFixed(2)} KB)`);
+          logger.info(`   - ${file} (${(stats.size / 1024).toFixed(2)} KB)`);
         } else if (stats.isDirectory()) {
-          console.log(`   - ${file}/ (目录)`);
+          logger.info(`   - ${file}/ (目录)`);
         }
       }
     } catch (error) {
-      console.log('\n未能列出生成的文件:', error.message);
+      logger.info('\n未能列出生成的文件:', error.message);
     }
 
-    console.log('\n' + '='.repeat(70));
+    logger.info('\n' + '='.repeat(70));
   }
 
   async run() {
@@ -254,8 +255,8 @@ class NewToolsTester {
 
       return this.results.failed === 0;
     } catch (error) {
-      console.error('\n❌ 测试过程出错:', error);
-      console.error(error.stack);
+      logger.error('\n❌ 测试过程出错:', error);
+      logger.error(error.stack);
       return false;
     }
   }
@@ -269,7 +270,7 @@ if (require.main === module) {
       process.exit(success ? 0 : 1);
     })
     .catch(error => {
-      console.error('测试失败:', error);
+      logger.error('测试失败:', error);
       process.exit(1);
     });
 }

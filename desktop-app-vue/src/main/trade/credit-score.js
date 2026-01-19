@@ -1,3 +1,4 @@
+const { logger, createLogger } = require('../utils/logger.js');
 const EventEmitter = require('events');
 
 /**
@@ -79,7 +80,7 @@ class CreditScoreManager extends EventEmitter {
       )
     `);
 
-    console.log('[CreditScore] 数据库表初始化完成');
+    logger.info('[CreditScore] 数据库表初始化完成');
   }
 
   /**
@@ -101,7 +102,7 @@ class CreditScoreManager extends EventEmitter {
       VALUES (?, ?)
     `).run(userDid, now);
 
-    console.log('[CreditScore] 用户信用记录已初始化:', userDid);
+    logger.info('[CreditScore] 用户信用记录已初始化:', userDid);
     return this.getUserCredit(userDid);
   }
 
@@ -200,7 +201,7 @@ class CreditScoreManager extends EventEmitter {
       creditLevel: level.name
     });
 
-    console.log('[CreditScore] 信用评分已更新:', userDid, score, level.name);
+    logger.info('[CreditScore] 信用评分已更新:', userDid, score, level.name);
 
     return {
       creditScore: score,
@@ -453,7 +454,7 @@ class CreditScoreManager extends EventEmitter {
       ) VALUES (?, ?, ?, ?, ?, ?, ?)
     `).run(userDid, eventType, eventId, scoreChange, scoreAfter, reason, now);
 
-    console.log('[CreditScore] 信用记录已添加:', userDid, eventType, scoreChange);
+    logger.info('[CreditScore] 信用记录已添加:', userDid, eventType, scoreChange);
   }
 
   /**
@@ -588,7 +589,7 @@ class CreditScoreManager extends EventEmitter {
       })
     );
 
-    console.log('[CreditScore] 信用快照已创建:', userDid);
+    logger.info('[CreditScore] 信用快照已创建:', userDid);
   }
 
   /**
@@ -619,18 +620,18 @@ class CreditScoreManager extends EventEmitter {
       SELECT DISTINCT user_did FROM user_credits
     `).all();
 
-    console.log('[CreditScore] 开始批量计算信用评分，共', users.length, '个用户');
+    logger.info('[CreditScore] 开始批量计算信用评分，共', users.length, '个用户');
 
     for (const { user_did } of users) {
       try {
         await this.calculateCreditScore(user_did);
         this.createSnapshot(user_did);
       } catch (error) {
-        console.error('[CreditScore] 计算用户信用评分失败:', user_did, error);
+        logger.error('[CreditScore] 计算用户信用评分失败:', user_did, error);
       }
     }
 
-    console.log('[CreditScore] 批量计算完成');
+    logger.info('[CreditScore] 批量计算完成');
   }
 }
 

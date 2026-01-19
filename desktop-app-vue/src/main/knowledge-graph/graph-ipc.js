@@ -5,6 +5,7 @@
  * 提供11个IPC处理器用于知识图谱的构建、查询和管理
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { ipcMain } = require('electron');
 
 /**
@@ -25,7 +26,7 @@ function registerGraphIPC(context) {
       }
       return database.getGraphData(options);
     } catch (error) {
-      console.error('[Graph IPC] 获取图谱数据失败:', error);
+      logger.error('[Graph IPC] 获取图谱数据失败:', error);
       return { nodes: [], edges: [] };
     }
   });
@@ -34,12 +35,12 @@ function registerGraphIPC(context) {
   ipcMain.handle('graph:process-note', async (_event, noteId, content, tags) => {
     try {
       if (!graphExtractor) {
-        console.warn('[Graph IPC] GraphExtractor 未初始化');
+        logger.warn('[Graph IPC] GraphExtractor 未初始化');
         return 0;
       }
       return graphExtractor.processNote(noteId, content, tags);
     } catch (error) {
-      console.error('[Graph IPC] 处理笔记关系失败:', error);
+      logger.error('[Graph IPC] 处理笔记关系失败:', error);
       return 0;
     }
   });
@@ -48,12 +49,12 @@ function registerGraphIPC(context) {
   ipcMain.handle('graph:process-all-notes', async (_event, noteIds) => {
     try {
       if (!graphExtractor) {
-        console.warn('[Graph IPC] GraphExtractor 未初始化');
+        logger.warn('[Graph IPC] GraphExtractor 未初始化');
         return { processed: 0, linkRelations: 0, tagRelations: 0, temporalRelations: 0 };
       }
       return graphExtractor.processAllNotes(noteIds);
     } catch (error) {
-      console.error('[Graph IPC] 批量处理笔记失败:', error);
+      logger.error('[Graph IPC] 批量处理笔记失败:', error);
       return { processed: 0, linkRelations: 0, tagRelations: 0, temporalRelations: 0 };
     }
   });
@@ -66,7 +67,7 @@ function registerGraphIPC(context) {
       }
       return database.getKnowledgeRelations(knowledgeId);
     } catch (error) {
-      console.error('[Graph IPC] 获取笔记关系失败:', error);
+      logger.error('[Graph IPC] 获取笔记关系失败:', error);
       return [];
     }
   });
@@ -79,7 +80,7 @@ function registerGraphIPC(context) {
       }
       return database.findRelatedNotes(sourceId, targetId, maxDepth);
     } catch (error) {
-      console.error('[Graph IPC] 查找关联路径失败:', error);
+      logger.error('[Graph IPC] 查找关联路径失败:', error);
       return null;
     }
   });
@@ -92,7 +93,7 @@ function registerGraphIPC(context) {
       }
       return graphExtractor.findPotentialLinks(noteId, content);
     } catch (error) {
-      console.error('[Graph IPC] 查找潜在链接失败:', error);
+      logger.error('[Graph IPC] 查找潜在链接失败:', error);
       return [];
     }
   });
@@ -105,7 +106,7 @@ function registerGraphIPC(context) {
       }
       return database.addRelation(sourceId, targetId, type, weight, metadata);
     } catch (error) {
-      console.error('[Graph IPC] 添加关系失败:', error);
+      logger.error('[Graph IPC] 添加关系失败:', error);
       throw error;
     }
   });
@@ -118,7 +119,7 @@ function registerGraphIPC(context) {
       }
       return database.deleteRelations(noteId, types);
     } catch (error) {
-      console.error('[Graph IPC] 删除关系失败:', error);
+      logger.error('[Graph IPC] 删除关系失败:', error);
       return 0;
     }
   });
@@ -131,7 +132,7 @@ function registerGraphIPC(context) {
       }
       return database.buildTagRelations();
     } catch (error) {
-      console.error('[Graph IPC] 构建标签关系失败:', error);
+      logger.error('[Graph IPC] 构建标签关系失败:', error);
       return 0;
     }
   });
@@ -144,7 +145,7 @@ function registerGraphIPC(context) {
       }
       return database.buildTemporalRelations(windowDays);
     } catch (error) {
-      console.error('[Graph IPC] 构建时间关系失败:', error);
+      logger.error('[Graph IPC] 构建时间关系失败:', error);
       return 0;
     }
   });
@@ -153,12 +154,12 @@ function registerGraphIPC(context) {
   ipcMain.handle('graph:extract-semantic-relations', async (_event, noteId, content) => {
     try {
       if (!graphExtractor || !llmManager) {
-        console.warn('[Graph IPC] GraphExtractor 或 LLMManager 未初始化');
+        logger.warn('[Graph IPC] GraphExtractor 或 LLMManager 未初始化');
         return [];
       }
       return await graphExtractor.extractSemanticRelations(noteId, content, llmManager);
     } catch (error) {
-      console.error('[Graph IPC] 提取语义关系失败:', error);
+      logger.error('[Graph IPC] 提取语义关系失败:', error);
       return [];
     }
   });
@@ -181,7 +182,7 @@ function registerGraphIPC(context) {
           throw new Error(`未知的中心性类型: ${type}`);
       }
     } catch (error) {
-      console.error('[Graph IPC] 计算中心性失败:', error);
+      logger.error('[Graph IPC] 计算中心性失败:', error);
       return [];
     }
   });
@@ -193,7 +194,7 @@ function registerGraphIPC(context) {
       const communities = analytics.detectCommunities(nodes, edges);
       return Array.from(communities.entries());
     } catch (error) {
-      console.error('[Graph IPC] 社区检测失败:', error);
+      logger.error('[Graph IPC] 社区检测失败:', error);
       return [];
     }
   });
@@ -205,7 +206,7 @@ function registerGraphIPC(context) {
       const clusters = analytics.clusterNodes(nodes, edges, k);
       return Array.from(clusters.entries());
     } catch (error) {
-      console.error('[Graph IPC] 节点聚类失败:', error);
+      logger.error('[Graph IPC] 节点聚类失败:', error);
       return [];
     }
   });
@@ -216,7 +217,7 @@ function registerGraphIPC(context) {
       const analytics = require('./graph-analytics');
       return analytics.findKeyNodes(nodes, edges, topN);
     } catch (error) {
-      console.error('[Graph IPC] 查找关键节点失败:', error);
+      logger.error('[Graph IPC] 查找关键节点失败:', error);
       return [];
     }
   });
@@ -227,7 +228,7 @@ function registerGraphIPC(context) {
       const analytics = require('./graph-analytics');
       return analytics.analyzeGraphStats(nodes, edges);
     } catch (error) {
-      console.error('[Graph IPC] 分析图谱统计失败:', error);
+      logger.error('[Graph IPC] 分析图谱统计失败:', error);
       return null;
     }
   });
@@ -239,7 +240,7 @@ function registerGraphIPC(context) {
       const result = await exportGraph(nodes, edges, format);
       return result;
     } catch (error) {
-      console.error('[Graph IPC] 导出图谱失败:', error);
+      logger.error('[Graph IPC] 导出图谱失败:', error);
       throw error;
     }
   });
@@ -255,7 +256,7 @@ function registerGraphIPC(context) {
         return { entities: entityExtraction.extractEntities(text), relations: [] };
       }
     } catch (error) {
-      console.error('[Graph IPC] 提取实体失败:', error);
+      logger.error('[Graph IPC] 提取实体失败:', error);
       return { entities: [], relations: [] };
     }
   });
@@ -266,7 +267,7 @@ function registerGraphIPC(context) {
       const entityExtraction = require('./entity-extraction');
       return entityExtraction.extractKeywords(text, topN);
     } catch (error) {
-      console.error('[Graph IPC] 提取关键词失败:', error);
+      logger.error('[Graph IPC] 提取关键词失败:', error);
       return [];
     }
   });
@@ -278,7 +279,7 @@ function registerGraphIPC(context) {
       const manager = useLLM ? llmManager : null;
       return await entityExtraction.processNotesForEntities(notes, manager);
     } catch (error) {
-      console.error('[Graph IPC] 批量处理笔记失败:', error);
+      logger.error('[Graph IPC] 批量处理笔记失败:', error);
       return [];
     }
   });
@@ -289,12 +290,12 @@ function registerGraphIPC(context) {
       const entityExtraction = require('./entity-extraction');
       return entityExtraction.buildEntityGraph(processedNotes);
     } catch (error) {
-      console.error('[Graph IPC] 构建实体关系图失败:', error);
+      logger.error('[Graph IPC] 构建实体关系图失败:', error);
       return { nodes: [], edges: [] };
     }
   });
 
-  console.log('[Graph IPC] 已注册 21 个知识图谱 IPC 处理器');
+  logger.info('[Graph IPC] 已注册 21 个知识图谱 IPC 处理器');
 }
 
 module.exports = {

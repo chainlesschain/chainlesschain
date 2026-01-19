@@ -1,6 +1,7 @@
 /**
  * Quick MCP Benchmark - Reduced iterations for faster testing
  */
+const { logger, createLogger } = require('../../utils/logger.js');
 const { MCPClientManager } = require('../mcp-client-manager');
 const MCPPerformanceMonitor = require('../mcp-performance-monitor');
 const path = require('path');
@@ -19,9 +20,9 @@ const TEST_CONFIG = {
 };
 
 async function runQuickBenchmark() {
-  console.log('\n═══════════════════════════════════════════════════');
-  console.log('  MCP QUICK BENCHMARK (5 iterations)');
-  console.log('═══════════════════════════════════════════════════\n');
+  logger.info('\n═══════════════════════════════════════════════════');
+  logger.info('  MCP QUICK BENCHMARK (5 iterations)');
+  logger.info('═══════════════════════════════════════════════════\n');
 
   // Setup test data
   if (!fs.existsSync(TEST_CONFIG.testDataPath)) {
@@ -35,19 +36,19 @@ async function runQuickBenchmark() {
 
   try {
     // Test 1: Connection
-    console.log('📊 TEST 1: Single Connection');
-    console.log('─────────────────────────────────────────\n');
+    logger.info('📊 TEST 1: Single Connection');
+    logger.info('─────────────────────────────────────────\n');
     
     mcpManager = new MCPClientManager();
     const connStart = Date.now();
     await mcpManager.connectServer('filesystem', TEST_CONFIG.servers.filesystem);
     const connTime = Date.now() - connStart;
-    console.log('  Connection time: ' + connTime + 'ms');
-    console.log('  Status: ' + (connTime < 60000 ? '✅ OK' : '⚠️ Slow (npx download)') + '\n');
+    logger.info('  Connection time: ' + connTime + 'ms');
+    logger.info('  Status: ' + (connTime < 60000 ? '✅ OK' : '⚠️ Slow (npx download)') + '\n');
 
     // Test 2: Tool calls
-    console.log('📊 TEST 2: Tool Calls (5x read_file)');
-    console.log('─────────────────────────────────────────\n');
+    logger.info('📊 TEST 2: Tool Calls (5x read_file)');
+    logger.info('─────────────────────────────────────────\n');
     
     const toolTimes = [];
     for (let i = 0; i < 5; i++) {
@@ -55,16 +56,16 @@ async function runQuickBenchmark() {
       await mcpManager.callTool('filesystem', 'read_file', { path: 'test-file.txt' });
       const duration = Date.now() - start;
       toolTimes.push(duration);
-      console.log('  Call ' + (i + 1) + ': ' + duration + 'ms');
+      logger.info('  Call ' + (i + 1) + ': ' + duration + 'ms');
     }
     
     const avgTime = toolTimes.reduce((a, b) => a + b, 0) / toolTimes.length;
-    console.log('\n  Average: ' + avgTime.toFixed(2) + 'ms');
-    console.log('  Status: ' + (avgTime < 100 ? '✅ EXCELLENT' : avgTime < 200 ? '✅ ACCEPTABLE' : '⚠️ SLOW') + '\n');
+    logger.info('\n  Average: ' + avgTime.toFixed(2) + 'ms');
+    logger.info('  Status: ' + (avgTime < 100 ? '✅ EXCELLENT' : avgTime < 200 ? '✅ ACCEPTABLE' : '⚠️ SLOW') + '\n');
 
     // Test 3: Direct comparison
-    console.log('📊 TEST 3: Direct File Read (Baseline)');
-    console.log('─────────────────────────────────────────\n');
+    logger.info('📊 TEST 3: Direct File Read (Baseline)');
+    logger.info('─────────────────────────────────────────\n');
     
     const directTimes = [];
     for (let i = 0; i < 5; i++) {
@@ -74,27 +75,27 @@ async function runQuickBenchmark() {
       directTimes.push(duration);
     }
     const avgDirect = directTimes.reduce((a, b) => a + b, 0) / directTimes.length;
-    console.log('  Average: ' + avgDirect.toFixed(2) + 'ms');
+    logger.info('  Average: ' + avgDirect.toFixed(2) + 'ms');
     
     const overhead = avgTime - avgDirect;
-    console.log('\n📊 OVERHEAD ANALYSIS');
-    console.log('─────────────────────────────────────────');
-    console.log('  MCP overhead: ' + overhead.toFixed(2) + 'ms');
-    console.log('  Status: ' + (overhead < 50 ? '✅ EXCELLENT' : overhead < 100 ? '✅ ACCEPTABLE' : '⚠️ NEEDS REVIEW') + '\n');
+    logger.info('\n📊 OVERHEAD ANALYSIS');
+    logger.info('─────────────────────────────────────────');
+    logger.info('  MCP overhead: ' + overhead.toFixed(2) + 'ms');
+    logger.info('  Status: ' + (overhead < 50 ? '✅ EXCELLENT' : overhead < 100 ? '✅ ACCEPTABLE' : '⚠️ NEEDS REVIEW') + '\n');
 
     // Summary
-    console.log('═══════════════════════════════════════════════════');
-    console.log('  QUICK BENCHMARK SUMMARY');
-    console.log('═══════════════════════════════════════════════════');
-    console.log('  Connection: ' + connTime + 'ms (first time includes npx download)');
-    console.log('  Tool call avg: ' + avgTime.toFixed(2) + 'ms');
-    console.log('  MCP overhead: ' + overhead.toFixed(2) + 'ms');
-    console.log('  Result: ' + (overhead < 100 ? '✅ POC VIABLE' : '⚠️ NEEDS OPTIMIZATION'));
-    console.log('═══════════════════════════════════════════════════\n');
+    logger.info('═══════════════════════════════════════════════════');
+    logger.info('  QUICK BENCHMARK SUMMARY');
+    logger.info('═══════════════════════════════════════════════════');
+    logger.info('  Connection: ' + connTime + 'ms (first time includes npx download)');
+    logger.info('  Tool call avg: ' + avgTime.toFixed(2) + 'ms');
+    logger.info('  MCP overhead: ' + overhead.toFixed(2) + 'ms');
+    logger.info('  Result: ' + (overhead < 100 ? '✅ POC VIABLE' : '⚠️ NEEDS OPTIMIZATION'));
+    logger.info('═══════════════════════════════════════════════════\n');
 
   } catch (error) {
-    console.error('\n❌ Benchmark failed:', error.message);
-    console.error(error.stack);
+    logger.error('\n❌ Benchmark failed:', error.message);
+    logger.error(error.stack);
   } finally {
     if (mcpManager) {
       await mcpManager.shutdown();

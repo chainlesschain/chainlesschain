@@ -82,6 +82,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, watch } from 'vue';
 import {
   FolderOutlined,
@@ -199,7 +201,7 @@ const buildTree = (files) => {
 
   files.forEach(file => {
     const filePath = file.file_path || file.file_name || 'untitled';
-    console.log('[FileTree] 处理文件:', filePath, 'file对象:', file);
+    logger.info('[FileTree] 处理文件:', filePath, 'file对象:', file);
     // 支持 Windows 和 Unix 路径分隔符
     const parts = filePath.split(/[\\/]/);
     let current = tree;
@@ -270,14 +272,14 @@ const getStatusLabel = (status) => {
 
 // 计算树形数据
 const treeData = computed(() => {
-  console.log('[FileTree] 接收到 files prop:', props.files?.length || 0, 'files');
+  logger.info('[FileTree] 接收到 files prop:', props.files?.length || 0, 'files');
   if (!props.files || props.files.length === 0) {
-    console.log('[FileTree] 没有文件，显示空状态');
+    logger.info('[FileTree] 没有文件，显示空状态');
     return [];
   }
-  console.log('[FileTree] 构建树形结构...');
+  logger.info('[FileTree] 构建树形结构...');
   const tree = buildTree(props.files);
-  console.log('[FileTree] 树形数据:', tree);
+  logger.info('[FileTree] 树形数据:', tree);
   return tree;
 });
 
@@ -387,7 +389,7 @@ const escapeRegExp = (string) => {
  */
 const handleSearchChange = () => {
   // 搜索时的逻辑已在 computed 中处理
-  console.log('[FileTree] 搜索:', searchQuery.value);
+  logger.info('[FileTree] 搜索:', searchQuery.value);
 };
 
 // 处理节点选择

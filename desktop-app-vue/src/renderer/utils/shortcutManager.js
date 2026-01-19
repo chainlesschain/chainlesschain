@@ -3,6 +3,7 @@
  * 提供全局快捷键注册和管理
  */
 
+import { logger, createLogger } from '@/utils/logger';
 import { ref, onMounted, onUnmounted } from 'vue';
 
 /**
@@ -61,7 +62,7 @@ class Shortcut {
     try {
       this.handler(event);
     } catch (error) {
-      console.error('[Shortcut] Handler error:', error);
+      logger.error('[Shortcut] Handler error:', error);
     }
   }
 }

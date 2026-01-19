@@ -1,3 +1,5 @@
+const { logger, createLogger } = require('../utils/logger.js');
+
 /**
  * PluginRegistry - 插件注册表
  *
@@ -18,7 +20,7 @@ class PluginRegistry {
    * 创建必要的数据库表
    */
   async initialize() {
-    console.log('[PluginRegistry] 初始化插件注册表...');
+    logger.info('[PluginRegistry] 初始化插件注册表...');
 
     try {
       // 读取并执行迁移脚本
@@ -39,10 +41,10 @@ class PluginRegistry {
         // 使用 exec 执行整个 SQL 脚本（更可靠）
         try {
           this.database.db.exec(cleanedSQL);
-          console.log('[PluginRegistry] 数据库表创建成功');
+          logger.info('[PluginRegistry] 数据库表创建成功');
         } catch (error) {
           // 如果整体执行失败，尝试逐个执行（跳过失败的语句）
-          console.warn('[PluginRegistry] 整体执行失败，尝试逐个执行...', error.message);
+          logger.warn('[PluginRegistry] 整体执行失败，尝试逐个执行...', error.message);
 
           const statements = cleanedSQL
             .split(';')
@@ -59,7 +61,7 @@ class PluginRegistry {
             } catch (err) {
               // 忽略 "already exists" 类型的错误
               if (!err.message.includes('already exists')) {
-                console.warn('[PluginRegistry] SQL语句执行失败:', statement.substring(0, 80) + '...', err.message);
+                logger.warn('[PluginRegistry] SQL语句执行失败:', statement.substring(0, 80) + '...', err.message);
                 failCount++;
               } else {
                 successCount++;
@@ -67,15 +69,15 @@ class PluginRegistry {
             }
           }
 
-          console.log(`[PluginRegistry] SQL执行完成: ${successCount} 成功, ${failCount} 失败`);
+          logger.info(`[PluginRegistry] SQL执行完成: ${successCount} 成功, ${failCount} 失败`);
         }
       } else {
-        console.warn('[PluginRegistry] 迁移文件不存在:', migrationPath);
+        logger.warn('[PluginRegistry] 迁移文件不存在:', migrationPath);
       }
 
       this.isInitialized = true;
     } catch (error) {
-      console.error('[PluginRegistry] 初始化失败:', error);
+      logger.error('[PluginRegistry] 初始化失败:', error);
       throw error;
     }
   }
@@ -132,7 +134,7 @@ class PluginRegistry {
       path: installedPath,
     });
 
-    console.log(`[PluginRegistry] 插件已注册: ${manifest.id}`);
+    logger.info(`[PluginRegistry] 插件已注册: ${manifest.id}`);
 
     return this.getPlugin(manifest.id);
   }
@@ -282,7 +284,7 @@ class PluginRegistry {
 
     await this.logEvent(pluginId, 'uninstalled');
 
-    console.log(`[PluginRegistry] 插件已注销: ${pluginId}`);
+    logger.info(`[PluginRegistry] 插件已注销: ${pluginId}`);
   }
 
   /**
@@ -470,7 +472,7 @@ class PluginRegistry {
     const info = stmt.run(thirtyDaysAgo);
     stmt.free();
 
-    console.log(`[PluginRegistry] 清理了 ${info.changes} 条旧日志`);
+    logger.info(`[PluginRegistry] 清理了 ${info.changes} 条旧日志`);
   }
 }
 

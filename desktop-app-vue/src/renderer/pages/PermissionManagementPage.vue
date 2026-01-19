@@ -268,6 +268,8 @@
 </template>
 
 <script>
+import { logger, createLogger } from '@/utils/logger';
+
 import { defineComponent, ref, reactive, onMounted, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import { message } from 'ant-design-vue';
@@ -346,7 +348,7 @@ export default defineComponent({
           overrides.value = result.overrides;
         }
       } catch (error) {
-        console.error('Failed to load overrides:', error);
+        logger.error('Failed to load overrides:', error);
       }
     };
 
@@ -360,7 +362,7 @@ export default defineComponent({
           templates.value = result.templates;
         }
       } catch (error) {
-        console.error('Failed to load templates:', error);
+        logger.error('Failed to load templates:', error);
       }
     };
 
@@ -374,7 +376,7 @@ export default defineComponent({
           groups.value = result.groups;
         }
       } catch (error) {
-        console.error('Failed to load groups:', error);
+        logger.error('Failed to load groups:', error);
       }
     };
 
@@ -389,7 +391,7 @@ export default defineComponent({
           statistics.value = result.statistics;
         }
       } catch (error) {
-        console.error('Failed to load statistics:', error);
+        logger.error('Failed to load statistics:', error);
       }
     };
 
@@ -405,7 +407,7 @@ export default defineComponent({
           auditLogs.value = result.logs;
         }
       } catch (error) {
-        console.error('Failed to load audit logs:', error);
+        logger.error('Failed to load audit logs:', error);
       }
     };
 
@@ -445,7 +447,7 @@ export default defineComponent({
           message.error(result.error || '创建失败');
         }
       } catch (error) {
-        console.error('Failed to create template:', error);
+        logger.error('Failed to create template:', error);
         message.error('创建失败');
       } finally {
         loading.value = false;
@@ -467,7 +469,7 @@ export default defineComponent({
           message.error(result.error || '创建失败');
         }
       } catch (error) {
-        console.error('Failed to create override:', error);
+        logger.error('Failed to create override:', error);
         message.error('创建失败');
       }
     };
@@ -487,7 +489,7 @@ export default defineComponent({
           message.error(result.error || '删除失败');
         }
       } catch (error) {
-        console.error('Failed to delete override:', error);
+        logger.error('Failed to delete override:', error);
         message.error('删除失败');
       }
     };
@@ -513,7 +515,7 @@ export default defineComponent({
           message.error(result.error || '应用失败');
         }
       } catch (error) {
-        console.error('Failed to apply template:', error);
+        logger.error('Failed to apply template:', error);
         message.error('应用失败');
       }
     };
@@ -533,7 +535,7 @@ export default defineComponent({
           message.error(result.error || '创建失败');
         }
       } catch (error) {
-        console.error('Failed to create group:', error);
+        logger.error('Failed to create group:', error);
         message.error('创建失败');
       }
     };
@@ -554,7 +556,7 @@ export default defineComponent({
           message.error(result.error || '分配失败');
         }
       } catch (error) {
-        console.error('Failed to assign group:', error);
+        logger.error('Failed to assign group:', error);
         message.error('分配失败');
       }
     };

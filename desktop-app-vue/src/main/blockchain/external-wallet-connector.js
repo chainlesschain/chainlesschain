@@ -10,6 +10,7 @@
  * - 监听网络变化
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const EventEmitter = require('events');
 const { v4: uuidv4 } = require('uuid');
 
@@ -46,13 +47,13 @@ class ExternalWalletConnector extends EventEmitter {
    * 初始化连接器
    */
   async initialize() {
-    console.log('[ExternalWalletConnector] 初始化外部钱包连接器...');
+    logger.info('[ExternalWalletConnector] 初始化外部钱包连接器...');
 
     try {
       this.initialized = true;
-      console.log('[ExternalWalletConnector] 外部钱包连接器初始化成功');
+      logger.info('[ExternalWalletConnector] 外部钱包连接器初始化成功');
     } catch (error) {
-      console.error('[ExternalWalletConnector] 初始化失败:', error);
+      logger.error('[ExternalWalletConnector] 初始化失败:', error);
       throw error;
     }
   }
@@ -72,7 +73,7 @@ class ExternalWalletConnector extends EventEmitter {
       }
 
       if (provider !== window.ethereum) {
-        console.warn('[ExternalWalletConnector] 检测到多个钱包，使用 MetaMask');
+        logger.warn('[ExternalWalletConnector] 检测到多个钱包，使用 MetaMask');
       }
 
       this.metamaskProvider = provider;
@@ -105,7 +106,7 @@ class ExternalWalletConnector extends EventEmitter {
       // 监听事件
       this._setupMetaMaskListeners();
 
-      console.log(`[ExternalWalletConnector] MetaMask 连接成功: ${address}`);
+      logger.info(`[ExternalWalletConnector] MetaMask 连接成功: ${address}`);
 
       this.emit('wallet:connected', {
         type: ExternalWalletType.METAMASK,
@@ -115,7 +116,7 @@ class ExternalWalletConnector extends EventEmitter {
 
       return { address, chainId: chainIdNumber };
     } catch (error) {
-      console.error('[ExternalWalletConnector] MetaMask 连接失败:', error);
+      logger.error('[ExternalWalletConnector] MetaMask 连接失败:', error);
       throw error;
     }
   }
@@ -165,7 +166,7 @@ class ExternalWalletConnector extends EventEmitter {
       // 监听事件
       this._setupWalletConnectListeners();
 
-      console.log(`[ExternalWalletConnector] WalletConnect 连接成功: ${address}`);
+      logger.info(`[ExternalWalletConnector] WalletConnect 连接成功: ${address}`);
 
       this.emit('wallet:connected', {
         type: ExternalWalletType.WALLETCONNECT,
@@ -175,7 +176,7 @@ class ExternalWalletConnector extends EventEmitter {
 
       return { address, chainId };
     } catch (error) {
-      console.error('[ExternalWalletConnector] WalletConnect 连接失败:', error);
+      logger.error('[ExternalWalletConnector] WalletConnect 连接失败:', error);
       throw error;
     }
   }
@@ -197,9 +198,9 @@ class ExternalWalletConnector extends EventEmitter {
 
       this.emit('wallet:disconnected');
 
-      console.log('[ExternalWalletConnector] 断开连接');
+      logger.info('[ExternalWalletConnector] 断开连接');
     } catch (error) {
-      console.error('[ExternalWalletConnector] 断开连接失败:', error);
+      logger.error('[ExternalWalletConnector] 断开连接失败:', error);
       throw error;
     }
   }
@@ -233,16 +234,16 @@ class ExternalWalletConnector extends EventEmitter {
 
       this.emit('chain:switched', { chainId });
 
-      console.log(`[ExternalWalletConnector] 切换到链: ${chainId}`);
+      logger.info(`[ExternalWalletConnector] 切换到链: ${chainId}`);
     } catch (error) {
       // 如果链未添加，尝试添加
       if (error.code === 4902) {
-        console.log('[ExternalWalletConnector] 链未添加，尝试添加...');
+        logger.info('[ExternalWalletConnector] 链未添加，尝试添加...');
         await this.addChain(chainId);
         // 添加成功后再次尝试切换
         await this.switchChain(chainId);
       } else {
-        console.error('[ExternalWalletConnector] 切换网络失败:', error);
+        logger.error('[ExternalWalletConnector] 切换网络失败:', error);
         throw error;
       }
     }
@@ -271,9 +272,9 @@ class ExternalWalletConnector extends EventEmitter {
         params: [params],
       });
 
-      console.log(`[ExternalWalletConnector] 添加链成功: ${config.name}`);
+      logger.info(`[ExternalWalletConnector] 添加链成功: ${config.name}`);
     } catch (error) {
-      console.error('[ExternalWalletConnector] 添加网络失败:', error);
+      logger.error('[ExternalWalletConnector] 添加网络失败:', error);
       throw error;
     }
   }
@@ -296,7 +297,7 @@ class ExternalWalletConnector extends EventEmitter {
 
       return signature;
     } catch (error) {
-      console.error('[ExternalWalletConnector] 签名失败:', error);
+      logger.error('[ExternalWalletConnector] 签名失败:', error);
       throw error;
     }
   }
@@ -324,7 +325,7 @@ class ExternalWalletConnector extends EventEmitter {
 
       return txHash;
     } catch (error) {
-      console.error('[ExternalWalletConnector] 发送交易失败:', error);
+      logger.error('[ExternalWalletConnector] 发送交易失败:', error);
       throw error;
     }
   }
@@ -338,7 +339,7 @@ class ExternalWalletConnector extends EventEmitter {
 
     // 监听账户变化
     this.metamaskProvider.on('accountsChanged', (accounts) => {
-      console.log('[ExternalWalletConnector] MetaMask 账户变化:', accounts);
+      logger.info('[ExternalWalletConnector] MetaMask 账户变化:', accounts);
 
       if (accounts.length === 0) {
         // 用户断开连接
@@ -351,7 +352,7 @@ class ExternalWalletConnector extends EventEmitter {
 
     // 监听链变化
     this.metamaskProvider.on('chainChanged', (chainId) => {
-      console.log('[ExternalWalletConnector] MetaMask 链变化:', chainId);
+      logger.info('[ExternalWalletConnector] MetaMask 链变化:', chainId);
 
       this.currentChainId = parseInt(chainId, 16);
       this.emit('chain:changed', { chainId: this.currentChainId });
@@ -362,13 +363,13 @@ class ExternalWalletConnector extends EventEmitter {
 
     // 监听连接
     this.metamaskProvider.on('connect', (connectInfo) => {
-      console.log('[ExternalWalletConnector] MetaMask 已连接:', connectInfo);
+      logger.info('[ExternalWalletConnector] MetaMask 已连接:', connectInfo);
       this.emit('provider:connected', connectInfo);
     });
 
     // 监听断开
     this.metamaskProvider.on('disconnect', (error) => {
-      console.log('[ExternalWalletConnector] MetaMask 断开连接:', error);
+      logger.info('[ExternalWalletConnector] MetaMask 断开连接:', error);
       this.disconnect();
     });
   }
@@ -382,7 +383,7 @@ class ExternalWalletConnector extends EventEmitter {
 
     // 监听账户变化
     this.walletConnectProvider.on('accountsChanged', (accounts) => {
-      console.log('[ExternalWalletConnector] WalletConnect 账户变化:', accounts);
+      logger.info('[ExternalWalletConnector] WalletConnect 账户变化:', accounts);
 
       if (accounts.length === 0) {
         this.disconnect();
@@ -394,7 +395,7 @@ class ExternalWalletConnector extends EventEmitter {
 
     // 监听链变化
     this.walletConnectProvider.on('chainChanged', (chainId) => {
-      console.log('[ExternalWalletConnector] WalletConnect 链变化:', chainId);
+      logger.info('[ExternalWalletConnector] WalletConnect 链变化:', chainId);
 
       this.currentChainId = chainId;
       this.emit('chain:changed', { chainId });
@@ -402,7 +403,7 @@ class ExternalWalletConnector extends EventEmitter {
 
     // 监听断开
     this.walletConnectProvider.on('disconnect', (code, reason) => {
-      console.log('[ExternalWalletConnector] WalletConnect 断开:', code, reason);
+      logger.info('[ExternalWalletConnector] WalletConnect 断开:', code, reason);
       this.disconnect();
     });
   }
@@ -462,7 +463,7 @@ class ExternalWalletConnector extends EventEmitter {
    * 清理资源
    */
   async cleanup() {
-    console.log('[ExternalWalletConnector] 清理资源...');
+    logger.info('[ExternalWalletConnector] 清理资源...');
 
     await this.disconnect();
 

@@ -9,6 +9,7 @@
  * - P2P 动态同步
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const EventEmitter = require('events');
 const { v4: uuidv4 } = require('uuid');
 
@@ -40,7 +41,7 @@ class PostManager extends EventEmitter {
    * 初始化动态管理器
    */
   async initialize() {
-    console.log('[PostManager] 初始化动态管理器...');
+    logger.info('[PostManager] 初始化动态管理器...');
 
     try {
       // 初始化数据库表
@@ -50,9 +51,9 @@ class PostManager extends EventEmitter {
       this.setupP2PListeners();
 
       this.initialized = true;
-      console.log('[PostManager] 动态管理器初始化成功');
+      logger.info('[PostManager] 动态管理器初始化成功');
     } catch (error) {
-      console.error('[PostManager] 初始化失败:', error);
+      logger.error('[PostManager] 初始化失败:', error);
       throw error;
     }
   }
@@ -119,7 +120,7 @@ class PostManager extends EventEmitter {
       CREATE INDEX IF NOT EXISTS idx_comments_parent_id ON post_comments(parent_id);
     `);
 
-    console.log('[PostManager] 数据库表初始化完成');
+    logger.info('[PostManager] 数据库表初始化完成');
   }
 
   /**
@@ -145,7 +146,7 @@ class PostManager extends EventEmitter {
       await this.handleCommentReceived(comment);
     });
 
-    console.log('[PostManager] P2P 事件监听器已设置');
+    logger.info('[PostManager] P2P 事件监听器已设置');
   }
 
   /**
@@ -217,7 +218,7 @@ class PostManager extends EventEmitter {
         updated_at: now,
       };
 
-      console.log('[PostManager] 已发布动态:', postId);
+      logger.info('[PostManager] 已发布动态:', postId);
 
       // 通过 P2P 同步动态（根据可见性）
       await this.syncPost(post);
@@ -226,7 +227,7 @@ class PostManager extends EventEmitter {
 
       return post;
     } catch (error) {
-      console.error('[PostManager] 发布动态失败:', error);
+      logger.error('[PostManager] 发布动态失败:', error);
       throw error;
     }
   }
@@ -267,13 +268,13 @@ class PostManager extends EventEmitter {
             post,
           }));
         } catch (error) {
-          console.warn('[PostManager] 同步动态失败:', targetDid, error.message);
+          logger.warn('[PostManager] 同步动态失败:', targetDid, error.message);
         }
       }
 
-      console.log('[PostManager] 动态已同步到', targetDids.length, '个节点');
+      logger.info('[PostManager] 动态已同步到', targetDids.length, '个节点');
     } catch (error) {
-      console.error('[PostManager] 同步动态失败:', error);
+      logger.error('[PostManager] 同步动态失败:', error);
     }
   }
 
@@ -288,7 +289,7 @@ class PostManager extends EventEmitter {
       const existing = db.prepare('SELECT id FROM posts WHERE id = ?').get(post.id);
 
       if (existing) {
-        console.log('[PostManager] 动态已存在，忽略:', post.id);
+        logger.info('[PostManager] 动态已存在，忽略:', post.id);
         return;
       }
 
@@ -296,7 +297,7 @@ class PostManager extends EventEmitter {
       if (post.visibility === PostVisibility.FRIENDS) {
         const isFriend = await this.friendManager?.isFriend(post.author_did);
         if (!isFriend) {
-          console.log('[PostManager] 非好友动态，忽略:', post.id);
+          logger.info('[PostManager] 非好友动态，忽略:', post.id);
           return;
         }
       }
@@ -324,11 +325,11 @@ class PostManager extends EventEmitter {
         post.updated_at
       );
 
-      console.log('[PostManager] 已接收动态:', post.id);
+      logger.info('[PostManager] 已接收动态:', post.id);
 
       this.emit('post:received', { post });
     } catch (error) {
-      console.error('[PostManager] 处理收到的动态失败:', error);
+      logger.error('[PostManager] 处理收到的动态失败:', error);
     }
   }
 
@@ -380,7 +381,7 @@ class PostManager extends EventEmitter {
         liked: this.hasLiked(post.id, currentDid),
       }));
     } catch (error) {
-      console.error('[PostManager] 获取动态流失败:', error);
+      logger.error('[PostManager] 获取动态流失败:', error);
       throw error;
     }
   }
@@ -403,7 +404,7 @@ class PostManager extends EventEmitter {
         images: post.images ? JSON.parse(post.images) : [],
       };
     } catch (error) {
-      console.error('[PostManager] 获取动态失败:', error);
+      logger.error('[PostManager] 获取动态失败:', error);
       throw error;
     }
   }
@@ -440,13 +441,13 @@ class PostManager extends EventEmitter {
       db.prepare('DELETE FROM post_likes WHERE post_id = ?').run(postId);
       db.prepare('DELETE FROM post_comments WHERE post_id = ?').run(postId);
 
-      console.log('[PostManager] 已删除动态:', postId);
+      logger.info('[PostManager] 已删除动态:', postId);
 
       this.emit('post:deleted', { postId });
 
       return { success: true };
     } catch (error) {
-      console.error('[PostManager] 删除动态失败:', error);
+      logger.error('[PostManager] 删除动态失败:', error);
       throw error;
     }
   }
@@ -480,7 +481,7 @@ class PostManager extends EventEmitter {
       // 更新点赞计数
       db.prepare('UPDATE posts SET like_count = like_count + 1 WHERE id = ?').run(postId);
 
-      console.log('[PostManager] 已点赞:', postId);
+      logger.info('[PostManager] 已点赞:', postId);
 
       // 通知作者
       const post = await this.getPost(postId);
@@ -493,7 +494,7 @@ class PostManager extends EventEmitter {
             timestamp: now,
           }));
         } catch (error) {
-          console.warn('[PostManager] 通知点赞失败:', error.message);
+          logger.warn('[PostManager] 通知点赞失败:', error.message);
         }
       }
 
@@ -501,7 +502,7 @@ class PostManager extends EventEmitter {
 
       return { success: true };
     } catch (error) {
-      console.error('[PostManager] 点赞失败:', error);
+      logger.error('[PostManager] 点赞失败:', error);
       throw error;
     }
   }
@@ -530,13 +531,13 @@ class PostManager extends EventEmitter {
       // 更新点赞计数
       db.prepare('UPDATE posts SET like_count = like_count - 1 WHERE id = ?').run(postId);
 
-      console.log('[PostManager] 已取消点赞:', postId);
+      logger.info('[PostManager] 已取消点赞:', postId);
 
       this.emit('post:unliked', { postId, userDid: currentDid });
 
       return { success: true };
     } catch (error) {
-      console.error('[PostManager] 取消点赞失败:', error);
+      logger.error('[PostManager] 取消点赞失败:', error);
       throw error;
     }
   }
@@ -552,7 +553,7 @@ class PostManager extends EventEmitter {
       const like = db.prepare('SELECT 1 FROM post_likes WHERE post_id = ? AND user_did = ?').get(postId, userDid);
       return !!like;
     } catch (error) {
-      console.error('[PostManager] 检查点赞状态失败:', error);
+      logger.error('[PostManager] 检查点赞状态失败:', error);
       return false;
     }
   }
@@ -570,7 +571,7 @@ class PostManager extends EventEmitter {
       const post = db.prepare('SELECT * FROM posts WHERE id = ?').get(postId);
 
       if (!post) {
-        console.log('[PostManager] 动态不存在，忽略点赞:', postId);
+        logger.info('[PostManager] 动态不存在，忽略点赞:', postId);
         return;
       }
 
@@ -589,11 +590,11 @@ class PostManager extends EventEmitter {
       // 更新点赞计数
       db.prepare('UPDATE posts SET like_count = like_count + 1 WHERE id = ?').run(postId);
 
-      console.log('[PostManager] 已接收点赞:', postId, userDid);
+      logger.info('[PostManager] 已接收点赞:', postId, userDid);
 
       this.emit('post:liked', { postId, userDid });
     } catch (error) {
-      console.error('[PostManager] 处理点赞失败:', error);
+      logger.error('[PostManager] 处理点赞失败:', error);
     }
   }
 
@@ -606,7 +607,7 @@ class PostManager extends EventEmitter {
       const db = this.database.db;
       return db.prepare('SELECT * FROM post_likes WHERE post_id = ? ORDER BY created_at DESC').all(postId);
     } catch (error) {
-      console.error('[PostManager] 获取点赞列表失败:', error);
+      logger.error('[PostManager] 获取点赞列表失败:', error);
       throw error;
     }
   }
@@ -656,7 +657,7 @@ class PostManager extends EventEmitter {
         created_at: now,
       };
 
-      console.log('[PostManager] 已添加评论:', commentId);
+      logger.info('[PostManager] 已添加评论:', commentId);
 
       // 通知作者
       const post = await this.getPost(postId);
@@ -667,7 +668,7 @@ class PostManager extends EventEmitter {
             comment,
           }));
         } catch (error) {
-          console.warn('[PostManager] 通知评论失败:', error.message);
+          logger.warn('[PostManager] 通知评论失败:', error.message);
         }
       }
 
@@ -675,7 +676,7 @@ class PostManager extends EventEmitter {
 
       return comment;
     } catch (error) {
-      console.error('[PostManager] 添加评论失败:', error);
+      logger.error('[PostManager] 添加评论失败:', error);
       throw error;
     }
   }
@@ -711,11 +712,11 @@ class PostManager extends EventEmitter {
       // 更新评论计数
       db.prepare('UPDATE posts SET comment_count = comment_count + 1 WHERE id = ?').run(comment.post_id);
 
-      console.log('[PostManager] 已接收评论:', comment.id);
+      logger.info('[PostManager] 已接收评论:', comment.id);
 
       this.emit('comment:received', { comment });
     } catch (error) {
-      console.error('[PostManager] 处理评论失败:', error);
+      logger.error('[PostManager] 处理评论失败:', error);
     }
   }
 
@@ -728,7 +729,7 @@ class PostManager extends EventEmitter {
       const db = this.database.db;
       return db.prepare('SELECT * FROM post_comments WHERE post_id = ? ORDER BY created_at ASC').all(postId);
     } catch (error) {
-      console.error('[PostManager] 获取评论列表失败:', error);
+      logger.error('[PostManager] 获取评论列表失败:', error);
       throw error;
     }
   }
@@ -765,13 +766,13 @@ class PostManager extends EventEmitter {
       const count = db.prepare('SELECT COUNT(*) as count FROM post_comments WHERE post_id = ?').get(comment.post_id);
       db.prepare('UPDATE posts SET comment_count = ? WHERE id = ?').run(count.count, comment.post_id);
 
-      console.log('[PostManager] 已删除评论:', commentId);
+      logger.info('[PostManager] 已删除评论:', commentId);
 
       this.emit('comment:deleted', { commentId, postId: comment.post_id });
 
       return { success: true };
     } catch (error) {
-      console.error('[PostManager] 删除评论失败:', error);
+      logger.error('[PostManager] 删除评论失败:', error);
       throw error;
     }
   }
@@ -780,7 +781,7 @@ class PostManager extends EventEmitter {
    * 关闭动态管理器
    */
   async close() {
-    console.log('[PostManager] 关闭动态管理器');
+    logger.info('[PostManager] 关闭动态管理器');
 
     this.removeAllListeners();
     this.initialized = false;

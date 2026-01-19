@@ -11,6 +11,7 @@
  * @module streaming-response
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const EventEmitter = require('events');
 
 /**
@@ -62,7 +63,7 @@ class CancellationToken {
       try {
         callback(reason);
       } catch (error) {
-        console.error('[CancellationToken] 回调执行失败:', error);
+        logger.error('[CancellationToken] 回调执行失败:', error);
       }
     }
   }
@@ -519,7 +520,7 @@ class StreamingResponse {
         new Date(event.timestamp).toISOString()
       );
     } catch (error) {
-      console.error('[StreamingResponse] 记录事件失败:', error);
+      logger.error('[StreamingResponse] 记录事件失败:', error);
     }
   }
 
@@ -537,7 +538,7 @@ class StreamingResponse {
         this.ipcChannel.send('streaming-response-event', event);
       }
     } catch (error) {
-      console.error('[StreamingResponse] 发送IPC事件失败:', error);
+      logger.error('[StreamingResponse] 发送IPC事件失败:', error);
     }
   }
 
@@ -618,7 +619,7 @@ class StreamingResponse {
       }));
 
     } catch (error) {
-      console.error('[StreamingResponse] 获取任务历史失败:', error);
+      logger.error('[StreamingResponse] 获取任务历史失败:', error);
       return [];
     }
   }

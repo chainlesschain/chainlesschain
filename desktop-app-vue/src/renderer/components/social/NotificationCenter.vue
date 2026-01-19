@@ -126,6 +126,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted, watch } from 'vue'
 import { useSocialStore } from '../../stores/social'
 import {
@@ -167,7 +169,7 @@ const loadNotifications = async () => {
   try {
     await socialStore.loadNotifications()
   } catch (error) {
-    console.error('加载通知失败:', error)
+    logger.error('加载通知失败:', error)
     message.error('加载通知失败')
   } finally {
     loading.value = false
@@ -196,10 +198,10 @@ const handleNotificationClick = async (notification) => {
         }
       } else if (notification.type === 'friend_request') {
         // 可以跳转到好友管理页面
-        console.log('打开好友管理页面')
+        logger.info('打开好友管理页面')
       }
     } catch (error) {
-      console.error('处理通知数据失败:', error)
+      logger.error('处理通知数据失败:', error)
     }
   }
 }
@@ -208,7 +210,7 @@ const handleMarkAsRead = async (id) => {
   try {
     await socialStore.markNotificationAsRead(id)
   } catch (error) {
-    console.error('标记已读失败:', error)
+    logger.error('标记已读失败:', error)
     message.error('操作失败')
   }
 }
@@ -218,7 +220,7 @@ const handleMarkAllRead = async () => {
     await socialStore.markAllNotificationsAsRead()
     message.success('已全部标记为已读')
   } catch (error) {
-    console.error('全部标记已读失败:', error)
+    logger.error('全部标记已读失败:', error)
     message.error('操作失败')
   }
 }
@@ -231,7 +233,7 @@ const handleDelete = async (id) => {
     }
     message.success('已删除')
   } catch (error) {
-    console.error('删除通知失败:', error)
+    logger.error('删除通知失败:', error)
     message.error('删除失败')
   }
 }

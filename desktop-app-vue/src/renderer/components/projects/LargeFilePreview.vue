@@ -114,6 +114,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { message } from 'ant-design-vue';
 import {
@@ -212,7 +214,7 @@ const loadFileInfo = async () => {
       fileInfo.value = result.data;
     }
   } catch (err) {
-    console.error('[Large File Preview] 加载文件信息失败:', err);
+    logger.error('[Large File Preview] 加载文件信息失败:', err);
     message.error('加载文件信息失败');
   }
 };
@@ -238,7 +240,7 @@ const loadInitialContent = async () => {
       throw new Error(result.error || '加载文件内容失败');
     }
   } catch (err) {
-    console.error('[Large File Preview] 加载内容失败:', err);
+    logger.error('[Large File Preview] 加载内容失败:', err);
     message.error(err.message || '加载文件内容失败');
   } finally {
     loading.value = false;
@@ -267,7 +269,7 @@ const loadMoreContent = async () => {
       loadedLines.value = [...loadedLines.value, ...result.data.lines];
     }
   } catch (err) {
-    console.error('[Large File Preview] 加载更多内容失败:', err);
+    logger.error('[Large File Preview] 加载更多内容失败:', err);
   } finally {
     loading.value = false;
   }
@@ -323,7 +325,7 @@ const handleSearch = async () => {
       }
     }
   } catch (err) {
-    console.error('[Large File Preview] 搜索失败:', err);
+    logger.error('[Large File Preview] 搜索失败:', err);
     message.error('搜索失败');
   } finally {
     searching.value = false;
@@ -362,7 +364,7 @@ const jumpToLine = async (lineNumber) => {
         loadedLines.value = result.data.lines;
       }
     } catch (err) {
-      console.error('[Large File Preview] 跳转失败:', err);
+      logger.error('[Large File Preview] 跳转失败:', err);
     } finally {
       loading.value = false;
     }
@@ -405,7 +407,7 @@ const jumpToBottom = async () => {
       }
     }
   } catch (err) {
-    console.error('[Large File Preview] 跳转到底部失败:', err);
+    logger.error('[Large File Preview] 跳转到底部失败:', err);
   } finally {
     loading.value = false;
   }

@@ -180,7 +180,7 @@
 import { ref, watch, onMounted, onUnmounted, nextTick } from "vue";
 import { Empty } from "ant-design-vue";
 import { QuestionCircleOutlined } from "@ant-design/icons-vue";
-import * as echarts from "echarts";
+import { init } from "../../utils/echartsConfig";
 
 const props = defineProps({
   tokenDistribution: {
@@ -239,7 +239,7 @@ const renderTokenDistributionChart = () => {
     {return;}
 
   if (!tokenDistributionChart) {
-    tokenDistributionChart = echarts.init(tokenDistributionRef.value);
+    tokenDistributionChart = init(tokenDistributionRef.value);
   }
 
   const total = props.tokenDistribution.reduce((a, b) => a + b.value, 0);
@@ -304,7 +304,7 @@ const renderPeriodComparisonChart = () => {
     {return;}
 
   if (!periodComparisonChart) {
-    periodComparisonChart = echarts.init(periodComparisonRef.value);
+    periodComparisonChart = init(periodComparisonRef.value);
   }
 
   const periodLabel = props.comparisonPeriod === "week" ? "周" : "月";
@@ -366,7 +366,7 @@ const renderProviderCostChart = () => {
   if (!providerCostRef.value || props.costByProvider.length === 0) {return;}
 
   if (!providerCostChart) {
-    providerCostChart = echarts.init(providerCostRef.value);
+    providerCostChart = init(providerCostRef.value);
   }
 
   const option = {
@@ -407,7 +407,7 @@ const renderModelCostChart = () => {
   if (!modelCostRef.value || props.costByModel.length === 0) {return;}
 
   if (!modelCostChart) {
-    modelCostChart = echarts.init(modelCostRef.value);
+    modelCostChart = init(modelCostRef.value);
   }
 
   const topModels = props.costByModel.slice(0, 10);

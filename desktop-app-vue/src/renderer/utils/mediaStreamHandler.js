@@ -1,3 +1,5 @@
+import { logger, createLogger } from '@/utils/logger';
+
 /**
  * MediaStream Handler (Renderer Process)
  *
@@ -27,7 +29,7 @@ class MediaStreamHandler {
   setupListeners() {
     const ipcRenderer = getIpcRenderer();
     if (!ipcRenderer) {
-      console.warn('[MediaStreamHandler] ipcRenderer not available, skipping listener setup');
+      logger.warn('[MediaStreamHandler] ipcRenderer not available, skipping listener setup');
       return;
     }
 
@@ -54,7 +56,7 @@ class MediaStreamHandler {
     const { requestId, type, constraints, callId, peerId } = data;
 
     try {
-      console.log('[MediaStreamHandler] 收到媒体流请求:', {
+      logger.info('[MediaStreamHandler] 收到媒体流请求:', {
         requestId,
         type,
         callId
@@ -91,17 +93,17 @@ class MediaStreamHandler {
       // 监听track事件
       stream.getTracks().forEach(track => {
         track.onended = () => {
-          console.log('[MediaStreamHandler] Track已结束:', track.kind);
+          logger.info('[MediaStreamHandler] Track已结束:', track.kind);
           this.notifyTrackChanged(streamId, track.id, track.kind, false);
         };
 
         track.onmute = () => {
-          console.log('[MediaStreamHandler] Track已静音:', track.kind);
+          logger.info('[MediaStreamHandler] Track已静音:', track.kind);
           this.notifyTrackChanged(streamId, track.id, track.kind, false);
         };
 
         track.onunmute = () => {
-          console.log('[MediaStreamHandler] Track已取消静音:', track.kind);
+          logger.info('[MediaStreamHandler] Track已取消静音:', track.kind);
           this.notifyTrackChanged(streamId, track.id, track.kind, true);
         };
       });
@@ -116,14 +118,14 @@ class MediaStreamHandler {
         peerId
       });
 
-      console.log('[MediaStreamHandler] 媒体流已就绪:', {
+      logger.info('[MediaStreamHandler] 媒体流已就绪:', {
         streamId,
         trackCount: tracks.length
       });
 
       return stream;
     } catch (error) {
-      console.error('[MediaStreamHandler] 获取媒体流失败:', error);
+      logger.error('[MediaStreamHandler] 获取媒体流失败:', error);
 
       // 通知主进程失败
       getIpcRenderer()?.send('media-stream:error', {
@@ -170,7 +172,7 @@ class MediaStreamHandler {
         selectedSource = sources.find(s => s.id.startsWith('screen')) || sources[0];
       }
 
-      console.log('[MediaStreamHandler] 选择屏幕源:', {
+      logger.info('[MediaStreamHandler] 选择屏幕源:', {
         id: selectedSource.id,
         name: selectedSource.name
       });
@@ -188,7 +190,7 @@ class MediaStreamHandler {
 
       return stream;
     } catch (error) {
-      console.error('[MediaStreamHandler] 获取屏幕流失败:', error);
+      logger.error('[MediaStreamHandler] 获取屏幕流失败:', error);
       throw error;
     }
   }
@@ -215,7 +217,7 @@ class MediaStreamHandler {
         type: source.id.startsWith('screen') ? 'screen' : 'window'
       }));
     } catch (error) {
-      console.error('[MediaStreamHandler] 获取屏幕源列表失败:', error);
+      logger.error('[MediaStreamHandler] 获取屏幕源列表失败:', error);
       throw error;
     }
   }
@@ -239,7 +241,7 @@ class MediaStreamHandler {
       // 通知主进程
       getIpcRenderer()?.send('media-stream:stopped', { streamId });
 
-      console.log('[MediaStreamHandler] 媒体流已停止:', streamId);
+      logger.info('[MediaStreamHandler] 媒体流已停止:', streamId);
     }
   }
 
@@ -260,7 +262,7 @@ class MediaStreamHandler {
         this.notifyTrackChanged(streamId, track.id, kind, enabled);
       });
 
-      console.log('[MediaStreamHandler] Track状态已切换:', {
+      logger.info('[MediaStreamHandler] Track状态已切换:', {
         streamId,
         kind,
         enabled
@@ -345,7 +347,7 @@ class MediaStreamHandler {
     }
     this.streams.clear();
 
-    console.log('[MediaStreamHandler] 所有媒体流已清理');
+    logger.info('[MediaStreamHandler] 所有媒体流已清理');
   }
 }
 

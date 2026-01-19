@@ -1,3 +1,5 @@
+const { logger, createLogger } = require('../utils/logger.js');
+
 /**
  * LLM 智能选择器
  * 根据任务特点、策略和可用性自动选择最优LLM服务
@@ -273,12 +275,12 @@ class LLMSelector {
 
     // 返回得分最高的
     if (scores.length > 0) {
-      console.log(`[LLMSelector] 智能选择: ${scores[0].provider} (得分: ${scores[0].score.toFixed(2)})`);
+      logger.info(`[LLMSelector] 智能选择: ${scores[0].provider} (得分: ${scores[0].score.toFixed(2)})`);
       return scores[0].provider;
     }
 
     // 如果都不可用，返回第一个优先级
-    console.warn('[LLMSelector] 没有可用的LLM，返回默认');
+    logger.warn('[LLMSelector] 没有可用的LLM，返回默认');
     return priorityList[0] || 'volcengine';
   }
 
@@ -312,7 +314,7 @@ class LLMSelector {
 
     for (const provider of fallbackList) {
       if (!triedProviders.includes(provider)) {
-        console.log(`[LLMSelector] Fallback到: ${provider}`);
+        logger.info(`[LLMSelector] Fallback到: ${provider}`);
         return provider;
       }
     }

@@ -1,3 +1,5 @@
+const { logger, createLogger } = require('../utils/logger.js');
+
 /**
  * Call History IPC Handler
  *
@@ -31,11 +33,11 @@ class CallHistoryIPC {
    */
   register() {
     if (this.registered) {
-      console.log('[CallHistoryIPC] IPC处理器已注册');
+      logger.info('[CallHistoryIPC] IPC处理器已注册');
       return;
     }
 
-    console.log('[CallHistoryIPC] 注册IPC处理器...');
+    logger.info('[CallHistoryIPC] 注册IPC处理器...');
 
     // 获取所有通话记录
     ipcMain.handle('call-history:get-all', async (event, options = {}) => {
@@ -46,7 +48,7 @@ class CallHistoryIPC {
           history
         };
       } catch (error) {
-        console.error('[CallHistoryIPC] 获取通话记录失败:', error);
+        logger.error('[CallHistoryIPC] 获取通话记录失败:', error);
         return {
           success: false,
           error: error.message
@@ -66,7 +68,7 @@ class CallHistoryIPC {
           history
         };
       } catch (error) {
-        console.error('[CallHistoryIPC] 获取通话记录失败:', error);
+        logger.error('[CallHistoryIPC] 获取通话记录失败:', error);
         return {
           success: false,
           error: error.message
@@ -83,7 +85,7 @@ class CallHistoryIPC {
           record
         };
       } catch (error) {
-        console.error('[CallHistoryIPC] 获取通话记录失败:', error);
+        logger.error('[CallHistoryIPC] 获取通话记录失败:', error);
         return {
           success: false,
           error: error.message
@@ -99,7 +101,7 @@ class CallHistoryIPC {
           success: true
         };
       } catch (error) {
-        console.error('[CallHistoryIPC] 删除通话记录失败:', error);
+        logger.error('[CallHistoryIPC] 删除通话记录失败:', error);
         return {
           success: false,
           error: error.message
@@ -115,7 +117,7 @@ class CallHistoryIPC {
           success: true
         };
       } catch (error) {
-        console.error('[CallHistoryIPC] 清空通话记录失败:', error);
+        logger.error('[CallHistoryIPC] 清空通话记录失败:', error);
         return {
           success: false,
           error: error.message
@@ -132,7 +134,7 @@ class CallHistoryIPC {
           stats
         };
       } catch (error) {
-        console.error('[CallHistoryIPC] 获取通话统计失败:', error);
+        logger.error('[CallHistoryIPC] 获取通话统计失败:', error);
         return {
           success: false,
           error: error.message
@@ -141,7 +143,7 @@ class CallHistoryIPC {
     });
 
     this.registered = true;
-    console.log('[CallHistoryIPC] IPC处理器注册完成');
+    logger.info('[CallHistoryIPC] IPC处理器注册完成');
   }
 
   /**
@@ -152,7 +154,7 @@ class CallHistoryIPC {
       return;
     }
 
-    console.log('[CallHistoryIPC] 注销IPC处理器...');
+    logger.info('[CallHistoryIPC] 注销IPC处理器...');
 
     ipcMain.removeHandler('call-history:get-all');
     ipcMain.removeHandler('call-history:get-by-peer');
@@ -162,7 +164,7 @@ class CallHistoryIPC {
     ipcMain.removeHandler('call-history:get-stats');
 
     this.registered = false;
-    console.log('[CallHistoryIPC] IPC处理器注销完成');
+    logger.info('[CallHistoryIPC] IPC处理器注销完成');
   }
 }
 

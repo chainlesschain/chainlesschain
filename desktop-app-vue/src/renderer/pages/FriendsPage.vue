@@ -280,6 +280,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { message } from "ant-design-vue";
 import {
@@ -369,7 +371,7 @@ async function loadFriends() {
       message.error("加载好友列表失败: " + result.error);
     }
   } catch (error) {
-    console.error("加载好友列表失败:", error);
+    logger.error("加载好友列表失败:", error);
     message.error("加载好友列表失败: " + error.message);
   } finally {
     loading.value = false;
@@ -419,7 +421,7 @@ async function handleAddFriend() {
       message.error("发送好友请求失败: " + result.error);
     }
   } catch (error) {
-    console.error("发送好友请求失败:", error);
+    logger.error("发送好友请求失败:", error);
     message.error("发送好友请求失败: " + error.message);
   }
 }
@@ -475,7 +477,7 @@ async function handleSaveEdit() {
       message.error("更新好友信息失败: " + result.error);
     }
   } catch (error) {
-    console.error("更新好友信息失败:", error);
+    logger.error("更新好友信息失败:", error);
     message.error("更新好友信息失败: " + error.message);
   }
 }

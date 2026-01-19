@@ -6,6 +6,7 @@
  * @description 文档处理模块，提供 PPT 导出等功能
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { ipcMain, dialog } = require('electron');
 
 /**
@@ -16,7 +17,7 @@ const { ipcMain, dialog } = require('electron');
 function registerDocumentIPC({
   convertSlidesToOutline
 }) {
-  console.log('[Document IPC] Registering Document IPC handlers...');
+  logger.info('[Document IPC] Registering Document IPC handlers...');
 
   // ============================================================
   // PPT 导出操作 (1 handler)
@@ -29,7 +30,7 @@ function registerDocumentIPC({
     try {
       const { slides, title = '演示文稿', author = '作者', theme = 'business', outputPath } = params;
 
-      console.log(`[Document] 导出PPT: ${title}, 幻灯片数: ${slides.length}`);
+      logger.info(`[Document] 导出PPT: ${title}, 幻灯片数: ${slides.length}`);
 
       const PPTEngine = require('../engines/ppt-engine');
       const pptEngine = new PPTEngine();
@@ -61,20 +62,20 @@ function registerDocumentIPC({
         outputPath: savePath
       });
 
-      console.log('[Document] PPT导出完成:', savePath);
+      logger.info('[Document] PPT导出完成:', savePath);
 
       return {
         success: true,
         path: savePath
       };
     } catch (error) {
-      console.error('[Document] PPT导出失败:', error);
+      logger.error('[Document] PPT导出失败:', error);
       return { success: false, error: error.message };
     }
   });
 
-  console.log('[Document IPC] ✓ 1 handler registered');
-  console.log('[Document IPC] - 1 PPT export handler');
+  logger.info('[Document IPC] ✓ 1 handler registered');
+  logger.info('[Document IPC] - 1 PPT export handler');
 }
 
 module.exports = {

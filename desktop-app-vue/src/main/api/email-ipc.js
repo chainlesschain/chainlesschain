@@ -5,6 +5,7 @@
  * v0.20.0: 新增邮件集成功能
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { ipcMain } = require('electron');
 const { v4: uuidv4 } = require('uuid');
 const EmailClient = require('./email-client');
@@ -127,7 +128,7 @@ class EmailIPCHandler {
       return this.stopAutoSync(accountId);
     });
 
-    console.log('[EmailIPCHandler] Email IPC handlers registered');
+    logger.info('[EmailIPCHandler] Email IPC handlers registered');
   }
 
   /**
@@ -194,7 +195,7 @@ class EmailIPCHandler {
 
       return { success: true, accountId };
     } catch (error) {
-      console.error('[EmailIPCHandler] 添加账户失败:', error);
+      logger.error('[EmailIPCHandler] 添加账户失败:', error);
       throw error;
     }
   }
@@ -220,7 +221,7 @@ class EmailIPCHandler {
 
       return { success: true };
     } catch (error) {
-      console.error('[EmailIPCHandler] 删除账户失败:', error);
+      logger.error('[EmailIPCHandler] 删除账户失败:', error);
       throw error;
     }
   }
@@ -254,7 +255,7 @@ class EmailIPCHandler {
 
       return { success: true };
     } catch (error) {
-      console.error('[EmailIPCHandler] 更新账户失败:', error);
+      logger.error('[EmailIPCHandler] 更新账户失败:', error);
       throw error;
     }
   }
@@ -274,7 +275,7 @@ class EmailIPCHandler {
 
       return { success: true, accounts };
     } catch (error) {
-      console.error('[EmailIPCHandler] 获取账户列表失败:', error);
+      logger.error('[EmailIPCHandler] 获取账户列表失败:', error);
       throw error;
     }
   }
@@ -295,7 +296,7 @@ class EmailIPCHandler {
 
       return { success: true, account };
     } catch (error) {
-      console.error('[EmailIPCHandler] 获取账户失败:', error);
+      logger.error('[EmailIPCHandler] 获取账户失败:', error);
       throw error;
     }
   }
@@ -311,7 +312,7 @@ class EmailIPCHandler {
 
       return { success: true, result };
     } catch (error) {
-      console.error('[EmailIPCHandler] 测试连接失败:', error);
+      logger.error('[EmailIPCHandler] 测试连接失败:', error);
       return { success: false, error: error.message };
     }
   }
@@ -379,7 +380,7 @@ class EmailIPCHandler {
 
       return { success: true, mailboxes: allMailboxes.length };
     } catch (error) {
-      console.error('[EmailIPCHandler] 同步邮箱失败:', error);
+      logger.error('[EmailIPCHandler] 同步邮箱失败:', error);
       throw error;
     }
   }
@@ -396,7 +397,7 @@ class EmailIPCHandler {
 
       return { success: true, mailboxes };
     } catch (error) {
-      console.error('[EmailIPCHandler] 获取邮箱列表失败:', error);
+      logger.error('[EmailIPCHandler] 获取邮箱列表失败:', error);
       throw error;
     }
   }
@@ -440,7 +441,7 @@ class EmailIPCHandler {
 
       return { success: true, count: emails.length };
     } catch (error) {
-      console.error('[EmailIPCHandler] 获取邮件失败:', error);
+      logger.error('[EmailIPCHandler] 获取邮件失败:', error);
 
       // 更新错误状态
       const updateStmt = this.database.db.prepare(
@@ -578,7 +579,7 @@ class EmailIPCHandler {
 
       return { success: true, emails };
     } catch (error) {
-      console.error('[EmailIPCHandler] 获取邮件列表失败:', error);
+      logger.error('[EmailIPCHandler] 获取邮件列表失败:', error);
       throw error;
     }
   }
@@ -597,7 +598,7 @@ class EmailIPCHandler {
 
       return { success: true, email };
     } catch (error) {
-      console.error('[EmailIPCHandler] 获取邮件失败:', error);
+      logger.error('[EmailIPCHandler] 获取邮件失败:', error);
       throw error;
     }
   }
@@ -612,7 +613,7 @@ class EmailIPCHandler {
 
       return { success: true };
     } catch (error) {
-      console.error('[EmailIPCHandler] 标记已读失败:', error);
+      logger.error('[EmailIPCHandler] 标记已读失败:', error);
       throw error;
     }
   }
@@ -627,7 +628,7 @@ class EmailIPCHandler {
 
       return { success: true };
     } catch (error) {
-      console.error('[EmailIPCHandler] 标记收藏失败:', error);
+      logger.error('[EmailIPCHandler] 标记收藏失败:', error);
       throw error;
     }
   }
@@ -642,7 +643,7 @@ class EmailIPCHandler {
 
       return { success: true };
     } catch (error) {
-      console.error('[EmailIPCHandler] 归档邮件失败:', error);
+      logger.error('[EmailIPCHandler] 归档邮件失败:', error);
       throw error;
     }
   }
@@ -657,7 +658,7 @@ class EmailIPCHandler {
 
       return { success: true };
     } catch (error) {
-      console.error('[EmailIPCHandler] 删除邮件失败:', error);
+      logger.error('[EmailIPCHandler] 删除邮件失败:', error);
       throw error;
     }
   }
@@ -690,7 +691,7 @@ class EmailIPCHandler {
 
       return { success: true, result };
     } catch (error) {
-      console.error('[EmailIPCHandler] 发送邮件失败:', error);
+      logger.error('[EmailIPCHandler] 发送邮件失败:', error);
       throw error;
     }
   }
@@ -737,7 +738,7 @@ class EmailIPCHandler {
 
       return { success: true, knowledgeId };
     } catch (error) {
-      console.error('[EmailIPCHandler] 保存到知识库失败:', error);
+      logger.error('[EmailIPCHandler] 保存到知识库失败:', error);
       throw error;
     }
   }
@@ -752,7 +753,7 @@ class EmailIPCHandler {
 
       return { success: true, attachments };
     } catch (error) {
-      console.error('[EmailIPCHandler] 获取附件列表失败:', error);
+      logger.error('[EmailIPCHandler] 获取附件列表失败:', error);
       throw error;
     }
   }
@@ -774,7 +775,7 @@ class EmailIPCHandler {
 
       return { success: true };
     } catch (error) {
-      console.error('[EmailIPCHandler] 下载附件失败:', error);
+      logger.error('[EmailIPCHandler] 下载附件失败:', error);
       throw error;
     }
   }
@@ -800,7 +801,7 @@ class EmailIPCHandler {
 
       return { success: true, labelId };
     } catch (error) {
-      console.error('[EmailIPCHandler] 添加标签失败:', error);
+      logger.error('[EmailIPCHandler] 添加标签失败:', error);
       throw error;
     }
   }
@@ -815,7 +816,7 @@ class EmailIPCHandler {
 
       return { success: true, labels };
     } catch (error) {
-      console.error('[EmailIPCHandler] 获取标签列表失败:', error);
+      logger.error('[EmailIPCHandler] 获取标签列表失败:', error);
       throw error;
     }
   }
@@ -834,7 +835,7 @@ class EmailIPCHandler {
 
       return { success: true };
     } catch (error) {
-      console.error('[EmailIPCHandler] 分配标签失败:', error);
+      logger.error('[EmailIPCHandler] 分配标签失败:', error);
       throw error;
     }
   }
@@ -851,7 +852,7 @@ class EmailIPCHandler {
 
       return { success: true };
     } catch (error) {
-      console.error('[EmailIPCHandler] 移除标签失败:', error);
+      logger.error('[EmailIPCHandler] 移除标签失败:', error);
       throw error;
     }
   }
@@ -876,9 +877,9 @@ class EmailIPCHandler {
       const interval = setInterval(async () => {
         try {
           await this.fetchEmails(accountId, { limit: 50, unseen: true });
-          console.log(`[EmailIPCHandler] 自动同步完成: ${accountId}`);
+          logger.info(`[EmailIPCHandler] 自动同步完成: ${accountId}`);
         } catch (error) {
-          console.error(`[EmailIPCHandler] 自动同步失败: ${accountId}`, error);
+          logger.error(`[EmailIPCHandler] 自动同步失败: ${accountId}`, error);
         }
       }, account.sync_frequency * 1000);
 
@@ -886,7 +887,7 @@ class EmailIPCHandler {
 
       return { success: true };
     } catch (error) {
-      console.error('[EmailIPCHandler] 启动自动同步失败:', error);
+      logger.error('[EmailIPCHandler] 启动自动同步失败:', error);
       throw error;
     }
   }

@@ -1,3 +1,4 @@
+const { logger, createLogger } = require('../utils/logger.js');
 const { EventEmitter } = require('events');
 const fs = require('fs');
 const path = require('path');
@@ -49,14 +50,14 @@ class FileSyncManager extends EventEmitter {
   async saveFile(fileId, content, projectId) {
     // 防止循环触发
     if (this.syncLocks.get(fileId)) {
-      console.log(`[FileSyncManager] 文件 ${fileId} 正在同步中，跳过`);
+      logger.info(`[FileSyncManager] 文件 ${fileId} 正在同步中，跳过`);
       return;
     }
 
     this.syncLocks.set(fileId, true);
 
     try {
-      console.log(`[FileSyncManager] 开始保存文件 ${fileId}`);
+      logger.info(`[FileSyncManager] 开始保存文件 ${fileId}`);
 
       // 1. 获取文件信息
       const file = this.database.db.prepare('SELECT * FROM project_files WHERE id = ?').get(fileId);
@@ -66,7 +67,7 @@ class FileSyncManager extends EventEmitter {
 
       // 2. 计算内容哈希
       const contentHash = this.calculateHash(content);
-      console.log(`[FileSyncManager] 内容哈希: ${contentHash}`);
+      logger.info(`[FileSyncManager] 内容哈希: ${contentHash}`);
 
       // 3. 更新数据库
       this.database.db.run(
@@ -80,7 +81,7 @@ class FileSyncManager extends EventEmitter {
       // 5. 写入文件系统（如果有本地路径）
       if (project?.root_path && this.isLocalPath(project.root_path)) {
         const fsPath = path.join(project.root_path, file.file_path);
-        console.log(`[FileSyncManager] 写入文件系统: ${fsPath}`);
+        logger.info(`[FileSyncManager] 写入文件系统: ${fsPath}`);
 
         // 确保目录存在
         await fs.promises.mkdir(path.dirname(fsPath), { recursive: true });
@@ -103,13 +104,13 @@ class FileSyncManager extends EventEmitter {
       // 7. 保存数据库
       this.database.saveToFile();
 
-      console.log(`[FileSyncManager] 文件保存成功: ${fileId}`);
+      logger.info(`[FileSyncManager] 文件保存成功: ${fileId}`);
       this.emit('file-synced', { fileId, contentHash });
 
       return { success: true, fileId, contentHash };
 
     } catch (error) {
-      console.error(`[FileSyncManager] 保存文件失败:`, error);
+      logger.error(`[FileSyncManager] 保存文件失败:`, error);
       throw error;
     } finally {
       this.syncLocks.delete(fileId);
@@ -122,13 +123,13 @@ class FileSyncManager extends EventEmitter {
    * @param {string} relativePath - 相对路径
    */
   async syncFromFilesystem(projectId, relativePath) {
-    console.log(`[FileSyncManager] 从文件系统同步: ${relativePath}`);
+    logger.info(`[FileSyncManager] 从文件系统同步: ${relativePath}`);
 
     try {
       // 1. 获取项目信息
       const project = this.database.db.prepare('SELECT root_path FROM projects WHERE id = ?').get(projectId);
       if (!project?.root_path || !this.isLocalPath(project.root_path)) {
-        console.log('[FileSyncManager] 项目没有本地路径，跳过同步');
+        logger.info('[FileSyncManager] 项目没有本地路径，跳过同步');
         return;
       }
 
@@ -144,7 +145,7 @@ class FileSyncManager extends EventEmitter {
       ).get(projectId, relativePath);
 
       if (!file) {
-        console.log('[FileSyncManager] 数据库中没有该文件记录');
+        logger.info('[FileSyncManager] 数据库中没有该文件记录');
         return;
       }
 
@@ -155,7 +156,7 @@ class FileSyncManager extends EventEmitter {
 
       // 5. 检测冲突（数据库和文件系统都被修改）
       if (syncState && syncState.db_hash !== syncState.fs_hash && file.content_hash !== syncState.db_hash) {
-        console.warn('[FileSyncManager] 检测到同步冲突');
+        logger.warn('[FileSyncManager] 检测到同步冲突');
         this.emit('sync-conflict', {
           fileId: file.id,
           fsContent: content,
@@ -181,13 +182,13 @@ class FileSyncManager extends EventEmitter {
       // 8. 保存数据库
       this.database.saveToFile();
 
-      console.log(`[FileSyncManager] 文件同步成功: ${file.id}`);
+      logger.info(`[FileSyncManager] 文件同步成功: ${file.id}`);
       this.emit('file-reloaded', { fileId: file.id, content });
 
       return { success: true, fileId: file.id, content };
 
     } catch (error) {
-      console.error(`[FileSyncManager] 同步失败:`, error);
+      logger.error(`[FileSyncManager] 同步失败:`, error);
       throw error;
     }
   }
@@ -199,7 +200,7 @@ class FileSyncManager extends EventEmitter {
    * @param {string} manualContent - 手动合并的内容（当 resolution 为 'manual' 时）
    */
   async resolveConflict(fileId, resolution, manualContent = null) {
-    console.log(`[FileSyncManager] 解决冲突: ${fileId}, 方式: ${resolution}`);
+    logger.info(`[FileSyncManager] 解决冲突: ${fileId}, 方式: ${resolution}`);
 
     try {
       const file = this.database.db.prepare('SELECT * FROM project_files WHERE id = ?').get(fileId);
@@ -236,13 +237,13 @@ class FileSyncManager extends EventEmitter {
       );
       this.database.saveToFile();
 
-      console.log(`[FileSyncManager] 冲突解决成功`);
+      logger.info(`[FileSyncManager] 冲突解决成功`);
       this.emit('conflict-resolved', { fileId, resolution });
 
       return { success: true };
 
     } catch (error) {
-      console.error(`[FileSyncManager] 解决冲突失败:`, error);
+      logger.error(`[FileSyncManager] 解决冲突失败:`, error);
       throw error;
     }
   }
@@ -252,12 +253,12 @@ class FileSyncManager extends EventEmitter {
    * @param {string} projectId - 项目 ID
    */
   async flushAllChanges(projectId) {
-    console.log(`[FileSyncManager] 刷新项目所有更改: ${projectId}`);
+    logger.info(`[FileSyncManager] 刷新项目所有更改: ${projectId}`);
 
     try {
       const project = this.database.db.prepare('SELECT root_path FROM projects WHERE id = ?').get(projectId);
       if (!project?.root_path || !this.isLocalPath(project.root_path)) {
-        console.log('[FileSyncManager] 项目没有本地路径，跳过刷新');
+        logger.info('[FileSyncManager] 项目没有本地路径，跳过刷新');
         return;
       }
 
@@ -272,14 +273,14 @@ class FileSyncManager extends EventEmitter {
         // 写入文件
         await fs.promises.writeFile(fsPath, file.content || '', 'utf8');
 
-        console.log(`[FileSyncManager] 刷新文件: ${fsPath}`);
+        logger.info(`[FileSyncManager] 刷新文件: ${fsPath}`);
       }
 
-      console.log(`[FileSyncManager] 所有更改已刷新到文件系统`);
+      logger.info(`[FileSyncManager] 所有更改已刷新到文件系统`);
       return { success: true, count: files.length };
 
     } catch (error) {
-      console.error(`[FileSyncManager] 刷新失败:`, error);
+      logger.error(`[FileSyncManager] 刷新失败:`, error);
       throw error;
     }
   }
@@ -296,11 +297,11 @@ class FileSyncManager extends EventEmitter {
     }
 
     if (!rootPath || !this.isLocalPath(rootPath)) {
-      console.log('[FileSyncManager] 项目没有本地路径，跳过监听');
+      logger.info('[FileSyncManager] 项目没有本地路径，跳过监听');
       return;
     }
 
-    console.log(`[FileSyncManager] 开始监听项目: ${projectId}, 路径: ${rootPath}`);
+    logger.info(`[FileSyncManager] 开始监听项目: ${projectId}, 路径: ${rootPath}`);
 
     const watcher = chokidar.watch(rootPath, {
       ignored: /(^|[\/\\])\.|node_modules|\.git|dist|build|out/,
@@ -315,7 +316,7 @@ class FileSyncManager extends EventEmitter {
     watcher.on('change', async (fsPath) => {
       try {
         const relativePath = path.relative(rootPath, fsPath);
-        console.log(`[FileSyncManager] 检测到文件变化: ${relativePath}`);
+        logger.info(`[FileSyncManager] 检测到文件变化: ${relativePath}`);
 
         // 防止同步循环
         const file = this.database.db.prepare(
@@ -323,13 +324,13 @@ class FileSyncManager extends EventEmitter {
         ).get(projectId, relativePath);
 
         if (!file) {
-          console.log(`[FileSyncManager] 数据库中没有该文件记录: ${relativePath}`);
+          logger.info(`[FileSyncManager] 数据库中没有该文件记录: ${relativePath}`);
           return;
         }
 
         // 检查是否正在同步
         if (this.syncLocks.get(file.id)) {
-          console.log(`[FileSyncManager] 文件正在同步，跳过: ${file.id}`);
+          logger.info(`[FileSyncManager] 文件正在同步，跳过: ${file.id}`);
           return;
         }
 
@@ -344,7 +345,7 @@ class FileSyncManager extends EventEmitter {
 
         // 检测冲突（数据库和文件系统都被修改）
         if (syncState && syncState.db_hash !== syncState.fs_hash && file.content_hash !== syncState.db_hash) {
-          console.warn(`[FileSyncManager] 检测到同步冲突: ${file.id}`);
+          logger.warn(`[FileSyncManager] 检测到同步冲突: ${file.id}`);
 
           // 标记冲突
           this.database.db.run(
@@ -386,7 +387,7 @@ class FileSyncManager extends EventEmitter {
 
         this.database.saveToFile();
 
-        console.log(`[FileSyncManager] 文件同步成功: ${file.id}`);
+        logger.info(`[FileSyncManager] 文件同步成功: ${file.id}`);
 
         // 通知前端刷新
         if (this.mainWindow) {
@@ -397,14 +398,14 @@ class FileSyncManager extends EventEmitter {
         }
 
       } catch (error) {
-        console.error(`[FileSyncManager] 文件监听处理失败:`, error);
+        logger.error(`[FileSyncManager] 文件监听处理失败:`, error);
       }
     });
 
     watcher.on('add', async (fsPath) => {
       try {
         const relativePath = path.relative(rootPath, fsPath);
-        console.log(`[FileSyncManager] 检测到新文件: ${relativePath}`);
+        logger.info(`[FileSyncManager] 检测到新文件: ${relativePath}`);
 
         // 检查数据库中是否已存在
         const existingFile = this.database.db.prepare(
@@ -412,7 +413,7 @@ class FileSyncManager extends EventEmitter {
         ).get(projectId, relativePath);
 
         if (existingFile) {
-          console.log(`[FileSyncManager] 文件已存在于数据库: ${relativePath}`);
+          logger.info(`[FileSyncManager] 文件已存在于数据库: ${relativePath}`);
           return;
         }
 
@@ -456,7 +457,7 @@ class FileSyncManager extends EventEmitter {
 
         this.database.saveToFile();
 
-        console.log(`[FileSyncManager] 新文件已添加到数据库: ${fileId}`);
+        logger.info(`[FileSyncManager] 新文件已添加到数据库: ${fileId}`);
 
         // 通知前端
         if (this.mainWindow) {
@@ -468,21 +469,21 @@ class FileSyncManager extends EventEmitter {
         }
 
       } catch (error) {
-        console.error(`[FileSyncManager] 新文件处理失败:`, error);
+        logger.error(`[FileSyncManager] 新文件处理失败:`, error);
       }
     });
 
     watcher.on('unlink', async (fsPath) => {
       try {
         const relativePath = path.relative(rootPath, fsPath);
-        console.log(`[FileSyncManager] 检测到文件删除: ${relativePath}`);
+        logger.info(`[FileSyncManager] 检测到文件删除: ${relativePath}`);
 
         const file = this.database.db.prepare(
           `SELECT id FROM project_files WHERE project_id = ? AND file_path = ?`
         ).get(projectId, relativePath);
 
         if (!file) {
-          console.log(`[FileSyncManager] 数据库中没有该文件记录: ${relativePath}`);
+          logger.info(`[FileSyncManager] 数据库中没有该文件记录: ${relativePath}`);
           return;
         }
 
@@ -491,7 +492,7 @@ class FileSyncManager extends EventEmitter {
         this.database.db.run('DELETE FROM file_sync_state WHERE file_id = ?', [file.id]);
         this.database.saveToFile();
 
-        console.log(`[FileSyncManager] 文件已从数据库删除: ${file.id}`);
+        logger.info(`[FileSyncManager] 文件已从数据库删除: ${file.id}`);
 
         // 通知前端
         if (this.mainWindow) {
@@ -503,16 +504,16 @@ class FileSyncManager extends EventEmitter {
         }
 
       } catch (error) {
-        console.error(`[FileSyncManager] 文件删除处理失败:`, error);
+        logger.error(`[FileSyncManager] 文件删除处理失败:`, error);
       }
     });
 
     watcher.on('error', (error) => {
-      console.error(`[FileSyncManager] 文件监听错误:`, error);
+      logger.error(`[FileSyncManager] 文件监听错误:`, error);
     });
 
     this.watchers.set(projectId, watcher);
-    console.log(`[FileSyncManager] 项目监听已启动: ${projectId}`);
+    logger.info(`[FileSyncManager] 项目监听已启动: ${projectId}`);
 
     return { success: true, projectId };
   }
@@ -559,7 +560,7 @@ class FileSyncManager extends EventEmitter {
     if (watcher) {
       watcher.close();
       this.watchers.delete(projectId);
-      console.log(`[FileSyncManager] 停止监听项目: ${projectId}`);
+      logger.info(`[FileSyncManager] 停止监听项目: ${projectId}`);
     }
   }
 
@@ -569,7 +570,7 @@ class FileSyncManager extends EventEmitter {
   stopAll() {
     for (const [projectId, watcher] of this.watchers.entries()) {
       watcher.close();
-      console.log(`[FileSyncManager] 停止监听项目: ${projectId}`);
+      logger.info(`[FileSyncManager] 停止监听项目: ${projectId}`);
     }
     this.watchers.clear();
   }

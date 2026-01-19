@@ -3,6 +3,7 @@
  * 管理多窗口、窗口状态保存和恢复
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { BrowserWindow, screen } = require("electron");
 const path = require("path");
 const fs = require("fs");
@@ -288,10 +289,10 @@ class WindowManager {
         const data = fs.readFileSync(this.stateFilePath, "utf8");
         const states = JSON.parse(data);
         this.windowStates = new Map(Object.entries(states));
-        console.log("[WindowManager] Window states loaded");
+        logger.info("[WindowManager] Window states loaded");
       }
     } catch (error) {
-      console.error("[WindowManager] Failed to load window states:", error);
+      logger.error("[WindowManager] Failed to load window states:", error);
     }
   }
 
@@ -303,7 +304,7 @@ class WindowManager {
       const states = Object.fromEntries(this.windowStates);
       fs.writeFileSync(this.stateFilePath, JSON.stringify(states, null, 2));
     } catch (error) {
-      console.error("[WindowManager] Failed to save window states:", error);
+      logger.error("[WindowManager] Failed to save window states:", error);
     }
   }
 
@@ -317,7 +318,7 @@ class WindowManager {
         fs.unlinkSync(this.stateFilePath);
       }
     } catch (error) {
-      console.error("[WindowManager] Failed to clear window states:", error);
+      logger.error("[WindowManager] Failed to clear window states:", error);
     }
   }
 

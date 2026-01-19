@@ -295,6 +295,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, reactive, computed, onMounted, watch } from 'vue';
 import { message } from 'ant-design-vue';
 import { useRoute, useRouter } from 'vue-router';
@@ -434,7 +436,7 @@ async function loadOrganizationData() {
     }
 
   } catch (error) {
-    console.error('加载组织数据失败:', error);
+    logger.error('加载组织数据失败:', error);
     message.error('加载组织数据失败');
   } finally {
     loading.value = false;
@@ -470,7 +472,7 @@ async function handleSave() {
       message.error(result.error || '保存失败');
     }
   } catch (error) {
-    console.error('保存失败:', error);
+    logger.error('保存失败:', error);
     message.error('保存失败');
   } finally {
     saving.value = false;
@@ -558,7 +560,7 @@ async function handleCreateRole() {
       message.error(result.error || '创建失败');
     }
   } catch (error) {
-    console.error('创建角色失败:', error);
+    logger.error('创建角色失败:', error);
     message.error('创建角色失败');
   } finally {
     creatingRole.value = false;
@@ -594,7 +596,7 @@ async function handleDeleteRole(role) {
       message.error(result.error || '删除失败');
     }
   } catch (error) {
-    console.error('删除角色失败:', error);
+    logger.error('删除角色失败:', error);
     message.error('删除角色失败');
   }
 }
@@ -638,7 +640,7 @@ async function handleLeaveOrganization() {
       message.error(result.error || '离开失败');
     }
   } catch (error) {
-    console.error('离开组织失败:', error);
+    logger.error('离开组织失败:', error);
     message.error('离开组织失败');
   }
 }
@@ -700,7 +702,7 @@ async function handleDeleteOrganization() {
       message.error(result.error || '删除失败');
     }
   } catch (error) {
-    console.error('删除组织失败:', error);
+    logger.error('删除组织失败:', error);
     message.error('删除组织失败');
   }
 }

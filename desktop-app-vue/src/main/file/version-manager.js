@@ -3,6 +3,7 @@
  * 负责文件版本历史、版本比较、版本回滚等功能
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
@@ -68,7 +69,7 @@ class VersionManager {
       WHERE id = ?
     `).run(newVersionNumber, now, file_id);
 
-    console.log(`[VersionManager] 版本创建成功: v${newVersionNumber}`);
+    logger.info(`[VersionManager] 版本创建成功: v${newVersionNumber}`);
 
     return this.getVersion(versionId);
   }
@@ -175,7 +176,7 @@ class VersionManager {
       fileId
     );
 
-    console.log(`[VersionManager] 文件已回滚到版本 v${targetVersion}`);
+    logger.info(`[VersionManager] 文件已回滚到版本 v${targetVersion}`);
 
     return newVersion;
   }
@@ -241,7 +242,7 @@ class VersionManager {
           // fs.unlinkSync(version.file_path); // 谨慎使用
         }
       } catch (error) {
-        console.error('[VersionManager] 删除版本文件失败:', error);
+        logger.error('[VersionManager] 删除版本文件失败:', error);
       }
 
       // 删除数据库记录
@@ -249,7 +250,7 @@ class VersionManager {
       deletedCount++;
     }
 
-    console.log(`[VersionManager] 清理旧版本完成，删除 ${deletedCount} 个版本`);
+    logger.info(`[VersionManager] 清理旧版本完成，删除 ${deletedCount} 个版本`);
 
     return deletedCount;
   }

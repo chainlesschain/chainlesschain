@@ -186,6 +186,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, watch } from "vue";
 import {
   SortAscendingOutlined,
@@ -398,7 +400,7 @@ const handlePreviewOpen = async (visible, record) => {
       );
       previewSession.value = fullSession;
     } catch (error) {
-      console.error("[SessionList] 加载预览会话失败:", error);
+      logger.error("[SessionList] 加载预览会话失败:", error);
       // 使用基本信息作为回退
       previewSession.value = record;
     } finally {

@@ -1,3 +1,5 @@
+import { logger, createLogger } from '@/utils/logger';
+
 /**
  * Animation Controller
  * 动画控制器 - 提供流畅的 60 FPS 动画和过渡效果
@@ -39,7 +41,7 @@ class AnimationController {
     this.startAnimationLoop()
 
     if (this.options.debug) {
-      console.log('[AnimationController] Initialized')
+      logger.info('[AnimationController] Initialized')
     }
   }
 
@@ -174,7 +176,7 @@ class AnimationController {
       this.stats.activeAnimations++
 
       if (this.options.debug) {
-        console.log(`[AnimationController] Started animation: ${animationId}`)
+        logger.info(`[AnimationController] Started animation: ${animationId}`)
       }
     })
   }
@@ -299,7 +301,7 @@ class AnimationController {
     this.stats.activeAnimations--
 
     if (this.options.debug) {
-      console.log(`[AnimationController] Completed animation: ${animation.id}`)
+      logger.info(`[AnimationController] Completed animation: ${animation.id}`)
     }
   }
 
@@ -315,7 +317,7 @@ class AnimationController {
       this.stats.activeAnimations--
 
       if (this.options.debug) {
-        console.log(`[AnimationController] Cancelled animation: ${animationId}`)
+        logger.info(`[AnimationController] Cancelled animation: ${animationId}`)
       }
     }
   }
@@ -332,7 +334,7 @@ class AnimationController {
     this.stats.activeAnimations = 0
 
     if (this.options.debug) {
-      console.log('[AnimationController] Cancelled all animations')
+      logger.info('[AnimationController] Cancelled all animations')
     }
   }
 
@@ -413,7 +415,7 @@ class AnimationController {
     this.cancelAll()
 
     if (this.options.debug) {
-      console.log('[AnimationController] Destroyed')
+      logger.info('[AnimationController] Destroyed')
     }
   }
 }

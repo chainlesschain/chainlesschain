@@ -7,6 +7,7 @@
  * @since 2026-01-16
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const ipcGuard = require("../ipc/ipc-guard");
 
 /**
@@ -18,7 +19,7 @@ const ipcGuard = require("../ipc/ipc-guard");
 function registerErrorMonitorIPC({ errorMonitor, ipcMain: injectedIpcMain }) {
   // 防止重复注册
   if (ipcGuard.isModuleRegistered("error-monitor-ipc")) {
-    console.log("[ErrorMonitor IPC] Handlers already registered, skipping...");
+    logger.info("[ErrorMonitor IPC] Handlers already registered, skipping...");
     return;
   }
 
@@ -26,7 +27,7 @@ function registerErrorMonitorIPC({ errorMonitor, ipcMain: injectedIpcMain }) {
   const electron = require("electron");
   const ipcMain = injectedIpcMain || electron.ipcMain;
 
-  console.log("[ErrorMonitor IPC] Registering ErrorMonitor IPC handlers...");
+  logger.info("[ErrorMonitor IPC] Registering ErrorMonitor IPC handlers...");
 
   // 创建可变的引用容器
   const monitorRef = { current: errorMonitor };
@@ -47,7 +48,7 @@ function registerErrorMonitorIPC({ errorMonitor, ipcMain: injectedIpcMain }) {
 
       return await monitorRef.current.analyzeError(error);
     } catch (error) {
-      console.error("[ErrorMonitor IPC] 分析错误失败:", error);
+      logger.error("[ErrorMonitor IPC] 分析错误失败:", error);
       throw error;
     }
   });
@@ -70,7 +71,7 @@ function registerErrorMonitorIPC({ errorMonitor, ipcMain: injectedIpcMain }) {
 
       return monitorRef.current.generateDiagnosisReport(analysis);
     } catch (error) {
-      console.error("[ErrorMonitor IPC] 生成诊断报告失败:", error);
+      logger.error("[ErrorMonitor IPC] 生成诊断报告失败:", error);
       throw error;
     }
   });
@@ -87,7 +88,7 @@ function registerErrorMonitorIPC({ errorMonitor, ipcMain: injectedIpcMain }) {
 
       return await monitorRef.current.getErrorStats(options);
     } catch (error) {
-      console.error("[ErrorMonitor IPC] 获取错误统计失败:", error);
+      logger.error("[ErrorMonitor IPC] 获取错误统计失败:", error);
       throw error;
     }
   });
@@ -106,7 +107,7 @@ function registerErrorMonitorIPC({ errorMonitor, ipcMain: injectedIpcMain }) {
 
         return await monitorRef.current.findRelatedIssues(error, limit);
       } catch (error) {
-        console.error("[ErrorMonitor IPC] 查找相关错误失败:", error);
+        logger.error("[ErrorMonitor IPC] 查找相关错误失败:", error);
         throw error;
       }
     },
@@ -124,7 +125,7 @@ function registerErrorMonitorIPC({ errorMonitor, ipcMain: injectedIpcMain }) {
 
       return await monitorRef.current.getAnalysisHistory(options);
     } catch (error) {
-      console.error("[ErrorMonitor IPC] 获取分析历史失败:", error);
+      logger.error("[ErrorMonitor IPC] 获取分析历史失败:", error);
       throw error;
     }
   });
@@ -142,7 +143,7 @@ function registerErrorMonitorIPC({ errorMonitor, ipcMain: injectedIpcMain }) {
       await monitorRef.current.deleteAnalysis(analysisId);
       return { success: true };
     } catch (error) {
-      console.error("[ErrorMonitor IPC] 删除分析记录失败:", error);
+      logger.error("[ErrorMonitor IPC] 删除分析记录失败:", error);
       throw error;
     }
   });
@@ -166,7 +167,7 @@ function registerErrorMonitorIPC({ errorMonitor, ipcMain: injectedIpcMain }) {
           deletedCount,
         };
       } catch (error) {
-        console.error("[ErrorMonitor IPC] 清理旧分析记录失败:", error);
+        logger.error("[ErrorMonitor IPC] 清理旧分析记录失败:", error);
         throw error;
       }
     },
@@ -184,7 +185,7 @@ function registerErrorMonitorIPC({ errorMonitor, ipcMain: injectedIpcMain }) {
 
       return await monitorRef.current.getClassificationStats(days);
     } catch (error) {
-      console.error("[ErrorMonitor IPC] 获取分类统计失败:", error);
+      logger.error("[ErrorMonitor IPC] 获取分类统计失败:", error);
       throw error;
     }
   });
@@ -201,7 +202,7 @@ function registerErrorMonitorIPC({ errorMonitor, ipcMain: injectedIpcMain }) {
 
       return await monitorRef.current.getSeverityStats(days);
     } catch (error) {
-      console.error("[ErrorMonitor IPC] 获取严重程度统计失败:", error);
+      logger.error("[ErrorMonitor IPC] 获取严重程度统计失败:", error);
       throw error;
     }
   });
@@ -222,7 +223,7 @@ function registerErrorMonitorIPC({ errorMonitor, ipcMain: injectedIpcMain }) {
         enabled: monitorRef.current.enableAIDiagnosis,
       };
     } catch (error) {
-      console.error("[ErrorMonitor IPC] 切换 AI 诊断失败:", error);
+      logger.error("[ErrorMonitor IPC] 切换 AI 诊断失败:", error);
       throw error;
     }
   });
@@ -246,7 +247,7 @@ function registerErrorMonitorIPC({ errorMonitor, ipcMain: injectedIpcMain }) {
         );
         return { success: true };
       } catch (error) {
-        console.error("[ErrorMonitor IPC] 更新分析状态失败:", error);
+        logger.error("[ErrorMonitor IPC] 更新分析状态失败:", error);
         throw error;
       }
     },
@@ -264,7 +265,7 @@ function registerErrorMonitorIPC({ errorMonitor, ipcMain: injectedIpcMain }) {
 
       return await monitorRef.current.getDiagnosisConfig();
     } catch (error) {
-      console.error("[ErrorMonitor IPC] 获取诊断配置失败:", error);
+      logger.error("[ErrorMonitor IPC] 获取诊断配置失败:", error);
       throw error;
     }
   });
@@ -282,7 +283,7 @@ function registerErrorMonitorIPC({ errorMonitor, ipcMain: injectedIpcMain }) {
       await monitorRef.current.updateDiagnosisConfig(updates);
       return { success: true };
     } catch (error) {
-      console.error("[ErrorMonitor IPC] 更新诊断配置失败:", error);
+      logger.error("[ErrorMonitor IPC] 更新诊断配置失败:", error);
       throw error;
     }
   });
@@ -299,7 +300,7 @@ function registerErrorMonitorIPC({ errorMonitor, ipcMain: injectedIpcMain }) {
 
       return await monitorRef.current.getDailyTrend(days);
     } catch (error) {
-      console.error("[ErrorMonitor IPC] 获取每日趋势失败:", error);
+      logger.error("[ErrorMonitor IPC] 获取每日趋势失败:", error);
       throw error;
     }
   });
@@ -323,7 +324,7 @@ function registerErrorMonitorIPC({ errorMonitor, ipcMain: injectedIpcMain }) {
       // 重新分析
       return await monitorRef.current.analyzeError(originalError);
     } catch (error) {
-      console.error("[ErrorMonitor IPC] 重新分析错误失败:", error);
+      logger.error("[ErrorMonitor IPC] 重新分析错误失败:", error);
       throw error;
     }
   });
@@ -350,7 +351,7 @@ function registerErrorMonitorIPC({ errorMonitor, ipcMain: injectedIpcMain }) {
           await monitorRef.current.analyzeError(errorInfo);
         } catch (analyzeError) {
           // 分析失败不影响日志记录
-          console.warn(
+          logger.warn(
             "[ErrorMonitor IPC] 错误分析失败:",
             analyzeError.message,
           );
@@ -359,7 +360,7 @@ function registerErrorMonitorIPC({ errorMonitor, ipcMain: injectedIpcMain }) {
 
       return { success: true };
     } catch (error) {
-      console.error("[ErrorMonitor IPC] 记录错误日志失败:", error);
+      logger.error("[ErrorMonitor IPC] 记录错误日志失败:", error);
       // 不抛出异常，避免影响渲染进程
       return { success: false, error: error.message };
     }
@@ -372,13 +373,13 @@ function registerErrorMonitorIPC({ errorMonitor, ipcMain: injectedIpcMain }) {
    */
   function updateErrorMonitor(newErrorMonitor) {
     monitorRef.current = newErrorMonitor;
-    console.log("[ErrorMonitor IPC] ErrorMonitor 引用已更新");
+    logger.info("[ErrorMonitor IPC] ErrorMonitor 引用已更新");
   }
 
   // 标记为已注册
   ipcGuard.markModuleRegistered("error-monitor-ipc");
 
-  console.log(
+  logger.info(
     "[ErrorMonitor IPC] ErrorMonitor IPC handlers registered successfully",
   );
 

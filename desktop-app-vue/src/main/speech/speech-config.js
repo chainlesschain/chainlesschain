@@ -4,6 +4,7 @@
  * 管理语音识别系统的所有配置选项
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const path = require("path");
 const fs = require("fs").promises;
 const os = require("os");
@@ -112,11 +113,11 @@ class SpeechConfig {
 
         // 深度合并配置
         this.config = this.deepMerge(DEFAULT_CONFIG, userConfig);
-        console.log("[SpeechConfig] 已加载用户配置");
+        logger.info("[SpeechConfig] 已加载用户配置");
       } else {
         // 使用默认配置
         this.config = { ...DEFAULT_CONFIG };
-        console.log("[SpeechConfig] 使用默认配置");
+        logger.info("[SpeechConfig] 使用默认配置");
 
         // 保存默认配置到文件
         await this.save();
@@ -139,7 +140,7 @@ class SpeechConfig {
       this.loaded = true;
       return this.config;
     } catch (error) {
-      console.error("[SpeechConfig] 加载配置失败:", error);
+      logger.error("[SpeechConfig] 加载配置失败:", error);
       this.config = { ...DEFAULT_CONFIG };
       this.loaded = true;
       return this.config;
@@ -169,10 +170,10 @@ class SpeechConfig {
         "utf-8",
       );
 
-      console.log("[SpeechConfig] 配置已保存");
+      logger.info("[SpeechConfig] 配置已保存");
       return true;
     } catch (error) {
-      console.error("[SpeechConfig] 保存配置失败:", error);
+      logger.error("[SpeechConfig] 保存配置失败:", error);
       return false;
     }
   }
@@ -182,7 +183,7 @@ class SpeechConfig {
    */
   getAll() {
     if (!this.loaded) {
-      console.warn("[SpeechConfig] 配置尚未加载，使用默认配置");
+      logger.warn("[SpeechConfig] 配置尚未加载，使用默认配置");
       return { ...DEFAULT_CONFIG };
     }
     return this.config;
@@ -232,7 +233,7 @@ class SpeechConfig {
       case "whisper-local":
         return this.config.whisperLocal;
       default:
-        console.warn(
+        logger.warn(
           `[SpeechConfig] 未知引擎类型: ${engineType}，使用默认配置`,
         );
         return {};

@@ -1,3 +1,5 @@
+import { logger, createLogger } from '@/utils/logger';
+
 /**
  * Incremental Data Sync Manager
  * 增量数据同步管理器 - 只同步变更的数据
@@ -47,7 +49,7 @@ class IncrementalSyncManager {
     this.init();
 
     if (this.options.debug) {
-      console.log("[IncrementalSyncManager] Initialized");
+      logger.info("[IncrementalSyncManager] Initialized");
     }
   }
 
@@ -57,7 +59,7 @@ class IncrementalSyncManager {
   init() {
     // Skip initialization if sync is disabled
     if (!this.options.enabled) {
-      console.log('[IncrementalSync] Sync is disabled, skipping initialization');
+      logger.info('[IncrementalSync] Sync is disabled, skipping initialization');
       return;
     }
 
@@ -100,7 +102,7 @@ class IncrementalSyncManager {
     this.pendingChanges.set(entity, change);
 
     if (this.options.debug) {
-      console.log(
+      logger.info(
         `[IncrementalSyncManager] Tracked change: ${entity} (${operation})`,
       );
     }
@@ -118,14 +120,14 @@ class IncrementalSyncManager {
   async syncNow(options = {}) {
     if (this.isSyncing) {
       if (this.options.debug) {
-        console.log("[IncrementalSyncManager] Sync already in progress");
+        logger.info("[IncrementalSyncManager] Sync already in progress");
       }
       return;
     }
 
     if (!this.isOnline && !options.force) {
       if (this.options.debug) {
-        console.log("[IncrementalSyncManager] Offline, skipping sync");
+        logger.info("[IncrementalSyncManager] Offline, skipping sync");
       }
       return;
     }
@@ -139,13 +141,13 @@ class IncrementalSyncManager {
 
       if (changes.length === 0) {
         if (this.options.debug) {
-          console.log("[IncrementalSyncManager] No changes to sync");
+          logger.info("[IncrementalSyncManager] No changes to sync");
         }
         return;
       }
 
       if (this.options.debug) {
-        console.log(
+        logger.info(
           `[IncrementalSyncManager] Syncing ${changes.length} changes`,
         );
       }
@@ -181,7 +183,7 @@ class IncrementalSyncManager {
       this.stats.dataSaved += fullDataSize - deltaSize;
 
       if (this.options.debug) {
-        console.log("[IncrementalSyncManager] Sync completed successfully");
+        logger.info("[IncrementalSyncManager] Sync completed successfully");
       }
 
       // Dispatch sync event
@@ -191,7 +193,7 @@ class IncrementalSyncManager {
         }),
       );
     } catch (error) {
-      console.error("[IncrementalSyncManager] Sync failed:", error);
+      logger.error("[IncrementalSyncManager] Sync failed:", error);
       this.stats.failedSyncs++;
 
       // Add to offline queue
@@ -256,7 +258,7 @@ class IncrementalSyncManager {
         });
 
         if (!response.ok) {
-          console.error(
+          logger.error(
             `[IncrementalSync] Upload failed for ${tableName}: HTTP ${response.status}`,
           );
           continue;
@@ -266,15 +268,15 @@ class IncrementalSyncManager {
         results.push({ tableName, ...result });
       }
 
-      console.log(
+      logger.info(
         "[IncrementalSync] Remote sync completed, changes:",
         changes.length,
       );
       return { success: true, results };
     } catch (error) {
-      console.error("[IncrementalSync] Remote sync error:", error);
+      logger.error("[IncrementalSync] Remote sync error:", error);
       // Fallback to local-only mode on error
-      console.log("[IncrementalSync] Falling back to local-only mode");
+      logger.info("[IncrementalSync] Falling back to local-only mode");
       return {
         success: true,
         message: "Local only (remote sync failed)",
@@ -352,7 +354,7 @@ class IncrementalSyncManager {
         );
 
         if (!response.ok) {
-          console.warn(
+          logger.warn(
             `[IncrementalSync] Download failed for ${tableName}: HTTP ${response.status}`,
           );
           continue;
@@ -371,13 +373,13 @@ class IncrementalSyncManager {
         }
       }
 
-      console.log(
+      logger.info(
         "[IncrementalSync] Fetched remote changes:",
         allChanges.length,
       );
       return allChanges;
     } catch (error) {
-      console.error("[IncrementalSync] Fetch remote changes error:", error);
+      logger.error("[IncrementalSync] Fetch remote changes error:", error);
       return [];
     }
   }
@@ -398,7 +400,7 @@ class IncrementalSyncManager {
       );
 
       if (this.options.debug) {
-        console.log(
+        logger.info(
           `[IncrementalSyncManager] Applied remote change: ${entity} (${operation})`,
         );
       }
@@ -411,7 +413,7 @@ class IncrementalSyncManager {
    */
   async resolveConflicts(conflicts) {
     if (this.options.debug) {
-      console.log(
+      logger.info(
         `[IncrementalSyncManager] Resolving ${conflicts.length} conflicts`,
       );
     }
@@ -481,7 +483,7 @@ class IncrementalSyncManager {
   startAutoSync() {
     // Skip if sync is disabled
     if (!this.options.enabled) {
-      console.log('[IncrementalSync] Sync disabled, skipping auto-sync setup');
+      logger.info('[IncrementalSync] Sync disabled, skipping auto-sync setup');
       return;
     }
 
@@ -497,7 +499,7 @@ class IncrementalSyncManager {
     this.syncNow();
 
     if (this.options.debug) {
-      console.log(
+      logger.info(
         `[IncrementalSyncManager] Auto-sync started (interval: ${this.options.syncInterval}ms)`,
       );
     }
@@ -512,7 +514,7 @@ class IncrementalSyncManager {
       this.syncTimer = null;
 
       if (this.options.debug) {
-        console.log("[IncrementalSyncManager] Auto-sync stopped");
+        logger.info("[IncrementalSyncManager] Auto-sync stopped");
       }
     }
   }
@@ -544,7 +546,7 @@ class IncrementalSyncManager {
 
     this.websocket.onopen = () => {
       if (this.options.debug) {
-        console.log("[IncrementalSyncManager] WebSocket connected");
+        logger.info("[IncrementalSyncManager] WebSocket connected");
       }
     };
 
@@ -556,7 +558,7 @@ class IncrementalSyncManager {
           this.applyRemoteChanges([message.data]);
         }
       } catch (error) {
-        console.error(
+        logger.error(
           "[IncrementalSyncManager] WebSocket message error:",
           error,
         );
@@ -564,12 +566,12 @@ class IncrementalSyncManager {
     };
 
     this.websocket.onerror = (error) => {
-      console.error("[IncrementalSyncManager] WebSocket error:", error);
+      logger.error("[IncrementalSyncManager] WebSocket error:", error);
     };
 
     this.websocket.onclose = () => {
       if (this.options.debug) {
-        console.log("[IncrementalSyncManager] WebSocket disconnected");
+        logger.info("[IncrementalSyncManager] WebSocket disconnected");
       }
 
       // Attempt reconnect after delay
@@ -632,7 +634,7 @@ class IncrementalSyncManager {
     this.syncQueue = [];
 
     if (this.options.debug) {
-      console.log("[IncrementalSyncManager] Cleared all pending changes");
+      logger.info("[IncrementalSyncManager] Cleared all pending changes");
     }
   }
 
@@ -650,7 +652,7 @@ class IncrementalSyncManager {
     this.clear();
 
     if (this.options.debug) {
-      console.log("[IncrementalSyncManager] Destroyed");
+      logger.info("[IncrementalSyncManager] Destroyed");
     }
   }
 }

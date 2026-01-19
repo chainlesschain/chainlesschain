@@ -2,6 +2,7 @@
  * 联网搜索IPC处理器
  */
 
+const { logger, createLogger } = require('./logger.js');
 const { ipcMain } = require('electron');
 const {
   search,
@@ -19,14 +20,14 @@ function registerWebSearchIPC() {
    */
   ipcMain.handle('webSearch:search', async (_event, query, options = {}) => {
     try {
-      console.log('[WebSearch IPC] 搜索:', query);
+      logger.info('[WebSearch IPC] 搜索:', query);
       const result = await search(query, options);
       return {
         success: true,
         ...result
       };
     } catch (error) {
-      console.error('[WebSearch IPC] 搜索失败:', error);
+      logger.error('[WebSearch IPC] 搜索失败:', error);
       return {
         success: false,
         error: error.message
@@ -39,14 +40,14 @@ function registerWebSearchIPC() {
    */
   ipcMain.handle('webSearch:duckduckgo', async (_event, query, options = {}) => {
     try {
-      console.log('[WebSearch IPC] DuckDuckGo搜索:', query);
+      logger.info('[WebSearch IPC] DuckDuckGo搜索:', query);
       const result = await searchDuckDuckGo(query, options);
       return {
         success: true,
         ...result
       };
     } catch (error) {
-      console.error('[WebSearch IPC] DuckDuckGo搜索失败:', error);
+      logger.error('[WebSearch IPC] DuckDuckGo搜索失败:', error);
       return {
         success: false,
         error: error.message
@@ -59,14 +60,14 @@ function registerWebSearchIPC() {
    */
   ipcMain.handle('webSearch:bing', async (_event, query, options = {}) => {
     try {
-      console.log('[WebSearch IPC] Bing搜索:', query);
+      logger.info('[WebSearch IPC] Bing搜索:', query);
       const result = await searchBing(query, options);
       return {
         success: true,
         ...result
       };
     } catch (error) {
-      console.error('[WebSearch IPC] Bing搜索失败:', error);
+      logger.error('[WebSearch IPC] Bing搜索失败:', error);
       return {
         success: false,
         error: error.message
@@ -85,7 +86,7 @@ function registerWebSearchIPC() {
         formatted
       };
     } catch (error) {
-      console.error('[WebSearch IPC] 格式化失败:', error);
+      logger.error('[WebSearch IPC] 格式化失败:', error);
       return {
         success: false,
         error: error.message
@@ -93,7 +94,7 @@ function registerWebSearchIPC() {
     }
   });
 
-  console.log('[WebSearch IPC] 已注册4个联网搜索handlers');
+  logger.info('[WebSearch IPC] 已注册4个联网搜索handlers');
 }
 
 /**
@@ -111,7 +112,7 @@ function unregisterWebSearchIPC() {
     ipcMain.removeHandler(channel);
   });
 
-  console.log('[WebSearch IPC] 已注销所有handlers');
+  logger.info('[WebSearch IPC] 已注销所有handlers');
 }
 
 module.exports = {

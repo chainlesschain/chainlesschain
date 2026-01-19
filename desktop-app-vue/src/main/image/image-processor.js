@@ -4,6 +4,7 @@
  * 负责图片压缩、缩略图生成、格式转换等
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const sharp = require('sharp');
 const path = require('path');
 const fs = require('fs').promises;
@@ -54,7 +55,7 @@ class ImageProcessor extends EventEmitter {
     // 监听资源水平变化
     this.resourceMonitor.on('level-change', ({ newLevel }) => {
       this.emit('resource-level-change', { level: newLevel });
-      console.log(`[ImageProcessor] 资源水平变化: ${newLevel}`);
+      logger.info(`[ImageProcessor] 资源水平变化: ${newLevel}`);
     });
   }
 
@@ -91,7 +92,7 @@ class ImageProcessor extends EventEmitter {
         orientation: metadata.orientation,
       };
     } catch (error) {
-      console.error('[ImageProcessor] 获取元信息失败:', error);
+      logger.error('[ImageProcessor] 获取元信息失败:', error);
       throw error;
     }
   }
@@ -127,7 +128,7 @@ class ImageProcessor extends EventEmitter {
         isLargeFile = fileSize > this.config.largeFileThreshold;
       } catch (error) {
         // 文件不存在或无法访问，继续处理
-        console.warn('[ImageProcessor] 无法获取文件大小:', error.message);
+        logger.warn('[ImageProcessor] 无法获取文件大小:', error.message);
       }
     }
 
@@ -144,7 +145,7 @@ class ImageProcessor extends EventEmitter {
       this.emit('compress-start', { input, outputPath, isLargeFile, fileSize });
 
       if (isLargeFile) {
-        console.log(
+        logger.info(
           `[ImageProcessor] 大文件检测: ${(fileSize / 1024 / 1024).toFixed(2)}MB, ` +
           `启用优化模式`
         );
@@ -224,7 +225,7 @@ class ImageProcessor extends EventEmitter {
 
       return result;
     } catch (error) {
-      console.error('[ImageProcessor] 压缩失败:', error);
+      logger.error('[ImageProcessor] 压缩失败:', error);
 
       // 如果是内存错误，尝试恢复
       if (error.message && error.message.includes('memory')) {
@@ -294,7 +295,7 @@ class ImageProcessor extends EventEmitter {
       this.emit('thumbnail-complete', result);
       return result;
     } catch (error) {
-      console.error('[ImageProcessor] 生成缩略图失败:', error);
+      logger.error('[ImageProcessor] 生成缩略图失败:', error);
       this.emit('thumbnail-error', { input, error });
       throw error;
     }
@@ -348,7 +349,7 @@ class ImageProcessor extends EventEmitter {
         processingMode: isLargeFile ? 'streaming' : 'direct',
       };
     } catch (error) {
-      console.error('[ImageProcessor] 格式转换失败:', error);
+      logger.error('[ImageProcessor] 格式转换失败:', error);
       throw error;
     }
   }
@@ -364,7 +365,7 @@ class ImageProcessor extends EventEmitter {
     const strategy = this.resourceMonitor.getDegradationStrategy('imageProcessing');
     const concurrent = strategy.concurrent;
 
-    console.log(`[ImageProcessor] 批量处理 ${images.length} 张图片，并发数: ${concurrent}`);
+    logger.info(`[ImageProcessor] 批量处理 ${images.length} 张图片，并发数: ${concurrent}`);
 
     // 分批处理以控制并发
     for (let batchStart = 0; batchStart < images.length; batchStart += concurrent) {
@@ -400,7 +401,7 @@ class ImageProcessor extends EventEmitter {
               ...result,
             };
           } catch (error) {
-            console.error(`[ImageProcessor] 处理失败 [${i + 1}/${images.length}]:`, error);
+            logger.error(`[ImageProcessor] 处理失败 [${i + 1}/${images.length}]:`, error);
             return {
               success: false,
               input: input,
@@ -426,7 +427,7 @@ class ImageProcessor extends EventEmitter {
       if (batchStart + concurrent < images.length) {
         const currentLevel = this.resourceMonitor.updateResourceLevel();
         if (currentLevel === 'critical') {
-          console.log('[ImageProcessor] 内存临界，暂停并执行垃圾回收');
+          logger.info('[ImageProcessor] 内存临界，暂停并执行垃圾回收');
           this.resourceMonitor.forceGarbageCollection();
           // 暂停 1 秒让系统恢复
           await new Promise(resolve => setTimeout(resolve, 1000));
@@ -462,7 +463,7 @@ class ImageProcessor extends EventEmitter {
         outputPath: outputPath,
       };
     } catch (error) {
-      console.error('[ImageProcessor] 旋转失败:', error);
+      logger.error('[ImageProcessor] 旋转失败:', error);
       throw error;
     }
   }
@@ -488,7 +489,7 @@ class ImageProcessor extends EventEmitter {
         outputPath: outputPath,
       };
     } catch (error) {
-      console.error('[ImageProcessor] 裁剪失败:', error);
+      logger.error('[ImageProcessor] 裁剪失败:', error);
       throw error;
     }
   }
@@ -507,7 +508,7 @@ class ImageProcessor extends EventEmitter {
    */
   updateConfig(newConfig) {
     this.config = { ...this.config, ...newConfig };
-    console.log('[ImageProcessor] 配置已更新:', this.config);
+    logger.info('[ImageProcessor] 配置已更新:', this.config);
   }
 }
 

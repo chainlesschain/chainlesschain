@@ -4,6 +4,7 @@
  * 提供前端与语音/视频通话功能的通信接口
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { ipcMain } = require('electron');
 
 class VoiceVideoIPC {
@@ -16,7 +17,7 @@ class VoiceVideoIPC {
    * 注册所有IPC处理器
    */
   register() {
-    console.log('[VoiceVideoIPC] 注册IPC处理器...');
+    logger.info('[VoiceVideoIPC] 注册IPC处理器...');
 
     // 通话控制
     this.registerHandler('p2p-call:start', this.handleStartCall.bind(this));
@@ -36,7 +37,7 @@ class VoiceVideoIPC {
     // 设置事件转发
     this.setupEventForwarding();
 
-    console.log('[VoiceVideoIPC] ✅ IPC处理器注册完成');
+    logger.info('[VoiceVideoIPC] ✅ IPC处理器注册完成');
   }
 
   /**
@@ -121,7 +122,7 @@ class VoiceVideoIPC {
         callId
       };
     } catch (error) {
-      console.error('[VoiceVideoIPC] 发起通话失败:', error);
+      logger.error('[VoiceVideoIPC] 发起通话失败:', error);
       return {
         success: false,
         error: error.message
@@ -140,7 +141,7 @@ class VoiceVideoIPC {
         success: true
       };
     } catch (error) {
-      console.error('[VoiceVideoIPC] 接受通话失败:', error);
+      logger.error('[VoiceVideoIPC] 接受通话失败:', error);
       return {
         success: false,
         error: error.message
@@ -159,7 +160,7 @@ class VoiceVideoIPC {
         success: true
       };
     } catch (error) {
-      console.error('[VoiceVideoIPC] 拒绝通话失败:', error);
+      logger.error('[VoiceVideoIPC] 拒绝通话失败:', error);
       return {
         success: false,
         error: error.message
@@ -178,7 +179,7 @@ class VoiceVideoIPC {
         success: true
       };
     } catch (error) {
-      console.error('[VoiceVideoIPC] 结束通话失败:', error);
+      logger.error('[VoiceVideoIPC] 结束通话失败:', error);
       return {
         success: false,
         error: error.message
@@ -198,7 +199,7 @@ class VoiceVideoIPC {
         isMuted
       };
     } catch (error) {
-      console.error('[VoiceVideoIPC] 切换静音失败:', error);
+      logger.error('[VoiceVideoIPC] 切换静音失败:', error);
       return {
         success: false,
         error: error.message
@@ -218,7 +219,7 @@ class VoiceVideoIPC {
         isVideoEnabled
       };
     } catch (error) {
-      console.error('[VoiceVideoIPC] 切换视频失败:', error);
+      logger.error('[VoiceVideoIPC] 切换视频失败:', error);
       return {
         success: false,
         error: error.message
@@ -238,7 +239,7 @@ class VoiceVideoIPC {
         info
       };
     } catch (error) {
-      console.error('[VoiceVideoIPC] 获取通话信息失败:', error);
+      logger.error('[VoiceVideoIPC] 获取通话信息失败:', error);
       return {
         success: false,
         error: error.message
@@ -258,7 +259,7 @@ class VoiceVideoIPC {
         calls
       };
     } catch (error) {
-      console.error('[VoiceVideoIPC] 获取活动通话失败:', error);
+      logger.error('[VoiceVideoIPC] 获取活动通话失败:', error);
       return {
         success: false,
         error: error.message
@@ -278,7 +279,7 @@ class VoiceVideoIPC {
         stats
       };
     } catch (error) {
-      console.error('[VoiceVideoIPC] 获取统计信息失败:', error);
+      logger.error('[VoiceVideoIPC] 获取统计信息失败:', error);
       return {
         success: false,
         error: error.message
@@ -290,7 +291,7 @@ class VoiceVideoIPC {
    * 注销所有处理器
    */
   unregister() {
-    console.log('[VoiceVideoIPC] 注销IPC处理器...');
+    logger.info('[VoiceVideoIPC] 注销IPC处理器...');
 
     this.registeredHandlers.forEach(channel => {
       ipcMain.removeHandler(channel);
@@ -298,7 +299,7 @@ class VoiceVideoIPC {
 
     this.registeredHandlers = [];
 
-    console.log('[VoiceVideoIPC] ✅ IPC处理器已注销');
+    logger.info('[VoiceVideoIPC] ✅ IPC处理器已注销');
   }
 }
 

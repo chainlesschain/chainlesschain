@@ -7,6 +7,7 @@
  * @since 2026-01-17
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const ipcGuard = require("../ipc/ipc-guard");
 
 /**
@@ -21,7 +22,7 @@ function registerLearnedPatternManagerIPC({
 }) {
   // Prevent duplicate registration
   if (ipcGuard.isModuleRegistered("learned-pattern-manager-ipc")) {
-    console.log(
+    logger.info(
       "[LearnedPatternManager IPC] Handlers already registered, skipping...",
     );
     return;
@@ -30,7 +31,7 @@ function registerLearnedPatternManagerIPC({
   const electron = require("electron");
   const ipcMain = injectedIpcMain || electron.ipcMain;
 
-  console.log(
+  logger.info(
     "[LearnedPatternManager IPC] Registering LearnedPatternManager IPC handlers...",
   );
 
@@ -52,7 +53,7 @@ function registerLearnedPatternManagerIPC({
       }
       return await managerRef.current.recordPromptPattern(params);
     } catch (error) {
-      console.error("[LearnedPatternManager IPC] Record prompt failed:", error);
+      logger.error("[LearnedPatternManager IPC] Record prompt failed:", error);
       throw error;
     }
   });
@@ -71,7 +72,7 @@ function registerLearnedPatternManagerIPC({
         await managerRef.current.updatePromptPatternUsage(id, options);
         return { success: true };
       } catch (error) {
-        console.error(
+        logger.error(
           "[LearnedPatternManager IPC] Update prompt usage failed:",
           error,
         );
@@ -93,7 +94,7 @@ function registerLearnedPatternManagerIPC({
         }
         return await managerRef.current.getPromptSuggestions(context);
       } catch (error) {
-        console.error(
+        logger.error(
           "[LearnedPatternManager IPC] Get prompt suggestions failed:",
           error,
         );
@@ -115,7 +116,7 @@ function registerLearnedPatternManagerIPC({
         }
         return await managerRef.current.searchPromptPatterns(query, options);
       } catch (error) {
-        console.error(
+        logger.error(
           "[LearnedPatternManager IPC] Search prompts failed:",
           error,
         );
@@ -139,7 +140,7 @@ function registerLearnedPatternManagerIPC({
       }
       return await managerRef.current.recordErrorFix(params);
     } catch (error) {
-      console.error(
+      logger.error(
         "[LearnedPatternManager IPC] Record error fix failed:",
         error,
       );
@@ -160,7 +161,7 @@ function registerLearnedPatternManagerIPC({
         }
         return await managerRef.current.getErrorFixSuggestions(error, limit);
       } catch (error) {
-        console.error(
+        logger.error(
           "[LearnedPatternManager IPC] Get error fix suggestions failed:",
           error,
         );
@@ -184,7 +185,7 @@ function registerLearnedPatternManagerIPC({
       }
       return await managerRef.current.saveCodeSnippet(snippet);
     } catch (error) {
-      console.error("[LearnedPatternManager IPC] Save snippet failed:", error);
+      logger.error("[LearnedPatternManager IPC] Save snippet failed:", error);
       throw error;
     }
   });
@@ -200,7 +201,7 @@ function registerLearnedPatternManagerIPC({
       }
       return await managerRef.current.getCodeSnippets(options);
     } catch (error) {
-      console.error("[LearnedPatternManager IPC] Get snippets failed:", error);
+      logger.error("[LearnedPatternManager IPC] Get snippets failed:", error);
       throw error;
     }
   });
@@ -217,7 +218,7 @@ function registerLearnedPatternManagerIPC({
       await managerRef.current.useCodeSnippet(id);
       return { success: true };
     } catch (error) {
-      console.error("[LearnedPatternManager IPC] Use snippet failed:", error);
+      logger.error("[LearnedPatternManager IPC] Use snippet failed:", error);
       throw error;
     }
   });
@@ -234,7 +235,7 @@ function registerLearnedPatternManagerIPC({
       const isFavorite = await managerRef.current.toggleSnippetFavorite(id);
       return { success: true, isFavorite };
     } catch (error) {
-      console.error(
+      logger.error(
         "[LearnedPatternManager IPC] Toggle favorite failed:",
         error,
       );
@@ -254,7 +255,7 @@ function registerLearnedPatternManagerIPC({
       await managerRef.current.deleteCodeSnippet(id);
       return { success: true };
     } catch (error) {
-      console.error(
+      logger.error(
         "[LearnedPatternManager IPC] Delete snippet failed:",
         error,
       );
@@ -277,7 +278,7 @@ function registerLearnedPatternManagerIPC({
       }
       return await managerRef.current.recordWorkflow(workflow);
     } catch (error) {
-      console.error(
+      logger.error(
         "[LearnedPatternManager IPC] Record workflow failed:",
         error,
       );
@@ -298,7 +299,7 @@ function registerLearnedPatternManagerIPC({
         }
         return await managerRef.current.getWorkflowSuggestions(context);
       } catch (error) {
-        console.error(
+        logger.error(
           "[LearnedPatternManager IPC] Get workflow suggestions failed:",
           error,
         );
@@ -321,7 +322,7 @@ function registerLearnedPatternManagerIPC({
         await managerRef.current.updateWorkflowUsage(id, options);
         return { success: true };
       } catch (error) {
-        console.error(
+        logger.error(
           "[LearnedPatternManager IPC] Update workflow usage failed:",
           error,
         );
@@ -345,7 +346,7 @@ function registerLearnedPatternManagerIPC({
       }
       return await managerRef.current.getStats();
     } catch (error) {
-      console.error("[LearnedPatternManager IPC] Get stats failed:", error);
+      logger.error("[LearnedPatternManager IPC] Get stats failed:", error);
       throw error;
     }
   });
@@ -361,7 +362,7 @@ function registerLearnedPatternManagerIPC({
       }
       return await managerRef.current.backupToFiles();
     } catch (error) {
-      console.error("[LearnedPatternManager IPC] Backup failed:", error);
+      logger.error("[LearnedPatternManager IPC] Backup failed:", error);
       throw error;
     }
   });
@@ -377,7 +378,7 @@ function registerLearnedPatternManagerIPC({
       }
       return await managerRef.current.cleanup(options);
     } catch (error) {
-      console.error("[LearnedPatternManager IPC] Cleanup failed:", error);
+      logger.error("[LearnedPatternManager IPC] Cleanup failed:", error);
       throw error;
     }
   });
@@ -389,13 +390,13 @@ function registerLearnedPatternManagerIPC({
    */
   function updateLearnedPatternManager(newManager) {
     managerRef.current = newManager;
-    console.log("[LearnedPatternManager IPC] Reference updated");
+    logger.info("[LearnedPatternManager IPC] Reference updated");
   }
 
   // Mark as registered
   ipcGuard.markModuleRegistered("learned-pattern-manager-ipc");
 
-  console.log(
+  logger.info(
     "[LearnedPatternManager IPC] LearnedPatternManager IPC handlers registered successfully",
   );
 

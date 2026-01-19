@@ -1,3 +1,5 @@
+const { logger, createLogger } = require('../utils/logger.js');
+
 /**
  * 指数退避重试策略
  * 用于处理网络请求失败的重试逻辑
@@ -70,20 +72,20 @@ class RetryPolicy {
 
         // 判断是否应该重试
         if (!shouldRetry(error, attempt)) {
-          console.error(`[RetryPolicy] ${context} 失败（不可重试）:`, error.message);
+          logger.error(`[RetryPolicy] ${context} 失败（不可重试）:`, error.message);
           break;
         }
 
         // 已达最大重试次数
         if (attempt === this.maxRetries) {
-          console.error(`[RetryPolicy] ${context} 达到最大重试次数 (${this.maxRetries})`, error.message);
+          logger.error(`[RetryPolicy] ${context} 达到最大重试次数 (${this.maxRetries})`, error.message);
           break;
         }
 
         // 计算延迟时间
         const delay = this._calculateDelay(attempt);
 
-        console.warn(
+        logger.warn(
           `[RetryPolicy] ${context} 第${attempt + 1}次失败，${delay}ms后重试 ` +
           `(剩余重试: ${this.maxRetries - attempt})`,
           error.message

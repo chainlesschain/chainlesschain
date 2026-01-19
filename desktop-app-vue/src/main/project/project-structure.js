@@ -3,6 +3,7 @@
  * 定义和创建不同类型项目的标准目录结构
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require("fs").promises;
 const path = require("path");
 
@@ -115,7 +116,7 @@ body {
 
       // JS基础模板
       js_basic: `document.addEventListener('DOMContentLoaded', function() {
-  console.log('页面加载完成');
+  logger.info('页面加载完成');
 });`,
 
       // README模板 - Web项目
@@ -351,7 +352,7 @@ Thumbs.db
       throw new Error(`不支持的项目类型: ${projectType}`);
     }
 
-    console.log(
+    logger.info(
       `[Project Structure] 创建${structure.name}结构: ${projectPath}`,
     );
 
@@ -363,7 +364,7 @@ Thumbs.db
       for (const dir of structure.directories) {
         const dirPath = path.join(projectPath, dir);
         await fs.mkdir(dirPath, { recursive: true });
-        console.log(`[Project Structure] 创建目录: ${dir}`);
+        logger.info(`[Project Structure] 创建目录: ${dir}`);
       }
 
       // 创建文件
@@ -383,10 +384,10 @@ Thumbs.db
 
         await fs.writeFile(filePath, content, "utf-8");
         createdFiles.push(fileConfig.path);
-        console.log(`[Project Structure] 创建文件: ${fileConfig.path}`);
+        logger.info(`[Project Structure] 创建文件: ${fileConfig.path}`);
       }
 
-      console.log(`[Project Structure] 结构创建成功`);
+      logger.info(`[Project Structure] 结构创建成功`);
 
       return {
         success: true,
@@ -396,7 +397,7 @@ Thumbs.db
         files: createdFiles,
       };
     } catch (error) {
-      console.error("[Project Structure] 创建失败:", error);
+      logger.error("[Project Structure] 创建失败:", error);
       throw new Error(`创建项目结构失败: ${error.message}`);
     }
   }
@@ -484,7 +485,7 @@ Thumbs.db
    */
   addProjectType(type, structure) {
     this.structures[type] = structure;
-    console.log(`[Project Structure] 添加项目类型: ${type}`);
+    logger.info(`[Project Structure] 添加项目类型: ${type}`);
   }
 }
 

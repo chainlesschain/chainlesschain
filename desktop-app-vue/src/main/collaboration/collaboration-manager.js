@@ -4,6 +4,7 @@
  * 基于ShareDB实现OT (Operational Transformation) 算法
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const ShareDB = require("sharedb");
 const WebSocket = require("ws");
 const WebSocketJSONStream = require("@teamwork/websocket-json-stream");
@@ -45,9 +46,9 @@ class CollaborationManager extends EventEmitter {
       await this.createTables();
 
       this.initialized = true;
-      console.log("[CollaborationManager] 初始化完成");
+      logger.info("[CollaborationManager] 初始化完成");
     } catch (error) {
-      console.error("[CollaborationManager] 初始化失败:", error);
+      logger.error("[CollaborationManager] 初始化失败:", error);
       throw error;
     }
   }
@@ -80,9 +81,9 @@ class CollaborationManager extends EventEmitter {
         )
       `);
 
-      console.log("[CollaborationManager] 数据库表创建成功");
+      logger.info("[CollaborationManager] 数据库表创建成功");
     } catch (error) {
-      console.error("[CollaborationManager] 创建数据库表失败:", error);
+      logger.error("[CollaborationManager] 创建数据库表失败:", error);
       throw error;
     }
   }
@@ -92,7 +93,7 @@ class CollaborationManager extends EventEmitter {
    */
   async startServer() {
     if (this.wss) {
-      console.warn("[CollaborationManager] 服务器已在运行");
+      logger.warn("[CollaborationManager] 服务器已在运行");
       return;
     }
 
@@ -101,7 +102,7 @@ class CollaborationManager extends EventEmitter {
 
       this.wss.on("connection", (ws, req) => {
         const connectionId = this.generateConnectionId();
-        console.log(`[CollaborationManager] 新连接: ${connectionId}`);
+        logger.info(`[CollaborationManager] 新连接: ${connectionId}`);
 
         // 创建ShareDB stream
         const stream = new WebSocketJSONStream(ws);
@@ -122,31 +123,31 @@ class CollaborationManager extends EventEmitter {
             const message = JSON.parse(data);
             await this.handleMessage(connectionId, message);
           } catch (error) {
-            console.error("[CollaborationManager] 处理消息失败:", error);
+            logger.error("[CollaborationManager] 处理消息失败:", error);
           }
         });
 
         // 处理断开连接
         ws.on("close", () => {
-          console.log(`[CollaborationManager] 连接关闭: ${connectionId}`);
+          logger.info(`[CollaborationManager] 连接关闭: ${connectionId}`);
           this.handleDisconnect(connectionId);
           this.connections.delete(connectionId);
         });
 
         // 处理错误
         ws.on("error", (error) => {
-          console.error(`[CollaborationManager] WebSocket错误:`, error);
+          logger.error(`[CollaborationManager] WebSocket错误:`, error);
         });
       });
 
-      console.log(
+      logger.info(
         `[CollaborationManager] WebSocket服务器启动在端口 ${this.port}`,
       );
       this.emit("server:started", { port: this.port });
 
       return { success: true, port: this.port };
     } catch (error) {
-      console.error("[CollaborationManager] 启动服务器失败:", error);
+      logger.error("[CollaborationManager] 启动服务器失败:", error);
       throw error;
     }
   }
@@ -168,7 +169,7 @@ class CollaborationManager extends EventEmitter {
       // 关闭服务器
       await new Promise((resolve) => {
         this.wss.close(() => {
-          console.log("[CollaborationManager] 服务器已停止");
+          logger.info("[CollaborationManager] 服务器已停止");
           resolve();
         });
       });
@@ -180,7 +181,7 @@ class CollaborationManager extends EventEmitter {
 
       return { success: true };
     } catch (error) {
-      console.error("[CollaborationManager] 停止服务器失败:", error);
+      logger.error("[CollaborationManager] 停止服务器失败:", error);
       throw error;
     }
   }
@@ -214,7 +215,7 @@ class CollaborationManager extends EventEmitter {
         break;
 
       default:
-        console.warn(`[CollaborationManager] 未知消息类型: ${type}`);
+        logger.warn(`[CollaborationManager] 未知消息类型: ${type}`);
     }
   }
 
@@ -249,7 +250,7 @@ class CollaborationManager extends EventEmitter {
               }),
             );
           }
-          console.warn(
+          logger.warn(
             "[CollaborationManager] 用户权限不足:",
             userId,
             documentId,
@@ -257,7 +258,7 @@ class CollaborationManager extends EventEmitter {
           return;
         }
 
-        console.log(
+        logger.info(
           "[CollaborationManager] 权限检查通过:",
           userId,
           "可编辑",
@@ -313,7 +314,7 @@ class CollaborationManager extends EventEmitter {
         );
       }
     } catch (error) {
-      console.error("[CollaborationManager] 处理加入失败:", error);
+      logger.error("[CollaborationManager] 处理加入失败:", error);
 
       // 发送错误消息
       const conn = this.connections.get(connectionId);
@@ -440,7 +441,7 @@ class CollaborationManager extends EventEmitter {
         },
       });
 
-      console.log(
+      logger.info(
         `[CollaborationManager] 用户离开文档: ${conn.userName} <- ${conn.documentId}`,
       );
     }
@@ -488,7 +489,7 @@ class CollaborationManager extends EventEmitter {
         content: doc.data,
       };
     } catch (error) {
-      console.error("[CollaborationManager] 加入文档失败:", error);
+      logger.error("[CollaborationManager] 加入文档失败:", error);
       throw error;
     }
   }
@@ -537,7 +538,7 @@ class CollaborationManager extends EventEmitter {
         version: doc.version,
       };
     } catch (error) {
-      console.error("[CollaborationManager] 提交操作失败:", error);
+      logger.error("[CollaborationManager] 提交操作失败:", error);
       throw error;
     }
   }
@@ -548,7 +549,7 @@ class CollaborationManager extends EventEmitter {
   onDocumentChange(documentId, callback) {
     const doc = this.documents.get(documentId);
     if (!doc) {
-      console.warn(`[CollaborationManager] 文档不存在: ${documentId}`);
+      logger.warn(`[CollaborationManager] 文档不存在: ${documentId}`);
       return;
     }
 
@@ -569,7 +570,7 @@ class CollaborationManager extends EventEmitter {
         try {
           conn.ws.send(JSON.stringify(message));
         } catch (error) {
-          console.error("[CollaborationManager] 广播消息失败:", error);
+          logger.error("[CollaborationManager] 广播消息失败:", error);
         }
       }
     });
@@ -676,7 +677,7 @@ class CollaborationManager extends EventEmitter {
   async checkDocumentPermission(userDID, orgId, knowledgeId, action = "read") {
     if (!this.organizationManager) {
       // 如果没有组织管理器,默认允许 (个人版模式)
-      console.warn("[CollaborationManager] 组织管理器未初始化,跳过权限检查");
+      logger.warn("[CollaborationManager] 组织管理器未初始化,跳过权限检查");
       return true;
     }
 
@@ -689,7 +690,7 @@ class CollaborationManager extends EventEmitter {
       );
 
       if (!isMember) {
-        console.warn(
+        logger.warn(
           "[CollaborationManager] 用户不是组织成员:",
           userDID,
           orgId,
@@ -713,7 +714,7 @@ class CollaborationManager extends EventEmitter {
       );
 
       if (!hasPermission) {
-        console.warn(
+        logger.warn(
           "[CollaborationManager] 用户权限不足:",
           userDID,
           requiredPermission,
@@ -744,7 +745,7 @@ class CollaborationManager extends EventEmitter {
                 knowledge.created_by === userDID ||
                 knowledge.owner_did === userDID;
               if (!isOwner) {
-                console.warn(
+                logger.warn(
                   "[CollaborationManager] 知识库为私有，用户无权访问:",
                   userDID,
                 );
@@ -762,7 +763,7 @@ class CollaborationManager extends EventEmitter {
                 knowledgeOrg &&
                 !userOrgs.some((org) => org.id === knowledgeOrg)
               ) {
-                console.warn(
+                logger.warn(
                   "[CollaborationManager] 用户不在知识库所属组织中:",
                   userDID,
                 );
@@ -780,7 +781,7 @@ class CollaborationManager extends EventEmitter {
                   permissions.blacklist &&
                   permissions.blacklist.includes(userDID)
                 ) {
-                  console.warn(
+                  logger.warn(
                     "[CollaborationManager] 用户在黑名单中:",
                     userDID,
                   );
@@ -790,7 +791,7 @@ class CollaborationManager extends EventEmitter {
                 // 检查白名单（如果设置了白名单，只有白名单中的用户可以访问）
                 if (permissions.whitelist && permissions.whitelist.length > 0) {
                   if (!permissions.whitelist.includes(userDID)) {
-                    console.warn(
+                    logger.warn(
                       "[CollaborationManager] 用户不在白名单中:",
                       userDID,
                     );
@@ -806,7 +807,7 @@ class CollaborationManager extends EventEmitter {
                   const userLevel = this._getPermissionLevel(userPermLevel);
 
                   if (userLevel < requiredLevel) {
-                    console.warn(
+                    logger.warn(
                       "[CollaborationManager] 用户权限级别不足:",
                       userDID,
                       userPermLevel,
@@ -817,7 +818,7 @@ class CollaborationManager extends EventEmitter {
                   }
                 }
               } catch (parseError) {
-                console.error(
+                logger.error(
                   "[CollaborationManager] 解析权限配置失败:",
                   parseError,
                 );
@@ -825,20 +826,20 @@ class CollaborationManager extends EventEmitter {
             }
           }
         } catch (dbError) {
-          console.error("[CollaborationManager] 查询知识库权限失败:", dbError);
+          logger.error("[CollaborationManager] 查询知识库权限失败:", dbError);
           // 出错时拒绝访问，安全优先
           return false;
         }
       }
 
-      console.log(
+      logger.info(
         "[CollaborationManager] ✓ 权限检查通过:",
         userDID,
         requiredPermission,
       );
       return true;
     } catch (error) {
-      console.error("[CollaborationManager] 权限检查失败:", error);
+      logger.error("[CollaborationManager] 权限检查失败:", error);
       return false; // 出错时拒绝访问,安全优先
     }
   }
@@ -868,7 +869,7 @@ class CollaborationManager extends EventEmitter {
    */
   setOrganizationManager(organizationManager) {
     this.organizationManager = organizationManager;
-    console.log("[CollaborationManager] ✓ 组织管理器已设置");
+    logger.info("[CollaborationManager] ✓ 组织管理器已设置");
   }
 }
 

@@ -1,3 +1,4 @@
+const { logger, createLogger } = require('../utils/logger.js');
 const { ipcMain, dialog } = require("electron");
 const fs = require("fs");
 const path = require("path");
@@ -59,7 +60,7 @@ class InitialSetupIPC {
 
         return { success: true };
       } catch (error) {
-        console.error("完成初始设置失败:", error);
+        logger.error("完成初始设置失败:", error);
         return { success: false, error: error.message };
       }
     });
@@ -114,7 +115,7 @@ class InitialSetupIPC {
           filePath: result.filePath,
         };
       } catch (error) {
-        console.error("导出配置失败:", error);
+        logger.error("导出配置失败:", error);
         return { success: false, error: error.message };
       }
     });
@@ -168,7 +169,7 @@ class InitialSetupIPC {
           config: this.config.getAll(),
         };
       } catch (error) {
-        console.error("导入配置失败:", error);
+        logger.error("导入配置失败:", error);
         return { success: false, error: error.message };
       }
     });

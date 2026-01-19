@@ -158,6 +158,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted } from 'vue';
 import { message as antMessage, Modal } from 'ant-design-vue';
 import {
@@ -311,9 +313,9 @@ const loadContracts = async () => {
 
     // 使用 store 加载合约
     await tradeStore.loadContracts({});
-    console.log('[ContractList] 合约列表已加载:', contracts.value.length);
+    logger.info('[ContractList] 合约列表已加载:', contracts.value.length);
   } catch (error) {
-    console.error('[ContractList] 加载合约列表失败:', error);
+    logger.error('[ContractList] 加载合约列表失败:', error);
     antMessage.error('加载合约列表失败: ' + error.message);
   }
 };
@@ -352,7 +354,7 @@ const handleActivate = (contract) => {
         antMessage.success('合约已激活');
         loadContracts();
       } catch (error) {
-        console.error('激活合约失败:', error);
+        logger.error('激活合约失败:', error);
         antMessage.error('激活合约失败: ' + error.message);
       }
     },
@@ -382,7 +384,7 @@ const handleCheckConditions = async (contract) => {
       okText: '确定',
     });
   } catch (error) {
-    console.error('检查条件失败:', error);
+    logger.error('检查条件失败:', error);
     antMessage.error('检查条件失败: ' + error.message);
   }
 };
@@ -406,11 +408,11 @@ const handleCancel = (contract) => {
         // 使用 store 取消合约
         await tradeStore.cancelContract(contract.id, '用户取消');
 
-        console.log('[ContractList] 合约已取消:', contract.id);
+        logger.info('[ContractList] 合约已取消:', contract.id);
         antMessage.success('合约已取消');
         await loadContracts();
       } catch (error) {
-        console.error('[ContractList] 取消合约失败:', error);
+        logger.error('[ContractList] 取消合约失败:', error);
         antMessage.error(error.message || '取消合约失败');
       }
     },
@@ -434,7 +436,7 @@ const handleInitiateArbitration = (contract) => {
         antMessage.success('仲裁已发起');
         loadContracts();
       } catch (error) {
-        console.error('发起仲裁失败:', error);
+        logger.error('发起仲裁失败:', error);
         antMessage.error('发起仲裁失败: ' + error.message);
       }
     },

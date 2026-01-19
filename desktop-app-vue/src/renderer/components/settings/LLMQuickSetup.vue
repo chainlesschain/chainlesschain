@@ -213,6 +213,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, watch, reactive } from 'vue';
 import { message } from 'ant-design-vue';
 import {
@@ -390,7 +392,7 @@ const testConnection = async () => {
       message.error('连接失败');
     }
   } catch (error) {
-    console.error('测试连接失败:', error);
+    logger.error('测试连接失败:', error);
     testResult.value = {
       success: false,
       message: '测试失败: ' + error.message,

@@ -204,6 +204,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, reactive, computed, watch } from 'vue';
 import { message } from 'ant-design-vue';
 import {
@@ -336,7 +338,7 @@ const handleSign = async () => {
     // 使用 store 签名合约
     await tradeStore.signContract(props.contract.id, signature);
 
-    console.log('[ContractSign] 合约签名成功:', props.contract.id);
+    logger.info('[ContractSign] 合约签名成功:', props.contract.id);
     message.success('合约签名成功！');
 
     // 通知父组件
@@ -352,7 +354,7 @@ const handleSign = async () => {
     // 重置表单
     resetForm();
   } catch (error) {
-    console.error('[ContractSign] 签名失败:', error);
+    logger.error('[ContractSign] 签名失败:', error);
     message.error(error.message || '签名失败');
   } finally {
     signing.value = false;
@@ -419,7 +421,7 @@ const loadCurrentUserDid = async () => {
       currentUserDid.value = identity.did;
     }
   } catch (error) {
-    console.error('[ContractSign] 获取当前用户 DID 失败:', error);
+    logger.error('[ContractSign] 获取当前用户 DID 失败:', error);
   }
 };
 

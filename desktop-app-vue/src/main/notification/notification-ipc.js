@@ -6,6 +6,7 @@
  * @description 提供通知标记、未读计数、桌面通知等 IPC 接口
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { ipcMain, Notification } = require('electron');
 const path = require('path');
 
@@ -15,7 +16,7 @@ const path = require('path');
  * @param {Object} dependencies.database - 数据库管理器实例
  */
 function registerNotificationIPC({ database }) {
-  console.log('[Notification IPC] Registering Notification IPC handlers...');
+  logger.info('[Notification IPC] Registering Notification IPC handlers...');
 
   // ============================================================
   // 通知管理 (Notification Management)
@@ -39,7 +40,7 @@ function registerNotificationIPC({ database }) {
 
       return { success: true };
     } catch (error) {
-      console.error('[Notification IPC] 标记通知已读失败:', error);
+      logger.error('[Notification IPC] 标记通知已读失败:', error);
       throw error;
     }
   });
@@ -61,7 +62,7 @@ function registerNotificationIPC({ database }) {
 
       return { success: true };
     } catch (error) {
-      console.error('[Notification IPC] 全部标记已读失败:', error);
+      logger.error('[Notification IPC] 全部标记已读失败:', error);
       throw error;
     }
   });
@@ -79,10 +80,10 @@ function registerNotificationIPC({ database }) {
    */
   ipcMain.handle('notification:get-all', async (_event, options = {}) => {
     try {
-      console.log('[Notification IPC] 获取通知列表, options:', options);
+      logger.info('[Notification IPC] 获取通知列表, options:', options);
 
       if (!database) {
-        console.warn('[Notification IPC] 数据库管理器未初始化，返回空列表');
+        logger.warn('[Notification IPC] 数据库管理器未初始化，返回空列表');
         return {
           success: true,
           notifications: [],
@@ -90,7 +91,7 @@ function registerNotificationIPC({ database }) {
       }
 
       if (!database.db) {
-        console.warn('[Notification IPC] 数据库连接未初始化，返回空列表');
+        logger.warn('[Notification IPC] 数据库连接未初始化，返回空列表');
         return {
           success: true,
           notifications: [],
@@ -112,14 +113,14 @@ function registerNotificationIPC({ database }) {
 
       const notifications = database.db.prepare(query).all(...params);
 
-      console.log('[Notification IPC] 成功获取通知:', notifications.length, '条');
+      logger.info('[Notification IPC] 成功获取通知:', notifications.length, '条');
 
       return {
         success: true,
         notifications: notifications || [],
       };
     } catch (error) {
-      console.error('[Notification IPC] 获取通知列表失败:', error);
+      logger.error('[Notification IPC] 获取通知列表失败:', error);
       // 返回空列表而不是抛出错误，避免前端崩溃
       return {
         success: false,
@@ -150,7 +151,7 @@ function registerNotificationIPC({ database }) {
         count: result.count || 0,
       };
     } catch (error) {
-      console.error('[Notification IPC] 获取未读数量失败:', error);
+      logger.error('[Notification IPC] 获取未读数量失败:', error);
       return {
         success: false,
         count: 0,
@@ -185,18 +186,18 @@ function registerNotificationIPC({ database }) {
 
       return { success: true };
     } catch (error) {
-      console.error('[Notification IPC] 发送桌面通知失败:', error);
+      logger.error('[Notification IPC] 发送桌面通知失败:', error);
       // 不抛出错误，允许通知失败时应用继续运行
       return { success: false, error: error.message };
     }
   });
 
-  console.log('[Notification IPC] Registered 5 notification: handlers');
-  console.log('[Notification IPC] - notification:get-all');
-  console.log('[Notification IPC] - notification:mark-read');
-  console.log('[Notification IPC] - notification:mark-all-read');
-  console.log('[Notification IPC] - notification:get-unread-count');
-  console.log('[Notification IPC] - notification:send-desktop');
+  logger.info('[Notification IPC] Registered 5 notification: handlers');
+  logger.info('[Notification IPC] - notification:get-all');
+  logger.info('[Notification IPC] - notification:mark-read');
+  logger.info('[Notification IPC] - notification:mark-all-read');
+  logger.info('[Notification IPC] - notification:get-unread-count');
+  logger.info('[Notification IPC] - notification:send-desktop');
 }
 
 module.exports = { registerNotificationIPC };

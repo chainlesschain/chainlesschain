@@ -185,6 +185,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onErrorCaptured, provide, watch } from 'vue';
 import { message } from 'ant-design-vue';
 import {
@@ -299,9 +301,9 @@ const errorIcon = computed(() => {
 
 // 捕获子组件错误
 onErrorCaptured((err, instance, info) => {
-  console.error('[EnhancedErrorBoundary] Captured error:', err);
-  console.error('[EnhancedErrorBoundary] Error info:', info);
-  console.error('[EnhancedErrorBoundary] Component instance:', instance);
+  logger.error('[EnhancedErrorBoundary] Captured error:', err);
+  logger.error('[EnhancedErrorBoundary] Error info:', info);
+  logger.error('[EnhancedErrorBoundary] Component instance:', instance);
 
   hasError.value = true;
   errorInfo.value = {
@@ -408,7 +410,7 @@ const handleReset = async () => {
       retryProgress.value = 0;
     }, 300);
   } catch (error) {
-    console.error('[EnhancedErrorBoundary] Reset failed:', error);
+    logger.error('[EnhancedErrorBoundary] Reset failed:', error);
     message.error('重置失败，请刷新页面');
     resetting.value = false;
   }
@@ -450,7 +452,7 @@ const handleReport = async () => {
       await window.electronAPI.logError(report);
     }
   } catch (error) {
-    console.error('[EnhancedErrorBoundary] Report failed:', error);
+    logger.error('[EnhancedErrorBoundary] Report failed:', error);
     message.error('报告失败，请手动复制错误信息');
   } finally {
     reporting.value = false;
@@ -471,7 +473,7 @@ const copyErrorDetails = async () => {
     await navigator.clipboard.writeText(errorDetails.value);
     message.success('错误详情已复制到剪贴板');
   } catch (error) {
-    console.error('[EnhancedErrorBoundary] Copy failed:', error);
+    logger.error('[EnhancedErrorBoundary] Copy failed:', error);
     message.error('复制失败');
   }
 };

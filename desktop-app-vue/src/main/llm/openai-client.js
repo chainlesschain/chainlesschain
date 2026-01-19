@@ -4,6 +4,7 @@
  * 支持: OpenAI, DeepSeek, 以及其他兼容OpenAI API的服务
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const axios = require('axios');
 const EventEmitter = require('events');
 
@@ -107,7 +108,7 @@ class OpenAIClient extends EventEmitter {
         tokens: response.data.usage.total_tokens,
       };
     } catch (error) {
-      console.error('[OpenAIClient] 聊天失败:', error.response?.data || error);
+      logger.error('[OpenAIClient] 聊天失败:', error.response?.data || error);
       throw new Error(error.response?.data?.error?.message || error.message);
     }
   }
@@ -220,7 +221,7 @@ class OpenAIClient extends EventEmitter {
         });
       });
     } catch (error) {
-      console.error('[OpenAIClient] 流式聊天失败:', error.response?.data || error);
+      logger.error('[OpenAIClient] 流式聊天失败:', error.response?.data || error);
       throw new Error(error.response?.data?.error?.message || error.message);
     }
   }
@@ -251,7 +252,7 @@ class OpenAIClient extends EventEmitter {
         tokens: response.data.usage.total_tokens,
       };
     } catch (error) {
-      console.error('[OpenAIClient] 补全失败:', error.response?.data || error);
+      logger.error('[OpenAIClient] 补全失败:', error.response?.data || error);
       throw new Error(error.response?.data?.error?.message || error.message);
     }
   }
@@ -276,7 +277,7 @@ class OpenAIClient extends EventEmitter {
         return response.data.data[0].embedding;
       }
     } catch (error) {
-      console.error('[OpenAIClient] 生成嵌入失败:', error.response?.data || error);
+      logger.error('[OpenAIClient] 生成嵌入失败:', error.response?.data || error);
       throw new Error(error.response?.data?.error?.message || error.message);
     }
   }
@@ -289,7 +290,7 @@ class OpenAIClient extends EventEmitter {
       const response = await this.client.get('/models');
       return response.data.data;
     } catch (error) {
-      console.error('[OpenAIClient] 列出模型失败:', error.response?.data || error);
+      logger.error('[OpenAIClient] 列出模型失败:', error.response?.data || error);
       throw new Error(error.response?.data?.error?.message || error.message);
     }
   }
@@ -303,7 +304,7 @@ class OpenAIClient extends EventEmitter {
       const response = await this.client.get(`/models/${modelId}`);
       return response.data;
     } catch (error) {
-      console.error('[OpenAIClient] 获取模型信息失败:', error.response?.data || error);
+      logger.error('[OpenAIClient] 获取模型信息失败:', error.response?.data || error);
       throw new Error(error.response?.data?.error?.message || error.message);
     }
   }

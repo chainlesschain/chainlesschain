@@ -1,3 +1,5 @@
+const { logger, createLogger } = require('../utils/logger.js');
+
 /**
  * 数据库迁移: 添加 Token 追踪和成本优化支持
  *
@@ -15,11 +17,11 @@
  * @param {import('better-sqlite3').Database} db - SQLite 数据库实例
  */
 async function migrate(db) {
-  console.log("[Migration] 开始执行 Token 追踪迁移...");
+  logger.info("[Migration] 开始执行 Token 追踪迁移...");
 
   try {
     // ========== 1. 创建 llm_usage_log 表 ==========
-    console.log("[Migration] 创建 llm_usage_log 表...");
+    logger.info("[Migration] 创建 llm_usage_log 表...");
     db.exec(`
       CREATE TABLE IF NOT EXISTS llm_usage_log (
         id TEXT PRIMARY KEY,
@@ -75,11 +77,11 @@ async function migrate(db) {
       CREATE INDEX IF NOT EXISTS idx_llm_usage_log_user_date
         ON llm_usage_log(user_id, created_at);
     `);
-    console.log("[Migration] ✓ llm_usage_log 表创建成功");
+    logger.info("[Migration] ✓ llm_usage_log 表创建成功");
 
     // ========== 2. 创建 llm_cache 表 ==========
     // 注意: 此表结构应与 005_llm_sessions.sql 保持一致
-    console.log("[Migration] 创建 llm_cache 表...");
+    logger.info("[Migration] 创建 llm_cache 表...");
     db.exec(`
       CREATE TABLE IF NOT EXISTS llm_cache (
         id TEXT PRIMARY KEY,
@@ -119,10 +121,10 @@ async function migrate(db) {
       CREATE INDEX IF NOT EXISTS idx_llm_cache_provider_model
         ON llm_cache(provider, model);
     `);
-    console.log("[Migration] ✓ llm_cache 表创建成功");
+    logger.info("[Migration] ✓ llm_cache 表创建成功");
 
     // ========== 3. 创建 llm_budget_config 表 ==========
-    console.log("[Migration] 创建 llm_budget_config 表...");
+    logger.info("[Migration] 创建 llm_budget_config 表...");
     db.exec(`
       CREATE TABLE IF NOT EXISTS llm_budget_config (
         id TEXT PRIMARY KEY,
@@ -159,10 +161,10 @@ async function migrate(db) {
         updated_at INTEGER NOT NULL
       );
     `);
-    console.log("[Migration] ✓ llm_budget_config 表创建成功");
+    logger.info("[Migration] ✓ llm_budget_config 表创建成功");
 
     // ========== 4. 扩展 conversations 表 ==========
-    console.log("[Migration] 扩展 conversations 表...");
+    logger.info("[Migration] 扩展 conversations 表...");
 
     // 检查列是否已存在 (避免重复迁移错误)
     const columns = db.prepare("PRAGMA table_info(conversations)").all();
@@ -199,14 +201,14 @@ async function migrate(db) {
     for (const column of newColumns) {
       if (!existingColumns.includes(column.name)) {
         db.exec(column.sql);
-        console.log(`[Migration]   ✓ 添加列: ${column.name}`);
+        logger.info(`[Migration]   ✓ 添加列: ${column.name}`);
       } else {
-        console.log(`[Migration]   ⊘ 列已存在: ${column.name}`);
+        logger.info(`[Migration]   ⊘ 列已存在: ${column.name}`);
       }
     }
 
     // ========== 5. 插入默认预算配置 ==========
-    console.log("[Migration] 插入默认预算配置...");
+    logger.info("[Migration] 插入默认预算配置...");
     const existingBudget = db
       .prepare("SELECT COUNT(*) as count FROM llm_budget_config")
       .get();
@@ -240,17 +242,17 @@ async function migrate(db) {
         now,
         now,
       );
-      console.log(
+      logger.info(
         "[Migration]   ✓ 默认预算配置已创建 (每日$1, 每周$5, 每月$20)",
       );
     } else {
-      console.log("[Migration]   ⊘ 预算配置已存在，跳过");
+      logger.info("[Migration]   ⊘ 预算配置已存在，跳过");
     }
 
-    console.log("[Migration] ✅ Token 追踪迁移完成!");
+    logger.info("[Migration] ✅ Token 追踪迁移完成!");
     return { success: true };
   } catch (error) {
-    console.error("[Migration] ❌ 迁移失败:", error);
+    logger.error("[Migration] ❌ 迁移失败:", error);
     throw error;
   }
 }
@@ -260,7 +262,7 @@ async function migrate(db) {
  * @param {import('better-sqlite3').Database} db
  */
 async function rollback(db) {
-  console.log("[Migration] 开始回滚 Token 追踪迁移...");
+  logger.info("[Migration] 开始回滚 Token 追踪迁移...");
 
   try {
     // 删除新表
@@ -270,14 +272,14 @@ async function rollback(db) {
 
     // 注意: SQLite 不支持 DROP COLUMN, 需要重建表来删除列
     // 这里暂不实现 conversations 表的回滚
-    console.warn(
+    logger.warn(
       "[Migration] ⚠️  conversations 表的新增列无法通过 SQLite 自动删除",
     );
 
-    console.log("[Migration] ✅ 回滚完成");
+    logger.info("[Migration] ✅ 回滚完成");
     return { success: true };
   } catch (error) {
-    console.error("[Migration] ❌ 回滚失败:", error);
+    logger.error("[Migration] ❌ 回滚失败:", error);
     throw error;
   }
 }

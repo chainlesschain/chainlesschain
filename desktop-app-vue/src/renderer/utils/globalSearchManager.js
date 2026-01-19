@@ -3,6 +3,7 @@
  * 提供跨模块的统一搜索功能
  */
 
+import { logger, createLogger } from '@/utils/logger';
 import { ref, computed } from 'vue';
 
 /**
@@ -284,7 +285,7 @@ class GlobalSearchManager {
               results.push(...providerResults.map(r => new SearchResult({ ...r, type })));
             }
           } catch (error) {
-            console.error(`[GlobalSearch] Provider error for ${type}:`, error);
+            logger.error(`[GlobalSearch] Provider error for ${type}:`, error);
           }
         }
       } else {
@@ -304,7 +305,7 @@ class GlobalSearchManager {
               results.push(...providerResults.map(r => new SearchResult({ ...r, type: searchType })));
             }
           } catch (error) {
-            console.error(`[GlobalSearch] Provider error for ${searchType}:`, error);
+            logger.error(`[GlobalSearch] Provider error for ${searchType}:`, error);
           }
         }
       }
@@ -391,7 +392,7 @@ class GlobalSearchManager {
           items.forEach(item => index.add(new SearchResult({ ...item, type })));
         }
       } catch (error) {
-        console.error(`[GlobalSearch] Rebuild index error for ${type}:`, error);
+        logger.error(`[GlobalSearch] Rebuild index error for ${type}:`, error);
       }
     }
   }
@@ -403,7 +404,7 @@ class GlobalSearchManager {
     try {
       localStorage.setItem('search-history', JSON.stringify(this.searchHistory.value));
     } catch (error) {
-      console.error('[GlobalSearch] Save history error:', error);
+      logger.error('[GlobalSearch] Save history error:', error);
     }
   }
 
@@ -417,7 +418,7 @@ class GlobalSearchManager {
         this.searchHistory.value = JSON.parse(stored);
       }
     } catch (error) {
-      console.error('[GlobalSearch] Load history error:', error);
+      logger.error('[GlobalSearch] Load history error:', error);
     }
   }
 }

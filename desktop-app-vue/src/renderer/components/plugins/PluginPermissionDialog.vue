@@ -146,6 +146,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, reactive, computed, watch, onMounted, onUnmounted } from "vue";
 import {
   AppstoreOutlined,
@@ -305,7 +307,7 @@ const handleApprove = async () => {
 
     visible.value = false;
   } catch (error) {
-    console.error("发送权限响应失败:", error);
+    logger.error("发送权限响应失败:", error);
   }
 };
 
@@ -326,7 +328,7 @@ const handleReject = async () => {
 
     visible.value = false;
   } catch (error) {
-    console.error("发送权限拒绝响应失败:", error);
+    logger.error("发送权限拒绝响应失败:", error);
   }
 };
 

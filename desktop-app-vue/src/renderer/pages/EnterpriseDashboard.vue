@@ -374,6 +374,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, onMounted, onUnmounted, h, computed } from 'vue';
 import { message } from 'ant-design-vue';
 import {
@@ -389,7 +391,7 @@ import {
   EyeOutlined,
   ShareAltOutlined
 } from '@ant-design/icons-vue';
-import * as echarts from 'echarts';
+import { init } from '../utils/echartsConfig';
 
 const props = defineProps({
   organizationId: {
@@ -481,7 +483,7 @@ async function loadOrganizationInfo() {
     }
 
   } catch (error) {
-    console.error('Error loading organization info:', error);
+    logger.error('Error loading organization info:', error);
   }
 }
 
@@ -533,7 +535,7 @@ async function loadDashboardData() {
     updateCharts();
 
   } catch (error) {
-    console.error('Error loading dashboard data:', error);
+    logger.error('Error loading dashboard data:', error);
     message.error('Failed to load dashboard data');
   } finally {
     loading.value = false;
@@ -542,14 +544,14 @@ async function loadDashboardData() {
 
 // Initialize charts
 function initializeCharts() {
-  activityChart = echarts.init(activityChartRef.value);
-  activityPieChart = echarts.init(activityPieChartRef.value);
-  knowledgeGraph = echarts.init(knowledgeGraphRef.value);
-  knowledgeTree = echarts.init(knowledgeTreeRef.value);
-  storageBreakdownChart = echarts.init(storageBreakdownRef.value);
-  engagementChart = echarts.init(engagementChartRef.value);
-  heatmapChart = echarts.init(heatmapChartRef.value);
-  roleDistributionChart = echarts.init(roleDistributionRef.value);
+  activityChart = init(activityChartRef.value);
+  activityPieChart = init(activityPieChartRef.value);
+  knowledgeGraph = init(knowledgeGraphRef.value);
+  knowledgeTree = init(knowledgeTreeRef.value);
+  storageBreakdownChart = init(storageBreakdownRef.value);
+  engagementChart = init(engagementChartRef.value);
+  heatmapChart = init(heatmapChartRef.value);
+  roleDistributionChart = init(roleDistributionRef.value);
 
   // Handle window resize
   window.addEventListener('resize', handleResize);

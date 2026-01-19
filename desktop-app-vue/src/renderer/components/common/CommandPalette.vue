@@ -86,6 +86,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import {
   SearchOutlined,
@@ -205,7 +207,7 @@ const executeCommand = (command) => {
     command.handler()
     close()
   } catch (error) {
-    console.error('[CommandPalette] Execute error:', error)
+    logger.error('[CommandPalette] Execute error:', error)
   }
 }
 

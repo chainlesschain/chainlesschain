@@ -417,6 +417,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted, nextTick } from 'vue';
 import { message as antMessage } from 'ant-design-vue';
 import {
@@ -490,7 +492,7 @@ const loadGroups = async () => {
   try {
     groups.value = await ipcRenderer.invoke('group:get-list');
   } catch (error) {
-    console.error('加载群聊列表失败:', error);
+    logger.error('加载群聊列表失败:', error);
     antMessage.error('加载群聊列表失败');
   } finally {
     loading.value = false;
@@ -515,7 +517,7 @@ const loadGroupMessages = async (groupId, offset = 0) => {
     await nextTick();
     scrollToBottom();
   } catch (error) {
-    console.error('加载群消息失败:', error);
+    logger.error('加载群消息失败:', error);
     antMessage.error('加载群消息失败');
   }
 };
@@ -526,7 +528,7 @@ const loadGroupMembers = async (groupId) => {
     const details = await ipcRenderer.invoke('group:get-details', groupId);
     groupMembers.value = details.members || [];
   } catch (error) {
-    console.error('加载群成员失败:', error);
+    logger.error('加载群成员失败:', error);
   } finally {
     loadingMembers.value = false;
   }
@@ -556,7 +558,7 @@ const handleSendMessage = async (e) => {
     inputMessage.value = '';
     await loadGroupMessages(currentGroup.value.id);
   } catch (error) {
-    console.error('发送消息失败:', error);
+    logger.error('发送消息失败:', error);
     antMessage.error('发送消息失败');
   } finally {
     sending.value = false;
@@ -583,7 +585,7 @@ const handleCreateGroup = async () => {
       await loadGroups();
     }
   } catch (error) {
-    console.error('创建群聊失败:', error);
+    logger.error('创建群聊失败:', error);
     antMessage.error('创建群聊失败');
   }
 };
@@ -597,7 +599,7 @@ const handleLeaveGroup = async () => {
     currentGroup.value = null;
     await loadGroups();
   } catch (error) {
-    console.error('退出群聊失败:', error);
+    logger.error('退出群聊失败:', error);
     antMessage.error(error.message || '退出群聊失败');
   }
 };
@@ -611,7 +613,7 @@ const handleDismissGroup = async () => {
     currentGroup.value = null;
     await loadGroups();
   } catch (error) {
-    console.error('解散群聊失败:', error);
+    logger.error('解散群聊失败:', error);
     antMessage.error(error.message || '解散群聊失败');
   }
 };
@@ -631,7 +633,7 @@ const handleInviteMembers = async () => {
     inviteMemberDids.value = [];
     inviteMessage.value = '';
   } catch (error) {
-    console.error('邀请成员失败:', error);
+    logger.error('邀请成员失败:', error);
     antMessage.error('邀请成员失败');
   }
 };
@@ -644,7 +646,7 @@ const handleRemoveMember = async (memberDid) => {
     antMessage.success('成员已移除');
     await loadGroupMembers(currentGroup.value.id);
   } catch (error) {
-    console.error('移除成员失败:', error);
+    logger.error('移除成员失败:', error);
     antMessage.error(error.message || '移除成员失败');
   }
 };
@@ -704,7 +706,7 @@ onMounted(async () => {
       currentUserDid.value = identity.did;
     }
   } catch (error) {
-    console.error('获取当前用户DID失败:', error);
+    logger.error('获取当前用户DID失败:', error);
   }
 
   // 加载群聊列表
@@ -718,7 +720,7 @@ onMounted(async () => {
       value: f.friend_did
     }));
   } catch (error) {
-    console.error('加载好友列表失败:', error);
+    logger.error('加载好友列表失败:', error);
   }
 
   // 监听群消息

@@ -12,6 +12,7 @@
  * @since 2026-01-18
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require("fs").promises;
 const path = require("path");
 const crypto = require("crypto");
@@ -62,7 +63,7 @@ class AutoBackupManager extends EventEmitter {
       sessions: ["llm_sessions", "llm_session_templates"],
     };
 
-    console.log("[AutoBackupManager] Initialized", {
+    logger.info("[AutoBackupManager] Initialized", {
       backupsDir: this.backupsDir,
     });
   }
@@ -85,9 +86,9 @@ class AutoBackupManager extends EventEmitter {
       // Start schedule checker
       this._startScheduleChecker();
 
-      console.log("[AutoBackupManager] Initialization complete");
+      logger.info("[AutoBackupManager] Initialization complete");
     } catch (error) {
-      console.error("[AutoBackupManager] Initialization failed:", error);
+      logger.error("[AutoBackupManager] Initialization failed:", error);
       throw error;
     }
   }
@@ -169,10 +170,10 @@ class AutoBackupManager extends EventEmitter {
           )
           .run();
 
-        console.log("[AutoBackupManager] Database tables created");
+        logger.info("[AutoBackupManager] Database tables created");
       }
     } catch (error) {
-      console.error("[AutoBackupManager] Failed to ensure tables:", error);
+      logger.error("[AutoBackupManager] Failed to ensure tables:", error);
       throw error;
     }
   }
@@ -211,7 +212,7 @@ class AutoBackupManager extends EventEmitter {
       await this._checkAndRunSchedules();
     }, this.scheduleCheckInterval);
 
-    console.log("[AutoBackupManager] Schedule checker started");
+    logger.info("[AutoBackupManager] Schedule checker started");
   }
 
   /**
@@ -221,7 +222,7 @@ class AutoBackupManager extends EventEmitter {
     if (this.scheduleTimer) {
       clearInterval(this.scheduleTimer);
       this.scheduleTimer = null;
-      console.log("[AutoBackupManager] Schedule checker stopped");
+      logger.info("[AutoBackupManager] Schedule checker stopped");
     }
   }
 
@@ -239,7 +240,7 @@ class AutoBackupManager extends EventEmitter {
       const dueSchedules = stmt.all(now);
 
       for (const schedule of dueSchedules) {
-        console.log(
+        logger.info(
           `[AutoBackupManager] Running scheduled backup: ${schedule.schedule_name}`,
         );
 
@@ -267,7 +268,7 @@ class AutoBackupManager extends EventEmitter {
 
           this.emit("schedule-completed", { schedule, backup });
         } catch (error) {
-          console.error(
+          logger.error(
             `[AutoBackupManager] Scheduled backup failed: ${schedule.schedule_name}`,
             error,
           );
@@ -288,7 +289,7 @@ class AutoBackupManager extends EventEmitter {
         }
       }
     } catch (error) {
-      console.error("[AutoBackupManager] Schedule check failed:", error);
+      logger.error("[AutoBackupManager] Schedule check failed:", error);
     }
   }
 
@@ -354,7 +355,7 @@ class AutoBackupManager extends EventEmitter {
     const id = uuidv4();
     const startedAt = Date.now();
 
-    console.log(`[AutoBackupManager] Creating full backup: scope=${scope}`);
+    logger.info(`[AutoBackupManager] Creating full backup: scope=${scope}`);
 
     try {
       // Get tables to backup
@@ -379,7 +380,7 @@ class AutoBackupManager extends EventEmitter {
           backupData.tables[table] = rows;
           totalItems += rows.length;
         } catch (tableError) {
-          console.warn(
+          logger.warn(
             `[AutoBackupManager] Table ${table} not found, skipping`,
           );
         }
@@ -443,13 +444,13 @@ class AutoBackupManager extends EventEmitter {
       };
 
       this.emit("backup-completed", result);
-      console.log(
+      logger.info(
         `[AutoBackupManager] Full backup completed: ${totalItems} items, ${fileSize} bytes`,
       );
 
       return result;
     } catch (error) {
-      console.error("[AutoBackupManager] Full backup failed:", error);
+      logger.error("[AutoBackupManager] Full backup failed:", error);
 
       // Record failure
       this.db
@@ -477,7 +478,7 @@ class AutoBackupManager extends EventEmitter {
     const id = uuidv4();
     const startedAt = Date.now();
 
-    console.log(
+    logger.info(
       `[AutoBackupManager] Creating incremental backup: scope=${scope}`,
     );
 
@@ -491,7 +492,7 @@ class AutoBackupManager extends EventEmitter {
       const lastFull = lastFullStmt.get(scope === "all" ? "all" : scope);
 
       if (!lastFull) {
-        console.log(
+        logger.info(
           "[AutoBackupManager] No previous full backup, creating full backup instead",
         );
         return this.createFullBackup(scope);
@@ -503,7 +504,7 @@ class AutoBackupManager extends EventEmitter {
         const previousContent = await fs.readFile(lastFull.file_path, "utf-8");
         previousData = JSON.parse(previousContent).tables || {};
       } catch {
-        console.warn(
+        logger.warn(
           "[AutoBackupManager] Could not load previous backup, creating full backup",
         );
         return this.createFullBackup(scope);
@@ -571,7 +572,7 @@ class AutoBackupManager extends EventEmitter {
             backupData.changes[table] = { added, modified, deleted };
           }
         } catch (tableError) {
-          console.warn(
+          logger.warn(
             `[AutoBackupManager] Table ${table} not found, skipping`,
           );
         }
@@ -640,13 +641,13 @@ class AutoBackupManager extends EventEmitter {
       };
 
       this.emit("backup-completed", result);
-      console.log(
+      logger.info(
         `[AutoBackupManager] Incremental backup completed: ${changedItems} changes, ${fileSize} bytes`,
       );
 
       return result;
     } catch (error) {
-      console.error("[AutoBackupManager] Incremental backup failed:", error);
+      logger.error("[AutoBackupManager] Incremental backup failed:", error);
 
       this.db
         .prepare(
@@ -748,11 +749,11 @@ class AutoBackupManager extends EventEmitter {
       };
 
       this.emit("schedule-created", result);
-      console.log(`[AutoBackupManager] Schedule created: ${name}`);
+      logger.info(`[AutoBackupManager] Schedule created: ${name}`);
 
       return result;
     } catch (error) {
-      console.error("[AutoBackupManager] Failed to create schedule:", error);
+      logger.error("[AutoBackupManager] Failed to create schedule:", error);
       throw error;
     }
   }
@@ -827,10 +828,10 @@ class AutoBackupManager extends EventEmitter {
           id,
         );
 
-      console.log(`[AutoBackupManager] Schedule updated: ${id}`);
+      logger.info(`[AutoBackupManager] Schedule updated: ${id}`);
       return { id, ...updates, nextRun };
     } catch (error) {
-      console.error("[AutoBackupManager] Failed to update schedule:", error);
+      logger.error("[AutoBackupManager] Failed to update schedule:", error);
       throw error;
     }
   }
@@ -842,10 +843,10 @@ class AutoBackupManager extends EventEmitter {
   async deleteSchedule(id) {
     try {
       this.db.prepare(`DELETE FROM backup_schedule WHERE id = ?`).run(id);
-      console.log(`[AutoBackupManager] Schedule deleted: ${id}`);
+      logger.info(`[AutoBackupManager] Schedule deleted: ${id}`);
       this.emit("schedule-deleted", { id });
     } catch (error) {
-      console.error("[AutoBackupManager] Failed to delete schedule:", error);
+      logger.error("[AutoBackupManager] Failed to delete schedule:", error);
       throw error;
     }
   }
@@ -877,7 +878,7 @@ class AutoBackupManager extends EventEmitter {
         lastRunStatus: s.last_run_status,
       }));
     } catch (error) {
-      console.error("[AutoBackupManager] Failed to get schedules:", error);
+      logger.error("[AutoBackupManager] Failed to get schedules:", error);
       return [];
     }
   }
@@ -891,7 +892,7 @@ class AutoBackupManager extends EventEmitter {
   async restoreFromBackup(backupId, options = {}) {
     const { dryRun = false, tables } = options;
 
-    console.log(`[AutoBackupManager] Restoring from backup: ${backupId}`);
+    logger.info(`[AutoBackupManager] Restoring from backup: ${backupId}`);
 
     try {
       // Get backup record
@@ -931,7 +932,7 @@ class AutoBackupManager extends EventEmitter {
 
       throw new Error(`Unknown backup type: ${backupData.type}`);
     } catch (error) {
-      console.error("[AutoBackupManager] Restore failed:", error);
+      logger.error("[AutoBackupManager] Restore failed:", error);
       throw error;
     }
   }
@@ -973,7 +974,7 @@ class AutoBackupManager extends EventEmitter {
 
         results.restored[table] = { count: rows.length };
       } catch (tableError) {
-        console.error(
+        logger.error(
           `[AutoBackupManager] Failed to restore table ${table}:`,
           tableError,
         );
@@ -982,7 +983,7 @@ class AutoBackupManager extends EventEmitter {
     }
 
     this.emit("restore-completed", results);
-    console.log(`[AutoBackupManager] Full restore completed`);
+    logger.info(`[AutoBackupManager] Full restore completed`);
 
     return results;
   }
@@ -1073,7 +1074,7 @@ class AutoBackupManager extends EventEmitter {
           deleted: changes.deleted.length,
         };
       } catch (tableError) {
-        console.error(
+        logger.error(
           `[AutoBackupManager] Failed to restore table ${table}:`,
           tableError,
         );
@@ -1082,7 +1083,7 @@ class AutoBackupManager extends EventEmitter {
     }
 
     this.emit("restore-completed", results);
-    console.log(`[AutoBackupManager] Incremental restore completed`);
+    logger.info(`[AutoBackupManager] Incremental restore completed`);
 
     return results;
   }
@@ -1124,12 +1125,12 @@ class AutoBackupManager extends EventEmitter {
       }
 
       if (toDelete.length > 0) {
-        console.log(
+        logger.info(
           `[AutoBackupManager] Cleaned up ${toDelete.length} old backups for scope: ${backup_scope}`,
         );
       }
     } catch (error) {
-      console.error("[AutoBackupManager] Cleanup failed:", error);
+      logger.error("[AutoBackupManager] Cleanup failed:", error);
     }
   }
 
@@ -1151,7 +1152,7 @@ class AutoBackupManager extends EventEmitter {
       try {
         await fs.unlink(backup.file_path);
       } catch (fileError) {
-        console.warn(
+        logger.warn(
           `[AutoBackupManager] Could not delete file: ${backup.file_path}`,
         );
       }
@@ -1159,10 +1160,10 @@ class AutoBackupManager extends EventEmitter {
       // Delete record
       this.db.prepare(`DELETE FROM backup_history WHERE id = ?`).run(backupId);
 
-      console.log(`[AutoBackupManager] Backup deleted: ${backupId}`);
+      logger.info(`[AutoBackupManager] Backup deleted: ${backupId}`);
       this.emit("backup-deleted", { id: backupId });
     } catch (error) {
-      console.error("[AutoBackupManager] Failed to delete backup:", error);
+      logger.error("[AutoBackupManager] Failed to delete backup:", error);
       throw error;
     }
   }
@@ -1215,7 +1216,7 @@ class AutoBackupManager extends EventEmitter {
         createdAt: b.created_at,
       }));
     } catch (error) {
-      console.error("[AutoBackupManager] Failed to get backup history:", error);
+      logger.error("[AutoBackupManager] Failed to get backup history:", error);
       return [];
     }
   }
@@ -1284,7 +1285,7 @@ class AutoBackupManager extends EventEmitter {
         activeSchedules: activeSchedules.count || 0,
       };
     } catch (error) {
-      console.error("[AutoBackupManager] Failed to get stats:", error);
+      logger.error("[AutoBackupManager] Failed to get stats:", error);
       return {};
     }
   }
@@ -1332,7 +1333,7 @@ class AutoBackupManager extends EventEmitter {
 
       await fs.writeFile(manifestPath, JSON.stringify(manifest, null, 2));
     } catch (error) {
-      console.warn("[AutoBackupManager] Failed to update manifest:", error);
+      logger.warn("[AutoBackupManager] Failed to update manifest:", error);
     }
   }
 }

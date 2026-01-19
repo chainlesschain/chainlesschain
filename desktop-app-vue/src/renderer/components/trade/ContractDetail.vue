@@ -341,6 +341,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, watch } from 'vue';
 import { message as antMessage, Modal } from 'ant-design-vue';
 import {
@@ -581,9 +583,9 @@ const loadConditions = async () => {
     loadingConditions.value = true;
     const result = await tradeStore.checkContractConditions(props.contract.id);
     conditions.value = result.conditions || [];
-    console.log('[ContractDetail] 条件加载完成:', conditions.value.length);
+    logger.info('[ContractDetail] 条件加载完成:', conditions.value.length);
   } catch (error) {
-    console.error('[ContractDetail] 加载合约条件失败:', error);
+    logger.error('[ContractDetail] 加载合约条件失败:', error);
     antMessage.error(error.message || '加载合约条件失败');
   } finally {
     loadingConditions.value = false;
@@ -597,9 +599,9 @@ const loadEvents = async () => {
   try {
     loadingEvents.value = true;
     events.value = await tradeStore.loadContractEvents(props.contract.id);
-    console.log('[ContractDetail] 事件加载完成:', events.value.length);
+    logger.info('[ContractDetail] 事件加载完成:', events.value.length);
   } catch (error) {
-    console.error('[ContractDetail] 加载合约事件失败:', error);
+    logger.error('[ContractDetail] 加载合约事件失败:', error);
     antMessage.error(error.message || '加载合约事件失败');
   } finally {
     loadingEvents.value = false;
@@ -620,7 +622,7 @@ const handleActivate = async () => {
         emit('activated');
         emit('update:open', false);
       } catch (error) {
-        console.error('激活合约失败:', error);
+        logger.error('激活合约失败:', error);
         antMessage.error('激活合约失败: ' + error.message);
       }
     },
@@ -639,12 +641,12 @@ const handleSign = async () => {
         const signature = `signature_${currentDid.value}_${Date.now()}`;
         await tradeStore.signContract(props.contract.id, signature);
 
-        console.log('[ContractDetail] 合约已签名:', props.contract.id);
+        logger.info('[ContractDetail] 合约已签名:', props.contract.id);
         antMessage.success('合约已签名');
 
         await loadEvents();
       } catch (error) {
-        console.error('[ContractDetail] 签名合约失败:', error);
+        logger.error('[ContractDetail] 签名合约失败:', error);
         antMessage.error(error.message || '签名合约失败');
       }
     },
@@ -656,7 +658,7 @@ const handleCheckConditions = async () => {
   try {
     const result = await tradeStore.checkContractConditions(props.contract.id);
 
-    console.log('[ContractDetail] 条件检查完成:', result);
+    logger.info('[ContractDetail] 条件检查完成:', result);
 
     Modal.info({
       title: '合约条件检查',
@@ -667,7 +669,7 @@ const handleCheckConditions = async () => {
       },
     });
   } catch (error) {
-    console.error('[ContractDetail] 检查条件失败:', error);
+    logger.error('[ContractDetail] 检查条件失败:', error);
     antMessage.error(error.message || '检查条件失败');
   }
 };
@@ -683,13 +685,13 @@ const handleExecute = async () => {
       try {
         await tradeStore.executeContract(props.contract.id);
 
-        console.log('[ContractDetail] 合约执行成功:', props.contract.id);
+        logger.info('[ContractDetail] 合约执行成功:', props.contract.id);
         antMessage.success('合约执行成功');
 
         emit('executed');
         emit('update:open', false);
       } catch (error) {
-        console.error('[ContractDetail] 执行合约失败:', error);
+        logger.error('[ContractDetail] 执行合约失败:', error);
         antMessage.error(error.message || '执行合约失败');
       }
     },
@@ -708,13 +710,13 @@ const handleCancel = async () => {
       try {
         await tradeStore.cancelContract(props.contract.id, '用户取消');
 
-        console.log('[ContractDetail] 合约已取消:', props.contract.id);
+        logger.info('[ContractDetail] 合约已取消:', props.contract.id);
         antMessage.success('合约已取消');
 
         emit('cancelled');
         emit('update:open', false);
       } catch (error) {
-        console.error('[ContractDetail] 取消合约失败:', error);
+        logger.error('[ContractDetail] 取消合约失败:', error);
         antMessage.error(error.message || '取消合约失败');
       }
     },
@@ -736,12 +738,12 @@ const handleInitiateArbitration = async () => {
           null
         );
 
-        console.log('[ContractDetail] 仲裁已发起:', props.contract.id);
+        logger.info('[ContractDetail] 仲裁已发起:', props.contract.id);
         antMessage.success('仲裁已发起');
 
         await loadEvents();
       } catch (error) {
-        console.error('[ContractDetail] 发起仲裁失败:', error);
+        logger.error('[ContractDetail] 发起仲裁失败:', error);
         antMessage.error(error.message || '发起仲裁失败');
       }
     },

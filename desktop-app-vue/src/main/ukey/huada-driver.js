@@ -5,6 +5,7 @@
  * 支持华大智能卡芯片和U盾产品
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const SKFDriver = require('./skf-driver');
 const path = require('path');
 const fs = require('fs');
@@ -35,7 +36,7 @@ class HuadaDriver extends SKFDriver {
    */
   findDllPath() {
     if (process.platform !== 'win32') {
-      console.warn('[Huada] Only Windows platform is supported');
+      logger.warn('[Huada] Only Windows platform is supported');
       return null;
     }
 
@@ -69,12 +70,12 @@ class HuadaDriver extends SKFDriver {
     // 查找第一个存在的DLL
     for (const dllPath of possiblePaths) {
       if (fs.existsSync(dllPath)) {
-        console.log(`[Huada] Found DLL: ${dllPath}`);
+        logger.info(`[Huada] Found DLL: ${dllPath}`);
         return dllPath;
       }
     }
 
-    console.warn('[Huada] DLL not found in any standard location');
+    logger.warn('[Huada] DLL not found in any standard location');
     return null;
   }
 
@@ -82,7 +83,7 @@ class HuadaDriver extends SKFDriver {
    * 初始化驱动
    */
   async initialize() {
-    console.log('[Huada] Initializing ChinaHuada driver...');
+    logger.info('[Huada] Initializing ChinaHuada driver...');
 
     try {
       // 调用父类初始化
@@ -91,10 +92,10 @@ class HuadaDriver extends SKFDriver {
       // 华大特定初始化
       // 例如：加载特定配置、检查驱动版本等
 
-      console.log('[Huada] ChinaHuada driver initialized successfully');
+      logger.info('[Huada] ChinaHuada driver initialized successfully');
       return true;
     } catch (error) {
-      console.error('[Huada] Initialization failed:', error);
+      logger.error('[Huada] Initialization failed:', error);
       this.simulationMode = true;
       this.isInitialized = true;
       return true;
@@ -135,7 +136,7 @@ class HuadaDriver extends SKFDriver {
    * 华大特定的检测逻辑
    */
   async detect() {
-    console.log('[Huada] Detecting ChinaHuada device...');
+    logger.info('[Huada] Detecting ChinaHuada device...');
 
     try {
       // 调用父类的检测方法
@@ -149,7 +150,7 @@ class HuadaDriver extends SKFDriver {
 
       return result;
     } catch (error) {
-      console.error('[Huada] Detection failed:', error);
+      logger.error('[Huada] Detection failed:', error);
       return {
         detected: false,
         unlocked: false,
@@ -197,7 +198,7 @@ class HuadaDriver extends SKFDriver {
       throw new Error('设备未解锁');
     }
 
-    console.log('[Huada] Getting device serial number...');
+    logger.info('[Huada] Getting device serial number...');
 
     if (this.simulationMode) {
       // 模拟序列号
@@ -217,7 +218,7 @@ class HuadaDriver extends SKFDriver {
       throw new Error('设备未解锁');
     }
 
-    console.log('[Huada] Getting device certificate...');
+    logger.info('[Huada] Getting device certificate...');
 
     if (this.simulationMode) {
       return null;
@@ -232,7 +233,7 @@ class HuadaDriver extends SKFDriver {
    * 华大特定功能：检查设备健康状态
    */
   async checkDeviceHealth() {
-    console.log('[Huada] Checking device health...');
+    logger.info('[Huada] Checking device health...');
 
     try {
       if (this.simulationMode) {
@@ -273,7 +274,7 @@ class HuadaDriver extends SKFDriver {
       throw new Error('设备未连接');
     }
 
-    console.log('[Huada] Getting chip information...');
+    logger.info('[Huada] Getting chip information...');
 
     if (this.simulationMode) {
       return {

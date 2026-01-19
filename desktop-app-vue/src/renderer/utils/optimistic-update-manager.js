@@ -1,3 +1,5 @@
+import { logger, createLogger } from '@/utils/logger';
+
 /**
  * Optimistic Update Manager
  * 乐观更新管理器 - 提供即时 UI 响应和自动回滚
@@ -56,7 +58,7 @@ class OptimisticUpdateManager {
     this.setupOnlineListener()
 
     if (this.options.debug) {
-      console.log('[OptimisticUpdateManager] Initialized')
+      logger.info('[OptimisticUpdateManager] Initialized')
     }
   }
 
@@ -101,7 +103,7 @@ class OptimisticUpdateManager {
     try {
       // Step 1: Apply optimistic update immediately
       if (this.options.debug) {
-        console.log(`[OptimisticUpdateManager] Applying optimistic update: ${updateId}`)
+        logger.info(`[OptimisticUpdateManager] Applying optimistic update: ${updateId}`)
       }
 
       await mutation()
@@ -118,7 +120,7 @@ class OptimisticUpdateManager {
         this.offlineQueue.push(updateMetadata)
 
         if (this.options.debug) {
-          console.log(`[OptimisticUpdateManager] Added to offline queue: ${updateId}`)
+          logger.info(`[OptimisticUpdateManager] Added to offline queue: ${updateId}`)
         }
 
         return { updateId, status: 'queued', offline: true }
@@ -141,7 +143,7 @@ class OptimisticUpdateManager {
       }
 
       if (this.options.debug) {
-        console.log(`[OptimisticUpdateManager] Committed: ${updateId} (${Math.round(responseTime)}ms)`)
+        logger.info(`[OptimisticUpdateManager] Committed: ${updateId} (${Math.round(responseTime)}ms)`)
       }
 
       return { updateId, status: 'committed', result }
@@ -152,7 +154,7 @@ class OptimisticUpdateManager {
       this.stats.failedUpdates++
 
       if (this.options.debug) {
-        console.error(`[OptimisticUpdateManager] Failed: ${updateId}`, error)
+        logger.error(`[OptimisticUpdateManager] Failed: ${updateId}`, error)
       }
 
       // Retry logic
@@ -160,7 +162,7 @@ class OptimisticUpdateManager {
         updateMetadata.retryCount++
 
         if (this.options.debug) {
-          console.log(`[OptimisticUpdateManager] Retrying ${updateMetadata.retryCount}/${this.options.maxRetries}: ${updateId}`)
+          logger.info(`[OptimisticUpdateManager] Retrying ${updateMetadata.retryCount}/${this.options.maxRetries}: ${updateId}`)
         }
 
         await this.delay(this.options.retryDelay * updateMetadata.retryCount)
@@ -198,7 +200,7 @@ class OptimisticUpdateManager {
     if (!updateMetadata) {return}
 
     if (this.options.debug) {
-      console.log(`[OptimisticUpdateManager] Rolling back: ${updateId}`)
+      logger.info(`[OptimisticUpdateManager] Rolling back: ${updateId}`)
     }
 
     try {
@@ -215,7 +217,7 @@ class OptimisticUpdateManager {
 
       this.emit('rollback', { updateId, entity: updateMetadata.entity })
     } catch (error) {
-      console.error(`[OptimisticUpdateManager] Rollback failed: ${updateId}`, error)
+      logger.error(`[OptimisticUpdateManager] Rollback failed: ${updateId}`, error)
     }
   }
 
@@ -225,7 +227,7 @@ class OptimisticUpdateManager {
   async undo() {
     if (!this.options.enableUndoRedo || this.undoStack.length === 0) {
       if (this.options.debug) {
-        console.log('[OptimisticUpdateManager] Nothing to undo')
+        logger.info('[OptimisticUpdateManager] Nothing to undo')
       }
       return null
     }
@@ -243,7 +245,7 @@ class OptimisticUpdateManager {
     }
 
     if (this.options.debug) {
-      console.log(`[OptimisticUpdateManager] Undone: ${updateMetadata.id}`)
+      logger.info(`[OptimisticUpdateManager] Undone: ${updateMetadata.id}`)
     }
 
     return updateMetadata
@@ -255,7 +257,7 @@ class OptimisticUpdateManager {
   async redo() {
     if (!this.options.enableUndoRedo || this.redoStack.length === 0) {
       if (this.options.debug) {
-        console.log('[OptimisticUpdateManager] Nothing to redo')
+        logger.info('[OptimisticUpdateManager] Nothing to redo')
       }
       return null
     }
@@ -269,7 +271,7 @@ class OptimisticUpdateManager {
     this.undoStack.push(updateMetadata)
 
     if (this.options.debug) {
-      console.log(`[OptimisticUpdateManager] Redone: ${updateMetadata.id}`)
+      logger.info(`[OptimisticUpdateManager] Redone: ${updateMetadata.id}`)
     }
 
     return updateMetadata
@@ -280,7 +282,7 @@ class OptimisticUpdateManager {
    */
   async batchUpdate(updates) {
     if (this.options.debug) {
-      console.log(`[OptimisticUpdateManager] Batch update: ${updates.length} operations`)
+      logger.info(`[OptimisticUpdateManager] Batch update: ${updates.length} operations`)
     }
 
     const results = await Promise.allSettled(
@@ -291,7 +293,7 @@ class OptimisticUpdateManager {
     const failed = results.filter(r => r.status === 'rejected').length
 
     if (this.options.debug) {
-      console.log(`[OptimisticUpdateManager] Batch completed: ${successful} succeeded, ${failed} failed`)
+      logger.info(`[OptimisticUpdateManager] Batch completed: ${successful} succeeded, ${failed} failed`)
     }
 
     return results
@@ -304,7 +306,7 @@ class OptimisticUpdateManager {
     if (this.offlineQueue.length === 0) {return}
 
     if (this.options.debug) {
-      console.log(`[OptimisticUpdateManager] Processing offline queue: ${this.offlineQueue.length} items`)
+      logger.info(`[OptimisticUpdateManager] Processing offline queue: ${this.offlineQueue.length} items`)
     }
 
     const queue = [...this.offlineQueue]
@@ -328,7 +330,7 @@ class OptimisticUpdateManager {
         this.offlineQueue.push(updateMetadata)
 
         if (this.options.debug) {
-          console.error(`[OptimisticUpdateManager] Offline queue item failed: ${updateMetadata.id}`, error)
+          logger.error(`[OptimisticUpdateManager] Offline queue item failed: ${updateMetadata.id}`, error)
         }
       }
     }
@@ -357,7 +359,7 @@ class OptimisticUpdateManager {
       this.emit('conflict', conflict)
 
       if (this.options.debug) {
-        console.warn(`[OptimisticUpdateManager] Conflict detected for entity: ${entity}`)
+        logger.warn(`[OptimisticUpdateManager] Conflict detected for entity: ${entity}`)
       }
 
       return conflict
@@ -381,7 +383,7 @@ class OptimisticUpdateManager {
   restoreSnapshot(entity, snapshot) {
     // Override this method to implement custom restore logic
     if (this.options.debug) {
-      console.log(`[OptimisticUpdateManager] Restoring snapshot for: ${entity}`)
+      logger.info(`[OptimisticUpdateManager] Restoring snapshot for: ${entity}`)
     }
   }
 
@@ -408,7 +410,7 @@ class OptimisticUpdateManager {
       this.isOnline = true
 
       if (this.options.debug) {
-        console.log('[OptimisticUpdateManager] Back online')
+        logger.info('[OptimisticUpdateManager] Back online')
       }
 
       this.processOfflineQueue()
@@ -418,7 +420,7 @@ class OptimisticUpdateManager {
       this.isOnline = false
 
       if (this.options.debug) {
-        console.log('[OptimisticUpdateManager] Went offline')
+        logger.info('[OptimisticUpdateManager] Went offline')
       }
     })
   }
@@ -488,7 +490,7 @@ class OptimisticUpdateManager {
     this.conflicts.clear()
 
     if (this.options.debug) {
-      console.log('[OptimisticUpdateManager] Cleared all updates')
+      logger.info('[OptimisticUpdateManager] Cleared all updates')
     }
   }
 
@@ -499,7 +501,7 @@ class OptimisticUpdateManager {
     this.clear()
 
     if (this.options.debug) {
-      console.log('[OptimisticUpdateManager] Destroyed')
+      logger.info('[OptimisticUpdateManager] Destroyed')
     }
   }
 }

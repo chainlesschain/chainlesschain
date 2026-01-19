@@ -2415,6 +2415,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { message, Modal } from 'ant-design-vue';
@@ -2736,7 +2738,7 @@ const loadConfig = async () => {
     const dbConfig = await window.electronAPI.db.getConfig();
     databaseConfig.value = dbConfig;
   } catch (error) {
-    console.error('加载配置失败:', error);
+    logger.error('加载配置失败:', error);
     message.error('加载配置失败：' + error.message);
   } finally {
     loading.value = false;
@@ -2749,7 +2751,7 @@ const loadBackupList = async () => {
   try {
     backupList.value = await window.electronAPI.db.listBackups();
   } catch (error) {
-    console.error('加载备份列表失败:', error);
+    logger.error('加载备份列表失败:', error);
     message.error('加载备份列表失败：' + error.message);
   } finally {
     loadingBackups.value = false;
@@ -2828,7 +2830,7 @@ const handleDetectNAT = async () => {
     natInfo.value = await window.electronAPI.p2p.detectNAT();
     message.success('NAT检测完成');
   } catch (error) {
-    console.error('NAT检测失败:', error);
+    logger.error('NAT检测失败:', error);
     message.error('NAT检测失败：' + error.message);
   } finally {
     detectingNAT.value = false;
@@ -2842,7 +2844,7 @@ const handleRefreshRelays = async () => {
     relayInfo.value = await window.electronAPI.p2p.getRelayInfo();
     message.success('中继信息已更新');
   } catch (error) {
-    console.error('获取中继信息失败:', error);
+    logger.error('获取中继信息失败:', error);
     message.error('获取中继信息失败：' + error.message);
   } finally {
     refreshingRelays.value = false;
@@ -2856,7 +2858,7 @@ const handleRunDiagnostics = async () => {
     diagnosticResults.value = await window.electronAPI.p2p.runDiagnostics();
     message.success('诊断完成');
   } catch (error) {
-    console.error('诊断失败:', error);
+    logger.error('诊断失败:', error);
     message.error('诊断失败：' + error.message);
   } finally {
     runningDiagnostics.value = false;
@@ -2984,7 +2986,7 @@ const handleRefreshWebRTCQuality = async () => {
 
     message.success('WebRTC质量报告已更新');
   } catch (error) {
-    console.error('获取WebRTC质量报告失败:', error);
+    logger.error('获取WebRTC质量报告失败:', error);
     message.error('获取WebRTC质量报告失败：' + error.message);
   } finally {
     refreshingWebRTCQuality.value = false;
@@ -3147,7 +3149,7 @@ const testLLMConnection = async () => {
       message.error('LLM 服务连接失败');
     }
   } catch (error) {
-    console.error('测试LLM连接失败:', error);
+    logger.error('测试LLM连接失败:', error);
     llmTestResult.value = {
       success: false,
       message: '测试失败: ' + error.message,
@@ -3262,7 +3264,7 @@ const testEmbedding = async () => {
       message.error('嵌入模型测试失败');
     }
   } catch (error) {
-    console.error('测试嵌入模型失败:', error);
+    logger.error('测试嵌入模型失败:', error);
     embeddingTestResult.value = {
       success: false,
       message: '测试失败: ' + error.message,
@@ -3282,7 +3284,7 @@ const handleSave = async () => {
     await window.electronAPI.config.update(cleanConfig);
     message.success('配置已保存，部分修改需要重启应用生效');
   } catch (error) {
-    console.error('保存配置失败:', error);
+    logger.error('保存配置失败:', error);
     message.error('保存配置失败：' + error.message);
   } finally {
     saving.value = false;
@@ -3303,7 +3305,7 @@ const handleReset = () => {
         await loadConfig();
         message.success('配置已重置为默认值');
       } catch (error) {
-        console.error('重置配置失败:', error);
+        logger.error('重置配置失败:', error);
         message.error('重置配置失败：' + error.message);
       }
     },
@@ -3328,7 +3330,7 @@ const handleExportEnv = async () => {
       message.success('配置已导出到：' + result.filePath);
     }
   } catch (error) {
-    console.error('导出配置失败:', error);
+    logger.error('导出配置失败:', error);
     message.error('导出配置失败：' + error.message);
   }
 };
@@ -3357,7 +3359,7 @@ const handleSelectFolder = async (configPath) => {
       message.success('文件夹已选择：' + selectedPath);
     }
   } catch (error) {
-    console.error('选择文件夹失败:', error);
+    logger.error('选择文件夹失败:', error);
     message.error('选择文件夹失败：' + error.message);
   }
 };
@@ -3388,7 +3390,7 @@ const handleSelectDatabasePath = async () => {
       message.success('已选择新位置：' + newDatabasePath.value);
     }
   } catch (error) {
-    console.error('选择数据库路径失败:', error);
+    logger.error('选择数据库路径失败:', error);
     message.error('选择数据库路径失败：' + error.message);
   }
 };
@@ -3417,7 +3419,7 @@ const handleMigrateDatabase = async () => {
           await window.electronAPI.app.restart();
         }, 2000);
       } catch (error) {
-        console.error('迁移数据库失败:', error);
+        logger.error('迁移数据库失败:', error);
         message.error('迁移数据库失败：' + error.message);
         migrating.value = false;
       }
@@ -3435,7 +3437,7 @@ const handleCreateBackup = async () => {
     // 刷新备份列表
     await loadBackupList();
   } catch (error) {
-    console.error('创建备份失败:', error);
+    logger.error('创建备份失败:', error);
     message.error('创建备份失败：' + error.message);
   } finally {
     backing.value = false;
@@ -3460,7 +3462,7 @@ const handleRestoreBackup = (backupPath) => {
           await window.electronAPI.app.restart();
         }, 2000);
       } catch (error) {
-        console.error('恢复备份失败:', error);
+        logger.error('恢复备份失败:', error);
         message.error('恢复备份失败：' + error.message);
       }
     },
@@ -3511,7 +3513,7 @@ const handleTestWhisperLocal = async () => {
       message.error('Whisper服务响应异常');
     }
   } catch (error) {
-    console.error('测试Whisper连接失败:', error);
+    logger.error('测试Whisper连接失败:', error);
     whisperLocalStatus.value = 'offline';
     message.error('Whisper服务连接失败：' + error.message);
   } finally {
@@ -3527,7 +3529,7 @@ onMounted(async () => {
   try {
     natInfo.value = await window.electronAPI.p2p.getNATInfo();
   } catch (error) {
-    console.error('加载NAT信息失败:', error);
+    logger.error('加载NAT信息失败:', error);
   }
 });
 </script>

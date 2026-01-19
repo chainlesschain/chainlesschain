@@ -5,6 +5,7 @@
  * 注册所有工作区和任务相关的IPC接口（22个）
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { ipcMain } = require('electron');
 
 /**
@@ -12,7 +13,7 @@ const { ipcMain } = require('electron');
  * @param {Object} app - ChainlessChainApp实例
  */
 function registerWorkspaceTaskIPC(app) {
-  console.log('[IPC] 注册工作区与任务管理IPC处理器...');
+  logger.info('[IPC] 注册工作区与任务管理IPC处理器...');
 
   // ==================== 工作区管理IPC（7个）====================
 
@@ -38,7 +39,7 @@ function registerWorkspaceTaskIPC(app) {
 
       return { success: true, workspace };
     } catch (error) {
-      console.error('[IPC] 创建工作区失败:', error);
+      logger.error('[IPC] 创建工作区失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -56,7 +57,7 @@ function registerWorkspaceTaskIPC(app) {
 
       return { success: true, workspaces };
     } catch (error) {
-      console.error('[IPC] 获取工作区列表失败:', error);
+      logger.error('[IPC] 获取工作区列表失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -83,7 +84,7 @@ function registerWorkspaceTaskIPC(app) {
 
       return result;
     } catch (error) {
-      console.error('[IPC] 更新工作区失败:', error);
+      logger.error('[IPC] 更新工作区失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -109,7 +110,7 @@ function registerWorkspaceTaskIPC(app) {
 
       return result;
     } catch (error) {
-      console.error('[IPC] 删除工作区失败:', error);
+      logger.error('[IPC] 删除工作区失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -135,7 +136,7 @@ function registerWorkspaceTaskIPC(app) {
 
       return result;
     } catch (error) {
-      console.error('[IPC] 恢复工作区失败:', error);
+      logger.error('[IPC] 恢复工作区失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -161,7 +162,7 @@ function registerWorkspaceTaskIPC(app) {
 
       return result;
     } catch (error) {
-      console.error('[IPC] 永久删除工作区失败:', error);
+      logger.error('[IPC] 永久删除工作区失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -179,7 +180,7 @@ function registerWorkspaceTaskIPC(app) {
 
       return result;
     } catch (error) {
-      console.error('[IPC] 添加工作区成员失败:', error);
+      logger.error('[IPC] 添加工作区成员失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -197,7 +198,7 @@ function registerWorkspaceTaskIPC(app) {
 
       return result;
     } catch (error) {
-      console.error('[IPC] 移除工作区成员失败:', error);
+      logger.error('[IPC] 移除工作区成员失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -225,7 +226,7 @@ function registerWorkspaceTaskIPC(app) {
 
       return result;
     } catch (error) {
-      console.error('[IPC] 添加资源到工作区失败:', error);
+      logger.error('[IPC] 添加资源到工作区失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -250,7 +251,7 @@ function registerWorkspaceTaskIPC(app) {
 
       return { success: true, task };
     } catch (error) {
-      console.error('[IPC] 创建任务失败:', error);
+      logger.error('[IPC] 创建任务失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -273,7 +274,7 @@ function registerWorkspaceTaskIPC(app) {
 
       return result;
     } catch (error) {
-      console.error('[IPC] 更新任务失败:', error);
+      logger.error('[IPC] 更新任务失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -296,7 +297,7 @@ function registerWorkspaceTaskIPC(app) {
 
       return result;
     } catch (error) {
-      console.error('[IPC] 删除任务失败:', error);
+      logger.error('[IPC] 删除任务失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -314,7 +315,7 @@ function registerWorkspaceTaskIPC(app) {
 
       return { success: true, tasks };
     } catch (error) {
-      console.error('[IPC] 获取任务列表失败:', error);
+      logger.error('[IPC] 获取任务列表失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -336,7 +337,7 @@ function registerWorkspaceTaskIPC(app) {
 
       return { success: true, task };
     } catch (error) {
-      console.error('[IPC] 获取任务详情失败:', error);
+      logger.error('[IPC] 获取任务详情失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -359,7 +360,7 @@ function registerWorkspaceTaskIPC(app) {
 
       return result;
     } catch (error) {
-      console.error('[IPC] 分配任务失败:', error);
+      logger.error('[IPC] 分配任务失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -382,7 +383,7 @@ function registerWorkspaceTaskIPC(app) {
 
       return result;
     } catch (error) {
-      console.error('[IPC] 变更任务状态失败:', error);
+      logger.error('[IPC] 变更任务状态失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -409,7 +410,7 @@ function registerWorkspaceTaskIPC(app) {
 
       return { success: true, comment };
     } catch (error) {
-      console.error('[IPC] 添加任务评论失败:', error);
+      logger.error('[IPC] 添加任务评论失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -427,7 +428,7 @@ function registerWorkspaceTaskIPC(app) {
 
       return { success: true, comments };
     } catch (error) {
-      console.error('[IPC] 获取任务评论失败:', error);
+      logger.error('[IPC] 获取任务评论失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -450,7 +451,7 @@ function registerWorkspaceTaskIPC(app) {
 
       return result;
     } catch (error) {
-      console.error('[IPC] 删除任务评论失败:', error);
+      logger.error('[IPC] 删除任务评论失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -473,7 +474,7 @@ function registerWorkspaceTaskIPC(app) {
 
       return { success: true, board };
     } catch (error) {
-      console.error('[IPC] 创建任务看板失败:', error);
+      logger.error('[IPC] 创建任务看板失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -491,7 +492,7 @@ function registerWorkspaceTaskIPC(app) {
 
       return { success: true, boards };
     } catch (error) {
-      console.error('[IPC] 获取任务看板列表失败:', error);
+      logger.error('[IPC] 获取任务看板列表失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -504,7 +505,7 @@ function registerWorkspaceTaskIPC(app) {
       // TODO: 实现看板更新逻辑
       return { success: false, error: '功能开发中' };
     } catch (error) {
-      console.error('[IPC] 更新任务看板失败:', error);
+      logger.error('[IPC] 更新任务看板失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -517,7 +518,7 @@ function registerWorkspaceTaskIPC(app) {
       // TODO: 实现看板删除逻辑
       return { success: false, error: '功能开发中' };
     } catch (error) {
-      console.error('[IPC] 删除任务看板失败:', error);
+      logger.error('[IPC] 删除任务看板失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -535,12 +536,12 @@ function registerWorkspaceTaskIPC(app) {
 
       return { success: true, changes };
     } catch (error) {
-      console.error('[IPC] 获取任务历史失败:', error);
+      logger.error('[IPC] 获取任务历史失败:', error);
       return { success: false, error: error.message };
     }
   });
 
-  console.log('[IPC] ✓ 工作区与任务管理IPC处理器注册完成 (22个接口)');
+  logger.info('[IPC] ✓ 工作区与任务管理IPC处理器注册完成 (22个接口)');
 }
 
 module.exports = {

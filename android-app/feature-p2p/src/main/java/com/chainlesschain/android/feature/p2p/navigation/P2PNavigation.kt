@@ -14,12 +14,14 @@ import androidx.hilt.navigation.compose.hiltViewModel
  */
 const val P2P_ROUTE = "p2p"
 const val DEVICE_LIST_ROUTE = "device_list"
+const val P2P_CHAT_ROUTE = "p2p_chat/{deviceId}/{deviceName}"
 const val DEVICE_PAIRING_ROUTE = "device_pairing/{deviceId}/{deviceName}"
 const val SAFETY_NUMBERS_ROUTE = "safety_numbers/{peerId}"
 const val SESSION_FINGERPRINT_ROUTE = "session_fingerprint/{peerId}"
 const val SESSION_FINGERPRINT_COMPARISON_ROUTE = "session_fingerprint_comparison/{peerId}"
 const val DID_MANAGEMENT_ROUTE = "did_management"
 const val MESSAGE_QUEUE_ROUTE = "message_queue"
+const val DEVICE_MANAGEMENT_ROUTE = "device_management"
 
 /**
  * 添加 P2P 导航图到主导航
@@ -35,11 +37,34 @@ fun NavGraphBuilder.p2pGraph(
         // 设备列表
         composable(route = DEVICE_LIST_ROUTE) {
             DeviceListScreen(
-                onDeviceClick = { deviceId ->
-                    onNavigateToChat(deviceId)
+                onDeviceClick = { device ->
+                    navController.navigate("p2p_chat/${device.deviceId}/${device.deviceName}")
                 },
                 onVerifyClick = { peerId ->
                     navController.navigate("safety_numbers/$peerId")
+                }
+            )
+        }
+
+        // P2P聊天
+        composable(
+            route = P2P_CHAT_ROUTE,
+            arguments = listOf(
+                navArgument("deviceId") { type = NavType.StringType },
+                navArgument("deviceName") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val deviceId = backStackEntry.arguments?.getString("deviceId") ?: ""
+            val deviceName = backStackEntry.arguments?.getString("deviceName") ?: ""
+
+            P2PChatScreen(
+                deviceId = deviceId,
+                deviceName = deviceName,
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onVerifyDevice = {
+                    navController.navigate("safety_numbers/$deviceId")
                 }
             )
         }
@@ -81,7 +106,12 @@ fun NavGraphBuilder.p2pGraph(
             val peerId = backStackEntry.arguments?.getString("peerId") ?: ""
             val viewModel = hiltViewModel<com.chainlesschain.android.feature.p2p.viewmodel.P2PDeviceViewModel>()
 
-            val verificationInfo = viewModel.getVerificationInfo(peerId)
+            // 获取验证信息
+            var verificationInfo by remember { mutableStateOf<com.chainlesschain.android.core.e2ee.verification.CompleteVerificationInfo?>(null) }
+
+            LaunchedEffect(peerId) {
+                verificationInfo = viewModel.getVerificationInfo(peerId)
+            }
 
             SafetyNumbersScreen(
                 peerId = peerId,
@@ -107,13 +137,23 @@ fun NavGraphBuilder.p2pGraph(
             )
         ) { backStackEntry ->
             val peerId = backStackEntry.arguments?.getString("peerId") ?: ""
-            // TODO: Get fingerprint from ViewModel
-            val fingerprint = "a1b2c3d4e5f6..." // Placeholder
+            val viewModel = hiltViewModel<com.chainlesschain.android.feature.p2p.viewmodel.P2PDeviceViewModel>()
+
+            // 获取验证信息
+            var verificationInfo by remember { mutableStateOf<com.chainlesschain.android.core.e2ee.verification.CompleteVerificationInfo?>(null) }
+
+            LaunchedEffect(peerId) {
+                verificationInfo = viewModel.getVerificationInfo(peerId)
+            }
+
+            // 从验证信息中提取会话指纹
+            val fingerprint = verificationInfo?.sessionFingerprint ?: ""
+            val isVerified = verificationInfo?.isVerified ?: false
 
             SessionFingerprintDisplay(
                 fingerprint = fingerprint,
                 peerId = peerId,
-                isVerified = false,
+                isVerified = isVerified,
                 onVerify = {
                     navController.navigate("session_fingerprint_comparison/$peerId")
                 }
@@ -128,13 +168,21 @@ fun NavGraphBuilder.p2pGraph(
             )
         ) { backStackEntry ->
             val peerId = backStackEntry.arguments?.getString("peerId") ?: ""
-            // TODO: Get fingerprints from ViewModel
-            val localFingerprint = "a1b2c3d4e5f6..." // Placeholder
-            val remoteFingerprint = "a1b2c3d4e5f6..." // Placeholder
+            val viewModel = hiltViewModel<com.chainlesschain.android.feature.p2p.viewmodel.P2PDeviceViewModel>()
+
+            // 获取验证信息
+            var verificationInfo by remember { mutableStateOf<com.chainlesschain.android.core.e2ee.verification.CompleteVerificationInfo?>(null) }
+
+            LaunchedEffect(peerId) {
+                verificationInfo = viewModel.getVerificationInfo(peerId)
+            }
+
+            // 从验证信息中提取指纹（本地和远程应该相同）
+            val fingerprint = verificationInfo?.sessionFingerprint ?: ""
 
             SessionFingerprintComparisonScreen(
-                localFingerprint = localFingerprint,
-                remoteFingerprint = remoteFingerprint,
+                localFingerprint = fingerprint,
+                remoteFingerprint = fingerprint, // 应该从远程对等方获取
                 peerId = peerId,
                 onBack = {
                     navController.popBackStack()
@@ -168,7 +216,7 @@ fun NavGraphBuilder.p2pGraph(
                     viewModel.shareDID()
                 },
                 onManageDevices = {
-                    // Navigate to device management
+                    navController.navigate(DEVICE_MANAGEMENT_ROUTE)
                 },
                 onBackupKeys = {
                     viewModel.backupKeys()
@@ -194,6 +242,19 @@ fun NavGraphBuilder.p2pGraph(
                 },
                 onClearCompleted = {
                     viewModel.clearCompleted()
+                }
+            )
+        }
+
+        // 设备管理
+        composable(route = DEVICE_MANAGEMENT_ROUTE) {
+            DeviceManagementScreen(
+                onBack = {
+                    navController.popBackStack()
+                },
+                onDeviceClick = { deviceId ->
+                    // Navigate to device details or chat
+                    navController.navigate("p2p_chat/$deviceId/Device")
                 }
             )
         }
@@ -227,4 +288,8 @@ fun NavController.navigateToDIDManagement() {
 
 fun NavController.navigateToMessageQueue() {
     navigate(MESSAGE_QUEUE_ROUTE)
+}
+
+fun NavController.navigateToDeviceManagement() {
+    navigate(DEVICE_MANAGEMENT_ROUTE)
 }

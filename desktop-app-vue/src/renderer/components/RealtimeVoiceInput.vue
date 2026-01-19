@@ -196,6 +196,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { message } from 'ant-design-vue';
 import {
@@ -285,7 +287,7 @@ const startRecording = async () => {
     }
 
   } catch (error) {
-    console.error('开始录音失败:', error);
+    logger.error('开始录音失败:', error);
     message.error(`开始录音失败: ${error.message}`);
     isInitializing.value = false;
   }
@@ -355,7 +357,7 @@ const pauseRecording = async () => {
       message.info('录音已暂停');
     }
   } catch (error) {
-    console.error('暂停录音失败:', error);
+    logger.error('暂停录音失败:', error);
     message.error('暂停录音失败');
   }
 };
@@ -371,7 +373,7 @@ const resumeRecording = async () => {
       message.info('录音已恢复');
     }
   } catch (error) {
-    console.error('恢复录音失败:', error);
+    logger.error('恢复录音失败:', error);
     message.error('恢复录音失败');
   }
 };
@@ -405,7 +407,7 @@ const stopRecording = async () => {
     volume.value = 0;
 
   } catch (error) {
-    console.error('停止录音失败:', error);
+    logger.error('停止录音失败:', error);
     message.error('停止录音失败');
   }
 };
@@ -429,7 +431,7 @@ const cancelRecording = async () => {
     message.info('录音已取消');
 
   } catch (error) {
-    console.error('取消录音失败:', error);
+    logger.error('取消录音失败:', error);
   }
 };
 
@@ -491,7 +493,7 @@ const saveAsNote = async () => {
       message.success('已保存为笔记');
     }
   } catch (error) {
-    console.error('保存笔记失败:', error);
+    logger.error('保存笔记失败:', error);
     message.error('保存笔记失败');
   }
 };
@@ -550,7 +552,7 @@ const loadAvailableCommands = async () => {
       availableCommands.value = result.data;
     }
   } catch (error) {
-    console.error('加载命令失败:', error);
+    logger.error('加载命令失败:', error);
   }
 };
 

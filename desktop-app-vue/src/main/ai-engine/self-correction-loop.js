@@ -1,3 +1,5 @@
+const { logger, createLogger } = require('../utils/logger.js');
+
 /**
  * 自我修正循环
  *
@@ -113,14 +115,14 @@ class SelfCorrectionLoop {
         });
       }
 
-      console.log(`\n=== 执行尝试 ${attempt}/${maxRetries} ===`);
+      logger.info(`\n=== 执行尝试 ${attempt}/${maxRetries} ===`);
 
       // 执行计划
       const result = await this.executePlan(currentPlan, executor);
 
       // 检查是否全部成功
       if (result.allSuccess) {
-        console.log('✅ 执行成功!');
+        logger.info('✅ 执行成功!');
 
         // 保存成功历史
         if (this.config.saveHistory) {
@@ -135,11 +137,11 @@ class SelfCorrectionLoop {
         };
       }
 
-      console.log(`❌ 执行失败 (${result.failedSteps.length}/${result.totalSteps}步失败)`);
+      logger.info(`❌ 执行失败 (${result.failedSteps.length}/${result.totalSteps}步失败)`);
 
       // 最后一次尝试也失败了
       if (attempt >= maxRetries) {
-        console.log(`经过${maxRetries}次尝试仍然失败`);
+        logger.info(`经过${maxRetries}次尝试仍然失败`);
 
         if (this.config.saveHistory) {
           await this.saveExecutionHistory(plan, result, corrections, false);
@@ -156,7 +158,7 @@ class SelfCorrectionLoop {
 
       // 分析失败原因
       const diagnosis = await this.diagnoseFailure(result);
-      console.log(`失败诊断: ${diagnosis.pattern} - ${diagnosis.reason}`);
+      logger.info(`失败诊断: ${diagnosis.pattern} - ${diagnosis.reason}`);
 
       // 生成修正计划
       const correction = await this.generateCorrectionPlan(
@@ -165,7 +167,7 @@ class SelfCorrectionLoop {
         diagnosis
       );
 
-      console.log(`修正策略: ${correction.strategy}`);
+      logger.info(`修正策略: ${correction.strategy}`);
 
       corrections.push({
         attempt,
@@ -206,7 +208,7 @@ class SelfCorrectionLoop {
       const step = steps[i];
 
       try {
-        console.log(`  执行步骤 ${i + 1}/${steps.length}: ${step.title || step.tool}`);
+        logger.info(`  执行步骤 ${i + 1}/${steps.length}: ${step.title || step.tool}`);
 
         const stepResult = await executor(step, i, results);
 
@@ -220,7 +222,7 @@ class SelfCorrectionLoop {
         successCount++;
 
       } catch (error) {
-        console.error(`  步骤 ${i + 1} 失败:`, error.message);
+        logger.error(`  步骤 ${i + 1} 失败:`, error.message);
 
         results.push({
           stepIndex: i,
@@ -336,7 +338,7 @@ ${i + 1}. 步骤: ${s.step.title || s.step.tool}
       }
 
     } catch (error) {
-      console.error('LLM诊断失败:', error);
+      logger.error('LLM诊断失败:', error);
     }
 
     // 降级到默认诊断
@@ -651,7 +653,7 @@ ${JSON.stringify(plan, null, 2)}
       }
 
     } catch (error) {
-      console.error('LLM修正方案生成失败:', error);
+      logger.error('LLM修正方案生成失败:', error);
     }
 
     // 降级：返回原计划
@@ -699,7 +701,7 @@ ${JSON.stringify(plan, null, 2)}
       ]);
 
     } catch (error) {
-      console.error('保存执行历史失败:', error);
+      logger.error('保存执行历史失败:', error);
     }
   }
 
@@ -717,7 +719,7 @@ ${JSON.stringify(plan, null, 2)}
         try {
           return JSON.parse(jsonMatch[0]);
         } catch (e) {
-          console.error('JSON解析失败:', e);
+          logger.error('JSON解析失败:', e);
           return null;
         }
       }
@@ -764,7 +766,7 @@ ${JSON.stringify(plan, null, 2)}
       };
 
     } catch (error) {
-      console.error('获取修正统计失败:', error);
+      logger.error('获取修正统计失败:', error);
       return null;
     }
   }

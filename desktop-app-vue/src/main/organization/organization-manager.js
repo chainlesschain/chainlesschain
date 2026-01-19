@@ -1,3 +1,4 @@
+const { logger, createLogger } = require('../utils/logger.js');
 const { v4: uuidv4 } = require('uuid');
 const crypto = require('crypto');
 const { OrgP2PNetwork, MessageType } = require('./org-p2p-network');
@@ -20,7 +21,7 @@ class OrganizationManager {
     this.didInvitationManager = null;
     if (db && didManager) {
       this.didInvitationManager = new DIDInvitationManager(db, didManager, p2pManager, this);
-      console.log('[OrganizationManager] ✓ DID邀请管理器已初始化');
+      logger.info('[OrganizationManager] ✓ DID邀请管理器已初始化');
     }
 
     // 初始化组织P2P网络管理器
@@ -41,29 +42,29 @@ class OrganizationManager {
 
     // 成员上线
     this.orgP2PNetwork.on('member:online', ({ orgId, memberDID, displayName }) => {
-      console.log(`[OrganizationManager] 成员上线: ${displayName} (${memberDID})`);
+      logger.info(`[OrganizationManager] 成员上线: ${displayName} (${memberDID})`);
       // 可以在这里更新UI或触发其他操作
     });
 
     // 成员下线
     this.orgP2PNetwork.on('member:offline', ({ orgId, memberDID }) => {
-      console.log(`[OrganizationManager] 成员下线: ${memberDID}`);
+      logger.info(`[OrganizationManager] 成员下线: ${memberDID}`);
     });
 
     // 成员发现
     this.orgP2PNetwork.on('member:discovered', ({ orgId, memberDID, displayName }) => {
-      console.log(`[OrganizationManager] 发现成员: ${displayName} (${memberDID})`);
+      logger.info(`[OrganizationManager] 发现成员: ${displayName} (${memberDID})`);
     });
 
     // 知识库事件
     this.orgP2PNetwork.on('knowledge:event', async ({ orgId, type, data }) => {
-      console.log(`[OrganizationManager] 知识库事件: ${type}`);
+      logger.info(`[OrganizationManager] 知识库事件: ${type}`);
       await this.handleKnowledgeEvent(orgId, type, data);
     });
 
     // 广播消息
     this.orgP2PNetwork.on('broadcast:received', ({ orgId, type, content, senderDID }) => {
-      console.log(`[OrganizationManager] 收到广播: ${type} from ${senderDID}`);
+      logger.info(`[OrganizationManager] 收到广播: ${type} from ${senderDID}`);
     });
   }
 
@@ -77,7 +78,7 @@ class OrganizationManager {
    * @returns {Promise<Object>} 创建的组织信息
    */
   async createOrganization(orgData) {
-    console.log('[OrganizationManager] 创建组织:', orgData.name);
+    logger.info('[OrganizationManager] 创建组织:', orgData.name);
 
     try {
       // 1. 生成组织ID和DID
@@ -158,14 +159,14 @@ class OrganizationManager {
         orgName: orgData.name
       });
 
-      console.log('[OrganizationManager] ✓ 组织创建成功:', orgId);
+      logger.info('[OrganizationManager] ✓ 组织创建成功:', orgId);
 
       return {
         ...organization,
         settings: JSON.parse(organization.settings_json)
       };
     } catch (error) {
-      console.error('[OrganizationManager] 创建组织失败:', error);
+      logger.error('[OrganizationManager] 创建组织失败:', error);
       throw error;
     }
   }
@@ -176,7 +177,7 @@ class OrganizationManager {
    * @returns {Promise<Object>} 加入的组织信息
    */
   async joinOrganization(inviteCode) {
-    console.log('[OrganizationManager] 通过邀请码加入组织:', inviteCode);
+    logger.info('[OrganizationManager] 通过邀请码加入组织:', inviteCode);
 
     try {
       // 1. 验证邀请码
@@ -236,11 +237,11 @@ class OrganizationManager {
         inviteCode: inviteCode
       });
 
-      console.log('[OrganizationManager] ✓ 成功加入组织:', invitation.org_id);
+      logger.info('[OrganizationManager] ✓ 成功加入组织:', invitation.org_id);
 
       return org;
     } catch (error) {
-      console.error('[OrganizationManager] 加入组织失败:', error);
+      logger.error('[OrganizationManager] 加入组织失败:', error);
       throw error;
     }
   }
@@ -331,7 +332,7 @@ class OrganizationManager {
 
       return { success: true };
     } catch (error) {
-      console.error('更新组织失败:', error);
+      logger.error('更新组织失败:', error);
       return { success: false, error: error.message };
     }
   }
@@ -561,7 +562,7 @@ class OrganizationManager {
 
       return allInvitations;
     } catch (error) {
-      console.error('获取邀请列表失败:', error);
+      logger.error('获取邀请列表失败:', error);
       return [];
     }
   }
@@ -637,7 +638,7 @@ class OrganizationManager {
 
       return { success: false, error: '邀请不存在' };
     } catch (error) {
-      console.error('撤销邀请失败:', error);
+      logger.error('撤销邀请失败:', error);
       return { success: false, error: error.message };
     }
   }
@@ -670,7 +671,7 @@ class OrganizationManager {
 
       return { success: false, error: '邀请不存在' };
     } catch (error) {
-      console.error('删除邀请失败:', error);
+      logger.error('删除邀请失败:', error);
       return { success: false, error: error.message };
     }
   }
@@ -696,7 +697,7 @@ class OrganizationManager {
    * @returns {Promise<Object>} 邀请信息
    */
   async inviteByDID(orgId, inviteData) {
-    console.log('[OrganizationManager] 通过DID邀请用户:', inviteData.invitedDID);
+    logger.info('[OrganizationManager] 通过DID邀请用户:', inviteData.invitedDID);
 
     try {
       // 1. 获取组织信息
@@ -794,13 +795,13 @@ class OrganizationManager {
             expireAt: invitation.expire_at,
             createdAt: invitation.created_at
           });
-          console.log('[OrganizationManager] P2P邀请通知已发送');
+          logger.info('[OrganizationManager] P2P邀请通知已发送');
         } catch (error) {
-          console.warn('[OrganizationManager] P2P邀请通知发送失败:', error.message);
+          logger.warn('[OrganizationManager] P2P邀请通知发送失败:', error.message);
           // 不中断流程，邀请记录已创建，用户可以通过其他方式看到
         }
       } else {
-        console.warn('[OrganizationManager] P2P未初始化，无法发送邀请通知');
+        logger.warn('[OrganizationManager] P2P未初始化，无法发送邀请通知');
       }
 
       // 9. 记录活动日志
@@ -809,11 +810,11 @@ class OrganizationManager {
         role: invitation.role
       });
 
-      console.log('[OrganizationManager] ✓ DID邀请创建成功:', invitationId);
+      logger.info('[OrganizationManager] ✓ DID邀请创建成功:', invitationId);
 
       return invitation;
     } catch (error) {
-      console.error('[OrganizationManager] 创建DID邀请失败:', error);
+      logger.error('[OrganizationManager] 创建DID邀请失败:', error);
       throw error;
     }
   }
@@ -824,7 +825,7 @@ class OrganizationManager {
    * @returns {Promise<Object>} 组织信息
    */
   async acceptDIDInvitation(invitationId) {
-    console.log('[OrganizationManager] 接受DID邀请:', invitationId);
+    logger.info('[OrganizationManager] 接受DID邀请:', invitationId);
 
     try {
       // 1. 获取邀请信息
@@ -891,7 +892,7 @@ class OrganizationManager {
         try {
           await this.connectToOrgP2PNetwork(invitation.org_id);
         } catch (error) {
-          console.warn('[OrganizationManager] 连接组织P2P网络失败:', error.message);
+          logger.warn('[OrganizationManager] 连接组织P2P网络失败:', error.message);
         }
       }
 
@@ -899,7 +900,7 @@ class OrganizationManager {
       try {
         await this.syncOrganizationData(invitation.org_id);
       } catch (error) {
-        console.warn('[OrganizationManager] 同步组织数据失败:', error.message);
+        logger.warn('[OrganizationManager] 同步组织数据失败:', error.message);
       }
 
       // 11. 通过P2P通知邀请人
@@ -913,7 +914,7 @@ class OrganizationManager {
             acceptedByName: currentIdentity.nickname || currentIdentity.displayName || 'Unknown'
           });
         } catch (error) {
-          console.warn('[OrganizationManager] 发送接受通知失败:', error.message);
+          logger.warn('[OrganizationManager] 发送接受通知失败:', error.message);
         }
       }
 
@@ -925,11 +926,11 @@ class OrganizationManager {
       // 13. 获取并返回组织信息
       const org = await this.getOrganization(invitation.org_id);
 
-      console.log('[OrganizationManager] ✓ 成功接受邀请并加入组织:', invitation.org_id);
+      logger.info('[OrganizationManager] ✓ 成功接受邀请并加入组织:', invitation.org_id);
 
       return org;
     } catch (error) {
-      console.error('[OrganizationManager] 接受DID邀请失败:', error);
+      logger.error('[OrganizationManager] 接受DID邀请失败:', error);
       throw error;
     }
   }
@@ -940,7 +941,7 @@ class OrganizationManager {
    * @returns {Promise<boolean>} 是否成功
    */
   async rejectDIDInvitation(invitationId) {
-    console.log('[OrganizationManager] 拒绝DID邀请:', invitationId);
+    logger.info('[OrganizationManager] 拒绝DID邀请:', invitationId);
 
     try {
       // 1. 获取邀请信息
@@ -985,15 +986,15 @@ class OrganizationManager {
             rejectedByName: currentIdentity.nickname || currentIdentity.displayName || 'Unknown'
           });
         } catch (error) {
-          console.warn('[OrganizationManager] 发送拒绝通知失败:', error.message);
+          logger.warn('[OrganizationManager] 发送拒绝通知失败:', error.message);
         }
       }
 
-      console.log('[OrganizationManager] ✓ 成功拒绝邀请:', invitationId);
+      logger.info('[OrganizationManager] ✓ 成功拒绝邀请:', invitationId);
 
       return true;
     } catch (error) {
-      console.error('[OrganizationManager] 拒绝DID邀请失败:', error);
+      logger.error('[OrganizationManager] 拒绝DID邀请失败:', error);
       throw error;
     }
   }
@@ -1018,7 +1019,7 @@ class OrganizationManager {
 
       return invitations || [];
     } catch (error) {
-      console.error('[OrganizationManager] 获取待处理邀请失败:', error);
+      logger.error('[OrganizationManager] 获取待处理邀请失败:', error);
       return [];
     }
   }
@@ -1052,7 +1053,7 @@ class OrganizationManager {
 
       return invitations || [];
     } catch (error) {
-      console.error('[OrganizationManager] 获取DID邀请列表失败:', error);
+      logger.error('[OrganizationManager] 获取DID邀请列表失败:', error);
       return [];
     }
   }
@@ -1198,7 +1199,7 @@ class OrganizationManager {
 
       return activities;
     } catch (error) {
-      console.error('获取成员活动失败:', error);
+      logger.error('获取成员活动失败:', error);
       return [];
     }
   }
@@ -1247,19 +1248,19 @@ class OrganizationManager {
    */
   async initializeOrgP2PNetwork(orgId) {
     if (!this.orgP2PNetwork) {
-      console.warn('[OrganizationManager] OrgP2PNetwork未初始化，跳过网络设置');
+      logger.warn('[OrganizationManager] OrgP2PNetwork未初始化，跳过网络设置');
       return;
     }
 
     try {
-      console.log('[OrganizationManager] 初始化组织P2P网络:', orgId);
+      logger.info('[OrganizationManager] 初始化组织P2P网络:', orgId);
 
       // 使用新的P2P网络模块初始化
       await this.orgP2PNetwork.initialize(orgId);
 
-      console.log('[OrganizationManager] ✓ 组织P2P网络初始化完成');
+      logger.info('[OrganizationManager] ✓ 组织P2P网络初始化完成');
     } catch (error) {
-      console.error('[OrganizationManager] P2P网络初始化失败:', error);
+      logger.error('[OrganizationManager] P2P网络初始化失败:', error);
       // 不抛出错误，允许组织创建继续
     }
   }
@@ -1271,19 +1272,19 @@ class OrganizationManager {
    */
   async connectToOrgP2PNetwork(orgId) {
     if (!this.orgP2PNetwork) {
-      console.warn('[OrganizationManager] OrgP2PNetwork未初始化，跳过连接');
+      logger.warn('[OrganizationManager] OrgP2PNetwork未初始化，跳过连接');
       return;
     }
 
     try {
-      console.log('[OrganizationManager] 连接到组织P2P网络:', orgId);
+      logger.info('[OrganizationManager] 连接到组织P2P网络:', orgId);
 
       // 初始化网络订阅
       await this.orgP2PNetwork.initialize(orgId);
 
-      console.log('[OrganizationManager] ✓ 已连接到组织P2P网络');
+      logger.info('[OrganizationManager] ✓ 已连接到组织P2P网络');
     } catch (error) {
-      console.error('[OrganizationManager] 连接P2P网络失败:', error);
+      logger.error('[OrganizationManager] 连接P2P网络失败:', error);
     }
   }
 
@@ -1296,7 +1297,7 @@ class OrganizationManager {
   async handleOrgSyncMessage(orgId, message) {
     try {
       const data = JSON.parse(message.toString());
-      console.log('[OrganizationManager] 收到同步消息:', data.type);
+      logger.info('[OrganizationManager] 收到同步消息:', data.type);
 
       switch (data.type) {
         case 'sync_request':
@@ -1311,7 +1312,7 @@ class OrganizationManager {
 
         case 'member_joined':
           // 成员加入通知
-          console.log('[OrganizationManager] 成员加入:', data.memberDID);
+          logger.info('[OrganizationManager] 成员加入:', data.memberDID);
           break;
 
         case 'member_updated':
@@ -1327,10 +1328,10 @@ class OrganizationManager {
           break;
 
         default:
-          console.warn('[OrganizationManager] 未知的同步消息类型:', data.type);
+          logger.warn('[OrganizationManager] 未知的同步消息类型:', data.type);
       }
     } catch (error) {
-      console.error('[OrganizationManager] 处理同步消息失败:', error);
+      logger.error('[OrganizationManager] 处理同步消息失败:', error);
     }
   }
 
@@ -1342,7 +1343,7 @@ class OrganizationManager {
    */
   async broadcastOrgMessage(orgId, data) {
     if (!this.p2pManager || !this.p2pManager.node?.services?.pubsub) {
-      console.warn('[OrganizationManager] P2P网络未就绪，无法广播消息');
+      logger.warn('[OrganizationManager] P2P网络未就绪，无法广播消息');
       return;
     }
 
@@ -1351,9 +1352,9 @@ class OrganizationManager {
       const message = Buffer.from(JSON.stringify(data));
 
       await this.p2pManager.node.services.pubsub.publish(topic, message);
-      console.log('[OrganizationManager] ✓ 已广播消息:', data.type);
+      logger.info('[OrganizationManager] ✓ 已广播消息:', data.type);
     } catch (error) {
-      console.error('[OrganizationManager] 广播消息失败:', error);
+      logger.error('[OrganizationManager] 广播消息失败:', error);
     }
   }
 
@@ -1376,9 +1377,9 @@ class OrganizationManager {
         timestamp: Date.now()
       });
 
-      console.log('[OrganizationManager] ✓ 已请求增量同步，本地版本:', localVersion);
+      logger.info('[OrganizationManager] ✓ 已请求增量同步，本地版本:', localVersion);
     } catch (error) {
-      console.error('[OrganizationManager] 请求同步失败:', error);
+      logger.error('[OrganizationManager] 请求同步失败:', error);
     }
   }
 
@@ -1395,7 +1396,7 @@ class OrganizationManager {
 
       return result?.max_timestamp || 0;
     } catch (error) {
-      console.error('[OrganizationManager] 获取本地版本失败:', error);
+      logger.error('[OrganizationManager] 获取本地版本失败:', error);
       return 0;
     }
   }
@@ -1418,7 +1419,7 @@ class OrganizationManager {
       ).all(orgId, sinceVersion);
 
       if (changes.length === 0) {
-        console.log('[OrganizationManager] 没有新数据需要同步');
+        logger.info('[OrganizationManager] 没有新数据需要同步');
         return;
       }
 
@@ -1438,9 +1439,9 @@ class OrganizationManager {
 
       // 直接发送给请求者
       await this.p2pManager.sendEncryptedMessage(targetDID, JSON.stringify(syncData));
-      console.log('[OrganizationManager] ✓ 已发送增量数据，共', changes.length, '条变更');
+      logger.info('[OrganizationManager] ✓ 已发送增量数据，共', changes.length, '条变更');
     } catch (error) {
-      console.error('[OrganizationManager] 发送增量数据失败:', error);
+      logger.error('[OrganizationManager] 发送增量数据失败:', error);
     }
   }
 
@@ -1453,7 +1454,7 @@ class OrganizationManager {
   async applyIncrementalData(orgId, syncData) {
     const { changes } = syncData;
 
-    console.log('[OrganizationManager] 应用增量数据，共', changes.length, '条变更');
+    logger.info('[OrganizationManager] 应用增量数据，共', changes.length, '条变更');
 
     for (const change of changes) {
       try {
@@ -1468,11 +1469,11 @@ class OrganizationManager {
         // 应用变更
         await this.applyChange(orgId, change);
       } catch (error) {
-        console.error('[OrganizationManager] 应用变更失败:', change, error);
+        logger.error('[OrganizationManager] 应用变更失败:', change, error);
       }
     }
 
-    console.log('[OrganizationManager] ✓ 增量数据应用完成');
+    logger.info('[OrganizationManager] ✓ 增量数据应用完成');
   }
 
   /**
@@ -1493,13 +1494,13 @@ class OrganizationManager {
       ).get(orgId, resource_type, resource_id);
 
       if (localActivity && localActivity.timestamp > timestamp) {
-        console.warn('[OrganizationManager] 检测到冲突:', resource_type, resource_id);
+        logger.warn('[OrganizationManager] 检测到冲突:', resource_type, resource_id);
         return true;
       }
 
       return false;
     } catch (error) {
-      console.error('[OrganizationManager] 冲突检查失败:', error);
+      logger.error('[OrganizationManager] 冲突检查失败:', error);
       return false;
     }
   }
@@ -1511,7 +1512,7 @@ class OrganizationManager {
    * @returns {Promise<void>}
    */
   async resolveConflict(orgId, change) {
-    console.log('[OrganizationManager] 解决冲突:', change.action);
+    logger.info('[OrganizationManager] 解决冲突:', change.action);
 
     // 策略1: Last-Write-Wins (保留时间戳更新的版本)
     const localActivity = this.db.prepare(
@@ -1523,10 +1524,10 @@ class OrganizationManager {
     if (!localActivity || change.timestamp > localActivity.timestamp) {
       // 远程更新,覆盖本地
       await this.applyChange(orgId, change);
-      console.log('[OrganizationManager] ✓ 冲突已解决: 应用远程版本');
+      logger.info('[OrganizationManager] ✓ 冲突已解决: 应用远程版本');
     } else {
       // 本地更新,保留本地
-      console.log('[OrganizationManager] ✓ 冲突已解决: 保留本地版本');
+      logger.info('[OrganizationManager] ✓ 冲突已解决: 保留本地版本');
     }
   }
 
@@ -1539,7 +1540,7 @@ class OrganizationManager {
   async applyChange(orgId, change) {
     const { action, resource_type, resource_id, metadata } = change;
 
-    console.log('[OrganizationManager] 应用变更:', action, resource_type, resource_id);
+    logger.info('[OrganizationManager] 应用变更:', action, resource_type, resource_id);
 
     switch (action) {
       case 'update_member_role':
@@ -1572,7 +1573,7 @@ class OrganizationManager {
         break;
 
       default:
-        console.warn('[OrganizationManager] 未知的变更操作:', action);
+        logger.warn('[OrganizationManager] 未知的变更操作:', action);
     }
 
     // 记录到本地活动日志 (如果不存在)
@@ -1614,9 +1615,9 @@ class OrganizationManager {
         [updates.display_name, updates.avatar, orgId, memberDID]
       );
 
-      console.log('[OrganizationManager] ✓ 成员信息已同步:', memberDID);
+      logger.info('[OrganizationManager] ✓ 成员信息已同步:', memberDID);
     } catch (error) {
-      console.error('[OrganizationManager] 同步成员更新失败:', error);
+      logger.error('[OrganizationManager] 同步成员更新失败:', error);
     }
   }
 
@@ -1630,12 +1631,12 @@ class OrganizationManager {
     try {
       // 这里需要与知识库管理器集成
       // 暂时记录日志
-      console.log('[OrganizationManager] 知识库变更:', data.type, data.knowledgeId);
+      logger.info('[OrganizationManager] 知识库变更:', data.type, data.knowledgeId);
 
       // TODO: 集成知识库管理器,应用知识库变更
       // await knowledgeManager.applyRemoteChange(data);
     } catch (error) {
-      console.error('[OrganizationManager] 同步知识库变更失败:', error);
+      logger.error('[OrganizationManager] 同步知识库变更失败:', error);
     }
   }
 
@@ -1645,7 +1646,7 @@ class OrganizationManager {
    * @returns {Promise<void>}
    */
   async syncOrganizationData(orgId) {
-    console.log('[OrganizationManager] 同步组织数据:', orgId);
+    logger.info('[OrganizationManager] 同步组织数据:', orgId);
 
     try {
       // 1. 连接到组织P2P网络
@@ -1654,9 +1655,9 @@ class OrganizationManager {
       // 2. 请求增量同步
       await this.requestIncrementalSync(orgId);
 
-      console.log('[OrganizationManager] ✓ 组织数据同步已启动');
+      logger.info('[OrganizationManager] ✓ 组织数据同步已启动');
     } catch (error) {
-      console.error('[OrganizationManager] 数据同步失败:', error);
+      logger.error('[OrganizationManager] 数据同步失败:', error);
     }
   }
 
@@ -1685,7 +1686,7 @@ class OrganizationManager {
     // 记录活动日志
     await this.logActivity(orgId, userDID, 'leave_organization', 'member', userDID, {});
 
-    console.log('[OrganizationManager] ✓ 成功离开组织:', orgId);
+    logger.info('[OrganizationManager] ✓ 成功离开组织:', orgId);
   }
 
   /**
@@ -1711,7 +1712,7 @@ class OrganizationManager {
     // 记录活动日志
     await this.logActivity(orgId, userDID, 'delete_organization', 'organization', orgId, {});
 
-    console.log('[OrganizationManager] ✓ 组织已删除:', orgId);
+    logger.info('[OrganizationManager] ✓ 组织已删除:', orgId);
   }
 
   /**
@@ -1761,7 +1762,7 @@ class OrganizationManager {
    * @returns {Promise<Object>} 创建的角色
    */
   async createCustomRole(orgId, roleData, creatorDID) {
-    console.log('[OrganizationManager] 创建自定义角色:', roleData.name);
+    logger.info('[OrganizationManager] 创建自定义角色:', roleData.name);
 
     // 1. 检查权限
     const canCreate = await this.checkPermission(orgId, creatorDID, 'role.create');
@@ -1807,7 +1808,7 @@ class OrganizationManager {
       permissions: roleData.permissions
     });
 
-    console.log('[OrganizationManager] ✓ 自定义角色创建成功:', roleId);
+    logger.info('[OrganizationManager] ✓ 自定义角色创建成功:', roleId);
 
     return {
       id: roleId,
@@ -1831,7 +1832,7 @@ class OrganizationManager {
    * @returns {Promise<Object>} 更新后的角色
    */
   async updateRole(roleId, updates, updaterDID) {
-    console.log('[OrganizationManager] 更新角色:', roleId);
+    logger.info('[OrganizationManager] 更新角色:', roleId);
 
     // 1. 获取角色信息
     const role = await this.getRole(roleId);
@@ -1901,7 +1902,7 @@ class OrganizationManager {
       updates: updates
     });
 
-    console.log('[OrganizationManager] ✓ 角色更新成功:', roleId);
+    logger.info('[OrganizationManager] ✓ 角色更新成功:', roleId);
 
     // 8. 返回更新后的角色
     return await this.getRole(roleId);
@@ -1914,7 +1915,7 @@ class OrganizationManager {
    * @returns {Promise<void>}
    */
   async deleteRole(roleId, deleterDID) {
-    console.log('[OrganizationManager] 删除角色:', roleId);
+    logger.info('[OrganizationManager] 删除角色:', roleId);
 
     // 1. 获取角色信息
     const role = await this.getRole(roleId);
@@ -1953,7 +1954,7 @@ class OrganizationManager {
       roleName: role.name
     });
 
-    console.log('[OrganizationManager] ✓ 角色删除成功:', roleId);
+    logger.info('[OrganizationManager] ✓ 角色删除成功:', roleId);
   }
 
   /**
@@ -2047,7 +2048,7 @@ class OrganizationManager {
 
       return !!member;
     } catch (error) {
-      console.error('[OrganizationManager] 检查成员失败:', error);
+      logger.error('[OrganizationManager] 检查成员失败:', error);
       return false;
     }
   }
@@ -2098,7 +2099,7 @@ class OrganizationManager {
    */
   async handleKnowledgeEvent(orgId, type, data) {
     // 这里可以实现知识库同步逻辑
-    console.log(`[OrganizationManager] 处理知识库事件: ${type}`, data);
+    logger.info(`[OrganizationManager] 处理知识库事件: ${type}`, data);
     // TODO: 实现知识库同步
   }
 }

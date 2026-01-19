@@ -1,3 +1,5 @@
+const { logger, createLogger } = require('../utils/logger.js');
+
 /**
  * 分层任务规划器
  *
@@ -218,7 +220,7 @@ class HierarchicalTaskPlanner {
       return this.ruleBasedBusinessDecompose(intent, maxSteps);
 
     } catch (error) {
-      console.error('业务逻辑分解失败:', error);
+      logger.error('业务逻辑分解失败:', error);
       return this.ruleBasedBusinessDecompose(intent, maxSteps);
     }
   }
@@ -329,7 +331,7 @@ class HierarchicalTaskPlanner {
       return this.ruleBasedTechnicalDecompose(businessStep, maxSubTasks);
 
     } catch (error) {
-      console.error('技术任务分解失败:', error);
+      logger.error('技术任务分解失败:', error);
       return this.ruleBasedTechnicalDecompose(businessStep, maxSubTasks);
     }
   }
@@ -405,7 +407,7 @@ class HierarchicalTaskPlanner {
         return plan.subtasks || [];
 
       } catch (error) {
-        console.error('任务转工具失败:', error);
+        logger.error('任务转工具失败:', error);
       }
     }
 
@@ -566,7 +568,7 @@ class HierarchicalTaskPlanner {
         try {
           return JSON.parse(jsonMatch[0]);
         } catch (e) {
-          console.error('JSON解析失败:', e);
+          logger.error('JSON解析失败:', e);
           return null;
         }
       }

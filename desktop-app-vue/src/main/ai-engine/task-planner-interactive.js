@@ -9,6 +9,7 @@
  * 5. 质量评估和迭代优化
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { v4: uuidv4 } = require('uuid');
 const EventEmitter = require('events');
 
@@ -37,7 +38,7 @@ class InteractiveTaskPlanner extends EventEmitter {
    * @returns {Promise<Object>} Plan会话信息
    */
   async startPlanSession(userRequest, projectContext = {}) {
-    console.log('[InteractiveTaskPlanner] 开始Plan模式对话:', userRequest);
+    logger.info('[InteractiveTaskPlanner] 开始Plan模式对话:', userRequest);
 
     const sessionId = uuidv4();
     const session = {
@@ -97,7 +98,7 @@ class InteractiveTaskPlanner extends EventEmitter {
       };
 
     } catch (error) {
-      console.error('[InteractiveTaskPlanner] Plan生成失败:', error);
+      logger.error('[InteractiveTaskPlanner] Plan生成失败:', error);
       session.status = 'failed';
       session.error = error.message;
 
@@ -125,7 +126,7 @@ class InteractiveTaskPlanner extends EventEmitter {
   async recommendTemplates(userRequest, projectContext, taskPlan) {
     try {
       if (!this.templateManager) {
-        console.warn('[InteractiveTaskPlanner] 模板管理器未初始化');
+        logger.warn('[InteractiveTaskPlanner] 模板管理器未初始化');
         return [];
       }
 
@@ -146,7 +147,7 @@ class InteractiveTaskPlanner extends EventEmitter {
       })).sort((a, b) => b.relevanceScore - a.relevanceScore);
 
     } catch (error) {
-      console.error('[InteractiveTaskPlanner] 模板推荐失败:', error);
+      logger.error('[InteractiveTaskPlanner] 模板推荐失败:', error);
       return [];
     }
   }
@@ -157,7 +158,7 @@ class InteractiveTaskPlanner extends EventEmitter {
   async recommendSkills(userRequest, projectContext, taskPlan) {
     try {
       if (!this.skillRecommender) {
-        console.warn('[InteractiveTaskPlanner] 技能推荐器未初始化');
+        logger.warn('[InteractiveTaskPlanner] 技能推荐器未初始化');
         return [];
       }
 
@@ -170,7 +171,7 @@ class InteractiveTaskPlanner extends EventEmitter {
       return skills;
 
     } catch (error) {
-      console.error('[InteractiveTaskPlanner] 技能推荐失败:', error);
+      logger.error('[InteractiveTaskPlanner] 技能推荐失败:', error);
       return [];
     }
   }
@@ -224,7 +225,7 @@ class InteractiveTaskPlanner extends EventEmitter {
       return tools;
 
     } catch (error) {
-      console.error('[InteractiveTaskPlanner] 工具推荐失败:', error);
+      logger.error('[InteractiveTaskPlanner] 工具推荐失败:', error);
       return [];
     }
   }
@@ -424,7 +425,7 @@ class InteractiveTaskPlanner extends EventEmitter {
       }
 
     } catch (error) {
-      console.error('[InteractiveTaskPlanner] 处理用户响应失败:', error);
+      logger.error('[InteractiveTaskPlanner] 处理用户响应失败:', error);
       return {
         sessionId,
         status: 'error',
@@ -475,7 +476,7 @@ class InteractiveTaskPlanner extends EventEmitter {
       };
 
     } catch (error) {
-      console.error('[InteractiveTaskPlanner] 执行失败:', error);
+      logger.error('[InteractiveTaskPlanner] 执行失败:', error);
 
       session.status = 'failed';
       session.error = error.message;
@@ -498,7 +499,7 @@ class InteractiveTaskPlanner extends EventEmitter {
   async adjustPlan(sessionId, adjustments) {
     const session = this.planSessions.get(sessionId);
 
-    console.log('[InteractiveTaskPlanner] 调整Plan:', adjustments);
+    logger.info('[InteractiveTaskPlanner] 调整Plan:', adjustments);
 
     // 记录用户调整
     session.userAdjustments.push({
@@ -549,7 +550,7 @@ class InteractiveTaskPlanner extends EventEmitter {
   async applyTemplate(sessionId, templateId) {
     const session = this.planSessions.get(sessionId);
 
-    console.log('[InteractiveTaskPlanner] 应用模板:', templateId);
+    logger.info('[InteractiveTaskPlanner] 应用模板:', templateId);
 
     try {
       // 获取模板
@@ -580,7 +581,7 @@ class InteractiveTaskPlanner extends EventEmitter {
       };
 
     } catch (error) {
-      console.error('[InteractiveTaskPlanner] 应用模板失败:', error);
+      logger.error('[InteractiveTaskPlanner] 应用模板失败:', error);
       return {
         sessionId,
         status: 'error',
@@ -621,7 +622,7 @@ class InteractiveTaskPlanner extends EventEmitter {
   async regeneratePlan(sessionId, feedback) {
     const session = this.planSessions.get(sessionId);
 
-    console.log('[InteractiveTaskPlanner] 重新生成Plan，用户反馈:', feedback);
+    logger.info('[InteractiveTaskPlanner] 重新生成Plan，用户反馈:', feedback);
 
     // 结合用户反馈重新生成
     const enhancedRequest = feedback
@@ -647,7 +648,7 @@ class InteractiveTaskPlanner extends EventEmitter {
       };
 
     } catch (error) {
-      console.error('[InteractiveTaskPlanner] 重新生成失败:', error);
+      logger.error('[InteractiveTaskPlanner] 重新生成失败:', error);
       return {
         sessionId,
         status: 'error',
@@ -661,7 +662,7 @@ class InteractiveTaskPlanner extends EventEmitter {
    * 评估生成质量
    */
   async evaluateQuality(session) {
-    console.log('[InteractiveTaskPlanner] 开始质量评估');
+    logger.info('[InteractiveTaskPlanner] 开始质量评估');
 
     const { taskPlan, executionResult } = session;
 
@@ -782,7 +783,7 @@ class InteractiveTaskPlanner extends EventEmitter {
     try {
       await this.saveFeedbackToDatabase(sessionId, feedback);
     } catch (error) {
-      console.error('[InteractiveTaskPlanner] 保存反馈失败:', error);
+      logger.error('[InteractiveTaskPlanner] 保存反馈失败:', error);
     }
 
     this.emit('feedback-submitted', { sessionId, feedback });
@@ -839,7 +840,7 @@ class InteractiveTaskPlanner extends EventEmitter {
       }
     }
 
-    console.log(`[InteractiveTaskPlanner] 清理了${cleanedCount}个过期会话`);
+    logger.info(`[InteractiveTaskPlanner] 清理了${cleanedCount}个过期会话`);
     return cleanedCount;
   }
 }

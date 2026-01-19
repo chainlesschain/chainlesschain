@@ -613,6 +613,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, reactive, onMounted, onUnmounted, h } from "vue";
 import { message } from "ant-design-vue";
 import {
@@ -632,7 +634,7 @@ import {
   CopyOutlined,
   DownloadOutlined,
 } from "@ant-design/icons-vue";
-import * as echarts from "echarts";
+import { init } from "../utils/echartsConfig";
 import { marked } from "marked";
 
 // 状态
@@ -871,7 +873,7 @@ const loadStats = async () => {
     });
     stats.value = result;
   } catch (error) {
-    console.error("加载统计数据失败:", error);
+    logger.error("加载统计数据失败:", error);
   } finally {
     loading.value = false;
   }
@@ -886,7 +888,7 @@ const loadClassificationStats = async () => {
     );
     classificationStats.value = result || [];
   } catch (error) {
-    console.error("加载分类统计失败:", error);
+    logger.error("加载分类统计失败:", error);
   }
 };
 
@@ -908,7 +910,7 @@ const loadHistory = async () => {
     // 假设总数从统计中获取
     pagination.total = stats.value.total;
   } catch (error) {
-    console.error("加载历史记录失败:", error);
+    logger.error("加载历史记录失败:", error);
   } finally {
     historyLoading.value = false;
   }
@@ -923,7 +925,7 @@ const loadDailyTrend = async () => {
     );
     renderTrendChart(result || []);
   } catch (error) {
-    console.error("加载每日趋势失败:", error);
+    logger.error("加载每日趋势失败:", error);
   }
 };
 
@@ -932,7 +934,7 @@ const renderTrendChart = (data) => {
   if (!trendChartRef.value) {return;}
 
   if (!trendChart) {
-    trendChart = echarts.init(trendChartRef.value);
+    trendChart = init(trendChartRef.value);
   }
 
   const dates = data.map((d) => d.date).reverse();
@@ -1004,7 +1006,7 @@ const loadConfig = async () => {
     const result = await window.electronAPI.invoke("error:get-config");
     config.value = { ...config.value, ...result };
   } catch (error) {
-    console.error("加载配置失败:", error);
+    logger.error("加载配置失败:", error);
   }
 };
 
@@ -1014,7 +1016,7 @@ const updateConfig = async (key, value) => {
     await window.electronAPI.invoke("error:update-config", { [key]: value });
     message.success("配置已更新");
   } catch (error) {
-    console.error("更新配置失败:", error);
+    logger.error("更新配置失败:", error);
     message.error("更新配置失败");
   }
 };
@@ -1029,7 +1031,7 @@ const cleanupOldData = async () => {
     message.success(`已清理 ${result.deletedCount} 条旧记录`);
     refreshAll();
   } catch (error) {
-    console.error("清理失败:", error);
+    logger.error("清理失败:", error);
     message.error("清理失败");
   }
 };
@@ -1051,7 +1053,7 @@ const generateReport = async (record) => {
     reportHtml.value = marked(report);
     reportVisible.value = true;
   } catch (error) {
-    console.error("生成报告失败:", error);
+    logger.error("生成报告失败:", error);
     message.error("生成报告失败");
   }
 };
@@ -1069,7 +1071,7 @@ const markAsFixed = async (record) => {
     loadHistory();
     loadStats();
   } catch (error) {
-    console.error("更新状态失败:", error);
+    logger.error("更新状态失败:", error);
     message.error("更新状态失败");
   }
 };
@@ -1082,7 +1084,7 @@ const reanalyzeError = async (record) => {
     message.success({ content: "重新分析完成", key: "reanalyze" });
     loadHistory();
   } catch (error) {
-    console.error("重新分析失败:", error);
+    logger.error("重新分析失败:", error);
     message.error({ content: "重新分析失败", key: "reanalyze" });
   }
 };

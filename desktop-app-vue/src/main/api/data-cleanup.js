@@ -5,6 +5,7 @@
  * v0.20.1: 新增数据清理功能
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { EventEmitter } = require('events');
 
 class DataCleanupManager extends EventEmitter {
@@ -21,21 +22,21 @@ class DataCleanupManager extends EventEmitter {
    */
   startAutoCleanup(intervalMs = 24 * 60 * 60 * 1000) {
     if (this.cleanupInterval) {
-      console.log('[DataCleanup] 自动清理任务已在运行');
+      logger.info('[DataCleanup] 自动清理任务已在运行');
       return;
     }
 
-    console.log(`[DataCleanup] 启动自动清理任务，间隔: ${intervalMs}ms`);
+    logger.info(`[DataCleanup] 启动自动清理任务，间隔: ${intervalMs}ms`);
 
     // 立即执行一次清理
     this.runCleanup().catch(error => {
-      console.error('[DataCleanup] 初始清理失败:', error);
+      logger.error('[DataCleanup] 初始清理失败:', error);
     });
 
     // 设置定时清理
     this.cleanupInterval = setInterval(() => {
       this.runCleanup().catch(error => {
-        console.error('[DataCleanup] 定时清理失败:', error);
+        logger.error('[DataCleanup] 定时清理失败:', error);
       });
     }, intervalMs);
   }
@@ -47,7 +48,7 @@ class DataCleanupManager extends EventEmitter {
     if (this.cleanupInterval) {
       clearInterval(this.cleanupInterval);
       this.cleanupInterval = null;
-      console.log('[DataCleanup] 自动清理任务已停止');
+      logger.info('[DataCleanup] 自动清理任务已停止');
     }
   }
 
@@ -55,7 +56,7 @@ class DataCleanupManager extends EventEmitter {
    * 执行清理任务
    */
   async runCleanup() {
-    console.log('[DataCleanup] 开始执行数据清理...');
+    logger.info('[DataCleanup] 开始执行数据清理...');
     this.emit('cleanup-start');
 
     const results = {
@@ -75,12 +76,12 @@ class DataCleanupManager extends EventEmitter {
       // 清理孤立的附件
       results.attachments = await this.cleanupOrphanedAttachments();
 
-      console.log('[DataCleanup] 清理完成:', results);
+      logger.info('[DataCleanup] 清理完成:', results);
       this.emit('cleanup-complete', results);
 
       return results;
     } catch (error) {
-      console.error('[DataCleanup] 清理失败:', error);
+      logger.error('[DataCleanup] 清理失败:', error);
       results.errors.push(error.message);
       this.emit('cleanup-error', error);
       throw error;
@@ -104,11 +105,11 @@ class DataCleanupManager extends EventEmitter {
       `).run(cutoffTime);
 
       const deletedCount = result.changes || 0;
-      console.log(`[DataCleanup] 清理了 ${deletedCount} 条旧的 RSS 文章`);
+      logger.info(`[DataCleanup] 清理了 ${deletedCount} 条旧的 RSS 文章`);
 
       return deletedCount;
     } catch (error) {
-      console.error('[DataCleanup] 清理 RSS 文章失败:', error);
+      logger.error('[DataCleanup] 清理 RSS 文章失败:', error);
       throw error;
     }
   }
@@ -129,11 +130,11 @@ class DataCleanupManager extends EventEmitter {
       `).run(cutoffTime);
 
       const deletedCount = result.changes || 0;
-      console.log(`[DataCleanup] 清理了 ${deletedCount} 封旧邮件`);
+      logger.info(`[DataCleanup] 清理了 ${deletedCount} 封旧邮件`);
 
       return deletedCount;
     } catch (error) {
-      console.error('[DataCleanup] 清理邮件失败:', error);
+      logger.error('[DataCleanup] 清理邮件失败:', error);
       throw error;
     }
   }
@@ -150,11 +151,11 @@ class DataCleanupManager extends EventEmitter {
       `).run();
 
       const deletedCount = result.changes || 0;
-      console.log(`[DataCleanup] 清理了 ${deletedCount} 个孤立附件`);
+      logger.info(`[DataCleanup] 清理了 ${deletedCount} 个孤立附件`);
 
       return deletedCount;
     } catch (error) {
-      console.error('[DataCleanup] 清理孤立附件失败:', error);
+      logger.error('[DataCleanup] 清理孤立附件失败:', error);
       throw error;
     }
   }
@@ -221,7 +222,7 @@ class DataCleanupManager extends EventEmitter {
 
       return stats;
     } catch (error) {
-      console.error('[DataCleanup] 获取数据统计失败:', error);
+      logger.error('[DataCleanup] 获取数据统计失败:', error);
       throw error;
     }
   }
@@ -231,7 +232,7 @@ class DataCleanupManager extends EventEmitter {
    */
   setRetentionDays(days) {
     this.defaultRetentionDays = days;
-    console.log(`[DataCleanup] 保留天数已设置为: ${days} 天`);
+    logger.info(`[DataCleanup] 保留天数已设置为: ${days} 天`);
   }
 }
 

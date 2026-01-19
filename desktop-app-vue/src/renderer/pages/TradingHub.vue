@@ -212,6 +212,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted, watch } from 'vue';
 import { message } from 'ant-design-vue';
 import { useTradeStore } from '../stores/trade';
@@ -372,7 +374,7 @@ const loadAvailableDids = async () => {
       selectedDid.value = availableDids.value[0].did;
     }
   } catch (error) {
-    console.error('加载DID列表失败:', error);
+    logger.error('加载DID列表失败:', error);
     message.error('加载DID列表失败: ' + error.message);
   } finally {
     loadingDids.value = false;
@@ -383,7 +385,7 @@ const loadAvailableDids = async () => {
  * Tab切换处理
  */
 const handleTabChange = (key) => {
-  console.log('Tab changed to:', key);
+  logger.info('Tab changed to:', key);
 
   // 根据Tab加载对应数据
   if (!selectedDid.value && key !== 'marketplace' && key !== 'knowledge') {
@@ -442,10 +444,10 @@ const loadTabData = async (tab) => {
         break;
 
       default:
-        console.warn('未知的Tab:', tab);
+        logger.warn('未知的Tab:', tab);
     }
   } catch (error) {
-    console.error(`加载Tab数据失败 [${tab}]:`, error);
+    logger.error(`加载Tab数据失败 [${tab}]:`, error);
     message.error(`加载数据失败: ${error.message}`);
   }
 };
@@ -469,7 +471,7 @@ const handleViewCredit = () => {
  * DID切换处理
  */
 const handleDidChange = async (newDid) => {
-  console.log('DID changed to:', newDid);
+  logger.info('DID changed to:', newDid);
 
   // 刷新当前Tab数据
   await loadTabData(activeTab.value);
@@ -480,7 +482,7 @@ const handleDidChange = async (newDid) => {
       await tradeStore.loadUserCredit(newDid);
       await tradeStore.loadScoreHistory(newDid, 20);
     } catch (error) {
-      console.error('加载新DID信用信息失败:', error);
+      logger.error('加载新DID信用信息失败:', error);
     }
   }
 };
@@ -489,7 +491,7 @@ const handleDidChange = async (newDid) => {
 watch(selectedDid, (newDid) => {
   if (newDid && activeTab.value === 'credit') {
     tradeStore.loadUserCredit(newDid).catch((error) => {
-      console.error('加载信用信息失败:', error);
+      logger.error('加载信用信息失败:', error);
     });
   }
 });
@@ -497,7 +499,7 @@ watch(selectedDid, (newDid) => {
 // 生命周期
 
 onMounted(async () => {
-  console.log('[TradingHub] 组件挂载');
+  logger.info('[TradingHub] 组件挂载');
 
   // 初始化UI状态（从localStorage恢复）
   tradeStore.initUI();

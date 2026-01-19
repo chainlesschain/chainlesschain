@@ -283,6 +283,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, reactive, onMounted } from 'vue';
 import { message } from 'ant-design-vue';
 import {
@@ -339,7 +341,7 @@ onMounted(async () => {
       configStatus.value = result.data;
     }
   } catch (error) {
-    console.error('检查配置失败:', error);
+    logger.error('检查配置失败:', error);
   }
 });
 

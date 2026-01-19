@@ -136,6 +136,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted, watch } from 'vue';
 import {
   CloudSyncOutlined,
@@ -181,9 +183,9 @@ const loadStats = async () => {
     totalFiles.value = stats.totalFiles;
     indexedFiles.value = stats.indexedFiles;
 
-    console.log('[RAGStatusIndicator] 索引统计加载完成:', stats);
+    logger.info('[RAGStatusIndicator] 索引统计加载完成:', stats);
   } catch (error) {
-    console.error('[RAGStatusIndicator] 加载索引统计失败:', error);
+    logger.error('[RAGStatusIndicator] 加载索引统计失败:', error);
   }
 };
 
@@ -222,7 +224,7 @@ const reindex = async () => {
 
     lastIndexTime.value = Date.now();
   } catch (error) {
-    console.error('[RAGStatusIndicator] 索引失败:', error);
+    logger.error('[RAGStatusIndicator] 索引失败:', error);
     message.error({
       content: `索引失败: ${error.message}`,
       key: 'indexing',
@@ -257,7 +259,7 @@ const indexConversations = async () => {
       duration: 3
     });
   } catch (error) {
-    console.error('[RAGStatusIndicator] 索引对话历史失败:', error);
+    logger.error('[RAGStatusIndicator] 索引对话历史失败:', error);
     message.error({
       content: `索引失败: ${error.message}`,
       key: 'conv-indexing',

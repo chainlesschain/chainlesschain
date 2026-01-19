@@ -188,6 +188,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, h, nextTick, watch } from 'vue';
 import { Modal, Empty } from 'ant-design-vue';
 import {
@@ -337,7 +339,7 @@ async function handleSubmit() {
       }
     }
   } catch (error) {
-    console.error('Submit comment failed:', error);
+    logger.error('Submit comment failed:', error);
   } finally {
     submitting.value = false;
   }

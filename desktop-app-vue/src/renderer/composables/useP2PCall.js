@@ -4,6 +4,7 @@
  * 提供统一的通话管理接口
  */
 
+import { logger, createLogger } from '@/utils/logger';
 import { ref, onMounted, onUnmounted } from 'vue';
 import { message } from 'ant-design-vue';
 
@@ -40,7 +41,7 @@ export function useP2PCall() {
         return null;
       }
     } catch (error) {
-      console.error('发起语音通话失败:', error);
+      logger.error('发起语音通话失败:', error);
       message.error('发起语音通话失败');
       return null;
     }
@@ -70,7 +71,7 @@ export function useP2PCall() {
         return null;
       }
     } catch (error) {
-      console.error('发起视频通话失败:', error);
+      logger.error('发起视频通话失败:', error);
       message.error('发起视频通话失败');
       return null;
     }
@@ -104,7 +105,7 @@ export function useP2PCall() {
         return null;
       }
     } catch (error) {
-      console.error('发起屏幕共享失败:', error);
+      logger.error('发起屏幕共享失败:', error);
       message.error('发起屏幕共享失败');
       return null;
     }
@@ -123,7 +124,7 @@ export function useP2PCall() {
         return [];
       }
     } catch (error) {
-      console.error('获取屏幕源失败:', error);
+      logger.error('获取屏幕源失败:', error);
       message.error('获取屏幕源失败');
       return [];
     }
@@ -150,7 +151,7 @@ export function useP2PCall() {
         return false;
       }
     } catch (error) {
-      console.error('接受通话失败:', error);
+      logger.error('接受通话失败:', error);
       message.error('接受通话失败');
       return false;
     }
@@ -176,7 +177,7 @@ export function useP2PCall() {
         return false;
       }
     } catch (error) {
-      console.error('拒绝通话失败:', error);
+      logger.error('拒绝通话失败:', error);
       message.error('拒绝通话失败');
       return false;
     }
@@ -201,7 +202,7 @@ export function useP2PCall() {
         return false;
       }
     } catch (error) {
-      console.error('结束通话失败:', error);
+      logger.error('结束通话失败:', error);
       message.error('结束通话失败');
       return false;
     }
@@ -223,7 +224,7 @@ export function useP2PCall() {
         return null;
       }
     } catch (error) {
-      console.error('切换静音失败:', error);
+      logger.error('切换静音失败:', error);
       message.error('切换静音失败');
       return null;
     }
@@ -245,7 +246,7 @@ export function useP2PCall() {
         return null;
       }
     } catch (error) {
-      console.error('切换视频失败:', error);
+      logger.error('切换视频失败:', error);
       message.error('切换视频失败');
       return null;
     }
@@ -266,7 +267,7 @@ export function useP2PCall() {
         return null;
       }
     } catch (error) {
-      console.error('获取通话信息失败:', error);
+      logger.error('获取通话信息失败:', error);
       return null;
     }
   };
@@ -285,7 +286,7 @@ export function useP2PCall() {
         return [];
       }
     } catch (error) {
-      console.error('获取活动通话失败:', error);
+      logger.error('获取活动通话失败:', error);
       return [];
     }
   };
@@ -304,33 +305,33 @@ export function useP2PCall() {
         return null;
       }
     } catch (error) {
-      console.error('获取通话统计失败:', error);
+      logger.error('获取通话统计失败:', error);
       return null;
     }
   };
 
   // 事件处理
   const handleCallStarted = (event, data) => {
-    console.log('通话已发起:', data);
+    logger.info('通话已发起:', data);
     if (data.isInitiator) {
       activeCall.value = data;
     }
   };
 
   const handleCallIncoming = (event, data) => {
-    console.log('收到来电:', data);
+    logger.info('收到来电:', data);
     incomingCall.value = data;
   };
 
   const handleCallConnected = (event, data) => {
-    console.log('通话已连接:', data);
+    logger.info('通话已连接:', data);
     if (activeCall.value && activeCall.value.callId === data.callId) {
       activeCall.value.state = 'connected';
     }
   };
 
   const handleCallEnded = (event, data) => {
-    console.log('通话已结束:', data);
+    logger.info('通话已结束:', data);
 
     if (activeCall.value && activeCall.value.callId === data.callId) {
       activeCall.value = null;
@@ -345,7 +346,7 @@ export function useP2PCall() {
   };
 
   const handleCallRejected = (event, data) => {
-    console.log('通话已拒绝:', data);
+    logger.info('通话已拒绝:', data);
 
     if (activeCall.value && activeCall.value.callId === data.callId) {
       activeCall.value = null;

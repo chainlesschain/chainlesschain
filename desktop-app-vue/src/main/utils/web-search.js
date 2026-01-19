@@ -3,6 +3,7 @@
  * 支持多个搜索引擎，不依赖特定LLM提供商
  */
 
+const { logger, createLogger } = require('./logger.js');
 const https = require('https');
 const http = require('http');
 
@@ -15,7 +16,7 @@ const http = require('http');
 async function searchFallback(query, options = {}) {
   const { maxResults = 5 } = options;
 
-  console.log('[WebSearch] 使用备选搜索方案:', query);
+  logger.info('[WebSearch] 使用备选搜索方案:', query);
 
   // 返回基于查询的建议结果（引导用户自己搜索）
   const results = [
@@ -65,7 +66,7 @@ async function searchDuckDuckGo(query, options = {}) {
     // 使用DuckDuckGo即时回答API（仅支持即时回答，不支持常规搜索）
     const url = `https://api.duckduckgo.com/?q=${encodedQuery}&format=json&no_html=1&skip_disambig=1`;
 
-    console.log('[WebSearch] 尝试使用DuckDuckGo API:', query);
+    logger.info('[WebSearch] 尝试使用DuckDuckGo API:', query);
 
     const request = https.get(url, { timeout: 5000 }, (res) => {
       let data = '';
@@ -78,7 +79,7 @@ async function searchDuckDuckGo(query, options = {}) {
         try {
           // 检查是否是HTML响应（API失败）
           if (data.trim().startsWith('<')) {
-            console.warn('[WebSearch] DuckDuckGo API返回HTML，使用备选方案');
+            logger.warn('[WebSearch] DuckDuckGo API返回HTML，使用备选方案');
             return resolve(searchFallback(query, options));
           }
 
@@ -113,11 +114,11 @@ async function searchDuckDuckGo(query, options = {}) {
 
           // 如果没有结果，使用备选方案
           if (results.length === 0) {
-            console.warn('[WebSearch] DuckDuckGo API无结果，使用备选方案');
+            logger.warn('[WebSearch] DuckDuckGo API无结果，使用备选方案');
             return resolve(searchFallback(query, options));
           }
 
-          console.log('[WebSearch] DuckDuckGo找到', results.length, '条结果');
+          logger.info('[WebSearch] DuckDuckGo找到', results.length, '条结果');
 
           resolve({
             query,
@@ -125,7 +126,7 @@ async function searchDuckDuckGo(query, options = {}) {
             totalResults: results.length
           });
         } catch (error) {
-          console.error('[WebSearch] DuckDuckGo解析失败:', error.message);
+          logger.error('[WebSearch] DuckDuckGo解析失败:', error.message);
           // 解析失败时使用备选方案
           resolve(searchFallback(query, options));
         }
@@ -133,13 +134,13 @@ async function searchDuckDuckGo(query, options = {}) {
     });
 
     request.on('error', (error) => {
-      console.error('[WebSearch] DuckDuckGo请求失败:', error.message);
+      logger.error('[WebSearch] DuckDuckGo请求失败:', error.message);
       // 请求失败时使用备选方案
       resolve(searchFallback(query, options));
     });
 
     request.on('timeout', () => {
-      console.error('[WebSearch] DuckDuckGo请求超时');
+      logger.error('[WebSearch] DuckDuckGo请求超时');
       request.destroy();
       resolve(searchFallback(query, options));
     });
@@ -163,7 +164,7 @@ async function searchBing(query, options = {}) {
     const encodedQuery = encodeURIComponent(query);
     const url = `https://api.bing.microsoft.com/v7.0/search?q=${encodedQuery}&count=${maxResults}`;
 
-    console.log('[WebSearch] 使用Bing搜索:', query);
+    logger.info('[WebSearch] 使用Bing搜索:', query);
 
     const options = {
       headers: {
@@ -189,7 +190,7 @@ async function searchBing(query, options = {}) {
             source: 'Bing'
           }));
 
-          console.log('[WebSearch] 找到', results.length, '条结果');
+          logger.info('[WebSearch] 找到', results.length, '条结果');
 
           resolve({
             query,
@@ -197,12 +198,12 @@ async function searchBing(query, options = {}) {
             totalResults: result.webPages?.totalEstimatedMatches || results.length
           });
         } catch (error) {
-          console.error('[WebSearch] 解析结果失败:', error);
+          logger.error('[WebSearch] 解析结果失败:', error);
           reject(error);
         }
       });
     }).on('error', (error) => {
-      console.error('[WebSearch] 请求失败:', error);
+      logger.error('[WebSearch] 请求失败:', error);
       reject(error);
     });
   });
@@ -258,14 +259,14 @@ function formatSearchResults(searchResult) {
  */
 async function enhanceChatWithSearch(userQuery, messages, llmChat, options = {}) {
   try {
-    console.log('[WebSearch] 增强对话，搜索:', userQuery);
+    logger.info('[WebSearch] 增强对话，搜索:', userQuery);
 
     // 执行搜索
     const searchResult = await search(userQuery, options);
 
     // 检查是否使用了备选方案
     if (searchResult.isFallback) {
-      console.log('[WebSearch] 使用备选搜索建议');
+      logger.info('[WebSearch] 使用备选搜索建议');
       // 格式化搜索建议
       const searchContext = formatSearchResults(searchResult);
 
@@ -278,7 +279,7 @@ async function enhanceChatWithSearch(userQuery, messages, llmChat, options = {})
         }
       ];
 
-      console.log('[WebSearch] 使用搜索建议增强对话');
+      logger.info('[WebSearch] 使用搜索建议增强对话');
       return await llmChat(enhancedMessages, options);
     }
 
@@ -294,12 +295,12 @@ async function enhanceChatWithSearch(userQuery, messages, llmChat, options = {})
       }
     ];
 
-    console.log('[WebSearch] 使用搜索结果增强对话');
+    logger.info('[WebSearch] 使用搜索结果增强对话');
 
     // 调用LLM
     return await llmChat(enhancedMessages, options);
   } catch (error) {
-    console.error('[WebSearch] 搜索增强失败，使用原始对话:', error.message);
+    logger.error('[WebSearch] 搜索增强失败，使用原始对话:', error.message);
     // 如果搜索失败，直接使用原始对话
     return await llmChat(messages, options);
   }

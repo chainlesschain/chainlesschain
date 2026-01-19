@@ -3,10 +3,11 @@
  * 验证新添加的20个日常实用工具是否可以被正常调用
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const FunctionCaller = require('../ai-engine/function-caller');
 
 async function testBatch12Tools() {
-  console.log('========== 第十二批工具调用测试 ==========\n');
+  logger.info('========== 第十二批工具调用测试 ==========\n');
 
   const functionCaller = new FunctionCaller();
 
@@ -23,7 +24,7 @@ async function testBatch12Tools() {
     return batch12ToolNames.includes(tool.name);
   });
 
-  console.log(`✅ 已注册的第十二批工具数量: ${batch12Tools.length}/20\n`);
+  logger.info(`✅ 已注册的第十二批工具数量: ${batch12Tools.length}/20\n`);
 
   // 测试案例
   const testCases = [
@@ -286,47 +287,47 @@ async function testBatch12Tools() {
     }
   ];
 
-  console.log('开始测试工具调用...\n');
+  logger.info('开始测试工具调用...\n');
 
   let successCount = 0;
   let failCount = 0;
 
   for (const testCase of testCases) {
     try {
-      console.log(`📝 测试: ${testCase.name} (${testCase.toolName})`);
+      logger.info(`📝 测试: ${testCase.name} (${testCase.toolName})`);
 
       const result = await functionCaller.call(testCase.toolName, testCase.params);
 
       if (result.success) {
-        console.log(`   ✅ 成功!`);
+        logger.info(`   ✅ 成功!`);
         // 显示部分结果
         const keys = Object.keys(result).filter(k => k !== 'success' && k !== 'error').slice(0, 3);
         keys.forEach(key => {
           const value = result[key];
           const displayValue = typeof value === 'object' ? JSON.stringify(value).substring(0, 50) + '...' : value;
-          console.log(`   → ${key}: ${displayValue}`);
+          logger.info(`   → ${key}: ${displayValue}`);
         });
         successCount++;
       } else {
-        console.log(`   ❌ 失败: ${result.error}`);
+        logger.info(`   ❌ 失败: ${result.error}`);
         failCount++;
       }
     } catch (error) {
-      console.log(`   ❌ 异常: ${error.message}`);
+      logger.info(`   ❌ 异常: ${error.message}`);
       failCount++;
     }
-    console.log('');
+    logger.info('');
   }
 
-  console.log('========== 测试结果汇总 ==========');
-  console.log(`总测试数: ${testCases.length}`);
-  console.log(`成功: ${successCount}`);
-  console.log(`失败: ${failCount}`);
-  console.log(`成功率: ${(successCount / testCases.length * 100).toFixed(1)}%`);
-  console.log('================================\n');
+  logger.info('========== 测试结果汇总 ==========');
+  logger.info(`总测试数: ${testCases.length}`);
+  logger.info(`成功: ${successCount}`);
+  logger.info(`失败: ${failCount}`);
+  logger.info(`成功率: ${(successCount / testCases.length * 100).toFixed(1)}%`);
+  logger.info('================================\n');
 
   // 列出所有第十二批工具
-  console.log('========== 第十二批工具列表 ==========');
+  logger.info('========== 第十二批工具列表 ==========');
   const batch12ToolNames = [
     'file_compressor',
     'file_decompressor',
@@ -353,13 +354,13 @@ async function testBatch12Tools() {
   batch12ToolNames.forEach((toolName, index) => {
     const tool = allTools.find(t => t.name === toolName);
     if (tool) {
-      console.log(`${index + 1}. ✅ ${tool.name} - ${tool.description}`);
+      logger.info(`${index + 1}. ✅ ${tool.name} - ${tool.description}`);
     } else {
-      console.log(`${index + 1}. ❌ ${toolName} - 未注册`);
+      logger.info(`${index + 1}. ❌ ${toolName} - 未注册`);
     }
   });
 
-  console.log('================================\n');
+  logger.info('================================\n');
 
   return {
     total: testCases.length,
@@ -373,15 +374,15 @@ if (require.main === module) {
   testBatch12Tools()
     .then((result) => {
       if (result.failed === 0) {
-        console.log('🎉 所有工具测试通过!');
+        logger.info('🎉 所有工具测试通过!');
         process.exit(0);
       } else {
-        console.log('⚠️ 部分工具测试失败');
+        logger.info('⚠️ 部分工具测试失败');
         process.exit(1);
       }
     })
     .catch((error) => {
-      console.error('测试执行失败:', error);
+      logger.error('测试执行失败:', error);
       process.exit(1);
     });
 }

@@ -3,6 +3,7 @@
  * 提供内存、磁盘空间监控和优雅降级策略
  */
 
+const { logger, createLogger } = require('./logger.js');
 const os = require("os");
 const fs = require("fs").promises;
 const path = require("path");
@@ -94,7 +95,7 @@ class ResourceMonitor extends EventEmitter {
         return await this._getUnixDiskSpace(dirPath);
       }
     } catch (error) {
-      console.error("获取磁盘空间失败:", error);
+      logger.error("获取磁盘空间失败:", error);
       return null;
     }
   }
@@ -109,7 +110,7 @@ class ResourceMonitor extends EventEmitter {
       // 验证驱动器格式 (如 "C:" 或 "D:")
       const driveMatch = drive.match(/^([A-Za-z]:)/);
       if (!driveMatch) {
-        console.error("Invalid drive format:", drive);
+        logger.error("Invalid drive format:", drive);
         return null;
       }
       const deviceId = driveMatch[1];
@@ -147,7 +148,7 @@ class ResourceMonitor extends EventEmitter {
         };
       }
     } catch (error) {
-      console.error("Windows 磁盘空间检查失败:", error);
+      logger.error("Windows 磁盘空间检查失败:", error);
     }
     return null;
   }
@@ -177,7 +178,7 @@ class ResourceMonitor extends EventEmitter {
         };
       }
     } catch (error) {
-      console.error("Unix 磁盘空间检查失败:", error);
+      logger.error("Unix 磁盘空间检查失败:", error);
     }
     return null;
   }
@@ -223,7 +224,7 @@ class ResourceMonitor extends EventEmitter {
         timestamp: Date.now(),
       });
 
-      console.log(`资源水平变化: ${oldLevel} -> ${newLevel}`);
+      logger.info(`资源水平变化: ${oldLevel} -> ${newLevel}`);
     }
 
     return this.currentLevel;
@@ -278,11 +279,11 @@ class ResourceMonitor extends EventEmitter {
    */
   forceGarbageCollection() {
     if (global.gc) {
-      console.log("执行垃圾回收...");
+      logger.info("执行垃圾回收...");
       global.gc();
       return true;
     } else {
-      console.warn("垃圾回收不可用。启动时使用 --expose-gc 标志启用。");
+      logger.warn("垃圾回收不可用。启动时使用 --expose-gc 标志启用。");
       return false;
     }
   }
@@ -296,7 +297,7 @@ class ResourceMonitor extends EventEmitter {
       return; // 已在监控中
     }
 
-    console.log(`启动资源监控，间隔: ${interval}ms`);
+    logger.info(`启动资源监控，间隔: ${interval}ms`);
 
     this.monitoringInterval = setInterval(() => {
       this.updateResourceLevel();
@@ -313,7 +314,7 @@ class ResourceMonitor extends EventEmitter {
     if (this.monitoringInterval) {
       clearInterval(this.monitoringInterval);
       this.monitoringInterval = null;
-      console.log("停止资源监控");
+      logger.info("停止资源监控");
     }
   }
 

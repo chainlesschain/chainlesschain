@@ -1,3 +1,5 @@
+const { logger, createLogger } = require('../utils/logger.js');
+
 /**
  * 知识图谱关系提取器
  * 从笔记内容中提取各种类型的关系
@@ -197,7 +199,7 @@ class GraphExtractor {
 
       return 0;
     } catch (error) {
-      console.error(`[GraphExtractor] 处理笔记 ${noteId} 失败:`, error);
+      logger.error(`[GraphExtractor] 处理笔记 ${noteId} 失败:`, error);
       return 0;
     }
   }
@@ -233,7 +235,7 @@ class GraphExtractor {
     const tagRelations = this.db.buildTagRelations();
     const temporalRelations = this.db.buildTemporalRelations(7); // 7天窗口
 
-    console.log(
+    logger.info(
       `[GraphExtractor] 处理完成: ${processed} 个笔记, ${totalRelations} 个链接关系, ${tagRelations} 个标签关系, ${temporalRelations} 个时间关系`,
     );
 
@@ -359,7 +361,7 @@ ${noteTitles.join(", ")}
 
       return [];
     } catch (error) {
-      console.error("[GraphExtractor] 语义关系提取失败:", error);
+      logger.error("[GraphExtractor] 语义关系提取失败:", error);
       return [];
     }
   }

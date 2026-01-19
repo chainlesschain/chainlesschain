@@ -123,6 +123,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, watch } from 'vue';
 import { message } from 'ant-design-vue';
 import dayjs from 'dayjs';
@@ -174,7 +176,7 @@ const validateToken = async () => {
       invitationInfo.value = null;
     }
   } catch (err) {
-    console.error('验证邀请链接失败:', err);
+    logger.error('验证邀请链接失败:', err);
     error.value = '验证邀请链接失败';
     invitationInfo.value = null;
   } finally {
@@ -201,7 +203,7 @@ const handleAccept = async () => {
       error.value = result.error || '加入组织失败';
     }
   } catch (err) {
-    console.error('加入组织失败:', err);
+    logger.error('加入组织失败:', err);
     error.value = err.message || '加入组织失败';
   } finally {
     loading.value = false;

@@ -1,3 +1,4 @@
+const { logger, createLogger } = require('../utils/logger.js');
 const axios = require("axios");
 const config = require("./sync-config");
 const crypto = require("crypto");
@@ -20,14 +21,14 @@ class SyncHTTPClient {
     this.client.interceptors.request.use(
       (config) => {
         if (config.enableLogging) {
-          console.log(
+          logger.info(
             `[SyncHTTP] ${config.method.toUpperCase()} ${config.url}`,
           );
         }
         return config;
       },
       (error) => {
-        console.error("[SyncHTTP] Request error:", error);
+        logger.error("[SyncHTTP] Request error:", error);
         return Promise.reject(error);
       },
     );
@@ -48,7 +49,7 @@ class SyncHTTPClient {
         return data; // 只返回data部分
       },
       (error) => {
-        console.error("[SyncHTTP] Response error:", error.message);
+        logger.error("[SyncHTTP] Response error:", error.message);
 
         if (error.response) {
           const status = error.response.status;
@@ -177,10 +178,10 @@ class SyncHTTPClient {
   setAuthToken(token) {
     if (token) {
       this.client.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-      console.log("[SyncHTTP] Auth token set");
+      logger.info("[SyncHTTP] Auth token set");
     } else {
       delete this.client.defaults.headers.common["Authorization"];
-      console.log("[SyncHTTP] Auth token cleared");
+      logger.info("[SyncHTTP] Auth token cleared");
     }
   }
 
@@ -198,7 +199,7 @@ class SyncHTTPClient {
    */
   setBaseURL(newBaseURL) {
     this.client.defaults.baseURL = newBaseURL;
-    console.log("[SyncHTTP] Base URL updated:", newBaseURL);
+    logger.info("[SyncHTTP] Base URL updated:", newBaseURL);
   }
 
   /**

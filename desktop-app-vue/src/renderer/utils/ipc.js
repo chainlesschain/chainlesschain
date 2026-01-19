@@ -1,3 +1,5 @@
+import { logger, createLogger } from '@/utils/logger';
+
 // IPC通信封装
 const api = window.electronAPI;
 
@@ -70,7 +72,7 @@ export async function ipcWithRetry(ipcCall, options = {}) {
       // 第一次尝试直接调用，后续尝试先延迟
       if (attempt > 0) {
         if (!silentErrors) {
-          console.log(`[IPC Retry] 第 ${attempt} 次重试，延迟 ${currentDelay}ms...`);
+          logger.info(`[IPC Retry] 第 ${attempt} 次重试，延迟 ${currentDelay}ms...`);
         }
         await delay(currentDelay);
         // 指数退避
@@ -81,7 +83,7 @@ export async function ipcWithRetry(ipcCall, options = {}) {
 
       // 如果之前有重试，记录成功信息
       if (attempt > 0 && !silentErrors) {
-        console.log(`[IPC Retry] 第 ${attempt} 次重试成功`);
+        logger.info(`[IPC Retry] 第 ${attempt} 次重试成功`);
       }
 
       return result;
@@ -91,7 +93,7 @@ export async function ipcWithRetry(ipcCall, options = {}) {
       // 检查是否可重试
       if (!isRetryableError(error)) {
         if (!silentErrors) {
-          console.warn('[IPC Retry] 不可重试的错误:', error.message);
+          logger.warn('[IPC Retry] 不可重试的错误:', error.message);
         }
         throw error;
       }
@@ -99,14 +101,14 @@ export async function ipcWithRetry(ipcCall, options = {}) {
       // 如果已达到最大重试次数，抛出错误
       if (attempt >= maxRetries) {
         if (!silentErrors) {
-          console.error(`[IPC Retry] 达到最大重试次数 (${maxRetries})，放弃重试`);
+          logger.error(`[IPC Retry] 达到最大重试次数 (${maxRetries})，放弃重试`);
         }
         throw lastError;
       }
 
       // 记录重试信息
       if (!silentErrors) {
-        console.warn(`[IPC Retry] IPC 调用失败 (尝试 ${attempt + 1}/${maxRetries + 1}):`, error.message);
+        logger.warn(`[IPC Retry] IPC 调用失败 (尝试 ${attempt + 1}/${maxRetries + 1}):`, error.message);
       }
     }
   }

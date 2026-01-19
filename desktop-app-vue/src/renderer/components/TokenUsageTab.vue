@@ -315,10 +315,12 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, reactive, onMounted, onUnmounted, computed } from 'vue';
 import { message } from 'ant-design-vue';
 import dayjs from 'dayjs';
-import * as echarts from 'echarts';
+import { init } from '../utils/echartsConfig';
 import {
   DatabaseOutlined,
   DollarOutlined,
@@ -468,7 +470,7 @@ async function loadData() {
       });
     }
   } catch (error) {
-    console.error('加载统计数据失败:', error);
+    logger.error('加载统计数据失败:', error);
     message.error('加载统计数据失败: ' + error.message);
   } finally {
     loading.value = false;
@@ -583,7 +585,7 @@ async function exportReport() {
 
     message.success(`报告已导出: ${result.filePath}`);
   } catch (error) {
-    console.error('导出报告失败:', error);
+    logger.error('导出报告失败:', error);
     message.error('导出报告失败: ' + error.message);
   }
 }
@@ -594,7 +596,7 @@ async function clearCache() {
     message.success(`已清除 ${result.deletedCount} 条缓存`);
     await loadData();
   } catch (error) {
-    console.error('清除缓存失败:', error);
+    logger.error('清除缓存失败:', error);
     message.error('清除缓存失败: ' + error.message);
   }
 }
@@ -606,7 +608,7 @@ async function saveBudget() {
     showBudgetModal.value = false;
     await loadData();
   } catch (error) {
-    console.error('保存预算失败:', error);
+    logger.error('保存预算失败:', error);
     message.error('保存预算失败: ' + error.message);
   }
 }
@@ -614,8 +616,8 @@ async function saveBudget() {
 // 生命周期
 onMounted(() => {
   // 初始化 ECharts
-  timeSeriesInstance = echarts.init(timeSeriesChart.value);
-  providerPieInstance = echarts.init(providerPieChart.value);
+  timeSeriesInstance = init(timeSeriesChart.value);
+  providerPieInstance = init(providerPieChart.value);
 
   // 加载数据
   loadData();

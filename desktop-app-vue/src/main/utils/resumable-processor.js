@@ -10,6 +10,7 @@
  * v0.18.0: 新建文件，支持多媒体处理的容错性
  */
 
+const { logger, createLogger } = require('./logger.js');
 const { EventEmitter } = require('events');
 const fs = require('fs').promises;
 const path = require('path');
@@ -44,7 +45,7 @@ class ResumableProcessor extends EventEmitter {
     // 活动任务追踪
     this.activeTasks = new Map();
 
-    console.log(`[ResumableProcessor] 初始化: checkpointDir=${this.checkpointDir}`);
+    logger.info(`[ResumableProcessor] 初始化: checkpointDir=${this.checkpointDir}`);
   }
 
   /**
@@ -53,7 +54,7 @@ class ResumableProcessor extends EventEmitter {
   async initialize() {
     try {
       await fs.mkdir(this.checkpointDir, { recursive: true });
-      console.log('[ResumableProcessor] 检查点目录已创建');
+      logger.info('[ResumableProcessor] 检查点目录已创建');
 
       // 启动自动清理
       if (this.config.autoCleanup) {
@@ -62,7 +63,7 @@ class ResumableProcessor extends EventEmitter {
 
       return true;
     } catch (error) {
-      console.error('[ResumableProcessor] 初始化失败:', error);
+      logger.error('[ResumableProcessor] 初始化失败:', error);
       return false;
     }
   }
@@ -81,7 +82,7 @@ class ResumableProcessor extends EventEmitter {
       metadata = {},                 // 任务元数据
     } = options;
 
-    console.log(`[ResumableProcessor] 开始任务: ${taskId}`);
+    logger.info(`[ResumableProcessor] 开始任务: ${taskId}`);
     this.emit('task-start', { taskId, metadata });
 
     // 1. 尝试加载检查点
@@ -89,7 +90,7 @@ class ResumableProcessor extends EventEmitter {
     if (resumeFromCheckpoint) {
       checkpoint = await this.loadCheckpoint(taskId);
       if (checkpoint) {
-        console.log(
+        logger.info(
           `[ResumableProcessor] 从检查点恢复: ${taskId}, ` +
           `进度: ${checkpoint.progress}%`
         );
@@ -167,7 +168,7 @@ class ResumableProcessor extends EventEmitter {
         });
 
         // 3. 任务成功完成
-        console.log(`[ResumableProcessor] 任务完成: ${taskId}`);
+        logger.info(`[ResumableProcessor] 任务完成: ${taskId}`);
         this.emit('task-complete', { taskId, result });
 
         // 清理检查点和活动任务
@@ -180,7 +181,7 @@ class ResumableProcessor extends EventEmitter {
         lastError = error;
         retries++;
 
-        console.error(
+        logger.error(
           `[ResumableProcessor] 任务失败 [${retries}/${this.config.maxRetries}]: ${taskId}`,
           error.message
         );
@@ -197,14 +198,14 @@ class ResumableProcessor extends EventEmitter {
         if (retries <= this.config.maxRetries) {
           // 指数退避延迟
           const delay = this.config.retryDelay * Math.pow(2, retries - 1);
-          console.log(`[ResumableProcessor] 等待 ${delay}ms 后重试...`);
+          logger.info(`[ResumableProcessor] 等待 ${delay}ms 后重试...`);
           await new Promise(resolve => setTimeout(resolve, delay));
         }
       }
     }
 
     // 4. 所有重试都失败
-    console.error(`[ResumableProcessor] 任务最终失败: ${taskId}`, lastError);
+    logger.error(`[ResumableProcessor] 任务最终失败: ${taskId}`, lastError);
     this.emit('task-error', {
       taskId,
       error: lastError,
@@ -248,10 +249,10 @@ class ResumableProcessor extends EventEmitter {
         'utf-8'
       );
 
-      // console.log(`[ResumableProcessor] 检查点已保存: ${taskId} (${checkpointData.progress}%)`);
+      // logger.info(`[ResumableProcessor] 检查点已保存: ${taskId} (${checkpointData.progress}%)`);
       return true;
     } catch (error) {
-      console.error('[ResumableProcessor] 保存检查点失败:', error);
+      logger.error('[ResumableProcessor] 保存检查点失败:', error);
       return false;
     }
   }
@@ -277,7 +278,7 @@ class ResumableProcessor extends EventEmitter {
 
       return data;
     } catch (error) {
-      console.error('[ResumableProcessor] 加载检查点失败:', error);
+      logger.error('[ResumableProcessor] 加载检查点失败:', error);
       return null;
     }
   }
@@ -290,12 +291,12 @@ class ResumableProcessor extends EventEmitter {
     try {
       const checkpointPath = this.getCheckpointPath(taskId);
       await fs.unlink(checkpointPath);
-      // console.log(`[ResumableProcessor] 检查点已删除: ${taskId}`);
+      // logger.info(`[ResumableProcessor] 检查点已删除: ${taskId}`);
       return true;
     } catch (error) {
       // 忽略文件不存在错误
       if (error.code !== 'ENOENT') {
-        console.error('[ResumableProcessor] 删除检查点失败:', error);
+        logger.error('[ResumableProcessor] 删除检查点失败:', error);
       }
       return false;
     }
@@ -332,14 +333,14 @@ class ResumableProcessor extends EventEmitter {
               filePath: filePath,
             });
           } catch (error) {
-            console.warn(`[ResumableProcessor] 无法解析检查点: ${file}`, error);
+            logger.warn(`[ResumableProcessor] 无法解析检查点: ${file}`, error);
           }
         }
       }
 
       return checkpoints;
     } catch (error) {
-      console.error('[ResumableProcessor] 获取检查点列表失败:', error);
+      logger.error('[ResumableProcessor] 获取检查点列表失败:', error);
       return [];
     }
   }
@@ -362,23 +363,23 @@ class ResumableProcessor extends EventEmitter {
           try {
             await fs.unlink(checkpoint.filePath);
             cleaned++;
-            console.log(
+            logger.info(
               `[ResumableProcessor] 清理过期检查点: ${checkpoint.taskId} ` +
               `(${(age / 3600000).toFixed(1)}小时前)`
             );
           } catch (error) {
-            console.warn('[ResumableProcessor] 清理检查点失败:', error);
+            logger.warn('[ResumableProcessor] 清理检查点失败:', error);
           }
         }
       }
 
       if (cleaned > 0) {
-        console.log(`[ResumableProcessor] 已清理 ${cleaned} 个过期检查点`);
+        logger.info(`[ResumableProcessor] 已清理 ${cleaned} 个过期检查点`);
       }
 
       return cleaned;
     } catch (error) {
-      console.error('[ResumableProcessor] 清理检查点失败:', error);
+      logger.error('[ResumableProcessor] 清理检查点失败:', error);
       return 0;
     }
   }
@@ -392,7 +393,7 @@ class ResumableProcessor extends EventEmitter {
       await this.cleanupOldCheckpoints();
     }, 3600000);
 
-    console.log('[ResumableProcessor] 自动清理定时器已启动（每小时）');
+    logger.info('[ResumableProcessor] 自动清理定时器已启动（每小时）');
   }
 
   /**
@@ -402,7 +403,7 @@ class ResumableProcessor extends EventEmitter {
     if (this.cleanupTimer) {
       clearInterval(this.cleanupTimer);
       this.cleanupTimer = null;
-      console.log('[ResumableProcessor] 自动清理定时器已停止');
+      logger.info('[ResumableProcessor] 自动清理定时器已停止');
     }
   }
 
@@ -426,7 +427,7 @@ class ResumableProcessor extends EventEmitter {
    * 终止处理器
    */
   async terminate() {
-    console.log('[ResumableProcessor] 终止处理器...');
+    logger.info('[ResumableProcessor] 终止处理器...');
 
     // 停止自动清理
     this.stopAutoCleanup();
@@ -442,7 +443,7 @@ class ResumableProcessor extends EventEmitter {
 
     this.activeTasks.clear();
 
-    console.log('[ResumableProcessor] 处理器已终止');
+    logger.info('[ResumableProcessor] 处理器已终止');
   }
 }
 

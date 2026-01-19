@@ -330,6 +330,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted } from 'vue';
 import { message, Empty } from 'ant-design-vue';
 import { useCategoryStore } from '@/stores/category';
@@ -419,7 +421,7 @@ const handleInitDefaults = async () => {
     await categoryStore.initializeDefaults();
     message.success('默认分类初始化成功');
   } catch (error) {
-    console.error('初始化默认分类失败:', error);
+    logger.error('初始化默认分类失败:', error);
     message.error(error.message || '初始化失败');
   } finally {
     loading.value = false;
@@ -479,7 +481,7 @@ const handleSave = async () => {
 
     editDialogVisible.value = false;
   } catch (error) {
-    console.error('保存分类失败:', error);
+    logger.error('保存分类失败:', error);
     if (error.errorFields) {
       // 表单验证失败
       return;
@@ -497,7 +499,7 @@ const handleDelete = async (categoryId) => {
     await categoryStore.deleteCategory(categoryId);
     message.success('分类删除成功');
   } catch (error) {
-    console.error('删除分类失败:', error);
+    logger.error('删除分类失败:', error);
     message.error(error.message || '删除分类失败');
   } finally {
     loading.value = false;
@@ -522,7 +524,7 @@ const loadCategories = async () => {
     // 加载分类列表
     await categoryStore.fetchCategories();
   } catch (error) {
-    console.error('加载分类列表失败:', error);
+    logger.error('加载分类列表失败:', error);
     message.error('加载分类列表失败');
   } finally {
     loading.value = false;

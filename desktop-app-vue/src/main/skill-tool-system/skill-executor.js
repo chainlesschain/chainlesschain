@@ -3,6 +3,7 @@
  * 负责执行技能并调度相关工具
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const path = require('path');
 const EventEmitter = require('events');
 const cron = require('node-cron');
@@ -26,7 +27,7 @@ class SkillExecutor extends EventEmitter {
    */
   async executeSkill(skillId, params = {}, options = {}) {
     try {
-      console.log(`[SkillExecutor] 开始执行技能: ${skillId}`);
+      logger.info(`[SkillExecutor] 开始执行技能: ${skillId}`);
 
       // 1. 获取技能信息
       const skill = await this.skillManager.getSkillById(skillId);
@@ -51,7 +52,7 @@ class SkillExecutor extends EventEmitter {
 
       // 3. 获取技能关联的工具
       const tools = await this.skillManager.getSkillTools(skillId);
-      console.log(`[SkillExecutor] 技能包含 ${tools.length} 个工具`);
+      logger.info(`[SkillExecutor] 技能包含 ${tools.length} 个工具`);
 
       // 4. 根据技能类型执行不同的策略
       let result;
@@ -89,7 +90,7 @@ class SkillExecutor extends EventEmitter {
 
       this.emit('execution:end', executionRecord);
 
-      console.log(`[SkillExecutor] 技能执行完成: ${skillId}, 耗时: ${executionTime}ms`);
+      logger.info(`[SkillExecutor] 技能执行完成: ${skillId}, 耗时: ${executionTime}ms`);
 
       return {
         success: true,
@@ -100,7 +101,7 @@ class SkillExecutor extends EventEmitter {
       };
 
     } catch (error) {
-      console.error(`[SkillExecutor] 技能执行失败:`, error);
+      logger.error(`[SkillExecutor] 技能执行失败:`, error);
 
       this.emit('execution:error', {
         skillId,
@@ -125,7 +126,7 @@ class SkillExecutor extends EventEmitter {
 
     for (const tool of tools) {
       try {
-        console.log(`[SkillExecutor] 执行工具: ${tool.name}`);
+        logger.info(`[SkillExecutor] 执行工具: ${tool.name}`);
 
         // 执行工具
         const toolResult = await this.toolManager.executeTool(
@@ -152,7 +153,7 @@ class SkillExecutor extends EventEmitter {
         }
 
       } catch (error) {
-        console.error(`[SkillExecutor] 工具执行失败: ${tool.name}`, error);
+        logger.error(`[SkillExecutor] 工具执行失败: ${tool.name}`, error);
         results.push({
           tool: tool.name,
           success: false,
@@ -179,7 +180,7 @@ class SkillExecutor extends EventEmitter {
    * 并行执行工具
    */
   async executeToolsInParallel(tools, params, executionId) {
-    console.log(`[SkillExecutor] 并行执行 ${tools.length} 个工具`);
+    logger.info(`[SkillExecutor] 并行执行 ${tools.length} 个工具`);
 
     const toolPromises = tools.map(tool =>
       this.toolManager.executeTool(
@@ -218,7 +219,7 @@ class SkillExecutor extends EventEmitter {
     // 构建执行计划
     const executionPlan = this.buildExecutionPlan(dependencies);
 
-    console.log(`[SkillExecutor] 智能执行计划:`, executionPlan);
+    logger.info(`[SkillExecutor] 智能执行计划:`, executionPlan);
 
     const results = [];
     const context = { ...params };
@@ -364,7 +365,7 @@ class SkillExecutor extends EventEmitter {
    * 批量执行技能
    */
   async executeBatch(tasks) {
-    console.log(`[SkillExecutor] 批量执行 ${tasks.length} 个任务`);
+    logger.info(`[SkillExecutor] 批量执行 ${tasks.length} 个任务`);
 
     const results = await Promise.all(
       tasks.map(task =>
@@ -387,7 +388,7 @@ class SkillExecutor extends EventEmitter {
   async createWorkflow(workflowDef) {
     const { name, skills, schedule } = workflowDef;
 
-    console.log(`[SkillExecutor] 创建工作流: ${name}`);
+    logger.info(`[SkillExecutor] 创建工作流: ${name}`);
 
     const workflow = {
       id: this.generateWorkflowId(),
@@ -410,7 +411,7 @@ class SkillExecutor extends EventEmitter {
    * 执行工作流
    */
   async executeWorkflow(workflow) {
-    console.log(`[SkillExecutor] 执行工作流: ${workflow.name}`);
+    logger.info(`[SkillExecutor] 执行工作流: ${workflow.name}`);
 
     const results = [];
     let context = {};
@@ -516,14 +517,14 @@ class SkillExecutor extends EventEmitter {
     const taskId = `workflow_${name}_${Date.now()}`;
 
     if (!enabled) {
-      console.log(`[SkillExecutor] 工作流已调度但未启用: ${name}`);
+      logger.info(`[SkillExecutor] 工作流已调度但未启用: ${name}`);
       this.scheduledTasks.set(taskId, { workflow, task: null, enabled: false });
       return taskId;
     }
 
     // 创建定时任务
     const task = cron.schedule(schedule, async () => {
-      console.log(`[SkillExecutor] 定时工作流触发: ${name}`);
+      logger.info(`[SkillExecutor] 定时工作流触发: ${name}`);
       try {
         await this.executeSkill(skillId, params, {
           source: 'scheduled',
@@ -531,7 +532,7 @@ class SkillExecutor extends EventEmitter {
         });
         this.emit('workflow:success', { taskId, name, timestamp: Date.now() });
       } catch (error) {
-        console.error(`[SkillExecutor] 定时工作流执行失败: ${name}`, error);
+        logger.error(`[SkillExecutor] 定时工作流执行失败: ${name}`, error);
         this.emit('workflow:error', { taskId, name, error: error.message, timestamp: Date.now() });
       }
     }, {
@@ -540,7 +541,7 @@ class SkillExecutor extends EventEmitter {
     });
 
     this.scheduledTasks.set(taskId, { workflow, task, enabled: true });
-    console.log(`[SkillExecutor] 工作流已调度: ${name}, 计划: ${schedule}, 任务ID: ${taskId}`);
+    logger.info(`[SkillExecutor] 工作流已调度: ${name}, 计划: ${schedule}, 任务ID: ${taskId}`);
 
     return taskId;
   }
@@ -560,7 +561,7 @@ class SkillExecutor extends EventEmitter {
     }
 
     this.scheduledTasks.delete(taskId);
-    console.log(`[SkillExecutor] 工作流已停止: ${scheduled.workflow.name}`);
+    logger.info(`[SkillExecutor] 工作流已停止: ${scheduled.workflow.name}`);
   }
 
   /**
@@ -587,7 +588,7 @@ class SkillExecutor extends EventEmitter {
       }
     }
     this.scheduledTasks.clear();
-    console.log('[SkillExecutor] 所有定时任务已清理');
+    logger.info('[SkillExecutor] 所有定时任务已清理');
   }
 }
 

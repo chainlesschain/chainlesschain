@@ -3,6 +3,7 @@
  * 用于删除使用中文name的工具，以便重新插入使用英文name的工具
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const path = require('path');
 const DatabaseManager = require('../database');
 
@@ -10,18 +11,18 @@ async function cleanOldData() {
   let db = null;
 
   try {
-    console.log('开始清理旧数据...');
+    logger.info('开始清理旧数据...');
 
     // 初始化数据库
     const dbPath = process.env.DB_PATH || path.join(__dirname, '../../../../data/chainlesschain.db');
-    console.log(`数据库路径: ${dbPath}`);
+    logger.info(`数据库路径: ${dbPath}`);
 
     db = new DatabaseManager(dbPath, {
       encryptionEnabled: false,
     });
 
     await db.initialize();
-    console.log('数据库连接成功');
+    logger.info('数据库连接成功');
 
     // 删除additional-tools-v3中的20个工具
     const toolIds = [
@@ -47,11 +48,11 @@ async function cleanOldData() {
       'tool_control_effectiveness_evaluator'
     ];
 
-    console.log(`\n准备删除 ${toolIds.length} 个工具...`);
+    logger.info(`\n准备删除 ${toolIds.length} 个工具...`);
 
     for (const toolId of toolIds) {
       await db.run('DELETE FROM tools WHERE id = ?', [toolId]);
-      console.log(`✅ 已删除工具: ${toolId}`);
+      logger.info(`✅ 已删除工具: ${toolId}`);
     }
 
     // 删除additional-skills-v3中的10个技能
@@ -68,23 +69,23 @@ async function cleanOldData() {
       'skill_internal_audit'
     ];
 
-    console.log(`\n准备删除 ${skillIds.length} 个技能...`);
+    logger.info(`\n准备删除 ${skillIds.length} 个技能...`);
 
     for (const skillId of skillIds) {
       await db.run('DELETE FROM skills WHERE id = ?', [skillId]);
-      console.log(`✅ 已删除技能: ${skillId}`);
+      logger.info(`✅ 已删除技能: ${skillId}`);
     }
 
-    console.log('\n清理完成！');
-    console.log('现在可以运行 db-integration.js 重新插入数据');
+    logger.info('\n清理完成！');
+    logger.info('现在可以运行 db-integration.js 重新插入数据');
 
   } catch (error) {
-    console.error('清理失败:', error);
+    logger.error('清理失败:', error);
     process.exit(1);
   } finally {
     if (db && db.db) {
       await db.db.close();
-      console.log('\n数据库连接已关闭');
+      logger.info('\n数据库连接已关闭');
     }
   }
 }

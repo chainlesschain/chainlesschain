@@ -2,6 +2,7 @@
  * 项目统计收集器
  * 功能：实时收集项目统计数据
  */
+const { logger, createLogger } = require('../utils/logger.js');
 const chokidar = require("chokidar");
 const fs = require("fs-extra");
 const path = require("path");
@@ -24,7 +25,7 @@ class ProjectStatsCollector {
       this.stopWatching(projectId);
     }
 
-    console.log(
+    logger.info(
       `[StatsCollector] 开始监听项目: ${projectId} at ${projectPath}`,
     );
 
@@ -55,7 +56,7 @@ class ProjectStatsCollector {
         this.scheduleUpdate(projectId, "file_deleted", filePath),
       )
       .on("error", (error) =>
-        console.error(`[StatsCollector] 监听错误:`, error),
+        logger.error(`[StatsCollector] 监听错误:`, error),
       );
 
     this.watchers.set(projectId, watcher);
@@ -87,12 +88,12 @@ class ProjectStatsCollector {
    */
   async updateStats(projectId, event, filePath) {
     try {
-      console.log(`[StatsCollector] 更新统计: ${projectId}, 事件: ${event}`);
+      logger.info(`[StatsCollector] 更新统计: ${projectId}, 事件: ${event}`);
 
       const stats = await this.calculateStats(projectId);
 
       if (!stats) {
-        console.warn(`[StatsCollector] 无法计算统计数据: ${projectId}`);
+        logger.warn(`[StatsCollector] 无法计算统计数据: ${projectId}`);
         return;
       }
 
@@ -155,9 +156,9 @@ class ProjectStatsCollector {
         );
       }
 
-      console.log(`[StatsCollector] 统计更新完成:`, stats);
+      logger.info(`[StatsCollector] 统计更新完成:`, stats);
     } catch (error) {
-      console.error(`[StatsCollector] 统计更新失败:`, error);
+      logger.error(`[StatsCollector] 统计更新失败:`, error);
     }
   }
 
@@ -171,7 +172,7 @@ class ProjectStatsCollector {
         .get(projectId);
 
       if (!project || !project.root_path) {
-        console.warn(`[StatsCollector] 项目不存在或无路径: ${projectId}`);
+        logger.warn(`[StatsCollector] 项目不存在或无路径: ${projectId}`);
         return null;
       }
 
@@ -179,7 +180,7 @@ class ProjectStatsCollector {
 
       // 检查路径是否存在
       if (!(await fs.pathExists(projectPath))) {
-        console.warn(`[StatsCollector] 项目路径不存在: ${projectPath}`);
+        logger.warn(`[StatsCollector] 项目路径不存在: ${projectPath}`);
         return null;
       }
 
@@ -214,13 +215,13 @@ class ProjectStatsCollector {
             stats.blankLines += lineStats.blank;
           }
         } catch (error) {
-          console.warn(`[StatsCollector] 处理文件失败: ${file}`, error.message);
+          logger.warn(`[StatsCollector] 处理文件失败: ${file}`, error.message);
         }
       }
 
       return stats;
     } catch (error) {
-      console.error(`[StatsCollector] 计算统计失败:`, error);
+      logger.error(`[StatsCollector] 计算统计失败:`, error);
       return null;
     }
   }
@@ -254,11 +255,11 @@ class ProjectStatsCollector {
           }
         } catch (error) {
           // 跳过无法访问的文件
-          console.warn(`[StatsCollector] 跳过文件: ${fullPath}`);
+          logger.warn(`[StatsCollector] 跳过文件: ${fullPath}`);
         }
       }
     } catch (error) {
-      console.warn(`[StatsCollector] 读取目录失败: ${dir}`, error.message);
+      logger.warn(`[StatsCollector] 读取目录失败: ${dir}`, error.message);
     }
 
     return files;
@@ -399,7 +400,7 @@ class ProjectStatsCollector {
     if (watcher) {
       watcher.close();
       this.watchers.delete(projectId);
-      console.log(`[StatsCollector] 停止监听项目: ${projectId}`);
+      logger.info(`[StatsCollector] 停止监听项目: ${projectId}`);
     }
   }
 
@@ -436,7 +437,7 @@ class ProjectStatsCollector {
         }
       );
     } catch (error) {
-      console.error(`[StatsCollector] 获取统计失败:`, error);
+      logger.error(`[StatsCollector] 获取统计失败:`, error);
       return null;
     }
   }

@@ -3,6 +3,7 @@
  * 支持分块读取、流式搜索，避免将整个文件加载到内存
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require('fs');
 const readline = require('readline');
 const { once } = require('events');
@@ -262,7 +263,7 @@ class LargeFileReader {
       const sampleLines = sampleText.split('\n').length;
       estimatedLines = Math.round((stats.size / sampleSize) * sampleLines);
     } catch (err) {
-      console.warn('[Large File Reader] 估算行数失败:', err);
+      logger.warn('[Large File Reader] 估算行数失败:', err);
     }
 
     return {

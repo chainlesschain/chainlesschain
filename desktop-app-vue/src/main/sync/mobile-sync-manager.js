@@ -10,6 +10,7 @@
  * - 离线队列管理
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const EventEmitter = require('events');
 const crypto = require('crypto');
 
@@ -66,7 +67,7 @@ class MobileSyncManager extends EventEmitter {
       this.startAutoSync();
     }
 
-    console.log('[MobileSyncManager] 移动端同步管理器已初始化');
+    logger.info('[MobileSyncManager] 移动端同步管理器已初始化');
   }
 
   /**
@@ -76,7 +77,7 @@ class MobileSyncManager extends EventEmitter {
    * @param {Object} deviceInfo - 设备信息
    */
   async registerMobileDevice(deviceId, peerId, deviceInfo) {
-    console.log('[MobileSyncManager] 注册移动设备:', deviceId);
+    logger.info('[MobileSyncManager] 注册移动设备:', deviceId);
 
     this.mobileDevices.set(deviceId, {
       peerId,
@@ -106,7 +107,7 @@ class MobileSyncManager extends EventEmitter {
    * @param {string} deviceId - 设备ID
    */
   unregisterMobileDevice(deviceId) {
-    console.log('[MobileSyncManager] 注销移动设备:', deviceId);
+    logger.info('[MobileSyncManager] 注销移动设备:', deviceId);
 
     const device = this.mobileDevices.get(deviceId);
     if (device) {
@@ -122,7 +123,7 @@ class MobileSyncManager extends EventEmitter {
    */
   async startSync(deviceId, options = {}) {
     if (this.isSyncing) {
-      console.warn('[MobileSyncManager] 同步正在进行中');
+      logger.warn('[MobileSyncManager] 同步正在进行中');
       return;
     }
 
@@ -132,11 +133,11 @@ class MobileSyncManager extends EventEmitter {
     }
 
     if (device.status !== 'online') {
-      console.warn('[MobileSyncManager] 设备离线，加入离线队列');
+      logger.warn('[MobileSyncManager] 设备离线，加入离线队列');
       return;
     }
 
-    console.log('[MobileSyncManager] 开始同步:', deviceId);
+    logger.info('[MobileSyncManager] 开始同步:', deviceId);
 
     this.isSyncing = true;
     this.emit('sync:started', { deviceId });
@@ -171,7 +172,7 @@ class MobileSyncManager extends EventEmitter {
       // 检查结果
       const failed = results.filter(r => r.status === 'rejected');
       if (failed.length > 0) {
-        console.error('[MobileSyncManager] 部分同步任务失败:', failed);
+        logger.error('[MobileSyncManager] 部分同步任务失败:', failed);
       }
 
       // 更新同步时间
@@ -183,7 +184,7 @@ class MobileSyncManager extends EventEmitter {
         messages: now
       });
 
-      console.log('[MobileSyncManager] ✅ 同步完成');
+      logger.info('[MobileSyncManager] ✅ 同步完成');
 
       this.emit('sync:completed', {
         deviceId,
@@ -197,7 +198,7 @@ class MobileSyncManager extends EventEmitter {
       this.stats.totalSyncs++;
 
     } catch (error) {
-      console.error('[MobileSyncManager] ❌ 同步失败:', error);
+      logger.error('[MobileSyncManager] ❌ 同步失败:', error);
 
       this.emit('sync:failed', {
         deviceId,
@@ -215,14 +216,14 @@ class MobileSyncManager extends EventEmitter {
    * 同步知识库
    */
   async syncKnowledge(deviceId, since) {
-    console.log('[MobileSyncManager] 同步知识库，since:', new Date(since));
+    logger.info('[MobileSyncManager] 同步知识库，since:', new Date(since));
 
     try {
       const device = this.mobileDevices.get(deviceId);
 
       // 1. 获取本地变更
       const localChanges = await this.getKnowledgeChanges(since);
-      console.log(`[MobileSyncManager] 检测到 ${localChanges.length} 个知识库变更`);
+      logger.info(`[MobileSyncManager] 检测到 ${localChanges.length} 个知识库变更`);
 
       if (localChanges.length === 0) {
         return { type: 'knowledge', synced: 0 };
@@ -251,7 +252,7 @@ class MobileSyncManager extends EventEmitter {
       return { type: 'knowledge', synced: localChanges.length };
 
     } catch (error) {
-      console.error('[MobileSyncManager] 同步知识库失败:', error);
+      logger.error('[MobileSyncManager] 同步知识库失败:', error);
       throw error;
     }
   }
@@ -260,14 +261,14 @@ class MobileSyncManager extends EventEmitter {
    * 同步联系人
    */
   async syncContacts(deviceId, since) {
-    console.log('[MobileSyncManager] 同步联系人，since:', new Date(since));
+    logger.info('[MobileSyncManager] 同步联系人，since:', new Date(since));
 
     try {
       const device = this.mobileDevices.get(deviceId);
 
       // 1. 获取本地变更
       const localChanges = await this.getContactsChanges(since);
-      console.log(`[MobileSyncManager] 检测到 ${localChanges.length} 个联系人变更`);
+      logger.info(`[MobileSyncManager] 检测到 ${localChanges.length} 个联系人变更`);
 
       if (localChanges.length === 0) {
         return { type: 'contacts', synced: 0 };
@@ -285,7 +286,7 @@ class MobileSyncManager extends EventEmitter {
       return { type: 'contacts', synced: localChanges.length };
 
     } catch (error) {
-      console.error('[MobileSyncManager] 同步联系人失败:', error);
+      logger.error('[MobileSyncManager] 同步联系人失败:', error);
       throw error;
     }
   }
@@ -294,14 +295,14 @@ class MobileSyncManager extends EventEmitter {
    * 同步群聊
    */
   async syncGroupChats(deviceId, since) {
-    console.log('[MobileSyncManager] 同步群聊，since:', new Date(since));
+    logger.info('[MobileSyncManager] 同步群聊，since:', new Date(since));
 
     try {
       const device = this.mobileDevices.get(deviceId);
 
       // 1. 获取群聊变更
       const groupChanges = await this.getGroupChatsChanges(since);
-      console.log(`[MobileSyncManager] 检测到 ${groupChanges.length} 个群聊变更`);
+      logger.info(`[MobileSyncManager] 检测到 ${groupChanges.length} 个群聊变更`);
 
       if (groupChanges.length === 0) {
         return { type: 'groupChats', synced: 0 };
@@ -319,7 +320,7 @@ class MobileSyncManager extends EventEmitter {
       return { type: 'groupChats', synced: groupChanges.length };
 
     } catch (error) {
-      console.error('[MobileSyncManager] 同步群聊失败:', error);
+      logger.error('[MobileSyncManager] 同步群聊失败:', error);
       throw error;
     }
   }
@@ -328,14 +329,14 @@ class MobileSyncManager extends EventEmitter {
    * 同步消息
    */
   async syncMessages(deviceId, since) {
-    console.log('[MobileSyncManager] 同步消息，since:', new Date(since));
+    logger.info('[MobileSyncManager] 同步消息，since:', new Date(since));
 
     try {
       const device = this.mobileDevices.get(deviceId);
 
       // 1. 获取消息变更
       const messageChanges = await this.getMessagesChanges(since);
-      console.log(`[MobileSyncManager] 检测到 ${messageChanges.length} 个消息变更`);
+      logger.info(`[MobileSyncManager] 检测到 ${messageChanges.length} 个消息变更`);
 
       if (messageChanges.length === 0) {
         return { type: 'messages', synced: 0 };
@@ -364,7 +365,7 @@ class MobileSyncManager extends EventEmitter {
       return { type: 'messages', synced: messageChanges.length };
 
     } catch (error) {
-      console.error('[MobileSyncManager] 同步消息失败:', error);
+      logger.error('[MobileSyncManager] 同步消息失败:', error);
       throw error;
     }
   }
@@ -398,7 +399,7 @@ class MobileSyncManager extends EventEmitter {
       }));
 
     } catch (error) {
-      console.error('[MobileSyncManager] 获取知识库变更失败:', error);
+      logger.error('[MobileSyncManager] 获取知识库变更失败:', error);
       return [];
     }
   }
@@ -431,7 +432,7 @@ class MobileSyncManager extends EventEmitter {
       }));
 
     } catch (error) {
-      console.error('[MobileSyncManager] 获取联系人变更失败:', error);
+      logger.error('[MobileSyncManager] 获取联系人变更失败:', error);
       return [];
     }
   }
@@ -482,7 +483,7 @@ class MobileSyncManager extends EventEmitter {
       return changes;
 
     } catch (error) {
-      console.error('[MobileSyncManager] 获取群聊变更失败:', error);
+      logger.error('[MobileSyncManager] 获取群聊变更失败:', error);
       return [];
     }
   }
@@ -516,7 +517,7 @@ class MobileSyncManager extends EventEmitter {
       }));
 
     } catch (error) {
-      console.error('[MobileSyncManager] 获取消息变更失败:', error);
+      logger.error('[MobileSyncManager] 获取消息变更失败:', error);
       return [];
     }
   }
@@ -525,7 +526,7 @@ class MobileSyncManager extends EventEmitter {
    * 处理来自移动端的同步请求
    */
   async handleMobileSyncRequest(deviceId, payload) {
-    console.log('[MobileSyncManager] 处理移动端同步请求:', deviceId, payload.type);
+    logger.info('[MobileSyncManager] 处理移动端同步请求:', deviceId, payload.type);
 
     try {
       switch (payload.type) {
@@ -555,11 +556,11 @@ class MobileSyncManager extends EventEmitter {
           break;
 
         default:
-          console.warn('[MobileSyncManager] 未知的同步请求类型:', payload.type);
+          logger.warn('[MobileSyncManager] 未知的同步请求类型:', payload.type);
       }
 
     } catch (error) {
-      console.error('[MobileSyncManager] 处理同步请求失败:', error);
+      logger.error('[MobileSyncManager] 处理同步请求失败:', error);
       throw error;
     }
   }
@@ -568,7 +569,7 @@ class MobileSyncManager extends EventEmitter {
    * 应用知识库变更
    */
   async applyKnowledgeChanges(changes) {
-    console.log(`[MobileSyncManager] 应用 ${changes.length} 个知识库变更`);
+    logger.info(`[MobileSyncManager] 应用 ${changes.length} 个知识库变更`);
 
     for (const change of changes) {
       try {
@@ -591,7 +592,7 @@ class MobileSyncManager extends EventEmitter {
           ]);
         }
       } catch (error) {
-        console.error('[MobileSyncManager] 应用知识库变更失败:', error);
+        logger.error('[MobileSyncManager] 应用知识库变更失败:', error);
       }
     }
 
@@ -602,7 +603,7 @@ class MobileSyncManager extends EventEmitter {
    * 应用联系人变更
    */
   async applyContactsChanges(changes) {
-    console.log(`[MobileSyncManager] 应用 ${changes.length} 个联系人变更`);
+    logger.info(`[MobileSyncManager] 应用 ${changes.length} 个联系人变更`);
 
     for (const change of changes) {
       try {
@@ -624,7 +625,7 @@ class MobileSyncManager extends EventEmitter {
           ]);
         }
       } catch (error) {
-        console.error('[MobileSyncManager] 应用联系人变更失败:', error);
+        logger.error('[MobileSyncManager] 应用联系人变更失败:', error);
       }
     }
 
@@ -635,7 +636,7 @@ class MobileSyncManager extends EventEmitter {
    * 应用群聊变更
    */
   async applyGroupChatsChanges(changes) {
-    console.log(`[MobileSyncManager] 应用 ${changes.length} 个群聊变更`);
+    logger.info(`[MobileSyncManager] 应用 ${changes.length} 个群聊变更`);
 
     for (const change of changes) {
       try {
@@ -671,7 +672,7 @@ class MobileSyncManager extends EventEmitter {
           }
         }
       } catch (error) {
-        console.error('[MobileSyncManager] 应用群聊变更失败:', error);
+        logger.error('[MobileSyncManager] 应用群聊变更失败:', error);
       }
     }
 
@@ -682,7 +683,7 @@ class MobileSyncManager extends EventEmitter {
    * 应用消息变更
    */
   async applyMessagesChanges(changes) {
-    console.log(`[MobileSyncManager] 应用 ${changes.length} 个消息变更`);
+    logger.info(`[MobileSyncManager] 应用 ${changes.length} 个消息变更`);
 
     for (const change of changes) {
       try {
@@ -699,7 +700,7 @@ class MobileSyncManager extends EventEmitter {
           change.timestamp
         ]);
       } catch (error) {
-        console.error('[MobileSyncManager] 应用消息变更失败:', error);
+        logger.error('[MobileSyncManager] 应用消息变更失败:', error);
       }
     }
 
@@ -744,7 +745,7 @@ class MobileSyncManager extends EventEmitter {
       for (const [deviceId, device] of this.mobileDevices) {
         if (device.status === 'online') {
           this.startSync(deviceId).catch(error => {
-            console.error('[MobileSyncManager] 自动同步失败:', deviceId, error);
+            logger.error('[MobileSyncManager] 自动同步失败:', deviceId, error);
           });
         }
       }

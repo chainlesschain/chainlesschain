@@ -14,6 +14,7 @@
  * - 电子商务工具 (155-156)
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
@@ -856,7 +857,7 @@ class ExtendedTools7 {
       }
     );
 
-    console.log('✅ 第七批扩展工具 (137-156) 注册完成');
+    logger.info('✅ 第七批扩展工具 (137-156) 注册完成');
   }
 }
 

@@ -7,6 +7,7 @@
  * @since 2026-01-18
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const ipcGuard = require("../ipc/ipc-guard");
 
 /**
@@ -21,7 +22,7 @@ function registerAutoBackupManagerIPC({
 }) {
   // Prevent duplicate registration
   if (ipcGuard.isModuleRegistered("auto-backup-manager-ipc")) {
-    console.log(
+    logger.info(
       "[AutoBackupManager IPC] Handlers already registered, skipping...",
     );
     return;
@@ -30,7 +31,7 @@ function registerAutoBackupManagerIPC({
   const electron = require("electron");
   const ipcMain = injectedIpcMain || electron.ipcMain;
 
-  console.log(
+  logger.info(
     "[AutoBackupManager IPC] Registering AutoBackupManager IPC handlers...",
   );
 
@@ -52,7 +53,7 @@ function registerAutoBackupManagerIPC({
       }
       return await managerRef.current.createFullBackup(scope);
     } catch (error) {
-      console.error(
+      logger.error(
         "[AutoBackupManager IPC] Create full backup failed:",
         error,
       );
@@ -71,7 +72,7 @@ function registerAutoBackupManagerIPC({
       }
       return await managerRef.current.createIncrementalBackup(scope);
     } catch (error) {
-      console.error(
+      logger.error(
         "[AutoBackupManager IPC] Create incremental backup failed:",
         error,
       );
@@ -90,7 +91,7 @@ function registerAutoBackupManagerIPC({
       }
       return await managerRef.current.restoreFromBackup(backupId, options);
     } catch (error) {
-      console.error("[AutoBackupManager IPC] Restore backup failed:", error);
+      logger.error("[AutoBackupManager IPC] Restore backup failed:", error);
       throw error;
     }
   });
@@ -107,7 +108,7 @@ function registerAutoBackupManagerIPC({
       await managerRef.current.deleteBackup(backupId);
       return { success: true };
     } catch (error) {
-      console.error("[AutoBackupManager IPC] Delete backup failed:", error);
+      logger.error("[AutoBackupManager IPC] Delete backup failed:", error);
       throw error;
     }
   });
@@ -123,7 +124,7 @@ function registerAutoBackupManagerIPC({
       }
       return await managerRef.current.getBackupHistory(options);
     } catch (error) {
-      console.error("[AutoBackupManager IPC] List backups failed:", error);
+      logger.error("[AutoBackupManager IPC] List backups failed:", error);
       throw error;
     }
   });
@@ -139,7 +140,7 @@ function registerAutoBackupManagerIPC({
       }
       return await managerRef.current.getStats();
     } catch (error) {
-      console.error("[AutoBackupManager IPC] Get stats failed:", error);
+      logger.error("[AutoBackupManager IPC] Get stats failed:", error);
       throw error;
     }
   });
@@ -159,7 +160,7 @@ function registerAutoBackupManagerIPC({
       }
       return await managerRef.current.configureSchedule(config);
     } catch (error) {
-      console.error(
+      logger.error(
         "[AutoBackupManager IPC] Configure schedule failed:",
         error,
       );
@@ -178,7 +179,7 @@ function registerAutoBackupManagerIPC({
       }
       return await managerRef.current.updateSchedule(id, updates);
     } catch (error) {
-      console.error("[AutoBackupManager IPC] Update schedule failed:", error);
+      logger.error("[AutoBackupManager IPC] Update schedule failed:", error);
       throw error;
     }
   });
@@ -195,7 +196,7 @@ function registerAutoBackupManagerIPC({
       await managerRef.current.deleteSchedule(id);
       return { success: true };
     } catch (error) {
-      console.error("[AutoBackupManager IPC] Delete schedule failed:", error);
+      logger.error("[AutoBackupManager IPC] Delete schedule failed:", error);
       throw error;
     }
   });
@@ -211,7 +212,7 @@ function registerAutoBackupManagerIPC({
       }
       return await managerRef.current.getSchedules();
     } catch (error) {
-      console.error("[AutoBackupManager IPC] Get schedules failed:", error);
+      logger.error("[AutoBackupManager IPC] Get schedules failed:", error);
       throw error;
     }
   });
@@ -223,13 +224,13 @@ function registerAutoBackupManagerIPC({
    */
   function updateAutoBackupManager(newManager) {
     managerRef.current = newManager;
-    console.log("[AutoBackupManager IPC] Reference updated");
+    logger.info("[AutoBackupManager IPC] Reference updated");
   }
 
   // Mark as registered
   ipcGuard.markModuleRegistered("auto-backup-manager-ipc");
 
-  console.log(
+  logger.info(
     "[AutoBackupManager IPC] AutoBackupManager IPC handlers registered successfully",
   );
 

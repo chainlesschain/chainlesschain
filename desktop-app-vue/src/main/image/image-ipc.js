@@ -6,6 +6,7 @@
  * @description 图像管理模块，提供图像上传、OCR识别、AI图像生成、图像处理等功能
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { ipcMain, dialog } = require('electron');
 const ipcGuard = require('../ipc/ipc-guard');
 
@@ -23,11 +24,11 @@ function registerImageIPC({
 }) {
   // 防止重复注册
   if (ipcGuard.isModuleRegistered('image-ipc')) {
-    console.log('[Image IPC] Handlers already registered, skipping...');
+    logger.info('[Image IPC] Handlers already registered, skipping...');
     return;
   }
 
-  console.log('[Image IPC] Registering Image IPC handlers...');
+  logger.info('[Image IPC] Registering Image IPC handlers...');
 
   // ============================================================
   // 图片选择与上传操作 (3 handlers)
@@ -61,7 +62,7 @@ function registerImageIPC({
         filePaths: result.filePaths,
       };
     } catch (error) {
-      console.error('[Image] 选择图片失败:', error);
+      logger.error('[Image] 选择图片失败:', error);
       throw error;
     }
   });
@@ -97,7 +98,7 @@ function registerImageIPC({
       const result = await imageUploader.uploadImage(imagePath, options);
       return result;
     } catch (error) {
-      console.error('[Image] 上传图片失败:', error);
+      logger.error('[Image] 上传图片失败:', error);
       throw error;
     }
   });
@@ -127,7 +128,7 @@ function registerImageIPC({
       const results = await imageUploader.uploadImages(imagePaths, options);
       return results;
     } catch (error) {
-      console.error('[Image] 批量上传图片失败:', error);
+      logger.error('[Image] 批量上传图片失败:', error);
       throw error;
     }
   });
@@ -148,7 +149,7 @@ function registerImageIPC({
       const result = await imageUploader.performOCR(imagePath);
       return result;
     } catch (error) {
-      console.error('[Image] OCR 识别失败:', error);
+      logger.error('[Image] OCR 识别失败:', error);
       throw error;
     }
   });
@@ -165,7 +166,7 @@ function registerImageIPC({
       const image = await imageUploader.getImageInfo(imageId);
       return image;
     } catch (error) {
-      console.error('[Image] 获取图片失败:', error);
+      logger.error('[Image] 获取图片失败:', error);
       throw error;
     }
   });
@@ -182,7 +183,7 @@ function registerImageIPC({
       const images = await imageUploader.getAllImages(options);
       return images;
     } catch (error) {
-      console.error('[Image] 获取图片列表失败:', error);
+      logger.error('[Image] 获取图片列表失败:', error);
       throw error;
     }
   });
@@ -199,7 +200,7 @@ function registerImageIPC({
       const images = await imageUploader.searchImages(query);
       return images;
     } catch (error) {
-      console.error('[Image] 搜索图片失败:', error);
+      logger.error('[Image] 搜索图片失败:', error);
       throw error;
     }
   });
@@ -216,7 +217,7 @@ function registerImageIPC({
       const result = await imageUploader.deleteImage(imageId);
       return result;
     } catch (error) {
-      console.error('[Image] 删除图片失败:', error);
+      logger.error('[Image] 删除图片失败:', error);
       throw error;
     }
   });
@@ -233,7 +234,7 @@ function registerImageIPC({
       const stats = await imageUploader.getStats();
       return stats;
     } catch (error) {
-      console.error('[Image] 获取统计信息失败:', error);
+      logger.error('[Image] 获取统计信息失败:', error);
       throw error;
     }
   });
@@ -253,7 +254,7 @@ function registerImageIPC({
 
       return imageUploader.getSupportedFormats();
     } catch (error) {
-      console.error('[Image] 获取支持格式失败:', error);
+      logger.error('[Image] 获取支持格式失败:', error);
       throw error;
     }
   });
@@ -269,7 +270,7 @@ function registerImageIPC({
 
       return imageUploader.getSupportedLanguages();
     } catch (error) {
-      console.error('[Image] 获取支持语言失败:', error);
+      logger.error('[Image] 获取支持语言失败:', error);
       throw error;
     }
   });
@@ -283,7 +284,7 @@ function registerImageIPC({
    */
   ipcMain.handle('image:generateFromText', async (_event, params) => {
     try {
-      console.log('[Image] AI文生图:', params.prompt.substring(0, 50));
+      logger.info('[Image] AI文生图:', params.prompt.substring(0, 50));
 
       const { getImageEngine } = require('../engines/image-engine');
       const imageEngine = getImageEngine(llmManager);
@@ -297,10 +298,10 @@ function registerImageIPC({
         }
       });
 
-      console.log('[Image] 图片生成完成');
+      logger.info('[Image] 图片生成完成');
       return result;
     } catch (error) {
-      console.error('[Image] 图片生成失败:', error);
+      logger.error('[Image] 图片生成失败:', error);
       throw error;
     }
   });
@@ -310,7 +311,7 @@ function registerImageIPC({
    */
   ipcMain.handle('image:removeBackground', async (_event, params) => {
     try {
-      console.log('[Image] 移除背景');
+      logger.info('[Image] 移除背景');
 
       const { getImageEngine } = require('../engines/image-engine');
       const imageEngine = getImageEngine(llmManager);
@@ -324,10 +325,10 @@ function registerImageIPC({
         }
       });
 
-      console.log('[Image] 背景移除完成');
+      logger.info('[Image] 背景移除完成');
       return result;
     } catch (error) {
-      console.error('[Image] 背景移除失败:', error);
+      logger.error('[Image] 背景移除失败:', error);
       throw error;
     }
   });
@@ -337,7 +338,7 @@ function registerImageIPC({
    */
   ipcMain.handle('image:resize', async (_event, params) => {
     try {
-      console.log('[Image] 调整图片大小:', params.width, 'x', params.height);
+      logger.info('[Image] 调整图片大小:', params.width, 'x', params.height);
 
       const { getImageEngine } = require('../engines/image-engine');
       const imageEngine = getImageEngine(llmManager);
@@ -347,10 +348,10 @@ function registerImageIPC({
         ...params
       });
 
-      console.log('[Image] 图片调整完成');
+      logger.info('[Image] 图片调整完成');
       return result;
     } catch (error) {
-      console.error('[Image] 图片调整失败:', error);
+      logger.error('[Image] 图片调整失败:', error);
       throw error;
     }
   });
@@ -360,7 +361,7 @@ function registerImageIPC({
    */
   ipcMain.handle('image:crop', async (_event, params) => {
     try {
-      console.log('[Image] 裁剪图片');
+      logger.info('[Image] 裁剪图片');
 
       const { getImageEngine } = require('../engines/image-engine');
       const imageEngine = getImageEngine(llmManager);
@@ -370,10 +371,10 @@ function registerImageIPC({
         ...params
       });
 
-      console.log('[Image] 图片裁剪完成');
+      logger.info('[Image] 图片裁剪完成');
       return result;
     } catch (error) {
-      console.error('[Image] 图片裁剪失败:', error);
+      logger.error('[Image] 图片裁剪失败:', error);
       throw error;
     }
   });
@@ -383,7 +384,7 @@ function registerImageIPC({
    */
   ipcMain.handle('image:enhance', async (_event, params) => {
     try {
-      console.log('[Image] 增强图片');
+      logger.info('[Image] 增强图片');
 
       const { getImageEngine } = require('../engines/image-engine');
       const imageEngine = getImageEngine(llmManager);
@@ -393,10 +394,10 @@ function registerImageIPC({
         ...params
       });
 
-      console.log('[Image] 图片增强完成');
+      logger.info('[Image] 图片增强完成');
       return result;
     } catch (error) {
-      console.error('[Image] 图片增强失败:', error);
+      logger.error('[Image] 图片增强失败:', error);
       throw error;
     }
   });
@@ -406,7 +407,7 @@ function registerImageIPC({
    */
   ipcMain.handle('image:upscale', async (_event, params) => {
     try {
-      console.log('[Image] 图片超分辨率');
+      logger.info('[Image] 图片超分辨率');
 
       const { getImageEngine } = require('../engines/image-engine');
       const imageEngine = getImageEngine(llmManager);
@@ -420,10 +421,10 @@ function registerImageIPC({
         }
       });
 
-      console.log('[Image] 超分辨率完成');
+      logger.info('[Image] 超分辨率完成');
       return result;
     } catch (error) {
-      console.error('[Image] 超分辨率失败:', error);
+      logger.error('[Image] 超分辨率失败:', error);
       throw error;
     }
   });
@@ -433,7 +434,7 @@ function registerImageIPC({
    */
   ipcMain.handle('image:addWatermark', async (_event, params) => {
     try {
-      console.log('[Image] 添加水印');
+      logger.info('[Image] 添加水印');
 
       const { getImageEngine } = require('../engines/image-engine');
       const imageEngine = getImageEngine(llmManager);
@@ -443,10 +444,10 @@ function registerImageIPC({
         ...params
       });
 
-      console.log('[Image] 水印添加完成');
+      logger.info('[Image] 水印添加完成');
       return result;
     } catch (error) {
-      console.error('[Image] 水印添加失败:', error);
+      logger.error('[Image] 水印添加失败:', error);
       throw error;
     }
   });
@@ -456,7 +457,7 @@ function registerImageIPC({
    */
   ipcMain.handle('image:batchProcess', async (_event, params) => {
     try {
-      console.log('[Image] 批量处理图片:', params.imageList.length, '张');
+      logger.info('[Image] 批量处理图片:', params.imageList.length, '张');
 
       const { getImageEngine } = require('../engines/image-engine');
       const imageEngine = getImageEngine(llmManager);
@@ -470,10 +471,10 @@ function registerImageIPC({
         }
       });
 
-      console.log('[Image] 批量处理完成');
+      logger.info('[Image] 批量处理完成');
       return result;
     } catch (error) {
-      console.error('[Image] 批量处理失败:', error);
+      logger.error('[Image] 批量处理失败:', error);
       throw error;
     }
   });
@@ -483,7 +484,7 @@ function registerImageIPC({
    */
   ipcMain.handle('image:convertFormat', async (_event, params) => {
     try {
-      console.log('[Image] 转换图片格式:', params.format);
+      logger.info('[Image] 转换图片格式:', params.format);
 
       const { getImageEngine } = require('../engines/image-engine');
       const imageEngine = getImageEngine(llmManager);
@@ -493,10 +494,10 @@ function registerImageIPC({
         ...params
       });
 
-      console.log('[Image] 格式转换完成');
+      logger.info('[Image] 格式转换完成');
       return result;
     } catch (error) {
-      console.error('[Image] 格式转换失败:', error);
+      logger.error('[Image] 格式转换失败:', error);
       throw error;
     }
   });
@@ -506,7 +507,7 @@ function registerImageIPC({
    */
   ipcMain.handle('image:createCollage', async (_event, params) => {
     try {
-      console.log('[Image] 创建图片拼贴:', params.imageList.length, '张');
+      logger.info('[Image] 创建图片拼贴:', params.imageList.length, '张');
 
       const { getImageEngine } = require('../engines/image-engine');
       const imageEngine = getImageEngine(llmManager);
@@ -516,10 +517,10 @@ function registerImageIPC({
         ...params
       });
 
-      console.log('[Image] 拼贴创建完成');
+      logger.info('[Image] 拼贴创建完成');
       return result;
     } catch (error) {
-      console.error('[Image] 拼贴创建失败:', error);
+      logger.error('[Image] 拼贴创建失败:', error);
       throw error;
     }
   });
@@ -535,7 +536,7 @@ function registerImageIPC({
       const info = await imageEngine.getImageInfo(imagePath);
       return info;
     } catch (error) {
-      console.error('[Image] 获取图片信息失败:', error);
+      logger.error('[Image] 获取图片信息失败:', error);
       throw error;
     }
   });
@@ -543,11 +544,11 @@ function registerImageIPC({
   // 标记模块为已注册
   ipcGuard.markModuleRegistered('image-ipc');
 
-  console.log('[Image IPC] ✓ 22 handlers registered');
-  console.log('[Image IPC] - 3 image selection & upload handlers');
-  console.log('[Image IPC] - 6 image management handlers');
-  console.log('[Image IPC] - 2 configuration handlers');
-  console.log('[Image IPC] - 11 AI generation & processing handlers');
+  logger.info('[Image IPC] ✓ 22 handlers registered');
+  logger.info('[Image IPC] - 3 image selection & upload handlers');
+  logger.info('[Image IPC] - 6 image management handlers');
+  logger.info('[Image IPC] - 2 configuration handlers');
+  logger.info('[Image IPC] - 11 AI generation & processing handlers');
 }
 
 module.exports = {

@@ -1,3 +1,5 @@
+const { logger, createLogger } = require('../utils/logger.js');
+
 /**
  * 第十批扩展工具实现 (197-216)
  * 涵盖量子通信、脑机接口、合成生物学、纳米技术、核能技术、
@@ -1132,7 +1134,7 @@ class ExtendedTools10 {
       };
     });
 
-    console.log('第十批扩展工具(197-216)注册完成');
+    logger.info('第十批扩展工具(197-216)注册完成');
   }
 }
 

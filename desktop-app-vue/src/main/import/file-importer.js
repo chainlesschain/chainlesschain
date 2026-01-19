@@ -5,6 +5,7 @@
  * v0.17.0: 集成文件安全验证
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require('fs').promises;
 const path = require('path');
 const { EventEmitter } = require('events');
@@ -56,18 +57,18 @@ class FileImporter extends EventEmitter {
 
       // 🔒 安全验证: 验证文件安全性
       if (this.enableSecurityValidation && !options.skipValidation) {
-        console.log(`[FileImporter] 验证文件安全性: ${filePath}`);
+        logger.info(`[FileImporter] 验证文件安全性: ${filePath}`);
         const validation = await FileValidator.validateFile(filePath, 'document');
 
         if (!validation.valid) {
           const errorMsg = `文件验证失败: ${validation.errors.join(', ')}`;
-          console.error(`[FileImporter] ${errorMsg}`);
+          logger.error(`[FileImporter] ${errorMsg}`);
           throw new Error(errorMsg);
         }
 
         // 记录警告信息
         if (validation.warnings && validation.warnings.length > 0) {
-          console.warn(`[FileImporter] 文件警告:`, validation.warnings);
+          logger.warn(`[FileImporter] 文件警告:`, validation.warnings);
           this.emit('import-warning', {
             filePath,
             warnings: validation.warnings,
@@ -75,7 +76,7 @@ class FileImporter extends EventEmitter {
         }
 
         // 记录验证信息
-        console.log(`[FileImporter] 文件验证通过:`, {
+        logger.info(`[FileImporter] 文件验证通过:`, {
           hash: validation.fileInfo.hash,
           size: validation.fileInfo.size,
           category: validation.category,
@@ -185,7 +186,7 @@ class FileImporter extends EventEmitter {
         // 检测 XSS 威胁
         const threats = XSSSanitizer.detectXSS(markdownContent);
         if (threats.length > 0) {
-          console.warn(`[FileImporter] 检测到潜在的 XSS 威胁 (已清理):`, threats);
+          logger.warn(`[FileImporter] 检测到潜在的 XSS 威胁 (已清理):`, threats);
           this.emit('import-warning', {
             filePath,
             type: 'xss_threat',
@@ -213,7 +214,7 @@ class FileImporter extends EventEmitter {
         imported: true,
       };
     } catch (error) {
-      console.error(`[FileImporter] 导入 Markdown 失败:`, error);
+      logger.error(`[FileImporter] 导入 Markdown 失败:`, error);
       throw new Error(`导入 Markdown 失败: ${error.message}`);
     }
   }
@@ -243,12 +244,12 @@ class FileImporter extends EventEmitter {
 
       if (!isLargeFile) {
         // 小文件: 使用原有方式（快速、兼容性好）
-        console.log(`[FileImporter] PDF小文件直接读取: ${(fileSize / 1024 / 1024).toFixed(2)}MB`);
+        logger.info(`[FileImporter] PDF小文件直接读取: ${(fileSize / 1024 / 1024).toFixed(2)}MB`);
         dataBuffer = await fs.readFile(filePath);
         data = await pdfParse(dataBuffer);
       } else {
         // 大文件: 使用流式读取 + 进度通知
-        console.log(`[FileImporter] PDF大文件流式读取: ${(fileSize / 1024 / 1024).toFixed(2)}MB`);
+        logger.info(`[FileImporter] PDF大文件流式读取: ${(fileSize / 1024 / 1024).toFixed(2)}MB`);
 
         const chunks = [];
         let accumulatedSize = 0;
@@ -288,7 +289,7 @@ class FileImporter extends EventEmitter {
         });
 
         dataBuffer = Buffer.concat(chunks);
-        console.log(`[FileImporter] 合并chunks完成，开始解析PDF: ${(dataBuffer.length / 1024 / 1024).toFixed(2)}MB`);
+        logger.info(`[FileImporter] 合并chunks完成，开始解析PDF: ${(dataBuffer.length / 1024 / 1024).toFixed(2)}MB`);
 
         // 解析PDF
         data = await pdfParse(dataBuffer);
@@ -341,7 +342,7 @@ class FileImporter extends EventEmitter {
         processingMode: isLargeFile ? 'streaming' : 'direct',
       };
     } catch (error) {
-      console.error(`[FileImporter] 导入 PDF 失败:`, error);
+      logger.error(`[FileImporter] 导入 PDF 失败:`, error);
       throw new Error(`导入 PDF 失败: ${error.message}`);
     }
   }
@@ -382,7 +383,7 @@ class FileImporter extends EventEmitter {
         imported: true,
       };
     } catch (error) {
-      console.error(`[FileImporter] 导入 Word 失败:`, error);
+      logger.error(`[FileImporter] 导入 Word 失败:`, error);
       throw new Error(`导入 Word 失败: ${error.message}`);
     }
   }
@@ -414,7 +415,7 @@ class FileImporter extends EventEmitter {
         imported: true,
       };
     } catch (error) {
-      console.error(`[FileImporter] 导入文本失败:`, error);
+      logger.error(`[FileImporter] 导入文本失败:`, error);
       throw new Error(`导入文本失败: ${error.message}`);
     }
   }

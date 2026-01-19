@@ -9,6 +9,7 @@
  */
 
 // Default imports - can be overridden via dependency injection for testing
+const { logger, createLogger } = require('../utils/logger.js');
 const defaultMcpClient = require("@modelcontextprotocol/sdk/client/index.js");
 const defaultMcpStdio = require("@modelcontextprotocol/sdk/client/stdio.js");
 const defaultMcpTypes = require("@modelcontextprotocol/sdk/types.js");
@@ -99,7 +100,7 @@ class MCPClientManager extends EventEmitter {
       ERROR: "error",
     };
 
-    console.log("[MCPClientManager] Initialized");
+    logger.info("[MCPClientManager] Initialized");
   }
 
   /**
@@ -112,13 +113,13 @@ class MCPClientManager extends EventEmitter {
     const startTime = Date.now();
 
     try {
-      console.log(`[MCPClientManager] Connecting to server: ${serverName}`);
+      logger.info(`[MCPClientManager] Connecting to server: ${serverName}`);
 
       // Check if already connected
       if (this.servers.has(serverName)) {
         const existing = this.servers.get(serverName);
         if (existing.state === this.STATES.CONNECTED) {
-          console.log(
+          logger.info(
             `[MCPClientManager] Server ${serverName} already connected`,
           );
           return {
@@ -153,7 +154,7 @@ class MCPClientManager extends EventEmitter {
 
       if (transportType === TRANSPORT_TYPES.HTTP_SSE) {
         // HTTP+SSE transport for remote servers
-        console.log(
+        logger.info(
           `[MCPClientManager] Using HTTP+SSE transport for ${serverName}`,
         );
         transport = new this._deps.HttpSseTransport({
@@ -177,7 +178,7 @@ class MCPClientManager extends EventEmitter {
         await this._connectWithHttpSse(client, transport, serverName);
       } else {
         // Default: stdio transport for local servers
-        console.log(
+        logger.info(
           `[MCPClientManager] Using stdio transport for ${serverName}`,
         );
 
@@ -218,7 +219,7 @@ class MCPClientManager extends EventEmitter {
         await client.connect(transport);
       }
 
-      console.log(`[MCPClientManager] Connected to ${serverName}`);
+      logger.info(`[MCPClientManager] Connected to ${serverName}`);
 
       // Fetch server capabilities
       const capabilities = await this._fetchCapabilities(client, serverName);
@@ -237,12 +238,12 @@ class MCPClientManager extends EventEmitter {
       const connectionTime = Date.now() - startTime;
       this.metrics.connectionTimes.set(serverName, connectionTime);
 
-      console.log(
+      logger.info(
         `[MCPClientManager] Server ${serverName} ready (${connectionTime}ms)`,
       );
-      console.log(`  Tools: ${capabilities.tools.length}`);
-      console.log(`  Resources: ${capabilities.resources.length}`);
-      console.log(`  Prompts: ${capabilities.prompts.length}`);
+      logger.info(`  Tools: ${capabilities.tools.length}`);
+      logger.info(`  Resources: ${capabilities.resources.length}`);
+      logger.info(`  Prompts: ${capabilities.prompts.length}`);
 
       this.emit("server-connected", {
         serverName,
@@ -252,7 +253,7 @@ class MCPClientManager extends EventEmitter {
 
       return capabilities;
     } catch (error) {
-      console.error(
+      logger.error(
         `[MCPClientManager] Failed to connect to ${serverName}:`,
         error,
       );
@@ -280,13 +281,13 @@ class MCPClientManager extends EventEmitter {
    */
   async disconnectServer(serverName) {
     try {
-      console.log(
+      logger.info(
         `[MCPClientManager] Disconnecting from server: ${serverName}`,
       );
 
       const server = this.servers.get(serverName);
       if (!server) {
-        console.warn(`[MCPClientManager] Server ${serverName} not found`);
+        logger.warn(`[MCPClientManager] Server ${serverName} not found`);
         return;
       }
 
@@ -295,11 +296,11 @@ class MCPClientManager extends EventEmitter {
       }
 
       this.servers.delete(serverName);
-      console.log(`[MCPClientManager] Server ${serverName} disconnected`);
+      logger.info(`[MCPClientManager] Server ${serverName} disconnected`);
 
       this.emit("server-disconnected", { serverName });
     } catch (error) {
-      console.error(
+      logger.error(
         `[MCPClientManager] Error disconnecting from ${serverName}:`,
         error,
       );
@@ -323,7 +324,7 @@ class MCPClientManager extends EventEmitter {
 
       return server.tools;
     } catch (error) {
-      console.error(
+      logger.error(
         `[MCPClientManager] Failed to list tools from ${serverName}:`,
         error,
       );
@@ -347,7 +348,7 @@ class MCPClientManager extends EventEmitter {
 
       return server.resources;
     } catch (error) {
-      console.error(
+      logger.error(
         `[MCPClientManager] Failed to list resources from ${serverName}:`,
         error,
       );
@@ -369,8 +370,8 @@ class MCPClientManager extends EventEmitter {
     try {
       this.metrics.totalCalls++;
 
-      console.log(`[MCPClientManager] Calling tool: ${serverName}.${toolName}`);
-      console.log(`  Parameters:`, JSON.stringify(params, null, 2));
+      logger.info(`[MCPClientManager] Calling tool: ${serverName}.${toolName}`);
+      logger.info(`  Parameters:`, JSON.stringify(params, null, 2));
 
       const result = await server.client.callTool({
         name: toolName,
@@ -386,7 +387,7 @@ class MCPClientManager extends EventEmitter {
 
       this.metrics.successfulCalls++;
 
-      console.log(`[MCPClientManager] Tool call successful (${latency}ms)`);
+      logger.info(`[MCPClientManager] Tool call successful (${latency}ms)`);
 
       this.emit("tool-called", {
         serverName,
@@ -400,7 +401,7 @@ class MCPClientManager extends EventEmitter {
     } catch (error) {
       const latency = Date.now() - startTime;
 
-      console.error(
+      logger.error(
         `[MCPClientManager] Tool call failed (${latency}ms):`,
         error,
       );
@@ -426,17 +427,17 @@ class MCPClientManager extends EventEmitter {
     const server = this._getConnectedServer(serverName);
 
     try {
-      console.log(`[MCPClientManager] Reading resource: ${resourceUri}`);
+      logger.info(`[MCPClientManager] Reading resource: ${resourceUri}`);
 
       const result = await server.client.readResource({
         uri: resourceUri,
       });
 
-      console.log(`[MCPClientManager] Resource read successfully`);
+      logger.info(`[MCPClientManager] Resource read successfully`);
 
       return result;
     } catch (error) {
-      console.error(`[MCPClientManager] Failed to read resource:`, error);
+      logger.error(`[MCPClientManager] Failed to read resource:`, error);
       throw error;
     }
   }
@@ -513,20 +514,20 @@ class MCPClientManager extends EventEmitter {
    * Shutdown all connections
    */
   async shutdown() {
-    console.log("[MCPClientManager] Shutting down all connections...");
+    logger.info("[MCPClientManager] Shutting down all connections...");
 
     const disconnectPromises = [];
     for (const serverName of this.servers.keys()) {
       disconnectPromises.push(
         this.disconnectServer(serverName).catch((err) => {
-          console.error(`Error disconnecting ${serverName}:`, err);
+          logger.error(`Error disconnecting ${serverName}:`, err);
         }),
       );
     }
 
     await Promise.all(disconnectPromises);
 
-    console.log("[MCPClientManager] All connections closed");
+    logger.info("[MCPClientManager] All connections closed");
   }
 
   // ===================================
@@ -542,21 +543,21 @@ class MCPClientManager extends EventEmitter {
       const [toolsResponse, resourcesResponse, promptsResponse] =
         await Promise.all([
           client.listTools().catch((err) => {
-            console.warn(
+            logger.warn(
               `Failed to list tools from ${serverName}:`,
               err.message,
             );
             return { tools: [] };
           }),
           client.listResources().catch((err) => {
-            console.warn(
+            logger.warn(
               `Failed to list resources from ${serverName}:`,
               err.message,
             );
             return { resources: [] };
           }),
           client.listPrompts().catch((err) => {
-            console.warn(
+            logger.warn(
               `Failed to list prompts from ${serverName}:`,
               err.message,
             );
@@ -570,7 +571,7 @@ class MCPClientManager extends EventEmitter {
         prompts: promptsResponse.prompts || [],
       };
     } catch (error) {
-      console.error(`[MCPClientManager] Error fetching capabilities:`, error);
+      logger.error(`[MCPClientManager] Error fetching capabilities:`, error);
       return {
         tools: [],
         resources: [],
@@ -588,7 +589,7 @@ class MCPClientManager extends EventEmitter {
     client.setNotificationHandler(
       this._deps.LoggingMessageNotificationSchema,
       (notification) => {
-        console.log(
+        logger.info(
           `[MCPClientManager] Log from ${serverName} [${notification.params.level}]:`,
           notification.params.data,
         );
@@ -603,7 +604,7 @@ class MCPClientManager extends EventEmitter {
     client.setNotificationHandler(
       this._deps.ResourceListChangedNotificationSchema,
       (notification) => {
-        console.log(`[MCPClientManager] Resources changed on ${serverName}`);
+        logger.info(`[MCPClientManager] Resources changed on ${serverName}`);
         this.emit("server-notification", {
           serverName,
           type: "resources-changed",
@@ -616,7 +617,7 @@ class MCPClientManager extends EventEmitter {
     client.setNotificationHandler(
       this._deps.ToolListChangedNotificationSchema,
       (notification) => {
-        console.log(`[MCPClientManager] Tools changed on ${serverName}`);
+        logger.info(`[MCPClientManager] Tools changed on ${serverName}`);
         this.emit("server-notification", {
           serverName,
           type: "tools-changed",
@@ -629,7 +630,7 @@ class MCPClientManager extends EventEmitter {
     client.setNotificationHandler(
       this._deps.PromptListChangedNotificationSchema,
       (notification) => {
-        console.log(`[MCPClientManager] Prompts changed on ${serverName}`);
+        logger.info(`[MCPClientManager] Prompts changed on ${serverName}`);
         this.emit("server-notification", {
           serverName,
           type: "prompts-changed",
@@ -678,11 +679,11 @@ class MCPClientManager extends EventEmitter {
    */
   _setupHttpSseHandlers(transport, serverName) {
     transport.on("connected", () => {
-      console.log(`[MCPClientManager] HTTP+SSE connected to ${serverName}`);
+      logger.info(`[MCPClientManager] HTTP+SSE connected to ${serverName}`);
     });
 
     transport.on("disconnected", () => {
-      console.log(
+      logger.info(
         `[MCPClientManager] HTTP+SSE disconnected from ${serverName}`,
       );
       const server = this.servers.get(serverName);
@@ -693,7 +694,7 @@ class MCPClientManager extends EventEmitter {
     });
 
     transport.on("reconnected", () => {
-      console.log(`[MCPClientManager] HTTP+SSE reconnected to ${serverName}`);
+      logger.info(`[MCPClientManager] HTTP+SSE reconnected to ${serverName}`);
       const server = this.servers.get(serverName);
       if (server) {
         server.state = this.STATES.CONNECTED;
@@ -702,7 +703,7 @@ class MCPClientManager extends EventEmitter {
     });
 
     transport.on("error", (error) => {
-      console.error(
+      logger.error(
         `[MCPClientManager] HTTP+SSE error from ${serverName}:`,
         error,
       );
@@ -714,7 +715,7 @@ class MCPClientManager extends EventEmitter {
     });
 
     transport.on("notification", (notification) => {
-      console.log(
+      logger.info(
         `[MCPClientManager] HTTP+SSE notification from ${serverName}:`,
         notification,
       );
@@ -824,7 +825,7 @@ class MCPClientManager extends EventEmitter {
         },
       });
 
-      console.log(`[MCPClientManager] HTTP+SSE server info:`, serverInfo);
+      logger.info(`[MCPClientManager] HTTP+SSE server info:`, serverInfo);
 
       // Send initialized notification
       await transport.send({
@@ -832,7 +833,7 @@ class MCPClientManager extends EventEmitter {
         method: "notifications/initialized",
       });
     } catch (error) {
-      console.warn(
+      logger.warn(
         `[MCPClientManager] HTTP+SSE initialize warning:`,
         error.message,
       );

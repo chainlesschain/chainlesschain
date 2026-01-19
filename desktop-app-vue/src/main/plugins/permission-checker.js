@@ -1,3 +1,5 @@
+const { logger, createLogger } = require('../utils/logger.js');
+
 /**
  * PermissionChecker - 权限检查器
  *
@@ -64,18 +66,18 @@ class PermissionChecker {
       const permissionEntry = permissions.find(p => p.permission === permission);
 
       if (!permissionEntry) {
-        console.warn(`[PermissionChecker] 插件 ${pluginId} 未请求权限: ${permission}`);
+        logger.warn(`[PermissionChecker] 插件 ${pluginId} 未请求权限: ${permission}`);
         return false;
       }
 
       if (!permissionEntry.granted) {
-        console.warn(`[PermissionChecker] 插件 ${pluginId} 权限被拒绝: ${permission}`);
+        logger.warn(`[PermissionChecker] 插件 ${pluginId} 权限被拒绝: ${permission}`);
         return false;
       }
 
       return true;
     } catch (error) {
-      console.error(`[PermissionChecker] 检查权限失败:`, error);
+      logger.error(`[PermissionChecker] 检查权限失败:`, error);
       return false;
     }
   }
@@ -202,7 +204,7 @@ class PermissionChecker {
   hasPermissionGroup(pluginId, group) {
     const permissions = this.permissionGroups[group];
     if (!permissions) {
-      console.warn(`[PermissionChecker] 未知权限组: ${group}`);
+      logger.warn(`[PermissionChecker] 未知权限组: ${group}`);
       return false;
     }
 
@@ -230,7 +232,7 @@ class PermissionChecker {
         granted ? 'info' : 'warn'
       );
     } catch (error) {
-      console.error('[PermissionChecker] 记录权限检查日志失败:', error);
+      logger.error('[PermissionChecker] 记录权限检查日志失败:', error);
     }
   }
 

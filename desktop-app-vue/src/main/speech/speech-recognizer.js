@@ -7,6 +7,7 @@
  * - Web Speech API (浏览器)
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const axios = require('axios');
 const FormData = require('form-data');
 const fs = require('fs');
@@ -72,7 +73,7 @@ class WhisperAPIRecognizer extends BaseSpeechRecognizer {
     } = options;
 
     try {
-      console.log('[WhisperAPI] 开始识别:', path.basename(audioPath));
+      logger.info('[WhisperAPI] 开始识别:', path.basename(audioPath));
 
       // 检查 API 密钥
       if (!this.apiKey) {
@@ -92,7 +93,7 @@ class WhisperAPIRecognizer extends BaseSpeechRecognizer {
       const stats = await fs.promises.stat(audioPath);
       const fileSizeMB = stats.size / (1024 * 1024);
 
-      console.log(`[WhisperAPI] 文件大小: ${fileSizeMB.toFixed(2)} MB`);
+      logger.info(`[WhisperAPI] 文件大小: ${fileSizeMB.toFixed(2)} MB`);
 
       // 检查文件大小限制 (25MB)
       if (stats.size > 25 * 1024 * 1024) {
@@ -133,7 +134,7 @@ class WhisperAPIRecognizer extends BaseSpeechRecognizer {
 
       const duration = Date.now() - startTime;
 
-      console.log(`[WhisperAPI] 识别完成，耗时: ${duration}ms`);
+      logger.info(`[WhisperAPI] 识别完成，耗时: ${duration}ms`);
 
       // 解析响应
       let text = '';
@@ -157,7 +158,7 @@ class WhisperAPIRecognizer extends BaseSpeechRecognizer {
         responseFormat: responseFormat,
       };
     } catch (error) {
-      console.error('[WhisperAPI] 识别失败:', error);
+      logger.error('[WhisperAPI] 识别失败:', error);
 
       // 处理特定错误
       let errorMessage = error.message;
@@ -231,7 +232,7 @@ class WhisperAPIRecognizer extends BaseSpeechRecognizer {
    */
   async detectLanguage(audioPath) {
     try {
-      console.log('[WhisperAPI] 开始检测语言:', path.basename(audioPath));
+      logger.info('[WhisperAPI] 开始检测语言:', path.basename(audioPath));
 
       // 不指定语言参数，让 Whisper 自动检测
       const result = await this.recognize(audioPath, {
@@ -247,7 +248,7 @@ class WhisperAPIRecognizer extends BaseSpeechRecognizer {
         text: result.text,
       };
     } catch (error) {
-      console.error('[WhisperAPI] 语言检测失败:', error);
+      logger.error('[WhisperAPI] 语言检测失败:', error);
       throw error;
     }
   }
@@ -368,9 +369,9 @@ class WhisperLocalRecognizer extends BaseSpeechRecognizer {
     } = options;
 
     try {
-      console.log('[WhisperLocal] 开始识别:', path.basename(audioPath));
-      console.log('[WhisperLocal] 服务器URL:', this.serverUrl);
-      console.log('[WhisperLocal] 超时设置:', this.timeout, 'ms');
+      logger.info('[WhisperLocal] 开始识别:', path.basename(audioPath));
+      logger.info('[WhisperLocal] 服务器URL:', this.serverUrl);
+      logger.info('[WhisperLocal] 超时设置:', this.timeout, 'ms');
 
       // 检查文件是否存在
       const fileExists = await fs.promises.access(audioPath)
@@ -384,7 +385,7 @@ class WhisperLocalRecognizer extends BaseSpeechRecognizer {
       // 获取文件大小
       const stats = await fs.promises.stat(audioPath);
       const fileSizeMB = stats.size / (1024 * 1024);
-      console.log(`[WhisperLocal] 文件大小: ${fileSizeMB.toFixed(2)} MB`);
+      logger.info(`[WhisperLocal] 文件大小: ${fileSizeMB.toFixed(2)} MB`);
 
       // 准备表单数据
       const formData = new FormData();
@@ -414,7 +415,7 @@ class WhisperLocalRecognizer extends BaseSpeechRecognizer {
       );
 
       const duration = Date.now() - startTime;
-      console.log(`[WhisperLocal] 识别完成，耗时: ${(duration / 1000).toFixed(2)}s`);
+      logger.info(`[WhisperLocal] 识别完成，耗时: ${(duration / 1000).toFixed(2)}s`);
 
       // 解析响应
       const data = response.data;
@@ -432,7 +433,7 @@ class WhisperLocalRecognizer extends BaseSpeechRecognizer {
         segments: data.segments || [],
       };
     } catch (error) {
-      console.error('[WhisperLocal] 识别失败:', error);
+      logger.error('[WhisperLocal] 识别失败:', error);
 
       let errorMessage = error.message;
 
@@ -473,7 +474,7 @@ class WhisperLocalRecognizer extends BaseSpeechRecognizer {
 
       return response.status === 200;
     } catch (error) {
-      console.warn('[WhisperLocal] 服务不可用:', error.message);
+      logger.warn('[WhisperLocal] 服务不可用:', error.message);
       return false;
     }
   }
@@ -489,7 +490,7 @@ class WhisperLocalRecognizer extends BaseSpeechRecognizer {
 
       return response.data.models || [];
     } catch (error) {
-      console.error('[WhisperLocal] 获取模型列表失败:', error);
+      logger.error('[WhisperLocal] 获取模型列表失败:', error);
       return [];
     }
   }
@@ -576,7 +577,7 @@ class SpeechRecognizer {
       case 'webspeech':
         return new WebSpeechRecognizer(config);
       default:
-        console.warn(`[SpeechRecognizer] 未知引擎类型: ${engineType}，使用默认 Whisper API`);
+        logger.warn(`[SpeechRecognizer] 未知引擎类型: ${engineType}，使用默认 Whisper API`);
         return new WhisperAPIRecognizer(config);
     }
   }
@@ -606,7 +607,7 @@ class SpeechRecognizer {
     this.engineType = engineType;
     this.config = config;
     this.engine = this.createEngine(engineType, config);
-    console.log(`[SpeechRecognizer] 已切换到引擎: ${engineType}`);
+    logger.info(`[SpeechRecognizer] 已切换到引擎: ${engineType}`);
   }
 
   /**

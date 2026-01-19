@@ -215,6 +215,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import {
   PhoneOutlined,
@@ -346,7 +348,7 @@ const toggleMute = async () => {
       isMuted.value = result.isMuted;
     }
   } catch (error) {
-    console.error('切换静音失败:', error);
+    logger.error('切换静音失败:', error);
     message.error('切换静音失败');
   }
 };
@@ -368,7 +370,7 @@ const toggleVideo = async () => {
       }
     }
   } catch (error) {
-    console.error('切换视频失败:', error);
+    logger.error('切换视频失败:', error);
     message.error('切换视频失败');
   }
 };
@@ -384,7 +386,7 @@ const endCall = async () => {
       emit('call-ended');
     }
   } catch (error) {
-    console.error('结束通话失败:', error);
+    logger.error('结束通话失败:', error);
     message.error('结束通话失败');
   }
 };
@@ -417,7 +419,7 @@ const enumerateDevices = async () => {
       selectedVideoInput.value = videoInputDevices.value[0].deviceId;
     }
   } catch (error) {
-    console.error('获取媒体设备失败:', error);
+    logger.error('获取媒体设备失败:', error);
   }
 };
 
@@ -448,7 +450,7 @@ const getUserMedia = async () => {
 
     return localStream;
   } catch (error) {
-    console.error('获取媒体流失败:', error);
+    logger.error('获取媒体流失败:', error);
     message.error('无法访问摄像头或麦克风');
     throw error;
   }

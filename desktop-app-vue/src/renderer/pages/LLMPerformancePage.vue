@@ -157,6 +157,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { message } from "ant-design-vue";
 import { useRouter } from "vue-router";
@@ -396,7 +398,7 @@ const generateTestData = async () => {
       throw new Error(result?.error || "生成失败");
     }
   } catch (error) {
-    console.error("生成测试数据失败:", error);
+    logger.error("生成测试数据失败:", error);
     message.error("生成测试数据失败: " + error.message);
   } finally {
     generatingTestData.value = false;
@@ -444,7 +446,7 @@ const refreshData = async () => {
 
     message.success("数据已刷新");
   } catch (error) {
-    console.error("刷新数据失败:", error);
+    logger.error("刷新数据失败:", error);
     message.error("刷新数据失败: " + error.message);
   } finally {
     loading.value = false;
@@ -646,7 +648,7 @@ const calculatePeriodComparison = async () => {
       };
     }
   } catch (error) {
-    console.warn("计算周期对比失败:", error);
+    logger.warn("计算周期对比失败:", error);
   }
 };
 
@@ -666,7 +668,7 @@ const clearExpiredCache = async () => {
       message.warning("没有需要清理的过期缓存");
     }
   } catch (error) {
-    console.error("清理缓存失败:", error);
+    logger.error("清理缓存失败:", error);
     message.error("清理缓存失败: " + error.message);
   } finally {
     clearingCache.value = false;
@@ -713,7 +715,7 @@ const exportData = async (format = "csv") => {
       message.error("导出失败: " + result.error);
     }
   } catch (error) {
-    console.error("导出失败:", error);
+    logger.error("导出失败:", error);
     message.error("导出失败: " + error.message);
   } finally {
     exporting.value = false;
@@ -736,7 +738,7 @@ const handleExport = async (config) => {
       message.error("导出失败: " + result.error);
     }
   } catch (error) {
-    console.error("导出失败:", error);
+    logger.error("导出失败:", error);
     message.error("导出失败: " + error.message);
   } finally {
     exporting.value = false;
@@ -750,7 +752,7 @@ const dismissAlertFromHistory = async (alertId) => {
       a.id === alertId ? { ...a, dismissed: true } : a,
     );
   } catch (error) {
-    console.error("忽略告警失败:", error);
+    logger.error("忽略告警失败:", error);
   }
 };
 
@@ -760,7 +762,7 @@ const clearAlertHistory = async () => {
     alertHistory.value = [];
     message.success("告警历史已清除");
   } catch (error) {
-    console.error("清除告警历史失败:", error);
+    logger.error("清除告警历史失败:", error);
   }
 };
 

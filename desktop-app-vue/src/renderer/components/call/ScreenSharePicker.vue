@@ -93,6 +93,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, watch } from 'vue'
 import { message } from 'ant-design-vue'
 
@@ -149,7 +151,7 @@ const loadSources = async () => {
       message.error('获取屏幕源失败: ' + result.error)
     }
   } catch (error) {
-    console.error('加载屏幕源失败:', error)
+    logger.error('加载屏幕源失败:', error)
     message.error('加载屏幕源失败')
   } finally {
     loading.value = false

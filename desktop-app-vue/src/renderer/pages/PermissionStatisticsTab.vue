@@ -214,7 +214,7 @@
 <script>
 import { defineComponent, ref, watch, onMounted, onUnmounted, nextTick } from 'vue';
 import { TeamOutlined, SafetyOutlined, ExceptionOutlined, GroupOutlined } from '@ant-design/icons-vue';
-import * as echarts from 'echarts';
+import { init } from '../utils/echartsConfig';
 
 export default defineComponent({
   name: 'PermissionStatisticsTab',
@@ -259,7 +259,7 @@ export default defineComponent({
     const initRoleChart = () => {
       if (!roleChartRef.value || !props.statistics?.roleDistribution) {return;}
 
-      roleChart = echarts.init(roleChartRef.value);
+      roleChart = init(roleChartRef.value);
       const option = {
         tooltip: {
           trigger: 'item',
@@ -294,7 +294,7 @@ export default defineComponent({
     const initResourceChart = () => {
       if (!resourceChartRef.value || !props.statistics?.resourceDistribution) {return;}
 
-      resourceChart = echarts.init(resourceChartRef.value);
+      resourceChart = init(resourceChartRef.value);
       const option = {
         tooltip: {
           trigger: 'axis',
@@ -326,7 +326,7 @@ export default defineComponent({
     const initTrendChart = () => {
       if (!trendChartRef.value || !props.statistics?.usageTrend) {return;}
 
-      trendChart = echarts.init(trendChartRef.value);
+      trendChart = init(trendChartRef.value);
       const option = {
         tooltip: {
           trigger: 'axis'

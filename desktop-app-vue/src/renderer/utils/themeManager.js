@@ -3,6 +3,7 @@
  * 提供主题切换和自定义功能
  */
 
+import { logger, createLogger } from '@/utils/logger';
 import { ref, computed, watch } from "vue";
 
 /**
@@ -232,7 +233,7 @@ class ThemeManager {
       };
       localStorage.setItem("theme", JSON.stringify(data));
     } catch (error) {
-      console.error("[ThemeManager] Save to storage error:", error);
+      logger.error("[ThemeManager] Save to storage error:", error);
     }
   }
 
@@ -264,7 +265,7 @@ class ThemeManager {
         this.currentTheme.value = Themes.LIGHT;
       }
     } catch (error) {
-      console.error("[ThemeManager] Load from storage error:", error);
+      logger.error("[ThemeManager] Load from storage error:", error);
       this.currentTheme.value = Themes.LIGHT;
     }
   }
@@ -289,7 +290,7 @@ class ThemeManager {
       this.addCustomTheme(theme);
       return true;
     } catch (error) {
-      console.error("[ThemeManager] Import theme error:", error);
+      logger.error("[ThemeManager] Import theme error:", error);
       return false;
     }
   }

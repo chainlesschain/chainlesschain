@@ -202,6 +202,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted } from 'vue';
 import { message as antMessage } from 'ant-design-vue';
 import {
@@ -247,9 +249,9 @@ const loadContents = async () => {
     // 使用 store 加载内容
     await tradeStore.loadKnowledgeContents(filters);
 
-    console.log('[ContentStore] 内容列表已加载:', contents.value.length);
+    logger.info('[ContentStore] 内容列表已加载:', contents.value.length);
   } catch (error) {
-    console.error('[ContentStore] 加载内容列表失败:', error);
+    logger.error('[ContentStore] 加载内容列表失败:', error);
     antMessage.error(error.message || '加载内容列表失败');
   }
 };

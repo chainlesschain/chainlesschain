@@ -7,6 +7,7 @@
  * - 维护待处理的权限请求队列
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { BrowserWindow } = require("electron");
 const EventEmitter = require("events");
 
@@ -330,7 +331,7 @@ class PermissionDialogManager extends EventEmitter {
     const request = this.pendingRequests.get(requestId);
 
     if (!request) {
-      console.warn(`[PermissionDialogManager] 未找到权限请求: ${requestId}`);
+      logger.warn(`[PermissionDialogManager] 未找到权限请求: ${requestId}`);
       return { success: false, error: "权限请求不存在或已过期" };
     }
 

@@ -5,6 +5,7 @@
  * 支持飞天诚信的ePass系列U盾
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const SKFDriver = require('./skf-driver');
 const path = require('path');
 const fs = require('fs');
@@ -36,7 +37,7 @@ class FeiTianDriver extends SKFDriver {
    */
   findDllPath() {
     if (process.platform !== 'win32') {
-      console.warn('[FeiTian] Only Windows platform is supported');
+      logger.warn('[FeiTian] Only Windows platform is supported');
       return null;
     }
 
@@ -68,12 +69,12 @@ class FeiTianDriver extends SKFDriver {
     // 查找第一个存在的DLL
     for (const dllPath of possiblePaths) {
       if (fs.existsSync(dllPath)) {
-        console.log(`[FeiTian] Found DLL: ${dllPath}`);
+        logger.info(`[FeiTian] Found DLL: ${dllPath}`);
         return dllPath;
       }
     }
 
-    console.warn('[FeiTian] DLL not found in any standard location');
+    logger.warn('[FeiTian] DLL not found in any standard location');
     return null;
   }
 
@@ -81,7 +82,7 @@ class FeiTianDriver extends SKFDriver {
    * 初始化驱动
    */
   async initialize() {
-    console.log('[FeiTian] Initializing FeiTian driver...');
+    logger.info('[FeiTian] Initializing FeiTian driver...');
 
     try {
       // 调用父类初始化
@@ -90,10 +91,10 @@ class FeiTianDriver extends SKFDriver {
       // 飞天诚信特定初始化
       // 例如：加载特定配置、检查驱动版本等
 
-      console.log('[FeiTian] FeiTian driver initialized successfully');
+      logger.info('[FeiTian] FeiTian driver initialized successfully');
       return true;
     } catch (error) {
-      console.error('[FeiTian] Initialization failed:', error);
+      logger.error('[FeiTian] Initialization failed:', error);
       this.simulationMode = true;
       this.isInitialized = true;
       return true;
@@ -134,7 +135,7 @@ class FeiTianDriver extends SKFDriver {
    * 飞天诚信特定的检测逻辑
    */
   async detect() {
-    console.log('[FeiTian] Detecting FeiTian device...');
+    logger.info('[FeiTian] Detecting FeiTian device...');
 
     try {
       // 调用父类的检测方法
@@ -148,7 +149,7 @@ class FeiTianDriver extends SKFDriver {
 
       return result;
     } catch (error) {
-      console.error('[FeiTian] Detection failed:', error);
+      logger.error('[FeiTian] Detection failed:', error);
       return {
         detected: false,
         unlocked: false,
@@ -195,7 +196,7 @@ class FeiTianDriver extends SKFDriver {
       throw new Error('设备未解锁');
     }
 
-    console.log('[FeiTian] Getting device serial number...');
+    logger.info('[FeiTian] Getting device serial number...');
 
     if (this.simulationMode) {
       // 模拟序列号
@@ -215,7 +216,7 @@ class FeiTianDriver extends SKFDriver {
       throw new Error('设备未解锁');
     }
 
-    console.log('[FeiTian] Getting device certificate...');
+    logger.info('[FeiTian] Getting device certificate...');
 
     if (this.simulationMode) {
       return null;
@@ -230,7 +231,7 @@ class FeiTianDriver extends SKFDriver {
    * 飞天诚信特定功能：检查设备健康状态
    */
   async checkDeviceHealth() {
-    console.log('[FeiTian] Checking device health...');
+    logger.info('[FeiTian] Checking device health...');
 
     try {
       if (this.simulationMode) {

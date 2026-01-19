@@ -14,6 +14,7 @@
  * - 环境科学工具 (175-176)
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
@@ -884,7 +885,7 @@ describe('${path.basename(sourcePath)}', () => {
       }
     );
 
-    console.log('✅ 第八批扩展工具 (157-176) 注册完成');
+    logger.info('✅ 第八批扩展工具 (157-176) 注册完成');
   }
 }
 

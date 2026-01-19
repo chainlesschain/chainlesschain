@@ -280,6 +280,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, reactive, computed, onMounted } from 'vue';
 import { message } from 'ant-design-vue';
 import {
@@ -463,7 +465,7 @@ async function loadRoles() {
       message.error(result.error || 'Failed to load roles');
     }
   } catch (error) {
-    console.error('Error loading roles:', error);
+    logger.error('Error loading roles:', error);
     message.error('Failed to load roles');
   } finally {
     loading.value = false;
@@ -510,7 +512,7 @@ async function deleteRole(role) {
       message.error(result.error || 'Failed to delete role');
     }
   } catch (error) {
-    console.error('Error deleting role:', error);
+    logger.error('Error deleting role:', error);
     message.error('Failed to delete role');
   }
 }
@@ -541,7 +543,7 @@ async function handleRoleSave() {
       message.error(result.error || `Failed to ${editingRole.value ? 'update' : 'create'} role`);
     }
   } catch (error) {
-    console.error('Error saving role:', error);
+    logger.error('Error saving role:', error);
     if (!error.errorFields) {
       message.error(`Failed to ${editingRole.value ? 'update' : 'create'} role`);
     }
@@ -592,7 +594,7 @@ async function togglePermission(permission, roleName, checked) {
       message.error(result.error || 'Failed to update permission');
     }
   } catch (error) {
-    console.error('Error toggling permission:', error);
+    logger.error('Error toggling permission:', error);
     message.error('Failed to update permission');
   }
 }

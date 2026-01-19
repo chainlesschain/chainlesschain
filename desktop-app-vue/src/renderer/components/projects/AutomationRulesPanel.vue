@@ -400,6 +400,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, onMounted, h } from 'vue';
 import { message } from 'ant-design-vue';
 import {
@@ -475,7 +477,7 @@ async function loadRules() {
     statistics.value = stats;
 
   } catch (error) {
-    console.error('加载规则失败:', error);
+    logger.error('加载规则失败:', error);
     message.error('加载规则失败');
   } finally {
     loading.value = false;
@@ -543,7 +545,7 @@ async function handleSubmit() {
     await loadRules();
 
   } catch (error) {
-    console.error('保存规则失败:', error);
+    logger.error('保存规则失败:', error);
     message.error('保存规则失败: ' + error.message);
   }
 }
@@ -564,7 +566,7 @@ async function handleTrigger(ruleId) {
     await window.electronAPI.automation.manualTrigger(ruleId);
     message.success('规则已触发');
   } catch (error) {
-    console.error('触发规则失败:', error);
+    logger.error('触发规则失败:', error);
     message.error('触发规则失败: ' + error.message);
   }
 }
@@ -578,7 +580,7 @@ async function handleDelete(ruleId) {
     message.success('规则已删除');
     await loadRules();
   } catch (error) {
-    console.error('删除规则失败:', error);
+    logger.error('删除规则失败:', error);
     message.error('删除规则失败');
   }
 }
@@ -594,7 +596,7 @@ async function handleToggle(rule) {
 
     message.success(rule.is_enabled ? '规则已启用' : '规则已禁用');
   } catch (error) {
-    console.error('切换规则状态失败:', error);
+    logger.error('切换规则状态失败:', error);
     message.error('操作失败');
     // 恢复原状态
     rule.is_enabled = rule.is_enabled === 1 ? 0 : 1;

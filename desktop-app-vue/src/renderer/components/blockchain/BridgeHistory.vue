@@ -180,6 +180,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted } from 'vue';
 import { message } from 'ant-design-vue';
 import {
@@ -371,7 +373,7 @@ const handleCopy = async (text) => {
     await navigator.clipboard.writeText(text);
     message.success('已复制到剪贴板');
   } catch (error) {
-    console.error('[BridgeHistory] 复制失败:', error);
+    logger.error('[BridgeHistory] 复制失败:', error);
     message.error('复制失败');
   }
 };
@@ -393,7 +395,7 @@ const handleRefresh = async () => {
     bridgeRecords.value = history || [];
     message.success('刷新成功');
   } catch (error) {
-    console.error('[BridgeHistory] 刷新失败:', error);
+    logger.error('[BridgeHistory] 刷新失败:', error);
     message.error('刷新失败: ' + error.message);
   } finally {
     loading.value = false;

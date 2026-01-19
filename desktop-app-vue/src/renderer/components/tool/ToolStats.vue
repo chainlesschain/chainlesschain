@@ -125,7 +125,7 @@
 
 <script setup>
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
-import * as echarts from 'echarts';
+import { init } from '../../utils/echartsConfig';
 import {
   ToolOutlined,
   CheckCircleOutlined,
@@ -183,7 +183,7 @@ const calculateStats = () => {
 const initTypeChart = () => {
   if (!typeChartRef.value) {return;}
 
-  typeChart = echarts.init(typeChartRef.value);
+  typeChart = init(typeChartRef.value);
 
   // 统计各类型的工具数量
   const typeCount = {};
@@ -229,7 +229,7 @@ const initTypeChart = () => {
 const initUsageChart = () => {
   if (!usageChartRef.value) {return;}
 
-  usageChart = echarts.init(usageChartRef.value);
+  usageChart = init(usageChartRef.value);
 
   const sorted = [...props.tools]
     .sort((a, b) => (b.usage_count || 0) - (a.usage_count || 0))
@@ -276,7 +276,7 @@ const initUsageChart = () => {
 const initTimeChart = () => {
   if (!timeChartRef.value) {return;}
 
-  timeChart = echarts.init(timeChartRef.value);
+  timeChart = init(timeChartRef.value);
 
   const sorted = [...props.tools]
     .filter(t => t.avg_execution_time > 0)
@@ -330,7 +330,7 @@ const initTimeChart = () => {
 const initSuccessRateChart = () => {
   if (!successRateChartRef.value) {return;}
 
-  successRateChart = echarts.init(successRateChartRef.value);
+  successRateChart = init(successRateChartRef.value);
 
   const sorted = [...props.tools]
     .filter(t => t.usage_count > 0)

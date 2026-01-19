@@ -3,6 +3,7 @@
  * 实现视频音频、ML推理、数据分析、模板、API、云存储、日志、性能监控、国际化、工作流等工具
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require('fs').promises;
 const path = require('path');
 const crypto = require('crypto');
@@ -15,7 +16,7 @@ class ExtendedTools3 {
    * @param {FunctionCaller} functionCaller
    */
   static registerAll(functionCaller) {
-    console.log('[ExtendedTools3] 注册第三批扩展工具...');
+    logger.info('[ExtendedTools3] 注册第三批扩展工具...');
 
     // ==================== 视频音频处理工具 ====================
 
@@ -755,7 +756,7 @@ class ExtendedTools3 {
                   : (typeof output === 'string' ? output.trim() : output);
                 break;
               default:
-                console.log(`[Pipeline] 未知转换: ${step.transform}`);
+                logger.info(`[Pipeline] 未知转换: ${step.transform}`);
             }
           }
 
@@ -771,7 +772,7 @@ class ExtendedTools3 {
       }
     );
 
-    console.log('[ExtendedTools3] 第三批扩展工具注册完成 (20个工具)');
+    logger.info('[ExtendedTools3] 第三批扩展工具注册完成 (20个工具)');
   }
 }
 

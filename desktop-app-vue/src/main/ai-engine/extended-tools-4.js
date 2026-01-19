@@ -3,6 +3,7 @@
  * 实现区块链、邮件、PDF、语音、图表、爬虫、验证、缓存、消息队列、容器管理等工具
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require('fs').promises;
 const path = require('path');
 const crypto = require('crypto');
@@ -13,7 +14,7 @@ class ExtendedTools4 {
    * @param {FunctionCaller} functionCaller
    */
   static registerAll(functionCaller) {
-    console.log('[ExtendedTools4] 注册第四批扩展工具...');
+    logger.info('[ExtendedTools4] 注册第四批扩展工具...');
 
     // ==================== 区块链工具 ====================
 
@@ -647,7 +648,7 @@ class ExtendedTools4 {
       }
     );
 
-    console.log('[ExtendedTools4] 第四批扩展工具注册完成 (20个工具)');
+    logger.info('[ExtendedTools4] 第四批扩展工具注册完成 (20个工具)');
   }
 }
 

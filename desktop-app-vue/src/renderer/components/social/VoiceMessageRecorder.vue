@@ -102,6 +102,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, onUnmounted } from 'vue'
 import { message } from 'ant-design-vue'
 import {
@@ -151,7 +153,7 @@ const startRecording = async () => {
       message.error(result.error || '启动录音失败')
     }
   } catch (error) {
-    console.error('启动录音失败:', error)
+    logger.error('启动录音失败:', error)
     message.error('启动录音失败')
   } finally {
     isInitializing.value = false
@@ -168,7 +170,7 @@ const pauseRecording = async () => {
       recordingTimer = null
     }
   } catch (error) {
-    console.error('暂停录音失败:', error)
+    logger.error('暂停录音失败:', error)
     message.error('暂停失败')
   }
 }
@@ -184,7 +186,7 @@ const resumeRecording = async () => {
       }, 1000)
     }
   } catch (error) {
-    console.error('恢复录音失败:', error)
+    logger.error('恢复录音失败:', error)
     message.error('恢复失败')
   }
 }
@@ -212,7 +214,7 @@ const stopRecording = async () => {
       cleanup()
     }
   } catch (error) {
-    console.error('停止录音失败:', error)
+    logger.error('停止录音失败:', error)
     message.error('停止录音失败')
     cleanup()
   }
@@ -225,7 +227,7 @@ const cancelRecording = async () => {
     cleanup()
     message.info('已取消录音')
   } catch (error) {
-    console.error('取消录音失败:', error)
+    logger.error('取消录音失败:', error)
     cleanup()
   }
 }

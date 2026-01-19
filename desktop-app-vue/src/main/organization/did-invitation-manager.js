@@ -9,6 +9,7 @@
  * - 去中心化邀请机制（无需中心服务器）
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { v4: uuidv4 } = require('uuid');
 const crypto = require('crypto');
 const QRCode = require('qrcode');
@@ -119,7 +120,7 @@ class DIDInvitationManager {
       CREATE INDEX IF NOT EXISTS idx_invitation_link_usage_user ON invitation_link_usage(user_did);
     `);
 
-    console.log('[DIDInvitationManager] ✓ 数据库表已初始化');
+    logger.info('[DIDInvitationManager] ✓ 数据库表已初始化');
   }
 
   /**
@@ -127,7 +128,7 @@ class DIDInvitationManager {
    */
   registerP2PHandlers() {
     if (!this.p2pManager) {
-      console.warn('[DIDInvitationManager] P2P Manager未初始化');
+      logger.warn('[DIDInvitationManager] P2P Manager未初始化');
       return;
     }
 
@@ -143,7 +144,7 @@ class DIDInvitationManager {
         const invitation = JSON.parse(invitationData.toString());
         const senderPeerId = connection.remotePeer.toString();
 
-        console.log('[DIDInvitationManager] 收到DID邀请:', invitation.invitationId);
+        logger.info('[DIDInvitationManager] 收到DID邀请:', invitation.invitationId);
 
         // 处理邀请
         await this.handleIncomingInvitation(invitation, senderPeerId);
@@ -152,11 +153,11 @@ class DIDInvitationManager {
         await stream.write(Buffer.from(JSON.stringify({ success: true })));
         await stream.close();
       } catch (error) {
-        console.error('[DIDInvitationManager] 处理DID邀请失败:', error);
+        logger.error('[DIDInvitationManager] 处理DID邀请失败:', error);
       }
     });
 
-    console.log('[DIDInvitationManager] ✓ P2P处理器已注册');
+    logger.info('[DIDInvitationManager] ✓ P2P处理器已注册');
   }
 
   /**
@@ -180,7 +181,7 @@ class DIDInvitationManager {
       metadata = {}
     } = params;
 
-    console.log(`[DIDInvitationManager] 创建DID邀请: ${inviteeDID}`);
+    logger.info(`[DIDInvitationManager] 创建DID邀请: ${inviteeDID}`);
 
     try {
       // 1. 验证权限
@@ -256,11 +257,11 @@ class DIDInvitationManager {
         { inviteeDID, role }
       );
 
-      console.log(`[DIDInvitationManager] ✓ DID邀请已创建: ${invitationId}`);
+      logger.info(`[DIDInvitationManager] ✓ DID邀请已创建: ${invitationId}`);
 
       return invitation;
     } catch (error) {
-      console.error('[DIDInvitationManager] 创建DID邀请失败:', error);
+      logger.error('[DIDInvitationManager] 创建DID邀请失败:', error);
       throw error;
     }
   }
@@ -303,9 +304,9 @@ class DIDInvitationManager {
         { autoQueue: true }
       );
 
-      console.log(`[DIDInvitationManager] ✓ 邀请已通过P2P发送`);
+      logger.info(`[DIDInvitationManager] ✓ 邀请已通过P2P发送`);
     } catch (error) {
-      console.error('[DIDInvitationManager] 发送邀请失败:', error);
+      logger.error('[DIDInvitationManager] 发送邀请失败:', error);
       // 不抛出错误，邀请已保存到数据库
       // 用户可以稍后重试发送
     }
@@ -318,13 +319,13 @@ class DIDInvitationManager {
    * @returns {Promise<void>}
    */
   async handleIncomingInvitation(invitation, senderPeerId) {
-    console.log(`[DIDInvitationManager] 处理收到的邀请: ${invitation.invitationId}`);
+    logger.info(`[DIDInvitationManager] 处理收到的邀请: ${invitation.invitationId}`);
 
     try {
       // 1. 验证邀请
       const currentDID = await this.didManager.getCurrentDID();
       if (invitation.inviteeDID !== currentDID) {
-        console.warn('[DIDInvitationManager] 邀请不是发给当前用户的');
+        logger.warn('[DIDInvitationManager] 邀请不是发给当前用户的');
         return;
       }
 
@@ -334,7 +335,7 @@ class DIDInvitationManager {
       `).get(invitation.invitationId);
 
       if (existing) {
-        console.log('[DIDInvitationManager] 邀请已存在，跳过');
+        logger.info('[DIDInvitationManager] 邀请已存在，跳过');
         return;
       }
 
@@ -357,12 +358,12 @@ class DIDInvitationManager {
         invitation.expiresAt
       ]);
 
-      console.log(`[DIDInvitationManager] ✓ 邀请已保存到本地`);
+      logger.info(`[DIDInvitationManager] ✓ 邀请已保存到本地`);
 
       // 4. 触发通知（可以通过IPC通知前端）
       // TODO: 实现通知机制
     } catch (error) {
-      console.error('[DIDInvitationManager] 处理邀请失败:', error);
+      logger.error('[DIDInvitationManager] 处理邀请失败:', error);
     }
   }
 
@@ -372,7 +373,7 @@ class DIDInvitationManager {
    * @returns {Promise<Object>} 加入的组织信息
    */
   async acceptInvitation(invitationId) {
-    console.log(`[DIDInvitationManager] 接受邀请: ${invitationId}`);
+    logger.info(`[DIDInvitationManager] 接受邀请: ${invitationId}`);
 
     try {
       // 1. 获取邀请信息
@@ -440,14 +441,14 @@ class DIDInvitationManager {
         { inviterDID: invitation.inviter_did }
       );
 
-      console.log(`[DIDInvitationManager] ✓ 邀请已接受`);
+      logger.info(`[DIDInvitationManager] ✓ 邀请已接受`);
 
       // 10. 获取组织信息
       const org = await this.orgManager.getOrganization(invitation.org_id);
 
       return org;
     } catch (error) {
-      console.error('[DIDInvitationManager] 接受邀请失败:', error);
+      logger.error('[DIDInvitationManager] 接受邀请失败:', error);
       throw error;
     }
   }
@@ -459,7 +460,7 @@ class DIDInvitationManager {
    * @returns {Promise<void>}
    */
   async rejectInvitation(invitationId, reason = '') {
-    console.log(`[DIDInvitationManager] 拒绝邀请: ${invitationId}`);
+    logger.info(`[DIDInvitationManager] 拒绝邀请: ${invitationId}`);
 
     try {
       // 1. 获取邀请信息
@@ -492,9 +493,9 @@ class DIDInvitationManager {
       // 5. 通知邀请人
       await this.notifyInviter(invitation, InvitationStatus.REJECTED, reason);
 
-      console.log(`[DIDInvitationManager] ✓ 邀请已拒绝`);
+      logger.info(`[DIDInvitationManager] ✓ 邀请已拒绝`);
     } catch (error) {
-      console.error('[DIDInvitationManager] 拒绝邀请失败:', error);
+      logger.error('[DIDInvitationManager] 拒绝邀请失败:', error);
       throw error;
     }
   }
@@ -505,7 +506,7 @@ class DIDInvitationManager {
    * @returns {Promise<void>}
    */
   async cancelInvitation(invitationId) {
-    console.log(`[DIDInvitationManager] 取消邀请: ${invitationId}`);
+    logger.info(`[DIDInvitationManager] 取消邀请: ${invitationId}`);
 
     try {
       // 1. 获取邀请信息
@@ -538,9 +539,9 @@ class DIDInvitationManager {
       // 5. 通知被邀请人
       await this.notifyInvitee(invitation, InvitationStatus.CANCELLED);
 
-      console.log(`[DIDInvitationManager] ✓ 邀请已取消`);
+      logger.info(`[DIDInvitationManager] ✓ 邀请已取消`);
     } catch (error) {
-      console.error('[DIDInvitationManager] 取消邀请失败:', error);
+      logger.error('[DIDInvitationManager] 取消邀请失败:', error);
       throw error;
     }
   }
@@ -578,9 +579,9 @@ class DIDInvitationManager {
         { autoQueue: true }
       );
 
-      console.log(`[DIDInvitationManager] ✓ 已通知邀请人`);
+      logger.info(`[DIDInvitationManager] ✓ 已通知邀请人`);
     } catch (error) {
-      console.error('[DIDInvitationManager] 通知邀请人失败:', error);
+      logger.error('[DIDInvitationManager] 通知邀请人失败:', error);
     }
   }
 
@@ -611,9 +612,9 @@ class DIDInvitationManager {
         { autoQueue: true }
       );
 
-      console.log(`[DIDInvitationManager] ✓ 已通知被邀请人`);
+      logger.info(`[DIDInvitationManager] ✓ 已通知被邀请人`);
     } catch (error) {
-      console.error('[DIDInvitationManager] 通知被邀请人失败:', error);
+      logger.error('[DIDInvitationManager] 通知被邀请人失败:', error);
     }
   }
 
@@ -652,7 +653,7 @@ class DIDInvitationManager {
         metadata: inv.metadata_json ? JSON.parse(inv.metadata_json) : {}
       }));
     } catch (error) {
-      console.error('[DIDInvitationManager] 获取收到的邀请失败:', error);
+      logger.error('[DIDInvitationManager] 获取收到的邀请失败:', error);
       return [];
     }
   }
@@ -696,7 +697,7 @@ class DIDInvitationManager {
         metadata: inv.metadata_json ? JSON.parse(inv.metadata_json) : {}
       }));
     } catch (error) {
-      console.error('[DIDInvitationManager] 获取发送的邀请失败:', error);
+      logger.error('[DIDInvitationManager] 获取发送的邀请失败:', error);
       return [];
     }
   }
@@ -724,7 +725,7 @@ class DIDInvitationManager {
         metadata: invitation.metadata_json ? JSON.parse(invitation.metadata_json) : {}
       };
     } catch (error) {
-      console.error('[DIDInvitationManager] 获取邀请详情失败:', error);
+      logger.error('[DIDInvitationManager] 获取邀请详情失败:', error);
       return null;
     }
   }
@@ -746,12 +747,12 @@ class DIDInvitationManager {
       const count = result.changes || 0;
 
       if (count > 0) {
-        console.log(`[DIDInvitationManager] ✓ 已清理${count}个过期邀请`);
+        logger.info(`[DIDInvitationManager] ✓ 已清理${count}个过期邀请`);
       }
 
       return count;
     } catch (error) {
-      console.error('[DIDInvitationManager] 清理过期邀请失败:', error);
+      logger.error('[DIDInvitationManager] 清理过期邀请失败:', error);
       return 0;
     }
   }
@@ -816,7 +817,7 @@ class DIDInvitationManager {
         rejected
       };
     } catch (error) {
-      console.error('[DIDInvitationManager] 获取邀请统计失败:', error);
+      logger.error('[DIDInvitationManager] 获取邀请统计失败:', error);
       return {
         sent: 0,
         received: 0,
@@ -865,7 +866,7 @@ class DIDInvitationManager {
       metadata = {}
     } = params;
 
-    console.log(`[DIDInvitationManager] 创建邀请链接: ${orgId}`);
+    logger.info(`[DIDInvitationManager] 创建邀请链接: ${orgId}`);
 
     try {
       // 1. 验证权限
@@ -936,7 +937,7 @@ class DIDInvitationManager {
         { role, maxUses, expiresAt }
       );
 
-      console.log(`[DIDInvitationManager] ✓ 邀请链接已创建: ${linkId}`);
+      logger.info(`[DIDInvitationManager] ✓ 邀请链接已创建: ${linkId}`);
 
       return {
         ...invitationLink,
@@ -946,7 +947,7 @@ class DIDInvitationManager {
         orgAvatar: org.avatar
       };
     } catch (error) {
-      console.error('[DIDInvitationManager] 创建邀请链接失败:', error);
+      logger.error('[DIDInvitationManager] 创建邀请链接失败:', error);
       throw error;
     }
   }
@@ -957,7 +958,7 @@ class DIDInvitationManager {
    * @returns {Promise<Object>} 邀请链接信息
    */
   async validateInvitationToken(token) {
-    console.log(`[DIDInvitationManager] 验证邀请令牌`);
+    logger.info(`[DIDInvitationManager] 验证邀请令牌`);
 
     try {
       // 1. 查询邀请链接
@@ -1015,7 +1016,7 @@ class DIDInvitationManager {
         metadata: link.metadata_json ? JSON.parse(link.metadata_json) : {}
       };
     } catch (error) {
-      console.error('[DIDInvitationManager] 验证邀请令牌失败:', error);
+      logger.error('[DIDInvitationManager] 验证邀请令牌失败:', error);
       throw error;
     }
   }
@@ -1029,7 +1030,7 @@ class DIDInvitationManager {
    * @returns {Promise<Object>} 加入的组织信息
    */
   async acceptInvitationLink(token, options = {}) {
-    console.log(`[DIDInvitationManager] 通过邀请链接加入组织`);
+    logger.info(`[DIDInvitationManager] 通过邀请链接加入组织`);
 
     try {
       // 1. 验证邀请令牌
@@ -1104,14 +1105,14 @@ class DIDInvitationManager {
         { inviterDID: linkInfo.inviterDID }
       );
 
-      console.log(`[DIDInvitationManager] ✓ 通过邀请链接加入组织成功`);
+      logger.info(`[DIDInvitationManager] ✓ 通过邀请链接加入组织成功`);
 
       // 10. 获取组织信息
       const org = await this.orgManager.getOrganization(linkInfo.orgId);
 
       return org;
     } catch (error) {
-      console.error('[DIDInvitationManager] 通过邀请链接加入失败:', error);
+      logger.error('[DIDInvitationManager] 通过邀请链接加入失败:', error);
       throw error;
     }
   }
@@ -1150,7 +1151,7 @@ class DIDInvitationManager {
         isExhausted: link.used_count >= link.max_uses
       }));
     } catch (error) {
-      console.error('[DIDInvitationManager] 获取邀请链接列表失败:', error);
+      logger.error('[DIDInvitationManager] 获取邀请链接列表失败:', error);
       return [];
     }
   }
@@ -1187,7 +1188,7 @@ class DIDInvitationManager {
         usageRecords
       };
     } catch (error) {
-      console.error('[DIDInvitationManager] 获取邀请链接详情失败:', error);
+      logger.error('[DIDInvitationManager] 获取邀请链接详情失败:', error);
       return null;
     }
   }
@@ -1198,7 +1199,7 @@ class DIDInvitationManager {
    * @returns {Promise<void>}
    */
   async revokeInvitationLink(linkId) {
-    console.log(`[DIDInvitationManager] 撤销邀请链接: ${linkId}`);
+    logger.info(`[DIDInvitationManager] 撤销邀请链接: ${linkId}`);
 
     try {
       // 1. 获取链接信息
@@ -1236,9 +1237,9 @@ class DIDInvitationManager {
         {}
       );
 
-      console.log(`[DIDInvitationManager] ✓ 邀请链接已撤销`);
+      logger.info(`[DIDInvitationManager] ✓ 邀请链接已撤销`);
     } catch (error) {
-      console.error('[DIDInvitationManager] 撤销邀请链接失败:', error);
+      logger.error('[DIDInvitationManager] 撤销邀请链接失败:', error);
       throw error;
     }
   }
@@ -1249,7 +1250,7 @@ class DIDInvitationManager {
    * @returns {Promise<void>}
    */
   async deleteInvitationLink(linkId) {
-    console.log(`[DIDInvitationManager] 删除邀请链接: ${linkId}`);
+    logger.info(`[DIDInvitationManager] 删除邀请链接: ${linkId}`);
 
     try {
       // 1. 获取链接信息
@@ -1290,9 +1291,9 @@ class DIDInvitationManager {
         {}
       );
 
-      console.log(`[DIDInvitationManager] ✓ 邀请链接已删除`);
+      logger.info(`[DIDInvitationManager] ✓ 邀请链接已删除`);
     } catch (error) {
-      console.error('[DIDInvitationManager] 删除邀请链接失败:', error);
+      logger.error('[DIDInvitationManager] 删除邀请链接失败:', error);
       throw error;
     }
   }
@@ -1328,7 +1329,7 @@ class DIDInvitationManager {
           : 0
       };
     } catch (error) {
-      console.error('[DIDInvitationManager] 获取邀请链接统计失败:', error);
+      logger.error('[DIDInvitationManager] 获取邀请链接统计失败:', error);
       return {
         total: 0,
         active: 0,
@@ -1361,7 +1362,7 @@ class DIDInvitationManager {
       errorCorrectionLevel = 'M'
     } = options;
 
-    console.log(`[DIDInvitationManager] 生成邀请QR码: ${linkId}`);
+    logger.info(`[DIDInvitationManager] 生成邀请QR码: ${linkId}`);
 
     try {
       // 1. 获取邀请链接信息
@@ -1409,11 +1410,11 @@ class DIDInvitationManager {
           break;
       }
 
-      console.log(`[DIDInvitationManager] ✓ QR码已生成 (${format})`);
+      logger.info(`[DIDInvitationManager] ✓ QR码已生成 (${format})`);
 
       return qrCode;
     } catch (error) {
-      console.error('[DIDInvitationManager] 生成QR码失败:', error);
+      logger.error('[DIDInvitationManager] 生成QR码失败:', error);
       throw error;
     }
   }
@@ -1425,7 +1426,7 @@ class DIDInvitationManager {
    * @returns {Promise<string>} QR码数据URL
    */
   async generateDIDInvitationQRCode(invitationId, options = {}) {
-    console.log(`[DIDInvitationManager] 生成DID邀请QR码: ${invitationId}`);
+    logger.info(`[DIDInvitationManager] 生成DID邀请QR码: ${invitationId}`);
 
     try {
       // 1. 获取邀请信息
@@ -1455,11 +1456,11 @@ class DIDInvitationManager {
 
       const qrCode = await QRCode.toDataURL(JSON.stringify(invitationData), qrOptions);
 
-      console.log(`[DIDInvitationManager] ✓ DID邀请QR码已生成`);
+      logger.info(`[DIDInvitationManager] ✓ DID邀请QR码已生成`);
 
       return qrCode;
     } catch (error) {
-      console.error('[DIDInvitationManager] 生成DID邀请QR码失败:', error);
+      logger.error('[DIDInvitationManager] 生成DID邀请QR码失败:', error);
       throw error;
     }
   }
@@ -1473,7 +1474,7 @@ class DIDInvitationManager {
    * @returns {Promise<Array<Object>>} QR码列表
    */
   async generateBatchInvitationQRCodes(orgId, options = {}) {
-    console.log(`[DIDInvitationManager] 批量生成邀请QR码: ${orgId}`);
+    logger.info(`[DIDInvitationManager] 批量生成邀请QR码: ${orgId}`);
 
     try {
       // 1. 获取邀请链接列表
@@ -1499,7 +1500,7 @@ class DIDInvitationManager {
               remainingUses: link.remainingUses
             };
           } catch (error) {
-            console.error(`[DIDInvitationManager] 生成QR码失败 (${link.link_id}):`, error);
+            logger.error(`[DIDInvitationManager] 生成QR码失败 (${link.link_id}):`, error);
             return null;
           }
         })
@@ -1508,11 +1509,11 @@ class DIDInvitationManager {
       // 3. 过滤掉失败的
       const validQRCodes = qrCodes.filter(qr => qr !== null);
 
-      console.log(`[DIDInvitationManager] ✓ 批量生成完成: ${validQRCodes.length}/${links.length}`);
+      logger.info(`[DIDInvitationManager] ✓ 批量生成完成: ${validQRCodes.length}/${links.length}`);
 
       return validQRCodes;
     } catch (error) {
-      console.error('[DIDInvitationManager] 批量生成QR码失败:', error);
+      logger.error('[DIDInvitationManager] 批量生成QR码失败:', error);
       throw error;
     }
   }
@@ -1523,7 +1524,7 @@ class DIDInvitationManager {
    * @returns {Promise<Object>} 解析后的邀请信息
    */
   async parseInvitationQRCode(qrData) {
-    console.log(`[DIDInvitationManager] 解析邀请QR码`);
+    logger.info(`[DIDInvitationManager] 解析邀请QR码`);
 
     try {
       // 1. 尝试解析为URL
@@ -1552,7 +1553,7 @@ class DIDInvitationManager {
 
       throw new Error('无效的邀请QR码格式');
     } catch (error) {
-      console.error('[DIDInvitationManager] 解析QR码失败:', error);
+      logger.error('[DIDInvitationManager] 解析QR码失败:', error);
       throw error;
     }
   }

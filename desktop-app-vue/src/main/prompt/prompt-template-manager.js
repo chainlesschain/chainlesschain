@@ -4,6 +4,7 @@
  * 管理 AI 提示词模板，支持变量替换、分类管理、使用统计等功能
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { v4: uuidv4 } = require('uuid');
 
 /**
@@ -20,7 +21,7 @@ class PromptTemplateManager {
    */
   async initialize() {
     try {
-      console.log('[PromptTemplateManager] 初始化提示词模板管理器...');
+      logger.info('[PromptTemplateManager] 初始化提示词模板管理器...');
 
       // 创建表
       await this.createTable();
@@ -28,10 +29,10 @@ class PromptTemplateManager {
       // 插入内置模板
       await this.insertBuiltInTemplates();
 
-      console.log('[PromptTemplateManager] 提示词模板管理器初始化成功');
+      logger.info('[PromptTemplateManager] 提示词模板管理器初始化成功');
       return true;
     } catch (error) {
-      console.error('[PromptTemplateManager] 初始化失败:', error);
+      logger.error('[PromptTemplateManager] 初始化失败:', error);
       throw error;
     }
   }
@@ -56,7 +57,7 @@ class PromptTemplateManager {
     `;
 
     await this.db.run(sql);
-    console.log('[PromptTemplateManager] 数据库表已创建');
+    logger.info('[PromptTemplateManager] 数据库表已创建');
   }
 
   /**
@@ -69,7 +70,7 @@ class PromptTemplateManager {
     );
 
     if (existing && existing.count > 0) {
-      console.log('[PromptTemplateManager] 内置模板已存在，跳过插入');
+      logger.info('[PromptTemplateManager] 内置模板已存在，跳过插入');
       return;
     }
 
@@ -2744,7 +2745,7 @@ H2: [假设内容]
       );
     }
 
-    console.log('[PromptTemplateManager] 内置模板已插入:', builtInTemplates.length);
+    logger.info('[PromptTemplateManager] 内置模板已插入:', builtInTemplates.length);
   }
 
   /**

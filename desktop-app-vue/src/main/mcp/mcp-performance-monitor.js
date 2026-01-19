@@ -7,6 +7,7 @@
  * @module MCPPerformanceMonitor
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const EventEmitter = require("events");
 
 class MCPPerformanceMonitor extends EventEmitter {
@@ -49,7 +50,7 @@ class MCPPerformanceMonitor extends EventEmitter {
       overhead: null, // Calculated overhead
     };
 
-    console.log("[MCPPerformanceMonitor] Initialized");
+    logger.info("[MCPPerformanceMonitor] Initialized");
   }
 
   /**
@@ -68,7 +69,7 @@ class MCPPerformanceMonitor extends EventEmitter {
       this.metrics.connections.failed++;
     }
 
-    console.log(
+    logger.info(
       `[MCPPerformanceMonitor] Connection to ${serverName}: ${duration}ms (${success ? "success" : "failed"})`,
     );
 
@@ -190,10 +191,10 @@ class MCPPerformanceMonitor extends EventEmitter {
       this.baselines.overhead =
         this.baselines.stdioCall - this.baselines.directCall;
 
-      console.log("[MCPPerformanceMonitor] Baselines updated:");
-      console.log(`  Direct call: ${this.baselines.directCall.toFixed(2)}ms`);
-      console.log(`  stdio call: ${this.baselines.stdioCall.toFixed(2)}ms`);
-      console.log(`  Overhead: ${this.baselines.overhead.toFixed(2)}ms`);
+      logger.info("[MCPPerformanceMonitor] Baselines updated:");
+      logger.info(`  Direct call: ${this.baselines.directCall.toFixed(2)}ms`);
+      logger.info(`  stdio call: ${this.baselines.stdioCall.toFixed(2)}ms`);
+      logger.info(`  Overhead: ${this.baselines.overhead.toFixed(2)}ms`);
     }
   }
 
@@ -327,7 +328,7 @@ class MCPPerformanceMonitor extends EventEmitter {
       errors: [],
     };
 
-    console.log("[MCPPerformanceMonitor] Metrics reset");
+    logger.info("[MCPPerformanceMonitor] Metrics reset");
   }
 
   // ===================================

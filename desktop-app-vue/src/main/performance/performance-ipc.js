@@ -1,3 +1,4 @@
+const { logger, createLogger } = require('../utils/logger.js');
 const { ipcMain } = require('electron');
 const { getPerformanceMonitor } = require('./performance-monitor');
 const { getIPCPerformanceInterceptor } = require('./ipc-performance-interceptor');
@@ -15,7 +16,7 @@ function registerPerformanceIPC() {
       performanceMonitor.start();
       return { success: true };
     } catch (error) {
-      console.error('[PerformanceIPC] 启动监控失败:', error);
+      logger.error('[PerformanceIPC] 启动监控失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -26,7 +27,7 @@ function registerPerformanceIPC() {
       performanceMonitor.stop();
       return { success: true };
     } catch (error) {
-      console.error('[PerformanceIPC] 停止监控失败:', error);
+      logger.error('[PerformanceIPC] 停止监控失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -37,7 +38,7 @@ function registerPerformanceIPC() {
       const summary = performanceMonitor.getSummary();
       return { success: true, data: summary };
     } catch (error) {
-      console.error('[PerformanceIPC] 获取摘要失败:', error);
+      logger.error('[PerformanceIPC] 获取摘要失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -48,7 +49,7 @@ function registerPerformanceIPC() {
       const metrics = performanceMonitor.getMetrics();
       return { success: true, data: metrics };
     } catch (error) {
-      console.error('[PerformanceIPC] 获取指标失败:', error);
+      logger.error('[PerformanceIPC] 获取指标失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -59,7 +60,7 @@ function registerPerformanceIPC() {
       const cpuMetrics = performanceMonitor.getCPUMetrics();
       return { success: true, data: cpuMetrics };
     } catch (error) {
-      console.error('[PerformanceIPC] 获取CPU指标失败:', error);
+      logger.error('[PerformanceIPC] 获取CPU指标失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -70,7 +71,7 @@ function registerPerformanceIPC() {
       const memoryMetrics = performanceMonitor.getMemoryMetrics();
       return { success: true, data: memoryMetrics };
     } catch (error) {
-      console.error('[PerformanceIPC] 获取内存指标失败:', error);
+      logger.error('[PerformanceIPC] 获取内存指标失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -81,7 +82,7 @@ function registerPerformanceIPC() {
       const requests = ipcInterceptor.getActiveRequests();
       return { success: true, data: requests };
     } catch (error) {
-      console.error('[PerformanceIPC] 获取活动请求失败:', error);
+      logger.error('[PerformanceIPC] 获取活动请求失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -92,7 +93,7 @@ function registerPerformanceIPC() {
       const requests = ipcInterceptor.getSlowRequests(threshold);
       return { success: true, data: requests };
     } catch (error) {
-      console.error('[PerformanceIPC] 获取慢请求失败:', error);
+      logger.error('[PerformanceIPC] 获取慢请求失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -103,7 +104,7 @@ function registerPerformanceIPC() {
       performanceMonitor.clearHistory();
       return { success: true };
     } catch (error) {
-      console.error('[PerformanceIPC] 清除历史失败:', error);
+      logger.error('[PerformanceIPC] 清除历史失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -114,7 +115,7 @@ function registerPerformanceIPC() {
       performanceMonitor.updateConfig(config);
       return { success: true };
     } catch (error) {
-      console.error('[PerformanceIPC] 更新配置失败:', error);
+      logger.error('[PerformanceIPC] 更新配置失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -125,7 +126,7 @@ function registerPerformanceIPC() {
       const report = performanceMonitor.exportReport();
       return { success: true, data: report };
     } catch (error) {
-      console.error('[PerformanceIPC] 导出报告失败:', error);
+      logger.error('[PerformanceIPC] 导出报告失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -137,7 +138,7 @@ function registerPerformanceIPC() {
       const slowQueries = metrics.database.slowQueries.slice(-limit);
       return { success: true, data: slowQueries };
     } catch (error) {
-      console.error('[PerformanceIPC] 获取慢查询失败:', error);
+      logger.error('[PerformanceIPC] 获取慢查询失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -149,12 +150,12 @@ function registerPerformanceIPC() {
       const slowCalls = metrics.ipc.slowCalls.slice(-limit);
       return { success: true, data: slowCalls };
     } catch (error) {
-      console.error('[PerformanceIPC] 获取慢调用失败:', error);
+      logger.error('[PerformanceIPC] 获取慢调用失败:', error);
       return { success: false, error: error.message };
     }
   });
 
-  console.log('[PerformanceIPC] 性能监控IPC处理器已注册');
+  logger.info('[PerformanceIPC] 性能监控IPC处理器已注册');
 }
 
 module.exports = {

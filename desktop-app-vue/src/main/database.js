@@ -5,9 +5,10 @@ try {
   // sql.js exports a function as default export
   initSqlJs = sqlJsModule.default || sqlJsModule;
 } catch (err) {
-  console.log("[Database] sql.js not available (will use better-sqlite3)");
+  logger.info("[Database] sql.js not available (will use better-sqlite3)");
 }
 
+const { logger, createLogger } = require('./utils/logger.js');
 const path = require("path");
 const fs = require("fs");
 const { v4: uuidv4 } = require("uuid");
@@ -23,7 +24,7 @@ try {
   const dbModule = require("./database/index");
   createDatabaseAdapter = dbModule.createDatabaseAdapter;
 } catch (e) {
-  console.warn("[Database] 加密模块不可用，将使用sql.js:", e.message);
+  logger.warn("[Database] 加密模块不可用，将使用sql.js:", e.message);
   createDatabaseAdapter = null;
 }
 
@@ -33,11 +34,11 @@ if (!disableNativeDb) {
     const betterSqliteModule = require("./database/better-sqlite-adapter");
     createBetterSQLiteAdapter = betterSqliteModule.createBetterSQLiteAdapter;
   } catch (e) {
-    console.warn("[Database] Better-SQLite3 适配器不可用:", e.message);
+    logger.warn("[Database] Better-SQLite3 适配器不可用:", e.message);
     createBetterSQLiteAdapter = null;
   }
 } else {
-  console.log(
+  logger.info(
     "[Database] 本地 Better-SQLite3 适配器已通过环境变量禁用，直接使用 sql.js",
   );
   createBetterSQLiteAdapter = null;
@@ -104,9 +105,9 @@ class DatabaseManager {
         ttl: 1000 * 60 * 5, // 5分钟过期
         updateAgeOnGet: true, // 访问时更新年龄
       });
-      console.log('[Database] 查询缓存已初始化 (最大500项, 10MB, TTL: 5分钟)');
+      logger.info('[Database] 查询缓存已初始化 (最大500项, 10MB, TTL: 5分钟)');
     } catch (error) {
-      console.warn('[Database] 查询缓存初始化失败，将不使用查询缓存:', error.message);
+      logger.warn('[Database] 查询缓存初始化失败，将不使用查询缓存:', error.message);
       this.queryCache = null;
     }
   }
@@ -131,7 +132,7 @@ class DatabaseManager {
    */
   clearPreparedStatements() {
     this.preparedStatements.clear();
-    console.log('[Database] Prepared statement缓存已清除');
+    logger.info('[Database] Prepared statement缓存已清除');
   }
 
   /**
@@ -148,7 +149,7 @@ class DatabaseManager {
         appConfig.ensureDatabaseDir();
       }
 
-      console.log("数据库路径:", this.dbPath);
+      logger.info("数据库路径:", this.dbPath);
 
       // 开发环境优先使用 Better-SQLite3
       const isDevelopment =
@@ -156,7 +157,7 @@ class DatabaseManager {
       if (isDevelopment && createBetterSQLiteAdapter) {
         try {
           await this.initializeWithBetterSQLite();
-          console.log("数据库初始化成功（Better-SQLite3 开发模式）");
+          logger.info("数据库初始化成功（Better-SQLite3 开发模式）");
 
           // Verify database is actually initialized
           if (!this.db) {
@@ -165,11 +166,11 @@ class DatabaseManager {
 
           return true;
         } catch (error) {
-          console.warn(
+          logger.warn(
             "[Database] Better-SQLite3 初始化失败，尝试其他方式:",
             error.message,
           );
-          console.warn("[Database] 错误堆栈:", error.stack);
+          logger.warn("[Database] 错误堆栈:", error.stack);
         }
       }
 
@@ -177,7 +178,7 @@ class DatabaseManager {
       if (createDatabaseAdapter && this.encryptionEnabled) {
         try {
           await this.initializeWithAdapter();
-          console.log("数据库初始化成功（SQLCipher 加密模式）");
+          logger.info("数据库初始化成功（SQLCipher 加密模式）");
 
           // Verify database is actually initialized
           if (!this.db) {
@@ -186,18 +187,18 @@ class DatabaseManager {
 
           return true;
         } catch (error) {
-          console.warn(
+          logger.warn(
             "[Database] 加密初始化失败，回退到 sql.js:",
             error.message,
           );
-          console.warn("[Database] 错误堆栈:", error.stack);
+          logger.warn("[Database] 错误堆栈:", error.stack);
           // 继续使用 sql.js
         }
       }
 
       // Fallback: 使用 sql.js
       await this.initializeWithSqlJs();
-      console.log("数据库初始化成功（sql.js 模式）");
+      logger.info("数据库初始化成功（sql.js 模式）");
 
       // Verify database is actually initialized
       if (!this.db) {
@@ -206,8 +207,8 @@ class DatabaseManager {
 
       return true;
     } catch (error) {
-      console.error("数据库初始化失败:", error);
-      console.error("错误堆栈:", error.stack);
+      logger.error("数据库初始化失败:", error);
+      logger.error("错误堆栈:", error.stack);
       throw error;
     }
   }
@@ -216,7 +217,7 @@ class DatabaseManager {
    * 使用 Better-SQLite3 初始化（开发模式）
    */
   async initializeWithBetterSQLite() {
-    console.log("[Database] 使用 Better-SQLite3 初始化数据库...");
+    logger.info("[Database] 使用 Better-SQLite3 初始化数据库...");
 
     // 创建适配器
     this.adapter = await createBetterSQLiteAdapter({
@@ -375,12 +376,12 @@ class DatabaseManager {
 
         for (const filePath of possiblePaths) {
           if (fs.existsSync(filePath)) {
-            console.log("Found sql.js WASM at:", filePath);
+            logger.info("Found sql.js WASM at:", filePath);
             return filePath;
           }
         }
 
-        console.error("Could not find sql.js WASM file. Tried:", possiblePaths);
+        logger.error("Could not find sql.js WASM file. Tried:", possiblePaths);
         return possiblePaths[0];
       },
     });
@@ -436,8 +437,8 @@ class DatabaseManager {
             : 0,
         };
       } catch (error) {
-        console.error("[Database] db.run() failed:", error.message);
-        console.error("[Database] SQL:", sql.substring(0, 100));
+        logger.error("[Database] db.run() failed:", error.message);
+        logger.error("[Database] SQL:", sql.substring(0, 100));
         throw error;
       }
     };
@@ -519,7 +520,7 @@ class DatabaseManager {
                 row = null;
               }
             } catch (err) {
-              console.error("[Database] 构建行对象失败:", err);
+              logger.error("[Database] 构建行对象失败:", err);
               row = null;
             }
           }
@@ -566,7 +567,7 @@ class DatabaseManager {
                 rows.push(row);
               }
             } catch (err) {
-              console.error("[Database] 构建行对象失败:", err);
+              logger.error("[Database] 构建行对象失败:", err);
               // 跳过这一行，继续处理下一行
             }
           }
@@ -663,7 +664,7 @@ class DatabaseManager {
    * 创建数据库表
    */
   createTables() {
-    console.log("[Database] 开始创建数据库表...");
+    logger.info("[Database] 开始创建数据库表...");
 
     try {
       // 使用exec()一次性执行所有SQL语句
@@ -2296,15 +2297,15 @@ class DatabaseManager {
       CREATE INDEX IF NOT EXISTS idx_email_attachments_email ON email_attachments(email_id);
     `);
 
-      console.log("[Database] ✓ 所有表和索引创建成功");
+      logger.info("[Database] ✓ 所有表和索引创建成功");
 
       // 保存更改
       this.saveToFile();
-      console.log("[Database] 数据库表创建完成");
+      logger.info("[Database] 数据库表创建完成");
     } catch (error) {
-      console.error("[Database] 创建表失败:", error);
-      console.error("[Database] 错误详情:", error.message);
-      console.error("[Database] 错误堆栈:", error.stack);
+      logger.error("[Database] 创建表失败:", error);
+      logger.error("[Database] 错误详情:", error.message);
+      logger.error("[Database] 错误堆栈:", error.stack);
       throw error;
     }
 
@@ -2313,13 +2314,13 @@ class DatabaseManager {
     try {
       this.initDefaultSettings();
     } catch (error) {
-      console.warn("[Database] 初始化默认配置失败（可忽略）:", error.message);
+      logger.warn("[Database] 初始化默认配置失败（可忽略）:", error.message);
     }
 
     try {
       this.migrateDatabase();
     } catch (error) {
-      console.warn("[Database] 数据库迁移失败（可忽略）:", error.message);
+      logger.warn("[Database] 数据库迁移失败（可忽略）:", error.message);
     }
   }
 
@@ -2327,7 +2328,7 @@ class DatabaseManager {
    * 数据库迁移：为已存在的表添加新列
    */
   migrateDatabase() {
-    console.log("[Database] 开始数据库迁移...");
+    logger.info("[Database] 开始数据库迁移...");
 
     try {
       // ==================== 原有迁移 ====================
@@ -2346,17 +2347,17 @@ class DatabaseManager {
       );
 
       if (!hasProjectId) {
-        console.log("[Database] 添加 conversations.project_id 列");
+        logger.info("[Database] 添加 conversations.project_id 列");
         this.db.run("ALTER TABLE conversations ADD COLUMN project_id TEXT");
       }
       if (!hasContextType) {
-        console.log("[Database] 添加 conversations.context_type 列");
+        logger.info("[Database] 添加 conversations.context_type 列");
         this.db.run(
           "ALTER TABLE conversations ADD COLUMN context_type TEXT DEFAULT 'global'",
         );
       }
       if (!hasContextData) {
-        console.log("[Database] 添加 conversations.context_data 列");
+        logger.info("[Database] 添加 conversations.context_data 列");
         this.db.run("ALTER TABLE conversations ADD COLUMN context_data TEXT");
       }
 
@@ -2367,7 +2368,7 @@ class DatabaseManager {
       const hasFsPath = projectFilesInfo.some((col) => col.name === "fs_path");
 
       if (!hasFsPath) {
-        console.log("[Database] 添加 project_files.fs_path 列");
+        logger.info("[Database] 添加 project_files.fs_path 列");
         this.db.run("ALTER TABLE project_files ADD COLUMN fs_path TEXT");
       }
 
@@ -2380,27 +2381,27 @@ class DatabaseManager {
       );
 
       if (!hasTransferId) {
-        console.log("[Database] 添加 p2p_chat_messages.transfer_id 列");
+        logger.info("[Database] 添加 p2p_chat_messages.transfer_id 列");
         this.db.run(
           "ALTER TABLE p2p_chat_messages ADD COLUMN transfer_id TEXT",
         );
       }
 
       // ==================== 同步字段迁移（V2） ====================
-      console.log("[Database] 执行同步字段迁移 (V2)...");
+      logger.info("[Database] 执行同步字段迁移 (V2)...");
 
       // 为 projects 表添加设备ID和同步字段
       const projectsInfo = this.db.prepare("PRAGMA table_info(projects)").all();
       if (!projectsInfo.some((col) => col.name === "device_id")) {
-        console.log("[Database] 添加 projects.device_id 列");
+        logger.info("[Database] 添加 projects.device_id 列");
         this.db.run("ALTER TABLE projects ADD COLUMN device_id TEXT");
       }
       if (!projectsInfo.some((col) => col.name === "synced_at")) {
-        console.log("[Database] 添加 projects.synced_at 列");
+        logger.info("[Database] 添加 projects.synced_at 列");
         this.db.run("ALTER TABLE projects ADD COLUMN synced_at INTEGER");
       }
       if (!projectsInfo.some((col) => col.name === "deleted")) {
-        console.log("[Database] 添加 projects.deleted 列");
+        logger.info("[Database] 添加 projects.deleted 列");
         this.db.run(
           "ALTER TABLE projects ADD COLUMN deleted INTEGER DEFAULT 0",
         );
@@ -2411,26 +2412,26 @@ class DatabaseManager {
         .prepare("PRAGMA table_info(conversations)")
         .all();
       if (!convSyncInfo.some((col) => col.name === "sync_status")) {
-        console.log("[Database] 添加 conversations.sync_status 列");
+        logger.info("[Database] 添加 conversations.sync_status 列");
         this.db.run(
           "ALTER TABLE conversations ADD COLUMN sync_status TEXT DEFAULT 'pending'",
         );
       }
       if (!convSyncInfo.some((col) => col.name === "synced_at")) {
-        console.log("[Database] 添加 conversations.synced_at 列");
+        logger.info("[Database] 添加 conversations.synced_at 列");
         this.db.run("ALTER TABLE conversations ADD COLUMN synced_at INTEGER");
       }
 
       // 为 messages 表添加同步字段
       const messagesInfo = this.db.prepare("PRAGMA table_info(messages)").all();
       if (!messagesInfo.some((col) => col.name === "sync_status")) {
-        console.log("[Database] 添加 messages.sync_status 列");
+        logger.info("[Database] 添加 messages.sync_status 列");
         this.db.run(
           "ALTER TABLE messages ADD COLUMN sync_status TEXT DEFAULT 'pending'",
         );
       }
       if (!messagesInfo.some((col) => col.name === "synced_at")) {
-        console.log("[Database] 添加 messages.synced_at 列");
+        logger.info("[Database] 添加 messages.synced_at 列");
         this.db.run("ALTER TABLE messages ADD COLUMN synced_at INTEGER");
       }
 
@@ -2439,21 +2440,21 @@ class DatabaseManager {
         .prepare("PRAGMA table_info(project_files)")
         .all();
       if (!filesSyncInfo.some((col) => col.name === "device_id")) {
-        console.log("[Database] 添加 project_files.device_id 列");
+        logger.info("[Database] 添加 project_files.device_id 列");
         this.db.run("ALTER TABLE project_files ADD COLUMN device_id TEXT");
       }
       if (!filesSyncInfo.some((col) => col.name === "sync_status")) {
-        console.log("[Database] 添加 project_files.sync_status 列");
+        logger.info("[Database] 添加 project_files.sync_status 列");
         this.db.run(
           "ALTER TABLE project_files ADD COLUMN sync_status TEXT DEFAULT 'pending'",
         );
       }
       if (!filesSyncInfo.some((col) => col.name === "synced_at")) {
-        console.log("[Database] 添加 project_files.synced_at 列");
+        logger.info("[Database] 添加 project_files.synced_at 列");
         this.db.run("ALTER TABLE project_files ADD COLUMN synced_at INTEGER");
       }
       if (!filesSyncInfo.some((col) => col.name === "deleted")) {
-        console.log("[Database] 添加 project_files.deleted 列");
+        logger.info("[Database] 添加 project_files.deleted 列");
         this.db.run(
           "ALTER TABLE project_files ADD COLUMN deleted INTEGER DEFAULT 0",
         );
@@ -2464,66 +2465,66 @@ class DatabaseManager {
         .prepare("PRAGMA table_info(knowledge_items)")
         .all();
       if (!knowledgeInfo.some((col) => col.name === "device_id")) {
-        console.log("[Database] 添加 knowledge_items.device_id 列");
+        logger.info("[Database] 添加 knowledge_items.device_id 列");
         this.db.run("ALTER TABLE knowledge_items ADD COLUMN device_id TEXT");
       }
       if (!knowledgeInfo.some((col) => col.name === "sync_status")) {
-        console.log("[Database] 添加 knowledge_items.sync_status 列");
+        logger.info("[Database] 添加 knowledge_items.sync_status 列");
         this.db.run(
           "ALTER TABLE knowledge_items ADD COLUMN sync_status TEXT DEFAULT 'pending'",
         );
       }
       if (!knowledgeInfo.some((col) => col.name === "synced_at")) {
-        console.log("[Database] 添加 knowledge_items.synced_at 列");
+        logger.info("[Database] 添加 knowledge_items.synced_at 列");
         this.db.run("ALTER TABLE knowledge_items ADD COLUMN synced_at INTEGER");
       }
       if (!knowledgeInfo.some((col) => col.name === "deleted")) {
-        console.log("[Database] 添加 knowledge_items.deleted 列");
+        logger.info("[Database] 添加 knowledge_items.deleted 列");
         this.db.run(
           "ALTER TABLE knowledge_items ADD COLUMN deleted INTEGER DEFAULT 0",
         );
       }
 
       // ==================== 企业版字段迁移 ====================
-      console.log("[Database] 执行企业版字段迁移...");
+      logger.info("[Database] 执行企业版字段迁移...");
 
       // 为 knowledge_items 表添加组织相关字段
       if (!knowledgeInfo.some((col) => col.name === "org_id")) {
-        console.log("[Database] 添加 knowledge_items.org_id 列");
+        logger.info("[Database] 添加 knowledge_items.org_id 列");
         this.db.run("ALTER TABLE knowledge_items ADD COLUMN org_id TEXT");
       }
       if (!knowledgeInfo.some((col) => col.name === "created_by")) {
-        console.log("[Database] 添加 knowledge_items.created_by 列");
+        logger.info("[Database] 添加 knowledge_items.created_by 列");
         this.db.run("ALTER TABLE knowledge_items ADD COLUMN created_by TEXT");
       }
       if (!knowledgeInfo.some((col) => col.name === "updated_by")) {
-        console.log("[Database] 添加 knowledge_items.updated_by 列");
+        logger.info("[Database] 添加 knowledge_items.updated_by 列");
         this.db.run("ALTER TABLE knowledge_items ADD COLUMN updated_by TEXT");
       }
       if (!knowledgeInfo.some((col) => col.name === "share_scope")) {
-        console.log("[Database] 添加 knowledge_items.share_scope 列");
+        logger.info("[Database] 添加 knowledge_items.share_scope 列");
         this.db.run(
           "ALTER TABLE knowledge_items ADD COLUMN share_scope TEXT DEFAULT 'private'",
         );
       }
       if (!knowledgeInfo.some((col) => col.name === "permissions")) {
-        console.log("[Database] 添加 knowledge_items.permissions 列");
+        logger.info("[Database] 添加 knowledge_items.permissions 列");
         this.db.run("ALTER TABLE knowledge_items ADD COLUMN permissions TEXT");
       }
       if (!knowledgeInfo.some((col) => col.name === "version")) {
-        console.log("[Database] 添加 knowledge_items.version 列");
+        logger.info("[Database] 添加 knowledge_items.version 列");
         this.db.run(
           "ALTER TABLE knowledge_items ADD COLUMN version INTEGER DEFAULT 1",
         );
       }
       if (!knowledgeInfo.some((col) => col.name === "parent_version_id")) {
-        console.log("[Database] 添加 knowledge_items.parent_version_id 列");
+        logger.info("[Database] 添加 knowledge_items.parent_version_id 列");
         this.db.run(
           "ALTER TABLE knowledge_items ADD COLUMN parent_version_id TEXT",
         );
       }
       if (!knowledgeInfo.some((col) => col.name === "cid")) {
-        console.log("[Database] 添加 knowledge_items.cid 列");
+        logger.info("[Database] 添加 knowledge_items.cid 列");
         this.db.run("ALTER TABLE knowledge_items ADD COLUMN cid TEXT");
       }
 
@@ -2532,37 +2533,37 @@ class DatabaseManager {
         .prepare("PRAGMA table_info(project_collaborators)")
         .all();
       if (!collabInfo.some((col) => col.name === "created_at")) {
-        console.log("[Database] 添加 project_collaborators.created_at 列");
+        logger.info("[Database] 添加 project_collaborators.created_at 列");
         this.db.run(
           "ALTER TABLE project_collaborators ADD COLUMN created_at INTEGER NOT NULL DEFAULT 0",
         );
       }
       if (!collabInfo.some((col) => col.name === "updated_at")) {
-        console.log("[Database] 添加 project_collaborators.updated_at 列");
+        logger.info("[Database] 添加 project_collaborators.updated_at 列");
         this.db.run(
           "ALTER TABLE project_collaborators ADD COLUMN updated_at INTEGER NOT NULL DEFAULT 0",
         );
       }
       if (!collabInfo.some((col) => col.name === "device_id")) {
-        console.log("[Database] 添加 project_collaborators.device_id 列");
+        logger.info("[Database] 添加 project_collaborators.device_id 列");
         this.db.run(
           "ALTER TABLE project_collaborators ADD COLUMN device_id TEXT",
         );
       }
       if (!collabInfo.some((col) => col.name === "sync_status")) {
-        console.log("[Database] 添加 project_collaborators.sync_status 列");
+        logger.info("[Database] 添加 project_collaborators.sync_status 列");
         this.db.run(
           "ALTER TABLE project_collaborators ADD COLUMN sync_status TEXT DEFAULT 'pending'",
         );
       }
       if (!collabInfo.some((col) => col.name === "synced_at")) {
-        console.log("[Database] 添加 project_collaborators.synced_at 列");
+        logger.info("[Database] 添加 project_collaborators.synced_at 列");
         this.db.run(
           "ALTER TABLE project_collaborators ADD COLUMN synced_at INTEGER",
         );
       }
       if (!collabInfo.some((col) => col.name === "deleted")) {
-        console.log("[Database] 添加 project_collaborators.deleted 列");
+        logger.info("[Database] 添加 project_collaborators.deleted 列");
         this.db.run(
           "ALTER TABLE project_collaborators ADD COLUMN deleted INTEGER DEFAULT 0",
         );
@@ -2573,23 +2574,23 @@ class DatabaseManager {
         .prepare("PRAGMA table_info(project_comments)")
         .all();
       if (!commentsInfo.some((col) => col.name === "device_id")) {
-        console.log("[Database] 添加 project_comments.device_id 列");
+        logger.info("[Database] 添加 project_comments.device_id 列");
         this.db.run("ALTER TABLE project_comments ADD COLUMN device_id TEXT");
       }
       if (!commentsInfo.some((col) => col.name === "sync_status")) {
-        console.log("[Database] 添加 project_comments.sync_status 列");
+        logger.info("[Database] 添加 project_comments.sync_status 列");
         this.db.run(
           "ALTER TABLE project_comments ADD COLUMN sync_status TEXT DEFAULT 'pending'",
         );
       }
       if (!commentsInfo.some((col) => col.name === "synced_at")) {
-        console.log("[Database] 添加 project_comments.synced_at 列");
+        logger.info("[Database] 添加 project_comments.synced_at 列");
         this.db.run(
           "ALTER TABLE project_comments ADD COLUMN synced_at INTEGER",
         );
       }
       if (!commentsInfo.some((col) => col.name === "deleted")) {
-        console.log("[Database] 添加 project_comments.deleted 列");
+        logger.info("[Database] 添加 project_comments.deleted 列");
         this.db.run(
           "ALTER TABLE project_comments ADD COLUMN deleted INTEGER DEFAULT 0",
         );
@@ -2600,21 +2601,21 @@ class DatabaseManager {
         .prepare("PRAGMA table_info(project_tasks)")
         .all();
       if (!tasksInfo.some((col) => col.name === "device_id")) {
-        console.log("[Database] 添加 project_tasks.device_id 列");
+        logger.info("[Database] 添加 project_tasks.device_id 列");
         this.db.run("ALTER TABLE project_tasks ADD COLUMN device_id TEXT");
       }
       if (!tasksInfo.some((col) => col.name === "sync_status")) {
-        console.log("[Database] 添加 project_tasks.sync_status 列");
+        logger.info("[Database] 添加 project_tasks.sync_status 列");
         this.db.run(
           "ALTER TABLE project_tasks ADD COLUMN sync_status TEXT DEFAULT 'pending'",
         );
       }
       if (!tasksInfo.some((col) => col.name === "synced_at")) {
-        console.log("[Database] 添加 project_tasks.synced_at 列");
+        logger.info("[Database] 添加 project_tasks.synced_at 列");
         this.db.run("ALTER TABLE project_tasks ADD COLUMN synced_at INTEGER");
       }
       if (!tasksInfo.some((col) => col.name === "deleted")) {
-        console.log("[Database] 添加 project_tasks.deleted 列");
+        logger.info("[Database] 添加 project_tasks.deleted 列");
         this.db.run(
           "ALTER TABLE project_tasks ADD COLUMN deleted INTEGER DEFAULT 0",
         );
@@ -2625,19 +2626,19 @@ class DatabaseManager {
         .prepare("PRAGMA table_info(project_conversations)")
         .all();
       if (!projConvInfo.some((col) => col.name === "sync_status")) {
-        console.log("[Database] 添加 project_conversations.sync_status 列");
+        logger.info("[Database] 添加 project_conversations.sync_status 列");
         this.db.run(
           "ALTER TABLE project_conversations ADD COLUMN sync_status TEXT DEFAULT 'pending'",
         );
       }
       if (!projConvInfo.some((col) => col.name === "synced_at")) {
-        console.log("[Database] 添加 project_conversations.synced_at 列");
+        logger.info("[Database] 添加 project_conversations.synced_at 列");
         this.db.run(
           "ALTER TABLE project_conversations ADD COLUMN synced_at INTEGER",
         );
       }
       if (!projConvInfo.some((col) => col.name === "deleted")) {
-        console.log("[Database] 添加 project_conversations.deleted 列");
+        logger.info("[Database] 添加 project_conversations.deleted 列");
         this.db.run(
           "ALTER TABLE project_conversations ADD COLUMN deleted INTEGER DEFAULT 0",
         );
@@ -2648,27 +2649,27 @@ class DatabaseManager {
         .prepare("PRAGMA table_info(project_templates)")
         .all();
       if (!templatesInfo.some((col) => col.name === "deleted")) {
-        console.log("[Database] 添加 project_templates.deleted 列");
+        logger.info("[Database] 添加 project_templates.deleted 列");
         this.db.run(
           "ALTER TABLE project_templates ADD COLUMN deleted INTEGER DEFAULT 0",
         );
       }
 
       // ==================== 项目分类迁移 (V3) ====================
-      console.log("[Database] 执行项目分类迁移 (V3)...");
+      logger.info("[Database] 执行项目分类迁移 (V3)...");
 
       // 为 projects 表添加 category_id 字段
       const projectsInfoV3 = this.db
         .prepare("PRAGMA table_info(projects)")
         .all();
       if (!projectsInfoV3.some((col) => col.name === "category_id")) {
-        console.log("[Database] 添加 projects.category_id 列");
+        logger.info("[Database] 添加 projects.category_id 列");
         this.db.run("ALTER TABLE projects ADD COLUMN category_id TEXT");
         // 添加外键约束（注：SQLite的ALTER TABLE不支持直接添加外键，需要在查询时处理）
       }
 
       // ==================== CHECK约束更新迁移 (V4) ====================
-      console.log("[Database] 执行CHECK约束更新迁移 (V4)...");
+      logger.info("[Database] 执行CHECK约束更新迁移 (V4)...");
 
       // 检查是否需要重建projects表（通过尝试插入测试数据来判断）
       const needsProjectsRebuild = this.checkIfTableNeedsRebuild(
@@ -2676,7 +2677,7 @@ class DatabaseManager {
         "presentation",
       );
       if (needsProjectsRebuild) {
-        console.log(
+        logger.info(
           "[Database] 检测到projects表需要更新CHECK约束，开始重建...",
         );
         this.rebuildProjectsTable();
@@ -2688,28 +2689,28 @@ class DatabaseManager {
         "career",
       );
       if (needsTemplatesRebuild) {
-        console.log(
+        logger.info(
           "[Database] 检测到project_templates表需要更新CHECK约束，开始重建...",
         );
         this.rebuildProjectTemplatesTable();
       }
 
       // ==================== 任务规划消息支持迁移 (V5) ====================
-      console.log("[Database] 执行任务规划消息支持迁移 (V5)...");
+      logger.info("[Database] 执行任务规划消息支持迁移 (V5)...");
 
       // 为 messages 表添加 message_type 和 metadata 字段
       const messagesInfoV5 = this.db
         .prepare("PRAGMA table_info(messages)")
         .all();
       if (!messagesInfoV5.some((col) => col.name === "message_type")) {
-        console.log("[Database] 添加 messages.message_type 列");
+        logger.info("[Database] 添加 messages.message_type 列");
         // 默认为 'ASSISTANT'，与原有的 role='assistant' 消息兼容
         this.db.run(
           "ALTER TABLE messages ADD COLUMN message_type TEXT DEFAULT 'ASSISTANT'",
         );
 
         // 迁移现有数据：根据role设置message_type
-        console.log("[Database] 迁移现有消息的 message_type...");
+        logger.info("[Database] 迁移现有消息的 message_type...");
         this.db.run(`
           UPDATE messages
           SET message_type = CASE
@@ -2723,13 +2724,13 @@ class DatabaseManager {
       }
 
       if (!messagesInfoV5.some((col) => col.name === "metadata")) {
-        console.log("[Database] 添加 messages.metadata 列");
+        logger.info("[Database] 添加 messages.metadata 列");
         this.db.run("ALTER TABLE messages ADD COLUMN metadata TEXT");
       }
 
-      console.log("[Database] 数据库迁移完成");
+      logger.info("[Database] 数据库迁移完成");
     } catch (error) {
-      console.error("[Database] 数据库迁移失败:", error);
+      logger.error("[Database] 数据库迁移失败:", error);
     }
   }
 
@@ -2757,11 +2758,11 @@ class DatabaseManager {
 
       // 如果版本已是最新，跳过迁移
       if (currentVersion && currentVersion.version >= LATEST_VERSION) {
-        console.log(`[Database] 迁移已是最新版本 v${LATEST_VERSION}，跳过迁移`);
+        logger.info(`[Database] 迁移已是最新版本 v${LATEST_VERSION}，跳过迁移`);
         return;
       }
 
-      console.log("[Database] 运行数据库迁移...");
+      logger.info("[Database] 运行数据库迁移...");
 
       // 运行实际的迁移逻辑
       this.runMigrations();
@@ -2777,9 +2778,9 @@ class DatabaseManager {
         ).run(LATEST_VERSION, Date.now());
       }
 
-      console.log(`[Database] 迁移版本已更新到 v${LATEST_VERSION}`);
+      logger.info(`[Database] 迁移版本已更新到 v${LATEST_VERSION}`);
     } catch (error) {
-      console.error("[Database] 优化迁移失败:", error);
+      logger.error("[Database] 优化迁移失败:", error);
       // 降级到普通迁移
       this.runMigrations();
     }
@@ -2790,7 +2791,7 @@ class DatabaseManager {
    */
   runMigrations() {
     try {
-      console.log("[Database] 开始运行数据库迁移...");
+      logger.info("[Database] 开始运行数据库迁移...");
 
       // 迁移1: 修复 project_stats 表的列名
       const statsInfo = this.db
@@ -2805,7 +2806,7 @@ class DatabaseManager {
       );
 
       if (hasTotalSize && !hasTotalSizeKb) {
-        console.log(
+        logger.info(
           "[Database] 迁移 project_stats 表: total_size -> total_size_kb",
         );
         // SQLite不支持重命名列，需要重建表
@@ -2846,10 +2847,10 @@ class DatabaseManager {
           ALTER TABLE project_stats_new RENAME TO project_stats;
         `);
         this.saveToFile();
-        console.log("[Database] project_stats 表迁移完成");
+        logger.info("[Database] project_stats 表迁移完成");
       } else if (!hasTotalSizeKb) {
         // 如果两个列都不存在，添加 total_size_kb 列
-        console.log("[Database] 添加 project_stats.total_size_kb 列");
+        logger.info("[Database] 添加 project_stats.total_size_kb 列");
         this.db.run(
           "ALTER TABLE project_stats ADD COLUMN total_size_kb REAL DEFAULT 0",
         );
@@ -2857,7 +2858,7 @@ class DatabaseManager {
 
         // 同时检查并添加 last_updated_at 列
         if (!hasLastUpdatedAt) {
-          console.log("[Database] 添加 project_stats.last_updated_at 列");
+          logger.info("[Database] 添加 project_stats.last_updated_at 列");
           this.db.run(
             "ALTER TABLE project_stats ADD COLUMN last_updated_at INTEGER",
           );
@@ -2865,7 +2866,7 @@ class DatabaseManager {
         }
       } else if (!hasLastUpdatedAt) {
         // 如果 total_size_kb 已存在，但 last_updated_at 不存在
-        console.log("[Database] 添加 project_stats.last_updated_at 列");
+        logger.info("[Database] 添加 project_stats.last_updated_at 列");
         this.db.run(
           "ALTER TABLE project_stats ADD COLUMN last_updated_at INTEGER",
         );
@@ -2880,7 +2881,7 @@ class DatabaseManager {
         .get();
 
       if (!pluginTableExists) {
-        console.log("[Database] 创建插件系统表...");
+        logger.info("[Database] 创建插件系统表...");
         try {
           const migrationPath = path.join(
             __dirname,
@@ -2892,12 +2893,12 @@ class DatabaseManager {
             const migrationSQL = fs.readFileSync(migrationPath, "utf-8");
             this.db.exec(migrationSQL);
             this.saveToFile();
-            console.log("[Database] 插件系统表创建完成");
+            logger.info("[Database] 插件系统表创建完成");
           } else {
-            console.warn("[Database] 插件系统迁移文件不存在:", migrationPath);
+            logger.warn("[Database] 插件系统迁移文件不存在:", migrationPath);
           }
         } catch (pluginError) {
-          console.error("[Database] 创建插件系统表失败:", pluginError);
+          logger.error("[Database] 创建插件系统表失败:", pluginError);
         }
       }
 
@@ -2909,7 +2910,7 @@ class DatabaseManager {
         .get();
 
       if (!audioTableExists) {
-        console.log("[Database] 创建音频系统表...");
+        logger.info("[Database] 创建音频系统表...");
         try {
           const migrationPath = path.join(
             __dirname,
@@ -2921,12 +2922,12 @@ class DatabaseManager {
             const migrationSQL = fs.readFileSync(migrationPath, "utf-8");
             this.db.exec(migrationSQL);
             this.saveToFile();
-            console.log("[Database] 音频系统表创建完成");
+            logger.info("[Database] 音频系统表创建完成");
           } else {
-            console.warn("[Database] 音频系统迁移文件不存在:", migrationPath);
+            logger.warn("[Database] 音频系统迁移文件不存在:", migrationPath);
           }
         } catch (audioError) {
-          console.error("[Database] 创建音频系统表失败:", audioError);
+          logger.error("[Database] 创建音频系统表失败:", audioError);
         }
       }
 
@@ -2938,7 +2939,7 @@ class DatabaseManager {
         .get();
 
       if (!skillTableExists) {
-        console.log("[Database] 创建技能和工具管理系统表...");
+        logger.info("[Database] 创建技能和工具管理系统表...");
         try {
           const migrationPath = path.join(
             __dirname,
@@ -2950,15 +2951,15 @@ class DatabaseManager {
             const migrationSQL = fs.readFileSync(migrationPath, "utf-8");
             this.db.exec(migrationSQL);
             this.saveToFile();
-            console.log("[Database] 技能和工具管理系统表创建完成");
+            logger.info("[Database] 技能和工具管理系统表创建完成");
           } else {
-            console.warn(
+            logger.warn(
               "[Database] 技能工具系统迁移文件不存在:",
               migrationPath,
             );
           }
         } catch (skillToolError) {
-          console.error("[Database] 创建技能工具系统表失败:", skillToolError);
+          logger.error("[Database] 创建技能工具系统表失败:", skillToolError);
         }
       }
 
@@ -2968,7 +2969,7 @@ class DatabaseManager {
         .get();
 
       if (skillTableExists && skillsCount.count === 0) {
-        console.log("[Database] 初始化内置技能和工具数据...");
+        logger.info("[Database] 初始化内置技能和工具数据...");
         try {
           const dataInitPath = path.join(
             __dirname,
@@ -2992,14 +2993,14 @@ class DatabaseManager {
                 "SELECT COUNT(*) as count FROM tools WHERE is_builtin = 1",
               )
               .get();
-            console.log(
+            logger.info(
               `[Database] 内置数据初始化完成 - 技能: ${newSkillsCount.count}, 工具: ${newToolsCount.count}`,
             );
           } else {
-            console.warn("[Database] 内置数据初始化文件不存在:", dataInitPath);
+            logger.warn("[Database] 内置数据初始化文件不存在:", dataInitPath);
           }
         } catch (dataInitError) {
-          console.error("[Database] 初始化内置数据失败:", dataInitError);
+          logger.error("[Database] 初始化内置数据失败:", dataInitError);
         }
       }
 
@@ -3011,7 +3012,7 @@ class DatabaseManager {
         .get();
 
       if (!workspaceTableExists) {
-        console.log("[Database] Phase 1 迁移 - 创建工作区与任务管理系统表...");
+        logger.info("[Database] Phase 1 迁移 - 创建工作区与任务管理系统表...");
         try {
           const migrationPath = path.join(
             __dirname,
@@ -3023,15 +3024,15 @@ class DatabaseManager {
             const migrationSQL = fs.readFileSync(migrationPath, "utf-8");
             this.db.exec(migrationSQL);
             this.saveToFile();
-            console.log("[Database] 工作区与任务管理系统表创建完成");
+            logger.info("[Database] 工作区与任务管理系统表创建完成");
           } else {
-            console.warn(
+            logger.warn(
               "[Database] 工作区任务系统迁移文件不存在:",
               migrationPath,
             );
           }
         } catch (workspaceError) {
-          console.error("[Database] 创建工作区任务系统表失败:", workspaceError);
+          logger.error("[Database] 创建工作区任务系统表失败:", workspaceError);
         }
       }
 
@@ -3055,7 +3056,7 @@ class DatabaseManager {
       let tasksColumnsAdded = false;
       for (const column of tasksColumnsToAdd) {
         if (!tasksInfo.some((col) => col.name === column.name)) {
-          console.log(`[Database] 添加 project_tasks.${column.name} 列`);
+          logger.info(`[Database] 添加 project_tasks.${column.name} 列`);
           const defaultClause =
             column.default !== null ? ` DEFAULT ${column.default}` : "";
           this.db.run(
@@ -3067,7 +3068,7 @@ class DatabaseManager {
 
       if (tasksColumnsAdded) {
         this.saveToFile();
-        console.log("[Database] project_tasks 表字段扩展完成");
+        logger.info("[Database] project_tasks 表字段扩展完成");
       }
 
       // 迁移8: Phase 2 - 文件共享与版本控制系统 (v0.18.0)
@@ -3078,7 +3079,7 @@ class DatabaseManager {
         .get();
 
       if (!fileVersionsTableExists) {
-        console.log(
+        logger.info(
           "[Database] Phase 2 迁移 - 创建文件共享与版本控制系统表...",
         );
         try {
@@ -3092,15 +3093,15 @@ class DatabaseManager {
             const migrationSQL = fs.readFileSync(migrationPath, "utf-8");
             this.db.exec(migrationSQL);
             this.saveToFile();
-            console.log("[Database] 文件共享与版本控制系统表创建完成");
+            logger.info("[Database] 文件共享与版本控制系统表创建完成");
           } else {
-            console.warn(
+            logger.warn(
               "[Database] 文件共享系统迁移文件不存在:",
               migrationPath,
             );
           }
         } catch (fileError) {
-          console.error("[Database] 创建文件共享系统表失败:", fileError);
+          logger.error("[Database] 创建文件共享系统表失败:", fileError);
         }
       }
 
@@ -3122,7 +3123,7 @@ class DatabaseManager {
       let filesColumnsAdded = false;
       for (const column of filesColumnsToAdd) {
         if (!filesInfo.some((col) => col.name === column.name)) {
-          console.log(`[Database] 添加 project_files.${column.name} 列`);
+          logger.info(`[Database] 添加 project_files.${column.name} 列`);
           const defaultClause =
             column.default !== null ? ` DEFAULT ${column.default}` : "";
           this.db.run(
@@ -3134,7 +3135,7 @@ class DatabaseManager {
 
       if (filesColumnsAdded) {
         this.saveToFile();
-        console.log("[Database] project_files 表字段扩展完成");
+        logger.info("[Database] project_files 表字段扩展完成");
       }
 
       // 迁移10: LLM 会话管理和 Token 追踪系统 (v0.20.0)
@@ -3145,7 +3146,7 @@ class DatabaseManager {
         .get();
 
       if (!llmSessionsTableExists) {
-        console.log("[Database] 创建 LLM 会话管理和 Token 追踪系统表...");
+        logger.info("[Database] 创建 LLM 会话管理和 Token 追踪系统表...");
         try {
           const migrationPath = path.join(
             __dirname,
@@ -3157,15 +3158,15 @@ class DatabaseManager {
             const migrationSQL = fs.readFileSync(migrationPath, "utf-8");
             this.db.exec(migrationSQL);
             this.saveToFile();
-            console.log("[Database] LLM 会话管理和 Token 追踪系统表创建完成");
+            logger.info("[Database] LLM 会话管理和 Token 追踪系统表创建完成");
           } else {
-            console.warn(
+            logger.warn(
               "[Database] LLM 会话管理系统迁移文件不存在:",
               migrationPath,
             );
           }
         } catch (llmError) {
-          console.error("[Database] 创建 LLM 会话管理系统表失败:", llmError);
+          logger.error("[Database] 创建 LLM 会话管理系统表失败:", llmError);
         }
       }
 
@@ -3183,7 +3184,7 @@ class DatabaseManager {
       let conversationsColumnsAdded = false;
       for (const column of conversationsColumnsToAdd) {
         if (!conversationsInfo.some((col) => col.name === column.name)) {
-          console.log(`[Database] 添加 conversations.${column.name} 列`);
+          logger.info(`[Database] 添加 conversations.${column.name} 列`);
           const defaultClause =
             column.default !== null ? ` DEFAULT ${column.default}` : "";
           this.db.run(
@@ -3195,7 +3196,7 @@ class DatabaseManager {
 
       if (conversationsColumnsAdded) {
         this.saveToFile();
-        console.log("[Database] conversations 表字段扩展完成");
+        logger.info("[Database] conversations 表字段扩展完成");
       }
 
       // 迁移12: Token 追踪和成本优化完整系统 (v0.21.0)
@@ -3206,15 +3207,15 @@ class DatabaseManager {
         .get();
 
       if (!tokenTrackingTableExists) {
-        console.log("[Database] 创建 Token 追踪和成本优化系统表...");
+        logger.info("[Database] 创建 Token 追踪和成本优化系统表...");
         try {
           const tokenTrackingMigration = require("./migrations/add-token-tracking");
           // 同步调用迁移（虽然函数是 async，但内部操作都是同步的）
           tokenTrackingMigration.migrate(this.db);
           this.saveToFile();
-          console.log("[Database] ✓ Token 追踪和成本优化系统表创建完成");
+          logger.info("[Database] ✓ Token 追踪和成本优化系统表创建完成");
         } catch (tokenError) {
-          console.error("[Database] 创建 Token 追踪系统表失败:", tokenError);
+          logger.error("[Database] 创建 Token 追踪系统表失败:", tokenError);
         }
       }
 
@@ -3226,7 +3227,7 @@ class DatabaseManager {
         .get();
 
       if (!errorAnalysisTableExists) {
-        console.log("[Database] 创建 ErrorMonitor AI 诊断系统表...");
+        logger.info("[Database] 创建 ErrorMonitor AI 诊断系统表...");
         try {
           const migrationSQL = fs.readFileSync(
             path.join(
@@ -3239,18 +3240,18 @@ class DatabaseManager {
           );
           this.db.exec(migrationSQL);
           this.saveToFile();
-          console.log("[Database] ✓ ErrorMonitor AI 诊断系统表创建完成");
+          logger.info("[Database] ✓ ErrorMonitor AI 诊断系统表创建完成");
         } catch (errorAnalysisError) {
-          console.error(
+          logger.error(
             "[Database] 创建 ErrorMonitor AI 诊断系统表失败:",
             errorAnalysisError,
           );
         }
       }
 
-      console.log("[Database] 数据库迁移任务完成");
+      logger.info("[Database] 数据库迁移任务完成");
     } catch (error) {
-      console.error("[Database] 运行数据库迁移失败:", error);
+      logger.error("[Database] 运行数据库迁移失败:", error);
       // 不抛出错误，避免影响应用启动
     }
   }
@@ -3286,7 +3287,7 @@ class DatabaseManager {
 
       return false;
     } catch (error) {
-      console.error(`[Database] 检查${tableName}表失败:`, error);
+      logger.error(`[Database] 检查${tableName}表失败:`, error);
       return false;
     }
   }
@@ -3296,7 +3297,7 @@ class DatabaseManager {
    */
   rebuildProjectsTable() {
     try {
-      console.log("[Database] 开始重建projects表...");
+      logger.info("[Database] 开始重建projects表...");
 
       // 1. 重命名旧表
       this.db.run("ALTER TABLE projects RENAME TO projects_old");
@@ -3364,9 +3365,9 @@ class DatabaseManager {
       );
 
       this.saveToFile();
-      console.log("[Database] projects表重建成功");
+      logger.info("[Database] projects表重建成功");
     } catch (error) {
-      console.error("[Database] 重建projects表失败:", error);
+      logger.error("[Database] 重建projects表失败:", error);
       throw error;
     }
   }
@@ -3376,7 +3377,7 @@ class DatabaseManager {
    */
   rebuildProjectTemplatesTable() {
     try {
-      console.log("[Database] 开始重建project_templates表...");
+      logger.info("[Database] 开始重建project_templates表...");
 
       // 1. 重命名旧表
       this.db.run(
@@ -3492,9 +3493,9 @@ class DatabaseManager {
       );
 
       this.saveToFile();
-      console.log("[Database] project_templates表重建成功");
+      logger.info("[Database] project_templates表重建成功");
     } catch (error) {
-      console.error("[Database] 重建project_templates表失败:", error);
+      logger.error("[Database] 重建project_templates表失败:", error);
       throw error;
     }
   }
@@ -3524,7 +3525,7 @@ class DatabaseManager {
   getKnowledgeItems(limit = 100, offset = 0) {
     // 数据库未初始化检查
     if (!this.db) {
-      console.warn("[Database] 数据库未初始化，无法获取知识库项");
+      logger.warn("[Database] 数据库未初始化，无法获取知识库项");
       return [];
     }
 
@@ -3549,7 +3550,7 @@ class DatabaseManager {
       // Use the unified all() method which handles both sql.js and better-sqlite3
       return this.all(sql);
     } catch (error) {
-      console.error("[Database] 获取知识库项失败:", error.message);
+      logger.error("[Database] 获取知识库项失败:", error.message);
       return [];
     }
   }
@@ -3567,7 +3568,7 @@ class DatabaseManager {
     try {
       return this.get("SELECT * FROM knowledge_items WHERE id = ?", [id]);
     } catch (error) {
-      console.error("[Database] 获取知识库项失败:", error.message);
+      logger.error("[Database] 获取知识库项失败:", error.message);
       return null;
     }
   }
@@ -3596,7 +3597,7 @@ class DatabaseManager {
         title,
       ]);
     } catch (error) {
-      console.error("[Database] 根据标题获取知识库项失败:", error.message);
+      logger.error("[Database] 根据标题获取知识库项失败:", error.message);
       return null;
     }
   }
@@ -3607,14 +3608,14 @@ class DatabaseManager {
    */
   getAllKnowledgeItems() {
     if (!this.db) {
-      console.warn("[Database] 数据库未初始化，无法获取知识库项");
+      logger.warn("[Database] 数据库未初始化，无法获取知识库项");
       return [];
     }
 
     try {
       return this.all("SELECT * FROM knowledge_items ORDER BY updated_at DESC");
     } catch (error) {
-      console.error("[Database] 获取所有知识库项失败:", error.message);
+      logger.error("[Database] 获取所有知识库项失败:", error.message);
       return [];
     }
   }
@@ -3962,7 +3963,7 @@ class DatabaseManager {
       }
       // Convert NaN and Infinity to null to avoid SQL binding errors
       if (typeof value === "number" && !isFinite(value)) {
-        console.warn(
+        logger.warn(
           "[Database] 警告: 检测到特殊数值 (NaN/Infinity)，已转换为NULL",
         );
         return null;
@@ -3995,43 +3996,43 @@ class DatabaseManager {
 
     const startTime = Date.now();
     try {
-      console.log("[Database] 开始执行SQL操作");
+      logger.info("[Database] 开始执行SQL操作");
       const safeParams = this.normalizeParams(params);
-      console.log("[Database] 参数规范化完成");
-      console.log(
+      logger.info("[Database] 参数规范化完成");
+      logger.info(
         "[Database] 执行SQL:",
         sql.substring(0, 100).replace(/\s+/g, " "),
       );
-      console.log(
+      logger.info(
         "[Database] 参数数量:",
         Array.isArray(safeParams) ? safeParams.length : "N/A",
       );
 
       // 打印前3个参数用于调试（避免泄露过多信息）
       if (Array.isArray(safeParams) && safeParams.length > 0) {
-        console.log("[Database] 前3个参数:", safeParams.slice(0, 3));
+        logger.info("[Database] 前3个参数:", safeParams.slice(0, 3));
       }
 
-      console.log("[Database] 调用 prepare + run...");
+      logger.info("[Database] 调用 prepare + run...");
       // 使用 prepare + run 方式以确保参数正确绑定
       const stmt = this.db.prepare(sql);
       stmt.run(safeParams ?? []);
-      console.log("[Database] ✅ SQL执行成功");
+      logger.info("[Database] ✅ SQL执行成功");
 
-      console.log("[Database] 开始保存到文件...");
+      logger.info("[Database] 开始保存到文件...");
       if (!this.inTransaction) {
         this.saveToFile();
-        console.log("[Database] ✅ 数据已保存到文件");
+        logger.info("[Database] ✅ 数据已保存到文件");
       }
 
       // Track performance
       const duration = Date.now() - startTime;
       this.trackQueryPerformance("db.run", duration, sql, safeParams);
     } catch (error) {
-      console.error("[Database] ❌ SQL执行失败:", error.message);
-      console.error("[Database] Error类型:", error.constructor.name);
-      console.error("[Database] SQL语句前100字:", sql.substring(0, 100));
-      console.error(
+      logger.error("[Database] ❌ SQL执行失败:", error.message);
+      logger.error("[Database] Error类型:", error.constructor.name);
+      logger.error("[Database] SQL语句前100字:", sql.substring(0, 100));
+      logger.error(
         "[Database] 参数数量:",
         Array.isArray(params) ? params.length : "N/A",
       );
@@ -4094,7 +4095,7 @@ class DatabaseManager {
           row = null;
         }
       } catch (err) {
-        console.error("[Database] Error building row object:", err);
+        logger.error("[Database] Error building row object:", err);
         row = null;
       }
     }
@@ -4167,7 +4168,7 @@ class DatabaseManager {
           rows.push(row);
         }
       } catch (err) {
-        console.error("[Database] Error building row object:", err);
+        logger.error("[Database] Error building row object:", err);
         // Skip this row and continue
       }
     }
@@ -4193,8 +4194,8 @@ class DatabaseManager {
     try {
       return this.db.exec(sql);
     } catch (error) {
-      console.error("[Database] exec() failed:", error.message);
-      console.error("[Database] SQL:", sql.substring(0, 100));
+      logger.error("[Database] exec() failed:", error.message);
+      logger.error("[Database] SQL:", sql.substring(0, 100));
       throw error;
     }
   }
@@ -4211,8 +4212,8 @@ class DatabaseManager {
     try {
       return this.db.prepare(sql);
     } catch (error) {
-      console.error("[Database] prepare() failed:", error.message);
-      console.error("[Database] SQL:", sql.substring(0, 100));
+      logger.error("[Database] prepare() failed:", error.message);
+      logger.error("[Database] SQL:", sql.substring(0, 100));
       throw error;
     }
   }
@@ -4246,7 +4247,7 @@ class DatabaseManager {
       try {
         this.db.prepare("ROLLBACK").run();
       } catch (rollbackError) {
-        console.error("[Database] ROLLBACK 失败:", rollbackError);
+        logger.error("[Database] ROLLBACK 失败:", rollbackError);
       }
 
       // 确保清除事务标志
@@ -4280,7 +4281,7 @@ class DatabaseManager {
 
       return true;
     } catch (error) {
-      console.error(
+      logger.error(
         `[Database] 更新同步状态失败: table=${tableName}, id=${recordId}`,
         error,
       );
@@ -4327,11 +4328,11 @@ class DatabaseManager {
       this.clearPreparedStatements();
       if (this.queryCache && typeof this.queryCache.clear === 'function') {
         this.queryCache.clear();
-        console.log('[Database] 查询缓存已清除');
+        logger.info('[Database] 查询缓存已清除');
       }
 
       this.db.close();
-      console.log("数据库连接已关闭");
+      logger.info("数据库连接已关闭");
     }
   }
 
@@ -4342,12 +4343,12 @@ class DatabaseManager {
    * @returns {Promise<boolean>} 切换是否成功
    */
   async switchDatabase(newDbPath, options = {}) {
-    console.log("[Database] 切换数据库:", newDbPath);
+    logger.info("[Database] 切换数据库:", newDbPath);
 
     try {
       // 1. 保存并关闭当前数据库
       if (this.db) {
-        console.log("[Database] 保存并关闭当前数据库...");
+        logger.info("[Database] 保存并关闭当前数据库...");
         this.saveToFile();
         this.db.close();
         this.db = null;
@@ -4365,10 +4366,10 @@ class DatabaseManager {
       // 3. 初始化新数据库
       await this.initialize();
 
-      console.log("[Database] ✓ 数据库切换成功:", newDbPath);
+      logger.info("[Database] ✓ 数据库切换成功:", newDbPath);
       return true;
     } catch (error) {
-      console.error("[Database] 切换数据库失败:", error);
+      logger.error("[Database] 切换数据库失败:", error);
       throw error;
     }
   }
@@ -4434,7 +4435,7 @@ class DatabaseManager {
       // Check if database connection is still open
       // better-sqlite3 has an 'open' property that indicates connection status
       if (this.db.open === false) {
-        console.warn("[Database] 数据库连接已关闭，使用文件复制备份");
+        logger.warn("[Database] 数据库连接已关闭，使用文件复制备份");
         if (this.dbPath && fs.existsSync(this.dbPath)) {
           fs.copyFileSync(this.dbPath, backupPath);
           return;
@@ -4449,7 +4450,7 @@ class DatabaseManager {
         return;
       } catch (error) {
         // If backup fails (e.g., connection issues), try file copy as fallback
-        console.warn("[Database] backup() 失败，尝试文件复制:", error.message);
+        logger.warn("[Database] backup() 失败，尝试文件复制:", error.message);
         if (this.dbPath && fs.existsSync(this.dbPath)) {
           fs.copyFileSync(this.dbPath, backupPath);
           return;
@@ -4488,10 +4489,10 @@ class DatabaseManager {
       stmt.free();
 
       this.saveToFile();
-      console.log(`[Database] 软删除记录: table=${tableName}, id=${id}`);
+      logger.info(`[Database] 软删除记录: table=${tableName}, id=${id}`);
       return true;
     } catch (error) {
-      console.error(
+      logger.error(
         `[Database] 软删除失败: table=${tableName}, id=${id}`,
         error,
       );
@@ -4540,10 +4541,10 @@ class DatabaseManager {
       stmt.free();
 
       this.saveToFile();
-      console.log(`[Database] 恢复软删除记录: table=${tableName}, id=${id}`);
+      logger.info(`[Database] 恢复软删除记录: table=${tableName}, id=${id}`);
       return true;
     } catch (error) {
-      console.error(`[Database] 恢复失败: table=${tableName}, id=${id}`, error);
+      logger.error(`[Database] 恢复失败: table=${tableName}, id=${id}`, error);
       return false;
     }
   }
@@ -4571,12 +4572,12 @@ class DatabaseManager {
 
       if (deletedCount > 0) {
         this.saveToFile();
-        console.log(`[Database] 清理${tableName}表: ${deletedCount}条记录`);
+        logger.info(`[Database] 清理${tableName}表: ${deletedCount}条记录`);
       }
 
       return { deleted: deletedCount, tableName };
     } catch (error) {
-      console.error(`[Database] 清理失败: table=${tableName}`, error);
+      logger.error(`[Database] 清理失败: table=${tableName}`, error);
       return { deleted: 0, tableName, error: error.message };
     }
   }
@@ -4605,7 +4606,7 @@ class DatabaseManager {
       totalDeleted += result.deleted;
     }
 
-    console.log(`[Database] 总共清理 ${totalDeleted} 条软删除记录`);
+    logger.info(`[Database] 总共清理 ${totalDeleted} 条软删除记录`);
 
     return results;
   }
@@ -4642,7 +4643,7 @@ class DatabaseManager {
         stats.byTable[tableName] = count;
         stats.total += count;
       } catch (error) {
-        console.error(`[Database] 统计失败: table=${tableName}`, error);
+        logger.error(`[Database] 统计失败: table=${tableName}`, error);
         stats.byTable[tableName] = 0;
       }
     }
@@ -4657,7 +4658,7 @@ class DatabaseManager {
    * @returns {Object} 定时器对象
    */
   startPeriodicCleanup(intervalHours = 24, retentionDays = 30) {
-    console.log(
+    logger.info(
       `[Database] 启动定期清理: 每${intervalHours}小时清理${retentionDays}天前的软删除记录`,
     );
 
@@ -4667,7 +4668,7 @@ class DatabaseManager {
     // 定期执行
     const timer = setInterval(
       () => {
-        console.log("[Database] 执行定期清理任务...");
+        logger.info("[Database] 执行定期清理任务...");
         this.cleanupAllSoftDeleted(retentionDays);
       },
       intervalHours * 60 * 60 * 1000,
@@ -4733,7 +4734,7 @@ class DatabaseManager {
         ]);
         count++;
       } catch (error) {
-        console.error(
+        logger.error(
           `[Database] 添加关系失败 (${rel.sourceId} -> ${rel.targetId}):`,
           error,
         );
@@ -5180,7 +5181,7 @@ class DatabaseManager {
    */
   getProjects(userId) {
     if (!this.db) {
-      console.error("[DatabaseManager] 数据库未初始化");
+      logger.error("[DatabaseManager] 数据库未初始化");
       return [];
     }
     const stmt = this.db.prepare(`
@@ -5197,7 +5198,7 @@ class DatabaseManager {
     try {
       projects = stmt.all(userId);
     } catch (err) {
-      console.error("[Database] getProjects 查询失败:", err);
+      logger.error("[Database] getProjects 查询失败:", err);
       // 返回空数组
       return [];
     }
@@ -5289,7 +5290,7 @@ class DatabaseManager {
 
       return stats;
     } catch (error) {
-      console.error("[Database] getDatabaseStats 失败:", error);
+      logger.error("[Database] getDatabaseStats 失败:", error);
       return { error: error.message };
     }
   }
@@ -5300,7 +5301,7 @@ class DatabaseManager {
    * @returns {Object|null} 项目
    */
   getProjectById(projectId) {
-    console.log(
+    logger.info(
       "[Database] getProjectById 输入参数:",
       projectId,
       "type:",
@@ -5309,28 +5310,28 @@ class DatabaseManager {
 
     const stmt = this.db.prepare("SELECT * FROM projects WHERE id = ?");
 
-    console.log("[Database] 准备执行 stmt.get...");
+    logger.info("[Database] 准备执行 stmt.get...");
     let project;
     try {
       project = stmt.get(projectId);
-      console.log(
+      logger.info(
         "[Database] stmt.get 执行成功，结果:",
         project ? "OK" : "NULL",
       );
     } catch (getError) {
-      console.error("[Database] stmt.get 失败!");
-      console.error("[Database] 查询参数 projectId:", projectId);
-      console.error("[Database] 错误对象:", getError);
+      logger.error("[Database] stmt.get 失败!");
+      logger.error("[Database] 查询参数 projectId:", projectId);
+      logger.error("[Database] 错误对象:", getError);
       throw getError;
     }
 
     // 清理 undefined 值，SQLite 可能返回 undefined
     if (!project) {
-      console.log("[Database] 未找到项目，返回 null");
+      logger.info("[Database] 未找到项目，返回 null");
       return null;
     }
 
-    console.log("[Database] 开始清理 undefined 值...");
+    logger.info("[Database] 开始清理 undefined 值...");
     const cleaned = {};
     for (const key in project) {
       if (
@@ -5341,7 +5342,7 @@ class DatabaseManager {
       }
     }
 
-    console.log("[Database] 清理完成，返回键:", Object.keys(cleaned));
+    logger.info("[Database] 清理完成，返回键:", Object.keys(cleaned));
     return cleaned;
   }
 
@@ -5355,7 +5356,7 @@ class DatabaseManager {
     if (!this.db) {
       const errorMsg =
         "数据库未初始化，无法保存项目。请检查数据库配置和加密设置。";
-      console.error("[Database]", errorMsg);
+      logger.error("[Database]", errorMsg);
       throw new Error(errorMsg);
     }
 
@@ -5381,7 +5382,7 @@ class DatabaseManager {
     // 确保时间戳是数字（毫秒），如果是字符串则转换
     let createdAt =
       safeProject.created_at ?? safeProject.createdAt ?? Date.now();
-    console.log(
+    logger.info(
       "[Database] createdAt 原始值:",
       createdAt,
       "type:",
@@ -5389,7 +5390,7 @@ class DatabaseManager {
     );
     if (typeof createdAt === "string") {
       createdAt = new Date(createdAt).getTime();
-      console.log(
+      logger.info(
         "[Database] createdAt 转换后:",
         createdAt,
         "type:",
@@ -5399,7 +5400,7 @@ class DatabaseManager {
 
     let updatedAt =
       safeProject.updated_at ?? safeProject.updatedAt ?? Date.now();
-    console.log(
+    logger.info(
       "[Database] updatedAt 原始值:",
       updatedAt,
       "type:",
@@ -5407,7 +5408,7 @@ class DatabaseManager {
     );
     if (typeof updatedAt === "string") {
       updatedAt = new Date(updatedAt).getTime();
-      console.log(
+      logger.info(
         "[Database] updatedAt 转换后:",
         updatedAt,
         "type:",
@@ -5416,7 +5417,7 @@ class DatabaseManager {
     }
 
     let syncedAt = safeProject.synced_at ?? safeProject.syncedAt ?? null;
-    console.log(
+    logger.info(
       "[Database] syncedAt 原始值:",
       syncedAt,
       "type:",
@@ -5424,7 +5425,7 @@ class DatabaseManager {
     );
     if (typeof syncedAt === "string") {
       syncedAt = new Date(syncedAt).getTime();
-      console.log(
+      logger.info(
         "[Database] syncedAt 转换后:",
         syncedAt,
         "type:",
@@ -5471,29 +5472,29 @@ class DatabaseManager {
       categoryId,
     ].map((value) => (value === undefined ? null : value));
 
-    console.log("[Database] 最终params准备绑定:");
+    logger.info("[Database] 最终params准备绑定:");
     params.forEach((param, index) => {
-      console.log(
+      logger.info(
         `  [${index}] ${typeof param} = ${param === undefined ? "UNDEFINED!" : param === null ? "NULL" : JSON.stringify(param).substring(0, 50)}`,
       );
     });
 
-    console.log("[Database] 开始执行 stmt.run...");
+    logger.info("[Database] 开始执行 stmt.run...");
     try {
       stmt.run(...params);
-      console.log("[Database] stmt.run 执行成功");
+      logger.info("[Database] stmt.run 执行成功");
     } catch (runError) {
-      console.error("[Database] stmt.run 失败!");
-      console.error("[Database] 错误对象:", runError);
-      console.error("[Database] 错误类型:", typeof runError);
-      console.error("[Database] 错误消息:", runError?.message);
-      console.error("[Database] 错误堆栈:", runError?.stack);
-      console.error("[Database] 错误代码:", runError?.code);
+      logger.error("[Database] stmt.run 失败!");
+      logger.error("[Database] 错误对象:", runError);
+      logger.error("[Database] 错误类型:", typeof runError);
+      logger.error("[Database] 错误消息:", runError?.message);
+      logger.error("[Database] 错误堆栈:", runError?.stack);
+      logger.error("[Database] 错误代码:", runError?.code);
       throw runError;
     }
 
     // 不查询数据库，直接返回刚保存的数据（避免查询返回 undefined 字段）
-    console.log("[Database] 直接返回 safeProject（不查询）");
+    logger.info("[Database] 直接返回 safeProject（不查询）");
     const savedProject = {
       id: safeProject.id,
       user_id: userId,
@@ -5517,7 +5518,7 @@ class DatabaseManager {
       category_id: categoryId,
     };
 
-    console.log("[Database] saveProject 完成，返回结果");
+    logger.info("[Database] saveProject 完成，返回结果");
     return savedProject;
   }
 
@@ -5623,7 +5624,7 @@ class DatabaseManager {
     if (!this.db) {
       const errorMsg =
         "数据库未初始化，无法保存项目文件。请检查数据库配置和加密设置。";
-      console.error("[Database]", errorMsg);
+      logger.error("[Database]", errorMsg);
       throw new Error(errorMsg);
     }
 
@@ -5785,7 +5786,7 @@ class DatabaseManager {
       try {
         conversation.context_data = JSON.parse(conversation.context_data);
       } catch (e) {
-        console.error("解析 context_data 失败:", e);
+        logger.error("解析 context_data 失败:", e);
       }
     }
 
@@ -5814,7 +5815,7 @@ class DatabaseManager {
       try {
         conversation.context_data = JSON.parse(conversation.context_data);
       } catch (e) {
-        console.error("解析 context_data 失败:", e);
+        logger.error("解析 context_data 失败:", e);
       }
     }
 
@@ -5861,7 +5862,7 @@ class DatabaseManager {
         try {
           conv.context_data = JSON.parse(conv.context_data);
         } catch (e) {
-          console.error("解析 context_data 失败:", e);
+          logger.error("解析 context_data 失败:", e);
         }
       }
       return conv;
@@ -6025,7 +6026,7 @@ class DatabaseManager {
         try {
           msg.metadata = JSON.parse(msg.metadata);
         } catch (e) {
-          console.warn("[Database] 无法解析消息metadata:", msg.id, e);
+          logger.warn("[Database] 无法解析消息metadata:", msg.id, e);
           msg.metadata = null;
         }
       }
@@ -6143,7 +6144,7 @@ class DatabaseManager {
         try {
           msg.metadata = JSON.parse(msg.metadata);
         } catch (e) {
-          console.warn("[Database] 无法解析消息metadata:", msg.id, e);
+          logger.warn("[Database] 无法解析消息metadata:", msg.id, e);
           msg.metadata = null;
         }
       }

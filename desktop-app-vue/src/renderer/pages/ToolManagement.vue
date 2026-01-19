@@ -386,6 +386,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, reactive, computed, onMounted } from 'vue';
 import { message, Modal } from 'ant-design-vue';
 import {
@@ -575,7 +577,7 @@ const handleToggleEnabled = async (tool) => {
       message.error(`${action}工具失败`);
     }
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     message.error(`${action}工具失败`);
   } finally {
     switchingIds.value.delete(tool.id);
@@ -592,7 +594,7 @@ const handleViewDoc = async (tool) => {
     const doc = await toolStore.fetchDoc(tool.id);
     currentDoc.value = doc;
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     message.error('加载文档失败');
   } finally {
     loadingDoc.value = false;
@@ -615,7 +617,7 @@ const runTest = async () => {
     testResult.value = result;
     message.success('测试完成');
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     message.error('测试失败');
   } finally {
     testing.value = false;
@@ -660,7 +662,7 @@ const handleSaveTool = async (toolData) => {
       message.error(editingTool.value ? '更新失败' : '创建失败');
     }
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     message.error('操作失败');
   }
 };
@@ -674,11 +676,11 @@ const showDependencyGraph = async () => {
       allSkillTools.value = result.data.edges || [];
       graphVisible.value = true;
     } else {
-      console.error(result.error);
+      logger.error(result.error);
       message.error('加载依赖关系失败');
     }
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     message.error('加载依赖关系失败');
   }
 };
@@ -715,7 +717,7 @@ const handleBatchEnable = () => {
         handleClearSelection();
         await toolStore.fetchAll();
       } catch (error) {
-        console.error(error);
+        logger.error(error);
         message.error('批量启用失败');
       }
     },
@@ -745,7 +747,7 @@ const handleBatchDisable = () => {
         handleClearSelection();
         await toolStore.fetchAll();
       } catch (error) {
-        console.error(error);
+        logger.error(error);
         message.error('批量禁用失败');
       }
     },
@@ -777,7 +779,7 @@ const handleBatchDelete = () => {
         handleClearSelection();
         await toolStore.fetchAll();
       } catch (error) {
-        console.error(error);
+        logger.error(error);
         message.error('批量删除失败');
       }
     },

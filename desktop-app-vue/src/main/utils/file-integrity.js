@@ -3,6 +3,7 @@
  * 提供文件损坏检测、校验和恢复机制
  */
 
+const { logger, createLogger } = require('./logger.js');
 const fs = require('fs').promises;
 const path = require('path');
 const crypto = require('crypto');
@@ -38,7 +39,7 @@ class FileIntegrityChecker extends EventEmitter {
       hash.update(content);
       return hash.digest('hex');
     } catch (error) {
-      console.error(`[FileIntegrity] 计算哈希失败 ${filePath}:`, error);
+      logger.error(`[FileIntegrity] 计算哈希失败 ${filePath}:`, error);
       throw error;
     }
   }
@@ -64,7 +65,7 @@ class FileIntegrityChecker extends EventEmitter {
 
       return isValid;
     } catch (error) {
-      console.error(`[FileIntegrity] 验证文件失败 ${filePath}:`, error);
+      logger.error(`[FileIntegrity] 验证文件失败 ${filePath}:`, error);
       return false;
     }
   }
@@ -286,7 +287,7 @@ class FileIntegrityChecker extends EventEmitter {
         return false;
       }
     } catch (error) {
-      console.error('[FileIntegrity] SQLite 检查失败:', error);
+      logger.error('[FileIntegrity] SQLite 检查失败:', error);
       return false;
     }
   }
@@ -316,7 +317,7 @@ class FileIntegrityChecker extends EventEmitter {
       const checksumPath = `${backupPath}.checksum`;
       await fs.writeFile(checksumPath, hash, 'utf8');
 
-      console.log(`[FileIntegrity] 备份创建成功: ${backupPath}`);
+      logger.info(`[FileIntegrity] 备份创建成功: ${backupPath}`);
 
       // 清理旧备份
       if (this.options.maxBackups > 0) {
@@ -331,7 +332,7 @@ class FileIntegrityChecker extends EventEmitter {
 
       return backupPath;
     } catch (error) {
-      console.error('[FileIntegrity] 创建备份失败:', error);
+      logger.error('[FileIntegrity] 创建备份失败:', error);
       throw error;
     }
   }
@@ -364,7 +365,7 @@ class FileIntegrityChecker extends EventEmitter {
         const expectedHash = await fs.readFile(checksumPath, 'utf8');
         isValid = await this.verifyFile(backupToUse, expectedHash.trim());
       } catch {
-        console.warn('[FileIntegrity] 备份校验和文件不存在，跳过验证');
+        logger.warn('[FileIntegrity] 备份校验和文件不存在，跳过验证');
       }
 
       if (!isValid) {
@@ -376,7 +377,7 @@ class FileIntegrityChecker extends EventEmitter {
         await fs.access(filePath);
         const corruptBackupPath = `${filePath}.corrupt.${Date.now()}`;
         await fs.copyFile(filePath, corruptBackupPath);
-        console.log(`[FileIntegrity] 损坏文件已备份至: ${corruptBackupPath}`);
+        logger.info(`[FileIntegrity] 损坏文件已备份至: ${corruptBackupPath}`);
       } catch {
         // 文件不存在，无需备份
       }
@@ -384,7 +385,7 @@ class FileIntegrityChecker extends EventEmitter {
       // 恢复文件
       await fs.copyFile(backupToUse, filePath);
 
-      console.log(`[FileIntegrity] 文件已从备份恢复: ${backupToUse} -> ${filePath}`);
+      logger.info(`[FileIntegrity] 文件已从备份恢复: ${backupToUse} -> ${filePath}`);
 
       this.emit('file-restored', {
         filePath,
@@ -396,7 +397,7 @@ class FileIntegrityChecker extends EventEmitter {
         backupUsed: backupToUse
       };
     } catch (error) {
-      console.error('[FileIntegrity] 恢复失败:', error);
+      logger.error('[FileIntegrity] 恢复失败:', error);
       throw error;
     }
   }
@@ -436,7 +437,7 @@ class FileIntegrityChecker extends EventEmitter {
 
       return null;
     } catch (error) {
-      console.error('[FileIntegrity] 查找备份失败:', error);
+      logger.error('[FileIntegrity] 查找备份失败:', error);
       return null;
     }
   }
@@ -467,10 +468,10 @@ class FileIntegrityChecker extends EventEmitter {
         try {
           await fs.unlink(`${backup.path}.checksum`);
         } catch {}
-        console.log(`[FileIntegrity] 删除旧备份: ${backup.name}`);
+        logger.info(`[FileIntegrity] 删除旧备份: ${backup.name}`);
       }
     } catch (error) {
-      console.error('[FileIntegrity] 清理备份失败:', error);
+      logger.error('[FileIntegrity] 清理备份失败:', error);
     }
   }
 }

@@ -12,6 +12,7 @@
  * @see https://manus.im/blog/Context-Engineering-for-AI-Agents-Lessons-from-Building-Manus
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const EventEmitter = require("events");
 
 /**
@@ -92,7 +93,7 @@ class ToolMaskingSystem extends EventEmitter {
     this._updateAvailableCount();
 
     if (this.config.logMaskChanges) {
-      console.log(`[ToolMasking] 注册工具: ${name} (前缀: ${prefix || "none"})`);
+      logger.info(`[ToolMasking] 注册工具: ${name} (前缀: ${prefix || "none"})`);
     }
   }
 
@@ -140,7 +141,7 @@ class ToolMaskingSystem extends EventEmitter {
    */
   setToolAvailability(toolName, available) {
     if (!this.allTools.has(toolName)) {
-      console.warn(`[ToolMasking] 未知工具: ${toolName}`);
+      logger.warn(`[ToolMasking] 未知工具: ${toolName}`);
       return;
     }
 
@@ -157,7 +158,7 @@ class ToolMaskingSystem extends EventEmitter {
       this._updateAvailableCount();
 
       if (this.config.logMaskChanges) {
-        console.log(
+        logger.info(
           `[ToolMasking] ${toolName}: ${wasAvailable ? "启用" : "禁用"} → ${available ? "启用" : "禁用"}`,
         );
       }
@@ -178,7 +179,7 @@ class ToolMaskingSystem extends EventEmitter {
   setToolsByPrefix(prefix, available) {
     const group = this.toolGroups.get(prefix);
     if (!group) {
-      console.warn(`[ToolMasking] 未知前缀: ${prefix}`);
+      logger.warn(`[ToolMasking] 未知前缀: ${prefix}`);
       return;
     }
 
@@ -187,7 +188,7 @@ class ToolMaskingSystem extends EventEmitter {
     }
 
     if (this.config.logMaskChanges) {
-      console.log(
+      logger.info(
         `[ToolMasking] 前缀 "${prefix}" (${group.size} 个工具): ${available ? "启用" : "禁用"}`,
       );
     }
@@ -213,7 +214,7 @@ class ToolMaskingSystem extends EventEmitter {
     this._updateAvailableCount();
 
     if (this.config.logMaskChanges) {
-      console.log(`[ToolMasking] 启用所有工具 (${this.stats.availableTools})`);
+      logger.info(`[ToolMasking] 启用所有工具 (${this.stats.availableTools})`);
     }
   }
 
@@ -225,7 +226,7 @@ class ToolMaskingSystem extends EventEmitter {
     this._updateAvailableCount();
 
     if (this.config.logMaskChanges) {
-      console.log("[ToolMasking] 禁用所有工具");
+      logger.info("[ToolMasking] 禁用所有工具");
     }
   }
 
@@ -396,7 +397,7 @@ class ToolMaskingSystem extends EventEmitter {
     this.config.enableStateMachine = true;
 
     if (this.config.logMaskChanges) {
-      console.log(
+      logger.info(
         `[ToolMasking] 状态机已配置: ${Object.keys(config.states || {}).length} 个状态`,
       );
     }
@@ -408,13 +409,13 @@ class ToolMaskingSystem extends EventEmitter {
    */
   transitionTo(state) {
     if (!this.stateMachine) {
-      console.warn("[ToolMasking] 状态机未配置");
+      logger.warn("[ToolMasking] 状态机未配置");
       return false;
     }
 
     const stateConfig = this.stateMachine.states[state];
     if (!stateConfig) {
-      console.warn(`[ToolMasking] 未知状态: ${state}`);
+      logger.warn(`[ToolMasking] 未知状态: ${state}`);
       return false;
     }
 
@@ -423,7 +424,7 @@ class ToolMaskingSystem extends EventEmitter {
       const allowedTransitions =
         this.stateMachine.transitions?.[this.currentState] || [];
       if (!allowedTransitions.includes(state)) {
-        console.warn(
+        logger.warn(
           `[ToolMasking] 非法转换: ${this.currentState} → ${state}`,
         );
         return false;
@@ -451,7 +452,7 @@ class ToolMaskingSystem extends EventEmitter {
     this.currentState = state;
 
     if (this.config.logMaskChanges) {
-      console.log(
+      logger.info(
         `[ToolMasking] 状态转换: ${previousState || "initial"} → ${state}`,
       );
     }
@@ -537,7 +538,7 @@ class ToolMaskingSystem extends EventEmitter {
     }
 
     if (this.config.logMaskChanges) {
-      console.log("[ToolMasking] 系统已重置");
+      logger.info("[ToolMasking] 系统已重置");
     }
   }
 }

@@ -4,6 +4,7 @@
  * 将SQLite数据库中的知识库项导出为Markdown文件
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require('fs');
 const path = require('path');
 
@@ -21,7 +22,7 @@ class MarkdownExporter {
    */
   async exportAll() {
     try {
-      console.log('[MarkdownExporter] 开始导出所有知识库项...');
+      logger.info('[MarkdownExporter] 开始导出所有知识库项...');
 
       // 确保导出目录存在
       if (!fs.existsSync(this.exportPath)) {
@@ -38,11 +39,11 @@ class MarkdownExporter {
         exportedFiles.push(filename);
       }
 
-      console.log(`[MarkdownExporter] 导出完成: ${exportedFiles.length} 个文件`);
+      logger.info(`[MarkdownExporter] 导出完成: ${exportedFiles.length} 个文件`);
 
       return exportedFiles;
     } catch (error) {
-      console.error('[MarkdownExporter] 导出失败:', error);
+      logger.error('[MarkdownExporter] 导出失败:', error);
       throw error;
     }
   }
@@ -63,11 +64,11 @@ class MarkdownExporter {
       // 写入文件
       fs.writeFileSync(filepath, markdown, 'utf8');
 
-      console.log('[MarkdownExporter] 导出文件:', filename);
+      logger.info('[MarkdownExporter] 导出文件:', filename);
 
       return filename;
     } catch (error) {
-      console.error('[MarkdownExporter] 导出项失败:', error);
+      logger.error('[MarkdownExporter] 导出项失败:', error);
       throw error;
     }
   }
@@ -158,7 +159,7 @@ class MarkdownExporter {
 
       return await this.exportItem(item);
     } catch (error) {
-      console.error('[MarkdownExporter] 导出项失败:', error);
+      logger.error('[MarkdownExporter] 导出项失败:', error);
       throw error;
     }
   }
@@ -173,13 +174,13 @@ class MarkdownExporter {
 
       if (fs.existsSync(filepath)) {
         fs.unlinkSync(filepath);
-        console.log('[MarkdownExporter] 删除文件:', filename);
+        logger.info('[MarkdownExporter] 删除文件:', filename);
         return true;
       }
 
       return false;
     } catch (error) {
-      console.error('[MarkdownExporter] 删除文件失败:', error);
+      logger.error('[MarkdownExporter] 删除文件失败:', error);
       throw error;
     }
   }
@@ -204,11 +205,11 @@ class MarkdownExporter {
         }
       }
 
-      console.log(`[MarkdownExporter] 清理完成: ${count} 个文件`);
+      logger.info(`[MarkdownExporter] 清理完成: ${count} 个文件`);
 
       return count;
     } catch (error) {
-      console.error('[MarkdownExporter] 清理失败:', error);
+      logger.error('[MarkdownExporter] 清理失败:', error);
       throw error;
     }
   }
@@ -220,7 +221,7 @@ class MarkdownExporter {
    */
   async sync() {
     try {
-      console.log('[MarkdownExporter] 开始同步...');
+      logger.info('[MarkdownExporter] 开始同步...');
 
       // 获取数据库中的所有项
       const items = this.database.getKnowledgeItems(9999, 0);
@@ -250,16 +251,16 @@ class MarkdownExporter {
         }
       }
 
-      console.log('[MarkdownExporter] 同步完成');
-      console.log(`  导出: ${exportedFiles.length} 个文件`);
-      console.log(`  删除: ${deletedCount} 个文件`);
+      logger.info('[MarkdownExporter] 同步完成');
+      logger.info(`  导出: ${exportedFiles.length} 个文件`);
+      logger.info(`  删除: ${deletedCount} 个文件`);
 
       return {
         exported: exportedFiles.length,
         deleted: deletedCount,
       };
     } catch (error) {
-      console.error('[MarkdownExporter] 同步失败:', error);
+      logger.error('[MarkdownExporter] 同步失败:', error);
       throw error;
     }
   }

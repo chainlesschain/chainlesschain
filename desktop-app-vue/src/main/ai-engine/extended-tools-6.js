@@ -14,6 +14,7 @@
  * - 搜索引擎工具 (131-132)
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require("fs");
 const path = require("path");
 const os = require("os");
@@ -922,7 +923,7 @@ class ExtendedTools6 {
       }
     });
 
-    console.log("✅ 第六批扩展工具 (113-132) 注册完成");
+    logger.info("✅ 第六批扩展工具 (113-132) 注册完成");
   }
 }
 

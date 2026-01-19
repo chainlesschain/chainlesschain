@@ -3,6 +3,7 @@
  * 提供Excel文件的读取、写入、编辑和转换功能
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require('fs').promises;
 const fsSync = require('fs');
 const path = require('path');
@@ -100,7 +101,7 @@ class ExcelEngine {
             },
           };
         } catch (excelError) {
-          console.error('[ExcelEngine] ExcelJS not available, fallback to CSV:', excelError);
+          logger.error('[ExcelEngine] ExcelJS not available, fallback to CSV:', excelError);
           // 降级到CSV模式
           return {
             type: 'excel',
@@ -117,7 +118,7 @@ class ExcelEngine {
         throw new Error(`不支持的文件格式: ${ext}`);
       }
     } catch (error) {
-      console.error('[ExcelEngine] Read error:', error);
+      logger.error('[ExcelEngine] Read error:', error);
       throw error;
     }
   }
@@ -138,7 +139,7 @@ class ExcelEngine {
     let result;
 
     if (isLarge) {
-      console.log('[ExcelEngine] 检测到大文件，使用流式处理');
+      logger.info('[ExcelEngine] 检测到大文件，使用流式处理');
       result = await this.readLargeCSV(filePath);
     } else {
       // 小文件使用原有逻辑
@@ -229,7 +230,7 @@ class ExcelEngine {
           if (rowNumber % 1000 === 0) {
             const memStatus = this.fileHandler.checkAvailableMemory();
             if (!memStatus.isAvailable) {
-              console.warn('[ExcelEngine] 内存使用率过高，暂停解析');
+              logger.warn('[ExcelEngine] 内存使用率过高，暂停解析');
               readStream.pause();
               setTimeout(() => {
                 if (global.gc) {global.gc();}
@@ -239,7 +240,7 @@ class ExcelEngine {
           }
         },
         complete: () => {
-          console.log(`[ExcelEngine] CSV解析完成，共 ${rowNumber} 行`);
+          logger.info(`[ExcelEngine] CSV解析完成，共 ${rowNumber} 行`);
           resolve({
             type: 'csv',
             sheets: [{
@@ -252,7 +253,7 @@ class ExcelEngine {
           });
         },
         error: (error) => {
-          console.error('[ExcelEngine] CSV解析失败:', error);
+          logger.error('[ExcelEngine] CSV解析失败:', error);
           reject(error);
         },
       });
@@ -337,7 +338,7 @@ class ExcelEngine {
         return { success: true, filePath };
       }
     } catch (error) {
-      console.error('[ExcelEngine] Write error:', error);
+      logger.error('[ExcelEngine] Write error:', error);
       throw error;
     }
   }
@@ -362,7 +363,7 @@ class ExcelEngine {
 
       return { success: true, filePath };
     } catch (error) {
-      console.error('[ExcelEngine] Write CSV error:', error);
+      logger.error('[ExcelEngine] Write CSV error:', error);
       throw error;
     }
   }
@@ -579,9 +580,9 @@ class ExcelEngine {
   async handleProjectTask(params) {
     const { description, projectPath, llmManager, action = 'create_table' } = params;
 
-    console.log('[ExcelEngine] 处理Excel表格生成任务');
-    console.log('[ExcelEngine] 描述:', description);
-    console.log('[ExcelEngine] 操作:', action);
+    logger.info('[ExcelEngine] 处理Excel表格生成任务');
+    logger.info('[ExcelEngine] 描述:', description);
+    logger.info('[ExcelEngine] 操作:', action);
 
     try {
       // 使用LLM生成表格结构
@@ -601,7 +602,7 @@ class ExcelEngine {
         rowCount: tableStructure.sheets[0]?.rows?.length || 0
       };
     } catch (error) {
-      console.error('[ExcelEngine] 任务执行失败:', error);
+      logger.error('[ExcelEngine] 任务执行失败:', error);
       throw error;
     }
   }
@@ -664,7 +665,7 @@ ${description}
 
       // 尝试使用本地LLM
       if (llmManager && llmManager.isInitialized) {
-        console.log('[ExcelEngine] 使用本地LLM生成表格结构');
+        logger.info('[ExcelEngine] 使用本地LLM生成表格结构');
         const response = await llmManager.query(prompt, {
           temperature: 0.7,
           maxTokens: 3000
@@ -672,7 +673,7 @@ ${description}
         responseText = response.text;
       } else {
         // 降级到后端AI服务
-        console.log('[ExcelEngine] 本地LLM不可用，使用后端AI服务');
+        logger.info('[ExcelEngine] 本地LLM不可用，使用后端AI服务');
         responseText = await this.queryBackendAI(prompt);
       }
 
@@ -686,7 +687,7 @@ ${description}
       // 解析失败，返回默认结构
       return this.getDefaultTableStructure(description);
     } catch (error) {
-      console.error('[ExcelEngine] 生成表格结构失败:', error);
+      logger.error('[ExcelEngine] 生成表格结构失败:', error);
       return this.getDefaultTableStructure(description);
     }
   }

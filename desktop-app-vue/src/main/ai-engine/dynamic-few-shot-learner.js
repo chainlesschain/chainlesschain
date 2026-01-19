@@ -1,3 +1,5 @@
+const { logger, createLogger } = require('../utils/logger.js');
+
 /**
  * 动态Few-shot学习器
  *
@@ -98,7 +100,7 @@ class DynamicFewShotLearner {
       return examples;
 
     } catch (error) {
-      console.error('获取用户示例失败:', error);
+      logger.error('获取用户示例失败:', error);
       return [];
     }
   }
@@ -202,7 +204,7 @@ class DynamicFewShotLearner {
       }));
 
     } catch (error) {
-      console.error('获取通用示例失败:', error);
+      logger.error('获取通用示例失败:', error);
       return this.getHardcodedExamples(intent, limit);
     }
   }
@@ -310,7 +312,7 @@ class DynamicFewShotLearner {
       this.clearUserCache(userId);
 
     } catch (error) {
-      console.error('记录识别结果失败:', error);
+      logger.error('记录识别结果失败:', error);
     }
   }
 
@@ -343,7 +345,7 @@ class DynamicFewShotLearner {
       }));
 
     } catch (error) {
-      console.error('获取用户偏好失败:', error);
+      logger.error('获取用户偏好失败:', error);
       return [];
     }
   }
@@ -385,7 +387,7 @@ class DynamicFewShotLearner {
       return baseCount;
 
     } catch (error) {
-      console.error('自适应调整失败:', error);
+      logger.error('自适应调整失败:', error);
       return baseCount;
     }
   }
@@ -404,12 +406,12 @@ class DynamicFewShotLearner {
         WHERE created_at < ?
       `, [cutoffTime]);
 
-      console.log(`清理了${result.changes}条旧记录（保留${retentionDays}天）`);
+      logger.info(`清理了${result.changes}条旧记录（保留${retentionDays}天）`);
 
       return result.changes;
 
     } catch (error) {
-      console.error('清理旧数据失败:', error);
+      logger.error('清理旧数据失败:', error);
       return 0;
     }
   }

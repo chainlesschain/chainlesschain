@@ -9,6 +9,7 @@
  * 5. MCP (Model Context Protocol)
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const fetch = require('node-fetch');
 const { getModelSelector } = require('./volcengine-models');
 
@@ -61,7 +62,7 @@ class VolcengineToolsClient {
 
       return await response.json();
     } catch (error) {
-      console.error('[VolcengineTools] API调用错误:', error);
+      logger.error('[VolcengineTools] API调用错误:', error);
       throw error;
     }
   }
@@ -117,7 +118,7 @@ class VolcengineToolsClient {
 
       return { text: fullText };
     } catch (error) {
-      console.error('[VolcengineTools] 流式API调用错误:', error);
+      logger.error('[VolcengineTools] 流式API调用错误:', error);
       throw error;
     }
   }
@@ -141,8 +142,8 @@ class VolcengineToolsClient {
       model = this.model,
     } = options;
 
-    console.log('[VolcengineTools] 启用联网搜索对话');
-    console.log('[VolcengineTools] 搜索模式:', searchMode);
+    logger.info('[VolcengineTools] 启用联网搜索对话');
+    logger.info('[VolcengineTools] 搜索模式:', searchMode);
 
     const body = {
       model: model,
@@ -175,7 +176,7 @@ class VolcengineToolsClient {
   async chatWithImageProcess(messages, options = {}) {
     const { model = 'doubao-seed-1.6-vision', stream = false, onChunk = null } = options;
 
-    console.log('[VolcengineTools] 启用图像处理对话');
+    logger.info('[VolcengineTools] 启用图像处理对话');
 
     // 自动选择最优视觉模型
     const selectedModel = this.modelSelector.selectByScenario({
@@ -184,7 +185,7 @@ class VolcengineToolsClient {
       needsThinking: options.needsThinking || false,
     });
 
-    console.log('[VolcengineTools] 选择视觉模型:', selectedModel.name);
+    logger.info('[VolcengineTools] 选择视觉模型:', selectedModel.name);
 
     const body = {
       model: selectedModel.id,
@@ -245,7 +246,7 @@ class VolcengineToolsClient {
    * @returns {Promise<Object>} 上传结果
    */
   async setupKnowledgeBase(knowledgeBaseId, documents) {
-    console.log('[VolcengineTools] 上传文档到知识库:', knowledgeBaseId);
+    logger.info('[VolcengineTools] 上传文档到知识库:', knowledgeBaseId);
 
     return await this._callAPI(`/knowledge_base/${knowledgeBaseId}/documents`, {
       documents: documents,
@@ -269,8 +270,8 @@ class VolcengineToolsClient {
       onChunk = null,
     } = options;
 
-    console.log('[VolcengineTools] 启用知识库搜索对话');
-    console.log('[VolcengineTools] 知识库ID:', knowledgeBaseId);
+    logger.info('[VolcengineTools] 启用知识库搜索对话');
+    logger.info('[VolcengineTools] 知识库ID:', knowledgeBaseId);
 
     const body = {
       model: model,
@@ -312,8 +313,8 @@ class VolcengineToolsClient {
       onChunk = null,
     } = options;
 
-    console.log('[VolcengineTools] 启用函数调用对话');
-    console.log('[VolcengineTools] 可用函数数量:', functions.length);
+    logger.info('[VolcengineTools] 启用函数调用对话');
+    logger.info('[VolcengineTools] 可用函数数量:', functions.length);
 
     const tools = functions.map(func => ({
       type: 'function',
@@ -343,7 +344,7 @@ class VolcengineToolsClient {
    * @returns {Promise<Object>} 最终响应
    */
   async executeFunctionCalling(messages, functions, functionExecutor, options = {}) {
-    console.log('[VolcengineTools] 执行完整函数调用流程');
+    logger.info('[VolcengineTools] 执行完整函数调用流程');
 
     // 第一次调用：模型决定是否调用函数
     let result = await this.chatWithFunctionCalling(messages, functions, options);
@@ -351,7 +352,7 @@ class VolcengineToolsClient {
     // 如果模型决定调用函数
     while (result.choices?.[0]?.message?.tool_calls) {
       const toolCalls = result.choices[0].message.tool_calls;
-      console.log('[VolcengineTools] 模型请求调用', toolCalls.length, '个函数');
+      logger.info('[VolcengineTools] 模型请求调用', toolCalls.length, '个函数');
 
       // 执行所有函数调用
       const functionResults = [];
@@ -359,8 +360,8 @@ class VolcengineToolsClient {
         const functionName = toolCall.function.name;
         const functionArgs = JSON.parse(toolCall.function.arguments);
 
-        console.log('[VolcengineTools] 执行函数:', functionName);
-        console.log('[VolcengineTools] 参数:', functionArgs);
+        logger.info('[VolcengineTools] 执行函数:', functionName);
+        logger.info('[VolcengineTools] 参数:', functionArgs);
 
         try {
           const execResult = await functionExecutor.execute(functionName, functionArgs);
@@ -371,7 +372,7 @@ class VolcengineToolsClient {
             content: JSON.stringify(execResult),
           });
         } catch (error) {
-          console.error('[VolcengineTools] 函数执行失败:', error);
+          logger.error('[VolcengineTools] 函数执行失败:', error);
           functionResults.push({
             tool_call_id: toolCall.id,
             role: 'tool',
@@ -417,8 +418,8 @@ class VolcengineToolsClient {
       onChunk = null,
     } = options;
 
-    console.log('[VolcengineTools] 启用MCP对话');
-    console.log('[VolcengineTools] MCP服务器:', mcpConfig.serverURL);
+    logger.info('[VolcengineTools] 启用MCP对话');
+    logger.info('[VolcengineTools] MCP服务器:', mcpConfig.serverURL);
 
     const body = {
       model: model,
@@ -462,7 +463,7 @@ class VolcengineToolsClient {
       onChunk = null,
     } = options;
 
-    console.log('[VolcengineTools] 启用多工具对话');
+    logger.info('[VolcengineTools] 启用多工具对话');
 
     const tools = [];
 
@@ -516,7 +517,7 @@ class VolcengineToolsClient {
       });
     }
 
-    console.log('[VolcengineTools] 启用工具数量:', tools.length);
+    logger.info('[VolcengineTools] 启用工具数量:', tools.length);
 
     const body = {
       model: model,
@@ -564,7 +565,7 @@ class VolcengineToolsClient {
     if (config.model) {this.model = config.model;}
     if (config.timeout) {this.timeout = config.timeout;}
 
-    console.log('[VolcengineTools] 配置已更新');
+    logger.info('[VolcengineTools] 配置已更新');
   }
 }
 

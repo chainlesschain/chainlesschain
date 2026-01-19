@@ -186,6 +186,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, reactive, computed, onMounted } from 'vue';
 import {
   LockOutlined,
@@ -253,7 +255,7 @@ const loadConfig = async () => {
       Object.assign(config, configResult.config);
     }
   } catch (error) {
-    console.error('加载配置失败:', error);
+    logger.error('加载配置失败:', error);
     message.error('加载配置失败: ' + error.message);
   }
 };

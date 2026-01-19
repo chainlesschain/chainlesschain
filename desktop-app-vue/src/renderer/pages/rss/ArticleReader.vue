@@ -199,6 +199,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { message } from 'ant-design-vue';
@@ -294,7 +296,7 @@ const selectArticle = async (article) => {
       await window.electron.ipcRenderer.invoke('rss:mark-as-read', article.id);
       article.is_read = 1;
     } catch (error) {
-      console.error('标记已读失败:', error);
+      logger.error('标记已读失败:', error);
     }
   }
 };

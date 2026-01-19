@@ -1,3 +1,5 @@
+import { logger, createLogger } from '@/utils/logger';
+
 /**
  * Resource Hints Utility
  * 资源提示工具
@@ -27,7 +29,7 @@ export function dnsPrefetch(domain) {
 
   document.head.appendChild(link)
 
-  console.log(`[ResourceHints] DNS prefetch added: ${domain}`)
+  logger.info(`[ResourceHints] DNS prefetch added: ${domain}`)
 }
 
 /**
@@ -50,7 +52,7 @@ export function preconnect(url, crossOrigin = false) {
 
   document.head.appendChild(link)
 
-  console.log(`[ResourceHints] Preconnect added: ${url}`)
+  logger.info(`[ResourceHints] Preconnect added: ${url}`)
 }
 
 /**
@@ -73,7 +75,7 @@ export function prefetch(url, as = '') {
 
   document.head.appendChild(link)
 
-  console.log(`[ResourceHints] Prefetch added: ${url} (as: ${as || 'auto'})`)
+  logger.info(`[ResourceHints] Prefetch added: ${url} (as: ${as || 'auto'})`)
 }
 
 /**
@@ -86,7 +88,7 @@ export function prefetch(url, as = '') {
  */
 export function preload(url, as, options = {}) {
   if (!url || !as) {
-    console.warn('[ResourceHints] Preload requires both url and as parameter')
+    logger.warn('[ResourceHints] Preload requires both url and as parameter')
     return
   }
 
@@ -117,7 +119,7 @@ export function preload(url, as, options = {}) {
 
   document.head.appendChild(link)
 
-  console.log(`[ResourceHints] Preload added: ${url} (as: ${as})`)
+  logger.info(`[ResourceHints] Preload added: ${url} (as: ${as})`)
 }
 
 /**
@@ -135,7 +137,7 @@ export function prerender(url) {
 
   document.head.appendChild(link)
 
-  console.log(`[ResourceHints] Prerender added: ${url}`)
+  logger.info(`[ResourceHints] Prerender added: ${url}`)
 }
 
 /**
@@ -153,7 +155,7 @@ export function modulePreload(url) {
 
   document.head.appendChild(link)
 
-  console.log(`[ResourceHints] Module preload added: ${url}`)
+  logger.info(`[ResourceHints] Module preload added: ${url}`)
 }
 
 /**
@@ -186,7 +188,7 @@ export function batchAddHints(hints) {
         modulePreload(url)
         break
       default:
-        console.warn(`[ResourceHints] Unknown hint type: ${type}`)
+        logger.warn(`[ResourceHints] Unknown hint type: ${type}`)
     }
   })
 }
@@ -202,7 +204,7 @@ export function removeHint(rel, href) {
   const links = document.querySelectorAll(`link[rel="${rel}"][href="${href}"]`)
   links.forEach((link) => link.remove())
 
-  console.log(`[ResourceHints] Hint removed: ${rel} ${href}`)
+  logger.info(`[ResourceHints] Hint removed: ${rel} ${href}`)
 }
 
 /**
@@ -215,7 +217,7 @@ export function clearHintsByType(rel) {
   const links = document.querySelectorAll(`link[rel="${rel}"]`)
   links.forEach((link) => link.remove())
 
-  console.log(`[ResourceHints] Cleared all hints of type: ${rel}`)
+  logger.info(`[ResourceHints] Cleared all hints of type: ${rel}`)
 }
 
 /**
@@ -226,7 +228,7 @@ export function clearHintsByType(rel) {
  * @param {Object} resources - Resources to preload
  */
 export function preloadRouteResources(route, resources = {}) {
-  console.log(`[ResourceHints] Preloading resources for route: ${route}`)
+  logger.info(`[ResourceHints] Preloading resources for route: ${route}`)
 
   // Preload scripts
   if (resources.scripts) {
@@ -273,7 +275,7 @@ export function preloadRouteResources(route, resources = {}) {
  * 设置常用资源提示
  */
 export function setupCommonHints() {
-  console.log('[ResourceHints] Setting up common resource hints...')
+  logger.info('[ResourceHints] Setting up common resource hints...')
 
   // DNS prefetch for common domains
   const commonDomains = [
@@ -293,7 +295,7 @@ export function setupCommonHints() {
     preconnect(apiBaseUrl, true)
   }
 
-  console.log('[ResourceHints] Common hints setup complete')
+  logger.info('[ResourceHints] Common hints setup complete')
 }
 
 /**
@@ -337,7 +339,7 @@ export class IntelligentPrefetcher {
     )
 
     if (this.options.debug) {
-      console.log('[IntelligentPrefetcher] Initialized')
+      logger.info('[IntelligentPrefetcher] Initialized')
     }
   }
 
@@ -410,10 +412,10 @@ export class IntelligentPrefetcher {
         prefetch(item.url, item.as)
 
         if (this.options.debug) {
-          console.log(`[IntelligentPrefetcher] Prefetched: ${item.url}`)
+          logger.info(`[IntelligentPrefetcher] Prefetched: ${item.url}`)
         }
       } catch (error) {
-        console.error('[IntelligentPrefetcher] Prefetch failed:', error)
+        logger.error('[IntelligentPrefetcher] Prefetch failed:', error)
       } finally {
         this.inFlight.delete(item.url)
       }
@@ -433,7 +435,7 @@ export class IntelligentPrefetcher {
     this.inFlight.clear()
 
     if (this.options.debug) {
-      console.log('[IntelligentPrefetcher] Destroyed')
+      logger.info('[IntelligentPrefetcher] Destroyed')
     }
   }
 }

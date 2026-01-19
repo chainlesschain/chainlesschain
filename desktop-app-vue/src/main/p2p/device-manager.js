@@ -8,6 +8,7 @@
  * - 设备间消息路由
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const EventEmitter = require('events');
 const crypto = require('crypto');
 const fs = require('fs');
@@ -36,7 +37,7 @@ class DeviceManager extends EventEmitter {
    * 初始化设备管理器
    */
   async initialize() {
-    console.log('[DeviceManager] 初始化设备管理器...');
+    logger.info('[DeviceManager] 初始化设备管理器...');
 
     try {
       // 加载或生成当前设备信息
@@ -47,8 +48,8 @@ class DeviceManager extends EventEmitter {
 
       this.initialized = true;
 
-      console.log('[DeviceManager] 设备管理器已初始化');
-      console.log('[DeviceManager] 当前设备:', this.currentDevice);
+      logger.info('[DeviceManager] 设备管理器已初始化');
+      logger.info('[DeviceManager] 当前设备:', this.currentDevice);
 
       this.emit('initialized', {
         device: this.currentDevice,
@@ -56,7 +57,7 @@ class DeviceManager extends EventEmitter {
 
       return true;
     } catch (error) {
-      console.error('[DeviceManager] 初始化失败:', error);
+      logger.error('[DeviceManager] 初始化失败:', error);
       throw error;
     }
   }
@@ -88,11 +89,11 @@ class DeviceManager extends EventEmitter {
       if (fs.existsSync(devicePath)) {
         const deviceData = JSON.parse(fs.readFileSync(devicePath, 'utf8'));
         this.currentDevice = deviceData;
-        console.log('[DeviceManager] 已加载现有设备');
+        logger.info('[DeviceManager] 已加载现有设备');
         return;
       }
     } catch (error) {
-      console.warn('[DeviceManager] 加载设备失败，将生成新的:', error.message);
+      logger.warn('[DeviceManager] 加载设备失败，将生成新的:', error.message);
     }
 
     // 生成新设备并保存
@@ -101,9 +102,9 @@ class DeviceManager extends EventEmitter {
     try {
       fs.mkdirSync(path.dirname(devicePath), { recursive: true });
       fs.writeFileSync(devicePath, JSON.stringify(this.currentDevice, null, 2));
-      console.log('[DeviceManager] 设备信息已保存到:', devicePath);
+      logger.info('[DeviceManager] 设备信息已保存到:', devicePath);
     } catch (error) {
-      console.warn('[DeviceManager] 保存设备信息失败:', error.message);
+      logger.warn('[DeviceManager] 保存设备信息失败:', error.message);
     }
   }
 
@@ -151,10 +152,10 @@ class DeviceManager extends EventEmitter {
           this.devices.set(userId, devices);
         }
 
-        console.log('[DeviceManager] 已加载设备列表:', this.devices.size, '个用户');
+        logger.info('[DeviceManager] 已加载设备列表:', this.devices.size, '个用户');
       }
     } catch (error) {
-      console.warn('[DeviceManager] 加载设备列表失败:', error.message);
+      logger.warn('[DeviceManager] 加载设备列表失败:', error.message);
     }
   }
 
@@ -177,9 +178,9 @@ class DeviceManager extends EventEmitter {
 
       fs.mkdirSync(path.dirname(devicesPath), { recursive: true });
       fs.writeFileSync(devicesPath, JSON.stringify(devicesData, null, 2));
-      console.log('[DeviceManager] 设备列表已保存');
+      logger.info('[DeviceManager] 设备列表已保存');
     } catch (error) {
-      console.warn('[DeviceManager] 保存设备列表失败:', error.message);
+      logger.warn('[DeviceManager] 保存设备列表失败:', error.message);
     }
   }
 
@@ -189,7 +190,7 @@ class DeviceManager extends EventEmitter {
    * @param {Object} device - 设备信息
    */
   async registerDevice(userId, device) {
-    console.log('[DeviceManager] 注册设备:', userId, device.deviceId);
+    logger.info('[DeviceManager] 注册设备:', userId, device.deviceId);
 
     let userDevices = this.devices.get(userId);
 
@@ -231,7 +232,7 @@ class DeviceManager extends EventEmitter {
    * @param {string} deviceId - 设备 ID
    */
   async unregisterDevice(userId, deviceId) {
-    console.log('[DeviceManager] 注销设备:', userId, deviceId);
+    logger.info('[DeviceManager] 注销设备:', userId, deviceId);
 
     const userDevices = this.devices.get(userId);
 
@@ -324,7 +325,7 @@ class DeviceManager extends EventEmitter {
     const device = broadcast.device;
 
     if (!device || !device.userId || !device.deviceId) {
-      console.warn('[DeviceManager] 无效的设备广播');
+      logger.warn('[DeviceManager] 无效的设备广播');
       return;
     }
 
@@ -334,7 +335,7 @@ class DeviceManager extends EventEmitter {
       peerId, // 关联 P2P 节点 ID
     });
 
-    console.log('[DeviceManager] 收到设备广播:', device.userId, device.deviceName);
+    logger.info('[DeviceManager] 收到设备广播:', device.userId, device.deviceName);
 
     this.emit('device:discovered', {
       userId: device.userId,
@@ -348,7 +349,7 @@ class DeviceManager extends EventEmitter {
    * @param {number} maxAge - 最大不活跃时间 (毫秒)
    */
   async cleanupInactiveDevices(maxAge = 7 * 24 * 60 * 60 * 1000) {
-    console.log('[DeviceManager] 清理不活跃设备...');
+    logger.info('[DeviceManager] 清理不活跃设备...');
 
     const now = Date.now();
     let cleanedCount = 0;
@@ -372,7 +373,7 @@ class DeviceManager extends EventEmitter {
 
     if (cleanedCount > 0) {
       await this.saveDeviceList();
-      console.log('[DeviceManager] 已清理', cleanedCount, '个不活跃设备');
+      logger.info('[DeviceManager] 已清理', cleanedCount, '个不活跃设备');
     }
   }
 
@@ -398,7 +399,7 @@ class DeviceManager extends EventEmitter {
    * 关闭设备管理器
    */
   async close() {
-    console.log('[DeviceManager] 关闭设备管理器');
+    logger.info('[DeviceManager] 关闭设备管理器');
 
     // 更新当前设备的活跃时间
     if (this.currentDevice && this.config.userId) {

@@ -8,6 +8,7 @@
  * - 统计查询和报告导出
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { EventEmitter } = require("events");
 const { v4: uuidv4 } = require("uuid");
 const path = require("path");
@@ -18,7 +19,7 @@ let VolcengineModels;
 try {
   VolcengineModels = require("./volcengine-models");
 } catch (e) {
-  console.warn("[TokenTracker] volcengine-models 不可用:", e.message);
+  logger.warn("[TokenTracker] volcengine-models 不可用:", e.message);
 }
 
 /**
@@ -165,7 +166,7 @@ class TokenTracker extends EventEmitter {
     // 加载 Volcengine 定价数据
     this.loadVolcenginePricing();
 
-    console.log("[TokenTracker] 初始化完成", this.options);
+    logger.info("[TokenTracker] 初始化完成", this.options);
   }
 
   /**
@@ -173,7 +174,7 @@ class TokenTracker extends EventEmitter {
    */
   loadVolcenginePricing() {
     if (!VolcengineModels) {
-      console.warn("[TokenTracker] Volcengine 定价数据不可用，使用默认值");
+      logger.warn("[TokenTracker] Volcengine 定价数据不可用，使用默认值");
       return;
     }
 
@@ -192,11 +193,11 @@ class TokenTracker extends EventEmitter {
         }
       });
 
-      console.log(
+      logger.info(
         `[TokenTracker] 已加载 ${Object.keys(PRICING_DATA.volcengine).length} 个 Volcengine 模型定价`,
       );
     } catch (e) {
-      console.error("[TokenTracker] 加载 Volcengine 定价失败:", e);
+      logger.error("[TokenTracker] 加载 Volcengine 定价失败:", e);
     }
   }
 
@@ -235,7 +236,7 @@ class TokenTracker extends EventEmitter {
     } = params;
 
     if (!provider || !model) {
-      console.error("[TokenTracker] recordUsage: provider 和 model 是必需的");
+      logger.error("[TokenTracker] recordUsage: provider 和 model 是必需的");
       return;
     }
 
@@ -316,7 +317,7 @@ class TokenTracker extends EventEmitter {
         await this.checkBudgetAlerts(userId);
       }
 
-      console.log(
+      logger.info(
         `[TokenTracker] 记录使用: ${provider}/${model}, ${totalTokens} tokens, $${costResult.costUsd.toFixed(5)}`,
       );
 
@@ -327,7 +328,7 @@ class TokenTracker extends EventEmitter {
         costCny: costResult.costCny,
       };
     } catch (error) {
-      console.error("[TokenTracker] recordUsage 失败:", error);
+      logger.error("[TokenTracker] recordUsage 失败:", error);
       throw error;
     }
   }
@@ -363,7 +364,7 @@ class TokenTracker extends EventEmitter {
     }
 
     if (!pricing) {
-      console.warn(
+      logger.warn(
         `[TokenTracker] 未找到 ${provider}/${model} 的定价数据，使用默认值`,
       );
       pricing = { input: 0.5, output: 1.5 };
@@ -417,7 +418,7 @@ class TokenTracker extends EventEmitter {
 
       stmt.run(inputTokens, outputTokens, costUsd, costCny, conversationId);
     } catch (error) {
-      console.error("[TokenTracker] updateConversationStats 失败:", error);
+      logger.error("[TokenTracker] updateConversationStats 失败:", error);
     }
   }
 
@@ -491,7 +492,7 @@ class TokenTracker extends EventEmitter {
         userId,
       );
     } catch (error) {
-      console.error("[TokenTracker] updateBudgetSpend 失败:", error);
+      logger.error("[TokenTracker] updateBudgetSpend 失败:", error);
     }
   }
 
@@ -584,7 +585,7 @@ class TokenTracker extends EventEmitter {
         });
       });
     } catch (error) {
-      console.error("[TokenTracker] checkBudgetAlerts 失败:", error);
+      logger.error("[TokenTracker] checkBudgetAlerts 失败:", error);
     }
   }
 
@@ -601,7 +602,7 @@ class TokenTracker extends EventEmitter {
       const result = stmt.get(userId);
       return result || null;
     } catch (error) {
-      console.error("[TokenTracker] getBudgetConfig 失败:", error);
+      logger.error("[TokenTracker] getBudgetConfig 失败:", error);
       return null;
     }
   }
@@ -686,10 +687,10 @@ class TokenTracker extends EventEmitter {
         );
       }
 
-      console.log("[TokenTracker] 预算配置已保存:", userId);
+      logger.info("[TokenTracker] 预算配置已保存:", userId);
       return { success: true };
     } catch (error) {
-      console.error("[TokenTracker] saveBudgetConfig 失败:", error);
+      logger.error("[TokenTracker] saveBudgetConfig 失败:", error);
       throw error;
     }
   }
@@ -758,7 +759,7 @@ class TokenTracker extends EventEmitter {
         endDate,
       };
     } catch (error) {
-      console.error("[TokenTracker] getUsageStats 失败:", error);
+      logger.error("[TokenTracker] getUsageStats 失败:", error);
       throw error;
     }
   }
@@ -817,7 +818,7 @@ class TokenTracker extends EventEmitter {
         costUsd: row.cost_usd,
       }));
     } catch (error) {
-      console.error("[TokenTracker] getTimeSeriesData 失败:", error);
+      logger.error("[TokenTracker] getTimeSeriesData 失败:", error);
       throw error;
     }
   }
@@ -873,7 +874,7 @@ class TokenTracker extends EventEmitter {
         byModel: modelBreakdown,
       };
     } catch (error) {
-      console.error("[TokenTracker] getCostBreakdown 失败:", error);
+      logger.error("[TokenTracker] getCostBreakdown 失败:", error);
       throw error;
     }
   }
@@ -971,14 +972,14 @@ class TokenTracker extends EventEmitter {
 
         fs.writeFileSync(filePath, csv, "utf-8");
 
-        console.log(`[TokenTracker] 成本报告已导出: ${filePath}`);
+        logger.info(`[TokenTracker] 成本报告已导出: ${filePath}`);
 
         return { success: true, filePath };
       }
 
       throw new Error(`不支持的导出格式: ${format}`);
     } catch (error) {
-      console.error("[TokenTracker] exportCostReport 失败:", error);
+      logger.error("[TokenTracker] exportCostReport 失败:", error);
       throw error;
     }
   }

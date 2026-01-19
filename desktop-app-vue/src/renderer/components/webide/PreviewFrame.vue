@@ -77,6 +77,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
 import {
   EyeOutlined,
@@ -254,7 +256,7 @@ const updatePreview = () => {
 
 // iframe 加载完成
 const handleIframeLoad = () => {
-  console.log('Preview iframe loaded');
+  logger.info('Preview iframe loaded');
 };
 
 // 旋转设备

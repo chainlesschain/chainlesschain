@@ -1,6 +1,7 @@
 /**
  * 工具管理 Store
  */
+import { logger, createLogger } from '@/utils/logger';
 import { defineStore } from 'pinia';
 
 export const useToolStore = defineStore('tool', {
@@ -117,7 +118,7 @@ export const useToolStore = defineStore('tool', {
       try {
         const toolAPI = window.electronAPI?.tool || window.electron?.api?.tool;
         if (!toolAPI?.getAll) {
-          console.error('[ToolStore] tool API 不可用 (缺少 getAll)');
+          logger.error('[ToolStore] tool API 不可用 (缺少 getAll)');
           return;
         }
         const result = await toolAPI.getAll(options);
@@ -136,10 +137,10 @@ export const useToolStore = defineStore('tool', {
               : (tool.required_permissions || []),
           }));
         } else {
-          console.error('获取工具失败:', result.error);
+          logger.error('获取工具失败:', result.error);
         }
       } catch (error) {
-        console.error('获取工具失败:', error);
+        logger.error('获取工具失败:', error);
       } finally {
         this.loading = false;
       }
@@ -152,7 +153,7 @@ export const useToolStore = defineStore('tool', {
       try {
         const toolAPI = window.electronAPI?.tool || window.electron?.api?.tool;
         if (!toolAPI?.getById) {
-          console.error('[ToolStore] tool API 不可用 (缺少 getById)');
+          logger.error('[ToolStore] tool API 不可用 (缺少 getById)');
           return null;
         }
         const result = await toolAPI.getById(toolId);
@@ -174,11 +175,11 @@ export const useToolStore = defineStore('tool', {
             : null;
           return this.currentTool;
         } else {
-          console.error('获取工具失败:', result.error);
+          logger.error('获取工具失败:', result.error);
           return null;
         }
       } catch (error) {
-        console.error('获取工具失败:', error);
+        logger.error('获取工具失败:', error);
         return null;
       }
     },
@@ -190,18 +191,18 @@ export const useToolStore = defineStore('tool', {
       try {
         const toolAPI = window.electronAPI?.tool || window.electron?.api?.tool;
         if (!toolAPI?.getByCategory) {
-          console.error('[ToolStore] tool API 不可用 (缺少 getByCategory)');
+          logger.error('[ToolStore] tool API 不可用 (缺少 getByCategory)');
           return [];
         }
         const result = await toolAPI.getByCategory(category);
         if (result.success) {
           return result.content ?? result.data ?? result.tools ?? [];
         } else {
-          console.error('获取工具失败:', result.error);
+          logger.error('获取工具失败:', result.error);
           return [];
         }
       } catch (error) {
-        console.error('获取工具失败:', error);
+        logger.error('获取工具失败:', error);
         return [];
       }
     },
@@ -215,11 +216,11 @@ export const useToolStore = defineStore('tool', {
         if (result.success) {
           return result.data;
         } else {
-          console.error('获取工具失败:', result.error);
+          logger.error('获取工具失败:', result.error);
           return [];
         }
       } catch (error) {
-        console.error('获取工具失败:', error);
+        logger.error('获取工具失败:', error);
         return [];
       }
     },
@@ -237,11 +238,11 @@ export const useToolStore = defineStore('tool', {
           }
           return true;
         } else {
-          console.error('启用工具失败:', result.error);
+          logger.error('启用工具失败:', result.error);
           return false;
         }
       } catch (error) {
-        console.error('启用工具失败:', error);
+        logger.error('启用工具失败:', error);
         return false;
       }
     },
@@ -259,11 +260,11 @@ export const useToolStore = defineStore('tool', {
           }
           return true;
         } else {
-          console.error('禁用工具失败:', result.error);
+          logger.error('禁用工具失败:', result.error);
           return false;
         }
       } catch (error) {
-        console.error('禁用工具失败:', error);
+        logger.error('禁用工具失败:', error);
         return false;
       }
     },
@@ -281,11 +282,11 @@ export const useToolStore = defineStore('tool', {
           }
           return true;
         } else {
-          console.error('更新工具配置失败:', result.error);
+          logger.error('更新工具配置失败:', result.error);
           return false;
         }
       } catch (error) {
-        console.error('更新工具配置失败:', error);
+        logger.error('更新工具配置失败:', error);
         return false;
       }
     },
@@ -303,11 +304,11 @@ export const useToolStore = defineStore('tool', {
           }
           return true;
         } else {
-          console.error('更新工具Schema失败:', result.error);
+          logger.error('更新工具Schema失败:', result.error);
           return false;
         }
       } catch (error) {
-        console.error('更新工具Schema失败:', error);
+        logger.error('更新工具Schema失败:', error);
         return false;
       }
     },
@@ -325,11 +326,11 @@ export const useToolStore = defineStore('tool', {
           }
           return true;
         } else {
-          console.error('更新工具失败:', result.error);
+          logger.error('更新工具失败:', result.error);
           return false;
         }
       } catch (error) {
-        console.error('更新工具失败:', error);
+        logger.error('更新工具失败:', error);
         return false;
       }
     },
@@ -343,11 +344,11 @@ export const useToolStore = defineStore('tool', {
         if (result.success) {
           return result.data;
         } else {
-          console.error('获取工具统计失败:', result.error);
+          logger.error('获取工具统计失败:', result.error);
           return null;
         }
       } catch (error) {
-        console.error('获取工具统计失败:', error);
+        logger.error('获取工具统计失败:', error);
         return null;
       }
     },
@@ -361,11 +362,11 @@ export const useToolStore = defineStore('tool', {
         if (result.success) {
           return result.data;
         } else {
-          console.error('获取工具文档失败:', result.error);
+          logger.error('获取工具文档失败:', result.error);
           return null;
         }
       } catch (error) {
-        console.error('获取工具文档失败:', error);
+        logger.error('获取工具文档失败:', error);
         return null;
       }
     },
@@ -379,11 +380,11 @@ export const useToolStore = defineStore('tool', {
         if (result.success) {
           return result.data;
         } else {
-          console.error('测试工具失败:', result.error);
+          logger.error('测试工具失败:', result.error);
           return null;
         }
       } catch (error) {
-        console.error('测试工具失败:', error);
+        logger.error('测试工具失败:', error);
         return null;
       }
     },

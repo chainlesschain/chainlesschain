@@ -7,6 +7,7 @@
  * @module MCPSecurityPolicy
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const EventEmitter = require("events");
 const crypto = require("crypto");
 
@@ -141,7 +142,7 @@ class MCPSecurityPolicy extends EventEmitter {
     // Main window reference (set by main process)
     this.mainWindow = null;
 
-    console.log("[MCPSecurityPolicy] Initialized");
+    logger.info("[MCPSecurityPolicy] Initialized");
   }
 
   /**
@@ -150,7 +151,7 @@ class MCPSecurityPolicy extends EventEmitter {
    */
   setMainWindow(window) {
     this.mainWindow = window;
-    console.log("[MCPSecurityPolicy] Main window reference set");
+    logger.info("[MCPSecurityPolicy] Main window reference set");
   }
 
   /**
@@ -169,7 +170,7 @@ class MCPSecurityPolicy extends EventEmitter {
           : true,
     });
 
-    console.log(
+    logger.info(
       `[MCPSecurityPolicy] Set permissions for ${serverName}:`,
       permissions,
     );
@@ -213,14 +214,14 @@ class MCPSecurityPolicy extends EventEmitter {
       // 6. Log to audit trail
       this._logAudit("ALLOWED", serverName, toolName, params, riskLevel);
 
-      console.log(
+      logger.info(
         `[MCPSecurityPolicy] Validation passed: ${serverName}.${toolName} (${riskLevel})`,
       );
     } catch (error) {
       // Log denied access
       this._logAudit("DENIED", serverName, toolName, params, error.message);
 
-      console.error(`[MCPSecurityPolicy] Validation failed: ${error.message}`);
+      logger.error(`[MCPSecurityPolicy] Validation failed: ${error.message}`);
 
       throw error;
     }
@@ -292,7 +293,7 @@ class MCPSecurityPolicy extends EventEmitter {
       }
     }
 
-    console.log(
+    logger.info(
       `[MCPSecurityPolicy] Path access allowed: ${targetPath} (normalized: ${normalizedPath})`,
     );
   }
@@ -408,7 +409,7 @@ class MCPSecurityPolicy extends EventEmitter {
       const cached = this.consentCache.get(cacheKey);
 
       if (cached.decision === "always_allow") {
-        console.log(`[MCPSecurityPolicy] Using cached consent: always allow`);
+        logger.info(`[MCPSecurityPolicy] Using cached consent: always allow`);
         return; // Allowed
       }
 
@@ -420,7 +421,7 @@ class MCPSecurityPolicy extends EventEmitter {
       }
     }
 
-    console.log(
+    logger.info(
       `[MCPSecurityPolicy] Requesting user consent for ${serverName}.${toolName}`,
     );
 
@@ -461,7 +462,7 @@ class MCPSecurityPolicy extends EventEmitter {
       // Set up timeout
       const timeoutId = setTimeout(() => {
         this.pendingConsentRequests.delete(requestId);
-        console.warn(
+        logger.warn(
           `[MCPSecurityPolicy] Consent request ${requestId} timed out`,
         );
         reject(
@@ -483,7 +484,7 @@ class MCPSecurityPolicy extends EventEmitter {
       });
 
       // Send IPC message to renderer
-      console.log(
+      logger.info(
         `[MCPSecurityPolicy] Sending consent request to renderer: ${requestId}`,
       );
       this.mainWindow.webContents.send("mcp:consent-request", consentRequest);
@@ -501,7 +502,7 @@ class MCPSecurityPolicy extends EventEmitter {
       // Set up timeout
       const timeoutId = setTimeout(() => {
         this.pendingConsentRequests.delete(requestId);
-        console.warn(
+        logger.warn(
           `[MCPSecurityPolicy] Consent request ${requestId} timed out (event mode)`,
         );
         reject(
@@ -528,7 +529,7 @@ class MCPSecurityPolicy extends EventEmitter {
         respond: (decision) => this.handleConsentResponse(requestId, decision),
       });
 
-      console.log(
+      logger.info(
         `[MCPSecurityPolicy] Emitted consent-required event: ${requestId}`,
       );
     });
@@ -543,7 +544,7 @@ class MCPSecurityPolicy extends EventEmitter {
     const pending = this.pendingConsentRequests.get(requestId);
 
     if (!pending) {
-      console.warn(`[MCPSecurityPolicy] Unknown consent request: ${requestId}`);
+      logger.warn(`[MCPSecurityPolicy] Unknown consent request: ${requestId}`);
       return { success: false, error: "Unknown request ID" };
     }
 
@@ -555,7 +556,7 @@ class MCPSecurityPolicy extends EventEmitter {
     // Remove from pending
     this.pendingConsentRequests.delete(requestId);
 
-    console.log(
+    logger.info(
       `[MCPSecurityPolicy] Consent response received: ${requestId} -> ${decision}`,
     );
 
@@ -629,7 +630,7 @@ class MCPSecurityPolicy extends EventEmitter {
         new SecurityError("Consent request cancelled", { requestId }),
       );
       this.pendingConsentRequests.delete(requestId);
-      console.log(
+      logger.info(
         `[MCPSecurityPolicy] Consent request cancelled: ${requestId}`,
       );
       return true;
@@ -702,7 +703,7 @@ class MCPSecurityPolicy extends EventEmitter {
    */
   clearConsentCache() {
     this.consentCache.clear();
-    console.log("[MCPSecurityPolicy] Consent cache cleared");
+    logger.info("[MCPSecurityPolicy] Consent cache cleared");
   }
 
   /**
@@ -726,7 +727,7 @@ class MCPSecurityPolicy extends EventEmitter {
   async requestUserConsent(request) {
     const { operation, serverName, securityLevel, permissions } = request;
 
-    console.log(
+    logger.info(
       `[MCPSecurityPolicy] Requesting user consent for ${operation} on ${serverName}`,
     );
 
@@ -747,7 +748,7 @@ class MCPSecurityPolicy extends EventEmitter {
 
     // Check if main window is available
     if (!this.mainWindow || this.mainWindow.isDestroyed()) {
-      console.warn(
+      logger.warn(
         "[MCPSecurityPolicy] No main window available for consent request, auto-allowing",
       );
       return true; // Auto-allow if no UI available
@@ -760,7 +761,7 @@ class MCPSecurityPolicy extends EventEmitter {
       );
       return true;
     } catch (error) {
-      console.log(`[MCPSecurityPolicy] Consent denied: ${error.message}`);
+      logger.info(`[MCPSecurityPolicy] Consent denied: ${error.message}`);
       return false;
     }
   }
@@ -779,7 +780,7 @@ class MCPSecurityPolicy extends EventEmitter {
 
       // If no permissions configured, allow by default (server is already trusted)
       if (!permissions) {
-        console.log(
+        logger.info(
           `[MCPSecurityPolicy] No permissions configured for ${serverName}, allowing by default`,
         );
         this._logAudit("ALLOWED", serverName, toolName, args, "low");
@@ -840,7 +841,7 @@ class MCPSecurityPolicy extends EventEmitter {
 
       // If no permissions configured, allow by default
       if (!permissions) {
-        console.log(
+        logger.info(
           `[MCPSecurityPolicy] No permissions configured for ${serverName}, allowing resource access`,
         );
         return { permitted: true };

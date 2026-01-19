@@ -159,9 +159,11 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, reactive, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import { message } from 'ant-design-vue';
-import * as echarts from 'echarts';
+import { init } from '../../utils/echartsConfig';
 import {
   BarChartOutlined,
   ReloadOutlined,
@@ -222,13 +224,13 @@ const loadStatistics = async () => {
     statistics.successRate = data.successRate;
     statistics.averageAmount = data.averageAmount;
 
-    console.log('[TransactionStatistics] 统计数据已加载');
+    logger.info('[TransactionStatistics] 统计数据已加载');
 
     // 渲染图表
     await nextTick();
     renderCharts(data);
   } catch (error) {
-    console.error('[TransactionStatistics] 加载统计失败:', error);
+    logger.error('[TransactionStatistics] 加载统计失败:', error);
     message.error(error.message || '加载统计失败');
   } finally {
     loading.value = false;
@@ -282,7 +284,7 @@ const renderTrendChart = (data) => {
   if (!trendChartRef.value) {return;}
 
   if (!trendChart) {
-    trendChart = echarts.init(trendChartRef.value);
+    trendChart = init(trendChartRef.value);
   }
 
   const option = {
@@ -341,7 +343,7 @@ const renderTypeChart = (data) => {
   if (!typeChartRef.value) {return;}
 
   if (!typeChart) {
-    typeChart = echarts.init(typeChartRef.value);
+    typeChart = init(typeChartRef.value);
   }
 
   const option = {
@@ -391,7 +393,7 @@ const renderStatusChart = (data) => {
   if (!statusChartRef.value) {return;}
 
   if (!statusChart) {
-    statusChart = echarts.init(statusChartRef.value);
+    statusChart = init(statusChartRef.value);
   }
 
   const option = {
@@ -427,7 +429,7 @@ const renderAssetsChart = (data) => {
   if (!assetsChartRef.value) {return;}
 
   if (!assetsChart) {
-    assetsChart = echarts.init(assetsChartRef.value);
+    assetsChart = init(assetsChartRef.value);
   }
 
   const option = {

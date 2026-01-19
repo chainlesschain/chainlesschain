@@ -8,6 +8,7 @@
  * - 性能监控
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const EventEmitter = require('events');
 const { ethers } = require('ethers');
 
@@ -39,14 +40,14 @@ class RPCManager extends EventEmitter {
    * 初始化 RPC 管理器
    */
   async initialize() {
-    console.log(`[RPCManager] 初始化 RPC 管理器 (Chain ${this.chainId})...`);
+    logger.info(`[RPCManager] 初始化 RPC 管理器 (Chain ${this.chainId})...`);
 
     try {
       // 初始化所有节点
       for (const url of this.rpcUrls) {
         // 跳过包含占位符的 URL
         if (url.includes('your-api-key') || url.includes('YOUR_')) {
-          console.log(`[RPCManager] 跳过占位符 URL: ${url}`);
+          logger.info(`[RPCManager] 跳过占位符 URL: ${url}`);
           continue;
         }
 
@@ -66,9 +67,9 @@ class RPCManager extends EventEmitter {
             errorCount: 0,
           });
 
-          console.log(`[RPCManager] 节点初始化成功: ${url} (延迟: ${latency}ms)`);
+          logger.info(`[RPCManager] 节点初始化成功: ${url} (延迟: ${latency}ms)`);
         } catch (error) {
-          console.warn(`[RPCManager] 节点初始化失败: ${url}`, error.message);
+          logger.warn(`[RPCManager] 节点初始化失败: ${url}`, error.message);
 
           // 仍然添加到节点列表，但标记为不健康
           this.nodes.set(url, {
@@ -91,9 +92,9 @@ class RPCManager extends EventEmitter {
       this.startHealthCheck();
 
       this.initialized = true;
-      console.log(`[RPCManager] RPC 管理器初始化成功，${this.getHealthyNodes().length}/${this.nodes.size} 个节点可用`);
+      logger.info(`[RPCManager] RPC 管理器初始化成功，${this.getHealthyNodes().length}/${this.nodes.size} 个节点可用`);
     } catch (error) {
-      console.error('[RPCManager] 初始化失败:', error);
+      logger.error('[RPCManager] 初始化失败:', error);
       throw error;
     }
   }
@@ -135,7 +136,7 @@ class RPCManager extends EventEmitter {
     healthyNodes.sort((a, b) => a.latency - b.latency);
 
     const bestNode = healthyNodes[0];
-    console.log(`[RPCManager] 使用最佳节点: ${bestNode.url} (延迟: ${bestNode.latency}ms)`);
+    logger.info(`[RPCManager] 使用最佳节点: ${bestNode.url} (延迟: ${bestNode.latency}ms)`);
 
     return bestNode.provider;
   }
@@ -155,7 +156,7 @@ class RPCManager extends EventEmitter {
     this.currentNodeIndex = (this.currentNodeIndex + 1) % healthyNodes.length;
     const node = healthyNodes[this.currentNodeIndex];
 
-    console.log(`[RPCManager] 使用节点 ${this.currentNodeIndex + 1}/${healthyNodes.length}: ${node.url}`);
+    logger.info(`[RPCManager] 使用节点 ${this.currentNodeIndex + 1}/${healthyNodes.length}: ${node.url}`);
 
     return node.provider;
   }
@@ -198,7 +199,7 @@ class RPCManager extends EventEmitter {
       attemptCount++;
 
       try {
-        console.log(`[RPCManager] 尝试节点 ${i + 1}/${healthyNodes.length}: ${node.url}`);
+        logger.info(`[RPCManager] 尝试节点 ${i + 1}/${healthyNodes.length}: ${node.url}`);
 
         // 更新请求计数
         node.requestCount++;
@@ -206,11 +207,11 @@ class RPCManager extends EventEmitter {
         // 执行请求
         const result = await requestFn(node.provider);
 
-        console.log(`[RPCManager] 请求成功: ${node.url}`);
+        logger.info(`[RPCManager] 请求成功: ${node.url}`);
         return result;
       } catch (error) {
         lastError = error;
-        console.warn(`[RPCManager] 节点请求失败 (尝试 ${attemptCount}): ${node.url}`, error.message);
+        logger.warn(`[RPCManager] 节点请求失败 (尝试 ${attemptCount}): ${node.url}`, error.message);
 
         // 更新错误计数
         node.errorCount++;
@@ -218,7 +219,7 @@ class RPCManager extends EventEmitter {
 
         // 如果失败次数过多，标记为不健康
         if (node.failureCount >= this.maxFailures) {
-          console.warn(`[RPCManager] 节点标记为不健康: ${node.url}`);
+          logger.warn(`[RPCManager] 节点标记为不健康: ${node.url}`);
           node.healthy = false;
           this.emit('node:unhealthy', { url: node.url, chainId: this.chainId });
         }
@@ -229,7 +230,7 @@ class RPCManager extends EventEmitter {
     }
 
     // 所有节点都失败
-    console.error(`[RPCManager] 所有节点请求失败 (${attemptCount} 次尝试)`);
+    logger.error(`[RPCManager] 所有节点请求失败 (${attemptCount} 次尝试)`);
     throw lastError || new Error('所有 RPC 节点请求失败');
   }
 
@@ -241,7 +242,7 @@ class RPCManager extends EventEmitter {
       return;
     }
 
-    console.log(`[RPCManager] 启动健康检查 (间隔: ${this.healthCheckInterval}ms)`);
+    logger.info(`[RPCManager] 启动健康检查 (间隔: ${this.healthCheckInterval}ms)`);
 
     this.healthCheckTimer = setInterval(async () => {
       await this.performHealthCheck();
@@ -255,7 +256,7 @@ class RPCManager extends EventEmitter {
     if (this.healthCheckTimer) {
       clearInterval(this.healthCheckTimer);
       this.healthCheckTimer = null;
-      console.log('[RPCManager] 健康检查已停止');
+      logger.info('[RPCManager] 健康检查已停止');
     }
   }
 
@@ -263,7 +264,7 @@ class RPCManager extends EventEmitter {
    * 执行健康检查
    */
   async performHealthCheck() {
-    console.log(`[RPCManager] 执行健康检查 (Chain ${this.chainId})...`);
+    logger.info(`[RPCManager] 执行健康检查 (Chain ${this.chainId})...`);
 
     for (const [url, node] of this.nodes.entries()) {
       try {
@@ -278,7 +279,7 @@ class RPCManager extends EventEmitter {
         if (latency < Infinity) {
           // 节点健康
           if (!node.healthy) {
-            console.log(`[RPCManager] 节点恢复健康: ${url}`);
+            logger.info(`[RPCManager] 节点恢复健康: ${url}`);
             this.emit('node:recovered', { url, chainId: this.chainId });
           }
 
@@ -288,7 +289,7 @@ class RPCManager extends EventEmitter {
         } else {
           // 节点不健康
           if (node.healthy) {
-            console.warn(`[RPCManager] 节点变为不健康: ${url}`);
+            logger.warn(`[RPCManager] 节点变为不健康: ${url}`);
             this.emit('node:unhealthy', { url, chainId: this.chainId });
           }
 
@@ -298,7 +299,7 @@ class RPCManager extends EventEmitter {
 
         node.lastCheck = Date.now();
       } catch (error) {
-        console.warn(`[RPCManager] 健康检查失败: ${url}`, error.message);
+        logger.warn(`[RPCManager] 健康检查失败: ${url}`, error.message);
 
         node.healthy = false;
         node.failureCount++;
@@ -314,7 +315,7 @@ class RPCManager extends EventEmitter {
       healthyNodes: healthyCount,
     });
 
-    console.log(`[RPCManager] 健康检查完成: ${healthyCount}/${this.nodes.size} 个节点健康`);
+    logger.info(`[RPCManager] 健康检查完成: ${healthyCount}/${this.nodes.size} 个节点健康`);
   }
 
   /**
@@ -353,7 +354,7 @@ class RPCManager extends EventEmitter {
         node.requestCount = 0;
         node.errorCount = 0;
         node.failureCount = 0;
-        console.log(`[RPCManager] 已重置节点统计: ${url}`);
+        logger.info(`[RPCManager] 已重置节点统计: ${url}`);
       }
     } else {
       for (const node of this.nodes.values()) {
@@ -361,7 +362,7 @@ class RPCManager extends EventEmitter {
         node.errorCount = 0;
         node.failureCount = 0;
       }
-      console.log('[RPCManager] 已重置所有节点统计');
+      logger.info('[RPCManager] 已重置所有节点统计');
     }
   }
 
@@ -371,7 +372,7 @@ class RPCManager extends EventEmitter {
    */
   async addNode(url) {
     if (this.nodes.has(url)) {
-      console.warn(`[RPCManager] 节点已存在: ${url}`);
+      logger.warn(`[RPCManager] 节点已存在: ${url}`);
       return;
     }
 
@@ -389,10 +390,10 @@ class RPCManager extends EventEmitter {
         errorCount: 0,
       });
 
-      console.log(`[RPCManager] 新节点已添加: ${url} (延迟: ${latency}ms)`);
+      logger.info(`[RPCManager] 新节点已添加: ${url} (延迟: ${latency}ms)`);
       this.emit('node:added', { url, chainId: this.chainId });
     } catch (error) {
-      console.error(`[RPCManager] 添加节点失败: ${url}`, error);
+      logger.error(`[RPCManager] 添加节点失败: ${url}`, error);
       throw error;
     }
   }
@@ -405,7 +406,7 @@ class RPCManager extends EventEmitter {
     const node = this.nodes.get(url);
 
     if (!node) {
-      console.warn(`[RPCManager] 节点不存在: ${url}`);
+      logger.warn(`[RPCManager] 节点不存在: ${url}`);
       return;
     }
 
@@ -415,10 +416,10 @@ class RPCManager extends EventEmitter {
       }
 
       this.nodes.delete(url);
-      console.log(`[RPCManager] 节点已移除: ${url}`);
+      logger.info(`[RPCManager] 节点已移除: ${url}`);
       this.emit('node:removed', { url, chainId: this.chainId });
     } catch (error) {
-      console.error(`[RPCManager] 移除节点失败: ${url}`, error);
+      logger.error(`[RPCManager] 移除节点失败: ${url}`, error);
       throw error;
     }
   }
@@ -427,7 +428,7 @@ class RPCManager extends EventEmitter {
    * 清理资源
    */
   async cleanup() {
-    console.log('[RPCManager] 清理资源...');
+    logger.info('[RPCManager] 清理资源...');
 
     // 停止健康检查
     this.stopHealthCheck();
@@ -439,7 +440,7 @@ class RPCManager extends EventEmitter {
           await node.provider.destroy();
         }
       } catch (error) {
-        console.error(`[RPCManager] 清理节点失败: ${url}`, error);
+        logger.error(`[RPCManager] 清理节点失败: ${url}`, error);
       }
     }
 

@@ -5,6 +5,7 @@
  * 支持U-Key硬件密钥派生和密码派生两种模式
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
@@ -14,7 +15,7 @@ let UKeyManager;
 try {
   UKeyManager = require('../ukey/ukey-manager');
 } catch (e) {
-  console.warn('[KeyManager] U-Key模块不可用，将使用密码模式');
+  logger.warn('[KeyManager] U-Key模块不可用，将使用密码模式');
   UKeyManager = null;
 }
 
@@ -53,11 +54,11 @@ class KeyManager {
    * 初始化密钥管理器
    */
   async initialize() {
-    console.log('[KeyManager] 初始化密钥管理器...');
+    logger.info('[KeyManager] 初始化密钥管理器...');
 
     // 如果不启用加密，直接返回
     if (!this.encryptionEnabled) {
-      console.log('[KeyManager] 加密已禁用');
+      logger.info('[KeyManager] 加密已禁用');
       return;
     }
 
@@ -68,14 +69,14 @@ class KeyManager {
           driverType: 'simulated' // 默认使用模拟模式，生产环境应改为实际驱动
         });
         await this.ukeyManager.initialize();
-        console.log('[KeyManager] U-Key初始化成功');
+        logger.info('[KeyManager] U-Key初始化成功');
       } catch (error) {
-        console.warn('[KeyManager] U-Key初始化失败，将使用密码模式:', error.message);
+        logger.warn('[KeyManager] U-Key初始化失败，将使用密码模式:', error.message);
         this.ukeyManager = null;
       }
     }
 
-    console.log('[KeyManager] 密钥管理器初始化完成');
+    logger.info('[KeyManager] 密钥管理器初始化完成');
   }
 
   /**
@@ -123,10 +124,10 @@ class KeyManager {
       // 缓存密钥
       this.keyCache = key;
 
-      console.log('[KeyManager] 使用U-Key成功派生密钥');
+      logger.info('[KeyManager] 使用U-Key成功派生密钥');
       return key;
     } catch (error) {
-      console.error('[KeyManager] U-Key密钥派生失败:', error);
+      logger.error('[KeyManager] U-Key密钥派生失败:', error);
       throw new Error(`U-Key密钥派生失败: ${error.message}`);
     }
   }
@@ -164,7 +165,7 @@ class KeyManager {
           // 缓存密钥
           this.keyCache = key;
 
-          console.log('[KeyManager] 使用密码成功派生密钥');
+          logger.info('[KeyManager] 使用密码成功派生密钥');
           resolve({ key, salt: saltHex });
         }
       );
@@ -187,7 +188,7 @@ class KeyManager {
 
     // 如果已有缓存的密钥，直接返回
     if (this.keyCache) {
-      console.log('[KeyManager] 使用缓存的密钥');
+      logger.info('[KeyManager] 使用缓存的密钥');
       return { key: this.keyCache, method: 'cached' };
     }
 
@@ -224,7 +225,7 @@ class KeyManager {
     if (this.keyCache) {
       // 安全清除密钥（覆盖内存）
       this.keyCache = null;
-      console.log('[KeyManager] 已清除密钥缓存');
+      logger.info('[KeyManager] 已清除密钥缓存');
     }
   }
 
@@ -234,7 +235,7 @@ class KeyManager {
    */
   async saveKeyMetadata(metadata) {
     if (!this.configPath) {
-      console.warn('[KeyManager] 未配置configPath，跳过保存元数据');
+      logger.warn('[KeyManager] 未配置configPath，跳过保存元数据');
       return;
     }
 
@@ -255,7 +256,7 @@ class KeyManager {
       'utf8'
     );
 
-    console.log('[KeyManager] 密钥元数据已保存');
+    logger.info('[KeyManager] 密钥元数据已保存');
   }
 
   /**
@@ -271,7 +272,7 @@ class KeyManager {
       const data = fs.readFileSync(this.configPath, 'utf8');
       return JSON.parse(data);
     } catch (error) {
-      console.error('[KeyManager] 加载密钥元数据失败:', error);
+      logger.error('[KeyManager] 加载密钥元数据失败:', error);
       return null;
     }
   }
@@ -280,7 +281,7 @@ class KeyManager {
    * 关闭密钥管理器
    */
   async close() {
-    console.log('[KeyManager] 关闭密钥管理器...');
+    logger.info('[KeyManager] 关闭密钥管理器...');
 
     // 清除密钥缓存
     this.clearKeyCache();
@@ -290,11 +291,11 @@ class KeyManager {
       try {
         await this.ukeyManager.close();
       } catch (error) {
-        console.error('[KeyManager] 关闭U-Key失败:', error);
+        logger.error('[KeyManager] 关闭U-Key失败:', error);
       }
     }
 
-    console.log('[KeyManager] 密钥管理器已关闭');
+    logger.info('[KeyManager] 密钥管理器已关闭');
   }
 }
 

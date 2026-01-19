@@ -95,6 +95,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, watch } from 'vue';
 import { message } from 'ant-design-vue';
 import {
@@ -191,7 +193,7 @@ const handleSave = async () => {
     emit('save');
     message.success('文件已保存');
   } catch (error) {
-    console.error('保存文件失败:', error);
+    logger.error('保存文件失败:', error);
     message.error('保存文件失败: ' + error.message);
   } finally {
     saving.value = false;

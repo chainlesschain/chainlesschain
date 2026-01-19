@@ -212,6 +212,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import { message } from 'ant-design-vue';
 import { marked } from 'marked';
@@ -270,7 +272,7 @@ marked.setOptions({
       try {
         return hljs.highlight(code, { language: lang }).value;
       } catch (err) {
-        console.error('Highlight error:', err);
+        logger.error('Highlight error:', err);
       }
     }
     return code;
@@ -284,7 +286,7 @@ const renderedHTML = computed(() => {
   try {
     return marked(content.value || '');
   } catch (error) {
-    console.error('Markdown render error:', error);
+    logger.error('Markdown render error:', error);
     return '<p>Markdown渲染错误</p>';
   }
 });
@@ -453,8 +455,8 @@ const save = async () => {
 
   saving.value = true;
   try {
-    console.log('[MarkdownEditor] 保存文件:', props.file.file_path);
-    console.log('[MarkdownEditor] 内容长度:', content.value?.length);
+    logger.info('[MarkdownEditor] 保存文件:', props.file.file_path);
+    logger.info('[MarkdownEditor] 内容长度:', content.value?.length);
 
     const result = await window.electronAPI.file.writeContent(props.file.file_path, content.value);
 
@@ -462,12 +464,12 @@ const save = async () => {
       hasChanges.value = false;
       emit('save', content.value);
       message.success('已保存');
-      console.log('[MarkdownEditor] 保存成功');
+      logger.info('[MarkdownEditor] 保存成功');
     } else {
       throw new Error(result.error || '保存失败');
     }
   } catch (error) {
-    console.error('[MarkdownEditor] 保存失败:', error);
+    logger.error('[MarkdownEditor] 保存失败:', error);
     message.error('保存失败: ' + error.message);
   } finally {
     saving.value = false;
@@ -489,7 +491,7 @@ const handleExport = async ({ key }) => {
         break;
     }
   } catch (error) {
-    console.error('[MarkdownEditor] 导出失败:', error);
+    logger.error('[MarkdownEditor] 导出失败:', error);
     message.error('导出失败: ' + error.message);
   }
 };
@@ -561,32 +563,32 @@ const exportHTML = async () => {
 
 // 导出PDF
 const exportPDF = async () => {
-  console.log('[MarkdownEditor] 🔄 开始导出PDF...');
-  console.log('[MarkdownEditor] 文件名:', props.file?.file_name);
-  console.log('[MarkdownEditor] 内容长度:', content.value?.length, '字符');
+  logger.info('[MarkdownEditor] 🔄 开始导出PDF...');
+  logger.info('[MarkdownEditor] 文件名:', props.file?.file_name);
+  logger.info('[MarkdownEditor] 内容长度:', content.value?.length, '字符');
 
   try {
-    console.log('[MarkdownEditor] 📂 打开保存对话框...');
+    logger.info('[MarkdownEditor] 📂 打开保存对话框...');
     const result = await window.electronAPI.dialog.showSaveDialog({
       defaultPath: props.file?.file_name?.replace('.md', '.pdf') || 'document.pdf',
       filters: [{ name: 'PDF文档', extensions: ['pdf'] }],
     });
 
-    console.log('[MarkdownEditor] 对话框结果:', { canceled: result.canceled, filePath: result.filePath });
+    logger.info('[MarkdownEditor] 对话框结果:', { canceled: result.canceled, filePath: result.filePath });
 
     if (result.canceled) {
-      console.log('[MarkdownEditor] ❌ 用户取消导出');
+      logger.info('[MarkdownEditor] ❌ 用户取消导出');
       return;
     }
 
     if (!result.filePath) {
-      console.error('[MarkdownEditor] ❌ 未获取到文件路径');
+      logger.error('[MarkdownEditor] ❌ 未获取到文件路径');
       message.error('未选择保存路径');
       return;
     }
 
-    console.log('[MarkdownEditor] 📝 准备转换内容...');
-    console.log('[MarkdownEditor] Markdown内容:', content.value?.substring(0, 100) + '...');
+    logger.info('[MarkdownEditor] 📝 准备转换内容...');
+    logger.info('[MarkdownEditor] Markdown内容:', content.value?.substring(0, 100) + '...');
 
     message.loading({ content: '正在生成PDF...', key: 'pdf-export' });
 
@@ -608,7 +610,7 @@ const exportPDF = async () => {
       }
     });
 
-    console.log('[MarkdownEditor] PDF转换结果:', pdfResult);
+    logger.info('[MarkdownEditor] PDF转换结果:', pdfResult);
 
     if (pdfResult.success) {
       message.success({
@@ -616,10 +618,10 @@ const exportPDF = async () => {
         key: 'pdf-export',
         duration: 3
       });
-      console.log('[MarkdownEditor] ✅ PDF导出成功');
+      logger.info('[MarkdownEditor] ✅ PDF导出成功');
     } else {
       const errorMsg = pdfResult.error || '未知错误';
-      console.error('[MarkdownEditor] ❌ PDF转换失败:', errorMsg);
+      logger.error('[MarkdownEditor] ❌ PDF转换失败:', errorMsg);
       message.error({
         content: `PDF导出失败: ${errorMsg}`,
         key: 'pdf-export',
@@ -627,8 +629,8 @@ const exportPDF = async () => {
       });
     }
   } catch (error) {
-    console.error('[MarkdownEditor] ❌ PDF导出异常:', error);
-    console.error('[MarkdownEditor] 错误堆栈:', error.stack);
+    logger.error('[MarkdownEditor] ❌ PDF导出异常:', error);
+    logger.error('[MarkdownEditor] 错误堆栈:', error.stack);
 
     let errorMessage = 'PDF导出失败';
     if (error.message) {
@@ -653,32 +655,32 @@ const exportPDF = async () => {
 
 // 导出Word
 const exportWord = async () => {
-  console.log('[MarkdownEditor] 🔄 开始导出Word...');
-  console.log('[MarkdownEditor] 文件名:', props.file?.file_name);
-  console.log('[MarkdownEditor] 内容长度:', content.value?.length, '字符');
+  logger.info('[MarkdownEditor] 🔄 开始导出Word...');
+  logger.info('[MarkdownEditor] 文件名:', props.file?.file_name);
+  logger.info('[MarkdownEditor] 内容长度:', content.value?.length, '字符');
 
   try {
-    console.log('[MarkdownEditor] 📂 打开保存对话框...');
+    logger.info('[MarkdownEditor] 📂 打开保存对话框...');
     const result = await window.electronAPI.dialog.showSaveDialog({
       defaultPath: props.file?.file_name?.replace('.md', '.docx') || 'document.docx',
       filters: [{ name: 'Word文档', extensions: ['docx'] }],
     });
 
-    console.log('[MarkdownEditor] 对话框结果:', { canceled: result.canceled, filePath: result.filePath });
+    logger.info('[MarkdownEditor] 对话框结果:', { canceled: result.canceled, filePath: result.filePath });
 
     if (result.canceled) {
-      console.log('[MarkdownEditor] ❌ 用户取消了导出');
+      logger.info('[MarkdownEditor] ❌ 用户取消了导出');
       return;
     }
 
     if (!result.filePath) {
-      console.error('[MarkdownEditor] ❌ 没有选择文件路径');
+      logger.error('[MarkdownEditor] ❌ 没有选择文件路径');
       message.error('请选择保存位置');
       return;
     }
 
-    console.log('[MarkdownEditor] ✅ 用户选择路径:', result.filePath);
-    console.log('[MarkdownEditor] 📝 调用 markdownToWord IPC...');
+    logger.info('[MarkdownEditor] ✅ 用户选择路径:', result.filePath);
+    logger.info('[MarkdownEditor] 📝 调用 markdownToWord IPC...');
 
     const exportResult = await window.electronAPI.file.markdownToWord(
       content.value,
@@ -686,18 +688,18 @@ const exportWord = async () => {
       { title: props.file?.file_name || 'Document' }
     );
 
-    console.log('[MarkdownEditor] IPC返回结果:', exportResult);
+    logger.info('[MarkdownEditor] IPC返回结果:', exportResult);
 
     if (exportResult && exportResult.success) {
-      console.log('[MarkdownEditor] ✅ 导出成功!');
+      logger.info('[MarkdownEditor] ✅ 导出成功!');
       message.success('导出成功: ' + result.filePath);
     } else {
-      console.error('[MarkdownEditor] ❌ 导出失败:', exportResult);
+      logger.error('[MarkdownEditor] ❌ 导出失败:', exportResult);
       message.error('导出失败: ' + (exportResult?.error || '未知错误'));
     }
   } catch (error) {
-    console.error('[MarkdownEditor] ❌ 导出过程发生异常:', error);
-    console.error('[MarkdownEditor] 错误堆栈:', error.stack);
+    logger.error('[MarkdownEditor] ❌ 导出过程发生异常:', error);
+    logger.error('[MarkdownEditor] 错误堆栈:', error.stack);
     message.error('导出失败: ' + error.message);
   }
 };
@@ -713,7 +715,7 @@ const scheduleAutoSave = () => {
 // 监听 initialContent 变化（主要加载方式）
 watch(() => props.initialContent, (newContent) => {
   if (newContent !== undefined && newContent !== content.value) {
-    console.log('[MarkdownEditor] initialContent 变化，更新内容，长度:', newContent?.length);
+    logger.info('[MarkdownEditor] initialContent 变化，更新内容，长度:', newContent?.length);
     content.value = newContent || '';
     hasChanges.value = false;
   }
@@ -725,14 +727,14 @@ watch(() => props.file?.id, async (newId, oldId) => {
     // 只有在 initialContent 为空时才尝试直接读取文件
     if (!props.initialContent) {
       try {
-        console.log('[MarkdownEditor] 文件变化，直接读取:', props.file.file_path);
+        logger.info('[MarkdownEditor] 文件变化，直接读取:', props.file.file_path);
         const result = await window.electronAPI.file.readContent(props.file.file_path);
         if (result.success) {
           content.value = result.content || '';
           hasChanges.value = false;
         }
       } catch (error) {
-        console.error('[MarkdownEditor] 读取文件失败:', error);
+        logger.error('[MarkdownEditor] 读取文件失败:', error);
         message.error('读取文件失败: ' + error.message);
       }
     }
@@ -741,7 +743,7 @@ watch(() => props.file?.id, async (newId, oldId) => {
 
 // 组件挂载
 onMounted(() => {
-  console.log('[MarkdownEditor] 组件挂载，initialContent 长度:', props.initialContent?.length);
+  logger.info('[MarkdownEditor] 组件挂载，initialContent 长度:', props.initialContent?.length);
   if (props.initialContent) {
     content.value = props.initialContent;
   }

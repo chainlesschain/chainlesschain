@@ -8,6 +8,7 @@
  * 3. 全流程性能监控和瓶颈分析
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const IntentClassifier = require('./intent-classifier');
 const SlotFiller = require('./slot-filler');
 const { TaskPlanner } = require('./task-planner');
@@ -55,11 +56,11 @@ class AIEngineManagerOptimized {
    */
   async initialize(options = {}) {
     try {
-      console.log('[AIEngineManager-Optimized] 开始初始化...');
+      logger.info('[AIEngineManager-Optimized] 开始初始化...');
 
       // 合并用户配置
       this.config = mergeConfig(options);
-      console.log('[AIEngineManager-Optimized] 配置已加载:', {
+      logger.info('[AIEngineManager-Optimized] 配置已加载:', {
         slotFilling: this.config.enableSlotFilling,
         toolSandbox: this.config.enableToolSandbox,
         performanceMonitor: this.config.enablePerformanceMonitor
@@ -84,17 +85,17 @@ class AIEngineManagerOptimized {
       // 初始化优化模块
       if (this.config.enableSlotFilling) {
         this.slotFiller = new SlotFiller(this.llmManager, this.database);
-        console.log('[AIEngineManager-Optimized] ✅ 槽位填充器已初始化');
+        logger.info('[AIEngineManager-Optimized] ✅ 槽位填充器已初始化');
       }
 
       if (this.config.enableToolSandbox) {
         this.toolSandbox = new ToolSandbox(this.functionCaller, this.database);
-        console.log('[AIEngineManager-Optimized] ✅ 工具沙箱已初始化');
+        logger.info('[AIEngineManager-Optimized] ✅ 工具沙箱已初始化');
       }
 
       if (this.config.enablePerformanceMonitor) {
         this.performanceMonitor = new PerformanceMonitor(this.database);
-        console.log('[AIEngineManager-Optimized] ✅ 性能监控已初始化');
+        logger.info('[AIEngineManager-Optimized] ✅ 性能监控已初始化');
       }
 
       // 初始化增强版任务规划器
@@ -105,16 +106,16 @@ class AIEngineManagerOptimized {
           projectConfig: this.projectConfig
         });
 
-        console.log('[AIEngineManager-Optimized] ✅ 增强版任务规划器已初始化');
+        logger.info('[AIEngineManager-Optimized] ✅ 增强版任务规划器已初始化');
       }
 
       // 生成会话ID
       this.sessionId = `session_${Date.now()}`;
 
-      console.log('[AIEngineManager-Optimized] ✅ 初始化完成');
+      logger.info('[AIEngineManager-Optimized] ✅ 初始化完成');
       return true;
     } catch (error) {
-      console.error('[AIEngineManager-Optimized] ❌ 初始化失败:', error);
+      logger.error('[AIEngineManager-Optimized] ❌ 初始化失败:', error);
       throw error;
     }
   }
@@ -132,15 +133,15 @@ class AIEngineManagerOptimized {
     const executionId = `exec_${Date.now()}`;
 
     try {
-      console.log(`\n${'='.repeat(60)}`);
-      console.log(`[AI Engine] 🚀 开始处理用户输入: "${userInput}"`);
-      console.log(`[AI Engine] 会话ID: ${this.sessionId}`);
-      console.log(`${'='.repeat(60)}\n`);
+      logger.info(`\n${'='.repeat(60)}`);
+      logger.info(`[AI Engine] 🚀 开始处理用户输入: "${userInput}"`);
+      logger.info(`[AI Engine] 会话ID: ${this.sessionId}`);
+      logger.info(`${'='.repeat(60)}\n`);
 
       // =====================================================
       // 步骤1: 意图识别 (Intent Recognition)
       // =====================================================
-      console.log('[步骤1] 意图识别...');
+      logger.info('[步骤1] 意图识别...');
       const intentStartTime = Date.now();
 
       const intentStep = {
@@ -163,7 +164,7 @@ class AIEngineManagerOptimized {
 
       if (onStepUpdate) {onStepUpdate(intentStep);}
 
-      console.log(`[步骤1] ✅ 识别完成: ${intent.intent}, 置信度: ${intent.confidence}`);
+      logger.info(`[步骤1] ✅ 识别完成: ${intent.intent}, 置信度: ${intent.confidence}`);
 
       // 记录性能
       if (this.performanceMonitor) {
@@ -182,7 +183,7 @@ class AIEngineManagerOptimized {
       let slotFillingResult = { entities: intent.entities, validation: { valid: true } };
 
       if (this.config.enableSlotFilling && this.slotFiller) {
-        console.log('[步骤2] 槽位填充...');
+        logger.info('[步骤2] 槽位填充...');
         const slotStartTime = Date.now();
 
         const slotStep = {
@@ -209,7 +210,7 @@ class AIEngineManagerOptimized {
 
         if (onStepUpdate) {onStepUpdate(slotStep);}
 
-        console.log(`[步骤2] ✅ 槽位填充完成: 完整度 ${slotFillingResult.validation.completeness}%`);
+        logger.info(`[步骤2] ✅ 槽位填充完成: 完整度 ${slotFillingResult.validation.completeness}%`);
 
         // 更新intent的entities
         intent.entities = slotFillingResult.entities;
@@ -223,7 +224,7 @@ class AIEngineManagerOptimized {
       // =====================================================
       // 步骤3: 任务规划 (Task Planning)
       // =====================================================
-      console.log('[步骤3] 任务规划...');
+      logger.info('[步骤3] 任务规划...');
       const planStartTime = Date.now();
 
       const planStep = {
@@ -246,7 +247,7 @@ class AIEngineManagerOptimized {
 
       if (onStepUpdate) {onStepUpdate(planStep);}
 
-      console.log(`[步骤3] ✅ 规划完成: ${plan.steps.length} 个步骤`);
+      logger.info(`[步骤3] ✅ 规划完成: ${plan.steps.length} 个步骤`);
 
       // 记录性能
       if (this.performanceMonitor) {
@@ -262,14 +263,14 @@ class AIEngineManagerOptimized {
       // =====================================================
       // 步骤4: 执行任务步骤 (Tool Execution)
       // =====================================================
-      console.log('[步骤4] 执行任务步骤...');
+      logger.info('[步骤4] 执行任务步骤...');
       const results = [];
       let failedStepIndex = null;
 
       for (let i = 0; i < plan.steps.length; i++) {
         const taskStep = plan.steps[i];
 
-        console.log(`  [${i + 1}/${plan.steps.length}] 执行: ${taskStep.tool}`);
+        logger.info(`  [${i + 1}/${plan.steps.length}] 执行: ${taskStep.tool}`);
 
         const execStep = {
           id: `${executionId}_step_${i + 4}`,
@@ -320,7 +321,7 @@ class AIEngineManagerOptimized {
 
           results.push(result.result);
 
-          console.log(`  ✅ 完成: ${taskStep.tool}, 耗时: ${result.duration}ms`);
+          logger.info(`  ✅ 完成: ${taskStep.tool}, 耗时: ${result.duration}ms`);
 
           // 记录工具执行性能
           if (this.performanceMonitor) {
@@ -334,7 +335,7 @@ class AIEngineManagerOptimized {
           }
 
         } catch (error) {
-          console.error(`  ❌ 失败: ${taskStep.tool}`, error.message);
+          logger.error(`  ❌ 失败: ${taskStep.tool}`, error.message);
 
           execStep.status = 'failed';
           execStep.endTime = Date.now();
@@ -367,11 +368,11 @@ class AIEngineManagerOptimized {
       const pipelineDuration = Date.now() - pipelineStartTime;
       const allSuccess = results.every(r => r.success !== false);
 
-      console.log(`\n${'='.repeat(60)}`);
-      console.log(`[AI Engine] ${allSuccess ? '✅ 执行成功' : '⚠️ 部分失败'}`);
-      console.log(`[AI Engine] 总耗时: ${pipelineDuration}ms`);
-      console.log(`[AI Engine] 成功步骤: ${results.length}/${plan.steps.length}`);
-      console.log(`${'='.repeat(60)}\n`);
+      logger.info(`\n${'='.repeat(60)}`);
+      logger.info(`[AI Engine] ${allSuccess ? '✅ 执行成功' : '⚠️ 部分失败'}`);
+      logger.info(`[AI Engine] 总耗时: ${pipelineDuration}ms`);
+      logger.info(`[AI Engine] 成功步骤: ${results.length}/${plan.steps.length}`);
+      logger.info(`${'='.repeat(60)}\n`);
 
       // 记录整体Pipeline性能
       if (this.performanceMonitor) {
@@ -410,7 +411,7 @@ class AIEngineManagerOptimized {
     } catch (error) {
       const pipelineDuration = Date.now() - pipelineStartTime;
 
-      console.error(`\n[AI Engine] ❌ 处理失败:`, error);
+      logger.error(`\n[AI Engine] ❌ 处理失败:`, error);
 
       // 记录失败
       if (this.performanceMonitor) {

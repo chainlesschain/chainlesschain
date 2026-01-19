@@ -6,6 +6,7 @@
  * @module secure-storage-ipc
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { ipcMain, dialog, BrowserWindow } = require("electron");
 const path = require("path");
 const {
@@ -35,7 +36,7 @@ function registerSecureStorageIPC() {
         data: storage.getStorageInfo(),
       };
     } catch (error) {
-      console.error("[SecureStorageIPC] 获取存储信息失败:", error);
+      logger.error("[SecureStorageIPC] 获取存储信息失败:", error);
       return {
         success: false,
         error: error.message,
@@ -54,7 +55,7 @@ function registerSecureStorageIPC() {
         error: result ? null : "保存失败",
       };
     } catch (error) {
-      console.error("[SecureStorageIPC] 保存配置失败:", error);
+      logger.error("[SecureStorageIPC] 保存配置失败:", error);
       return {
         success: false,
         error: error.message,
@@ -73,7 +74,7 @@ function registerSecureStorageIPC() {
         data: config,
       };
     } catch (error) {
-      console.error("[SecureStorageIPC] 加载配置失败:", error);
+      logger.error("[SecureStorageIPC] 加载配置失败:", error);
       return {
         success: false,
         error: error.message,
@@ -109,7 +110,7 @@ function registerSecureStorageIPC() {
         error: result ? null : "删除失败",
       };
     } catch (error) {
-      console.error("[SecureStorageIPC] 删除配置失败:", error);
+      logger.error("[SecureStorageIPC] 删除配置失败:", error);
       return {
         success: false,
         error: error.message,
@@ -150,7 +151,7 @@ function registerSecureStorageIPC() {
         error: backupPath ? null : "没有配置可备份",
       };
     } catch (error) {
-      console.error("[SecureStorageIPC] 创建备份失败:", error);
+      logger.error("[SecureStorageIPC] 创建备份失败:", error);
       return {
         success: false,
         error: error.message,
@@ -169,7 +170,7 @@ function registerSecureStorageIPC() {
         data: backups,
       };
     } catch (error) {
-      console.error("[SecureStorageIPC] 列出备份失败:", error);
+      logger.error("[SecureStorageIPC] 列出备份失败:", error);
       return {
         success: false,
         error: error.message,
@@ -188,7 +189,7 @@ function registerSecureStorageIPC() {
         error: result ? null : "恢复失败",
       };
     } catch (error) {
-      console.error("[SecureStorageIPC] 恢复备份失败:", error);
+      logger.error("[SecureStorageIPC] 恢复备份失败:", error);
       return {
         success: false,
         error: error.message,
@@ -230,7 +231,7 @@ function registerSecureStorageIPC() {
         error: exportResult ? null : "导出失败",
       };
     } catch (error) {
-      console.error("[SecureStorageIPC] 导出配置失败:", error);
+      logger.error("[SecureStorageIPC] 导出配置失败:", error);
       return {
         success: false,
         error: error.message,
@@ -271,7 +272,7 @@ function registerSecureStorageIPC() {
         error: importResult ? null : "导入失败，请检查密码是否正确",
       };
     } catch (error) {
-      console.error("[SecureStorageIPC] 导入配置失败:", error);
+      logger.error("[SecureStorageIPC] 导入配置失败:", error);
       return {
         success: false,
         error: error.message,
@@ -290,7 +291,7 @@ function registerSecureStorageIPC() {
         error: result ? null : "safeStorage 不可用",
       };
     } catch (error) {
-      console.error("[SecureStorageIPC] 迁移失败:", error);
+      logger.error("[SecureStorageIPC] 迁移失败:", error);
       return {
         success: false,
         error: error.message,
@@ -404,7 +405,7 @@ function registerSecureStorageIPC() {
           error: saveResult ? null : "保存失败",
         };
       } catch (error) {
-        console.error("[SecureStorageIPC] 设置 API Key 失败:", error);
+        logger.error("[SecureStorageIPC] 设置 API Key 失败:", error);
         return {
           success: false,
           error: error.message,
@@ -553,7 +554,7 @@ function registerSecureStorageIPC() {
           error: saveResult ? null : "保存失败",
         };
       } catch (error) {
-        console.error("[SecureStorageIPC] 批量设置 API Keys 失败:", error);
+        logger.error("[SecureStorageIPC] 批量设置 API Keys 失败:", error);
         return {
           success: false,
           error: error.message,
@@ -628,7 +629,7 @@ function registerSecureStorageIPC() {
     }
   });
 
-  console.log("[SecureStorageIPC] IPC 处理器已注册");
+  logger.info("[SecureStorageIPC] IPC 处理器已注册");
 }
 
 /**
@@ -665,7 +666,7 @@ function unregisterSecureStorageIPC() {
     ipcMain.removeHandler(channel);
   }
 
-  console.log("[SecureStorageIPC] IPC 处理器已注销");
+  logger.info("[SecureStorageIPC] IPC 处理器已注销");
 }
 
 module.exports = {

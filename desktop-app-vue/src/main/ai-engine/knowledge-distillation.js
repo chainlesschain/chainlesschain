@@ -1,3 +1,5 @@
+const { logger, createLogger } = require('../utils/logger.js');
+
 /**
  * 知识蒸馏模块 (Knowledge Distillation)
  *
@@ -327,11 +329,11 @@ class KnowledgeDistillation {
 
     // Step 1: 评估复杂度
     const complexity = this.evaluateComplexity(task);
-    console.log(`[KnowledgeDistillation] 复杂度评估: ${complexity.level} (分数: ${complexity.score.toFixed(2)})`);
+    logger.info(`[KnowledgeDistillation] 复杂度评估: ${complexity.level} (分数: ${complexity.score.toFixed(2)})`);
 
     // Step 2: 路由决策
     const routing = this.routeToModel(complexity);
-    console.log(`[KnowledgeDistillation] 路由到: ${routing.modelName} (${routing.reason})`);
+    logger.info(`[KnowledgeDistillation] 路由到: ${routing.modelName} (${routing.reason})`);
 
     // Step 3: 执行任务
     let result;
@@ -345,11 +347,11 @@ class KnowledgeDistillation {
       // Step 4: 质量检查(仅对小模型结果)
       if (routing.modelType === ModelType.SMALL) {
         const quality = this.checkQuality(result, task);
-        console.log(`[KnowledgeDistillation] 质量检查: ${quality.isQualified ? '通过' : '未通过'} (分数: ${quality.score.toFixed(2)})`);
+        logger.info(`[KnowledgeDistillation] 质量检查: ${quality.isQualified ? '通过' : '未通过'} (分数: ${quality.score.toFixed(2)})`);
 
         // Step 5: 回退策略
         if (!quality.isQualified && this.config.enableFallback) {
-          console.log(`[KnowledgeDistillation] 质量不合格，回退到大模型 (问题: ${quality.issues.join(', ')})`);
+          logger.info(`[KnowledgeDistillation] 质量不合格，回退到大模型 (问题: ${quality.issues.join(', ')})`);
           result = await this._executeTask(task, this.config.largeModel, context);
           finalModelType = ModelType.LARGE;
           usedFallback = true;
@@ -366,11 +368,11 @@ class KnowledgeDistillation {
       }
 
     } catch (error) {
-      console.error('[KnowledgeDistillation] 执行失败:', error);
+      logger.error('[KnowledgeDistillation] 执行失败:', error);
 
       // 如果小模型失败且启用回退，尝试大模型
       if (routing.modelType === ModelType.SMALL && this.config.enableFallback) {
-        console.log('[KnowledgeDistillation] 小模型执行失败，回退到大模型');
+        logger.info('[KnowledgeDistillation] 小模型执行失败，回退到大模型');
         try {
           result = await this._executeTask(task, this.config.largeModel, context);
           finalModelType = ModelType.LARGE;
@@ -422,7 +424,7 @@ class KnowledgeDistillation {
 
     // 这里应该调用实际的LLM执行逻辑
     // 暂时返回模拟结果
-    console.log(`[KnowledgeDistillation] 使用模型 ${modelName} 执行任务...`);
+    logger.info(`[KnowledgeDistillation] 使用模型 ${modelName} 执行任务...`);
 
     // TODO: 实际实现应该调用:
     // return await this.llmManager.execute(task, { model: modelName, ...context });
@@ -475,7 +477,7 @@ class KnowledgeDistillation {
       );
 
     } catch (error) {
-      console.error('[KnowledgeDistillation] 记录蒸馏历史失败:', error);
+      logger.error('[KnowledgeDistillation] 记录蒸馏历史失败:', error);
     }
   }
 
@@ -559,7 +561,7 @@ class KnowledgeDistillation {
       };
 
     } catch (error) {
-      console.error('[KnowledgeDistillation] 获取蒸馏统计失败:', error);
+      logger.error('[KnowledgeDistillation] 获取蒸馏统计失败:', error);
       return { runtime: runtimeStats };
     }
   }
@@ -591,7 +593,7 @@ class KnowledgeDistillation {
         return { success: true, adjustments: 0, reason: 'no_fallback_cases' };
       }
 
-      console.log(`[KnowledgeDistillation] 从${fallbackCases.length}个回退案例中学习...`);
+      logger.info(`[KnowledgeDistillation] 从${fallbackCases.length}个回退案例中学习...`);
 
       // 分析回退案例，调整复杂度阈值
       // 如果很多simple任务被回退，说明复杂度评估过于乐观，需要调整权重
@@ -600,7 +602,7 @@ class KnowledgeDistillation {
 
       if (fallbackRate > 0.3) {
         // 30%以上的simple任务被回退，说明需要更保守的评估
-        console.log(`[KnowledgeDistillation] 检测到高回退率(${(fallbackRate * 100).toFixed(1)}%)，调整权重...`);
+        logger.info(`[KnowledgeDistillation] 检测到高回退率(${(fallbackRate * 100).toFixed(1)}%)，调整权重...`);
 
         // 增加taskType权重，降低intentCount权重
         this.complexityWeights.taskType += 0.05;
@@ -628,7 +630,7 @@ class KnowledgeDistillation {
       };
 
     } catch (error) {
-      console.error('[KnowledgeDistillation] 学习失败:', error);
+      logger.error('[KnowledgeDistillation] 学习失败:', error);
       return { success: false, error: error.message };
     }
   }

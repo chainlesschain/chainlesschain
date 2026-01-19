@@ -4,6 +4,7 @@
  * WebSocket通信、条形码二维码、地理位置、视频处理、代码分析等工具
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require('fs').promises;
 const path = require('path');
 const crypto = require('crypto');
@@ -14,7 +15,7 @@ class ExtendedTools5 {
    * @param {FunctionCaller} functionCaller
    */
   static registerAll(functionCaller) {
-    console.log('[ExtendedTools5] 注册第五批扩展工具...');
+    logger.info('[ExtendedTools5] 注册第五批扩展工具...');
 
     // ==================== 密码学工具 ====================
 
@@ -372,7 +373,7 @@ class ExtendedTools5 {
           if (action === 'setTimeout') {
             const id = crypto.randomBytes(8).toString('hex');
             const timer = setTimeout(() => {
-              console.log('[Task Timer] 执行定时任务:', task);
+              logger.info('[Task Timer] 执行定时任务:', task);
               timers.delete(id);
             }, delay);
 
@@ -381,7 +382,7 @@ class ExtendedTools5 {
           } else if (action === 'setInterval') {
             const id = crypto.randomBytes(8).toString('hex');
             const timer = setInterval(() => {
-              console.log('[Task Timer] 执行间隔任务:', task);
+              logger.info('[Task Timer] 执行间隔任务:', task);
             }, interval);
 
             timers.set(id, timer);
@@ -858,7 +859,7 @@ class ExtendedTools5 {
       }
     );
 
-    console.log('[ExtendedTools5] 第五批扩展工具注册完成 (20个工具)');
+    logger.info('[ExtendedTools5] 第五批扩展工具注册完成 (20个工具)');
   }
 }
 

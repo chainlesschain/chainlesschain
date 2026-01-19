@@ -179,6 +179,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, reactive, computed, watch } from 'vue';
 import {
   LockOutlined,
@@ -337,7 +339,7 @@ const handleSubmit = async () => {
 
     emit('submit', data);
   } catch (error) {
-    console.error('表单验证失败:', error);
+    logger.error('表单验证失败:', error);
   } finally {
     loading.value = false;
   }

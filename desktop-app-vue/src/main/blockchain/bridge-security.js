@@ -9,6 +9,7 @@
  * - Emergency pause mechanism
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const EventEmitter = require('events');
 const { ethers } = require('ethers');
 
@@ -64,7 +65,7 @@ class BridgeSecurityManager extends EventEmitter {
    */
   async initialize() {
     if (this.initialized) {
-      console.log('[BridgeSecurity] Already initialized');
+      logger.info('[BridgeSecurity] Already initialized');
       return;
     }
 
@@ -76,9 +77,9 @@ class BridgeSecurityManager extends EventEmitter {
       this.startCleanupInterval();
 
       this.initialized = true;
-      console.log('[BridgeSecurity] Initialized successfully');
+      logger.info('[BridgeSecurity] Initialized successfully');
     } catch (error) {
-      console.error('[BridgeSecurity] Initialization failed:', error);
+      logger.error('[BridgeSecurity] Initialization failed:', error);
       throw error;
     }
   }
@@ -126,7 +127,7 @@ class BridgeSecurityManager extends EventEmitter {
       )
     `);
 
-    console.log('[BridgeSecurity] Database tables initialized');
+    logger.info('[BridgeSecurity] Database tables initialized');
   }
 
   /**
@@ -142,9 +143,9 @@ class BridgeSecurityManager extends EventEmitter {
         this.blacklistedAddresses.add(row.address.toLowerCase());
       });
 
-      console.log(`[BridgeSecurity] Loaded ${this.blacklistedAddresses.size} blacklisted addresses`);
+      logger.info(`[BridgeSecurity] Loaded ${this.blacklistedAddresses.size} blacklisted addresses`);
     } catch (error) {
-      console.error('[BridgeSecurity] Failed to load blacklist:', error);
+      logger.error('[BridgeSecurity] Failed to load blacklist:', error);
     }
   }
 
@@ -156,7 +157,7 @@ class BridgeSecurityManager extends EventEmitter {
   async validateTransfer(transfer) {
     const { fromAddress, toAddress, amount, chainId } = transfer;
 
-    console.log('[BridgeSecurity] Validating transfer:', {
+    logger.info('[BridgeSecurity] Validating transfer:', {
       from: fromAddress,
       to: toAddress,
       amount: amount.toString(),
@@ -404,7 +405,7 @@ class BridgeSecurityManager extends EventEmitter {
     // Store in memory
     this.pendingMultiSig.set(txId, multiSigTx);
 
-    console.log('[BridgeSecurity] Multi-sig transaction created:', txId);
+    logger.info('[BridgeSecurity] Multi-sig transaction created:', txId);
 
     return { txId, requiredSignatures: multiSigTx.requiredSignatures };
   }
@@ -460,7 +461,7 @@ class BridgeSecurityManager extends EventEmitter {
       txId
     );
 
-    console.log(`[BridgeSecurity] Signature added (${multiSigTx.signatures.length}/${multiSigTx.requiredSignatures})`);
+    logger.info(`[BridgeSecurity] Signature added (${multiSigTx.signatures.length}/${multiSigTx.requiredSignatures})`);
 
     // Check if approved
     if (multiSigTx.signatures.length >= multiSigTx.requiredSignatures) {
@@ -487,7 +488,7 @@ class BridgeSecurityManager extends EventEmitter {
 
     this.emit('bridge-paused', { duration, reason, until: this.pausedUntil });
 
-    console.log(`[BridgeSecurity] Bridge paused until ${new Date(this.pausedUntil).toISOString()}`);
+    logger.info(`[BridgeSecurity] Bridge paused until ${new Date(this.pausedUntil).toISOString()}`);
 
     // Auto-resume after duration
     setTimeout(() => {
@@ -510,7 +511,7 @@ class BridgeSecurityManager extends EventEmitter {
 
     this.emit('bridge-resumed');
 
-    console.log('[BridgeSecurity] Bridge resumed');
+    logger.info('[BridgeSecurity] Bridge resumed');
   }
 
   /**
@@ -520,7 +521,7 @@ class BridgeSecurityManager extends EventEmitter {
     const addr = address.toLowerCase();
 
     if (this.blacklistedAddresses.has(addr)) {
-      console.log('[BridgeSecurity] Address already blacklisted:', addr);
+      logger.info('[BridgeSecurity] Address already blacklisted:', addr);
       return;
     }
 
@@ -540,7 +541,7 @@ class BridgeSecurityManager extends EventEmitter {
       details: `Reason: ${reason}`
     });
 
-    console.log('[BridgeSecurity] Address blacklisted:', addr);
+    logger.info('[BridgeSecurity] Address blacklisted:', addr);
   }
 
   /**
@@ -562,7 +563,7 @@ class BridgeSecurityManager extends EventEmitter {
       details: 'Address removed from blacklist'
     });
 
-    console.log('[BridgeSecurity] Address removed from blacklist:', addr);
+    logger.info('[BridgeSecurity] Address removed from blacklist:', addr);
   }
 
   /**
@@ -596,7 +597,7 @@ class BridgeSecurityManager extends EventEmitter {
 
     this.emit('security-event', event);
 
-    console.log(`[BridgeSecurity] Security event logged: ${event.type} (${event.severity})`);
+    logger.info(`[BridgeSecurity] Security event logged: ${event.type} (${event.severity})`);
   }
 
   /**
@@ -671,7 +672,7 @@ class BridgeSecurityManager extends EventEmitter {
       }
     }
 
-    console.log('[BridgeSecurity] Cleanup completed');
+    logger.info('[BridgeSecurity] Cleanup completed');
   }
 
   /**
@@ -685,7 +686,7 @@ class BridgeSecurityManager extends EventEmitter {
     this.removeAllListeners();
     this.initialized = false;
 
-    console.log('[BridgeSecurity] Closed');
+    logger.info('[BridgeSecurity] Closed');
   }
 }
 

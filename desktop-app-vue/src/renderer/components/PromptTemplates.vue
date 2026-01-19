@@ -325,6 +325,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted, watch, toRaw } from 'vue';
 import { message } from 'ant-design-vue';
 import {
@@ -411,7 +413,7 @@ const loadTemplates = async () => {
     categories.value = await window.electronAPI.promptTemplate.getCategories();
     statistics.value = await window.electronAPI.promptTemplate.getStatistics();
   } catch (error) {
-    console.error('加载模板失败:', error);
+    logger.error('加载模板失败:', error);
     message.error('加载模板失败: ' + error.message);
   } finally {
     loading.value = false;
@@ -429,7 +431,7 @@ const handleSearch = async () => {
     templates.value = await window.electronAPI.promptTemplate.search(searchQuery.value);
     message.info(`找到 ${templates.value.length} 个模板`);
   } catch (error) {
-    console.error('搜索失败:', error);
+    logger.error('搜索失败:', error);
     message.error('搜索失败: ' + error.message);
   } finally {
     loading.value = false;
@@ -506,7 +508,7 @@ const handleSaveTemplate = async () => {
     templateModalVisible.value = false;
     await loadTemplates();
   } catch (error) {
-    console.error('保存模板失败:', error);
+    logger.error('保存模板失败:', error);
     message.error('保存模板失败: ' + error.message);
   }
 };
@@ -522,7 +524,7 @@ const handleDeleteTemplate = async (template) => {
     message.success('模板已删除');
     await loadTemplates();
   } catch (error) {
-    console.error('删除模板失败:', error);
+    logger.error('删除模板失败:', error);
     message.error('删除模板失败: ' + error.message);
   }
 };
@@ -554,7 +556,7 @@ const handleFillTemplate = async () => {
     useTemplateModalVisible.value = false;
     await loadTemplates(); // 刷新使用次数
   } catch (error) {
-    console.error('填充模板失败:', error);
+    logger.error('填充模板失败:', error);
     message.error('填充模板失败: ' + error.message);
   }
 };
@@ -567,7 +569,7 @@ const handleExportTemplate = async (template) => {
     await navigator.clipboard.writeText(jsonString);
     message.success('模板已导出到剪贴板');
   } catch (error) {
-    console.error('导出模板失败:', error);
+    logger.error('导出模板失败:', error);
     message.error('导出模板失败: ' + error.message);
   }
 };
@@ -585,7 +587,7 @@ const handleImportTemplate = async () => {
     importModalVisible.value = false;
     await loadTemplates();
   } catch (error) {
-    console.error('导入模板失败:', error);
+    logger.error('导入模板失败:', error);
     message.error('导入模板失败: ' + error.message);
   }
 };

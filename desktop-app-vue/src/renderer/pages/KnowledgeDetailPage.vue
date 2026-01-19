@@ -143,6 +143,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, onMounted, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { message } from 'ant-design-vue';
@@ -199,7 +201,7 @@ const loadItem = async () => {
     item.value = data;
     store.setCurrentItem(data);
   } catch (error) {
-    console.error('加载项目失败:', error);
+    logger.error('加载项目失败:', error);
     message.error('加载项目失败');
   } finally {
     loading.value = false;
@@ -241,7 +243,7 @@ const saveItem = async () => {
     editing.value = false;
     message.success('保存成功');
   } catch (error) {
-    console.error('保存失败:', error);
+    logger.error('保存失败:', error);
     message.error('保存失败');
   }
 };
@@ -253,7 +255,7 @@ const deleteItem = async () => {
     message.success('删除成功');
     router.push('/');
   } catch (error) {
-    console.error('删除失败:', error);
+    logger.error('删除失败:', error);
     message.error('删除失败');
   }
 };

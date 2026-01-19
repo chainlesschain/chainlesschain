@@ -228,6 +228,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, watch, nextTick, onMounted } from 'vue';
 import {
   RobotOutlined,
@@ -304,7 +306,7 @@ const renderMarkdown = (content) => {
     const rawHTML = marked.parse(textContent);
     return rawHTML;
   } catch (error) {
-    console.error('Markdown rendering error:', error);
+    logger.error('Markdown rendering error:', error);
     // 发生错误时，转义文本以防止 XSS
     const div = document.createElement('div');
     div.textContent = String(content || '');
@@ -321,7 +323,7 @@ const formatTime = (timestamp) => {
       locale: zhCN,
     });
   } catch (error) {
-    console.error('Time formatting error:', error);
+    logger.error('Time formatting error:', error);
     return '';
   }
 };

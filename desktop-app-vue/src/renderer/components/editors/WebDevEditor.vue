@@ -166,6 +166,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, watch, onMounted, nextTick } from 'vue';
 import { message } from 'ant-design-vue';
 import {
@@ -190,7 +192,7 @@ const props = defineProps({
   },
   initialJS: {
     type: String,
-    default: '// JavaScript code\nconsole.log("Hello World");',
+    default: '// JavaScript code\nlogger.info("Hello World");',
   },
 });
 
@@ -310,7 +312,7 @@ const exportProject = async () => {
       message.success('项目导出成功: ' + dirPath);
     }
   } catch (error) {
-    console.error('[WebDevEditor] 导出失败:', error);
+    logger.error('[WebDevEditor] 导出失败:', error);
     message.error('导出失败: ' + error.message);
   }
 };
@@ -346,7 +348,7 @@ const saveAll = async () => {
     hasChanges.value = false;
     message.success('已保存');
   } catch (error) {
-    console.error('[WebDevEditor] 保存失败:', error);
+    logger.error('[WebDevEditor] 保存失败:', error);
     message.error('保存失败: ' + error.message);
   } finally {
     saving.value = false;

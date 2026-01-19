@@ -49,6 +49,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted, onUnmounted, watch, provide } from "vue";
 import PluginComponentWrapper from "./PluginComponentWrapper.vue";
 
@@ -196,7 +198,7 @@ async function loadSlotExtensions() {
       throw new Error(result?.error || "获取插槽扩展失败");
     }
   } catch (err) {
-    console.error(`[PluginSlot:${props.slotName}] 加载失败:`, err);
+    logger.error(`[PluginSlot:${props.slotName}] 加载失败:`, err);
     error.value = err.message;
     emit("error", err);
   } finally {
@@ -206,7 +208,7 @@ async function loadSlotExtensions() {
 
 // 处理组件错误
 function handleComponentError(extension, err) {
-  console.error(
+  logger.error(
     `[PluginSlot:${props.slotName}] 组件 ${extension.pluginId} 错误:`,
     err,
   );

@@ -125,6 +125,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted } from 'vue';
 import { message } from 'ant-design-vue';
 import {
@@ -233,19 +235,19 @@ const filteredSuggestions = computed(() => {
 const loadTemplates = async () => {
   try {
     loading.value = true;
-    console.log('[SuggestedPromptsPanel] 开始加载提示模板...');
+    logger.info('[SuggestedPromptsPanel] 开始加载提示模板...');
 
     const allTemplates = await window.electronAPI.promptTemplate.getAll();
 
     if (allTemplates && allTemplates.length > 0) {
       templates.value = allTemplates;
-      console.log('[SuggestedPromptsPanel] ✅ 加载成功:', allTemplates.length, '个模板');
+      logger.info('[SuggestedPromptsPanel] ✅ 加载成功:', allTemplates.length, '个模板');
     } else {
       templates.value = [];
-      console.warn('[SuggestedPromptsPanel] ⚠️ 未找到提示模板');
+      logger.warn('[SuggestedPromptsPanel] ⚠️ 未找到提示模板');
     }
   } catch (error) {
-    console.error('[SuggestedPromptsPanel] ❌ 加载模板失败:', error);
+    logger.error('[SuggestedPromptsPanel] ❌ 加载模板失败:', error);
     templates.value = [];
 
     let errorMessage = '加载提示模板失败';
@@ -268,7 +270,7 @@ const loadTemplates = async () => {
 // Fill suggestion into input
 const fillSuggestion = (suggestion) => {
   try {
-    console.log('[SuggestedPromptsPanel] 填充建议:', suggestion);
+    logger.info('[SuggestedPromptsPanel] 填充建议:', suggestion);
 
     // Use the description or prompt template as the suggestion text
     const suggestionText = suggestion.description ||
@@ -284,9 +286,9 @@ const fillSuggestion = (suggestion) => {
     emit('fillInput', suggestionText);
 
     message.success('已填充提示内容');
-    console.log('[SuggestedPromptsPanel] ✅ 填充成功');
+    logger.info('[SuggestedPromptsPanel] ✅ 填充成功');
   } catch (error) {
-    console.error('[SuggestedPromptsPanel] ❌ 填充建议失败:', error);
+    logger.error('[SuggestedPromptsPanel] ❌ 填充建议失败:', error);
     message.error('填充失败: ' + (error.message || '未知错误'));
   }
 };

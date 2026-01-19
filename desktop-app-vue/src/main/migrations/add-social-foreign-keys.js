@@ -1,3 +1,5 @@
+const { logger, createLogger } = require('../utils/logger.js');
+
 /**
  * 数据库迁移：为社交功能表添加外键约束
  *
@@ -14,7 +16,7 @@
  * @param {Object} db - 数据库实例
  */
 async function up(db) {
-  console.log('[Migration] 开始执行：添加社交功能外键约束');
+  logger.info('[Migration] 开始执行：添加社交功能外键约束');
 
   try {
     // 启用外键约束检查
@@ -23,7 +25,7 @@ async function up(db) {
     // ========================================
     // 1. 迁移 post_likes 表
     // ========================================
-    console.log('[Migration] 迁移 post_likes 表...');
+    logger.info('[Migration] 迁移 post_likes 表...');
 
     // 检查表是否存在
     const likesTableExists = db.prepare(
@@ -62,18 +64,18 @@ async function up(db) {
         // 1.4 重命名新表
         db.prepare('ALTER TABLE post_likes_new RENAME TO post_likes').run();
 
-        console.log('[Migration] post_likes 表迁移完成');
+        logger.info('[Migration] post_likes 表迁移完成');
       } else {
-        console.log('[Migration] post_likes 表已有外键约束，跳过迁移');
+        logger.info('[Migration] post_likes 表已有外键约束，跳过迁移');
       }
     } else {
-      console.log('[Migration] post_likes 表不存在，跳过迁移');
+      logger.info('[Migration] post_likes 表不存在，跳过迁移');
     }
 
     // ========================================
     // 2. 迁移 post_comments 表
     // ========================================
-    console.log('[Migration] 迁移 post_comments 表...');
+    logger.info('[Migration] 迁移 post_comments 表...');
 
     const commentsTableExists = db.prepare(
       "SELECT name FROM sqlite_master WHERE type='table' AND name='post_comments'"
@@ -121,18 +123,18 @@ async function up(db) {
           CREATE INDEX IF NOT EXISTS idx_comments_parent_id ON post_comments(parent_id);
         `);
 
-        console.log('[Migration] post_comments 表迁移完成');
+        logger.info('[Migration] post_comments 表迁移完成');
       } else {
-        console.log('[Migration] post_comments 表已有外键约束，跳过迁移');
+        logger.info('[Migration] post_comments 表已有外键约束，跳过迁移');
       }
     } else {
-      console.log('[Migration] post_comments 表不存在，跳过迁移');
+      logger.info('[Migration] post_comments 表不存在，跳过迁移');
     }
 
-    console.log('[Migration] 迁移完成：添加社交功能外键约束');
+    logger.info('[Migration] 迁移完成：添加社交功能外键约束');
     return true;
   } catch (error) {
-    console.error('[Migration] 迁移失败:', error);
+    logger.error('[Migration] 迁移失败:', error);
     throw error;
   }
 }
@@ -142,13 +144,13 @@ async function up(db) {
  * @param {Object} db - 数据库实例
  */
 async function down(db) {
-  console.log('[Migration] 回滚：移除社交功能外键约束');
+  logger.info('[Migration] 回滚：移除社交功能外键约束');
 
   try {
     // ========================================
     // 1. 回滚 post_likes 表
     // ========================================
-    console.log('[Migration] 回滚 post_likes 表...');
+    logger.info('[Migration] 回滚 post_likes 表...');
 
     const likesTableExists = db.prepare(
       "SELECT name FROM sqlite_master WHERE type='table' AND name='post_likes'"
@@ -177,13 +179,13 @@ async function down(db) {
       // 重命名
       db.prepare('ALTER TABLE post_likes_rollback RENAME TO post_likes').run();
 
-      console.log('[Migration] post_likes 表回滚完成');
+      logger.info('[Migration] post_likes 表回滚完成');
     }
 
     // ========================================
     // 2. 回滚 post_comments 表
     // ========================================
-    console.log('[Migration] 回滚 post_comments 表...');
+    logger.info('[Migration] 回滚 post_comments 表...');
 
     const commentsTableExists = db.prepare(
       "SELECT name FROM sqlite_master WHERE type='table' AND name='post_comments'"
@@ -220,13 +222,13 @@ async function down(db) {
         CREATE INDEX IF NOT EXISTS idx_comments_parent_id ON post_comments(parent_id);
       `);
 
-      console.log('[Migration] post_comments 表回滚完成');
+      logger.info('[Migration] post_comments 表回滚完成');
     }
 
-    console.log('[Migration] 回滚完成');
+    logger.info('[Migration] 回滚完成');
     return true;
   } catch (error) {
-    console.error('[Migration] 回滚失败:', error);
+    logger.error('[Migration] 回滚失败:', error);
     throw error;
   }
 }

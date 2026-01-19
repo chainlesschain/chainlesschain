@@ -307,6 +307,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { message } from 'ant-design-vue';
@@ -493,7 +495,7 @@ const selectEmail = async (email) => {
       await window.electron.ipcRenderer.invoke('email:mark-as-read', email.id);
       email.is_read = 1;
     } catch (error) {
-      console.error('标记已读失败:', error);
+      logger.error('标记已读失败:', error);
     }
   }
 };
@@ -509,7 +511,7 @@ const loadAttachments = async (emailId) => {
       attachments.value = result.attachments;
     }
   } catch (error) {
-    console.error('加载附件失败:', error);
+    logger.error('加载附件失败:', error);
     attachments.value = [];
   }
 };

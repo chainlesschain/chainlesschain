@@ -68,6 +68,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted, onUnmounted, h } from 'vue';
 import { message } from 'ant-design-vue';
 import { AudioOutlined, AudioMutedOutlined } from '@ant-design/icons-vue';
@@ -142,7 +144,7 @@ const initSpeechRecognition = () => {
 
     return true;
   } catch (error) {
-    console.error('初始化语音识别失败:', error);
+    logger.error('初始化语音识别失败:', error);
     message.error('初始化语音识别失败');
     return false;
   }
@@ -175,7 +177,7 @@ const handleRecognitionResult = (event) => {
 
 // 处理识别错误
 const handleRecognitionError = (event) => {
-  console.error('语音识别错误:', event.error);
+  logger.error('语音识别错误:', event.error);
 
   let errorMessage = '语音识别失败';
   switch (event.error) {
@@ -208,7 +210,7 @@ const handleRecognitionEnd = () => {
     try {
       recognition.start();
     } catch (error) {
-      console.error('重启识别失败:', error);
+      logger.error('重启识别失败:', error);
     }
   }
 };
@@ -239,7 +241,7 @@ const startRecording = () => {
     recognition.start();
     recordingStartTime = Date.now();
   } catch (error) {
-    console.error('启动录音失败:', error);
+    logger.error('启动录音失败:', error);
     message.error('启动录音失败');
     isRecording.value = false;
     showRecordingModal.value = false;
@@ -259,7 +261,7 @@ const stopRecording = () => {
     recordingTime.value = '00:00';
     stopRecordingTimer();
   } catch (error) {
-    console.error('停止录音失败:', error);
+    logger.error('停止录音失败:', error);
   }
 };
 

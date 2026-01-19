@@ -1,3 +1,4 @@
+import { logger, createLogger } from '@/utils/logger';
 import { defineStore } from 'pinia';
 
 /**
@@ -240,7 +241,7 @@ export const useBlockchainStore = defineStore('blockchain', {
           this.currentWallet = this.wallets.find(w => w.is_default) || this.wallets[0];
         }
       } catch (error) {
-        console.error('[BlockchainStore] 加载钱包失败:', error);
+        logger.error('[BlockchainStore] 加载钱包失败:', error);
         throw error;
       } finally {
         this.walletLoading = false;
@@ -263,7 +264,7 @@ export const useBlockchainStore = defineStore('blockchain', {
 
         return wallet;
       } catch (error) {
-        console.error('[BlockchainStore] 创建钱包失败:', error);
+        logger.error('[BlockchainStore] 创建钱包失败:', error);
         throw error;
       } finally {
         this.creatingWallet = false;
@@ -280,7 +281,7 @@ export const useBlockchainStore = defineStore('blockchain', {
         this.wallets.push(wallet);
         return wallet;
       } catch (error) {
-        console.error('[BlockchainStore] 导入钱包失败:', error);
+        logger.error('[BlockchainStore] 导入钱包失败:', error);
         throw error;
       } finally {
         this.creatingWallet = false;
@@ -297,7 +298,7 @@ export const useBlockchainStore = defineStore('blockchain', {
         this.wallets.push(wallet);
         return wallet;
       } catch (error) {
-        console.error('[BlockchainStore] 导入私钥失败:', error);
+        logger.error('[BlockchainStore] 导入私钥失败:', error);
         throw error;
       } finally {
         this.creatingWallet = false;
@@ -316,7 +317,7 @@ export const useBlockchainStore = defineStore('blockchain', {
         this.currentChainId = result.chainId;
         return result;
       } catch (error) {
-        console.error('[BlockchainStore] 连接 MetaMask 失败:', error);
+        logger.error('[BlockchainStore] 连接 MetaMask 失败:', error);
         throw error;
       }
     },
@@ -333,7 +334,7 @@ export const useBlockchainStore = defineStore('blockchain', {
         this.currentChainId = result.chainId;
         return result;
       } catch (error) {
-        console.error('[BlockchainStore] 连接 WalletConnect 失败:', error);
+        logger.error('[BlockchainStore] 连接 WalletConnect 失败:', error);
         throw error;
       }
     },
@@ -375,7 +376,7 @@ export const useBlockchainStore = defineStore('blockchain', {
           this.currentWallet = this.wallets.length > 0 ? this.wallets[0] : null;
         }
       } catch (error) {
-        console.error('[BlockchainStore] 删除钱包失败:', error);
+        logger.error('[BlockchainStore] 删除钱包失败:', error);
         throw error;
       }
     },
@@ -392,7 +393,7 @@ export const useBlockchainStore = defineStore('blockchain', {
           w.is_default = w.id === walletId ? 1 : 0;
         });
       } catch (error) {
-        console.error('[BlockchainStore] 设置默认钱包失败:', error);
+        logger.error('[BlockchainStore] 设置默认钱包失败:', error);
         throw error;
       }
     },
@@ -411,7 +412,7 @@ export const useBlockchainStore = defineStore('blockchain', {
         // 切换网络后清空余额缓存
         this.balances = {};
       } catch (error) {
-        console.error('[BlockchainStore] 切换网络失败:', error);
+        logger.error('[BlockchainStore] 切换网络失败:', error);
         throw error;
       } finally {
         this.switchingChain = false;
@@ -437,7 +438,7 @@ export const useBlockchainStore = defineStore('blockchain', {
 
         return balance;
       } catch (error) {
-        console.error('[BlockchainStore] 获取余额失败:', error);
+        logger.error('[BlockchainStore] 获取余额失败:', error);
         throw error;
       }
     },
@@ -453,7 +454,7 @@ export const useBlockchainStore = defineStore('blockchain', {
       try {
         await this.fetchBalance(this.currentAddress, this.currentChainId);
       } catch (error) {
-        console.warn('[BlockchainStore] 刷新余额失败:', error);
+        logger.warn('[BlockchainStore] 刷新余额失败:', error);
       }
     },
 
@@ -471,7 +472,7 @@ export const useBlockchainStore = defineStore('blockchain', {
         // 分离待确认交易
         this.pendingTransactions = this.transactions.filter(tx => tx.status === 'pending');
       } catch (error) {
-        console.error('[BlockchainStore] 加载交易历史失败:', error);
+        logger.error('[BlockchainStore] 加载交易历史失败:', error);
         throw error;
       } finally {
         this.transactionsLoading = false;
@@ -486,7 +487,7 @@ export const useBlockchainStore = defineStore('blockchain', {
         const tx = await window.electronAPI.blockchain.getTransaction(txHash);
         return tx;
       } catch (error) {
-        console.error('[BlockchainStore] 获取交易详情失败:', error);
+        logger.error('[BlockchainStore] 获取交易详情失败:', error);
         throw error;
       }
     },
@@ -508,7 +509,7 @@ export const useBlockchainStore = defineStore('blockchain', {
         // 等待确认（这里简化处理，实际应该通过事件监听）
         // 真实实现需要在 main process 中监听事件并通过 IPC 推送到 renderer
       } catch (error) {
-        console.error('[BlockchainStore] 监控交易失败:', error);
+        logger.error('[BlockchainStore] 监控交易失败:', error);
       }
     },
 
@@ -536,7 +537,7 @@ export const useBlockchainStore = defineStore('blockchain', {
         const contracts = await window.electronAPI.blockchain.getDeployedContracts(chainId);
         this.deployedContracts = contracts || [];
       } catch (error) {
-        console.error('[BlockchainStore] 加载已部署合约失败:', error);
+        logger.error('[BlockchainStore] 加载已部署合约失败:', error);
         throw error;
       } finally {
         this.contractsLoading = false;
@@ -552,7 +553,7 @@ export const useBlockchainStore = defineStore('blockchain', {
         const assets = await window.electronAPI.blockchain.getDeployedAssets(chainId);
         this.deployedAssets = assets || [];
       } catch (error) {
-        console.error('[BlockchainStore] 加载已部署资产失败:', error);
+        logger.error('[BlockchainStore] 加载已部署资产失败:', error);
         throw error;
       } finally {
         this.contractsLoading = false;
@@ -567,7 +568,7 @@ export const useBlockchainStore = defineStore('blockchain', {
         const info = await window.electronAPI.asset.getBlockchainInfo(assetId);
         return info;
       } catch (error) {
-        console.error('[BlockchainStore] 获取资产链上信息失败:', error);
+        logger.error('[BlockchainStore] 获取资产链上信息失败:', error);
         return null;
       }
     },
@@ -580,7 +581,7 @@ export const useBlockchainStore = defineStore('blockchain', {
         const info = await window.electronAPI.contract.getBlockchainInfo(contractId);
         return info;
       } catch (error) {
-        console.error('[BlockchainStore] 获取合约链上信息失败:', error);
+        logger.error('[BlockchainStore] 获取合约链上信息失败:', error);
         return null;
       }
     },
@@ -597,7 +598,7 @@ export const useBlockchainStore = defineStore('blockchain', {
         this.gasPrice = gasPrice;
         return gasPrice;
       } catch (error) {
-        console.error('[BlockchainStore] 获取 Gas 价格失败:', error);
+        logger.error('[BlockchainStore] 获取 Gas 价格失败:', error);
         throw error;
       } finally {
         this.gasPriceLoading = false;
@@ -612,7 +613,7 @@ export const useBlockchainStore = defineStore('blockchain', {
         const gasEstimate = await window.electronAPI.blockchain.estimateGas(transaction);
         return gasEstimate;
       } catch (error) {
-        console.error('[BlockchainStore] 估算 Gas 失败:', error);
+        logger.error('[BlockchainStore] 估算 Gas 失败:', error);
         throw error;
       }
     },
@@ -683,9 +684,9 @@ export const useBlockchainStore = defineStore('blockchain', {
           await this.refreshCurrentBalance();
         }
 
-        console.log('[BlockchainStore] 初始化完成');
+        logger.info('[BlockchainStore] 初始化完成');
       } catch (error) {
-        console.error('[BlockchainStore] 初始化失败:', error);
+        logger.error('[BlockchainStore] 初始化失败:', error);
       }
     },
   },

@@ -3,6 +3,7 @@
  * 提供常用的功能封装，简化组件开发
  */
 
+import { logger, createLogger } from '@/utils/logger';
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import { message } from 'ant-design-vue';
 import { handleError } from './errorHandler';
@@ -203,7 +204,7 @@ export function useLocalStorage(key, defaultValue = null) {
         data.value = JSON.parse(stored);
       }
     } catch (error) {
-      console.error('[useLocalStorage] Load error:', error);
+      logger.error('[useLocalStorage] Load error:', error);
       data.value = defaultValue;
     }
   };
@@ -214,7 +215,7 @@ export function useLocalStorage(key, defaultValue = null) {
       data.value = value;
       localStorage.setItem(key, JSON.stringify(value));
     } catch (error) {
-      console.error('[useLocalStorage] Save error:', error);
+      logger.error('[useLocalStorage] Save error:', error);
       handleError(error, {
         showMessage: false,
         logToFile: true,
@@ -229,7 +230,7 @@ export function useLocalStorage(key, defaultValue = null) {
       data.value = defaultValue;
       localStorage.removeItem(key);
     } catch (error) {
-      console.error('[useLocalStorage] Remove error:', error);
+      logger.error('[useLocalStorage] Remove error:', error);
     }
   };
 
@@ -241,7 +242,7 @@ export function useLocalStorage(key, defaultValue = null) {
     try {
       localStorage.setItem(key, JSON.stringify(newValue));
     } catch (error) {
-      console.error('[useLocalStorage] Auto-save error:', error);
+      logger.error('[useLocalStorage] Auto-save error:', error);
     }
   }, { deep: true });
 
@@ -327,7 +328,7 @@ export function usePolling(fn, interval = 5000, options = {}) {
         if (onError) {
           onError(error);
         } else {
-          console.error('[usePolling] Error:', error);
+          logger.error('[usePolling] Error:', error);
         }
       }
     };

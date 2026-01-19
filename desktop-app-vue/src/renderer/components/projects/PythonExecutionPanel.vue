@@ -212,6 +212,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed } from 'vue';
 import {
   PlayCircleOutlined,
@@ -273,7 +275,7 @@ const detectPythonVersion = async () => {
       pythonVersion.value = result.stdout.trim().split('\n')[0];
     }
   } catch (error) {
-    console.error('检测Python版本失败:', error);
+    logger.error('检测Python版本失败:', error);
   }
 };
 
@@ -353,7 +355,7 @@ const handleExecute = async () => {
       emit('execution-error', result);
     }
   } catch (error) {
-    console.error('执行Python代码失败:', error);
+    logger.error('执行Python代码失败:', error);
     stderr.value = error.message || '执行失败';
     lastExecutionStatus.value = '异常终止';
     message.error(`执行失败: ${error.message}`);
@@ -393,7 +395,7 @@ const handleForceExecute = async () => {
       emit('execution-error', result);
     }
   } catch (error) {
-    console.error('强制执行失败:', error);
+    logger.error('强制执行失败:', error);
     stderr.value = error.message || '执行失败';
     lastExecutionStatus.value = '异常终止';
     message.error(`执行失败: ${error.message}`);
@@ -449,7 +451,7 @@ const handleSafetyCheck = async () => {
       message.warning(`发现 ${result.warnings.length} 个潜在安全问题`);
     }
   } catch (error) {
-    console.error('安全检查失败:', error);
+    logger.error('安全检查失败:', error);
     message.error('安全检查失败');
   } finally {
     checking.value = false;

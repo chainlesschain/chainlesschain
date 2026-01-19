@@ -4,6 +4,7 @@
  * 提供前端访问 TaskTrackerFile (todo.md 机制) 的接口
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { ipcMain } = require("electron");
 const { getTaskTrackerFile } = require("./task-tracker-file");
 
@@ -11,7 +12,7 @@ const { getTaskTrackerFile } = require("./task-tracker-file");
  * 注册任务追踪 IPC 处理器
  */
 function registerTaskTrackerIPC() {
-  console.log("[TaskTrackerIPC] 注册任务追踪 IPC 处理器...");
+  logger.info("[TaskTrackerIPC] 注册任务追踪 IPC 处理器...");
 
   // ==========================================
   // 任务生命周期 API
@@ -26,7 +27,7 @@ function registerTaskTrackerIPC() {
       const task = await tracker.createTask(plan);
       return { success: true, task };
     } catch (error) {
-      console.error("[TaskTrackerIPC] 创建任务失败:", error);
+      logger.error("[TaskTrackerIPC] 创建任务失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -40,7 +41,7 @@ function registerTaskTrackerIPC() {
       const task = await tracker.startTask();
       return { success: true, task };
     } catch (error) {
-      console.error("[TaskTrackerIPC] 开始任务失败:", error);
+      logger.error("[TaskTrackerIPC] 开始任务失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -54,7 +55,7 @@ function registerTaskTrackerIPC() {
       const task = await tracker.updateProgress(stepIndex, status, result);
       return { success: true, task };
     } catch (error) {
-      console.error("[TaskTrackerIPC] 更新进度失败:", error);
+      logger.error("[TaskTrackerIPC] 更新进度失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -68,7 +69,7 @@ function registerTaskTrackerIPC() {
       const task = await tracker.completeCurrentStep(result);
       return { success: true, task };
     } catch (error) {
-      console.error("[TaskTrackerIPC] 完成步骤失败:", error);
+      logger.error("[TaskTrackerIPC] 完成步骤失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -82,7 +83,7 @@ function registerTaskTrackerIPC() {
       const task = await tracker.completeTask(result);
       return { success: true, task };
     } catch (error) {
-      console.error("[TaskTrackerIPC] 完成任务失败:", error);
+      logger.error("[TaskTrackerIPC] 完成任务失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -96,7 +97,7 @@ function registerTaskTrackerIPC() {
       const task = await tracker.cancelTask(reason);
       return { success: true, task };
     } catch (error) {
-      console.error("[TaskTrackerIPC] 取消任务失败:", error);
+      logger.error("[TaskTrackerIPC] 取消任务失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -110,7 +111,7 @@ function registerTaskTrackerIPC() {
       await tracker.recordStepError(stepIndex, new Error(error));
       return { success: true };
     } catch (error) {
-      console.error("[TaskTrackerIPC] 记录错误失败:", error);
+      logger.error("[TaskTrackerIPC] 记录错误失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -128,7 +129,7 @@ function registerTaskTrackerIPC() {
       const task = tracker.getCurrentTask();
       return { success: true, task };
     } catch (error) {
-      console.error("[TaskTrackerIPC] 获取任务失败:", error);
+      logger.error("[TaskTrackerIPC] 获取任务失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -142,7 +143,7 @@ function registerTaskTrackerIPC() {
       const hasActive = tracker.hasActiveTask();
       return { success: true, hasActive };
     } catch (error) {
-      console.error("[TaskTrackerIPC] 检查活动任务失败:", error);
+      logger.error("[TaskTrackerIPC] 检查活动任务失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -156,7 +157,7 @@ function registerTaskTrackerIPC() {
       const todoContext = await tracker.getTodoContext();
       return { success: true, todoContext };
     } catch (error) {
-      console.error("[TaskTrackerIPC] 获取 todo 上下文失败:", error);
+      logger.error("[TaskTrackerIPC] 获取 todo 上下文失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -170,7 +171,7 @@ function registerTaskTrackerIPC() {
       const context = tracker.getTaskContextForPrompt();
       return { success: true, context };
     } catch (error) {
-      console.error("[TaskTrackerIPC] 获取 prompt 上下文失败:", error);
+      logger.error("[TaskTrackerIPC] 获取 prompt 上下文失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -188,7 +189,7 @@ function registerTaskTrackerIPC() {
       await tracker.saveIntermediateResult(stepIndex, result);
       return { success: true };
     } catch (error) {
-      console.error("[TaskTrackerIPC] 保存中间结果失败:", error);
+      logger.error("[TaskTrackerIPC] 保存中间结果失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -202,7 +203,7 @@ function registerTaskTrackerIPC() {
       const result = await tracker.loadIntermediateResult(stepIndex);
       return { success: true, result };
     } catch (error) {
-      console.error("[TaskTrackerIPC] 加载中间结果失败:", error);
+      logger.error("[TaskTrackerIPC] 加载中间结果失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -220,7 +221,7 @@ function registerTaskTrackerIPC() {
       const task = await tracker.loadUnfinishedTask();
       return { success: true, task };
     } catch (error) {
-      console.error("[TaskTrackerIPC] 加载未完成任务失败:", error);
+      logger.error("[TaskTrackerIPC] 加载未完成任务失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -234,12 +235,12 @@ function registerTaskTrackerIPC() {
       const history = await tracker.getTaskHistory(limit);
       return { success: true, history };
     } catch (error) {
-      console.error("[TaskTrackerIPC] 获取任务历史失败:", error);
+      logger.error("[TaskTrackerIPC] 获取任务历史失败:", error);
       return { success: false, error: error.message };
     }
   });
 
-  console.log("[TaskTrackerIPC] 任务追踪 IPC 处理器注册完成");
+  logger.info("[TaskTrackerIPC] 任务追踪 IPC 处理器注册完成");
 }
 
 module.exports = { registerTaskTrackerIPC };

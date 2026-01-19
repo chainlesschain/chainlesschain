@@ -5,6 +5,7 @@
  * 支持天地融支付密码器和U盾产品
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const SKFDriver = require('./skf-driver');
 const path = require('path');
 const fs = require('fs');
@@ -35,7 +36,7 @@ class TDRDriver extends SKFDriver {
    */
   findDllPath() {
     if (process.platform !== 'win32') {
-      console.warn('[TDR] Only Windows platform is supported');
+      logger.warn('[TDR] Only Windows platform is supported');
       return null;
     }
 
@@ -71,12 +72,12 @@ class TDRDriver extends SKFDriver {
     // 查找第一个存在的DLL
     for (const dllPath of possiblePaths) {
       if (fs.existsSync(dllPath)) {
-        console.log(`[TDR] Found DLL: ${dllPath}`);
+        logger.info(`[TDR] Found DLL: ${dllPath}`);
         return dllPath;
       }
     }
 
-    console.warn('[TDR] DLL not found in any standard location');
+    logger.warn('[TDR] DLL not found in any standard location');
     return null;
   }
 
@@ -84,7 +85,7 @@ class TDRDriver extends SKFDriver {
    * 初始化驱动
    */
   async initialize() {
-    console.log('[TDR] Initializing TDR driver...');
+    logger.info('[TDR] Initializing TDR driver...');
 
     try {
       // 调用父类初始化
@@ -93,10 +94,10 @@ class TDRDriver extends SKFDriver {
       // 天地融特定初始化
       // 例如：加载特定配置、检查驱动版本等
 
-      console.log('[TDR] TDR driver initialized successfully');
+      logger.info('[TDR] TDR driver initialized successfully');
       return true;
     } catch (error) {
-      console.error('[TDR] Initialization failed:', error);
+      logger.error('[TDR] Initialization failed:', error);
       this.simulationMode = true;
       this.isInitialized = true;
       return true;
@@ -137,7 +138,7 @@ class TDRDriver extends SKFDriver {
    * 天地融特定的检测逻辑
    */
   async detect() {
-    console.log('[TDR] Detecting TDR device...');
+    logger.info('[TDR] Detecting TDR device...');
 
     try {
       // 调用父类的检测方法
@@ -151,7 +152,7 @@ class TDRDriver extends SKFDriver {
 
       return result;
     } catch (error) {
-      console.error('[TDR] Detection failed:', error);
+      logger.error('[TDR] Detection failed:', error);
       return {
         detected: false,
         unlocked: false,
@@ -199,7 +200,7 @@ class TDRDriver extends SKFDriver {
       throw new Error('设备未解锁');
     }
 
-    console.log('[TDR] Getting device serial number...');
+    logger.info('[TDR] Getting device serial number...');
 
     if (this.simulationMode) {
       // 模拟序列号
@@ -219,7 +220,7 @@ class TDRDriver extends SKFDriver {
       throw new Error('设备未解锁');
     }
 
-    console.log('[TDR] Getting device certificate...');
+    logger.info('[TDR] Getting device certificate...');
 
     if (this.simulationMode) {
       return null;
@@ -234,7 +235,7 @@ class TDRDriver extends SKFDriver {
    * 天地融特定功能：检查设备健康状态
    */
   async checkDeviceHealth() {
-    console.log('[TDR] Checking device health...');
+    logger.info('[TDR] Checking device health...');
 
     try {
       if (this.simulationMode) {
@@ -273,7 +274,7 @@ class TDRDriver extends SKFDriver {
    * 天地融设备常用于支付场景，支持PIN输入保护
    */
   async enablePaymentMode() {
-    console.log('[TDR] Enabling payment mode...');
+    logger.info('[TDR] Enabling payment mode...');
 
     if (this.simulationMode) {
       return { enabled: true, mode: 'payment' };
@@ -294,7 +295,7 @@ class TDRDriver extends SKFDriver {
       throw new Error('设备未解锁');
     }
 
-    console.log('[TDR] Getting transaction counter...');
+    logger.info('[TDR] Getting transaction counter...');
 
     if (this.simulationMode) {
       // 模拟交易计数
@@ -319,7 +320,7 @@ class TDRDriver extends SKFDriver {
       throw new Error('设备未解锁');
     }
 
-    console.log('[TDR] Resetting transaction counter...');
+    logger.info('[TDR] Resetting transaction counter...');
 
     if (this.simulationMode) {
       return { success: true, counter: 0 };

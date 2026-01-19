@@ -467,6 +467,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { message, Modal } from 'ant-design-vue';
@@ -655,7 +657,7 @@ const handleRefresh = async () => {
     await loadCollaborationProjects();
     message.success('刷新成功');
   } catch (error) {
-    console.error('Refresh failed:', error);
+    logger.error('Refresh failed:', error);
     message.error('刷新失败：' + error.message);
   } finally {
     loading.value = false;
@@ -733,7 +735,7 @@ const handleConfirmInvite = async () => {
       message: '',
     };
   } catch (error) {
-    console.error('Invite failed:', error);
+    logger.error('Invite failed:', error);
     message.error('邀请失败：' + error.message);
   } finally {
     inviting.value = false;
@@ -752,7 +754,7 @@ const handleAcceptInvitation = async (invitationId) => {
     message.success('已接受邀请');
     await loadCollaborationProjects();
   } catch (error) {
-    console.error('Accept invitation failed:', error);
+    logger.error('Accept invitation failed:', error);
     message.error('接受失败：' + error.message);
   }
 };
@@ -768,7 +770,7 @@ const handleRejectInvitation = async (invitationId) => {
     );
     message.success('已拒绝邀请');
   } catch (error) {
-    console.error('Reject invitation failed:', error);
+    logger.error('Reject invitation failed:', error);
     message.error('拒绝失败：' + error.message);
   }
 };
@@ -795,7 +797,7 @@ const handleAction = (key, projectId) => {
           );
           message.success('已退出协作项目');
         } catch (error) {
-          console.error('Leave project failed:', error);
+          logger.error('Leave project failed:', error);
           message.error('退出失败：' + error.message);
         }
       },
@@ -892,7 +894,7 @@ onMounted(async () => {
     // 加载协作项目
     await loadCollaborationProjects();
   } catch (error) {
-    console.error('Failed to load collaboration projects:', error);
+    logger.error('Failed to load collaboration projects:', error);
     message.error('加载失败：' + error.message);
   } finally {
     loading.value = false;

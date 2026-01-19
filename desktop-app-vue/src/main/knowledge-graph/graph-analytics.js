@@ -1,3 +1,5 @@
+const { logger, createLogger } = require('../utils/logger.js');
+
 /**
  * 知识图谱分析模块
  * 提供图分析算法：中心性分析、社区检测、聚类等
@@ -186,7 +188,7 @@ function calculatePageRank(nodes, edges, dampingFactor = 0.85, maxIterations = 1
 
     // 检查收敛
     if (diff < tolerance) {
-      console.log(`PageRank 收敛于第 ${iter + 1} 次迭代`);
+      logger.info(`PageRank 收敛于第 ${iter + 1} 次迭代`);
       break;
     }
   }
@@ -272,7 +274,7 @@ function detectCommunities(nodes, edges) {
     communities.set(nodeId, communityMap.get(community));
   });
 
-  console.log(`社区检测完成，共 ${communityId} 个社区，迭代 ${iteration} 次`);
+  logger.info(`社区检测完成，共 ${communityId} 个社区，迭代 ${iteration} 次`);
 
   return communities;
 }
@@ -365,7 +367,7 @@ function clusterNodes(nodes, edges, k = 5, maxIterations = 100) {
     centroids = newCentroids;
   }
 
-  console.log(`K-means 聚类完成，k=${k}，迭代 ${iteration} 次`);
+  logger.info(`K-means 聚类完成，k=${k}，迭代 ${iteration} 次`);
 
   return clusters;
 }

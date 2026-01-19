@@ -190,6 +190,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { message } from 'ant-design-vue';
 import {
@@ -257,7 +259,7 @@ const checkStatus = async () => {
       }
     }
   } catch (error) {
-    console.error('检查状态失败:', error);
+    logger.error('检查状态失败:', error);
   }
 };
 

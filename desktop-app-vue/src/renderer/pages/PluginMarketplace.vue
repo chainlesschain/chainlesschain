@@ -518,6 +518,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted } from 'vue';
 import { message } from 'ant-design-vue';
 import {
@@ -617,7 +619,7 @@ const loadPlugins = async () => {
       plugins.value = result.data.plugins || result.data || [];
     } else {
       // 如果API失败，使用模拟数据
-      console.warn('插件市场API失败，使用模拟数据');
+      logger.warn('插件市场API失败，使用模拟数据');
       plugins.value = await getMockPlugins();
     }
 
@@ -631,10 +633,10 @@ const loadPlugins = async () => {
         p.installing = false;
       });
     } catch (err) {
-      console.warn('获取已安装插件列表失败:', err);
+      logger.warn('获取已安装插件列表失败:', err);
     }
   } catch (error) {
-    console.error('加载插件列表失败:', error);
+    logger.error('加载插件列表失败:', error);
     message.error('加载插件列表失败，使用本地数据');
     // 使用模拟数据作为后备
     plugins.value = await getMockPlugins();
@@ -677,7 +679,7 @@ const installPlugin = async (plugin) => {
       throw new Error(result.error || '安装失败');
     }
   } catch (error) {
-    console.error('安装插件失败:', error);
+    logger.error('安装插件失败:', error);
     message.error('安装失败: ' + error.message);
   } finally {
     plugin.installing = false;

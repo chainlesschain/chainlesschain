@@ -3,6 +3,7 @@
  * 负责文件权限、共享、访问控制等功能
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { v4: uuidv4 } = require('uuid');
 
 class FilePermissionManager {
@@ -58,7 +59,7 @@ class FilePermissionManager {
         WHERE id = ?
       `).run(role, permission, granterDID, now, permissionId);
 
-      console.log('[FilePermissionManager] 权限更新成功');
+      logger.info('[FilePermissionManager] 权限更新成功');
     } else {
       // 插入新权限
       this.db.prepare(`
@@ -66,7 +67,7 @@ class FilePermissionManager {
         VALUES (?, ?, ?, ?, ?, ?, ?)
       `).run(permissionId, file_id, member_did, role, permission, granterDID, now);
 
-      console.log('[FilePermissionManager] 权限授予成功');
+      logger.info('[FilePermissionManager] 权限授予成功');
     }
 
     return this.getPermission(permissionId);
@@ -91,7 +92,7 @@ class FilePermissionManager {
       WHERE file_id = ? AND member_did = ?
     `).run(file_id, member_did);
 
-    console.log('[FilePermissionManager] 权限撤销成功');
+    logger.info('[FilePermissionManager] 权限撤销成功');
 
     return { success: true };
   }
@@ -236,7 +237,7 @@ class FilePermissionManager {
         created_at = excluded.created_at
     `).run(shareId, file_id, share_type, target_id, permission, expiresAt, sharerDID, now);
 
-    console.log('[FilePermissionManager] 文件分享成功');
+    logger.info('[FilePermissionManager] 文件分享成功');
 
     return this.getShare(shareId);
   }
@@ -261,7 +262,7 @@ class FilePermissionManager {
 
     this.db.prepare('DELETE FROM file_shares WHERE id = ?').run(shareId);
 
-    console.log('[FilePermissionManager] 文件共享已取消');
+    logger.info('[FilePermissionManager] 文件共享已取消');
 
     return { success: true };
   }
@@ -359,7 +360,7 @@ class FilePermissionManager {
       WHERE expires_at IS NOT NULL AND expires_at < ?
     `).run(now);
 
-    console.log(`[FilePermissionManager] 清理过期共享: ${result.changes} 条`);
+    logger.info(`[FilePermissionManager] 清理过期共享: ${result.changes} 条`);
 
     return result.changes;
   }

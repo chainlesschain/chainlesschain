@@ -5,6 +5,7 @@
  * node add-skills-tools-to-templates.js
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require('fs').promises;
 const path = require('path');
 
@@ -159,14 +160,14 @@ async function addSkillsAndTools(templatePath, category, subcategory = null) {
 
     // 如果已经有 required_skills 和 required_tools，跳过
     if (template.required_skills || template.required_tools) {
-      console.log(`⏭️  跳过（已有关联）: ${path.basename(templatePath)}`);
+      logger.info(`⏭️  跳过（已有关联）: ${path.basename(templatePath)}`);
       return { skipped: true };
     }
 
     // 获取该分类的默认映射
     const mapping = TEMPLATE_MAPPINGS[category];
     if (!mapping) {
-      console.warn(`⚠️  未找到分类 ${category} 的映射配置`);
+      logger.warn(`⚠️  未找到分类 ${category} 的映射配置`);
       return { skipped: true };
     }
 
@@ -208,14 +209,14 @@ async function addSkillsAndTools(templatePath, category, subcategory = null) {
     // 写回文件
     await fs.writeFile(templatePath, JSON.stringify(template, null, 2), 'utf-8');
 
-    console.log(`✅ 已更新: ${path.basename(templatePath)}`);
-    console.log(`   - 技能: ${skills.length} 个`);
-    console.log(`   - 工具: ${tools.length} 个`);
-    console.log(`   - 执行引擎: ${template.execution_engine}`);
+    logger.info(`✅ 已更新: ${path.basename(templatePath)}`);
+    logger.info(`   - 技能: ${skills.length} 个`);
+    logger.info(`   - 工具: ${tools.length} 个`);
+    logger.info(`   - 执行引擎: ${template.execution_engine}`);
 
     return { updated: true, skills, tools };
   } catch (error) {
-    console.error(`❌ 处理失败: ${templatePath}`, error.message);
+    logger.error(`❌ 处理失败: ${templatePath}`, error.message);
     return { error: true };
   }
 }
@@ -225,8 +226,8 @@ async function addSkillsAndTools(templatePath, category, subcategory = null) {
  */
 async function updateAllTemplates() {
   const templatesDir = path.join(__dirname);
-  console.log('📁 模板目录:', templatesDir);
-  console.log('🔄 开始扫描模板...\n');
+  logger.info('📁 模板目录:', templatesDir);
+  logger.info('🔄 开始扫描模板...\n');
 
   const stats = {
     total: 0,
@@ -245,7 +246,7 @@ async function updateAllTemplates() {
       const stat = await fs.stat(categoryPath);
       if (!stat.isDirectory()) {continue;}
 
-      console.log(`\n📂 处理分类: ${category}`);
+      logger.info(`\n📂 处理分类: ${category}`);
 
       const files = await fs.readdir(categoryPath);
 
@@ -268,19 +269,19 @@ async function updateAllTemplates() {
       }
     } catch (error) {
       if (error.code !== 'ENOENT') {
-        console.error(`❌ 处理分类 ${category} 失败:`, error.message);
+        logger.error(`❌ 处理分类 ${category} 失败:`, error.message);
       }
     }
   }
 
   // 输出统计
-  console.log('\n' + '='.repeat(50));
-  console.log('📊 更新统计:');
-  console.log(`   - 总计: ${stats.total} 个模板`);
-  console.log(`   - 已更新: ${stats.updated} 个`);
-  console.log(`   - 已跳过: ${stats.skipped} 个`);
-  console.log(`   - 失败: ${stats.errors} 个`);
-  console.log('='.repeat(50));
+  logger.info('\n' + '='.repeat(50));
+  logger.info('📊 更新统计:');
+  logger.info(`   - 总计: ${stats.total} 个模板`);
+  logger.info(`   - 已更新: ${stats.updated} 个`);
+  logger.info(`   - 已跳过: ${stats.skipped} 个`);
+  logger.info(`   - 失败: ${stats.errors} 个`);
+  logger.info('='.repeat(50));
 }
 
 /**
@@ -321,15 +322,15 @@ async function generateMappingReport() {
   }
 
   await fs.writeFile(reportPath, report, 'utf-8');
-  console.log(`\n📄 映射报告已生成: ${reportPath}`);
+  logger.info(`\n📄 映射报告已生成: ${reportPath}`);
 }
 
 // 执行主函数
 (async () => {
-  console.log('🚀 开始为模板添加技能和工具关联...\n');
+  logger.info('🚀 开始为模板添加技能和工具关联...\n');
 
   await updateAllTemplates();
   await generateMappingReport();
 
-  console.log('\n✨ 完成！');
+  logger.info('\n✨ 完成！');
 })();

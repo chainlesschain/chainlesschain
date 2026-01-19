@@ -1,3 +1,4 @@
+import { logger, createLogger } from '@/utils/logger';
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { message } from 'ant-design-vue';
@@ -166,14 +167,14 @@ export const useTaskStore = defineStore('task', () => {
           blocked_by: task.blocked_by ? JSON.parse(task.blocked_by) : []
         }));
 
-        console.log('[TaskStore] 任务列表加载成功', tasks.value.length);
+        logger.info('[TaskStore] 任务列表加载成功', tasks.value.length);
       } else {
         message.error(`加载任务列表失败: ${result.error}`);
-        console.error('[TaskStore] 加载任务列表失败:', result.error);
+        logger.error('[TaskStore] 加载任务列表失败:', result.error);
       }
     } catch (error) {
       message.error('加载任务列表异常');
-      console.error('[TaskStore] 加载任务列表异常:', error);
+      logger.error('[TaskStore] 加载任务列表异常:', error);
     } finally {
       loading.value = false;
     }
@@ -193,7 +194,7 @@ export const useTaskStore = defineStore('task', () => {
 
       if (result.success) {
         message.success('任务创建成功');
-        console.log('[TaskStore] 任务创建成功:', result.task);
+        logger.info('[TaskStore] 任务创建成功:', result.task);
 
         // 重新加载任务列表
         await loadTasks();
@@ -201,12 +202,12 @@ export const useTaskStore = defineStore('task', () => {
         return result.task;
       } else {
         message.error(`创建任务失败: ${result.error}`);
-        console.error('[TaskStore] 创建任务失败:', result.error);
+        logger.error('[TaskStore] 创建任务失败:', result.error);
         return null;
       }
     } catch (error) {
       message.error('创建任务异常');
-      console.error('[TaskStore] 创建任务异常:', error);
+      logger.error('[TaskStore] 创建任务异常:', error);
       return null;
     } finally {
       loading.value = false;
@@ -229,7 +230,7 @@ export const useTaskStore = defineStore('task', () => {
 
       if (result.success) {
         message.success('任务更新成功');
-        console.log('[TaskStore] 任务更新成功');
+        logger.info('[TaskStore] 任务更新成功');
 
         // 更新本地缓存
         const index = tasks.value.findIndex(t => t.id === taskId);
@@ -253,12 +254,12 @@ export const useTaskStore = defineStore('task', () => {
         return true;
       } else {
         message.error(`更新任务失败: ${result.error}`);
-        console.error('[TaskStore] 更新任务失败:', result.error);
+        logger.error('[TaskStore] 更新任务失败:', result.error);
         return false;
       }
     } catch (error) {
       message.error('更新任务异常');
-      console.error('[TaskStore] 更新任务异常:', error);
+      logger.error('[TaskStore] 更新任务异常:', error);
       return false;
     } finally {
       loading.value = false;
@@ -279,7 +280,7 @@ export const useTaskStore = defineStore('task', () => {
 
       if (result.success) {
         message.success('任务已删除');
-        console.log('[TaskStore] 任务删除成功');
+        logger.info('[TaskStore] 任务删除成功');
 
         // 从列表中移除
         const index = tasks.value.findIndex(t => t.id === taskId);
@@ -296,12 +297,12 @@ export const useTaskStore = defineStore('task', () => {
         return true;
       } else {
         message.error(`删除任务失败: ${result.error}`);
-        console.error('[TaskStore] 删除任务失败:', result.error);
+        logger.error('[TaskStore] 删除任务失败:', result.error);
         return false;
       }
     } catch (error) {
       message.error('删除任务异常');
-      console.error('[TaskStore] 删除任务异常:', error);
+      logger.error('[TaskStore] 删除任务异常:', error);
       return false;
     } finally {
       loading.value = false;
@@ -329,18 +330,18 @@ export const useTaskStore = defineStore('task', () => {
           blocked_by: result.task.blocked_by ? JSON.parse(result.task.blocked_by) : []
         };
 
-        console.log('[TaskStore] 任务详情加载成功');
+        logger.info('[TaskStore] 任务详情加载成功');
 
         // 同时加载评论和变更历史
         await loadTaskComments(taskId);
         await loadTaskChanges(taskId);
       } else {
         message.error(`加载任务详情失败: ${result.error}`);
-        console.error('[TaskStore] 加载任务详情失败:', result.error);
+        logger.error('[TaskStore] 加载任务详情失败:', result.error);
       }
     } catch (error) {
       message.error('加载任务详情异常');
-      console.error('[TaskStore] 加载任务详情异常:', error);
+      logger.error('[TaskStore] 加载任务详情异常:', error);
     } finally {
       loading.value = false;
     }
@@ -371,7 +372,7 @@ export const useTaskStore = defineStore('task', () => {
       }
     } catch (error) {
       message.error('分配任务异常');
-      console.error('[TaskStore] 分配任务异常:', error);
+      logger.error('[TaskStore] 分配任务异常:', error);
       return false;
     }
   }
@@ -401,7 +402,7 @@ export const useTaskStore = defineStore('task', () => {
       }
     } catch (error) {
       message.error('变更状态异常');
-      console.error('[TaskStore] 变更状态异常:', error);
+      logger.error('[TaskStore] 变更状态异常:', error);
       return false;
     }
   }
@@ -424,12 +425,12 @@ export const useTaskStore = defineStore('task', () => {
           attachments: comment.attachments ? JSON.parse(comment.attachments) : []
         }));
 
-        console.log('[TaskStore] 评论加载成功', currentTaskComments.value.length);
+        logger.info('[TaskStore] 评论加载成功', currentTaskComments.value.length);
       } else {
-        console.error('[TaskStore] 加载评论失败:', result.error);
+        logger.error('[TaskStore] 加载评论失败:', result.error);
       }
     } catch (error) {
-      console.error('[TaskStore] 加载评论异常:', error);
+      logger.error('[TaskStore] 加载评论异常:', error);
     }
   }
 
@@ -457,7 +458,7 @@ export const useTaskStore = defineStore('task', () => {
       }
     } catch (error) {
       message.error('添加评论异常');
-      console.error('[TaskStore] 添加评论异常:', error);
+      logger.error('[TaskStore] 添加评论异常:', error);
       return false;
     }
   }
@@ -484,7 +485,7 @@ export const useTaskStore = defineStore('task', () => {
       }
     } catch (error) {
       message.error('删除评论异常');
-      console.error('[TaskStore] 删除评论异常:', error);
+      logger.error('[TaskStore] 删除评论异常:', error);
       return false;
     }
   }
@@ -501,12 +502,12 @@ export const useTaskStore = defineStore('task', () => {
 
       if (result.success) {
         currentTaskChanges.value = result.changes || [];
-        console.log('[TaskStore] 变更历史加载成功', currentTaskChanges.value.length);
+        logger.info('[TaskStore] 变更历史加载成功', currentTaskChanges.value.length);
       } else {
-        console.error('[TaskStore] 加载变更历史失败:', result.error);
+        logger.error('[TaskStore] 加载变更历史失败:', result.error);
       }
     } catch (error) {
-      console.error('[TaskStore] 加载变更历史异常:', error);
+      logger.error('[TaskStore] 加载变更历史异常:', error);
     }
   }
 
@@ -532,7 +533,7 @@ export const useTaskStore = defineStore('task', () => {
           filters: board.filters ? JSON.parse(board.filters) : {}
         }));
 
-        console.log('[TaskStore] 看板列表加载成功', boards.value.length);
+        logger.info('[TaskStore] 看板列表加载成功', boards.value.length);
 
         // 如果当前没有选中看板，自动选中第一个
         if (!currentBoard.value && boards.value.length > 0) {
@@ -540,11 +541,11 @@ export const useTaskStore = defineStore('task', () => {
         }
       } else {
         message.error(`加载看板列表失败: ${result.error}`);
-        console.error('[TaskStore] 加载看板列表失败:', result.error);
+        logger.error('[TaskStore] 加载看板列表失败:', result.error);
       }
     } catch (error) {
       message.error('加载看板列表异常');
-      console.error('[TaskStore] 加载看板列表异常:', error);
+      logger.error('[TaskStore] 加载看板列表异常:', error);
     } finally {
       loading.value = false;
     }
@@ -566,7 +567,7 @@ export const useTaskStore = defineStore('task', () => {
 
       if (result.success) {
         message.success('看板创建成功');
-        console.log('[TaskStore] 看板创建成功:', result.board);
+        logger.info('[TaskStore] 看板创建成功:', result.board);
 
         // 重新加载看板列表
         await loadBoards(orgId, boardData.workspace_id);
@@ -574,12 +575,12 @@ export const useTaskStore = defineStore('task', () => {
         return result.board;
       } else {
         message.error(`创建看板失败: ${result.error}`);
-        console.error('[TaskStore] 创建看板失败:', result.error);
+        logger.error('[TaskStore] 创建看板失败:', result.error);
         return null;
       }
     } catch (error) {
       message.error('创建看板异常');
-      console.error('[TaskStore] 创建看板异常:', error);
+      logger.error('[TaskStore] 创建看板异常:', error);
       return null;
     } finally {
       loading.value = false;

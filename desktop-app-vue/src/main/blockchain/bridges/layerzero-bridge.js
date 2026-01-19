@@ -11,6 +11,7 @@
  * - Retry mechanism
  */
 
+const { logger, createLogger } = require('../../utils/logger.js');
 const { ethers } = require('ethers');
 const EventEmitter = require('events');
 
@@ -55,7 +56,7 @@ class LayerZeroBridge extends EventEmitter {
    * Initialize bridge
    */
   async initialize() {
-    console.log('[LayerZeroBridge] Initializing...');
+    logger.info('[LayerZeroBridge] Initializing...');
 
     try {
       // Verify endpoint configuration
@@ -66,10 +67,10 @@ class LayerZeroBridge extends EventEmitter {
       // Load bridge contract ABIs
       await this.loadContractABIs();
 
-      console.log('[LayerZeroBridge] Initialized successfully');
+      logger.info('[LayerZeroBridge] Initialized successfully');
       return true;
     } catch (error) {
-      console.error('[LayerZeroBridge] Initialization failed:', error);
+      logger.error('[LayerZeroBridge] Initialization failed:', error);
       throw error;
     }
   }
@@ -109,7 +110,7 @@ class LayerZeroBridge extends EventEmitter {
       options = {}
     } = params;
 
-    console.log('[LayerZeroBridge] Bridging asset:', {
+    logger.info('[LayerZeroBridge] Bridging asset:', {
       fromChain,
       toChain,
       asset,
@@ -149,7 +150,7 @@ class LayerZeroBridge extends EventEmitter {
         amount
       });
 
-      console.log('[LayerZeroBridge] Estimated fee:', ethers.formatEther(fee), 'ETH');
+      logger.info('[LayerZeroBridge] Estimated fee:', ethers.formatEther(fee), 'ETH');
 
       // Execute bridge transaction
       const tx = await bridgeContract.bridgeAsset(
@@ -163,7 +164,7 @@ class LayerZeroBridge extends EventEmitter {
         }
       );
 
-      console.log('[LayerZeroBridge] Transaction submitted:', tx.hash);
+      logger.info('[LayerZeroBridge] Transaction submitted:', tx.hash);
 
       // Track transaction
       this.trackTransaction(tx.hash, {
@@ -179,7 +180,7 @@ class LayerZeroBridge extends EventEmitter {
       const receipt = await tx.wait(options.confirmations || 2);
 
       if (receipt.status === 1) {
-        console.log('[LayerZeroBridge] Transaction confirmed');
+        logger.info('[LayerZeroBridge] Transaction confirmed');
 
         // Extract request ID from events
         const requestId = this.extractRequestId(receipt);
@@ -203,7 +204,7 @@ class LayerZeroBridge extends EventEmitter {
         throw new Error('Transaction failed');
       }
     } catch (error) {
-      console.error('[LayerZeroBridge] Bridge failed:', error);
+      logger.error('[LayerZeroBridge] Bridge failed:', error);
 
       // Update transaction status
       if (params.txHash) {
@@ -249,7 +250,7 @@ class LayerZeroBridge extends EventEmitter {
 
       return fee;
     } catch (error) {
-      console.error('[LayerZeroBridge] Fee estimation failed:', error);
+      logger.error('[LayerZeroBridge] Fee estimation failed:', error);
 
       // Return default fee estimate
       return ethers.parseEther('0.01'); // 0.01 ETH default
@@ -287,7 +288,7 @@ class LayerZeroBridge extends EventEmitter {
    * Monitor destination chain for asset receipt
    */
   async monitorDestinationChain(requestId, chainId, recipient) {
-    console.log('[LayerZeroBridge] Monitoring destination chain:', chainId);
+    logger.info('[LayerZeroBridge] Monitoring destination chain:', chainId);
 
     const maxAttempts = 60; // 5 minutes
     let attempts = 0;
@@ -315,7 +316,7 @@ class LayerZeroBridge extends EventEmitter {
 
         if (events.length > 0) {
           const event = events[0];
-          console.log('[LayerZeroBridge] Asset received on destination chain');
+          logger.info('[LayerZeroBridge] Asset received on destination chain');
 
           // Update transaction status
           this.updateTransactionByRequestId(requestId, {
@@ -333,11 +334,11 @@ class LayerZeroBridge extends EventEmitter {
         }
 
         if (attempts >= maxAttempts) {
-          console.warn('[LayerZeroBridge] Monitoring timeout');
+          logger.warn('[LayerZeroBridge] Monitoring timeout');
           clearInterval(checkInterval);
         }
       } catch (error) {
-        console.error('[LayerZeroBridge] Monitoring error:', error);
+        logger.error('[LayerZeroBridge] Monitoring error:', error);
       }
     }, 5000); // Check every 5 seconds
   }
@@ -398,7 +399,7 @@ class LayerZeroBridge extends EventEmitter {
         )
       );
     } catch (error) {
-      console.error('[LayerZeroBridge] Failed to extract request ID:', error);
+      logger.error('[LayerZeroBridge] Failed to extract request ID:', error);
       return ethers.ZeroHash;
     }
   }
@@ -454,7 +455,7 @@ class LayerZeroBridge extends EventEmitter {
    * Close bridge
    */
   async close() {
-    console.log('[LayerZeroBridge] Closing...');
+    logger.info('[LayerZeroBridge] Closing...');
     this.pendingTransactions.clear();
     this.removeAllListeners();
   }

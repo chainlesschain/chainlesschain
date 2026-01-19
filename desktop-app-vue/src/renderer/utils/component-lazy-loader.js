@@ -3,7 +3,8 @@
  * 组件懒加载工具，支持动态导入、预加载、错误重试
  *
  * Features:
- * - Dynamic import with code splitting
+ * - Dynamic import { logger, createLogger } from '@/utils/logger';
+import with code splitting
  * - Component preloading
  * - Automatic retry on failure
  * - Loading and error states
@@ -43,7 +44,7 @@ class ComponentLazyLoader {
     }
 
     if (this.options.debug) {
-      console.log('[ComponentLazyLoader] Initialized')
+      logger.info('[ComponentLazyLoader] Initialized')
     }
   }
 
@@ -76,7 +77,7 @@ class ComponentLazyLoader {
           this.updateAverageLoadTime(loadTime)
 
           if (this.options.debug) {
-            console.log(`[ComponentLazyLoader] Loaded component (${Math.round(loadTime)}ms)`)
+            logger.info(`[ComponentLazyLoader] Loaded component (${Math.round(loadTime)}ms)`)
           }
 
           return component
@@ -107,7 +108,7 @@ class ComponentLazyLoader {
     } catch (error) {
       if (retryCount < this.options.maxRetries) {
         if (this.options.debug) {
-          console.log(`[ComponentLazyLoader] Retry ${retryCount + 1}/${this.options.maxRetries}`)
+          logger.info(`[ComponentLazyLoader] Retry ${retryCount + 1}/${this.options.maxRetries}`)
         }
 
         // Wait before retrying (exponential backoff)
@@ -147,10 +148,10 @@ class ComponentLazyLoader {
       this.stats.prefetchedComponents++
 
       if (this.options.debug) {
-        console.log('[ComponentLazyLoader] Prefetched component')
+        logger.info('[ComponentLazyLoader] Prefetched component')
       }
     } catch (error) {
-      console.error('[ComponentLazyLoader] Prefetch failed:', error)
+      logger.error('[ComponentLazyLoader] Prefetch failed:', error)
     } finally {
       this.loadingComponents.delete(key)
       this.prefetchQueue.delete(key)
@@ -243,14 +244,14 @@ class ComponentLazyLoader {
    */
   preloadRoutes(routePaths) {
     if (this.options.debug) {
-      console.log(`[ComponentLazyLoader] Preloading ${routePaths.length} routes`)
+      logger.info(`[ComponentLazyLoader] Preloading ${routePaths.length} routes`)
     }
 
     routePaths.forEach((path) => {
       // This requires route configuration to be accessible
       // Implementation depends on router setup
       if (this.options.debug) {
-        console.log(`[ComponentLazyLoader] Preloading route: ${path}`)
+        logger.info(`[ComponentLazyLoader] Preloading route: ${path}`)
       }
     })
   }
@@ -335,7 +336,7 @@ class ComponentLazyLoader {
     this.failedComponents.clear()
 
     if (this.options.debug) {
-      console.log('[ComponentLazyLoader] Cache cleared')
+      logger.info('[ComponentLazyLoader] Cache cleared')
     }
   }
 
@@ -347,7 +348,7 @@ class ComponentLazyLoader {
     this.prefetchQueue.clear()
 
     if (this.options.debug) {
-      console.log('[ComponentLazyLoader] Destroyed')
+      logger.info('[ComponentLazyLoader] Destroyed')
     }
   }
 }

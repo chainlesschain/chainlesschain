@@ -4,6 +4,7 @@
  * 提供前端访问多 Agent 系统的接口
  */
 
+const { logger, createLogger } = require('../../utils/logger.js');
 const { ipcMain } = require("electron");
 const {
   getAgentOrchestrator,
@@ -15,7 +16,7 @@ const {
  * @param {Object} options - 配置选项
  */
 function registerMultiAgentIPC(options = {}) {
-  console.log("[MultiAgentIPC] 注册多 Agent IPC 处理器...");
+  logger.info("[MultiAgentIPC] 注册多 Agent IPC 处理器...");
 
   const { llmManager, functionCaller } = options;
 
@@ -45,7 +46,7 @@ function registerMultiAgentIPC(options = {}) {
       const agents = orch.getAllAgents().map((agent) => agent.getInfo());
       return { success: true, agents };
     } catch (error) {
-      console.error("[MultiAgentIPC] 获取 Agent 列表失败:", error);
+      logger.error("[MultiAgentIPC] 获取 Agent 列表失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -64,7 +65,7 @@ function registerMultiAgentIPC(options = {}) {
 
       return { success: true, agent: agent.getInfo() };
     } catch (error) {
-      console.error("[MultiAgentIPC] 获取 Agent 失败:", error);
+      logger.error("[MultiAgentIPC] 获取 Agent 失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -82,7 +83,7 @@ function registerMultiAgentIPC(options = {}) {
       const result = await orch.dispatch(task);
       return { success: true, result };
     } catch (error) {
-      console.error("[MultiAgentIPC] 任务分发失败:", error);
+      logger.error("[MultiAgentIPC] 任务分发失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -96,7 +97,7 @@ function registerMultiAgentIPC(options = {}) {
       const results = await orch.executeParallel(tasks, options);
       return { success: true, results };
     } catch (error) {
-      console.error("[MultiAgentIPC] 并行执行失败:", error);
+      logger.error("[MultiAgentIPC] 并行执行失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -110,7 +111,7 @@ function registerMultiAgentIPC(options = {}) {
       const result = await orch.executeChain(tasks);
       return { success: true, result };
     } catch (error) {
-      console.error("[MultiAgentIPC] 链式执行失败:", error);
+      logger.error("[MultiAgentIPC] 链式执行失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -131,7 +132,7 @@ function registerMultiAgentIPC(options = {}) {
         })),
       };
     } catch (error) {
-      console.error("[MultiAgentIPC] 获取可用 Agent 失败:", error);
+      logger.error("[MultiAgentIPC] 获取可用 Agent 失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -149,7 +150,7 @@ function registerMultiAgentIPC(options = {}) {
       const response = await orch.sendMessage(fromAgent, toAgent, message);
       return { success: true, response };
     } catch (error) {
-      console.error("[MultiAgentIPC] 发送消息失败:", error);
+      logger.error("[MultiAgentIPC] 发送消息失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -163,7 +164,7 @@ function registerMultiAgentIPC(options = {}) {
       const results = await orch.broadcast(fromAgent, message);
       return { success: true, results };
     } catch (error) {
-      console.error("[MultiAgentIPC] 广播失败:", error);
+      logger.error("[MultiAgentIPC] 广播失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -177,7 +178,7 @@ function registerMultiAgentIPC(options = {}) {
       const messages = orch.getMessageHistory(agentId, limit);
       return { success: true, messages };
     } catch (error) {
-      console.error("[MultiAgentIPC] 获取消息历史失败:", error);
+      logger.error("[MultiAgentIPC] 获取消息历史失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -195,7 +196,7 @@ function registerMultiAgentIPC(options = {}) {
       const stats = orch.getStats();
       return { success: true, stats };
     } catch (error) {
-      console.error("[MultiAgentIPC] 获取统计失败:", error);
+      logger.error("[MultiAgentIPC] 获取统计失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -209,7 +210,7 @@ function registerMultiAgentIPC(options = {}) {
       const history = orch.getExecutionHistory(limit);
       return { success: true, history };
     } catch (error) {
-      console.error("[MultiAgentIPC] 获取历史失败:", error);
+      logger.error("[MultiAgentIPC] 获取历史失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -223,7 +224,7 @@ function registerMultiAgentIPC(options = {}) {
       orch.resetStats();
       return { success: true };
     } catch (error) {
-      console.error("[MultiAgentIPC] 重置统计失败:", error);
+      logger.error("[MultiAgentIPC] 重置统计失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -237,12 +238,12 @@ function registerMultiAgentIPC(options = {}) {
       const debugInfo = orch.exportDebugInfo();
       return { success: true, debugInfo };
     } catch (error) {
-      console.error("[MultiAgentIPC] 导出调试信息失败:", error);
+      logger.error("[MultiAgentIPC] 导出调试信息失败:", error);
       return { success: false, error: error.message };
     }
   });
 
-  console.log("[MultiAgentIPC] 多 Agent IPC 处理器注册完成");
+  logger.info("[MultiAgentIPC] 多 Agent IPC 处理器注册完成");
 }
 
 module.exports = { registerMultiAgentIPC };

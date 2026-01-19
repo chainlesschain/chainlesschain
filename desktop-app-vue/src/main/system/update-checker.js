@@ -3,6 +3,7 @@
  * 检查应用更新并提供下载功能
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { app, dialog, shell } = require("electron");
 const https = require("https");
 const fs = require("fs");
@@ -23,15 +24,15 @@ class UpdateChecker {
    */
   async checkForUpdates(showNoUpdateDialog = false) {
     if (this.isChecking) {
-      console.log("[UpdateChecker] Already checking for updates");
+      logger.info("[UpdateChecker] Already checking for updates");
       return null;
     }
 
     this.isChecking = true;
 
     try {
-      console.log("[UpdateChecker] Checking for updates...");
-      console.log("[UpdateChecker] Current version:", this.currentVersion);
+      logger.info("[UpdateChecker] Checking for updates...");
+      logger.info("[UpdateChecker] Current version:", this.currentVersion);
 
       const latestRelease = await this.fetchLatestRelease();
 
@@ -49,10 +50,10 @@ class UpdateChecker {
       }
 
       const latestVersion = latestRelease.tag_name.replace(/^v/, "");
-      console.log("[UpdateChecker] Latest version:", latestVersion);
+      logger.info("[UpdateChecker] Latest version:", latestVersion);
 
       if (this.compareVersions(latestVersion, this.currentVersion) > 0) {
-        console.log("[UpdateChecker] New version available");
+        logger.info("[UpdateChecker] New version available");
         this.lastCheckTime = Date.now();
 
         // 显示更新对话框
@@ -66,7 +67,7 @@ class UpdateChecker {
 
         return latestRelease;
       } else {
-        console.log("[UpdateChecker] Already up to date");
+        logger.info("[UpdateChecker] Already up to date");
         this.lastCheckTime = Date.now();
 
         if (showNoUpdateDialog) {
@@ -82,7 +83,7 @@ class UpdateChecker {
         return null;
       }
     } catch (error) {
-      console.error("[UpdateChecker] Check for updates error:", error);
+      logger.error("[UpdateChecker] Check for updates error:", error);
 
       if (showNoUpdateDialog) {
         dialog.showMessageBox({
@@ -125,17 +126,17 @@ class UpdateChecker {
                 const release = JSON.parse(data);
                 resolve(release);
               } else {
-                console.error("[UpdateChecker] HTTP error:", res.statusCode);
+                logger.error("[UpdateChecker] HTTP error:", res.statusCode);
                 resolve(null);
               }
             } catch (error) {
-              console.error("[UpdateChecker] Parse error:", error);
+              logger.error("[UpdateChecker] Parse error:", error);
               resolve(null);
             }
           });
         })
         .on("error", (error) => {
-          console.error("[UpdateChecker] Request error:", error);
+          logger.error("[UpdateChecker] Request error:", error);
           reject(error);
         });
     });
@@ -221,7 +222,7 @@ class UpdateChecker {
         buttons: ["确定"],
       });
     } catch (error) {
-      console.error("[UpdateChecker] Download update error:", error);
+      logger.error("[UpdateChecker] Download update error:", error);
 
       dialog.showMessageBox({
         type: "error",

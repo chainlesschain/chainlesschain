@@ -11,6 +11,7 @@
  * @since 2026-01-16
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require("fs").promises;
 const path = require("path");
 const { app } = require("electron");
@@ -33,7 +34,7 @@ class ErrorMonitor extends EventEmitter {
     this.fixStrategies = this.initFixStrategies();
     this.errorPatterns = this.initErrorPatterns();
 
-    console.log("[ErrorMonitor] 初始化完成", {
+    logger.info("[ErrorMonitor] 初始化完成", {
       AI诊断: this.enableAIDiagnosis && this.llmManager ? "已启用" : "未启用",
       历史查询: this.database ? "已启用" : "未启用",
     });
@@ -73,23 +74,23 @@ class ErrorMonitor extends EventEmitter {
     process.on("uncaughtException", (error) => {
       // 忽略 EPIPE 错误（管道已关闭，通常发生在应用关闭时）
       if (error.code === "EPIPE") {
-        console.log("[ErrorMonitor] Ignoring EPIPE error (broken pipe)");
+        logger.info("[ErrorMonitor] Ignoring EPIPE error (broken pipe)");
         return;
       }
 
-      console.error("Uncaught Exception:", error);
+      logger.error("Uncaught Exception:", error);
       this.captureError("UNCAUGHT_EXCEPTION", error);
     });
 
     // 捕获未处理的Promise拒绝
     process.on("unhandledRejection", (reason, promise) => {
-      console.error("Unhandled Rejection at:", promise, "reason:", reason);
+      logger.error("Unhandled Rejection at:", promise, "reason:", reason);
       this.captureError("UNHANDLED_REJECTION", reason);
     });
 
     // 捕获警告
     process.on("warning", (warning) => {
-      console.warn("Warning:", warning);
+      logger.warn("Warning:", warning);
       this.captureError("WARNING", warning);
     });
   }
@@ -155,7 +156,7 @@ class ErrorMonitor extends EventEmitter {
   initFixStrategies() {
     return {
       SQLITE_BUSY: async (error, context = {}) => {
-        console.log("[Auto-Fix] Attempting to fix database lock...");
+        logger.info("[Auto-Fix] Attempting to fix database lock...");
 
         // 1. 尝试设置 WAL 模式和增加超时（如果有数据库实例）
         if (context.database || this.database) {
@@ -163,7 +164,7 @@ class ErrorMonitor extends EventEmitter {
           try {
             await this.optimizeSQLiteForConcurrency(db);
           } catch (walError) {
-            console.warn(
+            logger.warn(
               "[Auto-Fix] Could not optimize SQLite settings:",
               walError.message,
             );
@@ -184,7 +185,7 @@ class ErrorMonitor extends EventEmitter {
       },
 
       DATABASE_LOCKED: async (error, context = {}) => {
-        console.log("[Auto-Fix] Attempting to fix database lock (generic)...");
+        logger.info("[Auto-Fix] Attempting to fix database lock (generic)...");
 
         // 1. 检查并释放可能的数据库锁
         if (context.database || this.database) {
@@ -192,7 +193,7 @@ class ErrorMonitor extends EventEmitter {
           try {
             await this.releaseDatabaseLock(db);
           } catch (releaseError) {
-            console.warn(
+            logger.warn(
               "[Auto-Fix] Could not release database lock:",
               releaseError.message,
             );
@@ -213,7 +214,7 @@ class ErrorMonitor extends EventEmitter {
       },
 
       ECONNREFUSED: async (error, context = {}) => {
-        console.log("[Auto-Fix] Attempting to reconnect to service...");
+        logger.info("[Auto-Fix] Attempting to reconnect to service...");
         const service = this.identifyService(error);
 
         // 1. 使用新的智能重连方法（包含健康检查和自动重启）
@@ -282,7 +283,7 @@ class ErrorMonitor extends EventEmitter {
       },
 
       ETIMEDOUT: async (error, context = {}) => {
-        console.log("[Auto-Fix] Retrying operation after timeout...");
+        logger.info("[Auto-Fix] Retrying operation after timeout...");
         // 使用更长的超时时间重试
         return await this.retryWithExponentialBackoff(
           context.retryFn,
@@ -303,7 +304,7 @@ class ErrorMonitor extends EventEmitter {
       },
 
       EACCES: async (error) => {
-        console.log("[Auto-Fix] Attempting to fix permission issue...");
+        logger.info("[Auto-Fix] Attempting to fix permission issue...");
         const filePath = this.extractFilePath(error);
         if (filePath) {
           return await this.fixFilePermissions(filePath);
@@ -317,7 +318,7 @@ class ErrorMonitor extends EventEmitter {
       },
 
       ENOENT: async (error) => {
-        console.log("[Auto-Fix] Creating missing file/directory...");
+        logger.info("[Auto-Fix] Creating missing file/directory...");
         const filePath = this.extractFilePath(error);
         if (filePath) {
           return await this.createMissingPath(filePath);
@@ -331,7 +332,7 @@ class ErrorMonitor extends EventEmitter {
       },
 
       EADDRINUSE: async (error) => {
-        console.log("[Auto-Fix] Attempting to free up port...");
+        logger.info("[Auto-Fix] Attempting to free up port...");
         const port = this.extractPort(error);
         if (port) {
           return await this.killProcessOnPort(port);
@@ -345,12 +346,12 @@ class ErrorMonitor extends EventEmitter {
       },
 
       MEMORY_LEAK: async (error) => {
-        console.log("[Auto-Fix] Clearing caches to free memory...");
+        logger.info("[Auto-Fix] Clearing caches to free memory...");
         return await this.clearCaches();
       },
 
       NETWORK_ERROR: async (error, context = {}) => {
-        console.log("[Auto-Fix] Attempting to recover from network error...");
+        logger.info("[Auto-Fix] Attempting to recover from network error...");
         // 网络错误：等待后重试
         return await this.retryWithExponentialBackoff(
           context.retryFn,
@@ -365,7 +366,7 @@ class ErrorMonitor extends EventEmitter {
       },
 
       INVALID_JSON: async (error, context = {}) => {
-        console.log("[Auto-Fix] Handling invalid JSON response...");
+        logger.info("[Auto-Fix] Handling invalid JSON response...");
         // JSON 解析错误：可能是截断响应，重试
         return await this.retryWithExponentialBackoff(
           context.retryFn,
@@ -415,7 +416,7 @@ class ErrorMonitor extends EventEmitter {
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        console.log(
+        logger.info(
           `[Auto-Fix] ${errorType} retry attempt ${attempt}/${maxRetries}, delay: ${currentDelay}ms`,
         );
 
@@ -438,7 +439,7 @@ class ErrorMonitor extends EventEmitter {
         };
       } catch (error) {
         lastError = error;
-        console.log(
+        logger.info(
           `[Auto-Fix] ${errorType} retry ${attempt} failed:`,
           error.message,
         );
@@ -485,7 +486,7 @@ class ErrorMonitor extends EventEmitter {
 
     if (fixResult.attempted) {
       errorReport.autoFixResult = fixResult;
-      console.log("[Error Monitor] Auto-fix result:", fixResult);
+      logger.info("[Error Monitor] Auto-fix result:", fixResult);
     }
 
     return errorReport;
@@ -500,7 +501,7 @@ class ErrorMonitor extends EventEmitter {
     // 识别错误类型
     for (const [errorType, pattern] of Object.entries(this.errorPatterns)) {
       if (pattern.test(errorMessage)) {
-        console.log(`[Error Monitor] Detected error type: ${errorType}`);
+        logger.info(`[Error Monitor] Detected error type: ${errorType}`);
 
         // 执行对应的修复策略
         const fixStrategy = this.fixStrategies[errorType];
@@ -514,7 +515,7 @@ class ErrorMonitor extends EventEmitter {
               message: result.message,
             };
           } catch (fixError) {
-            console.error(`[Error Monitor] Fix strategy failed:`, fixError);
+            logger.error(`[Error Monitor] Fix strategy failed:`, fixError);
             return {
               attempted: true,
               errorType,
@@ -655,9 +656,9 @@ class ErrorMonitor extends EventEmitter {
           for (const pid of pids) {
             try {
               await execPromise(`taskkill /PID ${pid} /F`);
-              console.log(`[Auto-Fix] Killed process ${pid} on port ${port}`);
+              logger.info(`[Auto-Fix] Killed process ${pid} on port ${port}`);
             } catch (killError) {
-              console.warn(
+              logger.warn(
                 `[Auto-Fix] Could not kill process ${pid}:`,
                 killError.message,
               );
@@ -694,9 +695,9 @@ class ErrorMonitor extends EventEmitter {
           for (const pid of pids) {
             try {
               await execPromise(`kill -9 ${pid}`);
-              console.log(`[Auto-Fix] Killed process ${pid} on port ${port}`);
+              logger.info(`[Auto-Fix] Killed process ${pid} on port ${port}`);
             } catch (killError) {
-              console.warn(
+              logger.warn(
                 `[Auto-Fix] Could not kill process ${pid}:`,
                 killError.message,
               );
@@ -757,7 +758,7 @@ class ErrorMonitor extends EventEmitter {
           clearedItems.push("EmbeddingsCache");
         }
       } catch (cacheError) {
-        console.warn(
+        logger.warn(
           "[Auto-Fix] Could not clear app caches:",
           cacheError.message,
         );
@@ -794,7 +795,7 @@ class ErrorMonitor extends EventEmitter {
           }
         }
       } catch (fsCacheError) {
-        console.warn(
+        logger.warn(
           "[Auto-Fix] Could not clear file caches:",
           fsCacheError.message,
         );
@@ -920,7 +921,7 @@ class ErrorMonitor extends EventEmitter {
       const logEntry = JSON.stringify(errorReport, null, 2) + "\n---\n";
       await fs.appendFile(logFile, logEntry);
     } catch (error) {
-      console.error("Failed to save error log:", error);
+      logger.error("Failed to save error log:", error);
     }
   }
 
@@ -983,7 +984,7 @@ class ErrorMonitor extends EventEmitter {
           });
           if (currentMode !== "wal") {
             sqliteDb.pragma("journal_mode = WAL");
-            console.log("[Auto-Fix] SQLite: Enabled WAL mode");
+            logger.info("[Auto-Fix] SQLite: Enabled WAL mode");
           }
           results.walMode = true;
         } else if (typeof sqliteDb.exec === "function") {
@@ -991,7 +992,7 @@ class ErrorMonitor extends EventEmitter {
           results.walMode = true;
         }
       } catch (walError) {
-        console.warn("[Auto-Fix] Could not set WAL mode:", walError.message);
+        logger.warn("[Auto-Fix] Could not set WAL mode:", walError.message);
       }
 
       // 2. 设置 busy_timeout（等待锁的最大时间，单位毫秒）
@@ -1003,9 +1004,9 @@ class ErrorMonitor extends EventEmitter {
           sqliteDb.exec("PRAGMA busy_timeout = 30000;");
           results.busyTimeout = true;
         }
-        console.log("[Auto-Fix] SQLite: Set busy_timeout to 30s");
+        logger.info("[Auto-Fix] SQLite: Set busy_timeout to 30s");
       } catch (timeoutError) {
-        console.warn(
+        logger.warn(
           "[Auto-Fix] Could not set busy_timeout:",
           timeoutError.message,
         );
@@ -1051,13 +1052,13 @@ class ErrorMonitor extends EventEmitter {
       try {
         if (typeof sqliteDb.pragma === "function") {
           sqliteDb.pragma("wal_checkpoint(TRUNCATE)");
-          console.log("[Auto-Fix] SQLite: Executed WAL checkpoint");
+          logger.info("[Auto-Fix] SQLite: Executed WAL checkpoint");
         } else if (typeof sqliteDb.exec === "function") {
           sqliteDb.exec("PRAGMA wal_checkpoint(TRUNCATE);");
         }
       } catch (checkpointError) {
         // checkpoint 失败不是致命错误
-        console.warn(
+        logger.warn(
           "[Auto-Fix] WAL checkpoint failed:",
           checkpointError.message,
         );
@@ -1070,7 +1071,7 @@ class ErrorMonitor extends EventEmitter {
       try {
         if (typeof sqliteDb.exec === "function") {
           sqliteDb.exec("BEGIN IMMEDIATE; COMMIT;");
-          console.log("[Auto-Fix] SQLite: Database lock released");
+          logger.info("[Auto-Fix] SQLite: Database lock released");
           return {
             success: true,
             message: "Database lock released successfully",
@@ -1168,7 +1169,7 @@ class ErrorMonitor extends EventEmitter {
     }
 
     // 1. 首先检查端口是否可达
-    console.log(
+    logger.info(
       `[Auto-Fix] Checking ${service} connectivity on port ${config.port}...`,
     );
     const portCheck = await this.validateServiceConnection(
@@ -1210,7 +1211,7 @@ class ErrorMonitor extends EventEmitter {
             };
           }
         } catch (healthError) {
-          console.warn(
+          logger.warn(
             `[Auto-Fix] ${service} health check failed:`,
             healthError.message,
           );
@@ -1226,7 +1227,7 @@ class ErrorMonitor extends EventEmitter {
     }
 
     // 2. 端口不可达或健康检查失败，尝试重启服务
-    console.log(`[Auto-Fix] ${service} not responding, attempting restart...`);
+    logger.info(`[Auto-Fix] ${service} not responding, attempting restart...`);
     const restartResult = await this.restartService(service);
 
     if (restartResult.success) {
@@ -1274,7 +1275,7 @@ class ErrorMonitor extends EventEmitter {
     try {
       // 尝试启动 Docker 容器
       await execPromise(`docker start ${containerName}`);
-      console.log(`[Auto-Fix] Started Docker container: ${containerName}`);
+      logger.info(`[Auto-Fix] Started Docker container: ${containerName}`);
       return {
         success: true,
         message: `${service} container started`,
@@ -1309,7 +1310,7 @@ class ErrorMonitor extends EventEmitter {
         timestamp: Date.now(),
       };
 
-      console.log(
+      logger.info(
         "[ErrorMonitor] 开始智能诊断:",
         errorInfo.message.substring(0, 100),
       );
@@ -1337,9 +1338,9 @@ class ErrorMonitor extends EventEmitter {
       if (this.enableAIDiagnosis && this.llmManager) {
         try {
           analysis.aiDiagnosis = await this.getSuggestedFixes(error);
-          console.log("[ErrorMonitor] AI 诊断完成");
+          logger.info("[ErrorMonitor] AI 诊断完成");
         } catch (aiError) {
-          console.warn("[ErrorMonitor] AI 诊断失败:", aiError.message);
+          logger.warn("[ErrorMonitor] AI 诊断失败:", aiError.message);
           analysis.aiDiagnosis = {
             error: "AI 诊断服务不可用",
             fallback: true,
@@ -1351,13 +1352,13 @@ class ErrorMonitor extends EventEmitter {
       if (this.database) {
         try {
           analysis.relatedIssues = await this.findRelatedIssues(error);
-          console.log(
+          logger.info(
             "[ErrorMonitor] 找到",
             analysis.relatedIssues.length,
             "个相关历史问题",
           );
         } catch (dbError) {
-          console.warn("[ErrorMonitor] 历史查询失败:", dbError.message);
+          logger.warn("[ErrorMonitor] 历史查询失败:", dbError.message);
         }
       }
 
@@ -1374,7 +1375,7 @@ class ErrorMonitor extends EventEmitter {
 
       return analysis;
     } catch (error) {
-      console.error("[ErrorMonitor] analyzeError 失败:", error);
+      logger.error("[ErrorMonitor] analyzeError 失败:", error);
       return {
         error: {
           message: "诊断过程失败",
@@ -1434,7 +1435,7 @@ class ErrorMonitor extends EventEmitter {
         timestamp: Date.now(),
       };
     } catch (error) {
-      console.error("[ErrorMonitor] getSuggestedFixes 失败:", error);
+      logger.error("[ErrorMonitor] getSuggestedFixes 失败:", error);
       return {
         available: false,
         error: error.message,
@@ -1488,14 +1489,14 @@ class ErrorMonitor extends EventEmitter {
 
       const fallback = hintedModels.find(Boolean);
       if (fallback && normalizedPreferred && fallback !== normalizedPreferred) {
-        console.warn(
+        logger.warn(
           `[ErrorMonitor] 模型 ${normalizedPreferred} 不可用，回退到 ${fallback}`,
         );
       }
 
       return fallback || normalizedPreferred;
     } catch (error) {
-      console.warn(
+      logger.warn(
         "[ErrorMonitor] 检查诊断模型可用性失败:",
         error.message,
       );
@@ -1596,7 +1597,7 @@ ${error?.stack || "无堆栈信息"}
         full: response,
       };
     } catch (error) {
-      console.warn("[ErrorMonitor] 解析 LLM 响应失败:", error);
+      logger.warn("[ErrorMonitor] 解析 LLM 响应失败:", error);
       return {
         structured: null,
         full: response,
@@ -1672,7 +1673,7 @@ ${error?.stack || "无堆栈信息"}
         autoFixResult: e.autoFixResult,
       }));
     } catch (error) {
-      console.error("[ErrorMonitor] findRelatedIssues 失败:", error);
+      logger.error("[ErrorMonitor] findRelatedIssues 失败:", error);
       return [];
     }
   }
@@ -2113,10 +2114,10 @@ ${error?.stack || "无堆栈信息"}
         now,
       );
 
-      console.log("[ErrorMonitor] 错误分析已保存到数据库, ID:", id);
+      logger.info("[ErrorMonitor] 错误分析已保存到数据库, ID:", id);
       return id;
     } catch (error) {
-      console.error("[ErrorMonitor] saveErrorAnalysis 失败:", error);
+      logger.error("[ErrorMonitor] saveErrorAnalysis 失败:", error);
       return null;
     }
   }
@@ -2345,7 +2346,7 @@ ${error?.stack || "无堆栈信息"}
       // 解析 JSON 字段并返回规范化的结构
       return this._parseAnalysisRecord(record);
     } catch (error) {
-      console.error("[ErrorMonitor] getAnalysisById 失败:", error);
+      logger.error("[ErrorMonitor] getAnalysisById 失败:", error);
       throw error;
     }
   }
@@ -2442,7 +2443,7 @@ ${error?.stack || "无堆栈信息"}
             : "0.00",
       };
     } catch (error) {
-      console.error("[ErrorMonitor] getErrorStats 失败:", error);
+      logger.error("[ErrorMonitor] getErrorStats 失败:", error);
       throw error;
     }
   }
@@ -2476,7 +2477,7 @@ ${error?.stack || "无堆栈信息"}
 
       return stmt.all(cutoffTime, days);
     } catch (error) {
-      console.error("[ErrorMonitor] getDailyTrend 失败:", error);
+      logger.error("[ErrorMonitor] getDailyTrend 失败:", error);
       return [];
     }
   }
@@ -2536,7 +2537,7 @@ ${error?.stack || "无堆栈信息"}
 
       return records.map((record) => this._parseAnalysisRecord(record));
     } catch (error) {
-      console.error("[ErrorMonitor] getAnalysisHistory 失败:", error);
+      logger.error("[ErrorMonitor] getAnalysisHistory 失败:", error);
       throw error;
     }
   }
@@ -2557,10 +2558,10 @@ ${error?.stack || "无堆栈信息"}
       `);
 
       const result = stmt.run(analysisId);
-      console.log(`[ErrorMonitor] 已删除分析记录: ${analysisId}`);
+      logger.info(`[ErrorMonitor] 已删除分析记录: ${analysisId}`);
       return result.changes > 0;
     } catch (error) {
-      console.error("[ErrorMonitor] deleteAnalysis 失败:", error);
+      logger.error("[ErrorMonitor] deleteAnalysis 失败:", error);
       throw error;
     }
   }
@@ -2590,13 +2591,13 @@ ${error?.stack || "无堆栈信息"}
       `);
       deleteStmt.run(cutoffTime);
 
-      console.log(
+      logger.info(
         `[ErrorMonitor] 已清理 ${count} 条旧分析记录（保留 ${daysToKeep} 天）`,
       );
 
       return count;
     } catch (error) {
-      console.error("[ErrorMonitor] cleanupOldAnalyses 失败:", error);
+      logger.error("[ErrorMonitor] cleanupOldAnalyses 失败:", error);
       throw error;
     }
   }
@@ -2631,7 +2632,7 @@ ${error?.stack || "无堆栈信息"}
 
       return stmt.all(cutoffTime);
     } catch (error) {
-      console.error("[ErrorMonitor] getClassificationStats 失败:", error);
+      logger.error("[ErrorMonitor] getClassificationStats 失败:", error);
       throw error;
     }
   }
@@ -2671,7 +2672,7 @@ ${error?.stack || "无堆栈信息"}
 
       return stmt.all(cutoffTime);
     } catch (error) {
-      console.error("[ErrorMonitor] getSeverityStats 失败:", error);
+      logger.error("[ErrorMonitor] getSeverityStats 失败:", error);
       throw error;
     }
   }
@@ -2704,7 +2705,7 @@ ${error?.stack || "无堆栈信息"}
 
       return error;
     } catch (error) {
-      console.error("[ErrorMonitor] getErrorById 失败:", error);
+      logger.error("[ErrorMonitor] getErrorById 失败:", error);
       throw error;
     }
   }
@@ -2753,10 +2754,10 @@ ${error?.stack || "无堆栈信息"}
         stmt.run(status, now, analysisId);
       }
 
-      console.log(`[ErrorMonitor] 更新分析状态: ${analysisId} -> ${status}`);
+      logger.info(`[ErrorMonitor] 更新分析状态: ${analysisId} -> ${status}`);
       return true;
     } catch (error) {
-      console.error("[ErrorMonitor] updateAnalysisStatus 失败:", error);
+      logger.error("[ErrorMonitor] updateAnalysisStatus 失败:", error);
       throw error;
     }
   }
@@ -2795,7 +2796,7 @@ ${error?.stack || "无堆栈信息"}
         llm_model: "qwen2:7b",
       };
     } catch (error) {
-      console.error("[ErrorMonitor] getDiagnosisConfig 失败:", error);
+      logger.error("[ErrorMonitor] getDiagnosisConfig 失败:", error);
       return {
         enable_ai_diagnosis: this.enableAIDiagnosis,
         llm_provider: "ollama",
@@ -2866,10 +2867,10 @@ ${error?.stack || "无堆栈信息"}
         this.enableAIDiagnosis = updates.enable_ai_diagnosis;
       }
 
-      console.log("[ErrorMonitor] 诊断配置已更新");
+      logger.info("[ErrorMonitor] 诊断配置已更新");
       return true;
     } catch (error) {
-      console.error("[ErrorMonitor] updateDiagnosisConfig 失败:", error);
+      logger.error("[ErrorMonitor] updateDiagnosisConfig 失败:", error);
       throw error;
     }
   }

@@ -190,6 +190,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
 import { message } from 'ant-design-vue';
 import {
@@ -285,7 +287,7 @@ onMounted(async () => {
     });
 
   } catch (error) {
-    console.error('Error initializing collaborative editor:', error);
+    logger.error('Error initializing collaborative editor:', error);
     message.error('Failed to initialize collaborative editor');
   }
 });
@@ -335,7 +337,7 @@ async function initializeCollaboration() {
     await syncEditorContent();
 
   } catch (error) {
-    console.error('Error initializing collaboration:', error);
+    logger.error('Error initializing collaboration:', error);
     throw error;
   }
 }
@@ -352,7 +354,7 @@ async function syncEditorContent() {
     }
 
   } catch (error) {
-    console.error('Error syncing editor content:', error);
+    logger.error('Error syncing editor content:', error);
   }
 }
 
@@ -368,7 +370,7 @@ async function updateCursorPosition(position) {
     });
 
   } catch (error) {
-    console.error('Error updating cursor:', error);
+    logger.error('Error updating cursor:', error);
   }
 }
 
@@ -390,7 +392,7 @@ async function updateSelection(selection) {
     });
 
   } catch (error) {
-    console.error('Error updating selection:', error);
+    logger.error('Error updating selection:', error);
   }
 }
 
@@ -459,7 +461,7 @@ async function saveSnapshot() {
     }
 
   } catch (error) {
-    console.error('Error saving snapshot:', error);
+    logger.error('Error saving snapshot:', error);
     message.error('Failed to save version');
   } finally {
     saving.value = false;
@@ -479,7 +481,7 @@ async function loadVersionHistory() {
     }
 
   } catch (error) {
-    console.error('Error loading version history:', error);
+    logger.error('Error loading version history:', error);
   }
 }
 
@@ -502,7 +504,7 @@ async function previewVersion(versionId) {
     }
 
   } catch (error) {
-    console.error('Error previewing version:', error);
+    logger.error('Error previewing version:', error);
     message.error('Failed to preview version');
   }
 }
@@ -529,7 +531,7 @@ async function restoreVersion(versionId) {
     }
 
   } catch (error) {
-    console.error('Error restoring version:', error);
+    logger.error('Error restoring version:', error);
     message.error('Failed to restore version');
   }
 }
@@ -547,7 +549,7 @@ async function loadComments() {
     }
 
   } catch (error) {
-    console.error('Error loading comments:', error);
+    logger.error('Error loading comments:', error);
   }
 }
 
@@ -578,7 +580,7 @@ async function addComment() {
     }
 
   } catch (error) {
-    console.error('Error adding comment:', error);
+    logger.error('Error adding comment:', error);
     message.error('Failed to add comment');
   }
 }
@@ -604,7 +606,7 @@ async function resolveComment(commentId) {
     }
 
   } catch (error) {
-    console.error('Error resolving comment:', error);
+    logger.error('Error resolving comment:', error);
     message.error('Failed to resolve comment');
   }
 }

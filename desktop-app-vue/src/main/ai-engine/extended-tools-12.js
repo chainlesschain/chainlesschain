@@ -7,6 +7,7 @@
  * 环境变量 USE_REAL_TOOLS=true 启用真实实现
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require('fs').promises;
 const path = require('path');
 const crypto = require('crypto');
@@ -18,9 +19,9 @@ let realImpl = null;
 if (USE_REAL_IMPLEMENTATION) {
   try {
     realImpl = require('./real-implementations');
-    console.log('✅ ExtendedTools12: 已启用真实功能实现');
+    logger.info('✅ ExtendedTools12: 已启用真实功能实现');
   } catch (error) {
-    console.warn('⚠️ ExtendedTools12: 真实功能模块加载失败，将使用模拟实现:', error.message);
+    logger.warn('⚠️ ExtendedTools12: 真实功能模块加载失败，将使用模拟实现:', error.message);
   }
 }
 
@@ -1521,7 +1522,7 @@ class ExtendedTools12 {
       }
     });
 
-    console.log('ExtendedTools12: 已注册第十二批全部20个日常工具 (237-256)');
+    logger.info('ExtendedTools12: 已注册第十二批全部20个日常工具 (237-256)');
   }
 }
 

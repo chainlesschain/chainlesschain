@@ -70,6 +70,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
 import { message } from 'ant-design-vue';
 import {
@@ -308,7 +310,7 @@ const handleSave = async () => {
     hasUnsavedChanges.value = false;
     message.success('保存成功');
   } catch (error) {
-    console.error('保存失败:', error);
+    logger.error('保存失败:', error);
     message.error('保存失败: ' + error.message);
   } finally {
     saving.value = false;
@@ -321,13 +323,13 @@ const handleSave = async () => {
 const setContent = (newContent) => {
   // 如果编辑器未就绪，直接返回
   if (!editorView.value) {
-    console.warn('[SimpleEditor] 编辑器未就绪，跳过 setContent');
+    logger.warn('[SimpleEditor] 编辑器未就绪，跳过 setContent');
     return;
   }
 
   // 如果正在设置内容，跳过本次调用（防止并发）
   if (isSettingContent.value) {
-    console.log('[SimpleEditor] 正在设置内容，跳过重复调用');
+    logger.info('[SimpleEditor] 正在设置内容，跳过重复调用');
     return;
   }
 
@@ -346,7 +348,7 @@ const setContent = (newContent) => {
 
       // 再次检查编辑器是否存在（异步后可能已销毁）
       if (!editorView.value) {
-        console.warn('[SimpleEditor] 编辑器已销毁，取消 setContent');
+        logger.warn('[SimpleEditor] 编辑器已销毁，取消 setContent');
         return;
       }
 
@@ -355,7 +357,7 @@ const setContent = (newContent) => {
 
       // 如果内容相同，直接返回（避免不必要的更新）
       if (currentContent === contentStr) {
-        console.log('[SimpleEditor] 内容未变化，跳过更新');
+        logger.info('[SimpleEditor] 内容未变化，跳过更新');
         return;
       }
 
@@ -370,10 +372,10 @@ const setContent = (newContent) => {
       });
 
       hasUnsavedChanges.value = false;
-      console.log('[SimpleEditor] setContent 成功，内容长度:', contentStr.length);
+      logger.info('[SimpleEditor] setContent 成功，内容长度:', contentStr.length);
     } catch (error) {
-      console.error('[SimpleEditor] setContent 失败:', error);
-      console.error('[SimpleEditor] 错误详情:', {
+      logger.error('[SimpleEditor] setContent 失败:', error);
+      logger.error('[SimpleEditor] 错误详情:', {
         message: error.message,
         stack: error.stack,
         editorExists: !!editorView.value,
@@ -405,7 +407,7 @@ watch(
   (newFile, oldFile) => {
     // 文件切换时重新初始化编辑器
     if (newFile && newFile.id !== oldFile?.id) {
-      console.log('[SimpleEditor] 文件切换，重新初始化编辑器:', newFile.file_name);
+      logger.info('[SimpleEditor] 文件切换，重新初始化编辑器:', newFile.file_name);
 
       // 清理之前的定时器和状态
       if (setContentTimer.value) {
@@ -438,7 +440,7 @@ watch(
       newContent !== oldContent &&
       !isSettingContent.value
     ) {
-      console.log('[SimpleEditor] 外部内容变化，更新编辑器');
+      logger.info('[SimpleEditor] 外部内容变化，更新编辑器');
       nextTick(() => {
         setContent(newContent);
       });

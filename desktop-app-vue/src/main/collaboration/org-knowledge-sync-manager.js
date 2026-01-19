@@ -13,6 +13,7 @@
  * - Offline support with sync queue
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const EventEmitter = require('events');
 const { v4: uuidv4 } = require('uuid');
 
@@ -55,7 +56,7 @@ class OrgKnowledgeSyncManager extends EventEmitter {
    */
   _initializeMessageHandlers() {
     if (!this.orgP2PNetwork) {
-      console.warn('[OrgKnowledgeSync] P2P network not available');
+      logger.warn('[OrgKnowledgeSync] P2P network not available');
       return;
     }
 
@@ -107,7 +108,7 @@ class OrgKnowledgeSyncManager extends EventEmitter {
         }
 
       } catch (error) {
-        console.error('[OrgKnowledgeSync] Error handling message:', error);
+        logger.error('[OrgKnowledgeSync] Error handling message:', error);
       }
     });
   }
@@ -117,7 +118,7 @@ class OrgKnowledgeSyncManager extends EventEmitter {
    */
   async initialize(orgId) {
     try {
-      console.log(`[OrgKnowledgeSync] Initializing for organization ${orgId}`);
+      logger.info(`[OrgKnowledgeSync] Initializing for organization ${orgId}`);
 
       // Initialize sync state
       this.syncState.set(orgId, {
@@ -129,10 +130,10 @@ class OrgKnowledgeSyncManager extends EventEmitter {
       // Request initial sync from peers
       await this._requestInitialSync(orgId);
 
-      console.log(`[OrgKnowledgeSync] Initialized for organization ${orgId}`);
+      logger.info(`[OrgKnowledgeSync] Initialized for organization ${orgId}`);
 
     } catch (error) {
-      console.error('[OrgKnowledgeSync] Error initializing:', error);
+      logger.error('[OrgKnowledgeSync] Error initializing:', error);
       throw error;
     }
   }
@@ -186,7 +187,7 @@ class OrgKnowledgeSyncManager extends EventEmitter {
       return folder;
 
     } catch (error) {
-      console.error('[OrgKnowledgeSync] Error creating folder:', error);
+      logger.error('[OrgKnowledgeSync] Error creating folder:', error);
       throw error;
     }
   }
@@ -251,7 +252,7 @@ class OrgKnowledgeSyncManager extends EventEmitter {
       return orgKnowledge;
 
     } catch (error) {
-      console.error('[OrgKnowledgeSync] Error sharing knowledge:', error);
+      logger.error('[OrgKnowledgeSync] Error sharing knowledge:', error);
       throw error;
     }
   }
@@ -322,7 +323,7 @@ class OrgKnowledgeSyncManager extends EventEmitter {
       return true;
 
     } catch (error) {
-      console.error('[OrgKnowledgeSync] Error updating knowledge:', error);
+      logger.error('[OrgKnowledgeSync] Error updating knowledge:', error);
       throw error;
     }
   }
@@ -363,7 +364,7 @@ class OrgKnowledgeSyncManager extends EventEmitter {
       return true;
 
     } catch (error) {
-      console.error('[OrgKnowledgeSync] Error deleting knowledge:', error);
+      logger.error('[OrgKnowledgeSync] Error deleting knowledge:', error);
       throw error;
     }
   }
@@ -416,7 +417,7 @@ class OrgKnowledgeSyncManager extends EventEmitter {
       }));
 
     } catch (error) {
-      console.error('[OrgKnowledgeSync] Error getting organization knowledge:', error);
+      logger.error('[OrgKnowledgeSync] Error getting organization knowledge:', error);
       return [];
     }
   }
@@ -440,7 +441,7 @@ class OrgKnowledgeSyncManager extends EventEmitter {
       }));
 
     } catch (error) {
-      console.error('[OrgKnowledgeSync] Error getting folders:', error);
+      logger.error('[OrgKnowledgeSync] Error getting folders:', error);
       return [];
     }
   }
@@ -485,7 +486,7 @@ class OrgKnowledgeSyncManager extends EventEmitter {
       }));
 
     } catch (error) {
-      console.error('[OrgKnowledgeSync] Error getting activity log:', error);
+      logger.error('[OrgKnowledgeSync] Error getting activity log:', error);
       return [];
     }
   }
@@ -502,7 +503,7 @@ class OrgKnowledgeSyncManager extends EventEmitter {
       const existing = db.prepare('SELECT id FROM knowledge_items WHERE id = ?').get(knowledge.id);
 
       if (existing) {
-        console.log(`[OrgKnowledgeSync] Knowledge ${knowledge.id} already exists`);
+        logger.info(`[OrgKnowledgeSync] Knowledge ${knowledge.id} already exists`);
         return;
       }
 
@@ -539,7 +540,7 @@ class OrgKnowledgeSyncManager extends EventEmitter {
       this.emit('knowledge-created', { orgId, knowledge, author });
 
     } catch (error) {
-      console.error('[OrgKnowledgeSync] Error handling knowledge create:', error);
+      logger.error('[OrgKnowledgeSync] Error handling knowledge create:', error);
     }
   }
 
@@ -556,7 +557,7 @@ class OrgKnowledgeSyncManager extends EventEmitter {
       const local = db.prepare('SELECT updated_at FROM knowledge_items WHERE id = ?').get(knowledgeId);
 
       if (local && local.updated_at >= timestamp) {
-        console.log(`[OrgKnowledgeSync] Local version is newer, skipping update`);
+        logger.info(`[OrgKnowledgeSync] Local version is newer, skipping update`);
         return;
       }
 
@@ -588,7 +589,7 @@ class OrgKnowledgeSyncManager extends EventEmitter {
       this.emit('knowledge-updated', { orgId, knowledgeId, updates, author });
 
     } catch (error) {
-      console.error('[OrgKnowledgeSync] Error handling knowledge update:', error);
+      logger.error('[OrgKnowledgeSync] Error handling knowledge update:', error);
     }
   }
 
@@ -610,7 +611,7 @@ class OrgKnowledgeSyncManager extends EventEmitter {
       this.emit('knowledge-deleted', { orgId, knowledgeId, deletedBy });
 
     } catch (error) {
-      console.error('[OrgKnowledgeSync] Error handling knowledge delete:', error);
+      logger.error('[OrgKnowledgeSync] Error handling knowledge delete:', error);
     }
   }
 
@@ -625,7 +626,7 @@ class OrgKnowledgeSyncManager extends EventEmitter {
       const existing = db.prepare('SELECT id FROM org_knowledge_folders WHERE id = ?').get(payload.id);
 
       if (existing) {
-        console.log(`[OrgKnowledgeSync] Folder ${payload.id} already exists`);
+        logger.info(`[OrgKnowledgeSync] Folder ${payload.id} already exists`);
         return;
       }
 
@@ -646,7 +647,7 @@ class OrgKnowledgeSyncManager extends EventEmitter {
       this.emit('folder-created', { orgId, folder: payload });
 
     } catch (error) {
-      console.error('[OrgKnowledgeSync] Error handling folder create:', error);
+      logger.error('[OrgKnowledgeSync] Error handling folder create:', error);
     }
   }
 
@@ -665,7 +666,7 @@ class OrgKnowledgeSyncManager extends EventEmitter {
       }
 
     } catch (error) {
-      console.error('[OrgKnowledgeSync] Error handling Yjs update:', error);
+      logger.error('[OrgKnowledgeSync] Error handling Yjs update:', error);
     }
   }
 
@@ -683,7 +684,7 @@ class OrgKnowledgeSyncManager extends EventEmitter {
       }
 
     } catch (error) {
-      console.error('[OrgKnowledgeSync] Error handling Yjs awareness:', error);
+      logger.error('[OrgKnowledgeSync] Error handling Yjs awareness:', error);
     }
   }
 
@@ -701,7 +702,7 @@ class OrgKnowledgeSyncManager extends EventEmitter {
       });
 
     } catch (error) {
-      console.error('[OrgKnowledgeSync] Error requesting initial sync:', error);
+      logger.error('[OrgKnowledgeSync] Error requesting initial sync:', error);
     }
   }
 
@@ -728,7 +729,7 @@ class OrgKnowledgeSyncManager extends EventEmitter {
       });
 
     } catch (error) {
-      console.error('[OrgKnowledgeSync] Error handling sync request:', error);
+      logger.error('[OrgKnowledgeSync] Error handling sync request:', error);
     }
   }
 
@@ -763,7 +764,7 @@ class OrgKnowledgeSyncManager extends EventEmitter {
       return actionPermissions.includes(member.role) || member.role === 'owner';
 
     } catch (error) {
-      console.error('[OrgKnowledgeSync] Error checking permission:', error);
+      logger.error('[OrgKnowledgeSync] Error checking permission:', error);
       return false;
     }
   }
@@ -793,7 +794,7 @@ class OrgKnowledgeSyncManager extends EventEmitter {
       );
 
     } catch (error) {
-      console.error('[OrgKnowledgeSync] Error logging activity:', error);
+      logger.error('[OrgKnowledgeSync] Error logging activity:', error);
     }
   }
 

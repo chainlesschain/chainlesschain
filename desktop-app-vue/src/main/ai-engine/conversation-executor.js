@@ -3,6 +3,7 @@
  * 执行AI解析出的文件操作
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require('fs').promises;
 const path = require('path');
 const { validateOperations } = require('./response-parser');
@@ -27,13 +28,13 @@ async function executeOperations(operations, projectPath, database = null) {
 
   for (let i = 0; i < operations.length; i++) {
     const operation = operations[i];
-    console.log(`执行操作 ${i + 1}/${operations.length}: ${operation.type} ${operation.path}`);
+    logger.info(`执行操作 ${i + 1}/${operations.length}: ${operation.type} ${operation.path}`);
 
     try {
       const result = await executeOperation(operation, projectPath, database);
       results.push(result);
     } catch (error) {
-      console.error(`操作失败:`, error);
+      logger.error(`操作失败:`, error);
       results.push({
         operation: operation,
         status: 'error',
@@ -92,7 +93,7 @@ async function createFile(filePath, content, operation, database) {
     const exists = await fileExists(filePath);
     if (exists) {
       // 文件已存在，改为更新操作
-      console.warn(`文件已存在，改为更新: ${filePath}`);
+      logger.warn(`文件已存在，改为更新: ${filePath}`);
       return await updateFile(filePath, content, operation, database);
     }
 
@@ -126,7 +127,7 @@ async function createFile(filePath, content, operation, database) {
 
     return result;
   } catch (error) {
-    console.error('创建文件失败:', error);
+    logger.error('创建文件失败:', error);
     throw error;
   }
 }
@@ -146,7 +147,7 @@ async function updateFile(filePath, content, operation, database) {
     const exists = await fileExists(filePath);
     if (!exists) {
       // 文件不存在，改为创建操作
-      console.warn(`文件不存在，改为创建: ${filePath}`);
+      logger.warn(`文件不存在，改为创建: ${filePath}`);
       return await createFile(filePath, content, operation, database);
     }
 
@@ -179,7 +180,7 @@ async function updateFile(filePath, content, operation, database) {
 
     return result;
   } catch (error) {
-    console.error('更新文件失败:', error);
+    logger.error('更新文件失败:', error);
     throw error;
   }
 }
@@ -231,7 +232,7 @@ async function deleteFile(filePath, operation, database) {
 
     return result;
   } catch (error) {
-    console.error('删除文件失败:', error);
+    logger.error('删除文件失败:', error);
     throw error;
   }
 }
@@ -277,7 +278,7 @@ async function readFile(filePath, operation, database) {
 
     return result;
   } catch (error) {
-    console.error('读取文件失败:', error);
+    logger.error('读取文件失败:', error);
     throw error;
   }
 }
@@ -318,7 +319,7 @@ async function backupFile(filePath) {
   // 复制文件
   await fs.copyFile(filePath, backupPath);
 
-  console.log(`文件已备份: ${backupPath}`);
+  logger.info(`文件已备份: ${backupPath}`);
   return backupPath;
 }
 
@@ -332,7 +333,7 @@ async function backupFile(filePath) {
 async function logOperation(database, logData) {
   try {
     if (!database || !database.db) {
-      console.warn('数据库实例无效，跳过日志记录');
+      logger.warn('数据库实例无效，跳过日志记录');
       return;
     }
 
@@ -352,7 +353,7 @@ async function logOperation(database, logData) {
       logData.backupPath || null
     );
   } catch (error) {
-    console.error('记录操作日志失败:', error);
+    logger.error('记录操作日志失败:', error);
     // 日志记录失败不影响主流程
   }
 }
@@ -382,7 +383,7 @@ async function ensureLogTable(database) {
       )
     `);
   } catch (error) {
-    console.error('创建日志表失败:', error);
+    logger.error('创建日志表失败:', error);
   }
 }
 

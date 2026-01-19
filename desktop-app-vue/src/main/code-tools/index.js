@@ -6,6 +6,7 @@
  * and review system functionality.
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { registerCodeIPC } = require('./code-ipc');
 const { registerReviewIPC } = require('./review-ipc');
 
@@ -24,7 +25,7 @@ function registerAllCodeToolsIPC(context) {
     reviewManager: context.reviewManager
   });
 
-  console.log('[IPC] All code-tools IPC handlers registered (20 total)');
+  logger.info('[IPC] All code-tools IPC handlers registered (20 total)');
 }
 
 module.exports = {

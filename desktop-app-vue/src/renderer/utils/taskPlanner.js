@@ -1,3 +1,5 @@
+import { logger, createLogger } from '@/utils/logger';
+
 /**
  * 对话式任务规划助手
  * 类似Claude Code的plan模式，通过对话收集信息并制定详细计划
@@ -139,7 +141,7 @@ export class TaskPlanner {
    * @returns {Promise<Object>} 分析结果
    */
   static async analyzeRequirements(userInput, projectType, llmService) {
-    console.log('[TaskPlanner] 开始分析需求完整性:', userInput);
+    logger.info('[TaskPlanner] 开始分析需求完整性:', userInput);
 
     const prompt = `请分析以下用户需求的完整性：
 
@@ -198,7 +200,7 @@ export class TaskPlanner {
 【提示】如果无法生成选项，可以省略options字段，系统会回退到普通文本框。`;
 
     try {
-      console.log('[TaskPlanner] 开始调用LLM，设置10分钟超时...');
+      logger.info('[TaskPlanner] 开始调用LLM，设置10分钟超时...');
 
       // 🔥 添加超时机制（10分钟 = 600秒）
       const timeoutPromise = new Promise((_, reject) => {
@@ -210,18 +212,18 @@ export class TaskPlanner {
         timeoutPromise
       ]);
 
-      console.log('[TaskPlanner] ✅ LLM响应成功，长度:', response?.length || 0);
+      logger.info('[TaskPlanner] ✅ LLM响应成功，长度:', response?.length || 0);
 
       // 尝试提取JSON
       const jsonMatch = response.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         const analysis = JSON.parse(jsonMatch[0]);
-        console.log('[TaskPlanner] 需求分析完成:', analysis);
+        logger.info('[TaskPlanner] 需求分析完成:', analysis);
         return analysis;
       }
 
       // 如果没有JSON，返回默认结果（假设需求不完整）
-      console.warn('[TaskPlanner] 无法解析分析结果，使用默认值');
+      logger.warn('[TaskPlanner] 无法解析分析结果，使用默认值');
       return {
         isComplete: false,
         confidence: 0.5,
@@ -233,10 +235,10 @@ export class TaskPlanner {
         ]
       };
     } catch (error) {
-      console.error('[TaskPlanner] ❌ 需求分析失败:', error);
+      logger.error('[TaskPlanner] ❌ 需求分析失败:', error);
 
       // 🔥 降级方案：返回基于项目类型的默认问题
-      console.warn('[TaskPlanner] 使用降级方案：返回默认采访问题');
+      logger.warn('[TaskPlanner] 使用降级方案：返回默认采访问题');
 
       const defaultQuestions = {
         document: [
@@ -359,7 +361,7 @@ export class TaskPlanner {
    * @returns {Promise<Object>} 任务计划
    */
   static async generatePlan(session, llmService) {
-    console.log('[TaskPlanner] 开始生成任务计划');
+    logger.info('[TaskPlanner] 开始生成任务计划');
 
     // 构建上下文
     const collectedInfo = Object.entries(session.analysis.collected)
@@ -415,8 +417,8 @@ ${interviewAnswers}
 
     try {
       const response = await llmService.chat(prompt);
-      console.log('[TaskPlanner] LLM响应:', response);
-      console.log('[TaskPlanner] 响应长度:', response?.length || 0);
+      logger.info('[TaskPlanner] LLM响应:', response);
+      logger.info('[TaskPlanner] 响应长度:', response?.length || 0);
 
       if (!response || response.length === 0) {
         throw new Error('LLM返回空响应');
@@ -429,7 +431,7 @@ ${interviewAnswers}
       const codeBlockMatch = response.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
       if (codeBlockMatch) {
         jsonText = codeBlockMatch[1];
-        console.log('[TaskPlanner] 从代码块中提取JSON');
+        logger.info('[TaskPlanner] 从代码块中提取JSON');
       }
 
       // 方式2: 提取第一个完整的JSON对象（非贪婪匹配）
@@ -437,7 +439,7 @@ ${interviewAnswers}
         const jsonMatch = response.match(/\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}/);
         if (jsonMatch) {
           jsonText = jsonMatch[0];
-          console.log('[TaskPlanner] 使用简单匹配提取JSON');
+          logger.info('[TaskPlanner] 使用简单匹配提取JSON');
         }
       }
 
@@ -447,13 +449,13 @@ ${interviewAnswers}
         const lastBrace = response.lastIndexOf('}');
         if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
           jsonText = response.substring(firstBrace, lastBrace + 1);
-          console.log('[TaskPlanner] 使用{}匹配提取JSON');
+          logger.info('[TaskPlanner] 使用{}匹配提取JSON');
         }
       }
 
       if (!jsonText) {
-        console.error('[TaskPlanner] 无法从响应中提取JSON');
-        console.error('[TaskPlanner] 完整响应:', response);
+        logger.error('[TaskPlanner] 无法从响应中提取JSON');
+        logger.error('[TaskPlanner] 完整响应:', response);
         throw new Error('响应中未找到JSON格式的任务计划');
       }
 
@@ -461,16 +463,16 @@ ${interviewAnswers}
       let plan;
       try {
         plan = JSON.parse(jsonText);
-        console.log('[TaskPlanner] JSON解析成功:', plan);
+        logger.info('[TaskPlanner] JSON解析成功:', plan);
       } catch (parseError) {
-        console.error('[TaskPlanner] JSON解析失败:', parseError);
-        console.error('[TaskPlanner] 尝试解析的文本:', jsonText);
+        logger.error('[TaskPlanner] JSON解析失败:', parseError);
+        logger.error('[TaskPlanner] 尝试解析的文本:', jsonText);
         throw new Error(`JSON解析失败: ${parseError.message}`);
       }
 
       // 验证必要字段
       if (!plan.title || !plan.tasks || !Array.isArray(plan.tasks)) {
-        console.warn('[TaskPlanner] 计划缺少必要字段，使用默认值补充');
+        logger.warn('[TaskPlanner] 计划缺少必要字段，使用默认值补充');
         plan.title = plan.title || '任务执行计划';
         plan.summary = plan.summary || '根据您的需求生成的任务计划';
         plan.tasks = Array.isArray(plan.tasks) ? plan.tasks : [];
@@ -478,14 +480,14 @@ ${interviewAnswers}
         plan.notes = plan.notes || [];
       }
 
-      console.log('[TaskPlanner] 任务计划生成完成:', plan);
+      logger.info('[TaskPlanner] 任务计划生成完成:', plan);
       return plan;
 
     } catch (error) {
-      console.error('[TaskPlanner] 任务计划生成失败:', error);
+      logger.error('[TaskPlanner] 任务计划生成失败:', error);
 
       // 🔥 降级方案：返回一个基于用户输入的默认计划
-      console.warn('[TaskPlanner] 使用降级方案：生成默认任务计划');
+      logger.warn('[TaskPlanner] 使用降级方案：生成默认任务计划');
 
       const defaultPlan = {
         title: `执行计划：${session.userInput}`,
@@ -524,7 +526,7 @@ ${interviewAnswers}
         notes: ['请根据实际情况调整计划', '遇到问题及时沟通']
       };
 
-      console.log('[TaskPlanner] 返回默认计划:', defaultPlan);
+      logger.info('[TaskPlanner] 返回默认计划:', defaultPlan);
       return defaultPlan;
     }
   }

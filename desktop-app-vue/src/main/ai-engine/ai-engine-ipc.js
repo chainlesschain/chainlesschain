@@ -3,6 +3,7 @@
  * 处理前端与AI引擎之间的通信
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { ipcMain } = require('electron');
 
 class AIEngineIPC {
@@ -22,7 +23,7 @@ class AIEngineIPC {
     // AI引擎：处理用户输入
     ipcMain.handle('ai:processInput', async (event, { input, context }) => {
       try {
-        console.log('[AI Engine IPC] 处理用户输入:', input);
+        logger.info('[AI Engine IPC] 处理用户输入:', input);
 
         // 步骤更新回调
         const onStepUpdate = (step) => {
@@ -40,7 +41,7 @@ class AIEngineIPC {
           result,
         };
       } catch (error) {
-        console.error('[AI Engine IPC] 处理失败:', error);
+        logger.error('[AI Engine IPC] 处理失败:', error);
         return {
           success: false,
           error: error.message,
@@ -58,7 +59,7 @@ class AIEngineIPC {
           history,
         };
       } catch (error) {
-        console.error('[AI Engine IPC] 获取历史失败:', error);
+        logger.error('[AI Engine IPC] 获取历史失败:', error);
         return {
           success: false,
           error: error.message,
@@ -75,7 +76,7 @@ class AIEngineIPC {
           success: true,
         };
       } catch (error) {
-        console.error('[AI Engine IPC] 清除历史失败:', error);
+        logger.error('[AI Engine IPC] 清除历史失败:', error);
         return {
           success: false,
           error: error.message,
@@ -93,7 +94,7 @@ class AIEngineIPC {
           tools,
         };
       } catch (error) {
-        console.error('[AI Engine IPC] 获取工具列表失败:', error);
+        logger.error('[AI Engine IPC] 获取工具列表失败:', error);
         return {
           success: false,
           error: error.message,
@@ -104,7 +105,7 @@ class AIEngineIPC {
     // Web引擎：生成Web项目
     ipcMain.handle('web-engine:generate', async (_event, options) => {
       try {
-        console.log('[Web Engine IPC] 生成Web项目:', options);
+        logger.info('[Web Engine IPC] 生成Web项目:', options);
 
         const result = await this.webEngineManager.generateProject(options);
 
@@ -113,7 +114,7 @@ class AIEngineIPC {
           ...result,
         };
       } catch (error) {
-        console.error('[Web Engine IPC] 生成失败:', error);
+        logger.error('[Web Engine IPC] 生成失败:', error);
         return {
           success: false,
           error: error.message,
@@ -131,7 +132,7 @@ class AIEngineIPC {
           templates,
         };
       } catch (error) {
-        console.error('[Web Engine IPC] 获取模板失败:', error);
+        logger.error('[Web Engine IPC] 获取模板失败:', error);
         return {
           success: false,
           error: error.message,
@@ -149,7 +150,7 @@ class AIEngineIPC {
           ...result,
         };
       } catch (error) {
-        console.error('[Web Engine IPC] 启动预览失败:', error);
+        logger.error('[Web Engine IPC] 启动预览失败:', error);
         return {
           success: false,
           error: error.message,
@@ -167,7 +168,7 @@ class AIEngineIPC {
           ...result,
         };
       } catch (error) {
-        console.error('[Web Engine IPC] 停止预览失败:', error);
+        logger.error('[Web Engine IPC] 停止预览失败:', error);
         return {
           success: false,
           error: error.message,
@@ -185,7 +186,7 @@ class AIEngineIPC {
           ...result,
         };
       } catch (error) {
-        console.error('[Web Engine IPC] 重启预览失败:', error);
+        logger.error('[Web Engine IPC] 重启预览失败:', error);
         return {
           success: false,
           error: error.message,
@@ -203,7 +204,7 @@ class AIEngineIPC {
           ...status,
         };
       } catch (error) {
-        console.error('[Web Engine IPC] 获取预览状态失败:', error);
+        logger.error('[Web Engine IPC] 获取预览状态失败:', error);
         return {
           success: false,
           error: error.message,
@@ -221,7 +222,7 @@ class AIEngineIPC {
           ...result,
         };
       } catch (error) {
-        console.error('[Web Engine IPC] 更改端口失败:', error);
+        logger.error('[Web Engine IPC] 更改端口失败:', error);
         return {
           success: false,
           error: error.message,
@@ -232,7 +233,7 @@ class AIEngineIPC {
     // 文档引擎：生成文档
     ipcMain.handle('document-engine:generate', async (_event, options) => {
       try {
-        console.log('[Document Engine IPC] 生成文档:', options);
+        logger.info('[Document Engine IPC] 生成文档:', options);
 
         const result = await this.documentEngineManager.generateDocument(options);
 
@@ -241,7 +242,7 @@ class AIEngineIPC {
           ...result,
         };
       } catch (error) {
-        console.error('[Document Engine IPC] 生成失败:', error);
+        logger.error('[Document Engine IPC] 生成失败:', error);
         return {
           success: false,
           error: error.message,
@@ -259,7 +260,7 @@ class AIEngineIPC {
           templates,
         };
       } catch (error) {
-        console.error('[Document Engine IPC] 获取模板失败:', error);
+        logger.error('[Document Engine IPC] 获取模板失败:', error);
         return {
           success: false,
           error: error.message,
@@ -277,7 +278,7 @@ class AIEngineIPC {
           ...result,
         };
       } catch (error) {
-        console.error('[Data Engine IPC] 读取CSV失败:', error);
+        logger.error('[Data Engine IPC] 读取CSV失败:', error);
         return {
           success: false,
           error: error.message,
@@ -295,7 +296,7 @@ class AIEngineIPC {
           ...result,
         };
       } catch (error) {
-        console.error('[Data Engine IPC] 写入CSV失败:', error);
+        logger.error('[Data Engine IPC] 写入CSV失败:', error);
         return {
           success: false,
           error: error.message,
@@ -313,7 +314,7 @@ class AIEngineIPC {
           ...result,
         };
       } catch (error) {
-        console.error('[Data Engine IPC] 读取Excel失败:', error);
+        logger.error('[Data Engine IPC] 读取Excel失败:', error);
         return {
           success: false,
           error: error.message,
@@ -331,7 +332,7 @@ class AIEngineIPC {
           ...result,
         };
       } catch (error) {
-        console.error('[Data Engine IPC] 写入Excel失败:', error);
+        logger.error('[Data Engine IPC] 写入Excel失败:', error);
         return {
           success: false,
           error: error.message,
@@ -349,7 +350,7 @@ class AIEngineIPC {
           ...result,
         };
       } catch (error) {
-        console.error('[Data Engine IPC] 分析数据失败:', error);
+        logger.error('[Data Engine IPC] 分析数据失败:', error);
         return {
           success: false,
           error: error.message,
@@ -367,7 +368,7 @@ class AIEngineIPC {
           ...result,
         };
       } catch (error) {
-        console.error('[Data Engine IPC] 生成图表失败:', error);
+        logger.error('[Data Engine IPC] 生成图表失败:', error);
         return {
           success: false,
           error: error.message,
@@ -388,7 +389,7 @@ class AIEngineIPC {
           ...result,
         };
       } catch (error) {
-        console.error('[Data Engine IPC] 生成报告失败:', error);
+        logger.error('[Data Engine IPC] 生成报告失败:', error);
         return {
           success: false,
           error: error.message,
@@ -405,7 +406,7 @@ class AIEngineIPC {
           success: true,
         };
       } catch (error) {
-        console.error('[Git Auto Commit IPC] 启动失败:', error);
+        logger.error('[Git Auto Commit IPC] 启动失败:', error);
         return {
           success: false,
           error: error.message,
@@ -422,7 +423,7 @@ class AIEngineIPC {
           success: true,
         };
       } catch (error) {
-        console.error('[Git Auto Commit IPC] 停止失败:', error);
+        logger.error('[Git Auto Commit IPC] 停止失败:', error);
         return {
           success: false,
           error: error.message,
@@ -439,7 +440,7 @@ class AIEngineIPC {
           success: true,
         };
       } catch (error) {
-        console.error('[Git Auto Commit IPC] 停止所有失败:', error);
+        logger.error('[Git Auto Commit IPC] 停止所有失败:', error);
         return {
           success: false,
           error: error.message,
@@ -456,7 +457,7 @@ class AIEngineIPC {
           success: true,
         };
       } catch (error) {
-        console.error('[Git Auto Commit IPC] 设置间隔失败:', error);
+        logger.error('[Git Auto Commit IPC] 设置间隔失败:', error);
         return {
           success: false,
           error: error.message,
@@ -473,7 +474,7 @@ class AIEngineIPC {
           success: true,
         };
       } catch (error) {
-        console.error('[Git Auto Commit IPC] 设置启用状态失败:', error);
+        logger.error('[Git Auto Commit IPC] 设置启用状态失败:', error);
         return {
           success: false,
           error: error.message,
@@ -491,7 +492,7 @@ class AIEngineIPC {
           projects,
         };
       } catch (error) {
-        console.error('[Git Auto Commit IPC] 获取监控项目失败:', error);
+        logger.error('[Git Auto Commit IPC] 获取监控项目失败:', error);
         return {
           success: false,
           error: error.message,
@@ -502,7 +503,7 @@ class AIEngineIPC {
     // 意图识别：使用LLM分析用户意图
     ipcMain.handle('aiEngine:recognizeIntent', async (_event, userInput) => {
       try {
-        console.log('[AI Engine IPC] 开始意图识别:', userInput);
+        logger.info('[AI Engine IPC] 开始意图识别:', userInput);
 
         const { recognizeProjectIntent } = require('./intent-recognizer');
         const { getLLMConfig } = require('../llm/llm-config');
@@ -517,11 +518,11 @@ class AIEngineIPC {
         // 调用意图识别
         const result = await recognizeProjectIntent(userInput, llmManager);
 
-        console.log('[AI Engine IPC] 意图识别成功:', result);
+        logger.info('[AI Engine IPC] 意图识别成功:', result);
 
         return result;
       } catch (error) {
-        console.error('[AI Engine IPC] 意图识别失败:', error);
+        logger.error('[AI Engine IPC] 意图识别失败:', error);
         return {
           success: false,
           error: error.message
@@ -532,7 +533,7 @@ class AIEngineIPC {
     // PPT生成：从大纲生成PPT文件
     ipcMain.handle('aiEngine:generatePPT', async (_event, options) => {
       try {
-        console.log('[AI Engine IPC] 开始生成PPT:', options);
+        logger.info('[AI Engine IPC] 开始生成PPT:', options);
 
         const PPTEngine = require('../engines/ppt-engine');
         const pptEngine = new PPTEngine();
@@ -543,14 +544,14 @@ class AIEngineIPC {
           outputPath: options.outputPath
         });
 
-        console.log('[AI Engine IPC] PPT生成成功:', result);
+        logger.info('[AI Engine IPC] PPT生成成功:', result);
 
         return {
           success: true,
           ...result
         };
       } catch (error) {
-        console.error('[AI Engine IPC] PPT生成失败:', error);
+        logger.error('[AI Engine IPC] PPT生成失败:', error);
         return {
           success: false,
           error: error.message
@@ -561,20 +562,20 @@ class AIEngineIPC {
     // Word文档生成：从结构生成Word文件
     ipcMain.handle('aiEngine:generateWord', async (_event, options) => {
       try {
-        console.log('[AI Engine IPC] 开始生成Word文档:', options);
+        logger.info('[AI Engine IPC] 开始生成Word文档:', options);
 
         const wordEngine = require('../engines/word-engine');
 
         const result = await wordEngine.writeWord(options.outputPath, options.structure);
 
-        console.log('[AI Engine IPC] Word文档生成成功:', result);
+        logger.info('[AI Engine IPC] Word文档生成成功:', result);
 
         return {
           success: true,
           ...result
         };
       } catch (error) {
-        console.error('[AI Engine IPC] Word文档生成失败:', error);
+        logger.error('[AI Engine IPC] Word文档生成失败:', error);
         return {
           success: false,
           error: error.message
@@ -582,7 +583,7 @@ class AIEngineIPC {
       }
     });
 
-    console.log('[AI Engine IPC] 所有IPC handlers已注册');
+    logger.info('[AI Engine IPC] 所有IPC handlers已注册');
   }
 
   /**
@@ -625,7 +626,7 @@ class AIEngineIPC {
       ipcMain.removeHandler(channel);
     });
 
-    console.log('[AI Engine IPC] 所有IPC handlers已注销');
+    logger.info('[AI Engine IPC] 所有IPC handlers已注销');
   }
 }
 

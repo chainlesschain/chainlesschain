@@ -9,6 +9,7 @@
  * - Storage and resource usage
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { ipcMain } = require('electron');
 
 /**
@@ -60,7 +61,7 @@ function registerDashboardIPC({ database, organizationManager }) {
     return getActivityHeatmap(database, orgId);
   });
 
-  console.log('[DashboardIPC] All handlers registered (10 handlers)');
+  logger.info('[DashboardIPC] All handlers registered (10 handlers)');
 }
 
 /**
@@ -147,7 +148,7 @@ async function getStats(database, organizationManager, orgId, dateRange) {
     };
 
   } catch (error) {
-    console.error('[DashboardIPC] Error getting stats:', error);
+    logger.error('[DashboardIPC] Error getting stats:', error);
     return { success: false, error: error.message };
   }
 }
@@ -181,7 +182,7 @@ async function getTopContributors(database, orgId, limit) {
     };
 
   } catch (error) {
-    console.error('[DashboardIPC] Error getting top contributors:', error);
+    logger.error('[DashboardIPC] Error getting top contributors:', error);
     return { success: false, error: error.message };
   }
 }
@@ -220,7 +221,7 @@ async function getRecentActivities(database, orgId, limit) {
     };
 
   } catch (error) {
-    console.error('[DashboardIPC] Error getting recent activities:', error);
+    logger.error('[DashboardIPC] Error getting recent activities:', error);
     return { success: false, error: error.message };
   }
 }
@@ -254,7 +255,7 @@ async function getRoleStats(database, orgId) {
     };
 
   } catch (error) {
-    console.error('[DashboardIPC] Error getting role stats:', error);
+    logger.error('[DashboardIPC] Error getting role stats:', error);
     return { success: false, error: error.message };
   }
 }
@@ -305,7 +306,7 @@ async function getActivityTimeline(database, orgId, days) {
     };
 
   } catch (error) {
-    console.error('[DashboardIPC] Error getting activity timeline:', error);
+    logger.error('[DashboardIPC] Error getting activity timeline:', error);
     return { success: false, error: error.message };
   }
 }
@@ -332,7 +333,7 @@ async function getActivityBreakdown(database, orgId) {
     };
 
   } catch (error) {
-    console.error('[DashboardIPC] Error getting activity breakdown:', error);
+    logger.error('[DashboardIPC] Error getting activity breakdown:', error);
     return { success: false, error: error.message };
   }
 }
@@ -391,7 +392,7 @@ async function getKnowledgeGraph(database, orgId) {
     };
 
   } catch (error) {
-    console.error('[DashboardIPC] Error getting knowledge graph:', error);
+    logger.error('[DashboardIPC] Error getting knowledge graph:', error);
     return { success: false, error: error.message };
   }
 }
@@ -418,7 +419,7 @@ async function getStorageBreakdown(database, orgId) {
     };
 
   } catch (error) {
-    console.error('[DashboardIPC] Error getting storage breakdown:', error);
+    logger.error('[DashboardIPC] Error getting storage breakdown:', error);
     return { success: false, error: error.message };
   }
 }
@@ -465,7 +466,7 @@ async function getMemberEngagement(database, orgId) {
     };
 
   } catch (error) {
-    console.error('[DashboardIPC] Error getting member engagement:', error);
+    logger.error('[DashboardIPC] Error getting member engagement:', error);
     return { success: false, error: error.message };
   }
 }
@@ -529,7 +530,7 @@ async function getActivityHeatmap(database, orgId) {
     };
 
   } catch (error) {
-    console.error('[DashboardIPC] Error getting activity heatmap:', error);
+    logger.error('[DashboardIPC] Error getting activity heatmap:', error);
     return { success: false, error: error.message };
   }
 }

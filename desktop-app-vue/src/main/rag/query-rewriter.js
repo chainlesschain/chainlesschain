@@ -3,6 +3,7 @@
  * 使用LLM生成查询变体，提升召回率和检索质量
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const EventEmitter = require('events');
 
 /**
@@ -49,7 +50,7 @@ class QueryRewriter extends EventEmitter {
     // 检查缓存
     const cacheKey = `${method}:${query}`;
     if (this.config.enableCache && this.cache.has(cacheKey)) {
-      console.log('[QueryRewriter] 使用缓存的重写结果');
+      logger.info('[QueryRewriter] 使用缓存的重写结果');
       return this.cache.get(cacheKey);
     }
 
@@ -71,7 +72,7 @@ class QueryRewriter extends EventEmitter {
           result = await this.decomposeQuery(query, options);
           break;
         default:
-          console.warn(`[QueryRewriter] 未知的重写方法: ${method}`);
+          logger.warn(`[QueryRewriter] 未知的重写方法: ${method}`);
           result = {
             originalQuery: query,
             rewrittenQueries: [query],
@@ -98,7 +99,7 @@ class QueryRewriter extends EventEmitter {
 
       return result;
     } catch (error) {
-      console.error('[QueryRewriter] 重写失败:', error);
+      logger.error('[QueryRewriter] 重写失败:', error);
       this.emit('rewrite-error', { query, method, error });
 
       // 失败时返回原始查询
@@ -264,7 +265,7 @@ class QueryRewriter extends EventEmitter {
         }
       }
     } catch (error) {
-      console.log('[QueryRewriter] JSON解析失败，尝试按行解析');
+      logger.info('[QueryRewriter] JSON解析失败，尝试按行解析');
     }
 
     // 如果JSON解析失败，尝试按行分割
@@ -330,7 +331,7 @@ class QueryRewriter extends EventEmitter {
    */
   clearCache() {
     this.cache.clear();
-    console.log('[QueryRewriter] 缓存已清除');
+    logger.info('[QueryRewriter] 缓存已清除');
   }
 
   /**
@@ -348,7 +349,7 @@ class QueryRewriter extends EventEmitter {
    */
   updateConfig(newConfig) {
     this.config = { ...this.config, ...newConfig };
-    console.log('[QueryRewriter] 配置已更新:', this.config);
+    logger.info('[QueryRewriter] 配置已更新:', this.config);
   }
 
   /**
@@ -363,7 +364,7 @@ class QueryRewriter extends EventEmitter {
    */
   setEnabled(enabled) {
     this.config.enabled = enabled;
-    console.log(`[QueryRewriter] 查询重写${enabled ? '已启用' : '已禁用'}`);
+    logger.info(`[QueryRewriter] 查询重写${enabled ? '已启用' : '已禁用'}`);
   }
 }
 

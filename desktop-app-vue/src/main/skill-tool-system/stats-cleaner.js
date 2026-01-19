@@ -3,6 +3,7 @@
  * 定期清理过期的统计数据,优化数据库性能
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const cron = require('node-cron');
 
 class StatsCleaner {
@@ -30,7 +31,7 @@ class StatsCleaner {
    * 初始化并启动定时清理任务
    */
   initialize() {
-    console.log('[StatsCleaner] 初始化统计数据清理器...');
+    logger.info('[StatsCleaner] 初始化统计数据清理器...');
 
     // 每日清理任务 - 清理过期的使用日志
     this.scheduleDailyCleanup();
@@ -41,7 +42,7 @@ class StatsCleaner {
     // 每月清理任务 - 清理旧的统计数据
     this.scheduleMonthlyCleanup();
 
-    console.log('[StatsCleaner] 统计数据清理器已启动');
+    logger.info('[StatsCleaner] 统计数据清理器已启动');
   }
 
   /**
@@ -49,14 +50,14 @@ class StatsCleaner {
    */
   scheduleDailyCleanup() {
     const task = cron.schedule(this.config.schedules.daily, async () => {
-      console.log('[StatsCleaner] 开始每日清理任务...');
+      logger.info('[StatsCleaner] 开始每日清理任务...');
       try {
         await this.cleanupUsageLogs();
         await this.cleanupExecutionLogs();
         await this.aggregateDailyStats();
-        console.log('[StatsCleaner] 每日清理任务完成');
+        logger.info('[StatsCleaner] 每日清理任务完成');
       } catch (error) {
-        console.error('[StatsCleaner] 每日清理任务失败:', error);
+        logger.error('[StatsCleaner] 每日清理任务失败:', error);
       }
     }, {
       scheduled: true,
@@ -71,13 +72,13 @@ class StatsCleaner {
    */
   scheduleWeeklyAggregation() {
     const task = cron.schedule(this.config.schedules.weekly, async () => {
-      console.log('[StatsCleaner] 开始每周汇总任务...');
+      logger.info('[StatsCleaner] 开始每周汇总任务...');
       try {
         await this.aggregateWeeklyStats();
         await this.optimizeDatabase();
-        console.log('[StatsCleaner] 每周汇总任务完成');
+        logger.info('[StatsCleaner] 每周汇总任务完成');
       } catch (error) {
-        console.error('[StatsCleaner] 每周汇总任务失败:', error);
+        logger.error('[StatsCleaner] 每周汇总任务失败:', error);
       }
     }, {
       scheduled: true,
@@ -92,13 +93,13 @@ class StatsCleaner {
    */
   scheduleMonthlyCleanup() {
     const task = cron.schedule(this.config.schedules.monthly, async () => {
-      console.log('[StatsCleaner] 开始每月清理任务...');
+      logger.info('[StatsCleaner] 开始每月清理任务...');
       try {
         await this.cleanupOldStats();
         await this.vacuumDatabase();
-        console.log('[StatsCleaner] 每月清理任务完成');
+        logger.info('[StatsCleaner] 每月清理任务完成');
       } catch (error) {
-        console.error('[StatsCleaner] 每月清理任务失败:', error);
+        logger.error('[StatsCleaner] 每月清理任务失败:', error);
       }
     }, {
       scheduled: true,
@@ -121,7 +122,7 @@ class StatsCleaner {
       [cutoffTimestamp]
     );
 
-    console.log(`[StatsCleaner] 清理了 ${result.changes} 条过期使用日志`);
+    logger.info(`[StatsCleaner] 清理了 ${result.changes} 条过期使用日志`);
     return result.changes;
   }
 
@@ -138,7 +139,7 @@ class StatsCleaner {
       [cutoffTimestamp, 'success']
     );
 
-    console.log(`[StatsCleaner] 清理了 ${result.changes} 条过期执行日志`);
+    logger.info(`[StatsCleaner] 清理了 ${result.changes} 条过期执行日志`);
     return result.changes;
   }
 
@@ -147,7 +148,7 @@ class StatsCleaner {
    */
   async aggregateDailyStats() {
     const today = new Date().toISOString().split('T')[0];
-    console.log(`[StatsCleaner] 汇总 ${today} 的统计数据...`);
+    logger.info(`[StatsCleaner] 汇总 ${today} 的统计数据...`);
 
     // 汇总技能统计
     await this.aggregateSkillStats(today);
@@ -202,7 +203,7 @@ class StatsCleaner {
       );
     }
 
-    console.log(`[StatsCleaner] 汇总了 ${skills.length} 个技能的统计数据`);
+    logger.info(`[StatsCleaner] 汇总了 ${skills.length} 个技能的统计数据`);
   }
 
   /**
@@ -259,14 +260,14 @@ class StatsCleaner {
       );
     }
 
-    console.log(`[StatsCleaner] 汇总了 ${tools.length} 个工具的统计数据`);
+    logger.info(`[StatsCleaner] 汇总了 ${tools.length} 个工具的统计数据`);
   }
 
   /**
    * 汇总每周统计数据
    */
   async aggregateWeeklyStats() {
-    console.log('[StatsCleaner] 汇总每周统计数据...');
+    logger.info('[StatsCleaner] 汇总每周统计数据...');
     // 可以在这里添加周报生成逻辑
     // 例如:生成最受欢迎的技能、工具使用趋势等
   }
@@ -291,14 +292,14 @@ class StatsCleaner {
       [cutoffDateStr]
     );
 
-    console.log(`[StatsCleaner] 清理了 ${skillStatsResult.changes} 条旧技能统计, ${toolStatsResult.changes} 条旧工具统计`);
+    logger.info(`[StatsCleaner] 清理了 ${skillStatsResult.changes} 条旧技能统计, ${toolStatsResult.changes} 条旧工具统计`);
   }
 
   /**
    * 优化数据库
    */
   async optimizeDatabase() {
-    console.log('[StatsCleaner] 优化数据库索引...');
+    logger.info('[StatsCleaner] 优化数据库索引...');
 
     // 重建索引
     await this.db.run('REINDEX');
@@ -306,16 +307,16 @@ class StatsCleaner {
     // 分析表以更新统计信息
     await this.db.run('ANALYZE');
 
-    console.log('[StatsCleaner] 数据库优化完成');
+    logger.info('[StatsCleaner] 数据库优化完成');
   }
 
   /**
    * 执行数据库VACUUM
    */
   async vacuumDatabase() {
-    console.log('[StatsCleaner] 执行数据库VACUUM...');
+    logger.info('[StatsCleaner] 执行数据库VACUUM...');
     await this.db.run('VACUUM');
-    console.log('[StatsCleaner] 数据库VACUUM完成');
+    logger.info('[StatsCleaner] 数据库VACUUM完成');
   }
 
   /**
@@ -336,7 +337,7 @@ class StatsCleaner {
    * 手动触发清理
    */
   async manualCleanup() {
-    console.log('[StatsCleaner] 手动触发清理任务...');
+    logger.info('[StatsCleaner] 手动触发清理任务...');
 
     try {
       await this.cleanupUsageLogs();
@@ -345,10 +346,10 @@ class StatsCleaner {
       await this.cleanupOldStats();
       await this.optimizeDatabase();
 
-      console.log('[StatsCleaner] 手动清理完成');
+      logger.info('[StatsCleaner] 手动清理完成');
       return { success: true };
     } catch (error) {
-      console.error('[StatsCleaner] 手动清理失败:', error);
+      logger.error('[StatsCleaner] 手动清理失败:', error);
       return { success: false, error: error.message };
     }
   }
@@ -378,7 +379,7 @@ class StatsCleaner {
    */
   updateConfig(newConfig) {
     this.config = { ...this.config, ...newConfig };
-    console.log('[StatsCleaner] 配置已更新:', this.config);
+    logger.info('[StatsCleaner] 配置已更新:', this.config);
   }
 
   /**
@@ -387,10 +388,10 @@ class StatsCleaner {
   stopAll() {
     for (const [name, task] of this.cleanupTasks.entries()) {
       task.stop();
-      console.log(`[StatsCleaner] 停止定时任务: ${name}`);
+      logger.info(`[StatsCleaner] 停止定时任务: ${name}`);
     }
     this.cleanupTasks.clear();
-    console.log('[StatsCleaner] 所有定时任务已停止');
+    logger.info('[StatsCleaner] 所有定时任务已停止');
   }
 }
 

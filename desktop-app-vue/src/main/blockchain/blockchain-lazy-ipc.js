@@ -3,6 +3,7 @@
  * 在首次访问时才初始化区块链模块，节省启动时间 5-10 秒
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { ipcMain } = require("electron");
 
 /**
@@ -12,11 +13,11 @@ const { ipcMain } = require("electron");
  */
 async function ensureBlockchainInitialized(app) {
   if (!app.blockchainInitialized) {
-    console.log("[Blockchain Lazy IPC] 首次访问区块链功能，正在初始化模块...");
+    logger.info("[Blockchain Lazy IPC] 首次访问区块链功能，正在初始化模块...");
     const startTime = Date.now();
     await app.initializeBlockchainModules();
     const elapsed = Date.now() - startTime;
-    console.log(`[Blockchain Lazy IPC] ✓ 区块链模块初始化完成 (耗时: ${elapsed}ms)`);
+    logger.info(`[Blockchain Lazy IPC] ✓ 区块链模块初始化完成 (耗时: ${elapsed}ms)`);
   }
 }
 
@@ -28,7 +29,7 @@ async function ensureBlockchainInitialized(app) {
  * @param {Object} options.mainWindow - 主窗口实例
  */
 function registerLazyBlockchainIPC({ app, database, mainWindow }) {
-  console.log("[Blockchain Lazy IPC] 注册懒加载区块链 IPC 处理器...");
+  logger.info("[Blockchain Lazy IPC] 注册懒加载区块链 IPC 处理器...");
 
   // ============================================================
   // 钱包管理 (15 handlers)
@@ -42,7 +43,7 @@ function registerLazyBlockchainIPC({ app, database, mainWindow }) {
       }
       return await app.walletManager.createWallet(password, chainId);
     } catch (error) {
-      console.error("[Blockchain Lazy IPC] 创建钱包失败:", error);
+      logger.error("[Blockchain Lazy IPC] 创建钱包失败:", error);
       throw error;
     }
   });
@@ -55,7 +56,7 @@ function registerLazyBlockchainIPC({ app, database, mainWindow }) {
       }
       return await app.walletManager.importFromMnemonic(mnemonic, password, chainId);
     } catch (error) {
-      console.error("[Blockchain Lazy IPC] 导入钱包失败:", error);
+      logger.error("[Blockchain Lazy IPC] 导入钱包失败:", error);
       throw error;
     }
   });
@@ -68,7 +69,7 @@ function registerLazyBlockchainIPC({ app, database, mainWindow }) {
       }
       return await app.walletManager.importFromPrivateKey(privateKey, password, chainId);
     } catch (error) {
-      console.error("[Blockchain Lazy IPC] 从私钥导入钱包失败:", error);
+      logger.error("[Blockchain Lazy IPC] 从私钥导入钱包失败:", error);
       throw error;
     }
   });
@@ -81,7 +82,7 @@ function registerLazyBlockchainIPC({ app, database, mainWindow }) {
       }
       return await app.walletManager.listWallets();
     } catch (error) {
-      console.error("[Blockchain Lazy IPC] 获取钱包列表失败:", error);
+      logger.error("[Blockchain Lazy IPC] 获取钱包列表失败:", error);
       throw error;
     }
   });
@@ -94,7 +95,7 @@ function registerLazyBlockchainIPC({ app, database, mainWindow }) {
       }
       return await app.walletManager.getBalance(address, chainId);
     } catch (error) {
-      console.error("[Blockchain Lazy IPC] 获取余额失败:", error);
+      logger.error("[Blockchain Lazy IPC] 获取余额失败:", error);
       throw error;
     }
   });
@@ -111,7 +112,7 @@ function registerLazyBlockchainIPC({ app, database, mainWindow }) {
       }
       return await app.contractEngine.deployContract(params);
     } catch (error) {
-      console.error("[Blockchain Lazy IPC] 部署合约失败:", error);
+      logger.error("[Blockchain Lazy IPC] 部署合约失败:", error);
       throw error;
     }
   });
@@ -124,7 +125,7 @@ function registerLazyBlockchainIPC({ app, database, mainWindow }) {
       }
       return await app.contractEngine.callContract(params);
     } catch (error) {
-      console.error("[Blockchain Lazy IPC] 调用合约失败:", error);
+      logger.error("[Blockchain Lazy IPC] 调用合约失败:", error);
       throw error;
     }
   });
@@ -141,7 +142,7 @@ function registerLazyBlockchainIPC({ app, database, mainWindow }) {
       }
       return await app.blockchainAdapter.getBalance(params);
     } catch (error) {
-      console.error("[Blockchain Lazy IPC] 获取余额失败:", error);
+      logger.error("[Blockchain Lazy IPC] 获取余额失败:", error);
       throw error;
     }
   });
@@ -154,7 +155,7 @@ function registerLazyBlockchainIPC({ app, database, mainWindow }) {
       }
       return await app.blockchainAdapter.sendTransaction(params);
     } catch (error) {
-      console.error("[Blockchain Lazy IPC] 发送交易失败:", error);
+      logger.error("[Blockchain Lazy IPC] 发送交易失败:", error);
       throw error;
     }
   });
@@ -171,7 +172,7 @@ function registerLazyBlockchainIPC({ app, database, mainWindow }) {
       }
       return await app.assetManager.createAsset(params);
     } catch (error) {
-      console.error("[Blockchain Lazy IPC] 创建资产失败:", error);
+      logger.error("[Blockchain Lazy IPC] 创建资产失败:", error);
       throw error;
     }
   });
@@ -184,7 +185,7 @@ function registerLazyBlockchainIPC({ app, database, mainWindow }) {
       }
       return await app.assetManager.listAssets();
     } catch (error) {
-      console.error("[Blockchain Lazy IPC] 获取资产列表失败:", error);
+      logger.error("[Blockchain Lazy IPC] 获取资产列表失败:", error);
       throw error;
     }
   });
@@ -201,7 +202,7 @@ function registerLazyBlockchainIPC({ app, database, mainWindow }) {
       }
       return await app.marketplaceManager.listItems(params);
     } catch (error) {
-      console.error("[Blockchain Lazy IPC] 获取市场列表失败:", error);
+      logger.error("[Blockchain Lazy IPC] 获取市场列表失败:", error);
       throw error;
     }
   });
@@ -214,7 +215,7 @@ function registerLazyBlockchainIPC({ app, database, mainWindow }) {
       }
       return await app.marketplaceManager.createListing(params);
     } catch (error) {
-      console.error("[Blockchain Lazy IPC] 创建市场列表失败:", error);
+      logger.error("[Blockchain Lazy IPC] 创建市场列表失败:", error);
       throw error;
     }
   });
@@ -231,7 +232,7 @@ function registerLazyBlockchainIPC({ app, database, mainWindow }) {
       }
       return await app.bridgeManager.transfer(params);
     } catch (error) {
-      console.error("[Blockchain Lazy IPC] 跨链转账失败:", error);
+      logger.error("[Blockchain Lazy IPC] 跨链转账失败:", error);
       throw error;
     }
   });
@@ -244,7 +245,7 @@ function registerLazyBlockchainIPC({ app, database, mainWindow }) {
       }
       return await app.bridgeManager.getSupportedChains();
     } catch (error) {
-      console.error("[Blockchain Lazy IPC] 获取支持的链失败:", error);
+      logger.error("[Blockchain Lazy IPC] 获取支持的链失败:", error);
       throw error;
     }
   });
@@ -261,7 +262,7 @@ function registerLazyBlockchainIPC({ app, database, mainWindow }) {
       }
       return await app.escrowManager.createEscrow(params);
     } catch (error) {
-      console.error("[Blockchain Lazy IPC] 创建托管失败:", error);
+      logger.error("[Blockchain Lazy IPC] 创建托管失败:", error);
       throw error;
     }
   });
@@ -274,13 +275,13 @@ function registerLazyBlockchainIPC({ app, database, mainWindow }) {
       }
       return await app.escrowManager.listEscrows();
     } catch (error) {
-      console.error("[Blockchain Lazy IPC] 获取托管列表失败:", error);
+      logger.error("[Blockchain Lazy IPC] 获取托管列表失败:", error);
       throw error;
     }
   });
 
-  console.log("[Blockchain Lazy IPC] ✓ 懒加载区块链 IPC 处理器注册完成");
-  console.log("[Blockchain Lazy IPC] ✓ 已注册核心处理器，完整功能将在首次访问时加载");
+  logger.info("[Blockchain Lazy IPC] ✓ 懒加载区块链 IPC 处理器注册完成");
+  logger.info("[Blockchain Lazy IPC] ✓ 已注册核心处理器，完整功能将在首次访问时加载");
 }
 
 module.exports = {

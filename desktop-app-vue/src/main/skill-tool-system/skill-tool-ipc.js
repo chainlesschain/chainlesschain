@@ -1,3 +1,5 @@
+const { logger, createLogger } = require('../utils/logger.js');
+
 /**
  * 技能和工具系统IPC接口
  * 为前端提供技能和工具管理的IPC handlers
@@ -32,20 +34,20 @@ function registerSkillToolIPC({ ipcMain: injectedIpcMain, skillManager, toolMana
 
       // skillManager.getAllSkills 返回 {success, skills} 格式
       if (result && result.success) {
-        console.log(`[IPC] skill:get-all 成功，技能数量: ${result.skills?.length || 0}`);
+        logger.info(`[IPC] skill:get-all 成功，技能数量: ${result.skills?.length || 0}`);
         return { success: true, data: result.skills || [], skills: result.skills || [] };
       }
 
       // 兼容可能的数组返回格式
       if (Array.isArray(result)) {
-        console.log(`[IPC] skill:get-all 成功(数组格式)，技能数量: ${result.length}`);
+        logger.info(`[IPC] skill:get-all 成功(数组格式)，技能数量: ${result.length}`);
         return { success: true, data: result, skills: result };
       }
 
-      console.warn('[IPC] skill:get-all 返回格式异常:', result);
+      logger.warn('[IPC] skill:get-all 返回格式异常:', result);
       return { success: true, data: [], skills: [] };
     } catch (error) {
-      console.error('[IPC] skill:get-all 失败:', error);
+      logger.error('[IPC] skill:get-all 失败:', error);
       return { success: false, error: error.message, data: [], skills: [] };
     }
   };
@@ -62,7 +64,7 @@ function registerSkillToolIPC({ ipcMain: injectedIpcMain, skillManager, toolMana
       const skill = await skillManager.getSkill(skillId);
       return { success: true, data: skill };
     } catch (error) {
-      console.error('[IPC] skill:get-by-id 失败:', error);
+      logger.error('[IPC] skill:get-by-id 失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -80,7 +82,7 @@ function registerSkillToolIPC({ ipcMain: injectedIpcMain, skillManager, toolMana
         return { success: false, error: result.error };
       }
     } catch (error) {
-      console.error('[IPC] skill:get-by-category 失败:', error);
+      logger.error('[IPC] skill:get-by-category 失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -93,7 +95,7 @@ function registerSkillToolIPC({ ipcMain: injectedIpcMain, skillManager, toolMana
       await skillManager.enableSkill(skillId);
       return { success: true };
     } catch (error) {
-      console.error('[IPC] skill:enable 失败:', error);
+      logger.error('[IPC] skill:enable 失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -106,7 +108,7 @@ function registerSkillToolIPC({ ipcMain: injectedIpcMain, skillManager, toolMana
       await skillManager.disableSkill(skillId);
       return { success: true };
     } catch (error) {
-      console.error('[IPC] skill:disable 失败:', error);
+      logger.error('[IPC] skill:disable 失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -119,7 +121,7 @@ function registerSkillToolIPC({ ipcMain: injectedIpcMain, skillManager, toolMana
       await skillManager.updateSkill(skillId, { config });
       return { success: true };
     } catch (error) {
-      console.error('[IPC] skill:update-config 失败:', error);
+      logger.error('[IPC] skill:update-config 失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -132,7 +134,7 @@ function registerSkillToolIPC({ ipcMain: injectedIpcMain, skillManager, toolMana
       await skillManager.updateSkill(skillId, updates);
       return { success: true };
     } catch (error) {
-      console.error('[IPC] skill:update 失败:', error);
+      logger.error('[IPC] skill:update 失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -145,7 +147,7 @@ function registerSkillToolIPC({ ipcMain: injectedIpcMain, skillManager, toolMana
       const stats = await skillManager.getSkillStats(skillId, dateRange);
       return { success: true, data: stats };
     } catch (error) {
-      console.error('[IPC] skill:get-stats 失败:', error);
+      logger.error('[IPC] skill:get-stats 失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -158,7 +160,7 @@ function registerSkillToolIPC({ ipcMain: injectedIpcMain, skillManager, toolMana
       const tools = await skillManager.getSkillTools(skillId);
       return { success: true, data: tools };
     } catch (error) {
-      console.error('[IPC] skill:get-tools 失败:', error);
+      logger.error('[IPC] skill:get-tools 失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -171,7 +173,7 @@ function registerSkillToolIPC({ ipcMain: injectedIpcMain, skillManager, toolMana
       await skillManager.addToolToSkill(skillId, toolId, role);
       return { success: true };
     } catch (error) {
-      console.error('[IPC] skill:add-tool 失败:', error);
+      logger.error('[IPC] skill:add-tool 失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -184,7 +186,7 @@ function registerSkillToolIPC({ ipcMain: injectedIpcMain, skillManager, toolMana
       await skillManager.removeToolFromSkill(skillId, toolId);
       return { success: true };
     } catch (error) {
-      console.error('[IPC] skill:remove-tool 失败:', error);
+      logger.error('[IPC] skill:remove-tool 失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -197,7 +199,7 @@ function registerSkillToolIPC({ ipcMain: injectedIpcMain, skillManager, toolMana
       const content = await skillManager.getSkillDoc(skillId);
       return { success: true, content };
     } catch (error) {
-      console.error('[IPC] skill:get-doc 失败:', error);
+      logger.error('[IPC] skill:get-doc 失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -215,7 +217,7 @@ function registerSkillToolIPC({ ipcMain: injectedIpcMain, skillManager, toolMana
 
       // toolManager.getAllTools 直接返回数组，而不是 {success, tools} 对象
       if (Array.isArray(result)) {
-        console.log(`[IPC] tool:get-all 成功，工具数量: ${result.length}`);
+        logger.info(`[IPC] tool:get-all 成功，工具数量: ${result.length}`);
         return { success: true, data: result, tools: result };
       }
 
@@ -224,10 +226,10 @@ function registerSkillToolIPC({ ipcMain: injectedIpcMain, skillManager, toolMana
         return { success: true, data: result.tools || [], tools: result.tools || [] };
       }
 
-      console.warn('[IPC] tool:get-all 返回格式异常:', typeof result);
+      logger.warn('[IPC] tool:get-all 返回格式异常:', typeof result);
       return { success: true, data: [], tools: [] };
     } catch (error) {
-      console.error('[IPC] tool:get-all 失败:', error);
+      logger.error('[IPC] tool:get-all 失败:', error);
       return { success: false, error: error.message, data: [], tools: [] };
     }
   };
@@ -244,7 +246,7 @@ function registerSkillToolIPC({ ipcMain: injectedIpcMain, skillManager, toolMana
       const tool = await toolManager.getTool(toolId);
       return { success: true, data: tool };
     } catch (error) {
-      console.error('[IPC] tool:get-by-id 失败:', error);
+      logger.error('[IPC] tool:get-by-id 失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -257,7 +259,7 @@ function registerSkillToolIPC({ ipcMain: injectedIpcMain, skillManager, toolMana
       const tools = await toolManager.getToolsByCategory(category);
       return { success: true, data: tools };
     } catch (error) {
-      console.error('[IPC] tool:get-by-category 失败:', error);
+      logger.error('[IPC] tool:get-by-category 失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -270,7 +272,7 @@ function registerSkillToolIPC({ ipcMain: injectedIpcMain, skillManager, toolMana
       const tools = await toolManager.getToolsBySkill(skillId);
       return { success: true, data: tools };
     } catch (error) {
-      console.error('[IPC] tool:get-by-skill 失败:', error);
+      logger.error('[IPC] tool:get-by-skill 失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -283,7 +285,7 @@ function registerSkillToolIPC({ ipcMain: injectedIpcMain, skillManager, toolMana
       await toolManager.enableTool(toolId);
       return { success: true };
     } catch (error) {
-      console.error('[IPC] tool:enable 失败:', error);
+      logger.error('[IPC] tool:enable 失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -296,7 +298,7 @@ function registerSkillToolIPC({ ipcMain: injectedIpcMain, skillManager, toolMana
       await toolManager.disableTool(toolId);
       return { success: true };
     } catch (error) {
-      console.error('[IPC] tool:disable 失败:', error);
+      logger.error('[IPC] tool:disable 失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -309,7 +311,7 @@ function registerSkillToolIPC({ ipcMain: injectedIpcMain, skillManager, toolMana
       await toolManager.updateTool(toolId, { config });
       return { success: true };
     } catch (error) {
-      console.error('[IPC] tool:update-config 失败:', error);
+      logger.error('[IPC] tool:update-config 失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -322,7 +324,7 @@ function registerSkillToolIPC({ ipcMain: injectedIpcMain, skillManager, toolMana
       await toolManager.updateTool(toolId, { parameters_schema: schema });
       return { success: true };
     } catch (error) {
-      console.error('[IPC] tool:update-schema 失败:', error);
+      logger.error('[IPC] tool:update-schema 失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -335,7 +337,7 @@ function registerSkillToolIPC({ ipcMain: injectedIpcMain, skillManager, toolMana
       await toolManager.updateTool(toolId, updates);
       return { success: true };
     } catch (error) {
-      console.error('[IPC] tool:update 失败:', error);
+      logger.error('[IPC] tool:update 失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -348,7 +350,7 @@ function registerSkillToolIPC({ ipcMain: injectedIpcMain, skillManager, toolMana
       const stats = await toolManager.getToolStats(toolId, dateRange);
       return { success: true, data: stats };
     } catch (error) {
-      console.error('[IPC] tool:get-stats 失败:', error);
+      logger.error('[IPC] tool:get-stats 失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -361,7 +363,7 @@ function registerSkillToolIPC({ ipcMain: injectedIpcMain, skillManager, toolMana
       const content = await toolManager.getToolDoc(toolId);
       return { success: true, content };
     } catch (error) {
-      console.error('[IPC] tool:get-doc 失败:', error);
+      logger.error('[IPC] tool:get-doc 失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -387,7 +389,7 @@ function registerSkillToolIPC({ ipcMain: injectedIpcMain, skillManager, toolMana
 
       return { success: true, data: result };
     } catch (error) {
-      console.error('[IPC] tool:test 失败:', error);
+      logger.error('[IPC] tool:test 失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -449,7 +451,7 @@ function registerSkillToolIPC({ ipcMain: injectedIpcMain, skillManager, toolMana
 
       return { success: true, data: graph };
     } catch (error) {
-      console.error('[IPC] skill-tool:get-dependency-graph 失败:', error);
+      logger.error('[IPC] skill-tool:get-dependency-graph 失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -500,7 +502,7 @@ function registerSkillToolIPC({ ipcMain: injectedIpcMain, skillManager, toolMana
 
       return { success: true, data: analytics };
     } catch (error) {
-      console.error('[IPC] skill-tool:get-usage-analytics 失败:', error);
+      logger.error('[IPC] skill-tool:get-usage-analytics 失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -537,7 +539,7 @@ function registerSkillToolIPC({ ipcMain: injectedIpcMain, skillManager, toolMana
         },
       };
     } catch (error) {
-      console.error('[IPC] skill-tool:get-category-stats 失败:', error);
+      logger.error('[IPC] skill-tool:get-category-stats 失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -561,7 +563,7 @@ function registerSkillToolIPC({ ipcMain: injectedIpcMain, skillManager, toolMana
       const data = await dashboard.getDashboardDataWithFilters(filters);
       return { success: true, data };
     } catch (error) {
-      console.error('[IPC] tool:get-additional-v3-dashboard 失败:', error);
+      logger.error('[IPC] tool:get-additional-v3-dashboard 失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -577,7 +579,7 @@ function registerSkillToolIPC({ ipcMain: injectedIpcMain, skillManager, toolMana
       const overview = await dashboard.getOverview();
       return { success: true, data: overview };
     } catch (error) {
-      console.error('[IPC] tool:get-additional-v3-overview 失败:', error);
+      logger.error('[IPC] tool:get-additional-v3-overview 失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -593,7 +595,7 @@ function registerSkillToolIPC({ ipcMain: injectedIpcMain, skillManager, toolMana
       const rankings = await dashboard.getToolRankings(limit);
       return { success: true, data: rankings };
     } catch (error) {
-      console.error('[IPC] tool:get-additional-v3-rankings 失败:', error);
+      logger.error('[IPC] tool:get-additional-v3-rankings 失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -609,7 +611,7 @@ function registerSkillToolIPC({ ipcMain: injectedIpcMain, skillManager, toolMana
       const stats = await dashboard.getCategoryStats();
       return { success: true, data: stats };
     } catch (error) {
-      console.error('[IPC] tool:get-additional-v3-category-stats 失败:', error);
+      logger.error('[IPC] tool:get-additional-v3-category-stats 失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -625,7 +627,7 @@ function registerSkillToolIPC({ ipcMain: injectedIpcMain, skillManager, toolMana
       const recent = await dashboard.getRecentlyUsedTools(limit);
       return { success: true, data: recent };
     } catch (error) {
-      console.error('[IPC] tool:get-additional-v3-recent 失败:', error);
+      logger.error('[IPC] tool:get-additional-v3-recent 失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -641,7 +643,7 @@ function registerSkillToolIPC({ ipcMain: injectedIpcMain, skillManager, toolMana
       const stats = await dashboard.getDailyStats(days);
       return { success: true, data: stats };
     } catch (error) {
-      console.error('[IPC] tool:get-additional-v3-daily-stats 失败:', error);
+      logger.error('[IPC] tool:get-additional-v3-daily-stats 失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -657,7 +659,7 @@ function registerSkillToolIPC({ ipcMain: injectedIpcMain, skillManager, toolMana
       const metrics = await dashboard.getPerformanceMetrics();
       return { success: true, data: metrics };
     } catch (error) {
-      console.error('[IPC] tool:get-additional-v3-performance 失败:', error);
+      logger.error('[IPC] tool:get-additional-v3-performance 失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -677,7 +679,7 @@ function registerSkillToolIPC({ ipcMain: injectedIpcMain, skillManager, toolMana
       const recommendations = await global.skillRecommender.recommendSkills(userInput, options);
       return { success: true, data: recommendations };
     } catch (error) {
-      console.error('[IPC] skill:recommend 失败:', error);
+      logger.error('[IPC] skill:recommend 失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -693,7 +695,7 @@ function registerSkillToolIPC({ ipcMain: injectedIpcMain, skillManager, toolMana
       const popular = await global.skillRecommender.getPopularSkills(limit);
       return { success: true, data: popular };
     } catch (error) {
-      console.error('[IPC] skill:get-popular 失败:', error);
+      logger.error('[IPC] skill:get-popular 失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -709,7 +711,7 @@ function registerSkillToolIPC({ ipcMain: injectedIpcMain, skillManager, toolMana
       const related = await global.skillRecommender.getRelatedSkills(skillId, limit);
       return { success: true, data: related };
     } catch (error) {
-      console.error('[IPC] skill:get-related 失败:', error);
+      logger.error('[IPC] skill:get-related 失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -725,7 +727,7 @@ function registerSkillToolIPC({ ipcMain: injectedIpcMain, skillManager, toolMana
       const results = await global.skillRecommender.searchSkills(query, options);
       return { success: true, data: results };
     } catch (error) {
-      console.error('[IPC] skill:search 失败:', error);
+      logger.error('[IPC] skill:search 失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -745,7 +747,7 @@ function registerSkillToolIPC({ ipcMain: injectedIpcMain, skillManager, toolMana
       const data = await global.configManager.exportSkills(skillIds, options);
       return { success: true, data };
     } catch (error) {
-      console.error('[IPC] config:export-skills 失败:', error);
+      logger.error('[IPC] config:export-skills 失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -761,7 +763,7 @@ function registerSkillToolIPC({ ipcMain: injectedIpcMain, skillManager, toolMana
       const data = await global.configManager.exportTools(toolIds, options);
       return { success: true, data };
     } catch (error) {
-      console.error('[IPC] config:export-tools 失败:', error);
+      logger.error('[IPC] config:export-tools 失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -776,7 +778,7 @@ function registerSkillToolIPC({ ipcMain: injectedIpcMain, skillManager, toolMana
       }
       return await global.configManager.exportToFile(data, filePath, format);
     } catch (error) {
-      console.error('[IPC] config:export-to-file 失败:', error);
+      logger.error('[IPC] config:export-to-file 失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -792,7 +794,7 @@ function registerSkillToolIPC({ ipcMain: injectedIpcMain, skillManager, toolMana
       const result = await global.configManager.importFromFile(filePath, options);
       return { success: true, data: result };
     } catch (error) {
-      console.error('[IPC] config:import-from-file 失败:', error);
+      logger.error('[IPC] config:import-from-file 失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -808,7 +810,7 @@ function registerSkillToolIPC({ ipcMain: injectedIpcMain, skillManager, toolMana
       const result = await global.configManager.importConfig(data, options);
       return { success: true, data: result };
     } catch (error) {
-      console.error('[IPC] config:import 失败:', error);
+      logger.error('[IPC] config:import 失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -824,12 +826,12 @@ function registerSkillToolIPC({ ipcMain: injectedIpcMain, skillManager, toolMana
       const template = global.configManager.createTemplate(templateType);
       return { success: true, data: template };
     } catch (error) {
-      console.error('[IPC] config:create-template 失败:', error);
+      logger.error('[IPC] config:create-template 失败:', error);
       return { success: false, error: error.message };
     }
   });
 
-  console.log('[Skill-Tool IPC] IPC handlers 注册完成');
+  logger.info('[Skill-Tool IPC] IPC handlers 注册完成');
 }
 
 module.exports = {

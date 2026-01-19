@@ -9,6 +9,7 @@
  * - 合约模板系统
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const EventEmitter = require('events');
 const { v4: uuidv4 } = require('uuid');
 
@@ -78,7 +79,7 @@ class SmartContractEngine extends EventEmitter {
    * 初始化合约引擎
    */
   async initialize() {
-    console.log('[ContractEngine] 初始化智能合约引擎...');
+    logger.info('[ContractEngine] 初始化智能合约引擎...');
 
     try {
       // 初始化数据库表
@@ -88,9 +89,9 @@ class SmartContractEngine extends EventEmitter {
       this.startAutoCheck(60000);
 
       this.initialized = true;
-      console.log('[ContractEngine] 智能合约引擎初始化成功');
+      logger.info('[ContractEngine] 智能合约引擎初始化成功');
     } catch (error) {
-      console.error('[ContractEngine] 初始化失败:', error);
+      logger.error('[ContractEngine] 初始化失败:', error);
       throw error;
     }
   }
@@ -208,7 +209,7 @@ class SmartContractEngine extends EventEmitter {
       CREATE INDEX IF NOT EXISTS idx_deployed_contracts_address ON deployed_contracts(contract_address, chain_id);
     `);
 
-    console.log('[ContractEngine] 数据库表初始化完成');
+    logger.info('[ContractEngine] 数据库表初始化完成');
   }
 
   /**
@@ -317,7 +318,7 @@ class SmartContractEngine extends EventEmitter {
         metadata,
       };
 
-      console.log('[ContractEngine] 已创建合约:', contractId);
+      logger.info('[ContractEngine] 已创建合约:', contractId);
 
       // 如果需要部署到区块链
       if (onChain && this.blockchainAdapter) {
@@ -331,10 +332,10 @@ class SmartContractEngine extends EventEmitter {
             password
           });
 
-          console.log('[ContractEngine] 合约已成功部署到区块链');
+          logger.info('[ContractEngine] 合约已成功部署到区块链');
           this.emit('contract:deployed', { contract });
         } catch (error) {
-          console.error('[ContractEngine] 区块链部署失败:', error);
+          logger.error('[ContractEngine] 区块链部署失败:', error);
           // 部署失败不影响本地合约创建，只记录错误
           this.emit('contract:deployment-failed', { contractId, error: error.message });
         }
@@ -344,7 +345,7 @@ class SmartContractEngine extends EventEmitter {
 
       return contract;
     } catch (error) {
-      console.error('[ContractEngine] 创建合约失败:', error);
+      logger.error('[ContractEngine] 创建合约失败:', error);
       throw error;
     }
   }
@@ -422,13 +423,13 @@ class SmartContractEngine extends EventEmitter {
       // 记录事件
       this.recordEvent(contractId, 'activated', {}, currentDid);
 
-      console.log('[ContractEngine] 合约已激活:', contractId);
+      logger.info('[ContractEngine] 合约已激活:', contractId);
 
       this.emit('contract:activated', { contractId });
 
       return { success: true };
     } catch (error) {
-      console.error('[ContractEngine] 激活合约失败:', error);
+      logger.error('[ContractEngine] 激活合约失败:', error);
       throw error;
     }
   }
@@ -483,13 +484,13 @@ class SmartContractEngine extends EventEmitter {
       // 记录事件
       this.recordEvent(contractId, 'signed', { signer: currentDid }, currentDid);
 
-      console.log('[ContractEngine] 合约已签名:', contractId);
+      logger.info('[ContractEngine] 合约已签名:', contractId);
 
       this.emit('contract:signed', { contractId, signer: currentDid });
 
       return { success: true };
     } catch (error) {
-      console.error('[ContractEngine] 签名合约失败:', error);
+      logger.error('[ContractEngine] 签名合约失败:', error);
       throw error;
     }
   }
@@ -553,7 +554,7 @@ class SmartContractEngine extends EventEmitter {
 
       return { allMet, conditions: results };
     } catch (error) {
-      console.error('[ContractEngine] 检查条件失败:', error);
+      logger.error('[ContractEngine] 检查条件失败:', error);
       throw error;
     }
   }
@@ -658,14 +659,14 @@ class SmartContractEngine extends EventEmitter {
       this.recordEvent(contractId, 'executed', {}, currentDid);
       this.recordEvent(contractId, 'completed', {}, currentDid);
 
-      console.log('[ContractEngine] 合约已执行:', contractId);
+      logger.info('[ContractEngine] 合约已执行:', contractId);
 
       this.emit('contract:executed', { contractId });
       this.emit('contract:completed', { contractId });
 
       return { success: true };
     } catch (error) {
-      console.error('[ContractEngine] 执行合约失败:', error);
+      logger.error('[ContractEngine] 执行合约失败:', error);
       throw error;
     }
   }
@@ -708,7 +709,7 @@ class SmartContractEngine extends EventEmitter {
           db.prepare('UPDATE contracts SET metadata = ? WHERE id = ?')
             .run(JSON.stringify(metadata), contract.id);
 
-          console.log(`[ContractEngine] 订阅合约已支付第 ${metadata.paidPeriods} 期`);
+          logger.info(`[ContractEngine] 订阅合约已支付第 ${metadata.paidPeriods} 期`);
         }
         break;
 
@@ -739,7 +740,7 @@ class SmartContractEngine extends EventEmitter {
             completedAt: Date.now()
           };
 
-          console.log(`[ContractEngine] 技能交换: ${currentDid} 已完成`);
+          logger.info(`[ContractEngine] 技能交换: ${currentDid} 已完成`);
         }
 
         // 检查是否双方都已完成
@@ -750,7 +751,7 @@ class SmartContractEngine extends EventEmitter {
 
         if (allCompleted) {
           metadata.exchangeCompletedAt = Date.now();
-          console.log('[ContractEngine] 技能交换: 双方均已完成');
+          logger.info('[ContractEngine] 技能交换: 双方均已完成');
         }
 
         // 更新元数据
@@ -812,13 +813,13 @@ class SmartContractEngine extends EventEmitter {
       // 记录事件
       this.recordEvent(contractId, 'cancelled', { reason }, currentDid);
 
-      console.log('[ContractEngine] 合约已取消:', contractId);
+      logger.info('[ContractEngine] 合约已取消:', contractId);
 
       this.emit('contract:cancelled', { contractId, reason });
 
       return { success: true };
     } catch (error) {
-      console.error('[ContractEngine] 取消合约失败:', error);
+      logger.error('[ContractEngine] 取消合约失败:', error);
       throw error;
     }
   }
@@ -884,13 +885,13 @@ class SmartContractEngine extends EventEmitter {
         reason,
       }, currentDid);
 
-      console.log('[ContractEngine] 已发起仲裁:', arbitrationId);
+      logger.info('[ContractEngine] 已发起仲裁:', arbitrationId);
 
       this.emit('arbitration:initiated', { contractId, arbitrationId });
 
       return { arbitrationId };
     } catch (error) {
-      console.error('[ContractEngine] 发起仲裁失败:', error);
+      logger.error('[ContractEngine] 发起仲裁失败:', error);
       throw error;
     }
   }
@@ -948,13 +949,13 @@ class SmartContractEngine extends EventEmitter {
         resolution,
       }, currentDid);
 
-      console.log('[ContractEngine] 仲裁已解决:', arbitrationId);
+      logger.info('[ContractEngine] 仲裁已解决:', arbitrationId);
 
       this.emit('arbitration:resolved', { arbitrationId, resolution });
 
       return { success: true };
     } catch (error) {
-      console.error('[ContractEngine] 解决仲裁失败:', error);
+      logger.error('[ContractEngine] 解决仲裁失败:', error);
       throw error;
     }
   }
@@ -979,7 +980,7 @@ class SmartContractEngine extends EventEmitter {
         metadata: contract.metadata ? JSON.parse(contract.metadata) : {},
       };
     } catch (error) {
-      console.error('[ContractEngine] 获取合约详情失败:', error);
+      logger.error('[ContractEngine] 获取合约详情失败:', error);
       throw error;
     }
   }
@@ -1031,7 +1032,7 @@ class SmartContractEngine extends EventEmitter {
         metadata: c.metadata ? JSON.parse(c.metadata) : {},
       }));
     } catch (error) {
-      console.error('[ContractEngine] 获取合约列表失败:', error);
+      logger.error('[ContractEngine] 获取合约列表失败:', error);
       throw error;
     }
   }
@@ -1055,7 +1056,7 @@ class SmartContractEngine extends EventEmitter {
         is_met: Boolean(c.is_met),
       }));
     } catch (error) {
-      console.error('[ContractEngine] 获取合约条件失败:', error);
+      logger.error('[ContractEngine] 获取合约条件失败:', error);
       throw error;
     }
   }
@@ -1077,7 +1078,7 @@ class SmartContractEngine extends EventEmitter {
         event_data: e.event_data ? JSON.parse(e.event_data) : null,
       }));
     } catch (error) {
-      console.error('[ContractEngine] 获取合约事件失败:', error);
+      logger.error('[ContractEngine] 获取合约事件失败:', error);
       throw error;
     }
   }
@@ -1106,7 +1107,7 @@ class SmartContractEngine extends EventEmitter {
         now
       );
     } catch (error) {
-      console.error('[ContractEngine] 记录事件失败:', error);
+      logger.error('[ContractEngine] 记录事件失败:', error);
       // 不抛出错误，避免影响主流程
     }
   }
@@ -1124,11 +1125,11 @@ class SmartContractEngine extends EventEmitter {
       try {
         await this.autoCheckAndExecute();
       } catch (error) {
-        console.error('[ContractEngine] 自动检查失败:', error);
+        logger.error('[ContractEngine] 自动检查失败:', error);
       }
     }, interval);
 
-    console.log('[ContractEngine] 自动检查已启动，间隔:', interval, 'ms');
+    logger.info('[ContractEngine] 自动检查已启动，间隔:', interval, 'ms');
   }
 
   /**
@@ -1149,11 +1150,11 @@ class SmartContractEngine extends EventEmitter {
 
         // 如果所有条件满足，尝试执行
         if (allMet) {
-          console.log('[ContractEngine] 合约条件已满足，自动执行:', contract.id);
+          logger.info('[ContractEngine] 合约条件已满足，自动执行:', contract.id);
           try {
             await this.executeContract(contract.id);
           } catch (error) {
-            console.error('[ContractEngine] 自动执行合约失败:', contract.id, error);
+            logger.error('[ContractEngine] 自动执行合约失败:', contract.id, error);
           }
         }
       }
@@ -1165,16 +1166,16 @@ class SmartContractEngine extends EventEmitter {
       ).all([ContractStatus.ACTIVE, now]);
 
       for (const contract of expiredContracts) {
-        console.log('[ContractEngine] 合约已过期，自动处理:', contract.id);
+        logger.info('[ContractEngine] 合约已过期，自动处理:', contract.id);
         try {
           // 时间锁到期，执行退款
           await this.cancelContract(contract.id, '合约已过期');
         } catch (error) {
-          console.error('[ContractEngine] 处理过期合约失败:', contract.id, error);
+          logger.error('[ContractEngine] 处理过期合约失败:', contract.id, error);
         }
       }
     } catch (error) {
-      console.error('[ContractEngine] 自动检查执行失败:', error);
+      logger.error('[ContractEngine] 自动检查执行失败:', error);
     }
   }
 
@@ -1185,7 +1186,7 @@ class SmartContractEngine extends EventEmitter {
     if (this.checkTimer) {
       clearInterval(this.checkTimer);
       this.checkTimer = null;
-      console.log('[ContractEngine] 自动检查已停止');
+      logger.info('[ContractEngine] 自动检查已停止');
     }
   }
 
@@ -1214,7 +1215,7 @@ class SmartContractEngine extends EventEmitter {
     switch (contractType) {
       case ContractType.SIMPLE_TRADE:
         // 部署托管合约 (EscrowContract)
-        console.log('[ContractEngine] 部署托管合约 (EscrowContract)');
+        logger.info('[ContractEngine] 部署托管合约 (EscrowContract)');
         const escrowResult = await this.blockchainAdapter.deployEscrowContract(walletId, password);
         contractAddress = escrowResult.address;
         deploymentTx = escrowResult.txHash;
@@ -1224,7 +1225,7 @@ class SmartContractEngine extends EventEmitter {
 
       case ContractType.SUBSCRIPTION:
         // 部署订阅合约 (SubscriptionContract)
-        console.log('[ContractEngine] 部署订阅合约 (SubscriptionContract)');
+        logger.info('[ContractEngine] 部署订阅合约 (SubscriptionContract)');
         const subResult = await this.blockchainAdapter.deploySubscriptionContract(walletId, password);
         contractAddress = subResult.address;
         deploymentTx = subResult.txHash;
@@ -1234,7 +1235,7 @@ class SmartContractEngine extends EventEmitter {
 
       case ContractType.BOUNTY:
         // 部署悬赏合约 (BountyContract)
-        console.log('[ContractEngine] 部署悬赏合约 (BountyContract)');
+        logger.info('[ContractEngine] 部署悬赏合约 (BountyContract)');
         const bountyResult = await this.blockchainAdapter.deployBountyContract(walletId, password);
         contractAddress = bountyResult.address;
         deploymentTx = bountyResult.txHash;
@@ -1245,7 +1246,7 @@ class SmartContractEngine extends EventEmitter {
       case ContractType.SKILL_EXCHANGE:
       case ContractType.CUSTOM:
         // 技能交换和自定义合约使用通用托管合约
-        console.log('[ContractEngine] 部署通用托管合约');
+        logger.info('[ContractEngine] 部署通用托管合约');
         const genericResult = await this.blockchainAdapter.deployEscrowContract(walletId, password);
         contractAddress = genericResult.address;
         deploymentTx = genericResult.txHash;
@@ -1257,7 +1258,7 @@ class SmartContractEngine extends EventEmitter {
         throw new Error(`不支持的合约类型: ${contractType}`);
     }
 
-    console.log(`[ContractEngine] 合约已部署到区块链: ${contractAddress}`);
+    logger.info(`[ContractEngine] 合约已部署到区块链: ${contractAddress}`);
 
     // 保存部署记录
     await this._saveDeployedContract({
@@ -1299,7 +1300,7 @@ class SmartContractEngine extends EventEmitter {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(id, localContractId, contractName, contractType, contractAddress, chainId, deploymentTx, deployerAddress, abiJson, now);
 
-    console.log(`[ContractEngine] 已保存合约部署记录: ${id}`);
+    logger.info(`[ContractEngine] 已保存合约部署记录: ${id}`);
 
     return id;
   }
@@ -1319,7 +1320,7 @@ class SmartContractEngine extends EventEmitter {
 
       return deployedContract || null;
     } catch (error) {
-      console.error('[ContractEngine] 获取合约部署信息失败:', error);
+      logger.error('[ContractEngine] 获取合约部署信息失败:', error);
       return null;
     }
   }
@@ -1328,7 +1329,7 @@ class SmartContractEngine extends EventEmitter {
    * 关闭合约引擎
    */
   async close() {
-    console.log('[ContractEngine] 关闭智能合约引擎');
+    logger.info('[ContractEngine] 关闭智能合约引擎');
 
     this.stopAutoCheck();
     this.removeAllListeners();

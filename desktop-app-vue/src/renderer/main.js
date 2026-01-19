@@ -1,3 +1,4 @@
+import { logger, createLogger } from '@/utils/logger';
 import { createApp } from "vue";
 import { createPinia } from "pinia";
 import App from "./App.vue";
@@ -58,6 +59,6 @@ app.directive("lazy", createLazyLoadDirective());
 // 注册 content-visibility 指令
 app.directive("content-visibility", createContentVisibilityDirective());
 
-console.log("[App] Performance optimizations initialized");
+logger.info("[App] Performance optimizations initialized");
 
 app.mount("#app");

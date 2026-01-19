@@ -201,6 +201,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, reactive, computed, onMounted, onUnmounted } from 'vue';
 import { message } from 'ant-design-vue';
 import {
@@ -291,7 +293,7 @@ const refreshStats = async () => {
         }
       } catch (error) {
         // 如果后端还没有实现性能统计API，使用模拟数据
-        console.log('使用模拟性能数据');
+        logger.info('使用模拟性能数据');
         generateMockData();
       }
     } else {
@@ -299,7 +301,7 @@ const refreshStats = async () => {
       generateMockData();
     }
   } catch (error) {
-    console.error('刷新性能统计失败:', error);
+    logger.error('刷新性能统计失败:', error);
     message.error('刷新失败：' + error.message);
   } finally {
     loading.value = false;
@@ -360,7 +362,7 @@ const clearStats = async () => {
     await refreshStats();
     message.success('统计数据已清除');
   } catch (error) {
-    console.error('清除统计失败:', error);
+    logger.error('清除统计失败:', error);
     message.error('清除失败：' + error.message);
   }
 };

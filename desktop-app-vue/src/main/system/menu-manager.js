@@ -3,6 +3,7 @@
  * 创建和管理Electron应用菜单
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { Menu, shell, app } = require("electron");
 const path = require("path");
 const { spawn } = require("child_process");
@@ -231,14 +232,14 @@ class MenuManager {
     const menu = Menu.buildFromTemplate(template);
     Menu.setApplicationMenu(menu);
 
-    console.log("✓ 应用菜单已创建");
+    logger.info("✓ 应用菜单已创建");
   }
 
   /**
    * 打开控制面板
    */
   async openControlPanel() {
-    console.log("打开高级特性控制面板...");
+    logger.info("打开高级特性控制面板...");
 
     try {
       // 检查API服务是否运行
@@ -254,9 +255,9 @@ class MenuManager {
       // 打开浏览器
       await shell.openExternal(`http://localhost:${this.controlPanelPort}`);
 
-      console.log("✓ 控制面板已打开");
+      logger.info("✓ 控制面板已打开");
     } catch (error) {
-      console.error("打开控制面板失败:", error);
+      logger.error("打开控制面板失败:", error);
       this.showError("无法打开控制面板", error.message);
     }
   }
@@ -278,7 +279,7 @@ class MenuManager {
         `http://localhost:${this.controlPanelPort}#${tab}`,
       );
     } catch (error) {
-      console.error("打开控制面板标签页失败:", error);
+      logger.error("打开控制面板标签页失败:", error);
     }
   }
 
@@ -312,13 +313,13 @@ class MenuManager {
    */
   async startControlPanelAPI() {
     if (this.controlPanelProcess) {
-      console.log("控制面板API已在运行");
+      logger.info("控制面板API已在运行");
       return;
     }
 
     const scriptPath = path.join(__dirname, "..", "..", "control-panel-api.js");
 
-    console.log(`启动控制面板API: ${scriptPath}`);
+    logger.info(`启动控制面板API: ${scriptPath}`);
 
     this.controlPanelProcess = spawn(
       "node",
@@ -331,16 +332,16 @@ class MenuManager {
     );
 
     this.controlPanelProcess.on("error", (error) => {
-      console.error("控制面板API启动失败:", error);
+      logger.error("控制面板API启动失败:", error);
       this.controlPanelProcess = null;
     });
 
     this.controlPanelProcess.on("exit", (code) => {
-      console.log(`控制面板API退出，代码: ${code}`);
+      logger.info(`控制面板API退出，代码: ${code}`);
       this.controlPanelProcess = null;
     });
 
-    console.log("✓ 控制面板API已启动");
+    logger.info("✓ 控制面板API已启动");
   }
 
   /**
@@ -414,7 +415,7 @@ class MenuManager {
    */
   stopControlPanelAPI() {
     if (this.controlPanelProcess) {
-      console.log("停止控制面板API...");
+      logger.info("停止控制面板API...");
       this.controlPanelProcess.kill();
       this.controlPanelProcess = null;
     }

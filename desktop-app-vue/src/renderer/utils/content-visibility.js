@@ -1,3 +1,5 @@
+import { logger, createLogger } from '@/utils/logger';
+
 /**
  * Content Visibility Lazy Rendering Utilities
  * Content-Visibility 懒渲染工具
@@ -51,7 +53,7 @@ export const contentVisibilityDirective = {
     // Track render state
     if (debug && 'oncontentvisibilityautostatechange' in el) {
       el.addEventListener('contentvisibilityautostatechange', (event) => {
-        console.log('[ContentVisibility]', {
+        logger.info('[ContentVisibility]', {
           element: el.tagName,
           skipped: event.skipped,
           time: Date.now(),
@@ -63,7 +65,7 @@ export const contentVisibilityDirective = {
     el.__contentVisibilityOptions__ = options;
 
     if (debug) {
-      console.log('[ContentVisibility] Applied to:', el.tagName, {
+      logger.info('[ContentVisibility] Applied to:', el.tagName, {
         height,
         auto,
       });
@@ -169,7 +171,7 @@ export const LazyRenderComponent = {
               this.isVisible = true;
 
               if (this.debug) {
-                console.log('[LazyRender] Element became visible, rendering content');
+                logger.info('[LazyRender] Element became visible, rendering content');
               }
 
               // Disconnect after first render
@@ -273,21 +275,21 @@ export class RenderBudgetManager {
 
         if (this.options.debug) {
           const waitTime = performance.now() - task.addedAt;
-          console.log(`[RenderBudget] Rendering task (waited ${waitTime.toFixed(2)}ms)`);
+          logger.info(`[RenderBudget] Rendering task (waited ${waitTime.toFixed(2)}ms)`);
         }
 
         try {
           task.renderFn();
           this.rendersThisFrame++;
         } catch (error) {
-          console.error('[RenderBudget] Render error:', error);
+          logger.error('[RenderBudget] Render error:', error);
         }
       }
 
       const frameTime = performance.now() - this.frameStartTime;
 
       if (this.options.debug) {
-        console.log(`[RenderBudget] Frame complete: ${this.rendersThisFrame} renders in ${frameTime.toFixed(2)}ms`);
+        logger.info(`[RenderBudget] Frame complete: ${this.rendersThisFrame} renders in ${frameTime.toFixed(2)}ms`);
       }
 
       // Continue in next frame
@@ -363,7 +365,7 @@ export function batchApplyContentVisibility(selector, options = {}) {
     applyContentVisibility(element, options);
   });
 
-  console.log(`[ContentVisibility] Applied to ${elements.length} elements matching "${selector}"`);
+  logger.info(`[ContentVisibility] Applied to ${elements.length} elements matching "${selector}"`);
 }
 
 /**

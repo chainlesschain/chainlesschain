@@ -1,3 +1,4 @@
+const { logger, createLogger } = require('../utils/logger.js');
 const { EventEmitter } = require("events");
 const SyncHTTPClient = require("./sync-http-client");
 const FieldMapper = require("./field-mapper");
@@ -40,10 +41,10 @@ class DBSyncManager extends EventEmitter {
     this.isAuthenticated = !!token;
 
     if (token) {
-      console.log('[DBSyncManager] 认证Token已设置');
+      logger.info('[DBSyncManager] 认证Token已设置');
       this.emit('auth:set', { hasToken: true });
     } else {
-      console.log('[DBSyncManager] 认证Token已清除');
+      logger.info('[DBSyncManager] 认证Token已清除');
       this.emit('auth:cleared');
     }
   }
@@ -64,7 +65,7 @@ class DBSyncManager extends EventEmitter {
   checkAuth(throwOnError = false) {
     if (!this.hasAuth()) {
       const message = '[DBSyncManager] 警告: 未设置认证Token，同步请求可能会失败';
-      console.warn(message);
+      logger.warn(message);
       this.emit('auth:missing');
 
       if (throwOnError) {
@@ -84,7 +85,7 @@ class DBSyncManager extends EventEmitter {
   async initialize(deviceId, options = {}) {
     this.deviceId = deviceId;
     this.timeOffset = 0; // 客户端与服务器的时间偏移（毫秒）
-    console.log("[DBSyncManager] 初始化，设备ID:", deviceId);
+    logger.info("[DBSyncManager] 初始化，设备ID:", deviceId);
 
     // 设置认证Token（如果提供）
     if (options.authToken) {
@@ -113,7 +114,7 @@ class DBSyncManager extends EventEmitter {
   startPeriodicCleanup() {
     if (this.database && this.database.startPeriodicCleanup) {
       this.cleanupTimer = this.database.startPeriodicCleanup(24, 30);
-      console.log("[DBSyncManager] 定期清理任务已启动");
+      logger.info("[DBSyncManager] 定期清理任务已启动");
     }
   }
 
@@ -134,7 +135,7 @@ class DBSyncManager extends EventEmitter {
       // 计算时间偏移: 本地时间 - 服务器时间
       this.timeOffset = clientTime2 - adjustedServerTime;
 
-      console.log("[DBSyncManager] 时间同步完成:", {
+      logger.info("[DBSyncManager] 时间同步完成:", {
         serverTime: new Date(serverTimeInfo.timestamp).toISOString(),
         clientTime: new Date(clientTime2).toISOString(),
         offset: this.timeOffset,
@@ -144,14 +145,14 @@ class DBSyncManager extends EventEmitter {
 
       // 如果偏移超过5分钟，发出警告
       if (Math.abs(this.timeOffset) > 5 * 60 * 1000) {
-        console.warn("[DBSyncManager] 警告: 客户端与服务器时间偏差超过5分钟!");
+        logger.warn("[DBSyncManager] 警告: 客户端与服务器时间偏差超过5分钟!");
         this.emit("time-offset-warning", {
           offset: this.timeOffset,
           offsetMinutes: (this.timeOffset / 60000).toFixed(2),
         });
       }
     } catch (error) {
-      console.error("[DBSyncManager] 时间同步失败:", error);
+      logger.error("[DBSyncManager] 时间同步失败:", error);
       // 失败时使用0偏移，继续执行
       this.timeOffset = 0;
     }
@@ -185,7 +186,7 @@ class DBSyncManager extends EventEmitter {
 
     // 检查认证状态
     if (requireAuth && !this.checkAuth(false)) {
-      console.warn("[DBSyncManager] 未认证，跳过登录后同步");
+      logger.warn("[DBSyncManager] 未认证，跳过登录后同步");
       this.emit("sync:skipped", { reason: "未认证" });
       return {
         success: 0,
@@ -196,7 +197,7 @@ class DBSyncManager extends EventEmitter {
       };
     }
 
-    console.log("[DBSyncManager] 开始登录后同步（并发模式）");
+    logger.info("[DBSyncManager] 开始登录后同步（并发模式）");
 
     this.emit("sync:started", {
       totalTables: this.syncTables.length,
@@ -212,7 +213,7 @@ class DBSyncManager extends EventEmitter {
       const priority = this.syncTables.length - index; // 前面的表优先级高
 
       return this.syncQueue.enqueue(async () => {
-        console.log(
+        logger.info(
           `[DBSyncManager] 同步表: ${tableName} (优先级: ${priority})`,
         );
 
@@ -253,7 +254,7 @@ class DBSyncManager extends EventEmitter {
 
           return { tableName, success: true };
         } catch (error) {
-          console.error(`[DBSyncManager] 同步表 ${tableName} 失败:`, error);
+          logger.error(`[DBSyncManager] 同步表 ${tableName} 失败:`, error);
           errors.push({ table: tableName, error: error.message });
 
           this.emit("sync:error", {
@@ -281,7 +282,7 @@ class DBSyncManager extends EventEmitter {
         (r.status === "fulfilled" && !r.value.success),
     ).length;
 
-    console.log(
+    logger.info(
       `[DBSyncManager] 同步完成: 成功${successCount}个表, 失败${failureCount}个表, 冲突${conflicts.length}个`,
     );
 
@@ -302,7 +303,7 @@ class DBSyncManager extends EventEmitter {
       errors: errors.length,
     });
 
-    console.log("[DBSyncManager] 登录后同步完成");
+    logger.info("[DBSyncManager] 登录后同步完成");
 
     return {
       success: successCount,
@@ -325,11 +326,11 @@ class DBSyncManager extends EventEmitter {
       .all("pending");
 
     if (pendingRecords.length === 0) {
-      console.log(`[DBSyncManager] 表 ${tableName} 无待上传数据`);
+      logger.info(`[DBSyncManager] 表 ${tableName} 无待上传数据`);
       return { success: 0, failed: 0, conflicts: 0 };
     }
 
-    console.log(
+    logger.info(
       `[DBSyncManager] 上传 ${pendingRecords.length} 条记录到表 ${tableName}`,
     );
 
@@ -394,7 +395,7 @@ class DBSyncManager extends EventEmitter {
               return true;
             },
             onRetry: (attempt, error, delay) => {
-              console.log(
+              logger.info(
                 `[DBSyncManager] 重试上传: table=${tableName}, id=${record.id}, attempt=${attempt + 1}, delay=${delay}ms`,
               );
 
@@ -427,7 +428,7 @@ class DBSyncManager extends EventEmitter {
             null,
           );
 
-          console.warn(
+          logger.warn(
             `[DBSyncManager] 冲突: table=${tableName}, id=${record.id}`,
           );
         } else if (response.successCount > 0) {
@@ -453,7 +454,7 @@ class DBSyncManager extends EventEmitter {
         }
       } catch (error) {
         // 捕获异常（重试失败后）
-        console.error(
+        logger.error(
           `[DBSyncManager] 上传最终失败: table=${tableName}, id=${record.id}`,
           error,
         );
@@ -468,7 +469,7 @@ class DBSyncManager extends EventEmitter {
       }
     }
 
-    console.log(
+    logger.info(
       `[DBSyncManager] 上传完成: 成功${results.success.length}, 失败${results.failed.length}, 冲突${results.conflicts.length}`,
     );
 
@@ -491,7 +492,7 @@ class DBSyncManager extends EventEmitter {
 
     const lastSyncedAt = lastSyncResult?.last_synced || 0;
 
-    console.log(
+    logger.info(
       `[DBSyncManager] 下载表 ${tableName} 的增量数据，上次同步: ${new Date(lastSyncedAt).toLocaleString()}`,
     );
 
@@ -517,11 +518,11 @@ class DBSyncManager extends EventEmitter {
           tableName,
         );
         if (!validation.valid) {
-          console.error(
+          logger.error(
             `[DBSyncManager] 跳过无效记录 (表: ${tableName}, ID: ${localRecord.id || "unknown"}):`,
             `缺失字段: ${validation.missingFields.join(", ")}`,
           );
-          console.error(
+          logger.error(
             "[DBSyncManager] 后端数据:",
             JSON.stringify(backendRecord, null, 2),
           );
@@ -546,7 +547,7 @@ class DBSyncManager extends EventEmitter {
 
       // 如果有跳过的记录，记录警告
       if (skippedRecords.length > 0) {
-        console.warn(
+        logger.warn(
           `[DBSyncManager] 表 ${tableName} 跳过了 ${skippedRecords.length} 条无效记录（后端数据不完整）`,
         );
         this.emit("sync:invalid-records", {
@@ -575,7 +576,7 @@ class DBSyncManager extends EventEmitter {
               localRecord.sync_status === "pending" &&
               !localRecord.synced_at
             ) {
-              console.log(
+              logger.info(
                 `[DBSyncManager] 跳过删除本地待同步记录: ${tableName}.${deletedId}`,
               );
               skippedLocalRecords++;
@@ -604,7 +605,7 @@ class DBSyncManager extends EventEmitter {
             }
           }
         } catch (err) {
-          console.error(
+          logger.error(
             `[DBSyncManager] 处理删除记录失败: ${tableName}.${deletedId}`,
             err,
           );
@@ -612,18 +613,18 @@ class DBSyncManager extends EventEmitter {
       }
 
       if (skippedLocalRecords > 0) {
-        console.log(
+        logger.info(
           `[DBSyncManager] 保护了 ${skippedLocalRecords} 条本地待同步记录，防止被错误删除`,
         );
       }
 
-      console.log(
+      logger.info(
         `[DBSyncManager] 下载完成: 新增${newRecords?.length || 0}, 更新${updatedRecords?.length || 0}, 删除${deletedCount}`,
       );
 
       return { conflicts };
     } catch (error) {
-      console.error(`[DBSyncManager] 下载失败:`, error);
+      logger.error(`[DBSyncManager] 下载失败:`, error);
       throw error;
     }
   }
@@ -646,11 +647,11 @@ class DBSyncManager extends EventEmitter {
         tableName,
       );
       if (!validation.valid) {
-        console.error(
+        logger.error(
           `[DBSyncManager] 跳过无效更新记录 (表: ${tableName}, ID: ${converted.id || "unknown"}):`,
           `缺失字段: ${validation.missingFields.join(", ")}`,
         );
-        console.error(
+        logger.error(
           "[DBSyncManager] 后端数据:",
           JSON.stringify(backendRecord, null, 2),
         );
@@ -668,7 +669,7 @@ class DBSyncManager extends EventEmitter {
 
     // 冲突条件：本地在上次同步后被修改过 && 远程也被修改过
     if (localUpdatedAt > localSyncedAt && backendUpdatedAt > localSyncedAt) {
-      console.warn("[DBSyncManager] 检测到冲突:", tableName, backendRecord.id);
+      logger.warn("[DBSyncManager] 检测到冲突:", tableName, backendRecord.id);
 
       return {
         id: backendRecord.id,
@@ -715,7 +716,7 @@ class DBSyncManager extends EventEmitter {
    * 解决冲突
    */
   async resolveConflict(conflictId, resolution) {
-    console.log("[DBSyncManager] 解决冲突:", conflictId, resolution);
+    logger.info("[DBSyncManager] 解决冲突:", conflictId, resolution);
 
     // TODO: 根据解决策略更新本地或远程数据
     // 这里需要根据实际情况实现具体逻辑
@@ -724,7 +725,7 @@ class DBSyncManager extends EventEmitter {
       await this.httpClient.resolveConflict(conflictId, resolution, null);
       this.emit("conflict-resolved", { conflictId, resolution });
     } catch (error) {
-      console.error("[DBSyncManager] 解决冲突失败:", error);
+      logger.error("[DBSyncManager] 解决冲突失败:", error);
       throw error;
     }
   }
@@ -739,9 +740,9 @@ class DBSyncManager extends EventEmitter {
 
     this.periodicSyncTimer = setInterval(() => {
       if (this.isOnline && this.hasAuth()) {
-        console.log("[DBSyncManager] 执行定期增量同步");
+        logger.info("[DBSyncManager] 执行定期增量同步");
         this.syncIncremental().catch((error) => {
-          console.error("[DBSyncManager] 定期同步失败:", error);
+          logger.error("[DBSyncManager] 定期同步失败:", error);
         });
       } else if (this.isOnline && !this.hasAuth()) {
         // 静默跳过，避免日志刷屏
@@ -759,11 +760,11 @@ class DBSyncManager extends EventEmitter {
 
     // 检查认证状态
     if (requireAuth && !this.checkAuth(false)) {
-      console.warn("[DBSyncManager] 未认证，跳过增量同步");
+      logger.warn("[DBSyncManager] 未认证，跳过增量同步");
       return { success: 0, failed: 0, skipped: true };
     }
 
-    console.log("[DBSyncManager] 开始增量同步（并发模式）");
+    logger.info("[DBSyncManager] 开始增量同步（并发模式）");
 
     // 先检查哪些表有待同步的数据
     const tablesToSync = [];
@@ -779,16 +780,16 @@ class DBSyncManager extends EventEmitter {
           tablesToSync.push(tableName);
         }
       } catch (error) {
-        console.error(`[DBSyncManager] 检查表 ${tableName} 状态失败:`, error);
+        logger.error(`[DBSyncManager] 检查表 ${tableName} 状态失败:`, error);
       }
     }
 
     if (tablesToSync.length === 0) {
-      console.log("[DBSyncManager] 没有需要同步的数据");
+      logger.info("[DBSyncManager] 没有需要同步的数据");
       return { success: 0, failed: 0 };
     }
 
-    console.log(
+    logger.info(
       `[DBSyncManager] 发现${tablesToSync.length}个表需要同步:`,
       tablesToSync,
     );
@@ -798,14 +799,14 @@ class DBSyncManager extends EventEmitter {
       const priority = tablesToSync.length - index;
 
       return this.syncQueue.enqueue(async () => {
-        console.log(`[DBSyncManager] 增量同步表: ${tableName}`);
+        logger.info(`[DBSyncManager] 增量同步表: ${tableName}`);
 
         try {
           await this.uploadLocalChanges(tableName);
           await this.downloadRemoteChanges(tableName);
           return { tableName, success: true };
         } catch (error) {
-          console.error(`[DBSyncManager] 增量同步表 ${tableName} 失败:`, error);
+          logger.error(`[DBSyncManager] 增量同步表 ${tableName} 失败:`, error);
           return { tableName, success: false, error: error.message };
         }
       }, priority);
@@ -824,7 +825,7 @@ class DBSyncManager extends EventEmitter {
         (r.status === "fulfilled" && !r.value.success),
     ).length;
 
-    console.log(
+    logger.info(
       `[DBSyncManager] 增量同步完成: 成功${successCount}个表, 失败${failureCount}个表`,
     );
 
@@ -855,7 +856,7 @@ class DBSyncManager extends EventEmitter {
     this.syncQueue.clear();
     this.removeAllListeners();
 
-    console.log("[DBSyncManager] 已销毁");
+    logger.info("[DBSyncManager] 已销毁");
   }
 }
 

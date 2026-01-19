@@ -230,6 +230,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, watch } from 'vue';
 import {
   LockOutlined,
@@ -348,9 +350,9 @@ const loadHistory = async () => {
   historyLoading.value = true;
   try {
     await tradeStore.loadEscrowHistory(props.escrow.id);
-    console.log('[EscrowDetail] 托管历史已加载:', history.value.length);
+    logger.info('[EscrowDetail] 托管历史已加载:', history.value.length);
   } catch (error) {
-    console.error('[EscrowDetail] 加载托管历史失败:', error);
+    logger.error('[EscrowDetail] 加载托管历史失败:', error);
   } finally {
     historyLoading.value = false;
   }
@@ -374,7 +376,7 @@ const loadCurrentUserDid = async () => {
       currentUserDid.value = identity.did;
     }
   } catch (error) {
-    console.error('[EscrowDetail] 获取当前用户 DID 失败:', error);
+    logger.error('[EscrowDetail] 获取当前用户 DID 失败:', error);
   }
 };
 

@@ -1,3 +1,5 @@
+import { logger, createLogger } from '@/utils/logger';
+
 /**
  * Performance Budget and Real-time Monitoring System
  * 性能预算和实时监控系统
@@ -66,7 +68,7 @@ export class PerformanceBudgetManager {
 
         this.violations.push(violation);
 
-        console.warn(`[PerformanceBudget] ⚠️ Budget exceeded: ${key}`, violation);
+        logger.warn(`[PerformanceBudget] ⚠️ Budget exceeded: ${key}`, violation);
 
         // Notify listeners
         this.notifyViolation(violation);
@@ -109,7 +111,7 @@ export class PerformanceBudgetManager {
    */
   updateBudget(key, value) {
     this.budgets[key] = value;
-    console.log(`[PerformanceBudget] Updated ${key}: ${value}`);
+    logger.info(`[PerformanceBudget] Updated ${key}: ${value}`);
   }
 }
 
@@ -158,7 +160,7 @@ export class CoreWebVitalsMonitor {
     // Monitor TTFB (Time to First Byte)
     this.observeTTFB();
 
-    console.log('[WebVitals] Monitoring started');
+    logger.info('[WebVitals] Monitoring started');
   }
 
   /**
@@ -175,7 +177,7 @@ export class CoreWebVitalsMonitor {
         this.metrics.LCP = lastEntry.renderTime || lastEntry.loadTime;
 
         if (this.options.debug) {
-          console.log('[WebVitals] LCP:', this.metrics.LCP);
+          logger.info('[WebVitals] LCP:', this.metrics.LCP);
         }
 
         this.notifyListeners('LCP', this.metrics.LCP);
@@ -183,7 +185,7 @@ export class CoreWebVitalsMonitor {
 
       observer.observe({ type: 'largest-contentful-paint', buffered: true });
     } catch (error) {
-      console.warn('[WebVitals] LCP observation failed:', error);
+      logger.warn('[WebVitals] LCP observation failed:', error);
     }
   }
 
@@ -202,7 +204,7 @@ export class CoreWebVitalsMonitor {
             this.metrics.FID = entry.processingStart - entry.startTime;
 
             if (this.options.debug) {
-              console.log('[WebVitals] FID:', this.metrics.FID);
+              logger.info('[WebVitals] FID:', this.metrics.FID);
             }
 
             this.notifyListeners('FID', this.metrics.FID);
@@ -212,7 +214,7 @@ export class CoreWebVitalsMonitor {
 
       observer.observe({ type: 'first-input', buffered: true });
     } catch (error) {
-      console.warn('[WebVitals] FID observation failed:', error);
+      logger.warn('[WebVitals] FID observation failed:', error);
     }
   }
 
@@ -250,7 +252,7 @@ export class CoreWebVitalsMonitor {
               this.metrics.CLS = clsValue;
 
               if (this.options.debug) {
-                console.log('[WebVitals] CLS:', this.metrics.CLS);
+                logger.info('[WebVitals] CLS:', this.metrics.CLS);
               }
 
               this.notifyListeners('CLS', this.metrics.CLS);
@@ -261,7 +263,7 @@ export class CoreWebVitalsMonitor {
 
       observer.observe({ type: 'layout-shift', buffered: true });
     } catch (error) {
-      console.warn('[WebVitals] CLS observation failed:', error);
+      logger.warn('[WebVitals] CLS observation failed:', error);
     }
   }
 
@@ -280,7 +282,7 @@ export class CoreWebVitalsMonitor {
             this.metrics.FCP = entry.startTime;
 
             if (this.options.debug) {
-              console.log('[WebVitals] FCP:', this.metrics.FCP);
+              logger.info('[WebVitals] FCP:', this.metrics.FCP);
             }
 
             this.notifyListeners('FCP', this.metrics.FCP);
@@ -290,7 +292,7 @@ export class CoreWebVitalsMonitor {
 
       observer.observe({ type: 'paint', buffered: true });
     } catch (error) {
-      console.warn('[WebVitals] FCP observation failed:', error);
+      logger.warn('[WebVitals] FCP observation failed:', error);
     }
   }
 
@@ -305,7 +307,7 @@ export class CoreWebVitalsMonitor {
       this.metrics.TTFB = timing.responseStart - timing.requestStart;
 
       if (this.options.debug) {
-        console.log('[WebVitals] TTFB:', this.metrics.TTFB);
+        logger.info('[WebVitals] TTFB:', this.metrics.TTFB);
       }
 
       this.notifyListeners('TTFB', this.metrics.TTFB);
@@ -406,7 +408,7 @@ export class RealtimePerformanceMonitor {
    */
   start() {
     if (this.intervalId) {
-      console.warn('[RealtimeMonitor] Already monitoring');
+      logger.warn('[RealtimeMonitor] Already monitoring');
       return;
     }
 
@@ -420,7 +422,7 @@ export class RealtimePerformanceMonitor {
       this.update();
     }, this.options.interval);
 
-    console.log('[RealtimeMonitor] Monitoring started');
+    logger.info('[RealtimeMonitor] Monitoring started');
   }
 
   /**
@@ -432,7 +434,7 @@ export class RealtimePerformanceMonitor {
       this.intervalId = null;
     }
 
-    console.log('[RealtimeMonitor] Monitoring stopped');
+    logger.info('[RealtimeMonitor] Monitoring stopped');
   }
 
   /**
@@ -484,7 +486,7 @@ export class RealtimePerformanceMonitor {
     }
 
     if (this.options.debug) {
-      console.log('[RealtimeMonitor] Metrics:', this.metrics);
+      logger.info('[RealtimeMonitor] Metrics:', this.metrics);
     }
 
     // Notify listeners
@@ -599,7 +601,7 @@ export class PerformanceAlertSystem {
 
     this.lastAlerts[alert.type] = Date.now();
 
-    console.warn(`[PerformanceAlert] ${alert.severity.toUpperCase()}: ${alert.message}`);
+    logger.warn(`[PerformanceAlert] ${alert.severity.toUpperCase()}: ${alert.message}`);
 
     // Show browser notification if enabled
     if (this.options.notifications && 'Notification' in window && Notification.permission === 'granted') {

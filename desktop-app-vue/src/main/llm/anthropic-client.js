@@ -3,6 +3,7 @@
  * Supports chat and streaming via the Messages API.
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const axios = require('axios');
 const EventEmitter = require('events');
 
@@ -129,7 +130,7 @@ class AnthropicClient extends EventEmitter {
         tokens: (usage.input_tokens || 0) + (usage.output_tokens || 0),
       };
     } catch (error) {
-      console.error('[AnthropicClient] chat failed:', error.response?.data || error);
+      logger.error('[AnthropicClient] chat failed:', error.response?.data || error);
       throw new Error(error.response?.data?.error?.message || error.message);
     }
   }
@@ -238,7 +239,7 @@ class AnthropicClient extends EventEmitter {
         });
       });
     } catch (error) {
-      console.error('[AnthropicClient] stream chat failed:', error.response?.data || error);
+      logger.error('[AnthropicClient] stream chat failed:', error.response?.data || error);
       throw new Error(error.response?.data?.error?.message || error.message);
     }
   }

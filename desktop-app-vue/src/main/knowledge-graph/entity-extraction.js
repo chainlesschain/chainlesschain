@@ -1,3 +1,5 @@
+const { logger, createLogger } = require('../utils/logger.js');
+
 /**
  * 增强的实体提取模块
  * 使用 NLP 技术从笔记中提取实体和关系
@@ -160,7 +162,7 @@ function extractEntities(text) {
  */
 async function extractEntitiesWithLLM(text, llmManager) {
   if (!llmManager) {
-    console.warn('[Entity Extraction] LLM Manager 未初始化，使用基础提取');
+    logger.warn('[Entity Extraction] LLM Manager 未初始化，使用基础提取');
     return extractEntities(text);
   }
 
@@ -209,11 +211,11 @@ ${text}
     }
 
     // 如果 LLM 返回格式不正确，回退到基础提取
-    console.warn('[Entity Extraction] LLM 返回格式不正确，使用基础提取');
+    logger.warn('[Entity Extraction] LLM 返回格式不正确，使用基础提取');
     return { entities: extractEntities(text), relations: [] };
 
   } catch (error) {
-    console.error('[Entity Extraction] LLM 提取失败:', error);
+    logger.error('[Entity Extraction] LLM 提取失败:', error);
     return { entities: extractEntities(text), relations: [] };
   }
 }
@@ -331,7 +333,7 @@ async function processNotesForEntities(notes, llmManager = null) {
         summary,
       });
     } catch (error) {
-      console.error(`[Entity Extraction] 处理笔记 ${note.id} 失败:`, error);
+      logger.error(`[Entity Extraction] 处理笔记 ${note.id} 失败:`, error);
       results.push({
         noteId: note.id,
         title: note.title,

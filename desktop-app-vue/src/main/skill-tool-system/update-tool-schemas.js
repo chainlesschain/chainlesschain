@@ -3,6 +3,7 @@
  * 将详细的参数和返回值Schema更新到数据库
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const path = require('path');
 const DatabaseManager = require('../database');
 const toolSchemas = require('./tool-schemas');
@@ -11,24 +12,24 @@ async function updateToolSchemas() {
   let db = null;
 
   try {
-    console.log('[Update Schemas] 开始更新工具Schema...\n');
+    logger.info('[Update Schemas] 开始更新工具Schema...\n');
 
     // 初始化数据库
     const dbPath = process.env.DB_PATH || path.join(__dirname, '../../../../data/chainlesschain.db');
-    console.log(`[Update Schemas] 数据库路径: ${dbPath}`);
+    logger.info(`[Update Schemas] 数据库路径: ${dbPath}`);
 
     db = new DatabaseManager(dbPath, {
       encryptionEnabled: false,
     });
 
     await db.initialize();
-    console.log('[Update Schemas] 数据库连接成功\n');
+    logger.info('[Update Schemas] 数据库连接成功\n');
 
     let updated = 0;
     let skipped = 0;
     let failed = 0;
 
-    console.log(`[Update Schemas] 待更新工具数量: ${Object.keys(toolSchemas).length}\n`);
+    logger.info(`[Update Schemas] 待更新工具数量: ${Object.keys(toolSchemas).length}\n`);
 
     for (const [toolName, schema] of Object.entries(toolSchemas)) {
       try {
@@ -36,7 +37,7 @@ async function updateToolSchemas() {
         const tool = await db.get('SELECT id, name FROM tools WHERE name = ?', [toolName]);
 
         if (!tool) {
-          console.log(`  ⚠️  工具不存在，跳过: ${toolName}`);
+          logger.info(`  ⚠️  工具不存在，跳过: ${toolName}`);
           skipped++;
           continue;
         }
@@ -63,22 +64,22 @@ async function updateToolSchemas() {
           toolName
         ]);
 
-        console.log(`  ✅ 已更新: ${toolName}`);
+        logger.info(`  ✅ 已更新: ${toolName}`);
         updated++;
 
       } catch (error) {
-        console.error(`  ❌ 更新失败: ${toolName}`, error.message);
+        logger.error(`  ❌ 更新失败: ${toolName}`, error.message);
         failed++;
       }
     }
 
-    console.log('\n========================================');
-    console.log('  Schema更新完成');
-    console.log('========================================');
-    console.log(`更新: ${updated} 个`);
-    console.log(`跳过: ${skipped} 个`);
-    console.log(`失败: ${failed} 个`);
-    console.log('========================================\n');
+    logger.info('\n========================================');
+    logger.info('  Schema更新完成');
+    logger.info('========================================');
+    logger.info(`更新: ${updated} 个`);
+    logger.info(`跳过: ${skipped} 个`);
+    logger.info(`失败: ${failed} 个`);
+    logger.info('========================================\n');
 
     // 验证更新结果
     const toolsWithSchema = await db.all(`
@@ -91,23 +92,23 @@ async function updateToolSchemas() {
       ORDER BY name
     `);
 
-    console.log('[Update Schemas] Schema验证:\n');
+    logger.info('[Update Schemas] Schema验证:\n');
     toolsWithSchema.forEach(tool => {
       const hasParams = tool.param_length > 2;  // Not just "{}"
       const hasReturns = tool.return_length > 2;
       const hasExamples = tool.examples_length > 2;
 
       const status = hasParams && hasReturns ? '✅' : '⚠️';
-      console.log(`  ${status} ${tool.name}: params=${hasParams}, returns=${hasReturns}, examples=${hasExamples}`);
+      logger.info(`  ${status} ${tool.name}: params=${hasParams}, returns=${hasReturns}, examples=${hasExamples}`);
     });
 
   } catch (error) {
-    console.error('\n[Update Schemas] 更新失败:', error);
+    logger.error('\n[Update Schemas] 更新失败:', error);
     process.exit(1);
   } finally {
     if (db && db.db) {
       await db.db.close();
-      console.log('\n[Update Schemas] 数据库连接已关闭');
+      logger.info('\n[Update Schemas] 数据库连接已关闭');
     }
   }
 }

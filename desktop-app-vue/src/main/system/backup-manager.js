@@ -3,6 +3,7 @@
  * 提供数据库和配置文件的备份与恢复功能
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { app, dialog } = require("electron");
 const fs = require("fs");
 const path = require("path");
@@ -37,7 +38,7 @@ class BackupManager {
       const backupName = options.name || `backup-${timestamp}`;
       const backupPath = path.join(this.backupDir, `${backupName}.zip`);
 
-      console.log("[BackupManager] Creating backup:", backupPath);
+      logger.info("[BackupManager] Creating backup:", backupPath);
 
       // 要备份的文件和目录
       const itemsToBackup = [
@@ -70,7 +71,7 @@ class BackupManager {
       // 清理旧备份
       await this.cleanOldBackups();
 
-      console.log("[BackupManager] Backup created successfully");
+      logger.info("[BackupManager] Backup created successfully");
 
       return {
         success: true,
@@ -80,7 +81,7 @@ class BackupManager {
         timestamp: Date.now(),
       };
     } catch (error) {
-      console.error("[BackupManager] Create backup error:", error);
+      logger.error("[BackupManager] Create backup error:", error);
       throw error;
     }
   }
@@ -96,7 +97,7 @@ class BackupManager {
       });
 
       output.on("close", () => {
-        console.log(
+        logger.info(
           `[BackupManager] Archive created: ${archive.pointer()} bytes`,
         );
         resolve();
@@ -111,7 +112,7 @@ class BackupManager {
       // 添加文件和目录
       for (const item of items) {
         if (!fs.existsSync(item.path)) {
-          console.log(`[BackupManager] Skipping non-existent: ${item.path}`);
+          logger.info(`[BackupManager] Skipping non-existent: ${item.path}`);
           continue;
         }
 
@@ -144,7 +145,7 @@ class BackupManager {
    */
   async restoreBackup(backupPath, options = {}) {
     try {
-      console.log("[BackupManager] Restoring backup:", backupPath);
+      logger.info("[BackupManager] Restoring backup:", backupPath);
 
       if (!fs.existsSync(backupPath)) {
         throw new Error("备份文件不存在");
@@ -165,7 +166,7 @@ class BackupManager {
       let metadata = null;
       if (fs.existsSync(metadataPath)) {
         metadata = JSON.parse(fs.readFileSync(metadataPath, "utf8"));
-        console.log("[BackupManager] Backup metadata:", metadata);
+        logger.info("[BackupManager] Backup metadata:", metadata);
       }
 
       // 验证备份兼容性
@@ -179,7 +180,7 @@ class BackupManager {
       const safetyBackup = await this.createBackup({
         name: "safety-backup-before-restore",
       });
-      console.log("[BackupManager] Safety backup created:", safetyBackup.path);
+      logger.info("[BackupManager] Safety backup created:", safetyBackup.path);
 
       try {
         // 恢复文件
@@ -196,7 +197,7 @@ class BackupManager {
           const targetPath = path.join(this.userDataPath, item.to);
 
           if (!fs.existsSync(sourcePath)) {
-            console.log(`[BackupManager] Skipping non-existent: ${item.from}`);
+            logger.info(`[BackupManager] Skipping non-existent: ${item.from}`);
             continue;
           }
 
@@ -216,13 +217,13 @@ class BackupManager {
             fs.copyFileSync(sourcePath, targetPath);
           }
 
-          console.log(`[BackupManager] Restored: ${item.from}`);
+          logger.info(`[BackupManager] Restored: ${item.from}`);
         }
 
         // 清理临时目录
         fs.rmSync(tempDir, { recursive: true, force: true });
 
-        console.log("[BackupManager] Backup restored successfully");
+        logger.info("[BackupManager] Backup restored successfully");
 
         return {
           success: true,
@@ -231,19 +232,19 @@ class BackupManager {
         };
       } catch (error) {
         // 恢复失败，尝试回滚到安全备份
-        console.error("[BackupManager] Restore failed, rolling back:", error);
+        logger.error("[BackupManager] Restore failed, rolling back:", error);
 
         try {
           await this.restoreBackup(safetyBackup.path, { force: true });
-          console.log("[BackupManager] Rolled back to safety backup");
+          logger.info("[BackupManager] Rolled back to safety backup");
         } catch (rollbackError) {
-          console.error("[BackupManager] Rollback failed:", rollbackError);
+          logger.error("[BackupManager] Rollback failed:", rollbackError);
         }
 
         throw error;
       }
     } catch (error) {
-      console.error("[BackupManager] Restore backup error:", error);
+      logger.error("[BackupManager] Restore backup error:", error);
       throw error;
     }
   }
@@ -298,7 +299,7 @@ class BackupManager {
 
       return backups;
     } catch (error) {
-      console.error("[BackupManager] Get backup list error:", error);
+      logger.error("[BackupManager] Get backup list error:", error);
       return [];
     }
   }
@@ -310,12 +311,12 @@ class BackupManager {
     try {
       if (fs.existsSync(backupPath)) {
         fs.unlinkSync(backupPath);
-        console.log("[BackupManager] Backup deleted:", backupPath);
+        logger.info("[BackupManager] Backup deleted:", backupPath);
         return true;
       }
       return false;
     } catch (error) {
-      console.error("[BackupManager] Delete backup error:", error);
+      logger.error("[BackupManager] Delete backup error:", error);
       throw error;
     }
   }
@@ -332,11 +333,11 @@ class BackupManager {
 
         for (const backup of toDelete) {
           this.deleteBackup(backup.path);
-          console.log("[BackupManager] Cleaned old backup:", backup.name);
+          logger.info("[BackupManager] Cleaned old backup:", backup.name);
         }
       }
     } catch (error) {
-      console.error("[BackupManager] Clean old backups error:", error);
+      logger.error("[BackupManager] Clean old backups error:", error);
     }
   }
 
@@ -350,11 +351,11 @@ class BackupManager {
       }
 
       fs.copyFileSync(backupPath, targetPath);
-      console.log("[BackupManager] Backup exported to:", targetPath);
+      logger.info("[BackupManager] Backup exported to:", targetPath);
 
       return true;
     } catch (error) {
-      console.error("[BackupManager] Export backup error:", error);
+      logger.error("[BackupManager] Export backup error:", error);
       throw error;
     }
   }
@@ -372,7 +373,7 @@ class BackupManager {
       const targetPath = path.join(this.backupDir, fileName);
 
       fs.copyFileSync(sourcePath, targetPath);
-      console.log("[BackupManager] Backup imported:", targetPath);
+      logger.info("[BackupManager] Backup imported:", targetPath);
 
       return {
         success: true,
@@ -380,7 +381,7 @@ class BackupManager {
         name: fileName.replace(".zip", ""),
       };
     } catch (error) {
-      console.error("[BackupManager] Import backup error:", error);
+      logger.error("[BackupManager] Import backup error:", error);
       throw error;
     }
   }
@@ -393,10 +394,10 @@ class BackupManager {
       const result = await this.createBackup({
         name: `auto-backup-${Date.now()}`,
       });
-      console.log("[BackupManager] Auto backup completed:", result.name);
+      logger.info("[BackupManager] Auto backup completed:", result.name);
       return result;
     } catch (error) {
-      console.error("[BackupManager] Auto backup error:", error);
+      logger.error("[BackupManager] Auto backup error:", error);
       return null;
     }
   }
@@ -410,7 +411,7 @@ class BackupManager {
       this.autoBackup();
     }, interval);
 
-    console.log("[BackupManager] Auto backup started, interval:", interval);
+    logger.info("[BackupManager] Auto backup started, interval:", interval);
   }
 }
 

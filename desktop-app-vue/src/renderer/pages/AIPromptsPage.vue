@@ -8,6 +8,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { useRouter } from 'vue-router';
 import { message as antMessage } from 'ant-design-vue';
 import SuggestedPromptsPanel from '@/components/SuggestedPromptsPanel.vue';
@@ -38,14 +40,14 @@ const handleSend = async (text) => {
 
     antMessage.success('已创建新对话');
   } catch (error) {
-    console.error('创建对话失败:', error);
+    logger.error('创建对话失败:', error);
     antMessage.error('创建对话失败');
   }
 };
 
 // Handle filling input (just for UI feedback)
 const handleFillInput = (text) => {
-  console.log('填充输入:', text);
+  logger.info('填充输入:', text);
 };
 </script>
 

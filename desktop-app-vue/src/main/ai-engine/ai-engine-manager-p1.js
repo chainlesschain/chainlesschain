@@ -18,6 +18,7 @@
  * 更新: 2026-01-01
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const IntentClassifier = require('./intent-classifier');
 const SlotFiller = require('./slot-filler');
 const { TaskPlanner } = require('./task-planner');
@@ -78,11 +79,11 @@ class AIEngineManagerP1 {
    */
   async initialize(options = {}) {
     try {
-      console.log('[AIEngineManager-P1] 开始初始化...');
+      logger.info('[AIEngineManager-P1] 开始初始化...');
 
       // 合并用户配置
       this.config = mergeConfig(options);
-      console.log('[AIEngineManager-P1] 配置已加载:', {
+      logger.info('[AIEngineManager-P1] 配置已加载:', {
         // P0模块
         slotFilling: this.config.enableSlotFilling,
         toolSandbox: this.config.enableToolSandbox,
@@ -116,17 +117,17 @@ class AIEngineManagerP1 {
       // ============================================
       if (this.config.enableSlotFilling) {
         this.slotFiller = new SlotFiller(this.llmManager, this.database);
-        console.log('[AIEngineManager-P1] ✅ P0: 槽位填充器已初始化');
+        logger.info('[AIEngineManager-P1] ✅ P0: 槽位填充器已初始化');
       }
 
       if (this.config.enableToolSandbox) {
         this.toolSandbox = new ToolSandbox(this.functionCaller, this.database);
-        console.log('[AIEngineManager-P1] ✅ P0: 工具沙箱已初始化');
+        logger.info('[AIEngineManager-P1] ✅ P0: 工具沙箱已初始化');
       }
 
       if (this.config.enablePerformanceMonitor) {
         this.performanceMonitor = new PerformanceMonitor(this.database);
-        console.log('[AIEngineManager-P1] ✅ P0: 性能监控已初始化');
+        logger.info('[AIEngineManager-P1] ✅ P0: 性能监控已初始化');
       }
 
       // 增强版任务规划器
@@ -136,7 +137,7 @@ class AIEngineManagerP1 {
           database: this.database,
           projectConfig: this.projectConfig
         });
-        console.log('[AIEngineManager-P1] ✅ P0: 增强版任务规划器已初始化');
+        logger.info('[AIEngineManager-P1] ✅ P0: 增强版任务规划器已初始化');
       }
 
       // ============================================
@@ -149,13 +150,13 @@ class AIEngineManagerP1 {
           this.llmManager,
           this.intentClassifier
         );
-        console.log('[AIEngineManager-P1] ✅ P1: 多意图识别器已初始化');
+        logger.info('[AIEngineManager-P1] ✅ P1: 多意图识别器已初始化');
       }
 
       // 2. 动态Few-shot学习器
       if (this.config.enableDynamicFewShot) {
         this.fewShotLearner = new DynamicFewShotLearner(this.database);
-        console.log('[AIEngineManager-P1] ✅ P1: 动态Few-shot学习器已初始化');
+        logger.info('[AIEngineManager-P1] ✅ P1: 动态Few-shot学习器已初始化');
       }
 
       // 3. 分层任务规划器
@@ -164,7 +165,7 @@ class AIEngineManagerP1 {
           this.llmManager,
           this.taskPlannerEnhanced
         );
-        console.log('[AIEngineManager-P1] ✅ P1: 分层任务规划器已初始化');
+        logger.info('[AIEngineManager-P1] ✅ P1: 分层任务规划器已初始化');
       }
 
       // 4. 检查点校验器
@@ -173,7 +174,7 @@ class AIEngineManagerP1 {
           this.llmManager,
           this.config.checkpointValidationConfig
         );
-        console.log('[AIEngineManager-P1] ✅ P1: 检查点校验器已初始化');
+        logger.info('[AIEngineManager-P1] ✅ P1: 检查点校验器已初始化');
       }
 
       // 5. 自我修正循环
@@ -183,16 +184,16 @@ class AIEngineManagerP1 {
           this.database,
           this.config.selfCorrectionConfig
         );
-        console.log('[AIEngineManager-P1] ✅ P1: 自我修正循环已初始化');
+        logger.info('[AIEngineManager-P1] ✅ P1: 自我修正循环已初始化');
       }
 
       // 生成会话ID
       this.sessionId = `session_${Date.now()}`;
 
-      console.log('[AIEngineManager-P1] ✅ 初始化完成 (P0+P1全集成)');
+      logger.info('[AIEngineManager-P1] ✅ 初始化完成 (P0+P1全集成)');
       return true;
     } catch (error) {
-      console.error('[AIEngineManager-P1] ❌ 初始化失败:', error);
+      logger.error('[AIEngineManager-P1] ❌ 初始化失败:', error);
       throw error;
     }
   }
@@ -210,15 +211,15 @@ class AIEngineManagerP1 {
     const executionId = `exec_${Date.now()}`;
 
     try {
-      console.log(`\n${'='.repeat(70)}`);
-      console.log(`[AI Engine P1] 🚀 开始处理用户输入: "${userInput}"`);
-      console.log(`[AI Engine P1] 会话ID: ${this.sessionId}`);
-      console.log(`${'='.repeat(70)}\n`);
+      logger.info(`\n${'='.repeat(70)}`);
+      logger.info(`[AI Engine P1] 🚀 开始处理用户输入: "${userInput}"`);
+      logger.info(`[AI Engine P1] 会话ID: ${this.sessionId}`);
+      logger.info(`${'='.repeat(70)}\n`);
 
       // =====================================================
       // 步骤1: 多意图识别 (Multi-Intent Recognition)
       // =====================================================
-      console.log('[步骤1] 多意图识别...');
+      logger.info('[步骤1] 多意图识别...');
       const intentStartTime = Date.now();
 
       const intentStep = {
@@ -278,9 +279,9 @@ class AIEngineManagerP1 {
 
       if (onStepUpdate) {onStepUpdate(intentStep);}
 
-      console.log(`[步骤1] ✅ 识别完成: ${isMultiIntent ? '多意图' : '单意图'}, 数量: ${intents.length}`);
+      logger.info(`[步骤1] ✅ 识别完成: ${isMultiIntent ? '多意图' : '单意图'}, 数量: ${intents.length}`);
       intents.forEach((intent, i) => {
-        console.log(`  [${i + 1}] ${intent.intent} (置信度: ${intent.confidence}, 优先级: ${intent.priority})`);
+        logger.info(`  [${i + 1}] ${intent.intent} (置信度: ${intent.confidence}, 优先级: ${intent.priority})`);
       });
 
       // 记录性能
@@ -298,7 +299,7 @@ class AIEngineManagerP1 {
       // 步骤2: 动态Few-shot学习（可选增强）
       // =====================================================
       if (this.config.enableDynamicFewShot && this.fewShotLearner) {
-        console.log('[步骤2] 动态Few-shot学习（为每个意图构建个性化上下文）...');
+        logger.info('[步骤2] 动态Few-shot学习（为每个意图构建个性化上下文）...');
 
         for (let i = 0; i < intents.length; i++) {
           const intent = intents[i];
@@ -313,7 +314,7 @@ class AIEngineManagerP1 {
           // 增强意图上下文
           intent.fewShotExamples = userExamples;
 
-          console.log(`  [${i + 1}/${intents.length}] ${intent.intent}: 找到 ${userExamples.length} 个历史示例`);
+          logger.info(`  [${i + 1}/${intents.length}] ${intent.intent}: 找到 ${userExamples.length} 个历史示例`);
         }
       }
 
@@ -325,9 +326,9 @@ class AIEngineManagerP1 {
       for (let intentIndex = 0; intentIndex < intents.length; intentIndex++) {
         const currentIntent = intents[intentIndex];
 
-        console.log(`\n${'─'.repeat(70)}`);
-        console.log(`处理意图 [${intentIndex + 1}/${intents.length}]: ${currentIntent.intent}`);
-        console.log(`${'─'.repeat(70)}\n`);
+        logger.info(`\n${'─'.repeat(70)}`);
+        logger.info(`处理意图 [${intentIndex + 1}/${intents.length}]: ${currentIntent.intent}`);
+        logger.info(`${'─'.repeat(70)}\n`);
 
         // =====================================================
         // 步骤3: 槽位填充 (Slot Filling)
@@ -335,7 +336,7 @@ class AIEngineManagerP1 {
         let slotFillingResult = { entities: currentIntent.entities, validation: { valid: true } };
 
         if (this.config.enableSlotFilling && this.slotFiller) {
-          console.log(`[步骤3.${intentIndex + 1}] 槽位填充...`);
+          logger.info(`[步骤3.${intentIndex + 1}] 槽位填充...`);
           const slotStartTime = Date.now();
 
           const slotStep = {
@@ -362,7 +363,7 @@ class AIEngineManagerP1 {
 
           if (onStepUpdate) {onStepUpdate(slotStep);}
 
-          console.log(`[步骤3.${intentIndex + 1}] ✅ 槽位填充完成: 完整度 ${slotFillingResult.validation.completeness}%`);
+          logger.info(`[步骤3.${intentIndex + 1}] ✅ 槽位填充完成: 完整度 ${slotFillingResult.validation.completeness}%`);
 
           // 更新intent的entities
           currentIntent.entities = slotFillingResult.entities;
@@ -376,7 +377,7 @@ class AIEngineManagerP1 {
         // =====================================================
         // 步骤4: 分层任务规划 (Hierarchical Task Planning)
         // =====================================================
-        console.log(`[步骤4.${intentIndex + 1}] 分层任务规划...`);
+        logger.info(`[步骤4.${intentIndex + 1}] 分层任务规划...`);
         const planStartTime = Date.now();
 
         const planStep = {
@@ -398,11 +399,11 @@ class AIEngineManagerP1 {
             { granularity: this.config.hierarchicalPlanningConfig.defaultGranularity }
           );
 
-          console.log(`[步骤4.${intentIndex + 1}] ✅ 分层规划完成:`);
-          console.log(`  粒度: ${plan.granularity}`);
-          console.log(`  业务层步骤: ${plan.layers?.business?.length || 0}`);
-          console.log(`  技术层步骤: ${plan.layers?.technical?.length || 0}`);
-          console.log(`  执行层步骤: ${plan.layers?.execution?.length || 0}`);
+          logger.info(`[步骤4.${intentIndex + 1}] ✅ 分层规划完成:`);
+          logger.info(`  粒度: ${plan.granularity}`);
+          logger.info(`  业务层步骤: ${plan.layers?.business?.length || 0}`);
+          logger.info(`  技术层步骤: ${plan.layers?.technical?.length || 0}`);
+          logger.info(`  执行层步骤: ${plan.layers?.execution?.length || 0}`);
 
           // 记录到数据库
           if (this.database) {
@@ -455,7 +456,7 @@ class AIEngineManagerP1 {
         // =====================================================
         // 步骤5: 执行任务（带自我修正循环和检查点校验）
         // =====================================================
-        console.log(`[步骤5.${intentIndex + 1}] 执行任务步骤（带检查点校验和自我修正）...`);
+        logger.info(`[步骤5.${intentIndex + 1}] 执行任务步骤（带检查点校验和自我修正）...`);
 
         let executionResult;
 
@@ -475,9 +476,9 @@ class AIEngineManagerP1 {
             { maxRetries: this.config.selfCorrectionConfig.maxRetries }
           );
 
-          console.log(`[步骤5.${intentIndex + 1}] ${executionResult.success ? '✅ 执行成功' : '⚠️ 执行失败'}`);
-          console.log(`  尝试次数: ${executionResult.attempts}`);
-          console.log(`  修正次数: ${executionResult.corrections?.length || 0}`);
+          logger.info(`[步骤5.${intentIndex + 1}] ${executionResult.success ? '✅ 执行成功' : '⚠️ 执行失败'}`);
+          logger.info(`  尝试次数: ${executionResult.attempts}`);
+          logger.info(`  修正次数: ${executionResult.corrections?.length || 0}`);
 
           // 记录自我修正历史
           if (this.database && !executionResult.success) {
@@ -540,12 +541,12 @@ class AIEngineManagerP1 {
       const pipelineDuration = Date.now() - pipelineStartTime;
       const allSuccess = allResults.every(r => r.success);
 
-      console.log(`\n${'='.repeat(70)}`);
-      console.log(`[AI Engine P1] ${allSuccess ? '✅ 全部执行成功' : '⚠️ 部分失败'}`);
-      console.log(`[AI Engine P1] 总耗时: ${pipelineDuration}ms`);
-      console.log(`[AI Engine P1] 意图数量: ${intents.length}`);
-      console.log(`[AI Engine P1] 成功意图: ${allResults.filter(r => r.success).length}/${intents.length}`);
-      console.log(`${'='.repeat(70)}\n`);
+      logger.info(`\n${'='.repeat(70)}`);
+      logger.info(`[AI Engine P1] ${allSuccess ? '✅ 全部执行成功' : '⚠️ 部分失败'}`);
+      logger.info(`[AI Engine P1] 总耗时: ${pipelineDuration}ms`);
+      logger.info(`[AI Engine P1] 意图数量: ${intents.length}`);
+      logger.info(`[AI Engine P1] 成功意图: ${allResults.filter(r => r.success).length}/${intents.length}`);
+      logger.info(`${'='.repeat(70)}\n`);
 
       // 记录整体Pipeline性能
       if (this.performanceMonitor) {
@@ -581,7 +582,7 @@ class AIEngineManagerP1 {
     } catch (error) {
       const pipelineDuration = Date.now() - pipelineStartTime;
 
-      console.error(`\n[AI Engine P1] ❌ 处理失败:`, error);
+      logger.error(`\n[AI Engine P1] ❌ 处理失败:`, error);
 
       // 记录失败
       if (this.performanceMonitor) {
@@ -609,12 +610,12 @@ class AIEngineManagerP1 {
     // 确定步骤列表
     const steps = plan.layers?.execution || plan.steps || [];
 
-    console.log(`  开始执行 ${steps.length} 个步骤...`);
+    logger.info(`  开始执行 ${steps.length} 个步骤...`);
 
     for (let i = 0; i < steps.length; i++) {
       const taskStep = steps[i];
 
-      console.log(`  [${i + 1}/${steps.length}] 执行: ${taskStep.tool || taskStep.name}`);
+      logger.info(`  [${i + 1}/${steps.length}] 执行: ${taskStep.tool || taskStep.name}`);
 
       const execStep = {
         id: `${executionId}_intent_${intentIndex}_step_${i}`,
@@ -665,7 +666,7 @@ class AIEngineManagerP1 {
 
         results.push(result.result);
 
-        console.log(`  ✅ 完成: ${taskStep.tool}, 耗时: ${result.duration}ms`);
+        logger.info(`  ✅ 完成: ${taskStep.tool}, 耗时: ${result.duration}ms`);
 
         // =====================================================
         // 检查点校验（在关键步骤后执行）
@@ -678,10 +679,10 @@ class AIEngineManagerP1 {
             {}
           );
 
-          console.log(`  🔍 检查点校验: ${validation.passed ? '✅ 通过' : '⚠️ 未通过'}`);
+          logger.info(`  🔍 检查点校验: ${validation.passed ? '✅ 通过' : '⚠️ 未通过'}`);
 
           if (!validation.passed) {
-            console.log(`    失败项: ${validation.failedCount}, 推荐: ${validation.recommendation}`);
+            logger.info(`    失败项: ${validation.failedCount}, 推荐: ${validation.recommendation}`);
 
             // 记录到数据库
             if (this.database) {
@@ -721,7 +722,7 @@ class AIEngineManagerP1 {
         }
 
       } catch (error) {
-        console.error(`  ❌ 失败: ${taskStep.tool}`, error.message);
+        logger.error(`  ❌ 失败: ${taskStep.tool}`, error.message);
 
         execStep.status = 'failed';
         execStep.endTime = Date.now();

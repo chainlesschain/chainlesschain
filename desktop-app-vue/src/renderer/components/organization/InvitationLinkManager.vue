@@ -285,6 +285,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted, watch } from 'vue';
 import { message } from 'ant-design-vue';
 import {
@@ -433,7 +435,7 @@ const loadInvitationLinks = async () => {
     // 加载统计信息
     await loadStats();
   } catch (error) {
-    console.error('加载邀请链接失败:', error);
+    logger.error('加载邀请链接失败:', error);
     message.error('加载邀请链接失败');
   } finally {
     loading.value = false;
@@ -451,7 +453,7 @@ const loadStats = async () => {
       stats.value = result.stats;
     }
   } catch (error) {
-    console.error('加载统计信息失败:', error);
+    logger.error('加载统计信息失败:', error);
   }
 };
 
@@ -476,7 +478,7 @@ const copyLink = async (url) => {
       message.error('复制失败');
     }
   } catch (error) {
-    console.error('复制链接失败:', error);
+    logger.error('复制链接失败:', error);
     message.error('复制链接失败');
   }
 };
@@ -534,7 +536,7 @@ const revokeLink = async (record) => {
       message.error(result.error || '撤销失败');
     }
   } catch (error) {
-    console.error('撤销链接失败:', error);
+    logger.error('撤销链接失败:', error);
     message.error('撤销链接失败');
   }
 };
@@ -566,7 +568,7 @@ const deleteLink = async (record) => {
       message.error(result.error || '删除失败');
     }
   } catch (error) {
-    console.error('删除链接失败:', error);
+    logger.error('删除链接失败:', error);
     message.error('删除链接失败');
   }
 };

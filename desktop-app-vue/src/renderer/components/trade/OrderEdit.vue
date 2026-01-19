@@ -183,6 +183,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, watch } from "vue";
 import { message } from "ant-design-vue";
 import dayjs from "dayjs";
@@ -327,7 +329,7 @@ const handleUpdate = async () => {
     if (error.errorFields) {
       message.error("请检查表单填写");
     } else {
-      console.error("更新订单失败:", error);
+      logger.error("更新订单失败:", error);
       message.error("更新订单失败");
     }
   } finally {

@@ -7,6 +7,7 @@
  * @since 2026-01-18
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const ipcGuard = require("../ipc/ipc-guard");
 
 /**
@@ -21,7 +22,7 @@ function registerBehaviorTrackerIPC({
 }) {
   // Prevent duplicate registration
   if (ipcGuard.isModuleRegistered("behavior-tracker-ipc")) {
-    console.log(
+    logger.info(
       "[BehaviorTracker IPC] Handlers already registered, skipping...",
     );
     return;
@@ -30,7 +31,7 @@ function registerBehaviorTrackerIPC({
   const electron = require("electron");
   const ipcMain = injectedIpcMain || electron.ipcMain;
 
-  console.log(
+  logger.info(
     "[BehaviorTracker IPC] Registering BehaviorTracker IPC handlers...",
   );
 
@@ -54,7 +55,7 @@ function registerBehaviorTrackerIPC({
         }
         return await trackerRef.current.trackPageVisit(pageName, options);
       } catch (error) {
-        console.error("[BehaviorTracker IPC] Track page failed:", error);
+        logger.error("[BehaviorTracker IPC] Track page failed:", error);
         throw error;
       }
     },
@@ -77,7 +78,7 @@ function registerBehaviorTrackerIPC({
           options,
         );
       } catch (error) {
-        console.error("[BehaviorTracker IPC] Track feature failed:", error);
+        logger.error("[BehaviorTracker IPC] Track feature failed:", error);
         throw error;
       }
     },
@@ -94,7 +95,7 @@ function registerBehaviorTrackerIPC({
       }
       return await trackerRef.current.trackLLMInteraction(params);
     } catch (error) {
-      console.error("[BehaviorTracker IPC] Track LLM failed:", error);
+      logger.error("[BehaviorTracker IPC] Track LLM failed:", error);
       throw error;
     }
   });
@@ -112,7 +113,7 @@ function registerBehaviorTrackerIPC({
         }
         return await trackerRef.current.trackSearch(query, options);
       } catch (error) {
-        console.error("[BehaviorTracker IPC] Track search failed:", error);
+        logger.error("[BehaviorTracker IPC] Track search failed:", error);
         throw error;
       }
     },
@@ -131,7 +132,7 @@ function registerBehaviorTrackerIPC({
         }
         return await trackerRef.current.trackError(errorType, options);
       } catch (error) {
-        console.error("[BehaviorTracker IPC] Track error failed:", error);
+        logger.error("[BehaviorTracker IPC] Track error failed:", error);
         throw error;
       }
     },
@@ -152,7 +153,7 @@ function registerBehaviorTrackerIPC({
       }
       return await trackerRef.current.analyzePatterns();
     } catch (error) {
-      console.error("[BehaviorTracker IPC] Analyze patterns failed:", error);
+      logger.error("[BehaviorTracker IPC] Analyze patterns failed:", error);
       throw error;
     }
   });
@@ -174,7 +175,7 @@ function registerBehaviorTrackerIPC({
         }
         return await trackerRef.current.getRecommendations(context);
       } catch (error) {
-        console.error(
+        logger.error(
           "[BehaviorTracker IPC] Get recommendations failed:",
           error,
         );
@@ -195,7 +196,7 @@ function registerBehaviorTrackerIPC({
       await trackerRef.current.markRecommendationShown(id);
       return { success: true };
     } catch (error) {
-      console.error("[BehaviorTracker IPC] Mark shown failed:", error);
+      logger.error("[BehaviorTracker IPC] Mark shown failed:", error);
       throw error;
     }
   });
@@ -212,7 +213,7 @@ function registerBehaviorTrackerIPC({
       await trackerRef.current.acceptRecommendation(id);
       return { success: true };
     } catch (error) {
-      console.error(
+      logger.error(
         "[BehaviorTracker IPC] Accept recommendation failed:",
         error,
       );
@@ -232,7 +233,7 @@ function registerBehaviorTrackerIPC({
       await trackerRef.current.dismissRecommendation(id);
       return { success: true };
     } catch (error) {
-      console.error(
+      logger.error(
         "[BehaviorTracker IPC] Dismiss recommendation failed:",
         error,
       );
@@ -255,7 +256,7 @@ function registerBehaviorTrackerIPC({
       }
       return await trackerRef.current.getStats();
     } catch (error) {
-      console.error("[BehaviorTracker IPC] Get stats failed:", error);
+      logger.error("[BehaviorTracker IPC] Get stats failed:", error);
       throw error;
     }
   });
@@ -271,7 +272,7 @@ function registerBehaviorTrackerIPC({
       }
       return { sessionId: trackerRef.current.startNewSession() };
     } catch (error) {
-      console.error("[BehaviorTracker IPC] Start session failed:", error);
+      logger.error("[BehaviorTracker IPC] Start session failed:", error);
       throw error;
     }
   });
@@ -283,13 +284,13 @@ function registerBehaviorTrackerIPC({
    */
   function updateBehaviorTracker(newTracker) {
     trackerRef.current = newTracker;
-    console.log("[BehaviorTracker IPC] Reference updated");
+    logger.info("[BehaviorTracker IPC] Reference updated");
   }
 
   // Mark as registered
   ipcGuard.markModuleRegistered("behavior-tracker-ipc");
 
-  console.log(
+  logger.info(
     "[BehaviorTracker IPC] BehaviorTracker IPC handlers registered successfully",
   );
 

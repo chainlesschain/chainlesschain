@@ -3,6 +3,7 @@
  * 将29个专业领域工具Handler注册到系统中
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const path = require('path');
 const DatabaseManager = require('../database');
 const AdditionalToolsV3Handler = require('./additional-tools-v3-handler');
@@ -16,7 +17,7 @@ class MockFunctionCaller {
 
   registerTool(name, handler, schema) {
     this.tools.set(name, { handler, schema });
-    console.log(`  [FunctionCaller] 注册工具: ${name}`);
+    logger.info(`  [FunctionCaller] 注册工具: ${name}`);
   }
 
   unregisterTool(name) {
@@ -44,31 +45,31 @@ class ToolRegistration {
    */
   async initialize() {
     try {
-      console.log('[Tool Registration] 初始化...\n');
+      logger.info('[Tool Registration] 初始化...\n');
 
       // 1. 初始化数据库
       const dbPath = process.env.DB_PATH || path.join(__dirname, '../../../../data/chainlesschain.db');
-      console.log(`[Tool Registration] 数据库路径: ${dbPath}`);
+      logger.info(`[Tool Registration] 数据库路径: ${dbPath}`);
 
       this.db = new DatabaseManager(dbPath, {
         encryptionEnabled: false,
       });
 
       await this.db.initialize();
-      console.log('[Tool Registration] 数据库连接成功\n');
+      logger.info('[Tool Registration] 数据库连接成功\n');
 
       // 2. 初始化Handler
       const workDir = path.join(__dirname, '../../../../data/workspace');
       this.handler = new AdditionalToolsV3Handler({ workDir });
-      console.log('[Tool Registration] Handler初始化成功\n');
+      logger.info('[Tool Registration] Handler初始化成功\n');
 
       // 3. 初始化FunctionCaller (如果在Electron环境中运行，应该传入真实的FunctionCaller)
       this.functionCaller = new MockFunctionCaller();
-      console.log('[Tool Registration] FunctionCaller初始化成功\n');
+      logger.info('[Tool Registration] FunctionCaller初始化成功\n');
 
       return true;
     } catch (error) {
-      console.error('[Tool Registration] 初始化失败:', error);
+      logger.error('[Tool Registration] 初始化失败:', error);
       throw error;
     }
   }
@@ -115,7 +116,7 @@ class ToolRegistration {
       );
 
       if (existing) {
-        console.log(`  ⚠️  工具已存在，跳过: ${toolRecord.name} (${toolRecord.id})`);
+        logger.info(`  ⚠️  工具已存在，跳过: ${toolRecord.name} (${toolRecord.id})`);
         return existing.id;
       }
 
@@ -148,7 +149,7 @@ class ToolRegistration {
       const handlerMethod = this.handler[handlerMethodName];
 
       if (!handlerMethod) {
-        console.warn(`  ⚠️  Handler方法不存在: ${handlerMethodName}`);
+        logger.warn(`  ⚠️  Handler方法不存在: ${handlerMethodName}`);
       } else {
         const schema = {
           name: toolRecord.name,
@@ -161,12 +162,12 @@ class ToolRegistration {
         this.functionCaller.registerTool(toolRecord.name, boundHandler, schema);
       }
 
-      console.log(`  ✅ 工具注册成功: ${toolRecord.name} (${toolRecord.id})`);
+      logger.info(`  ✅ 工具注册成功: ${toolRecord.name} (${toolRecord.id})`);
 
       return toolRecord.id;
 
     } catch (error) {
-      console.error(`  ❌ 工具注册失败: ${toolMeta.name}`, error.message);
+      logger.error(`  ❌ 工具注册失败: ${toolMeta.name}`, error.message);
       throw error;
     }
   }
@@ -176,10 +177,10 @@ class ToolRegistration {
    */
   async registerAllTools() {
     try {
-      console.log('========================================');
-      console.log('  注册Additional Tools V3');
-      console.log('  共29个专业领域工具');
-      console.log('========================================\n');
+      logger.info('========================================');
+      logger.info('  注册Additional Tools V3');
+      logger.info('  共29个专业领域工具');
+      logger.info('========================================\n');
 
       let registered = 0;
       let skipped = 0;
@@ -194,22 +195,22 @@ class ToolRegistration {
             skipped++;
           }
         } catch (error) {
-          console.error(`  ❌ 注册失败: ${tool.name}`, error.message);
+          logger.error(`  ❌ 注册失败: ${tool.name}`, error.message);
           failed++;
         }
       }
 
-      console.log('\n========================================');
-      console.log('  注册完成汇总');
-      console.log('========================================');
-      console.log(`工具: 注册 ${registered} 个, 跳过 ${skipped} 个, 失败 ${failed} 个`);
-      console.log(`FunctionCaller: 共 ${this.functionCaller.tools.size} 个工具可用`);
-      console.log('========================================\n');
+      logger.info('\n========================================');
+      logger.info('  注册完成汇总');
+      logger.info('========================================');
+      logger.info(`工具: 注册 ${registered} 个, 跳过 ${skipped} 个, 失败 ${failed} 个`);
+      logger.info(`FunctionCaller: 共 ${this.functionCaller.tools.size} 个工具可用`);
+      logger.info('========================================\n');
 
       return { registered, skipped, failed };
 
     } catch (error) {
-      console.error('[Tool Registration] 注册所有工具失败:', error);
+      logger.error('[Tool Registration] 注册所有工具失败:', error);
       throw error;
     }
   }
@@ -219,20 +220,20 @@ class ToolRegistration {
    */
   async verify() {
     try {
-      console.log('[Tool Registration] ===== 验证注册结果 =====\n');
+      logger.info('[Tool Registration] ===== 验证注册结果 =====\n');
 
       // 验证数据库中的工具数量
       const toolCount = await this.db.get(
         'SELECT COUNT(*) as count FROM tools WHERE handler_path LIKE "%additional-tools-v3-handler%"'
       );
-      console.log(`[Tool Registration] 数据库中V3工具数量: ${toolCount.count}`);
+      logger.info(`[Tool Registration] 数据库中V3工具数量: ${toolCount.count}`);
 
       // 列出所有已注册的工具
       const tools = await this.db.all(
         'SELECT id, name, display_name, category FROM tools WHERE handler_path LIKE "%additional-tools-v3-handler%" ORDER BY category, name'
       );
 
-      console.log('\n[Tool Registration] 已注册工具列表:\n');
+      logger.info('\n[Tool Registration] 已注册工具列表:\n');
 
       const toolsByCategory = {};
       tools.forEach(tool => {
@@ -243,15 +244,15 @@ class ToolRegistration {
       });
 
       Object.entries(toolsByCategory).forEach(([category, categoryTools]) => {
-        console.log(`  ${category.toUpperCase()} (${categoryTools.length}个):`);
+        logger.info(`  ${category.toUpperCase()} (${categoryTools.length}个):`);
         categoryTools.forEach(tool => {
-          console.log(`    - ${tool.name}: ${tool.display_name}`);
+          logger.info(`    - ${tool.name}: ${tool.display_name}`);
         });
-        console.log('');
+        logger.info('');
       });
 
       // 验证Handler方法
-      console.log('[Tool Registration] 验证Handler方法:\n');
+      logger.info('[Tool Registration] 验证Handler方法:\n');
       let methodsFound = 0;
       let methodsMissing = 0;
 
@@ -260,19 +261,19 @@ class ToolRegistration {
         if (typeof this.handler[methodName] === 'function') {
           methodsFound++;
         } else {
-          console.warn(`  ⚠️  缺失Handler方法: ${methodName}`);
+          logger.warn(`  ⚠️  缺失Handler方法: ${methodName}`);
           methodsMissing++;
         }
       }
 
-      console.log(`  ✅ Handler方法存在: ${methodsFound}个`);
+      logger.info(`  ✅ Handler方法存在: ${methodsFound}个`);
       if (methodsMissing > 0) {
-        console.log(`  ❌ Handler方法缺失: ${methodsMissing}个`);
+        logger.info(`  ❌ Handler方法缺失: ${methodsMissing}个`);
       }
 
       return true;
     } catch (error) {
-      console.error('[Tool Registration] 验证失败:', error);
+      logger.error('[Tool Registration] 验证失败:', error);
       return false;
     }
   }
@@ -284,10 +285,10 @@ class ToolRegistration {
     try {
       if (this.db && this.db.db) {
         await this.db.db.close();
-        console.log('\n[Tool Registration] 数据库连接已关闭');
+        logger.info('\n[Tool Registration] 数据库连接已关闭');
       }
     } catch (error) {
-      console.error('[Tool Registration] 关闭数据库失败:', error);
+      logger.error('[Tool Registration] 关闭数据库失败:', error);
     }
   }
 
@@ -308,7 +309,7 @@ class ToolRegistration {
       return result;
 
     } catch (error) {
-      console.error('\n[Tool Registration] 注册失败:', error);
+      logger.error('\n[Tool Registration] 注册失败:', error);
       return { registered: 0, skipped: 0, failed: additionalToolsV3.length };
     } finally {
       await this.close();
@@ -325,7 +326,7 @@ if (require.main === module) {
       process.exit(success ? 0 : 1);
     })
     .catch(error => {
-      console.error('Fatal error:', error);
+      logger.error('Fatal error:', error);
       process.exit(1);
     });
 }

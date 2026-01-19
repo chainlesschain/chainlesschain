@@ -1,3 +1,4 @@
+const { logger, createLogger } = require('../utils/logger.js');
 const { ipcMain } = require('electron');
 
 /**
@@ -11,7 +12,7 @@ const { ipcMain } = require('electron');
  * - 批量操作支持
  */
 function registerVCTemplateIPC(vcTemplateManager) {
-  console.log('[IPC] 注册VC模板管理IPC处理器');
+  logger.info('[IPC] 注册VC模板管理IPC处理器');
 
   // 获取所有模板
   ipcMain.handle('vc-template:get-all', async (_event, filters) => {
@@ -22,7 +23,7 @@ function registerVCTemplateIPC(vcTemplateManager) {
 
       return vcTemplateManager.getAllTemplates(filters);
     } catch (error) {
-      console.error('[Main] 获取模板列表失败:', error);
+      logger.error('[Main] 获取模板列表失败:', error);
       return [];
     }
   });
@@ -36,7 +37,7 @@ function registerVCTemplateIPC(vcTemplateManager) {
 
       return vcTemplateManager.getTemplateById(id);
     } catch (error) {
-      console.error('[Main] 获取模板失败:', error);
+      logger.error('[Main] 获取模板失败:', error);
       return null;
     }
   });
@@ -50,7 +51,7 @@ function registerVCTemplateIPC(vcTemplateManager) {
 
       return await vcTemplateManager.createTemplate(templateData);
     } catch (error) {
-      console.error('[Main] 创建模板失败:', error);
+      logger.error('[Main] 创建模板失败:', error);
       throw error;
     }
   });
@@ -64,7 +65,7 @@ function registerVCTemplateIPC(vcTemplateManager) {
 
       return await vcTemplateManager.updateTemplate(id, updates);
     } catch (error) {
-      console.error('[Main] 更新模板失败:', error);
+      logger.error('[Main] 更新模板失败:', error);
       throw error;
     }
   });
@@ -78,7 +79,7 @@ function registerVCTemplateIPC(vcTemplateManager) {
 
       return await vcTemplateManager.deleteTemplate(id);
     } catch (error) {
-      console.error('[Main] 删除模板失败:', error);
+      logger.error('[Main] 删除模板失败:', error);
       throw error;
     }
   });
@@ -92,7 +93,7 @@ function registerVCTemplateIPC(vcTemplateManager) {
 
       return vcTemplateManager.fillTemplateValues(templateId, values);
     } catch (error) {
-      console.error('[Main] 填充模板值失败:', error);
+      logger.error('[Main] 填充模板值失败:', error);
       throw error;
     }
   });
@@ -106,7 +107,7 @@ function registerVCTemplateIPC(vcTemplateManager) {
 
       await vcTemplateManager.incrementUsageCount(id);
     } catch (error) {
-      console.error('[Main] 更新模板使用次数失败:', error);
+      logger.error('[Main] 更新模板使用次数失败:', error);
     }
   });
 
@@ -119,7 +120,7 @@ function registerVCTemplateIPC(vcTemplateManager) {
 
       return vcTemplateManager.getStatistics();
     } catch (error) {
-      console.error('[Main] 获取模板统计失败:', error);
+      logger.error('[Main] 获取模板统计失败:', error);
       return { builtIn: 0, custom: 0, public: 0, total: 0 };
     }
   });
@@ -133,7 +134,7 @@ function registerVCTemplateIPC(vcTemplateManager) {
 
       return vcTemplateManager.exportTemplate(id);
     } catch (error) {
-      console.error('[Main] 导出模板失败:', error);
+      logger.error('[Main] 导出模板失败:', error);
       throw error;
     }
   });
@@ -147,7 +148,7 @@ function registerVCTemplateIPC(vcTemplateManager) {
 
       return vcTemplateManager.exportTemplates(ids);
     } catch (error) {
-      console.error('[Main] 批量导出模板失败:', error);
+      logger.error('[Main] 批量导出模板失败:', error);
       throw error;
     }
   });
@@ -161,12 +162,12 @@ function registerVCTemplateIPC(vcTemplateManager) {
 
       return await vcTemplateManager.importTemplate(importData, createdBy, options);
     } catch (error) {
-      console.error('[Main] 导入模板失败:', error);
+      logger.error('[Main] 导入模板失败:', error);
       throw error;
     }
   });
 
-  console.log('[IPC] VC模板管理IPC处理器注册完成（11个handlers）');
+  logger.info('[IPC] VC模板管理IPC处理器注册完成（11个handlers）');
 }
 
 module.exports = {

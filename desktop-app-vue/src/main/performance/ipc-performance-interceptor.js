@@ -1,3 +1,4 @@
+const { logger, createLogger } = require('../utils/logger.js');
 const { performance } = require('perf_hooks');
 const { getPerformanceMonitor } = require('./performance-monitor');
 
@@ -60,7 +61,7 @@ class IPCPerformanceInterceptor {
       return originalHandle(channel, wrappedListener);
     };
 
-    console.log('[IPCPerformanceInterceptor] IPC性能监控已注册');
+    logger.info('[IPCPerformanceInterceptor] IPC性能监控已注册');
   }
 
   /**

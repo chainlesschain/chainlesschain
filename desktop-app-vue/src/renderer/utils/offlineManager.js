@@ -3,6 +3,7 @@
  * 检测网络状态并提供离线功能支持
  */
 
+import { logger, createLogger } from '@/utils/logger';
 import { ref, computed } from 'vue';
 
 /**
@@ -37,7 +38,7 @@ class OfflineManager {
    * 处理上线
    */
   handleOnline() {
-    console.log('[OfflineManager] Network online');
+    logger.info('[OfflineManager] Network online');
     this.isOnline.value = true;
     this.notifyListeners('online');
     this.processQueue();
@@ -47,7 +48,7 @@ class OfflineManager {
    * 处理离线
    */
   handleOffline() {
-    console.log('[OfflineManager] Network offline');
+    logger.info('[OfflineManager] Network offline');
     this.isOnline.value = false;
     this.notifyListeners('offline');
   }
@@ -98,7 +99,7 @@ class OfflineManager {
   async processQueue() {
     if (this.offlineQueue.value.length === 0) {return;}
 
-    console.log(`[OfflineManager] Processing ${this.offlineQueue.value.length} queued actions`);
+    logger.info(`[OfflineManager] Processing ${this.offlineQueue.value.length} queued actions`);
 
     const queue = [...this.offlineQueue.value];
     this.offlineQueue.value = [];
@@ -106,9 +107,9 @@ class OfflineManager {
     for (const item of queue) {
       try {
         await item.action();
-        console.log(`[OfflineManager] Action ${item.id} processed successfully`);
+        logger.info(`[OfflineManager] Action ${item.id} processed successfully`);
       } catch (error) {
-        console.error(`[OfflineManager] Action ${item.id} failed:`, error);
+        logger.error(`[OfflineManager] Action ${item.id} failed:`, error);
         // 重新加入队列
         this.offlineQueue.value.push(item);
       }
@@ -137,7 +138,7 @@ class OfflineManager {
       }));
       localStorage.setItem('offline-queue', JSON.stringify(queueData));
     } catch (error) {
-      console.error('[OfflineManager] Save queue error:', error);
+      logger.error('[OfflineManager] Save queue error:', error);
     }
   }
 
@@ -166,7 +167,7 @@ class OfflineManager {
       try {
         listener(event, this.isOnline.value);
       } catch (error) {
-        console.error('[OfflineManager] Listener error:', error);
+        logger.error('[OfflineManager] Listener error:', error);
       }
     });
   }

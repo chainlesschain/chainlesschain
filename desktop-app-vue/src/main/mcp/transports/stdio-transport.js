@@ -8,6 +8,7 @@
  * @module StdioTransport
  */
 
+const { logger, createLogger } = require('../../utils/logger.js');
 const { spawn } = require("child_process");
 const EventEmitter = require("events");
 const readline = require("readline");
@@ -109,7 +110,7 @@ class StdioTransport extends EventEmitter {
     this.messageQueue = [];
     this.nextRequestId = 1;
 
-    console.log("[StdioTransport] Initialized");
+    logger.info("[StdioTransport] Initialized");
   }
 
   /**
@@ -121,7 +122,7 @@ class StdioTransport extends EventEmitter {
     const finalConfig = { ...this.config, ...config };
 
     try {
-      console.log(
+      logger.info(
         `[StdioTransport] Starting process on ${process.platform}:`,
         finalConfig.command,
         finalConfig.args,
@@ -147,7 +148,7 @@ class StdioTransport extends EventEmitter {
       // Spawn the MCP server process
       this.process = spawn(finalConfig.command, normalizedArgs, spawnOptions);
 
-      console.log(
+      logger.info(
         `[StdioTransport] Process spawned with PID: ${this.process.pid}`,
       );
 
@@ -166,14 +167,14 @@ class StdioTransport extends EventEmitter {
       this.process.stderr.on("data", (data) => {
         const message = data.toString().trim();
         if (message) {
-          console.log("[StdioTransport] Server stderr:", message);
+          logger.info("[StdioTransport] Server stderr:", message);
           this.emit("server-log", { level: "error", message });
         }
       });
 
       // Handle process exit
       this.process.on("exit", (code, signal) => {
-        console.log(
+        logger.info(
           `[StdioTransport] Process exited with code ${code}, signal ${signal}`,
         );
         this._handleProcessExit(code, signal);
@@ -181,16 +182,16 @@ class StdioTransport extends EventEmitter {
 
       // Handle process errors
       this.process.on("error", (error) => {
-        console.error("[StdioTransport] Process error:", error);
+        logger.error("[StdioTransport] Process error:", error);
         this.emit("error", error);
       });
 
       this.isConnected = true;
       this.emit("connected");
 
-      console.log("[StdioTransport] Process started successfully");
+      logger.info("[StdioTransport] Process started successfully");
     } catch (error) {
-      console.error("[StdioTransport] Failed to start process:", error);
+      logger.error("[StdioTransport] Failed to start process:", error);
       throw error;
     }
   }
@@ -237,7 +238,7 @@ class StdioTransport extends EventEmitter {
           }
         });
 
-        console.log(
+        logger.info(
           "[StdioTransport] Sent message:",
           message.method || "response",
           requestId,
@@ -259,7 +260,7 @@ class StdioTransport extends EventEmitter {
     try {
       const message = JSON.parse(line);
 
-      console.log(
+      logger.info(
         "[StdioTransport] Received message:",
         message.method || "response",
         message.id,
@@ -284,7 +285,7 @@ class StdioTransport extends EventEmitter {
         this.emit("notification", message);
       }
     } catch (error) {
-      console.error("[StdioTransport] Failed to parse message:", line, error);
+      logger.error("[StdioTransport] Failed to parse message:", line, error);
       this.emit("parse-error", { line, error });
     }
   }
@@ -313,17 +314,17 @@ class StdioTransport extends EventEmitter {
     // Attempt restart if enabled
     if (this.restartCount < this.config.maxRestarts && code !== 0) {
       this.restartCount++;
-      console.log(
+      logger.info(
         `[StdioTransport] Attempting restart (${this.restartCount}/${this.config.maxRestarts})`,
       );
 
       setTimeout(() => {
         this.start(this.config).catch((error) => {
-          console.error("[StdioTransport] Restart failed:", error);
+          logger.error("[StdioTransport] Restart failed:", error);
         });
       }, this.config.restartDelay);
     } else {
-      console.log("[StdioTransport] Max restarts reached or clean exit");
+      logger.info("[StdioTransport] Max restarts reached or clean exit");
     }
   }
 
@@ -337,11 +338,11 @@ class StdioTransport extends EventEmitter {
     }
 
     const pid = this.process.pid;
-    console.log(`[StdioTransport] Stopping process (PID: ${pid})`);
+    logger.info(`[StdioTransport] Stopping process (PID: ${pid})`);
 
     return new Promise((resolve) => {
       const timer = setTimeout(() => {
-        console.warn(
+        logger.warn(
           "[StdioTransport] Process did not exit gracefully, forcing kill",
         );
         if (this.process) {
@@ -352,14 +353,14 @@ class StdioTransport extends EventEmitter {
 
       this.process.once("exit", () => {
         clearTimeout(timer);
-        console.log(`[StdioTransport] Process exited cleanly (PID: ${pid})`);
+        logger.info(`[StdioTransport] Process exited cleanly (PID: ${pid})`);
         resolve();
       });
 
       // Send graceful shutdown signal
       if (this.process) {
         const signal = getKillSignal();
-        console.log(`[StdioTransport] Sending ${signal} to process`);
+        logger.info(`[StdioTransport] Sending ${signal} to process`);
 
         if (PLATFORM.isWindows) {
           // On Windows, use taskkill for cleaner shutdown
@@ -399,7 +400,7 @@ class StdioTransport extends EventEmitter {
         }
       }, 1000);
     } catch (error) {
-      console.warn("[StdioTransport] Windows kill warning:", error.message);
+      logger.warn("[StdioTransport] Windows kill warning:", error.message);
       this._forceKill();
     }
   }
@@ -429,7 +430,7 @@ class StdioTransport extends EventEmitter {
         this.process.kill("SIGKILL");
       }
     } catch (error) {
-      console.warn("[StdioTransport] Force kill warning:", error.message);
+      logger.warn("[StdioTransport] Force kill warning:", error.message);
     }
   }
 

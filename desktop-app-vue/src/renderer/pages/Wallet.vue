@@ -309,6 +309,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted } from 'vue';
 import { message, Modal, Empty } from 'ant-design-vue';
 import {
@@ -469,7 +471,7 @@ const handleCopyAddress = async (address) => {
     await navigator.clipboard.writeText(address);
     message.success('地址已复制到剪贴板');
   } catch (error) {
-    console.error('[Wallet] 复制失败:', error);
+    logger.error('[Wallet] 复制失败:', error);
     message.error('复制失败');
   }
 };
@@ -492,7 +494,7 @@ const showImportWalletModal = () => {
  * 钱包创建成功
  */
 const handleWalletCreated = (wallet) => {
-  console.log('[Wallet] 钱包创建成功:', wallet);
+  logger.info('[Wallet] 钱包创建成功:', wallet);
   // 刷新余额
   if (wallet.address) {
     blockchainStore.fetchBalance(wallet.address, currentChainId.value);
@@ -503,7 +505,7 @@ const handleWalletCreated = (wallet) => {
  * 钱包导入成功
  */
 const handleWalletImported = (wallet) => {
-  console.log('[Wallet] 钱包导入成功:', wallet);
+  logger.info('[Wallet] 钱包导入成功:', wallet);
   // 刷新余额
   if (wallet.address) {
     blockchainStore.fetchBalance(wallet.address, currentChainId.value);
@@ -518,7 +520,7 @@ const handleConnectMetaMask = async () => {
     await blockchainStore.connectMetaMask();
     activeTab.value = 'external';
   } catch (error) {
-    console.error('[Wallet] 连接 MetaMask 失败:', error);
+    logger.error('[Wallet] 连接 MetaMask 失败:', error);
   }
 };
 
@@ -530,7 +532,7 @@ const handleConnectWalletConnect = async () => {
     await blockchainStore.connectWalletConnect();
     activeTab.value = 'external';
   } catch (error) {
-    console.error('[Wallet] 连接 WalletConnect 失败:', error);
+    logger.error('[Wallet] 连接 WalletConnect 失败:', error);
   }
 };
 
@@ -554,7 +556,7 @@ const handleDisconnectExternal = () => {
  * 网络切换
  */
 const handleChainSwitched = ({ chainId, network }) => {
-  console.log('[Wallet] 网络已切换:', chainId, network);
+  logger.info('[Wallet] 网络已切换:', chainId, network);
   // 刷新余额
   if (currentAddress.value) {
     blockchainStore.refreshCurrentBalance();
@@ -565,7 +567,7 @@ const handleChainSwitched = ({ chainId, network }) => {
  * 查看交易详情
  */
 const handleViewTransactionDetails = (transaction) => {
-  console.log('[Wallet] 查看交易详情:', transaction);
+  logger.info('[Wallet] 查看交易详情:', transaction);
   selectedTransaction.value = transaction;
   transactionDetailVisible.value = true;
 };
@@ -578,7 +580,7 @@ const handleRefreshTransaction = async (transaction) => {
     // 刷新交易列表
     await blockchainStore.refreshTransactions(currentAddress.value, currentChainId.value);
   } catch (error) {
-    console.error('[Wallet] 刷新交易失败:', error);
+    logger.error('[Wallet] 刷新交易失败:', error);
   }
 };
 

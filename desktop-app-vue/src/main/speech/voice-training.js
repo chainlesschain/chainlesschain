@@ -4,6 +4,7 @@
  * 提供用户语音配置文件、口音适应、自定义词汇学习和个性化命令建议
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { EventEmitter } = require('events');
 const fs = require('fs').promises;
 const path = require('path');
@@ -41,7 +42,7 @@ class VoiceTraining extends EventEmitter {
   async initialize(userId) {
     this.currentUserId = userId;
     await this.loadUserProfile(userId);
-    console.log(`[VoiceTraining] 已初始化用户配置: ${userId}`);
+    logger.info(`[VoiceTraining] 已初始化用户配置: ${userId}`);
   }
 
   /**
@@ -79,15 +80,15 @@ class VoiceTraining extends EventEmitter {
           this.correctionHistory = this.userProfile.correctionHistory;
         }
 
-        console.log(`[VoiceTraining] 已加载用户配置: ${userId}`);
+        logger.info(`[VoiceTraining] 已加载用户配置: ${userId}`);
       } else {
         // 创建新配置文件
         this.userProfile = this.createDefaultProfile(userId);
         await this.saveUserProfile();
-        console.log(`[VoiceTraining] 已创建新用户配置: ${userId}`);
+        logger.info(`[VoiceTraining] 已创建新用户配置: ${userId}`);
       }
     } catch (error) {
-      console.error('[VoiceTraining] 加载配置文件失败:', error);
+      logger.error('[VoiceTraining] 加载配置文件失败:', error);
       this.userProfile = this.createDefaultProfile(userId);
     }
   }
@@ -163,10 +164,10 @@ class VoiceTraining extends EventEmitter {
       const profilePath = path.join(this.config.profilePath, `${this.currentUserId}.json`);
       await fs.writeFile(profilePath, JSON.stringify(this.userProfile, null, 2), 'utf-8');
 
-      console.log('[VoiceTraining] 配置文件已保存');
+      logger.info('[VoiceTraining] 配置文件已保存');
       this.emit('profileSaved', this.userProfile);
     } catch (error) {
-      console.error('[VoiceTraining] 保存配置文件失败:', error);
+      logger.error('[VoiceTraining] 保存配置文件失败:', error);
     }
   }
 
@@ -198,7 +199,7 @@ class VoiceTraining extends EventEmitter {
 
       await this.saveUserProfile();
     } catch (error) {
-      console.error('[VoiceTraining] 记录转录失败:', error);
+      logger.error('[VoiceTraining] 记录转录失败:', error);
     }
   }
 
@@ -224,7 +225,7 @@ class VoiceTraining extends EventEmitter {
       this.pruneVocabulary();
     }
 
-    console.log(`[VoiceTraining] 学习了 ${words.length} 个词汇`);
+    logger.info(`[VoiceTraining] 学习了 ${words.length} 个词汇`);
   }
 
   /**
@@ -257,7 +258,7 @@ class VoiceTraining extends EventEmitter {
       sorted.slice(0, this.config.maxVocabularySize)
     );
 
-    console.log(`[VoiceTraining] 词汇表已修剪至 ${this.customVocabulary.size} 个词`);
+    logger.info(`[VoiceTraining] 词汇表已修剪至 ${this.customVocabulary.size} 个词`);
   }
 
   /**
@@ -301,7 +302,7 @@ class VoiceTraining extends EventEmitter {
       1.0
     );
 
-    console.log('[VoiceTraining] 口音信息已更新');
+    logger.info('[VoiceTraining] 口音信息已更新');
   }
 
   /**
@@ -331,7 +332,7 @@ class VoiceTraining extends EventEmitter {
 
       await this.saveUserProfile();
     } catch (error) {
-      console.error('[VoiceTraining] 记录命令使用失败:', error);
+      logger.error('[VoiceTraining] 记录命令使用失败:', error);
     }
   }
 
@@ -365,7 +366,7 @@ class VoiceTraining extends EventEmitter {
       await this.saveUserProfile();
       this.emit('correctionRecorded', correction);
     } catch (error) {
-      console.error('[VoiceTraining] 记录纠正失败:', error);
+      logger.error('[VoiceTraining] 记录纠正失败:', error);
     }
   }
 
@@ -445,7 +446,7 @@ class VoiceTraining extends EventEmitter {
     const currentCount = this.customVocabulary.get(word) || 0;
     this.customVocabulary.set(word, currentCount + frequency);
     await this.saveUserProfile();
-    console.log(`[VoiceTraining] 添加自定义词汇: ${word}`);
+    logger.info(`[VoiceTraining] 添加自定义词汇: ${word}`);
   }
 
   /**
@@ -454,7 +455,7 @@ class VoiceTraining extends EventEmitter {
   async removeCustomWord(word) {
     this.customVocabulary.delete(word);
     await this.saveUserProfile();
-    console.log(`[VoiceTraining] 删除自定义词汇: ${word}`);
+    logger.info(`[VoiceTraining] 删除自定义词汇: ${word}`);
   }
 
   /**
@@ -552,10 +553,10 @@ class VoiceTraining extends EventEmitter {
       }
 
       await this.saveUserProfile();
-      console.log('[VoiceTraining] 用户数据已导入');
+      logger.info('[VoiceTraining] 用户数据已导入');
       this.emit('dataImported');
     } catch (error) {
-      console.error('[VoiceTraining] 导入用户数据失败:', error);
+      logger.error('[VoiceTraining] 导入用户数据失败:', error);
       throw error;
     }
   }
@@ -571,7 +572,7 @@ class VoiceTraining extends EventEmitter {
     this.correctionHistory = [];
 
     await this.saveUserProfile();
-    console.log('[VoiceTraining] 用户数据已重置');
+    logger.info('[VoiceTraining] 用户数据已重置');
     this.emit('dataReset');
   }
 
@@ -605,10 +606,10 @@ class VoiceTraining extends EventEmitter {
       const exportPath = path.join(this.config.profilePath, `${this.currentUserId}_export_${Date.now()}.json`);
       await fs.writeFile(exportPath, JSON.stringify(exportData, null, 2), 'utf-8');
 
-      console.log('[VoiceTraining] 配置文件已导出:', exportPath);
+      logger.info('[VoiceTraining] 配置文件已导出:', exportPath);
       return { success: true, path: exportPath };
     } catch (error) {
-      console.error('[VoiceTraining] 导出配置文件失败:', error);
+      logger.error('[VoiceTraining] 导出配置文件失败:', error);
       throw error;
     }
   }
@@ -634,10 +635,10 @@ class VoiceTraining extends EventEmitter {
 
       await this.importUserData(importData);
 
-      console.log('[VoiceTraining] 配置文件已导入:', filePath);
+      logger.info('[VoiceTraining] 配置文件已导入:', filePath);
       return { success: true };
     } catch (error) {
-      console.error('[VoiceTraining] 导入配置文件失败:', error);
+      logger.error('[VoiceTraining] 导入配置文件失败:', error);
       throw error;
     }
   }

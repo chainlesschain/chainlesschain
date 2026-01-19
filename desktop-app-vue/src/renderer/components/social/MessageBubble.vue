@@ -316,6 +316,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { message as antMessage } from 'ant-design-vue'
 import {
@@ -388,7 +390,7 @@ const loadReactionStats = async () => {
       reactionStats.value = result.stats
     }
   } catch (error) {
-    console.error('加载表情回应失败:', error)
+    logger.error('加载表情回应失败:', error)
   }
 }
 
@@ -425,7 +427,7 @@ const toggleReaction = async (emoji) => {
       }
     }
   } catch (error) {
-    console.error('切换表情回应失败:', error)
+    logger.error('切换表情回应失败:', error)
     antMessage.error('操作失败')
   }
 }
@@ -474,7 +476,7 @@ const startProgressMonitoring = () => {
         }
       }
     } catch (error) {
-      console.error('获取传输进度失败:', error)
+      logger.error('获取传输进度失败:', error)
     }
   }, 1000) // 每秒更新一次
 }
@@ -496,7 +498,7 @@ const handleCancelTransfer = async () => {
       }
     }
   } catch (error) {
-    console.error('取消传输失败:', error)
+    logger.error('取消传输失败:', error)
     antMessage.error('取消传输失败')
   }
 }
@@ -520,7 +522,7 @@ const handleMenuClick = async ({ key }) => {
           await navigator.clipboard.writeText(props.message.content)
           antMessage.success('已复制到剪贴板')
         } catch (error) {
-          console.error('复制失败:', error)
+          logger.error('复制失败:', error)
           antMessage.error('复制失败')
         }
       }
@@ -538,7 +540,7 @@ const loadAvailableSessions = async () => {
     // 过滤掉当前会话
     availableSessions.value = result.filter(s => s.id !== props.message.session_id)
   } catch (error) {
-    console.error('加载会话列表失败:', error)
+    logger.error('加载会话列表失败:', error)
     antMessage.error('加载会话列表失败')
   }
 }
@@ -565,7 +567,7 @@ const handleForward = async () => {
       antMessage.error(result.error || '转发失败')
     }
   } catch (error) {
-    console.error('转发消息失败:', error)
+    logger.error('转发消息失败:', error)
     antMessage.error('转发失败')
   } finally {
     forwarding.value = false
@@ -616,10 +618,10 @@ const handleDownload = async () => {
 
       if (result.success) {
         // 可以添加成功提示
-        console.log('文件已保存到:', result.filePath)
+        logger.info('文件已保存到:', result.filePath)
       }
     } catch (error) {
-      console.error('下载文件失败:', error)
+      logger.error('下载文件失败:', error)
     }
   }
 }
@@ -650,7 +652,7 @@ const toggleVoicePlay = async () => {
         }
 
         audioElement.onerror = (error) => {
-          console.error('音频播放失败:', error)
+          logger.error('音频播放失败:', error)
           antMessage.error('语音播放失败')
           isPlaying.value = false
           audioElement = null
@@ -663,7 +665,7 @@ const toggleVoicePlay = async () => {
       }
     }
   } catch (error) {
-    console.error('播放语音消息失败:', error)
+    logger.error('播放语音消息失败:', error)
     antMessage.error('播放失败')
     isPlaying.value = false
     if (audioElement) {

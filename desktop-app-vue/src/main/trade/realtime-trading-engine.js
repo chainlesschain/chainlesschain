@@ -9,6 +9,7 @@
  * - WebSocket通信
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const EventEmitter = require('events');
 const { v4: uuidv4 } = require('uuid');
 
@@ -68,7 +69,7 @@ class RealtimeTradingEngine extends EventEmitter {
    * 初始化交易引擎
    */
   async initialize() {
-    console.log('[RealtimeTradingEngine] 初始化实时交易引擎...');
+    logger.info('[RealtimeTradingEngine] 初始化实时交易引擎...');
 
     try {
       // 加载活跃订单
@@ -84,9 +85,9 @@ class RealtimeTradingEngine extends EventEmitter {
       this.startPriceUpdates(5000);
 
       this.initialized = true;
-      console.log('[RealtimeTradingEngine] 实时交易引擎初始化成功');
+      logger.info('[RealtimeTradingEngine] 实时交易引擎初始化成功');
     } catch (error) {
-      console.error('[RealtimeTradingEngine] 初始化失败:', error);
+      logger.error('[RealtimeTradingEngine] 初始化失败:', error);
       throw error;
     }
   }
@@ -107,7 +108,7 @@ class RealtimeTradingEngine extends EventEmitter {
       this.activeOrders.set(order.id, order);
     }
 
-    console.log(`[RealtimeTradingEngine] 加载了 ${orders.length} 个活跃订单`);
+    logger.info(`[RealtimeTradingEngine] 加载了 ${orders.length} 个活跃订单`);
   }
 
   /**
@@ -136,7 +137,7 @@ class RealtimeTradingEngine extends EventEmitter {
       this.orderBooks.set(row.asset_id, orderBook);
     }
 
-    console.log(`[RealtimeTradingEngine] 初始化了 ${this.orderBooks.size} 个订单簿`);
+    logger.info(`[RealtimeTradingEngine] 初始化了 ${this.orderBooks.size} 个订单簿`);
   }
 
   /**
@@ -194,7 +195,7 @@ class RealtimeTradingEngine extends EventEmitter {
         order
       };
     } catch (error) {
-      console.error('[RealtimeTradingEngine] 提交订单失败:', error);
+      logger.error('[RealtimeTradingEngine] 提交订单失败:', error);
       return {
         success: false,
         error: error.message
@@ -334,7 +335,7 @@ class RealtimeTradingEngine extends EventEmitter {
 
       return true;
     } catch (error) {
-      console.error('[RealtimeTradingEngine] 取消订单失败:', error);
+      logger.error('[RealtimeTradingEngine] 取消订单失败:', error);
       return false;
     }
   }
@@ -389,7 +390,7 @@ class RealtimeTradingEngine extends EventEmitter {
     try {
       const { buyOrder, sellOrder, quantity, price } = match;
 
-      console.log(`[RealtimeTradingEngine] 执行匹配: ${quantity} @ ${price}`);
+      logger.info(`[RealtimeTradingEngine] 执行匹配: ${quantity} @ ${price}`);
 
       // 更新买单
       buyOrder.filled_quantity += quantity;
@@ -436,7 +437,7 @@ class RealtimeTradingEngine extends EventEmitter {
       await this.updatePrice(buyOrder.asset_id, price);
 
     } catch (error) {
-      console.error('[RealtimeTradingEngine] 执行匹配失败:', error);
+      logger.error('[RealtimeTradingEngine] 执行匹配失败:', error);
     }
   }
 

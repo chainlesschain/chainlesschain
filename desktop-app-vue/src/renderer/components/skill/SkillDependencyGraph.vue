@@ -47,7 +47,7 @@
 
 <script setup>
 import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
-import * as echarts from 'echarts';
+import { init } from '../../utils/echartsConfig';
 import { ZoomInOutlined } from '@ant-design/icons-vue';
 
 const props = defineProps({
@@ -124,7 +124,7 @@ const buildGraphData = () => {
 const initGraph = () => {
   if (!graphRef.value) {return;}
 
-  graph = echarts.init(graphRef.value);
+  graph = init(graphRef.value);
 
   const { nodes, links } = buildGraphData();
 

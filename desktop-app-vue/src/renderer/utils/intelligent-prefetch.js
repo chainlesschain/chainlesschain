@@ -1,3 +1,5 @@
+import { logger, createLogger } from '@/utils/logger';
+
 /**
  * Intelligent Prefetch Manager
  * 智能预取管理器 - 基于用户行为预测并预加载资源
@@ -50,7 +52,7 @@ class IntelligentPrefetchManager {
     this.init()
 
     if (this.options.debug) {
-      console.log('[IntelligentPrefetchManager] Initialized')
+      logger.info('[IntelligentPrefetchManager] Initialized')
     }
   }
 
@@ -65,7 +67,7 @@ class IntelligentPrefetchManager {
         this.adjustConcurrency()
 
         if (this.options.debug) {
-          console.log('[IntelligentPrefetchManager] Network changed:', this.networkInfo)
+          logger.info('[IntelligentPrefetchManager] Network changed:', this.networkInfo)
         }
       })
     }
@@ -95,7 +97,7 @@ class IntelligentPrefetchManager {
       this.stats.cacheHits++
 
       if (this.options.debug) {
-        console.log(`[IntelligentPrefetchManager] Cache hit: ${key}`)
+        logger.info(`[IntelligentPrefetchManager] Cache hit: ${key}`)
       }
 
       return
@@ -104,7 +106,7 @@ class IntelligentPrefetchManager {
     // Check data saver mode
     if (this.options.respectDataSaver && this.isDataSaverEnabled()) {
       if (this.options.debug) {
-        console.log('[IntelligentPrefetchManager] Data saver enabled, skipping prefetch')
+        logger.info('[IntelligentPrefetchManager] Data saver enabled, skipping prefetch')
       }
       return
     }
@@ -112,7 +114,7 @@ class IntelligentPrefetchManager {
     // Check network conditions
     if (this.options.networkAware && !this.shouldPrefetch(priority)) {
       if (this.options.debug) {
-        console.log('[IntelligentPrefetchManager] Poor network conditions, skipping prefetch')
+        logger.info('[IntelligentPrefetchManager] Poor network conditions, skipping prefetch')
       }
       return
     }
@@ -201,10 +203,10 @@ class IntelligentPrefetchManager {
       }
 
       if (this.options.debug) {
-        console.log(`[IntelligentPrefetchManager] Prefetched: ${key} (${type})`)
+        logger.info(`[IntelligentPrefetchManager] Prefetched: ${key} (${type})`)
       }
     } catch (error) {
-      console.error(`[IntelligentPrefetchManager] Prefetch failed: ${key}`, error)
+      logger.error(`[IntelligentPrefetchManager] Prefetch failed: ${key}`, error)
       this.stats.failedPrefetches++
     } finally {
       this.prefetching.delete(key)
@@ -343,7 +345,7 @@ class IntelligentPrefetchManager {
     if (!this.options.enableViewportPrefetch) {return}
 
     if (!('IntersectionObserver' in window)) {
-      console.warn('[IntelligentPrefetchManager] IntersectionObserver not supported')
+      logger.warn('[IntelligentPrefetchManager] IntersectionObserver not supported')
       return
     }
 
@@ -528,7 +530,7 @@ class IntelligentPrefetchManager {
     this.prefetched.clear()
 
     if (this.options.debug) {
-      console.log('[IntelligentPrefetchManager] Cache cleared')
+      logger.info('[IntelligentPrefetchManager] Cache cleared')
     }
   }
 
@@ -553,7 +555,7 @@ class IntelligentPrefetchManager {
     this.prefetched.clear()
 
     if (this.options.debug) {
-      console.log('[IntelligentPrefetchManager] Destroyed')
+      logger.info('[IntelligentPrefetchManager] Destroyed')
     }
   }
 }

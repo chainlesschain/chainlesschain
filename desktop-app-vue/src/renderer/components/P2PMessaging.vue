@@ -540,6 +540,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, reactive, onMounted, onUnmounted, nextTick } from 'vue';
 import { message as antMessage } from 'ant-design-vue';
 import { useSocialStore } from '../stores/social';
@@ -699,7 +701,7 @@ const loadNodeInfo = async () => {
       nodeInfo.value = info;
     }
   } catch (error) {
-    console.error('加载节点信息失败:', error);
+    logger.error('加载节点信息失败:', error);
   } finally {
     loading.value = false;
   }
@@ -713,7 +715,7 @@ const loadCurrentDevice = async () => {
       currentDevice.value = device;
     }
   } catch (error) {
-    console.error('加载当前设备失败:', error);
+    logger.error('加载当前设备失败:', error);
   }
 };
 
@@ -725,7 +727,7 @@ const loadDeviceStatistics = async () => {
       deviceStats.value = stats;
     }
   } catch (error) {
-    console.error('加载设备统计失败:', error);
+    logger.error('加载设备统计失败:', error);
   }
 };
 
@@ -737,7 +739,7 @@ const loadSyncStatistics = async () => {
       syncStats.value = stats;
     }
   } catch (error) {
-    console.error('加载同步统计失败:', error);
+    logger.error('加载同步统计失败:', error);
   }
 };
 
@@ -749,7 +751,7 @@ const handleStartSync = async (deviceId) => {
     // 刷新统计
     await loadSyncStatistics();
   } catch (error) {
-    console.error('启动设备同步失败:', error);
+    logger.error('启动设备同步失败:', error);
     antMessage.error('启动设备同步失败: ' + error.message);
   }
 };
@@ -778,7 +780,7 @@ const loadPeers = async () => {
       }
     }
   } catch (error) {
-    console.error('加载对等节点失败:', error);
+    logger.error('加载对等节点失败:', error);
   }
 };
 
@@ -790,7 +792,7 @@ const loadPeerDevices = async (peerId) => {
       peerDevices.set(peerId, devices);
     }
   } catch (error) {
-    console.error('加载设备列表失败:', error);
+    logger.error('加载设备列表失败:', error);
   }
 };
 
@@ -808,7 +810,7 @@ const handleConnect = async () => {
     connectAddress.value = '';
     await loadPeers();
   } catch (error) {
-    console.error('连接失败:', error);
+    logger.error('连接失败:', error);
     antMessage.error('连接失败: ' + error.message);
   } finally {
     connecting.value = false;
@@ -831,7 +833,7 @@ const handleDisconnect = async (peerId) => {
     peerDevices.delete(peerId);
     await loadPeers();
   } catch (error) {
-    console.error('断开连接失败:', error);
+    logger.error('断开连接失败:', error);
     antMessage.error('断开连接失败: ' + error.message);
   }
 };
@@ -862,7 +864,7 @@ const handleKeyExchange = async (peerId, deviceId = null) => {
     // 刷新设备列表
     await loadPeerDevices(peerId);
   } catch (error) {
-    console.error('密钥交换失败:', error);
+    logger.error('密钥交换失败:', error);
     antMessage.error('密钥交换失败: ' + error.message);
   } finally {
     loading.value = false;
@@ -910,7 +912,7 @@ const handleVoiceCall = async (peer) => {
     }
   } catch (error) {
     antMessage.destroy();
-    console.error('发起语音通话失败:', error);
+    logger.error('发起语音通话失败:', error);
     antMessage.error('发起语音通话失败');
   }
 };
@@ -934,7 +936,7 @@ const handleVideoCall = async (peer) => {
     }
   } catch (error) {
     antMessage.destroy();
-    console.error('发起视频通话失败:', error);
+    logger.error('发起视频通话失败:', error);
     antMessage.error('发起视频通话失败');
   }
 };
@@ -1037,7 +1039,7 @@ const handleSendMessage = async () => {
         timestamp: Date.now()
       });
     } catch (dbError) {
-      console.error('保存消息到数据库失败:', dbError);
+      logger.error('保存消息到数据库失败:', dbError);
       // 不影响消息发送，只记录错误
     }
 
@@ -1058,7 +1060,7 @@ const handleSendMessage = async () => {
       antMessage.success('消息已发送（加密）');
     }
   } catch (error) {
-    console.error('发送消息失败:', error);
+    logger.error('发送消息失败:', error);
     antMessage.error('发送失败: ' + error.message);
   } finally {
     sending.value = false;
@@ -1074,7 +1076,7 @@ const scrollToBottom = () => {
 
 // 接收消息事件处理
 const handleEncryptedMessageReceived = (data) => {
-  console.log('收到加密消息:', data);
+  logger.info('收到加密消息:', data);
 
   const newMessage = {
     id: Date.now(),
@@ -1111,7 +1113,7 @@ const handleEncryptedMessageReceived = (data) => {
         timestamp: Date.now()
       });
     } catch (dbError) {
-      console.error('保存接收消息到数据库失败:', dbError);
+      logger.error('保存接收消息到数据库失败:', dbError);
     }
   })();
 
@@ -1121,7 +1123,7 @@ const handleEncryptedMessageReceived = (data) => {
 
 // 密钥交换成功事件处理
 const handleKeyExchangeSuccess = (data) => {
-  console.log('密钥交换成功:', data);
+  logger.info('密钥交换成功:', data);
 
   const key = getSessionKey(data.peerId, data.deviceId);
   encryptionSessions.set(key, true);

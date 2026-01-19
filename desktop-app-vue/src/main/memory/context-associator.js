@@ -13,6 +13,7 @@
  * @since 2026-01-18
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const _fs = require("fs").promises;
 const _path = require("path");
 const { EventEmitter } = require("events");
@@ -61,7 +62,7 @@ class ContextAssociator extends EventEmitter {
     // Minimum similarity for associations
     this.minSimilarityThreshold = 0.3;
 
-    console.log("[ContextAssociator] Initialized", {
+    logger.info("[ContextAssociator] Initialized", {
       hasLLM: !!this.llmManager,
       hasSessionManager: !!this.sessionManager,
     });
@@ -75,9 +76,9 @@ class ContextAssociator extends EventEmitter {
       // Ensure tables exist
       await this._ensureTables();
 
-      console.log("[ContextAssociator] Initialization complete");
+      logger.info("[ContextAssociator] Initialization complete");
     } catch (error) {
-      console.error("[ContextAssociator] Initialization failed:", error);
+      logger.error("[ContextAssociator] Initialization failed:", error);
       throw error;
     }
   }
@@ -201,10 +202,10 @@ class ContextAssociator extends EventEmitter {
           )
           .run();
 
-        console.log("[ContextAssociator] Database tables created");
+        logger.info("[ContextAssociator] Database tables created");
       }
     } catch (error) {
-      console.error("[ContextAssociator] Failed to ensure tables:", error);
+      logger.error("[ContextAssociator] Failed to ensure tables:", error);
       throw error;
     }
   }
@@ -222,7 +223,7 @@ class ContextAssociator extends EventEmitter {
   async extractKnowledgeFromSession(sessionId, options = {}) {
     const { useLLM = true, messageLimit = 50 } = options;
 
-    console.log(
+    logger.info(
       `[ContextAssociator] Extracting knowledge from session: ${sessionId}`,
     );
 
@@ -231,7 +232,7 @@ class ContextAssociator extends EventEmitter {
       const messages = await this._getSessionMessages(sessionId, messageLimit);
 
       if (messages.length === 0) {
-        console.log("[ContextAssociator] No messages found for session");
+        logger.info("[ContextAssociator] No messages found for session");
         return [];
       }
 
@@ -258,13 +259,13 @@ class ContextAssociator extends EventEmitter {
         sessionId,
         count: extractedKnowledge.length,
       });
-      console.log(
+      logger.info(
         `[ContextAssociator] Extracted ${extractedKnowledge.length} knowledge items`,
       );
 
       return extractedKnowledge;
     } catch (error) {
-      console.error("[ContextAssociator] Knowledge extraction failed:", error);
+      logger.error("[ContextAssociator] Knowledge extraction failed:", error);
       throw error;
     }
   }
@@ -295,7 +296,7 @@ class ContextAssociator extends EventEmitter {
       `);
       return messagesStmt.all(sessionId, limit);
     } catch (error) {
-      console.error(
+      logger.error(
         "[ContextAssociator] Failed to get session messages:",
         error,
       );
@@ -345,7 +346,7 @@ Respond in JSON format:
       const extracted = this._parseLLMResponse(response, sessionId);
       return extracted;
     } catch (error) {
-      console.error("[ContextAssociator] LLM extraction failed:", error);
+      logger.error("[ContextAssociator] LLM extraction failed:", error);
       // Fall back to rule-based extraction
       return this._extractWithRules(sessionId, messages);
     }
@@ -442,7 +443,7 @@ Respond in JSON format:
         }
       }
     } catch (error) {
-      console.error("[ContextAssociator] Failed to parse LLM response:", error);
+      logger.error("[ContextAssociator] Failed to parse LLM response:", error);
     }
 
     return knowledge;
@@ -681,7 +682,7 @@ Respond in JSON format:
           now,
         );
     } catch (error) {
-      console.error("[ContextAssociator] Failed to save knowledge:", error);
+      logger.error("[ContextAssociator] Failed to save knowledge:", error);
     }
   }
 
@@ -753,7 +754,7 @@ Respond in JSON format:
           );
       }
     } catch (error) {
-      console.error("[ContextAssociator] Failed to update context:", error);
+      logger.error("[ContextAssociator] Failed to update context:", error);
     }
   }
 
@@ -826,7 +827,7 @@ Respond in JSON format:
         }
       }
     } catch (error) {
-      console.error("[ContextAssociator] Failed to find associations:", error);
+      logger.error("[ContextAssociator] Failed to find associations:", error);
     }
   }
 
@@ -887,7 +888,7 @@ Respond in JSON format:
           );
       }
     } catch (error) {
-      console.error("[ContextAssociator] Failed to create association:", error);
+      logger.error("[ContextAssociator] Failed to create association:", error);
     }
   }
 
@@ -935,7 +936,7 @@ Respond in JSON format:
         confirmed: r.is_confirmed === 1,
       }));
     } catch (error) {
-      console.error(
+      logger.error(
         "[ContextAssociator] Failed to find related sessions:",
         error,
       );
@@ -984,7 +985,7 @@ Respond in JSON format:
       // Return newly created context
       return this.analyzeConversation(conversationId);
     } catch (error) {
-      console.error(
+      logger.error(
         "[ContextAssociator] Failed to analyze conversation:",
         error,
       );
@@ -1030,7 +1031,7 @@ Respond in JSON format:
         createdAt: k.created_at,
       }));
     } catch (error) {
-      console.error("[ContextAssociator] Failed to search knowledge:", error);
+      logger.error("[ContextAssociator] Failed to search knowledge:", error);
       return [];
     }
   }
@@ -1068,7 +1069,7 @@ Respond in JSON format:
         createdAt: k.created_at,
       }));
     } catch (error) {
-      console.error(
+      logger.error(
         "[ContextAssociator] Failed to get session knowledge:",
         error,
       );
@@ -1143,7 +1144,7 @@ Respond in JSON format:
         usageCount: 1,
       };
     } catch (error) {
-      console.error("[ContextAssociator] Failed to get/create topic:", error);
+      logger.error("[ContextAssociator] Failed to get/create topic:", error);
       throw error;
     }
   }
@@ -1171,7 +1172,7 @@ Respond in JSON format:
         usageCount: t.usage_count,
       }));
     } catch (error) {
-      console.error("[ContextAssociator] Failed to get popular topics:", error);
+      logger.error("[ContextAssociator] Failed to get popular topics:", error);
       return [];
     }
   }
@@ -1248,7 +1249,7 @@ Respond in JSON format:
         },
       };
     } catch (error) {
-      console.error("[ContextAssociator] Failed to get stats:", error);
+      logger.error("[ContextAssociator] Failed to get stats:", error);
       return {};
     }
   }

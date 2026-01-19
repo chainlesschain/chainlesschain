@@ -4,6 +4,7 @@
  * 负责读取、保存和管理U盾配置
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require('fs');
 const path = require('path');
 const { app } = require('electron');
@@ -88,13 +89,13 @@ class UKeyConfig {
         };
 
         this.loaded = true;
-        // console.log('[UKeyConfig] 配置加载成功:', this.configPath);
+        // logger.info('[UKeyConfig] 配置加载成功:', this.configPath);
       } else {
-        // console.log('[UKeyConfig] 配置文件不存在，使用默认配置');
+        // logger.info('[UKeyConfig] 配置文件不存在，使用默认配置');
         this.loaded = false;
       }
     } catch (error) {
-      // console.error('[UKeyConfig] 配置加载失败:', error);
+      // logger.error('[UKeyConfig] 配置加载失败:', error);
       this.config = { ...DEFAULT_CONFIG };
       this.loaded = false;
     }
@@ -116,10 +117,10 @@ class UKeyConfig {
       // 写入配置文件
       fs.writeFileSync(this.configPath, JSON.stringify(this.config, null, 2), 'utf8');
 
-      // console.log('[UKeyConfig] 配置保存成功:', this.configPath);
+      // logger.info('[UKeyConfig] 配置保存成功:', this.configPath);
       return true;
     } catch (error) {
-      // console.error('[UKeyConfig] 配置保存失败:', error);
+      // logger.error('[UKeyConfig] 配置保存失败:', error);
       return false;
     }
   }
@@ -177,7 +178,7 @@ class UKeyConfig {
   reset() {
     this.config = { ...DEFAULT_CONFIG };
     this.save();
-    // console.log('[UKeyConfig] 配置已重置为默认值');
+    // logger.info('[UKeyConfig] 配置已重置为默认值');
   }
 
   /**
@@ -319,10 +320,10 @@ class UKeyConfig {
         ...imported,
       };
       this.save();
-      // console.log('[UKeyConfig] 配置导入成功');
+      // logger.info('[UKeyConfig] 配置导入成功');
       return true;
     } catch (error) {
-      // console.error('[UKeyConfig] 配置导入失败:', error);
+      // logger.error('[UKeyConfig] 配置导入失败:', error);
       return false;
     }
   }

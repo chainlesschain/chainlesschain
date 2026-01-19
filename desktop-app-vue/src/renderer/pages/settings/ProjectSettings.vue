@@ -59,6 +59,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, onMounted } from 'vue';
 import { message } from 'ant-design-vue';
 import { FolderOpenOutlined, ReloadOutlined } from '@ant-design/icons-vue';
@@ -73,7 +75,7 @@ const loadConfig = async () => {
     config.value = projectConfig;
     projectsRootPath.value = projectConfig.projectsRootPath;
   } catch (error) {
-    console.error('加载配置失败:', error);
+    logger.error('加载配置失败:', error);
     message.error('加载配置失败：' + error.message);
   }
 };
@@ -84,7 +86,7 @@ const handleRefreshConfig = async () => {
     await loadConfig();
     message.success('配置已刷新');
   } catch (error) {
-    console.error('刷新配置失败:', error);
+    logger.error('刷新配置失败:', error);
     message.error('刷新配置失败：' + error.message);
   }
 };
@@ -95,7 +97,7 @@ const handleOpenFolder = async () => {
     const { shell } = require('electron');
     await shell.openPath(projectsRootPath.value);
   } catch (error) {
-    console.error('打开目录失败:', error);
+    logger.error('打开目录失败:', error);
     message.error('打开目录失败：' + error.message);
   }
 };

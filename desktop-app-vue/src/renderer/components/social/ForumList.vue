@@ -338,6 +338,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, reactive, onMounted, computed } from 'vue';
 import { message as antMessage } from 'ant-design-vue';
 import {
@@ -416,7 +418,7 @@ const loadTopics = async (page = 1) => {
       antMessage.error(result.error || '加载帖子失败');
     }
   } catch (error) {
-    console.error('加载帖子失败:', error);
+    logger.error('加载帖子失败:', error);
     antMessage.error('加载帖子失败');
   } finally {
     loading.value = false;
@@ -468,7 +470,7 @@ const handleCreateTopic = async () => {
       antMessage.error(result.error || '发布失败');
     }
   } catch (error) {
-    console.error('发布帖子失败:', error);
+    logger.error('发布帖子失败:', error);
     antMessage.error('发布失败');
   } finally {
     publishing.value = false;
@@ -487,7 +489,7 @@ const viewTopic = async (topic) => {
       replies.value = result.data.replies || [];
     }
   } catch (error) {
-    console.error('加载回复失败:', error);
+    logger.error('加载回复失败:', error);
   }
 
   // 增加浏览量
@@ -503,7 +505,7 @@ const handleLikeTopic = async (topic) => {
       topic.likes_count = (topic.likes_count || 0) + (topic.liked ? 1 : -1);
     }
   } catch (error) {
-    console.error('点赞失败:', error);
+    logger.error('点赞失败:', error);
     antMessage.error('操作失败');
   }
 };
@@ -517,7 +519,7 @@ const handleLikeReply = async (reply) => {
       reply.likes_count = (reply.likes_count || 0) + (reply.liked ? 1 : -1);
     }
   } catch (error) {
-    console.error('点赞失败:', error);
+    logger.error('点赞失败:', error);
     antMessage.error('操作失败');
   }
 };
@@ -546,7 +548,7 @@ const handleReply = async () => {
       antMessage.error(result.error || '回复失败');
     }
   } catch (error) {
-    console.error('回复失败:', error);
+    logger.error('回复失败:', error);
     antMessage.error('回复失败');
   } finally {
     replying.value = false;

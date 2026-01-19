@@ -13,6 +13,7 @@
  * - Falls back to simulation mode if no hardware detected
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const os = require('os');
 const fs = require('fs');
 const path = require('path');
@@ -97,12 +98,12 @@ class CrossPlatformAdapter extends EventEmitter {
    * Initialize adapter
    */
   async initialize() {
-    console.log(`[CrossPlatformAdapter] Initializing on ${this.platform}...`);
+    logger.info(`[CrossPlatformAdapter] Initializing on ${this.platform}...`);
 
     try {
       // Detect available drivers
       this.availableDrivers = await this.detectAvailableDrivers();
-      console.log(`[CrossPlatformAdapter] Available drivers:`, this.availableDrivers);
+      logger.info(`[CrossPlatformAdapter] Available drivers:`, this.availableDrivers);
 
       // Select and initialize best driver
       const selectedDriver = await this.selectBestDriver();
@@ -115,7 +116,7 @@ class CrossPlatformAdapter extends EventEmitter {
       await this.currentDriver.initialize();
 
       this.isInitialized = true;
-      console.log(`[CrossPlatformAdapter] Initialized with driver: ${this.currentDriver.driverName}`);
+      logger.info(`[CrossPlatformAdapter] Initialized with driver: ${this.currentDriver.driverName}`);
 
       this.emit('initialized', {
         platform: this.platform,
@@ -125,7 +126,7 @@ class CrossPlatformAdapter extends EventEmitter {
 
       return true;
     } catch (error) {
-      console.error('[CrossPlatformAdapter] Initialization failed:', error);
+      logger.error('[CrossPlatformAdapter] Initialization failed:', error);
       throw error;
     }
   }
@@ -144,7 +145,7 @@ class CrossPlatformAdapter extends EventEmitter {
           available.push(driverType);
         }
       } catch (error) {
-        console.warn(`[CrossPlatformAdapter] Driver ${driverType} check failed:`, error.message);
+        logger.warn(`[CrossPlatformAdapter] Driver ${driverType} check failed:`, error.message);
       }
     }
 
@@ -246,16 +247,16 @@ class CrossPlatformAdapter extends EventEmitter {
       if (this.availableDrivers.includes(preferredDriver)) {
         try {
           const driver = await this.createDriver(preferredDriver);
-          console.log(`[CrossPlatformAdapter] Selected driver: ${preferredDriver}`);
+          logger.info(`[CrossPlatformAdapter] Selected driver: ${preferredDriver}`);
           return driver;
         } catch (error) {
-          console.warn(`[CrossPlatformAdapter] Failed to create ${preferredDriver} driver:`, error.message);
+          logger.warn(`[CrossPlatformAdapter] Failed to create ${preferredDriver} driver:`, error.message);
         }
       }
     }
 
     // Fallback to simulated
-    console.log('[CrossPlatformAdapter] Falling back to simulated driver');
+    logger.info('[CrossPlatformAdapter] Falling back to simulated driver');
     return this.createDriver('simulated');
   }
 
@@ -317,7 +318,7 @@ class CrossPlatformAdapter extends EventEmitter {
       throw new Error(`Driver ${driverType} is not available on this platform`);
     }
 
-    console.log(`[CrossPlatformAdapter] Switching to ${driverType} driver...`);
+    logger.info(`[CrossPlatformAdapter] Switching to ${driverType} driver...`);
 
     try {
       // Close current driver
@@ -334,10 +335,10 @@ class CrossPlatformAdapter extends EventEmitter {
         isHardware: this.currentDriver.driverName !== 'Simulated'
       });
 
-      console.log(`[CrossPlatformAdapter] Switched to ${driverType} driver successfully`);
+      logger.info(`[CrossPlatformAdapter] Switched to ${driverType} driver successfully`);
       return true;
     } catch (error) {
-      console.error(`[CrossPlatformAdapter] Failed to switch driver:`, error);
+      logger.error(`[CrossPlatformAdapter] Failed to switch driver:`, error);
       throw error;
     }
   }

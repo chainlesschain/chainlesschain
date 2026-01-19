@@ -1,3 +1,4 @@
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require("fs");
 const path = require("path");
 
@@ -37,7 +38,7 @@ class InitialSetupConfig {
         return { ...defaultConfig, ...JSON.parse(data) };
       }
     } catch (error) {
-      console.error("加载初始设置配置失败:", error);
+      logger.error("加载初始设置配置失败:", error);
     }
     // 使用深拷贝返回默认配置
     return JSON.parse(JSON.stringify(DEFAULT_CONFIG));
@@ -51,7 +52,7 @@ class InitialSetupConfig {
         "utf8",
       );
     } catch (error) {
-      console.error("保存初始设置配置失败:", error);
+      logger.error("保存初始设置配置失败:", error);
       throw error;
     }
   }

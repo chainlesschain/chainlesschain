@@ -3,6 +3,7 @@
  * 处理所有 escrow: 相关的 IPC 通信
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { ipcMain } = require('electron');
 
 /**
@@ -21,7 +22,7 @@ function registerEscrowIPC(escrowManager) {
 
       return await escrowManager.getEscrow(escrowId);
     } catch (error) {
-      console.error('[Main] 获取托管详情失败:', error);
+      logger.error('[Main] 获取托管详情失败:', error);
       throw error;
     }
   });
@@ -35,7 +36,7 @@ function registerEscrowIPC(escrowManager) {
 
       return await escrowManager.getEscrows(filters);
     } catch (error) {
-      console.error('[Main] 获取托管列表失败:', error);
+      logger.error('[Main] 获取托管列表失败:', error);
       throw error;
     }
   });
@@ -49,7 +50,7 @@ function registerEscrowIPC(escrowManager) {
 
       return await escrowManager.getEscrowHistory(escrowId);
     } catch (error) {
-      console.error('[Main] 获取托管历史失败:', error);
+      logger.error('[Main] 获取托管历史失败:', error);
       throw error;
     }
   });
@@ -63,7 +64,7 @@ function registerEscrowIPC(escrowManager) {
 
       return await escrowManager.disputeEscrow(escrowId, reason);
     } catch (error) {
-      console.error('[Main] 发起争议失败:', error);
+      logger.error('[Main] 发起争议失败:', error);
       throw error;
     }
   });
@@ -77,12 +78,12 @@ function registerEscrowIPC(escrowManager) {
 
       return await escrowManager.getStatistics();
     } catch (error) {
-      console.error('[Main] 获取托管统计信息失败:', error);
+      logger.error('[Main] 获取托管统计信息失败:', error);
       throw error;
     }
   });
 
-  console.log('[Escrow IPC] 托管管理 IPC 处理器注册完成 (5个处理器)');
+  logger.info('[Escrow IPC] 托管管理 IPC 处理器注册完成 (5个处理器)');
 }
 
 module.exports = { registerEscrowIPC };

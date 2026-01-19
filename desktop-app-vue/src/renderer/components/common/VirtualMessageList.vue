@@ -87,6 +87,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { UserOutlined, RobotOutlined, DownOutlined } from '@ant-design/icons-vue'
 import { marked } from 'marked'
@@ -184,7 +186,7 @@ const renderMarkdown = (content) => {
       gfm: true,
     })
   } catch (error) {
-    console.error('Markdown render error:', error)
+    logger.error('Markdown render error:', error)
     return content
   }
 }

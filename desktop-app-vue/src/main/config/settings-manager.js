@@ -3,6 +3,7 @@
  * 统一管理应用配置和用户偏好设置
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { app } = require("electron");
 const fs = require("fs");
 const path = require("path");
@@ -305,14 +306,14 @@ class SettingsManager extends EventEmitter {
         // 合并默认设置和加载的设置
         this.settings = this.mergeSettings(this.defaults, loaded);
 
-        console.log("[SettingsManager] Settings loaded");
+        logger.info("[SettingsManager] Settings loaded");
       } else {
         // 使用默认设置
         this.settings = JSON.parse(JSON.stringify(this.defaults));
         this.saveSettings();
       }
     } catch (error) {
-      console.error("[SettingsManager] Load settings error:", error);
+      logger.error("[SettingsManager] Load settings error:", error);
       this.settings = JSON.parse(JSON.stringify(this.defaults));
     }
   }
@@ -324,14 +325,14 @@ class SettingsManager extends EventEmitter {
     try {
       const content = JSON.stringify(this.settings, null, 2);
       fs.writeFileSync(this.settingsPath, content, "utf8");
-      console.log("[SettingsManager] Settings saved");
+      logger.info("[SettingsManager] Settings saved");
 
       // 触发保存事件
       this.emit("saved", this.settings);
 
       return true;
     } catch (error) {
-      console.error("[SettingsManager] Save settings error:", error);
+      logger.error("[SettingsManager] Save settings error:", error);
       return false;
     }
   }
@@ -471,7 +472,7 @@ class SettingsManager extends EventEmitter {
     this.settings = JSON.parse(JSON.stringify(this.defaults));
     this.saveSettings();
     this.emit("reset");
-    console.log("[SettingsManager] Settings reset to defaults");
+    logger.info("[SettingsManager] Settings reset to defaults");
   }
 
   /**
@@ -484,7 +485,7 @@ class SettingsManager extends EventEmitter {
       );
       this.saveSettings();
       this.emit("categoryReset", category);
-      console.log("[SettingsManager] Category reset:", category);
+      logger.info("[SettingsManager] Category reset:", category);
     }
   }
 
@@ -518,7 +519,7 @@ class SettingsManager extends EventEmitter {
         try {
           callback(newValue, oldValue, key);
         } catch (error) {
-          console.error("[SettingsManager] Watcher error:", error);
+          logger.error("[SettingsManager] Watcher error:", error);
         }
       }
     }
@@ -532,7 +533,7 @@ class SettingsManager extends EventEmitter {
           try {
             callback(this.get(parentKey), undefined, parentKey);
           } catch (error) {
-            console.error("[SettingsManager] Watcher error:", error);
+            logger.error("[SettingsManager] Watcher error:", error);
           }
         }
       }
@@ -546,13 +547,13 @@ class SettingsManager extends EventEmitter {
     try {
       fs.watch(this.settingsPath, (eventType) => {
         if (eventType === "change") {
-          console.log("[SettingsManager] Settings file changed externally");
+          logger.info("[SettingsManager] Settings file changed externally");
           this.loadSettings();
           this.emit("externalChange");
         }
       });
     } catch (error) {
-      console.error("[SettingsManager] Watch settings file error:", error);
+      logger.error("[SettingsManager] Watch settings file error:", error);
     }
   }
 
@@ -568,10 +569,10 @@ class SettingsManager extends EventEmitter {
       };
 
       fs.writeFileSync(outputPath, JSON.stringify(exportData, null, 2));
-      console.log("[SettingsManager] Settings exported to:", outputPath);
+      logger.info("[SettingsManager] Settings exported to:", outputPath);
       return true;
     } catch (error) {
-      console.error("[SettingsManager] Export settings error:", error);
+      logger.error("[SettingsManager] Export settings error:", error);
       return false;
     }
   }
@@ -588,13 +589,13 @@ class SettingsManager extends EventEmitter {
         this.settings = this.mergeSettings(this.defaults, data.settings);
         this.saveSettings();
         this.emit("imported");
-        console.log("[SettingsManager] Settings imported from:", inputPath);
+        logger.info("[SettingsManager] Settings imported from:", inputPath);
         return true;
       }
 
       return false;
     } catch (error) {
-      console.error("[SettingsManager] Import settings error:", error);
+      logger.error("[SettingsManager] Import settings error:", error);
       return false;
     }
   }

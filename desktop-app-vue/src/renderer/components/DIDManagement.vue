@@ -642,6 +642,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, reactive, onMounted, h } from "vue";
 import { message, Modal } from "ant-design-vue";
 import {
@@ -733,7 +735,7 @@ async function loadIdentities() {
             hasMnemonicBackup: hasMnemonic,
           };
         } catch (error) {
-          console.error("检查状态失败:", error);
+          logger.error("检查状态失败:", error);
           return { ...identity, dhtPublished: false, hasMnemonicBackup: false };
         }
       }),
@@ -995,7 +997,7 @@ async function handlePublishToDHT() {
       currentIdentity.value.did,
     );
     message.success("DID 已成功发布到 DHT 网络");
-    console.log("发布结果:", result);
+    logger.info("发布结果:", result);
 
     // 更新当前身份的 DHT 状态
     currentIdentity.value.dhtPublished = true;
@@ -1003,7 +1005,7 @@ async function handlePublishToDHT() {
     // 刷新身份列表
     await loadIdentities();
   } catch (error) {
-    console.error("发布失败:", error);
+    logger.error("发布失败:", error);
     message.error("发布失败: " + error.message);
   } finally {
     publishing.value = false;
@@ -1036,7 +1038,7 @@ async function handleUnpublishFromDHT() {
         // 刷新身份列表
         await loadIdentities();
       } catch (error) {
-        console.error("取消发布失败:", error);
+        logger.error("取消发布失败:", error);
         message.error("取消发布失败: " + error.message);
       } finally {
         unpublishing.value = false;
@@ -1053,7 +1055,7 @@ async function loadAutoRepublishStatus() {
     autoRepublishConfig.enabled = status.enabled;
     autoRepublishConfig.intervalHours = status.intervalHours;
   } catch (error) {
-    console.error("[DIDManagement] 加载自动重新发布状态失败:", error);
+    logger.error("[DIDManagement] 加载自动重新发布状态失败:", error);
   }
 }
 
@@ -1073,7 +1075,7 @@ async function handleSaveAutoRepublishConfig() {
     await loadAutoRepublishStatus();
     showAutoRepublishModal.value = false;
   } catch (error) {
-    console.error("[DIDManagement] 保存配置失败:", error);
+    logger.error("[DIDManagement] 保存配置失败:", error);
     message.error("保存配置失败: " + error.message);
   }
 }
@@ -1096,7 +1098,7 @@ async function handleRepublishNow() {
 
     await loadIdentities();
   } catch (error) {
-    console.error("[DIDManagement] 重新发布失败:", error);
+    logger.error("[DIDManagement] 重新发布失败:", error);
     message.error("重新发布失败: " + error.message);
   } finally {
     republishing.value = false;
@@ -1171,7 +1173,7 @@ async function handleExportMnemonic() {
         exportingMnemonic.value = mnemonic;
         showMnemonicExportModal.value = true;
       } catch (error) {
-        console.error("导出助记词失败:", error);
+        logger.error("导出助记词失败:", error);
         message.error("导出助记词失败: " + error.message);
       }
     },

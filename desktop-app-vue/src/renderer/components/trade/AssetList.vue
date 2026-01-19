@@ -200,6 +200,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, reactive, computed, onMounted } from 'vue';
 import { message as antMessage, Modal } from 'ant-design-vue';
 import {
@@ -296,9 +298,9 @@ const loadAssets = async () => {
       await tradeStore.loadMyAssets(ownerDid);
     }
 
-    console.log('[AssetList] 资产列表已加载:', assets.value.length);
+    logger.info('[AssetList] 资产列表已加载:', assets.value.length);
   } catch (error) {
-    console.error('[AssetList] 加载资产列表失败:', error);
+    logger.error('[AssetList] 加载资产列表失败:', error);
     antMessage.error('加载资产列表失败: ' + error.message);
   }
 };

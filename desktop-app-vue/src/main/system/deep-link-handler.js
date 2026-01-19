@@ -8,6 +8,7 @@
  * - 处理其他深链接场景
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { URL } = require("url");
 
 class DeepLinkHandler {
@@ -58,7 +59,7 @@ class DeepLinkHandler {
       }
     });
 
-    console.log("[DeepLinkHandler] ✓ 协议处理器已注册");
+    logger.info("[DeepLinkHandler] ✓ 协议处理器已注册");
   }
 
   /**
@@ -66,14 +67,14 @@ class DeepLinkHandler {
    * @param {string} urlString - 深链接URL
    */
   async handleDeepLink(urlString) {
-    console.log("[DeepLinkHandler] 处理深链接:", urlString);
+    logger.info("[DeepLinkHandler] 处理深链接:", urlString);
 
     try {
       const url = new URL(urlString);
 
       // 验证协议
       if (url.protocol !== "chainlesschain:") {
-        console.warn("[DeepLinkHandler] 无效的协议:", url.protocol);
+        logger.warn("[DeepLinkHandler] 无效的协议:", url.protocol);
         return;
       }
 
@@ -92,10 +93,10 @@ class DeepLinkHandler {
           await this.handleKnowledgeLink(parts[1]);
           break;
         default:
-          console.warn("[DeepLinkHandler] 未知的深链接类型:", parts[0]);
+          logger.warn("[DeepLinkHandler] 未知的深链接类型:", parts[0]);
       }
     } catch (error) {
-      console.error("[DeepLinkHandler] 处理深链接失败:", error);
+      logger.error("[DeepLinkHandler] 处理深链接失败:", error);
     }
   }
 
@@ -105,15 +106,15 @@ class DeepLinkHandler {
    */
   async handleInvitationLink(token) {
     if (!token) {
-      console.warn("[DeepLinkHandler] 邀请令牌为空");
+      logger.warn("[DeepLinkHandler] 邀请令牌为空");
       return;
     }
 
-    console.log("[DeepLinkHandler] 处理邀请链接");
+    logger.info("[DeepLinkHandler] 处理邀请链接");
 
     // 确保主窗口已创建
     if (!this.mainWindow) {
-      console.warn("[DeepLinkHandler] 主窗口未创建，保存待处理邀请");
+      logger.warn("[DeepLinkHandler] 主窗口未创建，保存待处理邀请");
       this.pendingInvitation = token;
       return;
     }
@@ -134,11 +135,11 @@ class DeepLinkHandler {
    */
   async handleDIDLink(did) {
     if (!did) {
-      console.warn("[DeepLinkHandler] DID为空");
+      logger.warn("[DeepLinkHandler] DID为空");
       return;
     }
 
-    console.log("[DeepLinkHandler] 处理DID链接:", did);
+    logger.info("[DeepLinkHandler] 处理DID链接:", did);
 
     if (!this.mainWindow) {
       return;
@@ -160,11 +161,11 @@ class DeepLinkHandler {
    */
   async handleKnowledgeLink(knowledgeId) {
     if (!knowledgeId) {
-      console.warn("[DeepLinkHandler] 知识库ID为空");
+      logger.warn("[DeepLinkHandler] 知识库ID为空");
       return;
     }
 
-    console.log("[DeepLinkHandler] 处理知识库链接:", knowledgeId);
+    logger.info("[DeepLinkHandler] 处理知识库链接:", knowledgeId);
 
     if (!this.mainWindow) {
       return;

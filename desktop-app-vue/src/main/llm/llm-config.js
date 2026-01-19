@@ -3,6 +3,7 @@
  * 支持敏感信息（API Keys）加密存储
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require("fs");
 const path = require("path");
 const { app } = require("electron");
@@ -162,7 +163,7 @@ class LLMConfig {
               oldModel === "doubao-seed-1.6" ||
               !oldModel.match(/-\d{6}$/)) // 没有版本号后缀
           ) {
-            console.log(
+            logger.info(
               `[LLMConfig] 迁移旧模型: ${oldModel} → doubao-seed-1-6-251015`,
             );
             this.config.volcengine.model = "doubao-seed-1-6-251015";
@@ -177,7 +178,7 @@ class LLMConfig {
               oldEmbedding === "doubao-embedding-large" ||
               !oldEmbedding.match(/-\d{6}$/)) // 没有版本号后缀
           ) {
-            console.log(
+            logger.info(
               `[LLMConfig] 迁移旧嵌入模型: ${oldEmbedding} → doubao-embedding-text-240715`,
             );
             this.config.volcengine.embeddingModel =
@@ -188,7 +189,7 @@ class LLMConfig {
 
         // 如果有迁移，自动保存新配置
         if (needsMigration) {
-          console.log("[LLMConfig] 检测到旧配置，已自动迁移并保存");
+          logger.info("[LLMConfig] 检测到旧配置，已自动迁移并保存");
           this.save();
         }
 
@@ -196,15 +197,15 @@ class LLMConfig {
         this._loadSensitiveFields();
 
         this.loaded = true;
-        console.log("[LLMConfig] 配置加载成功");
+        logger.info("[LLMConfig] 配置加载成功");
       } else {
-        console.log("[LLMConfig] 配置文件不存在，使用默认配置");
+        logger.info("[LLMConfig] 配置文件不存在，使用默认配置");
         // 尝试从安全存储恢复敏感字段
         this._loadSensitiveFields();
         this.loaded = false;
       }
     } catch (error) {
-      console.error("[LLMConfig] 配置加载失败:", error);
+      logger.error("[LLMConfig] 配置加载失败:", error);
       this.config = { ...DEFAULT_CONFIG };
       this.loaded = false;
     }
@@ -221,10 +222,10 @@ class LLMConfig {
       const sensitiveData = this.secureStorage.load();
       if (sensitiveData) {
         mergeSensitiveFields(this.config, sensitiveData);
-        console.log("[LLMConfig] 敏感配置已从安全存储加载");
+        logger.info("[LLMConfig] 敏感配置已从安全存储加载");
       }
     } catch (error) {
-      console.warn("[LLMConfig] 加载敏感配置失败:", error.message);
+      logger.warn("[LLMConfig] 加载敏感配置失败:", error.message);
     }
   }
 
@@ -243,7 +244,7 @@ class LLMConfig {
       if (Object.keys(sensitiveData).length > 0) {
         const secureResult = this.secureStorage.save(sensitiveData);
         if (secureResult) {
-          console.log("[LLMConfig] 敏感配置已加密保存");
+          logger.info("[LLMConfig] 敏感配置已加密保存");
         }
       }
 
@@ -256,10 +257,10 @@ class LLMConfig {
         "utf8",
       );
 
-      console.log("[LLMConfig] 配置保存成功");
+      logger.info("[LLMConfig] 配置保存成功");
       return true;
     } catch (error) {
-      console.error("[LLMConfig] 配置保存失败:", error);
+      logger.error("[LLMConfig] 配置保存失败:", error);
       return false;
     }
   }

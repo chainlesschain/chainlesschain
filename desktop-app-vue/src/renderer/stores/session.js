@@ -7,6 +7,7 @@
  * @since 2026-01-17
  */
 
+import { logger, createLogger } from '@/utils/logger';
 import { defineStore } from "pinia";
 
 export const useSessionStore = defineStore("session", {
@@ -166,7 +167,7 @@ export const useSessionStore = defineStore("session", {
 
         return result;
       } catch (error) {
-        console.error("[SessionStore] 加载会话列表失败:", error);
+        logger.error("[SessionStore] 加载会话列表失败:", error);
         this.error = error.message;
         throw error;
       } finally {
@@ -201,7 +202,7 @@ export const useSessionStore = defineStore("session", {
 
         return result;
       } catch (error) {
-        console.error("[SessionStore] 搜索会话失败:", error);
+        logger.error("[SessionStore] 搜索会话失败:", error);
         this.error = error.message;
         throw error;
       } finally {
@@ -230,7 +231,7 @@ export const useSessionStore = defineStore("session", {
 
         return result;
       } catch (error) {
-        console.error("[SessionStore] 按标签查找失败:", error);
+        logger.error("[SessionStore] 按标签查找失败:", error);
         this.error = error.message;
         throw error;
       } finally {
@@ -257,7 +258,7 @@ export const useSessionStore = defineStore("session", {
 
         return result;
       } catch (error) {
-        console.error("[SessionStore] 加载会话详情失败:", error);
+        logger.error("[SessionStore] 加载会话详情失败:", error);
         this.error = error.message;
         throw error;
       } finally {
@@ -285,7 +286,7 @@ export const useSessionStore = defineStore("session", {
 
         return { success: true };
       } catch (error) {
-        console.error("[SessionStore] 删除会话失败:", error);
+        logger.error("[SessionStore] 删除会话失败:", error);
         this.error = error.message;
         throw error;
       }
@@ -316,7 +317,7 @@ export const useSessionStore = defineStore("session", {
 
         return result;
       } catch (error) {
-        console.error("[SessionStore] 批量删除失败:", error);
+        logger.error("[SessionStore] 批量删除失败:", error);
         this.error = error.message;
         throw error;
       }
@@ -349,7 +350,7 @@ export const useSessionStore = defineStore("session", {
 
         return result;
       } catch (error) {
-        console.error("[SessionStore] 添加标签失败:", error);
+        logger.error("[SessionStore] 添加标签失败:", error);
         this.error = error.message;
         throw error;
       }
@@ -379,7 +380,7 @@ export const useSessionStore = defineStore("session", {
 
         return result;
       } catch (error) {
-        console.error("[SessionStore] 移除标签失败:", error);
+        logger.error("[SessionStore] 移除标签失败:", error);
         this.error = error.message;
         throw error;
       }
@@ -404,7 +405,7 @@ export const useSessionStore = defineStore("session", {
 
         return result;
       } catch (error) {
-        console.error("[SessionStore] 批量添加标签失败:", error);
+        logger.error("[SessionStore] 批量添加标签失败:", error);
         this.error = error.message;
         throw error;
       }
@@ -421,7 +422,7 @@ export const useSessionStore = defineStore("session", {
         this.allTags = result || [];
         return result;
       } catch (error) {
-        console.error("[SessionStore] 加载标签失败:", error);
+        logger.error("[SessionStore] 加载标签失败:", error);
         this.error = error.message;
         throw error;
       } finally {
@@ -440,7 +441,7 @@ export const useSessionStore = defineStore("session", {
           options,
         );
       } catch (error) {
-        console.error("[SessionStore] 导出 JSON 失败:", error);
+        logger.error("[SessionStore] 导出 JSON 失败:", error);
         this.error = error.message;
         throw error;
       }
@@ -457,7 +458,7 @@ export const useSessionStore = defineStore("session", {
           options,
         );
       } catch (error) {
-        console.error("[SessionStore] 导出 Markdown 失败:", error);
+        logger.error("[SessionStore] 导出 Markdown 失败:", error);
         this.error = error.message;
         throw error;
       }
@@ -474,7 +475,7 @@ export const useSessionStore = defineStore("session", {
           options,
         );
       } catch (error) {
-        console.error("[SessionStore] 批量导出失败:", error);
+        logger.error("[SessionStore] 批量导出失败:", error);
         this.error = error.message;
         throw error;
       }
@@ -496,7 +497,7 @@ export const useSessionStore = defineStore("session", {
 
         return result;
       } catch (error) {
-        console.error("[SessionStore] 导入 JSON 失败:", error);
+        logger.error("[SessionStore] 导入 JSON 失败:", error);
         this.error = error.message;
         throw error;
       }
@@ -520,7 +521,7 @@ export const useSessionStore = defineStore("session", {
 
         return result;
       } catch (error) {
-        console.error("[SessionStore] 生成摘要失败:", error);
+        logger.error("[SessionStore] 生成摘要失败:", error);
         this.error = error.message;
         throw error;
       }
@@ -537,7 +538,7 @@ export const useSessionStore = defineStore("session", {
           options,
         );
       } catch (error) {
-        console.error("[SessionStore] 恢复会话失败:", error);
+        logger.error("[SessionStore] 恢复会话失败:", error);
         this.error = error.message;
         throw error;
       }
@@ -559,7 +560,7 @@ export const useSessionStore = defineStore("session", {
 
         return result;
       } catch (error) {
-        console.error("[SessionStore] 保存模板失败:", error);
+        logger.error("[SessionStore] 保存模板失败:", error);
         this.error = error.message;
         throw error;
       }
@@ -581,7 +582,7 @@ export const useSessionStore = defineStore("session", {
 
         return result;
       } catch (error) {
-        console.error("[SessionStore] 从模板创建失败:", error);
+        logger.error("[SessionStore] 从模板创建失败:", error);
         this.error = error.message;
         throw error;
       }
@@ -601,7 +602,7 @@ export const useSessionStore = defineStore("session", {
         this.templates = result || [];
         return result;
       } catch (error) {
-        console.error("[SessionStore] 加载模板失败:", error);
+        logger.error("[SessionStore] 加载模板失败:", error);
         this.error = error.message;
         throw error;
       } finally {
@@ -621,7 +622,7 @@ export const useSessionStore = defineStore("session", {
 
         return { success: true };
       } catch (error) {
-        console.error("[SessionStore] 删除模板失败:", error);
+        logger.error("[SessionStore] 删除模板失败:", error);
         this.error = error.message;
         throw error;
       }
@@ -642,7 +643,7 @@ export const useSessionStore = defineStore("session", {
         }
         return result;
       } catch (error) {
-        console.error("[SessionStore] 加载全局统计失败:", error);
+        logger.error("[SessionStore] 加载全局统计失败:", error);
         this.error = error.message;
         throw error;
       } finally {
@@ -674,7 +675,7 @@ export const useSessionStore = defineStore("session", {
 
         return result;
       } catch (error) {
-        console.error("[SessionStore] 更新标题失败:", error);
+        logger.error("[SessionStore] 更新标题失败:", error);
         this.error = error.message;
         throw error;
       }
@@ -703,7 +704,7 @@ export const useSessionStore = defineStore("session", {
 
         return result;
       } catch (error) {
-        console.error("[SessionStore] 复制会话失败:", error);
+        logger.error("[SessionStore] 复制会话失败:", error);
         this.error = error.message;
         throw error;
       }
@@ -732,7 +733,7 @@ export const useSessionStore = defineStore("session", {
 
         return result;
       } catch (error) {
-        console.error("[SessionStore] 重命名标签失败:", error);
+        logger.error("[SessionStore] 重命名标签失败:", error);
         this.error = error.message;
         throw error;
       }
@@ -757,7 +758,7 @@ export const useSessionStore = defineStore("session", {
 
         return result;
       } catch (error) {
-        console.error("[SessionStore] 合并标签失败:", error);
+        logger.error("[SessionStore] 合并标签失败:", error);
         this.error = error.message;
         throw error;
       }
@@ -781,7 +782,7 @@ export const useSessionStore = defineStore("session", {
 
         return result;
       } catch (error) {
-        console.error("[SessionStore] 删除标签失败:", error);
+        logger.error("[SessionStore] 删除标签失败:", error);
         this.error = error.message;
         throw error;
       }
@@ -805,7 +806,7 @@ export const useSessionStore = defineStore("session", {
 
         return result;
       } catch (error) {
-        console.error("[SessionStore] 批量删除标签失败:", error);
+        logger.error("[SessionStore] 批量删除标签失败:", error);
         this.error = error.message;
         throw error;
       }
@@ -822,7 +823,7 @@ export const useSessionStore = defineStore("session", {
           options,
         );
       } catch (error) {
-        console.error("[SessionStore] 获取标签详情失败:", error);
+        logger.error("[SessionStore] 获取标签详情失败:", error);
         this.error = error.message;
         throw error;
       }

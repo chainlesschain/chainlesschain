@@ -316,6 +316,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, reactive, computed, onMounted, watch } from 'vue';
 import { message as antMessage } from 'ant-design-vue';
 import {
@@ -391,9 +393,9 @@ const loadReviews = async () => {
     // 使用 store 加载统计信息
     await tradeStore.loadReviewStatistics(props.targetId, props.targetType);
 
-    console.log('[ReviewList] 评价列表已加载:', reviews.value.length);
+    logger.info('[ReviewList] 评价列表已加载:', reviews.value.length);
   } catch (error) {
-    console.error('[ReviewList] 加载评价失败:', error);
+    logger.error('[ReviewList] 加载评价失败:', error);
     antMessage.error(error.message || '加载评价失败');
   }
 };
@@ -414,7 +416,7 @@ const markHelpful = async (review, helpful) => {
     await tradeStore.markReviewHelpful(review.id, helpful);
     await loadReviews();
   } catch (error) {
-    console.error('[ReviewList] 标记失败:', error);
+    logger.error('[ReviewList] 标记失败:', error);
     antMessage.error(error.message || '操作失败');
   }
 };
@@ -449,13 +451,13 @@ const handleReport = async () => {
       reportForm.description
     );
 
-    console.log('[ReviewList] 举报已提交:', reportingReview.value.id);
+    logger.info('[ReviewList] 举报已提交:', reportingReview.value.id);
     antMessage.success('举报已提交，我们会尽快处理');
 
     showReportModal.value = false;
     reportingReview.value = null;
   } catch (error) {
-    console.error('[ReviewList] 举报失败:', error);
+    logger.error('[ReviewList] 举报失败:', error);
     antMessage.error(error.message || '举报失败');
   } finally {
     reporting.value = false;

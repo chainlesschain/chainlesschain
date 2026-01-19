@@ -2,6 +2,7 @@
  * 数据库加密配置管理器
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require('fs');
 const path = require('path');
 
@@ -28,7 +29,7 @@ class EncryptionConfigManager {
         return JSON.parse(data);
       }
     } catch (error) {
-      console.error('[EncryptionConfig] 加载配置失败:', error);
+      logger.error('[EncryptionConfig] 加载配置失败:', error);
     }
 
     // 返回默认配置
@@ -61,10 +62,10 @@ class EncryptionConfigManager {
         'utf8'
       );
 
-      console.log('[EncryptionConfig] 配置已保存');
+      logger.info('[EncryptionConfig] 配置已保存');
       return true;
     } catch (error) {
-      console.error('[EncryptionConfig] 保存配置失败:', error);
+      logger.error('[EncryptionConfig] 保存配置失败:', error);
       return false;
     }
   }

@@ -18,6 +18,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, onMounted, onUnmounted, provide } from "vue";
 import { message } from "ant-design-vue";
 import MCPConsentDialog from "./MCPConsentDialog.vue";
@@ -39,7 +41,7 @@ const processNextRequest = () => {
 
 // 处理同意请求事件
 const handleConsentRequest = (request) => {
-  console.log("[MCPConsentProvider] Received consent request:", request);
+  logger.info("[MCPConsentProvider] Received consent request:", request);
 
   // 添加到队列
   requestQueue.value.push(request);
@@ -50,7 +52,7 @@ const handleConsentRequest = (request) => {
 
 // 处理用户决定
 const handleDecision = async ({ requestId, decision, remember }) => {
-  console.log("[MCPConsentProvider] User decision:", {
+  logger.info("[MCPConsentProvider] User decision:", {
     requestId,
     decision,
     remember,
@@ -73,14 +75,14 @@ const handleDecision = async ({ requestId, decision, remember }) => {
 
       message.info(actionText[decision] || "操作已处理");
     } else {
-      console.error(
+      logger.error(
         "[MCPConsentProvider] Failed to send decision:",
         result.error,
       );
       message.error("处理决定失败: " + result.error);
     }
   } catch (error) {
-    console.error("[MCPConsentProvider] Error sending decision:", error);
+    logger.error("[MCPConsentProvider] Error sending decision:", error);
     message.error("发送决定失败");
   }
 
@@ -102,7 +104,7 @@ const cancelCurrentRequest = async () => {
         currentRequest.value.requestId,
       );
     } catch (error) {
-      console.error("[MCPConsentProvider] Error cancelling request:", error);
+      logger.error("[MCPConsentProvider] Error cancelling request:", error);
     }
 
     dialogVisible.value = false;
@@ -138,9 +140,9 @@ onMounted(() => {
   // 注册同意请求事件监听
   if (window.electronAPI?.mcp?.onConsentRequest) {
     unsubscribe = window.electronAPI.mcp.onConsentRequest(handleConsentRequest);
-    console.log("[MCPConsentProvider] Consent request listener registered");
+    logger.info("[MCPConsentProvider] Consent request listener registered");
   } else {
-    console.warn("[MCPConsentProvider] MCP API not available");
+    logger.warn("[MCPConsentProvider] MCP API not available");
   }
 });
 
@@ -148,7 +150,7 @@ onUnmounted(() => {
   // 清理事件监听
   if (unsubscribe) {
     unsubscribe();
-    console.log("[MCPConsentProvider] Consent request listener removed");
+    logger.info("[MCPConsentProvider] Consent request listener removed");
   }
 
   // 清空队列

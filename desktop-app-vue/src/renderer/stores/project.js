@@ -1,3 +1,4 @@
+import { logger, createLogger } from '@/utils/logger';
 import { defineStore } from 'pinia';
 import { electronAPI } from '../utils/ipc';
 
@@ -185,7 +186,7 @@ export const useProjectStore = defineStore('project', {
           await this.syncProjects(userId);
         }
       } catch (error) {
-        console.error('加载项目列表失败:', error);
+        logger.error('加载项目列表失败:', error);
         throw error;
       } finally {
         this.loading = false;
@@ -237,10 +238,10 @@ export const useProjectStore = defineStore('project', {
      * @returns {Promise<Object>} 创建结果
      */
     async createProjectStream(createData, onProgress) {
-      console.log('[Store] ===== createProjectStream被调用 =====');
-      console.log('[Store] createData:', createData);
-      console.log('[Store] onProgress存在?', !!onProgress);
-      console.log('[Store] onProgress类型:', typeof onProgress);
+      logger.info('[Store] ===== createProjectStream被调用 =====');
+      logger.info('[Store] createData:', createData);
+      logger.info('[Store] onProgress存在?', !!onProgress);
+      logger.info('[Store] onProgress类型:', typeof onProgress);
 
       // 从 createData 中提取回调函数（如果存在）
       const {
@@ -251,8 +252,8 @@ export const useProjectStore = defineStore('project', {
         ...pureData
       } = createData;
 
-      console.log('[Store] 提取后的纯数据:', pureData);
-      console.log('[Store] 是否有回调函数:', {
+      logger.info('[Store] 提取后的纯数据:', pureData);
+      logger.info('[Store] 是否有回调函数:', {
         onProgress: !!dataOnProgress,
         onContent: !!dataOnContent,
         onComplete: !!dataOnComplete,
@@ -270,10 +271,10 @@ export const useProjectStore = defineStore('project', {
 
         const callbacks = {
           onProgress: (data) => {
-            console.log('[Store] ===== onProgress回调被触发 =====');
-            console.log('[Store] Progress data:', data);
-            console.log('[Store] Progress stage:', data.stage);
-            console.log('[Store] Progress message:', data.message);
+            logger.info('[Store] ===== onProgress回调被触发 =====');
+            logger.info('[Store] Progress data:', data);
+            logger.info('[Store] Progress stage:', data.stage);
+            logger.info('[Store] Progress message:', data.message);
 
             // 更新当前阶段
             progressData.currentStage = data.stage;
@@ -350,10 +351,10 @@ export const useProjectStore = defineStore('project', {
           },
 
           onComplete: (data) => {
-            console.log('[Store] ===== onComplete回调被触发 =====');
-            console.log('[Store] Complete data:', data);
-            console.log('[Store] Complete data.projectId:', data.projectId);
-            console.log('[Store] Complete data.files length:', data.files?.length);
+            logger.info('[Store] ===== onComplete回调被触发 =====');
+            logger.info('[Store] Complete data:', data);
+            logger.info('[Store] Complete data.projectId:', data.projectId);
+            logger.info('[Store] Complete data.files length:', data.files?.length);
 
             // 标记所有阶段完成
             progressData.stages.forEach(s => s.status = 'completed');
@@ -364,11 +365,11 @@ export const useProjectStore = defineStore('project', {
               timestamp: Date.now(),
             });
 
-            console.log('[Store] 所有阶段已标记为completed');
+            logger.info('[Store] 所有阶段已标记为completed');
 
             // 添加到项目列表
             if (data.projectId) {
-              console.log('[Store] 添加项目到列表');
+              logger.info('[Store] 添加项目到列表');
               this.projects.unshift({
                 id: data.projectId,
                 name: pureData.name || '未命名项目',
@@ -379,9 +380,9 @@ export const useProjectStore = defineStore('project', {
                 updated_at: Date.now(),
               });
               this.pagination.total++;
-              console.log('[Store] 项目已添加，当前项目总数:', this.projects.length);
+              logger.info('[Store] 项目已添加，当前项目总数:', this.projects.length);
             } else {
-              console.warn('[Store] 警告: data.projectId为空，未添加到列表');
+              logger.warn('[Store] 警告: data.projectId为空，未添加到列表');
             }
 
             // 调用来自 createData 的回调（如果存在）
@@ -390,7 +391,7 @@ export const useProjectStore = defineStore('project', {
             }
 
             // 回调给UI
-            console.log('[Store] 调用onProgress回调，type=complete');
+            logger.info('[Store] 调用onProgress回调，type=complete');
             const progressCallback = onProgress || dataOnProgress;
             progressCallback?.({
               type: 'complete',
@@ -398,9 +399,9 @@ export const useProjectStore = defineStore('project', {
               result: data,
             });
 
-            console.log('[Store] 调用resolve，完成Promise');
+            logger.info('[Store] 调用resolve，完成Promise');
             resolve(data);
-            console.log('[Store] ===== onComplete处理完毕 =====');
+            logger.info('[Store] ===== onComplete处理完毕 =====');
           },
 
           onError: (error) => {
@@ -433,10 +434,10 @@ export const useProjectStore = defineStore('project', {
         };
 
         // 调用流式创建 - 只传递纯数据（不包含函数）
-        console.log('[Store] 调用window.electronAPI.project.createStream，传递纯数据');
+        logger.info('[Store] 调用window.electronAPI.project.createStream，传递纯数据');
         window.electronAPI.project.createStream(pureData, callbacks)
           .catch(err => {
-            console.error('[Store] createStream Promise rejected:', err);
+            logger.error('[Store] createStream Promise rejected:', err);
             reject(err);
           });
       });
@@ -471,7 +472,7 @@ export const useProjectStore = defineStore('project', {
 
         return project;
       } catch (error) {
-        console.error('获取项目详情失败:', error);
+        logger.error('获取项目详情失败:', error);
         throw error;
       } finally {
         this.loading = false;
@@ -513,7 +514,7 @@ export const useProjectStore = defineStore('project', {
         // 3. 后台同步到后端
         this.syncProjectToBackend(projectId);
       } catch (error) {
-        console.error('更新项目失败:', error);
+        logger.error('更新项目失败:', error);
         throw error;
       }
     },
@@ -535,7 +536,7 @@ export const useProjectStore = defineStore('project', {
           this.currentProject = null;
         }
       } catch (error) {
-        console.error('删除项目失败:', error);
+        logger.error('删除项目失败:', error);
         throw error;
       }
     },
@@ -548,34 +549,34 @@ export const useProjectStore = defineStore('project', {
      */
     async loadProjectFiles(projectId) {
       const startTime = Date.now();
-      console.log('[Store] ========== loadProjectFiles 开始 ==========');
-      console.log('[Store] 项目ID:', projectId);
-      console.log('[Store] 当前文件数:', this.projectFiles.length);
+      logger.info('[Store] ========== loadProjectFiles 开始 ==========');
+      logger.info('[Store] 项目ID:', projectId);
+      logger.info('[Store] 当前文件数:', this.projectFiles.length);
 
       try {
         const files = await window.electronAPI.project.getFiles(projectId);
         const elapsed = Date.now() - startTime;
 
-        console.log('[Store] ✓ IPC 返回，耗时:', elapsed, 'ms');
-        console.log('[Store] 接收文件数:', files?.length || 0);
+        logger.info('[Store] ✓ IPC 返回，耗时:', elapsed, 'ms');
+        logger.info('[Store] 接收文件数:', files?.length || 0);
 
         if (files && files.length > 0) {
-          console.log('[Store] 前3个文件:', files.slice(0, 3).map(f => f.file_name).join(', '));
+          logger.info('[Store] 前3个文件:', files.slice(0, 3).map(f => f.file_name).join(', '));
         }
 
         // 强制创建新数组引用，确保 Vue 响应式系统能检测到变化
         this.projectFiles = files ? [...files] : [];
 
-        console.log('[Store] ✓ projectFiles 已更新');
-        console.log('[Store] 新长度:', this.projectFiles.length);
-        console.log('[Store] 引用已改变: true');
-        console.log('[Store] 更新时间戳:', Date.now());
-        console.log('[Store] ========== loadProjectFiles 结束 ==========');
+        logger.info('[Store] ✓ projectFiles 已更新');
+        logger.info('[Store] 新长度:', this.projectFiles.length);
+        logger.info('[Store] 引用已改变: true');
+        logger.info('[Store] 更新时间戳:', Date.now());
+        logger.info('[Store] ========== loadProjectFiles 结束 ==========');
 
         return this.projectFiles;
       } catch (error) {
-        console.error('[Store] ========== loadProjectFiles 错误 ==========');
-        console.error('[Store] Error:', error);
+        logger.error('[Store] ========== loadProjectFiles 错误 ==========');
+        logger.error('[Store] Error:', error);
         throw error;
       }
     },
@@ -590,7 +591,7 @@ export const useProjectStore = defineStore('project', {
         await window.electronAPI.project.saveFiles(projectId, files);
         this.projectFiles = files;
       } catch (error) {
-        console.error('保存项目文件失败:', error);
+        logger.error('保存项目文件失败:', error);
         throw error;
       }
     },
@@ -621,7 +622,7 @@ export const useProjectStore = defineStore('project', {
           this.currentFile = { ...this.currentFile, ...updatedFile };
         }
       } catch (error) {
-        console.error('更新文件失败:', error);
+        logger.error('更新文件失败:', error);
         throw error;
       }
     },
@@ -672,7 +673,7 @@ export const useProjectStore = defineStore('project', {
         localStorage.setItem('project_last_sync', Date.now().toString());
       } catch (error) {
         this.syncError = error.message;
-        console.error('同步项目失败:', error);
+        logger.error('同步项目失败:', error);
       } finally {
         this.syncing = false;
       }
@@ -686,7 +687,7 @@ export const useProjectStore = defineStore('project', {
       try {
         await window.electronAPI.project.syncOne(projectId);
       } catch (error) {
-        console.error('同步项目到后端失败:', error);
+        logger.error('同步项目到后端失败:', error);
       }
     },
 
@@ -773,7 +774,7 @@ export const useProjectStore = defineStore('project', {
 
         await window.electronAPI.project.gitInit(project.root_path, remoteUrl);
       } catch (error) {
-        console.error('初始化Git失败:', error);
+        logger.error('初始化Git失败:', error);
         throw error;
       }
     },
@@ -793,7 +794,7 @@ export const useProjectStore = defineStore('project', {
 
         await window.electronAPI.project.gitCommit(projectId, project.root_path, message, autoGenerate);
       } catch (error) {
-        console.error('Git提交失败:', error);
+        logger.error('Git提交失败:', error);
         throw error;
       }
     },
@@ -813,7 +814,7 @@ export const useProjectStore = defineStore('project', {
 
         await window.electronAPI.project.gitPush(project.root_path, remote, branch);
       } catch (error) {
-        console.error('Git推送失败:', error);
+        logger.error('Git推送失败:', error);
         throw error;
       }
     },
@@ -836,7 +837,7 @@ export const useProjectStore = defineStore('project', {
         // 重新加载文件
         await this.loadProjectFiles(projectId);
       } catch (error) {
-        console.error('Git拉取失败:', error);
+        logger.error('Git拉取失败:', error);
         throw error;
       }
     },
@@ -854,7 +855,7 @@ export const useProjectStore = defineStore('project', {
 
         return await window.electronAPI.project.gitStatus(project.root_path);
       } catch (error) {
-        console.error('获取Git状态失败:', error);
+        logger.error('获取Git状态失败:', error);
         throw error;
       }
     },

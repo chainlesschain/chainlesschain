@@ -584,6 +584,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { message, Modal } from 'ant-design-vue';
@@ -747,7 +749,7 @@ const getCategoryIcon = (category) => {
 
 // 处理图片加载错误
 const handleImageError = (e) => {
-  console.warn('Image load failed:', e.target.src);
+  logger.warn('Image load failed:', e.target.src);
   e.target.style.display = 'none';
 };
 
@@ -800,7 +802,7 @@ const handleRefresh = async () => {
     await loadMarketProjects();
     message.success('刷新成功');
   } catch (error) {
-    console.error('Refresh failed:', error);
+    logger.error('Refresh failed:', error);
     message.error('刷新失败：' + error.message);
   } finally {
     loading.value = false;
@@ -851,7 +853,7 @@ const handleConfirmPurchase = async () => {
     showBuyModal.value = false;
     selectedProject.value = null;
   } catch (error) {
-    console.error('Purchase failed:', error);
+    logger.error('Purchase failed:', error);
     message.error('购买失败：' + error.message);
   } finally {
     purchasing.value = false;
@@ -902,7 +904,7 @@ const handleConfirmSell = async () => {
     };
     await loadMarketProjects();
   } catch (error) {
-    console.error('Sell failed:', error);
+    logger.error('Sell failed:', error);
     message.error('上架失败：' + error.message);
   } finally {
     selling.value = false;
@@ -1029,7 +1031,7 @@ onMounted(async () => {
     // 加载市场项目
     await loadMarketProjects();
   } catch (error) {
-    console.error('Failed to load market projects:', error);
+    logger.error('Failed to load market projects:', error);
     message.error('加载失败：' + error.message);
   } finally {
     loading.value = false;

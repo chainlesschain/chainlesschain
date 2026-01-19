@@ -107,6 +107,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, watch } from 'vue';
 import { message } from 'ant-design-vue';
 import {
@@ -242,7 +244,7 @@ const handleChange = async (chainId) => {
       network,
     });
   } catch (error) {
-    console.error('[ChainSelector] 切换网络失败:', error);
+    logger.error('[ChainSelector] 切换网络失败:', error);
     message.error('切换网络失败: ' + error.message);
 
     // 重置选择到当前网络

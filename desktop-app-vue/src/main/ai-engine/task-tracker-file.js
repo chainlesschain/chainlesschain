@@ -11,6 +11,7 @@
  * @see https://manus.im/blog/Context-Engineering-for-AI-Agents-Lessons-from-Building-Manus
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require("fs-extra");
 const path = require("path");
 const EventEmitter = require("events");
@@ -74,9 +75,9 @@ class TaskTrackerFile extends EventEmitter {
     try {
       await fs.ensureDir(this.workspaceDir);
       await fs.ensureDir(this.historyDir);
-      console.log(`[TaskTrackerFile] 工作空间已初始化: ${this.workspaceDir}`);
+      logger.info(`[TaskTrackerFile] 工作空间已初始化: ${this.workspaceDir}`);
     } catch (error) {
-      console.error("[TaskTrackerFile] 工作空间初始化失败:", error);
+      logger.error("[TaskTrackerFile] 工作空间初始化失败:", error);
     }
   }
 
@@ -122,7 +123,7 @@ class TaskTrackerFile extends EventEmitter {
 
     this.emit("task-created", this.currentTask);
 
-    console.log(`[TaskTrackerFile] 任务已创建: ${taskId}`);
+    logger.info(`[TaskTrackerFile] 任务已创建: ${taskId}`);
     return this.currentTask;
   }
 
@@ -332,9 +333,9 @@ class TaskTrackerFile extends EventEmitter {
 
     try {
       await fs.writeFile(this.todoPath, content, "utf-8");
-      console.log(`[TaskTrackerFile] todo.md 已更新: ${status}`);
+      logger.info(`[TaskTrackerFile] todo.md 已更新: ${status}`);
     } catch (error) {
-      console.error("[TaskTrackerFile] 更新 todo.md 失败:", error);
+      logger.error("[TaskTrackerFile] 更新 todo.md 失败:", error);
     }
   }
 
@@ -492,7 +493,7 @@ class TaskTrackerFile extends EventEmitter {
         return await fs.readFile(this.todoPath, "utf-8");
       }
     } catch (error) {
-      console.error("[TaskTrackerFile] 读取 todo.md 失败:", error);
+      logger.error("[TaskTrackerFile] 读取 todo.md 失败:", error);
     }
     return null;
   }
@@ -547,9 +548,9 @@ class TaskTrackerFile extends EventEmitter {
         savedAt: Date.now(),
       }, { spaces: 2 });
 
-      console.log(`[TaskTrackerFile] 中间结果已保存: step_${stepIndex}`);
+      logger.info(`[TaskTrackerFile] 中间结果已保存: step_${stepIndex}`);
     } catch (error) {
-      console.error("[TaskTrackerFile] 保存中间结果失败:", error);
+      logger.error("[TaskTrackerFile] 保存中间结果失败:", error);
     }
   }
 
@@ -569,7 +570,7 @@ class TaskTrackerFile extends EventEmitter {
         return await fs.readJson(resultPath);
       }
     } catch (error) {
-      console.error("[TaskTrackerFile] 加载中间结果失败:", error);
+      logger.error("[TaskTrackerFile] 加载中间结果失败:", error);
     }
 
     return null;
@@ -591,7 +592,7 @@ class TaskTrackerFile extends EventEmitter {
     try {
       await fs.writeJson(dataPath, this.currentTask, { spaces: 2 });
     } catch (error) {
-      console.error("[TaskTrackerFile] 保存任务数据失败:", error);
+      logger.error("[TaskTrackerFile] 保存任务数据失败:", error);
     }
   }
 
@@ -609,12 +610,12 @@ class TaskTrackerFile extends EventEmitter {
         // 只恢复未完成的任务
         if (task.status === "in_progress" || task.status === "created") {
           this.currentTask = task;
-          console.log(`[TaskTrackerFile] 已恢复任务: ${task.id}`);
+          logger.info(`[TaskTrackerFile] 已恢复任务: ${task.id}`);
           return task;
         }
       }
     } catch (error) {
-      console.error("[TaskTrackerFile] 加载任务失败:", error);
+      logger.error("[TaskTrackerFile] 加载任务失败:", error);
     }
 
     return null;
@@ -638,9 +639,9 @@ class TaskTrackerFile extends EventEmitter {
       // 清理旧历史
       await this._cleanupHistory();
 
-      console.log(`[TaskTrackerFile] 任务已归档: ${this.currentTask.id}`);
+      logger.info(`[TaskTrackerFile] 任务已归档: ${this.currentTask.id}`);
     } catch (error) {
-      console.error("[TaskTrackerFile] 归档任务失败:", error);
+      logger.error("[TaskTrackerFile] 归档任务失败:", error);
     }
   }
 
@@ -662,10 +663,10 @@ class TaskTrackerFile extends EventEmitter {
           await fs.remove(path.join(this.historyDir, file));
         }
 
-        console.log(`[TaskTrackerFile] 清理了 ${toDelete.length} 个历史任务`);
+        logger.info(`[TaskTrackerFile] 清理了 ${toDelete.length} 个历史任务`);
       }
     } catch (error) {
-      console.error("[TaskTrackerFile] 清理历史失败:", error);
+      logger.error("[TaskTrackerFile] 清理历史失败:", error);
     }
   }
 
@@ -691,7 +692,7 @@ class TaskTrackerFile extends EventEmitter {
 
       return tasks;
     } catch (error) {
-      console.error("[TaskTrackerFile] 获取历史失败:", error);
+      logger.error("[TaskTrackerFile] 获取历史失败:", error);
       return [];
     }
   }
@@ -716,7 +717,7 @@ class TaskTrackerFile extends EventEmitter {
       }
     }, this.config.saveInterval);
 
-    console.log("[TaskTrackerFile] 自动保存已启动");
+    logger.info("[TaskTrackerFile] 自动保存已启动");
   }
 
   /**
@@ -727,7 +728,7 @@ class TaskTrackerFile extends EventEmitter {
     if (this._saveTimer) {
       clearInterval(this._saveTimer);
       this._saveTimer = null;
-      console.log("[TaskTrackerFile] 自动保存已停止");
+      logger.info("[TaskTrackerFile] 自动保存已停止");
     }
   }
 
@@ -757,7 +758,7 @@ class TaskTrackerFile extends EventEmitter {
         await fs.remove(currentTaskPath);
       }
     } catch (error) {
-      console.error("[TaskTrackerFile] 清理失败:", error);
+      logger.error("[TaskTrackerFile] 清理失败:", error);
     }
   }
 

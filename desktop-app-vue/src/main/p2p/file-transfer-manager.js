@@ -10,6 +10,7 @@
  * - 并发传输控制
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
@@ -71,7 +72,7 @@ class FileTransferManager extends EventEmitter {
    * @param {Object} options - 上传选项
    */
   async uploadFile(peerId, filePath, options = {}) {
-    console.log('[FileTransfer] 开始上传文件:', filePath);
+    logger.info('[FileTransfer] 开始上传文件:', filePath);
 
     // 检查文件是否存在
     if (!fs.existsSync(filePath)) {
@@ -134,7 +135,7 @@ class FileTransferManager extends EventEmitter {
       uploadTask.status = 'completed';
       uploadTask.endTime = Date.now();
 
-      console.log('[FileTransfer] ✅ 文件上传完成:', fileName);
+      logger.info('[FileTransfer] ✅ 文件上传完成:', fileName);
 
       this.emit('upload:completed', {
         transferId,
@@ -149,7 +150,7 @@ class FileTransferManager extends EventEmitter {
       return transferId;
 
     } catch (error) {
-      console.error('[FileTransfer] ❌ 文件上传失败:', error);
+      logger.error('[FileTransfer] ❌ 文件上传失败:', error);
 
       uploadTask.status = 'failed';
       uploadTask.error = error.message;
@@ -179,7 +180,7 @@ class FileTransferManager extends EventEmitter {
    * @param {string} savePath - 保存路径
    */
   async downloadFile(peerId, transferId, savePath) {
-    console.log('[FileTransfer] 开始下载文件:', transferId);
+    logger.info('[FileTransfer] 开始下载文件:', transferId);
 
     const downloadTask = this.downloads.get(transferId);
     if (!downloadTask) {
@@ -216,7 +217,7 @@ class FileTransferManager extends EventEmitter {
       downloadTask.status = 'completed';
       downloadTask.endTime = Date.now();
 
-      console.log('[FileTransfer] ✅ 文件下载完成:', downloadTask.fileName);
+      logger.info('[FileTransfer] ✅ 文件下载完成:', downloadTask.fileName);
 
       this.emit('download:completed', {
         transferId,
@@ -231,7 +232,7 @@ class FileTransferManager extends EventEmitter {
       return savePath;
 
     } catch (error) {
-      console.error('[FileTransfer] ❌ 文件下载失败:', error);
+      logger.error('[FileTransfer] ❌ 文件下载失败:', error);
 
       downloadTask.status = 'failed';
       downloadTask.error = error.message;
@@ -309,7 +310,7 @@ class FileTransferManager extends EventEmitter {
           });
 
         } catch (error) {
-          console.error('[FileTransfer] 发送分块失败:', error);
+          logger.error('[FileTransfer] 发送分块失败:', error);
           reject(error);
           return;
         } finally {
@@ -367,7 +368,7 @@ class FileTransferManager extends EventEmitter {
 
     if (missingChunks.length === 0) {return;}
 
-    console.log(`[FileTransfer] 请求 ${missingChunks.length} 个缺失分块`);
+    logger.info(`[FileTransfer] 请求 ${missingChunks.length} 个缺失分块`);
 
     await this.messageManager.sendMessage(peerId, {
       type: 'file:request-chunks',
@@ -384,7 +385,7 @@ class FileTransferManager extends EventEmitter {
   async assembleFile(downloadTask) {
     const { tempPath, totalChunks, chunks } = downloadTask;
 
-    console.log('[FileTransfer] 组装文件...');
+    logger.info('[FileTransfer] 组装文件...');
 
     const writeStream = fs.createWriteStream(tempPath);
 
@@ -542,7 +543,7 @@ class FileTransferManager extends EventEmitter {
             break;
         }
       } catch (error) {
-        console.error('[FileTransfer] 处理消息失败:', error);
+        logger.error('[FileTransfer] 处理消息失败:', error);
       }
     });
   }
@@ -553,7 +554,7 @@ class FileTransferManager extends EventEmitter {
   async handleTransferRequest(peerId, payload) {
     const { transferId, fileName, fileSize, fileHash, totalChunks, chunkSize } = payload;
 
-    console.log('[FileTransfer] 收到传输请求:', fileName);
+    logger.info('[FileTransfer] 收到传输请求:', fileName);
 
     // 创建下载任务
     const downloadTask = {
@@ -602,7 +603,7 @@ class FileTransferManager extends EventEmitter {
 
     const downloadTask = this.downloads.get(transferId);
     if (!downloadTask) {
-      console.warn('[FileTransfer] 下载任务不存在:', transferId);
+      logger.warn('[FileTransfer] 下载任务不存在:', transferId);
       return;
     }
 
@@ -631,11 +632,11 @@ class FileTransferManager extends EventEmitter {
 
     const uploadTask = this.uploads.get(transferId);
     if (!uploadTask) {
-      console.warn('[FileTransfer] 上传任务不存在:', transferId);
+      logger.warn('[FileTransfer] 上传任务不存在:', transferId);
       return;
     }
 
-    console.log(`[FileTransfer] 重新发送 ${chunks.length} 个分块`);
+    logger.info(`[FileTransfer] 重新发送 ${chunks.length} 个分块`);
 
     // 重新发送请求的分块
     for (const chunkIndex of chunks) {
@@ -658,7 +659,7 @@ class FileTransferManager extends EventEmitter {
   async handleTransferComplete(peerId, payload) {
     const { transferId } = payload;
 
-    console.log('[FileTransfer] 传输完成确认:', transferId);
+    logger.info('[FileTransfer] 传输完成确认:', transferId);
   }
 
   /**

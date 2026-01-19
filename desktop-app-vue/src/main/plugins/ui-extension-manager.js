@@ -7,6 +7,7 @@
  * - 提供扩展点查询接口
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const EventEmitter = require("events");
 const path = require("path");
 
@@ -76,7 +77,7 @@ class UIExtensionManager extends EventEmitter {
     this._addToPluginExtensions(pluginId, "pages", extensionId);
 
     this.emit("page:registered", pageExtension);
-    console.log(`[UIExtensionManager] 页面扩展已注册: ${extensionId}`);
+    logger.info(`[UIExtensionManager] 页面扩展已注册: ${extensionId}`);
 
     return extensionId;
   }
@@ -135,7 +136,7 @@ class UIExtensionManager extends EventEmitter {
     this._addToPluginExtensions(pluginId, "menus", extensionId);
 
     this.emit("menu:registered", menuExtension);
-    console.log(`[UIExtensionManager] 菜单扩展已注册: ${extensionId}`);
+    logger.info(`[UIExtensionManager] 菜单扩展已注册: ${extensionId}`);
 
     return extensionId;
   }
@@ -195,7 +196,7 @@ class UIExtensionManager extends EventEmitter {
     this._addToPluginExtensions(pluginId, "components", extensionId);
 
     this.emit("component:registered", componentExtension);
-    console.log(
+    logger.info(
       `[UIExtensionManager] 组件扩展已注册: ${extensionId} -> ${slot}`,
     );
 
@@ -283,7 +284,7 @@ class UIExtensionManager extends EventEmitter {
     // 清理映射
     this.pluginExtensions.delete(pluginId);
 
-    console.log(`[UIExtensionManager] 插件 ${pluginId} 的所有UI扩展已注销`);
+    logger.info(`[UIExtensionManager] 插件 ${pluginId} 的所有UI扩展已注销`);
     this.emit("plugin:unregistered", { pluginId });
   }
 
@@ -399,7 +400,7 @@ class UIExtensionManager extends EventEmitter {
     this.pluginExtensions.clear();
 
     this.emit("cleared");
-    console.log("[UIExtensionManager] 所有UI扩展已清空");
+    logger.info("[UIExtensionManager] 所有UI扩展已清空");
   }
 
   /**

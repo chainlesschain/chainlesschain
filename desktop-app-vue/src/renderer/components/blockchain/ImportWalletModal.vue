@@ -171,6 +171,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, watch } from 'vue';
 import { message } from 'ant-design-vue';
 import {
@@ -326,7 +328,7 @@ const handleCopyAddress = async () => {
     await navigator.clipboard.writeText(importedWallet.value.address);
     message.success('地址已复制到剪贴板');
   } catch (error) {
-    console.error('[ImportWalletModal] 复制地址失败:', error);
+    logger.error('[ImportWalletModal] 复制地址失败:', error);
     message.error('复制失败');
   }
 };
@@ -377,7 +379,7 @@ const handleImport = async () => {
       handleCancel();
     }, 2000);
   } catch (error) {
-    console.error('[ImportWalletModal] 导入钱包失败:', error);
+    logger.error('[ImportWalletModal] 导入钱包失败:', error);
     message.error('导入钱包失败: ' + error.message);
   } finally {
     loading.value = false;

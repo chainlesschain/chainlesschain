@@ -235,6 +235,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { message } from 'ant-design-vue';
 import {
@@ -422,7 +424,7 @@ onMounted(async () => {
   if (window.electronAPI.git.onStatusChanged) {
     unsubscribers.push(
       window.electronAPI.git.onStatusChanged((data) => {
-        console.log('[GitStatus] Git状态已变化:', data);
+        logger.info('[GitStatus] Git状态已变化:', data);
         // 更新状态
         if (data.current) {
           status.value = data.current;
@@ -435,7 +437,7 @@ onMounted(async () => {
   if (window.electronAPI.git.onFileChanged) {
     unsubscribers.push(
       window.electronAPI.git.onFileChanged((data) => {
-        console.log('[GitStatus] 文件已变化:', data);
+        logger.info('[GitStatus] 文件已变化:', data);
         // 文件变化时可以显示通知（可选）
         // message.info(`文件${data.type}: ${data.path}`);
       })
@@ -445,7 +447,7 @@ onMounted(async () => {
   if (window.electronAPI.git.onHotReloadError) {
     unsubscribers.push(
       window.electronAPI.git.onHotReloadError((error) => {
-        console.error('[GitStatus] Git热重载错误:', error);
+        logger.error('[GitStatus] Git热重载错误:', error);
         message.error('Git热重载错误: ' + error.message);
       })
     );

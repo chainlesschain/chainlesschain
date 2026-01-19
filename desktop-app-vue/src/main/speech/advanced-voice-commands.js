@@ -4,6 +4,7 @@
  * 支持复杂的语音命令、上下文感知、参数提取和智能执行
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { EventEmitter } = require('events');
 
 /**
@@ -427,7 +428,7 @@ class AdvancedVoiceCommands extends EventEmitter {
       enabled: command.enabled !== false
     });
 
-    console.log(`[AdvancedVoiceCommands] 注册命令: ${command.name} (${command.category})`);
+    logger.info(`[AdvancedVoiceCommands] 注册命令: ${command.name} (${command.category})`);
   }
 
   /**
@@ -439,7 +440,7 @@ class AdvancedVoiceCommands extends EventEmitter {
     }
 
     const normalizedText = text.trim().toLowerCase();
-    console.log(`[AdvancedVoiceCommands] 识别命令: "${text}"`);
+    logger.info(`[AdvancedVoiceCommands] 识别命令: "${text}"`);
 
     // 1. 检查是否为命令链
     if (this.config.enableChaining && this.isCommandChain(text)) {
@@ -735,7 +736,7 @@ class AdvancedVoiceCommands extends EventEmitter {
    */
   registerMacro(name, commands) {
     this.macros.set(name.toLowerCase(), commands);
-    console.log(`[AdvancedVoiceCommands] 注册宏: ${name}`);
+    logger.info(`[AdvancedVoiceCommands] 注册宏: ${name}`);
   }
 
   /**
@@ -803,7 +804,7 @@ class AdvancedVoiceCommands extends EventEmitter {
     const command = this.commands.get(name);
     if (command) {
       command.enabled = enabled;
-      console.log(`[AdvancedVoiceCommands] ${enabled ? '启用' : '禁用'}命令: ${name}`);
+      logger.info(`[AdvancedVoiceCommands] ${enabled ? '启用' : '禁用'}命令: ${name}`);
     }
   }
 }

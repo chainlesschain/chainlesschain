@@ -3,6 +3,7 @@
  * 支持多种格式的数据导出和导入
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require("fs");
 const path = require("path");
 
@@ -20,7 +21,7 @@ class DataExporter {
       fs.writeFileSync(filePath, json, "utf8");
       return { success: true, path: filePath, size: json.length };
     } catch (error) {
-      console.error("[DataExporter] Export to JSON error:", error);
+      logger.error("[DataExporter] Export to JSON error:", error);
       throw error;
     }
   }
@@ -62,7 +63,7 @@ class DataExporter {
       fs.writeFileSync(filePath, csv, "utf8");
       return { success: true, path: filePath, size: csv.length };
     } catch (error) {
-      console.error("[DataExporter] Export to CSV error:", error);
+      logger.error("[DataExporter] Export to CSV error:", error);
       throw error;
     }
   }
@@ -108,7 +109,7 @@ class DataExporter {
       fs.writeFileSync(filePath, markdown, "utf8");
       return { success: true, path: filePath, size: markdown.length };
     } catch (error) {
-      console.error("[DataExporter] Export to Markdown error:", error);
+      logger.error("[DataExporter] Export to Markdown error:", error);
       throw error;
     }
   }
@@ -174,7 +175,7 @@ class DataExporter {
       fs.writeFileSync(filePath, html, "utf8");
       return { success: true, path: filePath, size: html.length };
     } catch (error) {
-      console.error("[DataExporter] Export to HTML error:", error);
+      logger.error("[DataExporter] Export to HTML error:", error);
       throw error;
     }
   }
@@ -188,7 +189,7 @@ class DataExporter {
       const data = JSON.parse(content);
       return { success: true, data };
     } catch (error) {
-      console.error("[DataExporter] Import from JSON error:", error);
+      logger.error("[DataExporter] Import from JSON error:", error);
       throw error;
     }
   }
@@ -224,7 +225,7 @@ class DataExporter {
 
       return { success: true, data };
     } catch (error) {
-      console.error("[DataExporter] Import from CSV error:", error);
+      logger.error("[DataExporter] Import from CSV error:", error);
       throw error;
     }
   }
@@ -263,7 +264,7 @@ class DataExporter {
 
       return { success: true, results };
     } catch (error) {
-      console.error("[DataExporter] Batch export error:", error);
+      logger.error("[DataExporter] Batch export error:", error);
       throw error;
     }
   }

@@ -11,6 +11,7 @@
  * @see https://manus.im/blog/Context-Engineering-for-AI-Agents-Lessons-from-Building-Manus
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const EventEmitter = require("events");
 const OllamaClient = require("./ollama-client");
 const { OpenAIClient, DeepSeekClient } = require("./openai-client");
@@ -63,7 +64,7 @@ class LLMManager extends EventEmitter {
     // Token 追踪器（可选）
     this.tokenTracker = config.tokenTracker || null;
     if (this.tokenTracker) {
-      console.log("[LLMManager] Token 追踪已启用");
+      logger.info("[LLMManager] Token 追踪已启用");
 
       // 🔥 监听预算告警事件
       this.tokenTracker.on("budget-alert", this._handleBudgetAlert.bind(this));
@@ -72,13 +73,13 @@ class LLMManager extends EventEmitter {
     // 🔥 响应缓存（可选）
     this.responseCache = config.responseCache || null;
     if (this.responseCache) {
-      console.log("[LLMManager] 响应缓存已启用");
+      logger.info("[LLMManager] 响应缓存已启用");
     }
 
     // 🔥 Prompt 压缩器（可选）
     this.promptCompressor = config.promptCompressor || null;
     if (this.promptCompressor) {
-      console.log("[LLMManager] Prompt 压缩已启用");
+      logger.info("[LLMManager] Prompt 压缩已启用");
     }
 
     // 🔥 暂停标志（预算超限时）
@@ -98,9 +99,9 @@ class LLMManager extends EventEmitter {
           enableRecoverableCompression: config.enableRecoverableCompression !== false,
           logMaskChanges: config.logMaskChanges !== false,
         });
-        console.log("[LLMManager] Manus 优化已启用 (Context Engineering + Tool Masking)");
+        logger.info("[LLMManager] Manus 优化已启用 (Context Engineering + Tool Masking)");
       } catch (manusError) {
-        console.warn("[LLMManager] Manus 优化初始化失败:", manusError.message);
+        logger.warn("[LLMManager] Manus 优化初始化失败:", manusError.message);
       }
     }
   }
@@ -109,8 +110,8 @@ class LLMManager extends EventEmitter {
    * 初始化管理器
    */
   async initialize() {
-    console.log("[LLMManager] 初始化LLM管理器...");
-    console.log("[LLMManager] 提供商:", this.provider);
+    logger.info("[LLMManager] 初始化LLM管理器...");
+    logger.info("[LLMManager] 提供商:", this.provider);
 
     try {
       this.client = await this.createClient(this.provider);
@@ -124,9 +125,9 @@ class LLMManager extends EventEmitter {
               this.config.baseURL || "https://ark.cn-beijing.volces.com/api/v3",
             model: this.config.model || "doubao-seed-1.6-lite",
           });
-          console.log("[LLMManager] 火山引擎工具调用客户端已初始化");
+          logger.info("[LLMManager] 火山引擎工具调用客户端已初始化");
         } catch (toolsError) {
-          console.warn(
+          logger.warn(
             "[LLMManager] 工具调用客户端初始化失败:",
             toolsError.message,
           );
@@ -140,17 +141,17 @@ class LLMManager extends EventEmitter {
 
           if (status.available) {
             this.isInitialized = true;
-            console.log("[LLMManager] LLM服务可用");
-            console.log("[LLMManager] 可用模型数:", status.models?.length || 0);
+            logger.info("[LLMManager] LLM服务可用");
+            logger.info("[LLMManager] 可用模型数:", status.models?.length || 0);
             this.emit("initialized", status);
           } else {
-            console.warn("[LLMManager] LLM服务状态检查失败:", status.error);
+            logger.warn("[LLMManager] LLM服务状态检查失败:", status.error);
             // 即使状态检查失败，也标记为已初始化（允许后续调用时重试）
             this.isInitialized = true;
             this.emit("unavailable", status);
           }
         } catch (statusError) {
-          console.warn(
+          logger.warn(
             "[LLMManager] 无法检查服务状态（将在实际调用时重试）:",
             statusError.message,
           );
@@ -161,7 +162,7 @@ class LLMManager extends EventEmitter {
 
       return this.isInitialized;
     } catch (error) {
-      console.error("[LLMManager] 初始化失败:", error);
+      logger.error("[LLMManager] 初始化失败:", error);
       this.isInitialized = false;
       throw error;
     }
@@ -244,7 +245,7 @@ class LLMManager extends EventEmitter {
    * @param {Object} config - 配置
    */
   async switchProvider(provider, config = {}) {
-    console.log("[LLMManager] 切换提供商:", provider);
+    logger.info("[LLMManager] 切换提供商:", provider);
 
     try {
       this.provider = normalizeProvider(provider);
@@ -256,7 +257,7 @@ class LLMManager extends EventEmitter {
 
       return true;
     } catch (error) {
-      console.error("[LLMManager] 切换提供商失败:", error);
+      logger.error("[LLMManager] 切换提供商失败:", error);
       throw error;
     }
   }
@@ -396,7 +397,7 @@ class LLMManager extends EventEmitter {
             userId: options.userId || "default",
           });
         } catch (trackError) {
-          console.error("[LLMManager] Token 追踪失败:", trackError);
+          logger.error("[LLMManager] Token 追踪失败:", trackError);
           // 不阻塞主流程
         }
       }
@@ -409,7 +410,7 @@ class LLMManager extends EventEmitter {
         timestamp: Date.now(),
       };
     } catch (error) {
-      console.error("[LLMManager] 查询失败:", error);
+      logger.error("[LLMManager] 查询失败:", error);
       this.emit("query-failed", { prompt, error });
       throw error;
     }
@@ -491,7 +492,7 @@ class LLMManager extends EventEmitter {
         );
 
         if (cacheResult.hit) {
-          console.log("[LLMManager] 缓存命中，跳过 LLM 调用");
+          logger.info("[LLMManager] 缓存命中，跳过 LLM 调用");
           wasCached = true;
 
           // 🔥 记录 Token 使用（缓存命中）
@@ -513,7 +514,7 @@ class LLMManager extends EventEmitter {
                 userId: options.userId || "default",
               });
             } catch (trackError) {
-              console.error("[LLMManager] Token 追踪失败:", trackError);
+              logger.error("[LLMManager] Token 追踪失败:", trackError);
             }
           }
 
@@ -538,7 +539,7 @@ class LLMManager extends EventEmitter {
         !options.skipCompression &&
         messages.length > 5
       ) {
-        console.log("[LLMManager] 执行 Prompt 压缩...");
+        logger.info("[LLMManager] 执行 Prompt 压缩...");
         const compressionResult = await this.promptCompressor.compress(
           messages,
           {
@@ -551,7 +552,7 @@ class LLMManager extends EventEmitter {
         wasCompressed = true;
         compressionRatio = compressionResult.compressionRatio;
 
-        console.log(
+        logger.info(
           `[LLMManager] Prompt 已压缩: ${messages.length} → ${processedMessages.length} 条消息, ` +
             `压缩率: ${compressionRatio.toFixed(2)}, 节省 ${compressionResult.tokensSaved} tokens`,
         );
@@ -587,9 +588,9 @@ class LLMManager extends EventEmitter {
             },
             options,
           );
-          console.log("[LLMManager] 响应已缓存");
+          logger.info("[LLMManager] 响应已缓存");
         } catch (cacheError) {
-          console.error("[LLMManager] 缓存保存失败:", cacheError);
+          logger.error("[LLMManager] 缓存保存失败:", cacheError);
           // 不阻塞主流程
         }
       }
@@ -613,7 +614,7 @@ class LLMManager extends EventEmitter {
             userId: options.userId || "default",
           });
         } catch (trackError) {
-          console.error("[LLMManager] Token 追踪失败:", trackError);
+          logger.error("[LLMManager] Token 追踪失败:", trackError);
           // 不阻塞主流程
         }
       }
@@ -630,7 +631,7 @@ class LLMManager extends EventEmitter {
         compressionRatio,
       };
     } catch (error) {
-      console.error("[LLMManager] 聊天失败:", error);
+      logger.error("[LLMManager] 聊天失败:", error);
       this.emit("chat-failed", { messages: processedMessages, error });
       throw error;
     }
@@ -666,7 +667,7 @@ class LLMManager extends EventEmitter {
         !options.skipCompression &&
         messages.length > 5
       ) {
-        console.log("[LLMManager] 执行 Prompt 压缩（流式）...");
+        logger.info("[LLMManager] 执行 Prompt 压缩（流式）...");
         const compressionResult = await this.promptCompressor.compress(
           messages,
           {
@@ -679,7 +680,7 @@ class LLMManager extends EventEmitter {
         wasCompressed = true;
         compressionRatio = compressionResult.compressionRatio;
 
-        console.log(
+        logger.info(
           `[LLMManager] Prompt 已压缩（流式）: ${messages.length} → ${processedMessages.length} 条消息, ` +
             `压缩率: ${compressionRatio.toFixed(2)}, 节省 ${compressionResult.tokensSaved} tokens`,
         );
@@ -728,7 +729,7 @@ class LLMManager extends EventEmitter {
             userId: options.userId || "default",
           });
         } catch (trackError) {
-          console.error("[LLMManager] Token 追踪失败:", trackError);
+          logger.error("[LLMManager] Token 追踪失败:", trackError);
           // 不阻塞主流程
         }
       }
@@ -744,7 +745,7 @@ class LLMManager extends EventEmitter {
         compressionRatio,
       };
     } catch (error) {
-      console.error("[LLMManager] 流式聊天失败:", error);
+      logger.error("[LLMManager] 流式聊天失败:", error);
       this.emit("chat-stream-failed", { messages: processedMessages, error });
       throw error;
     }
@@ -852,7 +853,7 @@ class LLMManager extends EventEmitter {
             userId: options.userId || "default",
           });
         } catch (trackError) {
-          console.error("[LLMManager] Token 追踪失败:", trackError);
+          logger.error("[LLMManager] Token 追踪失败:", trackError);
           // 不阻塞主流程
         }
       }
@@ -865,7 +866,7 @@ class LLMManager extends EventEmitter {
         timestamp: Date.now(),
       };
     } catch (error) {
-      console.error("[LLMManager] 流式查询失败:", error);
+      logger.error("[LLMManager] 流式查询失败:", error);
       this.emit("stream-failed", { prompt, error });
       throw error;
     }
@@ -903,7 +904,7 @@ class LLMManager extends EventEmitter {
     try {
       return await this.client.embeddings(text);
     } catch (error) {
-      console.error("[LLMManager] 生成嵌入失败:", error);
+      logger.error("[LLMManager] 生成嵌入失败:", error);
       throw error;
     }
   }
@@ -920,7 +921,7 @@ class LLMManager extends EventEmitter {
       const status = await this.client.checkStatus();
       return status.models || [];
     } catch (error) {
-      console.error("[LLMManager] 列出模型失败:", error);
+      logger.error("[LLMManager] 列出模型失败:", error);
       return [];
     }
   }
@@ -932,7 +933,7 @@ class LLMManager extends EventEmitter {
    */
   selectVolcengineModel(scenario = {}) {
     if (this.provider !== LLMProviders.VOLCENGINE) {
-      console.warn(
+      logger.warn(
         "[LLMManager] 智能选择器仅支持火山引擎，当前提供商:",
         this.provider,
       );
@@ -942,10 +943,10 @@ class LLMManager extends EventEmitter {
     const selector = getModelSelector();
     const model = selector.selectByScenario(scenario);
 
-    console.log("[LLMManager] 智能选择模型:", model.name);
-    console.log("[LLMManager] 模型ID:", model.id);
-    console.log("[LLMManager] 能力:", model.capabilities);
-    console.log("[LLMManager] 价格:", model.pricing);
+    logger.info("[LLMManager] 智能选择模型:", model.name);
+    logger.info("[LLMManager] 模型ID:", model.id);
+    logger.info("[LLMManager] 能力:", model.capabilities);
+    logger.info("[LLMManager] 价格:", model.pricing);
 
     return {
       modelId: model.id,
@@ -966,7 +967,7 @@ class LLMManager extends EventEmitter {
    */
   selectModelByTask(taskType, options = {}) {
     if (this.provider !== LLMProviders.VOLCENGINE) {
-      console.warn(
+      logger.warn(
         "[LLMManager] 智能选择器仅支持火山引擎，当前提供商:",
         this.provider,
       );
@@ -976,7 +977,7 @@ class LLMManager extends EventEmitter {
     const selector = getModelSelector();
     const model = selector.selectModel(taskType, options);
 
-    console.log("[LLMManager] 为任务", taskType, "选择模型:", model.name);
+    logger.info("[LLMManager] 为任务", taskType, "选择模型:", model.name);
 
     return {
       modelId: model.id,
@@ -997,7 +998,7 @@ class LLMManager extends EventEmitter {
    */
   estimateCost(modelId, inputTokens = 0, outputTokens = 0, imageCount = 0) {
     if (this.provider !== LLMProviders.VOLCENGINE) {
-      console.warn(
+      logger.warn(
         "[LLMManager] 成本估算仅支持火山引擎，当前提供商:",
         this.provider,
       );
@@ -1012,12 +1013,12 @@ class LLMManager extends EventEmitter {
       imageCount,
     );
 
-    console.log("[LLMManager] 成本估算:");
-    console.log("  模型:", modelId);
-    console.log("  输入tokens:", inputTokens);
-    console.log("  输出tokens:", outputTokens);
-    console.log("  图片数量:", imageCount);
-    console.log("  预估成本: ¥", cost.toFixed(4));
+    logger.info("[LLMManager] 成本估算:");
+    logger.info("  模型:", modelId);
+    logger.info("  输入tokens:", inputTokens);
+    logger.info("  输出tokens:", outputTokens);
+    logger.info("  图片数量:", imageCount);
+    logger.info("  预估成本: ¥", cost.toFixed(4));
 
     return cost;
   }
@@ -1029,7 +1030,7 @@ class LLMManager extends EventEmitter {
    */
   listVolcengineModels(filters = {}) {
     if (this.provider !== LLMProviders.VOLCENGINE) {
-      console.warn(
+      logger.warn(
         "[LLMManager] 模型列表仅支持火山引擎，当前提供商:",
         this.provider,
       );
@@ -1059,7 +1060,7 @@ class LLMManager extends EventEmitter {
       throw new Error("火山引擎工具调用客户端未初始化");
     }
 
-    console.log("[LLMManager] 使用联网搜索对话");
+    logger.info("[LLMManager] 使用联网搜索对话");
     return await this.toolsClient.chatWithWebSearch(messages, options);
   }
 
@@ -1078,7 +1079,7 @@ class LLMManager extends EventEmitter {
       throw new Error("火山引擎工具调用客户端未初始化");
     }
 
-    console.log("[LLMManager] 使用图像处理对话");
+    logger.info("[LLMManager] 使用图像处理对话");
     return await this.toolsClient.chatWithImageProcess(messages, options);
   }
 
@@ -1098,7 +1099,7 @@ class LLMManager extends EventEmitter {
       throw new Error("火山引擎工具调用客户端未初始化");
     }
 
-    console.log("[LLMManager] 使用知识库搜索对话");
+    logger.info("[LLMManager] 使用知识库搜索对话");
     return await this.toolsClient.chatWithKnowledgeBase(
       messages,
       knowledgeBaseId,
@@ -1122,7 +1123,7 @@ class LLMManager extends EventEmitter {
       throw new Error("火山引擎工具调用客户端未初始化");
     }
 
-    console.log("[LLMManager] 使用函数调用对话");
+    logger.info("[LLMManager] 使用函数调用对话");
     return await this.toolsClient.chatWithFunctionCalling(
       messages,
       functions,
@@ -1145,7 +1146,7 @@ class LLMManager extends EventEmitter {
       throw new Error("火山引擎工具调用客户端未初始化");
     }
 
-    console.log("[LLMManager] 使用多种工具对话");
+    logger.info("[LLMManager] 使用多种工具对话");
     return await this.toolsClient.chatWithMultipleTools(messages, toolConfig);
   }
 
@@ -1161,7 +1162,7 @@ class LLMManager extends EventEmitter {
   async _handleBudgetAlert(alert) {
     const { level, period, usage, spent, limit } = alert;
 
-    console.warn(
+    logger.warn(
       `[LLMManager] 🚨 预算告警: ${period} 使用率 ${(usage * 100).toFixed(1)}% ($${spent.toFixed(2)}/$${limit})`,
     );
 
@@ -1170,7 +1171,7 @@ class LLMManager extends EventEmitter {
 
     // 如果是 critical 级别且启用了自动暂停
     if (level === "critical" && this.budgetConfig?.auto_pause_on_limit) {
-      console.error("[LLMManager] ⛔ 预算超限，自动暂停 LLM 服务");
+      logger.error("[LLMManager] ⛔ 预算超限，自动暂停 LLM 服务");
       this.paused = true;
       this.emit("service-paused", { reason: "budget-exceeded", alert });
     }
@@ -1180,7 +1181,7 @@ class LLMManager extends EventEmitter {
       level === "warning" &&
       this.budgetConfig?.auto_switch_to_cheaper_model
     ) {
-      console.warn("[LLMManager] 💡 尝试切换到更便宜的模型");
+      logger.warn("[LLMManager] 💡 尝试切换到更便宜的模型");
       await this._switchToCheaperModel();
     }
   }
@@ -1208,7 +1209,7 @@ class LLMManager extends EventEmitter {
       // 如果当前不是最便宜的模型，切换到更便宜的
       if (currentIndex > 0) {
         const newModel = options[currentIndex - 1];
-        console.log(`[LLMManager] 切换模型: ${currentModel} → ${newModel}`);
+        logger.info(`[LLMManager] 切换模型: ${currentModel} → ${newModel}`);
 
         this.config.model = newModel;
         await this.initialize();
@@ -1219,7 +1220,7 @@ class LLMManager extends EventEmitter {
           reason: "budget-optimization",
         });
       } else {
-        console.warn("[LLMManager] 已经在使用最便宜的模型，无法继续降级");
+        logger.warn("[LLMManager] 已经在使用最便宜的模型，无法继续降级");
       }
     }
   }
@@ -1230,11 +1231,11 @@ class LLMManager extends EventEmitter {
    */
   async resumeService(userId = "default") {
     if (!this.paused) {
-      console.warn("[LLMManager] 服务未暂停，无需恢复");
+      logger.warn("[LLMManager] 服务未暂停，无需恢复");
       return { success: false, message: "服务未暂停" };
     }
 
-    console.log("[LLMManager] 恢复 LLM 服务");
+    logger.info("[LLMManager] 恢复 LLM 服务");
     this.paused = false;
     this.emit("service-resumed", { userId });
 
@@ -1246,11 +1247,11 @@ class LLMManager extends EventEmitter {
    */
   async pauseService() {
     if (this.paused) {
-      console.warn("[LLMManager] 服务已经暂停");
+      logger.warn("[LLMManager] 服务已经暂停");
       return { success: false, message: "服务已暂停" };
     }
 
-    console.log("[LLMManager] 手动暂停 LLM 服务");
+    logger.info("[LLMManager] 手动暂停 LLM 服务");
     this.paused = true;
     this.emit("service-paused", { reason: "manual" });
 
@@ -1432,7 +1433,7 @@ class LLMManager extends EventEmitter {
    * 关闭管理器
    */
   async close() {
-    console.log("[LLMManager] 关闭LLM管理器");
+    logger.info("[LLMManager] 关闭LLM管理器");
 
     // 移除 TokenTracker 监听器
     if (this.tokenTracker) {
@@ -1466,7 +1467,7 @@ function getLLMManager(config = {}) {
  */
 LLMManager.prototype.generateTags = async function ({ title, content, url }) {
   if (!this.isInitialized) {
-    console.warn("[LLMManager] LLM服务未初始化，使用fallback");
+    logger.warn("[LLMManager] LLM服务未初始化，使用fallback");
     // Fallback: 简单的关键词提取
     return this.generateTagsFallback({ title, content, url });
   }
@@ -1497,10 +1498,10 @@ URL: ${url}
       .filter((t) => t.length > 0 && t.length < 20)
       .slice(0, 5);
 
-    console.log("[LLMManager] AI生成标签:", tags);
+    logger.info("[LLMManager] AI生成标签:", tags);
     return tags;
   } catch (error) {
-    console.error("[LLMManager] 标签生成失败:", error);
+    logger.error("[LLMManager] 标签生成失败:", error);
     // Fallback
     return this.generateTagsFallback({ title, content, url });
   }
@@ -1556,7 +1557,7 @@ LLMManager.prototype.generateTagsFallback = function ({ title, content, url }) {
  */
 LLMManager.prototype.generateSummary = async function ({ title, content }) {
   if (!this.isInitialized) {
-    console.warn("[LLMManager] LLM服务未初始化，使用fallback");
+    logger.warn("[LLMManager] LLM服务未初始化，使用fallback");
     // Fallback: 简单截取
     return this.generateSummaryFallback({ content });
   }
@@ -1580,10 +1581,10 @@ LLMManager.prototype.generateSummary = async function ({ title, content }) {
 
     const summary = (result.text || result.message?.content || "").trim();
 
-    console.log("[LLMManager] AI生成摘要:", summary.substring(0, 50) + "...");
+    logger.info("[LLMManager] AI生成摘要:", summary.substring(0, 50) + "...");
     return summary;
   } catch (error) {
-    console.error("[LLMManager] 摘要生成失败:", error);
+    logger.error("[LLMManager] 摘要生成失败:", error);
     // Fallback
     return this.generateSummaryFallback({ content });
   }
@@ -1670,7 +1671,7 @@ LLMManager.prototype.chatWithOptimizedPrompt = async function (messages, options
  */
 LLMManager.prototype.startTask = function (task) {
   if (!this.manusOptimizations) {
-    console.warn("[LLMManager] Manus 优化未启用，无法追踪任务");
+    logger.warn("[LLMManager] Manus 优化未启用，无法追踪任务");
     return null;
   }
   return this.manusOptimizations.startTask(task);

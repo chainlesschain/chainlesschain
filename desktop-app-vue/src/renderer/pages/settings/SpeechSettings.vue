@@ -362,6 +362,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, reactive, computed, onMounted } from 'vue';
 import { message } from 'ant-design-vue';
 import {
@@ -515,7 +517,7 @@ onMounted(async () => {
       await testConnection();
     }
   } catch (error) {
-    console.error('加载配置失败:', error);
+    logger.error('加载配置失败:', error);
   }
 });
 </script>

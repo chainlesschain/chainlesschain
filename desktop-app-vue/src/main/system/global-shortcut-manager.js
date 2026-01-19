@@ -3,6 +3,7 @@
  * 管理Electron全局快捷键
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { globalShortcut, app } = require("electron");
 const fs = require("fs");
 const path = require("path");
@@ -43,7 +44,7 @@ class GlobalShortcutManager {
         try {
           handler();
         } catch (error) {
-          console.error("[GlobalShortcut] Handler error:", error);
+          logger.error("[GlobalShortcut] Handler error:", error);
         }
       });
 
@@ -54,14 +55,14 @@ class GlobalShortcutManager {
           enabled: true,
         });
 
-        console.log("[GlobalShortcut] Registered:", accelerator);
+        logger.info("[GlobalShortcut] Registered:", accelerator);
         return true;
       } else {
-        console.warn("[GlobalShortcut] Failed to register:", accelerator);
+        logger.warn("[GlobalShortcut] Failed to register:", accelerator);
         return false;
       }
     } catch (error) {
-      console.error("[GlobalShortcut] Register error:", error);
+      logger.error("[GlobalShortcut] Register error:", error);
       return false;
     }
   }
@@ -73,10 +74,10 @@ class GlobalShortcutManager {
     try {
       globalShortcut.unregister(accelerator);
       this.shortcuts.delete(accelerator);
-      console.log("[GlobalShortcut] Unregistered:", accelerator);
+      logger.info("[GlobalShortcut] Unregistered:", accelerator);
       return true;
     } catch (error) {
-      console.error("[GlobalShortcut] Unregister error:", error);
+      logger.error("[GlobalShortcut] Unregister error:", error);
       return false;
     }
   }
@@ -88,9 +89,9 @@ class GlobalShortcutManager {
     try {
       globalShortcut.unregisterAll();
       this.shortcuts.clear();
-      console.log("[GlobalShortcut] All shortcuts unregistered");
+      logger.info("[GlobalShortcut] All shortcuts unregistered");
     } catch (error) {
-      console.error("[GlobalShortcut] Unregister all error:", error);
+      logger.error("[GlobalShortcut] Unregister all error:", error);
     }
   }
 
@@ -136,11 +137,11 @@ class GlobalShortcutManager {
     try {
       if (fs.existsSync(this.configPath)) {
         const config = JSON.parse(fs.readFileSync(this.configPath, "utf8"));
-        console.log("[GlobalShortcut] Config loaded");
+        logger.info("[GlobalShortcut] Config loaded");
         return config;
       }
     } catch (error) {
-      console.error("[GlobalShortcut] Load config error:", error);
+      logger.error("[GlobalShortcut] Load config error:", error);
     }
     return this.defaultShortcuts;
   }
@@ -151,10 +152,10 @@ class GlobalShortcutManager {
   saveConfig(config) {
     try {
       fs.writeFileSync(this.configPath, JSON.stringify(config, null, 2));
-      console.log("[GlobalShortcut] Config saved");
+      logger.info("[GlobalShortcut] Config saved");
       return true;
     } catch (error) {
-      console.error("[GlobalShortcut] Save config error:", error);
+      logger.error("[GlobalShortcut] Save config error:", error);
       return false;
     }
   }

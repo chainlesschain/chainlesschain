@@ -1,3 +1,5 @@
+import { logger, createLogger } from '@/utils/logger';
+
 /**
  * 主进程日志监听器
  *
@@ -33,12 +35,12 @@ let isInitialized = false;
  */
 export function initMainLogListener() {
   if (isInitialized) {
-    console.log("[MainLogListener] Already initialized, skipping...");
+    logger.info("[MainLogListener] Already initialized, skipping...");
     return;
   }
 
   if (!window.electronAPI?.mainLog?.onLog) {
-    console.warn("[MainLogListener] mainLog API not available, skipping...");
+    logger.warn("[MainLogListener] mainLog API not available, skipping...");
     return;
   }
 
@@ -59,11 +61,11 @@ export function initMainLogListener() {
   });
 
   isInitialized = true;
-  console.log(
+  logger.info(
     "%c[MainLogListener] ✅ 主进程日志监听已启动",
     "color: #4CAF50; font-weight: bold;",
   );
-  console.log(
+  logger.info(
     "%c[MainLogListener] 现在可以在 DevTools 中看到主进程日志了！",
     "color: #2196F3;",
   );
@@ -83,7 +85,7 @@ export function stopMainLogListener() {
   }
 
   isInitialized = false;
-  console.log("[MainLogListener] 主进程日志监听已停止");
+  logger.info("[MainLogListener] 主进程日志监听已停止");
 }
 
 /**

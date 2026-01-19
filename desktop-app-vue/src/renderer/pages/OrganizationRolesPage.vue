@@ -225,6 +225,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted } from 'vue';
 import { message, Modal } from 'ant-design-vue';
 import { PlusOutlined } from '@ant-design/icons-vue';
@@ -283,7 +285,7 @@ async function loadRoles() {
     const result = await ipcRenderer.invoke('org:get-roles', orgId);
     roles.value = result || [];
   } catch (error) {
-    console.error('加载角色列表失败:', error);
+    logger.error('加载角色列表失败:', error);
     message.error(error.message || '加载角色列表失败');
   } finally {
     loading.value = false;
@@ -303,7 +305,7 @@ async function loadAllPermissions() {
       activePermissionCategories.value = [allPermissions.value[0].category];
     }
   } catch (error) {
-    console.error('加载权限列表失败:', error);
+    logger.error('加载权限列表失败:', error);
     message.error('加载权限列表失败');
   }
 }
@@ -353,7 +355,7 @@ function handleDeleteRole(role) {
         message.success('角色删除成功');
         await loadRoles();
       } catch (error) {
-        console.error('删除角色失败:', error);
+        logger.error('删除角色失败:', error);
         message.error(error.message || '删除角色失败');
       }
     }
@@ -404,7 +406,7 @@ async function handleRoleModalOk() {
     if (error.errorFields) {
       return; // 表单验证失败
     }
-    console.error('保存角色失败:', error);
+    logger.error('保存角色失败:', error);
     message.error(error.message || '保存角色失败');
   }
 }

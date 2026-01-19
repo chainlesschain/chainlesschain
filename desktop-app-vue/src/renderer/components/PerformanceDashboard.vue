@@ -401,10 +401,12 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, reactive, onMounted, onUnmounted } from "vue";
 import { message, Empty } from "ant-design-vue";
 import dayjs from "dayjs";
-import * as echarts from "echarts";
+import { init } from '../utils/echartsConfig';
 import {
   DashboardOutlined,
   CloudOutlined,
@@ -621,7 +623,7 @@ async function loadMetrics() {
       indexSuggestions.value = indexData.data || [];
     }
   } catch (error) {
-    console.error("加载性能数据失败:", error);
+    logger.error("加载性能数据失败:", error);
     message.error("加载性能数据失败: " + error.message);
   } finally {
     loading.value = false;
@@ -753,7 +755,7 @@ async function clearHistory() {
     message.success("历史数据已清除");
     await loadMetrics();
   } catch (error) {
-    console.error("清除历史失败:", error);
+    logger.error("清除历史失败:", error);
     message.error("清除历史失败: " + error.message);
   }
 }
@@ -763,10 +765,10 @@ async function exportReport() {
     const result = await window.electronAPI.invoke("performance:exportReport");
     if (result?.success) {
       message.success("性能报告已导出");
-      console.log("Report:", result.data);
+      logger.info("Report:", result.data);
     }
   } catch (error) {
-    console.error("导出报告失败:", error);
+    logger.error("导出报告失败:", error);
     message.error("导出报告失败: " + error.message);
   }
 }
@@ -782,7 +784,7 @@ async function applyIndexSuggestion(suggestion) {
       await loadMetrics();
     }
   } catch (error) {
-    console.error("应用索引失败:", error);
+    logger.error("应用索引失败:", error);
     message.error("应用索引失败: " + error.message);
   }
 }
@@ -797,7 +799,7 @@ async function applyAllIndexSuggestions() {
       await loadMetrics();
     }
   } catch (error) {
-    console.error("批量应用索引失败:", error);
+    logger.error("批量应用索引失败:", error);
     message.error("批量应用索引失败: " + error.message);
   }
 }
@@ -818,9 +820,9 @@ function onAutoRefreshChange(checked) {
 // 生命周期
 onMounted(() => {
   // 初始化 ECharts
-  cpuChartInstance = echarts.init(cpuChart.value);
-  memoryChartInstance = echarts.init(memoryChart.value);
-  aiPerformanceChartInstance = echarts.init(aiPerformanceChart.value);
+  cpuChartInstance = init(cpuChart.value);
+  memoryChartInstance = init(memoryChart.value);
+  aiPerformanceChartInstance = init(aiPerformanceChart.value);
 
   // 加载数据
   loadMetrics();

@@ -202,6 +202,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, onMounted } from 'vue';
 import { message } from 'ant-design-vue';
 import { RobotOutlined, BulbOutlined } from '@ant-design/icons-vue';
@@ -283,7 +285,7 @@ const loadPopularSkills = async () => {
       popularSkills.value = result.data;
     }
   } catch (error) {
-    console.error('加载热门技能失败:', error);
+    logger.error('加载热门技能失败:', error);
   }
 };
 
@@ -294,7 +296,7 @@ const loadRelatedSkills = async (skillId) => {
       relatedSkills.value = result.data;
     }
   } catch (error) {
-    console.error('加载相关技能失败:', error);
+    logger.error('加载相关技能失败:', error);
   }
 };
 

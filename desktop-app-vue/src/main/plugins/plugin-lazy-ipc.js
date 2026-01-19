@@ -3,6 +3,7 @@
  * 在首次访问时才初始化插件系统，节省启动时间 2-3 秒
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { ipcMain } = require("electron");
 
 /**
@@ -12,11 +13,11 @@ const { ipcMain } = require("electron");
  */
 async function ensurePluginInitialized(app) {
   if (!app.pluginInitialized) {
-    console.log("[Plugin Lazy IPC] 首次访问插件功能，正在初始化插件系统...");
+    logger.info("[Plugin Lazy IPC] 首次访问插件功能，正在初始化插件系统...");
     const startTime = Date.now();
     await app.initializePluginSystem();
     const elapsed = Date.now() - startTime;
-    console.log(`[Plugin Lazy IPC] ✓ 插件系统初始化完成 (耗时: ${elapsed}ms)`);
+    logger.info(`[Plugin Lazy IPC] ✓ 插件系统初始化完成 (耗时: ${elapsed}ms)`);
   }
 }
 
@@ -27,7 +28,7 @@ async function ensurePluginInitialized(app) {
  * @param {Object} options.mainWindow - 主窗口实例
  */
 function registerLazyPluginIPC({ app, mainWindow }) {
-  console.log("[Plugin Lazy IPC] 注册懒加载插件 IPC 处理器...");
+  logger.info("[Plugin Lazy IPC] 注册懒加载插件 IPC 处理器...");
 
   // ============================================================
   // 插件管理核心功能
@@ -41,7 +42,7 @@ function registerLazyPluginIPC({ app, mainWindow }) {
       }
       return await app.pluginManager.getPlugins(filters);
     } catch (error) {
-      console.error("[Plugin Lazy IPC] 获取插件列表失败:", error);
+      logger.error("[Plugin Lazy IPC] 获取插件列表失败:", error);
       throw error;
     }
   });
@@ -54,7 +55,7 @@ function registerLazyPluginIPC({ app, mainWindow }) {
       }
       return await app.pluginManager.getPlugin(pluginId);
     } catch (error) {
-      console.error("[Plugin Lazy IPC] 获取插件详情失败:", error);
+      logger.error("[Plugin Lazy IPC] 获取插件详情失败:", error);
       throw error;
     }
   });
@@ -67,7 +68,7 @@ function registerLazyPluginIPC({ app, mainWindow }) {
       }
       return await app.pluginManager.installPlugin(source, options);
     } catch (error) {
-      console.error("[Plugin Lazy IPC] 安装插件失败:", error);
+      logger.error("[Plugin Lazy IPC] 安装插件失败:", error);
       throw error;
     }
   });
@@ -80,7 +81,7 @@ function registerLazyPluginIPC({ app, mainWindow }) {
       }
       return await app.pluginManager.uninstallPlugin(pluginId);
     } catch (error) {
-      console.error("[Plugin Lazy IPC] 卸载插件失败:", error);
+      logger.error("[Plugin Lazy IPC] 卸载插件失败:", error);
       throw error;
     }
   });
@@ -93,7 +94,7 @@ function registerLazyPluginIPC({ app, mainWindow }) {
       }
       return await app.pluginManager.enablePlugin(pluginId);
     } catch (error) {
-      console.error("[Plugin Lazy IPC] 启用插件失败:", error);
+      logger.error("[Plugin Lazy IPC] 启用插件失败:", error);
       throw error;
     }
   });
@@ -106,7 +107,7 @@ function registerLazyPluginIPC({ app, mainWindow }) {
       }
       return await app.pluginManager.disablePlugin(pluginId);
     } catch (error) {
-      console.error("[Plugin Lazy IPC] 禁用插件失败:", error);
+      logger.error("[Plugin Lazy IPC] 禁用插件失败:", error);
       throw error;
     }
   });
@@ -123,7 +124,7 @@ function registerLazyPluginIPC({ app, mainWindow }) {
       }
       return await app.pluginManager.getPluginPermissions(pluginId);
     } catch (error) {
-      console.error("[Plugin Lazy IPC] 获取插件权限失败:", error);
+      logger.error("[Plugin Lazy IPC] 获取插件权限失败:", error);
       throw error;
     }
   });
@@ -157,7 +158,7 @@ function registerLazyPluginIPC({ app, mainWindow }) {
         },
       };
     } catch (error) {
-      console.error("[Plugin Lazy IPC] 获取 UI 扩展失败:", error);
+      logger.error("[Plugin Lazy IPC] 获取 UI 扩展失败:", error);
       throw error;
     }
   });
@@ -181,7 +182,7 @@ function registerLazyPluginIPC({ app, mainWindow }) {
         ),
       };
     } catch (error) {
-      console.error("[Plugin Lazy IPC] 获取插槽扩展失败:", error);
+      logger.error("[Plugin Lazy IPC] 获取插槽扩展失败:", error);
       throw error;
     }
   });
@@ -203,7 +204,7 @@ function registerLazyPluginIPC({ app, mainWindow }) {
           [];
         return { success: true, definitions };
       } catch (error) {
-        console.error("[Plugin Lazy IPC] 获取设置定义失败:", error);
+        logger.error("[Plugin Lazy IPC] 获取设置定义失败:", error);
         throw error;
       }
     },
@@ -219,7 +220,7 @@ function registerLazyPluginIPC({ app, mainWindow }) {
         app.pluginManager.registry.getPluginSettings?.(pluginId) || {};
       return { success: true, settings };
     } catch (error) {
-      console.error("[Plugin Lazy IPC] 获取插件设置失败:", error);
+      logger.error("[Plugin Lazy IPC] 获取插件设置失败:", error);
       throw error;
     }
   });
@@ -233,7 +234,7 @@ function registerLazyPluginIPC({ app, mainWindow }) {
       await app.pluginManager.registry.savePluginSettings?.(pluginId, settings);
       return { success: true };
     } catch (error) {
-      console.error("[Plugin Lazy IPC] 保存插件设置失败:", error);
+      logger.error("[Plugin Lazy IPC] 保存插件设置失败:", error);
       throw error;
     }
   });
@@ -252,7 +253,7 @@ function registerLazyPluginIPC({ app, mainWindow }) {
         app.pluginManager.registry.getExtensionsByPoint("data.importer");
       return { success: true, importers };
     } catch (error) {
-      console.error("[Plugin Lazy IPC] 获取数据导入器失败:", error);
+      logger.error("[Plugin Lazy IPC] 获取数据导入器失败:", error);
       throw error;
     }
   });
@@ -267,7 +268,7 @@ function registerLazyPluginIPC({ app, mainWindow }) {
         app.pluginManager.registry.getExtensionsByPoint("data.exporter");
       return { success: true, exporters };
     } catch (error) {
-      console.error("[Plugin Lazy IPC] 获取数据导出器失败:", error);
+      logger.error("[Plugin Lazy IPC] 获取数据导出器失败:", error);
       throw error;
     }
   });
@@ -289,7 +290,7 @@ function registerLazyPluginIPC({ app, mainWindow }) {
         );
         return { success: true, result };
       } catch (error) {
-        console.error("[Plugin Lazy IPC] 执行数据导入失败:", error);
+        logger.error("[Plugin Lazy IPC] 执行数据导入失败:", error);
         throw error;
       }
     },
@@ -312,7 +313,7 @@ function registerLazyPluginIPC({ app, mainWindow }) {
         );
         return { success: true, result };
       } catch (error) {
-        console.error("[Plugin Lazy IPC] 执行数据导出失败:", error);
+        logger.error("[Plugin Lazy IPC] 执行数据导出失败:", error);
         throw error;
       }
     },
@@ -336,7 +337,7 @@ function registerLazyPluginIPC({ app, mainWindow }) {
       const tools = plugin.manifest?.tools || [];
       return { success: true, tools };
     } catch (error) {
-      console.error("[Plugin Lazy IPC] 获取插件工具失败:", error);
+      logger.error("[Plugin Lazy IPC] 获取插件工具失败:", error);
       throw error;
     }
   });
@@ -355,7 +356,7 @@ function registerLazyPluginIPC({ app, mainWindow }) {
       const skills = plugin.manifest?.skills || [];
       return { success: true, skills };
     } catch (error) {
-      console.error("[Plugin Lazy IPC] 获取插件技能失败:", error);
+      logger.error("[Plugin Lazy IPC] 获取插件技能失败:", error);
       throw error;
     }
   });
@@ -381,14 +382,14 @@ function registerLazyPluginIPC({ app, mainWindow }) {
         const result = await sandbox.callMethod("executeTool", toolId, params);
         return { success: true, result };
       } catch (error) {
-        console.error("[Plugin Lazy IPC] 执行插件工具失败:", error);
+        logger.error("[Plugin Lazy IPC] 执行插件工具失败:", error);
         throw error;
       }
     },
   );
 
-  console.log("[Plugin Lazy IPC] ✓ 懒加载插件 IPC 处理器注册完成");
-  console.log(
+  logger.info("[Plugin Lazy IPC] ✓ 懒加载插件 IPC 处理器注册完成");
+  logger.info(
     "[Plugin Lazy IPC] ✓ 已注册核心处理器，完整功能将在首次访问时加载",
   );
 }

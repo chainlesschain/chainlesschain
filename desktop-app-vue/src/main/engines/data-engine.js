@@ -3,6 +3,7 @@
  * 负责Excel/CSV数据读写、数据分析和可视化
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require('fs').promises;
 const path = require('path');
 
@@ -11,7 +12,7 @@ let xlsx = null;
 try {
   xlsx = require('xlsx');
 } catch (e) {
-  console.warn('[Data Engine] xlsx库未安装，Excel功能将不可用。安装命令: npm install xlsx');
+  logger.warn('[Data Engine] xlsx库未安装，Excel功能将不可用。安装命令: npm install xlsx');
 }
 
 class DataEngine {
@@ -646,7 +647,7 @@ class DataEngine {
 
       return String(responseText || '').trim();
     } catch (error) {
-      console.warn('[Data Engine] LLM生成营养报告失败，使用兜底报告:', error.message);
+      logger.warn('[Data Engine] LLM生成营养报告失败，使用兜底报告:', error.message);
       return this.generateNutritionFallbackMarkdown(description);
     }
   }
@@ -674,8 +675,8 @@ class DataEngine {
   async handleProjectTask(params) {
     const { action, description, outputFiles = [], projectPath, llmManager } = params;
 
-    console.log('[Data Engine] 处理数据任务:', action);
-    console.log('[Data Engine] 项目路径:', projectPath);
+    logger.info('[Data Engine] 处理数据任务:', action);
+    logger.info('[Data Engine] 项目路径:', projectPath);
 
     try {
       switch (action) {
@@ -684,7 +685,7 @@ class DataEngine {
           const fileName = outputFiles[0] || this.extractFileNameFromDescription(description);
           const filePath = path.join(projectPath, fileName);
 
-          console.log('[Data Engine] 读取Excel文件:', filePath);
+          logger.info('[Data Engine] 读取Excel文件:', filePath);
 
           // 根据文件扩展名选择读取方法
           const ext = path.extname(filePath).toLowerCase();
@@ -712,7 +713,7 @@ class DataEngine {
           const fileName = outputFiles[0] || this.extractFileNameFromDescription(description);
           const filePath = path.join(projectPath, fileName);
 
-          console.log('[Data Engine] 读取CSV文件:', filePath);
+          logger.info('[Data Engine] 读取CSV文件:', filePath);
 
           const data = await this.readCSV(filePath);
 
@@ -731,7 +732,7 @@ class DataEngine {
           const fileName = this.extractFileNameFromDescription(description);
           const filePath = path.join(projectPath, fileName);
 
-          console.log('[Data Engine] 分析文件:', filePath);
+          logger.info('[Data Engine] 分析文件:', filePath);
 
           const data = await this.readCSV(filePath);
           const analysis = this.analyzeData(data);
@@ -772,7 +773,7 @@ class DataEngine {
                 data = await this.readExcel(sourcePath);
               }
             } catch (error) {
-              console.warn('[Data Engine] 读取营养数据文件失败，尝试降级处理:', error.message);
+              logger.warn('[Data Engine] 读取营养数据文件失败，尝试降级处理:', error.message);
             }
           }
 
@@ -811,7 +812,7 @@ class DataEngine {
           const fileName = this.extractFileNameFromDescription(description);
           const filePath = path.join(projectPath, fileName);
 
-          console.log('[Data Engine] 从文件创建图表:', filePath);
+          logger.info('[Data Engine] 从文件创建图表:', filePath);
 
           const data = await this.readCSV(filePath);
 
@@ -845,7 +846,7 @@ class DataEngine {
           const fileName = outputFiles[0] || 'data.csv';
           const filePath = path.join(projectPath, fileName);
 
-          console.log('[Data Engine] 导出CSV:', filePath);
+          logger.info('[Data Engine] 导出CSV:', filePath);
 
           // 使用LLM生成示例数据
           let sampleData;
@@ -879,7 +880,7 @@ class DataEngine {
           const fileName = outputFiles[0] || 'data.xlsx';
           const filePath = path.join(projectPath, fileName);
 
-          console.log('[Data Engine] 导出Excel:', filePath);
+          logger.info('[Data Engine] 导出Excel:', filePath);
 
           // 使用LLM生成示例数据
           let sampleData;
@@ -912,7 +913,7 @@ class DataEngine {
           throw new Error(`不支持的数据操作: ${action}`);
       }
     } catch (error) {
-      console.error('[Data Engine] 任务执行失败:', error);
+      logger.error('[Data Engine] 任务执行失败:', error);
       throw error;
     }
   }
@@ -1005,7 +1006,7 @@ ${description}
         return JSON.parse(jsonMatch[0]);
       }
     } catch (error) {
-      console.warn('[Data Engine] LLM生成数据失败，使用默认数据:', error.message);
+      logger.warn('[Data Engine] LLM生成数据失败，使用默认数据:', error.message);
     }
 
     // 默认数据

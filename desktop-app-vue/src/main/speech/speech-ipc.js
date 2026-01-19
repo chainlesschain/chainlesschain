@@ -6,6 +6,7 @@
  * @description 语音处理模块，提供音频转录、实时录音、音频增强、字幕生成、命令识别等功能
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { ipcMain, dialog } = require("electron");
 
 /**
@@ -14,7 +15,7 @@ const { ipcMain, dialog } = require("electron");
  * @param {Function} dependencies.initializeSpeechManager - 初始化语音管理器的函数
  */
 function registerSpeechIPC({ initializeSpeechManager }) {
-  console.log("[Speech IPC] Registering Speech IPC handlers...");
+  logger.info("[Speech IPC] Registering Speech IPC handlers...");
 
   // ============================================================
   // 文件转录操作 (2 handlers)
@@ -36,7 +37,7 @@ function registerSpeechIPC({ initializeSpeechManager }) {
 
         return await manager.transcribeFile(filePath, options);
       } catch (error) {
-        console.error("[Speech] 转录音频失败:", error);
+        logger.error("[Speech] 转录音频失败:", error);
         throw error;
       }
     },
@@ -58,7 +59,7 @@ function registerSpeechIPC({ initializeSpeechManager }) {
 
         return await manager.transcribeBatch(filePaths, options);
       } catch (error) {
-        console.error("[Speech] 批量转录失败:", error);
+        logger.error("[Speech] 批量转录失败:", error);
         throw error;
       }
     },
@@ -86,7 +87,7 @@ function registerSpeechIPC({ initializeSpeechManager }) {
 
       return result.canceled ? [] : result.filePaths;
     } catch (error) {
-      console.error("[Speech] 选择音频文件失败:", error);
+      logger.error("[Speech] 选择音频文件失败:", error);
       return [];
     }
   });
@@ -103,7 +104,7 @@ function registerSpeechIPC({ initializeSpeechManager }) {
       const manager = await initializeSpeechManager();
       return await manager.getConfig();
     } catch (error) {
-      console.error("[Speech] 获取语音配置失败:", error);
+      logger.error("[Speech] 获取语音配置失败:", error);
       throw error;
     }
   });
@@ -116,7 +117,7 @@ function registerSpeechIPC({ initializeSpeechManager }) {
       const manager = await initializeSpeechManager();
       return await manager.updateConfig(config);
     } catch (error) {
-      console.error("[Speech] 更新语音配置失败:", error);
+      logger.error("[Speech] 更新语音配置失败:", error);
       throw error;
     }
   });
@@ -129,7 +130,7 @@ function registerSpeechIPC({ initializeSpeechManager }) {
       const manager = await initializeSpeechManager();
       return await manager.setEngine(engineType);
     } catch (error) {
-      console.error("[Speech] 设置识别引擎失败:", error);
+      logger.error("[Speech] 设置识别引擎失败:", error);
       throw error;
     }
   });
@@ -142,7 +143,7 @@ function registerSpeechIPC({ initializeSpeechManager }) {
       const manager = await initializeSpeechManager();
       return await manager.getAvailableEngines();
     } catch (error) {
-      console.error("[Speech] 获取可用引擎列表失败:", error);
+      logger.error("[Speech] 获取可用引擎列表失败:", error);
       throw error;
     }
   });
@@ -161,7 +162,7 @@ function registerSpeechIPC({ initializeSpeechManager }) {
         const manager = await initializeSpeechManager();
         return await manager.getHistory(limit, offset);
       } catch (error) {
-        console.error("[Speech] 获取转录历史失败:", error);
+        logger.error("[Speech] 获取转录历史失败:", error);
         throw error;
       }
     },
@@ -175,7 +176,7 @@ function registerSpeechIPC({ initializeSpeechManager }) {
       const manager = await initializeSpeechManager();
       return await manager.deleteHistory(id);
     } catch (error) {
-      console.error("[Speech] 删除历史记录失败:", error);
+      logger.error("[Speech] 删除历史记录失败:", error);
       throw error;
     }
   });
@@ -192,7 +193,7 @@ function registerSpeechIPC({ initializeSpeechManager }) {
       const manager = await initializeSpeechManager();
       return await manager.getAudioFile(id);
     } catch (error) {
-      console.error("[Speech] 获取音频文件失败:", error);
+      logger.error("[Speech] 获取音频文件失败:", error);
       throw error;
     }
   });
@@ -205,7 +206,7 @@ function registerSpeechIPC({ initializeSpeechManager }) {
       const manager = await initializeSpeechManager();
       return await manager.listAudioFiles(options);
     } catch (error) {
-      console.error("[Speech] 列出音频文件失败:", error);
+      logger.error("[Speech] 列出音频文件失败:", error);
       throw error;
     }
   });
@@ -220,7 +221,7 @@ function registerSpeechIPC({ initializeSpeechManager }) {
         const manager = await initializeSpeechManager();
         return await manager.searchAudioFiles(query, options);
       } catch (error) {
-        console.error("[Speech] 搜索音频文件失败:", error);
+        logger.error("[Speech] 搜索音频文件失败:", error);
         throw error;
       }
     },
@@ -234,7 +235,7 @@ function registerSpeechIPC({ initializeSpeechManager }) {
       const manager = await initializeSpeechManager();
       return await manager.deleteAudioFile(id);
     } catch (error) {
-      console.error("[Speech] 删除音频文件失败:", error);
+      logger.error("[Speech] 删除音频文件失败:", error);
       throw error;
     }
   });
@@ -247,7 +248,7 @@ function registerSpeechIPC({ initializeSpeechManager }) {
       const manager = await initializeSpeechManager();
       return await manager.getStats(userId);
     } catch (error) {
-      console.error("[Speech] 获取统计信息失败:", error);
+      logger.error("[Speech] 获取统计信息失败:", error);
       throw error;
     }
   });
@@ -266,7 +267,7 @@ function registerSpeechIPC({ initializeSpeechManager }) {
         const manager = await initializeSpeechManager();
         return await manager.denoiseAudio(inputPath, outputPath, options);
       } catch (error) {
-        console.error("[Speech] 降噪音频失败:", error);
+        logger.error("[Speech] 降噪音频失败:", error);
         throw error;
       }
     },
@@ -282,7 +283,7 @@ function registerSpeechIPC({ initializeSpeechManager }) {
         const manager = await initializeSpeechManager();
         return await manager.enhanceAudio(inputPath, outputPath, options);
       } catch (error) {
-        console.error("[Speech] 增强音频失败:", error);
+        logger.error("[Speech] 增强音频失败:", error);
         throw error;
       }
     },
@@ -298,7 +299,7 @@ function registerSpeechIPC({ initializeSpeechManager }) {
         const manager = await initializeSpeechManager();
         return await manager.enhanceForRecognition(inputPath, outputPath);
       } catch (error) {
-        console.error("[Speech] 为识别增强音频失败:", error);
+        logger.error("[Speech] 为识别增强音频失败:", error);
         throw error;
       }
     },
@@ -312,7 +313,7 @@ function registerSpeechIPC({ initializeSpeechManager }) {
       const manager = await initializeSpeechManager();
       return await manager.detectLanguage(audioPath);
     } catch (error) {
-      console.error("[Speech] 检测语言失败:", error);
+      logger.error("[Speech] 检测语言失败:", error);
       throw error;
     }
   });
@@ -325,7 +326,7 @@ function registerSpeechIPC({ initializeSpeechManager }) {
       const manager = await initializeSpeechManager();
       return await manager.detectLanguages(audioPaths);
     } catch (error) {
-      console.error("[Speech] 批量检测语言失败:", error);
+      logger.error("[Speech] 批量检测语言失败:", error);
       throw error;
     }
   });
@@ -344,7 +345,7 @@ function registerSpeechIPC({ initializeSpeechManager }) {
         const manager = await initializeSpeechManager();
         return await manager.generateSubtitle(audioId, outputPath, format);
       } catch (error) {
-        console.error("[Speech] 生成字幕失败:", error);
+        logger.error("[Speech] 生成字幕失败:", error);
         throw error;
       }
     },
@@ -364,7 +365,7 @@ function registerSpeechIPC({ initializeSpeechManager }) {
           options,
         );
       } catch (error) {
-        console.error("[Speech] 转录并生成字幕失败:", error);
+        logger.error("[Speech] 转录并生成字幕失败:", error);
         throw error;
       }
     },
@@ -384,7 +385,7 @@ function registerSpeechIPC({ initializeSpeechManager }) {
           format,
         );
       } catch (error) {
-        console.error("[Speech] 批量生成字幕失败:", error);
+        logger.error("[Speech] 批量生成字幕失败:", error);
         throw error;
       }
     },
@@ -404,7 +405,7 @@ function registerSpeechIPC({ initializeSpeechManager }) {
         const manager = await initializeSpeechManager();
         return await manager.startRealtimeRecording(options);
       } catch (error) {
-        console.error("[Speech] 开始实时录音失败:", error);
+        logger.error("[Speech] 开始实时录音失败:", error);
         throw error;
       }
     },
@@ -424,7 +425,7 @@ function registerSpeechIPC({ initializeSpeechManager }) {
         audioDataCounter++;
         // 每10次打印一次调试日志
         if (audioDataCounter % 10 === 1) {
-          console.log(`[Speech IPC] 收到音频数据 #${audioDataCounter}, 类型: ${audioData?.constructor?.name}, 大小: ${audioData?.length || audioData?.byteLength || 'unknown'}`);
+          logger.info(`[Speech IPC] 收到音频数据 #${audioDataCounter}, 类型: ${audioData?.constructor?.name}, 大小: ${audioData?.length || audioData?.byteLength || 'unknown'}`);
         }
 
         const manager = await initializeSpeechManager();
@@ -451,7 +452,7 @@ function registerSpeechIPC({ initializeSpeechManager }) {
 
         return await manager.addRealtimeAudioData(buffer);
       } catch (error) {
-        console.error("[Speech] 添加实时音频数据失败:", error);
+        logger.error("[Speech] 添加实时音频数据失败:", error);
         throw error;
       }
     },
@@ -465,7 +466,7 @@ function registerSpeechIPC({ initializeSpeechManager }) {
       const manager = await initializeSpeechManager();
       return await manager.pauseRealtimeRecording();
     } catch (error) {
-      console.error("[Speech] 暂停实时录音失败:", error);
+      logger.error("[Speech] 暂停实时录音失败:", error);
       throw error;
     }
   });
@@ -478,7 +479,7 @@ function registerSpeechIPC({ initializeSpeechManager }) {
       const manager = await initializeSpeechManager();
       return await manager.resumeRealtimeRecording();
     } catch (error) {
-      console.error("[Speech] 恢复实时录音失败:", error);
+      logger.error("[Speech] 恢复实时录音失败:", error);
       throw error;
     }
   });
@@ -491,7 +492,7 @@ function registerSpeechIPC({ initializeSpeechManager }) {
       const manager = await initializeSpeechManager();
       return await manager.stopRealtimeRecording();
     } catch (error) {
-      console.error("[Speech] 停止实时录音失败:", error);
+      logger.error("[Speech] 停止实时录音失败:", error);
       throw error;
     }
   });
@@ -504,7 +505,7 @@ function registerSpeechIPC({ initializeSpeechManager }) {
       const manager = await initializeSpeechManager();
       return await manager.cancelRealtimeRecording();
     } catch (error) {
-      console.error("[Speech] 取消实时录音失败:", error);
+      logger.error("[Speech] 取消实时录音失败:", error);
       throw error;
     }
   });
@@ -517,7 +518,7 @@ function registerSpeechIPC({ initializeSpeechManager }) {
       const manager = await initializeSpeechManager();
       return await manager.getRealtimeStatus();
     } catch (error) {
-      console.error("[Speech] 获取实时录音状态失败:", error);
+      logger.error("[Speech] 获取实时录音状态失败:", error);
       throw error;
     }
   });
@@ -536,7 +537,7 @@ function registerSpeechIPC({ initializeSpeechManager }) {
         const manager = await initializeSpeechManager();
         return await manager.recognizeCommand(text, context);
       } catch (error) {
-        console.error("[Speech] 识别命令失败:", error);
+        logger.error("[Speech] 识别命令失败:", error);
         throw error;
       }
     },
@@ -550,7 +551,7 @@ function registerSpeechIPC({ initializeSpeechManager }) {
       const manager = await initializeSpeechManager();
       return await manager.registerCommand(command);
     } catch (error) {
-      console.error("[Speech] 注册命令失败:", error);
+      logger.error("[Speech] 注册命令失败:", error);
       throw error;
     }
   });
@@ -563,7 +564,7 @@ function registerSpeechIPC({ initializeSpeechManager }) {
       const manager = await initializeSpeechManager();
       return await manager.getAllCommands();
     } catch (error) {
-      console.error("[Speech] 获取所有命令失败:", error);
+      logger.error("[Speech] 获取所有命令失败:", error);
       throw error;
     }
   });
@@ -580,7 +581,7 @@ function registerSpeechIPC({ initializeSpeechManager }) {
       const manager = await initializeSpeechManager();
       return await manager.getCacheStats();
     } catch (error) {
-      console.error("[Speech] 获取缓存统计失败:", error);
+      logger.error("[Speech] 获取缓存统计失败:", error);
       throw error;
     }
   });
@@ -593,7 +594,7 @@ function registerSpeechIPC({ initializeSpeechManager }) {
       const manager = await initializeSpeechManager();
       return await manager.clearCache();
     } catch (error) {
-      console.error("[Speech] 清除缓存失败:", error);
+      logger.error("[Speech] 清除缓存失败:", error);
       throw error;
     }
   });
@@ -611,7 +612,7 @@ function registerSpeechIPC({ initializeSpeechManager }) {
       const multiLanguageSupport = new MultiLanguageSupport();
       return multiLanguageSupport.getSupportedLanguages();
     } catch (error) {
-      console.error("[Speech] 获取语言列表失败:", error);
+      logger.error("[Speech] 获取语言列表失败:", error);
       throw error;
     }
   });
@@ -626,7 +627,7 @@ function registerSpeechIPC({ initializeSpeechManager }) {
       await training.initialize("default-user");
       return await training.getStats();
     } catch (error) {
-      console.error("[Speech] 获取学习统计失败:", error);
+      logger.error("[Speech] 获取学习统计失败:", error);
       return {
         totalTranscriptions: 0,
         averageConfidence: 0,
@@ -655,7 +656,7 @@ function registerSpeechIPC({ initializeSpeechManager }) {
   ipcMain.handle("speech:startRecording", async (event, options = {}) => {
     try {
       const manager = await initializeSpeechManager();
-      console.log("[Speech] 开始录音:", options);
+      logger.info("[Speech] 开始录音:", options);
 
       // 使用 realtime recording 接口
       const result = await manager.startRealtimeRecording({
@@ -668,7 +669,7 @@ function registerSpeechIPC({ initializeSpeechManager }) {
 
       return { success: true, ...result };
     } catch (error) {
-      console.error("[Speech] 开始录音失败:", error);
+      logger.error("[Speech] 开始录音失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -680,7 +681,7 @@ function registerSpeechIPC({ initializeSpeechManager }) {
   ipcMain.handle("speech:stopRecording", async () => {
     try {
       const manager = await initializeSpeechManager();
-      console.log("[Speech] 停止录音");
+      logger.info("[Speech] 停止录音");
 
       // 使用 realtime recording 接口停止并获取结果
       // RealtimeVoiceInput.stopRecording() 返回:
@@ -711,7 +712,7 @@ function registerSpeechIPC({ initializeSpeechManager }) {
         };
       }
     } catch (error) {
-      console.error("[Speech] 停止录音失败:", error);
+      logger.error("[Speech] 停止录音失败:", error);
       return {
         success: false,
         error: error.message,
@@ -728,14 +729,14 @@ function registerSpeechIPC({ initializeSpeechManager }) {
   ipcMain.handle("speech:cancelRecording", async () => {
     try {
       const manager = await initializeSpeechManager();
-      console.log("[Speech] 取消录音");
+      logger.info("[Speech] 取消录音");
 
       // 使用 realtime recording 接口取消
       manager.cancelRealtimeRecording();
 
       return { success: true };
     } catch (error) {
-      console.error("[Speech] 取消录音失败:", error);
+      logger.error("[Speech] 取消录音失败:", error);
       return { success: false, error: error.message };
     }
   });
@@ -751,7 +752,7 @@ function registerSpeechIPC({ initializeSpeechManager }) {
       await training.exportProfile();
       return { success: true };
     } catch (error) {
-      console.error("[Speech] 导出数据失败:", error);
+      logger.error("[Speech] 导出数据失败:", error);
       throw error;
     }
   });
@@ -767,7 +768,7 @@ function registerSpeechIPC({ initializeSpeechManager }) {
       await training.importProfile();
       return { success: true };
     } catch (error) {
-      console.error("[Speech] 导入数据失败:", error);
+      logger.error("[Speech] 导入数据失败:", error);
       throw error;
     }
   });
@@ -783,22 +784,22 @@ function registerSpeechIPC({ initializeSpeechManager }) {
       await training.resetProfile();
       return { success: true };
     } catch (error) {
-      console.error("[Speech] 重置数据失败:", error);
+      logger.error("[Speech] 重置数据失败:", error);
       throw error;
     }
   });
 
-  console.log("[Speech IPC] ✓ 44 handlers registered");
-  console.log("[Speech IPC] - 2 file transcription handlers");
-  console.log("[Speech IPC] - 1 file selection handler");
-  console.log("[Speech IPC] - 4 configuration handlers");
-  console.log("[Speech IPC] - 2 history handlers");
-  console.log("[Speech IPC] - 5 audio file management handlers");
-  console.log("[Speech IPC] - 5 audio processing handlers");
-  console.log("[Speech IPC] - 3 subtitle generation handlers");
-  console.log("[Speech IPC] - 7 realtime recording handlers");
-  console.log("[Speech IPC] - 3 command recognition handlers");
-  console.log("[Speech IPC] - 2 cache management handlers");
+  logger.info("[Speech IPC] ✓ 44 handlers registered");
+  logger.info("[Speech IPC] - 2 file transcription handlers");
+  logger.info("[Speech IPC] - 1 file selection handler");
+  logger.info("[Speech IPC] - 4 configuration handlers");
+  logger.info("[Speech IPC] - 2 history handlers");
+  logger.info("[Speech IPC] - 5 audio file management handlers");
+  logger.info("[Speech IPC] - 5 audio processing handlers");
+  logger.info("[Speech IPC] - 3 subtitle generation handlers");
+  logger.info("[Speech IPC] - 7 realtime recording handlers");
+  logger.info("[Speech IPC] - 3 command recognition handlers");
+  logger.info("[Speech IPC] - 2 cache management handlers");
 }
 
 module.exports = {

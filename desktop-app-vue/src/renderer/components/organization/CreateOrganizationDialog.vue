@@ -156,6 +156,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, reactive, watch } from 'vue';
 import { message } from 'ant-design-vue';
 import {
@@ -251,7 +253,7 @@ async function handleCreate() {
       message.error(result.error || 'Failed to create organization');
     }
   } catch (error) {
-    console.error('Error creating organization:', error);
+    logger.error('Error creating organization:', error);
     if (error.errorFields) {
       // Validation error
       return;

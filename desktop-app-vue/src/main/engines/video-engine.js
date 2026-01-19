@@ -4,6 +4,7 @@
  * 使用FFmpeg进行视频处理
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const ffmpeg = require("fluent-ffmpeg");
 const fs = require("fs").promises;
 const path = require("path");
@@ -29,7 +30,7 @@ class VideoEngine extends EventEmitter {
 
     // 初始化处理器
     this.resumableProcessor.initialize().catch((err) => {
-      console.error("[VideoEngine] ResumableProcessor 初始化失败:", err);
+      logger.error("[VideoEngine] ResumableProcessor 初始化失败:", err);
     });
 
     // 支持的视频格式
@@ -147,7 +148,7 @@ class VideoEngine extends EventEmitter {
   async handleProjectTask(params, onProgress = null) {
     const { taskType, inputPath, outputPath, options = {} } = params;
 
-    console.log("[Video Engine] 执行任务:", taskType);
+    logger.info("[Video Engine] 执行任务:", taskType);
 
     // 创建任务追踪器
     const taskId = `video_${taskType}_${Date.now()}`;
@@ -301,7 +302,7 @@ class VideoEngine extends EventEmitter {
 
       return result;
     } catch (error) {
-      console.error(`[VideoEngine] 任务失败 (${taskType}):`, error);
+      logger.error(`[VideoEngine] 任务失败 (${taskType}):`, error);
       tracker.error(error);
       throw error;
     }
@@ -324,7 +325,7 @@ class VideoEngine extends EventEmitter {
       codec = "libx264",
     } = options;
 
-    console.log(`[Video Engine] 转换格式: ${inputPath} -> ${outputPath}`);
+    logger.info(`[Video Engine] 转换格式: ${inputPath} -> ${outputPath}`);
 
     return new Promise((resolve, reject) => {
       const command = ffmpeg(inputPath)
@@ -351,7 +352,7 @@ class VideoEngine extends EventEmitter {
 
       command
         .on("end", () => {
-          console.log("[Video Engine] 格式转换完成");
+          logger.info("[Video Engine] 格式转换完成");
           resolve({
             success: true,
             outputPath: outputPath,
@@ -359,7 +360,7 @@ class VideoEngine extends EventEmitter {
           });
         })
         .on("error", (error) => {
-          console.error("[Video Engine] 格式转换失败:", error);
+          logger.error("[Video Engine] 格式转换失败:", error);
           reject(error);
         })
         .run();
@@ -377,7 +378,7 @@ class VideoEngine extends EventEmitter {
   async trimVideo(inputPath, outputPath, options = {}, onProgress = null) {
     const { startTime = "00:00:00", duration = null, endTime = null } = options;
 
-    console.log(
+    logger.info(
       `[Video Engine] 剪辑视频: ${startTime} ~ ${endTime || duration}`,
     );
 
@@ -404,7 +405,7 @@ class VideoEngine extends EventEmitter {
 
       command
         .on("end", () => {
-          console.log("[Video Engine] 视频剪辑完成");
+          logger.info("[Video Engine] 视频剪辑完成");
           resolve({
             success: true,
             outputPath: outputPath,
@@ -413,7 +414,7 @@ class VideoEngine extends EventEmitter {
           });
         })
         .on("error", (error) => {
-          console.error("[Video Engine] 视频剪辑失败:", error);
+          logger.error("[Video Engine] 视频剪辑失败:", error);
           reject(error);
         })
         .run();
@@ -431,7 +432,7 @@ class VideoEngine extends EventEmitter {
   async mergeVideos(videoList, outputPath, options = {}, onProgress = null) {
     const { transition = "concat" } = options;
 
-    console.log(`[Video Engine] 合并 ${videoList.length} 个视频文件`);
+    logger.info(`[Video Engine] 合并 ${videoList.length} 个视频文件`);
 
     // 创建临时文件列表
     const listFilePath = path.join(path.dirname(outputPath), "concat_list.txt");
@@ -461,10 +462,10 @@ class VideoEngine extends EventEmitter {
           try {
             await fs.unlink(listFilePath);
           } catch (error) {
-            console.warn("[Video Engine] 删除临时文件失败:", error);
+            logger.warn("[Video Engine] 删除临时文件失败:", error);
           }
 
-          console.log("[Video Engine] 视频合并完成");
+          logger.info("[Video Engine] 视频合并完成");
           resolve({
             success: true,
             outputPath: outputPath,
@@ -476,10 +477,10 @@ class VideoEngine extends EventEmitter {
           try {
             await fs.unlink(listFilePath);
           } catch (err) {
-            console.warn("[Video Engine] 删除临时文件失败:", err);
+            logger.warn("[Video Engine] 删除临时文件失败:", err);
           }
 
-          console.error("[Video Engine] 视频合并失败:", error);
+          logger.error("[Video Engine] 视频合并失败:", error);
           reject(error);
         })
         .run();
@@ -518,7 +519,7 @@ class VideoEngine extends EventEmitter {
       glowEffect = false,
     } = options;
 
-    console.log(`[Video Engine] 添加字幕: ${subtitlePath}`);
+    logger.info(`[Video Engine] 添加字幕: ${subtitlePath}`);
 
     // 构建ASS样式字符串
     const styleParams = [
@@ -565,7 +566,7 @@ class VideoEngine extends EventEmitter {
 
       command
         .on("end", () => {
-          console.log("[Video Engine] 字幕添加完成");
+          logger.info("[Video Engine] 字幕添加完成");
           resolve({
             success: true,
             outputPath: outputPath,
@@ -579,7 +580,7 @@ class VideoEngine extends EventEmitter {
           });
         })
         .on("error", (error) => {
-          console.error("[Video Engine] 字幕添加失败:", error);
+          logger.error("[Video Engine] 字幕添加失败:", error);
           reject(error);
         })
         .run();
@@ -597,7 +598,7 @@ class VideoEngine extends EventEmitter {
   async extractAudio(inputPath, outputPath, options = {}, onProgress = null) {
     const { format = "mp3", bitrate = "192k", channels = 2 } = options;
 
-    console.log(`[Video Engine] 提取音频: ${inputPath}`);
+    logger.info(`[Video Engine] 提取音频: ${inputPath}`);
 
     return new Promise((resolve, reject) => {
       const command = ffmpeg(inputPath)
@@ -620,7 +621,7 @@ class VideoEngine extends EventEmitter {
 
       command
         .on("end", () => {
-          console.log("[Video Engine] 音频提取完成");
+          logger.info("[Video Engine] 音频提取完成");
           resolve({
             success: true,
             outputPath: outputPath,
@@ -628,7 +629,7 @@ class VideoEngine extends EventEmitter {
           });
         })
         .on("error", (error) => {
-          console.error("[Video Engine] 音频提取失败:", error);
+          logger.error("[Video Engine] 音频提取失败:", error);
           reject(error);
         })
         .run();
@@ -645,7 +646,7 @@ class VideoEngine extends EventEmitter {
   async generateThumbnail(inputPath, outputPath, options = {}) {
     const { timeOffset = "00:00:01", size = "320x240" } = options;
 
-    console.log(`[Video Engine] 生成缩略图: ${inputPath}`);
+    logger.info(`[Video Engine] 生成缩略图: ${inputPath}`);
 
     return new Promise((resolve, reject) => {
       ffmpeg(inputPath)
@@ -656,14 +657,14 @@ class VideoEngine extends EventEmitter {
           size: size,
         })
         .on("end", () => {
-          console.log("[Video Engine] 缩略图生成完成");
+          logger.info("[Video Engine] 缩略图生成完成");
           resolve({
             success: true,
             outputPath: outputPath,
           });
         })
         .on("error", (error) => {
-          console.error("[Video Engine] 缩略图生成失败:", error);
+          logger.error("[Video Engine] 缩略图生成失败:", error);
           reject(error);
         });
     });
@@ -685,7 +686,7 @@ class VideoEngine extends EventEmitter {
 
     const presetConfig = this.presets[preset] || this.presets["720p"];
 
-    console.log(`[Video Engine] 压缩视频: ${preset} (CRF=${crf})`);
+    logger.info(`[Video Engine] 压缩视频: ${preset} (CRF=${crf})`);
 
     return new Promise((resolve, reject) => {
       const command = ffmpeg(inputPath)
@@ -707,7 +708,7 @@ class VideoEngine extends EventEmitter {
 
       command
         .on("end", () => {
-          console.log("[Video Engine] 视频压缩完成");
+          logger.info("[Video Engine] 视频压缩完成");
           resolve({
             success: true,
             outputPath: outputPath,
@@ -715,7 +716,7 @@ class VideoEngine extends EventEmitter {
           });
         })
         .on("error", (error) => {
-          console.error("[Video Engine] 视频压缩失败:", error);
+          logger.error("[Video Engine] 视频压缩失败:", error);
           reject(error);
         })
         .run();
@@ -738,7 +739,7 @@ class VideoEngine extends EventEmitter {
   ) {
     const { language = "zh" } = options;
 
-    console.log(`[Video Engine] 使用AI生成字幕 (语言: ${language})`);
+    logger.info(`[Video Engine] 使用AI生成字幕 (语言: ${language})`);
 
     try {
       // 1. 提取音频
@@ -772,21 +773,21 @@ class VideoEngine extends EventEmitter {
       try {
         await fs.unlink(audioPath);
       } catch (error) {
-        console.warn("[Video Engine] 删除临时音频文件失败:", error);
+        logger.warn("[Video Engine] 删除临时音频文件失败:", error);
       }
 
       if (onProgress) {
         onProgress({ percent: 100, message: "字幕生成完成" });
       }
 
-      console.log("[Video Engine] AI字幕生成完成");
+      logger.info("[Video Engine] AI字幕生成完成");
       return {
         success: true,
         outputPath: outputPath,
         language: language,
       };
     } catch (error) {
-      console.error("[Video Engine] AI字幕生成失败:", error);
+      logger.error("[Video Engine] AI字幕生成失败:", error);
       throw error;
     }
   }
@@ -825,7 +826,7 @@ class VideoEngine extends EventEmitter {
     return new Promise((resolve, reject) => {
       ffmpeg.ffprobe(videoPath, (error, metadata) => {
         if (error) {
-          console.error("[Video Engine] 获取视频信息失败:", error);
+          logger.error("[Video Engine] 获取视频信息失败:", error);
           reject(error);
         } else {
           const videoStream = metadata.streams.find(
@@ -879,7 +880,7 @@ class VideoEngine extends EventEmitter {
       customFilters = [],
     } = options;
 
-    console.log(`[Video Engine] 应用滤镜: ${filterType} (强度: ${intensity})`);
+    logger.info(`[Video Engine] 应用滤镜: ${filterType} (强度: ${intensity})`);
 
     // 检查滤镜是否存在
     if (!this.filterPresets[filterType] && customFilters.length === 0) {
@@ -915,7 +916,7 @@ class VideoEngine extends EventEmitter {
 
       command
         .on("end", () => {
-          console.log("[Video Engine] 滤镜应用完成");
+          logger.info("[Video Engine] 滤镜应用完成");
           resolve({
             success: true,
             outputPath: outputPath,
@@ -924,7 +925,7 @@ class VideoEngine extends EventEmitter {
           });
         })
         .on("error", (error) => {
-          console.error("[Video Engine] 滤镜应用失败:", error);
+          logger.error("[Video Engine] 滤镜应用失败:", error);
           reject(error);
         })
         .run();
@@ -947,7 +948,7 @@ class VideoEngine extends EventEmitter {
     filterChain = [],
     onProgress = null,
   ) {
-    console.log(`[Video Engine] 应用滤镜链: ${filterChain.length}个滤镜`);
+    logger.info(`[Video Engine] 应用滤镜链: ${filterChain.length}个滤镜`);
 
     if (filterChain.length === 0) {
       throw new Error("滤镜链不能为空");
@@ -967,7 +968,7 @@ class VideoEngine extends EventEmitter {
           // 预设滤镜
           filters.push(this.filterPresets[type](intensity));
         } else {
-          console.warn(`[Video Engine] 未知滤镜类型: ${type}，跳过`);
+          logger.warn(`[Video Engine] 未知滤镜类型: ${type}，跳过`);
         }
       }
 
@@ -987,7 +988,7 @@ class VideoEngine extends EventEmitter {
 
       command
         .on("end", () => {
-          console.log("[Video Engine] 滤镜链应用完成");
+          logger.info("[Video Engine] 滤镜链应用完成");
           resolve({
             success: true,
             outputPath: outputPath,
@@ -995,7 +996,7 @@ class VideoEngine extends EventEmitter {
           });
         })
         .on("error", (error) => {
-          console.error("[Video Engine] 滤镜链应用失败:", error);
+          logger.error("[Video Engine] 滤镜链应用失败:", error);
           reject(error);
         })
         .run();
@@ -1014,7 +1015,7 @@ class VideoEngine extends EventEmitter {
   async separateAudioTracks(inputPath, outputDir, options = {}) {
     const { format = "mp3", bitrate = "192k" } = options;
 
-    console.log(`[Video Engine] 分离音轨: ${inputPath}`);
+    logger.info(`[Video Engine] 分离音轨: ${inputPath}`);
 
     try {
       // 获取视频信息
@@ -1025,7 +1026,7 @@ class VideoEngine extends EventEmitter {
         throw new Error("视频不包含音轨");
       }
 
-      console.log(`[Video Engine] 检测到 ${audioStreams.length} 个音轨`);
+      logger.info(`[Video Engine] 检测到 ${audioStreams.length} 个音轨`);
 
       // 确保输出目录存在
       await fs.mkdir(outputDir, { recursive: true });
@@ -1043,11 +1044,11 @@ class VideoEngine extends EventEmitter {
             .audioCodec("libmp3lame")
             .audioBitrate(bitrate)
             .on("end", () => {
-              console.log(`[Video Engine] 音轨 ${i} 分离完成`);
+              logger.info(`[Video Engine] 音轨 ${i} 分离完成`);
               resolve();
             })
             .on("error", (error) => {
-              console.error(`[Video Engine] 音轨 ${i} 分离失败:`, error);
+              logger.error(`[Video Engine] 音轨 ${i} 分离失败:`, error);
               reject(error);
             })
             .run();
@@ -1067,7 +1068,7 @@ class VideoEngine extends EventEmitter {
         tracks: results,
       };
     } catch (error) {
-      console.error("[Video Engine] 分离音轨失败:", error);
+      logger.error("[Video Engine] 分离音轨失败:", error);
       throw error;
     }
   }
@@ -1092,7 +1093,7 @@ class VideoEngine extends EventEmitter {
   ) {
     const { removeOriginalAudio = true } = options;
 
-    console.log(`[Video Engine] 替换音轨: ${audioPath}`);
+    logger.info(`[Video Engine] 替换音轨: ${audioPath}`);
 
     return new Promise((resolve, reject) => {
       const command = ffmpeg()
@@ -1113,14 +1114,14 @@ class VideoEngine extends EventEmitter {
 
       command
         .on("end", () => {
-          console.log("[Video Engine] 音轨替换完成");
+          logger.info("[Video Engine] 音轨替换完成");
           resolve({
             success: true,
             outputPath: outputPath,
           });
         })
         .on("error", (error) => {
-          console.error("[Video Engine] 音轨替换失败:", error);
+          logger.error("[Video Engine] 音轨替换失败:", error);
           reject(error);
         })
         .run();
@@ -1147,7 +1148,7 @@ class VideoEngine extends EventEmitter {
   ) {
     const { normalize = false } = options;
 
-    console.log(`[Video Engine] 调节音量: ${volumeLevel}x`);
+    logger.info(`[Video Engine] 调节音量: ${volumeLevel}x`);
 
     return new Promise((resolve, reject) => {
       const audioFilters = [];
@@ -1177,7 +1178,7 @@ class VideoEngine extends EventEmitter {
 
       command
         .on("end", () => {
-          console.log("[Video Engine] 音量调节完成");
+          logger.info("[Video Engine] 音量调节完成");
           resolve({
             success: true,
             outputPath: outputPath,
@@ -1186,7 +1187,7 @@ class VideoEngine extends EventEmitter {
           });
         })
         .on("error", (error) => {
-          console.error("[Video Engine] 音量调节失败:", error);
+          logger.error("[Video Engine] 音量调节失败:", error);
           reject(error);
         })
         .run();
@@ -1211,7 +1212,7 @@ class VideoEngine extends EventEmitter {
     presetName = "default",
     onProgress = null,
   ) {
-    console.log(`[Video Engine] 应用字幕预设: ${presetName}`);
+    logger.info(`[Video Engine] 应用字幕预设: ${presetName}`);
 
     const preset = this.subtitlePresets[presetName];
     if (!preset) {

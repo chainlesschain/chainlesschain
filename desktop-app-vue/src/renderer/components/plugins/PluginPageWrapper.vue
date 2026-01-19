@@ -118,6 +118,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import {
   ref,
   computed,
@@ -317,7 +319,7 @@ async function loadPluginPage() {
 
     emit("loaded", { pluginId: props.pluginId, pageConfig: props.pageConfig });
   } catch (err) {
-    console.error("[PluginPageWrapper] 加载插件页面失败:", err);
+    logger.error("[PluginPageWrapper] 加载插件页面失败:", err);
     error.value = err.message;
     emit("error", err);
   } finally {
@@ -345,7 +347,7 @@ function openPluginSettings() {
 
 // 处理 iframe 加载完成
 function onIframeLoad() {
-  console.log("[PluginPageWrapper] iframe 加载完成");
+  logger.info("[PluginPageWrapper] iframe 加载完成");
   // 可以在这里设置 iframe 通信
   setupIframeCommunication();
 }
@@ -367,7 +369,7 @@ function handleIframeMessage(event) {
 
   switch (type) {
     case "plugin:ready":
-      console.log("[PluginPageWrapper] 插件页面就绪");
+      logger.info("[PluginPageWrapper] 插件页面就绪");
       break;
     case "plugin:event":
       handlePluginEvent(payload);
@@ -379,13 +381,13 @@ function handleIframeMessage(event) {
       message[payload.type || "info"](payload.content);
       break;
     default:
-      console.log("[PluginPageWrapper] 未知消息类型:", type);
+      logger.info("[PluginPageWrapper] 未知消息类型:", type);
   }
 }
 
 // 处理插件事件
 function handlePluginEvent(eventData) {
-  console.log("[PluginPageWrapper] 插件事件:", eventData);
+  logger.info("[PluginPageWrapper] 插件事件:", eventData);
   emit("event", eventData);
 }
 

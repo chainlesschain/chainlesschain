@@ -8,6 +8,7 @@
  * @since 2026-01-18
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const ipcGuard = require("../ipc/ipc-guard");
 
 /**
@@ -20,14 +21,14 @@ const ipcGuard = require("../ipc/ipc-guard");
 function registerMemorySyncIPC(options) {
   // Prevent duplicate registration
   if (ipcGuard.isModuleRegistered("memory-sync-ipc")) {
-    console.log("[MemorySync IPC] Handlers already registered, skipping...");
+    logger.info("[MemorySync IPC] Handlers already registered, skipping...");
     return;
   }
 
   const electron = require("electron");
   const ipcMain = options.ipcMain || electron.ipcMain;
 
-  console.log("[MemorySync IPC] Registering handlers...");
+  logger.info("[MemorySync IPC] Registering handlers...");
 
   // Mutable reference for hot-reload
   let syncService = options.memorySyncService;
@@ -49,7 +50,7 @@ function registerMemorySyncIPC(options) {
       const result = await syncService.syncAll();
       return result;
     } catch (error) {
-      console.error("[MemorySync IPC] Sync all failed:", error);
+      logger.error("[MemorySync IPC] Sync all failed:", error);
       throw error;
     }
   });
@@ -67,7 +68,7 @@ function registerMemorySyncIPC(options) {
       const result = await syncService.syncCategory(category);
       return result;
     } catch (error) {
-      console.error(
+      logger.error(
         `[MemorySync IPC] Sync category ${category} failed:`,
         error,
       );
@@ -95,7 +96,7 @@ function registerMemorySyncIPC(options) {
         ...syncService.getStatus(),
       };
     } catch (error) {
-      console.error("[MemorySync IPC] Get status failed:", error);
+      logger.error("[MemorySync IPC] Get status failed:", error);
       throw error;
     }
   });
@@ -113,7 +114,7 @@ function registerMemorySyncIPC(options) {
       syncService.startPeriodicSync();
       return { success: true };
     } catch (error) {
-      console.error("[MemorySync IPC] Start periodic sync failed:", error);
+      logger.error("[MemorySync IPC] Start periodic sync failed:", error);
       throw error;
     }
   });
@@ -131,7 +132,7 @@ function registerMemorySyncIPC(options) {
       syncService.stopPeriodicSync();
       return { success: true };
     } catch (error) {
-      console.error("[MemorySync IPC] Stop periodic sync failed:", error);
+      logger.error("[MemorySync IPC] Stop periodic sync failed:", error);
       throw error;
     }
   });
@@ -149,7 +150,7 @@ function registerMemorySyncIPC(options) {
       const report = await syncService.generateSyncReport();
       return report;
     } catch (error) {
-      console.error("[MemorySync IPC] Generate report failed:", error);
+      logger.error("[MemorySync IPC] Generate report failed:", error);
       throw error;
     }
   });
@@ -167,7 +168,7 @@ function registerMemorySyncIPC(options) {
       await syncService.ensureDirectories();
       return { success: true };
     } catch (error) {
-      console.error("[MemorySync IPC] Ensure directories failed:", error);
+      logger.error("[MemorySync IPC] Ensure directories failed:", error);
       throw error;
     }
   });
@@ -175,12 +176,12 @@ function registerMemorySyncIPC(options) {
   // Mark as registered
   ipcGuard.markModuleRegistered("memory-sync-ipc");
 
-  console.log("[MemorySync IPC] Handlers registered successfully");
+  logger.info("[MemorySync IPC] Handlers registered successfully");
 
   return {
     updateSyncService: (newService) => {
       syncService = newService;
-      console.log("[MemorySync IPC] SyncService reference updated");
+      logger.info("[MemorySync IPC] SyncService reference updated");
     },
   };
 }

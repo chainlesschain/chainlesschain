@@ -319,6 +319,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted } from 'vue';
 import { message as antMessage } from 'ant-design-vue';
 import {
@@ -454,10 +456,10 @@ const loadCreditReport = async () => {
         })),
       };
 
-      console.log('[CreditScore] 信用报告已加载:', creditReport.value);
+      logger.info('[CreditScore] 信用报告已加载:', creditReport.value);
     }
   } catch (error) {
-    console.error('[CreditScore] 加载信用报告失败:', error);
+    logger.error('[CreditScore] 加载信用报告失败:', error);
     antMessage.error(error.message || '加载信用报告失败');
   }
 };

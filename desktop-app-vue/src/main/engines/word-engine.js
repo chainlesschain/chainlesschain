@@ -4,6 +4,7 @@
  * 支持 .docx 格式
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const nodeFs = require("fs");
 const path = require("path");
 const { getFileHandler } = require("../utils/file-handler");
@@ -58,14 +59,14 @@ class WordEngine {
    */
   async readWord(filePath) {
     try {
-      console.log("[WordEngine] 读取Word文档:", filePath);
+      logger.info("[WordEngine] 读取Word文档:", filePath);
 
       // 检查文件大小
       const fileSize = await this.fileHandler.getFileSize(filePath);
       const isLarge = fileSize > 10 * 1024 * 1024; // 10MB
 
       if (isLarge) {
-        console.log(
+        logger.info(
           `[WordEngine] 检测到大文件 (${(fileSize / 1024 / 1024).toFixed(2)}MB)，使用优化模式`,
         );
       }
@@ -73,7 +74,7 @@ class WordEngine {
       // 检查内存可用性
       const memStatus = this.fileHandler.checkAvailableMemory();
       if (!memStatus.isAvailable) {
-        console.warn("[WordEngine] 内存使用率高，等待内存释放...");
+        logger.warn("[WordEngine] 内存使用率高，等待内存释放...");
         await this.fileHandler.waitForMemory();
       }
 
@@ -99,7 +100,7 @@ class WordEngine {
         fileSize,
       };
     } catch (error) {
-      console.error("[WordEngine] 读取Word失败:", error);
+      logger.error("[WordEngine] 读取Word失败:", error);
       throw error;
     }
   }
@@ -111,7 +112,7 @@ class WordEngine {
    */
   async writeWord(filePath, content) {
     try {
-      console.log("[WordEngine] 写入Word文档:", filePath);
+      logger.info("[WordEngine] 写入Word文档:", filePath);
 
       const { title, paragraphs = [], styles = {} } = content;
 
@@ -158,7 +159,7 @@ class WordEngine {
       const isLarge = bufferSize > 10 * 1024 * 1024; // 10MB
 
       if (isLarge) {
-        console.log(
+        logger.info(
           `[WordEngine] 大文档 (${(bufferSize / 1024 / 1024).toFixed(2)}MB)，使用流式写入`,
         );
 
@@ -177,7 +178,7 @@ class WordEngine {
         fileSize: bufferSize,
       };
     } catch (error) {
-      console.error("[WordEngine] 写入Word失败:", error);
+      logger.error("[WordEngine] 写入Word失败:", error);
       throw error;
     }
   }
@@ -362,7 +363,7 @@ class WordEngine {
    */
   async markdownToWord(markdownText, outputPath, options = {}) {
     try {
-      console.log("[WordEngine] Markdown转Word");
+      logger.info("[WordEngine] Markdown转Word");
 
       // 解析Markdown
       const html = marked(markdownText);
@@ -376,7 +377,7 @@ class WordEngine {
       // 生成Word文档
       return await this.writeWord(outputPath, content);
     } catch (error) {
-      console.error("[WordEngine] Markdown转Word失败:", error);
+      logger.error("[WordEngine] Markdown转Word失败:", error);
       throw error;
     }
   }
@@ -386,7 +387,7 @@ class WordEngine {
    */
   async wordToMarkdown(filePath) {
     try {
-      console.log("[WordEngine] Word转Markdown");
+      logger.info("[WordEngine] Word转Markdown");
 
       const result = await this.readWord(filePath);
 
@@ -419,7 +420,7 @@ class WordEngine {
         markdown,
       };
     } catch (error) {
-      console.error("[WordEngine] Word转Markdown失败:", error);
+      logger.error("[WordEngine] Word转Markdown失败:", error);
       throw error;
     }
   }
@@ -430,13 +431,13 @@ class WordEngine {
    */
   async wordToPDF(filePath, outputPath) {
     try {
-      console.log("[WordEngine] Word转PDF");
+      logger.info("[WordEngine] Word转PDF");
 
       // 这里需要外部工具，如LibreOffice
       // 暂时返回未实现的错误
       throw new Error("Word转PDF需要安装LibreOffice或其他转换工具");
     } catch (error) {
-      console.error("[WordEngine] Word转PDF失败:", error);
+      logger.error("[WordEngine] Word转PDF失败:", error);
       throw error;
     }
   }
@@ -446,7 +447,7 @@ class WordEngine {
    */
   async htmlToWord(html, outputPath, options = {}) {
     try {
-      console.log("[WordEngine] HTML转Word");
+      logger.info("[WordEngine] HTML转Word");
 
       const content = this.parseHtmlToContent(html);
 
@@ -456,7 +457,7 @@ class WordEngine {
 
       return await this.writeWord(outputPath, content);
     } catch (error) {
-      console.error("[WordEngine] HTML转Word失败:", error);
+      logger.error("[WordEngine] HTML转Word失败:", error);
       throw error;
     }
   }
@@ -466,7 +467,7 @@ class WordEngine {
    */
   async createTemplate(templateType, outputPath, data = {}) {
     try {
-      console.log("[WordEngine] 创建Word模板:", templateType);
+      logger.info("[WordEngine] 创建Word模板:", templateType);
 
       const templates = {
         report: this.createReportTemplate,
@@ -482,7 +483,7 @@ class WordEngine {
       const content = createFn.call(this, data);
       return await this.writeWord(outputPath, content);
     } catch (error) {
-      console.error("[WordEngine] 创建模板失败:", error);
+      logger.error("[WordEngine] 创建模板失败:", error);
       throw error;
     }
   }
@@ -576,22 +577,22 @@ class WordEngine {
       action = "create_document",
     } = params;
 
-    console.log("[WordEngine] ========== 开始处理Word文档生成任务 ==========");
-    console.log("[WordEngine] 描述:", description);
-    console.log("[WordEngine] 操作:", action);
-    console.log("[WordEngine] 项目路径:", projectPath);
+    logger.info("[WordEngine] ========== 开始处理Word文档生成任务 ==========");
+    logger.info("[WordEngine] 描述:", description);
+    logger.info("[WordEngine] 操作:", action);
+    logger.info("[WordEngine] 项目路径:", projectPath);
 
     try {
       // 使用LLM生成文档结构
-      console.log("[WordEngine] 步骤1: 使用LLM生成文档结构...");
+      logger.info("[WordEngine] 步骤1: 使用LLM生成文档结构...");
       const documentStructure =
         await this.generateDocumentStructureFromDescription(
           description,
           llmManager,
         );
-      console.log("[WordEngine] ✓ 文档结构已生成");
-      console.log("[WordEngine]   - 标题:", documentStructure.title);
-      console.log(
+      logger.info("[WordEngine] ✓ 文档结构已生成");
+      logger.info("[WordEngine]   - 标题:", documentStructure.title);
+      logger.info(
         "[WordEngine]   - 段落数:",
         documentStructure.paragraphs?.length,
       );
@@ -600,32 +601,32 @@ class WordEngine {
       const fileName = `${documentStructure.title || "document"}.docx`;
       const filePath = path.join(projectPath, fileName);
 
-      console.log("[WordEngine] 步骤2: 写入Word文件...");
-      console.log("[WordEngine]   - 文件名:", fileName);
-      console.log("[WordEngine]   - 项目路径:", projectPath);
-      console.log("[WordEngine]   - 完整路径:", filePath);
+      logger.info("[WordEngine] 步骤2: 写入Word文件...");
+      logger.info("[WordEngine]   - 文件名:", fileName);
+      logger.info("[WordEngine]   - 项目路径:", projectPath);
+      logger.info("[WordEngine]   - 完整路径:", filePath);
 
       // 确保目录存在
       const dirPath = path.dirname(filePath);
-      console.log("[WordEngine]   - 检查目录:", dirPath);
+      logger.info("[WordEngine]   - 检查目录:", dirPath);
       try {
         await fs.mkdir(dirPath, { recursive: true });
-        console.log("[WordEngine]   ✓ 目录已确保存在");
+        logger.info("[WordEngine]   ✓ 目录已确保存在");
       } catch (mkdirError) {
-        console.error("[WordEngine]   ✗ 创建目录失败:", mkdirError.message);
+        logger.error("[WordEngine]   ✗ 创建目录失败:", mkdirError.message);
         throw new Error(`无法创建目录 ${dirPath}: ${mkdirError.message}`);
       }
 
       const result = await this.writeWord(filePath, documentStructure);
 
-      console.log("[WordEngine] ✓ Word文件写入成功!");
-      console.log("[WordEngine]   - 文件路径:", result.filePath);
-      console.log(
+      logger.info("[WordEngine] ✓ Word文件写入成功!");
+      logger.info("[WordEngine]   - 文件路径:", result.filePath);
+      logger.info(
         "[WordEngine]   - 文件大小:",
         (result.fileSize / 1024).toFixed(2),
         "KB",
       );
-      console.log("[WordEngine] ========== Word文档生成完成 ==========");
+      logger.info("[WordEngine] ========== Word文档生成完成 ==========");
 
       return {
         type: "word-document",
@@ -635,9 +636,9 @@ class WordEngine {
         paragraphCount: documentStructure.paragraphs?.length || 0,
       };
     } catch (error) {
-      console.error("[WordEngine] ========== 任务执行失败 ==========");
-      console.error("[WordEngine] 错误:", error.message);
-      console.error("[WordEngine] 堆栈:", error.stack);
+      logger.error("[WordEngine] ========== 任务执行失败 ==========");
+      logger.error("[WordEngine] 错误:", error.message);
+      logger.error("[WordEngine] 堆栈:", error.stack);
       throw error;
     }
   }
@@ -685,7 +686,7 @@ ${description}
 
       // 尝试使用本地LLM
       if (llmManager && llmManager.isInitialized) {
-        console.log("[WordEngine] 使用本地LLM生成文档结构");
+        logger.info("[WordEngine] 使用本地LLM生成文档结构");
         const response = await llmManager.query(prompt, {
           temperature: 0.7,
           maxTokens: 3000, // Word文档需要更多token
@@ -693,7 +694,7 @@ ${description}
         responseText = response.text;
       } else {
         // 降级到后端AI服务
-        console.log("[WordEngine] 本地LLM不可用，使用后端AI服务");
+        logger.info("[WordEngine] 本地LLM不可用，使用后端AI服务");
         responseText = await this.queryBackendAI(prompt);
       }
 
@@ -707,7 +708,7 @@ ${description}
       // 解析失败，返回默认结构
       return this.getDefaultDocumentStructure(description);
     } catch (error) {
-      console.error("[WordEngine] 生成文档结构失败:", error);
+      logger.error("[WordEngine] 生成文档结构失败:", error);
       return this.getDefaultDocumentStructure(description);
     }
   }

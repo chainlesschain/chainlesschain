@@ -277,6 +277,8 @@
 </template>
 
 <script>
+import { logger, createLogger } from '@/utils/logger';
+
 import { defineComponent, ref, reactive, computed, watch } from 'vue';
 import { message } from 'ant-design-vue';
 import { PlusOutlined } from '@ant-design/icons-vue';
@@ -424,7 +426,7 @@ export default defineComponent({
         emit('create', { ...templateForm });
         templateModalVisible.value = false;
       } catch (error) {
-        console.error('Failed to submit template:', error);
+        logger.error('Failed to submit template:', error);
         message.error('操作失败');
       } finally {
         loading.value = false;
@@ -447,7 +449,7 @@ export default defineComponent({
           message.error(result.error || '删除失败');
         }
       } catch (error) {
-        console.error('Failed to delete template:', error);
+        logger.error('Failed to delete template:', error);
         message.error('删除失败');
       } finally {
         loading.value = false;
@@ -469,7 +471,7 @@ export default defineComponent({
         emit('apply', currentTemplate.value.templateId, applyForm.targetType, applyForm.targetId);
         applyModalVisible.value = false;
       } catch (error) {
-        console.error('Failed to apply template:', error);
+        logger.error('Failed to apply template:', error);
         message.error('应用失败');
       } finally {
         loading.value = false;

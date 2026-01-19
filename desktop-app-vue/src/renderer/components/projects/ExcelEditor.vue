@@ -175,6 +175,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { message } from 'ant-design-vue';
 import DOMPurify from 'dompurify';
@@ -235,7 +237,7 @@ onMounted(async () => {
       // 如果使用 CDN，在 index.html 中添加：
       // <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jspreadsheet-ce/dist/jspreadsheet.min.css" />
       // <script src="https://cdn.jsdelivr.net/npm/jspreadsheet-ce/dist/index.min.js"></script>
-      console.warn('jspreadsheet not loaded, using basic table');
+      logger.warn('jspreadsheet not loaded, using basic table');
       initBasicTable();
     } else {
       jspreadsheet = window.jspreadsheet;
@@ -245,7 +247,7 @@ onMounted(async () => {
     // 监听键盘快捷键
     document.addEventListener('keydown', handleKeydown);
   } catch (error) {
-    console.error('初始化Excel编辑器失败:', error);
+    logger.error('初始化Excel编辑器失败:', error);
     message.error('初始化失败，使用基本编辑模式');
     initBasicTable();
   }
@@ -340,7 +342,7 @@ const parseExcelData = (content) => {
 
     return Array(20).fill(null).map(() => Array(10).fill(''));
   } catch (error) {
-    console.error('解析Excel数据失败:', error);
+    logger.error('解析Excel数据失败:', error);
     return Array(20).fill(null).map(() => Array(10).fill(''));
   }
 };
@@ -461,7 +463,7 @@ const handleSave = async () => {
     emit('save');
     message.success('文件已保存');
   } catch (error) {
-    console.error('保存文件失败:', error);
+    logger.error('保存文件失败:', error);
     message.error('保存文件失败: ' + error.message);
   } finally {
     saving.value = false;
@@ -482,7 +484,7 @@ const handleDownload = () => {
     URL.revokeObjectURL(url);
     message.success('文件已下载');
   } catch (error) {
-    console.error('下载失败:', error);
+    logger.error('下载失败:', error);
     message.error('下载失败');
   }
 };

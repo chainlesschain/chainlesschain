@@ -97,6 +97,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import {
   FileOutlined,
@@ -105,7 +107,7 @@ import {
   CommentOutlined,
   ReloadOutlined
 } from '@ant-design/icons-vue';
-import * as echarts from 'echarts';
+import { init } from '../../utils/echartsConfig';
 
 const props = defineProps({
   projectId: {
@@ -142,7 +144,7 @@ const loadStats = async () => {
       updateChart();
     }
   } catch (error) {
-    console.error('加载统计数据失败:', error);
+    logger.error('加载统计数据失败:', error);
   } finally {
     loading.value = false;
   }
@@ -154,7 +156,7 @@ const refreshStats = async () => {
     await window.electron.ipcRenderer.invoke('project:stats:update', props.projectId);
     await loadStats();
   } catch (error) {
-    console.error('刷新统计数据失败:', error);
+    logger.error('刷新统计数据失败:', error);
   } finally {
     loading.value = false;
   }
@@ -162,7 +164,7 @@ const refreshStats = async () => {
 
 const updateChart = () => {
   if (!chartInstance && chartRef.value) {
-    chartInstance = echarts.init(chartRef.value);
+    chartInstance = init(chartRef.value);
   }
 
   if (!chartInstance) {return;}

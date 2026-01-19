@@ -6,6 +6,7 @@
  * @description 提供身份上下文的创建、切换、删除、历史记录等 IPC 接口
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { ipcMain } = require('electron');
 
 /**
@@ -14,7 +15,7 @@ const { ipcMain } = require('electron');
  * @param {Object} dependencies.identityContextManager - 身份上下文管理器
  */
 function registerIdentityContextIPC({ identityContextManager }) {
-  console.log('[Identity Context IPC] Registering Identity Context IPC handlers...');
+  logger.info('[Identity Context IPC] Registering Identity Context IPC handlers...');
 
   // ============================================================
   // 身份上下文管理 (Identity Context Management)
@@ -33,7 +34,7 @@ function registerIdentityContextIPC({ identityContextManager }) {
       const contexts = identityContextManager.getAllContexts(userDID);
       return { success: true, contexts };
     } catch (error) {
-      console.error('[Identity Context IPC] 获取身份上下文列表失败:', error);
+      logger.error('[Identity Context IPC] 获取身份上下文列表失败:', error);
       return { success: false, error: error.message, contexts: [] };
     }
   });
@@ -51,7 +52,7 @@ function registerIdentityContextIPC({ identityContextManager }) {
       const context = identityContextManager.getActiveContext(userDID);
       return { success: true, context };
     } catch (error) {
-      console.error('[Identity Context IPC] 获取当前上下文失败:', error);
+      logger.error('[Identity Context IPC] 获取当前上下文失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -68,7 +69,7 @@ function registerIdentityContextIPC({ identityContextManager }) {
 
       return await identityContextManager.createPersonalContext(userDID, displayName);
     } catch (error) {
-      console.error('[Identity Context IPC] 创建个人上下文失败:', error);
+      logger.error('[Identity Context IPC] 创建个人上下文失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -85,7 +86,7 @@ function registerIdentityContextIPC({ identityContextManager }) {
 
       return await identityContextManager.createOrganizationContext(userDID, orgId, orgDID, displayName, avatar);
     } catch (error) {
-      console.error('[Identity Context IPC] 创建组织上下文失败:', error);
+      logger.error('[Identity Context IPC] 创建组织上下文失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -102,7 +103,7 @@ function registerIdentityContextIPC({ identityContextManager }) {
 
       return await identityContextManager.switchContext(userDID, targetContextId);
     } catch (error) {
-      console.error('[Identity Context IPC] 切换身份上下文失败:', error);
+      logger.error('[Identity Context IPC] 切换身份上下文失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -119,7 +120,7 @@ function registerIdentityContextIPC({ identityContextManager }) {
 
       return await identityContextManager.deleteOrganizationContext(userDID, orgId);
     } catch (error) {
-      console.error('[Identity Context IPC] 删除组织上下文失败:', error);
+      logger.error('[Identity Context IPC] 删除组织上下文失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -137,12 +138,12 @@ function registerIdentityContextIPC({ identityContextManager }) {
       const history = identityContextManager.getSwitchHistory(userDID, limit);
       return { success: true, history };
     } catch (error) {
-      console.error('[Identity Context IPC] 获取切换历史失败:', error);
+      logger.error('[Identity Context IPC] 获取切换历史失败:', error);
       return { success: false, error: error.message, history: [] };
     }
   });
 
-  console.log('[Identity Context IPC] ✓ All Identity Context IPC handlers registered successfully (7 handlers)');
+  logger.info('[Identity Context IPC] ✓ All Identity Context IPC handlers registered successfully (7 handlers)');
 }
 
 module.exports = {

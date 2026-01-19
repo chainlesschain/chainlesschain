@@ -5,6 +5,7 @@
  * 使用 FFmpeg 进行音频处理
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const ffmpeg = require('fluent-ffmpeg');
 const path = require('path');
 const fs = require('fs').promises;
@@ -47,10 +48,10 @@ class AudioProcessor extends EventEmitter {
     return new Promise((resolve) => {
       ffmpeg.getAvailableFormats((err, formats) => {
         if (err) {
-          console.error('[AudioProcessor] FFmpeg 不可用:', err);
+          logger.error('[AudioProcessor] FFmpeg 不可用:', err);
           resolve(false);
         } else {
-          console.log('[AudioProcessor] FFmpeg 可用');
+          logger.info('[AudioProcessor] FFmpeg 可用');
           resolve(true);
         }
       });
@@ -66,7 +67,7 @@ class AudioProcessor extends EventEmitter {
     return new Promise((resolve, reject) => {
       ffmpeg.ffprobe(audioPath, (err, metadata) => {
         if (err) {
-          console.error('[AudioProcessor] 获取元数据失败:', err);
+          logger.error('[AudioProcessor] 获取元数据失败:', err);
           reject(err);
           return;
         }
@@ -99,7 +100,7 @@ class AudioProcessor extends EventEmitter {
 
           resolve(result);
         } catch (error) {
-          console.error('[AudioProcessor] 解析元数据失败:', error);
+          logger.error('[AudioProcessor] 解析元数据失败:', error);
           reject(error);
         }
       });
@@ -169,14 +170,14 @@ class AudioProcessor extends EventEmitter {
             this.emit('convert-complete', result);
             resolve(result);
           } catch (error) {
-            console.error('[AudioProcessor] 获取转换结果失败:', error);
+            logger.error('[AudioProcessor] 获取转换结果失败:', error);
             reject(error);
           }
         });
 
         // 错误监听
         command.on('error', (error) => {
-          console.error('[AudioProcessor] 转换失败:', error);
+          logger.error('[AudioProcessor] 转换失败:', error);
           this.emit('convert-error', { inputPath, error });
           reject(error);
         });
@@ -185,7 +186,7 @@ class AudioProcessor extends EventEmitter {
         command.save(output);
       });
     } catch (error) {
-      console.error('[AudioProcessor] 转换准备失败:', error);
+      logger.error('[AudioProcessor] 转换准备失败:', error);
       this.emit('convert-error', { inputPath, error });
       throw error;
     }
@@ -214,7 +215,7 @@ class AudioProcessor extends EventEmitter {
           resolve({ success: true, outputPath });
         })
         .on('error', (error) => {
-          console.error('[AudioProcessor] 归一化失败:', error);
+          logger.error('[AudioProcessor] 归一化失败:', error);
           this.emit('normalize-error', { inputPath, error });
           reject(error);
         })
@@ -251,7 +252,7 @@ class AudioProcessor extends EventEmitter {
           resolve({ success: true, outputPath });
         })
         .on('error', (error) => {
-          console.error('[AudioProcessor] 去除静音失败:', error);
+          logger.error('[AudioProcessor] 去除静音失败:', error);
           this.emit('trim-error', { inputPath, error });
           reject(error);
         })
@@ -293,7 +294,7 @@ class AudioProcessor extends EventEmitter {
           resolve({ success: true, outputPath });
         })
         .on('error', (error) => {
-          console.error('[AudioProcessor] 降噪失败:', error);
+          logger.error('[AudioProcessor] 降噪失败:', error);
           this.emit('denoise-error', { inputPath, error });
           reject(error);
         })
@@ -386,7 +387,7 @@ class AudioProcessor extends EventEmitter {
           });
         })
         .on('error', (error) => {
-          console.error('[AudioProcessor] 增强失败:', error);
+          logger.error('[AudioProcessor] 增强失败:', error);
           this.emit('enhance-error', { inputPath, error });
           reject(error);
         })
@@ -436,7 +437,7 @@ class AudioProcessor extends EventEmitter {
           resolve({ success: true, outputPath });
         })
         .on('error', (error) => {
-          console.error('[AudioProcessor] 提取音频失败:', error);
+          logger.error('[AudioProcessor] 提取音频失败:', error);
           this.emit('extract-error', { videoPath, error });
           reject(error);
         })
@@ -495,7 +496,7 @@ class AudioProcessor extends EventEmitter {
 
       return segments;
     } catch (error) {
-      console.error('[AudioProcessor] 分段失败:', error);
+      logger.error('[AudioProcessor] 分段失败:', error);
       this.emit('segment-error', { inputPath, error });
       throw error;
     }
@@ -542,7 +543,7 @@ class AudioProcessor extends EventEmitter {
         confidence: hasSpeech ? 0.8 : 0.2,  // 简单估计
       };
     } catch (error) {
-      console.error('[AudioProcessor] 语音检测失败:', error);
+      logger.error('[AudioProcessor] 语音检测失败:', error);
       return {
         hasSpeech: false,
         duration: 0,
@@ -633,7 +634,7 @@ class AudioProcessor extends EventEmitter {
    */
   updateConfig(newConfig) {
     this.config = { ...this.config, ...newConfig };
-    console.log('[AudioProcessor] 配置已更新');
+    logger.info('[AudioProcessor] 配置已更新');
   }
 
   /**
@@ -646,9 +647,9 @@ class AudioProcessor extends EventEmitter {
     for (const filePath of filePaths) {
       try {
         await fs.unlink(filePath);
-        console.log(`[AudioProcessor] 已删除临时文件: ${path.basename(filePath)}`);
+        logger.info(`[AudioProcessor] 已删除临时文件: ${path.basename(filePath)}`);
       } catch (error) {
-        console.warn(`[AudioProcessor] 删除临时文件失败: ${filePath}`, error);
+        logger.warn(`[AudioProcessor] 删除临时文件失败: ${filePath}`, error);
         errors.push({ filePath, error: error.message });
       }
     }

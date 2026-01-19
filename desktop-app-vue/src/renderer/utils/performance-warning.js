@@ -3,6 +3,7 @@
  * 监控应用性能指标并在超过阈值时发出警告
  */
 
+import { logger, createLogger } from '@/utils/logger';
 import { ref, computed, watch } from 'vue';
 import { message, notification } from 'ant-design-vue';
 
@@ -93,7 +94,7 @@ class PerformanceWarningSystem {
       this.checkPerformance();
     }, this.monitorFrequency);
 
-    console.log('[PerformanceWarning] 性能监控已启动');
+    logger.info('[PerformanceWarning] 性能监控已启动');
   }
 
   /**
@@ -105,7 +106,7 @@ class PerformanceWarningSystem {
       this.monitorInterval = null;
     }
     this.enabled.value = false;
-    console.log('[PerformanceWarning] 性能监控已停止');
+    logger.info('[PerformanceWarning] 性能监控已停止');
   }
 
   /**
@@ -359,7 +360,7 @@ class PerformanceWarningSystem {
       try {
         callback(warning);
       } catch (error) {
-        console.error('[PerformanceWarning] Listener error:', error);
+        logger.error('[PerformanceWarning] Listener error:', error);
       }
     });
   }

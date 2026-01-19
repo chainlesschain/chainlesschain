@@ -1,3 +1,4 @@
+const { logger, createLogger } = require('../utils/logger.js');
 const { v4: uuidv4 } = require('uuid');
 
 /**
@@ -37,7 +38,7 @@ class WorkspaceManager {
    * @returns {Promise<Object>} 创建的工作区信息
    */
   async createWorkspace(orgId, workspaceData, creatorDID) {
-    console.log('[WorkspaceManager] 创建工作区:', workspaceData.name);
+    logger.info('[WorkspaceManager] 创建工作区:', workspaceData.name);
 
     try {
       // 1. 验证组织是否存在
@@ -121,14 +122,14 @@ class WorkspaceManager {
         { workspaceName: workspace.name, type: workspace.type }
       );
 
-      console.log('[WorkspaceManager] ✓ 工作区创建成功:', workspaceId);
+      logger.info('[WorkspaceManager] ✓ 工作区创建成功:', workspaceId);
 
       return {
         ...workspace,
         allowed_roles: JSON.parse(workspace.allowed_roles)
       };
     } catch (error) {
-      console.error('[WorkspaceManager] 创建工作区失败:', error);
+      logger.error('[WorkspaceManager] 创建工作区失败:', error);
       throw error;
     }
   }
@@ -160,7 +161,7 @@ class WorkspaceManager {
         allowed_roles: JSON.parse(ws.allowed_roles || '[]')
       }));
     } catch (error) {
-      console.error('[WorkspaceManager] 获取工作区列表失败:', error);
+      logger.error('[WorkspaceManager] 获取工作区列表失败:', error);
       return [];
     }
   }
@@ -187,7 +188,7 @@ class WorkspaceManager {
         allowed_roles: JSON.parse(workspace.allowed_roles || '[]')
       };
     } catch (error) {
-      console.error('[WorkspaceManager] 获取工作区失败:', error);
+      logger.error('[WorkspaceManager] 获取工作区失败:', error);
       return null;
     }
   }
@@ -276,11 +277,11 @@ class WorkspaceManager {
         { updates: Object.keys(updates) }
       );
 
-      console.log('[WorkspaceManager] ✓ 工作区更新成功:', workspaceId);
+      logger.info('[WorkspaceManager] ✓ 工作区更新成功:', workspaceId);
 
       return { success: true };
     } catch (error) {
-      console.error('[WorkspaceManager] 更新工作区失败:', error);
+      logger.error('[WorkspaceManager] 更新工作区失败:', error);
       return { success: false, error: error.message };
     }
   }
@@ -330,11 +331,11 @@ class WorkspaceManager {
         { workspaceName: workspace.name }
       );
 
-      console.log('[WorkspaceManager] ✓ 工作区已归档:', workspaceId);
+      logger.info('[WorkspaceManager] ✓ 工作区已归档:', workspaceId);
 
       return { success: true };
     } catch (error) {
-      console.error('[WorkspaceManager] 删除工作区失败:', error);
+      logger.error('[WorkspaceManager] 删除工作区失败:', error);
       return { success: false, error: error.message };
     }
   }
@@ -386,11 +387,11 @@ class WorkspaceManager {
         { workspaceName: workspace.name }
       );
 
-      console.log('[WorkspaceManager] ✓ 工作区已恢复:', workspaceId);
+      logger.info('[WorkspaceManager] ✓ 工作区已恢复:', workspaceId);
 
       return { success: true };
     } catch (error) {
-      console.error('[WorkspaceManager] 恢复工作区失败:', error);
+      logger.error('[WorkspaceManager] 恢复工作区失败:', error);
       return { success: false, error: error.message };
     }
   }
@@ -453,11 +454,11 @@ class WorkspaceManager {
         { workspaceName: workspace.name }
       );
 
-      console.log('[WorkspaceManager] ✓ 工作区已永久删除:', workspaceId);
+      logger.info('[WorkspaceManager] ✓ 工作区已永久删除:', workspaceId);
 
       return { success: true };
     } catch (error) {
-      console.error('[WorkspaceManager] 永久删除工作区失败:', error);
+      logger.error('[WorkspaceManager] 永久删除工作区失败:', error);
       return { success: false, error: error.message };
     }
   }
@@ -487,11 +488,11 @@ class WorkspaceManager {
         VALUES (?, ?, ?, ?, ?)
       `).run(memberId, workspaceId, memberDID, role, Date.now());
 
-      console.log('[WorkspaceManager] ✓ 工作区成员添加成功:', memberDID);
+      logger.info('[WorkspaceManager] ✓ 工作区成员添加成功:', memberDID);
 
       return { success: true, memberId };
     } catch (error) {
-      console.error('[WorkspaceManager] 添加工作区成员失败:', error);
+      logger.error('[WorkspaceManager] 添加工作区成员失败:', error);
       return { success: false, error: error.message };
     }
   }
@@ -508,11 +509,11 @@ class WorkspaceManager {
         'DELETE FROM workspace_members WHERE workspace_id = ? AND member_did = ?'
       ).run(workspaceId, memberDID);
 
-      console.log('[WorkspaceManager] ✓ 工作区成员移除成功:', memberDID);
+      logger.info('[WorkspaceManager] ✓ 工作区成员移除成功:', memberDID);
 
       return { success: true };
     } catch (error) {
-      console.error('[WorkspaceManager] 移除工作区成员失败:', error);
+      logger.error('[WorkspaceManager] 移除工作区成员失败:', error);
       return { success: false, error: error.message };
     }
   }
@@ -534,7 +535,7 @@ class WorkspaceManager {
 
       return members || [];
     } catch (error) {
-      console.error('[WorkspaceManager] 获取工作区成员失败:', error);
+      logger.error('[WorkspaceManager] 获取工作区成员失败:', error);
       return [];
     }
   }
@@ -565,11 +566,11 @@ class WorkspaceManager {
         VALUES (?, ?, ?, ?, ?, ?)
       `).run(resourceRecordId, workspaceId, resourceType, resourceId, adderDID, Date.now());
 
-      console.log('[WorkspaceManager] ✓ 资源添加到工作区:', resourceType, resourceId);
+      logger.info('[WorkspaceManager] ✓ 资源添加到工作区:', resourceType, resourceId);
 
       return { success: true };
     } catch (error) {
-      console.error('[WorkspaceManager] 添加资源到工作区失败:', error);
+      logger.error('[WorkspaceManager] 添加资源到工作区失败:', error);
       return { success: false, error: error.message };
     }
   }
@@ -587,11 +588,11 @@ class WorkspaceManager {
         'DELETE FROM workspace_resources WHERE workspace_id = ? AND resource_type = ? AND resource_id = ?'
       ).run(workspaceId, resourceType, resourceId);
 
-      console.log('[WorkspaceManager] ✓ 资源已从工作区移除:', resourceType, resourceId);
+      logger.info('[WorkspaceManager] ✓ 资源已从工作区移除:', resourceType, resourceId);
 
       return { success: true };
     } catch (error) {
-      console.error('[WorkspaceManager] 移除资源失败:', error);
+      logger.error('[WorkspaceManager] 移除资源失败:', error);
       return { success: false, error: error.message };
     }
   }
@@ -618,7 +619,7 @@ class WorkspaceManager {
 
       return resources || [];
     } catch (error) {
-      console.error('[WorkspaceManager] 获取工作区资源失败:', error);
+      logger.error('[WorkspaceManager] 获取工作区资源失败:', error);
       return [];
     }
   }

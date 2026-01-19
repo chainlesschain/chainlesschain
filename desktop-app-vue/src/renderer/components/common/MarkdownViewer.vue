@@ -27,6 +27,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, watch, onMounted } from 'vue';
 import { marked } from 'marked';
 import hljs from 'highlight.js';
@@ -71,7 +73,7 @@ marked.setOptions({
       try {
         return hljs.highlight(code, { language: lang }).value;
       } catch (err) {
-        console.error('Highlight error:', err);
+        logger.error('Highlight error:', err);
       }
     }
     return hljs.highlightAuto(code).value;
@@ -87,7 +89,7 @@ const renderedContent = computed(() => {
     const rawHtml = marked.parse(content);
     return rawHtml;
   } catch (err) {
-    console.error('Markdown parse error:', err);
+    logger.error('Markdown parse error:', err);
     error.value = 'Markdown解析失败: ' + err.message;
     // 发生错误时，转义文本以防止 XSS
     const div = document.createElement('div');
@@ -112,7 +114,7 @@ const loadDocFromPath = async () => {
       error.value = result.error || '加载文档失败';
     }
   } catch (err) {
-    console.error('Load doc error:', err);
+    logger.error('Load doc error:', err);
     error.value = '加载文档失败: ' + err.message;
   } finally {
     loading.value = false;

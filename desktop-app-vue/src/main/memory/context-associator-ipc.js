@@ -7,6 +7,7 @@
  * @since 2026-01-18
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const ipcGuard = require("../ipc/ipc-guard");
 
 /**
@@ -21,7 +22,7 @@ function registerContextAssociatorIPC({
 }) {
   // Prevent duplicate registration
   if (ipcGuard.isModuleRegistered("context-associator-ipc")) {
-    console.log(
+    logger.info(
       "[ContextAssociator IPC] Handlers already registered, skipping...",
     );
     return;
@@ -30,7 +31,7 @@ function registerContextAssociatorIPC({
   const electron = require("electron");
   const ipcMain = injectedIpcMain || electron.ipcMain;
 
-  console.log(
+  logger.info(
     "[ContextAssociator IPC] Registering ContextAssociator IPC handlers...",
   );
 
@@ -57,7 +58,7 @@ function registerContextAssociatorIPC({
           options,
         );
       } catch (error) {
-        console.error(
+        logger.error(
           "[ContextAssociator IPC] Extract knowledge failed:",
           error,
         );
@@ -82,7 +83,7 @@ function registerContextAssociatorIPC({
           options,
         );
       } catch (error) {
-        console.error(
+        logger.error(
           "[ContextAssociator IPC] Get session knowledge failed:",
           error,
         );
@@ -111,7 +112,7 @@ function registerContextAssociatorIPC({
           options,
         );
       } catch (error) {
-        console.error("[ContextAssociator IPC] Find related failed:", error);
+        logger.error("[ContextAssociator IPC] Find related failed:", error);
         throw error;
       }
     },
@@ -130,7 +131,7 @@ function registerContextAssociatorIPC({
         }
         return await associatorRef.current.analyzeConversation(conversationId);
       } catch (error) {
-        console.error(
+        logger.error(
           "[ContextAssociator IPC] Analyze conversation failed:",
           error,
         );
@@ -156,7 +157,7 @@ function registerContextAssociatorIPC({
         }
         return await associatorRef.current.searchKnowledge(query, options);
       } catch (error) {
-        console.error(
+        logger.error(
           "[ContextAssociator IPC] Search knowledge failed:",
           error,
         );
@@ -182,7 +183,7 @@ function registerContextAssociatorIPC({
         }
         return await associatorRef.current.getOrCreateTopic(topicName, options);
       } catch (error) {
-        console.error(
+        logger.error(
           "[ContextAssociator IPC] Get/create topic failed:",
           error,
         );
@@ -202,7 +203,7 @@ function registerContextAssociatorIPC({
       }
       return await associatorRef.current.getPopularTopics(options);
     } catch (error) {
-      console.error(
+      logger.error(
         "[ContextAssociator IPC] Get popular topics failed:",
         error,
       );
@@ -225,7 +226,7 @@ function registerContextAssociatorIPC({
       }
       return await associatorRef.current.getStats();
     } catch (error) {
-      console.error("[ContextAssociator IPC] Get stats failed:", error);
+      logger.error("[ContextAssociator IPC] Get stats failed:", error);
       throw error;
     }
   });
@@ -237,13 +238,13 @@ function registerContextAssociatorIPC({
    */
   function updateContextAssociator(newAssociator) {
     associatorRef.current = newAssociator;
-    console.log("[ContextAssociator IPC] Reference updated");
+    logger.info("[ContextAssociator IPC] Reference updated");
   }
 
   // Mark as registered
   ipcGuard.markModuleRegistered("context-associator-ipc");
 
-  console.log(
+  logger.info(
     "[ContextAssociator IPC] ContextAssociator IPC handlers registered successfully",
   );
 

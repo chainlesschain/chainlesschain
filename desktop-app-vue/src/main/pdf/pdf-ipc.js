@@ -6,6 +6,7 @@
  * @description PDF 处理模块，提供各种格式文件转 PDF 的功能
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { ipcMain } = require('electron');
 
 /**
@@ -16,7 +17,7 @@ const { ipcMain } = require('electron');
 function registerPDFIPC({
   getPDFEngine
 }) {
-  console.log('[PDF IPC] Registering PDF IPC handlers...');
+  logger.info('[PDF IPC] Registering PDF IPC handlers...');
 
   // ============================================================
   // PDF 转换操作 (4 handlers)
@@ -33,10 +34,10 @@ function registerPDFIPC({
 
       const result = await pdfEngine.markdownToPDF(markdown, outputPath, options || {});
 
-      console.log('[PDF] Markdown转PDF完成:', outputPath);
+      logger.info('[PDF] Markdown转PDF完成:', outputPath);
       return result;
     } catch (error) {
-      console.error('[PDF] Markdown转PDF失败:', error);
+      logger.error('[PDF] Markdown转PDF失败:', error);
       throw error;
     }
   });
@@ -52,10 +53,10 @@ function registerPDFIPC({
 
       const result = await pdfEngine.htmlFileToPDF(htmlPath, outputPath, options || {});
 
-      console.log('[PDF] HTML文件转PDF完成:', outputPath);
+      logger.info('[PDF] HTML文件转PDF完成:', outputPath);
       return result;
     } catch (error) {
-      console.error('[PDF] HTML文件转PDF失败:', error);
+      logger.error('[PDF] HTML文件转PDF失败:', error);
       throw error;
     }
   });
@@ -71,10 +72,10 @@ function registerPDFIPC({
 
       const result = await pdfEngine.textFileToPDF(textPath, outputPath, options || {});
 
-      console.log('[PDF] 文本文件转PDF完成:', outputPath);
+      logger.info('[PDF] 文本文件转PDF完成:', outputPath);
       return result;
     } catch (error) {
-      console.error('[PDF] 文本文件转PDF失败:', error);
+      logger.error('[PDF] 文本文件转PDF失败:', error);
       throw error;
     }
   });
@@ -90,17 +91,17 @@ function registerPDFIPC({
 
       const result = await pdfEngine.batchConvert(files, outputDir, options || {});
 
-      console.log('[PDF] 批量转换完成:', files.length, '个文件');
+      logger.info('[PDF] 批量转换完成:', files.length, '个文件');
       return result;
     } catch (error) {
-      console.error('[PDF] 批量转换失败:', error);
+      logger.error('[PDF] 批量转换失败:', error);
       throw error;
     }
   });
 
-  console.log('[PDF IPC] ✓ 4 handlers registered');
-  console.log('[PDF IPC] - 3 single file conversion handlers');
-  console.log('[PDF IPC] - 1 batch conversion handler');
+  logger.info('[PDF IPC] ✓ 4 handlers registered');
+  logger.info('[PDF IPC] - 3 single file conversion handlers');
+  logger.info('[PDF IPC] - 1 batch conversion handler');
 }
 
 module.exports = {

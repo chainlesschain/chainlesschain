@@ -293,6 +293,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, watch } from 'vue';
 import { message } from 'ant-design-vue';
 import {
@@ -408,7 +410,7 @@ const findPath = async () => {
     pathResult.value = result;
     message.success(`找到 ${result.length} 条路径`);
   } catch (error) {
-    console.error('查找路径失败:', error);
+    logger.error('查找路径失败:', error);
     message.error('查找路径失败');
   }
 };
@@ -436,7 +438,7 @@ const detectCommunities = async () => {
     }));
     message.success(`检测到 ${result.length} 个社区`);
   } catch (error) {
-    console.error('社区检测失败:', error);
+    logger.error('社区检测失败:', error);
     message.error('社区检测失败');
   } finally {
     detectingCommunities.value = false;
@@ -473,7 +475,7 @@ const analyzeCentrality = async () => {
 
     message.success('中心性分析完成');
   } catch (error) {
-    console.error('中心性分析失败:', error);
+    logger.error('中心性分析失败:', error);
     message.error('中心性分析失败');
   } finally {
     analyzingCentrality.value = false;

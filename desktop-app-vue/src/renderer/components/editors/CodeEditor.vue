@@ -180,6 +180,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, onMounted, onBeforeUnmount, watch, computed } from 'vue';
 import { message } from 'ant-design-vue';
 import * as monaco from 'monaco-editor';
@@ -383,7 +385,7 @@ const save = async () => {
     emit('save', code);
     message.success('已保存');
   } catch (error) {
-    console.error('[CodeEditor] 保存失败:', error);
+    logger.error('[CodeEditor] 保存失败:', error);
     message.error('保存失败: ' + error.message);
   } finally {
     saving.value = false;
@@ -472,7 +474,7 @@ watch(() => props.file, async () => {
         hasChanges.value = false;
       }
     } catch (error) {
-      console.error('[CodeEditor] 读取文件失败:', error);
+      logger.error('[CodeEditor] 读取文件失败:', error);
     }
   }
 }, { deep: true });

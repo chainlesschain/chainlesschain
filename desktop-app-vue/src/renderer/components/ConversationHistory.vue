@@ -91,6 +91,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted } from 'vue';
 import { message, Modal } from 'ant-design-vue';
 import {
@@ -168,7 +170,7 @@ const handleRenameConfirm = async () => {
     message.success('重命名成功');
     showRenameModal.value = false;
   } catch (error) {
-    console.error('[ConversationHistory] 重命名失败:', error);
+    logger.error('[ConversationHistory] 重命名失败:', error);
 
     let errorMessage = '重命名失败';
     if (error.message) {
@@ -201,7 +203,7 @@ const handleDelete = (conversation) => {
         // 重新检查是否还有更多数据
         checkHasMore();
       } catch (error) {
-        console.error('[ConversationHistory] 删除失败:', error);
+        logger.error('[ConversationHistory] 删除失败:', error);
 
         let errorMessage = '删除失败';
         if (error.message) {
@@ -238,7 +240,7 @@ const loadMore = async () => {
 
     message.success(`已加载 ${conversationStore.conversations.length} 条对话`);
   } catch (error) {
-    console.error('[ConversationHistory] 加载更多失败:', error);
+    logger.error('[ConversationHistory] 加载更多失败:', error);
 
     // 提供友好的错误消息
     let errorMessage = '加载失败';

@@ -4,6 +4,7 @@
  * 使用Sharp进行图像处理，支持AI图像生成
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const sharp = require('sharp');
 const fs = require('fs').promises;
 const path = require('path');
@@ -57,7 +58,7 @@ class ImageEngine extends EventEmitter {
   async handleProjectTask(params, onProgress = null) {
     const { taskType, inputPath, outputPath, options = {} } = params;
 
-    console.log('[Image Engine] 执行任务:', taskType);
+    logger.info('[Image Engine] 执行任务:', taskType);
 
     switch (taskType) {
       case 'generateFromText':
@@ -112,7 +113,7 @@ class ImageEngine extends EventEmitter {
       negativePrompt = ''
     } = options;
 
-    console.log(`[Image Engine] AI文生图: ${prompt.substring(0, 50)}...`);
+    logger.info(`[Image Engine] AI文生图: ${prompt.substring(0, 50)}...`);
 
     if (onProgress) {
       onProgress({ percent: 10, message: '正在连接AI服务...' });
@@ -141,7 +142,7 @@ class ImageEngine extends EventEmitter {
         onProgress({ percent: 100, message: '图片生成完成' });
       }
 
-      console.log('[Image Engine] AI图片生成完成');
+      logger.info('[Image Engine] AI图片生成完成');
       return {
         success: true,
         outputPath: outputPath,
@@ -150,7 +151,7 @@ class ImageEngine extends EventEmitter {
       };
 
     } catch (error) {
-      console.error('[Image Engine] AI图片生成失败:', error);
+      logger.error('[Image Engine] AI图片生成失败:', error);
       throw error;
     }
   }
@@ -196,7 +197,7 @@ class ImageEngine extends EventEmitter {
       return Buffer.from(imageBase64, 'base64');
 
     } catch (error) {
-      console.error('[Image Engine] Stable Diffusion生成失败:', error.message);
+      logger.error('[Image Engine] Stable Diffusion生成失败:', error.message);
       // 如果SD服务不可用，生成一个占位图
       return await this.generatePlaceholderImage(sizeConfig.width, sizeConfig.height, prompt);
     }
@@ -248,7 +249,7 @@ class ImageEngine extends EventEmitter {
       return Buffer.from(imageResponse.data);
 
     } catch (error) {
-      console.error('[Image Engine] DALL-E生成失败:', error.message);
+      logger.error('[Image Engine] DALL-E生成失败:', error.message);
       // 生成占位图
       const sizeConfig = this.presetSizes[size] || this.presetSizes['square_md'];
       return await this.generatePlaceholderImage(sizeConfig.width, sizeConfig.height, prompt);
@@ -289,7 +290,7 @@ class ImageEngine extends EventEmitter {
    * @returns {Promise<Object>} 处理结果
    */
   async removeBackground(inputPath, outputPath, options = {}, onProgress = null) {
-    console.log(`[Image Engine] 移除背景: ${inputPath}`);
+    logger.info(`[Image Engine] 移除背景: ${inputPath}`);
 
     if (onProgress) {
       onProgress({ percent: 10, message: '正在加载图片...' });
@@ -315,14 +316,14 @@ class ImageEngine extends EventEmitter {
         onProgress({ percent: 100, message: '背景移除完成' });
       }
 
-      console.log('[Image Engine] 背景移除完成');
+      logger.info('[Image Engine] 背景移除完成');
       return {
         success: true,
         outputPath: outputPath
       };
 
     } catch (error) {
-      console.error('[Image Engine] 背景移除失败:', error);
+      logger.error('[Image Engine] 背景移除失败:', error);
       throw error;
     }
   }
@@ -337,7 +338,7 @@ class ImageEngine extends EventEmitter {
   async resizeImage(inputPath, outputPath, options = {}) {
     const { width, height, fit = 'cover', preset = null } = options;
 
-    console.log(`[Image Engine] 调整大小: ${width}x${height}`);
+    logger.info(`[Image Engine] 调整大小: ${width}x${height}`);
 
     try {
       const image = sharp(inputPath);
@@ -353,7 +354,7 @@ class ImageEngine extends EventEmitter {
           .toFile(outputPath);
       }
 
-      console.log('[Image Engine] 调整大小完成');
+      logger.info('[Image Engine] 调整大小完成');
       return {
         success: true,
         outputPath: outputPath,
@@ -362,7 +363,7 @@ class ImageEngine extends EventEmitter {
       };
 
     } catch (error) {
-      console.error('[Image Engine] 调整大小失败:', error);
+      logger.error('[Image Engine] 调整大小失败:', error);
       throw error;
     }
   }
@@ -377,21 +378,21 @@ class ImageEngine extends EventEmitter {
   async cropImage(inputPath, outputPath, options = {}) {
     const { left = 0, top = 0, width, height } = options;
 
-    console.log(`[Image Engine] 裁剪图片: ${width}x${height} at (${left}, ${top})`);
+    logger.info(`[Image Engine] 裁剪图片: ${width}x${height} at (${left}, ${top})`);
 
     try {
       await sharp(inputPath)
         .extract({ left, top, width, height })
         .toFile(outputPath);
 
-      console.log('[Image Engine] 裁剪完成');
+      logger.info('[Image Engine] 裁剪完成');
       return {
         success: true,
         outputPath: outputPath
       };
 
     } catch (error) {
-      console.error('[Image Engine] 裁剪失败:', error);
+      logger.error('[Image Engine] 裁剪失败:', error);
       throw error;
     }
   }
@@ -411,7 +412,7 @@ class ImageEngine extends EventEmitter {
       sharpen = false
     } = options;
 
-    console.log(`[Image Engine] 增强图片`);
+    logger.info(`[Image Engine] 增强图片`);
 
     try {
       let image = sharp(inputPath);
@@ -432,14 +433,14 @@ class ImageEngine extends EventEmitter {
 
       await image.toFile(outputPath);
 
-      console.log('[Image Engine] 图片增强完成');
+      logger.info('[Image Engine] 图片增强完成');
       return {
         success: true,
         outputPath: outputPath
       };
 
     } catch (error) {
-      console.error('[Image Engine] 图片增强失败:', error);
+      logger.error('[Image Engine] 图片增强失败:', error);
       throw error;
     }
   }
@@ -455,7 +456,7 @@ class ImageEngine extends EventEmitter {
   async upscaleImage(inputPath, outputPath, options = {}, onProgress = null) {
     const { scale = 2 } = options;
 
-    console.log(`[Image Engine] 图片超分辨率: ${scale}x`);
+    logger.info(`[Image Engine] 图片超分辨率: ${scale}x`);
 
     if (onProgress) {
       onProgress({ percent: 10, message: '正在加载图片...' });
@@ -482,7 +483,7 @@ class ImageEngine extends EventEmitter {
         onProgress({ percent: 100, message: '超分辨率完成' });
       }
 
-      console.log('[Image Engine] 超分辨率完成');
+      logger.info('[Image Engine] 超分辨率完成');
       return {
         success: true,
         outputPath: outputPath,
@@ -491,7 +492,7 @@ class ImageEngine extends EventEmitter {
       };
 
     } catch (error) {
-      console.error('[Image Engine] 超分辨率失败:', error);
+      logger.error('[Image Engine] 超分辨率失败:', error);
       throw error;
     }
   }
@@ -511,7 +512,7 @@ class ImageEngine extends EventEmitter {
       fontSize = 24
     } = options;
 
-    console.log(`[Image Engine] 添加水印: ${text}`);
+    logger.info(`[Image Engine] 添加水印: ${text}`);
 
     try {
       const metadata = await sharp(inputPath).metadata();
@@ -562,14 +563,14 @@ class ImageEngine extends EventEmitter {
         }])
         .toFile(outputPath);
 
-      console.log('[Image Engine] 水印添加完成');
+      logger.info('[Image Engine] 水印添加完成');
       return {
         success: true,
         outputPath: outputPath
       };
 
     } catch (error) {
-      console.error('[Image Engine] 水印添加失败:', error);
+      logger.error('[Image Engine] 水印添加失败:', error);
       throw error;
     }
   }
@@ -585,7 +586,7 @@ class ImageEngine extends EventEmitter {
   async batchProcess(imageList, outputDir, options = {}, onProgress = null) {
     const { operation = 'resize', ...opOptions } = options;
 
-    console.log(`[Image Engine] 批量处理 ${imageList.length} 张图片`);
+    logger.info(`[Image Engine] 批量处理 ${imageList.length} 张图片`);
 
     const results = [];
     const errors = [];
@@ -625,7 +626,7 @@ class ImageEngine extends EventEmitter {
         results.push({ ...result, inputPath });
 
       } catch (error) {
-        console.error(`[Image Engine] 处理失败: ${fileName}`, error);
+        logger.error(`[Image Engine] 处理失败: ${fileName}`, error);
         errors.push({
           inputPath: inputPath,
           fileName: fileName,
@@ -634,7 +635,7 @@ class ImageEngine extends EventEmitter {
       }
     }
 
-    console.log(`[Image Engine] 批量处理完成: ${results.length} 成功, ${errors.length} 失败`);
+    logger.info(`[Image Engine] 批量处理完成: ${results.length} 成功, ${errors.length} 失败`);
     return {
       success: true,
       totalCount: imageList.length,
@@ -655,14 +656,14 @@ class ImageEngine extends EventEmitter {
   async convertFormat(inputPath, outputPath, options = {}) {
     const { format = 'png', quality = 90 } = options;
 
-    console.log(`[Image Engine] 格式转换: ${format}`);
+    logger.info(`[Image Engine] 格式转换: ${format}`);
 
     try {
       await sharp(inputPath)
         .toFormat(format, { quality: quality })
         .toFile(outputPath);
 
-      console.log('[Image Engine] 格式转换完成');
+      logger.info('[Image Engine] 格式转换完成');
       return {
         success: true,
         outputPath: outputPath,
@@ -670,7 +671,7 @@ class ImageEngine extends EventEmitter {
       };
 
     } catch (error) {
-      console.error('[Image Engine] 格式转换失败:', error);
+      logger.error('[Image Engine] 格式转换失败:', error);
       throw error;
     }
   }
@@ -689,7 +690,7 @@ class ImageEngine extends EventEmitter {
       backgroundColor = '#FFFFFF'
     } = options;
 
-    console.log(`[Image Engine] 创建拼贴: ${imageList.length} 张图片`);
+    logger.info(`[Image Engine] 创建拼贴: ${imageList.length} 张图片`);
 
     try {
       // 加载所有图片并调整为相同大小
@@ -735,7 +736,7 @@ class ImageEngine extends EventEmitter {
         .png()
         .toFile(outputPath);
 
-      console.log('[Image Engine] 拼贴创建完成');
+      logger.info('[Image Engine] 拼贴创建完成');
       return {
         success: true,
         outputPath: outputPath,
@@ -743,7 +744,7 @@ class ImageEngine extends EventEmitter {
       };
 
     } catch (error) {
-      console.error('[Image Engine] 拼贴创建失败:', error);
+      logger.error('[Image Engine] 拼贴创建失败:', error);
       throw error;
     }
   }
@@ -770,7 +771,7 @@ class ImageEngine extends EventEmitter {
       };
 
     } catch (error) {
-      console.error('[Image Engine] 获取图片信息失败:', error);
+      logger.error('[Image Engine] 获取图片信息失败:', error);
       throw error;
     }
   }

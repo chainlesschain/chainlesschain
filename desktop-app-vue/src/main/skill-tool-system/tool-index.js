@@ -1,3 +1,5 @@
+const { logger, createLogger } = require('../utils/logger.js');
+
 /**
  * 工具索引系统
  * 提供O(1)时间复杂度的工具查找
@@ -33,7 +35,7 @@ class ToolIndex {
   _buildIndexes() {
     this.tools.forEach(tool => {
       if (!tool.id || !tool.name) {
-        console.warn('Tool missing id or name:', tool);
+        logger.warn('Tool missing id or name:', tool);
         return;
       }
 

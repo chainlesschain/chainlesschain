@@ -5,6 +5,7 @@
  * 功能: 离线消息队列、消息状态同步、设备间数据同步
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const EventEmitter = require('events');
 const fs = require('fs');
 const path = require('path');
@@ -59,7 +60,7 @@ class DeviceSyncManager extends EventEmitter {
    * 初始化同步管理器
    */
   async initialize() {
-    console.log('[DeviceSyncManager] 初始化设备同步管理器...');
+    logger.info('[DeviceSyncManager] 初始化设备同步管理器...');
 
     try {
       // 加载持久化的消息队列
@@ -72,11 +73,11 @@ class DeviceSyncManager extends EventEmitter {
       this.startCleanupTimer();
 
       this.initialized = true;
-      console.log('[DeviceSyncManager] 设备同步管理器已初始化');
+      logger.info('[DeviceSyncManager] 设备同步管理器已初始化');
 
       this.emit('initialized');
     } catch (error) {
-      console.error('[DeviceSyncManager] 初始化失败:', error);
+      logger.error('[DeviceSyncManager] 初始化失败:', error);
       throw error;
     }
   }
@@ -86,7 +87,7 @@ class DeviceSyncManager extends EventEmitter {
    */
   async loadMessageQueue() {
     if (!this.config.dataPath) {
-      console.log('[DeviceSyncManager] 无数据路径，使用内存队列');
+      logger.info('[DeviceSyncManager] 无数据路径，使用内存队列');
       return;
     }
 
@@ -101,10 +102,10 @@ class DeviceSyncManager extends EventEmitter {
           this.messageQueue.set(deviceId, messages);
         }
 
-        console.log('[DeviceSyncManager] 已加载消息队列:', this.messageQueue.size, '个设备');
+        logger.info('[DeviceSyncManager] 已加载消息队列:', this.messageQueue.size, '个设备');
       }
     } catch (error) {
-      console.warn('[DeviceSyncManager] 加载消息队列失败:', error.message);
+      logger.warn('[DeviceSyncManager] 加载消息队列失败:', error.message);
     }
   }
 
@@ -129,7 +130,7 @@ class DeviceSyncManager extends EventEmitter {
 
       fs.writeFileSync(queuePath, JSON.stringify(queueData, null, 2));
     } catch (error) {
-      console.warn('[DeviceSyncManager] 保存消息队列失败:', error.message);
+      logger.warn('[DeviceSyncManager] 保存消息队列失败:', error.message);
     }
   }
 
@@ -138,7 +139,7 @@ class DeviceSyncManager extends EventEmitter {
    */
   async loadMessageStatus() {
     if (!this.config.dataPath) {
-      console.log('[DeviceSyncManager] 无数据路径，使用内存状态');
+      logger.info('[DeviceSyncManager] 无数据路径，使用内存状态');
       return;
     }
 
@@ -153,10 +154,10 @@ class DeviceSyncManager extends EventEmitter {
           this.messageStatus.set(messageId, status);
         }
 
-        console.log('[DeviceSyncManager] 已加载消息状态:', this.messageStatus.size, '条消息');
+        logger.info('[DeviceSyncManager] 已加载消息状态:', this.messageStatus.size, '条消息');
       }
     } catch (error) {
-      console.warn('[DeviceSyncManager] 加载消息状态失败:', error.message);
+      logger.warn('[DeviceSyncManager] 加载消息状态失败:', error.message);
     }
   }
 
@@ -181,7 +182,7 @@ class DeviceSyncManager extends EventEmitter {
 
       fs.writeFileSync(statusPath, JSON.stringify(statusData, null, 2));
     } catch (error) {
-      console.warn('[DeviceSyncManager] 保存消息状态失败:', error.message);
+      logger.warn('[DeviceSyncManager] 保存消息状态失败:', error.message);
     }
   }
 
@@ -216,7 +217,7 @@ class DeviceSyncManager extends EventEmitter {
 
       // 检查队列大小
       if (deviceQueue.length >= this.config.maxQueueSize) {
-        console.warn('[DeviceSyncManager] 设备队列已满:', targetDeviceId);
+        logger.warn('[DeviceSyncManager] 设备队列已满:', targetDeviceId);
         // 移除最旧的消息
         deviceQueue.shift();
       }
@@ -234,13 +235,13 @@ class DeviceSyncManager extends EventEmitter {
       await this.saveMessageQueue();
       await this.saveMessageStatus();
 
-      console.log('[DeviceSyncManager] 消息已加入队列:', messageId, '->', targetDeviceId);
+      logger.info('[DeviceSyncManager] 消息已加入队列:', messageId, '->', targetDeviceId);
 
       this.emit('message:queued', { messageId, targetDeviceId, message: queueMessage });
 
       return messageId;
     } catch (error) {
-      console.error('[DeviceSyncManager] 消息入队失败:', error);
+      logger.error('[DeviceSyncManager] 消息入队失败:', error);
       throw error;
     }
   }
@@ -269,7 +270,7 @@ class DeviceSyncManager extends EventEmitter {
         this.emit('message:sent', { messageId, status });
       }
     } catch (error) {
-      console.error('[DeviceSyncManager] 标记消息发送失败:', error);
+      logger.error('[DeviceSyncManager] 标记消息发送失败:', error);
     }
   }
 
@@ -289,7 +290,7 @@ class DeviceSyncManager extends EventEmitter {
         this.emit('message:delivered', { messageId, status });
       }
     } catch (error) {
-      console.error('[DeviceSyncManager] 标记消息送达失败:', error);
+      logger.error('[DeviceSyncManager] 标记消息送达失败:', error);
     }
   }
 
@@ -309,7 +310,7 @@ class DeviceSyncManager extends EventEmitter {
         this.emit('message:read', { messageId, status });
       }
     } catch (error) {
-      console.error('[DeviceSyncManager] 标记消息已读失败:', error);
+      logger.error('[DeviceSyncManager] 标记消息已读失败:', error);
     }
   }
 
@@ -331,7 +332,7 @@ class DeviceSyncManager extends EventEmitter {
         this.emit('message:failed', { messageId, status, error });
       }
     } catch (error) {
-      console.error('[DeviceSyncManager] 标记消息失败:', error);
+      logger.error('[DeviceSyncManager] 标记消息失败:', error);
     }
   }
 
@@ -355,11 +356,11 @@ class DeviceSyncManager extends EventEmitter {
 
       await this.saveMessageQueue();
 
-      console.log('[DeviceSyncManager] 消息已移除:', messageId);
+      logger.info('[DeviceSyncManager] 消息已移除:', messageId);
 
       this.emit('message:removed', { messageId });
     } catch (error) {
-      console.error('[DeviceSyncManager] 移除消息失败:', error);
+      logger.error('[DeviceSyncManager] 移除消息失败:', error);
     }
   }
 
@@ -402,7 +403,7 @@ class DeviceSyncManager extends EventEmitter {
 
     this.syncTimers.set(deviceId, timer);
 
-    console.log('[DeviceSyncManager] 已启动设备同步:', deviceId);
+    logger.info('[DeviceSyncManager] 已启动设备同步:', deviceId);
 
     // 立即执行一次同步
     this.syncDevice(deviceId);
@@ -416,7 +417,7 @@ class DeviceSyncManager extends EventEmitter {
     if (this.syncTimers.has(deviceId)) {
       clearInterval(this.syncTimers.get(deviceId));
       this.syncTimers.delete(deviceId);
-      console.log('[DeviceSyncManager] 已停止设备同步:', deviceId);
+      logger.info('[DeviceSyncManager] 已停止设备同步:', deviceId);
     }
   }
 
@@ -431,7 +432,7 @@ class DeviceSyncManager extends EventEmitter {
         return;
       }
 
-      console.log('[DeviceSyncManager] 同步设备消息:', deviceId, '队列大小:', queue.length);
+      logger.info('[DeviceSyncManager] 同步设备消息:', deviceId, '队列大小:', queue.length);
 
       this.emit('sync:started', { deviceId, queueSize: queue.length });
 
@@ -440,7 +441,7 @@ class DeviceSyncManager extends EventEmitter {
         this.emit('sync:message', { deviceId, message });
       }
     } catch (error) {
-      console.error('[DeviceSyncManager] 同步设备失败:', error);
+      logger.error('[DeviceSyncManager] 同步设备失败:', error);
       this.emit('sync:error', { deviceId, error });
     }
   }
@@ -460,7 +461,7 @@ class DeviceSyncManager extends EventEmitter {
    */
   async cleanup() {
     try {
-      console.log('[DeviceSyncManager] 开始清理过期消息...');
+      logger.info('[DeviceSyncManager] 开始清理过期消息...');
 
       const now = Date.now();
       const retentionMs = this.config.messageRetention * 24 * 60 * 60 * 1000;
@@ -494,12 +495,12 @@ class DeviceSyncManager extends EventEmitter {
       if (removedCount > 0) {
         await this.saveMessageQueue();
         await this.saveMessageStatus();
-        console.log('[DeviceSyncManager] 已清理', removedCount, '条过期消息');
+        logger.info('[DeviceSyncManager] 已清理', removedCount, '条过期消息');
       }
 
       this.emit('cleanup:complete', { removedCount });
     } catch (error) {
-      console.error('[DeviceSyncManager] 清理失败:', error);
+      logger.error('[DeviceSyncManager] 清理失败:', error);
     }
   }
 
@@ -535,7 +536,7 @@ class DeviceSyncManager extends EventEmitter {
    * 关闭同步管理器
    */
   async close() {
-    console.log('[DeviceSyncManager] 关闭设备同步管理器');
+    logger.info('[DeviceSyncManager] 关闭设备同步管理器');
 
     // 停止所有同步定时器
     for (const [deviceId, timer] of this.syncTimers.entries()) {

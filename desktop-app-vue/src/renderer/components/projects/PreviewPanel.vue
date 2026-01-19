@@ -386,6 +386,8 @@ class="language-json"
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { message } from 'ant-design-vue';
 import {
@@ -606,7 +608,7 @@ const loadFileContent = async () => {
           return;
         }
       } catch (err) {
-        console.warn('[PreviewPanel] 检查文件大小失败:', err);
+        logger.warn('[PreviewPanel] 检查文件大小失败:', err);
       }
     }
 
@@ -647,7 +649,7 @@ const loadFileContent = async () => {
         break;
     }
   } catch (err) {
-    console.error('加载文件失败:', err);
+    logger.error('加载文件失败:', err);
     error.value = err.message || '加载文件失败';
   } finally {
     loading.value = false;
@@ -763,7 +765,7 @@ const loadCsv = async (content) => {
   // 检查是否有严重错误（忽略分隔符检测警告）
   const criticalErrors = result.errors.filter(err => err.type !== 'Delimiter');
   if (criticalErrors.length > 0) {
-    console.warn('CSV 解析警告:', result.errors);
+    logger.warn('CSV 解析警告:', result.errors);
     // 不抛出错误，继续显示可解析的部分
   }
 
@@ -866,7 +868,7 @@ const loadWord = async (filePath) => {
     fullPath = `/data/projects/${props.projectId}/${filePath}`;
   }
 
-  console.log('[PreviewPanel] 加载Word文档:', {
+  logger.info('[PreviewPanel] 加载Word文档:', {
     原始路径: filePath,
     构建路径: fullPath,
     projectId: props.projectId,
@@ -876,26 +878,26 @@ const loadWord = async (filePath) => {
   try {
     // 首先尝试解析路径
     const resolvedPath = await window.electronAPI.project.resolvePath(fullPath);
-    console.log('[PreviewPanel] Word文档解析后路径:', resolvedPath);
+    logger.info('[PreviewPanel] Word文档解析后路径:', resolvedPath);
 
     // 🔥 修复：从resolvedPath对象中提取path字符串
     const actualPath = resolvedPath?.path || resolvedPath;
     const result = await window.electronAPI.file.previewOffice(actualPath, 'word');
-    console.log('[PreviewPanel] Word预览结果:', result);
+    logger.info('[PreviewPanel] Word预览结果:', result);
 
     if (result.success) {
       if (!result.data || !result.data.html) {
-        console.warn('[PreviewPanel] Word预览返回空内容:', result.data);
+        logger.warn('[PreviewPanel] Word预览返回空内容:', result.data);
         throw new Error('Word文档内容为空');
       }
       officeContent.value = result.data.html;
       officeType.value = 'word';
-      console.log('[PreviewPanel] Word内容已设置，长度:', result.data.html.length);
+      logger.info('[PreviewPanel] Word内容已设置，长度:', result.data.html.length);
     } else {
       throw new Error(result.error || 'Word文档预览失败');
     }
   } catch (err) {
-    console.error('[PreviewPanel] Word加载失败:', err);
+    logger.error('[PreviewPanel] Word加载失败:', err);
     throw err;
   }
 };
@@ -910,7 +912,7 @@ const loadExcel = async (filePath) => {
     fullPath = `/data/projects/${props.projectId}/${filePath}`;
   }
 
-  console.log('[PreviewPanel] 加载Excel表格:', {
+  logger.info('[PreviewPanel] 加载Excel表格:', {
     原始路径: filePath,
     构建路径: fullPath,
     projectId: props.projectId
@@ -919,26 +921,26 @@ const loadExcel = async (filePath) => {
   try {
     // 首先尝试解析路径
     const resolvedPath = await window.electronAPI.project.resolvePath(fullPath);
-    console.log('[PreviewPanel] Excel解析后路径:', resolvedPath);
+    logger.info('[PreviewPanel] Excel解析后路径:', resolvedPath);
 
     // 🔥 修复：从resolvedPath对象中提取path字符串
     const actualPath = resolvedPath?.path || resolvedPath;
     const result = await window.electronAPI.file.previewOffice(actualPath, 'excel');
-    console.log('[PreviewPanel] Excel预览结果:', result);
+    logger.info('[PreviewPanel] Excel预览结果:', result);
 
     if (result.success) {
       if (!result.data || !result.data.sheets) {
-        console.warn('[PreviewPanel] Excel预览返回空内容:', result.data);
+        logger.warn('[PreviewPanel] Excel预览返回空内容:', result.data);
         throw new Error('Excel文档内容为空');
       }
       officeContent.value = result.data;
       officeType.value = 'excel';
-      console.log('[PreviewPanel] Excel内容已设置，工作表数量:', result.data.sheets.length);
+      logger.info('[PreviewPanel] Excel内容已设置，工作表数量:', result.data.sheets.length);
     } else {
       throw new Error(result.error || 'Excel表格预览失败');
     }
   } catch (err) {
-    console.error('[PreviewPanel] Excel加载失败:', err);
+    logger.error('[PreviewPanel] Excel加载失败:', err);
     throw err;
   }
 };
@@ -953,7 +955,7 @@ const loadPowerPoint = async (filePath) => {
     fullPath = `/data/projects/${props.projectId}/${filePath}`;
   }
 
-  console.log('[PreviewPanel] 加载PowerPoint:', {
+  logger.info('[PreviewPanel] 加载PowerPoint:', {
     原始路径: filePath,
     构建路径: fullPath,
     projectId: props.projectId
@@ -962,27 +964,27 @@ const loadPowerPoint = async (filePath) => {
   try {
     // 首先尝试解析路径
     const resolvedPath = await window.electronAPI.project.resolvePath(fullPath);
-    console.log('[PreviewPanel] PowerPoint解析后路径:', resolvedPath);
+    logger.info('[PreviewPanel] PowerPoint解析后路径:', resolvedPath);
 
     // 🔥 修复：从resolvedPath对象中提取path字符串
     const actualPath = resolvedPath?.path || resolvedPath;
     const result = await window.electronAPI.file.previewOffice(actualPath, 'powerpoint');
-    console.log('[PreviewPanel] PowerPoint预览结果:', result);
+    logger.info('[PreviewPanel] PowerPoint预览结果:', result);
 
     if (result.success) {
       if (!result.data || !result.data.slides) {
-        console.warn('[PreviewPanel] PowerPoint预览返回空内容:', result.data);
+        logger.warn('[PreviewPanel] PowerPoint预览返回空内容:', result.data);
         throw new Error('PowerPoint文档内容为空');
       }
       officeContent.value = result.data;
       officeType.value = 'powerpoint';
       currentSlide.value = 0; // 重置到第一张幻灯片
-      console.log('[PreviewPanel] PowerPoint内容已设置，幻灯片数量:', result.data.slides.length);
+      logger.info('[PreviewPanel] PowerPoint内容已设置，幻灯片数量:', result.data.slides.length);
     } else {
       throw new Error(result.error || 'PowerPoint预览失败');
     }
   } catch (err) {
-    console.error('[PreviewPanel] PowerPoint加载失败:', err);
+    logger.error('[PreviewPanel] PowerPoint加载失败:', err);
     throw err;
   }
 };
@@ -991,7 +993,7 @@ const loadPowerPoint = async (filePath) => {
  * PDF 加载完成
  */
 const handlePdfLoaded = () => {
-  console.log('[PreviewPanel] PDF 加载完成');
+  logger.info('[PreviewPanel] PDF 加载完成');
 };
 
 /**
@@ -999,7 +1001,7 @@ const handlePdfLoaded = () => {
  */
 const handlePdfError = (err) => {
   error.value = 'PDF 加载失败';
-  console.error('[PreviewPanel] PDF 加载失败:', err);
+  logger.error('[PreviewPanel] PDF 加载失败:', err);
 };
 
 /**
@@ -1013,7 +1015,7 @@ const handleOpenExternal = async () => {
     await window.electronAPI.shell.openPath(resolvedPath);
     message.success('已在系统中打开');
   } catch (err) {
-    console.error('打开文件失败:', err);
+    logger.error('打开文件失败:', err);
     message.error('打开文件失败');
   }
 };

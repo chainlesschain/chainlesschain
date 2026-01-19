@@ -180,6 +180,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, onMounted, watch, computed, onBeforeUnmount } from 'vue';
 import { Editor, rootCtx, defaultValueCtx } from '@milkdown/core';
 import { commonmark } from '@milkdown/preset-commonmark';
@@ -251,9 +253,9 @@ onMounted(async () => {
       .use(listener)
       .create();
 
-    console.log('[MarkdownEditor] 编辑器初始化成功');
+    logger.info('[MarkdownEditor] 编辑器初始化成功');
   } catch (error) {
-    console.error('[MarkdownEditor] 初始化失败:', error);
+    logger.error('[MarkdownEditor] 初始化失败:', error);
   }
 });
 
@@ -375,7 +377,7 @@ function handleVoiceResult(text) {
 
 function handleVoicePartial(text) {
   // 可以在这里显示临时的语音识别结果
-  console.log('语音识别中:', text);
+  logger.info('语音识别中:', text);
 }
 
 // 暴露方法给父组件

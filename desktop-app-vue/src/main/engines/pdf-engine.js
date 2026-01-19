@@ -2,6 +2,7 @@
  * PDF生成引擎
  * 使用Electron的printToPDF功能将HTML转换为PDF
  */
+const { logger, createLogger } = require('../utils/logger.js');
 const path = require("path");
 
 let browserWindowWarningLogged = false;
@@ -58,7 +59,7 @@ function getBrowserWindow() {
     return BrowserWindow;
   } catch (error) {
     if (!browserWindowWarningLogged) {
-      console.warn(
+      logger.warn(
         "[PDFEngine] BrowserWindow not available, PDF generation will be disabled",
       );
       browserWindowWarningLogged = true;
@@ -78,7 +79,7 @@ class PDFEngine {
   async markdownToPDF(markdownContent, outputPath, options = {}) {
     const fs = getFsExtra();
     try {
-      console.log("[PDFEngine] 开始Markdown转PDF:", outputPath);
+      logger.info("[PDFEngine] 开始Markdown转PDF:", outputPath);
 
       // 1. Markdown → HTML
       const html = await this.markdownToHTML(markdownContent, options);
@@ -88,7 +89,7 @@ class PDFEngine {
 
       const stats = await fs.stat(outputPath);
 
-      console.log(
+      logger.info(
         "[PDFEngine] PDF生成成功:",
         outputPath,
         `大小: ${(stats.size / 1024).toFixed(2)} KB`,
@@ -100,7 +101,7 @@ class PDFEngine {
         size: stats.size,
       };
     } catch (error) {
-      console.error("[PDFEngine] PDF生成失败:", error);
+      logger.error("[PDFEngine] PDF生成失败:", error);
       throw error;
     }
   }
@@ -347,9 +348,9 @@ class PDFEngine {
       // 保存PDF文件
       await fs.writeFile(outputPath, pdfData);
 
-      console.log("[PDFEngine] PDF文件已保存:", outputPath);
+      logger.info("[PDFEngine] PDF文件已保存:", outputPath);
     } catch (error) {
-      console.error("[PDFEngine] HTML转PDF失败:", error);
+      logger.error("[PDFEngine] HTML转PDF失败:", error);
       throw error;
     } finally {
       // 关闭窗口
@@ -375,7 +376,7 @@ class PDFEngine {
         size: (await fs.stat(outputPath)).size,
       };
     } catch (error) {
-      console.error("[PDFEngine] HTML文件转PDF失败:", error);
+      logger.error("[PDFEngine] HTML文件转PDF失败:", error);
       throw error;
     }
   }
@@ -419,7 +420,7 @@ class PDFEngine {
         size: (await fs.stat(outputPath)).size,
       };
     } catch (error) {
-      console.error("[PDFEngine] 文本文件转PDF失败:", error);
+      logger.error("[PDFEngine] 文本文件转PDF失败:", error);
       throw error;
     }
   }
@@ -463,7 +464,7 @@ class PDFEngine {
           ...result,
         });
       } catch (error) {
-        console.error("[PDFEngine] 转换失败:", file, error);
+        logger.error("[PDFEngine] 转换失败:", file, error);
         results.push({
           input: file,
           success: false,
@@ -488,9 +489,9 @@ class PDFEngine {
       action = "create_pdf",
     } = params;
 
-    console.log("[PDFEngine] 处理PDF文档生成任务");
-    console.log("[PDFEngine] 描述:", description);
-    console.log("[PDFEngine] 操作:", action);
+    logger.info("[PDFEngine] 处理PDF文档生成任务");
+    logger.info("[PDFEngine] 描述:", description);
+    logger.info("[PDFEngine] 操作:", action);
 
     try {
       // 使用LLM生成Markdown内容
@@ -516,7 +517,7 @@ class PDFEngine {
         title,
       };
     } catch (error) {
-      console.error("[PDFEngine] 任务执行失败:", error);
+      logger.error("[PDFEngine] 任务执行失败:", error);
       throw error;
     }
   }
@@ -547,7 +548,7 @@ ${description}
 
       // 尝试使用本地LLM
       if (llmManager && llmManager.isInitialized) {
-        console.log("[PDFEngine] 使用本地LLM生成文档内容");
+        logger.info("[PDFEngine] 使用本地LLM生成文档内容");
         const response = await llmManager.query(prompt, {
           temperature: 0.7,
           maxTokens: 3000,
@@ -555,13 +556,13 @@ ${description}
         responseText = response.text;
       } else {
         // 降级到后端AI服务
-        console.log("[PDFEngine] 本地LLM不可用，使用后端AI服务");
+        logger.info("[PDFEngine] 本地LLM不可用，使用后端AI服务");
         responseText = await this.queryBackendAI(prompt);
       }
 
       return responseText.trim();
     } catch (error) {
-      console.error("[PDFEngine] 生成文档内容失败:", error);
+      logger.error("[PDFEngine] 生成文档内容失败:", error);
       // 返回默认内容
       return `# ${description.substring(0, 50)}
 

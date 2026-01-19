@@ -6,6 +6,7 @@
  * @description 文件操作模块，提供完整的文件系统操作功能
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const path = require('path');
 
 /**
@@ -35,7 +36,7 @@ function registerFileIPC({
   const shell = injectedShell || electron.shell;
   const clipboard = injectedClipboard || electron.clipboard;
 
-  console.log('[File IPC] Registering File IPC handlers...');
+  logger.info('[File IPC] Registering File IPC handlers...');
 
   // ============================================================
   // 文件读写操作 (3 handlers)
@@ -52,7 +53,7 @@ function registerFileIPC({
       const projectConfig = getProjectConfig();
       const resolvedPath = projectConfig.resolveProjectPath(filePath);
 
-      console.log('[Main] 读取文件内容:', resolvedPath);
+      logger.info('[Main] 读取文件内容:', resolvedPath);
 
       // 检查文件是否存在
       try {
@@ -63,11 +64,11 @@ function registerFileIPC({
 
       // 读取文件内容
       const content = await fs.readFile(resolvedPath, 'utf-8');
-      console.log('[Main] 文件读取成功，大小:', content.length, '字符');
+      logger.info('[Main] 文件读取成功，大小:', content.length, '字符');
 
       return content;
     } catch (error) {
-      console.error('[Main] 读取文件内容失败:', error);
+      logger.error('[Main] 读取文件内容失败:', error);
       throw error;
     }
   });
@@ -83,7 +84,7 @@ function registerFileIPC({
       const projectConfig = getProjectConfig();
       const resolvedPath = projectConfig.resolveProjectPath(filePath);
 
-      console.log('[Main] 写入文件内容:', resolvedPath, '大小:', content?.length || 0, '字符');
+      logger.info('[Main] 写入文件内容:', resolvedPath, '大小:', content?.length || 0, '字符');
 
       // 确保目录存在
       const dir = path.dirname(resolvedPath);
@@ -91,11 +92,11 @@ function registerFileIPC({
 
       // 写入文件
       await fs.writeFile(resolvedPath, content || '', 'utf-8');
-      console.log('[Main] 文件写入成功');
+      logger.info('[Main] 文件写入成功');
 
       return { success: true };
     } catch (error) {
-      console.error('[Main] 写入文件内容失败:', error);
+      logger.error('[Main] 写入文件内容失败:', error);
       throw error;
     }
   });
@@ -111,7 +112,7 @@ function registerFileIPC({
       const projectConfig = getProjectConfig();
       const resolvedPath = projectConfig.resolveProjectPath(filePath);
 
-      console.log('[Main] 读取二进制文件:', resolvedPath);
+      logger.info('[Main] 读取二进制文件:', resolvedPath);
 
       // 检查文件是否存在
       try {
@@ -124,11 +125,11 @@ function registerFileIPC({
       const buffer = await fs.readFile(resolvedPath);
       const base64 = buffer.toString('base64');
 
-      console.log('[Main] 二进制文件读取成功，大小:', buffer.length, '字节');
+      logger.info('[Main] 二进制文件读取成功，大小:', buffer.length, '字节');
 
       return base64;
     } catch (error) {
-      console.error('[Main] 读取二进制文件失败:', error);
+      logger.error('[Main] 读取二进制文件失败:', error);
       throw error;
     }
   });
@@ -145,13 +146,13 @@ function registerFileIPC({
       const fs = require('fs');
       const projectConfig = getProjectConfig();
 
-      console.log('[Main] 在文件管理器中显示:', filePath);
+      logger.info('[Main] 在文件管理器中显示:', filePath);
 
       // 获取项目根路径
       const rootPath = path.join(projectConfig.getProjectsRootPath(), projectId);
       const resolvedPath = path.join(rootPath, filePath);
 
-      console.log('[Main] 解析后的路径:', resolvedPath);
+      logger.info('[Main] 解析后的路径:', resolvedPath);
 
       // 检查文件是否存在
       if (!fs.existsSync(resolvedPath)) {
@@ -163,7 +164,7 @@ function registerFileIPC({
 
       return { success: true, path: resolvedPath };
     } catch (error) {
-      console.error('[Main] 在文件管理器中显示失败:', error);
+      logger.error('[Main] 在文件管理器中显示失败:', error);
       throw error;
     }
   });
@@ -175,7 +176,7 @@ function registerFileIPC({
     try {
       const fs = require('fs').promises;
 
-      console.log('[Main] 复制文件:', { sourcePath, targetPath });
+      logger.info('[Main] 复制文件:', { sourcePath, targetPath });
 
       // 获取项目根路径
       const project = database.db.prepare('SELECT root_path FROM projects WHERE id = ?').get(projectId);
@@ -187,8 +188,8 @@ function registerFileIPC({
       const resolvedSourcePath = path.join(rootPath, sourcePath);
       const resolvedTargetPath = targetPath ? path.join(rootPath, targetPath, path.basename(sourcePath)) : resolvedSourcePath + '_copy';
 
-      console.log('[Main] 源路径:', resolvedSourcePath);
-      console.log('[Main] 目标路径:', resolvedTargetPath);
+      logger.info('[Main] 源路径:', resolvedSourcePath);
+      logger.info('[Main] 目标路径:', resolvedTargetPath);
 
       // 递归复制函数
       async function copyRecursive(src, dest) {
@@ -214,7 +215,7 @@ function registerFileIPC({
 
       await copyRecursive(resolvedSourcePath, resolvedTargetPath);
 
-      console.log('[Main] 文件复制成功');
+      logger.info('[Main] 文件复制成功');
 
       const newTargetPath = path.relative(rootPath, resolvedTargetPath);
 
@@ -230,7 +231,7 @@ function registerFileIPC({
 
       return { success: true, targetPath: newTargetPath };
     } catch (error) {
-      console.error('[Main] 复制文件失败:', error);
+      logger.error('[Main] 复制文件失败:', error);
       throw error;
     }
   });
@@ -242,7 +243,7 @@ function registerFileIPC({
     try {
       const fs = require('fs').promises;
 
-      console.log('[Main] 移动文件:', { sourcePath, targetPath });
+      logger.info('[Main] 移动文件:', { sourcePath, targetPath });
 
       // 获取项目根路径
       const project = database.db.prepare('SELECT root_path FROM projects WHERE id = ?').get(projectId);
@@ -254,8 +255,8 @@ function registerFileIPC({
       const resolvedSourcePath = path.join(rootPath, sourcePath);
       const resolvedTargetPath = path.join(rootPath, targetPath, path.basename(sourcePath));
 
-      console.log('[Main] 源路径:', resolvedSourcePath);
-      console.log('[Main] 目标路径:', resolvedTargetPath);
+      logger.info('[Main] 源路径:', resolvedSourcePath);
+      logger.info('[Main] 目标路径:', resolvedTargetPath);
 
       // 确保目标目录存在
       await fs.mkdir(path.dirname(resolvedTargetPath), { recursive: true });
@@ -263,7 +264,7 @@ function registerFileIPC({
       // 移动文件/文件夹
       await fs.rename(resolvedSourcePath, resolvedTargetPath);
 
-      console.log('[Main] 文件移动成功');
+      logger.info('[Main] 文件移动成功');
 
       const newTargetPath = path.relative(rootPath, resolvedTargetPath);
 
@@ -279,7 +280,7 @@ function registerFileIPC({
 
       return { success: true, targetPath: newTargetPath };
     } catch (error) {
-      console.error('[Main] 移动文件失败:', error);
+      logger.error('[Main] 移动文件失败:', error);
       throw error;
     }
   });
@@ -291,7 +292,7 @@ function registerFileIPC({
     try {
       const fs = require('fs').promises;
 
-      console.log('[Main] 删除文件:', filePath);
+      logger.info('[Main] 删除文件:', filePath);
 
       // 获取项目根路径
       const project = database.db.prepare('SELECT root_path FROM projects WHERE id = ?').get(projectId);
@@ -302,7 +303,7 @@ function registerFileIPC({
       const rootPath = project.root_path;
       const resolvedPath = path.join(rootPath, filePath);
 
-      console.log('[Main] 解析后的路径:', resolvedPath);
+      logger.info('[Main] 解析后的路径:', resolvedPath);
 
       // 递归删除函数
       async function deleteRecursive(targetPath) {
@@ -321,7 +322,7 @@ function registerFileIPC({
 
       await deleteRecursive(resolvedPath);
 
-      console.log('[Main] 文件删除成功');
+      logger.info('[Main] 文件删除成功');
 
       // 通知渲染进程刷新文件列表
       if (mainWindow && !mainWindow.isDestroyed()) {
@@ -334,7 +335,7 @@ function registerFileIPC({
 
       return { success: true };
     } catch (error) {
-      console.error('[Main] 删除文件失败:', error);
+      logger.error('[Main] 删除文件失败:', error);
       throw error;
     }
   });
@@ -346,7 +347,7 @@ function registerFileIPC({
     try {
       const fs = require('fs').promises;
 
-      console.log('[Main] 重命名文件:', { oldPath, newName });
+      logger.info('[Main] 重命名文件:', { oldPath, newName });
 
       // 获取项目根路径
       const project = database.db.prepare('SELECT root_path FROM projects WHERE id = ?').get(projectId);
@@ -358,13 +359,13 @@ function registerFileIPC({
       const resolvedOldPath = path.join(rootPath, oldPath);
       const resolvedNewPath = path.join(path.dirname(resolvedOldPath), newName);
 
-      console.log('[Main] 旧路径:', resolvedOldPath);
-      console.log('[Main] 新路径:', resolvedNewPath);
+      logger.info('[Main] 旧路径:', resolvedOldPath);
+      logger.info('[Main] 新路径:', resolvedNewPath);
 
       // 重命名文件/文件夹
       await fs.rename(resolvedOldPath, resolvedNewPath);
 
-      console.log('[Main] 文件重命名成功');
+      logger.info('[Main] 文件重命名成功');
 
       const newPath = path.relative(rootPath, resolvedNewPath);
 
@@ -380,7 +381,7 @@ function registerFileIPC({
 
       return { success: true, newPath };
     } catch (error) {
-      console.error('[Main] 重命名文件失败:', error);
+      logger.error('[Main] 重命名文件失败:', error);
       throw error;
     }
   });
@@ -392,7 +393,7 @@ function registerFileIPC({
     try {
       const fs = require('fs').promises;
 
-      console.log('[Main] 创建文件:', filePath);
+      logger.info('[Main] 创建文件:', filePath);
 
       // 获取项目根路径
       const project = database.db.prepare('SELECT root_path FROM projects WHERE id = ?').get(projectId);
@@ -403,7 +404,7 @@ function registerFileIPC({
       const rootPath = project.root_path;
       const resolvedPath = path.join(rootPath, filePath);
 
-      console.log('[Main] 解析后的路径:', resolvedPath);
+      logger.info('[Main] 解析后的路径:', resolvedPath);
 
       // 确保目录存在
       await fs.mkdir(path.dirname(resolvedPath), { recursive: true });
@@ -411,7 +412,7 @@ function registerFileIPC({
       // 创建文件
       await fs.writeFile(resolvedPath, content, 'utf-8');
 
-      console.log('[Main] 文件创建成功');
+      logger.info('[Main] 文件创建成功');
 
       // 通知渲染进程刷新文件列表
       if (mainWindow && !mainWindow.isDestroyed()) {
@@ -424,7 +425,7 @@ function registerFileIPC({
 
       return { success: true, filePath };
     } catch (error) {
-      console.error('[Main] 创建文件失败:', error);
+      logger.error('[Main] 创建文件失败:', error);
       throw error;
     }
   });
@@ -436,7 +437,7 @@ function registerFileIPC({
     try {
       const fs = require('fs').promises;
 
-      console.log('[Main] 创建文件夹:', folderPath);
+      logger.info('[Main] 创建文件夹:', folderPath);
 
       // 获取项目根路径
       const project = database.db.prepare('SELECT root_path FROM projects WHERE id = ?').get(projectId);
@@ -447,12 +448,12 @@ function registerFileIPC({
       const rootPath = project.root_path;
       const resolvedPath = path.join(rootPath, folderPath);
 
-      console.log('[Main] 解析后的路径:', resolvedPath);
+      logger.info('[Main] 解析后的路径:', resolvedPath);
 
       // 创建文件夹
       await fs.mkdir(resolvedPath, { recursive: true });
 
-      console.log('[Main] 文件夹创建成功');
+      logger.info('[Main] 文件夹创建成功');
 
       // 通知渲染进程刷新文件列表
       if (mainWindow && !mainWindow.isDestroyed()) {
@@ -465,7 +466,7 @@ function registerFileIPC({
 
       return { success: true, folderPath };
     } catch (error) {
-      console.error('[Main] 创建文件夹失败:', error);
+      logger.error('[Main] 创建文件夹失败:', error);
       throw error;
     }
   });
@@ -475,7 +476,7 @@ function registerFileIPC({
    */
   ipcMain.handle('file:openWithDefault', async (_event, { projectId, filePath }) => {
     try {
-      console.log('[Main] 使用默认程序打开文件:', filePath);
+      logger.info('[Main] 使用默认程序打开文件:', filePath);
 
       // 获取项目根路径
       const project = database.db.prepare('SELECT root_path FROM projects WHERE id = ?').get(projectId);
@@ -486,14 +487,14 @@ function registerFileIPC({
       const rootPath = project.root_path;
       const resolvedPath = path.join(rootPath, filePath);
 
-      console.log('[Main] 解析后的路径:', resolvedPath);
+      logger.info('[Main] 解析后的路径:', resolvedPath);
 
       // 使用默认程序打开
       await shell.openPath(resolvedPath);
 
       return { success: true };
     } catch (error) {
-      console.error('[Main] 打开文件失败:', error);
+      logger.error('[Main] 打开文件失败:', error);
       throw error;
     }
   });
@@ -509,7 +510,7 @@ function registerFileIPC({
     try {
       const fs = require('fs').promises;
 
-      console.log('[Main] 复制文件到系统剪贴板:', { filePath, fullPath });
+      logger.info('[Main] 复制文件到系统剪贴板:', { filePath, fullPath });
 
       // 获取项目根路径
       const project = database.db.prepare('SELECT root_path FROM projects WHERE id = ?').get(projectId);
@@ -520,7 +521,7 @@ function registerFileIPC({
       const rootPath = project.root_path;
       const resolvedPath = path.join(rootPath, filePath);
 
-      console.log('[Main] 解析后的路径:', resolvedPath);
+      logger.info('[Main] 解析后的路径:', resolvedPath);
 
       // 检查文件是否存在
       const exists = await fs.access(resolvedPath).then(() => true).catch(() => false);
@@ -531,11 +532,11 @@ function registerFileIPC({
       // 将文件路径写入系统剪贴板
       clipboard.writeBuffer('FileNameW', Buffer.from(resolvedPath + '\0', 'ucs2'));
 
-      console.log('[Main] 文件路径已写入系统剪贴板');
+      logger.info('[Main] 文件路径已写入系统剪贴板');
 
       return { success: true, filePath: resolvedPath };
     } catch (error) {
-      console.error('[Main] 复制到系统剪贴板失败:', error);
+      logger.error('[Main] 复制到系统剪贴板失败:', error);
       throw error;
     }
   });
@@ -547,7 +548,7 @@ function registerFileIPC({
     try {
       const fs = require('fs').promises;
 
-      console.log('[Main] 剪切文件到系统剪贴板:', { filePath, fullPath });
+      logger.info('[Main] 剪切文件到系统剪贴板:', { filePath, fullPath });
 
       // 获取项目根路径
       const project = database.db.prepare('SELECT root_path FROM projects WHERE id = ?').get(projectId);
@@ -558,7 +559,7 @@ function registerFileIPC({
       const rootPath = project.root_path;
       const resolvedPath = path.join(rootPath, filePath);
 
-      console.log('[Main] 解析后的路径:', resolvedPath);
+      logger.info('[Main] 解析后的路径:', resolvedPath);
 
       // 检查文件是否存在
       const exists = await fs.access(resolvedPath).then(() => true).catch(() => false);
@@ -570,11 +571,11 @@ function registerFileIPC({
       clipboard.writeBuffer('FileNameW', Buffer.from(resolvedPath + '\0', 'ucs2'));
       clipboard.writeText('cut:' + resolvedPath); // 使用文本标记为剪切操作
 
-      console.log('[Main] 文件已标记为剪切到系统剪贴板');
+      logger.info('[Main] 文件已标记为剪切到系统剪贴板');
 
       return { success: true, filePath: resolvedPath, operation: 'cut' };
     } catch (error) {
-      console.error('[Main] 剪切到系统剪贴板失败:', error);
+      logger.error('[Main] 剪切到系统剪贴板失败:', error);
       throw error;
     }
   });
@@ -584,7 +585,7 @@ function registerFileIPC({
    */
   ipcMain.handle('file:pasteFromSystemClipboard', async () => {
     try {
-      console.log('[Main] 从系统剪贴板读取');
+      logger.info('[Main] 从系统剪贴板读取');
 
       // 读取剪贴板内容
       const text = clipboard.readText();
@@ -604,7 +605,7 @@ function registerFileIPC({
         filePath = text.substring(4);
       }
 
-      console.log('[Main] 剪贴板内容:', { filePath, operation });
+      logger.info('[Main] 剪贴板内容:', { filePath, operation });
 
       return {
         success: true,
@@ -613,7 +614,7 @@ function registerFileIPC({
         hasData: !!filePath
       };
     } catch (error) {
-      console.error('[Main] 读取系统剪贴板失败:', error);
+      logger.error('[Main] 读取系统剪贴板失败:', error);
       throw error;
     }
   });
@@ -625,7 +626,7 @@ function registerFileIPC({
     try {
       const fs = require('fs').promises;
 
-      console.log('[Main] 从系统剪贴板导入文件:', { targetPath, clipboardData });
+      logger.info('[Main] 从系统剪贴板导入文件:', { targetPath, clipboardData });
 
       if (!clipboardData || !clipboardData.filePath) {
         throw new Error('剪贴板数据无效');
@@ -642,8 +643,8 @@ function registerFileIPC({
       const fileName = path.basename(sourcePath);
       const resolvedTargetPath = path.join(rootPath, targetPath, fileName);
 
-      console.log('[Main] 源路径:', sourcePath);
-      console.log('[Main] 目标路径:', resolvedTargetPath);
+      logger.info('[Main] 源路径:', sourcePath);
+      logger.info('[Main] 目标路径:', resolvedTargetPath);
 
       // 确保目标目录存在
       await fs.mkdir(path.dirname(resolvedTargetPath), { recursive: true });
@@ -657,7 +658,7 @@ function registerFileIPC({
         await fs.copyFile(sourcePath, resolvedTargetPath);
       }
 
-      console.log('[Main] 文件导入成功');
+      logger.info('[Main] 文件导入成功');
 
       const newPath = path.relative(rootPath, resolvedTargetPath);
 
@@ -672,7 +673,7 @@ function registerFileIPC({
 
       return { success: true, filePath: newPath };
     } catch (error) {
-      console.error('[Main] 从剪贴板导入文件失败:', error);
+      logger.error('[Main] 从剪贴板导入文件失败:', error);
       throw error;
     }
   });
@@ -686,7 +687,7 @@ function registerFileIPC({
    */
   ipcMain.handle('file:openWith', async (_event, { projectId, filePath }) => {
     try {
-      console.log('[Main] 选择程序打开文件:', filePath);
+      logger.info('[Main] 选择程序打开文件:', filePath);
 
       // 获取项目根路径
       const project = database.db.prepare('SELECT root_path FROM projects WHERE id = ?').get(projectId);
@@ -697,7 +698,7 @@ function registerFileIPC({
       const rootPath = project.root_path;
       const resolvedPath = path.join(rootPath, filePath);
 
-      console.log('[Main] 解析后的路径:', resolvedPath);
+      logger.info('[Main] 解析后的路径:', resolvedPath);
 
       // 显示打开方式对话框
       const result = await dialog.showOpenDialog(mainWindow, {
@@ -714,7 +715,7 @@ function registerFileIPC({
       }
 
       const programPath = result.filePaths[0];
-      console.log('[Main] 选择的程序:', programPath);
+      logger.info('[Main] 选择的程序:', programPath);
 
       // 使用指定程序打开文件
       const { spawn } = require('child_process');
@@ -722,7 +723,7 @@ function registerFileIPC({
 
       return { success: true, programPath };
     } catch (error) {
-      console.error('[Main] 选择程序打开文件失败:', error);
+      logger.error('[Main] 选择程序打开文件失败:', error);
       throw error;
     }
   });
@@ -732,23 +733,23 @@ function registerFileIPC({
    */
   ipcMain.handle('file:openWithProgram', async (_event, { filePath, programPath }) => {
     try {
-      console.log('[Main] 使用指定程序打开文件:', { filePath, programPath });
+      logger.info('[Main] 使用指定程序打开文件:', { filePath, programPath });
 
       const { spawn } = require('child_process');
       spawn(programPath, [filePath], { detached: true, stdio: 'ignore' }).unref();
 
       return { success: true };
     } catch (error) {
-      console.error('[Main] 使用指定程序打开文件失败:', error);
+      logger.error('[Main] 使用指定程序打开文件失败:', error);
       throw error;
     }
   });
 
-  console.log('[File IPC] ✓ 17 handlers registered');
-  console.log('[File IPC] - 3 file read/write handlers');
-  console.log('[File IPC] - 8 file management handlers');
-  console.log('[File IPC] - 4 system clipboard handlers');
-  console.log('[File IPC] - 2 extended operation handlers');
+  logger.info('[File IPC] ✓ 17 handlers registered');
+  logger.info('[File IPC] - 3 file read/write handlers');
+  logger.info('[File IPC] - 8 file management handlers');
+  logger.info('[File IPC] - 4 system clipboard handlers');
+  logger.info('[File IPC] - 2 extended operation handlers');
 }
 
 module.exports = {

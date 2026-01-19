@@ -4,6 +4,7 @@
  * 展示多媒体处理控制台的各种功能
  */
 
+import { logger, createLogger } from '@/utils/logger';
 import type { Meta, StoryObj } from '@storybook/vue3';
 import MediaProcessor from './MediaProcessor.vue';
 
@@ -53,7 +54,7 @@ await multimediaAPI.uploadImage(imagePath, {
   compress: true,
   performOCR: true
 }, (progress) => {
-  console.log('进度:', progress.percent);
+  logger.info('进度:', progress.percent);
 });
 
 // 批量OCR

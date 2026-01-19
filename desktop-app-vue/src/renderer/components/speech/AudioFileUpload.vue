@@ -176,6 +176,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, onMounted, onUnmounted } from 'vue';
 import { message } from 'ant-design-vue';
 import { InboxOutlined, SoundOutlined, CopyOutlined, EditOutlined } from '@ant-design/icons-vue';
@@ -271,7 +273,7 @@ const transcribeFile = async (fileItem) => {
     message.success(`${fileItem.name} 转录完成`);
     emit('result', result);
   } catch (error) {
-    console.error('转录失败:', error);
+    logger.error('转录失败:', error);
     fileItem.status = 'error';
     fileItem.statusText = error.message || '转录失败';
     message.error(`${fileItem.name} 转录失败: ${error.message}`);
@@ -288,7 +290,7 @@ onUnmounted(() => {
 });
 
 const handleProgress = (progress) => {
-  console.log('转录进度:', progress);
+  logger.info('转录进度:', progress);
 
   // 查找对应的文件项并更新进度
   const fileItem = fileList.value.find(f => f.status === 'uploading');

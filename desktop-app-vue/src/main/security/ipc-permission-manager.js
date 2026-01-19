@@ -8,6 +8,7 @@
  * - 审计日志
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { app } = require('electron');
 const fs = require('fs').promises;
 const path = require('path');
@@ -115,7 +116,7 @@ class IPCPermissionManager {
       return;
     }
 
-    console.log('[IPCPermissionManager] 初始化权限管理系统...');
+    logger.info('[IPCPermissionManager] 初始化权限管理系统...');
 
     // 加载审计日志
     await this.loadAuditLog();
@@ -124,14 +125,14 @@ class IPCPermissionManager {
     this.startCleanupTask();
 
     this.isInitialized = true;
-    console.log('[IPCPermissionManager] 权限管理系统初始化完成');
+    logger.info('[IPCPermissionManager] 权限管理系统初始化完成');
   }
 
   /**
    * 设置用户权限级别
    */
   setUserPermissionLevel(level) {
-    console.log(`[IPCPermissionManager] 设置用户权限级别: ${level}`);
+    logger.info(`[IPCPermissionManager] 设置用户权限级别: ${level}`);
     this.userPermissionLevel = level;
 
     this.addAuditLog({
@@ -167,7 +168,7 @@ class IPCPermissionManager {
     const hasPermission = this.hasPermission(this.userPermissionLevel, requiredLevel);
 
     if (!hasPermission) {
-      console.warn(`[IPCPermissionManager] 权限不足: ${channel}, 需要: ${requiredLevel}, 当前: ${this.userPermissionLevel}`);
+      logger.warn(`[IPCPermissionManager] 权限不足: ${channel}, 需要: ${requiredLevel}, 当前: ${this.userPermissionLevel}`);
       this.addAuditLog({
         type: 'permission_denied',
         channel: channel,
@@ -239,7 +240,7 @@ class IPCPermissionManager {
 
     // 检查是否超过限制
     if (cache.requests.length >= config.maxRequests) {
-      console.warn(`[IPCPermissionManager] 速率限制: ${channel}, 在${config.windowMs}ms内已达到${config.maxRequests}次请求上限`);
+      logger.warn(`[IPCPermissionManager] 速率限制: ${channel}, 在${config.windowMs}ms内已达到${config.maxRequests}次请求上限`);
       this.addAuditLog({
         type: 'rate_limit_exceeded',
         channel: channel,
@@ -371,9 +372,9 @@ class IPCPermissionManager {
         'utf8'
       );
 
-      console.log(`[IPCPermissionManager] 审计日志已保存到: ${logPath}`);
+      logger.info(`[IPCPermissionManager] 审计日志已保存到: ${logPath}`);
     } catch (error) {
-      console.error('[IPCPermissionManager] 保存审计日志失败:', error);
+      logger.error('[IPCPermissionManager] 保存审计日志失败:', error);
     }
   }
 
@@ -401,9 +402,9 @@ class IPCPermissionManager {
         }
       }).filter(entry => entry !== null);
 
-      console.log(`[IPCPermissionManager] 已加载 ${this.auditLog.length} 条审计日志`);
+      logger.info(`[IPCPermissionManager] 已加载 ${this.auditLog.length} 条审计日志`);
     } catch (error) {
-      console.error('[IPCPermissionManager] 加载审计日志失败:', error);
+      logger.error('[IPCPermissionManager] 加载审计日志失败:', error);
     }
   }
 

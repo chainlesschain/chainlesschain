@@ -5,6 +5,7 @@
  * 注册所有文件共享相关的IPC接口（12个）
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { ipcMain } = require('electron');
 
 /**
@@ -12,7 +13,7 @@ const { ipcMain } = require('electron');
  * @param {Object} app - ChainlessChainApp实例
  */
 function registerFileSharingIPC(app) {
-  console.log('[IPC] 注册文件共享IPC处理器...');
+  logger.info('[IPC] 注册文件共享IPC处理器...');
 
   // ==================== 文件管理IPC（6个）====================
 
@@ -34,7 +35,7 @@ function registerFileSharingIPC(app) {
 
       return { success: true, file };
     } catch (error) {
-      console.error('[IPC] 上传文件失败:', error);
+      logger.error('[IPC] 上传文件失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -52,7 +53,7 @@ function registerFileSharingIPC(app) {
 
       return { success: true, files };
     } catch (error) {
-      console.error('[IPC] 获取文件列表失败:', error);
+      logger.error('[IPC] 获取文件列表失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -70,7 +71,7 @@ function registerFileSharingIPC(app) {
 
       return { success: true, file };
     } catch (error) {
-      console.error('[IPC] 获取文件详情失败:', error);
+      logger.error('[IPC] 获取文件详情失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -93,7 +94,7 @@ function registerFileSharingIPC(app) {
 
       return result;
     } catch (error) {
-      console.error('[IPC] 删除文件失败:', error);
+      logger.error('[IPC] 删除文件失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -116,7 +117,7 @@ function registerFileSharingIPC(app) {
 
       return result;
     } catch (error) {
-      console.error('[IPC] 锁定文件失败:', error);
+      logger.error('[IPC] 锁定文件失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -139,7 +140,7 @@ function registerFileSharingIPC(app) {
 
       return result;
     } catch (error) {
-      console.error('[IPC] 解锁文件失败:', error);
+      logger.error('[IPC] 解锁文件失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -159,7 +160,7 @@ function registerFileSharingIPC(app) {
 
       return { success: true, versions };
     } catch (error) {
-      console.error('[IPC] 获取文件版本失败:', error);
+      logger.error('[IPC] 获取文件版本失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -186,7 +187,7 @@ function registerFileSharingIPC(app) {
 
       return { success: true, version: newVersion };
     } catch (error) {
-      console.error('[IPC] 回滚版本失败:', error);
+      logger.error('[IPC] 回滚版本失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -204,7 +205,7 @@ function registerFileSharingIPC(app) {
 
       return { success: true, comparison };
     } catch (error) {
-      console.error('[IPC] 比较版本失败:', error);
+      logger.error('[IPC] 比较版本失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -232,7 +233,7 @@ function registerFileSharingIPC(app) {
 
       return { success: true, permission };
     } catch (error) {
-      console.error('[IPC] 授予权限失败:', error);
+      logger.error('[IPC] 授予权限失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -258,7 +259,7 @@ function registerFileSharingIPC(app) {
 
       return { success: true, share };
     } catch (error) {
-      console.error('[IPC] 共享文件失败:', error);
+      logger.error('[IPC] 共享文件失败:', error);
       return { success: false, error: error.message };
     }
   });
@@ -284,12 +285,12 @@ function registerFileSharingIPC(app) {
 
       return { success: true, files };
     } catch (error) {
-      console.error('[IPC] 获取共享文件失败:', error);
+      logger.error('[IPC] 获取共享文件失败:', error);
       return { success: false, error: error.message };
     }
   });
 
-  console.log('[IPC] ✓ 文件共享IPC处理器注册完成 (12个接口)');
+  logger.info('[IPC] ✓ 文件共享IPC处理器注册完成 (12个接口)');
 }
 
 module.exports = {

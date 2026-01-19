@@ -1,3 +1,4 @@
+const { logger, createLogger } = require('../utils/logger.js');
 const { v4: uuidv4 } = require('uuid');
 
 /**
@@ -42,7 +43,7 @@ class TaskManager {
    * @returns {Promise<Object>} 创建的任务信息
    */
   async createTask(taskData, creatorDID) {
-    console.log('[TaskManager] 创建任务:', taskData.title);
+    logger.info('[TaskManager] 创建任务:', taskData.title);
 
     try {
       // 1. 检查权限
@@ -113,7 +114,7 @@ class TaskManager {
         );
       }
 
-      console.log('[TaskManager] ✓ 任务创建成功:', taskId);
+      logger.info('[TaskManager] ✓ 任务创建成功:', taskId);
 
       return {
         ...task,
@@ -122,7 +123,7 @@ class TaskManager {
         blocked_by: JSON.parse(task.blocked_by)
       };
     } catch (error) {
-      console.error('[TaskManager] 创建任务失败:', error);
+      logger.error('[TaskManager] 创建任务失败:', error);
       throw error;
     }
   }
@@ -240,11 +241,11 @@ class TaskManager {
         );
       }
 
-      console.log('[TaskManager] ✓ 任务更新成功:', taskId);
+      logger.info('[TaskManager] ✓ 任务更新成功:', taskId);
 
       return { success: true };
     } catch (error) {
-      console.error('[TaskManager] 更新任务失败:', error);
+      logger.error('[TaskManager] 更新任务失败:', error);
       return { success: false, error: error.message };
     }
   }
@@ -291,11 +292,11 @@ class TaskManager {
         );
       }
 
-      console.log('[TaskManager] ✓ 任务删除成功:', taskId);
+      logger.info('[TaskManager] ✓ 任务删除成功:', taskId);
 
       return { success: true };
     } catch (error) {
-      console.error('[TaskManager] 删除任务失败:', error);
+      logger.error('[TaskManager] 删除任务失败:', error);
       return { success: false, error: error.message };
     }
   }
@@ -363,7 +364,7 @@ class TaskManager {
         blocked_by: JSON.parse(task.blocked_by || '[]')
       }));
     } catch (error) {
-      console.error('[TaskManager] 获取任务列表失败:', error);
+      logger.error('[TaskManager] 获取任务列表失败:', error);
       return [];
     }
   }
@@ -390,7 +391,7 @@ class TaskManager {
         blocked_by: JSON.parse(task.blocked_by || '[]')
       };
     } catch (error) {
-      console.error('[TaskManager] 获取任务失败:', error);
+      logger.error('[TaskManager] 获取任务失败:', error);
       return null;
     }
   }
@@ -437,11 +438,11 @@ class TaskManager {
         assignedTo
       );
 
-      console.log('[TaskManager] ✓ 任务分配成功:', taskId, '→', assignedTo);
+      logger.info('[TaskManager] ✓ 任务分配成功:', taskId, '→', assignedTo);
 
       return { success: true };
     } catch (error) {
-      console.error('[TaskManager] 分配任务失败:', error);
+      logger.error('[TaskManager] 分配任务失败:', error);
       return { success: false, error: error.message };
     }
   }
@@ -494,7 +495,7 @@ class TaskManager {
         comment.updated_at, comment.is_deleted
       );
 
-      console.log('[TaskManager] ✓ 评论添加成功:', commentId);
+      logger.info('[TaskManager] ✓ 评论添加成功:', commentId);
 
       return {
         ...comment,
@@ -502,7 +503,7 @@ class TaskManager {
         attachments: JSON.parse(comment.attachments)
       };
     } catch (error) {
-      console.error('[TaskManager] 添加评论失败:', error);
+      logger.error('[TaskManager] 添加评论失败:', error);
       throw error;
     }
   }
@@ -525,7 +526,7 @@ class TaskManager {
         attachments: JSON.parse(comment.attachments || '[]')
       }));
     } catch (error) {
-      console.error('[TaskManager] 获取评论列表失败:', error);
+      logger.error('[TaskManager] 获取评论列表失败:', error);
       return [];
     }
   }
@@ -543,11 +544,11 @@ class TaskManager {
         'UPDATE task_comments SET is_deleted = 1, updated_at = ? WHERE id = ?'
       ).run(Date.now(), commentId);
 
-      console.log('[TaskManager] ✓ 评论删除成功:', commentId);
+      logger.info('[TaskManager] ✓ 评论删除成功:', commentId);
 
       return { success: true };
     } catch (error) {
-      console.error('[TaskManager] 删除评论失败:', error);
+      logger.error('[TaskManager] 删除评论失败:', error);
       return { success: false, error: error.message };
     }
   }
@@ -565,7 +566,7 @@ class TaskManager {
 
       return changes || [];
     } catch (error) {
-      console.error('[TaskManager] 获取变更历史失败:', error);
+      logger.error('[TaskManager] 获取变更历史失败:', error);
       return [];
     }
   }
@@ -588,7 +589,7 @@ class TaskManager {
         VALUES (?, ?, ?, ?, ?, ?, ?)
       `).run(changeId, taskId, changerDID, changeType, oldValue, newValue, Date.now());
     } catch (error) {
-      console.error('[TaskManager] 记录变更失败:', error);
+      logger.error('[TaskManager] 记录变更失败:', error);
     }
   }
 
@@ -631,7 +632,7 @@ class TaskManager {
         board.created_by, board.created_at
       );
 
-      console.log('[TaskManager] ✓ 任务看板创建成功:', boardId);
+      logger.info('[TaskManager] ✓ 任务看板创建成功:', boardId);
 
       return {
         ...board,
@@ -639,7 +640,7 @@ class TaskManager {
         filters: JSON.parse(board.filters)
       };
     } catch (error) {
-      console.error('[TaskManager] 创建看板失败:', error);
+      logger.error('[TaskManager] 创建看板失败:', error);
       throw error;
     }
   }
@@ -670,7 +671,7 @@ class TaskManager {
         filters: JSON.parse(board.filters || '{}')
       }));
     } catch (error) {
-      console.error('[TaskManager] 获取看板列表失败:', error);
+      logger.error('[TaskManager] 获取看板列表失败:', error);
       return [];
     }
   }

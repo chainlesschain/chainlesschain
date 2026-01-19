@@ -78,6 +78,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, watch, onMounted, onUnmounted } from 'vue';
 import {
   PhoneOutlined,
@@ -134,7 +136,7 @@ const acceptCall = async () => {
       message.error('接受通话失败: ' + result.error);
     }
   } catch (error) {
-    console.error('接受通话失败:', error);
+    logger.error('接受通话失败:', error);
     message.error('接受通话失败');
   }
 };
@@ -159,7 +161,7 @@ const rejectCall = async () => {
       message.error('拒绝通话失败: ' + result.error);
     }
   } catch (error) {
-    console.error('拒绝通话失败:', error);
+    logger.error('拒绝通话失败:', error);
     message.error('拒绝通话失败');
   }
 };
@@ -168,7 +170,7 @@ const rejectCall = async () => {
 const playRingtone = () => {
   if (ringtone.value) {
     ringtone.value.play().catch(err => {
-      console.error('播放铃声失败:', err);
+      logger.error('播放铃声失败:', err);
     });
   }
 };
@@ -183,7 +185,7 @@ const stopRingtone = () => {
 
 // 监听来电事件
 const handleIncomingCall = (event, data) => {
-  console.log('收到来电:', data);
+  logger.info('收到来电:', data);
   incomingCall.value = data;
   playRingtone();
 };

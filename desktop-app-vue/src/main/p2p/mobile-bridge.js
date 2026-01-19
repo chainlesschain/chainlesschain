@@ -8,6 +8,7 @@
  * - 消息转发和协议转换
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const WebSocket = require("ws");
 const EventEmitter = require("events");
 
@@ -18,13 +19,13 @@ const wrtc = wrtcCompat;
 const wrtcAvailable = wrtcCompat.available;
 
 if (!wrtcAvailable) {
-  console.warn(
+  logger.warn(
     "[MobileBridge] WebRTC (werift) not available:",
     wrtcCompat.loadError?.message || "unknown error",
   );
-  console.warn("[MobileBridge] Mobile bridging via WebRTC will be disabled");
+  logger.warn("[MobileBridge] Mobile bridging via WebRTC will be disabled");
 } else {
-  console.log("[MobileBridge] WebRTC initialized via werift");
+  logger.info("[MobileBridge] WebRTC initialized via werift");
 }
 
 class MobileBridge extends EventEmitter {
@@ -88,7 +89,7 @@ class MobileBridge extends EventEmitter {
    */
   async connect() {
     return new Promise((resolve, reject) => {
-      console.log(
+      logger.info(
         "[MobileBridge] 连接到信令服务器:",
         this.options.signalingUrl,
       );
@@ -97,7 +98,7 @@ class MobileBridge extends EventEmitter {
         this.signalingSocket = new WebSocket(this.options.signalingUrl);
 
         this.signalingSocket.on("open", () => {
-          console.log("[MobileBridge] 信令服务器连接成功");
+          logger.info("[MobileBridge] 信令服务器连接成功");
           this.isConnected = true;
 
           // 注册PC端身份
@@ -111,12 +112,12 @@ class MobileBridge extends EventEmitter {
             const message = JSON.parse(data.toString());
             this.handleSignalingMessage(message);
           } catch (error) {
-            console.error("[MobileBridge] 信令消息解析失败:", error);
+            logger.error("[MobileBridge] 信令消息解析失败:", error);
           }
         });
 
         this.signalingSocket.on("close", () => {
-          console.log("[MobileBridge] 信令服务器连接关闭");
+          logger.info("[MobileBridge] 信令服务器连接关闭");
           this.isConnected = false;
 
           // 自动重连
@@ -126,11 +127,11 @@ class MobileBridge extends EventEmitter {
         });
 
         this.signalingSocket.on("error", (error) => {
-          console.error("[MobileBridge] WebSocket错误:", error);
+          logger.error("[MobileBridge] WebSocket错误:", error);
           reject(error);
         });
       } catch (error) {
-        console.error("[MobileBridge] 创建WebSocket失败:", error);
+        logger.error("[MobileBridge] 创建WebSocket失败:", error);
         reject(error);
       }
     });
@@ -168,7 +169,7 @@ class MobileBridge extends EventEmitter {
 
     switch (type) {
       case "registered":
-        console.log("[MobileBridge] 注册成功:", message.peerId);
+        logger.info("[MobileBridge] 注册成功:", message.peerId);
         this.emit("registered", message);
         break;
 
@@ -201,11 +202,11 @@ class MobileBridge extends EventEmitter {
         break;
 
       case "error":
-        console.error("[MobileBridge] 服务器错误:", message.error);
+        logger.error("[MobileBridge] 服务器错误:", message.error);
         break;
 
       default:
-        console.warn("[MobileBridge] 未知消息类型:", type);
+        logger.warn("[MobileBridge] 未知消息类型:", type);
     }
   }
 
@@ -215,7 +216,7 @@ class MobileBridge extends EventEmitter {
   async handleOffer(message) {
     const { from, offer, iceRestart } = message;
 
-    console.log(
+    logger.info(
       "[MobileBridge] 收到移动端Offer:",
       from,
       iceRestart ? "(ICE重启)" : "",
@@ -223,7 +224,7 @@ class MobileBridge extends EventEmitter {
 
     // 检查wrtc是否可用
     if (!wrtc) {
-      console.error(
+      logger.error(
         "[MobileBridge] wrtc not available, cannot handle WebRTC offer",
       );
       this.send({
@@ -240,7 +241,7 @@ class MobileBridge extends EventEmitter {
         !this.peerConnections.has(from) &&
         this.peerConnections.size >= this.maxConnections
       ) {
-        console.error("[MobileBridge] 连接池已满，拒绝新连接:", from);
+        logger.error("[MobileBridge] 连接池已满，拒绝新连接:", from);
         this.send({
           type: "error",
           to: from,
@@ -251,13 +252,13 @@ class MobileBridge extends EventEmitter {
 
       // 检查错误计数
       if (this.shouldBlockPeer(from)) {
-        console.error("[MobileBridge] 节点错误过多，暂时阻止:", from);
+        logger.error("[MobileBridge] 节点错误过多，暂时阻止:", from);
         return;
       }
 
       // 如果是ICE重启，关闭旧连接
       if (iceRestart && this.peerConnections.has(from)) {
-        console.log("[MobileBridge] ICE重启，关闭旧连接:", from);
+        logger.info("[MobileBridge] ICE重启，关闭旧连接:", from);
         this.closePeerConnection(from);
       }
 
@@ -281,7 +282,7 @@ class MobileBridge extends EventEmitter {
 
       // 监听连接状态
       pc.onconnectionstatechange = () => {
-        console.log(
+        logger.info(
           `[MobileBridge] WebRTC连接状态 (${from}):`,
           pc.connectionState,
         );
@@ -301,7 +302,7 @@ class MobileBridge extends EventEmitter {
 
       // 监听ICE连接状态
       pc.oniceconnectionstatechange = () => {
-        console.log(
+        logger.info(
           `[MobileBridge] ICE连接状态 (${from}):`,
           pc.iceConnectionState,
         );
@@ -314,12 +315,12 @@ class MobileBridge extends EventEmitter {
       // 监听数据通道
       pc.ondatachannel = (event) => {
         const channel = event.channel;
-        console.log("[MobileBridge] 数据通道已建立:", from);
+        logger.info("[MobileBridge] 数据通道已建立:", from);
 
         this.dataChannels.set(from, channel);
 
         channel.onopen = () => {
-          console.log("[MobileBridge] 数据通道已打开:", from);
+          logger.info("[MobileBridge] 数据通道已打开:", from);
         };
 
         channel.onmessage = async (event) => {
@@ -335,7 +336,7 @@ class MobileBridge extends EventEmitter {
         };
 
         channel.onclose = () => {
-          console.log("[MobileBridge] 数据通道已关闭:", from);
+          logger.info("[MobileBridge] 数据通道已关闭:", from);
           this.dataChannels.delete(from);
         };
       };
@@ -358,7 +359,7 @@ class MobileBridge extends EventEmitter {
       this.peerConnections.set(from, pc);
       this.stats.totalConnections++;
 
-      console.log("[MobileBridge] Answer已发送:", from);
+      logger.info("[MobileBridge] Answer已发送:", from);
     } catch (error) {
       this.handleError(from, "处理Offer失败", error);
     }
@@ -372,20 +373,20 @@ class MobileBridge extends EventEmitter {
     const pc = this.peerConnections.get(from);
 
     if (!pc) {
-      console.warn("[MobileBridge] 未找到对应的PeerConnection:", from);
+      logger.warn("[MobileBridge] 未找到对应的PeerConnection:", from);
       return;
     }
 
     if (!wrtc) {
-      console.error("[MobileBridge] wrtc not available, cannot apply answer");
+      logger.error("[MobileBridge] wrtc not available, cannot apply answer");
       return;
     }
 
     try {
       await pc.setRemoteDescription(new wrtc.RTCSessionDescription(answer));
-      console.log("[MobileBridge] Answer已应用:", from);
+      logger.info("[MobileBridge] Answer已应用:", from);
     } catch (error) {
-      console.error("[MobileBridge] 应用Answer失败:", error);
+      logger.error("[MobileBridge] 应用Answer失败:", error);
     }
   }
 
@@ -397,12 +398,12 @@ class MobileBridge extends EventEmitter {
     const pc = this.peerConnections.get(from);
 
     if (!pc) {
-      console.warn("[MobileBridge] 未找到对应的PeerConnection:", from);
+      logger.warn("[MobileBridge] 未找到对应的PeerConnection:", from);
       return;
     }
 
     if (!wrtc) {
-      console.error(
+      logger.error(
         "[MobileBridge] wrtc not available, cannot add ICE candidate",
       );
       return;
@@ -423,16 +424,16 @@ class MobileBridge extends EventEmitter {
 
     if (!candidates || candidates.length === 0) {return;}
 
-    console.log(`[MobileBridge] 处理批量ICE候选: ${candidates.length}个`, from);
+    logger.info(`[MobileBridge] 处理批量ICE候选: ${candidates.length}个`, from);
 
     const pc = this.peerConnections.get(from);
     if (!pc) {
-      console.warn("[MobileBridge] 未找到对应的PeerConnection:", from);
+      logger.warn("[MobileBridge] 未找到对应的PeerConnection:", from);
       return;
     }
 
     if (!wrtc) {
-      console.error(
+      logger.error(
         "[MobileBridge] wrtc not available, cannot add ICE candidates",
       );
       return;
@@ -443,10 +444,10 @@ class MobileBridge extends EventEmitter {
         try {
           await pc.addIceCandidate(new wrtc.RTCIceCandidate(candidate));
         } catch (error) {
-          console.error("[MobileBridge] 添加单个ICE候选失败:", error);
+          logger.error("[MobileBridge] 添加单个ICE候选失败:", error);
         }
       }
-      console.log(`[MobileBridge] ✅ 已添加 ${candidates.length} 个ICE候选`);
+      logger.info(`[MobileBridge] ✅ 已添加 ${candidates.length} 个ICE候选`);
     } catch (error) {
       this.handleError(from, "处理批量ICE候选失败", error);
     }
@@ -482,7 +483,7 @@ class MobileBridge extends EventEmitter {
     const candidates = this.pendingIceCandidates.get(peerId);
     if (!candidates || candidates.length === 0) {return;}
 
-    console.log(
+    logger.info(
       `[MobileBridge] 批量发送 ${candidates.length} 个ICE候选:`,
       peerId,
     );
@@ -506,7 +507,7 @@ class MobileBridge extends EventEmitter {
    */
   setConnectionTimeout(peerId) {
     const timer = setTimeout(() => {
-      console.error("[MobileBridge] 连接超时:", peerId);
+      logger.error("[MobileBridge] 连接超时:", peerId);
       this.handleConnectionFailed(peerId);
     }, this.connectionTimeout);
 
@@ -527,7 +528,7 @@ class MobileBridge extends EventEmitter {
    * 处理错误
    */
   handleError(peerId, context, error) {
-    console.error(`[MobileBridge] ${context}:`, peerId, error);
+    logger.error(`[MobileBridge] ${context}:`, peerId, error);
 
     this.stats.errors++;
 
@@ -542,7 +543,7 @@ class MobileBridge extends EventEmitter {
 
     // 如果错误过多，断开连接
     if (count >= this.maxErrors) {
-      console.error("[MobileBridge] 错误次数过多，断开连接:", peerId);
+      logger.error("[MobileBridge] 错误次数过多，断开连接:", peerId);
       this.closePeerConnection(peerId);
     }
 
@@ -561,7 +562,7 @@ class MobileBridge extends EventEmitter {
    * 处理断开连接
    */
   handleDisconnection(peerId) {
-    console.warn("[MobileBridge] 连接断开:", peerId);
+    logger.warn("[MobileBridge] 连接断开:", peerId);
 
     this.stats.activeConnections = Math.max(
       0,
@@ -572,14 +573,14 @@ class MobileBridge extends EventEmitter {
     // 尝试重连
     const attempts = this.reconnectAttempts.get(peerId) || 0;
     if (attempts < this.maxReconnectAttempts) {
-      console.log(
+      logger.info(
         `[MobileBridge] 将尝试重连 (${attempts + 1}/${this.maxReconnectAttempts})`,
       );
       this.reconnectAttempts.set(peerId, attempts + 1);
       this.stats.reconnects++;
       // 注意：实际重连需要移动端重新发起Offer
     } else {
-      console.log("[MobileBridge] 达到最大重连次数，放弃重连");
+      logger.info("[MobileBridge] 达到最大重连次数，放弃重连");
       this.closePeerConnection(peerId);
     }
   }
@@ -588,7 +589,7 @@ class MobileBridge extends EventEmitter {
    * 处理连接失败
    */
   handleConnectionFailed(peerId) {
-    console.error("[MobileBridge] 连接失败:", peerId);
+    logger.error("[MobileBridge] 连接失败:", peerId);
 
     this.clearConnectionTimeout(peerId);
     this.stats.activeConnections = Math.max(
@@ -608,7 +609,7 @@ class MobileBridge extends EventEmitter {
   handlePeerStatus(message) {
     const { peerId, status } = message;
 
-    console.log(`[MobileBridge] 节点状态变更: ${peerId} -> ${status}`);
+    logger.info(`[MobileBridge] 节点状态变更: ${peerId} -> ${status}`);
 
     if (status === "offline") {
       // 清理连接
@@ -623,7 +624,7 @@ class MobileBridge extends EventEmitter {
    */
   handleOfflineMessage(message) {
     const { originalMessage, storedAt, deliveredAt } = message;
-    console.log("[MobileBridge] 收到离线消息:", originalMessage);
+    logger.info("[MobileBridge] 收到离线消息:", originalMessage);
 
     // 转发到libp2p层
     this.emit("offline-message", { originalMessage, storedAt, deliveredAt });
@@ -635,7 +636,7 @@ class MobileBridge extends EventEmitter {
   async handleP2PMessage(message) {
     const { from, payload } = message;
 
-    console.log("[MobileBridge] 收到P2P消息:", from);
+    logger.info("[MobileBridge] 收到P2P消息:", from);
 
     // 桥接到libp2p网络
     await this.bridgeToLibp2p(from, JSON.stringify(payload));
@@ -658,9 +659,9 @@ class MobileBridge extends EventEmitter {
         message,
       });
 
-      console.log("[MobileBridge] 消息已桥接到libp2p:", mobilePeerId);
+      logger.info("[MobileBridge] 消息已桥接到libp2p:", mobilePeerId);
     } catch (error) {
-      console.error("[MobileBridge] 桥接消息失败:", error);
+      logger.error("[MobileBridge] 桥接消息失败:", error);
     }
   }
 
@@ -671,7 +672,7 @@ class MobileBridge extends EventEmitter {
     const channel = this.dataChannels.get(mobilePeerId);
 
     if (!channel || channel.readyState !== "open") {
-      console.warn("[MobileBridge] 数据通道未就绪，使用信令服务器转发");
+      logger.warn("[MobileBridge] 数据通道未就绪，使用信令服务器转发");
 
       // 通过信令服务器转发
       this.send({
@@ -689,9 +690,9 @@ class MobileBridge extends EventEmitter {
       this.stats.messagesForwarded++;
       this.stats.bytesTransferred += JSON.stringify(message).length;
 
-      console.log("[MobileBridge] 消息已发送到移动端:", mobilePeerId);
+      logger.info("[MobileBridge] 消息已发送到移动端:", mobilePeerId);
     } catch (error) {
-      console.error("[MobileBridge] 发送消息失败:", error);
+      logger.error("[MobileBridge] 发送消息失败:", error);
       throw error;
     }
   }
@@ -701,14 +702,14 @@ class MobileBridge extends EventEmitter {
    */
   send(message) {
     if (!this.isConnected || !this.signalingSocket) {
-      console.warn("[MobileBridge] 信令服务器未连接，无法发送消息");
+      logger.warn("[MobileBridge] 信令服务器未连接，无法发送消息");
       return;
     }
 
     try {
       this.signalingSocket.send(JSON.stringify(message));
     } catch (error) {
-      console.error("[MobileBridge] 发送信令消息失败:", error);
+      logger.error("[MobileBridge] 发送信令消息失败:", error);
     }
   }
 
@@ -721,7 +722,7 @@ class MobileBridge extends EventEmitter {
       try {
         pc.close();
       } catch (error) {
-        console.error("[MobileBridge] 关闭PeerConnection失败:", error);
+        logger.error("[MobileBridge] 关闭PeerConnection失败:", error);
       }
       this.peerConnections.delete(peerId);
     }
@@ -731,7 +732,7 @@ class MobileBridge extends EventEmitter {
       try {
         channel.close();
       } catch (error) {
-        console.error("[MobileBridge] 关闭DataChannel失败:", error);
+        logger.error("[MobileBridge] 关闭DataChannel失败:", error);
       }
       this.dataChannels.delete(peerId);
     }
@@ -748,11 +749,11 @@ class MobileBridge extends EventEmitter {
     }
 
     this.reconnectTimer = setTimeout(async () => {
-      console.log("[MobileBridge] 尝试重新连接...");
+      logger.info("[MobileBridge] 尝试重新连接...");
       try {
         await this.connect();
       } catch (error) {
-        console.error("[MobileBridge] 重连失败:", error);
+        logger.error("[MobileBridge] 重连失败:", error);
       }
     }, this.options.reconnectInterval);
   }
@@ -773,7 +774,7 @@ class MobileBridge extends EventEmitter {
    * 断开连接
    */
   async disconnect() {
-    console.log("[MobileBridge] 断开连接...");
+    logger.info("[MobileBridge] 断开连接...");
 
     // 清除所有定时器
     for (const timer of this.connectionTimers.values()) {
@@ -796,7 +797,7 @@ class MobileBridge extends EventEmitter {
       try {
         pc.close();
       } catch (error) {
-        console.error("[MobileBridge] 关闭PeerConnection失败:", error);
+        logger.error("[MobileBridge] 关闭PeerConnection失败:", error);
       }
     }
 

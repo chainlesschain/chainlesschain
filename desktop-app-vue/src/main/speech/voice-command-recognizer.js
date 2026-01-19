@@ -5,6 +5,7 @@
  * 支持系统命令、导航命令、AI命令等
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { EventEmitter } = require('events');
 
 /**
@@ -207,7 +208,7 @@ class VoiceCommandRecognizer extends EventEmitter {
       this.aliases.set(pattern.toLowerCase(), command.name);
     });
 
-    console.log(`[VoiceCommand] 注册命令: ${command.name}, 模式数: ${command.patterns.length}`);
+    logger.info(`[VoiceCommand] 注册命令: ${command.name}, 模式数: ${command.patterns.length}`);
   }
 
   /**
@@ -223,12 +224,12 @@ class VoiceCommandRecognizer extends EventEmitter {
 
     const normalizedText = text.trim().toLowerCase();
 
-    console.log(`[VoiceCommand] 识别命令: "${text}"`);
+    logger.info(`[VoiceCommand] 识别命令: "${text}"`);
 
     // 1. 精确匹配
     const exactMatch = this.findExactMatch(normalizedText, context);
     if (exactMatch) {
-      console.log(`[VoiceCommand] 精确匹配: ${exactMatch.name}`);
+      logger.info(`[VoiceCommand] 精确匹配: ${exactMatch.name}`);
       return this.buildResult(exactMatch, text, 1.0);
     }
 
@@ -236,7 +237,7 @@ class VoiceCommandRecognizer extends EventEmitter {
     if (this.config.fuzzyMatch) {
       const fuzzyMatch = this.findFuzzyMatch(normalizedText, context);
       if (fuzzyMatch && fuzzyMatch.confidence >= this.config.confidence) {
-        console.log(`[VoiceCommand] 模糊匹配: ${fuzzyMatch.command.name} (${fuzzyMatch.confidence.toFixed(2)})`);
+        logger.info(`[VoiceCommand] 模糊匹配: ${fuzzyMatch.command.name} (${fuzzyMatch.confidence.toFixed(2)})`);
         return this.buildResult(fuzzyMatch.command, text, fuzzyMatch.confidence);
       }
     }
@@ -245,12 +246,12 @@ class VoiceCommandRecognizer extends EventEmitter {
     if (this.config.useNLU) {
       const nluResult = this.parseWithNLU(text, context);
       if (nluResult) {
-        console.log(`[VoiceCommand] NLU匹配: ${nluResult.intent}`);
+        logger.info(`[VoiceCommand] NLU匹配: ${nluResult.intent}`);
         return nluResult;
       }
     }
 
-    console.log('[VoiceCommand] 未识别到命令');
+    logger.info('[VoiceCommand] 未识别到命令');
     return null;
   }
 
@@ -516,7 +517,7 @@ class VoiceCommandRecognizer extends EventEmitter {
       });
 
       this.commands.delete(name);
-      console.log(`[VoiceCommand] 移除命令: ${name}`);
+      logger.info(`[VoiceCommand] 移除命令: ${name}`);
     }
   }
 }

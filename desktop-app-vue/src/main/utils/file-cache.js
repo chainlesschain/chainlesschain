@@ -3,6 +3,7 @@
  * 实现LRU缓存策略，优化文件重复读取性能
  */
 
+const { logger, createLogger } = require('./logger.js');
 const fs = require('fs').promises;
 const crypto = require('crypto');
 const path = require('path');
@@ -215,7 +216,7 @@ class FileCacheManager {
 
     this.contentCache.set(key, content, size);
 
-    console.log(`[FileCache] 缓存文件内容: ${path.basename(filePath)}, 大小: ${(size / 1024).toFixed(2)}KB`);
+    logger.info(`[FileCache] 缓存文件内容: ${path.basename(filePath)}, 大小: ${(size / 1024).toFixed(2)}KB`);
   }
 
   /**
@@ -227,7 +228,7 @@ class FileCacheManager {
 
     if (content) {
       this.stats.contentHits++;
-      console.log(`[FileCache] 命中缓存: ${path.basename(filePath)}`);
+      logger.info(`[FileCache] 命中缓存: ${path.basename(filePath)}`);
       return content;
     }
 
@@ -270,7 +271,7 @@ class FileCacheManager {
 
     this.parseCache.set(key, result, size);
 
-    console.log(
+    logger.info(
       `[FileCache] 缓存解析结果: ${path.basename(filePath)} (${parseType}), 大小: ${(size / 1024).toFixed(2)}KB`
     );
   }
@@ -284,7 +285,7 @@ class FileCacheManager {
 
     if (result) {
       this.stats.parseHits++;
-      console.log(`[FileCache] 命中解析缓存: ${path.basename(filePath)} (${parseType})`);
+      logger.info(`[FileCache] 命中解析缓存: ${path.basename(filePath)} (${parseType})`);
       return result;
     }
 
@@ -315,7 +316,7 @@ class FileCacheManager {
     }
 
     if (invalidatedCount > 0) {
-      console.log(`[FileCache] 使缓存失效: ${path.basename(filePath)}, 删除 ${invalidatedCount} 个条目`);
+      logger.info(`[FileCache] 使缓存失效: ${path.basename(filePath)}, 删除 ${invalidatedCount} 个条目`);
     }
 
     return invalidatedCount;
@@ -342,7 +343,7 @@ class FileCacheManager {
     this.metadataCache.clear();
     this.parseCache.clear();
 
-    console.log('[FileCache] 已清空所有缓存');
+    logger.info('[FileCache] 已清空所有缓存');
   }
 
   /**
@@ -382,21 +383,21 @@ class FileCacheManager {
   printStats() {
     const stats = this.getStats();
 
-    console.log('\n=== 文件缓存统计 ===');
-    console.log('\n内容缓存:');
-    console.log(`  条目: ${stats.content.entries}/${stats.content.maxEntries}`);
-    console.log(`  大小: ${(stats.content.bytes / 1024 / 1024).toFixed(2)}MB/${(stats.content.maxBytes / 1024 / 1024).toFixed(2)}MB`);
-    console.log(`  命中率: ${stats.content.hitRate}`);
+    logger.info('\n=== 文件缓存统计 ===');
+    logger.info('\n内容缓存:');
+    logger.info(`  条目: ${stats.content.entries}/${stats.content.maxEntries}`);
+    logger.info(`  大小: ${(stats.content.bytes / 1024 / 1024).toFixed(2)}MB/${(stats.content.maxBytes / 1024 / 1024).toFixed(2)}MB`);
+    logger.info(`  命中率: ${stats.content.hitRate}`);
 
-    console.log('\n元数据缓存:');
-    console.log(`  条目: ${stats.metadata.entries}/${stats.metadata.maxEntries}`);
-    console.log(`  大小: ${(stats.metadata.bytes / 1024).toFixed(2)}KB`);
-    console.log(`  命中率: ${stats.metadata.hitRate}`);
+    logger.info('\n元数据缓存:');
+    logger.info(`  条目: ${stats.metadata.entries}/${stats.metadata.maxEntries}`);
+    logger.info(`  大小: ${(stats.metadata.bytes / 1024).toFixed(2)}KB`);
+    logger.info(`  命中率: ${stats.metadata.hitRate}`);
 
-    console.log('\n解析缓存:');
-    console.log(`  条目: ${stats.parse.entries}/${stats.parse.maxEntries}`);
-    console.log(`  大小: ${(stats.parse.bytes / 1024 / 1024).toFixed(2)}MB/${(stats.parse.maxBytes / 1024 / 1024).toFixed(2)}MB`);
-    console.log(`  命中率: ${stats.parse.hitRate}\n`);
+    logger.info('\n解析缓存:');
+    logger.info(`  条目: ${stats.parse.entries}/${stats.parse.maxEntries}`);
+    logger.info(`  大小: ${(stats.parse.bytes / 1024 / 1024).toFixed(2)}MB/${(stats.parse.maxBytes / 1024 / 1024).toFixed(2)}MB`);
+    logger.info(`  命中率: ${stats.parse.hitRate}\n`);
   }
 
   /**

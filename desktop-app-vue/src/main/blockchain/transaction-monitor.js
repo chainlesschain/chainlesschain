@@ -9,6 +9,7 @@
  * - 交易重试机制
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const EventEmitter = require('events');
 const { v4: uuidv4 } = require('uuid');
 
@@ -44,7 +45,7 @@ class TransactionMonitor extends EventEmitter {
    * 初始化监控器
    */
   async initialize() {
-    console.log('[TransactionMonitor] 初始化交易监控器...');
+    logger.info('[TransactionMonitor] 初始化交易监控器...');
 
     try {
       // 初始化数据库表
@@ -57,9 +58,9 @@ class TransactionMonitor extends EventEmitter {
       this.startMonitoring();
 
       this.initialized = true;
-      console.log('[TransactionMonitor] 交易监控器初始化成功');
+      logger.info('[TransactionMonitor] 交易监控器初始化成功');
     } catch (error) {
-      console.error('[TransactionMonitor] 初始化失败:', error);
+      logger.error('[TransactionMonitor] 初始化失败:', error);
       throw error;
     }
   }
@@ -120,7 +121,7 @@ class TransactionMonitor extends EventEmitter {
       addedAt: Date.now(),
     });
 
-    console.log(`[TransactionMonitor] 开始监控交易: ${txHash}`);
+    logger.info(`[TransactionMonitor] 开始监控交易: ${txHash}`);
 
     return txHash;
   }
@@ -143,20 +144,20 @@ class TransactionMonitor extends EventEmitter {
         await this.updateTxStatus(txHash, TransactionStatus.CONFIRMED, receipt);
         onConfirmed?.(receipt);
         this.emit('tx:confirmed', { txHash, receipt });
-        console.log(`[TransactionMonitor] 交易确认成功: ${txHash}`);
+        logger.info(`[TransactionMonitor] 交易确认成功: ${txHash}`);
       } else {
         // 交易失败
         await this.updateTxStatus(txHash, TransactionStatus.FAILED, receipt);
         onFailed?.(receipt);
         this.emit('tx:failed', { txHash, receipt });
-        console.error(`[TransactionMonitor] 交易失败: ${txHash}`);
+        logger.error(`[TransactionMonitor] 交易失败: ${txHash}`);
       }
     } catch (error) {
       // 监控出错
       await this.updateTxStatus(txHash, TransactionStatus.FAILED);
       onFailed?.(error);
       this.emit('tx:failed', { txHash, error });
-      console.error(`[TransactionMonitor] 交易监控出错: ${txHash}`, error);
+      logger.error(`[TransactionMonitor] 交易监控出错: ${txHash}`, error);
     }
   }
 
@@ -251,7 +252,7 @@ class TransactionMonitor extends EventEmitter {
       await this.checkPendingTransactions();
     }, this.monitorInterval);
 
-    console.log('[TransactionMonitor] 启动交易监控定时器');
+    logger.info('[TransactionMonitor] 启动交易监控定时器');
   }
 
   /**
@@ -261,7 +262,7 @@ class TransactionMonitor extends EventEmitter {
     if (this.monitorTimer) {
       clearInterval(this.monitorTimer);
       this.monitorTimer = null;
-      console.log('[TransactionMonitor] 停止交易监控定时器');
+      logger.info('[TransactionMonitor] 停止交易监控定时器');
     }
   }
 
@@ -273,7 +274,7 @@ class TransactionMonitor extends EventEmitter {
       try {
         await this.monitorTx(txHash, txData.onConfirmed, txData.onFailed);
       } catch (error) {
-        console.error(`[TransactionMonitor] 检查交易 ${txHash} 失败:`, error);
+        logger.error(`[TransactionMonitor] 检查交易 ${txHash} 失败:`, error);
       }
     }
   }
@@ -299,7 +300,7 @@ class TransactionMonitor extends EventEmitter {
       });
     }
 
-    console.log(`[TransactionMonitor] 恢复 ${pendingTxs.length} 个待处理交易`);
+    logger.info(`[TransactionMonitor] 恢复 ${pendingTxs.length} 个待处理交易`);
   }
 
   /**
@@ -346,7 +347,7 @@ class TransactionMonitor extends EventEmitter {
    * 清理资源
    */
   async cleanup() {
-    console.log('[TransactionMonitor] 清理资源...');
+    logger.info('[TransactionMonitor] 清理资源...');
 
     this.stopMonitoring();
     this.pendingTxs.clear();

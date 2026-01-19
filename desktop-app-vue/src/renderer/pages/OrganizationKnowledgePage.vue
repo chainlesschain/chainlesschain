@@ -462,6 +462,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted, h } from 'vue';
 import { useRouter } from 'vue-router';
 import { message } from 'ant-design-vue';
@@ -641,7 +643,7 @@ async function loadKnowledgeItems() {
       message.error(result.error || '加载知识列表失败');
     }
   } catch (error) {
-    console.error('加载知识列表失败:', error);
+    logger.error('加载知识列表失败:', error);
     message.error('加载知识列表失败');
   } finally {
     loading.value = false;
@@ -658,7 +660,7 @@ async function loadTags() {
       availableTags.value = result.tags || [];
     }
   } catch (error) {
-    console.error('加载标签失败:', error);
+    logger.error('加载标签失败:', error);
   }
 }
 
@@ -700,7 +702,7 @@ async function deleteKnowledge(item) {
       message.error(result.error || '删除失败');
     }
   } catch (error) {
-    console.error('删除知识失败:', error);
+    logger.error('删除知识失败:', error);
     message.error('删除知识失败');
   }
 }
@@ -717,7 +719,7 @@ function shareKnowledge(item) {
  * 共享范围变更
  */
 function handleScopeChange(scope) {
-  console.log('共享范围变更:', scope);
+  logger.info('共享范围变更:', scope);
 }
 
 /**
@@ -752,7 +754,7 @@ async function handleCreateKnowledge() {
       message.error(result.error || '创建失败');
     }
   } catch (error) {
-    console.error('创建知识失败:', error);
+    logger.error('创建知识失败:', error);
     message.error('创建知识失败');
   } finally {
     creating.value = false;
@@ -790,7 +792,7 @@ async function startCollaboration(item) {
       message.error(result.error || '加入协作失败');
     }
   } catch (error) {
-    console.error('开始协作失败:', error);
+    logger.error('开始协作失败:', error);
     message.error('开始协作失败');
   }
 }
@@ -812,7 +814,7 @@ async function viewHistory(item) {
       message.error(result.error || '加载版本历史失败');
     }
   } catch (error) {
-    console.error('加载版本历史失败:', error);
+    logger.error('加载版本历史失败:', error);
     message.error('加载版本历史失败');
   }
 }
@@ -843,7 +845,7 @@ async function restoreVersion(version) {
       message.error(result.error || '版本恢复失败');
     }
   } catch (error) {
-    console.error('版本恢复失败:', error);
+    logger.error('版本恢复失败:', error);
     message.error('版本恢复失败');
   }
 }

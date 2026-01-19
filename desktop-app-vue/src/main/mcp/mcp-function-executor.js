@@ -1,3 +1,5 @@
+const { logger, createLogger } = require('../utils/logger.js');
+
 /**
  * MCP Function Executor
  *
@@ -49,7 +51,7 @@ class MCPFunctionExecutor {
           functions.push(func);
         }
       } catch (error) {
-        console.warn(
+        logger.warn(
           `[MCPFunctionExecutor] 转换工具失败 ${toolInfo.toolId}:`,
           error.message
         );
@@ -82,10 +84,10 @@ class MCPFunctionExecutor {
       throw new Error(`Unknown MCP function: ${functionName}`);
     }
 
-    console.log(
+    logger.info(
       `[MCPFunctionExecutor] 执行工具: ${info.serverName}/${info.toolName}`
     );
-    console.log(`[MCPFunctionExecutor] 参数:`, JSON.stringify(args, null, 2));
+    logger.info(`[MCPFunctionExecutor] 参数:`, JSON.stringify(args, null, 2));
 
     try {
       const result = await this.mcpClientManager.callTool(
@@ -94,13 +96,13 @@ class MCPFunctionExecutor {
         args
       );
 
-      console.log(`[MCPFunctionExecutor] 工具执行成功`);
+      logger.info(`[MCPFunctionExecutor] 工具执行成功`);
 
       // MCP 返回格式: { content: [...], isError: boolean }
       // 转换为统一格式
       return this._transformResult(result);
     } catch (error) {
-      console.error(`[MCPFunctionExecutor] 工具执行失败:`, error);
+      logger.error(`[MCPFunctionExecutor] 工具执行失败:`, error);
       throw error;
     }
   }
@@ -157,7 +159,7 @@ class MCPFunctionExecutor {
       );
 
       if (!tool) {
-        console.warn(
+        logger.warn(
           `[MCPFunctionExecutor] 工具未找到: ${mcpToolInfo.toolId}`
         );
         return null;
@@ -176,7 +178,7 @@ class MCPFunctionExecutor {
 
       return openAIFunction;
     } catch (error) {
-      console.warn(
+      logger.warn(
         `[MCPFunctionExecutor] 转换工具失败 ${mcpToolInfo.toolId}:`,
         error.message
       );

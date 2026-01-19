@@ -12,6 +12,7 @@
  * @see https://github.com/FoundationAgents/OpenManus
  */
 
+const { logger, createLogger } = require('../../utils/logger.js');
 const EventEmitter = require("events");
 
 /**
@@ -505,7 +506,7 @@ class AgentOrchestrator extends EventEmitter {
    */
   _log(message) {
     if (this.config.enableLogging) {
-      console.log(`[AgentOrchestrator] ${message}`);
+      logger.info(`[AgentOrchestrator] ${message}`);
     }
   }
 

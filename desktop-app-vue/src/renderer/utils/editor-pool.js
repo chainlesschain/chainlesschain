@@ -1,3 +1,5 @@
+import { logger, createLogger } from '@/utils/logger';
+
 /**
  * Editor Instance Pool
  * Reuses editor instances instead of creating new ones for better performance
@@ -31,14 +33,14 @@ class EditorPool {
     if (editor) {
       this.stats.hits++
       this.stats.reused++
-      console.log(`[EditorPool] Reused editor (pool size: ${this.pool.length})`)
+      logger.info(`[EditorPool] Reused editor (pool size: ${this.pool.length})`)
     } else {
       this.stats.misses++
       this.stats.created++
 
       // Create new editor
       editor = await this.createEditor(containerId, options)
-      console.log(`[EditorPool] Created new editor (total: ${this.stats.created})`)
+      logger.info(`[EditorPool] Created new editor (total: ${this.stats.created})`)
     }
 
     // Track active editor
@@ -49,7 +51,7 @@ class EditorPool {
     })
 
     const duration = performance.now() - startTime
-    console.log(`[EditorPool] Acquire took ${Math.round(duration)}ms`)
+    logger.info(`[EditorPool] Acquire took ${Math.round(duration)}ms`)
 
     return editor
   }
@@ -61,7 +63,7 @@ class EditorPool {
     const editorInfo = this.activeEditors.get(containerId)
 
     if (!editorInfo) {
-      console.warn(`[EditorPool] No active editor found for ${containerId}`)
+      logger.warn(`[EditorPool] No active editor found for ${containerId}`)
       return false
     }
 
@@ -77,12 +79,12 @@ class EditorPool {
         options,
         releasedAt: Date.now()
       })
-      console.log(`[EditorPool] Released to pool (size: ${this.pool.length})`)
+      logger.info(`[EditorPool] Released to pool (size: ${this.pool.length})`)
     } else {
       // Destroy if pool is full
       this.destroyEditor(editor, options)
       this.stats.destroyed++
-      console.log(`[EditorPool] Destroyed (pool full)`)
+      logger.info(`[EditorPool] Destroyed (pool full)`)
     }
 
     this.activeEditors.delete(containerId)
@@ -127,7 +129,7 @@ class EditorPool {
       const editor = await this.editorFactory(containerId, options)
       return editor
     } catch (error) {
-      console.error('[EditorPool] Failed to create editor:', error)
+      logger.error('[EditorPool] Failed to create editor:', error)
       throw error
     }
   }
@@ -167,7 +169,7 @@ class EditorPool {
         })
       }
     } catch (error) {
-      console.error('[EditorPool] Failed to clean editor:', error)
+      logger.error('[EditorPool] Failed to clean editor:', error)
     }
   }
 
@@ -182,7 +184,7 @@ class EditorPool {
         editor.destroy()
       }
     } catch (error) {
-      console.error('[EditorPool] Failed to destroy editor:', error)
+      logger.error('[EditorPool] Failed to destroy editor:', error)
     }
   }
 
@@ -190,7 +192,7 @@ class EditorPool {
    * Clear pool and destroy all editors
    */
   clear() {
-    console.log(`[EditorPool] Clearing pool (${this.pool.length} editors)`)
+    logger.info(`[EditorPool] Clearing pool (${this.pool.length} editors)`)
 
     // Destroy pooled editors
     this.pool.forEach(({ editor, options }) => {
@@ -230,7 +232,7 @@ class EditorPool {
 
     const pruned = before - this.pool.length
     if (pruned > 0) {
-      console.log(`[EditorPool] Pruned ${pruned} old editors`)
+      logger.info(`[EditorPool] Pruned ${pruned} old editors`)
     }
   }
 
@@ -273,7 +275,7 @@ class EditorPool {
           editor.layout()
         }
       } catch (error) {
-        console.error('[EditorPool] Failed to resize editor:', error)
+        logger.error('[EditorPool] Failed to resize editor:', error)
       }
     })
   }
@@ -288,7 +290,7 @@ class EditorPool {
           editor.updateOptions({ theme })
         }
       } catch (error) {
-        console.error('[EditorPool] Failed to set theme:', error)
+        logger.error('[EditorPool] Failed to set theme:', error)
       }
     })
   }

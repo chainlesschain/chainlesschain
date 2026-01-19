@@ -1,3 +1,5 @@
+const { logger, createLogger } = require('../utils/logger.js');
+
 /**
  * DID（去中心化身份）IPC 处理器
  * 负责处理 DID 身份管理相关的前后端通信
@@ -17,7 +19,7 @@ function registerDIDIPC({ didManager, ipcMain: injectedIpcMain }) {
   const electron = require('electron');
   const ipcMain = injectedIpcMain || electron.ipcMain;
 
-  console.log('[DID IPC] Registering DID IPC handlers...');
+  logger.info('[DID IPC] Registering DID IPC handlers...');
 
   // ============================================================
   // DID 身份管理 (Identity Management)
@@ -35,7 +37,7 @@ function registerDIDIPC({ didManager, ipcMain: injectedIpcMain }) {
 
       return await didManager.createIdentity(profile, options);
     } catch (error) {
-      console.error('[DID IPC] 创建身份失败:', error);
+      logger.error('[DID IPC] 创建身份失败:', error);
       throw error;
     }
   });
@@ -52,7 +54,7 @@ function registerDIDIPC({ didManager, ipcMain: injectedIpcMain }) {
 
       return didManager.getAllIdentities();
     } catch (error) {
-      console.error('[DID IPC] 获取身份列表失败:', error);
+      logger.error('[DID IPC] 获取身份列表失败:', error);
       throw error;
     }
   });
@@ -69,7 +71,7 @@ function registerDIDIPC({ didManager, ipcMain: injectedIpcMain }) {
 
       return didManager.getIdentityByDID(did);
     } catch (error) {
-      console.error('[DID IPC] 获取身份失败:', error);
+      logger.error('[DID IPC] 获取身份失败:', error);
       throw error;
     }
   });
@@ -86,7 +88,7 @@ function registerDIDIPC({ didManager, ipcMain: injectedIpcMain }) {
 
       return didManager.getCurrentIdentity();
     } catch (error) {
-      console.error('[DID IPC] 获取当前身份失败:', error);
+      logger.error('[DID IPC] 获取当前身份失败:', error);
       throw error;
     }
   });
@@ -104,7 +106,7 @@ function registerDIDIPC({ didManager, ipcMain: injectedIpcMain }) {
       await didManager.setDefaultIdentity(did);
       return { success: true };
     } catch (error) {
-      console.error('[DID IPC] 设置默认身份失败:', error);
+      logger.error('[DID IPC] 设置默认身份失败:', error);
       throw error;
     }
   });
@@ -121,7 +123,7 @@ function registerDIDIPC({ didManager, ipcMain: injectedIpcMain }) {
 
       return await didManager.updateIdentityProfile(did, updates);
     } catch (error) {
-      console.error('[DID IPC] 更新身份失败:', error);
+      logger.error('[DID IPC] 更新身份失败:', error);
       throw error;
     }
   });
@@ -138,7 +140,7 @@ function registerDIDIPC({ didManager, ipcMain: injectedIpcMain }) {
 
       return await didManager.deleteIdentity(did);
     } catch (error) {
-      console.error('[DID IPC] 删除身份失败:', error);
+      logger.error('[DID IPC] 删除身份失败:', error);
       throw error;
     }
   });
@@ -159,7 +161,7 @@ function registerDIDIPC({ didManager, ipcMain: injectedIpcMain }) {
 
       return didManager.exportDIDDocument(did);
     } catch (error) {
-      console.error('[DID IPC] 导出DID文档失败:', error);
+      logger.error('[DID IPC] 导出DID文档失败:', error);
       throw error;
     }
   });
@@ -176,7 +178,7 @@ function registerDIDIPC({ didManager, ipcMain: injectedIpcMain }) {
 
       return didManager.generateQRCodeData(did);
     } catch (error) {
-      console.error('[DID IPC] 生成二维码失败:', error);
+      logger.error('[DID IPC] 生成二维码失败:', error);
       throw error;
     }
   });
@@ -193,7 +195,7 @@ function registerDIDIPC({ didManager, ipcMain: injectedIpcMain }) {
 
       return didManager.verifyDIDDocument(document);
     } catch (error) {
-      console.error('[DID IPC] 验证DID文档失败:', error);
+      logger.error('[DID IPC] 验证DID文档失败:', error);
       throw error;
     }
   });
@@ -214,7 +216,7 @@ function registerDIDIPC({ didManager, ipcMain: injectedIpcMain }) {
 
       return await didManager.publishToDHT(did);
     } catch (error) {
-      console.error('[DID IPC] 发布DID到DHT失败:', error);
+      logger.error('[DID IPC] 发布DID到DHT失败:', error);
       throw error;
     }
   });
@@ -231,7 +233,7 @@ function registerDIDIPC({ didManager, ipcMain: injectedIpcMain }) {
 
       return await didManager.resolveFromDHT(did);
     } catch (error) {
-      console.error('[DID IPC] 从DHT解析DID失败:', error);
+      logger.error('[DID IPC] 从DHT解析DID失败:', error);
       throw error;
     }
   });
@@ -248,7 +250,7 @@ function registerDIDIPC({ didManager, ipcMain: injectedIpcMain }) {
 
       return await didManager.unpublishFromDHT(did);
     } catch (error) {
-      console.error('[DID IPC] 从DHT取消发布DID失败:', error);
+      logger.error('[DID IPC] 从DHT取消发布DID失败:', error);
       throw error;
     }
   });
@@ -265,7 +267,7 @@ function registerDIDIPC({ didManager, ipcMain: injectedIpcMain }) {
 
       return await didManager.isPublishedToDHT(did);
     } catch (error) {
-      console.error('[DID IPC] 检查DID发布状态失败:', error);
+      logger.error('[DID IPC] 检查DID发布状态失败:', error);
       return false;
     }
   });
@@ -287,7 +289,7 @@ function registerDIDIPC({ didManager, ipcMain: injectedIpcMain }) {
       didManager.startAutoRepublish(interval);
       return { success: true };
     } catch (error) {
-      console.error('[DID IPC] 启动自动重新发布失败:', error);
+      logger.error('[DID IPC] 启动自动重新发布失败:', error);
       throw error;
     }
   });
@@ -305,7 +307,7 @@ function registerDIDIPC({ didManager, ipcMain: injectedIpcMain }) {
       didManager.stopAutoRepublish();
       return { success: true };
     } catch (error) {
-      console.error('[DID IPC] 停止自动重新发布失败:', error);
+      logger.error('[DID IPC] 停止自动重新发布失败:', error);
       throw error;
     }
   });
@@ -322,7 +324,7 @@ function registerDIDIPC({ didManager, ipcMain: injectedIpcMain }) {
 
       return didManager.getAutoRepublishStatus();
     } catch (error) {
-      console.error('[DID IPC] 获取自动重新发布状态失败:', error);
+      logger.error('[DID IPC] 获取自动重新发布状态失败:', error);
       return {
         enabled: false,
         interval: 0,
@@ -344,7 +346,7 @@ function registerDIDIPC({ didManager, ipcMain: injectedIpcMain }) {
       didManager.setAutoRepublishInterval(interval);
       return { success: true };
     } catch (error) {
-      console.error('[DID IPC] 设置自动重新发布间隔失败:', error);
+      logger.error('[DID IPC] 设置自动重新发布间隔失败:', error);
       throw error;
     }
   });
@@ -361,7 +363,7 @@ function registerDIDIPC({ didManager, ipcMain: injectedIpcMain }) {
 
       return await didManager.republishAllDIDs();
     } catch (error) {
-      console.error('[DID IPC] 重新发布所有DID失败:', error);
+      logger.error('[DID IPC] 重新发布所有DID失败:', error);
       throw error;
     }
   });
@@ -382,7 +384,7 @@ function registerDIDIPC({ didManager, ipcMain: injectedIpcMain }) {
 
       return didManager.generateMnemonic(strength);
     } catch (error) {
-      console.error('[DID IPC] 生成助记词失败:', error);
+      logger.error('[DID IPC] 生成助记词失败:', error);
       throw error;
     }
   });
@@ -399,7 +401,7 @@ function registerDIDIPC({ didManager, ipcMain: injectedIpcMain }) {
 
       return didManager.validateMnemonic(mnemonic);
     } catch (error) {
-      console.error('[DID IPC] 验证助记词失败:', error);
+      logger.error('[DID IPC] 验证助记词失败:', error);
       return false;
     }
   });
@@ -416,7 +418,7 @@ function registerDIDIPC({ didManager, ipcMain: injectedIpcMain }) {
 
       return await didManager.createIdentityFromMnemonic(profile, mnemonic, options);
     } catch (error) {
-      console.error('[DID IPC] 从助记词创建身份失败:', error);
+      logger.error('[DID IPC] 从助记词创建身份失败:', error);
       throw error;
     }
   });
@@ -433,7 +435,7 @@ function registerDIDIPC({ didManager, ipcMain: injectedIpcMain }) {
 
       return didManager.exportMnemonic(did);
     } catch (error) {
-      console.error('[DID IPC] 导出助记词失败:', error);
+      logger.error('[DID IPC] 导出助记词失败:', error);
       throw error;
     }
   });
@@ -450,12 +452,12 @@ function registerDIDIPC({ didManager, ipcMain: injectedIpcMain }) {
 
       return didManager.hasMnemonic(did);
     } catch (error) {
-      console.error('[DID IPC] 检查助记词失败:', error);
+      logger.error('[DID IPC] 检查助记词失败:', error);
       return false;
     }
   });
 
-  console.log('[DID IPC] ✓ All DID IPC handlers registered successfully (24 handlers)');
+  logger.info('[DID IPC] ✓ All DID IPC handlers registered successfully (24 handlers)');
 }
 
 module.exports = {

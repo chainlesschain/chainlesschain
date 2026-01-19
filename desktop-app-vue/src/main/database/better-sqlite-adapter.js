@@ -7,15 +7,16 @@
 let Database;
 try {
   Database = require('better-sqlite3-multiple-ciphers');
-  console.log('[BetterSQLiteAdapter] 使用 better-sqlite3-multiple-ciphers');
+  logger.info('[BetterSQLiteAdapter] 使用 better-sqlite3-multiple-ciphers');
 } catch (e) {
   try {
     Database = require('better-sqlite3');
-    console.log('[BetterSQLiteAdapter] 使用 better-sqlite3');
+    logger.info('[BetterSQLiteAdapter] 使用 better-sqlite3');
   } catch (err) {
     throw new Error('Neither better-sqlite3-multiple-ciphers nor better-sqlite3 available: ' + err.message);
   }
 }
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require('fs');
 const path = require('path');
 
@@ -29,7 +30,7 @@ class BetterSQLiteAdapter {
    * 创建数据库
    */
   async createDatabase() {
-    console.log('[BetterSQLiteAdapter] 使用 better-sqlite3 创建数据库:', this.dbPath);
+    logger.info('[BetterSQLiteAdapter] 使用 better-sqlite3 创建数据库:', this.dbPath);
 
     // 确保目录存在
     const dir = path.dirname(this.dbPath);
@@ -44,15 +45,15 @@ class BetterSQLiteAdapter {
     try {
       this.db.pragma('journal_mode = WAL');
       this.db.pragma('synchronous = NORMAL');
-      console.log('[BetterSQLiteAdapter] WAL 模式已启用');
+      logger.info('[BetterSQLiteAdapter] WAL 模式已启用');
     } catch (error) {
-      console.warn('[BetterSQLiteAdapter] 无法启用 WAL 模式:', error.message);
+      logger.warn('[BetterSQLiteAdapter] 无法启用 WAL 模式:', error.message);
     }
 
     // 添加兼容性方法
     this.db.saveToFile = () => {
       // better-sqlite3 自动保存，不需要手动操作
-      console.log('[BetterSQLiteAdapter] 数据自动保存到文件');
+      logger.info('[BetterSQLiteAdapter] 数据自动保存到文件');
     };
 
     // 包装 prepare 方法，为 statement 添加兼容性标记

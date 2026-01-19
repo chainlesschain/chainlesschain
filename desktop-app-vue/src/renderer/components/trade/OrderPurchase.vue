@@ -191,6 +191,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, reactive, computed, watch } from 'vue';
 import { message as antMessage } from 'ant-design-vue';
 import {
@@ -290,7 +292,7 @@ const handlePurchase = async () => {
     // 使用 store 购买订单
     await tradeStore.purchaseOrder(props.order.id, form.quantity);
 
-    console.log('[OrderPurchase] 订单购买成功:', props.order.id);
+    logger.info('[OrderPurchase] 订单购买成功:', props.order.id);
     antMessage.success('购买成功！订单已进入托管');
 
     // 通知父组件
@@ -306,7 +308,7 @@ const handlePurchase = async () => {
     // 重置表单
     resetForm();
   } catch (error) {
-    console.error('[OrderPurchase] 购买失败:', error);
+    logger.error('[OrderPurchase] 购买失败:', error);
     antMessage.error(error.message || '购买失败');
   }
 };

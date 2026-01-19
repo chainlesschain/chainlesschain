@@ -6,6 +6,7 @@
  * @module multi-agent
  */
 
+const { logger, createLogger } = require('../../utils/logger.js');
 const { AgentOrchestrator } = require("./agent-orchestrator");
 const { SpecializedAgent } = require("./specialized-agent");
 const { CodeGenerationAgent } = require("./agents/code-generation-agent");
@@ -65,7 +66,7 @@ function initializeDefaultAgents(orchestrator, options = {}) {
   // 注册到协调器
   orchestrator.registerAgents([codeAgent, dataAgent, docAgent]);
 
-  console.log("[MultiAgent] 默认 Agent 已初始化");
+  logger.info("[MultiAgent] 默认 Agent 已初始化");
 
   return {
     codeAgent,

@@ -482,6 +482,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { message } from 'ant-design-vue';
@@ -639,7 +641,7 @@ const loadMembers = async () => {
     members.value = result || [];
     pagination.value.total = members.value.length;
   } catch (error) {
-    console.error('加载成员列表失败:', error);
+    logger.error('加载成员列表失败:', error);
     message.error('加载成员列表失败');
   } finally {
     loading.value = false;
@@ -673,7 +675,7 @@ const handleCreateInvitation = async () => {
     generatedInviteCode.value = invitation.invite_code;
     message.success('邀请码创建成功');
   } catch (error) {
-    console.error('创建邀请失败:', error);
+    logger.error('创建邀请失败:', error);
     message.error('创建邀请失败');
   } finally {
     inviteLoading.value = false;
@@ -709,7 +711,7 @@ const handleUpdateRole = async () => {
     showRoleModal.value = false;
     await loadMembers();
   } catch (error) {
-    console.error('更新角色失败:', error);
+    logger.error('更新角色失败:', error);
     message.error('更新角色失败');
   } finally {
     roleLoading.value = false;
@@ -725,7 +727,7 @@ const handleRemoveMember = async (member) => {
     message.success('成员已移除');
     await loadMembers();
   } catch (error) {
-    console.error('移除成员失败:', error);
+    logger.error('移除成员失败:', error);
     message.error('移除成员失败');
   }
 };

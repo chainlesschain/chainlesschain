@@ -2,10 +2,11 @@
  * 资产管理 IPC
  * 处理资产创建、铸造、转账、销毁等操作
  */
+const { logger, createLogger } = require('../utils/logger.js');
 const { ipcMain } = require('electron');
 
 function registerAssetIPC({ assetManager }) {
-  console.log('[Asset IPC] Registering Asset IPC handlers...');
+  logger.info('[Asset IPC] Registering Asset IPC handlers...');
 
   // 创建资产
   ipcMain.handle('asset:create', async (_event, options) => {
@@ -16,7 +17,7 @@ function registerAssetIPC({ assetManager }) {
 
       return await assetManager.createAsset(options);
     } catch (error) {
-      console.error('[Main] 创建资产失败:', error);
+      logger.error('[Main] 创建资产失败:', error);
       throw error;
     }
   });
@@ -30,7 +31,7 @@ function registerAssetIPC({ assetManager }) {
 
       return await assetManager.mintAsset(assetId, toDid, amount);
     } catch (error) {
-      console.error('[Main] 铸造资产失败:', error);
+      logger.error('[Main] 铸造资产失败:', error);
       throw error;
     }
   });
@@ -44,7 +45,7 @@ function registerAssetIPC({ assetManager }) {
 
       return await assetManager.transferAsset(assetId, toDid, amount, memo);
     } catch (error) {
-      console.error('[Main] 转账失败:', error);
+      logger.error('[Main] 转账失败:', error);
       throw error;
     }
   });
@@ -58,7 +59,7 @@ function registerAssetIPC({ assetManager }) {
 
       return await assetManager.burnAsset(assetId, amount);
     } catch (error) {
-      console.error('[Main] 销毁资产失败:', error);
+      logger.error('[Main] 销毁资产失败:', error);
       throw error;
     }
   });
@@ -72,7 +73,7 @@ function registerAssetIPC({ assetManager }) {
 
       return await assetManager.getAsset(assetId);
     } catch (error) {
-      console.error('[Main] 获取资产失败:', error);
+      logger.error('[Main] 获取资产失败:', error);
       throw error;
     }
   });
@@ -86,7 +87,7 @@ function registerAssetIPC({ assetManager }) {
 
       return await assetManager.getAssetsByOwner(ownerDid);
     } catch (error) {
-      console.error('[Main] 获取资产列表失败:', error);
+      logger.error('[Main] 获取资产列表失败:', error);
       throw error;
     }
   });
@@ -100,7 +101,7 @@ function registerAssetIPC({ assetManager }) {
 
       return await assetManager.getAllAssets(filters);
     } catch (error) {
-      console.error('[Main] 获取所有资产失败:', error);
+      logger.error('[Main] 获取所有资产失败:', error);
       throw error;
     }
   });
@@ -114,7 +115,7 @@ function registerAssetIPC({ assetManager }) {
 
       return await assetManager.getAssetHistory(assetId, limit);
     } catch (error) {
-      console.error('[Main] 获取资产历史失败:', error);
+      logger.error('[Main] 获取资产历史失败:', error);
       throw error;
     }
   });
@@ -128,7 +129,7 @@ function registerAssetIPC({ assetManager }) {
 
       return await assetManager.getBalance(ownerDid, assetId);
     } catch (error) {
-      console.error('[Main] 获取余额失败:', error);
+      logger.error('[Main] 获取余额失败:', error);
       return 0;
     }
   });
@@ -142,12 +143,12 @@ function registerAssetIPC({ assetManager }) {
 
       return await assetManager._getBlockchainAsset(assetId);
     } catch (error) {
-      console.error('[Main] 获取区块链资产信息失败:', error);
+      logger.error('[Main] 获取区块链资产信息失败:', error);
       return null;
     }
   });
 
-  console.log('[Asset IPC] ✓ 10 handlers registered');
+  logger.info('[Asset IPC] ✓ 10 handlers registered');
 }
 
 module.exports = { registerAssetIPC };

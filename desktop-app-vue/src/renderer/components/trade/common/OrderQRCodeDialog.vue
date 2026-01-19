@@ -93,6 +93,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, watch, nextTick } from "vue";
 import { message } from "ant-design-vue";
 import {
@@ -170,7 +172,7 @@ const generateQRCode = async () => {
       },
     });
   } catch (error) {
-    console.error("生成二维码失败:", error);
+    logger.error("生成二维码失败:", error);
     message.error("生成二维码失败");
   }
 };
@@ -192,7 +194,7 @@ const downloadQRCode = () => {
     link.click();
     message.success("二维码已下载");
   } catch (error) {
-    console.error("下载二维码失败:", error);
+    logger.error("下载二维码失败:", error);
     message.error("下载二维码失败");
   }
 };
@@ -215,7 +217,7 @@ const copyLink = async () => {
         message.error("复制失败");
       }
     } catch (ipcError) {
-      console.error("复制链接失败:", ipcError);
+      logger.error("复制链接失败:", ipcError);
       message.error("复制链接失败");
     }
   }
@@ -251,7 +253,7 @@ const shareToSocial = async () => {
     }
   } catch (error) {
     if (error.name !== "AbortError") {
-      console.error("分享失败:", error);
+      logger.error("分享失败:", error);
       message.error("分享失败");
     }
   }

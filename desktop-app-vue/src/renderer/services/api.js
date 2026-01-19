@@ -11,6 +11,7 @@
  * - Request/Response interceptors
  */
 
+import { logger, createLogger } from '@/utils/logger';
 import { getRequestBatcher } from '@/utils/request-batcher'
 import { compress, decompress } from '@/utils/data-compression'
 
@@ -77,7 +78,7 @@ export async function apiRequest(endpoint, params = {}, options = {}) {
     const jsonString = JSON.stringify(params)
 
     if (jsonString.length > DEFAULT_CONFIG.compressionThreshold) {
-      console.log(
+      logger.info(
         `[API] Compressing request (${jsonString.length} bytes -> `,
         'compression enabled)'
       )
@@ -120,7 +121,7 @@ export async function apiRequest(endpoint, params = {}, options = {}) {
       const compressedData = await response.text()
       const decompressedData = await decompress(compressedData, { fromBase64: true })
 
-      console.log(
+      logger.info(
         '[API] Decompressed response:',
         compressedData.length,
         '->',
@@ -219,7 +220,7 @@ export async function retryRequest(requestFn, attempts = DEFAULT_CONFIG.retryAtt
       if (i < attempts - 1) {
         // Exponential backoff: 1s, 2s, 4s, 8s...
         const delay = DEFAULT_CONFIG.retryDelay * Math.pow(2, i)
-        console.log(`[API] Retry attempt ${i + 1}/${attempts} after ${delay}ms`)
+        logger.info(`[API] Retry attempt ${i + 1}/${attempts} after ${delay}ms`)
 
         await new Promise((resolve) => setTimeout(resolve, delay))
       }

@@ -171,6 +171,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted, nextTick, watch } from 'vue';
 import { message as antMessage } from 'ant-design-vue';
 import { useAuthStore } from '@/stores/auth';
@@ -222,7 +224,7 @@ const loadConversations = async () => {
       await loadConversationMessages(conversations.value[0].id);
     }
   } catch (error) {
-    console.error('加载对话列表失败:', error);
+    logger.error('加载对话列表失败:', error);
     antMessage.error('加载对话列表失败');
   }
 };
@@ -244,7 +246,7 @@ const loadConversationMessages = async (conversationId) => {
     await nextTick();
     scrollToBottom();
   } catch (error) {
-    console.error('加载对话消息失败:', error);
+    logger.error('加载对话消息失败:', error);
     antMessage.error('加载对话消息失败');
   }
 };
@@ -268,7 +270,7 @@ const handleNewConversation = async () => {
 
     antMessage.success('创建新对话成功');
   } catch (error) {
-    console.error('创建对话失败:', error);
+    logger.error('创建对话失败:', error);
     antMessage.error('创建对话失败');
   }
 };
@@ -317,13 +319,13 @@ const handleConversationAction = async ({ action, conversation }) => {
 
 // 导航点击
 const handleNavClick = (item) => {
-  console.log('导航点击:', item);
+  logger.info('导航点击:', item);
   // TODO: 处理不同的导航项
 };
 
 // 用户操作
 const handleUserAction = (key) => {
-  console.log('用户操作:', key);
+  logger.info('用户操作:', key);
   // TODO: 处理用户操作（设置、退出等）
 };
 
@@ -359,7 +361,7 @@ const handleSubmitMessage = async ({ text, attachments }) => {
       content: text,
     });
   } catch (error) {
-    console.error('保存消息失败:', error);
+    logger.error('保存消息失败:', error);
   }
 
   // 开始AI思考
@@ -406,7 +408,7 @@ const handleSubmitMessage = async ({ text, attachments }) => {
     await nextTick();
     scrollToBottom();
   } catch (error) {
-    console.error('AI响应失败:', error);
+    logger.error('AI响应失败:', error);
     antMessage.error('AI响应失败: ' + error.message);
 
     // 添加错误消息
@@ -423,19 +425,19 @@ const handleSubmitMessage = async ({ text, attachments }) => {
 
 // 处理文件上传
 const handleFileUpload = (files) => {
-  console.log('上传文件:', files);
+  logger.info('上传文件:', files);
   // TODO: 处理文件上传
 };
 
 // 处理步骤重试
 const handleStepRetry = (step) => {
-  console.log('重试步骤:', step);
+  logger.info('重试步骤:', step);
   // TODO: 实现步骤重试
 };
 
 // 处理步骤取消
 const handleStepCancel = (step) => {
-  console.log('取消步骤:', step);
+  logger.info('取消步骤:', step);
   // TODO: 实现步骤取消
 };
 
@@ -487,7 +489,7 @@ const renderMarkdown = (content) => {
     const rawHtml = marked.parse(content);
     return rawHtml;
   } catch (error) {
-    console.error('Markdown 渲染失败:', error);
+    logger.error('Markdown 渲染失败:', error);
     // 发生错误时，转义文本以防止 XSS
     const div = document.createElement('div');
     div.textContent = content;
@@ -551,7 +553,7 @@ const enhanceCodeBlocks = () => {
             copyBtn.textContent = '复制';
           }, 2000);
         } catch (err) {
-          console.error('复制失败:', err);
+          logger.error('复制失败:', err);
           copyBtn.textContent = '✗ 失败';
           setTimeout(() => {
             copyBtn.textContent = '复制';

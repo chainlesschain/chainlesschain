@@ -6,6 +6,7 @@
  * @description 提供文件选择、导入、格式检查等 IPC 接口
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const defaultIpcGuard = require("../ipc/ipc-guard");
 
 /**
@@ -33,7 +34,7 @@ function registerImportIPC({
 
   // 防止重复注册
   if (ipcGuard.isModuleRegistered("import-ipc")) {
-    console.log("[Import IPC] Handlers already registered, skipping...");
+    logger.info("[Import IPC] Handlers already registered, skipping...");
     return;
   }
 
@@ -42,7 +43,7 @@ function registerImportIPC({
   const ipcMain = injectedIpcMain || electron.ipcMain;
   const dialog = injectedDialog || electron.dialog;
 
-  console.log("[Import IPC] Registering Import IPC handlers...");
+  logger.info("[Import IPC] Registering Import IPC handlers...");
 
   // ============================================================
   // 文件选择与导入 (File Selection and Import)
@@ -80,7 +81,7 @@ function registerImportIPC({
         filePaths: result.filePaths,
       };
     } catch (error) {
-      console.error("[Import IPC] 选择文件失败:", error);
+      logger.error("[Import IPC] 选择文件失败:", error);
       throw error;
     }
   });
@@ -130,7 +131,7 @@ function registerImportIPC({
 
       return result;
     } catch (error) {
-      console.error("[Import IPC] 导入文件失败:", error);
+      logger.error("[Import IPC] 导入文件失败:", error);
       throw error;
     }
   });
@@ -171,7 +172,7 @@ function registerImportIPC({
 
       return results;
     } catch (error) {
-      console.error("[Import IPC] 批量导入文件失败:", error);
+      logger.error("[Import IPC] 批量导入文件失败:", error);
       throw error;
     }
   });
@@ -194,7 +195,7 @@ function registerImportIPC({
 
       return fileImporter.getSupportedFormats();
     } catch (error) {
-      console.error("[Import IPC] 获取支持格式失败:", error);
+      logger.error("[Import IPC] 获取支持格式失败:", error);
       throw error;
     }
   });
@@ -220,7 +221,7 @@ function registerImportIPC({
         fileType,
       };
     } catch (error) {
-      console.error("[Import IPC] 检查文件失败:", error);
+      logger.error("[Import IPC] 检查文件失败:", error);
       throw error;
     }
   });
@@ -228,12 +229,12 @@ function registerImportIPC({
   // 标记模块为已注册
   ipcGuard.markModuleRegistered("import-ipc");
 
-  console.log("[Import IPC] ✓ Registered 5 import handlers:");
-  console.log("[Import IPC]   - import:select-files");
-  console.log("[Import IPC]   - import:import-file");
-  console.log("[Import IPC]   - import:import-files");
-  console.log("[Import IPC]   - import:get-supported-formats");
-  console.log("[Import IPC]   - import:check-file");
+  logger.info("[Import IPC] ✓ Registered 5 import handlers:");
+  logger.info("[Import IPC]   - import:select-files");
+  logger.info("[Import IPC]   - import:import-file");
+  logger.info("[Import IPC]   - import:import-files");
+  logger.info("[Import IPC]   - import:get-supported-formats");
+  logger.info("[Import IPC]   - import:check-file");
 }
 
 module.exports = { registerImportIPC };

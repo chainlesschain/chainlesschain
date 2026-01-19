@@ -4,6 +4,7 @@
  * 使用 Tesseract.js 进行图片文字识别
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const defaultTesseract = require("tesseract.js");
 const { EventEmitter } = require("events");
 
@@ -49,7 +50,7 @@ class OCRService extends EventEmitter {
     }
 
     try {
-      console.log("[OCRService] 初始化 OCR Worker...");
+      logger.info("[OCRService] 初始化 OCR Worker...");
       this.emit("initialize-start");
 
       // 创建 Worker (使用注入的tesseract模块或默认模块)
@@ -62,17 +63,17 @@ class OCRService extends EventEmitter {
               progress: m.progress || 0,
             });
           }
-          console.log("[OCRService]", m);
+          logger.info("[OCRService]", m);
         },
         errorHandler: (err) => {
-          console.error("[OCRService] Worker 错误:", err);
+          logger.error("[OCRService] Worker 错误:", err);
           this.emit("error", err);
         },
       });
 
       // 加载语言
       const languageString = this.config.languages.join("+");
-      console.log(`[OCRService] 加载语言: ${languageString}`);
+      logger.info(`[OCRService] 加载语言: ${languageString}`);
       await this.worker.loadLanguage(languageString);
       await this.worker.initialize(languageString);
 
@@ -82,10 +83,10 @@ class OCRService extends EventEmitter {
       });
 
       this.isInitialized = true;
-      console.log("[OCRService] OCR Worker 初始化成功");
+      logger.info("[OCRService] OCR Worker 初始化成功");
       this.emit("initialize-complete");
     } catch (error) {
-      console.error("[OCRService] 初始化失败:", error);
+      logger.error("[OCRService] 初始化失败:", error);
       this.isInitialized = false;
       this.emit("initialize-error", error);
       throw error;
@@ -109,7 +110,7 @@ class OCRService extends EventEmitter {
     } = options;
 
     try {
-      console.log("[OCRService] 开始识别...");
+      logger.info("[OCRService] 开始识别...");
       this.emit("recognize-start", { image });
 
       // 如果指定了特定语言，重新加载
@@ -117,7 +118,7 @@ class OCRService extends EventEmitter {
         languages &&
         languages.join("+") !== this.config.languages.join("+")
       ) {
-        console.log(`[OCRService] 切换语言: ${languages.join("+")}`);
+        logger.info(`[OCRService] 切换语言: ${languages.join("+")}`);
         await this.worker.loadLanguage(languages.join("+"));
         await this.worker.initialize(languages.join("+"));
       }
@@ -156,14 +157,14 @@ class OCRService extends EventEmitter {
         })),
       };
 
-      console.log("[OCRService] 识别完成");
-      console.log(`[OCRService] 识别到 ${result.words.length} 个单词`);
-      console.log(`[OCRService] 平均置信度: ${result.confidence.toFixed(2)}%`);
+      logger.info("[OCRService] 识别完成");
+      logger.info(`[OCRService] 识别到 ${result.words.length} 个单词`);
+      logger.info(`[OCRService] 平均置信度: ${result.confidence.toFixed(2)}%`);
 
       this.emit("recognize-complete", result);
       return result;
     } catch (error) {
-      console.error("[OCRService] 识别失败:", error);
+      logger.error("[OCRService] 识别失败:", error);
       this.emit("recognize-error", { image, error });
       throw error;
     }
@@ -236,7 +237,7 @@ class OCRService extends EventEmitter {
 
       return regions;
     } catch (error) {
-      console.error("[OCRService] 检测文字区域失败:", error);
+      logger.error("[OCRService] 检测文字区域失败:", error);
       throw error;
     }
   }
@@ -317,13 +318,13 @@ class OCRService extends EventEmitter {
   async terminate() {
     if (this.worker) {
       try {
-        console.log("[OCRService] 终止 OCR Worker...");
+        logger.info("[OCRService] 终止 OCR Worker...");
         await this.worker.terminate();
         this.worker = null;
         this.isInitialized = false;
-        console.log("[OCRService] OCR Worker 已终止");
+        logger.info("[OCRService] OCR Worker 已终止");
       } catch (error) {
-        console.error("[OCRService] 终止 Worker 失败:", error);
+        logger.error("[OCRService] 终止 Worker 失败:", error);
       }
     }
   }
@@ -337,12 +338,12 @@ class OCRService extends EventEmitter {
 
     // 如果语言配置改变，需要重新初始化
     if (newConfig.languages && this.isInitialized) {
-      console.log("[OCRService] 语言配置改变，重新初始化...");
+      logger.info("[OCRService] 语言配置改变，重新初始化...");
       await this.terminate();
       await this.initialize();
     }
 
-    console.log("[OCRService] 配置已更新:", this.config);
+    logger.info("[OCRService] 配置已更新:", this.config);
   }
 
   /**

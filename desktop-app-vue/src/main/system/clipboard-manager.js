@@ -3,6 +3,7 @@
  * 管理剪贴板历史记录
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { clipboard } = require("electron");
 const fs = require("fs");
 const path = require("path");
@@ -37,7 +38,7 @@ class ClipboardManager {
       this.checkClipboard();
     }, this.checkInterval);
 
-    console.log("[ClipboardManager] Monitoring started");
+    logger.info("[ClipboardManager] Monitoring started");
   }
 
   /**
@@ -53,7 +54,7 @@ class ClipboardManager {
       this.monitorTimer = null;
     }
 
-    console.log("[ClipboardManager] Monitoring stopped");
+    logger.info("[ClipboardManager] Monitoring stopped");
   }
 
   /**
@@ -74,7 +75,7 @@ class ClipboardManager {
         this.lastText = currentText;
       }
     } catch (error) {
-      console.error("[ClipboardManager] Check clipboard error:", error);
+      logger.error("[ClipboardManager] Check clipboard error:", error);
     }
   }
 
@@ -103,7 +104,7 @@ class ClipboardManager {
     // 保存到文件
     this.saveHistory();
 
-    console.log(
+    logger.info(
       "[ClipboardManager] Added to history, total:",
       this.history.length,
     );
@@ -150,11 +151,11 @@ class ClipboardManager {
         this.history.splice(index, 1);
         this.history.unshift(item);
 
-        console.log("[ClipboardManager] Copied to clipboard:", index);
+        logger.info("[ClipboardManager] Copied to clipboard:", index);
         return true;
       }
     } catch (error) {
-      console.error("[ClipboardManager] Copy to clipboard error:", error);
+      logger.error("[ClipboardManager] Copy to clipboard error:", error);
       return false;
     }
 
@@ -172,7 +173,7 @@ class ClipboardManager {
     this.history.splice(index, 1);
     this.saveHistory();
 
-    console.log("[ClipboardManager] Deleted history item:", index);
+    logger.info("[ClipboardManager] Deleted history item:", index);
     return true;
   }
 
@@ -182,7 +183,7 @@ class ClipboardManager {
   clearHistory() {
     this.history = [];
     this.saveHistory();
-    console.log("[ClipboardManager] History cleared");
+    logger.info("[ClipboardManager] History cleared");
   }
 
   /**
@@ -193,13 +194,13 @@ class ClipboardManager {
       if (fs.existsSync(this.dataPath)) {
         const content = fs.readFileSync(this.dataPath, "utf8");
         this.history = JSON.parse(content);
-        console.log(
+        logger.info(
           "[ClipboardManager] History loaded, count:",
           this.history.length,
         );
       }
     } catch (error) {
-      console.error("[ClipboardManager] Load history error:", error);
+      logger.error("[ClipboardManager] Load history error:", error);
       this.history = [];
     }
   }
@@ -211,7 +212,7 @@ class ClipboardManager {
     try {
       fs.writeFileSync(this.dataPath, JSON.stringify(this.history, null, 2));
     } catch (error) {
-      console.error("[ClipboardManager] Save history error:", error);
+      logger.error("[ClipboardManager] Save history error:", error);
     }
   }
 
@@ -227,10 +228,10 @@ class ClipboardManager {
       };
 
       fs.writeFileSync(outputPath, JSON.stringify(exportData, null, 2));
-      console.log("[ClipboardManager] History exported to:", outputPath);
+      logger.info("[ClipboardManager] History exported to:", outputPath);
       return true;
     } catch (error) {
-      console.error("[ClipboardManager] Export history error:", error);
+      logger.error("[ClipboardManager] Export history error:", error);
       return false;
     }
   }

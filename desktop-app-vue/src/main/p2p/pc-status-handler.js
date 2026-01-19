@@ -8,6 +8,7 @@
  * - 监控数据库状态
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const EventEmitter = require('events');
 const os = require('os');
 const fs = require('fs').promises;
@@ -60,7 +61,7 @@ class PCStatusHandler extends EventEmitter {
         break;
 
       default:
-        console.warn(`[PCStatus] 未知消息类型: ${type}`);
+        logger.warn(`[PCStatus] 未知消息类型: ${type}`);
         return {
           error: {
             code: 'UNKNOWN_TYPE',
@@ -76,7 +77,7 @@ class PCStatusHandler extends EventEmitter {
    * 处理获取系统信息请求
    */
   async handleGetSystemInfo(mobilePeerId, message) {
-    console.log('[PCStatus] 处理系统信息请求');
+    logger.info('[PCStatus] 处理系统信息请求');
 
     try {
       const systemInfo = await this.getSystemInfo();
@@ -87,10 +88,10 @@ class PCStatusHandler extends EventEmitter {
         data: { systemInfo }
       });
 
-      console.log('[PCStatus] ✅ 系统信息已发送');
+      logger.info('[PCStatus] ✅ 系统信息已发送');
 
     } catch (error) {
-      console.error('[PCStatus] 处理系统信息请求失败:', error);
+      logger.error('[PCStatus] 处理系统信息请求失败:', error);
       await this.sendError(mobilePeerId, message.requestId, error.message);
     }
   }
@@ -99,7 +100,7 @@ class PCStatusHandler extends EventEmitter {
    * 处理获取服务状态请求
    */
   async handleGetServices(mobilePeerId, message) {
-    console.log('[PCStatus] 处理服务状态请求');
+    logger.info('[PCStatus] 处理服务状态请求');
 
     try {
       const responseType = message.type === 'pc-status:get-services-status'
@@ -114,10 +115,10 @@ class PCStatusHandler extends EventEmitter {
         data: { services }
       });
 
-      console.log(`[PCStatus] ✅ 服务状态已发送 (${responseType})`);
+      logger.info(`[PCStatus] ✅ 服务状态已发送 (${responseType})`);
 
     } catch (error) {
-      console.error('[PCStatus] 处理服务状态请求失败:', error);
+      logger.error('[PCStatus] 处理服务状态请求失败:', error);
       await this.sendError(mobilePeerId, message.requestId, error.message);
     }
   }
@@ -126,7 +127,7 @@ class PCStatusHandler extends EventEmitter {
    * 处理获取实时状态请求
    */
   async handleGetRealtime(mobilePeerId, message) {
-    console.log('[PCStatus] 处理实时状态请求');
+    logger.info('[PCStatus] 处理实时状态请求');
 
     try {
       const realtimeStatus = await this.getRealtimeStatus();
@@ -137,10 +138,10 @@ class PCStatusHandler extends EventEmitter {
         data: realtimeStatus
       });
 
-      console.log('[PCStatus] ✅ 实时状态已发送');
+      logger.info('[PCStatus] ✅ 实时状态已发送');
 
     } catch (error) {
-      console.error('[PCStatus] 处理实时状态请求失败:', error);
+      logger.error('[PCStatus] 处理实时状态请求失败:', error);
       await this.sendError(mobilePeerId, message.requestId, error.message);
     }
   }
@@ -149,7 +150,7 @@ class PCStatusHandler extends EventEmitter {
    * 处理订阅状态更新请求
    */
   async handleSubscribe(mobilePeerId, message) {
-    console.log('[PCStatus] 处理订阅请求');
+    logger.info('[PCStatus] 处理订阅请求');
 
     try {
       const { interval = 30000 } = message.params || {};
@@ -164,10 +165,10 @@ class PCStatusHandler extends EventEmitter {
         data: { subscribed: true, interval }
       });
 
-      console.log('[PCStatus] ✅ 订阅成功:', mobilePeerId);
+      logger.info('[PCStatus] ✅ 订阅成功:', mobilePeerId);
 
     } catch (error) {
-      console.error('[PCStatus] 处理订阅请求失败:', error);
+      logger.error('[PCStatus] 处理订阅请求失败:', error);
       await this.sendError(mobilePeerId, message.requestId, error.message);
     }
   }
@@ -302,7 +303,7 @@ class PCStatusHandler extends EventEmitter {
         }
       }
     } catch (error) {
-      console.warn('[PCStatus] 无法获取磁盘使用情况:', error.message);
+      logger.warn('[PCStatus] 无法获取磁盘使用情况:', error.message);
     }
 
     return {
@@ -341,7 +342,7 @@ class PCStatusHandler extends EventEmitter {
         this.statusCache.services = await this.getServicesStatus();
         this.statusCache.lastUpdate = Date.now();
       } catch (error) {
-        console.error('[PCStatus] 更新状态缓存失败:', error);
+        logger.error('[PCStatus] 更新状态缓存失败:', error);
       }
     }, this.updateInterval);
   }
@@ -380,7 +381,7 @@ class PCStatusHandler extends EventEmitter {
           data: realtimeStatus
         });
       } catch (error) {
-        console.error(`[PCStatus] 推送实时状态失败(${mobilePeerId}):`, error);
+        logger.error(`[PCStatus] 推送实时状态失败(${mobilePeerId}):`, error);
       } finally {
         isSending = false;
       }
@@ -395,7 +396,7 @@ class PCStatusHandler extends EventEmitter {
     // 立即推送一次，避免等待第一个间隔
     pushUpdate();
 
-    console.log(`[PCStatus] ✅ 已启动订阅: ${mobilePeerId} (${normalizedInterval}ms)`);
+    logger.info(`[PCStatus] ✅ 已启动订阅: ${mobilePeerId} (${normalizedInterval}ms)`);
   }
 
   /**
@@ -407,7 +408,7 @@ class PCStatusHandler extends EventEmitter {
     if (subscription) {
       clearInterval(subscription.timer);
       this.subscriptions.delete(mobilePeerId);
-      console.log(`[PCStatus] 📴 已停止订阅: ${mobilePeerId}`);
+      logger.info(`[PCStatus] 📴 已停止订阅: ${mobilePeerId}`);
     }
   }
 
@@ -431,7 +432,7 @@ class PCStatusHandler extends EventEmitter {
         payload: message
       });
     } else {
-      console.error('[PCStatus] MobileBridge未初始化');
+      logger.error('[PCStatus] MobileBridge未初始化');
     }
   }
 

@@ -1,3 +1,5 @@
+const { logger, createLogger } = require('../utils/logger.js');
+
 /**
  * CollaborativeFilter - 协同过滤推荐算法
  * P2智能层Phase 4 - 推荐系统
@@ -50,7 +52,7 @@ class CollaborativeFilter {
       throw new Error('数据库未设置');
     }
 
-    console.log('[CollaborativeFilter] 构建用户-工具矩阵...');
+    logger.info('[CollaborativeFilter] 构建用户-工具矩阵...');
 
     try {
       // 查询所有用户的工具使用记录
@@ -87,10 +89,10 @@ class CollaborativeFilter {
         });
       }
 
-      console.log(`[CollaborativeFilter] 矩阵构建完成: ${this.userToolMatrix.size}个用户`);
+      logger.info(`[CollaborativeFilter] 矩阵构建完成: ${this.userToolMatrix.size}个用户`);
       return this.userToolMatrix;
     } catch (error) {
-      console.error('[CollaborativeFilter] 构建矩阵失败:', error);
+      logger.error('[CollaborativeFilter] 构建矩阵失败:', error);
       throw error;
     }
   }
@@ -200,7 +202,7 @@ class CollaborativeFilter {
       const similarUsers = await this.findSimilarUsers(userId);
 
       if (similarUsers.length === 0) {
-        console.log('[CollaborativeFilter] 未找到相似用户');
+        logger.info('[CollaborativeFilter] 未找到相似用户');
         return [];
       }
 
@@ -267,7 +269,7 @@ class CollaborativeFilter {
 
       return recommendations.slice(0, topK);
     } catch (error) {
-      console.error('[CollaborativeFilter] 推荐失败:', error);
+      logger.error('[CollaborativeFilter] 推荐失败:', error);
       return [];
     }
   }
@@ -370,7 +372,7 @@ class CollaborativeFilter {
     this.similarityCache.clear();
     this.stats.cacheHits = 0;
     this.stats.cacheMisses = 0;
-    console.log('[CollaborativeFilter] 缓存已清除');
+    logger.info('[CollaborativeFilter] 缓存已清除');
   }
 
   /**

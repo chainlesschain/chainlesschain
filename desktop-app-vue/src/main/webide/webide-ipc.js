@@ -3,6 +3,7 @@
  * 负责处理渲染进程和主进程之间的通信
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { ipcMain, app } = require('electron');
 const fs = require('fs').promises;
 const path = require('path');
@@ -18,7 +19,7 @@ class WebIDEIPC {
    * 注册所有 IPC handlers
    */
   registerHandlers() {
-    console.log('[WebIDE IPC] 注册 IPC handlers...');
+    logger.info('[WebIDE IPC] 注册 IPC handlers...');
 
     // 项目管理
     this.registerProjectHandlers();
@@ -29,7 +30,7 @@ class WebIDEIPC {
     // 导出功能
     this.registerExportHandlers();
 
-    console.log('[WebIDE IPC] IPC handlers 注册完成');
+    logger.info('[WebIDE IPC] IPC handlers 注册完成');
   }
 
   /**
@@ -40,13 +41,13 @@ class WebIDEIPC {
     // 保存项目
     ipcMain.handle('webide:saveProject', async (event, projectData) => {
       try {
-        console.log('[WebIDE IPC] 处理保存项目请求');
+        logger.info('[WebIDE IPC] 处理保存项目请求');
 
         const result = await this.webideManager.saveProject(projectData);
 
         return result;
       } catch (error) {
-        console.error('[WebIDE IPC] 保存项目失败:', error);
+        logger.error('[WebIDE IPC] 保存项目失败:', error);
         return {
           success: false,
           error: error.message,
@@ -57,13 +58,13 @@ class WebIDEIPC {
     // 加载项目
     ipcMain.handle('webide:loadProject', async (event, projectId) => {
       try {
-        console.log(`[WebIDE IPC] 处理加载项目请求: ${projectId}`);
+        logger.info(`[WebIDE IPC] 处理加载项目请求: ${projectId}`);
 
         const result = await this.webideManager.loadProject(projectId);
 
         return result;
       } catch (error) {
-        console.error('[WebIDE IPC] 加载项目失败:', error);
+        logger.error('[WebIDE IPC] 加载项目失败:', error);
         return {
           success: false,
           error: error.message,
@@ -74,13 +75,13 @@ class WebIDEIPC {
     // 获取项目列表
     ipcMain.handle('webide:getProjectList', async () => {
       try {
-        console.log('[WebIDE IPC] 处理获取项目列表请求');
+        logger.info('[WebIDE IPC] 处理获取项目列表请求');
 
         const result = await this.webideManager.getProjectList();
 
         return result;
       } catch (error) {
-        console.error('[WebIDE IPC] 获取项目列表失败:', error);
+        logger.error('[WebIDE IPC] 获取项目列表失败:', error);
         return {
           success: false,
           error: error.message,
@@ -92,13 +93,13 @@ class WebIDEIPC {
     // 删除项目
     ipcMain.handle('webide:deleteProject', async (event, projectId) => {
       try {
-        console.log(`[WebIDE IPC] 处理删除项目请求: ${projectId}`);
+        logger.info(`[WebIDE IPC] 处理删除项目请求: ${projectId}`);
 
         const result = await this.webideManager.deleteProject(projectId);
 
         return result;
       } catch (error) {
-        console.error('[WebIDE IPC] 删除项目失败:', error);
+        logger.error('[WebIDE IPC] 删除项目失败:', error);
         return {
           success: false,
           error: error.message,
@@ -117,7 +118,7 @@ class WebIDEIPC {
       try {
         const { html, css, js, port = 3000 } = serverData;
 
-        console.log(`[WebIDE IPC] 启动开发服务器，端口: ${port}`);
+        logger.info(`[WebIDE IPC] 启动开发服务器，端口: ${port}`);
 
         // 创建临时项目目录
         const tempPath = path.join(
@@ -163,12 +164,12 @@ ${html}
             url: result.url,
           });
 
-          console.log(`[WebIDE IPC] 开发服务器启动成功: ${result.url}`);
+          logger.info(`[WebIDE IPC] 开发服务器启动成功: ${result.url}`);
         }
 
         return result;
       } catch (error) {
-        console.error('[WebIDE IPC] 启动开发服务器失败:', error);
+        logger.error('[WebIDE IPC] 启动开发服务器失败:', error);
         return {
           success: false,
           error: error.message,
@@ -179,7 +180,7 @@ ${html}
     // 停止开发服务器
     ipcMain.handle('webide:stopDevServer', async (event, port = 3000) => {
       try {
-        console.log(`[WebIDE IPC] 停止开发服务器，端口: ${port}`);
+        logger.info(`[WebIDE IPC] 停止开发服务器，端口: ${port}`);
 
         // 停止服务器
         const result = await this.previewServer.stop();
@@ -189,20 +190,20 @@ ${html}
         if (serverInfo && serverInfo.tempPath) {
           try {
             await fs.rm(serverInfo.tempPath, { recursive: true, force: true });
-            console.log(`[WebIDE IPC] 临时文件已清理: ${serverInfo.tempPath}`);
+            logger.info(`[WebIDE IPC] 临时文件已清理: ${serverInfo.tempPath}`);
           } catch (cleanError) {
-            console.warn('[WebIDE IPC] 清理临时文件失败:', cleanError);
+            logger.warn('[WebIDE IPC] 清理临时文件失败:', cleanError);
           }
         }
 
         // 移除服务器记录
         this.activeServers.delete(port);
 
-        console.log('[WebIDE IPC] 开发服务器已停止');
+        logger.info('[WebIDE IPC] 开发服务器已停止');
 
         return result;
       } catch (error) {
-        console.error('[WebIDE IPC] 停止开发服务器失败:', error);
+        logger.error('[WebIDE IPC] 停止开发服务器失败:', error);
         return {
           success: false,
           error: error.message,
@@ -220,7 +221,7 @@ ${html}
           ...status,
         };
       } catch (error) {
-        console.error('[WebIDE IPC] 获取服务器状态失败:', error);
+        logger.error('[WebIDE IPC] 获取服务器状态失败:', error);
         return {
           success: false,
           error: error.message,
@@ -238,13 +239,13 @@ ${html}
     // 导出 HTML
     ipcMain.handle('webide:exportHTML', async (event, exportData) => {
       try {
-        console.log('[WebIDE IPC] 处理导出 HTML 请求');
+        logger.info('[WebIDE IPC] 处理导出 HTML 请求');
 
         const result = await this.webideManager.exportHTML(exportData);
 
         return result;
       } catch (error) {
-        console.error('[WebIDE IPC] 导出 HTML 失败:', error);
+        logger.error('[WebIDE IPC] 导出 HTML 失败:', error);
         return {
           success: false,
           error: error.message,
@@ -255,13 +256,13 @@ ${html}
     // 导出 ZIP
     ipcMain.handle('webide:exportZIP', async (event, exportData) => {
       try {
-        console.log('[WebIDE IPC] 处理导出 ZIP 请求');
+        logger.info('[WebIDE IPC] 处理导出 ZIP 请求');
 
         const result = await this.webideManager.exportZIP(exportData);
 
         return result;
       } catch (error) {
-        console.error('[WebIDE IPC] 导出 ZIP 失败:', error);
+        logger.error('[WebIDE IPC] 导出 ZIP 失败:', error);
         return {
           success: false,
           error: error.message,
@@ -272,7 +273,7 @@ ${html}
     // 截图功能（可选，暂时返回成功）
     ipcMain.handle('webide:captureScreenshot', async (event, options) => {
       try {
-        console.log('[WebIDE IPC] 处理截图请求');
+        logger.info('[WebIDE IPC] 处理截图请求');
 
         // TODO: 实现截图功能
         // 可以使用 Electron 的 webContents.capturePage()
@@ -282,7 +283,7 @@ ${html}
           message: '截图功能开发中',
         };
       } catch (error) {
-        console.error('[WebIDE IPC] 截图失败:', error);
+        logger.error('[WebIDE IPC] 截图失败:', error);
         return {
           success: false,
           error: error.message,
@@ -295,7 +296,7 @@ ${html}
    * 清理所有活动的服务器
    */
   async cleanup() {
-    console.log('[WebIDE IPC] 清理所有活动服务器...');
+    logger.info('[WebIDE IPC] 清理所有活动服务器...');
 
     for (const [port, serverInfo] of this.activeServers.entries()) {
       try {
@@ -307,14 +308,14 @@ ${html}
           await fs.rm(serverInfo.tempPath, { recursive: true, force: true });
         }
 
-        console.log(`[WebIDE IPC] 服务器已清理: ${port}`);
+        logger.info(`[WebIDE IPC] 服务器已清理: ${port}`);
       } catch (error) {
-        console.error(`[WebIDE IPC] 清理服务器失败 (端口 ${port}):`, error);
+        logger.error(`[WebIDE IPC] 清理服务器失败 (端口 ${port}):`, error);
       }
     }
 
     this.activeServers.clear();
-    console.log('[WebIDE IPC] 清理完成');
+    logger.info('[WebIDE IPC] 清理完成');
   }
 }
 

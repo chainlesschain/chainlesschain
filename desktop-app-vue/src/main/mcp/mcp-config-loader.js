@@ -7,6 +7,7 @@
  * @module MCPConfigLoader
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require("fs");
 const path = require("path");
 const EventEmitter = require("events");
@@ -23,7 +24,7 @@ class MCPConfigLoader extends EventEmitter {
     this.lastLoadTime = null;
     this.watchHandle = null;
 
-    console.log(
+    logger.info(
       "[MCPConfigLoader] Initialized with config path:",
       this.configPath,
     );
@@ -36,14 +37,14 @@ class MCPConfigLoader extends EventEmitter {
    */
   load(watch = false) {
     try {
-      console.log("[MCPConfigLoader] Loading configuration...");
+      logger.info("[MCPConfigLoader] Loading configuration...");
 
       // Check if config file exists
       if (!fs.existsSync(this.configPath)) {
-        console.warn(
+        logger.warn(
           `[MCPConfigLoader] Config file not found: ${this.configPath}`,
         );
-        console.warn("[MCPConfigLoader] Using default configuration");
+        logger.warn("[MCPConfigLoader] Using default configuration");
         this.config = this._getDefaultConfig();
         return this.config;
       }
@@ -60,9 +61,9 @@ class MCPConfigLoader extends EventEmitter {
 
       this.lastLoadTime = Date.now();
 
-      console.log("[MCPConfigLoader] Configuration loaded successfully");
-      console.log(`  Enabled: ${this.config.enabled}`);
-      console.log(
+      logger.info("[MCPConfigLoader] Configuration loaded successfully");
+      logger.info(`  Enabled: ${this.config.enabled}`);
+      logger.info(
         `  Servers: ${Object.keys(this.config.servers || {}).length}`,
       );
 
@@ -75,7 +76,7 @@ class MCPConfigLoader extends EventEmitter {
 
       return this.config;
     } catch (error) {
-      console.error("[MCPConfigLoader] Failed to load configuration:", error);
+      logger.error("[MCPConfigLoader] Failed to load configuration:", error);
 
       // Fall back to default config
       this.config = this._getDefaultConfig();
@@ -133,7 +134,7 @@ class MCPConfigLoader extends EventEmitter {
    * @returns {Object} Updated configuration
    */
   reload() {
-    console.log("[MCPConfigLoader] Reloading configuration...");
+    logger.info("[MCPConfigLoader] Reloading configuration...");
 
     const oldConfig = this.config;
     const newConfig = this.load(false);
@@ -142,8 +143,8 @@ class MCPConfigLoader extends EventEmitter {
     const changes = this._detectChanges(oldConfig, newConfig);
 
     if (changes.length > 0) {
-      console.log("[MCPConfigLoader] Configuration changed:");
-      changes.forEach((change) => console.log(`  - ${change}`));
+      logger.info("[MCPConfigLoader] Configuration changed:");
+      changes.forEach((change) => logger.info(`  - ${change}`));
 
       this.emit("config-changed", { oldConfig, newConfig, changes });
     }
@@ -158,7 +159,7 @@ class MCPConfigLoader extends EventEmitter {
     if (this.watchHandle) {
       this.watchHandle.close();
       this.watchHandle = null;
-      console.log("[MCPConfigLoader] Stopped watching configuration file");
+      logger.info("[MCPConfigLoader] Stopped watching configuration file");
     }
   }
 
@@ -181,7 +182,7 @@ class MCPConfigLoader extends EventEmitter {
         return configManager.configPath;
       }
     } catch (error) {
-      console.warn(
+      logger.warn(
         "[MCPConfigLoader] Failed to resolve config path from UnifiedConfigManager:",
         error.message,
       );
@@ -252,7 +253,7 @@ class MCPConfigLoader extends EventEmitter {
 
     // Only require command/args for enabled servers
     if (!config.command) {
-      console.warn(
+      logger.warn(
         `[MCPConfigLoader] Server ${serverName}: missing 'command' field, disabling server`,
       );
       config.enabled = false;
@@ -260,7 +261,7 @@ class MCPConfigLoader extends EventEmitter {
     }
 
     if (!Array.isArray(config.args)) {
-      console.warn(
+      logger.warn(
         `[MCPConfigLoader] Server ${serverName}: 'args' must be an array, disabling server`,
       );
       config.enabled = false;
@@ -276,7 +277,7 @@ class MCPConfigLoader extends EventEmitter {
     try {
       this.watchHandle = fs.watch(this.configPath, (eventType) => {
         if (eventType === "change") {
-          console.log(
+          logger.info(
             "[MCPConfigLoader] Configuration file changed, reloading...",
           );
 
@@ -287,9 +288,9 @@ class MCPConfigLoader extends EventEmitter {
         }
       });
 
-      console.log("[MCPConfigLoader] Watching configuration file for changes");
+      logger.info("[MCPConfigLoader] Watching configuration file for changes");
     } catch (error) {
-      console.error("[MCPConfigLoader] Failed to setup file watcher:", error);
+      logger.error("[MCPConfigLoader] Failed to setup file watcher:", error);
     }
   }
 

@@ -4,6 +4,7 @@
  * 支持5种模板: 博客、作品集、企业站、产品页、单页应用
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require('fs').promises;
 const path = require('path');
 const PreviewServer = require('./preview-server');
@@ -68,7 +69,7 @@ class WebEngine {
         timestamp: Date.now(),
         ...data
       };
-      console.log('[Web Engine] 发送任务事件:', event);
+      logger.info('[Web Engine] 发送任务事件:', event);
       this.mainWindow.webContents.send('task:progress', event);
     }
   }
@@ -93,7 +94,7 @@ class WebEngine {
       throw new Error('未指定项目路径');
     }
 
-    console.log(`[Web Engine] 生成${this.templates[template]?.name || template}项目...`);
+    logger.info(`[Web Engine] 生成${this.templates[template]?.name || template}项目...`);
 
     try {
       // 发送开始事件
@@ -155,7 +156,7 @@ class WebEngine {
       );
       this.sendTaskEvent('generate-readme', 'completed', { file: 'README.md' });
 
-      console.log(`[Web Engine] 项目生成成功: ${projectPath}`);
+      logger.info(`[Web Engine] 项目生成成功: ${projectPath}`);
 
       // 发送完成事件
       this.sendTaskEvent('generate-project', 'completed', {
@@ -175,7 +176,7 @@ class WebEngine {
         ],
       };
     } catch (error) {
-      console.error('[Web Engine] 生成项目失败:', error);
+      logger.error('[Web Engine] 生成项目失败:', error);
       // 发送失败事件
       this.sendTaskEvent('generate-project', 'failed', { error: error.message });
       throw new Error(`生成Web项目失败: ${error.message}`);
@@ -774,7 +775,7 @@ footer, .blog-footer, .corporate-footer {
 
 // 页面加载完成事件
 document.addEventListener('DOMContentLoaded', function() {
-  console.log('页面加载完成');
+  logger.info('页面加载完成');
 
   // 初始化功能
   initializeApp();
@@ -788,7 +789,7 @@ function initializeApp() {
   // 添加动画效果
   addScrollAnimations();
 
-  console.log('应用初始化完成');
+  logger.info('应用初始化完成');
 }
 
 // 平滑滚动
@@ -956,9 +957,9 @@ MIT License
   async handleProjectTask(params) {
     const { action, description, outputFiles = [], projectPath, llmManager } = params;
 
-    console.log('[Web Engine] 处理Web任务:', action);
-    console.log('[Web Engine] 项目路径:', projectPath);
-    console.log('[Web Engine] 描述:', description);
+    logger.info('[Web Engine] 处理Web任务:', action);
+    logger.info('[Web Engine] 项目路径:', projectPath);
+    logger.info('[Web Engine] 描述:', description);
 
     try {
       // 使用LLM解析需求，提取关键信息
@@ -993,7 +994,7 @@ MIT License
         const jsonText = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : response.text;
         parsedRequirements = JSON.parse(jsonText);
       } catch (parseError) {
-        console.warn('[Web Engine] LLM解析失败，使用默认配置:', parseError.message);
+        logger.warn('[Web Engine] LLM解析失败，使用默认配置:', parseError.message);
         // 使用默认配置
         parsedRequirements = {
           template: 'product',
@@ -1023,7 +1024,7 @@ MIT License
             content: parsedRequirements.content || {}
           });
 
-          console.log('[Web Engine] Web项目生成成功');
+          logger.info('[Web Engine] Web项目生成成功');
 
           return {
             success: true,
@@ -1036,7 +1037,7 @@ MIT License
         }
       }
     } catch (error) {
-      console.error('[Web Engine] 处理任务失败:', error);
+      logger.error('[Web Engine] 处理任务失败:', error);
       throw new Error(`Web引擎任务失败: ${error.message}`);
     }
   }

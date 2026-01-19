@@ -243,6 +243,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { message, Modal } from "ant-design-vue";
@@ -572,7 +574,7 @@ const duplicateSelectedSessions = async () => {
       await store.duplicateSession(id);
       success++;
     } catch (error) {
-      console.error(`复制会话 ${id} 失败:`, error);
+      logger.error(`复制会话 ${id} 失败:`, error);
     }
   }
   message.success({ content: `已复制 ${success} 个会话`, key: "duplicate" });
@@ -736,7 +738,7 @@ const handleResumeSession = async (sessionId) => {
     const result = await store.resumeSession(sessionId);
     message.success("会话已恢复，可以继续对话");
     // 这里可以跳转到聊天页面
-    console.log("续接上下文:", result.contextPrompt);
+    logger.info("续接上下文:", result.contextPrompt);
   } catch (error) {
     message.error("恢复会话失败: " + error.message);
   }

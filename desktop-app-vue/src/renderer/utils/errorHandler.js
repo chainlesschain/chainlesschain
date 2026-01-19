@@ -3,6 +3,7 @@
  * 提供一致的错误处理、日志记录和用户反馈
  */
 
+import { logger, createLogger } from '@/utils/logger';
 import { message, notification } from 'ant-design-vue';
 
 /**
@@ -172,7 +173,7 @@ class ErrorHandler {
     // 文件日志（通过 IPC 发送到主进程）
     if (logToFile && window.electronAPI) {
       window.electronAPI.logError(error.toJSON()).catch(err => {
-        console.error('[ErrorHandler] Failed to log to file:', err);
+        logger.error('[ErrorHandler] Failed to log to file:', err);
       });
     }
   }
@@ -269,7 +270,7 @@ class ErrorHandler {
       try {
         listener(error);
       } catch (err) {
-        console.error('[ErrorHandler] Listener error:', err);
+        logger.error('[ErrorHandler] Listener error:', err);
       }
     });
   }

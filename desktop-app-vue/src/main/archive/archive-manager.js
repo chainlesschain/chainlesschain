@@ -3,6 +3,7 @@
  * 支持 ZIP, RAR, 7Z 格式的预览和提取
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const path = require('path');
 const fs = require('fs').promises;
 const AdmZip = require('adm-zip');
@@ -22,7 +23,7 @@ class ArchiveManager {
     try {
       await fs.mkdir(this.tempDir, { recursive: true });
     } catch (error) {
-      console.error('[Archive Manager] 创建临时目录失败:', error);
+      logger.error('[Archive Manager] 创建临时目录失败:', error);
     }
   }
 
@@ -78,7 +79,7 @@ class ArchiveManager {
 
       return this.buildTree(fileTree);
     } catch (error) {
-      console.error('[Archive Manager] ZIP解析失败:', error);
+      logger.error('[Archive Manager] ZIP解析失败:', error);
       throw error;
     }
   }
@@ -167,7 +168,7 @@ class ArchiveManager {
       zip.extractEntryTo(entry, path.dirname(outputPath), false, true);
       return outputPath;
     } catch (error) {
-      console.error('[Archive Manager] ZIP文件提取失败:', error);
+      logger.error('[Archive Manager] ZIP文件提取失败:', error);
       throw error;
     }
   }
@@ -216,7 +217,7 @@ class ArchiveManager {
         modified: stats.mtime,
       };
     } catch (error) {
-      console.error('[Archive Manager] 获取压缩包信息失败:', error);
+      logger.error('[Archive Manager] 获取压缩包信息失败:', error);
       throw error;
     }
   }
@@ -330,7 +331,7 @@ class ArchiveManager {
       await fs.rm(this.tempDir, { recursive: true, force: true });
       await this.ensureTempDir();
     } catch (error) {
-      console.error('[Archive Manager] 清理临时文件失败:', error);
+      logger.error('[Archive Manager] 清理临时文件失败:', error);
     }
   }
 }

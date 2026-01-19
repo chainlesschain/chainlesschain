@@ -1,3 +1,5 @@
+import { logger, createLogger } from '@/utils/logger';
+
 /**
  * Service Worker Manager
  * Handles service worker registration and communication
@@ -26,7 +28,7 @@ class ServiceWorkerManager {
    */
   async register() {
     if (!('serviceWorker' in navigator)) {
-      console.warn('Service Worker not supported')
+      logger.warn('Service Worker not supported')
       return false
     }
 
@@ -35,16 +37,16 @@ class ServiceWorkerManager {
         scope: '/'
       })
 
-      console.log('[SW Manager] Service Worker registered:', this.registration.scope)
+      logger.info('[SW Manager] Service Worker registered:', this.registration.scope)
 
       // Handle updates
       this.registration.addEventListener('updatefound', () => {
         const newWorker = this.registration.installing
-        console.log('[SW Manager] New service worker found')
+        logger.info('[SW Manager] New service worker found')
 
         newWorker.addEventListener('statechange', () => {
           if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-            console.log('[SW Manager] New service worker installed')
+            logger.info('[SW Manager] New service worker installed')
             this.emit('update', newWorker)
           }
         })
@@ -57,7 +59,7 @@ class ServiceWorkerManager {
 
       return true
     } catch (error) {
-      console.error('[SW Manager] Registration failed:', error)
+      logger.error('[SW Manager] Registration failed:', error)
       return false
     }
   }
@@ -72,11 +74,11 @@ class ServiceWorkerManager {
 
     try {
       const success = await this.registration.unregister()
-      console.log('[SW Manager] Service Worker unregistered:', success)
+      logger.info('[SW Manager] Service Worker unregistered:', success)
       this.registration = null
       return success
     } catch (error) {
-      console.error('[SW Manager] Unregistration failed:', error)
+      logger.error('[SW Manager] Unregistration failed:', error)
       return false
     }
   }
@@ -91,10 +93,10 @@ class ServiceWorkerManager {
 
     try {
       await this.registration.update()
-      console.log('[SW Manager] Service Worker updated')
+      logger.info('[SW Manager] Service Worker updated')
       return true
     } catch (error) {
-      console.error('[SW Manager] Update failed:', error)
+      logger.error('[SW Manager] Update failed:', error)
       return false
     }
   }
@@ -111,7 +113,7 @@ class ServiceWorkerManager {
       this.registration.waiting.postMessage({ type: 'SKIP_WAITING' })
       return true
     } catch (error) {
-      console.error('[SW Manager] Skip waiting failed:', error)
+      logger.error('[SW Manager] Skip waiting failed:', error)
       return false
     }
   }
@@ -179,7 +181,7 @@ class ServiceWorkerManager {
    * Handle message from service worker
    */
   handleMessage(data) {
-    console.log('[SW Manager] Message from service worker:', data)
+    logger.info('[SW Manager] Message from service worker:', data)
     this.emit('message', data)
   }
 
@@ -204,7 +206,7 @@ class ServiceWorkerManager {
       try {
         listener(event, data)
       } catch (error) {
-        console.error('[SW Manager] Listener error:', error)
+        logger.error('[SW Manager] Listener error:', error)
       }
     })
   }
@@ -251,10 +253,10 @@ class ServiceWorkerManager {
       ]
 
       await this.cacheUrls(urls)
-      console.log('[SW Manager] Project data prefetched:', projectId)
+      logger.info('[SW Manager] Project data prefetched:', projectId)
       return true
     } catch (error) {
-      console.error('[SW Manager] Prefetch failed:', error)
+      logger.error('[SW Manager] Prefetch failed:', error)
       return false
     }
   }
@@ -276,7 +278,7 @@ class ServiceWorkerManager {
 
       return results.every(response => response !== undefined)
     } catch (error) {
-      console.error('[SW Manager] Cache check failed:', error)
+      logger.error('[SW Manager] Cache check failed:', error)
       return false
     }
   }

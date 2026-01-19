@@ -287,6 +287,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted, watch } from 'vue';
 import { message } from 'ant-design-vue';
 import {
@@ -348,7 +350,7 @@ const loadBridgeableAssets = async () => {
       asset => asset.token_type === 'ERC20' || asset.token_type === 'ERC721'
     );
   } catch (error) {
-    console.error('[BridgeTransfer] 加载资产失败:', error);
+    logger.error('[BridgeTransfer] 加载资产失败:', error);
   }
 };
 
@@ -436,9 +438,9 @@ const fetchAssetBalance = async () => {
     });
 
     availableBalance.value = parseFloat(balance);
-    console.log('[BridgeTransfer] 余额查询成功:', availableBalance.value);
+    logger.info('[BridgeTransfer] 余额查询成功:', availableBalance.value);
   } catch (error) {
-    console.error('[BridgeTransfer] 查询余额失败:', error);
+    logger.error('[BridgeTransfer] 查询余额失败:', error);
     availableBalance.value = 1000; // 回退到模拟值
   }
 };
@@ -534,7 +536,7 @@ const handleTransfer = async () => {
 
     message.success('跨链转移成功！');
   } catch (error) {
-    console.error('[BridgeTransfer] 转移失败:', error);
+    logger.error('[BridgeTransfer] 转移失败:', error);
     message.error('跨链转移失败: ' + error.message);
     showProgressModal.value = false;
   } finally {

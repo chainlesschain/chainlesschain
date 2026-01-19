@@ -1,3 +1,5 @@
+import { logger, createLogger } from '@/utils/logger';
+
 /**
  * Keyboard Shortcuts System
  * 提供统一的键盘快捷键管理，支持作用域、禁用/启用、命令面板等
@@ -23,7 +25,7 @@ class KeyboardShortcuts {
   init() {
     if (typeof window !== "undefined") {
       window.addEventListener("keydown", this.handleKeyDown);
-      console.log("[KeyboardShortcuts] Initialized");
+      logger.info("[KeyboardShortcuts] Initialized");
     }
   }
 
@@ -68,7 +70,7 @@ class KeyboardShortcuts {
       handler,
     });
 
-    console.log(
+    logger.info(
       `[KeyboardShortcuts] Registered: ${normalizedKey} in scope "${scope}"`,
     );
   }
@@ -102,7 +104,7 @@ class KeyboardShortcuts {
         (cmd) => cmd.key !== normalizedKey,
       );
 
-      console.log(`[KeyboardShortcuts] Unregistered: ${normalizedKey}`);
+      logger.info(`[KeyboardShortcuts] Unregistered: ${normalizedKey}`);
     }
   }
 
@@ -131,7 +133,7 @@ class KeyboardShortcuts {
       try {
         shortcut.handler(event);
       } catch (error) {
-        console.error("[KeyboardShortcuts] Handler error:", error);
+        logger.error("[KeyboardShortcuts] Handler error:", error);
       }
     }
   }
@@ -201,7 +203,7 @@ class KeyboardShortcuts {
    */
   setScope(scope) {
     this.currentScope = scope;
-    console.log(`[KeyboardShortcuts] Scope changed to: ${scope}`);
+    logger.info(`[KeyboardShortcuts] Scope changed to: ${scope}`);
   }
 
   /**
@@ -209,7 +211,7 @@ class KeyboardShortcuts {
    */
   setEnabled(enabled) {
     this.enabled = enabled;
-    console.log(`[KeyboardShortcuts] ${enabled ? "Enabled" : "Disabled"}`);
+    logger.info(`[KeyboardShortcuts] ${enabled ? "Enabled" : "Disabled"}`);
   }
 
   /**
@@ -278,7 +280,7 @@ class KeyboardShortcuts {
     this.scopes.clear();
     this.allCommands = [];
 
-    console.log("[KeyboardShortcuts] Destroyed");
+    logger.info("[KeyboardShortcuts] Destroyed");
   }
 }
 
@@ -872,7 +874,7 @@ export function registerMenuCommands(router) {
     });
   });
 
-  console.log(
+  logger.info(
     `[KeyboardShortcuts] Registered ${menuCommands.length} menu commands`,
   );
 }

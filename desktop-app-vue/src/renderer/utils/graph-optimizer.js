@@ -1,3 +1,5 @@
+import { logger, createLogger } from '@/utils/logger';
+
 /**
  * 知识图谱渲染性能优化模块
  * 优化大规模图谱的渲染性能
@@ -50,7 +52,7 @@ class GraphPerformanceOptimizer {
    */
   optimizeNodes(nodes, edges) {
     const nodeCount = nodes.length;
-    console.log(`[GraphOptimizer] 优化 ${nodeCount} 个节点`);
+    logger.info(`[GraphOptimizer] 优化 ${nodeCount} 个节点`);
 
     if (nodeCount <= this.config.maxNodesForFull) {
       // 全量渲染
@@ -121,7 +123,7 @@ class GraphPerformanceOptimizer {
    * 聚合节点（聚合渲染）
    */
   clusterNodes(nodes, edges) {
-    console.log('[GraphOptimizer] 执行节点聚合');
+    logger.info('[GraphOptimizer] 执行节点聚合');
 
     // 使用社区检测算法进行聚合
     const communities = this.detectCommunities(nodes, edges);
@@ -206,7 +208,7 @@ class GraphPerformanceOptimizer {
     const chunkSize = this.config.progressiveChunkSize;
     const delay = this.config.progressiveDelay;
 
-    console.log(`[GraphOptimizer] 渐进式渲染: ${nodes.length} 个节点`);
+    logger.info(`[GraphOptimizer] 渐进式渲染: ${nodes.length} 个节点`);
 
     for (let i = 0; i < nodes.length; i += chunkSize) {
       const chunk = nodes.slice(i, i + chunkSize);
@@ -226,7 +228,7 @@ class GraphPerformanceOptimizer {
       this.emitProgress(progress);
     }
 
-    console.log('[GraphOptimizer] 渐进式渲染完成');
+    logger.info('[GraphOptimizer] 渐进式渲染完成');
   }
 
   /**
@@ -240,7 +242,7 @@ class GraphPerformanceOptimizer {
 
       // 检查是否过期
       if (Date.now() - cached.timestamp < this.config.cacheExpiry) {
-        console.log('[GraphOptimizer] 使用缓存的布局');
+        logger.info('[GraphOptimizer] 使用缓存的布局');
         this.metrics.cacheHits++;
         return cached.layout;
       } else {
@@ -524,7 +526,7 @@ class GraphPerformanceOptimizer {
   clearCache() {
     this.layoutCache.clear();
     this.renderCache.clear();
-    console.log('[GraphOptimizer] 缓存已清理');
+    logger.info('[GraphOptimizer] 缓存已清理');
   }
 }
 

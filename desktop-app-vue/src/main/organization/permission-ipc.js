@@ -16,6 +16,7 @@
  * - permission:assign-group - Assign permission group to role
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { ipcMain } = require('electron');
 
 class PermissionIPC {
@@ -43,7 +44,7 @@ class PermissionIPC {
         return { success: true, hasPermission };
 
       } catch (error) {
-        console.error('[PermissionIPC] Check permission failed:', error);
+        logger.error('[PermissionIPC] Check permission failed:', error);
         return { success: false, error: error.message };
       }
     });
@@ -63,7 +64,7 @@ class PermissionIPC {
         return { success: true, permissions };
 
       } catch (error) {
-        console.error('[PermissionIPC] Get effective permissions failed:', error);
+        logger.error('[PermissionIPC] Get effective permissions failed:', error);
         return { success: false, error: error.message };
       }
     });
@@ -101,7 +102,7 @@ class PermissionIPC {
         return { success: true, permissions: result };
 
       } catch (error) {
-        console.error('[PermissionIPC] Update resource permissions failed:', error);
+        logger.error('[PermissionIPC] Update resource permissions failed:', error);
         return { success: false, error: error.message };
       }
     });
@@ -160,7 +161,7 @@ class PermissionIPC {
         return { success: true };
 
       } catch (error) {
-        console.error('[PermissionIPC] Create permission override failed:', error);
+        logger.error('[PermissionIPC] Create permission override failed:', error);
         return { success: false, error: error.message };
       }
     });
@@ -203,7 +204,7 @@ class PermissionIPC {
         return { success: true };
 
       } catch (error) {
-        console.error('[PermissionIPC] Delete permission override failed:', error);
+        logger.error('[PermissionIPC] Delete permission override failed:', error);
         return { success: false, error: error.message };
       }
     });
@@ -243,7 +244,7 @@ class PermissionIPC {
         return { success: true, overrides };
 
       } catch (error) {
-        console.error('[PermissionIPC] Get permission overrides failed:', error);
+        logger.error('[PermissionIPC] Get permission overrides failed:', error);
         return { success: false, error: error.message };
       }
     });
@@ -261,7 +262,7 @@ class PermissionIPC {
         return { success: true, logs };
 
       } catch (error) {
-        console.error('[PermissionIPC] Get audit log failed:', error);
+        logger.error('[PermissionIPC] Get audit log failed:', error);
         return { success: false, error: error.message };
       }
     });
@@ -308,7 +309,7 @@ class PermissionIPC {
         return { success: true };
 
       } catch (error) {
-        console.error('[PermissionIPC] Create permission template failed:', error);
+        logger.error('[PermissionIPC] Create permission template failed:', error);
         return { success: false, error: error.message };
       }
     });
@@ -344,7 +345,7 @@ class PermissionIPC {
         };
 
       } catch (error) {
-        console.error('[PermissionIPC] Get permission templates failed:', error);
+        logger.error('[PermissionIPC] Get permission templates failed:', error);
         return { success: false, error: error.message };
       }
     });
@@ -412,7 +413,7 @@ class PermissionIPC {
         return { success: true };
 
       } catch (error) {
-        console.error('[PermissionIPC] Apply permission template failed:', error);
+        logger.error('[PermissionIPC] Apply permission template failed:', error);
         return { success: false, error: error.message };
       }
     });
@@ -459,7 +460,7 @@ class PermissionIPC {
         return { success: true };
 
       } catch (error) {
-        console.error('[PermissionIPC] Create permission group failed:', error);
+        logger.error('[PermissionIPC] Create permission group failed:', error);
         return { success: false, error: error.message };
       }
     });
@@ -486,7 +487,7 @@ class PermissionIPC {
         };
 
       } catch (error) {
-        console.error('[PermissionIPC] Get permission groups failed:', error);
+        logger.error('[PermissionIPC] Get permission groups failed:', error);
         return { success: false, error: error.message };
       }
     });
@@ -519,7 +520,7 @@ class PermissionIPC {
         return { success: true };
 
       } catch (error) {
-        console.error('[PermissionIPC] Assign permission group failed:', error);
+        logger.error('[PermissionIPC] Assign permission group failed:', error);
         return { success: false, error: error.message };
       }
     });
@@ -599,12 +600,12 @@ class PermissionIPC {
         };
 
       } catch (error) {
-        console.error('[PermissionIPC] Get permission statistics failed:', error);
+        logger.error('[PermissionIPC] Get permission statistics failed:', error);
         return { success: false, error: error.message };
       }
     });
 
-    console.log('[PermissionIPC] ✓ Permission IPC handlers registered');
+    logger.info('[PermissionIPC] ✓ Permission IPC handlers registered');
   }
 
   /**
@@ -672,7 +673,7 @@ class PermissionIPC {
         Date.now()
       );
     } catch (error) {
-      console.error('[PermissionIPC] Failed to log activity:', error);
+      logger.error('[PermissionIPC] Failed to log activity:', error);
     }
   }
 

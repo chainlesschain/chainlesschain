@@ -5,6 +5,7 @@
  * v0.20.0: 新增 RSS 和邮件通知功能
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { Notification } = require('electron');
 const path = require('path');
 
@@ -38,7 +39,7 @@ class APINotificationManager {
 
     notification.on('click', () => {
       // TODO: 打开 RSS 阅读器
-      console.log('[Notification] 用户点击了 RSS 通知');
+      logger.info('[Notification] 用户点击了 RSS 通知');
     });
 
     notification.show();
@@ -67,7 +68,7 @@ class APINotificationManager {
 
     notification.on('click', () => {
       // TODO: 打开邮件阅读器
-      console.log('[Notification] 用户点击了邮件通知');
+      logger.info('[Notification] 用户点击了邮件通知');
     });
 
     notification.show();
@@ -233,7 +234,7 @@ class APINotificationManager {
    * 记录通知日志
    */
   logNotification(type, action, data) {
-    console.log(`[Notification] ${type}:${action}`, {
+    logger.info(`[Notification] ${type}:${action}`, {
       timestamp: new Date().toISOString(),
       ...data,
     });

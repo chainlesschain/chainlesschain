@@ -1,3 +1,5 @@
+import { logger, createLogger } from '@/utils/logger';
+
 /**
  * Web Worker Manager
  * 管理Web Workers的生命周期和通信
@@ -19,7 +21,7 @@ export class WorkerManager {
    */
   async createWorker(name, workerPath, options = {}) {
     if (this.workers.has(name)) {
-      console.warn(`Worker "${name}" already exists`);
+      logger.warn(`Worker "${name}" already exists`);
       return this.workers.get(name).instance;
     }
 
@@ -64,11 +66,11 @@ export class WorkerManager {
       });
 
       this.workers.set(name, workerInfo);
-      console.log(`Worker "${name}" created and ready`);
+      logger.info(`Worker "${name}" created and ready`);
 
       return worker;
     } catch (error) {
-      console.error(`Failed to create worker "${name}":`, error);
+      logger.error(`Failed to create worker "${name}":`, error);
       throw error;
     }
   }
@@ -148,7 +150,7 @@ export class WorkerManager {
     const task = this.pendingTasks.get(id);
 
     if (!task) {
-      console.warn(`Received message for unknown task ${id}`);
+      logger.warn(`Received message for unknown task ${id}`);
       return;
     }
 
@@ -178,7 +180,7 @@ export class WorkerManager {
    * @private
    */
   handleWorkerError(workerName, error) {
-    console.error(`Worker "${workerName}" error:`, error);
+    logger.error(`Worker "${workerName}" error:`, error);
 
     const workerInfo = this.workers.get(workerName);
     if (workerInfo) {
@@ -203,7 +205,7 @@ export class WorkerManager {
     const workerInfo = this.workers.get(name);
 
     if (!workerInfo) {
-      console.warn(`Worker "${name}" not found`);
+      logger.warn(`Worker "${name}" not found`);
       return;
     }
 
@@ -220,7 +222,7 @@ export class WorkerManager {
     workerInfo.instance.terminate();
     this.workers.delete(name);
 
-    console.log(`Worker "${name}" terminated`);
+    logger.info(`Worker "${name}" terminated`);
   }
 
   /**
@@ -308,7 +310,7 @@ export class FileWorkerHelper {
       );
       this.initialized = true;
     } catch (error) {
-      console.error('Failed to initialize file worker:', error);
+      logger.error('Failed to initialize file worker:', error);
       throw error;
     }
   }
@@ -393,7 +395,7 @@ export class SyntaxWorkerHelper {
       );
       this.initialized = true;
     } catch (error) {
-      console.error('Failed to initialize syntax worker:', error);
+      logger.error('Failed to initialize syntax worker:', error);
       throw error;
     }
   }

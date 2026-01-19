@@ -778,6 +778,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, onMounted, computed } from "vue";
 import { message } from "ant-design-vue";
 import {
@@ -900,7 +902,7 @@ const refreshAll = async () => {
     ]);
     message.success("数据已刷新");
   } catch (error) {
-    console.error("刷新数据失败:", error);
+    logger.error("刷新数据失败:", error);
     message.error("刷新数据失败");
   } finally {
     loading.value = false;
@@ -924,7 +926,7 @@ const loadPatterns = async () => {
         workflowPatterns.value.length;
     }
   } catch (error) {
-    console.warn("加载模式失败:", error);
+    logger.warn("加载模式失败:", error);
   }
 };
 
@@ -937,7 +939,7 @@ const loadPreferences = async () => {
     preferences.value = result || [];
     stats.value.totalPreferences = preferences.value.length;
   } catch (error) {
-    console.warn("加载偏好失败:", error);
+    logger.warn("加载偏好失败:", error);
   }
 };
 
@@ -948,7 +950,7 @@ const loadSessions = async () => {
     recentSessions.value = result || [];
     stats.value.totalSessions = recentSessions.value.length;
   } catch (error) {
-    console.warn("加载会话失败:", error);
+    logger.warn("加载会话失败:", error);
   }
 };
 
@@ -962,7 +964,7 @@ const loadBehaviorInsights = async () => {
     recommendations.value = result?.recommendations || [];
     stats.value.totalInsights = recommendations.value.length;
   } catch (error) {
-    console.warn("加载行为洞察失败:", error);
+    logger.warn("加载行为洞察失败:", error);
   }
 };
 
@@ -979,7 +981,7 @@ const loadStorageStats = async () => {
       };
     }
   } catch (error) {
-    console.warn("加载存储统计失败:", error);
+    logger.warn("加载存储统计失败:", error);
   }
 };
 
@@ -996,7 +998,7 @@ const handleExport = async ({ key }) => {
       message.error(result?.error || "导出失败");
     }
   } catch (error) {
-    console.error("导出失败:", error);
+    logger.error("导出失败:", error);
     message.error("导出失败: " + error.message);
   }
 };
@@ -1014,7 +1016,7 @@ const generateSessionSummaries = async () => {
       message.error(result?.error || "生成失败");
     }
   } catch (error) {
-    console.error("生成会话摘要失败:", error);
+    logger.error("生成会话摘要失败:", error);
     message.error("生成失败: " + error.message);
   } finally {
     generatingSummaries.value = false;
@@ -1034,7 +1036,7 @@ const exportSessionSummary = async (sessionId) => {
       message.error(result?.error || "导出失败");
     }
   } catch (error) {
-    console.error("导出会话摘要失败:", error);
+    logger.error("导出会话摘要失败:", error);
     message.error("导出失败: " + error.message);
   }
 };
@@ -1063,7 +1065,7 @@ const createBackup = async () => {
       message.error(result?.error || "备份失败");
     }
   } catch (error) {
-    console.error("创建备份失败:", error);
+    logger.error("创建备份失败:", error);
     message.error("创建备份失败: " + error.message);
   } finally {
     creatingBackup.value = false;
@@ -1082,7 +1084,7 @@ const cleanupExpired = async () => {
       message.error(result?.error || "清理失败");
     }
   } catch (error) {
-    console.error("清理失败:", error);
+    logger.error("清理失败:", error);
     message.error("清理失败: " + error.message);
   } finally {
     cleaningUp.value = false;
@@ -1125,7 +1127,7 @@ const loadAutoSummaryInfo = async () => {
       }
     }
   } catch (error) {
-    console.warn("加载自动摘要信息失败:", error);
+    logger.warn("加载自动摘要信息失败:", error);
   } finally {
     loadingAutoSummary.value = false;
   }
@@ -1140,7 +1142,7 @@ const toggleAutoSummary = async (enabled) => {
     });
     message.success(enabled ? "自动摘要已启用" : "自动摘要已禁用");
   } catch (error) {
-    console.error("切换自动摘要失败:", error);
+    logger.error("切换自动摘要失败:", error);
     message.error("操作失败: " + error.message);
     // Revert the toggle
     autoSummaryConfig.value.enabled = !enabled;
@@ -1156,7 +1158,7 @@ const updateAutoSummaryConfig = async () => {
       threshold: autoSummaryConfig.value.threshold,
     });
   } catch (error) {
-    console.error("更新自动摘要配置失败:", error);
+    logger.error("更新自动摘要配置失败:", error);
     message.error("配置更新失败: " + error.message);
   }
 };
@@ -1170,7 +1172,7 @@ const updateAutoSummaryInterval = async () => {
     });
     autoSummaryConfig.value.interval = intervalMs;
   } catch (error) {
-    console.error("更新后台间隔失败:", error);
+    logger.error("更新后台间隔失败:", error);
     message.error("配置更新失败: " + error.message);
   }
 };
@@ -1190,7 +1192,7 @@ const toggleBackgroundSummary = async (enabled) => {
       throw new Error("操作失败");
     }
   } catch (error) {
-    console.error("切换后台生成器失败:", error);
+    logger.error("切换后台生成器失败:", error);
     message.error("操作失败: " + error.message);
     // Revert the toggle
     autoSummaryConfig.value.backgroundEnabled = !enabled;
@@ -1217,7 +1219,7 @@ const triggerBulkSummary = async () => {
       await loadSessionsWithoutSummary();
     }
   } catch (error) {
-    console.error("批量生成摘要失败:", error);
+    logger.error("批量生成摘要失败:", error);
     message.error("批量生成失败: " + error.message);
   } finally {
     triggeringBulk.value = false;
@@ -1248,7 +1250,7 @@ const loadSessionsWithoutSummary = async () => {
       });
     }
   } catch (error) {
-    console.warn("加载无摘要会话失败:", error);
+    logger.warn("加载无摘要会话失败:", error);
   } finally {
     loadingSessionsWithout.value = false;
   }
@@ -1269,7 +1271,7 @@ const generateSingleSummary = async (sessionId) => {
       await loadAutoSummaryInfo();
     }
   } catch (error) {
-    console.error("生成摘要失败:", error);
+    logger.error("生成摘要失败:", error);
     message.error("生成失败: " + error.message);
   } finally {
     generatingSingleId.value = null;

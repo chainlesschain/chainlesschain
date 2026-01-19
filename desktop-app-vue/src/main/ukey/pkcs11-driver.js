@@ -17,6 +17,7 @@
  * - Both pkcs11-js and CLI fallback modes
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const BaseUKeyDriver = require("./base-driver");
 const { exec } = require("child_process");
 const { promisify } = require("util");
@@ -181,7 +182,7 @@ class PKCS11Driver extends BaseUKeyDriver {
 
     for (const libPath of paths) {
       if (fs.existsSync(libPath)) {
-        console.log(`[PKCS11Driver] Found library: ${libPath}`);
+        logger.info(`[PKCS11Driver] Found library: ${libPath}`);
         return libPath;
       }
     }
@@ -194,17 +195,17 @@ class PKCS11Driver extends BaseUKeyDriver {
    * Initialize driver
    */
   async initialize() {
-    console.log("[PKCS11Driver] Initializing PKCS#11 driver...");
+    logger.info("[PKCS11Driver] Initializing PKCS#11 driver...");
 
     try {
       // Check if library exists
       if (!this.libraryPath) {
-        console.warn(
+        logger.warn(
           "[PKCS11Driver] No PKCS#11 library configured, using CLI fallback",
         );
         this.useCLIFallback = true;
       } else if (!fs.existsSync(this.libraryPath)) {
-        console.warn(
+        logger.warn(
           `[PKCS11Driver] Library not found: ${this.libraryPath}, using CLI fallback`,
         );
         this.useCLIFallback = true;
@@ -218,27 +219,27 @@ class PKCS11Driver extends BaseUKeyDriver {
           this.pkcs11.load(this.libraryPath);
           this.pkcs11.C_Initialize();
 
-          console.log("[PKCS11Driver] PKCS#11 library loaded successfully");
+          logger.info("[PKCS11Driver] PKCS#11 library loaded successfully");
 
           // Get supported mechanisms
           await this.loadSupportedMechanisms();
         } catch (error) {
-          console.warn(
+          logger.warn(
             "[PKCS11Driver] pkcs11-js not available:",
             error.message,
           );
-          console.warn("[PKCS11Driver] Using CLI fallback mode");
+          logger.warn("[PKCS11Driver] Using CLI fallback mode");
           this.pkcs11 = null;
           this.useCLIFallback = true;
         }
       }
 
       this.isInitialized = true;
-      console.log("[PKCS11Driver] Initialization complete");
+      logger.info("[PKCS11Driver] Initialization complete");
 
       return true;
     } catch (error) {
-      console.error("[PKCS11Driver] Initialization failed:", error);
+      logger.error("[PKCS11Driver] Initialization failed:", error);
       throw error;
     }
   }
@@ -258,11 +259,11 @@ class PKCS11Driver extends BaseUKeyDriver {
         (m) => m === CKM.SM2 || m === CKM.SM2_SM3,
       );
 
-      console.log(
+      logger.info(
         `[PKCS11Driver] Supported mechanisms: ${mechanisms.length}, SM2: ${this.supportsSM2}`,
       );
     } catch (error) {
-      console.warn("[PKCS11Driver] Failed to load mechanisms:", error.message);
+      logger.warn("[PKCS11Driver] Failed to load mechanisms:", error.message);
     }
   }
 
@@ -270,7 +271,7 @@ class PKCS11Driver extends BaseUKeyDriver {
    * Detect available tokens (implements BaseUKeyDriver.detect)
    */
   async detect() {
-    console.log("[PKCS11Driver] Detecting tokens...");
+    logger.info("[PKCS11Driver] Detecting tokens...");
 
     try {
       if (this.pkcs11) {
@@ -279,7 +280,7 @@ class PKCS11Driver extends BaseUKeyDriver {
         return await this.detectWithCLI();
       }
     } catch (error) {
-      console.error("[PKCS11Driver] Detection failed:", error);
+      logger.error("[PKCS11Driver] Detection failed:", error);
       return {
         detected: false,
         reason: "detection_error",
@@ -318,7 +319,7 @@ class PKCS11Driver extends BaseUKeyDriver {
           tokenInfo.ulMaxPinLen > 0 ? this.maxPinRetries : null;
       }
 
-      console.log(
+      logger.info(
         `[PKCS11Driver] Detected token: ${this.tokenLabel} (Serial: ${this.tokenSerial})`,
       );
 
@@ -338,7 +339,7 @@ class PKCS11Driver extends BaseUKeyDriver {
         },
       };
     } catch (error) {
-      console.error("[PKCS11Driver] Failed to get token info:", error);
+      logger.error("[PKCS11Driver] Failed to get token info:", error);
       return {
         detected: false,
         reason: "token_error",
@@ -375,7 +376,7 @@ class PKCS11Driver extends BaseUKeyDriver {
         const serialMatch = output.match(/token serial\s*:\s*(.+?)(?:\n|$)/i);
         this.tokenSerial = serialMatch ? serialMatch[1].trim() : "Unknown";
 
-        console.log(
+        logger.info(
           `[PKCS11Driver] Detected token via CLI: ${this.tokenLabel}`,
         );
 
@@ -432,7 +433,7 @@ class PKCS11Driver extends BaseUKeyDriver {
    * Verify PIN (implements BaseUKeyDriver.verifyPIN)
    */
   async verifyPIN(pin) {
-    console.log("[PKCS11Driver] Verifying PIN...");
+    logger.info("[PKCS11Driver] Verifying PIN...");
 
     if (!pin || typeof pin !== "string") {
       return {
@@ -449,7 +450,7 @@ class PKCS11Driver extends BaseUKeyDriver {
         return await this.verifyPINWithCLI(pin);
       }
     } catch (error) {
-      console.error("[PKCS11Driver] PIN verification failed:", error);
+      logger.error("[PKCS11Driver] PIN verification failed:", error);
       return {
         success: false,
         reason: "verification_error",
@@ -492,7 +493,7 @@ class PKCS11Driver extends BaseUKeyDriver {
       // Find and cache keys
       await this.findKeys();
 
-      console.log("[PKCS11Driver] PIN verified successfully");
+      logger.info("[PKCS11Driver] PIN verified successfully");
 
       return {
         success: true,
@@ -587,7 +588,7 @@ class PKCS11Driver extends BaseUKeyDriver {
       this.isUnlocked = true;
       this.pinRetryCount = this.maxPinRetries;
 
-      console.log("[PKCS11Driver] PIN verified via CLI");
+      logger.info("[PKCS11Driver] PIN verified via CLI");
 
       return {
         success: true,
@@ -621,7 +622,7 @@ class PKCS11Driver extends BaseUKeyDriver {
 
       if (privateKeys.length > 0) {
         this.privateKeyHandle = privateKeys[0];
-        console.log(
+        logger.info(
           `[PKCS11Driver] Found ${privateKeys.length} private key(s)`,
         );
       }
@@ -636,13 +637,13 @@ class PKCS11Driver extends BaseUKeyDriver {
 
       if (publicKeys.length > 0) {
         this.publicKeyHandle = publicKeys[0];
-        console.log(`[PKCS11Driver] Found ${publicKeys.length} public key(s)`);
+        logger.info(`[PKCS11Driver] Found ${publicKeys.length} public key(s)`);
 
         // Export public key
         await this.exportPublicKey();
       }
     } catch (error) {
-      console.warn("[PKCS11Driver] Failed to find keys:", error.message);
+      logger.warn("[PKCS11Driver] Failed to find keys:", error.message);
     }
   }
 
@@ -675,7 +676,7 @@ class PKCS11Driver extends BaseUKeyDriver {
 
         // Convert to PEM (simplified - in production use ASN.1 encoding)
         this.publicKeyPEM = this.rsaToPEM(modulus, exponent);
-        console.log("[PKCS11Driver] RSA public key exported");
+        logger.info("[PKCS11Driver] RSA public key exported");
       } else if (keyType === CKK.EC || keyType === CKK.SM2) {
         // For EC/SM2 keys, get EC point
         const attrs = this.pkcs11.C_GetAttributeValue(
@@ -686,10 +687,10 @@ class PKCS11Driver extends BaseUKeyDriver {
 
         // Convert EC point to PEM
         this.publicKeyPEM = this.ecToPEM(attrs[0].value, keyType === CKK.SM2);
-        console.log("[PKCS11Driver] EC/SM2 public key exported");
+        logger.info("[PKCS11Driver] EC/SM2 public key exported");
       }
     } catch (error) {
-      console.warn(
+      logger.warn(
         "[PKCS11Driver] Failed to export public key:",
         error.message,
       );
@@ -805,7 +806,7 @@ class PKCS11Driver extends BaseUKeyDriver {
    * Disconnect from token
    */
   async disconnect() {
-    console.log("[PKCS11Driver] Disconnecting...");
+    logger.info("[PKCS11Driver] Disconnecting...");
 
     try {
       if (this.pkcs11 && this.sessionHandle) {
@@ -824,10 +825,10 @@ class PKCS11Driver extends BaseUKeyDriver {
       // Securely clear sensitive data
       this.clearSensitiveData();
 
-      console.log("[PKCS11Driver] Disconnected");
+      logger.info("[PKCS11Driver] Disconnected");
       return { success: true };
     } catch (error) {
-      console.error("[PKCS11Driver] Disconnect error:", error);
+      logger.error("[PKCS11Driver] Disconnect error:", error);
       return { success: false, error: error.message };
     }
   }
@@ -887,7 +888,7 @@ class PKCS11Driver extends BaseUKeyDriver {
       throw new Error("Not connected or not unlocked");
     }
 
-    console.log("[PKCS11Driver] Signing data...");
+    logger.info("[PKCS11Driver] Signing data...");
 
     try {
       if (this.pkcs11) {
@@ -896,7 +897,7 @@ class PKCS11Driver extends BaseUKeyDriver {
         return await this.signWithCLI(data);
       }
     } catch (error) {
-      console.error("[PKCS11Driver] Signing failed:", error);
+      logger.error("[PKCS11Driver] Signing failed:", error);
       throw new Error(`Signing failed: ${error.message}`);
     }
   }
@@ -931,7 +932,7 @@ class PKCS11Driver extends BaseUKeyDriver {
     );
     const signature = this.pkcs11.C_Sign(this.sessionHandle, hash);
 
-    console.log("[PKCS11Driver] Signature created");
+    logger.info("[PKCS11Driver] Signature created");
     return signature.toString("base64");
   }
 
@@ -962,7 +963,7 @@ class PKCS11Driver extends BaseUKeyDriver {
       }
 
       const signature = fs.readFileSync(sigFile);
-      console.log("[PKCS11Driver] CLI signature created");
+      logger.info("[PKCS11Driver] CLI signature created");
       return signature.toString("base64");
     } finally {
       this.cleanupTempFile(dataFile);
@@ -974,7 +975,7 @@ class PKCS11Driver extends BaseUKeyDriver {
    * Verify signature (implements BaseUKeyDriver.verifySignature)
    */
   async verifySignature(data, signature) {
-    console.log("[PKCS11Driver] Verifying signature...");
+    logger.info("[PKCS11Driver] Verifying signature...");
 
     try {
       if (this.pkcs11 && this.publicKeyHandle) {
@@ -984,7 +985,7 @@ class PKCS11Driver extends BaseUKeyDriver {
         return await this.verifySignatureWithCrypto(data, signature);
       }
     } catch (error) {
-      console.error("[PKCS11Driver] Verification failed:", error);
+      logger.error("[PKCS11Driver] Verification failed:", error);
       return false;
     }
   }
@@ -1010,10 +1011,10 @@ class PKCS11Driver extends BaseUKeyDriver {
 
     try {
       this.pkcs11.C_Verify(this.sessionHandle, hash, sigBuffer);
-      console.log("[PKCS11Driver] Signature verified");
+      logger.info("[PKCS11Driver] Signature verified");
       return true;
     } catch (error) {
-      console.log("[PKCS11Driver] Signature verification failed");
+      logger.info("[PKCS11Driver] Signature verification failed");
       return false;
     }
   }
@@ -1023,7 +1024,7 @@ class PKCS11Driver extends BaseUKeyDriver {
    */
   async verifySignatureWithCrypto(data, signature) {
     if (!this.publicKeyPEM) {
-      console.warn("[PKCS11Driver] No public key available for verification");
+      logger.warn("[PKCS11Driver] No public key available for verification");
       return false;
     }
 
@@ -1038,10 +1039,10 @@ class PKCS11Driver extends BaseUKeyDriver {
       verifier.end();
 
       const isValid = verifier.verify(this.publicKeyPEM, sigBuffer);
-      console.log(`[PKCS11Driver] Crypto verification result: ${isValid}`);
+      logger.info(`[PKCS11Driver] Crypto verification result: ${isValid}`);
       return isValid;
     } catch (error) {
-      console.warn("[PKCS11Driver] Crypto verification error:", error.message);
+      logger.warn("[PKCS11Driver] Crypto verification error:", error.message);
       return false;
     }
   }
@@ -1054,7 +1055,7 @@ class PKCS11Driver extends BaseUKeyDriver {
       throw new Error("Not connected to token");
     }
 
-    console.log("[PKCS11Driver] Encrypting data...");
+    logger.info("[PKCS11Driver] Encrypting data...");
 
     try {
       if (this.pkcs11 && this.publicKeyHandle) {
@@ -1063,7 +1064,7 @@ class PKCS11Driver extends BaseUKeyDriver {
         return await this.encryptWithCLI(data);
       }
     } catch (error) {
-      console.error("[PKCS11Driver] Encryption failed:", error);
+      logger.error("[PKCS11Driver] Encryption failed:", error);
       throw new Error(`Encryption failed: ${error.message}`);
     }
   }
@@ -1103,7 +1104,7 @@ class PKCS11Driver extends BaseUKeyDriver {
 
     try {
       // Step 1: Export public key from token
-      console.log("[PKCS11Driver] Exporting public key from token...");
+      logger.info("[PKCS11Driver] Exporting public key from token...");
       await execAsync(
         `pkcs11-tool --login --pin "${this.currentPin}" --read-object --type pubkey -o "${pubKeyFile}" 2>&1`,
         { timeout: 15000 },
@@ -1120,7 +1121,7 @@ class PKCS11Driver extends BaseUKeyDriver {
       fs.writeFileSync(dataFile, dataBuffer);
 
       // Step 3: Encrypt using OpenSSL with RSA public key
-      console.log("[PKCS11Driver] Encrypting with OpenSSL...");
+      logger.info("[PKCS11Driver] Encrypting with OpenSSL...");
       await execAsync(
         `openssl pkeyutl -encrypt -pubin -inkey "${pubKeyFile}" -in "${dataFile}" -out "${encFile}" 2>&1`,
         { timeout: 15000 },
@@ -1131,7 +1132,7 @@ class PKCS11Driver extends BaseUKeyDriver {
       }
 
       const encryptedData = fs.readFileSync(encFile);
-      console.log("[PKCS11Driver] CLI encryption successful");
+      logger.info("[PKCS11Driver] CLI encryption successful");
       return encryptedData.toString("base64");
     } finally {
       this.cleanupTempFile(pubKeyFile);
@@ -1148,7 +1149,7 @@ class PKCS11Driver extends BaseUKeyDriver {
       throw new Error("Not connected or not unlocked");
     }
 
-    console.log("[PKCS11Driver] Decrypting data...");
+    logger.info("[PKCS11Driver] Decrypting data...");
 
     try {
       if (this.pkcs11 && this.privateKeyHandle) {
@@ -1157,7 +1158,7 @@ class PKCS11Driver extends BaseUKeyDriver {
         return await this.decryptWithCLI(encryptedData);
       }
     } catch (error) {
-      console.error("[PKCS11Driver] Decryption failed:", error);
+      logger.error("[PKCS11Driver] Decryption failed:", error);
       throw new Error(`Decryption failed: ${error.message}`);
     }
   }
@@ -1199,7 +1200,7 @@ class PKCS11Driver extends BaseUKeyDriver {
       fs.writeFileSync(encFile, encryptedBuffer);
 
       // Step 2: Decrypt using pkcs11-tool with private key on token
-      console.log("[PKCS11Driver] Decrypting with pkcs11-tool...");
+      logger.info("[PKCS11Driver] Decrypting with pkcs11-tool...");
       await execAsync(
         `pkcs11-tool --login --pin "${this.currentPin}" --decrypt --mechanism RSA-PKCS --input-file "${encFile}" --output-file "${decFile}" 2>&1`,
         { timeout: 30000 },
@@ -1210,7 +1211,7 @@ class PKCS11Driver extends BaseUKeyDriver {
       }
 
       const decryptedData = fs.readFileSync(decFile, "utf8");
-      console.log("[PKCS11Driver] CLI decryption successful");
+      logger.info("[PKCS11Driver] CLI decryption successful");
       return decryptedData;
     } finally {
       this.cleanupTempFile(encFile);
@@ -1222,7 +1223,7 @@ class PKCS11Driver extends BaseUKeyDriver {
    * Change PIN
    */
   async changePin(oldPin, newPin) {
-    console.log("[PKCS11Driver] Changing PIN...");
+    logger.info("[PKCS11Driver] Changing PIN...");
 
     try {
       if (this.pkcs11) {
@@ -1235,7 +1236,7 @@ class PKCS11Driver extends BaseUKeyDriver {
         }
 
         this.pkcs11.C_SetPIN(this.sessionHandle, oldPin, newPin);
-        console.log("[PKCS11Driver] PIN changed successfully");
+        logger.info("[PKCS11Driver] PIN changed successfully");
 
         // Update stored PIN for CLI mode
         if (this.currentPin === oldPin) {
@@ -1255,11 +1256,11 @@ class PKCS11Driver extends BaseUKeyDriver {
           this.currentPin = newPin;
         }
 
-        console.log("[PKCS11Driver] PIN changed via CLI");
+        logger.info("[PKCS11Driver] PIN changed via CLI");
         return { success: true };
       }
     } catch (error) {
-      console.error("[PKCS11Driver] PIN change failed:", error);
+      logger.error("[PKCS11Driver] PIN change failed:", error);
       return { success: false, error: error.message };
     }
   }
@@ -1268,7 +1269,7 @@ class PKCS11Driver extends BaseUKeyDriver {
    * Lock device (implements BaseUKeyDriver.lock)
    */
   lock() {
-    console.log("[PKCS11Driver] Locking device...");
+    logger.info("[PKCS11Driver] Locking device...");
 
     try {
       if (this.pkcs11 && this.sessionHandle) {
@@ -1279,20 +1280,20 @@ class PKCS11Driver extends BaseUKeyDriver {
         }
       }
     } catch (error) {
-      console.warn("[PKCS11Driver] Error during logout:", error.message);
+      logger.warn("[PKCS11Driver] Error during logout:", error.message);
     }
 
     this.isUnlocked = false;
     this.clearSensitiveData();
 
-    console.log("[PKCS11Driver] Device locked");
+    logger.info("[PKCS11Driver] Device locked");
   }
 
   /**
    * Close driver
    */
   async close() {
-    console.log("[PKCS11Driver] Closing driver...");
+    logger.info("[PKCS11Driver] Closing driver...");
 
     try {
       await this.disconnect();
@@ -1312,9 +1313,9 @@ class PKCS11Driver extends BaseUKeyDriver {
       this.tokenSerial = null;
       this.publicKeyPEM = null;
 
-      console.log("[PKCS11Driver] Driver closed");
+      logger.info("[PKCS11Driver] Driver closed");
     } catch (error) {
-      console.error("[PKCS11Driver] Close error:", error);
+      logger.error("[PKCS11Driver] Close error:", error);
     }
   }
 
@@ -1330,7 +1331,7 @@ class PKCS11Driver extends BaseUKeyDriver {
         fs.unlinkSync(filePath);
       }
     } catch (e) {
-      console.warn(`[PKCS11Driver] Failed to cleanup ${filePath}:`, e.message);
+      logger.warn(`[PKCS11Driver] Failed to cleanup ${filePath}:`, e.message);
     }
   }
 

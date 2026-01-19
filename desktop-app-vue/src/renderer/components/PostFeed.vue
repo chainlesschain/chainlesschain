@@ -100,6 +100,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, reactive, computed, onMounted, onUnmounted } from 'vue';
 import { message as antMessage } from 'ant-design-vue';
 import {
@@ -129,7 +131,7 @@ const loadCurrentDid = async () => {
       currentDid.value = identity.did;
     }
   } catch (error) {
-    console.error('获取当前身份失败:', error);
+    logger.error('获取当前身份失败:', error);
   }
 };
 
@@ -166,9 +168,9 @@ const loadFeed = async (append = false) => {
     hasMore.value = newPosts.length === PAGE_SIZE;
     currentOffset += newPosts.length;
 
-    console.log('动态流已加载:', newPosts.length, '条');
+    logger.info('动态流已加载:', newPosts.length, '条');
   } catch (error) {
-    console.error('加载动态流失败:', error);
+    logger.error('加载动态流失败:', error);
     antMessage.error('加载动态流失败: ' + error.message);
   } finally {
     loading.value = false;

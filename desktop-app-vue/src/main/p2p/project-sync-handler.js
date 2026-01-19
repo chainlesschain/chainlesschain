@@ -9,6 +9,7 @@
  * - 搜索项目文件
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const EventEmitter = require('events');
 const fs = require('fs').promises;
 const path = require('path');
@@ -57,7 +58,7 @@ class ProjectSyncHandler extends EventEmitter {
         break;
 
       default:
-        console.warn(`[ProjectSync] 未知消息类型: ${type}`);
+        logger.warn(`[ProjectSync] 未知消息类型: ${type}`);
         return {
           error: {
             code: 'UNKNOWN_TYPE',
@@ -73,7 +74,7 @@ class ProjectSyncHandler extends EventEmitter {
    * 处理获取项目列表请求
    */
   async handleListProjects(mobilePeerId, message) {
-    console.log('[ProjectSync] 处理项目列表请求');
+    logger.info('[ProjectSync] 处理项目列表请求');
 
     try {
       const { limit = 50, offset = 0 } = message.params || {};
@@ -118,10 +119,10 @@ class ProjectSyncHandler extends EventEmitter {
 
       this.stats.projectsSynced += projects.length;
 
-      console.log('[ProjectSync] ✅ 项目列表已发送:', projects.length);
+      logger.info('[ProjectSync] ✅ 项目列表已发送:', projects.length);
 
     } catch (error) {
-      console.error('[ProjectSync] 处理项目列表请求失败:', error);
+      logger.error('[ProjectSync] 处理项目列表请求失败:', error);
 
       // 如果是表不存在或列不存在错误，返回空数组
       if (error.message && (error.message.includes('no such table') || error.message.includes('no such column'))) {
@@ -135,7 +136,7 @@ class ProjectSyncHandler extends EventEmitter {
             offset: message.params?.offset || 0
           }
         });
-        console.log('[ProjectSync] ⚠️  数据库表不存在或列缺失，返回空列表');
+        logger.info('[ProjectSync] ⚠️  数据库表不存在或列缺失，返回空列表');
       } else {
         await this.sendError(mobilePeerId, message.requestId, error.message);
       }
@@ -146,7 +147,7 @@ class ProjectSyncHandler extends EventEmitter {
    * 处理获取项目详情请求
    */
   async handleGetProject(mobilePeerId, message) {
-    console.log('[ProjectSync] 处理项目详情请求');
+    logger.info('[ProjectSync] 处理项目详情请求');
 
     try {
       const { projectId } = message.params || {};
@@ -181,10 +182,10 @@ class ProjectSyncHandler extends EventEmitter {
         data: { project }
       });
 
-      console.log('[ProjectSync] ✅ 项目详情已发送:', projectId);
+      logger.info('[ProjectSync] ✅ 项目详情已发送:', projectId);
 
     } catch (error) {
-      console.error('[ProjectSync] 处理项目详情请求失败:', error);
+      logger.error('[ProjectSync] 处理项目详情请求失败:', error);
       await this.sendError(mobilePeerId, message.requestId, error.message);
     }
   }
@@ -193,7 +194,7 @@ class ProjectSyncHandler extends EventEmitter {
    * 处理获取文件树请求
    */
   async handleGetFileTree(mobilePeerId, message) {
-    console.log('[ProjectSync] 处理文件树请求');
+    logger.info('[ProjectSync] 处理文件树请求');
 
     try {
       const { projectId, maxDepth = 3 } = message.params || {};
@@ -219,10 +220,10 @@ class ProjectSyncHandler extends EventEmitter {
         data: { fileTree }
       });
 
-      console.log('[ProjectSync] ✅ 文件树已发送');
+      logger.info('[ProjectSync] ✅ 文件树已发送');
 
     } catch (error) {
-      console.error('[ProjectSync] 处理文件树请求失败:', error);
+      logger.error('[ProjectSync] 处理文件树请求失败:', error);
       await this.sendError(mobilePeerId, message.requestId, error.message);
     }
   }
@@ -231,7 +232,7 @@ class ProjectSyncHandler extends EventEmitter {
    * 处理获取文件内容请求
    */
   async handleGetFile(mobilePeerId, message) {
-    console.log('[ProjectSync] 处理文件内容请求');
+    logger.info('[ProjectSync] 处理文件内容请求');
 
     try {
       const { projectId, filePath } = message.params || {};
@@ -277,10 +278,10 @@ class ProjectSyncHandler extends EventEmitter {
       this.stats.filesSynced++;
       this.stats.bytesTransferred += content.length;
 
-      console.log('[ProjectSync] ✅ 文件内容已发送:', filePath);
+      logger.info('[ProjectSync] ✅ 文件内容已发送:', filePath);
 
     } catch (error) {
-      console.error('[ProjectSync] 处理文件内容请求失败:', error);
+      logger.error('[ProjectSync] 处理文件内容请求失败:', error);
       await this.sendError(mobilePeerId, message.requestId, error.message);
     }
   }
@@ -289,7 +290,7 @@ class ProjectSyncHandler extends EventEmitter {
    * 处理搜索文件请求
    */
   async handleSearchFiles(mobilePeerId, message) {
-    console.log('[ProjectSync] 处理文件搜索请求');
+    logger.info('[ProjectSync] 处理文件搜索请求');
 
     try {
       const { projectId, query, fileTypes = [] } = message.params || {};
@@ -319,10 +320,10 @@ class ProjectSyncHandler extends EventEmitter {
         }
       });
 
-      console.log('[ProjectSync] ✅ 搜索结果已发送:', files.length);
+      logger.info('[ProjectSync] ✅ 搜索结果已发送:', files.length);
 
     } catch (error) {
-      console.error('[ProjectSync] 处理文件搜索请求失败:', error);
+      logger.error('[ProjectSync] 处理文件搜索请求失败:', error);
       await this.sendError(mobilePeerId, message.requestId, error.message);
     }
   }
@@ -490,7 +491,7 @@ class ProjectSyncHandler extends EventEmitter {
         payload: message
       });
     } else {
-      console.error('[ProjectSync] MobileBridge未初始化');
+      logger.error('[ProjectSync] MobileBridge未初始化');
     }
   }
 

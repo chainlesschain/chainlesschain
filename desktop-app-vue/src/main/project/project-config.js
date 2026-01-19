@@ -1,3 +1,4 @@
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require('fs');
 const path = require('path');
 const { app } = require('electron');
@@ -29,7 +30,7 @@ class ProjectConfig {
     // 加载或创建配置
     this.loadConfig();
 
-    console.log('[ProjectConfig] 配置已加载:', this.config);
+    logger.info('[ProjectConfig] 配置已加载:', this.config);
   }
 
   /**
@@ -46,7 +47,7 @@ class ProjectConfig {
         this.saveConfig();
       }
     } catch (error) {
-      console.error('[ProjectConfig] 加载配置失败:', error);
+      logger.error('[ProjectConfig] 加载配置失败:', error);
       this.config = this.getDefaultConfig();
     }
   }
@@ -86,9 +87,9 @@ class ProjectConfig {
   saveConfig() {
     try {
       fs.writeFileSync(this.configPath, JSON.stringify(this.config, null, 2), 'utf-8');
-      console.log('[ProjectConfig] 配置已保存');
+      logger.info('[ProjectConfig] 配置已保存');
     } catch (error) {
-      console.error('[ProjectConfig] 保存配置失败:', error);
+      logger.error('[ProjectConfig] 保存配置失败:', error);
     }
   }
 

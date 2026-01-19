@@ -169,6 +169,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { message } from 'ant-design-vue';
@@ -206,7 +208,7 @@ async function initializeEditor() {
   try {
     await designStore.loadProject(projectId);
   } catch (error) {
-    console.error('[DesignEditorPage] Failed to load project:', error);
+    logger.error('[DesignEditorPage] Failed to load project:', error);
     message.error('加载项目失败: ' + error.message);
   }
 }
@@ -225,7 +227,7 @@ async function switchArtboard(artboardId) {
   try {
     await designStore.switchArtboard(artboardId);
   } catch (error) {
-    console.error('[DesignEditorPage] Failed to switch artboard:', error);
+    logger.error('[DesignEditorPage] Failed to switch artboard:', error);
     message.error('切换画板失败');
   }
 }
@@ -238,7 +240,7 @@ async function createNewArtboard() {
     await designStore.createArtboard(`Artboard ${artboards.value.length + 1}`);
     message.success('画板创建成功');
   } catch (error) {
-    console.error('[DesignEditorPage] Failed to create artboard:', error);
+    logger.error('[DesignEditorPage] Failed to create artboard:', error);
     message.error('创建画板失败');
   }
 }
@@ -262,7 +264,7 @@ async function saveProject() {
     await designStore.saveArtboard(objects);
     message.success('保存成功');
   } catch (error) {
-    console.error('[DesignEditorPage] Failed to save:', error);
+    logger.error('[DesignEditorPage] Failed to save:', error);
     message.error('保存失败: ' + error.message);
   }
 }
@@ -292,14 +294,14 @@ function exportDesign() {
  * 处理对象修改
  */
 function handleObjectsModified() {
-  console.log('[DesignEditorPage] Objects modified');
+  logger.info('[DesignEditorPage] Objects modified');
 }
 
 /**
  * 处理选区变化
  */
 function handleSelectionChanged(objects) {
-  console.log('[DesignEditorPage] Selection changed:', objects);
+  logger.info('[DesignEditorPage] Selection changed:', objects);
 }
 
 /**
@@ -307,7 +309,7 @@ function handleSelectionChanged(objects) {
  */
 function updateObjectName(event) {
   const newName = event.target.value;
-  console.log('[DesignEditorPage] Update object name:', newName);
+  logger.info('[DesignEditorPage] Update object name:', newName);
   // TODO: 实现更新逻辑
 }
 

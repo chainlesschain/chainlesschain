@@ -1,3 +1,4 @@
+const { logger, createLogger } = require('../utils/logger.js');
 const { v4: uuidv4 } = require('uuid');
 
 /**
@@ -75,7 +76,7 @@ class KnowledgeVersionManager {
         WHERE id = ?
       `).run(newVersion, versionId, knowledgeId);
 
-      console.log(`[VersionManager] 创建版本快照成功: ${knowledgeId} v${newVersion}`);
+      logger.info(`[VersionManager] 创建版本快照成功: ${knowledgeId} v${newVersion}`);
 
       return {
         success: true,
@@ -83,7 +84,7 @@ class KnowledgeVersionManager {
         version: newVersion
       };
     } catch (error) {
-      console.error('[VersionManager] 创建版本快照失败:', error);
+      logger.error('[VersionManager] 创建版本快照失败:', error);
       return { success: false, error: error.message };
     }
   }
@@ -115,7 +116,7 @@ class KnowledgeVersionManager {
         metadata: v.metadata ? JSON.parse(v.metadata) : null
       }));
     } catch (error) {
-      console.error('[VersionManager] 获取版本历史失败:', error);
+      logger.error('[VersionManager] 获取版本历史失败:', error);
       return [];
     }
   }
@@ -139,7 +140,7 @@ class KnowledgeVersionManager {
         metadata: version.metadata ? JSON.parse(version.metadata) : null
       };
     } catch (error) {
-      console.error('[VersionManager] 获取版本失败:', error);
+      logger.error('[VersionManager] 获取版本失败:', error);
       return null;
     }
   }
@@ -221,7 +222,7 @@ class KnowledgeVersionManager {
         }
       );
 
-      console.log(`[VersionManager] 恢复版本成功: ${knowledgeId} 恢复到 v${targetVersion.version}`);
+      logger.info(`[VersionManager] 恢复版本成功: ${knowledgeId} 恢复到 v${targetVersion.version}`);
 
       return {
         success: true,
@@ -229,7 +230,7 @@ class KnowledgeVersionManager {
         newVersion: restoreResult.version
       };
     } catch (error) {
-      console.error('[VersionManager] 恢复版本失败:', error);
+      logger.error('[VersionManager] 恢复版本失败:', error);
       return { success: false, error: error.message };
     }
   }
@@ -285,7 +286,7 @@ class KnowledgeVersionManager {
         }
       };
     } catch (error) {
-      console.error('[VersionManager] 对比版本失败:', error);
+      logger.error('[VersionManager] 对比版本失败:', error);
       return { success: false, error: error.message };
     }
   }
@@ -321,7 +322,7 @@ class KnowledgeVersionManager {
         )
       `).run(knowledgeId, knowledgeId, keepCount);
 
-      console.log(`[VersionManager] 清理旧版本: ${knowledgeId}, 删除 ${result.changes} 个版本`);
+      logger.info(`[VersionManager] 清理旧版本: ${knowledgeId}, 删除 ${result.changes} 个版本`);
 
       return {
         success: true,
@@ -329,7 +330,7 @@ class KnowledgeVersionManager {
         message: `删除了 ${result.changes} 个旧版本`
       };
     } catch (error) {
-      console.error('[VersionManager] 清理旧版本失败:', error);
+      logger.error('[VersionManager] 清理旧版本失败:', error);
       return { success: false, error: error.message };
     }
   }
@@ -350,7 +351,7 @@ class KnowledgeVersionManager {
 
       return tags;
     } catch (error) {
-      console.error('[VersionManager] 获取标签失败:', error);
+      logger.error('[VersionManager] 获取标签失败:', error);
       return [];
     }
   }
@@ -379,7 +380,7 @@ class KnowledgeVersionManager {
         contributors: 0
       };
     } catch (error) {
-      console.error('[VersionManager] 获取版本统计失败:', error);
+      logger.error('[VersionManager] 获取版本统计失败:', error);
       return {
         total_versions: 0,
         first_version_at: null,

@@ -265,6 +265,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, watch, onMounted } from 'vue';
 import { message, Empty } from 'ant-design-vue';
 import { useSkillStore } from '../../stores/skill';
@@ -359,7 +361,7 @@ const loadTools = async () => {
   try {
     tools.value = await skillStore.fetchTools(props.skill.id);
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     message.error('加载工具失败');
   } finally {
     loadingTools.value = false;
@@ -420,7 +422,7 @@ const saveEdit = async () => {
     await emit('update', props.skill.id, updates);
     editing.value = false;
   } catch (error) {
-    console.error(error);
+    logger.error(error);
     message.error('保存失败');
   } finally {
     saving.value = false;
@@ -435,13 +437,13 @@ const cancelEdit = () => {
 
 // 处理技能链接点击
 const handleSkillLinkClick = (skillId) => {
-  console.log('Navigate to skill:', skillId);
+  logger.info('Navigate to skill:', skillId);
   router.push({ name: 'SkillManagement', query: { skillId } });
 };
 
 // 处理工具链接点击
 const handleToolLinkClick = (toolId) => {
-  console.log('Navigate to tool:', toolId);
+  logger.info('Navigate to tool:', toolId);
   router.push({ name: 'ToolManagement', query: { toolId } });
 };
 

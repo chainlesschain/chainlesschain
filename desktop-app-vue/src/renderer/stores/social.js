@@ -1,3 +1,4 @@
+import { logger, createLogger } from '@/utils/logger';
 import { defineStore } from "pinia";
 import { createRetryableIPC } from "../utils/ipc";
 
@@ -114,7 +115,7 @@ export const useSocialStore = defineStore("social", {
           }
         }
       } catch (error) {
-        console.error("加载好友列表失败:", error);
+        logger.error("加载好友列表失败:", error);
       } finally {
         this.friendsLoading = false;
       }
@@ -130,7 +131,7 @@ export const useSocialStore = defineStore("social", {
         );
         this.friendRequests = requests;
       } catch (error) {
-        console.error("加载好友请求失败:", error);
+        logger.error("加载好友请求失败:", error);
       }
     },
 
@@ -147,7 +148,7 @@ export const useSocialStore = defineStore("social", {
           content: `已向 ${friendDid.substring(0, 16)}... 发送好友请求`,
         });
       } catch (error) {
-        console.error("发送好友请求失败:", error);
+        logger.error("发送好友请求失败:", error);
         throw error;
       }
     },
@@ -167,7 +168,7 @@ export const useSocialStore = defineStore("social", {
           content: "你们现在是好友了",
         });
       } catch (error) {
-        console.error("接受好友请求失败:", error);
+        logger.error("接受好友请求失败:", error);
         throw error;
       }
     },
@@ -180,7 +181,7 @@ export const useSocialStore = defineStore("social", {
         await ipcRenderer.invoke("friend:reject-request", requestId);
         await this.loadFriendRequests();
       } catch (error) {
-        console.error("拒绝好友请求失败:", error);
+        logger.error("拒绝好友请求失败:", error);
         throw error;
       }
     },
@@ -233,7 +234,7 @@ export const useSocialStore = defineStore("social", {
           await this.markAsRead(session.id);
         }
       } catch (error) {
-        console.error("打开聊天失败:", error);
+        logger.error("打开聊天失败:", error);
         throw error;
       }
     },
@@ -252,7 +253,7 @@ export const useSocialStore = defineStore("social", {
           0,
         );
       } catch (error) {
-        console.error("加载聊天会话失败:", error);
+        logger.error("加载聊天会话失败:", error);
       }
     },
 
@@ -278,7 +279,7 @@ export const useSocialStore = defineStore("social", {
           ];
         }
       } catch (error) {
-        console.error("加载消息失败:", error);
+        logger.error("加载消息失败:", error);
       } finally {
         this.messagesLoading = false;
       }
@@ -334,7 +335,7 @@ export const useSocialStore = defineStore("social", {
 
         return messageData;
       } catch (error) {
-        console.error("发送消息失败:", error);
+        logger.error("发送消息失败:", error);
         // 更新消息状态为失败
         const lastMessage =
           this.currentMessages[this.currentMessages.length - 1];
@@ -421,7 +422,7 @@ export const useSocialStore = defineStore("social", {
           });
         }
       } catch (error) {
-        console.error("接收消息失败:", error);
+        logger.error("接收消息失败:", error);
       }
     },
 
@@ -438,7 +439,7 @@ export const useSocialStore = defineStore("social", {
           session.unread_count = 0;
         }
       } catch (error) {
-        console.error("标记已读失败:", error);
+        logger.error("标记已读失败:", error);
       }
     },
 
@@ -453,7 +454,7 @@ export const useSocialStore = defineStore("social", {
         }
         throw new Error("未找到用户身份");
       } catch (error) {
-        console.error("获取当前用户DID失败:", error);
+        logger.error("获取当前用户DID失败:", error);
         return "unknown";
       }
     },
@@ -469,7 +470,7 @@ export const useSocialStore = defineStore("social", {
         const posts = await ipcRenderer.invoke("post:get-feed", filter);
         this.posts = posts;
       } catch (error) {
-        console.error("加载动态失败:", error);
+        logger.error("加载动态失败:", error);
       } finally {
         this.postsLoading = false;
       }
@@ -485,7 +486,7 @@ export const useSocialStore = defineStore("social", {
         this.myPosts.unshift(newPost);
         return newPost;
       } catch (error) {
-        console.error("创建动态失败:", error);
+        logger.error("创建动态失败:", error);
         throw error;
       }
     },
@@ -503,7 +504,7 @@ export const useSocialStore = defineStore("social", {
           post.is_liked = true;
         }
       } catch (error) {
-        console.error("点赞失败:", error);
+        logger.error("点赞失败:", error);
         throw error;
       }
     },
@@ -521,7 +522,7 @@ export const useSocialStore = defineStore("social", {
           post.is_liked = false;
         }
       } catch (error) {
-        console.error("取消点赞失败:", error);
+        logger.error("取消点赞失败:", error);
         throw error;
       }
     },
@@ -536,7 +537,7 @@ export const useSocialStore = defineStore("social", {
       try {
         // 检查IPC API是否可用
         if (!window.electronAPI || !ipcRenderer) {
-          console.warn("[Social Store] Electron API 未就绪，跳过加载通知");
+          logger.warn("[Social Store] Electron API 未就绪，跳过加载通知");
           this.notifications = [];
           this.unreadNotifications = 0;
           return;
@@ -556,26 +557,26 @@ export const useSocialStore = defineStore("social", {
       } catch (error) {
         // 如果是用户中断请求（页面刷新、导航等），静默处理
         if (error.message && error.message.includes("interrupted")) {
-          console.log("[Social Store] 通知加载被中断（用户操作）");
+          logger.info("[Social Store] 通知加载被中断（用户操作）");
           this.notifications = [];
           this.unreadNotifications = 0;
           return;
         }
 
-        console.error("加载通知失败:", error);
+        logger.error("加载通知失败:", error);
 
         // 如果是"No handler registered"错误，说明后端还未初始化完成
         if (error.message && error.message.includes("No handler registered")) {
-          console.warn("[Social Store] IPC处理器未注册，将在稍后重试");
+          logger.warn("[Social Store] IPC处理器未注册，将在稍后重试");
           // 设置空数据，避免前端报错
           this.notifications = [];
           this.unreadNotifications = 0;
 
           // 延迟重试一次
           setTimeout(() => {
-            console.log("[Social Store] 重试加载通知...");
+            logger.info("[Social Store] 重试加载通知...");
             this.loadNotifications(limit).catch((err) => {
-              console.error("[Social Store] 重试加载通知失败:", err);
+              logger.error("[Social Store] 重试加载通知失败:", err);
             });
           }, 2000);
         } else {
@@ -626,7 +627,7 @@ export const useSocialStore = defineStore("social", {
           this.unreadNotifications = Math.max(this.unreadNotifications - 1, 0);
         }
       } catch (error) {
-        console.error("标记通知已读失败:", error);
+        logger.error("标记通知已读失败:", error);
       }
     },
 
@@ -642,7 +643,7 @@ export const useSocialStore = defineStore("social", {
         });
         this.unreadNotifications = 0;
       } catch (error) {
-        console.error("全部标记已读失败:", error);
+        logger.error("全部标记已读失败:", error);
       }
     },
 
@@ -681,7 +682,7 @@ export const useSocialStore = defineStore("social", {
       // 监听好友上线事件
       ipcRenderer.on("friend:online", (_event, data) => {
         const { friendDid } = data;
-        console.log("[SocialStore] 好友上线:", friendDid);
+        logger.info("[SocialStore] 好友上线:", friendDid);
 
         // 更新在线状态
         this.onlineStatus.set(friendDid, "online");
@@ -711,7 +712,7 @@ export const useSocialStore = defineStore("social", {
       // 监听好友离线事件
       ipcRenderer.on("friend:offline", (_event, data) => {
         const { friendDid } = data;
-        console.log("[SocialStore] 好友离线:", friendDid);
+        logger.info("[SocialStore] 好友离线:", friendDid);
 
         // 更新在线状态
         this.onlineStatus.set(friendDid, "offline");
@@ -728,7 +729,7 @@ export const useSocialStore = defineStore("social", {
         }
       });
 
-      console.log("[SocialStore] 在线状态监听器已初始化");
+      logger.info("[SocialStore] 在线状态监听器已初始化");
     },
 
     /**
@@ -737,7 +738,7 @@ export const useSocialStore = defineStore("social", {
     removeOnlineStatusListeners() {
       ipcRenderer.removeAllListeners("friend:online");
       ipcRenderer.removeAllListeners("friend:offline");
-      console.log("[SocialStore] 在线状态监听器已移除");
+      logger.info("[SocialStore] 在线状态监听器已移除");
     },
   },
 });

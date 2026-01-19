@@ -10,6 +10,7 @@
  * 5. 错误日志记录
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const fs = require('fs').promises;
 const path = require('path');
 
@@ -79,8 +80,8 @@ class ToolSandbox {
     const config = { ...this.defaultConfig, ...options };
     const startTime = Date.now();
 
-    console.log(`[ToolSandbox] 开始执行工具: ${toolName}`);
-    console.log(`[ToolSandbox] 配置:`, config);
+    logger.info(`[ToolSandbox] 开始执行工具: ${toolName}`);
+    logger.info(`[ToolSandbox] 配置:`, config);
 
     // 创建快照（如果启用）
     let snapshot = null;
@@ -105,7 +106,7 @@ class ToolSandbox {
       }
 
       const duration = Date.now() - startTime;
-      console.log(`[ToolSandbox] ✅ 工具执行成功: ${toolName}, 耗时: ${duration}ms`);
+      logger.info(`[ToolSandbox] ✅ 工具执行成功: ${toolName}, 耗时: ${duration}ms`);
 
       // 记录成功日志
       await this.logExecution(toolName, params, true, duration, null);
@@ -120,7 +121,7 @@ class ToolSandbox {
 
     } catch (error) {
       const duration = Date.now() - startTime;
-      console.error(`[ToolSandbox] ❌ 工具执行失败: ${toolName}`, error.message);
+      logger.error(`[ToolSandbox] ❌ 工具执行失败: ${toolName}`, error.message);
 
       // 回滚到快照（如果启用且有快照）
       if (snapshot && config.enableSnapshot) {
@@ -146,7 +147,7 @@ class ToolSandbox {
       try {
         if (attempt > 0) {
           const delay = config.retryDelay * Math.pow(2, attempt - 1); // 指数退避
-          console.log(`[ToolSandbox] 🔄 重试 ${attempt}/${config.retries}: ${toolName}, 延迟: ${delay}ms`);
+          logger.info(`[ToolSandbox] 🔄 重试 ${attempt}/${config.retries}: ${toolName}, 延迟: ${delay}ms`);
           await this.sleep(delay);
         }
 
@@ -154,7 +155,7 @@ class ToolSandbox {
         const result = await this.functionCaller.call(toolName, params, context);
 
         if (attempt > 0) {
-          console.log(`[ToolSandbox] ✅ 重试成功: ${toolName}`);
+          logger.info(`[ToolSandbox] ✅ 重试成功: ${toolName}`);
         }
 
         return result;
@@ -170,7 +171,7 @@ class ToolSandbox {
           throw error;
         }
 
-        console.log(`[ToolSandbox] ⚠️ 尝试 ${attempt + 1} 失败: ${error.message}, ${isRetryable ? '将重试' : '不可重试'}`);
+        logger.info(`[ToolSandbox] ⚠️ 尝试 ${attempt + 1} 失败: ${error.message}, ${isRetryable ? '将重试' : '不可重试'}`);
       }
     }
 
@@ -281,7 +282,7 @@ class ToolSandbox {
             const backupPath = `${resolvedPath}.backup_${Date.now()}`;
             await fs.copyFile(resolvedPath, backupPath);
 
-            console.log(`[ToolSandbox] 📸 创建快照: ${resolvedPath} -> ${backupPath}`);
+            logger.info(`[ToolSandbox] 📸 创建快照: ${resolvedPath} -> ${backupPath}`);
 
             return {
               type: 'file',
@@ -302,7 +303,7 @@ class ToolSandbox {
 
       return { type: 'none' };
     } catch (error) {
-      console.error(`[ToolSandbox] 创建快照失败:`, error);
+      logger.error(`[ToolSandbox] 创建快照失败:`, error);
       return { type: 'none' };
     }
   }
@@ -318,19 +319,19 @@ class ToolSandbox {
         await fs.copyFile(snapshot.backupPath, snapshot.originalPath);
         await fs.unlink(snapshot.backupPath); // 删除备份文件
 
-        console.log(`[ToolSandbox] ⏪ 回滚成功: ${snapshot.originalPath}`);
+        logger.info(`[ToolSandbox] ⏪ 回滚成功: ${snapshot.originalPath}`);
 
       } else if (snapshot.type === 'new_file') {
         // 删除新创建的文件
         try {
           await fs.unlink(snapshot.originalPath);
-          console.log(`[ToolSandbox] ⏪ 删除新文件: ${snapshot.originalPath}`);
+          logger.info(`[ToolSandbox] ⏪ 删除新文件: ${snapshot.originalPath}`);
         } catch (error) {
           // 文件可能不存在，忽略
         }
       }
     } catch (error) {
-      console.error(`[ToolSandbox] ⚠️ 回滚失败:`, error);
+      logger.error(`[ToolSandbox] ⚠️ 回滚失败:`, error);
     }
   }
 
@@ -395,7 +396,7 @@ class ToolSandbox {
         Date.now()
       ]);
     } catch (err) {
-      console.error('[ToolSandbox] 记录日志失败:', err);
+      logger.error('[ToolSandbox] 记录日志失败:', err);
     }
   }
 
@@ -441,7 +442,7 @@ class ToolSandbox {
    */
   registerValidator(toolName, validator) {
     this.validators[toolName] = validator;
-    console.log(`[ToolSandbox] 注册校验器: ${toolName}`);
+    logger.info(`[ToolSandbox] 注册校验器: ${toolName}`);
   }
 
   /**
@@ -479,7 +480,7 @@ class ToolSandbox {
         }))
       };
     } catch (error) {
-      console.error('[ToolSandbox] 获取统计失败:', error);
+      logger.error('[ToolSandbox] 获取统计失败:', error);
       return null;
     }
   }

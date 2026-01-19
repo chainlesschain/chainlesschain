@@ -1,3 +1,5 @@
+const { logger, createLogger } = require('../utils/logger.js');
+
 /**
  * 技能推荐引擎
  * 基于用户意图和使用频率智能推荐技能
@@ -100,7 +102,7 @@ class SkillRecommender {
 
       return recommendations;
     } catch (error) {
-      console.error('[SkillRecommender] 推荐失败:', error);
+      logger.error('[SkillRecommender] 推荐失败:', error);
       return [];
     }
   }
@@ -415,7 +417,7 @@ class SkillRecommender {
    */
   clearCache() {
     this.cache.clear();
-    console.log('[SkillRecommender] 缓存已清除');
+    logger.info('[SkillRecommender] 缓存已清除');
   }
 
   /**

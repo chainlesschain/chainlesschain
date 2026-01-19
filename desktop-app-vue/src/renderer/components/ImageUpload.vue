@@ -549,6 +549,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, reactive, computed, onMounted, toRaw } from 'vue';
 import { message, Modal } from 'ant-design-vue';
 import {
@@ -651,7 +653,7 @@ const handleSelectFiles = async () => {
       await uploadImages(result.filePaths);
     }
   } catch (error) {
-    console.error('选择文件失败:', error);
+    logger.error('选择文件失败:', error);
     message.error('选择文件失败: ' + error.message);
   }
 };
@@ -719,7 +721,7 @@ const uploadImages = async (filePaths) => {
     await loadImages();
     await loadStats();
   } catch (error) {
-    console.error('上传失败:', error);
+    logger.error('上传失败:', error);
     uploadProgress.status = 'exception';
     message.error('上传失败: ' + error.message);
   } finally {
@@ -755,7 +757,7 @@ const loadImages = async () => {
       pagination.total = result.length;
     }
   } catch (error) {
-    console.error('加载图片列表失败:', error);
+    logger.error('加载图片列表失败:', error);
     message.error('加载图片列表失败: ' + error.message);
   } finally {
     loadingImages.value = false;
@@ -769,7 +771,7 @@ const loadStats = async () => {
     Object.assign(imageStats, stats);
     pagination.total = stats.totalImages;
   } catch (error) {
-    console.error('加载统计信息失败:', error);
+    logger.error('加载统计信息失败:', error);
   }
 };
 
@@ -788,7 +790,7 @@ const handleSearch = async () => {
     pagination.total = result.length;
     message.info(`找到 ${result.length} 张图片`);
   } catch (error) {
-    console.error('搜索失败:', error);
+    logger.error('搜索失败:', error);
     message.error('搜索失败: ' + error.message);
   } finally {
     loadingImages.value = false;
@@ -809,7 +811,7 @@ const viewImage = async (imageId) => {
     currentImage.value = image;
     imageViewerVisible.value = true;
   } catch (error) {
-    console.error('加载图片详情失败:', error);
+    logger.error('加载图片详情失败:', error);
     message.error('加载图片详情失败: ' + error.message);
   }
 };
@@ -821,7 +823,7 @@ const copyOCRText = (text) => {
   navigator.clipboard.writeText(text).then(() => {
     message.success('文本已复制到剪贴板');
   }).catch((error) => {
-    console.error('复制失败:', error);
+    logger.error('复制失败:', error);
     message.error('复制失败');
   });
 };
@@ -845,7 +847,7 @@ const deleteImage = async (imageId) => {
           imageViewerVisible.value = false;
         }
       } catch (error) {
-        console.error('删除失败:', error);
+        logger.error('删除失败:', error);
         message.error('删除失败: ' + error.message);
       }
     },

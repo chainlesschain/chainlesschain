@@ -13,6 +13,7 @@
  * - Activity tracking
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const { v4: uuidv4 } = require('uuid');
 const EventEmitter = require('events');
 
@@ -94,11 +95,11 @@ class KnowledgeCommentsManager extends EventEmitter {
 
       this.emit('comment:created', comment);
 
-      console.log(`[KnowledgeComments] Created comment ${commentId} for knowledge ${knowledgeId}`);
+      logger.info(`[KnowledgeComments] Created comment ${commentId} for knowledge ${knowledgeId}`);
       return comment;
 
     } catch (error) {
-      console.error('[KnowledgeComments] Error creating comment:', error);
+      logger.error('[KnowledgeComments] Error creating comment:', error);
       throw error;
     }
   }
@@ -150,7 +151,7 @@ class KnowledgeCommentsManager extends EventEmitter {
       return comments;
 
     } catch (error) {
-      console.error('[KnowledgeComments] Error getting comments:', error);
+      logger.error('[KnowledgeComments] Error getting comments:', error);
       throw error;
     }
   }
@@ -193,7 +194,7 @@ class KnowledgeCommentsManager extends EventEmitter {
       return comment;
 
     } catch (error) {
-      console.error('[KnowledgeComments] Error updating comment:', error);
+      logger.error('[KnowledgeComments] Error updating comment:', error);
       throw error;
     }
   }
@@ -229,10 +230,10 @@ class KnowledgeCommentsManager extends EventEmitter {
 
       this.emit('comment:deleted', { commentId, knowledgeId: comment.knowledge_id });
 
-      console.log(`[KnowledgeComments] Deleted comment ${commentId}`);
+      logger.info(`[KnowledgeComments] Deleted comment ${commentId}`);
 
     } catch (error) {
-      console.error('[KnowledgeComments] Error deleting comment:', error);
+      logger.error('[KnowledgeComments] Error deleting comment:', error);
       throw error;
     }
   }
@@ -269,10 +270,10 @@ class KnowledgeCommentsManager extends EventEmitter {
 
       this.emit('comment:resolved', { commentId, resolvedBy });
 
-      console.log(`[KnowledgeComments] Resolved comment ${commentId}`);
+      logger.info(`[KnowledgeComments] Resolved comment ${commentId}`);
 
     } catch (error) {
-      console.error('[KnowledgeComments] Error resolving comment:', error);
+      logger.error('[KnowledgeComments] Error resolving comment:', error);
       throw error;
     }
   }
@@ -297,7 +298,7 @@ class KnowledgeCommentsManager extends EventEmitter {
       return stats;
 
     } catch (error) {
-      console.error('[KnowledgeComments] Error getting stats:', error);
+      logger.error('[KnowledgeComments] Error getting stats:', error);
       throw error;
     }
   }
@@ -372,7 +373,7 @@ class KnowledgeCommentsManager extends EventEmitter {
         Date.now()
       ]);
     } catch (error) {
-      console.error('[KnowledgeComments] Error logging activity:', error);
+      logger.error('[KnowledgeComments] Error logging activity:', error);
     }
   }
 
@@ -390,7 +391,7 @@ class KnowledgeCommentsManager extends EventEmitter {
       const message = JSON.stringify(event);
       await this.p2pManager.pubsub.publish(topic, Buffer.from(message));
     } catch (error) {
-      console.error('[KnowledgeComments] Error broadcasting event:', error);
+      logger.error('[KnowledgeComments] Error broadcasting event:', error);
     }
   }
 
@@ -400,7 +401,7 @@ class KnowledgeCommentsManager extends EventEmitter {
    */
   async _notifyMentionedUsers(knowledgeId, mentions, authorName, content) {
     // TODO: Implement notification system integration
-    console.log(`[KnowledgeComments] Notifying mentioned users:`, mentions);
+    logger.info(`[KnowledgeComments] Notifying mentioned users:`, mentions);
   }
 }
 

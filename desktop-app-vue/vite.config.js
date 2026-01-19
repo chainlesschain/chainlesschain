@@ -29,7 +29,7 @@ export default defineConfig({
         // 手动分块：将大型库分离到独立的 chunk
         manualChunks: {
           'monaco': ['monaco-editor'],
-          'charts': ['echarts', 'echarts-gl'],
+          // echarts 已优化为按需导入，无需单独分块
           'editor': ['@milkdown/core', '@milkdown/preset-commonmark', '@milkdown/preset-gfm'],
           'codemirror': ['@codemirror/state', '@codemirror/view', '@codemirror/lang-javascript', '@codemirror/lang-css', '@codemirror/lang-html'],
           'vue-vendor': ['vue', 'vue-router', 'pinia'],
@@ -72,8 +72,8 @@ export default defineConfig({
     dedupe: ['vue', 'vue-router', 'pinia'],
   },
   optimizeDeps: {
-    include: ['monaco-editor', 'echarts'],
-    // 排除不需要预构建的依赖
+    include: ['monaco-editor'],
+    // echarts 已优化为按需导入，无需预构建
     // ant-design-vue 组件已按需导入，无需预构建
     exclude: [],
   },

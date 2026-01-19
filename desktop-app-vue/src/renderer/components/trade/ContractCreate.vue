@@ -635,6 +635,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, reactive, computed, watch } from 'vue';
 import { message as antMessage } from 'ant-design-vue';
 import dayjs from 'dayjs';
@@ -694,7 +696,7 @@ const loadTemplates = async () => {
   try {
     await tradeStore.loadContractTemplates();
   } catch (error) {
-    console.error('[ContractCreate] 加载合约模板失败:', error);
+    logger.error('[ContractCreate] 加载合约模板失败:', error);
     antMessage.error(error.message || '加载合约模板失败');
   }
 };
@@ -771,7 +773,7 @@ const fetchGasEstimate = async () => {
 
     antMessage.success('Gas 估算已更新');
   } catch (error) {
-    console.error('[ContractCreate] Gas 估算失败:', error);
+    logger.error('[ContractCreate] Gas 估算失败:', error);
     antMessage.error('Gas 估算失败');
   }
 };
@@ -839,7 +841,7 @@ const handleCreate = async () => {
       params
     );
 
-    console.log('[ContractCreate] 合约创建成功:', contract.id);
+    logger.info('[ContractCreate] 合约创建成功:', contract.id);
 
     if (formData.onChain) {
       antMessage.success('合约创建成功，正在部署到区块链...');
@@ -857,7 +859,7 @@ const handleCreate = async () => {
     // 重置
     reset();
   } catch (error) {
-    console.error('[ContractCreate] 创建合约失败:', error);
+    logger.error('[ContractCreate] 创建合约失败:', error);
     antMessage.error(error.message || '创建合约失败');
   }
 };

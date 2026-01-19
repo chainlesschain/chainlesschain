@@ -246,6 +246,8 @@
 </template>
 
 <script setup>
+import { logger, createLogger } from '@/utils/logger';
+
 import { ref, computed, onMounted } from 'vue';
 import { message, Modal } from 'ant-design-vue';
 import {
@@ -339,7 +341,7 @@ async function loadMembers() {
       message.error(result.error || 'Failed to load members');
     }
   } catch (error) {
-    console.error('Error loading members:', error);
+    logger.error('Error loading members:', error);
     message.error('Failed to load members');
   } finally {
     loading.value = false;
@@ -407,7 +409,7 @@ async function changeRole(member, newRole) {
           message.error(result.error || 'Failed to change member role');
         }
       } catch (error) {
-        console.error('Error changing member role:', error);
+        logger.error('Error changing member role:', error);
         message.error('Failed to change member role');
       }
     }
@@ -435,7 +437,7 @@ async function removeMember(member) {
           message.error(result.error || 'Failed to remove member');
         }
       } catch (error) {
-        console.error('Error removing member:', error);
+        logger.error('Error removing member:', error);
         message.error('Failed to remove member');
       }
     }

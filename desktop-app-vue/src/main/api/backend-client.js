@@ -3,6 +3,7 @@
  * 封装与Java和Python后端服务的HTTP通信
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const axios = require('axios');
 
 // 从环境变量或配置读取后端地址
@@ -56,7 +57,7 @@ function handleError(error, context, silent = false) {
   }
 
   if (shouldLog) {
-    console.error(`[BackendClient] ${context} 失败:`, error);
+    logger.error(`[BackendClient] ${context} 失败:`, error);
   }
 
   if (error.response) {

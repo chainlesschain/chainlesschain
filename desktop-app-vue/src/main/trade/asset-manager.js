@@ -9,6 +9,7 @@
  * - 余额管理
  */
 
+const { logger, createLogger } = require('../utils/logger.js');
 const EventEmitter = require('events');
 const { v4: uuidv4 } = require('uuid');
 
@@ -51,16 +52,16 @@ class AssetManager extends EventEmitter {
    * 初始化资产管理器
    */
   async initialize() {
-    console.log('[AssetManager] 初始化资产管理器...');
+    logger.info('[AssetManager] 初始化资产管理器...');
 
     try {
       // 初始化数据库表
       await this.initializeTables();
 
       this.initialized = true;
-      console.log('[AssetManager] 资产管理器初始化成功');
+      logger.info('[AssetManager] 资产管理器初始化成功');
     } catch (error) {
-      console.error('[AssetManager] 初始化失败:', error);
+      logger.error('[AssetManager] 初始化失败:', error);
       throw error;
     }
   }
@@ -144,7 +145,7 @@ class AssetManager extends EventEmitter {
       CREATE INDEX IF NOT EXISTS idx_blockchain_assets_contract ON blockchain_assets(contract_address, chain_id);
     `);
 
-    console.log('[AssetManager] 数据库表初始化完成');
+    logger.info('[AssetManager] 数据库表初始化完成');
   }
 
   /**
@@ -241,7 +242,7 @@ class AssetManager extends EventEmitter {
         created_at: now,
       };
 
-      console.log('[AssetManager] 已创建资产:', assetId);
+      logger.info('[AssetManager] 已创建资产:', assetId);
 
       // 如果需要部署到区块链
       if (onChain && this.blockchainAdapter) {
@@ -257,10 +258,10 @@ class AssetManager extends EventEmitter {
             password
           });
 
-          console.log('[AssetManager] 资产已成功部署到区块链');
+          logger.info('[AssetManager] 资产已成功部署到区块链');
           this.emit('asset:deployed', { asset });
         } catch (error) {
-          console.error('[AssetManager] 区块链部署失败:', error);
+          logger.error('[AssetManager] 区块链部署失败:', error);
           // 部署失败不影响本地资产创建，只记录错误
           this.emit('asset:deployment-failed', { assetId, error: error.message });
         }
@@ -270,7 +271,7 @@ class AssetManager extends EventEmitter {
 
       return asset;
     } catch (error) {
-      console.error('[AssetManager] 创建资产失败:', error);
+      logger.error('[AssetManager] 创建资产失败:', error);
       throw error;
     }
   }
@@ -334,13 +335,13 @@ class AssetManager extends EventEmitter {
         VALUES (?, ?, ?, ?, ?, ?, ?)
       `).run(transferId, assetId, 'SYSTEM', toDid, amount, TransactionType.MINT, now);
 
-      console.log('[AssetManager] 已铸造资产:', assetId, amount);
+      logger.info('[AssetManager] 已铸造资产:', assetId, amount);
 
       this.emit('asset:minted', { assetId, toDid, amount });
 
       return { success: true, transferId };
     } catch (error) {
-      console.error('[AssetManager] 铸造资产失败:', error);
+      logger.error('[AssetManager] 铸造资产失败:', error);
       throw error;
     }
   }
@@ -410,7 +411,7 @@ class AssetManager extends EventEmitter {
             throw new Error('链上转账需要提供钱包 ID 和密码');
           }
 
-          console.log('[AssetManager] 执行链上转账:', {
+          logger.info('[AssetManager] 执行链上转账:', {
             contractAddress: blockchainAsset.contract_address,
             chainId: blockchainAsset.chain_id,
             to: onChainOptions.toAddress,
@@ -455,14 +456,14 @@ class AssetManager extends EventEmitter {
             throw new Error(`不支持的代币类型: ${blockchainAsset.token_type}`);
           }
 
-          console.log('[AssetManager] 链上转账成功:', blockchainTxHash);
+          logger.info('[AssetManager] 链上转账成功:', blockchainTxHash);
           this.emit('asset:on-chain-transferred', {
             assetId,
             txHash: blockchainTxHash,
             chainId: blockchainAsset.chain_id
           });
         } catch (error) {
-          console.error('[AssetManager] 链上转账失败:', error);
+          logger.error('[AssetManager] 链上转账失败:', error);
           // 链上转账失败，抛出错误，不执行本地转账
           throw new Error(`链上转账失败: ${error.message}`);
         }
@@ -502,7 +503,7 @@ class AssetManager extends EventEmitter {
         now
       );
 
-      console.log('[AssetManager] 已转账资产:', assetId, currentDid, '->', toDid, amount);
+      logger.info('[AssetManager] 已转账资产:', assetId, currentDid, '->', toDid, amount);
 
       // 通过 P2P 通知接收者
       if (this.p2pManager) {
@@ -518,7 +519,7 @@ class AssetManager extends EventEmitter {
             timestamp: now,
           }));
         } catch (error) {
-          console.warn('[AssetManager] 通知接收者失败:', error.message);
+          logger.warn('[AssetManager] 通知接收者失败:', error.message);
         }
       }
 
@@ -536,7 +537,7 @@ class AssetManager extends EventEmitter {
         blockchainTxHash
       };
     } catch (error) {
-      console.error('[AssetManager] 转账失败:', error);
+      logger.error('[AssetManager] 转账失败:', error);
       throw error;
     }
   }
@@ -594,13 +595,13 @@ class AssetManager extends EventEmitter {
         VALUES (?, ?, ?, ?, ?, ?, ?)
       `).run(transferId, assetId, currentDid, 'BURNED', amount, TransactionType.BURN, now);
 
-      console.log('[AssetManager] 已销毁资产:', assetId, amount);
+      logger.info('[AssetManager] 已销毁资产:', assetId, amount);
 
       this.emit('asset:burned', { assetId, fromDid: currentDid, amount });
 
       return { success: true, transferId };
     } catch (error) {
-      console.error('[AssetManager] 销毁资产失败:', error);
+      logger.error('[AssetManager] 销毁资产失败:', error);
       throw error;
     }
   }
@@ -666,7 +667,7 @@ class AssetManager extends EventEmitter {
         throw new Error('NFT 缺少 token_id');
       }
 
-      console.log('[AssetManager] 执行 NFT 链上转账:', {
+      logger.info('[AssetManager] 执行 NFT 链上转账:', {
         contractAddress: blockchainAsset.contract_address,
         chainId: blockchainAsset.chain_id,
         tokenId: blockchainAsset.token_id,
@@ -691,7 +692,7 @@ class AssetManager extends EventEmitter {
           throw new Error(`链上所有权验证失败。当前所有者: ${onChainOwner}, 您的地址: ${fromAddress}`);
         }
       } catch (error) {
-        console.error('[AssetManager] 链上所有权验证失败:', error);
+        logger.error('[AssetManager] 链上所有权验证失败:', error);
         throw new Error(`无法验证链上所有权: ${error.message}`);
       }
 
@@ -705,7 +706,7 @@ class AssetManager extends EventEmitter {
         password
       );
 
-      console.log('[AssetManager] NFT 链上转账成功:', blockchainTxHash);
+      logger.info('[AssetManager] NFT 链上转账成功:', blockchainTxHash);
 
       // 执行本地转账（记录）
       const now = Date.now();
@@ -743,7 +744,7 @@ class AssetManager extends EventEmitter {
         now
       );
 
-      console.log('[AssetManager] NFT 本地记录已更新');
+      logger.info('[AssetManager] NFT 本地记录已更新');
 
       // 通过 P2P 通知接收者
       if (this.p2pManager) {
@@ -762,7 +763,7 @@ class AssetManager extends EventEmitter {
             timestamp: now,
           }));
         } catch (error) {
-          console.warn('[AssetManager] 通知接收者失败:', error.message);
+          logger.warn('[AssetManager] 通知接收者失败:', error.message);
         }
       }
 
@@ -784,7 +785,7 @@ class AssetManager extends EventEmitter {
         tokenId: blockchainAsset.token_id
       };
     } catch (error) {
-      console.error('[AssetManager] NFT 转账失败:', error);
+      logger.error('[AssetManager] NFT 转账失败:', error);
       throw error;
     }
   }
@@ -807,7 +808,7 @@ class AssetManager extends EventEmitter {
         metadata: asset.metadata ? JSON.parse(asset.metadata) : {},
       };
     } catch (error) {
-      console.error('[AssetManager] 获取资产失败:', error);
+      logger.error('[AssetManager] 获取资产失败:', error);
       throw error;
     }
   }
@@ -840,7 +841,7 @@ class AssetManager extends EventEmitter {
         metadata: h.metadata ? JSON.parse(h.metadata) : {},
       }));
     } catch (error) {
-      console.error('[AssetManager] 获取资产列表失败:', error);
+      logger.error('[AssetManager] 获取资产列表失败:', error);
       throw error;
     }
   }
@@ -861,7 +862,7 @@ class AssetManager extends EventEmitter {
         LIMIT ?
       `).all(assetId, limit);
     } catch (error) {
-      console.error('[AssetManager] 获取资产历史失败:', error);
+      logger.error('[AssetManager] 获取资产历史失败:', error);
       throw error;
     }
   }
@@ -882,7 +883,7 @@ class AssetManager extends EventEmitter {
 
       return holding ? holding.amount : 0;
     } catch (error) {
-      console.error('[AssetManager] 获取余额失败:', error);
+      logger.error('[AssetManager] 获取余额失败:', error);
       return 0;
     }
   }
@@ -922,7 +923,7 @@ class AssetManager extends EventEmitter {
         metadata: a.metadata ? JSON.parse(a.metadata) : {},
       }));
     } catch (error) {
-      console.error('[AssetManager] 获取资产列表失败:', error);
+      logger.error('[AssetManager] 获取资产列表失败:', error);
       throw error;
     }
   }
@@ -962,7 +963,7 @@ class AssetManager extends EventEmitter {
       deploymentTx = result.txHash;
       tokenType = 'ERC20';
 
-      console.log(`[AssetManager] ERC-20 代币已部署: ${contractAddress}`);
+      logger.info(`[AssetManager] ERC-20 代币已部署: ${contractAddress}`);
     } else if (type === AssetType.NFT) {
       // 部署 ERC-721 NFT
       const result = await this.blockchainAdapter.deployNFT(walletId, {
@@ -975,7 +976,7 @@ class AssetManager extends EventEmitter {
       deploymentTx = result.txHash;
       tokenType = 'ERC721';
 
-      console.log(`[AssetManager] ERC-721 NFT 已部署: ${contractAddress}`);
+      logger.info(`[AssetManager] ERC-721 NFT 已部署: ${contractAddress}`);
     } else {
       throw new Error(`不支持的资产类型部署到区块链: ${type}`);
     }
@@ -1009,7 +1010,7 @@ class AssetManager extends EventEmitter {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `).run(id, localAssetId, contractAddress, chainId, tokenType, tokenId, deploymentTx, now);
 
-    console.log(`[AssetManager] 已保存区块链资产记录: ${id}`);
+    logger.info(`[AssetManager] 已保存区块链资产记录: ${id}`);
 
     return id;
   }
@@ -1029,7 +1030,7 @@ class AssetManager extends EventEmitter {
 
       return blockchainAsset || null;
     } catch (error) {
-      console.error('[AssetManager] 获取区块链资产失败:', error);
+      logger.error('[AssetManager] 获取区块链资产失败:', error);
       return null;
     }
   }
@@ -1038,7 +1039,7 @@ class AssetManager extends EventEmitter {
    * 关闭资产管理器
    */
   async close() {
-    console.log('[AssetManager] 关闭资产管理器');
+    logger.info('[AssetManager] 关闭资产管理器');
 
     this.removeAllListeners();
     this.initialized = false;
