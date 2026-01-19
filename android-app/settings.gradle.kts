@@ -26,6 +26,7 @@ include(":core-database")
 include(":core-network")
 include(":core-security")
 include(":core-p2p")
+include(":core-did")
 include(":core-ui")
 
 // 功能模块
