@@ -6,7 +6,11 @@
     :footer="null"
     @cancel="handleCancel"
   >
-    <a-steps :current="currentStep" size="small" class="migration-steps">
+    <a-steps
+      :current="currentStep"
+      size="small"
+      class="migration-steps"
+    >
       <a-step title="选择类型" />
       <a-step title="设置路径" />
       <a-step title="确认迁移" />
@@ -15,12 +19,27 @@
 
     <div class="migration-content">
       <!-- 步骤0: 选择迁移类型 -->
-      <div v-if="currentStep === 0" class="step-panel">
-        <a-typography-title :level="4">选择要迁移的内容</a-typography-title>
-        <a-radio-group v-model:value="migrationType" button-style="solid" size="large">
-          <a-radio-button value="project">项目文件</a-radio-button>
-          <a-radio-button value="database">数据库</a-radio-button>
-          <a-radio-button value="both">全部迁移</a-radio-button>
+      <div
+        v-if="currentStep === 0"
+        class="step-panel"
+      >
+        <a-typography-title :level="4">
+          选择要迁移的内容
+        </a-typography-title>
+        <a-radio-group
+          v-model:value="migrationType"
+          button-style="solid"
+          size="large"
+        >
+          <a-radio-button value="project">
+            项目文件
+          </a-radio-button>
+          <a-radio-button value="database">
+            数据库
+          </a-radio-button>
+          <a-radio-button value="both">
+            全部迁移
+          </a-radio-button>
         </a-radio-group>
 
         <a-alert
@@ -33,15 +52,23 @@
       </div>
 
       <!-- 步骤1: 设置新路径 -->
-      <div v-if="currentStep === 1" class="step-panel">
-        <a-typography-title :level="4">设置新路径</a-typography-title>
+      <div
+        v-if="currentStep === 1"
+        class="step-panel"
+      >
+        <a-typography-title :level="4">
+          设置新路径
+        </a-typography-title>
 
         <a-form layout="vertical">
           <a-form-item
             v-if="migrationType === 'project' || migrationType === 'both'"
             label="当前项目路径"
           >
-            <a-input :value="currentPaths.project" disabled />
+            <a-input
+              :value="currentPaths.project"
+              disabled
+            />
           </a-form-item>
 
           <a-form-item
@@ -55,7 +82,10 @@
                 style="width: calc(100% - 100px)"
                 placeholder="选择新的项目路径"
               />
-              <a-button style="width: 100px" @click="browseProjectPath">
+              <a-button
+                style="width: 100px"
+                @click="browseProjectPath"
+              >
                 浏览...
               </a-button>
             </a-input-group>
@@ -65,7 +95,10 @@
             v-if="migrationType === 'database' || migrationType === 'both'"
             label="当前数据库路径"
           >
-            <a-input :value="currentPaths.database" disabled />
+            <a-input
+              :value="currentPaths.database"
+              disabled
+            />
           </a-form-item>
 
           <a-form-item
@@ -79,7 +112,10 @@
                 style="width: calc(100% - 100px)"
                 placeholder="选择新的数据库路径"
               />
-              <a-button style="width: 100px" @click="browseDatabasePath">
+              <a-button
+                style="width: 100px"
+                @click="browseDatabasePath"
+              >
                 浏览...
               </a-button>
             </a-input-group>
@@ -88,10 +124,18 @@
       </div>
 
       <!-- 步骤2: 确认迁移 -->
-      <div v-if="currentStep === 2" class="step-panel">
-        <a-typography-title :level="4">确认迁移信息</a-typography-title>
+      <div
+        v-if="currentStep === 2"
+        class="step-panel"
+      >
+        <a-typography-title :level="4">
+          确认迁移信息
+        </a-typography-title>
 
-        <a-descriptions bordered :column="1">
+        <a-descriptions
+          bordered
+          :column="1"
+        >
           <a-descriptions-item
             v-if="migrationType === 'project' || migrationType === 'both'"
             label="项目文件迁移"
@@ -117,20 +161,29 @@
           class="migration-alert"
         />
 
-        <a-checkbox v-model:checked="confirmed" class="migration-checkbox">
+        <a-checkbox
+          v-model:checked="confirmed"
+          class="migration-checkbox"
+        >
           我已阅读并理解上述提示，确认开始迁移
         </a-checkbox>
       </div>
 
       <!-- 步骤3: 迁移进度 -->
-      <div v-if="currentStep === 3" class="step-panel">
+      <div
+        v-if="currentStep === 3"
+        class="step-panel"
+      >
         <a-result
           :status="migrationStatus"
           :title="getMigrationStatusTitle()"
           :sub-title="migrationMessage"
         >
           <template #icon>
-            <a-spin v-if="migrating" size="large" />
+            <a-spin
+              v-if="migrating"
+              size="large"
+            />
           </template>
         </a-result>
 

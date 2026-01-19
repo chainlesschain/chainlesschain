@@ -1,7 +1,10 @@
 <template>
   <div class="plan-preview">
     <!-- 计划概要 -->
-    <a-card title="📋 执行计划" class="plan-card">
+    <a-card
+      title="📋 执行计划"
+      class="plan-card"
+    >
       <div class="plan-steps">
         <a-timeline>
           <a-timeline-item
@@ -12,12 +15,20 @@
             <div class="step-content">
               <div class="step-title">
                 <strong>{{ step.name }}</strong>
-                <a-tag v-if="step.tool" color="blue">{{ step.tool }}</a-tag>
+                <a-tag
+                  v-if="step.tool"
+                  color="blue"
+                >
+                  {{ step.tool }}
+                </a-tag>
               </div>
               <div class="step-description">
                 {{ step.description }}
               </div>
-              <div v-if="step.estimatedTime" class="step-time">
+              <div
+                v-if="step.estimatedTime"
+                class="step-time"
+              >
                 预计耗时: {{ step.estimatedTime }}
               </div>
             </div>
@@ -27,7 +38,10 @@
     </a-card>
 
     <!-- 预期输出 -->
-    <a-card title="📂 预期输出" class="plan-card">
+    <a-card
+      title="📂 预期输出"
+      class="plan-card"
+    >
       <div class="expected-outputs">
         <div
           v-for="(file, index) in plan?.expectedOutputs || []"
@@ -38,7 +52,10 @@
             {{ getFileTypeLabel(file.type) }}
           </a-tag>
           <span class="file-name">{{ file.name }}</span>
-          <span v-if="file.description" class="file-desc">
+          <span
+            v-if="file.description"
+            class="file-desc"
+          >
             - {{ file.description }}
           </span>
         </div>
@@ -50,9 +67,15 @@
     </a-card>
 
     <!-- 推荐资源 -->
-    <a-tabs v-model:activeKey="activeTab" class="recommendations-tabs">
+    <a-tabs
+      v-model:active-key="activeTab"
+      class="recommendations-tabs"
+    >
       <!-- 推荐模板 -->
-      <a-tab-pane key="templates" tab="📝 推荐模板">
+      <a-tab-pane
+        key="templates"
+        tab="📝 推荐模板"
+      >
         <div class="recommendations-list">
           <div
             v-for="template in recommendedTemplates"
@@ -60,8 +83,12 @@
             class="recommendation-item"
           >
             <div class="item-info">
-              <div class="item-title">{{ template.name }}</div>
-              <div class="item-description">{{ template.description }}</div>
+              <div class="item-title">
+                {{ template.name }}
+              </div>
+              <div class="item-description">
+                {{ template.description }}
+              </div>
               <div class="item-meta">
                 <a-tag>{{ template.category }}</a-tag>
                 <span class="match-score">
@@ -84,7 +111,10 @@
       </a-tab-pane>
 
       <!-- 推荐技能 -->
-      <a-tab-pane key="skills" tab="⚡ 推荐技能">
+      <a-tab-pane
+        key="skills"
+        tab="⚡ 推荐技能"
+      >
         <div class="recommendations-list">
           <div
             v-for="skill in recommendedSkills"
@@ -92,8 +122,12 @@
             class="recommendation-item"
           >
             <div class="item-info">
-              <div class="item-title">{{ skill.name }}</div>
-              <div class="item-description">{{ skill.description }}</div>
+              <div class="item-title">
+                {{ skill.name }}
+              </div>
+              <div class="item-description">
+                {{ skill.description }}
+              </div>
               <div class="item-meta">
                 <a-tag>{{ skill.category }}</a-tag>
                 <span class="match-score">
@@ -110,7 +144,10 @@
       </a-tab-pane>
 
       <!-- 推荐工具 -->
-      <a-tab-pane key="tools" tab="🔧 使用工具">
+      <a-tab-pane
+        key="tools"
+        tab="🔧 使用工具"
+      >
         <div class="tools-list">
           <a-tag
             v-for="tool in recommendedTools"
@@ -129,15 +166,27 @@
     </a-tabs>
 
     <!-- 调整参数 -->
-    <a-card title="⚙️ 调整参数" class="plan-card">
+    <a-card
+      title="⚙️ 调整参数"
+      class="plan-card"
+    >
       <a-form layout="vertical">
         <a-row :gutter="16">
           <a-col :span="12">
             <a-form-item label="输出质量">
-              <a-select v-model:value="adjustments.quality" placeholder="选择质量级别">
-                <a-select-option value="draft">草稿 (快速生成)</a-select-option>
-                <a-select-option value="normal">标准 (平衡质量与速度)</a-select-option>
-                <a-select-option value="high">高质量 (细致打磨)</a-select-option>
+              <a-select
+                v-model:value="adjustments.quality"
+                placeholder="选择质量级别"
+              >
+                <a-select-option value="draft">
+                  草稿 (快速生成)
+                </a-select-option>
+                <a-select-option value="normal">
+                  标准 (平衡质量与速度)
+                </a-select-option>
+                <a-select-option value="high">
+                  高质量 (细致打磨)
+                </a-select-option>
               </a-select>
             </a-form-item>
           </a-col>
@@ -207,9 +256,9 @@ const adjustments = reactive({
 
 // 获取步骤颜色
 const getStepColor = (step) => {
-  if (step.status === 'completed') return 'green';
-  if (step.status === 'failed') return 'red';
-  if (step.status === 'running') return 'blue';
+  if (step.status === 'completed') {return 'green';}
+  if (step.status === 'failed') {return 'red';}
+  if (step.status === 'running') {return 'blue';}
   return 'gray';
 };
 

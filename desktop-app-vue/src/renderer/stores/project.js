@@ -84,8 +84,8 @@ export const useProjectStore = defineStore('project', {
 
       // 排序
       result.sort((a, b) => {
-        let aVal = a[state.sortBy];
-        let bVal = b[state.sortBy];
+        const aVal = a[state.sortBy];
+        const bVal = b[state.sortBy];
 
         if (state.sortBy === 'name') {
           return state.sortOrder === 'asc'
@@ -656,7 +656,7 @@ export const useProjectStore = defineStore('project', {
      * @param {string} userId - 用户ID
      */
     async syncProjects(userId) {
-      if (this.syncing) return;
+      if (this.syncing) {return;}
 
       this.syncing = true;
       this.syncError = null;
@@ -697,7 +697,7 @@ export const useProjectStore = defineStore('project', {
     shouldSync() {
       // 超过5分钟自动同步
       const lastSync = localStorage.getItem('project_last_sync');
-      if (!lastSync) return true;
+      if (!lastSync) {return true;}
       return Date.now() - parseInt(lastSync) > 5 * 60 * 1000;
     },
 

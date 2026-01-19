@@ -228,7 +228,7 @@ async function updateAllTemplates() {
   console.log('📁 模板目录:', templatesDir);
   console.log('🔄 开始扫描模板...\n');
 
-  let stats = {
+  const stats = {
     total: 0,
     updated: 0,
     skipped: 0,
@@ -243,14 +243,14 @@ async function updateAllTemplates() {
 
     try {
       const stat = await fs.stat(categoryPath);
-      if (!stat.isDirectory()) continue;
+      if (!stat.isDirectory()) {continue;}
 
       console.log(`\n📂 处理分类: ${category}`);
 
       const files = await fs.readdir(categoryPath);
 
       for (const file of files) {
-        if (!file.endsWith('.json')) continue;
+        if (!file.endsWith('.json')) {continue;}
 
         stats.total++;
         const filePath = path.join(categoryPath, file);
@@ -262,9 +262,9 @@ async function updateAllTemplates() {
 
         const result = await addSkillsAndTools(filePath, category, subcategory);
 
-        if (result.updated) stats.updated++;
-        if (result.skipped) stats.skipped++;
-        if (result.error) stats.errors++;
+        if (result.updated) {stats.updated++;}
+        if (result.skipped) {stats.skipped++;}
+        if (result.error) {stats.errors++;}
       }
     } catch (error) {
       if (error.code !== 'ENOENT') {

@@ -241,6 +241,7 @@ import { db } from '@/services/database'
 import knowledgeRAG from '@/services/knowledge-rag'
 import FolderSelector from '@/components/FolderSelector.vue'
 import Skeleton from '@/components/Skeleton.vue'
+import { debounce, performanceMonitor } from '@utils/performance'
 
 export default {
   components: {
@@ -286,6 +287,9 @@ export default {
     }
   },
   onLoad(options) {
+    // 性能监控: 标记页面加载开始
+    performanceMonitor.mark('knowledge-list-load-start')
+
     // 如果从文件夹页面跳转过来，设置当前文件夹
     if (options.folderId) {
       this.currentFolderId = parseInt(options.folderId)
@@ -294,6 +298,10 @@ export default {
 
     this.loadTags()
     this.loadItems()
+  },
+  onReady() {
+    // 性能监控: 测量页面加载时间
+    performanceMonitor.measure('knowledge-list-load', 'knowledge-list-load-start')
   },
   onShow() {
     // 页面显示时重新加载，确保新添加的条目能显示
@@ -367,19 +375,15 @@ export default {
     },
 
     /**
-     * 搜索处理
+     * 搜索处理 - 使用性能工具库的防抖优化
      */
-    handleSearch() {
-      // 防抖搜索
-      clearTimeout(this.searchTimer)
-      this.searchTimer = setTimeout(() => {
-        if (this.searchMode === 'smart' && this.searchQuery.trim()) {
-          this.performSmartSearch()
-        } else {
-          this.loadItems()
-        }
-      }, 300)
-    },
+    handleSearch: debounce(function() {
+      if (this.searchMode === 'smart' && this.searchQuery.trim()) {
+        this.performSmartSearch()
+      } else {
+        this.loadItems()
+      }
+    }, 300),
 
     /**
      * 智能搜索（RAG向量检索）

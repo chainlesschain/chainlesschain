@@ -21,7 +21,7 @@ class HistoryMemoryOptimization {
   setDatabase(db) { this.db = db; }
 
   async learnFromHistory(taskType, context = {}) {
-    if (!this.db || !this.config.enableLearning) return null;
+    if (!this.db || !this.config.enableLearning) {return null;}
 
     const cacheKey = taskType;
     if (this.memoryCache.has(cacheKey)) {
@@ -44,7 +44,7 @@ class HistoryMemoryOptimization {
   }
 
   async recordExecution(task, result, duration, context = {}) {
-    if (!this.db) return;
+    if (!this.db) {return;}
   }
 
   getStats() {

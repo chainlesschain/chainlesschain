@@ -1,18 +1,28 @@
 <template>
-  <a-card class="permission-manager-card" :loading="loading">
+  <a-card
+    class="permission-manager-card"
+    :loading="loading"
+  >
     <template #title>
       <div class="card-header">
         <span>
           <SafetyOutlined /> Permission Management
         </span>
-        <a-button type="primary" @click="showCreateRoleDialog" v-if="canManageRoles">
+        <a-button
+          v-if="canManageRoles"
+          type="primary"
+          @click="showCreateRoleDialog"
+        >
           <PlusOutlined /> Create Role
         </a-button>
       </div>
     </template>
 
-    <a-tabs v-model:activeKey="activeTab">
-      <a-tab-pane key="roles" tab="Roles">
+    <a-tabs v-model:active-key="activeTab">
+      <a-tab-pane
+        key="roles"
+        tab="Roles"
+      >
         <a-table
           :columns="roleColumns"
           :data-source="roles"
@@ -25,7 +35,11 @@
                 <a-tag :color="getRoleColor(record.name)">
                   {{ record.name }}
                 </a-tag>
-                <a-tag v-if="record.isBuiltin" color="blue" size="small">
+                <a-tag
+                  v-if="record.isBuiltin"
+                  color="blue"
+                  size="small"
+                >
                   Built-in
                 </a-tag>
               </div>
@@ -40,7 +54,10 @@
                 >
                   {{ perm }}
                 </a-tag>
-                <a-tag v-if="record.permissions.length > 3" size="small">
+                <a-tag
+                  v-if="record.permissions.length > 3"
+                  size="small"
+                >
                   +{{ record.permissions.length - 3 }} more
                 </a-tag>
               </a-space>
@@ -55,23 +72,31 @@
 
             <template v-if="column.key === 'actions'">
               <a-space>
-                <a-button type="link" size="small" @click="viewRole(record)">
-                  View
-                </a-button>
                 <a-button
                   type="link"
                   size="small"
-                  @click="editRole(record)"
+                  @click="viewRole(record)"
+                >
+                  View
+                </a-button>
+                <a-button
                   v-if="!record.isBuiltin && canManageRoles"
+                  type="link"
+                  size="small"
+                  @click="editRole(record)"
                 >
                   Edit
                 </a-button>
                 <a-popconfirm
+                  v-if="!record.isBuiltin && canManageRoles"
                   title="Are you sure you want to delete this role?"
                   @confirm="deleteRole(record)"
-                  v-if="!record.isBuiltin && canManageRoles"
                 >
-                  <a-button type="link" size="small" danger>
+                  <a-button
+                    type="link"
+                    size="small"
+                    danger
+                  >
                     Delete
                   </a-button>
                 </a-popconfirm>
@@ -81,8 +106,11 @@
         </a-table>
       </a-tab-pane>
 
-      <a-tab-pane key="permissions" tab="Permissions">
-        <a-collapse v-model:activeKey="activePermissions">
+      <a-tab-pane
+        key="permissions"
+        tab="Permissions"
+      >
+        <a-collapse v-model:active-key="activePermissions">
           <a-collapse-panel
             v-for="category in permissionCategories"
             :key="category.key"
@@ -114,7 +142,10 @@
         </a-collapse>
       </a-tab-pane>
 
-      <a-tab-pane key="matrix" tab="Permission Matrix">
+      <a-tab-pane
+        key="matrix"
+        tab="Permission Matrix"
+      >
         <div class="permission-matrix">
           <a-table
             :columns="matrixColumns"
@@ -127,8 +158,8 @@
               <template v-if="column.key !== 'permission'">
                 <a-checkbox
                   :checked="hasPermission(record.key, column.key)"
-                  @change="(e) => togglePermission(record.key, column.key, e.target.checked)"
                   :disabled="!canManageRoles || isBuiltinRole(column.key)"
+                  @change="(e) => togglePermission(record.key, column.key, e.target.checked)"
                 />
               </template>
             </template>
@@ -142,9 +173,9 @@
       v-model:open="roleDialogVisible"
       :title="editingRole ? 'Edit Role' : 'Create Role'"
       :confirm-loading="roleDialogLoading"
+      width="600px"
       @ok="handleRoleSave"
       @cancel="handleRoleCancel"
-      width="600px"
     >
       <a-form
         ref="roleFormRef"
@@ -153,11 +184,20 @@
         :label-col="{ span: 6 }"
         :wrapper-col="{ span: 18 }"
       >
-        <a-form-item label="Role Name" name="name">
-          <a-input v-model:value="roleForm.name" placeholder="Enter role name" />
+        <a-form-item
+          label="Role Name"
+          name="name"
+        >
+          <a-input
+            v-model:value="roleForm.name"
+            placeholder="Enter role name"
+          />
         </a-form-item>
 
-        <a-form-item label="Description" name="description">
+        <a-form-item
+          label="Description"
+          name="description"
+        >
           <a-textarea
             v-model:value="roleForm.description"
             placeholder="Enter role description"
@@ -165,9 +205,12 @@
           />
         </a-form-item>
 
-        <a-form-item label="Permissions" name="permissions">
+        <a-form-item
+          label="Permissions"
+          name="permissions"
+        >
           <a-tree
-            v-model:checkedKeys="roleForm.permissions"
+            v-model:checked-keys="roleForm.permissions"
             checkable
             :tree-data="permissionTree"
             :field-names="{ title: 'label', key: 'key', children: 'children' }"
@@ -183,7 +226,11 @@
       :footer="null"
       width="600px"
     >
-      <a-descriptions bordered :column="1" v-if="viewingRole">
+      <a-descriptions
+        v-if="viewingRole"
+        bordered
+        :column="1"
+      >
         <a-descriptions-item label="Name">
           <a-tag :color="getRoleColor(viewingRole.name)">
             {{ viewingRole.name }}
@@ -195,8 +242,18 @@
         </a-descriptions-item>
 
         <a-descriptions-item label="Type">
-          <a-tag v-if="viewingRole.isBuiltin" color="blue">Built-in</a-tag>
-          <a-tag v-else color="green">Custom</a-tag>
+          <a-tag
+            v-if="viewingRole.isBuiltin"
+            color="blue"
+          >
+            Built-in
+          </a-tag>
+          <a-tag
+            v-else
+            color="green"
+          >
+            Custom
+          </a-tag>
         </a-descriptions-item>
 
         <a-descriptions-item label="Members">
@@ -205,7 +262,10 @@
 
         <a-descriptions-item label="Permissions">
           <a-space wrap>
-            <a-tag v-for="perm in viewingRole.permissions" :key="perm">
+            <a-tag
+              v-for="perm in viewingRole.permissions"
+              :key="perm"
+            >
               {{ perm }}
             </a-tag>
           </a-space>
@@ -513,7 +573,7 @@ function isBuiltinRole(roleName) {
 
 async function togglePermission(permission, roleName, checked) {
   const role = roles.value.find(r => r.name === roleName);
-  if (!role || role.isBuiltin) return;
+  if (!role || role.isBuiltin) {return;}
 
   try {
     const permissions = checked
@@ -549,7 +609,7 @@ function getRoleColor(roleName) {
 }
 
 function formatDate(timestamp) {
-  if (!timestamp) return 'Unknown';
+  if (!timestamp) {return 'Unknown';}
   return new Date(timestamp).toLocaleDateString();
 }
 </script>

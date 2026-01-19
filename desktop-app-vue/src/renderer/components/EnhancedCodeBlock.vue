@@ -16,17 +16,20 @@
             type="text"
             size="small"
             :icon="h(BulbOutlined)"
-            @click="handleExplain"
             :loading="explaining"
+            @click="handleExplain"
           />
         </a-tooltip>
-        <a-tooltip v-if="isRunnable" title="运行代码">
+        <a-tooltip
+          v-if="isRunnable"
+          title="运行代码"
+        >
           <a-button
             type="text"
             size="small"
             :icon="h(PlayCircleOutlined)"
-            @click="handleRun"
             :loading="running"
+            @click="handleRun"
           />
         </a-tooltip>
       </div>
@@ -34,7 +37,7 @@
     <pre class="code-content"><code
       :class="`language-${language}`"
       v-html="highlightedCode"
-    ></code></pre>
+    /></pre>
 
     <!-- 代码解释抽屉 -->
     <a-drawer
@@ -43,10 +46,16 @@
       placement="right"
       :width="500"
     >
-      <div v-if="explanation" class="explanation-content">
-        <div v-html="renderMarkdown(explanation)"></div>
+      <div
+        v-if="explanation"
+        class="explanation-content"
+      >
+        <div v-html="renderMarkdown(explanation)" />
       </div>
-      <div v-else-if="explaining" class="loading-container">
+      <div
+        v-else-if="explaining"
+        class="loading-container"
+      >
         <a-spin tip="AI 正在分析代码..." />
       </div>
     </a-drawer>
@@ -58,12 +67,21 @@
       :footer="null"
       width="700px"
     >
-      <div v-if="runResult" class="run-result">
-        <div v-if="runResult.success" class="result-success">
+      <div
+        v-if="runResult"
+        class="run-result"
+      >
+        <div
+          v-if="runResult.success"
+          class="result-success"
+        >
           <h4>✅ 运行成功</h4>
           <pre>{{ runResult.output }}</pre>
         </div>
-        <div v-else class="result-error">
+        <div
+          v-else
+          class="result-error"
+        >
           <h4>❌ 运行失败</h4>
           <pre>{{ runResult.error }}</pre>
         </div>
@@ -105,7 +123,7 @@ const runResult = ref(null);
 
 // 语法高亮
 const highlightedCode = computed(() => {
-  if (!props.code) return '';
+  if (!props.code) {return '';}
 
   try {
     if (props.language && hljs.getLanguage(props.language)) {
@@ -143,7 +161,7 @@ const handleCopy = async () => {
 
 // 解释代码
 const handleExplain = async () => {
-  if (explaining.value) return;
+  if (explaining.value) {return;}
 
   try {
     explaining.value = true;
@@ -177,7 +195,7 @@ const handleExplain = async () => {
 
 // 运行代码
 const handleRun = async () => {
-  if (running.value) return;
+  if (running.value) {return;}
 
   try {
     running.value = true;
@@ -224,7 +242,7 @@ const handleRun = async () => {
 
 // 简单的 Markdown 渲染（与主页面保持一致）
 const renderMarkdown = (content) => {
-  if (!content) return '';
+  if (!content) {return '';}
 
   return content
     .replace(/```(\w+)?\n([\s\S]*?)```/g, '<pre><code class="language-$1">$2</code></pre>')

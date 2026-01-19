@@ -380,7 +380,7 @@ async function saveExportFile(content, format, defaultName = 'knowledge-graph') 
  * 转义 XML 特殊字符
  */
 function escapeXml(str) {
-  if (!str) return '';
+  if (!str) {return '';}
   return String(str)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
@@ -393,7 +393,7 @@ function escapeXml(str) {
  * 转义 DOT 特殊字符
  */
 function escapeDot(str) {
-  if (!str) return '';
+  if (!str) {return '';}
   return String(str)
     .replace(/\\/g, '\\\\')
     .replace(/"/g, '\\"')
@@ -404,7 +404,7 @@ function escapeDot(str) {
  * 转义 CSV 特殊字符
  */
 function escapeCsv(str) {
-  if (!str) return '';
+  if (!str) {return '';}
   return String(str).replace(/"/g, '""');
 }
 

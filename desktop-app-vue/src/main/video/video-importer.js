@@ -265,7 +265,7 @@ class VideoImporter extends EventEmitter {
    * @returns {number}
    */
   parseFps(fpsString) {
-    if (!fpsString) return 0;
+    if (!fpsString) {return 0;}
     const parts = fpsString.split('/');
     if (parts.length === 2) {
       return parseFloat(parts[0]) / parseFloat(parts[1]);

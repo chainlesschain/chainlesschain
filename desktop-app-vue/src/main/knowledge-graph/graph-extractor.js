@@ -261,7 +261,7 @@ class GraphExtractor {
       .replace(/\[([^\]]+)\]\([^)]+\)/g, ""); // 移除 markdown 链接
 
     allNotes.forEach((note) => {
-      if (note.id === noteId) return;
+      if (note.id === noteId) {return;}
 
       const title = note.title;
       // 检查标题是否在内容中出现（至少3个字符）

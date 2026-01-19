@@ -99,7 +99,7 @@ class AIEngineManager {
         startTime: Date.now(),
       };
 
-      if (onStepUpdate) onStepUpdate(intentStep);
+      if (onStepUpdate) {onStepUpdate(intentStep);}
 
       const intent = await this.intentClassifier.classify(userInput, context);
 
@@ -108,7 +108,7 @@ class AIEngineManager {
       intentStep.duration = intentStep.endTime - intentStep.startTime;
       intentStep.result = intent;
 
-      if (onStepUpdate) onStepUpdate(intentStep);
+      if (onStepUpdate) {onStepUpdate(intentStep);}
 
       console.log(`[AI Engine] 识别意图:`, intent);
 
@@ -120,7 +120,7 @@ class AIEngineManager {
         startTime: Date.now(),
       };
 
-      if (onStepUpdate) onStepUpdate(planStep);
+      if (onStepUpdate) {onStepUpdate(planStep);}
 
       const plan = await this.taskPlanner.plan(intent, context);
 
@@ -129,7 +129,7 @@ class AIEngineManager {
       planStep.duration = planStep.endTime - planStep.startTime;
       planStep.result = plan;
 
-      if (onStepUpdate) onStepUpdate(planStep);
+      if (onStepUpdate) {onStepUpdate(planStep);}
 
       console.log(`[AI Engine] 生成计划:`, plan);
 
@@ -148,7 +148,7 @@ class AIEngineManager {
           params: taskStep.params,
         };
 
-        if (onStepUpdate) onStepUpdate(execStep);
+        if (onStepUpdate) {onStepUpdate(execStep);}
 
         try {
           const result = await this.functionCaller.call(
@@ -177,7 +177,7 @@ class AIEngineManager {
           });
         }
 
-        if (onStepUpdate) onStepUpdate(execStep);
+        if (onStepUpdate) {onStepUpdate(execStep);}
       }
 
       // 汇总执行结果

@@ -250,7 +250,7 @@ class ConnectionPool extends EventEmitter {
   async closeConnection(peerId) {
     const conn = this.connections.get(peerId);
 
-    if (!conn) return;
+    if (!conn) {return;}
 
     try {
       conn.state = ConnectionState.CLOSING;

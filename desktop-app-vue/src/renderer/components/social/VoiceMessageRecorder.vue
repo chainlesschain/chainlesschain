@@ -1,12 +1,15 @@
 <template>
   <div class="voice-message-recorder">
     <!-- 录音按钮 -->
-    <a-tooltip v-if="!isRecording" title="语音消息">
+    <a-tooltip
+      v-if="!isRecording"
+      title="语音消息"
+    >
       <a-button
         type="text"
         size="small"
-        @click="startRecording"
         :loading="isInitializing"
+        @click="startRecording"
       >
         <AudioOutlined />
       </a-button>
@@ -17,7 +20,7 @@
       v-model:open="isRecording"
       title="录制语音消息"
       :closable="false"
-      :maskClosable="false"
+      :mask-closable="false"
       width="400px"
       :footer="null"
     >
@@ -25,10 +28,12 @@
         <!-- 录音指示器 -->
         <div class="recording-indicator">
           <div class="pulse-container">
-            <span class="pulse"></span>
+            <span class="pulse" />
             <AudioOutlined class="mic-icon" />
           </div>
-          <div class="status-text">{{ isPaused ? '已暂停' : '正在录音...' }}</div>
+          <div class="status-text">
+            {{ isPaused ? '已暂停' : '正在录音...' }}
+          </div>
         </div>
 
         <!-- 录音时长 -->
@@ -40,8 +45,8 @@
         <div class="volume-indicator">
           <a-progress
             :percent="Math.round(volume * 100)"
-            :showInfo="false"
-            :strokeColor="{
+            :show-info="false"
+            :stroke-color="{
               '0%': '#108ee9',
               '100%': '#87d068',
             }"
@@ -68,7 +73,9 @@
               size="large"
               @click="stopRecording"
             >
-              <template #icon><CheckOutlined /></template>
+              <template #icon>
+                <CheckOutlined />
+              </template>
             </a-button>
 
             <a-button
@@ -77,7 +84,9 @@
               size="large"
               @click="cancelRecording"
             >
-              <template #icon><CloseOutlined /></template>
+              <template #icon>
+                <CloseOutlined />
+              </template>
             </a-button>
           </a-space>
         </div>

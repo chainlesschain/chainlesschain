@@ -1,9 +1,18 @@
 <template>
-  <div class="login-container" data-testid="login-container">
-    <a-card class="login-card" data-testid="login-card">
+  <div
+    class="login-container"
+    data-testid="login-container"
+  >
+    <a-card
+      class="login-card"
+      data-testid="login-card"
+    >
       <!-- 设置按钮 -->
       <div class="settings-trigger">
-        <a-tooltip title="系统设置" placement="left">
+        <a-tooltip
+          title="系统设置"
+          placement="left"
+        >
           <a-button
             type="text"
             shape="circle"
@@ -16,12 +25,20 @@
         </a-tooltip>
       </div>
 
-      <a-space direction="vertical" :size="24" style="width: 100%">
+      <a-space
+        direction="vertical"
+        :size="24"
+        style="width: 100%"
+      >
         <!-- Logo和标题 -->
         <div class="login-header">
           <LockOutlined :style="{ fontSize: '48px', color: '#1890ff' }" />
-          <h2 class="login-title">ChainlessChain</h2>
-          <p class="login-subtitle">个人AI知识库</p>
+          <h2 class="login-title">
+            ChainlessChain
+          </h2>
+          <p class="login-subtitle">
+            个人AI知识库
+          </p>
         </div>
 
         <!-- U盾状态 -->
@@ -56,8 +73,8 @@
             placeholder="输入6位PIN码"
             :maxlength="6"
             :disabled="loading"
-            @keypress.enter="handleLogin"
             data-testid="pin-input"
+            @keypress.enter="handleLogin"
           >
             <template #prefix>
               <LockOutlined />
@@ -76,8 +93,8 @@
               size="large"
               placeholder="输入用户名"
               :disabled="loading"
-              @keypress.enter="handleLogin"
               data-testid="username-input"
+              @keypress.enter="handleLogin"
             >
               <template #prefix>
                 <UserOutlined />
@@ -93,8 +110,8 @@
               size="large"
               placeholder="输入密码"
               :disabled="loading"
-              @keypress.enter="handleLogin"
               data-testid="password-input"
+              @keypress.enter="handleLogin"
             >
               <template #prefix>
                 <LockOutlined />
@@ -109,15 +126,18 @@
           size="large"
           block
           :loading="loading"
-          @click="handleLogin"
           data-testid="login-button"
+          @click="handleLogin"
         >
           {{ loading ? '验证中...' : '登录' }}
         </a-button>
 
         <!-- 提示信息 -->
         <div class="login-hint">
-          <a-typography-text type="secondary" :style="{ fontSize: '12px' }">
+          <a-typography-text
+            type="secondary"
+            :style="{ fontSize: '12px' }"
+          >
             {{ ukeyStatus.detected
               ? '开发模式: 默认PIN为 123456'
               : '开发模式: 默认用户名 admin, 密码 123456'
@@ -130,7 +150,7 @@
     <!-- 全局设置对话框 -->
     <GlobalSettingsWizard
       :open="showSettings"
-      :canSkip="true"
+      :can-skip="true"
       @complete="handleSettingsComplete"
       @cancel="showSettings = false"
     />

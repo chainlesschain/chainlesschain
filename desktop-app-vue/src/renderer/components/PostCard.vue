@@ -4,16 +4,30 @@
     <template #title>
       <div class="post-header">
         <a-avatar :style="{ backgroundColor: getAvatarColor(post.author_did) }">
-          <template #icon><user-outlined /></template>
+          <template #icon>
+            <user-outlined />
+          </template>
         </a-avatar>
         <div class="author-info">
-          <div class="author-name">{{ shortenDid(post.author_did) }}</div>
-          <div class="post-time">{{ formatTime(post.created_at) }}</div>
+          <div class="author-name">
+            {{ shortenDid(post.author_did) }}
+          </div>
+          <div class="post-time">
+            {{ formatTime(post.created_at) }}
+          </div>
         </div>
-        <a-tag v-if="post.visibility === 'friends'" color="blue" size="small">
+        <a-tag
+          v-if="post.visibility === 'friends'"
+          color="blue"
+          size="small"
+        >
           <team-outlined /> 仅好友
         </a-tag>
-        <a-tag v-else-if="post.visibility === 'private'" color="orange" size="small">
+        <a-tag
+          v-else-if="post.visibility === 'private'"
+          color="orange"
+          size="small"
+        >
           <lock-outlined /> 仅自己
         </a-tag>
       </div>
@@ -22,12 +36,20 @@
     <!-- 操作菜单 -->
     <template #extra>
       <a-dropdown v-if="isAuthor">
-        <a-button type="text" size="small">
-          <template #icon><ellipsis-outlined /></template>
+        <a-button
+          type="text"
+          size="small"
+        >
+          <template #icon>
+            <ellipsis-outlined />
+          </template>
         </a-button>
         <template #overlay>
           <a-menu>
-            <a-menu-item danger @click="handleDelete">
+            <a-menu-item
+              danger
+              @click="handleDelete"
+            >
               <delete-outlined /> 删除
             </a-menu-item>
           </a-menu>
@@ -41,7 +63,10 @@
     </div>
 
     <!-- 图片 -->
-    <div v-if="post.images && post.images.length > 0" class="post-images">
+    <div
+      v-if="post.images && post.images.length > 0"
+      class="post-images"
+    >
       <a-image-preview-group>
         <a-image
           v-for="(image, index) in post.images"
@@ -64,9 +89,19 @@
       <div class="link-info">
         <link-outlined class="link-icon" />
         <div class="link-text">
-          <div v-if="post.link_title" class="link-title">{{ post.link_title }}</div>
-          <div class="link-url">{{ post.link_url }}</div>
-          <div v-if="post.link_description" class="link-description">
+          <div
+            v-if="post.link_title"
+            class="link-title"
+          >
+            {{ post.link_title }}
+          </div>
+          <div class="link-url">
+            {{ post.link_url }}
+          </div>
+          <div
+            v-if="post.link_description"
+            class="link-description"
+          >
             {{ post.link_description }}
           </div>
         </div>
@@ -96,14 +131,22 @@
         </template>
         {{ post.liked ? '已赞' : '点赞' }}
       </a-button>
-      <a-button type="text" @click="toggleComments">
-        <template #icon><comment-outlined /></template>
+      <a-button
+        type="text"
+        @click="toggleComments"
+      >
+        <template #icon>
+          <comment-outlined />
+        </template>
         评论
       </a-button>
     </div>
 
     <!-- 评论区域 -->
-    <div v-if="showComments" class="comments-section">
+    <div
+      v-if="showComments"
+      class="comments-section"
+    >
       <a-divider />
 
       <!-- 评论输入框 -->
@@ -119,8 +162,8 @@
           type="primary"
           size="small"
           :loading="commenting"
-          @click="handleComment"
           style="margin-top: 8px"
+          @click="handleComment"
         >
           发表评论
         </a-button>
@@ -138,7 +181,9 @@
             <a-comment>
               <template #avatar>
                 <a-avatar :style="{ backgroundColor: getAvatarColor(item.author_did) }">
-                  <template #icon><user-outlined /></template>
+                  <template #icon>
+                    <user-outlined />
+                  </template>
                 </a-avatar>
               </template>
               <template #author>
@@ -151,7 +196,10 @@
                 <span>{{ formatTime(item.created_at) }}</span>
               </template>
               <template #actions>
-                <span v-if="item.author_did === currentDid" @click="handleDeleteComment(item.id)">
+                <span
+                  v-if="item.author_did === currentDid"
+                  @click="handleDeleteComment(item.id)"
+                >
                   <delete-outlined /> 删除
                 </span>
               </template>
@@ -205,7 +253,7 @@ const isAuthor = computed(() => props.post.author_did === props.currentDid);
 
 // 工具函数
 const shortenDid = (did) => {
-  if (!did) return '';
+  if (!did) {return '';}
   return did.length > 20 ? `${did.slice(0, 10)}...${did.slice(-8)}` : did;
 };
 
@@ -243,8 +291,8 @@ const formatTime = (timestamp) => {
 };
 
 const getImageWidth = (count) => {
-  if (count === 1) return 400;
-  if (count === 2 || count === 4) return 200;
+  if (count === 1) {return 400;}
+  if (count === 2 || count === 4) {return 200;}
   return 150;
 };
 

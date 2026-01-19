@@ -279,7 +279,7 @@ class BackupManager {
       const backups = [];
 
       for (const file of files) {
-        if (!file.endsWith(".zip")) continue;
+        if (!file.endsWith(".zip")) {continue;}
 
         const filePath = path.join(this.backupDir, file);
         const stats = fs.statSync(filePath);

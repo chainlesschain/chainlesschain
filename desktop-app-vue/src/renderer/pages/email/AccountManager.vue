@@ -1,9 +1,17 @@
 <template>
   <div class="email-account-manager">
-    <a-card title="邮件账户管理" :bordered="false">
+    <a-card
+      title="邮件账户管理"
+      :bordered="false"
+    >
       <template #extra>
-        <a-button type="primary" @click="showAddAccountModal">
-          <template #icon><PlusOutlined /></template>
+        <a-button
+          type="primary"
+          @click="showAddAccountModal"
+        >
+          <template #icon>
+            <PlusOutlined />
+          </template>
           添加账户
         </a-button>
       </template>
@@ -20,8 +28,8 @@
                 <a-button
                   type="text"
                   size="small"
-                  @click="syncAccount(item.id)"
                   :loading="item.syncing"
+                  @click="syncAccount(item.id)"
                 >
                   <SyncOutlined />
                 </a-button>
@@ -52,7 +60,11 @@
                 title="确定要删除这个账户吗？"
                 @confirm="deleteAccount(item.id)"
               >
-                <a-button type="text" size="small" danger>
+                <a-button
+                  type="text"
+                  size="small"
+                  danger
+                >
                   <DeleteOutlined />
                 </a-button>
               </a-popconfirm>
@@ -61,7 +73,9 @@
             <a-list-item-meta>
               <template #avatar>
                 <a-avatar style="background-color: #1890ff">
-                  <template #icon><MailOutlined /></template>
+                  <template #icon>
+                    <MailOutlined />
+                  </template>
                 </a-avatar>
               </template>
 
@@ -100,7 +114,10 @@
                   <span v-if="item.last_sync_at">
                     最后同步: {{ formatTime(item.last_sync_at) }}
                   </span>
-                  <span v-if="item.error_message" style="color: #ff4d4f; margin-left: 8px">
+                  <span
+                    v-if="item.error_message"
+                    style="color: #ff4d4f; margin-left: 8px"
+                  >
                     {{ item.error_message }}
                   </span>
                 </div>
@@ -115,12 +132,18 @@
     <a-modal
       v-model:open="accountModalVisible"
       :title="editingAccount ? '编辑账户' : '添加邮件账户'"
-      @ok="handleSaveAccount"
-      :confirmLoading="saving"
+      :confirm-loading="saving"
       width="600px"
+      @ok="handleSaveAccount"
     >
-      <a-form :model="accountForm" layout="vertical">
-        <a-form-item label="邮箱地址" required>
+      <a-form
+        :model="accountForm"
+        layout="vertical"
+      >
+        <a-form-item
+          label="邮箱地址"
+          required
+        >
           <a-input
             v-model:value="accountForm.email"
             placeholder="user@example.com"
@@ -135,7 +158,10 @@
           />
         </a-form-item>
 
-        <a-form-item label="密码" required>
+        <a-form-item
+          label="密码"
+          required
+        >
           <a-input-password
             v-model:value="accountForm.password"
             placeholder="邮箱密码或应用专用密码"
@@ -149,7 +175,10 @@
 
         <a-row :gutter="16">
           <a-col :span="16">
-            <a-form-item label="IMAP 服务器" required>
+            <a-form-item
+              label="IMAP 服务器"
+              required
+            >
               <a-input
                 v-model:value="accountForm.imapHost"
                 placeholder="imap.example.com"
@@ -157,7 +186,10 @@
             </a-form-item>
           </a-col>
           <a-col :span="8">
-            <a-form-item label="端口" required>
+            <a-form-item
+              label="端口"
+              required
+            >
               <a-input-number
                 v-model:value="accountForm.imapPort"
                 :min="1"
@@ -178,7 +210,10 @@
 
         <a-row :gutter="16">
           <a-col :span="16">
-            <a-form-item label="SMTP 服务器" required>
+            <a-form-item
+              label="SMTP 服务器"
+              required
+            >
               <a-input
                 v-model:value="accountForm.smtpHost"
                 placeholder="smtp.example.com"
@@ -186,7 +221,10 @@
             </a-form-item>
           </a-col>
           <a-col :span="8">
-            <a-form-item label="端口" required>
+            <a-form-item
+              label="端口"
+              required
+            >
               <a-input-number
                 v-model:value="accountForm.smtpPort"
                 :min="1"
@@ -223,7 +261,10 @@
         <a-divider />
 
         <a-space>
-          <a-button @click="testConnection" :loading="testing">
+          <a-button
+            :loading="testing"
+            @click="testConnection"
+          >
             <CheckCircleOutlined /> 测试连接
           </a-button>
 
@@ -232,7 +273,10 @@
           </a-button>
         </a-space>
 
-        <div v-if="testResult" style="margin-top: 12px">
+        <div
+          v-if="testResult"
+          style="margin-top: 12px"
+        >
           <a-alert
             :type="testResult.success ? 'success' : 'error'"
             :message="testResult.success ? '连接成功' : '连接失败'"
@@ -247,25 +291,33 @@
     <a-modal
       v-model:open="presetModalVisible"
       title="选择邮件服务商"
-      @ok="applyPreset"
       width="500px"
+      @ok="applyPreset"
     >
-      <a-list :data-source="presets" size="small">
+      <a-list
+        :data-source="presets"
+        size="small"
+      >
         <template #renderItem="{ item }">
           <a-list-item
             style="cursor: pointer"
-            @click="selectedPreset = item"
             :class="{ 'preset-selected': selectedPreset?.name === item.name }"
+            @click="selectedPreset = item"
           >
             <a-list-item-meta>
-              <template #title>{{ item.name }}</template>
+              <template #title>
+                {{ item.name }}
+              </template>
               <template #description>
                 IMAP: {{ item.imapHost }}:{{ item.imapPort }} |
                 SMTP: {{ item.smtpHost }}:{{ item.smtpPort }}
               </template>
             </a-list-item-meta>
             <template #actions>
-              <CheckCircleOutlined v-if="selectedPreset?.name === item.name" style="color: #52c41a" />
+              <CheckCircleOutlined
+                v-if="selectedPreset?.name === item.name"
+                style="color: #52c41a"
+              />
             </template>
           </a-list-item>
         </template>

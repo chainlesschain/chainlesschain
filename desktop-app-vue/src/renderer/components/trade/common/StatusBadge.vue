@@ -5,8 +5,14 @@
     :color="getColor(status)"
     :class="['status-badge', `status-${status}`]"
   >
-    <template v-if="showIcon" #icon>
-      <component :is="getIcon(status)" :spin="isProcessing(status)" />
+    <template
+      v-if="showIcon"
+      #icon
+    >
+      <component
+        :is="getIcon(status)"
+        :spin="isProcessing(status)"
+      />
     </template>
   </a-badge>
 </template>
@@ -52,7 +58,7 @@ const props = defineProps({
  * 获取状态文本
  */
 const getText = () => {
-  if (props.text) return props.text;
+  if (props.text) {return props.text;}
 
   // 根据type和status返回默认文本
   const textMap = {

@@ -17,7 +17,7 @@ class ProjectTemplateManager {
    * 初始化模板引擎
    */
   initializeTemplateEngine() {
-    if (this.handlebars) return;
+    if (this.handlebars) {return;}
 
     const Handlebars = require('handlebars');
     this.handlebars = Handlebars;
@@ -32,7 +32,7 @@ class ProjectTemplateManager {
   registerHelpers() {
     // 日期格式化
     this.handlebars.registerHelper('formatDate', (date, format) => {
-      if (!date) return '';
+      if (!date) {return '';}
       const d = new Date(date);
       if (format === 'yyyy-MM-dd') {
         return d.toISOString().split('T')[0];
@@ -54,7 +54,7 @@ class ProjectTemplateManager {
 
     // 首字母大写
     this.handlebars.registerHelper('capitalize', (str) => {
-      if (!str) return '';
+      if (!str) {return '';}
       return str.charAt(0).toUpperCase() + str.slice(1);
     });
 
@@ -112,7 +112,7 @@ class ProjectTemplateManager {
 
     // 数组/对象查找 - 支持 lookup 语法访问数组元素
     this.handlebars.registerHelper('lookup', (obj, key) => {
-      if (!obj) return undefined;
+      if (!obj) {return undefined;}
       return obj[key];
     });
 

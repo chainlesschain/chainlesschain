@@ -1,7 +1,13 @@
 <template>
-  <div class="chat-panel" data-testid="chat-panel">
+  <div
+    class="chat-panel"
+    data-testid="chat-panel"
+  >
     <!-- 头部：上下文选择器 -->
-    <div class="chat-header" data-testid="chat-header">
+    <div
+      class="chat-header"
+      data-testid="chat-header"
+    >
       <h3 class="chat-title">
         <MessageOutlined />
         AI 助手
@@ -13,15 +19,24 @@
         button-style="solid"
         data-testid="context-mode-selector"
       >
-        <a-radio-button value="project" data-testid="context-mode-project">
+        <a-radio-button
+          value="project"
+          data-testid="context-mode-project"
+        >
           <FolderOutlined />
           项目
         </a-radio-button>
-        <a-radio-button value="file" data-testid="context-mode-file">
+        <a-radio-button
+          value="file"
+          data-testid="context-mode-file"
+        >
           <FileTextOutlined />
           文件
         </a-radio-button>
-        <a-radio-button value="global" data-testid="context-mode-global">
+        <a-radio-button
+          value="global"
+          data-testid="context-mode-global"
+        >
           <GlobalOutlined />
           全局
         </a-radio-button>
@@ -44,7 +59,9 @@
           <RobotOutlined />
         </div>
         <h4>{{ getEmptyStateText() }}</h4>
-        <p class="empty-hint">{{ getEmptyHint() }}</p>
+        <p class="empty-hint">
+          {{ getEmptyHint() }}
+        </p>
       </div>
 
       <!-- 消息列表（虚拟滚动） -->
@@ -54,18 +71,18 @@
         :key="`messages-${messagesRefreshKey}`"
         :messages="messages"
         :estimate-size="150"
-        @load-more="handleLoadMoreMessages"
-        @scroll-to-bottom="handleScrollToBottom"
         data-test="chat-messages-list"
         data-testid="messages-list"
+        @load-more="handleLoadMoreMessages"
+        @scroll-to-bottom="handleScrollToBottom"
       >
         <template #default="{ message, index }">
           <!-- 系统消息 -->
           <SystemMessage
             v-if="
               message.type === MessageType.SYSTEM ||
-              message.type === MessageType.TASK_ANALYSIS ||
-              message.type === MessageType.INTENT_RECOGNITION
+                message.type === MessageType.TASK_ANALYSIS ||
+                message.type === MessageType.INTENT_RECOGNITION
             "
             :message="message"
           />
@@ -98,7 +115,10 @@
           />
 
           <!-- 普通用户/助手消息 -->
-          <div v-else :class="['message-item', message.role]">
+          <div
+            v-else
+            :class="['message-item', message.role]"
+          >
             <div class="message-avatar">
               <UserOutlined v-if="message.role === 'user'" />
               <RobotOutlined v-else />
@@ -107,7 +127,7 @@
               <div
                 class="message-text"
                 v-html="renderMarkdown(message.content)"
-              ></div>
+              />
               <div class="message-meta">
                 <span class="message-time">{{
                   formatTime(message.timestamp)
@@ -133,16 +153,19 @@
     </div>
 
     <!-- 输入区域 -->
-    <div class="input-container" data-testid="input-container">
+    <div
+      class="input-container"
+      data-testid="input-container"
+    >
       <div class="input-wrapper">
         <a-textarea
           v-model:value="userInput"
           :placeholder="getInputPlaceholder()"
           :auto-size="{ minRows: 1, maxRows: 4 }"
           :disabled="isLoading"
-          @keydown="handleKeyDown"
           data-test="chat-input"
           data-testid="chat-input"
+          @keydown="handleKeyDown"
         />
 
         <div class="input-actions">
@@ -151,8 +174,8 @@
               type="text"
               size="small"
               :disabled="messages.length === 0 || isLoading"
-              @click="handleClearConversation"
               data-testid="clear-conversation-button"
+              @click="handleClearConversation"
             >
               <DeleteOutlined />
             </a-button>
@@ -163,9 +186,9 @@
             size="small"
             :loading="isLoading"
             :disabled="!userInput.trim()"
-            @click="handleSendMessage"
             data-test="chat-send-button"
             data-testid="chat-send-button"
+            @click="handleSendMessage"
           >
             <SendOutlined v-if="!isLoading" />
             发送
@@ -174,7 +197,11 @@
       </div>
 
       <!-- 上下文信息提示 -->
-      <div v-if="contextInfo" class="context-info" data-testid="context-info">
+      <div
+        v-if="contextInfo"
+        class="context-info"
+        data-testid="context-info"
+      >
         <InfoCircleOutlined />
         <span>{{ contextInfo }}</span>
       </div>
@@ -362,11 +389,11 @@ const cleanForIPC = (obj) => {
         if (value.hasOwnProperty(key)) {
           const val = value[key];
           // 跳过函数
-          if (typeof val === "function") continue;
+          if (typeof val === "function") {continue;}
           // 跳过Symbol
-          if (typeof val === "symbol") continue;
+          if (typeof val === "symbol") {continue;}
           // 跳过undefined
-          if (val === undefined) continue;
+          if (val === undefined) {continue;}
 
           cleaned[key] = clean(val);
         }
@@ -451,7 +478,7 @@ const renderMarkdown = (content) => {
  * 格式化时间
  */
 const formatTime = (timestamp) => {
-  if (!timestamp) return "";
+  if (!timestamp) {return "";}
   const date = new Date(timestamp);
   const now = new Date();
   const diff = now - date;
@@ -492,7 +519,7 @@ const formatTime = (timestamp) => {
  * 打开文件
  */
 const openFile = (source) => {
-  if (!source) return;
+  if (!source) {return;}
 
   console.log("[ChatPanel] 打开文件:", source);
 
@@ -516,7 +543,7 @@ const openFile = (source) => {
  * 处理文件附件点击
  */
 const handleFileClick = (file) => {
-  if (!file) return;
+  if (!file) {return;}
 
   console.log("[ChatPanel] 打开附件文件:", file);
 
@@ -638,7 +665,7 @@ const buildProjectContext = async () => {
   try {
     // 获取项目信息
     const project = await window.electronAPI.project.get(props.projectId);
-    if (!project) return "";
+    if (!project) {return "";}
 
     // 获取项目文件列表
     const files = await window.electronAPI.project.getFiles(props.projectId);
@@ -668,7 +695,7 @@ const buildProjectContext = async () => {
  * 构建文件上下文
  */
 const buildFileContext = () => {
-  if (!props.currentFile) return "";
+  if (!props.currentFile) {return "";}
 
   let context = `# 当前文件：${props.currentFile.file_name}\n\n`;
   context += `路径：${props.currentFile.file_path}\n`;
@@ -700,7 +727,7 @@ const buildSystemPrompt = async () => {
  */
 const handleSendMessage = async () => {
   const input = userInput.value.trim();
-  if (!input || isLoading.value) return;
+  if (!input || isLoading.value) {return;}
 
   // 检查API是否可用
   if (!window.electronAPI?.project) {
@@ -802,7 +829,7 @@ const handleSendMessage = async () => {
  */
 const getProjectFiles = async () => {
   try {
-    if (!props.projectId) return [];
+    if (!props.projectId) {return [];}
 
     const result = await window.electronAPI.project.getFiles(props.projectId);
     return result.files || [];
@@ -817,7 +844,7 @@ const getProjectFiles = async () => {
  */
 const handleClearConversation = async () => {
   try {
-    if (!currentConversation.value) return;
+    if (!currentConversation.value) {return;}
 
     // 检查API是否可用
     if (!window.electronAPI?.conversation) {

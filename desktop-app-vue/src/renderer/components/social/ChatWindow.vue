@@ -27,19 +27,29 @@
 
     <!-- 右侧：聊天区域 -->
     <div class="chat-main">
-      <div v-if="!currentSession" class="chat-empty">
+      <div
+        v-if="!currentSession"
+        class="chat-empty"
+      >
         <a-empty description="选择一个会话开始聊天" />
       </div>
 
-      <div v-else class="chat-container">
+      <div
+        v-else
+        class="chat-container"
+      >
         <!-- 聊天头部 -->
         <div class="chat-header">
           <div class="chat-header-info">
             <a-avatar :size="36">
-              <template #icon><UserOutlined /></template>
+              <template #icon>
+                <UserOutlined />
+              </template>
             </a-avatar>
             <div class="chat-header-text">
-              <div class="chat-header-name">{{ currentSession.friend_nickname || shortenDid(currentSession.participant_did) }}</div>
+              <div class="chat-header-name">
+                {{ currentSession.friend_nickname || shortenDid(currentSession.participant_did) }}
+              </div>
               <div class="chat-header-status">
                 <OnlineStatusIndicator
                   :status="getOnlineStatusData(currentSession.participant_did).status"
@@ -55,17 +65,26 @@
 
           <div class="chat-header-actions">
             <a-tooltip title="语音通话">
-              <a-button type="text" @click="handleVoiceCall">
+              <a-button
+                type="text"
+                @click="handleVoiceCall"
+              >
                 <PhoneOutlined />
               </a-button>
             </a-tooltip>
             <a-tooltip title="视频通话">
-              <a-button type="text" @click="handleVideoCall">
+              <a-button
+                type="text"
+                @click="handleVideoCall"
+              >
                 <VideoCameraOutlined />
               </a-button>
             </a-tooltip>
             <a-tooltip title="屏幕共享">
-              <a-button type="text" @click="handleScreenShare">
+              <a-button
+                type="text"
+                @click="handleScreenShare"
+              >
                 <DesktopOutlined />
               </a-button>
             </a-tooltip>
@@ -78,10 +97,21 @@
         </div>
 
         <!-- 聊天消息区域 -->
-        <div ref="messagesContainer" class="chat-messages" @scroll="handleScroll">
+        <div
+          ref="messagesContainer"
+          class="chat-messages"
+          @scroll="handleScroll"
+        >
           <!-- 加载更多 -->
-          <div v-if="hasMore" class="load-more">
-            <a-button type="link" :loading="loadingMore" @click="loadMoreMessages">
+          <div
+            v-if="hasMore"
+            class="load-more"
+          >
+            <a-button
+              type="link"
+              :loading="loadingMore"
+              @click="loadMoreMessages"
+            >
               加载更多消息
             </a-button>
           </div>
@@ -96,8 +126,11 @@
           />
 
           <!-- 正在输入提示 -->
-          <div v-if="isTyping" class="typing-indicator">
-            <span></span><span></span><span></span>
+          <div
+            v-if="isTyping"
+            class="typing-indicator"
+          >
+            <span /><span /><span />
           </div>
         </div>
 
@@ -106,18 +139,29 @@
           <div class="chat-input-toolbar">
             <a-space>
               <a-tooltip title="表情">
-                <a-button type="text" size="small">
+                <a-button
+                  type="text"
+                  size="small"
+                >
                   <SmileOutlined />
                 </a-button>
               </a-tooltip>
               <VoiceMessageRecorder @voice-recorded="handleVoiceRecorded" />
               <a-tooltip title="图片">
-                <a-button type="text" size="small" @click="handleSendImage">
+                <a-button
+                  type="text"
+                  size="small"
+                  @click="handleSendImage"
+                >
                   <PictureOutlined />
                 </a-button>
               </a-tooltip>
               <a-tooltip title="文件">
-                <a-button type="text" size="small" @click="handleSendFile">
+                <a-button
+                  type="text"
+                  size="small"
+                  @click="handleSendFile"
+                >
                   <FileOutlined />
                 </a-button>
               </a-tooltip>
@@ -203,7 +247,7 @@ const handleSessionClick = async (session) => {
 }
 
 const handleSend = async () => {
-  if (!inputMessage.value.trim() || sending.value) return
+  if (!inputMessage.value.trim() || sending.value) {return}
 
   try {
     sending.value = true
@@ -393,7 +437,7 @@ const handleDeleteSession = (session) => {
 }
 
 const loadMoreMessages = async () => {
-  if (!currentSession.value || loadingMore.value) return
+  if (!currentSession.value || loadingMore.value) {return}
 
   try {
     loadingMore.value = true
@@ -412,7 +456,7 @@ const loadMoreMessages = async () => {
 }
 
 const handleScroll = () => {
-  if (!messagesContainer.value) return
+  if (!messagesContainer.value) {return}
 
   const { scrollTop } = messagesContainer.value
   if (scrollTop < 100 && hasMore.value && !loadingMore.value) {
@@ -429,8 +473,8 @@ const scrollToBottom = () => {
 }
 
 const shortenDid = (did) => {
-  if (!did) return '未知用户'
-  if (did.length <= 20) return did
+  if (!did) {return '未知用户'}
+  if (did.length <= 20) {return did}
   return `${did.substring(0, 10)}...${did.substring(did.length - 6)}`
 }
 
@@ -456,7 +500,7 @@ const getOnlineStatusData = (did) => {
 }
 
 const getSenderName = (did) => {
-  if (did === currentUserDid.value) return '我'
+  if (did === currentUserDid.value) {return '我'}
   const friend = socialStore.friends.find(f => f.friend_did === did)
   return friend?.nickname || shortenDid(did)
 }

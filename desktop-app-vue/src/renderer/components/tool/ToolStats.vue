@@ -1,6 +1,10 @@
 <template>
   <div class="tool-stats">
-    <a-space direction="vertical" :size="16" style="width: 100%">
+    <a-space
+      direction="vertical"
+      :size="16"
+      style="width: 100%"
+    >
       <!-- 统计卡片 -->
       <a-row :gutter="16">
         <a-col :span="6">
@@ -10,7 +14,9 @@
               :value="stats.totalTools"
               :value-style="{ color: '#3f8600' }"
             >
-              <template #prefix><ToolOutlined /></template>
+              <template #prefix>
+                <ToolOutlined />
+              </template>
             </a-statistic>
           </a-card>
         </a-col>
@@ -21,7 +27,9 @@
               :value="stats.enabledTools"
               :value-style="{ color: '#1890ff' }"
             >
-              <template #prefix><CheckCircleOutlined /></template>
+              <template #prefix>
+                <CheckCircleOutlined />
+              </template>
             </a-statistic>
           </a-card>
         </a-col>
@@ -32,7 +40,9 @@
               :value="stats.totalUsage"
               :value-style="{ color: '#cf1322' }"
             >
-              <template #prefix><ThunderboltOutlined /></template>
+              <template #prefix>
+                <ThunderboltOutlined />
+              </template>
             </a-statistic>
           </a-card>
         </a-col>
@@ -45,7 +55,9 @@
               :precision="2"
               :value-style="{ color: '#722ed1' }"
             >
-              <template #prefix><ClockCircleOutlined /></template>
+              <template #prefix>
+                <ClockCircleOutlined />
+              </template>
             </a-statistic>
           </a-card>
         </a-col>
@@ -55,15 +67,27 @@
       <a-row :gutter="16">
         <!-- 工具类型分布 -->
         <a-col :span="8">
-          <a-card title="工具类型分布" size="small">
-            <div ref="typeChartRef" style="width: 100%; height: 300px"></div>
+          <a-card
+            title="工具类型分布"
+            size="small"
+          >
+            <div
+              ref="typeChartRef"
+              style="width: 100%; height: 300px"
+            />
           </a-card>
         </a-col>
 
         <!-- 使用次数Top 10 -->
         <a-col :span="16">
-          <a-card title="使用次数 Top 10" size="small">
-            <div ref="usageChartRef" style="width: 100%; height: 300px"></div>
+          <a-card
+            title="使用次数 Top 10"
+            size="small"
+          >
+            <div
+              ref="usageChartRef"
+              style="width: 100%; height: 300px"
+            />
           </a-card>
         </a-col>
       </a-row>
@@ -71,15 +95,27 @@
       <!-- 执行时间对比 -->
       <a-row :gutter="16">
         <a-col :span="12">
-          <a-card title="平均执行时间对比（Top 10）" size="small">
-            <div ref="timeChartRef" style="width: 100%; height: 300px"></div>
+          <a-card
+            title="平均执行时间对比（Top 10）"
+            size="small"
+          >
+            <div
+              ref="timeChartRef"
+              style="width: 100%; height: 300px"
+            />
           </a-card>
         </a-col>
 
         <!-- 成功率对比 -->
         <a-col :span="12">
-          <a-card title="成功率对比（Top 10）" size="small">
-            <div ref="successRateChartRef" style="width: 100%; height: 300px"></div>
+          <a-card
+            title="成功率对比（Top 10）"
+            size="small"
+          >
+            <div
+              ref="successRateChartRef"
+              style="width: 100%; height: 300px"
+            />
           </a-card>
         </a-col>
       </a-row>
@@ -145,7 +181,7 @@ const calculateStats = () => {
 
 // 初始化工具类型分布饼图
 const initTypeChart = () => {
-  if (!typeChartRef.value) return;
+  if (!typeChartRef.value) {return;}
 
   typeChart = echarts.init(typeChartRef.value);
 
@@ -191,7 +227,7 @@ const initTypeChart = () => {
 
 // 初始化使用次数柱状图
 const initUsageChart = () => {
-  if (!usageChartRef.value) return;
+  if (!usageChartRef.value) {return;}
 
   usageChart = echarts.init(usageChartRef.value);
 
@@ -238,7 +274,7 @@ const initUsageChart = () => {
 
 // 初始化执行时间对比图
 const initTimeChart = () => {
-  if (!timeChartRef.value) return;
+  if (!timeChartRef.value) {return;}
 
   timeChart = echarts.init(timeChartRef.value);
 
@@ -292,7 +328,7 @@ const initTimeChart = () => {
 
 // 初始化成功率对比图
 const initSuccessRateChart = () => {
-  if (!successRateChartRef.value) return;
+  if (!successRateChartRef.value) {return;}
 
   successRateChart = echarts.init(successRateChartRef.value);
 
@@ -339,9 +375,9 @@ const initSuccessRateChart = () => {
         itemStyle: {
           color: (params) => {
             const rate = params.value;
-            if (rate >= 90) return '#52c41a';
-            if (rate >= 70) return '#1890ff';
-            if (rate >= 50) return '#faad14';
+            if (rate >= 90) {return '#52c41a';}
+            if (rate >= 70) {return '#1890ff';}
+            if (rate >= 50) {return '#faad14';}
             return '#f5222d';
           },
         },

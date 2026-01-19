@@ -9,28 +9,56 @@
       </template>
       <template #extra>
         <a-space>
-          <a-button type="primary" @click="showCreateModal = true">
-            <template #icon><plus-outlined /></template>
+          <a-button
+            type="primary"
+            @click="showCreateModal = true"
+          >
+            <template #icon>
+              <plus-outlined />
+            </template>
             创建合约
           </a-button>
           <a-button @click="loadContracts">
-            <template #icon><reload-outlined /></template>
+            <template #icon>
+              <reload-outlined />
+            </template>
             刷新
           </a-button>
         </a-space>
       </template>
 
       <!-- 筛选器 -->
-      <a-space style="margin-bottom: 16px" wrap>
+      <a-space
+        style="margin-bottom: 16px"
+        wrap
+      >
         <span>合约状态:</span>
-        <a-radio-group v-model:value="filterStatus" button-style="solid" @change="handleFilterChange">
-          <a-radio-button value="">全部</a-radio-button>
-          <a-radio-button value="draft">草稿</a-radio-button>
-          <a-radio-button value="active">激活</a-radio-button>
-          <a-radio-button value="executing">执行中</a-radio-button>
-          <a-radio-button value="completed">已完成</a-radio-button>
-          <a-radio-button value="cancelled">已取消</a-radio-button>
-          <a-radio-button value="disputed">有争议</a-radio-button>
+        <a-radio-group
+          v-model:value="filterStatus"
+          button-style="solid"
+          @change="handleFilterChange"
+        >
+          <a-radio-button value="">
+            全部
+          </a-radio-button>
+          <a-radio-button value="draft">
+            草稿
+          </a-radio-button>
+          <a-radio-button value="active">
+            激活
+          </a-radio-button>
+          <a-radio-button value="executing">
+            执行中
+          </a-radio-button>
+          <a-radio-button value="completed">
+            已完成
+          </a-radio-button>
+          <a-radio-button value="cancelled">
+            已取消
+          </a-radio-button>
+          <a-radio-button value="disputed">
+            有争议
+          </a-radio-button>
         </a-radio-group>
 
         <span style="margin-left: 16px">合约类型:</span>
@@ -39,12 +67,24 @@
           style="width: 180px"
           @change="handleFilterChange"
         >
-          <a-select-option value="">全部类型</a-select-option>
-          <a-select-option value="simple_trade">简单买卖</a-select-option>
-          <a-select-option value="subscription">订阅付费</a-select-option>
-          <a-select-option value="bounty">任务悬赏</a-select-option>
-          <a-select-option value="skill_exchange">技能交换</a-select-option>
-          <a-select-option value="custom">自定义</a-select-option>
+          <a-select-option value="">
+            全部类型
+          </a-select-option>
+          <a-select-option value="simple_trade">
+            简单买卖
+          </a-select-option>
+          <a-select-option value="subscription">
+            订阅付费
+          </a-select-option>
+          <a-select-option value="bounty">
+            任务悬赏
+          </a-select-option>
+          <a-select-option value="skill_exchange">
+            技能交换
+          </a-select-option>
+          <a-select-option value="custom">
+            自定义
+          </a-select-option>
         </a-select>
       </a-space>
 
@@ -76,7 +116,10 @@
           v-if="!loading && filteredContracts.length === 0"
           description="暂无合约"
         >
-          <a-button type="primary" @click="showCreateModal = true">
+          <a-button
+            type="primary"
+            @click="showCreateModal = true"
+          >
             创建第一个合约
           </a-button>
         </a-empty>

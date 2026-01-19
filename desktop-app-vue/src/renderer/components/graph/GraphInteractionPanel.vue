@@ -1,7 +1,11 @@
 <template>
   <div class="graph-interaction-panel">
     <!-- 搜索节点 -->
-    <a-card title="搜索节点" size="small" class="panel-card">
+    <a-card
+      title="搜索节点"
+      size="small"
+      class="panel-card"
+    >
       <a-input-search
         v-model:value="searchQuery"
         placeholder="搜索笔记标题..."
@@ -14,8 +18,14 @@
       </a-input-search>
 
       <!-- 搜索结果 -->
-      <div v-if="searchResults.length > 0" class="search-results">
-        <a-list size="small" :data-source="searchResults">
+      <div
+        v-if="searchResults.length > 0"
+        class="search-results"
+      >
+        <a-list
+          size="small"
+          :data-source="searchResults"
+        >
           <template #renderItem="{ item }">
             <a-list-item @click="selectNode(item)">
               <a-list-item-meta>
@@ -25,7 +35,9 @@
                   </a-typography-text>
                 </template>
                 <template #description>
-                  <a-tag size="small">{{ getNodeTypeLabel(item.type) }}</a-tag>
+                  <a-tag size="small">
+                    {{ getNodeTypeLabel(item.type) }}
+                  </a-tag>
                 </template>
               </a-list-item-meta>
             </a-list-item>
@@ -35,8 +47,15 @@
     </a-card>
 
     <!-- 节点筛选 -->
-    <a-card title="节点筛选" size="small" class="panel-card">
-      <a-form layout="vertical" size="small">
+    <a-card
+      title="节点筛选"
+      size="small"
+      class="panel-card"
+    >
+      <a-form
+        layout="vertical"
+        size="small"
+      >
         <a-form-item label="节点类型">
           <a-checkbox-group
             v-model:value="selectedNodeTypes"
@@ -66,8 +85,15 @@
     </a-card>
 
     <!-- 路径查找 -->
-    <a-card title="路径查找" size="small" class="panel-card">
-      <a-form layout="vertical" size="small">
+    <a-card
+      title="路径查找"
+      size="small"
+      class="panel-card"
+    >
+      <a-form
+        layout="vertical"
+        size="small"
+      >
         <a-form-item label="起点">
           <a-select
             v-model:value="pathStart"
@@ -95,20 +121,28 @@
             :disabled="!pathStart || !pathEnd"
             @click="findPath"
           >
-            <template #icon><AimOutlined /></template>
+            <template #icon>
+              <AimOutlined />
+            </template>
             查找路径
           </a-button>
         </a-form-item>
       </a-form>
 
       <!-- 路径结果 -->
-      <div v-if="pathResult" class="path-result">
+      <div
+        v-if="pathResult"
+        class="path-result"
+      >
         <a-alert
           :message="`找到 ${pathResult.length} 条路径`"
           type="success"
           show-icon
         />
-        <a-list size="small" :data-source="pathResult">
+        <a-list
+          size="small"
+          :data-source="pathResult"
+        >
           <template #renderItem="{ item, index }">
             <a-list-item @click="highlightPath(item)">
               <a-list-item-meta>
@@ -128,15 +162,24 @@
     </a-card>
 
     <!-- 社区检测 -->
-    <a-card title="社区检测" size="small" class="panel-card">
-      <a-space direction="vertical" style="width: 100%">
+    <a-card
+      title="社区检测"
+      size="small"
+      class="panel-card"
+    >
+      <a-space
+        direction="vertical"
+        style="width: 100%"
+      >
         <a-button
           type="primary"
           block
           :loading="detectingCommunities"
           @click="detectCommunities"
         >
-          <template #icon><ClusterOutlined /></template>
+          <template #icon>
+            <ClusterOutlined />
+          </template>
           检测社区
         </a-button>
 
@@ -147,7 +190,10 @@
             :value-style="{ color: '#3f8600' }"
           />
 
-          <a-list size="small" :data-source="communities">
+          <a-list
+            size="small"
+            :data-source="communities"
+          >
             <template #renderItem="{ item, index }">
               <a-list-item @click="highlightCommunity(item)">
                 <a-list-item-meta>
@@ -159,7 +205,9 @@
                   </template>
                 </a-list-item-meta>
                 <template #actions>
-                  <a-tag :color="item.color">{{ item.label }}</a-tag>
+                  <a-tag :color="item.color">
+                    {{ item.label }}
+                  </a-tag>
                 </template>
               </a-list-item>
             </template>
@@ -169,26 +217,43 @@
     </a-card>
 
     <!-- 中心性分析 -->
-    <a-card title="中心性分析" size="small" class="panel-card">
-      <a-space direction="vertical" style="width: 100%">
+    <a-card
+      title="中心性分析"
+      size="small"
+      class="panel-card"
+    >
+      <a-space
+        direction="vertical"
+        style="width: 100%"
+      >
         <a-button
           type="primary"
           block
           :loading="analyzingCentrality"
           @click="analyzeCentrality"
         >
-          <template #icon><DotChartOutlined /></template>
+          <template #icon>
+            <DotChartOutlined />
+          </template>
           分析中心性
         </a-button>
 
         <div v-if="centralityResults.length > 0">
           <a-tabs size="small">
-            <a-tab-pane key="degree" tab="度中心性">
-              <a-list size="small" :data-source="centralityResults.slice(0, 10)">
+            <a-tab-pane
+              key="degree"
+              tab="度中心性"
+            >
+              <a-list
+                size="small"
+                :data-source="centralityResults.slice(0, 10)"
+              >
                 <template #renderItem="{ item }">
                   <a-list-item @click="selectNode(item.node)">
                     <a-list-item-meta>
-                      <template #title>{{ item.node.title }}</template>
+                      <template #title>
+                        {{ item.node.title }}
+                      </template>
                       <template #description>
                         度数: {{ item.degree }}
                       </template>
@@ -198,12 +263,20 @@
               </a-list>
             </a-tab-pane>
 
-            <a-tab-pane key="betweenness" tab="介数中心性">
-              <a-list size="small" :data-source="betweennessResults.slice(0, 10)">
+            <a-tab-pane
+              key="betweenness"
+              tab="介数中心性"
+            >
+              <a-list
+                size="small"
+                :data-source="betweennessResults.slice(0, 10)"
+              >
                 <template #renderItem="{ item }">
                   <a-list-item @click="selectNode(item.node)">
                     <a-list-item-meta>
-                      <template #title>{{ item.node.title }}</template>
+                      <template #title>
+                        {{ item.node.title }}
+                      </template>
                       <template #description>
                         介数: {{ item.betweenness.toFixed(2) }}
                       </template>

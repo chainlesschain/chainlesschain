@@ -450,9 +450,9 @@ async function testPhase5RealTools() {
     const statusIcon = result.status === '通过' ? '✅' :
                       result.status === '跳过' ? '⏭️' : '❌';
     console.log(`${index + 1}. ${statusIcon} ${result.test} - ${result.status}`);
-    if (result.event_id) console.log(`   事件ID: ${result.event_id}`);
-    if (result.error) console.log(`   错误: ${result.error}`);
-    if (result.count !== undefined) console.log(`   数量: ${result.count}`);
+    if (result.event_id) {console.log(`   事件ID: ${result.event_id}`);}
+    if (result.error) {console.log(`   错误: ${result.error}`);}
+    if (result.count !== undefined) {console.log(`   数量: ${result.count}`);}
   });
 
   console.log('\n========================================');

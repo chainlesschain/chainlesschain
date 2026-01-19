@@ -264,11 +264,11 @@ class SecureConfigStorage {
    * @private
    */
   _getEncryptionType(data) {
-    if (data.length < 3) return "unknown";
+    if (data.length < 3) {return "unknown";}
 
     const header = data.subarray(0, 2).toString("ascii");
-    if (header === "SS") return "safeStorage";
-    if (header === "AE") return "aes";
+    if (header === "SS") {return "safeStorage";}
+    if (header === "AE") {return "aes";}
 
     // 旧版本没有标记头，尝试作为AES解密
     return "legacy";

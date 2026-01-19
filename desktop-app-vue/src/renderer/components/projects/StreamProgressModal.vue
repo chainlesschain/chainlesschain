@@ -4,7 +4,7 @@
     title="创建项目中"
     :width="900"
     :closable="false"
-    :maskClosable="false"
+    :mask-closable="false"
     :footer="null"
   >
     <div class="stream-progress-modal">
@@ -15,7 +15,9 @@
           :status="progressStatus"
           stroke-color="#667eea"
         />
-        <div class="progress-text">{{ currentMessage }}</div>
+        <div class="progress-text">
+          {{ currentMessage }}
+        </div>
       </div>
 
       <!-- 2. 阶段步骤 -->
@@ -30,23 +32,38 @@
           >
             <div class="stage-icon">
               <CheckCircleOutlined v-if="stage.status === 'completed'" />
-              <LoadingOutlined v-else-if="stage.status === 'running'" spin />
+              <LoadingOutlined
+                v-else-if="stage.status === 'running'"
+                spin
+              />
               <CloseCircleOutlined v-else-if="stage.status === 'error'" />
-              <span v-else class="stage-number">{{ stage.number }}</span>
+              <span
+                v-else
+                class="stage-number"
+              >{{ stage.number }}</span>
             </div>
             <div class="stage-content">
-              <div class="stage-name">{{ stage.name }}</div>
-              <div class="stage-message">{{ stage.message }}</div>
+              <div class="stage-name">
+                {{ stage.name }}
+              </div>
+              <div class="stage-message">
+                {{ stage.message }}
+              </div>
             </div>
           </div>
         </div>
       </div>
 
       <!-- 3. 创建的文件列表 -->
-      <div v-if="hasFiles" class="files-section">
+      <div
+        v-if="hasFiles"
+        class="files-section"
+      >
         <div class="section-header-with-action">
           <h3>创建的文件</h3>
-          <a-tag color="blue">{{ createdFiles.length }} 个文件</a-tag>
+          <a-tag color="blue">
+            {{ createdFiles.length }} 个文件
+          </a-tag>
         </div>
         <div class="file-list">
           <div
@@ -63,10 +80,15 @@
               <FileOutlined v-else />
             </div>
             <div class="file-info">
-              <div class="file-name">{{ file.name }}</div>
+              <div class="file-name">
+                {{ file.name }}
+              </div>
               <div class="file-meta">
                 <span v-if="file.size">{{ formatFileSize(file.size) }}</span>
-                <span v-if="file.path" class="file-path">{{ file.path }}</span>
+                <span
+                  v-if="file.path"
+                  class="file-path"
+                >{{ file.path }}</span>
               </div>
             </div>
             <div class="file-status">
@@ -74,7 +96,10 @@
                 v-if="file.status === 'created'"
                 style="color: #52c41a"
               />
-              <LoadingOutlined v-else-if="file.status === 'creating'" spin />
+              <LoadingOutlined
+                v-else-if="file.status === 'creating'"
+                spin
+              />
               <ExclamationCircleOutlined
                 v-else-if="file.status === 'error'"
                 style="color: #ff4d4f"
@@ -85,9 +110,15 @@
       </div>
 
       <!-- 4. 代码预览（Tab切换） -->
-      <div v-if="hasContent" class="code-preview-section">
+      <div
+        v-if="hasContent"
+        class="code-preview-section"
+      >
         <h3>生成内容</h3>
-        <a-tabs v-model:activeKey="activeTab" type="card">
+        <a-tabs
+          v-model:active-key="activeTab"
+          type="card"
+        >
           <a-tab-pane
             v-for="file in fileStages"
             :key="file.key"
@@ -95,16 +126,25 @@
           >
             <div class="code-content">
               <pre><code>{{ progressData.contentByStage[file.key] || '生成中...' }}</code></pre>
-              <span v-if="isGenerating(file.key)" class="typing-cursor">▊</span>
+              <span
+                v-if="isGenerating(file.key)"
+                class="typing-cursor"
+              >▊</span>
             </div>
           </a-tab-pane>
         </a-tabs>
       </div>
 
       <!-- 4. 元数据展示 -->
-      <div v-if="hasMetadata" class="metadata-section">
+      <div
+        v-if="hasMetadata"
+        class="metadata-section"
+      >
         <h3>生成信息</h3>
-        <a-descriptions :column="2" size="small">
+        <a-descriptions
+          :column="2"
+          size="small"
+        >
           <a-descriptions-item label="模型">
             {{ progressData.metadata.model || '-' }}
           </a-descriptions-item>
@@ -132,7 +172,10 @@
             {{ showLogs ? '收起' : '展开' }}
           </a-button>
         </div>
-        <div v-if="showLogs" class="logs-content">
+        <div
+          v-if="showLogs"
+          class="logs-content"
+        >
           <div
             v-for="(log, idx) in progressData.logs"
             :key="idx"
@@ -146,7 +189,10 @@
       </div>
 
       <!-- 6. 错误信息 -->
-      <div v-if="error" class="error-section">
+      <div
+        v-if="error"
+        class="error-section"
+      >
         <ExclamationCircleOutlined />
         {{ error }}
       </div>
@@ -155,14 +201,20 @@
       <div class="actions">
         <!-- 进行中 -->
         <template v-if="isStreaming">
-          <a-button @click="handleCancel" danger>
+          <a-button
+            danger
+            @click="handleCancel"
+          >
             取消
           </a-button>
         </template>
 
         <!-- 完成 -->
         <template v-else-if="isCompleted">
-          <a-button type="primary" @click="handleViewProject">
+          <a-button
+            type="primary"
+            @click="handleViewProject"
+          >
             查看项目
           </a-button>
           <a-button @click="handleContinue">
@@ -172,7 +224,10 @@
 
         <!-- 错误 -->
         <template v-else-if="error">
-          <a-button type="primary" @click="handleRetry">
+          <a-button
+            type="primary"
+            @click="handleRetry"
+          >
             重试
           </a-button>
           <a-button @click="handleClose">
@@ -287,8 +342,8 @@ const overallProgress = computed(() => {
 });
 
 const progressStatus = computed(() => {
-  if (props.error) return 'exception';
-  if (isCompleted.value) return 'success';
+  if (props.error) {return 'exception';}
+  if (isCompleted.value) {return 'success';}
   return 'active';
 });
 
@@ -327,9 +382,9 @@ const isGenerating = (stage) => {
 };
 
 const formatFileSize = (bytes) => {
-  if (!bytes) return '-';
-  if (bytes < 1024) return bytes + ' B';
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
+  if (!bytes) {return '-';}
+  if (bytes < 1024) {return bytes + ' B';}
+  if (bytes < 1024 * 1024) {return (bytes / 1024).toFixed(2) + ' KB';}
   return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
 };
 

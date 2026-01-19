@@ -476,7 +476,7 @@ class FriendManager extends EventEmitter {
     const db = this.database.db;
 
     let query = 'SELECT * FROM friendships WHERE user_did = ? AND status = ?';
-    let params = [currentDid, FriendshipStatus.ACCEPTED];
+    const params = [currentDid, FriendshipStatus.ACCEPTED];
 
     if (groupName) {
       query += ' AND group_name = ?';

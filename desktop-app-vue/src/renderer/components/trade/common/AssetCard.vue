@@ -1,9 +1,19 @@
 <template>
-  <a-card class="asset-card" hoverable :bordered="true">
+  <a-card
+    class="asset-card"
+    hoverable
+    :bordered="true"
+  >
     <template #cover>
-      <div class="asset-cover" :style="{ background: getCoverGradient(asset.asset_type) }">
+      <div
+        class="asset-cover"
+        :style="{ background: getCoverGradient(asset.asset_type) }"
+      >
         <div class="asset-icon">
-          <component :is="getAssetIcon(asset.asset_type)" style="font-size: 48px; color: white" />
+          <component
+            :is="getAssetIcon(asset.asset_type)"
+            style="font-size: 48px; color: white"
+          />
         </div>
       </div>
     </template>
@@ -12,7 +22,10 @@
       <template #title>
         <div class="asset-title">
           <span class="asset-name">{{ asset.name }}</span>
-          <a-tag :color="getTypeColor(asset.asset_type)" class="asset-type-tag">
+          <a-tag
+            :color="getTypeColor(asset.asset_type)"
+            class="asset-type-tag"
+          >
             {{ getTypeLabel(asset.asset_type) }}
           </a-tag>
         </div>
@@ -21,7 +34,10 @@
       <template #description>
         <div class="asset-description">
           <!-- 符号 -->
-          <div class="info-row" v-if="asset.symbol">
+          <div
+            v-if="asset.symbol"
+            class="info-row"
+          >
             <span class="label">符号:</span>
             <span class="value">{{ asset.symbol }}</span>
           </div>
@@ -36,7 +52,10 @@
           </div>
 
           <!-- 总供应量 -->
-          <div class="info-row" v-if="showTotalSupply">
+          <div
+            v-if="showTotalSupply"
+            class="info-row"
+          >
             <span class="label">总量:</span>
             <span class="value">{{ formatAmount(asset.total_supply) }}</span>
           </div>
@@ -63,17 +82,31 @@
           <ellipsis-outlined />
           <template #overlay>
             <a-menu>
-              <a-menu-item key="mint" v-if="canMint" @click="handleMint">
+              <a-menu-item
+                v-if="canMint"
+                key="mint"
+                @click="handleMint"
+              >
                 <plus-circle-outlined /> 铸造
               </a-menu-item>
-              <a-menu-item key="burn" v-if="canBurn" @click="handleBurn">
+              <a-menu-item
+                v-if="canBurn"
+                key="burn"
+                @click="handleBurn"
+              >
                 <fire-outlined /> 销毁
               </a-menu-item>
               <a-menu-divider v-if="canMint || canBurn" />
-              <a-menu-item key="history" @click="handleHistory">
+              <a-menu-item
+                key="history"
+                @click="handleHistory"
+              >
                 <history-outlined /> 历史记录
               </a-menu-item>
-              <a-menu-item key="qr" @click="handleShowQR">
+              <a-menu-item
+                key="qr"
+                @click="handleShowQR"
+              >
                 <qrcode-outlined /> 二维码
               </a-menu-item>
             </a-menu>
@@ -184,9 +217,9 @@ const getCoverGradient = (type) => {
 
 // 格式化金额
 const formatAmount = (amount) => {
-  if (!amount && amount !== 0) return '0';
+  if (!amount && amount !== 0) {return '0';}
   const num = parseFloat(amount);
-  if (isNaN(num)) return '0';
+  if (isNaN(num)) {return '0';}
 
   // 大数字使用科学计数法
   if (num >= 1e9) {
@@ -203,7 +236,7 @@ const formatAmount = (amount) => {
 
 // 格式化时间
 const formatTime = (timestamp) => {
-  if (!timestamp) return '-';
+  if (!timestamp) {return '-';}
   const date = new Date(timestamp);
   const now = new Date();
   const diff = now - date;

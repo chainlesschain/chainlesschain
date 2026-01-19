@@ -36,8 +36,8 @@
       </div>
       <div
         v-if="showAllLogs"
-        class="logs-content"
         ref="logsContainer"
+        class="logs-content"
       >
         <div
           v-for="(log, index) in progress.logs"
@@ -47,7 +47,10 @@
           <span class="log-time">{{ formatTime(log.timestamp) }}</span>
           <span class="log-message">{{ log.message }}</span>
         </div>
-        <div v-if="!progress.logs || progress.logs.length === 0" class="empty-logs">
+        <div
+          v-if="!progress.logs || progress.logs.length === 0"
+          class="empty-logs"
+        >
           暂无日志
         </div>
       </div>
@@ -82,8 +85,8 @@ const logsContainer = ref(null);
 
 // 获取进度条状态
 const getProgressStatus = () => {
-  if (props.percentage === 100) return 'success';
-  if (props.percentage === 0) return 'normal';
+  if (props.percentage === 100) {return 'success';}
+  if (props.percentage === 0) {return 'normal';}
   return 'active';
 };
 

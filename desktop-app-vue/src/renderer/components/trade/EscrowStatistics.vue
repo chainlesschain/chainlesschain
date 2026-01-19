@@ -2,8 +2,15 @@
   <div class="escrow-statistics">
     <a-row :gutter="16">
       <!-- 总托管数 -->
-      <a-col :xs="24" :sm="12" :md="6">
-        <a-card class="stat-card" hoverable>
+      <a-col
+        :xs="24"
+        :sm="12"
+        :md="6"
+      >
+        <a-card
+          class="stat-card"
+          hoverable
+        >
           <a-statistic
             title="总托管数"
             :value="statistics.total"
@@ -14,14 +21,23 @@
             </template>
           </a-statistic>
           <div class="stat-footer">
-            <a-tag color="blue">全部记录</a-tag>
+            <a-tag color="blue">
+              全部记录
+            </a-tag>
           </div>
         </a-card>
       </a-col>
 
       <!-- 锁定中 -->
-      <a-col :xs="24" :sm="12" :md="6">
-        <a-card class="stat-card" hoverable>
+      <a-col
+        :xs="24"
+        :sm="12"
+        :md="6"
+      >
+        <a-card
+          class="stat-card"
+          hoverable
+        >
           <a-statistic
             title="锁定中"
             :value="statistics.locked"
@@ -44,8 +60,15 @@
       </a-col>
 
       <!-- 已释放 -->
-      <a-col :xs="24" :sm="12" :md="6">
-        <a-card class="stat-card" hoverable>
+      <a-col
+        :xs="24"
+        :sm="12"
+        :md="6"
+      >
+        <a-card
+          class="stat-card"
+          hoverable
+        >
           <a-statistic
             title="已释放"
             :value="statistics.released"
@@ -68,8 +91,15 @@
       </a-col>
 
       <!-- 已退款 -->
-      <a-col :xs="24" :sm="12" :md="6">
-        <a-card class="stat-card" hoverable>
+      <a-col
+        :xs="24"
+        :sm="12"
+        :md="6"
+      >
+        <a-card
+          class="stat-card"
+          hoverable
+        >
           <a-statistic
             title="已退款"
             :value="statistics.refunded"
@@ -93,19 +123,41 @@
     </a-row>
 
     <!-- 详细统计 -->
-    <a-row :gutter="16" style="margin-top: 16px">
+    <a-row
+      :gutter="16"
+      style="margin-top: 16px"
+    >
       <!-- 争议数量 -->
-      <a-col :xs="24" :sm="12" :md="8">
-        <a-card class="stat-card detail-card" hoverable>
+      <a-col
+        :xs="24"
+        :sm="12"
+        :md="8"
+      >
+        <a-card
+          class="stat-card detail-card"
+          hoverable
+        >
           <div class="detail-stat">
-            <div class="detail-icon" style="background: linear-gradient(135deg, #f5222d 0%, #ff4d4f 100%)">
+            <div
+              class="detail-icon"
+              style="background: linear-gradient(135deg, #f5222d 0%, #ff4d4f 100%)"
+            >
               <exclamation-circle-outlined style="font-size: 24px; color: white" />
             </div>
             <div class="detail-content">
-              <div class="detail-title">有争议</div>
-              <div class="detail-value">{{ statistics.disputed }}</div>
+              <div class="detail-title">
+                有争议
+              </div>
+              <div class="detail-value">
+                {{ statistics.disputed }}
+              </div>
               <div class="detail-description">
-                <a-tag color="red" size="small">需要处理</a-tag>
+                <a-tag
+                  color="red"
+                  size="small"
+                >
+                  需要处理
+                </a-tag>
               </div>
             </div>
           </div>
@@ -113,15 +165,29 @@
       </a-col>
 
       <!-- 托管总金额 -->
-      <a-col :xs="24" :sm="12" :md="8">
-        <a-card class="stat-card detail-card" hoverable>
+      <a-col
+        :xs="24"
+        :sm="12"
+        :md="8"
+      >
+        <a-card
+          class="stat-card detail-card"
+          hoverable
+        >
           <div class="detail-stat">
-            <div class="detail-icon" style="background: linear-gradient(135deg, #faad14 0%, #ffc53d 100%)">
+            <div
+              class="detail-icon"
+              style="background: linear-gradient(135deg, #faad14 0%, #ffc53d 100%)"
+            >
               <dollar-outlined style="font-size: 24px; color: white" />
             </div>
             <div class="detail-content">
-              <div class="detail-title">托管总金额</div>
-              <div class="detail-value">{{ formatAmount(totalLockedAmount) }}</div>
+              <div class="detail-title">
+                托管总金额
+              </div>
+              <div class="detail-value">
+                {{ formatAmount(totalLockedAmount) }}
+              </div>
               <div class="detail-description">
                 <span style="color: #8c8c8c; font-size: 12px">当前锁定资金</span>
               </div>
@@ -131,15 +197,29 @@
       </a-col>
 
       <!-- 平均处理时间 -->
-      <a-col :xs="24" :sm="12" :md="8">
-        <a-card class="stat-card detail-card" hoverable>
+      <a-col
+        :xs="24"
+        :sm="12"
+        :md="8"
+      >
+        <a-card
+          class="stat-card detail-card"
+          hoverable
+        >
           <div class="detail-stat">
-            <div class="detail-icon" style="background: linear-gradient(135deg, #1890ff 0%, #40a9ff 100%)">
+            <div
+              class="detail-icon"
+              style="background: linear-gradient(135deg, #1890ff 0%, #40a9ff 100%)"
+            >
               <clock-circle-outlined style="font-size: 24px; color: white" />
             </div>
             <div class="detail-content">
-              <div class="detail-title">平均处理时间</div>
-              <div class="detail-value">{{ averageProcessTime }}</div>
+              <div class="detail-title">
+                平均处理时间
+              </div>
+              <div class="detail-value">
+                {{ averageProcessTime }}
+              </div>
               <div class="detail-description">
                 <span style="color: #8c8c8c; font-size: 12px">从创建到完成</span>
               </div>
@@ -150,9 +230,15 @@
     </a-row>
 
     <!-- 状态分布图表 -->
-    <a-row :gutter="16" style="margin-top: 16px">
+    <a-row
+      :gutter="16"
+      style="margin-top: 16px"
+    >
       <a-col :span="24">
-        <a-card title="状态分布" size="small">
+        <a-card
+          title="状态分布"
+          size="small"
+        >
           <div class="status-distribution">
             <div
               v-for="status in statusDistribution"
@@ -160,7 +246,10 @@
               class="status-item"
               :style="{ flex: status.percentage }"
             >
-              <div class="status-bar" :style="{ backgroundColor: status.color }">
+              <div
+                class="status-bar"
+                :style="{ backgroundColor: status.color }"
+              >
                 <span class="status-label">{{ status.name }}</span>
                 <span class="status-count">{{ status.count }}</span>
               </div>
@@ -168,8 +257,15 @@
           </div>
 
           <div class="status-legend">
-            <div v-for="status in statusDistribution" :key="status.name" class="legend-item">
-              <span class="legend-color" :style="{ backgroundColor: status.color }"></span>
+            <div
+              v-for="status in statusDistribution"
+              :key="status.name"
+              class="legend-item"
+            >
+              <span
+                class="legend-color"
+                :style="{ backgroundColor: status.color }"
+              />
               <span class="legend-name">{{ status.name }}</span>
               <span class="legend-percentage">{{ status.percentage.toFixed(1) }}%</span>
             </div>
@@ -202,17 +298,17 @@ const escrows = computed(() => tradeStore.escrow.escrows);
 
 // 计算百分比
 const lockedPercentage = computed(() => {
-  if (statistics.value.total === 0) return 0;
+  if (statistics.value.total === 0) {return 0;}
   return (statistics.value.locked / statistics.value.total) * 100;
 });
 
 const releasedPercentage = computed(() => {
-  if (statistics.value.total === 0) return 0;
+  if (statistics.value.total === 0) {return 0;}
   return (statistics.value.released / statistics.value.total) * 100;
 });
 
 const refundedPercentage = computed(() => {
-  if (statistics.value.total === 0) return 0;
+  if (statistics.value.total === 0) {return 0;}
   return (statistics.value.refunded / statistics.value.total) * 100;
 });
 
@@ -228,7 +324,7 @@ const averageProcessTime = computed(() => {
     (e) => e.status === 'released' || e.status === 'refunded'
   );
 
-  if (completedEscrows.length === 0) return '-';
+  if (completedEscrows.length === 0) {return '-';}
 
   const totalTime = completedEscrows.reduce((sum, e) => {
     const created = new Date(e.created_at).getTime();
@@ -286,9 +382,9 @@ const statusDistribution = computed(() => {
 
 // 工具函数
 const formatAmount = (amount) => {
-  if (!amount && amount !== 0) return '0';
+  if (!amount && amount !== 0) {return '0';}
   const num = parseFloat(amount);
-  if (isNaN(num)) return '0';
+  if (isNaN(num)) {return '0';}
   return num.toLocaleString('en-US', { maximumFractionDigits: 2 });
 };
 

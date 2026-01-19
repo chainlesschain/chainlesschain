@@ -6,25 +6,46 @@
         任务进度监控
       </h3>
       <div class="header-actions">
-        <a-badge :count="activeTasks.length" :overflow-count="99">
-          <a-button size="small" @click="toggleExpand">
+        <a-badge
+          :count="activeTasks.length"
+          :overflow-count="99"
+        >
+          <a-button
+            size="small"
+            @click="toggleExpand"
+          >
             {{ isExpanded ? '收起' : '展开' }}
           </a-button>
         </a-badge>
-        <a-button size="small" danger @click="clearCompleted" :disabled="completedTasks.length === 0">
+        <a-button
+          size="small"
+          danger
+          :disabled="completedTasks.length === 0"
+          @click="clearCompleted"
+        >
           清除已完成
         </a-button>
       </div>
     </div>
 
-    <div v-show="isExpanded" class="monitor-body">
+    <div
+      v-show="isExpanded"
+      class="monitor-body"
+    >
       <!-- 活动任务 -->
-      <div v-if="activeTasks.length > 0" class="task-section active-tasks">
+      <div
+        v-if="activeTasks.length > 0"
+        class="task-section active-tasks"
+      >
         <div class="section-title">
           <span class="badge active">{{ activeTasks.length }}</span>
           正在进行
         </div>
-        <TransitionGroup name="task-list" tag="div" class="task-list">
+        <TransitionGroup
+          name="task-list"
+          tag="div"
+          class="task-list"
+        >
           <div
             v-for="task in activeTasks"
             :key="task.taskId"
@@ -35,11 +56,17 @@
               <div class="task-info">
                 <span class="task-icon">{{ getStageIcon(task.stage) }}</span>
                 <div class="task-details">
-                  <div class="task-title">{{ task.title }}</div>
-                  <div class="task-description">{{ task.description }}</div>
+                  <div class="task-title">
+                    {{ task.title }}
+                  </div>
+                  <div class="task-description">
+                    {{ task.description }}
+                  </div>
                 </div>
               </div>
-              <div class="task-percent">{{ task.percent }}%</div>
+              <div class="task-percent">
+                {{ task.percent }}%
+              </div>
             </div>
 
             <a-progress
@@ -50,7 +77,9 @@
             />
 
             <div class="task-footer">
-              <div class="task-message">{{ task.message }}</div>
+              <div class="task-message">
+                {{ task.message }}
+              </div>
               <div class="task-time">
                 <ClockCircleOutlined />
                 {{ formatDuration(task.duration) }}
@@ -61,12 +90,19 @@
       </div>
 
       <!-- 已完成任务 -->
-      <div v-if="completedTasks.length > 0" class="task-section completed-tasks">
+      <div
+        v-if="completedTasks.length > 0"
+        class="task-section completed-tasks"
+      >
         <div class="section-title">
           <span class="badge completed">{{ completedTasks.length }}</span>
           最近完成
         </div>
-        <TransitionGroup name="task-list" tag="div" class="task-list">
+        <TransitionGroup
+          name="task-list"
+          tag="div"
+          class="task-list"
+        >
           <div
             v-for="task in completedTasks.slice(0, 5)"
             :key="task.taskId"
@@ -76,23 +112,36 @@
               <div class="task-info">
                 <span class="task-icon">✅</span>
                 <div class="task-details">
-                  <div class="task-title">{{ task.title }}</div>
-                  <div class="task-description">{{ task.message }}</div>
+                  <div class="task-title">
+                    {{ task.title }}
+                  </div>
+                  <div class="task-description">
+                    {{ task.message }}
+                  </div>
                 </div>
               </div>
-              <div class="task-time">{{ formatDuration(task.duration) }}</div>
+              <div class="task-time">
+                {{ formatDuration(task.duration) }}
+              </div>
             </div>
           </div>
         </TransitionGroup>
       </div>
 
       <!-- 失败任务 -->
-      <div v-if="failedTasks.length > 0" class="task-section failed-tasks">
+      <div
+        v-if="failedTasks.length > 0"
+        class="task-section failed-tasks"
+      >
         <div class="section-title">
           <span class="badge failed">{{ failedTasks.length }}</span>
           失败任务
         </div>
-        <TransitionGroup name="task-list" tag="div" class="task-list">
+        <TransitionGroup
+          name="task-list"
+          tag="div"
+          class="task-list"
+        >
           <div
             v-for="task in failedTasks.slice(0, 3)"
             :key="task.taskId"
@@ -102,8 +151,12 @@
               <div class="task-info">
                 <span class="task-icon">❌</span>
                 <div class="task-details">
-                  <div class="task-title">{{ task.title }}</div>
-                  <div class="task-description error">{{ task.error || task.message }}</div>
+                  <div class="task-title">
+                    {{ task.title }}
+                  </div>
+                  <div class="task-description error">
+                    {{ task.error || task.message }}
+                  </div>
                 </div>
               </div>
             </div>
@@ -112,7 +165,10 @@
       </div>
 
       <!-- 空状态 -->
-      <div v-if="allTasks.length === 0" class="empty-state">
+      <div
+        v-if="allTasks.length === 0"
+        class="empty-state"
+      >
         <InboxOutlined style="font-size: 48px; color: #ccc" />
         <p>暂无任务</p>
       </div>
@@ -177,8 +233,8 @@ const getStageIcon = (stage) => {
 };
 
 const getProgressStatus = (stage) => {
-  if (stage === 'failed') return 'exception';
-  if (stage === 'completed') return 'success';
+  if (stage === 'failed') {return 'exception';}
+  if (stage === 'completed') {return 'success';}
   return 'active';
 };
 
@@ -196,14 +252,14 @@ const getProgressColor = (stage) => {
 };
 
 const formatDuration = (ms) => {
-  if (!ms || ms === 0) return '0秒';
+  if (!ms || ms === 0) {return '0秒';}
 
   const seconds = Math.floor(ms / 1000);
-  if (seconds < 60) return `${seconds}秒`;
+  if (seconds < 60) {return `${seconds}秒`;}
 
   const minutes = Math.floor(seconds / 60);
   const remainingSeconds = seconds % 60;
-  if (minutes < 60) return `${minutes}分${remainingSeconds}秒`;
+  if (minutes < 60) {return `${minutes}分${remainingSeconds}秒`;}
 
   const hours = Math.floor(minutes / 60);
   const remainingMinutes = minutes % 60;

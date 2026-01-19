@@ -6,14 +6,22 @@
         <WarningOutlined />
         错误降级策略
       </h4>
-      <a-button type="text" size="small" @click="$emit('close')">
+      <a-button
+        type="text"
+        size="small"
+        @click="$emit('close')"
+      >
         <CloseOutlined />
       </a-button>
     </div>
 
     <!-- 错误监控状态 -->
     <div class="monitoring-status">
-      <a-card size="small" title="监控状态" :bordered="false">
+      <a-card
+        size="small"
+        title="监控状态"
+        :bordered="false"
+      >
         <a-row :gutter="16">
           <a-col :span="8">
             <a-statistic
@@ -54,7 +62,11 @@
 
     <!-- 降级策略配置 -->
     <div class="fallback-config">
-      <a-card size="small" title="降级策略配置" :bordered="false">
+      <a-card
+        size="small"
+        title="降级策略配置"
+        :bordered="false"
+      >
         <a-form layout="vertical">
           <a-form-item label="启用自动降级">
             <a-switch v-model:checked="config.autoFallback" />
@@ -73,9 +85,15 @@
 
           <a-form-item label="降级级别">
             <a-radio-group v-model:value="config.fallbackLevel">
-              <a-radio value="minimal">最小功能</a-radio>
-              <a-radio value="basic">基础功能</a-radio>
-              <a-radio value="full">完整功能</a-radio>
+              <a-radio value="minimal">
+                最小功能
+              </a-radio>
+              <a-radio value="basic">
+                基础功能
+              </a-radio>
+              <a-radio value="full">
+                完整功能
+              </a-radio>
             </a-radio-group>
           </a-form-item>
 
@@ -94,7 +112,11 @@
           </a-form-item>
         </a-form>
 
-        <a-button type="primary" block @click="handleSaveConfig">
+        <a-button
+          type="primary"
+          block
+          @click="handleSaveConfig"
+        >
           保存配置
         </a-button>
       </a-card>
@@ -102,17 +124,27 @@
 
     <!-- 错误日志 -->
     <div class="error-logs">
-      <a-card size="small" :bordered="false">
+      <a-card
+        size="small"
+        :bordered="false"
+      >
         <template #title>
           <div style="display: flex; justify-content: space-between; align-items: center">
             <span>错误日志</span>
-            <a-button type="link" size="small" @click="handleClearLogs">
+            <a-button
+              type="link"
+              size="small"
+              @click="handleClearLogs"
+            >
               清空日志
             </a-button>
           </div>
         </template>
 
-        <div v-if="errorLogs.length === 0" class="logs-empty">
+        <div
+          v-if="errorLogs.length === 0"
+          class="logs-empty"
+        >
           <CheckCircleOutlined style="font-size: 48px; color: #52c41a" />
           <p>暂无错误记录</p>
         </div>
@@ -130,15 +162,26 @@
                 </a-tag>
                 <span class="log-time">{{ formatTime(log.timestamp) }}</span>
               </div>
-              <div class="log-message">{{ log.message }}</div>
-              <div v-if="log.stack" class="log-stack">
+              <div class="log-message">
+                {{ log.message }}
+              </div>
+              <div
+                v-if="log.stack"
+                class="log-stack"
+              >
                 <a-collapse ghost>
-                  <a-collapse-panel key="1" header="查看堆栈">
+                  <a-collapse-panel
+                    key="1"
+                    header="查看堆栈"
+                  >
                     <pre>{{ log.stack }}</pre>
                   </a-collapse-panel>
                 </a-collapse>
               </div>
-              <div v-if="log.fallbackAction" class="log-action">
+              <div
+                v-if="log.fallbackAction"
+                class="log-action"
+              >
                 <BulbOutlined />
                 降级操作: {{ log.fallbackAction }}
               </div>
@@ -150,8 +193,15 @@
 
     <!-- 降级功能列表 -->
     <div class="fallback-features">
-      <a-card size="small" title="功能降级状态" :bordered="false">
-        <a-list size="small" :data-source="features">
+      <a-card
+        size="small"
+        title="功能降级状态"
+        :bordered="false"
+      >
+        <a-list
+          size="small"
+          :data-source="features"
+        >
           <template #renderItem="{ item }">
             <a-list-item>
               <template #actions>
@@ -166,8 +216,20 @@
                   <div style="display: flex; align-items: center; gap: 8px">
                     <component :is="item.icon" />
                     <span>{{ item.name }}</span>
-                    <a-tag v-if="item.required" color="red" size="small">必需</a-tag>
-                    <a-tag v-if="item.fallback" color="orange" size="small">已降级</a-tag>
+                    <a-tag
+                      v-if="item.required"
+                      color="red"
+                      size="small"
+                    >
+                      必需
+                    </a-tag>
+                    <a-tag
+                      v-if="item.fallback"
+                      color="orange"
+                      size="small"
+                    >
+                      已降级
+                    </a-tag>
                   </div>
                 </template>
                 <template #description>
@@ -183,11 +245,20 @@
     <!-- 手动操作 -->
     <div class="manual-actions">
       <a-space style="width: 100%">
-        <a-button type="primary" danger block @click="handleManualFallback">
+        <a-button
+          type="primary"
+          danger
+          block
+          @click="handleManualFallback"
+        >
           <FallOutlined />
           手动降级
         </a-button>
-        <a-button type="primary" block @click="handleManualRecovery">
+        <a-button
+          type="primary"
+          block
+          @click="handleManualRecovery"
+        >
           <CheckCircleOutlined />
           手动恢复
         </a-button>

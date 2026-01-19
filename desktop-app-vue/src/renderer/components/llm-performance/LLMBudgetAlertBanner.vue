@@ -7,21 +7,28 @@
       :aria-live="alertLevel === 'critical' ? 'assertive' : 'polite'"
     >
       <div class="alert-content">
-        <component :is="alertIcon" class="alert-icon" />
+        <component
+          :is="alertIcon"
+          class="alert-icon"
+        />
         <div class="alert-text">
           <strong>{{ alertTitle }}</strong>
           <span>{{ alertMessage }}</span>
         </div>
       </div>
       <div class="alert-actions">
-        <a-button size="small" ghost @click="$emit('settings')">
+        <a-button
+          size="small"
+          ghost
+          @click="$emit('settings')"
+        >
           调整预算
         </a-button>
         <a-button
           size="small"
           type="text"
-          @click="$emit('dismiss')"
           aria-label="关闭告警"
+          @click="$emit('dismiss')"
         >
           <CloseOutlined />
         </a-button>
@@ -60,8 +67,8 @@ const props = defineProps({
 defineEmits(["dismiss", "settings"]);
 
 const alertLevel = computed(() => {
-  if (props.budgetPercent >= props.criticalThreshold) return "critical";
-  if (props.budgetPercent >= props.warningThreshold) return "warning";
+  if (props.budgetPercent >= props.criticalThreshold) {return "critical";}
+  if (props.budgetPercent >= props.warningThreshold) {return "warning";}
   return "";
 });
 

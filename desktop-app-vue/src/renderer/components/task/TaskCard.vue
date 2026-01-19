@@ -1,24 +1,45 @@
 <template>
-  <div class="task-card" :class="[`priority-${task.priority}`, { 'is-overdue': isOverdue }]" @click="handleClick">
+  <div
+    class="task-card"
+    :class="[`priority-${task.priority}`, { 'is-overdue': isOverdue }]"
+    @click="handleClick"
+  >
     <!-- 卡片头部 -->
     <div class="task-card-header">
       <div class="task-title">
         {{ task.title }}
       </div>
-      <a-dropdown :trigger="['click']" @click.stop>
-        <a-button type="text" size="small" class="task-action-btn">
+      <a-dropdown
+        :trigger="['click']"
+        @click.stop
+      >
+        <a-button
+          type="text"
+          size="small"
+          class="task-action-btn"
+        >
           <more-outlined />
         </a-button>
         <template #overlay>
           <a-menu>
-            <a-menu-item key="edit" @click="handleEdit">
+            <a-menu-item
+              key="edit"
+              @click="handleEdit"
+            >
               <edit-outlined /> 编辑
             </a-menu-item>
-            <a-menu-item key="assign" @click="handleAssign">
+            <a-menu-item
+              key="assign"
+              @click="handleAssign"
+            >
               <user-outlined /> 分配
             </a-menu-item>
             <a-menu-divider />
-            <a-menu-item key="delete" danger @click="handleDelete">
+            <a-menu-item
+              key="delete"
+              danger
+              @click="handleDelete"
+            >
               <delete-outlined /> 删除
             </a-menu-item>
           </a-menu>
@@ -27,12 +48,18 @@
     </div>
 
     <!-- 任务描述 -->
-    <div class="task-description" v-if="task.description && showDescription">
+    <div
+      v-if="task.description && showDescription"
+      class="task-description"
+    >
       {{ truncateText(task.description, 100) }}
     </div>
 
     <!-- 标签 -->
-    <div class="task-labels" v-if="task.labels && task.labels.length > 0">
+    <div
+      v-if="task.labels && task.labels.length > 0"
+      class="task-labels"
+    >
       <a-tag
         v-for="(label, index) in task.labels.slice(0, 3)"
         :key="index"
@@ -41,7 +68,10 @@
       >
         {{ label }}
       </a-tag>
-      <a-tag v-if="task.labels.length > 3" size="small">
+      <a-tag
+        v-if="task.labels.length > 3"
+        size="small"
+      >
         +{{ task.labels.length - 3 }}
       </a-tag>
     </div>
@@ -51,27 +81,42 @@
       <div class="footer-left">
         <!-- 优先级标识 -->
         <a-tooltip :title="`优先级: ${getPriorityLabel(task.priority)}`">
-          <span class="priority-badge" :class="`priority-${task.priority}`">
+          <span
+            class="priority-badge"
+            :class="`priority-${task.priority}`"
+          >
             <flag-outlined />
           </span>
         </a-tooltip>
 
         <!-- 截止日期 -->
-        <a-tooltip :title="getDueDateTooltip()" v-if="task.due_date">
-          <span class="due-date" :class="{ 'is-overdue': isOverdue, 'is-soon': isSoon }">
+        <a-tooltip
+          v-if="task.due_date"
+          :title="getDueDateTooltip()"
+        >
+          <span
+            class="due-date"
+            :class="{ 'is-overdue': isOverdue, 'is-soon': isSoon }"
+          >
             <calendar-outlined />
             {{ formatDueDate(task.due_date) }}
           </span>
         </a-tooltip>
 
         <!-- 评论数量 -->
-        <span class="comment-count" v-if="task.comment_count > 0">
+        <span
+          v-if="task.comment_count > 0"
+          class="comment-count"
+        >
           <message-outlined />
           {{ task.comment_count }}
         </span>
 
         <!-- 附件数量 -->
-        <span class="attachment-count" v-if="task.attachment_count > 0">
+        <span
+          v-if="task.attachment_count > 0"
+          class="attachment-count"
+        >
           <paperclip-outlined />
           {{ task.attachment_count }}
         </span>
@@ -79,15 +124,29 @@
 
       <div class="footer-right">
         <!-- 分配的用户头像 -->
-        <a-tooltip :title="getAssignedUserName()" v-if="task.assigned_to">
-          <a-avatar :size="24" :style="{ backgroundColor: getAvatarColor(task.assigned_to) }">
+        <a-tooltip
+          v-if="task.assigned_to"
+          :title="getAssignedUserName()"
+        >
+          <a-avatar
+            :size="24"
+            :style="{ backgroundColor: getAvatarColor(task.assigned_to) }"
+          >
             {{ getAvatarText(task.assigned_to) }}
           </a-avatar>
         </a-tooltip>
 
         <!-- 协作者数量 -->
-        <a-avatar-group v-if="task.collaborators && task.collaborators.length > 0" :max-count="2" :size="24">
-          <a-tooltip :title="collaborator" v-for="(collaborator, index) in task.collaborators" :key="index">
+        <a-avatar-group
+          v-if="task.collaborators && task.collaborators.length > 0"
+          :max-count="2"
+          :size="24"
+        >
+          <a-tooltip
+            v-for="(collaborator, index) in task.collaborators"
+            :key="index"
+            :title="collaborator"
+          >
             <a-avatar :style="{ backgroundColor: getAvatarColor(collaborator) }">
               {{ getAvatarText(collaborator) }}
             </a-avatar>
@@ -97,7 +156,10 @@
     </div>
 
     <!-- 进度条（如果有预估工时） -->
-    <div class="task-progress" v-if="task.estimate_hours && task.actual_hours">
+    <div
+      v-if="task.estimate_hours && task.actual_hours"
+      class="task-progress"
+    >
       <a-progress
         :percent="Math.min(Math.round((task.actual_hours / task.estimate_hours) * 100), 100)"
         :size="'small'"
@@ -146,12 +208,12 @@ const taskStore = useTaskStore();
 
 // Computed
 const isOverdue = computed(() => {
-  if (!props.task.due_date || props.task.status === 'completed') return false;
+  if (!props.task.due_date || props.task.status === 'completed') {return false;}
   return props.task.due_date < Date.now();
 });
 
 const isSoon = computed(() => {
-  if (!props.task.due_date || props.task.status === 'completed') return false;
+  if (!props.task.due_date || props.task.status === 'completed') {return false;}
   const threeDays = 3 * 24 * 60 * 60 * 1000;
   return props.task.due_date < Date.now() + threeDays && props.task.due_date > Date.now();
 });
@@ -190,8 +252,8 @@ function handleDelete(e) {
 }
 
 function truncateText(text, maxLength) {
-  if (!text) return '';
-  if (text.length <= maxLength) return text;
+  if (!text) {return '';}
+  if (text.length <= maxLength) {return text;}
   return text.substring(0, maxLength) + '...';
 }
 
@@ -221,11 +283,11 @@ function formatDueDate(timestamp) {
   const diff = date.getTime() - now.getTime();
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
 
-  if (days === 0) return '今天';
-  if (days === 1) return '明天';
-  if (days === -1) return '昨天';
-  if (days > 0 && days < 7) return `${days}天后`;
-  if (days < 0 && days > -7) return `${Math.abs(days)}天前`;
+  if (days === 0) {return '今天';}
+  if (days === 1) {return '明天';}
+  if (days === -1) {return '昨天';}
+  if (days > 0 && days < 7) {return `${days}天后`;}
+  if (days < 0 && days > -7) {return `${Math.abs(days)}天前`;}
 
   return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' });
 }

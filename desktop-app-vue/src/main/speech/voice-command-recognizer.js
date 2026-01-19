@@ -333,8 +333,8 @@ class VoiceCommandRecognizer extends EventEmitter {
     const len2 = str2.length;
     const dp = Array(len1 + 1).fill(null).map(() => Array(len2 + 1).fill(0));
 
-    for (let i = 0; i <= len1; i++) dp[i][0] = i;
-    for (let j = 0; j <= len2; j++) dp[0][j] = j;
+    for (let i = 0; i <= len1; i++) {dp[i][0] = i;}
+    for (let j = 0; j <= len2; j++) {dp[0][j] = j;}
 
     for (let i = 1; i <= len1; i++) {
       for (let j = 1; j <= len2; j++) {

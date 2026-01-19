@@ -136,7 +136,7 @@ class MCPFunctionExecutor {
     // 格式: mcp_${serverName}_${toolName}
     // 注意: toolName 可能包含下划线，所以只分割前两个下划线
     const match = name.match(/^mcp_([^_]+)_(.+)$/);
-    if (!match) return null;
+    if (!match) {return null;}
     return {
       serverName: match[1],
       toolName: match[2],

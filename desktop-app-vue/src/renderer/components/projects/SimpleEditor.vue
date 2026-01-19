@@ -5,12 +5,23 @@
       <div class="header-left">
         <EditOutlined />
         <span class="file-name">{{ file?.file_name || '编辑器' }}</span>
-        <a-tag v-if="languageLabel" color="blue">{{ languageLabel }}</a-tag>
-        <a-tag v-if="hasUnsavedChanges" color="orange">
+        <a-tag
+          v-if="languageLabel"
+          color="blue"
+        >
+          {{ languageLabel }}
+        </a-tag>
+        <a-tag
+          v-if="hasUnsavedChanges"
+          color="orange"
+        >
           <ClockCircleOutlined />
           未保存
         </a-tag>
-        <a-tag v-else-if="file" color="green">
+        <a-tag
+          v-else-if="file"
+          color="green"
+        >
           <CheckOutlined />
           已保存
         </a-tag>
@@ -32,7 +43,10 @@
     </div>
 
     <!-- CodeMirror 编辑器容器 -->
-    <div ref="editorRef" class="editor-container"></div>
+    <div
+      ref="editorRef"
+      class="editor-container"
+    />
 
     <!-- 底部状态栏 -->
     <div class="editor-footer">
@@ -43,7 +57,10 @@
         <span class="status-text">{{ charCount }} 字符</span>
       </div>
       <div class="footer-right">
-        <span v-if="autoSaveEnabled" class="status-text">
+        <span
+          v-if="autoSaveEnabled"
+          class="status-text"
+        >
           <CheckCircleOutlined />
           自动保存
         </span>
@@ -112,7 +129,7 @@ const languageCompartment = new Compartment();
  * 获取语言标签
  */
 const languageLabel = computed(() => {
-  if (!props.file?.file_name) return null;
+  if (!props.file?.file_name) {return null;}
 
   const ext = props.file.file_name.split('.').pop().toLowerCase();
 
@@ -147,7 +164,7 @@ const autoSaveEnabled = computed(() => props.autoSave);
  * 根据文件扩展名获取语言支持
  */
 const getLanguageSupport = (fileName) => {
-  if (!fileName) return [];
+  if (!fileName) {return [];}
 
   const ext = fileName.split('.').pop().toLowerCase();
 
@@ -181,7 +198,7 @@ const getLanguageSupport = (fileName) => {
  * 初始化编辑器
  */
 const initEditor = () => {
-  if (!editorRef.value) return;
+  if (!editorRef.value) {return;}
 
   // 销毁旧编辑器
   if (editorView.value) {
@@ -277,7 +294,7 @@ const handleContentChange = (newContent) => {
  * 保存文件
  */
 const handleSave = async () => {
-  if (!editorView.value || saving.value || !hasUnsavedChanges.value) return;
+  if (!editorView.value || saving.value || !hasUnsavedChanges.value) {return;}
 
   saving.value = true;
 
@@ -374,7 +391,7 @@ const setContent = (newContent) => {
  * 更新语言支持
  */
 const updateLanguage = (fileName) => {
-  if (!editorView.value) return;
+  if (!editorView.value) {return;}
 
   const languageSupport = getLanguageSupport(fileName);
   editorView.value.dispatch({

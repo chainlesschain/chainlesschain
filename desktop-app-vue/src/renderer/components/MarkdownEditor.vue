@@ -3,60 +3,120 @@
     <div class="editor-toolbar">
       <a-space>
         <a-tooltip title="粗体 (Ctrl+B)">
-          <a-button size="small" @click="insertBold">
-            <template #icon><BoldOutlined /></template>
+          <a-button
+            size="small"
+            @click="insertBold"
+          >
+            <template #icon>
+              <BoldOutlined />
+            </template>
           </a-button>
         </a-tooltip>
         <a-tooltip title="斜体 (Ctrl+I)">
-          <a-button size="small" @click="insertItalic">
-            <template #icon><ItalicOutlined /></template>
+          <a-button
+            size="small"
+            @click="insertItalic"
+          >
+            <template #icon>
+              <ItalicOutlined />
+            </template>
           </a-button>
         </a-tooltip>
         <a-tooltip title="代码 (Ctrl+`)">
-          <a-button size="small" @click="insertCode">
-            <template #icon><CodeOutlined /></template>
+          <a-button
+            size="small"
+            @click="insertCode"
+          >
+            <template #icon>
+              <CodeOutlined />
+            </template>
           </a-button>
         </a-tooltip>
         <a-divider type="vertical" />
         <a-tooltip title="标题1">
-          <a-button size="small" @click="insertHeading(1)">H1</a-button>
+          <a-button
+            size="small"
+            @click="insertHeading(1)"
+          >
+            H1
+          </a-button>
         </a-tooltip>
         <a-tooltip title="标题2">
-          <a-button size="small" @click="insertHeading(2)">H2</a-button>
+          <a-button
+            size="small"
+            @click="insertHeading(2)"
+          >
+            H2
+          </a-button>
         </a-tooltip>
         <a-tooltip title="标题3">
-          <a-button size="small" @click="insertHeading(3)">H3</a-button>
+          <a-button
+            size="small"
+            @click="insertHeading(3)"
+          >
+            H3
+          </a-button>
         </a-tooltip>
         <a-divider type="vertical" />
         <a-tooltip title="无序列表">
-          <a-button size="small" @click="insertList('bullet')">
-            <template #icon><UnorderedListOutlined /></template>
+          <a-button
+            size="small"
+            @click="insertList('bullet')"
+          >
+            <template #icon>
+              <UnorderedListOutlined />
+            </template>
           </a-button>
         </a-tooltip>
         <a-tooltip title="有序列表">
-          <a-button size="small" @click="insertList('ordered')">
-            <template #icon><OrderedListOutlined /></template>
+          <a-button
+            size="small"
+            @click="insertList('ordered')"
+          >
+            <template #icon>
+              <OrderedListOutlined />
+            </template>
           </a-button>
         </a-tooltip>
         <a-tooltip title="任务列表">
-          <a-button size="small" @click="insertTaskList">
-            <template #icon><CheckSquareOutlined /></template>
+          <a-button
+            size="small"
+            @click="insertTaskList"
+          >
+            <template #icon>
+              <CheckSquareOutlined />
+            </template>
           </a-button>
         </a-tooltip>
         <a-divider type="vertical" />
         <a-tooltip title="插入链接">
-          <a-button size="small" @click="insertLink">
-            <template #icon><LinkOutlined /></template>
+          <a-button
+            size="small"
+            @click="insertLink"
+          >
+            <template #icon>
+              <LinkOutlined />
+            </template>
           </a-button>
         </a-tooltip>
         <a-tooltip title="插入图片">
-          <a-button size="small" @click="insertImage">
-            <template #icon><PictureOutlined /></template>
+          <a-button
+            size="small"
+            @click="insertImage"
+          >
+            <template #icon>
+              <PictureOutlined />
+            </template>
           </a-button>
         </a-tooltip>
         <a-tooltip title="插入表格">
-          <a-button size="small" @click="insertTable">
-            <template #icon><TableOutlined /></template>
+          <a-button
+            size="small"
+            @click="insertTable"
+          >
+            <template #icon>
+              <TableOutlined />
+            </template>
           </a-button>
         </a-tooltip>
         <a-divider type="vertical" />
@@ -68,28 +128,52 @@
         </a-tooltip>
         <a-divider type="vertical" />
         <a-button-group size="small">
-          <a-button :type="mode === 'edit' ? 'primary' : 'default'" @click="mode = 'edit'">
+          <a-button
+            :type="mode === 'edit' ? 'primary' : 'default'"
+            @click="mode = 'edit'"
+          >
             编辑
           </a-button>
-          <a-button :type="mode === 'split' ? 'primary' : 'default'" @click="mode = 'split'">
+          <a-button
+            :type="mode === 'split' ? 'primary' : 'default'"
+            @click="mode = 'split'"
+          >
             分屏
           </a-button>
-          <a-button :type="mode === 'preview' ? 'primary' : 'default'" @click="mode = 'preview'">
+          <a-button
+            :type="mode === 'preview' ? 'primary' : 'default'"
+            @click="mode = 'preview'"
+          >
             预览
           </a-button>
         </a-button-group>
       </a-space>
     </div>
 
-    <div class="editor-content" :class="`mode-${mode}`">
+    <div
+      class="editor-content"
+      :class="`mode-${mode}`"
+    >
       <!-- 编辑区域 -->
-      <div v-show="mode === 'edit' || mode === 'split'" class="editor-pane">
-        <div ref="editorRef" class="milkdown-editor"></div>
+      <div
+        v-show="mode === 'edit' || mode === 'split'"
+        class="editor-pane"
+      >
+        <div
+          ref="editorRef"
+          class="milkdown-editor"
+        />
       </div>
 
       <!-- 预览区域 -->
-      <div v-show="mode === 'preview' || mode === 'split'" class="preview-pane">
-        <div class="markdown-preview" v-html="renderedHTML"></div>
+      <div
+        v-show="mode === 'preview' || mode === 'split'"
+        class="preview-pane"
+      >
+        <div
+          class="markdown-preview"
+          v-html="renderedHTML"
+        />
       </div>
     </div>
   </div>
@@ -189,7 +273,7 @@ onBeforeUnmount(() => {
 
 // 获取编辑器内容
 function getEditorContent() {
-  if (!milkdownEditor) return '';
+  if (!milkdownEditor) {return '';}
   return milkdownEditor.action((ctx) => {
     const view = ctx.get(rootCtx);
     // TODO: 获取实际内容
@@ -199,7 +283,7 @@ function getEditorContent() {
 
 // 更新编辑器内容
 function updateEditorContent(content) {
-  if (!milkdownEditor) return;
+  if (!milkdownEditor) {return;}
   milkdownEditor.action((ctx) => {
     ctx.set(defaultValueCtx, content);
   });

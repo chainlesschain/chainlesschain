@@ -150,7 +150,7 @@ class AIEngineManagerOptimized {
         startTime: intentStartTime,
       };
 
-      if (onStepUpdate) onStepUpdate(intentStep);
+      if (onStepUpdate) {onStepUpdate(intentStep);}
 
       const intent = await this.intentClassifier.classify(userInput, context);
 
@@ -161,7 +161,7 @@ class AIEngineManagerOptimized {
       intentStep.duration = intentDuration;
       intentStep.result = intent;
 
-      if (onStepUpdate) onStepUpdate(intentStep);
+      if (onStepUpdate) {onStepUpdate(intentStep);}
 
       console.log(`[步骤1] ✅ 识别完成: ${intent.intent}, 置信度: ${intent.confidence}`);
 
@@ -192,7 +192,7 @@ class AIEngineManagerOptimized {
           startTime: slotStartTime,
         };
 
-        if (onStepUpdate) onStepUpdate(slotStep);
+        if (onStepUpdate) {onStepUpdate(slotStep);}
 
         slotFillingResult = await this.slotFiller.fillSlots(
           intent,
@@ -207,7 +207,7 @@ class AIEngineManagerOptimized {
         slotStep.duration = slotDuration;
         slotStep.result = this.slotFiller.getSummary(slotFillingResult);
 
-        if (onStepUpdate) onStepUpdate(slotStep);
+        if (onStepUpdate) {onStepUpdate(slotStep);}
 
         console.log(`[步骤2] ✅ 槽位填充完成: 完整度 ${slotFillingResult.validation.completeness}%`);
 
@@ -233,7 +233,7 @@ class AIEngineManagerOptimized {
         startTime: planStartTime,
       };
 
-      if (onStepUpdate) onStepUpdate(planStep);
+      if (onStepUpdate) {onStepUpdate(planStep);}
 
       const plan = await this.taskPlanner.plan(intent, context);
 
@@ -244,7 +244,7 @@ class AIEngineManagerOptimized {
       planStep.duration = planDuration;
       planStep.result = plan;
 
-      if (onStepUpdate) onStepUpdate(planStep);
+      if (onStepUpdate) {onStepUpdate(planStep);}
 
       console.log(`[步骤3] ✅ 规划完成: ${plan.steps.length} 个步骤`);
 
@@ -280,7 +280,7 @@ class AIEngineManagerOptimized {
           params: taskStep.params,
         };
 
-        if (onStepUpdate) onStepUpdate(execStep);
+        if (onStepUpdate) {onStepUpdate(execStep);}
 
         try {
           let result;
@@ -316,7 +316,7 @@ class AIEngineManagerOptimized {
           execStep.duration = execStep.endTime - execStep.startTime;
           execStep.result = result.result;
 
-          if (onStepUpdate) onStepUpdate(execStep);
+          if (onStepUpdate) {onStepUpdate(execStep);}
 
           results.push(result.result);
 
@@ -341,7 +341,7 @@ class AIEngineManagerOptimized {
           execStep.duration = execStep.endTime - execStep.startTime;
           execStep.error = error.message;
 
-          if (onStepUpdate) onStepUpdate(execStep);
+          if (onStepUpdate) {onStepUpdate(execStep);}
 
           failedStepIndex = i;
 

@@ -191,7 +191,7 @@ class RSSFetcher extends EventEmitter {
     const worker = async () => {
       while (queue.length > 0) {
         const feedUrl = queue.shift();
-        if (!feedUrl) break;
+        if (!feedUrl) {break;}
 
         try {
           const feed = await this.fetchFeed(feedUrl, options);

@@ -12,7 +12,10 @@
 
     <div class="page-content">
       <!-- 性能概览 -->
-      <a-row :gutter="16" class="stats-row">
+      <a-row
+        :gutter="16"
+        class="stats-row"
+      >
         <a-col :span="6">
           <a-card>
             <a-statistic
@@ -57,20 +60,39 @@
       </a-row>
 
       <!-- 操作按钮 -->
-      <a-card title="数据库操作" class="operations-card">
+      <a-card
+        title="数据库操作"
+        class="operations-card"
+      >
         <a-space>
-          <a-button type="primary" @click="refreshStats" :loading="loading">
-            <template #icon><ReloadOutlined /></template>
+          <a-button
+            type="primary"
+            :loading="loading"
+            @click="refreshStats"
+          >
+            <template #icon>
+              <ReloadOutlined />
+            </template>
             刷新统计
           </a-button>
 
-          <a-button @click="resetStats" :loading="resetting">
-            <template #icon><ClearOutlined /></template>
+          <a-button
+            :loading="resetting"
+            @click="resetStats"
+          >
+            <template #icon>
+              <ClearOutlined />
+            </template>
             重置统计
           </a-button>
 
-          <a-button @click="clearCache" :loading="clearingCache">
-            <template #icon><DeleteOutlined /></template>
+          <a-button
+            :loading="clearingCache"
+            @click="clearCache"
+          >
+            <template #icon>
+              <DeleteOutlined />
+            </template>
             清空缓存
           </a-button>
 
@@ -78,8 +100,14 @@
             title="优化数据库可能需要一些时间，确定要继续吗？"
             @confirm="optimizeDatabase"
           >
-            <a-button type="primary" danger :loading="optimizing">
-              <template #icon><ToolOutlined /></template>
+            <a-button
+              type="primary"
+              danger
+              :loading="optimizing"
+            >
+              <template #icon>
+                <ToolOutlined />
+              </template>
               优化数据库
             </a-button>
           </a-popconfirm>
@@ -87,7 +115,10 @@
       </a-card>
 
       <!-- 慢查询日志 -->
-      <a-card title="慢查询日志" class="slow-queries-card">
+      <a-card
+        title="慢查询日志"
+        class="slow-queries-card"
+      >
         <a-table
           :columns="slowQueryColumns"
           :data-source="slowQueries"
@@ -114,7 +145,10 @@
       </a-card>
 
       <!-- 索引建议 -->
-      <a-card title="索引优化建议" class="index-suggestions-card">
+      <a-card
+        title="索引优化建议"
+        class="index-suggestions-card"
+      >
         <a-alert
           v-if="indexSuggestions.length === 0"
           message="暂无索引建议"
@@ -133,16 +167,20 @@
               <template #actions>
                 <a-button
                   type="link"
-                  @click="applyIndexSuggestion(item)"
                   :loading="applyingIndex"
+                  @click="applyIndexSuggestion(item)"
                 >
                   应用
                 </a-button>
               </template>
               <a-list-item-meta>
                 <template #title>
-                  <a-tag color="blue">{{ item.table }}</a-tag>
-                  <a-tag color="green">{{ item.column }}</a-tag>
+                  <a-tag color="blue">
+                    {{ item.table }}
+                  </a-tag>
+                  <a-tag color="green">
+                    {{ item.column }}
+                  </a-tag>
                 </template>
                 <template #description>
                   <div>
@@ -155,11 +193,14 @@
           </template>
         </a-list>
 
-        <div v-if="indexSuggestions.length > 0" class="apply-all-btn">
+        <div
+          v-if="indexSuggestions.length > 0"
+          class="apply-all-btn"
+        >
           <a-button
             type="primary"
-            @click="applyAllIndexSuggestions"
             :loading="applyingAllIndexes"
+            @click="applyAllIndexSuggestions"
           >
             应用所有建议
           </a-button>
@@ -167,8 +208,14 @@
       </a-card>
 
       <!-- 缓存统计 -->
-      <a-card title="查询缓存统计" class="cache-stats-card">
-        <a-descriptions :column="2" bordered>
+      <a-card
+        title="查询缓存统计"
+        class="cache-stats-card"
+      >
+        <a-descriptions
+          :column="2"
+          bordered
+        >
           <a-descriptions-item label="缓存大小">
             {{ stats.cache?.size || 0 }} / {{ stats.cache?.maxSize || 0 }}
           </a-descriptions-item>
@@ -406,8 +453,8 @@ const applyAllIndexSuggestions = async () => {
  * 获取执行时间颜色
  */
 const getDurationColor = (duration) => {
-  if (duration < 50) return 'green';
-  if (duration < 100) return 'orange';
+  if (duration < 50) {return 'green';}
+  if (duration < 100) {return 'orange';}
   return 'red';
 };
 

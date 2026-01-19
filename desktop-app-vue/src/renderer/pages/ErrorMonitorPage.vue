@@ -5,15 +5,24 @@
         <BugOutlined />
         错误监控仪表板
       </h1>
-      <p class="page-description">AI 智能诊断、自动修复和错误分析</p>
+      <p class="page-description">
+        AI 智能诊断、自动修复和错误分析
+      </p>
     </div>
 
     <div class="page-content">
       <!-- 统计概览 -->
-      <a-row :gutter="16" class="stats-row">
+      <a-row
+        :gutter="16"
+        class="stats-row"
+      >
         <a-col :span="6">
           <a-card>
-            <a-skeleton :loading="loading" active :paragraph="{ rows: 1 }">
+            <a-skeleton
+              :loading="loading"
+              active
+              :paragraph="{ rows: 1 }"
+            >
               <a-statistic
                 title="总错误数"
                 :value="stats.total"
@@ -24,7 +33,11 @@
         </a-col>
         <a-col :span="6">
           <a-card>
-            <a-skeleton :loading="loading" active :paragraph="{ rows: 1 }">
+            <a-skeleton
+              :loading="loading"
+              active
+              :paragraph="{ rows: 1 }"
+            >
               <a-statistic
                 title="严重/高优先级"
                 :value="
@@ -38,7 +51,11 @@
         </a-col>
         <a-col :span="6">
           <a-card>
-            <a-skeleton :loading="loading" active :paragraph="{ rows: 1 }">
+            <a-skeleton
+              :loading="loading"
+              active
+              :paragraph="{ rows: 1 }"
+            >
               <a-statistic
                 title="自动修复率"
                 :value="stats.autoFixRate"
@@ -54,7 +71,11 @@
         </a-col>
         <a-col :span="6">
           <a-card>
-            <a-skeleton :loading="loading" active :paragraph="{ rows: 1 }">
+            <a-skeleton
+              :loading="loading"
+              active
+              :paragraph="{ rows: 1 }"
+            >
               <a-statistic
                 title="解决率"
                 :value="stats.resolutionRate"
@@ -73,7 +94,10 @@
       </a-row>
 
       <!-- 严重程度分布 -->
-      <a-row :gutter="16" class="severity-row">
+      <a-row
+        :gutter="16"
+        class="severity-row"
+      >
         <a-col :span="6">
           <a-card size="small">
             <a-statistic
@@ -129,28 +153,46 @@
       </a-row>
 
       <!-- 图表和分类统计 -->
-      <a-row :gutter="16" class="charts-row">
+      <a-row
+        :gutter="16"
+        class="charts-row"
+      >
         <!-- 每日趋势图 -->
         <a-col :span="16">
-          <a-card title="错误趋势" class="chart-card">
+          <a-card
+            title="错误趋势"
+            class="chart-card"
+          >
             <template #extra>
               <a-radio-group
                 v-model:value="trendDays"
                 size="small"
                 @change="loadDailyTrend"
               >
-                <a-radio-button :value="7">7天</a-radio-button>
-                <a-radio-button :value="14">14天</a-radio-button>
-                <a-radio-button :value="30">30天</a-radio-button>
+                <a-radio-button :value="7">
+                  7天
+                </a-radio-button>
+                <a-radio-button :value="14">
+                  14天
+                </a-radio-button>
+                <a-radio-button :value="30">
+                  30天
+                </a-radio-button>
               </a-radio-group>
             </template>
-            <div ref="trendChartRef" class="chart-container"></div>
+            <div
+              ref="trendChartRef"
+              class="chart-container"
+            />
           </a-card>
         </a-col>
 
         <!-- 分类统计 -->
         <a-col :span="8">
-          <a-card title="错误分类" class="chart-card">
+          <a-card
+            title="错误分类"
+            class="chart-card"
+          >
             <a-list
               size="small"
               :data-source="classificationStats"
@@ -162,13 +204,13 @@
                     <template #title>
                       <span>{{
                         classificationLabels[item.classification] ||
-                        item.classification
+                          item.classification
                       }}</span>
                       <a-badge
+                        v-if="item.critical_count > 0"
                         :count="item.critical_count"
                         :number-style="{ backgroundColor: '#cf1322' }"
                         style="margin-left: 8px"
-                        v-if="item.critical_count > 0"
                       />
                     </template>
                     <template #description>
@@ -189,7 +231,10 @@
       </a-row>
 
       <!-- 错误历史列表 -->
-      <a-card title="错误历史" class="history-card">
+      <a-card
+        title="错误历史"
+        class="history-card"
+      >
         <template #extra>
           <a-space>
             <a-input-search
@@ -205,10 +250,18 @@
               allow-clear
               @change="loadHistory"
             >
-              <a-select-option value="critical">Critical</a-select-option>
-              <a-select-option value="high">High</a-select-option>
-              <a-select-option value="medium">Medium</a-select-option>
-              <a-select-option value="low">Low</a-select-option>
+              <a-select-option value="critical">
+                Critical
+              </a-select-option>
+              <a-select-option value="high">
+                High
+              </a-select-option>
+              <a-select-option value="medium">
+                Medium
+              </a-select-option>
+              <a-select-option value="low">
+                Low
+              </a-select-option>
             </a-select>
             <a-select
               v-model:value="filterClassification"
@@ -217,12 +270,24 @@
               allow-clear
               @change="loadHistory"
             >
-              <a-select-option value="DATABASE">数据库</a-select-option>
-              <a-select-option value="NETWORK">网络</a-select-option>
-              <a-select-option value="FILESYSTEM">文件系统</a-select-option>
-              <a-select-option value="TIMEOUT">超时</a-select-option>
-              <a-select-option value="MEMORY">内存</a-select-option>
-              <a-select-option value="PERMISSION">权限</a-select-option>
+              <a-select-option value="DATABASE">
+                数据库
+              </a-select-option>
+              <a-select-option value="NETWORK">
+                网络
+              </a-select-option>
+              <a-select-option value="FILESYSTEM">
+                文件系统
+              </a-select-option>
+              <a-select-option value="TIMEOUT">
+                超时
+              </a-select-option>
+              <a-select-option value="MEMORY">
+                内存
+              </a-select-option>
+              <a-select-option value="PERMISSION">
+                权限
+              </a-select-option>
             </a-select>
             <a-button @click="refreshAll">
               <ReloadOutlined />
@@ -236,8 +301,8 @@
           :data-source="historyList"
           :loading="historyLoading"
           :pagination="pagination"
-          @change="handleTableChange"
           row-key="id"
+          @change="handleTableChange"
         >
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'severity'">
@@ -249,7 +314,7 @@
               <a-tag :color="getClassificationColor(record.classification)">
                 {{
                   classificationLabels[record.classification] ||
-                  record.classification
+                    record.classification
                 }}
               </a-tag>
             </template>
@@ -301,10 +366,10 @@
                 </a-tooltip>
                 <a-tooltip title="标记已解决">
                   <a-button
+                    v-if="record.status !== 'fixed'"
                     type="link"
                     size="small"
                     @click="markAsFixed(record)"
-                    v-if="record.status !== 'fixed'"
                   >
                     <CheckOutlined />
                   </a-button>
@@ -316,7 +381,10 @@
       </a-card>
 
       <!-- AI 诊断配置 -->
-      <a-card title="AI 诊断配置" class="config-card">
+      <a-card
+        title="AI 诊断配置"
+        class="config-card"
+      >
         <a-form layout="inline">
           <a-form-item label="启用 AI 诊断">
             <a-switch
@@ -339,7 +407,11 @@
             />
           </a-form-item>
           <a-form-item>
-            <a-button type="primary" danger @click="cleanupOldData">
+            <a-button
+              type="primary"
+              danger
+              @click="cleanupOldData"
+            >
               <DeleteOutlined />
               清理旧数据
             </a-button>
@@ -356,35 +428,56 @@
       placement="right"
     >
       <template v-if="currentError">
-        <a-descriptions bordered :column="2">
-          <a-descriptions-item label="错误类型" :span="1">
+        <a-descriptions
+          bordered
+          :column="2"
+        >
+          <a-descriptions-item
+            label="错误类型"
+            :span="1"
+          >
             {{ currentError.error_type }}
           </a-descriptions-item>
-          <a-descriptions-item label="分类" :span="1">
+          <a-descriptions-item
+            label="分类"
+            :span="1"
+          >
             <a-tag :color="getClassificationColor(currentError.classification)">
               {{
                 classificationLabels[currentError.classification] ||
-                currentError.classification
+                  currentError.classification
               }}
             </a-tag>
           </a-descriptions-item>
-          <a-descriptions-item label="严重程度" :span="1">
+          <a-descriptions-item
+            label="严重程度"
+            :span="1"
+          >
             <a-tag :color="getSeverityColor(currentError.severity)">
               {{ currentError.severity }}
             </a-tag>
           </a-descriptions-item>
-          <a-descriptions-item label="状态" :span="1">
+          <a-descriptions-item
+            label="状态"
+            :span="1"
+          >
             <a-tag :color="getStatusColor(currentError.status)">
               {{ statusLabels[currentError.status] || currentError.status }}
             </a-tag>
           </a-descriptions-item>
-          <a-descriptions-item label="错误消息" :span="2">
+          <a-descriptions-item
+            label="错误消息"
+            :span="2"
+          >
             <a-typography-paragraph
               :content="currentError.error_message"
               :ellipsis="{ rows: 3, expandable: true }"
             />
           </a-descriptions-item>
-          <a-descriptions-item label="发生时间" :span="2">
+          <a-descriptions-item
+            label="发生时间"
+            :span="2"
+          >
             {{ formatTime(currentError.created_at) }}
           </a-descriptions-item>
         </a-descriptions>
@@ -393,7 +486,10 @@
         <a-typography-paragraph v-if="currentError.error_stack">
           <pre class="stack-trace">{{ currentError.error_stack }}</pre>
         </a-typography-paragraph>
-        <a-empty v-else description="无堆栈信息" />
+        <a-empty
+          v-else
+          description="无堆栈信息"
+        />
 
         <a-divider>自动修复</a-divider>
         <a-result
@@ -408,7 +504,11 @@
           title="自动修复失败"
           :sub-title="currentError.auto_fix_result?.message || '修复失败'"
         />
-        <a-result v-else status="info" title="未尝试自动修复" />
+        <a-result
+          v-else
+          status="info"
+          title="未尝试自动修复"
+        />
 
         <a-divider>AI 诊断</a-divider>
         <div v-if="currentError.ai_diagnosis">
@@ -418,8 +518,12 @@
             show-icon
             style="margin-bottom: 16px"
           >
-            <template #message>根本原因</template>
-            <template #description>{{ currentError.ai_root_cause }}</template>
+            <template #message>
+              根本原因
+            </template>
+            <template #description>
+              {{ currentError.ai_root_cause }}
+            </template>
           </a-alert>
 
           <a-card
@@ -427,7 +531,10 @@
             title="修复建议"
             size="small"
           >
-            <a-list :data-source="currentError.ai_fix_suggestions" size="small">
+            <a-list
+              :data-source="currentError.ai_fix_suggestions"
+              size="small"
+            >
               <template #renderItem="{ item, index }">
                 <a-list-item>
                   <a-list-item-meta>
@@ -436,18 +543,26 @@
                         {{ index + 1 }}
                       </a-avatar>
                     </template>
-                    <template #description>{{ item }}</template>
+                    <template #description>
+                      {{ item }}
+                    </template>
                   </a-list-item-meta>
                 </a-list-item>
               </template>
             </a-list>
           </a-card>
         </div>
-        <a-empty v-else description="无 AI 诊断结果" />
+        <a-empty
+          v-else
+          description="无 AI 诊断结果"
+        />
 
         <a-divider />
         <a-space>
-          <a-button type="primary" @click="reanalyzeError(currentError)">
+          <a-button
+            type="primary"
+            @click="reanalyzeError(currentError)"
+          >
             <ReloadOutlined />
             重新分析
           </a-button>
@@ -456,10 +571,10 @@
             生成报告
           </a-button>
           <a-button
+            v-if="currentError.status !== 'fixed'"
             type="primary"
             ghost
             @click="markAsFixed(currentError)"
-            v-if="currentError.status !== 'fixed'"
           >
             <CheckOutlined />
             标记已解决
@@ -475,10 +590,16 @@
       width="800"
       :footer="null"
     >
-      <div class="report-content" v-html="reportHtml"></div>
+      <div
+        class="report-content"
+        v-html="reportHtml"
+      />
       <a-divider />
       <a-space>
-        <a-button type="primary" @click="copyReport">
+        <a-button
+          type="primary"
+          @click="copyReport"
+        >
           <CopyOutlined />
           复制
         </a-button>
@@ -737,7 +858,7 @@ const getStatusColor = (status) => {
 
 // 格式化时间
 const formatTime = (timestamp) => {
-  if (!timestamp) return "N/A";
+  if (!timestamp) {return "N/A";}
   return new Date(timestamp).toLocaleString();
 };
 
@@ -808,7 +929,7 @@ const loadDailyTrend = async () => {
 
 // 渲染趋势图
 const renderTrendChart = (data) => {
-  if (!trendChartRef.value) return;
+  if (!trendChartRef.value) {return;}
 
   if (!trendChart) {
     trendChart = echarts.init(trendChartRef.value);

@@ -7,7 +7,10 @@
     @cancel="handleCancel"
   >
     <a-spin :spinning="loading">
-      <div v-if="conflicts.length === 0" class="no-conflicts">
+      <div
+        v-if="conflicts.length === 0"
+        class="no-conflicts"
+      >
         <a-result
           status="success"
           title="没有冲突"
@@ -15,8 +18,13 @@
         >
           <template #extra>
             <a-space>
-              <a-button type="primary" @click="handleCompleteMerge">
-                <template #icon><check-circle-outlined /></template>
+              <a-button
+                type="primary"
+                @click="handleCompleteMerge"
+              >
+                <template #icon>
+                  <check-circle-outlined />
+                </template>
                 完成合并
               </a-button>
               <a-button @click="handleCancel">
@@ -27,7 +35,10 @@
         </a-result>
       </div>
 
-      <div v-else class="conflict-list">
+      <div
+        v-else
+        class="conflict-list"
+      >
         <a-alert
           type="warning"
           message="检测到合并冲突"
@@ -36,29 +47,44 @@
           style="margin-bottom: 16px"
         />
 
-        <a-collapse v-model:activeKey="activeKeys" accordion>
+        <a-collapse
+          v-model:active-key="activeKeys"
+          accordion
+        >
           <a-collapse-panel
             v-for="(conflict, index) in conflicts"
             :key="conflict.filepath"
             :header="conflict.filepath"
           >
             <template #extra>
-              <a-tag v-if="resolvedFiles.includes(conflict.filepath)" color="success">
+              <a-tag
+                v-if="resolvedFiles.includes(conflict.filepath)"
+                color="success"
+              >
                 已解决
               </a-tag>
-              <a-tag v-else color="error">
+              <a-tag
+                v-else
+                color="error"
+              >
                 未解决
               </a-tag>
             </template>
 
             <div class="conflict-content">
               <!-- 冲突详情 -->
-              <div v-if="conflictDetails[conflict.filepath]" class="conflict-details">
+              <div
+                v-if="conflictDetails[conflict.filepath]"
+                class="conflict-details"
+              >
                 <a-row :gutter="16">
                   <!-- 本地版本 (ours) -->
                   <a-col :span="12">
                     <div class="version-header">
-                      <a-badge status="processing" text="本地版本 (Ours)" />
+                      <a-badge
+                        status="processing"
+                        text="本地版本 (Ours)"
+                      />
                     </div>
                     <div class="version-content">
                       <pre>{{ conflictDetails[conflict.filepath].ours }}</pre>
@@ -68,7 +94,9 @@
                       size="small"
                       @click="resolveConflict(conflict.filepath, 'ours')"
                     >
-                      <template #icon><arrow-left-outlined /></template>
+                      <template #icon>
+                        <arrow-left-outlined />
+                      </template>
                       使用本地版本
                     </a-button>
                   </a-col>
@@ -76,7 +104,10 @@
                   <!-- 远程版本 (theirs) -->
                   <a-col :span="12">
                     <div class="version-header">
-                      <a-badge status="warning" text="远程版本 (Theirs)" />
+                      <a-badge
+                        status="warning"
+                        text="远程版本 (Theirs)"
+                      />
                     </div>
                     <div class="version-content">
                       <pre>{{ conflictDetails[conflict.filepath].theirs }}</pre>
@@ -86,7 +117,9 @@
                       size="small"
                       @click="resolveConflict(conflict.filepath, 'theirs')"
                     >
-                      <template #icon><arrow-right-outlined /></template>
+                      <template #icon>
+                        <arrow-right-outlined />
+                      </template>
                       使用远程版本
                     </a-button>
                   </a-col>
@@ -97,7 +130,10 @@
                 <!-- 手动编辑 -->
                 <div class="manual-edit">
                   <div class="version-header">
-                    <a-badge status="default" text="手动编辑" />
+                    <a-badge
+                      status="default"
+                      text="手动编辑"
+                    />
                   </div>
                   <a-textarea
                     v-model:value="manualContent[conflict.filepath]"
@@ -111,14 +147,19 @@
                     :disabled="!manualContent[conflict.filepath]"
                     @click="resolveConflict(conflict.filepath, 'manual', manualContent[conflict.filepath])"
                   >
-                    <template #icon><edit-outlined /></template>
+                    <template #icon>
+                      <edit-outlined />
+                    </template>
                     保存手动编辑
                   </a-button>
                 </div>
               </div>
 
               <!-- 加载中 -->
-              <div v-else class="loading-details">
+              <div
+                v-else
+                class="loading-details"
+              >
                 <a-spin tip="加载冲突详情..." />
               </div>
             </div>
@@ -133,11 +174,18 @@
               :disabled="!allResolved"
               @click="handleCompleteMerge"
             >
-              <template #icon><check-circle-outlined /></template>
+              <template #icon>
+                <check-circle-outlined />
+              </template>
               完成合并
             </a-button>
-            <a-button danger @click="handleAbortMerge">
-              <template #icon><close-circle-outlined /></template>
+            <a-button
+              danger
+              @click="handleAbortMerge"
+            >
+              <template #icon>
+                <close-circle-outlined />
+              </template>
               中止合并
             </a-button>
             <a-button @click="handleCancel">

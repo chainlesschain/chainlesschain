@@ -343,7 +343,7 @@ export function applyContentVisibility(element, options = {}) {
     auto = true,
   } = options;
 
-  if (!element) return;
+  if (!element) {return;}
 
   element.style.contentVisibility = auto ? 'auto' : 'hidden';
   element.style.containIntrinsicSize = `auto ${height}px`;

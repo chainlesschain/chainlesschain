@@ -26,20 +26,38 @@
       >
         <div class="did-option">
           <div class="did-avatar">
-            <a-avatar :size="avatarSize" :style="{ backgroundColor: getAvatarColor(did.did) }">
+            <a-avatar
+              :size="avatarSize"
+              :style="{ backgroundColor: getAvatarColor(did.did) }"
+            >
               {{ getAvatarText(did) }}
             </a-avatar>
           </div>
           <div class="did-info">
             <div class="did-name">
               {{ did.profile?.name || 'Unnamed' }}
-              <a-tag v-if="did.did === currentDid" color="blue" size="small">当前</a-tag>
-              <a-tag v-if="isCreator(did)" color="green" size="small">创建者</a-tag>
+              <a-tag
+                v-if="did.did === currentDid"
+                color="blue"
+                size="small"
+              >
+                当前
+              </a-tag>
+              <a-tag
+                v-if="isCreator(did)"
+                color="green"
+                size="small"
+              >
+                创建者
+              </a-tag>
             </div>
             <div class="did-address">
               {{ formatDid(did.did) }}
               <a-tooltip title="复制">
-                <copy-outlined class="copy-icon" @click.stop="handleCopy(did.did)" />
+                <copy-outlined
+                  class="copy-icon"
+                  @click.stop="handleCopy(did.did)"
+                />
               </a-tooltip>
             </div>
           </div>
@@ -48,8 +66,15 @@
 
       <!-- 空状态 -->
       <template #notFoundContent>
-        <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" description="暂无DID">
-          <a-button type="link" size="small" @click="handleCreateDid">
+        <a-empty
+          :image="Empty.PRESENTED_IMAGE_SIMPLE"
+          description="暂无DID"
+        >
+          <a-button
+            type="link"
+            size="small"
+            @click="handleCreateDid"
+          >
             <plus-outlined /> 创建DID
           </a-button>
         </a-empty>
@@ -57,11 +82,22 @@
     </a-select>
 
     <!-- 快捷操作 -->
-    <div v-if="showQuickActions" class="quick-actions">
-      <a-button type="link" size="small" @click="handleCreateDid">
+    <div
+      v-if="showQuickActions"
+      class="quick-actions"
+    >
+      <a-button
+        type="link"
+        size="small"
+        @click="handleCreateDid"
+      >
         <plus-outlined /> 新建
       </a-button>
-      <a-button type="link" size="small" @click="handleManageDids">
+      <a-button
+        type="link"
+        size="small"
+        @click="handleManageDids"
+      >
         <setting-outlined /> 管理
       </a-button>
     </div>
@@ -247,7 +283,7 @@ const getAvatarColor = (didString) => {
  * 格式化DID显示
  */
 const formatDid = (did) => {
-  if (did.length <= 20) return did;
+  if (did.length <= 20) {return did;}
   return `${did.slice(0, 10)}...${did.slice(-8)}`;
 };
 

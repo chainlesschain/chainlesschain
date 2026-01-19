@@ -4,12 +4,24 @@
     <div class="page-header">
       <div class="header-left">
         <h1>技能管理</h1>
-        <p class="subtitle">管理和配置 AI 助手的技能集</p>
+        <p class="subtitle">
+          管理和配置 AI 助手的技能集
+        </p>
       </div>
       <div class="header-right">
-        <a-space :size="24" align="center">
-          <a-statistic :value="skillStore.totalCount" title="总技能数" />
-          <a-statistic :value="skillStore.enabledCount" title="已启用" :value-style="{ color: '#52c41a' }" />
+        <a-space
+          :size="24"
+          align="center"
+        >
+          <a-statistic
+            :value="skillStore.totalCount"
+            title="总技能数"
+          />
+          <a-statistic
+            :value="skillStore.enabledCount"
+            title="已启用"
+            :value-style="{ color: '#52c41a' }"
+          />
           <a-statistic
             :value="skillStore.totalCount - skillStore.enabledCount"
             title="已禁用"
@@ -40,45 +52,94 @@
           style="width: 150px"
           @change="handleCategoryChange"
         >
-          <a-select-option value="all">全部分类</a-select-option>
-          <a-select-option value="code">代码开发</a-select-option>
-          <a-select-option value="web">Web开发</a-select-option>
-          <a-select-option value="data">数据处理</a-select-option>
-          <a-select-option value="content">内容创作</a-select-option>
-          <a-select-option value="document">文档处理</a-select-option>
-          <a-select-option value="media">媒体处理</a-select-option>
-          <a-select-option value="ai">AI功能</a-select-option>
-          <a-select-option value="system">系统操作</a-select-option>
-          <a-select-option value="network">网络请求</a-select-option>
-          <a-select-option value="automation">自动化</a-select-option>
-          <a-select-option value="project">项目管理</a-select-option>
-          <a-select-option value="template">模板应用</a-select-option>
+          <a-select-option value="all">
+            全部分类
+          </a-select-option>
+          <a-select-option value="code">
+            代码开发
+          </a-select-option>
+          <a-select-option value="web">
+            Web开发
+          </a-select-option>
+          <a-select-option value="data">
+            数据处理
+          </a-select-option>
+          <a-select-option value="content">
+            内容创作
+          </a-select-option>
+          <a-select-option value="document">
+            文档处理
+          </a-select-option>
+          <a-select-option value="media">
+            媒体处理
+          </a-select-option>
+          <a-select-option value="ai">
+            AI功能
+          </a-select-option>
+          <a-select-option value="system">
+            系统操作
+          </a-select-option>
+          <a-select-option value="network">
+            网络请求
+          </a-select-option>
+          <a-select-option value="automation">
+            自动化
+          </a-select-option>
+          <a-select-option value="project">
+            项目管理
+          </a-select-option>
+          <a-select-option value="template">
+            模板应用
+          </a-select-option>
         </a-select>
 
-        <a-button @click="handleRefresh" :loading="skillStore.loading">
-          <template #icon><ReloadOutlined /></template>
+        <a-button
+          :loading="skillStore.loading"
+          @click="handleRefresh"
+        >
+          <template #icon>
+            <ReloadOutlined />
+          </template>
           刷新
         </a-button>
       </a-space>
 
       <a-space>
-        <a-button type="primary" @click="handleCreateSkill">
-          <template #icon><PlusOutlined /></template>
+        <a-button
+          type="primary"
+          @click="handleCreateSkill"
+        >
+          <template #icon>
+            <PlusOutlined />
+          </template>
           创建技能
         </a-button>
-        <a-button type="link" @click="showStats">
-          <template #icon><BarChartOutlined /></template>
+        <a-button
+          type="link"
+          @click="showStats"
+        >
+          <template #icon>
+            <BarChartOutlined />
+          </template>
           统计分析
         </a-button>
-        <a-button type="link" @click="showDependencyGraph">
-          <template #icon><ApartmentOutlined /></template>
+        <a-button
+          type="link"
+          @click="showDependencyGraph"
+        >
+          <template #icon>
+            <ApartmentOutlined />
+          </template>
           依赖关系图
         </a-button>
       </a-space>
     </div>
 
     <!-- 批量操作栏 -->
-    <div v-if="selectedSkills.length > 0" class="batch-action-bar">
+    <div
+      v-if="selectedSkills.length > 0"
+      class="batch-action-bar"
+    >
       <div class="selection-info">
         <a-checkbox
           :checked="isAllSelected"
@@ -90,33 +151,55 @@
       </div>
       <a-space>
         <a-button @click="handleBatchEnable">
-          <template #icon><CheckOutlined /></template>
+          <template #icon>
+            <CheckOutlined />
+          </template>
           批量启用
         </a-button>
         <a-button @click="handleBatchDisable">
-          <template #icon><CloseOutlined /></template>
+          <template #icon>
+            <CloseOutlined />
+          </template>
           批量禁用
         </a-button>
-        <a-button danger @click="handleBatchDelete">
-          <template #icon><DeleteOutlined /></template>
+        <a-button
+          danger
+          @click="handleBatchDelete"
+        >
+          <template #icon>
+            <DeleteOutlined />
+          </template>
           批量删除
         </a-button>
-        <a-button @click="handleClearSelection">清空选择</a-button>
+        <a-button @click="handleClearSelection">
+          清空选择
+        </a-button>
       </a-space>
     </div>
 
     <!-- 技能列表 -->
-    <div v-if="skillStore.loading" class="loading-container">
-      <a-spin size="large" tip="加载中...">
-      </a-spin>
+    <div
+      v-if="skillStore.loading"
+      class="loading-container"
+    >
+      <a-spin
+        size="large"
+        tip="加载中..."
+      />
     </div>
 
-    <div v-else-if="skillStore.filteredSkills.length === 0" class="empty-container">
+    <div
+      v-else-if="skillStore.filteredSkills.length === 0"
+      class="empty-container"
+    >
       <a-empty description="暂无技能数据" />
     </div>
 
     <!-- 使用虚拟滚动优化大数据集 -->
-    <div v-else class="skill-list-container">
+    <div
+      v-else
+      class="skill-list-container"
+    >
       <VirtualGrid
         v-if="skillStore.filteredSkills.length > 50"
         :items="skillStore.filteredSkills"
@@ -143,8 +226,15 @@
       </VirtualGrid>
 
       <!-- 少量数据直接渲染 -->
-      <div v-else class="skill-grid">
-        <div v-for="skill in skillStore.filteredSkills" :key="skill.id" class="skill-card-wrapper">
+      <div
+        v-else
+        class="skill-grid"
+      >
+        <div
+          v-for="skill in skillStore.filteredSkills"
+          :key="skill.id"
+          class="skill-card-wrapper"
+        >
           <a-checkbox
             v-model:checked="selectedSkillIds[skill.id]"
             class="skill-checkbox"
@@ -218,7 +308,7 @@
       <SkillDependencyGraph
         :skills="skillStore.skills"
         :tools="allTools"
-        :skillTools="allSkillTools"
+        :skill-tools="allSkillTools"
       />
     </a-modal>
   </div>
@@ -514,7 +604,7 @@ const handleBatchEnable = () => {
         for (const skill of selectedSkills.value) {
           if (!skill.enabled) {
             const success = await skillStore.enable(skill.id);
-            if (success) successCount++;
+            if (success) {successCount++;}
           } else {
             successCount++; // 已启用的也算成功
           }
@@ -544,7 +634,7 @@ const handleBatchDisable = () => {
         for (const skill of selectedSkills.value) {
           if (skill.enabled) {
             const success = await skillStore.disable(skill.id);
-            if (success) successCount++;
+            if (success) {successCount++;}
           } else {
             successCount++; // 已禁用的也算成功
           }
@@ -584,7 +674,7 @@ const handleBatchDelete = () => {
 
         for (const skillId of skillIds) {
           const success = await skillStore.delete(skillId);
-          if (success) successCount++;
+          if (success) {successCount++;}
         }
 
         message.success(`成功删除 ${successCount} 个技能`);

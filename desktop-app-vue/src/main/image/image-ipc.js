@@ -7,7 +7,7 @@
  */
 
 const { ipcMain, dialog } = require('electron');
-const ipcGuard = require('../ipc-guard');
+const ipcGuard = require('../ipc/ipc-guard');
 
 /**
  * 注册图像管理相关的 IPC 处理器

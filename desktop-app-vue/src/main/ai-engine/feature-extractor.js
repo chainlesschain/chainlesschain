@@ -280,8 +280,8 @@ class FeatureExtractor {
     // 复杂度 = 词汇多样性 * 平均词长
     const complexity = (uniqueWords / tokens.length) * avgWordLength;
 
-    if (complexity > 8) return 'high';
-    if (complexity > 5) return 'medium';
+    if (complexity > 8) {return 'high';}
+    if (complexity > 5) {return 'medium';}
     return 'low';
   }
 
@@ -335,10 +335,10 @@ class FeatureExtractor {
    * 计算用户经验等级
    */
   calculateExperience(totalTasks) {
-    if (totalTasks >= 1000) return 'expert';
-    if (totalTasks >= 500) return 'advanced';
-    if (totalTasks >= 100) return 'intermediate';
-    if (totalTasks >= 20) return 'beginner';
+    if (totalTasks >= 1000) {return 'expert';}
+    if (totalTasks >= 500) {return 'advanced';}
+    if (totalTasks >= 100) {return 'intermediate';}
+    if (totalTasks >= 20) {return 'beginner';}
     return 'novice';
   }
 

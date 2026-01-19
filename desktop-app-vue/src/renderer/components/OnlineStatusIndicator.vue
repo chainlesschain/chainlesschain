@@ -1,9 +1,21 @@
 <template>
-  <a-tooltip :title="statusText" placement="top">
-    <span class="online-status-indicator" :class="`status-${status}`">
-      <span class="status-dot"></span>
-      <span v-if="showText" class="status-text">{{ statusText }}</span>
-      <span v-if="showDeviceCount && deviceCount > 1" class="device-count">
+  <a-tooltip
+    :title="statusText"
+    placement="top"
+  >
+    <span
+      class="online-status-indicator"
+      :class="`status-${status}`"
+    >
+      <span class="status-dot" />
+      <span
+        v-if="showText"
+        class="status-text"
+      >{{ statusText }}</span>
+      <span
+        v-if="showDeviceCount && deviceCount > 1"
+        class="device-count"
+      >
         {{ deviceCount }}
       </span>
     </span>
@@ -67,7 +79,7 @@ const statusText = computed(() => {
 
 // 格式化最后在线时间
 function formatLastSeen(timestamp) {
-  if (!timestamp) return '';
+  if (!timestamp) {return '';}
 
   const now = Date.now();
   const diff = now - timestamp;

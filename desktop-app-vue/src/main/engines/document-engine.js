@@ -444,7 +444,7 @@ ${content.troubleshooting || '如果遇到问题，请尝试以下解决方案�
     let codeBlockContent = [];
 
     for (let i = 0; i < lines.length; i++) {
-      let line = lines[i];
+      const line = lines[i];
 
       // 代码块处理
       if (line.startsWith('```')) {
@@ -1050,7 +1050,7 @@ pandoc document.md -o document.docx
     // 简单的正则替换法处理行内格式
     // 这里使用分割和重组的方式
     const parts = [];
-    let remaining = text;
+    const remaining = text;
 
     // 处理粗体 **text**
     const boldRegex = /\*\*(.+?)\*\*/g;

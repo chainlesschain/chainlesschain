@@ -6,14 +6,19 @@
         v-model:value="searchText"
         placeholder="搜索或创建标签..."
         allow-clear
-        @search="handleCreateTag"
         enter-button="创建"
+        @search="handleCreateTag"
       />
     </div>
 
     <!-- 已选标签 -->
-    <div class="selected-section" v-if="selectedTags.length > 0">
-      <div class="section-label">已选择:</div>
+    <div
+      v-if="selectedTags.length > 0"
+      class="selected-section"
+    >
+      <div class="section-label">
+        已选择:
+      </div>
       <div class="tags-wrap">
         <a-tag
           v-for="tag in selectedTags"
@@ -29,7 +34,9 @@
 
     <!-- 可选标签 -->
     <div class="available-section">
-      <div class="section-label">可选标签:</div>
+      <div class="section-label">
+        可选标签:
+      </div>
       <div class="tags-wrap">
         <a-tag
           v-for="tag in filteredTags"
@@ -140,7 +147,7 @@ const removeTag = (tag) => {
 // 创建新标签
 const handleCreateTag = (text) => {
   const tag = (text || searchText.value).trim();
-  if (!tag) return;
+  if (!tag) {return;}
 
   // 检查是否已存在
   const exists = props.allTags.some(

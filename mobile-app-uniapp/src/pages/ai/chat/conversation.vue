@@ -132,6 +132,7 @@
 <script>
 import aiConversationService from '@/services/ai-conversation'
 import MessageBubble from '../components/MessageBubble.vue'
+import { debounce, performanceMonitor } from '@utils/performance'
 
 export default {
   components: {
@@ -160,11 +161,17 @@ export default {
   },
 
   async onLoad(options) {
+    // 性能监控: 标记对话加载开始
+    performanceMonitor.mark('conversation-load-start')
+
     if (options.id) {
       this.conversationId = options.id
       await this.loadConversation()
       await this.loadMessages()
     }
+
+    // 性能监控: 测量对话加载时间
+    performanceMonitor.measure('conversation-load-duration', 'conversation-load-start')
   },
 
   methods: {
@@ -211,6 +218,9 @@ export default {
 
     async sendMessage() {
       if (!this.canSend) return
+
+      // 性能监控: 标记消息发送开始
+      performanceMonitor.mark('message-send-start')
 
       const message = this.inputMessage.trim()
       this.inputMessage = ''

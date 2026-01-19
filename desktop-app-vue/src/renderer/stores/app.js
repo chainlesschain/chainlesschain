@@ -238,7 +238,7 @@ export const useAppStore = defineStore("app", {
 
       // 找到要删除的标签页的索引
       const targetIndex = tabs.findIndex((tab) => tab.key === targetKey);
-      if (targetIndex === -1) return;
+      if (targetIndex === -1) {return;}
 
       // 如果关闭的是当前激活的标签，需要激活另一个标签
       if (targetKey === activeKey) {
@@ -284,7 +284,7 @@ export const useAppStore = defineStore("app", {
     addFavoriteMenu(menu) {
       // 检查是否已收藏
       const exists = this.favoriteMenus.find((m) => m.key === menu.key);
-      if (exists) return;
+      if (exists) {return;}
 
       // 添加到收藏列表
       this.favoriteMenus.push({
@@ -366,7 +366,7 @@ export const useAppStore = defineStore("app", {
     pinMenu(menu) {
       // 检查是否已置顶
       const exists = this.pinnedMenus.find((m) => m.key === menu.key);
-      if (exists) return;
+      if (exists) {return;}
 
       // 添加到置顶列表
       this.pinnedMenus.push({
@@ -594,7 +594,7 @@ export const useAppStore = defineStore("app", {
      */
     async migrateFromLocalStorage() {
       try {
-        if (!window.electronAPI?.invoke) return;
+        if (!window.electronAPI?.invoke) {return;}
 
         // Check if already migrated
         const migrated = await window.electronAPI.invoke(
@@ -603,7 +603,7 @@ export const useAppStore = defineStore("app", {
           "localStorageMigrated",
           false,
         );
-        if (migrated) return;
+        if (migrated) {return;}
 
         console.log(
           "[AppStore] Migrating data from localStorage to PreferenceManager...",

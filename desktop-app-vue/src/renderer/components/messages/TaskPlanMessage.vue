@@ -1,19 +1,35 @@
 <template>
-  <div class="task-plan-message" data-test="task-plan-message">
+  <div
+    class="task-plan-message"
+    data-test="task-plan-message"
+  >
     <div class="plan-header">
       <FileTextOutlined class="plan-icon" />
       <span class="plan-title">{{ message.content }}</span>
     </div>
 
-    <div v-if="plan" class="plan-content" data-test="plan-content">
+    <div
+      v-if="plan"
+      class="plan-content"
+      data-test="plan-content"
+    >
       <!-- 计划标题和摘要 -->
       <div class="plan-summary-section">
         <h3>{{ plan.title || '任务计划' }}</h3>
-        <p v-if="plan.summary" class="summary-text">{{ plan.summary }}</p>
+        <p
+          v-if="plan.summary"
+          class="summary-text"
+        >
+          {{ plan.summary }}
+        </p>
       </div>
 
       <!-- 任务步骤 -->
-      <div v-if="plan.tasks && plan.tasks.length > 0" class="plan-tasks" data-test="plan-tasks">
+      <div
+        v-if="plan.tasks && plan.tasks.length > 0"
+        class="plan-tasks"
+        data-test="plan-tasks"
+      >
         <h4>📋 任务步骤</h4>
         <div
           v-for="(task, index) in plan.tasks"
@@ -21,15 +37,30 @@
           class="task-item"
           :data-test="`plan-task-${index}`"
         >
-          <div class="task-number">{{ index + 1 }}</div>
+          <div class="task-number">
+            {{ index + 1 }}
+          </div>
           <div class="task-details">
-            <div class="task-name">{{ task.name }}</div>
-            <div v-if="task.description" class="task-description">{{ task.description }}</div>
-            <div v-if="task.action" class="task-meta">
+            <div class="task-name">
+              {{ task.name }}
+            </div>
+            <div
+              v-if="task.description"
+              class="task-description"
+            >
+              {{ task.description }}
+            </div>
+            <div
+              v-if="task.action"
+              class="task-meta"
+            >
               <span class="meta-label">操作:</span>
               <span class="meta-value">{{ task.action }}</span>
             </div>
-            <div v-if="task.output" class="task-meta">
+            <div
+              v-if="task.output"
+              class="task-meta"
+            >
               <span class="meta-label">输出:</span>
               <span class="meta-value">{{ task.output }}</span>
             </div>
@@ -38,54 +69,102 @@
       </div>
 
       <!-- 预期输出 -->
-      <div v-if="plan.outputs && plan.outputs.length > 0" class="plan-outputs">
+      <div
+        v-if="plan.outputs && plan.outputs.length > 0"
+        class="plan-outputs"
+      >
         <h4>🎯 预期输出</h4>
         <ul>
-          <li v-for="(output, index) in plan.outputs" :key="index">{{ output }}</li>
+          <li
+            v-for="(output, index) in plan.outputs"
+            :key="index"
+          >
+            {{ output }}
+          </li>
         </ul>
       </div>
 
       <!-- 注意事项 -->
-      <div v-if="plan.notes && plan.notes.length > 0" class="plan-notes">
+      <div
+        v-if="plan.notes && plan.notes.length > 0"
+        class="plan-notes"
+      >
         <h4>⚠️ 注意事项</h4>
         <ul>
-          <li v-for="(note, index) in plan.notes" :key="index">{{ note }}</li>
+          <li
+            v-for="(note, index) in plan.notes"
+            :key="index"
+          >
+            {{ note }}
+          </li>
         </ul>
       </div>
 
       <!-- 操作按钮 -->
-      <div v-if="status === 'pending'" class="plan-actions" data-test="plan-actions">
-        <a-button @click="handleCancel" size="large" data-test="plan-cancel-button">
+      <div
+        v-if="status === 'pending'"
+        class="plan-actions"
+        data-test="plan-actions"
+      >
+        <a-button
+          size="large"
+          data-test="plan-cancel-button"
+          @click="handleCancel"
+        >
           <CloseOutlined />
           取消
         </a-button>
-        <a-button @click="handleModify" size="large" data-test="plan-modify-button">
+        <a-button
+          size="large"
+          data-test="plan-modify-button"
+          @click="handleModify"
+        >
           <EditOutlined />
           修改计划
         </a-button>
-        <a-button type="primary" @click="handleConfirm" size="large" data-test="plan-confirm-button">
+        <a-button
+          type="primary"
+          size="large"
+          data-test="plan-confirm-button"
+          @click="handleConfirm"
+        >
           <CheckOutlined />
           确认执行
         </a-button>
       </div>
 
       <!-- 状态提示 -->
-      <div v-else-if="status === 'confirmed'" class="plan-status">
+      <div
+        v-else-if="status === 'confirmed'"
+        class="plan-status"
+      >
         <CheckCircleOutlined style="color: #52c41a;" />
         <span>计划已确认，正在执行...</span>
       </div>
 
-      <div v-else-if="status === 'executing'" class="plan-status">
-        <LoadingOutlined spin style="color: #1890ff;" />
+      <div
+        v-else-if="status === 'executing'"
+        class="plan-status"
+      >
+        <LoadingOutlined
+          spin
+          style="color: #1890ff;"
+        />
         <span>任务执行中...</span>
       </div>
 
-      <div v-else-if="status === 'completed'" class="plan-status">
+      <div
+        v-else-if="status === 'completed'"
+        class="plan-status"
+      >
         <CheckCircleOutlined style="color: #52c41a;" />
         <span>任务已完成！</span>
       </div>
 
-      <div v-else-if="status === 'cancelled'" class="plan-status">
+      <div
+        v-else-if="status === 'cancelled'"
+        class="plan-status"
+      >
         <CloseCircleOutlined style="color: #8c8c8c;" />
         <span>计划已取消</span>
       </div>

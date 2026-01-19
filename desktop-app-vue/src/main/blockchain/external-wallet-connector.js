@@ -334,7 +334,7 @@ class ExternalWalletConnector extends EventEmitter {
    * @private
    */
   _setupMetaMaskListeners() {
-    if (!this.metamaskProvider) return;
+    if (!this.metamaskProvider) {return;}
 
     // 监听账户变化
     this.metamaskProvider.on('accountsChanged', (accounts) => {
@@ -378,7 +378,7 @@ class ExternalWalletConnector extends EventEmitter {
    * @private
    */
   _setupWalletConnectListeners() {
-    if (!this.walletConnectProvider) return;
+    if (!this.walletConnectProvider) {return;}
 
     // 监听账户变化
     this.walletConnectProvider.on('accountsChanged', (accounts) => {

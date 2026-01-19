@@ -9,7 +9,10 @@
       </a-button>
 
       <template #overlay>
-        <a-menu @click="handleMenuClick" :selected-keys="[currentTheme]">
+        <a-menu
+          :selected-keys="[currentTheme]"
+          @click="handleMenuClick"
+        >
           <a-menu-item key="light">
             <BulbOutlined />
             <span style="margin-left: 8px">浅色模式</span>

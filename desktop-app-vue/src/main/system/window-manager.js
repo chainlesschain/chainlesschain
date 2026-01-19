@@ -123,7 +123,7 @@ class WindowManager {
    * 保存窗口状态
    */
   saveWindowState(window, windowId) {
-    if (!window || window.isDestroyed()) return;
+    if (!window || window.isDestroyed()) {return;}
 
     const bounds = window.getBounds();
     const state = {

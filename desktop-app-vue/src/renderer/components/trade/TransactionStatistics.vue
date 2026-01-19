@@ -11,11 +11,13 @@
         <a-space>
           <a-range-picker
             v-model:value="dateRange"
-            @change="loadStatistics"
             style="width: 280px"
+            @change="loadStatistics"
           />
           <a-button @click="loadStatistics">
-            <template #icon><reload-outlined /></template>
+            <template #icon>
+              <reload-outlined />
+            </template>
             刷新
           </a-button>
         </a-space>
@@ -23,32 +25,48 @@
 
       <a-spin :spinning="loading">
         <!-- 概览统计 -->
-        <a-row :gutter="[16, 16]" style="margin-bottom: 24px">
+        <a-row
+          :gutter="[16, 16]"
+          style="margin-bottom: 24px"
+        >
           <a-col :span="6">
-            <a-card size="small" hoverable>
+            <a-card
+              size="small"
+              hoverable
+            >
               <a-statistic
                 title="总交易数"
                 :value="statistics.totalTransactions"
                 :value-style="{ color: '#1890ff' }"
               >
-                <template #prefix><swap-outlined /></template>
+                <template #prefix>
+                  <swap-outlined />
+                </template>
               </a-statistic>
             </a-card>
           </a-col>
           <a-col :span="6">
-            <a-card size="small" hoverable>
+            <a-card
+              size="small"
+              hoverable
+            >
               <a-statistic
                 title="总交易额"
                 :value="statistics.totalVolume"
                 :precision="2"
                 :value-style="{ color: '#52c41a' }"
               >
-                <template #prefix><dollar-outlined /></template>
+                <template #prefix>
+                  <dollar-outlined />
+                </template>
               </a-statistic>
             </a-card>
           </a-col>
           <a-col :span="6">
-            <a-card size="small" hoverable>
+            <a-card
+              size="small"
+              hoverable
+            >
               <a-statistic
                 title="成功率"
                 :value="statistics.successRate"
@@ -56,19 +74,26 @@
                 :precision="1"
                 :value-style="{ color: '#faad14' }"
               >
-                <template #prefix><check-circle-outlined /></template>
+                <template #prefix>
+                  <check-circle-outlined />
+                </template>
               </a-statistic>
             </a-card>
           </a-col>
           <a-col :span="6">
-            <a-card size="small" hoverable>
+            <a-card
+              size="small"
+              hoverable
+            >
               <a-statistic
                 title="平均金额"
                 :value="statistics.averageAmount"
                 :precision="2"
                 :value-style="{ color: '#722ed1' }"
               >
-                <template #prefix><calculator-outlined /></template>
+                <template #prefix>
+                  <calculator-outlined />
+                </template>
               </a-statistic>
             </a-card>
           </a-col>
@@ -78,29 +103,53 @@
         <a-row :gutter="[16, 16]">
           <!-- 交易趋势图 -->
           <a-col :span="12">
-            <a-card title="交易趋势" size="small">
-              <div ref="trendChartRef" style="width: 100%; height: 300px"></div>
+            <a-card
+              title="交易趋势"
+              size="small"
+            >
+              <div
+                ref="trendChartRef"
+                style="width: 100%; height: 300px"
+              />
             </a-card>
           </a-col>
 
           <!-- 交易类型分布 -->
           <a-col :span="12">
-            <a-card title="交易类型分布" size="small">
-              <div ref="typeChartRef" style="width: 100%; height: 300px"></div>
+            <a-card
+              title="交易类型分布"
+              size="small"
+            >
+              <div
+                ref="typeChartRef"
+                style="width: 100%; height: 300px"
+              />
             </a-card>
           </a-col>
 
           <!-- 交易状态分布 -->
           <a-col :span="12">
-            <a-card title="交易状态分布" size="small">
-              <div ref="statusChartRef" style="width: 100%; height: 300px"></div>
+            <a-card
+              title="交易状态分布"
+              size="small"
+            >
+              <div
+                ref="statusChartRef"
+                style="width: 100%; height: 300px"
+              />
             </a-card>
           </a-col>
 
           <!-- 热门资产 -->
           <a-col :span="12">
-            <a-card title="热门交易资产 Top 10" size="small">
-              <div ref="assetsChartRef" style="width: 100%; height: 300px"></div>
+            <a-card
+              title="热门交易资产 Top 10"
+              size="small"
+            >
+              <div
+                ref="assetsChartRef"
+                style="width: 100%; height: 300px"
+              />
             </a-card>
           </a-col>
         </a-row>
@@ -230,7 +279,7 @@ const renderCharts = (data) => {
 
 // 渲染交易趋势图
 const renderTrendChart = (data) => {
-  if (!trendChartRef.value) return;
+  if (!trendChartRef.value) {return;}
 
   if (!trendChart) {
     trendChart = echarts.init(trendChartRef.value);
@@ -289,7 +338,7 @@ const renderTrendChart = (data) => {
 
 // 渲染交易类型分布图
 const renderTypeChart = (data) => {
-  if (!typeChartRef.value) return;
+  if (!typeChartRef.value) {return;}
 
   if (!typeChart) {
     typeChart = echarts.init(typeChartRef.value);
@@ -339,7 +388,7 @@ const renderTypeChart = (data) => {
 
 // 渲染交易状态分布图
 const renderStatusChart = (data) => {
-  if (!statusChartRef.value) return;
+  if (!statusChartRef.value) {return;}
 
   if (!statusChart) {
     statusChart = echarts.init(statusChartRef.value);
@@ -375,7 +424,7 @@ const renderStatusChart = (data) => {
 
 // 渲染热门资产图
 const renderAssetsChart = (data) => {
-  if (!assetsChartRef.value) return;
+  if (!assetsChartRef.value) {return;}
 
   if (!assetsChart) {
     assetsChart = echarts.init(assetsChartRef.value);

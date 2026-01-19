@@ -162,7 +162,7 @@ class FileImporter extends EventEmitter {
 
       // 解析 YAML front matter（如果存在）
       const frontMatterMatch = content.match(/^---\n([\s\S]*?)\n---\n/);
-      let metadata = {};
+      const metadata = {};
       let markdownContent = content;
 
       if (frontMatterMatch) {

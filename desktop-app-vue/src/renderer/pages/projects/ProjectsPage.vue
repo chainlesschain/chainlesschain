@@ -7,7 +7,9 @@
     <div class="main-content">
       <!-- 欢迎头部 (总是显示，优化问候语) -->
       <div class="welcome-header">
-        <h1 class="welcome-title">{{ greetingMessage }}</h1>
+        <h1 class="welcome-title">
+          {{ greetingMessage }}
+        </h1>
       </div>
 
       <!-- 对话输入框 -->
@@ -20,7 +22,10 @@
       </div>
 
       <!-- 🔥 AI对话消息区域（在对话框中展示创建过程） -->
-      <div v-if="conversationMessages.length > 0" class="conversation-messages-area">
+      <div
+        v-if="conversationMessages.length > 0"
+        class="conversation-messages-area"
+      >
         <div
           v-for="(msg, index) in conversationMessages"
           :key="index"
@@ -28,44 +33,89 @@
           :class="[msg.type, msg.status]"
         >
           <!-- 用户消息 -->
-          <div v-if="msg.type === 'user'" class="user-message">
-            <div class="message-avatar">👤</div>
+          <div
+            v-if="msg.type === 'user'"
+            class="user-message"
+          >
+            <div class="message-avatar">
+              👤
+            </div>
             <div class="message-content">
-              <div class="message-text">{{ msg.content }}</div>
-              <div class="message-time">{{ formatTime(msg.timestamp) }}</div>
+              <div class="message-text">
+                {{ msg.content }}
+              </div>
+              <div class="message-time">
+                {{ formatTime(msg.timestamp) }}
+              </div>
             </div>
           </div>
 
           <!-- AI消息 -->
-          <div v-else-if="msg.type === 'assistant'" class="assistant-message">
-            <div class="message-avatar">🤖</div>
+          <div
+            v-else-if="msg.type === 'assistant'"
+            class="assistant-message"
+          >
+            <div class="message-avatar">
+              🤖
+            </div>
             <div class="message-content">
-              <div class="message-text" v-html="msg.content"></div>
-              <div class="message-time">{{ formatTime(msg.timestamp) }}</div>
+              <div
+                class="message-text"
+                v-html="msg.content"
+              />
+              <div class="message-time">
+                {{ formatTime(msg.timestamp) }}
+              </div>
             </div>
           </div>
 
           <!-- 项目创建进度消息 -->
-          <div v-else-if="msg.type === 'progress'" class="progress-message">
-            <div class="message-avatar">⚙️</div>
+          <div
+            v-else-if="msg.type === 'progress'"
+            class="progress-message"
+          >
+            <div class="message-avatar">
+              ⚙️
+            </div>
             <div class="message-content">
               <div class="progress-stage">
-                <a-tag :color="getStageColor(msg.stage)">{{ msg.stageName }}</a-tag>
+                <a-tag :color="getStageColor(msg.stage)">
+                  {{ msg.stageName }}
+                </a-tag>
               </div>
-              <div class="progress-text">{{ msg.content }}</div>
-              <div v-if="msg.details" class="progress-details">
+              <div class="progress-text">
+                {{ msg.content }}
+              </div>
+              <div
+                v-if="msg.details"
+                class="progress-details"
+              >
                 <pre>{{ msg.details }}</pre>
               </div>
             </div>
           </div>
 
           <!-- 成功消息 -->
-          <div v-else-if="msg.type === 'success'" class="success-message">
-            <div class="message-avatar">✅</div>
+          <div
+            v-else-if="msg.type === 'success'"
+            class="success-message"
+          >
+            <div class="message-avatar">
+              ✅
+            </div>
             <div class="message-content">
-              <div class="message-text">{{ msg.content }}</div>
-              <div v-if="msg.projectId" class="message-actions">
-                <a-button type="primary" size="small" @click="router.push(`/projects/${msg.projectId}`)">
+              <div class="message-text">
+                {{ msg.content }}
+              </div>
+              <div
+                v-if="msg.projectId"
+                class="message-actions"
+              >
+                <a-button
+                  type="primary"
+                  size="small"
+                  @click="router.push(`/projects/${msg.projectId}`)"
+                >
                   查看项目
                 </a-button>
               </div>
@@ -73,11 +123,21 @@
           </div>
 
           <!-- 错误消息 -->
-          <div v-else-if="msg.type === 'error'" class="error-message">
-            <div class="message-avatar">❌</div>
+          <div
+            v-else-if="msg.type === 'error'"
+            class="error-message"
+          >
+            <div class="message-avatar">
+              ❌
+            </div>
             <div class="message-content">
-              <div class="message-text">{{ msg.content }}</div>
-              <div v-if="msg.error" class="error-details">
+              <div class="message-text">
+                {{ msg.content }}
+              </div>
+              <div
+                v-if="msg.error"
+                class="error-details"
+              >
                 <pre>{{ msg.error }}</pre>
               </div>
             </div>
@@ -86,7 +146,12 @@
 
         <!-- 清空对话按钮 -->
         <div class="conversation-actions">
-          <a-button size="small" @click="clearConversation">清空对话</a-button>
+          <a-button
+            size="small"
+            @click="clearConversation"
+          >
+            清空对话
+          </a-button>
         </div>
       </div>
 
@@ -118,7 +183,10 @@
       </div>
 
       <!-- 模板展示区域 -->
-      <div v-if="!loading" class="templates-grid-section">
+      <div
+        v-if="!loading"
+        class="templates-grid-section"
+      >
         <TemplateGallery
           :category="selectedType && selectedType !== 'all' ? selectedType : null"
           :subcategory="activeCategory !== 'all' ? activeCategory : null"
@@ -126,7 +194,6 @@
           @create-custom="handleCreateCustom"
         />
       </div>
-
     </div>
 
     <!-- 模板变量填写对话框 -->
@@ -143,26 +210,25 @@
       title="任务执行监控"
       :width="900"
       :footer="null"
-      :maskClosable="false"
+      :mask-closable="false"
       :keyboard="!isExecutingTask"
-      @cancel="handleCloseTaskMonitor"
       class="task-monitor-modal"
+      @cancel="handleCloseTaskMonitor"
     >
       <TaskExecutionMonitor
         v-if="currentTaskPlan"
         :task-plan="currentTaskPlan"
         @cancel="handleCancelTask"
         @close="handleCloseTaskMonitor"
-        @viewResults="handleViewTaskResults"
+        @view-results="handleViewTaskResults"
         @retry="handleRetryTask"
-        @fileClick="handleFileClick"
-        @continueEdit="handleContinueEdit"
-        @suggestionClick="handleSuggestionClick"
+        @file-click="handleFileClick"
+        @continue-edit="handleContinueEdit"
+        @suggestion-click="handleSuggestionClick"
       />
     </a-modal>
 
     <!-- 流式创建进度Modal - 已移除，改为在对话框中展示 -->
-
   </div>
 </template>
 
@@ -586,11 +652,11 @@ const currentCategories = computed(() => {
 // 智能问候语（根据时间）
 const greetingMessage = computed(() => {
   const hour = new Date().getHours();
-  if (hour < 6) return '深夜好！有什么需要处理的吗？';
-  if (hour < 12) return '早上好！有哪些工作要处理？';
-  if (hour < 14) return '中午好！有哪些工作要处理？';
-  if (hour < 18) return '下午好！有新的工作安排吗？';
-  if (hour < 22) return '晚上好！今天还有什么要完成的？';
+  if (hour < 6) {return '深夜好！有什么需要处理的吗？';}
+  if (hour < 12) {return '早上好！有哪些工作要处理？';}
+  if (hour < 14) {return '中午好！有哪些工作要处理？';}
+  if (hour < 18) {return '下午好！有新的工作安排吗？';}
+  if (hour < 22) {return '晚上好！今天还有什么要完成的？';}
   return '夜深了！还在工作吗？';
 });
 
@@ -808,14 +874,14 @@ const handleUserAction = (action) => {
 
 // 🔥 AI对话辅助方法
 const formatTime = (timestamp) => {
-  if (!timestamp) return '';
+  if (!timestamp) {return '';}
   const date = new Date(timestamp);
   const now = new Date();
   const diff = now - date;
 
-  if (diff < 60000) return '刚刚';
-  if (diff < 3600000) return `${Math.floor(diff / 60000)}分钟前`;
-  if (diff < 86400000) return `${Math.floor(diff / 3600000)}小时前`;
+  if (diff < 60000) {return '刚刚';}
+  if (diff < 3600000) {return `${Math.floor(diff / 60000)}分钟前`;}
+  if (diff < 86400000) {return `${Math.floor(diff / 3600000)}小时前`;}
   return date.toLocaleString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 };
 

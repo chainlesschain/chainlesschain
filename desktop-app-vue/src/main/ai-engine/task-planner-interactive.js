@@ -734,10 +734,10 @@ class InteractiveTaskPlanner extends EventEmitter {
    * 解析预估时长
    */
   parseEstimatedDuration(duration) {
-    if (!duration) return 0;
+    if (!duration) {return 0;}
 
     const match = duration.match(/(\d+)\s*(分钟|秒|小时)/);
-    if (!match) return 0;
+    if (!match) {return 0;}
 
     const value = parseInt(match[1]);
     const unit = match[2];
@@ -754,10 +754,10 @@ class InteractiveTaskPlanner extends EventEmitter {
    * 获取等级
    */
   getGrade(percentage) {
-    if (percentage >= 90) return 'A';
-    if (percentage >= 80) return 'B';
-    if (percentage >= 70) return 'C';
-    if (percentage >= 60) return 'D';
+    if (percentage >= 90) {return 'A';}
+    if (percentage >= 80) {return 'B';}
+    if (percentage >= 70) {return 'C';}
+    if (percentage >= 60) {return 'D';}
     return 'F';
   }
 

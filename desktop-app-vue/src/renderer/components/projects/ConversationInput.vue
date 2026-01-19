@@ -1,8 +1,14 @@
 <template>
   <div class="conversation-input-wrapper">
-    <div class="input-container" :class="{ 'is-focused': isFocused }">
+    <div
+      class="input-container"
+      :class="{ 'is-focused': isFocused }"
+    >
       <!-- 提及建议列表 -->
-      <div v-if="showMentionSuggestions" class="mention-suggestions">
+      <div
+        v-if="showMentionSuggestions"
+        class="mention-suggestions"
+      >
         <div
           v-for="(item, index) in mentionSuggestions"
           :key="index"
@@ -29,7 +35,7 @@
         @focus="handleFocus"
         @blur="handleBlur"
         @paste="handlePaste"
-      ></textarea>
+      />
 
       <!-- 底部工具栏 -->
       <div class="input-toolbar">
@@ -65,7 +71,7 @@
             multiple
             class="file-input"
             @change="handleFileSelect"
-          />
+          >
 
           <!-- 语音输入按钮 -->
           <div class="voice-input-wrapper">
@@ -76,7 +82,10 @@
           </div>
 
           <!-- 已选附件展示 -->
-          <div v-if="attachments.length > 0" class="attachments-preview">
+          <div
+            v-if="attachments.length > 0"
+            class="attachments-preview"
+          >
             <a-tag
               v-for="(file, index) in attachments"
               :key="index"
@@ -109,7 +118,10 @@
     </div>
 
     <!-- 提示文本 -->
-    <div v-if="showHint" class="input-hint">
+    <div
+      v-if="showHint"
+      class="input-hint"
+    >
       <InfoCircleOutlined />
       {{ hintText }}
     </div>
@@ -181,7 +193,7 @@ const canSubmit = computed(() => {
 
 // 自动调整textarea高度
 const autoResize = () => {
-  if (!textareaRef.value) return;
+  if (!textareaRef.value) {return;}
   textareaRef.value.style.height = 'auto';
   const scrollHeight = textareaRef.value.scrollHeight;
   const maxHeight = 300; // 最大高度300px
@@ -248,7 +260,7 @@ const handleKeydown = (e) => {
 
 // 选择提及项
 const selectMention = (item) => {
-  if (!item) return;
+  if (!item) {return;}
 
   const beforeMention = inputText.value.substring(0, mentionStartPos.value);
   const afterCursor = inputText.value.substring(textareaRef.value.selectionStart);
@@ -266,7 +278,7 @@ const selectMention = (item) => {
 
 // 触发提及
 const triggerMention = () => {
-  if (!textareaRef.value) return;
+  if (!textareaRef.value) {return;}
 
   const cursorPos = textareaRef.value.selectionStart;
   const textBefore = inputText.value.substring(0, cursorPos);
@@ -313,7 +325,7 @@ const removeAttachment = (index) => {
 // 处理粘贴
 const handlePaste = (e) => {
   const items = e.clipboardData?.items;
-  if (!items) return;
+  if (!items) {return;}
 
   // 检查是否有图片
   for (const item of items) {
@@ -364,7 +376,7 @@ const handleBlur = () => {
 
 // 提交
 const handleSubmit = async () => {
-  if (!canSubmit.value) return;
+  if (!canSubmit.value) {return;}
 
   submitting.value = true;
   try {

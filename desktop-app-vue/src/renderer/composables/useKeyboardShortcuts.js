@@ -56,14 +56,14 @@ function matchesShortcut(event, shortcutKey) {
   const needsAlt = keys.includes('alt');
   const needsMeta = keys.includes('meta');
 
-  if (needsCtrl && !event.ctrlKey) return false;
-  if (needsShift && !event.shiftKey) return false;
-  if (needsAlt && !event.altKey) return false;
-  if (needsMeta && !event.metaKey) return false;
+  if (needsCtrl && !event.ctrlKey) {return false;}
+  if (needsShift && !event.shiftKey) {return false;}
+  if (needsAlt && !event.altKey) {return false;}
+  if (needsMeta && !event.metaKey) {return false;}
 
   // 检查主键
   const mainKey = keys.find(k => !['control', 'shift', 'alt', 'meta'].includes(k));
-  if (!mainKey) return false;
+  if (!mainKey) {return false;}
 
   return event.key.toLowerCase() === mainKey.toLowerCase();
 }

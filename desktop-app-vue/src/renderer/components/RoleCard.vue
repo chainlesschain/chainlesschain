@@ -1,24 +1,42 @@
 <template>
-  <a-card class="role-card" :class="{ 'builtin-role': isBuiltin }">
+  <a-card
+    class="role-card"
+    :class="{ 'builtin-role': isBuiltin }"
+  >
     <template #title>
       <div class="role-card-title">
         <span>{{ role.name }}</span>
-        <a-tag v-if="isBuiltin" color="blue">内置</a-tag>
+        <a-tag
+          v-if="isBuiltin"
+          color="blue"
+        >
+          内置
+        </a-tag>
       </div>
     </template>
 
     <template #extra>
       <a-dropdown v-if="!isBuiltin">
-        <a-button type="text" size="small">
+        <a-button
+          type="text"
+          size="small"
+        >
           <MoreOutlined />
         </a-button>
         <template #overlay>
           <a-menu>
-            <a-menu-item key="edit" @click="$emit('edit')">
+            <a-menu-item
+              key="edit"
+              @click="$emit('edit')"
+            >
               <EditOutlined /> 编辑
             </a-menu-item>
             <a-menu-divider />
-            <a-menu-item key="delete" danger @click="$emit('delete')">
+            <a-menu-item
+              key="delete"
+              danger
+              @click="$emit('delete')"
+            >
               <DeleteOutlined /> 删除
             </a-menu-item>
           </a-menu>
@@ -56,7 +74,11 @@
       </div>
 
       <div class="role-footer">
-        <a-button type="link" size="small" @click="$emit('view')">
+        <a-button
+          type="link"
+          size="small"
+          @click="$emit('view')"
+        >
           查看详情 <RightOutlined />
         </a-button>
       </div>

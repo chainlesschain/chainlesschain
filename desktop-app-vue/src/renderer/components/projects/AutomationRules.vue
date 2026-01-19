@@ -1,8 +1,14 @@
 <template>
   <div class="automation-rules">
-    <a-card title="项目自动化规则" :bordered="false">
+    <a-card
+      title="项目自动化规则"
+      :bordered="false"
+    >
       <template #extra>
-        <a-button type="primary" @click="showCreateModal">
+        <a-button
+          type="primary"
+          @click="showCreateModal"
+        >
           <plus-outlined /> 新建规则
         </a-button>
       </template>
@@ -16,12 +22,20 @@
           <a-list-item>
             <template #actions>
               <a-tooltip title="手动触发">
-                <a-button type="link" size="small" @click="manualTrigger(item.id)">
+                <a-button
+                  type="link"
+                  size="small"
+                  @click="manualTrigger(item.id)"
+                >
                   <play-circle-outlined />
                 </a-button>
               </a-tooltip>
               <a-tooltip title="编辑">
-                <a-button type="link" size="small" @click="editRule(item)">
+                <a-button
+                  type="link"
+                  size="small"
+                  @click="editRule(item)"
+                >
                   <edit-outlined />
                 </a-button>
               </a-tooltip>
@@ -29,7 +43,11 @@
                 title="确定要删除这个规则吗?"
                 @confirm="deleteRule(item.id)"
               >
-                <a-button type="link" danger size="small">
+                <a-button
+                  type="link"
+                  danger
+                  size="small"
+                >
                   <delete-outlined />
                 </a-button>
               </a-popconfirm>
@@ -42,8 +60,12 @@
                   <a-tag :color="item.is_enabled ? 'green' : 'default'">
                     {{ item.is_enabled ? '已启用' : '已禁用' }}
                   </a-tag>
-                  <a-tag color="blue">{{ getTriggerTypeText(item.trigger_type) }}</a-tag>
-                  <a-tag color="orange">{{ getActionTypeText(item.action_type) }}</a-tag>
+                  <a-tag color="blue">
+                    {{ getTriggerTypeText(item.trigger_type) }}
+                  </a-tag>
+                  <a-tag color="orange">
+                    {{ getActionTypeText(item.action_type) }}
+                  </a-tag>
                 </a-space>
               </template>
               <template #description>
@@ -62,13 +84,23 @@
           <a-statistic-group>
             <a-row :gutter="16">
               <a-col :span="8">
-                <a-statistic title="总规则数" :value="statistics.total" />
+                <a-statistic
+                  title="总规则数"
+                  :value="statistics.total"
+                />
               </a-col>
               <a-col :span="8">
-                <a-statistic title="已启用" :value="statistics.enabled" :value-style="{ color: '#3f8600' }" />
+                <a-statistic
+                  title="已启用"
+                  :value="statistics.enabled"
+                  :value-style="{ color: '#3f8600' }"
+                />
               </a-col>
               <a-col :span="8">
-                <a-statistic title="已禁用" :value="statistics.disabled" />
+                <a-statistic
+                  title="已禁用"
+                  :value="statistics.disabled"
+                />
               </a-col>
             </a-row>
           </a-statistic-group>
@@ -82,9 +114,18 @@
         width="800px"
         @ok="handleSaveRule"
       >
-        <a-form :model="ruleForm" layout="vertical">
-          <a-form-item label="规则名称" required>
-            <a-input v-model:value="ruleForm.name" placeholder="输入规则名称" />
+        <a-form
+          :model="ruleForm"
+          layout="vertical"
+        >
+          <a-form-item
+            label="规则名称"
+            required
+          >
+            <a-input
+              v-model:value="ruleForm.name"
+              placeholder="输入规则名称"
+            />
           </a-form-item>
 
           <a-form-item label="描述">
@@ -97,28 +138,48 @@
 
           <a-divider>触发条件</a-divider>
 
-          <a-form-item label="触发类型" required>
+          <a-form-item
+            label="触发类型"
+            required
+          >
             <a-select v-model:value="ruleForm.triggerType">
-              <a-select-option value="schedule">定时触发</a-select-option>
-              <a-select-option value="file_change">文件变化</a-select-option>
-              <a-select-option value="task_complete">任务完成</a-select-option>
-              <a-select-option value="manual">手动触发</a-select-option>
+              <a-select-option value="schedule">
+                定时触发
+              </a-select-option>
+              <a-select-option value="file_change">
+                文件变化
+              </a-select-option>
+              <a-select-option value="task_complete">
+                任务完成
+              </a-select-option>
+              <a-select-option value="manual">
+                手动触发
+              </a-select-option>
             </a-select>
           </a-form-item>
 
           <!-- 定时触发配置 -->
-          <a-form-item v-if="ruleForm.triggerType === 'schedule'" label="Cron表达式">
+          <a-form-item
+            v-if="ruleForm.triggerType === 'schedule'"
+            label="Cron表达式"
+          >
             <a-input
               v-model:value="ruleForm.triggerConfig.cron"
               placeholder="例如: 0 9 * * * (每天9点)"
             />
-            <small>格式: 分 时 日 月 周, <a href="https://crontab.guru/" target="_blank">参考</a></small>
+            <small>格式: 分 时 日 月 周, <a
+              href="https://crontab.guru/"
+              target="_blank"
+            >参考</a></small>
           </a-form-item>
 
           <!-- 文件变化配置 -->
           <template v-if="ruleForm.triggerType === 'file_change'">
             <a-form-item label="监听路径">
-              <a-input v-model:value="ruleForm.triggerConfig.path" placeholder="文件或目录路径" />
+              <a-input
+                v-model:value="ruleForm.triggerConfig.path"
+                placeholder="文件或目录路径"
+              />
             </a-form-item>
             <a-form-item label="文件模式">
               <a-input
@@ -128,28 +189,52 @@
             </a-form-item>
             <a-form-item label="监听事件">
               <a-checkbox-group v-model:value="ruleForm.triggerConfig.events">
-                <a-checkbox value="add">新增</a-checkbox>
-                <a-checkbox value="change">修改</a-checkbox>
-                <a-checkbox value="unlink">删除</a-checkbox>
+                <a-checkbox value="add">
+                  新增
+                </a-checkbox>
+                <a-checkbox value="change">
+                  修改
+                </a-checkbox>
+                <a-checkbox value="unlink">
+                  删除
+                </a-checkbox>
               </a-checkbox-group>
             </a-form-item>
           </template>
 
           <a-divider>执行动作</a-divider>
 
-          <a-form-item label="动作类型" required>
+          <a-form-item
+            label="动作类型"
+            required
+          >
             <a-select v-model:value="ruleForm.actionType">
-              <a-select-option value="run_task">运行AI任务</a-select-option>
-              <a-select-option value="generate_report">生成报告</a-select-option>
-              <a-select-option value="send_notification">发送通知</a-select-option>
-              <a-select-option value="git_commit">Git提交</a-select-option>
-              <a-select-option value="export_file">导出文件</a-select-option>
-              <a-select-option value="run_script">运行脚本</a-select-option>
+              <a-select-option value="run_task">
+                运行AI任务
+              </a-select-option>
+              <a-select-option value="generate_report">
+                生成报告
+              </a-select-option>
+              <a-select-option value="send_notification">
+                发送通知
+              </a-select-option>
+              <a-select-option value="git_commit">
+                Git提交
+              </a-select-option>
+              <a-select-option value="export_file">
+                导出文件
+              </a-select-option>
+              <a-select-option value="run_script">
+                运行脚本
+              </a-select-option>
             </a-select>
           </a-form-item>
 
           <!-- 运行AI任务配置 -->
-          <a-form-item v-if="ruleForm.actionType === 'run_task'" label="任务描述">
+          <a-form-item
+            v-if="ruleForm.actionType === 'run_task'"
+            label="任务描述"
+          >
             <a-textarea
               v-model:value="ruleForm.actionConfig.taskDescription"
               :rows="3"
@@ -160,7 +245,10 @@
           <!-- 发送通知配置 -->
           <template v-if="ruleForm.actionType === 'send_notification'">
             <a-form-item label="通知标题">
-              <a-input v-model:value="ruleForm.actionConfig.title" placeholder="通知标题" />
+              <a-input
+                v-model:value="ruleForm.actionConfig.title"
+                placeholder="通知标题"
+              />
             </a-form-item>
             <a-form-item label="通知内容">
               <a-textarea
@@ -171,9 +259,15 @@
             </a-form-item>
             <a-form-item label="通知渠道">
               <a-checkbox-group v-model:value="ruleForm.actionConfig.channels">
-                <a-checkbox value="desktop">桌面通知</a-checkbox>
-                <a-checkbox value="email">邮件</a-checkbox>
-                <a-checkbox value="webhook">Webhook</a-checkbox>
+                <a-checkbox value="desktop">
+                  桌面通知
+                </a-checkbox>
+                <a-checkbox value="email">
+                  邮件
+                </a-checkbox>
+                <a-checkbox value="webhook">
+                  Webhook
+                </a-checkbox>
               </a-checkbox-group>
             </a-form-item>
           </template>
@@ -181,7 +275,10 @@
           <!-- Git提交配置 -->
           <template v-if="ruleForm.actionType === 'git_commit'">
             <a-form-item label="项目路径">
-              <a-input v-model:value="ruleForm.actionConfig.projectPath" placeholder="项目路径" />
+              <a-input
+                v-model:value="ruleForm.actionConfig.projectPath"
+                placeholder="项目路径"
+              />
             </a-form-item>
             <a-form-item label="提交信息">
               <a-input
@@ -197,18 +294,30 @@
           </template>
 
           <!-- 生成报告配置 -->
-          <a-form-item v-if="ruleForm.actionType === 'generate_report'" label="报告类型">
+          <a-form-item
+            v-if="ruleForm.actionType === 'generate_report'"
+            label="报告类型"
+          >
             <a-select v-model:value="ruleForm.actionConfig.reportType">
-              <a-select-option value="daily">每日报告</a-select-option>
-              <a-select-option value="weekly">周报</a-select-option>
-              <a-select-option value="analytics">数据分析</a-select-option>
+              <a-select-option value="daily">
+                每日报告
+              </a-select-option>
+              <a-select-option value="weekly">
+                周报
+              </a-select-option>
+              <a-select-option value="analytics">
+                数据分析
+              </a-select-option>
             </a-select>
           </a-form-item>
 
           <!-- 运行脚本配置 -->
           <template v-if="ruleForm.actionType === 'run_script'">
             <a-form-item label="脚本路径">
-              <a-input v-model:value="ruleForm.actionConfig.scriptPath" placeholder="脚本文件路径" />
+              <a-input
+                v-model:value="ruleForm.actionConfig.scriptPath"
+                placeholder="脚本文件路径"
+              />
             </a-form-item>
             <a-form-item label="脚本参数">
               <a-input
@@ -424,7 +533,7 @@ const getActionTypeText = (type) => {
 
 // 格式化时间
 const formatTime = (timestamp) => {
-  if (!timestamp) return '-'
+  if (!timestamp) {return '-'}
   const date = new Date(timestamp)
   return date.toLocaleString('zh-CN')
 }

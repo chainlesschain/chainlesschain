@@ -1,25 +1,57 @@
 <template>
-  <div class="heatmap-visualization" ref="containerRef">
-    <div ref="chartRef" class="heatmap-chart"></div>
+  <div
+    ref="containerRef"
+    class="heatmap-visualization"
+  >
+    <div
+      ref="chartRef"
+      class="heatmap-chart"
+    />
 
     <!-- 控制面板 -->
     <div class="heatmap-controls">
-      <a-card title="热力图设置" size="small">
-        <a-form layout="vertical" size="small">
+      <a-card
+        title="热力图设置"
+        size="small"
+      >
+        <a-form
+          layout="vertical"
+          size="small"
+        >
           <a-form-item label="热力图类型">
-            <a-select v-model:value="heatmapType" @change="updateChart">
-              <a-select-option value="relation">关系强度</a-select-option>
-              <a-select-option value="activity">活跃度</a-select-option>
-              <a-select-option value="similarity">相似度</a-select-option>
+            <a-select
+              v-model:value="heatmapType"
+              @change="updateChart"
+            >
+              <a-select-option value="relation">
+                关系强度
+              </a-select-option>
+              <a-select-option value="activity">
+                活跃度
+              </a-select-option>
+              <a-select-option value="similarity">
+                相似度
+              </a-select-option>
             </a-select>
           </a-form-item>
 
           <a-form-item label="颜色方案">
-            <a-select v-model:value="colorScheme" @change="updateChart">
-              <a-select-option value="blue">蓝色</a-select-option>
-              <a-select-option value="green">绿色</a-select-option>
-              <a-select-option value="red">红色</a-select-option>
-              <a-select-option value="rainbow">彩虹</a-select-option>
+            <a-select
+              v-model:value="colorScheme"
+              @change="updateChart"
+            >
+              <a-select-option value="blue">
+                蓝色
+              </a-select-option>
+              <a-select-option value="green">
+                绿色
+              </a-select-option>
+              <a-select-option value="red">
+                红色
+              </a-select-option>
+              <a-select-option value="rainbow">
+                彩虹
+              </a-select-option>
             </a-select>
           </a-form-item>
 
@@ -35,15 +67,24 @@
           </a-form-item>
 
           <a-form-item>
-            <a-checkbox v-model:checked="showLabels" @change="updateChart">
+            <a-checkbox
+              v-model:checked="showLabels"
+              @change="updateChart"
+            >
               显示标签
             </a-checkbox>
           </a-form-item>
         </a-form>
       </a-card>
 
-      <a-card title="统计信息" size="small">
-        <a-descriptions :column="1" size="small">
+      <a-card
+        title="统计信息"
+        size="small"
+      >
+        <a-descriptions
+          :column="1"
+          size="small"
+        >
           <a-descriptions-item label="最大值">
             {{ maxValue.toFixed(2) }}
           </a-descriptions-item>
@@ -103,17 +144,17 @@ const heatmapData = computed(() => {
 
 // 统计值
 const maxValue = computed(() => {
-  if (heatmapData.value.data.length === 0) return 0;
+  if (heatmapData.value.data.length === 0) {return 0;}
   return Math.max(...heatmapData.value.data.map(d => d[2]));
 });
 
 const minValue = computed(() => {
-  if (heatmapData.value.data.length === 0) return 0;
+  if (heatmapData.value.data.length === 0) {return 0;}
   return Math.min(...heatmapData.value.data.map(d => d[2]));
 });
 
 const avgValue = computed(() => {
-  if (heatmapData.value.data.length === 0) return 0;
+  if (heatmapData.value.data.length === 0) {return 0;}
   const sum = heatmapData.value.data.reduce((acc, d) => acc + d[2], 0);
   return sum / heatmapData.value.data.length;
 });
@@ -201,14 +242,14 @@ const calculateSimilarityHeatmap = (nodes) => {
  * 计算关系强度
  */
 const calculateRelationStrength = (sourceId, targetId) => {
-  if (sourceId === targetId) return 0;
+  if (sourceId === targetId) {return 0;}
 
   const directEdges = props.edges.filter(
     e => (e.source_id === sourceId && e.target_id === targetId) ||
          (e.source_id === targetId && e.target_id === sourceId)
   );
 
-  if (directEdges.length === 0) return 0;
+  if (directEdges.length === 0) {return 0;}
 
   // 计算加权强度
   return directEdges.reduce((sum, edge) => sum + (edge.weight || 1), 0);
@@ -218,23 +259,23 @@ const calculateRelationStrength = (sourceId, targetId) => {
  * 计算节点相似度
  */
 const calculateNodeSimilarity = (node1, node2) => {
-  if (node1.id === node2.id) return 1;
+  if (node1.id === node2.id) {return 1;}
 
   // 基于共同邻居的相似度
   const neighbors1 = new Set();
   const neighbors2 = new Set();
 
   props.edges.forEach(edge => {
-    if (edge.source_id === node1.id) neighbors1.add(edge.target_id);
-    if (edge.target_id === node1.id) neighbors1.add(edge.source_id);
-    if (edge.source_id === node2.id) neighbors2.add(edge.target_id);
-    if (edge.target_id === node2.id) neighbors2.add(edge.source_id);
+    if (edge.source_id === node1.id) {neighbors1.add(edge.target_id);}
+    if (edge.target_id === node1.id) {neighbors1.add(edge.source_id);}
+    if (edge.source_id === node2.id) {neighbors2.add(edge.target_id);}
+    if (edge.target_id === node2.id) {neighbors2.add(edge.source_id);}
   });
 
   const intersection = new Set([...neighbors1].filter(x => neighbors2.has(x)));
   const union = new Set([...neighbors1, ...neighbors2]);
 
-  if (union.size === 0) return 0;
+  if (union.size === 0) {return 0;}
 
   // Jaccard 相似度
   return intersection.size / union.size;
@@ -258,7 +299,7 @@ const getColorScheme = () => {
  * 初始化图表
  */
 const initChart = () => {
-  if (!chartRef.value) return;
+  if (!chartRef.value) {return;}
 
   chartInstance = echarts.init(chartRef.value);
 
@@ -282,7 +323,7 @@ const initChart = () => {
  * 更新图表
  */
 const updateChart = () => {
-  if (!chartInstance) return;
+  if (!chartInstance) {return;}
 
   const { data, xLabels, yLabels } = heatmapData.value;
 

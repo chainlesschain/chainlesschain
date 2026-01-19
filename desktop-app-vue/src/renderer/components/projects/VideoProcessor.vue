@@ -1,10 +1,19 @@
 <template>
   <div class="video-processor">
-    <a-card title="视频处理" :bordered="false">
-      <a-tabs v-model:activeKey="activeTab">
+    <a-card
+      title="视频处理"
+      :bordered="false"
+    >
+      <a-tabs v-model:active-key="activeTab">
         <!-- 视频转换 -->
-        <a-tab-pane key="convert" tab="格式转换">
-          <a-form :model="convertForm" layout="vertical">
+        <a-tab-pane
+          key="convert"
+          tab="格式转换"
+        >
+          <a-form
+            :model="convertForm"
+            layout="vertical"
+          >
             <a-form-item label="输入视频">
               <a-input
                 v-model:value="convertForm.inputPath"
@@ -21,11 +30,21 @@
 
             <a-form-item label="输出格式">
               <a-select v-model:value="convertForm.format">
-                <a-select-option value="mp4">MP4</a-select-option>
-                <a-select-option value="avi">AVI</a-select-option>
-                <a-select-option value="mov">MOV</a-select-option>
-                <a-select-option value="mkv">MKV</a-select-option>
-                <a-select-option value="webm">WebM</a-select-option>
+                <a-select-option value="mp4">
+                  MP4
+                </a-select-option>
+                <a-select-option value="avi">
+                  AVI
+                </a-select-option>
+                <a-select-option value="mov">
+                  MOV
+                </a-select-option>
+                <a-select-option value="mkv">
+                  MKV
+                </a-select-option>
+                <a-select-option value="webm">
+                  WebM
+                </a-select-option>
               </a-select>
             </a-form-item>
 
@@ -39,7 +58,11 @@
             </a-form-item>
 
             <a-form-item>
-              <a-button type="primary" @click="handleConvert" :loading="processing">
+              <a-button
+                type="primary"
+                :loading="processing"
+                @click="handleConvert"
+              >
                 <video-camera-outlined /> 开始转换
               </a-button>
             </a-form-item>
@@ -47,8 +70,14 @@
         </a-tab-pane>
 
         <!-- 视频剪辑 -->
-        <a-tab-pane key="trim" tab="视频剪辑">
-          <a-form :model="trimForm" layout="vertical">
+        <a-tab-pane
+          key="trim"
+          tab="视频剪辑"
+        >
+          <a-form
+            :model="trimForm"
+            layout="vertical"
+          >
             <a-form-item label="输入视频">
               <a-input
                 v-model:value="trimForm.inputPath"
@@ -80,7 +109,11 @@
             </a-form-item>
 
             <a-form-item>
-              <a-button type="primary" @click="handleTrim" :loading="processing">
+              <a-button
+                type="primary"
+                :loading="processing"
+                @click="handleTrim"
+              >
                 <scissor-outlined /> 开始剪辑
               </a-button>
             </a-form-item>
@@ -88,8 +121,14 @@
         </a-tab-pane>
 
         <!-- AI字幕生成 -->
-        <a-tab-pane key="subtitle" tab="AI字幕">
-          <a-form :model="subtitleForm" layout="vertical">
+        <a-tab-pane
+          key="subtitle"
+          tab="AI字幕"
+        >
+          <a-form
+            :model="subtitleForm"
+            layout="vertical"
+          >
             <a-form-item label="输入视频">
               <a-input
                 v-model:value="subtitleForm.inputPath"
@@ -106,13 +145,21 @@
 
             <a-form-item label="语言">
               <a-select v-model:value="subtitleForm.language">
-                <a-select-option value="zh">中文</a-select-option>
-                <a-select-option value="en">English</a-select-option>
+                <a-select-option value="zh">
+                  中文
+                </a-select-option>
+                <a-select-option value="en">
+                  English
+                </a-select-option>
               </a-select>
             </a-form-item>
 
             <a-form-item>
-              <a-button type="primary" @click="handleGenerateSubtitle" :loading="processing">
+              <a-button
+                type="primary"
+                :loading="processing"
+                @click="handleGenerateSubtitle"
+              >
                 <file-text-outlined /> 生成字幕
               </a-button>
             </a-form-item>
@@ -121,9 +168,17 @@
       </a-tabs>
 
       <!-- 进度条 -->
-      <div v-if="processing" class="progress-section">
-        <a-progress :percent="progress" :status="progressStatus" />
-        <p class="progress-message">{{ progressMessage }}</p>
+      <div
+        v-if="processing"
+        class="progress-section"
+      >
+        <a-progress
+          :percent="progress"
+          :status="progressStatus"
+        />
+        <p class="progress-message">
+          {{ progressMessage }}
+        </p>
       </div>
 
       <!-- 结果展示 -->
@@ -133,8 +188,8 @@
         :type="result.type"
         show-icon
         closable
-        @close="result = null"
         style="margin-top: 16px"
+        @close="result = null"
       />
     </a-card>
   </div>

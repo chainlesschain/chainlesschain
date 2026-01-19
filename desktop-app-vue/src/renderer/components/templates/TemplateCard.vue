@@ -1,5 +1,8 @@
 <template>
-  <div class="template-card" @click="handleCardClick">
+  <div
+    class="template-card"
+    @click="handleCardClick"
+  >
     <!-- 封面图或占位符 -->
     <div class="card-cover">
       <img
@@ -8,24 +11,38 @@
         :alt="template.display_name"
         loading="lazy"
         @error="handleImageError"
-      />
-      <div v-else class="placeholder-icon">
+      >
+      <div
+        v-else
+        class="placeholder-icon"
+      >
         <span class="icon-emoji">{{ template.icon || '📄' }}</span>
       </div>
     </div>
 
     <!-- 卡片内容 -->
     <div class="card-content">
-      <h4 class="card-title">{{ template.display_name }}</h4>
-      <p class="card-description">{{ truncatedDescription }}</p>
+      <h4 class="card-title">
+        {{ template.display_name }}
+      </h4>
+      <p class="card-description">
+        {{ truncatedDescription }}
+      </p>
 
       <!-- 元数据 -->
       <div class="card-meta">
-        <span class="usage-count" :title="`${template.usage_count || 0}次使用`">
+        <span
+          class="usage-count"
+          :title="`${template.usage_count || 0}次使用`"
+        >
           <FireOutlined />
           {{ formatUsageCount(template.usage_count) }}
         </span>
-        <span v-if="template.rating && template.rating > 0" class="rating" :title="`评分 ${template.rating.toFixed(1)}`">
+        <span
+          v-if="template.rating && template.rating > 0"
+          class="rating"
+          :title="`评分 ${template.rating.toFixed(1)}`"
+        >
           <StarFilled />
           {{ template.rating.toFixed(1) }}
         </span>
@@ -72,8 +89,8 @@ const truncatedDescription = computed(() => {
 })
 
 function formatUsageCount(count) {
-  if (!count || count === 0) return '0'
-  if (count >= 1000) return (count / 1000).toFixed(1) + 'k'
+  if (!count || count === 0) {return '0'}
+  if (count >= 1000) {return (count / 1000).toFixed(1) + 'k'}
   return count.toString()
 }
 

@@ -290,8 +290,8 @@ class CreditScoreManager extends EventEmitter {
 
     // 记录信用变化 - 5星加15分，4星加10分，3星加5分
     let scoreChange = 5;
-    if (rating >= 5) scoreChange = 15;
-    else if (rating >= 4) scoreChange = 10;
+    if (rating >= 5) {scoreChange = 15;}
+    else if (rating >= 4) {scoreChange = 10;}
 
     await this.addCreditRecord(
       userDid,
@@ -318,8 +318,8 @@ class CreditScoreManager extends EventEmitter {
 
     // 记录信用变化 - 1星扣30分，2星扣20分
     let scoreChange = -10;
-    if (rating <= 1) scoreChange = -30;
-    else if (rating <= 2) scoreChange = -20;
+    if (rating <= 1) {scoreChange = -30;}
+    else if (rating <= 2) {scoreChange = -20;}
 
     await this.addCreditRecord(
       userDid,

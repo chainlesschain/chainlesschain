@@ -1,9 +1,20 @@
 <template>
   <div class="file-tree-skeleton">
-    <div v-for="i in rows" :key="i" class="tree-item-skeleton" :style="getItemStyle(i)">
-      <div class="item-indent" :style="{ width: getIndent(i) + 'px' }"></div>
-      <div class="item-icon skeleton-box"></div>
-      <div class="item-name skeleton-box" :style="{ width: getNameWidth(i) + '%' }"></div>
+    <div
+      v-for="i in rows"
+      :key="i"
+      class="tree-item-skeleton"
+      :style="getItemStyle(i)"
+    >
+      <div
+        class="item-indent"
+        :style="{ width: getIndent(i) + 'px' }"
+      />
+      <div class="item-icon skeleton-box" />
+      <div
+        class="item-name skeleton-box"
+        :style="{ width: getNameWidth(i) + '%' }"
+      />
     </div>
   </div>
 </template>

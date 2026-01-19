@@ -1,6 +1,9 @@
 <template>
   <div class="monaco-editor-container">
-    <div ref="editorContainer" class="editor"></div>
+    <div
+      ref="editorContainer"
+      class="editor"
+    />
   </div>
 </template>
 
@@ -41,7 +44,7 @@ let autoSaveTimer = null;
  * 根据文件类型确定 Monaco 语言
  */
 const getLanguage = () => {
-  if (!props.file) return 'plaintext';
+  if (!props.file) {return 'plaintext';}
 
   const ext = props.file.file_name?.split('.').pop()?.toLowerCase() || '';
   const languageMap = {
@@ -84,7 +87,7 @@ const getLanguage = () => {
  * 初始化编辑器
  */
 const initEditor = () => {
-  if (!editorContainer.value) return;
+  if (!editorContainer.value) {return;}
 
   editor = monaco.editor.create(editorContainer.value, {
     value: props.modelValue || '',
@@ -146,7 +149,7 @@ const initEditor = () => {
  * 更新编辑器语言
  */
 const updateLanguage = () => {
-  if (!editor) return;
+  if (!editor) {return;}
   const model = editor.getModel();
   if (model) {
     monaco.editor.setModelLanguage(model, getLanguage());
@@ -157,7 +160,7 @@ const updateLanguage = () => {
  * 设置编辑器内容
  */
 const setContent = (content) => {
-  if (!editor) return;
+  if (!editor) {return;}
   const currentPosition = editor.getPosition();
   editor.setValue(content || '');
   // 恢复光标位置

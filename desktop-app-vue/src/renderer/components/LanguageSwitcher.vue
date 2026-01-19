@@ -1,5 +1,8 @@
 <template>
-  <a-dropdown :trigger="['click']" placement="bottomRight">
+  <a-dropdown
+    :trigger="['click']"
+    placement="bottomRight"
+  >
     <a-button class="language-btn">
       <span class="language-icon">{{ currentLanguageIcon }}</span>
       <span class="language-text">{{ currentLanguageLabel }}</span>

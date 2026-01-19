@@ -31,7 +31,7 @@ const RETRY_CONFIG = {
  * 检查错误是否可重试
  */
 function isRetryableError(error) {
-  if (!error) return false;
+  if (!error) {return false;}
   const errorMessage = error.message || String(error);
   return RETRY_CONFIG.retryableErrors.some(pattern =>
     errorMessage.includes(pattern)
@@ -200,7 +200,7 @@ function wrapAPIObject(obj, pathPrefix = '') {
   const wrapped = {};
 
   for (const key in obj) {
-    if (!obj.hasOwnProperty(key)) continue;
+    if (!obj.hasOwnProperty(key)) {continue;}
 
     const value = obj[key];
     const currentPath = pathPrefix ? `${pathPrefix}:${key}` : key;

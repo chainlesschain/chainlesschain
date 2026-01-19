@@ -3,10 +3,16 @@
     <a-row :gutter="16">
       <!-- 左侧：文章列表 -->
       <a-col :span="8">
-        <a-card :bordered="false" style="height: calc(100vh - 100px); overflow-y: auto">
+        <a-card
+          :bordered="false"
+          style="height: calc(100vh - 100px); overflow-y: auto"
+        >
           <template #title>
             <a-space>
-              <a-button type="link" @click="goBack">
+              <a-button
+                type="link"
+                @click="goBack"
+              >
                 <ArrowLeftOutlined />
               </a-button>
               <span>{{ feedTitle }}</span>
@@ -21,13 +27,22 @@
                 </a-button>
                 <template #overlay>
                   <a-menu @click="handleFilterChange">
-                    <a-menu-item key="all">全部</a-menu-item>
-                    <a-menu-item key="unread">未读</a-menu-item>
-                    <a-menu-item key="starred">收藏</a-menu-item>
+                    <a-menu-item key="all">
+                      全部
+                    </a-menu-item>
+                    <a-menu-item key="unread">
+                      未读
+                    </a-menu-item>
+                    <a-menu-item key="starred">
+                      收藏
+                    </a-menu-item>
                   </a-menu>
                 </template>
               </a-dropdown>
-              <a-button size="small" @click="loadArticles">
+              <a-button
+                size="small"
+                @click="loadArticles"
+              >
                 <ReloadOutlined />
               </a-button>
             </a-space>
@@ -42,13 +57,16 @@
             <template #renderItem="{ item }">
               <a-list-item
                 :class="{ 'article-item': true, 'article-read': item.is_read, 'article-selected': selectedArticle?.id === item.id }"
-                @click="selectArticle(item)"
                 style="cursor: pointer"
+                @click="selectArticle(item)"
               >
                 <a-list-item-meta>
                   <template #title>
                     <a-space>
-                      <StarFilled v-if="item.is_starred" style="color: #faad14" />
+                      <StarFilled
+                        v-if="item.is_starred"
+                        style="color: #faad14"
+                      />
                       <span :style="{ fontWeight: item.is_read ? 'normal' : 'bold' }">
                         {{ item.title }}
                       </span>
@@ -88,7 +106,10 @@
                   <span>
                     <ClockCircleOutlined /> {{ formatTime(selectedArticle.pub_date) }}
                   </span>
-                  <a-tag v-for="cat in selectedArticle.categories" :key="cat">
+                  <a-tag
+                    v-for="cat in selectedArticle.categories"
+                    :key="cat"
+                  >
                     {{ cat }}
                   </a-tag>
                 </a-space>
@@ -101,8 +122,8 @@
               <a-tooltip :title="selectedArticle.is_starred ? '取消收藏' : '收藏'">
                 <a-button
                   type="text"
-                  @click="toggleStar"
                   :style="{ color: selectedArticle.is_starred ? '#faad14' : undefined }"
+                  @click="toggleStar"
                 >
                   <StarFilled v-if="selectedArticle.is_starred" />
                   <StarOutlined v-else />
@@ -110,13 +131,19 @@
               </a-tooltip>
 
               <a-tooltip title="保存到知识库">
-                <a-button type="text" @click="saveToKnowledge">
+                <a-button
+                  type="text"
+                  @click="saveToKnowledge"
+                >
                   <SaveOutlined />
                 </a-button>
               </a-tooltip>
 
               <a-tooltip title="在浏览器中打开">
-                <a-button type="text" @click="openInBrowser">
+                <a-button
+                  type="text"
+                  @click="openInBrowser"
+                >
                   <LinkOutlined />
                 </a-button>
               </a-tooltip>
@@ -144,12 +171,18 @@
           </template>
 
           <!-- 文章内容 -->
-          <div class="article-content" v-html="sanitizedContent"></div>
+          <div
+            class="article-content"
+            v-html="sanitizedContent"
+          />
 
           <!-- 原文链接 -->
           <a-divider />
           <div class="article-footer">
-            <a :href="selectedArticle.link" target="_blank">
+            <a
+              :href="selectedArticle.link"
+              target="_blank"
+            >
               查看原文 <LinkOutlined />
             </a>
           </div>
@@ -205,7 +238,7 @@ const filter = ref('all');
 
 // 计算属性
 const sanitizedContent = computed(() => {
-  if (!selectedArticle.value) return '';
+  if (!selectedArticle.value) {return '';}
 
   const content = selectedArticle.value.content || selectedArticle.value.description;
   return DOMPurify.sanitize(content, {
@@ -267,7 +300,7 @@ const selectArticle = async (article) => {
 };
 
 const toggleStar = async () => {
-  if (!selectedArticle.value) return;
+  if (!selectedArticle.value) {return;}
 
   const newStarred = !selectedArticle.value.is_starred;
 
@@ -293,7 +326,7 @@ const toggleStar = async () => {
 };
 
 const saveToKnowledge = async () => {
-  if (!selectedArticle.value) return;
+  if (!selectedArticle.value) {return;}
 
   try {
     const result = await window.electron.ipcRenderer.invoke(
@@ -316,7 +349,7 @@ const openInBrowser = () => {
 };
 
 const handleMenuClick = async ({ key }) => {
-  if (!selectedArticle.value) return;
+  if (!selectedArticle.value) {return;}
 
   try {
     switch (key) {

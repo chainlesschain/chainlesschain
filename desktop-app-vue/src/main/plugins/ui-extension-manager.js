@@ -310,7 +310,7 @@ class UIExtensionManager extends EventEmitter {
         .map((id) => {
           for (const components of this.componentExtensions.values()) {
             const found = components.find((c) => c.id === id);
-            if (found) return found;
+            if (found) {return found;}
           }
           return null;
         })

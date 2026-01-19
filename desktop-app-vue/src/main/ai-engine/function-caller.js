@@ -71,7 +71,7 @@ class FunctionCaller {
    * @private
    */
   _syncToolsToMaskingSystem() {
-    if (!this.toolMasking) return;
+    if (!this.toolMasking) {return;}
 
     for (const [name, tool] of this.tools) {
       this.toolMasking.registerTool({
@@ -790,7 +790,7 @@ function initializeInteractions() {
    * @param {boolean} available - 是否可用
    */
   setToolAvailable(toolName, available) {
-    if (!this.toolMasking) return;
+    if (!this.toolMasking) {return;}
     this.toolMasking.setToolAvailability(toolName, available);
   }
 
@@ -800,7 +800,7 @@ function initializeInteractions() {
    * @param {boolean} available - 是否可用
    */
   setToolsByPrefix(prefix, available) {
-    if (!this.toolMasking) return;
+    if (!this.toolMasking) {return;}
     this.toolMasking.setToolsByPrefix(prefix, available);
   }
 
@@ -808,7 +808,7 @@ function initializeInteractions() {
    * 启用所有工具
    */
   enableAllTools() {
-    if (!this.toolMasking) return;
+    if (!this.toolMasking) {return;}
     this.toolMasking.enableAll();
   }
 
@@ -816,7 +816,7 @@ function initializeInteractions() {
    * 禁用所有工具
    */
   disableAllTools() {
-    if (!this.toolMasking) return;
+    if (!this.toolMasking) {return;}
     this.toolMasking.disableAll();
   }
 
@@ -825,7 +825,7 @@ function initializeInteractions() {
    * @param {Array<string>} toolNames - 要启用的工具名称
    */
   setOnlyAvailable(toolNames) {
-    if (!this.toolMasking) return;
+    if (!this.toolMasking) {return;}
     this.toolMasking.setOnlyAvailable(toolNames);
   }
 
@@ -835,7 +835,7 @@ function initializeInteractions() {
    * @returns {boolean}
    */
   isToolAvailable(toolName) {
-    if (!this.toolMasking) return this.tools.has(toolName);
+    if (!this.toolMasking) {return this.tools.has(toolName);}
     return this.toolMasking.isToolAvailable(toolName);
   }
 
@@ -844,7 +844,7 @@ function initializeInteractions() {
    * @returns {Array} 工具定义
    */
   getAllToolDefinitions() {
-    if (!this.toolMasking) return this.getAvailableTools();
+    if (!this.toolMasking) {return this.getAvailableTools();}
     return this.toolMasking.getAllToolDefinitions();
   }
 
@@ -853,7 +853,7 @@ function initializeInteractions() {
    * @returns {Array} 可用工具定义
    */
   getAvailableToolDefinitions() {
-    if (!this.toolMasking) return this.getAvailableTools();
+    if (!this.toolMasking) {return this.getAvailableTools();}
     return this.toolMasking.getAvailableToolDefinitions();
   }
 
@@ -862,7 +862,7 @@ function initializeInteractions() {
    * @param {Object} config - 状态机配置（可选，默认使用预定义配置）
    */
   configureTaskPhases(config = null) {
-    if (!this.toolMasking) return;
+    if (!this.toolMasking) {return;}
     this.toolMasking.configureStateMachine(config || TASK_PHASE_STATE_MACHINE);
   }
 
@@ -872,7 +872,7 @@ function initializeInteractions() {
    * @returns {boolean} 是否成功
    */
   transitionToPhase(phase) {
-    if (!this.toolMasking) return false;
+    if (!this.toolMasking) {return false;}
     return this.toolMasking.transitionTo(phase);
   }
 
@@ -881,7 +881,7 @@ function initializeInteractions() {
    * @returns {string|null}
    */
   getCurrentPhase() {
-    if (!this.toolMasking) return null;
+    if (!this.toolMasking) {return null;}
     return this.toolMasking.getCurrentState();
   }
 
@@ -890,7 +890,7 @@ function initializeInteractions() {
    * @returns {Object} 分组信息
    */
   getToolGroups() {
-    if (!this.toolMasking) return {};
+    if (!this.toolMasking) {return {};}
     return this.toolMasking.getToolGroups();
   }
 
@@ -899,7 +899,7 @@ function initializeInteractions() {
    * @returns {Object} 统计数据
    */
   getMaskingStats() {
-    if (!this.toolMasking) return { enabled: false };
+    if (!this.toolMasking) {return { enabled: false };}
     return {
       enabled: true,
       ...this.toolMasking.getStats(),
@@ -910,7 +910,7 @@ function initializeInteractions() {
    * 重置工具掩码
    */
   resetMasking() {
-    if (!this.toolMasking) return;
+    if (!this.toolMasking) {return;}
     this.toolMasking.reset();
   }
 }

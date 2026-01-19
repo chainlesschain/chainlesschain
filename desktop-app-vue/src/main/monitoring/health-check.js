@@ -115,8 +115,8 @@ class HealthCheckService {
       // 执行简单查询测试连接
       await new Promise((resolve, reject) => {
         db.get("SELECT 1 as test", (err, row) => {
-          if (err) reject(err);
-          else resolve(row);
+          if (err) {reject(err);}
+          else {resolve(row);}
         });
       });
 

@@ -42,7 +42,7 @@ const LOG_PREFIXES = [
  * @returns {boolean}
  */
 function shouldForward(args) {
-  if (args.length === 0) return false;
+  if (args.length === 0) {return false;}
 
   const firstArg = String(args[0]);
   return LOG_PREFIXES.some((prefix) => firstArg.includes(prefix));
@@ -55,8 +55,8 @@ function shouldForward(args) {
  */
 function serializeArgs(args) {
   return args.map((arg) => {
-    if (arg === null) return "null";
-    if (arg === undefined) return "undefined";
+    if (arg === null) {return "null";}
+    if (arg === undefined) {return "undefined";}
 
     if (typeof arg === "object") {
       try {

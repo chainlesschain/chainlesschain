@@ -12,105 +12,117 @@
     <div class="modal-content-wrapper">
       <!-- 左侧：变量表单 -->
       <div class="variable-form-container">
-      <!-- 模板描述 -->
-      <div v-if="template?.description" class="template-description">
-        <p>{{ template.description }}</p>
-      </div>
+        <!-- 模板描述 -->
+        <div
+          v-if="template?.description"
+          class="template-description"
+        >
+          <p>{{ template.description }}</p>
+        </div>
 
-      <!-- 动态表单 -->
-      <a-form
-        ref="formRef"
-        :model="formData"
-        layout="vertical"
-        :rules="formRules"
-      >
-        <template v-for="variable in variablesSchema" :key="variable.name">
-          <!-- String 类型 -->
-          <a-form-item
-            v-if="variable.type === 'string'"
-            :label="variable.label"
-            :name="variable.name"
-            :required="variable.required"
+        <!-- 动态表单 -->
+        <a-form
+          ref="formRef"
+          :model="formData"
+          layout="vertical"
+          :rules="formRules"
+        >
+          <template
+            v-for="variable in variablesSchema"
+            :key="variable.name"
           >
-            <a-input
-              v-model:value="formData[variable.name]"
-              :placeholder="variable.placeholder || `请输入${variable.label}`"
-              allow-clear
-            />
-          </a-form-item>
-
-          <!-- Number 类型 -->
-          <a-form-item
-            v-if="variable.type === 'number'"
-            :label="variable.label"
-            :name="variable.name"
-            :required="variable.required"
-          >
-            <a-input-number
-              v-model:value="formData[variable.name]"
-              :min="variable.min"
-              :max="variable.max"
-              :placeholder="variable.placeholder || `请输入${variable.label}`"
-              style="width: 100%"
-            />
-          </a-form-item>
-
-          <!-- Select 类型 -->
-          <a-form-item
-            v-if="variable.type === 'select'"
-            :label="variable.label"
-            :name="variable.name"
-            :required="variable.required"
-          >
-            <a-select
-              v-model:value="formData[variable.name]"
-              :placeholder="variable.placeholder || `请选择${variable.label}`"
-              allow-clear
+            <!-- String 类型 -->
+            <a-form-item
+              v-if="variable.type === 'string'"
+              :label="variable.label"
+              :name="variable.name"
+              :required="variable.required"
             >
-              <a-select-option
-                v-for="option in variable.options"
-                :key="option.value"
-                :value="option.value"
+              <a-input
+                v-model:value="formData[variable.name]"
+                :placeholder="variable.placeholder || `请输入${variable.label}`"
+                allow-clear
+              />
+            </a-form-item>
+
+            <!-- Number 类型 -->
+            <a-form-item
+              v-if="variable.type === 'number'"
+              :label="variable.label"
+              :name="variable.name"
+              :required="variable.required"
+            >
+              <a-input-number
+                v-model:value="formData[variable.name]"
+                :min="variable.min"
+                :max="variable.max"
+                :placeholder="variable.placeholder || `请输入${variable.label}`"
+                style="width: 100%"
+              />
+            </a-form-item>
+
+            <!-- Select 类型 -->
+            <a-form-item
+              v-if="variable.type === 'select'"
+              :label="variable.label"
+              :name="variable.name"
+              :required="variable.required"
+            >
+              <a-select
+                v-model:value="formData[variable.name]"
+                :placeholder="variable.placeholder || `请选择${variable.label}`"
+                allow-clear
               >
-                {{ option.label }}
-              </a-select-option>
-            </a-select>
-          </a-form-item>
+                <a-select-option
+                  v-for="option in variable.options"
+                  :key="option.value"
+                  :value="option.value"
+                >
+                  {{ option.label }}
+                </a-select-option>
+              </a-select>
+            </a-form-item>
 
-          <!-- Array 类型 (使用 tags 模式) -->
-          <a-form-item
-            v-if="variable.type === 'array'"
-            :label="variable.label"
-            :name="variable.name"
-            :required="variable.required"
-          >
-            <a-select
-              v-model:value="formData[variable.name]"
-              mode="tags"
-              :placeholder="variable.placeholder || `请输入${variable.label}（回车分隔）`"
-              allow-clear
-            />
-          </a-form-item>
+            <!-- Array 类型 (使用 tags 模式) -->
+            <a-form-item
+              v-if="variable.type === 'array'"
+              :label="variable.label"
+              :name="variable.name"
+              :required="variable.required"
+            >
+              <a-select
+                v-model:value="formData[variable.name]"
+                mode="tags"
+                :placeholder="variable.placeholder || `请输入${variable.label}（回车分隔）`"
+                allow-clear
+              />
+            </a-form-item>
 
-          <!-- Boolean 类型 -->
-          <a-form-item
-            v-if="variable.type === 'boolean'"
-            :label="variable.label"
-            :name="variable.name"
-          >
-            <a-switch v-model:checked="formData[variable.name]" />
-            <span v-if="variable.placeholder" class="hint-text">
-              {{ variable.placeholder }}
-            </span>
-          </a-form-item>
-        </template>
-      </a-form>
+            <!-- Boolean 类型 -->
+            <a-form-item
+              v-if="variable.type === 'boolean'"
+              :label="variable.label"
+              :name="variable.name"
+            >
+              <a-switch v-model:checked="formData[variable.name]" />
+              <span
+                v-if="variable.placeholder"
+                class="hint-text"
+              >
+                {{ variable.placeholder }}
+              </span>
+            </a-form-item>
+          </template>
+        </a-form>
 
-      <!-- 变量数量提示 -->
-      <div v-if="variablesSchema.length === 0" class="no-variables-hint">
-        <InfoCircleOutlined />
-        此模板无需填写额外参数，点击"创建项目"即可开始
-      </div>
+        <!-- 变量数量提示 -->
+        <div
+          v-if="variablesSchema.length === 0"
+          class="no-variables-hint"
+        >
+          <InfoCircleOutlined />
+          此模板无需填写额外参数，点击"创建项目"即可开始
+        </div>
       </div>
 
       <!-- 右侧：实时预览/编辑 -->
@@ -126,8 +138,8 @@
               <a-button
                 type="text"
                 size="small"
-                @click="toggleEditMode"
                 :disabled="!renderedPrompt || renderingPreview"
+                @click="toggleEditMode"
               >
                 <template #icon>
                   <EyeOutlined v-if="isEditMode" />
@@ -137,7 +149,10 @@
             </a-tooltip>
 
             <!-- 重置按钮（仅编辑模式显示） -->
-            <a-tooltip v-if="isEditMode && hasEdited" title="重置为原始内容">
+            <a-tooltip
+              v-if="isEditMode && hasEdited"
+              title="重置为原始内容"
+            >
               <a-button
                 type="text"
                 size="small"
@@ -153,13 +168,19 @@
 
         <div class="preview-content">
           <!-- 加载状态 -->
-          <div v-if="renderingPreview" class="preview-loading">
+          <div
+            v-if="renderingPreview"
+            class="preview-loading"
+          >
             <a-spin size="small" />
             <span>渲染中...</span>
           </div>
 
           <!-- 编辑模式 -->
-          <div v-else-if="isEditMode && renderedPrompt" class="preview-editor">
+          <div
+            v-else-if="isEditMode && renderedPrompt"
+            class="preview-editor"
+          >
             <a-textarea
               v-model:value="editedPrompt"
               :auto-size="{ minRows: 15, maxRows: 25 }"
@@ -170,18 +191,27 @@
           </div>
 
           <!-- 预览模式 - 渲染成功 -->
-          <div v-else-if="renderedPrompt && !renderError" class="preview-text">
+          <div
+            v-else-if="renderedPrompt && !renderError"
+            class="preview-text"
+          >
             <pre>{{ displayPrompt }}</pre>
           </div>
 
           <!-- 渲染错误 -->
-          <div v-else-if="renderError" class="preview-error">
+          <div
+            v-else-if="renderError"
+            class="preview-error"
+          >
             <ExclamationCircleOutlined />
             <span>渲染失败: {{ renderError }}</span>
           </div>
 
           <!-- 初始状态/等待必填字段 -->
-          <div v-else class="preview-placeholder">
+          <div
+            v-else
+            class="preview-placeholder"
+          >
             <FileTextOutlined />
             <p v-if="variablesSchema.some(v => v.required)">
               请填写必填项后，这里将实时显示渲染后的提示词
@@ -193,11 +223,17 @@
         </div>
 
         <!-- 统计信息 -->
-        <div v-if="displayPrompt" class="preview-stats">
+        <div
+          v-if="displayPrompt"
+          class="preview-stats"
+        >
           <span>字符数: {{ displayPrompt.length }}</span>
           <span>•</span>
           <span>行数: {{ displayPrompt.split('\n').length }}</span>
-          <span v-if="hasEdited" class="edited-badge">
+          <span
+            v-if="hasEdited"
+            class="edited-badge"
+          >
             <CheckCircleOutlined />
             已编辑
           </span>

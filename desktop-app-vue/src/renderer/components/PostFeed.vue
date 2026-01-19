@@ -3,19 +3,29 @@
     <a-card title="动态">
       <template #extra>
         <a-space>
-          <a-button type="primary" @click="showComposer = !showComposer">
-            <template #icon><edit-outlined /></template>
+          <a-button
+            type="primary"
+            @click="showComposer = !showComposer"
+          >
+            <template #icon>
+              <edit-outlined />
+            </template>
             {{ showComposer ? '取消发布' : '发布动态' }}
           </a-button>
           <a-button @click="loadFeed">
-            <template #icon><reload-outlined /></template>
+            <template #icon>
+              <reload-outlined />
+            </template>
             刷新
           </a-button>
         </a-space>
       </template>
 
       <!-- 动态发布器 -->
-      <div v-if="showComposer" class="composer-section">
+      <div
+        v-if="showComposer"
+        class="composer-section"
+      >
         <post-composer
           @published="handlePublished"
           @cancel="showComposer = false"
@@ -26,10 +36,20 @@
       <!-- 筛选器 -->
       <a-space style="margin-bottom: 16px">
         <span>筛选:</span>
-        <a-radio-group v-model:value="filterType" button-style="solid" @change="handleFilterChange">
-          <a-radio-button value="all">全部动态</a-radio-button>
-          <a-radio-button value="friends">好友动态</a-radio-button>
-          <a-radio-button value="mine">我的动态</a-radio-button>
+        <a-radio-group
+          v-model:value="filterType"
+          button-style="solid"
+          @change="handleFilterChange"
+        >
+          <a-radio-button value="all">
+            全部动态
+          </a-radio-button>
+          <a-radio-button value="friends">
+            好友动态
+          </a-radio-button>
+          <a-radio-button value="mine">
+            我的动态
+          </a-radio-button>
         </a-radio-group>
       </a-space>
 
@@ -52,7 +72,10 @@
 
           <template #empty>
             <a-empty description="暂无动态">
-              <a-button type="primary" @click="showComposer = true">
+              <a-button
+                type="primary"
+                @click="showComposer = true"
+              >
                 发布第一条动态
               </a-button>
             </a-empty>
@@ -61,8 +84,14 @@
       </a-spin>
 
       <!-- 加载更多 -->
-      <div v-if="posts.length > 0 && hasMore" class="load-more">
-        <a-button @click="loadMore" :loading="loadingMore">
+      <div
+        v-if="posts.length > 0 && hasMore"
+        class="load-more"
+      >
+        <a-button
+          :loading="loadingMore"
+          @click="loadMore"
+        >
           加载更多
         </a-button>
       </div>

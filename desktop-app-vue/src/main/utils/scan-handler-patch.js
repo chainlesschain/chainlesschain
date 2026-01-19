@@ -7,9 +7,9 @@ ipcMain.handle("project:scan-files", async (_event, projectId) => {
     const project = this.database.db
       .prepare("SELECT * FROM projects WHERE id = ?")
       .get(projectId);
-    if (!project) throw new Error("项目不存在");
+    if (!project) {throw new Error("项目不存在");}
     const rootPath = project.root_path || project.folder_path;
-    if (!rootPath) throw new Error("项目没有根路径");
+    if (!rootPath) {throw new Error("项目没有根路径");}
 
     const fs = require("fs").promises;
     const path = require("path");
@@ -22,7 +22,7 @@ ipcMain.handle("project:scan-files", async (_event, projectId) => {
         const fullPath = path.join(dir, entry.name);
         const relativePath = path.relative(base, fullPath);
         if (/(^|[/\\])\.|node_modules|\.git|dist|build/.test(relativePath))
-          continue;
+          {continue;}
         if (entry.isDirectory()) {
           await scanDir(fullPath, base);
         } else if (entry.isFile()) {

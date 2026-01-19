@@ -3,11 +3,18 @@
     <!-- 顶部工具栏 -->
     <div class="editor-header">
       <div class="header-left">
-        <a-button @click="goBack" type="text">
-          <template #icon>← 返回</template>
+        <a-button
+          type="text"
+          @click="goBack"
+        >
+          <template #icon>
+            ← 返回
+          </template>
         </a-button>
         <a-divider type="vertical" />
-        <h2 class="project-name">{{ currentProject?.name || '设计项目' }}</h2>
+        <h2 class="project-name">
+          {{ currentProject?.name || '设计项目' }}
+        </h2>
       </div>
 
       <div class="header-center">
@@ -15,8 +22,8 @@
         <a-select
           v-if="artboards.length > 0"
           :value="currentArtboard?.id"
-          @change="switchArtboard"
           style="width: 200px"
+          @change="switchArtboard"
         >
           <a-select-option
             v-for="artboard in artboards"
@@ -30,10 +37,16 @@
 
       <div class="header-right">
         <a-space>
-          <a-button @click="saveProject" :loading="saving">
+          <a-button
+            :loading="saving"
+            @click="saveProject"
+          >
             保存
           </a-button>
-          <a-button type="primary" @click="exportDesign">
+          <a-button
+            type="primary"
+            @click="exportDesign"
+          >
             导出
           </a-button>
         </a-space>
@@ -56,9 +69,15 @@
           @objects-modified="handleObjectsModified"
           @selection-changed="handleSelectionChanged"
         />
-        <div v-else class="empty-state">
+        <div
+          v-else
+          class="empty-state"
+        >
           <a-empty description="请先创建画板" />
-          <a-button type="primary" @click="createNewArtboard">
+          <a-button
+            type="primary"
+            @click="createNewArtboard"
+          >
             创建画板
           </a-button>
         </div>
@@ -81,8 +100,8 @@
                 <label>名称</label>
                 <a-input
                   :value="selectedObjects[0].name"
-                  @change="updateObjectName"
                   size="small"
+                  @change="updateObjectName"
                 />
               </div>
             </div>

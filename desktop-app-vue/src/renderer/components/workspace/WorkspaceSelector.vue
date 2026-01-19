@@ -38,12 +38,25 @@
             <div class="workspace-info">
               <div class="workspace-name">
                 {{ workspace.name }}
-                <a-tag v-if="workspace.is_default" color="blue" size="small">默认</a-tag>
-                <a-tag v-if="workspace.type !== 'default'" :color="getTypeTagColor(workspace.type)" size="small">
+                <a-tag
+                  v-if="workspace.is_default"
+                  color="blue"
+                  size="small"
+                >
+                  默认
+                </a-tag>
+                <a-tag
+                  v-if="workspace.type !== 'default'"
+                  :color="getTypeTagColor(workspace.type)"
+                  size="small"
+                >
                   {{ getTypeLabel(workspace.type) }}
                 </a-tag>
               </div>
-              <div class="workspace-desc" v-if="showDescription && workspace.description">
+              <div
+                v-if="showDescription && workspace.description"
+                class="workspace-desc"
+              >
                 {{ truncateText(workspace.description, 30) }}
               </div>
             </div>
@@ -52,16 +65,24 @@
       </a-select-opt-group>
 
       <!-- 创建新工作区选项 -->
-      <a-select-opt-group label="操作" v-if="showCreateOption">
+      <a-select-opt-group
+        v-if="showCreateOption"
+        label="操作"
+      >
         <a-select-option value="__create__">
           <div class="workspace-option">
             <div class="workspace-icon">
-              <a-avatar :size="avatarSize" style="background-color: #52c41a">
+              <a-avatar
+                :size="avatarSize"
+                style="background-color: #52c41a"
+              >
                 <plus-outlined />
               </a-avatar>
             </div>
             <div class="workspace-info">
-              <div class="workspace-name">创建新工作区</div>
+              <div class="workspace-name">
+                创建新工作区
+              </div>
             </div>
           </div>
         </a-select-option>
@@ -69,12 +90,17 @@
         <a-select-option value="__manage__">
           <div class="workspace-option">
             <div class="workspace-icon">
-              <a-avatar :size="avatarSize" style="background-color: #1890ff">
+              <a-avatar
+                :size="avatarSize"
+                style="background-color: #1890ff"
+              >
                 <setting-outlined />
               </a-avatar>
             </div>
             <div class="workspace-info">
-              <div class="workspace-name">管理工作区</div>
+              <div class="workspace-name">
+                管理工作区
+              </div>
             </div>
           </div>
         </a-select-option>
@@ -94,8 +120,14 @@
         :label-col="{ span: 6 }"
         :wrapper-col="{ span: 18 }"
       >
-        <a-form-item label="工作区名称" required>
-          <a-input v-model:value="formData.name" placeholder="请输入工作区名称" />
+        <a-form-item
+          label="工作区名称"
+          required
+        >
+          <a-input
+            v-model:value="formData.name"
+            placeholder="请输入工作区名称"
+          />
         </a-form-item>
 
         <a-form-item label="描述">
@@ -108,34 +140,64 @@
 
         <a-form-item label="类型">
           <a-select v-model:value="formData.type">
-            <a-select-option value="default">默认</a-select-option>
-            <a-select-option value="development">开发环境</a-select-option>
-            <a-select-option value="testing">测试环境</a-select-option>
-            <a-select-option value="production">生产环境</a-select-option>
+            <a-select-option value="default">
+              默认
+            </a-select-option>
+            <a-select-option value="development">
+              开发环境
+            </a-select-option>
+            <a-select-option value="testing">
+              测试环境
+            </a-select-option>
+            <a-select-option value="production">
+              生产环境
+            </a-select-option>
           </a-select>
         </a-form-item>
 
         <a-form-item label="颜色">
           <a-space>
-            <a-radio-group v-model:value="formData.color" button-style="solid">
-              <a-radio-button value="#1890ff">蓝色</a-radio-button>
-              <a-radio-button value="#52c41a">绿色</a-radio-button>
-              <a-radio-button value="#faad14">橙色</a-radio-button>
-              <a-radio-button value="#f5222d">红色</a-radio-button>
-              <a-radio-button value="#722ed1">紫色</a-radio-button>
+            <a-radio-group
+              v-model:value="formData.color"
+              button-style="solid"
+            >
+              <a-radio-button value="#1890ff">
+                蓝色
+              </a-radio-button>
+              <a-radio-button value="#52c41a">
+                绿色
+              </a-radio-button>
+              <a-radio-button value="#faad14">
+                橙色
+              </a-radio-button>
+              <a-radio-button value="#f5222d">
+                红色
+              </a-radio-button>
+              <a-radio-button value="#722ed1">
+                紫色
+              </a-radio-button>
             </a-radio-group>
           </a-space>
         </a-form-item>
 
         <a-form-item label="可见性">
           <a-select v-model:value="formData.visibility">
-            <a-select-option value="members">所有成员</a-select-option>
-            <a-select-option value="admins">仅管理员</a-select-option>
-            <a-select-option value="specific_roles">特定角色</a-select-option>
+            <a-select-option value="members">
+              所有成员
+            </a-select-option>
+            <a-select-option value="admins">
+              仅管理员
+            </a-select-option>
+            <a-select-option value="specific_roles">
+              特定角色
+            </a-select-option>
           </a-select>
         </a-form-item>
 
-        <a-form-item label="设为默认" v-if="!workspaceStore.defaultWorkspace">
+        <a-form-item
+          v-if="!workspaceStore.defaultWorkspace"
+          label="设为默认"
+        >
           <a-switch v-model:checked="formData.isDefault" />
         </a-form-item>
       </a-form>
@@ -255,7 +317,7 @@ function getTypeLabel(type) {
 }
 
 function truncateText(text, maxLength) {
-  if (text.length <= maxLength) return text;
+  if (text.length <= maxLength) {return text;}
   return text.substring(0, maxLength) + '...';
 }
 

@@ -29,13 +29,29 @@
         </a-alert>
 
         <!-- 合约信息 -->
-        <a-card size="small" title="合约信息" style="margin-bottom: 16px">
-          <a-descriptions :column="2" size="small" bordered>
-            <a-descriptions-item label="合约ID" :span="2">
-              <a-typography-text copyable>{{ contract.id }}</a-typography-text>
+        <a-card
+          size="small"
+          title="合约信息"
+          style="margin-bottom: 16px"
+        >
+          <a-descriptions
+            :column="2"
+            size="small"
+            bordered
+          >
+            <a-descriptions-item
+              label="合约ID"
+              :span="2"
+            >
+              <a-typography-text copyable>
+                {{ contract.id }}
+              </a-typography-text>
             </a-descriptions-item>
 
-            <a-descriptions-item label="合约名称" :span="2">
+            <a-descriptions-item
+              label="合约名称"
+              :span="2"
+            >
               <strong>{{ contract.name || contract.title }}</strong>
             </a-descriptions-item>
 
@@ -46,13 +62,21 @@
             </a-descriptions-item>
 
             <a-descriptions-item label="合约状态">
-              <status-badge :status="contract.status" type="contract" show-icon />
+              <status-badge
+                :status="contract.status"
+                type="contract"
+                show-icon
+              />
             </a-descriptions-item>
           </a-descriptions>
         </a-card>
 
         <!-- 合约参与方 -->
-        <a-card size="small" title="合约参与方" style="margin-bottom: 16px">
+        <a-card
+          size="small"
+          title="合约参与方"
+          style="margin-bottom: 16px"
+        >
           <a-list
             :data-source="contractParties"
             size="small"
@@ -67,18 +91,31 @@
                   </template>
                   <template #title>
                     <a-space>
-                      <a-typography-text copyable>{{ item.did }}</a-typography-text>
-                      <a-tag v-if="item.isCurrentUser" color="blue">我</a-tag>
+                      <a-typography-text copyable>
+                        {{ item.did }}
+                      </a-typography-text>
+                      <a-tag
+                        v-if="item.isCurrentUser"
+                        color="blue"
+                      >
+                        我
+                      </a-tag>
                     </a-space>
                   </template>
                   <template #description>
                     <a-space>
                       <span>{{ item.role }}</span>
                       <a-divider type="vertical" />
-                      <span v-if="item.signed" style="color: #52c41a">
+                      <span
+                        v-if="item.signed"
+                        style="color: #52c41a"
+                      >
                         <check-circle-outlined /> 已签名
                       </span>
-                      <span v-else style="color: #8c8c8c">
+                      <span
+                        v-else
+                        style="color: #8c8c8c"
+                      >
                         <clock-circle-outlined /> 待签名
                       </span>
                     </a-space>
@@ -90,22 +127,37 @@
         </a-card>
 
         <!-- 合约内容 -->
-        <a-card v-if="contract.description" size="small" title="合约内容" style="margin-bottom: 16px">
+        <a-card
+          v-if="contract.description"
+          size="small"
+          title="合约内容"
+          style="margin-bottom: 16px"
+        >
           <a-typography-paragraph>
             {{ contract.description }}
           </a-typography-paragraph>
         </a-card>
 
         <!-- 签名确认 -->
-        <a-card size="small" title="签名确认" style="margin-bottom: 16px">
+        <a-card
+          size="small"
+          title="签名确认"
+          style="margin-bottom: 16px"
+        >
           <a-form layout="vertical">
             <!-- 签名方式 -->
             <a-form-item label="签名方式">
-              <a-radio-group v-model:value="form.signatureType" button-style="solid">
+              <a-radio-group
+                v-model:value="form.signatureType"
+                button-style="solid"
+              >
                 <a-radio-button value="did">
                   <idcard-outlined /> DID签名
                 </a-radio-button>
-                <a-radio-button value="manual" disabled>
+                <a-radio-button
+                  value="manual"
+                  disabled
+                >
                   <edit-outlined /> 手动签名（暂不支持）
                 </a-radio-button>
               </a-radio-group>
@@ -196,7 +248,7 @@ const form = reactive({
 
 // 合约参与方
 const contractParties = computed(() => {
-  if (!props.contract) return [];
+  if (!props.contract) {return [];}
 
   const parties = [];
 

@@ -13,7 +13,10 @@
         :style="{ width: assetSelectorWidth ? `calc(100% - ${assetSelectorWidth}px)` : '70%' }"
         @change="handleChange"
       >
-        <template v-if="prefix" #prefix>
+        <template
+          v-if="prefix"
+          #prefix
+        >
           <component :is="prefix" />
         </template>
       </a-input-number>
@@ -50,8 +53,8 @@
       >
         <template #prefix>
           <component
-            v-if="fixedAssetType"
             :is="getAssetIcon(fixedAssetType)"
+            v-if="fixedAssetType"
             :style="{ color: getAssetColor(fixedAssetType) }"
           />
         </template>
@@ -59,22 +62,31 @@
     </a-input-group>
 
     <!-- 辅助信息 -->
-    <div v-if="showHelper" class="price-helper">
+    <div
+      v-if="showHelper"
+      class="price-helper"
+    >
       <a-space :size="4">
         <!-- 估值信息 -->
-        <span v-if="estimatedValue" class="estimated-value">
+        <span
+          v-if="estimatedValue"
+          class="estimated-value"
+        >
           ≈ {{ formatAmount(estimatedValue) }} {{ estimatedCurrency }}
         </span>
 
         <!-- 余额信息 -->
-        <span v-if="showBalance && balance !== null" class="balance-info">
+        <span
+          v-if="showBalance && balance !== null"
+          class="balance-info"
+        >
           余额: {{ formatAmount(balance) }}
         </span>
 
         <!-- 快捷金额按钮 -->
         <a-button
-          v-if="showQuickAmounts"
           v-for="(quickAmount, index) in quickAmounts"
+          v-if="showQuickAmounts"
           :key="index"
           type="link"
           size="small"
@@ -86,7 +98,11 @@
     </div>
 
     <!-- 验证提示 -->
-    <div v-if="validationMessage" class="validation-message" :class="validationType">
+    <div
+      v-if="validationMessage"
+      class="validation-message"
+      :class="validationType"
+    >
       <exclamation-circle-outlined v-if="validationType === 'error'" />
       <info-circle-outlined v-else />
       <span>{{ validationMessage }}</span>
@@ -268,9 +284,9 @@ const getAssetColor = (type) => {
 
 // 格式化金额
 const formatAmount = (amount) => {
-  if (!amount && amount !== 0) return '0';
+  if (!amount && amount !== 0) {return '0';}
   const num = parseFloat(amount);
-  if (isNaN(num)) return '0';
+  if (isNaN(num)) {return '0';}
 
   // 大数字使用科学计数法
   if (num >= 1e9) {
@@ -286,10 +302,10 @@ const formatAmount = (amount) => {
 
 // 设置快捷金额
 const setQuickAmount = (quickAmount) => {
-  if (props.balance === null) return;
+  if (props.balance === null) {return;}
 
   const balance = parseFloat(props.balance);
-  if (isNaN(balance)) return;
+  if (isNaN(balance)) {return;}
 
   const newAmount = balance * quickAmount.value;
   amount.value = parseFloat(newAmount.toFixed(props.precision));

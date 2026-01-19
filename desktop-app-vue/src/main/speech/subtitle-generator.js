@@ -430,7 +430,7 @@ class SubtitleGenerator {
    */
   async mergeSubtitles(subtitlePaths, outputPath) {
     try {
-      let allSubtitles = [];
+      const allSubtitles = [];
       let timeOffset = 0;
 
       for (const subtitlePath of subtitlePaths) {

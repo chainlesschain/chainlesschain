@@ -289,8 +289,8 @@ function getLanguage(filename) {
 function getFileType(filename) {
   const ext = filename.split('.').pop().toLowerCase()
 
-  if (ext === 'md' || ext === 'markdown') return 'markdown'
-  if (ext === 'json') return 'json'
+  if (ext === 'md' || ext === 'markdown') {return 'markdown'}
+  if (ext === 'json') {return 'json'}
   if (['js', 'jsx', 'ts', 'tsx', 'py', 'java', 'cpp', 'c', 'go', 'rs', 'rb', 'php'].includes(ext)) {
     return 'code'
   }

@@ -1,19 +1,34 @@
 <template>
   <div class="rss-feed-manager">
-    <a-card title="RSS 订阅管理" :bordered="false">
+    <a-card
+      title="RSS 订阅管理"
+      :bordered="false"
+    >
       <!-- 工具栏 -->
       <template #extra>
         <a-space>
-          <a-button type="primary" @click="showAddFeedModal">
-            <template #icon><PlusOutlined /></template>
+          <a-button
+            type="primary"
+            @click="showAddFeedModal"
+          >
+            <template #icon>
+              <PlusOutlined />
+            </template>
             添加订阅
           </a-button>
           <a-button @click="discoverFeeds">
-            <template #icon><SearchOutlined /></template>
+            <template #icon>
+              <SearchOutlined />
+            </template>
             发现订阅
           </a-button>
-          <a-button @click="refreshAllFeeds" :loading="refreshing">
-            <template #icon><ReloadOutlined /></template>
+          <a-button
+            :loading="refreshing"
+            @click="refreshAllFeeds"
+          >
+            <template #icon>
+              <ReloadOutlined />
+            </template>
             全部刷新
           </a-button>
         </a-space>
@@ -23,32 +38,49 @@
       <a-row :gutter="16">
         <!-- 左侧：分类列表 -->
         <a-col :span="6">
-          <a-card title="分类" size="small" :bordered="false">
+          <a-card
+            title="分类"
+            size="small"
+            :bordered="false"
+          >
             <template #extra>
-              <a-button type="link" size="small" @click="showAddCategoryModal">
+              <a-button
+                type="link"
+                size="small"
+                @click="showAddCategoryModal"
+              >
                 <PlusOutlined />
               </a-button>
             </template>
 
             <a-menu
-              v-model:selectedKeys="selectedCategories"
+              v-model:selected-keys="selectedCategories"
               mode="inline"
               @select="onCategorySelect"
             >
               <a-menu-item key="all">
-                <template #icon><AppstoreOutlined /></template>
+                <template #icon>
+                  <AppstoreOutlined />
+                </template>
                 全部订阅 ({{ totalFeeds }})
               </a-menu-item>
               <a-menu-item key="unread">
-                <template #icon><BellOutlined /></template>
+                <template #icon>
+                  <BellOutlined />
+                </template>
                 未读文章 ({{ unreadCount }})
               </a-menu-item>
               <a-menu-item key="starred">
-                <template #icon><StarOutlined /></template>
+                <template #icon>
+                  <StarOutlined />
+                </template>
                 收藏文章
               </a-menu-item>
               <a-menu-divider />
-              <a-menu-item v-for="category in categories" :key="category.id">
+              <a-menu-item
+                v-for="category in categories"
+                :key="category.id"
+              >
                 <template #icon>
                   <FolderOutlined :style="{ color: category.color }" />
                 </template>
@@ -72,14 +104,18 @@
                     <a-button
                       type="text"
                       size="small"
-                      @click="refreshFeed(item.id)"
                       :loading="item.refreshing"
+                      @click="refreshFeed(item.id)"
                     >
                       <ReloadOutlined />
                     </a-button>
                   </a-tooltip>
                   <a-tooltip title="编辑">
-                    <a-button type="text" size="small" @click="editFeed(item)">
+                    <a-button
+                      type="text"
+                      size="small"
+                      @click="editFeed(item)"
+                    >
                       <EditOutlined />
                     </a-button>
                   </a-tooltip>
@@ -87,7 +123,11 @@
                     title="确定要删除这个订阅源吗？"
                     @confirm="deleteFeed(item.id)"
                   >
-                    <a-button type="text" size="small" danger>
+                    <a-button
+                      type="text"
+                      size="small"
+                      danger
+                    >
                       <DeleteOutlined />
                     </a-button>
                   </a-popconfirm>
@@ -95,11 +135,18 @@
 
                 <a-list-item-meta>
                   <template #avatar>
-                    <a-avatar :src="item.image_url" v-if="item.image_url">
-                      <template #icon><ReadOutlined /></template>
+                    <a-avatar
+                      v-if="item.image_url"
+                      :src="item.image_url"
+                    >
+                      <template #icon>
+                        <ReadOutlined />
+                      </template>
                     </a-avatar>
                     <a-avatar v-else>
-                      <template #icon><ReadOutlined /></template>
+                      <template #icon>
+                        <ReadOutlined />
+                      </template>
                     </a-avatar>
                   </template>
 
@@ -147,11 +194,17 @@
     <a-modal
       v-model:open="addFeedModalVisible"
       title="添加 RSS 订阅"
+      :confirm-loading="addingFeed"
       @ok="handleAddFeed"
-      :confirmLoading="addingFeed"
     >
-      <a-form :model="feedForm" layout="vertical">
-        <a-form-item label="Feed URL" required>
+      <a-form
+        :model="feedForm"
+        layout="vertical"
+      >
+        <a-form-item
+          label="Feed URL"
+          required
+        >
           <a-input
             v-model:value="feedForm.url"
             placeholder="https://example.com/feed.xml"
@@ -208,8 +261,8 @@
     <a-modal
       v-model:open="discoverModalVisible"
       title="发现 RSS 订阅"
+      :confirm-loading="discovering"
       @ok="handleDiscoverFeeds"
-      :confirmLoading="discovering"
     >
       <a-form layout="vertical">
         <a-form-item label="网站 URL">
@@ -237,8 +290,12 @@
               </a-button>
             </template>
             <a-list-item-meta>
-              <template #title>{{ item.title }}</template>
-              <template #description>{{ item.url }}</template>
+              <template #title>
+                {{ item.title }}
+              </template>
+              <template #description>
+                {{ item.url }}
+              </template>
             </a-list-item-meta>
           </a-list-item>
         </template>
@@ -251,12 +308,21 @@
       title="添加分类"
       @ok="handleAddCategory"
     >
-      <a-form :model="categoryForm" layout="vertical">
-        <a-form-item label="分类名称" required>
+      <a-form
+        :model="categoryForm"
+        layout="vertical"
+      >
+        <a-form-item
+          label="分类名称"
+          required
+        >
           <a-input v-model:value="categoryForm.name" />
         </a-form-item>
         <a-form-item label="颜色">
-          <a-input v-model:value="categoryForm.color" type="color" />
+          <a-input
+            v-model:value="categoryForm.color"
+            type="color"
+          />
         </a-form-item>
       </a-form>
     </a-modal>
@@ -384,7 +450,7 @@ const showAddFeedModal = () => {
 };
 
 const validateFeed = async () => {
-  if (!feedForm.url) return;
+  if (!feedForm.url) {return;}
 
   try {
     const result = await window.electron.ipcRenderer.invoke(

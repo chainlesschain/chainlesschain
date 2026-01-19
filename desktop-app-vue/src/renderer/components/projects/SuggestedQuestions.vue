@@ -1,5 +1,8 @@
 <template>
-  <div v-if="questions.length > 0" class="suggested-questions">
+  <div
+    v-if="questions.length > 0"
+    class="suggested-questions"
+  >
     <!-- 标题 -->
     <div class="suggestions-header">
       <BulbOutlined class="header-icon" />
@@ -21,7 +24,10 @@
     </div>
 
     <!-- 展开/收起按钮 -->
-    <div v-if="questions.length > defaultShowCount" class="toggle-button">
+    <div
+      v-if="questions.length > defaultShowCount"
+      class="toggle-button"
+    >
       <a-button
         type="link"
         size="small"

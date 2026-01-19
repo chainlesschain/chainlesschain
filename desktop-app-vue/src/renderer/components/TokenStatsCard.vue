@@ -6,12 +6,19 @@
     :loading="loading"
   >
     <template #extra>
-      <a-button type="link" size="small" @click="handleViewDetails">
+      <a-button
+        type="link"
+        size="small"
+        @click="handleViewDetails"
+      >
         查看详情 <RightOutlined />
       </a-button>
     </template>
 
-    <a-row :gutter="16" class="stats-row">
+    <a-row
+      :gutter="16"
+      class="stats-row"
+    >
       <a-col :span="12">
         <a-statistic
           title="今日"
@@ -19,7 +26,9 @@
           suffix="tokens"
           :value-style="{ fontSize: '18px', color: '#1890ff' }"
         />
-        <div class="cost-label">${{ stats.todayCost.toFixed(4) }}</div>
+        <div class="cost-label">
+          ${{ stats.todayCost.toFixed(4) }}
+        </div>
       </a-col>
       <a-col :span="12">
         <a-statistic
@@ -28,7 +37,9 @@
           suffix="tokens"
           :value-style="{ fontSize: '18px', color: '#52c41a' }"
         />
-        <div class="cost-label">${{ stats.weekCost.toFixed(4) }}</div>
+        <div class="cost-label">
+          ${{ stats.weekCost.toFixed(4) }}
+        </div>
       </a-col>
     </a-row>
 
@@ -37,18 +48,30 @@
     <a-row :gutter="8">
       <a-col :span="12">
         <div class="metric-item">
-          <ThunderboltOutlined class="metric-icon" style="color: #faad14" />
+          <ThunderboltOutlined
+            class="metric-icon"
+            style="color: #faad14"
+          />
           <div class="metric-content">
-            <div class="metric-label">缓存命中率</div>
-            <div class="metric-value">{{ stats.cacheHitRate }}%</div>
+            <div class="metric-label">
+              缓存命中率
+            </div>
+            <div class="metric-value">
+              {{ stats.cacheHitRate }}%
+            </div>
           </div>
         </div>
       </a-col>
       <a-col :span="12">
         <div class="metric-item">
-          <DollarOutlined class="metric-icon" style="color: #13c2c2" />
+          <DollarOutlined
+            class="metric-icon"
+            style="color: #13c2c2"
+          />
           <div class="metric-content">
-            <div class="metric-label">平均成本/次</div>
+            <div class="metric-label">
+              平均成本/次
+            </div>
             <div class="metric-value">
               ${{ stats.avgCostPerCall.toFixed(5) }}
             </div>
@@ -115,20 +138,20 @@ const optimizationTip = ref("");
 
 // 计算属性
 const weeklyBudgetPercent = computed(() => {
-  if (stats.weeklyLimit === 0) return 0;
+  if (stats.weeklyLimit === 0) {return 0;}
   return Math.min((stats.weekCost / stats.weeklyLimit) * 100, 100);
 });
 
 // 方法
 function getBudgetStatus(percent) {
-  if (percent >= 95) return "exception";
-  if (percent >= 80) return "normal";
+  if (percent >= 95) {return "exception";}
+  if (percent >= 80) {return "normal";}
   return "active";
 }
 
 function getBudgetColor(percent) {
-  if (percent >= 95) return "#ff4d4f";
-  if (percent >= 80) return "#faad14";
+  if (percent >= 95) {return "#ff4d4f";}
+  if (percent >= 80) {return "#faad14";}
   return "#52c41a";
 }
 

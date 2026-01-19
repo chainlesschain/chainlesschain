@@ -86,7 +86,7 @@ class PerformanceWarningSystem {
    * 启动性能监控
    */
   start() {
-    if (this.monitorInterval) return;
+    if (this.monitorInterval) {return;}
 
     this.enabled.value = true;
     this.monitorInterval = setInterval(() => {
@@ -112,7 +112,7 @@ class PerformanceWarningSystem {
    * 检查性能指标
    */
   checkPerformance() {
-    if (!this.enabled.value) return;
+    if (!this.enabled.value) {return;}
 
     // 检查FPS
     this.checkFPS();
@@ -151,7 +151,7 @@ class PerformanceWarningSystem {
    * 检查内存使用
    */
   checkMemory() {
-    if (!performance.memory) return;
+    if (!performance.memory) {return;}
 
     const memoryMB = Math.round(performance.memory.usedJSHeapSize / 1024 / 1024);
     this.metrics.value.memory = memoryMB;
@@ -173,10 +173,10 @@ class PerformanceWarningSystem {
    * 检查渲染性能
    */
   checkRenderPerformance() {
-    if (!window.performance || !window.performance.getEntriesByType) return;
+    if (!window.performance || !window.performance.getEntriesByType) {return;}
 
     const measures = window.performance.getEntriesByType('measure');
-    if (measures.length === 0) return;
+    if (measures.length === 0) {return;}
 
     const recentMeasures = measures.slice(-10);
     const avgRenderTime = recentMeasures.reduce((sum, m) => sum + m.duration, 0) / recentMeasures.length;
@@ -239,13 +239,13 @@ class PerformanceWarningSystem {
   getWarningLevel(value, thresholds, inverse = false) {
     if (inverse) {
       // 值越小越严重（如FPS）
-      if (value <= thresholds.critical) return WARNING_LEVELS.CRITICAL;
-      if (value <= thresholds.warning) return WARNING_LEVELS.WARNING;
+      if (value <= thresholds.critical) {return WARNING_LEVELS.CRITICAL;}
+      if (value <= thresholds.warning) {return WARNING_LEVELS.WARNING;}
       return WARNING_LEVELS.NORMAL;
     } else {
       // 值越大越严重（如内存、时间）
-      if (value >= thresholds.critical) return WARNING_LEVELS.CRITICAL;
-      if (value >= thresholds.warning) return WARNING_LEVELS.WARNING;
+      if (value >= thresholds.critical) {return WARNING_LEVELS.CRITICAL;}
+      if (value >= thresholds.warning) {return WARNING_LEVELS.WARNING;}
       return WARNING_LEVELS.NORMAL;
     }
   }

@@ -7,9 +7,12 @@
     @cancel="handleCancel"
   >
     <a-spin :spinning="loading">
-      <a-tabs v-model:activeKey="activeTab">
+      <a-tabs v-model:active-key="activeTab">
         <!-- 屏幕标签页 -->
-        <a-tab-pane key="screen" tab="整个屏幕">
+        <a-tab-pane
+          key="screen"
+          tab="整个屏幕"
+        >
           <div class="source-grid">
             <div
               v-for="source in screenSources"
@@ -19,16 +22,27 @@
               @click="selectSource(source)"
             >
               <div class="source-thumbnail">
-                <img :src="source.thumbnail" :alt="source.name" />
+                <img
+                  :src="source.thumbnail"
+                  :alt="source.name"
+                >
               </div>
-              <div class="source-name">{{ source.name }}</div>
+              <div class="source-name">
+                {{ source.name }}
+              </div>
             </div>
-            <a-empty v-if="screenSources.length === 0" description="没有可用的屏幕" />
+            <a-empty
+              v-if="screenSources.length === 0"
+              description="没有可用的屏幕"
+            />
           </div>
         </a-tab-pane>
 
         <!-- 窗口标签页 -->
-        <a-tab-pane key="window" tab="应用窗口">
+        <a-tab-pane
+          key="window"
+          tab="应用窗口"
+        >
           <div class="source-grid">
             <div
               v-for="source in windowSources"
@@ -38,20 +52,38 @@
               @click="selectSource(source)"
             >
               <div class="source-thumbnail">
-                <img :src="source.thumbnail" :alt="source.name" />
-                <img v-if="source.appIcon" :src="source.appIcon" class="app-icon" />
+                <img
+                  :src="source.thumbnail"
+                  :alt="source.name"
+                >
+                <img
+                  v-if="source.appIcon"
+                  :src="source.appIcon"
+                  class="app-icon"
+                >
               </div>
-              <div class="source-name">{{ source.name }}</div>
+              <div class="source-name">
+                {{ source.name }}
+              </div>
             </div>
-            <a-empty v-if="windowSources.length === 0" description="没有可用的窗口" />
+            <a-empty
+              v-if="windowSources.length === 0"
+              description="没有可用的窗口"
+            />
           </div>
         </a-tab-pane>
       </a-tabs>
 
       <div class="modal-footer">
         <a-space>
-          <a-button @click="handleCancel">取消</a-button>
-          <a-button type="primary" :disabled="!selectedSource" @click="handleConfirm">
+          <a-button @click="handleCancel">
+            取消
+          </a-button>
+          <a-button
+            type="primary"
+            :disabled="!selectedSource"
+            @click="handleConfirm"
+          >
             共享
           </a-button>
         </a-space>

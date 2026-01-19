@@ -5,11 +5,18 @@
       <div class="header-left">
         <TeamOutlined class="page-icon" />
         <h1>我的组织</h1>
-        <a-tag color="blue">企业版</a-tag>
+        <a-tag color="blue">
+          企业版
+        </a-tag>
       </div>
       <div class="header-right">
-        <a-button type="primary" @click="showCreateModal = true">
-          <template #icon><PlusOutlined /></template>
+        <a-button
+          type="primary"
+          @click="showCreateModal = true"
+        >
+          <template #icon>
+            <PlusOutlined />
+          </template>
           创建组织
         </a-button>
       </div>
@@ -18,13 +25,22 @@
     <!-- 组织列表 -->
     <div class="organizations-list">
       <a-spin :spinning="loading">
-        <a-empty v-if="!loading && organizations.length === 0" description="您还没有加入任何组织">
-          <a-button type="primary" @click="showCreateModal = true">
+        <a-empty
+          v-if="!loading && organizations.length === 0"
+          description="您还没有加入任何组织"
+        >
+          <a-button
+            type="primary"
+            @click="showCreateModal = true"
+          >
             创建第一个组织
           </a-button>
         </a-empty>
 
-        <a-row :gutter="[16, 16]" v-else>
+        <a-row
+          v-else
+          :gutter="[16, 16]"
+        >
           <a-col
             v-for="org in organizations"
             :key="org.org_id"
@@ -40,8 +56,14 @@
             >
               <!-- 组织头像 -->
               <div class="org-avatar">
-                <a-avatar :src="org.avatar" :size="64">
-                  <template #icon v-if="!org.avatar">
+                <a-avatar
+                  :src="org.avatar"
+                  :size="64"
+                >
+                  <template
+                    v-if="!org.avatar"
+                    #icon
+                  >
                     <TeamOutlined />
                   </template>
                 </a-avatar>
@@ -49,8 +71,12 @@
 
               <!-- 组织信息 -->
               <div class="org-info">
-                <h3 class="org-name">{{ org.name }}</h3>
-                <p class="org-description">{{ org.description || '暂无描述' }}</p>
+                <h3 class="org-name">
+                  {{ org.name }}
+                </h3>
+                <p class="org-description">
+                  {{ org.description || '暂无描述' }}
+                </p>
 
                 <div class="org-meta">
                   <a-tag :color="getOrgTypeColor(org.type)">
@@ -98,8 +124,14 @@
       :confirm-loading="creating"
       @ok="handleCreate"
     >
-      <a-form :model="createForm" layout="vertical">
-        <a-form-item label="组织名称" required>
+      <a-form
+        :model="createForm"
+        layout="vertical"
+      >
+        <a-form-item
+          label="组织名称"
+          required
+        >
           <a-input
             v-model:value="createForm.name"
             placeholder="输入组织名称"
@@ -107,13 +139,26 @@
           />
         </a-form-item>
 
-        <a-form-item label="组织类型" required>
+        <a-form-item
+          label="组织类型"
+          required
+        >
           <a-select v-model:value="createForm.type">
-            <a-select-option value="startup">初创公司</a-select-option>
-            <a-select-option value="company">企业</a-select-option>
-            <a-select-option value="community">社区</a-select-option>
-            <a-select-option value="opensource">开源项目</a-select-option>
-            <a-select-option value="education">教育机构</a-select-option>
+            <a-select-option value="startup">
+              初创公司
+            </a-select-option>
+            <a-select-option value="company">
+              企业
+            </a-select-option>
+            <a-select-option value="community">
+              社区
+            </a-select-option>
+            <a-select-option value="opensource">
+              开源项目
+            </a-select-option>
+            <a-select-option value="education">
+              教育机构
+            </a-select-option>
           </a-select>
         </a-form-item>
 

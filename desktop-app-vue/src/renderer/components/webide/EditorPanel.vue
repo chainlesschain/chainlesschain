@@ -16,7 +16,10 @@
     <!-- 编辑器容器 -->
     <div class="editors-container">
       <!-- HTML 编辑器 -->
-      <div v-show="activeTab === 'html'" class="editor-wrapper">
+      <div
+        v-show="activeTab === 'html'"
+        class="editor-wrapper"
+      >
         <SimpleEditor
           ref="htmlEditorRef"
           :file="{ file_name: 'index.html' }"
@@ -27,7 +30,10 @@
       </div>
 
       <!-- CSS 编辑器 -->
-      <div v-show="activeTab === 'css'" class="editor-wrapper">
+      <div
+        v-show="activeTab === 'css'"
+        class="editor-wrapper"
+      >
         <SimpleEditor
           ref="cssEditorRef"
           :file="{ file_name: 'style.css' }"
@@ -38,7 +44,10 @@
       </div>
 
       <!-- JavaScript 编辑器 -->
-      <div v-show="activeTab === 'js'" class="editor-wrapper">
+      <div
+        v-show="activeTab === 'js'"
+        class="editor-wrapper"
+      >
         <SimpleEditor
           ref="jsEditorRef"
           :file="{ file_name: 'script.js' }"

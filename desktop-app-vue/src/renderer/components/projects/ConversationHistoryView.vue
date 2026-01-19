@@ -1,18 +1,29 @@
 <template>
   <div class="conversation-history-view">
     <!-- 消息列表容器 -->
-    <div ref="messagesContainer" class="messages-container">
+    <div
+      ref="messagesContainer"
+      class="messages-container"
+    >
       <!-- 空状态 -->
-      <div v-if="messages.length === 0 && !isLoading" class="empty-state">
+      <div
+        v-if="messages.length === 0 && !isLoading"
+        class="empty-state"
+      >
         <div class="empty-icon">
           <RobotOutlined />
         </div>
         <h4>{{ emptyTitle }}</h4>
-        <p class="empty-hint">{{ emptyHint }}</p>
+        <p class="empty-hint">
+          {{ emptyHint }}
+        </p>
       </div>
 
       <!-- 消息列表 -->
-      <div v-else class="messages-list">
+      <div
+        v-else
+        class="messages-list"
+      >
         <div
           v-for="(message, index) in messages"
           :key="message.id || index"
@@ -25,10 +36,16 @@
 
           <div class="message-content">
             <!-- 消息文本 -->
-            <div class="message-text" v-html="renderMarkdown(message.content)"></div>
+            <div
+              class="message-text"
+              v-html="renderMarkdown(message.content)"
+            />
 
             <!-- AI创建进度（如果有） -->
-            <div v-if="message.type === 'creation' && message.progress" class="creation-progress">
+            <div
+              v-if="message.type === 'creation' && message.progress"
+              class="creation-progress"
+            >
               <!-- 总进度条 -->
               <a-progress
                 :percent="message.progress.overallProgress || 0"
@@ -37,28 +54,53 @@
               />
 
               <!-- 阶段步骤 -->
-              <div v-if="message.progress.stages && message.progress.stages.length > 0" class="creation-stages">
+              <div
+                v-if="message.progress.stages && message.progress.stages.length > 0"
+                class="creation-stages"
+              >
                 <div
                   v-for="(stage, idx) in message.progress.stages"
                   :key="idx"
                   :class="['stage-item', stage.status]"
                 >
-                  <CheckCircleOutlined v-if="stage.status === 'completed'" class="stage-icon completed" />
-                  <LoadingOutlined v-else-if="stage.status === 'running'" class="stage-icon running" spin />
-                  <CloseCircleOutlined v-else-if="stage.status === 'error'" class="stage-icon error" />
-                  <span v-else class="stage-number">{{ idx + 1 }}</span>
+                  <CheckCircleOutlined
+                    v-if="stage.status === 'completed'"
+                    class="stage-icon completed"
+                  />
+                  <LoadingOutlined
+                    v-else-if="stage.status === 'running'"
+                    class="stage-icon running"
+                    spin
+                  />
+                  <CloseCircleOutlined
+                    v-else-if="stage.status === 'error'"
+                    class="stage-icon error"
+                  />
+                  <span
+                    v-else
+                    class="stage-number"
+                  >{{ idx + 1 }}</span>
                   <span class="stage-message">{{ stage.message || stage.stage }}</span>
                 </div>
               </div>
 
               <!-- 代码预览（可展开） -->
-              <div v-if="message.progress.contentByStage && Object.keys(message.progress.contentByStage).length > 0" class="content-preview">
-                <div class="preview-header" @click="toggleContentPreview(message.id)">
+              <div
+                v-if="message.progress.contentByStage && Object.keys(message.progress.contentByStage).length > 0"
+                class="content-preview"
+              >
+                <div
+                  class="preview-header"
+                  @click="toggleContentPreview(message.id)"
+                >
                   <CaretRightOutlined :class="{ 'expanded': expandedPreviews[message.id] }" />
                   <span>查看生成内容</span>
                 </div>
-                <div v-show="expandedPreviews[message.id]" class="preview-content">
-                  <a-tabs v-model:activeKey="activePreviewTab[message.id]">
+                <div
+                  v-show="expandedPreviews[message.id]"
+                  class="preview-content"
+                >
+                  <a-tabs v-model:active-key="activePreviewTab[message.id]">
                     <a-tab-pane
                       v-for="(content, stageName) in message.progress.contentByStage"
                       :key="stageName"
@@ -72,26 +114,44 @@
             </div>
 
             <!-- 步骤列表（如果有） -->
-            <div v-if="message.steps && message.steps.length > 0" class="steps-container">
-              <div class="steps-header" @click="toggleSteps(message.id)">
+            <div
+              v-if="message.steps && message.steps.length > 0"
+              class="steps-container"
+            >
+              <div
+                class="steps-header"
+                @click="toggleSteps(message.id)"
+              >
                 <CaretRightOutlined :class="{ 'expanded': expandedSteps[message.id] }" />
                 <span>{{ message.steps.length }} 个步骤</span>
               </div>
-              <div v-show="expandedSteps[message.id]" class="steps-content">
+              <div
+                v-show="expandedSteps[message.id]"
+                class="steps-content"
+              >
                 <div
                   v-for="(step, idx) in message.steps"
                   :key="idx"
                   class="step-item"
                 >
-                  <CheckCircleOutlined v-if="step.completed" class="step-icon completed" />
-                  <ClockCircleOutlined v-else class="step-icon pending" />
+                  <CheckCircleOutlined
+                    v-if="step.completed"
+                    class="step-icon completed"
+                  />
+                  <ClockCircleOutlined
+                    v-else
+                    class="step-icon pending"
+                  />
                   <span class="step-title">{{ step.title || step.name }}</span>
                 </div>
               </div>
             </div>
 
             <!-- RAG上下文来源 -->
-            <div v-if="message.sources && message.sources.length > 0" class="context-sources">
+            <div
+              v-if="message.sources && message.sources.length > 0"
+              class="context-sources"
+            >
               <div class="source-header">
                 <FileSearchOutlined />
                 <span>引用来源 ({{ message.sources.length }})</span>
@@ -107,7 +167,10 @@
                   <BookOutlined v-else-if="source.source === 'knowledge'" />
                   <MessageOutlined v-else />
                   {{ source.fileName || source.title || '未知文件' }}
-                  <span v-if="source.score" class="source-score">
+                  <span
+                    v-if="source.score"
+                    class="source-score"
+                  >
                     {{ Math.round(source.score * 100) }}%
                   </span>
                 </a-tag>
@@ -115,7 +178,10 @@
             </div>
 
             <!-- 附件文件（如果有） -->
-            <div v-if="message.attachments && message.attachments.length > 0" class="attachments">
+            <div
+              v-if="message.attachments && message.attachments.length > 0"
+              class="attachments"
+            >
               <div
                 v-for="file in message.attachments"
                 :key="file.id || file.name"
@@ -132,7 +198,10 @@
               <span class="message-time">
                 {{ formatTime(message.timestamp) }}
               </span>
-              <span v-if="message.tokens" class="message-tokens">
+              <span
+                v-if="message.tokens"
+                class="message-tokens"
+              >
                 {{ message.tokens }} tokens
               </span>
             </div>
@@ -140,12 +209,17 @@
         </div>
 
         <!-- 加载中指示器 -->
-        <div v-if="isLoading" class="message-item assistant loading">
+        <div
+          v-if="isLoading"
+          class="message-item assistant loading"
+        >
           <div class="message-avatar">
             <LoadingOutlined spin />
           </div>
           <div class="message-content">
-            <div class="message-text">{{ loadingText }}</div>
+            <div class="message-text">
+              {{ loadingText }}
+            </div>
           </div>
         </div>
       </div>
@@ -240,7 +314,7 @@ const renderMarkdown = (content) => {
 
 // 格式化时间
 const formatTime = (timestamp) => {
-  if (!timestamp) return '';
+  if (!timestamp) {return '';}
   try {
     return formatDistanceToNow(new Date(timestamp), {
       addSuffix: true,
@@ -289,7 +363,7 @@ const handleFileClick = (file) => {
 
 // 滚动到底部
 const scrollToBottom = () => {
-  if (!props.autoScroll) return;
+  if (!props.autoScroll) {return;}
 
   nextTick(() => {
     if (messagesContainer.value) {

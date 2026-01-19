@@ -43,7 +43,7 @@ class PerformanceMonitor {
    * @private
    */
   async initDatabase() {
-    if (!this.database) return;
+    if (!this.database) {return;}
 
     try {
       // 创建性能指标表
@@ -121,7 +121,7 @@ class PerformanceMonitor {
    */
   checkThreshold(phase, duration, metadata) {
     const threshold = this.thresholds[phase];
-    if (!threshold) return;
+    if (!threshold) {return;}
 
     if (duration > threshold.critical) {
       console.error(`[PerformanceMonitor] 🔴 严重: ${phase} 耗时 ${duration}ms (阈值: ${threshold.critical}ms)`);
@@ -159,7 +159,7 @@ class PerformanceMonitor {
    * @private
    */
   async generatePhaseReport(phase, since) {
-    if (!this.database) return null;
+    if (!this.database) {return null;}
 
     try {
       const rows = await this.database.all(`
@@ -199,7 +199,7 @@ class PerformanceMonitor {
    * @returns {Promise<Array>} 慢查询列表
    */
   async findBottlenecks(threshold = 5000, limit = 20) {
-    if (!this.database) return [];
+    if (!this.database) {return [];}
 
     try {
       const slowQueries = await this.database.all(`
@@ -242,7 +242,7 @@ class PerformanceMonitor {
   generateOptimizationSuggestions(report) {
     const suggestions = [];
 
-    if (!report || !report.phases) return suggestions;
+    if (!report || !report.phases) {return suggestions;}
 
     // 意图识别优化建议
     if (report.phases.intent_recognition?.p90 > 2000) {
@@ -352,7 +352,7 @@ class PerformanceMonitor {
    * @returns {Promise<Object>} 会话性能数据
    */
   async getSessionPerformance(sessionId) {
-    if (!this.database) return null;
+    if (!this.database) {return null;}
 
     try {
       const rows = await this.database.all(`
@@ -417,7 +417,7 @@ class PerformanceMonitor {
    * @returns {Promise<Object>} 对比结果
    */
   async comparePerformance(period1Start, period1End, period2Start, period2End) {
-    if (!this.database) return null;
+    if (!this.database) {return null;}
 
     const comparison = {};
 
@@ -446,7 +446,7 @@ class PerformanceMonitor {
    * @private
    */
   async getPhaseStats(phase, startTime, endTime) {
-    if (!this.database) return null;
+    if (!this.database) {return null;}
 
     try {
       const rows = await this.database.all(`
@@ -455,7 +455,7 @@ class PerformanceMonitor {
         WHERE phase = ? AND created_at >= ? AND created_at <= ?
       `, [phase, startTime, endTime]);
 
-      if (rows.length === 0) return null;
+      if (rows.length === 0) {return null;}
 
       const durations = rows.map(r => r.duration);
 
@@ -475,7 +475,7 @@ class PerformanceMonitor {
    * @private
    */
   calculateImprovement(before, after) {
-    if (before === 0) return 0;
+    if (before === 0) {return 0;}
     const improvement = ((before - after) / before * 100).toFixed(1);
     return parseFloat(improvement);
   }
@@ -485,7 +485,7 @@ class PerformanceMonitor {
    * @private
    */
   average(arr) {
-    if (arr.length === 0) return 0;
+    if (arr.length === 0) {return 0;}
     return arr.reduce((sum, val) => sum + val, 0) / arr.length;
   }
 
@@ -494,7 +494,7 @@ class PerformanceMonitor {
    * @private
    */
   percentile(arr, p) {
-    if (arr.length === 0) return 0;
+    if (arr.length === 0) {return 0;}
     const sorted = [...arr].sort((a, b) => a - b);
     const index = Math.ceil((p / 100) * sorted.length) - 1;
     return sorted[Math.max(0, index)];
@@ -520,7 +520,7 @@ class PerformanceMonitor {
    * @param {number} keepDays - 保留天数
    */
   async cleanOldData(keepDays = 30) {
-    if (!this.database) return;
+    if (!this.database) {return;}
 
     try {
       const cutoff = Date.now() - (keepDays * 24 * 60 * 60 * 1000);
@@ -542,7 +542,7 @@ class PerformanceMonitor {
    * @returns {Promise<Array>} 原始性能数据
    */
   async exportData(timeRange = 7 * 24 * 60 * 60 * 1000) {
-    if (!this.database) return [];
+    if (!this.database) {return [];}
 
     try {
       const since = Date.now() - timeRange;

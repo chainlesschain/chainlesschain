@@ -174,7 +174,7 @@ class CollaborativeFilter {
     const similarUsers = [];
 
     for (const [otherUserId, _] of this.userToolMatrix.entries()) {
-      if (otherUserId === userId) continue;
+      if (otherUserId === userId) {continue;}
 
       const similarity = this.calculateUserSimilarity(userId, otherUserId);
 
@@ -216,7 +216,7 @@ class CollaborativeFilter {
 
         for (const [tool, data] of simUserTools.entries()) {
           // 跳过已使用的工具
-          if (usedTools.has(tool)) continue;
+          if (usedTools.has(tool)) {continue;}
 
           // 加权评分 (评分 * 相似度)
           const weightedScore = data.rating * similarity;

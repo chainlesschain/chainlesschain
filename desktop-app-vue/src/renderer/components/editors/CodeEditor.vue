@@ -9,18 +9,42 @@
           size="small"
           @change="changeLanguage"
         >
-          <a-select-option value="javascript">JavaScript</a-select-option>
-          <a-select-option value="typescript">TypeScript</a-select-option>
-          <a-select-option value="python">Python</a-select-option>
-          <a-select-option value="java">Java</a-select-option>
-          <a-select-option value="cpp">C++</a-select-option>
-          <a-select-option value="c">C</a-select-option>
-          <a-select-option value="html">HTML</a-select-option>
-          <a-select-option value="css">CSS</a-select-option>
-          <a-select-option value="json">JSON</a-select-option>
-          <a-select-option value="markdown">Markdown</a-select-option>
-          <a-select-option value="sql">SQL</a-select-option>
-          <a-select-option value="yaml">YAML</a-select-option>
+          <a-select-option value="javascript">
+            JavaScript
+          </a-select-option>
+          <a-select-option value="typescript">
+            TypeScript
+          </a-select-option>
+          <a-select-option value="python">
+            Python
+          </a-select-option>
+          <a-select-option value="java">
+            Java
+          </a-select-option>
+          <a-select-option value="cpp">
+            C++
+          </a-select-option>
+          <a-select-option value="c">
+            C
+          </a-select-option>
+          <a-select-option value="html">
+            HTML
+          </a-select-option>
+          <a-select-option value="css">
+            CSS
+          </a-select-option>
+          <a-select-option value="json">
+            JSON
+          </a-select-option>
+          <a-select-option value="markdown">
+            Markdown
+          </a-select-option>
+          <a-select-option value="sql">
+            SQL
+          </a-select-option>
+          <a-select-option value="yaml">
+            YAML
+          </a-select-option>
         </a-select>
 
         <a-select
@@ -29,9 +53,15 @@
           size="small"
           @change="changeTheme"
         >
-          <a-select-option value="vs">Light</a-select-option>
-          <a-select-option value="vs-dark">Dark</a-select-option>
-          <a-select-option value="hc-black">High Contrast</a-select-option>
+          <a-select-option value="vs">
+            Light
+          </a-select-option>
+          <a-select-option value="vs-dark">
+            Dark
+          </a-select-option>
+          <a-select-option value="hc-black">
+            High Contrast
+          </a-select-option>
         </a-select>
 
         <a-input-number
@@ -42,19 +72,27 @@
           style="width: 80px"
           @change="changeFontSize"
         >
-          <template #addonAfter>px</template>
+          <template #addonAfter>
+            px
+          </template>
         </a-input-number>
       </div>
 
-      <div class="toolbar-spacer"></div>
+      <div class="toolbar-spacer" />
 
       <div class="toolbar-right">
-        <a-button size="small" @click="formatCode">
+        <a-button
+          size="small"
+          @click="formatCode"
+        >
           <FormatPainterOutlined />
           格式化
         </a-button>
 
-        <a-button size="small" @click="toggleMinimap">
+        <a-button
+          size="small"
+          @click="toggleMinimap"
+        >
           <PictureOutlined />
           {{ showMinimap ? '隐藏' : '显示' }}缩略图
         </a-button>
@@ -70,9 +108,17 @@
           运行
         </a-button>
 
-        <a-tag v-if="lineCount > 0" color="blue">{{ lineCount }} 行</a-tag>
+        <a-tag
+          v-if="lineCount > 0"
+          color="blue"
+        >
+          {{ lineCount }} 行
+        </a-tag>
 
-        <a-tag v-if="hasChanges" color="orange">
+        <a-tag
+          v-if="hasChanges"
+          color="orange"
+        >
           <ClockCircleOutlined />
           未保存
         </a-tag>
@@ -91,27 +137,44 @@
     </div>
 
     <!-- Monaco编辑器 -->
-    <div ref="editorRef" class="monaco-editor"></div>
+    <div
+      ref="editorRef"
+      class="monaco-editor"
+    />
 
     <!-- 输出面板 -->
-    <div v-if="showOutput" class="output-panel">
+    <div
+      v-if="showOutput"
+      class="output-panel"
+    >
       <div class="output-header">
         <span>
           <CodeOutlined />
           输出
         </span>
         <div class="output-actions">
-          <a-button type="text" size="small" @click="clearOutput">
+          <a-button
+            type="text"
+            size="small"
+            @click="clearOutput"
+          >
             <ClearOutlined />
             清空
           </a-button>
-          <a-button type="text" size="small" @click="showOutput = false">
+          <a-button
+            type="text"
+            size="small"
+            @click="showOutput = false"
+          >
             <CloseOutlined />
             关闭
           </a-button>
         </div>
       </div>
-      <pre class="output-content" :class="{ error: outputError }">{{ output }}</pre>
+      <pre
+        class="output-content"
+        :class="{ error: outputError }"
+      >{{ output }}</pre>
     </div>
   </div>
 </template>
@@ -191,7 +254,7 @@ const languageMap = {
 
 // 初始化Monaco Editor
 onMounted(() => {
-  if (!editorRef.value) return;
+  if (!editorRef.value) {return;}
 
   // 检测语言
   if (props.file?.file_name) {
@@ -306,7 +369,7 @@ const formatCode = () => {
 
 // 保存
 const save = async () => {
-  if (!hasChanges.value) return;
+  if (!hasChanges.value) {return;}
 
   saving.value = true;
   try {

@@ -1,8 +1,14 @@
 <template>
   <div class="skill-tool-selector">
-    <a-collapse v-model:activeKey="activeKeys" :bordered="false">
+    <a-collapse
+      v-model:active-key="activeKeys"
+      :bordered="false"
+    >
       <!-- 技能选择 -->
-      <a-collapse-panel key="skills" header="选择可用技能">
+      <a-collapse-panel
+        key="skills"
+        header="选择可用技能"
+      >
         <template #extra>
           <a-badge
             :count="selectedSkills.length"
@@ -26,9 +32,11 @@
               v-model:value="skillCategoryFilter"
               placeholder="分类筛选"
               style="width: 200px; margin-bottom: 12px"
-              allowClear
+              allow-clear
             >
-              <a-select-option value="">全部分类</a-select-option>
+              <a-select-option value="">
+                全部分类
+              </a-select-option>
               <a-select-option
                 v-for="category in skillCategories"
                 :key="category.value"
@@ -40,12 +48,15 @@
           </div>
 
           <div class="item-list">
-            <a-checkbox-group v-model:value="selectedSkills" style="width: 100%">
+            <a-checkbox-group
+              v-model:value="selectedSkills"
+              style="width: 100%"
+            >
               <a-row :gutter="[12, 12]">
                 <a-col
-                  :span="12"
                   v-for="skill in filteredSkills"
                   :key="skill.id"
+                  :span="12"
                 >
                   <div
                     class="item-card"
@@ -57,7 +68,10 @@
                           <span class="item-name">
                             {{ skill.display_name || skill.name }}
                           </span>
-                          <a-tag :color="getCategoryColor(skill.category)" size="small">
+                          <a-tag
+                            :color="getCategoryColor(skill.category)"
+                            size="small"
+                          >
                             {{ getCategoryLabel(skill.category, skillCategories) }}
                           </a-tag>
                         </div>
@@ -81,7 +95,10 @@
       </a-collapse-panel>
 
       <!-- 工具选择 -->
-      <a-collapse-panel key="tools" header="选择可用工具">
+      <a-collapse-panel
+        key="tools"
+        header="选择可用工具"
+      >
         <template #extra>
           <a-badge
             :count="selectedTools.length"
@@ -105,9 +122,11 @@
               v-model:value="toolCategoryFilter"
               placeholder="分类筛选"
               style="width: 200px; margin-bottom: 12px"
-              allowClear
+              allow-clear
             >
-              <a-select-option value="">全部分类</a-select-option>
+              <a-select-option value="">
+                全部分类
+              </a-select-option>
               <a-select-option
                 v-for="category in toolCategories"
                 :key="category.value"
@@ -119,12 +138,15 @@
           </div>
 
           <div class="item-list">
-            <a-checkbox-group v-model:value="selectedTools" style="width: 100%">
+            <a-checkbox-group
+              v-model:value="selectedTools"
+              style="width: 100%"
+            >
               <a-row :gutter="[12, 12]">
                 <a-col
-                  :span="12"
                   v-for="tool in filteredTools"
                   :key="tool.id"
+                  :span="12"
                 >
                   <div
                     class="item-card"
@@ -136,15 +158,24 @@
                           <span class="item-name">
                             {{ tool.display_name || tool.name }}
                           </span>
-                          <a-tag :color="getCategoryColor(tool.category)" size="small">
+                          <a-tag
+                            :color="getCategoryColor(tool.category)"
+                            size="small"
+                          >
                             {{ getCategoryLabel(tool.category, toolCategories) }}
                           </a-tag>
                         </div>
                         <div class="item-description">
                           {{ tool.description || '暂无描述' }}
                         </div>
-                        <div class="item-meta" v-if="tool.risk_level">
-                          <a-tag :color="getRiskColor(tool.risk_level)" size="small">
+                        <div
+                          v-if="tool.risk_level"
+                          class="item-meta"
+                        >
+                          <a-tag
+                            :color="getRiskColor(tool.risk_level)"
+                            size="small"
+                          >
                             风险等级: {{ tool.risk_level }}
                           </a-tag>
                         </div>
@@ -173,8 +204,17 @@
         <span>已选择工具: <strong>{{ selectedTools.length }}</strong></span>
       </div>
       <a-space>
-        <a-button size="small" @click="clearAll">清空全部</a-button>
-        <a-button type="primary" size="small" @click="selectRecommended">
+        <a-button
+          size="small"
+          @click="clearAll"
+        >
+          清空全部
+        </a-button>
+        <a-button
+          type="primary"
+          size="small"
+          @click="selectRecommended"
+        >
           使用推荐
         </a-button>
       </a-space>
@@ -313,8 +353,8 @@ const getCategoryLabel = (category, categories) => {
 
 // 获取风险等级颜色
 const getRiskColor = (level) => {
-  if (level <= 2) return 'green';
-  if (level <= 3) return 'orange';
+  if (level <= 2) {return 'green';}
+  if (level <= 3) {return 'orange';}
   return 'red';
 };
 

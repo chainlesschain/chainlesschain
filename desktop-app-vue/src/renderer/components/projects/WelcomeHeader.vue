@@ -1,16 +1,22 @@
 <template>
   <div class="welcome-header">
-    <h1 class="welcome-title">{{ title }}</h1>
+    <h1 class="welcome-title">
+      {{ title }}
+    </h1>
 
     <!-- 建议问题 -->
-    <div v-if="suggestion" class="welcome-suggestion" @click="handleSuggestionClick">
+    <div
+      v-if="suggestion"
+      class="welcome-suggestion"
+      @click="handleSuggestionClick"
+    >
       <BulbOutlined class="suggestion-icon" />
       <span class="suggestion-text">{{ suggestion }}</span>
       <ArrowRightOutlined class="suggestion-arrow" />
     </div>
 
     <!-- 自定义内容插槽 -->
-    <slot></slot>
+    <slot />
   </div>
 </template>
 

@@ -3,13 +3,16 @@
     v-model:open="isOpen"
     title="数据库加密设置向导"
     :closable="(developmentMode && canSkipPassword) || currentStep === 3"
-    :maskClosable="(developmentMode && canSkipPassword) || currentStep === 3"
+    :mask-closable="(developmentMode && canSkipPassword) || currentStep === 3"
     :keyboard="(developmentMode && canSkipPassword) || currentStep === 3"
     width="600px"
     :footer="null"
     @cancel="handleClose"
   >
-    <a-steps :current="currentStep" style="margin-bottom: 24px">
+    <a-steps
+      :current="currentStep"
+      style="margin-bottom: 24px"
+    >
       <a-step title="欢迎" />
       <a-step title="选择加密方式" />
       <a-step title="设置密码" />
@@ -17,7 +20,10 @@
     </a-steps>
 
     <!-- 步骤 0: 欢迎 -->
-    <div v-if="currentStep === 0" class="step-content">
+    <div
+      v-if="currentStep === 0"
+      class="step-content"
+    >
       <a-alert
         v-if="developmentMode && canSkipPassword"
         message="开发模式"
@@ -49,8 +55,13 @@
         </template>
         <template #extra>
           <a-space>
-            <a-button @click="skipEncryption">暂不启用</a-button>
-            <a-button type="primary" @click="nextStep">
+            <a-button @click="skipEncryption">
+              暂不启用
+            </a-button>
+            <a-button
+              type="primary"
+              @click="nextStep"
+            >
               开始设置
               <RightOutlined />
             </a-button>
@@ -60,10 +71,20 @@
     </div>
 
     <!-- 步骤 1: 选择加密方式 -->
-    <div v-if="currentStep === 1" class="step-content">
+    <div
+      v-if="currentStep === 1"
+      class="step-content"
+    >
       <h3>选择加密方式</h3>
-      <a-radio-group v-model:value="encryptionMethod" style="width: 100%">
-        <a-space direction="vertical" style="width: 100%" :size="16">
+      <a-radio-group
+        v-model:value="encryptionMethod"
+        style="width: 100%"
+      >
+        <a-space
+          direction="vertical"
+          style="width: 100%"
+          :size="16"
+        >
           <a-card
             hoverable
             :class="{ selected: encryptionMethod === 'password' }"
@@ -104,14 +125,24 @@
 
       <div class="step-footer">
         <a-space>
-          <a-button @click="prevStep">上一步</a-button>
-          <a-button type="primary" @click="nextStep">下一步</a-button>
+          <a-button @click="prevStep">
+            上一步
+          </a-button>
+          <a-button
+            type="primary"
+            @click="nextStep"
+          >
+            下一步
+          </a-button>
         </a-space>
       </div>
     </div>
 
     <!-- 步骤 2: 设置密码 -->
-    <div v-if="currentStep === 2" class="step-content">
+    <div
+      v-if="currentStep === 2"
+      class="step-content"
+    >
       <h3>{{ encryptionMethod === 'ukey' ? '设置 U-Key PIN 码' : '设置加密密码' }}</h3>
 
       <a-form
@@ -137,7 +168,10 @@
           style="margin-bottom: 16px"
         />
 
-        <a-form-item label="加密密码" name="password">
+        <a-form-item
+          label="加密密码"
+          name="password"
+        >
           <a-input-password
             v-model:value="formState.password"
             placeholder="请输入加密密码（至少12位）"
@@ -153,15 +187,21 @@
                 class="strength-fill"
                 :class="passwordStrength.class"
                 :style="{ width: passwordStrength.width }"
-              ></div>
+              />
             </div>
-            <span class="strength-text" :class="passwordStrength.class">
+            <span
+              class="strength-text"
+              :class="passwordStrength.class"
+            >
               {{ passwordStrength.text }}
             </span>
           </div>
         </a-form-item>
 
-        <a-form-item label="确认密码" name="confirmPassword">
+        <a-form-item
+          label="确认密码"
+          name="confirmPassword"
+        >
           <a-input-password
             v-model:value="formState.confirmPassword"
             placeholder="请再次输入密码"
@@ -175,30 +215,53 @@
 
         <a-divider />
 
-        <a-space direction="vertical" style="width: 100%">
-          <a-typography-title :level="5">密码要求</a-typography-title>
-          <a-space direction="vertical" :size="4">
-            <div class="requirement-item" :class="{ valid: requirements.length }">
+        <a-space
+          direction="vertical"
+          style="width: 100%"
+        >
+          <a-typography-title :level="5">
+            密码要求
+          </a-typography-title>
+          <a-space
+            direction="vertical"
+            :size="4"
+          >
+            <div
+              class="requirement-item"
+              :class="{ valid: requirements.length }"
+            >
               <CheckCircleOutlined v-if="requirements.length" />
               <CloseCircleOutlined v-else />
               <span>至少 12 个字符</span>
             </div>
-            <div class="requirement-item" :class="{ valid: requirements.uppercase }">
+            <div
+              class="requirement-item"
+              :class="{ valid: requirements.uppercase }"
+            >
               <CheckCircleOutlined v-if="requirements.uppercase" />
               <CloseCircleOutlined v-else />
               <span>包含大写字母</span>
             </div>
-            <div class="requirement-item" :class="{ valid: requirements.lowercase }">
+            <div
+              class="requirement-item"
+              :class="{ valid: requirements.lowercase }"
+            >
               <CheckCircleOutlined v-if="requirements.lowercase" />
               <CloseCircleOutlined v-else />
               <span>包含小写字母</span>
             </div>
-            <div class="requirement-item" :class="{ valid: requirements.number }">
+            <div
+              class="requirement-item"
+              :class="{ valid: requirements.number }"
+            >
               <CheckCircleOutlined v-if="requirements.number" />
               <CloseCircleOutlined v-else />
               <span>包含数字</span>
             </div>
-            <div class="requirement-item" :class="{ valid: requirements.special }">
+            <div
+              class="requirement-item"
+              :class="{ valid: requirements.special }"
+            >
               <CheckCircleOutlined v-if="requirements.special" />
               <CloseCircleOutlined v-else />
               <span>包含特殊字符</span>
@@ -209,7 +272,9 @@
 
       <div class="step-footer">
         <a-space>
-          <a-button @click="prevStep">上一步</a-button>
+          <a-button @click="prevStep">
+            上一步
+          </a-button>
           <a-button
             v-if="developmentMode && canSkipPassword"
             @click="handleSkipPassword"
@@ -229,7 +294,10 @@
     </div>
 
     <!-- 步骤 3: 完成 -->
-    <div v-if="currentStep === 3" class="step-content">
+    <div
+      v-if="currentStep === 3"
+      class="step-content"
+    >
       <a-result
         v-if="setupSuccess"
         status="success"
@@ -237,7 +305,10 @@
         sub-title="您的数据库已启用加密保护，所有数据将安全存储。"
       >
         <template #extra>
-          <a-button type="primary" @click="finish">
+          <a-button
+            type="primary"
+            @click="finish"
+          >
             开始使用
           </a-button>
         </template>
@@ -251,8 +322,15 @@
       >
         <template #extra>
           <a-space>
-            <a-button @click="retrySetup">重试</a-button>
-            <a-button type="primary" @click="skipEncryption">跳过加密</a-button>
+            <a-button @click="retrySetup">
+              重试
+            </a-button>
+            <a-button
+              type="primary"
+              @click="skipEncryption"
+            >
+              跳过加密
+            </a-button>
           </a-space>
         </template>
       </a-result>
@@ -316,11 +394,11 @@ const passwordStrength = computed(() => {
   }
 
   let score = 0;
-  if (requirements.value.length) score++;
-  if (requirements.value.uppercase) score++;
-  if (requirements.value.lowercase) score++;
-  if (requirements.value.number) score++;
-  if (requirements.value.special) score++;
+  if (requirements.value.length) {score++;}
+  if (requirements.value.uppercase) {score++;}
+  if (requirements.value.lowercase) {score++;}
+  if (requirements.value.number) {score++;}
+  if (requirements.value.special) {score++;}
 
   if (score <= 2) {
     return { width: '33%', class: 'weak', text: '弱' };
@@ -353,7 +431,7 @@ const passwordRules = computed(() => ({
         if (!value && developmentMode.value && canSkipPassword.value) {
           return Promise.resolve();
         }
-        if (!value) return Promise.resolve();
+        if (!value) {return Promise.resolve();}
         if (!Object.values(requirements.value).every(v => v)) {
           return Promise.reject('密码不符合安全要求');
         }

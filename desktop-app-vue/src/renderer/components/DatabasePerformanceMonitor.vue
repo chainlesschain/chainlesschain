@@ -1,12 +1,15 @@
 <template>
-  <a-card title="数据库性能监控" class="performance-monitor">
+  <a-card
+    title="数据库性能监控"
+    class="performance-monitor"
+  >
     <template #extra>
       <a-space>
         <a-button
           type="text"
           size="small"
-          @click="refreshStats"
           :loading="loading"
+          @click="refreshStats"
         >
           <ReloadOutlined />
           刷新
@@ -78,7 +81,10 @@
       <a-divider />
 
       <!-- 性能对比 -->
-      <div v-if="stats.isEncrypted" class="performance-comparison">
+      <div
+        v-if="stats.isEncrypted"
+        class="performance-comparison"
+      >
         <h4>加密性能对比</h4>
         <a-alert
           type="info"
@@ -88,7 +94,10 @@
         />
         <a-row :gutter="16">
           <a-col :span="12">
-            <a-card size="small" title="加密模式 (SQLCipher)">
+            <a-card
+              size="small"
+              title="加密模式 (SQLCipher)"
+            >
               <a-statistic
                 title="1000条记录插入"
                 :value="stats.encryptedTime"
@@ -102,7 +111,10 @@
             </a-card>
           </a-col>
           <a-col :span="12">
-            <a-card size="small" title="非加密模式 (sql.js)">
+            <a-card
+              size="small"
+              title="非加密模式 (sql.js)"
+            >
               <a-statistic
                 title="1000条记录插入"
                 :value="stats.unencryptedTime"
@@ -133,7 +145,10 @@
               <a-list-item-meta>
                 <template #title>
                   <span>{{ item.type }}</span>
-                  <a-tag color="blue" style="margin-left: 8px">
+                  <a-tag
+                    color="blue"
+                    style="margin-left: 8px"
+                  >
                     {{ item.count }} 次
                   </a-tag>
                 </template>
@@ -233,7 +248,7 @@ const loading = ref(false);
 
 // 格式化字节大小
 const formatBytes = (bytes) => {
-  if (bytes === 0) return '0 B';
+  if (bytes === 0) {return '0 B';}
   const k = 1024;
   const sizes = ['B', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));

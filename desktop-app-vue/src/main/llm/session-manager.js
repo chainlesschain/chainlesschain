@@ -1326,7 +1326,7 @@ class SessionManager extends EventEmitter {
    */
   _generateContextPrompt(session) {
     const msgs = session.messages;
-    if (msgs.length === 0) return "";
+    if (msgs.length === 0) {return "";}
 
     let prompt = "[对话上下文提示]\n";
     prompt += `这是一个续接的对话，标题："${session.title}"\n`;

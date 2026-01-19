@@ -1,18 +1,34 @@
 <template>
-  <a-card class="contract-card" hoverable :bordered="true">
+  <a-card
+    class="contract-card"
+    hoverable
+    :bordered="true"
+  >
     <!-- 合约状态角标 -->
     <div class="contract-status-badge">
-      <status-badge :status="contract.status" type="contract" show-icon />
+      <status-badge
+        :status="contract.status"
+        type="contract"
+        show-icon
+      />
     </div>
 
     <!-- 卡片内容 -->
     <div class="contract-content">
       <!-- 合约类型标签 -->
       <div class="contract-type-section">
-        <a-tag :color="getContractTypeColor(contract.contract_type)" style="font-size: 13px">
+        <a-tag
+          :color="getContractTypeColor(contract.contract_type)"
+          style="font-size: 13px"
+        >
           {{ getContractTypeName(contract.contract_type) }}
         </a-tag>
-        <a-tag v-if="isMyContract" color="blue">我的合约</a-tag>
+        <a-tag
+          v-if="isMyContract"
+          color="blue"
+        >
+          我的合约
+        </a-tag>
       </div>
 
       <!-- 合约标题 -->
@@ -21,7 +37,10 @@
       </div>
 
       <!-- 合约描述 -->
-      <div v-if="contract.description" class="contract-description">
+      <div
+        v-if="contract.description"
+        class="contract-description"
+      >
         {{ contract.description }}
       </div>
 
@@ -32,10 +51,17 @@
             <user-outlined />
             甲方:
           </span>
-          <a-typography-text copyable :ellipsis="{ tooltip: contract.party_a_did }">
+          <a-typography-text
+            copyable
+            :ellipsis="{ tooltip: contract.party_a_did }"
+          >
             {{ formatDid(contract.party_a_did) }}
           </a-typography-text>
-          <a-tag v-if="isCurrentUser(contract.party_a_did)" color="blue" size="small">
+          <a-tag
+            v-if="isCurrentUser(contract.party_a_did)"
+            color="blue"
+            size="small"
+          >
             我
           </a-tag>
         </div>
@@ -44,17 +70,27 @@
             <team-outlined />
             乙方:
           </span>
-          <a-typography-text copyable :ellipsis="{ tooltip: contract.party_b_did }">
+          <a-typography-text
+            copyable
+            :ellipsis="{ tooltip: contract.party_b_did }"
+          >
             {{ formatDid(contract.party_b_did) }}
           </a-typography-text>
-          <a-tag v-if="isCurrentUser(contract.party_b_did)" color="green" size="small">
+          <a-tag
+            v-if="isCurrentUser(contract.party_b_did)"
+            color="green"
+            size="small"
+          >
             我
           </a-tag>
         </div>
       </div>
 
       <!-- 合约金额（如果有） -->
-      <div v-if="contract.amount !== undefined" class="contract-amount">
+      <div
+        v-if="contract.amount !== undefined"
+        class="contract-amount"
+      >
         <span class="amount-label">合约金额:</span>
         <span class="amount-value">
           {{ formatAmount(contract.amount) }}
@@ -93,11 +129,17 @@
         <eye-outlined @click="handleView" />
       </a-tooltip>
 
-      <a-tooltip v-if="canSign" title="签名">
+      <a-tooltip
+        v-if="canSign"
+        title="签名"
+      >
         <edit-outlined @click="handleSign" />
       </a-tooltip>
 
-      <a-tooltip v-if="canExecute" title="执行合约">
+      <a-tooltip
+        v-if="canExecute"
+        title="执行合约"
+      >
         <thunderbolt-outlined @click="handleExecute" />
       </a-tooltip>
 
@@ -106,14 +148,26 @@
           <ellipsis-outlined />
           <template #overlay>
             <a-menu>
-              <a-menu-item v-if="canEdit" key="edit" @click="handleEdit">
+              <a-menu-item
+                v-if="canEdit"
+                key="edit"
+                @click="handleEdit"
+              >
                 <edit-outlined /> 编辑
               </a-menu-item>
-              <a-menu-item key="share" @click="handleShare">
+              <a-menu-item
+                key="share"
+                @click="handleShare"
+              >
                 <share-alt-outlined /> 分享
               </a-menu-item>
               <a-menu-divider v-if="canCancel" />
-              <a-menu-item v-if="canCancel" key="cancel" danger @click="handleCancel">
+              <a-menu-item
+                v-if="canCancel"
+                key="cancel"
+                danger
+                @click="handleCancel"
+              >
                 <close-circle-outlined /> 取消合约
               </a-menu-item>
             </a-menu>
@@ -167,8 +221,8 @@ const isMyContract = computed(() => {
 
 // 是否可以签名
 const canSign = computed(() => {
-  if (!isMyContract.value) return false;
-  if (props.contract.status !== 'draft' && props.contract.status !== 'active') return false;
+  if (!isMyContract.value) {return false;}
+  if (props.contract.status !== 'draft' && props.contract.status !== 'active') {return false;}
 
   // 当前用户是甲方且未签名
   if (
@@ -250,21 +304,21 @@ const getContractTypeName = (type) => {
 
 // 格式化 DID
 const formatDid = (did) => {
-  if (!did) return '-';
+  if (!did) {return '-';}
   return did.length > 20 ? `${did.slice(0, 10)}...${did.slice(-8)}` : did;
 };
 
 // 格式化金额
 const formatAmount = (amount) => {
-  if (!amount && amount !== 0) return '0';
+  if (!amount && amount !== 0) {return '0';}
   const num = parseFloat(amount);
-  if (isNaN(num)) return '0';
+  if (isNaN(num)) {return '0';}
   return num.toLocaleString('en-US', { maximumFractionDigits: 8 });
 };
 
 // 格式化时间
 const formatTime = (timestamp) => {
-  if (!timestamp) return '-';
+  if (!timestamp) {return '-';}
   const date = new Date(timestamp);
   const now = new Date();
   const diff = now - date;

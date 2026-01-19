@@ -849,8 +849,8 @@ describe('${path.basename(sourcePath)}', () => {
 
           const aqi = 50 + Math.floor(Math.random() * 100);
           let level = 'Good';
-          if (aqi > 150) level = 'Unhealthy';
-          else if (aqi > 100) level = 'Moderate';
+          if (aqi > 150) {level = 'Unhealthy';}
+          else if (aqi > 100) {level = 'Moderate';}
 
           const current = {
             aqi,

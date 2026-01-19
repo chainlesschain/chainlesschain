@@ -1,14 +1,20 @@
 <template>
   <div class="task-comments">
     <!-- 评论列表 -->
-    <div class="comments-list" ref="commentsContainer">
+    <div
+      ref="commentsContainer"
+      class="comments-list"
+    >
       <a-empty
         v-if="comments.length === 0"
         description="暂无评论"
         :image="Empty.PRESENTED_IMAGE_SIMPLE"
       />
 
-      <div v-else class="comment-items">
+      <div
+        v-else
+        class="comment-items"
+      >
         <div
           v-for="comment in sortedComments"
           :key="comment.id"
@@ -17,7 +23,10 @@
         >
           <!-- 评论头像 -->
           <div class="comment-avatar">
-            <a-avatar :size="32" :style="{ backgroundColor: getAvatarColor(comment.author_did) }">
+            <a-avatar
+              :size="32"
+              :style="{ backgroundColor: getAvatarColor(comment.author_did) }"
+            >
               {{ getAvatarText(comment.author_did) }}
             </a-avatar>
           </div>
@@ -30,14 +39,23 @@
             </div>
 
             <div class="comment-body">
-              <div v-if="comment.is_deleted" class="deleted-message">
+              <div
+                v-if="comment.is_deleted"
+                class="deleted-message"
+              >
                 该评论已被删除
               </div>
               <div v-else>
-                <div class="comment-text" v-html="renderComment(comment.content)"></div>
+                <div
+                  class="comment-text"
+                  v-html="renderComment(comment.content)"
+                />
 
                 <!-- 附件 -->
-                <div v-if="comment.attachments && comment.attachments.length > 0" class="comment-attachments">
+                <div
+                  v-if="comment.attachments && comment.attachments.length > 0"
+                  class="comment-attachments"
+                >
                   <a-space>
                     <a-tag
                       v-for="(attachment, index) in comment.attachments"
@@ -50,7 +68,10 @@
                 </div>
 
                 <!-- @提及 -->
-                <div v-if="comment.mentions && comment.mentions.length > 0" class="comment-mentions">
+                <div
+                  v-if="comment.mentions && comment.mentions.length > 0"
+                  class="comment-mentions"
+                >
                   <a-tag
                     v-for="(mention, index) in comment.mentions"
                     :key="index"
@@ -64,11 +85,23 @@
             </div>
 
             <!-- 评论操作 -->
-            <div class="comment-actions" v-if="!comment.is_deleted">
-              <a-button type="link" size="small" @click="handleReply(comment)">
+            <div
+              v-if="!comment.is_deleted"
+              class="comment-actions"
+            >
+              <a-button
+                type="link"
+                size="small"
+                @click="handleReply(comment)"
+              >
                 回复
               </a-button>
-              <a-button type="link" size="small" danger @click="handleDelete(comment)">
+              <a-button
+                type="link"
+                size="small"
+                danger
+                @click="handleDelete(comment)"
+              >
                 删除
               </a-button>
             </div>
@@ -96,7 +129,10 @@
             </a-button>
             <template #overlay>
               <a-menu @click="handleMention">
-                <a-menu-item v-for="member in workspaceMembers" :key="member.did">
+                <a-menu-item
+                  v-for="member in workspaceMembers"
+                  :key="member.did"
+                >
                   {{ member.name }}
                 </a-menu-item>
               </a-menu>
@@ -114,7 +150,10 @@
           </a-upload>
 
           <!-- 已选附件 -->
-          <a-space v-if="attachments.length > 0" size="small">
+          <a-space
+            v-if="attachments.length > 0"
+            size="small"
+          >
             <a-tag
               v-for="(file, index) in attachments"
               :key="index"
@@ -127,10 +166,19 @@
         </div>
 
         <div class="right-actions">
-          <a-button v-if="replyingTo" size="small" @click="cancelReply">
+          <a-button
+            v-if="replyingTo"
+            size="small"
+            @click="cancelReply"
+          >
             取消回复
           </a-button>
-          <a-button type="primary" size="small" :loading="submitting" @click="handleSubmit">
+          <a-button
+            type="primary"
+            size="small"
+            :loading="submitting"
+            @click="handleSubmit"
+          >
             <send-outlined /> 发送 (Ctrl+Enter)
           </a-button>
         </div>
@@ -216,10 +264,10 @@ function formatTime(timestamp) {
   const hours = Math.floor(diff / 3600000);
   const days = Math.floor(diff / 86400000);
 
-  if (minutes < 1) return '刚刚';
-  if (minutes < 60) return `${minutes}分钟前`;
-  if (hours < 24) return `${hours}小时前`;
-  if (days < 7) return `${days}天前`;
+  if (minutes < 1) {return '刚刚';}
+  if (minutes < 60) {return `${minutes}分钟前`;}
+  if (hours < 24) {return `${hours}小时前`;}
+  if (days < 7) {return `${days}天前`;}
 
   return date.toLocaleDateString('zh-CN');
 }
@@ -264,7 +312,7 @@ function cancelReply() {
 }
 
 async function handleSubmit() {
-  if (!newComment.value.trim()) return;
+  if (!newComment.value.trim()) {return;}
 
   submitting.value = true;
 

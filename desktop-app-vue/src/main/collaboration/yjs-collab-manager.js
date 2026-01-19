@@ -256,7 +256,7 @@ class YjsCollabManager extends EventEmitter {
    */
   getActiveUsers(docId) {
     const awareness = this.awareness.get(docId);
-    if (!awareness) return [];
+    if (!awareness) {return [];}
 
     const users = [];
     for (const [clientId, state] of awareness.states.entries()) {
@@ -377,7 +377,7 @@ class YjsCollabManager extends EventEmitter {
   async _broadcastUpdate(docId, update) {
     try {
       const peers = this.documentPeers.get(docId);
-      if (!peers || peers.size === 0) return;
+      if (!peers || peers.size === 0) {return;}
 
       for (const peerId of peers) {
         try {
@@ -410,7 +410,7 @@ class YjsCollabManager extends EventEmitter {
   async _broadcastAwareness(docId, organizationId = null) {
     try {
       const awareness = this.awareness.get(docId);
-      if (!awareness) return;
+      if (!awareness) {return;}
 
       // Encode awareness state
       const encoder = encoding.createEncoder();
@@ -543,8 +543,8 @@ class YjsCollabManager extends EventEmitter {
   async _writeToStream(stream, data) {
     return new Promise((resolve, reject) => {
       stream.write(data, (err) => {
-        if (err) reject(err);
-        else resolve();
+        if (err) {reject(err);}
+        else {resolve();}
       });
     });
   }

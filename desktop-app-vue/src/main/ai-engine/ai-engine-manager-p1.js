@@ -228,7 +228,7 @@ class AIEngineManagerP1 {
         startTime: intentStartTime,
       };
 
-      if (onStepUpdate) onStepUpdate(intentStep);
+      if (onStepUpdate) {onStepUpdate(intentStep);}
 
       let intents = [];
       let isMultiIntent = false;
@@ -276,7 +276,7 @@ class AIEngineManagerP1 {
       intentStep.duration = intentDuration;
       intentStep.result = { intents, isMultiIntent };
 
-      if (onStepUpdate) onStepUpdate(intentStep);
+      if (onStepUpdate) {onStepUpdate(intentStep);}
 
       console.log(`[步骤1] ✅ 识别完成: ${isMultiIntent ? '多意图' : '单意图'}, 数量: ${intents.length}`);
       intents.forEach((intent, i) => {
@@ -345,7 +345,7 @@ class AIEngineManagerP1 {
             startTime: slotStartTime,
           };
 
-          if (onStepUpdate) onStepUpdate(slotStep);
+          if (onStepUpdate) {onStepUpdate(slotStep);}
 
           slotFillingResult = await this.slotFiller.fillSlots(
             currentIntent,
@@ -360,7 +360,7 @@ class AIEngineManagerP1 {
           slotStep.duration = slotDuration;
           slotStep.result = this.slotFiller.getSummary(slotFillingResult);
 
-          if (onStepUpdate) onStepUpdate(slotStep);
+          if (onStepUpdate) {onStepUpdate(slotStep);}
 
           console.log(`[步骤3.${intentIndex + 1}] ✅ 槽位填充完成: 完整度 ${slotFillingResult.validation.completeness}%`);
 
@@ -386,7 +386,7 @@ class AIEngineManagerP1 {
           startTime: planStartTime,
         };
 
-        if (onStepUpdate) onStepUpdate(planStep);
+        if (onStepUpdate) {onStepUpdate(planStep);}
 
         let plan;
 
@@ -439,7 +439,7 @@ class AIEngineManagerP1 {
         planStep.duration = planDuration;
         planStep.result = plan;
 
-        if (onStepUpdate) onStepUpdate(planStep);
+        if (onStepUpdate) {onStepUpdate(planStep);}
 
         // 记录性能
         if (this.performanceMonitor) {
@@ -625,7 +625,7 @@ class AIEngineManagerP1 {
         params: taskStep.params,
       };
 
-      if (onStepUpdate) onStepUpdate(execStep);
+      if (onStepUpdate) {onStepUpdate(execStep);}
 
       try {
         let result;
@@ -661,7 +661,7 @@ class AIEngineManagerP1 {
         execStep.duration = execStep.endTime - execStep.startTime;
         execStep.result = result.result;
 
-        if (onStepUpdate) onStepUpdate(execStep);
+        if (onStepUpdate) {onStepUpdate(execStep);}
 
         results.push(result.result);
 
@@ -728,7 +728,7 @@ class AIEngineManagerP1 {
         execStep.duration = execStep.endTime - execStep.startTime;
         execStep.error = error.message;
 
-        if (onStepUpdate) onStepUpdate(execStep);
+        if (onStepUpdate) {onStepUpdate(execStep);}
 
         failedStepIndex = i;
 

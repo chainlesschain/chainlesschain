@@ -3,9 +3,17 @@
     <a-row :gutter="16">
       <!-- 左侧：邮箱树 -->
       <a-col :span="5">
-        <a-card title="邮箱" size="small" :bordered="false">
+        <a-card
+          title="邮箱"
+          size="small"
+          :bordered="false"
+        >
           <template #extra>
-            <a-button type="link" size="small" @click="syncMailboxes">
+            <a-button
+              type="link"
+              size="small"
+              @click="syncMailboxes"
+            >
               <ReloadOutlined />
             </a-button>
           </template>
@@ -14,8 +22,8 @@
             v-if="mailboxTree.length > 0"
             :tree-data="mailboxTree"
             :selected-keys="selectedMailbox"
-            @select="onMailboxSelect"
             :show-icon="true"
+            @select="onMailboxSelect"
           >
             <template #icon="{ dataRef }">
               <InboxOutlined v-if="dataRef.name === 'INBOX'" />
@@ -25,7 +33,11 @@
             </template>
           </a-tree>
 
-          <a-empty v-else description="暂无邮箱" size="small" />
+          <a-empty
+            v-else
+            description="暂无邮箱"
+            size="small"
+          />
         </a-card>
       </a-col>
 
@@ -47,18 +59,32 @@
                 </a-button>
                 <template #overlay>
                   <a-menu @click="handleFilterChange">
-                    <a-menu-item key="all">全部</a-menu-item>
-                    <a-menu-item key="unread">未读</a-menu-item>
-                    <a-menu-item key="starred">收藏</a-menu-item>
+                    <a-menu-item key="all">
+                      全部
+                    </a-menu-item>
+                    <a-menu-item key="unread">
+                      未读
+                    </a-menu-item>
+                    <a-menu-item key="starred">
+                      收藏
+                    </a-menu-item>
                   </a-menu>
                 </template>
               </a-dropdown>
 
-              <a-button size="small" @click="syncEmails" :loading="syncing">
+              <a-button
+                size="small"
+                :loading="syncing"
+                @click="syncEmails"
+              >
                 <SyncOutlined />
               </a-button>
 
-              <a-button type="primary" size="small" @click="showComposer">
+              <a-button
+                type="primary"
+                size="small"
+                @click="showComposer"
+              >
                 <EditOutlined /> 写邮件
               </a-button>
             </a-space>
@@ -78,13 +104,16 @@
                   'email-read': item.is_read,
                   'email-selected': selectedEmail?.id === item.id
                 }"
-                @click="selectEmail(item)"
                 style="cursor: pointer"
+                @click="selectEmail(item)"
               >
                 <a-list-item-meta>
                   <template #title>
                     <a-space>
-                      <StarFilled v-if="item.is_starred" style="color: #faad14" />
+                      <StarFilled
+                        v-if="item.is_starred"
+                        style="color: #faad14"
+                      />
                       <PaperClipOutlined v-if="item.has_attachments" />
                       <span :style="{ fontWeight: item.is_read ? 'normal' : 'bold' }">
                         {{ item.subject || '(无主题)' }}
@@ -107,7 +136,10 @@
 
       <!-- 右侧：邮件内容 -->
       <a-col :span="11">
-        <a-card v-if="selectedEmail" :bordered="false">
+        <a-card
+          v-if="selectedEmail"
+          :bordered="false"
+        >
           <template #title>
             <div class="email-header">
               <h3>{{ selectedEmail.subject || '(无主题)' }}</h3>
@@ -119,8 +151,8 @@
               <a-tooltip :title="selectedEmail.is_starred ? '取消收藏' : '收藏'">
                 <a-button
                   type="text"
-                  @click="toggleStar"
                   :style="{ color: selectedEmail.is_starred ? '#faad14' : undefined }"
+                  @click="toggleStar"
                 >
                   <StarFilled v-if="selectedEmail.is_starred" />
                   <StarOutlined v-else />
@@ -128,19 +160,28 @@
               </a-tooltip>
 
               <a-tooltip title="回复">
-                <a-button type="text" @click="replyEmail">
+                <a-button
+                  type="text"
+                  @click="replyEmail"
+                >
                   <RollbackOutlined />
                 </a-button>
               </a-tooltip>
 
               <a-tooltip title="转发">
-                <a-button type="text" @click="forwardEmail">
+                <a-button
+                  type="text"
+                  @click="forwardEmail"
+                >
                   <ShareAltOutlined />
                 </a-button>
               </a-tooltip>
 
               <a-tooltip title="保存到知识库">
-                <a-button type="text" @click="saveToKnowledge">
+                <a-button
+                  type="text"
+                  @click="saveToKnowledge"
+                >
                   <SaveOutlined />
                 </a-button>
               </a-tooltip>
@@ -161,7 +202,10 @@
                     <a-menu-item key="archive">
                       <InboxOutlined /> 归档
                     </a-menu-item>
-                    <a-menu-item key="delete" danger>
+                    <a-menu-item
+                      key="delete"
+                      danger
+                    >
                       <DeleteOutlined /> 删除
                     </a-menu-item>
                   </a-menu>
@@ -172,14 +216,20 @@
 
           <!-- 邮件详情 -->
           <div class="email-details">
-            <a-descriptions :column="1" size="small">
+            <a-descriptions
+              :column="1"
+              size="small"
+            >
               <a-descriptions-item label="发件人">
                 {{ selectedEmail.from_address }}
               </a-descriptions-item>
               <a-descriptions-item label="收件人">
                 {{ selectedEmail.to_address }}
               </a-descriptions-item>
-              <a-descriptions-item label="抄送" v-if="selectedEmail.cc_address">
+              <a-descriptions-item
+                v-if="selectedEmail.cc_address"
+                label="抄送"
+              >
                 {{ selectedEmail.cc_address }}
               </a-descriptions-item>
               <a-descriptions-item label="日期">
@@ -191,12 +241,21 @@
           <a-divider />
 
           <!-- 邮件内容 -->
-          <div class="email-content" v-html="sanitizedContent"></div>
+          <div
+            class="email-content"
+            v-html="sanitizedContent"
+          />
 
           <!-- 附件列表 -->
-          <div v-if="attachments.length > 0" class="email-attachments">
+          <div
+            v-if="attachments.length > 0"
+            class="email-attachments"
+          >
             <a-divider>附件 ({{ attachments.length }})</a-divider>
-            <a-list :data-source="attachments" size="small">
+            <a-list
+              :data-source="attachments"
+              size="small"
+            >
               <template #renderItem="{ item }">
                 <a-list-item>
                   <a-list-item-meta>
@@ -216,8 +275,8 @@
                     <a-button
                       type="link"
                       size="small"
-                      @click="downloadAttachment(item)"
                       :loading="item.downloading"
+                      @click="downloadAttachment(item)"
                     >
                       <DownloadOutlined /> 下载
                     </a-button>
@@ -312,7 +371,7 @@ const mailboxTree = computed(() => {
 });
 
 const sanitizedContent = computed(() => {
-  if (!selectedEmail.value) return '';
+  if (!selectedEmail.value) {return '';}
 
   const content = selectedEmail.value.html_content || selectedEmail.value.text_content || '';
 
@@ -481,7 +540,7 @@ const downloadAttachment = async (attachment) => {
 };
 
 const toggleStar = async () => {
-  if (!selectedEmail.value) return;
+  if (!selectedEmail.value) {return;}
 
   const newStarred = !selectedEmail.value.is_starred;
 
@@ -506,7 +565,7 @@ const toggleStar = async () => {
 };
 
 const saveToKnowledge = async () => {
-  if (!selectedEmail.value) return;
+  if (!selectedEmail.value) {return;}
 
   try {
     const result = await window.electron.ipcRenderer.invoke(
@@ -539,7 +598,7 @@ const forwardEmail = () => {
 };
 
 const handleMenuClick = async ({ key }) => {
-  if (!selectedEmail.value) return;
+  if (!selectedEmail.value) {return;}
 
   try {
     switch (key) {
@@ -601,8 +660,8 @@ const formatFullTime = (timestamp) => {
 };
 
 const formatSize = (bytes) => {
-  if (bytes < 1024) return bytes + ' B';
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + ' KB';
+  if (bytes < 1024) {return bytes + ' B';}
+  if (bytes < 1024 * 1024) {return (bytes / 1024).toFixed(2) + ' KB';}
   return (bytes / 1024 / 1024).toFixed(2) + ' MB';
 };
 

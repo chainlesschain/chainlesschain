@@ -1,7 +1,10 @@
 <template>
   <div class="template-list">
     <!-- 加载状态 -->
-    <div v-if="loading" class="loading-container">
+    <div
+      v-if="loading"
+      class="loading-container"
+    >
       <a-spin size="large">
         <template #tip>
           <span style="margin-top: 8px">加载模板中...</span>
@@ -15,13 +18,19 @@
       description="暂无模板"
       :image="Empty.PRESENTED_IMAGE_SIMPLE"
     >
-      <a-button type="primary" @click="$emit('create')">
+      <a-button
+        type="primary"
+        @click="$emit('create')"
+      >
         <plus-outlined /> 创建第一个模板
       </a-button>
     </a-empty>
 
     <!-- 模板网格 -->
-    <a-row v-else :gutter="[16, 16]">
+    <a-row
+      v-else
+      :gutter="[16, 16]"
+    >
       <a-col
         v-for="template in templates"
         :key="template.id"
@@ -41,7 +50,11 @@
               <a-tooltip :title="template.name">
                 <span class="template-name">{{ template.name }}</span>
               </a-tooltip>
-              <a-tag v-if="template.is_system" color="blue" style="margin-left: 8px">
+              <a-tag
+                v-if="template.is_system"
+                color="blue"
+                style="margin-left: 8px"
+              >
                 系统
               </a-tag>
             </div>
@@ -50,12 +63,18 @@
           <!-- 卡片操作按钮 -->
           <template #extra>
             <a-dropdown :trigger="['click']">
-              <a-button type="text" size="small">
+              <a-button
+                type="text"
+                size="small"
+              >
                 <ellipsis-outlined />
               </a-button>
               <template #overlay>
                 <a-menu>
-                  <a-menu-item key="use" @click="$emit('use', template)">
+                  <a-menu-item
+                    key="use"
+                    @click="$emit('use', template)"
+                  >
                     <play-circle-outlined /> 使用模板
                   </a-menu-item>
                   <a-menu-item
@@ -65,7 +84,10 @@
                   >
                     <edit-outlined /> 编辑模板
                   </a-menu-item>
-                  <a-menu-item key="export" @click="$emit('export', template)">
+                  <a-menu-item
+                    key="export"
+                    @click="$emit('export', template)"
+                  >
                     <export-outlined /> 导出模板
                   </a-menu-item>
                   <a-menu-divider v-if="!template.is_system" />
@@ -95,7 +117,10 @@
                 <a-tag color="green">
                   <folder-outlined /> {{ getCategoryLabel(template.category) }}
                 </a-tag>
-                <a-tag v-if="template.variables && template.variables.length > 0" color="orange">
+                <a-tag
+                  v-if="template.variables && template.variables.length > 0"
+                  color="orange"
+                >
                   <api-outlined /> {{ template.variables.length }} 个变量
                 </a-tag>
               </a-space>
@@ -184,7 +209,7 @@ const getCategoryLabel = (category) => {
 
 // 格式化日期
 const formatDate = (timestamp) => {
-  if (!timestamp) return '未知';
+  if (!timestamp) {return '未知';}
   const date = new Date(timestamp);
   return date.toLocaleString('zh-CN', {
     year: 'numeric',
@@ -197,7 +222,7 @@ const formatDate = (timestamp) => {
 
 // 格式化相对时间
 const formatRelativeTime = (timestamp) => {
-  if (!timestamp) return '未知';
+  if (!timestamp) {return '未知';}
 
   const now = Date.now();
   const diff = now - timestamp;
@@ -209,11 +234,11 @@ const formatRelativeTime = (timestamp) => {
   const months = Math.floor(days / 30);
   const years = Math.floor(days / 365);
 
-  if (years > 0) return `${years} 年前`;
-  if (months > 0) return `${months} 个月前`;
-  if (days > 0) return `${days} 天前`;
-  if (hours > 0) return `${hours} 小时前`;
-  if (minutes > 0) return `${minutes} 分钟前`;
+  if (years > 0) {return `${years} 年前`;}
+  if (months > 0) {return `${months} 个月前`;}
+  if (days > 0) {return `${days} 天前`;}
+  if (hours > 0) {return `${hours} 小时前`;}
+  if (minutes > 0) {return `${minutes} 分钟前`;}
   return '刚刚';
 };
 

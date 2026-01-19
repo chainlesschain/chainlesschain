@@ -10,7 +10,10 @@
     >
       <div v-if="target">
         <!-- 评价对象信息 -->
-        <a-card size="small" style="margin-bottom: 16px">
+        <a-card
+          size="small"
+          style="margin-bottom: 16px"
+        >
           <template #title>
             <a-space>
               <component :is="getTargetIcon(targetType)" />
@@ -18,16 +21,32 @@
             </a-space>
           </template>
 
-          <a-descriptions :column="2" size="small" bordered>
-            <a-descriptions-item label="对象ID" :span="2">
-              <a-typography-text copyable>{{ targetId }}</a-typography-text>
+          <a-descriptions
+            :column="2"
+            size="small"
+            bordered
+          >
+            <a-descriptions-item
+              label="对象ID"
+              :span="2"
+            >
+              <a-typography-text copyable>
+                {{ targetId }}
+              </a-typography-text>
             </a-descriptions-item>
-            <a-descriptions-item label="对象类型" :span="2">
+            <a-descriptions-item
+              label="对象类型"
+              :span="2"
+            >
               <a-tag :color="getTargetTypeColor(targetType)">
                 {{ getTargetTypeName(targetType) }}
               </a-tag>
             </a-descriptions-item>
-            <a-descriptions-item v-if="target.name" label="名称" :span="2">
+            <a-descriptions-item
+              v-if="target.name"
+              label="名称"
+              :span="2"
+            >
               {{ target.name }}
             </a-descriptions-item>
           </a-descriptions>
@@ -36,7 +55,10 @@
         <!-- 评价表单 -->
         <a-form layout="vertical">
           <!-- 评分 -->
-          <a-form-item label="综合评分" required>
+          <a-form-item
+            label="综合评分"
+            required
+          >
             <div class="rating-container">
               <a-rate
                 v-model:value="form.rating"
@@ -54,32 +76,51 @@
               <a-col :span="12">
                 <div class="detail-rating">
                   <span class="label">商品/服务质量:</span>
-                  <a-rate v-model:value="form.qualityRating" :count="5" allow-half />
+                  <a-rate
+                    v-model:value="form.qualityRating"
+                    :count="5"
+                    allow-half
+                  />
                 </div>
               </a-col>
               <a-col :span="12">
                 <div class="detail-rating">
                   <span class="label">卖家态度:</span>
-                  <a-rate v-model:value="form.serviceRating" :count="5" allow-half />
+                  <a-rate
+                    v-model:value="form.serviceRating"
+                    :count="5"
+                    allow-half
+                  />
                 </div>
               </a-col>
               <a-col :span="12">
                 <div class="detail-rating">
                   <span class="label">物流速度:</span>
-                  <a-rate v-model:value="form.deliveryRating" :count="5" allow-half />
+                  <a-rate
+                    v-model:value="form.deliveryRating"
+                    :count="5"
+                    allow-half
+                  />
                 </div>
               </a-col>
               <a-col :span="12">
                 <div class="detail-rating">
                   <span class="label">描述相符:</span>
-                  <a-rate v-model:value="form.descriptionRating" :count="5" allow-half />
+                  <a-rate
+                    v-model:value="form.descriptionRating"
+                    :count="5"
+                    allow-half
+                  />
                 </div>
               </a-col>
             </a-row>
           </a-form-item>
 
           <!-- 评价内容 -->
-          <a-form-item label="评价内容" required>
+          <a-form-item
+            label="评价内容"
+            required
+          >
             <a-textarea
               v-model:value="form.content"
               :rows="4"
@@ -91,7 +132,10 @@
 
           <!-- 评价标签 -->
           <a-form-item label="评价标签">
-            <a-checkbox-group v-model:value="form.tags" style="width: 100%">
+            <a-checkbox-group
+              v-model:value="form.tags"
+              style="width: 100%"
+            >
               <a-row>
                 <a-col
                   v-for="tag in availableTags"
@@ -99,7 +143,9 @@
                   :span="8"
                   style="margin-bottom: 8px"
                 >
-                  <a-checkbox :value="tag">{{ tag }}</a-checkbox>
+                  <a-checkbox :value="tag">
+                    {{ tag }}
+                  </a-checkbox>
                 </a-col>
               </a-row>
             </a-checkbox-group>
@@ -233,10 +279,10 @@ const getTargetTypeName = (type) => {
 };
 
 const getRatingText = (rating) => {
-  if (rating >= 4.5) return '非常满意';
-  if (rating >= 3.5) return '满意';
-  if (rating >= 2.5) return '一般';
-  if (rating >= 1.5) return '不满意';
+  if (rating >= 4.5) {return '非常满意';}
+  if (rating >= 3.5) {return '满意';}
+  if (rating >= 2.5) {return '一般';}
+  if (rating >= 1.5) {return '不满意';}
   return '非常不满意';
 };
 

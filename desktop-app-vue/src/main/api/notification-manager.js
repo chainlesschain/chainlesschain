@@ -26,7 +26,7 @@ class APINotificationManager {
    * RSS 新文章通知
    */
   notifyNewArticles(feedTitle, count, items = []) {
-    if (!this.enabled || count === 0) return;
+    if (!this.enabled || count === 0) {return;}
 
     const notification = new Notification({
       title: 'RSS 新文章',
@@ -55,7 +55,7 @@ class APINotificationManager {
    * 新邮件通知
    */
   notifyNewEmails(accountEmail, count, emails = []) {
-    if (!this.enabled || count === 0) return;
+    if (!this.enabled || count === 0) {return;}
 
     const notification = new Notification({
       title: '新邮件',
@@ -84,7 +84,7 @@ class APINotificationManager {
    * RSS 同步错误通知
    */
   notifyRSSError(feedTitle, error) {
-    if (!this.enabled) return;
+    if (!this.enabled) {return;}
 
     const notification = new Notification({
       title: 'RSS 同步失败',
@@ -106,7 +106,7 @@ class APINotificationManager {
    * 邮件同步错误通知
    */
   notifyEmailError(accountEmail, error) {
-    if (!this.enabled) return;
+    if (!this.enabled) {return;}
 
     const notification = new Notification({
       title: '邮件同步失败',
@@ -128,7 +128,7 @@ class APINotificationManager {
    * 邮件发送成功通知
    */
   notifyEmailSent(to, subject) {
-    if (!this.enabled) return;
+    if (!this.enabled) {return;}
 
     const notification = new Notification({
       title: '邮件已发送',
@@ -150,7 +150,7 @@ class APINotificationManager {
    * 批量通知（避免通知轰炸）
    */
   notifyBatch(notifications) {
-    if (!this.enabled || notifications.length === 0) return;
+    if (!this.enabled || notifications.length === 0) {return;}
 
     // 合并相同类型的通知
     const grouped = this.groupNotifications(notifications);

@@ -1,9 +1,16 @@
 <template>
   <div class="llm-status">
-    <a-card title="LLM 服务状态" size="small">
+    <a-card
+      title="LLM 服务状态"
+      size="small"
+    >
       <!-- 状态概览 -->
       <div class="status-overview">
-        <a-descriptions :column="2" size="small" bordered>
+        <a-descriptions
+          :column="2"
+          size="small"
+          bordered
+        >
           <a-descriptions-item label="服务状态">
             <a-space>
               <a-badge :status="status.available ? 'success' : 'error'" />
@@ -18,26 +25,33 @@
           </a-descriptions-item>
 
           <a-descriptions-item
-            label="当前模型"
             v-if="showCurrentModel"
+            label="当前模型"
             :span="modelStatSpan"
           >
             {{ currentModel }}
           </a-descriptions-item>
 
           <a-descriptions-item
-            label="可用模型"
             v-if="showModelCount"
+            label="可用模型"
             :span="modelStatSpan"
           >
             {{ status.models.length }} 个
           </a-descriptions-item>
 
-          <a-descriptions-item label="最后检查时间" :span="2">
+          <a-descriptions-item
+            label="最后检查时间"
+            :span="2"
+          >
             {{ formatDate(lastCheckTime) }}
           </a-descriptions-item>
 
-          <a-descriptions-item label="错误信息" :span="2" v-if="status.error">
+          <a-descriptions-item
+            v-if="status.error"
+            label="错误信息"
+            :span="2"
+          >
             <a-typography-text type="danger">
               {{ status.error }}
             </a-typography-text>
@@ -46,7 +60,10 @@
       </div>
 
       <!-- 可用模型列表 -->
-      <div v-if="showModelCount" class="models-section">
+      <div
+        v-if="showModelCount"
+        class="models-section"
+      >
         <a-divider>可用模型</a-divider>
         <a-list
           :data-source="status.models.slice(0, showAllModels ? status.models.length : 5)"
@@ -60,14 +77,24 @@
                   <a-space>
                     <api-outlined />
                     <span>{{ item.name || item }}</span>
-                    <a-tag v-if="item.name === currentModel" color="blue" size="small">
+                    <a-tag
+                      v-if="item.name === currentModel"
+                      color="blue"
+                      size="small"
+                    >
                       当前使用
                     </a-tag>
                   </a-space>
                 </template>
-                <template #description v-if="item.size">
+                <template
+                  v-if="item.size"
+                  #description
+                >
                   大小: {{ formatSize(item.size) }}
-                  <span v-if="item.modified_at" style="margin-left: 16px">
+                  <span
+                    v-if="item.modified_at"
+                    style="margin-left: 16px"
+                  >
                     修改时间: {{ formatModelDate(item.modified_at) }}
                   </span>
                 </template>
@@ -80,7 +107,11 @@
           v-if="status.models.length > 5 && !showAllModels"
           class="show-more"
         >
-          <a-button type="link" size="small" @click="showAllModels = true">
+          <a-button
+            type="link"
+            size="small"
+            @click="showAllModels = true"
+          >
             显示全部 {{ status.models.length }} 个模型
           </a-button>
         </div>
@@ -92,10 +123,12 @@
           <a-button
             type="primary"
             size="small"
-            @click="handleRefresh"
             :loading="refreshing"
+            @click="handleRefresh"
           >
-            <template #icon><reload-outlined /></template>
+            <template #icon>
+              <reload-outlined />
+            </template>
             刷新状态
           </a-button>
 
@@ -103,24 +136,31 @@
             size="small"
             @click="$emit('open-settings')"
           >
-            <template #icon><setting-outlined /></template>
+            <template #icon>
+              <setting-outlined />
+            </template>
             服务设置
           </a-button>
 
           <a-button
             v-if="status.available"
             size="small"
-            @click="handleTest"
             :loading="testing"
+            @click="handleTest"
           >
-            <template #icon><experiment-outlined /></template>
+            <template #icon>
+              <experiment-outlined />
+            </template>
             测试服务
           </a-button>
         </a-space>
       </div>
 
       <!-- 测试结果 -->
-      <div v-if="testResult" class="test-result">
+      <div
+        v-if="testResult"
+        class="test-result"
+      >
         <a-divider>测试结果</a-divider>
         <a-alert
           :type="testResult.success ? 'success' : 'error'"
@@ -129,11 +169,17 @@
           closable
           @close="testResult = null"
         >
-          <template #description v-if="testResult.response">
+          <template
+            v-if="testResult.response"
+            #description
+          >
             <div class="test-response">
               {{ testResult.response }}
             </div>
-            <div class="test-meta" v-if="testResult.tokens">
+            <div
+              v-if="testResult.tokens"
+              class="test-meta"
+            >
               Token数: {{ testResult.tokens }} | 耗时: {{ testResult.duration }}ms
             </div>
           </template>
@@ -289,7 +335,7 @@ const getProviderColor = (provider) => {
 
 // 格式化日期
 const formatDate = (timestamp) => {
-  if (!timestamp) return '从未';
+  if (!timestamp) {return '从未';}
 
   const date = new Date(timestamp);
   const now = new Date();
@@ -324,7 +370,7 @@ const formatDate = (timestamp) => {
 
 // 格式化模型日期
 const formatModelDate = (dateStr) => {
-  if (!dateStr) return '';
+  if (!dateStr) {return '';}
 
   try {
     const date = new Date(dateStr);
@@ -340,7 +386,7 @@ const formatModelDate = (dateStr) => {
 
 // 格式化大小
 const formatSize = (bytes) => {
-  if (!bytes) return '';
+  if (!bytes) {return '';}
   const gb = bytes / (1024 * 1024 * 1024);
   return `${gb.toFixed(1)} GB`;
 };

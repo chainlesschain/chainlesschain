@@ -7,7 +7,9 @@
           <HistoryOutlined />
           会话管理
         </h1>
-        <p class="page-description">管理 AI 对话历史、标签、模板和导出</p>
+        <p class="page-description">
+          管理 AI 对话历史、标签、模板和导出
+        </p>
       </div>
       <div class="header-right">
         <a-button @click="$router.push('/tags')">
@@ -27,9 +29,15 @@
     <!-- 主内容区 -->
     <div class="page-content">
       <!-- 标签页 -->
-      <a-tabs v-model:activeKey="activeTab" class="content-tabs">
+      <a-tabs
+        v-model:active-key="activeTab"
+        class="content-tabs"
+      >
         <!-- 会话列表标签页 -->
-        <a-tab-pane key="sessions" tab="会话列表">
+        <a-tab-pane
+          key="sessions"
+          tab="会话列表"
+        >
           <SessionList
             ref="sessionListRef"
             :sessions="sessions"
@@ -49,7 +57,10 @@
         </a-tab-pane>
 
         <!-- 模板管理标签页 -->
-        <a-tab-pane key="templates" tab="会话模板">
+        <a-tab-pane
+          key="templates"
+          tab="会话模板"
+        >
           <SessionTemplateList
             :templates="templates"
             :loading="loadingTemplates"
@@ -108,11 +119,17 @@
     <a-modal
       v-model:open="templateModalVisible"
       title="保存为模板"
-      @ok="confirmSaveAsTemplate"
       :confirm-loading="savingTemplate"
+      @ok="confirmSaveAsTemplate"
     >
-      <a-form :model="templateForm" layout="vertical">
-        <a-form-item label="模板名称" required>
+      <a-form
+        :model="templateForm"
+        layout="vertical"
+      >
+        <a-form-item
+          label="模板名称"
+          required
+        >
           <a-input
             v-model:value="templateForm.name"
             placeholder="输入模板名称"
@@ -131,11 +148,21 @@
             placeholder="选择分类"
             allow-clear
           >
-            <a-select-option value="general">通用</a-select-option>
-            <a-select-option value="tech">技术</a-select-option>
-            <a-select-option value="work">工作</a-select-option>
-            <a-select-option value="study">学习</a-select-option>
-            <a-select-option value="other">其他</a-select-option>
+            <a-select-option value="general">
+              通用
+            </a-select-option>
+            <a-select-option value="tech">
+              技术
+            </a-select-option>
+            <a-select-option value="work">
+              工作
+            </a-select-option>
+            <a-select-option value="study">
+              学习
+            </a-select-option>
+            <a-select-option value="other">
+              其他
+            </a-select-option>
           </a-select>
         </a-form-item>
       </a-form>
@@ -145,8 +172,8 @@
     <a-modal
       v-model:open="batchTagModalVisible"
       title="批量添加标签"
-      @ok="confirmBatchAddTags"
       :confirm-loading="addingTags"
+      @ok="confirmBatchAddTags"
     >
       <TagManager
         v-model:selected-tags="batchTagsToAdd"

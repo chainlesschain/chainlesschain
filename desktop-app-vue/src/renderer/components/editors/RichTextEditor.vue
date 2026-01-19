@@ -5,26 +5,26 @@
       <div class="toolbar-group">
         <a-button-group size="small">
           <a-button
-            @click="execCommand('bold')"
             :type="isActive('bold') ? 'primary' : 'default'"
+            @click="execCommand('bold')"
           >
             <BoldOutlined />
           </a-button>
           <a-button
-            @click="execCommand('italic')"
             :type="isActive('italic') ? 'primary' : 'default'"
+            @click="execCommand('italic')"
           >
             <ItalicOutlined />
           </a-button>
           <a-button
-            @click="execCommand('underline')"
             :type="isActive('underline') ? 'primary' : 'default'"
+            @click="execCommand('underline')"
           >
             <UnderlineOutlined />
           </a-button>
           <a-button
-            @click="execCommand('strikeThrough')"
             :type="isActive('strikeThrough') ? 'primary' : 'default'"
+            @click="execCommand('strikeThrough')"
           >
             <StrikethroughOutlined />
           </a-button>
@@ -40,15 +40,33 @@
           style="width: 80px"
           @change="changeFontSize"
         >
-          <a-select-option :value="10">10</a-select-option>
-          <a-select-option :value="12">12</a-select-option>
-          <a-select-option :value="14">14</a-select-option>
-          <a-select-option :value="16">16</a-select-option>
-          <a-select-option :value="18">18</a-select-option>
-          <a-select-option :value="20">20</a-select-option>
-          <a-select-option :value="24">24</a-select-option>
-          <a-select-option :value="28">28</a-select-option>
-          <a-select-option :value="32">32</a-select-option>
+          <a-select-option :value="10">
+            10
+          </a-select-option>
+          <a-select-option :value="12">
+            12
+          </a-select-option>
+          <a-select-option :value="14">
+            14
+          </a-select-option>
+          <a-select-option :value="16">
+            16
+          </a-select-option>
+          <a-select-option :value="18">
+            18
+          </a-select-option>
+          <a-select-option :value="20">
+            20
+          </a-select-option>
+          <a-select-option :value="24">
+            24
+          </a-select-option>
+          <a-select-option :value="28">
+            28
+          </a-select-option>
+          <a-select-option :value="32">
+            32
+          </a-select-option>
         </a-select>
       </div>
 
@@ -92,12 +110,22 @@
           </a-button>
           <template #overlay>
             <a-menu @click="handleFormat">
-              <a-menu-item key="h1">标题 1</a-menu-item>
-              <a-menu-item key="h2">标题 2</a-menu-item>
-              <a-menu-item key="h3">标题 3</a-menu-item>
+              <a-menu-item key="h1">
+                标题 1
+              </a-menu-item>
+              <a-menu-item key="h2">
+                标题 2
+              </a-menu-item>
+              <a-menu-item key="h3">
+                标题 3
+              </a-menu-item>
               <a-menu-divider />
-              <a-menu-item key="p">正文</a-menu-item>
-              <a-menu-item key="blockquote">引用</a-menu-item>
+              <a-menu-item key="p">
+                正文
+              </a-menu-item>
+              <a-menu-item key="blockquote">
+                引用
+              </a-menu-item>
             </a-menu>
           </template>
         </a-dropdown>
@@ -114,20 +142,36 @@
           </a-button>
           <template #overlay>
             <a-menu @click="handleExport">
-              <a-menu-item key="word">导出为Word</a-menu-item>
-              <a-menu-item key="markdown">导出为Markdown</a-menu-item>
-              <a-menu-item key="html">导出为HTML</a-menu-item>
-              <a-menu-item key="pdf">导出为PDF</a-menu-item>
+              <a-menu-item key="word">
+                导出为Word
+              </a-menu-item>
+              <a-menu-item key="markdown">
+                导出为Markdown
+              </a-menu-item>
+              <a-menu-item key="html">
+                导出为HTML
+              </a-menu-item>
+              <a-menu-item key="pdf">
+                导出为PDF
+              </a-menu-item>
             </a-menu>
           </template>
         </a-dropdown>
       </div>
 
-      <div class="toolbar-spacer"></div>
+      <div class="toolbar-spacer" />
 
       <div class="toolbar-group">
-        <a-tag v-if="wordCount > 0" color="blue">{{ wordCount }} 字</a-tag>
-        <a-tag v-if="hasUnsavedChanges" color="orange">
+        <a-tag
+          v-if="wordCount > 0"
+          color="blue"
+        >
+          {{ wordCount }} 字
+        </a-tag>
+        <a-tag
+          v-if="hasUnsavedChanges"
+          color="orange"
+        >
           <ClockCircleOutlined />
           未保存
         </a-tag>
@@ -152,7 +196,7 @@
       @input="handleInput"
       @keydown="handleKeydown"
       @paste="handlePaste"
-    ></div>
+    />
   </div>
 </template>
 
@@ -204,7 +248,7 @@ let autoSaveTimer = null;
 
 // 初始化编辑器
 const initEditor = async () => {
-  if (!editorRef.value) return;
+  if (!editorRef.value) {return;}
 
   try {
     let content = props.initialContent;
@@ -261,7 +305,7 @@ const initEditor = async () => {
 
 // 判断是否是Word文件
 const isWordFile = (fileName) => {
-  if (!fileName) return false;
+  if (!fileName) {return false;}
   const ext = fileName.split(".").pop().toLowerCase();
   return ["docx", "doc"].includes(ext);
 };
@@ -361,7 +405,7 @@ const handlePaste = (e) => {
 
 // 更新字数统计
 const updateWordCount = () => {
-  if (!editorRef.value) return;
+  if (!editorRef.value) {return;}
   const text = editorRef.value.innerText || "";
   wordCount.value = text.replace(/\s/g, "").length;
 };
@@ -379,7 +423,7 @@ const scheduleAutoSave = () => {
 
 // 保存
 const handleSave = async () => {
-  if (!hasUnsavedChanges.value) return;
+  if (!hasUnsavedChanges.value) {return;}
 
   saving.value = true;
   try {
@@ -510,7 +554,7 @@ const exportToWord = async (html) => {
 // 导出为Markdown
 const exportToMarkdown = async (html) => {
   // 简单的HTML to Markdown转换
-  let markdown = html
+  const markdown = html
     .replace(/<h1>(.*?)<\/h1>/g, "# $1\n\n")
     .replace(/<h2>(.*?)<\/h2>/g, "## $1\n\n")
     .replace(/<h3>(.*?)<\/h3>/g, "### $1\n\n")

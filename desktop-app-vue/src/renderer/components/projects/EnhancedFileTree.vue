@@ -3,34 +3,58 @@
     <!-- 工具栏 -->
     <div class="tree-toolbar">
       <a-tooltip title="刷新">
-        <a-button type="text" size="small" @click="handleRefresh">
+        <a-button
+          type="text"
+          size="small"
+          @click="handleRefresh"
+        >
           <ReloadOutlined />
         </a-button>
       </a-tooltip>
       <a-tooltip title="折叠全部">
-        <a-button type="text" size="small" @click="handleCollapseAll">
+        <a-button
+          type="text"
+          size="small"
+          @click="handleCollapseAll"
+        >
           <ShrinkOutlined />
         </a-button>
       </a-tooltip>
       <a-tooltip title="新建文件">
-        <a-button type="text" size="small" @click="handleNewFile">
+        <a-button
+          type="text"
+          size="small"
+          @click="handleNewFile"
+        >
           <FileAddOutlined />
         </a-button>
       </a-tooltip>
       <a-tooltip title="新建文件夹">
-        <a-button type="text" size="small" @click="handleNewFolder">
+        <a-button
+          type="text"
+          size="small"
+          @click="handleNewFolder"
+        >
           <FolderAddOutlined />
         </a-button>
       </a-tooltip>
       <a-tooltip title="导入文件">
-        <a-button type="text" size="small" @click="handleImportFiles" :loading="importing">
+        <a-button
+          type="text"
+          size="small"
+          :loading="importing"
+          @click="handleImportFiles"
+        >
           <ImportOutlined />
         </a-button>
       </a-tooltip>
     </div>
 
     <!-- 加载状态 -->
-    <div v-if="loading" class="tree-loading">
+    <div
+      v-if="loading"
+      class="tree-loading"
+    >
       <a-spin size="small" />
       <span>加载中...</span>
     </div>
@@ -49,33 +73,40 @@
         @select="handleSelect"
         @expand="handleExpand"
       >
-      <template #title="{ title, isLeaf, dataRef }">
-        <div
-          class="tree-node-title"
-          :draggable="enableDrag"
-          @dragstart="handleDragStart($event, dataRef)"
-          @dragover="handleDragOver($event, dataRef)"
-          @dragleave="handleDragLeave"
-          @drop="handleDrop($event, dataRef)"
-          @contextmenu.prevent="handleNodeContextMenu($event, dataRef)"
-        >
-          <component :is="dataRef.icon" class="node-icon" v-if="dataRef.icon" />
-          <span class="node-label">{{ title }}</span>
-          <a-tag
-            v-if="gitStatus && dataRef.filePath && gitStatus[dataRef.filePath]"
-            :color="getStatusColor(gitStatus[dataRef.filePath])"
-            size="small"
-            class="git-status-tag"
+        <template #title="{ title, isLeaf, dataRef }">
+          <div
+            class="tree-node-title"
+            :draggable="enableDrag"
+            @dragstart="handleDragStart($event, dataRef)"
+            @dragover="handleDragOver($event, dataRef)"
+            @dragleave="handleDragLeave"
+            @drop="handleDrop($event, dataRef)"
+            @contextmenu.prevent="handleNodeContextMenu($event, dataRef)"
           >
-            {{ getStatusLabel(gitStatus[dataRef.filePath]) }}
-          </a-tag>
-        </div>
-      </template>
+            <component
+              :is="dataRef.icon"
+              v-if="dataRef.icon"
+              class="node-icon"
+            />
+            <span class="node-label">{{ title }}</span>
+            <a-tag
+              v-if="gitStatus && dataRef.filePath && gitStatus[dataRef.filePath]"
+              :color="getStatusColor(gitStatus[dataRef.filePath])"
+              size="small"
+              class="git-status-tag"
+            >
+              {{ getStatusLabel(gitStatus[dataRef.filePath]) }}
+            </a-tag>
+          </div>
+        </template>
       </a-tree>
     </div>
 
     <!-- 空状态 -->
-    <div v-else class="tree-empty">
+    <div
+      v-else
+      class="tree-empty"
+    >
       <FolderOpenOutlined />
       <p>暂无文件</p>
     </div>
@@ -86,7 +117,7 @@
       class="context-menu-backdrop"
       @click="contextMenuVisible = false"
       @contextmenu.prevent="contextMenuVisible = false"
-    ></div>
+    />
 
     <!-- 右键菜单 -->
     <teleport to="body">
@@ -102,79 +133,113 @@
         @click.stop
         @contextmenu.prevent
       >
-        <a-menu @click="handleMenuClick" mode="vertical" style="min-width: 200px; border-radius: 4px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15); background: white;">
-            <!-- 新建操作（空白处和节点右键都显示） -->
-            <a-menu-item key="newFile">
-              <FileAddOutlined />
-              新建文件
+        <a-menu
+          mode="vertical"
+          style="min-width: 200px; border-radius: 4px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15); background: white;"
+          @click="handleMenuClick"
+        >
+          <!-- 新建操作（空白处和节点右键都显示） -->
+          <a-menu-item key="newFile">
+            <FileAddOutlined />
+            新建文件
+          </a-menu-item>
+          <a-menu-item key="newFolder">
+            <FolderAddOutlined />
+            新建文件夹
+          </a-menu-item>
+
+          <!-- 以下选项仅在节点右键时显示 -->
+          <template v-if="!isEmptySpaceContext">
+            <a-menu-divider />
+
+            <!-- 文件操作 -->
+            <a-menu-item
+              key="rename"
+              :disabled="!contextNode"
+            >
+              <EditOutlined />
+              重命名
             </a-menu-item>
-            <a-menu-item key="newFolder">
-              <FolderAddOutlined />
-              新建文件夹
+            <a-menu-item
+              key="delete"
+              :disabled="!contextNode"
+            >
+              <DeleteOutlined />
+              删除
             </a-menu-item>
 
-            <!-- 以下选项仅在节点右键时显示 -->
-            <template v-if="!isEmptySpaceContext">
-              <a-menu-divider />
+            <a-menu-divider />
 
-              <!-- 文件操作 -->
-              <a-menu-item key="rename" :disabled="!contextNode">
-                <EditOutlined />
-                重命名
-              </a-menu-item>
-              <a-menu-item key="delete" :disabled="!contextNode">
-                <DeleteOutlined />
-                删除
-              </a-menu-item>
+            <!-- 复制操作 -->
+            <a-menu-item
+              key="copy"
+              :disabled="!contextNode"
+            >
+              <CopyOutlined />
+              复制
+            </a-menu-item>
+            <a-menu-item
+              key="cut"
+              :disabled="!contextNode"
+            >
+              <ScissorOutlined />
+              剪切
+            </a-menu-item>
+            <a-menu-item
+              key="paste"
+              :disabled="!clipboard"
+            >
+              <SnippetsOutlined />
+              粘贴{{ clipboard ? ` (${clipboard.operation === 'cut' ? '移动' : '复制'})` : '' }}
+            </a-menu-item>
 
-              <a-menu-divider />
+            <a-menu-divider />
 
-              <!-- 复制操作 -->
-              <a-menu-item key="copy" :disabled="!contextNode">
-                <CopyOutlined />
-                复制
-              </a-menu-item>
-              <a-menu-item key="cut" :disabled="!contextNode">
-                <ScissorOutlined />
-                剪切
-              </a-menu-item>
-              <a-menu-item key="paste" :disabled="!clipboard">
-                <SnippetsOutlined />
-                粘贴{{ clipboard ? ` (${clipboard.operation === 'cut' ? '移动' : '复制'})` : '' }}
-              </a-menu-item>
+            <!-- 打开方式 -->
+            <a-menu-item
+              key="openDefault"
+              :disabled="!contextNode || !contextNode.isLeaf"
+            >
+              <FileOutlined />
+              打开
+            </a-menu-item>
+            <a-menu-item
+              key="openWith"
+              :disabled="!contextNode || !contextNode.isLeaf"
+            >
+              <FolderOpenOutlined />
+              打开方式...
+            </a-menu-item>
 
-              <a-menu-divider />
+            <a-menu-divider />
 
-              <!-- 打开方式 -->
-              <a-menu-item key="openDefault" :disabled="!contextNode || !contextNode.isLeaf">
-                <FileOutlined />
-                打开
-              </a-menu-item>
-              <a-menu-item key="openWith" :disabled="!contextNode || !contextNode.isLeaf">
-                <FolderOpenOutlined />
-                打开方式...
-              </a-menu-item>
+            <!-- 其他操作 -->
+            <a-menu-item
+              key="copyPath"
+              :disabled="!contextNode"
+            >
+              <LinkOutlined />
+              复制路径
+            </a-menu-item>
+            <a-menu-item
+              key="reveal"
+              :disabled="!contextNode"
+            >
+              <FolderOpenOutlined />
+              在文件管理器中显示
+            </a-menu-item>
 
-              <a-menu-divider />
+            <a-menu-divider />
 
-              <!-- 其他操作 -->
-              <a-menu-item key="copyPath" :disabled="!contextNode">
-                <LinkOutlined />
-                复制路径
-              </a-menu-item>
-              <a-menu-item key="reveal" :disabled="!contextNode">
-                <FolderOpenOutlined />
-                在文件管理器中显示
-              </a-menu-item>
-
-              <a-menu-divider />
-
-              <!-- 导入导出操作 -->
-              <a-menu-item key="export" :disabled="!contextNode">
-                <ExportOutlined />
-                导出到外部
-              </a-menu-item>
-            </template>
+            <!-- 导入导出操作 -->
+            <a-menu-item
+              key="export"
+              :disabled="!contextNode"
+            >
+              <ExportOutlined />
+              导出到外部
+            </a-menu-item>
+          </template>
         </a-menu>
       </div>
     </teleport>
@@ -280,7 +345,7 @@ const fileIconMap = {
 
 // 获取文件图标
 const getFileIcon = (fileName, isFolder) => {
-  if (isFolder) return FolderOutlined;
+  if (isFolder) {return FolderOutlined;}
 
   const ext = fileName.split('.').pop()?.toLowerCase();
   return fileIconMap[ext] || FileOutlined;
@@ -667,7 +732,7 @@ const handleNewFolder = async () => {
 
 // 重命名
 const handleRename = async () => {
-  if (!contextNode.value) return;
+  if (!contextNode.value) {return;}
 
   const currentName = contextNode.value.title;
   let newName = currentName;
@@ -725,7 +790,7 @@ const handleRename = async () => {
 
 // 删除
 const handleDelete = async () => {
-  if (!contextNode.value) return;
+  if (!contextNode.value) {return;}
 
   Modal.confirm({
     title: '确认删除',
@@ -752,7 +817,7 @@ const handleDelete = async () => {
 
 // 复制（同时复制到系统剪贴板）
 const handleCopy = async () => {
-  if (!contextNode.value) return;
+  if (!contextNode.value) {return;}
 
   // 内部剪贴板（用于项目内部复制粘贴）
   clipboard.value = {
@@ -784,7 +849,7 @@ const handleCopy = async () => {
 
 // 剪切（同时复制到系统剪贴板）
 const handleCut = async () => {
-  if (!contextNode.value) return;
+  if (!contextNode.value) {return;}
 
   // 内部剪贴板
   clipboard.value = {
@@ -910,7 +975,7 @@ const handlePaste = async () => {
 
 // 用默认程序打开文件
 const handleOpenDefault = async () => {
-  if (!contextNode.value || !contextNode.value.isLeaf) return;
+  if (!contextNode.value || !contextNode.value.isLeaf) {return;}
 
   try {
     await window.electronAPI.file.openWithDefault({
@@ -926,7 +991,7 @@ const handleOpenDefault = async () => {
 
 // 选择程序打开文件
 const handleOpenWith = async () => {
-  if (!contextNode.value || !contextNode.value.isLeaf) return;
+  if (!contextNode.value || !contextNode.value.isLeaf) {return;}
 
   try {
     await window.electronAPI.file.openWith({
@@ -943,14 +1008,14 @@ const handleOpenWith = async () => {
 
 // 复制路径
 const handleCopyPath = () => {
-  if (!contextNode.value) return;
+  if (!contextNode.value) {return;}
   navigator.clipboard.writeText(contextNode.value.filePath || '');
   message.success('路径已复制到剪贴板');
 };
 
 // 在文件管理器中显示
 const handleReveal = async () => {
-  if (!contextNode.value) return;
+  if (!contextNode.value) {return;}
 
   try {
     await window.electronAPI.file.revealInExplorer({
@@ -969,14 +1034,14 @@ const draggedNode = ref(null);
 
 // 拖拽处理
 const handleDragStart = (event, node) => {
-  if (!props.enableDrag) return;
+  if (!props.enableDrag) {return;}
   event.dataTransfer.effectAllowed = 'move';
   event.dataTransfer.setData('text/plain', JSON.stringify(node));
   draggedNode.value = node;
 };
 
 const handleDragOver = (event, node) => {
-  if (!props.enableDrag) return;
+  if (!props.enableDrag) {return;}
   event.preventDefault();
 
   // 只允许拖拽到文件夹上
@@ -990,13 +1055,13 @@ const handleDragOver = (event, node) => {
 };
 
 const handleDragLeave = (event) => {
-  if (!props.enableDrag) return;
+  if (!props.enableDrag) {return;}
   // 移除拖拽悬停样式
   event.currentTarget.style.backgroundColor = '';
 };
 
 const handleDrop = async (event, targetNode) => {
-  if (!props.enableDrag) return;
+  if (!props.enableDrag) {return;}
   event.preventDefault();
 
   // 移除拖拽悬停样式
@@ -1150,7 +1215,7 @@ const handleImportFiles = async () => {
 
 // 导出文件到外部
 const handleExport = async () => {
-  if (!contextNode.value) return;
+  if (!contextNode.value) {return;}
 
   try {
     exporting.value = true;

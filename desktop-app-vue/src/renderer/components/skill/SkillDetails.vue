@@ -1,6 +1,9 @@
 <template>
   <div class="skill-details">
-    <a-descriptions :column="1" bordered>
+    <a-descriptions
+      :column="1"
+      bordered
+    >
       <a-descriptions-item label="技能ID">
         {{ skill.id }}
       </a-descriptions-item>
@@ -39,20 +42,47 @@
           v-model:value="editForm.category"
           style="width: 200px"
         >
-          <a-select-option value="code">代码开发</a-select-option>
-          <a-select-option value="web">Web开发</a-select-option>
-          <a-select-option value="data">数据处理</a-select-option>
-          <a-select-option value="content">内容创作</a-select-option>
-          <a-select-option value="document">文档处理</a-select-option>
-          <a-select-option value="media">媒体处理</a-select-option>
-          <a-select-option value="ai">AI功能</a-select-option>
-          <a-select-option value="system">系统操作</a-select-option>
-          <a-select-option value="network">网络请求</a-select-option>
-          <a-select-option value="automation">自动化</a-select-option>
-          <a-select-option value="project">项目管理</a-select-option>
-          <a-select-option value="template">模板应用</a-select-option>
+          <a-select-option value="code">
+            代码开发
+          </a-select-option>
+          <a-select-option value="web">
+            Web开发
+          </a-select-option>
+          <a-select-option value="data">
+            数据处理
+          </a-select-option>
+          <a-select-option value="content">
+            内容创作
+          </a-select-option>
+          <a-select-option value="document">
+            文档处理
+          </a-select-option>
+          <a-select-option value="media">
+            媒体处理
+          </a-select-option>
+          <a-select-option value="ai">
+            AI功能
+          </a-select-option>
+          <a-select-option value="system">
+            系统操作
+          </a-select-option>
+          <a-select-option value="network">
+            网络请求
+          </a-select-option>
+          <a-select-option value="automation">
+            自动化
+          </a-select-option>
+          <a-select-option value="project">
+            项目管理
+          </a-select-option>
+          <a-select-option value="template">
+            模板应用
+          </a-select-option>
         </a-select>
-        <a-tag v-else :color="getCategoryColor(skill.category)">
+        <a-tag
+          v-else
+          :color="getCategoryColor(skill.category)"
+        >
           {{ getCategoryName(skill.category) }}
         </a-tag>
       </a-descriptions-item>
@@ -66,7 +96,12 @@
           placeholder="输入标签"
         />
         <div v-else>
-          <a-tag v-for="tag in parsedTags" :key="tag">{{ tag }}</a-tag>
+          <a-tag
+            v-for="tag in parsedTags"
+            :key="tag"
+          >
+            {{ tag }}
+          </a-tag>
           <span v-if="!parsedTags.length">-</span>
         </div>
       </a-descriptions-item>
@@ -79,11 +114,21 @@
       </a-descriptions-item>
 
       <a-descriptions-item label="类型">
-        <a-tag v-if="skill.is_builtin" color="blue">内置</a-tag>
-        <a-tag v-else-if="skill.plugin_id" color="purple">
+        <a-tag
+          v-if="skill.is_builtin"
+          color="blue"
+        >
+          内置
+        </a-tag>
+        <a-tag
+          v-else-if="skill.plugin_id"
+          color="purple"
+        >
           插件 ({{ skill.plugin_id }})
         </a-tag>
-        <a-tag v-else>自定义</a-tag>
+        <a-tag v-else>
+          自定义
+        </a-tag>
       </a-descriptions-item>
     </a-descriptions>
 
@@ -104,7 +149,10 @@
               </template>
               <template #description>
                 <div style="display: flex; gap: 8px; align-items: center">
-                  <a-tag size="small" :color="item.role === 'primary' ? 'blue' : 'default'">
+                  <a-tag
+                    size="small"
+                    :color="item.role === 'primary' ? 'blue' : 'default'"
+                  >
                     {{ item.role }}
                   </a-tag>
                   <span>{{ item.description }}</span>
@@ -117,7 +165,11 @@
           </a-list-item>
         </template>
       </a-list>
-      <a-empty v-else description="暂无关联工具" :image="simpleImage" />
+      <a-empty
+        v-else
+        description="暂无关联工具"
+        :image="simpleImage"
+      />
     </a-spin>
 
     <!-- 文档 -->
@@ -131,7 +183,11 @@
         @skill-link-click="handleSkillLinkClick"
         @tool-link-click="handleToolLinkClick"
       />
-      <a-empty v-else description="暂无文档" :image="simpleImage" />
+      <a-empty
+        v-else
+        description="暂无文档"
+        :image="simpleImage"
+      />
     </ErrorBoundary>
 
     <!-- 配置 -->
@@ -144,7 +200,10 @@
       placeholder="JSON 配置"
       @blur="validateConfig"
     />
-    <div v-if="configError" style="color: #ff4d4f; margin-top: 8px; font-size: 12px">
+    <div
+      v-if="configError"
+      style="color: #ff4d4f; margin-top: 8px; font-size: 12px"
+    >
       {{ configError }}
     </div>
 
@@ -153,10 +212,16 @@
 
     <a-row :gutter="16">
       <a-col :span="8">
-        <a-statistic title="使用次数" :value="skill.usage_count || 0" />
+        <a-statistic
+          title="使用次数"
+          :value="skill.usage_count || 0"
+        />
       </a-col>
       <a-col :span="8">
-        <a-statistic title="成功次数" :value="skill.success_count || 0" />
+        <a-statistic
+          title="成功次数"
+          :value="skill.success_count || 0"
+        />
       </a-col>
       <a-col :span="8">
         <a-statistic
@@ -171,10 +236,29 @@
     <!-- 操作按钮 -->
     <div class="actions">
       <a-space>
-        <a-button v-if="!editing" @click="startEdit">编辑</a-button>
-        <a-button v-if="editing" type="primary" @click="saveEdit" :loading="saving">保存</a-button>
-        <a-button v-if="editing" @click="cancelEdit">取消</a-button>
-        <a-button @click="$emit('close')">关闭</a-button>
+        <a-button
+          v-if="!editing"
+          @click="startEdit"
+        >
+          编辑
+        </a-button>
+        <a-button
+          v-if="editing"
+          type="primary"
+          :loading="saving"
+          @click="saveEdit"
+        >
+          保存
+        </a-button>
+        <a-button
+          v-if="editing"
+          @click="cancelEdit"
+        >
+          取消
+        </a-button>
+        <a-button @click="$emit('close')">
+          关闭
+        </a-button>
       </a-space>
     </div>
   </div>
@@ -228,7 +312,7 @@ const parsedTags = computed(() => {
 // 计算成功率
 const successRate = computed(() => {
   const { usage_count, success_count } = props.skill;
-  if (!usage_count || usage_count === 0) return 0;
+  if (!usage_count || usage_count === 0) {return 0;}
   return ((success_count / usage_count) * 100).toFixed(1);
 });
 

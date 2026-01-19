@@ -1,9 +1,17 @@
 <template>
-  <a-card title="响应缓存详情" class="cache-panel">
+  <a-card
+    title="响应缓存详情"
+    class="cache-panel"
+  >
     <template #extra>
-      <a-tag color="blue"> <DatabaseOutlined /> 缓存系统 </a-tag>
+      <a-tag color="blue">
+        <DatabaseOutlined /> 缓存系统
+      </a-tag>
     </template>
-    <a-skeleton :loading="loading" active>
+    <a-skeleton
+      :loading="loading"
+      active
+    >
       <div class="cache-stats-grid">
         <a-statistic
           title="缓存条目"
@@ -52,8 +60,8 @@
           <a-button
             size="small"
             type="link"
-            @click="$emit('clear-cache')"
             :loading="clearing"
+            @click="$emit('clear-cache')"
           >
             清理过期缓存
           </a-button>

@@ -10,8 +10,14 @@
     >
       <a-form layout="vertical">
         <!-- 内容类型 -->
-        <a-form-item label="内容类型" required>
-          <a-radio-group v-model:value="form.contentType" button-style="solid">
+        <a-form-item
+          label="内容类型"
+          required
+        >
+          <a-radio-group
+            v-model:value="form.contentType"
+            button-style="solid"
+          >
             <a-radio-button value="article">
               <file-text-outlined /> 文章
             </a-radio-button>
@@ -31,7 +37,10 @@
         </a-form-item>
 
         <!-- 标题 -->
-        <a-form-item label="标题" required>
+        <a-form-item
+          label="标题"
+          required
+        >
           <a-input
             v-model:value="form.title"
             placeholder="输入内容标题（最多100字）"
@@ -52,7 +61,10 @@
         </a-form-item>
 
         <!-- 内容 -->
-        <a-form-item label="正文内容" required>
+        <a-form-item
+          label="正文内容"
+          required
+        >
           <a-textarea
             v-model:value="form.content"
             :rows="12"
@@ -76,7 +88,10 @@
         <!-- 定价模式和价格 -->
         <a-row :gutter="16">
           <a-col :span="12">
-            <a-form-item label="定价模式" required>
+            <a-form-item
+              label="定价模式"
+              required
+            >
               <a-select v-model:value="form.pricingModel">
                 <a-select-option value="one_time">
                   <shopping-outlined /> 一次性购买
@@ -91,7 +106,10 @@
             </a-form-item>
           </a-col>
           <a-col :span="12">
-            <a-form-item label="价格（元）" required>
+            <a-form-item
+              label="价格（元）"
+              required
+            >
               <a-input-number
                 v-model:value="form.priceAmount"
                 :min="0"
@@ -99,7 +117,9 @@
                 style="width: 100%"
                 :placeholder="form.pricingModel === 'donation' ? '建议价格（可选）' : '设置价格'"
               >
-                <template #prefix>¥</template>
+                <template #prefix>
+                  ¥
+                </template>
               </a-input-number>
             </a-form-item>
           </a-col>
@@ -114,21 +134,39 @@
             :max-tag-count="5"
             style="width: 100%"
           >
-            <a-select-option value="技术">技术</a-select-option>
-            <a-select-option value="设计">设计</a-select-option>
-            <a-select-option value="商业">商业</a-select-option>
-            <a-select-option value="生活">生活</a-select-option>
-            <a-select-option value="教育">教育</a-select-option>
-            <a-select-option value="娱乐">娱乐</a-select-option>
+            <a-select-option value="技术">
+              技术
+            </a-select-option>
+            <a-select-option value="设计">
+              设计
+            </a-select-option>
+            <a-select-option value="商业">
+              商业
+            </a-select-option>
+            <a-select-option value="生活">
+              生活
+            </a-select-option>
+            <a-select-option value="教育">
+              教育
+            </a-select-option>
+            <a-select-option value="娱乐">
+              娱乐
+            </a-select-option>
           </a-select>
         </a-form-item>
 
         <!-- 访问级别 -->
         <a-form-item label="访问级别">
           <a-radio-group v-model:value="form.accessLevel">
-            <a-radio value="public">公开（所有人可见）</a-radio>
-            <a-radio value="subscribers">仅订阅者</a-radio>
-            <a-radio value="private">私有（仅自己）</a-radio>
+            <a-radio value="public">
+              公开（所有人可见）
+            </a-radio>
+            <a-radio value="subscribers">
+              仅订阅者
+            </a-radio>
+            <a-radio value="private">
+              私有（仅自己）
+            </a-radio>
           </a-radio-group>
         </a-form-item>
       </a-form>

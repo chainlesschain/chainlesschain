@@ -52,7 +52,7 @@ class CancellationToken {
    * 请求取消
    */
   cancel(reason = 'User cancelled') {
-    if (this.cancelled) return;
+    if (this.cancelled) {return;}
 
     this.cancelled = true;
     this.cancelReason = reason;
@@ -582,8 +582,8 @@ class StreamingResponse {
     try {
       const { taskId, eventType, limit = 100, offset = 0 } = options;
 
-      let whereClauses = [];
-      let params = [];
+      const whereClauses = [];
+      const params = [];
 
       if (taskId) {
         whereClauses.push('task_id = ?');

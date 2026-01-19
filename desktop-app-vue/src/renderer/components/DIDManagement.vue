@@ -1,6 +1,9 @@
 ﻿<template>
   <div class="did-management">
-    <a-card title="DID 身份管理" :loading="loading">
+    <a-card
+      title="DID 身份管理"
+      :loading="loading"
+    >
       <template #extra>
         <a-space>
           <!-- 自动重新发布状态 -->
@@ -9,26 +12,42 @@
             :text="autoRepublishStatus.enabled ? '自动重新发布' : '未启用'"
           />
           <a-button @click="showAutoRepublishModal = true">
-            <template #icon><setting-outlined /></template>
+            <template #icon>
+              <setting-outlined />
+            </template>
             自动发布设置
           </a-button>
-          <a-button type="primary" @click="showCreateModal = true">
-            <template #icon><plus-outlined /></template>
+          <a-button
+            type="primary"
+            @click="showCreateModal = true"
+          >
+            <template #icon>
+              <plus-outlined />
+            </template>
             创建新身份
           </a-button>
         </a-space>
       </template>
 
       <!-- 身份列表 -->
-      <div v-if="identities.length === 0" class="empty-state">
+      <div
+        v-if="identities.length === 0"
+        class="empty-state"
+      >
         <a-empty description="暂无身份">
-          <a-button type="primary" @click="showCreateModal = true">
+          <a-button
+            type="primary"
+            @click="showCreateModal = true"
+          >
             创建第一个身份
           </a-button>
         </a-empty>
       </div>
 
-      <a-row v-else :gutter="[16, 16]">
+      <a-row
+        v-else
+        :gutter="[16, 16]"
+      >
         <a-col
           v-for="identity in identities"
           :key="identity.did"
@@ -43,7 +62,10 @@
           >
             <template #title>
               <div class="identity-header">
-                <a-avatar :size="48" :src="identity.avatar_path">
+                <a-avatar
+                  :size="48"
+                  :src="identity.avatar_path"
+                >
                   {{ identity.nickname?.charAt(0) || "A" }}
                 </a-avatar>
                 <div class="identity-title">
@@ -57,7 +79,10 @@
                       默认
                     </a-tag>
                   </div>
-                  <div class="did-short" :title="identity.did">
+                  <div
+                    class="did-short"
+                    :title="identity.did"
+                  >
                     {{ shortenDID(identity.did) }}
                   </div>
                 </div>
@@ -70,7 +95,10 @@
                   v-if="!identity.is_default"
                   @click="handleSetDefault(identity.did)"
                 />
-                <star-filled v-else style="color: #faad14" />
+                <star-filled
+                  v-else
+                  style="color: #faad14"
+                />
               </a-tooltip>
               <a-tooltip title="查看详情">
                 <eye-outlined @click="handleViewDetails(identity)" />
@@ -81,14 +109,19 @@
               <a-tooltip title="删除">
                 <delete-outlined
                   v-if="!identity.is_default"
-                  @click="handleDelete(identity.did)"
                   style="color: #ff4d4f"
+                  @click="handleDelete(identity.did)"
                 />
               </a-tooltip>
             </template>
 
             <div class="identity-content">
-              <p v-if="identity.bio" class="bio">{{ identity.bio }}</p>
+              <p
+                v-if="identity.bio"
+                class="bio"
+              >
+                {{ identity.bio }}
+              </p>
               <div class="metadata">
                 <div class="metadata-item">
                   <span class="label">创建时间:</span>
@@ -126,8 +159,8 @@
       v-model:open="showCreateModal"
       title="创建新的 DID 身份"
       :width="700"
-      @ok="handleCreateIdentity"
       :confirm-loading="creating"
+      @ok="handleCreateIdentity"
     >
       <a-alert
         v-if="!createForm.useMnemonic"
@@ -148,11 +181,17 @@
             <a-radio :value="false">
               <safety-outlined /> 生成新身份（推荐）
             </a-radio>
-            <a-radio :value="true"> <key-outlined /> 从助记词恢复 </a-radio>
+            <a-radio :value="true">
+              <key-outlined /> 从助记词恢复
+            </a-radio>
           </a-radio-group>
         </a-form-item>
 
-        <a-form-item v-if="createForm.useMnemonic" label="助记词" required>
+        <a-form-item
+          v-if="createForm.useMnemonic"
+          label="助记词"
+          required
+        >
           <a-textarea
             v-model:value="createForm.mnemonic"
             placeholder="请输入 12 或 24 个助记词，用空格分隔"
@@ -164,7 +203,10 @@
           </div>
         </a-form-item>
 
-        <a-form-item label="昵称" required>
+        <a-form-item
+          label="昵称"
+          required
+        >
           <a-input
             v-model:value="createForm.nickname"
             placeholder="请输入昵称"
@@ -187,12 +229,16 @@
             v-model:value="createForm.avatar"
             placeholder="头像路径或URL（可选）"
           />
-          <div class="form-hint">暂不支持上传，请输入本地路径或在线URL</div>
+          <div class="form-hint">
+            暂不支持上传，请输入本地路径或在线URL
+          </div>
         </a-form-item>
 
         <a-form-item label="设为默认">
           <a-switch v-model:checked="createForm.setAsDefault" />
-          <div class="form-hint">默认身份将用于 P2P 通信和内容发布</div>
+          <div class="form-hint">
+            默认身份将用于 P2P 通信和内容发布
+          </div>
         </a-form-item>
       </a-form>
     </a-modal>
@@ -204,8 +250,14 @@
       :width="800"
       :footer="null"
     >
-      <div v-if="currentIdentity" class="identity-details">
-        <a-descriptions bordered :column="1">
+      <div
+        v-if="currentIdentity"
+        class="identity-details"
+      >
+        <a-descriptions
+          bordered
+          :column="1"
+        >
           <a-descriptions-item label="DID 标识符">
             <a-typography-paragraph
               :copyable="{ text: currentIdentity.did }"
@@ -318,18 +370,24 @@
         <div class="actions-section">
           <a-space>
             <a-button @click="handleViewDIDDocument">
-              <template #icon><file-text-outlined /></template>
+              <template #icon>
+                <file-text-outlined />
+              </template>
               查看 DID 文档
             </a-button>
             <a-button @click="handleExportDocument">
-              <template #icon><download-outlined /></template>
+              <template #icon>
+                <download-outlined />
+              </template>
               导出 DID 文档
             </a-button>
             <a-button
               type="primary"
               @click="handleGenerateQR(currentIdentity.did)"
             >
-              <template #icon><qrcode-outlined /></template>
+              <template #icon>
+                <qrcode-outlined />
+              </template>
               生成二维码
             </a-button>
           </a-space>
@@ -349,8 +407,13 @@
           JSON.stringify(didDocument, null, 2)
         }}</pre>
       </a-typography>
-      <a-button type="primary" @click="handleCopyDocument">
-        <template #icon><copy-outlined /></template>
+      <a-button
+        type="primary"
+        @click="handleCopyDocument"
+      >
+        <template #icon>
+          <copy-outlined />
+        </template>
         复制 JSON
       </a-button>
     </a-modal>
@@ -363,10 +426,21 @@
       :footer="null"
     >
       <div class="qr-container">
-        <div id="qrcode" ref="qrcodeContainer"></div>
-        <p class="qr-hint">扫描此二维码可快速添加为联系人</p>
-        <a-button type="primary" block @click="handleSaveQR">
-          <template #icon><download-outlined /></template>
+        <div
+          id="qrcode"
+          ref="qrcodeContainer"
+        />
+        <p class="qr-hint">
+          扫描此二维码可快速添加为联系人
+        </p>
+        <a-button
+          type="primary"
+          block
+          @click="handleSaveQR"
+        >
+          <template #icon>
+            <download-outlined />
+          </template>
           保存二维码
         </a-button>
       </div>
@@ -387,7 +461,10 @@
         style="margin-bottom: 24px"
       />
 
-      <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
+      <a-form
+        :label-col="{ span: 6 }"
+        :wrapper-col="{ span: 18 }"
+      >
         <a-form-item label="启用自动重新发布">
           <a-switch v-model:checked="autoRepublishConfig.enabled" />
           <div class="form-hint">
@@ -395,7 +472,10 @@
           </div>
         </a-form-item>
 
-        <a-form-item label="重新发布间隔" v-if="autoRepublishConfig.enabled">
+        <a-form-item
+          v-if="autoRepublishConfig.enabled"
+          label="重新发布间隔"
+        >
           <a-input-number
             v-model:value="autoRepublishConfig.intervalHours"
             :min="1"
@@ -410,7 +490,10 @@
         </a-form-item>
 
         <a-form-item label="当前状态">
-          <a-space direction="vertical" style="width: 100%">
+          <a-space
+            direction="vertical"
+            style="width: 100%"
+          >
             <div>
               <a-badge
                 :status="autoRepublishStatus.enabled ? 'processing' : 'default'"
@@ -438,7 +521,7 @@
       title="备份助记词"
       :width="700"
       :closable="false"
-      :maskClosable="false"
+      :mask-closable="false"
       :keyboard="false"
     >
       <template #footer>
@@ -446,14 +529,17 @@
           <a-button @click="handleDownloadMnemonic">
             <download-outlined /> 下载备份
           </a-button>
-          <a-button type="primary" @click="handleCopyMnemonic">
+          <a-button
+            type="primary"
+            @click="handleCopyMnemonic"
+          >
             <copy-outlined /> 复制助记词
           </a-button>
           <a-button
             type="primary"
             danger
-            @click="handleConfirmMnemonicBackup"
             :disabled="!mnemonicCopied"
+            @click="handleConfirmMnemonicBackup"
           >
             我已安全备份
           </a-button>
@@ -534,13 +620,19 @@
         </div>
 
         <a-space style="margin-top: 24px; width: 100%; justify-content: center">
-          <a-button type="primary" @click="handleCopyExportedMnemonic">
+          <a-button
+            type="primary"
+            @click="handleCopyExportedMnemonic"
+          >
             <copy-outlined /> 复制助记词
           </a-button>
           <a-button @click="handleDownloadExportedMnemonic">
             <download-outlined /> 下载备份
           </a-button>
-          <a-button danger @click="showMnemonicExportModal = false">
+          <a-button
+            danger
+            @click="showMnemonicExportModal = false"
+          >
             关闭
           </a-button>
         </a-space>
@@ -873,7 +965,7 @@ function handleDelete(did) {
 
 // 缩短 DID 显示
 function shortenDID(did) {
-  if (!did) return "";
+  if (!did) {return "";}
   const parts = did.split(":");
   if (parts.length === 3) {
     const identifier = parts[2];
@@ -886,7 +978,7 @@ function shortenDID(did) {
 
 // 格式化日期
 function formatDate(timestamp) {
-  if (!timestamp) return "未知";
+  if (!timestamp) {return "未知";}
   const date = new Date(timestamp);
   return date.toLocaleString("zh-CN");
 }

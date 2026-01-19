@@ -251,25 +251,25 @@ class WebRTCQualityMonitor extends EventEmitter {
     let score = 100;
 
     // 丢包率影响（权重40%）
-    if (packetLoss > 10) score -= 40;
-    else if (packetLoss > 5) score -= 30;
-    else if (packetLoss > 2) score -= 15;
+    if (packetLoss > 10) {score -= 40;}
+    else if (packetLoss > 5) {score -= 30;}
+    else if (packetLoss > 2) {score -= 15;}
 
     // RTT影响（权重30%）
-    if (rtt > 500) score -= 30;
-    else if (rtt > 300) score -= 20;
-    else if (rtt > 150) score -= 10;
+    if (rtt > 500) {score -= 30;}
+    else if (rtt > 300) {score -= 20;}
+    else if (rtt > 150) {score -= 10;}
 
     // 抖动影响（权重30%）
-    if (jitter > 100) score -= 30;
-    else if (jitter > 50) score -= 20;
-    else if (jitter > 30) score -= 10;
+    if (jitter > 100) {score -= 30;}
+    else if (jitter > 50) {score -= 20;}
+    else if (jitter > 30) {score -= 10;}
 
     // 根据分数确定质量等级
-    if (score >= 90) return QualityLevel.EXCELLENT;
-    if (score >= 75) return QualityLevel.GOOD;
-    if (score >= 50) return QualityLevel.FAIR;
-    if (score >= 25) return QualityLevel.POOR;
+    if (score >= 90) {return QualityLevel.EXCELLENT;}
+    if (score >= 75) {return QualityLevel.GOOD;}
+    if (score >= 50) {return QualityLevel.FAIR;}
+    if (score >= 25) {return QualityLevel.POOR;}
     return QualityLevel.CRITICAL;
   }
 

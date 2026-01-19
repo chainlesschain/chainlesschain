@@ -9,8 +9,15 @@
     >
       <div v-if="content">
         <!-- 内容信息 -->
-        <a-card size="small" style="margin-bottom: 16px">
-          <a-descriptions :column="3" size="small" bordered>
+        <a-card
+          size="small"
+          style="margin-bottom: 16px"
+        >
+          <a-descriptions
+            :column="3"
+            size="small"
+            bordered
+          >
             <a-descriptions-item label="内容类型">
               <a-tag :color="getTypeColor(content.contentType)">
                 {{ getTypeName(content.contentType) }}
@@ -22,18 +29,31 @@
               </a-tag>
             </a-descriptions-item>
             <a-descriptions-item label="价格">
-              <a-tag color="orange" style="font-size: 16px">
+              <a-tag
+                color="orange"
+                style="font-size: 16px"
+              >
                 ¥{{ content.priceAmount }}
               </a-tag>
             </a-descriptions-item>
             <a-descriptions-item label="浏览量">
-              <a-statistic :value="content.viewCount" :value-style="{ fontSize: '14px' }">
-                <template #prefix><eye-outlined /></template>
+              <a-statistic
+                :value="content.viewCount"
+                :value-style="{ fontSize: '14px' }"
+              >
+                <template #prefix>
+                  <eye-outlined />
+                </template>
               </a-statistic>
             </a-descriptions-item>
             <a-descriptions-item label="购买量">
-              <a-statistic :value="content.purchaseCount" :value-style="{ fontSize: '14px' }">
-                <template #prefix><shopping-outlined /></template>
+              <a-statistic
+                :value="content.purchaseCount"
+                :value-style="{ fontSize: '14px' }"
+              >
+                <template #prefix>
+                  <shopping-outlined />
+                </template>
               </a-statistic>
             </a-descriptions-item>
             <a-descriptions-item label="评分">
@@ -44,24 +64,42 @@
                 allow-half
                 style="font-size: 14px"
               />
-              <span v-else style="color: #999">暂无评分</span>
+              <span
+                v-else
+                style="color: #999"
+              >暂无评分</span>
             </a-descriptions-item>
-            <a-descriptions-item label="创作者" :span="3">
+            <a-descriptions-item
+              label="创作者"
+              :span="3"
+            >
               <a-space>
                 <user-outlined />
-                <a-typography-text copyable style="font-size: 12px">
+                <a-typography-text
+                  copyable
+                  style="font-size: 12px"
+                >
                   {{ content.creatorDid }}
                 </a-typography-text>
               </a-space>
             </a-descriptions-item>
-            <a-descriptions-item v-if="content.description" label="描述" :span="3">
+            <a-descriptions-item
+              v-if="content.description"
+              label="描述"
+              :span="3"
+            >
               {{ content.description }}
             </a-descriptions-item>
           </a-descriptions>
         </a-card>
 
         <!-- 预览内容 -->
-        <a-card v-if="content.preview" title="内容预览" size="small" style="margin-bottom: 16px">
+        <a-card
+          v-if="content.preview"
+          title="内容预览"
+          size="small"
+          style="margin-bottom: 16px"
+        >
           <div class="content-preview-text">
             {{ content.preview.text || content.preview }}
           </div>
@@ -75,10 +113,15 @@
             show-icon
             style="margin-bottom: 16px"
           >
-            <template #icon><check-circle-outlined /></template>
+            <template #icon>
+              <check-circle-outlined />
+            </template>
           </a-alert>
 
-          <a-card title="完整内容" size="small">
+          <a-card
+            title="完整内容"
+            size="small"
+          >
             <a-spin :spinning="loadingContent">
               <div class="content-full-text">
                 {{ contentDetail }}
@@ -105,7 +148,10 @@
           </a-alert>
 
           <!-- 购买选项 -->
-          <a-card title="购买选项" size="small">
+          <a-card
+            title="购买选项"
+            size="small"
+          >
             <a-form layout="vertical">
               <!-- 支付资产选择 -->
               <a-form-item label="支付方式">
@@ -119,17 +165,25 @@
 
               <!-- 购买按钮 -->
               <a-form-item>
-                <a-space size="large" style="width: 100%; justify-content: center">
+                <a-space
+                  size="large"
+                  style="width: 100%; justify-content: center"
+                >
                   <a-button
                     type="primary"
                     size="large"
                     :loading="purchasing"
                     @click="handlePurchase"
                   >
-                    <template #icon><shopping-outlined /></template>
+                    <template #icon>
+                      <shopping-outlined />
+                    </template>
                     {{ getPurchaseButtonText() }}
                   </a-button>
-                  <a-button size="large" @click="handleClose">
+                  <a-button
+                    size="large"
+                    @click="handleClose"
+                  >
                     取消
                   </a-button>
                 </a-space>
@@ -221,7 +275,7 @@ const getPricingModelName = (model) => {
 };
 
 const getPurchaseButtonText = () => {
-  if (!props.content) return '购买';
+  if (!props.content) {return '购买';}
 
   if (props.content.pricingModel === 'donation') {
     return `打赏 ¥${props.content.priceAmount}`;
@@ -234,7 +288,7 @@ const getPurchaseButtonText = () => {
 
 // 检查访问权限
 const checkAccess = async () => {
-  if (!props.content) return;
+  if (!props.content) {return;}
 
   try {
     // 获取当前用户DID
@@ -266,7 +320,7 @@ const checkAccess = async () => {
 
 // 加载完整内容
 const loadFullContent = async () => {
-  if (!props.content) return;
+  if (!props.content) {return;}
 
   try {
     loadingContent.value = true;
@@ -288,7 +342,7 @@ const loadFullContent = async () => {
 // 购买内容
 const handlePurchase = async () => {
   try {
-    if (!props.content) return;
+    if (!props.content) {return;}
 
     purchasing.value = true;
 

@@ -517,8 +517,8 @@ class AdvancedVoiceCommands extends EventEmitter {
    */
   findExactMatch(text, context) {
     for (const [name, command] of this.commands) {
-      if (!command.enabled) continue;
-      if (!this.isContextMatch(command, context)) continue;
+      if (!command.enabled) {continue;}
+      if (!this.isContextMatch(command, context)) {continue;}
 
       for (const pattern of command.patterns) {
         if (pattern.toLowerCase() === text) {
@@ -538,8 +538,8 @@ class AdvancedVoiceCommands extends EventEmitter {
     let bestConfidence = 0;
 
     for (const [name, command] of this.commands) {
-      if (!command.enabled) continue;
-      if (!this.isContextMatch(command, context)) continue;
+      if (!command.enabled) {continue;}
+      if (!this.isContextMatch(command, context)) {continue;}
 
       for (const pattern of command.patterns) {
         const confidence = this.calculateSimilarity(text, pattern.toLowerCase());
@@ -565,7 +565,7 @@ class AdvancedVoiceCommands extends EventEmitter {
 
     // 意图识别
     const intent = this.detectIntent(text);
-    if (!intent) return null;
+    if (!intent) {return null;}
 
     // 实体提取
     const entities = this.extractEntities(text);
@@ -657,8 +657,8 @@ class AdvancedVoiceCommands extends EventEmitter {
     const len2 = str2.length;
     const dp = Array(len1 + 1).fill(null).map(() => Array(len2 + 1).fill(0));
 
-    for (let i = 0; i <= len1; i++) dp[i][0] = i;
-    for (let j = 0; j <= len2; j++) dp[0][j] = j;
+    for (let i = 0; i <= len1; i++) {dp[i][0] = i;}
+    for (let j = 0; j <= len2; j++) {dp[0][j] = j;}
 
     for (let i = 1; i <= len1; i++) {
       for (let j = 1; j <= len2; j++) {
@@ -743,7 +743,7 @@ class AdvancedVoiceCommands extends EventEmitter {
    */
   executeMacro(name, context) {
     const commands = this.macros.get(name);
-    if (!commands) return null;
+    if (!commands) {return null;}
 
     return {
       type: 'macro',

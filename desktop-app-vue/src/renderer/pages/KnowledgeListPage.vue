@@ -13,12 +13,15 @@
         <div class="header-right">
           <a-space>
             <a-input-search
+              v-model:value="searchQuery"
               placeholder="搜索知识..."
               style="width: 300px"
-              v-model:value="searchQuery"
               @search="handleSearch"
             />
-            <a-button type="primary" size="large">
+            <a-button
+              type="primary"
+              size="large"
+            >
               <PlusOutlined />
               新建知识
             </a-button>
@@ -38,11 +41,14 @@
           <a-list-item>
             <a-card
               hoverable
-              @click="viewDetail(item)"
               class="knowledge-card"
+              @click="viewDetail(item)"
             >
               <template #cover>
-                <div class="card-cover" :style="{ background: getRandomGradient() }">
+                <div
+                  class="card-cover"
+                  :style="{ background: getRandomGradient() }"
+                >
                   <FileTextOutlined style="font-size: 48px; color: white" />
                 </div>
               </template>
@@ -71,9 +77,16 @@
           <div class="list-header">
             <span>共 {{ filteredKnowledgeItems.length }} 条知识</span>
             <a-space>
-              <a-select v-model:value="sortBy" style="width: 120px">
-                <a-select-option value="time">按时间</a-select-option>
-                <a-select-option value="title">按标题</a-select-option>
+              <a-select
+                v-model:value="sortBy"
+                style="width: 120px"
+              >
+                <a-select-option value="time">
+                  按时间
+                </a-select-option>
+                <a-select-option value="title">
+                  按标题
+                </a-select-option>
               </a-select>
             </a-space>
           </div>

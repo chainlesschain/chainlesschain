@@ -6,12 +6,18 @@
       class="list-item-skeleton"
       :style="{ animationDelay: `${i * 0.05}s` }"
     >
-      <div class="item-icon skeleton-box"></div>
+      <div class="item-icon skeleton-box" />
       <div class="item-content">
-        <div class="skeleton-box title" :style="{ width: getTitleWidth(i) }"></div>
-        <div class="skeleton-box description" :style="{ width: getDescWidth(i) }"></div>
+        <div
+          class="skeleton-box title"
+          :style="{ width: getTitleWidth(i) }"
+        />
+        <div
+          class="skeleton-box description"
+          :style="{ width: getDescWidth(i) }"
+        />
       </div>
-      <div class="item-meta skeleton-box"></div>
+      <div class="item-meta skeleton-box" />
     </div>
   </div>
 </template>

@@ -491,8 +491,8 @@ async function testPhase2RealTools() {
     const statusIcon = result.status === '通过' ? '✅' :
                       result.status === '跳过' ? '⏭️' : '❌';
     console.log(`${index + 1}. ${statusIcon} ${result.test} - ${result.status}`);
-    if (result.file) console.log(`   文件: ${result.file}`);
-    if (result.error) console.log(`   错误: ${result.error}`);
+    if (result.file) {console.log(`   文件: ${result.file}`);}
+    if (result.error) {console.log(`   错误: ${result.error}`);}
   });
 
   console.log('\n========================================');

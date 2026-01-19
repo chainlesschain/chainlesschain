@@ -643,7 +643,7 @@ class ExtendedTools9 {
       ];
 
       const distance = waypoints.reduce((sum, wp, i) => {
-        if (i === 0) return 0;
+        if (i === 0) {return 0;}
         const prev = waypoints[i - 1];
         return sum + Math.sqrt((wp.lat - prev.lat)**2 + (wp.lon - prev.lon)**2) * 111; // 近似km
       }, 0);
@@ -728,7 +728,7 @@ class ExtendedTools9 {
       ];
 
       const distance = waypoints.reduce((sum, wp, i) => {
-        if (i === 0) return 0;
+        if (i === 0) {return 0;}
         const prev = waypoints[i - 1];
         const lat_diff = wp.lat - prev.lat;
         const lon_diff = wp.lon - prev.lon;

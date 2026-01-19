@@ -1,10 +1,13 @@
 <template>
   <div v-if="!loading">
     <!-- 如果有权限，显示内容 -->
-    <slot v-if="hasPermission"></slot>
+    <slot v-if="hasPermission" />
 
     <!-- 如果没有权限，显示提示 -->
-    <div v-else class="permission-denied">
+    <div
+      v-else
+      class="permission-denied"
+    >
       <a-empty
         v-if="showEmpty"
         :description="emptyDescription || defaultEmptyDescription"
@@ -12,7 +15,11 @@
         <template #image>
           <LockOutlined style="font-size: 48px; color: #ff4d4f;" />
         </template>
-        <a-button type="primary" @click="handleContactAdmin" v-if="showContactButton">
+        <a-button
+          v-if="showContactButton"
+          type="primary"
+          @click="handleContactAdmin"
+        >
           联系管理员
         </a-button>
       </a-empty>
@@ -31,12 +38,18 @@
       </a-alert>
 
       <!-- 自定义无权限内容 -->
-      <slot name="denied" v-else-if="$slots.denied"></slot>
+      <slot
+        v-else-if="$slots.denied"
+        name="denied"
+      />
     </div>
   </div>
 
   <!-- 加载中状态 -->
-  <div v-else class="permission-loading">
+  <div
+    v-else
+    class="permission-loading"
+  >
     <a-spin tip="检查权限中..." />
   </div>
 </template>

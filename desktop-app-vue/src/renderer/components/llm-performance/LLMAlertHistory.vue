@@ -1,5 +1,8 @@
 <template>
-  <a-card title="告警历史" class="alert-history-card">
+  <a-card
+    title="告警历史"
+    class="alert-history-card"
+  >
     <template #extra>
       <a-space>
         <a-select
@@ -7,24 +10,34 @@
           placeholder="筛选级别"
           style="width: 120px"
           size="small"
-          allowClear
+          allow-clear
         >
-          <a-select-option value="warning">警告</a-select-option>
-          <a-select-option value="critical">危险</a-select-option>
+          <a-select-option value="warning">
+            警告
+          </a-select-option>
+          <a-select-option value="critical">
+            危险
+          </a-select-option>
         </a-select>
         <a-button
           size="small"
           type="link"
-          @click="$emit('clear-history')"
           :disabled="!alerts.length"
+          @click="$emit('clear-history')"
         >
           清除历史
         </a-button>
       </a-space>
     </template>
 
-    <a-skeleton :loading="loading" active>
-      <div v-if="filteredAlerts.length > 0" class="alert-timeline">
+    <a-skeleton
+      :loading="loading"
+      active
+    >
+      <div
+        v-if="filteredAlerts.length > 0"
+        class="alert-timeline"
+      >
         <a-timeline>
           <a-timeline-item
             v-for="alert in filteredAlerts"
@@ -36,11 +49,17 @@
                 v-if="alert.level === 'critical'"
                 style="font-size: 16px"
               />
-              <AlertOutlined v-else style="font-size: 16px" />
+              <AlertOutlined
+                v-else
+                style="font-size: 16px"
+              />
             </template>
             <div class="alert-item">
               <div class="alert-header">
-                <a-tag :color="getAlertColor(alert.level)" size="small">
+                <a-tag
+                  :color="getAlertColor(alert.level)"
+                  size="small"
+                >
                   {{ alert.level === "critical" ? "危险" : "警告" }}
                 </a-tag>
                 <span class="alert-type">{{ alert.type }}</span>
@@ -48,9 +67,17 @@
                   formatTime(alert.timestamp)
                 }}</span>
               </div>
-              <div class="alert-message">{{ alert.message }}</div>
-              <div class="alert-details" v-if="alert.details">
-                <a-descriptions size="small" :column="2">
+              <div class="alert-message">
+                {{ alert.message }}
+              </div>
+              <div
+                v-if="alert.details"
+                class="alert-details"
+              >
+                <a-descriptions
+                  size="small"
+                  :column="2"
+                >
                   <a-descriptions-item label="预算类型">
                     {{ alert.details.budgetType || "-" }}
                   </a-descriptions-item>
@@ -77,7 +104,10 @@
                   </a-descriptions-item>
                 </a-descriptions>
               </div>
-              <div class="alert-actions" v-if="!alert.dismissed">
+              <div
+                v-if="!alert.dismissed"
+                class="alert-actions"
+              >
                 <a-button
                   size="small"
                   type="link"
@@ -86,7 +116,10 @@
                   忽略此告警
                 </a-button>
               </div>
-              <div class="dismissed-badge" v-else>
+              <div
+                v-else
+                class="dismissed-badge"
+              >
                 <CheckCircleOutlined /> 已处理
               </div>
             </div>

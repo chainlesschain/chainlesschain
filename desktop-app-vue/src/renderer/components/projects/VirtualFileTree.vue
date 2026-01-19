@@ -1,6 +1,9 @@
 <template>
   <div class="virtual-file-tree">
-    <a-spin :spinning="loading" tip="加载中...">
+    <a-spin
+      :spinning="loading"
+      tip="加载中..."
+    >
       <div class="tree-header">
         <div class="tree-search">
           <a-input
@@ -18,8 +21,8 @@
           <a-button
             type="primary"
             size="small"
-            @click="handleImportFiles"
             :loading="importing"
+            @click="handleImportFiles"
           >
             <template #icon>
               <ImportOutlined />
@@ -67,10 +70,19 @@
                 class="tree-node-switcher"
                 @click.stop="toggleExpand(item)"
               >
-                <RightOutlined v-if="!item.expanded" class="tree-icon" />
-                <DownOutlined v-else class="tree-icon" />
+                <RightOutlined
+                  v-if="!item.expanded"
+                  class="tree-icon"
+                />
+                <DownOutlined
+                  v-else
+                  class="tree-icon"
+                />
               </span>
-              <span v-else class="tree-node-switcher-placeholder"></span>
+              <span
+                v-else
+                class="tree-node-switcher-placeholder"
+              />
 
               <!-- 文件/文件夹图标 -->
               <component
@@ -79,7 +91,10 @@
               />
 
               <!-- 文件名 -->
-              <span class="tree-node-title" :title="item.title">
+              <span
+                class="tree-node-title"
+                :title="item.title"
+              >
                 {{ item.title }}
               </span>
 
@@ -102,10 +117,13 @@
         v-model:open="contextMenuVisible"
         :trigger="['contextmenu']"
       >
-        <div></div>
+        <div />
         <template #overlay>
           <a-menu @click="handleMenuClick">
-            <a-menu-item v-if="contextNode?.isLeaf" key="open">
+            <a-menu-item
+              v-if="contextNode?.isLeaf"
+              key="open"
+            >
               <FileOutlined />
               打开
             </a-menu-item>
@@ -122,7 +140,10 @@
               <EditOutlined />
               重命名
             </a-menu-item>
-            <a-menu-item key="delete" danger>
+            <a-menu-item
+              key="delete"
+              danger
+            >
               <DeleteOutlined />
               删除
             </a-menu-item>
@@ -325,7 +346,7 @@ const totalHeight = computed(() => {
 
 // 可见区域的节点
 const visibleItems = computed(() => {
-  if (flattenedNodes.value.length === 0) return [];
+  if (flattenedNodes.value.length === 0) {return [];}
 
   const startIndex = Math.max(0, Math.floor(scrollTop.value / itemHeight) - bufferSize);
   const endIndex = Math.min(
@@ -343,7 +364,7 @@ const handleScroll = (e) => {
 
 // 切换展开/收起
 const toggleExpand = (item) => {
-  if (item.isLeaf) return;
+  if (item.isLeaf) {return;}
 
   if (expandedKeys.value.has(item.key)) {
     expandedKeys.value.delete(item.key);
@@ -834,7 +855,7 @@ const getFileIcon = (item) => {
 };
 
 const getIconColor = (item) => {
-  if (!item.isLeaf) return 'folder-icon';
+  if (!item.isLeaf) {return 'folder-icon';}
 
   const ext = item.title.split('.').pop()?.toLowerCase();
   const colorMap = {

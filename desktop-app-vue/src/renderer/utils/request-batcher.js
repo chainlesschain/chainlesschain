@@ -145,7 +145,7 @@ class RequestBatcher {
    */
   async executeBatch(batchKey) {
     const batch = this.pendingRequests.get(batchKey)
-    if (!batch || batch.requests.length === 0) return
+    if (!batch || batch.requests.length === 0) {return}
 
     this.pendingRequests.delete(batchKey)
 
@@ -310,7 +310,7 @@ class RequestBatcher {
   getFromCache(key) {
     const entry = this.cache.get(key)
 
-    if (!entry) return null
+    if (!entry) {return null}
 
     const age = Date.now() - entry.timestamp
 

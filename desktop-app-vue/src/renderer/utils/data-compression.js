@@ -19,7 +19,7 @@ let pako = null
 
 // Try to import pako
 const loadPako = async () => {
-  if (pako) return pako
+  if (pako) {return pako}
 
   try {
     // Try dynamic import (requires bundler support)

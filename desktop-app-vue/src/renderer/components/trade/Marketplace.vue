@@ -9,33 +9,59 @@
       </template>
       <template #extra>
         <a-space>
-          <a-button type="primary" @click="showCreateModal = true">
-            <template #icon><plus-outlined /></template>
+          <a-button
+            type="primary"
+            @click="showCreateModal = true"
+          >
+            <template #icon>
+              <plus-outlined />
+            </template>
             发布订单
           </a-button>
           <a-button @click="loadOrders">
-            <template #icon><reload-outlined /></template>
+            <template #icon>
+              <reload-outlined />
+            </template>
             刷新
           </a-button>
         </a-space>
       </template>
 
       <!-- 标签页 -->
-      <a-tabs v-model:activeKey="activeTab" @change="handleTabChange">
-        <a-tab-pane key="market" tab="市场订单">
+      <a-tabs
+        v-model:active-key="activeTab"
+        @change="handleTabChange"
+      >
+        <a-tab-pane
+          key="market"
+          tab="市场订单"
+        >
           <!-- 基础筛选器 -->
-          <a-space style="margin-bottom: 16px" wrap>
+          <a-space
+            style="margin-bottom: 16px"
+            wrap
+          >
             <span>订单类型:</span>
             <a-radio-group
               v-model:value="filterType"
               button-style="solid"
               @change="handleFilterChange"
             >
-              <a-radio-button value="">全部</a-radio-button>
-              <a-radio-button value="buy">求购</a-radio-button>
-              <a-radio-button value="sell">出售</a-radio-button>
-              <a-radio-button value="service">服务</a-radio-button>
-              <a-radio-button value="barter">以物换物</a-radio-button>
+              <a-radio-button value="">
+                全部
+              </a-radio-button>
+              <a-radio-button value="buy">
+                求购
+              </a-radio-button>
+              <a-radio-button value="sell">
+                出售
+              </a-radio-button>
+              <a-radio-button value="service">
+                服务
+              </a-radio-button>
+              <a-radio-button value="barter">
+                以物换物
+              </a-radio-button>
             </a-radio-group>
 
             <a-auto-complete
@@ -56,7 +82,9 @@
             </a-auto-complete>
 
             <a-button @click="showAdvancedFilter = !showAdvancedFilter">
-              <template #icon><filter-outlined /></template>
+              <template #icon>
+                <filter-outlined />
+              </template>
               高级筛选
             </a-button>
           </a-space>
@@ -100,28 +128,41 @@
                     v-model:value="advancedFilters.sortBy"
                     style="width: 100%"
                   >
-                    <a-select-option value="created_at"
-                      >创建时间</a-select-option
-                    >
-                    <a-select-option value="price_amount">价格</a-select-option>
-                    <a-select-option value="quantity">数量</a-select-option>
+                    <a-select-option value="created_at">
+                      创建时间
+                    </a-select-option>
+                    <a-select-option value="price_amount">
+                      价格
+                    </a-select-option>
+                    <a-select-option value="quantity">
+                      数量
+                    </a-select-option>
                   </a-select>
                 </a-form-item>
               </a-col>
               <a-col :span="4">
                 <a-form-item label="排序方向">
                   <a-radio-group v-model:value="advancedFilters.sortOrder">
-                    <a-radio-button value="desc">降序</a-radio-button>
-                    <a-radio-button value="asc">升序</a-radio-button>
+                    <a-radio-button value="desc">
+                      降序
+                    </a-radio-button>
+                    <a-radio-button value="asc">
+                      升序
+                    </a-radio-button>
                   </a-radio-group>
                 </a-form-item>
               </a-col>
             </a-row>
             <a-space>
-              <a-button type="primary" @click="applyAdvancedFilters"
-                >应用筛选</a-button
+              <a-button
+                type="primary"
+                @click="applyAdvancedFilters"
               >
-              <a-button @click="resetAdvancedFilters">重置</a-button>
+                应用筛选
+              </a-button>
+              <a-button @click="resetAdvancedFilters">
+                重置
+              </a-button>
             </a-space>
           </a-card>
 
@@ -189,10 +230,16 @@
           </a-spin>
         </a-tab-pane>
 
-        <a-tab-pane key="myOrders" tab="我的订单">
+        <a-tab-pane
+          key="myOrders"
+          tab="我的订单"
+        >
           <a-spin :spinning="loadingMyOrders">
             <a-tabs>
-              <a-tab-pane key="created" tab="我发布的">
+              <a-tab-pane
+                key="created"
+                tab="我发布的"
+              >
                 <a-list
                   :data-source="myCreatedOrders"
                   :grid="{
@@ -235,7 +282,9 @@
 
                         <a-card-meta>
                           <template #title>
-                            <div class="order-title">{{ item.title }}</div>
+                            <div class="order-title">
+                              {{ item.title }}
+                            </div>
                           </template>
                           <template #description>
                             <div class="order-info">
@@ -267,7 +316,10 @@
                 </a-list>
               </a-tab-pane>
 
-              <a-tab-pane key="purchased" tab="我购买的">
+              <a-tab-pane
+                key="purchased"
+                tab="我购买的"
+              >
                 <a-list
                   :data-source="myPurchasedOrders"
                   :grid="{
@@ -282,7 +334,10 @@
                 >
                   <template #renderItem="{ item }">
                     <a-list-item>
-                      <a-card hoverable class="transaction-card">
+                      <a-card
+                        hoverable
+                        class="transaction-card"
+                      >
                         <a-tag
                           :color="getTransactionStatusColor(item.status)"
                           style="position: absolute; top: 8px; right: 8px"
@@ -290,9 +345,15 @@
                           {{ getTransactionStatusName(item.status) }}
                         </a-tag>
 
-                        <a-descriptions :column="1" size="small">
+                        <a-descriptions
+                          :column="1"
+                          size="small"
+                        >
                           <a-descriptions-item label="交易 ID">
-                            <a-typography-text copyable style="font-size: 12px">
+                            <a-typography-text
+                              copyable
+                              style="font-size: 12px"
+                            >
                               {{ shortenId(item.id) }}
                             </a-typography-text>
                           </a-descriptions-item>
@@ -366,7 +427,10 @@
       @ok="handleConfirmPurchase"
     >
       <div v-if="selectedOrder">
-        <a-descriptions :column="1" bordered>
+        <a-descriptions
+          :column="1"
+          bordered
+        >
           <a-descriptions-item label="订单标题">
             {{ selectedOrder.title }}
           </a-descriptions-item>
@@ -634,12 +698,12 @@ const getTransactionStatusName = (status) => {
 };
 
 const shortenDid = (did) => {
-  if (!did) return "";
+  if (!did) {return "";}
   return did.length > 20 ? `${did.slice(0, 10)}...${did.slice(-8)}` : did;
 };
 
 const shortenId = (id) => {
-  if (!id) return "";
+  if (!id) {return "";}
   return id.length > 16 ? `${id.slice(0, 8)}...${id.slice(-8)}` : id;
 };
 
@@ -666,7 +730,7 @@ const loadOrders = async () => {
 // 加载我的订单
 const loadMyOrders = async () => {
   try {
-    if (!currentDid.value) return;
+    if (!currentDid.value) {return;}
     await tradeStore.loadMyOrders(currentDid.value);
     console.log("[Marketplace] 我的订单已加载");
   } catch (error) {
@@ -739,7 +803,7 @@ const handlePurchase = (order) => {
 // 确认购买
 const handleConfirmPurchase = async () => {
   try {
-    if (!selectedOrder.value) return;
+    if (!selectedOrder.value) {return;}
 
     await tradeStore.purchaseOrder(
       selectedOrder.value.id,
@@ -827,7 +891,7 @@ const handleOrderShared = (shareInfo) => {
 
 // 获取可用余额
 const getAvailableBalance = (order) => {
-  if (!order || order.order_type !== "sell") return 0;
+  if (!order || order.order_type !== "sell") {return 0;}
   // 从 store 获取对应资产的余额
   const asset = tradeStore.myAssets.find((a) => a.id === order.asset_id);
   return asset ? asset.total_supply || 0 : 0;

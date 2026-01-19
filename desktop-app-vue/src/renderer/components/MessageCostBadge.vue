@@ -10,7 +10,10 @@
           <span class="tooltip-label">输出 Token:</span>
           <span class="tooltip-value">{{ usage.outputTokens || 0 }}</span>
         </div>
-        <div v-if="usage.cachedTokens > 0" class="tooltip-row">
+        <div
+          v-if="usage.cachedTokens > 0"
+          class="tooltip-row"
+        >
           <span class="tooltip-label">缓存 Token:</span>
           <span class="tooltip-value">{{ usage.cachedTokens }}</span>
         </div>
@@ -19,11 +22,17 @@
           <span class="tooltip-label">成本:</span>
           <span class="tooltip-value cost-highlight">${{ formatCost(cost) }}</span>
         </div>
-        <div v-if="wasCached" class="tooltip-row">
+        <div
+          v-if="wasCached"
+          class="tooltip-row"
+        >
           <CheckCircleOutlined style="color: #52c41a" />
           <span class="tooltip-label">来自缓存（节省成本）</span>
         </div>
-        <div v-if="wasCompressed" class="tooltip-row">
+        <div
+          v-if="wasCompressed"
+          class="tooltip-row"
+        >
           <ThunderboltOutlined style="color: #faad14" />
           <span class="tooltip-label">已压缩 {{ compressionRatio.toFixed(0) }}%</span>
         </div>

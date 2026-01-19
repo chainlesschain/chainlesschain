@@ -7,7 +7,7 @@
  * @since 2026-01-17
  */
 
-const ipcGuard = require("../ipc-guard");
+const ipcGuard = require("../ipc/ipc-guard");
 
 /**
  * Register all LearnedPatternManager IPC handlers

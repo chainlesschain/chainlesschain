@@ -3,8 +3,13 @@
     <a-spin :spinning="loading">
       <div class="tab-header">
         <a-space>
-          <a-button type="primary" @click="showCreateOverrideModal">
-            <template #icon><PlusOutlined /></template>
+          <a-button
+            type="primary"
+            @click="showCreateOverrideModal"
+          >
+            <template #icon>
+              <PlusOutlined />
+            </template>
             创建权限覆盖
           </a-button>
           <a-select
@@ -13,10 +18,18 @@
             style="width: 150px"
             @change="handleFilterChange"
           >
-            <a-select-option value="">全部</a-select-option>
-            <a-select-option value="user">用户覆盖</a-select-option>
-            <a-select-option value="resource">资源覆盖</a-select-option>
-            <a-select-option value="temporary">临时覆盖</a-select-option>
+            <a-select-option value="">
+              全部
+            </a-select-option>
+            <a-select-option value="user">
+              用户覆盖
+            </a-select-option>
+            <a-select-option value="resource">
+              资源覆盖
+            </a-select-option>
+            <a-select-option value="temporary">
+              临时覆盖
+            </a-select-option>
           </a-select>
           <a-input-search
             v-model:value="searchText"
@@ -42,12 +55,19 @@
           </template>
 
           <template v-else-if="column.key === 'priority'">
-            <a-badge :count="record.priority" :number-style="{ backgroundColor: getPriorityColor(record.priority) }" />
+            <a-badge
+              :count="record.priority"
+              :number-style="{ backgroundColor: getPriorityColor(record.priority) }"
+            />
           </template>
 
           <template v-else-if="column.key === 'permissions'">
             <a-space wrap>
-              <a-tag v-for="perm in record.permissions.slice(0, 3)" :key="perm" color="blue">
+              <a-tag
+                v-for="perm in record.permissions.slice(0, 3)"
+                :key="perm"
+                color="blue"
+              >
                 {{ perm }}
               </a-tag>
               <a-tag v-if="record.permissions.length > 3">
@@ -58,23 +78,42 @@
 
           <template v-else-if="column.key === 'expiresAt'">
             <span v-if="record.expiresAt">
-              <a-tag v-if="isExpired(record.expiresAt)" color="red">已过期</a-tag>
-              <a-tag v-else-if="isExpiringSoon(record.expiresAt)" color="orange">即将过期</a-tag>
+              <a-tag
+                v-if="isExpired(record.expiresAt)"
+                color="red"
+              >已过期</a-tag>
+              <a-tag
+                v-else-if="isExpiringSoon(record.expiresAt)"
+                color="orange"
+              >即将过期</a-tag>
               <span v-else>{{ record.expiresAt }}</span>
             </span>
-            <a-tag v-else color="green">永久</a-tag>
+            <a-tag
+              v-else
+              color="green"
+            >
+              永久
+            </a-tag>
           </template>
 
           <template v-else-if="column.key === 'actions'">
             <a-space>
-              <a-button type="link" size="small" @click="handleEditOverride(record)">
+              <a-button
+                type="link"
+                size="small"
+                @click="handleEditOverride(record)"
+              >
                 编辑
               </a-button>
               <a-popconfirm
                 title="确定要删除此覆盖规则吗?"
                 @confirm="handleDeleteOverride(record.overrideId)"
               >
-                <a-button type="link" danger size="small">
+                <a-button
+                  type="link"
+                  danger
+                  size="small"
+                >
                   删除
                 </a-button>
               </a-popconfirm>
@@ -91,20 +130,42 @@
       width="600px"
       @ok="handleOverrideSubmit"
     >
-      <a-form :model="overrideForm" :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
-        <a-form-item label="覆盖类型" required>
+      <a-form
+        :model="overrideForm"
+        :label-col="{ span: 6 }"
+        :wrapper-col="{ span: 18 }"
+      >
+        <a-form-item
+          label="覆盖类型"
+          required
+        >
           <a-radio-group v-model:value="overrideForm.overrideType">
-            <a-radio value="user">用户覆盖</a-radio>
-            <a-radio value="resource">资源覆盖</a-radio>
-            <a-radio value="temporary">临时覆盖</a-radio>
+            <a-radio value="user">
+              用户覆盖
+            </a-radio>
+            <a-radio value="resource">
+              资源覆盖
+            </a-radio>
+            <a-radio value="temporary">
+              临时覆盖
+            </a-radio>
           </a-radio-group>
         </a-form-item>
 
-        <a-form-item label="目标ID" required>
-          <a-input v-model:value="overrideForm.targetId" placeholder="用户DID或资源ID" />
+        <a-form-item
+          label="目标ID"
+          required
+        >
+          <a-input
+            v-model:value="overrideForm.targetId"
+            placeholder="用户DID或资源ID"
+          />
         </a-form-item>
 
-        <a-form-item label="权限列表" required>
+        <a-form-item
+          label="权限列表"
+          required
+        >
           <a-select
             v-model:value="overrideForm.permissions"
             mode="multiple"
@@ -112,45 +173,92 @@
             style="width: 100%"
           >
             <a-select-opt-group label="组织管理">
-              <a-select-option value="org.view">查看组织</a-select-option>
-              <a-select-option value="org.edit">编辑组织</a-select-option>
-              <a-select-option value="org.settings">组织设置</a-select-option>
-              <a-select-option value="org.manage">管理组织</a-select-option>
+              <a-select-option value="org.view">
+                查看组织
+              </a-select-option>
+              <a-select-option value="org.edit">
+                编辑组织
+              </a-select-option>
+              <a-select-option value="org.settings">
+                组织设置
+              </a-select-option>
+              <a-select-option value="org.manage">
+                管理组织
+              </a-select-option>
             </a-select-opt-group>
 
             <a-select-opt-group label="成员管理">
-              <a-select-option value="member.view">查看成员</a-select-option>
-              <a-select-option value="member.add">添加成员</a-select-option>
-              <a-select-option value="member.remove">移除成员</a-select-option>
-              <a-select-option value="member.edit">编辑成员</a-select-option>
-              <a-select-option value="member.manage">管理成员</a-select-option>
+              <a-select-option value="member.view">
+                查看成员
+              </a-select-option>
+              <a-select-option value="member.add">
+                添加成员
+              </a-select-option>
+              <a-select-option value="member.remove">
+                移除成员
+              </a-select-option>
+              <a-select-option value="member.edit">
+                编辑成员
+              </a-select-option>
+              <a-select-option value="member.manage">
+                管理成员
+              </a-select-option>
             </a-select-opt-group>
 
             <a-select-opt-group label="知识库">
-              <a-select-option value="knowledge.view">查看知识库</a-select-option>
-              <a-select-option value="knowledge.create">创建内容</a-select-option>
-              <a-select-option value="knowledge.edit">编辑内容</a-select-option>
-              <a-select-option value="knowledge.delete">删除内容</a-select-option>
-              <a-select-option value="knowledge.share">分享内容</a-select-option>
-              <a-select-option value="knowledge.comment">评论内容</a-select-option>
-              <a-select-option value="knowledge.manage">管理知识库</a-select-option>
+              <a-select-option value="knowledge.view">
+                查看知识库
+              </a-select-option>
+              <a-select-option value="knowledge.create">
+                创建内容
+              </a-select-option>
+              <a-select-option value="knowledge.edit">
+                编辑内容
+              </a-select-option>
+              <a-select-option value="knowledge.delete">
+                删除内容
+              </a-select-option>
+              <a-select-option value="knowledge.share">
+                分享内容
+              </a-select-option>
+              <a-select-option value="knowledge.comment">
+                评论内容
+              </a-select-option>
+              <a-select-option value="knowledge.manage">
+                管理知识库
+              </a-select-option>
             </a-select-opt-group>
 
             <a-select-opt-group label="项目管理">
-              <a-select-option value="project.view">查看项目</a-select-option>
-              <a-select-option value="project.create">创建项目</a-select-option>
-              <a-select-option value="project.edit">编辑项目</a-select-option>
-              <a-select-option value="project.delete">删除项目</a-select-option>
-              <a-select-option value="project.manage">管理项目</a-select-option>
+              <a-select-option value="project.view">
+                查看项目
+              </a-select-option>
+              <a-select-option value="project.create">
+                创建项目
+              </a-select-option>
+              <a-select-option value="project.edit">
+                编辑项目
+              </a-select-option>
+              <a-select-option value="project.delete">
+                删除项目
+              </a-select-option>
+              <a-select-option value="project.manage">
+                管理项目
+              </a-select-option>
             </a-select-opt-group>
 
             <a-select-opt-group label="特殊权限">
-              <a-select-option value="*">所有权限</a-select-option>
+              <a-select-option value="*">
+                所有权限
+              </a-select-option>
             </a-select-opt-group>
           </a-select>
         </a-form-item>
 
-        <a-form-item label="优先级" required>
+        <a-form-item
+          label="优先级"
+          required
+        >
           <a-input-number
             v-model:value="overrideForm.priority"
             :min="1"
@@ -316,8 +424,8 @@ export default defineComponent({
     };
 
     const getPriorityColor = (priority) => {
-      if (priority >= 80) return '#f5222d';
-      if (priority >= 50) return '#fa8c16';
+      if (priority >= 80) {return '#f5222d';}
+      if (priority >= 50) {return '#fa8c16';}
       return '#52c41a';
     };
 

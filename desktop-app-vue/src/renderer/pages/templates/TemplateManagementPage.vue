@@ -4,7 +4,9 @@
     <div class="page-header">
       <div class="header-left">
         <h2>模板管理</h2>
-        <a-tag color="blue">{{ templateStats.total || 0 }} 个模板</a-tag>
+        <a-tag color="blue">
+          {{ templateStats.total || 0 }} 个模板
+        </a-tag>
       </div>
       <div class="header-right">
         <a-space>
@@ -14,12 +16,19 @@
             style="width: 300px"
             @search="handleSearch"
           />
-          <a-button type="primary" @click="showCreateModal">
-            <template #icon><PlusOutlined /></template>
+          <a-button
+            type="primary"
+            @click="showCreateModal"
+          >
+            <template #icon>
+              <PlusOutlined />
+            </template>
             创建模板
           </a-button>
           <a-button @click="refreshTemplates">
-            <template #icon><ReloadOutlined /></template>
+            <template #icon>
+              <ReloadOutlined />
+            </template>
             刷新
           </a-button>
         </a-space>
@@ -36,33 +45,87 @@
           style="width: 150px"
           @change="handleFilterChange"
         >
-          <a-select-option value="">全部分类</a-select-option>
-          <a-select-option value="writing">写作</a-select-option>
-          <a-select-option value="ppt">PPT演示</a-select-option>
-          <a-select-option value="excel">Excel数据</a-select-option>
-          <a-select-option value="web">网页开发</a-select-option>
-          <a-select-option value="design">设计</a-select-option>
-          <a-select-option value="podcast">播客</a-select-option>
-          <a-select-option value="resume">简历</a-select-option>
-          <a-select-option value="research">研究</a-select-option>
-          <a-select-option value="marketing">营销</a-select-option>
-          <a-select-option value="education">教育</a-select-option>
-          <a-select-option value="lifestyle">生活</a-select-option>
-          <a-select-option value="travel">旅游</a-select-option>
-          <a-select-option value="video">视频</a-select-option>
-          <a-select-option value="social-media">社交媒体</a-select-option>
-          <a-select-option value="code-project">代码项目</a-select-option>
-          <a-select-option value="creative-writing">创意写作</a-select-option>
-          <a-select-option value="data-science">数据科学</a-select-option>
-          <a-select-option value="ecommerce">电商</a-select-option>
-          <a-select-option value="health">健康</a-select-option>
-          <a-select-option value="learning">学习</a-select-option>
-          <a-select-option value="legal">法律</a-select-option>
-          <a-select-option value="time-management">时间管理</a-select-option>
-          <a-select-option value="tech-docs">技术文档</a-select-option>
-          <a-select-option value="productivity">效率</a-select-option>
-          <a-select-option value="career">职业</a-select-option>
-          <a-select-option value="marketing-pro">营销推广</a-select-option>
+          <a-select-option value="">
+            全部分类
+          </a-select-option>
+          <a-select-option value="writing">
+            写作
+          </a-select-option>
+          <a-select-option value="ppt">
+            PPT演示
+          </a-select-option>
+          <a-select-option value="excel">
+            Excel数据
+          </a-select-option>
+          <a-select-option value="web">
+            网页开发
+          </a-select-option>
+          <a-select-option value="design">
+            设计
+          </a-select-option>
+          <a-select-option value="podcast">
+            播客
+          </a-select-option>
+          <a-select-option value="resume">
+            简历
+          </a-select-option>
+          <a-select-option value="research">
+            研究
+          </a-select-option>
+          <a-select-option value="marketing">
+            营销
+          </a-select-option>
+          <a-select-option value="education">
+            教育
+          </a-select-option>
+          <a-select-option value="lifestyle">
+            生活
+          </a-select-option>
+          <a-select-option value="travel">
+            旅游
+          </a-select-option>
+          <a-select-option value="video">
+            视频
+          </a-select-option>
+          <a-select-option value="social-media">
+            社交媒体
+          </a-select-option>
+          <a-select-option value="code-project">
+            代码项目
+          </a-select-option>
+          <a-select-option value="creative-writing">
+            创意写作
+          </a-select-option>
+          <a-select-option value="data-science">
+            数据科学
+          </a-select-option>
+          <a-select-option value="ecommerce">
+            电商
+          </a-select-option>
+          <a-select-option value="health">
+            健康
+          </a-select-option>
+          <a-select-option value="learning">
+            学习
+          </a-select-option>
+          <a-select-option value="legal">
+            法律
+          </a-select-option>
+          <a-select-option value="time-management">
+            时间管理
+          </a-select-option>
+          <a-select-option value="tech-docs">
+            技术文档
+          </a-select-option>
+          <a-select-option value="productivity">
+            效率
+          </a-select-option>
+          <a-select-option value="career">
+            职业
+          </a-select-option>
+          <a-select-option value="marketing-pro">
+            营销推广
+          </a-select-option>
         </a-select>
 
         <span>项目类型：</span>
@@ -72,20 +135,43 @@
           style="width: 150px"
           @change="handleFilterChange"
         >
-          <a-select-option value="">全部类型</a-select-option>
-          <a-select-option value="document">文档</a-select-option>
-          <a-select-option value="presentation">演示文稿</a-select-option>
-          <a-select-option value="spreadsheet">电子表格</a-select-option>
-          <a-select-option value="web">Web应用</a-select-option>
-          <a-select-option value="app">应用程序</a-select-option>
-          <a-select-option value="data">数据分析</a-select-option>
+          <a-select-option value="">
+            全部类型
+          </a-select-option>
+          <a-select-option value="document">
+            文档
+          </a-select-option>
+          <a-select-option value="presentation">
+            演示文稿
+          </a-select-option>
+          <a-select-option value="spreadsheet">
+            电子表格
+          </a-select-option>
+          <a-select-option value="web">
+            Web应用
+          </a-select-option>
+          <a-select-option value="app">
+            应用程序
+          </a-select-option>
+          <a-select-option value="data">
+            数据分析
+          </a-select-option>
         </a-select>
 
         <span>来源：</span>
-        <a-radio-group v-model:value="filterBuiltin" @change="handleFilterChange">
-          <a-radio-button value="">全部</a-radio-button>
-          <a-radio-button :value="1">内置</a-radio-button>
-          <a-radio-button :value="0">自定义</a-radio-button>
+        <a-radio-group
+          v-model:value="filterBuiltin"
+          @change="handleFilterChange"
+        >
+          <a-radio-button value="">
+            全部
+          </a-radio-button>
+          <a-radio-button :value="1">
+            内置
+          </a-radio-button>
+          <a-radio-button :value="0">
+            自定义
+          </a-radio-button>
         </a-radio-group>
       </a-space>
     </div>
@@ -94,16 +180,28 @@
     <div class="stats-bar">
       <a-row :gutter="16">
         <a-col :span="6">
-          <a-statistic title="总模板数" :value="templateStats.total || 0" />
+          <a-statistic
+            title="总模板数"
+            :value="templateStats.total || 0"
+          />
         </a-col>
         <a-col :span="6">
-          <a-statistic title="内置模板" :value="templateStats.builtin || 0" />
+          <a-statistic
+            title="内置模板"
+            :value="templateStats.builtin || 0"
+          />
         </a-col>
         <a-col :span="6">
-          <a-statistic title="自定义模板" :value="templateStats.custom || 0" />
+          <a-statistic
+            title="自定义模板"
+            :value="templateStats.custom || 0"
+          />
         </a-col>
         <a-col :span="6">
-          <a-button type="link" @click="showStatsModal = true">
+          <a-button
+            type="link"
+            @click="showStatsModal = true"
+          >
             查看详细统计
           </a-button>
         </a-col>
@@ -123,20 +221,33 @@
           <!-- 模板名称 -->
           <template #name="{ record }">
             <div class="template-name-cell">
-              <div class="template-title">{{ record.display_name }}</div>
-              <div class="template-subtitle">{{ record.name }}</div>
+              <div class="template-title">
+                {{ record.display_name }}
+              </div>
+              <div class="template-subtitle">
+                {{ record.name }}
+              </div>
             </div>
           </template>
 
           <!-- 分类 -->
           <template #category="{ record }">
-            <a-tag color="blue">{{ getCategoryLabel(record.category) }}</a-tag>
-            <a-tag v-if="record.subcategory" color="cyan">{{ record.subcategory }}</a-tag>
+            <a-tag color="blue">
+              {{ getCategoryLabel(record.category) }}
+            </a-tag>
+            <a-tag
+              v-if="record.subcategory"
+              color="cyan"
+            >
+              {{ record.subcategory }}
+            </a-tag>
           </template>
 
           <!-- 项目类型 -->
           <template #project_type="{ record }">
-            <a-tag color="purple">{{ getProjectTypeLabel(record.project_type) }}</a-tag>
+            <a-tag color="purple">
+              {{ getProjectTypeLabel(record.project_type) }}
+            </a-tag>
           </template>
 
           <!-- 来源 -->
@@ -153,24 +264,36 @@
 
           <!-- 评分 -->
           <template #rating="{ record }">
-            <a-rate :value="record.rating || 0" disabled allow-half />
+            <a-rate
+              :value="record.rating || 0"
+              disabled
+              allow-half
+            />
             <span style="margin-left: 8px">({{ record.rating_count || 0 }})</span>
           </template>
 
           <!-- 操作 -->
           <template #action="{ record }">
             <a-space>
-              <a-button type="link" size="small" @click="viewTemplate(record)">
-                <template #icon><EyeOutlined /></template>
+              <a-button
+                type="link"
+                size="small"
+                @click="viewTemplate(record)"
+              >
+                <template #icon>
+                  <EyeOutlined />
+                </template>
                 查看
               </a-button>
               <a-button
                 type="link"
                 size="small"
-                @click="editTemplate(record)"
                 :disabled="record.is_builtin"
+                @click="editTemplate(record)"
               >
-                <template #icon><EditOutlined /></template>
+                <template #icon>
+                  <EditOutlined />
+                </template>
                 编辑
               </a-button>
               <a-button
@@ -178,7 +301,9 @@
                 size="small"
                 @click="duplicateTemplate(record)"
               >
-                <template #icon><CopyOutlined /></template>
+                <template #icon>
+                  <CopyOutlined />
+                </template>
                 复制
               </a-button>
               <a-popconfirm
@@ -193,7 +318,9 @@
                   danger
                   :disabled="record.is_builtin"
                 >
-                  <template #icon><DeleteOutlined /></template>
+                  <template #icon>
+                    <DeleteOutlined />
+                  </template>
                   删除
                 </a-button>
               </a-popconfirm>
@@ -209,7 +336,7 @@
       :title="editorMode === 'create' ? '创建模板' : '编辑模板'"
       width="900px"
       :footer="null"
-      :maskClosable="false"
+      :mask-closable="false"
     >
       <TemplateEditor
         ref="editorRef"
@@ -218,8 +345,14 @@
       />
       <div style="margin-top: 24px; text-align: right">
         <a-space>
-          <a-button @click="closeEditorModal">取消</a-button>
-          <a-button type="primary" @click="saveTemplate" :loading="saving">
+          <a-button @click="closeEditorModal">
+            取消
+          </a-button>
+          <a-button
+            type="primary"
+            :loading="saving"
+            @click="saveTemplate"
+          >
             保存
           </a-button>
         </a-space>
@@ -233,22 +366,62 @@
       width="800px"
       :footer="null"
     >
-      <div v-if="currentTemplate" class="template-detail">
-        <a-descriptions bordered :column="2">
-          <a-descriptions-item label="模板名称">{{ currentTemplate.name }}</a-descriptions-item>
-          <a-descriptions-item label="显示名称">{{ currentTemplate.display_name }}</a-descriptions-item>
-          <a-descriptions-item label="分类" :span="2">
+      <div
+        v-if="currentTemplate"
+        class="template-detail"
+      >
+        <a-descriptions
+          bordered
+          :column="2"
+        >
+          <a-descriptions-item label="模板名称">
+            {{ currentTemplate.name }}
+          </a-descriptions-item>
+          <a-descriptions-item label="显示名称">
+            {{ currentTemplate.display_name }}
+          </a-descriptions-item>
+          <a-descriptions-item
+            label="分类"
+            :span="2"
+          >
             {{ getCategoryLabel(currentTemplate.category) }}
             <span v-if="currentTemplate.subcategory"> / {{ currentTemplate.subcategory }}</span>
           </a-descriptions-item>
-          <a-descriptions-item label="项目类型">{{ getProjectTypeLabel(currentTemplate.project_type) }}</a-descriptions-item>
-          <a-descriptions-item label="来源">{{ currentTemplate.is_builtin ? '内置' : '自定义' }}</a-descriptions-item>
-          <a-descriptions-item label="作者" :span="2">{{ currentTemplate.author || '-' }}</a-descriptions-item>
-          <a-descriptions-item label="版本">{{ currentTemplate.version || '-' }}</a-descriptions-item>
-          <a-descriptions-item label="使用次数">{{ currentTemplate.usage_count || 0 }}</a-descriptions-item>
-          <a-descriptions-item label="描述" :span="2">{{ currentTemplate.description || '-' }}</a-descriptions-item>
-          <a-descriptions-item label="标签" :span="2">
-            <a-tag v-for="tag in currentTemplate.tags" :key="tag" color="blue">{{ tag }}</a-tag>
+          <a-descriptions-item label="项目类型">
+            {{ getProjectTypeLabel(currentTemplate.project_type) }}
+          </a-descriptions-item>
+          <a-descriptions-item label="来源">
+            {{ currentTemplate.is_builtin ? '内置' : '自定义' }}
+          </a-descriptions-item>
+          <a-descriptions-item
+            label="作者"
+            :span="2"
+          >
+            {{ currentTemplate.author || '-' }}
+          </a-descriptions-item>
+          <a-descriptions-item label="版本">
+            {{ currentTemplate.version || '-' }}
+          </a-descriptions-item>
+          <a-descriptions-item label="使用次数">
+            {{ currentTemplate.usage_count || 0 }}
+          </a-descriptions-item>
+          <a-descriptions-item
+            label="描述"
+            :span="2"
+          >
+            {{ currentTemplate.description || '-' }}
+          </a-descriptions-item>
+          <a-descriptions-item
+            label="标签"
+            :span="2"
+          >
+            <a-tag
+              v-for="tag in currentTemplate.tags"
+              :key="tag"
+              color="blue"
+            >
+              {{ tag }}
+            </a-tag>
           </a-descriptions-item>
         </a-descriptions>
 
@@ -263,7 +436,12 @@
           :pagination="false"
           size="small"
         />
-        <div v-else class="empty-text">未定义变量</div>
+        <div
+          v-else
+          class="empty-text"
+        >
+          未定义变量
+        </div>
       </div>
     </a-modal>
 
@@ -276,12 +454,17 @@
     >
       <div class="stats-detail">
         <h4>按分类统计</h4>
-        <a-list :data-source="templateStats.byCategory || []" size="small">
+        <a-list
+          :data-source="templateStats.byCategory || []"
+          size="small"
+        >
           <template #renderItem="{ item }">
             <a-list-item>
               <span>{{ getCategoryLabel(item.category) }}</span>
               <template #extra>
-                <a-tag color="blue">{{ item.count }} 个</a-tag>
+                <a-tag color="blue">
+                  {{ item.count }} 个
+                </a-tag>
               </template>
             </a-list-item>
           </template>
@@ -527,7 +710,7 @@ function editTemplate(template) {
 async function duplicateTemplate(template) {
   try {
     const newName = prompt('请输入新模板的名称:', `${template.display_name} (副本)`)
-    if (!newName) return
+    if (!newName) {return}
 
     loading.value = true
     await templateStore.duplicateTemplate(template.id, newName)

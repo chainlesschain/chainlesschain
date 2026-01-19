@@ -1,10 +1,16 @@
 <template>
   <div class="theme-settings">
-    <a-card title="主题设置" :bordered="false">
+    <a-card
+      title="主题设置"
+      :bordered="false"
+    >
       <!-- 主题选择 -->
       <div class="setting-section">
         <h4>选择主题</h4>
-        <a-radio-group v-model:value="selectedThemeId" @change="handleThemeChange">
+        <a-radio-group
+          v-model:value="selectedThemeId"
+          @change="handleThemeChange"
+        >
           <a-radio-button
             v-for="theme in allThemes"
             :key="theme.id"
@@ -12,14 +18,19 @@
             class="theme-option"
           >
             <div class="theme-option-content">
-              <div class="theme-preview" :class="`theme-preview-${theme.id}`">
-                <div class="preview-bar"></div>
+              <div
+                class="theme-preview"
+                :class="`theme-preview-${theme.id}`"
+              >
+                <div class="preview-bar" />
                 <div class="preview-content">
-                  <div class="preview-sidebar"></div>
-                  <div class="preview-main"></div>
+                  <div class="preview-sidebar" />
+                  <div class="preview-main" />
                 </div>
               </div>
-              <div class="theme-name">{{ theme.name }}</div>
+              <div class="theme-name">
+                {{ theme.name }}
+              </div>
             </div>
           </a-radio-button>
         </a-radio-group>
@@ -28,21 +39,31 @@
       <!-- 当前主题信息 -->
       <div class="setting-section">
         <h4>当前主题</h4>
-        <a-descriptions :column="2" size="small" bordered>
+        <a-descriptions
+          :column="2"
+          size="small"
+          bordered
+        >
           <a-descriptions-item label="主题名称">
             {{ effectiveTheme.name }}
           </a-descriptions-item>
           <a-descriptions-item label="主题ID">
             {{ effectiveTheme.id }}
           </a-descriptions-item>
-          <a-descriptions-item label="系统偏好" v-if="currentTheme?.id === 'auto'">
+          <a-descriptions-item
+            v-if="currentTheme?.id === 'auto'"
+            label="系统偏好"
+          >
             {{ systemPrefersDark ? '深色' : '浅色' }}
           </a-descriptions-item>
         </a-descriptions>
       </div>
 
       <!-- 主题颜色预览 -->
-      <div class="setting-section" v-if="effectiveTheme.colors">
+      <div
+        v-if="effectiveTheme.colors"
+        class="setting-section"
+      >
         <h4>主题颜色</h4>
         <div class="color-palette">
           <div
@@ -50,10 +71,17 @@
             :key="key"
             class="color-item"
           >
-            <div class="color-swatch" :style="{ backgroundColor: color }"></div>
+            <div
+              class="color-swatch"
+              :style="{ backgroundColor: color }"
+            />
             <div class="color-info">
-              <div class="color-name">{{ formatColorName(key) }}</div>
-              <div class="color-value">{{ color }}</div>
+              <div class="color-name">
+                {{ formatColorName(key) }}
+              </div>
+              <div class="color-value">
+                {{ color }}
+              </div>
             </div>
           </div>
         </div>
@@ -71,7 +99,10 @@
             <PlusOutlined />
             自定义主题
           </a-button>
-          <a-button @click="handleExport" v-if="currentTheme?.id !== 'auto'">
+          <a-button
+            v-if="currentTheme?.id !== 'auto'"
+            @click="handleExport"
+          >
             <ExportOutlined />
             导出主题
           </a-button>
@@ -83,27 +114,45 @@
       </div>
 
       <!-- 自定义主题列表 -->
-      <div class="setting-section" v-if="customThemes.length > 0">
+      <div
+        v-if="customThemes.length > 0"
+        class="setting-section"
+      >
         <h4>自定义主题</h4>
-        <a-list :data-source="customThemes" size="small">
+        <a-list
+          :data-source="customThemes"
+          size="small"
+        >
           <template #renderItem="{ item }">
             <a-list-item>
               <template #actions>
-                <a-button type="link" size="small" @click="handleEditTheme(item)">
+                <a-button
+                  type="link"
+                  size="small"
+                  @click="handleEditTheme(item)"
+                >
                   编辑
                 </a-button>
                 <a-popconfirm
                   title="确定删除此主题吗？"
                   @confirm="handleDeleteTheme(item.id)"
                 >
-                  <a-button type="link" size="small" danger>
+                  <a-button
+                    type="link"
+                    size="small"
+                    danger
+                  >
                     删除
                   </a-button>
                 </a-popconfirm>
               </template>
               <a-list-item-meta>
-                <template #title>{{ item.name }}</template>
-                <template #description>{{ item.id }}</template>
+                <template #title>
+                  {{ item.name }}
+                </template>
+                <template #description>
+                  {{ item.id }}
+                </template>
               </a-list-item-meta>
             </a-list-item>
           </template>
@@ -118,23 +167,47 @@
       :width="600"
       @ok="handleSaveCustomTheme"
     >
-      <a-form :model="customThemeForm" layout="vertical">
-        <a-form-item label="主题ID" required>
-          <a-input v-model:value="customThemeForm.id" placeholder="theme-custom-1" />
+      <a-form
+        :model="customThemeForm"
+        layout="vertical"
+      >
+        <a-form-item
+          label="主题ID"
+          required
+        >
+          <a-input
+            v-model:value="customThemeForm.id"
+            placeholder="theme-custom-1"
+          />
         </a-form-item>
-        <a-form-item label="主题名称" required>
-          <a-input v-model:value="customThemeForm.name" placeholder="我的自定义主题" />
+        <a-form-item
+          label="主题名称"
+          required
+        >
+          <a-input
+            v-model:value="customThemeForm.name"
+            placeholder="我的自定义主题"
+          />
         </a-form-item>
         <a-form-item label="主色调">
-          <input type="color" v-model="customThemeForm.colors.primary" />
+          <input
+            v-model="customThemeForm.colors.primary"
+            type="color"
+          >
           <span class="color-value-display">{{ customThemeForm.colors.primary }}</span>
         </a-form-item>
         <a-form-item label="背景色">
-          <input type="color" v-model="customThemeForm.colors.background" />
+          <input
+            v-model="customThemeForm.colors.background"
+            type="color"
+          >
           <span class="color-value-display">{{ customThemeForm.colors.background }}</span>
         </a-form-item>
         <a-form-item label="文字颜色">
-          <input type="color" v-model="customThemeForm.colors.text" />
+          <input
+            v-model="customThemeForm.colors.text"
+            type="color"
+          >
           <span class="color-value-display">{{ customThemeForm.colors.text }}</span>
         </a-form-item>
       </a-form>

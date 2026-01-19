@@ -1,6 +1,9 @@
 <template>
   <div class="trading-hub">
-    <a-card :bordered="false" class="trading-hub-card">
+    <a-card
+      :bordered="false"
+      class="trading-hub-card"
+    >
       <template #title>
         <a-space>
           <shop-outlined style="font-size: 20px" />
@@ -34,7 +37,11 @@
             :loading="loadingDids"
             @change="handleDidChange"
           >
-            <a-select-option v-for="did in availableDids" :key="did.did" :value="did.did">
+            <a-select-option
+              v-for="did in availableDids"
+              :key="did.did"
+              :value="did.did"
+            >
               <a-space>
                 <user-outlined />
                 <span>{{ did.profile?.name || did.did.slice(0, 12) + '...' }}</span>
@@ -44,8 +51,14 @@
 
           <!-- 刷新按钮 -->
           <a-tooltip title="刷新当前Tab数据">
-            <a-button type="text" :loading="isLoading" @click="handleRefresh">
-              <template #icon><reload-outlined /></template>
+            <a-button
+              type="text"
+              :loading="isLoading"
+              @click="handleRefresh"
+            >
+              <template #icon>
+                <reload-outlined />
+              </template>
             </a-button>
           </a-tooltip>
         </a-space>
@@ -53,7 +66,7 @@
 
       <!-- 8个功能Tab -->
       <a-tabs
-        v-model:activeKey="activeTab"
+        v-model:active-key="activeTab"
         type="card"
         size="large"
         @change="handleTabChange"
@@ -66,8 +79,14 @@
               我的资产
             </span>
           </template>
-          <AssetList v-if="selectedDid" :owner-did="selectedDid" />
-          <a-empty v-else description="请先选择DID身份" />
+          <AssetList
+            v-if="selectedDid"
+            :owner-did="selectedDid"
+          />
+          <a-empty
+            v-else
+            description="请先选择DID身份"
+          />
         </a-tab-pane>
 
         <!-- 2. 交易市场 -->
@@ -90,7 +109,10 @@
             </span>
           </template>
           <EscrowList v-if="selectedDid" />
-          <a-empty v-else description="请先选择DID身份" />
+          <a-empty
+            v-else
+            description="请先选择DID身份"
+          />
         </a-tab-pane>
 
         <!-- 4. 智能合约 -->
@@ -102,7 +124,10 @@
             </span>
           </template>
           <ContractList v-if="selectedDid" />
-          <a-empty v-else description="请先选择DID身份" />
+          <a-empty
+            v-else
+            description="请先选择DID身份"
+          />
         </a-tab-pane>
 
         <!-- 5. 信用评分 -->
@@ -113,8 +138,14 @@
               信用评分
             </span>
           </template>
-          <CreditScore v-if="selectedDid" :user-did="selectedDid" />
-          <a-empty v-else description="请先选择DID身份" />
+          <CreditScore
+            v-if="selectedDid"
+            :user-did="selectedDid"
+          />
+          <a-empty
+            v-else
+            description="请先选择DID身份"
+          />
         </a-tab-pane>
 
         <!-- 6. 评价管理 -->
@@ -126,7 +157,10 @@
             </span>
           </template>
           <ReviewList v-if="selectedDid" />
-          <a-empty v-else description="请先选择DID身份" />
+          <a-empty
+            v-else
+            description="请先选择DID身份"
+          />
         </a-tab-pane>
 
         <!-- 7. 知识付费 -->
@@ -149,7 +183,10 @@
             </span>
           </template>
           <TransactionList v-if="selectedDid" />
-          <a-empty v-else description="请先选择DID身份" />
+          <a-empty
+            v-else
+            description="请先选择DID身份"
+          />
         </a-tab-pane>
 
         <!-- 9. 统计面板 -->

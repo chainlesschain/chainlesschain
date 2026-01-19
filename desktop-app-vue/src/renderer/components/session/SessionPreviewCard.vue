@@ -1,7 +1,10 @@
 <template>
   <div class="session-preview-card">
     <!-- 加载状态 -->
-    <div v-if="loading" class="loading-state">
+    <div
+      v-if="loading"
+      class="loading-state"
+    >
       <a-spin size="small" />
       <span>加载中...</span>
     </div>
@@ -9,7 +12,9 @@
     <template v-else>
       <!-- 会话标题 -->
       <div class="preview-header">
-        <h4 class="title">{{ session.title || "未命名会话" }}</h4>
+        <h4 class="title">
+          {{ session.title || "未命名会话" }}
+        </h4>
         <div class="meta">
           <MessageOutlined />
           <span>{{ messageCount }} 条消息</span>
@@ -17,12 +22,18 @@
       </div>
 
       <!-- 摘要 -->
-      <div v-if="summary" class="preview-summary">
+      <div
+        v-if="summary"
+        class="preview-summary"
+      >
         <p>{{ summary }}</p>
       </div>
 
       <!-- 最近消息预览 -->
-      <div v-if="recentMessages.length > 0" class="preview-messages">
+      <div
+        v-if="recentMessages.length > 0"
+        class="preview-messages"
+      >
         <div class="messages-header">
           <ClockCircleOutlined />
           <span>最近对话</span>
@@ -41,7 +52,10 @@
       </div>
 
       <!-- 标签 -->
-      <div v-if="tags.length > 0" class="preview-tags">
+      <div
+        v-if="tags.length > 0"
+        class="preview-tags"
+      >
         <TagOutlined />
         <a-tag
           v-for="tag in tags.slice(0, 5)"
@@ -51,9 +65,10 @@
         >
           {{ tag }}
         </a-tag>
-        <span v-if="tags.length > 5" class="more-tags"
-          >+{{ tags.length - 5 }}</span
-        >
+        <span
+          v-if="tags.length > 5"
+          class="more-tags"
+        >+{{ tags.length - 5 }}</span>
       </div>
 
       <!-- 时间信息 -->
@@ -122,7 +137,7 @@ const summary = computed(() => {
 
 // 计算属性：最近消息
 const recentMessages = computed(() => {
-  if (!props.session?.messages) return [];
+  if (!props.session?.messages) {return [];}
 
   return props.session.messages.slice(-3).map((msg) => ({
     role: msg.role,
@@ -140,14 +155,14 @@ const tags = computed(() => {
 
 // 工具函数：截断文本
 function truncateText(text, maxLength) {
-  if (!text) return "";
-  if (text.length <= maxLength) return text;
+  if (!text) {return "";}
+  if (text.length <= maxLength) {return text;}
   return text.substring(0, maxLength) + "...";
 }
 
 // 工具函数：格式化日期
 function formatDate(timestamp) {
-  if (!timestamp) return "-";
+  if (!timestamp) {return "-";}
   const date = new Date(typeof timestamp === "number" ? timestamp : timestamp);
   return date.toLocaleString("zh-CN", {
     year: "numeric",

@@ -1,7 +1,10 @@
 <template>
   <div class="permission-statistics-tab">
     <a-spin :spinning="loading">
-      <a-row :gutter="16" style="margin-bottom: 24px">
+      <a-row
+        :gutter="16"
+        style="margin-bottom: 24px"
+      >
         <a-col :span="6">
           <a-card>
             <a-statistic
@@ -59,31 +62,58 @@
         </a-col>
       </a-row>
 
-      <a-row :gutter="16" style="margin-bottom: 24px">
+      <a-row
+        :gutter="16"
+        style="margin-bottom: 24px"
+      >
         <a-col :span="12">
-          <a-card title="角色权限分布" :bordered="false">
-            <div ref="roleChartRef" style="height: 300px"></div>
+          <a-card
+            title="角色权限分布"
+            :bordered="false"
+          >
+            <div
+              ref="roleChartRef"
+              style="height: 300px"
+            />
           </a-card>
         </a-col>
 
         <a-col :span="12">
-          <a-card title="资源类型分布" :bordered="false">
-            <div ref="resourceChartRef" style="height: 300px"></div>
+          <a-card
+            title="资源类型分布"
+            :bordered="false"
+          >
+            <div
+              ref="resourceChartRef"
+              style="height: 300px"
+            />
           </a-card>
         </a-col>
       </a-row>
 
-      <a-row :gutter="16" style="margin-bottom: 24px">
+      <a-row
+        :gutter="16"
+        style="margin-bottom: 24px"
+      >
         <a-col :span="24">
-          <a-card title="权限使用趋势" :bordered="false">
-            <div ref="trendChartRef" style="height: 300px"></div>
+          <a-card
+            title="权限使用趋势"
+            :bordered="false"
+          >
+            <div
+              ref="trendChartRef"
+              style="height: 300px"
+            />
           </a-card>
         </a-col>
       </a-row>
 
       <a-row :gutter="16">
         <a-col :span="12">
-          <a-card title="最常用权限 Top 10" :bordered="false">
+          <a-card
+            title="最常用权限 Top 10"
+            :bordered="false"
+          >
             <a-list
               :data-source="statistics?.topPermissions || []"
               :loading="loading"
@@ -92,7 +122,10 @@
                 <a-list-item>
                   <a-list-item-meta>
                     <template #title>
-                      <a-badge :count="index + 1" :number-style="{ backgroundColor: getBadgeColor(index) }" />
+                      <a-badge
+                        :count="index + 1"
+                        :number-style="{ backgroundColor: getBadgeColor(index) }"
+                      />
                       <span style="margin-left: 12px">{{ item.permission }}</span>
                     </template>
                     <template #description>
@@ -106,7 +139,10 @@
         </a-col>
 
         <a-col :span="12">
-          <a-card title="最活跃用户 Top 10" :bordered="false">
+          <a-card
+            title="最活跃用户 Top 10"
+            :bordered="false"
+          >
             <a-list
               :data-source="statistics?.topUsers || []"
               :loading="loading"
@@ -115,7 +151,10 @@
                 <a-list-item>
                   <a-list-item-meta>
                     <template #title>
-                      <a-badge :count="index + 1" :number-style="{ backgroundColor: getBadgeColor(index) }" />
+                      <a-badge
+                        :count="index + 1"
+                        :number-style="{ backgroundColor: getBadgeColor(index) }"
+                      />
                       <span style="margin-left: 12px">{{ item.userDID }}</span>
                     </template>
                     <template #description>
@@ -129,10 +168,19 @@
         </a-col>
       </a-row>
 
-      <a-row :gutter="16" style="margin-top: 24px">
+      <a-row
+        :gutter="16"
+        style="margin-top: 24px"
+      >
         <a-col :span="24">
-          <a-card title="权限审计摘要" :bordered="false">
-            <a-descriptions bordered size="small">
+          <a-card
+            title="权限审计摘要"
+            :bordered="false"
+          >
+            <a-descriptions
+              bordered
+              size="small"
+            >
               <a-descriptions-item label="今日权限变更">
                 {{ statistics?.todayChanges || 0 }}
               </a-descriptions-item>
@@ -143,10 +191,14 @@
                 {{ statistics?.monthChanges || 0 }}
               </a-descriptions-item>
               <a-descriptions-item label="异常操作数">
-                <a-tag color="red">{{ statistics?.anomalies || 0 }}</a-tag>
+                <a-tag color="red">
+                  {{ statistics?.anomalies || 0 }}
+                </a-tag>
               </a-descriptions-item>
               <a-descriptions-item label="待审核操作">
-                <a-tag color="orange">{{ statistics?.pendingReviews || 0 }}</a-tag>
+                <a-tag color="orange">
+                  {{ statistics?.pendingReviews || 0 }}
+                </a-tag>
               </a-descriptions-item>
               <a-descriptions-item label="最后更新时间">
                 {{ statistics?.lastUpdated || '-' }}
@@ -198,14 +250,14 @@ export default defineComponent({
     let trendChart = null;
 
     const getBadgeColor = (index) => {
-      if (index === 0) return '#f5222d';
-      if (index === 1) return '#fa8c16';
-      if (index === 2) return '#faad14';
+      if (index === 0) {return '#f5222d';}
+      if (index === 1) {return '#fa8c16';}
+      if (index === 2) {return '#faad14';}
       return '#1890ff';
     };
 
     const initRoleChart = () => {
-      if (!roleChartRef.value || !props.statistics?.roleDistribution) return;
+      if (!roleChartRef.value || !props.statistics?.roleDistribution) {return;}
 
       roleChart = echarts.init(roleChartRef.value);
       const option = {
@@ -240,7 +292,7 @@ export default defineComponent({
     };
 
     const initResourceChart = () => {
-      if (!resourceChartRef.value || !props.statistics?.resourceDistribution) return;
+      if (!resourceChartRef.value || !props.statistics?.resourceDistribution) {return;}
 
       resourceChart = echarts.init(resourceChartRef.value);
       const option = {
@@ -272,7 +324,7 @@ export default defineComponent({
     };
 
     const initTrendChart = () => {
-      if (!trendChartRef.value || !props.statistics?.usageTrend) return;
+      if (!trendChartRef.value || !props.statistics?.usageTrend) {return;}
 
       trendChart = echarts.init(trendChartRef.value);
       const option = {

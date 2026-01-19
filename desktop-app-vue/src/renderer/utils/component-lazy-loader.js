@@ -125,7 +125,7 @@ class ComponentLazyLoader {
    * @param {Function} importFn - Dynamic import function
    */
   async prefetch(importFn) {
-    if (!this.options.enablePrefetch) return
+    if (!this.options.enablePrefetch) {return}
 
     const key = importFn.toString()
 
@@ -187,7 +187,7 @@ class ComponentLazyLoader {
    * @param {Function} importFn - Dynamic import function
    */
   prefetchOnVisible(element, importFn) {
-    if (!('IntersectionObserver' in window)) return
+    if (!('IntersectionObserver' in window)) {return}
 
     const observer = new IntersectionObserver(
       (entries) => {

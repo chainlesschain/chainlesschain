@@ -230,7 +230,7 @@ class DataEngine {
     for (const column of analyzedColumns) {
       const values = rows.map(row => parseFloat(row[column])).filter(v => !isNaN(v));
 
-      if (values.length === 0) continue;
+      if (values.length === 0) {continue;}
 
       results[column] = {
         count: values.length,
@@ -366,7 +366,7 @@ class DataEngine {
    * @private
    */
   findNumericColumns(rows) {
-    if (rows.length === 0) return [];
+    if (rows.length === 0) {return [];}
 
     const firstRow = rows[0];
     const numericColumns = [];
@@ -417,7 +417,7 @@ class DataEngine {
    * @private
    */
   standardDeviation(values) {
-    if (values.length <= 1) return 0;
+    if (values.length <= 1) {return 0;}
 
     const avg = this.mean(values);
     const squareDiffs = values.map(value => Math.pow(value - avg, 2));
@@ -586,7 +586,7 @@ class DataEngine {
 
     for (const column of columns) {
       const stats = analysis ? analysis[column] : null;
-      if (!stats) continue;
+      if (!stats) {continue;}
       markdown += `| ${column} | ${stats.count} | ${stats.sum.toFixed(2)} | ${stats.mean.toFixed(2)} | ${stats.min.toFixed(2)} | ${stats.max.toFixed(2)} | ${stats.stdDev.toFixed(2)} |\n`;
     }
 
@@ -598,7 +598,7 @@ class DataEngine {
    * @private
    */
   findNutritionColumns(headers) {
-    if (!Array.isArray(headers)) return [];
+    if (!Array.isArray(headers)) {return [];}
 
     const keywords = [
       'calorie', 'calories', 'kcal', 'energy',

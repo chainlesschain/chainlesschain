@@ -16,9 +16,17 @@
     </div>
 
     <!-- 功能tab切换 -->
-    <a-tabs v-model:activeKey="activeTabKey" type="card" size="large" class="main-tabs">
+    <a-tabs
+      v-model:active-key="activeTabKey"
+      type="card"
+      size="large"
+      class="main-tabs"
+    >
       <!-- 多媒体处理 -->
-      <a-tab-pane key="processor" tab="多媒体处理">
+      <a-tab-pane
+        key="processor"
+        tab="多媒体处理"
+      >
         <template #tab>
           <span>
             <CloudUploadOutlined />
@@ -29,7 +37,10 @@
       </a-tab-pane>
 
       <!-- 视频编辑 -->
-      <a-tab-pane key="video" tab="视频编辑">
+      <a-tab-pane
+        key="video"
+        tab="视频编辑"
+      >
         <template #tab>
           <span>
             <VideoCameraOutlined />
@@ -40,7 +51,10 @@
       </a-tab-pane>
 
       <!-- 使用文档 -->
-      <a-tab-pane key="docs" tab="使用文档">
+      <a-tab-pane
+        key="docs"
+        tab="使用文档"
+      >
         <template #tab>
           <span>
             <FileTextOutlined />
@@ -48,10 +62,16 @@
           </span>
         </template>
 
-        <a-card title="功能说明" :bordered="false">
+        <a-card
+          title="功能说明"
+          :bordered="false"
+        >
           <a-collapse accordion>
             <!-- 图片处理 -->
-            <a-collapse-panel key="1" header="📷 图片处理">
+            <a-collapse-panel
+              key="1"
+              header="📷 图片处理"
+            >
               <h4>核心功能</h4>
               <ul>
                 <li><strong>智能压缩</strong>: 支持质量调节（1-100），最大宽度自定义</li>
@@ -62,7 +82,11 @@
               </ul>
 
               <h4>性能优化</h4>
-              <a-descriptions bordered size="small" :column="2">
+              <a-descriptions
+                bordered
+                size="small"
+                :column="2"
+              >
                 <a-descriptions-item label="大文件处理">
                   10MB+图片使用流式处理，内存降低67%
                 </a-descriptions-item>
@@ -95,7 +119,10 @@ const result = await multimediaAPI.uploadImage(imagePath, {
             </a-collapse-panel>
 
             <!-- 音频转录 -->
-            <a-collapse-panel key="2" header="🎵 音频转录">
+            <a-collapse-panel
+              key="2"
+              header="🎵 音频转录"
+            >
               <h4>核心功能</h4>
               <ul>
                 <li><strong>多引擎支持</strong>: Whisper(本地)、Azure Speech、Google Speech</li>
@@ -105,7 +132,11 @@ const result = await multimediaAPI.uploadImage(imagePath, {
               </ul>
 
               <h4>性能优化</h4>
-              <a-descriptions bordered size="small" :column="2">
+              <a-descriptions
+                bordered
+                size="small"
+                :column="2"
+              >
                 <a-descriptions-item label="缓存策略">
                   增强缓存键（引擎+语言+模型），命中率70%+
                 </a-descriptions-item>
@@ -133,7 +164,10 @@ const result = await multimediaAPI.transcribeAudio(audioPath, {
             </a-collapse-panel>
 
             <!-- 视频编辑 -->
-            <a-collapse-panel key="3" header="🎬 视频编辑">
+            <a-collapse-panel
+              key="3"
+              header="🎬 视频编辑"
+            >
               <h4>核心功能</h4>
               <ul>
                 <li><strong>13种滤镜</strong>: 模糊、锐化、黑白、怀旧、暗角、亮度、对比度等</li>
@@ -145,13 +179,23 @@ const result = await multimediaAPI.transcribeAudio(audioPath, {
 
               <h4>滤镜列表</h4>
               <a-row :gutter="[16, 16]">
-                <a-col :span="6" v-for="filter in videoFilters" :key="filter.name">
-                  <a-tag color="blue">{{ filter.name }}</a-tag>
+                <a-col
+                  v-for="filter in videoFilters"
+                  :key="filter.name"
+                  :span="6"
+                >
+                  <a-tag color="blue">
+                    {{ filter.name }}
+                  </a-tag>
                 </a-col>
               </a-row>
 
               <h4>字幕预设</h4>
-              <a-descriptions bordered size="small" :column="2">
+              <a-descriptions
+                bordered
+                size="small"
+                :column="2"
+              >
                 <a-descriptions-item label="默认">
                   Arial 24号，白色，黑色描边
                 </a-descriptions-item>
@@ -187,7 +231,10 @@ await multimediaAPI.addSubtitlesWithPreset(
             </a-collapse-panel>
 
             <!-- 进度监控 -->
-            <a-collapse-panel key="4" header="📊 进度监控">
+            <a-collapse-panel
+              key="4"
+              header="📊 进度监控"
+            >
               <h4>功能特性</h4>
               <ul>
                 <li><strong>实时监控</strong>: 所有任务进度实时显示</li>
@@ -198,7 +245,10 @@ await multimediaAPI.addSubtitlesWithPreset(
               </ul>
 
               <h4>进度事件</h4>
-              <a-descriptions bordered size="small">
+              <a-descriptions
+                bordered
+                size="small"
+              >
                 <a-descriptions-item label="task-progress">
                   任务进度更新事件
                 </a-descriptions-item>
@@ -215,7 +265,10 @@ await multimediaAPI.addSubtitlesWithPreset(
             </a-collapse-panel>
 
             <!-- 错误恢复 -->
-            <a-collapse-panel key="5" header="🔄 错误恢复">
+            <a-collapse-panel
+              key="5"
+              header="🔄 错误恢复"
+            >
               <h4>功能特性</h4>
               <ul>
                 <li><strong>断点续传</strong>: 自动保存检查点，失败后可恢复</li>
@@ -238,7 +291,11 @@ const processor = new ResumableProcessor({
           </a-collapse>
         </a-card>
 
-        <a-card title="性能数据" :bordered="false" style="margin-top: 24px">
+        <a-card
+          title="性能数据"
+          :bordered="false"
+          style="margin-top: 24px"
+        >
           <a-table
             :columns="performanceColumns"
             :data-source="performanceData"
@@ -258,7 +315,10 @@ const processor = new ResumableProcessor({
     </a-tabs>
 
     <!-- 快捷操作浮动按钮 -->
-    <a-float-button-group shape="circle" style="right: 24px; bottom: 24px">
+    <a-float-button-group
+      shape="circle"
+      style="right: 24px; bottom: 24px"
+    >
       <a-float-button>
         <template #icon>
           <QuestionCircleOutlined />

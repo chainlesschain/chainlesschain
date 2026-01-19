@@ -9,26 +9,38 @@
       </template>
       <template #extra>
         <a-space>
-          <a-button type="primary" @click="showCreateModal = true">
-            <template #icon><plus-outlined /></template>
+          <a-button
+            type="primary"
+            @click="showCreateModal = true"
+          >
+            <template #icon>
+              <plus-outlined />
+            </template>
             发布内容
           </a-button>
           <a-button @click="loadContents">
-            <template #icon><reload-outlined /></template>
+            <template #icon>
+              <reload-outlined />
+            </template>
             刷新
           </a-button>
         </a-space>
       </template>
 
       <!-- 搜索和筛选 -->
-      <a-row :gutter="[16, 16]" style="margin-bottom: 16px">
+      <a-row
+        :gutter="[16, 16]"
+        style="margin-bottom: 16px"
+      >
         <a-col :span="12">
           <a-input-search
             v-model:value="searchKeyword"
             placeholder="搜索标题或描述..."
             @search="handleSearch"
           >
-            <template #prefix><search-outlined /></template>
+            <template #prefix>
+              <search-outlined />
+            </template>
           </a-input-search>
         </a-col>
         <a-col :span="6">
@@ -38,12 +50,24 @@
             placeholder="内容类型"
             @change="handleSearch"
           >
-            <a-select-option value="">全部类型</a-select-option>
-            <a-select-option value="article">文章</a-select-option>
-            <a-select-option value="video">视频</a-select-option>
-            <a-select-option value="audio">音频</a-select-option>
-            <a-select-option value="course">课程</a-select-option>
-            <a-select-option value="consulting">咨询</a-select-option>
+            <a-select-option value="">
+              全部类型
+            </a-select-option>
+            <a-select-option value="article">
+              文章
+            </a-select-option>
+            <a-select-option value="video">
+              视频
+            </a-select-option>
+            <a-select-option value="audio">
+              音频
+            </a-select-option>
+            <a-select-option value="course">
+              课程
+            </a-select-option>
+            <a-select-option value="consulting">
+              咨询
+            </a-select-option>
           </a-select>
         </a-col>
         <a-col :span="6">
@@ -52,10 +76,18 @@
             style="width: 100%"
             @change="handleSearch"
           >
-            <a-select-option value="created_at">最新发布</a-select-option>
-            <a-select-option value="view_count">浏览最多</a-select-option>
-            <a-select-option value="purchase_count">购买最多</a-select-option>
-            <a-select-option value="rating">评分最高</a-select-option>
+            <a-select-option value="created_at">
+              最新发布
+            </a-select-option>
+            <a-select-option value="view_count">
+              浏览最多
+            </a-select-option>
+            <a-select-option value="purchase_count">
+              购买最多
+            </a-select-option>
+            <a-select-option value="rating">
+              评分最高
+            </a-select-option>
           </a-select>
         </a-col>
       </a-row>
@@ -68,7 +100,11 @@
         >
           <template #renderItem="{ item }">
             <a-list-item>
-              <a-card hoverable class="content-card" @click="viewContent(item)">
+              <a-card
+                hoverable
+                class="content-card"
+                @click="viewContent(item)"
+              >
                 <!-- 内容类型标签 -->
                 <a-tag
                   :color="getTypeColor(item.contentType)"
@@ -78,16 +114,27 @@
                 </a-tag>
 
                 <!-- 预览图 -->
-                <div class="content-preview" v-if="item.preview && item.preview.image">
-                  <img :src="item.preview.image" :alt="item.title" />
+                <div
+                  v-if="item.preview && item.preview.image"
+                  class="content-preview"
+                >
+                  <img
+                    :src="item.preview.image"
+                    :alt="item.title"
+                  >
                 </div>
-                <div class="content-preview-placeholder" v-else>
+                <div
+                  v-else
+                  class="content-preview-placeholder"
+                >
                   <file-text-outlined style="font-size: 48px; color: #ccc" />
                 </div>
 
                 <a-card-meta>
                   <template #title>
-                    <div class="content-title">{{ item.title }}</div>
+                    <div class="content-title">
+                      {{ item.title }}
+                    </div>
                   </template>
                   <template #description>
                     <div class="content-description">
@@ -127,7 +174,10 @@
 
           <template #empty>
             <a-empty description="暂无内容">
-              <a-button type="primary" @click="showCreateModal = true">
+              <a-button
+                type="primary"
+                @click="showCreateModal = true"
+              >
                 发布第一个内容
               </a-button>
             </a-empty>
@@ -249,7 +299,7 @@ const getTypeName = (type) => {
 };
 
 const shortenDid = (did) => {
-  if (!did) return '';
+  if (!did) {return '';}
   return did.length > 20 ? `${did.slice(0, 10)}...${did.slice(-8)}` : did;
 };
 

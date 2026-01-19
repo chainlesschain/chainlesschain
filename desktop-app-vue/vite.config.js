@@ -2,10 +2,21 @@ import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import { fileURLToPath, URL } from 'node:url';
 import path from 'path';
+import Components from 'unplugin-vue-components/vite';
+import { AntDesignVueResolver } from 'unplugin-vue-components/resolvers';
 
 export default defineConfig({
   plugins: [
     vue(),
+    // Ant Design Vue 按需导入
+    Components({
+      resolvers: [
+        AntDesignVueResolver({
+          importStyle: false, // css 已在 main.js 中全局导入
+        }),
+      ],
+      dts: 'src/components.d.ts', // 生成类型声明文件
+    }),
   ],
   root: path.join(process.cwd(), 'src/renderer'),
   base: './',
@@ -22,7 +33,7 @@ export default defineConfig({
           'editor': ['@milkdown/core', '@milkdown/preset-commonmark', '@milkdown/preset-gfm'],
           'codemirror': ['@codemirror/state', '@codemirror/view', '@codemirror/lang-javascript', '@codemirror/lang-css', '@codemirror/lang-html'],
           'vue-vendor': ['vue', 'vue-router', 'pinia'],
-          'ui': ['ant-design-vue'],
+          // ant-design-vue 已通过 unplugin-vue-components 按需导入，无需手动分块
         },
         // 优化 chunk 文件名
         chunkFileNames: 'assets/js/[name]-[hash].js',
@@ -37,9 +48,9 @@ export default defineConfig({
     terserOptions: {
       compress: {
         // 生产环境移除 console 和 debugger
-        drop_console: process.env.NODE_ENV === 'production',
+        drop_console: true, // 始终移除console（生产构建时）
         drop_debugger: true,
-        pure_funcs: process.env.NODE_ENV === 'production' ? ['console.log', 'console.info'] : [],
+        pure_funcs: ['console.log', 'console.info', 'console.debug', 'console.warn'],
       },
       format: {
         // 移除注释
@@ -61,8 +72,9 @@ export default defineConfig({
     dedupe: ['vue', 'vue-router', 'pinia'],
   },
   optimizeDeps: {
-    include: ['monaco-editor', 'echarts', 'ant-design-vue'],
+    include: ['monaco-editor', 'echarts'],
     // 排除不需要预构建的依赖
+    // ant-design-vue 组件已按需导入，无需预构建
     exclude: [],
   },
   server: {

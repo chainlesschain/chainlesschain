@@ -82,7 +82,7 @@ export class CriticalCSSManager {
    * Inline critical CSS
    */
   inlineCriticalCSS() {
-    if (!this.criticalCSS) return;
+    if (!this.criticalCSS) {return;}
 
     const style = document.createElement("style");
     style.textContent = this.criticalCSS;
@@ -199,7 +199,7 @@ export class FontOptimizationManager {
       try {
         const rules = styleSheets[i].cssRules || styleSheets[i].rules;
 
-        if (!rules) continue;
+        if (!rules) {continue;}
 
         for (let j = 0; j < rules.length; j++) {
           const rule = rules[j];

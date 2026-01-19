@@ -323,7 +323,7 @@ function clusterNodes(nodes, edges, k = 5, maxIterations = 100) {
     centroids.push(features.get(shuffled[i].id));
   }
 
-  let clusters = new Map();
+  const clusters = new Map();
   let changed = true;
   let iteration = 0;
 
@@ -429,7 +429,7 @@ function euclideanDistance(feature1, feature2) {
  * 计算质心
  */
 function calculateCentroid(features) {
-  if (features.length === 0) return {};
+  if (features.length === 0) {return {};}
 
   const centroid = {};
   const keys = Object.keys(features[0]);
@@ -483,7 +483,7 @@ function bfs(startId, adjacency, nodes) {
   while (queue.length > 0) {
     const { id, distance } = queue.shift();
 
-    if (visited.has(id)) continue;
+    if (visited.has(id)) {continue;}
     visited.add(id);
 
     const neighbors = adjacency.get(id) || [];
@@ -608,7 +608,7 @@ function findConnectedComponents(nodes, adjacency) {
       while (queue.length > 0) {
         const currentId = queue.shift();
 
-        if (visited.has(currentId)) continue;
+        if (visited.has(currentId)) {continue;}
         visited.add(currentId);
         component.push(currentId);
 

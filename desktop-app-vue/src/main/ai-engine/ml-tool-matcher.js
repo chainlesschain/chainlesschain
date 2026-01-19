@@ -248,7 +248,7 @@ class MLToolMatcher {
    * 历史成功率评分
    */
   async calculateHistoricalSuccessScore(toolName, userId, features) {
-    if (!this.db) return 0.5;
+    if (!this.db) {return 0.5;}
 
     try {
       // 查询该工具的历史成功率
@@ -289,7 +289,7 @@ class MLToolMatcher {
    */
   calculateRecencyScore(tool, userFeatures) {
     const recentTool = userFeatures.recentTools.find(t => t.tool === tool.name);
-    if (!recentTool) return 0;
+    if (!recentTool) {return 0;}
 
     // 使用次数归一化
     const normalizedCount = Math.min(recentTool.count / 10, 1.0);
@@ -341,7 +341,7 @@ class MLToolMatcher {
    * 记录推荐
    */
   async logRecommendation(userId, task, recommendations) {
-    if (!this.db) return;
+    if (!this.db) {return;}
 
     try {
       const insertStmt = this.db.prepare(`
@@ -378,7 +378,7 @@ class MLToolMatcher {
    * 反馈推荐结果
    */
   async feedbackRecommendation(recommendationId, feedback) {
-    if (!this.db) return;
+    if (!this.db) {return;}
 
     try {
       this.db.prepare(`

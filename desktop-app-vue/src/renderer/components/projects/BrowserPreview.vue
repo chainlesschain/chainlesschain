@@ -5,13 +5,22 @@
       <div class="toolbar-left">
         <!-- 导航按钮 -->
         <a-button-group size="small">
-          <a-button :disabled="!canGoBack" @click="handleBack">
+          <a-button
+            :disabled="!canGoBack"
+            @click="handleBack"
+          >
             <ArrowLeftOutlined />
           </a-button>
-          <a-button :disabled="!canGoForward" @click="handleForward">
+          <a-button
+            :disabled="!canGoForward"
+            @click="handleForward"
+          >
             <ArrowRightOutlined />
           </a-button>
-          <a-button @click="handleRefresh" :loading="loading">
+          <a-button
+            :loading="loading"
+            @click="handleRefresh"
+          >
             <ReloadOutlined />
           </a-button>
         </a-button-group>
@@ -27,8 +36,11 @@
             :placeholder="placeholder"
             @keydown.enter="handleAddressEnter"
             @blur="handleAddressBlur"
-          />
-          <span v-if="isSecure" class="secure-icon">
+          >
+          <span
+            v-if="isSecure"
+            class="secure-icon"
+          >
             <LockOutlined />
           </span>
         </div>
@@ -38,7 +50,10 @@
         <!-- 缩放控制 -->
         <div class="zoom-control">
           <a-button-group size="small">
-            <a-button @click="handleZoomOut" :disabled="zoomLevel <= 50">
+            <a-button
+              :disabled="zoomLevel <= 50"
+              @click="handleZoomOut"
+            >
               <MinusOutlined />
             </a-button>
             <a-dropdown :trigger="['click']">
@@ -48,15 +63,28 @@
               </a-button>
               <template #overlay>
                 <a-menu @click="handleZoomSelect">
-                  <a-menu-item key="50">50%</a-menu-item>
-                  <a-menu-item key="75">75%</a-menu-item>
-                  <a-menu-item key="100">100%</a-menu-item>
-                  <a-menu-item key="125">125%</a-menu-item>
-                  <a-menu-item key="150">150%</a-menu-item>
+                  <a-menu-item key="50">
+                    50%
+                  </a-menu-item>
+                  <a-menu-item key="75">
+                    75%
+                  </a-menu-item>
+                  <a-menu-item key="100">
+                    100%
+                  </a-menu-item>
+                  <a-menu-item key="125">
+                    125%
+                  </a-menu-item>
+                  <a-menu-item key="150">
+                    150%
+                  </a-menu-item>
                 </a-menu>
               </template>
             </a-dropdown>
-            <a-button @click="handleZoomIn" :disabled="zoomLevel >= 150">
+            <a-button
+              :disabled="zoomLevel >= 150"
+              @click="handleZoomIn"
+            >
               <PlusOutlined />
             </a-button>
           </a-button-group>
@@ -64,7 +92,10 @@
 
         <!-- 在新窗口打开 -->
         <a-tooltip title="在浏览器中打开">
-          <a-button size="small" @click="handleOpenInBrowser">
+          <a-button
+            size="small"
+            @click="handleOpenInBrowser"
+          >
             <ExportOutlined />
           </a-button>
         </a-tooltip>
@@ -96,10 +127,19 @@
     </div>
 
     <!-- 预览内容区域 -->
-    <div class="preview-content" :style="{ transform: `scale(${zoomLevel / 100})` }">
+    <div
+      class="preview-content"
+      :style="{ transform: `scale(${zoomLevel / 100})` }"
+    >
       <!-- 加载状态 -->
-      <div v-if="loading" class="loading-overlay">
-        <a-spin size="large" tip="加载中..." />
+      <div
+        v-if="loading"
+        class="loading-overlay"
+      >
+        <a-spin
+          size="large"
+          tip="加载中..."
+        />
       </div>
 
       <!-- iframe预览 -->
@@ -110,40 +150,64 @@
         class="preview-iframe"
         sandbox="allow-scripts allow-same-origin allow-forms"
         @load="handleIframeLoad"
-      ></iframe>
+      />
 
       <!-- HTML内容预览 -->
       <div
         v-else-if="previewType === 'html'"
         class="preview-html"
         v-html="htmlContent"
-      ></div>
+      />
 
       <!-- 图片预览 -->
-      <div v-else-if="previewType === 'image'" class="preview-image">
-        <img :src="imageUrl" :alt="title" @load="handleImageLoad" />
+      <div
+        v-else-if="previewType === 'image'"
+        class="preview-image"
+      >
+        <img
+          :src="imageUrl"
+          :alt="title"
+          @load="handleImageLoad"
+        >
       </div>
 
       <!-- PDF预览 -->
-      <div v-else-if="previewType === 'pdf'" class="preview-pdf">
-        <embed :src="pdfUrl" type="application/pdf" width="100%" height="100%" />
+      <div
+        v-else-if="previewType === 'pdf'"
+        class="preview-pdf"
+      >
+        <embed
+          :src="pdfUrl"
+          type="application/pdf"
+          width="100%"
+          height="100%"
+        >
       </div>
 
       <!-- 错误状态 -->
-      <div v-else-if="error" class="error-state">
+      <div
+        v-else-if="error"
+        class="error-state"
+      >
         <div class="error-icon">
           <ExclamationCircleOutlined />
         </div>
         <h3>加载失败</h3>
         <p>{{ errorMessage }}</p>
-        <a-button type="primary" @click="handleRetry">
+        <a-button
+          type="primary"
+          @click="handleRetry"
+        >
           <ReloadOutlined />
           重试
         </a-button>
       </div>
 
       <!-- 空状态 -->
-      <div v-else class="empty-state">
+      <div
+        v-else
+        class="empty-state"
+      >
         <div class="empty-icon">
           <GlobalOutlined />
         </div>
@@ -153,13 +217,19 @@
     </div>
 
     <!-- 底部状态栏 -->
-    <div class="browser-statusbar" v-if="showStatusbar">
+    <div
+      v-if="showStatusbar"
+      class="browser-statusbar"
+    >
       <div class="status-left">
         <span class="status-item">
           <ClockCircleOutlined />
           加载时间: {{ loadTime }}ms
         </span>
-        <span class="status-item" v-if="fileSize">
+        <span
+          v-if="fileSize"
+          class="status-item"
+        >
           <FileOutlined />
           大小: {{ formatFileSize(fileSize) }}
         </span>
@@ -284,7 +354,7 @@ watch(() => props.url, (newUrl) => {
 
 // 加载URL
 const loadUrl = async (url) => {
-  if (!url) return;
+  if (!url) {return;}
 
   loading.value = true;
   error.value = false;
@@ -428,7 +498,7 @@ const handleMoreAction = ({ key }) => {
 
 // 格式化文件大小
 const formatFileSize = (bytes) => {
-  if (bytes === 0) return '0 B';
+  if (bytes === 0) {return '0 B';}
   const k = 1024;
   const sizes = ['B', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));

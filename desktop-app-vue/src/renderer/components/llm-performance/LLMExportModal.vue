@@ -10,7 +10,10 @@
       <a-form layout="vertical">
         <!-- Export Format -->
         <a-form-item label="导出格式">
-          <a-radio-group v-model:value="exportFormat" button-style="solid">
+          <a-radio-group
+            v-model:value="exportFormat"
+            button-style="solid"
+          >
             <a-radio-button value="csv">
               <FileTextOutlined /> CSV
             </a-radio-button>
@@ -25,9 +28,16 @@
 
         <!-- Date Range -->
         <a-form-item label="时间范围">
-          <a-radio-group v-model:value="dateRangeType" class="date-range-group">
-            <a-radio value="current">当前选择的时间范围</a-radio>
-            <a-radio value="custom">自定义时间范围</a-radio>
+          <a-radio-group
+            v-model:value="dateRangeType"
+            class="date-range-group"
+          >
+            <a-radio value="current">
+              当前选择的时间范围
+            </a-radio>
+            <a-radio value="custom">
+              自定义时间范围
+            </a-radio>
           </a-radio-group>
           <a-range-picker
             v-if="dateRangeType === 'custom'"
@@ -80,7 +90,10 @@
         </a-form-item>
 
         <!-- Excel-specific options -->
-        <a-form-item v-if="exportFormat === 'excel'" label="Excel 选项">
+        <a-form-item
+          v-if="exportFormat === 'excel'"
+          label="Excel 选项"
+        >
           <a-checkbox v-model:checked="excelOptions.multiSheet">
             分多个工作表导出
           </a-checkbox>
@@ -99,7 +112,11 @@
       <div class="export-preview">
         <h4>导出预览</h4>
         <div class="preview-info">
-          <a-descriptions size="small" :column="1" bordered>
+          <a-descriptions
+            size="small"
+            :column="1"
+            bordered
+          >
             <a-descriptions-item label="格式">
               {{ formatLabel }}
             </a-descriptions-item>
@@ -114,12 +131,14 @@
       </div>
 
       <div class="export-actions">
-        <a-button @click="$emit('close')">取消</a-button>
+        <a-button @click="$emit('close')">
+          取消
+        </a-button>
         <a-button
           type="primary"
           :loading="exporting"
-          @click="handleExport"
           :disabled="exportSections.length === 0"
+          @click="handleExport"
         >
           <DownloadOutlined />
           {{ exporting ? "导出中..." : "开始导出" }}

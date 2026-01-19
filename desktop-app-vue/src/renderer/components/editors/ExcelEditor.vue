@@ -5,7 +5,7 @@
       <!-- 左侧：工作表标签 -->
       <div class="sheet-tabs">
         <a-tabs
-          v-model:activeKey="activeSheetIndex"
+          v-model:active-key="activeSheetIndex"
           type="editable-card"
           size="small"
           @edit="handleSheetEdit"
@@ -31,25 +31,40 @@
             </a-button>
             <template #overlay>
               <a-menu @click="handleInsert">
-                <a-menu-item key="row-before">在上方插入行</a-menu-item>
-                <a-menu-item key="row-after">在下方插入行</a-menu-item>
+                <a-menu-item key="row-before">
+                  在上方插入行
+                </a-menu-item>
+                <a-menu-item key="row-after">
+                  在下方插入行
+                </a-menu-item>
                 <a-menu-divider />
-                <a-menu-item key="col-before">在左侧插入列</a-menu-item>
-                <a-menu-item key="col-after">在右侧插入列</a-menu-item>
+                <a-menu-item key="col-before">
+                  在左侧插入列
+                </a-menu-item>
+                <a-menu-item key="col-after">
+                  在右侧插入列
+                </a-menu-item>
               </a-menu>
             </template>
           </a-dropdown>
 
           <!-- 删除行/列 -->
           <a-dropdown>
-            <a-button size="small" danger>
+            <a-button
+              size="small"
+              danger
+            >
               <DeleteOutlined />
               删除
             </a-button>
             <template #overlay>
               <a-menu @click="handleDelete">
-                <a-menu-item key="row">删除选中行</a-menu-item>
-                <a-menu-item key="col">删除选中列</a-menu-item>
+                <a-menu-item key="row">
+                  删除选中行
+                </a-menu-item>
+                <a-menu-item key="col">
+                  删除选中列
+                </a-menu-item>
               </a-menu>
             </template>
           </a-dropdown>
@@ -71,9 +86,15 @@
                   斜体
                 </a-menu-item>
                 <a-menu-divider />
-                <a-menu-item key="align-left">左对齐</a-menu-item>
-                <a-menu-item key="align-center">居中</a-menu-item>
-                <a-menu-item key="align-right">右对齐</a-menu-item>
+                <a-menu-item key="align-left">
+                  左对齐
+                </a-menu-item>
+                <a-menu-item key="align-center">
+                  居中
+                </a-menu-item>
+                <a-menu-item key="align-right">
+                  右对齐
+                </a-menu-item>
               </a-menu>
             </template>
           </a-dropdown>
@@ -86,27 +107,46 @@
             </a-button>
             <template #overlay>
               <a-menu @click="handleDataOperation">
-                <a-menu-item key="sort-asc">升序排序</a-menu-item>
-                <a-menu-item key="sort-desc">降序排序</a-menu-item>
+                <a-menu-item key="sort-asc">
+                  升序排序
+                </a-menu-item>
+                <a-menu-item key="sort-desc">
+                  降序排序
+                </a-menu-item>
                 <a-menu-divider />
-                <a-menu-item key="filter">筛选</a-menu-item>
-                <a-menu-item key="sum">求和</a-menu-item>
-                <a-menu-item key="average">平均值</a-menu-item>
+                <a-menu-item key="filter">
+                  筛选
+                </a-menu-item>
+                <a-menu-item key="sum">
+                  求和
+                </a-menu-item>
+                <a-menu-item key="average">
+                  平均值
+                </a-menu-item>
               </a-menu>
             </template>
           </a-dropdown>
 
           <!-- 导出 -->
           <a-dropdown>
-            <a-button size="small" type="primary">
+            <a-button
+              size="small"
+              type="primary"
+            >
               <ExportOutlined />
               导出
             </a-button>
             <template #overlay>
               <a-menu @click="handleExport">
-                <a-menu-item key="excel">导出为Excel</a-menu-item>
-                <a-menu-item key="csv">导出为CSV</a-menu-item>
-                <a-menu-item key="json">导出为JSON</a-menu-item>
+                <a-menu-item key="excel">
+                  导出为Excel
+                </a-menu-item>
+                <a-menu-item key="csv">
+                  导出为CSV
+                </a-menu-item>
+                <a-menu-item key="json">
+                  导出为JSON
+                </a-menu-item>
               </a-menu>
             </template>
           </a-dropdown>
@@ -115,7 +155,10 @@
     </div>
 
     <!-- 表格编辑区 -->
-    <div class="excel-spreadsheet" ref="spreadsheetRef"></div>
+    <div
+      ref="spreadsheetRef"
+      class="excel-spreadsheet"
+    />
 
     <!-- 底部状态栏 -->
     <div class="excel-statusbar">
@@ -129,7 +172,10 @@
         <a-divider type="vertical" />
         <span>列: {{ currentSheet?.columns?.length || 0 }}</span>
         <a-divider type="vertical" />
-        <span v-if="hasUnsavedChanges" class="unsaved-indicator">
+        <span
+          v-if="hasUnsavedChanges"
+          class="unsaved-indicator"
+        >
           <EditOutlined />
           未保存
         </span>
@@ -450,7 +496,7 @@ const removeSheet = (index) => {
 // 插入操作
 const handleInsert = ({ key }) => {
   const worksheet = getCurrentWorksheet();
-  if (!worksheet) return;
+  if (!worksheet) {return;}
 
   switch (key) {
     case 'row-before':
@@ -471,7 +517,7 @@ const handleInsert = ({ key }) => {
 // 删除操作
 const handleDelete = ({ key }) => {
   const worksheet = getCurrentWorksheet();
-  if (!worksheet) return;
+  if (!worksheet) {return;}
 
   switch (key) {
     case 'row':
@@ -496,7 +542,7 @@ const handleDelete = ({ key }) => {
 // 格式化操作
 const handleFormat = ({ key }) => {
   const worksheet = getCurrentWorksheet();
-  if (!worksheet) return;
+  if (!worksheet) {return;}
 
   const selection = worksheet.getSelected();
   if (!selection) {
@@ -528,7 +574,7 @@ const handleFormat = ({ key }) => {
 // 数据操作
 const handleDataOperation = ({ key }) => {
   const worksheet = getCurrentWorksheet();
-  if (!worksheet) return;
+  if (!worksheet) {return;}
 
   switch (key) {
     case 'sort-asc':
@@ -549,7 +595,7 @@ const handleDataOperation = ({ key }) => {
 // 计算求和
 const calculateSum = () => {
   const worksheet = getCurrentWorksheet();
-  if (!worksheet) return;
+  if (!worksheet) {return;}
 
   const selection = worksheet.getSelected();
   if (!selection) {
@@ -577,7 +623,7 @@ const calculateSum = () => {
 // 计算平均值
 const calculateAverage = () => {
   const worksheet = getCurrentWorksheet();
-  if (!worksheet) return;
+  if (!worksheet) {return;}
 
   const selection = worksheet.getSelected();
   if (!selection) {
@@ -628,7 +674,7 @@ const handleExport = async ({ key }) => {
 // 获取当前数据
 const getCurrentData = () => {
   const worksheet = getCurrentWorksheet();
-  if (!worksheet) return null;
+  if (!worksheet) {return null;}
 
   const data = worksheet.getData();
   const currentSheetData = { ...currentSheet.value };

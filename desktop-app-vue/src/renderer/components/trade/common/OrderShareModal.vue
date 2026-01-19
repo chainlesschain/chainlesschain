@@ -7,9 +7,16 @@
   >
     <div class="share-container">
       <!-- 分享方式选择 -->
-      <a-tabs v-model:activeKey="shareMethod">
-        <a-tab-pane key="link" tab="链接分享">
-          <a-space direction="vertical" style="width: 100%" :size="16">
+      <a-tabs v-model:active-key="shareMethod">
+        <a-tab-pane
+          key="link"
+          tab="链接分享"
+        >
+          <a-space
+            direction="vertical"
+            style="width: 100%"
+            :size="16"
+          >
             <a-alert
               message="生成分享链接"
               description="生成一个可以分享给他人的订单链接，任何人都可以通过此链接查看订单详情"
@@ -24,39 +31,74 @@
                 style="width: calc(100% - 100px)"
                 placeholder="点击生成链接按钮"
               />
-              <a-button type="primary" @click="generateShareLink">
-                <template #icon><LinkOutlined /></template>
+              <a-button
+                type="primary"
+                @click="generateShareLink"
+              >
+                <template #icon>
+                  <LinkOutlined />
+                </template>
                 生成链接
               </a-button>
             </a-input-group>
 
             <a-space>
-              <a-button @click="copyShareLink" :disabled="!shareLink">
-                <template #icon><CopyOutlined /></template>
+              <a-button
+                :disabled="!shareLink"
+                @click="copyShareLink"
+              >
+                <template #icon>
+                  <CopyOutlined />
+                </template>
                 复制链接
               </a-button>
-              <a-button @click="showQRCode" :disabled="!shareLink">
-                <template #icon><QrcodeOutlined /></template>
+              <a-button
+                :disabled="!shareLink"
+                @click="showQRCode"
+              >
+                <template #icon>
+                  <QrcodeOutlined />
+                </template>
                 显示二维码
               </a-button>
             </a-space>
 
             <!-- 链接设置 -->
-            <a-card size="small" title="链接设置">
+            <a-card
+              size="small"
+              title="链接设置"
+            >
               <a-form layout="vertical">
                 <a-form-item label="有效期">
-                  <a-select v-model:value="linkExpiry" style="width: 100%">
-                    <a-select-option value="1h">1小时</a-select-option>
-                    <a-select-option value="24h">24小时</a-select-option>
-                    <a-select-option value="7d">7天</a-select-option>
-                    <a-select-option value="30d">30天</a-select-option>
-                    <a-select-option value="never">永久</a-select-option>
+                  <a-select
+                    v-model:value="linkExpiry"
+                    style="width: 100%"
+                  >
+                    <a-select-option value="1h">
+                      1小时
+                    </a-select-option>
+                    <a-select-option value="24h">
+                      24小时
+                    </a-select-option>
+                    <a-select-option value="7d">
+                      7天
+                    </a-select-option>
+                    <a-select-option value="30d">
+                      30天
+                    </a-select-option>
+                    <a-select-option value="never">
+                      永久
+                    </a-select-option>
                   </a-select>
                 </a-form-item>
                 <a-form-item label="访问权限">
                   <a-radio-group v-model:value="linkPermission">
-                    <a-radio value="public">公开 - 任何人可访问</a-radio>
-                    <a-radio value="private">私密 - 需要验证身份</a-radio>
+                    <a-radio value="public">
+                      公开 - 任何人可访问
+                    </a-radio>
+                    <a-radio value="private">
+                      私密 - 需要验证身份
+                    </a-radio>
                   </a-radio-group>
                 </a-form-item>
               </a-form>
@@ -64,8 +106,15 @@
           </a-space>
         </a-tab-pane>
 
-        <a-tab-pane key="social" tab="社交分享">
-          <a-space direction="vertical" style="width: 100%" :size="16">
+        <a-tab-pane
+          key="social"
+          tab="社交分享"
+        >
+          <a-space
+            direction="vertical"
+            style="width: 100%"
+            :size="16"
+          >
             <a-alert
               message="分享到社交网络"
               description="将订单信息分享到ChainlessChain社交网络或其他平台"
@@ -74,7 +123,10 @@
             />
 
             <!-- 分享内容预览 -->
-            <a-card size="small" title="分享内容预览">
+            <a-card
+              size="small"
+              title="分享内容预览"
+            >
               <div class="share-preview">
                 <div class="preview-title">
                   {{ getOrderTypeLabel(order.order_type) }}: {{ order.asset_name }}
@@ -83,27 +135,46 @@
                   <p><strong>单价:</strong> {{ order.price_amount }} {{ order.price_asset_symbol || 'CC' }}</p>
                   <p><strong>数量:</strong> {{ order.quantity }}</p>
                   <p><strong>总价:</strong> {{ (order.price_amount * order.quantity).toFixed(2) }} {{ order.price_asset_symbol || 'CC' }}</p>
-                  <p v-if="order.description"><strong>描述:</strong> {{ order.description }}</p>
+                  <p v-if="order.description">
+                    <strong>描述:</strong> {{ order.description }}
+                  </p>
                 </div>
               </div>
             </a-card>
 
             <!-- 分享平台选择 -->
-            <a-space wrap :size="12">
-              <a-button @click="shareToInternalSocial" type="primary">
-                <template #icon><TeamOutlined /></template>
+            <a-space
+              wrap
+              :size="12"
+            >
+              <a-button
+                type="primary"
+                @click="shareToInternalSocial"
+              >
+                <template #icon>
+                  <TeamOutlined />
+                </template>
                 分享到社交网络
               </a-button>
               <a-button @click="shareToClipboard">
-                <template #icon><CopyOutlined /></template>
+                <template #icon>
+                  <CopyOutlined />
+                </template>
                 复制分享文本
               </a-button>
             </a-space>
           </a-space>
         </a-tab-pane>
 
-        <a-tab-pane key="export" tab="导出订单">
-          <a-space direction="vertical" style="width: 100%" :size="16">
+        <a-tab-pane
+          key="export"
+          tab="导出订单"
+        >
+          <a-space
+            direction="vertical"
+            style="width: 100%"
+            :size="16"
+          >
             <a-alert
               message="导出订单数据"
               description="将订单信息导出为文件，方便保存和分享"
@@ -111,21 +182,32 @@
               show-icon
             />
 
-            <a-space wrap :size="12">
+            <a-space
+              wrap
+              :size="12"
+            >
               <a-button @click="exportAsJSON">
-                <template #icon><FileTextOutlined /></template>
+                <template #icon>
+                  <FileTextOutlined />
+                </template>
                 导出为 JSON
               </a-button>
               <a-button @click="exportAsCSV">
-                <template #icon><FileExcelOutlined /></template>
+                <template #icon>
+                  <FileExcelOutlined />
+                </template>
                 导出为 CSV
               </a-button>
               <a-button @click="exportAsPDF">
-                <template #icon><FilePdfOutlined /></template>
+                <template #icon>
+                  <FilePdfOutlined />
+                </template>
                 导出为 PDF
               </a-button>
               <a-button @click="exportAsImage">
-                <template #icon><PictureOutlined /></template>
+                <template #icon>
+                  <PictureOutlined />
+                </template>
                 导出为图片
               </a-button>
             </a-space>

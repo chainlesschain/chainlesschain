@@ -24,7 +24,7 @@ class LRUCache {
   }
 
   get(key) {
-    if (!this.cache.has(key)) return null;
+    if (!this.cache.has(key)) {return null;}
 
     const value = this.cache.get(key);
     this.cache.delete(key);
@@ -120,14 +120,14 @@ class UserProfileManager {
    * 从数据库加载用户画像
    */
   async loadProfileFromDB(userId) {
-    if (!this.db) return null;
+    if (!this.db) {return null;}
 
     try {
       const row = this.db.prepare(`
         SELECT * FROM user_profiles WHERE user_id = ?
       `).get(userId);
 
-      if (!row) return null;
+      if (!row) {return null;}
 
       return {
         userId: row.user_id,
@@ -235,7 +235,7 @@ class UserProfileManager {
    * 加载用户历史数据
    */
   async loadUserHistory(userId) {
-    if (!this.db) return [];
+    if (!this.db) {return [];}
 
     try {
       const events = this.db.prepare(`
@@ -386,7 +386,7 @@ class UserProfileManager {
         toolStats[h.toolName] = { count: 0, successCount: 0 };
       }
       toolStats[h.toolName].count++;
-      if (h.success) toolStats[h.toolName].successCount++;
+      if (h.success) {toolStats[h.toolName].successCount++;}
     });
 
     const mostUsedTools = Object.entries(toolStats)
@@ -454,7 +454,7 @@ class UserProfileManager {
    * 保存用户画像
    */
   async saveProfile(profile) {
-    if (!this.db) return;
+    if (!this.db) {return;}
 
     try {
       const existing = this.db.prepare('SELECT id FROM user_profiles WHERE user_id = ?').get(profile.userId);

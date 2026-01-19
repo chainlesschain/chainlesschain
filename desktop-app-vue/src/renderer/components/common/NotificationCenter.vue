@@ -1,7 +1,10 @@
 <template>
   <div class="notification-center">
     <!-- 通知图标按钮 -->
-    <a-badge :count="unreadCount" :overflow-count="99">
+    <a-badge
+      :count="unreadCount"
+      :overflow-count="99"
+    >
       <a-button
         type="text"
         size="large"
@@ -39,10 +42,18 @@
           </a-button>
         </a-space>
         <a-space>
-          <a-button size="small" @click="markAllAsRead" :disabled="unreadCount === 0">
+          <a-button
+            size="small"
+            :disabled="unreadCount === 0"
+            @click="markAllAsRead"
+          >
             全部已读
           </a-button>
-          <a-button size="small" danger @click="clearRead">
+          <a-button
+            size="small"
+            danger
+            @click="clearRead"
+          >
             清空已读
           </a-button>
         </a-space>
@@ -77,7 +88,10 @@
             <div class="notification-title">
               {{ notification.title || notification.message }}
             </div>
-            <div v-if="notification.description" class="notification-description">
+            <div
+              v-if="notification.description"
+              class="notification-description"
+            >
               {{ notification.description }}
             </div>
             <div class="notification-meta">
@@ -92,7 +106,10 @@
             </div>
 
             <!-- 操作按钮 -->
-            <div v-if="notification.actions && notification.actions.length > 0" class="notification-actions">
+            <div
+              v-if="notification.actions && notification.actions.length > 0"
+              class="notification-actions"
+            >
               <a-button
                 v-for="(action, index) in notification.actions"
                 :key="index"

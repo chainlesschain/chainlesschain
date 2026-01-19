@@ -7,7 +7,9 @@
           <swap-outlined />
           跨链桥
         </h1>
-        <p class="page-subtitle">在不同区块链网络间安全转移资产</p>
+        <p class="page-subtitle">
+          在不同区块链网络间安全转移资产
+        </p>
       </div>
       <div class="header-right">
         <a-tag color="warning">
@@ -18,9 +20,12 @@
 
     <!-- 主内容区 -->
     <div class="page-content">
-      <a-tabs v-model:activeKey="activeTab">
+      <a-tabs v-model:active-key="activeTab">
         <!-- 跨链转移标签页 -->
-        <a-tab-pane key="transfer" tab="跨链转移">
+        <a-tab-pane
+          key="transfer"
+          tab="跨链转移"
+        >
           <template #tab>
             <span>
               <swap-outlined />
@@ -31,7 +36,10 @@
         </a-tab-pane>
 
         <!-- 转移历史标签页 -->
-        <a-tab-pane key="history" tab="转移历史">
+        <a-tab-pane
+          key="history"
+          tab="转移历史"
+        >
           <template #tab>
             <span>
               <history-outlined />
@@ -50,8 +58,15 @@
       width="700px"
       :footer="null"
     >
-      <a-descriptions v-if="selectedRecord" :column="2" bordered>
-        <a-descriptions-item label="状态" :span="2">
+      <a-descriptions
+        v-if="selectedRecord"
+        :column="2"
+        bordered
+      >
+        <a-descriptions-item
+          label="状态"
+          :span="2"
+        >
           <a-tag :color="getStatusTagColor(selectedRecord.status)">
             {{ getStatusText(selectedRecord.status) }}
           </a-tag>
@@ -65,44 +80,81 @@
           {{ getNetworkName(selectedRecord.to_chain_id) }}
         </a-descriptions-item>
 
-        <a-descriptions-item label="资产 ID" :span="2">
+        <a-descriptions-item
+          label="资产 ID"
+          :span="2"
+        >
           {{ selectedRecord.asset_id }}
         </a-descriptions-item>
 
-        <a-descriptions-item label="合约地址" :span="2">
+        <a-descriptions-item
+          label="合约地址"
+          :span="2"
+        >
           <span class="mono-text">{{ selectedRecord.asset_address }}</span>
         </a-descriptions-item>
 
-        <a-descriptions-item label="转移数量" :span="2">
+        <a-descriptions-item
+          label="转移数量"
+          :span="2"
+        >
           <span class="amount-text">{{ selectedRecord.amount }}</span>
         </a-descriptions-item>
 
-        <a-descriptions-item label="发送地址" :span="2">
+        <a-descriptions-item
+          label="发送地址"
+          :span="2"
+        >
           <span class="mono-text">{{ selectedRecord.sender_address }}</span>
         </a-descriptions-item>
 
-        <a-descriptions-item label="接收地址" :span="2">
+        <a-descriptions-item
+          label="接收地址"
+          :span="2"
+        >
           <span class="mono-text">{{ selectedRecord.recipient_address }}</span>
         </a-descriptions-item>
 
-        <a-descriptions-item label="锁定交易" :span="2" v-if="selectedRecord.from_tx_hash">
+        <a-descriptions-item
+          v-if="selectedRecord.from_tx_hash"
+          label="锁定交易"
+          :span="2"
+        >
           <span class="mono-text">{{ selectedRecord.from_tx_hash }}</span>
         </a-descriptions-item>
 
-        <a-descriptions-item label="铸造交易" :span="2" v-if="selectedRecord.to_tx_hash">
+        <a-descriptions-item
+          v-if="selectedRecord.to_tx_hash"
+          label="铸造交易"
+          :span="2"
+        >
           <span class="mono-text">{{ selectedRecord.to_tx_hash }}</span>
         </a-descriptions-item>
 
-        <a-descriptions-item label="创建时间" :span="2">
+        <a-descriptions-item
+          label="创建时间"
+          :span="2"
+        >
           {{ formatDateTime(selectedRecord.created_at) }}
         </a-descriptions-item>
 
-        <a-descriptions-item label="完成时间" :span="2" v-if="selectedRecord.completed_at">
+        <a-descriptions-item
+          v-if="selectedRecord.completed_at"
+          label="完成时间"
+          :span="2"
+        >
           {{ formatDateTime(selectedRecord.completed_at) }}
         </a-descriptions-item>
 
-        <a-descriptions-item label="错误信息" :span="2" v-if="selectedRecord.error_message">
-          <a-alert :message="selectedRecord.error_message" type="error" />
+        <a-descriptions-item
+          v-if="selectedRecord.error_message"
+          label="错误信息"
+          :span="2"
+        >
+          <a-alert
+            :message="selectedRecord.error_message"
+            type="error"
+          />
         </a-descriptions-item>
       </a-descriptions>
     </a-modal>
@@ -165,7 +217,7 @@ const getNetworkName = (chainId) => {
  * 格式化日期时间
  */
 const formatDateTime = (timestamp) => {
-  if (!timestamp) return '';
+  if (!timestamp) {return '';}
   return new Date(timestamp).toLocaleString('zh-CN');
 };
 

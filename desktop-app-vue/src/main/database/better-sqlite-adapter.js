@@ -40,6 +40,15 @@ class BetterSQLiteAdapter {
     // 创建数据库
     this.db = new Database(this.dbPath);
 
+    // 启用 WAL 模式以提高并发性能
+    try {
+      this.db.pragma('journal_mode = WAL');
+      this.db.pragma('synchronous = NORMAL');
+      console.log('[BetterSQLiteAdapter] WAL 模式已启用');
+    } catch (error) {
+      console.warn('[BetterSQLiteAdapter] 无法启用 WAL 模式:', error.message);
+    }
+
     // 添加兼容性方法
     this.db.saveToFile = () => {
       // better-sqlite3 自动保存，不需要手动操作

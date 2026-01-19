@@ -1,6 +1,9 @@
 <template>
   <div class="performance-dashboard">
-    <a-card title="性能监控" :bordered="false">
+    <a-card
+      title="性能监控"
+      :bordered="false"
+    >
       <template #extra>
         <a-space>
           <a-switch
@@ -9,11 +12,17 @@
             un-checked-children="已停止"
             @change="handleToggleMonitoring"
           />
-          <a-button size="small" @click="handleExport">
+          <a-button
+            size="small"
+            @click="handleExport"
+          >
             <ExportOutlined />
             导出数据
           </a-button>
-          <a-button size="small" @click="handleClear">
+          <a-button
+            size="small"
+            @click="handleClear"
+          >
             <ClearOutlined />
             清空数据
           </a-button>
@@ -21,10 +30,16 @@
       </template>
 
       <!-- 实时指标卡片 -->
-      <a-row :gutter="[16, 16]" class="metrics-cards">
+      <a-row
+        :gutter="[16, 16]"
+        class="metrics-cards"
+      >
         <!-- 内存使用 -->
         <a-col :span="6">
-          <a-card size="small" class="metric-card">
+          <a-card
+            size="small"
+            class="metric-card"
+          >
             <a-statistic
               title="内存使用"
               :value="currentMetrics.memory.percentage"
@@ -45,7 +60,10 @@
 
         <!-- FPS -->
         <a-col :span="6">
-          <a-card size="small" class="metric-card">
+          <a-card
+            size="small"
+            class="metric-card"
+          >
             <a-statistic
               title="帧率 (FPS)"
               :value="currentMetrics.fps.current"
@@ -65,7 +83,10 @@
 
         <!-- 存储使用 -->
         <a-col :span="6">
-          <a-card size="small" class="metric-card">
+          <a-card
+            size="small"
+            class="metric-card"
+          >
             <a-statistic
               title="存储使用"
               :value="currentMetrics.storage.percentage"
@@ -86,7 +107,10 @@
 
         <!-- 网络状态 -->
         <a-col :span="6">
-          <a-card size="small" class="metric-card">
+          <a-card
+            size="small"
+            class="metric-card"
+          >
             <a-statistic
               title="网络速度"
               :value="currentMetrics.network.downlink || 0"
@@ -107,9 +131,12 @@
       <a-divider />
 
       <!-- 性能图表 -->
-      <a-tabs v-model:activeKey="activeTab">
+      <a-tabs v-model:active-key="activeTab">
         <!-- 内存趋势 -->
-        <a-tab-pane key="memory" tab="内存趋势">
+        <a-tab-pane
+          key="memory"
+          tab="内存趋势"
+        >
           <div class="chart-container">
             <div class="chart-placeholder">
               <LineChartOutlined class="chart-icon" />
@@ -121,14 +148,17 @@
                   class="data-point"
                   :style="{ height: `${point.value}%` }"
                   :title="`${point.value.toFixed(1)}%`"
-                ></div>
+                />
               </div>
             </div>
           </div>
         </a-tab-pane>
 
         <!-- FPS 趋势 -->
-        <a-tab-pane key="fps" tab="FPS 趋势">
+        <a-tab-pane
+          key="fps"
+          tab="FPS 趋势"
+        >
           <div class="chart-container">
             <div class="chart-placeholder">
               <AreaChartOutlined class="chart-icon" />
@@ -140,16 +170,23 @@
                   class="data-point fps-point"
                   :style="{ height: `${(point.value / 60) * 100}%` }"
                   :title="`${point.value} fps`"
-                ></div>
+                />
               </div>
             </div>
           </div>
         </a-tab-pane>
 
         <!-- 性能报告 -->
-        <a-tab-pane key="report" tab="性能报告">
+        <a-tab-pane
+          key="report"
+          tab="性能报告"
+        >
           <div class="performance-report">
-            <a-descriptions :column="2" bordered size="small">
+            <a-descriptions
+              :column="2"
+              bordered
+              size="small"
+            >
               <a-descriptions-item label="监控状态">
                 <a-tag :color="isMonitoring ? 'green' : 'red'">
                   {{ isMonitoring ? '运行中' : '已停止' }}
@@ -179,7 +216,10 @@
             </a-descriptions>
 
             <div class="report-actions">
-              <a-button type="primary" @click="handleGenerateReport">
+              <a-button
+                type="primary"
+                @click="handleGenerateReport"
+              >
                 <FileTextOutlined />
                 生成详细报告
               </a-button>
@@ -196,11 +236,16 @@
         class="performance-warnings"
       >
         <template #message>
-          <div class="warnings-title">性能警告</div>
+          <div class="warnings-title">
+            性能警告
+          </div>
         </template>
         <template #description>
           <ul class="warnings-list">
-            <li v-for="(warning, index) in performanceWarnings" :key="index">
+            <li
+              v-for="(warning, index) in performanceWarnings"
+              :key="index"
+            >
               {{ warning }}
             </li>
           </ul>
@@ -287,7 +332,7 @@ const getValueStyle = (value, threshold) => {
 
 // 格式化字节
 const formatBytes = (bytes) => {
-  if (!bytes || bytes === 0) return '0 B';
+  if (!bytes || bytes === 0) {return '0 B';}
   const k = 1024;
   const sizes = ['B', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
@@ -302,21 +347,21 @@ const getTotalDataPoints = () => {
 // 获取指标最大值
 const getMetricMax = (type) => {
   const data = metrics.value[type] || [];
-  if (data.length === 0) return 0;
+  if (data.length === 0) {return 0;}
   return Math.max(...data.map(m => m.metadata?.used || m.value || 0));
 };
 
 // 获取指标最小值
 const getMetricMin = (type) => {
   const data = metrics.value[type] || [];
-  if (data.length === 0) return 0;
+  if (data.length === 0) {return 0;}
   return Math.min(...data.map(m => m.value || 0));
 };
 
 // 获取指标平均值
 const getMetricAvg = (type) => {
   const data = metrics.value[type] || [];
-  if (data.length === 0) return 0;
+  if (data.length === 0) {return 0;}
   const values = data.map(m => m.metadata?.used || m.value || 0);
   return values.reduce((a, b) => a + b, 0) / values.length;
 };

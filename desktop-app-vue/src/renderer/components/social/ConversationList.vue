@@ -7,14 +7,19 @@
         placeholder="搜索会话..."
         allow-clear
       >
-        <template #prefix><SearchOutlined /></template>
+        <template #prefix>
+          <SearchOutlined />
+        </template>
       </a-input-search>
     </div>
 
     <!-- 会话列表 -->
     <div class="conversation-items">
       <a-spin :spinning="loading">
-        <a-empty v-if="filteredSessions.length === 0" description="暂无会话" />
+        <a-empty
+          v-if="filteredSessions.length === 0"
+          description="暂无会话"
+        />
 
         <div
           v-for="session in filteredSessions"
@@ -25,10 +30,18 @@
         >
           <!-- 头像 -->
           <div class="conversation-avatar">
-            <a-badge :count="session.unread_count" :overflow-count="99">
-              <a-badge :dot="getOnlineStatus(session.participant_did) === 'online'" :offset="[-5, 40]">
+            <a-badge
+              :count="session.unread_count"
+              :overflow-count="99"
+            >
+              <a-badge
+                :dot="getOnlineStatus(session.participant_did) === 'online'"
+                :offset="[-5, 40]"
+              >
                 <a-avatar :size="48">
-                  <template #icon><UserOutlined /></template>
+                  <template #icon>
+                    <UserOutlined />
+                  </template>
                 </a-avatar>
               </a-badge>
             </a-badge>
@@ -37,32 +50,58 @@
           <!-- 会话信息 -->
           <div class="conversation-info">
             <div class="conversation-top">
-              <div class="conversation-name">{{ session.friend_nickname || shortenDid(session.participant_did) }}</div>
-              <div class="conversation-time">{{ formatTime(session.last_message_time) }}</div>
+              <div class="conversation-name">
+                {{ session.friend_nickname || shortenDid(session.participant_did) }}
+              </div>
+              <div class="conversation-time">
+                {{ formatTime(session.last_message_time) }}
+              </div>
             </div>
 
             <div class="conversation-bottom">
-              <div class="conversation-last-message">{{ session.last_message || '暂无消息' }}</div>
-              <a-tag v-if="session.is_pinned" color="blue" size="small">置顶</a-tag>
+              <div class="conversation-last-message">
+                {{ session.last_message || '暂无消息' }}
+              </div>
+              <a-tag
+                v-if="session.is_pinned"
+                color="blue"
+                size="small"
+              >
+                置顶
+              </a-tag>
             </div>
           </div>
 
           <!-- 操作按钮 -->
           <div class="conversation-actions">
-            <a-dropdown :trigger="['click']" @click.stop>
-              <a-button type="text" size="small">
-                <template #icon><MoreOutlined /></template>
+            <a-dropdown
+              :trigger="['click']"
+              @click.stop
+            >
+              <a-button
+                type="text"
+                size="small"
+              >
+                <template #icon>
+                  <MoreOutlined />
+                </template>
               </a-button>
               <template #overlay>
                 <a-menu @click="handleMenuClick($event, session)">
                   <a-menu-item key="pin">
                     <PushpinOutlined /> {{ session.is_pinned ? '取消置顶' : '置顶会话' }}
                   </a-menu-item>
-                  <a-menu-item key="markRead" v-if="session.unread_count > 0">
+                  <a-menu-item
+                    v-if="session.unread_count > 0"
+                    key="markRead"
+                  >
                     <CheckOutlined /> 标记已读
                   </a-menu-item>
                   <a-menu-divider />
-                  <a-menu-item key="delete" danger>
+                  <a-menu-item
+                    key="delete"
+                    danger
+                  >
                     <DeleteOutlined /> 删除会话
                   </a-menu-item>
                 </a-menu>
@@ -158,13 +197,13 @@ const handleMenuClick = ({ key }, session) => {
 }
 
 const shortenDid = (did) => {
-  if (!did) return '未知用户'
-  if (did.length <= 20) return did
+  if (!did) {return '未知用户'}
+  if (did.length <= 20) {return did}
   return `${did.substring(0, 10)}...${did.substring(did.length - 6)}`
 }
 
 const formatTime = (timestamp) => {
-  if (!timestamp) return ''
+  if (!timestamp) {return ''}
 
   const now = Date.now()
   const diff = now - timestamp

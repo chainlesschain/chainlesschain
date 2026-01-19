@@ -20,8 +20,14 @@
         :data-plugin-id="extension.pluginId"
       >
         <!-- 调试信息（仅开发模式） -->
-        <div v-if="debug" class="plugin-slot-debug">
-          <a-tag color="purple" size="small">
+        <div
+          v-if="debug"
+          class="plugin-slot-debug"
+        >
+          <a-tag
+            color="purple"
+            size="small"
+          >
             {{ extension.pluginName || extension.pluginId }}
           </a-tag>
         </div>
@@ -109,7 +115,7 @@ const mergedContext = computed(() => ({
 const visibleExtensions = computed(() => {
   let result = extensions.value.filter((ext) => {
     // 检查扩展自身的可见性条件
-    if (ext.componentConfig?.visible === false) return false;
+    if (ext.componentConfig?.visible === false) {return false;}
 
     // 检查条件
     const conditions = ext.componentConfig?.conditions || [];
@@ -140,7 +146,7 @@ const visibleExtensions = computed(() => {
 
 // 评估条件表达式
 function evaluateCondition(condition, context) {
-  if (!condition) return true;
+  if (!condition) {return true;}
 
   switch (condition.type) {
     case "equals":
@@ -232,7 +238,7 @@ defineExpose({
 let eventUnsubscribers = [];
 
 function setupEventListeners() {
-  if (!window.electronAPI?.plugin) return;
+  if (!window.electronAPI?.plugin) {return;}
 
   const events = [
     "plugin:installed",

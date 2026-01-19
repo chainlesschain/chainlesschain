@@ -547,8 +547,8 @@ class NativeMessagingHTTPServer {
           this.database.db.get(
             'SELECT COUNT(*) as count FROM knowledge_items',
             (err, row) => {
-              if (err) reject(err);
-              else resolve(row);
+              if (err) {reject(err);}
+              else {resolve(row);}
             }
           );
         });
@@ -559,17 +559,17 @@ class NativeMessagingHTTPServer {
           this.database.db.all(
             'SELECT type, COUNT(*) as count FROM knowledge_items GROUP BY type',
             (err, rows) => {
-              if (err) reject(err);
-              else resolve(rows);
+              if (err) {reject(err);}
+              else {resolve(rows);}
             }
           );
         });
 
         typeResults.forEach(row => {
-          if (row.type === 'web_clip') stats.webClips = row.count;
-          else if (row.type === 'note') stats.notes = row.count;
-          else if (row.type === 'document') stats.documents = row.count;
-          else if (row.type === 'conversation') stats.conversations = row.count;
+          if (row.type === 'web_clip') {stats.webClips = row.count;}
+          else if (row.type === 'note') {stats.notes = row.count;}
+          else if (row.type === 'document') {stats.documents = row.count;}
+          else if (row.type === 'conversation') {stats.conversations = row.count;}
         });
 
         // 最近的剪藏
@@ -578,8 +578,8 @@ class NativeMessagingHTTPServer {
             'SELECT id, title, type, created_at FROM knowledge_items WHERE type = ? ORDER BY created_at DESC LIMIT 10',
             ['web_clip'],
             (err, rows) => {
-              if (err) reject(err);
-              else resolve(rows);
+              if (err) {reject(err);}
+              else {resolve(rows);}
             }
           );
         });

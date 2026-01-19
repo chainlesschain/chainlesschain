@@ -3,7 +3,7 @@
     v-model:open="open"
     title="数据库加密设置"
     :closable="!isRequired"
-    :maskClosable="!isRequired"
+    :mask-closable="!isRequired"
     :keyboard="!isRequired"
     width="500px"
     @ok="handleSubmit"
@@ -52,15 +52,21 @@
               class="strength-fill"
               :class="passwordStrength.class"
               :style="{ width: passwordStrength.width }"
-            ></div>
+            />
           </div>
-          <span class="strength-text" :class="passwordStrength.class">
+          <span
+            class="strength-text"
+            :class="passwordStrength.class"
+          >
             {{ passwordStrength.text }}
           </span>
         </div>
       </a-form-item>
 
-      <a-form-item label="确认密码" name="confirmPassword">
+      <a-form-item
+        label="确认密码"
+        name="confirmPassword"
+      >
         <a-input-password
           v-model:value="formState.confirmPassword"
           placeholder="请再次输入密码"
@@ -72,7 +78,11 @@
         </a-input-password>
       </a-form-item>
 
-      <a-form-item v-if="showOldPassword" label="当前密码" name="oldPassword">
+      <a-form-item
+        v-if="showOldPassword"
+        label="当前密码"
+        name="oldPassword"
+      >
         <a-input-password
           v-model:value="formState.oldPassword"
           placeholder="请输入当前密码"
@@ -86,30 +96,53 @@
 
       <a-divider />
 
-      <a-space direction="vertical" style="width: 100%">
-        <a-typography-title :level="5">密码要求</a-typography-title>
-        <a-space direction="vertical" :size="4">
-          <div class="requirement-item" :class="{ valid: requirements.length }">
+      <a-space
+        direction="vertical"
+        style="width: 100%"
+      >
+        <a-typography-title :level="5">
+          密码要求
+        </a-typography-title>
+        <a-space
+          direction="vertical"
+          :size="4"
+        >
+          <div
+            class="requirement-item"
+            :class="{ valid: requirements.length }"
+          >
             <CheckCircleOutlined v-if="requirements.length" />
             <CloseCircleOutlined v-else />
             <span>至少 12 个字符</span>
           </div>
-          <div class="requirement-item" :class="{ valid: requirements.uppercase }">
+          <div
+            class="requirement-item"
+            :class="{ valid: requirements.uppercase }"
+          >
             <CheckCircleOutlined v-if="requirements.uppercase" />
             <CloseCircleOutlined v-else />
             <span>包含大写字母</span>
           </div>
-          <div class="requirement-item" :class="{ valid: requirements.lowercase }">
+          <div
+            class="requirement-item"
+            :class="{ valid: requirements.lowercase }"
+          >
             <CheckCircleOutlined v-if="requirements.lowercase" />
             <CloseCircleOutlined v-else />
             <span>包含小写字母</span>
           </div>
-          <div class="requirement-item" :class="{ valid: requirements.number }">
+          <div
+            class="requirement-item"
+            :class="{ valid: requirements.number }"
+          >
             <CheckCircleOutlined v-if="requirements.number" />
             <CloseCircleOutlined v-else />
             <span>包含数字</span>
           </div>
-          <div class="requirement-item" :class="{ valid: requirements.special }">
+          <div
+            class="requirement-item"
+            :class="{ valid: requirements.special }"
+          >
             <CheckCircleOutlined v-if="requirements.special" />
             <CloseCircleOutlined v-else />
             <span>包含特殊字符</span>
@@ -120,7 +153,12 @@
 
     <template #footer>
       <a-space>
-        <a-button v-if="!isRequired" @click="handleCancel">取消</a-button>
+        <a-button
+          v-if="!isRequired"
+          @click="handleCancel"
+        >
+          取消
+        </a-button>
         <a-button
           v-if="developmentMode && canSkipPassword"
           @click="handleSkip"
@@ -210,11 +248,11 @@ const passwordStrength = computed(() => {
   }
 
   let score = 0;
-  if (requirements.value.length) score++;
-  if (requirements.value.uppercase) score++;
-  if (requirements.value.lowercase) score++;
-  if (requirements.value.number) score++;
-  if (requirements.value.special) score++;
+  if (requirements.value.length) {score++;}
+  if (requirements.value.uppercase) {score++;}
+  if (requirements.value.lowercase) {score++;}
+  if (requirements.value.number) {score++;}
+  if (requirements.value.special) {score++;}
 
   if (score <= 2) {
     return { width: '33%', class: 'weak', text: '弱' };
@@ -235,8 +273,8 @@ const canSubmit = computed(() => {
 });
 
 const submitButtonText = computed(() => {
-  if (props.isFirstTime) return '设置密码';
-  if (props.showOldPassword) return '修改密码';
+  if (props.isFirstTime) {return '设置密码';}
+  if (props.showOldPassword) {return '修改密码';}
   return '确定';
 });
 
@@ -253,7 +291,7 @@ const rules = computed(() => ({
         if (!value && props.developmentMode && props.canSkipPassword) {
           return Promise.resolve();
         }
-        if (!value) return Promise.resolve();
+        if (!value) {return Promise.resolve();}
         if (!Object.values(requirements.value).every(v => v)) {
           return Promise.reject('密码不符合安全要求');
         }

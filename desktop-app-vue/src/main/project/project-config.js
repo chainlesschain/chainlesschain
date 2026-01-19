@@ -116,7 +116,7 @@ class ProjectConfig {
    * @returns {string} 绝对路径
    */
   resolveProjectPath(relativePath) {
-    if (!relativePath) return '';
+    if (!relativePath) {return '';}
 
     // 如果已经是绝对路径，直接返回
     if (path.isAbsolute(relativePath) && !relativePath.startsWith('/data/projects')) {
@@ -137,13 +137,13 @@ class ProjectConfig {
    * 检查路径是否为本地路径（而非远程服务器路径）
    */
   isLocalPath(filePath) {
-    if (!filePath) return false;
+    if (!filePath) {return false;}
 
     // Windows 绝对路径
-    if (/^[a-zA-Z]:[/\\]/.test(filePath)) return true;
+    if (/^[a-zA-Z]:[/\\]/.test(filePath)) {return true;}
 
     // Unix 绝对路径
-    if (path.isAbsolute(filePath)) return true;
+    if (path.isAbsolute(filePath)) {return true;}
 
     // 相对路径也视为本地（会被解析到本地根目录）
     return true;

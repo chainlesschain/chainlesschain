@@ -42,7 +42,9 @@
             </a-menu>
           </template>
           <a-button>
-            <template #icon><DownloadOutlined /></template>
+            <template #icon>
+              <DownloadOutlined />
+            </template>
             导出数据
             <DownOutlined />
           </a-button>
@@ -53,20 +55,37 @@
           un-checked-children="手动刷新"
           @change="handleAutoRefreshChange"
         />
-        <a-button @click="handleRefresh" :loading="loading" type="primary">
-          <template #icon><ReloadOutlined /></template>
+        <a-button
+          :loading="loading"
+          type="primary"
+          @click="handleRefresh"
+        >
+          <template #icon>
+            <ReloadOutlined />
+          </template>
           刷新数据
         </a-button>
       </a-space>
     </div>
 
     <!-- 筛选控件区 -->
-    <a-card size="small" class="filter-card">
+    <a-card
+      size="small"
+      class="filter-card"
+    >
       <a-row :gutter="[16, 16]">
-        <a-col :xs="24" :sm="12" :md="8">
+        <a-col
+          :xs="24"
+          :sm="12"
+          :md="8"
+        >
           <div class="filter-item">
             <label>时间范围</label>
-            <a-space direction="vertical" style="width: 100%" :size="4">
+            <a-space
+              direction="vertical"
+              style="width: 100%"
+              :size="4"
+            >
               <a-range-picker
                 v-model:value="dateRange"
                 style="width: 100%"
@@ -75,16 +94,45 @@
                 @change="handleFilterChange"
               />
               <a-space :size="4">
-                <a-button size="small" @click="setQuickDateRange('today')">今天</a-button>
-                <a-button size="small" @click="setQuickDateRange('week')">本周</a-button>
-                <a-button size="small" @click="setQuickDateRange('month')">本月</a-button>
-                <a-button size="small" @click="setQuickDateRange('last7days')">最近7天</a-button>
-                <a-button size="small" @click="setQuickDateRange('last30days')">最近30天</a-button>
+                <a-button
+                  size="small"
+                  @click="setQuickDateRange('today')"
+                >
+                  今天
+                </a-button>
+                <a-button
+                  size="small"
+                  @click="setQuickDateRange('week')"
+                >
+                  本周
+                </a-button>
+                <a-button
+                  size="small"
+                  @click="setQuickDateRange('month')"
+                >
+                  本月
+                </a-button>
+                <a-button
+                  size="small"
+                  @click="setQuickDateRange('last7days')"
+                >
+                  最近7天
+                </a-button>
+                <a-button
+                  size="small"
+                  @click="setQuickDateRange('last30days')"
+                >
+                  最近30天
+                </a-button>
               </a-space>
             </a-space>
           </div>
         </a-col>
-        <a-col :xs="24" :sm="12" :md="8">
+        <a-col
+          :xs="24"
+          :sm="12"
+          :md="8"
+        >
           <div class="filter-item">
             <label>分类筛选</label>
             <a-select
@@ -97,7 +145,11 @@
             />
           </div>
         </a-col>
-        <a-col :xs="24" :sm="12" :md="8">
+        <a-col
+          :xs="24"
+          :sm="12"
+          :md="8"
+        >
           <div class="filter-item">
             <label>搜索工具</label>
             <a-input-search
@@ -113,8 +165,13 @@
       <a-row style="margin-top: 12px">
         <a-col :span="24">
           <a-space>
-            <a-button @click="handleResetFilters" size="small">
-              <template #icon><ClearOutlined /></template>
+            <a-button
+              size="small"
+              @click="handleResetFilters"
+            >
+              <template #icon>
+                <ClearOutlined />
+              </template>
               重置筛选
             </a-button>
             <a-dropdown>
@@ -124,33 +181,47 @@
                     <SaveOutlined /> 保存当前筛选
                   </a-menu-item>
                   <a-menu-divider />
-                  <a-menu-item-group v-if="savedFiltersList.length > 0" title="已保存的筛选">
-                    <a-menu-item v-for="(filter, index) in savedFiltersList" :key="`load-${index}`">
+                  <a-menu-item-group
+                    v-if="savedFiltersList.length > 0"
+                    title="已保存的筛选"
+                  >
+                    <a-menu-item
+                      v-for="(filter, index) in savedFiltersList"
+                      :key="`load-${index}`"
+                    >
                       <CheckOutlined v-if="filter.name" />
                       {{ filter.name || `筛选 ${index + 1}` }}
                       <a-button
                         size="small"
                         type="text"
                         danger
-                        @click.stop="deleteSavedFilter(index)"
                         style="margin-left: 8px"
+                        @click.stop="deleteSavedFilter(index)"
                       >
                         <DeleteOutlined />
                       </a-button>
                     </a-menu-item>
                   </a-menu-item-group>
-                  <a-menu-item v-else disabled>
+                  <a-menu-item
+                    v-else
+                    disabled
+                  >
                     暂无保存的筛选条件
                   </a-menu-item>
                 </a-menu>
               </template>
               <a-button size="small">
-                <template #icon><SaveOutlined /></template>
+                <template #icon>
+                  <SaveOutlined />
+                </template>
                 筛选管理
                 <DownOutlined />
               </a-button>
             </a-dropdown>
-            <a-tag v-if="hasActiveFilters" color="blue">
+            <a-tag
+              v-if="hasActiveFilters"
+              color="blue"
+            >
               已应用 {{ activeFilterCount }} 个筛选条件
             </a-tag>
           </a-space>
@@ -159,61 +230,127 @@
     </a-card>
 
     <!-- 加载状态 -->
-    <div v-if="loading && !overview.totalTools" class="loading-container">
-      <a-spin size="large" tip="加载统计数据中..."></a-spin>
+    <div
+      v-if="loading && !overview.totalTools"
+      class="loading-container"
+    >
+      <a-spin
+        size="large"
+        tip="加载统计数据中..."
+      />
     </div>
 
     <!-- 统计数据 -->
-    <div v-else class="stats-container">
-      <a-space direction="vertical" :size="24" style="width: 100%">
+    <div
+      v-else
+      class="stats-container"
+    >
+      <a-space
+        direction="vertical"
+        :size="24"
+        style="width: 100%"
+      >
         <!-- 概览卡片 -->
         <a-row :gutter="16">
-          <a-col :xs="24" :sm="12" :md="8" :lg="4" :xl="4">
-            <a-card size="small" class="stat-card">
+          <a-col
+            :xs="24"
+            :sm="12"
+            :md="8"
+            :lg="4"
+            :xl="4"
+          >
+            <a-card
+              size="small"
+              class="stat-card"
+            >
               <a-statistic
                 title="总工具数"
                 :value="overview.totalTools"
                 :value-style="{ color: '#3f8600', fontSize: '28px' }"
               >
-                <template #prefix><ToolOutlined /></template>
+                <template #prefix>
+                  <ToolOutlined />
+                </template>
               </a-statistic>
             </a-card>
           </a-col>
-          <a-col :xs="24" :sm="12" :md="8" :lg="4" :xl="4">
-            <a-card size="small" class="stat-card">
+          <a-col
+            :xs="24"
+            :sm="12"
+            :md="8"
+            :lg="4"
+            :xl="4"
+          >
+            <a-card
+              size="small"
+              class="stat-card"
+            >
               <a-statistic
                 title="已启用"
                 :value="overview.enabledTools"
                 :value-style="{ color: '#1890ff', fontSize: '28px' }"
               >
-                <template #prefix><CheckCircleOutlined /></template>
+                <template #prefix>
+                  <CheckCircleOutlined />
+                </template>
               </a-statistic>
             </a-card>
           </a-col>
-          <a-col :xs="24" :sm="12" :md="8" :lg="5" :xl="5">
-            <a-card size="small" class="stat-card">
+          <a-col
+            :xs="24"
+            :sm="12"
+            :md="8"
+            :lg="5"
+            :xl="5"
+          >
+            <a-card
+              size="small"
+              class="stat-card"
+            >
               <a-statistic
                 title="总调用次数"
                 :value="overview.totalInvocations"
                 :value-style="{ color: '#cf1322', fontSize: '28px' }"
               >
-                <template #prefix><ThunderboltOutlined /></template>
+                <template #prefix>
+                  <ThunderboltOutlined />
+                </template>
               </a-statistic>
             </a-card>
           </a-col>
-          <a-col :xs="24" :sm="12" :md="8" :lg="5" :xl="5">
-            <a-card size="small" class="stat-card">
+          <a-col
+            :xs="24"
+            :sm="12"
+            :md="8"
+            :lg="5"
+            :xl="5"
+          >
+            <a-card
+              size="small"
+              class="stat-card"
+            >
               <a-statistic
                 title="成功率"
                 :value="overview.successRate"
                 :value-style="{ color: getSuccessRateColor(overview.successRate), fontSize: '28px' }"
               >
-                <template #prefix><CheckSquareOutlined /></template>
+                <template #prefix>
+                  <CheckSquareOutlined />
+                </template>
               </a-statistic>
             </a-card>
           </a-col>
-          <a-col :xs="24" :sm="12" :md="8" :lg="6" :xl="6">
-            <a-card size="small" class="stat-card">
+          <a-col
+            :xs="24"
+            :sm="12"
+            :md="8"
+            :lg="6"
+            :xl="6"
+          >
+            <a-card
+              size="small"
+              class="stat-card"
+            >
               <a-statistic
                 title="平均响应时间"
                 :value="overview.avgExecutionTime"
@@ -221,7 +358,9 @@
                 :precision="2"
                 :value-style="{ color: '#722ed1', fontSize: '28px' }"
               >
-                <template #prefix><ClockCircleOutlined /></template>
+                <template #prefix>
+                  <ClockCircleOutlined />
+                </template>
               </a-statistic>
             </a-card>
           </a-col>
@@ -230,16 +369,36 @@
         <!-- 图表区域 -->
         <a-row :gutter="16">
           <!-- 使用排行 Top 10 -->
-          <a-col :xs="24" :lg="12">
-            <a-card title="使用次数排行 Top 10" size="small" class="chart-card">
-              <div ref="usageChartRef" style="width: 100%; height: 350px"></div>
+          <a-col
+            :xs="24"
+            :lg="12"
+          >
+            <a-card
+              title="使用次数排行 Top 10"
+              size="small"
+              class="chart-card"
+            >
+              <div
+                ref="usageChartRef"
+                style="width: 100%; height: 350px"
+              />
             </a-card>
           </a-col>
 
           <!-- 成功率排行 Top 10 -->
-          <a-col :xs="24" :lg="12">
-            <a-card title="成功率排行 Top 10" size="small" class="chart-card">
-              <div ref="successRateChartRef" style="width: 100%; height: 350px"></div>
+          <a-col
+            :xs="24"
+            :lg="12"
+          >
+            <a-card
+              title="成功率排行 Top 10"
+              size="small"
+              class="chart-card"
+            >
+              <div
+                ref="successRateChartRef"
+                style="width: 100%; height: 350px"
+              />
             </a-card>
           </a-col>
         </a-row>
@@ -247,8 +406,15 @@
         <!-- 分类统计 & 性能分布 -->
         <a-row :gutter="16">
           <!-- 分类统计 -->
-          <a-col :xs="24" :lg="14">
-            <a-card title="分类统计" size="small" class="chart-card">
+          <a-col
+            :xs="24"
+            :lg="14"
+          >
+            <a-card
+              title="分类统计"
+              size="small"
+              class="chart-card"
+            >
               <a-table
                 :columns="categoryColumns"
                 :data-source="categoryStats"
@@ -273,9 +439,19 @@
           </a-col>
 
           <!-- 性能分布 -->
-          <a-col :xs="24" :lg="10">
-            <a-card title="性能分布" size="small" class="chart-card">
-              <div ref="performanceChartRef" style="width: 100%; height: 300px"></div>
+          <a-col
+            :xs="24"
+            :lg="10"
+          >
+            <a-card
+              title="性能分布"
+              size="small"
+              class="chart-card"
+            >
+              <div
+                ref="performanceChartRef"
+                style="width: 100%; height: 300px"
+              />
             </a-card>
           </a-col>
         </a-row>
@@ -283,8 +459,15 @@
         <!-- 7天使用趋势 -->
         <a-row :gutter="16">
           <a-col :span="24">
-            <a-card title="7天使用趋势" size="small" class="chart-card">
-              <div ref="trendChartRef" style="width: 100%; height: 300px"></div>
+            <a-card
+              title="7天使用趋势"
+              size="small"
+              class="chart-card"
+            >
+              <div
+                ref="trendChartRef"
+                style="width: 100%; height: 300px"
+              />
             </a-card>
           </a-col>
         </a-row>
@@ -292,7 +475,11 @@
         <!-- 最近使用 -->
         <a-row :gutter="16">
           <a-col :span="24">
-            <a-card title="最近使用" size="small" class="chart-card">
+            <a-card
+              title="最近使用"
+              size="small"
+              class="chart-card"
+            >
               <a-list
                 :data-source="recentTools"
                 :pagination="{ pageSize: 10, showSizeChanger: false }"
@@ -396,9 +583,9 @@ const hasActiveFilters = computed(() => {
 // 计算活动筛选数量
 const activeFilterCount = computed(() => {
   let count = 0;
-  if (dateRange.value && dateRange.value.length === 2) count++;
-  if (selectedCategories.value.length > 0) count++;
-  if (searchKeyword.value && searchKeyword.value.trim().length > 0) count++;
+  if (dateRange.value && dateRange.value.length === 2) {count++;}
+  if (selectedCategories.value.length > 0) {count++;}
+  if (searchKeyword.value && searchKeyword.value.trim().length > 0) {count++;}
   return count;
 });
 
@@ -985,7 +1172,7 @@ const loadSavedFilter = (index) => {
 const deleteSavedFilter = (index) => {
   try {
     const filter = savedFiltersList.value[index];
-    if (!filter) return;
+    if (!filter) {return;}
 
     Modal.confirm({
       title: '确认删除',
@@ -1063,7 +1250,7 @@ const initCharts = async () => {
 
 // 使用次数柱状图
 const initUsageChart = () => {
-  if (!usageChartRef.value) return;
+  if (!usageChartRef.value) {return;}
 
   usageChart = echarts.init(usageChartRef.value);
 
@@ -1118,7 +1305,7 @@ const initUsageChart = () => {
 
 // 成功率柱状图
 const initSuccessRateChart = () => {
-  if (!successRateChartRef.value) return;
+  if (!successRateChartRef.value) {return;}
 
   successRateChart = echarts.init(successRateChartRef.value);
 
@@ -1157,9 +1344,9 @@ const initSuccessRateChart = () => {
         itemStyle: {
           color: (params) => {
             const rate = params.value;
-            if (rate >= 90) return '#52c41a';
-            if (rate >= 70) return '#1890ff';
-            if (rate >= 50) return '#faad14';
+            if (rate >= 90) {return '#52c41a';}
+            if (rate >= 70) {return '#1890ff';}
+            if (rate >= 50) {return '#faad14';}
             return '#f5222d';
           },
         },
@@ -1177,7 +1364,7 @@ const initSuccessRateChart = () => {
 
 // 性能分布饼图
 const initPerformanceChart = () => {
-  if (!performanceChartRef.value) return;
+  if (!performanceChartRef.value) {return;}
 
   performanceChart = echarts.init(performanceChartRef.value);
 
@@ -1218,7 +1405,7 @@ const initPerformanceChart = () => {
 
 // 7天使用趋势折线图
 const initTrendChart = () => {
-  if (!trendChartRef.value) return;
+  if (!trendChartRef.value) {return;}
 
   trendChart = echarts.init(trendChartRef.value);
 
@@ -1306,14 +1493,14 @@ const getCategoryName = (category) => {
 
 const getSuccessRateColor = (rateStr) => {
   const rate = parseFloat(rateStr);
-  if (rate >= 90) return '#52c41a';
-  if (rate >= 70) return '#1890ff';
-  if (rate >= 50) return '#faad14';
+  if (rate >= 90) {return '#52c41a';}
+  if (rate >= 70) {return '#1890ff';}
+  if (rate >= 50) {return '#faad14';}
   return '#f5222d';
 };
 
 const getToolSuccessRate = (tool) => {
-  if (!tool.usage_count || tool.usage_count === 0) return 0;
+  if (!tool.usage_count || tool.usage_count === 0) {return 0;}
   return ((tool.success_count / tool.usage_count) * 100).toFixed(1);
 };
 

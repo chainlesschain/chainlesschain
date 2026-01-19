@@ -1,22 +1,47 @@
 <template>
   <div class="config-import-export">
-    <a-tabs v-model:activeKey="activeTab">
+    <a-tabs v-model:active-key="activeTab">
       <!-- 导出Tab -->
-      <a-tab-pane key="export" tab="导出配置">
-        <a-space direction="vertical" style="width: 100%" :size="16">
+      <a-tab-pane
+        key="export"
+        tab="导出配置"
+      >
+        <a-space
+          direction="vertical"
+          style="width: 100%"
+          :size="16"
+        >
           <!-- 导出类型选择 -->
-          <a-card title="选择导出内容" size="small">
+          <a-card
+            title="选择导出内容"
+            size="small"
+          >
             <a-radio-group v-model:value="exportType">
-              <a-radio-button value="skills">技能</a-radio-button>
-              <a-radio-button value="tools">工具</a-radio-button>
-              <a-radio-button value="all">全部</a-radio-button>
+              <a-radio-button value="skills">
+                技能
+              </a-radio-button>
+              <a-radio-button value="tools">
+                工具
+              </a-radio-button>
+              <a-radio-button value="all">
+                全部
+              </a-radio-button>
             </a-radio-group>
           </a-card>
 
           <!-- 导出选项 -->
-          <a-card title="导出选项" size="small">
-            <a-space direction="vertical" style="width: 100%">
-              <a-checkbox v-model:checked="exportOptions.includeTools" :disabled="exportType === 'tools'">
+          <a-card
+            title="导出选项"
+            size="small"
+          >
+            <a-space
+              direction="vertical"
+              style="width: 100%"
+            >
+              <a-checkbox
+                v-model:checked="exportOptions.includeTools"
+                :disabled="exportType === 'tools'"
+              >
                 包含关联的工具
               </a-checkbox>
               <a-checkbox v-model:checked="exportOptions.includeBuiltin">
@@ -29,7 +54,11 @@
           </a-card>
 
           <!-- 选择要导出的项 -->
-          <a-card v-if="exportType !== 'all'" title="选择要导出的项" size="small">
+          <a-card
+            v-if="exportType !== 'all'"
+            title="选择要导出的项"
+            size="small"
+          >
             <a-transfer
               v-if="exportType === 'skills'"
               v-model:target-keys="selectedSkills"
@@ -51,19 +80,35 @@
           </a-card>
 
           <!-- 导出预览 -->
-          <a-card v-if="exportPreview" title="导出预览" size="small">
+          <a-card
+            v-if="exportPreview"
+            title="导出预览"
+            size="small"
+          >
             <pre style="max-height: 300px; overflow-y: auto">{{ JSON.stringify(exportPreview, null, 2) }}</pre>
           </a-card>
 
           <!-- 导出按钮 -->
           <a-space>
-            <a-button type="primary" @click="handleGeneratePreview" :loading="generating">
+            <a-button
+              type="primary"
+              :loading="generating"
+              @click="handleGeneratePreview"
+            >
               <EyeOutlined /> 生成预览
             </a-button>
-            <a-button type="primary" @click="handleExportToFile" :disabled="!exportPreview" :loading="exporting">
+            <a-button
+              type="primary"
+              :disabled="!exportPreview"
+              :loading="exporting"
+              @click="handleExportToFile"
+            >
               <DownloadOutlined /> 导出到文件
             </a-button>
-            <a-button @click="handleCopyToClipboard" :disabled="!exportPreview">
+            <a-button
+              :disabled="!exportPreview"
+              @click="handleCopyToClipboard"
+            >
               <CopyOutlined /> 复制到剪贴板
             </a-button>
           </a-space>
@@ -71,24 +116,44 @@
       </a-tab-pane>
 
       <!-- 导入Tab -->
-      <a-tab-pane key="import" tab="导入配置">
-        <a-space direction="vertical" style="width: 100%" :size="16">
+      <a-tab-pane
+        key="import"
+        tab="导入配置"
+      >
+        <a-space
+          direction="vertical"
+          style="width: 100%"
+          :size="16"
+        >
           <!-- 导入方式 -->
-          <a-card title="选择导入方式" size="small">
+          <a-card
+            title="选择导入方式"
+            size="small"
+          >
             <a-radio-group v-model:value="importMethod">
-              <a-radio-button value="file">从文件导入</a-radio-button>
-              <a-radio-button value="json">粘贴JSON</a-radio-button>
-              <a-radio-button value="template">使用模板</a-radio-button>
+              <a-radio-button value="file">
+                从文件导入
+              </a-radio-button>
+              <a-radio-button value="json">
+                粘贴JSON
+              </a-radio-button>
+              <a-radio-button value="template">
+                使用模板
+              </a-radio-button>
             </a-radio-group>
           </a-card>
 
           <!-- 文件导入 -->
-          <a-card v-if="importMethod === 'file'" title="选择文件" size="small">
+          <a-card
+            v-if="importMethod === 'file'"
+            title="选择文件"
+            size="small"
+          >
             <a-upload
               :before-upload="handleBeforeUpload"
               :file-list="fileList"
-              @remove="handleFileRemove"
               accept=".json,.yaml,.yml"
+              @remove="handleFileRemove"
             >
               <a-button>
                 <UploadOutlined /> 选择配置文件
@@ -97,7 +162,11 @@
           </a-card>
 
           <!-- JSON导入 -->
-          <a-card v-if="importMethod === 'json'" title="粘贴JSON配置" size="small">
+          <a-card
+            v-if="importMethod === 'json'"
+            title="粘贴JSON配置"
+            size="small"
+          >
             <a-textarea
               v-model:value="importJson"
               placeholder="粘贴配置JSON..."
@@ -107,18 +176,43 @@
           </a-card>
 
           <!-- 模板导入 -->
-          <a-card v-if="importMethod === 'template'" title="选择模板" size="small">
-            <a-select v-model:value="templateType" style="width: 200px" @change="loadTemplate">
-              <a-select-option value="skill">技能模板</a-select-option>
-              <a-select-option value="tool">工具模板</a-select-option>
-              <a-select-option value="complete">完整模板</a-select-option>
+          <a-card
+            v-if="importMethod === 'template'"
+            title="选择模板"
+            size="small"
+          >
+            <a-select
+              v-model:value="templateType"
+              style="width: 200px"
+              @change="loadTemplate"
+            >
+              <a-select-option value="skill">
+                技能模板
+              </a-select-option>
+              <a-select-option value="tool">
+                工具模板
+              </a-select-option>
+              <a-select-option value="complete">
+                完整模板
+              </a-select-option>
             </a-select>
-            <a-button type="link" @click="loadTemplate">加载模板</a-button>
+            <a-button
+              type="link"
+              @click="loadTemplate"
+            >
+              加载模板
+            </a-button>
           </a-card>
 
           <!-- 导入选项 -->
-          <a-card title="导入选项" size="small">
-            <a-space direction="vertical" style="width: 100%">
+          <a-card
+            title="导入选项"
+            size="small"
+          >
+            <a-space
+              direction="vertical"
+              style="width: 100%"
+            >
               <a-checkbox v-model:checked="importOptions.overwrite">
                 覆盖现有配置
               </a-checkbox>
@@ -132,13 +226,24 @@
           </a-card>
 
           <!-- 验证结果 -->
-          <a-card v-if="validationResult" :title="validationResult.valid ? '✅ 验证通过' : '❌ 验证失败'" size="small">
+          <a-card
+            v-if="validationResult"
+            :title="validationResult.valid ? '✅ 验证通过' : '❌ 验证失败'"
+            size="small"
+          >
             <p>{{ validationResult.message }}</p>
           </a-card>
 
           <!-- 导入结果 -->
-          <a-card v-if="importResult" title="导入结果" size="small">
-            <a-descriptions :column="2" size="small">
+          <a-card
+            v-if="importResult"
+            title="导入结果"
+            size="small"
+          >
+            <a-descriptions
+              :column="2"
+              size="small"
+            >
               <a-descriptions-item label="导入的技能">
                 {{ importResult.imported?.skills || 0 }}
               </a-descriptions-item>
@@ -153,9 +258,15 @@
               </a-descriptions-item>
             </a-descriptions>
 
-            <a-collapse v-if="importResult.skipped && (importResult.skipped.skills.length > 0 || importResult.skipped.tools.length > 0)" style="margin-top: 12px">
+            <a-collapse
+              v-if="importResult.skipped && (importResult.skipped.skills.length > 0 || importResult.skipped.tools.length > 0)"
+              style="margin-top: 12px"
+            >
               <a-collapse-panel header="查看跳过的项">
-                <a-list :data-source="[...importResult.skipped.skills, ...importResult.skipped.tools]" size="small">
+                <a-list
+                  :data-source="[...importResult.skipped.skills, ...importResult.skipped.tools]"
+                  size="small"
+                >
                   <template #renderItem="{ item }">
                     <a-list-item>
                       {{ item.id }}: {{ item.reason }}
@@ -168,10 +279,20 @@
 
           <!-- 导入按钮 -->
           <a-space>
-            <a-button type="primary" @click="handleValidate" :disabled="!importData" :loading="validating">
+            <a-button
+              type="primary"
+              :disabled="!importData"
+              :loading="validating"
+              @click="handleValidate"
+            >
               <CheckCircleOutlined /> 验证配置
             </a-button>
-            <a-button type="primary" @click="handleImport" :disabled="!importData" :loading="importing">
+            <a-button
+              type="primary"
+              :disabled="!importData"
+              :loading="importing"
+              @click="handleImport"
+            >
               <ImportOutlined /> 导入配置
             </a-button>
           </a-space>
@@ -300,7 +421,7 @@ const handleGeneratePreview = async () => {
 };
 
 const handleExportToFile = async () => {
-  if (!exportPreview.value) return;
+  if (!exportPreview.value) {return;}
 
   exporting.value = true;
   try {
@@ -332,7 +453,7 @@ const handleExportToFile = async () => {
 };
 
 const handleCopyToClipboard = () => {
-  if (!exportPreview.value) return;
+  if (!exportPreview.value) {return;}
 
   navigator.clipboard.writeText(JSON.stringify(exportPreview.value, null, 2));
   message.success('已复制到剪贴板');
@@ -385,7 +506,7 @@ const loadTemplate = async () => {
 };
 
 const handleValidate = async () => {
-  if (!importData.value) return;
+  if (!importData.value) {return;}
 
   validating.value = true;
   try {
@@ -408,7 +529,7 @@ const handleValidate = async () => {
 };
 
 const handleImport = async () => {
-  if (!importData.value) return;
+  if (!importData.value) {return;}
 
   importing.value = true;
   try {

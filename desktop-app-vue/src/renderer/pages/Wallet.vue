@@ -7,11 +7,16 @@
           <wallet-outlined />
           钱包管理
         </h1>
-        <p class="page-subtitle">管理您的区块链钱包和查看交易记录</p>
+        <p class="page-subtitle">
+          管理您的区块链钱包和查看交易记录
+        </p>
       </div>
       <div class="header-right">
         <!-- 网络选择器 -->
-        <chain-selector :width="'220px'" @switched="handleChainSwitched" />
+        <chain-selector
+          :width="'220px'"
+          @switched="handleChainSwitched"
+        />
       </div>
     </div>
 
@@ -20,23 +25,40 @@
       <a-row :gutter="[16, 16]">
         <!-- 左侧: 钱包列表 -->
         <a-col :span="10">
-          <a-card title="我的钱包" :bordered="false">
+          <a-card
+            title="我的钱包"
+            :bordered="false"
+          >
             <template #extra>
               <a-space :size="8">
-                <a-button type="primary" size="small" @click="showCreateWalletModal">
-                  <template #icon><plus-outlined /></template>
+                <a-button
+                  type="primary"
+                  size="small"
+                  @click="showCreateWalletModal"
+                >
+                  <template #icon>
+                    <plus-outlined />
+                  </template>
                   创建
                 </a-button>
-                <a-button size="small" @click="showImportWalletModal">
-                  <template #icon><import-outlined /></template>
+                <a-button
+                  size="small"
+                  @click="showImportWalletModal"
+                >
+                  <template #icon>
+                    <import-outlined />
+                  </template>
                   导入
                 </a-button>
               </a-space>
             </template>
 
             <!-- 内置钱包列表 -->
-            <a-tabs v-model:activeKey="activeTab">
-              <a-tab-pane key="internal" tab="内置钱包">
+            <a-tabs v-model:active-key="activeTab">
+              <a-tab-pane
+                key="internal"
+                tab="内置钱包"
+              >
                 <a-list
                   :data-source="internalWallets"
                   :loading="walletsLoading"
@@ -61,10 +83,18 @@
                         <template #title>
                           <div class="wallet-title">
                             <span>{{ formatAddress(item.address) }}</span>
-                            <a-tag v-if="item.is_default" color="blue" size="small">
+                            <a-tag
+                              v-if="item.is_default"
+                              color="blue"
+                              size="small"
+                            >
                               默认
                             </a-tag>
-                            <a-tag v-if="item.id === currentWallet?.id" color="green" size="small">
+                            <a-tag
+                              v-if="item.id === currentWallet?.id"
+                              color="green"
+                              size="small"
+                            >
                               当前
                             </a-tag>
                           </div>
@@ -85,18 +115,27 @@
 
                       <template #actions>
                         <a-dropdown>
-                          <a-button type="text" size="small">
+                          <a-button
+                            type="text"
+                            size="small"
+                          >
                             <more-outlined />
                           </a-button>
                           <template #overlay>
                             <a-menu @click="({ key }) => handleWalletAction(key, item)">
-                              <a-menu-item key="setDefault" v-if="!item.is_default">
+                              <a-menu-item
+                                v-if="!item.is_default"
+                                key="setDefault"
+                              >
                                 <star-outlined /> 设为默认
                               </a-menu-item>
                               <a-menu-item key="copyAddress">
                                 <copy-outlined /> 复制地址
                               </a-menu-item>
-                              <a-menu-item key="delete" danger>
+                              <a-menu-item
+                                key="delete"
+                                danger
+                              >
                                 <delete-outlined /> 删除钱包
                               </a-menu-item>
                             </a-menu>
@@ -108,26 +147,46 @@
                 </a-list>
               </a-tab-pane>
 
-              <a-tab-pane key="external" tab="外部钱包">
+              <a-tab-pane
+                key="external"
+                tab="外部钱包"
+              >
                 <div class="external-wallet-section">
                   <a-empty
                     v-if="!externalWalletConnected"
                     description="未连接外部钱包"
                     :image="Empty.PRESENTED_IMAGE_SIMPLE"
                   >
-                    <a-space direction="vertical" :size="12">
-                      <a-button type="primary" block @click="handleConnectMetaMask">
-                        <template #icon>🦊</template>
+                    <a-space
+                      direction="vertical"
+                      :size="12"
+                    >
+                      <a-button
+                        type="primary"
+                        block
+                        @click="handleConnectMetaMask"
+                      >
+                        <template #icon>
+                          🦊
+                        </template>
                         连接 MetaMask
                       </a-button>
-                      <a-button block @click="handleConnectWalletConnect">
-                        <template #icon>🔗</template>
+                      <a-button
+                        block
+                        @click="handleConnectWalletConnect"
+                      >
+                        <template #icon>
+                          🔗
+                        </template>
                         连接 WalletConnect
                       </a-button>
                     </a-space>
                   </a-empty>
 
-                  <div v-else class="external-wallet-info">
+                  <div
+                    v-else
+                    class="external-wallet-info"
+                  >
                     <a-result
                       status="success"
                       :title="`已连接 ${externalWalletProvider === 'metamask' ? 'MetaMask' : 'WalletConnect'}`"
@@ -142,7 +201,11 @@
                         </div>
                       </template>
                       <template #extra>
-                        <a-button type="primary" danger @click="handleDisconnectExternal">
+                        <a-button
+                          type="primary"
+                          danger
+                          @click="handleDisconnectExternal"
+                        >
                           断开连接
                         </a-button>
                       </template>
@@ -156,7 +219,11 @@
 
         <!-- 右侧: 钱包详情和交易历史 -->
         <a-col :span="14">
-          <a-card title="钱包详情" :bordered="false" v-if="currentAddress">
+          <a-card
+            v-if="currentAddress"
+            title="钱包详情"
+            :bordered="false"
+          >
             <!-- 钱包概览 -->
             <div class="wallet-overview">
               <a-statistic
@@ -203,8 +270,8 @@
             </h3>
             <transaction-list
               :address="currentAddress"
-              :chainId="currentChainId"
-              :pageSize="5"
+              :chain-id="currentChainId"
+              :page-size="5"
               @view-details="handleViewTransactionDetails"
             />
           </a-card>
@@ -235,7 +302,7 @@
     <transaction-detail-modal
       v-model:open="transactionDetailVisible"
       :transaction="selectedTransaction"
-      :chainId="currentChainId"
+      :chain-id="currentChainId"
       @refresh="handleRefreshTransaction"
     />
   </div>
@@ -284,14 +351,14 @@ const pendingTransactionCount = computed(() => blockchainStore.pendingTransactio
 
 // 当前钱包余额
 const currentBalance = computed(() => {
-  if (!currentAddress.value) return '0.00';
+  if (!currentAddress.value) {return '0.00';}
 
   const balance = blockchainStore.getBalance(
     currentAddress.value,
     currentChainId.value
   );
 
-  if (!balance || balance === '0') return '0.00';
+  if (!balance || balance === '0') {return '0.00';}
 
   // 将 wei 转换为 ether
   return (parseFloat(balance) / 1e18).toFixed(4);
@@ -301,7 +368,7 @@ const currentBalance = computed(() => {
  * 获取头像颜色
  */
 const getAvatarColor = (address) => {
-  if (!address) return '#1890ff';
+  if (!address) {return '#1890ff';}
 
   let hash = 0;
   for (let i = 0; i < address.length; i++) {
@@ -326,8 +393,8 @@ const getAvatarColor = (address) => {
  * 格式化地址
  */
 const formatAddress = (address) => {
-  if (!address) return '';
-  if (address.length <= 20) return address;
+  if (!address) {return '';}
+  if (address.length <= 20) {return address;}
   return `${address.slice(0, 10)}...${address.slice(-8)}`;
 };
 
@@ -335,7 +402,7 @@ const formatAddress = (address) => {
  * 格式化日期
  */
 const formatDate = (timestamp) => {
-  if (!timestamp) return '';
+  if (!timestamp) {return '';}
   const date = new Date(timestamp);
   return date.toLocaleDateString('zh-CN');
 };
@@ -344,7 +411,7 @@ const formatDate = (timestamp) => {
  * 获取钱包余额
  */
 const getWalletBalance = (wallet) => {
-  if (!wallet.address) return '0.00 ETH';
+  if (!wallet.address) {return '0.00 ETH';}
 
   const balance = blockchainStore.getBalance(wallet.address, currentChainId.value);
 

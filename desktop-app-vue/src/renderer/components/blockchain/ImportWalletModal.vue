@@ -4,7 +4,7 @@
     title="导入钱包"
     :width="600"
     :confirm-loading="loading"
-    :maskClosable="false"
+    :mask-closable="false"
     ok-text="导入"
     cancel-text="取消"
     @ok="handleImport"
@@ -18,13 +18,16 @@
       :style="{ marginBottom: '16px' }"
     />
 
-    <a-tabs v-model:activeKey="activeTab">
+    <a-tabs v-model:active-key="activeTab">
       <!-- 助记词导入 -->
-      <a-tab-pane key="mnemonic" tab="助记词导入">
+      <a-tab-pane
+        key="mnemonic"
+        tab="助记词导入"
+      >
         <a-form
+          ref="mnemonicFormRef"
           :model="mnemonicForm"
           :rules="mnemonicRules"
-          ref="mnemonicFormRef"
           layout="vertical"
         >
           <a-form-item
@@ -40,7 +43,10 @@
             />
           </a-form-item>
 
-          <a-form-item label="钱包密码" name="password">
+          <a-form-item
+            label="钱包密码"
+            name="password"
+          >
             <a-input-password
               v-model:value="mnemonicForm.password"
               placeholder="请输入密码（至少8位）"
@@ -53,7 +59,10 @@
             </a-input-password>
           </a-form-item>
 
-          <a-form-item label="确认密码" name="confirmPassword">
+          <a-form-item
+            label="确认密码"
+            name="confirmPassword"
+          >
             <a-input-password
               v-model:value="mnemonicForm.confirmPassword"
               placeholder="请再次输入密码"
@@ -69,11 +78,14 @@
       </a-tab-pane>
 
       <!-- 私钥导入 -->
-      <a-tab-pane key="privateKey" tab="私钥导入">
+      <a-tab-pane
+        key="privateKey"
+        tab="私钥导入"
+      >
         <a-form
+          ref="privateKeyFormRef"
           :model="privateKeyForm"
           :rules="privateKeyRules"
-          ref="privateKeyFormRef"
           layout="vertical"
         >
           <a-form-item
@@ -93,7 +105,10 @@
             </a-input>
           </a-form-item>
 
-          <a-form-item label="钱包密码" name="password">
+          <a-form-item
+            label="钱包密码"
+            name="password"
+          >
             <a-input-password
               v-model:value="privateKeyForm.password"
               placeholder="请输入密码（至少8位）"
@@ -106,7 +121,10 @@
             </a-input-password>
           </a-form-item>
 
-          <a-form-item label="确认密码" name="confirmPassword">
+          <a-form-item
+            label="确认密码"
+            name="confirmPassword"
+          >
             <a-input-password
               v-model:value="privateKeyForm.confirmPassword"
               placeholder="请再次输入密码"
@@ -140,7 +158,10 @@
             <span class="info-label">地址:</span>
             <span class="info-value">
               {{ formatAddress(importedWallet.address) }}
-              <copy-outlined class="copy-icon" @click="handleCopyAddress" />
+              <copy-outlined
+                class="copy-icon"
+                @click="handleCopyAddress"
+              />
             </span>
           </div>
         </div>
@@ -288,8 +309,8 @@ const privateKeyRules = {
  * 格式化地址显示
  */
 const formatAddress = (address) => {
-  if (!address) return '';
-  if (address.length <= 20) return address;
+  if (!address) {return '';}
+  if (address.length <= 20) {return address;}
   return `${address.slice(0, 10)}...${address.slice(-8)}`;
 };
 

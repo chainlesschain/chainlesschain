@@ -6,19 +6,27 @@
     :max-width="1200"
     :footer="null"
     :closable="!planningStore.isExecuting"
-    :maskClosable="false"
+    :mask-closable="false"
     :keyboard="!planningStore.isExecuting"
     @cancel="handleCancel"
   >
     <div class="interactive-planning-dialog">
       <!-- 规划生成中 -->
-      <div v-if="planningStore.isPlanning" class="planning-loading">
+      <div
+        v-if="planningStore.isPlanning"
+        class="planning-loading"
+      >
         <a-spin size="large" />
-        <p class="loading-text">AI正在分析您的需求，制定执行计划...</p>
+        <p class="loading-text">
+          AI正在分析您的需求，制定执行计划...
+        </p>
       </div>
 
       <!-- 等待用户确认 -->
-      <div v-else-if="planningStore.isAwaitingConfirmation" class="plan-review">
+      <div
+        v-else-if="planningStore.isAwaitingConfirmation"
+        class="plan-review"
+      >
         <!-- Plan预览 -->
         <PlanPreview
           :plan="planningStore.taskPlan"
@@ -50,7 +58,10 @@
       </div>
 
       <!-- 执行中 -->
-      <div v-else-if="planningStore.isExecuting" class="plan-execution">
+      <div
+        v-else-if="planningStore.isExecuting"
+        class="plan-execution"
+      >
         <ExecutionProgress
           :progress="planningStore.executionProgress"
           :percentage="planningStore.progressPercentage"
@@ -58,7 +69,10 @@
       </div>
 
       <!-- 执行完成 -->
-      <div v-else-if="planningStore.isCompleted" class="plan-completed">
+      <div
+        v-else-if="planningStore.isCompleted"
+        class="plan-completed"
+      >
         <ExecutionResult
           :result="planningStore.executionResult"
           :quality-score="planningStore.qualityScore"
@@ -69,7 +83,10 @@
       </div>
 
       <!-- 执行失败 -->
-      <div v-else-if="planningStore.isFailed" class="plan-failed">
+      <div
+        v-else-if="planningStore.isFailed"
+        class="plan-failed"
+      >
         <a-result
           status="error"
           title="执行失败"
@@ -80,7 +97,10 @@
               <a-button @click="handleClose">
                 关闭
               </a-button>
-              <a-button type="primary" @click="handleRetry">
+              <a-button
+                type="primary"
+                @click="handleRetry"
+              >
                 重试
               </a-button>
             </a-space>

@@ -352,7 +352,7 @@ class KnowledgeCommentsManager extends EventEmitter {
    * @private
    */
   async _logActivity(orgId, knowledgeId, userDid, activityType, resourceId) {
-    if (!orgId) return;
+    if (!orgId) {return;}
 
     try {
       const activityId = uuidv4();

@@ -1,19 +1,35 @@
 <template>
-  <div class="graph-canvas" ref="containerRef">
-    <div ref="chartRef" class="graph-chart"></div>
+  <div
+    ref="containerRef"
+    class="graph-canvas"
+  >
+    <div
+      ref="chartRef"
+      class="graph-chart"
+    />
 
     <!-- 工具栏 -->
     <div class="graph-toolbar">
       <a-space>
         <a-tooltip title="重新布局">
-          <a-button type="text" @click="refreshLayout">
-            <template #icon><ReloadOutlined /></template>
+          <a-button
+            type="text"
+            @click="refreshLayout"
+          >
+            <template #icon>
+              <ReloadOutlined />
+            </template>
           </a-button>
         </a-tooltip>
 
         <a-tooltip title="缩放适应">
-          <a-button type="text" @click="fitView">
-            <template #icon><CompressOutlined /></template>
+          <a-button
+            type="text"
+            @click="fitView"
+          >
+            <template #icon>
+              <CompressOutlined />
+            </template>
           </a-button>
         </a-tooltip>
 
@@ -32,7 +48,9 @@
             </a-menu>
           </template>
           <a-button type="text">
-            <template #icon><BranchesOutlined /></template>
+            <template #icon>
+              <BranchesOutlined />
+            </template>
             布局
           </a-button>
         </a-dropdown>
@@ -40,13 +58,22 @@
     </div>
 
     <!-- 节点详情面板 -->
-    <div v-if="selectedNodeData" class="node-detail-panel">
-      <a-card :title="selectedNodeData.title" size="small">
+    <div
+      v-if="selectedNodeData"
+      class="node-detail-panel"
+    >
+      <a-card
+        :title="selectedNodeData.title"
+        size="small"
+      >
         <template #extra>
           <CloseOutlined @click="closeDetail" />
         </template>
 
-        <a-descriptions :column="1" size="small">
+        <a-descriptions
+          :column="1"
+          size="small"
+        >
           <a-descriptions-item label="类型">
             {{ getNodeTypeLabel(selectedNodeData.type) }}
           </a-descriptions-item>
@@ -59,7 +86,11 @@
         </a-descriptions>
 
         <div class="detail-actions">
-          <a-button type="link" size="small" @click="openNote(selectedNodeData.id)">
+          <a-button
+            type="link"
+            size="small"
+            @click="openNote(selectedNodeData.id)"
+          >
             打开笔记
           </a-button>
         </div>
@@ -108,7 +139,7 @@ const containerRef = ref(null);
 let chartInstance = null;
 
 const selectedNodeData = computed(() => {
-  if (!selectedNode.value) return null;
+  if (!selectedNode.value) {return null;}
   return props.nodes.find(n => n.id === selectedNode.value);
 });
 
@@ -132,7 +163,7 @@ const edgeTypeColors = {
  * 初始化图表
  */
 const initChart = () => {
-  if (!chartRef.value) return;
+  if (!chartRef.value) {return;}
 
   chartInstance = echarts.init(chartRef.value);
 
@@ -168,7 +199,7 @@ const initChart = () => {
  * 更新图表
  */
 const updateChart = () => {
-  if (!chartInstance) return;
+  if (!chartInstance) {return;}
 
   const option = {
     tooltip: {
@@ -283,7 +314,7 @@ const refreshLayout = () => {
  * 适应视图
  */
 const fitView = () => {
-  if (!chartInstance) return;
+  if (!chartInstance) {return;}
   chartInstance.resize();
 };
 
@@ -341,7 +372,7 @@ const getEdgeTypeLabel = (type) => {
  * 格式化时间
  */
 const formatTime = (timestamp) => {
-  if (!timestamp) return '-';
+  if (!timestamp) {return '-';}
   return new Date(timestamp).toLocaleString('zh-CN');
 };
 

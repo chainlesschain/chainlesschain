@@ -220,7 +220,7 @@ class EnhancedTrayManager {
    * 切换窗口显示/隐藏
    */
   toggleWindow() {
-    if (!this.mainWindow) return;
+    if (!this.mainWindow) {return;}
 
     if (this.mainWindow.isVisible()) {
       this.mainWindow.hide();
@@ -233,7 +233,7 @@ class EnhancedTrayManager {
    * 显示窗口
    */
   showWindow() {
-    if (!this.mainWindow) return;
+    if (!this.mainWindow) {return;}
 
     this.mainWindow.show();
     this.mainWindow.focus();
@@ -246,7 +246,7 @@ class EnhancedTrayManager {
    * 隐藏窗口
    */
   hideWindow() {
-    if (!this.mainWindow) return;
+    if (!this.mainWindow) {return;}
     this.mainWindow.hide();
   }
 
@@ -254,7 +254,7 @@ class EnhancedTrayManager {
    * 发送消息到渲染进程
    */
   sendToRenderer(channel, ...args) {
-    if (!this.mainWindow || !this.mainWindow.webContents) return;
+    if (!this.mainWindow || !this.mainWindow.webContents) {return;}
 
     this.mainWindow.webContents.send(channel, ...args);
   }
@@ -281,7 +281,7 @@ class EnhancedTrayManager {
    * 开始闪烁托盘图标
    */
   startFlashing() {
-    if (this.flashInterval) return;
+    if (this.flashInterval) {return;}
 
     let isHighlighted = false;
     this.flashInterval = setInterval(() => {
@@ -323,7 +323,7 @@ class EnhancedTrayManager {
    * 显示气球通知（Windows）
    */
   displayBalloon(title, content, icon = null) {
-    if (!this.tray || process.platform !== "win32") return;
+    if (!this.tray || process.platform !== "win32") {return;}
 
     this.tray.displayBalloon({
       title,

@@ -154,7 +154,7 @@ class ManusOptimizations {
    * @param {boolean} available - 是否可用
    */
   setToolAvailable(toolName, available) {
-    if (!this.config.enableToolMasking) return;
+    if (!this.config.enableToolMasking) {return;}
     this.toolMasking.setToolAvailability(toolName, available);
   }
 
@@ -164,7 +164,7 @@ class ManusOptimizations {
    * @param {boolean} available - 是否可用
    */
   setToolsByPrefix(prefix, available) {
-    if (!this.config.enableToolMasking) return;
+    if (!this.config.enableToolMasking) {return;}
     this.toolMasking.setToolsByPrefix(prefix, available);
   }
 
@@ -202,7 +202,7 @@ class ManusOptimizations {
    * @param {Array} task.steps - 任务步骤
    */
   async startTask(task) {
-    if (!this.config.enableTaskTracking) return null;
+    if (!this.config.enableTaskTracking) {return null;}
 
     // 🔥 使用文件系统持久化
     if (this.config.enableFileBasedTaskTracking && this.taskTracker) {
@@ -258,7 +258,7 @@ class ManusOptimizations {
    * @param {string} status - 状态
    */
   async updateTaskProgress(stepIndex, status = "in_progress") {
-    if (!this.config.enableTaskTracking || !this.currentTask) return;
+    if (!this.config.enableTaskTracking || !this.currentTask) {return;}
 
     // 🔥 使用文件系统更新
     if (this.config.enableFileBasedTaskTracking && this.taskTracker) {
@@ -291,7 +291,7 @@ class ManusOptimizations {
    * @param {Object} result - 步骤结果
    */
   async completeCurrentStep(result = null) {
-    if (!this.currentTask) return;
+    if (!this.currentTask) {return;}
 
     // 🔥 使用文件系统完成步骤
     if (this.config.enableFileBasedTaskTracking && this.taskTracker) {
@@ -317,7 +317,7 @@ class ManusOptimizations {
    * @param {Object} result - 任务结果
    */
   async completeTask(result = null) {
-    if (!this.currentTask) return;
+    if (!this.currentTask) {return;}
 
     // 🔥 使用文件系统完成任务
     if (this.config.enableFileBasedTaskTracking && this.taskTracker) {
@@ -349,7 +349,7 @@ class ManusOptimizations {
    * @param {string} reason - 取消原因
    */
   async cancelTask(reason = "用户取消") {
-    if (!this.currentTask) return;
+    if (!this.currentTask) {return;}
 
     // 🔥 使用文件系统取消任务
     if (this.config.enableFileBasedTaskTracking && this.taskTracker) {

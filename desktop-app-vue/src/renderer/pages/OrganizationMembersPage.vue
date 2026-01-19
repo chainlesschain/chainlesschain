@@ -3,16 +3,28 @@
     <!-- 组织导航 -->
     <div class="org-nav">
       <a-space size="large">
-        <router-link :to="`/org/${orgId}/members`" class="nav-link active">
+        <router-link
+          :to="`/org/${orgId}/members`"
+          class="nav-link active"
+        >
           <TeamOutlined /> 成员管理
         </router-link>
-        <router-link :to="`/org/${orgId}/roles`" class="nav-link">
+        <router-link
+          :to="`/org/${orgId}/roles`"
+          class="nav-link"
+        >
           <SafetyCertificateOutlined /> 角色管理
         </router-link>
-        <router-link :to="`/org/${orgId}/activities`" class="nav-link">
+        <router-link
+          :to="`/org/${orgId}/activities`"
+          class="nav-link"
+        >
           <HistoryOutlined /> 活动日志
         </router-link>
-        <router-link :to="`/org/${orgId}/settings`" class="nav-link">
+        <router-link
+          :to="`/org/${orgId}/settings`"
+          class="nav-link"
+        >
           <SettingOutlined /> 组织设置
         </router-link>
       </a-space>
@@ -30,7 +42,9 @@
           type="primary"
           @click="showInviteModal = true"
         >
-          <template #icon><UserAddOutlined /></template>
+          <template #icon>
+            <UserAddOutlined />
+          </template>
           邀请成员
         </a-button>
       </div>
@@ -39,21 +53,31 @@
     <!-- 统计卡片 -->
     <div class="stats-cards">
       <a-card class="stat-card">
-        <a-statistic title="总成员数" :value="members.length">
+        <a-statistic
+          title="总成员数"
+          :value="members.length"
+        >
           <template #suffix>
             <TeamOutlined />
           </template>
         </a-statistic>
       </a-card>
       <a-card class="stat-card">
-        <a-statistic title="在线成员" :value="onlineCount" :value-style="{ color: '#3f8600' }">
+        <a-statistic
+          title="在线成员"
+          :value="onlineCount"
+          :value-style="{ color: '#3f8600' }"
+        >
           <template #suffix>
             <CheckCircleOutlined />
           </template>
         </a-statistic>
       </a-card>
       <a-card class="stat-card">
-        <a-statistic title="管理员" :value="adminCount">
+        <a-statistic
+          title="管理员"
+          :value="adminCount"
+        >
           <template #suffix>
             <CrownOutlined />
           </template>
@@ -80,11 +104,21 @@
         style="width: 150px; margin-left: 12px"
         @change="handleFilter"
       >
-        <a-select-option value="">全部角色</a-select-option>
-        <a-select-option value="owner">所有者</a-select-option>
-        <a-select-option value="admin">管理员</a-select-option>
-        <a-select-option value="member">成员</a-select-option>
-        <a-select-option value="viewer">访客</a-select-option>
+        <a-select-option value="">
+          全部角色
+        </a-select-option>
+        <a-select-option value="owner">
+          所有者
+        </a-select-option>
+        <a-select-option value="admin">
+          管理员
+        </a-select-option>
+        <a-select-option value="member">
+          成员
+        </a-select-option>
+        <a-select-option value="viewer">
+          访客
+        </a-select-option>
       </a-select>
     </div>
 
@@ -102,19 +136,31 @@
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'member'">
           <div class="member-cell">
-            <a-avatar :src="record.avatar" :size="40">
-              <template #icon v-if="!record.avatar">
+            <a-avatar
+              :src="record.avatar"
+              :size="40"
+            >
+              <template
+                v-if="!record.avatar"
+                #icon
+              >
                 <UserOutlined />
               </template>
             </a-avatar>
             <div class="member-info">
               <div class="member-name">
                 {{ record.display_name }}
-                <a-tag v-if="record.member_did === currentUserDID" color="blue" size="small">
+                <a-tag
+                  v-if="record.member_did === currentUserDID"
+                  color="blue"
+                  size="small"
+                >
                   我
                 </a-tag>
               </div>
-              <div class="member-did">{{ formatDID(record.member_did) }}</div>
+              <div class="member-did">
+                {{ formatDID(record.member_did) }}
+              </div>
             </div>
           </div>
         </template>
@@ -131,11 +177,16 @@
           <a-tooltip>
             <template #title>
               <div v-if="record.permissions_json">
-                <div v-for="perm in parsePermissions(record.permissions_json)" :key="perm">
+                <div
+                  v-for="perm in parsePermissions(record.permissions_json)"
+                  :key="perm"
+                >
                   {{ perm }}
                 </div>
               </div>
-              <div v-else>使用角色默认权限</div>
+              <div v-else>
+                使用角色默认权限
+              </div>
             </template>
             <a-tag color="default">
               {{ getPermissionCount(record) }} 项权限
@@ -171,7 +222,10 @@
             </a-button>
 
             <!-- 查看详情 -->
-            <a-button size="small" @click="showMemberDetail(record)">
+            <a-button
+              size="small"
+              @click="showMemberDetail(record)"
+            >
               <EyeOutlined />
               详情
             </a-button>
@@ -203,19 +257,39 @@
       :confirm-loading="inviteLoading"
       @ok="handleCreateInvitation"
     >
-      <a-form :model="inviteForm" layout="vertical">
+      <a-form
+        :model="inviteForm"
+        layout="vertical"
+      >
         <a-form-item label="邀请方式">
           <a-radio-group v-model:value="inviteForm.method">
-            <a-radio value="code">邀请码</a-radio>
-            <a-radio value="did" disabled>DID直接邀请（开发中）</a-radio>
+            <a-radio value="code">
+              邀请码
+            </a-radio>
+            <a-radio
+              value="did"
+              disabled
+            >
+              DID直接邀请（开发中）
+            </a-radio>
           </a-radio-group>
         </a-form-item>
 
-        <a-form-item label="默认角色" required>
+        <a-form-item
+          label="默认角色"
+          required
+        >
           <a-select v-model:value="inviteForm.role">
-            <a-select-option value="member">成员</a-select-option>
-            <a-select-option value="viewer">访客</a-select-option>
-            <a-select-option value="admin" v-if="currentUserRole === 'owner'">
+            <a-select-option value="member">
+              成员
+            </a-select-option>
+            <a-select-option value="viewer">
+              访客
+            </a-select-option>
+            <a-select-option
+              v-if="currentUserRole === 'owner'"
+              value="admin"
+            >
               管理员
             </a-select-option>
           </a-select>
@@ -232,10 +306,18 @@
 
         <a-form-item label="过期时间">
           <a-radio-group v-model:value="inviteForm.expireOption">
-            <a-radio value="never">永不过期</a-radio>
-            <a-radio value="1day">1天</a-radio>
-            <a-radio value="7days">7天</a-radio>
-            <a-radio value="30days">30天</a-radio>
+            <a-radio value="never">
+              永不过期
+            </a-radio>
+            <a-radio value="1day">
+              1天
+            </a-radio>
+            <a-radio value="7days">
+              7天
+            </a-radio>
+            <a-radio value="30days">
+              30天
+            </a-radio>
           </a-radio-group>
         </a-form-item>
 
@@ -249,7 +331,10 @@
           style="margin-top: 16px"
         >
           <template #action>
-            <a-button size="small" @click="copyInviteCode">
+            <a-button
+              size="small"
+              @click="copyInviteCode"
+            >
               <CopyOutlined />
               复制
             </a-button>
@@ -265,30 +350,52 @@
       :confirm-loading="roleLoading"
       @ok="handleUpdateRole"
     >
-      <div v-if="selectedMember" style="margin-bottom: 16px">
+      <div
+        v-if="selectedMember"
+        style="margin-bottom: 16px"
+      >
         <div class="member-cell">
-          <a-avatar :src="selectedMember.avatar" :size="48">
-            <template #icon v-if="!selectedMember.avatar">
+          <a-avatar
+            :src="selectedMember.avatar"
+            :size="48"
+          >
+            <template
+              v-if="!selectedMember.avatar"
+              #icon
+            >
               <UserOutlined />
             </template>
           </a-avatar>
           <div class="member-info">
-            <div class="member-name">{{ selectedMember.display_name }}</div>
-            <div class="member-did">{{ formatDID(selectedMember.member_did) }}</div>
+            <div class="member-name">
+              {{ selectedMember.display_name }}
+            </div>
+            <div class="member-did">
+              {{ formatDID(selectedMember.member_did) }}
+            </div>
           </div>
         </div>
       </div>
 
       <a-form layout="vertical">
-        <a-form-item label="选择新角色" required>
-          <a-select v-model:value="newRole" style="width: 100%">
+        <a-form-item
+          label="选择新角色"
+          required
+        >
+          <a-select
+            v-model:value="newRole"
+            style="width: 100%"
+          >
             <a-select-option value="viewer">
               <SafetyOutlined /> 访客 - 只能查看
             </a-select-option>
             <a-select-option value="member">
               <UserOutlined /> 成员 - 可以创建和编辑
             </a-select-option>
-            <a-select-option value="admin" v-if="currentUserRole === 'owner'">
+            <a-select-option
+              v-if="currentUserRole === 'owner'"
+              value="admin"
+            >
               <CrownOutlined /> 管理员 - 可以管理成员
             </a-select-option>
           </a-select>
@@ -309,10 +416,19 @@
       :footer="null"
       width="600px"
     >
-      <div v-if="selectedMember" class="member-detail">
+      <div
+        v-if="selectedMember"
+        class="member-detail"
+      >
         <div class="detail-header">
-          <a-avatar :src="selectedMember.avatar" :size="80">
-            <template #icon v-if="!selectedMember.avatar">
+          <a-avatar
+            :src="selectedMember.avatar"
+            :size="80"
+          >
+            <template
+              v-if="!selectedMember.avatar"
+              #icon
+            >
               <UserOutlined />
             </template>
           </a-avatar>
@@ -324,7 +440,11 @@
           </div>
         </div>
 
-        <a-descriptions :column="1" bordered style="margin-top: 24px">
+        <a-descriptions
+          :column="1"
+          bordered
+          style="margin-top: 24px"
+        >
           <a-descriptions-item label="DID">
             {{ selectedMember.member_did }}
           </a-descriptions-item>
@@ -413,7 +533,7 @@ const inviteForm = ref({
 // 当前用户信息
 const currentUserDID = computed(() => identityStore.primaryDID);
 const currentUserRole = computed(() => {
-  if (!identityStore.isOrganizationContext) return null;
+  if (!identityStore.isOrganizationContext) {return null;}
   const orgId = identityStore.currentOrgId;
   const org = identityStore.organizations.find(o => o.org_id === orgId);
   return org?.role || null;
@@ -628,7 +748,7 @@ const handleFilter = () => {
 
 // 工具函数
 const formatDID = (did) => {
-  if (!did) return '';
+  if (!did) {return '';}
   if (did.length > 30) {
     return did.substring(0, 15) + '...' + did.substring(did.length - 10);
   }
@@ -636,7 +756,7 @@ const formatDID = (did) => {
 };
 
 const formatDate = (timestamp) => {
-  if (!timestamp) return '';
+  if (!timestamp) {return '';}
   const date = new Date(timestamp);
   return date.toLocaleString('zh-CN');
 };

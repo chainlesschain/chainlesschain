@@ -1,27 +1,53 @@
 <template>
   <div class="knowledge-detail-page">
-    <a-spin v-if="loading" size="large" style="width: 100%; padding: 48px 0" />
+    <a-spin
+      v-if="loading"
+      size="large"
+      style="width: 100%; padding: 48px 0"
+    />
 
-    <div v-else-if="item" class="detail-container">
+    <div
+      v-else-if="item"
+      class="detail-container"
+    >
       <!-- 顶部操作栏 -->
       <div class="detail-header">
         <a-space>
           <a-button @click="goBack">
-            <template #icon><ArrowLeftOutlined /></template>
+            <template #icon>
+              <ArrowLeftOutlined />
+            </template>
             返回
           </a-button>
 
-          <a-button v-if="!editing" type="primary" @click="startEdit">
-            <template #icon><EditOutlined /></template>
+          <a-button
+            v-if="!editing"
+            type="primary"
+            @click="startEdit"
+          >
+            <template #icon>
+              <EditOutlined />
+            </template>
             编辑
           </a-button>
 
-          <a-button v-else type="primary" @click="saveItem">
-            <template #icon><SaveOutlined /></template>
+          <a-button
+            v-else
+            type="primary"
+            @click="saveItem"
+          >
+            <template #icon>
+              <SaveOutlined />
+            </template>
             保存
           </a-button>
 
-          <a-button v-if="editing" @click="cancelEdit">取消</a-button>
+          <a-button
+            v-if="editing"
+            @click="cancelEdit"
+          >
+            取消
+          </a-button>
 
           <a-popconfirm
             title="确定要删除这个项目吗？"
@@ -30,7 +56,9 @@
             @confirm="deleteItem"
           >
             <a-button danger>
-              <template #icon><DeleteOutlined /></template>
+              <template #icon>
+                <DeleteOutlined />
+              </template>
               删除
             </a-button>
           </a-popconfirm>
@@ -52,23 +80,46 @@
           <a-divider />
 
           <div class="content-body">
-            <p v-if="!item.content" style="color: rgba(0, 0, 0, 0.25)">暂无内容</p>
-            <div v-else class="markdown-content" v-html="renderMarkdown(item.content)"></div>
+            <p
+              v-if="!item.content"
+              style="color: rgba(0, 0, 0, 0.25)"
+            >
+              暂无内容
+            </p>
+            <div
+              v-else
+              class="markdown-content"
+              v-html="renderMarkdown(item.content)"
+            />
           </div>
         </div>
 
-        <div v-else class="edit-form">
+        <div
+          v-else
+          class="edit-form"
+        >
           <a-form layout="vertical">
             <a-form-item label="标题">
-              <a-input v-model:value="editForm.title" size="large" />
+              <a-input
+                v-model:value="editForm.title"
+                size="large"
+              />
             </a-form-item>
 
             <a-form-item label="类型">
               <a-select v-model:value="editForm.type">
-                <a-select-option value="note">笔记</a-select-option>
-                <a-select-option value="document">文档</a-select-option>
-                <a-select-option value="conversation">对话</a-select-option>
-                <a-select-option value="web_clip">网页剪藏</a-select-option>
+                <a-select-option value="note">
+                  笔记
+                </a-select-option>
+                <a-select-option value="document">
+                  文档
+                </a-select-option>
+                <a-select-option value="conversation">
+                  对话
+                </a-select-option>
+                <a-select-option value="web_clip">
+                  网页剪藏
+                </a-select-option>
               </a-select>
             </a-form-item>
 
@@ -84,7 +135,10 @@
       </div>
     </div>
 
-    <a-empty v-else description="项目不存在" />
+    <a-empty
+      v-else
+      description="项目不存在"
+    />
   </div>
 </template>
 

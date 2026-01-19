@@ -1,6 +1,9 @@
 <template>
   <div class="prompt-templates-container">
-    <a-card title="提示词模板库" :bordered="false">
+    <a-card
+      title="提示词模板库"
+      :bordered="false"
+    >
       <!-- 工具栏 -->
       <template #extra>
         <a-space>
@@ -24,7 +27,9 @@
             allow-clear
             @change="handleCategoryChange"
           >
-            <a-select-option value="">全部分类</a-select-option>
+            <a-select-option value="">
+              全部分类
+            </a-select-option>
             <a-select-option
               v-for="category in categories"
               :key="category"
@@ -34,7 +39,10 @@
             </a-select-option>
           </a-select>
 
-          <a-button type="primary" @click="showCreateModal">
+          <a-button
+            type="primary"
+            @click="showCreateModal"
+          >
             <plus-outlined /> 创建模板
           </a-button>
 
@@ -45,7 +53,10 @@
       </template>
 
       <!-- 统计信息 -->
-      <a-row :gutter="16" style="margin-bottom: 24px">
+      <a-row
+        :gutter="16"
+        style="margin-bottom: 24px"
+      >
         <a-col :span="6">
           <a-statistic
             title="模板总数"
@@ -93,8 +104,14 @@
       </a-row>
 
       <!-- 模板标签页 -->
-      <a-tabs v-model:activeKey="activeTab" @change="handleTabChange">
-        <a-tab-pane key="all" tab="全部模板">
+      <a-tabs
+        v-model:active-key="activeTab"
+        @change="handleTabChange"
+      >
+        <a-tab-pane
+          key="all"
+          tab="全部模板"
+        >
           <template-list
             :templates="filteredTemplates"
             :loading="loading"
@@ -105,7 +122,10 @@
           />
         </a-tab-pane>
 
-        <a-tab-pane key="system" tab="系统模板">
+        <a-tab-pane
+          key="system"
+          tab="系统模板"
+        >
           <template-list
             :templates="systemTemplates"
             :loading="loading"
@@ -113,7 +133,10 @@
           />
         </a-tab-pane>
 
-        <a-tab-pane key="custom" tab="自定义模板">
+        <a-tab-pane
+          key="custom"
+          tab="自定义模板"
+        >
           <template-list
             :templates="customTemplates"
             :loading="loading"
@@ -124,7 +147,10 @@
           />
         </a-tab-pane>
 
-        <a-tab-pane key="most-used" tab="常用模板">
+        <a-tab-pane
+          key="most-used"
+          tab="常用模板"
+        >
           <template-list
             :templates="mostUsedTemplates"
             :loading="loading"
@@ -144,8 +170,14 @@
       @ok="handleSaveTemplate"
       @cancel="handleCancelTemplate"
     >
-      <a-form :model="templateForm" layout="vertical">
-        <a-form-item label="模板名称" required>
+      <a-form
+        :model="templateForm"
+        layout="vertical"
+      >
+        <a-form-item
+          label="模板名称"
+          required
+        >
           <a-input
             v-model:value="templateForm.name"
             placeholder="输入模板名称"
@@ -165,18 +197,37 @@
             v-model:value="templateForm.category"
             placeholder="选择分类"
           >
-            <a-select-option value="general">通用</a-select-option>
-            <a-select-option value="writing">写作</a-select-option>
-            <a-select-option value="translation">翻译</a-select-option>
-            <a-select-option value="analysis">分析</a-select-option>
-            <a-select-option value="programming">编程</a-select-option>
-            <a-select-option value="creative">创意</a-select-option>
-            <a-select-option value="qa">问答</a-select-option>
-            <a-select-option value="rag">RAG</a-select-option>
+            <a-select-option value="general">
+              通用
+            </a-select-option>
+            <a-select-option value="writing">
+              写作
+            </a-select-option>
+            <a-select-option value="translation">
+              翻译
+            </a-select-option>
+            <a-select-option value="analysis">
+              分析
+            </a-select-option>
+            <a-select-option value="programming">
+              编程
+            </a-select-option>
+            <a-select-option value="creative">
+              创意
+            </a-select-option>
+            <a-select-option value="qa">
+              问答
+            </a-select-option>
+            <a-select-option value="rag">
+              RAG
+            </a-select-option>
           </a-select>
         </a-form-item>
 
-        <a-form-item label="模板内容" required>
+        <a-form-item
+          label="模板内容"
+          required
+        >
           <a-textarea
             v-model:value="templateForm.template"
             placeholder="输入模板内容，使用 {{变量名}} 定义变量"
@@ -184,7 +235,7 @@
             @change="extractVariables"
           />
           <div style="margin-top: 8px; color: #666; font-size: 12px">
-            提示：使用 {{变量名}} 定义变量，例如 {{content}}, {{question}}
+            提示：使用 {{ 变量名 }} 定义变量，例如 {{ content }}, {{ question }}
           </div>
         </a-form-item>
 
@@ -197,7 +248,10 @@
           >
             {{ variable }}
           </a-tag>
-          <span v-if="templateForm.variables.length === 0" style="color: #999">
+          <span
+            v-if="templateForm.variables.length === 0"
+            style="color: #999"
+          >
             暂无变量
           </span>
         </a-form-item>
@@ -564,7 +618,7 @@ const getCategoryLabel = (category) => {
 
 // 监听变量值变化，实时预览
 watch(variableValues, () => {
-  if (!currentTemplate.value) return;
+  if (!currentTemplate.value) {return;}
 
   let result = currentTemplate.value.template;
 

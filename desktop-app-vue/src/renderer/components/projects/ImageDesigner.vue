@@ -1,10 +1,19 @@
 <template>
   <div class="image-designer">
-    <a-card title="图像设计" :bordered="false">
-      <a-tabs v-model:activeKey="activeTab">
+    <a-card
+      title="图像设计"
+      :bordered="false"
+    >
+      <a-tabs v-model:active-key="activeTab">
         <!-- AI文生图 -->
-        <a-tab-pane key="generate" tab="AI文生图">
-          <a-form :model="generateForm" layout="vertical">
+        <a-tab-pane
+          key="generate"
+          tab="AI文生图"
+        >
+          <a-form
+            :model="generateForm"
+            layout="vertical"
+          >
             <a-form-item label="图片描述">
               <a-textarea
                 v-model:value="generateForm.prompt"
@@ -15,24 +24,44 @@
 
             <a-form-item label="尺寸">
               <a-select v-model:value="generateForm.size">
-                <a-select-option value="square_sm">512x512 (小)</a-select-option>
-                <a-select-option value="square_md">1024x1024 (中)</a-select-option>
-                <a-select-option value="landscape">1024x768 (横向)</a-select-option>
-                <a-select-option value="portrait">768x1024 (纵向)</a-select-option>
+                <a-select-option value="square_sm">
+                  512x512 (小)
+                </a-select-option>
+                <a-select-option value="square_md">
+                  1024x1024 (中)
+                </a-select-option>
+                <a-select-option value="landscape">
+                  1024x768 (横向)
+                </a-select-option>
+                <a-select-option value="portrait">
+                  768x1024 (纵向)
+                </a-select-option>
               </a-select>
             </a-form-item>
 
             <a-form-item label="风格">
               <a-select v-model:value="generateForm.style">
-                <a-select-option value="realistic">写实</a-select-option>
-                <a-select-option value="anime">动漫</a-select-option>
-                <a-select-option value="oil_painting">油画</a-select-option>
-                <a-select-option value="sketch">素描</a-select-option>
+                <a-select-option value="realistic">
+                  写实
+                </a-select-option>
+                <a-select-option value="anime">
+                  动漫
+                </a-select-option>
+                <a-select-option value="oil_painting">
+                  油画
+                </a-select-option>
+                <a-select-option value="sketch">
+                  素描
+                </a-select-option>
               </a-select>
             </a-form-item>
 
             <a-form-item>
-              <a-button type="primary" @click="handleGenerate" :loading="processing">
+              <a-button
+                type="primary"
+                :loading="processing"
+                @click="handleGenerate"
+              >
                 <picture-outlined /> 生成图片
               </a-button>
             </a-form-item>
@@ -40,8 +69,14 @@
         </a-tab-pane>
 
         <!-- 图片编辑 -->
-        <a-tab-pane key="edit" tab="图片编辑">
-          <a-form :model="editForm" layout="vertical">
+        <a-tab-pane
+          key="edit"
+          tab="图片编辑"
+        >
+          <a-form
+            :model="editForm"
+            layout="vertical"
+          >
             <a-form-item label="输入图片">
               <a-input
                 v-model:value="editForm.inputPath"
@@ -58,14 +93,25 @@
 
             <a-form-item label="操作类型">
               <a-select v-model:value="editForm.operation">
-                <a-select-option value="removeBackground">移除背景</a-select-option>
-                <a-select-option value="upscale">超分辨率 (2x)</a-select-option>
-                <a-select-option value="enhance">增强</a-select-option>
-                <a-select-option value="resize">调整大小</a-select-option>
+                <a-select-option value="removeBackground">
+                  移除背景
+                </a-select-option>
+                <a-select-option value="upscale">
+                  超分辨率 (2x)
+                </a-select-option>
+                <a-select-option value="enhance">
+                  增强
+                </a-select-option>
+                <a-select-option value="resize">
+                  调整大小
+                </a-select-option>
               </a-select>
             </a-form-item>
 
-            <a-form-item v-if="editForm.operation === 'resize'" label="目标尺寸">
+            <a-form-item
+              v-if="editForm.operation === 'resize'"
+              label="目标尺寸"
+            >
               <a-row :gutter="16">
                 <a-col :span="12">
                   <a-input-number
@@ -87,7 +133,11 @@
             </a-form-item>
 
             <a-form-item>
-              <a-button type="primary" @click="handleEdit" :loading="processing">
+              <a-button
+                type="primary"
+                :loading="processing"
+                @click="handleEdit"
+              >
                 <edit-outlined /> 开始处理
               </a-button>
             </a-form-item>
@@ -95,19 +145,31 @@
         </a-tab-pane>
 
         <!-- 批量处理 -->
-        <a-tab-pane key="batch" tab="批量处理">
-          <a-form :model="batchForm" layout="vertical">
+        <a-tab-pane
+          key="batch"
+          tab="批量处理"
+        >
+          <a-form
+            :model="batchForm"
+            layout="vertical"
+          >
             <a-form-item label="输入图片">
-              <a-button @click="selectMultipleImages" style="width: 100%">
+              <a-button
+                style="width: 100%"
+                @click="selectMultipleImages"
+              >
                 <folder-open-outlined /> 选择多个图片
               </a-button>
-              <div v-if="batchForm.imageList.length > 0" class="file-list">
+              <div
+                v-if="batchForm.imageList.length > 0"
+                class="file-list"
+              >
                 <a-tag
                   v-for="(file, index) in batchForm.imageList"
                   :key="index"
                   closable
-                  @close="removeImageFromBatch(index)"
                   style="margin: 4px"
+                  @close="removeImageFromBatch(index)"
                 >
                   {{ file.split('\\').pop() }}
                 </a-tag>
@@ -116,13 +178,22 @@
 
             <a-form-item label="批量操作">
               <a-select v-model:value="batchForm.operation">
-                <a-select-option value="resize">调整大小</a-select-option>
-                <a-select-option value="enhance">增强</a-select-option>
-                <a-select-option value="convertFormat">格式转换</a-select-option>
+                <a-select-option value="resize">
+                  调整大小
+                </a-select-option>
+                <a-select-option value="enhance">
+                  增强
+                </a-select-option>
+                <a-select-option value="convertFormat">
+                  格式转换
+                </a-select-option>
               </a-select>
             </a-form-item>
 
-            <a-form-item v-if="batchForm.operation === 'resize'" label="目标尺寸">
+            <a-form-item
+              v-if="batchForm.operation === 'resize'"
+              label="目标尺寸"
+            >
               <a-row :gutter="16">
                 <a-col :span="12">
                   <a-input-number
@@ -143,16 +214,29 @@
               </a-row>
             </a-form-item>
 
-            <a-form-item v-if="batchForm.operation === 'convertFormat'" label="目标格式">
+            <a-form-item
+              v-if="batchForm.operation === 'convertFormat'"
+              label="目标格式"
+            >
               <a-select v-model:value="batchForm.format">
-                <a-select-option value="png">PNG</a-select-option>
-                <a-select-option value="jpg">JPG</a-select-option>
-                <a-select-option value="webp">WebP</a-select-option>
+                <a-select-option value="png">
+                  PNG
+                </a-select-option>
+                <a-select-option value="jpg">
+                  JPG
+                </a-select-option>
+                <a-select-option value="webp">
+                  WebP
+                </a-select-option>
               </a-select>
             </a-form-item>
 
             <a-form-item>
-              <a-button type="primary" @click="handleBatch" :loading="processing">
+              <a-button
+                type="primary"
+                :loading="processing"
+                @click="handleBatch"
+              >
                 <appstore-outlined /> 批量处理
               </a-button>
             </a-form-item>
@@ -161,15 +245,30 @@
       </a-tabs>
 
       <!-- 进度条 -->
-      <div v-if="processing" class="progress-section">
-        <a-progress :percent="progress" :status="progressStatus" />
-        <p class="progress-message">{{ progressMessage }}</p>
+      <div
+        v-if="processing"
+        class="progress-section"
+      >
+        <a-progress
+          :percent="progress"
+          :status="progressStatus"
+        />
+        <p class="progress-message">
+          {{ progressMessage }}
+        </p>
       </div>
 
       <!-- 结果预览 -->
-      <div v-if="resultImage" class="result-preview">
+      <div
+        v-if="resultImage"
+        class="result-preview"
+      >
         <h4>生成结果:</h4>
-        <img :src="resultImage" alt="Generated Image" class="preview-image" />
+        <img
+          :src="resultImage"
+          alt="Generated Image"
+          class="preview-image"
+        >
       </div>
 
       <!-- 结果消息 -->
@@ -179,8 +278,8 @@
         :type="result.type"
         show-icon
         closable
-        @close="result = null"
         style="margin-top: 16px"
+        @close="result = null"
       />
     </a-card>
   </div>

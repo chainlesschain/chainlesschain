@@ -33,7 +33,7 @@ class CodeEngine {
    * 初始化代码引擎
    */
   async initialize() {
-    if (this.initialized) return;
+    if (this.initialized) {return;}
 
     try {
       const { getLLMManager } = require('../llm/llm-manager');
@@ -106,11 +106,11 @@ class CodeEngine {
       // 生成单元测试
       let tests = null;
       if (includeTests) {
-        if (onProgress) onProgress({ stage: 'generating_tests', progress: 50 });
+        if (onProgress) {onProgress({ stage: 'generating_tests', progress: 50 });}
         tests = await this.generateTests(code, language, { onProgress });
       }
 
-      if (onProgress) onProgress({ stage: 'complete', progress: 100 });
+      if (onProgress) {onProgress({ stage: 'complete', progress: 100 });}
 
       return {
         success: true,
@@ -493,9 +493,9 @@ ${code}
         else if (trimmed.startsWith('- 优先级:') || trimmed.startsWith('-优先级:')) {
           if (currentSuggestion) {
             const priority = trimmed.replace(/^-\s*优先级:\s*/i, '').toLowerCase();
-            if (priority.includes('高')) currentSuggestion.priority = 'high';
-            else if (priority.includes('低')) currentSuggestion.priority = 'low';
-            else currentSuggestion.priority = 'medium';
+            if (priority.includes('高')) {currentSuggestion.priority = 'high';}
+            else if (priority.includes('低')) {currentSuggestion.priority = 'low';}
+            else {currentSuggestion.priority = 'medium';}
           }
         }
       }
@@ -1422,31 +1422,31 @@ ${code}
 
     // 圈复杂度
     const cyclomaticMatch = analysis.match(/圈复杂度[^\d]*(\d+)/);
-    if (cyclomaticMatch) metrics.cyclomaticComplexity = parseInt(cyclomaticMatch[1]);
+    if (cyclomaticMatch) {metrics.cyclomaticComplexity = parseInt(cyclomaticMatch[1]);}
 
     // 认知复杂度
     const cognitiveMatch = analysis.match(/认知复杂度[^\d]*(\d+)/);
-    if (cognitiveMatch) metrics.cognitiveComplexity = parseInt(cognitiveMatch[1]);
+    if (cognitiveMatch) {metrics.cognitiveComplexity = parseInt(cognitiveMatch[1]);}
 
     // 代码行数
     const locMatch = analysis.match(/代码行数[^\d]*(\d+)/);
-    if (locMatch) metrics.linesOfCode = parseInt(locMatch[1]);
+    if (locMatch) {metrics.linesOfCode = parseInt(locMatch[1]);}
 
     // 函数数量
     const funcMatch = analysis.match(/函数数量[^\d]*(\d+)/);
-    if (funcMatch) metrics.functionCount = parseInt(funcMatch[1]);
+    if (funcMatch) {metrics.functionCount = parseInt(funcMatch[1]);}
 
     // 时间复杂度
     const timeMatch = analysis.match(/时间复杂度[^\n]*O\(([^)]+)\)/);
-    if (timeMatch) metrics.timeComplexity = `O(${timeMatch[1]})`;
+    if (timeMatch) {metrics.timeComplexity = `O(${timeMatch[1]})`;}
 
     // 空间复杂度
     const spaceMatch = analysis.match(/空间复杂度[^\n]*O\(([^)]+)\)/);
-    if (spaceMatch) metrics.spaceComplexity = `O(${spaceMatch[1]})`;
+    if (spaceMatch) {metrics.spaceComplexity = `O(${spaceMatch[1]})`;}
 
     // 评分
     const scoreMatch = analysis.match(/综合评分[^\d]*(\d+)/);
-    if (scoreMatch) metrics.score = parseInt(scoreMatch[1]);
+    if (scoreMatch) {metrics.score = parseInt(scoreMatch[1]);}
 
     return metrics;
   }
@@ -1575,10 +1575,10 @@ ${code}
     const match = report.match(/安全等级[^\n]*[：:]\s*([^\n]+)/i);
     if (match) {
       const level = match[1].trim();
-      if (level.includes('高危')) return 'critical';
-      if (level.includes('中危')) return 'medium';
-      if (level.includes('低危')) return 'low';
-      if (level.includes('安全')) return 'safe';
+      if (level.includes('高危')) {return 'critical';}
+      if (level.includes('中危')) {return 'medium';}
+      if (level.includes('低危')) {return 'low';}
+      if (level.includes('安全')) {return 'safe';}
     }
     return 'unknown';
   }

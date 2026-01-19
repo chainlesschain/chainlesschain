@@ -1,6 +1,9 @@
 <template>
   <div class="tool-details">
-    <a-descriptions :column="1" bordered>
+    <a-descriptions
+      :column="1"
+      bordered
+    >
       <a-descriptions-item label="工具ID">
         {{ tool.id }}
       </a-descriptions-item>
@@ -40,14 +43,29 @@
           v-model:value="editForm.category"
           style="width: 200px"
         >
-          <a-select-option value="file">文件操作</a-select-option>
-          <a-select-option value="code">代码生成</a-select-option>
-          <a-select-option value="project">项目管理</a-select-option>
-          <a-select-option value="system">系统操作</a-select-option>
-          <a-select-option value="output">输出格式化</a-select-option>
-          <a-select-option value="general">通用</a-select-option>
+          <a-select-option value="file">
+            文件操作
+          </a-select-option>
+          <a-select-option value="code">
+            代码生成
+          </a-select-option>
+          <a-select-option value="project">
+            项目管理
+          </a-select-option>
+          <a-select-option value="system">
+            系统操作
+          </a-select-option>
+          <a-select-option value="output">
+            输出格式化
+          </a-select-option>
+          <a-select-option value="general">
+            通用
+          </a-select-option>
         </a-select>
-        <a-tag v-else :color="getCategoryColor(tool.category)">
+        <a-tag
+          v-else
+          :color="getCategoryColor(tool.category)"
+        >
           {{ getCategoryName(tool.category) }}
         </a-tag>
       </a-descriptions-item>
@@ -70,11 +88,21 @@
       </a-descriptions-item>
 
       <a-descriptions-item label="来源">
-        <a-tag v-if="tool.is_builtin" color="blue">内置</a-tag>
-        <a-tag v-else-if="tool.plugin_id" color="purple">
+        <a-tag
+          v-if="tool.is_builtin"
+          color="blue"
+        >
+          内置
+        </a-tag>
+        <a-tag
+          v-else-if="tool.plugin_id"
+          color="purple"
+        >
           插件 ({{ tool.plugin_id }})
         </a-tag>
-        <a-tag v-else>自定义</a-tag>
+        <a-tag v-else>
+          自定义
+        </a-tag>
       </a-descriptions-item>
     </a-descriptions>
 
@@ -90,23 +118,42 @@
       >
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'required'">
-            <a-tag v-if="record.required" color="red">必填</a-tag>
-            <a-tag v-else>可选</a-tag>
+            <a-tag
+              v-if="record.required"
+              color="red"
+            >
+              必填
+            </a-tag>
+            <a-tag v-else>
+              可选
+            </a-tag>
           </template>
         </template>
       </a-table>
     </div>
-    <a-empty v-else description="无参数" :image="simpleImage" size="small" />
+    <a-empty
+      v-else
+      description="无参数"
+      :image="simpleImage"
+      size="small"
+    />
 
     <!-- 权限要求 -->
     <a-divider>权限要求</a-divider>
 
     <div v-if="parsedPermissions && parsedPermissions.length > 0">
-      <a-tag v-for="perm in parsedPermissions" :key="perm" color="orange">
+      <a-tag
+        v-for="perm in parsedPermissions"
+        :key="perm"
+        color="orange"
+      >
         {{ perm }}
       </a-tag>
     </div>
-    <div v-else style="color: #8c8c8c">
+    <div
+      v-else
+      style="color: #8c8c8c"
+    >
       无特殊权限要求
     </div>
 
@@ -122,7 +169,11 @@
         @skill-link-click="handleSkillLinkClick"
         @tool-link-click="handleToolLinkClick"
       />
-      <a-empty v-else description="暂无文档" :image="simpleImage" />
+      <a-empty
+        v-else
+        description="暂无文档"
+        :image="simpleImage"
+      />
     </ErrorBoundary>
 
     <!-- 统计信息 -->
@@ -130,10 +181,16 @@
 
     <a-row :gutter="16">
       <a-col :span="6">
-        <a-statistic title="调用次数" :value="tool.usage_count || 0" />
+        <a-statistic
+          title="调用次数"
+          :value="tool.usage_count || 0"
+        />
       </a-col>
       <a-col :span="6">
-        <a-statistic title="成功次数" :value="tool.success_count || 0" />
+        <a-statistic
+          title="成功次数"
+          :value="tool.success_count || 0"
+        />
       </a-col>
       <a-col :span="6">
         <a-statistic
@@ -156,10 +213,29 @@
     <!-- 操作按钮 -->
     <div class="actions">
       <a-space>
-        <a-button v-if="!editing" @click="startEdit">编辑</a-button>
-        <a-button v-if="editing" type="primary" @click="saveEdit" :loading="saving">保存</a-button>
-        <a-button v-if="editing" @click="cancelEdit">取消</a-button>
-        <a-button @click="$emit('close')">关闭</a-button>
+        <a-button
+          v-if="!editing"
+          @click="startEdit"
+        >
+          编辑
+        </a-button>
+        <a-button
+          v-if="editing"
+          type="primary"
+          :loading="saving"
+          @click="saveEdit"
+        >
+          保存
+        </a-button>
+        <a-button
+          v-if="editing"
+          @click="cancelEdit"
+        >
+          取消
+        </a-button>
+        <a-button @click="$emit('close')">
+          关闭
+        </a-button>
       </a-space>
     </div>
   </div>
@@ -234,7 +310,7 @@ const parsedPermissions = computed(() => {
 // 计算成功率
 const successRate = computed(() => {
   const { usage_count, success_count } = props.tool;
-  if (!usage_count || usage_count === 0) return 0;
+  if (!usage_count || usage_count === 0) {return 0;}
   return ((success_count / usage_count) * 100).toFixed(1);
 });
 

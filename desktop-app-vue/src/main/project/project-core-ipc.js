@@ -230,7 +230,7 @@ function registerProjectCoreIPC({
 
     // 流式状态
     let streamControl = null;
-    let accumulatedData = {
+    const accumulatedData = {
       stages: [],
       contentByStage: {},
       files: [],
@@ -1331,9 +1331,9 @@ function registerProjectCoreIPC({
             };
 
             // 只有当字段存在时才添加
-            if (projectDetail.description) projectData.description = projectDetail.description;
-            if (projectDetail.rootPath) projectData.root_path = projectDetail.rootPath;
-            if (projectDetail.coverImageUrl) projectData.cover_image_url = projectDetail.coverImageUrl;
+            if (projectDetail.description) {projectData.description = projectDetail.description;}
+            if (projectDetail.rootPath) {projectData.root_path = projectDetail.rootPath;}
+            if (projectDetail.coverImageUrl) {projectData.cover_image_url = projectDetail.coverImageUrl;}
 
             database.saveProject(projectData);
 

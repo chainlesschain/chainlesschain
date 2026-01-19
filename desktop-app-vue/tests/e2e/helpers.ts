@@ -20,10 +20,28 @@ export async function launchElectronApp(): Promise<ElectronTestContext> {
 
   // 设置固定的 userData 路径，确保配置文件能被读取
   const os = require('os');
-  const userDataPath = path.join(os.homedir(), 'Library', 'Application Support', 'chainlesschain');
+  let userDataPath;
+
+  // 根据操作系统选择正确的路径
+  if (process.platform === 'win32') {
+    userDataPath = path.join(os.homedir(), 'AppData', 'Roaming', 'chainlesschain-desktop-vue');
+  } else if (process.platform === 'darwin') {
+    userDataPath = path.join(os.homedir(), 'Library', 'Application Support', 'chainlesschain-desktop-vue');
+  } else {
+    // Linux
+    userDataPath = path.join(os.homedir(), '.config', 'chainlesschain-desktop-vue');
+  }
+
+  // 查找Electron可执行文件路径（优先使用根目录的node_modules）
+  const electronPath = require('electron') as string;
+
+  console.log('[Test Helper] Electron path:', electronPath);
+  console.log('[Test Helper] Main path:', mainPath);
+  console.log('[Test Helper] User data path:', userDataPath);
 
   // 启动Electron（增加超时时间，指定 userData 路径）
   const app = await electron.launch({
+    executablePath: electronPath,
     args: [mainPath, `--user-data-dir=${userDataPath}`],
     env: {
       ...process.env,

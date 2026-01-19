@@ -380,9 +380,9 @@ class IntentClassifier {
     }
 
     // 基于总匹配次数计算置信度（重复关键词表示更高的确定性）
-    if (totalMatches === 0) return 0.5; // 默认置信度
-    if (totalMatches === 1) return 0.7;
-    if (totalMatches >= 2) return 0.9;
+    if (totalMatches === 0) {return 0.5;} // 默认置信度
+    if (totalMatches === 1) {return 0.7;}
+    if (totalMatches >= 2) {return 0.9;}
 
     return 0.6;
   }

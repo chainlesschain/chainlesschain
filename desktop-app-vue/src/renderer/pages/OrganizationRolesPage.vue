@@ -4,16 +4,27 @@
     <div class="page-header">
       <div class="header-left">
         <h2>角色与权限管理</h2>
-        <p class="subtitle">管理组织中的角色和权限配置</p>
+        <p class="subtitle">
+          管理组织中的角色和权限配置
+        </p>
       </div>
       <div class="header-right">
-        <PermissionGuard permission="role.create" mode="custom">
-          <a-button type="primary" @click="showCreateRoleModal">
+        <PermissionGuard
+          permission="role.create"
+          mode="custom"
+        >
+          <a-button
+            type="primary"
+            @click="showCreateRoleModal"
+          >
             <PlusOutlined /> 创建自定义角色
           </a-button>
           <template #denied>
             <a-tooltip title="您没有权限创建角色">
-              <a-button type="primary" disabled>
+              <a-button
+                type="primary"
+                disabled
+              >
                 <PlusOutlined /> 创建自定义角色
               </a-button>
             </a-tooltip>
@@ -28,7 +39,9 @@
         <!-- 内置角色 -->
         <div class="role-section">
           <h3>内置角色</h3>
-          <p class="section-desc">系统预置角色，不可修改或删除</p>
+          <p class="section-desc">
+            系统预置角色，不可修改或删除
+          </p>
           <a-row :gutter="[16, 16]">
             <a-col
               v-for="role in builtinRoles"
@@ -49,8 +62,13 @@
         <!-- 自定义角色 -->
         <div class="role-section">
           <h3>自定义角色</h3>
-          <p class="section-desc">由组织创建的自定义角色</p>
-          <a-row :gutter="[16, 16]" v-if="customRoles.length > 0">
+          <p class="section-desc">
+            由组织创建的自定义角色
+          </p>
+          <a-row
+            v-if="customRoles.length > 0"
+            :gutter="[16, 16]"
+          >
             <a-col
               v-for="role in customRoles"
               :key="role.id"
@@ -67,7 +85,10 @@
               />
             </a-col>
           </a-row>
-          <a-empty v-else description="暂无自定义角色" />
+          <a-empty
+            v-else
+            description="暂无自定义角色"
+          />
         </div>
       </div>
     </a-spin>
@@ -86,7 +107,10 @@
         :rules="roleFormRules"
         layout="vertical"
       >
-        <a-form-item label="角色名称" name="name">
+        <a-form-item
+          label="角色名称"
+          name="name"
+        >
           <a-input
             v-model:value="roleForm.name"
             placeholder="例如：项目经理、技术专家等"
@@ -95,7 +119,10 @@
           />
         </a-form-item>
 
-        <a-form-item label="角色描述" name="description">
+        <a-form-item
+          label="角色描述"
+          name="description"
+        >
           <a-textarea
             v-model:value="roleForm.description"
             placeholder="描述此角色的职责和权限范围"
@@ -105,9 +132,12 @@
           />
         </a-form-item>
 
-        <a-form-item label="权限配置" name="permissions">
+        <a-form-item
+          label="权限配置"
+          name="permissions"
+        >
           <div class="permissions-selector">
-            <a-collapse v-model:activeKey="activePermissionCategories">
+            <a-collapse v-model:active-key="activePermissionCategories">
               <a-collapse-panel
                 v-for="category in allPermissions"
                 :key="category.category"
@@ -124,7 +154,9 @@
                   >
                     <a-checkbox :value="perm.value">
                       <strong>{{ perm.label }}</strong>
-                      <p class="permission-desc">{{ perm.description }}</p>
+                      <p class="permission-desc">
+                        {{ perm.description }}
+                      </p>
                     </a-checkbox>
                   </div>
                 </a-checkbox-group>
@@ -133,7 +165,12 @@
 
             <div class="selected-permissions-summary">
               <span>已选择 {{ roleForm.permissions.length }} 个权限</span>
-              <a-button size="small" @click="roleForm.permissions = []">清空</a-button>
+              <a-button
+                size="small"
+                @click="roleForm.permissions = []"
+              >
+                清空
+              </a-button>
             </div>
           </div>
         </a-form-item>
@@ -147,11 +184,22 @@
       width="700px"
       :footer="null"
     >
-      <div v-if="viewingRole" class="role-detail">
-        <a-descriptions bordered :column="1">
+      <div
+        v-if="viewingRole"
+        class="role-detail"
+      >
+        <a-descriptions
+          bordered
+          :column="1"
+        >
           <a-descriptions-item label="角色名称">
             {{ viewingRole.name }}
-            <a-tag v-if="viewingRole.is_builtin" color="blue">内置角色</a-tag>
+            <a-tag
+              v-if="viewingRole.is_builtin"
+              color="blue"
+            >
+              内置角色
+            </a-tag>
           </a-descriptions-item>
           <a-descriptions-item label="角色描述">
             {{ viewingRole.description || '无描述' }}
@@ -386,7 +434,7 @@ function getPermissionLabel(permValue) {
  * 格式化时间戳
  */
 function formatTimestamp(timestamp) {
-  if (!timestamp) return '-';
+  if (!timestamp) {return '-';}
   const date = new Date(timestamp);
   return date.toLocaleString('zh-CN');
 }

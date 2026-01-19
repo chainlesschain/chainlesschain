@@ -30,7 +30,7 @@ function md5Hash(text) {
  * @returns {number} 估算的 Token 数
  */
 function estimateTokens(text) {
-  if (!text) return 0;
+  if (!text) {return 0;}
 
   // 分别计算中文和英文字符
   const chineseChars = (text.match(/[\u4e00-\u9fa5]/g) || []).length;
@@ -47,8 +47,8 @@ function estimateTokens(text) {
  * @returns {number} 相似度 (0-1)
  */
 function calculateSimilarity(str1, str2) {
-  if (!str1 || !str2) return 0;
-  if (str1 === str2) return 1;
+  if (!str1 || !str2) {return 0;}
+  if (str1 === str2) {return 1;}
 
   // 分词（简单按字符分割）
   const tokens1 = new Set(str1.split(''));
@@ -124,7 +124,7 @@ class PromptCompressor {
     console.log(`[PromptCompressor] 开始压缩，原始消息数: ${messages.length}, 估算 Tokens: ${originalTokens}`);
 
     let compressedMessages = [...messages];
-    let appliedStrategies = [];
+    const appliedStrategies = [];
 
     // 策略 1: 消息去重
     if (this.enableDeduplication && compressedMessages.length > 2) {
@@ -204,8 +204,8 @@ class PromptCompressor {
 
     // 待去重的消息（排除需要保留的）
     const messagesToProcess = messages.filter(msg => {
-      if (preserveSystemMessage && msg.role === 'system') return false;
-      if (preserveLastUserMessage && lastUserMessage && msg === lastUserMessage) return false;
+      if (preserveSystemMessage && msg.role === 'system') {return false;}
+      if (preserveLastUserMessage && lastUserMessage && msg === lastUserMessage) {return false;}
       return true;
     });
 
@@ -279,7 +279,7 @@ class PromptCompressor {
 
     // 计算可以保留的消息数（扣除 system 和最后一条用户消息）
     let availableSlots = this.maxHistoryMessages - systemMessages.length;
-    if (lastUserMessage) availableSlots -= 1;
+    if (lastUserMessage) {availableSlots -= 1;}
 
     // 从最新的消息开始保留
     const otherMessages = nonSystemMessages.filter(msg => msg !== lastUserMessage);
@@ -316,8 +316,8 @@ class PromptCompressor {
       : null;
 
     const messagesToSummarize = messages.filter(msg => {
-      if (preserveSystemMessage && msg.role === 'system') return false;
-      if (preserveLastUserMessage && lastUserMessage && msg === lastUserMessage) return false;
+      if (preserveSystemMessage && msg.role === 'system') {return false;}
+      if (preserveLastUserMessage && lastUserMessage && msg === lastUserMessage) {return false;}
       return true;
     });
 

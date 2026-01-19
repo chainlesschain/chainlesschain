@@ -77,6 +77,56 @@ class DatabaseManager {
     this.customPath = customPath; // 允许指定自定义路径
     this.encryptionPassword = options.password || null; // 加密密码
     this.encryptionEnabled = options.encryptionEnabled !== false; // 默认启用加密
+
+    // 🚀 性能优化：Prepared Statement 缓存
+    this.preparedStatements = new Map();
+
+    // 🚀 性能优化：查询结果缓存（使用LRU策略）
+    this.initializeQueryCache();
+  }
+
+  /**
+   * 初始化查询缓存（LRU策略）
+   */
+  initializeQueryCache() {
+    const LRU = require('lru-cache');
+    this.queryCache = new LRU({
+      max: 500, // 最多缓存500个查询
+      maxSize: 10 * 1024 * 1024, // 最大10MB
+      sizeCalculation: (value) => {
+        try {
+          return JSON.stringify(value).length;
+        } catch {
+          return 1024; // 默认1KB
+        }
+      },
+      ttl: 1000 * 60 * 5, // 5分钟过期
+      updateAgeOnGet: true, // 访问时更新年龄
+    });
+    console.log('[Database] 查询缓存已初始化 (最大500项, 10MB, TTL: 5分钟)');
+  }
+
+  /**
+   * 获取或创建 Prepared Statement
+   * @param {string} sql - SQL语句
+   * @returns {Statement} Prepared statement
+   */
+  getPreparedStatement(sql) {
+    if (!this.preparedStatements.has(sql)) {
+      if (!this.db || !this.db.prepare) {
+        throw new Error('Database not initialized or does not support prepare()');
+      }
+      this.preparedStatements.set(sql, this.db.prepare(sql));
+    }
+    return this.preparedStatements.get(sql);
+  }
+
+  /**
+   * 清除所有 Prepared Statements（用于数据库重置）
+   */
+  clearPreparedStatements() {
+    this.preparedStatements.clear();
+    console.log('[Database] Prepared statement缓存已清除');
   }
 
   /**
@@ -4267,6 +4317,14 @@ class DatabaseManager {
   close() {
     if (this.db) {
       this.saveToFile();
+
+      // 清理缓存
+      this.clearPreparedStatements();
+      if (this.queryCache) {
+        this.queryCache.clear();
+        console.log('[Database] 查询缓存已清除');
+      }
+
       this.db.close();
       console.log("数据库连接已关闭");
     }
@@ -4645,7 +4703,7 @@ class DatabaseManager {
    * @returns {number} 添加的关系数量
    */
   addRelations(relations) {
-    if (!relations || relations.length === 0) return 0;
+    if (!relations || relations.length === 0) {return 0;}
 
     const stmt = this.db.prepare(`
       INSERT OR IGNORE INTO knowledge_relations (id, source_id, target_id, relation_type, weight, metadata, created_at)
@@ -4688,7 +4746,7 @@ class DatabaseManager {
    * @returns {number} 删除的关系数量
    */
   deleteRelations(noteId, types = []) {
-    if (!noteId) return 0;
+    if (!noteId) {return 0;}
 
     let query;
     let params;
@@ -5715,7 +5773,7 @@ class DatabaseManager {
     const stmt = this.db.prepare("SELECT * FROM conversations WHERE id = ?");
     const conversation = stmt.get(conversationId);
 
-    if (!conversation) return null;
+    if (!conversation) {return null;}
 
     // 解析 context_data
     if (conversation.context_data) {
@@ -5744,7 +5802,7 @@ class DatabaseManager {
 
     const conversation = stmt.get(projectId);
 
-    if (!conversation) return null;
+    if (!conversation) {return null;}
 
     // 解析 context_data
     if (conversation.context_data) {
@@ -5882,10 +5940,10 @@ class DatabaseManager {
     let messageType = messageData.type || messageData.message_type;
     if (!messageType) {
       // 向后兼容：根据role推断message_type
-      if (messageData.role === "user") messageType = "USER";
-      else if (messageData.role === "assistant") messageType = "ASSISTANT";
-      else if (messageData.role === "system") messageType = "SYSTEM";
-      else messageType = "ASSISTANT"; // 默认值
+      if (messageData.role === "user") {messageType = "USER";}
+      else if (messageData.role === "assistant") {messageType = "ASSISTANT";}
+      else if (messageData.role === "system") {messageType = "SYSTEM";}
+      else {messageType = "ASSISTANT";} // 默认值
     }
 
     // 序列化metadata为JSON字符串
@@ -5968,10 +6026,10 @@ class DatabaseManager {
       }
       // 向后兼容：如果没有message_type，根据role设置
       if (!msg.message_type) {
-        if (msg.role === "user") msg.message_type = "USER";
-        else if (msg.role === "assistant") msg.message_type = "ASSISTANT";
-        else if (msg.role === "system") msg.message_type = "SYSTEM";
-        else msg.message_type = "ASSISTANT";
+        if (msg.role === "user") {msg.message_type = "USER";}
+        else if (msg.role === "assistant") {msg.message_type = "ASSISTANT";}
+        else if (msg.role === "system") {msg.message_type = "SYSTEM";}
+        else {msg.message_type = "ASSISTANT";}
       }
       return msg;
     });
@@ -6044,7 +6102,7 @@ class DatabaseManager {
 
     const searchPattern = `%${query.trim()}%`;
     const params = [searchPattern];
-    let whereConditions = ["content LIKE ?"];
+    const whereConditions = ["content LIKE ?"];
 
     // 添加对话ID过滤
     if (conversationId) {
@@ -6086,10 +6144,10 @@ class DatabaseManager {
       }
       // 向后兼容：如果没有message_type，根据role设置
       if (!msg.message_type) {
-        if (msg.role === "user") msg.message_type = "USER";
-        else if (msg.role === "assistant") msg.message_type = "ASSISTANT";
-        else if (msg.role === "system") msg.message_type = "SYSTEM";
-        else msg.message_type = "ASSISTANT";
+        if (msg.role === "user") {msg.message_type = "USER";}
+        else if (msg.role === "assistant") {msg.message_type = "ASSISTANT";}
+        else if (msg.role === "system") {msg.message_type = "SYSTEM";}
+        else {msg.message_type = "ASSISTANT";}
       }
       return msg;
     });

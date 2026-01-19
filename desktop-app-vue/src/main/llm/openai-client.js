@@ -155,7 +155,7 @@ class OpenAIClient extends EventEmitter {
         }
       );
 
-      let fullMessage = {
+      const fullMessage = {
         role: 'assistant',
         content: '',
       };

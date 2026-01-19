@@ -3,7 +3,7 @@
     :class="['resize-handle', direction]"
     @mousedown="handleMouseDown"
   >
-    <div class="resize-handle-line"></div>
+    <div class="resize-handle-line" />
   </div>
 </template>
 
@@ -31,7 +31,7 @@ const emit = defineEmits(['resize']);
 let isResizing = false;
 let startX = 0;
 let startY = 0;
-let startSize = 0;
+const startSize = 0;
 
 const handleMouseDown = (e) => {
   e.preventDefault();
@@ -49,7 +49,7 @@ const handleMouseDown = (e) => {
 };
 
 const handleMouseMove = (e) => {
-  if (!isResizing) return;
+  if (!isResizing) {return;}
 
   const delta = props.direction === 'vertical'
     ? e.clientX - startX
@@ -59,7 +59,7 @@ const handleMouseMove = (e) => {
 };
 
 const handleMouseUp = () => {
-  if (!isResizing) return;
+  if (!isResizing) {return;}
 
   isResizing = false;
 

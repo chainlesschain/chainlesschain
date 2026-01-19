@@ -10,9 +10,16 @@
         class="control-panel"
       >
         <div class="panel-content">
-          <a-space direction="vertical" :size="16" style="width: 100%">
+          <a-space
+            direction="vertical"
+            :size="16"
+            style="width: 100%"
+          >
             <!-- 统计信息 -->
-            <a-card title="图谱统计" size="small">
+            <a-card
+              title="图谱统计"
+              size="small"
+            >
               <a-statistic-group>
                 <a-row :gutter="[16, 16]">
                   <a-col :span="12">
@@ -42,7 +49,10 @@
 
               <a-divider />
 
-              <a-descriptions :column="1" size="small">
+              <a-descriptions
+                :column="1"
+                size="small"
+              >
                 <a-descriptions-item label="链接">
                   {{ graphStore.stats.linkRelations }}
                 </a-descriptions-item>
@@ -59,7 +69,10 @@
             </a-card>
 
             <!-- 筛选选项 -->
-            <a-card title="筛选选项" size="small">
+            <a-card
+              title="筛选选项"
+              size="small"
+            >
               <a-form layout="vertical">
                 <a-form-item label="关系类型">
                   <a-checkbox-group
@@ -102,15 +115,23 @@
             </a-card>
 
             <!-- 操作按钮 -->
-            <a-card title="图谱操作" size="small">
-              <a-space direction="vertical" style="width: 100%">
+            <a-card
+              title="图谱操作"
+              size="small"
+            >
+              <a-space
+                direction="vertical"
+                style="width: 100%"
+              >
                 <a-button
                   type="primary"
                   block
                   :loading="graphStore.processing"
                   @click="handleProcessAllNotes"
                 >
-                  <template #icon><ThunderboltOutlined /></template>
+                  <template #icon>
+                    <ThunderboltOutlined />
+                  </template>
                   重建图谱
                 </a-button>
 
@@ -119,7 +140,9 @@
                   :loading="graphStore.processing"
                   @click="handleBuildTagRelations"
                 >
-                  <template #icon><TagsOutlined /></template>
+                  <template #icon>
+                    <TagsOutlined />
+                  </template>
                   重建标签关系
                 </a-button>
 
@@ -128,7 +151,9 @@
                   :loading="graphStore.processing"
                   @click="handleBuildTemporalRelations"
                 >
-                  <template #icon><ClockCircleOutlined /></template>
+                  <template #icon>
+                    <ClockCircleOutlined />
+                  </template>
                   重建时间关系
                 </a-button>
 
@@ -137,7 +162,9 @@
                   :loading="graphStore.loading"
                   @click="handleRefresh"
                 >
-                  <template #icon><ReloadOutlined /></template>
+                  <template #icon>
+                    <ReloadOutlined />
+                  </template>
                   刷新数据
                 </a-button>
               </a-space>
@@ -148,10 +175,19 @@
 
       <!-- 主内容区 - 图谱画布 -->
       <a-layout-content class="graph-content">
-        <a-spin :spinning="graphStore.loading" tip="加载图谱数据...">
-          <div v-if="!graphStore.hasData" class="empty-state">
+        <a-spin
+          :spinning="graphStore.loading"
+          tip="加载图谱数据..."
+        >
+          <div
+            v-if="!graphStore.hasData"
+            class="empty-state"
+          >
             <a-empty description="暂无图谱数据">
-              <a-button type="primary" @click="handleProcessAllNotes">
+              <a-button
+                type="primary"
+                @click="handleProcessAllNotes"
+              >
                 开始构建图谱
               </a-button>
             </a-empty>

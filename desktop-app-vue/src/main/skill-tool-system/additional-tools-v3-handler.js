@@ -152,7 +152,7 @@ class AdditionalToolsV3Handler {
 
       switch (queryType) {
         case 'balance':
-          if (!address) throw new Error('Address is required for balance query');
+          if (!address) {throw new Error('Address is required for balance query');}
           result = {
             address,
             balance: '1.234567890123456789',
@@ -163,7 +163,7 @@ class AdditionalToolsV3Handler {
           break;
 
         case 'transaction':
-          if (!txHash) throw new Error('Transaction hash is required');
+          if (!txHash) {throw new Error('Transaction hash is required');}
           result = {
             txHash,
             from: '0x1234567890123456789012345678901234567890',
@@ -178,7 +178,7 @@ class AdditionalToolsV3Handler {
           break;
 
         case 'block':
-          if (!blockNumber) throw new Error('Block number is required');
+          if (!blockNumber) {throw new Error('Block number is required');}
           result = {
             blockNumber,
             hash: '0xabcdef1234567890',
@@ -600,7 +600,7 @@ class AdditionalToolsV3Handler {
 
       switch (calculationType) {
         case 'npv':
-          if (cashFlows.length === 0) throw new Error('Cash flows are required for NPV calculation');
+          if (cashFlows.length === 0) {throw new Error('Cash flows are required for NPV calculation');}
           result = {
             npv: this._calculateNPV(cashFlows, discountRate),
             discountRate: discountRate * 100 + '%',
@@ -609,7 +609,7 @@ class AdditionalToolsV3Handler {
           break;
 
         case 'irr':
-          if (cashFlows.length === 0) throw new Error('Cash flows are required for IRR calculation');
+          if (cashFlows.length === 0) {throw new Error('Cash flows are required for IRR calculation');}
           result = {
             irr: (this._calculateIRR(cashFlows) * 100).toFixed(2) + '%',
             periods: cashFlows.length
@@ -838,16 +838,16 @@ class AdditionalToolsV3Handler {
       // 计算流失风险评分（简化ML模型）
       let churnScore = 0;
 
-      if (indicators.loginFrequency < 5) churnScore += 30;
-      else if (indicators.loginFrequency < 10) churnScore += 15;
+      if (indicators.loginFrequency < 5) {churnScore += 30;}
+      else if (indicators.loginFrequency < 10) {churnScore += 15;}
 
-      if (indicators.featureUsage < 30) churnScore += 25;
-      else if (indicators.featureUsage < 60) churnScore += 10;
+      if (indicators.featureUsage < 30) {churnScore += 25;}
+      else if (indicators.featureUsage < 60) {churnScore += 10;}
 
-      if (indicators.supportTickets > 5) churnScore += 20;
-      else if (indicators.supportTickets > 2) churnScore += 10;
+      if (indicators.supportTickets > 5) {churnScore += 20;}
+      else if (indicators.supportTickets > 2) {churnScore += 10;}
 
-      if (indicators.paymentHistory === 'late') churnScore += 15;
+      if (indicators.paymentHistory === 'late') {churnScore += 15;}
 
       churnScore = Math.min(churnScore, 100);
 
@@ -1012,10 +1012,10 @@ class AdditionalToolsV3Handler {
         const interest = sh.interest || Math.floor(Math.random() * 100);
 
         let quadrant;
-        if (power >= 50 && interest >= 50) quadrant = 'manage-closely';
-        else if (power >= 50 && interest < 50) quadrant = 'keep-satisfied';
-        else if (power < 50 && interest >= 50) quadrant = 'keep-informed';
-        else quadrant = 'monitor';
+        if (power >= 50 && interest >= 50) {quadrant = 'manage-closely';}
+        else if (power >= 50 && interest < 50) {quadrant = 'keep-satisfied';}
+        else if (power < 50 && interest >= 50) {quadrant = 'keep-informed';}
+        else {quadrant = 'monitor';}
 
         return {
           name: sh.name,
@@ -1572,7 +1572,7 @@ class AdditionalToolsV3Handler {
 
       switch (action) {
         case 'add':
-          if (!mediaContact) throw new Error('Media contact is required');
+          if (!mediaContact) {throw new Error('Media contact is required');}
           result = {
             status: 'added',
             contactId: crypto.randomBytes(8).toString('hex'),
@@ -1907,7 +1907,7 @@ class AdditionalToolsV3Handler {
 
       switch (action) {
         case 'create':
-          if (!evidence) throw new Error('Evidence data is required');
+          if (!evidence) {throw new Error('Evidence data is required');}
 
           const evidenceId = autoNumbering ? `EV-${Date.now()}-${Math.floor(Math.random() * 1000)}` : evidence.id;
 
@@ -2160,7 +2160,7 @@ class AdditionalToolsV3Handler {
 
       switch (action) {
         case 'add':
-          if (!vendorData.name) throw new Error('Vendor name is required');
+          if (!vendorData.name) {throw new Error('Vendor name is required');}
           result = {
             status: 'added',
             vendorId: vendorId || `VND-${Date.now()}`,
@@ -2174,7 +2174,7 @@ class AdditionalToolsV3Handler {
           break;
 
         case 'rate':
-          if (!vendorId) throw new Error('Vendor ID is required');
+          if (!vendorId) {throw new Error('Vendor ID is required');}
           const rating = vendorData.rating || 4;
           result = {
             status: 'rated',
@@ -2185,7 +2185,7 @@ class AdditionalToolsV3Handler {
           break;
 
         case 'evaluate':
-          if (!vendorId) throw new Error('Vendor ID is required');
+          if (!vendorId) {throw new Error('Vendor ID is required');}
           result = {
             status: 'evaluated',
             vendorId,
@@ -2263,9 +2263,9 @@ class AdditionalToolsV3Handler {
   _calculateRiskScore(issues) {
     let score = 0;
     issues.forEach(issue => {
-      if (issue.severity === 'high') score += 30;
-      else if (issue.severity === 'medium') score += 15;
-      else score += 5;
+      if (issue.severity === 'high') {score += 30;}
+      else if (issue.severity === 'medium') {score += 15;}
+      else {score += 5;}
     });
     return Math.min(score, 100);
   }

@@ -1,15 +1,21 @@
 <template>
-  <div v-if="activeCall" class="call-window">
+  <div
+    v-if="activeCall"
+    class="call-window"
+  >
     <div class="call-container">
       <!-- 视频区域 -->
-      <div class="video-container" v-if="activeCall.type === 'video'">
+      <div
+        v-if="activeCall.type === 'video'"
+        class="video-container"
+      >
         <!-- 远程视频 -->
         <video
           ref="remoteVideo"
           class="remote-video"
           autoplay
           playsinline
-        ></video>
+        />
 
         <!-- 本地视频（画中画） -->
         <video
@@ -18,23 +24,40 @@
           autoplay
           playsinline
           muted
-        ></video>
+        />
       </div>
 
       <!-- 音频通话界面 -->
-      <div v-else class="audio-call-container">
+      <div
+        v-else
+        class="audio-call-container"
+      >
         <div class="audio-call-content">
-          <a-avatar :size="120" :src="getCallerAvatar()">
-            <template #icon><UserOutlined /></template>
+          <a-avatar
+            :size="120"
+            :src="getCallerAvatar()"
+          >
+            <template #icon>
+              <UserOutlined />
+            </template>
           </a-avatar>
-          <div class="caller-name">{{ getCallerName() }}</div>
-          <div class="call-status">{{ callStatusText }}</div>
-          <div class="call-duration">{{ formattedDuration }}</div>
+          <div class="caller-name">
+            {{ getCallerName() }}
+          </div>
+          <div class="call-status">
+            {{ callStatusText }}
+          </div>
+          <div class="call-duration">
+            {{ formattedDuration }}
+          </div>
         </div>
       </div>
 
       <!-- 通话质量指示器 -->
-      <div class="quality-indicator" v-if="callQuality">
+      <div
+        v-if="callQuality"
+        class="quality-indicator"
+      >
         <SignalFilled :class="['signal-icon', qualityClass]" />
         <span class="quality-text">{{ qualityText }}</span>
       </div>
@@ -47,8 +70,8 @@
             :type="isMuted ? 'primary' : 'default'"
             shape="circle"
             size="large"
-            @click="toggleMute"
             :class="{ active: isMuted }"
+            @click="toggleMute"
           >
             <template #icon>
               <AudioMutedOutlined v-if="isMuted" />
@@ -58,13 +81,16 @@
         </a-tooltip>
 
         <!-- 视频开关按钮（仅视频通话） -->
-        <a-tooltip v-if="activeCall.type === 'video'" :title="isVideoEnabled ? '关闭视频' : '开启视频'">
+        <a-tooltip
+          v-if="activeCall.type === 'video'"
+          :title="isVideoEnabled ? '关闭视频' : '开启视频'"
+        >
           <a-button
             :type="!isVideoEnabled ? 'primary' : 'default'"
             shape="circle"
             size="large"
-            @click="toggleVideo"
             :class="{ active: !isVideoEnabled }"
+            @click="toggleVideo"
           >
             <template #icon>
               <VideoCameraOutlined v-if="isVideoEnabled" />
@@ -80,10 +106,12 @@
             danger
             shape="circle"
             size="large"
-            @click="endCall"
             class="end-call-btn"
+            @click="endCall"
           >
-            <template #icon><PhoneOutlined :rotate="135" /></template>
+            <template #icon>
+              <PhoneOutlined :rotate="135" />
+            </template>
           </a-button>
         </a-tooltip>
 
@@ -94,7 +122,9 @@
             size="large"
             @click="showSettings = true"
           >
-            <template #icon><SettingOutlined /></template>
+            <template #icon>
+              <SettingOutlined />
+            </template>
           </a-button>
         </a-tooltip>
       </div>
@@ -137,7 +167,9 @@
           </a-select-option>
         </a-select>
 
-        <h4 v-if="activeCall.type === 'video'">视频设备</h4>
+        <h4 v-if="activeCall.type === 'video'">
+          视频设备
+        </h4>
         <a-select
           v-if="activeCall.type === 'video'"
           v-model:value="selectedVideoInput"
@@ -156,7 +188,10 @@
         <a-divider />
 
         <h4>通话统计</h4>
-        <div class="call-stats" v-if="callStats">
+        <div
+          v-if="callStats"
+          class="call-stats"
+        >
           <div class="stat-item">
             <span class="stat-label">接收:</span>
             <span class="stat-value">{{ formatBytes(callStats.bytesReceived) }}</span>
@@ -273,11 +308,11 @@ const formattedDuration = computed(() => {
 });
 
 const qualityClass = computed(() => {
-  if (!callQuality.value) return 'good';
+  if (!callQuality.value) {return 'good';}
   const { packetsLost, roundTripTime } = callQuality.value;
 
-  if (packetsLost > 50 || roundTripTime > 0.3) return 'poor';
-  if (packetsLost > 20 || roundTripTime > 0.15) return 'fair';
+  if (packetsLost > 50 || roundTripTime > 0.3) {return 'poor';}
+  if (packetsLost > 20 || roundTripTime > 0.15) {return 'fair';}
   return 'good';
 });
 
@@ -355,7 +390,7 @@ const endCall = async () => {
 };
 
 const formatBytes = (bytes) => {
-  if (bytes === 0) return '0 B';
+  if (bytes === 0) {return '0 B';}
   const k = 1024;
   const sizes = ['B', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));

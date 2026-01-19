@@ -17,7 +17,10 @@
 
         <a-form-item>
           <a-space>
-            <a-button type="primary" @click="handleOpenFolder">
+            <a-button
+              type="primary"
+              @click="handleOpenFolder"
+            >
               <FolderOpenOutlined />
               打开项目目录
             </a-button>
@@ -30,8 +33,14 @@
       </a-form>
     </a-card>
 
-    <a-card title="项目配置信息" style="margin-top: 16px;">
-      <a-descriptions bordered :column="1">
+    <a-card
+      title="项目配置信息"
+      style="margin-top: 16px;"
+    >
+      <a-descriptions
+        bordered
+        :column="1"
+      >
         <a-descriptions-item label="项目根目录">
           {{ config.projectsRootPath || '未配置' }}
         </a-descriptions-item>

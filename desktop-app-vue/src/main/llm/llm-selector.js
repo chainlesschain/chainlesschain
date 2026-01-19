@@ -161,7 +161,7 @@ class LLMSelector {
     const config = this.getProviderConfig(provider);
     const chars = LLM_CHARACTERISTICS[provider];
 
-    if (!chars) return false;
+    if (!chars) {return false;}
 
     // 本地服务（Ollama）只需要host
     if (provider === 'ollama') {
@@ -181,7 +181,7 @@ class LLMSelector {
    */
   calculateScore(provider, strategy, taskType = 'chat') {
     const chars = LLM_CHARACTERISTICS[provider];
-    if (!chars) return 0;
+    if (!chars) {return 0;}
 
     // 检查是否配置
     if (!this.isProviderConfigured(provider)) {
@@ -260,7 +260,7 @@ class LLMSelector {
     // 计算每个LLM的得分
     const scores = [];
     for (const provider of priorityList) {
-      if (excludes.includes(provider)) continue;
+      if (excludes.includes(provider)) {continue;}
 
       const score = this.calculateScore(provider, strategy, taskType);
       if (score > 0) {
@@ -337,7 +337,7 @@ class LLMSelector {
    */
   needsHealthCheck(provider) {
     const lastCheck = this.lastCheck.get(provider);
-    if (!lastCheck) return true;
+    if (!lastCheck) {return true;}
 
     return Date.now() - lastCheck > this.checkInterval;
   }
@@ -371,7 +371,7 @@ class LLMSelector {
     const report = [];
     for (const provider of priorityList) {
       const chars = LLM_CHARACTERISTICS[provider];
-      if (!chars) continue;
+      if (!chars) {continue;}
 
       const score = this.calculateScore(provider, strategy, taskType);
       const configured = this.isProviderConfigured(provider);

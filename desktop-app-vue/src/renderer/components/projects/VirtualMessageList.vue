@@ -1,5 +1,9 @@
 <template>
-  <div ref="scrollContainer" class="virtual-message-list" @scroll="handleScroll">
+  <div
+    ref="scrollContainer"
+    class="virtual-message-list"
+    @scroll="handleScroll"
+  >
     <!-- 🔥 虚拟滚动模式：仅当virtualizer已初始化且有虚拟项时使用 -->
     <div
       v-if="virtualizer && virtualItems.length > 0"
@@ -20,14 +24,26 @@
           transform: `translateY(${virtualRow.start}px)`
         }"
       >
-        <slot :message="messages[virtualRow.index]" :index="virtualRow.index" />
+        <slot
+          :message="messages[virtualRow.index]"
+          :index="virtualRow.index"
+        />
       </div>
     </div>
 
     <!-- 🔥 降级渲染：virtualizer未初始化或没有虚拟项时显示所有消息 -->
-    <div v-else class="fallback-list">
-      <div v-for="(message, index) in messages" :key="message.id || index">
-        <slot :message="message" :index="index" />
+    <div
+      v-else
+      class="fallback-list"
+    >
+      <div
+        v-for="(message, index) in messages"
+        :key="message.id || index"
+      >
+        <slot
+          :message="message"
+          :index="index"
+        />
       </div>
     </div>
   </div>
@@ -108,7 +124,7 @@ const initVirtualizer = () => {
 
 // 处理滚动事件
 const handleScroll = () => {
-  if (!scrollContainer.value) return;
+  if (!scrollContainer.value) {return;}
 
   // 🔥 关键修复：通知virtualizer滚动位置已改变
   if (virtualizer.value) {
@@ -130,7 +146,7 @@ const handleScroll = () => {
 
 // 滚动到底部
 const scrollToBottom = () => {
-  if (!scrollContainer.value) return;
+  if (!scrollContainer.value) {return;}
 
   requestAnimationFrame(() => {
     if (scrollContainer.value) {

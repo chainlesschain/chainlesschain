@@ -76,7 +76,7 @@ class SpecializedAgent extends EventEmitter {
    * @returns {number} 0-1 的得分，0 表示无法处理
    */
   canHandle(task) {
-    if (!task || !task.type) return 0;
+    if (!task || !task.type) {return 0;}
 
     // 检查任务类型是否在能力范围内
     if (this.capabilities.includes(task.type)) {

@@ -67,7 +67,7 @@ class SearchIndex {
    */
   remove(itemId) {
     const item = this.items.get(itemId);
-    if (!item) return;
+    if (!item) {return;}
 
     // 从倒排索引中移除
     const words = this.tokenize(item.title + ' ' + item.description + ' ' + item.content);
@@ -89,7 +89,7 @@ class SearchIndex {
    */
   search(query, options = {}) {
     const words = this.tokenize(query);
-    if (words.length === 0) return [];
+    if (words.length === 0) {return [];}
 
     // 找到包含任意关键词的文档
     const candidateIds = new Set();
@@ -104,10 +104,10 @@ class SearchIndex {
     const results = [];
     candidateIds.forEach(id => {
       const item = this.items.get(id);
-      if (!item) return;
+      if (!item) {return;}
 
       // 类型过滤
-      if (options.type && item.type !== options.type) return;
+      if (options.type && item.type !== options.type) {return;}
 
       const score = this.calculateScore(item, words);
       if (score > 0) {
@@ -133,7 +133,7 @@ class SearchIndex {
    * 分词
    */
   tokenize(text) {
-    if (!text) return [];
+    if (!text) {return [];}
 
     // 转小写
     text = text.toLowerCase();
@@ -354,7 +354,7 @@ class GlobalSearchManager {
    * 获取搜索建议
    */
   getSuggestions(query, limit = 5) {
-    if (!query) return [];
+    if (!query) {return [];}
 
     const lowerQuery = query.toLowerCase();
     return this.searchHistory.value
@@ -379,7 +379,7 @@ class GlobalSearchManager {
    */
   async rebuildIndex(type) {
     const index = this.indexes.get(type);
-    if (!index) return;
+    if (!index) {return;}
 
     index.clear();
 

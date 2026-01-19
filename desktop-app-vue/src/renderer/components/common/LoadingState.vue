@@ -1,13 +1,31 @@
 <template>
-  <div class="loading-state" :class="[`loading-state--${type}`, { 'loading-state--fullscreen': fullscreen }]">
+  <div
+    class="loading-state"
+    :class="[`loading-state--${type}`, { 'loading-state--fullscreen': fullscreen }]"
+  >
     <!-- Spinner 加载 -->
-    <div v-if="type === 'spinner'" class="loading-spinner">
-      <a-spin :size="size" :tip="message">
-        <template v-if="customIcon" #indicator>
-          <component :is="customIcon" :spin="true" />
+    <div
+      v-if="type === 'spinner'"
+      class="loading-spinner"
+    >
+      <a-spin
+        :size="size"
+        :tip="message"
+      >
+        <template
+          v-if="customIcon"
+          #indicator
+        >
+          <component
+            :is="customIcon"
+            :spin="true"
+          />
         </template>
       </a-spin>
-      <div v-if="progress !== null" class="loading-progress">
+      <div
+        v-if="progress !== null"
+        class="loading-progress"
+      >
         <a-progress
           :percent="progress"
           :status="progressStatus"
@@ -18,7 +36,10 @@
     </div>
 
     <!-- Skeleton 骨架屏 -->
-    <div v-else-if="type === 'skeleton'" class="loading-skeleton">
+    <div
+      v-else-if="type === 'skeleton'"
+      class="loading-skeleton"
+    >
       <component
         :is="getSkeletonComponent()"
         v-bind="skeletonProps"
@@ -26,51 +47,103 @@
     </div>
 
     <!-- Progress 进度条 -->
-    <div v-else-if="type === 'progress'" class="loading-progress-bar">
-      <div v-if="message" class="progress-message">{{ message }}</div>
+    <div
+      v-else-if="type === 'progress'"
+      class="loading-progress-bar"
+    >
+      <div
+        v-if="message"
+        class="progress-message"
+      >
+        {{ message }}
+      </div>
       <a-progress
         :percent="progress || 0"
         :status="progressStatus"
         :show-info="showProgressInfo"
         :stroke-color="progressColor"
       />
-      <div v-if="subMessage" class="progress-sub-message">{{ subMessage }}</div>
+      <div
+        v-if="subMessage"
+        class="progress-sub-message"
+      >
+        {{ subMessage }}
+      </div>
     </div>
 
     <!-- Dots 点状加载 -->
-    <div v-else-if="type === 'dots'" class="loading-dots">
+    <div
+      v-else-if="type === 'dots'"
+      class="loading-dots"
+    >
       <div class="dots-container">
-        <span class="dot"></span>
-        <span class="dot"></span>
-        <span class="dot"></span>
+        <span class="dot" />
+        <span class="dot" />
+        <span class="dot" />
       </div>
-      <div v-if="message" class="dots-message">{{ message }}</div>
+      <div
+        v-if="message"
+        class="dots-message"
+      >
+        {{ message }}
+      </div>
     </div>
 
     <!-- Pulse 脉冲加载 -->
-    <div v-else-if="type === 'pulse'" class="loading-pulse">
-      <div class="pulse-circle"></div>
-      <div v-if="message" class="pulse-message">{{ message }}</div>
+    <div
+      v-else-if="type === 'pulse'"
+      class="loading-pulse"
+    >
+      <div class="pulse-circle" />
+      <div
+        v-if="message"
+        class="pulse-message"
+      >
+        {{ message }}
+      </div>
     </div>
 
     <!-- Bar 条形加载 -->
-    <div v-else-if="type === 'bar'" class="loading-bar">
+    <div
+      v-else-if="type === 'bar'"
+      class="loading-bar"
+    >
       <div class="bar-container">
-        <div class="bar-fill" :style="{ width: `${progress || 0}%` }"></div>
+        <div
+          class="bar-fill"
+          :style="{ width: `${progress || 0}%` }"
+        />
       </div>
-      <div v-if="message" class="bar-message">{{ message }}</div>
+      <div
+        v-if="message"
+        class="bar-message"
+      >
+        {{ message }}
+      </div>
     </div>
 
     <!-- Custom 自定义 -->
-    <div v-else-if="type === 'custom'" class="loading-custom">
+    <div
+      v-else-if="type === 'custom'"
+      class="loading-custom"
+    >
       <slot name="custom">
-        <a-spin :size="size" :tip="message" />
+        <a-spin
+          :size="size"
+          :tip="message"
+        />
       </slot>
     </div>
 
     <!-- 默认 -->
-    <div v-else class="loading-default">
-      <a-spin :size="size" :tip="message" />
+    <div
+      v-else
+      class="loading-default"
+    >
+      <a-spin
+        :size="size"
+        :tip="message"
+      />
     </div>
   </div>
 </template>

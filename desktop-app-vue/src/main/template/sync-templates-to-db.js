@@ -100,7 +100,7 @@ class TemplateSynchronizer {
       const categoryPath = path.join(this.templatesDir, category);
       const stat = await fs.stat(categoryPath);
 
-      if (!stat.isDirectory()) continue;
+      if (!stat.isDirectory()) {continue;}
 
       console.log(`\n📂 处理分类: ${category}`);
 

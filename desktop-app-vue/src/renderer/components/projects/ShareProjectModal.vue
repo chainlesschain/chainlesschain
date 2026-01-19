@@ -9,8 +9,14 @@
     <div class="share-modal-content">
       <!-- 分享选项 -->
       <div class="share-options">
-        <a-radio-group v-model:value="shareType" @change="handleShareTypeChange">
-          <a-radio value="private" class="share-option">
+        <a-radio-group
+          v-model:value="shareType"
+          @change="handleShareTypeChange"
+        >
+          <a-radio
+            value="private"
+            class="share-option"
+          >
             <div class="option-content">
               <div class="option-header">
                 <LockOutlined class="option-icon" />
@@ -22,7 +28,10 @@
             </div>
           </a-radio>
 
-          <a-radio value="public" class="share-option">
+          <a-radio
+            value="public"
+            class="share-option"
+          >
             <div class="option-content">
               <div class="option-header">
                 <GlobalOutlined class="option-icon" />
@@ -37,7 +46,10 @@
       </div>
 
       <!-- 分享链接 (仅在公开访问时显示) -->
-      <div v-if="shareType === 'public'" class="share-link-section">
+      <div
+        v-if="shareType === 'public'"
+        class="share-link-section"
+      >
         <div class="share-link-header">
           <LinkOutlined />
           <span>分享链接</span>
@@ -128,7 +140,7 @@ const shareLink = computed(() => {
     return currentShareInfo.value.share_link;
   }
   // 默认值（当还没加载时）
-  if (!props.projectId) return '';
+  if (!props.projectId) {return '';}
   const baseUrl = window.location.origin;
   return `${baseUrl}/share/project/${props.projectId}`;
 });
@@ -146,7 +158,7 @@ watch(() => props.open, async (val) => {
 
 // 加载分享信息
 const loadShareInfo = async () => {
-  if (!props.projectId) return;
+  if (!props.projectId) {return;}
 
   try {
     const result = await window.electronAPI.project.getShare(props.projectId);

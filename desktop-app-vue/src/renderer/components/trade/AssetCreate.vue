@@ -10,8 +10,14 @@
     >
       <a-form layout="vertical">
         <!-- 资产类型 -->
-        <a-form-item label="资产类型" required>
-          <a-radio-group v-model:value="form.type" button-style="solid">
+        <a-form-item
+          label="资产类型"
+          required
+        >
+          <a-radio-group
+            v-model:value="form.type"
+            button-style="solid"
+          >
             <a-radio-button value="token">
               <trophy-outlined /> Token（通证）
             </a-radio-button>
@@ -37,7 +43,10 @@
         </a-form-item>
 
         <!-- 资产名称 -->
-        <a-form-item label="资产名称" required>
+        <a-form-item
+          label="资产名称"
+          required
+        >
           <a-input
             v-model:value="form.name"
             placeholder="例如：ChainCoin、音乐 NFT、编程课程等"
@@ -47,7 +56,11 @@
         </a-form-item>
 
         <!-- 资产符号（仅 Token 需要） -->
-        <a-form-item v-if="form.type === 'token'" label="资产符号" required>
+        <a-form-item
+          v-if="form.type === 'token'"
+          label="资产符号"
+          required
+        >
           <a-input
             v-model:value="form.symbol"
             placeholder="例如：CC、BTC、ETH"
@@ -71,7 +84,11 @@
         </a-form-item>
 
         <!-- 总供应量（Token 需要） -->
-        <a-form-item v-if="form.type === 'token'" label="初始供应量" required>
+        <a-form-item
+          v-if="form.type === 'token'"
+          label="初始供应量"
+          required
+        >
           <a-input-number
             v-model:value="form.totalSupply"
             :min="0"
@@ -85,7 +102,10 @@
         </a-form-item>
 
         <!-- 小数位数（Token 需要） -->
-        <a-form-item v-if="form.type === 'token'" label="小数位数">
+        <a-form-item
+          v-if="form.type === 'token'"
+          label="小数位数"
+        >
           <a-input-number
             v-model:value="form.decimals"
             :min="0"
@@ -113,10 +133,17 @@
             v-model:checked="form.onChain"
             :disabled="form.type === 'knowledge' || form.type === 'service'"
           >
-            <template #checkedChildren>启用</template>
-            <template #unCheckedChildren>禁用</template>
+            <template #checkedChildren>
+              启用
+            </template>
+            <template #unCheckedChildren>
+              禁用
+            </template>
           </a-switch>
-          <div v-if="form.type === 'knowledge' || form.type === 'service'" class="form-hint">
+          <div
+            v-if="form.type === 'knowledge' || form.type === 'service'"
+            class="form-hint"
+          >
             知识产品和服务凭证仅支持本地创建
           </div>
         </a-form-item>
@@ -131,7 +158,10 @@
             :style="{ marginBottom: '16px' }"
           />
 
-          <a-form-item label="选择钱包" required>
+          <a-form-item
+            label="选择钱包"
+            required
+          >
             <wallet-selector
               v-model="form.walletId"
               :show-balance="true"
@@ -140,7 +170,10 @@
             />
           </a-form-item>
 
-          <a-form-item label="选择网络" required>
+          <a-form-item
+            label="选择网络"
+            required
+          >
             <chain-selector
               v-model="form.chainId"
               :width="'100%'"
@@ -148,7 +181,10 @@
             />
           </a-form-item>
 
-          <a-form-item label="钱包密码" required>
+          <a-form-item
+            label="钱包密码"
+            required
+          >
             <a-input-password
               v-model:value="form.password"
               placeholder="用于签名交易的钱包密码"
@@ -164,7 +200,10 @@
           </a-form-item>
 
           <!-- Gas 估算（可选显示） -->
-          <a-form-item v-if="estimatedGas" label="预估 Gas">
+          <a-form-item
+            v-if="estimatedGas"
+            label="预估 Gas"
+          >
             <a-statistic
               :value="estimatedGas"
               suffix="Gas"
@@ -173,7 +212,11 @@
             <template #extra>
               <span class="gas-info">
                 预估费用: {{ formatGasFee(estimatedGas) }}
-                <a-button type="link" size="small" @click="fetchGasEstimate">
+                <a-button
+                  type="link"
+                  size="small"
+                  @click="fetchGasEstimate"
+                >
                   刷新估算
                 </a-button>
               </span>
@@ -183,20 +226,40 @@
 
         <!-- 元数据 -->
         <a-collapse ghost>
-          <a-collapse-panel key="metadata" header="高级设置（可选）">
+          <a-collapse-panel
+            key="metadata"
+            header="高级设置（可选）"
+          >
             <a-form-item label="资产图片 URL">
-              <a-input v-model:value="form.metadata.imageUrl" placeholder="https://..." />
+              <a-input
+                v-model:value="form.metadata.imageUrl"
+                placeholder="https://..."
+              />
             </a-form-item>
 
             <a-form-item label="外部链接">
-              <a-input v-model:value="form.metadata.externalUrl" placeholder="https://..." />
+              <a-input
+                v-model:value="form.metadata.externalUrl"
+                placeholder="https://..."
+              />
             </a-form-item>
 
-            <a-form-item v-if="form.type === 'nft'" label="NFT 属性">
-              <a-button @click="addAttribute" size="small" style="margin-bottom: 8px">
+            <a-form-item
+              v-if="form.type === 'nft'"
+              label="NFT 属性"
+            >
+              <a-button
+                size="small"
+                style="margin-bottom: 8px"
+                @click="addAttribute"
+              >
                 <plus-outlined /> 添加属性
               </a-button>
-              <div v-for="(attr, index) in form.metadata.attributes" :key="index" class="attribute-row">
+              <div
+                v-for="(attr, index) in form.metadata.attributes"
+                :key="index"
+                class="attribute-row"
+              >
                 <a-input
                   v-model:value="attr.trait_type"
                   placeholder="属性名"
@@ -210,8 +273,8 @@
                 <a-button
                   type="text"
                   danger
-                  @click="removeAttribute(index)"
                   style="margin-left: 8px"
+                  @click="removeAttribute(index)"
                 >
                   <delete-outlined />
                 </a-button>
@@ -221,7 +284,7 @@
             <a-form-item label="自定义数据（JSON）">
               <a-textarea
                 v-model:value="customDataStr"
-                placeholder='{"key": "value"}'
+                placeholder="{&quot;key&quot;: &quot;value&quot;}"
                 :rows="3"
               />
             </a-form-item>
@@ -341,7 +404,7 @@ const removeAttribute = (index) => {
 
 // 格式化 Gas 费用
 const formatGasFee = (gas) => {
-  if (!gas || !blockchainStore.gasPrice) return '-';
+  if (!gas || !blockchainStore.gasPrice) {return '-';}
 
   // 简化计算：gas * gasPrice (wei) -> ether
   const gasPriceWei = blockchainStore.gasPrice.gasPrice || '1000000000'; // 默认 1 gwei

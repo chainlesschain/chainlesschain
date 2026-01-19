@@ -214,14 +214,14 @@ export function optimizeFileTreeLoading(files, options = {}) {
     const aPriority = priorityPaths.some(path => a.path.startsWith(path))
     const bPriority = priorityPaths.some(path => b.path.startsWith(path))
 
-    if (aPriority && !bPriority) return -1
-    if (!aPriority && bPriority) return 1
+    if (aPriority && !bPriority) {return -1}
+    if (!aPriority && bPriority) {return 1}
 
     // Sort by depth (shallower first)
     const aDepth = a.path.split('/').length
     const bDepth = b.path.split('/').length
 
-    if (aDepth !== bDepth) return aDepth - bDepth
+    if (aDepth !== bDepth) {return aDepth - bDepth}
 
     // Sort alphabetically
     return a.path.localeCompare(b.path)

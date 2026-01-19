@@ -1,6 +1,8 @@
 <template>
   <div class="edition-selector">
-    <a-typography-title :level="4">选择版本类型</a-typography-title>
+    <a-typography-title :level="4">
+      选择版本类型
+    </a-typography-title>
     <a-typography-paragraph type="secondary">
       选择适合您的版本。个人版适合个人使用，数据存储在本地；企业版适合团队协作，数据存储在企业服务器。
     </a-typography-paragraph>
@@ -10,17 +12,23 @@
       <a-card
         class="edition-card"
         :class="{ selected: modelValue === 'personal' }"
-        @click="selectEdition('personal')"
         hoverable
+        @click="selectEdition('personal')"
       >
         <div class="card-icon personal">
           <UserOutlined :style="{ fontSize: '48px' }" />
         </div>
-        <a-typography-title :level="5">个人版</a-typography-title>
+        <a-typography-title :level="5">
+          个人版
+        </a-typography-title>
         <a-typography-paragraph type="secondary">
           适合个人知识管理和学习
         </a-typography-paragraph>
-        <a-space direction="vertical" size="small" class="features">
+        <a-space
+          direction="vertical"
+          size="small"
+          class="features"
+        >
           <div class="feature-item">
             <CheckCircleOutlined class="feature-icon" />
             本地数据存储
@@ -44,17 +52,23 @@
       <a-card
         class="edition-card"
         :class="{ selected: modelValue === 'enterprise' }"
-        @click="selectEdition('enterprise')"
         hoverable
+        @click="selectEdition('enterprise')"
       >
         <div class="card-icon enterprise">
           <TeamOutlined :style="{ fontSize: '48px' }" />
         </div>
-        <a-typography-title :level="5">企业版</a-typography-title>
+        <a-typography-title :level="5">
+          企业版
+        </a-typography-title>
         <a-typography-paragraph type="secondary">
           适合团队协作和企业知识库
         </a-typography-paragraph>
-        <a-space direction="vertical" size="small" class="features">
+        <a-space
+          direction="vertical"
+          size="small"
+          class="features"
+        >
           <div class="feature-item">
             <CheckCircleOutlined class="feature-icon" />
             云端数据存储
@@ -82,7 +96,10 @@
       title="企业服务器配置"
     >
       <a-form layout="vertical">
-        <a-form-item label="服务器地址" required>
+        <a-form-item
+          label="服务器地址"
+          required
+        >
           <a-input
             v-model:value="enterpriseConfig.serverUrl"
             placeholder="https://enterprise.example.com"
@@ -93,7 +110,10 @@
           </template>
         </a-form-item>
 
-        <a-form-item label="租户ID" required>
+        <a-form-item
+          label="租户ID"
+          required
+        >
           <a-input
             v-model:value="enterpriseConfig.tenantId"
             placeholder="your-tenant-id"
@@ -104,7 +124,10 @@
           </template>
         </a-form-item>
 
-        <a-form-item label="API密钥" required>
+        <a-form-item
+          label="API密钥"
+          required
+        >
           <a-input-password
             v-model:value="enterpriseConfig.apiKey"
             placeholder="输入企业版API密钥"
@@ -117,13 +140,16 @@
 
         <!-- 测试连接按钮和状态 -->
         <a-form-item>
-          <a-space direction="vertical" style="width: 100%">
+          <a-space
+            direction="vertical"
+            style="width: 100%"
+          >
             <a-button
               type="primary"
               :loading="testing"
               :disabled="!canTestConnection"
-              @click="testConnection"
               block
+              @click="testConnection"
             >
               <template #icon>
                 <ApiOutlined v-if="!testing" />

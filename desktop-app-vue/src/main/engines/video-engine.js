@@ -1233,7 +1233,7 @@ class VideoEngine extends EventEmitter {
    * @returns {number} - 帧率数值
    */
   _parseFrameRate(frameRateStr) {
-    if (!frameRateStr) return 0;
+    if (!frameRateStr) {return 0;}
 
     // 处理分数格式如 "30/1" 或 "24000/1001"
     if (frameRateStr.includes("/")) {

@@ -1,17 +1,26 @@
 <template>
-  <div class="tool-card" :class="{ disabled: !tool.enabled, deprecated: tool.deprecated }">
+  <div
+    class="tool-card"
+    :class="{ disabled: !tool.enabled, deprecated: tool.deprecated }"
+  >
     <div class="card-header">
       <div class="title-row">
         <h3 class="tool-name">
           {{ tool.display_name || tool.name }}
-          <a-tag v-if="tool.deprecated" color="orange" size="small">已废弃</a-tag>
+          <a-tag
+            v-if="tool.deprecated"
+            color="orange"
+            size="small"
+          >
+            已废弃
+          </a-tag>
         </h3>
         <a-switch
           :checked="tool.enabled === 1"
           :loading="switching"
           :disabled="tool.deprecated === 1"
-          @change="handleToggle"
           size="small"
+          @change="handleToggle"
         />
       </div>
       <a-space>
@@ -25,11 +34,15 @@
     </div>
 
     <div class="card-body">
-      <p class="description">{{ tool.description || '暂无描述' }}</p>
+      <p class="description">
+        {{ tool.description || '暂无描述' }}
+      </p>
 
       <div class="tool-type">
         <span class="label">类型:</span>
-        <a-tag size="small">{{ getToolTypeName(tool.tool_type) }}</a-tag>
+        <a-tag size="small">
+          {{ getToolTypeName(tool.tool_type) }}
+        </a-tag>
       </div>
 
       <div class="stats">
@@ -50,24 +63,60 @@
 
     <div class="card-footer">
       <a-space>
-        <a-button type="link" size="small" @click="$emit('view-details', tool)">
-          <template #icon><EyeOutlined /></template>
+        <a-button
+          type="link"
+          size="small"
+          @click="$emit('view-details', tool)"
+        >
+          <template #icon>
+            <EyeOutlined />
+          </template>
           详情
         </a-button>
-        <a-button type="link" size="small" @click="$emit('test-tool', tool)">
-          <template #icon><ExperimentOutlined /></template>
+        <a-button
+          type="link"
+          size="small"
+          @click="$emit('test-tool', tool)"
+        >
+          <template #icon>
+            <ExperimentOutlined />
+          </template>
           测试
         </a-button>
-        <a-button type="link" size="small" @click="$emit('view-doc', tool)">
-          <template #icon><FileTextOutlined /></template>
+        <a-button
+          type="link"
+          size="small"
+          @click="$emit('view-doc', tool)"
+        >
+          <template #icon>
+            <FileTextOutlined />
+          </template>
           文档
         </a-button>
       </a-space>
 
       <div class="meta-info">
-        <a-tag v-if="tool.is_builtin" color="blue" size="small">内置</a-tag>
-        <a-tag v-else-if="tool.plugin_id" color="purple" size="small">插件</a-tag>
-        <a-tag v-else color="green" size="small">自定义</a-tag>
+        <a-tag
+          v-if="tool.is_builtin"
+          color="blue"
+          size="small"
+        >
+          内置
+        </a-tag>
+        <a-tag
+          v-else-if="tool.plugin_id"
+          color="purple"
+          size="small"
+        >
+          插件
+        </a-tag>
+        <a-tag
+          v-else
+          color="green"
+          size="small"
+        >
+          自定义
+        </a-tag>
       </div>
     </div>
   </div>
@@ -91,7 +140,7 @@ const switching = ref(false);
 // 计算成功率
 const successRate = computed(() => {
   const { usage_count, success_count } = props.tool;
-  if (!usage_count || usage_count === 0) return 0;
+  if (!usage_count || usage_count === 0) {return 0;}
   return ((success_count / usage_count) * 100).toFixed(1);
 });
 
@@ -158,9 +207,9 @@ const getToolTypeName = (type) => {
 
 // 获取风险等级颜色
 const getRiskLevelColor = (level) => {
-  if (level <= 1) return 'green';
-  if (level === 2) return 'blue';
-  if (level === 3) return 'orange';
+  if (level <= 1) {return 'green';}
+  if (level === 2) {return 'blue';}
+  if (level === 3) {return 'orange';}
   return 'red';
 };
 </script>

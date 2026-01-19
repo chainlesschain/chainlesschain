@@ -494,7 +494,7 @@ class ExtendedTestRunner {
     let toolsWithTests = 0;
 
     for (const [toolName, cases] of Object.entries(testCases)) {
-      if (cases.length === 0) continue;
+      if (cases.length === 0) {continue;}
 
       console.log(`\n========== ${toolName} (${cases.length}个测试) ==========`);
       toolsWithTests++;

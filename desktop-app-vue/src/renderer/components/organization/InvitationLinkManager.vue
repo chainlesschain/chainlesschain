@@ -5,12 +5,19 @@
       <div class="header-left">
         <LinkOutlined class="page-icon" />
         <h2>邀请链接管理</h2>
-        <a-tag color="blue" style="margin-left: 12px">企业版</a-tag>
+        <a-tag
+          color="blue"
+          style="margin-left: 12px"
+        >
+          企业版
+        </a-tag>
       </div>
       <div class="header-right">
         <a-space>
           <a-button @click="loadInvitationLinks">
-            <template #icon><ReloadOutlined /></template>
+            <template #icon>
+              <ReloadOutlined />
+            </template>
             刷新
           </a-button>
           <a-button
@@ -18,7 +25,9 @@
             type="primary"
             @click="showCreateDialog = true"
           >
-            <template #icon><PlusOutlined /></template>
+            <template #icon>
+              <PlusOutlined />
+            </template>
             创建邀请链接
           </a-button>
         </a-space>
@@ -26,7 +35,10 @@
     </div>
 
     <!-- 统计卡片 -->
-    <a-row :gutter="16" class="stats-section">
+    <a-row
+      :gutter="16"
+      class="stats-section"
+    >
       <a-col :span="6">
         <a-card>
           <a-statistic
@@ -34,7 +46,9 @@
             :value="stats.total"
             :value-style="{ color: '#1890ff' }"
           >
-            <template #prefix><LinkOutlined /></template>
+            <template #prefix>
+              <LinkOutlined />
+            </template>
           </a-statistic>
         </a-card>
       </a-col>
@@ -45,7 +59,9 @@
             :value="stats.active"
             :value-style="{ color: '#52c41a' }"
           >
-            <template #prefix><CheckCircleOutlined /></template>
+            <template #prefix>
+              <CheckCircleOutlined />
+            </template>
           </a-statistic>
         </a-card>
       </a-col>
@@ -56,7 +72,9 @@
             :value="stats.totalUses"
             :value-style="{ color: '#722ed1' }"
           >
-            <template #prefix><UserAddOutlined /></template>
+            <template #prefix>
+              <UserAddOutlined />
+            </template>
           </a-statistic>
         </a-card>
       </a-col>
@@ -68,7 +86,9 @@
             suffix="%"
             :value-style="{ color: '#fa8c16' }"
           >
-            <template #prefix><PercentageOutlined /></template>
+            <template #prefix>
+              <PercentageOutlined />
+            </template>
           </a-statistic>
         </a-card>
       </a-col>
@@ -83,10 +103,18 @@
           style="width: 150px"
           @change="handleFilterChange"
         >
-          <a-select-option value="">全部状态</a-select-option>
-          <a-select-option value="active">活跃</a-select-option>
-          <a-select-option value="expired">已过期</a-select-option>
-          <a-select-option value="revoked">已撤销</a-select-option>
+          <a-select-option value="">
+            全部状态
+          </a-select-option>
+          <a-select-option value="active">
+            活跃
+          </a-select-option>
+          <a-select-option value="expired">
+            已过期
+          </a-select-option>
+          <a-select-option value="revoked">
+            已撤销
+          </a-select-option>
         </a-select>
         <a-input-search
           v-model:value="searchText"
@@ -121,16 +149,16 @@
               <a-button
                 size="small"
                 type="text"
-                @click="showQRCode(record)"
                 title="显示二维码"
+                @click="showQRCode(record)"
               >
                 <QrcodeOutlined />
               </a-button>
               <a-button
                 size="small"
                 type="text"
-                @click="copyLink(record.invitationUrl)"
                 title="复制链接"
+                @click="copyLink(record.invitationUrl)"
               >
                 <CopyOutlined />
               </a-button>
@@ -153,7 +181,10 @@
               :status="getUsageStatus(record)"
               :format="() => `${record.used_count}/${record.max_uses}`"
             />
-            <a-typography-text type="secondary" style="font-size: 12px">
+            <a-typography-text
+              type="secondary"
+              style="font-size: 12px"
+            >
               剩余 {{ record.remainingUses }} 次
             </a-typography-text>
           </div>
@@ -178,7 +209,10 @@
               {{ getTimeRemaining(record.expires_at) }}
             </a-typography-text>
           </div>
-          <a-typography-text v-else type="secondary">
+          <a-typography-text
+            v-else
+            type="secondary"
+          >
             永不过期
           </a-typography-text>
         </template>
@@ -207,13 +241,16 @@
                   </a-menu-item>
                   <a-menu-divider />
                   <a-menu-item
-                    key="revoke"
                     v-if="record.status === 'active'"
+                    key="revoke"
                     danger
                   >
                     <StopOutlined /> 撤销链接
                   </a-menu-item>
-                  <a-menu-item key="delete" danger>
+                  <a-menu-item
+                    key="delete"
+                    danger
+                  >
                     <DeleteOutlined /> 删除链接
                   </a-menu-item>
                 </a-menu>
@@ -483,7 +520,7 @@ const revokeLink = async (record) => {
       });
     });
 
-    if (!confirmed) return;
+    if (!confirmed) {return;}
 
     const result = await window.electron.ipcRenderer.invoke(
       'org:revoke-invitation-link',
@@ -515,7 +552,7 @@ const deleteLink = async (record) => {
       });
     });
 
-    if (!confirmed) return;
+    if (!confirmed) {return;}
 
     const result = await window.electron.ipcRenderer.invoke(
       'org:delete-invitation-link',
@@ -560,14 +597,14 @@ const getRoleLabel = (role) => {
 };
 
 const getUsagePercent = (record) => {
-  if (record.max_uses === 0) return 0;
+  if (record.max_uses === 0) {return 0;}
   return Math.round((record.used_count / record.max_uses) * 100);
 };
 
 const getUsageStatus = (record) => {
   const percent = getUsagePercent(record);
-  if (percent >= 100) return 'exception';
-  if (percent >= 80) return 'active';
+  if (percent >= 100) {return 'exception';}
+  if (percent >= 80) {return 'active';}
   return 'normal';
 };
 

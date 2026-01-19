@@ -3,8 +3,16 @@
     <!-- 侧边栏头部 -->
     <div class="sidebar-header">
       <div class="app-logo">
-        <img v-if="logoSrc" :src="logoSrc" alt="ChainlessChain" class="logo-img" />
-        <span v-else class="logo-text">🔗 ChainlessChain</span>
+        <img
+          v-if="logoSrc"
+          :src="logoSrc"
+          alt="ChainlessChain"
+          class="logo-img"
+        >
+        <span
+          v-else
+          class="logo-text"
+        >🔗 ChainlessChain</span>
       </div>
 
       <!-- 折叠按钮(移动端) -->
@@ -37,7 +45,10 @@
     <div class="sidebar-nav">
       <!-- 收藏夹分类 -->
       <div class="nav-section">
-        <div class="section-title" v-if="!isCollapsed">
+        <div
+          v-if="!isCollapsed"
+          class="section-title"
+        >
           <FolderOutlined />
           收藏夹
         </div>
@@ -49,7 +60,10 @@
           @click="handleNavClick(item)"
         >
           <span class="item-icon">{{ item.icon }}</span>
-          <span v-if="!isCollapsed" class="item-label">{{ item.label }}</span>
+          <span
+            v-if="!isCollapsed"
+            class="item-label"
+          >{{ item.label }}</span>
           <a-badge
             v-if="!isCollapsed && item.badge"
             :count="item.badge"
@@ -60,7 +74,10 @@
 
       <!-- AI专家分类 -->
       <div class="nav-section">
-        <div class="section-title" v-if="!isCollapsed">
+        <div
+          v-if="!isCollapsed"
+          class="section-title"
+        >
           <RobotOutlined />
           AI专家
         </div>
@@ -72,13 +89,19 @@
           @click="handleNavClick(item)"
         >
           <span class="item-icon">{{ item.icon }}</span>
-          <span v-if="!isCollapsed" class="item-label">{{ item.label }}</span>
+          <span
+            v-if="!isCollapsed"
+            class="item-label"
+          >{{ item.label }}</span>
         </div>
       </div>
 
       <!-- 项目分类 -->
       <div class="nav-section">
-        <div class="section-title" v-if="!isCollapsed">
+        <div
+          v-if="!isCollapsed"
+          class="section-title"
+        >
           <FolderOpenOutlined />
           扣子编程
         </div>
@@ -90,20 +113,29 @@
           @click="handleNavClick(item)"
         >
           <span class="item-icon">{{ item.icon }}</span>
-          <span v-if="!isCollapsed" class="item-label">{{ item.label }}</span>
+          <span
+            v-if="!isCollapsed"
+            class="item-label"
+          >{{ item.label }}</span>
         </div>
       </div>
     </div>
 
     <!-- 历史对话列表 -->
     <div class="sidebar-history">
-      <div class="section-title" v-if="!isCollapsed">
+      <div
+        v-if="!isCollapsed"
+        class="section-title"
+      >
         <HistoryOutlined />
         历史对话
       </div>
 
       <!-- 搜索框 -->
-      <div v-if="!isCollapsed && showSearch" class="history-search">
+      <div
+        v-if="!isCollapsed && showSearch"
+        class="history-search"
+      >
         <a-input
           v-model:value="searchKeyword"
           placeholder="搜索对话..."
@@ -128,12 +160,25 @@
           <div class="conversation-icon">
             <MessageOutlined />
           </div>
-          <div v-if="!isCollapsed" class="conversation-info">
-            <div class="conversation-title">{{ conversation.title || '未命名对话' }}</div>
-            <div class="conversation-time">{{ formatTime(conversation.updated_at) }}</div>
+          <div
+            v-if="!isCollapsed"
+            class="conversation-info"
+          >
+            <div class="conversation-title">
+              {{ conversation.title || '未命名对话' }}
+            </div>
+            <div class="conversation-time">
+              {{ formatTime(conversation.updated_at) }}
+            </div>
           </div>
-          <div v-if="!isCollapsed" class="conversation-actions">
-            <a-dropdown :trigger="['click']" placement="bottomRight">
+          <div
+            v-if="!isCollapsed"
+            class="conversation-actions"
+          >
+            <a-dropdown
+              :trigger="['click']"
+              placement="bottomRight"
+            >
               <a-button
                 type="text"
                 size="small"
@@ -153,7 +198,10 @@
                     {{ conversation.is_starred ? '取消收藏' : '收藏' }}
                   </a-menu-item>
                   <a-menu-divider />
-                  <a-menu-item key="delete" danger>
+                  <a-menu-item
+                    key="delete"
+                    danger
+                  >
                     <DeleteOutlined />
                     删除
                   </a-menu-item>
@@ -165,8 +213,16 @@
       </div>
 
       <!-- 加载更多 -->
-      <div v-if="hasMore && !isCollapsed" class="load-more">
-        <a-button type="text" size="small" block @click="loadMore">
+      <div
+        v-if="hasMore && !isCollapsed"
+        class="load-more"
+      >
+        <a-button
+          type="text"
+          size="small"
+          block
+          @click="loadMore"
+        >
           加载更多...
         </a-button>
       </div>
@@ -176,12 +232,25 @@
     <div class="sidebar-footer">
       <!-- 用户信息 -->
       <div class="user-info">
-        <a-dropdown :trigger="['click']" placement="topRight">
+        <a-dropdown
+          :trigger="['click']"
+          placement="topRight"
+        >
           <div class="user-profile">
-            <a-avatar :size="isCollapsed ? 32 : 40" :src="userAvatar">
-              <template #icon><UserOutlined /></template>
+            <a-avatar
+              :size="isCollapsed ? 32 : 40"
+              :src="userAvatar"
+            >
+              <template #icon>
+                <UserOutlined />
+              </template>
             </a-avatar>
-            <div v-if="!isCollapsed" class="user-name">{{ userName || '未登录' }}</div>
+            <div
+              v-if="!isCollapsed"
+              class="user-name"
+            >
+              {{ userName || '未登录' }}
+            </div>
           </div>
           <template #overlay>
             <a-menu @click="handleUserAction">
@@ -366,15 +435,15 @@ const loadMore = () => {
 
 // 格式化时间
 const formatTime = (timestamp) => {
-  if (!timestamp) return '';
+  if (!timestamp) {return '';}
 
   const now = Date.now();
   const diff = now - timestamp;
 
-  if (diff < 60000) return '刚刚';
-  if (diff < 3600000) return `${Math.floor(diff / 60000)}分钟前`;
-  if (diff < 86400000) return `${Math.floor(diff / 3600000)}小时前`;
-  if (diff < 604800000) return `${Math.floor(diff / 86400000)}天前`;
+  if (diff < 60000) {return '刚刚';}
+  if (diff < 3600000) {return `${Math.floor(diff / 60000)}分钟前`;}
+  if (diff < 86400000) {return `${Math.floor(diff / 3600000)}小时前`;}
+  if (diff < 604800000) {return `${Math.floor(diff / 86400000)}天前`;}
 
   const date = new Date(timestamp);
   return date.toLocaleDateString('zh-CN', {

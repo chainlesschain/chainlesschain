@@ -640,7 +640,7 @@ ${userRequest}
       // 按顺序执行子任务
       for (const step of executionOrder) {
         const subtask = taskPlan.subtasks.find(t => t.step === step);
-        if (!subtask) continue;
+        if (!subtask) {continue;}
 
         // 更新当前步骤
         taskPlan.current_step = step;
@@ -784,7 +784,7 @@ ${userRequest}
     const completed = new Set();
     const remaining = new Set(subtasks.map(t => t.step));
 
-    let maxIterations = subtasks.length * 2; // 防止无限循环
+    const maxIterations = subtasks.length * 2; // 防止无限循环
     let iterations = 0;
 
     while (remaining.size > 0 && iterations < maxIterations) {
@@ -793,7 +793,7 @@ ${userRequest}
 
       for (const step of remaining) {
         const subtask = subtasks.find(t => t.step === step);
-        if (!subtask) continue;
+        if (!subtask) {continue;}
 
         // 检查依赖是否都已完成
         const dependenciesMet = subtask.dependencies.every(dep => completed.has(dep));

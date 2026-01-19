@@ -9,12 +9,24 @@
         allow-clear
         @change="handleCategoryChange"
       >
-        <a-select-option value="">全部</a-select-option>
-        <a-select-option value="general">通用</a-select-option>
-        <a-select-option value="tech">技术</a-select-option>
-        <a-select-option value="work">工作</a-select-option>
-        <a-select-option value="study">学习</a-select-option>
-        <a-select-option value="other">其他</a-select-option>
+        <a-select-option value="">
+          全部
+        </a-select-option>
+        <a-select-option value="general">
+          通用
+        </a-select-option>
+        <a-select-option value="tech">
+          技术
+        </a-select-option>
+        <a-select-option value="work">
+          工作
+        </a-select-option>
+        <a-select-option value="study">
+          学习
+        </a-select-option>
+        <a-select-option value="other">
+          其他
+        </a-select-option>
       </a-select>
     </div>
 
@@ -43,7 +55,10 @@
             <a-card-meta :title="template.name">
               <template #description>
                 <div class="template-info">
-                  <p class="description" v-if="template.description">
+                  <p
+                    v-if="template.description"
+                    class="description"
+                  >
                     {{ truncate(template.description, 60) }}
                   </p>
                   <div class="meta-row">
@@ -83,7 +98,9 @@
         <template #image>
           <FileTextOutlined style="font-size: 64px; color: #d9d9d9" />
         </template>
-        <p class="empty-hint">在会话详情中点击"保存为模板"来创建模板</p>
+        <p class="empty-hint">
+          在会话详情中点击"保存为模板"来创建模板
+        </p>
       </a-empty>
     </a-spin>
   </div>
@@ -152,7 +169,7 @@ const getCategoryColor = (category) => {
 
 // 格式化日期
 const formatDate = (timestamp) => {
-  if (!timestamp) return "-";
+  if (!timestamp) {return "-";}
 
   const date = new Date(typeof timestamp === "number" ? timestamp : timestamp);
   return date.toLocaleDateString("zh-CN", {
@@ -163,8 +180,8 @@ const formatDate = (timestamp) => {
 
 // 截断文本
 const truncate = (text, maxLength) => {
-  if (!text) return "";
-  if (text.length <= maxLength) return text;
+  if (!text) {return "";}
+  if (text.length <= maxLength) {return text;}
   return text.substring(0, maxLength) + "...";
 };
 </script>

@@ -59,7 +59,7 @@ function getPlatformSpawnOptions(config) {
  * @returns {string} Normalized path
  */
 function normalizePath(inputPath) {
-  if (!inputPath) return inputPath;
+  if (!inputPath) {return inputPath;}
 
   // Normalize the path separators for the current platform
   let normalized = path.normalize(inputPath);
@@ -383,7 +383,7 @@ class StdioTransport extends EventEmitter {
    * @private
    */
   _windowsKill() {
-    if (!this.process || !this.process.pid) return;
+    if (!this.process || !this.process.pid) {return;}
 
     try {
       // On Windows, sending SIGTERM doesn't work well
@@ -409,7 +409,7 @@ class StdioTransport extends EventEmitter {
    * @private
    */
   _forceKill() {
-    if (!this.process) return;
+    if (!this.process) {return;}
 
     try {
       if (PLATFORM.isWindows) {

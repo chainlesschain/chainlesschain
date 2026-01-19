@@ -281,7 +281,7 @@ class AppConfig {
    * 解析项目路径（相对路径转绝对路径）
    */
   resolveProjectPath(relativePath) {
-    if (!relativePath) return '';
+    if (!relativePath) {return '';}
 
     // 如果已经是绝对路径，直接返回
     if (path.isAbsolute(relativePath) && !relativePath.startsWith('/data/projects')) {

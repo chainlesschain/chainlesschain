@@ -1,15 +1,26 @@
 <template>
-  <div class="chat-panel" :class="{ collapsed: !props.open }">
+  <div
+    class="chat-panel"
+    :class="{ collapsed: !props.open }"
+  >
     <!-- 头部 -->
     <div class="chat-header">
       <div class="header-left">
         <a-space>
           <message-outlined />
           <span class="header-title">AI 对话</span>
-          <a-tag v-if="llmStore.isAvailable" color="success" size="small">
+          <a-tag
+            v-if="llmStore.isAvailable"
+            color="success"
+            size="small"
+          >
             {{ llmStore.providerDisplayName }}
           </a-tag>
-          <a-tag v-else color="error" size="small">
+          <a-tag
+            v-else
+            color="error"
+            size="small"
+          >
             未配置
           </a-tag>
         </a-space>
@@ -17,22 +28,38 @@
       <div class="header-right">
         <a-space>
           <a-tooltip title="新对话">
-            <a-button type="text" size="small" @click="handleNewConversation">
+            <a-button
+              type="text"
+              size="small"
+              @click="handleNewConversation"
+            >
               <plus-outlined />
             </a-button>
           </a-tooltip>
           <a-tooltip title="对话历史">
-            <a-button type="text" size="small" @click="showHistory = true">
+            <a-button
+              type="text"
+              size="small"
+              @click="showHistory = true"
+            >
               <history-outlined />
             </a-button>
           </a-tooltip>
           <a-tooltip title="设置">
-            <a-button type="text" size="small" @click="router.push('/settings?tab=llm')">
+            <a-button
+              type="text"
+              size="small"
+              @click="router.push('/settings?tab=llm')"
+            >
               <setting-outlined />
             </a-button>
           </a-tooltip>
           <a-tooltip :title="props.open ? '收起' : '展开'">
-            <a-button type="text" size="small" @click="togglePanel">
+            <a-button
+              type="text"
+              size="small"
+              @click="togglePanel"
+            >
               <right-outlined v-if="props.open" />
               <left-outlined v-else />
             </a-button>
@@ -42,13 +69,19 @@
     </div>
 
     <!-- 消息列表 -->
-    <div class="chat-messages" ref="messagesContainer">
+    <div
+      ref="messagesContainer"
+      class="chat-messages"
+    >
       <a-empty
         v-if="!llmStore.isAvailable"
         description="LLM服务未配置或不可用"
         :image="Empty.PRESENTED_IMAGE_SIMPLE"
       >
-        <a-button type="primary" @click="router.push('/settings?tab=llm')">
+        <a-button
+          type="primary"
+          @click="router.push('/settings?tab=llm')"
+        >
           前往配置
         </a-button>
       </a-empty>
@@ -63,15 +96,18 @@
             v-for="prompt in quickPrompts"
             :key="prompt"
             size="small"
-            @click="handleQuickPrompt(prompt)"
             style="margin: 4px"
+            @click="handleQuickPrompt(prompt)"
           >
             {{ prompt }}
           </a-button>
         </div>
       </a-empty>
 
-      <div v-else class="messages-list">
+      <div
+        v-else
+        class="messages-list"
+      >
         <div
           v-for="(msg, index) in currentMessages"
           :key="msg.id || index"
@@ -79,11 +115,21 @@
           :class="msg.role"
         >
           <div class="message-avatar">
-            <a-avatar v-if="msg.role === 'user'" :style="{ backgroundColor: '#1890ff' }">
-              <template #icon><user-outlined /></template>
+            <a-avatar
+              v-if="msg.role === 'user'"
+              :style="{ backgroundColor: '#1890ff' }"
+            >
+              <template #icon>
+                <user-outlined />
+              </template>
             </a-avatar>
-            <a-avatar v-else :style="{ backgroundColor: '#52c41a' }">
-              <template #icon><robot-outlined /></template>
+            <a-avatar
+              v-else
+              :style="{ backgroundColor: '#52c41a' }"
+            >
+              <template #icon>
+                <robot-outlined />
+              </template>
             </a-avatar>
           </div>
           <div class="message-content">
@@ -92,17 +138,40 @@
               <span class="message-time">{{ formatTime(msg.timestamp) }}</span>
             </div>
             <div class="message-text">
-              <div v-if="msg.role === 'assistant'" v-html="renderMarkdown(msg.content)"></div>
-              <div v-else>{{ msg.content }}</div>
+              <div
+                v-if="msg.role === 'assistant'"
+                v-html="renderMarkdown(msg.content)"
+              />
+              <div v-else>
+                {{ msg.content }}
+              </div>
             </div>
-            <div v-if="msg.tokens || msg.references" class="message-meta">
-              <a-space size="small" direction="vertical" style="width: 100%">
-                <a-space size="small" v-if="msg.tokens">
+            <div
+              v-if="msg.tokens || msg.references"
+              class="message-meta"
+            >
+              <a-space
+                size="small"
+                direction="vertical"
+                style="width: 100%"
+              >
+                <a-space
+                  v-if="msg.tokens"
+                  size="small"
+                >
                   <span class="meta-item">Tokens: {{ msg.tokens }}</span>
-                  <span v-if="msg.model" class="meta-item">模型: {{ msg.model }}</span>
+                  <span
+                    v-if="msg.model"
+                    class="meta-item"
+                  >模型: {{ msg.model }}</span>
                 </a-space>
-                <div v-if="msg.references && msg.references.length > 0" class="message-references">
-                  <div class="references-title">📚 参考了以下知识库内容:</div>
+                <div
+                  v-if="msg.references && msg.references.length > 0"
+                  class="message-references"
+                >
+                  <div class="references-title">
+                    📚 参考了以下知识库内容:
+                  </div>
                   <div class="references-list">
                     <a-tag
                       v-for="ref in msg.references"
@@ -121,10 +190,15 @@
         </div>
 
         <!-- 流式输出中的消息 -->
-        <div v-if="isStreaming" class="message-item assistant streaming">
+        <div
+          v-if="isStreaming"
+          class="message-item assistant streaming"
+        >
           <div class="message-avatar">
             <a-avatar :style="{ backgroundColor: '#52c41a' }">
-              <template #icon><robot-outlined /></template>
+              <template #icon>
+                <robot-outlined />
+              </template>
             </a-avatar>
           </div>
           <div class="message-content">
@@ -133,17 +207,22 @@
               <span class="message-time">正在输入...</span>
             </div>
             <div class="message-text">
-              <div v-html="renderMarkdown(streamingText)"></div>
+              <div v-html="renderMarkdown(streamingText)" />
               <span class="typing-cursor">▊</span>
             </div>
           </div>
         </div>
 
         <!-- AI正在思考 -->
-        <div v-if="isThinking && !isStreaming" class="message-item assistant">
+        <div
+          v-if="isThinking && !isStreaming"
+          class="message-item assistant"
+        >
           <div class="message-avatar">
             <a-avatar :style="{ backgroundColor: '#52c41a' }">
-              <template #icon><robot-outlined /></template>
+              <template #icon>
+                <robot-outlined />
+              </template>
             </a-avatar>
           </div>
           <div class="message-content">
@@ -172,7 +251,9 @@
             :disabled="!inputText.trim() || !llmStore.isAvailable"
             @click="handleSend"
           >
-            <template #icon><send-outlined /></template>
+            <template #icon>
+              <send-outlined />
+            </template>
             发送
           </a-button>
           <a-button
@@ -180,12 +261,16 @@
             danger
             @click="handleStop"
           >
-            <template #icon><stop-outlined /></template>
+            <template #icon>
+              <stop-outlined />
+            </template>
             停止
           </a-button>
           <a-dropdown>
             <a-button>
-              <template #icon><more-outlined /></template>
+              <template #icon>
+                <more-outlined />
+              </template>
             </a-button>
             <template #overlay>
               <a-menu>
@@ -537,7 +622,7 @@ const handleSelectConversation = (conversation) => {
 
 // 渲染Markdown
 const renderMarkdown = (text) => {
-  if (!text) return '';
+  if (!text) {return '';}
   try {
     // MarkdownIt 已配置为 html: false，会自动转义 HTML 标签，防止 XSS
     return md.render(text);
@@ -552,7 +637,7 @@ const renderMarkdown = (text) => {
 
 // 格式化时间
 const formatTime = (timestamp) => {
-  if (!timestamp) return '';
+  if (!timestamp) {return '';}
 
   const date = new Date(timestamp);
   const now = new Date();

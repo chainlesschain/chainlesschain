@@ -5,11 +5,15 @@
     title="成本预测分析"
   >
     <template #extra>
-      <a-tag color="purple"> <LineChartOutlined /> AI 预测 </a-tag>
+      <a-tag color="purple">
+        <LineChartOutlined /> AI 预测
+      </a-tag>
     </template>
     <div class="prediction-grid">
       <div class="prediction-item">
-        <div class="prediction-label">预计本月成本</div>
+        <div class="prediction-label">
+          预计本月成本
+        </div>
         <div
           class="prediction-value"
           :class="{
@@ -19,19 +23,27 @@
         >
           ${{ prediction.monthlyPredicted.toFixed(2) }}
         </div>
-        <div class="prediction-desc">基于当前使用趋势</div>
+        <div class="prediction-desc">
+          基于当前使用趋势
+        </div>
       </div>
 
       <div class="prediction-item">
-        <div class="prediction-label">日均成本</div>
+        <div class="prediction-label">
+          日均成本
+        </div>
         <div class="prediction-value">
           ${{ prediction.dailyAverage.toFixed(4) }}
         </div>
-        <div class="prediction-desc">过去 {{ timeRangeLabel }} 平均</div>
+        <div class="prediction-desc">
+          过去 {{ timeRangeLabel }} 平均
+        </div>
       </div>
 
       <div class="prediction-item">
-        <div class="prediction-label">预算消耗天数</div>
+        <div class="prediction-label">
+          预算消耗天数
+        </div>
         <div
           class="prediction-value"
           :class="{

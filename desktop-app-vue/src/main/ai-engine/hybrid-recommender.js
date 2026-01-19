@@ -128,7 +128,7 @@ class HybridRecommender {
 
     // 归一化函数
     const normalize = (recs) => {
-      if (recs.length === 0) return [];
+      if (recs.length === 0) {return [];}
       const maxScore = Math.max(...recs.map(r => r.score || r.confidence || 1));
       return recs.map(r => ({
         ...r,

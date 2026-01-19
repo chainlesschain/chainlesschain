@@ -1,7 +1,13 @@
 <template>
-  <a-card title="详细统计" class="details-card">
-    <a-tabs v-model:activeKey="activeTab">
-      <a-tab-pane key="provider" tab="按提供商">
+  <a-card
+    title="详细统计"
+    class="details-card"
+  >
+    <a-tabs v-model:active-key="activeTab">
+      <a-tab-pane
+        key="provider"
+        tab="按提供商"
+      >
         <div class="table-wrapper">
           <a-table
             :columns="providerColumns"
@@ -14,7 +20,9 @@
           >
             <template #bodyCell="{ column, record }">
               <template v-if="column.key === 'cost_usd'">
-                <a-tag color="green">${{ record.cost_usd.toFixed(4) }}</a-tag>
+                <a-tag color="green">
+                  ${{ record.cost_usd.toFixed(4) }}
+                </a-tag>
               </template>
               <template v-else-if="column.key === 'tokens'">
                 {{ formatNumber(record.tokens) }}
@@ -31,7 +39,10 @@
         </div>
       </a-tab-pane>
 
-      <a-tab-pane key="model" tab="按模型">
+      <a-tab-pane
+        key="model"
+        tab="按模型"
+      >
         <div class="table-wrapper">
           <a-table
             :columns="modelColumns"
@@ -44,7 +55,9 @@
           >
             <template #bodyCell="{ column, record }">
               <template v-if="column.key === 'cost_usd'">
-                <a-tag color="green">${{ record.cost_usd.toFixed(4) }}</a-tag>
+                <a-tag color="green">
+                  ${{ record.cost_usd.toFixed(4) }}
+                </a-tag>
               </template>
               <template v-else-if="column.key === 'tokens'">
                 {{ formatNumber(record.tokens) }}

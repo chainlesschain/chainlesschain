@@ -296,10 +296,10 @@ class TaskTrackerFile extends EventEmitter {
    * @param {Error} error - 错误对象
    */
   async recordStepError(stepIndex, error) {
-    if (!this.currentTask) return;
+    if (!this.currentTask) {return;}
 
     const step = this.currentTask.steps[stepIndex];
-    if (!step) return;
+    if (!step) {return;}
 
     step.error = {
       message: error.message,
@@ -326,7 +326,7 @@ class TaskTrackerFile extends EventEmitter {
    * @param {string} status - 当前状态
    */
   async updateTodoFile(status = "in_progress") {
-    if (!this.currentTask) return;
+    if (!this.currentTask) {return;}
 
     const content = this._generateTodoContent(status);
 
@@ -502,7 +502,7 @@ class TaskTrackerFile extends EventEmitter {
    * @returns {Object|null}
    */
   getTaskContextForPrompt() {
-    if (!this.currentTask) return null;
+    if (!this.currentTask) {return null;}
 
     const task = this.currentTask;
     const currentStep = task.steps[task.currentStep];
@@ -532,7 +532,7 @@ class TaskTrackerFile extends EventEmitter {
    * @param {Object} result - 结果数据
    */
   async saveIntermediateResult(stepIndex, result) {
-    if (!this.currentTask) return;
+    if (!this.currentTask) {return;}
 
     const resultPath = path.join(
       this.workspaceDir,
@@ -584,7 +584,7 @@ class TaskTrackerFile extends EventEmitter {
    * @private
    */
   async _saveTaskData() {
-    if (!this.currentTask) return;
+    if (!this.currentTask) {return;}
 
     const dataPath = path.join(this.workspaceDir, "current_task.json");
 
@@ -625,7 +625,7 @@ class TaskTrackerFile extends EventEmitter {
    * @private
    */
   async _archiveTask() {
-    if (!this.currentTask) return;
+    if (!this.currentTask) {return;}
 
     const archivePath = path.join(
       this.historyDir,
@@ -705,7 +705,7 @@ class TaskTrackerFile extends EventEmitter {
    * @private
    */
   _startAutoSave() {
-    if (!this.config.autoSave) return;
+    if (!this.config.autoSave) {return;}
 
     this._stopAutoSave();
 

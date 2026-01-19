@@ -160,8 +160,8 @@ class HTTPServerOptimizer extends EventEmitter {
       const zlib = require('zlib');
       const compressed = await new Promise((resolve, reject) => {
         zlib.gzip(dataStr, (err, result) => {
-          if (err) reject(err);
-          else resolve(result);
+          if (err) {reject(err);}
+          else {resolve(result);}
         });
       });
 

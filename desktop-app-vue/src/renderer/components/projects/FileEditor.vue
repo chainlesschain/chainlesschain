@@ -3,12 +3,23 @@
     <!-- 编辑器头部 -->
     <div class="editor-header">
       <div class="header-left">
-        <component :is="fileIcon" class="file-icon" />
+        <component
+          :is="fileIcon"
+          class="file-icon"
+        />
         <span class="file-name">{{ file.file_name }}</span>
-        <a-tag v-if="hasChanges" color="orange" size="small">
+        <a-tag
+          v-if="hasChanges"
+          color="orange"
+          size="small"
+        >
           未保存
         </a-tag>
-        <a-tag v-if="saving" color="blue" size="small">
+        <a-tag
+          v-if="saving"
+          color="blue"
+          size="small"
+        >
           <LoadingOutlined />
           保存中...
         </a-tag>
@@ -36,7 +47,11 @@
         </a-tooltip>
 
         <a-tooltip title="刷新">
-          <a-button type="text" size="small" @click="handleRefresh">
+          <a-button
+            type="text"
+            size="small"
+            @click="handleRefresh"
+          >
             <ReloadOutlined />
           </a-button>
         </a-tooltip>
@@ -68,7 +83,10 @@
       </div>
 
       <div class="footer-right">
-        <span v-if="lastSaved" class="status-item">
+        <span
+          v-if="lastSaved"
+          class="status-item"
+        >
           上次保存: {{ lastSaved }}
         </span>
       </div>
@@ -140,8 +158,8 @@ const fileIcon = computed(() => {
 
 const fileSize = computed(() => {
   const bytes = new Blob([content.value]).size;
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  if (bytes < 1024) {return `${bytes} B`;}
+  if (bytes < 1024 * 1024) {return `${(bytes / 1024).toFixed(1)} KB`;}
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 });
 
@@ -153,7 +171,7 @@ const handleChange = (newContent) => {
 
 // 保存文件（使用 file-sync IPC 进行双向同步）
 const handleSave = async () => {
-  if (!hasChanges.value || saving.value) return;
+  if (!hasChanges.value || saving.value) {return;}
 
   saving.value = true;
 

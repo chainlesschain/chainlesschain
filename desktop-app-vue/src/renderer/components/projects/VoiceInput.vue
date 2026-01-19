@@ -6,8 +6,8 @@
         :danger="isRecording"
         :icon="isRecording ? h(AudioMutedOutlined) : h(AudioOutlined)"
         :loading="isProcessing"
-        @click="toggleRecording"
         class="voice-button"
+        @click="toggleRecording"
       >
         {{ buttonText }}
       </a-button>
@@ -19,27 +19,46 @@
       title="语音输入"
       :footer="null"
       :closable="false"
-      :maskClosable="false"
+      :mask-closable="false"
       width="400px"
     >
       <div class="recording-modal-content">
         <div class="recording-animation">
-          <div class="wave-circle" :class="{ active: isRecording }"></div>
-          <div class="wave-circle" :class="{ active: isRecording }"></div>
-          <div class="wave-circle" :class="{ active: isRecording }"></div>
+          <div
+            class="wave-circle"
+            :class="{ active: isRecording }"
+          />
+          <div
+            class="wave-circle"
+            :class="{ active: isRecording }"
+          />
+          <div
+            class="wave-circle"
+            :class="{ active: isRecording }"
+          />
           <AudioOutlined class="microphone-icon" />
         </div>
 
         <div class="recording-status">
-          <p class="status-text">{{ statusText }}</p>
-          <p class="recording-time">{{ recordingTime }}</p>
+          <p class="status-text">
+            {{ statusText }}
+          </p>
+          <p class="recording-time">
+            {{ recordingTime }}
+          </p>
         </div>
 
         <div class="recording-actions">
-          <a-button danger @click="cancelRecording">
+          <a-button
+            danger
+            @click="cancelRecording"
+          >
             取消
           </a-button>
-          <a-button type="primary" @click="stopRecording">
+          <a-button
+            type="primary"
+            @click="stopRecording"
+          >
             完成
           </a-button>
         </div>
@@ -69,13 +88,13 @@ let recordingTimer = null;
 
 // 计算属性
 const buttonText = computed(() => {
-  if (isProcessing.value) return '处理中...';
-  if (isRecording.value) return '录音中';
+  if (isProcessing.value) {return '处理中...';}
+  if (isRecording.value) {return '录音中';}
   return '';
 });
 
 const tooltipText = computed(() => {
-  if (isRecording.value) return '点击停止录音';
+  if (isRecording.value) {return '点击停止录音';}
   return '点击开始语音输入';
 });
 

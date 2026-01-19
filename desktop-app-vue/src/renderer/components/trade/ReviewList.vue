@@ -7,54 +7,136 @@
           <span>{{ title || '评价列表' }}</span>
         </a-space>
       </template>
-      <template #extra v-if="showCreateButton">
-        <a-button type="primary" @click="showReviewModal = true">
-          <template #icon><plus-outlined /></template>
+      <template
+        v-if="showCreateButton"
+        #extra
+      >
+        <a-button
+          type="primary"
+          @click="showReviewModal = true"
+        >
+          <template #icon>
+            <plus-outlined />
+          </template>
           写评价
         </a-button>
       </template>
 
       <!-- 统计信息 -->
-      <a-row :gutter="[16, 16]" v-if="statistics" style="margin-bottom: 24px">
-        <a-col :span="24" :md="6">
-          <a-statistic title="总评价" :value="statistics.totalReviews">
-            <template #prefix><comment-outlined /></template>
+      <a-row
+        v-if="statistics"
+        :gutter="[16, 16]"
+        style="margin-bottom: 24px"
+      >
+        <a-col
+          :span="24"
+          :md="6"
+        >
+          <a-statistic
+            title="总评价"
+            :value="statistics.totalReviews"
+          >
+            <template #prefix>
+              <comment-outlined />
+            </template>
           </a-statistic>
         </a-col>
-        <a-col :span="24" :md="6">
-          <a-statistic title="平均评分" :value="statistics.averageRating" :precision="1">
-            <template #prefix><star-outlined style="color: #faad14" /></template>
+        <a-col
+          :span="24"
+          :md="6"
+        >
+          <a-statistic
+            title="平均评分"
+            :value="statistics.averageRating"
+            :precision="1"
+          >
+            <template #prefix>
+              <star-outlined style="color: #faad14" />
+            </template>
           </a-statistic>
         </a-col>
-        <a-col :span="24" :md="6">
-          <a-statistic title="好评率" :value="statistics.positiveRate" suffix="%">
-            <template #prefix><like-outlined style="color: #52c41a" /></template>
+        <a-col
+          :span="24"
+          :md="6"
+        >
+          <a-statistic
+            title="好评率"
+            :value="statistics.positiveRate"
+            suffix="%"
+          >
+            <template #prefix>
+              <like-outlined style="color: #52c41a" />
+            </template>
           </a-statistic>
         </a-col>
-        <a-col :span="24" :md="6">
-          <a-statistic title="推荐率" :value="statistics.recommendRate" suffix="%">
-            <template #prefix><heart-outlined style="color: #ff4d4f" /></template>
+        <a-col
+          :span="24"
+          :md="6"
+        >
+          <a-statistic
+            title="推荐率"
+            :value="statistics.recommendRate"
+            suffix="%"
+          >
+            <template #prefix>
+              <heart-outlined style="color: #ff4d4f" />
+            </template>
           </a-statistic>
         </a-col>
       </a-row>
 
       <!-- 筛选 -->
-      <a-row :gutter="[16, 16]" style="margin-bottom: 16px">
-        <a-col :span="12" :md="6">
-          <a-select v-model:value="filterRating" style="width: 100%" @change="loadReviews">
-            <a-select-option :value="0">全部评分</a-select-option>
-            <a-select-option :value="5">5星</a-select-option>
-            <a-select-option :value="4">4星</a-select-option>
-            <a-select-option :value="3">3星</a-select-option>
-            <a-select-option :value="2">2星</a-select-option>
-            <a-select-option :value="1">1星</a-select-option>
+      <a-row
+        :gutter="[16, 16]"
+        style="margin-bottom: 16px"
+      >
+        <a-col
+          :span="12"
+          :md="6"
+        >
+          <a-select
+            v-model:value="filterRating"
+            style="width: 100%"
+            @change="loadReviews"
+          >
+            <a-select-option :value="0">
+              全部评分
+            </a-select-option>
+            <a-select-option :value="5">
+              5星
+            </a-select-option>
+            <a-select-option :value="4">
+              4星
+            </a-select-option>
+            <a-select-option :value="3">
+              3星
+            </a-select-option>
+            <a-select-option :value="2">
+              2星
+            </a-select-option>
+            <a-select-option :value="1">
+              1星
+            </a-select-option>
           </a-select>
         </a-col>
-        <a-col :span="12" :md="6">
-          <a-select v-model:value="sortBy" style="width: 100%" @change="loadReviews">
-            <a-select-option value="created_at">最新发布</a-select-option>
-            <a-select-option value="helpful_count">最有帮助</a-select-option>
-            <a-select-option value="rating">评分最高</a-select-option>
+        <a-col
+          :span="12"
+          :md="6"
+        >
+          <a-select
+            v-model:value="sortBy"
+            style="width: 100%"
+            @change="loadReviews"
+          >
+            <a-select-option value="created_at">
+              最新发布
+            </a-select-option>
+            <a-select-option value="helpful_count">
+              最有帮助
+            </a-select-option>
+            <a-select-option value="rating">
+              评分最高
+            </a-select-option>
           </a-select>
         </a-col>
       </a-row>
@@ -78,12 +160,19 @@
                 </template>
                 <template #avatar>
                   <a-avatar>
-                    <template #icon><user-outlined /></template>
+                    <template #icon>
+                      <user-outlined />
+                    </template>
                   </a-avatar>
                 </template>
                 <template #content>
-                  <div class="review-content">{{ item.content }}</div>
-                  <div v-if="item.images && item.images.length > 0" class="review-images">
+                  <div class="review-content">
+                    {{ item.content }}
+                  </div>
+                  <div
+                    v-if="item.images && item.images.length > 0"
+                    class="review-images"
+                  >
                     <a-image
                       v-for="(image, index) in item.images"
                       :key="index"
@@ -97,19 +186,32 @@
                   <span>{{ formatTime(item.createdAt) }}</span>
                 </template>
                 <template #actions>
-                  <span key="helpful" @click="markHelpful(item, true)">
+                  <span
+                    key="helpful"
+                    @click="markHelpful(item, true)"
+                  >
                     <like-outlined :style="{ color: item.isHelpful === true ? '#1890ff' : undefined }" />
                     有帮助 ({{ item.helpfulCount || 0 }})
                   </span>
-                  <span key="unhelpful" @click="markHelpful(item, false)">
+                  <span
+                    key="unhelpful"
+                    @click="markHelpful(item, false)"
+                  >
                     <dislike-outlined :style="{ color: item.isHelpful === false ? '#1890ff' : undefined }" />
                     无帮助 ({{ item.unhelpfulCount || 0 }})
                   </span>
-                  <span key="reply" v-if="canReply" @click="replyToReview(item)">
+                  <span
+                    v-if="canReply"
+                    key="reply"
+                    @click="replyToReview(item)"
+                  >
                     <message-outlined />
                     回复
                   </span>
-                  <span key="report" @click="reportReview(item)">
+                  <span
+                    key="report"
+                    @click="reportReview(item)"
+                  >
                     <warning-outlined />
                     举报
                   </span>
@@ -117,10 +219,15 @@
               </a-comment>
 
               <!-- 商家回复 -->
-              <div v-if="item.sellerReply" class="seller-reply">
+              <div
+                v-if="item.sellerReply"
+                class="seller-reply"
+              >
                 <a-comment>
                   <template #author>
-                    <a-tag color="orange">商家回复</a-tag>
+                    <a-tag color="orange">
+                      商家回复
+                    </a-tag>
                   </template>
                   <template #content>
                     {{ item.sellerReply.content }}
@@ -135,7 +242,11 @@
 
           <template #empty>
             <a-empty description="暂无评价">
-              <a-button v-if="showCreateButton" type="primary" @click="showReviewModal = true">
+              <a-button
+                v-if="showCreateButton"
+                type="primary"
+                @click="showReviewModal = true"
+              >
                 写第一条评价
               </a-button>
             </a-empty>
@@ -169,13 +280,26 @@
       @ok="handleReport"
     >
       <a-form layout="vertical">
-        <a-form-item label="举报原因" required>
+        <a-form-item
+          label="举报原因"
+          required
+        >
           <a-select v-model:value="reportForm.reason">
-            <a-select-option value="spam">垃圾信息</a-select-option>
-            <a-select-option value="abuse">辱骂攻击</a-select-option>
-            <a-select-option value="fake">虚假评价</a-select-option>
-            <a-select-option value="inappropriate">不当内容</a-select-option>
-            <a-select-option value="other">其他</a-select-option>
+            <a-select-option value="spam">
+              垃圾信息
+            </a-select-option>
+            <a-select-option value="abuse">
+              辱骂攻击
+            </a-select-option>
+            <a-select-option value="fake">
+              虚假评价
+            </a-select-option>
+            <a-select-option value="inappropriate">
+              不当内容
+            </a-select-option>
+            <a-select-option value="other">
+              其他
+            </a-select-option>
           </a-select>
         </a-form-item>
 
@@ -340,7 +464,7 @@ const handleReport = async () => {
 
 // 工具函数
 const shortenDid = (did) => {
-  if (!did) return '';
+  if (!did) {return '';}
   return did.length > 20 ? `${did.slice(0, 10)}...${did.slice(-8)}` : did;
 };
 

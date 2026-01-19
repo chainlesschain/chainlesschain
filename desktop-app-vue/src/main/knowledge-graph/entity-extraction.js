@@ -272,7 +272,7 @@ function extractWikiLinks(text) {
  */
 function extractSummary(text, maxLength = 200) {
   // 移除 Markdown 格式
-  let cleanText = text
+  const cleanText = text
     .replace(/```[\s\S]*?```/g, '') // 移除代码块
     .replace(/`[^`]+`/g, '')        // 移除行内代码
     .replace(/!\[.*?\]\(.*?\)/g, '') // 移除图片

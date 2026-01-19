@@ -86,7 +86,7 @@ async function parsePPTX(filePath) {
  * @returns {Array} 文本数组
  */
 function extractTexts(obj, texts = []) {
-  if (!obj) return texts;
+  if (!obj) {return texts;}
 
   if (typeof obj === 'string') {
     const trimmed = obj.trim();

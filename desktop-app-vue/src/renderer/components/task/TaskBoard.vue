@@ -14,7 +14,11 @@
             placeholder="选择看板"
             @change="handleBoardChange"
           >
-            <a-select-option v-for="board in taskStore.boards" :key="board.id" :value="board.id">
+            <a-select-option
+              v-for="board in taskStore.boards"
+              :key="board.id"
+              :value="board.id"
+            >
               {{ board.name }}
             </a-select-option>
           </a-select>
@@ -36,17 +40,57 @@
             <template #overlay>
               <a-menu>
                 <a-menu-item-group title="状态">
-                  <a-menu-item key="all" @click="() => filterBy('status', null)">全部</a-menu-item>
-                  <a-menu-item key="pending" @click="() => filterBy('status', 'pending')">待处理</a-menu-item>
-                  <a-menu-item key="in_progress" @click="() => filterBy('status', 'in_progress')">进行中</a-menu-item>
-                  <a-menu-item key="completed" @click="() => filterBy('status', 'completed')">已完成</a-menu-item>
+                  <a-menu-item
+                    key="all"
+                    @click="() => filterBy('status', null)"
+                  >
+                    全部
+                  </a-menu-item>
+                  <a-menu-item
+                    key="pending"
+                    @click="() => filterBy('status', 'pending')"
+                  >
+                    待处理
+                  </a-menu-item>
+                  <a-menu-item
+                    key="in_progress"
+                    @click="() => filterBy('status', 'in_progress')"
+                  >
+                    进行中
+                  </a-menu-item>
+                  <a-menu-item
+                    key="completed"
+                    @click="() => filterBy('status', 'completed')"
+                  >
+                    已完成
+                  </a-menu-item>
                 </a-menu-item-group>
                 <a-menu-divider />
                 <a-menu-item-group title="优先级">
-                  <a-menu-item key="urgent" @click="() => filterBy('priority', 'urgent')">紧急</a-menu-item>
-                  <a-menu-item key="high" @click="() => filterBy('priority', 'high')">高</a-menu-item>
-                  <a-menu-item key="medium" @click="() => filterBy('priority', 'medium')">中</a-menu-item>
-                  <a-menu-item key="low" @click="() => filterBy('priority', 'low')">低</a-menu-item>
+                  <a-menu-item
+                    key="urgent"
+                    @click="() => filterBy('priority', 'urgent')"
+                  >
+                    紧急
+                  </a-menu-item>
+                  <a-menu-item
+                    key="high"
+                    @click="() => filterBy('priority', 'high')"
+                  >
+                    高
+                  </a-menu-item>
+                  <a-menu-item
+                    key="medium"
+                    @click="() => filterBy('priority', 'medium')"
+                  >
+                    中
+                  </a-menu-item>
+                  <a-menu-item
+                    key="low"
+                    @click="() => filterBy('priority', 'low')"
+                  >
+                    低
+                  </a-menu-item>
                 </a-menu-item-group>
               </a-menu>
             </template>
@@ -61,7 +105,10 @@
           />
 
           <!-- 创建任务 -->
-          <a-button type="primary" @click="showCreateTask = true">
+          <a-button
+            type="primary"
+            @click="showCreateTask = true"
+          >
             <plus-outlined /> 新建任务
           </a-button>
         </a-space>
@@ -69,7 +116,10 @@
     </div>
 
     <!-- 看板列 -->
-    <div class="board-columns" v-loading="taskStore.loading">
+    <div
+      v-loading="taskStore.loading"
+      class="board-columns"
+    >
       <div
         v-for="column in boardColumns"
         :key="column.id"
@@ -78,11 +128,21 @@
         <!-- 列头 -->
         <div class="column-header">
           <div class="header-title">
-            <component :is="column.icon" :style="{ color: column.color }" />
+            <component
+              :is="column.icon"
+              :style="{ color: column.color }"
+            />
             <span>{{ column.name }}</span>
-            <a-badge :count="getColumnTaskCount(column.status)" :number-style="{ backgroundColor: column.color }" />
+            <a-badge
+              :count="getColumnTaskCount(column.status)"
+              :number-style="{ backgroundColor: column.color }"
+            />
           </div>
-          <a-button type="text" size="small" @click="() => handleAddTask(column.status)">
+          <a-button
+            type="text"
+            size="small"
+            @click="() => handleAddTask(column.status)"
+          >
             <plus-outlined />
           </a-button>
         </div>
@@ -126,12 +186,26 @@
       @ok="handleCreateBoard"
       @cancel="showCreateBoard = false"
     >
-      <a-form :model="boardFormData" :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
-        <a-form-item label="看板名称" required>
-          <a-input v-model:value="boardFormData.name" placeholder="请输入看板名称" />
+      <a-form
+        :model="boardFormData"
+        :label-col="{ span: 6 }"
+        :wrapper-col="{ span: 18 }"
+      >
+        <a-form-item
+          label="看板名称"
+          required
+        >
+          <a-input
+            v-model:value="boardFormData.name"
+            placeholder="请输入看板名称"
+          />
         </a-form-item>
         <a-form-item label="描述">
-          <a-textarea v-model:value="boardFormData.description" placeholder="请输入看板描述" :rows="3" />
+          <a-textarea
+            v-model:value="boardFormData.description"
+            placeholder="请输入看板描述"
+            :rows="3"
+          />
         </a-form-item>
       </a-form>
     </a-modal>
@@ -144,30 +218,60 @@
       @ok="handleSaveTask"
       @cancel="handleCancelTask"
     >
-      <a-form :model="taskFormData" :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
-        <a-form-item label="任务标题" required>
-          <a-input v-model:value="taskFormData.title" placeholder="请输入任务标题" />
+      <a-form
+        :model="taskFormData"
+        :label-col="{ span: 6 }"
+        :wrapper-col="{ span: 18 }"
+      >
+        <a-form-item
+          label="任务标题"
+          required
+        >
+          <a-input
+            v-model:value="taskFormData.title"
+            placeholder="请输入任务标题"
+          />
         </a-form-item>
 
         <a-form-item label="任务描述">
-          <a-textarea v-model:value="taskFormData.description" placeholder="请输入任务描述" :rows="4" />
+          <a-textarea
+            v-model:value="taskFormData.description"
+            placeholder="请输入任务描述"
+            :rows="4"
+          />
         </a-form-item>
 
         <a-form-item label="状态">
           <a-select v-model:value="taskFormData.status">
-            <a-select-option value="pending">待处理</a-select-option>
-            <a-select-option value="in_progress">进行中</a-select-option>
-            <a-select-option value="completed">已完成</a-select-option>
-            <a-select-option value="cancelled">已取消</a-select-option>
+            <a-select-option value="pending">
+              待处理
+            </a-select-option>
+            <a-select-option value="in_progress">
+              进行中
+            </a-select-option>
+            <a-select-option value="completed">
+              已完成
+            </a-select-option>
+            <a-select-option value="cancelled">
+              已取消
+            </a-select-option>
           </a-select>
         </a-form-item>
 
         <a-form-item label="优先级">
           <a-select v-model:value="taskFormData.priority">
-            <a-select-option value="low">低</a-select-option>
-            <a-select-option value="medium">中</a-select-option>
-            <a-select-option value="high">高</a-select-option>
-            <a-select-option value="urgent">紧急</a-select-option>
+            <a-select-option value="low">
+              低
+            </a-select-option>
+            <a-select-option value="medium">
+              中
+            </a-select-option>
+            <a-select-option value="high">
+              高
+            </a-select-option>
+            <a-select-option value="urgent">
+              紧急
+            </a-select-option>
           </a-select>
         </a-form-item>
 
@@ -181,12 +285,27 @@
         </a-form-item>
 
         <a-form-item label="预估工时">
-          <a-input-number v-model:value="taskFormData.estimate_hours" :min="0" :step="0.5" placeholder="小时" style="width: 100%" />
+          <a-input-number
+            v-model:value="taskFormData.estimate_hours"
+            :min="0"
+            :step="0.5"
+            placeholder="小时"
+            style="width: 100%"
+          />
         </a-form-item>
 
         <a-form-item label="标签">
-          <a-select v-model:value="taskFormData.labels" mode="tags" placeholder="添加标签" style="width: 100%">
-            <a-select-option v-for="tag in commonTags" :key="tag" :value="tag">
+          <a-select
+            v-model:value="taskFormData.labels"
+            mode="tags"
+            placeholder="添加标签"
+            style="width: 100%"
+          >
+            <a-select-option
+              v-for="tag in commonTags"
+              :key="tag"
+              :value="tag"
+            >
               {{ tag }}
             </a-select-option>
           </a-select>
@@ -316,7 +435,7 @@ function handleBoardChange(boardId) {
 }
 
 async function handleCreateBoard() {
-  if (!boardFormData.value.name) return;
+  if (!boardFormData.value.name) {return;}
 
   const created = await taskStore.createBoard(workspaceStore.currentWorkspace?.org_id, {
     name: boardFormData.value.name,
@@ -359,7 +478,7 @@ function handleTaskDelete() {
 }
 
 async function handleSaveTask() {
-  if (!taskFormData.value.title) return;
+  if (!taskFormData.value.title) {return;}
 
   const taskData = {
     ...taskFormData.value,

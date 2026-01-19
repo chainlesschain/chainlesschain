@@ -1,36 +1,60 @@
 <template>
   <div class="transaction-list">
     <!-- 过滤器 -->
-    <div class="list-header" v-if="showFilters">
+    <div
+      v-if="showFilters"
+      class="list-header"
+    >
       <a-space :size="12">
         <a-select
           v-model:value="filters.status"
           placeholder="交易状态"
           :style="{ width: '120px' }"
-          allowClear
+          allow-clear
           @change="handleFilterChange"
         >
-          <a-select-option value="">全部状态</a-select-option>
-          <a-select-option value="pending">待确认</a-select-option>
-          <a-select-option value="confirmed">已确认</a-select-option>
-          <a-select-option value="failed">失败</a-select-option>
+          <a-select-option value="">
+            全部状态
+          </a-select-option>
+          <a-select-option value="pending">
+            待确认
+          </a-select-option>
+          <a-select-option value="confirmed">
+            已确认
+          </a-select-option>
+          <a-select-option value="failed">
+            失败
+          </a-select-option>
         </a-select>
 
         <a-select
           v-model:value="filters.tx_type"
           placeholder="交易类型"
           :style="{ width: '140px' }"
-          allowClear
+          allow-clear
           @change="handleFilterChange"
         >
-          <a-select-option value="">全部类型</a-select-option>
-          <a-select-option value="transfer">转账</a-select-option>
-          <a-select-option value="mint">铸造</a-select-option>
-          <a-select-option value="contract_call">合约调用</a-select-option>
+          <a-select-option value="">
+            全部类型
+          </a-select-option>
+          <a-select-option value="transfer">
+            转账
+          </a-select-option>
+          <a-select-option value="mint">
+            铸造
+          </a-select-option>
+          <a-select-option value="contract_call">
+            合约调用
+          </a-select-option>
         </a-select>
 
-        <a-button @click="handleRefresh" :loading="loading">
-          <template #icon><reload-outlined /></template>
+        <a-button
+          :loading="loading"
+          @click="handleRefresh"
+        >
+          <template #icon>
+            <reload-outlined />
+          </template>
           刷新
         </a-button>
       </a-space>
@@ -57,7 +81,10 @@
             <template #title>
               <div class="tx-title">
                 <span class="tx-type">{{ getTxTypeText(item.tx_type) }}</span>
-                <a-tag :color="getStatusColor(item.status)" size="small">
+                <a-tag
+                  :color="getStatusColor(item.status)"
+                  size="small"
+                >
                   {{ getStatusText(item.status) }}
                 </a-tag>
                 <span class="tx-time">{{ formatTime(item.created_at) }}</span>
@@ -71,7 +98,10 @@
                   <span class="label">哈希:</span>
                   <span class="value">
                     {{ formatHash(item.tx_hash) }}
-                    <copy-outlined class="copy-icon" @click="handleCopyHash(item.tx_hash)" />
+                    <copy-outlined
+                      class="copy-icon"
+                      @click="handleCopyHash(item.tx_hash)"
+                    />
                     <link-outlined
                       v-if="currentNetwork?.blockExplorer"
                       class="link-icon"
@@ -91,15 +121,24 @@
 
                 <!-- 金额和 Gas -->
                 <div class="tx-details">
-                  <span class="detail-item" v-if="item.value">
+                  <span
+                    v-if="item.value"
+                    class="detail-item"
+                  >
                     <span class="label">金额:</span>
                     <span class="value amount">{{ formatValue(item.value) }}</span>
                   </span>
-                  <span class="detail-item" v-if="item.gas_used">
+                  <span
+                    v-if="item.gas_used"
+                    class="detail-item"
+                  >
                     <span class="label">Gas:</span>
                     <span class="value">{{ item.gas_used }}</span>
                   </span>
-                  <span class="detail-item" v-if="item.block_number">
+                  <span
+                    v-if="item.block_number"
+                    class="detail-item"
+                  >
                     <span class="label">区块:</span>
                     <span class="value">{{ item.block_number }}</span>
                   </span>
@@ -294,8 +333,8 @@ const getStatusColor = (status) => {
  * 格式化哈希
  */
 const formatHash = (hash) => {
-  if (!hash) return '';
-  if (hash.length <= 20) return hash;
+  if (!hash) {return '';}
+  if (hash.length <= 20) {return hash;}
   return `${hash.slice(0, 10)}...${hash.slice(-8)}`;
 };
 
@@ -303,8 +342,8 @@ const formatHash = (hash) => {
  * 格式化地址
  */
 const formatAddress = (address) => {
-  if (!address) return '';
-  if (address.length <= 20) return address;
+  if (!address) {return '';}
+  if (address.length <= 20) {return address;}
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 };
 
@@ -312,7 +351,7 @@ const formatAddress = (address) => {
  * 格式化金额
  */
 const formatValue = (value) => {
-  if (!value || value === '0') return '0 ETH';
+  if (!value || value === '0') {return '0 ETH';}
 
   // 简化版本：将 wei 转换为 ether
   const etherValue = (parseFloat(value) / 1e18).toFixed(6);
@@ -325,7 +364,7 @@ const formatValue = (value) => {
  * 格式化时间
  */
 const formatTime = (timestamp) => {
-  if (!timestamp) return '';
+  if (!timestamp) {return '';}
 
   const date = new Date(timestamp);
   const now = new Date();

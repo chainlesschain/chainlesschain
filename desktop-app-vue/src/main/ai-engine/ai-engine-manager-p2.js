@@ -521,7 +521,7 @@ class AIEngineManagerP2 {
 
       // ===== 阶段3: 任务规划 (P1: 分层规划) =====
       const planningStartTime = Date.now();
-      let tasks = [];
+      const tasks = [];
 
       if (this.hierarchicalPlanner && fusedIntents.length > 0) {
         // 使用P1分层任务规划

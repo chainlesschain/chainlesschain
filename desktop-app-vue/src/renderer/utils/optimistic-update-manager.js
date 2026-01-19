@@ -195,7 +195,7 @@ class OptimisticUpdateManager {
    */
   async rollbackUpdate(updateId, customRollback) {
     const updateMetadata = this.updates.get(updateId)
-    if (!updateMetadata) return
+    if (!updateMetadata) {return}
 
     if (this.options.debug) {
       console.log(`[OptimisticUpdateManager] Rolling back: ${updateId}`)
@@ -301,7 +301,7 @@ class OptimisticUpdateManager {
    * Process offline queue when back online
    */
   async processOfflineQueue() {
-    if (this.offlineQueue.length === 0) return
+    if (this.offlineQueue.length === 0) {return}
 
     if (this.options.debug) {
       console.log(`[OptimisticUpdateManager] Processing offline queue: ${this.offlineQueue.length} items`)
@@ -338,7 +338,7 @@ class OptimisticUpdateManager {
    * Detect conflicts
    */
   detectConflict(entity, incomingData) {
-    if (!this.options.enableConflictDetection) return null
+    if (!this.options.enableConflictDetection) {return null}
 
     const pendingUpdates = Array.from(this.updates.values())
       .filter(u => u.entity === entity && u.status === 'pending')

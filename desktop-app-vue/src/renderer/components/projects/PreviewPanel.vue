@@ -5,7 +5,10 @@
       <div class="header-left">
         <FileOutlined />
         <span class="file-name">{{ file?.file_name || '预览' }}</span>
-        <a-tag v-if="fileType" :color="getFileTypeColor()">
+        <a-tag
+          v-if="fileType"
+          :color="getFileTypeColor()"
+        >
           {{ getFileTypeLabel() }}
         </a-tag>
       </div>
@@ -13,17 +16,29 @@
         <!-- 图片预览专用控制 -->
         <template v-if="fileType === 'image'">
           <a-tooltip title="放大">
-            <a-button type="text" size="small" @click="handleZoomIn">
+            <a-button
+              type="text"
+              size="small"
+              @click="handleZoomIn"
+            >
               <ZoomInOutlined />
             </a-button>
           </a-tooltip>
           <a-tooltip title="缩小">
-            <a-button type="text" size="small" @click="handleZoomOut">
+            <a-button
+              type="text"
+              size="small"
+              @click="handleZoomOut"
+            >
               <ZoomOutOutlined />
             </a-button>
           </a-tooltip>
           <a-tooltip title="重置">
-            <a-button type="text" size="small" @click="handleZoomReset">
+            <a-button
+              type="text"
+              size="small"
+              @click="handleZoomReset"
+            >
               <ReloadOutlined />
             </a-button>
           </a-tooltip>
@@ -31,12 +46,20 @@
 
         <!-- 通用控制 -->
         <a-tooltip title="在系统中打开">
-          <a-button type="text" size="small" @click="handleOpenExternal">
+          <a-button
+            type="text"
+            size="small"
+            @click="handleOpenExternal"
+          >
             <ExportOutlined />
           </a-button>
         </a-tooltip>
         <a-tooltip :title="isFullscreen ? '退出全屏 (ESC)' : '全屏 (F11)'">
-          <a-button type="text" size="small" @click="toggleFullscreen">
+          <a-button
+            type="text"
+            size="small"
+            @click="toggleFullscreen"
+          >
             <FullscreenExitOutlined v-if="isFullscreen" />
             <FullscreenOutlined v-else />
           </a-button>
@@ -45,7 +68,10 @@
     </div>
 
     <!-- 预览内容区 -->
-    <div class="preview-content" ref="contentRef">
+    <div
+      ref="contentRef"
+      class="preview-content"
+    >
       <!-- 大文件预览（文本类型） -->
       <LargeFilePreview
         v-if="isLargeFile && ['markdown', 'code', 'csv', 'json'].includes(fileType)"
@@ -54,25 +80,41 @@
       />
 
       <!-- 图片预览 -->
-      <div v-else-if="fileType === 'image'" class="image-preview">
+      <div
+        v-else-if="fileType === 'image'"
+        class="image-preview"
+      >
         <img
           :src="imageUrl"
           :alt="file?.file_name"
           :style="imageStyle"
           @error="handleImageError"
-        />
+        >
       </div>
 
       <!-- Markdown 渲染预览 -->
-      <div v-else-if="fileType === 'markdown'" class="markdown-preview" v-html="renderedMarkdown"></div>
+      <div
+        v-else-if="fileType === 'markdown'"
+        class="markdown-preview"
+        v-html="renderedMarkdown"
+      />
 
       <!-- 代码预览（语法高亮） -->
-      <div v-else-if="fileType === 'code'" class="code-preview">
-        <pre><code :class="codeLanguageClass" v-html="highlightedCode"></code></pre>
+      <div
+        v-else-if="fileType === 'code'"
+        class="code-preview"
+      >
+        <pre><code
+:class="codeLanguageClass"
+                   v-html="highlightedCode"
+        /></pre>
       </div>
 
       <!-- CSV 表格预览 -->
-      <div v-else-if="fileType === 'csv'" class="csv-preview">
+      <div
+        v-else-if="fileType === 'csv'"
+        class="csv-preview"
+      >
         <a-table
           :columns="csvColumns"
           :data-source="csvData"
@@ -84,12 +126,21 @@
       </div>
 
       <!-- JSON 格式化预览 -->
-      <div v-else-if="fileType === 'json'" class="json-preview">
-        <pre><code class="language-json" v-html="highlightedJson"></code></pre>
+      <div
+        v-else-if="fileType === 'json'"
+        class="json-preview"
+      >
+        <pre><code
+class="language-json"
+                   v-html="highlightedJson"
+        /></pre>
       </div>
 
       <!-- PDF 预览 -->
-      <div v-else-if="fileType === 'pdf'" class="pdf-preview">
+      <div
+        v-else-if="fileType === 'pdf'"
+        class="pdf-preview"
+      >
         <VuePdfEmbed
           v-if="pdfUrl"
           :source="pdfUrl"
@@ -100,34 +151,71 @@
       </div>
 
       <!-- 视频预览 -->
-      <div v-else-if="fileType === 'video'" class="video-preview">
-        <video :src="videoUrl" controls class="video-player">
+      <div
+        v-else-if="fileType === 'video'"
+        class="video-preview"
+      >
+        <video
+          :src="videoUrl"
+          controls
+          class="video-player"
+        >
           您的浏览器不支持视频播放
         </video>
       </div>
 
       <!-- 音频预览 -->
-      <div v-else-if="fileType === 'audio'" class="audio-preview">
-        <audio :src="audioUrl" controls class="audio-player">
+      <div
+        v-else-if="fileType === 'audio'"
+        class="audio-preview"
+      >
+        <audio
+          :src="audioUrl"
+          controls
+          class="audio-player"
+        >
           您的浏览器不支持音频播放
         </audio>
       </div>
 
       <!-- Word文档预览 -->
-      <div v-else-if="fileType === 'word'" class="office-preview word-preview">
-        <div v-if="officeContent" v-html="officeContent" class="office-content"></div>
+      <div
+        v-else-if="fileType === 'word'"
+        class="office-preview word-preview"
+      >
+        <div
+          v-if="officeContent"
+          class="office-content"
+          v-html="officeContent"
+        />
       </div>
 
       <!-- Excel表格预览 -->
-      <div v-else-if="fileType === 'excel'" class="office-preview excel-preview">
-        <div v-if="officeContent && officeContent.sheets" class="excel-sheets">
-          <a-tabs v-model:activeKey="activeSheet">
-            <a-tab-pane v-for="(sheet, index) in officeContent.sheets" :key="index" :tab="sheet.name">
+      <div
+        v-else-if="fileType === 'excel'"
+        class="office-preview excel-preview"
+      >
+        <div
+          v-if="officeContent && officeContent.sheets"
+          class="excel-sheets"
+        >
+          <a-tabs v-model:active-key="activeSheet">
+            <a-tab-pane
+              v-for="(sheet, index) in officeContent.sheets"
+              :key="index"
+              :tab="sheet.name"
+            >
               <div class="excel-table-wrapper">
                 <table class="excel-table">
                   <tbody>
-                    <tr v-for="(row, rowIndex) in sheet.data" :key="rowIndex">
-                      <td v-for="(cell, colIndex) in row" :key="colIndex">
+                    <tr
+                      v-for="(row, rowIndex) in sheet.data"
+                      :key="rowIndex"
+                    >
+                      <td
+                        v-for="(cell, colIndex) in row"
+                        :key="colIndex"
+                      >
                         {{ cell }}
                       </td>
                     </tr>
@@ -140,18 +228,30 @@
       </div>
 
       <!-- PowerPoint预览 -->
-      <div v-else-if="fileType === 'powerpoint'" class="office-preview ppt-preview">
-        <div v-if="officeContent && officeContent.slides" class="ppt-slides">
+      <div
+        v-else-if="fileType === 'powerpoint'"
+        class="office-preview ppt-preview"
+      >
+        <div
+          v-if="officeContent && officeContent.slides"
+          class="ppt-slides"
+        >
           <!-- 幻灯片导航 -->
           <div class="ppt-navigation">
-            <a-button :disabled="currentSlide === 0" @click="previousSlide">
+            <a-button
+              :disabled="currentSlide === 0"
+              @click="previousSlide"
+            >
               <LeftOutlined />
               上一页
             </a-button>
             <span class="slide-counter">
               {{ currentSlide + 1 }} / {{ officeContent.slides.length }}
             </span>
-            <a-button :disabled="currentSlide === officeContent.slides.length - 1" @click="nextSlide">
+            <a-button
+              :disabled="currentSlide === officeContent.slides.length - 1"
+              @click="nextSlide"
+            >
               下一页
               <RightOutlined />
             </a-button>
@@ -159,10 +259,19 @@
 
           <!-- 幻灯片内容 -->
           <div class="ppt-slide-container">
-            <div class="ppt-slide" v-if="officeContent.slides[currentSlide]">
-              <h2 class="slide-title">{{ officeContent.slides[currentSlide].title }}</h2>
+            <div
+              v-if="officeContent.slides[currentSlide]"
+              class="ppt-slide"
+            >
+              <h2 class="slide-title">
+                {{ officeContent.slides[currentSlide].title }}
+              </h2>
               <div class="slide-content">
-                <p v-for="(line, index) in officeContent.slides[currentSlide].content" :key="index" class="slide-line">
+                <p
+                  v-for="(line, index) in officeContent.slides[currentSlide].content"
+                  :key="index"
+                  class="slide-line"
+                >
                   {{ line }}
                 </p>
               </div>
@@ -177,20 +286,38 @@
               :class="['thumbnail-item', { active: currentSlide === index }]"
               @click="currentSlide = index"
             >
-              <div class="thumbnail-number">{{ index + 1 }}</div>
-              <div class="thumbnail-title">{{ slide.title || '无标题' }}</div>
+              <div class="thumbnail-number">
+                {{ index + 1 }}
+              </div>
+              <div class="thumbnail-title">
+                {{ slide.title || '无标题' }}
+              </div>
             </div>
           </div>
         </div>
 
         <!-- 如果没有幻灯片数据，显示提示 -->
-        <div v-else class="ppt-preview-tip">
+        <div
+          v-else
+          class="ppt-preview-tip"
+        >
           <FilePptOutlined class="ppt-icon" />
           <h3>PowerPoint 演示文稿</h3>
-          <p class="file-info">{{ file?.file_name }}</p>
-          <p class="tip-text">无法加载幻灯片内容</p>
-          <a-space size="large" style="margin-top: 24px">
-            <a-button type="primary" size="large" @click="handleOpenExternal">
+          <p class="file-info">
+            {{ file?.file_name }}
+          </p>
+          <p class="tip-text">
+            无法加载幻灯片内容
+          </p>
+          <a-space
+            size="large"
+            style="margin-top: 24px"
+          >
+            <a-button
+              type="primary"
+              size="large"
+              @click="handleOpenExternal"
+            >
               <ExportOutlined />
               用PowerPoint打开
             </a-button>
@@ -206,12 +333,18 @@
       />
 
       <!-- 不支持预览的文件类型 -->
-      <div v-else class="unsupported-preview">
+      <div
+        v-else
+        class="unsupported-preview"
+      >
         <FileUnknownOutlined class="unsupported-icon" />
         <h3>无法预览此文件</h3>
         <p>文件类型: {{ file?.file_name?.split('.').pop()?.toUpperCase() || '未知' }}</p>
         <a-space>
-          <a-button type="primary" @click="handleOpenExternal">
+          <a-button
+            type="primary"
+            @click="handleOpenExternal"
+          >
             <ExportOutlined />
             在系统中打开
           </a-button>
@@ -223,16 +356,30 @@
       </div>
 
       <!-- 加载状态 -->
-      <div v-if="loading" class="loading-overlay">
-        <a-spin size="large" tip="加载中..." />
+      <div
+        v-if="loading"
+        class="loading-overlay"
+      >
+        <a-spin
+          size="large"
+          tip="加载中..."
+        />
       </div>
 
       <!-- 错误状态 -->
-      <div v-if="error" class="error-overlay">
+      <div
+        v-if="error"
+        class="error-overlay"
+      >
         <CloseCircleOutlined class="error-icon" />
         <h3>加载失败</h3>
         <p>{{ error }}</p>
-        <a-button type="primary" @click="handleRetry">重试</a-button>
+        <a-button
+          type="primary"
+          @click="handleRetry"
+        >
+          重试
+        </a-button>
       </div>
     </div>
   </div>
@@ -329,7 +476,7 @@ const currentSlide = ref(0); // PPT 当前幻灯片索引
  * 文件类型检测
  */
 const fileType = computed(() => {
-  if (!props.file?.file_name) return null;
+  if (!props.file?.file_name) {return null;}
 
   const ext = props.file.file_name.split('.').pop().toLowerCase();
 
@@ -344,18 +491,18 @@ const fileType = computed(() => {
   };
   const archiveExtensions = ['zip', 'rar', '7z', 'tar', 'gz', 'bz2'];
 
-  if (ext === 'md') return 'markdown';
-  if (ext === 'csv') return 'csv';
-  if (ext === 'json') return 'json';
-  if (ext === 'pdf') return 'pdf';
-  if (imageExtensions.includes(ext)) return 'image';
-  if (codeExtensions.includes(ext)) return 'code';
-  if (videoExtensions.includes(ext)) return 'video';
-  if (audioExtensions.includes(ext)) return 'audio';
-  if (officeExtensions.word.includes(ext)) return 'word';
-  if (officeExtensions.excel.includes(ext)) return 'excel';
-  if (officeExtensions.powerpoint.includes(ext)) return 'powerpoint';
-  if (archiveExtensions.includes(ext)) return 'archive';
+  if (ext === 'md') {return 'markdown';}
+  if (ext === 'csv') {return 'csv';}
+  if (ext === 'json') {return 'json';}
+  if (ext === 'pdf') {return 'pdf';}
+  if (imageExtensions.includes(ext)) {return 'image';}
+  if (codeExtensions.includes(ext)) {return 'code';}
+  if (videoExtensions.includes(ext)) {return 'video';}
+  if (audioExtensions.includes(ext)) {return 'audio';}
+  if (officeExtensions.word.includes(ext)) {return 'word';}
+  if (officeExtensions.excel.includes(ext)) {return 'excel';}
+  if (officeExtensions.powerpoint.includes(ext)) {return 'powerpoint';}
+  if (archiveExtensions.includes(ext)) {return 'archive';}
 
   return 'unsupported';
 });
@@ -433,7 +580,7 @@ const handleImageError = () => {
  * 加载文件内容
  */
 const loadFileContent = async () => {
-  if (!props.file || !fileType.value) return;
+  if (!props.file || !fileType.value) {return;}
 
   loading.value = true;
   error.value = null;
@@ -859,7 +1006,7 @@ const handlePdfError = (err) => {
  * 在系统中打开文件
  */
 const handleOpenExternal = async () => {
-  if (!props.file?.file_path) return;
+  if (!props.file?.file_path) {return;}
 
   try {
     const resolvedPath = await window.electronAPI.project.resolvePath(props.file.file_path);

@@ -1,15 +1,28 @@
 <template>
   <div class="project-stats-panel">
-    <a-card title="项目统计" :bordered="false" :loading="loading">
+    <a-card
+      title="项目统计"
+      :bordered="false"
+      :loading="loading"
+    >
       <template #extra>
-        <a-button type="link" size="small" @click="refreshStats">
-          <template #icon><ReloadOutlined /></template>
+        <a-button
+          type="link"
+          size="small"
+          @click="refreshStats"
+        >
+          <template #icon>
+            <ReloadOutlined />
+          </template>
           刷新
         </a-button>
       </template>
 
       <!-- 基础统计 -->
-      <a-row :gutter="16" class="stats-row">
+      <a-row
+        :gutter="16"
+        class="stats-row"
+      >
         <a-col :span="6">
           <a-statistic
             title="文件数量"
@@ -62,11 +75,20 @@
       <a-divider />
 
       <!-- ECharts图表 -->
-      <div ref="chartRef" style="height: 300px"></div>
+      <div
+        ref="chartRef"
+        style="height: 300px"
+      />
 
       <!-- 最后更新时间 -->
-      <div class="last-update" v-if="stats.last_updated_at">
-        <a-text type="secondary" style="font-size: 12px">
+      <div
+        v-if="stats.last_updated_at"
+        class="last-update"
+      >
+        <a-text
+          type="secondary"
+          style="font-size: 12px"
+        >
           最后更新: {{ formatTime(stats.last_updated_at) }}
         </a-text>
       </div>
@@ -143,7 +165,7 @@ const updateChart = () => {
     chartInstance = echarts.init(chartRef.value);
   }
 
-  if (!chartInstance) return;
+  if (!chartInstance) {return;}
 
   const total = (stats.value.code_lines || 0) +
                 (stats.value.comment_lines || 0) +
@@ -225,7 +247,7 @@ const updateChart = () => {
 };
 
 const formatTime = (timestamp) => {
-  if (!timestamp) return '';
+  if (!timestamp) {return '';}
   const date = new Date(timestamp);
   return date.toLocaleString('zh-CN');
 };

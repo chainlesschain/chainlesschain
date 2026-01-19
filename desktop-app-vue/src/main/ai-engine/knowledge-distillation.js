@@ -512,8 +512,8 @@ class KnowledgeDistillation {
     try {
       const { startTime, endTime } = options;
 
-      let whereClauses = [];
-      let params = [];
+      const whereClauses = [];
+      const params = [];
 
       if (startTime) {
         whereClauses.push('created_at >= ?');

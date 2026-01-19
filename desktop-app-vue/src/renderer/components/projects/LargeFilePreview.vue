@@ -5,8 +5,13 @@
       <div class="info-left">
         <FileTextOutlined class="file-icon" />
         <span class="file-size">{{ formatSize(fileInfo.size) }}</span>
-        <a-tag color="orange">大文件</a-tag>
-        <span v-if="fileInfo.estimatedLines" class="line-count">
+        <a-tag color="orange">
+          大文件
+        </a-tag>
+        <span
+          v-if="fileInfo.estimatedLines"
+          class="line-count"
+        >
           约 {{ fileInfo.estimatedLines.toLocaleString() }} 行
         </span>
       </div>
@@ -15,8 +20,8 @@
           v-model:value="searchQuery"
           placeholder="搜索内容..."
           style="width: 300px"
-          @search="handleSearch"
           :loading="searching"
+          @search="handleSearch"
         >
           <template #enterButton>
             <SearchOutlined />
@@ -26,10 +31,18 @@
     </div>
 
     <!-- 搜索结果 -->
-    <div v-if="searchResults.length > 0" class="search-results">
+    <div
+      v-if="searchResults.length > 0"
+      class="search-results"
+    >
       <div class="results-header">
         <span>找到 {{ searchResults.length }} 个匹配项</span>
-        <a-button size="small" @click="clearSearch">清除</a-button>
+        <a-button
+          size="small"
+          @click="clearSearch"
+        >
+          清除
+        </a-button>
       </div>
       <div class="results-list">
         <div
@@ -45,7 +58,11 @@
     </div>
 
     <!-- 虚拟滚动容器 -->
-    <div ref="scrollContainer" class="scroll-container" @scroll="handleScroll">
+    <div
+      ref="scrollContainer"
+      class="scroll-container"
+      @scroll="handleScroll"
+    >
       <div :style="{ height: `${totalHeight}px`, position: 'relative' }">
         <div
           v-for="virtualRow in virtualRows"
@@ -65,7 +82,10 @@
       </div>
 
       <!-- 加载指示器 -->
-      <div v-if="loading" class="loading-indicator">
+      <div
+        v-if="loading"
+        class="loading-indicator"
+      >
         <a-spin size="small" />
         <span>加载中...</span>
       </div>
@@ -75,11 +95,17 @@
     <div class="status-bar">
       <span>当前显示: {{ loadedLines.length }} 行</span>
       <span>滚动位置: 第 {{ currentTopLine }} 行</span>
-      <a-button size="small" @click="jumpToTop">
+      <a-button
+        size="small"
+        @click="jumpToTop"
+      >
         <VerticalAlignTopOutlined />
         顶部
       </a-button>
-      <a-button size="small" @click="jumpToBottom">
+      <a-button
+        size="small"
+        @click="jumpToBottom"
+      >
         <VerticalAlignBottomOutlined />
         底部
       </a-button>
@@ -133,7 +159,7 @@ const containerHeight = ref(600);
  * 计算虚拟滚动的可见行
  */
 const virtualRows = computed(() => {
-  if (loadedLines.value.length === 0) return [];
+  if (loadedLines.value.length === 0) {return [];}
 
   const startIndex = Math.floor(scrollTop.value / LINE_HEIGHT);
   const endIndex = Math.min(
@@ -223,7 +249,7 @@ const loadInitialContent = async () => {
  * 加载更多内容（向下滚动）
  */
 const loadMoreContent = async () => {
-  if (loading.value) return;
+  if (loading.value) {return;}
 
   loading.value = true;
 
@@ -389,7 +415,7 @@ const jumpToBottom = async () => {
  * 格式化文件大小
  */
 const formatSize = (bytes) => {
-  if (!bytes || bytes === 0) return '0 B';
+  if (!bytes || bytes === 0) {return '0 B';}
   const units = ['B', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(1024));
   return `${(bytes / Math.pow(1024, i)).toFixed(2)} ${units[i]}`;
@@ -399,7 +425,7 @@ const formatSize = (bytes) => {
  * 截断文本
  */
 const truncate = (text, maxLength) => {
-  if (text.length <= maxLength) return text;
+  if (text.length <= maxLength) {return text;}
   return text.substring(0, maxLength) + '...';
 };
 

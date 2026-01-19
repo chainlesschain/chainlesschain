@@ -5,15 +5,24 @@
       sub-title="管理数据库加密和安全设置"
     />
 
-    <a-card title="加密状态" style="margin-bottom: 16px">
-      <a-descriptions bordered :column="2">
+    <a-card
+      title="加密状态"
+      style="margin-bottom: 16px"
+    >
+      <a-descriptions
+        bordered
+        :column="2"
+      >
         <a-descriptions-item label="加密状态">
           <DatabaseEncryptionStatus ref="statusRef" />
         </a-descriptions-item>
         <a-descriptions-item label="加密方法">
           {{ encryptionMethodText }}
         </a-descriptions-item>
-        <a-descriptions-item label="数据库引擎" :span="2">
+        <a-descriptions-item
+          label="数据库引擎"
+          :span="2"
+        >
           <a-tag :color="engineColor">
             {{ config.engine || 'sql.js' }}
           </a-tag>
@@ -24,7 +33,10 @@
       </a-descriptions>
     </a-card>
 
-    <a-card title="加密设置" style="margin-bottom: 16px">
+    <a-card
+      title="加密设置"
+      style="margin-bottom: 16px"
+    >
       <a-form layout="vertical">
         <a-form-item
           label="启用数据库加密"
@@ -35,8 +47,12 @@
             :loading="loading"
             @change="handleEncryptionToggle"
           >
-            <template #checkedChildren>已启用</template>
-            <template #unCheckedChildren>已禁用</template>
+            <template #checkedChildren>
+              已启用
+            </template>
+            <template #unCheckedChildren>
+              已禁用
+            </template>
           </a-switch>
         </a-form-item>
 
@@ -80,8 +96,14 @@
       </a-form>
     </a-card>
 
-    <a-card title="密码管理" v-if="config.encryptionEnabled && config.encryptionMethod === 'password'">
-      <a-space direction="vertical" style="width: 100%">
+    <a-card
+      v-if="config.encryptionEnabled && config.encryptionMethod === 'password'"
+      title="密码管理"
+    >
+      <a-space
+        direction="vertical"
+        style="width: 100%"
+      >
         <a-button
           v-if="config.firstTimeSetup"
           type="primary"
@@ -111,8 +133,14 @@
     <!-- 性能监控 -->
     <DatabasePerformanceMonitor style="margin-top: 16px" />
 
-    <a-card title="高级选项" style="margin-top: 16px">
-      <a-space direction="vertical" style="width: 100%">
+    <a-card
+      title="高级选项"
+      style="margin-top: 16px"
+    >
+      <a-space
+        direction="vertical"
+        style="width: 100%"
+      >
         <div>
           <h4>性能信息</h4>
           <p>
@@ -125,7 +153,10 @@
 
         <div>
           <h4>重置加密配置</h4>
-          <a-button danger @click="showResetConfirm">
+          <a-button
+            danger
+            @click="showResetConfirm"
+          >
             <DeleteOutlined /> 重置配置
           </a-button>
           <p style="margin-top: 8px; color: #999">
@@ -185,7 +216,7 @@ const config = reactive({
 });
 
 const encryptionMethodText = computed(() => {
-  if (!config.encryptionEnabled) return '未启用';
+  if (!config.encryptionEnabled) {return '未启用';}
   return config.encryptionMethod === 'ukey' ? 'U-Key 硬件加密' : '密码派生';
 });
 

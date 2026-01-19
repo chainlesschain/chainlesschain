@@ -70,7 +70,7 @@ class PerformanceMonitor {
    * 开始监控
    */
   start() {
-    if (this.isMonitoring.value) return;
+    if (this.isMonitoring.value) {return;}
 
     this.isMonitoring.value = true;
 
@@ -92,7 +92,7 @@ class PerformanceMonitor {
    * 停止监控
    */
   stop() {
-    if (!this.isMonitoring.value) return;
+    if (!this.isMonitoring.value) {return;}
 
     this.isMonitoring.value = false;
 
@@ -178,7 +178,7 @@ class PerformanceMonitor {
    */
   startFPSMonitoring() {
     const measureFPS = () => {
-      if (!this.isMonitoring.value) return;
+      if (!this.isMonitoring.value) {return;}
 
       this.frameCount++;
       const now = performance.now();
@@ -225,7 +225,7 @@ class PerformanceMonitor {
    * 启动渲染性能监控
    */
   startRenderMonitoring() {
-    if (!window.PerformanceObserver) return;
+    if (!window.PerformanceObserver) {return;}
 
     try {
       this.renderObserver = new PerformanceObserver((list) => {

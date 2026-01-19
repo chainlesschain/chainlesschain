@@ -8,12 +8,30 @@
     @cancel="handleClose"
   >
     <!-- 标签栏 -->
-    <a-tabs v-model:activeKey="activeTab" class="file-tabs">
-      <a-tab-pane key="all" tab="全部" />
-      <a-tab-pane key="ppt" tab="PPT" />
-      <a-tab-pane key="word" tab="文档" />
-      <a-tab-pane key="excel" tab="文档" />
-      <a-tab-pane key="image" tab="图片" />
+    <a-tabs
+      v-model:active-key="activeTab"
+      class="file-tabs"
+    >
+      <a-tab-pane
+        key="all"
+        tab="全部"
+      />
+      <a-tab-pane
+        key="ppt"
+        tab="PPT"
+      />
+      <a-tab-pane
+        key="word"
+        tab="文档"
+      />
+      <a-tab-pane
+        key="excel"
+        tab="文档"
+      />
+      <a-tab-pane
+        key="image"
+        tab="图片"
+      />
     </a-tabs>
 
     <!-- 文件列表 -->
@@ -27,15 +45,22 @@
       >
         <!-- 文件图标 -->
         <div class="file-icon-wrapper">
-          <div class="file-icon" :class="`file-type-${file.type}`">
+          <div
+            class="file-icon"
+            :class="`file-type-${file.type}`"
+          >
             <component :is="getFileIcon(file.type)" />
           </div>
         </div>
 
         <!-- 文件信息 -->
         <div class="file-info">
-          <div class="file-name">{{ file.name }}</div>
-          <div class="file-meta">{{ file.date }}</div>
+          <div class="file-name">
+            {{ file.name }}
+          </div>
+          <div class="file-meta">
+            {{ file.date }}
+          </div>
         </div>
 
         <!-- 操作按钮 -->
@@ -60,15 +85,22 @@
       </div>
 
       <!-- 空状态 -->
-      <div v-if="filteredFiles.length === 0" class="empty-state">
+      <div
+        v-if="filteredFiles.length === 0"
+        class="empty-state"
+      >
         <InboxOutlined class="empty-icon" />
-        <div class="empty-text">暂无文件</div>
+        <div class="empty-text">
+          暂无文件
+        </div>
       </div>
     </div>
 
     <!-- 底部操作栏 -->
     <div class="modal-footer">
-      <a-button @click="handleClose">取消</a-button>
+      <a-button @click="handleClose">
+        取消
+      </a-button>
       <a-button
         type="primary"
         :disabled="selectedFileIds.length === 0"

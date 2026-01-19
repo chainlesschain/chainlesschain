@@ -1,9 +1,14 @@
 <template>
   <div class="share-project-view">
     <!-- 加载中 -->
-    <div v-if="loading" class="loading-container">
+    <div
+      v-if="loading"
+      class="loading-container"
+    >
       <a-spin size="large" />
-      <p class="loading-text">正在加载分享项目...</p>
+      <p class="loading-text">
+        正在加载分享项目...
+      </p>
     </div>
 
     <!-- 错误提示 -->
@@ -14,14 +19,20 @@
       :sub-title="errorMessage"
     >
       <template #extra>
-        <a-button type="primary" @click="handleBackToHome">
+        <a-button
+          type="primary"
+          @click="handleBackToHome"
+        >
           返回首页
         </a-button>
       </template>
     </a-result>
 
     <!-- 项目内容 -->
-    <div v-else-if="shareInfo" class="project-container">
+    <div
+      v-else-if="shareInfo"
+      class="project-container"
+    >
       <!-- 项目头部 -->
       <div class="project-header">
         <div class="header-content">
@@ -31,15 +42,20 @@
               v-if="shareInfo.cover_image_url"
               :src="shareInfo.cover_image_url"
               :alt="shareInfo.project_name"
-            />
-            <div v-else class="cover-placeholder">
+            >
+            <div
+              v-else
+              class="cover-placeholder"
+            >
               <FolderOpenOutlined :style="{ fontSize: '64px', color: '#1890ff' }" />
             </div>
           </div>
 
           <!-- 项目信息 -->
           <div class="project-info">
-            <h1 class="project-title">{{ shareInfo.project_name }}</h1>
+            <h1 class="project-title">
+              {{ shareInfo.project_name }}
+            </h1>
 
             <div class="project-meta">
               <a-tag :color="getProjectTypeColor(shareInfo.project_type)">
@@ -59,12 +75,18 @@
               </span>
             </div>
 
-            <p v-if="shareInfo.project_description" class="project-description">
+            <p
+              v-if="shareInfo.project_description"
+              class="project-description"
+            >
               {{ shareInfo.project_description }}
             </p>
 
             <div class="project-actions">
-              <a-button type="primary" @click="handleOpenInApp">
+              <a-button
+                type="primary"
+                @click="handleOpenInApp"
+              >
                 <DownloadOutlined />
                 在应用中打开
               </a-button>
@@ -93,13 +115,22 @@
         </div>
 
         <!-- 文件列表 -->
-        <div v-if="loading" class="files-loading">
+        <div
+          v-if="loading"
+          class="files-loading"
+        >
           <a-spin />
         </div>
 
-        <a-empty v-else-if="!filteredFiles || filteredFiles.length === 0" description="暂无文件" />
+        <a-empty
+          v-else-if="!filteredFiles || filteredFiles.length === 0"
+          description="暂无文件"
+        />
 
-        <div v-else class="files-list">
+        <div
+          v-else
+          class="files-list"
+        >
           <div
             v-for="file in paginatedFiles"
             :key="file.id"
@@ -107,11 +138,16 @@
             @click="handleFileClick(file)"
           >
             <div class="file-icon">
-              <FileIcon :filename="file.file_name" :size="40" />
+              <FileIcon
+                :filename="file.file_name"
+                :size="40"
+              />
             </div>
 
             <div class="file-info">
-              <div class="file-name">{{ file.file_name }}</div>
+              <div class="file-name">
+                {{ file.file_name }}
+              </div>
               <div class="file-meta">
                 <span>{{ formatFileSize(file.file_size) }}</span>
                 <span class="separator">•</span>
@@ -120,7 +156,11 @@
             </div>
 
             <div class="file-actions">
-              <a-button type="text" size="small" @click.stop="handlePreview(file)">
+              <a-button
+                type="text"
+                size="small"
+                @click.stop="handlePreview(file)"
+              >
                 <EyeOutlined />
                 预览
               </a-button>
@@ -129,7 +169,10 @@
         </div>
 
         <!-- 分页 -->
-        <div v-if="filteredFiles && filteredFiles.length > pageSize" class="pagination">
+        <div
+          v-if="filteredFiles && filteredFiles.length > pageSize"
+          class="pagination"
+        >
           <a-pagination
             v-model:current="currentPage"
             v-model:page-size="pageSize"
@@ -151,20 +194,36 @@
     >
       <div class="file-preview">
         <!-- Markdown预览 -->
-        <div v-if="isMarkdown(previewFile)" class="markdown-preview" v-html="renderedMarkdown"></div>
+        <div
+          v-if="isMarkdown(previewFile)"
+          class="markdown-preview"
+          v-html="renderedMarkdown"
+        />
 
         <!-- 代码预览 -->
-        <div v-else-if="isCode(previewFile)" class="code-preview">
+        <div
+          v-else-if="isCode(previewFile)"
+          class="code-preview"
+        >
           <pre><code>{{ previewContent }}</code></pre>
         </div>
 
         <!-- 图片预览 -->
-        <div v-else-if="isImage(previewFile)" class="image-preview">
-          <img :src="previewFile.fs_path" :alt="previewFile.file_name" />
+        <div
+          v-else-if="isImage(previewFile)"
+          class="image-preview"
+        >
+          <img
+            :src="previewFile.fs_path"
+            :alt="previewFile.file_name"
+          >
         </div>
 
         <!-- 纯文本预览 -->
-        <div v-else class="text-preview">
+        <div
+          v-else
+          class="text-preview"
+        >
           <pre>{{ previewContent }}</pre>
         </div>
       </div>
@@ -207,7 +266,7 @@ const previewContent = ref('');
 
 // 计算属性
 const filteredFiles = computed(() => {
-  if (!searchText.value) return projectFiles.value;
+  if (!searchText.value) {return projectFiles.value;}
 
   const keyword = searchText.value.toLowerCase();
   return projectFiles.value.filter(file =>
@@ -222,7 +281,7 @@ const paginatedFiles = computed(() => {
 });
 
 const renderedMarkdown = computed(() => {
-  if (!previewContent.value) return '';
+  if (!previewContent.value) {return '';}
   try {
     return marked(previewContent.value);
   } catch (e) {
@@ -354,7 +413,7 @@ const getProjectTypeLabel = (type) => {
 };
 
 const formatDate = (timestamp) => {
-  if (!timestamp) return '未知';
+  if (!timestamp) {return '未知';}
   const date = new Date(timestamp);
   return date.toLocaleDateString('zh-CN', {
     year: 'numeric',
@@ -364,7 +423,7 @@ const formatDate = (timestamp) => {
 };
 
 const formatFileSize = (bytes) => {
-  if (!bytes || bytes === 0) return '0 B';
+  if (!bytes || bytes === 0) {return '0 B';}
 
   const k = 1024;
   const sizes = ['B', 'KB', 'MB', 'GB'];
@@ -374,18 +433,18 @@ const formatFileSize = (bytes) => {
 };
 
 const isMarkdown = (file) => {
-  if (!file) return false;
+  if (!file) {return false;}
   return file.file_type === 'md' || file.file_name.endsWith('.md');
 };
 
 const isCode = (file) => {
-  if (!file) return false;
+  if (!file) {return false;}
   const codeTypes = ['js', 'ts', 'jsx', 'tsx', 'vue', 'py', 'java', 'cpp', 'c', 'h', 'css', 'html', 'json'];
   return codeTypes.includes(file.file_type);
 };
 
 const isImage = (file) => {
-  if (!file) return false;
+  if (!file) {return false;}
   const imageTypes = ['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp'];
   return imageTypes.includes(file.file_type);
 };

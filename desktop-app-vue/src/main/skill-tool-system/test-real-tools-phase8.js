@@ -297,12 +297,12 @@ async function testPhase8RealTools() {
     const statusIcon = result.status === '通过' ? '✅' :
                       result.status === '跳过' ? '⏭️' : '❌';
     console.log(`${index + 1}. ${statusIcon} ${result.test} - ${result.status}`);
-    if (result.avg_time) console.log(`   平均延迟: ${result.avg_time}ms`);
-    if (result.packet_loss !== undefined) console.log(`   丢包率: ${result.packet_loss}%`);
-    if (result.ip_count) console.log(`   解析IP数: ${result.ip_count}`);
-    if (result.port_status) console.log(`   端口状态: ${result.port_status}`);
-    if (result.config_path) console.log(`   配置文件: ${result.config_path}`);
-    if (result.error) console.log(`   错误: ${result.error}`);
+    if (result.avg_time) {console.log(`   平均延迟: ${result.avg_time}ms`);}
+    if (result.packet_loss !== undefined) {console.log(`   丢包率: ${result.packet_loss}%`);}
+    if (result.ip_count) {console.log(`   解析IP数: ${result.ip_count}`);}
+    if (result.port_status) {console.log(`   端口状态: ${result.port_status}`);}
+    if (result.config_path) {console.log(`   配置文件: ${result.config_path}`);}
+    if (result.error) {console.log(`   错误: ${result.error}`);}
   });
 
   console.log('\n========================================');

@@ -12,14 +12,18 @@
 
       <!-- 表单 -->
       <a-form
+        ref="formRef"
         :model="formData"
         :rules="rules"
         layout="vertical"
         @finish="handleSubmit"
-        ref="formRef"
       >
         <!-- 项目名称 -->
-        <a-form-item label="项目名称" name="name" required>
+        <a-form-item
+          label="项目名称"
+          name="name"
+          required
+        >
           <a-input
             v-model:value="formData.name"
             placeholder="输入项目名称"
@@ -28,7 +32,10 @@
         </a-form-item>
 
         <!-- 项目描述 -->
-        <a-form-item label="项目描述" name="description">
+        <a-form-item
+          label="项目描述"
+          name="description"
+        >
           <a-textarea
             v-model:value="formData.description"
             placeholder="简要描述项目用途和目标..."
@@ -39,8 +46,15 @@
         </a-form-item>
 
         <!-- 项目类型 -->
-        <a-form-item label="项目类型" name="projectType" required>
-          <a-radio-group v-model:value="formData.projectType" size="large">
+        <a-form-item
+          label="项目类型"
+          name="projectType"
+          required
+        >
+          <a-radio-group
+            v-model:value="formData.projectType"
+            size="large"
+          >
             <a-radio-button value="web">
               <CodeOutlined />
               Web开发
@@ -61,7 +75,10 @@
         </a-form-item>
 
         <!-- 项目标签 -->
-        <a-form-item label="项目标签" name="tags">
+        <a-form-item
+          label="项目标签"
+          name="tags"
+        >
           <a-select
             v-model:value="formData.tags"
             mode="tags"
@@ -75,21 +92,36 @@
         </a-form-item>
 
         <!-- 初始状态 -->
-        <a-form-item label="初始状态" name="status">
+        <a-form-item
+          label="初始状态"
+          name="status"
+        >
           <a-radio-group v-model:value="formData.status">
-            <a-radio value="draft">草稿</a-radio>
-            <a-radio value="active">进行中</a-radio>
+            <a-radio value="draft">
+              草稿
+            </a-radio>
+            <a-radio value="active">
+              进行中
+            </a-radio>
           </a-radio-group>
         </a-form-item>
 
         <!-- 提交按钮 -->
         <a-form-item>
           <div class="form-actions">
-            <a-button type="primary" html-type="submit" size="large" :loading="creating">
+            <a-button
+              type="primary"
+              html-type="submit"
+              size="large"
+              :loading="creating"
+            >
               <PlusOutlined />
               创建项目
             </a-button>
-            <a-button size="large" @click="handleReset">
+            <a-button
+              size="large"
+              @click="handleReset"
+            >
               重置
             </a-button>
           </div>

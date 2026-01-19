@@ -9,56 +9,81 @@
       </template>
       <template #extra>
         <a-button @click="loadStatistics">
-          <template #icon><reload-outlined /></template>
+          <template #icon>
+            <reload-outlined />
+          </template>
           刷新
         </a-button>
       </template>
 
       <a-spin :spinning="loading">
         <!-- 概览统计 -->
-        <a-row :gutter="[16, 16]" style="margin-bottom: 24px">
+        <a-row
+          :gutter="[16, 16]"
+          style="margin-bottom: 24px"
+        >
           <a-col :span="6">
-            <a-card size="small" hoverable>
+            <a-card
+              size="small"
+              hoverable
+            >
               <a-statistic
                 title="资产总数"
                 :value="statistics.totalAssets"
                 :value-style="{ color: '#1890ff' }"
               >
-                <template #prefix><database-outlined /></template>
+                <template #prefix>
+                  <database-outlined />
+                </template>
               </a-statistic>
             </a-card>
           </a-col>
           <a-col :span="6">
-            <a-card size="small" hoverable>
+            <a-card
+              size="small"
+              hoverable
+            >
               <a-statistic
                 title="总市值"
                 :value="statistics.totalValue"
                 :precision="2"
                 :value-style="{ color: '#52c41a' }"
               >
-                <template #prefix><dollar-outlined /></template>
+                <template #prefix>
+                  <dollar-outlined />
+                </template>
               </a-statistic>
             </a-card>
           </a-col>
           <a-col :span="6">
-            <a-card size="small" hoverable>
+            <a-card
+              size="small"
+              hoverable
+            >
               <a-statistic
                 title="转账总次数"
                 :value="statistics.totalTransfers"
                 :value-style="{ color: '#faad14' }"
               >
-                <template #prefix><swap-outlined /></template>
+                <template #prefix>
+                  <swap-outlined />
+                </template>
               </a-statistic>
             </a-card>
           </a-col>
           <a-col :span="6">
-            <a-card size="small" hoverable>
+            <a-card
+              size="small"
+              hoverable
+            >
               <a-statistic
                 title="持有人数"
                 :value="statistics.totalHolders"
                 :value-style="{ color: '#722ed1' }"
               >
-                <template #prefix><team-outlined /></template>
+                <template #prefix>
+                  <team-outlined />
+                </template>
               </a-statistic>
             </a-card>
           </a-col>
@@ -68,36 +93,66 @@
         <a-row :gutter="[16, 16]">
           <!-- 资产类型分布 -->
           <a-col :span="12">
-            <a-card title="资产类型分布" size="small">
-              <div ref="typeChartRef" style="width: 100%; height: 300px"></div>
+            <a-card
+              title="资产类型分布"
+              size="small"
+            >
+              <div
+                ref="typeChartRef"
+                style="width: 100%; height: 300px"
+              />
             </a-card>
           </a-col>
 
           <!-- 持仓占比 -->
           <a-col :span="12">
-            <a-card title="持仓占比 Top 10" size="small">
-              <div ref="holdingChartRef" style="width: 100%; height: 300px"></div>
+            <a-card
+              title="持仓占比 Top 10"
+              size="small"
+            >
+              <div
+                ref="holdingChartRef"
+                style="width: 100%; height: 300px"
+              />
             </a-card>
           </a-col>
 
           <!-- 资产增长趋势 -->
           <a-col :span="24">
-            <a-card title="资产增长趋势" size="small">
-              <div ref="growthChartRef" style="width: 100%; height: 300px"></div>
+            <a-card
+              title="资产增长趋势"
+              size="small"
+            >
+              <div
+                ref="growthChartRef"
+                style="width: 100%; height: 300px"
+              />
             </a-card>
           </a-col>
 
           <!-- 转账活跃度 -->
           <a-col :span="12">
-            <a-card title="转账活跃度" size="small">
-              <div ref="activityChartRef" style="width: 100%; height: 300px"></div>
+            <a-card
+              title="转账活跃度"
+              size="small"
+            >
+              <div
+                ref="activityChartRef"
+                style="width: 100%; height: 300px"
+              />
             </a-card>
           </a-col>
 
           <!-- 资产创建趋势 -->
           <a-col :span="12">
-            <a-card title="资产创建趋势" size="small">
-              <div ref="creationChartRef" style="width: 100%; height: 300px"></div>
+            <a-card
+              title="资产创建趋势"
+              size="small"
+            >
+              <div
+                ref="creationChartRef"
+                style="width: 100%; height: 300px"
+              />
             </a-card>
           </a-col>
         </a-row>
@@ -230,7 +285,7 @@ const renderCharts = (data) => {
 
 // 渲染资产类型分布图
 const renderTypeChart = (data) => {
-  if (!typeChartRef.value) return;
+  if (!typeChartRef.value) {return;}
 
   if (!typeChart) {
     typeChart = echarts.init(typeChartRef.value);
@@ -268,7 +323,7 @@ const renderTypeChart = (data) => {
 
 // 渲染持仓占比图
 const renderHoldingChart = (data) => {
-  if (!holdingChartRef.value) return;
+  if (!holdingChartRef.value) {return;}
 
   if (!holdingChart) {
     holdingChart = echarts.init(holdingChartRef.value);
@@ -311,7 +366,7 @@ const renderHoldingChart = (data) => {
 
 // 渲染资产增长趋势图
 const renderGrowthChart = (data) => {
-  if (!growthChartRef.value) return;
+  if (!growthChartRef.value) {return;}
 
   if (!growthChart) {
     growthChart = echarts.init(growthChartRef.value);
@@ -353,7 +408,7 @@ const renderGrowthChart = (data) => {
 
 // 渲染转账活跃度图
 const renderActivityChart = (data) => {
-  if (!activityChartRef.value) return;
+  if (!activityChartRef.value) {return;}
 
   if (!activityChart) {
     activityChart = echarts.init(activityChartRef.value);
@@ -395,7 +450,7 @@ const renderActivityChart = (data) => {
 
 // 渲染资产创建趋势图
 const renderCreationChart = (data) => {
-  if (!creationChartRef.value) return;
+  if (!creationChartRef.value) {return;}
 
   if (!creationChart) {
     creationChart = echarts.init(creationChartRef.value);

@@ -1,5 +1,8 @@
 <template>
-  <div class="project-list-item" @click="handleView">
+  <div
+    class="project-list-item"
+    @click="handleView"
+  >
     <!-- 左侧：项目信息 -->
     <div class="item-left">
       <!-- 项目图标 -->
@@ -10,21 +13,40 @@
       <!-- 项目详情 -->
       <div class="project-info">
         <div class="info-header">
-          <h4 class="project-name">{{ project.name }}</h4>
-          <div class="status-badge" :class="`status-${project.status}`">
+          <h4 class="project-name">
+            {{ project.name }}
+          </h4>
+          <div
+            class="status-badge"
+            :class="`status-${project.status}`"
+          >
             {{ statusText }}
           </div>
         </div>
 
-        <p class="project-description">{{ truncatedDescription }}</p>
+        <p class="project-description">
+          {{ truncatedDescription }}
+        </p>
 
         <!-- 标签和元信息 -->
         <div class="project-footer">
-          <div v-if="tags.length > 0" class="project-tags">
-            <a-tag v-for="tag in tags.slice(0, 4)" :key="tag" color="blue" size="small">
+          <div
+            v-if="tags.length > 0"
+            class="project-tags"
+          >
+            <a-tag
+              v-for="tag in tags.slice(0, 4)"
+              :key="tag"
+              color="blue"
+              size="small"
+            >
               {{ tag }}
             </a-tag>
-            <a-tag v-if="tags.length > 4" color="default" size="small">
+            <a-tag
+              v-if="tags.length > 4"
+              color="default"
+              size="small"
+            >
               +{{ tags.length - 4 }}
             </a-tag>
           </div>
@@ -35,9 +57,18 @@
               <span>{{ project.file_count || 0 }} 文件</span>
             </div>
             <div class="meta-item">
-              <CloudOutlined v-if="project.sync_status === 'synced'" style="color: #10b981" />
-              <CloudSyncOutlined v-else-if="project.sync_status === 'pending'" style="color: #f59e0b" />
-              <ExclamationCircleOutlined v-else-if="project.sync_status === 'error'" style="color: #ef4444" />
+              <CloudOutlined
+                v-if="project.sync_status === 'synced'"
+                style="color: #10b981"
+              />
+              <CloudSyncOutlined
+                v-else-if="project.sync_status === 'pending'"
+                style="color: #f59e0b"
+              />
+              <ExclamationCircleOutlined
+                v-else-if="project.sync_status === 'error'"
+                style="color: #ef4444"
+              />
               <span>{{ syncStatusText }}</span>
             </div>
             <div class="meta-item">
@@ -51,7 +82,10 @@
 
     <!-- 右侧：操作按钮 -->
     <div class="item-right">
-      <a-button type="primary" @click.stop="handleView">
+      <a-button
+        type="primary"
+        @click.stop="handleView"
+      >
         <EyeOutlined />
         查看
       </a-button>
@@ -59,7 +93,10 @@
         <EditOutlined />
         编辑
       </a-button>
-      <a-button danger @click.stop="handleDelete">
+      <a-button
+        danger
+        @click.stop="handleDelete"
+      >
         <DeleteOutlined />
       </a-button>
     </div>
@@ -147,7 +184,7 @@ const truncatedDescription = computed(() => {
 const formattedUpdateTime = computed(() => {
   try {
     const timestamp = props.project.updated_at;
-    if (!timestamp) return '未知';
+    if (!timestamp) {return '未知';}
 
     return formatDistanceToNow(new Date(timestamp), {
       addSuffix: true,

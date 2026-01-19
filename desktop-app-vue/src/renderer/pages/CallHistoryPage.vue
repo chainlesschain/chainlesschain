@@ -3,18 +3,40 @@
     <div class="page-header">
       <h2>通话记录</h2>
       <a-space>
-        <a-select v-model:value="filterType" style="width: 120px" @change="handleFilterChange">
-          <a-select-option value="all">全部</a-select-option>
-          <a-select-option value="audio">语音通话</a-select-option>
-          <a-select-option value="video">视频通话</a-select-option>
-          <a-select-option value="screen">屏幕共享</a-select-option>
+        <a-select
+          v-model:value="filterType"
+          style="width: 120px"
+          @change="handleFilterChange"
+        >
+          <a-select-option value="all">
+            全部
+          </a-select-option>
+          <a-select-option value="audio">
+            语音通话
+          </a-select-option>
+          <a-select-option value="video">
+            视频通话
+          </a-select-option>
+          <a-select-option value="screen">
+            屏幕共享
+          </a-select-option>
         </a-select>
-        <a-button @click="handleRefresh" :loading="loading">
-          <template #icon><ReloadOutlined /></template>
+        <a-button
+          :loading="loading"
+          @click="handleRefresh"
+        >
+          <template #icon>
+            <ReloadOutlined />
+          </template>
           刷新
         </a-button>
-        <a-button danger @click="handleClearAll">
-          <template #icon><DeleteOutlined /></template>
+        <a-button
+          danger
+          @click="handleClearAll"
+        >
+          <template #icon>
+            <DeleteOutlined />
+          </template>
           清空记录
         </a-button>
       </a-space>
@@ -22,7 +44,10 @@
 
     <a-spin :spinning="loading">
       <div class="call-history-list">
-        <a-empty v-if="filteredHistory.length === 0" description="暂无通话记录" />
+        <a-empty
+          v-if="filteredHistory.length === 0"
+          description="暂无通话记录"
+        />
 
         <div
           v-for="record in filteredHistory"
@@ -31,9 +56,18 @@
           @click="handleRecordClick(record)"
         >
           <div class="call-icon">
-            <PhoneOutlined v-if="record.type === 'audio'" class="icon-audio" />
-            <VideoCameraOutlined v-else-if="record.type === 'video'" class="icon-video" />
-            <DesktopOutlined v-else class="icon-screen" />
+            <PhoneOutlined
+              v-if="record.type === 'audio'"
+              class="icon-audio"
+            />
+            <VideoCameraOutlined
+              v-else-if="record.type === 'video'"
+              class="icon-video"
+            />
+            <DesktopOutlined
+              v-else
+              class="icon-screen"
+            />
           </div>
 
           <div class="call-info">
@@ -48,7 +82,10 @@
             </div>
             <div class="call-details">
               <span class="call-time">{{ formatDateTime(record.startTime) }}</span>
-              <span class="call-duration" v-if="record.duration">
+              <span
+                v-if="record.duration"
+                class="call-duration"
+              >
                 {{ formatDuration(record.duration) }}
               </span>
             </div>
@@ -88,8 +125,14 @@
       width="400"
       placement="right"
     >
-      <div v-if="selectedRecord" class="call-details-content">
-        <a-descriptions :column="1" bordered>
+      <div
+        v-if="selectedRecord"
+        class="call-details-content"
+      >
+        <a-descriptions
+          :column="1"
+          bordered
+        >
           <a-descriptions-item label="通话类型">
             <a-tag :color="getCallTypeColor(selectedRecord.type)">
               {{ getCallTypeText(selectedRecord.type) }}
@@ -106,10 +149,16 @@
           <a-descriptions-item label="开始时间">
             {{ formatDateTime(selectedRecord.startTime) }}
           </a-descriptions-item>
-          <a-descriptions-item label="结束时间" v-if="selectedRecord.endTime">
+          <a-descriptions-item
+            v-if="selectedRecord.endTime"
+            label="结束时间"
+          >
             {{ formatDateTime(selectedRecord.endTime) }}
           </a-descriptions-item>
-          <a-descriptions-item label="通话时长" v-if="selectedRecord.duration">
+          <a-descriptions-item
+            v-if="selectedRecord.duration"
+            label="通话时长"
+          >
             {{ formatDuration(selectedRecord.duration) }}
           </a-descriptions-item>
           <a-descriptions-item label="发起方">
@@ -118,9 +167,16 @@
         </a-descriptions>
 
         <!-- 通话质量统计 -->
-        <div v-if="selectedRecord.stats" class="call-stats">
+        <div
+          v-if="selectedRecord.stats"
+          class="call-stats"
+        >
           <h4>通话质量</h4>
-          <a-descriptions :column="1" bordered size="small">
+          <a-descriptions
+            :column="1"
+            bordered
+            size="small"
+          >
             <a-descriptions-item label="发送字节">
               {{ formatBytes(selectedRecord.stats.bytesSent) }}
             </a-descriptions-item>
@@ -330,7 +386,7 @@ const formatDuration = (seconds) => {
 }
 
 const formatBytes = (bytes) => {
-  if (bytes === 0) return '0 B'
+  if (bytes === 0) {return '0 B'}
   const k = 1024
   const sizes = ['B', 'KB', 'MB', 'GB']
   const i = Math.floor(Math.log(bytes) / Math.log(k))

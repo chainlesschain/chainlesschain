@@ -11,7 +11,10 @@
           <p>基于DID的去中心化协作，支持权限管理和版本控制</p>
         </div>
         <div class="header-right">
-          <a-button type="primary" @click="handleInviteCollaborator">
+          <a-button
+            type="primary"
+            @click="handleInviteCollaborator"
+          >
             <UserAddOutlined />
             邀请协作者
           </a-button>
@@ -25,8 +28,14 @@
 
     <!-- 标签页 -->
     <div class="tabs-container">
-      <a-tabs v-model:activeKey="activeTab" @change="handleTabChange">
-        <a-tab-pane key="owned" tab="我创建的">
+      <a-tabs
+        v-model:active-key="activeTab"
+        @change="handleTabChange"
+      >
+        <a-tab-pane
+          key="owned"
+          tab="我创建的"
+        >
           <template #tab>
             <span>
               <CrownOutlined />
@@ -34,7 +43,10 @@
             </span>
           </template>
         </a-tab-pane>
-        <a-tab-pane key="joined" tab="我参与的">
+        <a-tab-pane
+          key="joined"
+          tab="我参与的"
+        >
           <template #tab>
             <span>
               <UsergroupAddOutlined />
@@ -42,12 +54,18 @@
             </span>
           </template>
         </a-tab-pane>
-        <a-tab-pane key="invitations" tab="邀请通知">
+        <a-tab-pane
+          key="invitations"
+          tab="邀请通知"
+        >
           <template #tab>
             <span>
               <MailOutlined />
               邀请通知
-              <a-badge v-if="pendingInvitations.length > 0" :count="pendingInvitations.length" />
+              <a-badge
+                v-if="pendingInvitations.length > 0"
+                :count="pendingInvitations.length"
+              />
             </span>
           </template>
         </a-tab-pane>
@@ -75,21 +93,38 @@
           style="width: 150px"
           @change="handleTypeChange"
         >
-          <a-select-option value="">全部类型</a-select-option>
-          <a-select-option value="web">Web开发</a-select-option>
-          <a-select-option value="document">文档处理</a-select-option>
-          <a-select-option value="data">数据分析</a-select-option>
-          <a-select-option value="app">应用开发</a-select-option>
+          <a-select-option value="">
+            全部类型
+          </a-select-option>
+          <a-select-option value="web">
+            Web开发
+          </a-select-option>
+          <a-select-option value="document">
+            文档处理
+          </a-select-option>
+          <a-select-option value="data">
+            数据分析
+          </a-select-option>
+          <a-select-option value="app">
+            应用开发
+          </a-select-option>
         </a-select>
       </div>
 
       <div class="filter-right">
-        <a-button :loading="loading" @click="handleRefresh">
+        <a-button
+          :loading="loading"
+          @click="handleRefresh"
+        >
           <ReloadOutlined :spin="loading" />
           刷新
         </a-button>
 
-        <a-radio-group v-model:value="viewMode" button-style="solid" @change="handleViewModeChange">
+        <a-radio-group
+          v-model:value="viewMode"
+          button-style="solid"
+          @change="handleViewModeChange"
+        >
           <a-radio-button value="grid">
             <AppstoreOutlined />
           </a-radio-button>
@@ -101,20 +136,35 @@
     </div>
 
     <!-- 加载状态 -->
-    <div v-if="loading" class="loading-container">
-      <a-spin size="large" tip="加载中..." />
+    <div
+      v-if="loading"
+      class="loading-container"
+    >
+      <a-spin
+        size="large"
+        tip="加载中..."
+      />
     </div>
 
     <!-- 邀请通知列表 -->
-    <div v-else-if="activeTab === 'invitations'" class="invitations-container">
-      <div v-if="pendingInvitations.length > 0" class="invitations-list">
+    <div
+      v-else-if="activeTab === 'invitations'"
+      class="invitations-container"
+    >
+      <div
+        v-if="pendingInvitations.length > 0"
+        class="invitations-list"
+      >
         <div
           v-for="invitation in pendingInvitations"
           :key="invitation.id"
           class="invitation-card"
         >
           <div class="invitation-header">
-            <a-avatar :size="48" :style="{ backgroundColor: getAvatarColor(invitation.inviter.did) }">
+            <a-avatar
+              :size="48"
+              :style="{ backgroundColor: getAvatarColor(invitation.inviter.did) }"
+            >
               {{ invitation.inviter.name?.charAt(0) || 'U' }}
             </a-avatar>
             <div class="invitation-info">
@@ -138,7 +188,10 @@
           </div>
 
           <div class="invitation-actions">
-            <a-button type="primary" @click="handleAcceptInvitation(invitation.id)">
+            <a-button
+              type="primary"
+              @click="handleAcceptInvitation(invitation.id)"
+            >
               <CheckOutlined />
               接受
             </a-button>
@@ -150,7 +203,10 @@
         </div>
       </div>
 
-      <div v-else class="empty-state">
+      <div
+        v-else
+        class="empty-state"
+      >
         <div class="empty-icon">
           <MailOutlined />
         </div>
@@ -160,9 +216,15 @@
     </div>
 
     <!-- 协作项目列表 -->
-    <div v-else-if="filteredProjects.length > 0" class="projects-container">
+    <div
+      v-else-if="filteredProjects.length > 0"
+      class="projects-container"
+    >
       <!-- 网格视图 -->
-      <div v-if="viewMode === 'grid'" class="projects-grid">
+      <div
+        v-if="viewMode === 'grid'"
+        class="projects-grid"
+      >
         <div
           v-for="project in filteredProjects"
           :key="project.id"
@@ -172,18 +234,26 @@
             <div class="project-icon">
               <component :is="getProjectTypeIcon(project.project_type)" />
             </div>
-            <a-tag v-if="project.isOwner" color="gold">
+            <a-tag
+              v-if="project.isOwner"
+              color="gold"
+            >
               <CrownOutlined />
               创建者
             </a-tag>
-            <a-tag v-else :color="getRoleColor(project.myRole)">
+            <a-tag
+              v-else
+              :color="getRoleColor(project.myRole)"
+            >
               {{ getRoleName(project.myRole) }}
             </a-tag>
           </div>
 
           <div class="card-body">
             <h3>{{ project.name }}</h3>
-            <p class="description">{{ project.description || '暂无描述' }}</p>
+            <p class="description">
+              {{ project.description || '暂无描述' }}
+            </p>
 
             <!-- 协作者头像组 -->
             <div class="collaborators">
@@ -214,7 +284,11 @@
           </div>
 
           <div class="card-footer">
-            <a-button type="primary" block @click="handleViewProject(project.id)">
+            <a-button
+              type="primary"
+              block
+              @click="handleViewProject(project.id)"
+            >
               <EyeOutlined />
               打开项目
             </a-button>
@@ -223,7 +297,10 @@
       </div>
 
       <!-- 列表视图 -->
-      <div v-else class="projects-list">
+      <div
+        v-else
+        class="projects-list"
+      >
         <div
           v-for="project in filteredProjects"
           :key="project.id"
@@ -236,18 +313,27 @@
           <div class="item-content">
             <div class="item-header">
               <h4>{{ project.name }}</h4>
-              <a-tag v-if="project.isOwner" color="gold">
+              <a-tag
+                v-if="project.isOwner"
+                color="gold"
+              >
                 <CrownOutlined />
                 创建者
               </a-tag>
-              <a-tag v-else :color="getRoleColor(project.myRole)">
+              <a-tag
+                v-else
+                :color="getRoleColor(project.myRole)"
+              >
                 {{ getRoleName(project.myRole) }}
               </a-tag>
             </div>
             <p>{{ project.description || '暂无描述' }}</p>
             <div class="item-meta">
               <div class="collaborators-inline">
-                <a-avatar-group :max-count="3" size="small">
+                <a-avatar-group
+                  :max-count="3"
+                  size="small"
+                >
                   <a-avatar
                     v-for="(collaborator, index) in project.collaborators"
                     :key="index"
@@ -265,7 +351,10 @@
           </div>
 
           <div class="item-actions">
-            <a-button type="primary" @click="handleViewProject(project.id)">
+            <a-button
+              type="primary"
+              @click="handleViewProject(project.id)"
+            >
               <EyeOutlined />
               打开
             </a-button>
@@ -275,11 +364,17 @@
               </a-button>
               <template #overlay>
                 <a-menu @click="({ key }) => handleAction(key, project.id)">
-                  <a-menu-item key="manage" v-if="project.isOwner">
+                  <a-menu-item
+                    v-if="project.isOwner"
+                    key="manage"
+                  >
                     <SettingOutlined />
                     管理协作者
                   </a-menu-item>
-                  <a-menu-item key="leave" v-if="!project.isOwner">
+                  <a-menu-item
+                    v-if="!project.isOwner"
+                    key="leave"
+                  >
                     <LogoutOutlined />
                     退出协作
                   </a-menu-item>
@@ -292,7 +387,10 @@
     </div>
 
     <!-- 空状态 -->
-    <div v-else class="empty-state">
+    <div
+      v-else
+      class="empty-state"
+    >
       <div class="empty-icon">
         <TeamOutlined />
       </div>
@@ -308,7 +406,10 @@
       @ok="handleConfirmInvite"
     >
       <a-form layout="vertical">
-        <a-form-item label="选择项目" required>
+        <a-form-item
+          label="选择项目"
+          required
+        >
           <a-select
             v-model:value="inviteForm.projectId"
             placeholder="选择要邀请协作的项目"
@@ -323,18 +424,33 @@
           </a-select>
         </a-form-item>
 
-        <a-form-item label="协作者DID" required>
+        <a-form-item
+          label="协作者DID"
+          required
+        >
           <a-input
             v-model:value="inviteForm.collaboratorDid"
             placeholder="输入协作者的DID地址"
           />
         </a-form-item>
 
-        <a-form-item label="角色" required>
-          <a-select v-model:value="inviteForm.role" placeholder="选择角色">
-            <a-select-option value="admin">管理员</a-select-option>
-            <a-select-option value="editor">编辑者</a-select-option>
-            <a-select-option value="viewer">查看者</a-select-option>
+        <a-form-item
+          label="角色"
+          required
+        >
+          <a-select
+            v-model:value="inviteForm.role"
+            placeholder="选择角色"
+          >
+            <a-select-option value="admin">
+              管理员
+            </a-select-option>
+            <a-select-option value="editor">
+              编辑者
+            </a-select-option>
+            <a-select-option value="viewer">
+              查看者
+            </a-select-option>
           </a-select>
         </a-form-item>
 
@@ -483,7 +599,7 @@ const getAvatarColor = (did) => {
 
 // 格式化日期
 const formatDate = (timestamp) => {
-  if (!timestamp) return '未知';
+  if (!timestamp) {return '未知';}
   try {
     return format(new Date(timestamp), 'yyyy-MM-dd HH:mm', { locale: zhCN });
   } catch {

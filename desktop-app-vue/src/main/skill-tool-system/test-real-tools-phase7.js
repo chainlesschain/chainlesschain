@@ -217,11 +217,11 @@ async function testPhase7RealTools() {
     const statusIcon = result.status === '通过' ? '✅' :
                       result.status === '跳过' ? '⏭️' : '❌';
     console.log(`${index + 1}. ${statusIcon} ${result.test} - ${result.status}`);
-    if (result.file_size) console.log(`   文件大小: ${(result.file_size / 1024).toFixed(2)} KB`);
-    if (result.error) console.log(`   错误: ${result.error}`);
-    if (result.download) console.log(`   下载: ${result.download} Mbps`);
-    if (result.upload) console.log(`   上传: ${result.upload} Mbps`);
-    if (result.ping) console.log(`   延迟: ${result.ping.toFixed(2)} ms`);
+    if (result.file_size) {console.log(`   文件大小: ${(result.file_size / 1024).toFixed(2)} KB`);}
+    if (result.error) {console.log(`   错误: ${result.error}`);}
+    if (result.download) {console.log(`   下载: ${result.download} Mbps`);}
+    if (result.upload) {console.log(`   上传: ${result.upload} Mbps`);}
+    if (result.ping) {console.log(`   延迟: ${result.ping.toFixed(2)} ms`);}
   });
 
   console.log('\n========================================');

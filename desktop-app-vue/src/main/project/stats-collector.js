@@ -183,7 +183,7 @@ class ProjectStatsCollector {
         return null;
       }
 
-      let stats = {
+      const stats = {
         fileCount: 0,
         totalSizeKB: 0,
         codeLines: 0,
@@ -272,7 +272,7 @@ class ProjectStatsCollector {
       const content = await fs.readFile(filePath, "utf-8");
       const lines = content.split("\n");
 
-      let stats = { code: 0, comment: 0, blank: 0 };
+      const stats = { code: 0, comment: 0, blank: 0 };
       let inBlockComment = false;
       const ext = path.extname(filePath).toLowerCase();
 
@@ -293,8 +293,8 @@ class ProjectStatsCollector {
             ext === ".c" ||
             ext === ".cpp"
           ) {
-            if (trimmed.includes("/*")) inBlockComment = true;
-            if (trimmed.includes("*/")) inBlockComment = false;
+            if (trimmed.includes("/*")) {inBlockComment = true;}
+            if (trimmed.includes("*/")) {inBlockComment = false;}
           }
         } else {
           stats.code++;
@@ -312,7 +312,7 @@ class ProjectStatsCollector {
    * 判断是否为注释行
    */
   isCommentLine(trimmed, ext, inBlockComment) {
-    if (inBlockComment) return true;
+    if (inBlockComment) {return true;}
 
     // JavaScript/TypeScript/Vue/Java/C/C++
     if (

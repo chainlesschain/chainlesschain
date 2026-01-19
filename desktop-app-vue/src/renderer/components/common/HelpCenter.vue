@@ -9,7 +9,9 @@
       size="large"
       @click="visible = true"
     >
-      <template #icon><QuestionCircleOutlined /></template>
+      <template #icon>
+        <QuestionCircleOutlined />
+      </template>
     </a-button>
 
     <!-- 帮助面板 -->
@@ -33,9 +35,15 @@
 
       <div class="help-content">
         <!-- 快速链接 -->
-        <div v-if="!searchQuery && !selectedTopic" class="quick-links">
+        <div
+          v-if="!searchQuery && !selectedTopic"
+          class="quick-links"
+        >
           <h3>快速开始</h3>
-          <a-space direction="vertical" style="width: 100%">
+          <a-space
+            direction="vertical"
+            style="width: 100%"
+          >
             <a-card
               size="small"
               hoverable
@@ -87,7 +95,10 @@
         </div>
 
         <!-- 常见问题 -->
-        <div v-if="!searchQuery && !selectedTopic" class="faq-section">
+        <div
+          v-if="!searchQuery && !selectedTopic"
+          class="faq-section"
+        >
           <h3>常见问题</h3>
           <a-collapse accordion>
             <a-collapse-panel
@@ -95,21 +106,33 @@
               :key="index"
               :header="faq.question"
             >
-              <p v-html="faq.answer"></p>
+              <p v-html="faq.answer" />
             </a-collapse-panel>
           </a-collapse>
         </div>
 
         <!-- 搜索结果 -->
-        <div v-if="searchQuery && !selectedTopic" class="search-results">
+        <div
+          v-if="searchQuery && !selectedTopic"
+          class="search-results"
+        >
           <h3>搜索结果</h3>
-          <div v-if="searchResults.length === 0" class="no-results">
+          <div
+            v-if="searchResults.length === 0"
+            class="no-results"
+          >
             <a-empty description="未找到相关内容" />
-            <a-button type="link" @click="searchQuery = ''">
+            <a-button
+              type="link"
+              @click="searchQuery = ''"
+            >
               清空搜索
             </a-button>
           </div>
-          <a-list v-else :data-source="searchResults">
+          <a-list
+            v-else
+            :data-source="searchResults"
+          >
             <template #renderItem="{ item }">
               <a-list-item @click="showTopic(item.id)">
                 <a-list-item-meta>
@@ -126,29 +149,62 @@
         </div>
 
         <!-- 主题详情 -->
-        <div v-if="selectedTopic" class="topic-detail">
-          <a-button type="link" @click="selectedTopic = null" style="margin-bottom: 16px">
-            <template #icon><ArrowLeftOutlined /></template>
+        <div
+          v-if="selectedTopic"
+          class="topic-detail"
+        >
+          <a-button
+            type="link"
+            style="margin-bottom: 16px"
+            @click="selectedTopic = null"
+          >
+            <template #icon>
+              <ArrowLeftOutlined />
+            </template>
             返回
           </a-button>
-          <div class="topic-content" v-html="topicContent"></div>
+          <div
+            class="topic-content"
+            v-html="topicContent"
+          />
         </div>
 
         <!-- 联系支持 -->
-        <div v-if="!selectedTopic" class="contact-section">
+        <div
+          v-if="!selectedTopic"
+          class="contact-section"
+        >
           <a-divider />
           <h3>需要更多帮助？</h3>
-          <a-space direction="vertical" style="width: 100%">
-            <a-button block @click="openUserManual">
-              <template #icon><BookOutlined /></template>
+          <a-space
+            direction="vertical"
+            style="width: 100%"
+          >
+            <a-button
+              block
+              @click="openUserManual"
+            >
+              <template #icon>
+                <BookOutlined />
+              </template>
               查看完整用户手册
             </a-button>
-            <a-button block @click="openCommunity">
-              <template #icon><CommentOutlined /></template>
+            <a-button
+              block
+              @click="openCommunity"
+            >
+              <template #icon>
+                <CommentOutlined />
+              </template>
               访问社区论坛
             </a-button>
-            <a-button block @click="contactSupport">
-              <template #icon><MailOutlined /></template>
+            <a-button
+              block
+              @click="contactSupport"
+            >
+              <template #icon>
+                <MailOutlined />
+              </template>
               联系技术支持
             </a-button>
           </a-space>
@@ -339,7 +395,7 @@ const topics = {
 
 // 搜索结果
 const searchResults = computed(() => {
-  if (!searchQuery.value) return [];
+  if (!searchQuery.value) {return [];}
 
   const query = searchQuery.value.toLowerCase();
   const results = [];
@@ -374,7 +430,7 @@ const searchResults = computed(() => {
 
 // 当前主题内容
 const topicContent = computed(() => {
-  if (!selectedTopic.value) return '';
+  if (!selectedTopic.value) {return '';}
   const topic = topics[selectedTopic.value];
   return topic ? topic.content : '';
 });

@@ -60,7 +60,7 @@ export const categoryMap = {
  * @returns {string} 中文分类名
  */
 export function getCategoryName(category) {
-  if (!category) return '未分类'
+  if (!category) {return '未分类'}
   return categoryMap[category] || category
 }
 

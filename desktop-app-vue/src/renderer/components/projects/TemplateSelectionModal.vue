@@ -4,8 +4,8 @@
     :title="title"
     :width="1200"
     :footer="null"
-    @cancel="handleCancel"
     class="template-selection-modal"
+    @cancel="handleCancel"
   >
     <div class="modal-content">
       <!-- 搜索和筛选栏 -->
@@ -25,10 +25,12 @@
           v-model:value="selectedCategory"
           placeholder="选择分类"
           style="width: 200px"
-          allowClear
+          allow-clear
           @change="handleCategoryChange"
         >
-          <a-select-option value="">全部分类</a-select-option>
+          <a-select-option value="">
+            全部分类
+          </a-select-option>
           <a-select-option
             v-for="category in categories"
             :key="category.value"
@@ -42,10 +44,12 @@
           v-model:value="selectedProjectType"
           placeholder="项目类型"
           style="width: 200px"
-          allowClear
+          allow-clear
           @change="handleProjectTypeChange"
         >
-          <a-select-option value="">全部类型</a-select-option>
+          <a-select-option value="">
+            全部类型
+          </a-select-option>
           <a-select-option
             v-for="type in projectTypes"
             :key="type.value"
@@ -65,12 +69,12 @@
         <a-spin :spinning="loading">
           <a-row :gutter="[16, 16]">
             <a-col
+              v-for="template in paginatedTemplates"
+              :key="template.id"
               :xs="24"
               :sm="12"
               :md="8"
               :lg="6"
-              v-for="template in paginatedTemplates"
-              :key="template.id"
             >
               <div
                 class="template-card"
@@ -80,18 +84,28 @@
                 <div class="template-header">
                   <div class="template-icon">
                     <FileTextOutlined v-if="!template.icon" />
-                    <component v-else :is="template.icon" />
+                    <component
+                      :is="template.icon"
+                      v-else
+                    />
                   </div>
                   <div class="template-meta">
-                    <a-tag :color="getCategoryColor(template.category)" size="small">
+                    <a-tag
+                      :color="getCategoryColor(template.category)"
+                      size="small"
+                    >
                       {{ getCategoryLabel(template.category) }}
                     </a-tag>
                   </div>
                 </div>
 
                 <div class="template-body">
-                  <h4 class="template-title">{{ template.display_name || template.name }}</h4>
-                  <p class="template-description">{{ template.description || '暂无描述' }}</p>
+                  <h4 class="template-title">
+                    {{ template.display_name || template.name }}
+                  </h4>
+                  <p class="template-description">
+                    {{ template.description || '暂无描述' }}
+                  </p>
                 </div>
 
                 <div class="template-footer">
@@ -105,7 +119,11 @@
                       {{ template.rating }}
                     </span>
                   </div>
-                  <a-tag v-if="template.source === 'builtin'" color="blue" size="small">
+                  <a-tag
+                    v-if="template.source === 'builtin'"
+                    color="blue"
+                    size="small"
+                  >
                     内置
                   </a-tag>
                 </div>
@@ -114,12 +132,18 @@
           </a-row>
 
           <!-- 空状态 -->
-          <a-empty v-if="filteredTemplates.length === 0" description="没有找到匹配的模板" />
+          <a-empty
+            v-if="filteredTemplates.length === 0"
+            description="没有找到匹配的模板"
+          />
         </a-spin>
       </div>
 
       <!-- 分页 -->
-      <div class="pagination-wrapper" v-if="filteredTemplates.length > pageSize">
+      <div
+        v-if="filteredTemplates.length > pageSize"
+        class="pagination-wrapper"
+      >
         <a-pagination
           v-model:current="currentPage"
           v-model:page-size="pageSize"
@@ -132,7 +156,9 @@
 
       <!-- 底部操作栏 -->
       <div class="modal-footer">
-        <a-button @click="handleCancel">取消</a-button>
+        <a-button @click="handleCancel">
+          取消
+        </a-button>
         <a-space>
           <a-button
             type="default"
@@ -161,8 +187,15 @@
       :width="600"
       :destroy-on-close="true"
     >
-      <div v-if="selectedTemplate" class="template-preview">
-        <a-descriptions :column="1" bordered size="small">
+      <div
+        v-if="selectedTemplate"
+        class="template-preview"
+      >
+        <a-descriptions
+          :column="1"
+          bordered
+          size="small"
+        >
           <a-descriptions-item label="模板名称">
             {{ selectedTemplate.display_name || selectedTemplate.name }}
           </a-descriptions-item>
@@ -181,9 +214,17 @@
           <a-descriptions-item label="使用次数">
             {{ selectedTemplate.usage_count || 0 }}
           </a-descriptions-item>
-          <a-descriptions-item label="标签" v-if="selectedTemplate.tags?.length">
+          <a-descriptions-item
+            v-if="selectedTemplate.tags?.length"
+            label="标签"
+          >
             <a-space>
-              <a-tag v-for="tag in selectedTemplate.tags" :key="tag">{{ tag }}</a-tag>
+              <a-tag
+                v-for="tag in selectedTemplate.tags"
+                :key="tag"
+              >
+                {{ tag }}
+              </a-tag>
             </a-space>
           </a-descriptions-item>
         </a-descriptions>
@@ -210,7 +251,11 @@
               </template>
             </template>
           </a-table>
-          <a-empty v-else description="无变量定义" :image="simpleImage" />
+          <a-empty
+            v-else
+            description="无变量定义"
+            :image="simpleImage"
+          />
         </div>
       </div>
     </a-drawer>

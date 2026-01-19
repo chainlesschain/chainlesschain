@@ -260,7 +260,7 @@ class GraphExporter {
    * 辅助方法：转义XML
    */
   escapeXml(str) {
-    if (typeof str !== 'string') return str;
+    if (typeof str !== 'string') {return str;}
 
     return str
       .replace(/&/g, '&amp;')
@@ -274,7 +274,7 @@ class GraphExporter {
    * 辅助方法：转义DOT
    */
   escapeDOT(str) {
-    if (typeof str !== 'string') return str;
+    if (typeof str !== 'string') {return str;}
     return str.replace(/"/g, '\\"');
   }
 

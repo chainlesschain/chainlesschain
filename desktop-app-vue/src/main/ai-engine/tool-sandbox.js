@@ -375,7 +375,7 @@ class ToolSandbox {
    * @private
    */
   async logExecution(toolName, params, success, duration, error) {
-    if (!this.database) return;
+    if (!this.database) {return;}
 
     try {
       const errorType = error ? this.classifyError(error) : null;
@@ -450,7 +450,7 @@ class ToolSandbox {
    * @returns {Promise<Object>} 统计数据
    */
   async getExecutionStats(timeRange = 24 * 60 * 60 * 1000) {
-    if (!this.database) return null;
+    if (!this.database) {return null;}
 
     try {
       const since = Date.now() - timeRange;

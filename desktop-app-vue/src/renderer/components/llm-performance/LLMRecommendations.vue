@@ -5,9 +5,15 @@
     title="成本优化建议"
   >
     <template #extra>
-      <a-tag color="blue"> <BulbOutlined /> 智能分析 </a-tag>
+      <a-tag color="blue">
+        <BulbOutlined /> 智能分析
+      </a-tag>
     </template>
-    <a-list :data-source="recommendations" :loading="loading" size="small">
+    <a-list
+      :data-source="recommendations"
+      :loading="loading"
+      size="small"
+    >
       <template #renderItem="{ item }">
         <a-list-item>
           <a-list-item-meta>

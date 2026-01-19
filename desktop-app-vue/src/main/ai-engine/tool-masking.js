@@ -113,10 +113,10 @@ class ToolMaskingSystem extends EventEmitter {
   _extractPrefix(name) {
     // 支持 snake_case 和 camelCase
     const snakeMatch = name.match(/^([a-z]+)_/);
-    if (snakeMatch) return snakeMatch[1];
+    if (snakeMatch) {return snakeMatch[1];}
 
     const camelMatch = name.match(/^([a-z]+)[A-Z]/);
-    if (camelMatch) return camelMatch[1];
+    if (camelMatch) {return camelMatch[1];}
 
     return null;
   }

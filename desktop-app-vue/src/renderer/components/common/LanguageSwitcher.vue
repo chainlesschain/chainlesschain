@@ -2,11 +2,16 @@
   <div class="language-switcher">
     <a-dropdown :trigger="['click']">
       <a-button shape="circle">
-        <template #icon><GlobalOutlined /></template>
+        <template #icon>
+          <GlobalOutlined />
+        </template>
       </a-button>
 
       <template #overlay>
-        <a-menu @click="handleMenuClick" :selected-keys="[currentLocale]">
+        <a-menu
+          :selected-keys="[currentLocale]"
+          @click="handleMenuClick"
+        >
           <a-menu-item :key="LOCALES.ZH_CN">
             <span>🇨🇳 简体中文</span>
           </a-menu-item>

@@ -8,18 +8,18 @@
 
 ```javascript
 class StatsCleaner {
-  db; //
-  skillManager; //
-  toolManager; //
-  cleanupTasks; //
-  config; //
+  db; // 
+  skillManager; // 
+  toolManager; // 
+  cleanupTasks; // 
+  config; // 
 }
 ```
 
 ## 构造函数
 
 ```javascript
-new StatsCleaner();
+new StatsCleaner()
 ```
 
 ## 方法
@@ -88,6 +88,10 @@ new StatsCleaner();
 
 ---
 
+#### `if(logs.length === 0)`
+
+---
+
 #### `async aggregateToolStats(date)`
 
 ---
@@ -95,6 +99,10 @@ new StatsCleaner();
 #### `for(const tool of tools)`
 
 汇总工具统计
+
+---
+
+#### `if(logs.length === 0)`
 
 ---
 
@@ -124,6 +132,12 @@ new StatsCleaner();
 
 ---
 
+#### `if(!errorMessage)`
+
+执行数据库VACUUM
+
+---
+
 #### `async manualCleanup()`
 
 提取错误类型
@@ -150,6 +164,7 @@ new StatsCleaner();
 
 ---
 
+
 ## 事件
 
 如果该类继承自EventEmitter,可以监听以下事件:
@@ -167,4 +182,4 @@ const statscleaner = new StatsCleaner(/* 参数 */);
 
 ---
 
-> 自动生成时间: 2026/1/16 17:18:05
+> 自动生成时间: 2026/1/19 10:33:05

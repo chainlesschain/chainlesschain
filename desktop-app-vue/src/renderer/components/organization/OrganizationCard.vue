@@ -5,8 +5,14 @@
     :class="{ 'selected': selected }"
     @click="handleClick"
   >
-    <template #cover v-if="showCover">
-      <div class="org-cover" :style="{ background: coverGradient }">
+    <template
+      v-if="showCover"
+      #cover
+    >
+      <div
+        class="org-cover"
+        :style="{ background: coverGradient }"
+      >
         <div class="org-icon">
           <component :is="getOrgIcon()" />
         </div>
@@ -17,7 +23,11 @@
       <template #title>
         <div class="org-title">
           <span>{{ organization.name }}</span>
-          <a-tag v-if="organization.type" :color="getTypeColor(organization.type)" size="small">
+          <a-tag
+            v-if="organization.type"
+            :color="getTypeColor(organization.type)"
+            size="small"
+          >
             {{ getTypeLabel(organization.type) }}
           </a-tag>
         </div>
@@ -52,27 +62,47 @@
         </a-tag>
       </div>
 
-      <div class="org-actions" @click.stop>
+      <div
+        class="org-actions"
+        @click.stop
+      >
         <a-space>
           <a-tooltip title="View Details">
-            <a-button type="text" size="small" @click="$emit('view', organization)">
+            <a-button
+              type="text"
+              size="small"
+              @click="$emit('view', organization)"
+            >
               <EyeOutlined />
             </a-button>
           </a-tooltip>
 
-          <a-tooltip title="Settings" v-if="canManage">
-            <a-button type="text" size="small" @click="$emit('settings', organization)">
+          <a-tooltip
+            v-if="canManage"
+            title="Settings"
+          >
+            <a-button
+              type="text"
+              size="small"
+              @click="$emit('settings', organization)"
+            >
               <SettingOutlined />
             </a-button>
           </a-tooltip>
 
           <a-dropdown v-if="showActions">
-            <a-button type="text" size="small">
+            <a-button
+              type="text"
+              size="small"
+            >
               <MoreOutlined />
             </a-button>
             <template #overlay>
               <a-menu @click="handleMenuClick">
-                <a-menu-item key="switch" v-if="!isActive">
+                <a-menu-item
+                  v-if="!isActive"
+                  key="switch"
+                >
                   <SwapOutlined /> Switch to this organization
                 </a-menu-item>
                 <a-menu-item key="members">
@@ -82,13 +112,24 @@
                   <UserAddOutlined /> Invite Members
                 </a-menu-item>
                 <a-menu-divider v-if="canManage" />
-                <a-menu-item key="settings" v-if="canManage">
+                <a-menu-item
+                  v-if="canManage"
+                  key="settings"
+                >
                   <SettingOutlined /> Organization Settings
                 </a-menu-item>
-                <a-menu-item key="leave" danger v-if="!isOwner">
+                <a-menu-item
+                  v-if="!isOwner"
+                  key="leave"
+                  danger
+                >
                   <LogoutOutlined /> Leave Organization
                 </a-menu-item>
-                <a-menu-item key="delete" danger v-if="isOwner">
+                <a-menu-item
+                  v-if="isOwner"
+                  key="delete"
+                  danger
+                >
                   <DeleteOutlined /> Delete Organization
                 </a-menu-item>
               </a-menu>
@@ -227,14 +268,14 @@ function getRoleLabel(role) {
 }
 
 function formatDate(timestamp) {
-  if (!timestamp) return 'Unknown';
+  if (!timestamp) {return 'Unknown';}
   const date = new Date(timestamp);
   const now = new Date();
   const diff = now - date;
 
-  if (diff < 86400000) return 'Today';
-  if (diff < 604800000) return `${Math.floor(diff / 86400000)}d ago`;
-  if (diff < 2592000000) return `${Math.floor(diff / 604800000)}w ago`;
+  if (diff < 86400000) {return 'Today';}
+  if (diff < 604800000) {return `${Math.floor(diff / 86400000)}d ago`;}
+  if (diff < 2592000000) {return `${Math.floor(diff / 604800000)}w ago`;}
   return date.toLocaleDateString();
 }
 

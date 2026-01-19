@@ -2,8 +2,16 @@
   <div class="distribution-charts">
     <!-- Token Distribution & Period Comparison Row -->
     <a-row :gutter="[16, 16]">
-      <a-col :xs="24" :sm="24" :md="12" :lg="12">
-        <a-card title="Token 类型分布" class="chart-card">
+      <a-col
+        :xs="24"
+        :sm="24"
+        :md="12"
+        :lg="12"
+      >
+        <a-card
+          title="Token 类型分布"
+          class="chart-card"
+        >
           <template #extra>
             <a-tooltip title="显示输入和输出 Token 的比例分布">
               <QuestionCircleOutlined style="color: #8c8c8c" />
@@ -13,14 +21,20 @@
             v-if="loading && !tokenDistribution.length"
             class="chart-skeleton"
           >
-            <a-skeleton active :paragraph="{ rows: 6 }" />
+            <a-skeleton
+              active
+              :paragraph="{ rows: 6 }"
+            />
           </div>
           <div
             v-else-if="tokenDistribution.length > 0"
             ref="tokenDistributionRef"
             class="chart-container-small"
-          ></div>
-          <div v-else class="empty-state-container-small">
+          />
+          <div
+            v-else
+            class="empty-state-container-small"
+          >
             <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE">
               <template #description>
                 <span class="empty-hint">尚无 Token 分布数据</span>
@@ -30,31 +44,49 @@
         </a-card>
       </a-col>
 
-      <a-col :xs="24" :sm="24" :md="12" :lg="12">
-        <a-card title="周期对比" class="chart-card">
+      <a-col
+        :xs="24"
+        :sm="24"
+        :md="12"
+        :lg="12"
+      >
+        <a-card
+          title="周期对比"
+          class="chart-card"
+        >
           <template #extra>
             <a-select
               :value="comparisonPeriod"
-              @change="(value) => $emit('comparison-change', value)"
               size="small"
               style="width: 120px"
+              @change="(value) => $emit('comparison-change', value)"
             >
-              <a-select-option value="week">本周 vs 上周</a-select-option>
-              <a-select-option value="month">本月 vs 上月</a-select-option>
+              <a-select-option value="week">
+                本周 vs 上周
+              </a-select-option>
+              <a-select-option value="month">
+                本月 vs 上月
+              </a-select-option>
             </a-select>
           </template>
           <div
             v-if="loading && !periodData.current.length"
             class="chart-skeleton"
           >
-            <a-skeleton active :paragraph="{ rows: 6 }" />
+            <a-skeleton
+              active
+              :paragraph="{ rows: 6 }"
+            />
           </div>
           <div
             v-else-if="periodData.current.length > 0"
             ref="periodComparisonRef"
             class="chart-container-small"
-          ></div>
-          <div v-else class="empty-state-container-small">
+          />
+          <div
+            v-else
+            class="empty-state-container-small"
+          >
             <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE">
               <template #description>
                 <span class="empty-hint">需要更多数据进行周期对比</span>
@@ -67,17 +99,34 @@
 
     <!-- Cost Breakdown Row -->
     <a-row :gutter="[16, 16]">
-      <a-col :xs="24" :sm="24" :md="12" :lg="12">
-        <a-card title="按提供商成本分布" class="chart-card">
-          <div v-if="loading && !costByProvider.length" class="chart-skeleton">
-            <a-skeleton active :paragraph="{ rows: 6 }" />
+      <a-col
+        :xs="24"
+        :sm="24"
+        :md="12"
+        :lg="12"
+      >
+        <a-card
+          title="按提供商成本分布"
+          class="chart-card"
+        >
+          <div
+            v-if="loading && !costByProvider.length"
+            class="chart-skeleton"
+          >
+            <a-skeleton
+              active
+              :paragraph="{ rows: 6 }"
+            />
           </div>
           <div
             v-else-if="costByProvider.length > 0"
             ref="providerCostRef"
             class="chart-container-small"
-          ></div>
-          <div v-else class="empty-state-container-small">
+          />
+          <div
+            v-else
+            class="empty-state-container-small"
+          >
             <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE">
               <template #description>
                 <span class="empty-hint">尚无提供商成本数据</span>
@@ -87,17 +136,34 @@
         </a-card>
       </a-col>
 
-      <a-col :xs="24" :sm="24" :md="12" :lg="12">
-        <a-card title="按模型成本分布（Top 10）" class="chart-card">
-          <div v-if="loading && !costByModel.length" class="chart-skeleton">
-            <a-skeleton active :paragraph="{ rows: 6 }" />
+      <a-col
+        :xs="24"
+        :sm="24"
+        :md="12"
+        :lg="12"
+      >
+        <a-card
+          title="按模型成本分布（Top 10）"
+          class="chart-card"
+        >
+          <div
+            v-if="loading && !costByModel.length"
+            class="chart-skeleton"
+          >
+            <a-skeleton
+              active
+              :paragraph="{ rows: 6 }"
+            />
           </div>
           <div
             v-else-if="costByModel.length > 0"
             ref="modelCostRef"
             class="chart-container-small"
-          ></div>
-          <div v-else class="empty-state-container-small">
+          />
+          <div
+            v-else
+            class="empty-state-container-small"
+          >
             <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE">
               <template #description>
                 <span class="empty-hint">尚无模型成本数据</span>
@@ -170,7 +236,7 @@ const formatNumber = (num) => {
 
 const renderTokenDistributionChart = () => {
   if (!tokenDistributionRef.value || props.tokenDistribution.length === 0)
-    return;
+    {return;}
 
   if (!tokenDistributionChart) {
     tokenDistributionChart = echarts.init(tokenDistributionRef.value);
@@ -235,7 +301,7 @@ const renderTokenDistributionChart = () => {
 
 const renderPeriodComparisonChart = () => {
   if (!periodComparisonRef.value || props.periodData.current.length === 0)
-    return;
+    {return;}
 
   if (!periodComparisonChart) {
     periodComparisonChart = echarts.init(periodComparisonRef.value);
@@ -297,7 +363,7 @@ const renderPeriodComparisonChart = () => {
 };
 
 const renderProviderCostChart = () => {
-  if (!providerCostRef.value || props.costByProvider.length === 0) return;
+  if (!providerCostRef.value || props.costByProvider.length === 0) {return;}
 
   if (!providerCostChart) {
     providerCostChart = echarts.init(providerCostRef.value);
@@ -338,7 +404,7 @@ const renderProviderCostChart = () => {
 };
 
 const renderModelCostChart = () => {
-  if (!modelCostRef.value || props.costByModel.length === 0) return;
+  if (!modelCostRef.value || props.costByModel.length === 0) {return;}
 
   if (!modelCostChart) {
     modelCostChart = echarts.init(modelCostRef.value);
@@ -402,7 +468,7 @@ const renderAllCharts = () => {
 // Debounced resize handler
 let resizeTimer = null;
 const handleResize = () => {
-  if (resizeTimer) clearTimeout(resizeTimer);
+  if (resizeTimer) {clearTimeout(resizeTimer);}
   resizeTimer = setTimeout(() => {
     tokenDistributionChart?.resize();
     periodComparisonChart?.resize();
@@ -457,7 +523,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener("resize", handleResize);
-  if (resizeTimer) clearTimeout(resizeTimer);
+  if (resizeTimer) {clearTimeout(resizeTimer);}
   tokenDistributionChart?.dispose();
   periodComparisonChart?.dispose();
   providerCostChart?.dispose();
