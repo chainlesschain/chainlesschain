@@ -1,6 +1,7 @@
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.plugin.serialization")
     id("com.google.devtools.ksp")
     id("com.google.dagger.hilt.android")
 }
@@ -43,6 +44,9 @@ dependencies {
     // SQLCipher (使用新的artifact ID和最新版本)
     api("net.zetetic:sqlcipher-android:4.12.0")
     api("androidx.sqlite:sqlite-ktx:2.4.0")
+
+    // Kotlin Serialization (for Converters)
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
 
     // Hilt
     implementation("com.google.dagger:hilt-android:2.50")
