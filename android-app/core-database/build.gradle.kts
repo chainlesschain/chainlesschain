@@ -41,7 +41,7 @@ dependencies {
     ksp("androidx.room:room-compiler:$roomVersion")
 
     // SQLCipher
-    api("net.zetetic:android-database-sqlcipher:4.5.6")
+    api("net.zetetic:android-database-sqlcipher:4.5.3")
     api("androidx.sqlite:sqlite-ktx:2.4.0")
 
     // Hilt
