@@ -3,13 +3,29 @@
  * 展示如何集成 errorHandler 和 loadingManager
  */
 
+/* eslint-disable */
+// This is an example/documentation file - not meant to be executed
+
 // 在 <script setup> 中导入工具
-import { handleError, withRetry, ErrorType, ErrorLevel } from '@/utils/errorHandler';
-import { useLoading, withLoading } from '@/utils/loadingManager';
+import {
+  handleError,
+  withRetry,
+  ErrorType,
+  ErrorLevel,
+} from "@/utils/errorHandler";
+import { useLoading, withLoading } from "@/utils/loadingManager";
 
 // 使用加载状态
-const { isLoading: isLoadingProjects, start: startLoadingProjects, finish: finishLoadingProjects } = useLoading('projects');
-const { isLoading: isCreatingProject, start: startCreatingProject, finish: finishCreatingProject } = useLoading('createProject');
+const {
+  isLoading: isLoadingProjects,
+  start: startLoadingProjects,
+  finish: finishLoadingProjects,
+} = useLoading("projects");
+const {
+  isLoading: isCreatingProject,
+  start: startCreatingProject,
+  finish: finishCreatingProject,
+} = useLoading("createProject");
 
 // ===== 改进前的代码 =====
 /*
@@ -28,22 +44,22 @@ async function loadProjects() {
 // ===== 改进后的代码 =====
 async function loadProjects() {
   await withLoading(
-    'projects',
+    "projects",
     async () => {
-      const userId = authStore.currentUser?.id || 'default-user';
+      const userId = authStore.currentUser?.id || "default-user";
       await projectStore.fetchProjects(userId);
       await loadRecentConversations();
     },
     {
-      message: '加载项目列表...',
-      errorMessage: '加载项目失败',
+      message: "加载项目列表...",
+      errorMessage: "加载项目失败",
       showError: true,
-    }
-  ).catch(error => {
+    },
+  ).catch((error) => {
     handleError(error, {
       showMessage: true,
       logToFile: true,
-      context: { function: 'loadProjects', userId: authStore.currentUser?.id },
+      context: { function: "loadProjects", userId: authStore.currentUser?.id },
     });
   });
 }
@@ -74,11 +90,11 @@ async function handleConversationalCreate(userInput) {
 async function handleConversationalCreate(userInput) {
   try {
     const result = await withLoading(
-      'createProject',
+      "createProject",
       async (updateProgress) => {
         // 添加用户消息到对话
         conversationMessages.value.push({
-          type: 'user',
+          type: "user",
           content: userInput,
           timestamp: Date.now(),
         });
@@ -86,32 +102,33 @@ async function handleConversationalCreate(userInput) {
         // 开始创建
         updateProgress(20);
 
-        const result = await window.electronAPI.projects.createProjectFromConversation({
-          userInput,
-          userId: authStore.currentUser?.id || 'default-user',
-        });
+        const result =
+          await window.electronAPI.projects.createProjectFromConversation({
+            userInput,
+            userId: authStore.currentUser?.id || "default-user",
+          });
 
         updateProgress(80);
 
         if (!result.success) {
-          throw new Error(result.error || '项目创建失败');
+          throw new Error(result.error || "项目创建失败");
         }
 
         return result;
       },
       {
-        message: '正在创建项目...',
-        successMessage: '项目创建成功！',
-        errorMessage: '项目创建失败',
+        message: "正在创建项目...",
+        successMessage: "项目创建成功！",
+        errorMessage: "项目创建失败",
         showSuccess: true,
         showError: false, // 我们会自定义错误处理
-      }
+      },
     );
 
     // 添加成功消息
     conversationMessages.value.push({
-      type: 'success',
-      content: '项目创建成功！',
+      type: "success",
+      content: "项目创建成功！",
       projectId: result.projectId,
       timestamp: Date.now(),
     });
@@ -120,12 +137,11 @@ async function handleConversationalCreate(userInput) {
     setTimeout(() => {
       router.push(`/projects/${result.projectId}`);
     }, 500);
-
   } catch (error) {
     // 添加错误消息到对话
     conversationMessages.value.push({
-      type: 'error',
-      content: '项目创建失败',
+      type: "error",
+      content: "项目创建失败",
       error: error.message,
       timestamp: Date.now(),
     });
@@ -136,7 +152,7 @@ async function handleConversationalCreate(userInput) {
       showNotification: false,
       logToFile: true,
       context: {
-        function: 'handleConversationalCreate',
+        function: "handleConversationalCreate",
         userInput,
         userId: authStore.currentUser?.id,
       },
@@ -160,31 +176,29 @@ async function handleDeleteProject(projectId) {
 // ===== 改进后的代码（带重试机制）=====
 async function handleDeleteProject(projectId) {
   try {
-    await withRetry(
-      () => projectStore.deleteProject(projectId),
-      {
-        maxRetries: 2,
-        retryDelay: 1000,
-        onRetry: (error, attempt) => {
-          console.log(`删除项目重试 ${attempt + 1}/2...`);
-        },
-        shouldRetry: (error) => {
-          // 只在网络错误时重试
-          return error.message.includes('network') || error.message.includes('timeout');
-        },
-      }
-    );
+    await withRetry(() => projectStore.deleteProject(projectId), {
+      maxRetries: 2,
+      retryDelay: 1000,
+      onRetry: (error, attempt) => {
+        console.log(`删除项目重试 ${attempt + 1}/2...`);
+      },
+      shouldRetry: (error) => {
+        // 只在网络错误时重试
+        return (
+          error.message.includes("network") || error.message.includes("timeout")
+        );
+      },
+    });
 
-    message.success('项目已删除');
+    message.success("项目已删除");
 
     // 刷新项目列表
     await loadProjects();
-
   } catch (error) {
     handleError(error, {
       showMessage: true,
       logToFile: true,
-      context: { function: 'handleDeleteProject', projectId },
+      context: { function: "handleDeleteProject", projectId },
     });
   }
 }
@@ -221,36 +235,45 @@ async function handleRenameConversation(conversationId, oldTitle) {
     await withLoading(
       `rename-${conversationId}`,
       async () => {
-        await window.electronAPI.conversation.renameConversation(conversationId, newTitle);
+        await window.electronAPI.conversation.renameConversation(
+          conversationId,
+          newTitle,
+        );
         await loadConversations();
       },
       {
-        message: '重命名中...',
-        successMessage: '重命名成功',
+        message: "重命名中...",
+        successMessage: "重命名成功",
         showSuccess: true,
-      }
+      },
     );
-
   } catch (error) {
     // 根据错误类型提供更友好的提示
     let errorType = ErrorType.UNKNOWN;
-    let errorMessage = '重命名失败';
+    let errorMessage = "重命名失败";
 
-    if (error.message.includes('已存在')) {
+    if (error.message.includes("已存在")) {
       errorType = ErrorType.VALIDATION;
-      errorMessage = '该名称已存在，请使用其他名称';
-    } else if (error.message.includes('权限')) {
+      errorMessage = "该名称已存在，请使用其他名称";
+    } else if (error.message.includes("权限")) {
       errorType = ErrorType.PERMISSION;
-      errorMessage = '没有权限修改此对话';
+      errorMessage = "没有权限修改此对话";
     }
 
     handleError(
-      new AppError(errorMessage, errorType, ErrorLevel.WARNING, { originalError: error }),
+      new AppError(errorMessage, errorType, ErrorLevel.WARNING, {
+        originalError: error,
+      }),
       {
         showMessage: true,
         logToFile: false,
-        context: { function: 'handleRenameConversation', conversationId, oldTitle, newTitle },
-      }
+        context: {
+          function: "handleRenameConversation",
+          conversationId,
+          oldTitle,
+          newTitle,
+        },
+      },
     );
   }
 }
@@ -285,38 +308,30 @@ async function handleRenameConversation(conversationId, oldTitle) {
 // ===== 组件挂载时加载数据 =====
 onMounted(async () => {
   // 并行加载多个资源
-  await Promise.all([
-    loadProjects(),
-    loadTemplates(),
-    loadCategories(),
-  ]);
+  await Promise.all([loadProjects(), loadTemplates(), loadCategories()]);
 });
 
 // ===== 加载模板（带超时处理）=====
 async function loadTemplates() {
   try {
     await withTimeout(
-      withLoading(
-        'templates',
-        () => templateStore.fetchTemplates(),
-        {
-          message: '加载模板...',
-          errorMessage: '加载模板失败',
-        }
-      ),
+      withLoading("templates", () => templateStore.fetchTemplates(), {
+        message: "加载模板...",
+        errorMessage: "加载模板失败",
+      }),
       10000, // 10秒超时
-      '加载模板超时，请检查网络连接'
+      "加载模板超时，请检查网络连接",
     );
   } catch (error) {
     handleError(error, {
       showMessage: true,
       logToFile: true,
-      context: { function: 'loadTemplates' },
+      context: { function: "loadTemplates" },
     });
   }
 }
 
 export default {
-  name: 'ProjectsPageImproved',
+  name: "ProjectsPageImproved",
   // ... 其他配置
 };
