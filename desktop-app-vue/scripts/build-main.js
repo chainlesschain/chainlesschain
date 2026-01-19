@@ -71,8 +71,10 @@ async function copyDir(src, dest) {
 async function build() {
   const srcMain = path.join(__dirname, '../src/main');
   const srcPreload = path.join(__dirname, '../src/preload');
+  const srcShared = path.join(__dirname, '../src/shared');
   const distMain = path.join(__dirname, '../dist/main');
   const distPreload = path.join(__dirname, '../dist/preload');
+  const distShared = path.join(__dirname, '../dist/shared');
 
   console.log(`Building main process... (${isProduction ? 'PRODUCTION' : 'DEVELOPMENT'})`);
 
@@ -83,6 +85,10 @@ async function build() {
   // 复制preload目录
   await copyDir(srcPreload, distPreload);
   console.log('✓ Preload files copied' + (isProduction && minifyCode ? ' and minified' : ''));
+
+  // 复制shared目录
+  await copyDir(srcShared, distShared);
+  console.log('✓ Shared files copied' + (isProduction && minifyCode ? ' and minified' : ''));
 
   console.log('\nMain process build completed successfully!');
   if (isProduction && !minifyCode) {
