@@ -104,6 +104,7 @@ dependencies {
     implementation(project(":feature-auth"))
     implementation(project(":feature-knowledge"))
     implementation(project(":feature-ai"))
+    implementation(project(":feature-p2p"))
 
     // Kotlin
     implementation("org.jetbrains.kotlin:kotlin-stdlib:1.9.22")

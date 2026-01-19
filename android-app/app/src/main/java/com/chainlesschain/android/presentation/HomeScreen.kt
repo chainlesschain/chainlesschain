@@ -20,6 +20,7 @@ fun HomeScreen(
     onLogout: () -> Unit,
     onNavigateToKnowledge: () -> Unit = {},
     onNavigateToAI: () -> Unit = {},
+    onNavigateToP2P: () -> Unit = {},
     viewModel: AuthViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -131,6 +132,21 @@ fun HomeScreen(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("AI对话助手")
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Button(
+                onClick = onNavigateToP2P,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Devices,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("P2P设备管理")
             }
 
             Spacer(modifier = Modifier.height(16.dp))
