@@ -317,6 +317,10 @@ const messageLoadState = reactive({
   isLoadingMore: false,
 });
 
+// 🔥 消息内存管理配置
+const MAX_MESSAGES_IN_MEMORY = 200; // 内存中最多保留200条消息
+const CLEANUP_THRESHOLD = 220; // 超过220条时触发清理
+
 // 计算属性
 const contextInfo = computed(() => {
   if (contextMode.value === "project") {
@@ -333,6 +337,7 @@ const contextInfo = computed(() => {
 // 🔥 跟踪所有需要清理的资源
 const activeTimers = ref([]); // 存储所有setTimeout/setInterval的ID
 const activeListeners = ref([]); // 存储所有事件监听器的清理函数
+const abortController = ref(null); // 用于取消进行中的API调用
 
 /**
  * 安全的setTimeout包装器 - 自动跟踪并在组件卸载时清理
@@ -937,6 +942,26 @@ const handleKeyDown = (event) => {
 };
 
 /**
+ * 🔥 清理过多的消息以释放内存
+ * 当消息数量超过阈值时，保留最近的消息，移除最旧的消息
+ */
+const cleanupOldMessages = () => {
+  if (messages.value.length > CLEANUP_THRESHOLD) {
+    const messagesToRemove = messages.value.length - MAX_MESSAGES_IN_MEMORY;
+    logger.info(
+      `[ChatPanel] 🧹 消息数量超过阈值(${CLEANUP_THRESHOLD})，清理最旧的${messagesToRemove}条消息`,
+    );
+
+    // 保留最近的 MAX_MESSAGES_IN_MEMORY 条消息
+    messages.value = messages.value.slice(-MAX_MESSAGES_IN_MEMORY);
+
+    logger.info(
+      `[ChatPanel] ✅ 清理完成，当前消息数: ${messages.value.length}`,
+    );
+  }
+};
+
+/**
  * 滚动到底部（使用虚拟列表）
  */
 const scrollToBottom = () => {
@@ -987,6 +1012,15 @@ const handleLoadMoreMessages = async () => {
           return msg;
         }),
       );
+
+      // 🔥 清理过多的消息以释放内存（从末尾移除最新的消息）
+      if (messages.value.length > CLEANUP_THRESHOLD) {
+        const messagesToRemove = messages.value.length - MAX_MESSAGES_IN_MEMORY;
+        logger.info(
+          `[ChatPanel] 🧹 加载历史消息后超过阈值，移除末尾${messagesToRemove}条最新消息`,
+        );
+        messages.value = messages.value.slice(0, MAX_MESSAGES_IN_MEMORY);
+      }
 
       messageLoadState.currentPage = nextPage;
       logger.info(`[ChatPanel] 📜 加载了${loadedMessages.length}条历史消息`);
@@ -1110,9 +1144,12 @@ const loadConversation = async () => {
       if (conversation) {
         currentConversation.value = conversation;
 
-        // 加载消息
+        // 🔥 加载消息（使用分页，只加载最近的消息）
         const loadedMessages =
-          await window.electronAPI.conversation.getMessages(conversation.id);
+          await window.electronAPI.conversation.getMessages(conversation.id, {
+            limit: MAX_MESSAGES_IN_MEMORY, // 只加载最近的 N 条消息
+            offset: 0,
+          });
 
         // 提取消息数组（API返回 {success: true, data: [...]} 格式）
         let rawMessages = [];
@@ -1471,20 +1508,6 @@ const startTaskPlanning = async (userInput) => {
 
           // 监听流式完成事件
           const handleComplete = (result) => {
-            // 移除临时监听器
-            window.electronAPI.project.off(
-              "project:aiChatStream-chunk",
-              handleChunk,
-            );
-            window.electronAPI.project.off(
-              "project:aiChatStream-complete",
-              handleComplete,
-            );
-            window.electronAPI.project.off(
-              "project:aiChatStream-error",
-              handleError,
-            );
-
             // 移除思考消息
             const thinkingIndex = messages.value.findIndex(
               (m) => m.id === thinkingMsg.id,
@@ -1498,20 +1521,6 @@ const startTaskPlanning = async (userInput) => {
 
           // 监听流式错误事件
           const handleError = (error) => {
-            // 移除临时监听器
-            window.electronAPI.project.off(
-              "project:aiChatStream-chunk",
-              handleChunk,
-            );
-            window.electronAPI.project.off(
-              "project:aiChatStream-complete",
-              handleComplete,
-            );
-            window.electronAPI.project.off(
-              "project:aiChatStream-error",
-              handleError,
-            );
-
             // 更新思考消息为错误状态
             thinkingMsg.content = `❌ LLM调用失败: ${error.message}`;
             thinkingMsg.metadata.type = "error";
@@ -1749,19 +1758,6 @@ const generateTaskPlanMessage = async (
           };
 
           const handleComplete = (result) => {
-            window.electronAPI.project.off(
-              "project:aiChatStream-chunk",
-              handleChunk,
-            );
-            window.electronAPI.project.off(
-              "project:aiChatStream-complete",
-              handleComplete,
-            );
-            window.electronAPI.project.off(
-              "project:aiChatStream-error",
-              handleError,
-            );
-
             // 移除生成消息
             const planGenIndex = messages.value.findIndex(
               (m) => m.id === planGenerationMsg.id,
@@ -1774,19 +1770,6 @@ const generateTaskPlanMessage = async (
           };
 
           const handleError = (error) => {
-            window.electronAPI.project.off(
-              "project:aiChatStream-chunk",
-              handleChunk,
-            );
-            window.electronAPI.project.off(
-              "project:aiChatStream-complete",
-              handleComplete,
-            );
-            window.electronAPI.project.off(
-              "project:aiChatStream-error",
-              handleError,
-            );
-
             planGenerationMsg.content = `❌ 生成失败: ${error.message}`;
             planGenerationMsg.metadata.type = "error";
             messages.value = [...messages.value];
@@ -2475,7 +2458,7 @@ ${plan.tasks.map((task, index) => `${index + 1}. ${task.title || task.descriptio
 
         antMessage.success(`网页文件已生成: ${fileName}`);
 
-        setTimeout(() => {
+        safeSetTimeout(() => {
           emit("files-changed");
         }, 2000);
       } catch (error) {
@@ -2613,7 +2596,7 @@ const handleInterviewAnswer = async ({ questionKey, answer, index }) => {
 
   // 🔥 优化滚动：使用单次延迟滚动，等待组件完全渲染
   nextTick(() => {
-    setTimeout(() => {
+    safeSetTimeout(() => {
       scrollToBottom();
     }, 150); // 给组件足够的渲染时间
   });
@@ -2700,7 +2683,7 @@ const handleInterviewSkip = async ({ questionKey, index }) => {
 
   // 🔥 优化滚动：使用单次延迟滚动，等待组件完全渲染
   nextTick(() => {
-    setTimeout(() => {
+    safeSetTimeout(() => {
       scrollToBottom();
     }, 150); // 给组件足够的渲染时间
   });
@@ -2756,11 +2739,15 @@ const handlePlanConfirm = async (message) => {
     // 执行任务：调用AI对话API
     const prompt = `请根据以下任务计划执行任务：\n\n${JSON.stringify(plan, null, 2)}\n\n请按照计划逐步完成任务。`;
 
+    // 🔥 创建新的 AbortController 用于取消请求
+    abortController.value = new AbortController();
+
     const response = await window.electronAPI.project.aiChat({
       projectId: props.projectId,
       userMessage: prompt,
       conversationId: currentConversation.value?.id,
       context: contextMode.value,
+      signal: abortController.value.signal, // 传递 abort signal
     });
 
     // 添加AI响应消息
@@ -2779,7 +2766,7 @@ const handlePlanConfirm = async (message) => {
       });
 
       // 🔄 延迟2秒后刷新文件树，避免立即刷新导致对话面板重新渲染
-      setTimeout(() => {
+      safeSetTimeout(() => {
         logger.info("[ChatPanel] 延迟刷新文件树");
         emit("files-changed");
       }, 2000);
@@ -3287,6 +3274,9 @@ const executeChatWithInput = async (input) => {
         }
       : null;
 
+    // 🔥 创建新的 AbortController 用于取消请求
+    abortController.value = new AbortController();
+
     // 调用AI对话API
     const response = await window.electronAPI.project.aiChat({
       projectId: props.projectId,
@@ -3296,6 +3286,7 @@ const executeChatWithInput = async (input) => {
       currentFile: cleanCurrentFile,
       projectInfo: projectInfo,
       fileList: fileList,
+      signal: abortController.value.signal, // 传递 abort signal
     });
 
     logger.info("[ChatPanel] AI响应:", response);
@@ -3318,7 +3309,7 @@ const executeChatWithInput = async (input) => {
       });
 
       // 🔄 延迟2秒后刷新文件树，避免立即刷新导致对话面板重新渲染
-      setTimeout(() => {
+      safeSetTimeout(() => {
         logger.info("[ChatPanel] 延迟刷新文件树");
         emit("files-changed");
       }, 2000);
@@ -3365,6 +3356,9 @@ const executeChatWithInput = async (input) => {
 
     // 添加到消息列表
     messages.value.push(assistantMessage);
+
+    // 🔥 清理过多的消息以释放内存
+    cleanupOldMessages();
 
     // 保存助手消息到数据库
     if (currentConversation.value && currentConversation.value.id) {
@@ -3418,7 +3412,7 @@ const executeChatWithInput = async (input) => {
     });
 
     // 短暂延迟后隐藏思考状态
-    setTimeout(() => {
+    safeSetTimeout(() => {
       thinkingState.show = false;
     }, 500);
 
@@ -3439,7 +3433,7 @@ const executeChatWithInput = async (input) => {
     });
 
     // 2秒后隐藏
-    setTimeout(() => {
+    safeSetTimeout(() => {
       thinkingState.show = false;
     }, 2000);
   } finally {
@@ -3508,7 +3502,7 @@ watch(
       }
 
       // 延迟一小段时间，确保对话完全加载
-      setTimeout(() => {
+      safeSetTimeout(() => {
         handleSendMessage();
       }, 500);
     }
@@ -3524,6 +3518,13 @@ onMounted(() => {
 // 🔥 组件卸载时清理所有资源 - 防止内存泄漏
 onUnmounted(() => {
   logger.info('[ChatPanel] 组件卸载，开始清理资源...');
+
+  // 0. 取消所有进行中的API调用
+  if (abortController.value) {
+    logger.info('[ChatPanel] 取消进行中的API请求');
+    abortController.value.abort();
+    abortController.value = null;
+  }
 
   // 1. 清理所有定时器
   if (activeTimers.value.length > 0) {
