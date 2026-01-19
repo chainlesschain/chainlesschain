@@ -34,7 +34,7 @@ jobs:
         with:
           node-version: "22.12.0"
           cache: "npm"
-          cache-dependency-path: desktop-app-vue/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
         working-directory: desktop-app-vue
@@ -78,7 +78,7 @@ jobs:
         with:
           node-version: "22.12.0"
           cache: "npm"
-          cache-dependency-path: desktop-app-vue/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
         working-directory: desktop-app-vue
@@ -119,7 +119,7 @@ jobs:
         with:
           node-version: "22.12.0"
           cache: "npm"
-          cache-dependency-path: desktop-app-vue/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install system dependencies
         run: |
