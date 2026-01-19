@@ -1,0 +1,92 @@
+// Signing configuration for Android app
+// Copy this file to your app/build.gradle and configure your signing
+
+android {
+    signingConfigs {
+        // Debug signing (uses default debug keystore)
+        debug {
+            storeFile file("debug.keystore")
+            storePassword "android"
+            keyAlias "androiddebugkey"
+            keyPassword "android"
+        }
+
+        // Release signing (uses environment variables for CI/CD)
+        release {
+            // Option 1: Using environment variables (recommended for CI/CD)
+            storeFile file(System.getenv("KEYSTORE_FILE") ?: "keystore.jks")
+            storePassword System.getenv("KEYSTORE_PASSWORD")
+            keyAlias System.getenv("KEY_ALIAS")
+            keyPassword System.getenv("KEY_PASSWORD")
+
+            // Option 2: Using gradle.properties (for local builds)
+            // Uncomment and configure gradle.properties
+            /*
+            storeFile file(project.findProperty("KEYSTORE_FILE") ?: "keystore.jks")
+            storePassword project.findProperty("KEYSTORE_PASSWORD")
+            keyAlias project.findProperty("KEY_ALIAS")
+            keyPassword project.findProperty("KEY_PASSWORD")
+            */
+
+            // Enable v1 and v2 signature schemes
+            v1SigningEnabled true
+            v2SigningEnabled true
+        }
+    }
+
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.debug
+            applicationIdSuffix ".debug"
+            versionNameSuffix "-debug"
+            debuggable true
+            minifyEnabled false
+        }
+
+        release {
+            signingConfig signingConfigs.release
+            debuggable false
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+
+            // Enable code shrinking and optimization
+            isCrunchPngs = true
+        }
+
+        // Staging build type (optional)
+        create("staging") {
+            initWith(release)
+            applicationIdSuffix ".staging"
+            versionNameSuffix "-staging"
+            debuggable true
+        }
+    }
+}
+
+// Validate signing configuration before release build
+tasks.whenTaskAdded { task ->
+    if (task.name == 'assembleRelease' || task.name == 'bundleRelease') {
+        task.doFirst {
+            def signingConfig = android.signingConfigs.release
+
+            if (signingConfig.storeFile == null || !signingConfig.storeFile.exists()) {
+                throw new GradleException("Keystore file not found: ${signingConfig.storeFile}")
+            }
+
+            if (signingConfig.storePassword == null || signingConfig.storePassword.isEmpty()) {
+                throw new GradleException("Keystore password not set")
+            }
+
+            if (signingConfig.keyAlias == null || signingConfig.keyAlias.isEmpty()) {
+                throw new GradleException("Key alias not set")
+            }
+
+            if (signingConfig.keyPassword == null || signingConfig.keyPassword.isEmpty()) {
+                throw new GradleException("Key password not set")
+            }
+
+            println "✅ Signing configuration validated"
+        }
+    }
+}
