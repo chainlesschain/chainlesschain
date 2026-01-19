@@ -6,9 +6,9 @@
         :type="isRecording ? 'primary' : 'default'"
         :danger="isRecording"
         :loading="isProcessing"
-        @click="toggleRecording"
         class="voice-button"
         :class="{ 'recording': isRecording }"
+        @click="toggleRecording"
       >
         <template #icon>
           <AudioOutlined v-if="!isRecording" />
@@ -24,32 +24,51 @@
       title="语音输入"
       :footer="null"
       :closable="false"
-      :maskClosable="false"
+      :mask-closable="false"
       width="450px"
       centered
     >
       <div class="recording-modal-content">
         <!-- 录音动画 -->
         <div class="recording-animation">
-          <div class="wave-circle" :class="{ active: isRecording }"></div>
-          <div class="wave-circle" :class="{ active: isRecording }"></div>
-          <div class="wave-circle" :class="{ active: isRecording }"></div>
+          <div
+            class="wave-circle"
+            :class="{ active: isRecording }"
+          />
+          <div
+            class="wave-circle"
+            :class="{ active: isRecording }"
+          />
+          <div
+            class="wave-circle"
+            :class="{ active: isRecording }"
+          />
           <AudioOutlined class="microphone-icon" />
         </div>
 
         <!-- 录音状态 -->
         <div class="recording-status">
-          <p class="status-text">{{ statusText }}</p>
-          <p class="recording-time">{{ recordingTime }}</p>
+          <p class="status-text">
+            {{ statusText }}
+          </p>
+          <p class="recording-time">
+            {{ recordingTime }}
+          </p>
 
           <!-- 音量指示器 -->
           <div class="volume-indicator">
-            <div class="volume-bar" :style="{ width: volumeLevel + '%' }"></div>
+            <div
+              class="volume-bar"
+              :style="{ width: volumeLevel + '%' }"
+            />
           </div>
         </div>
 
         <!-- 实时转录文本 -->
-        <div v-if="partialText" class="partial-transcript">
+        <div
+          v-if="partialText"
+          class="partial-transcript"
+        >
           <a-typography-paragraph :ellipsis="{ rows: 3, expandable: true }">
             {{ partialText }}
           </a-typography-paragraph>
@@ -58,20 +77,41 @@
         <!-- 操作按钮 -->
         <div class="recording-actions">
           <a-space>
-            <a-button danger @click="cancelRecording">
-              <template #icon><CloseOutlined /></template>
+            <a-button
+              danger
+              @click="cancelRecording"
+            >
+              <template #icon>
+                <CloseOutlined />
+              </template>
               取消
             </a-button>
-            <a-button v-if="isRecording && !isPaused" @click="pauseRecording">
-              <template #icon><PauseCircleOutlined /></template>
+            <a-button
+              v-if="isRecording && !isPaused"
+              @click="pauseRecording"
+            >
+              <template #icon>
+                <PauseCircleOutlined />
+              </template>
               暂停
             </a-button>
-            <a-button v-if="isPaused" type="default" @click="resumeRecording">
-              <template #icon><PlayCircleOutlined /></template>
+            <a-button
+              v-if="isPaused"
+              type="default"
+              @click="resumeRecording"
+            >
+              <template #icon>
+                <PlayCircleOutlined />
+              </template>
               继续
             </a-button>
-            <a-button type="primary" @click="stopRecording">
-              <template #icon><CheckOutlined /></template>
+            <a-button
+              type="primary"
+              @click="stopRecording"
+            >
+              <template #icon>
+                <CheckOutlined />
+              </template>
               完成
             </a-button>
           </a-space>
@@ -114,13 +154,13 @@ let totalPausedTime = 0;
 
 // 计算属性
 const buttonText = computed(() => {
-  if (isProcessing.value) return '处理中...';
-  if (isRecording.value) return '录音中';
+  if (isProcessing.value) {return '处理中...';}
+  if (isRecording.value) {return '录音中';}
   return '';
 });
 
 const tooltipText = computed(() => {
-  if (isRecording.value) return '点击停止录音';
+  if (isRecording.value) {return '点击停止录音';}
   return '点击开始语音输入';
 });
 

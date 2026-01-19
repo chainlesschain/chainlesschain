@@ -6,25 +6,46 @@
     placement="right"
     @close="handleClose"
   >
-    <div v-if="asset" class="asset-detail">
+    <div
+      v-if="asset"
+      class="asset-detail"
+    >
       <!-- 资产封面 -->
-      <div class="asset-cover" :style="{ background: getCoverGradient(asset.asset_type) }">
+      <div
+        class="asset-cover"
+        :style="{ background: getCoverGradient(asset.asset_type) }"
+      >
         <div class="asset-icon-large">
-          <component :is="getAssetIcon(asset.asset_type)" style="font-size: 64px; color: white" />
+          <component
+            :is="getAssetIcon(asset.asset_type)"
+            style="font-size: 64px; color: white"
+          />
         </div>
       </div>
 
       <!-- 资产类型标签 -->
       <div class="asset-type-section">
-        <a-tag :color="getTypeColor(asset.asset_type)" style="font-size: 14px; padding: 4px 12px">
+        <a-tag
+          :color="getTypeColor(asset.asset_type)"
+          style="font-size: 14px; padding: 4px 12px"
+        >
           {{ getTypeLabel(asset.asset_type) }}
         </a-tag>
       </div>
 
       <!-- 基本信息 -->
-      <a-descriptions title="基本信息" bordered :column="1" size="small" style="margin-top: 24px">
+      <a-descriptions
+        title="基本信息"
+        bordered
+        :column="1"
+        size="small"
+        style="margin-top: 24px"
+      >
         <a-descriptions-item label="资产 ID">
-          <a-typography-text copyable :ellipsis="{ tooltip: asset.id || asset.asset_id }">
+          <a-typography-text
+            copyable
+            :ellipsis="{ tooltip: asset.id || asset.asset_id }"
+          >
             {{ formatId(asset.id || asset.asset_id) }}
           </a-typography-text>
         </a-descriptions-item>
@@ -33,21 +54,37 @@
           <strong>{{ asset.name }}</strong>
         </a-descriptions-item>
 
-        <a-descriptions-item v-if="asset.symbol" label="资产符号">
-          <a-tag color="blue">{{ asset.symbol }}</a-tag>
+        <a-descriptions-item
+          v-if="asset.symbol"
+          label="资产符号"
+        >
+          <a-tag color="blue">
+            {{ asset.symbol }}
+          </a-tag>
         </a-descriptions-item>
 
         <a-descriptions-item label="资产类型">
           {{ getTypeLabel(asset.asset_type) }}
         </a-descriptions-item>
 
-        <a-descriptions-item v-if="asset.description" label="描述">
-          <div class="description-text">{{ asset.description }}</div>
+        <a-descriptions-item
+          v-if="asset.description"
+          label="描述"
+        >
+          <div class="description-text">
+            {{ asset.description }}
+          </div>
         </a-descriptions-item>
       </a-descriptions>
 
       <!-- 持有信息 -->
-      <a-descriptions title="持有信息" bordered :column="1" size="small" style="margin-top: 24px">
+      <a-descriptions
+        title="持有信息"
+        bordered
+        :column="1"
+        size="small"
+        style="margin-top: 24px"
+      >
         <a-descriptions-item label="我的余额">
           <div class="balance-highlight">
             {{ formatAmount(balance) }}
@@ -55,11 +92,17 @@
           </div>
         </a-descriptions-item>
 
-        <a-descriptions-item v-if="asset.total_supply" label="总供应量">
+        <a-descriptions-item
+          v-if="asset.total_supply"
+          label="总供应量"
+        >
           {{ formatAmount(asset.total_supply) }}
         </a-descriptions-item>
 
-        <a-descriptions-item v-if="asset.decimals !== undefined" label="小数位数">
+        <a-descriptions-item
+          v-if="asset.decimals !== undefined"
+          label="小数位数"
+        >
           {{ asset.decimals }}
         </a-descriptions-item>
 
@@ -69,12 +112,26 @@
       </a-descriptions>
 
       <!-- 创建者信息 -->
-      <a-descriptions v-if="asset.creator_did" title="创建者信息" bordered :column="1" size="small" style="margin-top: 24px">
+      <a-descriptions
+        v-if="asset.creator_did"
+        title="创建者信息"
+        bordered
+        :column="1"
+        size="small"
+        style="margin-top: 24px"
+      >
         <a-descriptions-item label="创建者 DID">
-          <a-typography-text copyable :ellipsis="{ tooltip: asset.creator_did }">
+          <a-typography-text
+            copyable
+            :ellipsis="{ tooltip: asset.creator_did }"
+          >
             {{ formatDid(asset.creator_did) }}
           </a-typography-text>
-          <a-tag v-if="isCurrentUser(asset.creator_did)" color="green" style="margin-left: 8px">
+          <a-tag
+            v-if="isCurrentUser(asset.creator_did)"
+            color="green"
+            style="margin-left: 8px"
+          >
             我创建的
           </a-tag>
         </a-descriptions-item>
@@ -85,53 +142,108 @@
       </a-descriptions>
 
       <!-- 元数据（如果有） -->
-      <a-descriptions v-if="hasMetadata" title="元数据" bordered :column="1" size="small" style="margin-top: 24px">
-        <a-descriptions-item v-if="asset.metadata?.imageUrl" label="资产图片">
-          <a-image :src="asset.metadata.imageUrl" :width="200" />
+      <a-descriptions
+        v-if="hasMetadata"
+        title="元数据"
+        bordered
+        :column="1"
+        size="small"
+        style="margin-top: 24px"
+      >
+        <a-descriptions-item
+          v-if="asset.metadata?.imageUrl"
+          label="资产图片"
+        >
+          <a-image
+            :src="asset.metadata.imageUrl"
+            :width="200"
+          />
         </a-descriptions-item>
 
-        <a-descriptions-item v-if="asset.metadata?.externalUrl" label="外部链接">
-          <a :href="asset.metadata.externalUrl" target="_blank" rel="noopener noreferrer">
+        <a-descriptions-item
+          v-if="asset.metadata?.externalUrl"
+          label="外部链接"
+        >
+          <a
+            :href="asset.metadata.externalUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             {{ asset.metadata.externalUrl }}
             <link-outlined style="margin-left: 4px" />
           </a>
         </a-descriptions-item>
 
         <!-- NFT 属性 -->
-        <a-descriptions-item v-if="nftAttributes.length > 0" label="NFT 属性">
-          <a-space direction="vertical" style="width: 100%">
-            <a-tag v-for="(attr, index) in nftAttributes" :key="index" color="purple">
+        <a-descriptions-item
+          v-if="nftAttributes.length > 0"
+          label="NFT 属性"
+        >
+          <a-space
+            direction="vertical"
+            style="width: 100%"
+          >
+            <a-tag
+              v-for="(attr, index) in nftAttributes"
+              :key="index"
+              color="purple"
+            >
               {{ attr.trait_type }}: {{ attr.value }}
             </a-tag>
           </a-space>
         </a-descriptions-item>
 
         <!-- 自定义数据 -->
-        <a-descriptions-item v-if="asset.metadata?.custom" label="自定义数据">
+        <a-descriptions-item
+          v-if="asset.metadata?.custom"
+          label="自定义数据"
+        >
           <pre class="custom-data">{{ JSON.stringify(asset.metadata.custom, null, 2) }}</pre>
         </a-descriptions-item>
       </a-descriptions>
 
       <!-- 操作按钮 -->
       <div class="action-buttons">
-        <a-space direction="vertical" style="width: 100%">
-          <a-button type="primary" block @click="handleTransfer">
+        <a-space
+          direction="vertical"
+          style="width: 100%"
+        >
+          <a-button
+            type="primary"
+            block
+            @click="handleTransfer"
+          >
             <swap-outlined /> 转账
           </a-button>
 
-          <a-button v-if="canMint" block @click="handleMint">
+          <a-button
+            v-if="canMint"
+            block
+            @click="handleMint"
+          >
             <plus-circle-outlined /> 铸造更多
           </a-button>
 
-          <a-button block @click="handleViewHistory">
+          <a-button
+            block
+            @click="handleViewHistory"
+          >
             <history-outlined /> 查看历史记录
           </a-button>
 
-          <a-button block @click="handleShowQR">
+          <a-button
+            block
+            @click="handleShowQR"
+          >
             <qrcode-outlined /> 显示二维码
           </a-button>
 
-          <a-button v-if="balance > 0" danger block @click="handleBurn">
+          <a-button
+            v-if="balance > 0"
+            danger
+            block
+            @click="handleBurn"
+          >
             <fire-outlined /> 销毁资产
           </a-button>
         </a-space>
@@ -139,7 +251,10 @@
     </div>
 
     <!-- 空状态 -->
-    <a-empty v-else description="资产信息不存在" />
+    <a-empty
+      v-else
+      description="资产信息不存在"
+    />
   </a-drawer>
 </template>
 
@@ -186,20 +301,20 @@ const emit = defineEmits(['close', 'transfer', 'mint', 'burn', 'view-history', '
 
 // 是否有元数据
 const hasMetadata = computed(() => {
-  if (!props.asset || !props.asset.metadata) return false;
+  if (!props.asset || !props.asset.metadata) {return false;}
   const meta = props.asset.metadata;
   return meta.imageUrl || meta.externalUrl || (meta.attributes && meta.attributes.length > 0) || meta.custom;
 });
 
 // NFT 属性
 const nftAttributes = computed(() => {
-  if (!props.asset || !props.asset.metadata || !props.asset.metadata.attributes) return [];
+  if (!props.asset || !props.asset.metadata || !props.asset.metadata.attributes) {return [];}
   return props.asset.metadata.attributes.filter(attr => attr.trait_type && attr.value);
 });
 
 // 是否可以铸造（仅创建者）
 const canMint = computed(() => {
-  if (!props.asset || !props.currentUserDid) return false;
+  if (!props.asset || !props.currentUserDid) {return false;}
   return props.asset.creator_did === props.currentUserDid && props.asset.asset_type === 'token';
 });
 
@@ -251,9 +366,9 @@ const getCoverGradient = (type) => {
 
 // 格式化金额
 const formatAmount = (amount) => {
-  if (!amount && amount !== 0) return '0';
+  if (!amount && amount !== 0) {return '0';}
   const num = parseFloat(amount);
-  if (isNaN(num)) return '0';
+  if (isNaN(num)) {return '0';}
 
   // 大数字使用科学计数法
   if (num >= 1e9) {
@@ -270,19 +385,19 @@ const formatAmount = (amount) => {
 
 // 格式化 ID
 const formatId = (id) => {
-  if (!id) return '-';
+  if (!id) {return '-';}
   return id.length > 20 ? `${id.slice(0, 10)}...${id.slice(-8)}` : id;
 };
 
 // 格式化 DID
 const formatDid = (did) => {
-  if (!did) return '-';
+  if (!did) {return '-';}
   return did.length > 20 ? `${did.slice(0, 10)}...${did.slice(-8)}` : did;
 };
 
 // 格式化时间
 const formatTime = (timestamp) => {
-  if (!timestamp) return '-';
+  if (!timestamp) {return '-';}
   const date = new Date(timestamp);
   const now = new Date();
   const diff = now - date;

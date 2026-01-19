@@ -26,8 +26,8 @@
             v-for="profession in professions"
             :key="profession.value"
             :type="selectedProfession === profession.value ? 'primary' : 'default'"
-            @click="selectProfession(profession.value)"
             class="profession-btn"
+            @click="selectProfession(profession.value)"
           >
             <component :is="profession.icon" />
             {{ profession.label }}
@@ -35,34 +35,55 @@
         </div>
 
         <!-- Prompt模板列表 -->
-        <div v-if="filteredPromptTemplates.length > 0" class="prompt-templates-list">
+        <div
+          v-if="filteredPromptTemplates.length > 0"
+          class="prompt-templates-list"
+        >
           <a-row :gutter="[12, 12]">
-            <a-col :span="12" v-for="template in filteredPromptTemplates" :key="template.id">
-              <div class="prompt-template-card" @click="fillPromptTemplate(template)">
+            <a-col
+              v-for="template in filteredPromptTemplates"
+              :key="template.id"
+              :span="12"
+            >
+              <div
+                class="prompt-template-card"
+                @click="fillPromptTemplate(template)"
+              >
                 <div class="template-header">
                   <span class="template-name">{{ template.name }}</span>
                   <ArrowRightOutlined class="arrow-icon" />
                 </div>
-                <div class="template-description">{{ template.description }}</div>
+                <div class="template-description">
+                  {{ template.description }}
+                </div>
               </div>
             </a-col>
           </a-row>
         </div>
-        <a-empty v-else description="该职业暂无专用模板" />
+        <a-empty
+          v-else
+          description="该职业暂无专用模板"
+        />
       </div>
 
       <!-- 项目模板选择区域 -->
       <div class="template-section">
         <div class="section-header">
           <h3>项目模板</h3>
-          <a-button type="link" @click="showTemplateModal = true">
+          <a-button
+            type="link"
+            @click="showTemplateModal = true"
+          >
             <FileTextOutlined />
             浏览所有项目模板
           </a-button>
         </div>
 
         <!-- 已选择的模板 -->
-        <div v-if="selectedTemplate" class="selected-template-banner">
+        <div
+          v-if="selectedTemplate"
+          class="selected-template-banner"
+        >
           <div class="banner-content">
             <div class="banner-icon">
               <CheckCircleFilled style="color: #52c41a; font-size: 24px" />
@@ -75,7 +96,11 @@
                 {{ selectedTemplate.description }}
               </div>
             </div>
-            <a-button type="text" danger @click="clearTemplate">
+            <a-button
+              type="text"
+              danger
+              @click="clearTemplate"
+            >
               <CloseCircleOutlined />
               清除
             </a-button>
@@ -85,8 +110,15 @@
         <!-- 示例卡片 -->
         <div class="examples-section">
           <a-row :gutter="[16, 16]">
-            <a-col :span="8" v-for="example in examples" :key="example.title">
-              <div class="example-card" @click="fillExample(example)">
+            <a-col
+              v-for="example in examples"
+              :key="example.title"
+              :span="8"
+            >
+              <div
+                class="example-card"
+                @click="fillExample(example)"
+              >
                 <div class="example-icon">
                   <component :is="example.icon" />
                 </div>
@@ -100,14 +132,18 @@
 
       <!-- 创建表单 -->
       <a-form
+        ref="formRef"
         :model="formData"
         :rules="rules"
         layout="vertical"
         @finish="handleSubmit"
-        ref="formRef"
       >
         <!-- 需求描述 -->
-        <a-form-item label="需求描述" name="userPrompt" required>
+        <a-form-item
+          label="需求描述"
+          name="userPrompt"
+          required
+        >
           <a-textarea
             v-model:value="formData.userPrompt"
             placeholder="详细描述您的项目需求，包括功能、技术栈、设计风格等..."
@@ -123,7 +159,10 @@
         <a-row :gutter="16">
           <!-- 项目名称 -->
           <a-col :span="12">
-            <a-form-item label="项目名称（可选）" name="name">
+            <a-form-item
+              label="项目名称（可选）"
+              name="name"
+            >
               <a-input
                 v-model:value="formData.name"
                 placeholder="留空由AI自动生成"
@@ -133,8 +172,15 @@
 
           <!-- 项目类型 -->
           <a-col :span="12">
-            <a-form-item label="项目类型" name="projectType" required>
-              <a-select v-model:value="formData.projectType" placeholder="选择项目类型">
+            <a-form-item
+              label="项目类型"
+              name="projectType"
+              required
+            >
+              <a-select
+                v-model:value="formData.projectType"
+                placeholder="选择项目类型"
+              >
                 <a-select-option value="web">
                   <CodeOutlined /> Web开发
                 </a-select-option>
@@ -154,8 +200,14 @@
 
         <!-- 技能和工具选择（可选） -->
         <a-form-item label="技能和工具配置（可选）">
-          <a-collapse :bordered="false" ghost>
-            <a-collapse-panel key="1" header="配置可用的技能和工具">
+          <a-collapse
+            :bordered="false"
+            ghost
+          >
+            <a-collapse-panel
+              key="1"
+              header="配置可用的技能和工具"
+            >
               <SkillToolSelector
                 v-model="selectedSkillsAndTools"
                 :project-type="formData.projectType"
@@ -167,11 +219,19 @@
         <!-- 提交按钮 -->
         <a-form-item>
           <div class="form-actions">
-            <a-button type="primary" html-type="submit" size="large" :loading="creating">
+            <a-button
+              type="primary"
+              html-type="submit"
+              size="large"
+              :loading="creating"
+            >
               <RobotOutlined />
               创建项目
             </a-button>
-            <a-button size="large" @click="handleReset">
+            <a-button
+              size="large"
+              @click="handleReset"
+            >
               重置
             </a-button>
           </div>
@@ -377,7 +437,7 @@ const handleTemplateConfirm = async (template) => {
 // 渲染并填充提示词
 const renderAndFillPrompt = async () => {
   try {
-    if (!selectedTemplate.value) return;
+    if (!selectedTemplate.value) {return;}
 
     const renderedPrompt = await templateStore.renderPrompt(
       selectedTemplate.value.id,

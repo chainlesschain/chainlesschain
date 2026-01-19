@@ -1,6 +1,9 @@
 <template>
   <div class="volcengine-tools-config">
-    <a-card title="火山引擎工具调用配置" :bordered="false">
+    <a-card
+      title="火山引擎工具调用配置"
+      :bordered="false"
+    >
       <!-- API 配置状态 -->
       <a-alert
         v-if="!configStatus.hasApiKey"
@@ -12,17 +15,34 @@
       />
 
       <!-- 模型智能选择 -->
-      <a-card type="inner" title="智能模型选择" style="margin-bottom: 16px">
+      <a-card
+        type="inner"
+        title="智能模型选择"
+        style="margin-bottom: 16px"
+      >
         <a-form layout="vertical">
           <a-row :gutter="16">
             <a-col :span="12">
               <a-form-item label="场景类型">
-                <a-select v-model:value="scenarioForm.type" @change="onScenarioChange">
-                  <a-select-option value="chat">AI对话</a-select-option>
-                  <a-select-option value="image">图像理解</a-select-option>
-                  <a-select-option value="video">视频生成</a-select-option>
-                  <a-select-option value="embedding">知识库向量化</a-select-option>
-                  <a-select-option value="code">代码生成</a-select-option>
+                <a-select
+                  v-model:value="scenarioForm.type"
+                  @change="onScenarioChange"
+                >
+                  <a-select-option value="chat">
+                    AI对话
+                  </a-select-option>
+                  <a-select-option value="image">
+                    图像理解
+                  </a-select-option>
+                  <a-select-option value="video">
+                    视频生成
+                  </a-select-option>
+                  <a-select-option value="embedding">
+                    知识库向量化
+                  </a-select-option>
+                  <a-select-option value="code">
+                    代码生成
+                  </a-select-option>
                 </a-select>
               </a-form-item>
             </a-col>
@@ -30,9 +50,15 @@
             <a-col :span="12">
               <a-form-item label="预算等级">
                 <a-select v-model:value="scenarioForm.userBudget">
-                  <a-select-option value="low">低成本</a-select-option>
-                  <a-select-option value="medium">中等</a-select-option>
-                  <a-select-option value="high">高质量</a-select-option>
+                  <a-select-option value="low">
+                    低成本
+                  </a-select-option>
+                  <a-select-option value="medium">
+                    中等
+                  </a-select-option>
+                  <a-select-option value="high">
+                    高质量
+                  </a-select-option>
                 </a-select>
               </a-form-item>
             </a-col>
@@ -40,44 +66,81 @@
 
           <a-form-item label="高级选项">
             <a-checkbox-group v-model:value="scenarioForm.advanced">
-              <a-checkbox value="hasImage">包含图片</a-checkbox>
-              <a-checkbox value="hasVideo">包含视频</a-checkbox>
-              <a-checkbox value="needsThinking">需要深度思考</a-checkbox>
-              <a-checkbox value="needsFunctionCalling">需要函数调用</a-checkbox>
-              <a-checkbox value="needsWebSearch">需要联网搜索</a-checkbox>
+              <a-checkbox value="hasImage">
+                包含图片
+              </a-checkbox>
+              <a-checkbox value="hasVideo">
+                包含视频
+              </a-checkbox>
+              <a-checkbox value="needsThinking">
+                需要深度思考
+              </a-checkbox>
+              <a-checkbox value="needsFunctionCalling">
+                需要函数调用
+              </a-checkbox>
+              <a-checkbox value="needsWebSearch">
+                需要联网搜索
+              </a-checkbox>
             </a-checkbox-group>
           </a-form-item>
 
           <a-form-item>
-            <a-button type="primary" @click="selectModel" :loading="selecting">
+            <a-button
+              type="primary"
+              :loading="selecting"
+              @click="selectModel"
+            >
               智能选择模型
             </a-button>
           </a-form-item>
         </a-form>
 
         <!-- 选择结果 -->
-        <a-card v-if="selectedModel" type="inner" title="推荐模型" style="margin-top: 16px">
-          <a-descriptions :column="2" size="small">
+        <a-card
+          v-if="selectedModel"
+          type="inner"
+          title="推荐模型"
+          style="margin-top: 16px"
+        >
+          <a-descriptions
+            :column="2"
+            size="small"
+          >
             <a-descriptions-item label="模型名称">
-              <a-tag color="blue">{{ selectedModel.modelName }}</a-tag>
+              <a-tag color="blue">
+                {{ selectedModel.modelName }}
+              </a-tag>
             </a-descriptions-item>
             <a-descriptions-item label="模型ID">
               {{ selectedModel.modelId }}
             </a-descriptions-item>
-            <a-descriptions-item label="能力" :span="2">
+            <a-descriptions-item
+              label="能力"
+              :span="2"
+            >
               <a-space>
-                <a-tag v-for="cap in selectedModel.capabilities" :key="cap" color="green">
+                <a-tag
+                  v-for="cap in selectedModel.capabilities"
+                  :key="cap"
+                  color="green"
+                >
                   {{ cap }}
                 </a-tag>
               </a-space>
             </a-descriptions-item>
-            <a-descriptions-item label="价格" :span="2">
+            <a-descriptions-item
+              label="价格"
+              :span="2"
+            >
               输入: ¥{{ selectedModel.pricing.input }}/百万tokens
               <span v-if="selectedModel.pricing.output">
                 | 输出: ¥{{ selectedModel.pricing.output }}/百万tokens
               </span>
             </a-descriptions-item>
-            <a-descriptions-item label="描述" :span="2">
+            <a-descriptions-item
+              label="描述"
+              :span="2"
+            >
               {{ selectedModel.description }}
             </a-descriptions-item>
           </a-descriptions>
@@ -85,8 +148,15 @@
       </a-card>
 
       <!-- 工具调用配置 -->
-      <a-card type="inner" title="工具调用" style="margin-bottom: 16px">
-        <a-space direction="vertical" style="width: 100%">
+      <a-card
+        type="inner"
+        title="工具调用"
+        style="margin-bottom: 16px"
+      >
+        <a-space
+          direction="vertical"
+          style="width: 100%"
+        >
           <!-- 联网搜索 -->
           <a-card size="small">
             <template #title>
@@ -106,9 +176,15 @@
               style="width: 200px; margin-left: 16px"
               size="small"
             >
-              <a-select-option value="auto">自动搜索</a-select-option>
-              <a-select-option value="always">总是搜索</a-select-option>
-              <a-select-option value="never">从不搜索</a-select-option>
+              <a-select-option value="auto">
+                自动搜索
+              </a-select-option>
+              <a-select-option value="always">
+                总是搜索
+              </a-select-option>
+              <a-select-option value="never">
+                从不搜索
+              </a-select-option>
             </a-select>
           </a-card>
 
@@ -167,12 +243,21 @@
       </a-card>
 
       <!-- 测试工具 -->
-      <a-card type="inner" title="测试工具">
+      <a-card
+        type="inner"
+        title="测试工具"
+      >
         <a-space>
-          <a-button @click="testWebSearch" :loading="testing.webSearch">
+          <a-button
+            :loading="testing.webSearch"
+            @click="testWebSearch"
+          >
             测试联网搜索
           </a-button>
-          <a-button @click="testImageUnderstanding" :loading="testing.image">
+          <a-button
+            :loading="testing.image"
+            @click="testImageUnderstanding"
+          >
             测试图像理解
           </a-button>
           <a-button @click="listAllModels">
@@ -185,7 +270,12 @@
       </a-card>
 
       <!-- 测试结果 -->
-      <a-card v-if="testResult" type="inner" title="测试结果" style="margin-top: 16px">
+      <a-card
+        v-if="testResult"
+        type="inner"
+        title="测试结果"
+        style="margin-top: 16px"
+      >
         <pre style="max-height: 400px; overflow-y: auto; background: #f5f5f5; padding: 12px; border-radius: 4px">{{ testResult }}</pre>
       </a-card>
     </a-card>

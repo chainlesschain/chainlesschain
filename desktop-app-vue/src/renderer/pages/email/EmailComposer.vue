@@ -8,8 +8,14 @@
     @cancel="handleCancel"
     @update:open="emit('update:visible', $event)"
   >
-    <a-form :model="emailForm" layout="vertical">
-      <a-form-item label="收件人" required>
+    <a-form
+      :model="emailForm"
+      layout="vertical"
+    >
+      <a-form-item
+        label="收件人"
+        required
+      >
         <a-select
           v-model:value="emailForm.to"
           mode="tags"
@@ -45,37 +51,67 @@
         </a-col>
       </a-row>
 
-      <a-form-item label="主题" required>
-        <a-input v-model:value="emailForm.subject" placeholder="邮件主题" />
+      <a-form-item
+        label="主题"
+        required
+      >
+        <a-input
+          v-model:value="emailForm.subject"
+          placeholder="邮件主题"
+        />
       </a-form-item>
 
-      <a-form-item label="内容" required>
-        <a-tabs v-model:activeKey="contentType">
-          <a-tab-pane key="text" tab="纯文本">
+      <a-form-item
+        label="内容"
+        required
+      >
+        <a-tabs v-model:active-key="contentType">
+          <a-tab-pane
+            key="text"
+            tab="纯文本"
+          >
             <a-textarea
               v-model:value="emailForm.text"
               :rows="12"
               placeholder="输入邮件内容..."
             />
           </a-tab-pane>
-          <a-tab-pane key="html" tab="富文本">
+          <a-tab-pane
+            key="html"
+            tab="富文本"
+          >
             <div class="html-editor">
               <div class="editor-toolbar">
                 <a-space>
-                  <a-button size="small" @click="insertFormat('bold')">
+                  <a-button
+                    size="small"
+                    @click="insertFormat('bold')"
+                  >
                     <BoldOutlined />
                   </a-button>
-                  <a-button size="small" @click="insertFormat('italic')">
+                  <a-button
+                    size="small"
+                    @click="insertFormat('italic')"
+                  >
                     <ItalicOutlined />
                   </a-button>
-                  <a-button size="small" @click="insertFormat('underline')">
+                  <a-button
+                    size="small"
+                    @click="insertFormat('underline')"
+                  >
                     <UnderlineOutlined />
                   </a-button>
                   <a-divider type="vertical" />
-                  <a-button size="small" @click="insertFormat('link')">
+                  <a-button
+                    size="small"
+                    @click="insertFormat('link')"
+                  >
                     <LinkOutlined />
                   </a-button>
-                  <a-button size="small" @click="insertFormat('image')">
+                  <a-button
+                    size="small"
+                    @click="insertFormat('image')"
+                  >
                     <PictureOutlined />
                   </a-button>
                 </a-space>
@@ -104,7 +140,10 @@
           style="margin-top: 8px; font-size: 12px; color: #999"
         >
           总大小: {{ formatSize(totalSize) }}
-          <span v-if="totalSize > 25 * 1024 * 1024" style="color: #ff4d4f">
+          <span
+            v-if="totalSize > 25 * 1024 * 1024"
+            style="color: #ff4d4f"
+          >
             (建议不超过 25MB)
           </span>
         </div>
@@ -135,9 +174,17 @@
 
     <template #footer>
       <a-space>
-        <a-button @click="saveDraft"> <SaveOutlined /> 保存草稿 </a-button>
-        <a-button @click="handleCancel">取消</a-button>
-        <a-button type="primary" @click="sendEmail" :loading="sending">
+        <a-button @click="saveDraft">
+          <SaveOutlined /> 保存草稿
+        </a-button>
+        <a-button @click="handleCancel">
+          取消
+        </a-button>
+        <a-button
+          type="primary"
+          :loading="sending"
+          @click="sendEmail"
+        >
           <SendOutlined /> 发送
         </a-button>
       </a-space>
@@ -221,7 +268,7 @@ const removeFile = (file) => {
 const insertFormat = (format) => {
   // 简单的格式插入
   const textarea = document.querySelector(".html-editor textarea");
-  if (!textarea) return;
+  if (!textarea) {return;}
 
   const start = textarea.selectionStart;
   const end = textarea.selectionEnd;
@@ -342,8 +389,8 @@ const clearForward = () => {
 };
 
 const formatSize = (bytes) => {
-  if (bytes < 1024) return bytes + " B";
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + " KB";
+  if (bytes < 1024) {return bytes + " B";}
+  if (bytes < 1024 * 1024) {return (bytes / 1024).toFixed(2) + " KB";}
   return (bytes / 1024 / 1024).toFixed(2) + " MB";
 };
 

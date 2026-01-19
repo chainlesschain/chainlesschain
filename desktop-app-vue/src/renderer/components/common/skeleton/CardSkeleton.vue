@@ -1,21 +1,30 @@
 <template>
   <div class="card-skeleton">
     <div class="card-header">
-      <div class="skeleton-box avatar"></div>
+      <div class="skeleton-box avatar" />
       <div class="header-content">
-        <div class="skeleton-box title"></div>
-        <div class="skeleton-box subtitle"></div>
+        <div class="skeleton-box title" />
+        <div class="skeleton-box subtitle" />
       </div>
     </div>
 
-    <div class="card-image skeleton-box"></div>
+    <div class="card-image skeleton-box" />
 
     <div class="card-content">
-      <div class="skeleton-box line" v-for="i in 3" :key="i" :style="{ width: getWidth(i) }"></div>
+      <div
+        v-for="i in 3"
+        :key="i"
+        class="skeleton-box line"
+        :style="{ width: getWidth(i) }"
+      />
     </div>
 
     <div class="card-actions">
-      <div class="skeleton-box action-button" v-for="i in 3" :key="'action' + i"></div>
+      <div
+        v-for="i in 3"
+        :key="'action' + i"
+        class="skeleton-box action-button"
+      />
     </div>
   </div>
 </template>

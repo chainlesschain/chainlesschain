@@ -15,13 +15,27 @@
             style="width: 150px"
             @change="handleFilterChange"
           >
-            <a-select-option value="">全部</a-select-option>
-            <a-select-option value="grant">授予权限</a-select-option>
-            <a-select-option value="revoke">撤销权限</a-select-option>
-            <a-select-option value="create">创建</a-select-option>
-            <a-select-option value="update">更新</a-select-option>
-            <a-select-option value="delete">删除</a-select-option>
-            <a-select-option value="check">权限检查</a-select-option>
+            <a-select-option value="">
+              全部
+            </a-select-option>
+            <a-select-option value="grant">
+              授予权限
+            </a-select-option>
+            <a-select-option value="revoke">
+              撤销权限
+            </a-select-option>
+            <a-select-option value="create">
+              创建
+            </a-select-option>
+            <a-select-option value="update">
+              更新
+            </a-select-option>
+            <a-select-option value="delete">
+              删除
+            </a-select-option>
+            <a-select-option value="check">
+              权限检查
+            </a-select-option>
           </a-select>
           <a-select
             v-model:value="severityFilter"
@@ -29,11 +43,21 @@
             style="width: 120px"
             @change="handleFilterChange"
           >
-            <a-select-option value="">全部</a-select-option>
-            <a-select-option value="info">信息</a-select-option>
-            <a-select-option value="warning">警告</a-select-option>
-            <a-select-option value="error">错误</a-select-option>
-            <a-select-option value="critical">严重</a-select-option>
+            <a-select-option value="">
+              全部
+            </a-select-option>
+            <a-select-option value="info">
+              信息
+            </a-select-option>
+            <a-select-option value="warning">
+              警告
+            </a-select-option>
+            <a-select-option value="error">
+              错误
+            </a-select-option>
+            <a-select-option value="critical">
+              严重
+            </a-select-option>
           </a-select>
           <a-input-search
             v-model:value="searchText"
@@ -42,7 +66,9 @@
             @search="handleSearch"
           />
           <a-button @click="handleExport">
-            <template #icon><ExportOutlined /></template>
+            <template #icon>
+              <ExportOutlined />
+            </template>
             导出
           </a-button>
         </a-space>
@@ -58,7 +84,11 @@
       >
         <template #expandedRowRender="{ record }">
           <div class="log-detail">
-            <a-descriptions title="详细信息" bordered size="small">
+            <a-descriptions
+              title="详细信息"
+              bordered
+              size="small"
+            >
               <a-descriptions-item label="日志ID">
                 {{ record.logId }}
               </a-descriptions-item>
@@ -83,7 +113,10 @@
 
             <pre style="background: #f5f5f5; padding: 12px; border-radius: 4px; overflow: auto;">{{ JSON.stringify(record.details, null, 2) }}</pre>
 
-            <div v-if="record.changes" style="margin-top: 16px">
+            <div
+              v-if="record.changes"
+              style="margin-top: 16px"
+            >
               <a-divider>变更内容</a-divider>
               <a-table
                 :columns="changeColumns"
@@ -118,16 +151,26 @@
           </template>
 
           <template v-else-if="column.key === 'result'">
-            <a-tag v-if="record.result === 'success'" color="green">
+            <a-tag
+              v-if="record.result === 'success'"
+              color="green"
+            >
               成功
             </a-tag>
-            <a-tag v-else color="red">
+            <a-tag
+              v-else
+              color="red"
+            >
               失败
             </a-tag>
           </template>
 
           <template v-else-if="column.key === 'actions'">
-            <a-button type="link" size="small" @click="handleViewDetail(record)">
+            <a-button
+              type="link"
+              size="small"
+              @click="handleViewDetail(record)"
+            >
               查看详情
             </a-button>
           </template>

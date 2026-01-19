@@ -19,7 +19,7 @@
  * @param {string} domain - Domain to prefetch
  */
 export function dnsPrefetch(domain) {
-  if (!domain) return
+  if (!domain) {return}
 
   const link = document.createElement('link')
   link.rel = 'dns-prefetch'
@@ -38,7 +38,7 @@ export function dnsPrefetch(domain) {
  * @param {boolean} crossOrigin - Whether cross-origin
  */
 export function preconnect(url, crossOrigin = false) {
-  if (!url) return
+  if (!url) {return}
 
   const link = document.createElement('link')
   link.rel = 'preconnect'
@@ -61,7 +61,7 @@ export function preconnect(url, crossOrigin = false) {
  * @param {string} as - Resource type
  */
 export function prefetch(url, as = '') {
-  if (!url) return
+  if (!url) {return}
 
   const link = document.createElement('link')
   link.rel = 'prefetch'
@@ -127,7 +127,7 @@ export function preload(url, as, options = {}) {
  * @param {string} url - URL to prerender
  */
 export function prerender(url) {
-  if (!url) return
+  if (!url) {return}
 
   const link = document.createElement('link')
   link.rel = 'prerender'
@@ -145,7 +145,7 @@ export function prerender(url) {
  * @param {string} url - Module URL to preload
  */
 export function modulePreload(url) {
-  if (!url) return
+  if (!url) {return}
 
   const link = document.createElement('link')
   link.rel = 'modulepreload'
@@ -345,7 +345,7 @@ export class IntelligentPrefetcher {
    * Observe element for viewport prefetch
    */
   observe(element, url, as = 'fetch') {
-    if (!element) return
+    if (!element) {return}
 
     element.dataset.prefetchUrl = url
     element.dataset.prefetchAs = as
@@ -357,7 +357,7 @@ export class IntelligentPrefetcher {
    * Setup hover prefetch
    */
   onHover(element, url, as = 'fetch') {
-    if (!element) return
+    if (!element) {return}
 
     let timeoutId = null
 
@@ -402,7 +402,7 @@ export class IntelligentPrefetcher {
     while (this.queue.length > 0 && this.inFlight.size < this.options.maxConcurrent) {
       const item = this.queue.shift()
 
-      if (!item) continue
+      if (!item) {continue}
 
       this.inFlight.add(item.url)
 

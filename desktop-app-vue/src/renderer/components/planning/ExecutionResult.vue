@@ -7,18 +7,29 @@
       :sub-title="getResultSummary()"
     >
       <template #icon>
-        <div class="success-icon">🎉</div>
+        <div class="success-icon">
+          🎉
+        </div>
       </template>
     </a-result>
 
     <!-- 质量评分 -->
-    <div v-if="qualityScore" class="quality-score">
+    <div
+      v-if="qualityScore"
+      class="quality-score"
+    >
       <h4>📊 质量评分</h4>
       <div class="score-card">
         <div class="score-main">
-          <div class="score-value">{{ qualityScore.percentage }}</div>
-          <div class="score-label">分</div>
-          <div class="score-grade">{{ qualityScore.grade }}</div>
+          <div class="score-value">
+            {{ qualityScore.percentage }}
+          </div>
+          <div class="score-label">
+            分
+          </div>
+          <div class="score-grade">
+            {{ qualityScore.grade }}
+          </div>
         </div>
         <div class="score-details">
           <div class="score-item">
@@ -71,7 +82,10 @@
     </div>
 
     <!-- 生成的文件 -->
-    <div v-if="result?.files && result.files.length > 0" class="generated-files">
+    <div
+      v-if="result?.files && result.files.length > 0"
+      class="generated-files"
+    >
       <h4>📁 生成的文件</h4>
       <div class="files-list">
         <div
@@ -79,12 +93,21 @@
           :key="index"
           class="file-item"
         >
-          <div class="file-icon">📄</div>
-          <div class="file-info">
-            <div class="file-name">{{ file.name }}</div>
-            <div class="file-size">{{ formatFileSize(file.size) }}</div>
+          <div class="file-icon">
+            📄
           </div>
-          <a-button type="link" size="small">
+          <div class="file-info">
+            <div class="file-name">
+              {{ file.name }}
+            </div>
+            <div class="file-size">
+              {{ formatFileSize(file.size) }}
+            </div>
+          </div>
+          <a-button
+            type="link"
+            size="small"
+          >
             查看
           </a-button>
         </div>
@@ -104,11 +127,21 @@
         </a-form-item>
         <a-form-item label="遇到的问题">
           <a-checkbox-group v-model:value="feedback.issues">
-            <a-checkbox value="incomplete">结果不完整</a-checkbox>
-            <a-checkbox value="quality">质量不够好</a-checkbox>
-            <a-checkbox value="slow">执行太慢</a-checkbox>
-            <a-checkbox value="error">出现错误</a-checkbox>
-            <a-checkbox value="other">其他问题</a-checkbox>
+            <a-checkbox value="incomplete">
+              结果不完整
+            </a-checkbox>
+            <a-checkbox value="quality">
+              质量不够好
+            </a-checkbox>
+            <a-checkbox value="slow">
+              执行太慢
+            </a-checkbox>
+            <a-checkbox value="error">
+              出现错误
+            </a-checkbox>
+            <a-checkbox value="other">
+              其他问题
+            </a-checkbox>
           </a-checkbox-group>
         </a-form-item>
         <a-form-item label="改进建议">
@@ -177,7 +210,7 @@ const getScorePercent = (score, maxScore) => {
 
 // 格式化文件大小
 const formatFileSize = (bytes) => {
-  if (!bytes) return '0 B';
+  if (!bytes) {return '0 B';}
   const k = 1024;
   const sizes = ['B', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));

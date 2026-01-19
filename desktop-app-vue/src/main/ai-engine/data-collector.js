@@ -131,7 +131,7 @@ class DataCollector {
    * @param {Object} updates - 更新数据
    */
   async updateUserProfile(userId, updates) {
-    if (!this.db) return;
+    if (!this.db) {return;}
 
     try {
       // 检查用户画像是否存在
@@ -175,7 +175,7 @@ class DataCollector {
    * 创建新用户画像
    */
   async createUserProfile(userId, initialData = {}) {
-    if (!this.db) return;
+    if (!this.db) {return;}
 
     try {
       const insertStmt = this.db.prepare(`
@@ -330,10 +330,10 @@ class DataCollector {
   validateToolUsageEvent(event) {
     const errors = [];
 
-    if (!event.userId) errors.push('缺少userId');
-    if (!event.sessionId) errors.push('缺少sessionId');
-    if (!event.toolName) errors.push('缺少toolName');
-    if (event.success === undefined) errors.push('缺少success状态');
+    if (!event.userId) {errors.push('缺少userId');}
+    if (!event.sessionId) {errors.push('缺少sessionId');}
+    if (!event.toolName) {errors.push('缺少toolName');}
+    if (event.success === undefined) {errors.push('缺少success状态');}
 
     return {
       valid: errors.length === 0,
@@ -347,9 +347,9 @@ class DataCollector {
   validateRecommendation(rec) {
     const errors = [];
 
-    if (!rec.userId) errors.push('缺少userId');
-    if (!rec.sessionId) errors.push('缺少sessionId');
-    if (!rec.taskDescription) errors.push('缺少taskDescription');
+    if (!rec.userId) {errors.push('缺少userId');}
+    if (!rec.sessionId) {errors.push('缺少sessionId');}
+    if (!rec.taskDescription) {errors.push('缺少taskDescription');}
     if (!rec.recommendedTools || rec.recommendedTools.length === 0) {
       errors.push('缺少recommendedTools');
     }
@@ -420,7 +420,7 @@ class DataCollector {
    * 清理上下文数据
    */
   sanitizeContext(context) {
-    if (!context) return null;
+    if (!context) {return null;}
 
     // 移除敏感信息
     const cleaned = { ...context };

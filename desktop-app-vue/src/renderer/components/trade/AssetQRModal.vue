@@ -8,10 +8,18 @@
   >
     <div class="asset-qr-modal">
       <!-- 资产信息 -->
-      <a-card :bordered="false" class="asset-info-card">
-        <a-descriptions :column="1" size="small">
+      <a-card
+        :bordered="false"
+        class="asset-info-card"
+      >
+        <a-descriptions
+          :column="1"
+          size="small"
+        >
           <a-descriptions-item label="资产名称">
-            <a-typography-text strong>{{ asset?.name }}</a-typography-text>
+            <a-typography-text strong>
+              {{ asset?.name }}
+            </a-typography-text>
           </a-descriptions-item>
           <a-descriptions-item label="资产类型">
             <a-tag :color="getAssetTypeColor(asset?.asset_type)">
@@ -19,9 +27,14 @@
             </a-tag>
           </a-descriptions-item>
           <a-descriptions-item label="资产ID">
-            <a-typography-text copyable>{{ asset?.id }}</a-typography-text>
+            <a-typography-text copyable>
+              {{ asset?.id }}
+            </a-typography-text>
           </a-descriptions-item>
-          <a-descriptions-item label="合约地址" v-if="asset?.contract_address">
+          <a-descriptions-item
+            v-if="asset?.contract_address"
+            label="合约地址"
+          >
             <a-typography-text copyable>
               {{ formatAddress(asset.contract_address) }}
             </a-typography-text>
@@ -34,24 +47,38 @@
       <!-- 二维码显示 -->
       <div class="qr-code-container">
         <div class="qr-code-wrapper">
-          <canvas ref="qrCanvas" class="qr-canvas"></canvas>
+          <canvas
+            ref="qrCanvas"
+            class="qr-canvas"
+          />
         </div>
-        <p class="qr-hint">扫描二维码查看资产详情</p>
+        <p class="qr-hint">
+          扫描二维码查看资产详情
+        </p>
       </div>
 
       <!-- 操作按钮 -->
       <div class="action-buttons">
         <a-space :size="12">
-          <a-button type="primary" @click="handleDownloadQR">
-            <template #icon><download-outlined /></template>
+          <a-button
+            type="primary"
+            @click="handleDownloadQR"
+          >
+            <template #icon>
+              <download-outlined />
+            </template>
             下载二维码
           </a-button>
           <a-button @click="handleCopyLink">
-            <template #icon><copy-outlined /></template>
+            <template #icon>
+              <copy-outlined />
+            </template>
             复制链接
           </a-button>
           <a-button @click="handleShare">
-            <template #icon><share-alt-outlined /></template>
+            <template #icon>
+              <share-alt-outlined />
+            </template>
             分享
           </a-button>
         </a-space>
@@ -89,7 +116,7 @@ const qrCanvas = ref(null);
  * 生成二维码
  */
 const generateQRCode = async () => {
-  if (!props.asset || !qrCanvas.value) return;
+  if (!props.asset || !qrCanvas.value) {return;}
 
   try {
     // 构建资产信息JSON
@@ -129,7 +156,7 @@ const generateQRCode = async () => {
  * 下载二维码
  */
 const handleDownloadQR = () => {
-  if (!qrCanvas.value) return;
+  if (!qrCanvas.value) {return;}
 
   try {
     const link = document.createElement('a');
@@ -194,8 +221,8 @@ const handleClose = () => {
  * 格式化地址
  */
 const formatAddress = (address) => {
-  if (!address) return '';
-  if (address.length <= 20) return address;
+  if (!address) {return '';}
+  if (address.length <= 20) {return address;}
   return `${address.slice(0, 10)}...${address.slice(-8)}`;
 };
 

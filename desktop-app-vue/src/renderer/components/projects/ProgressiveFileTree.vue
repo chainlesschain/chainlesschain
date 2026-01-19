@@ -3,23 +3,30 @@
     <a-input-search
       v-model:value="searchQuery"
       placeholder="Search files..."
-      @search="handleSearch"
       class="search-input"
+      @search="handleSearch"
     />
 
-    <a-spin :spinning="loading" tip="Loading files...">
-      <div class="tree-container" ref="treeContainer" @scroll="handleScroll">
+    <a-spin
+      :spinning="loading"
+      tip="Loading files..."
+    >
+      <div
+        ref="treeContainer"
+        class="tree-container"
+        @scroll="handleScroll"
+      >
         <a-tree
           v-if="visibleNodes.length > 0"
           :tree-data="visibleNodes"
           :expanded-keys="expandedKeys"
           :selected-keys="selectedKeys"
           :load-data="onLoadData"
-          @expand="onExpand"
-          @select="onSelect"
           :virtual="true"
           :height="treeHeight"
           :item-height="28"
+          @expand="onExpand"
+          @select="onSelect"
         >
           <template #title="{ title, key, isLeaf, loaded, loading: nodeLoading }">
             <div class="tree-node-title">
@@ -28,7 +35,10 @@
                 <FolderOutlined v-else-if="!expandedKeys.includes(key)" />
                 <FolderOpenOutlined v-else />
               </span>
-              <span class="node-text" :title="title">{{ title }}</span>
+              <span
+                class="node-text"
+                :title="title"
+              >{{ title }}</span>
               <a-spin
                 v-if="nodeLoading"
                 size="small"
@@ -47,8 +57,8 @@
         <!-- Virtual scroll placeholder -->
         <div
           v-if="hasMore"
-          class="load-more-trigger"
           ref="loadMoreTrigger"
+          class="load-more-trigger"
         >
           <a-spin size="small" />
           <span>Loading more...</span>
@@ -183,7 +193,7 @@ const buildTreeStructure = (files) => {
   files.sort((a, b) => {
     const depthA = a.path.split('/').length
     const depthB = b.path.split('/').length
-    if (depthA !== depthB) return depthA - depthB
+    if (depthA !== depthB) {return depthA - depthB}
     return a.path.localeCompare(b.path)
   })
 
@@ -365,7 +375,7 @@ const autoExpandToDepth = async (depth) => {
   const keysToExpand = []
 
   const traverse = async (nodes, currentDepth) => {
-    if (currentDepth >= depth) return
+    if (currentDepth >= depth) {return}
 
     for (const node of nodes) {
       if (!node.isLeaf) {
@@ -391,7 +401,7 @@ const autoExpandToDepth = async (depth) => {
  * Handle scroll for infinite loading
  */
 const handleScroll = () => {
-  if (!treeContainer.value || !hasMore.value) return
+  if (!treeContainer.value || !hasMore.value) {return}
 
   const { scrollTop, scrollHeight, clientHeight } = treeContainer.value
   const scrollPercentage = (scrollTop + clientHeight) / scrollHeight
@@ -445,7 +455,7 @@ const getChildCount = (key) => {
  * Setup intersection observer for infinite scroll
  */
 const setupIntersectionObserver = () => {
-  if (!loadMoreTrigger.value) return
+  if (!loadMoreTrigger.value) {return}
 
   intersectionObserver = new IntersectionObserver(
     (entries) => {
@@ -491,10 +501,10 @@ const expandNode = async (path) => {
 const findNodeByKey = (key) => {
   const traverse = (nodes) => {
     for (const node of nodes) {
-      if (node.key === key) return node
+      if (node.key === key) {return node}
       if (node.children) {
         const found = traverse(node.children)
-        if (found) return found
+        if (found) {return found}
       }
     }
     return null

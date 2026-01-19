@@ -94,7 +94,7 @@ class PathConverter {
     }
 
     // 规范化路径（统一为正斜杠）
-    let normalizedPath = localPath.replace(/\\/g, '/');
+    const normalizedPath = localPath.replace(/\\/g, '/');
 
     // 检查是否匹配任何已定义的映射
     for (const [localPrefix, dockerPrefix] of Object.entries(this.dockerMappings)) {

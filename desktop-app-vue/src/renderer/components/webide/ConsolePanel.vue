@@ -13,14 +13,27 @@
           size="small"
           style="width: 100px"
         >
-          <a-select-option value="all">全部</a-select-option>
-          <a-select-option value="log">Log</a-select-option>
-          <a-select-option value="error">Error</a-select-option>
-          <a-select-option value="warn">Warn</a-select-option>
-          <a-select-option value="info">Info</a-select-option>
+          <a-select-option value="all">
+            全部
+          </a-select-option>
+          <a-select-option value="log">
+            Log
+          </a-select-option>
+          <a-select-option value="error">
+            Error
+          </a-select-option>
+          <a-select-option value="warn">
+            Warn
+          </a-select-option>
+          <a-select-option value="info">
+            Info
+          </a-select-option>
         </a-select>
         <a-tooltip title="清空控制台">
-          <a-button size="small" @click="handleClear">
+          <a-button
+            size="small"
+            @click="handleClear"
+          >
             <DeleteOutlined />
           </a-button>
         </a-tooltip>
@@ -28,7 +41,10 @@
     </div>
 
     <!-- 控制台内容 -->
-    <div ref="consoleContainerRef" class="console-content">
+    <div
+      ref="consoleContainerRef"
+      class="console-content"
+    >
       <div
         v-for="log in filteredLogs"
         :key="log.id"
@@ -42,7 +58,10 @@
       </div>
 
       <!-- 空状态 -->
-      <div v-if="filteredLogs.length === 0" class="empty-state">
+      <div
+        v-if="filteredLogs.length === 0"
+        class="empty-state"
+      >
         <InfoCircleOutlined />
         <p>暂无日志</p>
       </div>
@@ -94,7 +113,7 @@ const getLogIcon = (method) => {
 
 // 格式化日志参数
 const formatLogArgs = (args) => {
-  if (!args || args.length === 0) return '';
+  if (!args || args.length === 0) {return '';}
   return args.join(' ');
 };
 

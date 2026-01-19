@@ -3,7 +3,11 @@
     <!-- 工具栏 -->
     <div class="markdown-toolbar">
       <div class="toolbar-left">
-        <a-radio-group v-model:value="viewMode" button-style="solid" size="small">
+        <a-radio-group
+          v-model:value="viewMode"
+          button-style="solid"
+          size="small"
+        >
           <a-radio-button value="edit">
             <EditOutlined />
             编辑
@@ -21,16 +25,28 @@
         <a-divider type="vertical" />
 
         <a-button-group size="small">
-          <a-button @click="insertFormat('**', '**')" title="粗体">
+          <a-button
+            title="粗体"
+            @click="insertFormat('**', '**')"
+          >
             <BoldOutlined />
           </a-button>
-          <a-button @click="insertFormat('*', '*')" title="斜体">
+          <a-button
+            title="斜体"
+            @click="insertFormat('*', '*')"
+          >
             <ItalicOutlined />
           </a-button>
-          <a-button @click="insertFormat('~~', '~~')" title="删除线">
+          <a-button
+            title="删除线"
+            @click="insertFormat('~~', '~~')"
+          >
             <StrikethroughOutlined />
           </a-button>
-          <a-button @click="insertFormat('`', '`')" title="行内代码">
+          <a-button
+            title="行内代码"
+            @click="insertFormat('`', '`')"
+          >
             <CodeOutlined />
           </a-button>
         </a-button-group>
@@ -38,42 +54,81 @@
         <a-divider type="vertical" />
 
         <a-button-group size="small">
-          <a-button @click="insertHeading(1)" title="标题1">H1</a-button>
-          <a-button @click="insertHeading(2)" title="标题2">H2</a-button>
-          <a-button @click="insertHeading(3)" title="标题3">H3</a-button>
+          <a-button
+            title="标题1"
+            @click="insertHeading(1)"
+          >
+            H1
+          </a-button>
+          <a-button
+            title="标题2"
+            @click="insertHeading(2)"
+          >
+            H2
+          </a-button>
+          <a-button
+            title="标题3"
+            @click="insertHeading(3)"
+          >
+            H3
+          </a-button>
         </a-button-group>
 
         <a-divider type="vertical" />
 
         <a-button-group size="small">
-          <a-button @click="insertList('ul')" title="无序列表">
+          <a-button
+            title="无序列表"
+            @click="insertList('ul')"
+          >
             <UnorderedListOutlined />
           </a-button>
-          <a-button @click="insertList('ol')" title="有序列表">
+          <a-button
+            title="有序列表"
+            @click="insertList('ol')"
+          >
             <OrderedListOutlined />
           </a-button>
-          <a-button @click="insertQuote()" title="引用">
+          <a-button
+            title="引用"
+            @click="insertQuote()"
+          >
             <MessageOutlined />
           </a-button>
-          <a-button @click="insertCodeBlock()" title="代码块">
+          <a-button
+            title="代码块"
+            @click="insertCodeBlock()"
+          >
             <FileTextOutlined />
           </a-button>
         </a-button-group>
 
         <a-divider type="vertical" />
 
-        <a-button size="small" @click="insertLink()" title="插入链接">
+        <a-button
+          size="small"
+          title="插入链接"
+          @click="insertLink()"
+        >
           <LinkOutlined />
         </a-button>
-        <a-button size="small" @click="insertImage()" title="插入图片">
+        <a-button
+          size="small"
+          title="插入图片"
+          @click="insertImage()"
+        >
           <PictureOutlined />
         </a-button>
-        <a-button size="small" @click="insertTable()" title="插入表格">
+        <a-button
+          size="small"
+          title="插入表格"
+          @click="insertTable()"
+        >
           <TableOutlined />
         </a-button>
       </div>
 
-      <div class="toolbar-spacer"></div>
+      <div class="toolbar-spacer" />
 
       <div class="toolbar-right">
         <a-dropdown>
@@ -84,16 +139,30 @@
           </a-button>
           <template #overlay>
             <a-menu @click="handleExport">
-              <a-menu-item key="html">导出HTML</a-menu-item>
-              <a-menu-item key="pdf">导出PDF</a-menu-item>
-              <a-menu-item key="word">导出Word</a-menu-item>
+              <a-menu-item key="html">
+                导出HTML
+              </a-menu-item>
+              <a-menu-item key="pdf">
+                导出PDF
+              </a-menu-item>
+              <a-menu-item key="word">
+                导出Word
+              </a-menu-item>
             </a-menu>
           </template>
         </a-dropdown>
 
-        <a-tag v-if="wordCount > 0" color="blue">{{ wordCount }} 字</a-tag>
+        <a-tag
+          v-if="wordCount > 0"
+          color="blue"
+        >
+          {{ wordCount }} 字
+        </a-tag>
 
-        <a-tag v-if="hasChanges" color="orange">
+        <a-tag
+          v-if="hasChanges"
+          color="orange"
+        >
           <ClockCircleOutlined />
           未保存
         </a-tag>
@@ -114,7 +183,10 @@
     <!-- 编辑和预览区域 -->
     <div class="markdown-content">
       <!-- 编辑器 -->
-      <div v-show="viewMode === 'edit' || viewMode === 'split'" class="editor-pane">
+      <div
+        v-show="viewMode === 'edit' || viewMode === 'split'"
+        class="editor-pane"
+      >
         <textarea
           ref="editorRef"
           v-model="content"
@@ -122,12 +194,18 @@
           placeholder="在此输入Markdown内容..."
           @input="handleInput"
           @keydown="handleKeydown"
-        ></textarea>
+        />
       </div>
 
       <!-- 预览 -->
-      <div v-show="viewMode === 'preview' || viewMode === 'split'" class="preview-pane">
-        <div class="markdown-preview" v-html="renderedHTML"></div>
+      <div
+        v-show="viewMode === 'preview' || viewMode === 'split'"
+        class="preview-pane"
+      >
+        <div
+          class="markdown-preview"
+          v-html="renderedHTML"
+        />
       </div>
     </div>
   </div>
@@ -243,7 +321,7 @@ const handleKeydown = (e) => {
 // 插入文本
 const insertText = (text, offset = 0) => {
   const textarea = editorRef.value;
-  if (!textarea) return;
+  if (!textarea) {return;}
 
   const start = textarea.selectionStart;
   const end = textarea.selectionEnd;
@@ -262,7 +340,7 @@ const insertText = (text, offset = 0) => {
 // 插入格式
 const insertFormat = (before, after) => {
   const textarea = editorRef.value;
-  if (!textarea) return;
+  if (!textarea) {return;}
 
   const start = textarea.selectionStart;
   const end = textarea.selectionEnd;
@@ -334,7 +412,7 @@ const insertTable = () => {
 // 插入行前缀
 const insertLinePrefix = (prefix) => {
   const textarea = editorRef.value;
-  if (!textarea) return;
+  if (!textarea) {return;}
 
   const start = textarea.selectionStart;
   const lines = content.value.split('\n');
@@ -366,7 +444,7 @@ const insertLinePrefix = (prefix) => {
 
 // 保存
 const save = async () => {
-  if (!hasChanges.value) return;
+  if (!hasChanges.value) {return;}
 
   if (!props.file?.file_path) {
     message.warning('文件路径不存在，无法保存');

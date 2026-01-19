@@ -12,27 +12,57 @@
       <p class="upload-icon">
         <InboxOutlined :style="{ fontSize: '48px', color: '#1890ff' }" />
       </p>
-      <p class="upload-text">点击或拖拽音频文件到此区域</p>
-      <p class="upload-hint">支持 MP3, WAV, M4A, AAC, OGG, FLAC 等格式</p>
-      <p class="upload-hint">单个文件最大 25MB</p>
+      <p class="upload-text">
+        点击或拖拽音频文件到此区域
+      </p>
+      <p class="upload-hint">
+        支持 MP3, WAV, M4A, AAC, OGG, FLAC 等格式
+      </p>
+      <p class="upload-hint">
+        单个文件最大 25MB
+      </p>
     </a-upload-dragger>
 
     <!-- 上传文件列表 -->
-    <div v-if="fileList.length > 0" class="file-list">
+    <div
+      v-if="fileList.length > 0"
+      class="file-list"
+    >
       <h4>待转录文件 ({{ fileList.length }})</h4>
-      <a-list :data-source="fileList" size="small">
+      <a-list
+        :data-source="fileList"
+        size="small"
+      >
         <template #renderItem="{ item }">
           <a-list-item>
             <a-list-item-meta>
               <template #title>
                 <span>{{ item.name }}</span>
-                <a-tag v-if="item.status === 'uploading'" color="blue">处理中</a-tag>
-                <a-tag v-else-if="item.status === 'done'" color="green">已完成</a-tag>
-                <a-tag v-else-if="item.status === 'error'" color="red">失败</a-tag>
+                <a-tag
+                  v-if="item.status === 'uploading'"
+                  color="blue"
+                >
+                  处理中
+                </a-tag>
+                <a-tag
+                  v-else-if="item.status === 'done'"
+                  color="green"
+                >
+                  已完成
+                </a-tag>
+                <a-tag
+                  v-else-if="item.status === 'error'"
+                  color="red"
+                >
+                  失败
+                </a-tag>
               </template>
               <template #description>
                 <div v-if="item.status === 'uploading' && item.progress">
-                  <a-progress :percent="item.progress" size="small" />
+                  <a-progress
+                    :percent="item.progress"
+                    size="small"
+                  />
                   <span class="progress-text">{{ item.statusText }}</span>
                 </div>
                 <div v-else-if="item.result">
@@ -66,9 +96,15 @@
     </div>
 
     <!-- 转录结果列表 -->
-    <div v-if="results.length > 0" class="results-section">
+    <div
+      v-if="results.length > 0"
+      class="results-section"
+    >
       <h4>转录结果</h4>
-      <a-list :data-source="results" :pagination="{ pageSize: 5 }">
+      <a-list
+        :data-source="results"
+        :pagination="{ pageSize: 5 }"
+      >
         <template #renderItem="{ item }">
           <a-list-item>
             <a-list-item-meta>
@@ -82,7 +118,9 @@
                   <span>引擎: {{ getEngineName(item.engine) }}</span>
                   <span>字数: {{ item.wordCount }}</span>
                 </div>
-                <div class="result-text">{{ truncateText(item.text, 200) }}</div>
+                <div class="result-text">
+                  {{ truncateText(item.text, 200) }}
+                </div>
               </template>
             </a-list-item-meta>
             <template #actions>
@@ -102,7 +140,10 @@
       width="800px"
       :footer="null"
     >
-      <div v-if="selectedResult" class="full-text-modal">
+      <div
+        v-if="selectedResult"
+        class="full-text-modal"
+      >
         <div class="text-header">
           <h4>{{ selectedResult.fileName }}</h4>
           <div class="text-meta">
@@ -121,7 +162,10 @@
             <a-button @click="copyText(selectedResult.text)">
               <CopyOutlined /> 复制全文
             </a-button>
-            <a-button type="primary" @click="insertToEditor(selectedResult.text)">
+            <a-button
+              type="primary"
+              @click="insertToEditor(selectedResult.text)"
+            >
               <EditOutlined /> 插入编辑器
             </a-button>
           </a-space>
@@ -299,7 +343,7 @@ const insertToEditor = (text) => {
 
 // 格式化时长
 const formatDuration = (seconds) => {
-  if (!seconds) return '0:00';
+  if (!seconds) {return '0:00';}
   const mins = Math.floor(seconds / 60);
   const secs = Math.floor(seconds % 60);
   return `${mins}:${secs.toString().padStart(2, '0')}`;
@@ -307,7 +351,7 @@ const formatDuration = (seconds) => {
 
 // 截断文本
 const truncateText = (text, maxLength) => {
-  if (!text) return '';
+  if (!text) {return '';}
   return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
 };
 

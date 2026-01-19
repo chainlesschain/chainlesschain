@@ -5,9 +5,14 @@
         <DatabaseOutlined />
         Memory Bank
       </h1>
-      <p class="page-description">管理学习模式、用户偏好、使用报告和行为洞察</p>
+      <p class="page-description">
+        管理学习模式、用户偏好、使用报告和行为洞察
+      </p>
       <div class="header-actions">
-        <a-button @click="refreshAll" :loading="loading">
+        <a-button
+          :loading="loading"
+          @click="refreshAll"
+        >
           <ReloadOutlined /> 刷新
         </a-button>
         <a-dropdown>
@@ -17,10 +22,18 @@
           </a-button>
           <template #overlay>
             <a-menu @click="handleExport">
-              <a-menu-item key="all">导出全部数据</a-menu-item>
-              <a-menu-item key="patterns">导出学习模式</a-menu-item>
-              <a-menu-item key="preferences">导出用户偏好</a-menu-item>
-              <a-menu-item key="sessions">导出会话摘要</a-menu-item>
+              <a-menu-item key="all">
+                导出全部数据
+              </a-menu-item>
+              <a-menu-item key="patterns">
+                导出学习模式
+              </a-menu-item>
+              <a-menu-item key="preferences">
+                导出用户偏好
+              </a-menu-item>
+              <a-menu-item key="sessions">
+                导出会话摘要
+              </a-menu-item>
             </a-menu>
           </template>
         </a-dropdown>
@@ -28,48 +41,71 @@
     </div>
 
     <!-- Stats Overview -->
-    <a-row :gutter="[16, 16]" class="stats-row">
-      <a-col :xs="12" :sm="6">
+    <a-row
+      :gutter="[16, 16]"
+      class="stats-row"
+    >
+      <a-col
+        :xs="12"
+        :sm="6"
+      >
         <a-card class="stat-card">
           <a-statistic
             title="学习模式"
             :value="stats.totalPatterns"
             :loading="loading"
           >
-            <template #prefix><BulbOutlined /></template>
+            <template #prefix>
+              <BulbOutlined />
+            </template>
           </a-statistic>
         </a-card>
       </a-col>
-      <a-col :xs="12" :sm="6">
+      <a-col
+        :xs="12"
+        :sm="6"
+      >
         <a-card class="stat-card">
           <a-statistic
             title="用户偏好"
             :value="stats.totalPreferences"
             :loading="loading"
           >
-            <template #prefix><SettingOutlined /></template>
+            <template #prefix>
+              <SettingOutlined />
+            </template>
           </a-statistic>
         </a-card>
       </a-col>
-      <a-col :xs="12" :sm="6">
+      <a-col
+        :xs="12"
+        :sm="6"
+      >
         <a-card class="stat-card">
           <a-statistic
             title="会话记录"
             :value="stats.totalSessions"
             :loading="loading"
           >
-            <template #prefix><MessageOutlined /></template>
+            <template #prefix>
+              <MessageOutlined />
+            </template>
           </a-statistic>
         </a-card>
       </a-col>
-      <a-col :xs="12" :sm="6">
+      <a-col
+        :xs="12"
+        :sm="6"
+      >
         <a-card class="stat-card">
           <a-statistic
             title="行为洞察"
             :value="stats.totalInsights"
             :loading="loading"
           >
-            <template #prefix><RiseOutlined /></template>
+            <template #prefix>
+              <RiseOutlined />
+            </template>
           </a-statistic>
         </a-card>
       </a-col>
@@ -77,16 +113,28 @@
 
     <!-- Main Content Tabs -->
     <a-card class="main-content">
-      <a-tabs v-model:activeKey="activeTab">
+      <a-tabs v-model:active-key="activeTab">
         <!-- Learned Patterns Tab -->
-        <a-tab-pane key="patterns" tab="学习模式">
+        <a-tab-pane
+          key="patterns"
+          tab="学习模式"
+        >
           <div class="tab-content">
             <a-row :gutter="[16, 16]">
               <!-- Prompt Patterns -->
-              <a-col :xs="24" :lg="12">
-                <a-card title="Prompt 模式" size="small" class="pattern-card">
+              <a-col
+                :xs="24"
+                :lg="12"
+              >
+                <a-card
+                  title="Prompt 模式"
+                  size="small"
+                  class="pattern-card"
+                >
                   <template #extra>
-                    <a-tag color="blue">{{ promptPatterns.length }}</a-tag>
+                    <a-tag color="blue">
+                      {{ promptPatterns.length }}
+                    </a-tag>
                   </template>
                   <a-empty
                     v-if="promptPatterns.length === 0"
@@ -117,10 +165,19 @@
               </a-col>
 
               <!-- Error Fix Patterns -->
-              <a-col :xs="24" :lg="12">
-                <a-card title="错误修复模式" size="small" class="pattern-card">
+              <a-col
+                :xs="24"
+                :lg="12"
+              >
+                <a-card
+                  title="错误修复模式"
+                  size="small"
+                  class="pattern-card"
+                >
                   <template #extra>
-                    <a-tag color="orange">{{ errorFixPatterns.length }}</a-tag>
+                    <a-tag color="orange">
+                      {{ errorFixPatterns.length }}
+                    </a-tag>
                   </template>
                   <a-empty
                     v-if="errorFixPatterns.length === 0"
@@ -161,10 +218,19 @@
               </a-col>
 
               <!-- Code Snippets -->
-              <a-col :xs="24" :lg="12">
-                <a-card title="代码片段" size="small" class="pattern-card">
+              <a-col
+                :xs="24"
+                :lg="12"
+              >
+                <a-card
+                  title="代码片段"
+                  size="small"
+                  class="pattern-card"
+                >
                   <template #extra>
-                    <a-tag color="green">{{ codeSnippets.length }}</a-tag>
+                    <a-tag color="green">
+                      {{ codeSnippets.length }}
+                    </a-tag>
                   </template>
                   <a-empty
                     v-if="codeSnippets.length === 0"
@@ -180,7 +246,9 @@
                         <a-list-item-meta>
                           <template #title>
                             {{ item.name }}
-                            <a-tag size="small">{{ item.language }}</a-tag>
+                            <a-tag size="small">
+                              {{ item.language }}
+                            </a-tag>
                           </template>
                           <template #description>
                             {{ item.description || "无描述" }}
@@ -193,10 +261,19 @@
               </a-col>
 
               <!-- Workflow Patterns -->
-              <a-col :xs="24" :lg="12">
-                <a-card title="工作流模式" size="small" class="pattern-card">
+              <a-col
+                :xs="24"
+                :lg="12"
+              >
+                <a-card
+                  title="工作流模式"
+                  size="small"
+                  class="pattern-card"
+                >
                   <template #extra>
-                    <a-tag color="purple">{{ workflowPatterns.length }}</a-tag>
+                    <a-tag color="purple">
+                      {{ workflowPatterns.length }}
+                    </a-tag>
                   </template>
                   <a-empty
                     v-if="workflowPatterns.length === 0"
@@ -210,7 +287,9 @@
                     <template #renderItem="{ item }">
                       <a-list-item>
                         <a-list-item-meta>
-                          <template #title>{{ item.name }}</template>
+                          <template #title>
+                            {{ item.name }}
+                          </template>
                           <template #description>
                             {{ item.steps?.length || 0 }} 步骤
                           </template>
@@ -228,7 +307,10 @@
         </a-tab-pane>
 
         <!-- Preferences Tab -->
-        <a-tab-pane key="preferences" tab="用户偏好">
+        <a-tab-pane
+          key="preferences"
+          tab="用户偏好"
+        >
           <div class="tab-content">
             <a-table
               :columns="preferenceColumns"
@@ -255,13 +337,16 @@
         </a-tab-pane>
 
         <!-- Sessions Tab -->
-        <a-tab-pane key="sessions" tab="会话摘要">
+        <a-tab-pane
+          key="sessions"
+          tab="会话摘要"
+        >
           <div class="tab-content">
             <div class="session-actions">
               <a-button
                 type="primary"
-                @click="generateSessionSummaries"
                 :loading="generatingSummaries"
+                @click="generateSessionSummaries"
               >
                 <FileTextOutlined /> 生成会话摘要文件
               </a-button>
@@ -317,17 +402,27 @@
         </a-tab-pane>
 
         <!-- Auto-Summary Tab -->
-        <a-tab-pane key="auto-summary" tab="自动摘要">
+        <a-tab-pane
+          key="auto-summary"
+          tab="自动摘要"
+        >
           <div class="tab-content">
             <a-row :gutter="[16, 16]">
               <!-- Configuration Card -->
-              <a-col :xs="24" :lg="12">
-                <a-card title="自动摘要配置" size="small" class="config-card">
+              <a-col
+                :xs="24"
+                :lg="12"
+              >
+                <a-card
+                  title="自动摘要配置"
+                  size="small"
+                  class="config-card"
+                >
                   <template #extra>
                     <a-switch
                       v-model:checked="autoSummaryConfig.enabled"
-                      @change="toggleAutoSummary"
                       :loading="updatingAutoSummary"
+                      @change="toggleAutoSummary"
                     />
                   </template>
 
@@ -341,8 +436,8 @@
                           v-model:value="autoSummaryConfig.threshold"
                           :min="3"
                           :max="50"
-                          @change="updateAutoSummaryConfig"
                           style="width: 100%"
+                          @change="updateAutoSummaryConfig"
                         />
                       </a-tooltip>
                       <div class="form-help">
@@ -356,8 +451,8 @@
                           v-model:value="autoSummaryIntervalSeconds"
                           :min="30"
                           :max="3600"
-                          @change="updateAutoSummaryInterval"
                           style="width: 100%"
+                          @change="updateAutoSummaryInterval"
                         />
                       </a-tooltip>
                       <div class="form-help">
@@ -369,8 +464,8 @@
                       <a-space>
                         <a-switch
                           v-model:checked="autoSummaryConfig.backgroundEnabled"
-                          @change="toggleBackgroundSummary"
                           :loading="togglingBackground"
+                          @change="toggleBackgroundSummary"
                         />
                         <a-tag
                           :color="
@@ -391,36 +486,52 @@
               </a-col>
 
               <!-- Statistics Card -->
-              <a-col :xs="24" :lg="12">
-                <a-card title="摘要统计" size="small" class="stats-card">
+              <a-col
+                :xs="24"
+                :lg="12"
+              >
+                <a-card
+                  title="摘要统计"
+                  size="small"
+                  class="stats-card"
+                >
                   <template #extra>
                     <a-button
                       size="small"
-                      @click="loadAutoSummaryInfo"
                       :loading="loadingAutoSummary"
+                      @click="loadAutoSummaryInfo"
                     >
                       <ReloadOutlined />
                     </a-button>
                   </template>
 
-                  <a-descriptions :column="1" size="small">
+                  <a-descriptions
+                    :column="1"
+                    size="small"
+                  >
                     <a-descriptions-item label="总会话数">
                       {{ autoSummaryStats.totalSessions || 0 }}
                     </a-descriptions-item>
                     <a-descriptions-item label="已有摘要">
-                      <a-tag color="green">{{
-                        autoSummaryStats.withSummary || 0
-                      }}</a-tag>
+                      <a-tag color="green">
+                        {{
+                          autoSummaryStats.withSummary || 0
+                        }}
+                      </a-tag>
                     </a-descriptions-item>
                     <a-descriptions-item label="未生成摘要">
-                      <a-tag color="orange">{{
-                        autoSummaryStats.withoutSummary || 0
-                      }}</a-tag>
+                      <a-tag color="orange">
+                        {{
+                          autoSummaryStats.withoutSummary || 0
+                        }}
+                      </a-tag>
                     </a-descriptions-item>
                     <a-descriptions-item label="自动生成数">
-                      <a-tag color="blue">{{
-                        autoSummaryStats.autoGenerated || 0
-                      }}</a-tag>
+                      <a-tag color="blue">
+                        {{
+                          autoSummaryStats.autoGenerated || 0
+                        }}
+                      </a-tag>
                     </a-descriptions-item>
                     <a-descriptions-item label="覆盖率">
                       <a-progress
@@ -438,13 +549,16 @@
 
               <!-- Bulk Actions Card -->
               <a-col :xs="24">
-                <a-card title="批量操作" size="small">
+                <a-card
+                  title="批量操作"
+                  size="small"
+                >
                   <a-space wrap>
                     <a-button
                       type="primary"
-                      @click="triggerBulkSummary"
                       :loading="triggeringBulk"
                       :disabled="!autoSummaryStats.withoutSummary"
+                      @click="triggerBulkSummary"
                     >
                       <ThunderboltOutlined /> 批量生成摘要
                     </a-button>
@@ -494,8 +608,8 @@
                           <a-button
                             size="small"
                             type="link"
-                            @click="generateSingleSummary(record.id)"
                             :loading="generatingSingleId === record.id"
+                            @click="generateSingleSummary(record.id)"
                           >
                             生成摘要
                           </a-button>
@@ -510,12 +624,24 @@
         </a-tab-pane>
 
         <!-- Behavior Insights Tab -->
-        <a-tab-pane key="insights" tab="行为洞察">
+        <a-tab-pane
+          key="insights"
+          tab="行为洞察"
+        >
           <div class="tab-content">
             <a-row :gutter="[16, 16]">
-              <a-col :xs="24" :lg="12">
-                <a-card title="使用习惯" size="small">
-                  <a-descriptions :column="1" size="small">
+              <a-col
+                :xs="24"
+                :lg="12"
+              >
+                <a-card
+                  title="使用习惯"
+                  size="small"
+                >
+                  <a-descriptions
+                    :column="1"
+                    size="small"
+                  >
                     <a-descriptions-item label="最常用模型">
                       {{ behaviorInsights.mostUsedModel || "-" }}
                     </a-descriptions-item>
@@ -535,20 +661,28 @@
                       >
                         {{ feature }}
                       </a-tag>
-                      <span v-if="!behaviorInsights.topFeatures?.length"
-                        >-</span
-                      >
+                      <span v-if="!behaviorInsights.topFeatures?.length">-</span>
                     </a-descriptions-item>
                   </a-descriptions>
                 </a-card>
               </a-col>
-              <a-col :xs="24" :lg="12">
-                <a-card title="优化建议" size="small">
+              <a-col
+                :xs="24"
+                :lg="12"
+              >
+                <a-card
+                  title="优化建议"
+                  size="small"
+                >
                   <a-empty
                     v-if="!recommendations.length"
                     description="暂无优化建议"
                   />
-                  <a-list v-else :data-source="recommendations" size="small">
+                  <a-list
+                    v-else
+                    :data-source="recommendations"
+                    size="small"
+                  >
                     <template #renderItem="{ item }">
                       <a-list-item>
                         <a-list-item-meta>
@@ -566,10 +700,14 @@
                               </template>
                             </a-avatar>
                           </template>
-                          <template #title>{{ item.title }}</template>
-                          <template #description>{{
-                            item.description
-                          }}</template>
+                          <template #title>
+                            {{ item.title }}
+                          </template>
+                          <template #description>
+                            {{
+                              item.description
+                            }}
+                          </template>
                         </a-list-item-meta>
                       </a-list-item>
                     </template>
@@ -581,9 +719,15 @@
         </a-tab-pane>
 
         <!-- Storage Tab -->
-        <a-tab-pane key="storage" tab="存储管理">
+        <a-tab-pane
+          key="storage"
+          tab="存储管理"
+        >
           <div class="tab-content">
-            <a-descriptions :column="2" bordered>
+            <a-descriptions
+              :column="2"
+              bordered
+            >
               <a-descriptions-item label="Memory 目录">
                 {{ memoryPath }}
               </a-descriptions-item>
@@ -608,14 +752,20 @@
               <a-button @click="openMemoryFolder">
                 <FolderOpenOutlined /> 打开 Memory 目录
               </a-button>
-              <a-button @click="createBackup" :loading="creatingBackup">
+              <a-button
+                :loading="creatingBackup"
+                @click="createBackup"
+              >
                 <SaveOutlined /> 创建备份
               </a-button>
               <a-popconfirm
                 title="确定清理过期数据？此操作不可恢复。"
                 @confirm="cleanupExpired"
               >
-                <a-button danger :loading="cleaningUp">
+                <a-button
+                  danger
+                  :loading="cleaningUp"
+                >
                   <DeleteOutlined /> 清理过期数据
                 </a-button>
               </a-popconfirm>
@@ -1128,14 +1278,14 @@ const generateSingleSummary = async (sessionId) => {
 
 // Get coverage status for progress bar
 const getCoverageStatus = (coverage) => {
-  if (coverage >= 80) return "success";
-  if (coverage >= 50) return "normal";
+  if (coverage >= 80) {return "success";}
+  if (coverage >= 50) {return "normal";}
   return "exception";
 };
 
 // Helpers
 const truncate = (text, length) => {
-  if (!text) return "";
+  if (!text) {return "";}
   return text.length > length ? text.substring(0, length) + "..." : text;
 };
 
@@ -1147,7 +1297,7 @@ const formatValue = (value) => {
 };
 
 const formatDate = (timestamp) => {
-  if (!timestamp) return "-";
+  if (!timestamp) {return "-";}
   const date = new Date(typeof timestamp === "number" ? timestamp : timestamp);
   return date.toLocaleString("zh-CN", {
     month: "2-digit",
@@ -1158,7 +1308,7 @@ const formatDate = (timestamp) => {
 };
 
 const formatSize = (bytes) => {
-  if (!bytes) return "0 B";
+  if (!bytes) {return "0 B";}
   const units = ["B", "KB", "MB", "GB"];
   let i = 0;
   while (bytes >= 1024 && i < units.length - 1) {
@@ -1182,7 +1332,7 @@ const getClassificationColor = (classification) => {
 
 const getSuccessRate = (item) => {
   const total = (item.success_count || 0) + (item.failure_count || 0);
-  if (total === 0) return 0;
+  if (total === 0) {return 0;}
   return Math.round((item.success_count / total) * 100);
 };
 

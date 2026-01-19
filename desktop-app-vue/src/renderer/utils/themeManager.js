@@ -73,7 +73,7 @@ class ThemeManager {
    * 监听系统主题变化
    */
   watchSystemTheme() {
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined") {return;}
 
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
     this.systemPrefersDark.value = mediaQuery.matches;
@@ -135,7 +135,7 @@ class ThemeManager {
    */
   applyTheme() {
     const theme = this.getEffectiveTheme();
-    if (!theme || !theme.colors) return;
+    if (!theme || !theme.colors) {return;}
 
     // 应用CSS变量
     const root = document.documentElement;

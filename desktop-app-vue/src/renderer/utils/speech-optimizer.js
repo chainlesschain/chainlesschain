@@ -228,7 +228,7 @@ class SpeechPerformanceOptimizer {
     const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
     const memory = navigator.deviceMemory || 4; // GB
 
-    let settings = {
+    const settings = {
       sampleRate: 16000,
       bitRate: 128000,
       channels: 1,

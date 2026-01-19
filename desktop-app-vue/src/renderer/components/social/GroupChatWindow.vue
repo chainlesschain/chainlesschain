@@ -4,8 +4,14 @@
     <div class="group-sidebar">
       <div class="group-sidebar-header">
         <h3>群聊</h3>
-        <a-button type="primary" size="small" @click="showCreateGroupModal = true">
-          <template #icon><PlusOutlined /></template>
+        <a-button
+          type="primary"
+          size="small"
+          @click="showCreateGroupModal = true"
+        >
+          <template #icon>
+            <PlusOutlined />
+          </template>
           创建群聊
         </a-button>
       </div>
@@ -24,17 +30,24 @@
               <template #avatar>
                 <a-badge :count="item.unread_count || 0">
                   <a-avatar :size="40">
-                    <template #icon><TeamOutlined /></template>
+                    <template #icon>
+                      <TeamOutlined />
+                    </template>
                   </a-avatar>
                 </a-badge>
               </template>
               <template #title>
-                <div class="group-name">{{ item.name }}</div>
+                <div class="group-name">
+                  {{ item.name }}
+                </div>
               </template>
               <template #description>
                 <div class="group-info">
                   <span>{{ item.member_count }} 人</span>
-                  <span v-if="item.group_type === 'encrypted'" class="encrypted-badge">
+                  <span
+                    v-if="item.group_type === 'encrypted'"
+                    class="encrypted-badge"
+                  >
                     <LockOutlined /> 加密
                   </span>
                 </div>
@@ -47,34 +60,53 @@
 
     <!-- 右侧：群聊区域 -->
     <div class="group-main">
-      <div v-if="!currentGroup" class="group-empty">
+      <div
+        v-if="!currentGroup"
+        class="group-empty"
+      >
         <a-empty description="选择一个群聊开始对话" />
       </div>
 
-      <div v-else class="group-container">
+      <div
+        v-else
+        class="group-container"
+      >
         <!-- 群聊头部 -->
         <div class="group-header">
           <div class="group-header-info">
             <a-avatar :size="36">
-              <template #icon><TeamOutlined /></template>
+              <template #icon>
+                <TeamOutlined />
+              </template>
             </a-avatar>
             <div class="group-header-text">
               <div class="group-header-name">
                 {{ currentGroup.name }}
-                <LockOutlined v-if="currentGroup.group_type === 'encrypted'" class="encrypted-icon" />
+                <LockOutlined
+                  v-if="currentGroup.group_type === 'encrypted'"
+                  class="encrypted-icon"
+                />
               </div>
-              <div class="group-header-members">{{ currentGroup.member_count }} 名成员</div>
+              <div class="group-header-members">
+                {{ currentGroup.member_count }} 名成员
+              </div>
             </div>
           </div>
 
           <div class="group-header-actions">
             <a-tooltip title="群成员">
-              <a-button type="text" @click="showMembersDrawer = true">
+              <a-button
+                type="text"
+                @click="showMembersDrawer = true"
+              >
                 <TeamOutlined />
               </a-button>
             </a-tooltip>
             <a-tooltip title="群设置">
-              <a-button type="text" @click="showSettingsDrawer = true">
+              <a-button
+                type="text"
+                @click="showSettingsDrawer = true"
+              >
                 <SettingOutlined />
               </a-button>
             </a-tooltip>
@@ -84,10 +116,17 @@
               </a-button>
               <template #overlay>
                 <a-menu>
-                  <a-menu-item key="invite" @click="showInviteModal = true">
+                  <a-menu-item
+                    key="invite"
+                    @click="showInviteModal = true"
+                  >
                     <UserAddOutlined /> 邀请成员
                   </a-menu-item>
-                  <a-menu-item key="leave" danger @click="handleLeaveGroup">
+                  <a-menu-item
+                    key="leave"
+                    danger
+                    @click="handleLeaveGroup"
+                  >
                     <LogoutOutlined /> 退出群聊
                   </a-menu-item>
                   <a-menu-item
@@ -105,10 +144,21 @@
         </div>
 
         <!-- 群消息区域 -->
-        <div ref="messagesContainer" class="group-messages" @scroll="handleScroll">
+        <div
+          ref="messagesContainer"
+          class="group-messages"
+          @scroll="handleScroll"
+        >
           <!-- 加载更多 -->
-          <div v-if="hasMore" class="load-more">
-            <a-button type="link" :loading="loadingMore" @click="loadMoreMessages">
+          <div
+            v-if="hasMore"
+            class="load-more"
+          >
+            <a-button
+              type="link"
+              :loading="loadingMore"
+              @click="loadMoreMessages"
+            >
               加载更多消息
             </a-button>
           </div>
@@ -119,27 +169,54 @@
             :key="message.id"
             :class="['message-item', { 'message-self': message.sender_did === currentUserDid }]"
           >
-            <div v-if="message.message_type === 'system'" class="system-message">
+            <div
+              v-if="message.message_type === 'system'"
+              class="system-message"
+            >
               {{ message.content }}
             </div>
-            <div v-else class="message-bubble">
-              <a-avatar :size="32" class="message-avatar">
-                <template #icon><UserOutlined /></template>
+            <div
+              v-else
+              class="message-bubble"
+            >
+              <a-avatar
+                :size="32"
+                class="message-avatar"
+              >
+                <template #icon>
+                  <UserOutlined />
+                </template>
               </a-avatar>
               <div class="message-content-wrapper">
-                <div class="message-sender">{{ message.sender_nickname || shortenDid(message.sender_did) }}</div>
+                <div class="message-sender">
+                  {{ message.sender_nickname || shortenDid(message.sender_did) }}
+                </div>
                 <div class="message-content">
-                  <div v-if="message.message_type === 'text'" class="message-text">
+                  <div
+                    v-if="message.message_type === 'text'"
+                    class="message-text"
+                  >
                     {{ message.content }}
                   </div>
-                  <div v-else-if="message.message_type === 'image'" class="message-image">
-                    <img :src="message.file_path" alt="图片" />
+                  <div
+                    v-else-if="message.message_type === 'image'"
+                    class="message-image"
+                  >
+                    <img
+                      :src="message.file_path"
+                      alt="图片"
+                    >
                   </div>
-                  <div v-else class="message-file">
+                  <div
+                    v-else
+                    class="message-file"
+                  >
                     <FileOutlined /> {{ message.file_path }}
                   </div>
                 </div>
-                <div class="message-time">{{ formatTime(message.timestamp) }}</div>
+                <div class="message-time">
+                  {{ formatTime(message.timestamp) }}
+                </div>
               </div>
             </div>
           </div>
@@ -150,17 +227,28 @@
           <div class="group-input-toolbar">
             <a-space>
               <a-tooltip title="表情">
-                <a-button type="text" size="small">
+                <a-button
+                  type="text"
+                  size="small"
+                >
                   <SmileOutlined />
                 </a-button>
               </a-tooltip>
               <a-tooltip title="图片">
-                <a-button type="text" size="small" @click="handleSelectImage">
+                <a-button
+                  type="text"
+                  size="small"
+                  @click="handleSelectImage"
+                >
                   <PictureOutlined />
                 </a-button>
               </a-tooltip>
               <a-tooltip title="文件">
-                <a-button type="text" size="small" @click="handleSelectFile">
+                <a-button
+                  type="text"
+                  size="small"
+                  @click="handleSelectFile"
+                >
                   <FileOutlined />
                 </a-button>
               </a-tooltip>
@@ -177,7 +265,11 @@
 
           <div class="group-input-actions">
             <span class="input-hint">按 Enter 发送，Shift+Enter 换行</span>
-            <a-button type="primary" :loading="sending" @click="handleSendMessage">
+            <a-button
+              type="primary"
+              :loading="sending"
+              @click="handleSendMessage"
+            >
               发送
             </a-button>
           </div>
@@ -192,12 +284,25 @@
       @ok="handleCreateGroup"
       @cancel="showCreateGroupModal = false"
     >
-      <a-form :model="createGroupForm" layout="vertical">
-        <a-form-item label="群聊名称" required>
-          <a-input v-model:value="createGroupForm.name" placeholder="请输入群聊名称" />
+      <a-form
+        :model="createGroupForm"
+        layout="vertical"
+      >
+        <a-form-item
+          label="群聊名称"
+          required
+        >
+          <a-input
+            v-model:value="createGroupForm.name"
+            placeholder="请输入群聊名称"
+          />
         </a-form-item>
         <a-form-item label="群聊描述">
-          <a-textarea v-model:value="createGroupForm.description" :rows="3" placeholder="请输入群聊描述" />
+          <a-textarea
+            v-model:value="createGroupForm.description"
+            :rows="3"
+            placeholder="请输入群聊描述"
+          />
         </a-form-item>
         <a-form-item label="选择成员">
           <a-select
@@ -222,32 +327,56 @@
       placement="right"
       :width="400"
     >
-      <a-list :data-source="groupMembers" :loading="loadingMembers">
+      <a-list
+        :data-source="groupMembers"
+        :loading="loadingMembers"
+      >
         <template #renderItem="{ item }">
           <a-list-item>
             <a-list-item-meta>
               <template #avatar>
                 <a-avatar>
-                  <template #icon><UserOutlined /></template>
+                  <template #icon>
+                    <UserOutlined />
+                  </template>
                 </a-avatar>
               </template>
               <template #title>
                 {{ item.nickname || shortenDid(item.member_did) }}
               </template>
               <template #description>
-                <a-tag v-if="item.role === 'owner'" color="red">群主</a-tag>
-                <a-tag v-else-if="item.role === 'admin'" color="orange">管理员</a-tag>
-                <a-tag v-else>成员</a-tag>
+                <a-tag
+                  v-if="item.role === 'owner'"
+                  color="red"
+                >
+                  群主
+                </a-tag>
+                <a-tag
+                  v-else-if="item.role === 'admin'"
+                  color="orange"
+                >
+                  管理员
+                </a-tag>
+                <a-tag v-else>
+                  成员
+                </a-tag>
               </template>
             </a-list-item-meta>
             <template #actions>
               <a-dropdown v-if="canManageMembers && item.role !== 'owner'">
-                <a-button type="text" size="small">
+                <a-button
+                  type="text"
+                  size="small"
+                >
                   <MoreOutlined />
                 </a-button>
                 <template #overlay>
                   <a-menu>
-                    <a-menu-item key="remove" danger @click="handleRemoveMember(item.member_did)">
+                    <a-menu-item
+                      key="remove"
+                      danger
+                      @click="handleRemoveMember(item.member_did)"
+                    >
                       移出群聊
                     </a-menu-item>
                   </a-menu>
@@ -276,7 +405,11 @@
           />
         </a-form-item>
         <a-form-item label="邀请消息">
-          <a-textarea v-model:value="inviteMessage" :rows="3" placeholder="输入邀请消息（可选）" />
+          <a-textarea
+            v-model:value="inviteMessage"
+            :rows="3"
+            placeholder="输入邀请消息（可选）"
+          />
         </a-form-item>
       </a-form>
     </a-modal>
@@ -340,13 +473,13 @@ const friendOptions = ref([]);
 
 // 计算属性
 const isOwner = computed(() => {
-  if (!currentGroup.value) return false;
+  if (!currentGroup.value) {return false;}
   const member = groupMembers.value.find(m => m.member_did === currentUserDid.value);
   return member?.role === 'owner';
 });
 
 const canManageMembers = computed(() => {
-  if (!currentGroup.value) return false;
+  if (!currentGroup.value) {return false;}
   const member = groupMembers.value.find(m => m.member_did === currentUserDid.value);
   return member?.role === 'owner' || member?.role === 'admin';
 });
@@ -400,7 +533,7 @@ const loadGroupMembers = async (groupId) => {
 };
 
 const loadMoreMessages = async () => {
-  if (!currentGroup.value || loadingMore.value) return;
+  if (!currentGroup.value || loadingMore.value) {return;}
   loadingMore.value = true;
   try {
     await loadGroupMessages(currentGroup.value.id, messages.value.length);
@@ -410,10 +543,10 @@ const loadMoreMessages = async () => {
 };
 
 const handleSendMessage = async (e) => {
-  if (e.shiftKey) return;
+  if (e.shiftKey) {return;}
   e.preventDefault();
 
-  if (!inputMessage.value.trim() || !currentGroup.value) return;
+  if (!inputMessage.value.trim() || !currentGroup.value) {return;}
 
   sending.value = true;
   try {
@@ -456,7 +589,7 @@ const handleCreateGroup = async () => {
 };
 
 const handleLeaveGroup = async () => {
-  if (!currentGroup.value) return;
+  if (!currentGroup.value) {return;}
 
   try {
     await ipcRenderer.invoke('group:leave', currentGroup.value.id);
@@ -470,7 +603,7 @@ const handleLeaveGroup = async () => {
 };
 
 const handleDismissGroup = async () => {
-  if (!currentGroup.value) return;
+  if (!currentGroup.value) {return;}
 
   try {
     await ipcRenderer.invoke('group:dismiss', currentGroup.value.id);
@@ -504,7 +637,7 @@ const handleInviteMembers = async () => {
 };
 
 const handleRemoveMember = async (memberDid) => {
-  if (!currentGroup.value) return;
+  if (!currentGroup.value) {return;}
 
   try {
     await ipcRenderer.invoke('group:remove-member', currentGroup.value.id, memberDid);
@@ -538,8 +671,8 @@ const scrollToBottom = () => {
 };
 
 const shortenDid = (did) => {
-  if (!did) return '';
-  if (did.length <= 16) return did;
+  if (!did) {return '';}
+  if (did.length <= 16) {return did;}
   return `${did.substring(0, 8)}...${did.substring(did.length - 8)}`;
 };
 
@@ -548,9 +681,9 @@ const formatTime = (timestamp) => {
   const now = new Date();
   const diff = now - date;
 
-  if (diff < 60000) return '刚刚';
-  if (diff < 3600000) return `${Math.floor(diff / 60000)}分钟前`;
-  if (diff < 86400000) return `${Math.floor(diff / 3600000)}小时前`;
+  if (diff < 60000) {return '刚刚';}
+  if (diff < 3600000) {return `${Math.floor(diff / 60000)}分钟前`;}
+  if (diff < 86400000) {return `${Math.floor(diff / 3600000)}小时前`;}
 
   return date.toLocaleString('zh-CN', {
     month: '2-digit',

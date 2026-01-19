@@ -1,14 +1,24 @@
 <template>
   <div class="contact-management">
-    <a-card title="联系人管理" :loading="loading">
+    <a-card
+      title="联系人管理"
+      :loading="loading"
+    >
       <template #extra>
         <a-space>
           <a-button @click="showScanModal = true">
-            <template #icon><scan-outlined /></template>
+            <template #icon>
+              <scan-outlined />
+            </template>
             扫码添加
           </a-button>
-          <a-button type="primary" @click="showAddModal = true">
-            <template #icon><user-add-outlined /></template>
+          <a-button
+            type="primary"
+            @click="showAddModal = true"
+          >
+            <template #icon>
+              <user-add-outlined />
+            </template>
             添加联系人
           </a-button>
         </a-space>
@@ -23,15 +33,27 @@
       />
 
       <!-- 统计信息 -->
-      <a-row :gutter="16" style="margin-bottom: 16px">
+      <a-row
+        :gutter="16"
+        style="margin-bottom: 16px"
+      >
         <a-col :span="8">
-          <a-statistic title="总联系人" :value="statistics.total" />
+          <a-statistic
+            title="总联系人"
+            :value="statistics.total"
+          />
         </a-col>
         <a-col :span="8">
-          <a-statistic title="好友" :value="statistics.friends" />
+          <a-statistic
+            title="好友"
+            :value="statistics.friends"
+          />
         </a-col>
         <a-col :span="8">
-          <a-statistic title="在线" :value="0" />
+          <a-statistic
+            title="在线"
+            :value="0"
+          />
         </a-col>
       </a-row>
 
@@ -44,13 +66,23 @@
         <template #renderItem="{ item }">
           <a-list-item>
             <template #actions>
-              <a-button type="link" @click="handleViewContact(item)">
+              <a-button
+                type="link"
+                @click="handleViewContact(item)"
+              >
                 查看
               </a-button>
-              <a-button type="link" @click="handleEditContact(item)">
+              <a-button
+                type="link"
+                @click="handleEditContact(item)"
+              >
                 编辑
               </a-button>
-              <a-button type="link" danger @click="handleDeleteContact(item.did)">
+              <a-button
+                type="link"
+                danger
+                @click="handleDeleteContact(item.did)"
+              >
                 删除
               </a-button>
             </template>
@@ -102,15 +134,18 @@
     <a-modal
       v-model:open="showAddModal"
       title="添加联系人"
-      @ok="handleAddContact"
       :confirm-loading="adding"
+      @ok="handleAddContact"
     >
       <a-form
         :model="contactForm"
         :label-col="{ span: 6 }"
         :wrapper-col="{ span: 18 }"
       >
-        <a-form-item label="DID" required>
+        <a-form-item
+          label="DID"
+          required
+        >
           <a-input
             v-model:value="contactForm.did"
             placeholder="did:chainlesschain:..."
@@ -124,14 +159,20 @@
           />
         </a-form-item>
 
-        <a-form-item label="签名公钥" required>
+        <a-form-item
+          label="签名公钥"
+          required
+        >
           <a-input
             v-model:value="contactForm.public_key_sign"
             placeholder="Base64 编码的签名公钥"
           />
         </a-form-item>
 
-        <a-form-item label="加密公钥" required>
+        <a-form-item
+          label="加密公钥"
+          required
+        >
           <a-input
             v-model:value="contactForm.public_key_encrypt"
             placeholder="Base64 编码的加密公钥"
@@ -140,10 +181,18 @@
 
         <a-form-item label="关系">
           <a-select v-model:value="contactForm.relationship">
-            <a-select-option value="contact">联系人</a-select-option>
-            <a-select-option value="friend">好友</a-select-option>
-            <a-select-option value="family">家人</a-select-option>
-            <a-select-option value="colleague">同事</a-select-option>
+            <a-select-option value="contact">
+              联系人
+            </a-select-option>
+            <a-select-option value="friend">
+              好友
+            </a-select-option>
+            <a-select-option value="family">
+              家人
+            </a-select-option>
+            <a-select-option value="colleague">
+              同事
+            </a-select-option>
           </a-select>
         </a-form-item>
 
@@ -164,7 +213,11 @@
       :footer="null"
       width="700px"
     >
-      <a-descriptions v-if="currentContact" bordered :column="1">
+      <a-descriptions
+        v-if="currentContact"
+        bordered
+        :column="1"
+      >
         <a-descriptions-item label="DID">
           <a-typography-paragraph
             :copyable="{ text: currentContact.did }"
@@ -402,7 +455,7 @@ function getRelationshipColor(relationship) {
 
 // 缩短 DID 显示
 function shortenDID(did) {
-  if (!did) return '';
+  if (!did) {return '';}
   const parts = did.split(':');
   if (parts.length === 3) {
     const identifier = parts[2];
@@ -415,7 +468,7 @@ function shortenDID(did) {
 
 // 格式化日期
 function formatDate(timestamp) {
-  if (!timestamp) return '未知';
+  if (!timestamp) {return '未知';}
   const date = new Date(timestamp);
   return date.toLocaleString('zh-CN');
 }

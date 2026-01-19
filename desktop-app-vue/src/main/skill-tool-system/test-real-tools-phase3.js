@@ -76,8 +76,8 @@ async function testPhase3RealTools() {
         console.log(`   → 开始时间: ${result.start_time}`);
         console.log(`   → 时长: ${result.duration}`);
         console.log(`   → 文件大小: ${(stats.size / 1024).toFixed(2)} KB`);
-        if (result.video_codec) console.log(`   → 视频编码: ${result.video_codec}`);
-        if (result.resolution) console.log(`   → 分辨率: ${result.resolution}`);
+        if (result.video_codec) {console.log(`   → 视频编码: ${result.video_codec}`);}
+        if (result.resolution) {console.log(`   → 分辨率: ${result.resolution}`);}
         console.log('');
 
         passedTests++;
@@ -118,7 +118,7 @@ async function testPhase3RealTools() {
         console.log(`   → 结束时间: ${result.end_time}`);
         console.log(`   → 时长: ${result.duration}`);
         console.log(`   → 文件大小: ${(stats.size / 1024).toFixed(2)} KB`);
-        if (result.video_codec) console.log(`   → 视频编码: ${result.video_codec}`);
+        if (result.video_codec) {console.log(`   → 视频编码: ${result.video_codec}`);}
         console.log('');
 
         passedTests++;
@@ -156,8 +156,8 @@ async function testPhase3RealTools() {
         console.log(`   → 合并文件数: ${result.files_merged}`);
         console.log(`   → 总时长: ${result.total_duration}`);
         console.log(`   → 文件大小: ${(stats.size / 1024).toFixed(2)} KB`);
-        if (result.video_codec) console.log(`   → 视频编码: ${result.video_codec}`);
-        if (result.resolution) console.log(`   → 分辨率: ${result.resolution}`);
+        if (result.video_codec) {console.log(`   → 视频编码: ${result.video_codec}`);}
+        if (result.resolution) {console.log(`   → 分辨率: ${result.resolution}`);}
         console.log('');
 
         passedTests++;
@@ -253,8 +253,8 @@ async function testPhase3RealTools() {
     const statusIcon = result.status === '通过' ? '✅' :
                       result.status === '跳过' ? '⏭️' : '❌';
     console.log(`${index + 1}. ${statusIcon} ${result.test} - ${result.status}`);
-    if (result.file) console.log(`   文件: ${result.file}`);
-    if (result.error) console.log(`   错误: ${result.error}`);
+    if (result.file) {console.log(`   文件: ${result.file}`);}
+    if (result.error) {console.log(`   错误: ${result.error}`);}
   });
 
   console.log('\n========================================');

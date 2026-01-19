@@ -2,13 +2,17 @@
   <a-modal
     :open="visible"
     :closable="canSkip"
-    :maskClosable="false"
+    :mask-closable="false"
     :width="800"
     :footer="null"
-    @cancel="handleCancel"
     class="global-settings-wizard"
+    @cancel="handleCancel"
   >
-    <a-steps :current="currentStep" class="wizard-steps" size="small">
+    <a-steps
+      :current="currentStep"
+      class="wizard-steps"
+      size="small"
+    >
       <a-step title="欢迎" />
       <a-step title="版本选择" />
       <a-step title="项目路径" />
@@ -19,8 +23,14 @@
 
     <div class="wizard-content">
       <!-- 步骤 0: 欢迎 -->
-      <div v-if="currentStep === 0" class="step-panel">
-        <a-result status="success" title="欢迎使用 ChainlessChain">
+      <div
+        v-if="currentStep === 0"
+        class="step-panel"
+      >
+        <a-result
+          status="success"
+          title="欢迎使用 ChainlessChain"
+        >
           <template #icon>
             <RocketOutlined style="color: #1890ff" />
           </template>
@@ -31,7 +41,11 @@
             </div>
           </template>
           <template #extra>
-            <a-space direction="vertical" size="large" style="width: 100%">
+            <a-space
+              direction="vertical"
+              size="large"
+              style="width: 100%"
+            >
               <a-alert
                 message="首次设置向导"
                 description="这个向导将帮助您配置项目存储路径、数据库位置和AI服务。整个过程只需2-3分钟。"
@@ -44,41 +58,59 @@
       </div>
 
       <!-- 步骤 1: 版本选择 -->
-      <div v-if="currentStep === 1" class="step-panel">
+      <div
+        v-if="currentStep === 1"
+        class="step-panel"
+      >
         <EditionSelector
           v-model="formState.edition"
-          @update:enterpriseConfig="handleEnterpriseConfig"
+          @update:enterprise-config="handleEnterpriseConfig"
         />
       </div>
 
       <!-- 步骤 2: 项目路径 -->
-      <div v-if="currentStep === 2" class="step-panel">
+      <div
+        v-if="currentStep === 2"
+        class="step-panel"
+      >
         <PathSelector
           v-model="formState.projectPath"
           label="项目文件存储根目录"
           description="您的知识库项目将存储在此目录下"
-          :defaultPath="defaultPaths.project"
+          :default-path="defaultPaths.project"
         />
       </div>
 
       <!-- 步骤 3: 数据库路径 -->
-      <div v-if="currentStep === 3" class="step-panel">
+      <div
+        v-if="currentStep === 3"
+        class="step-panel"
+      >
         <PathSelector
           v-model="formState.databasePath"
           label="数据库文件存储位置"
           description="SQLite数据库文件将存储在此目录下"
-          :defaultPath="defaultPaths.database"
+          :default-path="defaultPaths.database"
         />
       </div>
 
       <!-- 步骤 4: LLM 配置 -->
-      <div v-if="currentStep === 4" class="step-panel">
+      <div
+        v-if="currentStep === 4"
+        class="step-panel"
+      >
         <LLMQuickSetup v-model="formState.llm" />
       </div>
 
       <!-- 步骤 5: 完成 -->
-      <div v-if="currentStep === 5" class="step-panel">
-        <a-result status="success" title="配置完成">
+      <div
+        v-if="currentStep === 5"
+        class="step-panel"
+      >
+        <a-result
+          status="success"
+          title="配置完成"
+        >
           <template #icon>
             <CheckCircleOutlined style="color: #52c41a" />
           </template>
@@ -86,7 +118,11 @@
             <p>请确认您的配置信息</p>
           </template>
           <template #extra>
-            <a-descriptions bordered size="small" :column="1">
+            <a-descriptions
+              bordered
+              size="small"
+              :column="1"
+            >
               <a-descriptions-item label="版本">
                 {{ formState.edition === 'personal' ? '个人版' : '企业版' }}
               </a-descriptions-item>
@@ -99,7 +135,10 @@
               <a-descriptions-item label="AI提供商">
                 {{ getLLMProviderName() }}
               </a-descriptions-item>
-              <a-descriptions-item v-if="formState.edition === 'enterprise'" label="企业服务器">
+              <a-descriptions-item
+                v-if="formState.edition === 'enterprise'"
+                label="企业服务器"
+              >
                 {{ formState.enterpriseConfig.serverUrl || '未配置' }}
               </a-descriptions-item>
             </a-descriptions>
@@ -109,15 +148,24 @@
     </div>
 
     <!-- 导入导出按钮 -->
-    <div v-if="canSkip" class="wizard-import-export">
+    <div
+      v-if="canSkip"
+      class="wizard-import-export"
+    >
       <a-space>
-        <a-button @click="handleImport" :loading="importing">
+        <a-button
+          :loading="importing"
+          @click="handleImport"
+        >
           <template #icon>
             <ImportOutlined />
           </template>
           导入配置
         </a-button>
-        <a-button @click="handleExport" :loading="exporting">
+        <a-button
+          :loading="exporting"
+          @click="handleExport"
+        >
           <template #icon>
             <ExportOutlined />
           </template>
@@ -127,7 +175,10 @@
     </div>
 
     <div class="wizard-actions">
-      <a-button v-if="currentStep > 0" @click="prevStep">
+      <a-button
+        v-if="currentStep > 0"
+        @click="prevStep"
+      >
         上一步
       </a-button>
       <a-button

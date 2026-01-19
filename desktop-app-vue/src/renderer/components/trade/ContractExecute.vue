@@ -10,12 +10,28 @@
     >
       <div v-if="contract">
         <!-- 合约信息 -->
-        <a-card size="small" title="合约信息" style="margin-bottom: 16px">
-          <a-descriptions :column="2" size="small" bordered>
-            <a-descriptions-item label="合约ID" :span="2">
-              <a-typography-text copyable>{{ contract.id }}</a-typography-text>
+        <a-card
+          size="small"
+          title="合约信息"
+          style="margin-bottom: 16px"
+        >
+          <a-descriptions
+            :column="2"
+            size="small"
+            bordered
+          >
+            <a-descriptions-item
+              label="合约ID"
+              :span="2"
+            >
+              <a-typography-text copyable>
+                {{ contract.id }}
+              </a-typography-text>
             </a-descriptions-item>
-            <a-descriptions-item label="合约名称" :span="2">
+            <a-descriptions-item
+              label="合约名称"
+              :span="2"
+            >
               <strong>{{ contract.name || contract.title }}</strong>
             </a-descriptions-item>
             <a-descriptions-item label="合约类型">
@@ -24,13 +40,21 @@
               </a-tag>
             </a-descriptions-item>
             <a-descriptions-item label="合约状态">
-              <status-badge :status="contract.status" type="contract" show-icon />
+              <status-badge
+                :status="contract.status"
+                type="contract"
+                show-icon
+              />
             </a-descriptions-item>
           </a-descriptions>
         </a-card>
 
         <!-- 条件检查 -->
-        <a-card size="small" title="条件检查" style="margin-bottom: 16px">
+        <a-card
+          size="small"
+          title="条件检查"
+          style="margin-bottom: 16px"
+        >
           <a-spin :spinning="checkingConditions">
             <a-list
               v-if="conditions.length > 0"
@@ -48,7 +72,13 @@
                     </template>
                     <template #title>
                       {{ getConditionTypeName(item.type) }}
-                      <a-tag v-if="item.required" color="red" size="small">必需</a-tag>
+                      <a-tag
+                        v-if="item.required"
+                        color="red"
+                        size="small"
+                      >
+                        必需
+                      </a-tag>
                     </template>
                     <template #description>
                       <span :style="{ color: item.met ? '#52c41a' : '#f5222d' }">
@@ -60,7 +90,11 @@
               </template>
             </a-list>
 
-            <a-empty v-else description="无条件限制" :image="simpleImage" />
+            <a-empty
+              v-else
+              description="无条件限制"
+              :image="simpleImage"
+            />
 
             <a-alert
               v-if="conditionCheckResult"
@@ -84,7 +118,11 @@
         </a-card>
 
         <!-- 执行参数 -->
-        <a-card size="small" title="执行参数" style="margin-bottom: 16px">
+        <a-card
+          size="small"
+          title="执行参数"
+          style="margin-bottom: 16px"
+        >
           <a-form layout="vertical">
             <a-form-item label="执行备注">
               <a-textarea
@@ -199,7 +237,7 @@ const getConditionTypeName = (type) => {
 
 // 检查条件
 const handleCheckConditions = async () => {
-  if (!props.contract) return;
+  if (!props.contract) {return;}
 
   checkingConditions.value = true;
   try {

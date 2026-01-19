@@ -1,9 +1,15 @@
 <template>
   <div class="git-status">
-    <a-card title="Git 同步状态" size="small">
+    <a-card
+      title="Git 同步状态"
+      size="small"
+    >
       <template v-if="!enabled">
         <a-empty description="Git同步未启用">
-          <a-button type="primary" @click="$emit('open-settings')">
+          <a-button
+            type="primary"
+            @click="$emit('open-settings')"
+          >
             前往设置
           </a-button>
         </a-empty>
@@ -12,9 +18,14 @@
       <template v-else>
         <!-- 状态概览 -->
         <div class="status-overview">
-          <a-descriptions :column="2" size="small">
+          <a-descriptions
+            :column="2"
+            size="small"
+          >
             <a-descriptions-item label="分支">
-              <a-tag color="blue">{{ status.branch || 'main' }}</a-tag>
+              <a-tag color="blue">
+                {{ status.branch || 'main' }}
+              </a-tag>
             </a-descriptions-item>
             <a-descriptions-item label="最后同步">
               {{ formatDate(status.lastSync) }}
@@ -26,19 +37,26 @@
               />
             </a-descriptions-item>
             <a-descriptions-item label="状态">
-              <a-tag :color="statusColor">{{ statusText }}</a-tag>
+              <a-tag :color="statusColor">
+                {{ statusText }}
+              </a-tag>
             </a-descriptions-item>
           </a-descriptions>
         </div>
 
         <!-- 更改列表 -->
-        <div v-if="hasChanges" class="changes-list">
+        <div
+          v-if="hasChanges"
+          class="changes-list"
+        >
           <a-divider>未提交的更改</a-divider>
 
           <div v-if="status.modified && status.modified.length > 0">
             <div class="change-group">
               <div class="change-title">
-                <a-tag color="orange">修改</a-tag>
+                <a-tag color="orange">
+                  修改
+                </a-tag>
                 <span>{{ status.modified.length }} 个文件</span>
               </div>
               <div class="file-list">
@@ -50,7 +68,10 @@
                   <file-text-outlined />
                   <span>{{ file }}</span>
                 </div>
-                <div v-if="status.modified.length > 5" class="more-files">
+                <div
+                  v-if="status.modified.length > 5"
+                  class="more-files"
+                >
                   ...还有 {{ status.modified.length - 5 }} 个文件
                 </div>
               </div>
@@ -60,7 +81,9 @@
           <div v-if="status.untracked && status.untracked.length > 0">
             <div class="change-group">
               <div class="change-title">
-                <a-tag color="green">新增</a-tag>
+                <a-tag color="green">
+                  新增
+                </a-tag>
                 <span>{{ status.untracked.length }} 个文件</span>
               </div>
               <div class="file-list">
@@ -72,7 +95,10 @@
                   <plus-outlined />
                   <span>{{ file }}</span>
                 </div>
-                <div v-if="status.untracked.length > 5" class="more-files">
+                <div
+                  v-if="status.untracked.length > 5"
+                  class="more-files"
+                >
                   ...还有 {{ status.untracked.length - 5 }} 个文件
                 </div>
               </div>
@@ -82,7 +108,9 @@
           <div v-if="status.deleted && status.deleted.length > 0">
             <div class="change-group">
               <div class="change-title">
-                <a-tag color="red">删除</a-tag>
+                <a-tag color="red">
+                  删除
+                </a-tag>
                 <span>{{ status.deleted.length }} 个文件</span>
               </div>
               <div class="file-list">
@@ -94,7 +122,10 @@
                   <minus-outlined />
                   <span>{{ file }}</span>
                 </div>
-                <div v-if="status.deleted.length > 5" class="more-files">
+                <div
+                  v-if="status.deleted.length > 5"
+                  class="more-files"
+                >
                   ...还有 {{ status.deleted.length - 5 }} 个文件
                 </div>
               </div>
@@ -107,30 +138,42 @@
           <a-space>
             <a-button
               type="primary"
-              @click="handleSync"
               :loading="syncing"
               :disabled="!hasChanges"
+              @click="handleSync"
             >
               <sync-outlined />
               同步到Git
             </a-button>
-            <a-button @click="handleRefresh" :loading="loading">
+            <a-button
+              :loading="loading"
+              @click="handleRefresh"
+            >
               <reload-outlined />
               刷新
             </a-button>
             <a-dropdown>
               <template #overlay>
                 <a-menu>
-                  <a-menu-item key="push" @click="handlePush">
+                  <a-menu-item
+                    key="push"
+                    @click="handlePush"
+                  >
                     <upload-outlined />
                     推送
                   </a-menu-item>
-                  <a-menu-item key="pull" @click="handlePull">
+                  <a-menu-item
+                    key="pull"
+                    @click="handlePull"
+                  >
                     <download-outlined />
                     拉取
                   </a-menu-item>
                   <a-menu-divider />
-                  <a-menu-item key="log" @click="showLog = true">
+                  <a-menu-item
+                    key="log"
+                    @click="showLog = true"
+                  >
                     <history-outlined />
                     提交历史
                   </a-menu-item>
@@ -145,9 +188,17 @@
         </div>
 
         <!-- 同步进度 -->
-        <div v-if="progress" class="progress">
-          <a-progress :percent="progress.percent" :status="progress.status" />
-          <div class="progress-text">{{ progress.text }}</div>
+        <div
+          v-if="progress"
+          class="progress"
+        >
+          <a-progress
+            :percent="progress.percent"
+            :status="progress.status"
+          />
+          <div class="progress-text">
+            {{ progress.text }}
+          </div>
         </div>
       </template>
     </a-card>
@@ -166,9 +217,13 @@
           color="blue"
         >
           <div class="commit-item">
-            <div class="commit-message">{{ commit.message }}</div>
+            <div class="commit-message">
+              {{ commit.message }}
+            </div>
             <div class="commit-meta">
-              <a-tag size="small">{{ commit.author.name }}</a-tag>
+              <a-tag size="small">
+                {{ commit.author.name }}
+              </a-tag>
               <span class="commit-time">{{ formatDate(commit.timestamp) }}</span>
               <code class="commit-sha">{{ commit.sha.substring(0, 7) }}</code>
             </div>
@@ -215,29 +270,29 @@ const changeCount = computed(() => {
 const hasChanges = computed(() => changeCount.value > 0);
 
 const statusColor = computed(() => {
-  if (!enabled.value) return 'default';
-  if (hasChanges.value) return 'warning';
+  if (!enabled.value) {return 'default';}
+  if (hasChanges.value) {return 'warning';}
   return 'success';
 });
 
 const statusText = computed(() => {
-  if (!enabled.value) return '未启用';
-  if (hasChanges.value) return '有未提交的更改';
+  if (!enabled.value) {return '未启用';}
+  if (hasChanges.value) {return '有未提交的更改';}
   return '已同步';
 });
 
 // 格式化日期
 function formatDate(date) {
-  if (!date) return '从未';
+  if (!date) {return '从未';}
 
   const d = new Date(date);
   const now = new Date();
   const diff = now - d;
 
-  if (diff < 60000) return '刚刚';
-  if (diff < 3600000) return `${Math.floor(diff / 60000)} 分钟前`;
-  if (diff < 86400000) return `${Math.floor(diff / 3600000)} 小时前`;
-  if (diff < 604800000) return `${Math.floor(diff / 86400000)} 天前`;
+  if (diff < 60000) {return '刚刚';}
+  if (diff < 3600000) {return `${Math.floor(diff / 60000)} 分钟前`;}
+  if (diff < 86400000) {return `${Math.floor(diff / 3600000)} 小时前`;}
+  if (diff < 604800000) {return `${Math.floor(diff / 86400000)} 天前`;}
 
   return d.toLocaleString('zh-CN');
 }

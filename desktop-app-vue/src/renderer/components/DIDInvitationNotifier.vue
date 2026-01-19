@@ -1,11 +1,14 @@
 <template>
   <div class="did-invitation-notifier">
     <!-- 邀请通知徽章 -->
-    <a-badge :count="pendingCount" :offset="[-5, 5]">
+    <a-badge
+      :count="pendingCount"
+      :offset="[-5, 5]"
+    >
       <a-button
         type="text"
-        @click="showInvitationsDrawer = true"
         :disabled="pendingCount === 0"
+        @click="showInvitationsDrawer = true"
       >
         <template #icon>
           <BellOutlined :class="{ 'bell-shake': pendingCount > 0 }" />
@@ -23,7 +26,10 @@
     >
       <div class="invitations-container">
         <!-- 待处理邀请 -->
-        <div v-if="pendingInvitations.length > 0" class="pending-section">
+        <div
+          v-if="pendingInvitations.length > 0"
+          class="pending-section"
+        >
           <h3 class="section-title">
             <MailOutlined />
             待处理 ({{ pendingInvitations.length }})
@@ -38,14 +44,20 @@
                 <div class="invitation-card">
                   <!-- 组织信息 -->
                   <div class="org-header">
-                    <a-avatar :size="48" class="org-avatar">
+                    <a-avatar
+                      :size="48"
+                      class="org-avatar"
+                    >
                       <template #icon>
                         <TeamOutlined />
                       </template>
                     </a-avatar>
                     <div class="org-info">
                       <h4>{{ item.org_name }}</h4>
-                      <a-tag :color="getRoleColor(item.role)" size="small">
+                      <a-tag
+                        :color="getRoleColor(item.role)"
+                        size="small"
+                      >
                         {{ getRoleLabel(item.role) }}
                       </a-tag>
                     </div>
@@ -68,7 +80,10 @@
                   <div class="time-info">
                     <ClockCircleOutlined />
                     <span>{{ formatTimeAgo(item.created_at) }}</span>
-                    <span v-if="item.expire_at" class="expire-warning">
+                    <span
+                      v-if="item.expire_at"
+                      class="expire-warning"
+                    >
                       • {{ formatExpireTime(item.expire_at) }}到期
                     </span>
                   </div>
@@ -77,16 +92,16 @@
                   <div class="action-buttons">
                     <a-button
                       type="primary"
-                      @click="handleAccept(item)"
                       :loading="acceptingIds.includes(item.id)"
+                      @click="handleAccept(item)"
                     >
                       <CheckOutlined />
                       接受邀请
                     </a-button>
                     <a-button
                       danger
-                      @click="handleReject(item)"
                       :loading="rejectingIds.includes(item.id)"
+                      @click="handleReject(item)"
                     >
                       <CloseOutlined />
                       拒绝
@@ -111,7 +126,10 @@
 
         <!-- 历史记录按钮 -->
         <div class="history-section">
-          <a-button block @click="showHistoryModal = true">
+          <a-button
+            block
+            @click="showHistoryModal = true"
+          >
             <HistoryOutlined />
             查看历史邀请
           </a-button>
@@ -126,8 +144,11 @@
       :footer="null"
       width="600px"
     >
-      <a-tabs v-model:activeKey="historyTab">
-        <a-tab-pane key="accepted" tab="已接受">
+      <a-tabs v-model:active-key="historyTab">
+        <a-tab-pane
+          key="accepted"
+          tab="已接受"
+        >
           <a-list
             :data-source="acceptedInvitations"
             :loading="loadingHistory"
@@ -137,12 +158,19 @@
                 <a-list-item-meta>
                   <template #avatar>
                     <a-avatar>
-                      <template #icon><TeamOutlined /></template>
+                      <template #icon>
+                        <TeamOutlined />
+                      </template>
                     </a-avatar>
                   </template>
                   <template #title>
                     {{ item.org_name }}
-                    <a-tag color="green" size="small">已加入</a-tag>
+                    <a-tag
+                      color="green"
+                      size="small"
+                    >
+                      已加入
+                    </a-tag>
                   </template>
                   <template #description>
                     邀请人：{{ item.invited_by_name }} • {{ formatDate(item.updated_at) }}
@@ -153,7 +181,10 @@
           </a-list>
         </a-tab-pane>
 
-        <a-tab-pane key="rejected" tab="已拒绝">
+        <a-tab-pane
+          key="rejected"
+          tab="已拒绝"
+        >
           <a-list
             :data-source="rejectedInvitations"
             :loading="loadingHistory"
@@ -163,12 +194,19 @@
                 <a-list-item-meta>
                   <template #avatar>
                     <a-avatar>
-                      <template #icon><TeamOutlined /></template>
+                      <template #icon>
+                        <TeamOutlined />
+                      </template>
                     </a-avatar>
                   </template>
                   <template #title>
                     {{ item.org_name }}
-                    <a-tag color="red" size="small">已拒绝</a-tag>
+                    <a-tag
+                      color="red"
+                      size="small"
+                    >
+                      已拒绝
+                    </a-tag>
                   </template>
                   <template #description>
                     邀请人：{{ item.invited_by_name }} • {{ formatDate(item.updated_at) }}
@@ -179,7 +217,10 @@
           </a-list>
         </a-tab-pane>
 
-        <a-tab-pane key="expired" tab="已过期">
+        <a-tab-pane
+          key="expired"
+          tab="已过期"
+        >
           <a-list
             :data-source="expiredInvitations"
             :loading="loadingHistory"
@@ -189,12 +230,19 @@
                 <a-list-item-meta>
                   <template #avatar>
                     <a-avatar>
-                      <template #icon><TeamOutlined /></template>
+                      <template #icon>
+                        <TeamOutlined />
+                      </template>
                     </a-avatar>
                   </template>
                   <template #title>
                     {{ item.org_name }}
-                    <a-tag color="default" size="small">已过期</a-tag>
+                    <a-tag
+                      color="default"
+                      size="small"
+                    >
+                      已过期
+                    </a-tag>
                   </template>
                   <template #description>
                     邀请人：{{ item.invited_by_name }} • {{ formatDate(item.expire_at) }}
@@ -350,7 +398,7 @@ const handleReject = async (invitation) => {
 
 // 工具函数
 const formatDID = (did) => {
-  if (!did) return '';
+  if (!did) {return '';}
   if (did.length > 30) {
     return did.substring(0, 15) + '...' + did.substring(did.length - 10);
   }
@@ -358,27 +406,27 @@ const formatDID = (did) => {
 };
 
 const formatDate = (timestamp) => {
-  if (!timestamp) return '';
+  if (!timestamp) {return '';}
   return dayjs(timestamp).format('YYYY-MM-DD HH:mm');
 };
 
 const formatTimeAgo = (timestamp) => {
-  if (!timestamp) return '';
+  if (!timestamp) {return '';}
   return dayjs(timestamp).fromNow();
 };
 
 const formatExpireTime = (timestamp) => {
-  if (!timestamp) return '';
+  if (!timestamp) {return '';}
   const now = Date.now();
   const diff = timestamp - now;
 
-  if (diff < 0) return '已过期';
+  if (diff < 0) {return '已过期';}
 
   const hours = Math.floor(diff / (1000 * 60 * 60));
   const days = Math.floor(hours / 24);
 
-  if (days > 0) return `${days}天后`;
-  if (hours > 0) return `${hours}小时后`;
+  if (days > 0) {return `${days}天后`;}
+  if (hours > 0) {return `${hours}小时后`;}
   return '即将';
 };
 

@@ -28,11 +28,18 @@
                   type="primary"
                   @click="handleViewOnExplorer"
                 >
-                  <template #icon><link-outlined /></template>
+                  <template #icon>
+                    <link-outlined />
+                  </template>
                   在区块链浏览器查看
                 </a-button>
-                <a-button @click="handleRefresh" :loading="refreshing">
-                  <template #icon><reload-outlined /></template>
+                <a-button
+                  :loading="refreshing"
+                  @click="handleRefresh"
+                >
+                  <template #icon>
+                    <reload-outlined />
+                  </template>
                   刷新状态
                 </a-button>
               </a-space>
@@ -42,7 +49,11 @@
           <a-divider />
 
           <!-- 交易信息 -->
-          <a-descriptions title="基本信息" :column="2" bordered>
+          <a-descriptions
+            title="基本信息"
+            :column="2"
+            bordered
+          >
             <a-descriptions-item label="交易类型">
               <a-tag :color="getTypeColor(transaction.tx_type || transaction.type)">
                 {{ getTypeText(transaction.tx_type || transaction.type) }}
@@ -53,10 +64,17 @@
                 {{ getStatusText(transaction.status) }}
               </a-tag>
             </a-descriptions-item>
-            <a-descriptions-item label="发起时间" :span="2">
+            <a-descriptions-item
+              label="发起时间"
+              :span="2"
+            >
               {{ formatDateTime(transaction.created_at || transaction.timestamp) }}
             </a-descriptions-item>
-            <a-descriptions-item label="确认时间" :span="2" v-if="transaction.confirmed_at">
+            <a-descriptions-item
+              v-if="transaction.confirmed_at"
+              label="确认时间"
+              :span="2"
+            >
               {{ formatDateTime(transaction.confirmed_at) }}
             </a-descriptions-item>
           </a-descriptions>
@@ -64,20 +82,35 @@
           <a-divider />
 
           <!-- 区块链信息 -->
-          <a-descriptions title="区块链信息" :column="2" bordered v-if="transaction.chain_id">
+          <a-descriptions
+            v-if="transaction.chain_id"
+            title="区块链信息"
+            :column="2"
+            bordered
+          >
             <a-descriptions-item label="网络">
               {{ getNetworkName(transaction.chain_id) }}
             </a-descriptions-item>
             <a-descriptions-item label="链ID">
               {{ transaction.chain_id }}
             </a-descriptions-item>
-            <a-descriptions-item label="区块号" v-if="transaction.block_number">
+            <a-descriptions-item
+              v-if="transaction.block_number"
+              label="区块号"
+            >
               {{ transaction.block_number }}
             </a-descriptions-item>
-            <a-descriptions-item label="Gas费用" v-if="transaction.gas_used">
+            <a-descriptions-item
+              v-if="transaction.gas_used"
+              label="Gas费用"
+            >
               {{ formatGas(transaction.gas_used, transaction.gas_price) }}
             </a-descriptions-item>
-            <a-descriptions-item label="交易哈希" :span="2" v-if="transaction.tx_hash">
+            <a-descriptions-item
+              v-if="transaction.tx_hash"
+              label="交易哈希"
+              :span="2"
+            >
               <a-typography-text copyable>
                 {{ transaction.tx_hash }}
               </a-typography-text>
@@ -87,21 +120,37 @@
           <a-divider />
 
           <!-- 交易详情 -->
-          <a-descriptions title="交易详情" :column="1" bordered>
-            <a-descriptions-item label="发送方" v-if="transaction.from_address || transaction.from_did">
+          <a-descriptions
+            title="交易详情"
+            :column="1"
+            bordered
+          >
+            <a-descriptions-item
+              v-if="transaction.from_address || transaction.from_did"
+              label="发送方"
+            >
               <a-typography-text copyable>
                 {{ transaction.from_address || transaction.from_did }}
               </a-typography-text>
             </a-descriptions-item>
-            <a-descriptions-item label="接收方" v-if="transaction.to_address || transaction.to_did">
+            <a-descriptions-item
+              v-if="transaction.to_address || transaction.to_did"
+              label="接收方"
+            >
               <a-typography-text copyable>
                 {{ transaction.to_address || transaction.to_did }}
               </a-typography-text>
             </a-descriptions-item>
-            <a-descriptions-item label="金额" v-if="transaction.amount">
+            <a-descriptions-item
+              v-if="transaction.amount"
+              label="金额"
+            >
               {{ transaction.amount }} {{ transaction.asset_symbol || '' }}
             </a-descriptions-item>
-            <a-descriptions-item label="备注" v-if="transaction.memo || transaction.description">
+            <a-descriptions-item
+              v-if="transaction.memo || transaction.description"
+              label="备注"
+            >
               {{ transaction.memo || transaction.description }}
             </a-descriptions-item>
           </a-descriptions>
@@ -116,14 +165,23 @@
           />
 
           <!-- 原始数据 -->
-          <a-collapse style="margin-top: 16px" v-if="transaction.raw_data">
-            <a-collapse-panel key="raw" header="原始数据">
+          <a-collapse
+            v-if="transaction.raw_data"
+            style="margin-top: 16px"
+          >
+            <a-collapse-panel
+              key="raw"
+              header="原始数据"
+            >
               <pre class="raw-data">{{ formatJSON(transaction.raw_data) }}</pre>
             </a-collapse-panel>
           </a-collapse>
         </div>
 
-        <a-empty v-else description="暂无交易数据" />
+        <a-empty
+          v-else
+          description="暂无交易数据"
+        />
       </a-spin>
     </div>
   </a-modal>
@@ -224,7 +282,7 @@ const getBlockExplorerUrl = (chainId, type, value) => {
   };
 
   const baseUrl = explorers[chainId];
-  if (!baseUrl) return null;
+  if (!baseUrl) {return null;}
 
   const paths = {
     address: 'address',
@@ -350,7 +408,7 @@ const getTypeText = (type) => {
  * 格式化日期时间
  */
 const formatDateTime = (timestamp) => {
-  if (!timestamp) return '-';
+  if (!timestamp) {return '-';}
   const date = new Date(timestamp);
   return date.toLocaleString('zh-CN', {
     year: 'numeric',
@@ -366,7 +424,7 @@ const formatDateTime = (timestamp) => {
  * 格式化Gas费用
  */
 const formatGas = (gasUsed, gasPrice) => {
-  if (!gasUsed || !gasPrice) return '-';
+  if (!gasUsed || !gasPrice) {return '-';}
   const gasCost = (gasUsed * gasPrice) / 1e18;
   return `${gasCost.toFixed(6)} ETH`;
 };

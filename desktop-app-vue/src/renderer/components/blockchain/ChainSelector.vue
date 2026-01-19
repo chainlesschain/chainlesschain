@@ -14,7 +14,10 @@
       </template>
 
       <!-- 主网选项组 -->
-      <a-select-opt-group label="主网" v-if="mainnetNetworks.length > 0">
+      <a-select-opt-group
+        v-if="mainnetNetworks.length > 0"
+        label="主网"
+      >
         <a-select-option
           v-for="network in mainnetNetworks"
           :key="network.chainId"
@@ -27,18 +30,27 @@
             <div class="chain-info">
               <div class="chain-name">
                 {{ network.name }}
-                <a-tag v-if="network.chainId === currentChainId" color="green" size="small">
+                <a-tag
+                  v-if="network.chainId === currentChainId"
+                  color="green"
+                  size="small"
+                >
                   当前
                 </a-tag>
               </div>
-              <div class="chain-symbol">{{ network.symbol }}</div>
+              <div class="chain-symbol">
+                {{ network.symbol }}
+              </div>
             </div>
           </div>
         </a-select-option>
       </a-select-opt-group>
 
       <!-- 测试网选项组 -->
-      <a-select-opt-group label="测试网" v-if="testnetNetworks.length > 0">
+      <a-select-opt-group
+        v-if="testnetNetworks.length > 0"
+        label="测试网"
+      >
         <a-select-option
           v-for="network in testnetNetworks"
           :key="network.chainId"
@@ -51,11 +63,17 @@
             <div class="chain-info">
               <div class="chain-name">
                 {{ network.name }}
-                <a-tag v-if="network.chainId === currentChainId" color="green" size="small">
+                <a-tag
+                  v-if="network.chainId === currentChainId"
+                  color="green"
+                  size="small"
+                >
                   当前
                 </a-tag>
               </div>
-              <div class="chain-symbol">{{ network.symbol }}</div>
+              <div class="chain-symbol">
+                {{ network.symbol }}
+              </div>
             </div>
           </div>
         </a-select-option>
@@ -63,7 +81,10 @@
     </a-select>
 
     <!-- 快捷操作 -->
-    <div v-if="showQuickInfo" class="quick-info">
+    <div
+      v-if="showQuickInfo"
+      class="quick-info"
+    >
       <a-space :size="8">
         <!-- 当前网络徽章 -->
         <a-badge

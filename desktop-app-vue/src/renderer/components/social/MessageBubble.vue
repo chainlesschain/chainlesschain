@@ -5,33 +5,53 @@
     @contextmenu.prevent="handleContextMenu"
   >
     <!-- 头像 -->
-    <div v-if="!isSent" class="message-avatar">
+    <div
+      v-if="!isSent"
+      class="message-avatar"
+    >
       <a-avatar :size="32">
-        <template #icon><UserOutlined /></template>
+        <template #icon>
+          <UserOutlined />
+        </template>
       </a-avatar>
     </div>
 
     <!-- 消息内容 -->
     <div class="message-wrapper">
       <!-- 发送者昵称（仅接收的消息显示） -->
-      <div v-if="!isSent && showNickname" class="message-nickname">
+      <div
+        v-if="!isSent && showNickname"
+        class="message-nickname"
+      >
         {{ senderName }}
       </div>
 
       <!-- 消息气泡 -->
-      <div class="message-content" :class="`type-${message.message_type || 'text'}`">
+      <div
+        class="message-content"
+        :class="`type-${message.message_type || 'text'}`"
+      >
         <!-- 转发标记 -->
-        <div v-if="message.forwarded_from_id" class="forwarded-indicator">
+        <div
+          v-if="message.forwarded_from_id"
+          class="forwarded-indicator"
+        >
           <ShareAltOutlined /> 转发的消息
         </div>
 
         <!-- 文本消息 -->
-        <div v-if="message.message_type === 'text' || !message.message_type" class="message-text">
+        <div
+          v-if="message.message_type === 'text' || !message.message_type"
+          class="message-text"
+        >
           {{ message.content }}
         </div>
 
         <!-- 图片消息 -->
-        <div v-else-if="message.message_type === 'image'" class="message-image">
+        <div
+          v-else-if="message.message_type === 'image'"
+          class="message-image"
+        >
           <a-image
             :src="message.file_path"
             :alt="message.content"
@@ -41,15 +61,25 @@
         </div>
 
         <!-- 文件消息 -->
-        <div v-else-if="message.message_type === 'file'" class="message-file">
+        <div
+          v-else-if="message.message_type === 'file'"
+          class="message-file"
+        >
           <div class="file-icon">
             <FileOutlined />
           </div>
           <div class="file-info">
-            <div class="file-name">{{ message.content }}</div>
-            <div class="file-size">{{ formatFileSize(message.file_size) }}</div>
+            <div class="file-name">
+              {{ message.content }}
+            </div>
+            <div class="file-size">
+              {{ formatFileSize(message.file_size) }}
+            </div>
             <!-- 传输进度 -->
-            <div v-if="transferProgress && transferProgress.status !== 'completed'" class="transfer-progress">
+            <div
+              v-if="transferProgress && transferProgress.status !== 'completed'"
+              class="transfer-progress"
+            >
               <a-progress
                 :percent="Math.round(transferProgress.progress * 100)"
                 :status="transferProgress.status === 'failed' ? 'exception' : 'active'"
@@ -57,28 +87,50 @@
               />
               <div class="transfer-info">
                 <span>{{ formatFileSize(transferProgress.bytesTransferred) }} / {{ formatFileSize(transferProgress.totalBytes) }}</span>
-                <a-button v-if="transferProgress.status === 'transferring'" type="link" size="small" @click="handleCancelTransfer">
+                <a-button
+                  v-if="transferProgress.status === 'transferring'"
+                  type="link"
+                  size="small"
+                  @click="handleCancelTransfer"
+                >
                   取消
                 </a-button>
               </div>
             </div>
           </div>
-          <a-button v-if="!transferProgress || transferProgress.status === 'completed'" type="link" size="small" @click="handleDownload">
+          <a-button
+            v-if="!transferProgress || transferProgress.status === 'completed'"
+            type="link"
+            size="small"
+            @click="handleDownload"
+          >
             <DownloadOutlined />
           </a-button>
         </div>
 
         <!-- 语音消息 -->
-        <div v-else-if="message.message_type === 'voice'" class="message-voice">
-          <a-button type="text" size="small" @click="toggleVoicePlay">
+        <div
+          v-else-if="message.message_type === 'voice'"
+          class="message-voice"
+        >
+          <a-button
+            type="text"
+            size="small"
+            @click="toggleVoicePlay"
+          >
             <SoundOutlined v-if="!isPlaying" />
             <PauseCircleOutlined v-else />
           </a-button>
-          <div class="voice-duration">{{ message.duration || '0:00' }}</div>
+          <div class="voice-duration">
+            {{ message.duration || '0:00' }}
+          </div>
         </div>
 
         <!-- 视频消息 -->
-        <div v-else-if="message.message_type === 'video'" class="message-video">
+        <div
+          v-else-if="message.message_type === 'video'"
+          class="message-video"
+        >
           <video
             :src="message.file_path"
             controls
@@ -87,7 +139,10 @@
         </div>
 
         <!-- 未知类型 -->
-        <div v-else class="message-text">
+        <div
+          v-else
+          class="message-text"
+        >
           {{ message.content }}
         </div>
       </div>
@@ -97,16 +152,34 @@
         <span class="message-time">{{ formatTime(message.timestamp) }}</span>
 
         <!-- 发送状态（仅发送的消息显示） -->
-        <span v-if="isSent" class="message-status">
-          <CheckOutlined v-if="message.status === 'sent'" :style="{ color: '#8c8c8c' }" />
-          <CheckCircleOutlined v-else-if="message.status === 'delivered'" :style="{ color: '#1890ff' }" />
-          <CheckCircleFilled v-else-if="message.status === 'read'" :style="{ color: '#52c41a' }" />
-          <CloseCircleOutlined v-else-if="message.status === 'failed'" :style="{ color: '#ff4d4f' }" />
+        <span
+          v-if="isSent"
+          class="message-status"
+        >
+          <CheckOutlined
+            v-if="message.status === 'sent'"
+            :style="{ color: '#8c8c8c' }"
+          />
+          <CheckCircleOutlined
+            v-else-if="message.status === 'delivered'"
+            :style="{ color: '#1890ff' }"
+          />
+          <CheckCircleFilled
+            v-else-if="message.status === 'read'"
+            :style="{ color: '#52c41a' }"
+          />
+          <CloseCircleOutlined
+            v-else-if="message.status === 'failed'"
+            :style="{ color: '#ff4d4f' }"
+          />
         </span>
       </div>
 
       <!-- 表情回应区域 -->
-      <div v-if="reactionStats && Object.keys(reactionStats).length > 0" class="message-reactions">
+      <div
+        v-if="reactionStats && Object.keys(reactionStats).length > 0"
+        class="message-reactions"
+      >
         <div
           v-for="(stat, emoji) in reactionStats"
           :key="emoji"
@@ -128,7 +201,10 @@
       </div>
 
       <!-- 添加表情按钮（无表情时显示） -->
-      <div v-else class="add-reaction-container">
+      <div
+        v-else
+        class="add-reaction-container"
+      >
         <a-button
           type="text"
           size="small"
@@ -141,9 +217,17 @@
     </div>
 
     <!-- 头像（发送的消息） -->
-    <div v-if="isSent" class="message-avatar">
-      <a-avatar :size="32" :style="{ backgroundColor: '#1890ff' }">
-        <template #icon><UserOutlined /></template>
+    <div
+      v-if="isSent"
+      class="message-avatar"
+    >
+      <a-avatar
+        :size="32"
+        :style="{ backgroundColor: '#1890ff' }"
+      >
+        <template #icon>
+          <UserOutlined />
+        </template>
       </a-avatar>
     </div>
 
@@ -153,16 +237,22 @@
       :trigger="['contextmenu']"
       :get-popup-container="() => $el"
     >
-      <div></div>
+      <div />
       <template #overlay>
         <a-menu @click="handleMenuClick">
           <a-menu-item key="forward">
             <ShareAltOutlined /> 转发
           </a-menu-item>
-          <a-menu-item key="copy" v-if="message.message_type === 'text' || !message.message_type">
+          <a-menu-item
+            v-if="message.message_type === 'text' || !message.message_type"
+            key="copy"
+          >
             <CopyOutlined /> 复制
           </a-menu-item>
-          <a-menu-item key="delete" danger>
+          <a-menu-item
+            key="delete"
+            danger
+          >
             <DeleteOutlined /> 删除
           </a-menu-item>
         </a-menu>
@@ -180,12 +270,21 @@
     >
       <div class="forward-modal-content">
         <p>选择要转发到的会话：</p>
-        <a-checkbox-group v-model:value="selectedSessions" style="width: 100%">
-          <div v-for="session in availableSessions" :key="session.id" class="session-item">
+        <a-checkbox-group
+          v-model:value="selectedSessions"
+          style="width: 100%"
+        >
+          <div
+            v-for="session in availableSessions"
+            :key="session.id"
+            class="session-item"
+          >
             <a-checkbox :value="session.id">
               <div class="session-info">
                 <a-avatar :size="32">
-                  <template #icon><UserOutlined /></template>
+                  <template #icon>
+                    <UserOutlined />
+                  </template>
                 </a-avatar>
                 <span class="session-name">{{ session.friend_nickname || session.participant_did }}</span>
               </div>
@@ -357,7 +456,7 @@ onUnmounted(() => {
 
 // 监听文件传输进度
 const startProgressMonitoring = () => {
-  if (!props.message.transfer_id) return
+  if (!props.message.transfer_id) {return}
 
   progressInterval = setInterval(async () => {
     try {
@@ -382,7 +481,7 @@ const startProgressMonitoring = () => {
 
 // 取消文件传输
 const handleCancelTransfer = async () => {
-  if (!props.message.transfer_id) return
+  if (!props.message.transfer_id) {return}
 
   try {
     const result = await window.electron.ipcRenderer.invoke('chat:cancel-transfer', {
@@ -500,7 +599,7 @@ const formatTime = (timestamp) => {
 }
 
 const formatFileSize = (bytes) => {
-  if (!bytes) return '未知大小'
+  if (!bytes) {return '未知大小'}
   const k = 1024
   const sizes = ['B', 'KB', 'MB', 'GB']
   const i = Math.floor(Math.log(bytes) / Math.log(k))

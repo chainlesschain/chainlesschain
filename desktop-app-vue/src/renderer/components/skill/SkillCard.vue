@@ -1,13 +1,18 @@
 <template>
-  <div class="skill-card" :class="{ disabled: !skill.enabled }">
+  <div
+    class="skill-card"
+    :class="{ disabled: !skill.enabled }"
+  >
     <div class="card-header">
       <div class="title-row">
-        <h3 class="skill-name">{{ skill.display_name || skill.name }}</h3>
+        <h3 class="skill-name">
+          {{ skill.display_name || skill.name }}
+        </h3>
         <a-switch
           :checked="skill.enabled === 1"
           :loading="switching"
-          @change="handleToggle"
           size="small"
+          @change="handleToggle"
         />
       </div>
       <a-tag :color="getCategoryColor(skill.category)">
@@ -16,10 +21,19 @@
     </div>
 
     <div class="card-body">
-      <p class="description">{{ skill.description || '暂无描述' }}</p>
+      <p class="description">
+        {{ skill.description || '暂无描述' }}
+      </p>
 
-      <div class="tags" v-if="parsedTags && parsedTags.length">
-        <a-tag v-for="tag in parsedTags" :key="tag" size="small">
+      <div
+        v-if="parsedTags && parsedTags.length"
+        class="tags"
+      >
+        <a-tag
+          v-for="tag in parsedTags"
+          :key="tag"
+          size="small"
+        >
           {{ tag }}
         </a-tag>
       </div>
@@ -38,19 +52,43 @@
 
     <div class="card-footer">
       <a-space>
-        <a-button type="link" size="small" @click="$emit('view-details', skill)">
-          <template #icon><EyeOutlined /></template>
+        <a-button
+          type="link"
+          size="small"
+          @click="$emit('view-details', skill)"
+        >
+          <template #icon>
+            <EyeOutlined />
+          </template>
           详情
         </a-button>
-        <a-button type="link" size="small" @click="$emit('view-doc', skill)">
-          <template #icon><FileTextOutlined /></template>
+        <a-button
+          type="link"
+          size="small"
+          @click="$emit('view-doc', skill)"
+        >
+          <template #icon>
+            <FileTextOutlined />
+          </template>
           文档
         </a-button>
       </a-space>
 
       <div class="meta-info">
-        <a-tag v-if="skill.is_builtin" color="blue" size="small">内置</a-tag>
-        <a-tag v-else-if="skill.plugin_id" color="purple" size="small">插件</a-tag>
+        <a-tag
+          v-if="skill.is_builtin"
+          color="blue"
+          size="small"
+        >
+          内置
+        </a-tag>
+        <a-tag
+          v-else-if="skill.plugin_id"
+          color="purple"
+          size="small"
+        >
+          插件
+        </a-tag>
       </div>
     </div>
   </div>
@@ -89,7 +127,7 @@ const parsedTags = computed(() => {
 // 计算成功率
 const successRate = computed(() => {
   const { usage_count, success_count } = props.skill;
-  if (!usage_count || usage_count === 0) return 0;
+  if (!usage_count || usage_count === 0) {return 0;}
   return ((success_count / usage_count) * 100).toFixed(1);
 });
 

@@ -1,15 +1,18 @@
 <template>
-  <div class="voice-feedback-widget" :class="{ active: isActive, rtl: isRTL }">
+  <div
+    class="voice-feedback-widget"
+    :class="{ active: isActive, rtl: isRTL }"
+  >
     <!-- 主控制按钮 -->
     <a-tooltip :title="tooltipText">
       <a-button
         :type="buttonType"
         :danger="isRecording"
         :loading="isProcessing"
-        @click="toggleRecording"
         class="voice-control-button"
         size="large"
         shape="circle"
+        @click="toggleRecording"
       >
         <template #icon>
           <component :is="currentIcon" />
@@ -27,24 +30,37 @@
       <div class="language-indicator">
         <GlobalOutlined />
         <span>{{ currentLanguageName }}</span>
-        <a-tag v-if="detectedLanguage" color="blue" size="small">
+        <a-tag
+          v-if="detectedLanguage"
+          color="blue"
+          size="small"
+        >
           自动检测: {{ detectedLanguage }}
         </a-tag>
       </div>
 
       <!-- 波形可视化 -->
       <div class="waveform-container">
-        <canvas ref="waveformCanvas" class="waveform-canvas"></canvas>
+        <canvas
+          ref="waveformCanvas"
+          class="waveform-canvas"
+        />
         <div class="waveform-overlay">
-          <div class="recording-indicator" v-if="isRecording">
-            <span class="pulse-dot"></span>
+          <div
+            v-if="isRecording"
+            class="recording-indicator"
+          >
+            <span class="pulse-dot" />
             <span class="recording-text">{{ recordingTime }}</span>
           </div>
         </div>
       </div>
 
       <!-- 置信度指示器 -->
-      <div class="confidence-indicator" v-if="currentConfidence > 0">
+      <div
+        v-if="currentConfidence > 0"
+        class="confidence-indicator"
+      >
         <span class="confidence-label">识别置信度</span>
         <a-progress
           :percent="Math.round(currentConfidence * 100)"
@@ -55,12 +71,18 @@
       </div>
 
       <!-- 实时转录预览 -->
-      <div class="transcription-preview" v-if="interimTranscript">
+      <div
+        v-if="interimTranscript"
+        class="transcription-preview"
+      >
         <div class="preview-label">
           <SoundOutlined />
           <span>实时转录</span>
         </div>
-        <div class="preview-text" :class="{ rtl: isRTL }">
+        <div
+          class="preview-text"
+          :class="{ rtl: isRTL }"
+        >
           {{ interimTranscript }}
           <span class="cursor-blink">|</span>
         </div>
@@ -68,8 +90,8 @@
 
       <!-- 命令提示 -->
       <div
-        class="command-hints"
         v-if="showCommandHints && suggestedCommands.length > 0"
+        class="command-hints"
       >
         <div class="hints-label">
           <BulbOutlined />
@@ -80,8 +102,8 @@
             v-for="cmd in suggestedCommands"
             :key="cmd.name"
             color="processing"
-            @click="executeCommand(cmd)"
             class="command-hint-tag"
+            @click="executeCommand(cmd)"
           >
             {{ cmd.name }}
           </a-tag>
@@ -89,7 +111,10 @@
       </div>
 
       <!-- 状态消息 -->
-      <div class="status-message" v-if="statusMessage">
+      <div
+        v-if="statusMessage"
+        class="status-message"
+      >
         <a-alert
           :message="statusMessage"
           :type="statusType"
@@ -105,27 +130,33 @@
           <a-button
             v-if="isRecording"
             danger
-            @click="cancelRecording"
             size="small"
+            @click="cancelRecording"
           >
-            <template #icon><CloseOutlined /></template>
+            <template #icon>
+              <CloseOutlined />
+            </template>
             取消
           </a-button>
           <a-button
             v-if="isRecording"
             type="primary"
-            @click="stopRecording"
             size="small"
+            @click="stopRecording"
           >
-            <template #icon><CheckOutlined /></template>
+            <template #icon>
+              <CheckOutlined />
+            </template>
             完成
           </a-button>
           <a-button
             v-if="!isRecording && !isProcessing"
-            @click="openSettings"
             size="small"
+            @click="openSettings"
           >
-            <template #icon><SettingOutlined /></template>
+            <template #icon>
+              <SettingOutlined />
+            </template>
             设置
           </a-button>
         </a-space>
@@ -144,9 +175,9 @@
         <a-form-item label="识别语言">
           <a-select
             v-model:value="selectedLanguage"
-            @change="onLanguageChange"
             show-search
             :filter-option="filterLanguageOption"
+            @change="onLanguageChange"
           >
             <a-select-option
               v-for="lang in availableLanguages"
@@ -168,19 +199,33 @@
         <!-- 识别引擎 -->
         <a-form-item label="识别引擎">
           <a-radio-group v-model:value="selectedEngine">
-            <a-radio value="whisper-api">Whisper API (云端)</a-radio>
-            <a-radio value="whisper-local">Whisper Local (本地)</a-radio>
-            <a-radio value="webspeech">Web Speech API</a-radio>
+            <a-radio value="whisper-api">
+              Whisper API (云端)
+            </a-radio>
+            <a-radio value="whisper-local">
+              Whisper Local (本地)
+            </a-radio>
+            <a-radio value="webspeech">
+              Web Speech API
+            </a-radio>
           </a-radio-group>
         </a-form-item>
 
         <!-- 显示选项 -->
         <a-form-item label="显示选项">
           <a-checkbox-group v-model:value="displayOptions">
-            <a-checkbox value="waveform">波形可视化</a-checkbox>
-            <a-checkbox value="confidence">置信度指示器</a-checkbox>
-            <a-checkbox value="interim">实时转录</a-checkbox>
-            <a-checkbox value="commands">命令提示</a-checkbox>
+            <a-checkbox value="waveform">
+              波形可视化
+            </a-checkbox>
+            <a-checkbox value="confidence">
+              置信度指示器
+            </a-checkbox>
+            <a-checkbox value="interim">
+              实时转录
+            </a-checkbox>
+            <a-checkbox value="commands">
+              命令提示
+            </a-checkbox>
           </a-checkbox-group>
         </a-form-item>
 
@@ -205,17 +250,36 @@
 
         <!-- 操作按钮 -->
         <a-form-item>
-          <a-space direction="vertical" style="width: 100%">
-            <a-button block @click="exportVoiceData">
-              <template #icon><ExportOutlined /></template>
+          <a-space
+            direction="vertical"
+            style="width: 100%"
+          >
+            <a-button
+              block
+              @click="exportVoiceData"
+            >
+              <template #icon>
+                <ExportOutlined />
+              </template>
               导出语音数据
             </a-button>
-            <a-button block @click="importVoiceData">
-              <template #icon><ImportOutlined /></template>
+            <a-button
+              block
+              @click="importVoiceData"
+            >
+              <template #icon>
+                <ImportOutlined />
+              </template>
               导入语音数据
             </a-button>
-            <a-button block danger @click="resetVoiceData">
-              <template #icon><DeleteOutlined /></template>
+            <a-button
+              block
+              danger
+              @click="resetVoiceData"
+            >
+              <template #icon>
+                <DeleteOutlined />
+              </template>
               重置语音数据
             </a-button>
           </a-space>
@@ -313,20 +377,20 @@ const learningStats = ref({
 
 // 计算属性
 const currentIcon = computed(() => {
-  if (isProcessing.value) return LoadingOutlined;
-  if (isRecording.value) return AudioMutedOutlined;
+  if (isProcessing.value) {return LoadingOutlined;}
+  if (isRecording.value) {return AudioMutedOutlined;}
   return AudioOutlined;
 });
 
 const buttonType = computed(() => {
-  if (isRecording.value) return "primary";
-  if (isActive.value) return "primary";
+  if (isRecording.value) {return "primary";}
+  if (isActive.value) {return "primary";}
   return "default";
 });
 
 const tooltipText = computed(() => {
-  if (isRecording.value) return "点击停止录音";
-  if (isProcessing.value) return "正在处理...";
+  if (isRecording.value) {return "点击停止录音";}
+  if (isProcessing.value) {return "正在处理...";}
   return "点击开始语音输入";
 });
 
@@ -338,14 +402,14 @@ const currentLanguageName = computed(() => {
 });
 
 const confidenceStatus = computed(() => {
-  if (currentConfidence.value >= 0.8) return "success";
-  if (currentConfidence.value >= 0.6) return "normal";
+  if (currentConfidence.value >= 0.8) {return "success";}
+  if (currentConfidence.value >= 0.6) {return "normal";}
   return "exception";
 });
 
 const confidenceColor = computed(() => {
-  if (currentConfidence.value >= 0.8) return "#52c41a";
-  if (currentConfidence.value >= 0.6) return "#1890ff";
+  if (currentConfidence.value >= 0.8) {return "#52c41a";}
+  if (currentConfidence.value >= 0.6) {return "#1890ff";}
   return "#ff4d4f";
 });
 
@@ -619,13 +683,13 @@ const initAudioVisualization = async () => {
 };
 
 const drawWaveform = (ctx, canvas) => {
-  if (!isRecording.value || !analyser.value) return;
+  if (!isRecording.value || !analyser.value) {return;}
 
   const bufferLength = analyser.value.frequencyBinCount;
   const dataArray = new Uint8Array(bufferLength);
 
   const draw = () => {
-    if (!isRecording.value) return;
+    if (!isRecording.value) {return;}
 
     animationFrame.value = requestAnimationFrame(draw);
 

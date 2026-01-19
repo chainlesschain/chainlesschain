@@ -58,7 +58,7 @@ class PerformanceBenchmark {
    * Track page load metrics
    */
   trackPageLoad() {
-    if (!performance.timing) return
+    if (!performance.timing) {return}
 
     window.addEventListener('load', () => {
       const timing = performance.timing
@@ -193,7 +193,7 @@ class PerformanceBenchmark {
    * Measure network performance
    */
   measureNetwork() {
-    if (!performance.getEntriesByType) return
+    if (!performance.getEntriesByType) {return}
 
     const resources = performance.getEntriesByType('resource')
 
@@ -236,12 +236,12 @@ class PerformanceBenchmark {
    * Get resource type from URL
    */
   getResourceType(url) {
-    if (url.match(/\.(js|mjs)$/)) return 'script'
-    if (url.match(/\.(css)$/)) return 'stylesheet'
-    if (url.match(/\.(jpg|jpeg|png|gif|svg|webp)$/)) return 'image'
-    if (url.match(/\.(woff|woff2|ttf|otf)$/)) return 'font'
-    if (url.match(/\.(mp4|webm|ogg)$/)) return 'video'
-    if (url.match(/\.(json)$/)) return 'fetch'
+    if (url.match(/\.(js|mjs)$/)) {return 'script'}
+    if (url.match(/\.(css)$/)) {return 'stylesheet'}
+    if (url.match(/\.(jpg|jpeg|png|gif|svg|webp)$/)) {return 'image'}
+    if (url.match(/\.(woff|woff2|ttf|otf)$/)) {return 'font'}
+    if (url.match(/\.(mp4|webm|ogg)$/)) {return 'video'}
+    if (url.match(/\.(json)$/)) {return 'fetch'}
     return 'other'
   }
 
@@ -291,7 +291,7 @@ class PerformanceBenchmark {
    * Get average FPS
    */
   getAverageFPS() {
-    if (this.metrics.fps.length === 0) return 0
+    if (this.metrics.fps.length === 0) {return 0}
 
     const sum = this.metrics.fps.reduce((acc, sample) => acc + sample.fps, 0)
     return Math.round(sum / this.metrics.fps.length)
@@ -301,7 +301,7 @@ class PerformanceBenchmark {
    * Get current memory usage
    */
   getCurrentMemory() {
-    if (this.metrics.memory.length === 0) return null
+    if (this.metrics.memory.length === 0) {return null}
 
     return this.metrics.memory[this.metrics.memory.length - 1]
   }
@@ -314,18 +314,18 @@ class PerformanceBenchmark {
 
     // Page load time (< 3s = good)
     const loadTime = this.metrics.pageLoad.totalTime || 0
-    if (loadTime > 5000) score -= 30
-    else if (loadTime > 3000) score -= 15
+    if (loadTime > 5000) {score -= 30}
+    else if (loadTime > 3000) {score -= 15}
 
     // FPS (>= 55 = good)
     const avgFPS = this.getAverageFPS()
-    if (avgFPS < 30) score -= 30
-    else if (avgFPS < 55) score -= 15
+    if (avgFPS < 30) {score -= 30}
+    else if (avgFPS < 55) {score -= 15}
 
     // Memory usage (< 100MB = good)
     const memory = this.getCurrentMemory()
-    if (memory && memory.usedJSHeapSizeMB > 200) score -= 20
-    else if (memory && memory.usedJSHeapSizeMB > 100) score -= 10
+    if (memory && memory.usedJSHeapSizeMB > 200) {score -= 20}
+    else if (memory && memory.usedJSHeapSizeMB > 100) {score -= 10}
 
     return Math.max(0, score)
   }

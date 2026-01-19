@@ -278,8 +278,8 @@ class ToolStatsDashboard {
       const { dateRange, categories, searchKeyword } = filters;
 
       // 构建WHERE条件
-      let whereConditions = ["handler_path LIKE '%additional-tools-v3-handler%'"];
-      let params = [];
+      const whereConditions = ["handler_path LIKE '%additional-tools-v3-handler%'"];
+      const params = [];
 
       // 分类筛选
       if (categories && categories.length > 0) {
@@ -347,7 +347,7 @@ class ToolStatsDashboard {
    */
   async _getFilteredOverview(whereClause, params, dateRange) {
     try {
-      let sql = `
+      const sql = `
         SELECT
           COUNT(*) as totalTools,
           SUM(CASE WHEN enabled = 1 THEN 1 ELSE 0 END) as enabledTools,
@@ -552,7 +552,7 @@ class ToolStatsDashboard {
         FROM tool_stats
         WHERE stat_date >= ? AND stat_date <= ?
       `;
-      let params = [startDateStr, endDateStr];
+      const params = [startDateStr, endDateStr];
 
       // 分类筛选
       if (categories && categories.length > 0) {
@@ -713,9 +713,9 @@ class ToolStatsDashboard {
     const hours = Math.floor(minutes / 60);
     const days = Math.floor(hours / 24);
 
-    if (days > 0) return `${days}天前`;
-    if (hours > 0) return `${hours}小时前`;
-    if (minutes > 0) return `${minutes}分钟前`;
+    if (days > 0) {return `${days}天前`;}
+    if (hours > 0) {return `${hours}小时前`;}
+    if (minutes > 0) {return `${minutes}分钟前`;}
     return `${seconds}秒前`;
   }
 }

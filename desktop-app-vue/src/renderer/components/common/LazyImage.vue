@@ -1,5 +1,8 @@
 <template>
-  <div class="lazy-image-wrapper" :class="wrapperClasses">
+  <div
+    class="lazy-image-wrapper"
+    :class="wrapperClasses"
+  >
     <!-- Main image -->
     <img
       ref="imageRef"
@@ -8,19 +11,41 @@
       :style="imageStyle"
       @load="handleLoad"
       @error="handleError"
-    />
+    >
 
     <!-- Loading spinner -->
-    <div v-if="loading && showLoader" class="lazy-image-loader">
-      <LoadingOutlined class="loader-icon" spin />
-      <div v-if="loadProgress > 0" class="loader-progress">{{ loadProgress }}%</div>
+    <div
+      v-if="loading && showLoader"
+      class="lazy-image-loader"
+    >
+      <LoadingOutlined
+        class="loader-icon"
+        spin
+      />
+      <div
+        v-if="loadProgress > 0"
+        class="loader-progress"
+      >
+        {{ loadProgress }}%
+      </div>
     </div>
 
     <!-- Error state -->
-    <div v-if="error && showError" class="lazy-image-error">
+    <div
+      v-if="error && showError"
+      class="lazy-image-error"
+    >
       <PictureOutlined class="error-icon" />
-      <div class="error-text">{{ errorMessage }}</div>
-      <a-button v-if="allowRetry" size="small" @click="retry">Retry</a-button>
+      <div class="error-text">
+        {{ errorMessage }}
+      </div>
+      <a-button
+        v-if="allowRetry"
+        size="small"
+        @click="retry"
+      >
+        Retry
+      </a-button>
     </div>
   </div>
 </template>
@@ -177,7 +202,7 @@ const retry = () => {
  * Initialize lazy loading
  */
 const initLazyLoad = () => {
-  if (!imageRef.value || !props.src) return
+  if (!imageRef.value || !props.src) {return}
 
   // Set data attributes
   imageRef.value.dataset.src = props.src

@@ -198,7 +198,7 @@ class CrossPlatformAdapter extends EventEmitter {
     };
 
     const dllName = dllNames[driverType];
-    if (!dllName) return false;
+    if (!dllName) {return false;}
 
     // Check common locations
     const searchPaths = [

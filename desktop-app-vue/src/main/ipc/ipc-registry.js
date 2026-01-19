@@ -335,17 +335,22 @@ function registerAllIPC(dependencies) {
     }
 
     // 项目AI功能 (函数模式 - 中等模块，16 handlers)
-    if (database && llmManager) {
+    // 🔥 在测试模式下，即使 llmManager 为 null 也注册（handlers 内部会处理 null 情况）
+    const isTestMode = process.env.NODE_ENV === 'test';
+    if (database && (llmManager || isTestMode)) {
       console.log("[IPC Registry] Registering Project AI IPC...");
       const { registerProjectAIIPC } = require("../project/project-ai-ipc");
       registerProjectAIIPC({
         database,
-        llmManager,
-        aiEngineManager,
-        chatSkillBridge,
-        mainWindow,
-        scanAndRegisterProjectFiles: app.scanAndRegisterProjectFiles?.bind(app),
+        llmManager: llmManager || null,
+        aiEngineManager: aiEngineManager || null,
+        chatSkillBridge: chatSkillBridge || null,
+        mainWindow: mainWindow || null,
+        scanAndRegisterProjectFiles: app?.scanAndRegisterProjectFiles?.bind(app) || null,
       });
+      if (!llmManager) {
+        console.log("[IPC Registry] ⚠️  LLM manager not initialized (Project AI handlers registered with degraded functionality)");
+      }
       console.log("[IPC Registry] ✓ Project AI IPC registered (16 handlers)");
     }
 

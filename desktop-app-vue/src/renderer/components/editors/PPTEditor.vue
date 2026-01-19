@@ -4,19 +4,26 @@
     <div class="ppt-toolbar">
       <div class="toolbar-left">
         <a-button-group size="small">
-          <a-button @click="addSlide" title="新建幻灯片">
+          <a-button
+            title="新建幻灯片"
+            @click="addSlide"
+          >
             <PlusOutlined />
             新建
           </a-button>
           <a-button
-            @click="deleteSlide"
             :disabled="slides.length <= 1 || currentSlideIndex < 0"
             title="删除幻灯片"
+            @click="deleteSlide"
           >
             <DeleteOutlined />
             删除
           </a-button>
-          <a-button @click="duplicateSlide" :disabled="currentSlideIndex < 0" title="复制幻灯片">
+          <a-button
+            :disabled="currentSlideIndex < 0"
+            title="复制幻灯片"
+            @click="duplicateSlide"
+          >
             <CopyOutlined />
             复制
           </a-button>
@@ -24,11 +31,24 @@
 
         <a-divider type="vertical" />
 
-        <a-select v-model:value="currentTheme" size="small" style="width: 120px" @change="handleThemeChange">
-          <a-select-option value="business">商务主题</a-select-option>
-          <a-select-option value="academic">学术主题</a-select-option>
-          <a-select-option value="creative">创意主题</a-select-option>
-          <a-select-option value="dark">深色主题</a-select-option>
+        <a-select
+          v-model:value="currentTheme"
+          size="small"
+          style="width: 120px"
+          @change="handleThemeChange"
+        >
+          <a-select-option value="business">
+            商务主题
+          </a-select-option>
+          <a-select-option value="academic">
+            学术主题
+          </a-select-option>
+          <a-select-option value="creative">
+            创意主题
+          </a-select-option>
+          <a-select-option value="dark">
+            深色主题
+          </a-select-option>
         </a-select>
 
         <a-divider type="vertical" />
@@ -66,19 +86,28 @@
         </a-dropdown>
       </div>
 
-      <div class="toolbar-spacer"></div>
+      <div class="toolbar-spacer" />
 
       <div class="toolbar-right">
-        <a-tag v-if="slides.length > 0" color="blue">
+        <a-tag
+          v-if="slides.length > 0"
+          color="blue"
+        >
           {{ currentSlideIndex + 1 }} / {{ slides.length }}
         </a-tag>
 
-        <a-tag v-if="hasChanges" color="orange">
+        <a-tag
+          v-if="hasChanges"
+          color="orange"
+        >
           <ClockCircleOutlined />
           未保存
         </a-tag>
 
-        <a-button size="small" @click="exportPPT">
+        <a-button
+          size="small"
+          @click="exportPPT"
+        >
           <ExportOutlined />
           导出
         </a-button>
@@ -100,7 +129,9 @@
     <div class="ppt-content">
       <!-- 左侧：幻灯片缩略图列表 -->
       <div class="slides-panel">
-        <div class="slides-header">幻灯片</div>
+        <div class="slides-header">
+          幻灯片
+        </div>
         <div class="slides-list">
           <div
             v-for="(slide, index) in slides"
@@ -108,11 +139,19 @@
             :class="['slide-thumbnail', { active: index === currentSlideIndex }]"
             @click="selectSlide(index)"
           >
-            <div class="thumbnail-number">{{ index + 1 }}</div>
+            <div class="thumbnail-number">
+              {{ index + 1 }}
+            </div>
             <div class="thumbnail-preview">
-              <div class="thumbnail-title">{{ slide.title || '无标题' }}</div>
+              <div class="thumbnail-title">
+                {{ slide.title || '无标题' }}
+              </div>
               <div class="thumbnail-content">
-                <div v-for="(element, idx) in slide.elements.slice(0, 3)" :key="idx" class="element-preview">
+                <div
+                  v-for="(element, idx) in slide.elements.slice(0, 3)"
+                  :key="idx"
+                  class="element-preview"
+                >
                   {{ element.text?.substring(0, 20) || element.type }}
                 </div>
               </div>
@@ -123,7 +162,11 @@
 
       <!-- 中间：幻灯片编辑区 -->
       <div class="slide-editor">
-        <div v-if="currentSlide" class="slide-canvas" :style="getThemeStyle()">
+        <div
+          v-if="currentSlide"
+          class="slide-canvas"
+          :style="getThemeStyle()"
+        >
           <!-- 幻灯片元素列表 -->
           <div
             v-for="(element, index) in currentSlide.elements"
@@ -136,13 +179,13 @@
             <template v-if="element.type === 'text' || element.type === 'title' || element.type === 'list'">
               <textarea
                 v-if="editingElementIndex === index"
+                ref="elementTextarea"
                 v-model="element.text"
                 class="element-textarea"
                 :style="{ fontSize: element.fontSize + 'px', color: '#' + element.color }"
                 @blur="stopEditElement"
                 @input="handleElementChange"
-                ref="elementTextarea"
-              ></textarea>
+              />
               <div
                 v-else
                 class="element-display"
@@ -155,8 +198,15 @@
 
             <!-- 图片元素 -->
             <template v-else-if="element.type === 'image'">
-              <img v-if="element.src" :src="element.src" class="element-image" />
-              <div v-else class="element-placeholder">
+              <img
+                v-if="element.src"
+                :src="element.src"
+                class="element-image"
+              >
+              <div
+                v-else
+                class="element-placeholder"
+              >
                 <PictureOutlined style="font-size: 48px; color: #ccc;" />
                 <div>双击选择图片</div>
               </div>
@@ -164,19 +214,32 @@
 
             <!-- 形状元素 -->
             <template v-else-if="element.type === 'shape'">
-              <div class="element-shape" :style="getShapeStyle(element)"></div>
+              <div
+                class="element-shape"
+                :style="getShapeStyle(element)"
+              />
             </template>
 
             <!-- 元素控制按钮 -->
-            <div v-if="selectedElementIndex === index" class="element-controls">
-              <a-button size="small" type="text" @click.stop="deleteElement(index)">
+            <div
+              v-if="selectedElementIndex === index"
+              class="element-controls"
+            >
+              <a-button
+                size="small"
+                type="text"
+                @click.stop="deleteElement(index)"
+              >
                 <DeleteOutlined />
               </a-button>
             </div>
           </div>
 
           <!-- 空状态 -->
-          <div v-if="currentSlide.elements.length === 0" class="empty-slide">
+          <div
+            v-if="currentSlide.elements.length === 0"
+            class="empty-slide"
+          >
             <PlusCircleOutlined style="font-size: 64px; color: #ccc;" />
             <p>点击"添加元素"开始编辑幻灯片</p>
           </div>
@@ -184,10 +247,18 @@
       </div>
 
       <!-- 右侧：属性面板 -->
-      <div v-if="selectedElementIndex >= 0 && currentSlide" class="properties-panel">
-        <div class="panel-header">属性</div>
+      <div
+        v-if="selectedElementIndex >= 0 && currentSlide"
+        class="properties-panel"
+      >
+        <div class="panel-header">
+          属性
+        </div>
         <div class="panel-content">
-          <a-form layout="vertical" size="small">
+          <a-form
+            layout="vertical"
+            size="small"
+          >
             <a-form-item label="类型">
               <a-tag>{{ currentSlide.elements[selectedElementIndex]?.type }}</a-tag>
             </a-form-item>
@@ -242,9 +313,9 @@
                 <input
                   type="color"
                   :value="'#' + currentSlide.elements[selectedElementIndex].color"
-                  @input="handleColorChange"
                   class="color-picker"
-                />
+                  @input="handleColorChange"
+                >
               </a-form-item>
 
               <a-form-item label="对齐">
@@ -252,9 +323,15 @@
                   v-model:value="currentSlide.elements[selectedElementIndex].align"
                   @change="handleElementChange"
                 >
-                  <a-radio-button value="left">左对齐</a-radio-button>
-                  <a-radio-button value="center">居中</a-radio-button>
-                  <a-radio-button value="right">右对齐</a-radio-button>
+                  <a-radio-button value="left">
+                    左对齐
+                  </a-radio-button>
+                  <a-radio-button value="center">
+                    居中
+                  </a-radio-button>
+                  <a-radio-button value="right">
+                    右对齐
+                  </a-radio-button>
                 </a-radio-group>
               </a-form-item>
 
@@ -414,7 +491,7 @@ const deleteSlide = () => {
 
 // 复制幻灯片
 const duplicateSlide = () => {
-  if (currentSlideIndex.value < 0) return;
+  if (currentSlideIndex.value < 0) {return;}
 
   const originalSlide = slides.value[currentSlideIndex.value];
   const newSlide = JSON.parse(JSON.stringify(originalSlide));
@@ -440,7 +517,7 @@ const selectSlide = (index) => {
 
 // 添加元素
 const handleAddElement = ({ key }) => {
-  if (!currentSlide.value) return;
+  if (!currentSlide.value) {return;}
 
   const elementTemplates = {
     text: {
@@ -538,7 +615,7 @@ const stopEditElement = () => {
 
 // 删除元素
 const deleteElement = (index) => {
-  if (!currentSlide.value) return;
+  if (!currentSlide.value) {return;}
   currentSlide.value.elements.splice(index, 1);
   selectedElementIndex.value = -1;
   hasChanges.value = true;
@@ -655,7 +732,7 @@ const exportPPT = async () => {
 
 // 保存
 const save = async () => {
-  if (!hasChanges.value) return;
+  if (!hasChanges.value) {return;}
 
   saving.value = true;
   try {

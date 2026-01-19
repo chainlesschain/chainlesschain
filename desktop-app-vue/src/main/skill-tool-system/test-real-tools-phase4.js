@@ -333,10 +333,10 @@ async function testPhase4RealTools() {
     const statusIcon = result.status === '通过' ? '✅' :
                       result.status === '跳过' ? '⏭️' : '❌';
     console.log(`${index + 1}. ${statusIcon} ${result.test} - ${result.status}`);
-    if (result.file) console.log(`   文件: ${result.file}`);
-    if (result.error) console.log(`   错误: ${result.error}`);
-    if (result.password) console.log(`   密码示例: ${result.password.substring(0, 8)}...`);
-    if (result.count) console.log(`   数量: ${result.count}`);
+    if (result.file) {console.log(`   文件: ${result.file}`);}
+    if (result.error) {console.log(`   错误: ${result.error}`);}
+    if (result.password) {console.log(`   密码示例: ${result.password.substring(0, 8)}...`);}
+    if (result.count) {console.log(`   数量: ${result.count}`);}
   });
 
   console.log('\n========================================');

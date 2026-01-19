@@ -1,9 +1,17 @@
 <template>
-  <a-card title="预算使用情况" class="budget-panel">
+  <a-card
+    title="预算使用情况"
+    class="budget-panel"
+  >
     <template #extra>
-      <a-tag :color="statusColor"> <FundOutlined /> {{ statusText }} </a-tag>
+      <a-tag :color="statusColor">
+        <FundOutlined /> {{ statusText }}
+      </a-tag>
     </template>
-    <a-skeleton :loading="loading" active>
+    <a-skeleton
+      :loading="loading"
+      active
+    >
       <!-- Daily budget -->
       <div class="budget-item">
         <div class="budget-label">
@@ -99,7 +107,7 @@ const props = defineProps({
 });
 
 const dailyPercent = computed(() => {
-  if (props.budget.dailyLimit <= 0) return 0;
+  if (props.budget.dailyLimit <= 0) {return 0;}
   return Math.min(
     100,
     (props.budget.dailySpend / props.budget.dailyLimit) * 100,
@@ -107,7 +115,7 @@ const dailyPercent = computed(() => {
 });
 
 const weeklyPercent = computed(() => {
-  if (props.budget.weeklyLimit <= 0) return 0;
+  if (props.budget.weeklyLimit <= 0) {return 0;}
   return Math.min(
     100,
     (props.budget.weeklySpend / props.budget.weeklyLimit) * 100,
@@ -115,7 +123,7 @@ const weeklyPercent = computed(() => {
 });
 
 const monthlyPercent = computed(() => {
-  if (props.budget.monthlyLimit <= 0) return 0;
+  if (props.budget.monthlyLimit <= 0) {return 0;}
   return Math.min(
     100,
     (props.budget.monthlySpend / props.budget.monthlyLimit) * 100,
@@ -131,26 +139,26 @@ const maxPercent = computed(() => {
 });
 
 const statusColor = computed(() => {
-  if (maxPercent.value >= props.budget.criticalThreshold) return "red";
-  if (maxPercent.value >= props.budget.warningThreshold) return "orange";
+  if (maxPercent.value >= props.budget.criticalThreshold) {return "red";}
+  if (maxPercent.value >= props.budget.warningThreshold) {return "orange";}
   return "green";
 });
 
 const statusText = computed(() => {
-  if (maxPercent.value >= props.budget.criticalThreshold) return "超出预算";
-  if (maxPercent.value >= props.budget.warningThreshold) return "接近预算";
+  if (maxPercent.value >= props.budget.criticalThreshold) {return "超出预算";}
+  if (maxPercent.value >= props.budget.warningThreshold) {return "接近预算";}
   return "预算正常";
 });
 
 const getBudgetStatus = (percent) => {
-  if (percent >= 100) return "exception";
-  if (percent >= props.budget.warningThreshold) return "active";
+  if (percent >= 100) {return "exception";}
+  if (percent >= props.budget.warningThreshold) {return "active";}
   return "normal";
 };
 
 const getBudgetColor = (percent) => {
-  if (percent >= props.budget.criticalThreshold) return "#cf1322";
-  if (percent >= props.budget.warningThreshold) return "#faad14";
+  if (percent >= props.budget.criticalThreshold) {return "#cf1322";}
+  if (percent >= props.budget.warningThreshold) {return "#faad14";}
   return "#52c41a";
 };
 </script>

@@ -13,7 +13,10 @@
       :wrapper-col="{ span: 18 }"
     >
       <!-- 基本信息 -->
-      <a-form-item label="技能名称" required>
+      <a-form-item
+        label="技能名称"
+        required
+      >
         <a-input
           v-model:value="form.name"
           placeholder="输入技能名称,如:代码开发"
@@ -40,20 +43,50 @@
       </a-form-item>
 
       <!-- 分类和标签 -->
-      <a-form-item label="分类" required>
-        <a-select v-model:value="form.category" placeholder="选择分类">
-          <a-select-option value="code">代码开发</a-select-option>
-          <a-select-option value="web">Web开发</a-select-option>
-          <a-select-option value="data">数据处理</a-select-option>
-          <a-select-option value="content">内容创作</a-select-option>
-          <a-select-option value="document">文档处理</a-select-option>
-          <a-select-option value="media">媒体处理</a-select-option>
-          <a-select-option value="ai">AI功能</a-select-option>
-          <a-select-option value="system">系统操作</a-select-option>
-          <a-select-option value="network">网络请求</a-select-option>
-          <a-select-option value="automation">自动化</a-select-option>
-          <a-select-option value="project">项目管理</a-select-option>
-          <a-select-option value="template">模板应用</a-select-option>
+      <a-form-item
+        label="分类"
+        required
+      >
+        <a-select
+          v-model:value="form.category"
+          placeholder="选择分类"
+        >
+          <a-select-option value="code">
+            代码开发
+          </a-select-option>
+          <a-select-option value="web">
+            Web开发
+          </a-select-option>
+          <a-select-option value="data">
+            数据处理
+          </a-select-option>
+          <a-select-option value="content">
+            内容创作
+          </a-select-option>
+          <a-select-option value="document">
+            文档处理
+          </a-select-option>
+          <a-select-option value="media">
+            媒体处理
+          </a-select-option>
+          <a-select-option value="ai">
+            AI功能
+          </a-select-option>
+          <a-select-option value="system">
+            系统操作
+          </a-select-option>
+          <a-select-option value="network">
+            网络请求
+          </a-select-option>
+          <a-select-option value="automation">
+            自动化
+          </a-select-option>
+          <a-select-option value="project">
+            项目管理
+          </a-select-option>
+          <a-select-option value="template">
+            模板应用
+          </a-select-option>
         </a-select>
       </a-form-item>
 
@@ -78,10 +111,13 @@
         <a-textarea
           v-model:value="configJson"
           :rows="5"
-          placeholder='输入JSON配置,如: {"defaultLanguage": "javascript"}'
+          placeholder="输入JSON配置,如: {&quot;defaultLanguage&quot;: &quot;javascript&quot;}"
           @blur="validateConfig"
         />
-        <div v-if="configError" class="error-message">
+        <div
+          v-if="configError"
+          class="error-message"
+        >
           {{ configError }}
         </div>
       </a-form-item>

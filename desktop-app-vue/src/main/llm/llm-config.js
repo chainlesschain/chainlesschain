@@ -15,7 +15,7 @@ const {
 } = require("./secure-config-storage");
 
 const normalizeProvider = (provider) => {
-  if (!provider) return provider;
+  if (!provider) {return provider;}
   return provider === "claude" ? "anthropic" : provider;
 };
 

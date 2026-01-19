@@ -1,16 +1,30 @@
 <template>
   <div class="tool-param-editor">
-    <a-tabs v-model:activeKey="editMode">
+    <a-tabs v-model:active-key="editMode">
       <!-- 可视化编辑模式 -->
-      <a-tab-pane key="visual" tab="可视化编辑">
+      <a-tab-pane
+        key="visual"
+        tab="可视化编辑"
+      >
         <div class="visual-editor">
-          <a-space direction="vertical" style="width: 100%">
-            <a-button type="primary" @click="addParameter">
-              <template #icon><PlusOutlined /></template>
+          <a-space
+            direction="vertical"
+            style="width: 100%"
+          >
+            <a-button
+              type="primary"
+              @click="addParameter"
+            >
+              <template #icon>
+                <PlusOutlined />
+              </template>
               添加参数
             </a-button>
 
-            <div v-if="parameters.length === 0" class="empty-hint">
+            <div
+              v-if="parameters.length === 0"
+              class="empty-hint"
+            >
               暂无参数,点击上方按钮添加参数
             </div>
 
@@ -43,7 +57,9 @@
                     size="small"
                     @click="removeParameter(index)"
                   >
-                    <template #icon><DeleteOutlined /></template>
+                    <template #icon>
+                      <DeleteOutlined />
+                    </template>
                   </a-button>
                 </a-space>
               </template>
@@ -56,11 +72,21 @@
                         v-model:value="param.type"
                         @change="updateSchema"
                       >
-                        <a-select-option value="string">字符串</a-select-option>
-                        <a-select-option value="number">数字</a-select-option>
-                        <a-select-option value="boolean">布尔值</a-select-option>
-                        <a-select-option value="object">对象</a-select-option>
-                        <a-select-option value="array">数组</a-select-option>
+                        <a-select-option value="string">
+                          字符串
+                        </a-select-option>
+                        <a-select-option value="number">
+                          数字
+                        </a-select-option>
+                        <a-select-option value="boolean">
+                          布尔值
+                        </a-select-option>
+                        <a-select-option value="object">
+                          对象
+                        </a-select-option>
+                        <a-select-option value="array">
+                          数组
+                        </a-select-option>
                       </a-select>
                     </a-form-item>
                   </a-col>
@@ -85,7 +111,10 @@
                   />
                 </a-form-item>
 
-                <a-form-item v-if="param.type === 'string'" label="枚举值(可选)">
+                <a-form-item
+                  v-if="param.type === 'string'"
+                  label="枚举值(可选)"
+                >
                   <a-select
                     v-model:value="param.enum"
                     mode="tags"
@@ -100,20 +129,26 @@
       </a-tab-pane>
 
       <!-- JSON编辑模式 -->
-      <a-tab-pane key="json" tab="JSON编辑">
+      <a-tab-pane
+        key="json"
+        tab="JSON编辑"
+      >
         <a-textarea
           v-model:value="jsonText"
           :rows="15"
           placeholder="输入JSON Schema"
           @blur="parseJsonToVisual"
         />
-        <div v-if="jsonError" class="error-message">
+        <div
+          v-if="jsonError"
+          class="error-message"
+        >
           {{ jsonError }}
         </div>
 
         <div class="json-hint">
           <p>JSON Schema示例:</p>
-          <pre>{{JSON.stringify(exampleSchema, null, 2)}}</pre>
+          <pre>{{ JSON.stringify(exampleSchema, null, 2) }}</pre>
         </div>
       </a-tab-pane>
     </a-tabs>
@@ -204,7 +239,7 @@ const updateSchema = () => {
     const required = [];
 
     parameters.value.forEach(param => {
-      if (!param.name) return;
+      if (!param.name) {return;}
 
       const propConfig = {
         type: param.type,

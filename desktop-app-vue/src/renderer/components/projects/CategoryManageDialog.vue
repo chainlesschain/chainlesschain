@@ -9,7 +9,10 @@
     <div class="category-manage">
       <!-- 操作按钮 -->
       <div class="actions">
-        <a-button type="primary" @click="showAddDialog()">
+        <a-button
+          type="primary"
+          @click="showAddDialog()"
+        >
           <template #icon>
             <PlusOutlined />
           </template>
@@ -19,7 +22,10 @@
 
       <!-- 分类列表 -->
       <div class="category-list">
-        <a-collapse v-model:activeKey="activeKeys" accordion>
+        <a-collapse
+          v-model:active-key="activeKeys"
+          accordion
+        >
           <a-collapse-panel
             v-for="category in categories"
             :key="category.id"
@@ -53,7 +59,11 @@
                   @confirm="handleDelete(category.id)"
                   @click.stop
                 >
-                  <a-button type="link" danger size="small">
+                  <a-button
+                    type="link"
+                    danger
+                    size="small"
+                  >
                     <template #icon>
                       <DeleteOutlined />
                     </template>
@@ -86,7 +96,11 @@
                         cancel-text="取消"
                         @confirm="handleDelete(item.id)"
                       >
-                        <a-button type="link" danger size="small">
+                        <a-button
+                          type="link"
+                          danger
+                          size="small"
+                        >
                           <template #icon>
                             <DeleteOutlined />
                           </template>
@@ -131,21 +145,30 @@
         :rules="formRules"
         layout="vertical"
       >
-        <a-form-item label="分类名称" name="name">
+        <a-form-item
+          label="分类名称"
+          name="name"
+        >
           <a-input
             v-model:value="formData.name"
             placeholder="请输入分类名称"
           />
         </a-form-item>
 
-        <a-form-item label="图标" name="icon">
+        <a-form-item
+          label="图标"
+          name="icon"
+        >
           <a-input
             v-model:value="formData.icon"
             placeholder="请输入图标（Emoji）"
           />
         </a-form-item>
 
-        <a-form-item label="颜色" name="color">
+        <a-form-item
+          label="颜色"
+          name="color"
+        >
           <a-input
             v-model:value="formData.color"
             type="color"
@@ -153,7 +176,10 @@
           />
         </a-form-item>
 
-        <a-form-item label="排序" name="sort_order">
+        <a-form-item
+          label="排序"
+          name="sort_order"
+        >
           <a-input-number
             v-model:value="formData.sort_order"
             :min="0"
@@ -162,7 +188,10 @@
           />
         </a-form-item>
 
-        <a-form-item label="描述" name="description">
+        <a-form-item
+          label="描述"
+          name="description"
+        >
           <a-textarea
             v-model:value="formData.description"
             :rows="3"

@@ -127,7 +127,7 @@ class ProgressEmitter extends EventEmitter {
        */
       step: (message = '', increment = 1) => {
         const task = this.tasks.get(taskId);
-        if (!task) return;
+        if (!task) {return;}
 
         task.currentStep = Math.min(task.currentStep + increment, task.totalSteps);
         task.percent = Math.round((task.currentStep / task.totalSteps) * 100);
@@ -148,7 +148,7 @@ class ProgressEmitter extends EventEmitter {
        */
       setPercent: (percent, message = '') => {
         const task = this.tasks.get(taskId);
-        if (!task) return;
+        if (!task) {return;}
 
         task.percent = Math.min(Math.max(percent, 0), 100);
         task.currentStep = Math.round((task.percent / 100) * task.totalSteps);
@@ -167,7 +167,7 @@ class ProgressEmitter extends EventEmitter {
        */
       setStage: (stage, message = '') => {
         const task = this.tasks.get(taskId);
-        if (!task) return;
+        if (!task) {return;}
 
         task.stage = stage;
         task.message = message;
@@ -184,7 +184,7 @@ class ProgressEmitter extends EventEmitter {
        */
       complete: (result = {}) => {
         const task = this.tasks.get(taskId);
-        if (!task) return;
+        if (!task) {return;}
 
         task.stage = ProgressStage.COMPLETED;
         task.percent = 100;
@@ -215,7 +215,7 @@ class ProgressEmitter extends EventEmitter {
        */
       error: (error) => {
         const task = this.tasks.get(taskId);
-        if (!task) return;
+        if (!task) {return;}
 
         const errorMessage = error instanceof Error ? error.message : error;
 
@@ -247,7 +247,7 @@ class ProgressEmitter extends EventEmitter {
        */
       cancel: (reason = '用户取消') => {
         const task = this.tasks.get(taskId);
-        if (!task) return;
+        if (!task) {return;}
 
         task.stage = ProgressStage.CANCELLED;
         task.endTime = Date.now();
@@ -283,7 +283,7 @@ class ProgressEmitter extends EventEmitter {
    */
   emitProgress(taskId, progress) {
     const task = this.tasks.get(taskId);
-    if (!task) return;
+    if (!task) {return;}
 
     // 更新任务信息
     Object.assign(task, progress);
@@ -344,17 +344,17 @@ class ProgressEmitter extends EventEmitter {
    * @param {string} childTaskId - 子任务ID
    */
   updateParentProgress(childTaskId) {
-    if (!this.config.enableHierarchy) return;
+    if (!this.config.enableHierarchy) {return;}
 
     const parentTaskId = this.taskHierarchy.get(childTaskId);
-    if (!parentTaskId) return;
+    if (!parentTaskId) {return;}
 
     const parentTask = this.tasks.get(parentTaskId);
-    if (!parentTask) return;
+    if (!parentTask) {return;}
 
     // 聚合所有子任务的进度
     const childIds = parentTask.childTasks;
-    if (childIds.length === 0) return;
+    if (childIds.length === 0) {return;}
 
     let totalPercent = 0;
     let completedCount = 0;
@@ -362,7 +362,7 @@ class ProgressEmitter extends EventEmitter {
 
     for (const childId of childIds) {
       const childTask = this.tasks.get(childId);
-      if (!childTask) continue;
+      if (!childTask) {continue;}
 
       totalPercent += childTask.percent;
 

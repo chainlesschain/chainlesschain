@@ -1,8 +1,16 @@
 <template>
   <div class="knowledge-permission-selector">
     <!-- 共享范围选择 -->
-    <a-radio-group v-model:value="selectedScope" @change="handleScopeChange" class="scope-selector">
-      <a-space direction="vertical" size="large" style="width: 100%">
+    <a-radio-group
+      v-model:value="selectedScope"
+      class="scope-selector"
+      @change="handleScopeChange"
+    >
+      <a-space
+        direction="vertical"
+        size="large"
+        style="width: 100%"
+      >
         <!-- 私有 -->
         <a-radio value="private">
           <div class="scope-option">
@@ -17,12 +25,20 @@
         </a-radio>
 
         <!-- 团队（未来扩展） -->
-        <a-radio value="team" disabled>
+        <a-radio
+          value="team"
+          disabled
+        >
           <div class="scope-option">
             <div class="scope-header">
               <UsergroupAddOutlined class="scope-icon" />
               <span class="scope-title">团队</span>
-              <a-tag size="small" color="blue">即将推出</a-tag>
+              <a-tag
+                size="small"
+                color="blue"
+              >
+                即将推出
+              </a-tag>
             </div>
             <div class="scope-description">
               指定团队成员可见（功能开发中）
@@ -41,25 +57,40 @@
               组织内所有成员可见，根据角色权限进行访问控制
             </div>
             <!-- 组织权限详情 -->
-            <div v-if="selectedScope === 'org'" class="scope-detail">
+            <div
+              v-if="selectedScope === 'org'"
+              class="scope-detail"
+            >
               <a-divider style="margin: 12px 0" />
               <div class="permission-preview">
                 <h4>组织成员权限：</h4>
-                <a-space direction="vertical" size="small" style="width: 100%">
+                <a-space
+                  direction="vertical"
+                  size="small"
+                  style="width: 100%"
+                >
                   <div class="permission-item">
-                    <a-tag color="red">所有者</a-tag>
+                    <a-tag color="red">
+                      所有者
+                    </a-tag>
                     <span>完全控制权限（读、写、删除、管理）</span>
                   </div>
                   <div class="permission-item">
-                    <a-tag color="orange">管理员</a-tag>
+                    <a-tag color="orange">
+                      管理员
+                    </a-tag>
                     <span>读、写、删除权限</span>
                   </div>
                   <div class="permission-item">
-                    <a-tag color="blue">成员</a-tag>
+                    <a-tag color="blue">
+                      成员
+                    </a-tag>
                     <span>读、写权限</span>
                   </div>
                   <div class="permission-item">
-                    <a-tag color="default">访客</a-tag>
+                    <a-tag color="default">
+                      访客
+                    </a-tag>
                     <span>仅可查看</span>
                   </div>
                 </a-space>
@@ -84,8 +115,14 @@
     </a-radio-group>
 
     <!-- 高级权限设置（可选） -->
-    <a-collapse v-if="showAdvanced && selectedScope === 'org'" style="margin-top: 16px">
-      <a-collapse-panel key="advanced" header="高级权限设置">
+    <a-collapse
+      v-if="showAdvanced && selectedScope === 'org'"
+      style="margin-top: 16px"
+    >
+      <a-collapse-panel
+        key="advanced"
+        header="高级权限设置"
+      >
         <a-form layout="vertical">
           <a-form-item label="特定成员权限">
             <a-select
@@ -106,9 +143,15 @@
 
           <a-form-item label="权限级别">
             <a-select v-model:value="advancedPermissions.permissionLevel">
-              <a-select-option value="read">只读</a-select-option>
-              <a-select-option value="write">读写</a-select-option>
-              <a-select-option value="admin">管理</a-select-option>
+              <a-select-option value="read">
+                只读
+              </a-select-option>
+              <a-select-option value="write">
+                读写
+              </a-select-option>
+              <a-select-option value="admin">
+                管理
+              </a-select-option>
             </a-select>
           </a-form-item>
 
@@ -217,7 +260,7 @@ function getScopeSummary() {
  * 加载组织成员（用于高级权限设置）
  */
 async function loadOrgMembers() {
-  if (!props.orgId || !props.showAdvanced) return;
+  if (!props.orgId || !props.showAdvanced) {return;}
 
   try {
     const result = await window.electron.ipcRenderer.invoke('org:get-members', props.orgId);

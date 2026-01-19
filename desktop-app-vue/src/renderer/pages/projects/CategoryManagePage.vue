@@ -7,7 +7,10 @@
         sub-title="管理和维护项目分类体系"
       >
         <template #extra>
-          <a-button type="primary" @click="showAddDialog()">
+          <a-button
+            type="primary"
+            @click="showAddDialog()"
+          >
             <template #icon>
               <PlusOutlined />
             </template>
@@ -21,7 +24,10 @@
     <div class="page-content">
       <a-spin :spinning="loading">
         <!-- 分类统计卡片 -->
-        <a-row :gutter="16" class="stats-row">
+        <a-row
+          :gutter="16"
+          class="stats-row"
+        >
           <a-col :span="6">
             <a-card>
               <a-statistic
@@ -81,8 +87,14 @@
         </a-row>
 
         <!-- 分类列表 -->
-        <a-card class="category-list-card" title="分类列表">
-          <a-collapse v-model:activeKey="activeKeys" accordion>
+        <a-card
+          class="category-list-card"
+          title="分类列表"
+        >
+          <a-collapse
+            v-model:active-key="activeKeys"
+            accordion
+          >
             <a-collapse-panel
               v-for="category in categories"
               :key="category.id"
@@ -120,7 +132,11 @@
                     @confirm="handleDelete(category.id)"
                     @click.stop
                   >
-                    <a-button type="link" danger size="small">
+                    <a-button
+                      type="link"
+                      danger
+                      size="small"
+                    >
                       <template #icon>
                         <DeleteOutlined />
                       </template>
@@ -171,7 +187,11 @@
                           cancel-text="取消"
                           @confirm="handleDelete(record.id)"
                         >
-                          <a-button type="link" danger size="small">
+                          <a-button
+                            type="link"
+                            danger
+                            size="small"
+                          >
                             <template #icon>
                               <DeleteOutlined />
                             </template>
@@ -187,7 +207,11 @@
                 description="暂无子分类"
                 :image="Empty.PRESENTED_IMAGE_SIMPLE"
               >
-                <a-button type="primary" size="small" @click="showAddDialog(category.id)">
+                <a-button
+                  type="primary"
+                  size="small"
+                  @click="showAddDialog(category.id)"
+                >
                   添加子分类
                 </a-button>
               </a-empty>
@@ -199,7 +223,10 @@
             description="暂无分类，请添加分类"
             :image="Empty.PRESENTED_IMAGE_SIMPLE"
           >
-            <a-button type="primary" @click="handleInitDefaults">
+            <a-button
+              type="primary"
+              @click="handleInitDefaults"
+            >
               初始化默认分类
             </a-button>
           </a-empty>
@@ -211,9 +238,9 @@
     <a-modal
       v-model:open="editDialogVisible"
       :title="editingCategory ? '编辑分类' : '添加分类'"
+      width="600px"
       @ok="handleSave"
       @cancel="handleEditCancel"
-      width="600px"
     >
       <a-form
         ref="formRef"
@@ -221,7 +248,10 @@
         :rules="formRules"
         layout="vertical"
       >
-        <a-form-item label="分类名称" name="name">
+        <a-form-item
+          label="分类名称"
+          name="name"
+        >
           <a-input
             v-model:value="formData.name"
             placeholder="请输入分类名称"
@@ -231,7 +261,10 @@
 
         <a-row :gutter="16">
           <a-col :span="12">
-            <a-form-item label="图标（Emoji）" name="icon">
+            <a-form-item
+              label="图标（Emoji）"
+              name="icon"
+            >
               <a-input
                 v-model:value="formData.icon"
                 placeholder="请输入图标"
@@ -244,7 +277,10 @@
             </a-form-item>
           </a-col>
           <a-col :span="12">
-            <a-form-item label="颜色" name="color">
+            <a-form-item
+              label="颜色"
+              name="color"
+            >
               <a-input
                 v-model:value="formData.color"
                 type="color"
@@ -254,7 +290,10 @@
           </a-col>
         </a-row>
 
-        <a-form-item label="排序" name="sort_order">
+        <a-form-item
+          label="排序"
+          name="sort_order"
+        >
           <a-input-number
             v-model:value="formData.sort_order"
             :min="0"
@@ -264,7 +303,10 @@
           />
         </a-form-item>
 
-        <a-form-item label="描述" name="description">
+        <a-form-item
+          label="描述"
+          name="description"
+        >
           <a-textarea
             v-model:value="formData.description"
             :rows="4"

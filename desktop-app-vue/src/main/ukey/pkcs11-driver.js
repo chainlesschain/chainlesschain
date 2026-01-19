@@ -247,7 +247,7 @@ class PKCS11Driver extends BaseUKeyDriver {
    * Load supported mechanisms from token
    */
   async loadSupportedMechanisms() {
-    if (!this.pkcs11 || this.slotId === null) return;
+    if (!this.pkcs11 || this.slotId === null) {return;}
 
     try {
       const mechanisms = this.pkcs11.C_GetMechanismList(this.slotId);
@@ -607,7 +607,7 @@ class PKCS11Driver extends BaseUKeyDriver {
    * Find and cache key handles
    */
   async findKeys() {
-    if (!this.pkcs11 || !this.sessionHandle) return;
+    if (!this.pkcs11 || !this.sessionHandle) {return;}
 
     try {
       // Find private key
@@ -650,7 +650,7 @@ class PKCS11Driver extends BaseUKeyDriver {
    * Export public key in PEM format
    */
   async exportPublicKey() {
-    if (!this.pkcs11 || !this.publicKeyHandle) return;
+    if (!this.pkcs11 || !this.publicKeyHandle) {return;}
 
     try {
       // Get key type

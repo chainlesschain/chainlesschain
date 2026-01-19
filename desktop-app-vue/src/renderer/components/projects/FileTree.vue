@@ -16,12 +16,18 @@
     </div>
 
     <!-- 搜索结果统计 -->
-    <div v-if="searchQuery && filteredTreeData.length > 0" class="search-stats">
+    <div
+      v-if="searchQuery && filteredTreeData.length > 0"
+      class="search-stats"
+    >
       找到 <strong>{{ searchResultCount }}</strong> 个文件
     </div>
 
     <!-- 加载状态 -->
-    <div v-if="loading" class="tree-loading">
+    <div
+      v-if="loading"
+      class="tree-loading"
+    >
       <a-spin size="small" />
       <span>加载中...</span>
     </div>
@@ -37,8 +43,11 @@
     >
       <template #title="{ title, isLeaf, icon, filePath }">
         <div class="tree-node-title">
-          <component :is="icon" class="node-icon" />
-          <span v-html="highlightText(title, searchQuery)"></span>
+          <component
+            :is="icon"
+            class="node-icon"
+          />
+          <span v-html="highlightText(title, searchQuery)" />
           <a-tag
             v-if="gitStatus && filePath && gitStatus[filePath]"
             :color="getStatusColor(gitStatus[filePath])"
@@ -52,13 +61,19 @@
     </a-tree>
 
     <!-- 空状态 -->
-    <div v-else-if="!searchQuery" class="tree-empty">
+    <div
+      v-else-if="!searchQuery"
+      class="tree-empty"
+    >
       <FolderOpenOutlined />
       <p>暂无文件</p>
     </div>
 
     <!-- 搜索无结果 -->
-    <div v-else class="tree-empty">
+    <div
+      v-else
+      class="tree-empty"
+    >
       <FileSearchOutlined />
       <p>未找到匹配的文件</p>
       <span class="empty-hint">尝试使用不同的关键词</span>

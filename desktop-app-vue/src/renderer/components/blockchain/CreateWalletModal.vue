@@ -4,18 +4,25 @@
     title="创建新钱包"
     :width="600"
     :confirm-loading="loading"
-    :maskClosable="false"
+    :mask-closable="false"
     @ok="handleCreate"
     @cancel="handleCancel"
   >
-    <a-steps :current="currentStep" size="small" :style="{ marginBottom: '24px' }">
+    <a-steps
+      :current="currentStep"
+      size="small"
+      :style="{ marginBottom: '24px' }"
+    >
       <a-step title="设置密码" />
       <a-step title="备份助记词" />
       <a-step title="确认完成" />
     </a-steps>
 
     <!-- 步骤1: 设置密码 -->
-    <div v-if="currentStep === 0" class="step-content">
+    <div
+      v-if="currentStep === 0"
+      class="step-content"
+    >
       <a-alert
         message="重要提示"
         description="密码用于加密您的私钥。请务必牢记密码，密码丢失将无法找回！"
@@ -25,12 +32,15 @@
       />
 
       <a-form
+        ref="formRef"
         :model="formData"
         :rules="formRules"
-        ref="formRef"
         layout="vertical"
       >
-        <a-form-item label="钱包密码" name="password">
+        <a-form-item
+          label="钱包密码"
+          name="password"
+        >
           <a-input-password
             v-model:value="formData.password"
             placeholder="请输入密码（至少8位）"
@@ -57,7 +67,10 @@
           </template>
         </a-form-item>
 
-        <a-form-item label="确认密码" name="confirmPassword">
+        <a-form-item
+          label="确认密码"
+          name="confirmPassword"
+        >
           <a-input-password
             v-model:value="formData.confirmPassword"
             placeholder="请再次输入密码"
@@ -82,7 +95,10 @@
     </div>
 
     <!-- 步骤2: 备份助记词 -->
-    <div v-if="currentStep === 1" class="step-content">
+    <div
+      v-if="currentStep === 1"
+      class="step-content"
+    >
       <a-alert
         message="请备份助记词"
         description="这是恢复钱包的唯一方式。请将助记词抄写在纸上，并妥善保管。切勿截图或通过网络传输！"
@@ -105,17 +121,25 @@
 
         <div class="mnemonic-actions">
           <a-button @click="handleCopyMnemonic">
-            <template #icon><copy-outlined /></template>
+            <template #icon>
+              <copy-outlined />
+            </template>
             复制助记词
           </a-button>
           <a-button @click="handleRegenerateMnemonic">
-            <template #icon><reload-outlined /></template>
+            <template #icon>
+              <reload-outlined />
+            </template>
             重新生成
           </a-button>
         </div>
       </div>
 
-      <a-form :model="formData" layout="vertical" :style="{ marginTop: '16px' }">
+      <a-form
+        :model="formData"
+        layout="vertical"
+        :style="{ marginTop: '16px' }"
+      >
         <a-form-item>
           <a-checkbox v-model:checked="formData.confirmedBackup">
             我已将助记词抄写在纸上，并确认备份无误
@@ -125,7 +149,10 @@
     </div>
 
     <!-- 步骤3: 确认完成 -->
-    <div v-if="currentStep === 2" class="step-content">
+    <div
+      v-if="currentStep === 2"
+      class="step-content"
+    >
       <a-result
         status="success"
         title="钱包创建成功！"
@@ -133,7 +160,11 @@
       >
         <template #extra>
           <div class="wallet-info">
-            <a-descriptions :column="1" bordered size="small">
+            <a-descriptions
+              :column="1"
+              bordered
+              size="small"
+            >
               <a-descriptions-item label="钱包地址">
                 <div class="wallet-address">
                   {{ walletAddress || '生成中...' }}
@@ -158,7 +189,10 @@
 
     <template #footer>
       <a-space>
-        <a-button v-if="currentStep > 0" @click="handlePrevStep">
+        <a-button
+          v-if="currentStep > 0"
+          @click="handlePrevStep"
+        >
           上一步
         </a-button>
         <a-button @click="handleCancel">
@@ -244,37 +278,37 @@ const formRules = {
 // 密码强度计算
 const passwordStrength = computed(() => {
   const password = formData.value.password;
-  if (!password) return 0;
+  if (!password) {return 0;}
 
   let strength = 0;
   // 长度
-  if (password.length >= 8) strength += 25;
-  if (password.length >= 12) strength += 25;
+  if (password.length >= 8) {strength += 25;}
+  if (password.length >= 12) {strength += 25;}
   // 包含数字
-  if (/\d/.test(password)) strength += 15;
+  if (/\d/.test(password)) {strength += 15;}
   // 包含小写字母
-  if (/[a-z]/.test(password)) strength += 15;
+  if (/[a-z]/.test(password)) {strength += 15;}
   // 包含大写字母
-  if (/[A-Z]/.test(password)) strength += 10;
+  if (/[A-Z]/.test(password)) {strength += 10;}
   // 包含特殊字符
-  if (/[^a-zA-Z0-9]/.test(password)) strength += 10;
+  if (/[^a-zA-Z0-9]/.test(password)) {strength += 10;}
 
   return Math.min(strength, 100);
 });
 
 const passwordStrengthText = computed(() => {
   const strength = passwordStrength.value;
-  if (strength < 30) return '弱';
-  if (strength < 60) return '中等';
-  if (strength < 80) return '强';
+  if (strength < 30) {return '弱';}
+  if (strength < 60) {return '中等';}
+  if (strength < 80) {return '强';}
   return '非常强';
 });
 
 const passwordColor = computed(() => {
   const strength = passwordStrength.value;
-  if (strength < 30) return '#ff4d4f';
-  if (strength < 60) return '#faad14';
-  if (strength < 80) return '#52c41a';
+  if (strength < 30) {return '#ff4d4f';}
+  if (strength < 60) {return '#faad14';}
+  if (strength < 80) {return '#52c41a';}
   return '#1890ff';
 });
 

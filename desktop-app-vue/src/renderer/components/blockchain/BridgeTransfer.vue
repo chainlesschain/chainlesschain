@@ -1,6 +1,9 @@
 <template>
   <div class="bridge-transfer">
-    <a-card title="跨链资产转移" :bordered="false">
+    <a-card
+      title="跨链资产转移"
+      :bordered="false"
+    >
       <template #extra>
         <a-tag color="warning">
           <experiment-outlined /> 测试功能
@@ -17,7 +20,10 @@
 
       <a-form layout="vertical">
         <!-- 选择资产 -->
-        <a-form-item label="选择资产" required>
+        <a-form-item
+          label="选择资产"
+          required
+        >
           <a-select
             v-model:value="form.assetId"
             placeholder="请选择要桥接的资产"
@@ -31,13 +37,19 @@
             >
               <div class="asset-option">
                 <span class="asset-name">{{ asset.name }}</span>
-                <a-tag size="small" :color="getAssetTypeColor(asset.asset_type)">
+                <a-tag
+                  size="small"
+                  :color="getAssetTypeColor(asset.asset_type)"
+                >
                   {{ getAssetTypeName(asset.asset_type) }}
                 </a-tag>
               </div>
             </a-select-option>
           </a-select>
-          <template #extra v-if="selectedAsset">
+          <template
+            v-if="selectedAsset"
+            #extra
+          >
             <div class="asset-info">
               <span>合约地址: {{ formatAddress(selectedAsset.contract_address) }}</span>
               <span style="margin-left: 16px">部署链: {{ getNetworkName(selectedAsset.chain_id) }}</span>
@@ -48,7 +60,10 @@
         <!-- 源链和目标链 -->
         <a-row :gutter="16">
           <a-col :span="12">
-            <a-form-item label="源链" required>
+            <a-form-item
+              label="源链"
+              required
+            >
               <chain-selector
                 v-model="form.fromChainId"
                 :width="'100%'"
@@ -59,7 +74,10 @@
           </a-col>
 
           <a-col :span="12">
-            <a-form-item label="目标链" required>
+            <a-form-item
+              label="目标链"
+              required
+            >
               <chain-selector
                 v-model="form.toChainId"
                 :width="'100%'"
@@ -71,7 +89,10 @@
         </a-row>
 
         <!-- 转移数量 -->
-        <a-form-item label="转移数量" required>
+        <a-form-item
+          label="转移数量"
+          required
+        >
           <a-input-number
             v-model:value="form.amount"
             :min="0"
@@ -81,12 +102,19 @@
             placeholder="输入转移数量"
           >
             <template #addonAfter>
-              <a-button type="link" size="small" @click="handleMaxAmount">
+              <a-button
+                type="link"
+                size="small"
+                @click="handleMaxAmount"
+              >
                 最大值
               </a-button>
             </template>
           </a-input-number>
-          <template #extra v-if="availableBalance !== null">
+          <template
+            v-if="availableBalance !== null"
+            #extra
+          >
             可用余额: {{ availableBalance }} {{ selectedAsset?.symbol || '' }}
           </template>
         </a-form-item>
@@ -108,7 +136,10 @@
         </a-form-item>
 
         <!-- 钱包选择 -->
-        <a-form-item label="选择钱包" required>
+        <a-form-item
+          label="选择钱包"
+          required
+        >
           <wallet-selector
             v-model="form.walletId"
             :show-balance="true"
@@ -118,7 +149,10 @@
         </a-form-item>
 
         <!-- 钱包密码 -->
-        <a-form-item label="钱包密码" required>
+        <a-form-item
+          label="钱包密码"
+          required
+        >
           <a-input-password
             v-model:value="form.password"
             placeholder="输入钱包密码以授权交易"
@@ -134,14 +168,21 @@
         <a-divider />
         <div class="fee-summary">
           <h4>费用预估</h4>
-          <a-descriptions :column="2" size="small" bordered>
+          <a-descriptions
+            :column="2"
+            size="small"
+            bordered
+          >
             <a-descriptions-item label="源链 Gas">
               ~0.002 ETH
             </a-descriptions-item>
             <a-descriptions-item label="目标链 Gas">
               ~0.003 ETH
             </a-descriptions-item>
-            <a-descriptions-item label="预计时间" :span="2">
+            <a-descriptions-item
+              label="预计时间"
+              :span="2"
+            >
               2-5 分钟
             </a-descriptions-item>
           </a-descriptions>
@@ -151,7 +192,9 @@
       <!-- 操作按钮 -->
       <div class="actions">
         <a-space>
-          <a-button @click="handleReset">重置</a-button>
+          <a-button @click="handleReset">
+            重置
+          </a-button>
           <a-button
             type="primary"
             size="large"
@@ -159,7 +202,9 @@
             :disabled="!canTransfer"
             @click="handleTransfer"
           >
-            <template #icon><swap-outlined /></template>
+            <template #icon>
+              <swap-outlined />
+            </template>
             开始跨链转移
           </a-button>
         </a-space>
@@ -171,15 +216,21 @@
       v-model:open="showProgressModal"
       title="跨链转移进度"
       :closable="false"
-      :maskClosable="false"
+      :mask-closable="false"
       :footer="progressStep === 3 ? undefined : null"
     >
-      <a-steps :current="progressStep" direction="vertical">
+      <a-steps
+        :current="progressStep"
+        direction="vertical"
+      >
         <a-step title="锁定资产">
           <template #description>
             <div v-if="progressStep >= 0">
               {{ progressStep > 0 ? '✅ 已在源链锁定资产' : '正在源链锁定资产...' }}
-              <div v-if="lockTxHash" class="tx-hash">
+              <div
+                v-if="lockTxHash"
+                class="tx-hash"
+              >
                 交易哈希: {{ formatAddress(lockTxHash) }}
               </div>
             </div>
@@ -198,14 +249,20 @@
           <template #description>
             <div v-if="progressStep >= 2">
               {{ progressStep > 2 ? '✅ 已在目标链铸造资产' : '正在目标链铸造资产...' }}
-              <div v-if="mintTxHash" class="tx-hash">
+              <div
+                v-if="mintTxHash"
+                class="tx-hash"
+              >
                 交易哈希: {{ formatAddress(mintTxHash) }}
               </div>
             </div>
           </template>
         </a-step>
 
-        <a-step title="完成" :status="progressStep === 3 ? 'finish' : 'wait'">
+        <a-step
+          title="完成"
+          :status="progressStep === 3 ? 'finish' : 'wait'"
+        >
           <template #description>
             <div v-if="progressStep === 3">
               🎉 跨链转移成功完成！
@@ -214,8 +271,14 @@
         </a-step>
       </a-steps>
 
-      <template #footer v-if="progressStep === 3">
-        <a-button type="primary" @click="handleCloseProgress">
+      <template
+        v-if="progressStep === 3"
+        #footer
+      >
+        <a-button
+          type="primary"
+          @click="handleCloseProgress"
+        >
           完成
         </a-button>
       </template>
@@ -293,8 +356,8 @@ const loadBridgeableAssets = async () => {
  * 格式化地址
  */
 const formatAddress = (address) => {
-  if (!address) return '';
-  if (address.length <= 20) return address;
+  if (!address) {return '';}
+  if (address.length <= 20) {return address;}
   return `${address.slice(0, 10)}...${address.slice(-8)}`;
 };
 

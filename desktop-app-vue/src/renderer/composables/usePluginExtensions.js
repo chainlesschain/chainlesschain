@@ -450,7 +450,7 @@ export async function getPluginMenuItems() {
 
   try {
     const result = await window.electronAPI.plugin.getUIExtensions();
-    if (!result.success) return [];
+    if (!result.success) {return [];}
 
     const menus = result.extensions?.menus || [];
 

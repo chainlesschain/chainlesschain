@@ -381,7 +381,7 @@ function registerSecureStorageIPC() {
         }
 
         // 加载现有配置
-        let config = storage.load() || {};
+        const config = storage.load() || {};
 
         // 设置新值
         const fieldPath = key || `${provider}.apiKey`;
@@ -471,7 +471,7 @@ function registerSecureStorageIPC() {
     "secure-storage:delete-api-key",
     async (event, { provider, key }) => {
       try {
-        let config = storage.load();
+        const config = storage.load();
         if (!config) {
           return { success: true };
         }
@@ -512,7 +512,7 @@ function registerSecureStorageIPC() {
     "secure-storage:batch-set-api-keys",
     async (event, apiKeys) => {
       try {
-        let config = storage.load() || {};
+        const config = storage.load() || {};
         const errors = [];
 
         for (const [fieldPath, value] of Object.entries(apiKeys)) {

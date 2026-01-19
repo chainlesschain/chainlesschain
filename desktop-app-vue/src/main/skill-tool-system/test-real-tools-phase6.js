@@ -512,10 +512,10 @@ async function testPhase6RealTools() {
     const statusIcon = result.status === '通过' ? '✅' :
                       result.status === '跳过' ? '⏭️' : '❌';
     console.log(`${index + 1}. ${statusIcon} ${result.test} - ${result.status}`);
-    if (result.reminder_id) console.log(`   提醒ID: ${result.reminder_id}`);
-    if (result.entry_id) console.log(`   条目ID: ${result.entry_id}`);
-    if (result.error) console.log(`   错误: ${result.error}`);
-    if (result.count !== undefined) console.log(`   数量: ${result.count}`);
+    if (result.reminder_id) {console.log(`   提醒ID: ${result.reminder_id}`);}
+    if (result.entry_id) {console.log(`   条目ID: ${result.entry_id}`);}
+    if (result.error) {console.log(`   错误: ${result.error}`);}
+    if (result.count !== undefined) {console.log(`   数量: ${result.count}`);}
   });
 
   console.log('\n========================================');

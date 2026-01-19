@@ -40,11 +40,21 @@
           style="width: 150px"
           @change="handleTypeChange"
         >
-          <a-select-option value="">全部类型</a-select-option>
-          <a-select-option value="web">Web开发</a-select-option>
-          <a-select-option value="document">文档处理</a-select-option>
-          <a-select-option value="data">数据分析</a-select-option>
-          <a-select-option value="app">应用开发</a-select-option>
+          <a-select-option value="">
+            全部类型
+          </a-select-option>
+          <a-select-option value="web">
+            Web开发
+          </a-select-option>
+          <a-select-option value="document">
+            文档处理
+          </a-select-option>
+          <a-select-option value="data">
+            数据分析
+          </a-select-option>
+          <a-select-option value="app">
+            应用开发
+          </a-select-option>
         </a-select>
 
         <a-select
@@ -53,10 +63,18 @@
           style="width: 150px"
           @change="handleSortChange"
         >
-          <a-select-option value="archived_at:desc">归档时间（最新）</a-select-option>
-          <a-select-option value="archived_at:asc">归档时间（最早）</a-select-option>
-          <a-select-option value="name:asc">名称 A-Z</a-select-option>
-          <a-select-option value="name:desc">名称 Z-A</a-select-option>
+          <a-select-option value="archived_at:desc">
+            归档时间（最新）
+          </a-select-option>
+          <a-select-option value="archived_at:asc">
+            归档时间（最早）
+          </a-select-option>
+          <a-select-option value="name:asc">
+            名称 A-Z
+          </a-select-option>
+          <a-select-option value="name:desc">
+            名称 Z-A
+          </a-select-option>
         </a-select>
       </div>
 
@@ -69,7 +87,11 @@
           刷新
         </a-button>
 
-        <a-radio-group v-model:value="viewMode" button-style="solid" @change="handleViewModeChange">
+        <a-radio-group
+          v-model:value="viewMode"
+          button-style="solid"
+          @change="handleViewModeChange"
+        >
           <a-radio-button value="grid">
             <AppstoreOutlined />
           </a-radio-button>
@@ -81,34 +103,65 @@
     </div>
 
     <!-- 统计栏 -->
-    <div class="stats-bar" v-if="archivedProjects.length > 0">
+    <div
+      v-if="archivedProjects.length > 0"
+      class="stats-bar"
+    >
       <div class="stat-item">
-        <div class="stat-value">{{ archivedProjects.length }}</div>
-        <div class="stat-label">已归档项目</div>
+        <div class="stat-value">
+          {{ archivedProjects.length }}
+        </div>
+        <div class="stat-label">
+          已归档项目
+        </div>
       </div>
       <div class="stat-item">
-        <div class="stat-value">{{ typeStats.web || 0 }}</div>
-        <div class="stat-label">Web开发</div>
+        <div class="stat-value">
+          {{ typeStats.web || 0 }}
+        </div>
+        <div class="stat-label">
+          Web开发
+        </div>
       </div>
       <div class="stat-item">
-        <div class="stat-value">{{ typeStats.document || 0 }}</div>
-        <div class="stat-label">文档处理</div>
+        <div class="stat-value">
+          {{ typeStats.document || 0 }}
+        </div>
+        <div class="stat-label">
+          文档处理
+        </div>
       </div>
       <div class="stat-item">
-        <div class="stat-value">{{ typeStats.data || 0 }}</div>
-        <div class="stat-label">数据分析</div>
+        <div class="stat-value">
+          {{ typeStats.data || 0 }}
+        </div>
+        <div class="stat-label">
+          数据分析
+        </div>
       </div>
     </div>
 
     <!-- 加载状态 -->
-    <div v-if="loading" class="loading-container">
-      <a-spin size="large" tip="加载中..." />
+    <div
+      v-if="loading"
+      class="loading-container"
+    >
+      <a-spin
+        size="large"
+        tip="加载中..."
+      />
     </div>
 
     <!-- 项目列表 -->
-    <div v-else-if="paginatedProjects.length > 0" class="projects-container">
+    <div
+      v-else-if="paginatedProjects.length > 0"
+      class="projects-container"
+    >
       <!-- 网格视图 -->
-      <div v-if="viewMode === 'grid'" class="projects-grid">
+      <div
+        v-if="viewMode === 'grid'"
+        class="projects-grid"
+      >
         <div
           v-for="project in paginatedProjects"
           :key="project.id"
@@ -120,7 +173,10 @@
             </div>
             <div class="card-actions">
               <a-dropdown>
-                <a-button type="text" size="small">
+                <a-button
+                  type="text"
+                  size="small"
+                >
                   <MoreOutlined />
                 </a-button>
                 <template #overlay>
@@ -130,7 +186,10 @@
                       恢复项目
                     </a-menu-item>
                     <a-menu-divider />
-                    <a-menu-item key="delete" danger>
+                    <a-menu-item
+                      key="delete"
+                      danger
+                    >
                       <DeleteOutlined />
                       永久删除
                     </a-menu-item>
@@ -142,7 +201,9 @@
 
           <div class="card-body">
             <h3>{{ project.name }}</h3>
-            <p class="description">{{ project.description || '暂无描述' }}</p>
+            <p class="description">
+              {{ project.description || '暂无描述' }}
+            </p>
 
             <div class="meta-info">
               <div class="meta-item">
@@ -157,7 +218,12 @@
           </div>
 
           <div class="card-footer">
-            <a-button type="primary" ghost block @click="handleRestore(project.id)">
+            <a-button
+              type="primary"
+              ghost
+              block
+              @click="handleRestore(project.id)"
+            >
               <RollbackOutlined />
               恢复项目
             </a-button>
@@ -166,7 +232,10 @@
       </div>
 
       <!-- 列表视图 -->
-      <div v-else class="projects-list">
+      <div
+        v-else
+        class="projects-list"
+      >
         <div
           v-for="project in paginatedProjects"
           :key="project.id"
@@ -186,11 +255,18 @@
           </div>
 
           <div class="item-actions">
-            <a-button type="primary" ghost @click="handleRestore(project.id)">
+            <a-button
+              type="primary"
+              ghost
+              @click="handleRestore(project.id)"
+            >
               <RollbackOutlined />
               恢复
             </a-button>
-            <a-button danger @click="handleDelete(project.id)">
+            <a-button
+              danger
+              @click="handleDelete(project.id)"
+            >
               <DeleteOutlined />
               删除
             </a-button>
@@ -208,19 +284,25 @@
           :show-size-changer="true"
           :page-size-options="['12', '24', '48', '96']"
           @change="handlePageChange"
-          @showSizeChange="handlePageSizeChange"
+          @show-size-change="handlePageSizeChange"
         />
       </div>
     </div>
 
     <!-- 空状态 -->
-    <div v-else class="empty-state">
+    <div
+      v-else
+      class="empty-state"
+    >
       <div class="empty-icon">
         <InboxOutlined />
       </div>
       <h3>{{ searchKeyword || selectedType ? '没有找到匹配的已归档项目' : '还没有归档项目' }}</h3>
       <p>{{ searchKeyword || selectedType ? '尝试调整筛选条件' : '归档的项目将显示在这里' }}</p>
-      <a-button v-if="!searchKeyword && !selectedType" @click="handleBackToProjects">
+      <a-button
+        v-if="!searchKeyword && !selectedType"
+        @click="handleBackToProjects"
+      >
         <ArrowLeftOutlined />
         返回我的项目
       </a-button>
@@ -292,8 +374,8 @@ const filteredProjects = computed(() => {
   // 排序
   const [sortBy, sortOrder] = sortConfig.value.split(':');
   result.sort((a, b) => {
-    let aVal = a[sortBy] || a.updated_at;
-    let bVal = b[sortBy] || b.updated_at;
+    const aVal = a[sortBy] || a.updated_at;
+    const bVal = b[sortBy] || b.updated_at;
 
     if (sortBy === 'name') {
       return sortOrder === 'asc'
@@ -345,7 +427,7 @@ const getProjectTypeName = (type) => {
 
 // 格式化日期
 const formatDate = (timestamp) => {
-  if (!timestamp) return '未知';
+  if (!timestamp) {return '未知';}
   try {
     return format(new Date(timestamp), 'yyyy-MM-dd HH:mm', { locale: zhCN });
   } catch {

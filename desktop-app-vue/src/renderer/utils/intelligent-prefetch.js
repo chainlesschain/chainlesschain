@@ -299,7 +299,7 @@ class IntelligentPrefetchManager {
    * @param {Object} options - Prefetch options
    */
   enableHoverPrefetch(element, resource, options = {}) {
-    if (!this.options.enableHoverPrefetch) return
+    if (!this.options.enableHoverPrefetch) {return}
 
     const handleMouseEnter = () => {
       const timer = setTimeout(() => {
@@ -340,7 +340,7 @@ class IntelligentPrefetchManager {
    * @param {Object} options - Prefetch options
    */
   enableViewportPrefetch(element, resource, options = {}) {
-    if (!this.options.enableViewportPrefetch) return
+    if (!this.options.enableViewportPrefetch) {return}
 
     if (!('IntersectionObserver' in window)) {
       console.warn('[IntelligentPrefetchManager] IntersectionObserver not supported')
@@ -489,7 +489,7 @@ class IntelligentPrefetchManager {
   disable(element) {
     const observer = this.observers.get(element)
 
-    if (!observer) return
+    if (!observer) {return}
 
     if (observer.type === 'hover') {
       element.removeEventListener('mouseenter', observer.handleMouseEnter)

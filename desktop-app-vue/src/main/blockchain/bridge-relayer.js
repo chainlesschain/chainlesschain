@@ -144,7 +144,7 @@ class BridgeRelayer extends EventEmitter {
       const chains = this.adapter.getSupportedChains();
 
       for (const chain of chains) {
-        if (!chain.isConnected) continue;
+        if (!chain.isConnected) {continue;}
 
         // Get latest processed block from database
         const result = db.prepare(`
@@ -273,7 +273,7 @@ class BridgeRelayer extends EventEmitter {
     const chains = this.adapter.getSupportedChains();
 
     for (const chain of chains) {
-      if (!chain.isConnected) continue;
+      if (!chain.isConnected) {continue;}
 
       try {
         await this.scanChainForLockEvents(chain.chainId);

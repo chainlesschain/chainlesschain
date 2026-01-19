@@ -1,6 +1,10 @@
 <template>
   <div class="skill-stats">
-    <a-space direction="vertical" :size="16" style="width: 100%">
+    <a-space
+      direction="vertical"
+      :size="16"
+      style="width: 100%"
+    >
       <!-- 统计卡片 -->
       <a-row :gutter="16">
         <a-col :span="6">
@@ -10,7 +14,9 @@
               :value="stats.totalSkills"
               :value-style="{ color: '#3f8600' }"
             >
-              <template #prefix><AppstoreOutlined /></template>
+              <template #prefix>
+                <AppstoreOutlined />
+              </template>
             </a-statistic>
           </a-card>
         </a-col>
@@ -21,7 +27,9 @@
               :value="stats.enabledSkills"
               :value-style="{ color: '#1890ff' }"
             >
-              <template #prefix><CheckCircleOutlined /></template>
+              <template #prefix>
+                <CheckCircleOutlined />
+              </template>
             </a-statistic>
           </a-card>
         </a-col>
@@ -32,7 +40,9 @@
               :value="stats.totalUsage"
               :value-style="{ color: '#cf1322' }"
             >
-              <template #prefix><ThunderboltOutlined /></template>
+              <template #prefix>
+                <ThunderboltOutlined />
+              </template>
             </a-statistic>
           </a-card>
         </a-col>
@@ -45,7 +55,9 @@
               :precision="1"
               :value-style="{ color: '#722ed1' }"
             >
-              <template #prefix><RiseOutlined /></template>
+              <template #prefix>
+                <RiseOutlined />
+              </template>
             </a-statistic>
           </a-card>
         </a-col>
@@ -55,15 +67,27 @@
       <a-row :gutter="16">
         <!-- 分类分布饼图 -->
         <a-col :span="8">
-          <a-card title="技能分类分布" size="small">
-            <div ref="categoryChartRef" style="width: 100%; height: 300px"></div>
+          <a-card
+            title="技能分类分布"
+            size="small"
+          >
+            <div
+              ref="categoryChartRef"
+              style="width: 100%; height: 300px"
+            />
           </a-card>
         </a-col>
 
         <!-- 使用次数Top 10柱状图 -->
         <a-col :span="16">
-          <a-card title="使用次数 Top 10" size="small">
-            <div ref="usageChartRef" style="width: 100%; height: 300px"></div>
+          <a-card
+            title="使用次数 Top 10"
+            size="small"
+          >
+            <div
+              ref="usageChartRef"
+              style="width: 100%; height: 300px"
+            />
           </a-card>
         </a-col>
       </a-row>
@@ -71,8 +95,14 @@
       <!-- 成功率趋势折线图 -->
       <a-row :gutter="16">
         <a-col :span="24">
-          <a-card title="成功率趋势（最近7天）" size="small">
-            <div ref="trendChartRef" style="width: 100%; height: 300px"></div>
+          <a-card
+            title="成功率趋势（最近7天）"
+            size="small"
+          >
+            <div
+              ref="trendChartRef"
+              style="width: 100%; height: 300px"
+            />
           </a-card>
         </a-col>
       </a-row>
@@ -137,7 +167,7 @@ const calculateStats = () => {
 
 // 初始化分类分布饼图
 const initCategoryChart = () => {
-  if (!categoryChartRef.value) return;
+  if (!categoryChartRef.value) {return;}
 
   categoryChart = echarts.init(categoryChartRef.value);
 
@@ -197,7 +227,7 @@ const initCategoryChart = () => {
 
 // 初始化使用次数柱状图
 const initUsageChart = () => {
-  if (!usageChartRef.value) return;
+  if (!usageChartRef.value) {return;}
 
   usageChart = echarts.init(usageChartRef.value);
 
@@ -247,7 +277,7 @@ const initUsageChart = () => {
 
 // 初始化趋势图
 const initTrendChart = () => {
-  if (!trendChartRef.value) return;
+  if (!trendChartRef.value) {return;}
 
   trendChart = echarts.init(trendChartRef.value);
 

@@ -1,10 +1,19 @@
 <template>
   <div class="code-generator">
-    <a-card title="AI代码助手" :bordered="false">
-      <a-tabs v-model:activeKey="activeTab">
+    <a-card
+      title="AI代码助手"
+      :bordered="false"
+    >
+      <a-tabs v-model:active-key="activeTab">
         <!-- 代码生成 -->
-        <a-tab-pane key="generate" tab="生成代码">
-          <a-form :model="generateForm" layout="vertical">
+        <a-tab-pane
+          key="generate"
+          tab="生成代码"
+        >
+          <a-form
+            :model="generateForm"
+            layout="vertical"
+          >
             <a-form-item label="功能描述">
               <a-textarea
                 v-model:value="generateForm.description"
@@ -17,12 +26,24 @@
               <a-col :span="12">
                 <a-form-item label="编程语言">
                   <a-select v-model:value="generateForm.language">
-                    <a-select-option value="javascript">JavaScript</a-select-option>
-                    <a-select-option value="typescript">TypeScript</a-select-option>
-                    <a-select-option value="python">Python</a-select-option>
-                    <a-select-option value="java">Java</a-select-option>
-                    <a-select-option value="cpp">C++</a-select-option>
-                    <a-select-option value="go">Go</a-select-option>
+                    <a-select-option value="javascript">
+                      JavaScript
+                    </a-select-option>
+                    <a-select-option value="typescript">
+                      TypeScript
+                    </a-select-option>
+                    <a-select-option value="python">
+                      Python
+                    </a-select-option>
+                    <a-select-option value="java">
+                      Java
+                    </a-select-option>
+                    <a-select-option value="cpp">
+                      C++
+                    </a-select-option>
+                    <a-select-option value="go">
+                      Go
+                    </a-select-option>
                   </a-select>
                 </a-form-item>
               </a-col>
@@ -41,23 +62,36 @@
               <a-checkbox v-model:checked="generateForm.includeTests">
                 生成单元测试
               </a-checkbox>
-              <a-checkbox v-model:checked="generateForm.includeComments" style="margin-left: 16px">
+              <a-checkbox
+                v-model:checked="generateForm.includeComments"
+                style="margin-left: 16px"
+              >
                 添加详细注释
               </a-checkbox>
             </a-form-item>
 
             <a-form-item>
-              <a-button type="primary" @click="handleGenerate" :loading="generating">
+              <a-button
+                type="primary"
+                :loading="generating"
+                @click="handleGenerate"
+              >
                 <code-outlined /> 生成代码
               </a-button>
             </a-form-item>
           </a-form>
 
           <!-- 生成的代码 -->
-          <div v-if="generatedCode" class="code-result">
+          <div
+            v-if="generatedCode"
+            class="code-result"
+          >
             <div class="result-header">
               <h4>生成的代码:</h4>
-              <a-button size="small" @click="copyCode(generatedCode)">
+              <a-button
+                size="small"
+                @click="copyCode(generatedCode)"
+              >
                 <copy-outlined /> 复制
               </a-button>
             </div>
@@ -65,10 +99,16 @@
           </div>
 
           <!-- 生成的测试 -->
-          <div v-if="generatedTests" class="code-result">
+          <div
+            v-if="generatedTests"
+            class="code-result"
+          >
             <div class="result-header">
               <h4>单元测试:</h4>
-              <a-button size="small" @click="copyCode(generatedTests)">
+              <a-button
+                size="small"
+                @click="copyCode(generatedTests)"
+              >
                 <copy-outlined /> 复制
               </a-button>
             </div>
@@ -77,8 +117,14 @@
         </a-tab-pane>
 
         <!-- 代码审查 -->
-        <a-tab-pane key="review" tab="代码审查">
-          <a-form :model="reviewForm" layout="vertical">
+        <a-tab-pane
+          key="review"
+          tab="代码审查"
+        >
+          <a-form
+            :model="reviewForm"
+            layout="vertical"
+          >
             <a-form-item label="代码">
               <a-textarea
                 v-model:value="reviewForm.code"
@@ -89,38 +135,64 @@
 
             <a-form-item label="编程语言">
               <a-select v-model:value="reviewForm.language">
-                <a-select-option value="javascript">JavaScript</a-select-option>
-                <a-select-option value="typescript">TypeScript</a-select-option>
-                <a-select-option value="python">Python</a-select-option>
-                <a-select-option value="java">Java</a-select-option>
+                <a-select-option value="javascript">
+                  JavaScript
+                </a-select-option>
+                <a-select-option value="typescript">
+                  TypeScript
+                </a-select-option>
+                <a-select-option value="python">
+                  Python
+                </a-select-option>
+                <a-select-option value="java">
+                  Java
+                </a-select-option>
               </a-select>
             </a-form-item>
 
             <a-form-item>
-              <a-button type="primary" @click="handleReview" :loading="reviewing">
+              <a-button
+                type="primary"
+                :loading="reviewing"
+                @click="handleReview"
+              >
                 <eye-outlined /> 开始审查
               </a-button>
             </a-form-item>
           </a-form>
 
           <!-- 审查结果 -->
-          <div v-if="reviewResult" class="review-result">
+          <div
+            v-if="reviewResult"
+            class="review-result"
+          >
             <a-card>
               <template #title>
                 <span>审查结果
-                  <a-tag v-if="reviewResult.score" :color="getScoreColor(reviewResult.score)">
+                  <a-tag
+                    v-if="reviewResult.score"
+                    :color="getScoreColor(reviewResult.score)"
+                  >
                     评分: {{ reviewResult.score }}/10
                   </a-tag>
                 </span>
               </template>
-              <div class="review-content" v-html="formatReview(reviewResult.review)"></div>
+              <div
+                class="review-content"
+                v-html="formatReview(reviewResult.review)"
+              />
             </a-card>
 
             <!-- 改进建议 -->
-            <a-card v-if="reviewResult.suggestions && reviewResult.suggestions.length > 0"
-                    title="改进建议"
-                    style="margin-top: 16px">
-              <a-list :data-source="reviewResult.suggestions" size="small">
+            <a-card
+              v-if="reviewResult.suggestions && reviewResult.suggestions.length > 0"
+              title="改进建议"
+              style="margin-top: 16px"
+            >
+              <a-list
+                :data-source="reviewResult.suggestions"
+                size="small"
+              >
                 <template #renderItem="{ item }">
                   <a-list-item>
                     <a-list-item-meta>
@@ -142,8 +214,14 @@
         </a-tab-pane>
 
         <!-- 代码重构 -->
-        <a-tab-pane key="refactor" tab="代码重构">
-          <a-form :model="refactorForm" layout="vertical">
+        <a-tab-pane
+          key="refactor"
+          tab="代码重构"
+        >
+          <a-form
+            :model="refactorForm"
+            layout="vertical"
+          >
             <a-form-item label="代码">
               <a-textarea
                 v-model:value="refactorForm.code"
@@ -156,9 +234,15 @@
               <a-col :span="12">
                 <a-form-item label="编程语言">
                   <a-select v-model:value="refactorForm.language">
-                    <a-select-option value="javascript">JavaScript</a-select-option>
-                    <a-select-option value="python">Python</a-select-option>
-                    <a-select-option value="java">Java</a-select-option>
+                    <a-select-option value="javascript">
+                      JavaScript
+                    </a-select-option>
+                    <a-select-option value="python">
+                      Python
+                    </a-select-option>
+                    <a-select-option value="java">
+                      Java
+                    </a-select-option>
                   </a-select>
                 </a-form-item>
               </a-col>
@@ -166,34 +250,61 @@
               <a-col :span="12">
                 <a-form-item label="重构类型">
                   <a-select v-model:value="refactorForm.type">
-                    <a-select-option value="extract_function">提取函数</a-select-option>
-                    <a-select-option value="rename_variables">改进命名</a-select-option>
-                    <a-select-option value="simplify">简化逻辑</a-select-option>
-                    <a-select-option value="optimize">性能优化</a-select-option>
-                    <a-select-option value="modernize">现代化</a-select-option>
+                    <a-select-option value="extract_function">
+                      提取函数
+                    </a-select-option>
+                    <a-select-option value="rename_variables">
+                      改进命名
+                    </a-select-option>
+                    <a-select-option value="simplify">
+                      简化逻辑
+                    </a-select-option>
+                    <a-select-option value="optimize">
+                      性能优化
+                    </a-select-option>
+                    <a-select-option value="modernize">
+                      现代化
+                    </a-select-option>
                   </a-select>
                 </a-form-item>
               </a-col>
             </a-row>
 
             <a-form-item>
-              <a-button type="primary" @click="handleRefactor" :loading="refactoring">
+              <a-button
+                type="primary"
+                :loading="refactoring"
+                @click="handleRefactor"
+              >
                 <thunderbolt-outlined /> 开始重构
               </a-button>
             </a-form-item>
           </a-form>
 
           <!-- 重构结果 -->
-          <div v-if="refactorResult" class="refactor-result">
+          <div
+            v-if="refactorResult"
+            class="refactor-result"
+          >
             <a-row :gutter="16">
               <a-col :span="12">
-                <a-card title="原始代码" size="small">
+                <a-card
+                  title="原始代码"
+                  size="small"
+                >
                   <pre><code>{{ refactorResult.originalCode }}</code></pre>
                 </a-card>
               </a-col>
               <a-col :span="12">
-                <a-card title="重构后代码" size="small">
-                  <a-button size="small" @click="copyCode(refactorResult.refactoredCode)" style="float: right;">
+                <a-card
+                  title="重构后代码"
+                  size="small"
+                >
+                  <a-button
+                    size="small"
+                    style="float: right;"
+                    @click="copyCode(refactorResult.refactoredCode)"
+                  >
                     <copy-outlined /> 复制
                   </a-button>
                   <pre><code>{{ refactorResult.refactoredCode }}</code></pre>
@@ -201,15 +312,24 @@
               </a-col>
             </a-row>
 
-            <a-card title="重构说明" style="margin-top: 16px">
-              <div v-html="formatExplanation(refactorResult.explanation)"></div>
+            <a-card
+              title="重构说明"
+              style="margin-top: 16px"
+            >
+              <div v-html="formatExplanation(refactorResult.explanation)" />
             </a-card>
           </div>
         </a-tab-pane>
 
         <!-- Bug修复 -->
-        <a-tab-pane key="fix" tab="Bug修复">
-          <a-form :model="fixForm" layout="vertical">
+        <a-tab-pane
+          key="fix"
+          tab="Bug修复"
+        >
+          <a-form
+            :model="fixForm"
+            layout="vertical"
+          >
             <a-form-item label="有问题的代码">
               <a-textarea
                 v-model:value="fixForm.code"
@@ -228,39 +348,61 @@
 
             <a-form-item label="编程语言">
               <a-select v-model:value="fixForm.language">
-                <a-select-option value="javascript">JavaScript</a-select-option>
-                <a-select-option value="python">Python</a-select-option>
-                <a-select-option value="java">Java</a-select-option>
+                <a-select-option value="javascript">
+                  JavaScript
+                </a-select-option>
+                <a-select-option value="python">
+                  Python
+                </a-select-option>
+                <a-select-option value="java">
+                  Java
+                </a-select-option>
               </a-select>
             </a-form-item>
 
             <a-form-item>
-              <a-button type="primary" @click="handleFix" :loading="fixing">
+              <a-button
+                type="primary"
+                :loading="fixing"
+                @click="handleFix"
+              >
                 <tool-outlined /> 修复Bug
               </a-button>
             </a-form-item>
           </a-form>
 
           <!-- 修复结果 -->
-          <div v-if="fixResult" class="fix-result">
+          <div
+            v-if="fixResult"
+            class="fix-result"
+          >
             <a-card title="修复后的代码">
-              <a-button size="small" @click="copyCode(fixResult.fixedCode)" style="float: right;">
+              <a-button
+                size="small"
+                style="float: right;"
+                @click="copyCode(fixResult.fixedCode)"
+              >
                 <copy-outlined /> 复制
               </a-button>
               <pre><code>{{ fixResult.fixedCode }}</code></pre>
             </a-card>
 
-            <a-card title="问题分析和修复说明" style="margin-top: 16px">
-              <div v-html="formatAnalysis(fixResult.analysis)"></div>
+            <a-card
+              title="问题分析和修复说明"
+              style="margin-top: 16px"
+            >
+              <div v-html="formatAnalysis(fixResult.analysis)" />
             </a-card>
           </div>
         </a-tab-pane>
       </a-tabs>
 
       <!-- 加载状态 -->
-      <a-spin v-if="generating || reviewing || refactoring || fixing"
-              tip="AI正在处理中..."
-              style="margin-top: 24px; width: 100%;" />
+      <a-spin
+        v-if="generating || reviewing || refactoring || fixing"
+        tip="AI正在处理中..."
+        style="margin-top: 24px; width: 100%;"
+      />
     </a-card>
   </div>
 </template>
@@ -459,15 +601,15 @@ const formatAnalysis = (text) => {
 
 // 获取评分颜色
 const getScoreColor = (score) => {
-  if (score >= 8) return 'green'
-  if (score >= 6) return 'orange'
+  if (score >= 8) {return 'green'}
+  if (score >= 6) {return 'orange'}
   return 'red'
 }
 
 // 获取优先级颜色
 const getPriorityColor = (priority) => {
-  if (priority === 'high') return 'red'
-  if (priority === 'medium') return 'orange'
+  if (priority === 'high') {return 'red'}
+  if (priority === 'medium') {return 'orange'}
   return 'blue'
 }
 </script>

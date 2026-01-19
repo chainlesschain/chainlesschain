@@ -116,7 +116,7 @@ class SkillRecommender {
 
     for (const [intent, keywords] of Object.entries(this.intentKeywords)) {
       let matchCount = 0;
-      let matchedKeywords = [];
+      const matchedKeywords = [];
 
       for (const keyword of keywords) {
         if (input.includes(keyword.toLowerCase())) {
@@ -171,7 +171,7 @@ class SkillRecommender {
    * 计算意图匹配分数
    */
   calculateIntentScore(skill, intents) {
-    if (intents.length === 0) return 0;
+    if (intents.length === 0) {return 0;}
 
     // 获取技能分类对应的意图
     const skillIntents = this.categoryToIntent[skill.category] || [];
@@ -220,7 +220,7 @@ class SkillRecommender {
   calculateUsageScore(skill) {
     const { usage_count = 0, success_count = 0 } = skill;
 
-    if (usage_count === 0) return 0;
+    if (usage_count === 0) {return 0;}
 
     // 成功率
     const successRate = success_count / usage_count;
@@ -300,7 +300,7 @@ class SkillRecommender {
    */
   async getRelatedSkills(skillId, limit = 5) {
     const skill = await this.skillManager.getSkillById(skillId);
-    if (!skill) return [];
+    if (!skill) {return [];}
 
     const allSkills = await this.skillManager.getAllSkills({
       enabled: 1
@@ -346,7 +346,7 @@ class SkillRecommender {
    */
   calculatePopularityScore(skill) {
     const { usage_count = 0, success_count = 0 } = skill;
-    if (usage_count === 0) return 0;
+    if (usage_count === 0) {return 0;}
 
     const successRate = success_count / usage_count;
     const normalizedUsage = Math.min(usage_count / 100, 1);

@@ -6,9 +6,16 @@
     :footer="null"
   >
     <a-spin :spinning="loading">
-      <div v-if="linkDetail" class="link-detail">
+      <div
+        v-if="linkDetail"
+        class="link-detail"
+      >
         <!-- 基本信息 -->
-        <a-descriptions title="基本信息" bordered :column="2">
+        <a-descriptions
+          title="基本信息"
+          bordered
+          :column="2"
+        >
           <a-descriptions-item label="链接ID">
             {{ linkDetail.link_id }}
           </a-descriptions-item>
@@ -36,13 +43,21 @@
           <a-descriptions-item label="最后使用">
             {{ linkDetail.last_used_at ? formatDate(linkDetail.last_used_at) : '未使用' }}
           </a-descriptions-item>
-          <a-descriptions-item label="邀请消息" :span="2" v-if="linkDetail.message">
+          <a-descriptions-item
+            v-if="linkDetail.message"
+            label="邀请消息"
+            :span="2"
+          >
             {{ linkDetail.message }}
           </a-descriptions-item>
         </a-descriptions>
 
         <!-- 邀请链接 -->
-        <a-card title="邀请链接" size="small" style="margin-top: 16px">
+        <a-card
+          title="邀请链接"
+          size="small"
+          style="margin-top: 16px"
+        >
           <div style="display: flex; gap: 12px; align-items: center">
             <a-input
               :value="linkDetail.invitationUrl"
@@ -50,18 +65,26 @@
               style="flex: 1"
             />
             <a-button @click="copyLink">
-              <template #icon><CopyOutlined /></template>
+              <template #icon>
+                <CopyOutlined />
+              </template>
               复制
             </a-button>
             <a-button @click="showQRCode">
-              <template #icon><QrcodeOutlined /></template>
+              <template #icon>
+                <QrcodeOutlined />
+              </template>
               二维码
             </a-button>
           </div>
         </a-card>
 
         <!-- 使用记录 -->
-        <a-card title="使用记录" size="small" style="margin-top: 16px">
+        <a-card
+          title="使用记录"
+          size="small"
+          style="margin-top: 16px"
+        >
           <a-table
             :columns="usageColumns"
             :data-source="linkDetail.usageRecords"
@@ -84,7 +107,10 @@
               </template>
             </template>
           </a-table>
-          <a-empty v-if="!linkDetail.usageRecords || linkDetail.usageRecords.length === 0" description="暂无使用记录" />
+          <a-empty
+            v-if="!linkDetail.usageRecords || linkDetail.usageRecords.length === 0"
+            description="暂无使用记录"
+          />
         </a-card>
 
         <!-- 元数据 -->
@@ -94,7 +120,11 @@
           size="small"
           style="margin-top: 16px"
         >
-          <a-descriptions bordered size="small" :column="1">
+          <a-descriptions
+            bordered
+            size="small"
+            :column="1"
+          >
             <a-descriptions-item
               v-for="(value, key) in linkDetail.metadata"
               :key="key"
@@ -171,7 +201,7 @@ const usageColumns = [
 ];
 
 const loadLinkDetail = async () => {
-  if (!props.linkId) return;
+  if (!props.linkId) {return;}
 
   loading.value = true;
   try {
@@ -254,7 +284,7 @@ const formatDate = (timestamp) => {
 };
 
 const shortenDID = (did) => {
-  if (!did || did.length <= 30) return did;
+  if (!did || did.length <= 30) {return did;}
   return `${did.slice(0, 15)}...${did.slice(-10)}`;
 };
 

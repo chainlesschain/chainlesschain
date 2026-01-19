@@ -4,14 +4,34 @@
     <div class="page-header">
       <div class="header-left">
         <h1>工具管理</h1>
-        <p class="subtitle">管理和测试 AI 助手的工具库</p>
+        <p class="subtitle">
+          管理和测试 AI 助手的工具库
+        </p>
       </div>
       <div class="header-right">
-        <a-space :size="24" align="center">
-          <a-statistic :value="toolStore.totalCount" title="总工具数" />
-          <a-statistic :value="toolStore.enabledCount" title="已启用" :value-style="{ color: '#52c41a' }" />
-          <a-statistic :value="toolStore.builtinCount" title="内置工具" :value-style="{ color: '#1890ff' }" />
-          <a-statistic :value="toolStore.pluginCount" title="插件工具" :value-style="{ color: '#722ed1' }" />
+        <a-space
+          :size="24"
+          align="center"
+        >
+          <a-statistic
+            :value="toolStore.totalCount"
+            title="总工具数"
+          />
+          <a-statistic
+            :value="toolStore.enabledCount"
+            title="已启用"
+            :value-style="{ color: '#52c41a' }"
+          />
+          <a-statistic
+            :value="toolStore.builtinCount"
+            title="内置工具"
+            :value-style="{ color: '#1890ff' }"
+          />
+          <a-statistic
+            :value="toolStore.pluginCount"
+            title="插件工具"
+            :value-style="{ color: '#722ed1' }"
+          />
         </a-space>
       </div>
     </div>
@@ -37,13 +57,27 @@
           style="width: 150px"
           @change="handleCategoryChange"
         >
-          <a-select-option value="all">全部分类</a-select-option>
-          <a-select-option value="file">文件操作</a-select-option>
-          <a-select-option value="code">代码生成</a-select-option>
-          <a-select-option value="project">项目管理</a-select-option>
-          <a-select-option value="system">系统操作</a-select-option>
-          <a-select-option value="output">输出格式化</a-select-option>
-          <a-select-option value="general">通用</a-select-option>
+          <a-select-option value="all">
+            全部分类
+          </a-select-option>
+          <a-select-option value="file">
+            文件操作
+          </a-select-option>
+          <a-select-option value="code">
+            代码生成
+          </a-select-option>
+          <a-select-option value="project">
+            项目管理
+          </a-select-option>
+          <a-select-option value="system">
+            系统操作
+          </a-select-option>
+          <a-select-option value="output">
+            输出格式化
+          </a-select-option>
+          <a-select-option value="general">
+            通用
+          </a-select-option>
         </a-select>
 
         <a-select
@@ -52,65 +86,117 @@
           style="width: 120px"
           @change="handleStatusChange"
         >
-          <a-select-option value="all">全部状态</a-select-option>
-          <a-select-option value="enabled">已启用</a-select-option>
-          <a-select-option value="disabled">已禁用</a-select-option>
+          <a-select-option value="all">
+            全部状态
+          </a-select-option>
+          <a-select-option value="enabled">
+            已启用
+          </a-select-option>
+          <a-select-option value="disabled">
+            已禁用
+          </a-select-option>
         </a-select>
 
-        <a-button @click="handleRefresh" :loading="toolStore.loading">
-          <template #icon><ReloadOutlined /></template>
+        <a-button
+          :loading="toolStore.loading"
+          @click="handleRefresh"
+        >
+          <template #icon>
+            <ReloadOutlined />
+          </template>
           刷新
         </a-button>
       </a-space>
 
       <a-space>
-        <a-button type="primary" @click="handleCreateTool">
-          <template #icon><PlusOutlined /></template>
+        <a-button
+          type="primary"
+          @click="handleCreateTool"
+        >
+          <template #icon>
+            <PlusOutlined />
+          </template>
           创建工具
         </a-button>
-        <a-button type="link" @click="showAnalytics">
-          <template #icon><BarChartOutlined /></template>
+        <a-button
+          type="link"
+          @click="showAnalytics"
+        >
+          <template #icon>
+            <BarChartOutlined />
+          </template>
           使用统计
         </a-button>
-        <a-button type="link" @click="showDependencyGraph">
-          <template #icon><ApartmentOutlined /></template>
+        <a-button
+          type="link"
+          @click="showDependencyGraph"
+        >
+          <template #icon>
+            <ApartmentOutlined />
+          </template>
           依赖关系图
         </a-button>
       </a-space>
     </div>
 
     <!-- 批量操作栏 -->
-    <div v-if="selectedTools.length > 0" class="batch-action-bar">
+    <div
+      v-if="selectedTools.length > 0"
+      class="batch-action-bar"
+    >
       <div class="selection-info">
         已选择 {{ selectedTools.length }} 项
       </div>
       <a-space>
         <a-button @click="handleBatchEnable">
-          <template #icon><CheckOutlined /></template>
+          <template #icon>
+            <CheckOutlined />
+          </template>
           批量启用
         </a-button>
         <a-button @click="handleBatchDisable">
-          <template #icon><CloseOutlined /></template>
+          <template #icon>
+            <CloseOutlined />
+          </template>
           批量禁用
         </a-button>
-        <a-button danger @click="handleBatchDelete">
-          <template #icon><DeleteOutlined /></template>
+        <a-button
+          danger
+          @click="handleBatchDelete"
+        >
+          <template #icon>
+            <DeleteOutlined />
+          </template>
           批量删除
         </a-button>
-        <a-button @click="handleClearSelection">清空选择</a-button>
+        <a-button @click="handleClearSelection">
+          清空选择
+        </a-button>
       </a-space>
     </div>
 
     <!-- 工具列表 -->
-    <div v-if="toolStore.loading" class="loading-container">
-      <a-spin size="large" tip="加载中..."></a-spin>
+    <div
+      v-if="toolStore.loading"
+      class="loading-container"
+    >
+      <a-spin
+        size="large"
+        tip="加载中..."
+      />
     </div>
 
-    <div v-else-if="toolStore.filteredTools.length === 0" class="empty-container">
+    <div
+      v-else-if="toolStore.filteredTools.length === 0"
+      class="empty-container"
+    >
       <a-empty description="暂无工具数据" />
     </div>
 
-    <div v-else class="tool-list">
+    <div
+      v-else
+      class="tool-list"
+    >
       <a-table
         :columns="columns"
         :data-source="toolStore.filteredTools"
@@ -123,7 +209,9 @@
           <template v-if="column.key === 'name'">
             <div class="tool-name-cell">
               <strong>{{ record.display_name || record.name }}</strong>
-              <div class="tool-description">{{ record.description || '-' }}</div>
+              <div class="tool-description">
+                {{ record.description || '-' }}
+              </div>
             </div>
           </template>
 
@@ -147,13 +235,16 @@
             <a-switch
               :checked="record.enabled === 1"
               :loading="switchingIds.has(record.id)"
-              @change="() => handleToggleEnabled(record)"
               size="small"
+              @change="() => handleToggleEnabled(record)"
             />
           </template>
 
           <template v-if="column.key === 'usage'">
-            <a-space direction="vertical" size="small">
+            <a-space
+              direction="vertical"
+              size="small"
+            >
               <div>
                 <span style="color: #8c8c8c; font-size: 12px">调用: </span>
                 <strong>{{ record.usage_count || 0 }}</strong>
@@ -168,22 +259,44 @@
           </template>
 
           <template v-if="column.key === 'source'">
-            <a-tag v-if="record.is_builtin" color="blue">内置</a-tag>
-            <a-tag v-else-if="record.plugin_id" color="purple">
+            <a-tag
+              v-if="record.is_builtin"
+              color="blue"
+            >
+              内置
+            </a-tag>
+            <a-tag
+              v-else-if="record.plugin_id"
+              color="purple"
+            >
               插件
             </a-tag>
-            <a-tag v-else>自定义</a-tag>
+            <a-tag v-else>
+              自定义
+            </a-tag>
           </template>
 
           <template v-if="column.key === 'actions'">
             <a-space size="small">
-              <a-button type="link" size="small" @click="handleViewDetails(record)">
+              <a-button
+                type="link"
+                size="small"
+                @click="handleViewDetails(record)"
+              >
                 详情
               </a-button>
-              <a-button type="link" size="small" @click="handleViewDoc(record)">
+              <a-button
+                type="link"
+                size="small"
+                @click="handleViewDoc(record)"
+              >
                 文档
               </a-button>
-              <a-button type="link" size="small" @click="handleTestTool(record)">
+              <a-button
+                type="link"
+                size="small"
+                @click="handleTestTool(record)"
+              >
                 测试
               </a-button>
             </a-space>
@@ -228,14 +341,14 @@
       v-model:open="testVisible"
       title="测试工具"
       :width="700"
-      @ok="runTest"
       :confirm-loading="testing"
+      @ok="runTest"
     >
       <ToolTester
         v-if="currentTool"
-        :tool="currentTool"
         v-model:params="testParams"
         v-model:result="testResult"
+        :tool="currentTool"
       />
     </a-modal>
 
@@ -266,7 +379,7 @@
       <SkillDependencyGraph
         :skills="allSkills"
         :tools="toolStore.tools"
-        :skillTools="allSkillTools"
+        :skill-tools="allSkillTools"
       />
     </a-modal>
   </div>
@@ -593,7 +706,7 @@ const handleBatchEnable = () => {
         for (const tool of selectedTools.value) {
           if (!tool.enabled) {
             const success = await toolStore.enable(tool.id);
-            if (success) successCount++;
+            if (success) {successCount++;}
           } else {
             successCount++;
           }
@@ -623,7 +736,7 @@ const handleBatchDisable = () => {
         for (const tool of selectedTools.value) {
           if (tool.enabled) {
             const success = await toolStore.disable(tool.id);
-            if (success) successCount++;
+            if (success) {successCount++;}
           } else {
             successCount++;
           }
@@ -657,7 +770,7 @@ const handleBatchDelete = () => {
 
         for (const toolId of toolIds) {
           const success = await toolStore.delete(toolId);
-          if (success) successCount++;
+          if (success) {successCount++;}
         }
 
         message.success(`成功删除 ${successCount} 个工具`);
@@ -719,14 +832,14 @@ const getRiskLabel = (level) => {
 };
 
 const getSuccessRate = (tool) => {
-  if (!tool.usage_count || tool.usage_count === 0) return 0;
+  if (!tool.usage_count || tool.usage_count === 0) {return 0;}
   return ((tool.success_count / tool.usage_count) * 100).toFixed(1);
 };
 
 const getSuccessRateColor = (tool) => {
   const rate = getSuccessRate(tool);
-  if (rate >= 90) return '#52c41a';
-  if (rate >= 70) return '#faad14';
+  if (rate >= 90) {return '#52c41a';}
+  if (rate >= 70) {return '#faad14';}
   return '#ff4d4f';
 };
 </script>

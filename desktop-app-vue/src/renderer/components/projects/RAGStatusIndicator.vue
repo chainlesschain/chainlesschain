@@ -3,7 +3,11 @@
     <a-space>
       <!-- 索引状态显示 -->
       <a-tooltip title="点击查看索引详情">
-        <a-badge :count="indexedFiles" :total="totalFiles" show-zero>
+        <a-badge
+          :count="indexedFiles"
+          :total="totalFiles"
+          show-zero
+        >
           <a-button
             size="small"
             :loading="indexing"
@@ -26,7 +30,9 @@
           :disabled="!projectId"
           @click="reindex"
         >
-          <template #icon><ReloadOutlined /></template>
+          <template #icon>
+            <ReloadOutlined />
+          </template>
         </a-button>
       </a-tooltip>
     </a-space>
@@ -39,13 +45,20 @@
       title="RAG索引状态"
     >
       <template #extra>
-        <a-button type="text" size="small" @click="showDetails = false">
+        <a-button
+          type="text"
+          size="small"
+          @click="showDetails = false"
+        >
           <CloseOutlined />
         </a-button>
       </template>
 
       <!-- 统计信息 -->
-      <a-descriptions size="small" :column="1">
+      <a-descriptions
+        size="small"
+        :column="1"
+      >
         <a-descriptions-item label="总文件数">
           {{ totalFiles }}
         </a-descriptions-item>
@@ -58,13 +71,22 @@
           {{ lastIndexTime ? formatTime(lastIndexTime) : '从未索引' }}
         </a-descriptions-item>
         <a-descriptions-item label="索引状态">
-          <a-tag v-if="indexing" color="processing">
+          <a-tag
+            v-if="indexing"
+            color="processing"
+          >
             <LoadingOutlined /> 索引中...
           </a-tag>
-          <a-tag v-else-if="indexedPercentage >= 100" color="success">
+          <a-tag
+            v-else-if="indexedPercentage >= 100"
+            color="success"
+          >
             <CheckCircleOutlined /> 已完成
           </a-tag>
-          <a-tag v-else color="warning">
+          <a-tag
+            v-else
+            color="warning"
+          >
             <ExclamationCircleOutlined /> 未完成
           </a-tag>
         </a-descriptions-item>
@@ -79,8 +101,14 @@
       />
 
       <!-- 索引日志 -->
-      <div v-if="indexing && currentFile" class="indexing-info">
-        <a-typography-text type="secondary" style="font-size: 12px;">
+      <div
+        v-if="indexing && currentFile"
+        class="indexing-info"
+      >
+        <a-typography-text
+          type="secondary"
+          style="font-size: 12px;"
+        >
           正在索引: {{ currentFile }}
         </a-typography-text>
       </div>
@@ -139,13 +167,13 @@ const currentFile = ref('');
 
 // 计算属性
 const indexedPercentage = computed(() => {
-  if (totalFiles.value === 0) return 0;
+  if (totalFiles.value === 0) {return 0;}
   return Math.round((indexedFiles.value / totalFiles.value) * 100);
 });
 
 // 加载索引统计
 const loadStats = async () => {
-  if (!props.projectId) return;
+  if (!props.projectId) {return;}
 
   try {
     const stats = await window.electronAPI.project.getIndexStats(props.projectId);
@@ -242,7 +270,7 @@ const indexConversations = async () => {
 
 // 格式化时间
 const formatTime = (timestamp) => {
-  if (!timestamp) return '';
+  if (!timestamp) {return '';}
 
   const date = new Date(timestamp);
   const now = new Date();

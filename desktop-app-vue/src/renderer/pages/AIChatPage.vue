@@ -1,26 +1,41 @@
 <template>
   <div class="ai-chat-page">
-
     <!-- 右侧：主内容区 -->
     <div class="main-container">
       <!-- 对话内容区 -->
       <div class="conversation-content">
         <!-- 消息列表 -->
-        <div class="messages-container" ref="messagesContainerRef">
+        <div
+          ref="messagesContainerRef"
+          class="messages-container"
+        >
           <!-- 欢迎消息 -->
-          <div v-if="messages.length === 0" class="welcome-message">
+          <div
+            v-if="messages.length === 0"
+            class="welcome-message"
+          >
             <div class="welcome-icon">
               <RobotOutlined />
             </div>
             <h2>你好！我是 ChainlessChain AI 助手</h2>
             <p>我可以帮你完成各种任务，比如：</p>
             <div class="welcome-features">
-              <div class="feature-tag">💻 代码编写与调试</div>
-              <div class="feature-tag">📄 文档生成与编辑</div>
-              <div class="feature-tag">📊 数据分析与可视化</div>
-              <div class="feature-tag">🌐 网页开发与设计</div>
+              <div class="feature-tag">
+                💻 代码编写与调试
+              </div>
+              <div class="feature-tag">
+                📄 文档生成与编辑
+              </div>
+              <div class="feature-tag">
+                📊 数据分析与可视化
+              </div>
+              <div class="feature-tag">
+                🌐 网页开发与设计
+              </div>
             </div>
-            <p class="welcome-hint">输入你的需求开始对话，或使用 @ 来引用知识库和文件</p>
+            <p class="welcome-hint">
+              输入你的需求开始对话，或使用 @ 来引用知识库和文件
+            </p>
           </div>
 
           <!-- 对话消息 -->
@@ -31,10 +46,18 @@
             :class="`message-${message.role}`"
           >
             <!-- 用户消息 -->
-            <div v-if="message.role === 'user'" class="message-wrapper">
+            <div
+              v-if="message.role === 'user'"
+              class="message-wrapper"
+            >
               <div class="message-avatar">
-                <a-avatar :src="userAvatar" :size="36">
-                  <template #icon><UserOutlined /></template>
+                <a-avatar
+                  :src="userAvatar"
+                  :size="36"
+                >
+                  <template #icon>
+                    <UserOutlined />
+                  </template>
                 </a-avatar>
               </div>
               <div class="message-content">
@@ -42,14 +65,22 @@
                   <span class="message-author">{{ userName || '你' }}</span>
                   <span class="message-time">{{ formatTime(message.timestamp) }}</span>
                 </div>
-                <div class="message-text">{{ message.content }}</div>
+                <div class="message-text">
+                  {{ message.content }}
+                </div>
               </div>
             </div>
 
             <!-- AI消息 -->
-            <div v-else-if="message.role === 'assistant'" class="message-wrapper">
+            <div
+              v-else-if="message.role === 'assistant'"
+              class="message-wrapper"
+            >
               <div class="message-avatar">
-                <a-avatar :size="36" style="background: linear-gradient(135deg, #667EEA 0%, #764BA2 100%)">
+                <a-avatar
+                  :size="36"
+                  style="background: linear-gradient(135deg, #667EEA 0%, #764BA2 100%)"
+                >
                   <RobotOutlined />
                 </a-avatar>
               </div>
@@ -58,10 +89,16 @@
                   <span class="message-author">AI 助手</span>
                   <span class="message-time">{{ formatTime(message.timestamp) }}</span>
                 </div>
-                <div class="message-text" v-html="renderMarkdown(message.content)"></div>
+                <div
+                  class="message-text"
+                  v-html="renderMarkdown(message.content)"
+                />
 
                 <!-- 执行步骤 -->
-                <div v-if="message.steps && message.steps.length > 0" class="message-steps">
+                <div
+                  v-if="message.steps && message.steps.length > 0"
+                  class="message-steps"
+                >
                   <StepDisplay
                     v-for="step in message.steps"
                     :key="step.id"
@@ -73,7 +110,10 @@
                 </div>
 
                 <!-- 预览内容 -->
-                <div v-if="message.preview" class="message-preview">
+                <div
+                  v-if="message.preview"
+                  class="message-preview"
+                >
                   <BrowserPreview
                     :preview-type="message.preview.type"
                     :url="message.preview.url"
@@ -88,10 +128,16 @@
           </div>
 
           <!-- AI思考中 -->
-          <div v-if="isThinking" class="message-item message-assistant">
+          <div
+            v-if="isThinking"
+            class="message-item message-assistant"
+          >
             <div class="message-wrapper">
               <div class="message-avatar">
-                <a-avatar :size="36" style="background: linear-gradient(135deg, #667EEA 0%, #764BA2 100%)">
+                <a-avatar
+                  :size="36"
+                  style="background: linear-gradient(135deg, #667EEA 0%, #764BA2 100%)"
+                >
                   <RobotOutlined />
                 </a-avatar>
               </div>
@@ -154,7 +200,7 @@ const userAvatar = computed(() => authStore.currentUser?.avatar || '');
 
 // 输入框占位符
 const inputPlaceholder = computed(() => {
-  if (isThinking.value) return 'AI 正在思考中，请稍候...';
+  if (isThinking.value) {return 'AI 正在思考中，请稍候...';}
   return '给我发消息或描述你的任务...';
 });
 
@@ -229,7 +275,7 @@ const handleNewConversation = async () => {
 
 // 点击对话
 const handleConversationClick = async (conversation) => {
-  if (activeConversationId.value === conversation.id) return;
+  if (activeConversationId.value === conversation.id) {return;}
 
   activeConversationId.value = conversation.id;
   await loadConversationMessages(conversation.id);
@@ -434,7 +480,7 @@ marked.use({ renderer });
 
 // 渲染Markdown（使用 marked 库）
 const renderMarkdown = (content) => {
-  if (!content) return '';
+  if (!content) {return '';}
 
   try {
     // 使用 marked 解析 markdown - marked 会自动转义 HTML 标签
@@ -451,7 +497,7 @@ const renderMarkdown = (content) => {
 
 // 格式化时间
 const formatTime = (timestamp) => {
-  if (!timestamp) return '';
+  if (!timestamp) {return '';}
   const date = new Date(timestamp);
   const now = new Date();
 
@@ -479,10 +525,10 @@ const enhanceCodeBlocks = () => {
 
     codeBlocks.forEach((wrapper) => {
       // 如果已经添加过按钮，跳过
-      if (wrapper.querySelector('.code-copy-btn')) return;
+      if (wrapper.querySelector('.code-copy-btn')) {return;}
 
       const code = wrapper.getAttribute('data-code');
-      if (!code) return;
+      if (!code) {return;}
 
       // 创建复制按钮
       const copyBtn = document.createElement('button');

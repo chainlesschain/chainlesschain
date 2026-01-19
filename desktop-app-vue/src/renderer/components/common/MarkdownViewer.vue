@@ -1,9 +1,15 @@
 <template>
   <div class="markdown-viewer">
-    <div v-if="loading" class="loading">
+    <div
+      v-if="loading"
+      class="loading"
+    >
       <a-spin />
     </div>
-    <div v-else-if="error" class="error">
+    <div
+      v-else-if="error"
+      class="error"
+    >
       <a-alert
         type="error"
         :message="error"
@@ -14,9 +20,9 @@
       v-else
       ref="contentRef"
       class="markdown-content"
-      v-html="renderedContent"
       @click="handleClick"
-    ></div>
+      v-html="renderedContent"
+    />
   </div>
 </template>
 
@@ -74,7 +80,7 @@ marked.setOptions({
 
 const renderedContent = computed(() => {
   const content = markdownContent.value || props.content;
-  if (!content) return '';
+  if (!content) {return '';}
 
   try {
     // marked.parse() 会自动转义 HTML 标签
@@ -92,7 +98,7 @@ const renderedContent = computed(() => {
 
 // 从IPC加载文档
 const loadDocFromPath = async () => {
-  if (!props.docPath) return;
+  if (!props.docPath) {return;}
 
   loading.value = true;
   error.value = '';
@@ -115,7 +121,7 @@ const loadDocFromPath = async () => {
 
 // 处理链接点击
 const handleClick = (event) => {
-  if (!props.enableLinkNavigation) return;
+  if (!props.enableLinkNavigation) {return;}
 
   const target = event.target;
 
@@ -123,7 +129,7 @@ const handleClick = (event) => {
     event.preventDefault();
     const href = target.getAttribute('href');
 
-    if (!href) return;
+    if (!href) {return;}
 
     // 内部锚点链接
     if (href.startsWith('#')) {

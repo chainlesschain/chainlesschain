@@ -1,7 +1,10 @@
 <template>
   <div class="task-execution-status">
     <!-- 步骤列表 (可折叠) -->
-    <div v-if="steps.length > 0" class="steps-container">
+    <div
+      v-if="steps.length > 0"
+      class="steps-container"
+    >
       <div
         class="steps-header"
         @click="toggleStepsExpanded"
@@ -12,7 +15,10 @@
         <span class="steps-title">{{ steps.length }} 个步骤</span>
       </div>
 
-      <div v-show="stepsExpanded" class="steps-list">
+      <div
+        v-show="stepsExpanded"
+        class="steps-list"
+      >
         <div
           v-for="(step, index) in steps"
           :key="step.id || index"
@@ -20,12 +26,20 @@
         >
           <div class="step-icon">
             <CheckCircleOutlined v-if="step.status === 'completed'" />
-            <LoadingOutlined v-else-if="step.status === 'running'" spin />
+            <LoadingOutlined
+              v-else-if="step.status === 'running'"
+              spin
+            />
             <ClockCircleOutlined v-else />
           </div>
           <div class="step-content">
-            <div class="step-title">{{ step.title }}</div>
-            <div v-if="step.description" class="step-description">
+            <div class="step-title">
+              {{ step.title }}
+            </div>
+            <div
+              v-if="step.description"
+              class="step-description"
+            >
               {{ step.description }}
             </div>
           </div>
@@ -34,13 +48,21 @@
     </div>
 
     <!-- 当前正在执行的任务 -->
-    <div v-if="currentTask" class="current-task">
+    <div
+      v-if="currentTask"
+      class="current-task"
+    >
       <div class="task-icon">
         <LoadingOutlined spin />
       </div>
       <div class="task-content">
-        <div class="task-title">{{ currentTask.title }}</div>
-        <div v-if="currentTask.progress !== undefined" class="task-progress">
+        <div class="task-title">
+          {{ currentTask.title }}
+        </div>
+        <div
+          v-if="currentTask.progress !== undefined"
+          class="task-progress"
+        >
           <a-progress
             :percent="currentTask.progress"
             :show-info="false"
@@ -51,7 +73,10 @@
     </div>
 
     <!-- 正在思考状态 -->
-    <div v-if="thinking" class="thinking-status">
+    <div
+      v-if="thinking"
+      class="thinking-status"
+    >
       <span class="thinking-icon">
         <LoadingOutlined spin />
       </span>
@@ -59,7 +84,10 @@
     </div>
 
     <!-- 生成的文件列表 -->
-    <div v-if="generatedFiles.length > 0" class="generated-files">
+    <div
+      v-if="generatedFiles.length > 0"
+      class="generated-files"
+    >
       <div class="files-header">
         <FileOutlined />
         <span>{{ action }}文件</span>
@@ -75,8 +103,13 @@
             <component :is="getFileIcon(file.type)" />
           </div>
           <div class="file-info">
-            <div class="file-name">{{ file.name }}</div>
-            <div v-if="file.description" class="file-description">
+            <div class="file-name">
+              {{ file.name }}
+            </div>
+            <div
+              v-if="file.description"
+              class="file-description"
+            >
               {{ file.description }}
             </div>
           </div>

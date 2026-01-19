@@ -206,8 +206,8 @@ class ExtendedTools12 {
           appliedOperations.push(`旋转 ${angle}度`);
         }
         if (operations.flip) {
-          if (operations.flip.horizontal) appliedOperations.push('水平翻转');
-          if (operations.flip.vertical) appliedOperations.push('垂直翻转');
+          if (operations.flip.horizontal) {appliedOperations.push('水平翻转');}
+          if (operations.flip.vertical) {appliedOperations.push('垂直翻转');}
         }
 
         await new Promise(resolve => setTimeout(resolve, 100));
@@ -264,18 +264,18 @@ class ExtendedTools12 {
         const appliedEffects = [];
 
         // 支持filters对象（新格式）
-        if (filters.grayscale) appliedEffects.push('灰度');
-        if (filters.blur) appliedEffects.push(`模糊(σ=${filters.blur.sigma || 3})`);
-        if (filters.sharpen) appliedEffects.push(`锐化(σ=${filters.sharpen.sigma || 1})`);
-        if (filters.brightness) appliedEffects.push(`亮度(${filters.brightness.value || 1.0})`);
-        if (filters.negate) appliedEffects.push('反色');
-        if (filters.normalize) appliedEffects.push('归一化');
+        if (filters.grayscale) {appliedEffects.push('灰度');}
+        if (filters.blur) {appliedEffects.push(`模糊(σ=${filters.blur.sigma || 3})`);}
+        if (filters.sharpen) {appliedEffects.push(`锐化(σ=${filters.sharpen.sigma || 1})`);}
+        if (filters.brightness) {appliedEffects.push(`亮度(${filters.brightness.value || 1.0})`);}
+        if (filters.negate) {appliedEffects.push('反色');}
+        if (filters.normalize) {appliedEffects.push('归一化');}
 
         // 兼容旧格式
-        if (filter) appliedEffects.push(`滤镜: ${filterNames[filter] || filter}`);
-        if (brightness !== 0) appliedEffects.push(`亮度: ${brightness > 0 ? '+' : ''}${brightness}`);
-        if (contrast !== 0) appliedEffects.push(`对比度: ${contrast > 0 ? '+' : ''}${contrast}`);
-        if (watermark) appliedEffects.push(`水印: ${watermark.text || '已添加'}`);
+        if (filter) {appliedEffects.push(`滤镜: ${filterNames[filter] || filter}`);}
+        if (brightness !== 0) {appliedEffects.push(`亮度: ${brightness > 0 ? '+' : ''}${brightness}`);}
+        if (contrast !== 0) {appliedEffects.push(`对比度: ${contrast > 0 ? '+' : ''}${contrast}`);}
+        if (watermark) {appliedEffects.push(`水印: ${watermark.text || '已添加'}`);}
 
         await new Promise(resolve => setTimeout(resolve, 120));
 
@@ -1120,10 +1120,10 @@ class ExtendedTools12 {
         if (custom_characters) {
           chars = custom_characters;
         } else {
-          if (include_lowercase) chars += 'abcdefghijklmnopqrstuvwxyz';
-          if (include_uppercase) chars += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-          if (include_numbers) chars += '0123456789';
-          if (include_symbols) chars += '!@#$%^&*()_+-=[]{}|;:,.<>?';
+          if (include_lowercase) {chars += 'abcdefghijklmnopqrstuvwxyz';}
+          if (include_uppercase) {chars += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';}
+          if (include_numbers) {chars += '0123456789';}
+          if (include_symbols) {chars += '!@#$%^&*()_+-=[]{}|;:,.<>?';}
 
           if (exclude_ambiguous) {
             chars = chars.replace(/[0O1lI]/g, '');
@@ -1152,12 +1152,12 @@ class ExtendedTools12 {
 
           // 评估密码强度
           let strength = 0;
-          if (password.length >= 12) strength += 25;
-          if (password.length >= 16) strength += 25;
-          if (/[a-z]/.test(password)) strength += 10;
-          if (/[A-Z]/.test(password)) strength += 10;
-          if (/[0-9]/.test(password)) strength += 15;
-          if (/[^a-zA-Z0-9]/.test(password)) strength += 15;
+          if (password.length >= 12) {strength += 25;}
+          if (password.length >= 16) {strength += 25;}
+          if (/[a-z]/.test(password)) {strength += 10;}
+          if (/[A-Z]/.test(password)) {strength += 10;}
+          if (/[0-9]/.test(password)) {strength += 15;}
+          if (/[^a-zA-Z0-9]/.test(password)) {strength += 15;}
 
           const strengthLevel = strength >= 75 ? 'very_strong' :
                                strength >= 50 ? 'strong' :

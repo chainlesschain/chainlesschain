@@ -230,8 +230,8 @@ class ArchiveManager {
 
     // 排序：文件夹在前，文件在后
     flatList.sort((a, b) => {
-      if (a.isDirectory && !b.isDirectory) return -1;
-      if (!a.isDirectory && b.isDirectory) return 1;
+      if (a.isDirectory && !b.isDirectory) {return -1;}
+      if (!a.isDirectory && b.isDirectory) {return 1;}
       return a.name.localeCompare(b.name);
     });
 

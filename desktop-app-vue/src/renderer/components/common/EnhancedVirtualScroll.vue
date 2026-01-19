@@ -23,7 +23,10 @@
           :style="getItemStyle(item)"
           class="virtual-scroll-item"
         >
-          <slot :item="item.data" :index="item.index">
+          <slot
+            :item="item.data"
+            :index="item.index"
+          >
             {{ item.data }}
           </slot>
         </div>
@@ -31,13 +34,19 @@
     </div>
 
     <!-- 加载更多 -->
-    <div v-if="loading" class="virtual-scroll-loading">
+    <div
+      v-if="loading"
+      class="virtual-scroll-loading"
+    >
       <a-spin size="small" />
       <span class="loading-text">{{ loadingText }}</span>
     </div>
 
     <!-- 空状态 -->
-    <div v-if="!loading && items.length === 0" class="virtual-scroll-empty">
+    <div
+      v-if="!loading && items.length === 0"
+      class="virtual-scroll-empty"
+    >
       <slot name="empty">
         <a-empty :description="emptyText" />
       </slot>
@@ -188,7 +197,7 @@ const calculateOffsets = () => {
 
 // 查找起始索引（二分查找优化）
 const findStartIndex = () => {
-  if (!props.enabled) return 0;
+  if (!props.enabled) {return 0;}
 
   let left = 0;
   let right = props.items.length - 1;
@@ -211,14 +220,14 @@ const findStartIndex = () => {
 
 // 查找结束索引
 const findEndIndex = () => {
-  if (!props.enabled) return props.items.length - 1;
+  if (!props.enabled) {return props.items.length - 1;}
 
   const viewportBottom = scrollTop.value + containerHeight.value;
   let index = findStartIndex();
 
   while (index < props.items.length) {
     const offset = itemOffsets.value.get(index) || 0;
-    if (offset > viewportBottom) break;
+    if (offset > viewportBottom) {break;}
     index++;
   }
 
@@ -251,7 +260,7 @@ const visibleItems = computed(() => {
 
 // 偏移量
 const offsetY = computed(() => {
-  if (!props.enabled || visibleItems.value.length === 0) return 0;
+  if (!props.enabled || visibleItems.value.length === 0) {return 0;}
   const firstIndex = visibleItems.value[0].index;
   return itemOffsets.value.get(firstIndex) || 0;
 });
@@ -308,7 +317,7 @@ const scrollToTop = () => {
 
 // 滚动到指定索引
 const scrollToIndex = (index, behavior = 'smooth') => {
-  if (!containerRef.value || index < 0 || index >= props.items.length) return;
+  if (!containerRef.value || index < 0 || index >= props.items.length) {return;}
 
   calculateOffsets();
   const offset = itemOffsets.value.get(index) || 0;
@@ -331,7 +340,7 @@ const scrollTo = (top, behavior = 'smooth') => {
 
 // 更新项高度（动态高度模式）
 const updateItemHeight = (index, height) => {
-  if (props.itemHeight) return; // 固定高度模式不需要更新
+  if (props.itemHeight) {return;} // 固定高度模式不需要更新
 
   const oldHeight = itemHeights.value.get(index);
   if (oldHeight !== height) {
@@ -342,7 +351,7 @@ const updateItemHeight = (index, height) => {
 
 // 测量所有项的高度（用于动态高度）
 const measureItemHeights = async () => {
-  if (props.itemHeight || !containerRef.value) return;
+  if (props.itemHeight || !containerRef.value) {return;}
 
   await nextTick();
 

@@ -1,21 +1,33 @@
 <template>
   <div class="graph-analytics-panel">
-    <a-card title="图分析工具" size="small">
-      <a-tabs v-model:activeKey="activeTab">
+    <a-card
+      title="图分析工具"
+      size="small"
+    >
+      <a-tabs v-model:active-key="activeTab">
         <!-- 中心性分析 -->
-        <a-tab-pane key="centrality" tab="中心性分析">
-          <a-space direction="vertical" style="width: 100%">
+        <a-tab-pane
+          key="centrality"
+          tab="中心性分析"
+        >
+          <a-space
+            direction="vertical"
+            style="width: 100%"
+          >
             <a-button
               type="primary"
               block
-              @click="calculateCentrality"
               :loading="calculating"
+              @click="calculateCentrality"
             >
               <CalculatorOutlined />
               计算中心性指标
             </a-button>
 
-            <div v-if="centralityResults" class="results">
+            <div
+              v-if="centralityResults"
+              class="results"
+            >
               <h4>度中心性 Top 10</h4>
               <a-list
                 size="small"
@@ -66,19 +78,28 @@
         </a-tab-pane>
 
         <!-- 社区检测 -->
-        <a-tab-pane key="community" tab="社区检测">
-          <a-space direction="vertical" style="width: 100%">
+        <a-tab-pane
+          key="community"
+          tab="社区检测"
+        >
+          <a-space
+            direction="vertical"
+            style="width: 100%"
+          >
             <a-button
               type="primary"
               block
-              @click="detectCommunities"
               :loading="detecting"
+              @click="detectCommunities"
             >
               <ClusterOutlined />
               检测社区结构
             </a-button>
 
-            <div v-if="communityResults" class="results">
+            <div
+              v-if="communityResults"
+              class="results"
+            >
               <a-statistic
                 title="社区数量"
                 :value="communityResults.count"
@@ -111,8 +132,14 @@
         </a-tab-pane>
 
         <!-- 路径分析 -->
-        <a-tab-pane key="path" tab="路径分析">
-          <a-space direction="vertical" style="width: 100%">
+        <a-tab-pane
+          key="path"
+          tab="路径分析"
+        >
+          <a-space
+            direction="vertical"
+            style="width: 100%"
+          >
             <a-select
               v-model:value="pathSource"
               placeholder="选择起点"
@@ -134,15 +161,18 @@
             <a-button
               type="primary"
               block
-              @click="findShortestPath"
               :loading="finding"
               :disabled="!pathSource || !pathTarget"
+              @click="findShortestPath"
             >
               <AimOutlined />
               查找最短路径
             </a-button>
 
-            <div v-if="pathResult" class="results">
+            <div
+              v-if="pathResult"
+              class="results"
+            >
               <a-result
                 v-if="pathResult.exists"
                 status="success"
@@ -178,8 +208,14 @@
         </a-tab-pane>
 
         <!-- 邻居探索 -->
-        <a-tab-pane key="neighbors" tab="邻居探索">
-          <a-space direction="vertical" style="width: 100%">
+        <a-tab-pane
+          key="neighbors"
+          tab="邻居探索"
+        >
+          <a-space
+            direction="vertical"
+            style="width: 100%"
+          >
             <a-select
               v-model:value="neighborNode"
               placeholder="选择节点"
@@ -199,15 +235,18 @@
             <a-button
               type="primary"
               block
-              @click="exploreNeighbors"
               :loading="exploring"
               :disabled="!neighborNode"
+              @click="exploreNeighbors"
             >
               <RadarChartOutlined />
               探索邻居节点
             </a-button>
 
-            <div v-if="neighborResults" class="results">
+            <div
+              v-if="neighborResults"
+              class="results"
+            >
               <a-statistic
                 title="邻居节点数量"
                 :value="neighborResults.size"
@@ -230,7 +269,9 @@
                 :key="hop"
                 class="hop-group"
               >
-                <a-tag color="blue">{{ hop }}跳</a-tag>
+                <a-tag color="blue">
+                  {{ hop }}跳
+                </a-tag>
                 <span>{{ nodes.length }} 个节点</span>
               </div>
             </div>
@@ -238,28 +279,48 @@
         </a-tab-pane>
 
         <!-- 导出 -->
-        <a-tab-pane key="export" tab="导出">
-          <a-space direction="vertical" style="width: 100%">
+        <a-tab-pane
+          key="export"
+          tab="导出"
+        >
+          <a-space
+            direction="vertical"
+            style="width: 100%"
+          >
             <a-select
               v-model:value="exportFormat"
               placeholder="选择导出格式"
               style="width: 100%"
             >
-              <a-select-option value="graphml">GraphML (.graphml)</a-select-option>
-              <a-select-option value="gexf">GEXF (.gexf)</a-select-option>
-              <a-select-option value="json">JSON (.json)</a-select-option>
-              <a-select-option value="csv">CSV (.csv)</a-select-option>
-              <a-select-option value="dot">DOT (.dot)</a-select-option>
-              <a-select-option value="png">PNG图像 (.png)</a-select-option>
-              <a-select-option value="svg">SVG矢量图 (.svg)</a-select-option>
+              <a-select-option value="graphml">
+                GraphML (.graphml)
+              </a-select-option>
+              <a-select-option value="gexf">
+                GEXF (.gexf)
+              </a-select-option>
+              <a-select-option value="json">
+                JSON (.json)
+              </a-select-option>
+              <a-select-option value="csv">
+                CSV (.csv)
+              </a-select-option>
+              <a-select-option value="dot">
+                DOT (.dot)
+              </a-select-option>
+              <a-select-option value="png">
+                PNG图像 (.png)
+              </a-select-option>
+              <a-select-option value="svg">
+                SVG矢量图 (.svg)
+              </a-select-option>
             </a-select>
 
             <a-button
               type="primary"
               block
-              @click="exportGraph"
               :loading="exporting"
               :disabled="!exportFormat"
+              @click="exportGraph"
             >
               <ExportOutlined />
               导出图谱
@@ -318,7 +379,7 @@ const exporting = ref(false);
 // 中心性分析
 const centralityResults = ref(null);
 const topDegreeCentrality = computed(() => {
-  if (!centralityResults.value) return [];
+  if (!centralityResults.value) {return [];}
 
   return Object.entries(centralityResults.value.degree)
     .map(([id, data]) => ({
@@ -331,7 +392,7 @@ const topDegreeCentrality = computed(() => {
 });
 
 const topPageRank = computed(() => {
-  if (!centralityResults.value) return [];
+  if (!centralityResults.value) {return [];}
 
   return Object.entries(centralityResults.value.pageRank)
     .map(([id, score]) => ({
@@ -346,7 +407,7 @@ const topPageRank = computed(() => {
 // 社区检测
 const communityResults = ref(null);
 const communitiesGrouped = computed(() => {
-  if (!communityResults.value) return {};
+  if (!communityResults.value) {return {};}
 
   const groups = {};
   Object.entries(communityResults.value.communities).forEach(([nodeId, communityId]) => {
@@ -369,7 +430,7 @@ const neighborNode = ref(null);
 const neighborHops = ref(2);
 const neighborResults = ref(null);
 const neighborsGrouped = computed(() => {
-  if (!neighborResults.value) return {};
+  if (!neighborResults.value) {return {};}
 
   const groups = {};
   neighborResults.value.forEach((hop, nodeId) => {

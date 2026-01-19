@@ -1,45 +1,72 @@
 <template>
   <div class="enhanced-error-boundary">
-    <slot v-if="!hasError"></slot>
+    <slot v-if="!hasError" />
 
     <transition name="error-fade">
-      <div v-if="hasError" class="error-fallback" :class="{ 'error-fallback--fullscreen': fullscreen }">
+      <div
+        v-if="hasError"
+        class="error-fallback"
+        :class="{ 'error-fallback--fullscreen': fullscreen }"
+      >
         <a-result
           :status="errorStatus"
           :title="errorTitle"
           :sub-title="errorSubtitle"
         >
           <template #icon>
-            <component :is="errorIcon" class="error-icon" />
+            <component
+              :is="errorIcon"
+              class="error-icon"
+            />
           </template>
 
           <template #extra>
-            <a-space direction="vertical" :size="12" style="width: 100%">
+            <a-space
+              direction="vertical"
+              :size="12"
+              style="width: 100%"
+            >
               <!-- 操作按钮 -->
               <a-space>
-                <a-button type="primary" @click="handleReset" :loading="resetting">
+                <a-button
+                  type="primary"
+                  :loading="resetting"
+                  @click="handleReset"
+                >
                   <ReloadOutlined />
                   {{ resetButtonText }}
                 </a-button>
 
-                <a-button v-if="showDetails" @click="toggleDetails">
+                <a-button
+                  v-if="showDetails"
+                  @click="toggleDetails"
+                >
                   <FileTextOutlined />
                   {{ detailsVisible ? '隐藏详情' : '查看详情' }}
                 </a-button>
 
-                <a-button @click="handleReport" :loading="reporting">
+                <a-button
+                  :loading="reporting"
+                  @click="handleReport"
+                >
                   <BugOutlined />
                   报告问题
                 </a-button>
 
-                <a-button v-if="showHome" @click="handleGoHome">
+                <a-button
+                  v-if="showHome"
+                  @click="handleGoHome"
+                >
                   <HomeOutlined />
                   返回首页
                 </a-button>
               </a-space>
 
               <!-- 重试倒计时 -->
-              <div v-if="autoRetry && retryCount < maxRetries" class="retry-countdown">
+              <div
+                v-if="autoRetry && retryCount < maxRetries"
+                class="retry-countdown"
+              >
                 <a-progress
                   :percent="retryProgress"
                   :show-info="false"
@@ -53,14 +80,25 @@
 
               <!-- 错误详情 -->
               <transition name="details-slide">
-                <div v-if="detailsVisible && errorDetails" class="error-details">
-                  <a-tabs v-model:activeKey="activeTab" size="small">
+                <div
+                  v-if="detailsVisible && errorDetails"
+                  class="error-details"
+                >
+                  <a-tabs
+                    v-model:active-key="activeTab"
+                    size="small"
+                  >
                     <!-- 错误信息 -->
-                    <a-tab-pane key="error" tab="错误信息">
+                    <a-tab-pane
+                      key="error"
+                      tab="错误信息"
+                    >
                       <div class="error-info">
                         <div class="info-item">
                           <span class="info-label">错误类型:</span>
-                          <a-tag color="red">{{ errorInfo?.error?.name || 'Unknown' }}</a-tag>
+                          <a-tag color="red">
+                            {{ errorInfo?.error?.name || 'Unknown' }}
+                          </a-tag>
                         </div>
                         <div class="info-item">
                           <span class="info-label">错误消息:</span>
@@ -78,14 +116,20 @@
                     </a-tab-pane>
 
                     <!-- 堆栈跟踪 -->
-                    <a-tab-pane key="stack" tab="堆栈跟踪">
+                    <a-tab-pane
+                      key="stack"
+                      tab="堆栈跟踪"
+                    >
                       <div class="stack-trace">
                         <pre>{{ errorInfo?.error?.stack || '无堆栈信息' }}</pre>
                       </div>
                     </a-tab-pane>
 
                     <!-- 组件信息 -->
-                    <a-tab-pane key="component" tab="组件信息">
+                    <a-tab-pane
+                      key="component"
+                      tab="组件信息"
+                    >
                       <div class="component-info">
                         <div class="info-item">
                           <span class="info-label">生命周期钩子:</span>
@@ -99,7 +143,10 @@
                     </a-tab-pane>
 
                     <!-- 环境信息 -->
-                    <a-tab-pane key="environment" tab="环境信息">
+                    <a-tab-pane
+                      key="environment"
+                      tab="环境信息"
+                    >
                       <div class="environment-info">
                         <div class="info-item">
                           <span class="info-label">浏览器:</span>
@@ -119,7 +166,10 @@
 
                   <!-- 复制按钮 -->
                   <div class="details-actions">
-                    <a-button size="small" @click="copyErrorDetails">
+                    <a-button
+                      size="small"
+                      @click="copyErrorDetails"
+                    >
                       <CopyOutlined />
                       复制错误信息
                     </a-button>
@@ -429,23 +479,23 @@ const copyErrorDetails = async () => {
 // 获取组件名称
 const getComponentName = () => {
   const instance = errorInfo.value?.instance;
-  if (!instance) return 'Unknown';
+  if (!instance) {return 'Unknown';}
   return instance.$options?.name || instance.$options?.__name || 'Anonymous';
 };
 
 // 获取浏览器信息
 const getBrowserInfo = () => {
   const ua = navigator.userAgent;
-  if (ua.includes('Chrome')) return 'Chrome';
-  if (ua.includes('Firefox')) return 'Firefox';
-  if (ua.includes('Safari')) return 'Safari';
-  if (ua.includes('Edge')) return 'Edge';
+  if (ua.includes('Chrome')) {return 'Chrome';}
+  if (ua.includes('Firefox')) {return 'Firefox';}
+  if (ua.includes('Safari')) {return 'Safari';}
+  if (ua.includes('Edge')) {return 'Edge';}
   return 'Unknown';
 };
 
 // 格式化时间
 const formatTime = (timestamp) => {
-  if (!timestamp) return 'Unknown';
+  if (!timestamp) {return 'Unknown';}
   return new Date(timestamp).toLocaleString('zh-CN', {
     year: 'numeric',
     month: '2-digit',

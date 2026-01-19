@@ -176,30 +176,30 @@ class IntentFusion {
    * @returns {Object|null} - 融合结果 {intent, consumed, strategy}
    */
   _tryRuleFusion(intents, context) {
-    if (intents.length < 2) return null;
+    if (intents.length < 2) {return null;}
 
     // 策略1: 同文件操作合并
     if (this.config.strategies.includes('same_file_operations')) {
       const sameFileResult = this._fuseSameFileOperations(intents);
-      if (sameFileResult) return sameFileResult;
+      if (sameFileResult) {return sameFileResult;}
     }
 
     // 策略2: 顺序操作合并
     if (this.config.strategies.includes('sequence_operations')) {
       const sequenceResult = this._fuseSequenceOperations(intents);
-      if (sequenceResult) return sequenceResult;
+      if (sequenceResult) {return sequenceResult;}
     }
 
     // 策略3: 批量操作合并
     if (this.config.strategies.includes('batch_operations')) {
       const batchResult = this._fuseBatchOperations(intents);
-      if (batchResult) return batchResult;
+      if (batchResult) {return batchResult;}
     }
 
     // 策略4: 依赖操作合并
     if (this.config.strategies.includes('dependency_operations')) {
       const depResult = this._fuseDependencyOperations(intents);
-      if (depResult) return depResult;
+      if (depResult) {return depResult;}
     }
 
     return null;
@@ -210,7 +210,7 @@ class IntentFusion {
    * 例如: CREATE_FILE + WRITE_FILE -> CREATE_AND_WRITE_FILE
    */
   _fuseSameFileOperations(intents) {
-    if (intents.length < 2) return null;
+    if (intents.length < 2) {return null;}
 
     const [first, second] = intents;
 
@@ -283,7 +283,7 @@ class IntentFusion {
    * 例如: GIT_ADD + GIT_COMMIT + GIT_PUSH -> GIT_COMMIT_AND_PUSH
    */
   _fuseSequenceOperations(intents) {
-    if (intents.length < 2) return null;
+    if (intents.length < 2) {return null;}
 
     // Git操作序列
     if (intents[0].type === 'GIT_ADD' && intents[1].type === 'GIT_COMMIT') {
@@ -414,7 +414,7 @@ class IntentFusion {
    * 例如: 多个CREATE_FILE -> BATCH_CREATE_FILES
    */
   _fuseBatchOperations(intents) {
-    if (intents.length < 2) return null;
+    if (intents.length < 2) {return null;}
 
     // 找到连续的相同类型意图
     const firstType = intents[0].type;
@@ -427,7 +427,7 @@ class IntentFusion {
       }
     }
 
-    if (sameTypeCount < 2) return null; // 至少需要2个相同类型才能批量
+    if (sameTypeCount < 2) {return null;} // 至少需要2个相同类型才能批量
 
     // 批量文件创建
     if (firstType === 'CREATE_FILE') {
@@ -471,7 +471,7 @@ class IntentFusion {
       const images = [];
 
       for (let i = 0; i < sameTypeCount; i++) {
-        if (intents[i].params?.quality !== firstQuality) break;
+        if (intents[i].params?.quality !== firstQuality) {break;}
 
         const imagePath = intents[i].params?.imagePath || intents[i].params?.filePath;
         if (imagePath) {
@@ -525,7 +525,7 @@ class IntentFusion {
    * 例如: IMPORT_CSV + VALIDATE_DATA -> IMPORT_AND_VALIDATE_CSV
    */
   _fuseDependencyOperations(intents) {
-    if (intents.length < 2) return null;
+    if (intents.length < 2) {return null;}
 
     const [first, second] = intents;
 
@@ -726,7 +726,7 @@ ${intentsJson}
    * 记录融合历史到数据库
    */
   async _recordFusion(sessionId, originalIntents, fusedIntents, strategy, context) {
-    if (!this.db) return;
+    if (!this.db) {return;}
 
     try {
       const originalCount = originalIntents.length;
@@ -775,8 +775,8 @@ ${intentsJson}
       const { userId, startTime, endTime } = options;
 
       // 构建查询条件
-      let whereClauses = [];
-      let params = [];
+      const whereClauses = [];
+      const params = [];
 
       if (userId) {
         whereClauses.push('user_id = ?');

@@ -2,34 +2,63 @@
   <a-modal
     :open="open"
     :title="isBatch ? '批量导出会话' : '导出会话'"
-    @update:open="$emit('update:open', $event)"
-    @ok="handleExport"
     :confirm-loading="exporting"
     ok-text="导出"
+    @update:open="$emit('update:open', $event)"
+    @ok="handleExport"
   >
-    <a-form :model="form" layout="vertical">
+    <a-form
+      :model="form"
+      layout="vertical"
+    >
       <a-form-item label="导出格式">
         <a-radio-group v-model:value="form.format">
-          <a-radio-button value="json"> <FileOutlined /> JSON </a-radio-button>
-          <a-radio-button value="markdown" :disabled="isBatch">
+          <a-radio-button value="json">
+            <FileOutlined /> JSON
+          </a-radio-button>
+          <a-radio-button
+            value="markdown"
+            :disabled="isBatch"
+          >
             <FileMarkdownOutlined /> Markdown
           </a-radio-button>
         </a-radio-group>
-        <div v-if="isBatch" class="format-hint">批量导出仅支持 JSON 格式</div>
+        <div
+          v-if="isBatch"
+          class="format-hint"
+        >
+          批量导出仅支持 JSON 格式
+        </div>
       </a-form-item>
 
-      <a-form-item label="导出选项" v-if="form.format === 'json'">
+      <a-form-item
+        v-if="form.format === 'json'"
+        label="导出选项"
+      >
         <a-checkbox-group v-model:value="form.jsonOptions">
-          <a-checkbox value="includeMetadata">包含元数据</a-checkbox>
-          <a-checkbox value="includeStats">包含统计信息</a-checkbox>
-          <a-checkbox value="pretty">格式化输出</a-checkbox>
+          <a-checkbox value="includeMetadata">
+            包含元数据
+          </a-checkbox>
+          <a-checkbox value="includeStats">
+            包含统计信息
+          </a-checkbox>
+          <a-checkbox value="pretty">
+            格式化输出
+          </a-checkbox>
         </a-checkbox-group>
       </a-form-item>
 
-      <a-form-item label="Markdown 选项" v-if="form.format === 'markdown'">
+      <a-form-item
+        v-if="form.format === 'markdown'"
+        label="Markdown 选项"
+      >
         <a-checkbox-group v-model:value="form.markdownOptions">
-          <a-checkbox value="includeMetadata">包含元数据头</a-checkbox>
-          <a-checkbox value="includeTimestamps">包含时间戳</a-checkbox>
+          <a-checkbox value="includeMetadata">
+            包含元数据头
+          </a-checkbox>
+          <a-checkbox value="includeTimestamps">
+            包含时间戳
+          </a-checkbox>
         </a-checkbox-group>
       </a-form-item>
 

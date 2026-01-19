@@ -1,12 +1,25 @@
 <template>
   <div class="recent-activities">
-    <a-card title="最近活动" :bordered="false">
+    <a-card
+      title="最近活动"
+      :bordered="false"
+    >
       <!-- 时间范围选择 -->
       <template #extra>
-        <a-radio-group v-model:value="timeRange" button-style="solid" size="small">
-          <a-radio-button value="today">今天</a-radio-button>
-          <a-radio-button value="week">本周</a-radio-button>
-          <a-radio-button value="all">全部</a-radio-button>
+        <a-radio-group
+          v-model:value="timeRange"
+          button-style="solid"
+          size="small"
+        >
+          <a-radio-button value="today">
+            今天
+          </a-radio-button>
+          <a-radio-button value="week">
+            本周
+          </a-radio-button>
+          <a-radio-button value="all">
+            全部
+          </a-radio-button>
         </a-radio-group>
       </template>
 
@@ -53,7 +66,11 @@
             <FileOutlined />
             最近文件
           </h4>
-          <a-button type="link" size="small" @click="clearRecentFiles">
+          <a-button
+            type="link"
+            size="small"
+            @click="clearRecentFiles"
+          >
             清空
           </a-button>
         </div>
@@ -64,7 +81,10 @@
           :image="Empty.PRESENTED_IMAGE_SIMPLE"
         />
 
-        <div v-else class="recent-files-list">
+        <div
+          v-else
+          class="recent-files-list"
+        >
           <div
             v-for="file in recentFiles.slice(0, 10)"
             :key="file.id"
@@ -75,7 +95,9 @@
               <component :is="getFileIcon(file.type)" />
             </div>
             <div class="file-info">
-              <div class="file-title">{{ file.title }}</div>
+              <div class="file-title">
+                {{ file.title }}
+              </div>
               <div class="file-meta">
                 <span class="file-time">{{ formatTime(file.timestamp) }}</span>
                 <span class="file-path">{{ file.path }}</span>
@@ -102,7 +124,11 @@
             <ClockCircleOutlined />
             活动时间线
           </h4>
-          <a-button type="link" size="small" @click="showAllActivities = !showAllActivities">
+          <a-button
+            type="link"
+            size="small"
+            @click="showAllActivities = !showAllActivities"
+          >
             {{ showAllActivities ? '收起' : '展开' }}
           </a-button>
         </div>
@@ -113,7 +139,10 @@
           :image="Empty.PRESENTED_IMAGE_SIMPLE"
         />
 
-        <a-timeline v-else class="activity-timeline">
+        <a-timeline
+          v-else
+          class="activity-timeline"
+        >
           <a-timeline-item
             v-for="activity in displayedActivities"
             :key="activity.id"
@@ -124,17 +153,30 @@
             </template>
 
             <div class="timeline-content">
-              <div class="timeline-title">{{ activity.title }}</div>
-              <div v-if="activity.description" class="timeline-description">
+              <div class="timeline-title">
+                {{ activity.title }}
+              </div>
+              <div
+                v-if="activity.description"
+                class="timeline-description"
+              >
                 {{ activity.description }}
               </div>
-              <div class="timeline-time">{{ formatTime(activity.timestamp) }}</div>
+              <div class="timeline-time">
+                {{ formatTime(activity.timestamp) }}
+              </div>
             </div>
           </a-timeline-item>
         </a-timeline>
 
-        <div v-if="filteredActivities.length > 10 && !showAllActivities" class="load-more">
-          <a-button type="link" @click="showAllActivities = true">
+        <div
+          v-if="filteredActivities.length > 10 && !showAllActivities"
+          class="load-more"
+        >
+          <a-button
+            type="link"
+            @click="showAllActivities = true"
+          >
             查看更多 ({{ filteredActivities.length - 10 }} 条)
           </a-button>
         </div>

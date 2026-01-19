@@ -109,8 +109,8 @@ export function getFileSizeLimit(extension) {
  * @returns {string} 格式化后的大小
  */
 export function formatFileSize(bytes) {
-  if (bytes === 0) return '0 B';
-  if (!bytes) return 'Unknown';
+  if (bytes === 0) {return '0 B';}
+  if (!bytes) {return 'Unknown';}
 
   const k = 1024;
   const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];

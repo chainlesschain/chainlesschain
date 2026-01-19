@@ -786,7 +786,7 @@ class PreferenceManager extends EventEmitter {
       const results = {};
 
       for (const file of files) {
-        if (!file.endsWith(".json")) continue;
+        if (!file.endsWith(".json")) {continue;}
 
         const category = path.basename(file, ".json");
 

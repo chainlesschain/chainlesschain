@@ -552,7 +552,7 @@ class ExtendedTools {
 
           if (targetFormat === 'html') {
             // 简单的Markdown到HTML转换
-            let html = markdown
+            const html = markdown
               .replace(/^### (.*$)/gim, '<h3>$1</h3>')
               .replace(/^## (.*$)/gim, '<h2>$1</h2>')
               .replace(/^# (.*$)/gim, '<h1>$1</h1>')
@@ -752,7 +752,7 @@ class ExtendedTools {
             return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
           };
 
-          let result = {};
+          const result = {};
 
           if (from === 'hex') {
             const rgb = hexToRgb(color);

@@ -13,16 +13,32 @@
           v-model:value="filterRole"
           placeholder="筛选角色"
           style="width: 150px"
-          allowClear
+          allow-clear
         >
-          <a-select-option value="">全部角色</a-select-option>
-          <a-select-option value="owner">所有者</a-select-option>
-          <a-select-option value="admin">管理员</a-select-option>
-          <a-select-option value="member">成员</a-select-option>
-          <a-select-option value="viewer">访客</a-select-option>
+          <a-select-option value="">
+            全部角色
+          </a-select-option>
+          <a-select-option value="owner">
+            所有者
+          </a-select-option>
+          <a-select-option value="admin">
+            管理员
+          </a-select-option>
+          <a-select-option value="member">
+            成员
+          </a-select-option>
+          <a-select-option value="viewer">
+            访客
+          </a-select-option>
         </a-select>
-        <a-button type="primary" @click="emit('invite')" :disabled="!canInvite">
-          <template #icon><UserAddOutlined /></template>
+        <a-button
+          type="primary"
+          :disabled="!canInvite"
+          @click="emit('invite')"
+        >
+          <template #icon>
+            <UserAddOutlined />
+          </template>
           邀请成员
         </a-button>
       </a-space>
@@ -40,8 +56,13 @@
         <!-- 成员信息 -->
         <template v-if="column.key === 'member'">
           <div class="member-info">
-            <a-avatar :src="record.avatar" :size="40">
-              <template #icon><UserOutlined /></template>
+            <a-avatar
+              :src="record.avatar"
+              :size="40"
+            >
+              <template #icon>
+                <UserOutlined />
+              </template>
             </a-avatar>
             <div class="member-details">
               <div class="member-name">
@@ -51,8 +72,8 @@
                 {{ shortenDID(record.member_did) }}
                 <a-tooltip title="复制DID">
                   <CopyOutlined
-                    @click="copyToClipboard(record.member_did)"
                     style="margin-left: 8px; cursor: pointer"
+                    @click="copyToClipboard(record.member_did)"
                   />
                 </a-tooltip>
               </div>
@@ -98,12 +119,21 @@
               </a-button>
               <template #overlay>
                 <a-menu @click="({ key }) => handleChangeRole(record, key)">
-                  <a-menu-item key="owner" :disabled="!canAssignOwner">
+                  <a-menu-item
+                    key="owner"
+                    :disabled="!canAssignOwner"
+                  >
                     所有者
                   </a-menu-item>
-                  <a-menu-item key="admin">管理员</a-menu-item>
-                  <a-menu-item key="member">成员</a-menu-item>
-                  <a-menu-item key="viewer">访客</a-menu-item>
+                  <a-menu-item key="admin">
+                    管理员
+                  </a-menu-item>
+                  <a-menu-item key="member">
+                    成员
+                  </a-menu-item>
+                  <a-menu-item key="viewer">
+                    访客
+                  </a-menu-item>
                 </a-menu>
               </template>
             </a-dropdown>
@@ -116,11 +146,19 @@
               cancel-text="取消"
               @confirm="handleRemoveMember(record)"
             >
-              <a-button size="small" danger>移除</a-button>
+              <a-button
+                size="small"
+                danger
+              >
+                移除
+              </a-button>
             </a-popconfirm>
 
             <!-- 当前用户 -->
-            <a-tag v-if="isCurrentUser(record)" color="blue">
+            <a-tag
+              v-if="isCurrentUser(record)"
+              color="blue"
+            >
               当前用户
             </a-tag>
           </a-space>
@@ -134,11 +172,22 @@
       title="成员详情"
       width="500"
     >
-      <div v-if="selectedMember" class="member-detail">
-        <a-descriptions :column="1" bordered>
+      <div
+        v-if="selectedMember"
+        class="member-detail"
+      >
+        <a-descriptions
+          :column="1"
+          bordered
+        >
           <a-descriptions-item label="头像">
-            <a-avatar :src="selectedMember.avatar" :size="64">
-              <template #icon><UserOutlined /></template>
+            <a-avatar
+              :src="selectedMember.avatar"
+              :size="64"
+            >
+              <template #icon>
+                <UserOutlined />
+              </template>
             </a-avatar>
           </a-descriptions-item>
           <a-descriptions-item label="名称">
@@ -459,8 +508,8 @@ function getRoleColor(role) {
  * 缩短DID显示
  */
 function shortenDID(did) {
-  if (!did) return '';
-  if (did.length <= 20) return did;
+  if (!did) {return '';}
+  if (did.length <= 20) {return did;}
   return `${did.slice(0, 10)}...${did.slice(-8)}`;
 }
 
@@ -476,7 +525,7 @@ function copyToClipboard(text) {
  * 格式化日期
  */
 function formatDate(timestamp) {
-  if (!timestamp) return '-';
+  if (!timestamp) {return '-';}
   const date = new Date(timestamp);
   return date.toLocaleString('zh-CN');
 }
@@ -485,7 +534,7 @@ function formatDate(timestamp) {
  * 格式化相对时间
  */
 function formatRelativeTime(timestamp) {
-  if (!timestamp) return '-';
+  if (!timestamp) {return '-';}
 
   const now = Date.now();
   const diff = now - timestamp;

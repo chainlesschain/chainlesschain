@@ -3,7 +3,11 @@
     <!-- Toolbar with active users -->
     <div class="editor-toolbar">
       <div class="active-users">
-        <a-tooltip v-for="user in activeUsers" :key="user.clientId" :title="user.name">
+        <a-tooltip
+          v-for="user in activeUsers"
+          :key="user.clientId"
+          :title="user.name"
+        >
           <a-avatar
             :style="{ backgroundColor: user.color, cursor: 'pointer' }"
             :size="32"
@@ -15,7 +19,10 @@
       </div>
 
       <div class="editor-actions">
-        <a-button @click="saveSnapshot" :loading="saving">
+        <a-button
+          :loading="saving"
+          @click="saveSnapshot"
+        >
           <SaveOutlined /> Save Version
         </a-button>
         <a-button @click="showVersionHistory">
@@ -28,7 +35,10 @@
     </div>
 
     <!-- Editor container -->
-    <div class="editor-container" ref="editorContainer">
+    <div
+      ref="editorContainer"
+      class="editor-container"
+    >
       <!-- Remote cursors -->
       <div
         v-for="user in activeUsers.filter(u => u.clientId !== 'local')"
@@ -36,13 +46,19 @@
         class="remote-cursor"
         :style="getCursorStyle(user)"
       >
-        <div class="cursor-flag" :style="{ backgroundColor: user.color }">
+        <div
+          class="cursor-flag"
+          :style="{ backgroundColor: user.color }"
+        >
           {{ user.name }}
         </div>
       </div>
 
       <!-- Monaco Editor -->
-      <div ref="monacoEditor" class="monaco-editor-wrapper"></div>
+      <div
+        ref="monacoEditor"
+        class="monaco-editor-wrapper"
+      />
     </div>
 
     <!-- Version History Modal -->
@@ -70,14 +86,17 @@
               {{ version.metadata.description || 'No description' }}
             </div>
             <div class="version-actions">
-              <a-button size="small" @click="previewVersion(version.id)">
+              <a-button
+                size="small"
+                @click="previewVersion(version.id)"
+              >
                 Preview
               </a-button>
               <a-button
+                v-if="version.id !== currentVersionId"
                 size="small"
                 type="primary"
                 @click="restoreVersion(version.id)"
-                v-if="version.id !== currentVersionId"
               >
                 Restore
               </a-button>
@@ -95,34 +114,57 @@
       width="400"
     >
       <div class="comments-list">
-        <div v-for="comment in comments" :key="comment.id" class="comment-item">
+        <div
+          v-for="comment in comments"
+          :key="comment.id"
+          class="comment-item"
+        >
           <div class="comment-header">
-            <a-avatar :size="24">{{ comment.author_name.charAt(0) }}</a-avatar>
+            <a-avatar :size="24">
+              {{ comment.author_name.charAt(0) }}
+            </a-avatar>
             <span class="comment-author">{{ comment.author_name }}</span>
             <span class="comment-time">{{ formatTime(comment.created_at) }}</span>
           </div>
-          <div class="comment-content">{{ comment.content }}</div>
+          <div class="comment-content">
+            {{ comment.content }}
+          </div>
           <div class="comment-actions">
-            <a-button size="small" type="link" @click="replyToComment(comment.id)">
-              Reply
-            </a-button>
             <a-button
               size="small"
               type="link"
-              @click="resolveComment(comment.id)"
+              @click="replyToComment(comment.id)"
+            >
+              Reply
+            </a-button>
+            <a-button
               v-if="comment.status === 'open'"
+              size="small"
+              type="link"
+              @click="resolveComment(comment.id)"
             >
               Resolve
             </a-button>
           </div>
           <!-- Replies -->
-          <div v-if="comment.replies && comment.replies.length > 0" class="comment-replies">
-            <div v-for="reply in comment.replies" :key="reply.id" class="reply-item">
+          <div
+            v-if="comment.replies && comment.replies.length > 0"
+            class="comment-replies"
+          >
+            <div
+              v-for="reply in comment.replies"
+              :key="reply.id"
+              class="reply-item"
+            >
               <div class="reply-header">
-                <a-avatar :size="20">{{ reply.author_name.charAt(0) }}</a-avatar>
+                <a-avatar :size="20">
+                  {{ reply.author_name.charAt(0) }}
+                </a-avatar>
                 <span class="reply-author">{{ reply.author_name }}</span>
               </div>
-              <div class="reply-content">{{ reply.content }}</div>
+              <div class="reply-content">
+                {{ reply.content }}
+              </div>
             </div>
           </div>
         </div>
@@ -135,7 +177,11 @@
           placeholder="Add a comment..."
           :rows="3"
         />
-        <a-button type="primary" @click="addComment" :disabled="!newCommentText.trim()">
+        <a-button
+          type="primary"
+          :disabled="!newCommentText.trim()"
+          @click="addComment"
+        >
           Add Comment
         </a-button>
       </div>
@@ -183,9 +229,9 @@ const emit = defineEmits(['content-changed', 'save', 'user-joined', 'user-left']
 const editorContainer = ref(null);
 const monacoEditor = ref(null);
 let editor = null;
-let ydoc = null;
-let ytext = null;
-let awareness = null;
+const ydoc = null;
+const ytext = null;
+const awareness = null;
 
 // State
 const activeUsers = ref([]);
@@ -368,14 +414,14 @@ function updateActiveUsers(users) {
 
 // Get cursor style for remote user
 function getCursorStyle(user) {
-  if (!user.cursor) return { display: 'none' };
+  if (!user.cursor) {return { display: 'none' };}
 
   const position = editor.getScrolledVisiblePosition({
     lineNumber: user.cursor.line,
     column: user.cursor.column
   });
 
-  if (!position) return { display: 'none' };
+  if (!position) {return { display: 'none' };}
 
   return {
     left: `${position.left}px`,
@@ -466,7 +512,7 @@ async function restoreVersion(versionId) {
   try {
     const confirmed = confirm('Are you sure you want to restore this version? Current changes will be saved as a new version.');
 
-    if (!confirmed) return;
+    if (!confirmed) {return;}
 
     const result = await window.electron.ipcRenderer.invoke('collab:restore-version', {
       docId: props.knowledgeId,
@@ -573,9 +619,9 @@ function formatTime(timestamp) {
   const now = Date.now();
   const diff = now - timestamp;
 
-  if (diff < 60000) return 'Just now';
-  if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
-  if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
+  if (diff < 60000) {return 'Just now';}
+  if (diff < 3600000) {return `${Math.floor(diff / 60000)}m ago`;}
+  if (diff < 86400000) {return `${Math.floor(diff / 3600000)}h ago`;}
   return new Date(timestamp).toLocaleDateString();
 }
 </script>

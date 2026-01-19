@@ -174,7 +174,7 @@ class StatsCleaner {
         [skill.id, startOfDay, endOfDay]
       );
 
-      if (logs.length === 0) continue;
+      if (logs.length === 0) {continue;}
 
       const successCount = logs.filter(l => l.status === 'success').length;
       const failureCount = logs.filter(l => l.status === 'failure').length;
@@ -223,7 +223,7 @@ class StatsCleaner {
         [tool.id, startOfDay, endOfDay]
       );
 
-      if (logs.length === 0) continue;
+      if (logs.length === 0) {continue;}
 
       const successCount = logs.filter(l => l.status === 'success').length;
       const failureCount = logs.filter(l => l.status === 'failure').length;
@@ -322,12 +322,12 @@ class StatsCleaner {
    * 提取错误类型
    */
   extractErrorType(errorMessage) {
-    if (!errorMessage) return 'Unknown';
+    if (!errorMessage) {return 'Unknown';}
 
-    if (errorMessage.includes('timeout')) return 'Timeout';
-    if (errorMessage.includes('permission')) return 'Permission';
-    if (errorMessage.includes('not found')) return 'NotFound';
-    if (errorMessage.includes('invalid')) return 'InvalidParameter';
+    if (errorMessage.includes('timeout')) {return 'Timeout';}
+    if (errorMessage.includes('permission')) {return 'Permission';}
+    if (errorMessage.includes('not found')) {return 'NotFound';}
+    if (errorMessage.includes('invalid')) {return 'InvalidParameter';}
 
     return 'Other';
   }

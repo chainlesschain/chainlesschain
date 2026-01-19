@@ -90,7 +90,7 @@ function registerCreditIPC(context) {
         return [];
       }
       const credit = await creditScoreManager.getUserCredit(userDid);
-      if (!credit) return [];
+      if (!credit) {return [];}
       const level = await creditScoreManager.getCreditLevel(credit.credit_score);
       return level ? level.benefits : [];
     } catch (error) {

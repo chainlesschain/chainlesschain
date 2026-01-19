@@ -20,7 +20,7 @@ const isWindows = process.platform === "win32";
  * @returns {string} Normalized path
  */
 function normalizeSecurityPath(inputPath) {
-  if (!inputPath) return "";
+  if (!inputPath) {return "";}
 
   // Convert to lowercase on Windows for case-insensitive comparison
   let normalized = inputPath;

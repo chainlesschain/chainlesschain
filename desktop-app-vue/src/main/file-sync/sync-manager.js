@@ -28,14 +28,14 @@ class FileSyncManager extends EventEmitter {
    * 检查路径是否为本地文件系统路径
    */
   isLocalPath(filePath) {
-    if (!filePath) return false;
+    if (!filePath) {return false;}
 
     // Windows 路径 (C:\... 或 D:\... 等)
-    if (/^[a-zA-Z]:[/\\]/.test(filePath)) return true;
+    if (/^[a-zA-Z]:[/\\]/.test(filePath)) {return true;}
 
     // Unix 路径 (/ 开头，包括 /data/projects/)
     // 桌面版：所有以 / 开头的路径都视为本地路径
-    if (filePath.startsWith('/')) return true;
+    if (filePath.startsWith('/')) {return true;}
 
     return false;
   }
@@ -203,7 +203,7 @@ class FileSyncManager extends EventEmitter {
 
     try {
       const file = this.database.db.prepare('SELECT * FROM project_files WHERE id = ?').get(fileId);
-      if (!file) throw new Error('文件不存在');
+      if (!file) {throw new Error('文件不存在');}
 
       const project = this.database.db.prepare('SELECT root_path FROM projects WHERE id = ?').get(file.project_id);
 

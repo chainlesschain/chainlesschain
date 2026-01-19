@@ -9,7 +9,7 @@
 
 const fs = require("fs").promises;
 const path = require("path");
-const ipcGuard = require("../ipc-guard");
+const ipcGuard = require("../ipc/ipc-guard");
 
 /**
  * Register Memory Dashboard IPC handlers

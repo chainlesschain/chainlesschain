@@ -22,7 +22,7 @@ class AutomationManager extends EventEmitter {
    * 初始化自动化管理器
    */
   async initialize() {
-    if (this.initialized) return;
+    if (this.initialized) {return;}
 
     try {
       const { getDatabase } = require('../database');
@@ -498,7 +498,7 @@ class AutomationManager extends EventEmitter {
    */
   calculateNextRun(ruleId) {
     const rule = this.rules.get(ruleId);
-    if (!rule) return null;
+    if (!rule) {return null;}
 
     const triggerConfig = JSON.parse(rule.trigger_config);
 

@@ -1,10 +1,19 @@
 <template>
-  <div class="project-sidebar" :class="{ collapsed: collapsed }">
+  <div
+    class="project-sidebar"
+    :class="{ collapsed: collapsed }"
+  >
     <!-- 折叠/展开按钮 -->
     <div class="sidebar-header">
       <div class="header-content">
-        <FolderOpenOutlined v-if="!collapsed" class="header-icon" />
-        <span v-if="!collapsed" class="header-title">我的项目</span>
+        <FolderOpenOutlined
+          v-if="!collapsed"
+          class="header-icon"
+        />
+        <span
+          v-if="!collapsed"
+          class="header-title"
+        >我的项目</span>
       </div>
       <a-button
         type="text"
@@ -18,20 +27,23 @@
     </div>
 
     <!-- 新建项目按钮 -->
-    <div v-if="!collapsed" class="new-project-section">
+    <div
+      v-if="!collapsed"
+      class="new-project-section"
+    >
       <a-button
         type="primary"
         block
-        @click="handleQuickCreate"
         :icon="h(PlusOutlined)"
         class="quick-create-btn"
+        @click="handleQuickCreate"
       >
         快速新建项目
       </a-button>
       <a-button
         block
-        @click="handleAICreate"
         class="ai-create-btn"
+        @click="handleAICreate"
       >
         <template #icon>
           <span class="ai-icon">AI</span>
@@ -42,7 +54,10 @@
 
     <!-- 项目列表 -->
     <div class="project-list">
-      <a-spin :spinning="loading" size="small">
+      <a-spin
+        :spinning="loading"
+        size="small"
+      >
         <template v-if="!collapsed">
           <!-- 搜索框 -->
           <div class="search-box">
@@ -51,7 +66,7 @@
               placeholder="搜索项目..."
               size="small"
               :prefix="h(SearchOutlined)"
-              allowClear
+              allow-clear
             />
           </div>
 
@@ -69,15 +84,25 @@
                   <component :is="getProjectIcon(project.project_type)" />
                 </div>
                 <div class="project-info">
-                  <div class="project-name" :title="project.name">
+                  <div
+                    class="project-name"
+                    :title="project.name"
+                  >
                     {{ project.name }}
                   </div>
                   <div class="project-meta">
                     {{ formatDate(project.updated_at) }}
                   </div>
                 </div>
-                <a-dropdown :trigger="['click']" @click.stop>
-                  <a-button type="text" size="small" class="more-btn">
+                <a-dropdown
+                  :trigger="['click']"
+                  @click.stop
+                >
+                  <a-button
+                    type="text"
+                    size="small"
+                    class="more-btn"
+                  >
                     <MoreOutlined />
                   </a-button>
                   <template #overlay>
@@ -91,7 +116,10 @@
                         重命名
                       </a-menu-item>
                       <a-menu-divider />
-                      <a-menu-item key="delete" danger>
+                      <a-menu-item
+                        key="delete"
+                        danger
+                      >
                         <DeleteOutlined />
                         删除
                       </a-menu-item>
@@ -105,7 +133,11 @@
               :image="Empty.PRESENTED_IMAGE_SIMPLE"
               description="暂无项目"
             >
-              <a-button type="primary" size="small" @click="handleNewProject">
+              <a-button
+                type="primary"
+                size="small"
+                @click="handleNewProject"
+              >
                 创建第一个项目
               </a-button>
             </a-empty>
@@ -141,12 +173,18 @@
       @ok="handleRename"
       @cancel="renameModalVisible = false"
     >
-      <a-form :model="renameForm" layout="vertical">
-        <a-form-item label="项目名称" required>
+      <a-form
+        :model="renameForm"
+        layout="vertical"
+      >
+        <a-form-item
+          label="项目名称"
+          required
+        >
           <a-input
             v-model:value="renameForm.name"
             placeholder="请输入项目名称"
-            @pressEnter="handleRename"
+            @press-enter="handleRename"
           />
         </a-form-item>
       </a-form>
@@ -174,7 +212,7 @@
             v-model:value="quickCreateForm.name"
             placeholder="请输入项目名称"
             size="large"
-            @pressEnter="handleQuickCreateSubmit"
+            @press-enter="handleQuickCreateSubmit"
           />
         </a-form-item>
         <a-form-item
@@ -279,15 +317,15 @@ const getProjectIcon = (type) => {
 
 // 格式化日期
 const formatDate = (timestamp) => {
-  if (!timestamp) return '';
+  if (!timestamp) {return '';}
   const date = new Date(timestamp);
   const now = new Date();
   const diff = now - date;
 
-  if (diff < 60000) return '刚刚';
-  if (diff < 3600000) return `${Math.floor(diff / 60000)}分钟前`;
-  if (diff < 86400000) return `${Math.floor(diff / 3600000)}小时前`;
-  if (diff < 604800000) return `${Math.floor(diff / 86400000)}天前`;
+  if (diff < 60000) {return '刚刚';}
+  if (diff < 3600000) {return `${Math.floor(diff / 60000)}分钟前`;}
+  if (diff < 86400000) {return `${Math.floor(diff / 3600000)}小时前`;}
+  if (diff < 604800000) {return `${Math.floor(diff / 86400000)}天前`;}
 
   return date.toLocaleDateString('zh-CN', {
     month: 'short',

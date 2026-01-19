@@ -16,8 +16,15 @@
         <!-- 图片上传 -->
         <a-form-item label="图片（最多9张）">
           <div class="image-upload-area">
-            <div v-for="(image, index) in images" :key="index" class="image-preview">
-              <img :src="image" alt="预览图" />
+            <div
+              v-for="(image, index) in images"
+              :key="index"
+              class="image-preview"
+            >
+              <img
+                :src="image"
+                alt="预览图"
+              >
               <a-button
                 type="text"
                 danger
@@ -25,10 +32,16 @@
                 class="remove-btn"
                 @click="removeImage(index)"
               >
-                <template #icon><close-outlined /></template>
+                <template #icon>
+                  <close-outlined />
+                </template>
               </a-button>
             </div>
-            <div v-if="images.length < 9" class="upload-btn" @click="selectImages">
+            <div
+              v-if="images.length < 9"
+              class="upload-btn"
+              @click="selectImages"
+            >
               <plus-outlined style="font-size: 24px" />
               <div>添加图片</div>
             </div>
@@ -36,13 +49,25 @@
         </a-form-item>
 
         <!-- 链接分享 -->
-        <a-collapse v-model:activeKey="linkCollapse" ghost>
-          <a-collapse-panel key="link" header="添加链接">
+        <a-collapse
+          v-model:active-key="linkCollapse"
+          ghost
+        >
+          <a-collapse-panel
+            key="link"
+            header="添加链接"
+          >
             <a-form-item label="链接 URL">
-              <a-input v-model:value="linkUrl" placeholder="https://..." />
+              <a-input
+                v-model:value="linkUrl"
+                placeholder="https://..."
+              />
             </a-form-item>
             <a-form-item label="链接标题">
-              <a-input v-model:value="linkTitle" placeholder="链接标题（可选）" />
+              <a-input
+                v-model:value="linkTitle"
+                placeholder="链接标题（可选）"
+              />
             </a-form-item>
             <a-form-item label="链接描述">
               <a-textarea
@@ -56,7 +81,10 @@
 
         <!-- 可见性设置 -->
         <a-form-item label="可见性">
-          <a-radio-group v-model:value="visibility" button-style="solid">
+          <a-radio-group
+            v-model:value="visibility"
+            button-style="solid"
+          >
             <a-radio-button value="public">
               <global-outlined /> 公开
             </a-radio-button>
@@ -72,12 +100,26 @@
         <!-- 操作按钮 -->
         <a-form-item>
           <a-space>
-            <a-button type="primary" :loading="publishing" @click="handlePublish">
-              <template #icon><send-outlined /></template>
+            <a-button
+              type="primary"
+              :loading="publishing"
+              @click="handlePublish"
+            >
+              <template #icon>
+                <send-outlined />
+              </template>
               {{ editing ? '保存' : '发布' }}
             </a-button>
-            <a-button @click="handleCancel">取消</a-button>
-            <a-button type="text" danger @click="handleClear">清空</a-button>
+            <a-button @click="handleCancel">
+              取消
+            </a-button>
+            <a-button
+              type="text"
+              danger
+              @click="handleClear"
+            >
+              清空
+            </a-button>
           </a-space>
         </a-form-item>
       </a-form>

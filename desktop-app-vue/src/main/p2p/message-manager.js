@@ -251,7 +251,7 @@ class MessageManager extends EventEmitter {
    */
   async flushQueue(peerId) {
     const queue = this.outgoingQueue.get(peerId);
-    if (!queue || queue.length === 0) return;
+    if (!queue || queue.length === 0) {return;}
 
     console.log(`[MessageManager] 批量发送 ${queue.length} 条消息到:`, peerId);
 
@@ -354,7 +354,7 @@ class MessageManager extends EventEmitter {
    */
   async handleAckTimeout(messageId, peerId, message) {
     const sentInfo = this.sentMessages.get(messageId);
-    if (!sentInfo) return;
+    if (!sentInfo) {return;}
 
     if (sentInfo.retries < this.options.maxRetries) {
       // 重试

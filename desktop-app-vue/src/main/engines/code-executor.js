@@ -41,7 +41,7 @@ class CodeExecutor {
    * 初始化代码执行器
    */
   async initialize() {
-    if (this.initialized) return;
+    if (this.initialized) {return;}
 
     try {
       // 确保临时目录存在
@@ -198,7 +198,7 @@ class CodeExecutor {
     try {
       // 根据语言选择执行命令
       let command = langConfig.command;
-      let args = [...langConfig.args, filepath];
+      const args = [...langConfig.args, filepath];
 
       // 特殊处理
       if (language === 'python' && this.pythonPath) {

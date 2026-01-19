@@ -1,9 +1,9 @@
 <template>
   <div class="category-tabs-wrapper">
     <a-tabs
-      v-model:activeKey="activeTab"
-      @change="handleTabChange"
+      v-model:active-key="activeTab"
       :class="['category-tabs', { 'is-compact': compact }]"
+      @change="handleTabChange"
     >
       <a-tab-pane
         v-for="category in categories"
@@ -12,7 +12,11 @@
       >
         <template #tab>
           <span class="tab-label">
-            <component v-if="category.icon" :is="category.icon" class="tab-icon" />
+            <component
+              :is="category.icon"
+              v-if="category.icon"
+              class="tab-icon"
+            />
             {{ category.label }}
             <a-badge
               v-if="category.count !== undefined && showCounts"

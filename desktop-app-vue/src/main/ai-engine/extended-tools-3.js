@@ -183,7 +183,7 @@ class ExtendedTools3 {
           const groups = {};
           for (const item of data) {
             const key = item[groupBy];
-            if (!groups[key]) groups[key] = [];
+            if (!groups[key]) {groups[key] = [];}
             groups[key].push(item);
           }
 
@@ -481,7 +481,7 @@ class ExtendedTools3 {
           const entries = [];
 
           for (const line of lines) {
-            if (!line.trim()) continue;
+            if (!line.trim()) {continue;}
 
             let entry = { timestamp: '', level: '', message: line, metadata: {} };
 

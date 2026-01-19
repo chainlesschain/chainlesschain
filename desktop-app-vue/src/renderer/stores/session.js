@@ -106,7 +106,7 @@ export const useSessionStore = defineStore("session", {
      * 获取当前会话的消息列表
      */
     currentMessages: (state) => {
-      if (!state.currentSession) return [];
+      if (!state.currentSession) {return [];}
       return state.currentSession.messages || [];
     },
 
@@ -114,7 +114,7 @@ export const useSessionStore = defineStore("session", {
      * 获取当前会话的标签
      */
     currentTags: (state) => {
-      if (!state.currentSession) return [];
+      if (!state.currentSession) {return [];}
       return state.currentSession.tags || [];
     },
 

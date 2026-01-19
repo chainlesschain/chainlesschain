@@ -3,61 +3,112 @@
     <a-card title="我的资产">
       <template #extra>
         <a-space>
-          <a-button type="primary" @click="showCreateModal = true">
-            <template #icon><plus-outlined /></template>
+          <a-button
+            type="primary"
+            @click="showCreateModal = true"
+          >
+            <template #icon>
+              <plus-outlined />
+            </template>
             创建资产
           </a-button>
           <a-button @click="loadAssets">
-            <template #icon><reload-outlined /></template>
+            <template #icon>
+              <reload-outlined />
+            </template>
             刷新
           </a-button>
         </a-space>
       </template>
 
       <!-- 资产统计 -->
-      <a-row :gutter="16" style="margin-bottom: 16px">
+      <a-row
+        :gutter="16"
+        style="margin-bottom: 16px"
+      >
         <a-col :span="6">
-          <a-statistic title="资产总数" :value="statistics.total">
-            <template #prefix><wallet-outlined /></template>
+          <a-statistic
+            title="资产总数"
+            :value="statistics.total"
+          >
+            <template #prefix>
+              <wallet-outlined />
+            </template>
           </a-statistic>
         </a-col>
         <a-col :span="6">
-          <a-statistic title="Token" :value="statistics.token" :value-style="{ color: '#1890ff' }">
-            <template #prefix><trophy-outlined /></template>
+          <a-statistic
+            title="Token"
+            :value="statistics.token"
+            :value-style="{ color: '#1890ff' }"
+          >
+            <template #prefix>
+              <trophy-outlined />
+            </template>
           </a-statistic>
         </a-col>
         <a-col :span="6">
-          <a-statistic title="NFT" :value="statistics.nft" :value-style="{ color: '#52c41a' }">
-            <template #prefix><picture-outlined /></template>
+          <a-statistic
+            title="NFT"
+            :value="statistics.nft"
+            :value-style="{ color: '#52c41a' }"
+          >
+            <template #prefix>
+              <picture-outlined />
+            </template>
           </a-statistic>
         </a-col>
         <a-col :span="6">
-          <a-statistic title="其他" :value="statistics.other">
-            <template #prefix><appstore-outlined /></template>
+          <a-statistic
+            title="其他"
+            :value="statistics.other"
+          >
+            <template #prefix>
+              <appstore-outlined />
+            </template>
           </a-statistic>
         </a-col>
       </a-row>
 
       <!-- 搜索和筛选器 -->
-      <a-row :gutter="16" style="margin-bottom: 16px">
+      <a-row
+        :gutter="16"
+        style="margin-bottom: 16px"
+      >
         <a-col :span="12">
           <a-input-search
             v-model:value="searchKeyword"
             placeholder="搜索资产名称、符号或描述..."
             allow-clear
           >
-            <template #prefix><search-outlined /></template>
+            <template #prefix>
+              <search-outlined />
+            </template>
           </a-input-search>
         </a-col>
         <a-col :span="12">
           <a-space>
             <span>类型:</span>
-            <a-radio-group v-model:value="filterType" button-style="solid" @change="handleFilterChange">
-              <a-radio-button value="">全部</a-radio-button>
-              <a-radio-button value="token">Token</a-radio-button>
-              <a-radio-button value="nft">NFT</a-radio-button>
-              <a-radio-button value="knowledge">知识产品</a-radio-button>
-              <a-radio-button value="service">服务凭证</a-radio-button>
+            <a-radio-group
+              v-model:value="filterType"
+              button-style="solid"
+              @change="handleFilterChange"
+            >
+              <a-radio-button value="">
+                全部
+              </a-radio-button>
+              <a-radio-button value="token">
+                Token
+              </a-radio-button>
+              <a-radio-button value="nft">
+                NFT
+              </a-radio-button>
+              <a-radio-button value="knowledge">
+                知识产品
+              </a-radio-button>
+              <a-radio-button value="service">
+                服务凭证
+              </a-radio-button>
             </a-radio-group>
           </a-space>
         </a-col>
@@ -94,7 +145,11 @@
           v-if="!loading && filteredAssets.length === 0"
           :description="searchKeyword || filterType ? '没有找到匹配的资产' : '暂无资产'"
         >
-          <a-button v-if="!searchKeyword && !filterType" type="primary" @click="showCreateModal = true">
+          <a-button
+            v-if="!searchKeyword && !filterType"
+            type="primary"
+            @click="showCreateModal = true"
+          >
             创建第一个资产
           </a-button>
         </a-empty>

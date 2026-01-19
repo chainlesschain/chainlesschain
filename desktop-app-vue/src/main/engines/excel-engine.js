@@ -232,7 +232,7 @@ class ExcelEngine {
               console.warn('[ExcelEngine] 内存使用率过高，暂停解析');
               readStream.pause();
               setTimeout(() => {
-                if (global.gc) global.gc();
+                if (global.gc) {global.gc();}
                 readStream.resume();
               }, 100);
             }

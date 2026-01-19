@@ -34,18 +34,29 @@
           <div class="version-number">
             <HistoryOutlined class="version-icon" />
             <span class="version-text">#{{ version.number }}</span>
-            <a-tag v-if="version.id === currentVersionId" color="green" size="small">
+            <a-tag
+              v-if="version.id === currentVersionId"
+              color="green"
+              size="small"
+            >
               当前版本
             </a-tag>
           </div>
-          <div class="version-time">{{ formatTime(version.createdAt) }}</div>
+          <div class="version-time">
+            {{ formatTime(version.createdAt) }}
+          </div>
         </div>
 
         <!-- 版本标题 -->
-        <div class="version-title">{{ version.title }}</div>
+        <div class="version-title">
+          {{ version.title }}
+        </div>
 
         <!-- 版本描述 -->
-        <div v-if="version.description" class="version-description">
+        <div
+          v-if="version.description"
+          class="version-description"
+        >
           {{ version.description }}
         </div>
 
@@ -93,7 +104,10 @@
       </div>
 
       <!-- 空状态 -->
-      <div v-if="filteredVersions.length === 0" class="empty-state">
+      <div
+        v-if="filteredVersions.length === 0"
+        class="empty-state"
+      >
         <InboxOutlined class="empty-icon" />
         <div class="empty-text">
           {{ searchKeyword ? '未找到相关版本' : '暂无版本历史' }}
@@ -104,7 +118,9 @@
     <!-- 底部操作栏 -->
     <template #footer>
       <div class="drawer-footer">
-        <a-button @click="handleClose">关闭</a-button>
+        <a-button @click="handleClose">
+          关闭
+        </a-button>
         <a-button
           v-if="selectedVersionId && selectedVersionId !== currentVersionId"
           type="primary"
@@ -173,7 +189,7 @@ const filteredVersions = computed(() => {
 
 // Methods
 const formatTime = (timestamp) => {
-  if (!timestamp) return '';
+  if (!timestamp) {return '';}
   const date = new Date(timestamp);
   const now = new Date();
   const diff = now - date;

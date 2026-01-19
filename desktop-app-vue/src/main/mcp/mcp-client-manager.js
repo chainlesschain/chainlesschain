@@ -664,7 +664,7 @@ class MCPClientManager extends EventEmitter {
    * @private
    */
   _percentile(arr, p) {
-    if (arr.length === 0) return 0;
+    if (arr.length === 0) {return 0;}
 
     const sorted = arr.slice().sort((a, b) => a - b);
     const index = Math.ceil((p / 100) * sorted.length) - 1;

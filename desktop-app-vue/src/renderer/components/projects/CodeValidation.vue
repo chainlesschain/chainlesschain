@@ -6,57 +6,103 @@
         <CheckCircleOutlined />
         代码验证与测试
       </h4>
-      <a-button type="text" size="small" @click="$emit('close')">
+      <a-button
+        type="text"
+        size="small"
+        @click="$emit('close')"
+      >
         <CloseOutlined />
       </a-button>
     </div>
 
     <!-- 验证选项 -->
     <div class="validation-options">
-      <a-space direction="vertical" style="width: 100%">
-        <a-card size="small" title="语法检查" :bordered="false">
-          <a-checkbox-group v-model:value="selectedValidations" style="width: 100%">
+      <a-space
+        direction="vertical"
+        style="width: 100%"
+      >
+        <a-card
+          size="small"
+          title="语法检查"
+          :bordered="false"
+        >
+          <a-checkbox-group
+            v-model:value="selectedValidations"
+            style="width: 100%"
+          >
             <a-row>
               <a-col :span="24">
-                <a-checkbox value="syntax">语法验证</a-checkbox>
+                <a-checkbox value="syntax">
+                  语法验证
+                </a-checkbox>
               </a-col>
               <a-col :span="24">
-                <a-checkbox value="eslint">ESLint 检查</a-checkbox>
+                <a-checkbox value="eslint">
+                  ESLint 检查
+                </a-checkbox>
               </a-col>
               <a-col :span="24">
-                <a-checkbox value="typescript">TypeScript 类型检查</a-checkbox>
+                <a-checkbox value="typescript">
+                  TypeScript 类型检查
+                </a-checkbox>
               </a-col>
             </a-row>
           </a-checkbox-group>
         </a-card>
 
-        <a-card size="small" title="代码质量" :bordered="false">
-          <a-checkbox-group v-model:value="selectedValidations" style="width: 100%">
+        <a-card
+          size="small"
+          title="代码质量"
+          :bordered="false"
+        >
+          <a-checkbox-group
+            v-model:value="selectedValidations"
+            style="width: 100%"
+          >
             <a-row>
               <a-col :span="24">
-                <a-checkbox value="complexity">复杂度分析</a-checkbox>
+                <a-checkbox value="complexity">
+                  复杂度分析
+                </a-checkbox>
               </a-col>
               <a-col :span="24">
-                <a-checkbox value="security">安全漏洞扫描</a-checkbox>
+                <a-checkbox value="security">
+                  安全漏洞扫描
+                </a-checkbox>
               </a-col>
               <a-col :span="24">
-                <a-checkbox value="performance">性能检查</a-checkbox>
+                <a-checkbox value="performance">
+                  性能检查
+                </a-checkbox>
               </a-col>
             </a-row>
           </a-checkbox-group>
         </a-card>
 
-        <a-card size="small" title="测试" :bordered="false">
-          <a-checkbox-group v-model:value="selectedValidations" style="width: 100%">
+        <a-card
+          size="small"
+          title="测试"
+          :bordered="false"
+        >
+          <a-checkbox-group
+            v-model:value="selectedValidations"
+            style="width: 100%"
+          >
             <a-row>
               <a-col :span="24">
-                <a-checkbox value="unit">单元测试</a-checkbox>
+                <a-checkbox value="unit">
+                  单元测试
+                </a-checkbox>
               </a-col>
               <a-col :span="24">
-                <a-checkbox value="integration">集成测试</a-checkbox>
+                <a-checkbox value="integration">
+                  集成测试
+                </a-checkbox>
               </a-col>
               <a-col :span="24">
-                <a-checkbox value="e2e">E2E 测试</a-checkbox>
+                <a-checkbox value="e2e">
+                  E2E 测试
+                </a-checkbox>
               </a-col>
             </a-row>
           </a-checkbox-group>
@@ -79,7 +125,10 @@
     </div>
 
     <!-- 验证结果 -->
-    <div v-if="validationResults.length > 0" class="validation-results">
+    <div
+      v-if="validationResults.length > 0"
+      class="validation-results"
+    >
       <a-divider>验证结果</a-divider>
 
       <div
@@ -89,9 +138,18 @@
       >
         <div class="result-header">
           <div class="result-title">
-            <CheckCircleOutlined v-if="result.status === 'success'" style="color: #52c41a" />
-            <CloseCircleOutlined v-else-if="result.status === 'error'" style="color: #ff4d4f" />
-            <ExclamationCircleOutlined v-else style="color: #faad14" />
+            <CheckCircleOutlined
+              v-if="result.status === 'success'"
+              style="color: #52c41a"
+            />
+            <CloseCircleOutlined
+              v-else-if="result.status === 'error'"
+              style="color: #ff4d4f"
+            />
+            <ExclamationCircleOutlined
+              v-else
+              style="color: #faad14"
+            />
             <span>{{ result.title }}</span>
           </div>
           <a-tag :color="getStatusColor(result.status)">
@@ -99,14 +157,23 @@
           </a-tag>
         </div>
 
-        <div v-if="result.message" class="result-message">
+        <div
+          v-if="result.message"
+          class="result-message"
+        >
           {{ result.message }}
         </div>
 
         <!-- 详细错误列表 -->
-        <div v-if="result.errors && result.errors.length > 0" class="result-errors">
+        <div
+          v-if="result.errors && result.errors.length > 0"
+          class="result-errors"
+        >
           <a-collapse ghost>
-            <a-collapse-panel key="1" :header="`${result.errors.length} 个问题`">
+            <a-collapse-panel
+              key="1"
+              :header="`${result.errors.length} 个问题`"
+            >
               <div
                 v-for="(error, index) in result.errors"
                 :key="index"
@@ -116,8 +183,13 @@
                   <FileTextOutlined />
                   <span>{{ error.file }}:{{ error.line }}:{{ error.column }}</span>
                 </div>
-                <div class="error-message">{{ error.message }}</div>
-                <div v-if="error.suggestion" class="error-suggestion">
+                <div class="error-message">
+                  {{ error.message }}
+                </div>
+                <div
+                  v-if="error.suggestion"
+                  class="error-suggestion"
+                >
                   <BulbOutlined />
                   建议: {{ error.suggestion }}
                 </div>
@@ -127,9 +199,16 @@
         </div>
 
         <!-- 统计信息 -->
-        <div v-if="result.stats" class="result-stats">
+        <div
+          v-if="result.stats"
+          class="result-stats"
+        >
           <a-row :gutter="8">
-            <a-col :span="8" v-for="(value, key) in result.stats" :key="key">
+            <a-col
+              v-for="(value, key) in result.stats"
+              :key="key"
+              :span="8"
+            >
               <a-statistic
                 :title="key"
                 :value="value"
@@ -142,13 +221,23 @@
     </div>
 
     <!-- 快速修复建议 -->
-    <div v-if="quickFixes.length > 0" class="quick-fixes">
+    <div
+      v-if="quickFixes.length > 0"
+      class="quick-fixes"
+    >
       <a-divider>快速修复</a-divider>
-      <a-list size="small" :data-source="quickFixes">
+      <a-list
+        size="small"
+        :data-source="quickFixes"
+      >
         <template #renderItem="{ item }">
           <a-list-item>
             <template #actions>
-              <a-button type="link" size="small" @click="handleApplyFix(item)">
+              <a-button
+                type="link"
+                size="small"
+                @click="handleApplyFix(item)"
+              >
                 应用
               </a-button>
             </template>

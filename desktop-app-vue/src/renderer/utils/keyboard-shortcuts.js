@@ -110,7 +110,7 @@ class KeyboardShortcuts {
    * 处理键盘事件
    */
   handleKeyDown(event) {
-    if (!this.enabled) return;
+    if (!this.enabled) {return;}
 
     const key = this.getKeyFromEvent(event);
     const shortcut = this.shortcuts.get(key);
@@ -143,9 +143,9 @@ class KeyboardShortcuts {
     const parts = [];
 
     // 修饰键
-    if (event.ctrlKey || event.metaKey) parts.push("Ctrl");
-    if (event.altKey) parts.push("Alt");
-    if (event.shiftKey) parts.push("Shift");
+    if (event.ctrlKey || event.metaKey) {parts.push("Ctrl");}
+    if (event.altKey) {parts.push("Alt");}
+    if (event.shiftKey) {parts.push("Shift");}
 
     // 主键
     let mainKey = event.key;

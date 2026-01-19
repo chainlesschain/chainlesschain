@@ -681,7 +681,7 @@ class OrganizationManager {
    * @returns {string} 缩短的DID
    */
   shortenDID(did) {
-    if (!did || did.length <= 30) return did;
+    if (!did || did.length <= 30) {return did;}
     return `${did.slice(0, 15)}...${did.slice(-10)}`;
   }
 

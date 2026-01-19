@@ -14,7 +14,10 @@
       <a-row :gutter="24">
         <!-- 左侧：语音输入组件 -->
         <a-col :span="16">
-          <a-card title="语音输入" :bordered="false">
+          <a-card
+            title="语音输入"
+            :bordered="false"
+          >
             <RealtimeVoiceInput
               :auto-insert="false"
               :enable-commands="true"
@@ -27,8 +30,15 @@
         <!-- 右侧：信息面板 -->
         <a-col :span="8">
           <!-- 缓存统计 -->
-          <a-card title="缓存统计" :bordered="false" class="info-card">
-            <a-descriptions :column="1" size="small">
+          <a-card
+            title="缓存统计"
+            :bordered="false"
+            class="info-card"
+          >
+            <a-descriptions
+              :column="1"
+              size="small"
+            >
               <a-descriptions-item label="磁盘缓存数">
                 {{ cacheStats.diskEntries || 0 }}
               </a-descriptions-item>
@@ -41,7 +51,10 @@
             </a-descriptions>
 
             <div class="card-actions">
-              <a-button @click="refreshCacheStats" :loading="loadingCacheStats">
+              <a-button
+                :loading="loadingCacheStats"
+                @click="refreshCacheStats"
+              >
                 <ReloadOutlined />
                 刷新
               </a-button>
@@ -58,19 +71,33 @@
           </a-card>
 
           <!-- 可用命令列表 -->
-          <a-card title="可用语音命令" :bordered="false" class="info-card">
-            <a-collapse v-model:activeKey="activeCommandCategory" accordion>
+          <a-card
+            title="可用语音命令"
+            :bordered="false"
+            class="info-card"
+          >
+            <a-collapse
+              v-model:active-key="activeCommandCategory"
+              accordion
+            >
               <a-collapse-panel
                 v-for="category in commandCategories"
                 :key="category.name"
                 :header="category.label"
               >
-                <a-list size="small" :data-source="category.commands">
+                <a-list
+                  size="small"
+                  :data-source="category.commands"
+                >
                   <template #renderItem="{ item }">
                     <a-list-item>
                       <a-list-item-meta>
-                        <template #title>{{ item.patterns[0] }}</template>
-                        <template #description>{{ item.description }}</template>
+                        <template #title>
+                          {{ item.patterns[0] }}
+                        </template>
+                        <template #description>
+                          {{ item.description }}
+                        </template>
                       </a-list-item-meta>
                     </a-list-item>
                   </template>
@@ -80,7 +107,11 @@
           </a-card>
 
           <!-- 识别历史 -->
-          <a-card title="识别历史" :bordered="false" class="info-card">
+          <a-card
+            title="识别历史"
+            :bordered="false"
+            class="info-card"
+          >
             <a-timeline>
               <a-timeline-item
                 v-for="(item, index) in recognitionHistory"
@@ -92,9 +123,14 @@
                   <FileTextOutlined v-else />
                 </template>
                 <div class="timeline-item">
-                  <div class="timeline-time">{{ item.time }}</div>
+                  <div class="timeline-time">
+                    {{ item.time }}
+                  </div>
                   <div class="timeline-content">
-                    <a-tag v-if="item.type === 'command'" color="green">
+                    <a-tag
+                      v-if="item.type === 'command'"
+                      color="green"
+                    >
                       命令: {{ item.command }}
                     </a-tag>
                     <span v-else>{{ item.text }}</span>
@@ -155,7 +191,7 @@ const commandCategories = ref([
 
 // 格式化文件大小
 const formatSize = (bytes) => {
-  if (bytes === 0) return '0 B';
+  if (bytes === 0) {return '0 B';}
   const k = 1024;
   const sizes = ['B', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));

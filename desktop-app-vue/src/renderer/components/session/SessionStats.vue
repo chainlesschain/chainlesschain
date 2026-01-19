@@ -1,8 +1,23 @@
 <template>
-  <a-row :gutter="[16, 16]" class="session-stats">
-    <a-col :xs="12" :sm="12" :md="6" :lg="6">
-      <a-card class="stat-card" hoverable>
-        <a-skeleton :loading="loading" active :paragraph="{ rows: 1 }">
+  <a-row
+    :gutter="[16, 16]"
+    class="session-stats"
+  >
+    <a-col
+      :xs="12"
+      :sm="12"
+      :md="6"
+      :lg="6"
+    >
+      <a-card
+        class="stat-card"
+        hoverable
+      >
+        <a-skeleton
+          :loading="loading"
+          active
+          :paragraph="{ rows: 1 }"
+        >
           <a-statistic
             title="总会话数"
             :value="stats.totalSessions"
@@ -11,9 +26,21 @@
         </a-skeleton>
       </a-card>
     </a-col>
-    <a-col :xs="12" :sm="12" :md="6" :lg="6">
-      <a-card class="stat-card" hoverable>
-        <a-skeleton :loading="loading" active :paragraph="{ rows: 1 }">
+    <a-col
+      :xs="12"
+      :sm="12"
+      :md="6"
+      :lg="6"
+    >
+      <a-card
+        class="stat-card"
+        hoverable
+      >
+        <a-skeleton
+          :loading="loading"
+          active
+          :paragraph="{ rows: 1 }"
+        >
           <a-statistic
             title="总消息数"
             :value="stats.totalMessages"
@@ -22,9 +49,21 @@
         </a-skeleton>
       </a-card>
     </a-col>
-    <a-col :xs="12" :sm="12" :md="6" :lg="6">
-      <a-card class="stat-card tokens-saved" hoverable>
-        <a-skeleton :loading="loading" active :paragraph="{ rows: 1 }">
+    <a-col
+      :xs="12"
+      :sm="12"
+      :md="6"
+      :lg="6"
+    >
+      <a-card
+        class="stat-card tokens-saved"
+        hoverable
+      >
+        <a-skeleton
+          :loading="loading"
+          active
+          :paragraph="{ rows: 1 }"
+        >
           <a-statistic
             title="节省 Tokens"
             :value="stats.totalTokensSaved"
@@ -51,9 +90,21 @@
         </a-skeleton>
       </a-card>
     </a-col>
-    <a-col :xs="12" :sm="12" :md="6" :lg="6">
-      <a-card class="stat-card" hoverable>
-        <a-skeleton :loading="loading" active :paragraph="{ rows: 1 }">
+    <a-col
+      :xs="12"
+      :sm="12"
+      :md="6"
+      :lg="6"
+    >
+      <a-card
+        class="stat-card"
+        hoverable
+      >
+        <a-skeleton
+          :loading="loading"
+          active
+          :paragraph="{ rows: 1 }"
+        >
           <a-statistic
             title="标签数"
             :value="stats.uniqueTags"

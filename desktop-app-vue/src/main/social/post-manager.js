@@ -360,7 +360,7 @@ class PostManager extends EventEmitter {
         )
       `;
 
-      let params = [currentDid, currentDid];
+      const params = [currentDid, currentDid];
 
       if (authorDid) {
         query += ' AND author_did = ?';

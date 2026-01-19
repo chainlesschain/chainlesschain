@@ -10,14 +10,19 @@
       <template #extra>
         <a-space>
           <a-button @click="loadPurchases">
-            <template #icon><reload-outlined /></template>
+            <template #icon>
+              <reload-outlined />
+            </template>
             刷新
           </a-button>
         </a-space>
       </template>
 
-      <a-tabs v-model:activeKey="activeTab">
-        <a-tab-pane key="purchases" tab="已购内容">
+      <a-tabs v-model:active-key="activeTab">
+        <a-tab-pane
+          key="purchases"
+          tab="已购内容"
+        >
           <a-spin :spinning="loading">
             <a-list
               :data-source="purchases"
@@ -51,12 +56,17 @@
                     </template>
                   </a-list-item-meta>
                   <template #actions>
-                    <a-button type="link" @click="viewContent(item)">
+                    <a-button
+                      type="link"
+                      @click="viewContent(item)"
+                    >
                       <eye-outlined /> 查看
                     </a-button>
                   </template>
                   <div class="purchase-info">
-                    <a-tag color="orange">¥{{ item.pricePaid }}</a-tag>
+                    <a-tag color="orange">
+                      ¥{{ item.pricePaid }}
+                    </a-tag>
                     <a-tag :color="getStatusColor(item.status)">
                       {{ getStatusName(item.status) }}
                     </a-tag>
@@ -66,7 +76,10 @@
 
               <template #empty>
                 <a-empty description="暂无购买记录">
-                  <a-button type="primary" @click="goToStore">
+                  <a-button
+                    type="primary"
+                    @click="goToStore"
+                  >
                     前往商店
                   </a-button>
                 </a-empty>
@@ -75,7 +88,10 @@
           </a-spin>
         </a-tab-pane>
 
-        <a-tab-pane key="subscriptions" tab="我的订阅">
+        <a-tab-pane
+          key="subscriptions"
+          tab="我的订阅"
+        >
           <a-spin :spinning="loadingSubscriptions">
             <a-list
               :data-source="subscriptions"
@@ -120,7 +136,10 @@
                     <a-tag :color="getStatusColor(item.status)">
                       {{ getStatusName(item.status) }}
                     </a-tag>
-                    <a-tag v-if="item.autoRenew" color="blue">
+                    <a-tag
+                      v-if="item.autoRenew"
+                      color="blue"
+                    >
                       自动续订
                     </a-tag>
                   </div>
@@ -308,7 +327,7 @@ const getStatusName = (status) => {
 };
 
 const shortenDid = (did) => {
-  if (!did) return '';
+  if (!did) {return '';}
   return did.length > 20 ? `${did.slice(0, 10)}...${did.slice(-8)}` : did;
 };
 

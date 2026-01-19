@@ -174,7 +174,7 @@ class VoiceTraining extends EventEmitter {
    * 记录转录结果
    */
   async recordTranscription(result) {
-    if (!this.config.enableLearning) return;
+    if (!this.config.enableLearning) {return;}
 
     try {
       // 更新统计
@@ -206,13 +206,13 @@ class VoiceTraining extends EventEmitter {
    * 学习词汇
    */
   async learnVocabulary(text, language) {
-    if (!this.config.enableLearning) return;
+    if (!this.config.enableLearning) {return;}
 
     // 分词
     const words = this.tokenize(text, language);
 
     for (const word of words) {
-      if (word.length < 2) continue; // 跳过太短的词
+      if (word.length < 2) {continue;} // 跳过太短的词
 
       // 更新词频
       const currentCount = this.customVocabulary.get(word) || 0;
@@ -264,7 +264,7 @@ class VoiceTraining extends EventEmitter {
    * 检测口音模式
    */
   async detectAccentPatterns(result) {
-    if (!result.segments || result.segments.length === 0) return;
+    if (!result.segments || result.segments.length === 0) {return;}
 
     // 分析音素替换模式
     for (const segment of result.segments) {
@@ -308,7 +308,7 @@ class VoiceTraining extends EventEmitter {
    * 记录命令使用
    */
   async recordCommandUsage(commandName, success = true) {
-    if (!this.config.enableLearning) return;
+    if (!this.config.enableLearning) {return;}
 
     try {
       // 获取当前统计
@@ -321,7 +321,7 @@ class VoiceTraining extends EventEmitter {
 
       // 更新统计
       stats.count++;
-      if (success) stats.successCount++;
+      if (success) {stats.successCount++;}
       stats.lastUsed = Date.now();
 
       this.commandUsageStats.set(commandName, stats);
@@ -339,7 +339,7 @@ class VoiceTraining extends EventEmitter {
    * 记录纠正
    */
   async recordCorrection(original, corrected, context = {}) {
-    if (!this.config.enableLearning) return;
+    if (!this.config.enableLearning) {return;}
 
     try {
       const correction = {

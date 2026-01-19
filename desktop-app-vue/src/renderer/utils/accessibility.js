@@ -52,7 +52,7 @@ class AccessibilityManager {
    * Create live region for screen reader announcements
    */
   createAnnouncer() {
-    if (this.announcerElement) return;
+    if (this.announcerElement) {return;}
 
     // 确保 document.body 存在
     if (!document.body) {
@@ -179,7 +179,7 @@ class AccessibilityManager {
    * @param {HTMLElement} container - Container element
    */
   trapFocus(container) {
-    if (!this.options.enableFocusTrap) return;
+    if (!this.options.enableFocusTrap) {return;}
 
     const focusableElements = this.getFocusableElements(container);
 
@@ -192,7 +192,7 @@ class AccessibilityManager {
     const lastElement = focusableElements[focusableElements.length - 1];
 
     const handleKeyDown = (event) => {
-      if (event.key !== "Tab") return;
+      if (event.key !== "Tab") {return;}
 
       if (event.shiftKey) {
         // Shift + Tab
@@ -229,7 +229,7 @@ class AccessibilityManager {
    * Release focus trap
    */
   releaseFocusTrap() {
-    if (!this.activeFocusTrap) return;
+    if (!this.activeFocusTrap) {return;}
 
     const { container, handleKeyDown } = this.activeFocusTrap;
 

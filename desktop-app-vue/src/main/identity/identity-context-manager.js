@@ -294,7 +294,7 @@ class IdentityContextManager extends EventEmitter {
         'SELECT * FROM identity_contexts WHERE user_did = ? AND is_active = 1'
       ).get(userDID);
 
-      if (!context) return null;
+      if (!context) {return null;}
 
       return {
         ...context,

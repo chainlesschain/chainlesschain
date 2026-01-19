@@ -131,7 +131,7 @@ export class WorkerPool {
 
     this.taskQueue.sort((a, b) => {
       const priorityDiff = priorityMap[b.priority] - priorityMap[a.priority];
-      if (priorityDiff !== 0) return priorityDiff;
+      if (priorityDiff !== 0) {return priorityDiff;}
 
       // Same priority, FIFO
       return a.createdAt - b.createdAt;

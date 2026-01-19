@@ -165,7 +165,7 @@ export class CoreWebVitalsMonitor {
    * Observe LCP
    */
   observeLCP() {
-    if (!window.PerformanceObserver) return;
+    if (!window.PerformanceObserver) {return;}
 
     try {
       const observer = new PerformanceObserver((list) => {
@@ -191,7 +191,7 @@ export class CoreWebVitalsMonitor {
    * Observe FID
    */
   observeFID() {
-    if (!window.PerformanceObserver) return;
+    if (!window.PerformanceObserver) {return;}
 
     try {
       const observer = new PerformanceObserver((list) => {
@@ -220,7 +220,7 @@ export class CoreWebVitalsMonitor {
    * Observe CLS
    */
   observeCLS() {
-    if (!window.PerformanceObserver) return;
+    if (!window.PerformanceObserver) {return;}
 
     let clsValue = 0;
     let sessionValue = 0;
@@ -269,7 +269,7 @@ export class CoreWebVitalsMonitor {
    * Observe FCP
    */
   observeFCP() {
-    if (!window.PerformanceObserver) return;
+    if (!window.PerformanceObserver) {return;}
 
     try {
       const observer = new PerformanceObserver((list) => {
@@ -298,7 +298,7 @@ export class CoreWebVitalsMonitor {
    * Observe TTFB
    */
   observeTTFB() {
-    if (!window.performance || !window.performance.timing) return;
+    if (!window.performance || !window.performance.timing) {return;}
 
     window.addEventListener('load', () => {
       const timing = performance.timing;
@@ -346,10 +346,10 @@ export class CoreWebVitalsMonitor {
     };
 
     const threshold = thresholds[metric];
-    if (!threshold) return 'unknown';
+    if (!threshold) {return 'unknown';}
 
-    if (value <= threshold.good) return 'good';
-    if (value <= threshold.needsImprovement) return 'needs-improvement';
+    if (value <= threshold.good) {return 'good';}
+    if (value <= threshold.needsImprovement) {return 'needs-improvement';}
     return 'poor';
   }
 
@@ -364,12 +364,12 @@ export class CoreWebVitalsMonitor {
     const goodCount = scores.filter((s) => s === 'good').length;
     const totalCount = scores.length;
 
-    if (totalCount === 0) return 'unknown';
+    if (totalCount === 0) {return 'unknown';}
 
     const percentage = (goodCount / totalCount) * 100;
 
-    if (percentage >= 75) return 'good';
-    if (percentage >= 50) return 'needs-improvement';
+    if (percentage >= 75) {return 'good';}
+    if (percentage >= 50) {return 'needs-improvement';}
     return 'poor';
   }
 }

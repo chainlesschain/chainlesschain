@@ -360,7 +360,7 @@ ${extractTypes.map((t, i) => `${i + 1}. ${t}`).join("\n")}
    * @private
    */
   _countWords(text) {
-    if (!text) return 0;
+    if (!text) {return 0;}
     // 中文按字符计算，英文按空格分词
     const chineseChars = (text.match(/[\u4e00-\u9fa5]/g) || []).length;
     const englishWords = text.replace(/[\u4e00-\u9fa5]/g, "").trim().split(/\s+/).filter(Boolean).length;

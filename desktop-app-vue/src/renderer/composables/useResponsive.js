@@ -32,19 +32,19 @@ export function useResponsive() {
   // 当前断点
   const breakpoint = computed(() => {
     const width = windowWidth.value;
-    if (width < BREAKPOINTS.xs) return 'xs';
-    if (width < BREAKPOINTS.sm) return 'sm';
-    if (width < BREAKPOINTS.md) return 'md';
-    if (width < BREAKPOINTS.lg) return 'lg';
-    if (width < BREAKPOINTS.xl) return 'xl';
+    if (width < BREAKPOINTS.xs) {return 'xs';}
+    if (width < BREAKPOINTS.sm) {return 'sm';}
+    if (width < BREAKPOINTS.md) {return 'md';}
+    if (width < BREAKPOINTS.lg) {return 'lg';}
+    if (width < BREAKPOINTS.xl) {return 'xl';}
     return 'xxl';
   });
 
   // 设备类型
   const deviceType = computed(() => {
     const width = windowWidth.value;
-    if (width < BREAKPOINTS.md) return DEVICE_TYPES.MOBILE;
-    if (width < BREAKPOINTS.lg) return DEVICE_TYPES.TABLET;
+    if (width < BREAKPOINTS.md) {return DEVICE_TYPES.MOBILE;}
+    if (width < BREAKPOINTS.lg) {return DEVICE_TYPES.TABLET;}
     return DEVICE_TYPES.DESKTOP;
   });
 
@@ -86,7 +86,7 @@ export function useResponsive() {
   // 防抖处理
   let resizeTimer = null;
   const handleResize = () => {
-    if (resizeTimer) clearTimeout(resizeTimer);
+    if (resizeTimer) {clearTimeout(resizeTimer);}
     resizeTimer = setTimeout(updateSize, 150);
   };
 
@@ -97,7 +97,7 @@ export function useResponsive() {
 
   onUnmounted(() => {
     window.removeEventListener('resize', handleResize);
-    if (resizeTimer) clearTimeout(resizeTimer);
+    if (resizeTimer) {clearTimeout(resizeTimer);}
   });
 
   return {
@@ -164,7 +164,7 @@ export function useResponsivePanel(options = {}) {
 
   // 当前宽度
   const currentWidth = computed(() => {
-    if (isCollapsed.value) return '0px';
+    if (isCollapsed.value) {return '0px';}
     return defaultWidth[breakpoint.value] || defaultWidth.md;
   });
 
@@ -330,8 +330,8 @@ export function useResponsiveLayout() {
 
   // 布局模式: stack(堆叠), sidebar(侧边栏), split(分栏)
   const layoutMode = computed(() => {
-    if (isMobile.value) return 'stack';
-    if (isTablet.value) return 'sidebar';
+    if (isMobile.value) {return 'stack';}
+    if (isTablet.value) {return 'sidebar';}
     return 'split';
   });
 

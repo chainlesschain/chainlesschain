@@ -1,20 +1,38 @@
 <template>
-  <div v-if="incomingCall" class="call-notification">
+  <div
+    v-if="incomingCall"
+    class="call-notification"
+  >
     <div class="call-notification-content">
       <div class="call-header">
-        <PhoneOutlined v-if="incomingCall.type === 'audio'" class="call-icon audio" />
-        <VideoCameraOutlined v-else class="call-icon video" />
+        <PhoneOutlined
+          v-if="incomingCall.type === 'audio'"
+          class="call-icon audio"
+        />
+        <VideoCameraOutlined
+          v-else
+          class="call-icon video"
+        />
         <span class="call-title">
           {{ incomingCall.type === 'audio' ? '语音通话' : '视频通话' }}
         </span>
       </div>
 
       <div class="caller-info">
-        <a-avatar :size="64" :src="getCallerAvatar(incomingCall.peerId)">
-          <template #icon><UserOutlined /></template>
+        <a-avatar
+          :size="64"
+          :src="getCallerAvatar(incomingCall.peerId)"
+        >
+          <template #icon>
+            <UserOutlined />
+          </template>
         </a-avatar>
-        <div class="caller-name">{{ getCallerName(incomingCall.peerId) }}</div>
-        <div class="caller-status">来电中...</div>
+        <div class="caller-name">
+          {{ getCallerName(incomingCall.peerId) }}
+        </div>
+        <div class="caller-status">
+          来电中...
+        </div>
       </div>
 
       <div class="call-actions">
@@ -23,18 +41,20 @@
           danger
           size="large"
           shape="circle"
-          @click="rejectCall"
           class="reject-btn"
+          @click="rejectCall"
         >
-          <template #icon><CloseOutlined /></template>
+          <template #icon>
+            <CloseOutlined />
+          </template>
         </a-button>
 
         <a-button
           type="primary"
           size="large"
           shape="circle"
-          @click="acceptCall"
           class="accept-btn"
+          @click="acceptCall"
         >
           <template #icon>
             <PhoneOutlined v-if="incomingCall.type === 'audio'" />
@@ -45,8 +65,14 @@
     </div>
 
     <!-- 铃声音频 -->
-    <audio ref="ringtone" loop>
-      <source src="@/assets/sounds/ringtone.mp3" type="audio/mpeg">
+    <audio
+      ref="ringtone"
+      loop
+    >
+      <source
+        src="@/assets/sounds/ringtone.mp3"
+        type="audio/mpeg"
+      >
     </audio>
   </div>
 </template>
@@ -91,7 +117,7 @@ const getCallerAvatar = (peerId) => {
 
 // 接受通话
 const acceptCall = async () => {
-  if (!incomingCall.value) return;
+  if (!incomingCall.value) {return;}
 
   try {
     // 停止铃声
@@ -115,7 +141,7 @@ const acceptCall = async () => {
 
 // 拒绝通话
 const rejectCall = async () => {
-  if (!incomingCall.value) return;
+  if (!incomingCall.value) {return;}
 
   try {
     // 停止铃声

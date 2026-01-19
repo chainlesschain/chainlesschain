@@ -1,39 +1,69 @@
 <template>
   <div class="vc-management">
-    <a-card title="可验证凭证管理" :loading="loading">
+    <a-card
+      title="可验证凭证管理"
+      :loading="loading"
+    >
       <template #extra>
         <a-space>
-          <a-button @click="activeTab = 'issued'" :type="activeTab === 'issued' ? 'primary' : 'default'">
+          <a-button
+            :type="activeTab === 'issued' ? 'primary' : 'default'"
+            @click="activeTab = 'issued'"
+          >
             已颁发 ({{ stats.issued }})
           </a-button>
-          <a-button @click="activeTab = 'received'" :type="activeTab === 'received' ? 'primary' : 'default'">
+          <a-button
+            :type="activeTab === 'received' ? 'primary' : 'default'"
+            @click="activeTab = 'received'"
+          >
             已接收 ({{ stats.received }})
           </a-button>
           <a-button @click="showImportShareModal = true">
-            <template #icon><scan-outlined /></template>
+            <template #icon>
+              <scan-outlined />
+            </template>
             扫码接收
           </a-button>
           <a-button @click="showTemplateManagerModal = true">
-            <template #icon><folder-open-outlined /></template>
+            <template #icon>
+              <folder-open-outlined />
+            </template>
             模板管理
           </a-button>
-          <a-button type="primary" @click="showCreateModal = true">
-            <template #icon><plus-outlined /></template>
+          <a-button
+            type="primary"
+            @click="showCreateModal = true"
+          >
+            <template #icon>
+              <plus-outlined />
+            </template>
             颁发凭证
           </a-button>
         </a-space>
       </template>
 
       <!-- 统计信息 -->
-      <a-row :gutter="16" style="margin-bottom: 24px">
+      <a-row
+        :gutter="16"
+        style="margin-bottom: 24px"
+      >
         <a-col :span="8">
-          <a-statistic title="总凭证数" :value="stats.total" />
+          <a-statistic
+            title="总凭证数"
+            :value="stats.total"
+          />
         </a-col>
         <a-col :span="8">
-          <a-statistic title="已颁发" :value="stats.issued" />
+          <a-statistic
+            title="已颁发"
+            :value="stats.issued"
+          />
         </a-col>
         <a-col :span="8">
-          <a-statistic title="已接收" :value="stats.received" />
+          <a-statistic
+            title="已接收"
+            :value="stats.received"
+          />
         </a-col>
       </a-row>
 
@@ -46,10 +76,16 @@
         <template #renderItem="{ item }">
           <a-list-item>
             <template #actions>
-              <a-button type="link" @click="handleViewCredential(item)">
+              <a-button
+                type="link"
+                @click="handleViewCredential(item)"
+              >
                 查看
               </a-button>
-              <a-button type="link" @click="handleVerifyCredential(item.id)">
+              <a-button
+                type="link"
+                @click="handleVerifyCredential(item.id)"
+              >
                 验证
               </a-button>
               <a-button
@@ -60,10 +96,16 @@
               >
                 撤销
               </a-button>
-              <a-button type="link" @click="handleExportCredential(item.id)">
+              <a-button
+                type="link"
+                @click="handleExportCredential(item.id)"
+              >
                 导出
               </a-button>
-              <a-button type="link" @click="handleShareCredential(item.id)">
+              <a-button
+                type="link"
+                @click="handleShareCredential(item.id)"
+              >
                 分享
               </a-button>
             </template>
@@ -81,7 +123,9 @@
                   <div>颁发者: {{ shortenDID(item.issuer_did) }}</div>
                   <div>主体: {{ shortenDID(item.subject_did) }}</div>
                   <div>颁发时间: {{ formatDate(item.issued_at) }}</div>
-                  <div v-if="item.expires_at">过期时间: {{ formatDate(item.expires_at) }}</div>
+                  <div v-if="item.expires_at">
+                    过期时间: {{ formatDate(item.expires_at) }}
+                  </div>
                 </div>
               </template>
             </a-list-item-meta>
@@ -95,26 +139,40 @@
       v-model:open="showCreateModal"
       title="颁发可验证凭证"
       :width="700"
-      @ok="handleCreateCredential"
       :confirm-loading="creating"
+      @ok="handleCreateCredential"
     >
-      <a-form :model="createForm" :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
+      <a-form
+        :model="createForm"
+        :label-col="{ span: 6 }"
+        :wrapper-col="{ span: 18 }"
+      >
         <!-- 创建模式选择 -->
         <a-form-item label="创建方式">
-          <a-radio-group v-model:value="createMode" @change="handleCreateModeChange">
-            <a-radio-button value="template">使用模板</a-radio-button>
-            <a-radio-button value="manual">手动输入</a-radio-button>
+          <a-radio-group
+            v-model:value="createMode"
+            @change="handleCreateModeChange"
+          >
+            <a-radio-button value="template">
+              使用模板
+            </a-radio-button>
+            <a-radio-button value="manual">
+              手动输入
+            </a-radio-button>
           </a-radio-group>
         </a-form-item>
 
         <!-- 模板选择模式 -->
         <template v-if="createMode === 'template'">
-          <a-form-item label="选择模板" required>
+          <a-form-item
+            label="选择模板"
+            required
+          >
             <a-select
               v-model:value="selectedTemplateId"
               placeholder="选择凭证模板"
-              @change="handleTemplateChange"
               :loading="loadingTemplates"
+              @change="handleTemplateChange"
             >
               <a-select-opt-group label="内置模板">
                 <a-select-option
@@ -125,7 +183,10 @@
                   {{ tpl.icon }} {{ tpl.name }}
                 </a-select-option>
               </a-select-opt-group>
-              <a-select-opt-group label="自定义模板" v-if="customTemplates.length > 0">
+              <a-select-opt-group
+                v-if="customTemplates.length > 0"
+                label="自定义模板"
+              >
                 <a-select-option
                   v-for="tpl in customTemplates"
                   :key="tpl.id"
@@ -207,33 +268,56 @@
 
         <!-- 手动输入模式 -->
         <template v-else>
-          <a-form-item label="凭证类型" required>
+          <a-form-item
+            label="凭证类型"
+            required
+          >
             <a-select v-model:value="createForm.type">
-              <a-select-option value="SelfDeclaration">自我声明</a-select-option>
-              <a-select-option value="SkillCertificate">技能证书</a-select-option>
-              <a-select-option value="TrustEndorsement">信任背书</a-select-option>
-              <a-select-option value="EducationCredential">教育凭证</a-select-option>
-              <a-select-option value="WorkExperience">工作经历</a-select-option>
+              <a-select-option value="SelfDeclaration">
+                自我声明
+              </a-select-option>
+              <a-select-option value="SkillCertificate">
+                技能证书
+              </a-select-option>
+              <a-select-option value="TrustEndorsement">
+                信任背书
+              </a-select-option>
+              <a-select-option value="EducationCredential">
+                教育凭证
+              </a-select-option>
+              <a-select-option value="WorkExperience">
+                工作经历
+              </a-select-option>
             </a-select>
           </a-form-item>
 
-          <a-form-item label="声明内容" required>
+          <a-form-item
+            label="声明内容"
+            required
+          >
             <a-textarea
               v-model:value="createForm.claimsText"
-              placeholder='输入 JSON 格式的声明，例如: {"skill": "JavaScript", "level": "Expert"}'
+              placeholder="输入 JSON 格式的声明，例如: {&quot;skill&quot;: &quot;JavaScript&quot;, &quot;level&quot;: &quot;Expert&quot;}"
               :rows="6"
             />
-            <div class="form-hint">必须是有效的 JSON 格式</div>
+            <div class="form-hint">
+              必须是有效的 JSON 格式
+            </div>
           </a-form-item>
         </template>
 
         <!-- 公共字段 -->
-        <a-form-item label="主体 DID" required>
+        <a-form-item
+          label="主体 DID"
+          required
+        >
           <a-input
             v-model:value="createForm.subjectDID"
             placeholder="did:chainlesschain:..."
           />
-          <div class="form-hint">接收此凭证的人的 DID</div>
+          <div class="form-hint">
+            接收此凭证的人的 DID
+          </div>
         </a-form-item>
 
         <a-form-item label="有效期（天）">
@@ -256,9 +340,15 @@
       :footer="null"
     >
       <div v-if="currentCredential">
-        <a-descriptions bordered :column="1">
+        <a-descriptions
+          bordered
+          :column="1"
+        >
           <a-descriptions-item label="凭证 ID">
-            <a-typography-paragraph :copyable="{ text: currentCredential.id }" style="margin: 0">
+            <a-typography-paragraph
+              :copyable="{ text: currentCredential.id }"
+              style="margin: 0"
+            >
               {{ currentCredential.id }}
             </a-typography-paragraph>
           </a-descriptions-item>
@@ -268,13 +358,19 @@
           </a-descriptions-item>
 
           <a-descriptions-item label="颁发者">
-            <a-typography-paragraph :copyable="{ text: currentCredential.issuer_did }" style="margin: 0">
+            <a-typography-paragraph
+              :copyable="{ text: currentCredential.issuer_did }"
+              style="margin: 0"
+            >
               {{ shortenDID(currentCredential.issuer_did) }}
             </a-typography-paragraph>
           </a-descriptions-item>
 
           <a-descriptions-item label="主体">
-            <a-typography-paragraph :copyable="{ text: currentCredential.subject_did }" style="margin: 0">
+            <a-typography-paragraph
+              :copyable="{ text: currentCredential.subject_did }"
+              style="margin: 0"
+            >
               {{ shortenDID(currentCredential.subject_did) }}
             </a-typography-paragraph>
           </a-descriptions-item>
@@ -320,25 +416,32 @@
       :width="900"
       :footer="null"
     >
-      <a-tabs v-model:activeKey="templateManagerTab">
+      <a-tabs v-model:active-key="templateManagerTab">
         <!-- 模板列表 -->
-        <a-tab-pane key="list" tab="模板列表">
+        <a-tab-pane
+          key="list"
+          tab="模板列表"
+        >
           <a-space style="margin-bottom: 16px">
             <a-button @click="handleImportTemplate">
-              <template #icon><import-outlined /></template>
+              <template #icon>
+                <import-outlined />
+              </template>
               导入模板
             </a-button>
             <a-button
               :disabled="selectedTemplateIds.length === 0"
               @click="handleExportSelectedTemplates"
             >
-              <template #icon><export-outlined /></template>
+              <template #icon>
+                <export-outlined />
+              </template>
               导出选中 ({{ selectedTemplateIds.length }})
             </a-button>
           </a-space>
 
           <a-table
-            :dataSource="customTemplates"
+            :data-source="customTemplates"
             :columns="templateColumns"
             :row-selection="{
               selectedRowKeys: selectedTemplateIds,
@@ -359,7 +462,11 @@
               </template>
               <template v-else-if="column.key === 'actions'">
                 <a-space>
-                  <a-button type="link" size="small" @click="handleExportSingleTemplate(record.id)">
+                  <a-button
+                    type="link"
+                    size="small"
+                    @click="handleExportSingleTemplate(record.id)"
+                  >
                     导出
                   </a-button>
                   <a-button
@@ -377,14 +484,21 @@
         </a-tab-pane>
 
         <!-- 导入结果 -->
-        <a-tab-pane key="import-result" tab="导入结果" v-if="lastImportResult">
+        <a-tab-pane
+          v-if="lastImportResult"
+          key="import-result"
+          tab="导入结果"
+        >
           <a-result
             :status="lastImportResult.failed === 0 ? 'success' : 'warning'"
             :title="lastImportResult.failed === 0 ? '导入成功' : '部分导入成功'"
             :sub-title="`成功: ${lastImportResult.success} 个，失败: ${lastImportResult.failed} 个`"
           >
             <template #extra>
-              <a-space direction="vertical" style="width: 100%">
+              <a-space
+                direction="vertical"
+                style="width: 100%"
+              >
                 <div v-if="lastImportResult.imported.length > 0">
                   <h4>成功导入的模板:</h4>
                   <a-tag
@@ -421,7 +535,7 @@
         accept=".json"
         style="display: none"
         @change="handleFileSelected"
-      />
+      >
     </a-modal>
 
     <!-- 凭证分享模态框 -->
@@ -431,7 +545,10 @@
       :width="500"
       :footer="null"
     >
-      <div v-if="shareData" class="share-content">
+      <div
+        v-if="shareData"
+        class="share-content"
+      >
         <a-alert
           message="扫描二维码或复制链接分享凭证"
           type="info"
@@ -441,27 +558,46 @@
 
         <!-- 二维码 -->
         <div class="qrcode-container">
-          <canvas ref="qrcodeCanvas" style="display: none"></canvas>
-          <img :src="qrcodeImage" alt="QR Code" style="max-width: 100%" />
+          <canvas
+            ref="qrcodeCanvas"
+            style="display: none"
+          />
+          <img
+            :src="qrcodeImage"
+            alt="QR Code"
+            style="max-width: 100%"
+          >
         </div>
 
         <!-- 分享链接 -->
-        <a-input-group compact style="margin-top: 16px">
+        <a-input-group
+          compact
+          style="margin-top: 16px"
+        >
           <a-input
             :value="shareData.shareUrl"
             readonly
             style="width: calc(100% - 80px)"
           />
-          <a-button type="primary" @click="copyShareUrl">
+          <a-button
+            type="primary"
+            @click="copyShareUrl"
+          >
             复制链接
           </a-button>
         </a-input-group>
 
         <!-- JSON 数据 -->
         <a-collapse style="margin-top: 16px">
-          <a-collapse-panel key="1" header="查看 JSON 数据">
+          <a-collapse-panel
+            key="1"
+            header="查看 JSON 数据"
+          >
             <pre class="json-data">{{ JSON.stringify(shareData.fullData, null, 2) }}</pre>
-            <a-button block @click="copyShareJson">
+            <a-button
+              block
+              @click="copyShareJson"
+            >
               复制 JSON
             </a-button>
           </a-collapse-panel>
@@ -474,11 +610,14 @@
       v-model:open="showImportShareModal"
       title="扫码接收凭证"
       :width="600"
-      @ok="handleImportShare"
       :confirm-loading="importing"
+      @ok="handleImportShare"
     >
-      <a-tabs v-model:activeKey="importMethod">
-        <a-tab-pane key="qrcode" tab="扫描二维码">
+      <a-tabs v-model:active-key="importMethod">
+        <a-tab-pane
+          key="qrcode"
+          tab="扫描二维码"
+        >
           <div class="import-qrcode">
             <a-alert
               message="请将二维码对准摄像头"
@@ -486,14 +625,20 @@
               show-icon
               style="margin-bottom: 16px"
             />
-            <div ref="qrScannerContainer" class="qr-scanner"></div>
+            <div
+              ref="qrScannerContainer"
+              class="qr-scanner"
+            />
           </div>
         </a-tab-pane>
 
-        <a-tab-pane key="json" tab="粘贴 JSON">
+        <a-tab-pane
+          key="json"
+          tab="粘贴 JSON"
+        >
           <a-textarea
             v-model:value="importJsonText"
-            placeholder='粘贴凭证 JSON 数据'
+            placeholder="粘贴凭证 JSON 数据"
             :rows="12"
           />
         </a-tab-pane>
@@ -850,7 +995,7 @@ function getStatusColor(status) {
 
 // 缩短 DID
 function shortenDID(did) {
-  if (!did) return '';
+  if (!did) {return '';}
   const parts = did.split(':');
   if (parts.length === 3) {
     const identifier = parts[2];
@@ -863,7 +1008,7 @@ function shortenDID(did) {
 
 // 格式化日期
 function formatDate(timestamp) {
-  if (!timestamp) return '未知';
+  if (!timestamp) {return '未知';}
   const date = new Date(timestamp);
   return date.toLocaleString('zh-CN');
 }
@@ -947,7 +1092,7 @@ function handleImportTemplate() {
 // 文件选择处理
 async function handleFileSelected(event) {
   const file = event.target.files[0];
-  if (!file) return;
+  if (!file) {return;}
 
   try {
     const text = await file.text();
@@ -1064,7 +1209,7 @@ async function handleShareCredential(id) {
 
 // 复制分享链接
 function copyShareUrl() {
-  if (!shareData.value) return;
+  if (!shareData.value) {return;}
 
   navigator.clipboard.writeText(shareData.value.shareUrl)
     .then(() => {
@@ -1078,7 +1223,7 @@ function copyShareUrl() {
 
 // 复制分享JSON
 function copyShareJson() {
-  if (!shareData.value) return;
+  if (!shareData.value) {return;}
 
   const jsonText = JSON.stringify(shareData.value.fullData, null, 2);
   navigator.clipboard.writeText(jsonText)

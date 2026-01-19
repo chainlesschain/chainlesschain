@@ -85,17 +85,17 @@ class TaskDecompositionEnhancement {
     const complexity = this._assessComplexity(task);
     const score = complexity * 0.7 + 0.3;
 
-    if (score < 0.2) return GranularityLevel.MACRO;
-    if (score < 0.4) return GranularityLevel.COARSE;
-    if (score < 0.6) return GranularityLevel.MEDIUM;
-    if (score < 0.8) return GranularityLevel.FINE;
+    if (score < 0.2) {return GranularityLevel.MACRO;}
+    if (score < 0.4) {return GranularityLevel.COARSE;}
+    if (score < 0.6) {return GranularityLevel.MEDIUM;}
+    if (score < 0.8) {return GranularityLevel.FINE;}
     return GranularityLevel.ATOMIC;
   }
 
   _assessComplexity(task) {
     let score = 0.5;
     const complexTypes = ['CODE_GENERATION', 'SYSTEM_DESIGN', 'DATA_ANALYSIS'];
-    if (complexTypes.includes(task.type)) score += 0.2;
+    if (complexTypes.includes(task.type)) {score += 0.2;}
     const paramCount = Object.keys(task.params || {}).length;
     score += Math.min(paramCount / 10, 0.2);
     return Math.min(score, 1.0);

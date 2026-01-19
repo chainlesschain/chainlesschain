@@ -1,21 +1,37 @@
 <template>
   <div class="bridge-history">
-    <a-card title="跨链转移历史" :bordered="false">
+    <a-card
+      title="跨链转移历史"
+      :bordered="false"
+    >
       <!-- 过滤器 -->
-      <div class="filters" v-if="showFilters">
+      <div
+        v-if="showFilters"
+        class="filters"
+      >
         <a-space :size="12">
           <a-select
             v-model:value="filters.status"
             placeholder="状态"
             :style="{ width: '120px' }"
-            allowClear
+            allow-clear
             @change="handleFilterChange"
           >
-            <a-select-option value="">全部状态</a-select-option>
-            <a-select-option value="pending">待处理</a-select-option>
-            <a-select-option value="locked">已锁定</a-select-option>
-            <a-select-option value="completed">已完成</a-select-option>
-            <a-select-option value="failed">失败</a-select-option>
+            <a-select-option value="">
+              全部状态
+            </a-select-option>
+            <a-select-option value="pending">
+              待处理
+            </a-select-option>
+            <a-select-option value="locked">
+              已锁定
+            </a-select-option>
+            <a-select-option value="completed">
+              已完成
+            </a-select-option>
+            <a-select-option value="failed">
+              失败
+            </a-select-option>
           </a-select>
 
           <chain-selector
@@ -32,8 +48,13 @@
             @switched="handleFilterChange"
           />
 
-          <a-button @click="handleRefresh" :loading="loading">
-            <template #icon><reload-outlined /></template>
+          <a-button
+            :loading="loading"
+            @click="handleRefresh"
+          >
+            <template #icon>
+              <reload-outlined />
+            </template>
             刷新
           </a-button>
         </a-space>
@@ -65,7 +86,10 @@
                     <arrow-right-outlined class="arrow-icon" />
                     {{ getNetworkName(item.to_chain_id) }}
                   </span>
-                  <a-tag :color="getStatusTagColor(item.status)" size="small">
+                  <a-tag
+                    :color="getStatusTagColor(item.status)"
+                    size="small"
+                  >
                     {{ getStatusText(item.status) }}
                   </a-tag>
                   <span class="bridge-time">{{ formatTime(item.created_at) }}</span>
@@ -79,7 +103,10 @@
                   <div class="bridge-info-row">
                     <span class="label">资产:</span>
                     <span class="value">{{ item.asset_id }}</span>
-                    <span class="label" style="margin-left: 16px">数量:</span>
+                    <span
+                      class="label"
+                      style="margin-left: 16px"
+                    >数量:</span>
                     <span class="value amount">{{ item.amount }}</span>
                   </div>
 
@@ -87,29 +114,47 @@
                   <div class="bridge-info-row">
                     <span class="label">从:</span>
                     <span class="value">{{ formatAddress(item.sender_address) }}</span>
-                    <span class="label" style="margin-left: 16px">到:</span>
+                    <span
+                      class="label"
+                      style="margin-left: 16px"
+                    >到:</span>
                     <span class="value">{{ formatAddress(item.recipient_address) }}</span>
                   </div>
 
                   <!-- 交易哈希 -->
-                  <div class="bridge-info-row" v-if="item.from_tx_hash">
+                  <div
+                    v-if="item.from_tx_hash"
+                    class="bridge-info-row"
+                  >
                     <span class="label">锁定交易:</span>
                     <span class="value tx-hash">
                       {{ formatAddress(item.from_tx_hash) }}
-                      <copy-outlined class="copy-icon" @click="handleCopy(item.from_tx_hash)" />
+                      <copy-outlined
+                        class="copy-icon"
+                        @click="handleCopy(item.from_tx_hash)"
+                      />
                     </span>
                   </div>
 
-                  <div class="bridge-info-row" v-if="item.to_tx_hash">
+                  <div
+                    v-if="item.to_tx_hash"
+                    class="bridge-info-row"
+                  >
                     <span class="label">铸造交易:</span>
                     <span class="value tx-hash">
                       {{ formatAddress(item.to_tx_hash) }}
-                      <copy-outlined class="copy-icon" @click="handleCopy(item.to_tx_hash)" />
+                      <copy-outlined
+                        class="copy-icon"
+                        @click="handleCopy(item.to_tx_hash)"
+                      />
                     </span>
                   </div>
 
                   <!-- 错误信息 -->
-                  <div class="bridge-info-row error" v-if="item.error_message">
+                  <div
+                    v-if="item.error_message"
+                    class="bridge-info-row error"
+                  >
                     <span class="label">错误:</span>
                     <span class="value">{{ item.error_message }}</span>
                   </div>
@@ -119,7 +164,11 @@
 
             <!-- 操作按钮 -->
             <template #actions>
-              <a-button type="link" size="small" @click="handleViewDetails(item)">
+              <a-button
+                type="link"
+                size="small"
+                @click="handleViewDetails(item)"
+              >
                 详情
               </a-button>
             </template>
@@ -273,8 +322,8 @@ const getNetworkName = (chainId) => {
  * 格式化地址
  */
 const formatAddress = (address) => {
-  if (!address) return '';
-  if (address.length <= 20) return address;
+  if (!address) {return '';}
+  if (address.length <= 20) {return address;}
   return `${address.slice(0, 10)}...${address.slice(-8)}`;
 };
 
@@ -282,7 +331,7 @@ const formatAddress = (address) => {
  * 格式化时间
  */
 const formatTime = (timestamp) => {
-  if (!timestamp) return '';
+  if (!timestamp) {return '';}
 
   const date = new Date(timestamp);
   const now = new Date();

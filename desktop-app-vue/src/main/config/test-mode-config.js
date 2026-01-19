@@ -45,10 +45,13 @@ class TestModeConfig {
     }
 
     try {
-      const MockLLMService = require("../../tests/mocks/mock-llm-service");
+      // 🔥 修复：使用正确的相对路径（从 dist/main/config/ 到 tests/mocks/）
+      const MockLLMService = require("../../../tests/mocks/mock-llm-service");
       return new MockLLMService();
     } catch (error) {
       console.error("[TestMode] Failed to load Mock LLM Service:", error);
+      console.error("[TestMode] Error details:", error.message);
+      console.error("[TestMode] Stack:", error.stack);
       return null;
     }
   }
@@ -62,7 +65,8 @@ class TestModeConfig {
     }
 
     try {
-      const MockDatabase = require("../../tests/mocks/mock-database");
+      // 🔥 修复：使用正确的相对路径（从 dist/main/config/ 到 tests/mocks/）
+      const MockDatabase = require("../../../tests/mocks/mock-database");
       return new MockDatabase();
     } catch (error) {
       console.error("[TestMode] Failed to load Mock Database:", error);

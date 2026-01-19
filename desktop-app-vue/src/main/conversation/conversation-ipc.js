@@ -6,7 +6,7 @@
  * @description 提供对话创建、查询、更新、删除等 IPC 接口
  */
 
-const ipcGuard = require("../ipc-guard");
+const ipcGuard = require("../ipc/ipc-guard");
 const { getStreamControllerManager } = require("./stream-controller-manager");
 
 /**
@@ -729,7 +729,7 @@ function registerConversationIPC({
 
         const searchPattern = `%${query.trim()}%`;
         const params = [searchPattern];
-        let whereConditions = ["content LIKE ?"];
+        const whereConditions = ["content LIKE ?"];
 
         if (conversationId) {
           whereConditions.push("conversation_id = ?");
@@ -895,7 +895,7 @@ function registerConversationIPC({
       });
 
       // 🔥 高级特性集成结果
-      let integrationResults = {
+      const integrationResults = {
         sessionUsed: false,
         sessionId: null,
         manusOptimized: false,

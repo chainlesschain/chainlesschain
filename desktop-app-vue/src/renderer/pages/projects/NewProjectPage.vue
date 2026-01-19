@@ -2,7 +2,10 @@
   <div class="new-project-page">
     <!-- 页面头部 -->
     <div class="page-header">
-      <a-button type="text" @click="handleBack">
+      <a-button
+        type="text"
+        @click="handleBack"
+      >
         <ArrowLeftOutlined />
         返回
       </a-button>
@@ -11,9 +14,16 @@
 
     <!-- 创建方式选择 -->
     <div class="page-content">
-      <a-tabs v-model:activeKey="activeTab" type="card" size="large">
+      <a-tabs
+        v-model:active-key="activeTab"
+        type="card"
+        size="large"
+      >
         <!-- 自定义创建 -->
-        <a-tab-pane key="ai" tab="自定义创建">
+        <a-tab-pane
+          key="ai"
+          tab="自定义创建"
+        >
           <template #tab>
             <span>
               <RobotOutlined />
@@ -24,7 +34,10 @@
         </a-tab-pane>
 
         <!-- 手动创建 -->
-        <a-tab-pane key="manual" tab="手动创建">
+        <a-tab-pane
+          key="manual"
+          tab="手动创建"
+        >
           <template #tab>
             <span>
               <FormOutlined />
@@ -69,10 +82,17 @@
           </div>
         </div>
         <div class="recommend-actions">
-          <a-button size="large" @click="handleTemplateRecommendDecline">
+          <a-button
+            size="large"
+            @click="handleTemplateRecommendDecline"
+          >
             跳过，手动创建
           </a-button>
-          <a-button type="primary" size="large" @click="handleTemplateRecommendAccept">
+          <a-button
+            type="primary"
+            size="large"
+            @click="handleTemplateRecommendAccept"
+          >
             <FileTextOutlined />
             浏览模板
           </a-button>

@@ -8,39 +8,62 @@
   >
     <div class="git-status-dialog">
       <!-- 加载状态 -->
-      <div v-if="loading" class="loading-container">
+      <div
+        v-if="loading"
+        class="loading-container"
+      >
         <a-spin tip="加载Git状态..." />
       </div>
 
       <!-- Git状态内容 -->
-      <div v-else-if="status" class="status-content">
+      <div
+        v-else-if="status"
+        class="status-content"
+      >
         <!-- 分支信息 -->
         <div class="branch-info">
           <div class="info-item">
             <BranchesOutlined />
             <span class="label">当前分支:</span>
-            <a-tag color="blue">{{ status.branch || 'main' }}</a-tag>
+            <a-tag color="blue">
+              {{ status.branch || 'main' }}
+            </a-tag>
           </div>
-          <div v-if="status.ahead || status.behind" class="info-item">
+          <div
+            v-if="status.ahead || status.behind"
+            class="info-item"
+          >
             <CloudOutlined />
             <span class="label">与远程:</span>
-            <a-tag v-if="status.ahead" color="green">
+            <a-tag
+              v-if="status.ahead"
+              color="green"
+            >
               领先 {{ status.ahead }} 个提交
             </a-tag>
-            <a-tag v-if="status.behind" color="orange">
+            <a-tag
+              v-if="status.behind"
+              color="orange"
+            >
               落后 {{ status.behind }} 个提交
             </a-tag>
           </div>
         </div>
 
         <!-- 已暂存的更改 -->
-        <div v-if="status.staged && status.staged.length > 0" class="status-section">
+        <div
+          v-if="status.staged && status.staged.length > 0"
+          class="status-section"
+        >
           <div class="section-header">
             <h4>
               <CheckCircleOutlined style="color: #10b981" />
               已暂存的更改 ({{ status.staged.length }})
             </h4>
-            <a-button size="small" @click="handleUnstageAll">
+            <a-button
+              size="small"
+              @click="handleUnstageAll"
+            >
               取消暂存全部
             </a-button>
           </div>
@@ -51,18 +74,32 @@
               class="file-item staged"
             >
               <div class="file-info">
-                <component :is="getFileIcon(file.status)" :style="{ color: getFileColor(file.status) }" />
+                <component
+                  :is="getFileIcon(file.status)"
+                  :style="{ color: getFileColor(file.status) }"
+                />
                 <span class="file-path">{{ file.path }}</span>
-                <a-tag :color="getStatusColor(file.status)" size="small">
+                <a-tag
+                  :color="getStatusColor(file.status)"
+                  size="small"
+                >
                   {{ getStatusText(file.status) }}
                 </a-tag>
               </div>
               <div class="file-actions">
-                <a-button type="text" size="small" @click="handleViewDiff(file)">
+                <a-button
+                  type="text"
+                  size="small"
+                  @click="handleViewDiff(file)"
+                >
                   <EyeOutlined />
                   查看
                 </a-button>
-                <a-button type="text" size="small" @click="handleUnstageFile(file)">
+                <a-button
+                  type="text"
+                  size="small"
+                  @click="handleUnstageFile(file)"
+                >
                   <MinusCircleOutlined />
                   取消暂存
                 </a-button>
@@ -72,13 +109,20 @@
         </div>
 
         <!-- 未暂存的更改 -->
-        <div v-if="status.modified && status.modified.length > 0" class="status-section">
+        <div
+          v-if="status.modified && status.modified.length > 0"
+          class="status-section"
+        >
           <div class="section-header">
             <h4>
               <EditOutlined style="color: #f59e0b" />
               未暂存的更改 ({{ status.modified.length }})
             </h4>
-            <a-button size="small" type="primary" @click="handleStageAll">
+            <a-button
+              size="small"
+              type="primary"
+              @click="handleStageAll"
+            >
               暂存全部
             </a-button>
           </div>
@@ -91,14 +135,27 @@
               <div class="file-info">
                 <EditOutlined style="color: #f59e0b" />
                 <span class="file-path">{{ file.path || file }}</span>
-                <a-tag color="orange" size="small">已修改</a-tag>
+                <a-tag
+                  color="orange"
+                  size="small"
+                >
+                  已修改
+                </a-tag>
               </div>
               <div class="file-actions">
-                <a-button type="text" size="small" @click="handleViewDiff(file)">
+                <a-button
+                  type="text"
+                  size="small"
+                  @click="handleViewDiff(file)"
+                >
                   <EyeOutlined />
                   查看
                 </a-button>
-                <a-button type="text" size="small" @click="handleStageFile(file)">
+                <a-button
+                  type="text"
+                  size="small"
+                  @click="handleStageFile(file)"
+                >
                   <PlusCircleOutlined />
                   暂存
                 </a-button>
@@ -108,13 +165,19 @@
         </div>
 
         <!-- 未跟踪的文件 -->
-        <div v-if="status.untracked && status.untracked.length > 0" class="status-section">
+        <div
+          v-if="status.untracked && status.untracked.length > 0"
+          class="status-section"
+        >
           <div class="section-header">
             <h4>
               <FileAddOutlined style="color: #3b82f6" />
               未跟踪的文件 ({{ status.untracked.length }})
             </h4>
-            <a-button size="small" @click="handleAddAll">
+            <a-button
+              size="small"
+              @click="handleAddAll"
+            >
               添加全部
             </a-button>
           </div>
@@ -127,10 +190,19 @@
               <div class="file-info">
                 <FileAddOutlined style="color: #3b82f6" />
                 <span class="file-path">{{ file.path || file }}</span>
-                <a-tag color="blue" size="small">新文件</a-tag>
+                <a-tag
+                  color="blue"
+                  size="small"
+                >
+                  新文件
+                </a-tag>
               </div>
               <div class="file-actions">
-                <a-button type="text" size="small" @click="handleAddFile(file)">
+                <a-button
+                  type="text"
+                  size="small"
+                  @click="handleAddFile(file)"
+                >
                   <PlusCircleOutlined />
                   添加
                 </a-button>
@@ -140,7 +212,10 @@
         </div>
 
         <!-- 已删除的文件 -->
-        <div v-if="status.deleted && status.deleted.length > 0" class="status-section">
+        <div
+          v-if="status.deleted && status.deleted.length > 0"
+          class="status-section"
+        >
           <div class="section-header">
             <h4>
               <DeleteOutlined style="color: #ef4444" />
@@ -156,10 +231,19 @@
               <div class="file-info">
                 <DeleteOutlined style="color: #ef4444" />
                 <span class="file-path">{{ file.path || file }}</span>
-                <a-tag color="red" size="small">已删除</a-tag>
+                <a-tag
+                  color="red"
+                  size="small"
+                >
+                  已删除
+                </a-tag>
               </div>
               <div class="file-actions">
-                <a-button type="text" size="small" @click="handleStageFile(file)">
+                <a-button
+                  type="text"
+                  size="small"
+                  @click="handleStageFile(file)"
+                >
                   <CheckOutlined />
                   确认删除
                 </a-button>
@@ -169,7 +253,10 @@
         </div>
 
         <!-- 工作区干净 -->
-        <div v-if="isClean" class="clean-state">
+        <div
+          v-if="isClean"
+          class="clean-state"
+        >
           <a-empty description="工作区干净，没有变更">
             <template #image>
               <CheckCircleOutlined style="font-size: 64px; color: #10b981" />
@@ -178,9 +265,16 @@
         </div>
 
         <!-- 底部操作栏 -->
-        <div v-if="!isClean" class="action-bar">
+        <div
+          v-if="!isClean"
+          class="action-bar"
+        >
           <a-space>
-            <a-button type="primary" @click="handleCommit" :disabled="!hasStaged">
+            <a-button
+              type="primary"
+              :disabled="!hasStaged"
+              @click="handleCommit"
+            >
               <CheckOutlined />
               提交更改
             </a-button>
@@ -196,12 +290,18 @@
       </div>
 
       <!-- 错误状态 -->
-      <div v-else class="error-state">
+      <div
+        v-else
+        class="error-state"
+      >
         <a-empty description="无法获取Git状态">
           <template #image>
             <ExclamationCircleOutlined style="font-size: 64px; color: #ef4444" />
           </template>
-          <a-button type="primary" @click="handleRefresh">
+          <a-button
+            type="primary"
+            @click="handleRefresh"
+          >
             重试
           </a-button>
         </a-empty>
@@ -231,7 +331,10 @@
     >
       <div class="commit-modal-content">
         <a-form layout="vertical">
-          <a-form-item label="提交信息" required>
+          <a-form-item
+            label="提交信息"
+            required
+          >
             <a-textarea
               v-model:value="commitMessage"
               placeholder="请输入提交信息..."
@@ -254,11 +357,17 @@
                 </template>
                 AI生成提交信息
               </a-button>
-              <a-tooltip v-if="!hasStaged" title="请先暂存文件">
+              <a-tooltip
+                v-if="!hasStaged"
+                title="请先暂存文件"
+              >
                 <QuestionCircleOutlined style="color: #faad14" />
               </a-tooltip>
             </a-space>
-            <div v-if="aiGeneratedMessage" class="ai-generated-hint">
+            <div
+              v-if="aiGeneratedMessage"
+              class="ai-generated-hint"
+            >
               <CheckCircleOutlined style="color: #52c41a" />
               <span>AI已生成提交信息，您可以编辑后提交</span>
             </div>
@@ -325,7 +434,7 @@ const aiGeneratedMessage = ref(false);
 
 // 计算属性
 const isClean = computed(() => {
-  if (!status.value) return true;
+  if (!status.value) {return true;}
 
   const { staged, modified, untracked, deleted } = status.value;
   return (

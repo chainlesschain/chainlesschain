@@ -4,8 +4,8 @@
     <a-button
       :type="syncButtonType"
       :loading="syncing"
-      @click="showSyncDrawer = true"
       size="small"
+      @click="showSyncDrawer = true"
     >
       <template #icon>
         <SyncOutlined :spin="syncing" />
@@ -48,7 +48,11 @@
       </div>
 
       <!-- 最后同步时间 -->
-      <a-descriptions bordered :column="1" class="sync-info">
+      <a-descriptions
+        bordered
+        :column="1"
+        class="sync-info"
+      >
         <a-descriptions-item label="最后同步">
           {{ formatTime(stats.last_sync_time) }}
         </a-descriptions-item>
@@ -62,8 +66,8 @@
         <a-button
           type="primary"
           :loading="syncing"
-          @click="handleSyncNow"
           block
+          @click="handleSyncNow"
         >
           <SyncOutlined /> 立即同步
         </a-button>
@@ -71,9 +75,9 @@
         <a-button
           v-if="stats.conflicts > 0"
           danger
-          @click="handleShowConflicts"
           block
           style="margin-top: 8px"
+          @click="handleShowConflicts"
         >
           <WarningOutlined /> 查看冲突 ({{ stats.conflicts }})
         </a-button>
@@ -109,14 +113,14 @@ let statsInterval = null;
 
 // 计算属性
 const syncButtonType = computed(() => {
-  if (stats.value.conflicts > 0) return 'danger';
-  if (stats.value.pending > 0) return 'default';
+  if (stats.value.conflicts > 0) {return 'danger';}
+  if (stats.value.pending > 0) {return 'default';}
   return 'text';
 });
 
 const syncStatusText = computed(() => {
-  if (stats.value.conflicts > 0) return `${stats.value.conflicts} 冲突`;
-  if (stats.value.pending > 0) return `${stats.value.pending} 待同步`;
+  if (stats.value.conflicts > 0) {return `${stats.value.conflicts} 冲突`;}
+  if (stats.value.pending > 0) {return `${stats.value.pending} 待同步`;}
   return '已同步';
 });
 
@@ -126,7 +130,7 @@ const syncStatusText = computed(() => {
 async function loadStats() {
   try {
     const orgId = identityStore.currentOrgId;
-    if (!orgId || !ipcRenderer) return;
+    if (!orgId || !ipcRenderer) {return;}
 
     const result = await ipcRenderer.invoke('sync:get-stats', orgId);
     stats.value = result || stats.value;
@@ -180,14 +184,14 @@ function handleShowConflicts() {
  * 格式化时间
  */
 function formatTime(timestamp) {
-  if (!timestamp) return '从未同步';
+  if (!timestamp) {return '从未同步';}
 
   const now = Date.now();
   const diff = now - timestamp;
 
-  if (diff < 60000) return '刚刚';
-  if (diff < 3600000) return `${Math.floor(diff / 60000)} 分钟前`;
-  if (diff < 86400000) return `${Math.floor(diff / 3600000)} 小时前`;
+  if (diff < 60000) {return '刚刚';}
+  if (diff < 3600000) {return `${Math.floor(diff / 60000)} 分钟前`;}
+  if (diff < 86400000) {return `${Math.floor(diff / 3600000)} 小时前`;}
 
   const date = new Date(timestamp);
   return date.toLocaleString('zh-CN');

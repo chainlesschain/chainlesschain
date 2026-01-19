@@ -305,7 +305,7 @@ class ExtendedTools7 {
           const minLen = Math.min(seq1.length, seq2.length);
 
           for (let i = 0; i < minLen; i++) {
-            if (seq1[i] === seq2[i]) matches++;
+            if (seq1[i] === seq2[i]) {matches++;}
           }
 
           const identity = (matches / minLen) * 100;
@@ -364,7 +364,7 @@ class ExtendedTools7 {
         try {
           const { modelType, inputs, assumptions = {} } = params;
 
-          let result = {};
+          const result = {};
 
           if (modelType === 'npv') {
             // NPV计算
@@ -448,7 +448,7 @@ class ExtendedTools7 {
           const exercises = [];
 
           for (let i = 0; i < count; i++) {
-            let exercise = {
+            const exercise = {
               id: `ex_${Date.now()}_${i}`,
               question: '',
               options: [],
@@ -512,7 +512,7 @@ class ExtendedTools7 {
             });
 
             const percentage = (score / answer_key.length) * 100;
-            if (percentage >= 80) strengths.push('总体表现优秀');
+            if (percentage >= 80) {strengths.push('总体表现优秀');}
 
             results.push({
               student_id: submission.student_id,
@@ -641,7 +641,7 @@ class ExtendedTools7 {
 
           parties.forEach((party, i) => {
             content += `${i + 1}. ${party.role}: ${party.name}\n`;
-            if (party.address) content += `   地址: ${party.address}\n`;
+            if (party.address) {content += `   地址: ${party.address}\n`;}
           });
 
           content += '\n条款内容:\n';

@@ -6,8 +6,14 @@
       @back="() => $router.back()"
     >
       <template #extra>
-        <a-range-picker v-model:value="dateRange" @change="onDateRangeChange" />
-        <a-button @click="refreshData" :loading="loading">
+        <a-range-picker
+          v-model:value="dateRange"
+          @change="onDateRangeChange"
+        />
+        <a-button
+          :loading="loading"
+          @click="refreshData"
+        >
           <ReloadOutlined /> Refresh
         </a-button>
       </template>
@@ -15,8 +21,15 @@
 
     <div class="dashboard-content">
       <!-- Overview Cards -->
-      <a-row :gutter="[16, 16]" class="overview-cards">
-        <a-col :xs="24" :sm="12" :lg="6">
+      <a-row
+        :gutter="[16, 16]"
+        class="overview-cards"
+      >
+        <a-col
+          :xs="24"
+          :sm="12"
+          :lg="6"
+        >
           <a-card>
             <a-statistic
               title="Total Members"
@@ -24,14 +37,24 @@
               :prefix="h(TeamOutlined)"
             />
             <div class="stat-trend">
-              <CaretUpOutlined v-if="stats.memberGrowth > 0" style="color: #52c41a" />
-              <CaretDownOutlined v-else-if="stats.memberGrowth < 0" style="color: #ff4d4f" />
+              <CaretUpOutlined
+                v-if="stats.memberGrowth > 0"
+                style="color: #52c41a"
+              />
+              <CaretDownOutlined
+                v-else-if="stats.memberGrowth < 0"
+                style="color: #ff4d4f"
+              />
               <span>{{ Math.abs(stats.memberGrowth) }}% this month</span>
             </div>
           </a-card>
         </a-col>
 
-        <a-col :xs="24" :sm="12" :lg="6">
+        <a-col
+          :xs="24"
+          :sm="12"
+          :lg="6"
+        >
           <a-card>
             <a-statistic
               title="Knowledge Items"
@@ -44,7 +67,11 @@
           </a-card>
         </a-col>
 
-        <a-col :xs="24" :sm="12" :lg="6">
+        <a-col
+          :xs="24"
+          :sm="12"
+          :lg="6"
+        >
           <a-card>
             <a-statistic
               title="Active Collaborations"
@@ -57,7 +84,11 @@
           </a-card>
         </a-col>
 
-        <a-col :xs="24" :sm="12" :lg="6">
+        <a-col
+          :xs="24"
+          :sm="12"
+          :lg="6"
+        >
           <a-card>
             <a-statistic
               title="Storage Used"
@@ -75,36 +106,78 @@
 
       <!-- Activity Chart -->
       <a-row :gutter="[16, 16]">
-        <a-col :xs="24" :lg="16">
-          <a-card title="Activity Overview" :loading="loading">
-            <div ref="activityChartRef" style="height: 300px"></div>
+        <a-col
+          :xs="24"
+          :lg="16"
+        >
+          <a-card
+            title="Activity Overview"
+            :loading="loading"
+          >
+            <div
+              ref="activityChartRef"
+              style="height: 300px"
+            />
           </a-card>
         </a-col>
 
-        <a-col :xs="24" :lg="8">
-          <a-card title="Activity Breakdown" :loading="loading">
-            <div ref="activityPieChartRef" style="height: 300px"></div>
+        <a-col
+          :xs="24"
+          :lg="8"
+        >
+          <a-card
+            title="Activity Breakdown"
+            :loading="loading"
+          >
+            <div
+              ref="activityPieChartRef"
+              style="height: 300px"
+            />
           </a-card>
         </a-col>
       </a-row>
 
       <!-- Knowledge Graph & Member Analytics -->
       <a-row :gutter="[16, 16]">
-        <a-col :xs="24" :lg="12">
-          <a-card title="Knowledge Graph" :loading="loading">
-            <a-tabs v-model:activeKey="graphTab">
-              <a-tab-pane key="network" tab="Network View">
-                <div ref="knowledgeGraphRef" style="height: 400px"></div>
+        <a-col
+          :xs="24"
+          :lg="12"
+        >
+          <a-card
+            title="Knowledge Graph"
+            :loading="loading"
+          >
+            <a-tabs v-model:active-key="graphTab">
+              <a-tab-pane
+                key="network"
+                tab="Network View"
+              >
+                <div
+                  ref="knowledgeGraphRef"
+                  style="height: 400px"
+                />
               </a-tab-pane>
-              <a-tab-pane key="tree" tab="Tree View">
-                <div ref="knowledgeTreeRef" style="height: 400px"></div>
+              <a-tab-pane
+                key="tree"
+                tab="Tree View"
+              >
+                <div
+                  ref="knowledgeTreeRef"
+                  style="height: 400px"
+                />
               </a-tab-pane>
             </a-tabs>
           </a-card>
         </a-col>
 
-        <a-col :xs="24" :lg="12">
-          <a-card title="Top Contributors" :loading="loading">
+        <a-col
+          :xs="24"
+          :lg="12"
+        >
+          <a-card
+            title="Top Contributors"
+            :loading="loading"
+          >
             <a-list
               :data-source="topContributors"
               :render-item="renderContributor"
@@ -113,13 +186,21 @@
                 <a-list-item>
                   <a-list-item-meta>
                     <template #avatar>
-                      <a-badge :count="index + 1" :number-style="{ backgroundColor: getBadgeColor(index) }">
+                      <a-badge
+                        :count="index + 1"
+                        :number-style="{ backgroundColor: getBadgeColor(index) }"
+                      >
                         <a-avatar>{{ item.name.charAt(0) }}</a-avatar>
                       </a-badge>
                     </template>
                     <template #title>
                       {{ item.name }}
-                      <a-tag :color="getRoleColor(item.role)" size="small">{{ item.role }}</a-tag>
+                      <a-tag
+                        :color="getRoleColor(item.role)"
+                        size="small"
+                      >
+                        {{ item.role }}
+                      </a-tag>
                     </template>
                     <template #description>
                       <div class="contributor-stats">
@@ -138,8 +219,14 @@
 
       <!-- Recent Activity & Resource Usage -->
       <a-row :gutter="[16, 16]">
-        <a-col :xs="24" :lg="16">
-          <a-card title="Recent Activity" :loading="loading">
+        <a-col
+          :xs="24"
+          :lg="16"
+        >
+          <a-card
+            title="Recent Activity"
+            :loading="loading"
+          >
             <a-timeline>
               <a-timeline-item
                 v-for="activity in recentActivities"
@@ -155,15 +242,23 @@
                     <span class="activity-action">{{ getActivityText(activity.activity_type) }}</span>
                     <span class="activity-target">{{ activity.metadata?.title || 'a document' }}</span>
                   </div>
-                  <div class="activity-time">{{ formatTime(activity.created_at) }}</div>
+                  <div class="activity-time">
+                    {{ formatTime(activity.created_at) }}
+                  </div>
                 </div>
               </a-timeline-item>
             </a-timeline>
           </a-card>
         </a-col>
 
-        <a-col :xs="24" :lg="8">
-          <a-card title="Resource Usage" :loading="loading">
+        <a-col
+          :xs="24"
+          :lg="8"
+        >
+          <a-card
+            title="Resource Usage"
+            :loading="loading"
+          >
             <div class="resource-item">
               <div class="resource-header">
                 <span>Storage</span>
@@ -212,7 +307,10 @@
 
             <div class="resource-breakdown">
               <h4>Storage Breakdown</h4>
-              <div ref="storageBreakdownRef" style="height: 200px"></div>
+              <div
+                ref="storageBreakdownRef"
+                style="height: 200px"
+              />
             </div>
           </a-card>
         </a-col>
@@ -221,20 +319,41 @@
       <!-- Member Analytics -->
       <a-row :gutter="[16, 16]">
         <a-col :span="24">
-          <a-card title="Member Analytics" :loading="loading">
-            <a-tabs v-model:activeKey="analyticsTab">
-              <a-tab-pane key="engagement" tab="Engagement">
-                <div ref="engagementChartRef" style="height: 300px"></div>
+          <a-card
+            title="Member Analytics"
+            :loading="loading"
+          >
+            <a-tabs v-model:active-key="analyticsTab">
+              <a-tab-pane
+                key="engagement"
+                tab="Engagement"
+              >
+                <div
+                  ref="engagementChartRef"
+                  style="height: 300px"
+                />
               </a-tab-pane>
 
-              <a-tab-pane key="activity" tab="Activity Heatmap">
-                <div ref="heatmapChartRef" style="height: 300px"></div>
+              <a-tab-pane
+                key="activity"
+                tab="Activity Heatmap"
+              >
+                <div
+                  ref="heatmapChartRef"
+                  style="height: 300px"
+                />
               </a-tab-pane>
 
-              <a-tab-pane key="roles" tab="Role Distribution">
+              <a-tab-pane
+                key="roles"
+                tab="Role Distribution"
+              >
                 <a-row :gutter="16">
                   <a-col :span="12">
-                    <div ref="roleDistributionRef" style="height: 300px"></div>
+                    <div
+                      ref="roleDistributionRef"
+                      style="height: 300px"
+                    />
                   </a-col>
                   <a-col :span="12">
                     <a-table
@@ -454,7 +573,7 @@ async function updateActivityChart() {
     days: 30
   });
 
-  if (!result.success) return;
+  if (!result.success) {return;}
 
   const option = {
     tooltip: {
@@ -507,7 +626,7 @@ async function updateActivityPieChart() {
     orgId: props.organizationId
   });
 
-  if (!result.success) return;
+  if (!result.success) {return;}
 
   const option = {
     tooltip: {
@@ -538,7 +657,7 @@ async function updateKnowledgeGraph() {
     orgId: props.organizationId
   });
 
-  if (!result.success) return;
+  if (!result.success) {return;}
 
   const option = {
     tooltip: {},
@@ -569,7 +688,7 @@ async function updateStorageBreakdown() {
     orgId: props.organizationId
   });
 
-  if (!result.success) return;
+  if (!result.success) {return;}
 
   const option = {
     tooltip: {
@@ -593,7 +712,7 @@ async function updateEngagementChart() {
     orgId: props.organizationId
   });
 
-  if (!result.success) return;
+  if (!result.success) {return;}
 
   const option = {
     tooltip: {
@@ -623,7 +742,7 @@ async function updateHeatmapChart() {
     orgId: props.organizationId
   });
 
-  if (!result.success) return;
+  if (!result.success) {return;}
 
   const option = {
     tooltip: {
@@ -729,7 +848,7 @@ function onDateRangeChange() {
 
 // Helper functions
 function formatBytes(bytes) {
-  if (bytes === 0) return '0 B';
+  if (bytes === 0) {return '0 B';}
   const k = 1024;
   const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
@@ -740,30 +859,30 @@ function formatTime(timestamp) {
   const now = Date.now();
   const diff = now - timestamp;
 
-  if (diff < 60000) return 'Just now';
-  if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
-  if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
-  if (diff < 604800000) return `${Math.floor(diff / 86400000)}d ago`;
+  if (diff < 60000) {return 'Just now';}
+  if (diff < 3600000) {return `${Math.floor(diff / 60000)}m ago`;}
+  if (diff < 86400000) {return `${Math.floor(diff / 3600000)}h ago`;}
+  if (diff < 604800000) {return `${Math.floor(diff / 86400000)}d ago`;}
   return new Date(timestamp).toLocaleDateString();
 }
 
 function getStorageColor() {
   const percent = (stats.value.storageUsed / stats.value.storageLimit) * 100;
-  if (percent > 90) return '#ff4d4f';
-  if (percent > 75) return '#faad14';
+  if (percent > 90) {return '#ff4d4f';}
+  if (percent > 75) {return '#faad14';}
   return '#52c41a';
 }
 
 function getBandwidthColor() {
   const percent = (stats.value.bandwidthUsed / stats.value.bandwidthLimit) * 100;
-  if (percent > 90) return '#ff4d4f';
-  if (percent > 75) return '#faad14';
+  if (percent > 90) {return '#ff4d4f';}
+  if (percent > 75) {return '#faad14';}
   return '#1890ff';
 }
 
 function getNetworkHealthColor() {
-  if (stats.value.networkHealth > 80) return '#52c41a';
-  if (stats.value.networkHealth > 50) return '#faad14';
+  if (stats.value.networkHealth > 80) {return '#52c41a';}
+  if (stats.value.networkHealth > 50) {return '#faad14';}
   return '#ff4d4f';
 }
 

@@ -1,33 +1,56 @@
 <template>
-  <a-card title="Token 使用趋势" class="chart-card">
+  <a-card
+    title="Token 使用趋势"
+    class="chart-card"
+  >
     <div class="chart-header">
       <a-radio-group
         :value="interval"
-        @change="(e) => $emit('interval-change', e.target.value)"
         size="small"
+        @change="(e) => $emit('interval-change', e.target.value)"
       >
-        <a-radio-button value="hour">按小时</a-radio-button>
-        <a-radio-button value="day">按天</a-radio-button>
-        <a-radio-button value="week">按周</a-radio-button>
+        <a-radio-button value="hour">
+          按小时
+        </a-radio-button>
+        <a-radio-button value="day">
+          按天
+        </a-radio-button>
+        <a-radio-button value="week">
+          按周
+        </a-radio-button>
       </a-radio-group>
     </div>
 
-    <div v-if="loading && data.length === 0" class="chart-skeleton">
-      <a-skeleton active :paragraph="{ rows: 8 }" />
+    <div
+      v-if="loading && data.length === 0"
+      class="chart-skeleton"
+    >
+      <a-skeleton
+        active
+        :paragraph="{ rows: 8 }"
+      />
     </div>
 
     <div
       v-else-if="data.length > 0"
       ref="chartRef"
       class="chart-container"
-    ></div>
+    />
 
-    <div v-else class="empty-state-container">
-      <a-empty :image="Empty.PRESENTED_IMAGE_SIMPLE" description="暂无趋势数据">
+    <div
+      v-else
+      class="empty-state-container"
+    >
+      <a-empty
+        :image="Empty.PRESENTED_IMAGE_SIMPLE"
+        description="暂无趋势数据"
+      >
         <template #description>
           <div class="empty-description">
             <p>当前时间范围内没有 LLM 调用记录</p>
-            <p class="empty-hint">使用 AI 聊天功能后，数据将自动显示</p>
+            <p class="empty-hint">
+              使用 AI 聊天功能后，数据将自动显示
+            </p>
           </div>
         </template>
       </a-empty>
@@ -84,7 +107,7 @@ const formatDate = (timestamp) => {
 };
 
 const renderChart = () => {
-  if (!chartRef.value || props.data.length === 0) return;
+  if (!chartRef.value || props.data.length === 0) {return;}
 
   if (!chartInstance) {
     chartInstance = echarts.init(chartRef.value);
@@ -176,7 +199,7 @@ const renderChart = () => {
 // Debounced resize handler
 let resizeTimer = null;
 const handleResize = () => {
-  if (resizeTimer) clearTimeout(resizeTimer);
+  if (resizeTimer) {clearTimeout(resizeTimer);}
   resizeTimer = setTimeout(() => {
     chartInstance?.resize();
   }, 200);
@@ -208,7 +231,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener("resize", handleResize);
-  if (resizeTimer) clearTimeout(resizeTimer);
+  if (resizeTimer) {clearTimeout(resizeTimer);}
   chartInstance?.dispose();
 });
 </script>

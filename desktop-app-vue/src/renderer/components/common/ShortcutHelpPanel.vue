@@ -20,23 +20,41 @@
     </div>
 
     <!-- 快捷键分类 -->
-    <a-tabs v-model:activeKey="activeCategory">
-      <a-tab-pane key="all" tab="全部">
+    <a-tabs v-model:active-key="activeCategory">
+      <a-tab-pane
+        key="all"
+        tab="全部"
+      >
         <ShortcutList :shortcuts="filteredShortcuts" />
       </a-tab-pane>
-      <a-tab-pane key="file" tab="文件操作">
+      <a-tab-pane
+        key="file"
+        tab="文件操作"
+      >
         <ShortcutList :shortcuts="getShortcutsByCategory('file')" />
       </a-tab-pane>
-      <a-tab-pane key="edit" tab="编辑操作">
+      <a-tab-pane
+        key="edit"
+        tab="编辑操作"
+      >
         <ShortcutList :shortcuts="getShortcutsByCategory('edit')" />
       </a-tab-pane>
-      <a-tab-pane key="view" tab="视图操作">
+      <a-tab-pane
+        key="view"
+        tab="视图操作"
+      >
         <ShortcutList :shortcuts="getShortcutsByCategory('view')" />
       </a-tab-pane>
-      <a-tab-pane key="navigation" tab="导航操作">
+      <a-tab-pane
+        key="navigation"
+        tab="导航操作"
+      >
         <ShortcutList :shortcuts="getShortcutsByCategory('navigation')" />
       </a-tab-pane>
-      <a-tab-pane key="other" tab="其他">
+      <a-tab-pane
+        key="other"
+        tab="其他"
+      >
         <ShortcutList :shortcuts="getShortcutsByCategory('other')" />
       </a-tab-pane>
     </a-tabs>

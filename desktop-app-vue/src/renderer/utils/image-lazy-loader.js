@@ -122,7 +122,7 @@ class ImageLazyLoader {
    */
   async loadImage(img) {
     const metadata = this.observedImages.get(img)
-    if (!metadata) return
+    if (!metadata) {return}
 
     // Already loading or loaded
     if (this.loadingQueue.has(img) || this.loadedImages.has(img)) {

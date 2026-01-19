@@ -3,7 +3,10 @@
     <!-- Loading skeleton -->
     <template v-if="loading">
       <div class="metadata-section">
-        <a-skeleton active :paragraph="{ rows: 0 }" />
+        <a-skeleton
+          active
+          :paragraph="{ rows: 0 }"
+        />
         <a-skeleton
           active
           :title="false"
@@ -17,16 +20,37 @@
           :paragraph="{ rows: 0 }"
         />
         <div style="display: flex; gap: 8px; margin-top: 12px">
-          <a-skeleton-button active size="small" style="width: 60px" />
-          <a-skeleton-button active size="small" style="width: 80px" />
-          <a-skeleton-button active size="small" style="width: 50px" />
+          <a-skeleton-button
+            active
+            size="small"
+            style="width: 60px"
+          />
+          <a-skeleton-button
+            active
+            size="small"
+            style="width: 80px"
+          />
+          <a-skeleton-button
+            active
+            size="small"
+            style="width: 50px"
+          />
         </div>
       </div>
       <div class="actions-section">
         <div style="display: flex; gap: 8px">
-          <a-skeleton-button active style="width: 100px" />
-          <a-skeleton-button active style="width: 100px" />
-          <a-skeleton-button active style="width: 80px" />
+          <a-skeleton-button
+            active
+            style="width: 100px"
+          />
+          <a-skeleton-button
+            active
+            style="width: 100px"
+          />
+          <a-skeleton-button
+            active
+            style="width: 80px"
+          />
         </div>
       </div>
       <div class="messages-section">
@@ -35,7 +59,11 @@
           :title="{ width: '100px' }"
           :paragraph="{ rows: 0 }"
         />
-        <div v-for="i in 3" :key="i" style="margin-top: 16px">
+        <div
+          v-for="i in 3"
+          :key="i"
+          style="margin-top: 16px"
+        >
           <div
             style="
               display: flex;
@@ -44,7 +72,10 @@
               margin-bottom: 8px;
             "
           >
-            <a-skeleton-avatar active size="small" />
+            <a-skeleton-avatar
+              active
+              size="small"
+            />
             <a-skeleton
               active
               :title="false"
@@ -66,24 +97,34 @@
       <!-- 元数据 -->
       <div class="metadata-section">
         <div class="title-row">
-          <h3 v-if="!editingTitle" @click="startEditTitle">
+          <h3
+            v-if="!editingTitle"
+            @click="startEditTitle"
+          >
             {{ session.title || "未命名会话" }}
             <EditOutlined class="edit-icon" />
           </h3>
           <a-input
             v-else
+            ref="titleInput"
             v-model:value="editTitle"
+            style="width: 100%"
             @blur="saveTitle"
             @keyup.enter="saveTitle"
             @keyup.escape="cancelEditTitle"
-            ref="titleInput"
-            style="width: 100%"
           />
         </div>
 
-        <a-descriptions :column="1" size="small" class="meta-desc">
+        <a-descriptions
+          :column="1"
+          size="small"
+          class="meta-desc"
+        >
           <a-descriptions-item label="会话 ID">
-            <a-typography-text copyable :content="session.id">
+            <a-typography-text
+              copyable
+              :content="session.id"
+            >
               {{ session.id.substring(0, 20) }}...
             </a-typography-text>
           </a-descriptions-item>
@@ -103,7 +144,11 @@
       <div class="tags-section">
         <div class="section-header">
           <span class="section-title"> <TagsOutlined /> 标签 </span>
-          <a-button type="link" size="small" @click="showTagModal = true">
+          <a-button
+            type="link"
+            size="small"
+            @click="showTagModal = true"
+          >
             <PlusOutlined /> 添加
           </a-button>
         </div>
@@ -127,7 +172,10 @@
       </div>
 
       <!-- 摘要 -->
-      <div class="summary-section" v-if="session.summary">
+      <div
+        v-if="session.summary"
+        class="summary-section"
+      >
         <div class="section-header">
           <span class="section-title"> <FileTextOutlined /> 摘要 </span>
         </div>
@@ -139,7 +187,10 @@
       <!-- 操作按钮 -->
       <div class="actions-section">
         <a-space wrap>
-          <a-button type="primary" @click="$emit('resume', session.id)">
+          <a-button
+            type="primary"
+            @click="$emit('resume', session.id)"
+          >
             <PlayCircleOutlined /> 恢复对话
           </a-button>
           <a-button @click="$emit('generate-summary', session.id)">
@@ -231,8 +282,8 @@
     <a-modal
       v-model:open="showTagModal"
       title="添加标签"
-      @ok="confirmAddTags"
       :confirm-loading="addingTags"
+      @ok="confirmAddTags"
     >
       <TagManager
         v-model:selected-tags="tagsToAdd"
@@ -367,7 +418,7 @@ const confirmAddTags = async () => {
 
 // 格式化日期
 const formatDate = (timestamp) => {
-  if (!timestamp) return "-";
+  if (!timestamp) {return "-";}
 
   const date = new Date(typeof timestamp === "number" ? timestamp : timestamp);
   return date.toLocaleString("zh-CN", {
@@ -381,7 +432,7 @@ const formatDate = (timestamp) => {
 
 // 格式化时间
 const formatTime = (timestamp) => {
-  if (!timestamp) return "";
+  if (!timestamp) {return "";}
 
   const date = new Date(typeof timestamp === "number" ? timestamp : timestamp);
   return date.toLocaleTimeString("zh-CN", {
@@ -392,8 +443,8 @@ const formatTime = (timestamp) => {
 
 // 截断内容
 const truncateContent = (content, maxLength) => {
-  if (!content) return "";
-  if (content.length <= maxLength) return content;
+  if (!content) {return "";}
+  if (content.length <= maxLength) {return content;}
   return content.substring(0, maxLength) + "...";
 };
 </script>

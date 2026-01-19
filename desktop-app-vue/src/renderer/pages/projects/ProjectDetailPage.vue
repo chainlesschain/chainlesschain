@@ -1,5 +1,8 @@
 <template>
-  <div class="project-detail-page-wrapper" data-testid="project-detail-wrapper">
+  <div
+    class="project-detail-page-wrapper"
+    data-testid="project-detail-wrapper"
+  >
     <!-- 性能监控面板（开发环境） -->
     <PerformanceMonitor v-if="isDevelopment" />
 
@@ -10,17 +13,27 @@
     <ProjectSidebar />
 
     <!-- 主内容区 -->
-    <div class="project-detail-page" data-testid="project-detail-page">
+    <div
+      class="project-detail-page"
+      data-testid="project-detail-page"
+    >
       <!-- 顶部工具栏 - 使用FadeSlide过渡 -->
-      <FadeSlide direction="down" :duration="300" appear>
+      <FadeSlide
+        direction="down"
+        :duration="300"
+        appear
+      >
         <div class="toolbar">
           <!-- 左侧：面包屑导航 -->
-          <div class="toolbar-left" data-testid="toolbar-breadcrumb">
+          <div
+            class="toolbar-left"
+            data-testid="toolbar-breadcrumb"
+          >
             <a-breadcrumb>
               <a-breadcrumb-item>
                 <a
-                  @click="handleBackToList"
                   data-testid="back-to-projects-link"
+                  @click="handleBackToList"
                 >
                   <FolderOpenOutlined />
                   我的项目
@@ -36,7 +49,10 @@
           </div>
 
           <!-- 中间：视图模式切换 -->
-          <div v-if="currentFile" class="toolbar-center">
+          <div
+            v-if="currentFile"
+            class="toolbar-center"
+          >
             <a-radio-group
               v-model:value="viewMode"
               button-style="solid"
@@ -74,8 +90,8 @@
 
             <!-- 文件管理按钮 -->
             <a-button
-              @click="showFileManageModal = true"
               data-testid="file-manage-button"
+              @click="showFileManageModal = true"
             >
               <FolderOpenOutlined />
               文件管理
@@ -84,8 +100,8 @@
             <!-- 分享按钮 -->
             <a-button
               v-if="currentProject"
-              @click="showShareModal = true"
               data-testid="share-button"
+              @click="showShareModal = true"
             >
               <ShareAltOutlined />
               分享
@@ -93,8 +109,8 @@
 
             <!-- 编辑器面板开关 -->
             <a-button
-              @click="toggleEditorPanel"
               data-testid="toggle-editor-button"
+              @click="toggleEditorPanel"
             >
               <CodeOutlined />
               {{ showEditorPanel ? "隐藏" : "显示" }} 编辑器
@@ -108,25 +124,43 @@
                 <DownOutlined />
               </a-button>
               <template #overlay>
-                <a-menu @click="handleGitAction" data-testid="git-actions-menu">
-                  <a-menu-item key="status" data-testid="git-status-item">
+                <a-menu
+                  data-testid="git-actions-menu"
+                  @click="handleGitAction"
+                >
+                  <a-menu-item
+                    key="status"
+                    data-testid="git-status-item"
+                  >
                     <InfoCircleOutlined />
                     查看状态
                   </a-menu-item>
-                  <a-menu-item key="history" data-testid="git-history-item">
+                  <a-menu-item
+                    key="history"
+                    data-testid="git-history-item"
+                  >
                     <HistoryOutlined />
                     提交历史
                   </a-menu-item>
                   <a-menu-divider />
-                  <a-menu-item key="commit" data-testid="git-commit-item">
+                  <a-menu-item
+                    key="commit"
+                    data-testid="git-commit-item"
+                  >
                     <CheckOutlined />
                     提交更改
                   </a-menu-item>
-                  <a-menu-item key="push" data-testid="git-push-item">
+                  <a-menu-item
+                    key="push"
+                    data-testid="git-push-item"
+                  >
                     <CloudUploadOutlined />
                     推送到远程
                   </a-menu-item>
-                  <a-menu-item key="pull" data-testid="git-pull-item">
+                  <a-menu-item
+                    key="pull"
+                    data-testid="git-pull-item"
+                  >
                     <CloudDownloadOutlined />
                     拉取最新
                   </a-menu-item>
@@ -139,15 +173,18 @@
               type="primary"
               :disabled="!hasUnsavedChanges"
               :loading="saving"
-              @click="handleSave"
               data-testid="save-button"
+              @click="handleSave"
             >
               <SaveOutlined />
               保存
             </a-button>
 
             <!-- 关闭按钮 -->
-            <a-button @click="handleBackToList" data-testid="close-button">
+            <a-button
+              data-testid="close-button"
+              @click="handleBackToList"
+            >
               <CloseOutlined />
               关闭
             </a-button>
@@ -172,7 +209,10 @@
             :rows="8"
             style="flex: 1; margin-right: 16px"
           />
-          <SkeletonLoader type="editor" style="width: 600px" />
+          <SkeletonLoader
+            type="editor"
+            style="width: 600px"
+          />
         </div>
       </div>
 
@@ -189,8 +229,8 @@
         <p>找不到ID为 {{ projectId }} 的项目</p>
         <a-button
           type="primary"
-          @click="handleBackToList"
           data-testid="back-to-list-button"
+          @click="handleBackToList"
         >
           <FolderOpenOutlined />
           返回项目列表
@@ -210,7 +250,10 @@
           :style="{ width: fileExplorerWidth + 'px' }"
           data-testid="file-explorer-panel"
         >
-          <div class="sidebar-header" data-testid="file-explorer-header">
+          <div
+            class="sidebar-header"
+            data-testid="file-explorer-header"
+          >
             <h3>
               <FolderOutlined />
               项目文件
@@ -232,14 +275,17 @@
             <a-button
               size="small"
               type="text"
-              @click="handleRefreshFiles"
               data-testid="refresh-files-button"
+              @click="handleRefreshFiles"
             >
               <ReloadOutlined :spin="refreshing" />
             </a-button>
           </div>
 
-          <div class="sidebar-content" data-testid="file-tree-container">
+          <div
+            class="sidebar-content"
+            data-testid="file-tree-container"
+          >
             <!-- 动态组件：根据useVirtualFileTree切换 -->
             <component
               :is="useVirtualFileTree ? VirtualFileTree : EnhancedFileTree"
@@ -400,7 +446,10 @@
           />
 
           <!-- 空状态 -->
-          <div v-else class="empty-editor">
+          <div
+            v-else
+            class="empty-editor"
+          >
             <div class="empty-icon">
               <FileTextOutlined />
             </div>
@@ -411,12 +460,18 @@
       </div>
 
       <!-- 错误状态 -->
-      <div v-else class="error-container">
+      <div
+        v-else
+        class="error-container"
+      >
         <div class="error-icon">
           <ExclamationCircleOutlined />
         </div>
         <h3>项目不存在或已删除</h3>
-        <a-button type="primary" @click="handleBackToList">
+        <a-button
+          type="primary"
+          @click="handleBackToList"
+        >
           返回项目列表
         </a-button>
       </div>
@@ -448,7 +503,10 @@
         @ok="handleConfirmCommit"
       >
         <a-form layout="vertical">
-          <a-form-item label="提交信息" required>
+          <a-form-item
+            label="提交信息"
+            required
+          >
             <a-textarea
               v-model:value="commitMessage"
               placeholder="输入提交信息..."
@@ -670,7 +728,7 @@ const currentFile = computed(() => projectStore.currentFile);
 
 // 文件类型信息（使用LRU缓存优化）
 const fileTypeInfo = computed(() => {
-  if (!currentFile.value?.file_name) return null;
+  if (!currentFile.value?.file_name) {return null;}
 
   // 使用缓存的文件类型检测函数
   return getFileTypeInfo(
@@ -681,36 +739,36 @@ const fileTypeInfo = computed(() => {
 
 // 是否显示Excel编辑器
 const shouldShowExcelEditor = computed(() => {
-  if (!currentFile.value) return false;
-  if (viewMode.value === "preview") return false;
+  if (!currentFile.value) {return false;}
+  if (viewMode.value === "preview") {return false;}
   return fileTypeInfo.value?.isExcel;
 });
 
 // 是否显示Word编辑器
 const shouldShowWordEditor = computed(() => {
-  if (!currentFile.value) return false;
-  if (viewMode.value === "preview") return false;
+  if (!currentFile.value) {return false;}
+  if (viewMode.value === "preview") {return false;}
   return fileTypeInfo.value?.isWord;
 });
 
 // 是否显示代码编辑器
 const shouldShowCodeEditor = computed(() => {
-  if (!currentFile.value) return false;
-  if (viewMode.value === "preview") return false;
+  if (!currentFile.value) {return false;}
+  if (viewMode.value === "preview") {return false;}
   return fileTypeInfo.value?.isCode;
 });
 
 // 是否显示Markdown编辑器
 const shouldShowMarkdownEditor = computed(() => {
-  if (!currentFile.value) return false;
-  if (viewMode.value === "preview") return false;
+  if (!currentFile.value) {return false;}
+  if (viewMode.value === "preview") {return false;}
   return fileTypeInfo.value?.isMarkdown;
 });
 
 // 是否显示Web开发编辑器
 const shouldShowWebEditor = computed(() => {
-  if (!currentFile.value) return false;
-  if (viewMode.value === "preview") return false;
+  if (!currentFile.value) {return false;}
+  if (viewMode.value === "preview") {return false;}
   // 当打开HTML文件且项目包含CSS/JS时使用Web开发编辑器
   const ext = currentFile.value.file_name?.split(".").pop()?.toLowerCase();
   return ext === "html";
@@ -718,7 +776,7 @@ const shouldShowWebEditor = computed(() => {
 
 // 是否显示PPT编辑器
 const shouldShowPPTEditor = computed(() => {
-  if (!currentFile.value) return false;
+  if (!currentFile.value) {return false;}
   // PPT文件在auto和edit模式下使用编辑器
   if (viewMode.value === "auto" || viewMode.value === "edit") {
     return fileTypeInfo.value?.isPPT;
@@ -728,7 +786,7 @@ const shouldShowPPTEditor = computed(() => {
 
 // 是否显示文本编辑器
 const shouldShowEditor = computed(() => {
-  if (!currentFile.value) return false;
+  if (!currentFile.value) {return false;}
   // 专用编辑器的文件不使用文本编辑器
   if (
     fileTypeInfo.value?.isExcel ||
@@ -739,16 +797,16 @@ const shouldShowEditor = computed(() => {
   ) {
     return false;
   }
-  if (viewMode.value === "edit") return fileTypeInfo.value?.isEditable;
-  if (viewMode.value === "preview") return false;
-  if (viewMode.value === "auto") return fileTypeInfo.value?.isEditable;
+  if (viewMode.value === "edit") {return fileTypeInfo.value?.isEditable;}
+  if (viewMode.value === "preview") {return false;}
+  if (viewMode.value === "auto") {return fileTypeInfo.value?.isEditable;}
   return false;
 });
 
 // 是否显示预览
 const shouldShowPreview = computed(() => {
-  if (!currentFile.value) return false;
-  if (viewMode.value === "preview") return true;
+  if (!currentFile.value) {return false;}
+  if (viewMode.value === "preview") {return true;}
   if (viewMode.value === "auto") {
     // 如果是专用编辑器文件或可编辑文件，则不显示预览
     if (
@@ -798,7 +856,7 @@ const a11yManager = getAccessibilityManager({
 
 // 获取本地项目路径（将相对路径转换为绝对路径显示）
 const getLocalProjectPath = async (path) => {
-  if (!path) return "未知路径";
+  if (!path) {return "未知路径";}
 
   try {
     // 调用后端 API 解析路径
@@ -1037,7 +1095,7 @@ const handleContentChange = (newContent) => {
 
 // 处理文件保存（从编辑器触发）
 const handleFileSave = async (content) => {
-  if (!currentFile.value) return;
+  if (!currentFile.value) {return;}
 
   saving.value = true;
   try {
@@ -1068,7 +1126,7 @@ const handleExcelChange = (changeData) => {
 
 // 处理Excel保存
 const handleExcelSave = async (data) => {
-  if (!currentFile.value) return;
+  if (!currentFile.value) {return;}
 
   saving.value = true;
   try {
@@ -1092,7 +1150,7 @@ const handleWordChange = (changeData) => {
 
 // 处理Word保存
 const handleWordSave = async (data) => {
-  if (!currentFile.value) return;
+  if (!currentFile.value) {return;}
 
   saving.value = true;
   try {
@@ -1319,7 +1377,7 @@ const prefetchAdjacentFiles = (currentFileId) => {
   const currentIndex = projectFiles.value.findIndex(
     (f) => f.id === currentFileId,
   );
-  if (currentIndex === -1) return;
+  if (currentIndex === -1) {return;}
 
   // 预取前后各2个文件
   const filesToPrefetch = [
@@ -1347,7 +1405,7 @@ const handleFileChange = (content) => {
 
 // 保存文件 - 使用乐观更新
 const handleSave = async () => {
-  if (!currentFile.value) return;
+  if (!currentFile.value) {return;}
 
   saving.value = true;
 
@@ -2171,7 +2229,7 @@ const getStatusText = (status) => {
 };
 
 const formatDate = (timestamp) => {
-  if (!timestamp) return "-";
+  if (!timestamp) {return "-";}
   const date = new Date(timestamp);
   return date.toLocaleString("zh-CN", {
     year: "numeric",

@@ -256,10 +256,10 @@ export function smartLoad(loader, options = {}) {
 
   // Add prefetch methods
   component.prefetchOnHover = (element) => {
-    if (!element) return;
+    if (!element) {return;}
 
     element.addEventListener('mouseenter', () => {
-      if (prefetched) return;
+      if (prefetched) {return;}
 
       hoverTimeout = setTimeout(() => {
         prefetchComponent(loader, chunkName);
@@ -276,7 +276,7 @@ export function smartLoad(loader, options = {}) {
   };
 
   component.prefetchOnVisible = (element) => {
-    if (!element || prefetched) return;
+    if (!element || prefetched) {return;}
 
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {

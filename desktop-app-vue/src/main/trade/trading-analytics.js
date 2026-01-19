@@ -94,7 +94,7 @@ class TradingAnalytics extends EventEmitter {
   async getTradingOverview(timeRange = TimeRange.MONTH) {
     const cacheKey = `overview_${timeRange}`;
     const cached = this.getCache(cacheKey);
-    if (cached) return cached;
+    if (cached) {return cached;}
 
     try {
       const { startTime, endTime } = this.getTimeRange(timeRange);
@@ -195,7 +195,7 @@ class TradingAnalytics extends EventEmitter {
   async getProfitLossAnalysis(timeRange = TimeRange.MONTH) {
     const cacheKey = `profit_loss_${timeRange}`;
     const cached = this.getCache(cacheKey);
-    if (cached) return cached;
+    if (cached) {return cached;}
 
     try {
       const { startTime, endTime } = this.getTimeRange(timeRange);
@@ -277,7 +277,7 @@ class TradingAnalytics extends EventEmitter {
   async getAssetPerformance(assetId = null, timeRange = TimeRange.MONTH) {
     const cacheKey = `asset_performance_${assetId || 'all'}_${timeRange}`;
     const cached = this.getCache(cacheKey);
-    if (cached) return cached;
+    if (cached) {return cached;}
 
     try {
       const { startTime, endTime } = this.getTimeRange(timeRange);
@@ -347,7 +347,7 @@ class TradingAnalytics extends EventEmitter {
   async getRiskAssessment() {
     const cacheKey = 'risk_assessment';
     const cached = this.getCache(cacheKey);
-    if (cached) return cached;
+    if (cached) {return cached;}
 
     try {
       // 获取资产集中度风险
@@ -513,10 +513,10 @@ class TradingAnalytics extends EventEmitter {
    * 获取风险等级
    */
   getRiskLevel(score) {
-    if (score < 20) return 'low';
-    if (score < 40) return 'moderate';
-    if (score < 60) return 'medium';
-    if (score < 80) return 'high';
+    if (score < 20) {return 'low';}
+    if (score < 40) {return 'moderate';}
+    if (score < 60) {return 'medium';}
+    if (score < 80) {return 'high';}
     return 'critical';
   }
 
@@ -548,7 +548,7 @@ class TradingAnalytics extends EventEmitter {
   async getMarketTrend(timeRange = TimeRange.MONTH) {
     const cacheKey = `market_trend_${timeRange}`;
     const cached = this.getCache(cacheKey);
-    if (cached) return cached;
+    if (cached) {return cached;}
 
     try {
       const { startTime, endTime } = this.getTimeRange(timeRange);

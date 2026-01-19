@@ -189,7 +189,7 @@ class CollaborationSessionManager extends EventEmitter {
             break;
           }
         }
-        if (knowledgeId) break;
+        if (knowledgeId) {break;}
       }
 
       if (!sessionInfo) {

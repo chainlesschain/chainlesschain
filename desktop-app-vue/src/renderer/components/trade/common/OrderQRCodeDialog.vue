@@ -1,23 +1,47 @@
 <template>
-  <a-modal v-model:open="visible" :title="title" width="500px" :footer="null">
+  <a-modal
+    v-model:open="visible"
+    :title="title"
+    width="500px"
+    :footer="null"
+  >
     <div class="qrcode-container">
-      <div ref="qrcodeRef" class="qrcode-canvas"></div>
+      <div
+        ref="qrcodeRef"
+        class="qrcode-canvas"
+      />
 
       <a-space
         direction="vertical"
         style="width: 100%; margin-top: 24px"
         :size="12"
       >
-        <a-button type="primary" block @click="downloadQRCode">
-          <template #icon><DownloadOutlined /></template>
+        <a-button
+          type="primary"
+          block
+          @click="downloadQRCode"
+        >
+          <template #icon>
+            <DownloadOutlined />
+          </template>
           下载二维码
         </a-button>
-        <a-button block @click="copyLink">
-          <template #icon><CopyOutlined /></template>
+        <a-button
+          block
+          @click="copyLink"
+        >
+          <template #icon>
+            <CopyOutlined />
+          </template>
           复制链接
         </a-button>
-        <a-button block @click="shareToSocial">
-          <template #icon><ShareAltOutlined /></template>
+        <a-button
+          block
+          @click="shareToSocial"
+        >
+          <template #icon>
+            <ShareAltOutlined />
+          </template>
           分享到社交网络
         </a-button>
       </a-space>
@@ -37,7 +61,10 @@
         style="margin-top: 16px"
         title="订单信息"
       >
-        <a-descriptions :column="1" size="small">
+        <a-descriptions
+          :column="1"
+          size="small"
+        >
           <a-descriptions-item label="订单类型">
             <a-tag :color="getOrderTypeColor(orderData.order_type)">
               {{ getOrderTypeLabel(orderData.order_type) }}
@@ -127,7 +154,7 @@ const alertDescription = computed(() => {
 });
 
 const generateQRCode = async () => {
-  if (!qrcodeRef.value || !props.url) return;
+  if (!qrcodeRef.value || !props.url) {return;}
 
   try {
     // 清空之前的二维码

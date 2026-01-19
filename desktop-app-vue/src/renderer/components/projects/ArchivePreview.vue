@@ -1,13 +1,18 @@
 <template>
   <div class="archive-preview">
     <!-- 压缩包信息 -->
-    <div v-if="archiveInfo" class="archive-info">
+    <div
+      v-if="archiveInfo"
+      class="archive-info"
+    >
       <div class="info-header">
         <FileZipOutlined class="archive-icon" />
         <div class="info-content">
           <h3>{{ archiveInfo.name }}</h3>
           <div class="info-details">
-            <a-tag color="blue">{{ archiveInfo.type }}</a-tag>
+            <a-tag color="blue">
+              {{ archiveInfo.type }}
+            </a-tag>
             <span>大小: {{ formatSize(archiveInfo.size) }}</span>
             <span>文件: {{ archiveInfo.fileCount }}</span>
             <span>文件夹: {{ archiveInfo.folderCount }}</span>
@@ -18,7 +23,10 @@
 
     <!-- 文件树 -->
     <div class="file-tree-container">
-      <a-spin :spinning="loading" tip="加载中...">
+      <a-spin
+        :spinning="loading"
+        tip="加载中..."
+      >
         <a-tree
           v-if="treeData.length > 0"
           :tree-data="treeData"
@@ -27,19 +35,31 @@
           @select="handleSelect"
         >
           <template #icon="{ dataRef }">
-            <FolderOutlined v-if="dataRef.isDirectory" style="color: #faad14" />
-            <FileOutlined v-else :style="{ color: getFileIconColor(dataRef.type) }" />
+            <FolderOutlined
+              v-if="dataRef.isDirectory"
+              style="color: #faad14"
+            />
+            <FileOutlined
+              v-else
+              :style="{ color: getFileIconColor(dataRef.type) }"
+            />
           </template>
           <template #title="{ dataRef }">
             <div class="tree-node-title">
               <span class="node-name">{{ dataRef.title }}</span>
-              <span v-if="!dataRef.isDirectory" class="node-size">
+              <span
+                v-if="!dataRef.isDirectory"
+                class="node-size"
+              >
                 {{ formatSize(dataRef.size) }}
               </span>
             </div>
           </template>
         </a-tree>
-        <a-empty v-else description="压缩包为空" />
+        <a-empty
+          v-else
+          description="压缩包为空"
+        />
       </a-spin>
     </div>
 
@@ -69,8 +89,8 @@
       type="error"
       show-icon
       closable
-      @close="error = null"
       style="margin-top: 16px"
+      @close="error = null"
     />
   </div>
 </template>
@@ -157,7 +177,7 @@ const handleSelect = (selectedKeys, { node }) => {
  * 预览文件
  */
 const handlePreview = async () => {
-  if (!selectedFile.value) return;
+  if (!selectedFile.value) {return;}
 
   loading.value = true;
 
@@ -191,7 +211,7 @@ const handlePreview = async () => {
  * 提取文件
  */
 const handleExtract = async () => {
-  if (!selectedFile.value) return;
+  if (!selectedFile.value) {return;}
 
   try {
     // 显示保存对话框
@@ -237,7 +257,7 @@ const handleExtract = async () => {
  * 格式化文件大小
  */
 const formatSize = (bytes) => {
-  if (!bytes || bytes === 0) return '0 B';
+  if (!bytes || bytes === 0) {return '0 B';}
 
   const units = ['B', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(1024));

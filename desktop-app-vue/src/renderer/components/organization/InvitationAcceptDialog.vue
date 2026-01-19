@@ -8,7 +8,10 @@
     @cancel="handleReject"
   >
     <a-spin :spinning="validating">
-      <div v-if="invitationInfo" class="invitation-accept">
+      <div
+        v-if="invitationInfo"
+        class="invitation-accept"
+      >
         <!-- 组织信息 -->
         <a-card class="org-card">
           <div class="org-header">
@@ -29,7 +32,11 @@
         </a-card>
 
         <!-- 邀请信息 -->
-        <a-descriptions bordered :column="1" style="margin-top: 16px">
+        <a-descriptions
+          bordered
+          :column="1"
+          style="margin-top: 16px"
+        >
           <a-descriptions-item label="邀请人">
             {{ invitationInfo.inviterName }}
           </a-descriptions-item>
@@ -41,7 +48,10 @@
               {{ getRoleDescription(invitationInfo.role) }}
             </div>
           </a-descriptions-item>
-          <a-descriptions-item label="邀请消息" v-if="invitationInfo.message">
+          <a-descriptions-item
+            v-if="invitationInfo.message"
+            label="邀请消息"
+          >
             {{ invitationInfo.message }}
           </a-descriptions-item>
           <a-descriptions-item label="链接状态">
@@ -84,7 +94,10 @@
         sub-title="此邀请链接可能已过期、已撤销或不存在"
       >
         <template #extra>
-          <a-button type="primary" @click="visible = false">
+          <a-button
+            type="primary"
+            @click="visible = false"
+          >
             关闭
           </a-button>
         </template>
@@ -93,7 +106,9 @@
 
     <template #footer>
       <a-space>
-        <a-button @click="handleReject">拒绝</a-button>
+        <a-button @click="handleReject">
+          拒绝
+        </a-button>
         <a-button
           type="primary"
           :loading="loading"
@@ -141,7 +156,7 @@ const visible = computed({
 });
 
 const validateToken = async () => {
-  if (!props.token) return;
+  if (!props.token) {return;}
 
   validating.value = true;
   error.value = '';

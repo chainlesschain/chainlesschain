@@ -1,6 +1,9 @@
 <template>
   <div class="skill-dependency-graph">
-    <a-card title="技能-工具依赖关系图" size="small">
+    <a-card
+      title="技能-工具依赖关系图"
+      size="small"
+    >
       <template #extra>
         <a-space>
           <a-select
@@ -8,22 +11,34 @@
             style="width: 120px"
             @change="updateLayout"
           >
-            <a-select-option value="force">力导向图</a-select-option>
-            <a-select-option value="circular">环形布局</a-select-option>
+            <a-select-option value="force">
+              力导向图
+            </a-select-option>
+            <a-select-option value="circular">
+              环形布局
+            </a-select-option>
           </a-select>
-          <a-button size="small" @click="resetZoom">
-            <template #icon><ZoomInOutlined /></template>
+          <a-button
+            size="small"
+            @click="resetZoom"
+          >
+            <template #icon>
+              <ZoomInOutlined />
+            </template>
             重置缩放
           </a-button>
         </a-space>
       </template>
 
-      <div ref="graphRef" style="width: 100%; height: 600px"></div>
+      <div
+        ref="graphRef"
+        style="width: 100%; height: 600px"
+      />
 
       <div class="graph-legend">
         <a-space>
-          <span><span class="legend-dot skill-node"></span>技能节点</span>
-          <span><span class="legend-dot tool-node"></span>工具节点</span>
+          <span><span class="legend-dot skill-node" />技能节点</span>
+          <span><span class="legend-dot tool-node" />工具节点</span>
         </a-space>
       </div>
     </a-card>
@@ -107,7 +122,7 @@ const buildGraphData = () => {
 
 // 初始化图表
 const initGraph = () => {
-  if (!graphRef.value) return;
+  if (!graphRef.value) {return;}
 
   graph = echarts.init(graphRef.value);
 
@@ -195,7 +210,7 @@ const initGraph = () => {
 
 // 更新布局
 const updateLayout = () => {
-  if (!graph) return;
+  if (!graph) {return;}
 
   const { nodes, links } = buildGraphData();
 
@@ -217,7 +232,7 @@ const updateLayout = () => {
 
 // 重置缩放
 const resetZoom = () => {
-  if (!graph) return;
+  if (!graph) {return;}
   graph.dispatchAction({
     type: 'restore',
   });

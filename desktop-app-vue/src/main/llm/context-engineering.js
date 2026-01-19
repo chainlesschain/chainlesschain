@@ -164,7 +164,7 @@ class ContextEngineering {
    * @private
    */
   _cleanSystemPrompt(systemPrompt) {
-    if (!systemPrompt) return "";
+    if (!systemPrompt) {return "";}
 
     let cleaned = systemPrompt;
 
@@ -265,7 +265,7 @@ ${JSON.stringify(parameters, null, 2)}`;
    * @private
    */
   _buildErrorContext() {
-    if (this.errorHistory.length === 0) return "";
+    if (this.errorHistory.length === 0) {return "";}
 
     const errors = this.errorHistory.slice(-this.config.maxPreservedErrors);
 
@@ -465,7 +465,7 @@ class RecoverableCompressor {
    * @returns {Object} 压缩后的引用
    */
   compress(content, type = "default") {
-    if (!content) return content;
+    if (!content) {return content;}
 
     const threshold = this.thresholds[type] || this.thresholds.default;
 

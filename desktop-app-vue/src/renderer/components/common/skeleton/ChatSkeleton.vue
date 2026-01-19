@@ -7,16 +7,26 @@
       :class="{ 'user-message': i % 3 === 0 }"
       :style="{ animationDelay: `${i * 0.1}s` }"
     >
-      <div class="message-avatar skeleton-box"></div>
+      <div class="message-avatar skeleton-box" />
       <div class="message-content">
         <div class="message-header">
-          <div class="skeleton-box username"></div>
-          <div class="skeleton-box timestamp"></div>
+          <div class="skeleton-box username" />
+          <div class="skeleton-box timestamp" />
         </div>
         <div class="message-text">
-          <div class="skeleton-box text-line" :style="{ width: getLineWidth(i, 0) }"></div>
-          <div class="skeleton-box text-line" :style="{ width: getLineWidth(i, 1) }"></div>
-          <div v-if="i % 2 === 0" class="skeleton-box text-line" :style="{ width: getLineWidth(i, 2) }"></div>
+          <div
+            class="skeleton-box text-line"
+            :style="{ width: getLineWidth(i, 0) }"
+          />
+          <div
+            class="skeleton-box text-line"
+            :style="{ width: getLineWidth(i, 1) }"
+          />
+          <div
+            v-if="i % 2 === 0"
+            class="skeleton-box text-line"
+            :style="{ width: getLineWidth(i, 2) }"
+          />
         </div>
       </div>
     </div>

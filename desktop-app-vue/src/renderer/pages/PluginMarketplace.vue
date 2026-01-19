@@ -7,7 +7,9 @@
           <ShopOutlined />
           插件市场
         </h1>
-        <p class="subtitle">发现和安装优质插件，扩展ChainlessChain功能</p>
+        <p class="subtitle">
+          发现和安装优质插件，扩展ChainlessChain功能
+        </p>
       </div>
 
       <!-- 搜索和筛选 -->
@@ -16,8 +18,8 @@
           v-model:value="searchQuery"
           placeholder="搜索插件名称、描述或标签..."
           size="large"
-          @search="handleSearch"
           style="max-width: 600px"
+          @search="handleSearch"
         >
           <template #prefix>
             <SearchOutlined />
@@ -28,38 +30,59 @@
 
     <!-- 分类标签 -->
     <div class="category-tabs">
-      <a-tabs v-model:activeKey="activeCategory" @change="handleCategoryChange">
-        <a-tab-pane key="all" tab="全部插件">
+      <a-tabs
+        v-model:active-key="activeCategory"
+        @change="handleCategoryChange"
+      >
+        <a-tab-pane
+          key="all"
+          tab="全部插件"
+        >
           <template #tab>
             <AppstoreOutlined />
             全部插件
           </template>
         </a-tab-pane>
-        <a-tab-pane key="ai" tab="AI增强">
+        <a-tab-pane
+          key="ai"
+          tab="AI增强"
+        >
           <template #tab>
             <RobotOutlined />
             AI增强
           </template>
         </a-tab-pane>
-        <a-tab-pane key="productivity" tab="效率工具">
+        <a-tab-pane
+          key="productivity"
+          tab="效率工具"
+        >
           <template #tab>
             <ThunderboltOutlined />
             效率工具
           </template>
         </a-tab-pane>
-        <a-tab-pane key="data" tab="数据处理">
+        <a-tab-pane
+          key="data"
+          tab="数据处理"
+        >
           <template #tab>
             <DatabaseOutlined />
             数据处理
           </template>
         </a-tab-pane>
-        <a-tab-pane key="integration" tab="第三方集成">
+        <a-tab-pane
+          key="integration"
+          tab="第三方集成"
+        >
           <template #tab>
             <ApiOutlined />
             第三方集成
           </template>
         </a-tab-pane>
-        <a-tab-pane key="ui" tab="界面扩展">
+        <a-tab-pane
+          key="ui"
+          tab="界面扩展"
+        >
           <template #tab>
             <LayoutOutlined />
             界面扩展
@@ -76,10 +99,18 @@
           style="width: 150px"
           @change="handleSortChange"
         >
-          <a-select-option value="popular">最受欢迎</a-select-option>
-          <a-select-option value="recent">最新发布</a-select-option>
-          <a-select-option value="rating">评分最高</a-select-option>
-          <a-select-option value="downloads">下载最多</a-select-option>
+          <a-select-option value="popular">
+            最受欢迎
+          </a-select-option>
+          <a-select-option value="recent">
+            最新发布
+          </a-select-option>
+          <a-select-option value="rating">
+            评分最高
+          </a-select-option>
+          <a-select-option value="downloads">
+            下载最多
+          </a-select-option>
         </a-select>
 
         <a-checkbox v-model:checked="showInstalledOnly">
@@ -92,7 +123,10 @@
       </a-space>
 
       <div class="view-toggle">
-        <a-radio-group v-model:value="viewMode" button-style="solid">
+        <a-radio-group
+          v-model:value="viewMode"
+          button-style="solid"
+        >
           <a-radio-button value="grid">
             <AppstoreOutlined />
           </a-radio-button>
@@ -104,12 +138,21 @@
     </div>
 
     <!-- 加载状态 -->
-    <div v-if="loading" class="loading-container">
-      <a-spin size="large" tip="加载插件中..." />
+    <div
+      v-if="loading"
+      class="loading-container"
+    >
+      <a-spin
+        size="large"
+        tip="加载插件中..."
+      />
     </div>
 
     <!-- 插件列表 - 网格视图 -->
-    <div v-else-if="viewMode === 'grid'" class="plugin-grid">
+    <div
+      v-else-if="viewMode === 'grid'"
+      class="plugin-grid"
+    >
       <a-card
         v-for="plugin in filteredPlugins"
         :key="plugin.id"
@@ -119,25 +162,41 @@
       >
         <!-- 插件图标 -->
         <div class="plugin-icon">
-          <img v-if="plugin.icon" :src="plugin.icon" :alt="plugin.name" />
-          <AppstoreOutlined v-else style="font-size: 48px; color: #1890ff" />
+          <img
+            v-if="plugin.icon"
+            :src="plugin.icon"
+            :alt="plugin.name"
+          >
+          <AppstoreOutlined
+            v-else
+            style="font-size: 48px; color: #1890ff"
+          />
         </div>
 
         <!-- 插件信息 -->
         <div class="plugin-info">
           <div class="plugin-header">
             <h3>{{ plugin.name }}</h3>
-            <a-tag v-if="plugin.verified" color="blue">
+            <a-tag
+              v-if="plugin.verified"
+              color="blue"
+            >
               <SafetyCertificateOutlined />
               已验证
             </a-tag>
           </div>
 
-          <p class="plugin-description">{{ plugin.description }}</p>
+          <p class="plugin-description">
+            {{ plugin.description }}
+          </p>
 
           <!-- 标签 -->
           <div class="plugin-tags">
-            <a-tag v-for="tag in plugin.tags" :key="tag" color="default">
+            <a-tag
+              v-for="tag in plugin.tags"
+              :key="tag"
+              color="default"
+            >
               {{ tag }}
             </a-tag>
           </div>
@@ -163,8 +222,8 @@
             <a-button
               v-if="!plugin.installed"
               type="primary"
-              @click.stop="installPlugin(plugin)"
               :loading="plugin.installing"
+              @click.stop="installPlugin(plugin)"
             >
               <DownloadOutlined />
               安装
@@ -183,7 +242,10 @@
     </div>
 
     <!-- 插件列表 - 列表视图 -->
-    <div v-else class="plugin-list">
+    <div
+      v-else
+      class="plugin-list"
+    >
       <a-list
         :data-source="filteredPlugins"
         :pagination="{ pageSize: 10 }"
@@ -192,14 +254,23 @@
           <a-list-item>
             <a-list-item-meta>
               <template #avatar>
-                <a-avatar :size="64" :src="plugin.icon">
-                  <template #icon><AppstoreOutlined /></template>
+                <a-avatar
+                  :size="64"
+                  :src="plugin.icon"
+                >
+                  <template #icon>
+                    <AppstoreOutlined />
+                  </template>
                 </a-avatar>
               </template>
               <template #title>
                 <a @click="showPluginDetail(plugin)">
                   {{ plugin.name }}
-                  <a-tag v-if="plugin.verified" color="blue" style="margin-left: 8px">
+                  <a-tag
+                    v-if="plugin.verified"
+                    color="blue"
+                    style="margin-left: 8px"
+                  >
                     <SafetyCertificateOutlined />
                     已验证
                   </a-tag>
@@ -233,8 +304,8 @@
               <a-button
                 v-if="!plugin.installed"
                 type="primary"
-                @click="installPlugin(plugin)"
                 :loading="plugin.installing"
+                @click="installPlugin(plugin)"
               >
                 <DownloadOutlined />
                 安装
@@ -260,21 +331,35 @@
       width="600"
       :footer-style="{ textAlign: 'right' }"
     >
-      <div v-if="selectedPlugin" class="plugin-detail">
+      <div
+        v-if="selectedPlugin"
+        class="plugin-detail"
+      >
         <!-- 插件头部 -->
         <div class="detail-header">
-          <a-avatar :size="80" :src="selectedPlugin.icon">
-            <template #icon><AppstoreOutlined /></template>
+          <a-avatar
+            :size="80"
+            :src="selectedPlugin.icon"
+          >
+            <template #icon>
+              <AppstoreOutlined />
+            </template>
           </a-avatar>
           <div class="detail-title">
             <h2>{{ selectedPlugin.name }}</h2>
             <p>{{ selectedPlugin.author }}</p>
             <div class="detail-badges">
-              <a-tag v-if="selectedPlugin.verified" color="blue">
+              <a-tag
+                v-if="selectedPlugin.verified"
+                color="blue"
+              >
                 <SafetyCertificateOutlined />
                 已验证
               </a-tag>
-              <a-tag v-if="selectedPlugin.installed" color="green">
+              <a-tag
+                v-if="selectedPlugin.installed"
+                color="green"
+              >
                 <CheckCircleOutlined />
                 已安装
               </a-tag>
@@ -283,12 +368,21 @@
         </div>
 
         <!-- 统计信息 -->
-        <a-descriptions :column="2" bordered size="small" style="margin-top: 24px">
+        <a-descriptions
+          :column="2"
+          bordered
+          size="small"
+          style="margin-top: 24px"
+        >
           <a-descriptions-item label="版本">
             {{ selectedPlugin.version }}
           </a-descriptions-item>
           <a-descriptions-item label="评分">
-            <a-rate :value="selectedPlugin.rating" disabled allow-half />
+            <a-rate
+              :value="selectedPlugin.rating"
+              disabled
+              allow-half
+            />
             {{ selectedPlugin.rating }}
           </a-descriptions-item>
           <a-descriptions-item label="下载量">
@@ -297,8 +391,14 @@
           <a-descriptions-item label="更新时间">
             {{ formatDate(selectedPlugin.updatedAt) }}
           </a-descriptions-item>
-          <a-descriptions-item label="分类" :span="2">
-            <a-tag v-for="tag in selectedPlugin.tags" :key="tag">
+          <a-descriptions-item
+            label="分类"
+            :span="2"
+          >
+            <a-tag
+              v-for="tag in selectedPlugin.tags"
+              :key="tag"
+            >
               {{ tag }}
             </a-tag>
           </a-descriptions-item>
@@ -308,21 +408,33 @@
         <div class="detail-section">
           <h3>插件介绍</h3>
           <p>{{ selectedPlugin.description }}</p>
-          <div v-if="selectedPlugin.longDescription" v-html="selectedPlugin.longDescription"></div>
+          <div
+            v-if="selectedPlugin.longDescription"
+            v-html="selectedPlugin.longDescription"
+          />
         </div>
 
         <!-- 功能特性 -->
-        <div v-if="selectedPlugin.features" class="detail-section">
+        <div
+          v-if="selectedPlugin.features"
+          class="detail-section"
+        >
           <h3>功能特性</h3>
           <ul>
-            <li v-for="(feature, index) in selectedPlugin.features" :key="index">
+            <li
+              v-for="(feature, index) in selectedPlugin.features"
+              :key="index"
+            >
               {{ feature }}
             </li>
           </ul>
         </div>
 
         <!-- 权限要求 -->
-        <div v-if="selectedPlugin.permissions" class="detail-section">
+        <div
+          v-if="selectedPlugin.permissions"
+          class="detail-section"
+        >
           <h3>权限要求</h3>
           <a-alert
             message="此插件需要以下权限"
@@ -344,7 +456,10 @@
         </div>
 
         <!-- 截图 -->
-        <div v-if="selectedPlugin.screenshots" class="detail-section">
+        <div
+          v-if="selectedPlugin.screenshots"
+          class="detail-section"
+        >
           <h3>截图预览</h3>
           <div class="screenshots">
             <img
@@ -352,12 +467,15 @@
               :key="index"
               :src="screenshot"
               :alt="`Screenshot ${index + 1}`"
-            />
+            >
           </div>
         </div>
 
         <!-- 更新日志 -->
-        <div v-if="selectedPlugin.changelog" class="detail-section">
+        <div
+          v-if="selectedPlugin.changelog"
+          class="detail-section"
+        >
           <h3>更新日志</h3>
           <a-timeline>
             <a-timeline-item
@@ -373,12 +491,14 @@
 
       <template #footer>
         <a-space>
-          <a-button @click="detailDrawerVisible = false">关闭</a-button>
+          <a-button @click="detailDrawerVisible = false">
+            关闭
+          </a-button>
           <a-button
             v-if="!selectedPlugin.installed"
             type="primary"
-            @click="installPlugin(selectedPlugin)"
             :loading="selectedPlugin.installing"
+            @click="installPlugin(selectedPlugin)"
           >
             <DownloadOutlined />
             安装插件
@@ -580,7 +700,7 @@ const formatNumber = (num) => {
 };
 
 const formatDate = (date) => {
-  if (!date) return '';
+  if (!date) {return '';}
   return new Date(date).toLocaleDateString('zh-CN');
 };
 

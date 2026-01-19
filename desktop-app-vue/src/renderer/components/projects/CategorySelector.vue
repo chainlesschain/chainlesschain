@@ -15,7 +15,10 @@
     </div>
 
     <!-- 二级分类 -->
-    <div v-if="secondaryCategories.length > 0" class="secondary-categories">
+    <div
+      v-if="secondaryCategories.length > 0"
+      class="secondary-categories"
+    >
       <a-button
         v-for="category in secondaryCategories"
         :key="category.id"
@@ -24,14 +27,23 @@
         size="small"
         @click="selectSecondary(category)"
       >
-        <span v-if="category.icon" class="category-icon">{{ category.icon }}</span>
+        <span
+          v-if="category.icon"
+          class="category-icon"
+        >{{ category.icon }}</span>
         <span class="category-name">{{ category.name }}</span>
       </a-button>
     </div>
 
     <!-- 管理按钮 -->
-    <div v-if="showManage" class="manage-section">
-      <a-button type="link" @click="openManageDialog">
+    <div
+      v-if="showManage"
+      class="manage-section"
+    >
+      <a-button
+        type="link"
+        @click="openManageDialog"
+      >
         <template #icon>
           <SettingOutlined />
         </template>

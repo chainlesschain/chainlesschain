@@ -8,32 +8,65 @@
   >
     <!-- 头部：文件类型筛选 -->
     <div class="modal-header">
-      <a-tabs v-model:activeKey="activeTab" @change="handleTabChange">
-        <a-tab-pane key="all" tab="全部" />
-        <a-tab-pane key="ppt" tab="PPT" />
-        <a-tab-pane key="web" tab="网页" />
-        <a-tab-pane key="doc" tab="文档" />
-        <a-tab-pane key="excel" tab="Excel" />
-        <a-tab-pane key="code" tab="代码" />
-        <a-tab-pane key="image" tab="图片" />
+      <a-tabs
+        v-model:active-key="activeTab"
+        @change="handleTabChange"
+      >
+        <a-tab-pane
+          key="all"
+          tab="全部"
+        />
+        <a-tab-pane
+          key="ppt"
+          tab="PPT"
+        />
+        <a-tab-pane
+          key="web"
+          tab="网页"
+        />
+        <a-tab-pane
+          key="doc"
+          tab="文档"
+        />
+        <a-tab-pane
+          key="excel"
+          tab="Excel"
+        />
+        <a-tab-pane
+          key="code"
+          tab="代码"
+        />
+        <a-tab-pane
+          key="image"
+          tab="图片"
+        />
       </a-tabs>
     </div>
 
     <!-- 文件列表 -->
     <div class="files-list">
       <!-- 加载状态 -->
-      <div v-if="loading" class="loading-container">
+      <div
+        v-if="loading"
+        class="loading-container"
+      >
         <a-spin tip="加载中..." />
       </div>
 
       <!-- 空状态 -->
-      <div v-else-if="filteredFiles.length === 0" class="empty-state">
+      <div
+        v-else-if="filteredFiles.length === 0"
+        class="empty-state"
+      >
         <FileTextOutlined class="empty-icon" />
         <p>{{ emptyText }}</p>
       </div>
 
       <!-- 文件项 -->
-      <div v-else class="files-grid">
+      <div
+        v-else
+        class="files-grid"
+      >
         <div
           v-for="file in filteredFiles"
           :key="file.id"
@@ -50,7 +83,10 @@
           </div>
 
           <div class="file-info">
-            <div class="file-name" :title="file.file_name">
+            <div
+              class="file-name"
+              :title="file.file_name"
+            >
               {{ file.file_name }}
             </div>
             <div class="file-meta">
@@ -58,27 +94,46 @@
             </div>
           </div>
 
-          <div class="file-actions" @click.stop>
+          <div
+            class="file-actions"
+            @click.stop
+          >
             <a-dropdown>
-              <a-button type="text" size="small">
+              <a-button
+                type="text"
+                size="small"
+              >
                 <EllipsisOutlined />
               </a-button>
               <template #overlay>
                 <a-menu>
-                  <a-menu-item key="preview" @click="handleFilePreview(file)">
+                  <a-menu-item
+                    key="preview"
+                    @click="handleFilePreview(file)"
+                  >
                     <EyeOutlined />
                     预览
                   </a-menu-item>
-                  <a-menu-item key="download" @click="handleFileDownload(file)">
+                  <a-menu-item
+                    key="download"
+                    @click="handleFileDownload(file)"
+                  >
                     <DownloadOutlined />
                     下载
                   </a-menu-item>
-                  <a-menu-item key="star" @click="handleFileStar(file)">
+                  <a-menu-item
+                    key="star"
+                    @click="handleFileStar(file)"
+                  >
                     <StarOutlined />
                     收藏
                   </a-menu-item>
                   <a-menu-divider />
-                  <a-menu-item key="delete" danger @click="handleFileDelete(file)">
+                  <a-menu-item
+                    key="delete"
+                    danger
+                    @click="handleFileDelete(file)"
+                  >
                     <DeleteOutlined />
                     删除
                   </a-menu-item>
@@ -156,7 +211,7 @@ const emptyText = computed(() => {
 
 // 获取文件扩展名
 const getFileExtension = (fileName) => {
-  if (!fileName) return '';
+  if (!fileName) {return '';}
   const parts = fileName.split('.');
   return parts.length > 1 ? parts.pop().toLowerCase() : '';
 };
@@ -247,7 +302,7 @@ const getFileColor = (file) => {
 
 // 格式化日期
 const formatDate = (timestamp) => {
-  if (!timestamp) return '';
+  if (!timestamp) {return '';}
   const date = new Date(timestamp);
   const now = new Date();
   const diff = now - date;

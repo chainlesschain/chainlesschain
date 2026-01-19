@@ -2,10 +2,21 @@
   <div class="editor-panel-header">
     <!-- 左侧：文件信息 -->
     <div class="file-info">
-      <component :is="getFileIcon()" class="file-icon" />
+      <component
+        :is="getFileIcon()"
+        class="file-icon"
+      />
       <span class="file-name">{{ displayFileName }}</span>
-      <span v-if="hasUnsavedChanges" class="unsaved-indicator" title="有未保存的更改">●</span>
-      <a-tag v-if="fileType" size="small" class="file-type-tag">
+      <span
+        v-if="hasUnsavedChanges"
+        class="unsaved-indicator"
+        title="有未保存的更改"
+      >●</span>
+      <a-tag
+        v-if="fileType"
+        size="small"
+        class="file-type-tag"
+      >
         {{ fileType }}
       </a-tag>
     </div>
@@ -20,11 +31,17 @@
         button-style="solid"
         @change="handleViewModeChange"
       >
-        <a-radio-button value="auto" :disabled="!canEdit">
+        <a-radio-button
+          value="auto"
+          :disabled="!canEdit"
+        >
           <EyeOutlined />
           自动
         </a-radio-button>
-        <a-radio-button value="edit" :disabled="!canEdit">
+        <a-radio-button
+          value="edit"
+          :disabled="!canEdit"
+        >
           <EditOutlined />
           编辑
         </a-radio-button>
@@ -50,7 +67,10 @@
 
       <!-- 文件导出菜单 -->
       <slot name="export-menu">
-        <a-dropdown v-if="showExport" placement="bottomRight">
+        <a-dropdown
+          v-if="showExport"
+          placement="bottomRight"
+        >
           <a-button size="small">
             <ExportOutlined />
             导出
@@ -81,7 +101,11 @@
 
       <!-- 关闭面板按钮 -->
       <a-tooltip title="关闭编辑器">
-        <a-button size="small" type="text" @click="handleClose">
+        <a-button
+          size="small"
+          type="text"
+          @click="handleClose"
+        >
           <CloseOutlined />
         </a-button>
       </a-tooltip>
@@ -176,7 +200,7 @@ const displayFileName = computed(() => {
 const fileType = computed(() => {
   const fileName = displayFileName.value;
   const ext = fileName.split('.').pop()?.toLowerCase();
-  if (!ext || ext === fileName.toLowerCase()) return null;
+  if (!ext || ext === fileName.toLowerCase()) {return null;}
 
   const typeMap = {
     js: 'JavaScript',

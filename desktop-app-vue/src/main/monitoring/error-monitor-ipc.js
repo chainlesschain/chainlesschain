@@ -7,7 +7,7 @@
  * @since 2026-01-16
  */
 
-const ipcGuard = require("../ipc-guard");
+const ipcGuard = require("../ipc/ipc-guard");
 
 /**
  * 注册所有 ErrorMonitor IPC 处理器

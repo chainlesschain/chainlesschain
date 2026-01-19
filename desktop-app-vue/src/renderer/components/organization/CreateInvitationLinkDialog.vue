@@ -14,24 +14,39 @@
       :label-col="{ span: 6 }"
       :wrapper-col="{ span: 18 }"
     >
-      <a-form-item label="角色" name="role">
-        <a-select v-model:value="formData.role" placeholder="选择角色">
+      <a-form-item
+        label="角色"
+        name="role"
+      >
+        <a-select
+          v-model:value="formData.role"
+          placeholder="选择角色"
+        >
           <a-select-option value="member">
-            <a-tag color="blue">成员</a-tag>
+            <a-tag color="blue">
+              成员
+            </a-tag>
             <span style="margin-left: 8px">可创建和编辑内容</span>
           </a-select-option>
           <a-select-option value="admin">
-            <a-tag color="orange">管理员</a-tag>
+            <a-tag color="orange">
+              管理员
+            </a-tag>
             <span style="margin-left: 8px">可管理成员和内容</span>
           </a-select-option>
           <a-select-option value="viewer">
-            <a-tag color="green">访客</a-tag>
+            <a-tag color="green">
+              访客
+            </a-tag>
             <span style="margin-left: 8px">只能查看内容</span>
           </a-select-option>
         </a-select>
       </a-form-item>
 
-      <a-form-item label="邀请消息" name="message">
+      <a-form-item
+        label="邀请消息"
+        name="message"
+      >
         <a-textarea
           v-model:value="formData.message"
           placeholder="输入邀请消息（可选）"
@@ -41,7 +56,10 @@
         />
       </a-form-item>
 
-      <a-form-item label="使用次数" name="maxUses">
+      <a-form-item
+        label="使用次数"
+        name="maxUses"
+      >
         <a-space>
           <a-input-number
             v-model:value="formData.maxUses"
@@ -62,17 +80,32 @@
         </div>
       </a-form-item>
 
-      <a-form-item label="过期时间" name="expiresIn">
+      <a-form-item
+        label="过期时间"
+        name="expiresIn"
+      >
         <a-radio-group
           v-model:value="formData.expiresInOption"
           @change="handleExpiresChange"
         >
-          <a-radio value="1h">1小时</a-radio>
-          <a-radio value="1d">1天</a-radio>
-          <a-radio value="7d">7天</a-radio>
-          <a-radio value="30d">30天</a-radio>
-          <a-radio value="custom">自定义</a-radio>
-          <a-radio value="never">永不过期</a-radio>
+          <a-radio value="1h">
+            1小时
+          </a-radio>
+          <a-radio value="1d">
+            1天
+          </a-radio>
+          <a-radio value="7d">
+            7天
+          </a-radio>
+          <a-radio value="30d">
+            30天
+          </a-radio>
+          <a-radio value="custom">
+            自定义
+          </a-radio>
+          <a-radio value="never">
+            永不过期
+          </a-radio>
         </a-radio-group>
 
         <a-date-picker
@@ -93,9 +126,15 @@
         </div>
       </a-form-item>
 
-      <a-form-item label="高级选项" name="advanced">
+      <a-form-item
+        label="高级选项"
+        name="advanced"
+      >
         <a-collapse ghost>
-          <a-collapse-panel key="1" header="元数据（可选）">
+          <a-collapse-panel
+            key="1"
+            header="元数据（可选）"
+          >
             <a-form-item
               label="来源"
               :label-col="{ span: 6 }"
@@ -142,8 +181,14 @@
 
     <template #footer>
       <a-space>
-        <a-button @click="handleCancel">取消</a-button>
-        <a-button type="primary" :loading="loading" @click="handleCreate">
+        <a-button @click="handleCancel">
+          取消
+        </a-button>
+        <a-button
+          type="primary"
+          :loading="loading"
+          @click="handleCreate"
+        >
           创建链接
         </a-button>
       </a-space>
@@ -157,7 +202,10 @@
     width="700px"
     :footer="null"
   >
-    <a-result status="success" title="邀请链接已创建">
+    <a-result
+      status="success"
+      title="邀请链接已创建"
+    >
       <template #subTitle>
         <div style="margin-top: 16px">
           <a-typography-paragraph>
@@ -167,29 +215,49 @@
       </template>
 
       <template #extra>
-        <a-space direction="vertical" style="width: 100%" :size="16">
+        <a-space
+          direction="vertical"
+          style="width: 100%"
+          :size="16"
+        >
           <!-- 链接URL -->
-          <a-card title="邀请链接" size="small">
+          <a-card
+            title="邀请链接"
+            size="small"
+          >
             <div style="display: flex; align-items: center; gap: 12px">
               <a-input
                 :value="createdLink.invitationUrl"
                 readonly
                 style="flex: 1"
               />
-              <a-button type="primary" @click="copyCreatedLink">
-                <template #icon><CopyOutlined /></template>
+              <a-button
+                type="primary"
+                @click="copyCreatedLink"
+              >
+                <template #icon>
+                  <CopyOutlined />
+                </template>
                 复制
               </a-button>
             </div>
           </a-card>
 
           <!-- 二维码 -->
-          <a-card title="二维码" size="small">
+          <a-card
+            title="二维码"
+            size="small"
+          >
             <div style="text-align: center">
-              <div ref="qrcodeRef" style="display: inline-block"></div>
+              <div
+                ref="qrcodeRef"
+                style="display: inline-block"
+              />
               <div style="margin-top: 12px">
                 <a-button @click="downloadQRCode">
-                  <template #icon><DownloadOutlined /></template>
+                  <template #icon>
+                    <DownloadOutlined />
+                  </template>
                   下载二维码
                 </a-button>
               </div>
@@ -197,7 +265,11 @@
           </a-card>
 
           <!-- 链接信息 -->
-          <a-descriptions bordered size="small" :column="2">
+          <a-descriptions
+            bordered
+            size="small"
+            :column="2"
+          >
             <a-descriptions-item label="角色">
               <a-tag :color="getRoleColor(createdLink.role)">
                 {{ getRoleLabel(createdLink.role) }}
@@ -208,7 +280,10 @@
                 createdLink.maxUses === 999999 ? "无限制" : createdLink.maxUses
               }}
             </a-descriptions-item>
-            <a-descriptions-item label="过期时间" :span="2">
+            <a-descriptions-item
+              label="过期时间"
+              :span="2"
+            >
               {{
                 createdLink.expiresAt
                   ? formatDate(createdLink.expiresAt)
@@ -216,15 +291,19 @@
               }}
             </a-descriptions-item>
             <a-descriptions-item
+              v-if="createdLink.message"
               label="邀请消息"
               :span="2"
-              v-if="createdLink.message"
             >
               {{ createdLink.message }}
             </a-descriptions-item>
           </a-descriptions>
 
-          <a-button type="primary" block @click="handleSuccessClose">
+          <a-button
+            type="primary"
+            block
+            @click="handleSuccessClose"
+          >
             完成
           </a-button>
         </a-space>
@@ -326,10 +405,10 @@ const handleCreate = async () => {
 
     // 准备元数据
     const metadata = {};
-    if (formData.metadata.source) metadata.source = formData.metadata.source;
+    if (formData.metadata.source) {metadata.source = formData.metadata.source;}
     if (formData.metadata.campaign)
-      metadata.campaign = formData.metadata.campaign;
-    if (formData.metadata.notes) metadata.notes = formData.metadata.notes;
+      {metadata.campaign = formData.metadata.campaign;}
+    if (formData.metadata.notes) {metadata.notes = formData.metadata.notes;}
 
     // 调用IPC创建链接
     const result = await window.electron.ipcRenderer.invoke(
@@ -417,7 +496,7 @@ const copyCreatedLink = async () => {
 };
 
 const generateQRCode = async () => {
-  if (!qrcodeRef.value) return;
+  if (!qrcodeRef.value) {return;}
 
   try {
     // 清空之前的二维码
@@ -439,7 +518,7 @@ const generateQRCode = async () => {
 
 const downloadQRCode = () => {
   const canvas = qrcodeRef.value.querySelector("canvas");
-  if (!canvas) return;
+  if (!canvas) {return;}
 
   const link = document.createElement("a");
   link.download = `invitation-qrcode-${Date.now()}.png`;

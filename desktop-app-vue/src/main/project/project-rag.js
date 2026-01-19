@@ -21,7 +21,7 @@ class ProjectRAGManager extends EventEmitter {
    * 初始化项目RAG系统
    */
   async initialize() {
-    if (this.initialized) return;
+    if (this.initialized) {return;}
 
     try {
       // 获取RAG管理器
@@ -501,7 +501,7 @@ class ProjectRAGManager extends EventEmitter {
       for (const file of files) {
         try {
           const doc = await this.ragManager.getDocument(`project_file_${file.id}`);
-          if (doc) indexedCount++;
+          if (doc) {indexedCount++;}
         } catch (error) {
           // 文档不存在，跳过
         }

@@ -1,26 +1,43 @@
 <template>
   <div class="p2p-messaging">
-    <a-card title="P2P 加密消息" :loading="loading">
+    <a-card
+      title="P2P 加密消息"
+      :loading="loading"
+    >
       <template #extra>
         <a-space>
-          <a-badge :count="onlinePeersCount" :number-style="{ backgroundColor: '#52c41a' }">
+          <a-badge
+            :count="onlinePeersCount"
+            :number-style="{ backgroundColor: '#52c41a' }"
+          >
             <a-button>
-              <template #icon><team-outlined /></template>
+              <template #icon>
+                <team-outlined />
+              </template>
               在线节点
             </a-button>
           </a-badge>
           <a-button @click="showDeviceStatsModal = true">
-            <template #icon><mobile-outlined /></template>
+            <template #icon>
+              <mobile-outlined />
+            </template>
             设备统计
           </a-button>
-          <a-badge :count="syncStats.totalMessages" :number-style="{ backgroundColor: '#1890ff' }">
+          <a-badge
+            :count="syncStats.totalMessages"
+            :number-style="{ backgroundColor: '#1890ff' }"
+          >
             <a-button @click="showSyncStatsModal = true">
-              <template #icon><sync-outlined /></template>
+              <template #icon>
+                <sync-outlined />
+              </template>
               同步队列
             </a-button>
           </a-badge>
           <a-button @click="loadAllData">
-            <template #icon><reload-outlined /></template>
+            <template #icon>
+              <reload-outlined />
+            </template>
             刷新
           </a-button>
         </a-space>
@@ -36,19 +53,34 @@
         <template #message>
           <a-space>
             <span><strong>当前设备:</strong> {{ currentDevice.deviceName }}</span>
-            <a-tag color="blue">{{ currentDevice.platform }}</a-tag>
-            <a-tag color="green">{{ currentDevice.deviceId.slice(0, 8) }}...</a-tag>
+            <a-tag color="blue">
+              {{ currentDevice.platform }}
+            </a-tag>
+            <a-tag color="green">
+              {{ currentDevice.deviceId.slice(0, 8) }}...
+            </a-tag>
           </a-space>
         </template>
       </a-alert>
 
       <!-- 节点信息 -->
-      <a-descriptions v-if="nodeInfo" bordered size="small" :column="2" style="margin-bottom: 16px">
+      <a-descriptions
+        v-if="nodeInfo"
+        bordered
+        size="small"
+        :column="2"
+        style="margin-bottom: 16px"
+      >
         <a-descriptions-item label="节点 ID">
-          <a-typography-text copyable>{{ shortenPeerId(nodeInfo.peerId) }}</a-typography-text>
+          <a-typography-text copyable>
+            {{ shortenPeerId(nodeInfo.peerId) }}
+          </a-typography-text>
         </a-descriptions-item>
         <a-descriptions-item label="连接节点">
-          <a-badge :count="nodeInfo.connectedPeers" :number-style="{ backgroundColor: '#52c41a' }" />
+          <a-badge
+            :count="nodeInfo.connectedPeers"
+            :number-style="{ backgroundColor: '#52c41a' }"
+          />
         </a-descriptions-item>
       </a-descriptions>
 
@@ -61,7 +93,9 @@
         <template #header>
           <div style="display: flex; align-items: center; justify-content: space-between">
             <strong>连接的节点</strong>
-            <a-tag color="blue">{{ peers.length }} 个节点</a-tag>
+            <a-tag color="blue">
+              {{ peers.length }} 个节点
+            </a-tag>
           </div>
         </template>
         <template #renderItem="{ item }">
@@ -73,7 +107,9 @@
                   size="small"
                   @click="handleViewDevices(item)"
                 >
-                  <template #icon><mobile-outlined /></template>
+                  <template #icon>
+                    <mobile-outlined />
+                  </template>
                   设备 ({{ getPeerDeviceCount(item.peerId) }})
                 </a-button>
               </a-tooltip>
@@ -84,29 +120,35 @@
                 <a-button
                   type="link"
                   size="small"
-                  @click="handleVoiceCall(item)"
                   :disabled="!hasAnyEncryptionSession(item.peerId)"
+                  @click="handleVoiceCall(item)"
                 >
-                  <template #icon><phone-outlined /></template>
+                  <template #icon>
+                    <phone-outlined />
+                  </template>
                 </a-button>
               </a-tooltip>
               <a-tooltip title="视频通话">
                 <a-button
                   type="link"
                   size="small"
-                  @click="handleVideoCall(item)"
                   :disabled="!hasAnyEncryptionSession(item.peerId)"
+                  @click="handleVideoCall(item)"
                 >
-                  <template #icon><video-camera-outlined /></template>
+                  <template #icon>
+                    <video-camera-outlined />
+                  </template>
                 </a-button>
               </a-tooltip>
               <a-button
                 type="link"
                 size="small"
-                @click="handleOpenChat(item)"
                 :disabled="!hasAnyEncryptionSession(item.peerId)"
+                @click="handleOpenChat(item)"
               >
-                <template #icon><message-outlined /></template>
+                <template #icon>
+                  <message-outlined />
+                </template>
                 聊天
               </a-button>
               <a-button
@@ -121,11 +163,15 @@
             <a-list-item-meta>
               <template #avatar>
                 <a-avatar style="background-color: #1890ff">
-                  <template #icon><user-outlined /></template>
+                  <template #icon>
+                    <user-outlined />
+                  </template>
                 </a-avatar>
               </template>
               <template #title>
-                <a-typography-text copyable>{{ shortenPeerId(item.peerId) }}</a-typography-text>
+                <a-typography-text copyable>
+                  {{ shortenPeerId(item.peerId) }}
+                </a-typography-text>
               </template>
               <template #description>
                 <a-space>
@@ -141,8 +187,14 @@
       </a-list>
 
       <!-- 连接新节点 -->
-      <a-card size="small" title="连接新节点">
-        <a-form layout="inline" @submit.prevent="handleConnect">
+      <a-card
+        size="small"
+        title="连接新节点"
+      >
+        <a-form
+          layout="inline"
+          @submit.prevent="handleConnect"
+        >
           <a-form-item label="Multiaddr">
             <a-input
               v-model:value="connectAddress"
@@ -151,7 +203,11 @@
             />
           </a-form-item>
           <a-form-item>
-            <a-button type="primary" html-type="submit" :loading="connecting">
+            <a-button
+              type="primary"
+              html-type="submit"
+              :loading="connecting"
+            >
               连接
             </a-button>
           </a-form-item>
@@ -182,7 +238,9 @@
                 size="small"
                 @click="handleKeyExchange(currentPeerDevices.peerId, item.deviceId)"
               >
-                <template #icon><safety-outlined /></template>
+                <template #icon>
+                  <safety-outlined />
+                </template>
                 建立加密
               </a-button>
               <a-button
@@ -191,7 +249,9 @@
                 size="small"
                 @click="handleChatWithDevice(currentPeerDevices.peerId, item.deviceId)"
               >
-                <template #icon><message-outlined /></template>
+                <template #icon>
+                  <message-outlined />
+                </template>
                 聊天
               </a-button>
             </template>
@@ -210,7 +270,9 @@
               <template #description>
                 <a-space>
                   <a-tag>{{ item.platform }}</a-tag>
-                  <a-tag color="blue">{{ item.deviceId.slice(0, 8) }}...</a-tag>
+                  <a-tag color="blue">
+                    {{ item.deviceId.slice(0, 8) }}...
+                  </a-tag>
                   <span style="font-size: 12px; color: #999">
                     最后活跃: {{ formatTime(item.lastActiveAt) }}
                   </span>
@@ -232,7 +294,10 @@
       width="500px"
       :footer="null"
     >
-      <a-descriptions bordered :column="1">
+      <a-descriptions
+        bordered
+        :column="1"
+      >
         <a-descriptions-item label="用户总数">
           {{ deviceStats.userCount }}
         </a-descriptions-item>
@@ -263,8 +328,14 @@
       width="600px"
       :footer="null"
     >
-      <a-descriptions bordered :column="2">
-        <a-descriptions-item label="队列消息总数" :span="2">
+      <a-descriptions
+        bordered
+        :column="2"
+      >
+        <a-descriptions-item
+          label="队列消息总数"
+          :span="2"
+        >
           {{ syncStats.totalMessages }}
         </a-descriptions-item>
         <a-descriptions-item label="设备队列数">
@@ -273,15 +344,24 @@
         <a-descriptions-item label="活动同步">
           {{ syncStats.activeSyncs }}
         </a-descriptions-item>
-        <a-descriptions-item label="消息状态跟踪" :span="2">
+        <a-descriptions-item
+          label="消息状态跟踪"
+          :span="2"
+        >
           {{ syncStats.statusCount }}
         </a-descriptions-item>
       </a-descriptions>
 
       <a-divider>各设备队列详情</a-divider>
 
-      <a-list v-if="Object.keys(syncStats.deviceQueues || {}).length > 0" bordered>
-        <a-list-item v-for="(count, deviceId) in syncStats.deviceQueues" :key="deviceId">
+      <a-list
+        v-if="Object.keys(syncStats.deviceQueues || {}).length > 0"
+        bordered
+      >
+        <a-list-item
+          v-for="(count, deviceId) in syncStats.deviceQueues"
+          :key="deviceId"
+        >
           <a-list-item-meta>
             <template #title>
               设备: {{ deviceId.slice(0, 12) }}...
@@ -291,14 +371,21 @@
             </template>
           </a-list-item-meta>
           <template #actions>
-            <a-button type="link" size="small" @click="handleStartSync(deviceId)">
+            <a-button
+              type="link"
+              size="small"
+              @click="handleStartSync(deviceId)"
+            >
               立即同步
             </a-button>
           </template>
         </a-list-item>
       </a-list>
 
-      <a-empty v-else description="暂无队列消息" />
+      <a-empty
+        v-else
+        description="暂无队列消息"
+      />
     </a-modal>
 
     <!-- 聊天对话框 -->
@@ -311,7 +398,10 @@
     >
       <div class="chat-container">
         <!-- 设备选择器 -->
-        <div v-if="currentChatDevices.length > 1" class="device-selector">
+        <div
+          v-if="currentChatDevices.length > 1"
+          class="device-selector"
+        >
           <a-select
             v-model:value="currentChatDeviceId"
             style="width: 100%; margin-bottom: 12px"
@@ -327,7 +417,11 @@
                 <mobile-outlined v-if="device.platform === 'android' || device.platform === 'ios'" />
                 <laptop-outlined v-else />
                 {{ device.deviceName }}
-                <a-tag v-if="hasEncryptionSession(currentChatPeer, device.deviceId)" color="green" size="small">
+                <a-tag
+                  v-if="hasEncryptionSession(currentChatPeer, device.deviceId)"
+                  color="green"
+                  size="small"
+                >
                   已加密
                 </a-tag>
               </a-space>
@@ -336,31 +430,64 @@
         </div>
 
         <!-- 消息列表 -->
-        <div class="message-list" ref="messageList">
+        <div
+          ref="messageList"
+          class="message-list"
+        >
           <div
             v-for="msg in chatMessages"
             :key="msg.id"
             :class="['message-item', msg.isSent ? 'sent' : 'received']"
           >
             <div class="message-bubble">
-              <div class="message-content">{{ msg.content }}</div>
+              <div class="message-content">
+                {{ msg.content }}
+              </div>
               <div class="message-time">
                 {{ formatTime(msg.timestamp) }}
-                <safety-certificate-outlined v-if="msg.encrypted" style="margin-left: 4px; color: #52c41a" />
-                <span v-if="msg.deviceName" style="margin-left: 4px; font-size: 10px">
+                <safety-certificate-outlined
+                  v-if="msg.encrypted"
+                  style="margin-left: 4px; color: #52c41a"
+                />
+                <span
+                  v-if="msg.deviceName"
+                  style="margin-left: 4px; font-size: 10px"
+                >
                   ({{ msg.deviceName }})
                 </span>
-                <span v-if="msg.status" style="margin-left: 4px; font-size: 10px">
-                  <span v-if="msg.status === 'queued'" title="消息已入队,等待发送">⏳</span>
-                  <span v-else-if="msg.status === 'sent'" title="已发送">✓</span>
-                  <span v-else-if="msg.status === 'delivered'" title="已送达">✓✓</span>
-                  <span v-else-if="msg.status === 'read'" title="已读" style="color: #1890ff">✓✓</span>
-                  <span v-else-if="msg.status === 'failed'" title="发送失败">✗</span>
+                <span
+                  v-if="msg.status"
+                  style="margin-left: 4px; font-size: 10px"
+                >
+                  <span
+                    v-if="msg.status === 'queued'"
+                    title="消息已入队,等待发送"
+                  >⏳</span>
+                  <span
+                    v-else-if="msg.status === 'sent'"
+                    title="已发送"
+                  >✓</span>
+                  <span
+                    v-else-if="msg.status === 'delivered'"
+                    title="已送达"
+                  >✓✓</span>
+                  <span
+                    v-else-if="msg.status === 'read'"
+                    title="已读"
+                    style="color: #1890ff"
+                  >✓✓</span>
+                  <span
+                    v-else-if="msg.status === 'failed'"
+                    title="发送失败"
+                  >✗</span>
                 </span>
               </div>
             </div>
           </div>
-          <div v-if="chatMessages.length === 0" class="empty-messages">
+          <div
+            v-if="chatMessages.length === 0"
+            class="empty-messages"
+          >
             <a-empty description="暂无消息">
               <template #description>
                 <span v-if="!hasEncryptionSession(currentChatPeer, currentChatDeviceId)">
@@ -378,26 +505,31 @@
             <a-input
               v-model:value="messageInput"
               placeholder="输入消息 (端到端加密)..."
-              @keyup.enter="handleSendMessage"
               :disabled="!hasEncryptionSession(currentChatPeer, currentChatDeviceId)"
               style="width: calc(100% - 80px)"
+              @keyup.enter="handleSendMessage"
             />
             <a-button
               type="primary"
-              @click="handleSendMessage"
               :loading="sending"
               :disabled="!hasEncryptionSession(currentChatPeer, currentChatDeviceId)"
+              @click="handleSendMessage"
             >
               发送
             </a-button>
           </a-input-group>
-          <div v-if="!hasEncryptionSession(currentChatPeer, currentChatDeviceId)" style="margin-top: 8px">
+          <div
+            v-if="!hasEncryptionSession(currentChatPeer, currentChatDeviceId)"
+            style="margin-top: 8px"
+          >
             <a-button
               type="link"
               size="small"
               @click="handleKeyExchange(currentChatPeer, currentChatDeviceId)"
             >
-              <template #icon><safety-outlined /></template>
+              <template #icon>
+                <safety-outlined />
+              </template>
               点击建立加密会话
             </a-button>
           </div>
@@ -471,7 +603,7 @@ const messageList = ref(null);
 
 // 缩短 Peer ID 显示
 const shortenPeerId = (peerId) => {
-  if (!peerId) return '';
+  if (!peerId) {return '';}
   return peerId.length > 20 ? `${peerId.slice(0, 10)}...${peerId.slice(-8)}` : peerId;
 };
 

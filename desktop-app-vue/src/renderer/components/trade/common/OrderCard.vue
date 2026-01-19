@@ -1,8 +1,16 @@
 <template>
-  <a-card class="order-card" hoverable :bordered="true">
+  <a-card
+    class="order-card"
+    hoverable
+    :bordered="true"
+  >
     <!-- 订单状态角标 -->
     <div class="order-status-badge">
-      <status-badge :status="order.status" type="order" show-icon />
+      <status-badge
+        :status="order.status"
+        type="order"
+        show-icon
+      />
     </div>
 
     <!-- 卡片内容 -->
@@ -15,7 +23,12 @@
         >
           {{ getOrderTypeLabel(order.order_type) }}
         </a-tag>
-        <a-tag v-if="isMyOrder" color="blue">我的订单</a-tag>
+        <a-tag
+          v-if="isMyOrder"
+          color="blue"
+        >
+          我的订单
+        </a-tag>
       </div>
 
       <!-- 资产信息 -->
@@ -30,8 +43,14 @@
           />
         </div>
         <div class="asset-details">
-          <div class="asset-name">{{ order.asset_name }}</div>
-          <a-tag v-if="order.asset_symbol" color="blue" size="small">
+          <div class="asset-name">
+            {{ order.asset_name }}
+          </div>
+          <a-tag
+            v-if="order.asset_symbol"
+            color="blue"
+            size="small"
+          >
             {{ order.asset_symbol }}
           </a-tag>
         </div>
@@ -65,7 +84,10 @@
       </div>
 
       <!-- 订单描述 -->
-      <div v-if="order.description" class="order-description">
+      <div
+        v-if="order.description"
+        class="order-description"
+      >
         {{ order.description }}
       </div>
 
@@ -76,7 +98,10 @@
           <span class="label">{{
             order.order_type === "buy" ? "买家:" : "卖家:"
           }}</span>
-          <a-typography-text copyable :ellipsis="{ tooltip: creatorDid }">
+          <a-typography-text
+            copyable
+            :ellipsis="{ tooltip: creatorDid }"
+          >
             {{ formatDid(creatorDid) }}
           </a-typography-text>
         </a-space>
@@ -95,11 +120,17 @@
         <eye-outlined @click="handleView" />
       </a-tooltip>
 
-      <a-tooltip v-if="canPurchase" title="购买">
+      <a-tooltip
+        v-if="canPurchase"
+        title="购买"
+      >
         <shopping-cart-outlined @click="handlePurchase" />
       </a-tooltip>
 
-      <a-tooltip v-if="canCancel" title="取消订单">
+      <a-tooltip
+        v-if="canCancel"
+        title="取消订单"
+      >
         <close-circle-outlined @click="handleCancel" />
       </a-tooltip>
 
@@ -108,10 +139,17 @@
           <ellipsis-outlined />
           <template #overlay>
             <a-menu>
-              <a-menu-item v-if="canEdit" key="edit" @click="handleEdit">
+              <a-menu-item
+                v-if="canEdit"
+                key="edit"
+                @click="handleEdit"
+              >
                 <edit-outlined /> 编辑
               </a-menu-item>
-              <a-menu-item key="share" @click="handleShare">
+              <a-menu-item
+                key="share"
+                @click="handleShare"
+              >
                 <share-alt-outlined /> 分享
               </a-menu-item>
               <a-menu-divider v-if="canCancel" />
@@ -244,9 +282,9 @@ const getAssetColor = (type) => {
 
 // 格式化金额
 const formatAmount = (amount) => {
-  if (!amount && amount !== 0) return "0";
+  if (!amount && amount !== 0) {return "0";}
   const num = parseFloat(amount);
-  if (isNaN(num)) return "0";
+  if (isNaN(num)) {return "0";}
 
   // 大数字使用科学计数法
   if (num >= 1e9) {
@@ -263,13 +301,13 @@ const formatAmount = (amount) => {
 
 // 格式化 DID
 const formatDid = (did) => {
-  if (!did) return "-";
+  if (!did) {return "-";}
   return did.length > 20 ? `${did.slice(0, 10)}...${did.slice(-8)}` : did;
 };
 
 // 格式化时间
 const formatTime = (timestamp) => {
-  if (!timestamp) return "-";
+  if (!timestamp) {return "-";}
   const date = new Date(timestamp);
   const now = new Date();
   const diff = now - date;

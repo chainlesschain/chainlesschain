@@ -1,12 +1,21 @@
 <template>
   <div class="template-gallery">
     <!-- 加载状态 -->
-    <div v-if="templateStore.loading" class="loading-container">
-      <a-spin size="large" tip="加载模板中..." />
+    <div
+      v-if="templateStore.loading"
+      class="loading-container"
+    >
+      <a-spin
+        size="large"
+        tip="加载模板中..."
+      />
     </div>
 
     <!-- 模板网格 -->
-    <div v-else-if="displayTemplates.length > 0" class="template-grid">
+    <div
+      v-else-if="displayTemplates.length > 0"
+      class="template-grid"
+    >
       <TemplateCard
         v-for="template in displayTemplates"
         :key="template.id"
@@ -27,7 +36,10 @@
         <FileTextOutlined style="font-size: 64px; color: #d9d9d9" />
       </template>
       <template #extra>
-        <a-button type="primary" @click="handleCreateCustom">
+        <a-button
+          type="primary"
+          @click="handleCreateCustom"
+        >
           创建自定义项目
         </a-button>
       </template>

@@ -1,6 +1,9 @@
 <template>
   <div class="git-settings">
-    <a-card title="Git 同步设置" :loading="loading">
+    <a-card
+      title="Git 同步设置"
+      :loading="loading"
+    >
       <a-form
         :model="form"
         :label-col="{ span: 6 }"
@@ -56,9 +59,15 @@
           <!-- 认证信息 -->
           <a-form-item label="Git认证">
             <a-radio-group v-model:value="authType">
-              <a-radio value="none">无需认证</a-radio>
-              <a-radio value="password">用户名/密码</a-radio>
-              <a-radio value="token">Personal Access Token</a-radio>
+              <a-radio value="none">
+                无需认证
+              </a-radio>
+              <a-radio value="password">
+                用户名/密码
+              </a-radio>
+              <a-radio value="token">
+                Personal Access Token
+              </a-radio>
             </a-radio-group>
           </a-form-item>
 
@@ -127,7 +136,11 @@
         <!-- 操作按钮 -->
         <a-form-item :wrapper-col="{ offset: 6, span: 18 }">
           <a-space>
-            <a-button type="primary" html-type="submit" :loading="saving">
+            <a-button
+              type="primary"
+              html-type="submit"
+              :loading="saving"
+            >
               保存设置
             </a-button>
             <a-button @click="handleReset">
@@ -143,38 +156,50 @@
         <h4>Git操作</h4>
         <a-space>
           <a-button
-            @click="handleTestConnection"
             :loading="testing"
             :disabled="!form.remoteUrl"
+            @click="handleTestConnection"
           >
-            <template #icon><api-outlined /></template>
+            <template #icon>
+              <api-outlined />
+            </template>
             测试远程连接
           </a-button>
           <a-button
-            @click="handleExportMarkdown"
             :loading="exporting"
+            @click="handleExportMarkdown"
           >
-            <template #icon><export-outlined /></template>
+            <template #icon>
+              <export-outlined />
+            </template>
             导出Markdown
           </a-button>
           <a-button
             type="primary"
-            @click="handlePull"
             :loading="pulling"
             :disabled="!form.remoteUrl"
+            @click="handlePull"
           >
-            <template #icon><download-outlined /></template>
+            <template #icon>
+              <download-outlined />
+            </template>
             拉取更新 (Pull)
           </a-button>
           <a-button
-            @click="showCloneDialog = true"
             :loading="cloning"
+            @click="showCloneDialog = true"
           >
-            <template #icon><cloud-download-outlined /></template>
+            <template #icon>
+              <cloud-download-outlined />
+            </template>
             克隆仓库 (Clone)
           </a-button>
         </a-space>
-        <div v-if="testResult" class="test-result" :class="testResult.success ? 'success' : 'error'">
+        <div
+          v-if="testResult"
+          class="test-result"
+          :class="testResult.success ? 'success' : 'error'"
+        >
           {{ testResult.message }}
         </div>
       </div>
@@ -193,16 +218,19 @@
       v-model:open="showCloneDialog"
       title="克隆Git仓库"
       :confirm-loading="cloning"
+      width="600px"
       @ok="handleClone"
       @cancel="resetCloneForm"
-      width="600px"
     >
       <a-form
         :model="cloneForm"
         :label-col="{ span: 6 }"
         :wrapper-col="{ span: 18 }"
       >
-        <a-form-item label="仓库URL" required>
+        <a-form-item
+          label="仓库URL"
+          required
+        >
           <a-input
             v-model:value="cloneForm.url"
             placeholder="https://github.com/username/repo.git"
@@ -224,9 +252,15 @@
 
         <a-form-item label="认证方式">
           <a-radio-group v-model:value="cloneForm.authType">
-            <a-radio value="none">无需认证</a-radio>
-            <a-radio value="password">用户名/密码</a-radio>
-            <a-radio value="token">Access Token</a-radio>
+            <a-radio value="none">
+              无需认证
+            </a-radio>
+            <a-radio value="password">
+              用户名/密码
+            </a-radio>
+            <a-radio value="token">
+              Access Token
+            </a-radio>
           </a-radio-group>
         </a-form-item>
 
@@ -252,12 +286,17 @@
         </template>
       </a-form>
 
-      <div v-if="cloneProgress" class="clone-progress">
+      <div
+        v-if="cloneProgress"
+        class="clone-progress"
+      >
         <a-progress
           :percent="cloneProgress.percent"
           :status="cloneProgress.status"
         />
-        <div class="progress-text">{{ cloneProgress.message }}</div>
+        <div class="progress-text">
+          {{ cloneProgress.message }}
+        </div>
       </div>
     </a-modal>
   </div>

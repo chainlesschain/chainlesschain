@@ -21,7 +21,7 @@ class OfflineManager {
    * 初始化
    */
   init() {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined') {return;}
 
     // 监听在线状态变化
     window.addEventListener('online', this.handleOnline.bind(this));
@@ -96,7 +96,7 @@ class OfflineManager {
    * 处理队列
    */
   async processQueue() {
-    if (this.offlineQueue.value.length === 0) return;
+    if (this.offlineQueue.value.length === 0) {return;}
 
     console.log(`[OfflineManager] Processing ${this.offlineQueue.value.length} queued actions`);
 

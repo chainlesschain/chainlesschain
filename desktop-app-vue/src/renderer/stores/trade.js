@@ -222,7 +222,7 @@ export const useTradeStore = defineStore('trade', {
      * 信用等级
      */
     creditLevel: (state) => {
-      if (!state.credit.userCredit) return null;
+      if (!state.credit.userCredit) {return null;}
       return state.credit.userCredit.credit_level;
     },
 
@@ -230,7 +230,7 @@ export const useTradeStore = defineStore('trade', {
      * 信用评分
      */
     creditScore: (state) => {
-      if (!state.credit.userCredit) return 0;
+      if (!state.credit.userCredit) {return 0;}
       return state.credit.userCredit.credit_score;
     },
 
@@ -239,10 +239,10 @@ export const useTradeStore = defineStore('trade', {
      */
     creditLevelColor: (state) => {
       const score = state.credit.userCredit?.credit_score || 0;
-      if (score >= 901) return '#52c41a';  // 钻石 - 绿色
-      if (score >= 601) return '#faad14';  // 黄金 - 金色
-      if (score >= 301) return '#1890ff';  // 白银 - 蓝色
-      if (score >= 101) return '#8c8c8c';  // 青铜 - 灰色
+      if (score >= 901) {return '#52c41a';}  // 钻石 - 绿色
+      if (score >= 601) {return '#faad14';}  // 黄金 - 金色
+      if (score >= 301) {return '#1890ff';}  // 白银 - 蓝色
+      if (score >= 101) {return '#8c8c8c';}  // 青铜 - 灰色
       return '#d9d9d9';                    // 新手 - 浅灰
     },
   },

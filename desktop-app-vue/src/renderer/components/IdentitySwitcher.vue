@@ -1,16 +1,30 @@
 <template>
   <!-- 只有在有有效的身份上下文时才显示 -->
-  <div class="identity-switcher" v-if="hasValidContext">
+  <div
+    v-if="hasValidContext"
+    class="identity-switcher"
+  >
     <!-- 当前身份显示 -->
-    <div class="current-identity" @click="showSwitcher = true">
-      <a-avatar :src="currentIdentity.avatar" :size="32">
-        <template #icon v-if="!currentIdentity.avatar">
+    <div
+      class="current-identity"
+      @click="showSwitcher = true"
+    >
+      <a-avatar
+        :src="currentIdentity.avatar"
+        :size="32"
+      >
+        <template
+          v-if="!currentIdentity.avatar"
+          #icon
+        >
           <UserOutlined v-if="currentIdentity.type === 'personal'" />
           <TeamOutlined v-else />
         </template>
       </a-avatar>
       <div class="identity-info">
-        <div class="identity-name">{{ currentIdentity.displayName }}</div>
+        <div class="identity-name">
+          {{ currentIdentity.displayName }}
+        </div>
         <div class="identity-type">
           {{ currentIdentity.type === 'personal' ? '个人' : currentIdentity.orgName }}
         </div>
@@ -33,8 +47,14 @@
           :class="{ active: currentContext === 'personal' }"
           @click="handleSwitch('personal')"
         >
-          <a-avatar :src="contexts.personal.avatar" :size="40">
-            <template #icon v-if="!contexts.personal.avatar">
+          <a-avatar
+            :src="contexts.personal.avatar"
+            :size="40"
+          >
+            <template
+              v-if="!contexts.personal.avatar"
+              #icon
+            >
               <UserOutlined />
             </template>
           </a-avatar>
@@ -43,15 +63,22 @@
               <UserOutlined style="margin-right: 8px" />
               个人
             </div>
-            <div class="item-desc">私人知识库和项目</div>
+            <div class="item-desc">
+              私人知识库和项目
+            </div>
           </div>
-          <CheckCircleFilled v-if="currentContext === 'personal'" class="check-icon" />
+          <CheckCircleFilled
+            v-if="currentContext === 'personal'"
+            class="check-icon"
+          />
         </div>
 
         <a-divider style="margin: 12px 0" />
 
         <!-- 组织身份列表 -->
-        <div class="org-section-title">我的组织</div>
+        <div class="org-section-title">
+          我的组织
+        </div>
         <template v-if="organizationIdentities.length > 0">
           <div
             v-for="org in organizationIdentities"
@@ -60,8 +87,14 @@
             :class="{ active: currentContext === `org_${org.orgId}` }"
             @click="handleSwitch(`org_${org.orgId}`)"
           >
-            <a-avatar :src="org.avatar" :size="40">
-              <template #icon v-if="!org.avatar">
+            <a-avatar
+              :src="org.avatar"
+              :size="40"
+            >
+              <template
+                v-if="!org.avatar"
+                #icon
+              >
                 <TeamOutlined />
               </template>
             </a-avatar>
@@ -71,15 +104,25 @@
                 {{ org.orgName }}
               </div>
               <div class="item-desc">
-                <a-tag size="small" :color="getRoleColor(org.role)">
+                <a-tag
+                  size="small"
+                  :color="getRoleColor(org.role)"
+                >
                   {{ getRoleLabel(org.role) }}
                 </a-tag>
               </div>
             </div>
-            <CheckCircleFilled v-if="currentContext === `org_${org.orgId}`" class="check-icon" />
+            <CheckCircleFilled
+              v-if="currentContext === `org_${org.orgId}`"
+              class="check-icon"
+            />
           </div>
         </template>
-        <a-empty v-else description="暂无组织" style="margin: 20px 0" />
+        <a-empty
+          v-else
+          description="暂无组织"
+          style="margin: 20px 0"
+        />
 
         <a-divider style="margin: 12px 0" />
 
@@ -88,10 +131,12 @@
           <a-button
             type="dashed"
             block
-            @click="showCreateOrg = true"
             style="margin-bottom: 8px"
+            @click="showCreateOrg = true"
           >
-            <template #icon><PlusOutlined /></template>
+            <template #icon>
+              <PlusOutlined />
+            </template>
             创建新组织
           </a-button>
 
@@ -100,7 +145,9 @@
             block
             @click="showJoinOrg = true"
           >
-            <template #icon><LinkOutlined /></template>
+            <template #icon>
+              <LinkOutlined />
+            </template>
             加入组织
           </a-button>
         </div>
@@ -111,27 +158,43 @@
     <a-modal
       v-model:open="showCreateOrg"
       title="创建组织"
-      @ok="handleCreateOrg"
-      :confirmLoading="creating"
+      :confirm-loading="creating"
       ok-text="创建"
       cancel-text="取消"
+      @ok="handleCreateOrg"
     >
       <a-form
         :model="newOrgForm"
         :label-col="{ span: 6 }"
         :wrapper-col="{ span: 18 }"
       >
-        <a-form-item label="组织名称" required>
-          <a-input v-model:value="newOrgForm.name" placeholder="请输入组织名称" />
+        <a-form-item
+          label="组织名称"
+          required
+        >
+          <a-input
+            v-model:value="newOrgForm.name"
+            placeholder="请输入组织名称"
+          />
         </a-form-item>
 
         <a-form-item label="组织类型">
           <a-select v-model:value="newOrgForm.type">
-            <a-select-option value="startup">创业团队</a-select-option>
-            <a-select-option value="company">公司</a-select-option>
-            <a-select-option value="community">社区</a-select-option>
-            <a-select-option value="opensource">开源项目</a-select-option>
-            <a-select-option value="education">教育机构</a-select-option>
+            <a-select-option value="startup">
+              创业团队
+            </a-select-option>
+            <a-select-option value="company">
+              公司
+            </a-select-option>
+            <a-select-option value="community">
+              社区
+            </a-select-option>
+            <a-select-option value="opensource">
+              开源项目
+            </a-select-option>
+            <a-select-option value="education">
+              教育机构
+            </a-select-option>
           </a-select>
         </a-form-item>
 
@@ -145,8 +208,12 @@
 
         <a-form-item label="可见性">
           <a-radio-group v-model:value="newOrgForm.visibility">
-            <a-radio value="private">私有（仅邀请）</a-radio>
-            <a-radio value="public">公开</a-radio>
+            <a-radio value="private">
+              私有（仅邀请）
+            </a-radio>
+            <a-radio value="public">
+              公开
+            </a-radio>
           </a-radio-group>
         </a-form-item>
       </a-form>
@@ -156,13 +223,19 @@
     <a-modal
       v-model:open="showJoinOrg"
       title="加入组织"
-      @ok="handleJoinOrg"
-      :confirmLoading="joining"
+      :confirm-loading="joining"
       ok-text="加入"
       cancel-text="取消"
+      @ok="handleJoinOrg"
     >
-      <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
-        <a-form-item label="邀请码" required>
+      <a-form
+        :label-col="{ span: 6 }"
+        :wrapper-col="{ span: 18 }"
+      >
+        <a-form-item
+          label="邀请码"
+          required
+        >
           <a-input
             v-model:value="inviteCode"
             placeholder="输入6位邀请码"
@@ -219,7 +292,7 @@ const inviteCode = ref('');
 // ==================== Computed ====================
 const currentIdentity = computed(() => {
   const ctx = identityStore.activeContext;
-  if (!ctx) return { displayName: '加载中...', type: 'personal' };
+  if (!ctx) {return { displayName: '加载中...', type: 'personal' };}
 
   return {
     displayName: ctx.display_name,

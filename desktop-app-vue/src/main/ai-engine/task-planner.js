@@ -21,7 +21,7 @@ class TaskPlanner {
    * 初始化
    */
   async initialize() {
-    if (this.initialized) return;
+    if (this.initialized) {return;}
 
     try {
       this.llmService = getLLMService();

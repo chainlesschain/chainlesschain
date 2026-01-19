@@ -316,7 +316,7 @@ export function usePolling(fn, interval = 5000, options = {}) {
   let intervalId = null;
 
   const start = () => {
-    if (isPolling.value) return;
+    if (isPolling.value) {return;}
 
     isPolling.value = true;
 

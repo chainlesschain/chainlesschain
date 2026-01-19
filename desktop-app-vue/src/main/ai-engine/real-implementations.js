@@ -374,7 +374,7 @@ async function editImageReal(params) {
 
     // 获取原始图片元数据
     const metadata = await image.metadata();
-    let outputMetadata = { ...metadata };
+    const outputMetadata = { ...metadata };
 
     // 应用操作
     const appliedOps = [];
@@ -863,10 +863,10 @@ function generatePasswordAdvancedReal(params) {
       charset = custom_characters;
     } else {
       // 构建字符集
-      if (include_uppercase) charset += uppercase;
-      if (include_lowercase) charset += lowercase;
-      if (include_numbers) charset += numbers;
-      if (include_symbols) charset += symbols;
+      if (include_uppercase) {charset += uppercase;}
+      if (include_lowercase) {charset += lowercase;}
+      if (include_numbers) {charset += numbers;}
+      if (include_symbols) {charset += symbols;}
 
       // 排除模糊字符
       if (exclude_ambiguous && charset) {
@@ -1204,7 +1204,7 @@ async function calendarManagerReal(params) {
         try {
           await fsp.unlink(eventPath);
         } catch (err) {
-          if (err.code !== 'ENOENT') throw err;
+          if (err.code !== 'ENOENT') {throw err;}
         }
 
         return {
@@ -1251,8 +1251,8 @@ async function calendarManagerReal(params) {
                   const rangeStart = date_range.start ? new Date(date_range.start) : null;
                   const rangeEnd = date_range.end ? new Date(date_range.end) : null;
 
-                  if (rangeStart && eventStart < rangeStart) continue;
-                  if (rangeEnd && eventStart > rangeEnd) continue;
+                  if (rangeStart && eventStart < rangeStart) {continue;}
+                  if (rangeEnd && eventStart > rangeEnd) {continue;}
                 }
 
                 events.push(event);
@@ -1345,13 +1345,13 @@ async function searchNotesReal(params) {
         if (filters.tags && filters.tags.length > 0) {
           const noteTags = noteData.tags || [];
           const hasMatchingTag = filters.tags.some(tag => noteTags.includes(tag));
-          if (!hasMatchingTag) continue;
+          if (!hasMatchingTag) {continue;}
         }
 
         // 应用文件夹过滤
         if (filters.folder) {
           const noteFolder = noteData.folder || path.dirname(filePath);
-          if (noteFolder !== filters.folder) continue;
+          if (noteFolder !== filters.folder) {continue;}
         }
 
         // 全文搜索匹配
@@ -1386,7 +1386,7 @@ async function searchNotesReal(params) {
           }
 
           // 如果没有匹配，跳过这个笔记
-          if (relevance === 0) continue;
+          if (relevance === 0) {continue;}
         } else {
           // 没有搜索词，返回所有笔记
           relevance = 0.5;
@@ -1616,7 +1616,7 @@ function calculateNextTrigger(remindTime, repeat) {
     }
 
     // 重复提醒
-    let nextTime = new Date(targetTime);
+    const nextTime = new Date(targetTime);
 
     while (nextTime <= now) {
       switch (repeat) {
@@ -2308,26 +2308,26 @@ function calculatePasswordStrength(password, requirements) {
   let level = 'weak';
 
   // 长度分数
-  if (password.length >= 8) score += 20;
-  if (password.length >= 12) score += 20;
-  if (password.length >= 16) score += 10;
+  if (password.length >= 8) {score += 20;}
+  if (password.length >= 12) {score += 20;}
+  if (password.length >= 16) {score += 10;}
 
   // 字符类型分数
-  if (/[a-z]/.test(password)) score += 15;
-  if (/[A-Z]/.test(password)) score += 15;
-  if (/[0-9]/.test(password)) score += 15;
-  if (/[^A-Za-z0-9]/.test(password)) score += 15;
+  if (/[a-z]/.test(password)) {score += 15;}
+  if (/[A-Z]/.test(password)) {score += 15;}
+  if (/[0-9]/.test(password)) {score += 15;}
+  if (/[^A-Za-z0-9]/.test(password)) {score += 15;}
 
   // 多样性分数
   const uniqueChars = new Set(password).size;
-  if (uniqueChars / password.length > 0.7) score += 10;
+  if (uniqueChars / password.length > 0.7) {score += 10;}
 
   // 确定强度级别
-  if (score >= 80) level = 'very_strong';
-  else if (score >= 60) level = 'strong';
-  else if (score >= 40) level = 'medium';
-  else if (score >= 20) level = 'weak';
-  else level = 'very_weak';
+  if (score >= 80) {level = 'very_strong';}
+  else if (score >= 60) {level = 'strong';}
+  else if (score >= 40) {level = 'medium';}
+  else if (score >= 20) {level = 'weak';}
+  else {level = 'very_weak';}
 
   return { score, level };
 }

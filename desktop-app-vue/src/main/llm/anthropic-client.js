@@ -34,7 +34,7 @@ class AnthropicClient extends EventEmitter {
     const normalized = [];
 
     for (const message of messages) {
-      if (!message || !message.role) continue;
+      if (!message || !message.role) {continue;}
 
       const content =
         typeof message.content === 'string'
@@ -70,10 +70,10 @@ class AnthropicClient extends EventEmitter {
       stream,
     };
 
-    if (system) payload.system = system;
-    if (options.temperature !== undefined) payload.temperature = options.temperature;
-    if (options.top_p !== undefined) payload.top_p = options.top_p;
-    if (options.top_k !== undefined) payload.top_k = options.top_k;
+    if (system) {payload.system = system;}
+    if (options.temperature !== undefined) {payload.temperature = options.temperature;}
+    if (options.top_p !== undefined) {payload.top_p = options.top_p;}
+    if (options.top_k !== undefined) {payload.top_k = options.top_k;}
     if (Array.isArray(options.stop_sequences) && options.stop_sequences.length > 0) {
       payload.stop_sequences = options.stop_sequences;
     }
@@ -141,12 +141,12 @@ class AnthropicClient extends EventEmitter {
         responseType: 'stream',
       });
 
-      let fullMessage = { role: 'assistant', content: '' };
+      const fullMessage = { role: 'assistant', content: '' };
       let buffer = '';
       let settled = false;
 
       const maybeResolve = (finishReason = 'stop', resolve) => {
-        if (settled) return;
+        if (settled) {return;}
         settled = true;
         resolve({
           message: fullMessage,
@@ -157,7 +157,7 @@ class AnthropicClient extends EventEmitter {
       };
 
       const handleEvent = (event, data, resolve) => {
-        if (!data) return;
+        if (!data) {return;}
         if (data === '[DONE]') {
           maybeResolve('stop', resolve);
           return;
@@ -202,7 +202,7 @@ class AnthropicClient extends EventEmitter {
             buffer = buffer.slice(boundary + 2);
             boundary = buffer.indexOf('\n\n');
 
-            if (!rawEvent) continue;
+            if (!rawEvent) {continue;}
 
             const lines = rawEvent.split('\n');
             let event = '';
@@ -216,7 +216,7 @@ class AnthropicClient extends EventEmitter {
               }
             }
 
-            if (dataLines.length === 0) continue;
+            if (dataLines.length === 0) {continue;}
             const data = dataLines.join('\n');
             handleEvent(event, data, resolve);
           }
@@ -228,7 +228,7 @@ class AnthropicClient extends EventEmitter {
         });
 
         response.data.on('error', (error) => {
-          if (settled) return;
+          if (settled) {return;}
           settled = true;
           reject(error);
         });

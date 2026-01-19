@@ -3,7 +3,10 @@
     <!-- 头部 -->
     <div class="moments-header">
       <h2>朋友圈</h2>
-      <a-button type="primary" @click="showPublishModal">
+      <a-button
+        type="primary"
+        @click="showPublishModal"
+      >
         <PlusOutlined /> 发布动态
       </a-button>
     </div>
@@ -15,7 +18,10 @@
       :confirm-loading="publishing"
       @ok="handlePublish"
     >
-      <a-form :model="publishForm" layout="vertical">
+      <a-form
+        :model="publishForm"
+        layout="vertical"
+      >
         <a-form-item label="内容">
           <a-textarea
             v-model:value="publishForm.content"
@@ -35,16 +41,27 @@
           >
             <div v-if="publishForm.images.length < 9">
               <PlusOutlined />
-              <div style="margin-top: 8px">上传</div>
+              <div style="margin-top: 8px">
+                上传
+              </div>
             </div>
           </a-upload>
         </a-form-item>
 
         <a-form-item label="可见范围">
-          <a-select v-model:value="publishForm.visibility" style="width: 100%">
-            <a-select-option value="public">公开</a-select-option>
-            <a-select-option value="friends">仅好友</a-select-option>
-            <a-select-option value="private">仅自己</a-select-option>
+          <a-select
+            v-model:value="publishForm.visibility"
+            style="width: 100%"
+          >
+            <a-select-option value="public">
+              公开
+            </a-select-option>
+            <a-select-option value="friends">
+              仅好友
+            </a-select-option>
+            <a-select-option value="private">
+              仅自己
+            </a-select-option>
           </a-select>
         </a-form-item>
       </a-form>
@@ -53,20 +70,36 @@
     <!-- 动态列表 -->
     <div class="moments-list">
       <a-spin :spinning="loading">
-        <a-empty v-if="moments.length === 0 && !loading" description="暂无动态" />
+        <a-empty
+          v-if="moments.length === 0 && !loading"
+          description="暂无动态"
+        />
 
-        <div v-for="moment in moments" :key="moment.id" class="moment-item">
+        <div
+          v-for="moment in moments"
+          :key="moment.id"
+          class="moment-item"
+        >
           <!-- 用户信息 -->
           <div class="moment-header">
             <a-avatar :size="48">
-              <template #icon><UserOutlined /></template>
+              <template #icon>
+                <UserOutlined />
+              </template>
             </a-avatar>
             <div class="moment-user-info">
-              <div class="moment-username">{{ moment.author_name || shortenDid(moment.author_did) }}</div>
-              <div class="moment-time">{{ formatTime(moment.created_at) }}</div>
+              <div class="moment-username">
+                {{ moment.author_name || shortenDid(moment.author_did) }}
+              </div>
+              <div class="moment-time">
+                {{ formatTime(moment.created_at) }}
+              </div>
             </div>
             <a-dropdown v-if="moment.author_did === currentUserDid">
-              <a-button type="text" size="small">
+              <a-button
+                type="text"
+                size="small"
+              >
                 <MoreOutlined />
               </a-button>
               <template #overlay>
@@ -74,7 +107,10 @@
                   <a-menu-item @click="handleEdit(moment)">
                     <EditOutlined /> 编辑
                   </a-menu-item>
-                  <a-menu-item danger @click="handleDelete(moment.id)">
+                  <a-menu-item
+                    danger
+                    @click="handleDelete(moment.id)"
+                  >
                     <DeleteOutlined /> 删除
                   </a-menu-item>
                 </a-menu>
@@ -87,7 +123,10 @@
             <p>{{ moment.content }}</p>
 
             <!-- 图片网格 -->
-            <div v-if="moment.images && moment.images.length > 0" class="moment-images">
+            <div
+              v-if="moment.images && moment.images.length > 0"
+              class="moment-images"
+            >
               <a-image-preview-group>
                 <a-image
                   v-for="(image, index) in moment.images"
@@ -111,18 +150,33 @@
               >
                 <LikeOutlined /> {{ moment.likes_count || 0 }}
               </a-button>
-              <a-button type="text" size="small" @click="handleComment(moment)">
+              <a-button
+                type="text"
+                size="small"
+                @click="handleComment(moment)"
+              >
                 <CommentOutlined /> {{ moment.comments_count || 0 }}
               </a-button>
-              <a-button type="text" size="small" @click="handleShare(moment)">
+              <a-button
+                type="text"
+                size="small"
+                @click="handleShare(moment)"
+              >
                 <ShareAltOutlined /> 分享
               </a-button>
             </a-space>
           </div>
 
           <!-- 评论列表 -->
-          <div v-if="moment.comments && moment.comments.length > 0" class="moment-comments">
-            <div v-for="comment in moment.comments" :key="comment.id" class="comment-item">
+          <div
+            v-if="moment.comments && moment.comments.length > 0"
+            class="moment-comments"
+          >
+            <div
+              v-for="comment in moment.comments"
+              :key="comment.id"
+              class="comment-item"
+            >
               <span class="comment-author">{{ comment.author_name }}:</span>
               <span class="comment-content">{{ comment.content }}</span>
               <span class="comment-time">{{ formatTime(comment.created_at) }}</span>
@@ -130,14 +184,21 @@
           </div>
 
           <!-- 评论输入框 -->
-          <div v-if="moment.showCommentInput" class="moment-comment-input">
+          <div
+            v-if="moment.showCommentInput"
+            class="moment-comment-input"
+          >
             <a-input
               v-model:value="moment.commentText"
               placeholder="写下你的评论..."
               @press-enter="handleSubmitComment(moment)"
             >
               <template #suffix>
-                <a-button type="link" size="small" @click="handleSubmitComment(moment)">
+                <a-button
+                  type="link"
+                  size="small"
+                  @click="handleSubmitComment(moment)"
+                >
                   发送
                 </a-button>
               </template>
@@ -146,8 +207,15 @@
         </div>
 
         <!-- 加载更多 -->
-        <div v-if="hasMore" class="load-more">
-          <a-button type="link" :loading="loadingMore" @click="loadMore">
+        <div
+          v-if="hasMore"
+          class="load-more"
+        >
+          <a-button
+            type="link"
+            :loading="loadingMore"
+            @click="loadMore"
+          >
             加载更多
           </a-button>
         </div>
@@ -372,24 +440,24 @@ const formatTime = (timestamp) => {
   const now = new Date();
   const diff = now - date;
 
-  if (diff < 60000) return '刚刚';
-  if (diff < 3600000) return `${Math.floor(diff / 60000)}分钟前`;
-  if (diff < 86400000) return `${Math.floor(diff / 3600000)}小时前`;
-  if (diff < 604800000) return `${Math.floor(diff / 86400000)}天前`;
+  if (diff < 60000) {return '刚刚';}
+  if (diff < 3600000) {return `${Math.floor(diff / 60000)}分钟前`;}
+  if (diff < 86400000) {return `${Math.floor(diff / 3600000)}小时前`;}
+  if (diff < 604800000) {return `${Math.floor(diff / 86400000)}天前`;}
 
   return date.toLocaleDateString();
 };
 
 // 缩短DID显示
 const shortenDid = (did) => {
-  if (!did) return '';
+  if (!did) {return '';}
   return `${did.slice(0, 8)}...${did.slice(-6)}`;
 };
 
 // 计算图片宽度
 const getImageWidth = (count) => {
-  if (count === 1) return 300;
-  if (count <= 4) return 150;
+  if (count === 1) {return 300;}
+  if (count <= 4) {return 150;}
   return 100;
 };
 

@@ -4,49 +4,95 @@
       <div class="thinking-icon">
         <LoadingOutlined spin />
       </div>
-      <div class="thinking-title">{{ currentStage }}</div>
+      <div class="thinking-title">
+        {{ currentStage }}
+      </div>
     </div>
 
     <!-- 进度条 -->
-    <div v-if="showProgress" class="progress-container">
+    <div
+      v-if="showProgress"
+      class="progress-container"
+    >
       <a-progress
         :percent="progress"
         :show-info="true"
         :status="status"
         stroke-color="#667eea"
       />
-      <div class="progress-text">{{ progressText }}</div>
+      <div class="progress-text">
+        {{ progressText }}
+      </div>
     </div>
 
     <!-- 步骤列表 -->
-    <div v-if="steps.length > 0" class="steps-container">
+    <div
+      v-if="steps.length > 0"
+      class="steps-container"
+    >
       <div
         v-for="(step, index) in steps"
         :key="index"
         :class="['step-item', step.status]"
       >
         <div class="step-icon">
-          <CheckCircleOutlined v-if="step.status === 'completed'" class="completed" />
-          <LoadingOutlined v-else-if="step.status === 'in-progress'" spin class="in-progress" />
-          <ClockCircleOutlined v-else class="pending" />
+          <CheckCircleOutlined
+            v-if="step.status === 'completed'"
+            class="completed"
+          />
+          <LoadingOutlined
+            v-else-if="step.status === 'in-progress'"
+            spin
+            class="in-progress"
+          />
+          <ClockCircleOutlined
+            v-else
+            class="pending"
+          />
         </div>
         <div class="step-content">
-          <div class="step-title">{{ step.title }}</div>
-          <div v-if="step.description" class="step-description">{{ step.description }}</div>
-          <div v-if="step.duration" class="step-duration">{{ formatDuration(step.duration) }}</div>
+          <div class="step-title">
+            {{ step.title }}
+          </div>
+          <div
+            v-if="step.description"
+            class="step-description"
+          >
+            {{ step.description }}
+          </div>
+          <div
+            v-if="step.duration"
+            class="step-duration"
+          >
+            {{ formatDuration(step.duration) }}
+          </div>
         </div>
       </div>
     </div>
 
     <!-- 流式内容预览 -->
-    <div v-if="streamingContent" class="streaming-content">
-      <div class="streaming-label">生成中...</div>
-      <div class="streaming-text" v-html="renderMarkdown(streamingContent)"></div>
+    <div
+      v-if="streamingContent"
+      class="streaming-content"
+    >
+      <div class="streaming-label">
+        生成中...
+      </div>
+      <div
+        class="streaming-text"
+        v-html="renderMarkdown(streamingContent)"
+      />
     </div>
 
     <!-- 取消按钮 -->
-    <div v-if="showCancelButton" class="action-buttons">
-      <a-button size="small" @click="handleCancel">
+    <div
+      v-if="showCancelButton"
+      class="action-buttons"
+    >
+      <a-button
+        size="small"
+        @click="handleCancel"
+      >
         <CloseOutlined />
         取消
       </a-button>
@@ -114,8 +160,8 @@ const renderMarkdown = (content) => {
 
 // 格式化持续时间
 const formatDuration = (ms) => {
-  if (ms < 1000) return `${ms}ms`;
-  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
+  if (ms < 1000) {return `${ms}ms`;}
+  if (ms < 60000) {return `${(ms / 1000).toFixed(1)}s`;}
   return `${(ms / 60000).toFixed(1)}min`;
 };
 

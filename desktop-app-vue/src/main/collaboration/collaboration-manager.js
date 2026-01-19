@@ -26,7 +26,7 @@ class CollaborationManager extends EventEmitter {
    * 初始化协作管理器
    */
   async initialize(options = {}) {
-    if (this.initialized) return;
+    if (this.initialized) {return;}
 
     try {
       const { port = 8080 } = options;
@@ -152,7 +152,7 @@ class CollaborationManager extends EventEmitter {
    * 停止WebSocket服务器
    */
   async stopServer() {
-    if (!this.wss) return;
+    if (!this.wss) {return;}
 
     try {
       // 关闭所有连接
@@ -186,7 +186,7 @@ class CollaborationManager extends EventEmitter {
    */
   async handleMessage(connectionId, message) {
     const conn = this.connections.get(connectionId);
-    if (!conn) return;
+    if (!conn) {return;}
 
     const { type, payload } = message;
 
@@ -321,7 +321,7 @@ class CollaborationManager extends EventEmitter {
    */
   async handleCursorUpdate(connectionId, payload) {
     const conn = this.connections.get(connectionId);
-    if (!conn) return;
+    if (!conn) {return;}
 
     const { position } = payload;
 
@@ -341,7 +341,7 @@ class CollaborationManager extends EventEmitter {
    */
   async handleSelectionUpdate(connectionId, payload) {
     const conn = this.connections.get(connectionId);
-    if (!conn) return;
+    if (!conn) {return;}
 
     const { selection } = payload;
 
@@ -361,7 +361,7 @@ class CollaborationManager extends EventEmitter {
    */
   async handlePresenceUpdate(connectionId, payload) {
     const conn = this.connections.get(connectionId);
-    if (!conn) return;
+    if (!conn) {return;}
 
     const { status } = payload;
 
@@ -389,7 +389,7 @@ class CollaborationManager extends EventEmitter {
    */
   handleDisconnect(connectionId) {
     const conn = this.connections.get(connectionId);
-    if (!conn) return;
+    if (!conn) {return;}
 
     if (conn.userId && conn.documentId) {
       // 更新会话状态
@@ -423,12 +423,12 @@ class CollaborationManager extends EventEmitter {
       // 订阅文档
       await new Promise((resolve, reject) => {
         doc.fetch((err) => {
-          if (err) return reject(err);
+          if (err) {return reject(err);}
 
           if (!doc.type) {
             // 文档不存在，创建新文档
             doc.create({ content: '', version: 0 }, (err) => {
-              if (err) return reject(err);
+              if (err) {return reject(err);}
               resolve();
             });
           } else {
@@ -469,7 +469,7 @@ class CollaborationManager extends EventEmitter {
       // 提交操作到ShareDB
       await new Promise((resolve, reject) => {
         doc.submitOp(operation, { source: userId }, (err) => {
-          if (err) return reject(err);
+          if (err) {return reject(err);}
           resolve();
         });
       });

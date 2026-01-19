@@ -82,7 +82,7 @@ class InitialSetupConfig {
     const keys = key.split(".");
     let obj = this.config;
     for (let i = 0; i < keys.length - 1; i++) {
-      if (!obj[keys[i]]) obj[keys[i]] = {};
+      if (!obj[keys[i]]) {obj[keys[i]] = {};}
       obj = obj[keys[i]];
     }
     obj[keys[keys.length - 1]] = value;

@@ -1,10 +1,10 @@
 import { createApp } from "vue";
 import { createPinia } from "pinia";
-import Antd from "ant-design-vue";
 import App from "./App.vue";
 import router from "./router";
 import i18n from "./locales";
 import { registerPermissionDirective } from "./directives/permission";
+// Ant Design Vue 已通过 unplugin-vue-components 自动按需导入
 import "ant-design-vue/dist/reset.css";
 import "prosemirror-view/style/prosemirror.css";
 import "./style.css";
@@ -37,7 +37,7 @@ const pinia = createPinia();
 app.use(pinia);
 app.use(router);
 app.use(i18n);
-app.use(Antd);
+// Ant Design Vue 组件已通过 unplugin-vue-components 自动按需导入，无需全局注册
 
 // 注册权限指令
 registerPermissionDirective(app);

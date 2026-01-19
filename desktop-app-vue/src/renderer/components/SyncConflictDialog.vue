@@ -4,7 +4,7 @@
     title="数据同步冲突"
     width="900px"
     :footer="null"
-    :maskClosable="false"
+    :mask-closable="false"
   >
     <div class="conflict-container">
       <a-alert
@@ -15,11 +15,19 @@
         style="margin-bottom: 20px"
       />
 
-      <div v-for="(conflict, index) in conflicts" :key="conflict.id" class="conflict-item">
+      <div
+        v-for="(conflict, index) in conflicts"
+        :key="conflict.id"
+        class="conflict-item"
+      >
         <div class="conflict-header">
           <h4>冲突 {{ index + 1 }} / {{ conflicts.length }}</h4>
-          <a-tag color="blue">{{ conflict.table }}</a-tag>
-          <a-tag color="geekblue">ID: {{ conflict.id }}</a-tag>
+          <a-tag color="blue">
+            {{ conflict.table }}
+          </a-tag>
+          <a-tag color="geekblue">
+            ID: {{ conflict.id }}
+          </a-tag>
         </div>
 
         <a-row :gutter="16">
@@ -40,8 +48,8 @@
               <a-button
                 type="primary"
                 block
-                @click="resolveConflict(conflict.id, 'local')"
                 :loading="resolving === conflict.id"
+                @click="resolveConflict(conflict.id, 'local')"
               >
                 使用本地版本
               </a-button>
@@ -65,8 +73,8 @@
               <a-button
                 type="primary"
                 block
-                @click="resolveConflict(conflict.id, 'remote')"
                 :loading="resolving === conflict.id"
+                @click="resolveConflict(conflict.id, 'remote')"
               >
                 使用云端版本
               </a-button>
@@ -77,7 +85,10 @@
         <a-divider v-if="index < conflicts.length - 1" />
       </div>
 
-      <div v-if="conflicts.length === 0" class="empty-state">
+      <div
+        v-if="conflicts.length === 0"
+        class="empty-state"
+      >
         <a-empty description="所有冲突已解决" />
       </div>
     </div>
@@ -94,7 +105,7 @@ const conflicts = ref([]);
 const resolving = ref(null);
 
 // 监听同步冲突事件
-let removeListener = null;
+const removeListener = null;
 
 onMounted(() => {
   if (window.electronAPI && window.electronAPI.sync) {
@@ -114,7 +125,7 @@ onUnmounted(() => {
 
 // 格式化时间
 const formatTime = (timestamp) => {
-  if (!timestamp) return '未知时间';
+  if (!timestamp) {return '未知时间';}
   return new Date(timestamp).toLocaleString('zh-CN', {
     year: 'numeric',
     month: '2-digit',
@@ -127,7 +138,7 @@ const formatTime = (timestamp) => {
 
 // 格式化记录（美化显示）
 const formatRecord = (record) => {
-  if (!record) return '无数据';
+  if (!record) {return '无数据';}
 
   // 过滤掉不需要显示的字段
   const filtered = {};

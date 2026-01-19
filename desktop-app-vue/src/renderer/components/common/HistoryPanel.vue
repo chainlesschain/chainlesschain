@@ -8,11 +8,22 @@
     >
       <template #extra>
         <a-space>
-          <a-button size="small" @click="handleRefresh">
-            <template #icon><ReloadOutlined /></template>
+          <a-button
+            size="small"
+            @click="handleRefresh"
+          >
+            <template #icon>
+              <ReloadOutlined />
+            </template>
           </a-button>
-          <a-button size="small" danger @click="handleClearAll">
-            <template #icon><DeleteOutlined /></template>
+          <a-button
+            size="small"
+            danger
+            @click="handleClearAll"
+          >
+            <template #icon>
+              <DeleteOutlined />
+            </template>
             清空
           </a-button>
         </a-space>
@@ -56,9 +67,15 @@
             size="small"
             @change="handleFilterChange"
           >
-            <a-select-option value="all">全部</a-select-option>
-            <a-select-option value="skill">技能</a-select-option>
-            <a-select-option value="tool">工具</a-select-option>
+            <a-select-option value="all">
+              全部
+            </a-select-option>
+            <a-select-option value="skill">
+              技能
+            </a-select-option>
+            <a-select-option value="tool">
+              工具
+            </a-select-option>
           </a-select>
 
           <a-select
@@ -67,10 +84,18 @@
             size="small"
             @change="handleFilterChange"
           >
-            <a-select-option value="all">所有操作</a-select-option>
-            <a-select-option value="create">创建</a-select-option>
-            <a-select-option value="update">更新</a-select-option>
-            <a-select-option value="delete">删除</a-select-option>
+            <a-select-option value="all">
+              所有操作
+            </a-select-option>
+            <a-select-option value="create">
+              创建
+            </a-select-option>
+            <a-select-option value="update">
+              更新
+            </a-select-option>
+            <a-select-option value="delete">
+              删除
+            </a-select-option>
           </a-select>
         </a-space>
       </div>
@@ -97,14 +122,20 @@
               <div class="record-time">
                 {{ formatTime(record.timestamp) }}
               </div>
-              <div v-if="record.details" class="record-details">
+              <div
+                v-if="record.details"
+                class="record-details"
+              >
                 {{ record.details }}
               </div>
             </div>
           </a-timeline-item>
         </a-timeline>
 
-        <a-empty v-else description="暂无操作记录" />
+        <a-empty
+          v-else
+          description="暂无操作记录"
+        />
       </div>
     </a-drawer>
   </div>

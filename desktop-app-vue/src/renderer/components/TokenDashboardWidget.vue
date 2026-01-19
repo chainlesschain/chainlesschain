@@ -17,7 +17,9 @@
 
     <!-- 本周支出 -->
     <div class="main-stat">
-      <div class="stat-label">本周支出</div>
+      <div class="stat-label">
+        本周支出
+      </div>
       <div class="stat-value">
         <span class="amount">${{ weekSpend.toFixed(2) }}</span>
         <span class="limit">/ ${{ weekLimit.toFixed(2) }}</span>
@@ -35,23 +37,40 @@
     <a-divider style="margin: 12px 0" />
 
     <!-- 关键指标 -->
-    <a-row :gutter="8} class="metrics-row">
-      <a-col :span="12}>
-        <div class="metric-box">
-          <ThunderboltOutlined class="metric-icon cache" />
-          <div class="metric-info">
-            <div class="metric-label">缓存命中</div>
-            <div class="metric-value">{{ cacheHitRate }}%</div>
+    <a-row
+      :gutter="8} class="
+      metrics-row"
+    >
+      <a-col
+        :span="12}>
+        <div class="
+        metric-box"
+      >
+        <ThunderboltOutlined class="metric-icon cache" />
+        <div class="metric-info">
+          <div class="metric-label">
+            缓存命中
+          </div>
+          <div class="metric-value">
+            {{ cacheHitRate }}%
           </div>
         </div>
+        </div>
       </a-col>
-      <a-col :span="12}>
-        <div class="metric-box">
-          <DollarOutlined class="metric-icon cost" />
-          <div class="metric-info">
-            <div class="metric-label">节省成本</div>
-            <div class="metric-value">${{ savedCost.toFixed(2) }}</div>
+      <a-col
+        :span="12}>
+        <div class="
+        metric-box"
+      >
+        <DollarOutlined class="metric-icon cost" />
+        <div class="metric-info">
+          <div class="metric-label">
+            节省成本
           </div>
+          <div class="metric-value">
+            ${{ savedCost.toFixed(2) }}
+          </div>
+        </div>
         </div>
       </a-col>
     </a-row>
@@ -117,7 +136,7 @@ let refreshInterval = null;
 
 // 计算属性
 const weekPercent = computed(() => {
-  if (weekLimit.value === 0) return 0;
+  if (weekLimit.value === 0) {return 0;}
   return Math.min((weekSpend.value / weekLimit.value) * 100, 100);
 });
 
@@ -133,21 +152,21 @@ const budgetWarning = computed(() => {
 
 const budgetWarningType = computed(() => {
   const percent = weekPercent.value;
-  if (percent >= 95) return 'error';
-  if (percent >= 80) return 'warning';
+  if (percent >= 95) {return 'error';}
+  if (percent >= 80) {return 'warning';}
   return 'info';
 });
 
 // 方法
 function getProgressStatus(percent) {
-  if (percent >= 95) return 'exception';
-  if (percent >= 80) return 'normal';
+  if (percent >= 95) {return 'exception';}
+  if (percent >= 80) {return 'normal';}
   return 'active';
 }
 
 function getProgressColor(percent) {
-  if (percent >= 95) return '#ff4d4f';
-  if (percent >= 80) return '#faad14';
+  if (percent >= 95) {return '#ff4d4f';}
+  if (percent >= 80) {return '#faad14';}
   return '#52c41a';
 }
 

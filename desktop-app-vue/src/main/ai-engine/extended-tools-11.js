@@ -387,8 +387,8 @@ class ExtendedTools11 {
             const phi = Math.random() * 2 * Math.PI;
 
             // 应用运动学切割
-            if (cuts.pt_min && pt < cuts.pt_min) continue;
-            if (cuts.eta_max && Math.abs(eta) > cuts.eta_max) continue;
+            if (cuts.pt_min && pt < cuts.pt_min) {continue;}
+            if (cuts.eta_max && Math.abs(eta) > cuts.eta_max) {continue;}
 
             // 随机粒子ID
             const pdg_ids = [1, 2, 3, 4, 5, 21, 22, 11, 13]; // u,d,s,c,b,g,γ,e,μ
@@ -894,7 +894,7 @@ class ExtendedTools11 {
 
           // 分配波长 (简化:first-fit)
           let assigned_wavelength = null;
-          for (let wl of wavelengths) {
+          for (const wl of wavelengths) {
             const key = `${source}-${destination}`;
             if (!wavelength_assignment[key]) {
               assigned_wavelength = wl;
@@ -1261,9 +1261,9 @@ class ExtendedTools11 {
         const { zero_bias_peak = true, quantized_conductance = false, non_abelian_statistics = false } = signature_criteria;
 
         let signature_score = 0;
-        if (zero_bias_peak && zero_bias_peak_height > 0.8) signature_score += 0.4;
-        if (quantized_conductance && zero_bias_peak_height > 0.95) signature_score += 0.3;
-        if (non_abelian_statistics) signature_score += 0.3; // 需要braiding测量
+        if (zero_bias_peak && zero_bias_peak_height > 0.8) {signature_score += 0.4;}
+        if (quantized_conductance && zero_bias_peak_height > 0.95) {signature_score += 0.3;}
+        if (non_abelian_statistics) {signature_score += 0.3;} // 需要braiding测量
 
         majorana_probability = signature_score;
 
@@ -1556,9 +1556,9 @@ class ExtendedTools11 {
 
           // 岩浆粘度 (Pa·s)
           let eta = viscosity || 100; // 默认100 Pa·s
-          if (composition === 'basaltic') eta = 100;
-          else if (composition === 'andesitic') eta = 10000;
-          else if (composition === 'rhyolitic') eta = 1e6;
+          if (composition === 'basaltic') {eta = 100;}
+          else if (composition === 'andesitic') {eta = 10000;}
+          else if (composition === 'rhyolitic') {eta = 1e6;}
 
           // 挥发分含量
           const H2O_wt = volatile_content.H2O_wt || 3; // wt%
@@ -1692,10 +1692,10 @@ class ExtendedTools11 {
         const { earthquake_rate = 30, uplift_threshold_cm = 5, so2_flux_threshold = 2000 } = alert_criteria;
 
         let risk_score = 0;
-        if (seismic_activity && seismic_activity.event_rate_per_day > earthquake_rate) risk_score += 30;
-        if (deformation_rate > uplift_threshold_cm) risk_score += 30;
-        if (gas_flux && gas_flux.SO2_tons_per_day > so2_flux_threshold) risk_score += 25;
-        if (seismic_activity && seismic_activity.tremor_detected) risk_score += 15;
+        if (seismic_activity && seismic_activity.event_rate_per_day > earthquake_rate) {risk_score += 30;}
+        if (deformation_rate > uplift_threshold_cm) {risk_score += 30;}
+        if (gas_flux && gas_flux.SO2_tons_per_day > so2_flux_threshold) {risk_score += 25;}
+        if (seismic_activity && seismic_activity.tremor_detected) {risk_score += 15;}
 
         if (risk_score > 70) {
           alert_level = 'red';
@@ -1955,23 +1955,23 @@ class ExtendedTools11 {
         const design_id = `flex_sensor_${Date.now()}`;
 
         // 预测性能
-        let predicted_performance = {};
+        const predicted_performance = {};
 
         // 灵敏度
         let sensitivity = target_sensitivity || 1.0;
         switch (sensor_type) {
           case 'strain':
             // Gauge factor (ΔR/R / ε)
-            if (type === 'graphene') sensitivity = 100 + Math.random() * 50;
-            else if (type === 'CNT') sensitivity = 50 + Math.random() * 100;
-            else if (type === 'AgNW') sensitivity = 10 + Math.random() * 20;
+            if (type === 'graphene') {sensitivity = 100 + Math.random() * 50;}
+            else if (type === 'CNT') {sensitivity = 50 + Math.random() * 100;}
+            else if (type === 'AgNW') {sensitivity = 10 + Math.random() * 20;}
             predicted_performance.gauge_factor = sensitivity;
             predicted_performance.strain_range_percent = flexibility === 'stretchable' ? 50 : 5;
             break;
 
           case 'pressure':
             // Sensitivity (kPa^-1)
-            if (material === 'PDMS') sensitivity = 0.5 + Math.random() * 2;
+            if (material === 'PDMS') {sensitivity = 0.5 + Math.random() * 2;}
             predicted_performance.sensitivity_kpa = sensitivity;
             predicted_performance.pressure_range_kpa = [0.1, 100];
             predicted_performance.response_time_ms = 10 + Math.random() * 40;
@@ -2095,7 +2095,7 @@ class ExtendedTools11 {
         };
 
         // 差异表达分析
-        let differentially_expressed = [];
+        const differentially_expressed = [];
         if (statistical_analysis.differential_expression && assay_type === 'gene_expression') {
           const num_genes = normalized_data.length;
           const num_de = Math.floor(num_genes * 0.1); // 10%差异表达

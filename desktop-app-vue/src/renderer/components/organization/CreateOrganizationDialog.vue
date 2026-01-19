@@ -14,7 +14,10 @@
       :label-col="{ span: 6 }"
       :wrapper-col="{ span: 18 }"
     >
-      <a-form-item label="Organization Name" name="name">
+      <a-form-item
+        label="Organization Name"
+        name="name"
+      >
         <a-input
           v-model:value="formState.name"
           placeholder="Enter organization name"
@@ -23,8 +26,14 @@
         />
       </a-form-item>
 
-      <a-form-item label="Organization Type" name="type">
-        <a-select v-model:value="formState.type" placeholder="Select organization type">
+      <a-form-item
+        label="Organization Type"
+        name="type"
+      >
+        <a-select
+          v-model:value="formState.type"
+          placeholder="Select organization type"
+        >
           <a-select-option value="startup">
             <ShopOutlined /> Startup
           </a-select-option>
@@ -43,7 +52,10 @@
         </a-select>
       </a-form-item>
 
-      <a-form-item label="Description" name="description">
+      <a-form-item
+        label="Description"
+        name="description"
+      >
         <a-textarea
           v-model:value="formState.description"
           placeholder="Enter organization description"
@@ -53,20 +65,30 @@
         />
       </a-form-item>
 
-      <a-form-item label="Privacy" name="isPublic">
+      <a-form-item
+        label="Privacy"
+        name="isPublic"
+      >
         <a-radio-group v-model:value="formState.isPublic">
           <a-radio :value="true">
             <GlobalOutlined /> Public
-            <div class="radio-description">Anyone can discover and request to join</div>
+            <div class="radio-description">
+              Anyone can discover and request to join
+            </div>
           </a-radio>
           <a-radio :value="false">
             <LockOutlined /> Private
-            <div class="radio-description">Only invited members can join</div>
+            <div class="radio-description">
+              Only invited members can join
+            </div>
           </a-radio>
         </a-radio-group>
       </a-form-item>
 
-      <a-form-item label="Features" name="features">
+      <a-form-item
+        label="Features"
+        name="features"
+      >
         <a-checkbox-group v-model:value="formState.features">
           <a-checkbox value="knowledge">
             <FileTextOutlined /> Knowledge Base
@@ -83,17 +105,36 @@
         </a-checkbox-group>
       </a-form-item>
 
-      <a-form-item label="Storage Limit" name="storageLimit">
-        <a-select v-model:value="formState.storageLimit" placeholder="Select storage limit">
-          <a-select-option :value="1 * 1024 * 1024 * 1024">1 GB</a-select-option>
-          <a-select-option :value="5 * 1024 * 1024 * 1024">5 GB</a-select-option>
-          <a-select-option :value="10 * 1024 * 1024 * 1024">10 GB</a-select-option>
-          <a-select-option :value="50 * 1024 * 1024 * 1024">50 GB</a-select-option>
-          <a-select-option :value="100 * 1024 * 1024 * 1024">100 GB</a-select-option>
+      <a-form-item
+        label="Storage Limit"
+        name="storageLimit"
+      >
+        <a-select
+          v-model:value="formState.storageLimit"
+          placeholder="Select storage limit"
+        >
+          <a-select-option :value="1 * 1024 * 1024 * 1024">
+            1 GB
+          </a-select-option>
+          <a-select-option :value="5 * 1024 * 1024 * 1024">
+            5 GB
+          </a-select-option>
+          <a-select-option :value="10 * 1024 * 1024 * 1024">
+            10 GB
+          </a-select-option>
+          <a-select-option :value="50 * 1024 * 1024 * 1024">
+            50 GB
+          </a-select-option>
+          <a-select-option :value="100 * 1024 * 1024 * 1024">
+            100 GB
+          </a-select-option>
         </a-select>
       </a-form-item>
 
-      <a-form-item label="Member Limit" name="memberLimit">
+      <a-form-item
+        label="Member Limit"
+        name="memberLimit"
+      >
         <a-input-number
           v-model:value="formState.memberLimit"
           :min="1"

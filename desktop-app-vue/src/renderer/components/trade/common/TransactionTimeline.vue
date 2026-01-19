@@ -1,6 +1,9 @@
 <template>
   <div class="transaction-timeline">
-    <a-timeline :mode="mode" :pending="pending">
+    <a-timeline
+      :mode="mode"
+      :pending="pending"
+    >
       <a-timeline-item
         v-for="(item, index) in sortedItems"
         :key="item.id || index"
@@ -8,7 +11,10 @@
       >
         <!-- 时间线图标 -->
         <template #dot>
-          <div class="timeline-dot" :style="{ backgroundColor: getTimelineColor(item) }">
+          <div
+            class="timeline-dot"
+            :style="{ backgroundColor: getTimelineColor(item) }"
+          >
             <component
               :is="getTimelineIcon(item)"
               :style="{ color: 'white', fontSize: '16px' }"
@@ -34,9 +40,15 @@
           </template>
 
           <!-- 操作按钮 -->
-          <template v-if="showActions" #extra>
+          <template
+            v-if="showActions"
+            #extra
+          >
             <a-dropdown :trigger="['click']">
-              <a-button type="text" size="small">
+              <a-button
+                type="text"
+                size="small"
+              >
                 <ellipsis-outlined />
               </a-button>
               <template #overlay>
@@ -55,43 +67,77 @@
           <!-- 卡片内容 -->
           <div class="timeline-content">
             <!-- 主要信息 -->
-            <a-descriptions :column="compact ? 1 : 2" size="small">
+            <a-descriptions
+              :column="compact ? 1 : 2"
+              size="small"
+            >
               <!-- 状态 -->
-              <a-descriptions-item v-if="item.status" label="状态">
-                <status-badge :status="item.status" :type="statusType" show-icon />
+              <a-descriptions-item
+                v-if="item.status"
+                label="状态"
+              >
+                <status-badge
+                  :status="item.status"
+                  :type="statusType"
+                  show-icon
+                />
               </a-descriptions-item>
 
               <!-- 金额 -->
-              <a-descriptions-item v-if="item.amount !== undefined" label="金额">
+              <a-descriptions-item
+                v-if="item.amount !== undefined"
+                label="金额"
+              >
                 <span class="amount-value">
                   {{ formatAmount(item.amount) }}
-                  <span v-if="item.asset_symbol" class="amount-symbol">
+                  <span
+                    v-if="item.asset_symbol"
+                    class="amount-symbol"
+                  >
                     {{ item.asset_symbol }}
                   </span>
                 </span>
               </a-descriptions-item>
 
               <!-- 数量 -->
-              <a-descriptions-item v-if="item.quantity" label="数量">
+              <a-descriptions-item
+                v-if="item.quantity"
+                label="数量"
+              >
                 {{ item.quantity }}
               </a-descriptions-item>
 
               <!-- 发起方 -->
-              <a-descriptions-item v-if="item.from_did" label="发起方">
-                <a-typography-text copyable :ellipsis="{ tooltip: item.from_did }">
+              <a-descriptions-item
+                v-if="item.from_did"
+                label="发起方"
+              >
+                <a-typography-text
+                  copyable
+                  :ellipsis="{ tooltip: item.from_did }"
+                >
                   {{ formatDid(item.from_did) }}
                 </a-typography-text>
               </a-descriptions-item>
 
               <!-- 接收方 -->
-              <a-descriptions-item v-if="item.to_did" label="接收方">
-                <a-typography-text copyable :ellipsis="{ tooltip: item.to_did }">
+              <a-descriptions-item
+                v-if="item.to_did"
+                label="接收方"
+              >
+                <a-typography-text
+                  copyable
+                  :ellipsis="{ tooltip: item.to_did }"
+                >
                   {{ formatDid(item.to_did) }}
                 </a-typography-text>
               </a-descriptions-item>
 
               <!-- 时间 -->
-              <a-descriptions-item label="时间" :span="compact ? 1 : 2">
+              <a-descriptions-item
+                label="时间"
+                :span="compact ? 1 : 2"
+              >
                 <a-tooltip :title="formatFullTime(item.created_at || item.timestamp)">
                   <clock-circle-outlined style="margin-right: 4px" />
                   {{ formatTime(item.created_at || item.timestamp) }}
@@ -100,7 +146,10 @@
             </a-descriptions>
 
             <!-- 描述信息 -->
-            <div v-if="item.description || item.memo" class="item-description">
+            <div
+              v-if="item.description || item.memo"
+              class="item-description"
+            >
               <a-typography-paragraph
                 :ellipsis="{ rows: 2, expandable: true, symbol: '展开' }"
                 style="margin: 0"
@@ -110,7 +159,10 @@
             </div>
 
             <!-- 元数据 -->
-            <div v-if="showMetadata && item.metadata" class="item-metadata">
+            <div
+              v-if="showMetadata && item.metadata"
+              class="item-metadata"
+            >
               <a-tag
                 v-for="(value, key) in visibleMetadata(item.metadata)"
                 :key="key"
@@ -125,7 +177,10 @@
       </a-timeline-item>
 
       <!-- Pending 占位符 -->
-      <a-timeline-item v-if="pending" color="gray">
+      <a-timeline-item
+        v-if="pending"
+        color="gray"
+      >
         <template #dot>
           <loading-outlined style="font-size: 16px" />
         </template>
@@ -141,9 +196,12 @@
     />
 
     <!-- 加载状态 -->
-    <div v-if="loading" class="timeline-loading">
+    <div
+      v-if="loading"
+      class="timeline-loading"
+    >
       <a-spin tip="加载中...">
-        <div style="height: 100px"></div>
+        <div style="height: 100px" />
       </a-spin>
     </div>
   </div>
@@ -255,7 +313,7 @@ const sortedItems = computed(() => {
 
 // 获取时间线颜色
 const getTimelineColor = (item) => {
-  if (item.color) return item.color;
+  if (item.color) {return item.color;}
 
   // 根据状态判断
   if (item.status) {
@@ -288,7 +346,7 @@ const getTimelineColor = (item) => {
 
 // 获取时间线图标
 const getTimelineIcon = (item) => {
-  if (item.icon) return item.icon;
+  if (item.icon) {return item.icon;}
 
   // 根据状态判断
   if (item.status) {
@@ -305,7 +363,7 @@ const getTimelineIcon = (item) => {
       cancelled: CloseCircleOutlined,
       disputed: ExclamationCircleOutlined,
     };
-    if (statusIcons[item.status]) return statusIcons[item.status];
+    if (statusIcons[item.status]) {return statusIcons[item.status];}
   }
 
   // 根据类型判断
@@ -363,21 +421,21 @@ const getDefaultTitle = (item) => {
 
 // 格式化金额
 const formatAmount = (amount) => {
-  if (!amount && amount !== 0) return '0';
+  if (!amount && amount !== 0) {return '0';}
   const num = parseFloat(amount);
-  if (isNaN(num)) return '0';
+  if (isNaN(num)) {return '0';}
   return num.toLocaleString('en-US', { maximumFractionDigits: 8 });
 };
 
 // 格式化 DID
 const formatDid = (did) => {
-  if (!did) return '-';
+  if (!did) {return '-';}
   return did.length > 20 ? `${did.slice(0, 10)}...${did.slice(-8)}` : did;
 };
 
 // 格式化时间
 const formatTime = (timestamp) => {
-  if (!timestamp) return '-';
+  if (!timestamp) {return '-';}
   const date = new Date(timestamp);
   const now = new Date();
   const diff = now - date;
@@ -406,7 +464,7 @@ const formatTime = (timestamp) => {
 
 // 格式化完整时间
 const formatFullTime = (timestamp) => {
-  if (!timestamp) return '-';
+  if (!timestamp) {return '-';}
   const date = new Date(timestamp);
   return date.toLocaleString('zh-CN', {
     year: 'numeric',
@@ -420,7 +478,7 @@ const formatFullTime = (timestamp) => {
 
 // 可见的元数据
 const visibleMetadata = (metadata) => {
-  if (!metadata || typeof metadata !== 'object') return {};
+  if (!metadata || typeof metadata !== 'object') {return {};}
 
   // 过滤掉空值和内部字段
   const filtered = {};

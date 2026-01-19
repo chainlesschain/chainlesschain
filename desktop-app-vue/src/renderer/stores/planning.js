@@ -88,7 +88,7 @@ export const usePlanningStore = defineStore('planning', () => {
    * 执行进度百分比
    */
   const progressPercentage = computed(() => {
-    if (executionProgress.value.totalSteps === 0) return 0;
+    if (executionProgress.value.totalSteps === 0) {return 0;}
     return Math.round(
       (executionProgress.value.currentStep / executionProgress.value.totalSteps) * 100
     );

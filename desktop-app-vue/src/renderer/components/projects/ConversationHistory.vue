@@ -1,7 +1,10 @@
 <template>
   <div class="conversation-history-wrapper">
     <!-- 对话列表 -->
-    <div class="message-list" ref="messageListRef">
+    <div
+      ref="messageListRef"
+      class="message-list"
+    >
       <div
         v-for="(message, index) in messages"
         :key="message.id || index"
@@ -26,7 +29,10 @@
               {{ message.content }}
             </div>
             <!-- 附件 -->
-            <div v-if="message.attachments && message.attachments.length > 0" class="message-attachments">
+            <div
+              v-if="message.attachments && message.attachments.length > 0"
+              class="message-attachments"
+            >
               <div
                 v-for="(file, idx) in message.attachments"
                 :key="idx"
@@ -43,7 +49,10 @@
         <!-- AI助手消息 -->
         <template v-else-if="message.role === 'assistant'">
           <div class="message-avatar">
-            <a-avatar :size="36" style="background: #1677FF;">
+            <a-avatar
+              :size="36"
+              style="background: #1677FF;"
+            >
               <template #icon>
                 <RobotOutlined />
               </template>
@@ -56,12 +65,18 @@
             </div>
 
             <!-- 消息文本 -->
-            <div v-if="message.content" class="message-text ai-response">
-              <div v-html="renderMarkdown(message.content)"></div>
+            <div
+              v-if="message.content"
+              class="message-text ai-response"
+            >
+              <div v-html="renderMarkdown(message.content)" />
             </div>
 
             <!-- Tool Calls (步骤展示) -->
-            <div v-if="message.tool_calls && message.tool_calls.length > 0" class="message-tools">
+            <div
+              v-if="message.tool_calls && message.tool_calls.length > 0"
+              class="message-tools"
+            >
               <StepDisplay
                 v-for="(toolCall, idx) in message.tool_calls"
                 :key="idx"
@@ -71,7 +86,10 @@
             </div>
 
             <!-- 生成的文件/结果预览 -->
-            <div v-if="message.files && message.files.length > 0" class="message-files">
+            <div
+              v-if="message.files && message.files.length > 0"
+              class="message-files"
+            >
               <div class="files-header">
                 <FileOutlined />
                 <span>生成的文件 ({{ message.files.length }})</span>
@@ -87,10 +105,17 @@
                     <component :is="getFileIcon(file.type)" />
                   </div>
                   <div class="file-info">
-                    <div class="file-name">{{ file.name }}</div>
-                    <div class="file-meta">{{ formatFileSize(file.size) }}</div>
+                    <div class="file-name">
+                      {{ file.name }}
+                    </div>
+                    <div class="file-meta">
+                      {{ formatFileSize(file.size) }}
+                    </div>
                   </div>
-                  <a-button type="link" size="small">
+                  <a-button
+                    type="link"
+                    size="small"
+                  >
                     打开
                     <ArrowRightOutlined />
                   </a-button>
@@ -100,18 +125,32 @@
 
             <!-- 操作按钮 -->
             <div class="message-actions">
-              <a-button type="text" size="small" @click="handleCopyMessage(message)">
+              <a-button
+                type="text"
+                size="small"
+                @click="handleCopyMessage(message)"
+              >
                 <CopyOutlined />
                 复制
               </a-button>
-              <a-button type="text" size="small" @click="handleRegenerateResponse(message)">
+              <a-button
+                type="text"
+                size="small"
+                @click="handleRegenerateResponse(message)"
+              >
                 <ReloadOutlined />
                 重新生成
               </a-button>
-              <a-button type="text" size="small">
+              <a-button
+                type="text"
+                size="small"
+              >
                 <LikeOutlined />
               </a-button>
-              <a-button type="text" size="small">
+              <a-button
+                type="text"
+                size="small"
+              >
                 <DislikeOutlined />
               </a-button>
             </div>
@@ -128,25 +167,38 @@
       </div>
 
       <!-- 加载更多 -->
-      <div v-if="hasMore" class="load-more">
-        <a-button type="link" :loading="loadingMore" @click="handleLoadMore">
+      <div
+        v-if="hasMore"
+        class="load-more"
+      >
+        <a-button
+          type="link"
+          :loading="loadingMore"
+          @click="handleLoadMore"
+        >
           加载更多历史消息
         </a-button>
       </div>
 
       <!-- AI输入中状态 -->
-      <div v-if="isTyping" class="typing-indicator">
+      <div
+        v-if="isTyping"
+        class="typing-indicator"
+      >
         <div class="message-avatar">
-          <a-avatar :size="36" style="background: #1677FF;">
+          <a-avatar
+            :size="36"
+            style="background: #1677FF;"
+          >
             <template #icon>
               <RobotOutlined />
             </template>
           </a-avatar>
         </div>
         <div class="typing-dots">
-          <span></span>
-          <span></span>
-          <span></span>
+          <span />
+          <span />
+          <span />
         </div>
       </div>
 
@@ -231,17 +283,17 @@ marked.setOptions({
 
 // 格式化时间
 const formatTime = (timestamp) => {
-  if (!timestamp) return '';
+  if (!timestamp) {return '';}
   const date = new Date(timestamp);
   const now = new Date();
   const diff = now - date;
 
   // 小于1分钟
-  if (diff < 60000) return '刚刚';
+  if (diff < 60000) {return '刚刚';}
   // 小于1小时
-  if (diff < 3600000) return `${Math.floor(diff / 60000)}分钟前`;
+  if (diff < 3600000) {return `${Math.floor(diff / 60000)}分钟前`;}
   // 小于1天
-  if (diff < 86400000) return `${Math.floor(diff / 3600000)}小时前`;
+  if (diff < 86400000) {return `${Math.floor(diff / 3600000)}小时前`;}
 
   // 超过1天，显示具体时间
   return date.toLocaleString('zh-CN', {
@@ -254,7 +306,7 @@ const formatTime = (timestamp) => {
 
 // 渲染Markdown
 const renderMarkdown = (content) => {
-  if (!content) return '';
+  if (!content) {return '';}
   try {
     return marked(content);
   } catch (error) {
@@ -293,7 +345,7 @@ const getFileIcon = (fileType) => {
 
 // 格式化文件大小
 const formatFileSize = (bytes) => {
-  if (!bytes || bytes === 0) return '0 B';
+  if (!bytes || bytes === 0) {return '0 B';}
   const k = 1024;
   const sizes = ['B', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
@@ -302,7 +354,7 @@ const formatFileSize = (bytes) => {
 
 // 滚动到底部
 const scrollToBottom = (smooth = true) => {
-  if (!messageListRef.value) return;
+  if (!messageListRef.value) {return;}
   nextTick(() => {
     messageListRef.value.scrollTo({
       top: messageListRef.value.scrollHeight,
@@ -313,7 +365,7 @@ const scrollToBottom = (smooth = true) => {
 
 // 处理滚动事件
 const handleScroll = () => {
-  if (!messageListRef.value) return;
+  if (!messageListRef.value) {return;}
 
   const { scrollTop, scrollHeight, clientHeight } = messageListRef.value;
   const isAtBottom = scrollHeight - scrollTop - clientHeight < 100;

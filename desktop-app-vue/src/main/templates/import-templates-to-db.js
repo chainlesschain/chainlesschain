@@ -165,7 +165,7 @@ class TemplateImporter {
         const files = await fs.readdir(categoryDir);
         const jsonFiles = files.filter(f => f.endsWith('.json'));
 
-        if (jsonFiles.length === 0) continue;
+        if (jsonFiles.length === 0) {continue;}
 
         console.log(`\n📂 分类: ${category} (${jsonFiles.length} 个模板)`);
 

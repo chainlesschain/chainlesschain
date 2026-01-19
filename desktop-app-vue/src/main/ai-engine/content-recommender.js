@@ -216,7 +216,7 @@ class ContentRecommender {
     const similarTools = [];
 
     for (const [otherTool, _] of this.toolFeatures.entries()) {
-      if (otherTool === toolName) continue;
+      if (otherTool === toolName) {continue;}
 
       const similarity = this.calculateToolSimilarity(toolName, otherTool);
 
@@ -233,7 +233,7 @@ class ContentRecommender {
    * 构建工具链统计
    */
   async buildToolChains() {
-    if (!this.db) return;
+    if (!this.db) {return;}
 
     console.log('[ContentRecommender] 构建工具链统计...');
 

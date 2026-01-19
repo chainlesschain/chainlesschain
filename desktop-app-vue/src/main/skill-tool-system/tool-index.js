@@ -104,7 +104,7 @@ class ToolIndex {
    */
   getByPermission(permission) {
     const ids = this.byPermission.get(permission);
-    if (!ids) return [];
+    if (!ids) {return [];}
     return Array.from(ids).map(id => this.byId.get(id)).filter(Boolean);
   }
 
@@ -166,7 +166,7 @@ class ToolIndex {
     // 按权限过滤（工具必须包含所有指定权限）
     if (Array.isArray(filters.permissions) && filters.permissions.length > 0) {
       results = results.filter(t => {
-        if (!Array.isArray(t.required_permissions)) return false;
+        if (!Array.isArray(t.required_permissions)) {return false;}
         return filters.permissions.every(perm =>
           t.required_permissions.includes(perm)
         );
@@ -188,13 +188,13 @@ class ToolIndex {
    * @returns {Array} 匹配的工具数组
    */
   search(keyword, fields = ['name', 'display_name', 'description']) {
-    if (!keyword) return [];
+    if (!keyword) {return [];}
 
     const lowerKeyword = keyword.toLowerCase();
     return this.tools.filter(tool => {
       return fields.some(field => {
         const value = tool[field];
-        if (!value) return false;
+        if (!value) {return false;}
         return value.toLowerCase().includes(lowerKeyword);
       });
     });

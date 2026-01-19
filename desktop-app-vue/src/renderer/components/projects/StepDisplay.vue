@@ -9,7 +9,10 @@
       <div class="step-left">
         <!-- 状态图标 -->
         <div class="status-icon">
-          <LoadingOutlined v-if="step.status === 'running'" spin />
+          <LoadingOutlined
+            v-if="step.status === 'running'"
+            spin
+          />
           <CheckCircleOutlined v-else-if="step.status === 'completed'" />
           <CloseCircleOutlined v-else-if="step.status === 'failed'" />
           <ClockCircleOutlined v-else />
@@ -21,11 +24,17 @@
             {{ step.name || step.title }}
           </div>
           <div class="step-meta">
-            <span class="step-tool" v-if="step.tool">
+            <span
+              v-if="step.tool"
+              class="step-tool"
+            >
               <CodeOutlined />
               {{ step.tool }}
             </span>
-            <span class="step-duration" v-if="step.duration || step.estimatedTime">
+            <span
+              v-if="step.duration || step.estimatedTime"
+              class="step-duration"
+            >
               <ClockCircleOutlined />
               {{ formatDuration(step.duration || step.estimatedTime) }}
             </span>
@@ -47,15 +56,26 @@
     </div>
 
     <!-- 步骤内容(可折叠) -->
-    <div v-if="isExpanded" class="step-content">
+    <div
+      v-if="isExpanded"
+      class="step-content"
+    >
       <!-- 步骤描述 -->
-      <div v-if="step.description" class="step-description">
+      <div
+        v-if="step.description"
+        class="step-description"
+      >
         {{ step.description }}
       </div>
 
       <!-- 步骤参数 -->
-      <div v-if="step.params && Object.keys(step.params).length > 0" class="step-params">
-        <div class="params-title">参数:</div>
+      <div
+        v-if="step.params && Object.keys(step.params).length > 0"
+        class="step-params"
+      >
+        <div class="params-title">
+          参数:
+        </div>
         <div class="params-list">
           <div
             v-for="(value, key) in step.params"
@@ -69,8 +89,13 @@
       </div>
 
       <!-- 步骤输出/结果 -->
-      <div v-if="step.result" class="step-result">
-        <div class="result-title">输出:</div>
+      <div
+        v-if="step.result"
+        class="step-result"
+      >
+        <div class="result-title">
+          输出:
+        </div>
         <div class="result-content">
           <!-- 如果结果是字符串,直接显示 -->
           <template v-if="typeof step.result === 'string'">
@@ -91,16 +116,24 @@
       </div>
 
       <!-- 步骤错误信息 -->
-      <div v-if="step.error && step.status === 'failed'" class="step-error">
+      <div
+        v-if="step.error && step.status === 'failed'"
+        class="step-error"
+      >
         <div class="error-title">
           <ExclamationCircleOutlined />
           错误信息:
         </div>
-        <div class="error-message">{{ step.error }}</div>
+        <div class="error-message">
+          {{ step.error }}
+        </div>
       </div>
 
       <!-- 步骤日志 -->
-      <div v-if="step.logs && step.logs.length > 0" class="step-logs">
+      <div
+        v-if="step.logs && step.logs.length > 0"
+        class="step-logs"
+      >
         <div class="logs-title">
           <FileTextOutlined />
           执行日志:
@@ -119,7 +152,10 @@
       </div>
 
       <!-- 操作按钮 -->
-      <div class="step-actions" v-if="showActions">
+      <div
+        v-if="showActions"
+        class="step-actions"
+      >
         <a-button
           v-if="step.status === 'failed'"
           type="primary"
@@ -200,14 +236,14 @@ const toggleExpanded = () => {
 
 // 格式化时间
 const formatDuration = (ms) => {
-  if (!ms) return '-';
-  if (ms < 1000) return `${ms}ms`;
-  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
+  if (!ms) {return '-';}
+  if (ms < 1000) {return `${ms}ms`;}
+  if (ms < 60000) {return `${(ms / 1000).toFixed(1)}s`;}
   return `${(ms / 60000).toFixed(1)}min`;
 };
 
 const formatTime = (timestamp) => {
-  if (!timestamp) return '';
+  if (!timestamp) {return '';}
   const date = new Date(timestamp);
   return date.toLocaleTimeString('zh-CN', {
     hour: '2-digit',
@@ -218,8 +254,8 @@ const formatTime = (timestamp) => {
 
 // 格式化值
 const formatValue = (value) => {
-  if (value === null || value === undefined) return '-';
-  if (typeof value === 'object') return JSON.stringify(value, null, 2);
+  if (value === null || value === undefined) {return '-';}
+  if (typeof value === 'object') {return JSON.stringify(value, null, 2);}
   return String(value);
 };
 

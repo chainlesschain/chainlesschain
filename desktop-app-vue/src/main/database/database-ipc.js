@@ -7,7 +7,7 @@
  */
 
 const { ipcMain } = require('electron');
-const ipcGuard = require('../ipc-guard');
+const ipcGuard = require('../ipc/ipc-guard');
 
 /**
  * 注册所有数据库 IPC 处理器

@@ -144,7 +144,7 @@ class ExtendedTools10 {
 
       // 不同任务类型的解码
       let intent = '';
-      let probabilities = {};
+      const probabilities = {};
 
       if (task_type === 'motor_imagery') {
         // 运动想象任务
@@ -511,9 +511,9 @@ class ExtendedTools10 {
 
       // 报警等级判断
       let alarm_level = 'normal';
-      if (dose_rate > 10) alarm_level = 'critical';
-      else if (dose_rate > 2) alarm_level = 'high';
-      else if (dose_rate > 0.5) alarm_level = 'elevated';
+      if (dose_rate > 10) {alarm_level = 'critical';}
+      else if (dose_rate > 2) {alarm_level = 'high';}
+      else if (dose_rate > 0.5) {alarm_level = 'elevated';}
 
       return {
         success: true,
@@ -701,9 +701,9 @@ class ExtendedTools10 {
           3 + orbital_elements.e * 5 :
           3 + Math.random() * 5; // km/s
 
-        if (delta_v < 4) accessibility = 'high';
-        else if (delta_v < 6) accessibility = 'medium';
-        else accessibility = 'low';
+        if (delta_v < 4) {accessibility = 'high';}
+        else if (delta_v < 6) {accessibility = 'medium';}
+        else {accessibility = 'low';}
       }
 
       return {
@@ -812,9 +812,9 @@ class ExtendedTools10 {
       let effectiveness_estimate = 0.3; // 基础增雨率
 
       if (weather_conditions) {
-        if (weather_conditions.cloud_type === 'cumulus') effectiveness_estimate += 0.2;
-        if (weather_conditions.temperature < 0) effectiveness_estimate += 0.1;
-        if (weather_conditions.humidity > 70) effectiveness_estimate += 0.15;
+        if (weather_conditions.cloud_type === 'cumulus') {effectiveness_estimate += 0.2;}
+        if (weather_conditions.temperature < 0) {effectiveness_estimate += 0.1;}
+        if (weather_conditions.humidity > 70) {effectiveness_estimate += 0.15;}
       }
 
       effectiveness_estimate = Math.min(effectiveness_estimate, 0.8);

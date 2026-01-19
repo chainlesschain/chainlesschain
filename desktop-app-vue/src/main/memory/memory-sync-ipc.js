@@ -8,7 +8,7 @@
  * @since 2026-01-18
  */
 
-const ipcGuard = require("../ipc-guard");
+const ipcGuard = require("../ipc/ipc-guard");
 
 /**
  * Register Memory Sync IPC handlers

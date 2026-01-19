@@ -1,30 +1,44 @@
 <template>
-  <a-card title="时间范围与操作" class="controls-card">
+  <a-card
+    title="时间范围与操作"
+    class="controls-card"
+  >
     <div class="controls-wrapper">
       <div class="controls-row">
         <a-radio-group
           :value="timeRange"
-          @change="(e) => $emit('time-change', e.target.value)"
           button-style="solid"
           class="time-range-group"
+          @change="(e) => $emit('time-change', e.target.value)"
         >
-          <a-radio-button value="24h">过去 24 小时</a-radio-button>
-          <a-radio-button value="7d">过去 7 天</a-radio-button>
-          <a-radio-button value="30d">过去 30 天</a-radio-button>
-          <a-radio-button value="custom">自定义</a-radio-button>
+          <a-radio-button value="24h">
+            过去 24 小时
+          </a-radio-button>
+          <a-radio-button value="7d">
+            过去 7 天
+          </a-radio-button>
+          <a-radio-button value="30d">
+            过去 30 天
+          </a-radio-button>
+          <a-radio-button value="custom">
+            自定义
+          </a-radio-button>
         </a-radio-group>
 
         <a-range-picker
           v-if="timeRange === 'custom'"
           :value="customDateRange"
-          @change="(dates) => $emit('custom-date-change', dates)"
           :show-time="{ format: 'HH:mm' }"
           format="YYYY-MM-DD HH:mm"
           class="custom-date-picker"
+          @change="(dates) => $emit('custom-date-change', dates)"
         />
       </div>
 
-      <a-divider type="vertical" class="controls-divider" />
+      <a-divider
+        type="vertical"
+        class="controls-divider"
+      />
 
       <div class="controls-row auto-refresh-row">
         <span class="auto-refresh-label">
@@ -38,27 +52,49 @@
         <a-select
           :value="autoRefreshInterval"
           :disabled="!autoRefreshEnabled"
-          @change="(value) => $emit('interval-change', value)"
           style="width: 100px"
           size="small"
+          @change="(value) => $emit('interval-change', value)"
         >
-          <a-select-option :value="30">30 秒</a-select-option>
-          <a-select-option :value="60">60 秒</a-select-option>
-          <a-select-option :value="120">2 分钟</a-select-option>
-          <a-select-option :value="300">5 分钟</a-select-option>
+          <a-select-option :value="30">
+            30 秒
+          </a-select-option>
+          <a-select-option :value="60">
+            60 秒
+          </a-select-option>
+          <a-select-option :value="120">
+            2 分钟
+          </a-select-option>
+          <a-select-option :value="300">
+            5 分钟
+          </a-select-option>
         </a-select>
       </div>
 
-      <a-divider type="vertical" class="controls-divider" />
+      <a-divider
+        type="vertical"
+        class="controls-divider"
+      />
 
       <div class="controls-row action-row">
-        <a-button type="primary" @click="$emit('refresh')" :loading="loading">
-          <template #icon><ReloadOutlined /></template>
+        <a-button
+          type="primary"
+          :loading="loading"
+          @click="$emit('refresh')"
+        >
+          <template #icon>
+            <ReloadOutlined />
+          </template>
           刷新数据
         </a-button>
 
-        <a-button @click="$emit('export')" :loading="exporting">
-          <template #icon><DownloadOutlined /></template>
+        <a-button
+          :loading="exporting"
+          @click="$emit('export')"
+        >
+          <template #icon>
+            <DownloadOutlined />
+          </template>
           导出报告
         </a-button>
 
@@ -71,7 +107,9 @@
               <a-menu-item key="excel">
                 <FileExcelOutlined /> 导出 Excel
               </a-menu-item>
-              <a-menu-item key="json"> <CodeOutlined /> 导出 JSON </a-menu-item>
+              <a-menu-item key="json">
+                <CodeOutlined /> 导出 JSON
+              </a-menu-item>
             </a-menu>
           </template>
           <a-button>
@@ -81,10 +119,12 @@
 
         <a-tooltip title="生成30天的测试数据以预览仪表板功能（仅用于开发测试）">
           <a-button
-            @click="$emit('generate-test-data')"
             :loading="generatingTestData"
+            @click="$emit('generate-test-data')"
           >
-            <template #icon><ExperimentOutlined /></template>
+            <template #icon>
+              <ExperimentOutlined />
+            </template>
             {{ generatingTestData ? "生成中..." : "生成测试数据" }}
           </a-button>
         </a-tooltip>
@@ -92,7 +132,10 @@
     </div>
 
     <!-- Keyboard shortcuts hint -->
-    <div class="keyboard-hints" v-if="showKeyboardHints">
+    <div
+      v-if="showKeyboardHints"
+      class="keyboard-hints"
+    >
       <a-tag>R - 刷新</a-tag>
       <a-tag>E - 导出</a-tag>
       <a-tag>G - 生成测试数据</a-tag>

@@ -6,7 +6,10 @@
       @back="() => $router.back()"
     >
       <template #extra>
-        <a-button type="primary" @click="refreshLogs">
+        <a-button
+          type="primary"
+          @click="refreshLogs"
+        >
           <ReloadOutlined />
           刷新
         </a-button>
@@ -19,27 +22,53 @@
 
     <div class="activity-log-container">
       <!-- 筛选器 -->
-      <a-card title="筛选条件" :bordered="false" class="filter-card">
+      <a-card
+        title="筛选条件"
+        :bordered="false"
+        class="filter-card"
+      >
         <a-row :gutter="16">
           <a-col :span="6">
             <a-select
               v-model:value="filters.actionType"
               placeholder="操作类型"
               style="width: 100%"
-              allowClear
+              allow-clear
               @change="handleFilterChange"
             >
-              <a-select-option value="">全部</a-select-option>
-              <a-select-option value="add_member">添加成员</a-select-option>
-              <a-select-option value="remove_member">移除成员</a-select-option>
-              <a-select-option value="update_member_role">更新角色</a-select-option>
-              <a-select-option value="create_knowledge">创建知识库</a-select-option>
-              <a-select-option value="update_knowledge">更新知识库</a-select-option>
-              <a-select-option value="delete_knowledge">删除知识库</a-select-option>
-              <a-select-option value="create_project">创建项目</a-select-option>
-              <a-select-option value="update_organization">更新组织</a-select-option>
-              <a-select-option value="create_role">创建角色</a-select-option>
-              <a-select-option value="invite_member">邀请成员</a-select-option>
+              <a-select-option value="">
+                全部
+              </a-select-option>
+              <a-select-option value="add_member">
+                添加成员
+              </a-select-option>
+              <a-select-option value="remove_member">
+                移除成员
+              </a-select-option>
+              <a-select-option value="update_member_role">
+                更新角色
+              </a-select-option>
+              <a-select-option value="create_knowledge">
+                创建知识库
+              </a-select-option>
+              <a-select-option value="update_knowledge">
+                更新知识库
+              </a-select-option>
+              <a-select-option value="delete_knowledge">
+                删除知识库
+              </a-select-option>
+              <a-select-option value="create_project">
+                创建项目
+              </a-select-option>
+              <a-select-option value="update_organization">
+                更新组织
+              </a-select-option>
+              <a-select-option value="create_role">
+                创建角色
+              </a-select-option>
+              <a-select-option value="invite_member">
+                邀请成员
+              </a-select-option>
             </a-select>
           </a-col>
 
@@ -48,12 +77,14 @@
               v-model:value="filters.actorDID"
               placeholder="操作者"
               style="width: 100%"
-              allowClear
+              allow-clear
               show-search
               :filter-option="filterMember"
               @change="handleFilterChange"
             >
-              <a-select-option value="">全部</a-select-option>
+              <a-select-option value="">
+                全部
+              </a-select-option>
               <a-select-option
                 v-for="member in members"
                 :key="member.member_did"
@@ -83,20 +114,26 @@
       </a-card>
 
       <!-- 活动日志表格 -->
-      <a-card :bordered="false" class="log-table-card">
+      <a-card
+        :bordered="false"
+        class="log-table-card"
+      >
         <a-table
           :columns="columns"
           :data-source="filteredActivities"
           :loading="loading"
           :pagination="pagination"
-          @change="handleTableChange"
           row-key="id"
+          @change="handleTableChange"
         >
           <!-- 操作者列 -->
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'actor'">
               <a-space>
-                <a-avatar :src="getActorAvatar(record.actor_did)" size="small" />
+                <a-avatar
+                  :src="getActorAvatar(record.actor_did)"
+                  size="small"
+                />
                 <span>{{ getActorName(record.actor_did) }}</span>
               </a-space>
             </template>
@@ -132,7 +169,10 @@
 
             <!-- 操作列 -->
             <template v-else-if="column.key === 'operations'">
-              <a-button type="link" @click="showDetails(record)">
+              <a-button
+                type="link"
+                @click="showDetails(record)"
+              >
                 详情
               </a-button>
             </template>
@@ -148,10 +188,17 @@
       :footer="null"
       width="600px"
     >
-      <a-descriptions v-if="selectedActivity" :column="1" bordered>
+      <a-descriptions
+        v-if="selectedActivity"
+        :column="1"
+        bordered
+      >
         <a-descriptions-item label="操作者">
           <a-space>
-            <a-avatar :src="getActorAvatar(selectedActivity.actor_did)" size="small" />
+            <a-avatar
+              :src="getActorAvatar(selectedActivity.actor_did)"
+              size="small"
+            />
             {{ getActorName(selectedActivity.actor_did) }}
           </a-space>
         </a-descriptions-item>

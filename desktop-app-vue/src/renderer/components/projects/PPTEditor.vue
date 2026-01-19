@@ -1,15 +1,25 @@
 <template>
   <div class="ppt-editor">
     <!-- 🔥 二进制.pptx文件提示 -->
-    <div v-if="isBinaryPPTX" class="binary-pptx-notice">
+    <div
+      v-if="isBinaryPPTX"
+      class="binary-pptx-notice"
+    >
       <div class="notice-content">
         <FilePptOutlined class="notice-icon" />
         <h3>无法编辑此PowerPoint文件</h3>
         <p class="notice-desc">
           这是一个Microsoft PowerPoint二进制文件（.pptx），需要使用PowerPoint或WPS打开编辑。
         </p>
-        <a-space size="large" style="margin-top: 24px">
-          <a-button type="primary" size="large" @click="handleDownload">
+        <a-space
+          size="large"
+          style="margin-top: 24px"
+        >
+          <a-button
+            type="primary"
+            size="large"
+            @click="handleDownload"
+          >
             <DownloadOutlined />
             下载文件
           </a-button>
@@ -24,16 +34,19 @@
     </div>
 
     <!-- 演示模式 -->
-    <div v-else-if="isPresentMode" class="presentation-mode">
+    <div
+      v-else-if="isPresentMode"
+      class="presentation-mode"
+    >
       <div class="presentation-slide">
         <div
           v-if="slides[presentSlideIndex]"
           class="presentation-content"
-          v-html="slides[presentSlideIndex].content"
           :style="{
             backgroundColor: slides[presentSlideIndex].backgroundColor || '#ffffff'
           }"
-        ></div>
+          v-html="slides[presentSlideIndex].content"
+        />
       </div>
 
       <div class="presentation-controls">
@@ -41,13 +54,22 @@
           {{ presentSlideIndex + 1 }} / {{ slides.length }}
         </div>
         <div class="control-buttons">
-          <a-button @click="prevSlide" :disabled="presentSlideIndex === 0">
+          <a-button
+            :disabled="presentSlideIndex === 0"
+            @click="prevSlide"
+          >
             <LeftOutlined />
           </a-button>
-          <a-button @click="exitPresent" danger>
+          <a-button
+            danger
+            @click="exitPresent"
+          >
             <CloseOutlined /> 退出
           </a-button>
-          <a-button @click="nextSlide" :disabled="presentSlideIndex === slides.length - 1">
+          <a-button
+            :disabled="presentSlideIndex === slides.length - 1"
+            @click="nextSlide"
+          >
             <RightOutlined />
           </a-button>
         </div>
@@ -59,10 +81,18 @@
       <div class="header-left">
         <FilePptOutlined class="file-icon" />
         <span class="file-name">{{ file.file_name }}</span>
-        <a-tag v-if="hasChanges" color="orange" size="small">
+        <a-tag
+          v-if="hasChanges"
+          color="orange"
+          size="small"
+        >
           未保存
         </a-tag>
-        <a-tag v-if="saving" color="blue" size="small">
+        <a-tag
+          v-if="saving"
+          color="blue"
+          size="small"
+        >
           <LoadingOutlined />
           保存中...
         </a-tag>
@@ -81,19 +111,31 @@
         </a-tooltip>
 
         <a-tooltip title="下载PPT">
-          <a-button type="text" size="small" @click="handleDownload">
+          <a-button
+            type="text"
+            size="small"
+            @click="handleDownload"
+          >
             <DownloadOutlined />
           </a-button>
         </a-tooltip>
 
         <a-tooltip title="演示">
-          <a-button type="text" size="small" @click="handlePresent">
+          <a-button
+            type="text"
+            size="small"
+            @click="handlePresent"
+          >
             <PlayCircleOutlined />
           </a-button>
         </a-tooltip>
 
         <a-tooltip title="全屏">
-          <a-button type="text" size="small" @click="toggleFullscreen">
+          <a-button
+            type="text"
+            size="small"
+            @click="toggleFullscreen"
+          >
             <FullscreenOutlined v-if="!isFullscreen" />
             <FullscreenExitOutlined v-else />
           </a-button>
@@ -103,8 +145,14 @@
 
     <!-- PPT工具栏 -->
     <div class="ppt-toolbar">
-      <a-tabs v-model:activeKey="activeTab" size="small">
-        <a-tab-pane key="design" tab="设计">
+      <a-tabs
+        v-model:active-key="activeTab"
+        size="small"
+      >
+        <a-tab-pane
+          key="design"
+          tab="设计"
+        >
           <div class="toolbar-group">
             <a-dropdown>
               <a-button size="small">
@@ -113,57 +161,105 @@
               </a-button>
               <template #overlay>
                 <a-menu @click="handleThemeChange">
-                  <a-menu-item key="default">默认主题</a-menu-item>
-                  <a-menu-item key="business">商务主题</a-menu-item>
-                  <a-menu-item key="creative">创意主题</a-menu-item>
-                  <a-menu-item key="minimal">简约主题</a-menu-item>
+                  <a-menu-item key="default">
+                    默认主题
+                  </a-menu-item>
+                  <a-menu-item key="business">
+                    商务主题
+                  </a-menu-item>
+                  <a-menu-item key="creative">
+                    创意主题
+                  </a-menu-item>
+                  <a-menu-item key="minimal">
+                    简约主题
+                  </a-menu-item>
                 </a-menu>
               </template>
             </a-dropdown>
 
-            <a-button size="small" @click="showLayoutPicker">
+            <a-button
+              size="small"
+              @click="showLayoutPicker"
+            >
               <LayoutOutlined />
               布局
             </a-button>
 
-            <a-button size="small" @click="showColorPicker">
+            <a-button
+              size="small"
+              @click="showColorPicker"
+            >
               <BgColorsOutlined />
               配色
             </a-button>
           </div>
         </a-tab-pane>
 
-        <a-tab-pane key="insert" tab="插入">
+        <a-tab-pane
+          key="insert"
+          tab="插入"
+        >
           <div class="toolbar-group">
-            <a-button size="small" @click="insertTextBox">
+            <a-button
+              size="small"
+              @click="insertTextBox"
+            >
               <FontSizeOutlined />
               文本框
             </a-button>
-            <a-button size="small" @click="insertImage">
+            <a-button
+              size="small"
+              @click="insertImage"
+            >
               <PictureOutlined />
               图片
             </a-button>
-            <a-button size="small" @click="insertShape">
+            <a-button
+              size="small"
+              @click="insertShape"
+            >
               <BorderOutlined />
               形状
             </a-button>
-            <a-button size="small" @click="insertChart">
+            <a-button
+              size="small"
+              @click="insertChart"
+            >
               <BarChartOutlined />
               图表
             </a-button>
           </div>
         </a-tab-pane>
 
-        <a-tab-pane key="animation" tab="动画">
+        <a-tab-pane
+          key="animation"
+          tab="动画"
+        >
           <div class="toolbar-group">
-            <a-select v-model:value="selectedAnimation" size="small" style="width: 120px" @change="applyAnimation">
-              <a-select-option value="fade">淡入</a-select-option>
-              <a-select-option value="slide">滑动</a-select-option>
-              <a-select-option value="zoom">缩放</a-select-option>
-              <a-select-option value="rotate">旋转</a-select-option>
+            <a-select
+              v-model:value="selectedAnimation"
+              size="small"
+              style="width: 120px"
+              @change="applyAnimation"
+            >
+              <a-select-option value="fade">
+                淡入
+              </a-select-option>
+              <a-select-option value="slide">
+                滑动
+              </a-select-option>
+              <a-select-option value="zoom">
+                缩放
+              </a-select-option>
+              <a-select-option value="rotate">
+                旋转
+              </a-select-option>
             </a-select>
 
-            <a-button size="small" @click="showAnimationPanel">
+            <a-button
+              size="small"
+              @click="showAnimationPanel"
+            >
               动画窗格
             </a-button>
           </div>
@@ -177,7 +273,11 @@
       <div class="slides-sidebar">
         <div class="sidebar-header">
           <span>幻灯片</span>
-          <a-button type="text" size="small" @click="addSlide">
+          <a-button
+            type="text"
+            size="small"
+            @click="addSlide"
+          >
             <PlusOutlined />
           </a-button>
         </div>
@@ -197,24 +297,40 @@
             @click="selectSlide(index)"
           >
             <div class="slide-thumb">
-              <div class="slide-number">{{ index + 1 }}</div>
+              <div class="slide-number">
+                {{ index + 1 }}
+              </div>
               <div class="slide-preview">
-                <div v-html="slide.content" class="slide-content-preview"></div>
+                <div
+                  class="slide-content-preview"
+                  v-html="slide.content"
+                />
               </div>
             </div>
 
             <div class="slide-actions">
               <a-dropdown>
-                <a-button type="text" size="small" @click.stop>
+                <a-button
+                  type="text"
+                  size="small"
+                  @click.stop
+                >
                   <EllipsisOutlined />
                 </a-button>
                 <template #overlay>
                   <a-menu>
-                    <a-menu-item key="duplicate" @click="duplicateSlide(index)">
+                    <a-menu-item
+                      key="duplicate"
+                      @click="duplicateSlide(index)"
+                    >
                       <CopyOutlined />
                       复制
                     </a-menu-item>
-                    <a-menu-item key="delete" danger @click="deleteSlide(index)">
+                    <a-menu-item
+                      key="delete"
+                      danger
+                      @click="deleteSlide(index)"
+                    >
                       <DeleteOutlined />
                       删除
                     </a-menu-item>
@@ -227,52 +343,89 @@
       </div>
 
       <!-- 中央：当前幻灯片编辑区 -->
-      <div class="slide-editor" ref="slideEditorRef">
-        <div class="slide-canvas" :style="canvasStyle">
+      <div
+        ref="slideEditorRef"
+        class="slide-editor"
+      >
+        <div
+          class="slide-canvas"
+          :style="canvasStyle"
+        >
           <div
             v-if="currentSlide"
             class="slide-content"
             contenteditable="true"
             @input="handleSlideContentChange"
             v-html="currentSlide.content"
-          ></div>
+          />
         </div>
       </div>
 
       <!-- 右侧：属性面板 -->
-      <div class="properties-panel" v-if="showProperties">
-        <a-tabs v-model:activeKey="propertiesTab" size="small">
-          <a-tab-pane key="slide" tab="幻灯片">
+      <div
+        v-if="showProperties"
+        class="properties-panel"
+      >
+        <a-tabs
+          v-model:active-key="propertiesTab"
+          size="small"
+        >
+          <a-tab-pane
+            key="slide"
+            tab="幻灯片"
+          >
             <div class="panel-content">
               <div class="property-group">
                 <label>背景颜色</label>
-                <input type="color" v-model="currentSlide.backgroundColor" @change="updateSlideStyle" />
+                <input
+                  v-model="currentSlide.backgroundColor"
+                  type="color"
+                  @change="updateSlideStyle"
+                >
               </div>
 
               <div class="property-group">
                 <label>背景图片</label>
-                <a-button size="small" @click="selectBackgroundImage">
+                <a-button
+                  size="small"
+                  @click="selectBackgroundImage"
+                >
                   选择图片
                 </a-button>
               </div>
             </div>
           </a-tab-pane>
 
-          <a-tab-pane key="text" tab="文本">
+          <a-tab-pane
+            key="text"
+            tab="文本"
+          >
             <div class="panel-content">
               <div class="property-group">
                 <label>字体大小</label>
-                <a-slider v-model:value="fontSize" :min="12" :max="72" @change="applyTextStyle" />
+                <a-slider
+                  v-model:value="fontSize"
+                  :min="12"
+                  :max="72"
+                  @change="applyTextStyle"
+                />
               </div>
 
               <div class="property-group">
                 <label>字体颜色</label>
-                <input type="color" v-model="textColor" @change="applyTextStyle" />
+                <input
+                  v-model="textColor"
+                  type="color"
+                  @change="applyTextStyle"
+                >
               </div>
             </div>
           </a-tab-pane>
 
-          <a-tab-pane key="layout" tab="布局">
+          <a-tab-pane
+            key="layout"
+            tab="布局"
+          >
             <div class="panel-content">
               <div class="layout-templates">
                 <div
@@ -281,7 +434,9 @@
                   class="layout-template"
                   @click="applyLayout(layout)"
                 >
-                  <div class="layout-preview">{{ layout.name }}</div>
+                  <div class="layout-preview">
+                    {{ layout.name }}
+                  </div>
                 </div>
               </div>
             </div>
@@ -309,7 +464,10 @@
           </a-button>
         </a-button-group>
 
-        <span v-if="lastSaved" class="status-item">
+        <span
+          v-if="lastSaved"
+          class="status-item"
+        >
           上次保存: {{ lastSaved }}
         </span>
       </div>
@@ -747,7 +905,7 @@ const exitPresent = () => {
 
 // 保存
 const handleSave = async () => {
-  if (!hasChanges.value || saving.value) return;
+  if (!hasChanges.value || saving.value) {return;}
 
   saving.value = true;
 

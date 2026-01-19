@@ -1,10 +1,22 @@
 <template>
-  <div class="design-canvas-container" ref="containerRef">
-    <canvas ref="canvasRef" :id="canvasId"></canvas>
+  <div
+    ref="containerRef"
+    class="design-canvas-container"
+  >
+    <canvas
+      :id="canvasId"
+      ref="canvasRef"
+    />
 
     <!-- 加载提示 -->
-    <div v-if="loading" class="loading-overlay">
-      <a-spin size="large" tip="加载中..." />
+    <div
+      v-if="loading"
+      class="loading-overlay"
+    >
+      <a-spin
+        size="large"
+        tip="加载中..."
+      />
     </div>
   </div>
 </template>
@@ -51,7 +63,7 @@ let startY = 0;
  * 初始化 Fabric.js Canvas
  */
 async function initializeCanvas() {
-  if (!canvasRef.value) return;
+  if (!canvasRef.value) {return;}
 
   try {
     // 创建 Fabric Canvas
@@ -117,7 +129,7 @@ async function loadArtboardObjects() {
  * 绑定 Canvas 事件
  */
 function bindCanvasEvents() {
-  if (!fabricCanvas.value) return;
+  if (!fabricCanvas.value) {return;}
 
   // 对象修改事件
   fabricCanvas.value.on('object:modified', handleObjectModified);
@@ -204,7 +216,7 @@ function updateSelection(event) {
  * 处理鼠标按下
  */
 function handleMouseDown(options) {
-  if (activeTool.value === 'select') return;
+  if (activeTool.value === 'select') {return;}
 
   const pointer = fabricCanvas.value.getPointer(options.e);
   startX = pointer.x;
@@ -253,7 +265,7 @@ function handleMouseDown(options) {
  * 处理鼠标移动
  */
 function handleMouseMove(options) {
-  if (!isDrawing || !currentShape) return;
+  if (!isDrawing || !currentShape) {return;}
 
   const pointer = fabricCanvas.value.getPointer(options.e);
 
@@ -284,7 +296,7 @@ function handleMouseMove(options) {
  * 处理鼠标释放
  */
 async function handleMouseUp() {
-  if (!isDrawing) return;
+  if (!isDrawing) {return;}
 
   isDrawing = false;
 
@@ -319,7 +331,7 @@ async function handleMouseUp() {
 async function deleteSelected() {
   const activeObjects = fabricCanvas.value.getActiveObjects();
 
-  if (activeObjects.length === 0) return;
+  if (activeObjects.length === 0) {return;}
 
   for (const obj of activeObjects) {
     if (obj.id) {
@@ -365,7 +377,7 @@ function exportAsImage(format = 'png') {
 
 // 监听工具切换
 watch(activeTool, (newTool) => {
-  if (!fabricCanvas.value) return;
+  if (!fabricCanvas.value) {return;}
 
   // 切换到选择工具
   if (newTool === 'select') {

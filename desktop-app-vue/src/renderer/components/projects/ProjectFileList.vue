@@ -1,12 +1,18 @@
 <template>
   <div class="project-file-list">
     <!-- 加载状态 -->
-    <div v-if="loading" class="loading-container">
+    <div
+      v-if="loading"
+      class="loading-container"
+    >
       <a-spin tip="加载中..." />
     </div>
 
     <!-- 空状态 -->
-    <div v-else-if="fileList.length === 0" class="empty-state">
+    <div
+      v-else-if="fileList.length === 0"
+      class="empty-state"
+    >
       <FolderOpenOutlined class="empty-icon" />
       <p>暂无文件</p>
     </div>
@@ -24,16 +30,35 @@
       <!-- 文件名列 -->
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'name'">
-          <div class="file-name-cell" @click="handleFileClick(record)">
-            <component :is="getFileIcon(record)" class="file-icon" :style="{ color: getFileColor(record) }" />
-            <span class="file-name" :title="record.file_name">{{ record.file_name }}</span>
-            <a-tag v-if="record.is_folder" size="small" color="blue">文件夹</a-tag>
+          <div
+            class="file-name-cell"
+            @click="handleFileClick(record)"
+          >
+            <component
+              :is="getFileIcon(record)"
+              class="file-icon"
+              :style="{ color: getFileColor(record) }"
+            />
+            <span
+              class="file-name"
+              :title="record.file_name"
+            >{{ record.file_name }}</span>
+            <a-tag
+              v-if="record.is_folder"
+              size="small"
+              color="blue"
+            >
+              文件夹
+            </a-tag>
           </div>
         </template>
 
         <!-- 文件路径列 -->
         <template v-else-if="column.key === 'path'">
-          <span class="file-path" :title="record.file_path">
+          <span
+            class="file-path"
+            :title="record.file_path"
+          >
             {{ getDisplayPath(record.file_path) }}
           </span>
         </template>
@@ -52,22 +77,39 @@
         <template v-else-if="column.key === 'actions'">
           <div class="action-buttons">
             <a-tooltip title="打开">
-              <a-button type="text" size="small" @click="handleFileClick(record)">
+              <a-button
+                type="text"
+                size="small"
+                @click="handleFileClick(record)"
+              >
                 <FolderOpenOutlined />
               </a-button>
             </a-tooltip>
             <a-tooltip title="预览">
-              <a-button type="text" size="small" @click="handleFilePreview(record)">
+              <a-button
+                type="text"
+                size="small"
+                @click="handleFilePreview(record)"
+              >
                 <EyeOutlined />
               </a-button>
             </a-tooltip>
             <a-tooltip title="下载">
-              <a-button type="text" size="small" @click="handleFileDownload(record)">
+              <a-button
+                type="text"
+                size="small"
+                @click="handleFileDownload(record)"
+              >
                 <DownloadOutlined />
               </a-button>
             </a-tooltip>
             <a-tooltip title="删除">
-              <a-button type="text" size="small" danger @click="handleFileDelete(record)">
+              <a-button
+                type="text"
+                size="small"
+                danger
+                @click="handleFileDelete(record)"
+              >
                 <DeleteOutlined />
               </a-button>
             </a-tooltip>
@@ -153,7 +195,7 @@ const fileList = computed(() => {
 
 // 获取文件扩展名
 const getFileExtension = (fileName) => {
-  if (!fileName) return '';
+  if (!fileName) {return '';}
   const parts = fileName.split('.');
   return parts.length > 1 ? parts.pop().toLowerCase() : '';
 };
@@ -236,7 +278,7 @@ const getFileColor = (file) => {
 
 // 获取显示路径（只显示相对路径）
 const getDisplayPath = (fullPath) => {
-  if (!fullPath) return '-';
+  if (!fullPath) {return '-';}
   // 移除 /data/projects/{projectId}/ 前缀
   const parts = fullPath.split('/');
   if (parts.length > 3 && parts[1] === 'data' && parts[2] === 'projects') {
@@ -247,7 +289,7 @@ const getDisplayPath = (fullPath) => {
 
 // 格式化文件大小
 const formatFileSize = (bytes) => {
-  if (!bytes || bytes === 0) return '-';
+  if (!bytes || bytes === 0) {return '-';}
   const sizes = ['B', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(1024));
   return `${(bytes / Math.pow(1024, i)).toFixed(2)} ${sizes[i]}`;
@@ -255,7 +297,7 @@ const formatFileSize = (bytes) => {
 
 // 格式化日期
 const formatDate = (timestamp) => {
-  if (!timestamp) return '-';
+  if (!timestamp) {return '-';}
   const date = new Date(timestamp);
   const now = new Date();
   const diff = now - date;

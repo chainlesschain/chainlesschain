@@ -5,7 +5,10 @@
         <template #title>
           {{ statusTooltip }}
         </template>
-        <a-badge :status="badgeStatus" :text="statusText" />
+        <a-badge
+          :status="badgeStatus"
+          :text="statusText"
+        />
       </a-tooltip>
 
       <a-tag

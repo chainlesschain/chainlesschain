@@ -3,11 +3,14 @@
     <div class="tool-section">
       <h4>工具</h4>
       <div class="tool-buttons">
-        <a-tooltip title="选择 (V)" placement="right">
+        <a-tooltip
+          title="选择 (V)"
+          placement="right"
+        >
           <a-button
             :type="activeTool === 'select' ? 'primary' : 'default'"
-            @click="selectTool('select')"
             class="tool-btn"
+            @click="selectTool('select')"
           >
             <template #icon>
               <span class="icon">⬆️</span>
@@ -15,11 +18,14 @@
           </a-button>
         </a-tooltip>
 
-        <a-tooltip title="矩形 (R)" placement="right">
+        <a-tooltip
+          title="矩形 (R)"
+          placement="right"
+        >
           <a-button
             :type="activeTool === 'rect' ? 'primary' : 'default'"
-            @click="selectTool('rect')"
             class="tool-btn"
+            @click="selectTool('rect')"
           >
             <template #icon>
               <span class="icon">⬜</span>
@@ -27,11 +33,14 @@
           </a-button>
         </a-tooltip>
 
-        <a-tooltip title="圆形 (C)" placement="right">
+        <a-tooltip
+          title="圆形 (C)"
+          placement="right"
+        >
           <a-button
             :type="activeTool === 'circle' ? 'primary' : 'default'"
-            @click="selectTool('circle')"
             class="tool-btn"
+            @click="selectTool('circle')"
           >
             <template #icon>
               <span class="icon">⭕</span>
@@ -39,11 +48,14 @@
           </a-button>
         </a-tooltip>
 
-        <a-tooltip title="文本 (T)" placement="right">
+        <a-tooltip
+          title="文本 (T)"
+          placement="right"
+        >
           <a-button
             :type="activeTool === 'text' ? 'primary' : 'default'"
-            @click="selectTool('text')"
             class="tool-btn"
+            @click="selectTool('text')"
           >
             <template #icon>
               <span class="icon">T</span>
@@ -63,9 +75,9 @@
           <input
             type="color"
             :value="currentFillColor"
-            @input="updateFillColor($event.target.value)"
             class="color-picker"
-          />
+            @input="updateFillColor($event.target.value)"
+          >
           <span class="color-value">{{ currentFillColor }}</span>
         </div>
 
@@ -74,9 +86,9 @@
           <input
             type="color"
             :value="currentStrokeColor"
-            @input="updateStrokeColor($event.target.value)"
             class="color-picker"
-          />
+            @input="updateStrokeColor($event.target.value)"
+          >
           <span class="color-value">{{ currentStrokeColor }}</span>
         </div>
 
@@ -98,7 +110,10 @@
     <div class="tool-section">
       <h4>视图</h4>
       <div class="view-controls">
-        <a-button block @click="toggleGrid">
+        <a-button
+          block
+          @click="toggleGrid"
+        >
           {{ showGrid ? '隐藏网格' : '显示网格' }}
         </a-button>
 

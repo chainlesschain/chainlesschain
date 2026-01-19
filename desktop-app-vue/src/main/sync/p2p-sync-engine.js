@@ -383,8 +383,8 @@ class P2PSyncEngine {
       const localV = localVC[did] || 0;
       const remoteV = remoteVC[did] || 0;
 
-      if (localV > remoteV) localNewer = true;
-      if (remoteV > localV) remoteNewer = true;
+      if (localV > remoteV) {localNewer = true;}
+      if (remoteV > localV) {remoteNewer = true;}
     }
 
     // 并发修改 = 冲突

@@ -1,23 +1,37 @@
 <template>
   <div class="file-import">
-    <a-card title="文件导入" :loading="loading">
+    <a-card
+      title="文件导入"
+      :loading="loading"
+    >
       <template #extra>
         <a-space>
-          <a-button type="primary" @click="handleSelectFiles" :loading="importing">
-            <template #icon><upload-outlined /></template>
+          <a-button
+            type="primary"
+            :loading="importing"
+            @click="handleSelectFiles"
+          >
+            <template #icon>
+              <upload-outlined />
+            </template>
             选择文件
           </a-button>
         </a-space>
       </template>
 
       <!-- 导入进度 -->
-      <div v-if="importing" class="import-progress">
+      <div
+        v-if="importing"
+        class="import-progress"
+      >
         <a-progress
           :percent="progressPercent"
           :status="progressStatus"
           :stroke-color="progressColor"
         />
-        <p class="progress-text">{{ progressText }}</p>
+        <p class="progress-text">
+          {{ progressText }}
+        </p>
       </div>
 
       <!-- 支持的格式说明 -->
@@ -45,17 +59,41 @@ npm install pdf-parse mammoth</pre>
       </a-alert>
 
       <!-- 导入选项 -->
-      <a-collapse v-if="!importing" style="margin-bottom: 20px">
-        <a-collapse-panel key="1" header="导入选项">
-          <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
+      <a-collapse
+        v-if="!importing"
+        style="margin-bottom: 20px"
+      >
+        <a-collapse-panel
+          key="1"
+          header="导入选项"
+        >
+          <a-form
+            :label-col="{ span: 6 }"
+            :wrapper-col="{ span: 18 }"
+          >
             <a-form-item label="知识类型">
-              <a-select v-model:value="importOptions.type" placeholder="选择知识类型">
-                <a-select-option value="note">笔记</a-select-option>
-                <a-select-option value="article">文章</a-select-option>
-                <a-select-option value="document">文档</a-select-option>
-                <a-select-option value="reference">参考资料</a-select-option>
-                <a-select-option value="code">代码片段</a-select-option>
-                <a-select-option value="idea">灵感</a-select-option>
+              <a-select
+                v-model:value="importOptions.type"
+                placeholder="选择知识类型"
+              >
+                <a-select-option value="note">
+                  笔记
+                </a-select-option>
+                <a-select-option value="article">
+                  文章
+                </a-select-option>
+                <a-select-option value="document">
+                  文档
+                </a-select-option>
+                <a-select-option value="reference">
+                  参考资料
+                </a-select-option>
+                <a-select-option value="code">
+                  代码片段
+                </a-select-option>
+                <a-select-option value="idea">
+                  灵感
+                </a-select-option>
               </a-select>
             </a-form-item>
 
@@ -66,7 +104,11 @@ npm install pdf-parse mammoth</pre>
                 placeholder="添加标签 (可选)"
                 style="width: 100%"
               >
-                <a-select-option v-for="tag in availableTags" :key="tag.id" :value="tag.name">
+                <a-select-option
+                  v-for="tag in availableTags"
+                  :key="tag.id"
+                  :value="tag.name"
+                >
                   {{ tag.name }}
                 </a-select-option>
               </a-select>
@@ -83,35 +125,42 @@ npm install pdf-parse mammoth</pre>
       </a-collapse>
 
       <!-- 导入结果 -->
-      <div v-if="importResults.length > 0" class="import-results">
+      <div
+        v-if="importResults.length > 0"
+        class="import-results"
+      >
         <a-divider>导入结果</a-divider>
 
-          <a-row :gutter="16">
-            <a-col :span="8">
-              <a-statistic
-                title="成功"
-                :value="successCount"
-                :value-style="{ color: '#3f8600' }"
-              >
-                <template #suffix>/ {{ totalCount }}</template>
-              </a-statistic>
-            </a-col>
-            <a-col :span="8">
-              <a-statistic
-                title="失败"
-                :value="failedCount"
-                :value-style="{ color: '#cf1322' }"
-              >
-                <template #suffix>/ {{ totalCount }}</template>
-              </a-statistic>
-            </a-col>
-            <a-col :span="8">
-              <a-statistic
-                title="总计"
-                :value="totalCount"
-              />
-            </a-col>
-          </a-row>
+        <a-row :gutter="16">
+          <a-col :span="8">
+            <a-statistic
+              title="成功"
+              :value="successCount"
+              :value-style="{ color: '#3f8600' }"
+            >
+              <template #suffix>
+                / {{ totalCount }}
+              </template>
+            </a-statistic>
+          </a-col>
+          <a-col :span="8">
+            <a-statistic
+              title="失败"
+              :value="failedCount"
+              :value-style="{ color: '#cf1322' }"
+            >
+              <template #suffix>
+                / {{ totalCount }}
+              </template>
+            </a-statistic>
+          </a-col>
+          <a-col :span="8">
+            <a-statistic
+              title="总计"
+              :value="totalCount"
+            />
+          </a-col>
+        </a-row>
 
         <a-list
           style="margin-top: 20px"
@@ -138,7 +187,10 @@ npm install pdf-parse mammoth</pre>
                     <a-divider type="vertical" />
                     <span>类型: {{ item.result.type }}</span>
                   </div>
-                  <div v-else style="color: #cf1322">
+                  <div
+                    v-else
+                    style="color: #cf1322"
+                  >
                     {{ item.error }}
                   </div>
                 </template>
@@ -163,9 +215,15 @@ npm install pdf-parse mammoth</pre>
         @dragover="handleDragOver"
         @dragleave="handleDragLeave"
       >
-        <p class="drop-zone-icon"><cloud-upload-outlined /></p>
-        <p class="drop-zone-text">拖拽文件到此处</p>
-        <p class="drop-zone-hint">或点击上方"选择文件"按钮</p>
+        <p class="drop-zone-icon">
+          <cloud-upload-outlined />
+        </p>
+        <p class="drop-zone-text">
+          拖拽文件到此处
+        </p>
+        <p class="drop-zone-hint">
+          或点击上方"选择文件"按钮
+        </p>
       </div>
     </a-card>
   </div>
@@ -201,17 +259,17 @@ const importProgress = reactive({
 
 // 计算属性
 const progressPercent = computed(() => {
-  if (importProgress.total === 0) return 0;
+  if (importProgress.total === 0) {return 0;}
   return Math.round((importProgress.current / importProgress.total) * 100);
 });
 
 const progressStatus = computed(() => {
-  if (importProgress.current < importProgress.total) return 'active';
+  if (importProgress.current < importProgress.total) {return 'active';}
   return 'success';
 });
 
 const progressColor = computed(() => {
-  if (failedCount.value > 0) return '#ff4d4f';
+  if (failedCount.value > 0) {return '#ff4d4f';}
   return '#52c41a';
 });
 

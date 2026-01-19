@@ -1,41 +1,72 @@
 <template>
-  <div class="graph-canvas-3d" ref="containerRef">
-    <div ref="chartRef" class="graph-chart"></div>
+  <div
+    ref="containerRef"
+    class="graph-canvas-3d"
+  >
+    <div
+      ref="chartRef"
+      class="graph-chart"
+    />
 
     <!-- 工具栏 -->
     <div class="graph-toolbar">
       <a-space>
         <a-tooltip title="重新布局">
-          <a-button type="text" @click="refreshLayout">
-            <template #icon><ReloadOutlined /></template>
+          <a-button
+            type="text"
+            @click="refreshLayout"
+          >
+            <template #icon>
+              <ReloadOutlined />
+            </template>
           </a-button>
         </a-tooltip>
 
         <a-tooltip title="自动旋转">
-          <a-button type="text" @click="toggleAutoRotate">
-            <template #icon><SyncOutlined :spin="autoRotate" /></template>
+          <a-button
+            type="text"
+            @click="toggleAutoRotate"
+          >
+            <template #icon>
+              <SyncOutlined :spin="autoRotate" />
+            </template>
           </a-button>
         </a-tooltip>
 
         <a-tooltip title="切换视角">
           <a-dropdown>
             <a-button type="text">
-              <template #icon><EyeOutlined /></template>
+              <template #icon>
+                <EyeOutlined />
+              </template>
             </a-button>
             <template #overlay>
               <a-menu @click="handleViewChange">
-                <a-menu-item key="default">默认视角</a-menu-item>
-                <a-menu-item key="top">俯视图</a-menu-item>
-                <a-menu-item key="side">侧视图</a-menu-item>
-                <a-menu-item key="front">正视图</a-menu-item>
+                <a-menu-item key="default">
+                  默认视角
+                </a-menu-item>
+                <a-menu-item key="top">
+                  俯视图
+                </a-menu-item>
+                <a-menu-item key="side">
+                  侧视图
+                </a-menu-item>
+                <a-menu-item key="front">
+                  正视图
+                </a-menu-item>
               </a-menu>
             </template>
           </a-dropdown>
         </a-tooltip>
 
         <a-tooltip title="返回2D">
-          <a-button type="text" @click="$emit('switch-to-2d')">
-            <template #icon><ArrowLeftOutlined /></template>
+          <a-button
+            type="text"
+            @click="$emit('switch-to-2d')"
+          >
+            <template #icon>
+              <ArrowLeftOutlined />
+            </template>
           </a-button>
         </a-tooltip>
       </a-space>
@@ -43,7 +74,10 @@
 
     <!-- 性能指标 -->
     <div class="performance-stats">
-      <a-space direction="vertical" size="small">
+      <a-space
+        direction="vertical"
+        size="small"
+      >
         <div>节点数: {{ nodes.length }}</div>
         <div>边数: {{ edges.length }}</div>
         <div>FPS: {{ fps }}</div>
@@ -51,13 +85,22 @@
     </div>
 
     <!-- 节点详情面板 -->
-    <div v-if="selectedNodeData" class="node-detail-panel">
-      <a-card :title="selectedNodeData.title" size="small">
+    <div
+      v-if="selectedNodeData"
+      class="node-detail-panel"
+    >
+      <a-card
+        :title="selectedNodeData.title"
+        size="small"
+      >
         <template #extra>
           <CloseOutlined @click="closeDetail" />
         </template>
 
-        <a-descriptions :column="1" size="small">
+        <a-descriptions
+          :column="1"
+          size="small"
+        >
           <a-descriptions-item label="类型">
             {{ getNodeTypeLabel(selectedNodeData.type) }}
           </a-descriptions-item>
@@ -70,7 +113,11 @@
         </a-descriptions>
 
         <div class="detail-actions">
-          <a-button type="link" size="small" @click="openNote(selectedNodeData.id)">
+          <a-button
+            type="link"
+            size="small"
+            @click="openNote(selectedNodeData.id)"
+          >
             打开笔记
           </a-button>
         </div>
@@ -117,7 +164,7 @@ const autoRotate = ref(false);
 const fps = ref(0);
 
 const selectedNodeData = computed(() => {
-  if (!selectedNode.value) return null;
+  if (!selectedNode.value) {return null;}
   return props.nodes.find(n => n.id === selectedNode.value);
 });
 
@@ -141,7 +188,7 @@ const edgeTypeColors = {
  * 初始化3D图表
  */
 const initChart = () => {
-  if (!chartRef.value) return;
+  if (!chartRef.value) {return;}
 
   chartInstance = echarts.init(chartRef.value);
 
@@ -168,7 +215,7 @@ const initChart = () => {
  * 更新3D图表
  */
 const updateChart = () => {
-  if (!chartInstance) return;
+  if (!chartInstance) {return;}
 
   const option = {
     tooltip: {
@@ -317,7 +364,7 @@ const toggleAutoRotate = () => {
  * 切换视角
  */
 const handleViewChange = ({ key }) => {
-  if (!chartInstance) return;
+  if (!chartInstance) {return;}
 
   const viewAngles = {
     default: { alpha: 40, beta: 40 },
@@ -383,7 +430,7 @@ const getEdgeTypeLabel = (type) => {
  * 格式化时间
  */
 const formatTime = (timestamp) => {
-  if (!timestamp) return '-';
+  if (!timestamp) {return '-';}
   return new Date(timestamp).toLocaleString('zh-CN');
 };
 

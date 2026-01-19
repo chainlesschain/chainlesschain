@@ -1,7 +1,11 @@
 <template>
-  <div ref="containerRef" class="virtual-message-list" @scroll="handleScroll">
+  <div
+    ref="containerRef"
+    class="virtual-message-list"
+    @scroll="handleScroll"
+  >
     <!-- 占位符：上部分 -->
-    <div :style="{ height: topPlaceholderHeight + 'px' }"></div>
+    <div :style="{ height: topPlaceholderHeight + 'px' }" />
 
     <!-- 可见消息 -->
     <div
@@ -27,7 +31,11 @@
 
       <div class="message-content">
         <!-- 文本消息 -->
-        <div v-if="message.type === 'text'" class="message-text" v-html="renderMarkdown(message.content)"></div>
+        <div
+          v-if="message.type === 'text'"
+          class="message-text"
+          v-html="renderMarkdown(message.content)"
+        />
 
         <!-- 图片消息 - 使用懒加载 -->
         <LazyImage
@@ -43,19 +51,25 @@
         />
 
         <!-- 代码块 -->
-        <div v-else-if="message.type === 'code'" class="message-code">
+        <div
+          v-else-if="message.type === 'code'"
+          class="message-code"
+        >
           <pre><code>{{ message.content }}</code></pre>
         </div>
 
         <!-- 其他类型 -->
-        <div v-else class="message-text">
+        <div
+          v-else
+          class="message-text"
+        >
           {{ message.content }}
         </div>
       </div>
     </div>
 
     <!-- 占位符：下部分 -->
-    <div :style="{ height: bottomPlaceholderHeight + 'px' }"></div>
+    <div :style="{ height: bottomPlaceholderHeight + 'px' }" />
 
     <!-- 滚动到底部按钮 -->
     <transition name="fade">
@@ -134,7 +148,7 @@ const bottomPlaceholderHeight = computed(() => {
 
 // 处理滚动
 const handleScroll = () => {
-  if (!containerRef.value) return
+  if (!containerRef.value) {return}
 
   scrollTop.value = containerRef.value.scrollTop
   containerHeight.value = containerRef.value.clientHeight
@@ -152,7 +166,7 @@ const handleScroll = () => {
 
 // 滚动到底部
 const scrollToBottom = (smooth = true) => {
-  if (!containerRef.value) return
+  if (!containerRef.value) {return}
 
   containerRef.value.scrollTo({
     top: containerRef.value.scrollHeight,
@@ -162,7 +176,7 @@ const scrollToBottom = (smooth = true) => {
 
 // 渲染Markdown
 const renderMarkdown = (content) => {
-  if (!content) return ''
+  if (!content) {return ''}
 
   try {
     return marked(content, {
@@ -177,7 +191,7 @@ const renderMarkdown = (content) => {
 
 // 格式化时间
 const formatTime = (timestamp) => {
-  if (!timestamp) return ''
+  if (!timestamp) {return ''}
 
   const date = new Date(timestamp)
   const now = new Date()

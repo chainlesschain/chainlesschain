@@ -402,17 +402,17 @@ class ExtendedTools2 {
               const v1 = v1Parts[i] || 0;
               const v2 = v2Parts[i] || 0;
 
-              if (v1 > v2) return { success: true, result: 1, comparison: 1 };
-              if (v1 < v2) return { success: true, result: -1, comparison: -1 };
+              if (v1 > v2) {return { success: true, result: 1, comparison: 1 };}
+              if (v1 < v2) {return { success: true, result: -1, comparison: -1 };}
             }
 
             return { success: true, result: 0, comparison: 0 };
           } else if (action === 'bump') {
             const parts = version1.split('.').map(Number);
 
-            if (bumpType === 'major') parts[0]++;
-            else if (bumpType === 'minor') parts[1]++;
-            else if (bumpType === 'patch') parts[2]++;
+            if (bumpType === 'major') {parts[0]++;}
+            else if (bumpType === 'minor') {parts[1]++;}
+            else if (bumpType === 'patch') {parts[2]++;}
 
             return {
               success: true,
@@ -563,7 +563,7 @@ class ExtendedTools2 {
 
             for (const line of lines) {
               const trimmed = line.trim();
-              if (!trimmed || trimmed.startsWith('#')) continue;
+              if (!trimmed || trimmed.startsWith('#')) {continue;}
 
               if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
                 currentSection = trimmed.slice(1, -1);
@@ -613,7 +613,7 @@ class ExtendedTools2 {
 
             for (const line of lines) {
               const trimmed = line.trim();
-              if (!trimmed || trimmed.startsWith(';')) continue;
+              if (!trimmed || trimmed.startsWith(';')) {continue;}
 
               if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
                 currentSection = trimmed.slice(1, -1);

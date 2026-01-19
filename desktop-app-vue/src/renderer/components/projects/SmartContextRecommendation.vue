@@ -1,5 +1,8 @@
 <template>
-  <div v-if="recommendations.length > 0" class="smart-context-panel">
+  <div
+    v-if="recommendations.length > 0"
+    class="smart-context-panel"
+  >
     <div class="context-header">
       <h4 class="context-title">
         <BulbOutlined />
@@ -11,11 +14,21 @@
     </div>
 
     <div class="recommendations-list">
-      <a-collapse v-model:activeKey="activeKeys" ghost>
+      <a-collapse
+        v-model:active-key="activeKeys"
+        ghost
+      >
         <!-- 相关文件推荐 -->
-        <a-collapse-panel v-if="fileRecommendations.length > 0" key="files" header="相关文件">
+        <a-collapse-panel
+          v-if="fileRecommendations.length > 0"
+          key="files"
+          header="相关文件"
+        >
           <template #extra>
-            <a-badge :count="fileRecommendations.length" :number-style="{ backgroundColor: '#52c41a' }" />
+            <a-badge
+              :count="fileRecommendations.length"
+              :number-style="{ backgroundColor: '#52c41a' }"
+            />
           </template>
           <div class="recommendation-items">
             <div
@@ -28,8 +41,12 @@
                 <FileTextOutlined />
               </div>
               <div class="item-content">
-                <div class="item-name">{{ file.name }}</div>
-                <div class="item-reason">{{ file.reason }}</div>
+                <div class="item-name">
+                  {{ file.name }}
+                </div>
+                <div class="item-reason">
+                  {{ file.reason }}
+                </div>
                 <div class="item-score">
                   <span>相关度:</span>
                   <a-progress
@@ -56,9 +73,16 @@
         </a-collapse-panel>
 
         <!-- 历史对话推荐 -->
-        <a-collapse-panel v-if="conversationRecommendations.length > 0" key="conversations" header="相关对话">
+        <a-collapse-panel
+          v-if="conversationRecommendations.length > 0"
+          key="conversations"
+          header="相关对话"
+        >
           <template #extra>
-            <a-badge :count="conversationRecommendations.length" :number-style="{ backgroundColor: '#1890ff' }" />
+            <a-badge
+              :count="conversationRecommendations.length"
+              :number-style="{ backgroundColor: '#1890ff' }"
+            />
           </template>
           <div class="recommendation-items">
             <div
@@ -71,12 +95,21 @@
                 <MessageOutlined />
               </div>
               <div class="item-content">
-                <div class="item-name">{{ conv.summary }}</div>
-                <div class="item-reason">{{ conv.reason }}</div>
-                <div class="item-time">{{ formatTime(conv.timestamp) }}</div>
+                <div class="item-name">
+                  {{ conv.summary }}
+                </div>
+                <div class="item-reason">
+                  {{ conv.reason }}
+                </div>
+                <div class="item-time">
+                  {{ formatTime(conv.timestamp) }}
+                </div>
               </div>
               <div class="item-actions">
-                <a-button size="small" type="text">
+                <a-button
+                  size="small"
+                  type="text"
+                >
                   查看
                 </a-button>
               </div>
@@ -85,9 +118,16 @@
         </a-collapse-panel>
 
         <!-- 相关知识推荐 -->
-        <a-collapse-panel v-if="knowledgeRecommendations.length > 0" key="knowledge" header="相关知识">
+        <a-collapse-panel
+          v-if="knowledgeRecommendations.length > 0"
+          key="knowledge"
+          header="相关知识"
+        >
           <template #extra>
-            <a-badge :count="knowledgeRecommendations.length" :number-style="{ backgroundColor: '#faad14' }" />
+            <a-badge
+              :count="knowledgeRecommendations.length"
+              :number-style="{ backgroundColor: '#faad14' }"
+            />
           </template>
           <div class="recommendation-items">
             <div
@@ -100,14 +140,27 @@
                 <BookOutlined />
               </div>
               <div class="item-content">
-                <div class="item-name">{{ knowledge.title }}</div>
-                <div class="item-preview">{{ knowledge.preview }}</div>
+                <div class="item-name">
+                  {{ knowledge.title }}
+                </div>
+                <div class="item-preview">
+                  {{ knowledge.preview }}
+                </div>
                 <div class="item-tags">
-                  <a-tag v-for="tag in knowledge.tags" :key="tag" size="small">{{ tag }}</a-tag>
+                  <a-tag
+                    v-for="tag in knowledge.tags"
+                    :key="tag"
+                    size="small"
+                  >
+                    {{ tag }}
+                  </a-tag>
                 </div>
               </div>
               <div class="item-actions">
-                <a-button size="small" type="text">
+                <a-button
+                  size="small"
+                  type="text"
+                >
                   查看
                 </a-button>
               </div>
@@ -118,8 +171,16 @@
     </div>
 
     <!-- 应用选择的上下文 -->
-    <div v-if="selectedFiles.length > 0" class="context-actions">
-      <a-button type="primary" size="small" block @click="applyContext">
+    <div
+      v-if="selectedFiles.length > 0"
+      class="context-actions"
+    >
+      <a-button
+        type="primary"
+        size="small"
+        block
+        @click="applyContext"
+      >
         <PlusCircleOutlined />
         添加 {{ selectedFiles.length }} 个文件到上下文
       </a-button>
@@ -259,7 +320,7 @@ const generateRecommendations = () => {
 
 // 提取关键词（简单实现）
 const extractKeywords = (text) => {
-  if (!text) return [];
+  if (!text) {return [];}
 
   // 移除标点符号，分词
   const words = text
@@ -274,7 +335,7 @@ const extractKeywords = (text) => {
 
 // 计算文件相关度
 const calculateFileRelevance = (file, keywords) => {
-  if (keywords.length === 0) return 0;
+  if (keywords.length === 0) {return 0;}
 
   const fileName = (file.file_name || file.name || '').toLowerCase();
   const filePath = (file.file_path || file.path || '').toLowerCase();
@@ -327,7 +388,7 @@ const calculateTextSimilarity = (text1, text2) => {
   const words1 = new Set(extractKeywords(text1));
   const words2 = new Set(extractKeywords(text2));
 
-  if (words1.size === 0 || words2.size === 0) return 0;
+  if (words1.size === 0 || words2.size === 0) {return 0;}
 
   // 计算交集
   const intersection = new Set([...words1].filter(x => words2.has(x)));
@@ -341,15 +402,15 @@ const calculateTextSimilarity = (text1, text2) => {
 
 // 截断文本
 const truncateText = (text, maxLength) => {
-  if (text.length <= maxLength) return text;
+  if (text.length <= maxLength) {return text;}
   return text.substring(0, maxLength) + '...';
 };
 
 // 获取分数颜色
 const getScoreColor = (score) => {
-  if (score >= 80) return '#52c41a'; // 绿色
-  if (score >= 60) return '#1890ff'; // 蓝色
-  if (score >= 40) return '#faad14'; // 橙色
+  if (score >= 80) {return '#52c41a';} // 绿色
+  if (score >= 60) {return '#1890ff';} // 蓝色
+  if (score >= 40) {return '#faad14';} // 橙色
   return '#d9d9d9'; // 灰色
 };
 
@@ -359,10 +420,10 @@ const formatTime = (timestamp) => {
   const now = new Date();
   const diff = now - date;
 
-  if (diff < 60 * 1000) return '刚刚';
-  if (diff < 60 * 60 * 1000) return `${Math.floor(diff / (60 * 1000))}分钟前`;
-  if (diff < 24 * 60 * 60 * 1000) return `${Math.floor(diff / (60 * 60 * 1000))}小时前`;
-  if (diff < 7 * 24 * 60 * 60 * 1000) return `${Math.floor(diff / (24 * 60 * 60 * 1000))}天前`;
+  if (diff < 60 * 1000) {return '刚刚';}
+  if (diff < 60 * 60 * 1000) {return `${Math.floor(diff / (60 * 1000))}分钟前`;}
+  if (diff < 24 * 60 * 60 * 1000) {return `${Math.floor(diff / (60 * 60 * 1000))}小时前`;}
+  if (diff < 7 * 24 * 60 * 60 * 1000) {return `${Math.floor(diff / (24 * 60 * 60 * 1000))}天前`;}
 
   return date.toLocaleDateString('zh-CN');
 };

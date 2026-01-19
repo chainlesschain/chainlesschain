@@ -1,10 +1,19 @@
 <template>
   <div class="token-usage-tab">
-    <a-spin :spinning="loading" tip="加载统计数据...">
+    <a-spin
+      :spinning="loading"
+      tip="加载统计数据..."
+    >
       <!-- 顶部统计卡片 -->
-      <a-row :gutter="16" class="stats-overview">
+      <a-row
+        :gutter="16"
+        class="stats-overview"
+      >
         <a-col :span="6">
-          <a-card size="small" hoverable>
+          <a-card
+            size="small"
+            hoverable
+          >
             <a-statistic
               title="总 Token 使用"
               :value="stats.totalTokens"
@@ -15,11 +24,16 @@
                 <DatabaseOutlined />
               </template>
             </a-statistic>
-            <div class="stat-detail">本周: {{ stats.weekTokens.toLocaleString() }}</div>
+            <div class="stat-detail">
+              本周: {{ stats.weekTokens.toLocaleString() }}
+            </div>
           </a-card>
         </a-col>
         <a-col :span="6">
-          <a-card size="small" hoverable>
+          <a-card
+            size="small"
+            hoverable
+          >
             <a-statistic
               title="总成本"
               :value="stats.totalCost"
@@ -31,11 +45,16 @@
                 <DollarOutlined />
               </template>
             </a-statistic>
-            <div class="stat-detail">本周: ${{ stats.weekCost.toFixed(4) }}</div>
+            <div class="stat-detail">
+              本周: ${{ stats.weekCost.toFixed(4) }}
+            </div>
           </a-card>
         </a-col>
         <a-col :span="6">
-          <a-card size="small" hoverable>
+          <a-card
+            size="small"
+            hoverable
+          >
             <a-statistic
               title="缓存命中率"
               :value="stats.cacheHitRate"
@@ -47,11 +66,16 @@
                 <ThunderboltOutlined />
               </template>
             </a-statistic>
-            <div class="stat-detail">节省: {{ stats.cachedTokens.toLocaleString() }} tokens</div>
+            <div class="stat-detail">
+              节省: {{ stats.cachedTokens.toLocaleString() }} tokens
+            </div>
           </a-card>
         </a-col>
         <a-col :span="6">
-          <a-card size="small" hoverable>
+          <a-card
+            size="small"
+            hoverable
+          >
             <a-statistic
               title="平均成本/次"
               :value="stats.avgCostPerCall"
@@ -63,19 +87,24 @@
                 <LineChartOutlined />
               </template>
             </a-statistic>
-            <div class="stat-detail">总调用: {{ stats.totalCalls }}</div>
+            <div class="stat-detail">
+              总调用: {{ stats.totalCalls }}
+            </div>
           </a-card>
         </a-col>
       </a-row>
 
       <!-- 筛选工具栏 -->
-      <a-card class="filter-toolbar" size="small">
+      <a-card
+        class="filter-toolbar"
+        size="small"
+      >
         <a-space>
           <a-range-picker
             v-model:value="dateRange"
             :presets="datePresets"
-            @change="onDateRangeChange"
             format="YYYY-MM-DD"
+            @change="onDateRangeChange"
           />
           <a-select
             v-model:value="selectedProvider"
@@ -83,14 +112,29 @@
             style="width: 150px"
             @change="loadData"
           >
-            <a-select-option value="all">全部提供商</a-select-option>
-            <a-select-option value="openai">OpenAI</a-select-option>
-            <a-select-option value="anthropic">Anthropic</a-select-option>
-            <a-select-option value="deepseek">DeepSeek</a-select-option>
-            <a-select-option value="volcengine">火山引擎</a-select-option>
-            <a-select-option value="ollama">Ollama</a-select-option>
+            <a-select-option value="all">
+              全部提供商
+            </a-select-option>
+            <a-select-option value="openai">
+              OpenAI
+            </a-select-option>
+            <a-select-option value="anthropic">
+              Anthropic
+            </a-select-option>
+            <a-select-option value="deepseek">
+              DeepSeek
+            </a-select-option>
+            <a-select-option value="volcengine">
+              火山引擎
+            </a-select-option>
+            <a-select-option value="ollama">
+              Ollama
+            </a-select-option>
           </a-select>
-          <a-button type="primary" @click="exportReport">
+          <a-button
+            type="primary"
+            @click="exportReport"
+          >
             <ExportOutlined /> 导出 CSV
           </a-button>
           <a-button @click="clearCache">
@@ -100,19 +144,34 @@
       </a-card>
 
       <!-- 时间序列图表 -->
-      <a-card title="成本趋势" class="chart-card">
-        <div ref="timeSeriesChart" style="height: 300px"></div>
+      <a-card
+        title="成本趋势"
+        class="chart-card"
+      >
+        <div
+          ref="timeSeriesChart"
+          style="height: 300px"
+        />
       </a-card>
 
       <!-- 双列布局：提供商占比 + 模型成本排行 -->
       <a-row :gutter="16">
         <a-col :span="12">
-          <a-card title="提供商占比" class="chart-card">
-            <div ref="providerPieChart" style="height: 300px"></div>
+          <a-card
+            title="提供商占比"
+            class="chart-card"
+          >
+            <div
+              ref="providerPieChart"
+              style="height: 300px"
+            />
           </a-card>
         </a-col>
         <a-col :span="12">
-          <a-card title="热门模型成本排行" class="chart-card">
+          <a-card
+            title="热门模型成本排行"
+            class="chart-card"
+          >
             <a-table
               :columns="modelColumns"
               :data-source="topModels"
@@ -139,11 +198,16 @@
       </a-row>
 
       <!-- 预算管理 -->
-      <a-card title="预算管理" class="budget-card">
+      <a-card
+        title="预算管理"
+        class="budget-card"
+      >
         <a-row :gutter="16">
           <a-col :span="8">
             <div class="budget-item">
-              <div class="budget-title">每日预算</div>
+              <div class="budget-title">
+                每日预算
+              </div>
               <a-progress
                 :percent="budgetProgress.daily"
                 :status="getBudgetStatus(budgetProgress.daily)"
@@ -156,7 +220,9 @@
           </a-col>
           <a-col :span="8">
             <div class="budget-item">
-              <div class="budget-title">每周预算</div>
+              <div class="budget-title">
+                每周预算
+              </div>
               <a-progress
                 :percent="budgetProgress.weekly"
                 :status="getBudgetStatus(budgetProgress.weekly)"
@@ -169,7 +235,9 @@
           </a-col>
           <a-col :span="8">
             <div class="budget-item">
-              <div class="budget-title">每月预算</div>
+              <div class="budget-title">
+                每月预算
+              </div>
               <a-progress
                 :percent="budgetProgress.monthly"
                 :status="getBudgetStatus(budgetProgress.monthly)"
@@ -182,7 +250,10 @@
           </a-col>
         </a-row>
         <a-divider />
-        <a-button type="primary" @click="showBudgetModal = true">
+        <a-button
+          type="primary"
+          @click="showBudgetModal = true"
+        >
           <SettingOutlined /> 设置预算限制
         </a-button>
       </a-card>
@@ -195,7 +266,10 @@
       @ok="saveBudget"
       @cancel="showBudgetModal = false"
     >
-      <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
+      <a-form
+        :label-col="{ span: 6 }"
+        :wrapper-col="{ span: 18 }"
+      >
         <a-form-item label="每日限制 (USD)">
           <a-input-number
             v-model:value="budgetForm.dailyLimit"
@@ -324,14 +398,14 @@ const budgetProgress = computed(() => ({
 
 // 方法
 function getBudgetStatus(percent) {
-  if (percent >= 95) return 'exception';
-  if (percent >= 80) return 'normal';
+  if (percent >= 95) {return 'exception';}
+  if (percent >= 80) {return 'normal';}
   return 'active';
 }
 
 function getBudgetColor(percent) {
-  if (percent >= 95) return '#ff4d4f';
-  if (percent >= 80) return '#faad14';
+  if (percent >= 95) {return '#ff4d4f';}
+  if (percent >= 80) {return '#faad14';}
   return '#52c41a';
 }
 
@@ -402,7 +476,7 @@ async function loadData() {
 }
 
 function renderTimeSeriesChart(data) {
-  if (!timeSeriesInstance) return;
+  if (!timeSeriesInstance) {return;}
 
   const dates = data.map(item => dayjs(item.date).format('MM-DD'));
   const tokens = data.map(item => item.tokens);
@@ -456,7 +530,7 @@ function renderTimeSeriesChart(data) {
 }
 
 function renderProviderPieChart(data) {
-  if (!providerPieInstance) return;
+  if (!providerPieInstance) {return;}
 
   const pieData = data.map(item => ({
     name: item.provider,

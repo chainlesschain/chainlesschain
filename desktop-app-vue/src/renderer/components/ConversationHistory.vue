@@ -34,7 +34,11 @@
           </a-list-item-meta>
           <template #actions>
             <a-dropdown :trigger="['click']">
-              <a-button type="text" size="small" @click.stop>
+              <a-button
+                type="text"
+                size="small"
+                @click.stop
+              >
                 <more-outlined />
               </a-button>
               <template #overlay>
@@ -43,7 +47,10 @@
                     <edit-outlined /> 重命名
                   </a-menu-item>
                   <a-menu-divider />
-                  <a-menu-item danger @click="handleDelete(item)">
+                  <a-menu-item
+                    danger
+                    @click="handleDelete(item)"
+                  >
                     <delete-outlined /> 删除
                   </a-menu-item>
                 </a-menu>
@@ -58,7 +65,10 @@
           v-if="hasMore"
           style="text-align: center; margin-top: 12px"
         >
-          <a-button size="small" @click="loadMore">
+          <a-button
+            size="small"
+            @click="loadMore"
+          >
             加载更多
           </a-button>
         </div>
@@ -250,7 +260,7 @@ const loadMore = async () => {
 
 // 格式化日期
 const formatDate = (timestamp) => {
-  if (!timestamp) return '';
+  if (!timestamp) {return '';}
 
   const date = new Date(timestamp);
   const now = new Date();

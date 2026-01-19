@@ -1,5 +1,24 @@
 <template>
-  <a-config-provider :locale="currentAntdLocale" :theme="themeConfig">
+  <a-config-provider
+    :locale="currentAntdLocale"
+    :theme="themeConfig"
+  >
+    <!-- 离线状态横幅 -->
+    <transition name="slide-down">
+      <div
+        v-if="!networkStore.isOnline"
+        class="offline-banner"
+      >
+        <a-alert
+          type="warning"
+          :message="$t('app.offlineMessage', '您当前处于离线状态')"
+          :description="$t('app.offlineDescription', '部分功能可能不可用，请检查网络连接')"
+          banner
+          closable
+        />
+      </div>
+    </transition>
+
     <a-spin
       v-if="loading"
       size="large"
@@ -11,7 +30,7 @@
     <!-- 全局设置向导 (首次启动时显示) -->
     <GlobalSettingsWizard
       :open="showGlobalSetupWizard"
-      :canSkip="false"
+      :can-skip="false"
       @complete="handleGlobalSetupComplete"
     />
 
@@ -50,6 +69,7 @@ import { useI18n } from "vue-i18n";
 import { message } from "ant-design-vue";
 import { useAppStore } from "./stores/app";
 import { useSocialStore } from "./stores/social";
+import { useNetworkStore } from "./stores/network";
 import { ukeyAPI, llmAPI } from "./utils/ipc";
 import { handleError, ErrorType, ErrorLevel } from "./utils/errorHandler";
 import { useTheme } from "./utils/themeManager";
@@ -70,6 +90,7 @@ import koKR from "ant-design-vue/es/locale/ko_KR";
 
 const store = useAppStore();
 const socialStore = useSocialStore();
+const networkStore = useNetworkStore();
 const loading = ref(true);
 const { locale } = useI18n();
 const showGlobalSetupWizard = ref(false);
@@ -196,6 +217,9 @@ const handleInvitationRejected = () => {
 
 onMounted(async () => {
   try {
+    // 初始化网络状态监听器
+    networkStore.initNetworkListeners();
+
     // 初始化社交模块在线状态监听器
     socialStore.initOnlineStatusListeners();
 
@@ -271,6 +295,9 @@ onMounted(async () => {
 
 // 清理事件监听器
 onUnmounted(() => {
+  // 移除网络状态监听器
+  networkStore.removeNetworkListeners();
+
   // 移除社交模块在线状态监听器
   socialStore.removeOnlineStatusListeners();
 
@@ -323,5 +350,31 @@ const onEncryptionWizardSkip = () => {
   align-items: center;
   height: 100vh;
   width: 100vw;
+}
+
+/* 离线横幅样式 */
+.offline-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* 下滑动画 */
+.slide-down-enter-active,
+.slide-down-leave-active {
+  transition: all 0.3s ease-out;
+}
+
+.slide-down-enter-from {
+  transform: translateY(-100%);
+  opacity: 0;
+}
+
+.slide-down-leave-to {
+  transform: translateY(-100%);
+  opacity: 0;
 }
 </style>

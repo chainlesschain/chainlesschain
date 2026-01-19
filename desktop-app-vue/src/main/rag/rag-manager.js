@@ -263,16 +263,16 @@ class RAGManager extends EventEmitter {
           const rewriteResult = await this.queryRewriter.rewriteQuery(query, options);
           queries = rewriteResult.rewrittenQueries || [query];
           console.log(`[RAGManager] 查询重写生成 ${queries.length} 个变体`);
-          if (rewriteTimer) rewriteTimer({ queryCount: queries.length });
+          if (rewriteTimer) {rewriteTimer({ queryCount: queries.length });}
         } catch (error) {
           console.error('[RAGManager] 查询重写失败:', error);
-          if (this.metricsEnabled) this.metrics.recordError('query_rewrite', error);
-          if (rewriteTimer) rewriteTimer();
+          if (this.metricsEnabled) {this.metrics.recordError('query_rewrite', error);}
+          if (rewriteTimer) {rewriteTimer();}
         }
       }
 
       // 对每个查询执行检索
-      let allResults = [];
+      const allResults = [];
       const retrievalTimer = this.metricsEnabled ? this.metrics.startTimer(MetricTypes.RETRIEVAL) : null;
 
       for (const q of queries) {
@@ -293,7 +293,7 @@ class RAGManager extends EventEmitter {
         allResults.push(...results);
       }
 
-      if (retrievalTimer) retrievalTimer({ resultCount: allResults.length });
+      if (retrievalTimer) {retrievalTimer({ resultCount: allResults.length });}
 
       // 去重（根据ID）
       const uniqueResults = this._deduplicateResults(allResults);
@@ -309,11 +309,11 @@ class RAGManager extends EventEmitter {
             method: this.config.rerankMethod,
           });
           console.log(`[RAGManager] 重排序后剩余 ${finalResults.length} 个文档`);
-          if (rerankTimer) rerankTimer({ rerankCount: finalResults.length });
+          if (rerankTimer) {rerankTimer({ rerankCount: finalResults.length });}
         } catch (error) {
           console.error('[RAGManager] 重排序失败，使用原始结果:', error);
-          if (this.metricsEnabled) this.metrics.recordError('rerank', error);
-          if (rerankTimer) rerankTimer();
+          if (this.metricsEnabled) {this.metrics.recordError('rerank', error);}
+          if (rerankTimer) {rerankTimer();}
         }
       }
 
@@ -326,13 +326,13 @@ class RAGManager extends EventEmitter {
       console.log(`[RAGManager] 检索到 ${finalResults.length} 个相关项目`);
 
       // 记录总时间
-      if (totalTimer) totalTimer({ resultCount: finalResults.length });
+      if (totalTimer) {totalTimer({ resultCount: finalResults.length });}
 
       return finalResults;
     } catch (error) {
       console.error('[RAGManager] 检索失败:', error);
-      if (this.metricsEnabled) this.metrics.recordError('retrieve', error);
-      if (totalTimer) totalTimer();
+      if (this.metricsEnabled) {this.metrics.recordError('retrieve', error);}
+      if (totalTimer) {totalTimer();}
       return [];
     }
   }
@@ -626,11 +626,11 @@ class RAGManager extends EventEmitter {
         console.log(`[RAGManager] 添加项目到索引: ${item.id}`);
       }
 
-      if (embeddingTimer) embeddingTimer();
+      if (embeddingTimer) {embeddingTimer();}
     } catch (error) {
       console.error('[RAGManager] 添加到索引失败:', error);
-      if (this.metricsEnabled) this.metrics.recordError('add_to_index', error);
-      if (embeddingTimer) embeddingTimer();
+      if (this.metricsEnabled) {this.metrics.recordError('add_to_index', error);}
+      if (embeddingTimer) {embeddingTimer();}
     }
   }
 

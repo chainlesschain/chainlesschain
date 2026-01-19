@@ -1,6 +1,9 @@
 <template>
   <div class="offline-queue-manager">
-    <a-card title="离线消息队列" :loading="loading">
+    <a-card
+      title="离线消息队列"
+      :loading="loading"
+    >
       <template #extra>
         <a-space>
           <a-badge
@@ -8,37 +11,48 @@
             :number-style="{ backgroundColor: '#1890ff' }"
           >
             <a-button @click="loadQueue">
-              <template #icon><ReloadOutlined /></template>
+              <template #icon>
+                <ReloadOutlined />
+              </template>
               刷新
             </a-button>
           </a-badge>
           <a-button
-            @click="showRetryAllModal = true"
             :disabled="queueStats.totalMessages === 0"
+            @click="showRetryAllModal = true"
           >
-            <template #icon><SyncOutlined /></template>
+            <template #icon>
+              <SyncOutlined />
+            </template>
             重试全部
           </a-button>
           <a-button
             danger
-            @click="showClearAllModal = true"
             :disabled="queueStats.totalMessages === 0"
+            @click="showClearAllModal = true"
           >
-            <template #icon><DeleteOutlined /></template>
+            <template #icon>
+              <DeleteOutlined />
+            </template>
             清空队列
           </a-button>
         </a-space>
       </template>
 
       <!-- 队列统计 -->
-      <a-row :gutter="16" style="margin-bottom: 24px">
+      <a-row
+        :gutter="16"
+        style="margin-bottom: 24px"
+      >
         <a-col :span="6">
           <a-statistic
             title="待发送消息"
             :value="queueStats.pendingMessages"
             :value-style="{ color: '#1890ff' }"
           >
-            <template #prefix><ClockCircleOutlined /></template>
+            <template #prefix>
+              <ClockCircleOutlined />
+            </template>
           </a-statistic>
         </a-col>
         <a-col :span="6">
@@ -47,7 +61,9 @@
             :value="queueStats.sendingMessages"
             :value-style="{ color: '#faad14' }"
           >
-            <template #prefix><LoadingOutlined /></template>
+            <template #prefix>
+              <LoadingOutlined />
+            </template>
           </a-statistic>
         </a-col>
         <a-col :span="6">
@@ -56,12 +72,19 @@
             :value="queueStats.failedMessages"
             :value-style="{ color: '#ff4d4f' }"
           >
-            <template #prefix><ExclamationCircleOutlined /></template>
+            <template #prefix>
+              <ExclamationCircleOutlined />
+            </template>
           </a-statistic>
         </a-col>
         <a-col :span="6">
-          <a-statistic title="总消息数" :value="queueStats.totalMessages">
-            <template #prefix><InboxOutlined /></template>
+          <a-statistic
+            title="总消息数"
+            :value="queueStats.totalMessages"
+          >
+            <template #prefix>
+              <InboxOutlined />
+            </template>
           </a-statistic>
         </a-col>
       </a-row>
@@ -83,9 +106,11 @@
           </template>
 
           <template v-else-if="column.key === 'targetPeerId'">
-            <a-typography-text copyable>{{
-              shortenPeerId(record.targetPeerId)
-            }}</a-typography-text>
+            <a-typography-text copyable>
+              {{
+                shortenPeerId(record.targetPeerId)
+              }}
+            </a-typography-text>
           </template>
 
           <template v-else-if="column.key === 'content'">
@@ -116,7 +141,9 @@
                   :disabled="record.status === 'sending'"
                   @click="handleRetry(record)"
                 >
-                  <template #icon><SyncOutlined /></template>
+                  <template #icon>
+                    <SyncOutlined />
+                  </template>
                 </a-button>
               </a-tooltip>
               <a-tooltip title="查看详情">
@@ -125,7 +152,9 @@
                   size="small"
                   @click="handleViewDetails(record)"
                 >
-                  <template #icon><EyeOutlined /></template>
+                  <template #icon>
+                    <EyeOutlined />
+                  </template>
                 </a-button>
               </a-tooltip>
               <a-tooltip title="删除">
@@ -135,7 +164,9 @@
                   danger
                   @click="handleDelete(record)"
                 >
-                  <template #icon><DeleteOutlined /></template>
+                  <template #icon>
+                    <DeleteOutlined />
+                  </template>
                 </a-button>
               </a-tooltip>
             </a-space>
@@ -151,21 +182,31 @@
       width="600px"
       :footer="null"
     >
-      <a-descriptions v-if="selectedMessage" bordered :column="1">
+      <a-descriptions
+        v-if="selectedMessage"
+        bordered
+        :column="1"
+      >
         <a-descriptions-item label="消息ID">
-          <a-typography-text copyable>{{
-            selectedMessage.id
-          }}</a-typography-text>
+          <a-typography-text copyable>
+            {{
+              selectedMessage.id
+            }}
+          </a-typography-text>
         </a-descriptions-item>
         <a-descriptions-item label="目标节点">
-          <a-typography-text copyable>{{
-            selectedMessage.targetPeerId
-          }}</a-typography-text>
+          <a-typography-text copyable>
+            {{
+              selectedMessage.targetPeerId
+            }}
+          </a-typography-text>
         </a-descriptions-item>
         <a-descriptions-item label="设备ID">
-          <a-typography-text copyable>{{
-            selectedMessage.deviceId || "未指定"
-          }}</a-typography-text>
+          <a-typography-text copyable>
+            {{
+              selectedMessage.deviceId || "未指定"
+            }}
+          </a-typography-text>
         </a-descriptions-item>
         <a-descriptions-item label="状态">
           <a-tag :color="getStatusColor(selectedMessage.status)">
@@ -191,9 +232,11 @@
           }}
         </a-descriptions-item>
         <a-descriptions-item label="错误信息">
-          <a-typography-text type="danger">{{
-            selectedMessage.error || "无"
-          }}</a-typography-text>
+          <a-typography-text type="danger">
+            {{
+              selectedMessage.error || "无"
+            }}
+          </a-typography-text>
         </a-descriptions-item>
         <a-descriptions-item label="消息内容">
           <a-typography-paragraph :copyable="{ text: selectedMessage.content }">
@@ -452,19 +495,19 @@ function getStatusText(status) {
 }
 
 function shortenPeerId(peerId) {
-  if (!peerId) return "";
-  if (peerId.length <= 20) return peerId;
+  if (!peerId) {return "";}
+  if (peerId.length <= 20) {return peerId;}
   return `${peerId.substring(0, 10)}...${peerId.substring(peerId.length - 6)}`;
 }
 
 function truncateContent(content) {
-  if (!content) return "";
-  if (content.length <= 50) return content;
+  if (!content) {return "";}
+  if (content.length <= 50) {return content;}
   return content.substring(0, 50) + "...";
 }
 
 function formatTime(timestamp) {
-  if (!timestamp) return "";
+  if (!timestamp) {return "";}
 
   const now = Date.now();
   const diff = now - timestamp;

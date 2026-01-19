@@ -11,20 +11,34 @@
         <a-button @click="handleEdit">
           <edit-outlined /> 编辑
         </a-button>
-        <a-button danger @click="handleDelete">
+        <a-button
+          danger
+          @click="handleDelete"
+        >
           <delete-outlined /> 删除
         </a-button>
       </a-space>
     </template>
 
-    <div class="task-detail-content" v-if="task">
-      <a-tabs v-model:active-key="activeTab" class="task-tabs">
+    <div
+      v-if="task"
+      class="task-detail-content"
+    >
+      <a-tabs
+        v-model:active-key="activeTab"
+        class="task-tabs"
+      >
         <!-- 详情标签页 -->
-        <a-tab-pane key="detail" tab="详情">
+        <a-tab-pane
+          key="detail"
+          tab="详情"
+        >
           <div class="detail-panel">
             <!-- 任务标题 -->
             <div class="task-header">
-              <h2 class="task-title">{{ task.title }}</h2>
+              <h2 class="task-title">
+                {{ task.title }}
+              </h2>
               <a-space>
                 <a-tag :color="getStatusColor(task.status)">
                   {{ getStatusLabel(task.status) }}
@@ -37,15 +51,27 @@
 
             <!-- 任务描述 -->
             <div class="task-section">
-              <h4 class="section-title">描述</h4>
-              <div class="task-description" v-if="task.description">
+              <h4 class="section-title">
+                描述
+              </h4>
+              <div
+                v-if="task.description"
+                class="task-description"
+              >
                 {{ task.description }}
               </div>
-              <a-empty v-else description="暂无描述" :image="Empty.PRESENTED_IMAGE_SIMPLE" />
+              <a-empty
+                v-else
+                description="暂无描述"
+                :image="Empty.PRESENTED_IMAGE_SIMPLE"
+              />
             </div>
 
             <!-- 任务详细信息 -->
-            <a-row :gutter="[16, 16]" class="task-info">
+            <a-row
+              :gutter="[16, 16]"
+              class="task-info"
+            >
               <a-col :span="12">
                 <div class="info-item">
                   <label>分配给</label>
@@ -56,12 +82,20 @@
                       placeholder="选择负责人"
                       style="width: 100%"
                     >
-                      <a-select-option v-for="member in workspaceMembers" :key="member.did" :value="member.did">
+                      <a-select-option
+                        v-for="member in workspaceMembers"
+                        :key="member.did"
+                        :value="member.did"
+                      >
                         {{ member.name }}
                       </a-select-option>
                     </a-select>
                     <template v-else>
-                      <a-avatar v-if="task.assigned_to" :size="24" :style="{ backgroundColor: getAvatarColor(task.assigned_to) }">
+                      <a-avatar
+                        v-if="task.assigned_to"
+                        :size="24"
+                        :style="{ backgroundColor: getAvatarColor(task.assigned_to) }"
+                      >
                         {{ getAvatarText(task.assigned_to) }}
                       </a-avatar>
                       <span>{{ task.assigned_to || '未分配' }}</span>
@@ -126,11 +160,21 @@
                       placeholder="添加标签"
                       style="width: 100%"
                     />
-                    <a-space v-else wrap>
-                      <a-tag v-for="(label, index) in task.labels" :key="index" :color="getLabelColor(label)">
+                    <a-space
+                      v-else
+                      wrap
+                    >
+                      <a-tag
+                        v-for="(label, index) in task.labels"
+                        :key="index"
+                        :color="getLabelColor(label)"
+                      >
                         {{ label }}
                       </a-tag>
-                      <span v-if="!task.labels || task.labels.length === 0" class="empty-text">无标签</span>
+                      <span
+                        v-if="!task.labels || task.labels.length === 0"
+                        class="empty-text"
+                      >无标签</span>
                     </a-space>
                   </div>
                 </div>
@@ -147,18 +191,32 @@
                       placeholder="选择协作者"
                       style="width: 100%"
                     >
-                      <a-select-option v-for="member in workspaceMembers" :key="member.did" :value="member.did">
+                      <a-select-option
+                        v-for="member in workspaceMembers"
+                        :key="member.did"
+                        :value="member.did"
+                      >
                         {{ member.name }}
                       </a-select-option>
                     </a-select>
-                    <a-avatar-group v-else :max-count="5">
-                      <a-tooltip v-for="(collaborator, index) in task.collaborators" :key="index" :title="collaborator">
+                    <a-avatar-group
+                      v-else
+                      :max-count="5"
+                    >
+                      <a-tooltip
+                        v-for="(collaborator, index) in task.collaborators"
+                        :key="index"
+                        :title="collaborator"
+                      >
                         <a-avatar :style="{ backgroundColor: getAvatarColor(collaborator) }">
                           {{ getAvatarText(collaborator) }}
                         </a-avatar>
                       </a-tooltip>
                     </a-avatar-group>
-                    <span v-if="!task.collaborators || task.collaborators.length === 0" class="empty-text">无协作者</span>
+                    <span
+                      v-if="!task.collaborators || task.collaborators.length === 0"
+                      class="empty-text"
+                    >无协作者</span>
                   </div>
                 </div>
               </a-col>
@@ -166,7 +224,9 @@
 
             <!-- 任务时间线 -->
             <div class="task-section">
-              <h4 class="section-title">时间线</h4>
+              <h4 class="section-title">
+                时间线
+              </h4>
               <div class="task-timeline">
                 <div class="timeline-item">
                   <span class="label">创建时间：</span>
@@ -176,7 +236,10 @@
                   <span class="label">更新时间：</span>
                   <span>{{ formatDateTime(task.updated_at) }}</span>
                 </div>
-                <div class="timeline-item" v-if="task.completed_at">
+                <div
+                  v-if="task.completed_at"
+                  class="timeline-item"
+                >
                   <span class="label">完成时间：</span>
                   <span>{{ formatDateTime(task.completed_at) }}</span>
                 </div>
@@ -189,7 +252,10 @@
         <a-tab-pane key="comments">
           <template #tab>
             评论
-            <a-badge :count="taskStore.currentTaskComments.length" :number-style="{ backgroundColor: '#52c41a' }" />
+            <a-badge
+              :count="taskStore.currentTaskComments.length"
+              :number-style="{ backgroundColor: '#52c41a' }"
+            />
           </template>
           <task-comments
             :task-id="task.id"
@@ -213,23 +279,38 @@
               >
                 <div class="change-item">
                   <div class="change-header">
-                    <a-avatar :size="24" :style="{ backgroundColor: getAvatarColor(change.changed_by) }">
+                    <a-avatar
+                      :size="24"
+                      :style="{ backgroundColor: getAvatarColor(change.changed_by) }"
+                    >
                       {{ getAvatarText(change.changed_by) }}
                     </a-avatar>
                     <span class="changer-name">{{ change.changed_by }}</span>
                     <span class="change-action">{{ getChangeLabel(change.change_type) }}</span>
                     <span class="change-time">{{ formatDateTime(change.changed_at) }}</span>
                   </div>
-                  <div class="change-detail" v-if="change.old_value || change.new_value">
-                    <span class="old-value" v-if="change.old_value">{{ change.old_value }}</span>
+                  <div
+                    v-if="change.old_value || change.new_value"
+                    class="change-detail"
+                  >
+                    <span
+                      v-if="change.old_value"
+                      class="old-value"
+                    >{{ change.old_value }}</span>
                     <arrow-right-outlined />
-                    <span class="new-value" v-if="change.new_value">{{ change.new_value }}</span>
+                    <span
+                      v-if="change.new_value"
+                      class="new-value"
+                    >{{ change.new_value }}</span>
                   </div>
                 </div>
               </a-timeline-item>
             </a-timeline>
 
-            <a-empty v-if="taskStore.currentTaskChanges.length === 0" description="暂无变更历史" />
+            <a-empty
+              v-if="taskStore.currentTaskChanges.length === 0"
+              description="暂无变更历史"
+            />
           </div>
         </a-tab-pane>
       </a-tabs>
@@ -268,7 +349,7 @@ const workspaceMembers = ref([]); // TODO: Load from workspace store
 
 // Computed
 const isOverdue = computed(() => {
-  if (!task.value?.due_date || task.value.status === 'completed') return false;
+  if (!task.value?.due_date || task.value.status === 'completed') {return false;}
   return task.value.due_date < Date.now();
 });
 
@@ -357,8 +438,8 @@ function getChangeLabel(changeType) {
 }
 
 function getChangeColor(changeType) {
-  if (changeType === 'create') return 'green';
-  if (changeType === 'status') return 'blue';
+  if (changeType === 'create') {return 'green';}
+  if (changeType === 'status') {return 'blue';}
   return 'gray';
 }
 

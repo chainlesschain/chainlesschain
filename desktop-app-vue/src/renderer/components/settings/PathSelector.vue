@@ -1,6 +1,8 @@
 <template>
   <div class="path-selector">
-    <a-typography-title :level="4">{{ label }}</a-typography-title>
+    <a-typography-title :level="4">
+      {{ label }}
+    </a-typography-title>
     <a-typography-paragraph type="secondary">
       {{ description }}
     </a-typography-paragraph>
@@ -26,11 +28,17 @@
 
         <!-- 默认路径提示 -->
         <template #extra>
-          <div v-if="defaultPath" class="path-hint">
+          <div
+            v-if="defaultPath"
+            class="path-hint"
+          >
             <InfoCircleOutlined />
             默认路径: {{ defaultPath }}
           </div>
-          <div v-if="useDefault" class="path-hint success">
+          <div
+            v-if="useDefault"
+            class="path-hint success"
+          >
             <CheckCircleOutlined />
             将使用默认路径
           </div>
@@ -38,15 +46,24 @@
       </a-form-item>
 
       <!-- 路径验证信息 -->
-      <div v-if="validation.checking" class="validation-info">
+      <div
+        v-if="validation.checking"
+        class="validation-info"
+      >
         <a-spin size="small" />
         <span class="validation-text">正在验证路径...</span>
       </div>
-      <div v-else-if="validation.error" class="validation-info error">
+      <div
+        v-else-if="validation.error"
+        class="validation-info error"
+      >
         <CloseCircleOutlined />
         <span class="validation-text">{{ validation.error }}</span>
       </div>
-      <div v-else-if="validation.success" class="validation-info success">
+      <div
+        v-else-if="validation.success"
+        class="validation-info success"
+      >
         <CheckCircleOutlined />
         <span class="validation-text">{{ validation.success }}</span>
       </div>

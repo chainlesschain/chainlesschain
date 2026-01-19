@@ -74,8 +74,8 @@ export class ImageFormatDetector {
    * Get best supported format
    */
   getBestFormat() {
-    if (this.support.avif) return "avif";
-    if (this.support.webp) return "webp";
+    if (this.support.avif) {return "avif";}
+    if (this.support.webp) {return "webp";}
     return "jpeg";
   }
 
@@ -179,9 +179,9 @@ export class SmartImageLoader {
       }
 
       // Add size parameters
-      if (width) params.append("w", width);
-      if (height) params.append("h", height);
-      if (quality) params.append("q", quality);
+      if (width) {params.append("w", width);}
+      if (height) {params.append("h", height);}
+      if (quality) {params.append("q", quality);}
 
       // Network-aware quality
       if (this.options.networkAware) {

@@ -2,26 +2,41 @@
   <div class="organization-layout">
     <!-- 组织导航标签 -->
     <div class="org-tabs">
-      <a-tabs v-model:activeKey="activeTab" @change="handleTabChange">
-        <a-tab-pane key="members" tab="成员管理">
+      <a-tabs
+        v-model:active-key="activeTab"
+        @change="handleTabChange"
+      >
+        <a-tab-pane
+          key="members"
+          tab="成员管理"
+        >
           <template #tab>
             <TeamOutlined />
             成员管理
           </template>
         </a-tab-pane>
-        <a-tab-pane key="roles" tab="角色管理">
+        <a-tab-pane
+          key="roles"
+          tab="角色管理"
+        >
           <template #tab>
             <SafetyCertificateOutlined />
             角色管理
           </template>
         </a-tab-pane>
-        <a-tab-pane key="activities" tab="活动日志">
+        <a-tab-pane
+          key="activities"
+          tab="活动日志"
+        >
           <template #tab>
             <HistoryOutlined />
             活动日志
           </template>
         </a-tab-pane>
-        <a-tab-pane key="settings" tab="组织设置">
+        <a-tab-pane
+          key="settings"
+          tab="组织设置"
+        >
           <template #tab>
             <SettingOutlined />
             组织设置
@@ -32,7 +47,7 @@
 
     <!-- 内容区域 -->
     <div class="org-content">
-      <slot></slot>
+      <slot />
     </div>
   </div>
 </template>
@@ -57,10 +72,10 @@ const activeTab = ref(getTabFromRoute());
 
 function getTabFromRoute() {
   const path = route.path;
-  if (path.includes('/members')) return 'members';
-  if (path.includes('/roles')) return 'roles';
-  if (path.includes('/activities')) return 'activities';
-  if (path.includes('/settings')) return 'settings';
+  if (path.includes('/members')) {return 'members';}
+  if (path.includes('/roles')) {return 'roles';}
+  if (path.includes('/activities')) {return 'activities';}
+  if (path.includes('/settings')) {return 'settings';}
   return 'members';
 }
 

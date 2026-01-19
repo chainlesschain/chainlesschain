@@ -837,7 +837,7 @@ class BlockchainAdapter extends EventEmitter {
       const feeData = await provider.getFeeData();
 
       let totalFee;
-      let feeBreakdown = {
+      const feeBreakdown = {
         gasLimit: gasEstimate,
         gasPrice: feeData.gasPrice,
       };
@@ -991,7 +991,7 @@ class BlockchainAdapter extends EventEmitter {
 
     try {
       // 等待交易被挖掘
-      if (onUpdate) onUpdate({ status: 'pending', confirmations: 0 });
+      if (onUpdate) {onUpdate({ status: 'pending', confirmations: 0 });}
 
       const receipt = await provider.waitForTransaction(txHash, confirmations);
 
@@ -1008,7 +1008,7 @@ class BlockchainAdapter extends EventEmitter {
       return receipt;
     } catch (error) {
       console.error(`[BlockchainAdapter] 交易监控失败: ${txHash}`, error);
-      if (onUpdate) onUpdate({ status: 'error', error: error.message });
+      if (onUpdate) {onUpdate({ status: 'error', error: error.message });}
       throw error;
     }
   }

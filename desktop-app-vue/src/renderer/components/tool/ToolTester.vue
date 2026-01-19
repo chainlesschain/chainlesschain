@@ -13,7 +13,10 @@
       <h4>输入参数</h4>
 
       <div v-if="paramFields.length > 0">
-        <a-form :model="localParams" layout="vertical">
+        <a-form
+          :model="localParams"
+          layout="vertical"
+        >
           <a-form-item
             v-for="field in paramFields"
             :key="field.name"
@@ -22,10 +25,18 @@
           >
             <template #label>
               <span>{{ field.name }}</span>
-              <a-tag v-if="field.required" color="red" size="small" style="margin-left: 8px">
+              <a-tag
+                v-if="field.required"
+                color="red"
+                size="small"
+                style="margin-left: 8px"
+              >
                 必填
               </a-tag>
-              <span v-if="field.description" style="color: #8c8c8c; font-size: 12px; margin-left: 8px">
+              <span
+                v-if="field.description"
+                style="color: #8c8c8c; font-size: 12px; margin-left: 8px"
+              >
                 ({{ field.description }})
               </span>
             </template>
@@ -65,7 +76,12 @@
         </a-form>
       </div>
 
-      <a-empty v-else description="该工具无需参数" :image="simpleImage" size="small" />
+      <a-empty
+        v-else
+        description="该工具无需参数"
+        :image="simpleImage"
+        size="small"
+      />
 
       <!-- JSON 编辑器 -->
       <a-divider>或使用 JSON 编辑器</a-divider>
@@ -76,13 +92,19 @@
         placeholder="JSON 格式的参数"
         @blur="syncFromJson"
       />
-      <div v-if="jsonError" style="color: #ff4d4f; margin-top: 8px; font-size: 12px">
+      <div
+        v-if="jsonError"
+        style="color: #ff4d4f; margin-top: 8px; font-size: 12px"
+      >
         {{ jsonError }}
       </div>
     </div>
 
     <!-- 测试结果 -->
-    <div v-if="localResult !== null" class="result-section">
+    <div
+      v-if="localResult !== null"
+      class="result-section"
+    >
       <a-divider>测试结果</a-divider>
 
       <a-alert

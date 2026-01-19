@@ -463,8 +463,8 @@ ${currentFilePath ? `当前文件: ${currentFilePath}` : ''}
           maxTokens: 2000
         };
 
-        let useToolCalling = false;
-        let toolsToUse = [];
+        const useToolCalling = false;
+        const toolsToUse = [];
 
         if (llmManager.provider === 'volcengine') {
           try {
@@ -769,9 +769,9 @@ ${currentFilePath ? `当前文件: ${currentFilePath}` : ''}
     try {
       console.log(`[Main] 扫描项目文件: ${projectId}`);
       const project = database.db.prepare('SELECT * FROM projects WHERE id = ?').get(projectId);
-      if (!project) throw new Error('项目不存在');
+      if (!project) {throw new Error('项目不存在');}
       const rootPath = project.root_path || project.folder_path;
-      if (!rootPath) throw new Error('项目没有根路径');
+      if (!rootPath) {throw new Error('项目没有根路径');}
 
       const fs = require('fs').promises;
       const path = require('path');
@@ -782,7 +782,7 @@ ${currentFilePath ? `当前文件: ${currentFilePath}` : ''}
         for (const entry of entries) {
           const fullPath = path.join(dir, entry.name);
           const relativePath = path.relative(base, fullPath);
-          if (/(^|[\/\\])\.|node_modules|\.git|dist|build/.test(relativePath)) continue;
+          if (/(^|[\/\\])\.|node_modules|\.git|dist|build/.test(relativePath)) {continue;}
           if (entry.isDirectory()) {
             await scanDir(fullPath, base);
           } else if (entry.isFile()) {

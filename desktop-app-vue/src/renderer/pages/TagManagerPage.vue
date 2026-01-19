@@ -7,7 +7,9 @@
           <TagsOutlined />
           标签管理
         </h1>
-        <p class="page-description">管理会话标签，支持重命名、合并和删除</p>
+        <p class="page-description">
+          管理会话标签，支持重命名、合并和删除
+        </p>
       </div>
       <div class="header-right">
         <a-button @click="$router.push('/sessions')">
@@ -18,7 +20,10 @@
     </div>
 
     <!-- 统计卡片 -->
-    <a-row :gutter="16" class="stats-section">
+    <a-row
+      :gutter="16"
+      class="stats-section"
+    >
       <a-col :span="6">
         <a-statistic
           title="标签总数"
@@ -42,7 +47,10 @@
         </a-statistic>
       </a-col>
       <a-col :span="6">
-        <a-statistic title="最常用标签" :loading="loading">
+        <a-statistic
+          title="最常用标签"
+          :loading="loading"
+        >
           <template #formatter>
             <span class="top-tag">{{ topTag?.name || "-" }}</span>
           </template>
@@ -76,10 +84,18 @@
           style="width: 150px"
           @change="handleSortChange"
         >
-          <a-select-option value="count-desc">使用次数 (多-少)</a-select-option>
-          <a-select-option value="count-asc">使用次数 (少-多)</a-select-option>
-          <a-select-option value="name-asc">名称 A-Z</a-select-option>
-          <a-select-option value="name-desc">名称 Z-A</a-select-option>
+          <a-select-option value="count-desc">
+            使用次数 (多-少)
+          </a-select-option>
+          <a-select-option value="count-asc">
+            使用次数 (少-多)
+          </a-select-option>
+          <a-select-option value="name-asc">
+            名称 A-Z
+          </a-select-option>
+          <a-select-option value="name-desc">
+            名称 Z-A
+          </a-select-option>
         </a-select>
       </div>
       <div class="right">
@@ -117,7 +133,10 @@
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'name'">
           <div class="tag-name">
-            <a-tag color="blue" @click="handleViewSessions(record.name)">
+            <a-tag
+              color="blue"
+              @click="handleViewSessions(record.name)"
+            >
               {{ record.name }}
             </a-tag>
           </div>
@@ -145,7 +164,11 @@
               </a-button>
             </a-tooltip>
             <a-tooltip title="重命名">
-              <a-button type="text" size="small" @click="handleRename(record)">
+              <a-button
+                type="text"
+                size="small"
+                @click="handleRename(record)"
+              >
                 <EditOutlined />
               </a-button>
             </a-tooltip>
@@ -177,18 +200,24 @@
     <a-modal
       v-model:open="renameModalVisible"
       title="重命名标签"
-      @ok="confirmRename"
       :confirm-loading="renaming"
+      @ok="confirmRename"
     >
       <a-form layout="vertical">
         <a-form-item label="原标签名">
-          <a-input :value="renameForm.oldTag" disabled />
+          <a-input
+            :value="renameForm.oldTag"
+            disabled
+          />
         </a-form-item>
-        <a-form-item label="新标签名" required>
+        <a-form-item
+          label="新标签名"
+          required
+        >
           <a-input
             v-model:value="renameForm.newTag"
             placeholder="输入新标签名"
-            @pressEnter="confirmRename"
+            @press-enter="confirmRename"
           />
         </a-form-item>
       </a-form>
@@ -198,8 +227,8 @@
     <a-modal
       v-model:open="mergeModalVisible"
       title="合并标签"
-      @ok="confirmMerge"
       :confirm-loading="merging"
+      @ok="confirmMerge"
     >
       <a-alert
         message="合并后，所有选中的标签将被替换为目标标签"
@@ -210,12 +239,19 @@
       <a-form layout="vertical">
         <a-form-item label="要合并的标签">
           <div class="merge-source-tags">
-            <a-tag v-for="tag in selectedTags" :key="tag" color="blue">
+            <a-tag
+              v-for="tag in selectedTags"
+              :key="tag"
+              color="blue"
+            >
               {{ tag }}
             </a-tag>
           </div>
         </a-form-item>
-        <a-form-item label="合并到（目标标签）" required>
+        <a-form-item
+          label="合并到（目标标签）"
+          required
+        >
           <a-select
             v-model:value="mergeTargetTag"
             placeholder="选择或输入目标标签"
@@ -315,7 +351,7 @@ const totalLinkedSessions = computed(() => {
 
 // 计算属性：最常用标签
 const topTag = computed(() => {
-  if (allTags.value.length === 0) return null;
+  if (allTags.value.length === 0) {return null;}
   return [...allTags.value].sort((a, b) => b.count - a.count)[0];
 });
 
@@ -500,7 +536,7 @@ const handleDelete = (tagName) => {
 
 // 删除选中
 const handleDeleteSelected = () => {
-  if (selectedTags.value.length === 0) return;
+  if (selectedTags.value.length === 0) {return;}
 
   Modal.confirm({
     title: "确认批量删除",
@@ -560,15 +596,15 @@ const confirmMerge = async () => {
 
 // 获取使用次数颜色
 const getCountColor = (count) => {
-  if (count === 0) return "#d9d9d9";
-  if (count < 3) return "#1890ff";
-  if (count < 10) return "#52c41a";
+  if (count === 0) {return "#d9d9d9";}
+  if (count < 3) {return "#1890ff";}
+  if (count < 10) {return "#52c41a";}
   return "#722ed1";
 };
 
 // 格式化日期
 const formatDate = (timestamp) => {
-  if (!timestamp) return "-";
+  if (!timestamp) {return "-";}
   const date = new Date(typeof timestamp === "number" ? timestamp : timestamp);
   return date.toLocaleString("zh-CN", {
     year: "numeric",

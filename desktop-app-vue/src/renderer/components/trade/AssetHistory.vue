@@ -8,16 +8,30 @@
   >
     <div class="asset-history">
       <!-- 资产信息卡片 -->
-      <a-card v-if="asset" size="small" style="margin-bottom: 24px">
+      <a-card
+        v-if="asset"
+        size="small"
+        style="margin-bottom: 24px"
+      >
         <a-space>
-          <a-avatar :size="48" :style="{ backgroundColor: getAssetColor(asset.asset_type) }">
+          <a-avatar
+            :size="48"
+            :style="{ backgroundColor: getAssetColor(asset.asset_type) }"
+          >
             <template #icon>
               <component :is="getAssetIcon(asset.asset_type)" />
             </template>
           </a-avatar>
           <div>
-            <div class="asset-name">{{ asset.name }}</div>
-            <a-tag v-if="asset.symbol" color="blue">{{ asset.symbol }}</a-tag>
+            <div class="asset-name">
+              {{ asset.name }}
+            </div>
+            <a-tag
+              v-if="asset.symbol"
+              color="blue"
+            >
+              {{ asset.symbol }}
+            </a-tag>
             <a-tag :color="getTypeColor(asset.asset_type)">
               {{ getTypeLabel(asset.asset_type) }}
             </a-tag>
@@ -26,18 +40,40 @@
       </a-card>
 
       <!-- 筛选器 -->
-      <a-card size="small" style="margin-bottom: 16px">
+      <a-card
+        size="small"
+        style="margin-bottom: 16px"
+      >
         <a-space>
           <span>类型:</span>
-          <a-radio-group v-model:value="filterType" button-style="solid" size="small" @change="applyFilter">
-            <a-radio-button value="">全部</a-radio-button>
-            <a-radio-button value="transfer">转账</a-radio-button>
-            <a-radio-button value="mint">铸造</a-radio-button>
-            <a-radio-button value="burn">销毁</a-radio-button>
-            <a-radio-button value="trade">交易</a-radio-button>
+          <a-radio-group
+            v-model:value="filterType"
+            button-style="solid"
+            size="small"
+            @change="applyFilter"
+          >
+            <a-radio-button value="">
+              全部
+            </a-radio-button>
+            <a-radio-button value="transfer">
+              转账
+            </a-radio-button>
+            <a-radio-button value="mint">
+              铸造
+            </a-radio-button>
+            <a-radio-button value="burn">
+              销毁
+            </a-radio-button>
+            <a-radio-button value="trade">
+              交易
+            </a-radio-button>
           </a-radio-group>
 
-          <a-button type="link" size="small" @click="loadHistory">
+          <a-button
+            type="link"
+            size="small"
+            @click="loadHistory"
+          >
             <reload-outlined /> 刷新
           </a-button>
         </a-space>
@@ -45,7 +81,10 @@
 
       <!-- 历史记录时间线 -->
       <a-spin :spinning="loading">
-        <a-timeline v-if="filteredHistory.length > 0" mode="left">
+        <a-timeline
+          v-if="filteredHistory.length > 0"
+          mode="left"
+        >
           <a-timeline-item
             v-for="(item, index) in filteredHistory"
             :key="index"
@@ -64,7 +103,11 @@
               </div>
             </template>
 
-            <a-card size="small" hoverable class="history-card">
+            <a-card
+              size="small"
+              hoverable
+              class="history-card"
+            >
               <div class="history-header">
                 <a-tag :color="getTransactionTypeColor(item.transaction_type)">
                   {{ getTransactionTypeName(item.transaction_type) }}
@@ -75,12 +118,21 @@
                 </span>
               </div>
 
-              <a-descriptions :column="1" size="small" style="margin-top: 12px">
+              <a-descriptions
+                :column="1"
+                size="small"
+                style="margin-top: 12px"
+              >
                 <a-descriptions-item label="发送者">
                   <a-typography-text copyable>
                     {{ formatDid(item.from_did) }}
                   </a-typography-text>
-                  <a-tag v-if="isCurrentUser(item.from_did)" color="blue" size="small" style="margin-left: 8px">
+                  <a-tag
+                    v-if="isCurrentUser(item.from_did)"
+                    color="blue"
+                    size="small"
+                    style="margin-left: 8px"
+                  >
                     我
                   </a-tag>
                 </a-descriptions-item>
@@ -89,17 +141,33 @@
                   <a-typography-text copyable>
                     {{ formatDid(item.to_did) }}
                   </a-typography-text>
-                  <a-tag v-if="isCurrentUser(item.to_did)" color="blue" size="small" style="margin-left: 8px">
+                  <a-tag
+                    v-if="isCurrentUser(item.to_did)"
+                    color="blue"
+                    size="small"
+                    style="margin-left: 8px"
+                  >
                     我
                   </a-tag>
                 </a-descriptions-item>
 
-                <a-descriptions-item v-if="item.memo" label="备注">
-                  <div class="memo-text">{{ item.memo }}</div>
+                <a-descriptions-item
+                  v-if="item.memo"
+                  label="备注"
+                >
+                  <div class="memo-text">
+                    {{ item.memo }}
+                  </div>
                 </a-descriptions-item>
 
-                <a-descriptions-item v-if="item.transaction_hash" label="交易哈希">
-                  <a-typography-text copyable :ellipsis="{ tooltip: item.transaction_hash }">
+                <a-descriptions-item
+                  v-if="item.transaction_hash"
+                  label="交易哈希"
+                >
+                  <a-typography-text
+                    copyable
+                    :ellipsis="{ tooltip: item.transaction_hash }"
+                  >
                     {{ formatHash(item.transaction_hash) }}
                   </a-typography-text>
                 </a-descriptions-item>
@@ -107,13 +175,22 @@
 
               <!-- 交易方向指示 -->
               <div class="transaction-direction">
-                <a-tag v-if="isIncoming(item)" color="success">
+                <a-tag
+                  v-if="isIncoming(item)"
+                  color="success"
+                >
                   <arrow-down-outlined /> 收入
                 </a-tag>
-                <a-tag v-else-if="isOutgoing(item)" color="error">
+                <a-tag
+                  v-else-if="isOutgoing(item)"
+                  color="error"
+                >
                   <arrow-up-outlined /> 支出
                 </a-tag>
-                <a-tag v-else color="default">
+                <a-tag
+                  v-else
+                  color="default"
+                >
                   <swap-outlined /> 其他
                 </a-tag>
               </div>
@@ -122,15 +199,28 @@
         </a-timeline>
 
         <!-- 空状态 -->
-        <a-empty v-else :description="filterType ? '没有找到匹配的历史记录' : '暂无历史记录'">
-          <a-button v-if="filterType" size="small" @click="filterType = ''">
+        <a-empty
+          v-else
+          :description="filterType ? '没有找到匹配的历史记录' : '暂无历史记录'"
+        >
+          <a-button
+            v-if="filterType"
+            size="small"
+            @click="filterType = ''"
+          >
             清除筛选
           </a-button>
         </a-empty>
 
         <!-- 加载更多 -->
-        <div v-if="hasMore && filteredHistory.length > 0" class="load-more">
-          <a-button block @click="loadMore">
+        <div
+          v-if="hasMore && filteredHistory.length > 0"
+          class="load-more"
+        >
+          <a-button
+            block
+            @click="loadMore"
+          >
             加载更多
           </a-button>
         </div>
@@ -293,10 +383,10 @@ const getIconColor = (type) => {
 
 // 格式化金额
 const formatAmount = (amount, decimals = 0) => {
-  if (!amount && amount !== 0) return '0';
+  if (!amount && amount !== 0) {return '0';}
 
   const num = parseFloat(amount);
-  if (isNaN(num)) return '0';
+  if (isNaN(num)) {return '0';}
 
   if (decimals > 0) {
     const divisor = Math.pow(10, decimals);
@@ -308,21 +398,21 @@ const formatAmount = (amount, decimals = 0) => {
 
 // 格式化 DID
 const formatDid = (did) => {
-  if (!did) return '-';
-  if (did === 'SYSTEM') return 'SYSTEM（系统）';
-  if (did === 'BURNED') return 'BURNED（已销毁）';
+  if (!did) {return '-';}
+  if (did === 'SYSTEM') {return 'SYSTEM（系统）';}
+  if (did === 'BURNED') {return 'BURNED（已销毁）';}
   return did.length > 20 ? `${did.slice(0, 10)}...${did.slice(-8)}` : did;
 };
 
 // 格式化哈希
 const formatHash = (hash) => {
-  if (!hash) return '-';
+  if (!hash) {return '-';}
   return hash.length > 20 ? `${hash.slice(0, 10)}...${hash.slice(-8)}` : hash;
 };
 
 // 格式化时间
 const formatTime = (timestamp) => {
-  if (!timestamp) return '-';
+  if (!timestamp) {return '-';}
   const date = new Date(timestamp);
   const now = new Date();
   const diff = now - date;

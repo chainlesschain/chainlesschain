@@ -57,16 +57,29 @@
     </a-alert>
 
     <!-- 对比模式切换 -->
-    <a-radio-group v-model:value="diffMode" button-style="solid" style="margin-bottom: 16px">
-      <a-radio-button value="split">分屏对比</a-radio-button>
-      <a-radio-button value="unified">统一对比</a-radio-button>
-      <a-radio-button value="inline">行内对比</a-radio-button>
+    <a-radio-group
+      v-model:value="diffMode"
+      button-style="solid"
+      style="margin-bottom: 16px"
+    >
+      <a-radio-button value="split">
+        分屏对比
+      </a-radio-button>
+      <a-radio-button value="unified">
+        统一对比
+      </a-radio-button>
+      <a-radio-button value="inline">
+        行内对比
+      </a-radio-button>
     </a-radio-group>
 
     <!-- 对比内容 -->
     <div class="diff-content">
       <!-- 分屏模式 -->
-      <div v-if="diffMode === 'split'" class="split-view">
+      <div
+        v-if="diffMode === 'split'"
+        class="split-view"
+      >
         <a-row :gutter="16">
           <a-col :span="12">
             <div class="diff-pane">
@@ -84,8 +97,15 @@
       </div>
 
       <!-- 统一模式 -->
-      <div v-else-if="diffMode === 'unified'" class="unified-view">
-        <div v-for="(change, index) in diffChanges" :key="index" class="diff-line">
+      <div
+        v-else-if="diffMode === 'unified'"
+        class="unified-view"
+      >
+        <div
+          v-for="(change, index) in diffChanges"
+          :key="index"
+          class="diff-line"
+        >
           <div
             :class="['line-content', `line-${change.type}`]"
             v-html="change.content"
@@ -94,8 +114,15 @@
       </div>
 
       <!-- 行内模式 -->
-      <div v-else class="inline-view">
-        <div v-for="(line, index) in inlineDiff" :key="index" class="inline-line">
+      <div
+        v-else
+        class="inline-view"
+      >
+        <div
+          v-for="(line, index) in inlineDiff"
+          :key="index"
+          class="inline-line"
+        >
           <span class="line-number">{{ index + 1 }}</span>
           <span
             :class="['line-text', line.changed ? 'line-changed' : '']"
@@ -217,8 +244,8 @@ function getDiffSummary() {
   }
 
   const parts = [];
-  if (addedLines > 0) parts.push(`+${addedLines} 行`);
-  if (deletedLines > 0) parts.push(`-${deletedLines} 行`);
+  if (addedLines > 0) {parts.push(`+${addedLines} 行`);}
+  if (deletedLines > 0) {parts.push(`-${deletedLines} 行`);}
 
   return `差异统计：${parts.join(', ')}`;
 }
@@ -227,7 +254,7 @@ function getDiffSummary() {
  * 获取用户名
  */
 function getUserName(did) {
-  if (!did) return '未知';
+  if (!did) {return '未知';}
   if (did.length > 20) {
     return `${did.slice(0, 10)}...${did.slice(-6)}`;
   }
@@ -238,7 +265,7 @@ function getUserName(did) {
  * 格式化日期
  */
 function formatDate(timestamp) {
-  if (!timestamp) return '-';
+  if (!timestamp) {return '-';}
   const date = new Date(timestamp);
   return date.toLocaleString('zh-CN');
 }

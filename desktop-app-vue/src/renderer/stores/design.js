@@ -133,7 +133,7 @@ export const useDesignStore = defineStore('design', () => {
    * 保存画板
    */
   async function saveArtboard(objects) {
-    if (!currentArtboard.value) return;
+    if (!currentArtboard.value) {return;}
 
     saving.value = true;
     try {

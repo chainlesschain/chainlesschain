@@ -1,31 +1,44 @@
 <template>
   <div class="skeleton-loader">
-    <div v-if="type === 'project-card'" class="skeleton-project-card">
+    <div
+      v-if="type === 'project-card'"
+      class="skeleton-project-card"
+    >
       <div class="skeleton-header">
-        <div class="skeleton-avatar shimmer"></div>
+        <div class="skeleton-avatar shimmer" />
         <div class="skeleton-title-group">
-          <div class="skeleton-title shimmer"></div>
-          <div class="skeleton-subtitle shimmer"></div>
+          <div class="skeleton-title shimmer" />
+          <div class="skeleton-subtitle shimmer" />
         </div>
       </div>
       <div class="skeleton-content">
-        <div class="skeleton-line shimmer"></div>
-        <div class="skeleton-line shimmer"></div>
-        <div class="skeleton-line short shimmer"></div>
+        <div class="skeleton-line shimmer" />
+        <div class="skeleton-line shimmer" />
+        <div class="skeleton-line short shimmer" />
       </div>
     </div>
-    <div v-else-if="type === 'project-list'" class="skeleton-project-list">
-      <div v-for="i in count" :key="i" class="skeleton-list-item">
-        <div class="skeleton-icon shimmer"></div>
+    <div
+      v-else-if="type === 'project-list'"
+      class="skeleton-project-list"
+    >
+      <div
+        v-for="i in count"
+        :key="i"
+        class="skeleton-list-item"
+      >
+        <div class="skeleton-icon shimmer" />
         <div class="skeleton-content-group">
-          <div class="skeleton-title shimmer"></div>
-          <div class="skeleton-meta shimmer"></div>
+          <div class="skeleton-title shimmer" />
+          <div class="skeleton-meta shimmer" />
         </div>
       </div>
     </div>
-    <div v-else class="skeleton-default">
-      <div class="skeleton-line shimmer"></div>
-      <div class="skeleton-line shimmer"></div>
+    <div
+      v-else
+      class="skeleton-default"
+    >
+      <div class="skeleton-line shimmer" />
+      <div class="skeleton-line shimmer" />
     </div>
   </div>
 </template>

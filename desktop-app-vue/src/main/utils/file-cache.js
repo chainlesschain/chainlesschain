@@ -309,9 +309,9 @@ class FileCacheManager {
 
     let invalidatedCount = 0;
     for (const key of keys) {
-      if (this.contentCache.delete(key)) invalidatedCount++;
-      if (this.metadataCache.delete(key)) invalidatedCount++;
-      if (this.parseCache.delete(key)) invalidatedCount++;
+      if (this.contentCache.delete(key)) {invalidatedCount++;}
+      if (this.metadataCache.delete(key)) {invalidatedCount++;}
+      if (this.parseCache.delete(key)) {invalidatedCount++;}
     }
 
     if (invalidatedCount > 0) {

@@ -26,9 +26,9 @@ class Shortcut {
   matches(event) {
     const pressedKeys = [];
 
-    if (event.ctrlKey || event.metaKey) pressedKeys.push('ctrl');
-    if (event.shiftKey) pressedKeys.push('shift');
-    if (event.altKey) pressedKeys.push('alt');
+    if (event.ctrlKey || event.metaKey) {pressedKeys.push('ctrl');}
+    if (event.shiftKey) {pressedKeys.push('shift');}
+    if (event.altKey) {pressedKeys.push('alt');}
 
     // 添加实际按键
     const key = event.key.toLowerCase();
@@ -48,7 +48,7 @@ class Shortcut {
    * 执行处理函数
    */
   execute(event) {
-    if (!this.enabled) return;
+    if (!this.enabled) {return;}
 
     if (this.preventDefault) {
       event.preventDefault();
@@ -140,7 +140,7 @@ class ShortcutManager {
    * 处理按键事件
    */
   handleKeyDown(event) {
-    if (!this.enabled.value) return;
+    if (!this.enabled.value) {return;}
 
     // 忽略输入框中的快捷键
     const target = event.target;

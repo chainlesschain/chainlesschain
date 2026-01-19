@@ -221,10 +221,10 @@ async function testPhase1RealTools() {
     const statusIcon = result.status === '通过' ? '✅' :
                       result.status === '跳过' ? '⏭️' : '❌';
     console.log(`${index + 1}. ${statusIcon} ${result.test} - ${result.status}`);
-    if (result.file) console.log(`   文件: ${result.file}`);
-    if (result.error) console.log(`   错误: ${result.error}`);
-    if (result.data) console.log(`   数据: ${result.data}`);
-    if (result.ratio) console.log(`   压缩率: ${result.ratio}`);
+    if (result.file) {console.log(`   文件: ${result.file}`);}
+    if (result.error) {console.log(`   错误: ${result.error}`);}
+    if (result.data) {console.log(`   数据: ${result.data}`);}
+    if (result.ratio) {console.log(`   压缩率: ${result.ratio}`);}
   });
 
   console.log('\n========================================');

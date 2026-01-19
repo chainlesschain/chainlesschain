@@ -3,8 +3,13 @@
     <a-spin :spinning="loading">
       <div class="tab-header">
         <a-space>
-          <a-button type="primary" @click="showCreateRoleModal">
-            <template #icon><PlusOutlined /></template>
+          <a-button
+            type="primary"
+            @click="showCreateRoleModal"
+          >
+            <template #icon>
+              <PlusOutlined />
+            </template>
             创建角色
           </a-button>
           <a-input-search
@@ -32,7 +37,10 @@
 
           <template v-else-if="column.key === 'permissions'">
             <a-space wrap>
-              <a-tag v-for="perm in record.permissions.slice(0, 3)" :key="perm">
+              <a-tag
+                v-for="perm in record.permissions.slice(0, 3)"
+                :key="perm"
+              >
                 {{ perm }}
               </a-tag>
               <a-tag v-if="record.permissions.length > 3">
@@ -42,22 +50,37 @@
           </template>
 
           <template v-else-if="column.key === 'memberCount'">
-            <a-badge :count="record.memberCount" :number-style="{ backgroundColor: '#52c41a' }" />
+            <a-badge
+              :count="record.memberCount"
+              :number-style="{ backgroundColor: '#52c41a' }"
+            />
           </template>
 
           <template v-else-if="column.key === 'actions'">
             <a-space>
-              <a-button type="link" size="small" @click="handleEditRole(record)">
+              <a-button
+                type="link"
+                size="small"
+                @click="handleEditRole(record)"
+              >
                 编辑
               </a-button>
-              <a-button type="link" size="small" @click="handleViewMembers(record)">
+              <a-button
+                type="link"
+                size="small"
+                @click="handleViewMembers(record)"
+              >
                 成员
               </a-button>
               <a-popconfirm
                 title="确定要删除此角色吗?"
                 @confirm="handleDeleteRole(record.roleName)"
               >
-                <a-button type="link" danger size="small">
+                <a-button
+                  type="link"
+                  danger
+                  size="small"
+                >
                   删除
                 </a-button>
               </a-popconfirm>
@@ -74,16 +97,34 @@
       width="600px"
       @ok="handleRoleSubmit"
     >
-      <a-form :model="roleForm" :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
-        <a-form-item label="角色名称" required>
-          <a-input v-model:value="roleForm.roleName" placeholder="输入角色名称" :disabled="!!editingRole" />
+      <a-form
+        :model="roleForm"
+        :label-col="{ span: 6 }"
+        :wrapper-col="{ span: 18 }"
+      >
+        <a-form-item
+          label="角色名称"
+          required
+        >
+          <a-input
+            v-model:value="roleForm.roleName"
+            placeholder="输入角色名称"
+            :disabled="!!editingRole"
+          />
         </a-form-item>
 
         <a-form-item label="角色描述">
-          <a-textarea v-model:value="roleForm.description" placeholder="输入角色描述" :rows="3" />
+          <a-textarea
+            v-model:value="roleForm.description"
+            placeholder="输入角色描述"
+            :rows="3"
+          />
         </a-form-item>
 
-        <a-form-item label="权限列表" required>
+        <a-form-item
+          label="权限列表"
+          required
+        >
           <a-select
             v-model:value="roleForm.permissions"
             mode="multiple"
@@ -91,40 +132,84 @@
             style="width: 100%"
           >
             <a-select-opt-group label="组织管理">
-              <a-select-option value="org.view">查看组织</a-select-option>
-              <a-select-option value="org.edit">编辑组织</a-select-option>
-              <a-select-option value="org.settings">组织设置</a-select-option>
-              <a-select-option value="org.manage">管理组织</a-select-option>
+              <a-select-option value="org.view">
+                查看组织
+              </a-select-option>
+              <a-select-option value="org.edit">
+                编辑组织
+              </a-select-option>
+              <a-select-option value="org.settings">
+                组织设置
+              </a-select-option>
+              <a-select-option value="org.manage">
+                管理组织
+              </a-select-option>
             </a-select-opt-group>
 
             <a-select-opt-group label="成员管理">
-              <a-select-option value="member.view">查看成员</a-select-option>
-              <a-select-option value="member.add">添加成员</a-select-option>
-              <a-select-option value="member.remove">移除成员</a-select-option>
-              <a-select-option value="member.edit">编辑成员</a-select-option>
-              <a-select-option value="member.manage">管理成员</a-select-option>
+              <a-select-option value="member.view">
+                查看成员
+              </a-select-option>
+              <a-select-option value="member.add">
+                添加成员
+              </a-select-option>
+              <a-select-option value="member.remove">
+                移除成员
+              </a-select-option>
+              <a-select-option value="member.edit">
+                编辑成员
+              </a-select-option>
+              <a-select-option value="member.manage">
+                管理成员
+              </a-select-option>
             </a-select-opt-group>
 
             <a-select-opt-group label="知识库">
-              <a-select-option value="knowledge.view">查看知识库</a-select-option>
-              <a-select-option value="knowledge.create">创建内容</a-select-option>
-              <a-select-option value="knowledge.edit">编辑内容</a-select-option>
-              <a-select-option value="knowledge.delete">删除内容</a-select-option>
-              <a-select-option value="knowledge.share">分享内容</a-select-option>
-              <a-select-option value="knowledge.comment">评论内容</a-select-option>
-              <a-select-option value="knowledge.manage">管理知识库</a-select-option>
+              <a-select-option value="knowledge.view">
+                查看知识库
+              </a-select-option>
+              <a-select-option value="knowledge.create">
+                创建内容
+              </a-select-option>
+              <a-select-option value="knowledge.edit">
+                编辑内容
+              </a-select-option>
+              <a-select-option value="knowledge.delete">
+                删除内容
+              </a-select-option>
+              <a-select-option value="knowledge.share">
+                分享内容
+              </a-select-option>
+              <a-select-option value="knowledge.comment">
+                评论内容
+              </a-select-option>
+              <a-select-option value="knowledge.manage">
+                管理知识库
+              </a-select-option>
             </a-select-opt-group>
 
             <a-select-opt-group label="项目管理">
-              <a-select-option value="project.view">查看项目</a-select-option>
-              <a-select-option value="project.create">创建项目</a-select-option>
-              <a-select-option value="project.edit">编辑项目</a-select-option>
-              <a-select-option value="project.delete">删除项目</a-select-option>
-              <a-select-option value="project.manage">管理项目</a-select-option>
+              <a-select-option value="project.view">
+                查看项目
+              </a-select-option>
+              <a-select-option value="project.create">
+                创建项目
+              </a-select-option>
+              <a-select-option value="project.edit">
+                编辑项目
+              </a-select-option>
+              <a-select-option value="project.delete">
+                删除项目
+              </a-select-option>
+              <a-select-option value="project.manage">
+                管理项目
+              </a-select-option>
             </a-select-opt-group>
 
             <a-select-opt-group label="特殊权限">
-              <a-select-option value="*">所有权限</a-select-option>
+              <a-select-option value="*">
+                所有权限
+              </a-select-option>
             </a-select-opt-group>
           </a-select>
         </a-form-item>
@@ -150,7 +235,11 @@
               title="确定要移除此成员吗?"
               @confirm="handleRemoveMember(record.memberDID)"
             >
-              <a-button type="link" danger size="small">
+              <a-button
+                type="link"
+                danger
+                size="small"
+              >
                 移除
               </a-button>
             </a-popconfirm>
@@ -262,7 +351,7 @@ export default defineComponent({
     };
 
     const filteredRoles = computed(() => {
-      if (!searchText.value) return roles.value;
+      if (!searchText.value) {return roles.value;}
       return roles.value.filter(role =>
         role.roleName.toLowerCase().includes(searchText.value.toLowerCase()) ||
         role.description?.toLowerCase().includes(searchText.value.toLowerCase())

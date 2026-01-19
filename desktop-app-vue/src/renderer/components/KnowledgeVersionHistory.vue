@@ -7,8 +7,18 @@
         版本历史
       </h3>
       <a-space>
-        <a-button @click="emit('close')" size="small">关闭</a-button>
-        <a-button type="primary" @click="handleRefresh" size="small" :loading="loading">
+        <a-button
+          size="small"
+          @click="emit('close')"
+        >
+          关闭
+        </a-button>
+        <a-button
+          type="primary"
+          size="small"
+          :loading="loading"
+          @click="handleRefresh"
+        >
           <ReloadOutlined />
           刷新
         </a-button>
@@ -31,7 +41,10 @@
               />
             </template>
 
-            <a-card size="small" class="version-card">
+            <a-card
+              size="small"
+              class="version-card"
+            >
               <!-- 版本头部 -->
               <div class="version-header">
                 <div class="version-info">
@@ -49,19 +62,25 @@
                   </a-button>
                   <template #overlay>
                     <a-menu>
-                      <a-menu-item key="view" @click="handleViewVersion(version)">
+                      <a-menu-item
+                        key="view"
+                        @click="handleViewVersion(version)"
+                      >
                         <EyeOutlined />
                         查看此版本
                       </a-menu-item>
-                      <a-menu-item key="compare" @click="handleCompareVersion(version)">
+                      <a-menu-item
+                        key="compare"
+                        @click="handleCompareVersion(version)"
+                      >
                         <DiffOutlined />
                         与当前版本对比
                       </a-menu-item>
                       <a-menu-divider />
                       <a-menu-item
                         key="restore"
-                        @click="handleRestoreVersion(version)"
                         style="color: #ff4d4f"
+                        @click="handleRestoreVersion(version)"
                       >
                         <RollbackOutlined />
                         恢复到此版本
@@ -77,24 +96,33 @@
                   <UserOutlined />
                   <span>更新者：{{ getUserName(version.updated_by) }}</span>
                 </div>
-                <div v-if="version.git_commit_hash" class="detail-item">
+                <div
+                  v-if="version.git_commit_hash"
+                  class="detail-item"
+                >
                   <BranchesOutlined />
                   <span>提交：{{ shortenHash(version.git_commit_hash) }}</span>
                 </div>
-                <div v-if="version.cid" class="detail-item">
+                <div
+                  v-if="version.cid"
+                  class="detail-item"
+                >
                   <LinkOutlined />
                   <span>CID：{{ shortenCID(version.cid) }}</span>
                   <a-tooltip title="复制CID">
                     <CopyOutlined
-                      @click="copyToClipboard(version.cid)"
                       style="margin-left: 8px; cursor: pointer"
+                      @click="copyToClipboard(version.cid)"
                     />
                   </a-tooltip>
                 </div>
               </div>
 
               <!-- 内容预览 -->
-              <div v-if="expandedVersions.includes(version.id)" class="version-content">
+              <div
+                v-if="expandedVersions.includes(version.id)"
+                class="version-content"
+              >
                 <a-divider style="margin: 12px 0" />
                 <div class="content-preview">
                   <h4>内容预览：</h4>
@@ -108,8 +136,8 @@
               <a-button
                 type="link"
                 size="small"
-                @click="toggleVersionExpand(version.id)"
                 style="margin-top: 8px; padding: 0"
+                @click="toggleVersionExpand(version.id)"
               >
                 {{ expandedVersions.includes(version.id) ? '收起' : '展开内容预览' }}
                 <component
@@ -120,7 +148,10 @@
           </a-timeline-item>
         </a-timeline>
 
-        <a-empty v-else description="暂无版本历史" />
+        <a-empty
+          v-else
+          description="暂无版本历史"
+        />
       </a-spin>
     </div>
 
@@ -145,8 +176,14 @@
       width="800px"
       :footer="null"
     >
-      <div v-if="viewVersion" class="version-view">
-        <a-descriptions :column="1" bordered>
+      <div
+        v-if="viewVersion"
+        class="version-view"
+      >
+        <a-descriptions
+          :column="1"
+          bordered
+        >
           <a-descriptions-item label="版本号">
             v{{ viewVersion.version }}
           </a-descriptions-item>
@@ -156,10 +193,16 @@
           <a-descriptions-item label="更新者">
             {{ getUserName(viewVersion.updated_by) }}
           </a-descriptions-item>
-          <a-descriptions-item v-if="viewVersion.git_commit_hash" label="Git提交">
+          <a-descriptions-item
+            v-if="viewVersion.git_commit_hash"
+            label="Git提交"
+          >
             {{ viewVersion.git_commit_hash }}
           </a-descriptions-item>
-          <a-descriptions-item v-if="viewVersion.cid" label="CID">
+          <a-descriptions-item
+            v-if="viewVersion.cid"
+            label="CID"
+          >
             {{ viewVersion.cid }}
           </a-descriptions-item>
         </a-descriptions>
@@ -320,7 +363,7 @@ function toggleVersionExpand(versionId) {
  * 获取版本颜色
  */
 function getVersionColor(version, index) {
-  if (index === 0) return 'blue'; // 当前版本
+  if (index === 0) {return 'blue';} // 当前版本
   return 'gray';
 }
 
@@ -328,7 +371,7 @@ function getVersionColor(version, index) {
  * 获取版本图标
  */
 function getVersionIcon(version, index) {
-  if (index === 0) return CheckCircleOutlined; // 当前版本
+  if (index === 0) {return CheckCircleOutlined;} // 当前版本
   return ClockCircleOutlined;
 }
 
@@ -336,7 +379,7 @@ function getVersionIcon(version, index) {
  * 获取用户名
  */
 function getUserName(did) {
-  if (!did) return '未知';
+  if (!did) {return '未知';}
   // 缩短DID显示
   if (did.length > 20) {
     return `${did.slice(0, 10)}...${did.slice(-6)}`;
@@ -348,7 +391,7 @@ function getUserName(did) {
  * 缩短哈希值
  */
 function shortenHash(hash) {
-  if (!hash) return '';
+  if (!hash) {return '';}
   return hash.length > 12 ? `${hash.slice(0, 12)}...` : hash;
 }
 
@@ -356,7 +399,7 @@ function shortenHash(hash) {
  * 缩短CID
  */
 function shortenCID(cid) {
-  if (!cid) return '';
+  if (!cid) {return '';}
   return cid.length > 20 ? `${cid.slice(0, 10)}...${cid.slice(-10)}` : cid;
 }
 
@@ -364,7 +407,7 @@ function shortenCID(cid) {
  * 获取内容预览
  */
 function getContentPreview(content) {
-  if (!content) return '暂无内容';
+  if (!content) {return '暂无内容';}
   const text = content.replace(/<[^>]*>/g, '').trim();
   return text.length > 200 ? text.substring(0, 200) + '...' : text;
 }
@@ -381,7 +424,7 @@ function copyToClipboard(text) {
  * 格式化日期
  */
 function formatDate(timestamp) {
-  if (!timestamp) return '-';
+  if (!timestamp) {return '-';}
   const date = new Date(timestamp);
   return date.toLocaleString('zh-CN', {
     year: 'numeric',

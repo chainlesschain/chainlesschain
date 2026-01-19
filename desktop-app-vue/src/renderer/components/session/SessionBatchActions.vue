@@ -1,11 +1,18 @@
 <template>
   <transition name="slide-up">
-    <div v-if="selectedCount > 0" class="batch-actions-bar">
+    <div
+      v-if="selectedCount > 0"
+      class="batch-actions-bar"
+    >
       <div class="bar-content">
         <div class="selection-info">
           <CheckCircleOutlined />
           <span>已选择 {{ selectedCount }} 个会话</span>
-          <a-button type="link" size="small" @click="$emit('clear-selection')">
+          <a-button
+            type="link"
+            size="small"
+            @click="$emit('clear-selection')"
+          >
             清空选择
           </a-button>
         </div>
@@ -25,7 +32,10 @@
             </a-tooltip>
 
             <a-tooltip title="批量删除">
-              <a-button danger @click="$emit('delete')">
+              <a-button
+                danger
+                @click="$emit('delete')"
+              >
                 <DeleteOutlined /> 删除
               </a-button>
             </a-tooltip>

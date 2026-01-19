@@ -1,6 +1,9 @@
 <template>
   <transition name="slide-fade">
-    <a-card v-if="visible" class="welcome-card">
+    <a-card
+      v-if="visible"
+      class="welcome-card"
+    >
       <div class="welcome-content">
         <div class="welcome-header">
           <div class="welcome-icon">
@@ -13,8 +16,8 @@
           <a-button
             type="text"
             class="dismiss-btn"
-            @click="$emit('dismiss')"
             aria-label="关闭引导"
+            @click="$emit('dismiss')"
           >
             <CloseOutlined />
           </a-button>
@@ -44,22 +47,28 @@
         <div class="welcome-actions">
           <div class="action-text">
             <InfoCircleOutlined />
-            <span
-              >开始使用 AI 聊天功能后，数据将自动记录并显示在此仪表板中</span
-            >
+            <span>开始使用 AI 聊天功能后，数据将自动记录并显示在此仪表板中</span>
           </div>
           <div class="action-buttons">
-            <a-button type="primary" size="large" @click="$emit('go-to-chat')">
-              <template #icon><PlayCircleOutlined /></template>
+            <a-button
+              type="primary"
+              size="large"
+              @click="$emit('go-to-chat')"
+            >
+              <template #icon>
+                <PlayCircleOutlined />
+              </template>
               开始 AI 对话
             </a-button>
             <a-tooltip title="生成示例数据以预览仪表板功能（仅用于演示）">
               <a-button
                 size="large"
-                @click="$emit('generate-data')"
                 :loading="generatingData"
+                @click="$emit('generate-data')"
               >
-                <template #icon><ExperimentOutlined /></template>
+                <template #icon>
+                  <ExperimentOutlined />
+                </template>
                 {{ generatingData ? "生成中..." : "生成示例数据" }}
               </a-button>
             </a-tooltip>

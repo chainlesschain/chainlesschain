@@ -3,8 +3,13 @@
     <!-- 任务标题和进度 -->
     <div class="task-header">
       <div class="task-title-row">
-        <h3 class="task-title">{{ taskPlan.task_title }}</h3>
-        <a-tag :color="getStatusColor(taskPlan.status)" class="status-tag">
+        <h3 class="task-title">
+          {{ taskPlan.task_title }}
+        </h3>
+        <a-tag
+          :color="getStatusColor(taskPlan.status)"
+          class="status-tag"
+        >
           {{ getStatusText(taskPlan.status) }}
         </a-tag>
       </div>
@@ -17,7 +22,10 @@
         />
         <div class="progress-info">
           <span class="step-counter">步骤 {{ taskPlan.current_step }}/{{ taskPlan.total_steps }}</span>
-          <span class="duration" v-if="duration">{{ duration }}</span>
+          <span
+            v-if="duration"
+            class="duration"
+          >{{ duration }}</span>
         </div>
       </div>
     </div>
@@ -32,27 +40,50 @@
 
         <!-- 步骤折叠面板 -->
         <div class="steps-collapse-panel">
-          <div class="steps-header" @click="toggleAllSteps">
+          <div
+            class="steps-header"
+            @click="toggleAllSteps"
+          >
             <CaretRightOutlined :class="['collapse-icon', { expanded: allStepsExpanded }]" />
             <span class="steps-count">{{ taskPlan.total_steps || taskPlan.subtasks?.length || 0 }}个步骤</span>
           </div>
 
           <!-- 展开后的步骤列表 -->
           <transition name="slide">
-            <div v-show="allStepsExpanded" class="steps-list">
+            <div
+              v-show="allStepsExpanded"
+              class="steps-list"
+            >
               <div
                 v-for="subtask in taskPlan.subtasks"
                 :key="subtask.id"
                 :class="['step-item', `status-${subtask.status}`]"
               >
                 <div class="step-icon">
-                  <CheckCircleOutlined v-if="subtask.status === 'completed'" style="color: #52c41a;" />
-                  <LoadingOutlined v-else-if="subtask.status === 'in_progress'" spin style="color: #1677FF;" />
-                  <ClockCircleOutlined v-else style="color: #d9d9d9;" />
+                  <CheckCircleOutlined
+                    v-if="subtask.status === 'completed'"
+                    style="color: #52c41a;"
+                  />
+                  <LoadingOutlined
+                    v-else-if="subtask.status === 'in_progress'"
+                    spin
+                    style="color: #1677FF;"
+                  />
+                  <ClockCircleOutlined
+                    v-else
+                    style="color: #d9d9d9;"
+                  />
                 </div>
                 <div class="step-content">
-                  <div class="step-title">{{ subtask.title }}</div>
-                  <div class="step-description" v-if="subtask.description">{{ subtask.description }}</div>
+                  <div class="step-title">
+                    {{ subtask.title }}
+                  </div>
+                  <div
+                    v-if="subtask.description"
+                    class="step-description"
+                  >
+                    {{ subtask.description }}
+                  </div>
                 </div>
               </div>
             </div>
@@ -60,7 +91,10 @@
         </div>
 
         <!-- 附件文件展示 -->
-        <div class="attachments-section" v-if="completedFiles.length > 0">
+        <div
+          v-if="completedFiles.length > 0"
+          class="attachments-section"
+        >
           <div
             v-for="file in completedFiles"
             :key="file.path"
@@ -68,14 +102,28 @@
             @click="handleFileClick(file.path, file.subtask)"
           >
             <div class="file-icon-wrapper">
-              <FileIcon :filename="file.name" size="large" />
+              <FileIcon
+                :filename="file.name"
+                size="large"
+              />
             </div>
             <div class="file-info">
-              <div class="file-name">{{ file.name }}</div>
-              <div class="file-hint" v-if="file.hint">{{ file.hint }}</div>
+              <div class="file-name">
+                {{ file.name }}
+              </div>
+              <div
+                v-if="file.hint"
+                class="file-hint"
+              >
+                {{ file.hint }}
+              </div>
             </div>
             <div class="file-actions">
-              <a-button type="text" size="small" @click.stop="handleContinueEdit(file)">
+              <a-button
+                type="text"
+                size="small"
+                @click.stop="handleContinueEdit(file)"
+              >
                 根据这个来改
               </a-button>
             </div>
@@ -84,8 +132,13 @@
       </div>
 
       <!-- AI建议的后续问题 -->
-      <div class="ai-suggestions" v-if="suggestedQuestions.length > 0">
-        <div class="suggestions-label">对第1页进行变更：</div>
+      <div
+        v-if="suggestedQuestions.length > 0"
+        class="ai-suggestions"
+      >
+        <div class="suggestions-label">
+          对第1页进行变更：
+        </div>
         <div class="suggestions-list">
           <div
             v-for="(question, index) in suggestedQuestions"
@@ -100,14 +153,20 @@
     </div>
 
     <!-- 原有的子任务列表（可选，用于详细调试） -->
-    <div class="subtasks-container" v-if="showDetailedView">
+    <div
+      v-if="showDetailedView"
+      class="subtasks-container"
+    >
       <div
         v-for="subtask in taskPlan.subtasks"
         :key="subtask.id"
         :class="['subtask-item', `status-${subtask.status}`]"
       >
         <!-- 子任务头部 -->
-        <div class="subtask-header" @click="toggleSubtask(subtask.id)">
+        <div
+          class="subtask-header"
+          @click="toggleSubtask(subtask.id)"
+        >
           <div class="subtask-left">
             <a-badge
               :status="getBadgeStatus(subtask.status)"
@@ -117,7 +176,10 @@
           </div>
 
           <div class="subtask-right">
-            <span class="subtask-tool" v-if="subtask.tool">
+            <span
+              v-if="subtask.tool"
+              class="subtask-tool"
+            >
               <ToolOutlined /> {{ getToolLabel(subtask.tool) }}
             </span>
             <CaretDownOutlined
@@ -128,14 +190,23 @@
 
         <!-- 子任务详情（可展开） -->
         <transition name="slide">
-          <div v-show="expandedSubtasks.has(subtask.id)" class="subtask-details">
+          <div
+            v-show="expandedSubtasks.has(subtask.id)"
+            class="subtask-details"
+          >
             <!-- 描述 -->
-            <div class="subtask-description" v-if="subtask.description">
+            <div
+              v-if="subtask.description"
+              class="subtask-description"
+            >
               {{ subtask.description }}
             </div>
 
             <!-- 执行中的命令 -->
-            <div v-if="subtask.status === 'in_progress' && subtask.command" class="executing-command">
+            <div
+              v-if="subtask.status === 'in_progress' && subtask.command"
+              class="executing-command"
+            >
               <div class="command-label">
                 <LoadingOutlined spin /> 正在执行
               </div>
@@ -144,8 +215,8 @@
                 <a-button
                   size="small"
                   type="text"
-                  @click="copyCommand(subtask.command)"
                   class="copy-btn"
+                  @click="copyCommand(subtask.command)"
                 >
                   <CopyOutlined />
                 </a-button>
@@ -153,7 +224,10 @@
             </div>
 
             <!-- 完成后的结果文件 -->
-            <div v-if="subtask.status === 'completed' && subtask.output_files?.length" class="output-files">
+            <div
+              v-if="subtask.status === 'completed' && subtask.output_files?.length"
+              class="output-files"
+            >
               <div class="output-label">
                 <CheckCircleOutlined style="color: #52c41a;" /> 输出文件
               </div>
@@ -172,8 +246,13 @@
             </div>
 
             <!-- 执行结果 -->
-            <div v-if="subtask.result && subtask.status === 'completed'" class="subtask-result">
-              <div class="result-label">执行结果</div>
+            <div
+              v-if="subtask.result && subtask.status === 'completed'"
+              class="subtask-result"
+            >
+              <div class="result-label">
+                执行结果
+              </div>
               <div class="result-content">
                 <template v-if="typeof subtask.result === 'string'">
                   {{ subtask.result }}
@@ -188,13 +267,19 @@
             </div>
 
             <!-- 错误信息 -->
-            <div v-if="subtask.status === 'failed' && subtask.error" class="subtask-error">
+            <div
+              v-if="subtask.status === 'failed' && subtask.error"
+              class="subtask-error"
+            >
               <CloseCircleOutlined style="color: #ff4d4f;" />
               <span class="error-message">{{ subtask.error }}</span>
             </div>
 
             <!-- 时间信息 -->
-            <div class="subtask-time" v-if="subtask.started_at">
+            <div
+              v-if="subtask.started_at"
+              class="subtask-time"
+            >
               <ClockCircleOutlined />
               <span v-if="subtask.completed_at">
                 耗时: {{ formatDuration(subtask.completed_at - subtask.started_at) }}
@@ -209,7 +294,10 @@
     </div>
 
     <!-- 底部操作栏 -->
-    <div class="task-footer" v-if="showActions">
+    <div
+      v-if="showActions"
+      class="task-footer"
+    >
       <a-space>
         <a-button
           v-if="taskPlan.status === 'in_progress'"
@@ -343,7 +431,7 @@ const handleSuggestionClick = (question) => {
 
 // 计算持续时间
 const duration = computed(() => {
-  if (!props.taskPlan.started_at) return null;
+  if (!props.taskPlan.started_at) {return null;}
 
   const endTime = props.taskPlan.completed_at || Date.now();
   const ms = endTime - props.taskPlan.started_at;
@@ -401,9 +489,9 @@ const getStatusText = (status) => {
 
 // 获取进度条状态
 const getProgressStatus = (status) => {
-  if (status === 'completed') return 'success';
-  if (status === 'failed') return 'exception';
-  if (status === 'in_progress') return 'active';
+  if (status === 'completed') {return 'success';}
+  if (status === 'failed') {return 'exception';}
+  if (status === 'in_progress') {return 'active';}
   return 'normal';
 };
 

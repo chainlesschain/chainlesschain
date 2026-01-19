@@ -1,36 +1,68 @@
 <template>
-  <div class="performance-monitor" :class="{ collapsed: isCollapsed }">
+  <div
+    class="performance-monitor"
+    :class="{ collapsed: isCollapsed }"
+  >
     <!-- 切换按钮 -->
-    <div class="monitor-header" @click="toggleCollapse">
+    <div
+      class="monitor-header"
+      @click="toggleCollapse"
+    >
       <DashboardOutlined class="monitor-icon" />
       <span class="monitor-title">性能监控</span>
-      <UpOutlined v-if="!isCollapsed" class="toggle-icon" />
-      <DownOutlined v-else class="toggle-icon" />
+      <UpOutlined
+        v-if="!isCollapsed"
+        class="toggle-icon"
+      />
+      <DownOutlined
+        v-else
+        class="toggle-icon"
+      />
     </div>
 
     <!-- 监控内容 -->
-    <div v-if="!isCollapsed" class="monitor-content">
+    <div
+      v-if="!isCollapsed"
+      class="monitor-content"
+    >
       <!-- 总览 -->
       <div class="monitor-section">
         <h4>📊 总体性能</h4>
         <div class="stat-grid">
           <div class="stat-item">
-            <div class="stat-label">FPS</div>
-            <div class="stat-value" :class="getFPSClass(overallStats.fps)">
+            <div class="stat-label">
+              FPS
+            </div>
+            <div
+              class="stat-value"
+              :class="getFPSClass(overallStats.fps)"
+            >
               {{ overallStats.fps }}
             </div>
           </div>
           <div class="stat-item">
-            <div class="stat-label">内存</div>
-            <div class="stat-value">{{ overallStats.memoryMB }} MB</div>
+            <div class="stat-label">
+              内存
+            </div>
+            <div class="stat-value">
+              {{ overallStats.memoryMB }} MB
+            </div>
           </div>
           <div class="stat-item">
-            <div class="stat-label">加载时间</div>
-            <div class="stat-value">{{ overallStats.loadTime }} ms</div>
+            <div class="stat-label">
+              加载时间
+            </div>
+            <div class="stat-value">
+              {{ overallStats.loadTime }} ms
+            </div>
           </div>
           <div class="stat-item">
-            <div class="stat-label">节省带宽</div>
-            <div class="stat-value success">{{ overallStats.bandwidthSavedMB }} MB</div>
+            <div class="stat-label">
+              节省带宽
+            </div>
+            <div class="stat-value success">
+              {{ overallStats.bandwidthSavedMB }} MB
+            </div>
           </div>
         </div>
       </div>
@@ -245,15 +277,24 @@
 
       <!-- 操作按钮 -->
       <div class="monitor-actions">
-        <a-button size="small" @click="refreshStats">
+        <a-button
+          size="small"
+          @click="refreshStats"
+        >
           <ReloadOutlined />
           刷新
         </a-button>
-        <a-button size="small" @click="resetStats">
+        <a-button
+          size="small"
+          @click="resetStats"
+        >
           <ClearOutlined />
           重置统计
         </a-button>
-        <a-button size="small" @click="exportStats">
+        <a-button
+          size="small"
+          @click="exportStats"
+        >
           <DownloadOutlined />
           导出
         </a-button>
@@ -371,8 +412,8 @@ const toggleCollapse = () => {
  * Get FPS class
  */
 const getFPSClass = (fps) => {
-  if (fps >= 55) return 'success'
-  if (fps >= 30) return 'warning'
+  if (fps >= 55) {return 'success'}
+  if (fps >= 30) {return 'warning'}
   return 'error'
 }
 

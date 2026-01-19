@@ -365,7 +365,7 @@ class FileTransferManager extends EventEmitter {
       }
     }
 
-    if (missingChunks.length === 0) return;
+    if (missingChunks.length === 0) {return;}
 
     console.log(`[FileTransfer] 请求 ${missingChunks.length} 个缺失分块`);
 

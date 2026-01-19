@@ -2,15 +2,32 @@
   <div class="system-message">
     <div class="system-icon">
       <InfoCircleOutlined v-if="messageType === 'info'" />
-      <CheckCircleOutlined v-else-if="messageType === 'success'" style="color: #52c41a;" />
-      <ExclamationCircleOutlined v-else-if="messageType === 'warning'" style="color: #faad14;" />
-      <CloseCircleOutlined v-else-if="messageType === 'error'" style="color: #ff4d4f;" />
-      <LoadingOutlined v-else-if="messageType === 'loading'" spin />
+      <CheckCircleOutlined
+        v-else-if="messageType === 'success'"
+        style="color: #52c41a;"
+      />
+      <ExclamationCircleOutlined
+        v-else-if="messageType === 'warning'"
+        style="color: #faad14;"
+      />
+      <CloseCircleOutlined
+        v-else-if="messageType === 'error'"
+        style="color: #ff4d4f;"
+      />
+      <LoadingOutlined
+        v-else-if="messageType === 'loading'"
+        spin
+      />
       <InfoCircleOutlined v-else />
     </div>
     <div class="system-content">
-      <div class="system-text">{{ message.content }}</div>
-      <div v-if="message.metadata?.detail" class="system-detail">
+      <div class="system-text">
+        {{ message.content }}
+      </div>
+      <div
+        v-if="message.metadata?.detail"
+        class="system-detail"
+      >
         {{ message.metadata.detail }}
       </div>
     </div>

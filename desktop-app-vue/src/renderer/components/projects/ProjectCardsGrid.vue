@@ -18,25 +18,45 @@
     </div>
 
     <!-- 空状态 -->
-    <div v-if="projects.length === 0 && !loading" class="empty-state">
+    <div
+      v-if="projects.length === 0 && !loading"
+      class="empty-state"
+    >
       <div class="empty-icon">
         <InboxOutlined />
       </div>
-      <h3 class="empty-title">{{ emptyTitle }}</h3>
-      <p class="empty-description">{{ emptyDescription }}</p>
-      <a-button v-if="showCreateButton" type="primary" @click="handleCreate">
+      <h3 class="empty-title">
+        {{ emptyTitle }}
+      </h3>
+      <p class="empty-description">
+        {{ emptyDescription }}
+      </p>
+      <a-button
+        v-if="showCreateButton"
+        type="primary"
+        @click="handleCreate"
+      >
         <PlusOutlined />
         {{ createButtonText }}
       </a-button>
     </div>
 
     <!-- 加载状态 -->
-    <div v-if="loading" class="loading-state">
-      <a-spin size="large" :tip="loadingText" />
+    <div
+      v-if="loading"
+      class="loading-state"
+    >
+      <a-spin
+        size="large"
+        :tip="loadingText"
+      />
     </div>
 
     <!-- 分页 -->
-    <div v-if="showPagination && totalProjects > pageSize" class="pagination-wrapper">
+    <div
+      v-if="showPagination && totalProjects > pageSize"
+      class="pagination-wrapper"
+    >
       <a-pagination
         v-model:current="currentPage"
         v-model:page-size="currentPageSize"

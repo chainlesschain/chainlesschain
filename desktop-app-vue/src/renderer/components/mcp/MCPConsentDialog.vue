@@ -4,7 +4,7 @@
     title="MCP 安全确认"
     width="600px"
     :closable="false"
-    :maskClosable="false"
+    :mask-closable="false"
     :keyboard="false"
     centered
   >
@@ -24,33 +24,55 @@
       </a-alert>
 
       <!-- 操作详情 -->
-      <a-descriptions bordered :column="1" size="small">
+      <a-descriptions
+        bordered
+        :column="1"
+        size="small"
+      >
         <a-descriptions-item label="服务器">
-          <a-tag :color="serverSecurityColor">{{ serverName }}</a-tag>
+          <a-tag :color="serverSecurityColor">
+            {{ serverName }}
+          </a-tag>
         </a-descriptions-item>
         <a-descriptions-item label="工具">
           <code>{{ toolName }}</code>
         </a-descriptions-item>
         <a-descriptions-item label="操作类型">
-          <a-tag :color="operationColor">{{ operationLabel }}</a-tag>
+          <a-tag :color="operationColor">
+            {{ operationLabel }}
+          </a-tag>
         </a-descriptions-item>
-        <a-descriptions-item v-if="targetPath" label="目标路径">
+        <a-descriptions-item
+          v-if="targetPath"
+          label="目标路径"
+        >
           <code class="path-display">{{ targetPath }}</code>
         </a-descriptions-item>
         <a-descriptions-item label="风险级别">
-          <a-tag :color="riskColor">{{ riskLabel }}</a-tag>
+          <a-tag :color="riskColor">
+            {{ riskLabel }}
+          </a-tag>
         </a-descriptions-item>
       </a-descriptions>
 
       <!-- 参数详情（可展开） -->
-      <a-collapse v-if="hasParams" style="margin-top: 16px">
-        <a-collapse-panel key="params" header="查看详细参数">
+      <a-collapse
+        v-if="hasParams"
+        style="margin-top: 16px"
+      >
+        <a-collapse-panel
+          key="params"
+          header="查看详细参数"
+        >
           <pre class="params-display">{{ formattedParams }}</pre>
         </a-collapse-panel>
       </a-collapse>
 
       <!-- 记住选择 -->
-      <div class="remember-section" style="margin-top: 16px">
+      <div
+        class="remember-section"
+        style="margin-top: 16px"
+      >
         <a-checkbox v-model:checked="rememberChoice">
           记住此选择（同一操作不再询问）
         </a-checkbox>
@@ -59,20 +81,31 @@
 
     <template #footer>
       <div class="footer-actions">
-        <a-button @click="handleDeny" :loading="loading">
+        <a-button
+          :loading="loading"
+          @click="handleDeny"
+        >
           <CloseOutlined /> 拒绝
         </a-button>
-        <a-button @click="handleAlwaysDeny" danger :loading="loading">
+        <a-button
+          danger
+          :loading="loading"
+          @click="handleAlwaysDeny"
+        >
           <StopOutlined /> 始终拒绝
         </a-button>
-        <a-button type="primary" @click="handleAllow" :loading="loading">
+        <a-button
+          type="primary"
+          :loading="loading"
+          @click="handleAllow"
+        >
           <CheckOutlined /> 允许
         </a-button>
         <a-button
           type="primary"
-          @click="handleAlwaysAllow"
           :loading="loading"
           ghost
+          @click="handleAlwaysAllow"
         >
           <SafetyOutlined /> 始终允许
         </a-button>

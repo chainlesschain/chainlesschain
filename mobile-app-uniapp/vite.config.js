@@ -3,70 +3,121 @@ import uni from "@dcloudio/vite-plugin-uni";
 
 export default defineConfig(({ mode }) => {
   const isH5 = process.env.UNI_PLATFORM === 'h5';
+  const isProduction = mode === 'production';
 
-  return {
-  plugins: [uni()],
-  server: {
-    port: 8080,
-    host: "0.0.0.0",
-  },
-  build: {
-    // 启用源码映射（调试用，生产可关闭）
-    sourcemap: false,
-    // 压缩选项
-    minify: "terser",
-    terserOptions: {
-      compress: {
-        drop_console: true,
-        drop_debugger: true,
-        pure_funcs: ['console.log', 'console.info', 'console.debug'],
-      },
-      mangle: {
-        safari10: true,
+  const config = {
+    plugins: [uni()],
+
+    server: {
+      port: 8080,
+      host: "0.0.0.0",
+      hmr: {
+        overlay: true,
       },
     },
-    // 资源内联阈值
-    assetsInlineLimit: 4096,
-    // 块大小警告阈值（降低以便更早发现问题）
-    chunkSizeWarningLimit: 500,
-    rollupOptions: {
+
+    build: {
+      sourcemap: !isProduction,
+      target: isH5 ? 'es2015' : 'esnext',
+      minify: isProduction ? 'esbuild' : false,
+
+      esbuildOptions: isProduction ? {
+        drop: ['console', 'debugger'],
+        legalComments: 'none',
+        minifyIdentifiers: true,
+        minifySyntax: true,
+        minifyWhitespace: true,
+      } : {},
+
+      assetsInlineLimit: 4096,
+      chunkSizeWarningLimit: 500,
+      cssCodeSplit: isH5,
+    },
+
+    optimizeDeps: {
+      include: [
+        "vue",
+        "pinia",
+        "crypto-js",
+        "tweetnacl",
+        "tweetnacl-util",
+        "bs58",
+      ],
+      exclude: ['highlight.js'],
+      force: false,
+    },
+
+    resolve: {
+      alias: {
+        "@": "/src",
+        "~": "/src",
+        "@components": "/src/components",
+        "@services": "/src/services",
+        "@utils": "/src/utils",
+        "@pages": "/src/pages",
+        "@stores": "/src/stores",
+      },
+      extensions: ['.vue', '.js', '.json', '.mjs'],
+    },
+
+    css: {
+      preprocessorOptions: {
+        scss: {
+          api: "modern-compiler",
+          silenceDeprecations: ["legacy-js-api", "import"],
+        },
+      },
+      modules: {
+        localsConvention: 'camelCase',
+      },
+    },
+
+    esbuild: {
+      drop: isProduction ? ['console', 'debugger'] : [],
+      pure: isProduction ? ['console.log', 'console.info', 'console.debug', 'console.warn'] : [],
+    },
+
+    cacheDir: 'node_modules/.vite',
+    logLevel: isProduction ? 'warn' : 'info',
+  };
+
+  // 只为H5平台添加高级rollup配置
+  if (isH5) {
+    config.build.rollupOptions = {
       output: {
-        // H5平台启用代码分割，小程序和App保持内联
-        // 注意：不使用manualChunks以避免与uni-app构建系统冲突
-        inlineDynamicImports: !isH5,
-        assetFileNames: "static/[name].[hash][extname]",
+        assetFileNames: (assetInfo) => {
+          if (/\.(png|jpe?g|svg|gif|webp|ico)$/i.test(assetInfo.name)) {
+            return `static/images/[name]-[hash][extname]`;
+          } else if (/\.(woff2?|eot|ttf|otf)$/i.test(assetInfo.name)) {
+            return `static/fonts/[name]-[hash][extname]`;
+          } else if (/\.css$/i.test(assetInfo.name)) {
+            return `static/css/[name]-[hash][extname]`;
+          }
+          return `static/[ext]/[name]-[hash][extname]`;
+        },
         chunkFileNames: "static/js/[name]-[hash].js",
         entryFileNames: "[name].js",
+        manualChunks: (id) => {
+          if (id.includes('node_modules')) {
+            if (id.includes('vue') || id.includes('pinia')) {
+              return 'vendor-vue';
+            }
+            if (id.includes('crypto-js') || id.includes('tweetnacl')) {
+              return 'vendor-crypto';
+            }
+            if (id.includes('highlight.js')) {
+              return 'vendor-highlight';
+            }
+            if (id.includes('mp-html')) {
+              return 'vendor-ui';
+            }
+            return 'vendor-common';
+          }
+        }
       },
       external: [],
-    },
-  },
-  // 优化依赖预构建
-  optimizeDeps: {
-    include: [
-      "vue",
-      "pinia",
-      "crypto-js",
-      "tweetnacl",
-      "tweetnacl-util",
-      "bs58",
-    ],
-    exclude: ['highlight.js'], // 延迟加载，不预构建
-  },
-  // 解析配置
-  resolve: {
-    alias: {
-      "@": "/src",
-    },
-  },
-  // CSS 预处理器配置
-  css: {
-    preprocessorOptions: {
-      scss: {
-        api: "modern-compiler",
-        silenceDeprecations: ["legacy-js-api", "import"],
-      },
-    },
-  },
-  };
+    };
+  }
+
+  return config;
 });

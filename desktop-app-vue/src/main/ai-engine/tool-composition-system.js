@@ -167,7 +167,7 @@ class ToolCompositionSystem {
   }
 
   async _recordComposition(goal, composition, context) {
-    if (!this.db) return;
+    if (!this.db) {return;}
 
     try {
       const insertStmt = this.db.prepare(`

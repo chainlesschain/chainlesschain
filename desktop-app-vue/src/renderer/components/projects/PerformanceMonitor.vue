@@ -10,20 +10,23 @@
           <a-button
             type="text"
             size="small"
-            @click="toggleCollapse"
             :icon="collapsed ? h(ExpandOutlined) : h(ShrinkOutlined)"
+            @click="toggleCollapse"
           />
           <a-button
+            v-if="!collapsed"
             type="text"
             size="small"
-            @click="clearMetrics"
             :icon="h(ClearOutlined)"
-            v-if="!collapsed"
+            @click="clearMetrics"
           />
         </a-space>
       </template>
 
-      <div v-if="!collapsed" class="metrics-container">
+      <div
+        v-if="!collapsed"
+        class="metrics-container"
+      >
         <!-- Real-time Stats -->
         <a-row :gutter="[16, 16]">
           <a-col :span="6">
@@ -84,10 +87,17 @@
         </a-row>
 
         <!-- Charts -->
-        <a-tabs v-model:activeKey="activeTab" size="small" class="metrics-tabs">
-          <a-tab-pane key="fileOps" tab="File Operations">
+        <a-tabs
+          v-model:active-key="activeTab"
+          size="small"
+          class="metrics-tabs"
+        >
+          <a-tab-pane
+            key="fileOps"
+            tab="File Operations"
+          >
             <div class="chart-container">
-              <canvas ref="fileOpsChart"></canvas>
+              <canvas ref="fileOpsChart" />
             </div>
             <a-list
               size="small"
@@ -116,9 +126,12 @@
             </a-list>
           </a-tab-pane>
 
-          <a-tab-pane key="aiResponses" tab="AI Responses">
+          <a-tab-pane
+            key="aiResponses"
+            tab="AI Responses"
+          >
             <div class="chart-container">
-              <canvas ref="aiResponseChart"></canvas>
+              <canvas ref="aiResponseChart" />
             </div>
             <a-list
               size="small"
@@ -147,8 +160,15 @@
             </a-list>
           </a-tab-pane>
 
-          <a-tab-pane key="system" tab="System">
-            <a-descriptions :column="2" size="small" bordered>
+          <a-tab-pane
+            key="system"
+            tab="System"
+          >
+            <a-descriptions
+              :column="2"
+              size="small"
+              bordered
+            >
               <a-descriptions-item label="Heap Used">
                 {{ metrics.memory.heapUsed }}MB / {{ metrics.memory.heapTotal }}MB
               </a-descriptions-item>
@@ -179,12 +199,21 @@
       </div>
 
       <!-- Collapsed View -->
-      <div v-else class="collapsed-view">
+      <div
+        v-else
+        class="collapsed-view"
+      >
         <a-space>
-          <a-badge :count="metrics.fileOperations.total" :overflow-count="999">
+          <a-badge
+            :count="metrics.fileOperations.total"
+            :overflow-count="999"
+          >
             <FileOutlined />
           </a-badge>
-          <a-badge :count="metrics.aiResponses.total" :overflow-count="999">
+          <a-badge
+            :count="metrics.aiResponses.total"
+            :overflow-count="999"
+          >
             <RobotOutlined />
           </a-badge>
           <span :style="{ color: getFpsColor() }">{{ metrics.fps }} FPS</span>
@@ -252,7 +281,7 @@ let fileOpsChartInstance = null
 let aiResponseChartInstance = null
 
 let updateInterval = null
-let fpsInterval = null
+const fpsInterval = null
 let lastFrameTime = performance.now()
 let frameCount = 0
 
@@ -458,38 +487,38 @@ const updateCharts = () => {
 
 // Get operation color based on duration
 const getOperationColor = (duration) => {
-  if (duration < 100) return 'success'
-  if (duration < 500) return 'warning'
+  if (duration < 100) {return 'success'}
+  if (duration < 500) {return 'warning'}
   return 'error'
 }
 
 // Get memory icon
 const getMemoryIcon = () => {
   const percentage = (metrics.memory.heapUsed / metrics.memory.heapLimit) * 100
-  if (percentage < 50) return CheckCircleOutlined
-  if (percentage < 80) return WarningOutlined
+  if (percentage < 50) {return CheckCircleOutlined}
+  if (percentage < 80) {return WarningOutlined}
   return ThunderboltOutlined
 }
 
 // Get memory color
 const getMemoryColor = () => {
   const percentage = (metrics.memory.heapUsed / metrics.memory.heapLimit) * 100
-  if (percentage < 50) return '#52c41a'
-  if (percentage < 80) return '#faad14'
+  if (percentage < 50) {return '#52c41a'}
+  if (percentage < 80) {return '#faad14'}
   return '#ff4d4f'
 }
 
 // Get FPS icon
 const getFpsIcon = () => {
-  if (metrics.fps >= 50) return CheckCircleOutlined
-  if (metrics.fps >= 30) return WarningOutlined
+  if (metrics.fps >= 50) {return CheckCircleOutlined}
+  if (metrics.fps >= 30) {return WarningOutlined}
   return ThunderboltOutlined
 }
 
 // Get FPS color
 const getFpsColor = () => {
-  if (metrics.fps >= 50) return '#52c41a'
-  if (metrics.fps >= 30) return '#faad14'
+  if (metrics.fps >= 50) {return '#52c41a'}
+  if (metrics.fps >= 30) {return '#faad14'}
   return '#ff4d4f'
 }
 

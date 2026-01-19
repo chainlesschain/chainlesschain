@@ -11,33 +11,56 @@
       <template #extra>
         <a-space>
           <a-button @click="loadTransactions">
-            <template #icon><reload-outlined /></template>
+            <template #icon>
+              <reload-outlined />
+            </template>
             刷新
           </a-button>
         </a-space>
       </template>
 
       <!-- 筛选器 -->
-      <a-row :gutter="16" style="margin-bottom: 16px">
+      <a-row
+        :gutter="16"
+        style="margin-bottom: 16px"
+      >
         <a-col :span="12">
           <a-input-search
             v-model:value="searchKeyword"
             placeholder="搜索交易记录..."
             allow-clear
           >
-            <template #prefix><search-outlined /></template>
+            <template #prefix>
+              <search-outlined />
+            </template>
           </a-input-search>
         </a-col>
         <a-col :span="12">
           <a-space>
             <span>状态:</span>
-            <a-radio-group v-model:value="filterStatus" button-style="solid" size="small">
-              <a-radio-button value="">全部</a-radio-button>
-              <a-radio-button value="pending">待处理</a-radio-button>
-              <a-radio-button value="escrowed">托管中</a-radio-button>
-              <a-radio-button value="completed">已完成</a-radio-button>
-              <a-radio-button value="cancelled">已取消</a-radio-button>
-              <a-radio-button value="disputed">有争议</a-radio-button>
+            <a-radio-group
+              v-model:value="filterStatus"
+              button-style="solid"
+              size="small"
+            >
+              <a-radio-button value="">
+                全部
+              </a-radio-button>
+              <a-radio-button value="pending">
+                待处理
+              </a-radio-button>
+              <a-radio-button value="escrowed">
+                托管中
+              </a-radio-button>
+              <a-radio-button value="completed">
+                已完成
+              </a-radio-button>
+              <a-radio-button value="cancelled">
+                已取消
+              </a-radio-button>
+              <a-radio-button value="disputed">
+                有争议
+              </a-radio-button>
             </a-radio-group>
           </a-space>
         </a-col>
@@ -55,7 +78,10 @@
           <!-- 交易ID列 -->
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'id'">
-              <a-typography-text copyable :ellipsis="{ tooltip: record.id }">
+              <a-typography-text
+                copyable
+                :ellipsis="{ tooltip: record.id }"
+              >
                 {{ formatId(record.id) }}
               </a-typography-text>
             </template>
@@ -63,7 +89,9 @@
             <!-- 订单信息列 -->
             <template v-else-if="column.key === 'order'">
               <div class="order-info-cell">
-                <div class="order-title">{{ record.order_title || '-' }}</div>
+                <div class="order-title">
+                  {{ record.order_title || '-' }}
+                </div>
                 <div class="order-id">
                   订单: {{ formatId(record.order_id) }}
                 </div>
@@ -72,11 +100,18 @@
 
             <!-- 买家列 -->
             <template v-else-if="column.key === 'buyer'">
-              <a-space direction="vertical" size="small">
+              <a-space
+                direction="vertical"
+                size="small"
+              >
                 <a-typography-text copyable>
                   {{ formatDid(record.buyer_did) }}
                 </a-typography-text>
-                <a-tag v-if="isCurrentUser(record.buyer_did)" color="blue" size="small">
+                <a-tag
+                  v-if="isCurrentUser(record.buyer_did)"
+                  color="blue"
+                  size="small"
+                >
                   我
                 </a-tag>
               </a-space>
@@ -84,11 +119,18 @@
 
             <!-- 卖家列 -->
             <template v-else-if="column.key === 'seller'">
-              <a-space direction="vertical" size="small">
+              <a-space
+                direction="vertical"
+                size="small"
+              >
                 <a-typography-text copyable>
                   {{ formatDid(record.seller_did) }}
                 </a-typography-text>
-                <a-tag v-if="isCurrentUser(record.seller_did)" color="green" size="small">
+                <a-tag
+                  v-if="isCurrentUser(record.seller_did)"
+                  color="green"
+                  size="small"
+                >
                   我
                 </a-tag>
               </a-space>
@@ -97,14 +139,22 @@
             <!-- 金额列 -->
             <template v-else-if="column.key === 'amount'">
               <div class="amount-cell">
-                <div class="amount">{{ formatAmount(record.payment_amount) }}</div>
-                <div class="quantity">x {{ record.quantity }}</div>
+                <div class="amount">
+                  {{ formatAmount(record.payment_amount) }}
+                </div>
+                <div class="quantity">
+                  x {{ record.quantity }}
+                </div>
               </div>
             </template>
 
             <!-- 状态列 -->
             <template v-else-if="column.key === 'status'">
-              <status-badge :status="record.status" type="transaction" show-icon />
+              <status-badge
+                :status="record.status"
+                type="transaction"
+                show-icon
+              />
             </template>
 
             <!-- 时间列 -->
@@ -117,7 +167,11 @@
             <!-- 操作列 -->
             <template v-else-if="column.key === 'action'">
               <a-space>
-                <a-button type="link" size="small" @click="handleViewDetail(record)">
+                <a-button
+                  type="link"
+                  size="small"
+                  @click="handleViewDetail(record)"
+                >
                   查看详情
                 </a-button>
 
@@ -261,27 +315,27 @@ const columns = [
 
 // 格式化 ID
 const formatId = (id) => {
-  if (!id) return '-';
+  if (!id) {return '-';}
   return id.length > 16 ? `${id.slice(0, 8)}...${id.slice(-8)}` : id;
 };
 
 // 格式化 DID
 const formatDid = (did) => {
-  if (!did) return '-';
+  if (!did) {return '-';}
   return did.length > 20 ? `${did.slice(0, 10)}...${did.slice(-8)}` : did;
 };
 
 // 格式化金额
 const formatAmount = (amount) => {
-  if (!amount && amount !== 0) return '0';
+  if (!amount && amount !== 0) {return '0';}
   const num = parseFloat(amount);
-  if (isNaN(num)) return '0';
+  if (isNaN(num)) {return '0';}
   return num.toLocaleString('en-US', { maximumFractionDigits: 8 });
 };
 
 // 格式化时间
 const formatTime = (timestamp) => {
-  if (!timestamp) return '-';
+  if (!timestamp) {return '-';}
   const date = new Date(timestamp);
   const now = new Date();
   const diff = now - date;
@@ -310,7 +364,7 @@ const formatTime = (timestamp) => {
 
 // 格式化完整时间
 const formatFullTime = (timestamp) => {
-  if (!timestamp) return '-';
+  if (!timestamp) {return '-';}
   const date = new Date(timestamp);
   return date.toLocaleString('zh-CN', {
     year: 'numeric',

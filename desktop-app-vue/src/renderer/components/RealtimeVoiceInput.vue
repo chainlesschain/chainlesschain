@@ -8,18 +8,21 @@
         size="large"
         shape="circle"
         class="voice-button"
-        @click="startRecording"
         :loading="isInitializing"
+        @click="startRecording"
       >
         <template #icon>
           <AudioOutlined v-if="!isInitializing" />
         </template>
       </a-button>
 
-      <div v-else class="recording-controls">
+      <div
+        v-else
+        class="recording-controls"
+      >
         <!-- 录音中指示器 -->
         <div class="recording-indicator">
-          <span class="pulse"></span>
+          <span class="pulse" />
           <span class="status-text">正在录音...</span>
         </div>
 
@@ -29,7 +32,7 @@
             type="circle"
             :width="80"
             :percent="Math.round(volume * 100)"
-            :strokeColor="{
+            :stroke-color="{
               '0%': '#108ee9',
               '100%': '#87d068',
             }"
@@ -42,23 +45,43 @@
 
         <!-- 控制按钮 -->
         <a-space>
-          <a-button @click="pauseRecording" v-if="!isPaused">
-            <template #icon><PauseOutlined /></template>
+          <a-button
+            v-if="!isPaused"
+            @click="pauseRecording"
+          >
+            <template #icon>
+              <PauseOutlined />
+            </template>
             暂停
           </a-button>
 
-          <a-button @click="resumeRecording" v-else>
-            <template #icon><PlayCircleOutlined /></template>
+          <a-button
+            v-else
+            @click="resumeRecording"
+          >
+            <template #icon>
+              <PlayCircleOutlined />
+            </template>
             继续
           </a-button>
 
-          <a-button type="primary" @click="stopRecording">
-            <template #icon><CheckOutlined /></template>
+          <a-button
+            type="primary"
+            @click="stopRecording"
+          >
+            <template #icon>
+              <CheckOutlined />
+            </template>
             完成
           </a-button>
 
-          <a-button danger @click="cancelRecording">
-            <template #icon><CloseOutlined /></template>
+          <a-button
+            danger
+            @click="cancelRecording"
+          >
+            <template #icon>
+              <CloseOutlined />
+            </template>
             取消
           </a-button>
         </a-space>
@@ -66,11 +89,23 @@
     </div>
 
     <!-- 转录结果 -->
-    <div v-if="transcript" class="transcript-container">
-      <a-card title="转录结果" :bordered="false">
+    <div
+      v-if="transcript"
+      class="transcript-container"
+    >
+      <a-card
+        title="转录结果"
+        :bordered="false"
+      >
         <!-- 部分结果（实时显示） -->
-        <div v-if="partialTranscript" class="partial-transcript">
-          <a-typography-text type="secondary" class="typing-effect">
+        <div
+          v-if="partialTranscript"
+          class="partial-transcript"
+        >
+          <a-typography-text
+            type="secondary"
+            class="typing-effect"
+          >
             {{ partialTranscript }}
           </a-typography-text>
         </div>
@@ -89,22 +124,33 @@
         <template #actions>
           <a-space>
             <a-button @click="insertToEditor">
-              <template #icon><FileTextOutlined /></template>
+              <template #icon>
+                <FileTextOutlined />
+              </template>
               插入到编辑器
             </a-button>
 
             <a-button @click="saveAsNote">
-              <template #icon><SaveOutlined /></template>
+              <template #icon>
+                <SaveOutlined />
+              </template>
               保存为笔记
             </a-button>
 
             <a-button @click="copyTranscript">
-              <template #icon><CopyOutlined /></template>
+              <template #icon>
+                <CopyOutlined />
+              </template>
               复制文本
             </a-button>
 
-            <a-button danger @click="clearTranscript">
-              <template #icon><DeleteOutlined /></template>
+            <a-button
+              danger
+              @click="clearTranscript"
+            >
+              <template #icon>
+                <DeleteOutlined />
+              </template>
               清空
             </a-button>
           </a-space>
@@ -121,13 +167,16 @@
     >
       <a-table
         :columns="commandColumns"
-        :dataSource="availableCommands"
+        :data-source="availableCommands"
         :pagination="false"
         size="small"
       >
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'patterns'">
-            <a-tag v-for="pattern in record.patterns" :key="pattern">
+            <a-tag
+              v-for="pattern in record.patterns"
+              :key="pattern"
+            >
               {{ pattern }}
             </a-tag>
           </template>

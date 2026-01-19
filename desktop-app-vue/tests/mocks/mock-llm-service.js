@@ -6,7 +6,234 @@
 class MockLLMService {
   constructor() {
     this.isEnabled = process.env.MOCK_LLM === 'true';
-    this.responseDelay = parseInt(process.env.MOCK_LLM_DELAY || '1000', 10);
+    this.responseDelay = parseInt(process.env.MOCK_LLM_DELAY || '100', 10);
+    this.config = {
+      provider: 'mock',
+      model: 'mock-llm-v1',
+      temperature: 0.7,
+      maxTokens: 2000,
+      apiKey: 'mock-api-key'
+    };
+    this.provider = 'mock';
+    this.isInitialized = true;
+    this.paused = false;
+  }
+
+  /**
+   * Initialize the mock service
+   */
+  async initialize() {
+    await this.delay(100);
+    this.isInitialized = true;
+    return { success: true, provider: 'mock' };
+  }
+
+  /**
+   * Check service status
+   */
+  async checkStatus() {
+    await this.delay(100);
+    return {
+      available: true,
+      status: 'ready',
+      provider: this.config.provider,
+      model: this.config.model,
+      currentModel: this.config.model,
+      isInitialized: this.isInitialized
+    };
+  }
+
+  /**
+   * Get current configuration
+   */
+  async getConfig() {
+    return { ...this.config };
+  }
+
+  /**
+   * Set configuration
+   */
+  async setConfig(newConfig) {
+    this.config = { ...this.config, ...newConfig };
+    return { success: true, config: this.config };
+  }
+
+  /**
+   * List available models
+   */
+  async listModels() {
+    await this.delay(200);
+    return {
+      models: [
+        { id: 'mock-llm-v1', name: 'Mock LLM v1', provider: 'mock' },
+        { id: 'mock-llm-v2', name: 'Mock LLM v2', provider: 'mock' },
+        { id: 'mock-fast', name: 'Mock Fast Model', provider: 'mock' }
+      ]
+    };
+  }
+
+  /**
+   * Switch provider
+   */
+  async switchProvider(provider) {
+    this.config.provider = provider;
+    return { success: true, provider };
+  }
+
+  /**
+   * Generate text embeddings
+   */
+  async embeddings(text) {
+    await this.delay(300);
+    // Generate a mock embedding vector (e.g., 768 dimensions)
+    const dimensions = 768;
+    const embedding = Array.from({ length: dimensions }, () => Math.random() * 2 - 1);
+
+    return {
+      embeddings: embedding,
+      model: 'mock-embedding-v1',
+      dimensions
+    };
+  }
+
+  /**
+   * Simple query method (wrapper around chat)
+   */
+  async query(prompt, options = {}) {
+    if (!this.isEnabled) {
+      throw new Error('Mock LLM service is not enabled');
+    }
+
+    // Convert simple prompt to messages format
+    const messages = [{ role: 'user', content: prompt }];
+    const result = await this.chat(messages, options);
+
+    return {
+      response: result.content,
+      content: result.content,
+      model: result.model,
+      usage: result.usage
+    };
+  }
+
+  /**
+   * Stream query method
+   */
+  async queryStream(prompt, onChunk, options = {}) {
+    if (!this.isEnabled) {
+      throw new Error('Mock LLM service is not enabled');
+    }
+
+    // Convert simple prompt to messages format
+    const messages = [{ role: 'user', content: prompt }];
+    return await this.chatStream(messages, onChunk, options);
+  }
+
+  /**
+   * Chat with messages array
+   */
+  async chatWithMessages(messages, options = {}) {
+    return await this.chat(messages, options);
+  }
+
+  /**
+   * Clear conversation context
+   */
+  async clearContext(conversationId) {
+    await this.delay(50);
+    return { success: true, conversationId };
+  }
+
+  /**
+   * Pause service (for budget management)
+   */
+  async pauseService(userId = 'default') {
+    await this.delay(50);
+    this.paused = true;
+    return { success: true, paused: true };
+  }
+
+  /**
+   * Resume service
+   */
+  async resumeService(userId = 'default') {
+    await this.delay(50);
+    this.paused = false;
+    return { success: true, paused: false };
+  }
+
+  /**
+   * Calculate cost estimate
+   */
+  async calculateCostEstimate(messages, options = {}) {
+    await this.delay(50);
+    const totalTokens = messages.reduce((sum, msg) => sum + (msg.content?.length || 0), 0);
+    return {
+      estimatedTokens: totalTokens,
+      estimatedCost: totalTokens * 0.00001, // Mock pricing
+      currency: 'USD'
+    };
+  }
+
+  /**
+   * Check if operation can be performed (budget check)
+   */
+  async canPerformOperation(estimatedTokens, userId = 'default') {
+    await this.delay(50);
+    return {
+      allowed: true,
+      reason: 'Mock service always allows operations'
+    };
+  }
+
+  /**
+   * Chat with optimized prompt
+   */
+  async chatWithOptimizedPrompt(messages, options = {}) {
+    return await this.chat(messages, options);
+  }
+
+  /**
+   * Chat with web search
+   */
+  async chatWithWebSearch(messages, options = {}) {
+    const result = await this.chat(messages, options);
+    result.sources = [
+      { title: 'Mock Source 1', url: 'https://example.com/1' },
+      { title: 'Mock Source 2', url: 'https://example.com/2' }
+    ];
+    return result;
+  }
+
+  /**
+   * Chat with image processing
+   */
+  async chatWithImageProcess(messages, options = {}) {
+    return await this.chat(messages, options);
+  }
+
+  /**
+   * Chat with multiple tools
+   */
+  async chatWithMultipleTools(messages, toolConfig = {}) {
+    return await this.chat(messages, {});
+  }
+
+  /**
+   * Select Volcengine model
+   */
+  async selectVolcengineModel(model) {
+    this.config.model = model;
+    return { success: true, model };
+  }
+
+  /**
+   * Close the service
+   */
+  async close() {
+    await this.delay(50);
+    this.isInitialized = false;
+    return { success: true };
   }
 
   /**

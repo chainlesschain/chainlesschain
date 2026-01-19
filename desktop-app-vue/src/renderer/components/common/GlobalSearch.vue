@@ -19,14 +19,25 @@
         class="search-input"
         @input="handleSearch"
         @keydown="handleKeyDown"
+      >
+      <a-spin
+        v-if="isSearching"
+        size="small"
       />
-      <a-spin v-if="isSearching" size="small" />
-      <CloseOutlined v-else class="close-icon" @click="handleClose" />
+      <CloseOutlined
+        v-else
+        class="close-icon"
+        @click="handleClose"
+      />
     </div>
 
     <!-- 搜索类型过滤 -->
     <div class="search-filters">
-      <a-radio-group v-model:value="searchType" button-style="solid" size="small">
+      <a-radio-group
+        v-model:value="searchType"
+        button-style="solid"
+        size="small"
+      >
         <a-radio-button :value="SearchType.ALL">
           全部 ({{ totalResults }})
         </a-radio-button>
@@ -50,7 +61,10 @@
     </div>
 
     <!-- 搜索建议 -->
-    <div v-if="showSuggestions && suggestions.length > 0" class="search-suggestions">
+    <div
+      v-if="showSuggestions && suggestions.length > 0"
+      class="search-suggestions"
+    >
       <div class="suggestions-header">
         <HistoryOutlined />
         搜索历史
@@ -69,7 +83,10 @@
     </div>
 
     <!-- 搜索结果 -->
-    <div class="search-results" ref="resultsContainer">
+    <div
+      ref="resultsContainer"
+      class="search-results"
+    >
       <!-- 空状态 -->
       <a-empty
         v-if="!isSearching && searchQuery && filteredResults.length === 0"
@@ -79,13 +96,18 @@
         <template #description>
           <div class="empty-tips">
             <p>没有找到 "{{ searchQuery }}" 的相关结果</p>
-            <p class="empty-hint">试试其他关键词或检查拼写</p>
+            <p class="empty-hint">
+              试试其他关键词或检查拼写
+            </p>
           </div>
         </template>
       </a-empty>
 
       <!-- 初始状态 -->
-      <div v-else-if="!searchQuery" class="search-tips">
+      <div
+        v-else-if="!searchQuery"
+        class="search-tips"
+      >
         <div class="tips-icon">
           <SearchOutlined />
         </div>
@@ -108,7 +130,10 @@
       </div>
 
       <!-- 结果列表 -->
-      <div v-else class="results-list">
+      <div
+        v-else
+        class="results-list"
+      >
         <div
           v-for="(result, index) in filteredResults"
           :key="result.id"
@@ -128,16 +153,25 @@
           <!-- 内容 -->
           <div class="result-content">
             <div class="result-title">
-              <span v-html="highlightMatch(result.title)"></span>
-              <a-tag size="small" :color="getTypeColor(result.type)">
+              <span v-html="highlightMatch(result.title)" />
+              <a-tag
+                size="small"
+                :color="getTypeColor(result.type)"
+              >
                 {{ getTypeName(result.type) }}
               </a-tag>
             </div>
-            <div v-if="result.description" class="result-description">
-              <span v-html="highlightMatch(result.description)"></span>
+            <div
+              v-if="result.description"
+              class="result-description"
+            >
+              <span v-html="highlightMatch(result.description)" />
             </div>
             <div class="result-meta">
-              <span v-if="result.path" class="result-path">
+              <span
+                v-if="result.path"
+                class="result-path"
+              >
                 <FolderOutlined />
                 {{ result.path }}
               </span>
@@ -149,7 +183,10 @@
 
           <!-- 操作 -->
           <div class="result-actions">
-            <a-button type="text" size="small">
+            <a-button
+              type="text"
+              size="small"
+            >
               <EnterOutlined />
             </a-button>
           </div>
@@ -168,10 +205,18 @@
         </span>
       </div>
       <div class="footer-actions">
-        <a-button type="link" size="small" @click="handleClearHistory">
+        <a-button
+          type="link"
+          size="small"
+          @click="handleClearHistory"
+        >
           清空历史
         </a-button>
-        <a-button type="link" size="small" @click="handleRebuildIndex">
+        <a-button
+          type="link"
+          size="small"
+          @click="handleRebuildIndex"
+        >
           重建索引
         </a-button>
       </div>
@@ -236,7 +281,7 @@ const searchTimer = ref(null);
 
 // 搜索建议
 const suggestions = computed(() => {
-  if (!searchQuery.value) return searchHistory.value.slice(0, 5).map(h => h.query);
+  if (!searchQuery.value) {return searchHistory.value.slice(0, 5).map(h => h.query);}
   return getSuggestions(searchQuery.value, 5);
 });
 
@@ -301,7 +346,7 @@ const getTypeName = (type) => {
 
 // 高亮匹配文本
 const highlightMatch = (text) => {
-  if (!searchQuery.value || !text) return text;
+  if (!searchQuery.value || !text) {return text;}
 
   const regex = new RegExp(`(${searchQuery.value})`, 'gi');
   return text.replace(regex, '<mark>$1</mark>');

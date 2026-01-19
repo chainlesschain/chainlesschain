@@ -452,7 +452,7 @@ ${rules.map((r, i) => `${i + 1}. ${r}`).join("\n")}
    * @private
    */
   _basicClean(data, rules) {
-    if (!Array.isArray(data)) return data;
+    if (!Array.isArray(data)) {return data;}
 
     let cleaned = [...data];
 

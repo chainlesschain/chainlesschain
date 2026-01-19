@@ -158,7 +158,7 @@ class LogManager {
    * 写入日志
    */
   log(level, message, meta = {}) {
-    if (level < this.minLevel) return;
+    if (level < this.minLevel) {return;}
 
     const timestamp = new Date().toISOString();
     const levelName = LogLevelNames[level] || "UNKNOWN";
@@ -231,7 +231,7 @@ class LogManager {
    * 刷新缓冲区
    */
   flush() {
-    if (this.logBuffer.length === 0) return;
+    if (this.logBuffer.length === 0) {return;}
 
     try {
       // 检查文件大小

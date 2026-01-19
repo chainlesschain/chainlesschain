@@ -11,7 +11,10 @@
           <p>基于区块链的去中心化项目交易市场，智能合约保障交易安全</p>
         </div>
         <div class="header-right">
-          <a-button type="primary" @click="handleSellProject">
+          <a-button
+            type="primary"
+            @click="handleSellProject"
+          >
             <DollarOutlined />
             出售项目
           </a-button>
@@ -58,11 +61,21 @@
           style="width: 150px"
           @change="handlePriceRangeChange"
         >
-          <a-select-option value="">全部价格</a-select-option>
-          <a-select-option value="0-100">0-100 Token</a-select-option>
-          <a-select-option value="100-500">100-500 Token</a-select-option>
-          <a-select-option value="500-1000">500-1000 Token</a-select-option>
-          <a-select-option value="1000+">1000+ Token</a-select-option>
+          <a-select-option value="">
+            全部价格
+          </a-select-option>
+          <a-select-option value="0-100">
+            0-100 Token
+          </a-select-option>
+          <a-select-option value="100-500">
+            100-500 Token
+          </a-select-option>
+          <a-select-option value="500-1000">
+            500-1000 Token
+          </a-select-option>
+          <a-select-option value="1000+">
+            1000+ Token
+          </a-select-option>
         </a-select>
 
         <a-select
@@ -71,21 +84,38 @@
           style="width: 150px"
           @change="handleSortChange"
         >
-          <a-select-option value="latest">最新上架</a-select-option>
-          <a-select-option value="popular">最受欢迎</a-select-option>
-          <a-select-option value="price-asc">价格从低到高</a-select-option>
-          <a-select-option value="price-desc">价格从高到低</a-select-option>
-          <a-select-option value="rating">评分最高</a-select-option>
+          <a-select-option value="latest">
+            最新上架
+          </a-select-option>
+          <a-select-option value="popular">
+            最受欢迎
+          </a-select-option>
+          <a-select-option value="price-asc">
+            价格从低到高
+          </a-select-option>
+          <a-select-option value="price-desc">
+            价格从高到低
+          </a-select-option>
+          <a-select-option value="rating">
+            评分最高
+          </a-select-option>
         </a-select>
       </div>
 
       <div class="filter-right">
-        <a-button :loading="loading" @click="handleRefresh">
+        <a-button
+          :loading="loading"
+          @click="handleRefresh"
+        >
           <ReloadOutlined :spin="loading" />
           刷新
         </a-button>
 
-        <a-radio-group v-model:value="viewMode" button-style="solid" @change="handleViewModeChange">
+        <a-radio-group
+          v-model:value="viewMode"
+          button-style="solid"
+          @change="handleViewModeChange"
+        >
           <a-radio-button value="grid">
             <AppstoreOutlined />
           </a-radio-button>
@@ -97,14 +127,26 @@
     </div>
 
     <!-- 加载状态 -->
-    <div v-if="loading" class="loading-container">
-      <a-spin size="large" tip="加载中..." />
+    <div
+      v-if="loading"
+      class="loading-container"
+    >
+      <a-spin
+        size="large"
+        tip="加载中..."
+      />
     </div>
 
     <!-- 市场项目列表 -->
-    <div v-else-if="filteredProjects.length > 0" class="projects-container">
+    <div
+      v-else-if="filteredProjects.length > 0"
+      class="projects-container"
+    >
       <!-- 网格视图 -->
-      <div v-if="viewMode === 'grid'" class="projects-grid">
+      <div
+        v-if="viewMode === 'grid'"
+        class="projects-grid"
+      >
         <div
           v-for="project in paginatedProjects"
           :key="project.id"
@@ -112,20 +154,40 @@
         >
           <!-- 项目缩略图 -->
           <div class="card-image">
-            <div v-if="project.thumbnail" class="image-wrapper">
-              <img :src="project.thumbnail" :alt="project.name" @error="handleImageError" />
+            <div
+              v-if="project.thumbnail"
+              class="image-wrapper"
+            >
+              <img
+                :src="project.thumbnail"
+                :alt="project.name"
+                @error="handleImageError"
+              >
             </div>
-            <div v-else class="image-placeholder">
-              <component :is="getCategoryIcon(project.category)" :style="{ fontSize: '64px' }" />
+            <div
+              v-else
+              class="image-placeholder"
+            >
+              <component
+                :is="getCategoryIcon(project.category)"
+                :style="{ fontSize: '64px' }"
+              />
               <span>{{ getCategoryName(project.category) }}</span>
             </div>
             <div class="card-overlay">
-              <a-button type="primary" @click="handleViewDetail(project.id)">
+              <a-button
+                type="primary"
+                @click="handleViewDetail(project.id)"
+              >
                 <EyeOutlined />
                 查看详情
               </a-button>
             </div>
-            <a-tag v-if="project.featured" color="gold" class="featured-tag">
+            <a-tag
+              v-if="project.featured"
+              color="gold"
+              class="featured-tag"
+            >
               <StarFilled />
               精选
             </a-tag>
@@ -140,11 +202,16 @@
               </a-tag>
             </div>
 
-            <p class="description">{{ project.description || '暂无描述' }}</p>
+            <p class="description">
+              {{ project.description || '暂无描述' }}
+            </p>
 
             <!-- 卖家信息 -->
             <div class="seller-info">
-              <a-avatar :size="24" :style="{ backgroundColor: getAvatarColor(project.seller.did) }">
+              <a-avatar
+                :size="24"
+                :style="{ backgroundColor: getAvatarColor(project.seller.did) }"
+              >
                 {{ project.seller.name?.charAt(0) || 'U' }}
               </a-avatar>
               <span class="seller-name">{{ project.seller.name }}</span>
@@ -178,7 +245,10 @@
                 <span class="price-label">价格:</span>
                 <span class="price-value">{{ project.price }} Token</span>
               </div>
-              <a-button type="primary" @click="handleBuyProject(project)">
+              <a-button
+                type="primary"
+                @click="handleBuyProject(project)"
+              >
                 <ShoppingCartOutlined />
                 购买
               </a-button>
@@ -188,20 +258,40 @@
       </div>
 
       <!-- 列表视图 -->
-      <div v-else class="projects-list">
+      <div
+        v-else
+        class="projects-list"
+      >
         <div
           v-for="project in paginatedProjects"
           :key="project.id"
           class="market-project-item"
         >
           <div class="item-image">
-            <div v-if="project.thumbnail" class="image-wrapper">
-              <img :src="project.thumbnail" :alt="project.name" @error="handleImageError" />
+            <div
+              v-if="project.thumbnail"
+              class="image-wrapper"
+            >
+              <img
+                :src="project.thumbnail"
+                :alt="project.name"
+                @error="handleImageError"
+              >
             </div>
-            <div v-else class="image-placeholder">
-              <component :is="getCategoryIcon(project.category)" :style="{ fontSize: '48px' }" />
+            <div
+              v-else
+              class="image-placeholder"
+            >
+              <component
+                :is="getCategoryIcon(project.category)"
+                :style="{ fontSize: '48px' }"
+              />
             </div>
-            <a-tag v-if="project.featured" color="gold" class="featured-badge">
+            <a-tag
+              v-if="project.featured"
+              color="gold"
+              class="featured-badge"
+            >
               <StarFilled />
               精选
             </a-tag>
@@ -219,7 +309,10 @@
 
             <div class="item-meta">
               <div class="seller-info-inline">
-                <a-avatar :size="20" :style="{ backgroundColor: getAvatarColor(project.seller.did) }">
+                <a-avatar
+                  :size="20"
+                  :style="{ backgroundColor: getAvatarColor(project.seller.did) }"
+                >
                   {{ project.seller.name?.charAt(0) || 'U' }}
                 </a-avatar>
                 <span>{{ project.seller.name }}</span>
@@ -241,10 +334,18 @@
 
           <div class="item-actions">
             <div class="price-large">
-              <div class="price-label">价格</div>
-              <div class="price-value">{{ project.price }} Token</div>
+              <div class="price-label">
+                价格
+              </div>
+              <div class="price-value">
+                {{ project.price }} Token
+              </div>
             </div>
-            <a-button type="primary" size="large" @click="handleBuyProject(project)">
+            <a-button
+              type="primary"
+              size="large"
+              @click="handleBuyProject(project)"
+            >
               <ShoppingCartOutlined />
               购买
             </a-button>
@@ -266,19 +367,26 @@
           :show-size-changer="true"
           :page-size-options="['12', '24', '48', '96']"
           @change="handlePageChange"
-          @showSizeChange="handlePageSizeChange"
+          @show-size-change="handlePageSizeChange"
         />
       </div>
     </div>
 
     <!-- 空状态 -->
-    <div v-else class="empty-state">
+    <div
+      v-else
+      class="empty-state"
+    >
       <div class="empty-icon">
         <ShopOutlined />
       </div>
       <h3>{{ searchKeyword || selectedCategory ? '没有找到匹配的项目' : '市场暂无项目' }}</h3>
       <p>{{ searchKeyword || selectedCategory ? '尝试调整筛选条件' : '成为第一个出售项目的人' }}</p>
-      <a-button v-if="!searchKeyword && !selectedCategory" type="primary" @click="handleSellProject">
+      <a-button
+        v-if="!searchKeyword && !selectedCategory"
+        type="primary"
+        @click="handleSellProject"
+      >
         <DollarOutlined />
         出售我的项目
       </a-button>
@@ -291,14 +399,30 @@
       :confirm-loading="purchasing"
       @ok="handleConfirmPurchase"
     >
-      <div v-if="selectedProject" class="purchase-modal">
+      <div
+        v-if="selectedProject"
+        class="purchase-modal"
+      >
         <div class="project-preview">
           <div class="preview-image">
-            <div v-if="selectedProject.thumbnail" class="image-wrapper">
-              <img :src="selectedProject.thumbnail" :alt="selectedProject.name" @error="handleImageError" />
+            <div
+              v-if="selectedProject.thumbnail"
+              class="image-wrapper"
+            >
+              <img
+                :src="selectedProject.thumbnail"
+                :alt="selectedProject.name"
+                @error="handleImageError"
+              >
             </div>
-            <div v-else class="image-placeholder-small">
-              <component :is="getCategoryIcon(selectedProject.category)" :style="{ fontSize: '32px' }" />
+            <div
+              v-else
+              class="image-placeholder-small"
+            >
+              <component
+                :is="getCategoryIcon(selectedProject.category)"
+                :style="{ fontSize: '32px' }"
+              />
             </div>
           </div>
           <div class="project-info-modal">
@@ -320,7 +444,9 @@
           </div>
           <div class="detail-row">
             <span>支付方式:</span>
-            <a-tag color="blue">智能合约</a-tag>
+            <a-tag color="blue">
+              智能合约
+            </a-tag>
           </div>
           <div class="detail-row">
             <span>你的余额:</span>
@@ -359,7 +485,10 @@
       @ok="handleConfirmSell"
     >
       <a-form layout="vertical">
-        <a-form-item label="选择项目" required>
+        <a-form-item
+          label="选择项目"
+          required
+        >
           <a-select
             v-model:value="sellForm.projectId"
             placeholder="选择要出售的项目"
@@ -374,17 +503,36 @@
           </a-select>
         </a-form-item>
 
-        <a-form-item label="项目分类" required>
-          <a-select v-model:value="sellForm.category" placeholder="选择分类">
-            <a-select-option value="web">Web开发</a-select-option>
-            <a-select-option value="document">文档模板</a-select-option>
-            <a-select-option value="data">数据分析</a-select-option>
-            <a-select-option value="app">应用开发</a-select-option>
-            <a-select-option value="other">其他</a-select-option>
+        <a-form-item
+          label="项目分类"
+          required
+        >
+          <a-select
+            v-model:value="sellForm.category"
+            placeholder="选择分类"
+          >
+            <a-select-option value="web">
+              Web开发
+            </a-select-option>
+            <a-select-option value="document">
+              文档模板
+            </a-select-option>
+            <a-select-option value="data">
+              数据分析
+            </a-select-option>
+            <a-select-option value="app">
+              应用开发
+            </a-select-option>
+            <a-select-option value="other">
+              其他
+            </a-select-option>
           </a-select>
         </a-form-item>
 
-        <a-form-item label="售价 (Token)" required>
+        <a-form-item
+          label="售价 (Token)"
+          required
+        >
           <a-input-number
             v-model:value="sellForm.price"
             :min="1"
@@ -397,7 +545,10 @@
           </div>
         </a-form-item>
 
-        <a-form-item label="项目描述" required>
+        <a-form-item
+          label="项目描述"
+          required
+        >
           <a-textarea
             v-model:value="sellForm.description"
             placeholder="详细描述你的项目，包括功能特点、技术栈等..."
@@ -417,8 +568,14 @@
               上传图片
             </a-button>
           </a-upload>
-          <div v-if="sellForm.thumbnail" class="thumbnail-preview">
-            <img :src="sellForm.thumbnail" alt="缩略图" />
+          <div
+            v-if="sellForm.thumbnail"
+            class="thumbnail-preview"
+          >
+            <img
+              :src="sellForm.thumbnail"
+              alt="缩略图"
+            >
           </div>
         </a-form-item>
       </a-form>

@@ -16,9 +16,11 @@
             src="@/assets/logo.png"
             alt="ChainlessChain Logo"
             class="logo-image"
-          />
+          >
         </div>
-        <h2 v-if="!sidebarCollapsed">ChainlessChain</h2>
+        <h2 v-if="!sidebarCollapsed">
+          ChainlessChain
+        </h2>
       </div>
 
       <!-- 快捷访问区域 -->
@@ -66,7 +68,7 @@
       <!-- 菜单容器 - 添加滚动 -->
       <div class="menu-container">
         <a-menu
-          v-model:selectedKeys="selectedMenuKeys"
+          v-model:selected-keys="selectedMenuKeys"
           theme="dark"
           mode="inline"
           class="main-menu"
@@ -74,7 +76,9 @@
         >
           <!-- 1. 工作台 ⭐高频功能集合 -->
           <a-sub-menu key="workspace">
-            <template #icon><DashboardOutlined /></template>
+            <template #icon>
+              <DashboardOutlined />
+            </template>
             <template #title>
               <span>工作台</span>
               <a-badge
@@ -88,68 +92,87 @@
               />
             </template>
             <a-menu-item key="home">
-              <template #icon><HomeOutlined /></template>
+              <template #icon>
+                <HomeOutlined />
+              </template>
               知识首页
             </a-menu-item>
             <a-menu-item key="projects">
-              <template #icon><FolderOpenOutlined /></template>
-              <span @contextmenu="showContextMenu($event, 'projects')"
-                >我的项目</span
-              >
+              <template #icon>
+                <FolderOpenOutlined />
+              </template>
+              <span @contextmenu="showContextMenu($event, 'projects')">我的项目</span>
               <span class="menu-shortcut">Alt+1</span>
             </a-menu-item>
             <a-menu-item key="knowledge-list">
-              <template #icon><FileTextOutlined /></template>
-              <span @contextmenu="showContextMenu($event, 'knowledge-list')"
-                >我的知识</span
-              >
+              <template #icon>
+                <FileTextOutlined />
+              </template>
+              <span @contextmenu="showContextMenu($event, 'knowledge-list')">我的知识</span>
               <span class="menu-shortcut">Alt+2</span>
             </a-menu-item>
             <a-menu-item key="ai-chat">
-              <template #icon><RobotOutlined /></template>
-              <span @contextmenu="showContextMenu($event, 'ai-chat')"
-                >AI对话</span
-              >
+              <template #icon>
+                <RobotOutlined />
+              </template>
+              <span @contextmenu="showContextMenu($event, 'ai-chat')">AI对话</span>
               <span class="menu-shortcut">Alt+3</span>
             </a-menu-item>
             <a-menu-item key="workspace-management">
-              <template #icon><ApartmentOutlined /></template>
+              <template #icon>
+                <ApartmentOutlined />
+              </template>
               <span
                 @contextmenu="showContextMenu($event, 'workspace-management')"
-                >工作区管理</span
-              >
+              >工作区管理</span>
             </a-menu-item>
           </a-sub-menu>
 
           <!-- 2. 知识管理 -->
           <a-sub-menu key="knowledge-management">
-            <template #icon><FileTextOutlined /></template>
-            <template #title>知识管理</template>
+            <template #icon>
+              <FileTextOutlined />
+            </template>
+            <template #title>
+              知识管理
+            </template>
             <a-menu-item key="knowledge-graph">
-              <template #icon><NodeIndexOutlined /></template>
+              <template #icon>
+                <NodeIndexOutlined />
+              </template>
               知识图谱
             </a-menu-item>
             <a-menu-item key="file-import">
-              <template #icon><CloudUploadOutlined /></template>
+              <template #icon>
+                <CloudUploadOutlined />
+              </template>
               文件导入
             </a-menu-item>
             <a-menu-item key="image-upload">
-              <template #icon><FileImageOutlined /></template>
+              <template #icon>
+                <FileImageOutlined />
+              </template>
               图片上传
             </a-menu-item>
             <a-menu-item key="prompt-templates">
-              <template #icon><TagsOutlined /></template>
+              <template #icon>
+                <TagsOutlined />
+              </template>
               提示词模板
             </a-menu-item>
             <a-menu-item key="knowledge-store">
-              <template #icon><ShopOutlined /></template>
+              <template #icon>
+                <ShopOutlined />
+              </template>
               知识付费
             </a-menu-item>
           </a-sub-menu>
 
           <!-- 3. AI工具 -->
           <a-sub-menu key="ai-tools">
-            <template #icon><RobotOutlined /></template>
+            <template #icon>
+              <RobotOutlined />
+            </template>
             <template #title>
               <span>AI工具</span>
               <a-badge
@@ -163,137 +186,184 @@
               />
             </template>
             <a-menu-item key="audio-import">
-              <template #icon><SoundOutlined /></template>
+              <template #icon>
+                <SoundOutlined />
+              </template>
               音频导入
             </a-menu-item>
             <a-menu-item key="multimedia-demo">
-              <template #icon><VideoCameraOutlined /></template>
+              <template #icon>
+                <VideoCameraOutlined />
+              </template>
               多媒体处理
             </a-menu-item>
             <a-menu-item key="my-purchases">
-              <template #icon><ShoppingCartOutlined /></template>
+              <template #icon>
+                <ShoppingCartOutlined />
+              </template>
               我的购买
             </a-menu-item>
           </a-sub-menu>
 
           <!-- 4. 项目管理 -->
           <a-sub-menu key="project-management">
-            <template #icon><FolderOutlined /></template>
-            <template #title>项目管理</template>
+            <template #icon>
+              <FolderOutlined />
+            </template>
+            <template #title>
+              项目管理
+            </template>
             <a-menu-item key="project-categories">
-              <template #icon><AppstoreOutlined /></template>
-              <span @contextmenu="showContextMenu($event, 'project-categories')"
-                >项目分类</span
-              >
+              <template #icon>
+                <AppstoreOutlined />
+              </template>
+              <span @contextmenu="showContextMenu($event, 'project-categories')">项目分类</span>
             </a-menu-item>
             <a-menu-item key="project-list-management">
-              <template #icon><TableOutlined /></template>
+              <template #icon>
+                <TableOutlined />
+              </template>
               <span
                 @contextmenu="
                   showContextMenu($event, 'project-list-management')
                 "
-                >项目列表管理</span
-              >
+              >项目列表管理</span>
             </a-menu-item>
             <a-menu-item key="template-management">
-              <template #icon><TagsOutlined /></template>
+              <template #icon>
+                <TagsOutlined />
+              </template>
               <span
                 @contextmenu="showContextMenu($event, 'template-management')"
-                >模板管理</span
-              >
+              >模板管理</span>
             </a-menu-item>
             <a-menu-item key="project-market">
-              <template #icon><ShopOutlined /></template>
-              <span @contextmenu="showContextMenu($event, 'project-market')"
-                >项目市场</span
-              >
+              <template #icon>
+                <ShopOutlined />
+              </template>
+              <span @contextmenu="showContextMenu($event, 'project-market')">项目市场</span>
             </a-menu-item>
             <a-menu-item key="project-collaboration">
-              <template #icon><TeamOutlined /></template>
+              <template #icon>
+                <TeamOutlined />
+              </template>
               <span
                 @contextmenu="showContextMenu($event, 'project-collaboration')"
-                >协作项目</span
-              >
+              >协作项目</span>
             </a-menu-item>
             <a-menu-item key="project-archived">
-              <template #icon><InboxOutlined /></template>
-              <span @contextmenu="showContextMenu($event, 'project-archived')"
-                >已归档项目</span
-              >
+              <template #icon>
+                <InboxOutlined />
+              </template>
+              <span @contextmenu="showContextMenu($event, 'project-archived')">已归档项目</span>
             </a-menu-item>
           </a-sub-menu>
 
           <!-- 5. 社交网络 -->
           <a-sub-menu key="social">
-            <template #icon><TeamOutlined /></template>
-            <template #title>社交网络</template>
+            <template #icon>
+              <TeamOutlined />
+            </template>
+            <template #title>
+              社交网络
+            </template>
             <a-menu-item key="did">
-              <template #icon><IdcardOutlined /></template>
+              <template #icon>
+                <IdcardOutlined />
+              </template>
               <span @contextmenu="showContextMenu($event, 'did')">DID身份</span>
               <span class="menu-shortcut">Alt+4</span>
             </a-menu-item>
             <a-menu-item key="credentials">
-              <template #icon><SafetyCertificateOutlined /></template>
+              <template #icon>
+                <SafetyCertificateOutlined />
+              </template>
               可验证凭证
             </a-menu-item>
             <a-menu-item key="contacts">
-              <template #icon><TeamOutlined /></template>
+              <template #icon>
+                <TeamOutlined />
+              </template>
               联系人
             </a-menu-item>
             <a-menu-item key="friends">
-              <template #icon><UserOutlined /></template>
+              <template #icon>
+                <UserOutlined />
+              </template>
               好友管理
             </a-menu-item>
             <a-menu-item key="posts">
-              <template #icon><CommentOutlined /></template>
+              <template #icon>
+                <CommentOutlined />
+              </template>
               动态广场
             </a-menu-item>
             <a-menu-item key="p2p-messaging">
-              <template #icon><MessageOutlined /></template>
+              <template #icon>
+                <MessageOutlined />
+              </template>
               P2P加密消息
             </a-menu-item>
             <a-menu-item key="offline-queue">
-              <template #icon><InboxOutlined /></template>
+              <template #icon>
+                <InboxOutlined />
+              </template>
               离线消息队列
             </a-menu-item>
           </a-sub-menu>
 
           <!-- 6. 交易市场 -->
           <a-sub-menu key="trade">
-            <template #icon><ShopOutlined /></template>
-            <template #title>交易市场</template>
+            <template #icon>
+              <ShopOutlined />
+            </template>
+            <template #title>
+              交易市场
+            </template>
             <a-menu-item key="trading">
-              <template #icon><DashboardOutlined /></template>
-              <span @contextmenu="showContextMenu($event, 'trading')"
-                >交易中心</span
-              >
+              <template #icon>
+                <DashboardOutlined />
+              </template>
+              <span @contextmenu="showContextMenu($event, 'trading')">交易中心</span>
               <span class="menu-shortcut">Alt+5</span>
             </a-menu-item>
             <a-menu-item key="marketplace">
-              <template #icon><ShopOutlined /></template>
+              <template #icon>
+                <ShopOutlined />
+              </template>
               交易市场
             </a-menu-item>
             <a-menu-item key="contracts">
-              <template #icon><AuditOutlined /></template>
+              <template #icon>
+                <AuditOutlined />
+              </template>
               智能合约
             </a-menu-item>
             <a-menu-item key="credit-score">
-              <template #icon><StarOutlined /></template>
+              <template #icon>
+                <StarOutlined />
+              </template>
               信用评分
             </a-menu-item>
             <a-menu-item key="wallet">
-              <template #icon><WalletOutlined /></template>
+              <template #icon>
+                <WalletOutlined />
+              </template>
               钱包管理
             </a-menu-item>
             <a-menu-item key="bridge">
-              <template #icon><SwapOutlined /></template>
+              <template #icon>
+                <SwapOutlined />
+              </template>
               跨链桥
             </a-menu-item>
           </a-sub-menu>
 
           <!-- 7. 开发与设计 -->
           <a-sub-menu key="dev-tools">
-            <template #icon><CodeOutlined /></template>
+            <template #icon>
+              <CodeOutlined />
+            </template>
             <template #title>
               <span>开发与设计</span>
               <a-badge
@@ -307,29 +377,37 @@
               />
             </template>
             <a-menu-item key="webide">
-              <template #icon><CodeOutlined /></template>
-              <span @contextmenu="showContextMenu($event, 'webide')"
-                >Web IDE</span
-              >
+              <template #icon>
+                <CodeOutlined />
+              </template>
+              <span @contextmenu="showContextMenu($event, 'webide')">Web IDE</span>
               <span class="menu-shortcut">Alt+6</span>
             </a-menu-item>
             <a-menu-item key="design-editor">
-              <template #icon><BgColorsOutlined /></template>
+              <template #icon>
+                <BgColorsOutlined />
+              </template>
               设计编辑器
             </a-menu-item>
             <a-menu-item key="rss-feeds">
-              <template #icon><ReadOutlined /></template>
+              <template #icon>
+                <ReadOutlined />
+              </template>
               RSS订阅
             </a-menu-item>
             <a-menu-item key="email-accounts">
-              <template #icon><MailOutlined /></template>
+              <template #icon>
+                <MailOutlined />
+              </template>
               邮件管理
             </a-menu-item>
           </a-sub-menu>
 
           <!-- 8. 企业版 -->
           <a-sub-menu key="enterprise">
-            <template #icon><BankOutlined /></template>
+            <template #icon>
+              <BankOutlined />
+            </template>
             <template #title>
               <span>企业版</span>
               <a-badge
@@ -343,38 +421,48 @@
               />
             </template>
             <a-menu-item key="organizations">
-              <template #icon><ApartmentOutlined /></template>
-              <span @contextmenu="showContextMenu($event, 'organizations')"
-                >组织管理</span
-              >
+              <template #icon>
+                <ApartmentOutlined />
+              </template>
+              <span @contextmenu="showContextMenu($event, 'organizations')">组织管理</span>
               <span class="menu-shortcut">Alt+7</span>
             </a-menu-item>
             <a-menu-item key="enterprise-dashboard">
-              <template #icon><DashboardOutlined /></template>
+              <template #icon>
+                <DashboardOutlined />
+              </template>
               企业仪表板
             </a-menu-item>
             <a-menu-item key="permission-management">
-              <template #icon><SafetyCertificateOutlined /></template>
+              <template #icon>
+                <SafetyCertificateOutlined />
+              </template>
               权限管理
             </a-menu-item>
           </a-sub-menu>
 
           <!-- 9. 系统设置 -->
           <a-sub-menu key="system">
-            <template #icon><SettingOutlined /></template>
-            <template #title>系统设置</template>
+            <template #icon>
+              <SettingOutlined />
+            </template>
+            <template #title>
+              系统设置
+            </template>
 
             <!-- 基础配置 -->
             <a-menu-item-group title="基础配置">
               <a-menu-item key="system-settings">
-                <template #icon><SettingOutlined /></template>
-                <span @contextmenu="showContextMenu($event, 'system-settings')"
-                  >系统配置</span
-                >
+                <template #icon>
+                  <SettingOutlined />
+                </template>
+                <span @contextmenu="showContextMenu($event, 'system-settings')">系统配置</span>
                 <span class="menu-shortcut">Alt+8</span>
               </a-menu-item>
               <a-menu-item key="settings">
-                <template #icon><SettingOutlined /></template>
+                <template #icon>
+                  <SettingOutlined />
+                </template>
                 通用设置
               </a-menu-item>
             </a-menu-item-group>
@@ -382,23 +470,33 @@
             <!-- 插件生态 -->
             <a-menu-item-group title="插件生态">
               <a-menu-item key="plugin-management">
-                <template #icon><AppstoreOutlined /></template>
+                <template #icon>
+                  <AppstoreOutlined />
+                </template>
                 插件管理
               </a-menu-item>
               <a-menu-item key="plugin-marketplace">
-                <template #icon><ShopOutlined /></template>
+                <template #icon>
+                  <ShopOutlined />
+                </template>
                 插件市场
               </a-menu-item>
               <a-menu-item key="plugin-publisher">
-                <template #icon><CloudUploadOutlined /></template>
+                <template #icon>
+                  <CloudUploadOutlined />
+                </template>
                 插件发布
               </a-menu-item>
               <a-menu-item key="skill-management">
-                <template #icon><ThunderboltOutlined /></template>
+                <template #icon>
+                  <ThunderboltOutlined />
+                </template>
                 技能管理
               </a-menu-item>
               <a-menu-item key="tool-management">
-                <template #icon><ToolOutlined /></template>
+                <template #icon>
+                  <ToolOutlined />
+                </template>
                 工具管理
               </a-menu-item>
             </a-menu-item-group>
@@ -408,7 +506,10 @@
               v-if="pluginMenuItems.length > 0"
               title="已安装插件"
             >
-              <a-menu-item v-for="plugin in pluginMenuItems" :key="plugin.key">
+              <a-menu-item
+                v-for="plugin in pluginMenuItems"
+                :key="plugin.key"
+              >
                 <template #icon>
                   <component :is="getIconComponent(plugin.icon)" />
                 </template>
@@ -431,11 +532,15 @@
             <!-- AI配置 -->
             <a-menu-item-group title="AI配置">
               <a-menu-item key="llm-settings">
-                <template #icon><ApiOutlined /></template>
+                <template #icon>
+                  <ApiOutlined />
+                </template>
                 LLM配置
               </a-menu-item>
               <a-menu-item key="rag-settings">
-                <template #icon><DatabaseOutlined /></template>
+                <template #icon>
+                  <DatabaseOutlined />
+                </template>
                 RAG配置
               </a-menu-item>
             </a-menu-item-group>
@@ -443,19 +548,27 @@
             <!-- 同步与安全 -->
             <a-menu-item-group title="同步与安全">
               <a-menu-item key="git-settings">
-                <template #icon><SyncOutlined /></template>
+                <template #icon>
+                  <SyncOutlined />
+                </template>
                 Git同步
               </a-menu-item>
               <a-menu-item key="sync-conflicts">
-                <template #icon><ExclamationCircleOutlined /></template>
+                <template #icon>
+                  <ExclamationCircleOutlined />
+                </template>
                 同步冲突管理
               </a-menu-item>
               <a-menu-item key="ukey-settings">
-                <template #icon><SafetyOutlined /></template>
+                <template #icon>
+                  <SafetyOutlined />
+                </template>
                 UKey安全
               </a-menu-item>
               <a-menu-item key="database-performance">
-                <template #icon><DashboardOutlined /></template>
+                <template #icon>
+                  <DashboardOutlined />
+                </template>
                 数据库性能监控
               </a-menu-item>
             </a-menu-item-group>
@@ -473,15 +586,22 @@
           <a-button
             v-if="showSidebar"
             type="text"
-            @click="toggleSidebar"
             class="trigger-btn"
+            @click="toggleSidebar"
           >
             <MenuFoldOutlined v-if="!sidebarCollapsed" />
             <MenuUnfoldOutlined v-else />
           </a-button>
           <!-- 没有侧边栏时显示返回按钮 -->
-          <div v-else class="page-title">
-            <a-button type="text" @click="handleBackToHome" class="back-btn">
+          <div
+            v-else
+            class="page-title"
+          >
+            <a-button
+              type="text"
+              class="back-btn"
+              @click="handleBackToHome"
+            >
               <ArrowLeftOutlined />
               返回首页
             </a-button>
@@ -499,20 +619,23 @@
             >
               <a
                 v-if="item.path && index < breadcrumbs.length - 1"
-                @click="handleBreadcrumbClick(item)"
                 class="breadcrumb-link"
+                @click="handleBreadcrumbClick(item)"
               >
                 <component
-                  v-if="item.icon"
                   :is="getIconComponent(item.icon)"
+                  v-if="item.icon"
                   class="breadcrumb-icon"
                 />
                 {{ item.title }}
               </a>
-              <span v-else class="breadcrumb-current">
+              <span
+                v-else
+                class="breadcrumb-current"
+              >
                 <component
-                  v-if="item.icon"
                   :is="getIconComponent(item.icon)"
+                  v-if="item.icon"
                   class="breadcrumb-icon"
                 />
                 {{ item.title }}
@@ -527,8 +650,8 @@
             <a-tooltip title="搜索菜单 (Ctrl+K)">
               <a-button
                 type="text"
-                @click="showCommandPalette"
                 class="search-btn"
+                @click="showCommandPalette"
               >
                 <SearchOutlined />
               </a-button>
@@ -538,8 +661,8 @@
             <a-tooltip :title="syncTooltip">
               <a-button
                 type="text"
-                @click="handleSyncClick"
                 :loading="isSyncing"
+                @click="handleSyncClick"
               >
                 <template v-if="!isSyncing">
                   <SyncOutlined
@@ -550,7 +673,10 @@
                     v-else-if="syncStatus === 'error'"
                     :style="{ color: '#ff4d4f' }"
                   />
-                  <CloudSyncOutlined v-else :style="{ color: '#1890ff' }" />
+                  <CloudSyncOutlined
+                    v-else
+                    :style="{ color: '#1890ff' }"
+                  />
                 </template>
               </a-button>
             </a-tooltip>
@@ -560,7 +686,10 @@
 
             <!-- AI对话 -->
             <a-tooltip title="AI对话">
-              <a-button type="text" @click="toggleChat">
+              <a-button
+                type="text"
+                @click="toggleChat"
+              >
                 <MessageOutlined />
               </a-button>
             </a-tooltip>
@@ -572,9 +701,15 @@
             <DIDInvitationNotifier />
 
             <!-- 通知中心 -->
-            <a-badge :count="socialStore.totalUnreadCount" :overflow-count="99">
+            <a-badge
+              :count="socialStore.totalUnreadCount"
+              :overflow-count="99"
+            >
               <a-tooltip title="通知中心">
-                <a-button type="text" @click="toggleNotificationPanel">
+                <a-button
+                  type="text"
+                  @click="toggleNotificationPanel"
+                >
                   <BellOutlined />
                 </a-button>
               </a-tooltip>
@@ -592,7 +727,10 @@
                     个人资料
                   </a-menu-item>
                   <a-menu-divider />
-                  <a-menu-item key="logout" @click="handleLogout">
+                  <a-menu-item
+                    key="logout"
+                    @click="handleLogout"
+                  >
                     <LogoutOutlined />
                     退出登录
                   </a-menu-item>
@@ -606,7 +744,7 @@
       <!-- 标签页栏 -->
       <div class="tabs-bar">
         <a-tabs
-          v-model:activeKey="store.activeTabKey"
+          v-model:active-key="store.activeTabKey"
           type="editable-card"
           hide-add
           @edit="handleTabEdit"
@@ -617,18 +755,24 @@
             :key="tab.key"
             :tab="tab.title"
             :closable="tab.closable"
-          >
-          </a-tab-pane>
+          />
 
           <template #rightExtra>
             <a-dropdown :trigger="['click']">
-              <a-button type="text" size="small">
+              <a-button
+                type="text"
+                size="small"
+              >
                 <DownOutlined />
               </a-button>
               <template #overlay>
                 <a-menu @click="handleTabDropdown">
-                  <a-menu-item key="close-others"> 关闭其他 </a-menu-item>
-                  <a-menu-item key="close-all"> 关闭所有 </a-menu-item>
+                  <a-menu-item key="close-others">
+                    关闭其他
+                  </a-menu-item>
+                  <a-menu-item key="close-all">
+                    关闭所有
+                  </a-menu-item>
                 </a-menu>
               </template>
             </a-dropdown>
@@ -645,7 +789,10 @@
         >
           <router-view v-slot="{ Component }">
             <keep-alive>
-              <component :is="Component" :key="$route.fullPath" />
+              <component
+                :is="Component"
+                :key="$route.fullPath"
+              />
             </keep-alive>
           </router-view>
         </a-layout-content>
@@ -655,7 +802,10 @@
           class="chat-panel-container"
           :style="{ width: chatPanelVisible ? '400px' : '0' }"
         >
-          <ChatPanel :open="chatPanelVisible" @toggle="toggleChat" />
+          <ChatPanel
+            :open="chatPanelVisible"
+            @toggle="toggleChat"
+          />
         </div>
       </a-layout>
     </a-layout>
@@ -697,8 +847,11 @@
       :footer="null"
     >
       <div class="favorite-manager">
-        <a-tabs v-model:activeKey="favoriteTab">
-          <a-tab-pane key="favorites" tab="收藏">
+        <a-tabs v-model:active-key="favoriteTab">
+          <a-tab-pane
+            key="favorites"
+            tab="收藏"
+          >
             <a-list
               :data-source="store.favoriteMenus"
               :locale="{ emptyText: '暂无收藏' }"
@@ -721,15 +874,22 @@
                         :style="{ fontSize: '20px' }"
                       />
                     </template>
-                    <template #title>{{ item.title }}</template>
-                    <template #description>{{ item.path }}</template>
+                    <template #title>
+                      {{ item.title }}
+                    </template>
+                    <template #description>
+                      {{ item.path }}
+                    </template>
                   </a-list-item-meta>
                 </a-list-item>
               </template>
             </a-list>
           </a-tab-pane>
 
-          <a-tab-pane key="recents" tab="最近访问">
+          <a-tab-pane
+            key="recents"
+            tab="最近访问"
+          >
             <div class="recents-header">
               <span>最近访问的 {{ store.recentMenus.length }} 个菜单</span>
               <a-button
@@ -747,7 +907,10 @@
               <template #renderItem="{ item }">
                 <a-list-item>
                   <template #actions>
-                    <a-button type="text" @click="handleQuickAccessClick(item)">
+                    <a-button
+                      type="text"
+                      @click="handleQuickAccessClick(item)"
+                    >
                       <ArrowRightOutlined />
                     </a-button>
                   </template>
@@ -758,7 +921,9 @@
                         :style="{ fontSize: '20px' }"
                       />
                     </template>
-                    <template #title>{{ item.title }}</template>
+                    <template #title>
+                      {{ item.title }}
+                    </template>
                     <template #description>
                       {{ formatTime(item.visitedAt) }}
                     </template>
@@ -785,7 +950,7 @@
           width: '1px',
           height: '1px',
         }"
-      ></div>
+      />
       <template #overlay>
         <a-menu @click="contextMenuVisible = false">
           <a-menu-item @click="toggleFavorite">
@@ -1099,7 +1264,7 @@ const handleMenuClick = ({ key }) => {
   }
 
   const config = menuConfig[key];
-  if (!config) return;
+  if (!config) {return;}
 
   // 添加到最近访问
   store.addRecentMenu({
@@ -1542,7 +1707,7 @@ const voiceCommands = [
 
 // 解析语音命令
 const parseVoiceCommand = (text) => {
-  if (!text) return null;
+  if (!text) {return null;}
   const lowerText = text.toLowerCase();
 
   for (const cmd of voiceCommands) {
@@ -1662,9 +1827,9 @@ const simulateKeyboardShortcut = (command) => {
 
   // 显示提示
   const modifiers = [];
-  if (command.ctrl) modifiers.push("Ctrl");
-  if (command.shift) modifiers.push("Shift");
-  if (command.alt) modifiers.push("Alt");
+  if (command.ctrl) {modifiers.push("Ctrl");}
+  if (command.shift) {modifiers.push("Shift");}
+  if (command.alt) {modifiers.push("Alt");}
   modifiers.push(command.key.toUpperCase());
 
   message.success(`已执行快捷键: ${modifiers.join("+")}`);
@@ -1738,10 +1903,10 @@ const syncStatus = ref("synced"); // synced, error, pending
 const syncError = ref(null);
 
 const syncTooltip = computed(() => {
-  if (isSyncing.value) return "正在同步...";
+  if (isSyncing.value) {return "正在同步...";}
   if (syncStatus.value === "error")
-    return "同步失败：" + (syncError.value || "未知错误");
-  if (syncStatus.value === "synced") return "已同步";
+    {return "同步失败：" + (syncError.value || "未知错误");}
+  if (syncStatus.value === "synced") {return "已同步";}
   return "等待同步";
 });
 
@@ -1907,10 +2072,10 @@ const formatTime = (timestamp) => {
   const now = Date.now();
   const diff = now - timestamp;
 
-  if (diff < 60000) return "刚刚";
-  if (diff < 3600000) return `${Math.floor(diff / 60000)} 分钟前`;
-  if (diff < 86400000) return `${Math.floor(diff / 3600000)} 小时前`;
-  if (diff < 604800000) return `${Math.floor(diff / 86400000)} 天前`;
+  if (diff < 60000) {return "刚刚";}
+  if (diff < 3600000) {return `${Math.floor(diff / 60000)} 分钟前`;}
+  if (diff < 86400000) {return `${Math.floor(diff / 3600000)} 小时前`;}
+  if (diff < 604800000) {return `${Math.floor(diff / 86400000)} 天前`;}
 
   const date = new Date(timestamp);
   return `${date.getMonth() + 1}/${date.getDate()}`;
@@ -1924,7 +2089,7 @@ const showContextMenu = (event, key) => {
   event.stopPropagation();
 
   const config = menuConfig[key];
-  if (!config) return;
+  if (!config) {return;}
 
   currentMenuItem.value = {
     key,
@@ -1946,7 +2111,7 @@ const showContextMenu = (event, key) => {
  * 切换收藏状态
  */
 const toggleFavorite = () => {
-  if (!currentMenuItem.value) return;
+  if (!currentMenuItem.value) {return;}
 
   store.toggleFavoriteMenu(currentMenuItem.value);
   contextMenuVisible.value = false;
@@ -1962,7 +2127,7 @@ const toggleFavorite = () => {
  * 置顶菜单
  */
 const pinToTop = () => {
-  if (!currentMenuItem.value) return;
+  if (!currentMenuItem.value) {return;}
 
   if (store.isPinnedMenu(currentMenuItem.value.key)) {
     store.unpinMenu(currentMenuItem.value.key);
@@ -2177,7 +2342,7 @@ onUnmounted(() => {
 
 // 手动触发同步
 const handleSyncClick = async () => {
-  if (isSyncing.value) return;
+  if (isSyncing.value) {return;}
 
   try {
     isSyncing.value = true;

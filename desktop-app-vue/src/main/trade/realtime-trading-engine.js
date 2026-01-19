@@ -373,7 +373,7 @@ class RealtimeTradingEngine extends EventEmitter {
    */
   async matchOrder(order) {
     const orderBook = this.orderBooks.get(order.asset_id);
-    if (!orderBook) return;
+    if (!orderBook) {return;}
 
     const matches = orderBook.findMatchesForOrder(order);
 
@@ -660,7 +660,7 @@ class OrderBook {
     if (order.side === OrderSide.BUY) {
       // 买单匹配卖单
       for (const sellOrder of this.sellOrders) {
-        if (order.remaining_quantity === 0) break;
+        if (order.remaining_quantity === 0) {break;}
 
         if (order.order_type === OrderType.MARKET || order.price >= sellOrder.price) {
           const quantity = Math.min(order.remaining_quantity, sellOrder.remaining_quantity);
@@ -678,7 +678,7 @@ class OrderBook {
     } else {
       // 卖单匹配买单
       for (const buyOrder of this.buyOrders) {
-        if (order.remaining_quantity === 0) break;
+        if (order.remaining_quantity === 0) {break;}
 
         if (order.order_type === OrderType.MARKET || order.price <= buyOrder.price) {
           const quantity = Math.min(order.remaining_quantity, buyOrder.remaining_quantity);

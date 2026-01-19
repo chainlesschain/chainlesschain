@@ -3,7 +3,10 @@
     <!-- 头部 -->
     <div class="forum-header">
       <h2>社区论坛</h2>
-      <a-button type="primary" @click="showCreateTopicModal">
+      <a-button
+        type="primary"
+        @click="showCreateTopicModal"
+      >
         <PlusOutlined /> 发帖
       </a-button>
     </div>
@@ -31,8 +34,14 @@
       :confirm-loading="publishing"
       @ok="handleCreateTopic"
     >
-      <a-form :model="topicForm" layout="vertical">
-        <a-form-item label="标题" required>
+      <a-form
+        :model="topicForm"
+        layout="vertical"
+      >
+        <a-form-item
+          label="标题"
+          required
+        >
           <a-input
             v-model:value="topicForm.title"
             placeholder="请输入标题"
@@ -41,15 +50,28 @@
           />
         </a-form-item>
 
-        <a-form-item label="分类" required>
-          <a-select v-model:value="topicForm.category" style="width: 100%">
-            <a-select-option v-for="cat in categories" :key="cat.id" :value="cat.id">
+        <a-form-item
+          label="分类"
+          required
+        >
+          <a-select
+            v-model:value="topicForm.category"
+            style="width: 100%"
+          >
+            <a-select-option
+              v-for="cat in categories"
+              :key="cat.id"
+              :value="cat.id"
+            >
               {{ cat.name }}
             </a-select-option>
           </a-select>
         </a-form-item>
 
-        <a-form-item label="内容" required>
+        <a-form-item
+          label="内容"
+          required
+        >
           <a-textarea
             v-model:value="topicForm.content"
             :rows="8"
@@ -74,43 +96,82 @@
     <!-- 帖子列表 -->
     <div class="forum-topics">
       <a-spin :spinning="loading">
-        <a-empty v-if="topics.length === 0 && !loading" description="暂无帖子" />
+        <a-empty
+          v-if="topics.length === 0 && !loading"
+          description="暂无帖子"
+        />
 
-        <div v-for="topic in topics" :key="topic.id" class="topic-item" @click="viewTopic(topic)">
+        <div
+          v-for="topic in topics"
+          :key="topic.id"
+          class="topic-item"
+          @click="viewTopic(topic)"
+        >
           <!-- 左侧：统计信息 -->
           <div class="topic-stats">
             <div class="stat-item">
-              <div class="stat-value">{{ topic.views_count || 0 }}</div>
-              <div class="stat-label">浏览</div>
+              <div class="stat-value">
+                {{ topic.views_count || 0 }}
+              </div>
+              <div class="stat-label">
+                浏览
+              </div>
             </div>
             <div class="stat-item">
-              <div class="stat-value">{{ topic.replies_count || 0 }}</div>
-              <div class="stat-label">回复</div>
+              <div class="stat-value">
+                {{ topic.replies_count || 0 }}
+              </div>
+              <div class="stat-label">
+                回复
+              </div>
             </div>
             <div class="stat-item">
-              <div class="stat-value">{{ topic.likes_count || 0 }}</div>
-              <div class="stat-label">点赞</div>
+              <div class="stat-value">
+                {{ topic.likes_count || 0 }}
+              </div>
+              <div class="stat-label">
+                点赞
+              </div>
             </div>
           </div>
 
           <!-- 中间：帖子信息 -->
           <div class="topic-content">
             <div class="topic-title">
-              <a-tag v-if="topic.is_pinned" color="red">置顶</a-tag>
-              <a-tag v-if="topic.is_hot" color="orange">热门</a-tag>
+              <a-tag
+                v-if="topic.is_pinned"
+                color="red"
+              >
+                置顶
+              </a-tag>
+              <a-tag
+                v-if="topic.is_hot"
+                color="orange"
+              >
+                热门
+              </a-tag>
               <span>{{ topic.title }}</span>
             </div>
 
             <div class="topic-meta">
               <a-space>
-                <a-tag color="blue">{{ getCategoryName(topic.category_id) }}</a-tag>
-                <a-tag v-for="tag in topic.tags" :key="tag">{{ tag }}</a-tag>
+                <a-tag color="blue">
+                  {{ getCategoryName(topic.category_id) }}
+                </a-tag>
+                <a-tag
+                  v-for="tag in topic.tags"
+                  :key="tag"
+                >
+                  {{ tag }}
+                </a-tag>
               </a-space>
             </div>
 
             <div class="topic-info">
               <a-avatar :size="24">
-                <template #icon><UserOutlined /></template>
+                <template #icon>
+                  <UserOutlined />
+                </template>
               </a-avatar>
               <span class="topic-author">{{ topic.author_name || shortenDid(topic.author_did) }}</span>
               <span class="topic-time">{{ formatTime(topic.created_at) }}</span>
@@ -118,17 +179,29 @@
           </div>
 
           <!-- 右侧：最新回复 -->
-          <div v-if="topic.last_reply" class="topic-last-reply">
+          <div
+            v-if="topic.last_reply"
+            class="topic-last-reply"
+          >
             <div class="last-reply-author">
               {{ topic.last_reply.author_name || shortenDid(topic.last_reply.author_did) }}
             </div>
-            <div class="last-reply-time">{{ formatTime(topic.last_reply.created_at) }}</div>
+            <div class="last-reply-time">
+              {{ formatTime(topic.last_reply.created_at) }}
+            </div>
           </div>
         </div>
 
         <!-- 加载更多 -->
-        <div v-if="hasMore" class="load-more">
-          <a-button type="link" :loading="loadingMore" @click="loadMore">
+        <div
+          v-if="hasMore"
+          class="load-more"
+        >
+          <a-button
+            type="link"
+            :loading="loadingMore"
+            @click="loadMore"
+          >
             加载更多
           </a-button>
         </div>
@@ -142,21 +215,31 @@
       width="900px"
       :footer="null"
     >
-      <div v-if="currentTopic" class="topic-detail">
+      <div
+        v-if="currentTopic"
+        class="topic-detail"
+      >
         <!-- 帖子内容 -->
         <div class="topic-detail-content">
           <div class="topic-detail-header">
             <a-avatar :size="48">
-              <template #icon><UserOutlined /></template>
+              <template #icon>
+                <UserOutlined />
+              </template>
             </a-avatar>
             <div class="topic-detail-author-info">
               <div class="topic-detail-author">
                 {{ currentTopic.author_name || shortenDid(currentTopic.author_did) }}
               </div>
-              <div class="topic-detail-time">{{ formatTime(currentTopic.created_at) }}</div>
+              <div class="topic-detail-time">
+                {{ formatTime(currentTopic.created_at) }}
+              </div>
             </div>
             <a-space>
-              <a-button type="text" @click="handleLikeTopic(currentTopic)">
+              <a-button
+                type="text"
+                @click="handleLikeTopic(currentTopic)"
+              >
                 <LikeOutlined :style="{ color: currentTopic.liked ? '#1890ff' : undefined }" />
                 {{ currentTopic.likes_count || 0 }}
               </a-button>
@@ -170,12 +253,17 @@
           </div>
 
           <div class="topic-detail-body">
-            <div v-html="renderMarkdown(currentTopic.content)"></div>
+            <div v-html="renderMarkdown(currentTopic.content)" />
           </div>
 
           <div class="topic-detail-tags">
             <a-space>
-              <a-tag v-for="tag in currentTopic.tags" :key="tag">{{ tag }}</a-tag>
+              <a-tag
+                v-for="tag in currentTopic.tags"
+                :key="tag"
+              >
+                {{ tag }}
+              </a-tag>
             </a-space>
           </div>
         </div>
@@ -184,9 +272,15 @@
         <div class="topic-replies">
           <h3>回复 ({{ currentTopic.replies_count || 0 }})</h3>
 
-          <div v-for="reply in replies" :key="reply.id" class="reply-item">
+          <div
+            v-for="reply in replies"
+            :key="reply.id"
+            class="reply-item"
+          >
             <a-avatar :size="36">
-              <template #icon><UserOutlined /></template>
+              <template #icon>
+                <UserOutlined />
+              </template>
             </a-avatar>
             <div class="reply-content">
               <div class="reply-header">
@@ -195,13 +289,23 @@
                 </span>
                 <span class="reply-time">{{ formatTime(reply.created_at) }}</span>
               </div>
-              <div class="reply-body">{{ reply.content }}</div>
+              <div class="reply-body">
+                {{ reply.content }}
+              </div>
               <div class="reply-actions">
-                <a-button type="text" size="small" @click="handleLikeReply(reply)">
+                <a-button
+                  type="text"
+                  size="small"
+                  @click="handleLikeReply(reply)"
+                >
                   <LikeOutlined :style="{ color: reply.liked ? '#1890ff' : undefined }" />
                   {{ reply.likes_count || 0 }}
                 </a-button>
-                <a-button type="text" size="small" @click="handleReplyToReply(reply)">
+                <a-button
+                  type="text"
+                  size="small"
+                  @click="handleReplyToReply(reply)"
+                >
                   <CommentOutlined /> 回复
                 </a-button>
               </div>
@@ -218,7 +322,11 @@
               show-count
             />
             <div class="reply-input-actions">
-              <a-button type="primary" :loading="replying" @click="handleReply">
+              <a-button
+                type="primary"
+                :loading="replying"
+                @click="handleReply"
+              >
                 发表回复
               </a-button>
             </div>
@@ -472,17 +580,17 @@ const formatTime = (timestamp) => {
   const now = new Date();
   const diff = now - date;
 
-  if (diff < 60000) return '刚刚';
-  if (diff < 3600000) return `${Math.floor(diff / 60000)}分钟前`;
-  if (diff < 86400000) return `${Math.floor(diff / 3600000)}小时前`;
-  if (diff < 604800000) return `${Math.floor(diff / 86400000)}天前`;
+  if (diff < 60000) {return '刚刚';}
+  if (diff < 3600000) {return `${Math.floor(diff / 60000)}分钟前`;}
+  if (diff < 86400000) {return `${Math.floor(diff / 3600000)}小时前`;}
+  if (diff < 604800000) {return `${Math.floor(diff / 86400000)}天前`;}
 
   return date.toLocaleDateString();
 };
 
 // 缩短DID显示
 const shortenDid = (did) => {
-  if (!did) return '';
+  if (!did) {return '';}
   return `${did.slice(0, 8)}...${did.slice(-6)}`;
 };
 

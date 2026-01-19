@@ -3,10 +3,18 @@
     <!-- 编辑器工具栏 -->
     <div class="editor-toolbar">
       <div class="toolbar-left">
-        <div class="skeleton-box button" v-for="i in 5" :key="i"></div>
+        <div
+          v-for="i in 5"
+          :key="i"
+          class="skeleton-box button"
+        />
       </div>
       <div class="toolbar-right">
-        <div class="skeleton-box button small" v-for="i in 3" :key="'r' + i"></div>
+        <div
+          v-for="i in 3"
+          :key="'r' + i"
+          class="skeleton-box button small"
+        />
       </div>
     </div>
 
@@ -14,24 +22,44 @@
     <div class="editor-content">
       <!-- 行号 -->
       <div class="line-numbers">
-        <div v-for="i in 25" :key="i" class="line-number skeleton-text">{{ i }}</div>
+        <div
+          v-for="i in 25"
+          :key="i"
+          class="line-number skeleton-text"
+        >
+          {{ i }}
+        </div>
       </div>
 
       <!-- 代码行 -->
       <div class="code-lines">
-        <div v-for="i in 25" :key="i" class="code-line" :style="getLineStyle(i)">
-          <div class="skeleton-box code-segment" :style="getSegmentStyle(i, 0)"></div>
-          <div class="skeleton-box code-segment" :style="getSegmentStyle(i, 1)"></div>
-          <div class="skeleton-box code-segment" :style="getSegmentStyle(i, 2)"></div>
+        <div
+          v-for="i in 25"
+          :key="i"
+          class="code-line"
+          :style="getLineStyle(i)"
+        >
+          <div
+            class="skeleton-box code-segment"
+            :style="getSegmentStyle(i, 0)"
+          />
+          <div
+            class="skeleton-box code-segment"
+            :style="getSegmentStyle(i, 1)"
+          />
+          <div
+            class="skeleton-box code-segment"
+            :style="getSegmentStyle(i, 2)"
+          />
         </div>
       </div>
     </div>
 
     <!-- 编辑器状态栏 -->
     <div class="editor-statusbar">
-      <div class="skeleton-box status-item"></div>
-      <div class="skeleton-box status-item"></div>
-      <div class="skeleton-box status-item"></div>
+      <div class="skeleton-box status-item" />
+      <div class="skeleton-box status-item" />
+      <div class="skeleton-box status-item" />
     </div>
   </div>
 </template>

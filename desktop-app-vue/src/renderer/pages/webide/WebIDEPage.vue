@@ -3,7 +3,10 @@
     <!-- 顶部工具栏 -->
     <div class="toolbar">
       <a-space>
-        <a-button type="primary" @click="handleSave">
+        <a-button
+          type="primary"
+          @click="handleSave"
+        >
           <SaveOutlined />
           保存
         </a-button>
@@ -12,7 +15,11 @@
           导出
         </a-button>
         <a-divider type="vertical" />
-        <a-select v-model:value="previewMode" style="width: 140px" @change="handlePreviewModeChange">
+        <a-select
+          v-model:value="previewMode"
+          style="width: 140px"
+          @change="handlePreviewModeChange"
+        >
           <a-select-option value="srcdoc">
             <ThunderboltOutlined />
             实时预览
@@ -22,7 +29,10 @@
             服务器模式
           </a-select-option>
         </a-select>
-        <a-select v-model:value="currentDevice" style="width: 120px">
+        <a-select
+          v-model:value="currentDevice"
+          style="width: 120px"
+        >
           <a-select-option value="desktop">
             <DesktopOutlined />
             桌面
@@ -49,11 +59,17 @@
       </a-space>
 
       <a-space style="margin-left: auto">
-        <a-tag v-if="serverRunning" color="success">
+        <a-tag
+          v-if="serverRunning"
+          color="success"
+        >
           <PlayCircleOutlined />
           服务器运行中: {{ serverUrl }}
         </a-tag>
-        <a-tag v-else-if="previewMode === 'server'" color="warning">
+        <a-tag
+          v-else-if="previewMode === 'server'"
+          color="warning"
+        >
           <PauseCircleOutlined />
           服务器未启动
         </a-tag>
@@ -78,19 +94,28 @@
 
     <!-- 主体区域 -->
     <div class="content-area">
-      <a-row :gutter="0" style="height: 100%">
+      <a-row
+        :gutter="0"
+        style="height: 100%"
+      >
         <!-- 编辑器区域 35% -->
-        <a-col :span="8" class="editor-column">
+        <a-col
+          :span="8"
+          class="editor-column"
+        >
           <EditorPanel
-            v-model:htmlCode="htmlCode"
-            v-model:cssCode="cssCode"
-            v-model:jsCode="jsCode"
+            v-model:html-code="htmlCode"
+            v-model:css-code="cssCode"
+            v-model:js-code="jsCode"
             @change="handleCodeChange"
           />
         </a-col>
 
         <!-- 预览区域 -->
-        <a-col :span="showDevTools ? 12 : 16" class="preview-column">
+        <a-col
+          :span="showDevTools ? 12 : 16"
+          class="preview-column"
+        >
           <PreviewFrame
             ref="previewFrameRef"
             :html="htmlCode"
@@ -105,7 +130,11 @@
         </a-col>
 
         <!-- 开发工具区域 20% (可折叠) -->
-        <a-col v-if="showDevTools" :span="4" class="devtools-column">
+        <a-col
+          v-if="showDevTools"
+          :span="4"
+          class="devtools-column"
+        >
           <ConsolePanel
             ref="consolePanelRef"
             :logs="consoleLogs"
@@ -127,7 +156,10 @@
           预览模式: {{ previewMode === 'srcdoc' ? '实时' : '服务器' }}
         </span>
         <a-divider type="vertical" />
-        <span v-if="serverRunning" class="status-item">
+        <span
+          v-if="serverRunning"
+          class="status-item"
+        >
           <LinkOutlined />
           {{ serverUrl }}
         </span>

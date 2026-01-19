@@ -6,8 +6,14 @@
   >
     <!-- 封面 -->
     <template #cover>
-      <div class="card-cover" :style="{ background: getCoverGradient(item.type) }">
-        <component :is="getTypeIcon(item.type)" style="font-size: 48px; color: white" />
+      <div
+        class="card-cover"
+        :style="{ background: getCoverGradient(item.type) }"
+      >
+        <component
+          :is="getTypeIcon(item.type)"
+          style="font-size: 48px; color: white"
+        />
       </div>
     </template>
 
@@ -16,7 +22,11 @@
       <template #title>
         <div class="card-title">
           {{ item.title }}
-          <a-tag v-if="item.share_scope" :color="getScopeColor(item.share_scope)" size="small">
+          <a-tag
+            v-if="item.share_scope"
+            :color="getScopeColor(item.share_scope)"
+            size="small"
+          >
             {{ getScopeLabel(item.share_scope) }}
           </a-tag>
         </div>
@@ -41,7 +51,10 @@
                   {{ formatRelativeTime(item.created_at) }}
                 </span>
               </a-tooltip>
-              <a-tooltip v-if="item.version > 1" :title="`版本 ${item.version}`">
+              <a-tooltip
+                v-if="item.version > 1"
+                :title="`版本 ${item.version}`"
+              >
                 <span class="meta-item">
                   <HistoryOutlined />
                   v{{ item.version }}
@@ -62,13 +75,25 @@
     <!-- 操作按钮 -->
     <template #actions>
       <a-tooltip title="查看">
-        <EyeOutlined key="view" @click.stop="emit('view', item)" />
+        <EyeOutlined
+          key="view"
+          @click.stop="emit('view', item)"
+        />
       </a-tooltip>
-      <a-tooltip v-if="canEdit" title="编辑">
-        <EditOutlined key="edit" @click.stop="emit('edit', item)" />
+      <a-tooltip
+        v-if="canEdit"
+        title="编辑"
+      >
+        <EditOutlined
+          key="edit"
+          @click.stop="emit('edit', item)"
+        />
       </a-tooltip>
       <a-tooltip title="分享">
-        <ShareAltOutlined key="share" @click.stop="emit('share', item)" />
+        <ShareAltOutlined
+          key="share"
+          @click.stop="emit('share', item)"
+        />
       </a-tooltip>
       <a-popconfirm
         v-if="canDelete"
@@ -78,7 +103,10 @@
         @confirm.stop="emit('delete', item)"
       >
         <a-tooltip title="删除">
-          <DeleteOutlined key="delete" @click.stop />
+          <DeleteOutlined
+            key="delete"
+            @click.stop
+          />
         </a-tooltip>
       </a-popconfirm>
     </template>
@@ -197,7 +225,7 @@ function getScopeLabel(scope) {
  * 获取内容预览
  */
 function getContentPreview(content) {
-  if (!content) return '暂无内容';
+  if (!content) {return '暂无内容';}
   const text = content.replace(/<[^>]*>/g, '').trim();
   return text.length > 100 ? text.substring(0, 100) + '...' : text;
 }
@@ -206,7 +234,7 @@ function getContentPreview(content) {
  * 获取创建者名称
  */
 function getCreatorName(did) {
-  if (!did) return '未知';
+  if (!did) {return '未知';}
   // 缩短DID显示
   if (did.length > 20) {
     return `${did.slice(0, 10)}...${did.slice(-6)}`;
@@ -218,7 +246,7 @@ function getCreatorName(did) {
  * 格式化日期
  */
 function formatDate(timestamp) {
-  if (!timestamp) return '-';
+  if (!timestamp) {return '-';}
   const date = new Date(timestamp);
   return date.toLocaleString('zh-CN');
 }
@@ -227,7 +255,7 @@ function formatDate(timestamp) {
  * 格式化相对时间
  */
 function formatRelativeTime(timestamp) {
-  if (!timestamp) return '-';
+  if (!timestamp) {return '-';}
 
   const now = Date.now();
   const diff = now - timestamp;

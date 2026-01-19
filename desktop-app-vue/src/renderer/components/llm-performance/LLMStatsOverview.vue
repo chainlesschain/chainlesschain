@@ -2,8 +2,15 @@
   <div class="stats-overview">
     <!-- Main stats row -->
     <div class="stats-grid main-stats">
-      <a-card class="stat-card" hoverable>
-        <a-skeleton :loading="loading" active :paragraph="{ rows: 1 }">
+      <a-card
+        class="stat-card"
+        hoverable
+      >
+        <a-skeleton
+          :loading="loading"
+          active
+          :paragraph="{ rows: 1 }"
+        >
           <a-statistic
             title="总调用次数"
             :value="stats.totalCalls"
@@ -24,8 +31,15 @@
         </a-skeleton>
       </a-card>
 
-      <a-card class="stat-card" hoverable>
-        <a-skeleton :loading="loading" active :paragraph="{ rows: 1 }">
+      <a-card
+        class="stat-card"
+        hoverable
+      >
+        <a-skeleton
+          :loading="loading"
+          active
+          :paragraph="{ rows: 1 }"
+        >
           <a-statistic
             title="总 Token 消耗"
             :value="stats.totalTokens"
@@ -47,8 +61,15 @@
         </a-skeleton>
       </a-card>
 
-      <a-card class="stat-card" hoverable>
-        <a-skeleton :loading="loading" active :paragraph="{ rows: 1 }">
+      <a-card
+        class="stat-card"
+        hoverable
+      >
+        <a-skeleton
+          :loading="loading"
+          active
+          :paragraph="{ rows: 1 }"
+        >
           <a-statistic
             title="总成本"
             :value="stats.totalCostUsd"
@@ -76,8 +97,15 @@
         </a-skeleton>
       </a-card>
 
-      <a-card class="stat-card" hoverable>
-        <a-skeleton :loading="loading" active :paragraph="{ rows: 1 }">
+      <a-card
+        class="stat-card"
+        hoverable
+      >
+        <a-skeleton
+          :loading="loading"
+          active
+          :paragraph="{ rows: 1 }"
+        >
           <a-statistic
             title="缓存命中率"
             :value="stats.cacheHitRate"
@@ -94,20 +122,36 @@
 
     <!-- Optimization stats row -->
     <div class="stats-grid optimization-stats">
-      <a-card class="stat-card" hoverable>
-        <a-skeleton :loading="loading" active :paragraph="{ rows: 1 }">
+      <a-card
+        class="stat-card"
+        hoverable
+      >
+        <a-skeleton
+          :loading="loading"
+          active
+          :paragraph="{ rows: 1 }"
+        >
           <a-statistic
             title="压缩调用次数"
             :value="stats.compressedCalls"
             :prefix="h(CompressOutlined)"
             :value-style="{ color: '#1890ff' }"
           />
-          <div class="stat-desc">节省约 30-40% Tokens</div>
+          <div class="stat-desc">
+            节省约 30-40% Tokens
+          </div>
         </a-skeleton>
       </a-card>
 
-      <a-card class="stat-card" hoverable>
-        <a-skeleton :loading="loading" active :paragraph="{ rows: 1 }">
+      <a-card
+        class="stat-card"
+        hoverable
+      >
+        <a-skeleton
+          :loading="loading"
+          active
+          :paragraph="{ rows: 1 }"
+        >
           <a-statistic
             title="平均响应时间"
             :value="stats.avgResponseTime"
@@ -120,8 +164,15 @@
         </a-skeleton>
       </a-card>
 
-      <a-card class="stat-card" hoverable>
-        <a-skeleton :loading="loading" active :paragraph="{ rows: 1 }">
+      <a-card
+        class="stat-card"
+        hoverable
+      >
+        <a-skeleton
+          :loading="loading"
+          active
+          :paragraph="{ rows: 1 }"
+        >
           <a-statistic
             title="缓存节省成本"
             :value="cachedSavings"
@@ -129,7 +180,9 @@
             :precision="4"
             :value-style="{ color: '#52c41a' }"
           />
-          <div class="stat-desc">预计节省</div>
+          <div class="stat-desc">
+            预计节省
+          </div>
         </a-skeleton>
       </a-card>
     </div>

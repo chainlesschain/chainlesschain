@@ -13,7 +13,9 @@
           danger
           @click="showDeleteOrgModal = true"
         >
-          <template #icon><DeleteOutlined /></template>
+          <template #icon>
+            <DeleteOutlined />
+          </template>
           删除组织
         </a-button>
       </div>
@@ -22,11 +24,20 @@
     <!-- 设置内容 -->
     <div class="settings-content">
       <!-- 基本信息 -->
-      <a-card title="基本信息" class="settings-card">
-        <a-form :model="orgForm" layout="vertical">
+      <a-card
+        title="基本信息"
+        class="settings-card"
+      >
+        <a-form
+          :model="orgForm"
+          layout="vertical"
+        >
           <a-row :gutter="16">
             <a-col :span="12">
-              <a-form-item label="组织名称" required>
+              <a-form-item
+                label="组织名称"
+                required
+              >
                 <a-input
                   v-model:value="orgForm.name"
                   placeholder="输入组织名称"
@@ -40,11 +51,21 @@
                   v-model:value="orgForm.type"
                   :disabled="!canManageOrg"
                 >
-                  <a-select-option value="startup">初创公司</a-select-option>
-                  <a-select-option value="company">企业</a-select-option>
-                  <a-select-option value="community">社区</a-select-option>
-                  <a-select-option value="opensource">开源项目</a-select-option>
-                  <a-select-option value="education">教育机构</a-select-option>
+                  <a-select-option value="startup">
+                    初创公司
+                  </a-select-option>
+                  <a-select-option value="company">
+                    企业
+                  </a-select-option>
+                  <a-select-option value="community">
+                    社区
+                  </a-select-option>
+                  <a-select-option value="opensource">
+                    开源项目
+                  </a-select-option>
+                  <a-select-option value="education">
+                    教育机构
+                  </a-select-option>
                 </a-select>
               </a-form-item>
             </a-col>
@@ -61,8 +82,14 @@
 
           <a-form-item label="组织头像">
             <div class="avatar-upload">
-              <a-avatar :src="orgForm.avatar" :size="80">
-                <template #icon v-if="!orgForm.avatar">
+              <a-avatar
+                :src="orgForm.avatar"
+                :size="80"
+              >
+                <template
+                  v-if="!orgForm.avatar"
+                  #icon
+                >
                   <TeamOutlined />
                 </template>
               </a-avatar>
@@ -82,7 +109,11 @@
 
           <a-form-item v-if="canManageOrg">
             <a-space>
-              <a-button type="primary" :loading="saving" @click="handleSaveBasicInfo">
+              <a-button
+                type="primary"
+                :loading="saving"
+                @click="handleSaveBasicInfo"
+              >
                 保存更改
               </a-button>
               <a-button @click="loadOrganizationInfo">
@@ -94,13 +125,22 @@
       </a-card>
 
       <!-- 组织信息 -->
-      <a-card title="组织信息" class="settings-card">
-        <a-descriptions :column="2" bordered>
+      <a-card
+        title="组织信息"
+        class="settings-card"
+      >
+        <a-descriptions
+          :column="2"
+          bordered
+        >
           <a-descriptions-item label="组织ID">
             {{ currentOrgInfo?.org_id }}
           </a-descriptions-item>
           <a-descriptions-item label="组织DID">
-            <a-typography-paragraph :copyable="{ text: currentOrgInfo?.org_did }" style="margin: 0">
+            <a-typography-paragraph
+              :copyable="{ text: currentOrgInfo?.org_did }"
+              style="margin: 0"
+            >
               {{ formatDID(currentOrgInfo?.org_did) }}
             </a-typography-paragraph>
           </a-descriptions-item>
@@ -120,7 +160,10 @@
       </a-card>
 
       <!-- 权限设置 -->
-      <a-card title="权限设置" class="settings-card">
+      <a-card
+        title="权限设置"
+        class="settings-card"
+      >
         <a-form layout="vertical">
           <!-- 角色管理快捷入口 -->
           <a-alert
@@ -131,7 +174,11 @@
             style="margin-bottom: 24px"
           >
             <template #action>
-              <a-button type="primary" size="small" @click="handleGoToRolesPage">
+              <a-button
+                type="primary"
+                size="small"
+                @click="handleGoToRolesPage"
+              >
                 <SafetyCertificateOutlined /> 管理角色
               </a-button>
             </template>
@@ -148,8 +195,12 @@
               v-model:value="settingsForm.visibility"
               :disabled="!canManageOrg"
             >
-              <a-radio value="private">私有 - 仅邀请加入</a-radio>
-              <a-radio value="public">公开 - 可被搜索和发现</a-radio>
+              <a-radio value="private">
+                私有 - 仅邀请加入
+              </a-radio>
+              <a-radio value="public">
+                公开 - 可被搜索和发现
+              </a-radio>
             </a-radio-group>
           </a-form-item>
 
@@ -181,14 +232,22 @@
               style="width: 200px"
               :disabled="!canManageOrg"
             >
-              <a-select-option value="member">成员</a-select-option>
-              <a-select-option value="viewer">访客</a-select-option>
+              <a-select-option value="member">
+                成员
+              </a-select-option>
+              <a-select-option value="viewer">
+                访客
+              </a-select-option>
             </a-select>
           </a-form-item>
 
           <a-form-item v-if="canManageOrg">
             <a-space>
-              <a-button type="primary" :loading="saving" @click="handleSaveSettings">
+              <a-button
+                type="primary"
+                :loading="saving"
+                @click="handleSaveSettings"
+              >
                 保存设置
               </a-button>
               <a-button @click="loadOrganizationInfo">
@@ -200,8 +259,15 @@
       </a-card>
 
       <!-- 数据与同步 -->
-      <a-card title="数据与同步" class="settings-card">
-        <a-space direction="vertical" style="width: 100%" :size="16">
+      <a-card
+        title="数据与同步"
+        class="settings-card"
+      >
+        <a-space
+          direction="vertical"
+          style="width: 100%"
+          :size="16"
+        >
           <div class="info-item">
             <div class="item-label">
               <CloudSyncOutlined class="item-icon" />
@@ -250,7 +316,10 @@
               <ExportOutlined />
               备份数据
             </a-button>
-            <a-button @click="handleSyncNow" :loading="syncing">
+            <a-button
+              :loading="syncing"
+              @click="handleSyncNow"
+            >
               <SyncOutlined />
               立即同步
             </a-button>
@@ -259,7 +328,10 @@
       </a-card>
 
       <!-- 活动日志 -->
-      <a-card title="最近活动" class="settings-card">
+      <a-card
+        title="最近活动"
+        class="settings-card"
+      >
         <a-list
           :loading="loadingActivities"
           :data-source="recentActivities"
@@ -288,26 +360,44 @@
       </a-card>
 
       <!-- 危险操作 -->
-      <a-card v-if="canManageOrg" title="危险操作" class="settings-card danger-zone">
-        <a-space direction="vertical" style="width: 100%" :size="16">
+      <a-card
+        v-if="canManageOrg"
+        title="危险操作"
+        class="settings-card danger-zone"
+      >
+        <a-space
+          direction="vertical"
+          style="width: 100%"
+          :size="16"
+        >
           <div class="danger-item">
             <div class="danger-info">
               <h4>离开组织</h4>
               <p>您将无法再访问此组织的数据和资源</p>
             </div>
-            <a-button danger @click="handleLeaveOrg">
+            <a-button
+              danger
+              @click="handleLeaveOrg"
+            >
               离开组织
             </a-button>
           </div>
 
           <a-divider />
 
-          <div v-if="isOwner" class="danger-item">
+          <div
+            v-if="isOwner"
+            class="danger-item"
+          >
             <div class="danger-info">
               <h4>删除组织</h4>
               <p>此操作无法撤销，将永久删除组织及所有数据</p>
             </div>
-            <a-button danger type="primary" @click="showDeleteOrgModal = true">
+            <a-button
+              danger
+              type="primary"
+              @click="showDeleteOrgModal = true"
+            >
               <DeleteOutlined />
               删除组织
             </a-button>
@@ -407,7 +497,7 @@ const syncForm = ref({
 
 // 当前用户角色
 const currentUserRole = computed(() => {
-  if (!identityStore.isOrganizationContext) return null;
+  if (!identityStore.isOrganizationContext) {return null;}
   const orgId = identityStore.currentOrgId;
   const org = identityStore.organizations.find(o => o.org_id === orgId);
   return org?.role || null;
@@ -680,7 +770,7 @@ const handleDeleteOrg = async () => {
 
 // 工具函数
 const formatDID = (did) => {
-  if (!did) return '';
+  if (!did) {return '';}
   if (did.length > 30) {
     return did.substring(0, 20) + '...' + did.substring(did.length - 10);
   }
@@ -688,7 +778,7 @@ const formatDID = (did) => {
 };
 
 const formatDate = (timestamp) => {
-  if (!timestamp) return '';
+  if (!timestamp) {return '';}
   const date = new Date(timestamp);
   return date.toLocaleString('zh-CN');
 };

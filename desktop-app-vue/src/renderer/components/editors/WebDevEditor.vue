@@ -2,7 +2,11 @@
   <div class="webdev-editor-container">
     <!-- 工具栏 -->
     <div class="webdev-toolbar">
-      <a-radio-group v-model:value="activeTab" button-style="solid" size="small">
+      <a-radio-group
+        v-model:value="activeTab"
+        button-style="solid"
+        size="small"
+      >
         <a-radio-button value="html">
           <Html5Outlined />
           HTML
@@ -35,7 +39,7 @@
         刷新预览
       </a-button>
 
-      <div class="toolbar-spacer"></div>
+      <div class="toolbar-spacer" />
 
       <a-button
         size="small"
@@ -70,37 +74,52 @@
     <div class="webdev-content">
       <!-- 左侧：代码编辑器 -->
       <div class="code-section">
-        <div v-show="activeTab === 'html'" class="code-panel">
-          <div class="panel-header">HTML</div>
+        <div
+          v-show="activeTab === 'html'"
+          class="code-panel"
+        >
+          <div class="panel-header">
+            HTML
+          </div>
           <textarea
             ref="htmlEditorRef"
             v-model="htmlCode"
             class="code-textarea"
-            @input="handleCodeChange"
             spellcheck="false"
-          ></textarea>
+            @input="handleCodeChange"
+          />
         </div>
 
-        <div v-show="activeTab === 'css'" class="code-panel">
-          <div class="panel-header">CSS</div>
+        <div
+          v-show="activeTab === 'css'"
+          class="code-panel"
+        >
+          <div class="panel-header">
+            CSS
+          </div>
           <textarea
             ref="cssEditorRef"
             v-model="cssCode"
             class="code-textarea"
-            @input="handleCodeChange"
             spellcheck="false"
-          ></textarea>
+            @input="handleCodeChange"
+          />
         </div>
 
-        <div v-show="activeTab === 'js'" class="code-panel">
-          <div class="panel-header">JavaScript</div>
+        <div
+          v-show="activeTab === 'js'"
+          class="code-panel"
+        >
+          <div class="panel-header">
+            JavaScript
+          </div>
           <textarea
             ref="jsEditorRef"
             v-model="jsCode"
             class="code-textarea"
-            @input="handleCodeChange"
             spellcheck="false"
-          ></textarea>
+            @input="handleCodeChange"
+          />
         </div>
       </div>
 
@@ -125,7 +144,7 @@
           ref="previewFrame"
           class="preview-frame"
           sandbox="allow-scripts allow-same-origin"
-        ></iframe>
+        />
       </div>
     </div>
 
@@ -135,13 +154,13 @@
       title="全屏预览"
       :width="'90%'"
       :footer="null"
-      :bodyStyle="{ padding: 0, height: '80vh' }"
+      :body-style="{ padding: 0, height: '80vh' }"
     >
       <iframe
         ref="fullscreenFrame"
         class="fullscreen-frame"
         sandbox="allow-scripts allow-same-origin"
-      ></iframe>
+      />
     </a-modal>
   </div>
 </template>
@@ -221,7 +240,7 @@ const refreshPreview = () => {
 
 // 更新iframe内容
 const updateFrame = (frame) => {
-  if (!frame) return;
+  if (!frame) {return;}
 
   const doc = frame.contentDocument || frame.contentWindow.document;
   const html = `
@@ -270,7 +289,7 @@ const exportProject = async () => {
 
     if (!result.canceled && result.filePath) {
       // 移除.zip扩展名（如果有）
-      let dirPath = result.filePath.replace(/\.zip$/, '');
+      const dirPath = result.filePath.replace(/\.zip$/, '');
 
       // 创建项目目录
       await window.electronAPI.file.writeContent(

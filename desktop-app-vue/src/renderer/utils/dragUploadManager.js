@@ -23,7 +23,7 @@ class DragUploadManager {
    * 初始化
    */
   init() {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined') {return;}
 
     // 阻止默认拖拽行为
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {

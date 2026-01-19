@@ -131,7 +131,7 @@ class KnowledgeVersionManager {
         SELECT * FROM knowledge_version_history WHERE id = ?
       `).get(versionId);
 
-      if (!version) return null;
+      if (!version) {return null;}
 
       return {
         ...version,

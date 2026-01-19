@@ -214,6 +214,15 @@ class SQLCipherWrapper {
       // 启用外键约束
       this.db.pragma('foreign_keys = ON');
 
+      // 启用 WAL 模式以提高并发性能
+      try {
+        this.db.pragma('journal_mode = WAL');
+        this.db.pragma('synchronous = NORMAL');
+        console.log('[SQLCipher] WAL 模式已启用');
+      } catch (error) {
+        console.warn('[SQLCipher] 无法启用 WAL 模式:', error.message);
+      }
+
       console.log('[SQLCipher] 数据库已打开:', this.dbPath);
     } catch (error) {
       throw new Error(`Failed to open database: ${error.message}`);

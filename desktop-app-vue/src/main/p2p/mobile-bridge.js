@@ -421,7 +421,7 @@ class MobileBridge extends EventEmitter {
   async handleICECandidates(message) {
     const { from, candidates } = message;
 
-    if (!candidates || candidates.length === 0) return;
+    if (!candidates || candidates.length === 0) {return;}
 
     console.log(`[MobileBridge] 处理批量ICE候选: ${candidates.length}个`, from);
 
@@ -480,7 +480,7 @@ class MobileBridge extends EventEmitter {
    */
   flushIceCandidates(peerId) {
     const candidates = this.pendingIceCandidates.get(peerId);
-    if (!candidates || candidates.length === 0) return;
+    if (!candidates || candidates.length === 0) {return;}
 
     console.log(
       `[MobileBridge] 批量发送 ${candidates.length} 个ICE候选:`,

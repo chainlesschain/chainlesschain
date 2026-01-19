@@ -1,5 +1,9 @@
 <template>
-  <div ref="containerRef" class="virtual-grid" @scroll="handleScroll">
+  <div
+    ref="containerRef"
+    class="virtual-grid"
+    @scroll="handleScroll"
+  >
     <div :style="{ height: `${totalHeight}px`, position: 'relative' }">
       <div
         :style="{
@@ -16,7 +20,10 @@
           class="virtual-grid-item"
           :style="itemStyle"
         >
-          <slot :item="item" :index="startIndex + index" />
+          <slot
+            :item="item"
+            :index="startIndex + index"
+          />
         </div>
       </div>
     </div>

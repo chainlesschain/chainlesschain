@@ -163,7 +163,7 @@ class SpeechManager extends EventEmitter {
    * 设置实时语音输入事件转发
    */
   setupRealtimeEvents() {
-    if (!this.realtimeInput) return;
+    if (!this.realtimeInput) {return;}
 
     // 录音事件
     this.realtimeInput.on('recording:started', (data) => this.emit('realtime:started', data));

@@ -1,12 +1,27 @@
 <template>
-  <div class="timeline-visualization" ref="containerRef">
-    <div ref="chartRef" class="timeline-chart"></div>
+  <div
+    ref="containerRef"
+    class="timeline-visualization"
+  >
+    <div
+      ref="chartRef"
+      class="timeline-chart"
+    />
 
     <!-- 控制面板 -->
     <div class="timeline-controls">
-      <a-space direction="vertical" style="width: 100%">
-        <a-card title="时间轴设置" size="small">
-          <a-form layout="vertical" size="small">
+      <a-space
+        direction="vertical"
+        style="width: 100%"
+      >
+        <a-card
+          title="时间轴设置"
+          size="small"
+        >
+          <a-form
+            layout="vertical"
+            size="small"
+          >
             <a-form-item label="时间范围">
               <a-range-picker
                 v-model:value="timeRange"
@@ -17,11 +32,22 @@
             </a-form-item>
 
             <a-form-item label="分组方式">
-              <a-select v-model:value="groupBy" @change="updateChart">
-                <a-select-option value="day">按天</a-select-option>
-                <a-select-option value="week">按周</a-select-option>
-                <a-select-option value="month">按月</a-select-option>
-                <a-select-option value="year">按年</a-select-option>
+              <a-select
+                v-model:value="groupBy"
+                @change="updateChart"
+              >
+                <a-select-option value="day">
+                  按天
+                </a-select-option>
+                <a-select-option value="week">
+                  按周
+                </a-select-option>
+                <a-select-option value="month">
+                  按月
+                </a-select-option>
+                <a-select-option value="year">
+                  按年
+                </a-select-option>
               </a-select>
             </a-form-item>
 
@@ -43,8 +69,14 @@
           </a-form>
         </a-card>
 
-        <a-card title="统计信息" size="small">
-          <a-descriptions :column="1" size="small">
+        <a-card
+          title="统计信息"
+          size="small"
+        >
+          <a-descriptions
+            :column="1"
+            size="small"
+          >
             <a-descriptions-item label="总节点数">
               {{ filteredNodes.length }}
             </a-descriptions-item>
@@ -60,13 +92,22 @@
     </div>
 
     <!-- 节点详情 -->
-    <div v-if="selectedNode" class="node-detail">
-      <a-card :title="selectedNode.title" size="small">
+    <div
+      v-if="selectedNode"
+      class="node-detail"
+    >
+      <a-card
+        :title="selectedNode.title"
+        size="small"
+      >
         <template #extra>
           <CloseOutlined @click="selectedNode = null" />
         </template>
 
-        <a-descriptions :column="1" size="small">
+        <a-descriptions
+          :column="1"
+          size="small"
+        >
           <a-descriptions-item label="类型">
             {{ selectedNode.type }}
           </a-descriptions-item>
@@ -79,7 +120,11 @@
         </a-descriptions>
 
         <div class="detail-actions">
-          <a-button type="link" size="small" @click="$emit('open-note', selectedNode.id)">
+          <a-button
+            type="link"
+            size="small"
+            @click="$emit('open-note', selectedNode.id)"
+          >
             打开笔记
           </a-button>
         </div>
@@ -158,22 +203,22 @@ const filteredEdges = computed(() => {
 
 // 时间跨度
 const timeSpan = computed(() => {
-  if (filteredNodes.value.length === 0) return '-';
+  if (filteredNodes.value.length === 0) {return '-';}
 
   const times = filteredNodes.value
     .map(n => dayjs(n.created_at))
     .filter(t => t.isValid())
     .sort((a, b) => a.valueOf() - b.valueOf());
 
-  if (times.length === 0) return '-';
+  if (times.length === 0) {return '-';}
 
   const start = times[0];
   const end = times[times.length - 1];
   const days = end.diff(start, 'day');
 
-  if (days === 0) return '1天';
-  if (days < 30) return `${days}天`;
-  if (days < 365) return `${Math.floor(days / 30)}个月`;
+  if (days === 0) {return '1天';}
+  if (days < 30) {return `${days}天`;}
+  if (days < 365) {return `${Math.floor(days / 30)}个月`;}
   return `${Math.floor(days / 365)}年`;
 });
 
@@ -181,7 +226,7 @@ const timeSpan = computed(() => {
  * 初始化图表
  */
 const initChart = () => {
-  if (!chartRef.value) return;
+  if (!chartRef.value) {return;}
 
   chartInstance = echarts.init(chartRef.value);
 
@@ -204,7 +249,7 @@ const initChart = () => {
  * 更新图表
  */
 const updateChart = () => {
-  if (!chartInstance) return;
+  if (!chartInstance) {return;}
 
   const timelineData = prepareTimelineData();
 
@@ -413,7 +458,7 @@ const getNodeColor = (type) => {
  * 格式化时间
  */
 const formatTime = (timestamp) => {
-  if (!timestamp) return '-';
+  if (!timestamp) {return '-';}
   return dayjs(timestamp).format('YYYY-MM-DD HH:mm:ss');
 };
 

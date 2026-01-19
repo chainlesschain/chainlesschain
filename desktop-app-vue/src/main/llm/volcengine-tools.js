@@ -99,14 +99,14 @@ class VolcengineToolsClient {
         for (const line of lines) {
           if (line.startsWith('data: ')) {
             const data = line.slice(6);
-            if (data === '[DONE]') continue;
+            if (data === '[DONE]') {continue;}
 
             try {
               const json = JSON.parse(data);
               const delta = json.choices?.[0]?.delta?.content || '';
               if (delta) {
                 fullText += delta;
-                if (onChunk) onChunk(delta);
+                if (onChunk) {onChunk(delta);}
               }
             } catch (e) {
               // 忽略解析错误
@@ -559,10 +559,10 @@ class VolcengineToolsClient {
    * @param {Object} config - 新配置
    */
   updateConfig(config = {}) {
-    if (config.apiKey) this.apiKey = config.apiKey;
-    if (config.baseURL) this.baseURL = config.baseURL;
-    if (config.model) this.model = config.model;
-    if (config.timeout) this.timeout = config.timeout;
+    if (config.apiKey) {this.apiKey = config.apiKey;}
+    if (config.baseURL) {this.baseURL = config.baseURL;}
+    if (config.model) {this.model = config.model;}
+    if (config.timeout) {this.timeout = config.timeout;}
 
     console.log('[VolcengineTools] 配置已更新');
   }

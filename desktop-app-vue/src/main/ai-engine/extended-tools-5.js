@@ -830,7 +830,7 @@ class ExtendedTools5 {
             for (const keyword of controlKeywords) {
               const regex = new RegExp(`\\b${keyword}\\b`, 'g');
               const matches = code.match(regex);
-              if (matches) count += matches.length;
+              if (matches) {count += matches.length;}
             }
             complexity.cyclomatic = count;
           }

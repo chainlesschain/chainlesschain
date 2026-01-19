@@ -1,14 +1,30 @@
 <template>
-  <div class="project-card" @click="handleView">
+  <div
+    class="project-card"
+    @click="handleView"
+  >
     <!-- 封面图 -->
     <div class="card-cover">
-      <img v-if="project.cover_image_url" :src="project.cover_image_url" alt="Project cover" />
-      <div v-else class="cover-placeholder">
-        <component :is="projectTypeIcon" class="placeholder-icon" />
+      <img
+        v-if="project.cover_image_url"
+        :src="project.cover_image_url"
+        alt="Project cover"
+      >
+      <div
+        v-else
+        class="cover-placeholder"
+      >
+        <component
+          :is="projectTypeIcon"
+          class="placeholder-icon"
+        />
       </div>
 
       <!-- 状态标签 -->
-      <div class="status-badge" :class="`status-${project.status}`">
+      <div
+        class="status-badge"
+        :class="`status-${project.status}`"
+      >
         {{ statusText }}
       </div>
     </div>
@@ -16,17 +32,31 @@
     <!-- 卡片内容 -->
     <div class="card-content">
       <!-- 项目名称 -->
-      <h3 class="project-name">{{ project.name }}</h3>
+      <h3 class="project-name">
+        {{ project.name }}
+      </h3>
 
       <!-- 项目描述 -->
-      <p class="project-description">{{ truncatedDescription }}</p>
+      <p class="project-description">
+        {{ truncatedDescription }}
+      </p>
 
       <!-- 标签 -->
-      <div v-if="tags.length > 0" class="project-tags">
-        <a-tag v-for="tag in tags.slice(0, 3)" :key="tag" color="blue">
+      <div
+        v-if="tags.length > 0"
+        class="project-tags"
+      >
+        <a-tag
+          v-for="tag in tags.slice(0, 3)"
+          :key="tag"
+          color="blue"
+        >
           {{ tag }}
         </a-tag>
-        <a-tag v-if="tags.length > 3" color="default">
+        <a-tag
+          v-if="tags.length > 3"
+          color="default"
+        >
           +{{ tags.length - 3 }}
         </a-tag>
       </div>
@@ -45,15 +75,26 @@
 
       <!-- 操作按钮 -->
       <div class="card-actions">
-        <a-button type="primary" size="small" @click.stop="handleView">
+        <a-button
+          type="primary"
+          size="small"
+          @click.stop="handleView"
+        >
           <EyeOutlined />
           查看
         </a-button>
-        <a-button size="small" @click.stop="handleEdit">
+        <a-button
+          size="small"
+          @click.stop="handleEdit"
+        >
           <EditOutlined />
           编辑
         </a-button>
-        <a-button danger size="small" @click.stop="handleDelete">
+        <a-button
+          danger
+          size="small"
+          @click.stop="handleDelete"
+        >
           <DeleteOutlined />
         </a-button>
       </div>
@@ -127,7 +168,7 @@ const truncatedDescription = computed(() => {
 const formattedUpdateTime = computed(() => {
   try {
     const timestamp = props.project.updated_at;
-    if (!timestamp) return '未知';
+    if (!timestamp) {return '未知';}
 
     return formatDistanceToNow(new Date(timestamp), {
       addSuffix: true,

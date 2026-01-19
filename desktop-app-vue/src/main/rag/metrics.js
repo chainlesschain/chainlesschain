@@ -290,7 +290,7 @@ class RAGMetrics extends EventEmitter {
 
     const getRecentAvg = (records) => {
       const recent = records.filter(r => now - r.timestamp < recentWindow);
-      if (recent.length === 0) return 0;
+      if (recent.length === 0) {return 0;}
       const sum = recent.reduce((acc, r) => acc + r.value, 0);
       return sum / recent.length;
     };

@@ -21,12 +21,15 @@
           @keydown.up.prevent="selectPrevious"
           @keydown.enter.prevent="executeSelected"
           @keydown.esc="close"
-        />
+        >
         <span class="search-hint">Esc 关闭</span>
       </div>
 
       <!-- 命令列表 -->
-      <div class="command-list" ref="commandList">
+      <div
+        ref="commandList"
+        class="command-list"
+      >
         <div
           v-for="(command, index) in filteredCommands"
           :key="command.key"
@@ -36,20 +39,34 @@
           @mouseenter="selectedIndex = index"
         >
           <div class="command-info">
-            <div class="command-description">{{ command.description }}</div>
-            <div class="command-scope" v-if="command.scope !== 'global'">
+            <div class="command-description">
+              {{ command.description }}
+            </div>
+            <div
+              v-if="command.scope !== 'global'"
+              class="command-scope"
+            >
               <TagOutlined />
               {{ command.scope }}
             </div>
           </div>
-          <div class="command-shortcut">{{ command.keyDisplay }}</div>
+          <div class="command-shortcut">
+            {{ command.keyDisplay }}
+          </div>
         </div>
 
         <!-- 空状态 -->
-        <div v-if="filteredCommands.length === 0" class="empty-state">
+        <div
+          v-if="filteredCommands.length === 0"
+          class="empty-state"
+        >
           <InboxOutlined class="empty-icon" />
-          <div class="empty-text">没有找到匹配的命令</div>
-          <div class="empty-hint">试试其他关键词</div>
+          <div class="empty-text">
+            没有找到匹配的命令
+          </div>
+          <div class="empty-hint">
+            试试其他关键词
+          </div>
         </div>
       </div>
 
@@ -60,7 +77,9 @@
           <span><EnterOutlined /> 执行</span>
           <span><CloseOutlined /> 关闭</span>
         </div>
-        <div class="footer-stats">{{ filteredCommands.length }} / {{ allCommands.length }} 命令</div>
+        <div class="footer-stats">
+          {{ filteredCommands.length }} / {{ allCommands.length }} 命令
+        </div>
       </div>
     </div>
   </a-modal>

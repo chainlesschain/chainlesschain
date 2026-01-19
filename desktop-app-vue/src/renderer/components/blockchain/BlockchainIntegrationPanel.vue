@@ -1,13 +1,26 @@
 <template>
   <div class="blockchain-integration-panel">
-    <a-card title="区块链集成管理" :bordered="false">
-      <a-tabs v-model:activeKey="activeTab">
+    <a-card
+      title="区块链集成管理"
+      :bordered="false"
+    >
+      <a-tabs v-model:active-key="activeTab">
         <!-- 链上资产 -->
-        <a-tab-pane key="assets" tab="链上资产">
+        <a-tab-pane
+          key="assets"
+          tab="链上资产"
+        >
           <div class="section">
-            <a-space direction="vertical" style="width: 100%" :size="16">
+            <a-space
+              direction="vertical"
+              style="width: 100%"
+              :size="16"
+            >
               <!-- 创建链上资产 -->
-              <a-card title="创建链上资产" size="small">
+              <a-card
+                title="创建链上资产"
+                size="small"
+              >
                 <a-form layout="vertical">
                   <a-form-item label="本地资产">
                     <a-select
@@ -28,8 +41,12 @@
 
                   <a-form-item label="资产类型">
                     <a-radio-group v-model:value="createAssetForm.assetType">
-                      <a-radio value="token">ERC-20 Token</a-radio>
-                      <a-radio value="nft">ERC-721 NFT</a-radio>
+                      <a-radio value="token">
+                        ERC-20 Token
+                      </a-radio>
+                      <a-radio value="nft">
+                        ERC-721 NFT
+                      </a-radio>
                     </a-radio-group>
                   </a-form-item>
 
@@ -68,7 +85,10 @@
               </a-card>
 
               <!-- 链上资产列表 -->
-              <a-card title="链上资产列表" size="small">
+              <a-card
+                title="链上资产列表"
+                size="small"
+              >
                 <a-table
                   :columns="assetColumns"
                   :data-source="onChainAssets"
@@ -113,9 +133,15 @@
         </a-tab-pane>
 
         <!-- 交易监控 -->
-        <a-tab-pane key="transactions" tab="交易监控">
+        <a-tab-pane
+          key="transactions"
+          tab="交易监控"
+        >
           <div class="section">
-            <a-card title="待确认交易" size="small">
+            <a-card
+              title="待确认交易"
+              size="small"
+            >
               <a-table
                 :columns="txColumns"
                 :data-source="pendingTransactions"
@@ -159,10 +185,20 @@
         </a-tab-pane>
 
         <!-- 同步设置 -->
-        <a-tab-pane key="sync" tab="同步设置">
+        <a-tab-pane
+          key="sync"
+          tab="同步设置"
+        >
           <div class="section">
-            <a-space direction="vertical" style="width: 100%" :size="16">
-              <a-card title="自动同步" size="small">
+            <a-space
+              direction="vertical"
+              style="width: 100%"
+              :size="16"
+            >
+              <a-card
+                title="自动同步"
+                size="small"
+              >
                 <a-form layout="vertical">
                   <a-form-item label="同步间隔（分钟）">
                     <a-input-number
@@ -196,8 +232,14 @@
                 </a-form>
               </a-card>
 
-              <a-card title="同步统计" size="small">
-                <a-descriptions :column="2" bordered>
+              <a-card
+                title="同步统计"
+                size="small"
+              >
+                <a-descriptions
+                  :column="2"
+                  bordered
+                >
                   <a-descriptions-item label="最后同步时间">
                     {{ lastSyncTime || '未同步' }}
                   </a-descriptions-item>
@@ -444,7 +486,7 @@ export default {
     };
 
     const formatAddress = (address) => {
-      if (!address) return '';
+      if (!address) {return '';}
       return `${address.substring(0, 6)}...${address.substring(address.length - 4)}`;
     };
 
@@ -477,7 +519,7 @@ export default {
       };
 
       const baseUrl = explorers[chainId];
-      if (!baseUrl) return null;
+      if (!baseUrl) {return null;}
 
       const paths = {
         address: 'address',

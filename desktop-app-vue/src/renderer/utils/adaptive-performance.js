@@ -97,19 +97,19 @@ class AdaptivePerformance {
     let score = 0
 
     // CPU score
-    if (cores >= 8) score += 3
-    else if (cores >= 4) score += 2
-    else score += 1
+    if (cores >= 8) {score += 3}
+    else if (cores >= 4) {score += 2}
+    else {score += 1}
 
     // Memory score
-    if (memory.totalMB >= 8192) score += 3
-    else if (memory.totalMB >= 4096) score += 2
-    else score += 1
+    if (memory.totalMB >= 8192) {score += 3}
+    else if (memory.totalMB >= 4096) {score += 2}
+    else {score += 1}
 
     // Connection score
     const connection = this.deviceProfile.connection
-    if (connection.effectiveType === '4g' || connection.downlink > 10) score += 2
-    else if (connection.effectiveType === '3g') score += 1
+    if (connection.effectiveType === '4g' || connection.downlink > 10) {score += 2}
+    else if (connection.effectiveType === '3g') {score += 1}
 
     // Determine tier
     if (score >= 7) {

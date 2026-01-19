@@ -158,9 +158,9 @@ class SlotFiller {
           }
           // 从项目类型推断
           else if (context.projectType) {
-            if (context.projectType === 'web') result.fileType = 'HTML';
-            if (context.projectType === 'document') result.fileType = 'Word';
-            if (context.projectType === 'data') result.fileType = 'Excel';
+            if (context.projectType === 'web') {result.fileType = 'HTML';}
+            if (context.projectType === 'document') {result.fileType = 'Word';}
+            if (context.projectType === 'data') {result.fileType = 'Excel';}
           }
           break;
 
@@ -237,7 +237,7 @@ class SlotFiller {
    * @private
    */
   async inferOptionalSlot(slot, intent, context, entities) {
-    if (!this.llmService) return null;
+    if (!this.llmService) {return null;}
 
     try {
       const prompt = `
@@ -335,7 +335,7 @@ class SlotFiller {
    * @param {Object} entities - 填充后的实体
    */
   async recordFillingHistory(userId, intentType, entities) {
-    if (!this.database) return;
+    if (!this.database) {return;}
 
     try {
       await this.database.run(`
@@ -357,7 +357,7 @@ class SlotFiller {
    * @returns {Promise<string|null>} 用户常用的槽位值
    */
   async learnUserPreference(userId, intentType, slot) {
-    if (!this.database) return null;
+    if (!this.database) {return null;}
 
     try {
       const rows = await this.database.all(`

@@ -5,93 +5,109 @@
 
     <!-- 主内容区 -->
     <div class="home-main-content">
-    <!-- 欢迎横幅 -->
-    <div class="welcome-banner">
-      <div class="banner-content">
-        <div class="banner-text">
-          <h1>欢迎使用 ChainlessChain</h1>
-          <p>您的去中心化个人AI知识管理平台</p>
-        </div>
-        <div class="banner-stats">
-          <div class="stat-item">
-            <div class="stat-value">{{ store.knowledgeItems.length }}</div>
-            <div class="stat-label">知识条目</div>
+      <!-- 欢迎横幅 -->
+      <div class="welcome-banner">
+        <div class="banner-content">
+          <div class="banner-text">
+            <h1>欢迎使用 ChainlessChain</h1>
+            <p>您的去中心化个人AI知识管理平台</p>
           </div>
-          <div class="stat-divider"></div>
-          <div class="stat-item">
-            <div class="stat-value">{{ todayCount }}</div>
-            <div class="stat-label">今日新增</div>
-          </div>
-          <div class="stat-divider"></div>
-          <div class="stat-item">
-            <div class="stat-value">
-              <a-badge status="success" />
+          <div class="banner-stats">
+            <div class="stat-item">
+              <div class="stat-value">
+                {{ store.knowledgeItems.length }}
+              </div>
+              <div class="stat-label">
+                知识条目
+              </div>
             </div>
-            <div class="stat-label">同步状态</div>
+            <div class="stat-divider" />
+            <div class="stat-item">
+              <div class="stat-value">
+                {{ todayCount }}
+              </div>
+              <div class="stat-label">
+                今日新增
+              </div>
+            </div>
+            <div class="stat-divider" />
+            <div class="stat-item">
+              <div class="stat-value">
+                <a-badge status="success" />
+              </div>
+              <div class="stat-label">
+                同步状态
+              </div>
+            </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- 第一行：项目类型按钮 -->
-    <div class="project-type-buttons">
-      <a-button
-        v-for="type in projectTypes"
-        :key="type.key"
-        :type="selectedType === type.key ? 'primary' : 'default'"
-        class="task-quick-button"
-        size="large"
-        @click="handleTypeQuickSelect(type.key)"
-      >
-        <span class="button-label">{{ type.label }}</span>
-      </a-button>
-    </div>
+      <!-- 第一行：项目类型按钮 -->
+      <div class="project-type-buttons">
+        <a-button
+          v-for="type in projectTypes"
+          :key="type.key"
+          :type="selectedType === type.key ? 'primary' : 'default'"
+          class="task-quick-button"
+          size="large"
+          @click="handleTypeQuickSelect(type.key)"
+        >
+          <span class="button-label">{{ type.label }}</span>
+        </a-button>
+      </div>
 
-    <!-- 第二行：动态子分类按钮 -->
-    <div class="category-buttons-section">
-      <a-button
-        v-for="category in currentCategories"
-        :key="category.key"
-        :type="activeCategory === category.key ? 'primary' : 'default'"
-        class="category-button"
-        @click="handleCategoryChange(category.key)"
-      >
-        {{ category.label }}
-      </a-button>
-    </div>
+      <!-- 第二行：动态子分类按钮 -->
+      <div class="category-buttons-section">
+        <a-button
+          v-for="category in currentCategories"
+          :key="category.key"
+          :type="activeCategory === category.key ? 'primary' : 'default'"
+          class="category-button"
+          @click="handleCategoryChange(category.key)"
+        >
+          {{ category.label }}
+        </a-button>
+      </div>
 
-    <!-- 模板展示区域 -->
-    <div class="templates-grid-section">
-      <TemplateGallery
-        :category="selectedType"
-        :subcategory="activeCategory !== 'all' ? activeCategory : null"
-        @template-use="handleTemplateUse"
-        @create-custom="handleCreateCustom"
+      <!-- 模板展示区域 -->
+      <div class="templates-grid-section">
+        <TemplateGallery
+          :category="selectedType"
+          :subcategory="activeCategory !== 'all' ? activeCategory : null"
+          @template-use="handleTemplateUse"
+          @create-custom="handleCreateCustom"
+        />
+      </div>
+
+      <!-- 模板变量填写对话框 -->
+      <TemplateVariableModal
+        v-model:open="showTemplateModal"
+        :template="selectedTemplate"
+        @success="handleTemplateSuccess"
+        @cancel="showTemplateModal = false"
       />
-    </div>
 
-    <!-- 模板变量填写对话框 -->
-    <TemplateVariableModal
-      v-model:open="showTemplateModal"
-      :template="selectedTemplate"
-      @success="handleTemplateSuccess"
-      @cancel="showTemplateModal = false"
-    />
+      <!-- 交互式任务规划对话框 -->
+      <InteractivePlanningDialog />
 
-    <!-- 交互式任务规划对话框 -->
-    <InteractivePlanningDialog />
-
-    <!-- 系统状态 -->
-    <div class="system-status">
-      <a-row :gutter="[16, 16]">
-        <a-col :xs="24" :md="12">
-          <LLMStatus @open-settings="openSettings('llm')" />
-        </a-col>
-        <a-col :xs="24" :md="12">
-          <GitStatus @open-settings="openSettings('git')" />
-        </a-col>
-      </a-row>
-    </div>
+      <!-- 系统状态 -->
+      <div class="system-status">
+        <a-row :gutter="[16, 16]">
+          <a-col
+            :xs="24"
+            :md="12"
+          >
+            <LLMStatus @open-settings="openSettings('llm')" />
+          </a-col>
+          <a-col
+            :xs="24"
+            :md="12"
+          >
+            <GitStatus @open-settings="openSettings('git')" />
+          </a-col>
+        </a-row>
+      </div>
     </div>
   </div>
 </template>
