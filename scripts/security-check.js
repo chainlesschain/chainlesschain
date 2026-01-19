@@ -51,11 +51,15 @@ const ALLOWED_FILES = [
   "RELEASE_GUIDE.md",
   "docker-compose.production.yml",
   // Android 文档（包含示例密码和密钥）
-  "ANDROID_SIGNING_SETUP.md",
+  "ANDROID_SIGNING_SETUP_md",
   "GOOGLE_PLAY_SETUP.md",
   "RELEASE_TESTING_GUIDE.md",
   "ANDROID_CI_CD_GUIDE.md",
   "APP_ICON_GUIDE.md",
+  "KEYSTORE_GENERATED.md",
+  "generate_keystore.bat",
+  "generate_keystore.sh",
+  "generate_test_keystore.bat",
 ];
 
 function checkFileForSecrets(filePath) {

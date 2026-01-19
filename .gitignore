@@ -176,3 +176,8 @@ playwright-report/
 # Auto-generated docs (ignore)
 docs/skills/skill-1.md
 desktop-app-vue/docs/api/
+
+# Android keystore files
+*.jks
+*.keystore
+*.base64
