@@ -18,6 +18,8 @@ import com.chainlesschain.android.feature.ai.presentation.ConversationListScreen
 import com.chainlesschain.android.feature.ai.presentation.ChatScreen
 import com.chainlesschain.android.feature.ai.presentation.NewConversationScreen
 import com.chainlesschain.android.presentation.HomeScreen
+import com.chainlesschain.android.feature.p2p.navigation.p2pGraph
+import com.chainlesschain.android.feature.p2p.navigation.P2P_ROUTE
 
 /**
  * 应用导航图
@@ -66,6 +68,9 @@ fun NavGraph(
                 },
                 onNavigateToAI = {
                     navController.navigate(Screen.ConversationList.route)
+                },
+                onNavigateToP2P = {
+                    navController.navigate(P2P_ROUTE)
                 }
             )
         }
@@ -154,6 +159,16 @@ fun NavGraph(
                 }
             )
         }
+
+        // P2P 功能导航图
+        p2pGraph(
+            navController = navController,
+            onNavigateToChat = { deviceId ->
+                // TODO: Navigate to P2P chat screen when implemented
+                // For now, just navigate to AI chat as placeholder
+                navController.navigate(Screen.ConversationList.route)
+            }
+        )
     }
 }
 
