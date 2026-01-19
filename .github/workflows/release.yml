@@ -159,9 +159,79 @@ jobs:
             desktop-app-vue/out/make/**/*.zip
           retention-days: 7
 
+  # Build for Android
+  build-android:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: "17"
+          distribution: "temurin"
+          cache: gradle
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x android-app/gradlew
+
+      - name: Decode keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > android-app/keystore.jks
+            echo "✅ Keystore decoded successfully"
+          else
+            echo "⚠️ No keystore found, using debug signing"
+          fi
+
+      - name: Build release APK
+        working-directory: android-app
+        env:
+          KEYSTORE_FILE: keystore.jks
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          if [ -f keystore.jks ]; then
+            ./gradlew assembleRelease
+          else
+            ./gradlew assembleDebug
+            mv app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/release/app-release.apk
+          fi
+
+      - name: Build App Bundle
+        working-directory: android-app
+        env:
+          KEYSTORE_FILE: keystore.jks
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          if [ -f keystore.jks ]; then
+            ./gradlew bundleRelease
+          else
+            echo "⚠️ Skipping bundle build (requires release signing)"
+          fi
+
+      - name: Clean up keystore
+        if: always()
+        run: rm -f android-app/keystore.jks
+
+      - name: Upload Android artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-artifacts
+          path: |
+            android-app/app/build/outputs/apk/release/*.apk
+            android-app/app/build/outputs/bundle/release/*.aab
+          retention-days: 7
+
   # Create GitHub Release
   create-release:
-    needs: [build-windows, build-macos, build-linux]
+    needs: [build-windows, build-macos, build-linux, build-android]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -225,11 +295,16 @@ jobs:
           - \`chainlesschain_${VERSION#v}_amd64.deb\` - Debian/Ubuntu package
           - \`chainlesschain-${VERSION#v}.x86_64.rpm\` - Fedora/RHEL package
 
+          #### Android
+          - \`app-release.apk\` - Android APK (direct install)
+          - \`app-release.aab\` - Android App Bundle (Google Play Store)
+
           ### System Requirements
 
           - **Windows**: Windows 10/11 (x64)
           - **macOS**: macOS 10.15+ (Intel & Apple Silicon)
           - **Linux**: Ubuntu 20.04+ / Fedora 34+ / Arch Linux (x64)
+          - **Android**: Android 8.0 (API 26) or higher
 
           ### Notes
 
@@ -261,6 +336,8 @@ jobs:
             artifacts/**/*.rpm
             artifacts/**/*.AppImage
             artifacts/**/*.exe
+            artifacts/**/*.apk
+            artifacts/**/*.aab
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
