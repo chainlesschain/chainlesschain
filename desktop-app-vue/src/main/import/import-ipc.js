@@ -6,7 +6,7 @@
  * @description 提供文件选择、导入、格式检查等 IPC 接口
  */
 
-const defaultIpcGuard = require("../ipc-guard");
+const defaultIpcGuard = require("../ipc/ipc-guard");
 
 /**
  * 注册所有文件导入 IPC 处理器
