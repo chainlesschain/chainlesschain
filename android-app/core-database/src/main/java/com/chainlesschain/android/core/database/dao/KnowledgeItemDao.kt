@@ -33,6 +33,19 @@ interface KnowledgeItemDao {
     suspend fun getItemsList(limit: Int, offset: Int): List<KnowledgeItemEntity>
 
     /**
+     * 获取所有条目（同步，用于向量搜索）
+     *
+     * 注意：仅在需要时使用，大数据集可能有性能问题
+     */
+    @Query("""
+        SELECT * FROM knowledge_items
+        WHERE isDeleted = 0
+        ORDER BY updatedAt DESC
+        LIMIT 1000
+    """)
+    suspend fun getAllItemsSync(): List<KnowledgeItemEntity>
+
+    /**
      * 根据ID获取条目
      */
     @Query("SELECT * FROM knowledge_items WHERE id = :id AND isDeleted = 0")

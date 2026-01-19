@@ -26,7 +26,7 @@ async function testPerformance() {
   console.log("📊 测试首页性能...");
   const startTime = Date.now();
 
-  await page.goto("http://localhost:5173/", {
+  await page.goto("http://localhost:8081/", {
     waitUntil: "networkidle",
   });
 
@@ -151,7 +151,7 @@ async function testPerformance() {
   // 保存详细结果到JSON
   const results = {
     timestamp: new Date().toISOString(),
-    url: "http://localhost:5173/",
+    url: "http://localhost:8081/",
     metrics,
     resourceCount,
     performanceScore,

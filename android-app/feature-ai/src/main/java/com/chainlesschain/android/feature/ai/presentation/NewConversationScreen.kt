@@ -33,6 +33,18 @@ fun NewConversationScreen(
 
     val uiState by viewModel.uiState.collectAsState()
 
+    // 当选择模型时，自动加载已保存的API Key
+    LaunchedEffect(selectedModel) {
+        selectedModel?.let { model ->
+            if (model.provider != LLMProvider.OLLAMA) {
+                val savedApiKey = viewModel.getApiKey(model.provider)
+                if (savedApiKey != null) {
+                    apiKey = savedApiKey
+                }
+            }
+        }
+    }
+
     // 创建成功后导航
     LaunchedEffect(uiState.operationSuccess) {
         if (uiState.operationSuccess) {
