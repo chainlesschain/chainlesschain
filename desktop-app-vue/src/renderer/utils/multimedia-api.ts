@@ -6,7 +6,7 @@
  * 完整的类型安全支持
  */
 
-import { logger, createLogger } from '@/utils/logger';
+import { logger } from '@/utils/logger';
 import type {
   IMultimediaAPI,
   ProgressCallback,
