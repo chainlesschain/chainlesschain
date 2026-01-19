@@ -1223,6 +1223,9 @@ class ExtendedTools11 {
         let zero_bias_peak_height = 0;
         let majorana_probability = 0;
 
+        // 判断是否处于拓扑相（移到循环外以避免作用域问题）
+        const in_topological_phase = magnetic_field_t > 0.3 && gate_voltages.some(v => v > -1 && v < 1);
+
         for (let i = 0; i < num_points; i++) {
           const V = min + i * step; // mV
           let dIdV = 0;
@@ -1232,7 +1235,6 @@ class ExtendedTools11 {
           dIdV = 0.3 * G0; // 背景
 
           // 如果处于拓扑相,添加零偏压峰
-          const in_topological_phase = magnetic_field_t > 0.3 && gate_voltages.some(v => v > -1 && v < 1);
 
           if (in_topological_phase && measurement_type === 'tunneling_spectroscopy') {
             // Majorana零能模:零偏压处的电导峰
@@ -1437,7 +1439,7 @@ class ExtendedTools11 {
           let value = 0;
 
           switch (target_variable) {
-            case 'temperature':
+            case 'temperature': {
               // 温度异常 (°C)
               // 包含:长期趋势 + 冰期-间冰期旋回 + 随机变化
               const orbital_forcing = 5 * Math.sin(2 * Math.PI * age_ka / 100); // 100ka周期
@@ -1445,6 +1447,7 @@ class ExtendedTools11 {
               const noise = (Math.random() - 0.5) * 1;
               value = orbital_forcing + millennial_variability + noise;
               break;
+            }
 
             case 'precipitation':
               // 降水异常 (mm/year)

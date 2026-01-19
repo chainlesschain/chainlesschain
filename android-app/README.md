@@ -4,10 +4,10 @@ ChainlessChain的Android原生旗舰版本，提供极致性能和完整硬件�
 
 ## 项目状态
 
-**当前版本**: v0.2.0 (MVP Phase 2 - Week 3-4 认证功能完成)
-**完成度**: 30%
+**当前版本**: v0.3.0 (MVP Phase 3 - Week 5-6 知识库管理完成)
+**完成度**: 40%
 
-### ✅ 已完成（Phase 1 + Phase 2）
+### ✅ 已完成（Phase 1 + Phase 2 + Phase 3）
 
 **Phase 1 (Week 1-2)：**
 - [x] 项目目录结构
@@ -18,7 +18,7 @@ ChainlessChain的Android原生旗舰版本，提供极致性能和完整硬件�
 - [x] Material 3主题
 - [x] Android Keystore密钥管理
 
-**Phase 2 (Week 3-4)：** ⭐新增
+**Phase 2 (Week 3-4)：**
 - [x] PIN码认证UI（Compose数字键盘）
 - [x] 生物识别集成（BiometricPrompt）
 - [x] DataStore配置管理
@@ -26,11 +26,20 @@ ChainlessChain的Android原生旗舰版本，提供极致性能和完整硬件�
 - [x] 完整认证流程（注册/登录/退出）
 - [x] 单元测试和集成测试（15个用例）
 
+**Phase 3 (Week 5-6)：** ⭐新增
+- [x] 知识库CRUD操作（创建/读取/更新/删除）
+- [x] Paging 3分页列表（下拉刷新/上拉加载）
+- [x] FTS5全文搜索（标题/内容/标签）
+- [x] Markdown编辑器（工具栏+预览）
+- [x] 标签系统（逗号分隔输入，JSON存储）
+- [x] 收藏和置顶功能
+- [x] 单元测试和集成测试（17个用例）
+
 ### 🚧 进行中
 
-- [ ] 知识库列表UI
-- [ ] Markdown编辑器
-- [ ] 全文搜索功能
+- [ ] AI对话UI
+- [ ] LLM API集成
+- [ ] RAG检索增强
 
 ---
 
@@ -53,13 +62,31 @@ ChainlessChain的Android原生旗舰版本，提供极致性能和完整硬件�
 
 ## 快速开始
 
+> ⚠️ **重要提示**: 构建此项目需要 **Java 17 或更高版本**。详细的环境配置说明请参阅 [BUILD_REQUIREMENTS.md](BUILD_REQUIREMENTS.md)
+
 ### 环境要求
 
 - **Android Studio**: Koala | 2024.1.1+
-- **JDK**: 17+
+- **JDK**: 17+ ⚠️ **必需**（当前系统为 Java 11）
 - **Android SDK**: 35 (Android 15)
-- **Gradle**: 8.5+
+- **Gradle**: 8.7+ (已配置)
 - **Kotlin**: 1.9.22+
+
+### 环境准备
+
+**首次构建前，请先安装 Java 17：**
+
+1. 下载 JDK 17：https://adoptium.net/temurin/releases/ (推荐)
+2. 设置环境变量：
+   ```cmd
+   setx JAVA_HOME "C:\Program Files\Eclipse Adoptium\jdk-17.x.x"
+   ```
+3. 验证版本：
+   ```bash
+   java -version  # 应显示 17.x.x
+   ```
+
+详细安装指南请查看 [BUILD_REQUIREMENTS.md](BUILD_REQUIREMENTS.md)
 
 ### 构建步骤
 
@@ -71,7 +98,7 @@ cd D:/code/chainlesschain/android-app
 
 2. **同步Gradle**
 
-打开Android Studio，等待Gradle同步完成（首次构建需要下载依赖，约5-10分钟）
+打开Android Studio，等待Gradle同步完成（首次构建需要下载依赖，约15-20分钟）
 
 3. **运行应用**
 
@@ -518,12 +545,15 @@ A: 目前版本需要清除应用数据（后续版本将支持备份恢复）
 
 ## 参考文档
 
+- [构建环境要求](BUILD_REQUIREMENTS.md) ⚠️ **必读**
 - [实施方案](../docs/mobile/ANDROID_NATIVE_IMPLEMENTATION_PLAN.md)
 - [Phase 1 总结](PHASE1_SUMMARY.md)
-- [Phase 2 总结](PHASE2_SUMMARY.md) ⭐新增
+- [Phase 2 总结](PHASE2_SUMMARY.md)
+- [Phase 3 总结](PHASE3_SUMMARY.md) ⭐新增
 - [Android官方文档](https://developer.android.com/)
 - [Jetpack Compose教程](https://developer.android.com/jetpack/compose)
 - [BiometricPrompt指南](https://developer.android.com/training/sign-in/biometric-auth)
+- [Paging 3文档](https://developer.android.com/topic/libraries/architecture/paging/v3-overview)
 
 ---
 

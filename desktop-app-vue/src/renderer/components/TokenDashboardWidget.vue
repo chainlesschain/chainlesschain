@@ -38,39 +38,37 @@
 
     <!-- 关键指标 -->
     <a-row
-      :gutter="8} class="
-      metrics-row"
+      :gutter="8"
+      class="metrics-row"
     >
       <a-col
-        :span="12}>
-        <div class="
-        metric-box"
+        :span="12"
       >
-        <ThunderboltOutlined class="metric-icon cache" />
-        <div class="metric-info">
-          <div class="metric-label">
-            缓存命中
+        <div class="metric-box">
+          <ThunderboltOutlined class="metric-icon cache" />
+          <div class="metric-info">
+            <div class="metric-label">
+              缓存命中
+            </div>
+            <div class="metric-value">
+              {{ cacheHitRate }}%
+            </div>
           </div>
-          <div class="metric-value">
-            {{ cacheHitRate }}%
-          </div>
-        </div>
         </div>
       </a-col>
       <a-col
-        :span="12}>
-        <div class="
-        metric-box"
+        :span="12"
       >
-        <DollarOutlined class="metric-icon cost" />
-        <div class="metric-info">
-          <div class="metric-label">
-            节省成本
+        <div class="metric-box">
+          <DollarOutlined class="metric-icon cost" />
+          <div class="metric-info">
+            <div class="metric-label">
+              节省成本
+            </div>
+            <div class="metric-value">
+              ${{ savedCost.toFixed(2) }}
+            </div>
           </div>
-          <div class="metric-value">
-            ${{ savedCost.toFixed(2) }}
-          </div>
-        </div>
         </div>
       </a-col>
     </a-row>

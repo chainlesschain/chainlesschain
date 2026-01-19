@@ -89,21 +89,26 @@ class DatabaseManager {
    * 初始化查询缓存（LRU策略）
    */
   initializeQueryCache() {
-    const LRU = require('lru-cache');
-    this.queryCache = new LRU({
-      max: 500, // 最多缓存500个查询
-      maxSize: 10 * 1024 * 1024, // 最大10MB
-      sizeCalculation: (value) => {
-        try {
-          return JSON.stringify(value).length;
-        } catch {
-          return 1024; // 默认1KB
-        }
-      },
-      ttl: 1000 * 60 * 5, // 5分钟过期
-      updateAgeOnGet: true, // 访问时更新年龄
-    });
-    console.log('[Database] 查询缓存已初始化 (最大500项, 10MB, TTL: 5分钟)');
+    try {
+      const LRU = require('lru-cache');
+      this.queryCache = new LRU({
+        max: 500, // 最多缓存500个查询
+        maxSize: 10 * 1024 * 1024, // 最大10MB
+        sizeCalculation: (value) => {
+          try {
+            return JSON.stringify(value).length;
+          } catch {
+            return 1024; // 默认1KB
+          }
+        },
+        ttl: 1000 * 60 * 5, // 5分钟过期
+        updateAgeOnGet: true, // 访问时更新年龄
+      });
+      console.log('[Database] 查询缓存已初始化 (最大500项, 10MB, TTL: 5分钟)');
+    } catch (error) {
+      console.warn('[Database] 查询缓存初始化失败，将不使用查询缓存:', error.message);
+      this.queryCache = null;
+    }
   }
 
   /**
@@ -408,8 +413,8 @@ class DatabaseManager {
     }
 
     // Wrap Database.run() method for compatibility
-    const originalDbRun = this.db.run ? this.db.run.bind(this.db) : null;
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const _originalDbRun = this.db.run ? this.db.run.bind(this.db) : null;
+    // Store reference to manager for use in nested function
     const manager = this;
     this.db.run = function (sql, params) {
       try {
@@ -4320,7 +4325,7 @@ class DatabaseManager {
 
       // 清理缓存
       this.clearPreparedStatements();
-      if (this.queryCache) {
+      if (this.queryCache && typeof this.queryCache.clear === 'function') {
         this.queryCache.clear();
         console.log('[Database] 查询缓存已清除');
       }

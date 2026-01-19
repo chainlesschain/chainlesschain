@@ -200,7 +200,7 @@ function wrapAPIObject(obj, pathPrefix = '') {
   const wrapped = {};
 
   for (const key in obj) {
-    if (!obj.hasOwnProperty(key)) {continue;}
+    if (!Object.prototype.hasOwnProperty.call(obj, key)) {continue;}
 
     const value = obj[key];
     const currentPath = pathPrefix ? `${pathPrefix}:${key}` : key;

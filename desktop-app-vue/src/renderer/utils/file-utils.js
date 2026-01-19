@@ -22,12 +22,12 @@ export function sanitizePath(basePath, relativePath) {
   // 使用path模块的替代方案（浏览器环境）
   const normalize = (p) => {
     // 移除多余的斜杠和反斜杠
-    return p.replace(/[\/\\]+/g, '/').replace(/\/$/, '');
+    return p.replace(/[/\\]+/g, '/').replace(/\/$/, '');
   };
 
   const join = (base, relative) => {
     const cleanBase = normalize(base);
-    const cleanRelative = relative.replace(/^[\/\\]+/, '');
+    const cleanRelative = relative.replace(/^[/\\]+/, '');
     return `${cleanBase}/${cleanRelative}`;
   };
 

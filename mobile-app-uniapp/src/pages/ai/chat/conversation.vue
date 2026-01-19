@@ -25,9 +25,7 @@
       :scroll-into-view="scrollToView"
       :scroll-with-animation="true"
     >
-      <view v-if="loading" class="loading">
-        <text>加载中...</text>
-      </view>
+      <Skeleton v-if="loading" type="chat" :rows="5" :animate="true" />
 
       <view v-else-if="messages.length === 0" class="empty">
         <text class="empty-icon">👋</text>
@@ -132,11 +130,13 @@
 <script>
 import aiConversationService from '@/services/ai-conversation'
 import MessageBubble from '../components/MessageBubble.vue'
+import Skeleton from '@/components/Skeleton.vue'
 import { debounce, performanceMonitor } from '@utils/performance'
 
 export default {
   components: {
-    MessageBubble
+    MessageBubble,
+    Skeleton
   },
   data() {
     return {

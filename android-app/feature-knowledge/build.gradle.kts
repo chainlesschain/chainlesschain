@@ -3,6 +3,7 @@ plugins {
     id("org.jetbrains.kotlin.android")
     id("com.google.dagger.hilt.android")
     id("com.google.devtools.ksp")
+    kotlin("plugin.serialization") version "1.9.22"
 }
 
 android {
@@ -37,6 +38,9 @@ dependencies {
     implementation(project(":core-database"))
     implementation(project(":core-ui"))
     implementation(project(":data-knowledge"))
+
+    // Kotlin Serialization
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2")
 
     // Paging
     implementation("androidx.paging:paging-runtime-ktx:3.2.1")
