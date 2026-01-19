@@ -3,8 +3,40 @@ import uni from "@dcloudio/vite-plugin-uni";
 
 export default defineConfig(({ mode }) => {
   const isH5 = process.env.UNI_PLATFORM === 'h5';
+  const isApp = process.env.UNI_PLATFORM === 'app';
   const isProduction = mode === 'production';
 
+  // App平台使用最小化配置避免冲突
+  if (isApp) {
+    return {
+      plugins: [uni()],
+
+      server: {
+        port: 8080,
+        host: "0.0.0.0",
+      },
+
+      build: {
+        sourcemap: false,
+        minify: false,
+        cssCodeSplit: false,
+      },
+
+      resolve: {
+        alias: {
+          "@": "/src",
+          "~": "/src",
+          "@components": "/src/components",
+          "@services": "/src/services",
+          "@utils": "/src/utils",
+          "@pages": "/src/pages",
+          "@stores": "/src/stores",
+        },
+      },
+    };
+  }
+
+  // H5和其他平台使用优化配置
   const config = {
     plugins: [uni()],
 
@@ -19,9 +51,12 @@ export default defineConfig(({ mode }) => {
     build: {
       sourcemap: !isProduction,
       target: isH5 ? 'es2015' : 'esnext',
-      minify: isProduction ? 'esbuild' : false,
 
-      esbuildOptions: isProduction ? {
+      // H5平台使用esbuild提速
+      minify: isProduction && isH5 ? 'esbuild' : false,
+
+      // 只在H5平台且生产模式下使用esbuild优化
+      esbuildOptions: (isProduction && isH5) ? {
         drop: ['console', 'debugger'],
         legalComments: 'none',
         minifyIdentifiers: true,

@@ -18,6 +18,7 @@ import com.chainlesschain.android.feature.auth.presentation.AuthViewModel
 @Composable
 fun HomeScreen(
     onLogout: () -> Unit,
+    onNavigateToKnowledge: () -> Unit = {},
     viewModel: AuthViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -98,6 +99,22 @@ fun HomeScreen(
                         )
                     }
                 }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // 功能按钮
+            Button(
+                onClick = onNavigateToKnowledge,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Book,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("进入知识库")
             }
 
             Spacer(modifier = Modifier.height(16.dp))

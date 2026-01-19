@@ -288,6 +288,7 @@ import authService from '@/services/auth'
 import { aiService } from '@/services/ai'
 import MarkdownToolbar from '@/components/MarkdownToolbar.vue'
 import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
+import { compressImage, performanceMonitor } from '@utils/performance'
 
 export default {
   components: {

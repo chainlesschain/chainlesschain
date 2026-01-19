@@ -746,7 +746,7 @@ class OrgKnowledgeSyncManager extends EventEmitter {
         WHERE org_id = ? AND member_did = ?
       `).get(orgId, userDID);
 
-      if (!member) return false;
+      if (!member) {return false;}
 
       // Get knowledge permissions
       const orgKnowledge = db.prepare(`
@@ -754,7 +754,7 @@ class OrgKnowledgeSyncManager extends EventEmitter {
         WHERE knowledge_id = ? AND org_id = ?
       `).get(knowledgeId, orgId);
 
-      if (!orgKnowledge) return false;
+      if (!orgKnowledge) {return false;}
 
       const permissions = JSON.parse(orgKnowledge.permissions);
 
@@ -771,7 +771,7 @@ class OrgKnowledgeSyncManager extends EventEmitter {
   /**
    * Log activity
    */
-  async _logActivity(orgId, knowledgeId, activityType, metadata = ) {
+  async _logActivity(orgId, knowledgeId, activityType, metadata = {}) {
     try {
       const db = this.database.getDatabase();
       const userDID = await this._getUserDID();

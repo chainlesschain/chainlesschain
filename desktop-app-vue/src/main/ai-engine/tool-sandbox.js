@@ -236,7 +236,7 @@ class ToolSandbox {
     }
 
     // 2. 如果result有success字段，检查它
-    if (result.hasOwnProperty('success') && result.success === false) {
+    if (Object.prototype.hasOwnProperty.call(result, 'success') && result.success === false) {
       return { valid: false, reason: 'result.success为false' };
     }
 

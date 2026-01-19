@@ -434,7 +434,7 @@ class AdaptivePerformance {
    * Manually adjust setting
    */
   setSetting(key, value) {
-    if (this.settings.hasOwnProperty(key)) {
+    if (Object.prototype.hasOwnProperty.call(this.settings, key)) {
       this.settings[key] = value
 
       console.log('[AdaptivePerf] Manual setting change:', { [key]: value })

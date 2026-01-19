@@ -40,7 +40,19 @@ interface KnowledgeItemDao {
 
     /**
      * 全文搜索（FTS5）
-     * TODO: 实现FTS5虚拟表
+     * 使用FTS5虚拟表提供高性能全文搜索
+     */
+    @Query("""
+        SELECT knowledge_items.* FROM knowledge_items
+        INNER JOIN knowledge_items_fts ON knowledge_items.id = knowledge_items_fts.rowid
+        WHERE knowledge_items_fts MATCH :query
+        AND knowledge_items.isDeleted = 0
+        ORDER BY rank
+    """)
+    fun searchItems(query: String): PagingSource<Int, KnowledgeItemEntity>
+
+    /**
+     * 简单搜索（LIKE查询，用于备用）
      */
     @Query("""
         SELECT * FROM knowledge_items
@@ -48,7 +60,7 @@ interface KnowledgeItemDao {
         AND (title LIKE '%' || :query || '%' OR content LIKE '%' || :query || '%')
         ORDER BY updatedAt DESC
     """)
-    fun searchItems(query: String): PagingSource<Int, KnowledgeItemEntity>
+    fun searchItemsSimple(query: String): PagingSource<Int, KnowledgeItemEntity>
 
     /**
      * 插入条目

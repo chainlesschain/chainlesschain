@@ -7,9 +7,13 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 import com.chainlesschain.android.feature.auth.presentation.AuthViewModel
 import com.chainlesschain.android.feature.auth.presentation.LoginScreen
 import com.chainlesschain.android.feature.auth.presentation.SetupPinScreen
+import com.chainlesschain.android.feature.knowledge.presentation.KnowledgeEditorScreen
+import com.chainlesschain.android.feature.knowledge.presentation.KnowledgeListScreen
 import com.chainlesschain.android.presentation.HomeScreen
 
 /**
@@ -53,6 +57,46 @@ fun NavGraph(
                     navController.navigate(Screen.Login.route) {
                         popUpTo(Screen.Home.route) { inclusive = true }
                     }
+                },
+                onNavigateToKnowledge = {
+                    navController.navigate(Screen.KnowledgeList.route)
+                }
+            )
+        }
+
+        // 知识库列表
+        composable(route = Screen.KnowledgeList.route) {
+            KnowledgeListScreen(
+                onItemClick = { itemId ->
+                    navController.navigate(Screen.KnowledgeEditor.createRoute(itemId))
+                },
+                onAddClick = {
+                    navController.navigate(Screen.KnowledgeEditor.route)
+                }
+            )
+        }
+
+        // 知识库编辑器（新建）
+        composable(route = Screen.KnowledgeEditor.route) {
+            KnowledgeEditorScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        // 知识库编辑器（编辑）
+        composable(
+            route = "${Screen.KnowledgeEditor.route}/{itemId}",
+            arguments = listOf(
+                navArgument("itemId") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val itemId = backStackEntry.arguments?.getString("itemId")
+            KnowledgeEditorScreen(
+                itemId = itemId,
+                onNavigateBack = {
+                    navController.popBackStack()
                 }
             )
         }
@@ -66,6 +110,10 @@ sealed class Screen(val route: String) {
     data object SetupPin : Screen("setup_pin")
     data object Login : Screen("login")
     data object Home : Screen("home")
+    data object KnowledgeList : Screen("knowledge_list")
+    data object KnowledgeEditor : Screen("knowledge_editor") {
+        fun createRoute(itemId: String) = "knowledge_editor/$itemId"
+    }
 }
 
 /**

@@ -212,7 +212,7 @@ export async function withLoading(key, fn, options = {}) {
  * 批量加载包装器
  * 管理多个并发加载操作
  */
-export async function withBatchLoading(operations, options = ) {
+export async function withBatchLoading(operations, options = {}) {
   const {
     message: loadingMessage = '批量加载中...',
     successMessage = '批量操作完成',
