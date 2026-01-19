@@ -32,6 +32,8 @@ export default defineConfig({
       // These are standalone scripts that use process.exit()
       '**/speech-manager-integration.test.js',
       '**/pkcs11-encryption.test.js',
+      // Video engine tests require real ffmpeg binary and video files (integration test)
+      '**/tests/unit/video-engine.test.js',
     ],
     coverage: {
       provider: 'v8',
