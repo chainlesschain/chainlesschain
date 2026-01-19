@@ -23,13 +23,16 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 
 ---
 
-## ⭐ Current Version: v0.20.0 (2026-01-18)
+## ⭐ Current Version: v0.26.0 (2026-01-19)
 
 ### Latest Updates
 
-- ✅ **P2P WebRTC Compatibility Layer** - Added WebRTC compatibility layer, optimized P2P communication stability, enhanced test coverage ⭐LATEST
-- ✅ **Code Structure Refactoring** - Reorganized src/main directory by functional categories (api/config/database/monitoring/system etc.), improved code maintainability ⭐LATEST
-- ✅ **Test Framework Optimization** - Fixed flaky tests, skipped environment-dependent tests, improved CI/CD stability ⭐LATEST
+- ✅ **Unified Logging System** - Migrated 700+ console calls to centralized logger with log level control, structured logging, production debugging ⭐LATEST
+- ✅ **Android P2P UI Complete Integration** - 8 P2P screens (device discovery/pairing/security verification/DID management/message queue/QR scan), full P2P device management experience ⭐LATEST
+- ✅ **ChatPanel Memory Leak Protection** - 4-layer protection mechanism (timer safety/event cleanup/API cancellation/message limiting), ensuring long-term stability ⭐LATEST
+- ✅ **P2P WebRTC Compatibility Layer** - Added WebRTC compatibility layer, optimized P2P communication stability, enhanced test coverage
+- ✅ **Code Structure Refactoring** - Reorganized src/main directory by functional categories (api/config/database/monitoring/system etc.), improved code maintainability
+- ✅ **Test Framework Optimization** - Fixed flaky tests, skipped environment-dependent tests, improved CI/CD stability
 - ✅ **Manus AI Optimization System** - Based on Manus/OpenManus best practices, Context Engineering (KV-Cache optimization), Tool Masking, TaskTrackerFile (todo.md mechanism), Recoverable Compression, theoretical 50-90% Token cost reduction
 - ✅ **Multi-Agent System** - Agent Orchestrator, 3 specialized agents (Code Generation/Data Analysis/Document Processing), parallel execution, chain execution, inter-agent communication, 30% reduction in complex task completion time
 - ✅ **MCP Chat Integration** - MCP tools integrated into AI chat, invoke MCP server tools via Function Calling
@@ -102,11 +105,12 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 - 🟢 **Social System**: 100% Complete - **Friends + Posts + Forum + Group Chat + File Transfer + Message Forwarding + Message Reactions + Voice Message Recording & Playback** ⭐Completed
 - 🟢 **Trading System**: 100% Complete - **8 Modules + On-chain Contracts + NFT Transfers + Order Editing + Sharing + QR Codes** ⭐Completed
 - 🟢 **Browser Extension**: 100% Complete - **Testing Framework + Documentation** ⭐Completed
-- 🟢 **Mobile Application**: 100% Complete - **Knowledge Base + AI Chat + Trading System + Social Features + Mobile UX Optimization + P2P Sync** ⭐Completed
+- 🟢 **Mobile Application**: 100% Complete - **Knowledge Base + AI Chat + Trading System + Social Features + Mobile UX Optimization + P2P Sync + Android P2P UI (8 screens)** ⭐Completed
 
 ## Core Features
 
 - 🔐 **Military-Grade Security**: SQLCipher AES-256 encryption + Cross-Platform USB Key hardware keys + Signal protocol E2E encryption ✅ ⭐Updated
+- 📊 **Unified Logging System**: Centralized logger management + Log level control + Structured logging + Production debugging + IPC logging interface ✅ ⭐NEW
 - 🌐 **Fully Decentralized**: P2P network (libp2p 3.1.2) + DHT + local data storage, no central servers needed ✅
 - 📁 **P2P File Transfer**: Large file chunked transfer (64KB) + resume capability + real-time progress + SHA-256 verification + concurrent control ✅ ⭐NEW
 - 🧠 **AI Native**: Support for 14+ cloud LLM providers + Ollama local deployment + RAG-enhanced retrieval ✅
@@ -130,6 +134,8 @@ A fully decentralized personal AI assistant platform integrating knowledge base 
 - 🔄 **Database Sync**: SQLite ↔ PostgreSQL bidirectional sync, soft delete + conflict resolution ✅
 - 🌐 **Browser Extension**: Web annotation + content extraction + AI assistance + automated testing ✅
 - 🧪 **Complete Testing System**: Playwright E2E + Vitest unit tests + 94 test files + 900+ test cases ✅
+- 💾 **Memory Leak Protection**: 4-layer protection mechanism (timer safety/event cleanup/API cancellation/message limiting) + Long-term stability guarantee ✅ ⭐NEW
+- 📱 **Android P2P UI**: 8 complete screens (device discovery/pairing/security verification/DID management/message queue/QR scan) + Full P2P experience ✅ ⭐NEW
 - 🖥️ **Workspace Management**: Full CRUD + restore + permanent delete + member management ✅ ⭐NEW
 - 🔄 **Remote Sync**: Incremental sync + conflict resolution + multi-device collaboration + auto-fallback ✅ ⭐NEW
 
@@ -1767,7 +1773,7 @@ chainlesschain/
 
 | Version | Date       | Major Updates                                                                                                                                                                                                                                                                                                                                            |
 | ------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| v0.25.0 | 2026-01-17 | **Manus AI Optimization + Multi-Agent System**: Context Engineering (KV-Cache optimization), Tool Masking, TaskTrackerFile (todo.md mechanism), Recoverable Compression, 3 specialized Agents (Code Generation/Data Analysis/Document Processing), parallel/chain execution, added 5,500+ lines of code ⭐LATEST |
+| v0.26.0 | 2026-01-19 | **Unified Logging+Android P2P UI+Memory Optimization**: Centralized logger system (700+ migrations), Android P2P complete UI (8 screens), ChatPanel 4-layer memory protection, added logger-ipc.js (120 lines), logger.js (245 lines), P2P docs (709 lines) ⭐LATEST |\n| v0.25.0 | 2026-01-17 | **Manus AI Optimization + Multi-Agent System**: Context Engineering (KV-Cache optimization), Tool Masking, TaskTrackerFile (todo.md mechanism), Recoverable Compression, 3 specialized Agents (Code Generation/Data Analysis/Document Processing), parallel/chain execution, added 5,500+ lines of code ⭐LATEST |
 | v0.24.0 | 2026-01-16 | **MCP Chat Integration**: MCP tools integrated into AI chat, invoke MCP server tools via Function Calling, added mcp-function-executor.js (268 lines) |
 | v0.23.0 | 2026-01-15 | **SessionManager Enhancement + ErrorMonitor AI Diagnostics**: Session search/tags/export/summary/templates/batch operations, AI intelligent error diagnosis and auto-fix |
 | v0.22.0 | 2026-01-13 | **Blockchain Integration Complete**: Phase 4-6 complete (15 chain support + RPC management + event listening + complete UI), added 6,566 lines of code, 12 UI components, full test coverage ⭐Major Update |
@@ -2046,10 +2052,10 @@ Thanks to the following open source projects and technologies:
 
 ### Overall Code Statistics
 
-**Total Code**: 265,500+ lines ⭐Updated
+**Total Code**: 266,500+ lines ⭐Updated
 
-- Desktop App: 225,500+ lines (JavaScript/TypeScript/Vue) ⭐Updated
-  - Main process: ~195,500 lines (including mobile sync 7700 lines + Manus optimization 5500 lines) ⭐Updated
+- Desktop App: 226,500+ lines (JavaScript/TypeScript/Vue) ⭐Updated
+  - Main process: ~196,500 lines (including mobile sync 7700 lines + Manus optimization 5500 lines + logging system 1000 lines) ⭐Updated
   - Renderer process: ~15,000 lines (243 components)
   - Utility classes: ~15,000 lines (34 files)
 - Smart Contracts: 2,400 lines (Solidity + tests + scripts)
