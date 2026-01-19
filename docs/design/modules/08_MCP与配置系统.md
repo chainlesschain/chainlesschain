@@ -4,14 +4,15 @@
 
 ---
 
-### 2.9 MCP集成系统 ✅POC完成 (v0.16.0) ⭐新增
+### 2.9 MCP集成系统 ✅生产就绪 (v0.18.0) ⭐新增
 
-> **✅ 完成状态**: v0.16.0版本POC,MCP协议集成完成
+> **✅ 完成状态**: v0.18.0版本生产就绪,HTTP+SSE传输完成
 >
-> **完成时间**: 2026-01-16
+> **完成时间**: 2026-01-17 (HTTP+SSE), 2026-01-16 (POC)
 > **实施文件**: `desktop-app-vue/src/main/mcp/`
 > **测试覆盖**: 手动测试通过,自动化测试待实现
-> **协议版本**: Model Context Protocol v0.1.0
+> **协议版本**: Model Context Protocol 2025-11-25
+> **SDK版本**: @modelcontextprotocol/sdk ^0.x.x
 
 #### 2.9.1 系统概述 ✅已实现
 
@@ -26,13 +27,25 @@ MCP (Model Context Protocol) 集成系统为 ChainlessChain 提供了标准化�
 
 #### 2.9.2 支持的 MCP 服务器
 
-| 服务器名称     | 用途           | 安全级别 | 配置文件          |
-| -------------- | -------------- | -------- | ----------------- |
-| **Filesystem** | 文件读写操作   | Medium   | `filesystem.json` |
-| **PostgreSQL** | 数据库查询     | High     | `postgres.json`   |
-| **SQLite**     | 本地数据库访问 | Medium   | `sqlite.json`     |
-| **Git**        | 仓库操作       | Medium   | `git.json`        |
-| **Fetch**      | HTTP 请求      | Medium   | `fetch.json`      |
+**官方服务器** (stdio传输):
+
+| 服务器名称     | 用途           | 安全级别 | 传输方式 | 配置文件          |
+| -------------- | -------------- | -------- | -------- | ----------------- |
+| **Filesystem** | 文件读写操作   | Medium   | stdio    | `filesystem.json` |
+| **PostgreSQL** | 数据库查询     | High     | stdio    | `postgres.json`   |
+| **SQLite**     | 本地数据库访问 | Medium   | stdio    | `sqlite.json`     |
+| **Git**        | 仓库操作       | Medium   | stdio    | `git.json`        |
+| **Fetch**      | HTTP 请求      | Medium   | stdio    | `fetch.json`      |
+| **Slack**      | 工作区消息     | Medium   | stdio    | `slack.json`      |
+| **GitHub**     | 仓库/Issue管理 | Medium   | stdio    | `github.json`     |
+| **Puppeteer**  | 网页自动化     | Medium   | stdio    | `puppeteer.json`  |
+
+**远程服务器** (HTTP+SSE传输) ⭐v0.18.0新增:
+
+| 服务器名称 | 用途       | 安全级别 | 传输方式 | 配置文件              |
+| ---------- | ---------- | -------- | -------- | --------------------- |
+| **Weather** | 天气查询   | Low      | HTTP+SSE | `http-sse-example.json` |
+| 自定义服务器 | 任意功能   | 可配置   | HTTP+SSE | 用户自定义配置         |
 
 #### 2.9.3 架构设计
 
@@ -40,14 +53,15 @@ MCP (Model Context Protocol) 集成系统为 ChainlessChain 提供了标准化�
 
 ```
 desktop-app-vue/src/main/mcp/
-├── mcp-client-manager.js          # 核心客户端管理器
+├── mcp-client-manager.js          # 核心客户端管理器(双传输支持)
 ├── mcp-tool-adapter.js            # 工具适配器(桥接到ToolManager)
 ├── mcp-security-policy.js         # 安全策略执行
 ├── mcp-config-loader.js           # 配置加载器
 ├── mcp-performance-monitor.js     # 性能监控
 ├── mcp-ipc.js                     # IPC 处理器
 ├── transports/
-│   └── stdio-transport.js         # Stdio 通信层
+│   ├── stdio-transport.js         # Stdio 通信层(本地服务器)
+│   └── http-sse-transport.js      # HTTP+SSE 通信层(远程服务器) ⭐v0.18.0新增
 └── servers/
     ├── server-registry.json       # 可信服务器白名单
     └── server-configs/            # 服务器配置模板
@@ -55,14 +69,16 @@ desktop-app-vue/src/main/mcp/
         ├── postgres.json
         ├── sqlite.json
         ├── git.json
-        └── fetch.json
+        ├── fetch.json
+        └── http-sse-example.json  # HTTP+SSE服务器配置模板 ⭐新增
 ```
 
 **核心组件**:
 
 1. **MCPClientManager** (`mcp-client-manager.js`)
-   - 管理所有 MCP 服务器连接
+   - 管理所有 MCP 服务器连接(stdio + HTTP+SSE)
    - 支持动态连接/断开服务器
+   - 双传输类型支持: `STDIO` | `HTTP_SSE`
    - 统一错误处理和重试机制
    - 性能指标收集
 
@@ -80,6 +96,14 @@ desktop-app-vue/src/main/mcp/
    - 追踪连接时间、调用延迟
    - 错误率统计
    - 内存使用监控
+
+5. **HTTPSSETransport** (`transports/http-sse-transport.js`) ⭐v0.18.0新增
+   - 932行生产级代码
+   - HTTP POST 请求 + Server-Sent Events 响应
+   - 自动重连和断路器模式
+   - 心跳监控(30秒间隔)和健康检查(60秒间隔)
+   - Bearer Token认证 + 自动刷新
+   - 统计追踪(连接次数、请求数、字节数、延迟)
 
 #### 2.9.4 安全机制
 
@@ -120,7 +144,7 @@ desktop-app-vue/src/main/mcp/
 1. `.chainlesschain/config.json` - 用户配置(最高优先级)
 2. `servers/server-configs/*.json` - 默认配置模板
 
-**示例配置** (`.chainlesschain/config.json`):
+**示例配置 - Stdio本地服务器** (`.chainlesschain/config.json`):
 
 ```json
 {
@@ -129,6 +153,7 @@ desktop-app-vue/src/main/mcp/
     "servers": {
       "filesystem": {
         "enabled": true,
+        "transport": "stdio",
         "command": "npx",
         "args": ["-y", "@modelcontextprotocol/server-filesystem", "D:\\data"],
         "autoConnect": false,
@@ -146,6 +171,68 @@ desktop-app-vue/src/main/mcp/
     }
   }
 }
+```
+
+**示例配置 - HTTP+SSE远程服务器** ⭐v0.18.0新增:
+
+```json
+{
+  "mcp": {
+    "enabled": true,
+    "servers": {
+      "remote-api": {
+        "enabled": true,
+        "transport": "http-sse",
+        "baseURL": "https://mcp.example.com",
+        "apiKey": "sk-your-api-key",
+        "headers": {
+          "X-Custom-Header": "value",
+          "X-Client-Version": "1.0.0"
+        },
+        "timeout": 30000,
+        "maxRetries": 3,
+        "retryDelay": 1000,
+        "autoConnect": false,
+        "heartbeat": {
+          "enabled": true,
+          "interval": 30000
+        },
+        "healthCheck": {
+          "enabled": true,
+          "interval": 60000
+        },
+        "circuitBreaker": {
+          "threshold": 5,
+          "timeout": 30000
+        },
+        "permissions": {
+          "allowedTools": ["read_file", "search", "query"],
+          "blockedTools": [],
+          "requireConsent": true
+        }
+      }
+    }
+  }
+}
+```
+
+**连接远程服务器示例**:
+
+```javascript
+const { MCPClientManager } = require('./mcp-client-manager');
+
+const manager = new MCPClientManager();
+
+// 方法1: 通过配置文件连接
+await manager.connectServer('remote-api');
+
+// 方法2: 动态配置连接
+await manager.connectRemoteServer('custom-api', {
+  baseURL: 'https://api.example.com/mcp',
+  apiKey: 'your-api-key',
+  timeout: 30000,
+  heartbeat: { enabled: true, interval: 30000 }
+});
 ```
 
 #### 2.9.6 性能指标
@@ -180,34 +267,117 @@ desktop-app-vue/src/main/mcp/
 - 查看性能指标
 - 配置服务器参数
 
-#### 2.9.9 已知限制 (POC 阶段)
+#### 2.9.9 HTTP+SSE传输架构 ⭐v0.18.0新增
 
-- ❌ 只支持 stdio 传输(HTTP+SSE 未实现)
-- ❌ 错误恢复机制较基础(仅支持简单重试)
+**连接状态机**:
+
+```
+DISCONNECTED → CONNECTING → CONNECTED
+                    ↓            ↓
+                  ERROR ← RECONNECTING
+                    ↓
+              CIRCUIT_OPEN (断路器打开)
+```
+
+**状态说明**:
+
+| 状态 | 描述 | 触发条件 |
+|------|------|----------|
+| DISCONNECTED | 未连接 | 初始状态或主动断开 |
+| CONNECTING | 连接中 | 调用connect()方法 |
+| CONNECTED | 已连接 | 连接建立成功 |
+| RECONNECTING | 重连中 | 连接断开,自动重连 |
+| ERROR | 错误状态 | 连接/请求失败 |
+| CIRCUIT_OPEN | 断路器打开 | 连续5次失败 |
+
+**断路器模式**:
+
+```javascript
+// 断路器配置
+circuitBreaker: {
+  threshold: 5,          // 连续5次失败触发断路器
+  timeout: 30000,        // 30秒后尝试恢复(半开状态)
+  halfOpenMaxRetries: 3  // 半开状态最多3次重试
+}
+
+// 断路器状态
+CLOSED (正常) → OPEN (熔断) → HALF_OPEN (测试恢复) → CLOSED
+```
+
+**心跳与健康检查**:
+
+```javascript
+// 心跳监控 (30秒间隔)
+heartbeat: {
+  enabled: true,
+  interval: 30000,
+  timeout: 5000,
+  maxFailures: 3  // 3次心跳失败触发重连
+}
+
+// 健康检查 (60秒间隔)
+healthCheck: {
+  enabled: true,
+  interval: 60000,
+  historySize: 10  // 保留最近10次检查结果
+}
+```
+
+**统计指标**:
+
+```javascript
+stats: {
+  connectionAttempts: 0,
+  successfulConnections: 0,
+  failedConnections: 0,
+  totalRequests: 0,
+  successfulRequests: 0,
+  failedRequests: 0,
+  totalBytesSent: 0,
+  totalBytesReceived: 0,
+  averageLatency: 0,
+  circuitBreakerTrips: 0,
+  reconnectAttempts: 0
+}
+```
+
+#### 2.9.10 已知限制
+
+- ✅ **HTTP+SSE传输已实现** (v0.18.0生产就绪)
+- ✅ **错误恢复机制完善** (断路器模式 + 指数退避重试)
 - ❌ 配置只能通过文件修改(UI 配置编辑器未实现)
 - ❌ 跨平台路径处理需改进(当前偏向 Windows)
 
-#### 2.9.10 路线图
+#### 2.9.11 路线图
 
-**Phase 1 (当前 - POC)**: ✅ 完成
+**Phase 1 (v0.16.0 - POC)**: ✅ 完成 (2026-01-16)
 
 - [x] 核心 MCP 集成
-- [x] 5 个常用 MCP 服务器
+- [x] 5 个常用 MCP 服务器(stdio)
 - [x] UI 管理界面
 - [x] 安全策略
 
-**Phase 2 (Q1 2026)**: 🚧 计划中
+**Phase 2 (v0.18.0)**: ✅ 完成 (2026-01-17)
 
-- [ ] HTTP+SSE 传输支持
-- [ ] UI 配置编辑器
-- [ ] 更多 MCP 服务器(Slack, GitHub, etc.)
+- [x] **HTTP+SSE 传输支持** ⭐核心亮点
+- [x] 断路器模式和自动重连
+- [x] 心跳监控和健康检查
+- [x] Bearer Token认证
+- [x] 远程服务器配置模板
+- [x] 8个官方stdio服务器 + 自定义HTTP+SSE服务器
+
+**Phase 3 (Q1 2026)**: 🚧 计划中
+
+- [ ] UI 配置编辑器(图形化配置)
+- [ ] 更多官方HTTP+SSE服务器
 - [ ] 插件市场集成
+- [ ] 性能监控可视化
 
-**Phase 3 (Q2 2026)**: 📋 规划中
+**Phase 4 (Q2 2026)**: 📋 规划中
 
 - [ ] 自定义 MCP 服务器开发 SDK
 - [ ] 社区服务器仓库
-- [ ] 高级权限管理
+- [ ] 高级权限管理(RBAC)
 - [ ] 多用户支持
 
 ### 2.10 统一配置管理系统 ✅完成 (v0.16.0) ⭐新增
