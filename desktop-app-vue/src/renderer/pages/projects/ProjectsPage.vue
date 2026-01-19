@@ -772,32 +772,12 @@ const handleRenameConversation = async (conversation) => {
           return;
         }
 
-        try {
-          await conversationStore.updateConversation(conversation.id, {
-            title: newTitle
-          });
+        // TODO: Implement conversation store for managing conversations
+        // await conversationStore.updateConversation(conversation.id, { title: newTitle });
+        // await loadRecentConversations();
 
-          message.success('重命名成功');
-
-          // 刷新对话列表
-          await loadConversations();
-        } catch (error) {
-          console.error('[ProjectsPage] 重命名失败:', error);
-
-          let errorMessage = '重命名失败';
-          if (error.message) {
-            if (error.message.includes('not found')) {
-              errorMessage = '对话不存在';
-            } else if (error.message.includes('database')) {
-              errorMessage = '数据库错误，请重试';
-            } else {
-              errorMessage = `重命名失败: ${error.message}`;
-            }
-          }
-
-          message.error(errorMessage);
-          return Promise.reject();
-        }
+        message.info('对话重命名功能正在开发中');
+        console.log('[ProjectsPage] TODO: Rename conversation:', conversation.id, 'to', newTitle);
       }
     });
   } catch (error) {
@@ -808,34 +788,15 @@ const handleRenameConversation = async (conversation) => {
 
 // 收藏/取消收藏对话
 const handleStarConversation = async (conversation) => {
-  try {
-    const isStarred = conversation.is_starred || false;
-    const newStarredState = !isStarred;
+  const isStarred = conversation.is_starred || false;
+  const newStarredState = !isStarred;
 
-    await conversationStore.updateConversation(conversation.id, {
-      is_starred: newStarredState
-    });
+  // TODO: Implement conversation store for managing conversations
+  // await conversationStore.updateConversation(conversation.id, { is_starred: newStarredState });
+  // await loadRecentConversations();
 
-    message.success(newStarredState ? '已收藏' : '已取消收藏');
-
-    // 刷新对话列表
-    await loadConversations();
-  } catch (error) {
-    console.error('[ProjectsPage] 收藏操作失败:', error);
-
-    let errorMessage = '操作失败';
-    if (error.message) {
-      if (error.message.includes('not found')) {
-        errorMessage = '对话不存在';
-      } else if (error.message.includes('database')) {
-        errorMessage = '数据库错误，请重试';
-      } else {
-        errorMessage = `操作失败: ${error.message}`;
-      }
-    }
-
-    message.error(errorMessage);
-  }
+  message.info('对话收藏功能正在开发中');
+  console.log('[ProjectsPage] TODO: Star conversation:', conversation.id, 'newState:', newStarredState);
 };
 
 // 处理导航点击

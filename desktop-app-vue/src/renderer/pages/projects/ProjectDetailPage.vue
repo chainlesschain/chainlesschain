@@ -1928,7 +1928,7 @@ onMounted(async () => {
       console.log("[ProjectDetail] 检测到文件内容更新:", event);
       // 如果更新的文件是当前打开的文件，自动重新加载
       if (currentFile.value && currentFile.value.id === event.fileId) {
-        handleFileSelect(currentFile.value);
+        selectFile(currentFile.value.id);
       }
       // 刷新文件列表（使用统一的加载函数）
       loadFilesWithSync(projectId.value).catch((err) => {

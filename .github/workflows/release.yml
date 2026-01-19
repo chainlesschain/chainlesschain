@@ -1,30 +1,114 @@
-name: Release
+name: 🚀 Multi-Platform Docker Offline Release
 
 on:
   push:
     tags:
-      - "v*.*.*"
+      - 'v*.*.*'
   workflow_dispatch:
     inputs:
       version:
-        description: "Release version (e.g., v0.20.0)"
+        description: 'Release version (e.g., v0.16.0)'
         required: true
         type: string
-      draft:
-        description: "Create as draft"
-        required: false
-        type: boolean
-        default: true
       prerelease:
-        description: "Mark as prerelease"
+        description: 'Mark as pre-release'
         required: false
         type: boolean
         default: false
+      draft:
+        description: 'Create as draft'
+        required: false
+        type: boolean
+        default: true
+
+env:
+  NODE_VERSION: '20'
+  SKIP_BACKEND_CHECK: 'true'
+  # 缓存键版本（更新此值以强制重新构建缓存）
+  CACHE_VERSION: 'v1'
 
 jobs:
-  # Build for Windows
+  # Job 1: 导出 Docker 镜像（只需要一次，所有平台共用）
+  export-docker-images:
+    name: 📦 Export Docker Images
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Pull Docker images
+        run: |
+          echo "Pulling PostgreSQL..."
+          docker pull postgres:16-alpine
+
+          echo "Pulling Redis..."
+          docker pull redis:7-alpine
+
+          echo "Pulling Qdrant..."
+          docker pull qdrant/qdrant:v1.12.5
+
+          echo "Pulling Ollama..."
+          docker pull ollama/ollama:latest
+
+      - name: Export Docker images
+        run: |
+          mkdir -p packaging/docker-images
+
+          echo "Exporting PostgreSQL..."
+          docker save -o packaging/docker-images/postgres-16-alpine.tar postgres:16-alpine
+
+          echo "Exporting Redis..."
+          docker save -o packaging/docker-images/redis-7-alpine.tar redis:7-alpine
+
+          echo "Exporting Qdrant..."
+          docker save -o packaging/docker-images/qdrant-qdrant-v1.12.5.tar qdrant/qdrant:v1.12.5
+
+          echo "Exporting Ollama..."
+          docker save -o packaging/docker-images/ollama-ollama-latest.tar ollama/ollama:latest
+
+      - name: Create manifest file
+        run: |
+          cat > packaging/docker-images/images-manifest.txt << EOF
+          # ChainlessChain Docker Images Manifest
+          # Generated: $(date)
+          postgres-16-alpine.tar|postgres:16-alpine
+          redis-7-alpine.tar|redis:7-alpine
+          qdrant-qdrant-v1.12.5.tar|qdrant/qdrant:v1.12.5
+          ollama-ollama-latest.tar|ollama/ollama:latest
+          EOF
+
+      - name: Calculate sizes
+        run: |
+          echo "## Docker Images Sizes" >> $GITHUB_STEP_SUMMARY
+          echo "| Image | Size |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|------|" >> $GITHUB_STEP_SUMMARY
+          for file in packaging/docker-images/*.tar; do
+            size=$(du -h "$file" | cut -f1)
+            name=$(basename "$file")
+            echo "| $name | $size |" >> $GITHUB_STEP_SUMMARY
+          done
+
+          total_size=$(du -sh packaging/docker-images/ | cut -f1)
+          echo "| **Total** | **$total_size** |" >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload Docker images artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-images
+          path: packaging/docker-images/
+          retention-days: 1
+          compression-level: 0  # 已经是压缩的 tar 文件，不需要再压缩
+
+  # Job 2: 构建 Windows 安装包
   build-windows:
+    name: 🪟 Build Windows
+    needs: export-docker-images
     runs-on: windows-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -32,43 +116,108 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "22.12.0"
-          cache: "npm"
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
           cache-dependency-path: package-lock.json
 
-      - name: Install dependencies
+      - name: Cache Electron binaries
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~\AppData\Local\electron\Cache
+            ~\AppData\Local\electron-builder\Cache
+          key: ${{ runner.os }}-electron-${{ env.CACHE_VERSION }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-electron-${{ env.CACHE_VERSION }}-
+            ${{ runner.os }}-electron-
+
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            desktop-app-vue/node_modules
+          key: ${{ runner.os }}-node-modules-${{ env.CACHE_VERSION }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-modules-${{ env.CACHE_VERSION }}-
+            ${{ runner.os }}-node-modules-
+
+      - name: Download Docker images
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-images
+          path: packaging/docker-images/
+
+      - name: Verify Docker images
+        run: |
+          dir packaging\docker-images
+          Write-Host "Docker images downloaded successfully"
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install desktop-app-vue dependencies
         working-directory: desktop-app-vue
         run: npm ci
+
+      - name: Setup Windows Code Signing
+        if: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 != '' }}
+        env:
+          WINDOWS_CERTIFICATE_BASE64: ${{ secrets.WINDOWS_CERTIFICATE_BASE64 }}
+        run: |
+          # 解码证书
+          $cert_bytes = [Convert]::FromBase64String($env:WINDOWS_CERTIFICATE_BASE64)
+          $cert_path = Join-Path $env:RUNNER_TEMP "cert.pfx"
+          [IO.File]::WriteAllBytes($cert_path, $cert_bytes)
+
+          # 导入证书到当前用户存储
+          $password = ConvertTo-SecureString "${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}" -AsPlainText -Force
+          Import-PfxCertificate -FilePath $cert_path -CertStoreLocation Cert:\CurrentUser\My -Password $password
+
+          # 设置环境变量供 Electron Forge 使用
+          echo "WINDOWS_CERTIFICATE_FILE=$cert_path" >> $env:GITHUB_ENV
+          echo "WINDOWS_CERTIFICATE_PASSWORD=${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}" >> $env:GITHUB_ENV
+
+          Write-Host "✓ Windows code signing certificate configured"
 
       - name: Build main process
         working-directory: desktop-app-vue
         run: npm run build:main
 
-      - name: Build renderer
+      - name: Build renderer process
         working-directory: desktop-app-vue
-        run: npm run build:renderer
+        run: npm run build
+        env:
+          NODE_ENV: production
 
-      - name: Package Windows
+      - name: Package Windows with Signing
         working-directory: desktop-app-vue
         run: npm run make:win
         env:
-          CHAINLESSCHAIN_DISABLE_NATIVE_DB: "1"
+          SKIP_BACKEND_CHECK: true
+          WINDOWS_CERTIFICATE_FILE: ${{ env.WINDOWS_CERTIFICATE_FILE }}
+          WINDOWS_CERTIFICATE_PASSWORD: ${{ secrets.WINDOWS_CERTIFICATE_PASSWORD }}
+
+      - name: List output files
+        run: |
+          Get-ChildItem -Path "desktop-app-vue\out\make" -Recurse | Where-Object { $_.Extension -in @('.exe', '.zip', '.nupkg') } | Format-Table Name, Length, DirectoryName
 
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
         with:
           name: windows-artifacts
           path: |
-            desktop-app-vue/out/make/**/*.zip
             desktop-app-vue/out/make/**/*.exe
-          retention-days: 7
+            desktop-app-vue/out/make/**/*.zip
+            desktop-app-vue/out/make/**/*.nupkg
+          retention-days: 5
 
-  # Build for macOS
+  # Job 3: 构建 macOS 安装包
   build-macos:
+    name: 🍎 Build macOS
+    needs: export-docker-images
     runs-on: macos-latest
-    strategy:
-      matrix:
-        arch: [x64, arm64]
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -76,40 +225,116 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "22.12.0"
-          cache: "npm"
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
           cache-dependency-path: package-lock.json
 
-      - name: Install dependencies
+      - name: Cache Electron binaries
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Caches/electron
+            ~/Library/Caches/electron-builder
+          key: ${{ runner.os }}-electron-${{ env.CACHE_VERSION }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-electron-${{ env.CACHE_VERSION }}-
+            ${{ runner.os }}-electron-
+
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            desktop-app-vue/node_modules
+          key: ${{ runner.os }}-node-modules-${{ env.CACHE_VERSION }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-modules-${{ env.CACHE_VERSION }}-
+            ${{ runner.os }}-node-modules-
+
+      - name: Download Docker images
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-images
+          path: packaging/docker-images/
+
+      - name: Verify Docker images
+        run: |
+          ls -lh packaging/docker-images/
+          echo "Docker images downloaded successfully"
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install desktop-app-vue dependencies
         working-directory: desktop-app-vue
         run: npm ci
+
+      - name: Setup macOS Code Signing
+        if: ${{ secrets.MACOS_CERTIFICATE_BASE64 != '' }}
+        env:
+          MACOS_CERTIFICATE_BASE64: ${{ secrets.MACOS_CERTIFICATE_BASE64 }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+        run: |
+          # 创建临时钥匙串
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          KEYCHAIN_PASSWORD=$(openssl rand -base64 32)
+
+          # 创建钥匙串
+          security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+
+          # 解码并导入证书
+          CERT_PATH=$RUNNER_TEMP/certificate.p12
+          echo "$MACOS_CERTIFICATE_BASE64" | base64 --decode > $CERT_PATH
+          security import $CERT_PATH -P "$MACOS_CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+
+          # 设置钥匙串搜索列表
+          security list-keychain -d user -s $KEYCHAIN_PATH
+
+          # 允许 codesign 使用证书
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+
+          echo "✓ macOS code signing certificate configured"
 
       - name: Build main process
         working-directory: desktop-app-vue
         run: npm run build:main
 
-      - name: Build renderer
+      - name: Build renderer process
         working-directory: desktop-app-vue
-        run: npm run build:renderer
-
-      - name: Package macOS (${{ matrix.arch }})
-        working-directory: desktop-app-vue
-        run: npm run make:mac:${{ matrix.arch }}
+        run: npm run build
         env:
-          CHAINLESSCHAIN_DISABLE_NATIVE_DB: "1"
+          NODE_ENV: production
+
+      - name: Package macOS with Signing and Notarization
+        working-directory: desktop-app-vue
+        run: npm run make
+        env:
+          SKIP_BACKEND_CHECK: true
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+
+      - name: List output files
+        run: |
+          find desktop-app-vue/out/make -type f \( -name "*.dmg" -o -name "*.zip" \) -exec ls -lh {} \;
 
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: macos-${{ matrix.arch }}-artifacts
+          name: macos-artifacts
           path: |
             desktop-app-vue/out/make/**/*.dmg
             desktop-app-vue/out/make/**/*.zip
-          retention-days: 7
+          retention-days: 5
 
-  # Build for Linux
+  # Job 4: 构建 Linux 安装包
   build-linux:
+    name: 🐧 Build Linux
+    needs: export-docker-images
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -117,9 +342,31 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "22.12.0"
-          cache: "npm"
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
           cache-dependency-path: package-lock.json
+
+      - name: Cache Electron binaries
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/electron
+            ~/.cache/electron-builder
+          key: ${{ runner.os }}-electron-${{ env.CACHE_VERSION }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-electron-${{ env.CACHE_VERSION }}-
+            ${{ runner.os }}-electron-
+
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            desktop-app-vue/node_modules
+          key: ${{ runner.os }}-node-modules-${{ env.CACHE_VERSION }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-modules-${{ env.CACHE_VERSION }}-
+            ${{ runner.os }}-node-modules-
 
       - name: Install system dependencies
         run: |
@@ -130,7 +377,22 @@ jobs:
             dpkg \
             libarchive-tools
 
-      - name: Install dependencies
+      - name: Download Docker images
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-images
+          path: packaging/docker-images/
+
+      - name: Verify Docker images
+        run: |
+          ls -lh packaging/docker-images/
+          du -sh packaging/docker-images/
+          echo "Docker images downloaded successfully"
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install desktop-app-vue dependencies
         working-directory: desktop-app-vue
         run: npm ci
 
@@ -138,15 +400,36 @@ jobs:
         working-directory: desktop-app-vue
         run: npm run build:main
 
-      - name: Build renderer
+      - name: Build renderer process
         working-directory: desktop-app-vue
-        run: npm run build:renderer
-
-      - name: Package Linux
-        working-directory: desktop-app-vue
-        run: npm run make:linux:x64
+        run: npm run build
         env:
-          CHAINLESSCHAIN_DISABLE_NATIVE_DB: "1"
+          NODE_ENV: production
+
+      - name: Package Linux (DEB)
+        working-directory: desktop-app-vue
+        run: |
+          npx electron-forge make --platform=linux --arch=x64 --targets=@electron-forge/maker-deb
+        env:
+          SKIP_BACKEND_CHECK: true
+
+      - name: Package Linux (RPM)
+        working-directory: desktop-app-vue
+        run: |
+          npx electron-forge make --platform=linux --arch=x64 --targets=@electron-forge/maker-rpm
+        env:
+          SKIP_BACKEND_CHECK: true
+
+      - name: Package Linux (ZIP)
+        working-directory: desktop-app-vue
+        run: |
+          npx electron-forge make --platform=linux --arch=x64 --targets=@electron-forge/maker-zip
+        env:
+          SKIP_BACKEND_CHECK: true
+
+      - name: List output files
+        run: |
+          find desktop-app-vue/out/make -type f \( -name "*.deb" -o -name "*.rpm" -o -name "*.zip" \) -exec ls -lh {} \;
 
       - name: Upload Linux artifacts
         uses: actions/upload-artifact@v4
@@ -155,43 +438,117 @@ jobs:
           path: |
             desktop-app-vue/out/make/**/*.deb
             desktop-app-vue/out/make/**/*.rpm
-            desktop-app-vue/out/make/**/*.AppImage
             desktop-app-vue/out/make/**/*.zip
-          retention-days: 7
+          retention-days: 5
 
-  # Create GitHub Release
+  # Job 5: 创建 GitHub Release
   create-release:
+    name: 📝 Create GitHub Release
     needs: [build-windows, build-macos, build-linux]
     runs-on: ubuntu-latest
     permissions:
       contents: write
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Fetch all history for changelog
+          fetch-depth: 0  # 获取完整历史以生成 changelog
+
+      - name: Determine version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "version=${{ inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
+          echo "Version: $(cat $GITHUB_OUTPUT)"
 
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
-          path: artifacts
+          path: artifacts/
 
-      - name: Display artifact structure
-        run: ls -R artifacts/
-
-      - name: Get version
-        id: version
+      - name: Display structure of downloaded files
         run: |
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            echo "VERSION=${{ inputs.version }}" >> $GITHUB_OUTPUT
-          else
-            echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
-          fi
+          echo "## Artifacts Structure" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          ls -R artifacts/
+          echo '```' >> $GITHUB_STEP_SUMMARY
 
-      - name: Generate changelog
-        id: changelog
+      - name: Prepare release files
         run: |
-          VERSION="${{ steps.version.outputs.VERSION }}"
+          mkdir -p release-files
+
+          # Windows
+          echo "Copying Windows files..."
+          find artifacts/windows-artifacts -name "*.exe" -exec cp {} release-files/ \; || true
+          find artifacts/windows-artifacts -name "*.zip" | head -1 | xargs -I {} cp {} release-files/ChainlessChain-Windows-x64.zip || true
+
+          # macOS
+          echo "Copying macOS files..."
+          find artifacts/macos-artifacts -name "*.dmg" -exec cp {} release-files/ \; || true
+          find artifacts/macos-artifacts -name "*.zip" | head -1 | xargs -I {} cp {} release-files/ChainlessChain-macOS-Universal.zip || true
+
+          # Linux
+          echo "Copying Linux files..."
+          find artifacts/linux-artifacts -name "*.deb" -exec cp {} release-files/ \; || true
+          find artifacts/linux-artifacts -name "*.rpm" -exec cp {} release-files/ \; || true
+          find artifacts/linux-artifacts -name "*.zip" | head -1 | xargs -I {} cp {} release-files/ChainlessChain-Linux-x64.zip || true
+
+          # List all files with sizes
+          echo "## Release Files" >> $GITHUB_STEP_SUMMARY
+          echo "| File | Size |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|------|" >> $GITHUB_STEP_SUMMARY
+          for file in release-files/*; do
+            if [ -f "$file" ]; then
+              filename=$(basename "$file")
+              size=$(du -h "$file" | cut -f1)
+              echo "| $filename | $size |" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+
+          ls -lh release-files/
+
+      - name: Generate SHA256 checksums
+        run: |
+          cd release-files
+
+          echo "## 📋 SHA256 Checksums" > checksums.txt
+          echo "" >> checksums.txt
+          echo "生成时间: $(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> checksums.txt
+          echo "" >> checksums.txt
+
+          # 为每个文件生成 checksum
+          for file in *; do
+            if [ -f "$file" ] && [ "$file" != "checksums.txt" ]; then
+              sha256sum "$file" >> checksums.txt
+            fi
+          done
+
+          echo "" >> checksums.txt
+          echo "## 验证方法" >> checksums.txt
+          echo "" >> checksums.txt
+          echo "Windows (PowerShell):" >> checksums.txt
+          echo "  Get-FileHash -Algorithm SHA256 ChainlessChain-Windows-x64.zip" >> checksums.txt
+          echo "" >> checksums.txt
+          echo "Linux/macOS:" >> checksums.txt
+          echo "  sha256sum ChainlessChain-Linux-x64.zip" >> checksums.txt
+          echo "  shasum -a 256 ChainlessChain-macOS-Universal.zip" >> checksums.txt
+
+          cat checksums.txt
+
+          # 添加到 Step Summary
+          echo "## 📋 SHA256 Checksums" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          grep -v "^#" checksums.txt | grep -v "^$" | head -20 >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: Generate release notes
+        id: release_notes
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
           PREV_TAG=$(git describe --tags --abbrev=0 ${VERSION}^ 2>/dev/null || echo "")
 
           if [ -z "$PREV_TAG" ]; then
@@ -200,72 +557,455 @@ jobs:
             RANGE="${PREV_TAG}..${VERSION}"
           fi
 
-          CHANGELOG=$(git log ${RANGE} --pretty=format:"- %s (%h)" --no-merges || echo "Initial release")
+          CHANGELOG=$(git log ${RANGE} --pretty=format:"- %s (%h)" --no-merges 2>/dev/null || echo "Initial release")
 
-          # Create release notes
-          cat > release-notes.md << EOF
-          ## ChainlessChain ${VERSION}
+          cat > release-notes.md << 'EOFNOTES'
+          ## 🎉 ChainlessChain ${{ steps.version.outputs.version }}
 
-          ### What's Changed
+          ### 📦 离线 Docker 版本（完全离线安装）
+
+          **所有安装包均包含完整的 Docker 镜像**，可在无网络环境下完成安装和使用。
+
+          - ✅ PostgreSQL 16 Alpine (~90 MB)
+          - ✅ Redis 7 Alpine (~30 MB)
+          - ✅ Qdrant v1.12.5 (~120 MB)
+          - ✅ Ollama Latest (~500 MB)
+
+          ---
+
+          ### 💾 下载安装
+
+          #### 🪟 Windows
+
+          **推荐使用 ZIP 版本（绿色便携版）**
+
+          | 文件 | 说明 | 大小 |
+          |------|------|------|
+          | `ChainlessChain-Windows-x64.zip` | 便携版，解压即用 | ~1.3 GB |
+          | `ChainlessChain-Setup.exe` | 安装程序（如果有） | ~1.3 GB |
+
+          #### 🍎 macOS
+
+          **支持 Intel 和 Apple Silicon (M1/M2/M3) 芯片**
+
+          | 文件 | 说明 | 大小 |
+          |------|------|------|
+          | `ChainlessChain.dmg` | DMG 安装包（推荐） | ~1.3 GB |
+          | `ChainlessChain-macOS-Universal.zip` | ZIP 版本 | ~1.3 GB |
+
+          #### 🐧 Linux
+
+          **多种格式支持主流发行版**
+
+          | 文件 | 说明 | 适用系统 | 大小 |
+          |------|------|----------|------|
+          | `chainlesschain_*.deb` | DEB 包 | Debian, Ubuntu, Mint | ~1.3 GB |
+          | `chainlesschain-*.rpm` | RPM 包 | Fedora, RHEL, CentOS | ~1.3 GB |
+          | `ChainlessChain-Linux-x64.zip` | 通用 ZIP | 所有发行版 | ~1.3 GB |
+
+          ---
+
+          ### 📋 安装步骤
+
+          #### 1️⃣ 安装 Docker Desktop（一次性）
+
+          **Windows 和 macOS：**
+          - 下载：https://www.docker.com/products/docker-desktop/
+          - 安装后启动 Docker Desktop
+          - 等待 Docker 图标变为绿色（运行中）
+
+          **Linux：**
+          ```bash
+          # Ubuntu/Debian
+          sudo apt-get update
+          sudo apt-get install -y docker.io docker-compose
+
+          # Fedora/RHEL
+          sudo dnf install -y docker docker-compose
+
+          # 启动 Docker
+          sudo systemctl start docker
+          sudo systemctl enable docker
+          ```
+
+          #### 2️⃣ 安装 ChainlessChain
+
+          **Windows：**
+          - 下载 `ChainlessChain-Windows-x64.zip`
+          - 解压到任意目录（如 `C:\ChainlessChain\`）
+
+          **macOS：**
+          - 下载 `ChainlessChain.dmg`
+          - 打开 DMG 文件
+          - 拖拽 ChainlessChain 到 Applications 文件夹
+
+          **Linux：**
+          ```bash
+          # DEB 包安装
+          sudo dpkg -i chainlesschain_*.deb
+
+          # RPM 包安装
+          sudo rpm -i chainlesschain-*.rpm
+
+          # 或使用 ZIP
+          unzip ChainlessChain-Linux-x64.zip -d ~/ChainlessChain
+          ```
+
+          #### 3️⃣ 加载 Docker 镜像（首次安装）
+
+          **Windows：**
+          ```cmd
+          cd C:\ChainlessChain\resources
+          load-docker-images.bat
+          ```
+
+          **macOS：**
+          ```bash
+          cd /Applications/ChainlessChain.app/Contents/Resources
+          ./load-docker-images.sh
+          ```
+
+          **Linux：**
+          ```bash
+          cd ~/ChainlessChain/resources  # 或安装目录
+          sudo ./load-docker-images.sh
+          ```
+
+          **预计时间：** 2-5 分钟（取决于硬盘速度）
+
+          #### 4️⃣ 启动后端服务
+
+          **Windows：**
+          ```cmd
+          start-services.bat
+          ```
+
+          **Linux/macOS：**
+          ```bash
+          sudo ./start-services.sh
+          ```
+
+          **验证服务状态：**
+          ```bash
+          docker-compose -f docker-compose.production.yml ps
+          ```
+
+          应该看到 4 个服务全部 `Up`：
+          - `postgres` (端口 5432)
+          - `redis` (端口 6379)
+          - `qdrant` (端口 6333)
+          - `ollama` (端口 11434)
+
+          #### 5️⃣ 启动应用
+
+          - **Windows**: 运行 `ChainlessChain.exe`
+          - **macOS**: 打开 Applications 中的 ChainlessChain
+          - **Linux**: 运行 `chainlesschain` 命令或从应用菜单启动
+
+          ---
+
+          ### ✨ 主要特性
+
+          - ✅ **完全离线安装** - 无需联网下载任何依赖
+          - ✅ **跨平台支持** - Windows、macOS、Linux 统一方案
+          - ✅ **一键启动** - 自动化脚本管理后端服务
+          - ✅ **硬件级安全** - U-Key/SIMKey 支持（Windows）
+          - ✅ **本地 AI** - 集成 Ollama 本地大语言模型
+          - ✅ **向量搜索** - Qdrant 向量数据库，RAG 增强检索
+          - ✅ **数据加密** - SQLCipher AES-256 加密数据库
+          - ✅ **P2P 通信** - libp2p + Signal 协议端到端加密
+
+          ---
+
+          ### 🔧 系统要求
+
+          | 组件 | 最低要求 | 推荐配置 |
+          |------|---------|---------|
+          | **操作系统** | Windows 10, macOS 11, Ubuntu 20.04 | Windows 11, macOS 13+, Ubuntu 22.04+ |
+          | **内存** | 8 GB RAM | 16 GB RAM |
+          | **磁盘空间** | 10 GB 可用 | 20 GB 可用（包括模型） |
+          | **Docker** | Docker Desktop 4.0+ | Docker Desktop 最新版 |
+          | **处理器** | x64 双核 | x64 四核或 Apple Silicon |
+
+          ---
+
+          ### 📚 文档
+
+          - 📖 [快速开始指南](https://github.com/${{ github.repository }}/blob/main/packaging/QUICK_START_OFFLINE.md)
+          - 📖 [完整安装文档](https://github.com/${{ github.repository }}/blob/main/packaging/DOCKER_OFFLINE_PACKAGING.md)
+          - 🔧 [故障排除](https://github.com/${{ github.repository }}/blob/main/packaging/DOCKER_OFFLINE_PACKAGING.md#故障排除)
+          - 📝 [用户手册](https://github.com/${{ github.repository }}/blob/main/QUICK_START.md)
+          - 🏗️ [开发文档](https://github.com/${{ github.repository }}/blob/main/HOW_TO_RUN.md)
+
+          ---
+
+          ### 🛠️ 故障排除
+
+          #### Docker 未运行
+          ```
+          错误: Cannot connect to the Docker daemon
+          ```
+          **解决**：启动 Docker Desktop，等待图标变绿色
+
+          #### 磁盘空间不足
+          ```
+          错误: no space left on device
+          ```
+          **解决**：Docker Desktop > Settings > Resources > 增加磁盘镜像大小至 30GB
+
+          #### 端口冲突
+          ```
+          错误: port is already allocated
+          ```
+          **解决**：修改 `docker-compose.production.yml` 中的端口映射
+
+          ---
+
+          ### 🐛 问题反馈
+
+          如遇到问题，请前往 [Issues](https://github.com/${{ github.repository }}/issues) 提交反馈。
+
+          提交时请包含：
+          - 操作系统版本
+          - Docker 版本 (`docker --version`)
+          - 错误日志（`docker-compose logs`）
+          - 复现步骤
+
+          ---
+
+          ### 📝 更新日志
 
           ${CHANGELOG}
 
-          ### Installation
+          ---
 
-          Download the appropriate file for your platform:
+          ### 🔗 相关链接
 
-          #### Windows
-          - \`ChainlessChain-win32-x64-${VERSION#v}.zip\` - Portable version (extract and run)
+          - **完整更新日志**: https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md
+          EOFNOTES
 
-          #### macOS
-          - \`ChainlessChain-darwin-x64-${VERSION#v}.dmg\` - Intel Mac installer
-          - \`ChainlessChain-darwin-arm64-${VERSION#v}.dmg\` - Apple Silicon installer
-
-          #### Linux
-          - \`ChainlessChain-${VERSION#v}.AppImage\` - Universal Linux package
-          - \`chainlesschain_${VERSION#v}_amd64.deb\` - Debian/Ubuntu package
-          - \`chainlesschain-${VERSION#v}.x86_64.rpm\` - Fedora/RHEL package
-
-          ### System Requirements
-
-          - **Windows**: Windows 10/11 (x64)
-          - **macOS**: macOS 10.15+ (Intel & Apple Silicon)
-          - **Linux**: Ubuntu 20.04+ / Fedora 34+ / Arch Linux (x64)
-
-          ### Notes
-
-          - U-Key hardware integration is Windows-only
-          - Backend services can run via Docker or bundled binaries
-          - First launch may take longer as services initialize
-
-          ### Verification
-
-          All binaries are built via GitHub Actions and can be verified against the workflow runs.
-
-          **Full Changelog**: https://github.com/\${{ github.repository }}/compare/${PREV_TAG}...${VERSION}
-          EOF
+          # 如果有上一个版本，添加对比链接
+          if [ -n "$PREV_TAG" ]; then
+            echo "" >> release-notes.md
+            echo "**代码对比**: https://github.com/${{ github.repository }}/compare/${PREV_TAG}...${VERSION}" >> release-notes.md
+          fi
 
           cat release-notes.md
 
-      - name: Create Release
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ steps.version.outputs.VERSION }}
-          name: ChainlessChain ${{ steps.version.outputs.VERSION }}
-          body_path: release-notes.md
-          draft: ${{ github.event_name == 'workflow_dispatch' && inputs.draft || false }}
-          prerelease: ${{ github.event_name == 'workflow_dispatch' && inputs.prerelease || false }}
-          files: |
-            artifacts/**/*.zip
-            artifacts/**/*.dmg
-            artifacts/**/*.deb
-            artifacts/**/*.rpm
-            artifacts/**/*.AppImage
-            artifacts/**/*.exe
+      - name: Create GitHub Release with gh CLI
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Release created
+          GH_TOKEN: ${{ github.token }}
         run: |
-          echo "✅ Release ${{ steps.version.outputs.VERSION }} created successfully!"
-          echo "🔗 View at: https://github.com/${{ github.repository }}/releases/tag/${{ steps.version.outputs.VERSION }}"
+          VERSION="${{ steps.version.outputs.version }}"
+
+          ARGS="--title \"ChainlessChain ${VERSION}\" --notes-file release-notes.md"
+
+          # Add draft flag if workflow_dispatch with draft=true
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ] && [ "${{ inputs.draft }}" == "true" ]; then
+            ARGS="$ARGS --draft"
+          fi
+
+          # Add prerelease flag if specified
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ] && [ "${{ inputs.prerelease }}" == "true" ]; then
+            ARGS="$ARGS --prerelease"
+          fi
+
+          # Create release and upload files
+          eval gh release create ${VERSION} ${ARGS} release-files/*
+
+      - name: Generate summary
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+
+          echo "## 🎉 Release Created Successfully!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version**: ${VERSION}" >> $GITHUB_STEP_SUMMARY
+          echo "**Status**: ${{ inputs.draft == true && '📝 Draft' || '✅ Published' }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔗 Links:" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- [Release Page](https://github.com/${{ github.repository }}/releases/tag/${VERSION})" >> $GITHUB_STEP_SUMMARY
+          echo "- [Download Page](https://github.com/${{ github.repository }}/releases/latest)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📦 Published Assets:" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          for file in release-files/*; do
+            if [ -f "$file" ]; then
+              filename=$(basename "$file")
+              size=$(du -h "$file" | cut -f1)
+              echo "- **$filename** ($size)" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+
+      - name: Send Discord notification
+        if: ${{ success() && secrets.DISCORD_WEBHOOK != '' }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          REPO_URL="https://github.com/${{ github.repository }}"
+          RELEASE_URL="${REPO_URL}/releases/tag/${VERSION}"
+
+          # 计算文件总数和总大小
+          FILE_COUNT=$(ls -1 release-files/* 2>/dev/null | wc -l)
+          TOTAL_SIZE=$(du -sh release-files/ | cut -f1)
+
+          # 构建 Discord embed JSON
+          curl -H "Content-Type: application/json" \
+            -d '{
+              "embeds": [{
+                "title": "🎉 New Release: '"${VERSION}"'",
+                "description": "ChainlessChain '"${VERSION}"' has been released!",
+                "url": "'"${RELEASE_URL}"'",
+                "color": 5814783,
+                "fields": [
+                  {
+                    "name": "📦 Packages",
+                    "value": "'"${FILE_COUNT}"' files ('"${TOTAL_SIZE}"')",
+                    "inline": true
+                  },
+                  {
+                    "name": "🚀 Status",
+                    "value": "${{ inputs.draft == true && '📝 Draft' || '✅ Published' }}",
+                    "inline": true
+                  },
+                  {
+                    "name": "🔗 Links",
+                    "value": "[Release Page]('"${RELEASE_URL}"') • [Download Latest]('"${REPO_URL}/releases/latest"')"
+                  }
+                ],
+                "footer": {
+                  "text": "ChainlessChain CI/CD"
+                },
+                "timestamp": "'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"
+              }]
+            }' \
+            ${{ secrets.DISCORD_WEBHOOK }}
+
+      - name: Send Slack notification
+        if: ${{ success() && secrets.SLACK_WEBHOOK != '' }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          REPO_URL="https://github.com/${{ github.repository }}"
+          RELEASE_URL="${REPO_URL}/releases/tag/${VERSION}"
+
+          # 计算文件总数和总大小
+          FILE_COUNT=$(ls -1 release-files/* 2>/dev/null | wc -l)
+          TOTAL_SIZE=$(du -sh release-files/ | cut -f1)
+
+          # 构建 Slack message JSON
+          curl -X POST -H "Content-Type: application/json" \
+            -d '{
+              "text": "🎉 New Release: '"${VERSION}"'",
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "🎉 ChainlessChain '"${VERSION}"' Released!"
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*📦 Packages:*\n'"${FILE_COUNT}"' files ('"${TOTAL_SIZE}"')"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*🚀 Status:*\n${{ inputs.draft == true && '📝 Draft' || '✅ Published' }}"
+                    }
+                  ]
+                },
+                {
+                  "type": "actions",
+                  "elements": [
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "📥 Download Release"
+                      },
+                      "url": "'"${RELEASE_URL}"'"
+                    },
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "📝 View Changelog"
+                      },
+                      "url": "'"${REPO_URL}/blob/main/CHANGELOG.md"'"
+                    }
+                  ]
+                }
+              ]
+            }' \
+            ${{ secrets.SLACK_WEBHOOK }}
+
+      - name: Send failure notification
+        if: ${{ failure() && (secrets.DISCORD_WEBHOOK != '' || secrets.SLACK_WEBHOOK != '') }}
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          REPO_URL="https://github.com/${{ github.repository }}"
+          RUN_URL="${REPO_URL}/actions/runs/${{ github.run_id }}"
+
+          # Discord failure notification
+          if [ -n "${{ secrets.DISCORD_WEBHOOK }}" ]; then
+            curl -H "Content-Type: application/json" \
+              -d '{
+                "embeds": [{
+                  "title": "❌ Release Failed: '"${VERSION}"'",
+                  "description": "The release build has failed. Please check the logs.",
+                  "url": "'"${RUN_URL}"'",
+                  "color": 15158332,
+                  "fields": [
+                    {
+                      "name": "🔗 Actions Run",
+                      "value": "[View Logs]('"${RUN_URL}"')"
+                    }
+                  ],
+                  "footer": {
+                    "text": "ChainlessChain CI/CD"
+                  },
+                  "timestamp": "'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"
+                }]
+              }' \
+              ${{ secrets.DISCORD_WEBHOOK }}
+          fi
+
+          # Slack failure notification
+          if [ -n "${{ secrets.SLACK_WEBHOOK }}" ]; then
+            curl -X POST -H "Content-Type: application/json" \
+              -d '{
+                "text": "❌ ChainlessChain '"${VERSION}"' Release Failed",
+                "blocks": [
+                  {
+                    "type": "header",
+                    "text": {
+                      "type": "plain_text",
+                      "text": "❌ Release Build Failed"
+                    }
+                  },
+                  {
+                    "type": "section",
+                    "text": {
+                      "type": "mrkdwn",
+                      "text": "The release build for *'"${VERSION}"'* has failed. Please check the logs for details."
+                    }
+                  },
+                  {
+                    "type": "actions",
+                    "elements": [
+                      {
+                        "type": "button",
+                        "text": {
+                          "type": "plain_text",
+                          "text": "🔍 View Logs"
+                        },
+                        "url": "'"${RUN_URL}"'"
+                      }
+                    ]
+                  }
+                ]
+              }' \
+              ${{ secrets.SLACK_WEBHOOK }}
+          fi

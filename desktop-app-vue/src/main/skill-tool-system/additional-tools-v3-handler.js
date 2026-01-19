@@ -1757,7 +1757,7 @@ class AdditionalToolsV3Handler {
 
       // 审计重点和资源分配建议
       const auditFocus = [];
-      const resourceAllocation = {};
+      let resourceAllocation = {};
 
       if (riskLevel === 'high') {
         auditFocus.push('详细测试', '扩大样本量', '增加实质性程序');
