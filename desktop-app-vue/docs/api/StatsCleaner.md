@@ -8,18 +8,18 @@
 
 ```javascript
 class StatsCleaner {
-  db; // 
-  skillManager; // 
-  toolManager; // 
-  cleanupTasks; // 
-  config; // 
+  db; //
+  skillManager; //
+  toolManager; //
+  cleanupTasks; //
+  config; //
 }
 ```
 
 ## 构造函数
 
 ```javascript
-new StatsCleaner()
+new StatsCleaner();
 ```
 
 ## 方法
@@ -73,6 +73,8 @@ new StatsCleaner()
 ---
 
 #### `async aggregateDailyStats()`
+
+清理过期的执行日志
 
 ---
 
@@ -134,7 +136,7 @@ new StatsCleaner()
 
 #### `if(!errorMessage)`
 
-执行数据库VACUUM
+优化数据库
 
 ---
 
@@ -164,7 +166,6 @@ new StatsCleaner()
 
 ---
 
-
 ## 事件
 
 如果该类继承自EventEmitter,可以监听以下事件:
@@ -182,4 +183,4 @@ const statscleaner = new StatsCleaner(/* 参数 */);
 
 ---
 
-> 自动生成时间: 2026/1/19 10:33:05
+> 自动生成时间: 2026/1/19 10:52:38

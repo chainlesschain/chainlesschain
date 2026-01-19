@@ -4,12 +4,13 @@ ChainlessChain的Android原生旗舰版本，提供极致性能和完整硬件�
 
 ## 项目状态
 
-**当前版本**: v0.3.0 (MVP Phase 3 - Week 5-6 知识库管理完成)
-**完成度**: 40%
+**当前版本**: v0.4.0 (MVP Phase 4 - Week 7-8 AI对话集成完成)
+**完成度**: 55%
 
-### ✅ 已完成（Phase 1 + Phase 2 + Phase 3）
+### ✅ 已完成（Phase 1 + Phase 2 + Phase 3 + Phase 4）
 
 **Phase 1 (Week 1-2)：**
+
 - [x] 项目目录结构
 - [x] Gradle多模块配置
 - [x] Hilt依赖注入
@@ -19,6 +20,7 @@ ChainlessChain的Android原生旗舰版本，提供极致性能和完整硬件�
 - [x] Android Keystore密钥管理
 
 **Phase 2 (Week 3-4)：**
+
 - [x] PIN码认证UI（Compose数字键盘）
 - [x] 生物识别集成（BiometricPrompt）
 - [x] DataStore配置管理
@@ -26,7 +28,8 @@ ChainlessChain的Android原生旗舰版本，提供极致性能和完整硬件�
 - [x] 完整认证流程（注册/登录/退出）
 - [x] 单元测试和集成测试（15个用例）
 
-**Phase 3 (Week 5-6)：** ⭐新增
+**Phase 3 (Week 5-6)：**
+
 - [x] 知识库CRUD操作（创建/读取/更新/删除）
 - [x] Paging 3分页列表（下拉刷新/上拉加载）
 - [x] FTS5全文搜索（标题/内容/标签）
@@ -35,28 +38,43 @@ ChainlessChain的Android原生旗舰版本，提供极致性能和完整硬件�
 - [x] 收藏和置顶功能
 - [x] 单元测试和集成测试（17个用例）
 
+**Phase 4 (Week 7-8)：** ⭐新增
+
+- [x] LLM API适配器（OpenAI, DeepSeek, Ollama）
+- [x] SSE流式响应处理
+- [x] RAG检索增强（FTS5全文搜索）
+- [x] 对话管理（创建/删除/置顶）
+- [x] 消息历史管理
+- [x] 多模型支持（GPT-4, DeepSeek, Qwen2等）
+- [x] API Key管理
+- [x] 对话列表UI（Material 3卡片）
+- [x] 聊天界面UI（流式打字机效果、跳动点动画）
+- [x] 模型选择器UI（多提供商支持）
+- [x] 新建对话界面（标题、模型、API Key）
+- [x] 单元测试（9个用例）
+
 ### 🚧 进行中
 
-- [ ] AI对话UI
-- [ ] LLM API集成
-- [ ] RAG检索增强
+- [ ] P2P网络集成
+- [ ] DID身份系统
+- [ ] 设备间同步
 
 ---
 
 ## 技术栈
 
-| 层级 | 技术 | 版本 |
-|------|------|------|
-| **语言** | Kotlin | 1.9.22 |
-| **UI** | Jetpack Compose | 1.6.1 |
-| **架构** | MVVM + Clean Architecture | - |
-| **DI** | Hilt (Dagger) | 2.50 |
-| **数据库** | Room + SQLCipher | 2.6.1 / 4.5.6 |
-| **网络** | Retrofit + OkHttp | 2.11.0 / 4.12.0 |
-| **异步** | Kotlin Coroutines + Flow | 1.7.3 |
-| **安全** | Android Keystore + Tink | 1.15.0 |
-| **配置** | DataStore Preferences | 1.0.0 |
-| **生物识别** | BiometricPrompt | 1.1.0 |
+| 层级         | 技术                      | 版本            |
+| ------------ | ------------------------- | --------------- |
+| **语言**     | Kotlin                    | 1.9.22          |
+| **UI**       | Jetpack Compose           | 1.6.1           |
+| **架构**     | MVVM + Clean Architecture | -               |
+| **DI**       | Hilt (Dagger)             | 2.50            |
+| **数据库**   | Room + SQLCipher          | 2.6.1 / 4.5.6   |
+| **网络**     | Retrofit + OkHttp         | 2.11.0 / 4.12.0 |
+| **异步**     | Kotlin Coroutines + Flow  | 1.7.3           |
+| **安全**     | Android Keystore + Tink   | 1.15.0          |
+| **配置**     | DataStore Preferences     | 1.0.0           |
+| **生物识别** | BiometricPrompt           | 1.1.0           |
 
 ---
 
@@ -186,6 +204,7 @@ cd D:/code/chainlesschain/android-app
 ### 1. 认证模块 (feature-auth) ⭐新增
 
 **特性：**
+
 - PIN码注册和验证（SHA-256哈希）
 - 生物识别集成（指纹/面部）
 - DataStore持久化
@@ -194,14 +213,14 @@ cd D:/code/chainlesschain/android-app
 
 **核心组件：**
 
-| 组件 | 功能 | 文件 |
-|------|------|------|
-| `AuthRepository` | 认证数据管理 | `data/repository/AuthRepository.kt` |
+| 组件                     | 功能         | 文件                                       |
+| ------------------------ | ------------ | ------------------------------------------ |
+| `AuthRepository`         | 认证数据管理 | `data/repository/AuthRepository.kt`        |
 | `BiometricAuthenticator` | 生物识别认证 | `data/biometric/BiometricAuthenticator.kt` |
-| `AuthViewModel` | 状态管理 | `presentation/AuthViewModel.kt` |
-| `SetupPinScreen` | PIN设置界面 | `presentation/SetupPinScreen.kt` |
-| `LoginScreen` | 登录界面 | `presentation/LoginScreen.kt` |
-| `PinInput` | PIN输入组件 | `presentation/components/PinInput.kt` |
+| `AuthViewModel`          | 状态管理     | `presentation/AuthViewModel.kt`            |
+| `SetupPinScreen`         | PIN设置界面  | `presentation/SetupPinScreen.kt`           |
+| `LoginScreen`            | 登录界面     | `presentation/LoginScreen.kt`              |
+| `PinInput`               | PIN输入组件  | `presentation/components/PinInput.kt`      |
 
 **使用示例：**
 
@@ -231,12 +250,14 @@ class AuthViewModel @Inject constructor(
 ### 2. 数据库模块 (core-database)
 
 **特性：**
+
 - Room ORM
 - SQLCipher AES-256加密
 - 数据库迁移支持
 - 多表关联查询
 
 **核心实体：**
+
 - `KnowledgeItemEntity` - 知识库条目
 - `ConversationEntity` - AI对话会话
 - `MessageEntity` - 对话消息
@@ -264,6 +285,7 @@ val pagingData: PagingSource<Int, KnowledgeItemEntity> =
 ### 3. 安全模块 (core-security)
 
 **特性：**
+
 - Android Keystore集成
 - EncryptedSharedPreferences
 - AES-GCM加密
@@ -287,6 +309,7 @@ val decrypted = keyManager.decryptWithKeystore("my_key", encrypted)
 ### 4. 网络模块 (core-network)
 
 **特性：**
+
 - Retrofit RESTful API
 - OkHttp连接池
 - 自动添加认证Token
@@ -503,6 +526,7 @@ A: 确保JDK版本为17+，并检查网络连接（首次需下载约500MB依赖
 ### Q: SQLCipher找不到so库
 
 A: 清理构建缓存：
+
 ```bash
 ./gradlew clean
 ./gradlew build
@@ -549,11 +573,15 @@ A: 目前版本需要清除应用数据（后续版本将支持备份恢复）
 - [实施方案](../docs/mobile/ANDROID_NATIVE_IMPLEMENTATION_PLAN.md)
 - [Phase 1 总结](PHASE1_SUMMARY.md)
 - [Phase 2 总结](PHASE2_SUMMARY.md)
-- [Phase 3 总结](PHASE3_SUMMARY.md) ⭐新增
+- [Phase 3 总结](PHASE3_SUMMARY.md)
+- [Phase 4 总结](PHASE4_SUMMARY.md) ⭐新增
 - [Android官方文档](https://developer.android.com/)
 - [Jetpack Compose教程](https://developer.android.com/jetpack/compose)
 - [BiometricPrompt指南](https://developer.android.com/training/sign-in/biometric-auth)
 - [Paging 3文档](https://developer.android.com/topic/libraries/architecture/paging/v3-overview)
+- [OpenAI API文档](https://platform.openai.com/docs/api-reference)
+- [DeepSeek API文档](https://platform.deepseek.com/api-docs)
+- [Ollama文档](https://github.com/ollama/ollama)
 
 ---
 
