@@ -139,6 +139,51 @@ const collectExtraResources = () => {
     }
   });
 
+  // Docker 离线打包支持：包含 Docker 镜像和脚本
+  const dockerImagesDir = path.join(PACKAGING_DIR, 'docker-images');
+  if (fs.existsSync(dockerImagesDir)) {
+    console.log('[Packaging] ✓ Found Docker images directory - creating offline package');
+    extraResources.push(dockerImagesDir);
+
+    // 统计镜像大小
+    const getDirectorySize = (dir) => {
+      let totalSize = 0;
+      const files = fs.readdirSync(dir);
+      files.forEach(file => {
+        const filePath = path.join(dir, file);
+        const stats = fs.statSync(filePath);
+        if (stats.isFile()) {
+          totalSize += stats.size;
+        }
+      });
+      return totalSize;
+    };
+
+    const sizeBytes = getDirectorySize(dockerImagesDir);
+    const sizeMB = (sizeBytes / (1024 * 1024)).toFixed(2);
+    console.log(`[Packaging] Docker images size: ${sizeMB} MB`);
+  } else {
+    console.warn('[Packaging] ⚠ Docker images not found - package will require internet');
+    console.warn('[Packaging] Run "export-docker-images.bat" to create offline package');
+  }
+
+  // 包含 Docker Compose 和启动脚本
+  const dockerFiles = [
+    'docker-compose.production.yml',
+    'start-services.sh',
+    'start-services.bat',
+    'load-docker-images.sh',
+    'load-docker-images.bat',
+    '.env.example'
+  ];
+
+  dockerFiles.forEach(filename => {
+    const filePath = path.join(PACKAGING_DIR, filename);
+    if (fs.existsSync(filePath)) {
+      extraResources.push(filePath);
+    }
+  });
+
   return { extraResources, missingResources, projectServiceJar };
 };
 
@@ -314,13 +359,19 @@ module.exports = {
   hooks: {
     prePackage: async (config, platform, arch) => {
       // Mac打包：使用Docker，不需要所有后端资源
-      if (platform === 'darwin') {
-        console.log('[Packaging] Mac build: Backend services will use Docker');
+      // 或者设置环境变量 SKIP_BACKEND_CHECK=true 跳过后端检查
+      if (platform === 'darwin' || process.env.SKIP_BACKEND_CHECK === 'true') {
+        console.log('[Packaging] Mac build or SKIP_BACKEND_CHECK: Backend services will use Docker');
         console.log('[Packaging] Skipping backend resources check');
+        if (process.env.SKIP_BACKEND_CHECK === 'true') {
+          console.log('[Packaging] ⚠️  WARNING: This is a frontend-only build');
+          console.log('[Packaging] Backend services (PostgreSQL, Redis, Qdrant) will not be included');
+          console.log('[Packaging] Use Docker Compose to run backend services separately');
+        }
       } else if (missingResources.length > 0) {
         const missingList = missingResources.map(item => `- ${item}`).join('\n');
         throw new Error(
-          `Missing packaging resources:\n${missingList}\n\nFollow packaging/BUILD_INSTRUCTIONS.md before packaging.`
+          `Missing packaging resources:\n${missingList}\n\nFollow packaging/MANUAL_DOWNLOAD_GUIDE.md to download dependencies manually.`
         );
       }
 

@@ -42,6 +42,14 @@ const ALLOWED_FILES = [
   ".chainlesschain/examples/database-good.js",
   ".chainlesschain/examples/p2p-encryption-bad.js",
   ".chainlesschain/examples/p2p-encryption-good.js",
+  // Packaging 文档（包含示例密码）
+  "CODE_SIGNING_GUIDE.md",
+  "DOCKER_PACKAGING_GUIDE.md",
+  "DOCKER_OFFLINE_PACKAGING.md",
+  "ADVANCED_FEATURES_GUIDE.md",
+  "QUICK_START_OFFLINE.md",
+  "RELEASE_GUIDE.md",
+  "docker-compose.production.yml",
 ];
 
 function checkFileForSecrets(filePath) {

@@ -315,6 +315,14 @@ const isEmptySpaceContext = ref(false); // 标记是否为空白处右键
 const importing = ref(false); // 导入状态
 const exporting = ref(false); // 导出状态
 
+// Helper function to get directory name from path (browser-compatible)
+const getDirectoryName = (filePath) => {
+  if (!filePath) return '';
+  const normalized = filePath.replace(/\\/g, '/'); // Normalize Windows paths
+  const lastSlash = normalized.lastIndexOf('/');
+  return lastSlash >= 0 ? normalized.substring(0, lastSlash) : '';
+};
+
 // 文件图标映射
 const fileIconMap = {
   js: CodeOutlined,
@@ -1088,7 +1096,7 @@ const handleDrop = async (event, targetNode) => {
     // 调用IPC移动文件
     const projectId = getCurrentProjectId(); // 需要从父组件获取
     const targetPath = targetNode.isLeaf ?
-      path.dirname(targetNode.filePath) :
+      getDirectoryName(targetNode.filePath) :
       targetNode.filePath;
 
     const newFilePath = `${targetPath}/${sourceData.title}`;
@@ -1116,7 +1124,7 @@ const handleDrop = async (event, targetNode) => {
 const handleExternalFileDrop = async (files, targetNode) => {
   const projectId = getCurrentProjectId();
   const targetPath = targetNode.isLeaf ?
-    path.dirname(targetNode.filePath) :
+    getDirectoryName(targetNode.filePath) :
     targetNode.filePath;
 
   for (let i = 0; i < files.length; i++) {
