@@ -88,11 +88,8 @@ dependencies {
     // JSON
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2")
 
-    // Markdown rendering
-    implementation("io.noties.markwon:markwon-core:4.6.2")
-    implementation("io.noties.markwon:markwon-ext-tables:4.6.2")
-    implementation("io.noties.markwon:markwon-syntax-highlight:4.6.2")
-    implementation("io.noties.prism4j:prism4j:2.0.0")
+    // Markdown rendering - using core-ui's MarkdownText component
+    // (dependency already provided through core-ui module)
 
     // Testing
     testImplementation("junit:junit:4.13.2")
