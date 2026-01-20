@@ -1,6 +1,6 @@
 package com.chainlesschain.android.core.e2ee.queue
 
-import com.chainlesschain.android.core.e2ee.protocol.DoubleRatchet
+import com.chainlesschain.android.core.e2ee.protocol.MessageHeader
 import com.chainlesschain.android.core.e2ee.protocol.RatchetMessage
 import kotlinx.coroutines.runBlocking
 import org.junit.Before
@@ -21,7 +21,7 @@ class MessageQueueTest {
 
     private fun createDummyMessage(): RatchetMessage {
         return RatchetMessage(
-            header = DoubleRatchet.MessageHeader(
+            header = MessageHeader(
                 ratchetKey = ByteArray(32) { it.toByte() },
                 previousChainLength = 0,
                 messageNumber = 0

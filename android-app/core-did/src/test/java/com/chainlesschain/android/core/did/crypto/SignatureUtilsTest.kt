@@ -145,7 +145,7 @@ class SignatureUtilsTest {
 
         // When
         val oldTimestampedSig = TimestampedSignature(
-            signature = SignatureUtils.sign(message + "0", keyPair), // Old timestamp
+            signature = SignatureUtils.sign(message + "0".toByteArray(), keyPair), // Old timestamp
             timestamp = System.currentTimeMillis() - 120000 // 2 minutes ago
         )
 
