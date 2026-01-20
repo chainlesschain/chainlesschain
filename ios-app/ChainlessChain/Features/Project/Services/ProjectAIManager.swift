@@ -378,6 +378,290 @@ class ProjectAIManager: ObservableObject {
         return result["content"] as? String ?? ""
     }
 
+    // MARK: - Content Processing (内容处理)
+
+    /// 内容润色
+    /// Reference: desktop-app-vue/src/main/project/project-ai-ipc.js (polishContent)
+    func polishContent(
+        content: String,
+        style: ContentStyle? = nil
+    ) async throws -> ContentProcessingResult {
+        guard !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw ProjectAIError.chatFailed("内容不能为空")
+        }
+
+        isProcessing = true
+        defer { isProcessing = false }
+
+        var prompt = """
+        请对以下内容进行润色，使其更加专业、流畅：
+
+        \(content)
+
+        要求：
+        1. 保持原意不变
+        2. 改进表达方式
+        3. 修正语法错误
+        4. 使用恰当的专业术语
+        """
+
+        if let style = style {
+            prompt += "\n5. 风格：\(style.description)"
+        }
+
+        let messages: [[String: String]] = [
+            ["role": "user", "content": prompt]
+        ]
+
+        let result = try await llmManager.chat(messages: messages, options: [
+            "temperature": 0.7,
+            "maxTokens": 3000
+        ])
+
+        let polished = result["content"] as? String ?? content
+        let tokens = result["tokens"] as? Int ?? 0
+
+        logger.info("[ProjectAI] Content polished successfully", category: "AI")
+
+        return ContentProcessingResult(
+            success: true,
+            originalContent: content,
+            processedContent: polished,
+            processingType: .polish,
+            tokens: tokens
+        )
+    }
+
+    /// 内容扩写
+    /// Reference: desktop-app-vue/src/main/project/project-ai-ipc.js (expandContent)
+    func expandContent(
+        content: String,
+        targetLength: Int? = nil
+    ) async throws -> ContentProcessingResult {
+        guard !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw ProjectAIError.chatFailed("内容不能为空")
+        }
+
+        isProcessing = true
+        defer { isProcessing = false }
+
+        var prompt = "请扩展以下内容，增加更多细节和例子"
+        if let length = targetLength {
+            prompt += "，目标字数约\(length)字"
+        }
+        prompt += """
+        ：
+
+        \(content)
+
+        要求：
+        1. 保持原有观点和结构
+        2. 增加具体例子和数据支持
+        3. 使内容更加详实完整
+        """
+
+        let messages: [[String: String]] = [
+            ["role": "user", "content": prompt]
+        ]
+
+        let result = try await llmManager.chat(messages: messages, options: [
+            "temperature": 0.7,
+            "maxTokens": 4000
+        ])
+
+        let expanded = result["content"] as? String ?? content
+        let tokens = result["tokens"] as? Int ?? 0
+
+        logger.info("[ProjectAI] Content expanded successfully", category: "AI")
+
+        return ContentProcessingResult(
+            success: true,
+            originalContent: content,
+            processedContent: expanded,
+            processingType: .expand,
+            tokens: tokens
+        )
+    }
+
+    /// 内容摘要
+    func summarizeContent(
+        content: String,
+        maxLength: Int = 200
+    ) async throws -> ContentProcessingResult {
+        guard !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw ProjectAIError.chatFailed("内容不能为空")
+        }
+
+        isProcessing = true
+        defer { isProcessing = false }
+
+        let prompt = """
+        请对以下内容进行摘要，控制在\(maxLength)字以内：
+
+        \(content)
+
+        要求：
+        1. 保留核心信息
+        2. 语言简洁明了
+        3. 不要添加原文没有的信息
+        """
+
+        let messages: [[String: String]] = [
+            ["role": "user", "content": prompt]
+        ]
+
+        let result = try await llmManager.chat(messages: messages, options: [
+            "temperature": 0.5,
+            "maxTokens": 500
+        ])
+
+        let summary = result["content"] as? String ?? content
+        let tokens = result["tokens"] as? Int ?? 0
+
+        logger.info("[ProjectAI] Content summarized successfully", category: "AI")
+
+        return ContentProcessingResult(
+            success: true,
+            originalContent: content,
+            processedContent: summary,
+            processingType: .summarize,
+            tokens: tokens
+        )
+    }
+
+    /// 内容翻译
+    func translateContent(
+        content: String,
+        targetLanguage: String
+    ) async throws -> ContentProcessingResult {
+        guard !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw ProjectAIError.chatFailed("内容不能为空")
+        }
+
+        isProcessing = true
+        defer { isProcessing = false }
+
+        let prompt = """
+        请将以下内容翻译成\(targetLanguage)：
+
+        \(content)
+
+        要求：
+        1. 翻译准确，符合目标语言习惯
+        2. 保持原文的语气和风格
+        3. 专业术语使用准确
+        """
+
+        let messages: [[String: String]] = [
+            ["role": "user", "content": prompt]
+        ]
+
+        let result = try await llmManager.chat(messages: messages, options: [
+            "temperature": 0.3,
+            "maxTokens": 4000
+        ])
+
+        let translated = result["content"] as? String ?? content
+        let tokens = result["tokens"] as? Int ?? 0
+
+        logger.info("[ProjectAI] Content translated to \(targetLanguage)", category: "AI")
+
+        return ContentProcessingResult(
+            success: true,
+            originalContent: content,
+            processedContent: translated,
+            processingType: .translate,
+            tokens: tokens
+        )
+    }
+
+    // MARK: - Intent Understanding (意图理解)
+
+    /// 理解用户意图
+    /// Reference: desktop-app-vue/src/main/project/project-ai-ipc.js (understandIntent)
+    func understandIntent(
+        userInput: String,
+        projectId: String? = nil
+    ) async throws -> IntentUnderstandingService.IntentResult {
+        let intentService = IntentUnderstandingService.shared
+
+        var projectContext: ProjectContextInfo?
+        if let projectId = projectId,
+           let project = projectManager.projects.first(where: { $0.id == projectId }) {
+            projectContext = ProjectContextInfo(
+                projectId: projectId,
+                projectName: project.name,
+                projectType: project.type.displayName,
+                currentFile: nil
+            )
+        }
+
+        return try await intentService.understandIntent(
+            userInput: userInput,
+            contextMode: projectId != nil ? .project : .global,
+            projectContext: projectContext
+        )
+    }
+
+    /// 快速纠错
+    func quickCorrect(userInput: String) async throws -> String {
+        let intentService = IntentUnderstandingService.shared
+        return try await intentService.quickCorrect(userInput: userInput)
+    }
+
+    /// 提取关键词
+    func extractKeywords(text: String, maxCount: Int = 5) async throws -> [String] {
+        let intentService = IntentUnderstandingService.shared
+        return try await intentService.extractKeywords(text: text, maxCount: maxCount)
+    }
+
+    // MARK: - Content Processing Types
+
+    /// 内容风格
+    enum ContentStyle: String, CaseIterable {
+        case formal = "formal"           // 正式
+        case casual = "casual"           // 随意
+        case academic = "academic"       // 学术
+        case business = "business"       // 商务
+        case creative = "creative"       // 创意
+        case technical = "technical"     // 技术
+
+        var description: String {
+            switch self {
+            case .formal: return "正式、专业"
+            case .casual: return "轻松、口语化"
+            case .academic: return "学术、严谨"
+            case .business: return "商务、简洁"
+            case .creative: return "创意、生动"
+            case .technical: return "技术、精确"
+            }
+        }
+    }
+
+    /// 内容处理结果
+    struct ContentProcessingResult {
+        let success: Bool
+        let originalContent: String
+        let processedContent: String
+        let processingType: ProcessingType
+        let tokens: Int
+
+        enum ProcessingType: String {
+            case polish = "polish"
+            case expand = "expand"
+            case summarize = "summarize"
+            case translate = "translate"
+        }
+
+        /// 内容变化百分比
+        var changePercentage: Double {
+            let originalLength = originalContent.count
+            let processedLength = processedContent.count
+            guard originalLength > 0 else { return 0 }
+            return Double(abs(processedLength - originalLength)) / Double(originalLength) * 100
+        }
+    }
+
     // MARK: - Conversation Management
 
     /// 开始新会话
