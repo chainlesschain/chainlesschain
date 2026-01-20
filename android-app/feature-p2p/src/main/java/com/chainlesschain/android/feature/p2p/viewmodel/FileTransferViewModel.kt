@@ -9,7 +9,9 @@ import com.chainlesschain.android.core.database.entity.FileTransferStatusEnum
 import com.chainlesschain.android.core.did.manager.DIDManager
 import com.chainlesschain.android.core.p2p.filetransfer.TransferResult
 import com.chainlesschain.android.core.p2p.filetransfer.model.FileTransferMetadata
+import com.chainlesschain.android.core.p2p.filetransfer.model.FileTransferStatus
 import com.chainlesschain.android.core.p2p.filetransfer.model.TransferProgress
+import com.chainlesschain.android.feature.p2p.notification.FileTransferNotificationManager
 import com.chainlesschain.android.feature.p2p.repository.FileTransferRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -48,11 +50,14 @@ sealed class FileTransferUiEvent {
 @HiltViewModel
 class FileTransferViewModel @Inject constructor(
     private val fileTransferRepository: FileTransferRepository,
-    private val didManager: DIDManager
+    private val didManager: DIDManager,
+    private val notificationManager: FileTransferNotificationManager
 ) : ViewModel() {
 
     companion object {
         private const val TAG = "FileTransferViewModel"
+        /** 通知更新间隔（毫秒） */
+        private const val NOTIFICATION_UPDATE_INTERVAL = 500L
     }
 
     // UI 状态
@@ -74,6 +79,9 @@ class FileTransferViewModel @Inject constructor(
     private val localDeviceId: String
         get() = didManager.getCurrentDID() ?: ""
 
+    // 用于通知节流的时间戳缓存
+    private val lastNotificationUpdate = mutableMapOf<String, Long>()
+
     init {
         // Initialize repository with local device ID
         viewModelScope.launch {
@@ -85,6 +93,9 @@ class FileTransferViewModel @Inject constructor(
 
         // Observe transfer results
         observeTransferResults()
+
+        // Observe progress for notifications
+        observeProgressForNotifications()
     }
 
     /**
@@ -383,20 +394,83 @@ class FileTransferViewModel @Inject constructor(
         viewModelScope.launch {
             fileTransferRepository.transferResults.collect { result ->
                 val transfer = fileTransferRepository.getTransferById(result.transferId)
+                val fileName = transfer?.fileName ?: "File"
+                val isOutgoing = transfer?.isOutgoing ?: true
 
                 if (result.success) {
                     _events.emit(FileTransferUiEvent.TransferCompleted(
                         result.transferId,
-                        transfer?.fileName ?: "File",
+                        fileName,
                         result.localFilePath
                     ))
+
+                    // 显示完成通知
+                    notificationManager.showCompletionNotification(
+                        transferId = result.transferId,
+                        fileName = fileName,
+                        success = true,
+                        isOutgoing = isOutgoing
+                    )
                 } else {
                     _events.emit(FileTransferUiEvent.TransferFailed(
                         result.transferId,
                         result.errorMessage
                     ))
+
+                    // 显示失败通知
+                    notificationManager.showCompletionNotification(
+                        transferId = result.transferId,
+                        fileName = fileName,
+                        success = false,
+                        isOutgoing = isOutgoing,
+                        errorMessage = result.errorMessage
+                    )
+                }
+
+                // 清理通知时间戳缓存
+                lastNotificationUpdate.remove(result.transferId)
+            }
+        }
+    }
+
+    /**
+     * 观察进度并更新系统通知
+     */
+    private fun observeProgressForNotifications() {
+        viewModelScope.launch {
+            allTransfersProgress.collect { progressMap ->
+                val currentTime = System.currentTimeMillis()
+
+                progressMap.forEach { (transferId, progress) ->
+                    // 节流：每500ms最多更新一次通知
+                    val lastUpdate = lastNotificationUpdate[transferId] ?: 0L
+                    if (currentTime - lastUpdate < NOTIFICATION_UPDATE_INTERVAL) {
+                        return@forEach
+                    }
+
+                    // 只在传输中状态更新通知
+                    if (progress.status == FileTransferStatus.TRANSFERRING) {
+                        val transfer = fileTransferRepository.getTransferById(transferId)
+                        if (transfer != null) {
+                            notificationManager.showProgressNotification(
+                                transferId = transferId,
+                                fileName = transfer.fileName,
+                                progress = progress,
+                                isOutgoing = transfer.isOutgoing
+                            )
+                            lastNotificationUpdate[transferId] = currentTime
+                        }
+                    }
                 }
             }
+        }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        // 清理所有进度通知（保留完成通知）
+        lastNotificationUpdate.keys.forEach { transferId ->
+            notificationManager.cancelProgressNotification(transferId)
         }
     }
 }

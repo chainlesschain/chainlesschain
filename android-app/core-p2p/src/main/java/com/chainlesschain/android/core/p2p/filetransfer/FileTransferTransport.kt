@@ -524,27 +524,68 @@ class FileTransferTransport @Inject constructor(
         }
     }
 
-    private suspend fun applyBandwidthLimit(bytesSent: Int) {
+    /**
+     * 应用带宽限制（使用令牌桶算法）
+     *
+     * Token Bucket Algorithm:
+     * - 令牌以恒定速率补充（每秒 bandwidthLimit 个字节的令牌）
+     * - 发送数据前需要获取足够的令牌
+     * - 如果令牌不足，等待直到有足够令牌
+     *
+     * @param bytesToSend 要发送的字节数
+     */
+    private suspend fun applyBandwidthLimit(bytesToSend: Int) {
         if (bandwidthLimit <= 0) return
 
         val now = System.currentTimeMillis()
+        val elapsedMs = now - currentSecondStart
 
-        // Reset counter if new second
-        if (now - currentSecondStart >= 1000) {
-            bytesSentThisSecond = 0
+        // 补充令牌：根据时间流逝补充令牌
+        if (elapsedMs > 0) {
+            // 计算应该补充的令牌数量
+            val tokensToAdd = (bandwidthLimit * elapsedMs) / 1000
+            // 更新可用字节（减去已发送的，加上补充的，但不超过限制）
+            val available = minOf(bandwidthLimit, bandwidthLimit - bytesSentThisSecond + tokensToAdd)
+            bytesSentThisSecond = bandwidthLimit - available
             currentSecondStart = now
         }
 
-        bytesSentThisSecond += bytesSent
+        // 检查是否有足够的令牌
+        val availableTokens = bandwidthLimit - bytesSentThisSecond
 
-        // If we've exceeded limit, delay
-        if (bytesSentThisSecond >= bandwidthLimit) {
-            val waitTime = 1000 - (now - currentSecondStart)
-            if (waitTime > 0) {
-                delay(waitTime)
-                bytesSentThisSecond = 0
+        if (bytesToSend > availableTokens) {
+            // 计算需要等待多长时间才能获得足够令牌
+            val deficit = bytesToSend - availableTokens
+            val waitTimeMs = (deficit * 1000) / bandwidthLimit
+
+            if (waitTimeMs > 0) {
+                Log.d(TAG, "Bandwidth throttling: waiting ${waitTimeMs}ms for ${deficit} bytes")
+                delay(waitTimeMs)
+
+                // 等待后重置计数器
                 currentSecondStart = System.currentTimeMillis()
+                bytesSentThisSecond = bytesToSend.toLong()
             }
+        } else {
+            // 有足够令牌，直接消费
+            bytesSentThisSecond += bytesToSend
         }
+    }
+
+    /**
+     * 检查是否可以发送指定大小的数据（不阻塞）
+     *
+     * @param bytesToSend 要发送的字节数
+     * @return true 如果可以立即发送
+     */
+    fun canSendWithinBandwidth(bytesToSend: Int): Boolean {
+        if (bandwidthLimit <= 0) return true
+
+        val now = System.currentTimeMillis()
+        val elapsedMs = now - currentSecondStart
+        val tokensToAdd = if (elapsedMs > 0) (bandwidthLimit * elapsedMs) / 1000 else 0
+        val available = minOf(bandwidthLimit, bandwidthLimit - bytesSentThisSecond + tokensToAdd)
+
+        return bytesToSend <= available
     }
 }

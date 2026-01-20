@@ -38,9 +38,36 @@ sealed class TransferState {
         val fileUri: Uri,
         var status: FileTransferStatus = FileTransferStatus.PENDING,
         var currentChunk: Int = 0,
-        var retryCount: Int = 0,
+        /** 每个分块的重试次数 (chunkIndex -> retryCount) */
+        val chunkRetryCount: MutableMap<Int, Int> = mutableMapOf(),
         var job: Job? = null
-    ) : TransferState()
+    ) : TransferState() {
+        /**
+         * 获取分块的重试次数
+         */
+        fun getRetryCount(chunkIndex: Int): Int = chunkRetryCount[chunkIndex] ?: 0
+
+        /**
+         * 增加分块重试次数并返回新值
+         */
+        fun incrementRetryCount(chunkIndex: Int): Int {
+            val newCount = (chunkRetryCount[chunkIndex] ?: 0) + 1
+            chunkRetryCount[chunkIndex] = newCount
+            return newCount
+        }
+
+        /**
+         * 重置分块重试次数（ACK成功后调用）
+         */
+        fun resetRetryCount(chunkIndex: Int) {
+            chunkRetryCount.remove(chunkIndex)
+        }
+
+        /**
+         * 获取总重试次数（用于统计）
+         */
+        fun getTotalRetryCount(): Int = chunkRetryCount.values.sum()
+    }
 
     /** 入站传输 */
     data class Incoming(
@@ -48,8 +75,19 @@ sealed class TransferState {
         val tempFile: File,
         var status: FileTransferStatus = FileTransferStatus.PENDING,
         var receivedChunks: MutableSet<Int> = mutableSetOf(),
-        var expectedChunk: Int = 0
-    ) : TransferState()
+        var expectedChunk: Int = 0,
+        /** 分块接收失败次数 (chunkIndex -> failCount) */
+        val chunkFailCount: MutableMap<Int, Int> = mutableMapOf()
+    ) : TransferState() {
+        /**
+         * 记录分块接收失败
+         */
+        fun recordChunkFailure(chunkIndex: Int): Int {
+            val newCount = (chunkFailCount[chunkIndex] ?: 0) + 1
+            chunkFailCount[chunkIndex] = newCount
+            return newCount
+        }
+    }
 }
 
 /**
@@ -610,15 +648,19 @@ class FileTransferManager @Inject constructor(
                         state.status == FileTransferStatus.TRANSFERRING) {
                         delay(50)
 
-                        // Check for timed out chunks and retry
+                        // Check for timed out chunks and retry with per-chunk retry count
                         val timedOut = transport.getTimedOutChunks(state.metadata.transferId)
                         for (chunkIndex in timedOut) {
-                            if (state.retryCount < MAX_RETRIES) {
-                                state.retryCount++
-                                Log.w(TAG, "Retrying chunk $chunkIndex (attempt ${state.retryCount})")
+                            val retryCount = state.incrementRetryCount(chunkIndex)
+                            if (retryCount <= MAX_RETRIES) {
+                                Log.w(TAG, "Retrying chunk $chunkIndex (attempt $retryCount/$MAX_RETRIES)")
                                 retrySendChunk(state, chunkIndex, localId)
                             } else {
-                                cleanupTransfer(state.metadata.transferId, "Max retries exceeded")
+                                Log.e(TAG, "Chunk $chunkIndex exceeded max retries ($MAX_RETRIES)")
+                                cleanupTransfer(
+                                    state.metadata.transferId,
+                                    "Chunk $chunkIndex failed after $MAX_RETRIES retries"
+                                )
                                 return@launch
                             }
                         }
@@ -626,20 +668,33 @@ class FileTransferManager @Inject constructor(
 
                     if (state.status != FileTransferStatus.TRANSFERRING) break
 
-                    // Read and send next chunk
+                    // Read and send next chunk with compression support
                     val chunk = fileChunker.readChunk(
                         uri = state.fileUri,
                         chunkIndex = state.currentChunk,
                         chunkSize = state.metadata.chunkSize,
                         totalChunks = state.metadata.totalChunks,
-                        transferId = state.metadata.transferId
+                        transferId = state.metadata.transferId,
+                        mimeType = state.metadata.mimeType,
+                        enableCompression = state.metadata.compressionEnabled
                     )
 
                     val sent = transport.sendChunk(chunk, state.metadata.receiverDeviceId, localId)
                     if (sent) {
                         state.currentChunk++
+                        // 成功发送后重置该分块的重试计数
+                        state.resetRetryCount(state.currentChunk - 1)
                     } else {
-                        // Retry after delay
+                        // 发送失败，记录重试
+                        val retryCount = state.incrementRetryCount(state.currentChunk)
+                        if (retryCount > MAX_RETRIES) {
+                            cleanupTransfer(
+                                state.metadata.transferId,
+                                "Failed to send chunk ${state.currentChunk} after $MAX_RETRIES attempts"
+                            )
+                            return@launch
+                        }
+                        Log.w(TAG, "Failed to send chunk ${state.currentChunk}, retrying (attempt $retryCount)")
                         delay(RETRY_DELAY_MS)
                     }
                 }

@@ -105,6 +105,8 @@ class FileChunker @Inject constructor(
      * @param chunkSize Size of each chunk in bytes
      * @param totalChunks Total number of chunks
      * @param transferId Transfer ID for this file
+     * @param mimeType MIME type of the file (for compression decision)
+     * @param enableCompression Whether to enable compression for compressible types
      * @return FileChunk object containing the chunk data
      */
     suspend fun readChunk(
@@ -112,7 +114,9 @@ class FileChunker @Inject constructor(
         chunkIndex: Int,
         chunkSize: Int,
         totalChunks: Int,
-        transferId: String
+        transferId: String,
+        mimeType: String? = null,
+        enableCompression: Boolean = true
     ): FileChunk = withContext(Dispatchers.IO) {
         val offset = chunkIndex.toLong() * chunkSize
         val buffer = ByteArray(chunkSize)
@@ -149,7 +153,9 @@ class FileChunker @Inject constructor(
                 chunkIndex = chunkIndex,
                 totalChunks = totalChunks,
                 data = actualData,
-                chunkChecksum = chunkChecksum
+                chunkChecksum = chunkChecksum,
+                mimeType = mimeType,
+                enableCompression = enableCompression
             )
         } ?: throw IllegalStateException("Cannot open input stream for URI: $uri")
     }
@@ -162,6 +168,8 @@ class FileChunker @Inject constructor(
      * @param chunkSize Size of each chunk in bytes
      * @param totalChunks Total number of chunks
      * @param transferId Transfer ID for this file
+     * @param mimeType MIME type of the file (for compression decision)
+     * @param enableCompression Whether to enable compression for compressible types
      * @return FileChunk object containing the chunk data
      */
     suspend fun readChunk(
@@ -169,7 +177,9 @@ class FileChunker @Inject constructor(
         chunkIndex: Int,
         chunkSize: Int,
         totalChunks: Int,
-        transferId: String
+        transferId: String,
+        mimeType: String? = null,
+        enableCompression: Boolean = true
     ): FileChunk = withContext(Dispatchers.IO) {
         val offset = chunkIndex.toLong() * chunkSize
 
@@ -190,7 +200,9 @@ class FileChunker @Inject constructor(
                 chunkIndex = chunkIndex,
                 totalChunks = totalChunks,
                 data = buffer,
-                chunkChecksum = chunkChecksum
+                chunkChecksum = chunkChecksum,
+                mimeType = mimeType,
+                enableCompression = enableCompression
             )
         }
     }
@@ -304,56 +316,65 @@ class FileChunker @Inject constructor(
     }
 
     /**
-     * Generate thumbnail for image file
+     * Generate thumbnail for image file (optimized single-pass)
+     *
+     * 优化版本：
+     * 1. 使用 BufferedInputStream 支持 mark/reset，避免两次打开流
+     * 2. 第一次读取只获取边界信息，然后 reset 回起点
+     * 3. 第二次读取使用计算好的 sampleSize 解码
      *
      * @param uri Image file URI
      * @return Base64-encoded thumbnail, or null if generation fails
      */
     suspend fun generateImageThumbnail(uri: Uri): String? = withContext(Dispatchers.IO) {
         try {
-            context.contentResolver.openInputStream(uri)?.use { inputStream ->
-                // First, decode just the dimensions
-                val options = BitmapFactory.Options().apply {
+            context.contentResolver.openInputStream(uri)?.use { rawInputStream ->
+                // 使用 BufferedInputStream 支持 mark/reset
+                val inputStream = java.io.BufferedInputStream(rawInputStream, 1024 * 1024) // 1MB buffer
+                inputStream.mark(1024 * 1024) // 标记位置，允许重置
+
+                // 第一次读取：只获取边界信息
+                val boundsOptions = BitmapFactory.Options().apply {
                     inJustDecodeBounds = true
                 }
-                BitmapFactory.decodeStream(inputStream, null, options)
+                BitmapFactory.decodeStream(inputStream, null, boundsOptions)
 
-                // Calculate sample size for efficient loading
-                options.inSampleSize = calculateSampleSize(options, THUMBNAIL_MAX_SIZE, THUMBNAIL_MAX_SIZE)
-                options.inJustDecodeBounds = false
-            }
-
-            // Re-open stream and decode with sample size
-            context.contentResolver.openInputStream(uri)?.use { inputStream ->
-                val options = BitmapFactory.Options().apply {
-                    inSampleSize = calculateSampleSize(
-                        BitmapFactory.Options().also {
-                            it.inJustDecodeBounds = true
-                            // Need a fresh stream for this
-                        },
-                        THUMBNAIL_MAX_SIZE,
-                        THUMBNAIL_MAX_SIZE
-                    )
+                // 检查是否成功获取了图片尺寸
+                if (boundsOptions.outWidth <= 0 || boundsOptions.outHeight <= 0) {
+                    return@withContext null
                 }
 
-                val bitmap = BitmapFactory.decodeStream(inputStream, null, options)
+                // 计算采样率
+                val sampleSize = calculateSampleSize(boundsOptions, THUMBNAIL_MAX_SIZE, THUMBNAIL_MAX_SIZE)
+
+                // 重置流到起点
+                inputStream.reset()
+
+                // 第二次读取：使用 sampleSize 解码
+                val decodeOptions = BitmapFactory.Options().apply {
+                    inSampleSize = sampleSize
+                    inPreferredConfig = Bitmap.Config.RGB_565 // 使用更小的内存格式
+                }
+
+                val bitmap = BitmapFactory.decodeStream(inputStream, null, decodeOptions)
                     ?: return@withContext null
 
-                // Scale to exact thumbnail size
+                // 缩放到精确的缩略图大小
                 val scaledBitmap = scaleBitmap(bitmap, THUMBNAIL_MAX_SIZE)
 
-                // Compress to JPEG
+                // 压缩为 JPEG
                 val outputStream = ByteArrayOutputStream()
                 var quality = THUMBNAIL_QUALITY
                 scaledBitmap.compress(Bitmap.CompressFormat.JPEG, quality, outputStream)
 
-                // Reduce quality if thumbnail is too large
+                // 如果缩略图太大，降低质量
                 while (outputStream.size() > MAX_THUMBNAIL_BYTES && quality > 10) {
                     outputStream.reset()
                     quality -= 10
                     scaledBitmap.compress(Bitmap.CompressFormat.JPEG, quality, outputStream)
                 }
 
+                // 回收位图
                 if (!scaledBitmap.isRecycled) scaledBitmap.recycle()
                 if (!bitmap.isRecycled && bitmap != scaledBitmap) bitmap.recycle()
 
@@ -366,38 +387,65 @@ class FileChunker @Inject constructor(
     }
 
     /**
-     * Generate thumbnail for video file
+     * Generate thumbnail for video file (优化版)
+     *
+     * 优化点：
+     * 1. 使用 use 模式确保 MediaMetadataRetriever 正确释放
+     * 2. 尝试多个时间点获取帧，避免黑帧
+     * 3. 使用 RGB_565 格式减少内存使用
      *
      * @param uri Video file URI
      * @return Base64-encoded thumbnail, or null if generation fails
      */
     suspend fun generateVideoThumbnail(uri: Uri): String? = withContext(Dispatchers.IO) {
+        var retriever: MediaMetadataRetriever? = null
         try {
-            val retriever = MediaMetadataRetriever()
+            retriever = MediaMetadataRetriever()
             retriever.setDataSource(context, uri)
 
-            // Get frame at 1 second (or first frame)
-            val bitmap = retriever.getFrameAtTime(1_000_000) // 1 second in microseconds
-                ?: retriever.getFrameAtTime(0)
-                ?: return@withContext null
+            // 获取视频时长（微秒）
+            val durationStr = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)
+            val durationMs = durationStr?.toLongOrNull() ?: 0L
+            val durationUs = durationMs * 1000
 
-            retriever.release()
+            // 尝试多个时间点获取帧（避免黑帧或加载画面）
+            val timePoints = listOf(
+                durationUs / 10,        // 10% 位置
+                1_000_000L,             // 1秒
+                durationUs / 2,         // 50% 位置
+                0L                      // 第一帧
+            ).filter { it <= durationUs }
 
-            // Scale to thumbnail size
+            var bitmap: Bitmap? = null
+            for (timeUs in timePoints) {
+                bitmap = retriever.getFrameAtTime(timeUs, MediaMetadataRetriever.OPTION_CLOSEST_SYNC)
+                if (bitmap != null && !isMostlyBlack(bitmap)) {
+                    break
+                }
+                bitmap?.recycle()
+                bitmap = null
+            }
+
+            if (bitmap == null) {
+                return@withContext null
+            }
+
+            // 缩放到缩略图大小
             val scaledBitmap = scaleBitmap(bitmap, THUMBNAIL_MAX_SIZE)
 
-            // Compress to JPEG
+            // 压缩为 JPEG
             val outputStream = ByteArrayOutputStream()
             var quality = THUMBNAIL_QUALITY
             scaledBitmap.compress(Bitmap.CompressFormat.JPEG, quality, outputStream)
 
-            // Reduce quality if thumbnail is too large
+            // 如果缩略图太大，降低质量
             while (outputStream.size() > MAX_THUMBNAIL_BYTES && quality > 10) {
                 outputStream.reset()
                 quality -= 10
                 scaledBitmap.compress(Bitmap.CompressFormat.JPEG, quality, outputStream)
             }
 
+            // 回收位图
             if (!scaledBitmap.isRecycled) scaledBitmap.recycle()
             if (!bitmap.isRecycled && bitmap != scaledBitmap) bitmap.recycle()
 
@@ -405,7 +453,40 @@ class FileChunker @Inject constructor(
         } catch (e: Exception) {
             Log.e(TAG, "Failed to generate video thumbnail", e)
             null
+        } finally {
+            try {
+                retriever?.release()
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to release MediaMetadataRetriever", e)
+            }
         }
+    }
+
+    /**
+     * 检查位图是否大部分是黑色（用于跳过黑帧）
+     */
+    private fun isMostlyBlack(bitmap: Bitmap): Boolean {
+        // 采样检查：取9个点的平均亮度
+        val width = bitmap.width
+        val height = bitmap.height
+        var totalBrightness = 0
+
+        val samplePoints = listOf(
+            0 to 0, width / 2 to 0, width - 1 to 0,
+            0 to height / 2, width / 2 to height / 2, width - 1 to height / 2,
+            0 to height - 1, width / 2 to height - 1, width - 1 to height - 1
+        )
+
+        for ((x, y) in samplePoints) {
+            val pixel = bitmap.getPixel(x.coerceIn(0, width - 1), y.coerceIn(0, height - 1))
+            val r = (pixel shr 16) and 0xFF
+            val g = (pixel shr 8) and 0xFF
+            val b = pixel and 0xFF
+            totalBrightness += (r + g + b) / 3
+        }
+
+        val averageBrightness = totalBrightness / samplePoints.size
+        return averageBrightness < 20 // 如果平均亮度小于20，认为是黑帧
     }
 
     /**
