@@ -1,19 +1,10 @@
 <template>
   <div class="token-usage-tab">
-    <a-spin
-      :spinning="loading"
-      tip="加载统计数据..."
-    >
+    <a-spin :spinning="loading" tip="加载统计数据...">
       <!-- 顶部统计卡片 -->
-      <a-row
-        :gutter="16"
-        class="stats-overview"
-      >
+      <a-row :gutter="16" class="stats-overview">
         <a-col :span="6">
-          <a-card
-            size="small"
-            hoverable
-          >
+          <a-card size="small" hoverable>
             <a-statistic
               title="总 Token 使用"
               :value="stats.totalTokens"
@@ -25,15 +16,12 @@
               </template>
             </a-statistic>
             <div class="stat-detail">
-              本周: {{ stats.weekTokens.toLocaleString() }}
+              本周: {{ (stats.weekTokens ?? 0).toLocaleString() }}
             </div>
           </a-card>
         </a-col>
         <a-col :span="6">
-          <a-card
-            size="small"
-            hoverable
-          >
+          <a-card size="small" hoverable>
             <a-statistic
               title="总成本"
               :value="stats.totalCost"
@@ -51,10 +39,7 @@
           </a-card>
         </a-col>
         <a-col :span="6">
-          <a-card
-            size="small"
-            hoverable
-          >
+          <a-card size="small" hoverable>
             <a-statistic
               title="缓存命中率"
               :value="stats.cacheHitRate"
@@ -72,10 +57,7 @@
           </a-card>
         </a-col>
         <a-col :span="6">
-          <a-card
-            size="small"
-            hoverable
-          >
+          <a-card size="small" hoverable>
             <a-statistic
               title="平均成本/次"
               :value="stats.avgCostPerCall"
@@ -87,18 +69,13 @@
                 <LineChartOutlined />
               </template>
             </a-statistic>
-            <div class="stat-detail">
-              总调用: {{ stats.totalCalls }}
-            </div>
+            <div class="stat-detail">总调用: {{ stats.totalCalls }}</div>
           </a-card>
         </a-col>
       </a-row>
 
       <!-- 筛选工具栏 -->
-      <a-card
-        class="filter-toolbar"
-        size="small"
-      >
+      <a-card class="filter-toolbar" size="small">
         <a-space>
           <a-range-picker
             v-model:value="dateRange"
@@ -112,66 +89,34 @@
             style="width: 150px"
             @change="loadData"
           >
-            <a-select-option value="all">
-              全部提供商
-            </a-select-option>
-            <a-select-option value="openai">
-              OpenAI
-            </a-select-option>
-            <a-select-option value="anthropic">
-              Anthropic
-            </a-select-option>
-            <a-select-option value="deepseek">
-              DeepSeek
-            </a-select-option>
-            <a-select-option value="volcengine">
-              火山引擎
-            </a-select-option>
-            <a-select-option value="ollama">
-              Ollama
-            </a-select-option>
+            <a-select-option value="all"> 全部提供商 </a-select-option>
+            <a-select-option value="openai"> OpenAI </a-select-option>
+            <a-select-option value="anthropic"> Anthropic </a-select-option>
+            <a-select-option value="deepseek"> DeepSeek </a-select-option>
+            <a-select-option value="volcengine"> 火山引擎 </a-select-option>
+            <a-select-option value="ollama"> Ollama </a-select-option>
           </a-select>
-          <a-button
-            type="primary"
-            @click="exportReport"
-          >
+          <a-button type="primary" @click="exportReport">
             <ExportOutlined /> 导出 CSV
           </a-button>
-          <a-button @click="clearCache">
-            <ClearOutlined /> 清除缓存
-          </a-button>
+          <a-button @click="clearCache"> <ClearOutlined /> 清除缓存 </a-button>
         </a-space>
       </a-card>
 
       <!-- 时间序列图表 -->
-      <a-card
-        title="成本趋势"
-        class="chart-card"
-      >
-        <div
-          ref="timeSeriesChart"
-          style="height: 300px"
-        />
+      <a-card title="成本趋势" class="chart-card">
+        <div ref="timeSeriesChart" style="height: 300px" />
       </a-card>
 
       <!-- 双列布局：提供商占比 + 模型成本排行 -->
       <a-row :gutter="16">
         <a-col :span="12">
-          <a-card
-            title="提供商占比"
-            class="chart-card"
-          >
-            <div
-              ref="providerPieChart"
-              style="height: 300px"
-            />
+          <a-card title="提供商占比" class="chart-card">
+            <div ref="providerPieChart" style="height: 300px" />
           </a-card>
         </a-col>
         <a-col :span="12">
-          <a-card
-            title="热门模型成本排行"
-            class="chart-card"
-          >
+          <a-card title="热门模型成本排行" class="chart-card">
             <a-table
               :columns="modelColumns"
               :data-source="topModels"
@@ -182,14 +127,14 @@
               <template #bodyCell="{ column, record }">
                 <template v-if="column.key === 'cost'">
                   <span style="color: #52c41a; font-weight: bold">
-                    ${{ record.cost.toFixed(4) }}
+                    ${{ (record.cost ?? 0).toFixed(4) }}
                   </span>
                 </template>
                 <template v-else-if="column.key === 'tokens'">
-                  {{ record.tokens.toLocaleString() }}
+                  {{ (record.tokens ?? 0).toLocaleString() }}
                 </template>
                 <template v-else-if="column.key === 'calls'">
-                  {{ record.calls }}
+                  {{ record.calls ?? 0 }}
                 </template>
               </template>
             </a-table>
@@ -198,62 +143,56 @@
       </a-row>
 
       <!-- 预算管理 -->
-      <a-card
-        title="预算管理"
-        class="budget-card"
-      >
+      <a-card title="预算管理" class="budget-card">
         <a-row :gutter="16">
           <a-col :span="8">
             <div class="budget-item">
-              <div class="budget-title">
-                每日预算
-              </div>
+              <div class="budget-title">每日预算</div>
               <a-progress
                 :percent="budgetProgress.daily"
                 :status="getBudgetStatus(budgetProgress.daily)"
                 :stroke-color="getBudgetColor(budgetProgress.daily)"
               />
               <div class="budget-detail">
-                ${{ budget.dailySpend.toFixed(2) }} / ${{ budget.dailyLimit.toFixed(2) }}
+                ${{ budget.dailySpend.toFixed(2) }} / ${{
+                  budget.dailyLimit.toFixed(2)
+                }}
               </div>
             </div>
           </a-col>
           <a-col :span="8">
             <div class="budget-item">
-              <div class="budget-title">
-                每周预算
-              </div>
+              <div class="budget-title">每周预算</div>
               <a-progress
                 :percent="budgetProgress.weekly"
                 :status="getBudgetStatus(budgetProgress.weekly)"
                 :stroke-color="getBudgetColor(budgetProgress.weekly)"
               />
               <div class="budget-detail">
-                ${{ budget.weeklySpend.toFixed(2) }} / ${{ budget.weeklyLimit.toFixed(2) }}
+                ${{ budget.weeklySpend.toFixed(2) }} / ${{
+                  budget.weeklyLimit.toFixed(2)
+                }}
               </div>
             </div>
           </a-col>
           <a-col :span="8">
             <div class="budget-item">
-              <div class="budget-title">
-                每月预算
-              </div>
+              <div class="budget-title">每月预算</div>
               <a-progress
                 :percent="budgetProgress.monthly"
                 :status="getBudgetStatus(budgetProgress.monthly)"
                 :stroke-color="getBudgetColor(budgetProgress.monthly)"
               />
               <div class="budget-detail">
-                ${{ budget.monthlySpend.toFixed(2) }} / ${{ budget.monthlyLimit.toFixed(2) }}
+                ${{ budget.monthlySpend.toFixed(2) }} / ${{
+                  budget.monthlyLimit.toFixed(2)
+                }}
               </div>
             </div>
           </a-col>
         </a-row>
         <a-divider />
-        <a-button
-          type="primary"
-          @click="showBudgetModal = true"
-        >
+        <a-button type="primary" @click="showBudgetModal = true">
           <SettingOutlined /> 设置预算限制
         </a-button>
       </a-card>
@@ -266,10 +205,7 @@
       @ok="saveBudget"
       @cancel="showBudgetModal = false"
     >
-      <a-form
-        :label-col="{ span: 6 }"
-        :wrapper-col="{ span: 18 }"
-      >
+      <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
         <a-form-item label="每日限制 (USD)">
           <a-input-number
             v-model:value="budgetForm.dailyLimit"
@@ -315,12 +251,12 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger, createLogger } from "@/utils/logger";
 
-import { ref, reactive, onMounted, onUnmounted, computed } from 'vue';
-import { message } from 'ant-design-vue';
-import dayjs from 'dayjs';
-import { init } from '../utils/echartsConfig';
+import { ref, reactive, onMounted, onUnmounted, computed } from "vue";
+import { message } from "ant-design-vue";
+import dayjs from "dayjs";
+import { init } from "../utils/echartsConfig";
 import {
   DatabaseOutlined,
   DollarOutlined,
@@ -329,12 +265,12 @@ import {
   ExportOutlined,
   ClearOutlined,
   SettingOutlined,
-} from '@ant-design/icons-vue';
+} from "@ant-design/icons-vue";
 
 // 数据
 const loading = ref(false);
-const dateRange = ref([dayjs().subtract(7, 'day'), dayjs()]);
-const selectedProvider = ref('all');
+const dateRange = ref([dayjs().subtract(7, "day"), dayjs()]);
+const selectedProvider = ref("all");
 const showBudgetModal = ref(false);
 
 const stats = reactive({
@@ -375,40 +311,57 @@ let providerPieInstance = null;
 
 // 日期预设
 const datePresets = [
-  { label: '今天', value: [dayjs(), dayjs()] },
-  { label: '最近7天', value: [dayjs().subtract(7, 'day'), dayjs()] },
-  { label: '最近30天', value: [dayjs().subtract(30, 'day'), dayjs()] },
-  { label: '本月', value: [dayjs().startOf('month'), dayjs()] },
+  { label: "今天", value: [dayjs(), dayjs()] },
+  { label: "最近7天", value: [dayjs().subtract(7, "day"), dayjs()] },
+  { label: "最近30天", value: [dayjs().subtract(30, "day"), dayjs()] },
+  { label: "本月", value: [dayjs().startOf("month"), dayjs()] },
 ];
 
 // 表格列定义
 const modelColumns = [
-  { title: '排名', dataIndex: 'rank', key: 'rank', width: 60 },
-  { title: '提供商', dataIndex: 'provider', key: 'provider', width: 100 },
-  { title: '模型', dataIndex: 'model', key: 'model', ellipsis: true },
-  { title: 'Token 数', dataIndex: 'tokens', key: 'tokens', width: 100 },
-  { title: '调用次数', dataIndex: 'calls', key: 'calls', width: 80 },
-  { title: '成本', dataIndex: 'cost', key: 'cost', width: 100 },
+  { title: "排名", dataIndex: "rank", key: "rank", width: 60 },
+  { title: "提供商", dataIndex: "provider", key: "provider", width: 100 },
+  { title: "模型", dataIndex: "model", key: "model", ellipsis: true },
+  { title: "Token 数", dataIndex: "tokens", key: "tokens", width: 100 },
+  { title: "调用次数", dataIndex: "calls", key: "calls", width: 80 },
+  { title: "成本", dataIndex: "cost", key: "cost", width: 100 },
 ];
 
 // 计算属性
 const budgetProgress = computed(() => ({
-  daily: budget.dailyLimit > 0 ? Math.min((budget.dailySpend / budget.dailyLimit) * 100, 100) : 0,
-  weekly: budget.weeklyLimit > 0 ? Math.min((budget.weeklySpend / budget.weeklyLimit) * 100, 100) : 0,
-  monthly: budget.monthlyLimit > 0 ? Math.min((budget.monthlySpend / budget.monthlyLimit) * 100, 100) : 0,
+  daily:
+    budget.dailyLimit > 0
+      ? Math.min((budget.dailySpend / budget.dailyLimit) * 100, 100)
+      : 0,
+  weekly:
+    budget.weeklyLimit > 0
+      ? Math.min((budget.weeklySpend / budget.weeklyLimit) * 100, 100)
+      : 0,
+  monthly:
+    budget.monthlyLimit > 0
+      ? Math.min((budget.monthlySpend / budget.monthlyLimit) * 100, 100)
+      : 0,
 }));
 
 // 方法
 function getBudgetStatus(percent) {
-  if (percent >= 95) {return 'exception';}
-  if (percent >= 80) {return 'normal';}
-  return 'active';
+  if (percent >= 95) {
+    return "exception";
+  }
+  if (percent >= 80) {
+    return "normal";
+  }
+  return "active";
 }
 
 function getBudgetColor(percent) {
-  if (percent >= 95) {return '#ff4d4f';}
-  if (percent >= 80) {return '#faad14';}
-  return '#52c41a';
+  if (percent >= 95) {
+    return "#ff4d4f";
+  }
+  if (percent >= 80) {
+    return "#faad14";
+  }
+  return "#52c41a";
 }
 
 async function loadData() {
@@ -421,7 +374,8 @@ async function loadData() {
     const usageStats = await window.electronAPI.llm.getUsageStats({
       startDate,
       endDate,
-      provider: selectedProvider.value === 'all' ? undefined : selectedProvider.value,
+      provider:
+        selectedProvider.value === "all" ? undefined : selectedProvider.value,
     });
 
     // 更新统计数据
@@ -440,7 +394,7 @@ async function loadData() {
     const timeSeriesData = await window.electronAPI.llm.getTimeSeries({
       startDate,
       endDate,
-      interval: 'day',
+      interval: "day",
     });
 
     renderTimeSeriesChart(timeSeriesData);
@@ -452,78 +406,89 @@ async function loadData() {
     });
 
     renderProviderPieChart(costBreakdown.byProvider || []);
-    topModels.value = (costBreakdown.byModel || []).slice(0, 10).map((item, index) => ({
-      rank: index + 1,
-      ...item,
-    }));
+    topModels.value = (costBreakdown.byModel || [])
+      .slice(0, 10)
+      .map((item, index) => ({
+        rank: index + 1,
+        ...item,
+      }));
 
     // 获取预算
     const budgetData = await window.electronAPI.llm.getBudget();
     if (budgetData) {
-      Object.assign(budget, budgetData);
+      Object.assign(budget, {
+        dailyLimit: budgetData.dailyLimit ?? 1.0,
+        weeklyLimit: budgetData.weeklyLimit ?? 5.0,
+        monthlyLimit: budgetData.monthlyLimit ?? 20.0,
+        dailySpend: budgetData.dailySpend ?? 0,
+        weeklySpend: budgetData.weeklySpend ?? 0,
+        monthlySpend: budgetData.monthlySpend ?? 0,
+      });
       Object.assign(budgetForm, {
-        dailyLimit: budgetData.dailyLimit || 1.0,
-        weeklyLimit: budgetData.weeklyLimit || 5.0,
-        monthlyLimit: budgetData.monthlyLimit || 20.0,
-        warningThreshold: budgetData.warningThreshold || 0.8,
+        dailyLimit: budgetData.dailyLimit ?? 1.0,
+        weeklyLimit: budgetData.weeklyLimit ?? 5.0,
+        monthlyLimit: budgetData.monthlyLimit ?? 20.0,
+        warningThreshold: budgetData.warningThreshold ?? 0.8,
         desktopAlerts: budgetData.desktopAlerts !== false,
       });
     }
   } catch (error) {
-    logger.error('加载统计数据失败:', error);
-    message.error('加载统计数据失败: ' + error.message);
+    logger.error("加载统计数据失败:", error);
+    message.error("加载统计数据失败: " + error.message);
   } finally {
     loading.value = false;
   }
 }
 
 function renderTimeSeriesChart(data) {
-  if (!timeSeriesInstance) {return;}
+  if (!timeSeriesInstance) {
+    return;
+  }
 
-  const dates = data.map(item => dayjs(item.date).format('MM-DD'));
-  const tokens = data.map(item => item.tokens);
-  const costs = data.map(item => item.cost);
+  const dates = data.map((item) => dayjs(item.date).format("MM-DD"));
+  const tokens = data.map((item) => item.tokens);
+  const costs = data.map((item) => item.cost);
 
   const option = {
     tooltip: {
-      trigger: 'axis',
-      axisPointer: { type: 'cross' },
+      trigger: "axis",
+      axisPointer: { type: "cross" },
     },
     legend: {
-      data: ['Token 数', '成本 (USD)'],
+      data: ["Token 数", "成本 (USD)"],
     },
     xAxis: {
-      type: 'category',
+      type: "category",
       data: dates,
     },
     yAxis: [
       {
-        type: 'value',
-        name: 'Tokens',
-        position: 'left',
+        type: "value",
+        name: "Tokens",
+        position: "left",
       },
       {
-        type: 'value',
-        name: '成本 ($)',
-        position: 'right',
+        type: "value",
+        name: "成本 ($)",
+        position: "right",
         axisLabel: {
-          formatter: '${value}',
+          formatter: "${value}",
         },
       },
     ],
     series: [
       {
-        name: 'Token 数',
-        type: 'bar',
+        name: "Token 数",
+        type: "bar",
         data: tokens,
-        itemStyle: { color: '#1890ff' },
+        itemStyle: { color: "#1890ff" },
       },
       {
-        name: '成本 (USD)',
-        type: 'line',
+        name: "成本 (USD)",
+        type: "line",
         yAxisIndex: 1,
         data: costs,
-        itemStyle: { color: '#52c41a' },
+        itemStyle: { color: "#52c41a" },
       },
     ],
   };
@@ -532,33 +497,35 @@ function renderTimeSeriesChart(data) {
 }
 
 function renderProviderPieChart(data) {
-  if (!providerPieInstance) {return;}
+  if (!providerPieInstance) {
+    return;
+  }
 
-  const pieData = data.map(item => ({
+  const pieData = data.map((item) => ({
     name: item.provider,
     value: item.cost,
   }));
 
   const option = {
     tooltip: {
-      trigger: 'item',
-      formatter: '{b}: ${c} ({d}%)',
+      trigger: "item",
+      formatter: "{b}: ${c} ({d}%)",
     },
     legend: {
-      orient: 'vertical',
-      left: 'left',
+      orient: "vertical",
+      left: "left",
     },
     series: [
       {
-        name: '提供商成本',
-        type: 'pie',
-        radius: '50%',
+        name: "提供商成本",
+        type: "pie",
+        radius: "50%",
         data: pieData,
         emphasis: {
           itemStyle: {
             shadowBlur: 10,
             shadowOffsetX: 0,
-            shadowColor: 'rgba(0, 0, 0, 0.5)',
+            shadowColor: "rgba(0, 0, 0, 0.5)",
           },
         },
       },
@@ -580,13 +547,13 @@ async function exportReport() {
     const result = await window.electronAPI.llm.exportCostReport({
       startDate,
       endDate,
-      format: 'csv',
+      format: "csv",
     });
 
     message.success(`报告已导出: ${result.filePath}`);
   } catch (error) {
-    logger.error('导出报告失败:', error);
-    message.error('导出报告失败: ' + error.message);
+    logger.error("导出报告失败:", error);
+    message.error("导出报告失败: " + error.message);
   }
 }
 
@@ -596,20 +563,20 @@ async function clearCache() {
     message.success(`已清除 ${result.deletedCount} 条缓存`);
     await loadData();
   } catch (error) {
-    logger.error('清除缓存失败:', error);
-    message.error('清除缓存失败: ' + error.message);
+    logger.error("清除缓存失败:", error);
+    message.error("清除缓存失败: " + error.message);
   }
 }
 
 async function saveBudget() {
   try {
-    await window.electronAPI.llm.setBudget('default', budgetForm);
-    message.success('预算设置已保存');
+    await window.electronAPI.llm.setBudget("default", budgetForm);
+    message.success("预算设置已保存");
     showBudgetModal.value = false;
     await loadData();
   } catch (error) {
-    logger.error('保存预算失败:', error);
-    message.error('保存预算失败: ' + error.message);
+    logger.error("保存预算失败:", error);
+    message.error("保存预算失败: " + error.message);
   }
 }
 
@@ -623,7 +590,7 @@ onMounted(() => {
   loadData();
 
   // 监听窗口大小变化
-  window.addEventListener('resize', () => {
+  window.addEventListener("resize", () => {
     timeSeriesInstance?.resize();
     providerPieInstance?.resize();
   });

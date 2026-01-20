@@ -98,6 +98,7 @@ backend/docker/ollama_data/
 backend/docker/qdrant_data/
 backend/docker/anythingllm_data/
 backend/docker/gitea_data/
+config/docker/data/
 
 # Mobile
 *.apk

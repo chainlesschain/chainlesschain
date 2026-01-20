@@ -567,11 +567,6 @@ export const useSocialStore = defineStore("social", {
           return;
         }
 
-        // 只在首次失败时记录错误，避免日志刷屏
-        if (_retryCount === 0) {
-          logger.error("加载通知失败:", error);
-        }
-
         // 如果是"No handler registered"错误，说明后端还未初始化完成
         if (error.message && error.message.includes("No handler registered")) {
           // 设置空数据，避免前端报错

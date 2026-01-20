@@ -2,15 +2,9 @@
   <div class="category-manage-page">
     <!-- 页面头部 -->
     <div class="page-header">
-      <a-page-header
-        title="项目分类管理"
-        sub-title="管理和维护项目分类体系"
-      >
+      <a-page-header title="项目分类管理" sub-title="管理和维护项目分类体系">
         <template #extra>
-          <a-button
-            type="primary"
-            @click="showAddDialog()"
-          >
+          <a-button type="primary" @click="showAddDialog()">
             <template #icon>
               <PlusOutlined />
             </template>
@@ -24,10 +18,7 @@
     <div class="page-content">
       <a-spin :spinning="loading">
         <!-- 分类统计卡片 -->
-        <a-row
-          :gutter="16"
-          class="stats-row"
-        >
+        <a-row :gutter="16" class="stats-row">
           <a-col :span="6">
             <a-card>
               <a-statistic
@@ -87,14 +78,8 @@
         </a-row>
 
         <!-- 分类列表 -->
-        <a-card
-          class="category-list-card"
-          title="分类列表"
-        >
-          <a-collapse
-            v-model:active-key="activeKeys"
-            accordion
-          >
+        <a-card class="category-list-card" title="分类列表">
+          <a-collapse v-model:active-key="activeKeys" accordion>
             <a-collapse-panel
               v-for="category in categories"
               :key="category.id"
@@ -132,11 +117,7 @@
                     @confirm="handleDelete(category.id)"
                     @click.stop
                   >
-                    <a-button
-                      type="link"
-                      danger
-                      size="small"
-                    >
+                    <a-button type="link" danger size="small">
                       <template #icon>
                         <DeleteOutlined />
                       </template>
@@ -187,11 +168,7 @@
                           cancel-text="取消"
                           @confirm="handleDelete(record.id)"
                         >
-                          <a-button
-                            type="link"
-                            danger
-                            size="small"
-                          >
+                          <a-button type="link" danger size="small">
                             <template #icon>
                               <DeleteOutlined />
                             </template>
@@ -223,10 +200,7 @@
             description="暂无分类，请添加分类"
             :image="Empty.PRESENTED_IMAGE_SIMPLE"
           >
-            <a-button
-              type="primary"
-              @click="handleInitDefaults"
-            >
+            <a-button type="primary" @click="handleInitDefaults">
               初始化默认分类
             </a-button>
           </a-empty>
@@ -248,10 +222,7 @@
         :rules="formRules"
         layout="vertical"
       >
-        <a-form-item
-          label="分类名称"
-          name="name"
-        >
+        <a-form-item label="分类名称" name="name">
           <a-input
             v-model:value="formData.name"
             placeholder="请输入分类名称"
@@ -261,26 +232,20 @@
 
         <a-row :gutter="16">
           <a-col :span="12">
-            <a-form-item
-              label="图标（Emoji）"
-              name="icon"
-            >
+            <a-form-item label="图标（Emoji）" name="icon">
               <a-input
                 v-model:value="formData.icon"
                 placeholder="请输入图标"
                 size="large"
               >
                 <template #addonAfter>
-                  <span class="icon-preview">{{ formData.icon || '📁' }}</span>
+                  <span class="icon-preview">{{ formData.icon || "📁" }}</span>
                 </template>
               </a-input>
             </a-form-item>
           </a-col>
           <a-col :span="12">
-            <a-form-item
-              label="颜色"
-              name="color"
-            >
+            <a-form-item label="颜色" name="color">
               <a-input
                 v-model:value="formData.color"
                 type="color"
@@ -290,10 +255,7 @@
           </a-col>
         </a-row>
 
-        <a-form-item
-          label="排序"
-          name="sort_order"
-        >
+        <a-form-item label="排序" name="sort_order">
           <a-input-number
             v-model:value="formData.sort_order"
             :min="0"
@@ -303,10 +265,7 @@
           />
         </a-form-item>
 
-        <a-form-item
-          label="描述"
-          name="description"
-        >
+        <a-form-item label="描述" name="description">
           <a-textarea
             v-model:value="formData.description"
             :rows="4"
@@ -330,11 +289,11 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger, createLogger } from "@/utils/logger";
 
-import { ref, computed, onMounted } from 'vue';
-import { message, Empty } from 'ant-design-vue';
-import { useCategoryStore } from '@/stores/category';
+import { ref, computed, onMounted } from "vue";
+import { message, Empty } from "ant-design-vue";
+import { useCategoryStore } from "@/stores/category";
 import {
   PlusOutlined,
   EditOutlined,
@@ -343,7 +302,7 @@ import {
   FolderOutlined,
   FolderOpenOutlined,
   TagsOutlined,
-} from '@ant-design/icons-vue';
+} from "@ant-design/icons-vue";
 
 const categoryStore = useCategoryStore();
 
@@ -356,44 +315,44 @@ const editingCategory = ref(null);
 const parentId = ref(null);
 
 const formData = ref({
-  name: '',
-  icon: '',
-  color: '#1890ff',
+  name: "",
+  icon: "",
+  color: "#1890ff",
   sort_order: 0,
-  description: '',
+  description: "",
 });
 
 const formRules = {
   name: [
-    { required: true, message: '请输入分类名称', trigger: 'blur' },
-    { min: 1, max: 20, message: '长度在 1 到 20 个字符', trigger: 'blur' },
+    { required: true, message: "请输入分类名称", trigger: "blur" },
+    { min: 1, max: 20, message: "长度在 1 到 20 个字符", trigger: "blur" },
   ],
-  icon: [{ required: true, message: '请输入图标', trigger: 'blur' }],
-  color: [{ required: true, message: '请选择颜色', trigger: 'change' }],
+  icon: [{ required: true, message: "请输入图标", trigger: "blur" }],
+  color: [{ required: true, message: "请选择颜色", trigger: "change" }],
 };
 
 // 子分类表格列
 const subCategoryColumns = [
   {
-    title: '名称',
-    key: 'name',
-    dataIndex: 'name',
+    title: "名称",
+    key: "name",
+    dataIndex: "name",
   },
   {
-    title: '颜色',
-    key: 'color',
-    dataIndex: 'color',
+    title: "颜色",
+    key: "color",
+    dataIndex: "color",
     width: 100,
   },
   {
-    title: '排序',
-    key: 'sort_order',
-    dataIndex: 'sort_order',
+    title: "排序",
+    key: "sort_order",
+    dataIndex: "sort_order",
     width: 80,
   },
   {
-    title: '操作',
-    key: 'action',
+    title: "操作",
+    key: "action",
     width: 150,
   },
 ];
@@ -404,7 +363,10 @@ const categories = computed(() => categoryStore.rootCategories || []);
 // 统计数据
 const primaryCount = computed(() => categories.value.length);
 const secondaryCount = computed(() => {
-  return categories.value.reduce((sum, cat) => sum + (cat.children?.length || 0), 0);
+  return categories.value.reduce(
+    (sum, cat) => sum + (cat.children?.length || 0),
+    0,
+  );
 });
 const totalCount = computed(() => primaryCount.value + secondaryCount.value);
 const projectCount = computed(() => 0); // TODO: 从项目store获取
@@ -419,10 +381,13 @@ const handleInitDefaults = async () => {
   try {
     loading.value = true;
     await categoryStore.initializeDefaults();
-    message.success('默认分类初始化成功');
+    message.success("默认分类初始化成功");
   } catch (error) {
-    logger.error('初始化默认分类失败:', error);
-    message.error(error.message || '初始化失败');
+    // IPC 未就绪时静默处理
+    if (!error.message?.includes("No handler registered")) {
+      logger.error("初始化默认分类失败:", error);
+      message.error(error.message || "初始化失败");
+    }
   } finally {
     loading.value = false;
   }
@@ -433,11 +398,11 @@ const showAddDialog = (parentCategoryId = null) => {
   editingCategory.value = null;
   parentId.value = parentCategoryId;
   formData.value = {
-    name: '',
-    icon: '',
-    color: '#1890ff',
+    name: "",
+    icon: "",
+    color: "#1890ff",
     sort_order: 0,
-    description: '',
+    description: "",
   };
   editDialogVisible.value = true;
 };
@@ -449,9 +414,9 @@ const showEditDialog = (category) => {
   formData.value = {
     name: category.name,
     icon: category.icon,
-    color: category.color || '#1890ff',
+    color: category.color || "#1890ff",
     sort_order: category.sort_order || 0,
-    description: category.description || '',
+    description: category.description || "",
   };
   editDialogVisible.value = true;
 };
@@ -466,27 +431,27 @@ const handleSave = async () => {
     const data = {
       ...formData.value,
       parent_id: parentId.value,
-      user_id: 'local-user',
+      user_id: "local-user",
     };
 
     if (editingCategory.value) {
       // 更新
       await categoryStore.updateCategory(editingCategory.value.id, data);
-      message.success('分类更新成功');
+      message.success("分类更新成功");
     } else {
       // 创建
       await categoryStore.createCategory(data);
-      message.success('分类创建成功');
+      message.success("分类创建成功");
     }
 
     editDialogVisible.value = false;
   } catch (error) {
-    logger.error('保存分类失败:', error);
+    logger.error("保存分类失败:", error);
     if (error.errorFields) {
       // 表单验证失败
       return;
     }
-    message.error(error.message || '保存分类失败');
+    message.error(error.message || "保存分类失败");
   } finally {
     loading.value = false;
   }
@@ -497,10 +462,10 @@ const handleDelete = async (categoryId) => {
   try {
     loading.value = true;
     await categoryStore.deleteCategory(categoryId);
-    message.success('分类删除成功');
+    message.success("分类删除成功");
   } catch (error) {
-    logger.error('删除分类失败:', error);
-    message.error(error.message || '删除分类失败');
+    logger.error("删除分类失败:", error);
+    message.error(error.message || "删除分类失败");
   } finally {
     loading.value = false;
   }
@@ -524,8 +489,11 @@ const loadCategories = async () => {
     // 加载分类列表
     await categoryStore.fetchCategories();
   } catch (error) {
-    logger.error('加载分类列表失败:', error);
-    message.error('加载分类列表失败');
+    // IPC 未就绪时静默处理
+    if (!error.message?.includes("No handler registered")) {
+      logger.error("加载分类列表失败:", error);
+      message.error("加载分类列表失败");
+    }
   } finally {
     loading.value = false;
   }
