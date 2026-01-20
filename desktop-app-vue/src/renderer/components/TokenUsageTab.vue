@@ -307,6 +307,13 @@ const topModels = ref([]);
 const timeSeriesChart = ref(null);
 const providerPieChart = ref(null);
 let timeSeriesInstance = null;
+
+// 窗口大小变化处理器引用
+let resizeHandler = null;
+
+// IPC 重试计数器
+let loadDataRetryCount = 0;
+const MAX_LOAD_DATA_RETRIES = 10;
 let providerPieInstance = null;
 
 // 日期预设
@@ -379,10 +386,19 @@ function formatCurrency(value, decimals = 2) {
 async function loadData() {
   // 检查 IPC API 是否就绪
   if (!window.electronAPI?.llm) {
-    logger.warn("[TokenUsageTab] IPC API 未就绪，稍后重试");
+    loadDataRetryCount++;
+    if (loadDataRetryCount > MAX_LOAD_DATA_RETRIES) {
+      logger.error("[TokenUsageTab] IPC API 重试次数超过限制，停止重试");
+      return;
+    }
+    logger.warn(
+      `[TokenUsageTab] IPC API 未就绪，稍后重试 (${loadDataRetryCount}/${MAX_LOAD_DATA_RETRIES})`,
+    );
     setTimeout(loadData, 500);
     return;
   }
+  // 重置重试计数器
+  loadDataRetryCount = 0;
 
   loading.value = true;
   try {
@@ -618,13 +634,20 @@ onMounted(() => {
   loadData();
 
   // 监听窗口大小变化
-  window.addEventListener("resize", () => {
+  resizeHandler = () => {
     timeSeriesInstance?.resize();
     providerPieInstance?.resize();
-  });
+  };
+  window.addEventListener("resize", resizeHandler);
 });
 
 onUnmounted(() => {
+  // 移除窗口大小变化监听
+  if (resizeHandler) {
+    window.removeEventListener("resize", resizeHandler);
+    resizeHandler = null;
+  }
+  // 释放 ECharts 实例
   timeSeriesInstance?.dispose();
   providerPieInstance?.dispose();
 });

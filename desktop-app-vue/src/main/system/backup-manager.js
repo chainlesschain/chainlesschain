@@ -3,7 +3,7 @@
  * 提供数据库和配置文件的备份与恢复功能
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger, createLogger } = require("../utils/logger.js");
 const { app, dialog } = require("electron");
 const fs = require("fs");
 const path = require("path");
@@ -15,6 +15,7 @@ class BackupManager {
     this.userDataPath = app.getPath("userData");
     this.backupDir = path.join(this.userDataPath, "backups");
     this.maxBackups = 10; // 最多保留10个备份
+    this._autoBackupTimer = null; // 自动备份定时器
 
     // 确保备份目录存在
     this.ensureBackupDir();
@@ -280,7 +281,9 @@ class BackupManager {
       const backups = [];
 
       for (const file of files) {
-        if (!file.endsWith(".zip")) {continue;}
+        if (!file.endsWith(".zip")) {
+          continue;
+        }
 
         const filePath = path.join(this.backupDir, file);
         const stats = fs.statSync(filePath);
@@ -406,12 +409,26 @@ class BackupManager {
    * 启动自动备份
    */
   startAutoBackup(interval = 24 * 60 * 60 * 1000) {
+    // 如果已有定时器，先停止
+    this.stopAutoBackup();
+
     // 每24小时自动备份一次
-    setInterval(() => {
+    this._autoBackupTimer = setInterval(() => {
       this.autoBackup();
     }, interval);
 
     logger.info("[BackupManager] Auto backup started, interval:", interval);
+  }
+
+  /**
+   * 停止自动备份
+   */
+  stopAutoBackup() {
+    if (this._autoBackupTimer) {
+      clearInterval(this._autoBackupTimer);
+      this._autoBackupTimer = null;
+      logger.info("[BackupManager] Auto backup stopped");
+    }
   }
 }
 

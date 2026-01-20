@@ -35,6 +35,9 @@ class IncrementalSyncManager {
     this.isOnline = navigator.onLine;
     this.isSyncing = false;
     this.websocket = null;
+    this.isDestroyed = false;
+    this.isReconnecting = false;
+    this.reconnectTimer = null;
 
     // Statistics
     this.stats = {
@@ -551,6 +554,22 @@ class IncrementalSyncManager {
    * Setup WebSocket connection for real-time sync
    */
   setupRealtimeSync() {
+    // 如果已销毁或正在重连，不再创建新连接
+    if (this.isDestroyed || this.isReconnecting) {
+      return;
+    }
+
+    // 关闭旧的 WebSocket 连接
+    if (this.websocket) {
+      try {
+        this.websocket.onclose = null; // 防止触发重连
+        this.websocket.close();
+      } catch (e) {
+        // 忽略关闭错误
+      }
+      this.websocket = null;
+    }
+
     const wsUrl = this.getWebSocketURL();
 
     this.websocket = new WebSocket(wsUrl);
@@ -585,8 +604,15 @@ class IncrementalSyncManager {
         logger.info("[IncrementalSyncManager] WebSocket disconnected");
       }
 
-      // Attempt reconnect after delay
-      setTimeout(() => {
+      // 如果已销毁，不再重连
+      if (this.isDestroyed) {
+        return;
+      }
+
+      // 标记正在重连，延迟后重连
+      this.isReconnecting = true;
+      this.reconnectTimer = setTimeout(() => {
+        this.isReconnecting = false;
         this.setupRealtimeSync();
       }, 5000);
     };
@@ -653,9 +679,17 @@ class IncrementalSyncManager {
    * Destroy and cleanup
    */
   destroy() {
+    this.isDestroyed = true;
     this.stopAutoSync();
 
+    // 清除重连定时器
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+
     if (this.websocket) {
+      this.websocket.onclose = null; // 防止触发重连
       this.websocket.close();
       this.websocket = null;
     }

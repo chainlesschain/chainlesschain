@@ -3,8 +3,8 @@
  * 检测网络状态并提供离线功能支持
  */
 
-import { logger, createLogger } from '@/utils/logger';
-import { ref, computed } from 'vue';
+import { logger, createLogger } from "@/utils/logger";
+import { ref, computed } from "vue";
 
 /**
  * 离线模式管理器
@@ -15,6 +15,11 @@ class OfflineManager {
     this.offlineQueue = ref([]);
     this.listeners = [];
 
+    // 存储绑定的事件处理器引用
+    this._boundHandleOnline = this.handleOnline.bind(this);
+    this._boundHandleOffline = this.handleOffline.bind(this);
+    this._checkConnectionTimer = null;
+
     this.init();
   }
 
@@ -22,14 +27,16 @@ class OfflineManager {
    * 初始化
    */
   init() {
-    if (typeof window === 'undefined') {return;}
+    if (typeof window === "undefined") {
+      return;
+    }
 
     // 监听在线状态变化
-    window.addEventListener('online', this.handleOnline.bind(this));
-    window.addEventListener('offline', this.handleOffline.bind(this));
+    window.addEventListener("online", this._boundHandleOnline);
+    window.addEventListener("offline", this._boundHandleOffline);
 
     // 定期检查网络状态
-    setInterval(() => {
+    this._checkConnectionTimer = setInterval(() => {
       this.checkConnection();
     }, 30000); // 每30秒检查一次
   }
@@ -38,9 +45,9 @@ class OfflineManager {
    * 处理上线
    */
   handleOnline() {
-    logger.info('[OfflineManager] Network online');
+    logger.info("[OfflineManager] Network online");
     this.isOnline.value = true;
-    this.notifyListeners('online');
+    this.notifyListeners("online");
     this.processQueue();
   }
 
@@ -48,9 +55,9 @@ class OfflineManager {
    * 处理离线
    */
   handleOffline() {
-    logger.info('[OfflineManager] Network offline');
+    logger.info("[OfflineManager] Network offline");
     this.isOnline.value = false;
-    this.notifyListeners('offline');
+    this.notifyListeners("offline");
   }
 
   /**
@@ -58,15 +65,15 @@ class OfflineManager {
    */
   async checkConnection() {
     try {
-      const response = await fetch('/api/ping', {
-        method: 'HEAD',
-        cache: 'no-cache',
+      const response = await fetch("/api/ping", {
+        method: "HEAD",
+        cache: "no-cache",
       });
       const online = response.ok;
 
       if (online !== this.isOnline.value) {
         this.isOnline.value = online;
-        this.notifyListeners(online ? 'online' : 'offline');
+        this.notifyListeners(online ? "online" : "offline");
 
         if (online) {
           this.processQueue();
@@ -75,7 +82,7 @@ class OfflineManager {
     } catch (error) {
       if (this.isOnline.value) {
         this.isOnline.value = false;
-        this.notifyListeners('offline');
+        this.notifyListeners("offline");
       }
     }
   }
@@ -97,9 +104,13 @@ class OfflineManager {
    * 处理队列
    */
   async processQueue() {
-    if (this.offlineQueue.value.length === 0) {return;}
+    if (this.offlineQueue.value.length === 0) {
+      return;
+    }
 
-    logger.info(`[OfflineManager] Processing ${this.offlineQueue.value.length} queued actions`);
+    logger.info(
+      `[OfflineManager] Processing ${this.offlineQueue.value.length} queued actions`,
+    );
 
     const queue = [...this.offlineQueue.value];
     this.offlineQueue.value = [];
@@ -107,7 +118,9 @@ class OfflineManager {
     for (const item of queue) {
       try {
         await item.action();
-        logger.info(`[OfflineManager] Action ${item.id} processed successfully`);
+        logger.info(
+          `[OfflineManager] Action ${item.id} processed successfully`,
+        );
       } catch (error) {
         logger.error(`[OfflineManager] Action ${item.id} failed:`, error);
         // 重新加入队列
@@ -132,13 +145,13 @@ class OfflineManager {
   saveQueue() {
     try {
       // 只保存队列元数据，不保存action函数
-      const queueData = this.offlineQueue.value.map(item => ({
+      const queueData = this.offlineQueue.value.map((item) => ({
         id: item.id,
         timestamp: item.timestamp,
       }));
-      localStorage.setItem('offline-queue', JSON.stringify(queueData));
+      localStorage.setItem("offline-queue", JSON.stringify(queueData));
     } catch (error) {
-      logger.error('[OfflineManager] Save queue error:', error);
+      logger.error("[OfflineManager] Save queue error:", error);
     }
   }
 
@@ -163,11 +176,11 @@ class OfflineManager {
    * 通知监听器
    */
   notifyListeners(event) {
-    this.listeners.forEach(listener => {
+    this.listeners.forEach((listener) => {
       try {
         listener(event, this.isOnline.value);
       } catch (error) {
-        logger.error('[OfflineManager] Listener error:', error);
+        logger.error("[OfflineManager] Listener error:", error);
       }
     });
   }
@@ -176,8 +189,15 @@ class OfflineManager {
    * 销毁
    */
   destroy() {
-    window.removeEventListener('online', this.handleOnline);
-    window.removeEventListener('offline', this.handleOffline);
+    // 移除事件监听
+    window.removeEventListener("online", this._boundHandleOnline);
+    window.removeEventListener("offline", this._boundHandleOffline);
+
+    // 清除定时器
+    if (this._checkConnectionTimer) {
+      clearInterval(this._checkConnectionTimer);
+      this._checkConnectionTimer = null;
+    }
   }
 }
 
