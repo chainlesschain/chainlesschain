@@ -126,6 +126,17 @@ class P2PMessageRepository {
 
     /// 获取或创建与指定 DID 的会话
     func getOrCreateConversation(with participantDid: String, myDid: String) throws -> P2PConversationEntity {
+        // Input validation
+        guard !participantDid.isEmpty else {
+            throw P2PRepositoryError.invalidInput("Participant DID cannot be empty")
+        }
+        guard !myDid.isEmpty else {
+            throw P2PRepositoryError.invalidInput("My DID cannot be empty")
+        }
+        guard participantDid != myDid else {
+            throw P2PRepositoryError.invalidInput("Cannot create conversation with yourself")
+        }
+
         // Try to find existing conversation
         if let existing = try findConversation(participantDid: participantDid) {
             return existing
@@ -184,12 +195,20 @@ class P2PMessageRepository {
 
     /// 删除会话（级联删除消息）
     func deleteConversation(id: String) throws {
-        try database.transaction {
-            // Delete all messages
-            try database.execute("DELETE FROM messages WHERE conversation_id = '\(id)'")
+        // Input validation
+        guard !id.isEmpty else {
+            throw P2PRepositoryError.invalidInput("Conversation ID cannot be empty")
+        }
 
-            // Delete conversation
-            try database.execute("DELETE FROM conversations WHERE id = '\(id)'")
+        // Use parameterized queries to prevent SQL injection
+        try database.transaction {
+            // Delete all messages using parameterized query
+            let deleteMessagesSql = "DELETE FROM messages WHERE conversation_id = ?"
+            _ = try database.query(deleteMessagesSql, parameters: [id]) { _ in () }
+
+            // Delete conversation using parameterized query
+            let deleteConversationSql = "DELETE FROM conversations WHERE id = ?"
+            _ = try database.query(deleteConversationSql, parameters: [id]) { _ in () }
         }
 
         logger.database("Deleted P2P conversation: \(id)")
@@ -256,6 +275,22 @@ class P2PMessageRepository {
 
     /// 保存消息
     func saveMessage(_ message: P2PMessageEntity) throws {
+        // Input validation
+        guard !message.id.isEmpty else {
+            throw P2PRepositoryError.invalidInput("Message ID cannot be empty")
+        }
+        guard !message.conversationId.isEmpty else {
+            throw P2PRepositoryError.invalidInput("Conversation ID cannot be empty")
+        }
+        guard !message.senderDid.isEmpty else {
+            throw P2PRepositoryError.invalidInput("Sender DID cannot be empty")
+        }
+        // Validate content size (max 10MB for image messages, 64KB for text)
+        let maxContentSize = message.contentType == "image" ? 10 * 1024 * 1024 : 64 * 1024
+        guard message.contentEncrypted.count <= maxContentSize else {
+            throw P2PRepositoryError.invalidInput("Message content exceeds maximum allowed size")
+        }
+
         let sql = """
             INSERT INTO messages (id, conversation_id, sender_did, content_encrypted, content_type,
                                   status, reply_to_id, metadata, created_at, updated_at)
@@ -352,7 +387,14 @@ class P2PMessageRepository {
 
     /// 删除消息
     func deleteMessage(id: String) throws {
-        try database.execute("DELETE FROM messages WHERE id = '\(id)'")
+        // Input validation
+        guard !id.isEmpty else {
+            throw P2PRepositoryError.invalidInput("Message ID cannot be empty")
+        }
+
+        // Use parameterized query to prevent SQL injection
+        let sql = "DELETE FROM messages WHERE id = ?"
+        _ = try database.query(sql, parameters: [id]) { _ in () }
 
         logger.database("Deleted P2P message: \(id)")
     }
@@ -361,14 +403,27 @@ class P2PMessageRepository {
 
     /// 搜索消息
     func searchMessages(query: String, conversationId: String? = nil, limit: Int = 100) throws -> [P2PMessageEntity] {
+        // Input validation
+        guard !query.isEmpty else {
+            return [] // Empty query returns no results
+        }
+
+        // Sanitize query - escape LIKE special characters to prevent SQL injection
+        let sanitizedQuery = query
+            .replacingOccurrences(of: "%", with: "\\%")
+            .replacingOccurrences(of: "_", with: "\\_")
+
+        // Limit query length to prevent abuse
+        let truncatedQuery = String(sanitizedQuery.prefix(500))
+
         var sql = """
             SELECT id, conversation_id, sender_did, content_encrypted, content_type,
                    status, reply_to_id, metadata, created_at, updated_at
             FROM messages
-            WHERE content_encrypted LIKE ?
+            WHERE content_encrypted LIKE ? ESCAPE '\\'
         """
 
-        var parameters: [Any?] = ["%\(query)%"]
+        var parameters: [Any?] = ["%\(truncatedQuery)%"]
 
         if let conversationId = conversationId {
             sql += " AND conversation_id = ?"
@@ -426,13 +481,30 @@ class P2PMessageRepository {
 
     /// 创建群组会话
     func createGroupConversation(title: String, memberDids: [String], creatorDid: String) throws -> P2PConversationEntity {
+        // Input validation
+        guard !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw P2PRepositoryError.invalidInput("Group title cannot be empty")
+        }
+        guard memberDids.count >= 2 else {
+            throw P2PRepositoryError.invalidInput("Group must have at least 2 members")
+        }
+        guard !creatorDid.isEmpty else {
+            throw P2PRepositoryError.invalidInput("Creator DID cannot be empty")
+        }
+        guard memberDids.contains(creatorDid) else {
+            throw P2PRepositoryError.invalidInput("Creator must be a member of the group")
+        }
+
+        // Limit title length
+        let truncatedTitle = String(title.prefix(200))
+
         let participantDidsJson = try JSONEncoder().encode(memberDids)
         let participantDidsString = String(data: participantDidsJson, encoding: .utf8) ?? memberDids.joined(separator: ",")
 
         let conversation = P2PConversationEntity(
             id: UUID().uuidString,
             type: "group",
-            title: title,
+            title: truncatedTitle,
             participantDids: participantDidsString,
             lastMessageId: nil,
             lastMessageAt: nil,
@@ -490,10 +562,21 @@ class P2PMessageRepository {
 
     /// 更新群组标题
     func updateGroupTitle(conversationId: String, title: String) throws {
-        let sql = "UPDATE conversations SET title = ?, updated_at = ? WHERE id = ?"
-        _ = try database.query(sql, parameters: [title, Date().timestampMs, conversationId]) { _ in () }
+        // Input validation
+        guard !conversationId.isEmpty else {
+            throw P2PRepositoryError.invalidInput("Conversation ID cannot be empty")
+        }
+        guard !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw P2PRepositoryError.invalidInput("Group title cannot be empty")
+        }
 
-        logger.database("Updated group title: \(conversationId) -> \(title)")
+        // Limit title length
+        let truncatedTitle = String(title.prefix(200))
+
+        let sql = "UPDATE conversations SET title = ?, updated_at = ? WHERE id = ?"
+        _ = try database.query(sql, parameters: [truncatedTitle, Date().timestampMs, conversationId]) { _ in () }
+
+        logger.database("Updated group title: \(conversationId) -> \(truncatedTitle)")
     }
 
     /// 获取群组成员数量
@@ -649,6 +732,7 @@ enum P2PRepositoryError: LocalizedError {
     case conversationNotFound
     case messageNotFound
     case invalidGroupOperation
+    case invalidInput(String)
     case databaseError(String)
 
     var errorDescription: String? {
@@ -659,6 +743,8 @@ enum P2PRepositoryError: LocalizedError {
             return "消息不存在"
         case .invalidGroupOperation:
             return "无效的群组操作"
+        case .invalidInput(let message):
+            return "输入无效: \(message)"
         case .databaseError(let message):
             return "数据库错误: \(message)"
         }

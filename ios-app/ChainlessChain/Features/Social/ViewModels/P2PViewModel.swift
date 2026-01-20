@@ -20,6 +20,9 @@ class P2PViewModel: ObservableObject {
     private var currentConversationId: String?
     private var myDid: String = ""
 
+    // Notification observer tokens for cleanup
+    private var notificationObservers: [NSObjectProtocol] = []
+
     struct PeerInfo: Identifiable {
         let id: String
         let name: String
@@ -89,6 +92,12 @@ class P2PViewModel: ObservableObject {
 
     init() {
         setupNotificationObservers()
+    }
+
+    deinit {
+        // Remove all notification observers to prevent memory leaks
+        notificationObservers.forEach { NotificationCenter.default.removeObserver($0) }
+        notificationObservers.removeAll()
     }
 
     // MARK: - Initialization
@@ -581,7 +590,7 @@ class P2PViewModel: ObservableObject {
 
     private func setupNotificationObservers() {
         // Peer connected
-        NotificationCenter.default.addObserver(
+        let peerConnectedObserver = NotificationCenter.default.addObserver(
             forName: .p2pPeerConnected,
             object: nil,
             queue: .main
@@ -600,9 +609,10 @@ class P2PViewModel: ObservableObject {
                 self?.updateStatistics()
             }
         }
+        notificationObservers.append(peerConnectedObserver)
 
         // Peer disconnected
-        NotificationCenter.default.addObserver(
+        let peerDisconnectedObserver = NotificationCenter.default.addObserver(
             forName: .p2pPeerDisconnected,
             object: nil,
             queue: .main
@@ -621,9 +631,10 @@ class P2PViewModel: ObservableObject {
                 self?.updateStatistics()
             }
         }
+        notificationObservers.append(peerDisconnectedObserver)
 
         // Message received
-        NotificationCenter.default.addObserver(
+        let messageReceivedObserver = NotificationCenter.default.addObserver(
             forName: .p2pMessageReceived,
             object: nil,
             queue: .main
@@ -690,9 +701,10 @@ class P2PViewModel: ObservableObject {
                 }
             }
         }
+        notificationObservers.append(messageReceivedObserver)
 
         // Message status updated
-        NotificationCenter.default.addObserver(
+        let statusUpdatedObserver = NotificationCenter.default.addObserver(
             forName: .messageStatusUpdated,
             object: nil,
             queue: .main
@@ -709,9 +721,10 @@ class P2PViewModel: ObservableObject {
                 }
             }
         }
+        notificationObservers.append(statusUpdatedObserver)
 
         // Message recalled
-        NotificationCenter.default.addObserver(
+        let messageRecalledObserver = NotificationCenter.default.addObserver(
             forName: .messageRecalled,
             object: nil,
             queue: .main
@@ -729,9 +742,10 @@ class P2PViewModel: ObservableObject {
                 }
             }
         }
+        notificationObservers.append(messageRecalledObserver)
 
         // Message edited
-        NotificationCenter.default.addObserver(
+        let messageEditedObserver = NotificationCenter.default.addObserver(
             forName: .messageEdited,
             object: nil,
             queue: .main
@@ -750,9 +764,10 @@ class P2PViewModel: ObservableObject {
                 }
             }
         }
+        notificationObservers.append(messageEditedObserver)
 
         // Peer typing
-        NotificationCenter.default.addObserver(
+        let peerTypingObserver = NotificationCenter.default.addObserver(
             forName: .peerTyping,
             object: nil,
             queue: .main
@@ -762,10 +777,11 @@ class P2PViewModel: ObservableObject {
             Task { @MainActor in
                 if let index = self?.connectedPeers.firstIndex(where: { $0.id == senderDid }) {
                     // Could add typing indicator state to PeerInfo
-                    logger.debug("[P2PViewModel] Peer typing: \(senderDid)")
+                    self?.logger.debug("[P2PViewModel] Peer typing: \(senderDid)")
                 }
             }
         }
+        notificationObservers.append(peerTypingObserver)
     }
 
     /// Map MessageStatusManager status to ChatMessage status
@@ -845,6 +861,10 @@ class P2PViewModel: ObservableObject {
     // MARK: - Cleanup
 
     func cleanup() {
+        // Remove notification observers
+        notificationObservers.forEach { NotificationCenter.default.removeObserver($0) }
+        notificationObservers.removeAll()
+
         p2pManager.cleanup()
         connectedPeers.removeAll()
         messages.removeAll()

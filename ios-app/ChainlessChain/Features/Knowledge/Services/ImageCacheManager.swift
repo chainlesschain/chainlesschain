@@ -24,6 +24,9 @@ class ImageCacheManager: ObservableObject {
     // Statistics
     @Published var statistics = CacheStatistics()
 
+    // Notification observer token for cleanup
+    private var memoryWarningObserver: NSObjectProtocol?
+
     struct CacheStatistics {
         var memoryHits: Int = 0
         var diskHits: Int = 0
@@ -54,12 +57,19 @@ class ImageCacheManager: ObservableObject {
         )
 
         // Set up memory warning observer
-        NotificationCenter.default.addObserver(
+        memoryWarningObserver = NotificationCenter.default.addObserver(
             forName: UIApplication.didReceiveMemoryWarningNotification,
             object: nil,
             queue: .main
         ) { [weak self] _ in
             self?.clearMemoryCache()
+        }
+    }
+
+    deinit {
+        // Remove notification observer
+        if let observer = memoryWarningObserver {
+            NotificationCenter.default.removeObserver(observer)
         }
     }
 
@@ -381,6 +391,26 @@ class ImageCacheManager: ObservableObject {
             logger.error("[ImageCache] Failed to load image from URL: \(error)")
             return nil
         }
+    }
+
+    // MARK: - Cleanup
+
+    /// Full cleanup - clears all caches and removes observers
+    func cleanup() async {
+        // Remove notification observer
+        if let observer = memoryWarningObserver {
+            NotificationCenter.default.removeObserver(observer)
+            memoryWarningObserver = nil
+        }
+
+        // Clear all caches
+        clearMemoryCache()
+        await clearDiskCache()
+
+        // Reset statistics
+        resetStatistics()
+
+        logger.debug("[ImageCache] Full cleanup complete")
     }
 }
 
