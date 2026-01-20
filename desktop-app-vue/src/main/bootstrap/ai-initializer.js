@@ -254,6 +254,10 @@ function registerAIInitializers(factory) {
     async init(context) {
       logger.info("[AI] 检查MCP系统配置...");
 
+      // 🔥 始终注册基础配置IPC，允许用户通过UI启用/禁用MCP
+      const { registerBasicMCPConfigIPC } = require("../mcp/mcp-ipc");
+      registerBasicMCPConfigIPC();
+
       const { MCPConfigLoader } = require("../mcp/mcp-config-loader");
       const mcpConfigLoader = new MCPConfigLoader();
       const mcpConfig = mcpConfigLoader.load();
@@ -268,8 +272,8 @@ function registerAIInitializers(factory) {
       );
 
       if (!mcpConfig.enabled) {
-        logger.info("[AI] MCP系统已禁用");
-        return { enabled: false };
+        logger.info("[AI] MCP系统已禁用，但基础配置IPC已注册");
+        return { enabled: false, mcpConfigLoader };
       }
 
       const { MCPClientManager } = require("../mcp/mcp-client-manager");

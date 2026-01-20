@@ -7,22 +7,80 @@
  * @module MCP_IPC
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger, createLogger } = require("../utils/logger.js");
 const { ipcMain } = require("electron");
 
-/**
- * Register all MCP-related IPC handlers
- * @param {MCPClientManager} mcpManager - MCP client manager instance
- * @param {MCPToolAdapter} mcpAdapter - MCP tool adapter instance
- * @param {MCPSecurityPolicy} securityPolicy - Security policy instance
- */
-function registerMCPIPC(mcpManager, mcpAdapter, securityPolicy) {
-  logger.info("[MCP IPC] Registering IPC handlers");
+// 跟踪基础配置IPC是否已注册
+let basicConfigIPCRegistered = false;
 
-  // ==================== Server Management ====================
+/**
+ * Register basic MCP config IPC handlers (always needed, even when MCP is disabled)
+ * This allows users to enable/disable MCP through the UI
+ */
+function registerBasicMCPConfigIPC() {
+  if (basicConfigIPCRegistered) {
+    logger.info(
+      "[MCP IPC] Basic config IPC handlers already registered, skipping",
+    );
+    return;
+  }
+
+  logger.info("[MCP IPC] Registering basic config IPC handlers");
 
   /**
-   * List all available MCP servers from registry
+   * Get MCP configuration (always available)
+   */
+  ipcMain.handle("mcp:get-config", async () => {
+    try {
+      const {
+        getUnifiedConfigManager,
+      } = require("../config/unified-config-manager");
+      const configManager = getUnifiedConfigManager();
+
+      const mcpConfig = configManager.getConfig("mcp") || {
+        enabled: false,
+        servers: {},
+      };
+
+      return {
+        success: true,
+        config: mcpConfig,
+      };
+    } catch (error) {
+      logger.error("[MCP IPC] Failed to get config:", error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  });
+
+  /**
+   * Update MCP configuration (always available)
+   */
+  ipcMain.handle("mcp:update-config", async (event, { config }) => {
+    try {
+      const {
+        getUnifiedConfigManager,
+      } = require("../config/unified-config-manager");
+      const configManager = getUnifiedConfigManager();
+
+      configManager.updateConfig({ mcp: config });
+
+      return {
+        success: true,
+      };
+    } catch (error) {
+      logger.error("[MCP IPC] Failed to update config:", error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  });
+
+  /**
+   * List all available MCP servers from registry (always available)
    */
   ipcMain.handle("mcp:list-servers", async () => {
     try {
@@ -39,6 +97,24 @@ function registerMCPIPC(mcpManager, mcpAdapter, securityPolicy) {
       };
     }
   });
+
+  basicConfigIPCRegistered = true;
+  logger.info("[MCP IPC] Basic config IPC handlers registered (3 handlers)");
+}
+
+/**
+ * Register all MCP-related IPC handlers
+ * @param {MCPClientManager} mcpManager - MCP client manager instance
+ * @param {MCPToolAdapter} mcpAdapter - MCP tool adapter instance
+ * @param {MCPSecurityPolicy} securityPolicy - Security policy instance
+ */
+function registerMCPIPC(mcpManager, mcpAdapter, securityPolicy) {
+  logger.info("[MCP IPC] Registering full MCP IPC handlers");
+
+  // 确保基础配置 IPC 已注册
+  registerBasicMCPConfigIPC();
+
+  // ==================== Server Management ====================
 
   /**
    * Get connected servers status
@@ -171,10 +247,7 @@ function registerMCPIPC(mcpManager, mcpAdapter, securityPolicy) {
         success: true,
       };
     } catch (error) {
-      logger.error(
-        `[MCP IPC] Failed to disconnect from ${serverName}:`,
-        error,
-      );
+      logger.error(`[MCP IPC] Failed to disconnect from ${serverName}:`, error);
       return {
         success: false,
         error: error.message,
@@ -381,61 +454,8 @@ function registerMCPIPC(mcpManager, mcpAdapter, securityPolicy) {
     }
   });
 
-  // ==================== Configuration ====================
-
-  /**
-   * Get MCP configuration
-   */
-  ipcMain.handle("mcp:get-config", async () => {
-    try {
-      const {
-        getUnifiedConfigManager,
-      } = require("../config/unified-config-manager");
-      const configManager = getUnifiedConfigManager();
-
-      const mcpConfig = configManager.getConfig("mcp") || {
-        enabled: false,
-        servers: {},
-      };
-
-      return {
-        success: true,
-        config: mcpConfig,
-      };
-    } catch (error) {
-      logger.error("[MCP IPC] Failed to get config:", error);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-  });
-
-  /**
-   * Update MCP configuration
-   */
-  ipcMain.handle("mcp:update-config", async (event, { config }) => {
-    try {
-      const {
-        getUnifiedConfigManager,
-      } = require("../config/unified-config-manager");
-      const configManager = getUnifiedConfigManager();
-
-      configManager.updateConfig({ mcp: config });
-
-      return {
-        success: true,
-      };
-    } catch (error) {
-      logger.error("[MCP IPC] Failed to update config:", error);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-  });
-
   // ==================== Security & Consent ====================
+  // Note: mcp:get-config and mcp:update-config are registered in registerBasicMCPConfigIPC()
 
   /**
    * Handle consent response from renderer
@@ -635,4 +655,4 @@ function registerMCPIPC(mcpManager, mcpAdapter, securityPolicy) {
   logger.info("[MCP IPC] All handlers registered successfully");
 }
 
-module.exports = { registerMCPIPC };
+module.exports = { registerMCPIPC, registerBasicMCPConfigIPC };

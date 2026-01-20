@@ -135,11 +135,13 @@ class AIConversationRepository {
     /// 删除对话（级联删除消息）
     func deleteConversation(id: String) throws {
         try database.transaction {
-            // 先删除所有消息
-            try database.execute("DELETE FROM ai_messages WHERE conversation_id = '\(id)'")
+            // 先删除所有消息 - 使用参数化查询防止 SQL 注入
+            let deleteMessagesSql = "DELETE FROM ai_messages WHERE conversation_id = ?"
+            _ = try database.query(deleteMessagesSql, parameters: [id]) { _ in () }
 
             // 再删除对话
-            try database.execute("DELETE FROM ai_conversations WHERE id = '\(id)'")
+            let deleteConversationSql = "DELETE FROM ai_conversations WHERE id = ?"
+            _ = try database.query(deleteConversationSql, parameters: [id]) { _ in () }
         }
 
         logger.database("Deleted AI conversation: \(id)")
@@ -258,14 +260,16 @@ class AIConversationRepository {
 
     /// 删除消息
     func deleteMessage(id: String) throws {
-        try database.execute("DELETE FROM ai_messages WHERE id = '\(id)'")
+        let sql = "DELETE FROM ai_messages WHERE id = ?"
+        _ = try database.query(sql, parameters: [id]) { _ in () }
 
         logger.database("Deleted AI message: \(id)")
     }
 
     /// 清空对话的所有消息
     func clearMessages(conversationId: String) throws {
-        try database.execute("DELETE FROM ai_messages WHERE conversation_id = '\(conversationId)'")
+        let sql = "DELETE FROM ai_messages WHERE conversation_id = ?"
+        _ = try database.query(sql, parameters: [conversationId]) { _ in () }
 
         // 重置对话统计
         try updateConversationStats(id: conversationId, messageCount: 0, totalTokens: 0)

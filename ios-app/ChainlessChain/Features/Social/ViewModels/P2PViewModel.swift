@@ -27,6 +27,8 @@ class P2PViewModel: ObservableObject {
     private var messageTimestamps: [String: [Date]] = [:]  // peerId -> timestamps
     private let maxMessagesPerSecond = 10
     private let rateLimitWindow: TimeInterval = 1.0
+    private let maxTrackedPeersForRateLimit = 50
+    private let staleEntryTimeout: TimeInterval = 3600  // 1 hour
 
     // Contact name cache (avoids N+1 database queries)
     private var contactNameCache: [String: String] = [:]
@@ -269,14 +271,22 @@ class P2PViewModel: ObservableObject {
 
             // Update status to sent after a delay
             Task {
-                try? await Task.sleep(nanoseconds: 500_000_000) // 0.5s
+                do {
+                    try await Task.sleep(nanoseconds: 500_000_000) // 0.5s
+                } catch {
+                    logger.debug("[P2PViewModel] Sleep interrupted for message status update: \(messageId)")
+                }
                 if let index = messages.firstIndex(where: { $0.id == messageId }) {
                     var updatedMessage = messages[index]
                     updatedMessage.status = .sent
                     messages[index] = updatedMessage
 
                     // Update status in database
-                    try? messageRepository.updateMessageStatus(id: messageId, status: "sent")
+                    do {
+                        try messageRepository.updateMessageStatus(id: messageId, status: "sent")
+                    } catch {
+                        logger.error("[P2PViewModel] Failed to update message status to sent: \(error)")
+                    }
                 }
             }
 
@@ -392,7 +402,11 @@ class P2PViewModel: ObservableObject {
 
             // Update status to sent after a delay
             Task {
-                try? await Task.sleep(nanoseconds: 500_000_000) // 0.5s
+                do {
+                    try await Task.sleep(nanoseconds: 500_000_000) // 0.5s
+                } catch {
+                    logger.debug("[P2PViewModel] Sleep interrupted for message status update: \(messageId)")
+                }
                 if let index = messages.firstIndex(where: { $0.id == messageId }) {
                     messages[index] = ChatMessage(
                         id: message.id,
@@ -405,7 +419,11 @@ class P2PViewModel: ObservableObject {
                     )
 
                     // Update status in database
-                    try? messageRepository.updateMessageStatus(id: messageId, status: "sent")
+                    do {
+                        try messageRepository.updateMessageStatus(id: messageId, status: "sent")
+                    } catch {
+                        logger.error("[P2PViewModel] Failed to update message status to sent: \(error)")
+                    }
                 }
             }
 
@@ -933,13 +951,36 @@ class P2PViewModel: ObservableObject {
     /// Clean up old rate limit tracking data
     private func cleanupRateLimitTracking() {
         let now = Date()
+
+        // First pass: remove expired timestamps and stale entries
         for (peerId, timestamps) in messageTimestamps {
             let validTimestamps = timestamps.filter { now.timeIntervalSince($0) < rateLimitWindow }
             if validTimestamps.isEmpty {
-                messageTimestamps.removeValue(forKey: peerId)
+                // Check if entry is stale (no activity for staleEntryTimeout)
+                if let lastTimestamp = timestamps.max(), now.timeIntervalSince(lastTimestamp) > staleEntryTimeout {
+                    messageTimestamps.removeValue(forKey: peerId)
+                } else if timestamps.isEmpty {
+                    messageTimestamps.removeValue(forKey: peerId)
+                } else {
+                    // Keep empty array for recent peers to track rate limiting
+                    messageTimestamps[peerId] = validTimestamps
+                }
             } else {
                 messageTimestamps[peerId] = validTimestamps
             }
+        }
+
+        // Second pass: enforce max tracked peers limit (LRU eviction)
+        if messageTimestamps.count > maxTrackedPeersForRateLimit {
+            // Sort by most recent timestamp and keep only the newest entries
+            let sortedPeers = messageTimestamps.sorted { entry1, entry2 in
+                let max1 = entry1.value.max() ?? Date.distantPast
+                let max2 = entry2.value.max() ?? Date.distantPast
+                return max1 > max2  // Descending order (newest first)
+            }
+
+            let peersToKeep = Set(sortedPeers.prefix(maxTrackedPeersForRateLimit).map { $0.key })
+            messageTimestamps = messageTimestamps.filter { peersToKeep.contains($0.key) }
         }
     }
 

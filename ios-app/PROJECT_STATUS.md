@@ -1,7 +1,7 @@
 # ChainlessChain iOS 项目状态报告
 
 **生成日期**: 2026-01-20
-**版本**: v0.4.5
+**版本**: v0.4.6
 **完成度**: 100%
 
 ---
@@ -302,6 +302,7 @@ Assets.xcassets/                # 应用资源
 | 2026-01-20 | v0.4.3 | 100%   | 项目管理模块完整实现（参考桌面端）、ProjectRepository/Manager/Views        |
 | 2026-01-20 | v0.4.4 | 100%   | LLM上下文限制、VectorStore SIMD优化、图片压缩后台线程、安全修复            |
 | 2026-01-20 | v0.4.5 | 100%   | WebSocket重连、消息限流、联系人缓存、SHA256哈希、自动缓存清理              |
+| 2026-01-20 | v0.4.6 | 100%   | SQL注入修复（AI/Vector）、重连jitter防雷群、WebSocket取消检查、路径安全    |
 
 ---
 
@@ -341,6 +342,12 @@ Assets.xcassets/                # 应用资源
 32. ~~**无消息限流**：可无限发送消息~~ ✅ 已添加10条/秒限制
 33. ~~**N+1联系人查询**：getPeerName重复查数据库~~ ✅ 已添加contactNameCache
 34. ~~**缓存无自动清理**：过期文件不会删除~~ ✅ 已添加每日自动清理
+35. ~~**AIConversationRepository SQL注入**：DELETE语句字符串拼接~~ ✅ 已改用参数化查询
+36. ~~**VectorStoreRepository SQL注入**：deleteVector/clearExpiredCache~~ ✅ 已改用参数化查询
+37. ~~**WebSocket接收循环无取消检查**：可能无限递归~~ ✅ 已添加shouldReceive标志
+38. ~~**重连无jitter**：所有客户端同时重连（雷群效应）~~ ✅ 已添加0-50%随机延迟
+39. ~~**ImageCacheManager路径遍历**：编码失败后回退原始key~~ ✅ 已改用SHA256安全文件名
+40. ~~**P2PViewModel限流数据泄漏**：旧peer条目不清理~~ ✅ 已添加LRU限制（50 peers）和1小时过期
 
 ---
 

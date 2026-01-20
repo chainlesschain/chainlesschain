@@ -116,19 +116,17 @@ class SessionStorage(private val context: Context) {
      *
      * @param peerId 对等方ID
      */
-    suspend fun deleteSession(peerId: String) {
-        withContext(Dispatchers.IO) {
-            try {
-                Log.d(TAG, "Deleting session for peer: $peerId")
+    suspend fun deleteSession(peerId: String): Unit = withContext(Dispatchers.IO) {
+        try {
+            Log.d(TAG, "Deleting session for peer: $peerId")
 
-                val sessionFile = File(storageDir, "${peerId}${SESSION_FILE_SUFFIX}")
-                if (sessionFile.exists()) {
-                    sessionFile.delete()
-                    Log.d(TAG, "Session deleted for peer: $peerId")
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to delete session for peer: $peerId", e)
+            val sessionFile = File(storageDir, "${peerId}${SESSION_FILE_SUFFIX}")
+            if (sessionFile.exists()) {
+                sessionFile.delete()
+                Log.d(TAG, "Session deleted for peer: $peerId")
             }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to delete session for peer: $peerId", e)
         }
     }
 

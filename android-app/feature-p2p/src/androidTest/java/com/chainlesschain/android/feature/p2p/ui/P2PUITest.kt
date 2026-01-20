@@ -3,10 +3,10 @@ package com.chainlesschain.android.feature.p2p.ui
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.chainlesschain.android.core.did.models.*
+import com.chainlesschain.android.core.did.model.*
 import com.chainlesschain.android.core.e2ee.session.SessionInfo
 import com.chainlesschain.android.core.e2ee.verification.CompleteVerificationInfo
-import com.chainlesschain.android.core.p2p.models.P2PDevice
+import com.chainlesschain.android.core.p2p.model.P2PDevice
 import com.chainlesschain.android.feature.p2p.viewmodel.DeviceWithSession
 import org.junit.Rule
 import org.junit.Test
@@ -83,8 +83,7 @@ class P2PUITest {
         val device = P2PDevice(
             deviceId = "device2",
             deviceName = "New Device",
-            ipAddress = "192.168.1.100",
-            port = 8080
+            address = "192.168.1.100:8080"
         )
 
         composeTestRule.setContent {
@@ -113,8 +112,7 @@ class P2PUITest {
         val device = P2PDevice(
             deviceId = "device3",
             deviceName = "Connecting Device",
-            ipAddress = "192.168.1.101",
-            port = 8080
+            address = "192.168.1.101:8080"
         )
 
         composeTestRule.setContent {

@@ -47,7 +47,7 @@ class ConversationRepository @Inject constructor(
      * 获取对话的所有消息
      */
     fun getMessages(conversationId: String): Flow<List<Message>> {
-        return conversationDao.getMessages(conversationId).map { entities ->
+        return conversationDao.getMessagesByConversation(conversationId).map { entities ->
             entities.map { it.toDomainModel() }
         }
     }
@@ -80,7 +80,7 @@ class ConversationRepository @Inject constructor(
      */
     suspend fun deleteConversation(id: String): Result<Unit> {
         return try {
-            conversationDao.deleteConversation(id)
+            conversationDao.deleteConversationWithMessages(id)
             Result.success(Unit)
         } catch (e: Exception) {
             Result.error(e, "删除对话失败")

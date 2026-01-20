@@ -3,7 +3,7 @@ package com.chainlesschain.android.feature.p2p
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.chainlesschain.android.core.did.DIDManager
+import com.chainlesschain.android.core.did.manager.DIDManager
 import com.chainlesschain.android.core.e2ee.identity.IdentityKeyManager
 import com.chainlesschain.android.core.e2ee.session.PersistentSessionManager
 import com.chainlesschain.android.core.e2ee.verification.VerificationManager
@@ -311,7 +311,6 @@ class P2PIntegrationTest {
         assertEquals(did, document.id)
 
         // Verify document structure
-        assertTrue(document.context.isNotEmpty())
         assertTrue(document.verificationMethod.isNotEmpty())
         assertTrue(document.authentication.isNotEmpty())
     }

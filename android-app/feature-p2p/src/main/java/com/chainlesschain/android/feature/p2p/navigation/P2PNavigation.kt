@@ -44,8 +44,9 @@ fun NavGraphBuilder.p2pGraph(
         // 设备列表
         composable(route = DEVICE_LIST_ROUTE) {
             DeviceListScreen(
-                onDeviceClick = { device ->
-                    navController.navigate("p2p_chat/${device.deviceId}/${device.deviceName}")
+                onDeviceClick = { deviceId ->
+                    // deviceId is already a String, use it directly
+                    navController.navigate("p2p_chat/$deviceId/Device")
                 },
                 onVerifyClick = { peerId ->
                     navController.navigate("safety_numbers/$peerId")

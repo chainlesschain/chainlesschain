@@ -727,6 +727,7 @@ class SignalingService {
     private let serverURL: String
     private var webSocket: URLSessionWebSocketTask?
     private var isConnected = false
+    private var shouldReceive = false  // Flag to control receive loop
     private var reconnectAttempts = 0
     private let maxReconnectAttempts = 10
     private let maxReconnectDelay: TimeInterval = 300  // 5 minutes max
@@ -746,6 +747,7 @@ class SignalingService {
         webSocket?.resume()
 
         isConnected = true
+        shouldReceive = true
         reconnectAttempts = 0
 
         // Start receiving messages
@@ -754,7 +756,7 @@ class SignalingService {
         logger.debug("[Signaling] Connected to signaling server")
     }
 
-    /// Attempt to reconnect with exponential backoff
+    /// Attempt to reconnect with exponential backoff and jitter
     private func attemptReconnect() {
         guard reconnectAttempts < maxReconnectAttempts else {
             logger.error("[Signaling] Max reconnection attempts reached")
@@ -767,8 +769,11 @@ class SignalingService {
             reconnectAttempts += 1
 
             // Calculate delay with exponential backoff, capped at maxReconnectDelay
-            let delay = min(pow(2.0, Double(reconnectAttempts - 1)), maxReconnectDelay)
-            logger.debug("[Signaling] Reconnecting in \(delay) seconds (attempt \(reconnectAttempts)/\(maxReconnectAttempts))")
+            let baseDelay = min(pow(2.0, Double(reconnectAttempts - 1)), maxReconnectDelay)
+            // Add jitter (0-50% of base delay) to prevent thundering herd
+            let jitter = baseDelay * Double.random(in: 0..<0.5)
+            let delay = baseDelay + jitter
+            logger.debug("[Signaling] Reconnecting in \(String(format: "%.1f", delay)) seconds (attempt \(reconnectAttempts)/\(maxReconnectAttempts))")
 
             try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
 
@@ -799,30 +804,39 @@ class SignalingService {
     }
 
     private func receiveMessage() {
+        // Check if we should continue receiving
+        guard shouldReceive else { return }
+
         webSocket?.receive { [weak self] result in
+            // Check again after async callback
+            guard let self = self, self.shouldReceive else { return }
+
             switch result {
             case .success(let message):
                 switch message {
                 case .string(let text):
-                    self?.handleMessage(text)
+                    self.handleMessage(text)
                 case .data(let data):
                     if let text = String(data: data, encoding: .utf8) {
-                        self?.handleMessage(text)
+                        self.handleMessage(text)
                     }
                 @unknown default:
                     break
                 }
 
-                // Continue receiving
-                self?.receiveMessage()
+                // Continue receiving only if flag is still set
+                if self.shouldReceive {
+                    self.receiveMessage()
+                }
 
             case .failure(let error):
                 logger.error("[Signaling] Receive error: \(error)")
 
                 // Mark as disconnected and attempt reconnection
-                self?.isConnected = false
-                self?.webSocket = nil
-                self?.attemptReconnect()
+                self.isConnected = false
+                self.shouldReceive = false
+                self.webSocket = nil
+                self.attemptReconnect()
             }
         }
     }
@@ -845,6 +859,7 @@ class SignalingService {
         reconnectTask?.cancel()
         reconnectTask = nil
         isConnected = false
+        shouldReceive = false  // Stop receive loop
         webSocket?.cancel(with: .goingAway, reason: nil)
         webSocket = nil
     }

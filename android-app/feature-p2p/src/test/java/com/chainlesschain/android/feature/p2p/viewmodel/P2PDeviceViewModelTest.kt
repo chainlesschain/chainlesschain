@@ -4,7 +4,7 @@ import com.chainlesschain.android.core.e2ee.session.PersistentSessionManager
 import com.chainlesschain.android.core.e2ee.session.SessionInfo
 import com.chainlesschain.android.core.e2ee.verification.VerificationManager
 import com.chainlesschain.android.core.p2p.discovery.NSDDeviceDiscovery
-import com.chainlesschain.android.core.p2p.models.P2PDevice
+import com.chainlesschain.android.core.p2p.model.P2PDevice
 import io.mockk.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -88,8 +88,8 @@ class P2PDeviceViewModelTest {
     fun `discovered devices should be collected from deviceDiscovery`() = runTest {
         // Given
         val testDevices = listOf(
-            P2PDevice("device1", "Device 1", "192.168.1.1", 8080),
-            P2PDevice("device2", "Device 2", "192.168.1.2", 8080)
+            P2PDevice(deviceId = "device1", deviceName = "Device 1", address = "192.168.1.1:8080"),
+            P2PDevice(deviceId = "device2", deviceName = "Device 2", address = "192.168.1.2:8080")
         )
 
         // When
@@ -131,7 +131,7 @@ class P2PDeviceViewModelTest {
     @Test
     fun `connectDevice should update UI state to Connecting`() = runTest {
         // Given
-        val testDevice = P2PDevice("device1", "Device 1", "192.168.1.1", 8080)
+        val testDevice = P2PDevice(deviceId = "device1", deviceName = "Device 1", address = "192.168.1.1:8080")
 
         // When
         viewModel.connectDevice(testDevice)

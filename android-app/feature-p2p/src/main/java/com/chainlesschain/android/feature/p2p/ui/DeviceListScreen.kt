@@ -12,7 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.chainlesschain.android.core.p2p.models.P2PDevice
+import com.chainlesschain.android.core.p2p.model.P2PDevice
 import com.chainlesschain.android.feature.p2p.viewmodel.DeviceUiState
 import com.chainlesschain.android.feature.p2p.viewmodel.DeviceWithSession
 import com.chainlesschain.android.feature.p2p.viewmodel.P2PDeviceViewModel
