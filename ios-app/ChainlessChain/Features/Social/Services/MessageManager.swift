@@ -19,6 +19,9 @@ class MessageManager: ObservableObject {
     private var outgoingQueues: [String: [Message]] = [:] // peerId -> messages
     private var batchTimers: [String: Timer] = [:]
 
+    // Cleanup timer
+    private var cleanupTimer: Timer?
+
     // Deduplication cache
     private var receivedMessages: [String: Date] = [:] // messageId -> timestamp
     private var sentMessages: [String: SentMessage] = [:] // messageId -> message info
@@ -232,11 +235,20 @@ class MessageManager: ObservableObject {
 
     /// Start cleanup timer
     private func startCleanupTimer() {
-        Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
+        // Invalidate existing timer if any
+        cleanupTimer?.invalidate()
+
+        cleanupTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
             Task { @MainActor in
                 self?.cleanupExpiredMessages()
             }
         }
+    }
+
+    /// Stop cleanup timer
+    func stopCleanupTimer() {
+        cleanupTimer?.invalidate()
+        cleanupTimer = nil
     }
 
     /// Cleanup expired messages
@@ -248,13 +260,13 @@ class MessageManager: ObservableObject {
             now.timeIntervalSince(timestamp) < deduplicationWindow
         }
 
-        // Limit cache size
+        // Limit cache size using LRU eviction
         if receivedMessages.count > maxDeduplicationCache {
-            let sortedKeys = receivedMessages.keys.sorted { key1, key2 in
-                receivedMessages[key1]! < receivedMessages[key2]!
+            // Sort by timestamp (oldest first) using safe optional binding
+            let sorted = receivedMessages.sorted { entry1, entry2 in
+                entry1.value < entry2.value
             }
-
-            let keysToRemove = sortedKeys.prefix(receivedMessages.count - maxDeduplicationCache)
+            let keysToRemove = sorted.prefix(receivedMessages.count - maxDeduplicationCache).map { $0.key }
             keysToRemove.forEach { receivedMessages.removeValue(forKey: $0) }
         }
 

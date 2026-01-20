@@ -72,6 +72,9 @@ fun NewConversationScreen(
                                 title = "新对话"
                             }
                             selectedModel?.let { model ->
+                                // 先设置当前模型（setApiKey需要currentModel）
+                                viewModel.setCurrentModel(model)
+
                                 // 保存API Key
                                 if (apiKey.isNotEmpty()) {
                                     viewModel.setApiKey(apiKey)

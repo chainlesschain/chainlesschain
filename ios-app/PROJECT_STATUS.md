@@ -1,7 +1,7 @@
 # ChainlessChain iOS 项目状态报告
 
 **生成日期**: 2026-01-20
-**版本**: v0.4.9
+**版本**: v0.5.0
 **完成度**: 100%
 
 ---
@@ -313,6 +313,7 @@ Assets.xcassets/                # 应用资源
 | 2026-01-20 | v0.4.7 | 100%   | ProjectAIManager项目AI集成、项目单元测试（参考桌面端project-ai-ipc.js）    |
 | 2026-01-20 | v0.4.8 | 100%   | IntentUnderstandingService意图理解、内容处理（润色/扩写/摘要/翻译）        |
 | 2026-01-20 | v0.4.9 | 100%   | 代码操作（重构/解释/Bug修复/测试生成/优化）、任务执行、ProjectRAGManager   |
+| 2026-01-20 | v0.5.0 | 100%   | 安全修复（NULL指针、强制解包）、内存泄漏修复、Timer管理、VectorStore优化   |
 
 ---
 
