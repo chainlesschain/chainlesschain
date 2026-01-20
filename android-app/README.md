@@ -4,8 +4,8 @@ ChainlessChain的Android原生旗舰版本，提供极致性能和完整硬件�
 
 ## 项目状态
 
-**当前版本**: v0.5.0 (MVP Phase 5 完整实现 - P2P集成 + 离线队列 + 测试覆盖)
-**完成度**: 70%
+**当前版本**: v0.6.0 (MVP Phase 6 - P2P网络增强 + 心跳重连 + NAT穿透)
+**完成度**: 75%
 
 ### ✅ 已完成（Phase 1 + Phase 2 + Phase 3 + Phase 4 + Phase 5）
 
@@ -109,11 +109,64 @@ ChainlessChain的Android原生旗舰版本，提供极致性能和完整硬件�
 - [x] P2PChatViewModelTest (12个用例)
 - [x] **总计120+个测试用例，覆盖核心功能**
 
+**Phase 6 (Week 11-12)：** ⭐完成
+
+**P2P网络增强：**
+
+- [x] HeartbeatManager 心跳管理器（~400行）
+  - 15秒心跳间隔，35秒连接超时检测
+  - 设备注册/注销、心跳记录
+  - 连接超时事件和重连触发
+- [x] AutoReconnectManager 自动重连管理器（~380行）
+  - 设备信息缓存用于重连
+  - 重连任务队列和定时调度
+  - 指数退避重连（2s→4s→8s→16s→32s→60s max）
+  - 暂停/恢复重连能力
+- [x] SignalingClient 信令增强
+  - 连接超时 10 秒
+  - Socket 读取超时 30 秒
+  - 自动重连（最多 3 次）
+  - 连接状态流和事件流
+- [x] P2PConnectionManager 集成
+  - 心跳消息自动过滤处理
+  - 断线自动触发重连流程
+  - 设备状态查询 API
+- [x] P2PNetworkModule DI配置（Hilt）
+
+**网络监控：**
+
+- [x] NetworkMonitor 网络监听器（~250行）
+  - ConnectivityManager 集成
+  - 网络类型检测（WiFi/Cellular/Ethernet）
+  - 网络变化事件流
+  - P2P 连接适配性检测
+- [x] P2PNetworkCoordinator 协调器（~350行）
+  - 统一的 P2P 网络管理 API
+  - 网络状态感知的连接管理
+  - 智能重连策略
+  - P2P 网络统计
+
+**NAT 穿透增强：**
+
+- [x] IceServerConfig ICE服务器配置（~350行）
+  - 8 个公共 STUN 服务器
+  - 多 TURN 服务器支持
+  - 动态 ICE 传输策略
+  - STUN 服务器测试工具
+
+**测试覆盖：**
+
+- [x] HeartbeatManagerTest (18个用例)
+- [x] AutoReconnectManagerTest (18个用例)
+- [x] SignalingClientTest (14个用例)
+- [x] NetworkMonitorTest (15个用例)
+- [x] IceServerConfigTest (18个用例)
+- [x] **总计200+个测试用例，覆盖核心功能**
+
 ### 🚧 进行中
 
-- [ ] 真实P2P网络连接（libp2p集成）
-- [ ] NAT穿透（STUN/TURN）
-- [ ] 文件传输模块
+- [ ] 文件传输模块（分块传输、进度回调）
+- [ ] WebRTC 集成 IceServerConfig
 
 ---
 
