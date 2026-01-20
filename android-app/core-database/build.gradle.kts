@@ -61,5 +61,7 @@ dependencies {
     testImplementation("io.mockk:mockk:1.13.9")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
     testImplementation("androidx.room:room-testing:$roomVersion")
+    testImplementation("org.jetbrains.kotlin:kotlin-test:1.9.22")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
+    androidTestImplementation("androidx.room:room-testing:$roomVersion")
 }
