@@ -282,10 +282,11 @@ fun FileTransferCard(
             }
 
             // Error message
-            if (transfer.status == FileTransferStatusEnum.FAILED && !transfer.errorMessage.isNullOrEmpty()) {
+            val errorMsg = transfer.errorMessage
+            if (transfer.status == FileTransferStatusEnum.FAILED && !errorMsg.isNullOrEmpty()) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = transfer.errorMessage,
+                    text = errorMsg,
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.error
                 )

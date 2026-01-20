@@ -52,7 +52,7 @@ class P2PUITest {
                 peerId = "device1",
                 sendMessageNumber = 10,
                 receiveMessageNumber = 8,
-                createdAt = System.currentTimeMillis()
+                skippedMessagesCount = 0
             )
         )
 

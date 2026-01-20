@@ -117,9 +117,12 @@ fun NavGraphBuilder.projectNavGraph(
                 viewModel = viewModel,
                 onNavigateBack = { navController.popBackStack() },
                 onProjectCreated = { projectId ->
-                    navController.navigateToProjectDetail(projectId) {
-                        popUpTo(ProjectRoute.LIST)
-                    }
+                    navController.navigateToProjectDetail(
+                        projectId,
+                        NavOptions.Builder()
+                            .setPopUpTo(ProjectRoute.LIST, false)
+                            .build()
+                    )
                 }
             )
         }

@@ -20,6 +20,8 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.builtins.serializer
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -155,7 +157,7 @@ class ProjectRepository @Inject constructor(
                     icon = request.icon,
                     tags = request.tags?.let {
                         kotlinx.serialization.json.Json.encodeToString(
-                            kotlinx.serialization.builtins.ListSerializer(kotlinx.serialization.builtins.serializer<String>()),
+                            ListSerializer(String.serializer()),
                             it
                         )
                     },
@@ -199,7 +201,7 @@ class ProjectRepository @Inject constructor(
                     coverImage = request.coverImage ?: existing.coverImage,
                     tags = request.tags?.let {
                         kotlinx.serialization.json.Json.encodeToString(
-                            kotlinx.serialization.builtins.ListSerializer(kotlinx.serialization.builtins.serializer<String>()),
+                            ListSerializer(String.serializer()),
                             it
                         )
                     } ?: existing.tags,

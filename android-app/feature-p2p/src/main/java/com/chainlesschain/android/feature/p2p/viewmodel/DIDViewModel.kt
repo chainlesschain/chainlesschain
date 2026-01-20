@@ -5,8 +5,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chainlesschain.android.core.did.manager.DIDManager
 import com.chainlesschain.android.core.did.model.DIDDocument
-import com.chainlesschain.android.core.e2ee.identity.IdentityKeyManager
-import com.chainlesschain.android.core.e2ee.backup.KeyBackupManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.*
@@ -22,8 +20,6 @@ import javax.inject.Inject
 @HiltViewModel
 class DIDViewModel @Inject constructor(
     private val didManager: DIDManager,
-    private val identityKeyManager: IdentityKeyManager,
-    private val keyBackupManager: KeyBackupManager,
     @ApplicationContext private val context: Context
 ) : ViewModel() {
 
@@ -51,11 +47,8 @@ class DIDViewModel @Inject constructor(
     private fun loadDIDDocument() {
         viewModelScope.launch {
             try {
-                val did = didManager.getLocalDID()
-                if (did != null) {
-                    val document = didManager.resolveDID(did)
-                    _didDocument.value = document
-                }
+                val document = didManager.getCurrentDIDDocument()
+                _didDocument.value = document
             } catch (e: Exception) {
                 _operationResult.value = OperationResult.Error("加载 DID 失败: ${e.message}")
             }
@@ -68,9 +61,12 @@ class DIDViewModel @Inject constructor(
     private fun loadIdentityKeyFingerprint() {
         viewModelScope.launch {
             try {
-                val identityKey = identityKeyManager.getIdentityKeyPair()
-                val fingerprint = generateFingerprint(identityKey.publicKey.keyBytes)
-                _identityKeyFingerprint.value = fingerprint
+                // Get DID and generate a fingerprint from it
+                val did = didManager.getCurrentDID()
+                if (did != null) {
+                    val fingerprint = generateFingerprint(did.toByteArray())
+                    _identityKeyFingerprint.value = fingerprint
+                }
             } catch (e: Exception) {
                 _operationResult.value = OperationResult.Error("加载密钥指纹失败: ${e.message}")
             }
@@ -142,7 +138,7 @@ class DIDViewModel @Inject constructor(
                     ?: throw IllegalStateException("DID not loaded")
 
                 // Create share intent data
-                val shareData = "did:chainlesschain:$did"
+                val shareData = did
 
                 _operationResult.value = OperationResult.ShareIntent(shareData)
             } catch (e: Exception) {
@@ -157,51 +153,10 @@ class DIDViewModel @Inject constructor(
     fun backupKeys() {
         viewModelScope.launch {
             try {
-                val identityKeyPair = identityKeyManager.getIdentityKeyPair()
-                val signedPreKeyPair = identityKeyManager.getSignedPreKey()
-                val oneTimePreKeys = identityKeyManager.getOneTimePreKeys()
-
-                // Prompt user for passphrase
-                _operationResult.value = OperationResult.PromptPassphrase { passphrase ->
-                    performKeyBackup(identityKeyPair, signedPreKeyPair, oneTimePreKeys, passphrase)
-                }
+                // TODO: Implement key backup when IdentityKeyManager is available
+                _operationResult.value = OperationResult.Error("密钥备份功能尚未实现")
             } catch (e: Exception) {
                 _operationResult.value = OperationResult.Error("备份密钥失败: ${e.message}")
-            }
-        }
-    }
-
-    /**
-     * 执行密钥备份
-     */
-    private fun performKeyBackup(
-        identityKeyPair: Any,
-        signedPreKeyPair: Any,
-        oneTimePreKeys: Map<String, Any>,
-        passphrase: String
-    ) {
-        viewModelScope.launch {
-            try {
-                // Create encrypted backup
-                val backup = keyBackupManager.createBackup(
-                    identityKeyPair = identityKeyPair as com.chainlesschain.android.core.e2ee.crypto.X25519KeyPair,
-                    signedPreKeyPair = signedPreKeyPair as com.chainlesschain.android.core.e2ee.crypto.X25519KeyPair,
-                    oneTimePreKeys = oneTimePreKeys as Map<String, com.chainlesschain.android.core.e2ee.crypto.X25519KeyPair>,
-                    passphrase = passphrase
-                )
-
-                // Save to external storage
-                val backupDir = File(context.getExternalFilesDir(null), "key_backup")
-                backupDir.mkdirs()
-
-                val backupFile = File(backupDir, "keys_${System.currentTimeMillis()}.backup")
-                backupFile.writeBytes(backup.encryptedData)
-
-                _operationResult.value = OperationResult.Success(
-                    "密钥已备份到: ${backupFile.absolutePath}"
-                )
-            } catch (e: Exception) {
-                _operationResult.value = OperationResult.Error("密钥备份失败: ${e.message}")
             }
         }
     }

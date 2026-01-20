@@ -296,6 +296,22 @@ function registerAllIPC(dependencies) {
     // 关键IPC模块 - 提前注册 (用于E2E测试)
     // ============================================================
 
+    // 🔥 MCP 基础配置 IPC - 始终注册，允许用户通过UI启用/禁用MCP
+    // 这是独立于MCP系统初始化的，因为用户需要先能配置MCP才能启用它
+    logger.info("[IPC Registry] Registering MCP Basic Config IPC (early)...");
+    try {
+      const { registerBasicMCPConfigIPC } = require("../mcp/mcp-ipc");
+      registerBasicMCPConfigIPC();
+      logger.info(
+        "[IPC Registry] ✓ MCP Basic Config IPC registered (early, 3 handlers)",
+      );
+    } catch (mcpError) {
+      logger.error(
+        "[IPC Registry] ❌ MCP Basic Config IPC registration failed:",
+        mcpError.message,
+      );
+    }
+
     // 系统窗口控制 - 提前注册 (不需要 mainWindow 的部分)
     logger.info("[IPC Registry] Registering System IPC (early)...");
     const { registerSystemIPC } = require("../system/system-ipc");

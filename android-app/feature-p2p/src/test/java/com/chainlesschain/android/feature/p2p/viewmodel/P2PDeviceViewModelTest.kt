@@ -3,7 +3,7 @@ package com.chainlesschain.android.feature.p2p.viewmodel
 import com.chainlesschain.android.core.e2ee.session.PersistentSessionManager
 import com.chainlesschain.android.core.e2ee.session.SessionInfo
 import com.chainlesschain.android.core.e2ee.verification.VerificationManager
-import com.chainlesschain.android.core.p2p.discovery.NSDDeviceDiscovery
+import com.chainlesschain.android.core.p2p.discovery.DeviceDiscovery
 import com.chainlesschain.android.core.p2p.model.P2PDevice
 import io.mockk.*
 import kotlinx.coroutines.Dispatchers
@@ -24,7 +24,7 @@ import kotlin.test.assertTrue
 class P2PDeviceViewModelTest {
 
     private lateinit var viewModel: P2PDeviceViewModel
-    private lateinit var deviceDiscovery: NSDDeviceDiscovery
+    private lateinit var deviceDiscovery: DeviceDiscovery
     private lateinit var sessionManager: PersistentSessionManager
     private lateinit var verificationManager: VerificationManager
 
@@ -41,7 +41,7 @@ class P2PDeviceViewModelTest {
         sessionManager = mockk(relaxed = true)
         verificationManager = mockk(relaxed = true)
 
-        every { deviceDiscovery.discoveredDevices } returns discoveredDevicesFlow
+        every { deviceDiscovery.observeDiscoveredDevices() } returns discoveredDevicesFlow
         every { sessionManager.activeSessions } returns activeSessionsFlow
 
         viewModel = P2PDeviceViewModel(
@@ -108,13 +108,13 @@ class P2PDeviceViewModelTest {
                 peerId = "peer1",
                 sendMessageNumber = 10,
                 receiveMessageNumber = 8,
-                createdAt = System.currentTimeMillis()
+                skippedMessagesCount = 0
             ),
             SessionInfo(
                 peerId = "peer2",
                 sendMessageNumber = 5,
                 receiveMessageNumber = 3,
-                createdAt = System.currentTimeMillis()
+                skippedMessagesCount = 0
             )
         )
 
