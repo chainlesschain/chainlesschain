@@ -644,7 +644,7 @@ function registerAllIPC(dependencies) {
     const { registerDocumentIPC } = require("../document/document-ipc");
 
     registerDocumentIPC({
-      convertSlidesToOutline: app.convertSlidesToOutline.bind(app),
+      convertSlidesToOutline: app.convertSlidesToOutline?.bind(app),
     });
     logger.info("[IPC Registry] ✓ Document IPC registered (1 handler)");
 
