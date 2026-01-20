@@ -32,7 +32,7 @@ class RAGRetrieverTest {
             content = "Kotlin协程是一种轻量级的并发编程方式，可以简化异步代码的编写。协程使用suspend关键字定义挂起函数。",
             createdAt = System.currentTimeMillis(),
             updatedAt = System.currentTimeMillis(),
-            userId = "user1"
+            deviceId = "device1"
         ),
         KnowledgeItemEntity(
             id = "2",
@@ -40,7 +40,7 @@ class RAGRetrieverTest {
             content = "Android应用开发需要掌握Activity、Fragment、ViewModel等核心组件。Jetpack库提供了现代化的开发工具。",
             createdAt = System.currentTimeMillis(),
             updatedAt = System.currentTimeMillis(),
-            userId = "user1"
+            deviceId = "device1"
         ),
         KnowledgeItemEntity(
             id = "3",
@@ -48,7 +48,7 @@ class RAGRetrieverTest {
             content = "Jetpack Compose是Android的声明式UI工具包，使用Kotlin编写UI代码。Compose简化了UI开发流程。",
             createdAt = System.currentTimeMillis(),
             updatedAt = System.currentTimeMillis(),
-            userId = "user1"
+            deviceId = "device1"
         )
     )
 
@@ -64,7 +64,7 @@ class RAGRetrieverTest {
             val offset = (vectorCounter++ % 10) * 0.1f
             FloatArray(256) { (it * 0.01f + offset) }
         }
-        coEvery { enhancedTfIdfEmbedder.getDimension() } returns 256
+        every { enhancedTfIdfEmbedder.getDimension() } returns 256
         coEvery { enhancedTfIdfEmbedder.initialize() } returns Unit
         coEvery { enhancedTfIdfEmbedder.updateFromCorpus(any()) } returns Unit
         every { enhancedTfIdfEmbedder.getStats() } returns EmbedderStats(
@@ -87,7 +87,7 @@ class RAGRetrieverTest {
         val topK = 2
 
         val pagingSource = mockk<PagingSource<Int, KnowledgeItemEntity>>()
-        val loadResult = PagingSource.LoadResult.Page(
+        val loadResult: PagingSource.LoadResult<Int, KnowledgeItemEntity> = PagingSource.LoadResult.Page(
             data = testItems.take(2),
             prevKey = null,
             nextKey = null
@@ -260,7 +260,7 @@ class RAGRetrieverTest {
                 content = "这是第 $i 个测试文档的内容",
                 createdAt = System.currentTimeMillis(),
                 updatedAt = System.currentTimeMillis(),
-                userId = "user1"
+                deviceId = "device1"
             )
         }
 
@@ -294,7 +294,7 @@ class RAGRetrieverTest {
         // Given
         val query = "Kotlin#协程*测试?"
         val pagingSource = mockk<PagingSource<Int, KnowledgeItemEntity>>()
-        val loadResult = PagingSource.LoadResult.Page<Int, KnowledgeItemEntity>(
+        val loadResult: PagingSource.LoadResult<Int, KnowledgeItemEntity> = PagingSource.LoadResult.Page(
             data = emptyList(),
             prevKey = null,
             nextKey = null
@@ -315,7 +315,7 @@ class RAGRetrieverTest {
         // Given
         val query = "Kotlin"
         val pagingSource = mockk<PagingSource<Int, KnowledgeItemEntity>>()
-        val loadResult = PagingSource.LoadResult.Page(
+        val loadResult: PagingSource.LoadResult<Int, KnowledgeItemEntity> = PagingSource.LoadResult.Page(
             data = testItems.take(1),
             prevKey = null,
             nextKey = null

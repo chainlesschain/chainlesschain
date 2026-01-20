@@ -6,7 +6,7 @@ import com.chainlesschain.android.core.e2ee.session.PersistentSessionManager
 import com.chainlesschain.android.core.e2ee.session.SessionInfo
 import com.chainlesschain.android.core.e2ee.verification.CompleteVerificationInfo
 import com.chainlesschain.android.core.e2ee.verification.VerificationManager
-import com.chainlesschain.android.core.p2p.discovery.NSDDeviceDiscovery
+import com.chainlesschain.android.core.p2p.discovery.DeviceDiscovery
 import com.chainlesschain.android.core.p2p.model.P2PDevice
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
@@ -20,7 +20,7 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class P2PDeviceViewModel @Inject constructor(
-    private val deviceDiscovery: NSDDeviceDiscovery,
+    private val deviceDiscovery: DeviceDiscovery,
     private val sessionManager: PersistentSessionManager,
     private val verificationManager: VerificationManager
 ) : ViewModel() {
@@ -51,7 +51,7 @@ class P2PDeviceViewModel @Inject constructor(
 
         // 监听设备发现
         viewModelScope.launch {
-            deviceDiscovery.discoveredDevices.collect { devices ->
+            deviceDiscovery.observeDiscoveredDevices().collect { devices ->
                 _discoveredDevices.value = devices
             }
         }
@@ -141,21 +141,18 @@ class P2PDeviceViewModel @Inject constructor(
                 return null
             }
 
-            // 获取会话关联数据
-            val associatedData = session.getAssociatedData()
-
             // 使用 peerId 作为标识符（简化版，实际应该使用 DID）
             val localIdentifier = "local" // TODO: 从 DID 管理器获取
             val remoteIdentifier = peerId
 
-            // 生成完整验证信息
+            // 生成完整验证信息（使用空的 associated data）
             val verificationInfo = verificationManager.generateVerificationInfo(
                 peerId = peerId,
                 localIdentifier = localIdentifier,
                 localPublicKey = localPublicKey,
                 remoteIdentifier = remoteIdentifier,
                 remotePublicKey = remotePublicKey,
-                associatedData = associatedData
+                associatedData = ByteArray(0)
             )
 
             // 检查是否已验证

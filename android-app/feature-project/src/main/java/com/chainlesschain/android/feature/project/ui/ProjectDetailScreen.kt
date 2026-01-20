@@ -495,9 +495,9 @@ private fun ProjectInfoCard(
         )
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            if (!project.description.isNullOrBlank()) {
+            project.description?.takeIf { it.isNotBlank() }?.let { desc ->
                 Text(
-                    text = project.description,
+                    text = desc,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

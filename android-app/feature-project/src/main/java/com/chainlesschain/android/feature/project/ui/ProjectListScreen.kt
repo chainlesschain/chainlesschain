@@ -395,9 +395,9 @@ private fun ProjectCard(
                             overflow = TextOverflow.Ellipsis
                         )
 
-                        if (!project.description.isNullOrBlank()) {
+                        project.description?.takeIf { it.isNotBlank() }?.let { desc ->
                             Text(
-                                text = project.description,
+                                text = desc,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,

@@ -283,7 +283,7 @@ fun DeviceCard(
                         tint = MaterialTheme.colorScheme.tertiary
                     )
                     Text(
-                        text = "E2EE会话 • ${formatSessionTime(device.sessionInfo.createdAt)}",
+                        text = "E2EE会话 • ${device.sessionInfo.sendMessageNumber}/${device.sessionInfo.receiveMessageNumber} 消息",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
