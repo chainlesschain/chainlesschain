@@ -726,6 +726,11 @@ enum P2PError: LocalizedError {
 class SignalingService {
     private let serverURL: String
     private var webSocket: URLSessionWebSocketTask?
+    private var isConnected = false
+    private var reconnectAttempts = 0
+    private let maxReconnectAttempts = 10
+    private let maxReconnectDelay: TimeInterval = 300  // 5 minutes max
+    private var reconnectTask: Task<Void, Never>?
 
     init(serverURL: String) {
         self.serverURL = serverURL
@@ -740,10 +745,43 @@ class SignalingService {
         webSocket = session.webSocketTask(with: url)
         webSocket?.resume()
 
+        isConnected = true
+        reconnectAttempts = 0
+
         // Start receiving messages
         receiveMessage()
 
         logger.debug("[Signaling] Connected to signaling server")
+    }
+
+    /// Attempt to reconnect with exponential backoff
+    private func attemptReconnect() {
+        guard reconnectAttempts < maxReconnectAttempts else {
+            logger.error("[Signaling] Max reconnection attempts reached")
+            NotificationCenter.default.post(name: .signalingDisconnected, object: nil)
+            return
+        }
+
+        reconnectTask?.cancel()
+        reconnectTask = Task {
+            reconnectAttempts += 1
+
+            // Calculate delay with exponential backoff, capped at maxReconnectDelay
+            let delay = min(pow(2.0, Double(reconnectAttempts - 1)), maxReconnectDelay)
+            logger.debug("[Signaling] Reconnecting in \(delay) seconds (attempt \(reconnectAttempts)/\(maxReconnectAttempts))")
+
+            try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+
+            guard !Task.isCancelled else { return }
+
+            do {
+                try await connect()
+                logger.info("[Signaling] Reconnected successfully", category: "P2P")
+            } catch {
+                logger.error("[Signaling] Reconnection failed: \(error)")
+                attemptReconnect()
+            }
+        }
     }
 
     func send(_ message: SignalingMessage) async throws {
@@ -780,6 +818,11 @@ class SignalingService {
 
             case .failure(let error):
                 logger.error("[Signaling] Receive error: \(error)")
+
+                // Mark as disconnected and attempt reconnection
+                self?.isConnected = false
+                self?.webSocket = nil
+                self?.attemptReconnect()
             }
         }
     }
@@ -799,8 +842,16 @@ class SignalingService {
     }
 
     func disconnect() {
+        reconnectTask?.cancel()
+        reconnectTask = nil
+        isConnected = false
         webSocket?.cancel(with: .goingAway, reason: nil)
         webSocket = nil
+    }
+
+    /// Check if currently connected
+    var connected: Bool {
+        return isConnected && webSocket != nil
     }
 }
 
@@ -849,5 +900,6 @@ extension Notification.Name {
     static let p2pPeerConnected = Notification.Name("p2pPeerConnected")
     static let p2pPeerDisconnected = Notification.Name("p2pPeerDisconnected")
     static let signalingMessageReceived = Notification.Name("signalingMessageReceived")
+    static let signalingDisconnected = Notification.Name("signalingDisconnected")
 }
 

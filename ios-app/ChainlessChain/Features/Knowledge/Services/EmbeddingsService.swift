@@ -1,5 +1,6 @@
 import Foundation
 import CoreCommon
+import CryptoKit
 
 /// Embeddings Service - Generates text embeddings for semantic search
 /// Reference: desktop-app-vue/src/main/rag/embeddings-service.js
@@ -150,12 +151,11 @@ class EmbeddingsService: ObservableObject {
     }
 
     private func getCacheKey(_ text: String) -> String {
-        // Simple hash function
-        var hash: UInt32 = 0
-        for char in text.utf16 {
-            hash = hash &<< 5 &- hash &+ UInt32(char)
-        }
-        return String(hash)
+        // Use SHA256 for collision-resistant hashing
+        let data = Data(text.utf8)
+        let hash = SHA256.hash(data: data)
+        // Return first 16 hex chars (64 bits) - sufficient for cache key uniqueness
+        return hash.prefix(8).map { String(format: "%02x", $0) }.joined()
     }
 
     private func getCacheHitRate() -> Double {

@@ -295,10 +295,13 @@ class MessageDeliveryManager: ObservableObject {
         }
     }
 
+    private let maxRetryDelay: TimeInterval = 300  // 5 minutes max
+
     private func calculateRetryDelay(messageId: String) -> TimeInterval {
         let retryCount = pendingDeliveries[messageId]?.retryCount ?? 0
-        // Exponential backoff: 1s, 2s, 4s
-        return pow(2.0, Double(retryCount - 1))
+        // Exponential backoff: 1s, 2s, 4s, ... capped at maxRetryDelay
+        let delay = pow(2.0, Double(max(0, retryCount - 1)))
+        return min(delay, maxRetryDelay)
     }
 
     private func retryDelivery(messageId: String, peerId: String) async {

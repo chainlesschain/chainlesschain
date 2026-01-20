@@ -23,6 +23,15 @@ class P2PViewModel: ObservableObject {
     // Notification observer tokens for cleanup
     private var notificationObservers: [NSObjectProtocol] = []
 
+    // Rate limiting
+    private var messageTimestamps: [String: [Date]] = [:]  // peerId -> timestamps
+    private let maxMessagesPerSecond = 10
+    private let rateLimitWindow: TimeInterval = 1.0
+
+    // Contact name cache (avoids N+1 database queries)
+    private var contactNameCache: [String: String] = [:]
+    private let maxContactCacheSize = 200
+
     struct PeerInfo: Identifiable {
         let id: String
         let name: String
@@ -331,6 +340,13 @@ class P2PViewModel: ObservableObject {
     }
 
     func sendMessage(to peerId: String, content: String, type: MessageManager.Message.MessageType = .text) async {
+        // Rate limiting check
+        guard checkRateLimit(for: peerId) else {
+            errorMessage = "发送过于频繁，请稍后再试"
+            logger.warning("[P2PViewModel] Rate limit exceeded for peer: \(peerId)", category: "P2P")
+            return
+        }
+
         do {
             // Ensure we have a conversation
             let conversation = try messageRepository.getOrCreateConversation(with: peerId, myDid: myDid)
@@ -843,18 +859,88 @@ class P2PViewModel: ObservableObject {
         )
     }
 
-    /// Get peer display name
+    /// Get peer display name (with caching to avoid repeated database queries)
     private func getPeerName(peerId: String) -> String {
+        // Check connected peers first
         if let peer = connectedPeers.first(where: { $0.id == peerId }) {
+            contactNameCache[peerId] = peer.name
             return peer.name
+        }
+
+        // Check cache
+        if let cachedName = contactNameCache[peerId] {
+            return cachedName
         }
 
         // Try to get from contacts repository
         if let contact = try? P2PContactRepository.shared.getContact(did: peerId) {
-            return contact.displayName ?? String(peerId.prefix(8))
+            let name = contact.displayName ?? String(peerId.prefix(8))
+
+            // Cache the result
+            if contactNameCache.count >= maxContactCacheSize {
+                // Remove oldest entry (simple LRU approximation)
+                contactNameCache.removeValue(forKey: contactNameCache.keys.first ?? "")
+            }
+            contactNameCache[peerId] = name
+
+            return name
         }
 
-        return String(peerId.prefix(8))
+        // Fallback to truncated peer ID
+        let name = String(peerId.prefix(8))
+        contactNameCache[peerId] = name
+        return name
+    }
+
+    /// Invalidate cached contact name (call when contact is updated)
+    func invalidateContactNameCache(for peerId: String? = nil) {
+        if let peerId = peerId {
+            contactNameCache.removeValue(forKey: peerId)
+        } else {
+            contactNameCache.removeAll()
+        }
+    }
+
+    // MARK: - Rate Limiting
+
+    /// Check if sending a message is within rate limits
+    private func checkRateLimit(for peerId: String) -> Bool {
+        let now = Date()
+
+        // Get existing timestamps for this peer
+        var timestamps = messageTimestamps[peerId] ?? []
+
+        // Remove timestamps outside the rate limit window
+        timestamps = timestamps.filter { now.timeIntervalSince($0) < rateLimitWindow }
+
+        // Check if we're at the limit
+        if timestamps.count >= maxMessagesPerSecond {
+            return false
+        }
+
+        // Record this message timestamp
+        timestamps.append(now)
+        messageTimestamps[peerId] = timestamps
+
+        // Clean up old entries periodically (every 100 messages)
+        if messageTimestamps.values.flatMap({ $0 }).count > 100 {
+            cleanupRateLimitTracking()
+        }
+
+        return true
+    }
+
+    /// Clean up old rate limit tracking data
+    private func cleanupRateLimitTracking() {
+        let now = Date()
+        for (peerId, timestamps) in messageTimestamps {
+            let validTimestamps = timestamps.filter { now.timeIntervalSince($0) < rateLimitWindow }
+            if validTimestamps.isEmpty {
+                messageTimestamps.removeValue(forKey: peerId)
+            } else {
+                messageTimestamps[peerId] = validTimestamps
+            }
+        }
     }
 
     // MARK: - Error Handling
