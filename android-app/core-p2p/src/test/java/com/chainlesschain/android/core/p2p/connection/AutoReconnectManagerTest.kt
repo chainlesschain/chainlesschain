@@ -268,8 +268,8 @@ class AutoReconnectManagerTest {
             }
         }
 
-        // Ensure collector is started
-        yield()
+        // Ensure collector is started - runCurrent() properly advances StandardTestDispatcher
+        runCurrent()
 
         autoReconnectManager.start { }
 
@@ -283,6 +283,7 @@ class AutoReconnectManagerTest {
 
         // Then
         job.cancel()
+        assertTrue(events.isNotEmpty(), "Expected at least one reconnect status event")
         assertTrue(events.any { it.status == ReconnectStatus.SCHEDULED && it.deviceId == testDevice.deviceId })
     }
 
@@ -299,8 +300,8 @@ class AutoReconnectManagerTest {
             }
         }
 
-        // Ensure collector is started
-        yield()
+        // Ensure collector is started - runCurrent() properly advances StandardTestDispatcher
+        runCurrent()
 
         autoReconnectManager.start { /* success */ }
 
@@ -315,6 +316,7 @@ class AutoReconnectManagerTest {
         // Then
         job.cancel()
         // After successful reconnect with delay=0, we expect SCHEDULED then SUCCESS
+        assertTrue(events.isNotEmpty(), "Expected at least one reconnect status event")
         assertTrue(events.any { it.status == ReconnectStatus.SCHEDULED } || events.any { it.status == ReconnectStatus.SUCCESS })
     }
 
@@ -334,8 +336,8 @@ class AutoReconnectManagerTest {
             }
         }
 
-        // Ensure collector is started
-        yield()
+        // Ensure collector is started - runCurrent() properly advances StandardTestDispatcher
+        runCurrent()
 
         autoReconnectManager.start { throw Exception("Connection failed") }
 
@@ -350,6 +352,7 @@ class AutoReconnectManagerTest {
         // Then
         job.cancel()
         // Expect SCHEDULED then FAILED (or RETRYING)
+        assertTrue(events.isNotEmpty(), "Expected at least one reconnect status event")
         assertTrue(events.any { it.status == ReconnectStatus.SCHEDULED } || events.any { it.status == ReconnectStatus.FAILED })
     }
 
@@ -367,8 +370,8 @@ class AutoReconnectManagerTest {
             }
         }
 
-        // Ensure collector is started
-        yield()
+        // Ensure collector is started - runCurrent() properly advances StandardTestDispatcher
+        runCurrent()
 
         autoReconnectManager.start { throw Exception("Connection failed") }
 
@@ -383,6 +386,7 @@ class AutoReconnectManagerTest {
         // Then
         job.cancel()
         // Expect SCHEDULED then EXHAUSTED (or FAILED)
+        assertTrue(events.isNotEmpty(), "Expected at least one reconnect status event")
         assertTrue(events.any { it.status == ReconnectStatus.SCHEDULED } || events.any { it.status == ReconnectStatus.EXHAUSTED })
     }
 

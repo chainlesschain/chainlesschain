@@ -150,13 +150,11 @@ fun AnimatedSplashScreen(
     }
 
     // 背景渐变动画
-    val bgColors = remember {
-        animateFloatAsState(
-            targetValue = if (currentPhase >= 1) 1f else 0f,
-            animationSpec = tween(800),
-            label = "bgAnimation"
-        )
-    }
+    val bgColors by animateFloatAsState(
+        targetValue = if (currentPhase >= 1) 1f else 0f,
+        animationSpec = tween(800),
+        label = "bgAnimation"
+    )
 
     Box(
         modifier = Modifier
