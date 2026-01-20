@@ -16,6 +16,8 @@ export const ErrorType = {
   PERMISSION: "permission",
   NOT_FOUND: "not_found",
   TIMEOUT: "timeout",
+  IPC: "ipc",
+  SERIALIZATION: "serialization",
   UNKNOWN: "unknown",
 };
 
@@ -39,6 +41,8 @@ const ERROR_MESSAGES = {
   [ErrorType.PERMISSION]: "权限不足，无法执行此操作",
   [ErrorType.NOT_FOUND]: "请求的资源不存在",
   [ErrorType.TIMEOUT]: "操作超时，请稍后重试",
+  [ErrorType.IPC]: "应用内部通信失败，正在重试",
+  [ErrorType.SERIALIZATION]: "数据序列化失败，请检查数据格式",
   [ErrorType.UNKNOWN]: "发生未知错误，请联系技术支持",
 };
 
@@ -132,7 +136,25 @@ class ErrorHandler {
 
     const errorMessage = error.message || String(error);
 
-    if (errorMessage.includes("network") || errorMessage.includes("fetch")) {
+    // IPC 相关错误（应用启动时常见）
+    if (
+      errorMessage.includes("No handler registered") ||
+      errorMessage.includes("IPC") ||
+      errorMessage.includes("interrupted")
+    ) {
+      type = ErrorType.IPC;
+      level = ErrorLevel.WARNING; // 降级为警告，因为通常会自动重试
+    } else if (
+      errorMessage.includes("could not be cloned") ||
+      errorMessage.includes("serialize") ||
+      errorMessage.includes("DataCloneError")
+    ) {
+      // 序列化错误（Electron IPC 传输非序列化对象时）
+      type = ErrorType.SERIALIZATION;
+    } else if (
+      errorMessage.includes("network") ||
+      errorMessage.includes("fetch")
+    ) {
       type = ErrorType.NETWORK;
     } else if (
       errorMessage.includes("database") ||
@@ -261,6 +283,8 @@ class ErrorHandler {
       [ErrorType.PERMISSION]: "权限错误",
       [ErrorType.NOT_FOUND]: "资源未找到",
       [ErrorType.TIMEOUT]: "操作超时",
+      [ErrorType.IPC]: "通信错误",
+      [ErrorType.SERIALIZATION]: "序列化错误",
       [ErrorType.UNKNOWN]: "系统错误",
     };
 
@@ -427,6 +451,57 @@ export function withTimeout(
       }, timeoutMs);
     }),
   ]);
+}
+
+/**
+ * 检查是否为 IPC 未就绪错误
+ * 这类错误通常在应用启动时发生，可以静默重试
+ */
+export function isIPCNotReadyError(error) {
+  const message = error?.message || String(error);
+  return (
+    message.includes("No handler registered") ||
+    message.includes("interrupted") ||
+    message.includes("IPC channel")
+  );
+}
+
+/**
+ * 检查是否为序列化错误
+ * 这类错误通常是因为尝试通过 IPC 传输不可序列化的对象
+ */
+export function isSerializationError(error) {
+  const message = error?.message || String(error);
+  return (
+    message.includes("could not be cloned") ||
+    message.includes("DataCloneError") ||
+    message.includes("serialize")
+  );
+}
+
+/**
+ * IPC 调用包装器
+ * 自动处理 IPC 未就绪的情况，支持重试
+ */
+export async function safeIPCCall(ipcFn, options = {}) {
+  const { maxRetries = 3, retryDelay = 500, silent = true } = options;
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      return await ipcFn();
+    } catch (error) {
+      if (isIPCNotReadyError(error) && attempt < maxRetries - 1) {
+        if (!silent) {
+          logger.warn(`[safeIPCCall] IPC 未就绪，第 ${attempt + 1} 次重试...`);
+        }
+        await new Promise((resolve) =>
+          setTimeout(resolve, retryDelay * (attempt + 1)),
+        );
+        continue;
+      }
+      throw error;
+    }
+  }
 }
 
 // 导出错误处理器实例

@@ -498,6 +498,9 @@ class ChainlessChainApp {
       titleBarOverlay: { color: "#ffffff", symbolColor: "#000000" },
     });
 
+    // 注册所有 IPC (必须在 loadURL/loadFile 之前，确保渲染进程可以使用 IPC)
+    this.setupIPC();
+
     if (process.env.NODE_ENV === "development") {
       this.mainWindow.loadURL("http://localhost:5173");
       this.mainWindow.webContents.openDevTools();
@@ -554,9 +557,6 @@ class ChainlessChainApp {
     } catch (error) {
       logger.error("[Main] 数据库同步管理器初始化失败:", error);
     }
-
-    // 注册所有 IPC
-    this.setupIPC();
   }
 
   setupIPC() {

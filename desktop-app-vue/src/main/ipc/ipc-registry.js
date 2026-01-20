@@ -10,6 +10,56 @@ const { logger, createLogger } = require("../utils/logger.js");
 const ipcGuard = require("./ipc-guard");
 
 /**
+ * 递归移除对象中的 undefined 值
+ * @param {*} obj - 要处理的对象
+ * @returns {*} 清理后的对象
+ */
+function removeUndefinedValues(obj) {
+  if (obj === null || obj === undefined) {
+    return obj;
+  }
+  if (Array.isArray(obj)) {
+    return obj.map((item) => removeUndefinedValues(item));
+  }
+  if (typeof obj === "object") {
+    const result = {};
+    for (const key of Object.keys(obj)) {
+      const value = obj[key];
+      if (value !== undefined) {
+        result[key] = removeUndefinedValues(value);
+      }
+    }
+    return result;
+  }
+  return obj;
+}
+
+/**
+ * 递归将对象中的 undefined 值替换为 null（用于 IPC 序列化）
+ * @param {*} obj - 要处理的对象
+ * @returns {*} 处理后的对象
+ */
+function _replaceUndefinedWithNull(obj) {
+  if (obj === undefined) {
+    return null;
+  }
+  if (obj === null) {
+    return null;
+  }
+  if (Array.isArray(obj)) {
+    return obj.map((item) => _replaceUndefinedWithNull(item));
+  }
+  if (typeof obj === "object") {
+    const result = {};
+    for (const key of Object.keys(obj)) {
+      result[key] = _replaceUndefinedWithNull(obj[key]);
+    }
+    return result;
+  }
+  return obj;
+}
+
+/**
  * 注册所有 IPC 处理器
  * @param {Object} dependencies - 依赖对象，包含所有管理器实例
  * @param {Object} dependencies.app - ChainlessChainApp 实例
@@ -243,6 +293,26 @@ function registerAllIPC(dependencies) {
     }
 
     // ============================================================
+    // 关键IPC模块 - 提前注册 (用于E2E测试)
+    // ============================================================
+
+    // 系统窗口控制 - 提前注册 (不需要 mainWindow 的部分)
+    logger.info("[IPC Registry] Registering System IPC (early)...");
+    const { registerSystemIPC } = require("../system/system-ipc");
+    registerSystemIPC({ mainWindow: mainWindow || null });
+    logger.info("[IPC Registry] ✓ System IPC registered (early, 16 handlers)");
+
+    // 通知管理 - 提前注册
+    logger.info("[IPC Registry] Registering Notification IPC (early)...");
+    const {
+      registerNotificationIPC,
+    } = require("../notification/notification-ipc");
+    registerNotificationIPC({ database: database || null });
+    logger.info(
+      "[IPC Registry] ✓ Notification IPC registered (early, 5 handlers)",
+    );
+
+    // ============================================================
     // 第三阶段模块 (社交网络 - DID, P2P, Social)
     // ============================================================
 
@@ -335,8 +405,8 @@ function registerAllIPC(dependencies) {
       registerProjectCoreIPC({
         database,
         fileSyncManager,
-        removeUndefinedValues: app.removeUndefinedValues?.bind(app),
-        _replaceUndefinedWithNull: app._replaceUndefinedWithNull?.bind(app),
+        removeUndefinedValues,
+        _replaceUndefinedWithNull,
       });
       logger.info("[IPC Registry] ✓ Project Core IPC registered (34 handlers)");
     }
@@ -690,18 +760,7 @@ function registerAllIPC(dependencies) {
     registerSyncIPC({ syncManager: syncManager || null });
     logger.info("[IPC Registry] ✓ Sync IPC registered (4 handlers)");
 
-    // Always register notification IPC (handle null database gracefully)
-    logger.info("[IPC Registry] Registering Notification IPC...");
-    if (!database) {
-      logger.warn(
-        "[IPC Registry] ⚠️ database 未初始化，将注册降级的 Notification IPC handlers",
-      );
-    }
-    const {
-      registerNotificationIPC,
-    } = require("../notification/notification-ipc");
-    registerNotificationIPC({ database: database || null });
-    logger.info("[IPC Registry] ✓ Notification IPC registered (5 handlers)");
+    // Notification IPC already registered early (line 305-311)
 
     // Preference Manager IPC
     logger.info("[IPC Registry] Registering Preference Manager IPC...");
@@ -794,25 +853,7 @@ function registerAllIPC(dependencies) {
       logger.info("[IPC Registry] ✓ Category IPC registered (7 handlers)");
     }
 
-    // 系统窗口控制 (函数模式 - 小模块，16 handlers)
-    logger.info(
-      "[IPC Registry] DEBUG: mainWindow =",
-      mainWindow,
-      ", type =",
-      typeof mainWindow,
-      ", isDestroyed =",
-      mainWindow ? mainWindow.isDestroyed?.() : "N/A",
-    );
-    if (mainWindow) {
-      logger.info("[IPC Registry] Registering System IPC...");
-      const { registerSystemIPC } = require("../system/system-ipc");
-      registerSystemIPC({ mainWindow });
-      logger.info("[IPC Registry] ✓ System IPC registered (16 handlers)");
-    } else {
-      logger.info(
-        "[IPC Registry] ⚠️ System IPC NOT registered - mainWindow is falsy",
-      );
-    }
+    // System IPC already registered early (line 299-303)
 
     logger.info("[IPC Registry] ========================================");
     logger.info(

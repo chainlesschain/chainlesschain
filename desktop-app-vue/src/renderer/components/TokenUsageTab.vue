@@ -154,8 +154,8 @@
                 :stroke-color="getBudgetColor(budgetProgress.daily)"
               />
               <div class="budget-detail">
-                ${{ (budget.dailySpend ?? 0).toFixed(2) }} / ${{
-                  (budget.dailyLimit ?? 0).toFixed(2)
+                ${{ formatCurrency(budget.dailySpend) }} / ${{
+                  formatCurrency(budget.dailyLimit)
                 }}
               </div>
             </div>
@@ -169,8 +169,8 @@
                 :stroke-color="getBudgetColor(budgetProgress.weekly)"
               />
               <div class="budget-detail">
-                ${{ (budget.weeklySpend ?? 0).toFixed(2) }} / ${{
-                  (budget.weeklyLimit ?? 0).toFixed(2)
+                ${{ formatCurrency(budget.weeklySpend) }} / ${{
+                  formatCurrency(budget.weeklyLimit)
                 }}
               </div>
             </div>
@@ -184,8 +184,8 @@
                 :stroke-color="getBudgetColor(budgetProgress.monthly)"
               />
               <div class="budget-detail">
-                ${{ (budget.monthlySpend ?? 0).toFixed(2) }} / ${{
-                  (budget.monthlyLimit ?? 0).toFixed(2)
+                ${{ formatCurrency(budget.monthlySpend) }} / ${{
+                  formatCurrency(budget.monthlyLimit)
                 }}
               </div>
             </div>
@@ -364,11 +364,31 @@ function getBudgetColor(percent) {
   return "#52c41a";
 }
 
+/**
+ * 安全格式化货币数值
+ * 防止 undefined/null/NaN 导致的 toFixed 错误
+ */
+function formatCurrency(value, decimals = 2) {
+  const num = Number(value);
+  if (value == null || isNaN(num)) {
+    return "0.00";
+  }
+  return num.toFixed(decimals);
+}
+
 async function loadData() {
+  // 检查 IPC API 是否就绪
+  if (!window.electronAPI?.llm) {
+    logger.warn("[TokenUsageTab] IPC API 未就绪，稍后重试");
+    setTimeout(loadData, 500);
+    return;
+  }
+
   loading.value = true;
   try {
-    const startDate = dateRange.value[0].valueOf();
-    const endDate = dateRange.value[1].valueOf();
+    const startDate =
+      dateRange.value?.[0]?.valueOf() ?? Date.now() - 7 * 24 * 60 * 60 * 1000;
+    const endDate = dateRange.value?.[1]?.valueOf() ?? Date.now();
 
     // 获取使用统计
     const usageStats = await window.electronAPI.llm.getUsageStats({
@@ -379,16 +399,18 @@ async function loadData() {
     });
 
     // 更新统计数据
-    Object.assign(stats, {
-      totalTokens: usageStats.totalTokens || 0,
-      totalCost: usageStats.totalCost || 0,
-      weekTokens: usageStats.weekTokens || 0,
-      weekCost: usageStats.weekCost || 0,
-      cacheHitRate: usageStats.cacheHitRate || 0,
-      cachedTokens: usageStats.cachedTokens || 0,
-      avgCostPerCall: usageStats.avgCostPerCall || 0,
-      totalCalls: usageStats.totalCalls || 0,
-    });
+    if (usageStats) {
+      Object.assign(stats, {
+        totalTokens: usageStats.totalTokens || 0,
+        totalCost: usageStats.totalCost || 0,
+        weekTokens: usageStats.weekTokens || 0,
+        weekCost: usageStats.weekCost || 0,
+        cacheHitRate: usageStats.cacheHitRate || 0,
+        cachedTokens: usageStats.cachedTokens || 0,
+        avgCostPerCall: usageStats.avgCostPerCall || 0,
+        totalCalls: usageStats.totalCalls || 0,
+      });
+    }
 
     // 获取时间序列数据
     const timeSeriesData = await window.electronAPI.llm.getTimeSeries({
@@ -397,7 +419,7 @@ async function loadData() {
       interval: "day",
     });
 
-    renderTimeSeriesChart(timeSeriesData);
+    renderTimeSeriesChart(timeSeriesData || []);
 
     // 获取成本分解
     const costBreakdown = await window.electronAPI.llm.getCostBreakdown({
@@ -405,8 +427,8 @@ async function loadData() {
       endDate,
     });
 
-    renderProviderPieChart(costBreakdown.byProvider || []);
-    topModels.value = (costBreakdown.byModel || [])
+    renderProviderPieChart(costBreakdown?.byProvider || []);
+    topModels.value = (costBreakdown?.byModel || [])
       .slice(0, 10)
       .map((item, index) => ({
         rank: index + 1,
@@ -433,6 +455,12 @@ async function loadData() {
       });
     }
   } catch (error) {
+    // IPC 未就绪时静默处理
+    if (error.message?.includes("No handler registered")) {
+      logger.warn("[TokenUsageTab] IPC 处理器未注册，稍后重试");
+      setTimeout(loadData, 1000);
+      return;
+    }
     logger.error("加载统计数据失败:", error);
     message.error("加载统计数据失败: " + error.message);
   } finally {
