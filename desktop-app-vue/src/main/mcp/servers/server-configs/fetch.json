@@ -1,0 +1,251 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "HTTP Fetch Server Configuration",
+  "description": "Configuration schema for @modelcontextprotocol/server-fetch",
+  "type": "object",
+
+  "properties": {
+    "enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Enable or disable the HTTP fetch server"
+    },
+
+    "command": {
+      "type": "string",
+      "default": "npx",
+      "description": "Command to launch the server"
+    },
+
+    "args": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": ["-y", "@modelcontextprotocol/server-fetch"],
+      "description": "Arguments to pass to the command"
+    },
+
+    "autoConnect": {
+      "type": "boolean",
+      "default": false,
+      "description": "Automatically connect on application startup"
+    },
+
+    "permissions": {
+      "type": "object",
+      "description": "Permission configuration for HTTP requests",
+      "properties": {
+        "allowedDomains": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Domains allowed for HTTP requests (empty = all allowed)",
+          "examples": [
+            ["github.com", "api.github.com", "raw.githubusercontent.com"],
+            ["*.openai.com", "api.anthropic.com"]
+          ]
+        },
+
+        "forbiddenDomains": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "localhost",
+            "127.0.0.1",
+            "0.0.0.0",
+            "*.local",
+            "*.internal"
+          ],
+          "description": "Domains that are always blocked"
+        },
+
+        "allowedMethods": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"]
+          },
+          "default": ["GET", "POST"],
+          "description": "HTTP methods allowed for requests"
+        },
+
+        "allowedSchemes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["http", "https"]
+          },
+          "default": ["https"],
+          "description": "URL schemes allowed (http, https)"
+        },
+
+        "maxRedirects": {
+          "type": "integer",
+          "default": 5,
+          "minimum": 0,
+          "maximum": 20,
+          "description": "Maximum number of redirects to follow"
+        }
+      }
+    },
+
+    "requestConfig": {
+      "type": "object",
+      "description": "Default request configuration",
+      "properties": {
+        "timeout": {
+          "type": "integer",
+          "default": 30000,
+          "minimum": 1000,
+          "maximum": 300000,
+          "description": "Request timeout in milliseconds (default: 30s)"
+        },
+
+        "maxResponseSize": {
+          "type": "integer",
+          "default": 10485760,
+          "description": "Maximum response size in bytes (default: 10MB)"
+        },
+
+        "userAgent": {
+          "type": "string",
+          "default": "ChainlessChain-MCP-Fetch/1.0",
+          "description": "User-Agent header for requests"
+        },
+
+        "headers": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {},
+          "description": "Default headers to include in all requests"
+        }
+      }
+    },
+
+    "rateLimit": {
+      "type": "object",
+      "description": "Rate limiting configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable rate limiting"
+        },
+
+        "maxRequestsPerMinute": {
+          "type": "integer",
+          "default": 60,
+          "minimum": 1,
+          "maximum": 1000,
+          "description": "Maximum requests per minute"
+        },
+
+        "maxRequestsPerDomain": {
+          "type": "integer",
+          "default": 30,
+          "minimum": 1,
+          "maximum": 500,
+          "description": "Maximum requests per domain per minute"
+        }
+      }
+    },
+
+    "caching": {
+      "type": "object",
+      "description": "Response caching configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable response caching"
+        },
+
+        "maxAge": {
+          "type": "integer",
+          "default": 300000,
+          "description": "Cache max age in milliseconds (default: 5 minutes)"
+        },
+
+        "maxEntries": {
+          "type": "integer",
+          "default": 100,
+          "description": "Maximum number of cached responses"
+        }
+      }
+    },
+
+    "logging": {
+      "type": "object",
+      "description": "Logging configuration",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable request logging"
+        },
+
+        "logLevel": {
+          "type": "string",
+          "enum": ["debug", "info", "warn", "error"],
+          "default": "info",
+          "description": "Logging level"
+        },
+
+        "logRequestBody": {
+          "type": "boolean",
+          "default": false,
+          "description": "Log request body (may contain sensitive data)"
+        },
+
+        "logResponseBody": {
+          "type": "boolean",
+          "default": false,
+          "description": "Log response body (may be large)"
+        }
+      }
+    }
+  },
+
+  "examples": [
+    {
+      "enabled": true,
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-fetch"],
+      "autoConnect": false,
+      "permissions": {
+        "allowedDomains": [
+          "github.com",
+          "api.github.com",
+          "raw.githubusercontent.com"
+        ],
+        "forbiddenDomains": ["localhost", "127.0.0.1"],
+        "allowedMethods": ["GET", "POST"],
+        "allowedSchemes": ["https"]
+      },
+      "requestConfig": {
+        "timeout": 30000,
+        "maxResponseSize": 10485760,
+        "userAgent": "ChainlessChain-MCP-Fetch/1.0"
+      },
+      "rateLimit": {
+        "enabled": true,
+        "maxRequestsPerMinute": 60
+      },
+      "caching": {
+        "enabled": true,
+        "maxAge": 300000
+      },
+      "logging": {
+        "enabled": true,
+        "logLevel": "info"
+      }
+    }
+  ]
+}

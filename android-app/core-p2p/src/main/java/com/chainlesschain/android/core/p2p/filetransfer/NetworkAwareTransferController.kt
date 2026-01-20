@@ -182,42 +182,78 @@ class NetworkAwareTransferController @Inject constructor(
     }
 
     private fun observeNetworkChanges() {
+        // 监听网络状态变化
+        scope.launch {
+            networkMonitor.networkState.collect { state ->
+                handleNetworkStateChange(state)
+            }
+        }
+
+        // 监听网络事件
         scope.launch {
             networkMonitor.networkEvents.collect { event ->
                 handleNetworkEvent(event)
             }
         }
+    }
 
-        scope.launch {
-            networkMonitor.isConnected.collect { isConnected ->
-                if (!isConnected) {
-                    handleNetworkLost()
+    private suspend fun handleNetworkStateChange(state: com.chainlesschain.android.core.p2p.network.NetworkState) {
+        when (state) {
+            is com.chainlesschain.android.core.p2p.network.NetworkState.Connected -> {
+                val networkType = mapNetworkTypeFromInfo(state.networkInfo.type)
+                val isMetered = state.networkInfo.isMetered
+                val previousState = _currentNetworkState.value
+
+                val newState = NetworkStateEvent.Available(networkType, isMetered)
+                _currentNetworkState.value = newState
+                _networkEvents.emit(newState)
+
+                Log.i(TAG, "Network connected: $networkType, metered: $isMetered")
+
+                if (previousState is NetworkStateEvent.Unavailable) {
+                    handleNetworkRestored(networkType, isMetered)
                 }
             }
-        }
-
-        scope.launch {
-            networkMonitor.isMetered.collect { isMetered ->
-                handleMeteredChange(isMetered)
+            is com.chainlesschain.android.core.p2p.network.NetworkState.Disconnected,
+            is com.chainlesschain.android.core.p2p.network.NetworkState.Unavailable -> {
+                handleNetworkLost()
+            }
+            is com.chainlesschain.android.core.p2p.network.NetworkState.Unknown -> {
+                // Initial state, wait for actual network state
             }
         }
     }
 
     private suspend fun handleNetworkEvent(event: com.chainlesschain.android.core.p2p.network.NetworkEvent) {
-        val networkType = mapToNetworkType(event)
-        val isMetered = networkMonitor.isMetered.value
+        when (event) {
+            is com.chainlesschain.android.core.p2p.network.NetworkEvent.Available -> {
+                val networkType = mapNetworkTypeFromInfo(event.networkInfo.type)
+                val isMetered = event.networkInfo.isMetered
 
-        val newState = NetworkStateEvent.Available(networkType, isMetered)
-        val previousState = _currentNetworkState.value
+                Log.i(TAG, "Network available: $networkType, metered: $isMetered")
+            }
+            is com.chainlesschain.android.core.p2p.network.NetworkEvent.Lost,
+            is com.chainlesschain.android.core.p2p.network.NetworkEvent.Unavailable -> {
+                handleNetworkLost()
+            }
+            is com.chainlesschain.android.core.p2p.network.NetworkEvent.TypeChanged -> {
+                val networkType = mapNetworkTypeFromInfo(event.newType)
+                val isMetered = networkMonitor.isMeteredNetwork()
 
-        _currentNetworkState.value = newState
-        _networkEvents.emit(newState)
+                val newState = NetworkStateEvent.Available(networkType, isMetered)
+                val previousState = _currentNetworkState.value
+                val wasMetered = (previousState as? NetworkStateEvent.Available)?.isMetered ?: false
 
-        Log.i(TAG, "Network changed: $networkType, metered: $isMetered")
+                _currentNetworkState.value = newState
+                _networkEvents.emit(newState)
 
-        // 如果之前是断网状态，现在恢复了
-        if (previousState is NetworkStateEvent.Unavailable) {
-            handleNetworkRestored(networkType, isMetered)
+                // Check if metered status changed
+                if (isMetered && !wasMetered) {
+                    handleMeteredChange(true)
+                } else if (!isMetered && wasMetered) {
+                    handleMeteredChange(false)
+                }
+            }
         }
     }
 
@@ -280,7 +316,7 @@ class NetworkAwareTransferController @Inject constructor(
         Log.i(TAG, "Pausing all transfers: $reason")
 
         scope.launch {
-            val activeTransfers = progressTracker.getActiveTransferIds()
+            val activeTransfers = progressTracker.getAllActiveTransfers().keys
 
             for (transferId in activeTransfers) {
                 val progress = progressTracker.getProgress(transferId)
@@ -315,15 +351,13 @@ class NetworkAwareTransferController @Inject constructor(
         }
     }
 
-    private fun mapToNetworkType(event: com.chainlesschain.android.core.p2p.network.NetworkEvent): NetworkType {
-        return when (event) {
-            is com.chainlesschain.android.core.p2p.network.NetworkEvent.WiFiConnected -> NetworkType.WIFI
-            is com.chainlesschain.android.core.p2p.network.NetworkEvent.CellularConnected -> {
-                // 可以根据具体的蜂窝网络类型细分
-                NetworkType.CELLULAR_4G
-            }
-            is com.chainlesschain.android.core.p2p.network.NetworkEvent.EthernetConnected -> NetworkType.ETHERNET
-            else -> NetworkType.UNKNOWN
+    private fun mapNetworkTypeFromInfo(type: com.chainlesschain.android.core.p2p.network.NetworkType): NetworkType {
+        return when (type) {
+            com.chainlesschain.android.core.p2p.network.NetworkType.WIFI -> NetworkType.WIFI
+            com.chainlesschain.android.core.p2p.network.NetworkType.CELLULAR -> NetworkType.CELLULAR_4G
+            com.chainlesschain.android.core.p2p.network.NetworkType.ETHERNET -> NetworkType.ETHERNET
+            com.chainlesschain.android.core.p2p.network.NetworkType.OTHER -> NetworkType.UNKNOWN
+            com.chainlesschain.android.core.p2p.network.NetworkType.NONE -> NetworkType.NONE
         }
     }
 }
