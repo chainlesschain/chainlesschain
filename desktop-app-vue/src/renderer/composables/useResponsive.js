@@ -3,23 +3,23 @@
  * 提供统一的响应式断点和布局工具
  */
 
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from "vue";
 
 // 响应式断点定义
 export const BREAKPOINTS = {
-  xs: 480,    // 手机
-  sm: 576,    // 大手机
-  md: 768,    // 平板
-  lg: 992,    // 小桌面
-  xl: 1200,   // 桌面
-  xxl: 1600,  // 大桌面
+  xs: 480, // 手机
+  sm: 576, // 大手机
+  md: 768, // 平板
+  lg: 992, // 小桌面
+  xl: 1200, // 桌面
+  xxl: 1600, // 大桌面
 };
 
 // 设备类型
 export const DEVICE_TYPES = {
-  MOBILE: 'mobile',
-  TABLET: 'tablet',
-  DESKTOP: 'desktop',
+  MOBILE: "mobile",
+  TABLET: "tablet",
+  DESKTOP: "desktop",
 };
 
 /**
@@ -32,19 +32,33 @@ export function useResponsive() {
   // 当前断点
   const breakpoint = computed(() => {
     const width = windowWidth.value;
-    if (width < BREAKPOINTS.xs) {return 'xs';}
-    if (width < BREAKPOINTS.sm) {return 'sm';}
-    if (width < BREAKPOINTS.md) {return 'md';}
-    if (width < BREAKPOINTS.lg) {return 'lg';}
-    if (width < BREAKPOINTS.xl) {return 'xl';}
-    return 'xxl';
+    if (width < BREAKPOINTS.xs) {
+      return "xs";
+    }
+    if (width < BREAKPOINTS.sm) {
+      return "sm";
+    }
+    if (width < BREAKPOINTS.md) {
+      return "md";
+    }
+    if (width < BREAKPOINTS.lg) {
+      return "lg";
+    }
+    if (width < BREAKPOINTS.xl) {
+      return "xl";
+    }
+    return "xxl";
   });
 
   // 设备类型
   const deviceType = computed(() => {
     const width = windowWidth.value;
-    if (width < BREAKPOINTS.md) {return DEVICE_TYPES.MOBILE;}
-    if (width < BREAKPOINTS.lg) {return DEVICE_TYPES.TABLET;}
+    if (width < BREAKPOINTS.md) {
+      return DEVICE_TYPES.MOBILE;
+    }
+    if (width < BREAKPOINTS.lg) {
+      return DEVICE_TYPES.TABLET;
+    }
     return DEVICE_TYPES.DESKTOP;
   });
 
@@ -61,8 +75,9 @@ export function useResponsive() {
   const isSmallScreen = computed(() => windowWidth.value < BREAKPOINTS.md);
 
   // 是否为中等屏幕
-  const isMediumScreen = computed(() =>
-    windowWidth.value >= BREAKPOINTS.md && windowWidth.value < BREAKPOINTS.xl
+  const isMediumScreen = computed(
+    () =>
+      windowWidth.value >= BREAKPOINTS.md && windowWidth.value < BREAKPOINTS.xl,
   );
 
   // 是否为大屏幕
@@ -75,7 +90,9 @@ export function useResponsive() {
   const isLandscape = computed(() => windowWidth.value > windowHeight.value);
 
   // 屏幕方向
-  const orientation = computed(() => isPortrait.value ? 'portrait' : 'landscape');
+  const orientation = computed(() =>
+    isPortrait.value ? "portrait" : "landscape",
+  );
 
   // 更新窗口尺寸
   const updateSize = () => {
@@ -86,18 +103,22 @@ export function useResponsive() {
   // 防抖处理
   let resizeTimer = null;
   const handleResize = () => {
-    if (resizeTimer) {clearTimeout(resizeTimer);}
+    if (resizeTimer) {
+      clearTimeout(resizeTimer);
+    }
     resizeTimer = setTimeout(updateSize, 150);
   };
 
   onMounted(() => {
-    window.addEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
     updateSize();
   });
 
   onUnmounted(() => {
-    window.removeEventListener('resize', handleResize);
-    if (resizeTimer) {clearTimeout(resizeTimer);}
+    window.removeEventListener("resize", handleResize);
+    if (resizeTimer) {
+      clearTimeout(resizeTimer);
+    }
   });
 
   return {
@@ -129,14 +150,16 @@ export function useResponsiveGrid(options = {}) {
   const { breakpoint } = useResponsive();
 
   // 当前列数
-  const currentColumns = computed(() => columns[breakpoint.value] || columns.md);
+  const currentColumns = computed(
+    () => columns[breakpoint.value] || columns.md,
+  );
 
   // 当前间距
   const currentGap = computed(() => gap[breakpoint.value] || gap.md);
 
   // 网格样式
   const gridStyle = computed(() => ({
-    display: 'grid',
+    display: "grid",
     gridTemplateColumns: `repeat(${currentColumns.value}, 1fr)`,
     gap: `${currentGap.value}px`,
   }));
@@ -153,9 +176,23 @@ export function useResponsiveGrid(options = {}) {
  */
 export function useResponsivePanel(options = {}) {
   const {
-    defaultWidth = { xs: '100%', sm: '100%', md: '300px', lg: '350px', xl: '400px', xxl: '450px' },
+    defaultWidth = {
+      xs: "100%",
+      sm: "100%",
+      md: "300px",
+      lg: "350px",
+      xl: "400px",
+      xxl: "450px",
+    },
     minWidth = { xs: 0, sm: 0, md: 200, lg: 250, xl: 300, xxl: 350 },
-    maxWidth = { xs: '100%', sm: '100%', md: '50%', lg: '40%', xl: '35%', xxl: '30%' },
+    maxWidth = {
+      xs: "100%",
+      sm: "100%",
+      md: "50%",
+      lg: "40%",
+      xl: "35%",
+      xxl: "30%",
+    },
     collapsible = true,
   } = options;
 
@@ -164,23 +201,29 @@ export function useResponsivePanel(options = {}) {
 
   // 当前宽度
   const currentWidth = computed(() => {
-    if (isCollapsed.value) {return '0px';}
+    if (isCollapsed.value) {
+      return "0px";
+    }
     return defaultWidth[breakpoint.value] || defaultWidth.md;
   });
 
   // 当前最小宽度
-  const currentMinWidth = computed(() => minWidth[breakpoint.value] || minWidth.md);
+  const currentMinWidth = computed(
+    () => minWidth[breakpoint.value] || minWidth.md,
+  );
 
   // 当前最大宽度
-  const currentMaxWidth = computed(() => maxWidth[breakpoint.value] || maxWidth.md);
+  const currentMaxWidth = computed(
+    () => maxWidth[breakpoint.value] || maxWidth.md,
+  );
 
   // 面板样式
   const panelStyle = computed(() => ({
     width: currentWidth.value,
-    minWidth: isCollapsed.value ? '0px' : `${currentMinWidth.value}px`,
-    maxWidth: isCollapsed.value ? '0px' : currentMaxWidth.value,
-    transition: 'all 0.3s ease',
-    overflow: isCollapsed.value ? 'hidden' : 'auto',
+    minWidth: isCollapsed.value ? "0px" : `${currentMinWidth.value}px`,
+    maxWidth: isCollapsed.value ? "0px" : currentMaxWidth.value,
+    transition: "all 0.3s ease",
+    overflow: isCollapsed.value ? "hidden" : "auto",
   }));
 
   // 切换折叠状态
@@ -256,7 +299,9 @@ export function useResponsiveSpacing(options = {}) {
   const { breakpoint } = useResponsive();
 
   // 当前内边距
-  const currentPadding = computed(() => padding[breakpoint.value] || padding.md);
+  const currentPadding = computed(
+    () => padding[breakpoint.value] || padding.md,
+  );
 
   // 当前外边距
   const currentMargin = computed(() => margin[breakpoint.value] || margin.md);
@@ -279,19 +324,22 @@ export function useResponsiveSpacing(options = {}) {
  */
 export function useMediaQuery(query) {
   const matches = ref(false);
+  let mediaQuery = null;
 
   const updateMatches = (e) => {
     matches.value = e.matches;
   };
 
   onMounted(() => {
-    const mediaQuery = window.matchMedia(query);
+    mediaQuery = window.matchMedia(query);
     matches.value = mediaQuery.matches;
-    mediaQuery.addEventListener('change', updateMatches);
+    mediaQuery.addEventListener("change", updateMatches);
+  });
 
-    onUnmounted(() => {
-      mediaQuery.removeEventListener('change', updateMatches);
-    });
+  onUnmounted(() => {
+    if (mediaQuery) {
+      mediaQuery.removeEventListener("change", updateMatches);
+    }
   });
 
   return matches;
@@ -307,11 +355,11 @@ export function useResponsiveTableColumns(columns) {
   const responsiveColumns = computed(() => {
     if (isMobile.value) {
       // 移动端只显示关键列
-      return columns.filter(col => col.mobile !== false);
+      return columns.filter((col) => col.mobile !== false);
     }
     if (isTablet.value) {
       // 平板端显示重要列
-      return columns.filter(col => col.tablet !== false);
+      return columns.filter((col) => col.tablet !== false);
     }
     // 桌面端显示所有列
     return columns;
@@ -330,19 +378,23 @@ export function useResponsiveLayout() {
 
   // 布局模式: stack(堆叠), sidebar(侧边栏), split(分栏)
   const layoutMode = computed(() => {
-    if (isMobile.value) {return 'stack';}
-    if (isTablet.value) {return 'sidebar';}
-    return 'split';
+    if (isMobile.value) {
+      return "stack";
+    }
+    if (isTablet.value) {
+      return "sidebar";
+    }
+    return "split";
   });
 
   // 是否显示侧边栏
-  const showSidebar = computed(() => layoutMode.value !== 'stack');
+  const showSidebar = computed(() => layoutMode.value !== "stack");
 
   // 是否使用堆叠布局
-  const useStackLayout = computed(() => layoutMode.value === 'stack');
+  const useStackLayout = computed(() => layoutMode.value === "stack");
 
   // 是否使用分栏布局
-  const useSplitLayout = computed(() => layoutMode.value === 'split');
+  const useSplitLayout = computed(() => layoutMode.value === "split");
 
   return {
     layoutMode,

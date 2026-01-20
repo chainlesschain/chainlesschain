@@ -3,8 +3,8 @@
  * 提供全局拖拽上传功能
  */
 
-import { logger, createLogger } from '@/utils/logger';
-import { ref } from 'vue';
+import { logger, createLogger } from "@/utils/logger";
+import { ref } from "vue";
 
 /**
  * 拖拽上传管理器
@@ -17,6 +17,12 @@ class DragUploadManager {
     this.allowedTypes = [];
     this.maxFileSize = 100 * 1024 * 1024; // 100MB
 
+    // 绑定事件处理器，确保 init() 和 destroy() 使用相同的引用
+    this._boundHandleDragEnter = this.handleDragEnter.bind(this);
+    this._boundHandleDragLeave = this.handleDragLeave.bind(this);
+    this._boundHandleDragOver = this.handleDragOver.bind(this);
+    this._boundHandleDrop = this.handleDrop.bind(this);
+
     this.init();
   }
 
@@ -24,24 +30,20 @@ class DragUploadManager {
    * 初始化
    */
   init() {
-    if (typeof window === 'undefined') {return;}
+    if (typeof window === "undefined") {
+      return;
+    }
 
     // 阻止默认拖拽行为
-    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+    ["dragenter", "dragover", "dragleave", "drop"].forEach((eventName) => {
       document.addEventListener(eventName, this.preventDefaults, false);
     });
 
-    // 拖拽进入
-    document.addEventListener('dragenter', this.handleDragEnter.bind(this), false);
-
-    // 拖拽离开
-    document.addEventListener('dragleave', this.handleDragLeave.bind(this), false);
-
-    // 拖拽悬停
-    document.addEventListener('dragover', this.handleDragOver.bind(this), false);
-
-    // 放下文件
-    document.addEventListener('drop', this.handleDrop.bind(this), false);
+    // 使用预先绑定的处理器，确保与 destroy() 使用相同的引用
+    document.addEventListener("dragenter", this._boundHandleDragEnter, false);
+    document.addEventListener("dragleave", this._boundHandleDragLeave, false);
+    document.addEventListener("dragover", this._boundHandleDragOver, false);
+    document.addEventListener("drop", this._boundHandleDrop, false);
   }
 
   /**
@@ -77,7 +79,7 @@ class DragUploadManager {
    */
   handleDragOver(e) {
     if (e.dataTransfer) {
-      e.dataTransfer.dropEffect = 'copy';
+      e.dataTransfer.dropEffect = "copy";
     }
   }
 
@@ -101,10 +103,10 @@ class DragUploadManager {
    */
   async handleFiles(files) {
     // 过滤文件
-    const validFiles = files.filter(file => this.validateFile(file));
+    const validFiles = files.filter((file) => this.validateFile(file));
 
     if (validFiles.length === 0) {
-      logger.warn('[DragUpload] No valid files');
+      logger.warn("[DragUpload] No valid files");
       return;
     }
 
@@ -113,7 +115,7 @@ class DragUploadManager {
       try {
         await handler(validFiles);
       } catch (error) {
-        logger.error('[DragUpload] Handler error:', error);
+        logger.error("[DragUpload] Handler error:", error);
       }
     }
   }
@@ -130,11 +132,11 @@ class DragUploadManager {
 
     // 检查文件类型
     if (this.allowedTypes.length > 0) {
-      const fileType = file.type || '';
-      const fileExt = file.name.split('.').pop()?.toLowerCase() || '';
+      const fileType = file.type || "";
+      const fileExt = file.name.split(".").pop()?.toLowerCase() || "";
 
-      const isAllowed = this.allowedTypes.some(type => {
-        if (type.startsWith('.')) {
+      const isAllowed = this.allowedTypes.some((type) => {
+        if (type.startsWith(".")) {
           return fileExt === type.substring(1);
         }
         return fileType.match(type);
@@ -180,14 +182,23 @@ class DragUploadManager {
    * 销毁
    */
   destroy() {
-    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+    ["dragenter", "dragover", "dragleave", "drop"].forEach((eventName) => {
       document.removeEventListener(eventName, this.preventDefaults, false);
     });
 
-    document.removeEventListener('dragenter', this.handleDragEnter, false);
-    document.removeEventListener('dragleave', this.handleDragLeave, false);
-    document.removeEventListener('dragover', this.handleDragOver, false);
-    document.removeEventListener('drop', this.handleDrop, false);
+    // 使用预先绑定的处理器引用来正确移除事件监听器
+    document.removeEventListener(
+      "dragenter",
+      this._boundHandleDragEnter,
+      false,
+    );
+    document.removeEventListener(
+      "dragleave",
+      this._boundHandleDragLeave,
+      false,
+    );
+    document.removeEventListener("dragover", this._boundHandleDragOver, false);
+    document.removeEventListener("drop", this._boundHandleDrop, false);
   }
 }
 
