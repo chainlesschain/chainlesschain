@@ -201,11 +201,23 @@ class ProjectManager: ObservableObject {
             throw ProjectError.invalidInput("文件名不能为空")
         }
 
-        let path = parentId != nil ? "\(parentId!)/\(trimmedName)" : trimmedName
+        // Validate file name for path traversal attacks
+        let sanitizedName = try sanitizeFileName(trimmedName)
+
+        let path: String
+        if let parentId = parentId {
+            // Validate parentId as well
+            guard !parentId.contains("..") && !parentId.contains("/..") else {
+                throw ProjectError.invalidInput("无效的父目录")
+            }
+            path = "\(parentId)/\(sanitizedName)"
+        } else {
+            path = sanitizedName
+        }
 
         let file = ProjectFileEntity(
             projectId: projectId,
-            name: trimmedName,
+            name: sanitizedName,
             path: path,
             type: type,
             size: Int64(content?.utf8.count ?? 0),
@@ -223,11 +235,37 @@ class ProjectManager: ObservableObject {
         try repository.logActivity(
             projectId: projectId,
             action: "file_add",
-            description: "添加文件: \(trimmedName)"
+            description: "添加文件: \(sanitizedName)"
         )
 
-        logger.info("Created file: \(trimmedName) in project: \(projectId)", category: "Project")
+        logger.info("Created file: \(sanitizedName) in project: \(projectId)", category: "Project")
         return file
+    }
+
+    /// Sanitize file name to prevent path traversal attacks
+    private func sanitizeFileName(_ name: String) throws -> String {
+        // Check for path traversal patterns
+        guard !name.contains("..") else {
+            throw ProjectError.invalidInput("文件名不能包含 '..'")
+        }
+
+        // Check for absolute paths or directory separators
+        guard !name.contains("/") && !name.contains("\\") else {
+            throw ProjectError.invalidInput("文件名不能包含路径分隔符")
+        }
+
+        // Check for null bytes
+        guard !name.contains("\0") else {
+            throw ProjectError.invalidInput("文件名包含无效字符")
+        }
+
+        // Remove leading/trailing dots to prevent hidden files or special paths
+        let sanitized = name.trimmingCharacters(in: CharacterSet(charactersIn: "."))
+        guard !sanitized.isEmpty else {
+            throw ProjectError.invalidInput("文件名无效")
+        }
+
+        return name
     }
 
     /// 更新文件内容

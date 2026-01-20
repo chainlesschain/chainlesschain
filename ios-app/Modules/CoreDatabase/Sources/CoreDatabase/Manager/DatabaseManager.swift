@@ -195,8 +195,13 @@ public class DatabaseManager {
             let result = sqlite3_exec(database, sql, nil, nil, &errorMessage)
 
             if result != SQLITE_OK {
-                let message = errorMessage != nil ? String(cString: errorMessage!) : "Unknown error"
-                sqlite3_free(errorMessage)
+                let message: String
+                if let errorPtr = errorMessage {
+                    message = String(cString: errorPtr)
+                    sqlite3_free(errorPtr)
+                } else {
+                    message = "Unknown error"
+                }
                 logger.database("SQL execution failed: \(message)", level: .error)
                 throw DatabaseError.executionFailed(message)
             }

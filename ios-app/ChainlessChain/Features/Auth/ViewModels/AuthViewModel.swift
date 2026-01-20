@@ -100,12 +100,23 @@ class AuthViewModel: ObservableObject {
             throw AuthError.biometricFailed("Cannot retrieve credentials")
         }
 
-        // 使用 PIN 哈希打开数据库
-        // 注意: 这里应该改进为使用独立的数据库密钥
-        let dbKey = try keychainManager.load(forKey: AppConstants.Keychain.dbKeyKey)
+        // 使用数据库密钥打开数据库
+        let dbKey: Data
+        do {
+            dbKey = try keychainManager.load(forKey: AppConstants.Keychain.dbKeyKey)
+        } catch {
+            logger.error("Failed to load database key from Keychain", error: error, category: "Auth")
+            throw AuthError.biometricFailed("Cannot retrieve database key")
+        }
+
         let keyString = dbKey.hexString
 
-        try DatabaseManager.shared.open(password: keyString)
+        do {
+            try DatabaseManager.shared.open(password: keyString)
+        } catch {
+            logger.error("Failed to open database", error: error, category: "Auth")
+            throw AuthError.databaseError("Failed to open database")
+        }
 
         // 更新应用状态
         AppState.shared.isAuthenticated = true

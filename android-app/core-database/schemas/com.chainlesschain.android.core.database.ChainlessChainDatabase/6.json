@@ -1,0 +1,1114 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 6,
+    "identityHash": "d78b5bb3be94c5cce9999dc9d741bbf9",
+    "entities": [
+      {
+        "tableName": "knowledge_items",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `title` TEXT NOT NULL, `content` TEXT NOT NULL, `type` TEXT NOT NULL, `folderId` TEXT, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, `syncStatus` TEXT NOT NULL, `deviceId` TEXT NOT NULL, `isDeleted` INTEGER NOT NULL, `tags` TEXT, `isFavorite` INTEGER NOT NULL, `isPinned` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "title",
+            "columnName": "title",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "content",
+            "columnName": "content",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "type",
+            "columnName": "type",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "folderId",
+            "columnName": "folderId",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updatedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "syncStatus",
+            "columnName": "syncStatus",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deviceId",
+            "columnName": "deviceId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isDeleted",
+            "columnName": "isDeleted",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tags",
+            "columnName": "tags",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "isFavorite",
+            "columnName": "isFavorite",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isPinned",
+            "columnName": "isPinned",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": ["id"]
+        },
+        "indices": [
+          {
+            "name": "index_knowledge_items_title",
+            "unique": false,
+            "columnNames": ["title"],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_knowledge_items_title` ON `${TABLE_NAME}` (`title`)"
+          },
+          {
+            "name": "index_knowledge_items_type",
+            "unique": false,
+            "columnNames": ["type"],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_knowledge_items_type` ON `${TABLE_NAME}` (`type`)"
+          },
+          {
+            "name": "index_knowledge_items_folderId",
+            "unique": false,
+            "columnNames": ["folderId"],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_knowledge_items_folderId` ON `${TABLE_NAME}` (`folderId`)"
+          },
+          {
+            "name": "index_knowledge_items_createdAt",
+            "unique": false,
+            "columnNames": ["createdAt"],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_knowledge_items_createdAt` ON `${TABLE_NAME}` (`createdAt`)"
+          },
+          {
+            "name": "index_knowledge_items_updatedAt",
+            "unique": false,
+            "columnNames": ["updatedAt"],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_knowledge_items_updatedAt` ON `${TABLE_NAME}` (`updatedAt`)"
+          },
+          {
+            "name": "index_knowledge_items_syncStatus",
+            "unique": false,
+            "columnNames": ["syncStatus"],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_knowledge_items_syncStatus` ON `${TABLE_NAME}` (`syncStatus`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "conversations",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `title` TEXT NOT NULL, `model` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, `messageCount` INTEGER NOT NULL, `isPinned` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "title",
+            "columnName": "title",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "model",
+            "columnName": "model",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updatedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "messageCount",
+            "columnName": "messageCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isPinned",
+            "columnName": "isPinned",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": ["id"]
+        },
+        "indices": [
+          {
+            "name": "index_conversations_createdAt",
+            "unique": false,
+            "columnNames": ["createdAt"],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_conversations_createdAt` ON `${TABLE_NAME}` (`createdAt`)"
+          },
+          {
+            "name": "index_conversations_updatedAt",
+            "unique": false,
+            "columnNames": ["updatedAt"],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_conversations_updatedAt` ON `${TABLE_NAME}` (`updatedAt`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "messages",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `conversationId` TEXT NOT NULL, `role` TEXT NOT NULL, `content` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `tokenCount` INTEGER, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "conversationId",
+            "columnName": "conversationId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "role",
+            "columnName": "role",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "content",
+            "columnName": "content",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "tokenCount",
+            "columnName": "tokenCount",
+            "affinity": "INTEGER",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": ["id"]
+        },
+        "indices": [
+          {
+            "name": "index_messages_conversationId",
+            "unique": false,
+            "columnNames": ["conversationId"],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_messages_conversationId` ON `${TABLE_NAME}` (`conversationId`)"
+          },
+          {
+            "name": "index_messages_createdAt",
+            "unique": false,
+            "columnNames": ["createdAt"],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_messages_createdAt` ON `${TABLE_NAME}` (`createdAt`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "p2p_messages",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `peerId` TEXT NOT NULL, `fromDeviceId` TEXT NOT NULL, `toDeviceId` TEXT NOT NULL, `type` TEXT NOT NULL, `content` TEXT NOT NULL, `encryptedPayload` TEXT, `timestamp` INTEGER NOT NULL, `isOutgoing` INTEGER NOT NULL, `requiresAck` INTEGER NOT NULL, `isAcknowledged` INTEGER NOT NULL, `sendStatus` TEXT NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "peerId",
+            "columnName": "peerId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fromDeviceId",
+            "columnName": "fromDeviceId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "toDeviceId",
+            "columnName": "toDeviceId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "type",
+            "columnName": "type",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "content",
+            "columnName": "content",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "encryptedPayload",
+            "columnName": "encryptedPayload",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "timestamp",
+            "columnName": "timestamp",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isOutgoing",
+            "columnName": "isOutgoing",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "requiresAck",
+            "columnName": "requiresAck",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isAcknowledged",
+            "columnName": "isAcknowledged",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sendStatus",
+            "columnName": "sendStatus",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": ["id"]
+        },
+        "indices": [
+          {
+            "name": "index_p2p_messages_peerId",
+            "unique": false,
+            "columnNames": ["peerId"],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_p2p_messages_peerId` ON `${TABLE_NAME}` (`peerId`)"
+          },
+          {
+            "name": "index_p2p_messages_timestamp",
+            "unique": false,
+            "columnNames": ["timestamp"],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_p2p_messages_timestamp` ON `${TABLE_NAME}` (`timestamp`)"
+          },
+          {
+            "name": "index_p2p_messages_peerId_timestamp",
+            "unique": false,
+            "columnNames": ["peerId", "timestamp"],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_p2p_messages_peerId_timestamp` ON `${TABLE_NAME}` (`peerId`, `timestamp`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "offline_message_queue",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `peerId` TEXT NOT NULL, `messageType` TEXT NOT NULL, `payload` TEXT NOT NULL, `priority` TEXT NOT NULL, `requireAck` INTEGER NOT NULL, `retryCount` INTEGER NOT NULL, `maxRetries` INTEGER NOT NULL, `lastRetryAt` INTEGER, `expiresAt` INTEGER, `status` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "peerId",
+            "columnName": "peerId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "messageType",
+            "columnName": "messageType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "payload",
+            "columnName": "payload",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "priority",
+            "columnName": "priority",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "requireAck",
+            "columnName": "requireAck",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "retryCount",
+            "columnName": "retryCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "maxRetries",
+            "columnName": "maxRetries",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastRetryAt",
+            "columnName": "lastRetryAt",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "expiresAt",
+            "columnName": "expiresAt",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updatedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": ["id"]
+        },
+        "indices": [
+          {
+            "name": "index_offline_message_queue_peerId_status",
+            "unique": false,
+            "columnNames": ["peerId", "status"],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_offline_message_queue_peerId_status` ON `${TABLE_NAME}` (`peerId`, `status`)"
+          },
+          {
+            "name": "index_offline_message_queue_status_createdAt",
+            "unique": false,
+            "columnNames": ["status", "createdAt"],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_offline_message_queue_status_createdAt` ON `${TABLE_NAME}` (`status`, `createdAt`)"
+          },
+          {
+            "name": "index_offline_message_queue_priority_createdAt",
+            "unique": false,
+            "columnNames": ["priority", "createdAt"],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_offline_message_queue_priority_createdAt` ON `${TABLE_NAME}` (`priority`, `createdAt`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "file_transfers",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `peerId` TEXT NOT NULL, `fileName` TEXT NOT NULL, `fileSize` INTEGER NOT NULL, `mimeType` TEXT NOT NULL, `fileChecksum` TEXT NOT NULL, `thumbnailBase64` TEXT, `localFilePath` TEXT, `tempFilePath` TEXT, `isOutgoing` INTEGER NOT NULL, `status` TEXT NOT NULL, `chunkSize` INTEGER NOT NULL, `totalChunks` INTEGER NOT NULL, `completedChunks` INTEGER NOT NULL, `bytesTransferred` INTEGER NOT NULL, `retryCount` INTEGER NOT NULL, `errorMessage` TEXT, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, `completedAt` INTEGER, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "peerId",
+            "columnName": "peerId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fileName",
+            "columnName": "fileName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fileSize",
+            "columnName": "fileSize",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mimeType",
+            "columnName": "mimeType",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fileChecksum",
+            "columnName": "fileChecksum",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "thumbnailBase64",
+            "columnName": "thumbnailBase64",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "localFilePath",
+            "columnName": "localFilePath",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "tempFilePath",
+            "columnName": "tempFilePath",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "isOutgoing",
+            "columnName": "isOutgoing",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "chunkSize",
+            "columnName": "chunkSize",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "totalChunks",
+            "columnName": "totalChunks",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "completedChunks",
+            "columnName": "completedChunks",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "bytesTransferred",
+            "columnName": "bytesTransferred",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "retryCount",
+            "columnName": "retryCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "errorMessage",
+            "columnName": "errorMessage",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updatedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "completedAt",
+            "columnName": "completedAt",
+            "affinity": "INTEGER",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": ["id"]
+        },
+        "indices": [
+          {
+            "name": "index_file_transfers_peerId",
+            "unique": false,
+            "columnNames": ["peerId"],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_file_transfers_peerId` ON `${TABLE_NAME}` (`peerId`)"
+          },
+          {
+            "name": "index_file_transfers_status",
+            "unique": false,
+            "columnNames": ["status"],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_file_transfers_status` ON `${TABLE_NAME}` (`status`)"
+          },
+          {
+            "name": "index_file_transfers_createdAt",
+            "unique": false,
+            "columnNames": ["createdAt"],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_file_transfers_createdAt` ON `${TABLE_NAME}` (`createdAt`)"
+          },
+          {
+            "name": "index_file_transfers_peerId_status",
+            "unique": false,
+            "columnNames": ["peerId", "status"],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_file_transfers_peerId_status` ON `${TABLE_NAME}` (`peerId`, `status`)"
+          },
+          {
+            "name": "index_file_transfers_peerId_createdAt",
+            "unique": false,
+            "columnNames": ["peerId", "createdAt"],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_file_transfers_peerId_createdAt` ON `${TABLE_NAME}` (`peerId`, `createdAt`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "projects",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `description` TEXT, `type` TEXT NOT NULL, `status` TEXT NOT NULL, `userId` TEXT NOT NULL, `rootPath` TEXT, `icon` TEXT, `coverImage` TEXT, `tags` TEXT, `metadata` TEXT, `isFavorite` INTEGER NOT NULL, `isArchived` INTEGER NOT NULL, `isSynced` INTEGER NOT NULL, `remoteId` TEXT, `lastSyncedAt` INTEGER, `fileCount` INTEGER NOT NULL, `totalSize` INTEGER NOT NULL, `lastAccessedAt` INTEGER, `accessCount` INTEGER NOT NULL, `gitEnabled` INTEGER NOT NULL, `gitRemoteUrl` TEXT, `gitBranch` TEXT, `lastCommitHash` TEXT, `uncommittedChanges` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, `completedAt` INTEGER, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "description",
+            "columnName": "description",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "type",
+            "columnName": "type",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "status",
+            "columnName": "status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "userId",
+            "columnName": "userId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rootPath",
+            "columnName": "rootPath",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "icon",
+            "columnName": "icon",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "coverImage",
+            "columnName": "coverImage",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "tags",
+            "columnName": "tags",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "metadata",
+            "columnName": "metadata",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "isFavorite",
+            "columnName": "isFavorite",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isArchived",
+            "columnName": "isArchived",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isSynced",
+            "columnName": "isSynced",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "remoteId",
+            "columnName": "remoteId",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "lastSyncedAt",
+            "columnName": "lastSyncedAt",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "fileCount",
+            "columnName": "fileCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "totalSize",
+            "columnName": "totalSize",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastAccessedAt",
+            "columnName": "lastAccessedAt",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "accessCount",
+            "columnName": "accessCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "gitEnabled",
+            "columnName": "gitEnabled",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "gitRemoteUrl",
+            "columnName": "gitRemoteUrl",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "gitBranch",
+            "columnName": "gitBranch",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "lastCommitHash",
+            "columnName": "lastCommitHash",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "uncommittedChanges",
+            "columnName": "uncommittedChanges",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updatedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "completedAt",
+            "columnName": "completedAt",
+            "affinity": "INTEGER",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": ["id"]
+        },
+        "indices": [
+          {
+            "name": "index_projects_userId",
+            "unique": false,
+            "columnNames": ["userId"],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_projects_userId` ON `${TABLE_NAME}` (`userId`)"
+          },
+          {
+            "name": "index_projects_status",
+            "unique": false,
+            "columnNames": ["status"],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_projects_status` ON `${TABLE_NAME}` (`status`)"
+          },
+          {
+            "name": "index_projects_type",
+            "unique": false,
+            "columnNames": ["type"],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_projects_type` ON `${TABLE_NAME}` (`type`)"
+          },
+          {
+            "name": "index_projects_createdAt",
+            "unique": false,
+            "columnNames": ["createdAt"],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_projects_createdAt` ON `${TABLE_NAME}` (`createdAt`)"
+          },
+          {
+            "name": "index_projects_updatedAt",
+            "unique": false,
+            "columnNames": ["updatedAt"],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_projects_updatedAt` ON `${TABLE_NAME}` (`updatedAt`)"
+          },
+          {
+            "name": "index_projects_isFavorite",
+            "unique": false,
+            "columnNames": ["isFavorite"],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_projects_isFavorite` ON `${TABLE_NAME}` (`isFavorite`)"
+          },
+          {
+            "name": "index_projects_isArchived",
+            "unique": false,
+            "columnNames": ["isArchived"],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_projects_isArchived` ON `${TABLE_NAME}` (`isArchived`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "project_files",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `projectId` TEXT NOT NULL, `parentId` TEXT, `name` TEXT NOT NULL, `path` TEXT NOT NULL, `type` TEXT NOT NULL, `mimeType` TEXT, `size` INTEGER NOT NULL, `extension` TEXT, `content` TEXT, `isEncrypted` INTEGER NOT NULL, `hash` TEXT, `isOpen` INTEGER NOT NULL, `isDirty` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, `lastAccessedAt` INTEGER, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "projectId",
+            "columnName": "projectId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "parentId",
+            "columnName": "parentId",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "path",
+            "columnName": "path",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "type",
+            "columnName": "type",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mimeType",
+            "columnName": "mimeType",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "size",
+            "columnName": "size",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "extension",
+            "columnName": "extension",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "content",
+            "columnName": "content",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "isEncrypted",
+            "columnName": "isEncrypted",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hash",
+            "columnName": "hash",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "isOpen",
+            "columnName": "isOpen",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isDirty",
+            "columnName": "isDirty",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updatedAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastAccessedAt",
+            "columnName": "lastAccessedAt",
+            "affinity": "INTEGER",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": ["id"]
+        },
+        "indices": [
+          {
+            "name": "index_project_files_projectId",
+            "unique": false,
+            "columnNames": ["projectId"],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_project_files_projectId` ON `${TABLE_NAME}` (`projectId`)"
+          },
+          {
+            "name": "index_project_files_parentId",
+            "unique": false,
+            "columnNames": ["parentId"],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_project_files_parentId` ON `${TABLE_NAME}` (`parentId`)"
+          },
+          {
+            "name": "index_project_files_type",
+            "unique": false,
+            "columnNames": ["type"],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_project_files_type` ON `${TABLE_NAME}` (`type`)"
+          },
+          {
+            "name": "index_project_files_path",
+            "unique": false,
+            "columnNames": ["path"],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_project_files_path` ON `${TABLE_NAME}` (`path`)"
+          },
+          {
+            "name": "index_project_files_updatedAt",
+            "unique": false,
+            "columnNames": ["updatedAt"],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_project_files_updatedAt` ON `${TABLE_NAME}` (`updatedAt`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "project_activities",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `projectId` TEXT NOT NULL, `type` TEXT NOT NULL, `description` TEXT NOT NULL, `fileId` TEXT, `data` TEXT, `createdAt` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "projectId",
+            "columnName": "projectId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "type",
+            "columnName": "type",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "description",
+            "columnName": "description",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "fileId",
+            "columnName": "fileId",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "data",
+            "columnName": "data",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": ["id"]
+        },
+        "indices": [
+          {
+            "name": "index_project_activities_projectId",
+            "unique": false,
+            "columnNames": ["projectId"],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_project_activities_projectId` ON `${TABLE_NAME}` (`projectId`)"
+          },
+          {
+            "name": "index_project_activities_createdAt",
+            "unique": false,
+            "columnNames": ["createdAt"],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_project_activities_createdAt` ON `${TABLE_NAME}` (`createdAt`)"
+          }
+        ],
+        "foreignKeys": []
+      }
+    ],
+    "views": [],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'd78b5bb3be94c5cce9999dc9d741bbf9')"
+    ]
+  }
+}

@@ -76,7 +76,8 @@ class AppState: ObservableObject {
         let sql = "SELECT did FROM did_identities WHERE is_primary = 1 LIMIT 1;"
 
         let result: String? = try DatabaseManager.shared.queryOne(sql) { stmt in
-            return String(cString: sqlite3_column_text(stmt, 0))
+            guard let textPtr = sqlite3_column_text(stmt, 0) else { return nil }
+            return String(cString: textPtr)
         }
 
         if let did = result {
