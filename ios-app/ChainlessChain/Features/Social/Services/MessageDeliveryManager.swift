@@ -26,6 +26,9 @@ class MessageDeliveryManager: ObservableObject {
     private let maxRetries = AppConfig.Delivery.maxRetries
     private var deliveryTimers: [String: Timer] = [:]
 
+    // Notification observer tokens for cleanup
+    private var notificationObservers: [NSObjectProtocol] = []
+
     // MARK: - Types
 
     /// 投递信息
@@ -414,7 +417,7 @@ class MessageDeliveryManager: ObservableObject {
 
     private func setupNotificationObservers() {
         // Handle incoming ACKs
-        NotificationCenter.default.addObserver(
+        let ackObserver = NotificationCenter.default.addObserver(
             forName: .deliveryAckReceived,
             object: nil,
             queue: .main
@@ -428,9 +431,10 @@ class MessageDeliveryManager: ObservableObject {
                 await self?.handleReceivedAck(ack)
             }
         }
+        notificationObservers.append(ackObserver)
 
         // Handle connection state changes
-        NotificationCenter.default.addObserver(
+        let disconnectedObserver = NotificationCenter.default.addObserver(
             forName: .p2pPeerDisconnected,
             object: nil,
             queue: .main
@@ -442,8 +446,9 @@ class MessageDeliveryManager: ObservableObject {
                 self?.pauseDeliveries(for: peerId)
             }
         }
+        notificationObservers.append(disconnectedObserver)
 
-        NotificationCenter.default.addObserver(
+        let connectedObserver = NotificationCenter.default.addObserver(
             forName: .p2pPeerConnected,
             object: nil,
             queue: .main
@@ -455,6 +460,7 @@ class MessageDeliveryManager: ObservableObject {
                 self?.resumeDeliveries(for: peerId)
             }
         }
+        notificationObservers.append(connectedObserver)
     }
 
     private func pauseDeliveries(for peerId: String) {
@@ -478,12 +484,21 @@ class MessageDeliveryManager: ObservableObject {
     // MARK: - Cleanup
 
     func cleanup() {
+        // Remove notification observers
+        notificationObservers.forEach { NotificationCenter.default.removeObserver($0) }
+        notificationObservers.removeAll()
+
         // Cancel all timers
         for (_, timer) in deliveryTimers {
             timer.invalidate()
         }
         deliveryTimers.removeAll()
         pendingDeliveries.removeAll()
+    }
+
+    deinit {
+        // Remove notification observers
+        notificationObservers.forEach { NotificationCenter.default.removeObserver($0) }
     }
 }
 

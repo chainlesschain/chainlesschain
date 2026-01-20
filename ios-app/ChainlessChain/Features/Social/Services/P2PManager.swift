@@ -32,6 +32,9 @@ class P2PManager: ObservableObject {
     private let baseReconnectDelay: TimeInterval = AppConfig.P2P.baseReconnectDelay
     private var disconnectedPeers: [String: PeerReconnectInfo] = [:]
 
+    // Memory management - maximum entries in tracking dictionaries
+    private let maxTrackedPeers = 100
+
     // Notification observer tokens for cleanup
     private var notificationObservers: [NSObjectProtocol] = []
 
@@ -505,6 +508,9 @@ class P2PManager: ObservableObject {
 
     /// Schedule a reconnect attempt with exponential backoff
     private func scheduleReconnect(for peerId: String) {
+        // Prune old entries to prevent unbounded memory growth
+        pruneConnectionStatusIfNeeded()
+
         let attempts = reconnectAttempts[peerId] ?? 0
 
         guard attempts < maxReconnectAttempts else {
@@ -587,12 +593,50 @@ class P2PManager: ObservableObject {
 
     /// Store peer info for reconnection
     func storePeerForReconnect(peerId: String, preKeyBundle: SignalProtocolManager.PreKeyBundle?) {
+        // Prune old entries if limit exceeded
+        pruneDisconnectedPeersIfNeeded()
+
         disconnectedPeers[peerId] = PeerReconnectInfo(
             peerId: peerId,
             preKeyBundle: preKeyBundle,
             lastAttempt: Date(),
             attemptCount: 0
         )
+    }
+
+    /// Prune old disconnected peer entries to prevent unbounded memory growth
+    private func pruneDisconnectedPeersIfNeeded() {
+        guard disconnectedPeers.count >= maxTrackedPeers else { return }
+
+        // Sort by lastAttempt date and remove oldest entries
+        let sortedPeers = disconnectedPeers.sorted { $0.value.lastAttempt < $1.value.lastAttempt }
+        let peersToRemove = sortedPeers.prefix(disconnectedPeers.count - maxTrackedPeers / 2)
+
+        for (peerId, _) in peersToRemove {
+            disconnectedPeers.removeValue(forKey: peerId)
+            reconnectAttempts.removeValue(forKey: peerId)
+            reconnectTimers[peerId]?.invalidate()
+            reconnectTimers.removeValue(forKey: peerId)
+        }
+
+        logger.debug("[P2P] Pruned \(peersToRemove.count) old peer entries")
+    }
+
+    /// Prune connection status entries for peers no longer tracked
+    private func pruneConnectionStatusIfNeeded() {
+        guard connectionStatus.count > maxTrackedPeers else { return }
+
+        // Keep only connected peers and recent entries
+        let connectedPeerIds = connectedPeers
+        let entriesToRemove = connectionStatus.keys.filter { !connectedPeerIds.contains($0) }
+
+        // Remove oldest half of non-connected entries
+        let removeCount = min(entriesToRemove.count, connectionStatus.count - maxTrackedPeers / 2)
+        for peerId in entriesToRemove.prefix(removeCount) {
+            connectionStatus.removeValue(forKey: peerId)
+        }
+
+        logger.debug("[P2P] Pruned \(removeCount) old connection status entries")
     }
 
     private func sendMessageViaWebRTC(to peerId: String, message: MessageManager.Message) async throws {
