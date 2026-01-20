@@ -1,6 +1,5 @@
 package com.chainlesschain.android.feature.p2p.ui
 
-import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -13,11 +12,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.chainlesschain.android.core.database.entity.MessageSendStatus
+import com.chainlesschain.android.core.database.entity.P2PMessageEntity
+import com.chainlesschain.android.feature.p2p.viewmodel.ConnectionStatus
 import com.chainlesschain.android.feature.p2p.viewmodel.P2PChatViewModel
-import com.chainlesschain.android.core.p2p.model.P2PMessage
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
@@ -54,8 +54,15 @@ fun P2PChatScreen(
     LaunchedEffect(messages.size) {
         if (messages.isNotEmpty()) {
             coroutineScope.launch {
-                listState.animateScrollToItem(messages.size)
+                listState.animateScrollToItem(messages.size - 1)
             }
+        }
+    }
+
+    // 标记消息为已读
+    DisposableEffect(deviceId) {
+        onDispose {
+            viewModel.markAsRead()
         }
     }
 
@@ -75,18 +82,18 @@ fun P2PChatScreen(
                                     .size(8.dp)
                                     .background(
                                         color = when (connectionStatus) {
-                                            "CONNECTED" -> MaterialTheme.colorScheme.primary
-                                            "CONNECTING" -> MaterialTheme.colorScheme.tertiary
-                                            else -> MaterialTheme.colorScheme.error
+                                            ConnectionStatus.CONNECTED -> MaterialTheme.colorScheme.primary
+                                            ConnectionStatus.CONNECTING -> MaterialTheme.colorScheme.tertiary
+                                            ConnectionStatus.DISCONNECTED -> MaterialTheme.colorScheme.error
                                         },
                                         shape = MaterialTheme.shapes.small
                                     )
                             )
                             Text(
                                 text = when (connectionStatus) {
-                                    "CONNECTED" -> "已连接"
-                                    "CONNECTING" -> "连接中..."
-                                    else -> "已断开"
+                                    ConnectionStatus.CONNECTED -> "已连接"
+                                    ConnectionStatus.CONNECTING -> "连接中..."
+                                    ConnectionStatus.DISCONNECTED -> "已断开"
                                 },
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -108,6 +115,16 @@ fun P2PChatScreen(
                     }
                 },
                 actions = {
+                    // 重连按钮
+                    if (connectionStatus == ConnectionStatus.DISCONNECTED) {
+                        IconButton(onClick = { viewModel.reconnect() }) {
+                            Icon(
+                                Icons.Default.Refresh,
+                                contentDescription = "重新连接",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
                     // 验证按钮
                     if (!isVerified) {
                         IconButton(onClick = onVerifyDevice) {
@@ -119,8 +136,34 @@ fun P2PChatScreen(
                         }
                     }
                     // 更多选项
-                    IconButton(onClick = { /* TODO: 显示更多选项 */ }) {
+                    var showMenu by remember { mutableStateOf(false) }
+                    IconButton(onClick = { showMenu = true }) {
                         Icon(Icons.Default.MoreVert, contentDescription = "更多")
+                    }
+                    DropdownMenu(
+                        expanded = showMenu,
+                        onDismissRequest = { showMenu = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("重发失败消息") },
+                            onClick = {
+                                viewModel.retryFailedMessages()
+                                showMenu = false
+                            },
+                            leadingIcon = {
+                                Icon(Icons.Default.Replay, contentDescription = null)
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("清空聊天记录") },
+                            onClick = {
+                                viewModel.deleteAllMessages()
+                                showMenu = false
+                            },
+                            leadingIcon = {
+                                Icon(Icons.Default.DeleteForever, contentDescription = null)
+                            }
+                        )
                     }
                 }
             )
@@ -160,6 +203,13 @@ fun P2PChatScreen(
                 }
             }
 
+            // 加载指示器
+            if (uiState.isLoading) {
+                LinearProgressIndicator(
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
             // 消息列表
             LazyColumn(
                 modifier = Modifier
@@ -169,10 +219,41 @@ fun P2PChatScreen(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                if (messages.isEmpty() && !uiState.isLoading) {
+                    item {
+                        Box(
+                            modifier = Modifier.fillParentMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Icon(
+                                    Icons.Default.Chat,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(64.dp),
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text(
+                                    text = "开始安全聊天",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    text = "消息已端到端加密",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                )
+                            }
+                        }
+                    }
+                }
+
                 items(messages, key = { it.id }) { message ->
                     P2PMessageBubble(
                         message = message,
-                        isFromMe = message.fromDeviceId != deviceId
+                        isFromMe = message.isOutgoing
                     )
                 }
 
@@ -189,7 +270,7 @@ fun P2PChatScreen(
                 }
             }
 
-            Divider()
+            HorizontalDivider()
 
             // 输入框
             P2PChatInput(
@@ -201,7 +282,7 @@ fun P2PChatScreen(
                         inputText = ""
                     }
                 },
-                enabled = !uiState.isSending && connectionStatus == "CONNECTED"
+                enabled = !uiState.isSending && connectionStatus == ConnectionStatus.CONNECTED
             )
         }
 
@@ -226,7 +307,7 @@ fun P2PChatScreen(
  */
 @Composable
 fun P2PMessageBubble(
-    message: P2PMessage,
+    message: P2PMessageEntity,
     isFromMe: Boolean
 ) {
     Box(
@@ -250,9 +331,9 @@ fun P2PMessageBubble(
             Column(
                 modifier = Modifier.padding(12.dp)
             ) {
-                // 解密后的消息内容
+                // 消息内容
                 Text(
-                    text = message.payload, // 实际应该是解密后的内容
+                    text = message.content,
                     style = MaterialTheme.typography.bodyMedium,
                     color = if (isFromMe) {
                         MaterialTheme.colorScheme.onPrimary
@@ -279,15 +360,20 @@ fun P2PMessageBubble(
 
                     // 发送状态图标
                     if (isFromMe) {
+                        val (icon, description) = when (message.sendStatus) {
+                            MessageSendStatus.PENDING -> Icons.Default.Schedule to "发送中"
+                            MessageSendStatus.SENT -> Icons.Default.Done to "已发送"
+                            MessageSendStatus.DELIVERED -> Icons.Default.DoneAll to "已送达"
+                            MessageSendStatus.FAILED -> Icons.Default.Error to "发送失败"
+                            else -> Icons.Default.Done to "已发送"
+                        }
                         Icon(
-                            imageVector = if (message.isAcknowledged) {
-                                Icons.Default.DoneAll
-                            } else {
-                                Icons.Default.Done
-                            },
-                            contentDescription = if (message.isAcknowledged) "已读" else "已送达",
+                            imageVector = icon,
+                            contentDescription = description,
                             modifier = Modifier.size(14.dp),
-                            tint = if (isFromMe) {
+                            tint = if (message.sendStatus == MessageSendStatus.FAILED) {
+                                MaterialTheme.colorScheme.error
+                            } else if (isFromMe) {
                                 MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f)
                             } else {
                                 MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
@@ -362,18 +448,20 @@ fun P2PChatInput(
             value = value,
             onValueChange = onValueChange,
             modifier = Modifier.weight(1f),
-            placeholder = { Text("输入消息...") },
+            placeholder = {
+                Text(
+                    if (enabled) "输入消息..." else "请先建立连接"
+                )
+            },
             enabled = enabled,
             maxLines = 4,
             trailingIcon = {
-                if (!enabled) {
-                    Icon(
-                        Icons.Default.Lock,
-                        contentDescription = "加密",
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
+                Icon(
+                    Icons.Default.Lock,
+                    contentDescription = "加密",
+                    modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
             }
         )
 

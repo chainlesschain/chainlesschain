@@ -48,6 +48,7 @@ android {
 dependencies {
     // Core modules
     implementation(project(":core-common"))
+    implementation(project(":core-database"))
     implementation(project(":core-p2p"))
     implementation(project(":core-did"))
     implementation(project(":core-e2ee"))
