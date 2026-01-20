@@ -35,7 +35,7 @@ class DatabaseMigrationsTest {
         // Then
         assertNotNull(migrations)
         assertTrue(migrations.isNotEmpty())
-        assertEquals(6, migrations.size)
+        assertEquals(8, migrations.size)
     }
 
     @Test
@@ -299,6 +299,71 @@ class DatabaseMigrationsTest {
         verify {
             mockDatabase.execSQL(match {
                 it.contains("CREATE TRIGGER IF NOT EXISTS knowledge_items_fts_au")
+            })
+        }
+    }
+
+    @Test
+    fun `MIGRATION_7_8 has correct version range`() {
+        // When
+        val migration = DatabaseMigrations.MIGRATION_7_8
+
+        // Then
+        assertEquals(7, migration.startVersion)
+        assertEquals(8, migration.endVersion)
+    }
+
+    @Test
+    fun `MIGRATION_7_8 creates project_chat_messages table`() {
+        // When
+        DatabaseMigrations.MIGRATION_7_8.migrate(mockDatabase)
+
+        // Then
+        verify {
+            mockDatabase.execSQL(match {
+                it.contains("CREATE TABLE IF NOT EXISTS `project_chat_messages`") &&
+                it.contains("`id` TEXT NOT NULL PRIMARY KEY") &&
+                it.contains("`projectId` TEXT NOT NULL") &&
+                it.contains("`role` TEXT NOT NULL") &&
+                it.contains("`content` TEXT NOT NULL")
+            })
+        }
+    }
+
+    @Test
+    fun `MIGRATION_8_9 has correct version range`() {
+        // When
+        val migration = DatabaseMigrations.MIGRATION_8_9
+
+        // Then
+        assertEquals(8, migration.startVersion)
+        assertEquals(9, migration.endVersion)
+    }
+
+    @Test
+    fun `MIGRATION_8_9 adds messageType column`() {
+        // When
+        DatabaseMigrations.MIGRATION_8_9.migrate(mockDatabase)
+
+        // Then
+        verify {
+            mockDatabase.execSQL(match {
+                it.contains("ALTER TABLE `project_chat_messages`") &&
+                it.contains("ADD COLUMN `messageType` TEXT NOT NULL DEFAULT 'NORMAL'")
+            })
+        }
+    }
+
+    @Test
+    fun `MIGRATION_8_9 adds contextMode column`() {
+        // When
+        DatabaseMigrations.MIGRATION_8_9.migrate(mockDatabase)
+
+        // Then
+        verify {
+            mockDatabase.execSQL(match {
+                it.contains("ALTER TABLE `project_chat_messages`") &&
+                it.contains("ADD COLUMN `contextMode` TEXT NOT NULL DEFAULT 'PROJECT'")
             })
         }
     }
