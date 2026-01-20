@@ -1,6 +1,5 @@
 package com.chainlesschain.android.feature.ai
 
-import android.content.Context
 import androidx.paging.PagingSource
 import com.chainlesschain.android.core.database.dao.KnowledgeItemDao
 import com.chainlesschain.android.core.database.entity.KnowledgeItemEntity
