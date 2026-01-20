@@ -424,6 +424,9 @@ function registerAllIPC(dependencies) {
         mainWindow: mainWindow || null,
         scanAndRegisterProjectFiles:
           app?.scanAndRegisterProjectFiles?.bind(app) || null,
+        // 🔥 MCP 集成：传递 MCP 依赖用于项目AI会话工具调用
+        mcpClientManager,
+        mcpToolAdapter,
       });
       if (!llmManager) {
         logger.info(

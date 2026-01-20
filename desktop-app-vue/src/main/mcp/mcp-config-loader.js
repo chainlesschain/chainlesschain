@@ -7,7 +7,7 @@
  * @module MCPConfigLoader
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger, createLogger } = require("../utils/logger.js");
 const fs = require("fs");
 const path = require("path");
 const EventEmitter = require("events");
@@ -197,12 +197,34 @@ class MCPConfigLoader extends EventEmitter {
    */
   _getDefaultConfig() {
     return {
-      enabled: false,
-      servers: {},
+      enabled: true, // 默认启用MCP
+      servers: {
+        // 默认配置文件系统服务器（自动连接）
+        filesystem: {
+          enabled: true,
+          autoConnect: true,
+          transport: "stdio",
+          command: "npx",
+          args: ["-y", "@modelcontextprotocol/server-filesystem", "."],
+          permissions: {
+            allowedPaths: ["notes/", "imports/", "projects/", "data/"],
+            forbiddenPaths: [
+              "chainlesschain.db",
+              "data/ukey/",
+              "data/did/private-keys/",
+            ],
+            readOnly: false,
+            maxFileSizeMB: 100,
+          },
+        },
+      },
       trustedServers: [
         "@modelcontextprotocol/server-filesystem",
         "@modelcontextprotocol/server-postgres",
+        "@modelcontextprotocol/server-sqlite",
         "@modelcontextprotocol/server-github",
+        "@modelcontextprotocol/server-fetch",
+        "@modelcontextprotocol/server-git",
       ],
       allowUntrustedServers: false,
       defaultPermissions: {

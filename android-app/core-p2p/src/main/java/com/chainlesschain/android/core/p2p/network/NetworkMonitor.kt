@@ -40,7 +40,7 @@ class NetworkMonitor @Inject constructor(
     }
 
     // 当前网络状态
-    private val _networkState = MutableStateFlow(NetworkState.Unknown)
+    private val _networkState = MutableStateFlow<NetworkState>(NetworkState.Unknown)
     val networkState: StateFlow<NetworkState> = _networkState.asStateFlow()
 
     // 网络变化事件

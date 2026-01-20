@@ -16,8 +16,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
-import net.sqlcipher.database.SQLiteDatabase
-import net.sqlcipher.database.SupportFactory
+import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
 import javax.inject.Singleton
 
 /**
@@ -49,8 +48,11 @@ object DatabaseModule {
         // 从Keystore获取数据库加密密钥
         val passphrase = keyManager.getDatabaseKey()
 
+        // 加载 SQLCipher 库
+        System.loadLibrary("sqlcipher")
+
         // SQLCipher工厂
-        val factory = SupportFactory(SQLiteDatabase.getBytes(passphrase.toCharArray()))
+        val factory = SupportOpenHelperFactory(passphrase.toByteArray())
 
         return Room.databaseBuilder(
             context,

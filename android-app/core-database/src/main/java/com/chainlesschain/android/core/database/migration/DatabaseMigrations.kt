@@ -26,7 +26,8 @@ object DatabaseMigrations {
             MIGRATION_2_3,
             MIGRATION_3_4,
             MIGRATION_4_5,
-            MIGRATION_5_6
+            MIGRATION_5_6,
+            MIGRATION_6_7
         )
     }
 
@@ -281,6 +282,60 @@ object DatabaseMigrations {
             db.execSQL("CREATE INDEX IF NOT EXISTS `index_project_activities_createdAt` ON `project_activities` (`createdAt`)")
 
             Log.i(TAG, "Migration 5 to 6 completed successfully")
+        }
+    }
+
+    /**
+     * 迁移 6 -> 7
+     *
+     * 添加知识库全文搜索（FTS4）虚拟表
+     */
+    val MIGRATION_6_7 = object : Migration(6, 7) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            Log.i(TAG, "Migrating database from version 6 to 7")
+
+            // 创建 FTS4 虚拟表用于知识库全文搜索
+            // 使用 content= 指向 knowledge_items 表实现外部内容同步
+            db.execSQL("""
+                CREATE VIRTUAL TABLE IF NOT EXISTS `knowledge_items_fts` USING FTS4(
+                    `title`,
+                    `content`,
+                    `tags`,
+                    content=`knowledge_items`
+                )
+            """.trimIndent())
+
+            // 创建触发器以保持 FTS 表与主表同步
+            // INSERT 触发器
+            db.execSQL("""
+                CREATE TRIGGER IF NOT EXISTS knowledge_items_fts_ai AFTER INSERT ON knowledge_items BEGIN
+                    INSERT INTO knowledge_items_fts(docid, title, content, tags)
+                    VALUES (NEW.rowid, NEW.title, NEW.content, NEW.tags);
+                END
+            """.trimIndent())
+
+            // DELETE 触发器
+            db.execSQL("""
+                CREATE TRIGGER IF NOT EXISTS knowledge_items_fts_ad AFTER DELETE ON knowledge_items BEGIN
+                    INSERT INTO knowledge_items_fts(knowledge_items_fts, docid, title, content, tags)
+                    VALUES ('delete', OLD.rowid, OLD.title, OLD.content, OLD.tags);
+                END
+            """.trimIndent())
+
+            // UPDATE 触发器
+            db.execSQL("""
+                CREATE TRIGGER IF NOT EXISTS knowledge_items_fts_au AFTER UPDATE ON knowledge_items BEGIN
+                    INSERT INTO knowledge_items_fts(knowledge_items_fts, docid, title, content, tags)
+                    VALUES ('delete', OLD.rowid, OLD.title, OLD.content, OLD.tags);
+                    INSERT INTO knowledge_items_fts(docid, title, content, tags)
+                    VALUES (NEW.rowid, NEW.title, NEW.content, NEW.tags);
+                END
+            """.trimIndent())
+
+            // 初始填充 FTS 表（重建索引）
+            db.execSQL("INSERT INTO knowledge_items_fts(knowledge_items_fts) VALUES('rebuild')")
+
+            Log.i(TAG, "Migration 6 to 7 completed successfully")
         }
     }
 

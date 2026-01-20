@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import com.chainlesschain.android.core.e2ee.crypto.X25519KeyPair
 import com.chainlesschain.android.core.e2ee.protocol.DoubleRatchet
+import com.chainlesschain.android.core.e2ee.protocol.MessageHeader
 import com.chainlesschain.android.core.e2ee.session.E2EESession
 import com.chainlesschain.android.core.e2ee.session.InitialMessage
 import kotlinx.coroutines.Dispatchers
@@ -115,17 +116,19 @@ class SessionStorage(private val context: Context) {
      *
      * @param peerId 对等方ID
      */
-    suspend fun deleteSession(peerId: String) = withContext(Dispatchers.IO) {
-        try {
-            Log.d(TAG, "Deleting session for peer: $peerId")
+    suspend fun deleteSession(peerId: String) {
+        withContext(Dispatchers.IO) {
+            try {
+                Log.d(TAG, "Deleting session for peer: $peerId")
 
-            val sessionFile = File(storageDir, "${peerId}${SESSION_FILE_SUFFIX}")
-            if (sessionFile.exists()) {
-                sessionFile.delete()
-                Log.d(TAG, "Session deleted for peer: $peerId")
+                val sessionFile = File(storageDir, "${peerId}${SESSION_FILE_SUFFIX}")
+                if (sessionFile.exists()) {
+                    sessionFile.delete()
+                    Log.d(TAG, "Session deleted for peer: $peerId")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to delete session for peer: $peerId", e)
             }
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to delete session for peer: $peerId", e)
         }
     }
 
@@ -298,12 +301,12 @@ class SessionStorage(private val context: Context) {
         )
 
         val skippedMessageKeys = serialized.skippedMessageKeys.associate { skipped ->
-            val header = DoubleRatchet.MessageHeader(
+            val header = MessageHeader(
                 ratchetKey = skipped.publicKey,
                 previousChainLength = 0, // 不需要存储
                 messageNumber = skipped.messageNumber
             )
-            header to skipped.messageKey
+            Pair<MessageHeader, ByteArray>(header, skipped.messageKey)
         }.toMutableMap()
 
         return DoubleRatchet.RatchetState(
