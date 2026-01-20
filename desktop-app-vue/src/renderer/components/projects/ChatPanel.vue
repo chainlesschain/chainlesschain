@@ -1,13 +1,7 @@
 <template>
-  <div
-    class="chat-panel"
-    data-testid="chat-panel"
-  >
+  <div class="chat-panel" data-testid="chat-panel">
     <!-- 头部：上下文选择器 -->
-    <div
-      class="chat-header"
-      data-testid="chat-header"
-    >
+    <div class="chat-header" data-testid="chat-header">
       <h3 class="chat-title">
         <MessageOutlined />
         AI 助手
@@ -19,24 +13,15 @@
         button-style="solid"
         data-testid="context-mode-selector"
       >
-        <a-radio-button
-          value="project"
-          data-testid="context-mode-project"
-        >
+        <a-radio-button value="project" data-testid="context-mode-project">
           <FolderOutlined />
           项目
         </a-radio-button>
-        <a-radio-button
-          value="file"
-          data-testid="context-mode-file"
-        >
+        <a-radio-button value="file" data-testid="context-mode-file">
           <FileTextOutlined />
           文件
         </a-radio-button>
-        <a-radio-button
-          value="global"
-          data-testid="context-mode-global"
-        >
+        <a-radio-button value="global" data-testid="context-mode-global">
           <GlobalOutlined />
           全局
         </a-radio-button>
@@ -81,8 +66,8 @@
           <SystemMessage
             v-if="
               message.type === MessageType.SYSTEM ||
-                message.type === MessageType.TASK_ANALYSIS ||
-                message.type === MessageType.INTENT_RECOGNITION
+              message.type === MessageType.TASK_ANALYSIS ||
+              message.type === MessageType.INTENT_RECOGNITION
             "
             :message="message"
           />
@@ -115,10 +100,7 @@
           />
 
           <!-- 普通用户/助手消息 -->
-          <div
-            v-else
-            :class="['message-item', message.role]"
-          >
+          <div v-else :class="['message-item', message.role]">
             <div class="message-avatar">
               <UserOutlined v-if="message.role === 'user'" />
               <RobotOutlined v-else />
@@ -153,10 +135,7 @@
     </div>
 
     <!-- 输入区域 -->
-    <div
-      class="input-container"
-      data-testid="input-container"
-    >
+    <div class="input-container" data-testid="input-container">
       <div class="input-wrapper">
         <a-textarea
           v-model:value="userInput"
@@ -197,11 +176,7 @@
       </div>
 
       <!-- 上下文信息提示 -->
-      <div
-        v-if="contextInfo"
-        class="context-info"
-        data-testid="context-info"
-      >
+      <div v-if="contextInfo" class="context-info" data-testid="context-info">
         <InfoCircleOutlined />
         <span>{{ contextInfo }}</span>
       </div>
@@ -210,9 +185,17 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger, createLogger } from "@/utils/logger";
 
-import { ref, computed, watch, onMounted, onUnmounted, nextTick, reactive } from "vue";
+import {
+  ref,
+  computed,
+  watch,
+  onMounted,
+  onUnmounted,
+  nextTick,
+  reactive,
+} from "vue";
 import { message as antMessage } from "ant-design-vue";
 import {
   MessageOutlined,
@@ -408,6 +391,7 @@ const sanitizeJSONString = (jsonString) => {
   // \x0C: 换页符
   // \x0E-\x1F: 其他控制字符（不包括 \x09=TAB, \x0A=LF, \x0D=CR）
   // \x7F-\x9F: DEL和扩展控制字符
+  // eslint-disable-next-line no-control-regex
   return jsonString.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F-\x9F]/g, "");
 };
 
@@ -447,14 +431,20 @@ const cleanForIPC = (obj) => {
       // 处理普通对象
       const cleaned = {};
       for (const key in value) {
-        if (value.hasOwnProperty(key)) {
+        if (Object.prototype.hasOwnProperty.call(value, key)) {
           const val = value[key];
           // 跳过函数
-          if (typeof val === "function") {continue;}
+          if (typeof val === "function") {
+            continue;
+          }
           // 跳过Symbol
-          if (typeof val === "symbol") {continue;}
+          if (typeof val === "symbol") {
+            continue;
+          }
           // 跳过undefined
-          if (val === undefined) {continue;}
+          if (val === undefined) {
+            continue;
+          }
 
           cleaned[key] = clean(val);
         }
@@ -539,7 +529,9 @@ const renderMarkdown = (content) => {
  * 格式化时间
  */
 const formatTime = (timestamp) => {
-  if (!timestamp) {return "";}
+  if (!timestamp) {
+    return "";
+  }
   const date = new Date(timestamp);
   const now = new Date();
   const diff = now - date;
@@ -580,7 +572,9 @@ const formatTime = (timestamp) => {
  * 打开文件
  */
 const openFile = (source) => {
-  if (!source) {return;}
+  if (!source) {
+    return;
+  }
 
   logger.info("[ChatPanel] 打开文件:", source);
 
@@ -604,7 +598,9 @@ const openFile = (source) => {
  * 处理文件附件点击
  */
 const handleFileClick = (file) => {
-  if (!file) {return;}
+  if (!file) {
+    return;
+  }
 
   logger.info("[ChatPanel] 打开附件文件:", file);
 
@@ -726,7 +722,9 @@ const buildProjectContext = async () => {
   try {
     // 获取项目信息
     const project = await window.electronAPI.project.get(props.projectId);
-    if (!project) {return "";}
+    if (!project) {
+      return "";
+    }
 
     // 获取项目文件列表
     const files = await window.electronAPI.project.getFiles(props.projectId);
@@ -756,7 +754,9 @@ const buildProjectContext = async () => {
  * 构建文件上下文
  */
 const buildFileContext = () => {
-  if (!props.currentFile) {return "";}
+  if (!props.currentFile) {
+    return "";
+  }
 
   let context = `# 当前文件：${props.currentFile.file_name}\n\n`;
   context += `路径：${props.currentFile.file_path}\n`;
@@ -788,7 +788,9 @@ const buildSystemPrompt = async () => {
  */
 const handleSendMessage = async () => {
   const input = userInput.value.trim();
-  if (!input || isLoading.value) {return;}
+  if (!input || isLoading.value) {
+    return;
+  }
 
   // 检查API是否可用
   if (!window.electronAPI?.project) {
@@ -890,7 +892,9 @@ const handleSendMessage = async () => {
  */
 const getProjectFiles = async () => {
   try {
-    if (!props.projectId) {return [];}
+    if (!props.projectId) {
+      return [];
+    }
 
     const result = await window.electronAPI.project.getFiles(props.projectId);
     return result.files || [];
@@ -905,7 +909,9 @@ const getProjectFiles = async () => {
  */
 const handleClearConversation = async () => {
   try {
-    if (!currentConversation.value) {return;}
+    if (!currentConversation.value) {
+      return;
+    }
 
     // 检查API是否可用
     if (!window.electronAPI?.conversation) {
@@ -1531,18 +1537,9 @@ const startTaskPlanning = async (userInput) => {
 
           // 注册事件监听器 (自动跟踪，组件卸载时清理)
           logger.info("[ChatPanel] 📡 注册流式事件监听器");
-          safeRegisterListener(
-            "project:aiChatStream-chunk",
-            handleChunk,
-          );
-          safeRegisterListener(
-            "project:aiChatStream-complete",
-            handleComplete,
-          );
-          safeRegisterListener(
-            "project:aiChatStream-error",
-            handleError,
-          );
+          safeRegisterListener("project:aiChatStream-chunk", handleChunk);
+          safeRegisterListener("project:aiChatStream-complete", handleComplete);
+          safeRegisterListener("project:aiChatStream-error", handleError);
 
           // 调用流式API
           logger.info("[ChatPanel] 🚀 开始调用流式 API");
@@ -1777,18 +1774,9 @@ const generateTaskPlanMessage = async (
             reject(new Error(error.message));
           };
 
-          safeRegisterListener(
-            "project:aiChatStream-chunk",
-            handleChunk,
-          );
-          safeRegisterListener(
-            "project:aiChatStream-complete",
-            handleComplete,
-          );
-          safeRegisterListener(
-            "project:aiChatStream-error",
-            handleError,
-          );
+          safeRegisterListener("project:aiChatStream-chunk", handleChunk);
+          safeRegisterListener("project:aiChatStream-complete", handleComplete);
+          safeRegisterListener("project:aiChatStream-error", handleError);
 
           window.electronAPI.project
             .aiChatStream({
@@ -1825,6 +1813,30 @@ const generateTaskPlanMessage = async (
     };
 
     const plan = await TaskPlanner.generatePlan(fakeSession, llmService);
+
+    // 验证 plan 对象
+    if (!plan) {
+      logger.error(
+        "[ChatPanel] ❌ TaskPlanner.generatePlan 返回 null/undefined",
+      );
+      const generatingIndex = messages.value.findIndex(
+        (m) => m.id === generatingMsg.id,
+      );
+      if (generatingIndex !== -1) {
+        messages.value.splice(generatingIndex, 1);
+      }
+      const errorMsg = createSystemMessage("任务计划生成失败，请重试", {
+        type: "error",
+      });
+      messages.value.push(errorMsg);
+      return;
+    }
+
+    // 确保 plan.tasks 是数组
+    if (!Array.isArray(plan.tasks)) {
+      plan.tasks = [];
+    }
+
     logger.info("[ChatPanel] ✅ 任务计划生成完成:", plan);
 
     // 移除"正在生成"消息
@@ -2885,7 +2897,7 @@ const handleFollowupIntent = async (
   }
 
   switch (intent) {
-    case "CONTINUE_EXECUTION":
+    case "CONTINUE_EXECUTION": {
       // 用户催促继续执行，不做任何修改
       logger.info("[ChatPanel] ✅ 用户催促继续执行，无需操作");
 
@@ -2900,8 +2912,9 @@ const handleFollowupIntent = async (
       // 可选：向用户反馈正在执行
       antMessage.info("继续执行任务中...");
       break;
+    }
 
-    case "MODIFY_REQUIREMENT":
+    case "MODIFY_REQUIREMENT": {
       // 用户修改需求，需要暂停并重新规划
       logger.info("[ChatPanel] ⚠️ 用户修改需求:", extractedInfo);
 
@@ -2935,8 +2948,9 @@ const handleFollowupIntent = async (
       // 重新启动任务规划
       await startTaskPlanning(mergedInput);
       break;
+    }
 
-    case "CLARIFICATION":
+    case "CLARIFICATION": {
       // 用户补充说明，追加到上下文继续执行
       logger.info("[ChatPanel] 📝 用户补充说明:", extractedInfo);
 
@@ -2968,8 +2982,9 @@ const handleFollowupIntent = async (
       // 3. 可选：调用 AI 服务使用更新后的上下文重新生成响应
       // 这里可以根据需要决定是否重新调用 AI
       break;
+    }
 
-    case "CANCEL_TASK":
+    case "CANCEL_TASK": {
       // 用户取消任务
       logger.info("[ChatPanel] ❌ 用户取消任务");
 
@@ -2990,6 +3005,7 @@ const handleFollowupIntent = async (
 
       antMessage.info("任务已取消");
       break;
+    }
 
     default:
       logger.warn("[ChatPanel] ⚠️ 未知意图类型:", intent);
@@ -3517,11 +3533,11 @@ onMounted(() => {
 
 // 🔥 组件卸载时清理所有资源 - 防止内存泄漏
 onUnmounted(() => {
-  logger.info('[ChatPanel] 组件卸载，开始清理资源...');
+  logger.info("[ChatPanel] 组件卸载，开始清理资源...");
 
   // 0. 取消所有进行中的API调用
   if (abortController.value) {
-    logger.info('[ChatPanel] 取消进行中的API请求');
+    logger.info("[ChatPanel] 取消进行中的API请求");
     abortController.value.abort();
     abortController.value = null;
   }
@@ -3529,7 +3545,7 @@ onUnmounted(() => {
   // 1. 清理所有定时器
   if (activeTimers.value.length > 0) {
     logger.info(`[ChatPanel] 清理 ${activeTimers.value.length} 个定时器`);
-    activeTimers.value.forEach(timerId => {
+    activeTimers.value.forEach((timerId) => {
       clearTimeout(timerId);
     });
     activeTimers.value = [];
@@ -3537,12 +3553,14 @@ onUnmounted(() => {
 
   // 2. 清理所有事件监听器
   if (activeListeners.value.length > 0) {
-    logger.info(`[ChatPanel] 清理 ${activeListeners.value.length} 个事件监听器`);
-    activeListeners.value.forEach(cleanup => {
+    logger.info(
+      `[ChatPanel] 清理 ${activeListeners.value.length} 个事件监听器`,
+    );
+    activeListeners.value.forEach((cleanup) => {
       try {
         cleanup();
       } catch (error) {
-        logger.error('[ChatPanel] 清理监听器失败:', error);
+        logger.error("[ChatPanel] 清理监听器失败:", error);
       }
     });
     activeListeners.value = [];
@@ -3550,12 +3568,12 @@ onUnmounted(() => {
 
   // 3. 清理思考状态
   thinkingState.show = false;
-  thinkingState.streamingContent = '';
+  thinkingState.streamingContent = "";
 
   // 4. 清理消息引用
   messages.value = [];
 
-  logger.info('[ChatPanel] 资源清理完成');
+  logger.info("[ChatPanel] 资源清理完成");
 });
 </script>
 

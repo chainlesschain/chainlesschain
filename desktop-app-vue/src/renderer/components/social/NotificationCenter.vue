@@ -224,6 +224,10 @@ const handleMarkAllRead = async () => {
 
 const handleDelete = async (id) => {
   try {
+    if (!Array.isArray(socialStore.notifications)) {
+      logger.warn("handleDelete: notifications 不是数组");
+      return;
+    }
     const index = socialStore.notifications.findIndex((n) => n.id === id);
     if (index > -1) {
       socialStore.notifications.splice(index, 1);
