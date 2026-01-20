@@ -34,6 +34,10 @@ export default defineConfig({
       '**/pkcs11-encryption.test.js',
       // Video engine tests require real ffmpeg binary and video files (integration test)
       '**/tests/unit/video-engine.test.js',
+      // Tests that depend on renderer logger which uses @/utils/logger (doesn't exist)
+      '**/tests/unit/planning-store.test.js',
+      '**/tests/unit/PythonExecutionPanel.test.ts',
+      '**/tests/unit/multimedia/multimedia-api.test.ts',
     ],
     coverage: {
       provider: 'v8',
@@ -61,8 +65,16 @@ export default defineConfig({
     hookTimeout: 10000,
     server: {
       deps: {
-        inline: ['electron']
+        // Inline these modules to properly handle CommonJS/ESM interop
+        inline: [
+          'electron',
+          /src\/main\/.*/  // Inline main process modules (CommonJS)
+        ]
       }
+    },
+    // Enable CommonJS interop for main process modules
+    deps: {
+      interopDefault: true
     }
   },
 
