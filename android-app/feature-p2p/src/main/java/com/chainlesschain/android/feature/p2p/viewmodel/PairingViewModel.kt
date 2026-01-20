@@ -6,7 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.chainlesschain.android.core.e2ee.session.PersistentSessionManager
 import com.chainlesschain.android.core.e2ee.x3dh.X3DHKeyExchange
 import com.chainlesschain.android.core.p2p.connection.P2PConnectionManager
-import com.chainlesschain.android.core.p2p.models.P2PDevice
+import com.chainlesschain.android.core.p2p.model.P2PDevice
 import com.chainlesschain.android.feature.p2p.ui.PairingState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay

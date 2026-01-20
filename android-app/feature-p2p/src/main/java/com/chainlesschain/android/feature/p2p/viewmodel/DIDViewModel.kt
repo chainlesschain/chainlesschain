@@ -3,8 +3,8 @@ package com.chainlesschain.android.feature.p2p.viewmodel
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.chainlesschain.android.core.did.DIDManager
-import com.chainlesschain.android.core.did.models.DIDDocument
+import com.chainlesschain.android.core.did.manager.DIDManager
+import com.chainlesschain.android.core.did.model.DIDDocument
 import com.chainlesschain.android.core.e2ee.identity.IdentityKeyManager
 import com.chainlesschain.android.core.e2ee.backup.KeyBackupManager
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -213,9 +213,7 @@ class DIDViewModel @Inject constructor(
         // Simple JSON serialization
         return """
             {
-                "@context": ${document.context.joinToString(",") { "\"$it\"" }},
                 "id": "${document.id}",
-                "controller": "${document.controller}",
                 "verificationMethod": [
                     ${document.verificationMethod.joinToString(",\n") { method ->
             """
@@ -223,12 +221,14 @@ class DIDViewModel @Inject constructor(
                             "id": "${method.id}",
                             "type": "${method.type}",
                             "controller": "${method.controller}",
-                            "publicKeyMultibase": "${method.publicKeyMultibase}"
+                            "publicKeyMultibase": "${method.publicKeyMultibase ?: ""}"
                         }
                     """
         }}
                 ],
-                "authentication": [${document.authentication.joinToString(",") { "\"$it\"" }}]
+                "authentication": [${document.authentication.joinToString(",") { "\"$it\"" }}],
+                "assertionMethod": [${document.assertionMethod.joinToString(",") { "\"$it\"" }}],
+                "keyAgreement": [${document.keyAgreement.joinToString(",") { "\"$it\"" }}]
             }
         """.trimIndent()
     }

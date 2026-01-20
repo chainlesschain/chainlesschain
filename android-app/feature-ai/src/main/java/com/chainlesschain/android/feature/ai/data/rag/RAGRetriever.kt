@@ -59,7 +59,7 @@ class RAGRetriever @Inject constructor(
     /**
      * 初始化检索器，建立索引
      */
-    suspend fun initialize() = withContext(Dispatchers.IO) {
+    suspend fun initialize(): Unit = withContext(Dispatchers.IO) {
         mutex.withLock {
             if (isIndexed) return@withContext
 

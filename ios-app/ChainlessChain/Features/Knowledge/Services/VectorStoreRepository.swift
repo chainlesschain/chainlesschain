@@ -145,7 +145,8 @@ class VectorStoreRepository {
 
     /// Delete vector by ID
     func deleteVector(id: String) throws {
-        try database.execute("DELETE FROM vector_embeddings WHERE id = '\(id)'")
+        let sql = "DELETE FROM vector_embeddings WHERE id = ?"
+        _ = try database.query(sql, parameters: [id]) { _ in () }
         logger.database("Deleted vector: \(id)")
     }
 
@@ -204,7 +205,8 @@ class VectorStoreRepository {
 
     /// Clear expired cache entries
     func clearExpiredCache() throws {
-        try database.execute("DELETE FROM embedding_cache WHERE expires_at IS NOT NULL AND expires_at < \(Date().timestampMs)")
+        let sql = "DELETE FROM embedding_cache WHERE expires_at IS NOT NULL AND expires_at < ?"
+        _ = try database.query(sql, parameters: [Date().timestampMs]) { _ in () }
         logger.database("Cleared expired embedding cache")
     }
 

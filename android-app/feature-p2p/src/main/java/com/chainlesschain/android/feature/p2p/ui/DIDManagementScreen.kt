@@ -14,7 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.chainlesschain.android.core.did.models.DIDDocument
+import com.chainlesschain.android.core.did.model.DIDDocument
 
 /**
  * DID 管理界面
@@ -401,23 +401,13 @@ fun DIDDocumentSection(
                         .padding(16.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    // 上下文
+                    // DID ID
                     DIDDocumentField(
-                        label = "上下文",
-                        value = didDocument.context.joinToString("\n")
+                        label = "DID 标识",
+                        value = didDocument.id
                     )
 
                     Divider()
-
-                    // 控制器
-                    didDocument.controller?.let { controller ->
-                        DIDDocumentField(
-                            label = "控制器",
-                            value = controller
-                        )
-
-                        Divider()
-                    }
 
                     // 验证方法数量
                     DIDDocumentField(
@@ -436,20 +426,29 @@ fun DIDDocumentSection(
                     Divider()
 
                     // 密钥协商方法数量
-                    didDocument.keyAgreement?.let { keyAgreement ->
+                    if (didDocument.keyAgreement.isNotEmpty()) {
                         DIDDocumentField(
                             label = "密钥协商",
-                            value = "${keyAgreement.size} 个"
+                            value = "${didDocument.keyAgreement.size} 个"
                         )
 
                         Divider()
                     }
 
                     // 服务端点数量
-                    didDocument.service?.let { services ->
+                    if (didDocument.service.isNotEmpty()) {
                         DIDDocumentField(
                             label = "服务端点",
-                            value = "${services.size} 个"
+                            value = "${didDocument.service.size} 个"
+                        )
+                    }
+
+                    // 创建时间
+                    didDocument.created?.let { created ->
+                        Divider()
+                        DIDDocumentField(
+                            label = "创建时间",
+                            value = created
                         )
                     }
                 }

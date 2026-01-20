@@ -3,6 +3,7 @@ package com.chainlesschain.android.feature.auth.presentation
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
@@ -135,7 +136,7 @@ fun SetupPinScreen(
                                     confirmPin = ""
                                     viewModel.clearError()
                                     // 显示错误提示
-                                    kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main).launch {
+                                    scope.launch {
                                         viewModel.clearError()
                                         kotlinx.coroutines.delay(100)
                                         // 这里可以通过UiState显示错误

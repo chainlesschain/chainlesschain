@@ -29,6 +29,12 @@ interface ConversationDao {
     fun getConversationById(id: String): Flow<ConversationEntity?>
 
     /**
+     * 根据ID获取会话（同步版本）
+     */
+    @Query("SELECT * FROM conversations WHERE id = :id")
+    suspend fun getConversationByIdSync(id: String): ConversationEntity?
+
+    /**
      * 插入会话
      */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -96,11 +102,17 @@ interface ConversationDao {
     suspend fun getMessageCount(conversationId: String): Int
 
     /**
+     * 删除会话（通过ID）
+     */
+    @Query("DELETE FROM conversations WHERE id = :conversationId")
+    suspend fun deleteConversationById(conversationId: String)
+
+    /**
      * 删除会话及其所有消息（事务）
      */
     @Transaction
     suspend fun deleteConversationWithMessages(conversationId: String) {
         deleteMessagesByConversation(conversationId)
-        getConversationById(conversationId)
+        deleteConversationById(conversationId)
     }
 }

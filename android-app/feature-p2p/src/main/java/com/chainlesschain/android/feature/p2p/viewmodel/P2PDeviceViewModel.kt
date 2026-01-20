@@ -7,7 +7,7 @@ import com.chainlesschain.android.core.e2ee.session.SessionInfo
 import com.chainlesschain.android.core.e2ee.verification.CompleteVerificationInfo
 import com.chainlesschain.android.core.e2ee.verification.VerificationManager
 import com.chainlesschain.android.core.p2p.discovery.NSDDeviceDiscovery
-import com.chainlesschain.android.core.p2p.models.P2PDevice
+import com.chainlesschain.android.core.p2p.model.P2PDevice
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch

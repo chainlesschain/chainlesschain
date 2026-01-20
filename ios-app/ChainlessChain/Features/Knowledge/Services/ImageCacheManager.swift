@@ -1,5 +1,6 @@
 import UIKit
 import Foundation
+import CommonCrypto
 import CoreCommon
 
 /// Image Cache Manager - Handles memory and disk caching of images
@@ -264,8 +265,16 @@ class ImageCacheManager: ObservableObject {
     }
 
     /// Get disk cache URL for key
+    /// Uses safe filename generation to prevent path traversal attacks
     private func diskCacheURL(forKey key: String) -> URL {
-        let filename = key.addingPercentEncoding(withAllowedCharacters: .alphanumerics) ?? key
+        // Use SHA256 hash for safe, collision-resistant filename
+        // This prevents path traversal attacks and handles any input safely
+        let data = Data(key.utf8)
+        var hash = [UInt8](repeating: 0, count: 32)
+        data.withUnsafeBytes { buffer in
+            _ = CC_SHA256(buffer.baseAddress, CC_LONG(buffer.count), &hash)
+        }
+        let filename = hash.map { String(format: "%02x", $0) }.joined()
         return diskCacheDirectory.appendingPathComponent(filename)
     }
 
