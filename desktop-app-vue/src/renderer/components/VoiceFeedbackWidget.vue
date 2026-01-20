@@ -1,8 +1,5 @@
 <template>
-  <div
-    class="voice-feedback-widget"
-    :class="{ active: isActive, rtl: isRTL }"
-  >
+  <div class="voice-feedback-widget" :class="{ active: isActive, rtl: isRTL }">
     <!-- 主控制按钮 -->
     <a-tooltip :title="tooltipText">
       <a-button
@@ -30,26 +27,16 @@
       <div class="language-indicator">
         <GlobalOutlined />
         <span>{{ currentLanguageName }}</span>
-        <a-tag
-          v-if="detectedLanguage"
-          color="blue"
-          size="small"
-        >
+        <a-tag v-if="detectedLanguage" color="blue" size="small">
           自动检测: {{ detectedLanguage }}
         </a-tag>
       </div>
 
       <!-- 波形可视化 -->
       <div class="waveform-container">
-        <canvas
-          ref="waveformCanvas"
-          class="waveform-canvas"
-        />
+        <canvas ref="waveformCanvas" class="waveform-canvas" />
         <div class="waveform-overlay">
-          <div
-            v-if="isRecording"
-            class="recording-indicator"
-          >
+          <div v-if="isRecording" class="recording-indicator">
             <span class="pulse-dot" />
             <span class="recording-text">{{ recordingTime }}</span>
           </div>
@@ -57,10 +44,7 @@
       </div>
 
       <!-- 置信度指示器 -->
-      <div
-        v-if="currentConfidence > 0"
-        class="confidence-indicator"
-      >
+      <div v-if="currentConfidence > 0" class="confidence-indicator">
         <span class="confidence-label">识别置信度</span>
         <a-progress
           :percent="Math.round(currentConfidence * 100)"
@@ -71,18 +55,12 @@
       </div>
 
       <!-- 实时转录预览 -->
-      <div
-        v-if="interimTranscript"
-        class="transcription-preview"
-      >
+      <div v-if="interimTranscript" class="transcription-preview">
         <div class="preview-label">
           <SoundOutlined />
           <span>实时转录</span>
         </div>
-        <div
-          class="preview-text"
-          :class="{ rtl: isRTL }"
-        >
+        <div class="preview-text" :class="{ rtl: isRTL }">
           {{ interimTranscript }}
           <span class="cursor-blink">|</span>
         </div>
@@ -111,10 +89,7 @@
       </div>
 
       <!-- 状态消息 -->
-      <div
-        v-if="statusMessage"
-        class="status-message"
-      >
+      <div v-if="statusMessage" class="status-message">
         <a-alert
           :message="statusMessage"
           :type="statusType"
@@ -199,33 +174,19 @@
         <!-- 识别引擎 -->
         <a-form-item label="识别引擎">
           <a-radio-group v-model:value="selectedEngine">
-            <a-radio value="whisper-api">
-              Whisper API (云端)
-            </a-radio>
-            <a-radio value="whisper-local">
-              Whisper Local (本地)
-            </a-radio>
-            <a-radio value="webspeech">
-              Web Speech API
-            </a-radio>
+            <a-radio value="whisper-api"> Whisper API (云端) </a-radio>
+            <a-radio value="whisper-local"> Whisper Local (本地) </a-radio>
+            <a-radio value="webspeech"> Web Speech API </a-radio>
           </a-radio-group>
         </a-form-item>
 
         <!-- 显示选项 -->
         <a-form-item label="显示选项">
           <a-checkbox-group v-model:value="displayOptions">
-            <a-checkbox value="waveform">
-              波形可视化
-            </a-checkbox>
-            <a-checkbox value="confidence">
-              置信度指示器
-            </a-checkbox>
-            <a-checkbox value="interim">
-              实时转录
-            </a-checkbox>
-            <a-checkbox value="commands">
-              命令提示
-            </a-checkbox>
+            <a-checkbox value="waveform"> 波形可视化 </a-checkbox>
+            <a-checkbox value="confidence"> 置信度指示器 </a-checkbox>
+            <a-checkbox value="interim"> 实时转录 </a-checkbox>
+            <a-checkbox value="commands"> 命令提示 </a-checkbox>
           </a-checkbox-group>
         </a-form-item>
 
@@ -238,7 +199,9 @@
             />
             <a-statistic
               title="平均置信度"
-              :value="(learningStats.averageConfidence * 100).toFixed(1)"
+              :value="
+                ((learningStats?.averageConfidence ?? 0) * 100).toFixed(1)
+              "
               suffix="%"
             />
             <a-statistic
@@ -250,33 +213,20 @@
 
         <!-- 操作按钮 -->
         <a-form-item>
-          <a-space
-            direction="vertical"
-            style="width: 100%"
-          >
-            <a-button
-              block
-              @click="exportVoiceData"
-            >
+          <a-space direction="vertical" style="width: 100%">
+            <a-button block @click="exportVoiceData">
               <template #icon>
                 <ExportOutlined />
               </template>
               导出语音数据
             </a-button>
-            <a-button
-              block
-              @click="importVoiceData"
-            >
+            <a-button block @click="importVoiceData">
               <template #icon>
                 <ImportOutlined />
               </template>
               导入语音数据
             </a-button>
-            <a-button
-              block
-              danger
-              @click="resetVoiceData"
-            >
+            <a-button block danger @click="resetVoiceData">
               <template #icon>
                 <DeleteOutlined />
               </template>
@@ -290,7 +240,7 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger, createLogger } from "@/utils/logger";
 
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from "vue";
 import { message } from "ant-design-vue";
@@ -379,20 +329,32 @@ const learningStats = ref({
 
 // 计算属性
 const currentIcon = computed(() => {
-  if (isProcessing.value) {return LoadingOutlined;}
-  if (isRecording.value) {return AudioMutedOutlined;}
+  if (isProcessing.value) {
+    return LoadingOutlined;
+  }
+  if (isRecording.value) {
+    return AudioMutedOutlined;
+  }
   return AudioOutlined;
 });
 
 const buttonType = computed(() => {
-  if (isRecording.value) {return "primary";}
-  if (isActive.value) {return "primary";}
+  if (isRecording.value) {
+    return "primary";
+  }
+  if (isActive.value) {
+    return "primary";
+  }
   return "default";
 });
 
 const tooltipText = computed(() => {
-  if (isRecording.value) {return "点击停止录音";}
-  if (isProcessing.value) {return "正在处理...";}
+  if (isRecording.value) {
+    return "点击停止录音";
+  }
+  if (isProcessing.value) {
+    return "正在处理...";
+  }
   return "点击开始语音输入";
 });
 
@@ -404,14 +366,22 @@ const currentLanguageName = computed(() => {
 });
 
 const confidenceStatus = computed(() => {
-  if (currentConfidence.value >= 0.8) {return "success";}
-  if (currentConfidence.value >= 0.6) {return "normal";}
+  if (currentConfidence.value >= 0.8) {
+    return "success";
+  }
+  if (currentConfidence.value >= 0.6) {
+    return "normal";
+  }
   return "exception";
 });
 
 const confidenceColor = computed(() => {
-  if (currentConfidence.value >= 0.8) {return "#52c41a";}
-  if (currentConfidence.value >= 0.6) {return "#1890ff";}
+  if (currentConfidence.value >= 0.8) {
+    return "#52c41a";
+  }
+  if (currentConfidence.value >= 0.6) {
+    return "#1890ff";
+  }
   return "#ff4d4f";
 });
 
@@ -435,29 +405,48 @@ watch(selectedLanguage, (newLang) => {
 
 // 初始化语音系统
 const initializeVoiceSystem = async () => {
+  // 检查 IPC API 是否就绪
+  if (!window.electron?.ipcRenderer?.invoke) {
+    logger.warn("[VoiceFeedback] IPC API 未就绪，稍后重试");
+    setTimeout(initializeVoiceSystem, 500);
+    return;
+  }
+
   try {
     // 加载可用语言
     const languages = await window.electron.ipcRenderer.invoke(
       "speech:getLanguages",
     );
-    availableLanguages.value = languages;
+    if (languages) {
+      availableLanguages.value = languages;
+    }
 
     // 加载学习统计
     const stats = await window.electron.ipcRenderer.invoke(
       "speech:getLearningStats",
     );
-    learningStats.value = stats;
+    if (stats) {
+      learningStats.value = stats;
+    }
 
     // 加载命令建议
     const commands = await window.electron.ipcRenderer.invoke(
       "speech:getCommandSuggestions",
     );
-    suggestedCommands.value = commands;
+    if (commands) {
+      suggestedCommands.value = commands;
+    }
 
     logger.info("[VoiceFeedback] 语音系统已初始化");
   } catch (error) {
+    // IPC 未就绪时静默处理
+    if (error.message?.includes("No handler registered")) {
+      logger.warn("[VoiceFeedback] IPC 处理器未注册，稍后重试");
+      setTimeout(initializeVoiceSystem, 1000);
+      return;
+    }
     logger.error("[VoiceFeedback] 初始化失败:", error);
-    message.error("语音系统初始化失败");
+    // 不显示错误消息以避免打扰用户
   }
 };
 
@@ -656,7 +645,9 @@ const initAudioVisualization = async () => {
       sendCount++;
       // 每10次打印一次调试日志
       if (sendCount % 10 === 1) {
-        logger.info(`[VoiceFeedback] 发送音频数据 #${sendCount}, 大小: ${pcmData.byteLength} bytes`);
+        logger.info(
+          `[VoiceFeedback] 发送音频数据 #${sendCount}, 大小: ${pcmData.byteLength} bytes`,
+        );
       }
 
       // 发送音频数据到主进程进行识别
@@ -685,13 +676,17 @@ const initAudioVisualization = async () => {
 };
 
 const drawWaveform = (ctx, canvas) => {
-  if (!isRecording.value || !analyser.value) {return;}
+  if (!isRecording.value || !analyser.value) {
+    return;
+  }
 
   const bufferLength = analyser.value.frequencyBinCount;
   const dataArray = new Uint8Array(bufferLength);
 
   const draw = () => {
-    if (!isRecording.value) {return;}
+    if (!isRecording.value) {
+      return;
+    }
 
     animationFrame.value = requestAnimationFrame(draw);
 

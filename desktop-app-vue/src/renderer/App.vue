@@ -1,18 +1,14 @@
 <template>
-  <a-config-provider
-    :locale="currentAntdLocale"
-    :theme="themeConfig"
-  >
+  <a-config-provider :locale="currentAntdLocale" :theme="themeConfig">
     <!-- 离线状态横幅 -->
     <transition name="slide-down">
-      <div
-        v-if="!networkStore.isOnline"
-        class="offline-banner"
-      >
+      <div v-if="!networkStore.isOnline" class="offline-banner">
         <a-alert
           type="warning"
           :message="$t('app.offlineMessage', '您当前处于离线状态')"
-          :description="$t('app.offlineDescription', '部分功能可能不可用，请检查网络连接')"
+          :description="
+            $t('app.offlineDescription', '部分功能可能不可用，请检查网络连接')
+          "
           banner
           closable
         />
@@ -64,7 +60,7 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger, createLogger } from "@/utils/logger";
 
 import { ref, computed, onMounted, onUnmounted, onErrorCaptured } from "vue";
 import { useI18n } from "vue-i18n";
@@ -217,6 +213,20 @@ const handleInvitationRejected = () => {
   logger.info("已拒绝邀请");
 };
 
+// 显示全局设置向导
+const handleShowGlobalSettings = () => {
+  showGlobalSetupWizard.value = true;
+};
+
+// 数据库切换处理
+const handleDatabaseSwitched = (data) => {
+  logger.info("数据库已切换:", data);
+  // 刷新页面以重新加载新身份的数据
+  setTimeout(() => {
+    window.location.reload();
+  }, 300);
+};
+
 onMounted(async () => {
   try {
     // 初始化网络状态监听器
@@ -275,18 +285,16 @@ onMounted(async () => {
 
     // 监听托盘菜单触发的全局设置事件
     if (window.electron?.ipcRenderer) {
-      window.electron.ipcRenderer.on("show-global-settings", () => {
-        showGlobalSetupWizard.value = true;
-      });
+      window.electron.ipcRenderer.on(
+        "show-global-settings",
+        handleShowGlobalSettings,
+      );
 
       // 监听数据库切换事件(身份上下文切换)
-      window.electron.ipcRenderer.on("database-switched", (data) => {
-        logger.info("数据库已切换:", data);
-        // 刷新页面以重新加载新身份的数据
-        setTimeout(() => {
-          window.location.reload();
-        }, 300);
-      });
+      window.electron.ipcRenderer.on(
+        "database-switched",
+        handleDatabaseSwitched,
+      );
     }
   } catch (error) {
     logger.error("应用初始化失败", error);
@@ -307,6 +315,14 @@ onUnmounted(() => {
     window.electron.ipcRenderer.removeListener(
       "deep-link:invitation",
       handleInvitationDeepLink,
+    );
+    window.electron.ipcRenderer.removeListener(
+      "show-global-settings",
+      handleShowGlobalSettings,
+    );
+    window.electron.ipcRenderer.removeListener(
+      "database-switched",
+      handleDatabaseSwitched,
     );
   }
 });

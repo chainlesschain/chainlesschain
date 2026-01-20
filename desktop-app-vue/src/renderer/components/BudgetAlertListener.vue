@@ -3,7 +3,7 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger, createLogger } from "@/utils/logger";
 
 import { onMounted, onUnmounted } from "vue";
 import { notification, Modal } from "ant-design-vue";
@@ -17,9 +17,34 @@ import { h } from "vue";
 
 const router = useRouter();
 
+/**
+ * 安全格式化数值，防止 undefined/null 导致的错误
+ */
+const safeToFixed = (value, decimals = 2) => {
+  const num = Number(value);
+  if (value == null || isNaN(num)) {
+    return "0".padEnd(
+      decimals > 0 ? decimals + 2 : 1,
+      decimals > 0 ? ".0" : "",
+    );
+  }
+  return num.toFixed(decimals);
+};
+
 // 预算告警处理
 const handleBudgetAlert = (alert) => {
   logger.info("[BudgetAlertListener] 收到预算告警:", alert);
+
+  // 防护空值
+  if (!alert) {
+    logger.warn("[BudgetAlertListener] 收到空的告警数据");
+    return;
+  }
+
+  const percentage = safeToFixed(alert.percentage, 0);
+  const current = safeToFixed(alert.current, 2);
+  const limit = safeToFixed(alert.limit, 2);
+  const period = alert.period || "预算";
 
   // 根据告警级别显示不同类型的通知
   if (alert.level === "critical") {
@@ -28,14 +53,11 @@ const handleBudgetAlert = (alert) => {
       title: "预算超限警告",
       icon: h(ExclamationCircleOutlined),
       content: h("div", [
-        h(
-          "p",
-          `您的${alert.period}预算已使用 ${alert.percentage.toFixed(0)}%！`,
-        ),
+        h("p", `您的${period}预算已使用 ${percentage}%！`),
         h(
           "p",
           { style: "font-weight: bold; color: #ff4d4f" },
-          `当前: $${alert.current.toFixed(2)} / 限额: $${alert.limit.toFixed(2)}`,
+          `当前: $${current} / 限额: $${limit}`,
         ),
         h(
           "p",
@@ -51,8 +73,8 @@ const handleBudgetAlert = (alert) => {
 
     // 同时显示持久化通知
     notification.error({
-      message: "⚠️ 预算超限警告",
-      description: `${alert.period}预算已使用 ${alert.percentage.toFixed(0)}%！当前: $${alert.current.toFixed(2)} / 限额: $${alert.limit.toFixed(2)}`,
+      message: "预算超限警告",
+      description: `${period}预算已使用 ${percentage}%！当前: $${current} / 限额: $${limit}`,
       duration: 0, // 不自动关闭
       onClick: () => {
         router.push("/settings?tab=token-usage");
@@ -62,8 +84,8 @@ const handleBudgetAlert = (alert) => {
   } else if (alert.level === "warning") {
     // 警告级别 - 使用 warning 通知
     notification.warning({
-      message: "💰 预算使用提醒",
-      description: `${alert.period}预算已使用 ${alert.percentage.toFixed(0)}%，当前: $${alert.current.toFixed(2)} / 限额: $${alert.limit.toFixed(2)}`,
+      message: "预算使用提醒",
+      description: `${period}预算已使用 ${percentage}%，当前: $${current} / 限额: $${limit}`,
       icon: h(WarningOutlined, { style: "color: #faad14" }),
       duration: 10,
       onClick: () => {
@@ -77,9 +99,19 @@ const handleBudgetAlert = (alert) => {
 const handleServicePaused = (data) => {
   logger.info("[BudgetAlertListener] LLM 服务已暂停:", data);
 
+  if (!data) {
+    logger.warn("[BudgetAlertListener] 收到空的服务暂停数据");
+    return;
+  }
+
   const { reason, alert } = data;
 
-  if (reason === "budget-exceeded") {
+  if (reason === "budget-exceeded" && alert) {
+    const current = safeToFixed(alert.current, 2);
+    const limit = safeToFixed(alert.limit, 2);
+    const percentage = safeToFixed(alert.percentage, 0);
+    const period = alert.period || "预算";
+
     Modal.confirm({
       title: "LLM 服务已暂停",
       icon: h(ExclamationCircleOutlined),
@@ -88,7 +120,7 @@ const handleServicePaused = (data) => {
         h(
           "p",
           { style: "margin-top: 12px" },
-          `${alert.period}预算: $${alert.current.toFixed(2)} / $${alert.limit.toFixed(2)} (${alert.percentage.toFixed(0)}%)`,
+          `${period}预算: $${current} / $${limit} (${percentage}%)`,
         ),
         h(
           "p",

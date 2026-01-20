@@ -1,13 +1,36 @@
-import { logger, createLogger } from '@/utils/logger';
-import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
-import { message } from 'ant-design-vue';
+import { logger, createLogger } from "@/utils/logger";
+import { defineStore } from "pinia";
+import { ref, computed } from "vue";
+import { message } from "ant-design-vue";
 
 /**
  * 任务管理Store - Phase 1
  * 负责管理任务的CRUD操作、评论、变更历史和看板
  */
-export const useTaskStore = defineStore('task', () => {
+export const useTaskStore = defineStore("task", () => {
+  // ==================== Helper Functions ====================
+
+  /**
+   * 安全解析 JSON 字符串
+   * @param {string|any} value - 要解析的值
+   * @param {any} defaultValue - 解析失败时的默认值
+   * @returns {any} 解析后的值或默认值
+   */
+  function safeParseJSON(value, defaultValue = null) {
+    if (value == null) {
+      return defaultValue;
+    }
+    if (typeof value !== "string") {
+      return value;
+    }
+    try {
+      return JSON.parse(value);
+    } catch (error) {
+      logger.warn("[TaskStore] JSON 解析失败:", error.message);
+      return defaultValue;
+    }
+  }
+
   // ==================== State ====================
 
   // 任务列表
@@ -43,7 +66,7 @@ export const useTaskStore = defineStore('task', () => {
     priority: null,
     assigned_to: null,
     workspace_id: null,
-    org_id: null
+    org_id: null,
   });
 
   // ==================== Getters ====================
@@ -56,10 +79,10 @@ export const useTaskStore = defineStore('task', () => {
       pending: [],
       in_progress: [],
       completed: [],
-      cancelled: []
+      cancelled: [],
     };
 
-    tasks.value.forEach(task => {
+    tasks.value.forEach((task) => {
       if (groups[task.status]) {
         groups[task.status].push(task);
       }
@@ -76,10 +99,10 @@ export const useTaskStore = defineStore('task', () => {
       urgent: [],
       high: [],
       medium: [],
-      low: []
+      low: [],
     };
 
-    tasks.value.forEach(task => {
+    tasks.value.forEach((task) => {
       if (groups[task.priority]) {
         groups[task.priority].push(task);
       }
@@ -101,21 +124,21 @@ export const useTaskStore = defineStore('task', () => {
    * 进行中的任务
    */
   const inProgressTasks = computed(() => {
-    return tasks.value.filter(task => task.status === 'in_progress');
+    return tasks.value.filter((task) => task.status === "in_progress");
   });
 
   /**
    * 待处理的任务
    */
   const pendingTasks = computed(() => {
-    return tasks.value.filter(task => task.status === 'pending');
+    return tasks.value.filter((task) => task.status === "pending");
   });
 
   /**
    * 已完成的任务
    */
   const completedTasks = computed(() => {
-    return tasks.value.filter(task => task.status === 'completed');
+    return tasks.value.filter((task) => task.status === "completed");
   });
 
   /**
@@ -123,8 +146,10 @@ export const useTaskStore = defineStore('task', () => {
    */
   const overdueTasks = computed(() => {
     const now = Date.now();
-    return tasks.value.filter(task => {
-      return task.due_date && task.due_date < now && task.status !== 'completed';
+    return tasks.value.filter((task) => {
+      return (
+        task.due_date && task.due_date < now && task.status !== "completed"
+      );
     });
   });
 
@@ -137,7 +162,7 @@ export const useTaskStore = defineStore('task', () => {
       pending: pendingTasks.value.length,
       inProgress: inProgressTasks.value.length,
       completed: completedTasks.value.length,
-      overdue: overdueTasks.value.length
+      overdue: overdueTasks.value.length,
     };
   });
 
@@ -151,30 +176,30 @@ export const useTaskStore = defineStore('task', () => {
     loading.value = true;
 
     try {
-      const result = await window.ipc.invoke('tasks:list', {
+      const result = await window.ipc.invoke("tasks:list", {
         filters: {
           ...filters.value,
-          ...queryFilters
-        }
+          ...queryFilters,
+        },
       });
 
       if (result.success) {
         // 解析JSON字段
-        tasks.value = (result.tasks || []).map(task => ({
+        tasks.value = (result.tasks || []).map((task) => ({
           ...task,
-          collaborators: task.collaborators ? JSON.parse(task.collaborators) : [],
-          labels: task.labels ? JSON.parse(task.labels) : [],
-          blocked_by: task.blocked_by ? JSON.parse(task.blocked_by) : []
+          collaborators: safeParseJSON(task.collaborators, []),
+          labels: safeParseJSON(task.labels, []),
+          blocked_by: safeParseJSON(task.blocked_by, []),
         }));
 
-        logger.info('[TaskStore] 任务列表加载成功', tasks.value.length);
+        logger.info("[TaskStore] 任务列表加载成功", tasks.value.length);
       } else {
         message.error(`加载任务列表失败: ${result.error}`);
-        logger.error('[TaskStore] 加载任务列表失败:', result.error);
+        logger.error("[TaskStore] 加载任务列表失败:", result.error);
       }
     } catch (error) {
-      message.error('加载任务列表异常');
-      logger.error('[TaskStore] 加载任务列表异常:', error);
+      message.error("加载任务列表异常");
+      logger.error("[TaskStore] 加载任务列表异常:", error);
     } finally {
       loading.value = false;
     }
@@ -188,13 +213,13 @@ export const useTaskStore = defineStore('task', () => {
     loading.value = true;
 
     try {
-      const result = await window.ipc.invoke('tasks:create', {
-        taskData
+      const result = await window.ipc.invoke("tasks:create", {
+        taskData,
       });
 
       if (result.success) {
-        message.success('任务创建成功');
-        logger.info('[TaskStore] 任务创建成功:', result.task);
+        message.success("任务创建成功");
+        logger.info("[TaskStore] 任务创建成功:", result.task);
 
         // 重新加载任务列表
         await loadTasks();
@@ -202,12 +227,12 @@ export const useTaskStore = defineStore('task', () => {
         return result.task;
       } else {
         message.error(`创建任务失败: ${result.error}`);
-        logger.error('[TaskStore] 创建任务失败:', result.error);
+        logger.error("[TaskStore] 创建任务失败:", result.error);
         return null;
       }
     } catch (error) {
-      message.error('创建任务异常');
-      logger.error('[TaskStore] 创建任务异常:', error);
+      message.error("创建任务异常");
+      logger.error("[TaskStore] 创建任务异常:", error);
       return null;
     } finally {
       loading.value = false;
@@ -223,22 +248,22 @@ export const useTaskStore = defineStore('task', () => {
     loading.value = true;
 
     try {
-      const result = await window.ipc.invoke('tasks:update', {
+      const result = await window.ipc.invoke("tasks:update", {
         taskId,
-        updates
+        updates,
       });
 
       if (result.success) {
-        message.success('任务更新成功');
-        logger.info('[TaskStore] 任务更新成功');
+        message.success("任务更新成功");
+        logger.info("[TaskStore] 任务更新成功");
 
         // 更新本地缓存
-        const index = tasks.value.findIndex(t => t.id === taskId);
+        const index = tasks.value.findIndex((t) => t.id === taskId);
         if (index !== -1) {
           tasks.value[index] = {
             ...tasks.value[index],
             ...updates,
-            updated_at: Date.now()
+            updated_at: Date.now(),
           };
         }
 
@@ -247,19 +272,19 @@ export const useTaskStore = defineStore('task', () => {
           currentTask.value = {
             ...currentTask.value,
             ...updates,
-            updated_at: Date.now()
+            updated_at: Date.now(),
           };
         }
 
         return true;
       } else {
         message.error(`更新任务失败: ${result.error}`);
-        logger.error('[TaskStore] 更新任务失败:', result.error);
+        logger.error("[TaskStore] 更新任务失败:", result.error);
         return false;
       }
     } catch (error) {
-      message.error('更新任务异常');
-      logger.error('[TaskStore] 更新任务异常:', error);
+      message.error("更新任务异常");
+      logger.error("[TaskStore] 更新任务异常:", error);
       return false;
     } finally {
       loading.value = false;
@@ -274,16 +299,16 @@ export const useTaskStore = defineStore('task', () => {
     loading.value = true;
 
     try {
-      const result = await window.ipc.invoke('tasks:delete', {
-        taskId
+      const result = await window.ipc.invoke("tasks:delete", {
+        taskId,
       });
 
       if (result.success) {
-        message.success('任务已删除');
-        logger.info('[TaskStore] 任务删除成功');
+        message.success("任务已删除");
+        logger.info("[TaskStore] 任务删除成功");
 
         // 从列表中移除
-        const index = tasks.value.findIndex(t => t.id === taskId);
+        const index = tasks.value.findIndex((t) => t.id === taskId);
         if (index !== -1) {
           tasks.value.splice(index, 1);
         }
@@ -297,12 +322,12 @@ export const useTaskStore = defineStore('task', () => {
         return true;
       } else {
         message.error(`删除任务失败: ${result.error}`);
-        logger.error('[TaskStore] 删除任务失败:', result.error);
+        logger.error("[TaskStore] 删除任务失败:", result.error);
         return false;
       }
     } catch (error) {
-      message.error('删除任务异常');
-      logger.error('[TaskStore] 删除任务异常:', error);
+      message.error("删除任务异常");
+      logger.error("[TaskStore] 删除任务异常:", error);
       return false;
     } finally {
       loading.value = false;
@@ -317,31 +342,31 @@ export const useTaskStore = defineStore('task', () => {
     loading.value = true;
 
     try {
-      const result = await window.ipc.invoke('tasks:detail', {
-        taskId
+      const result = await window.ipc.invoke("tasks:detail", {
+        taskId,
       });
 
       if (result.success) {
         // 解析JSON字段
         currentTask.value = {
           ...result.task,
-          collaborators: result.task.collaborators ? JSON.parse(result.task.collaborators) : [],
-          labels: result.task.labels ? JSON.parse(result.task.labels) : [],
-          blocked_by: result.task.blocked_by ? JSON.parse(result.task.blocked_by) : []
+          collaborators: safeParseJSON(result.task?.collaborators, []),
+          labels: safeParseJSON(result.task?.labels, []),
+          blocked_by: safeParseJSON(result.task?.blocked_by, []),
         };
 
-        logger.info('[TaskStore] 任务详情加载成功');
+        logger.info("[TaskStore] 任务详情加载成功");
 
         // 同时加载评论和变更历史
         await loadTaskComments(taskId);
         await loadTaskChanges(taskId);
       } else {
         message.error(`加载任务详情失败: ${result.error}`);
-        logger.error('[TaskStore] 加载任务详情失败:', result.error);
+        logger.error("[TaskStore] 加载任务详情失败:", result.error);
       }
     } catch (error) {
-      message.error('加载任务详情异常');
-      logger.error('[TaskStore] 加载任务详情异常:', error);
+      message.error("加载任务详情异常");
+      logger.error("[TaskStore] 加载任务详情异常:", error);
     } finally {
       loading.value = false;
     }
@@ -354,13 +379,13 @@ export const useTaskStore = defineStore('task', () => {
    */
   async function assignTask(taskId, assignedTo) {
     try {
-      const result = await window.ipc.invoke('tasks:assign', {
+      const result = await window.ipc.invoke("tasks:assign", {
         taskId,
-        assignedTo
+        assignedTo,
       });
 
       if (result.success) {
-        message.success('任务已分配');
+        message.success("任务已分配");
         await loadTasks();
         if (currentTask.value?.id === taskId) {
           await loadTaskDetail(taskId);
@@ -371,8 +396,8 @@ export const useTaskStore = defineStore('task', () => {
         return false;
       }
     } catch (error) {
-      message.error('分配任务异常');
-      logger.error('[TaskStore] 分配任务异常:', error);
+      message.error("分配任务异常");
+      logger.error("[TaskStore] 分配任务异常:", error);
       return false;
     }
   }
@@ -384,13 +409,13 @@ export const useTaskStore = defineStore('task', () => {
    */
   async function changeStatus(taskId, status) {
     try {
-      const result = await window.ipc.invoke('tasks:changeStatus', {
+      const result = await window.ipc.invoke("tasks:changeStatus", {
         taskId,
-        status
+        status,
       });
 
       if (result.success) {
-        message.success('状态变更成功');
+        message.success("状态变更成功");
         await loadTasks();
         if (currentTask.value?.id === taskId) {
           await loadTaskDetail(taskId);
@@ -401,8 +426,8 @@ export const useTaskStore = defineStore('task', () => {
         return false;
       }
     } catch (error) {
-      message.error('变更状态异常');
-      logger.error('[TaskStore] 变更状态异常:', error);
+      message.error("变更状态异常");
+      logger.error("[TaskStore] 变更状态异常:", error);
       return false;
     }
   }
@@ -413,24 +438,27 @@ export const useTaskStore = defineStore('task', () => {
    */
   async function loadTaskComments(taskId) {
     try {
-      const result = await window.ipc.invoke('tasks:comment:list', {
-        taskId
+      const result = await window.ipc.invoke("tasks:comment:list", {
+        taskId,
       });
 
       if (result.success) {
         // 解析JSON字段
-        currentTaskComments.value = (result.comments || []).map(comment => ({
+        currentTaskComments.value = (result.comments || []).map((comment) => ({
           ...comment,
-          mentions: comment.mentions ? JSON.parse(comment.mentions) : [],
-          attachments: comment.attachments ? JSON.parse(comment.attachments) : []
+          mentions: safeParseJSON(comment?.mentions, []),
+          attachments: safeParseJSON(comment?.attachments, []),
         }));
 
-        logger.info('[TaskStore] 评论加载成功', currentTaskComments.value.length);
+        logger.info(
+          "[TaskStore] 评论加载成功",
+          currentTaskComments.value.length,
+        );
       } else {
-        logger.error('[TaskStore] 加载评论失败:', result.error);
+        logger.error("[TaskStore] 加载评论失败:", result.error);
       }
     } catch (error) {
-      logger.error('[TaskStore] 加载评论异常:', error);
+      logger.error("[TaskStore] 加载评论异常:", error);
     }
   }
 
@@ -442,14 +470,14 @@ export const useTaskStore = defineStore('task', () => {
    */
   async function addComment(taskId, content, mentions = []) {
     try {
-      const result = await window.ipc.invoke('tasks:comment:add', {
+      const result = await window.ipc.invoke("tasks:comment:add", {
         taskId,
         content,
-        mentions
+        mentions,
       });
 
       if (result.success) {
-        message.success('评论已添加');
+        message.success("评论已添加");
         await loadTaskComments(taskId);
         return true;
       } else {
@@ -457,8 +485,8 @@ export const useTaskStore = defineStore('task', () => {
         return false;
       }
     } catch (error) {
-      message.error('添加评论异常');
-      logger.error('[TaskStore] 添加评论异常:', error);
+      message.error("添加评论异常");
+      logger.error("[TaskStore] 添加评论异常:", error);
       return false;
     }
   }
@@ -469,12 +497,12 @@ export const useTaskStore = defineStore('task', () => {
    */
   async function deleteComment(commentId) {
     try {
-      const result = await window.ipc.invoke('tasks:comment:delete', {
-        commentId
+      const result = await window.ipc.invoke("tasks:comment:delete", {
+        commentId,
       });
 
       if (result.success) {
-        message.success('评论已删除');
+        message.success("评论已删除");
         if (currentTask.value) {
           await loadTaskComments(currentTask.value.id);
         }
@@ -484,8 +512,8 @@ export const useTaskStore = defineStore('task', () => {
         return false;
       }
     } catch (error) {
-      message.error('删除评论异常');
-      logger.error('[TaskStore] 删除评论异常:', error);
+      message.error("删除评论异常");
+      logger.error("[TaskStore] 删除评论异常:", error);
       return false;
     }
   }
@@ -496,18 +524,21 @@ export const useTaskStore = defineStore('task', () => {
    */
   async function loadTaskChanges(taskId) {
     try {
-      const result = await window.ipc.invoke('tasks:getHistory', {
-        taskId
+      const result = await window.ipc.invoke("tasks:getHistory", {
+        taskId,
       });
 
       if (result.success) {
         currentTaskChanges.value = result.changes || [];
-        logger.info('[TaskStore] 变更历史加载成功', currentTaskChanges.value.length);
+        logger.info(
+          "[TaskStore] 变更历史加载成功",
+          currentTaskChanges.value.length,
+        );
       } else {
-        logger.error('[TaskStore] 加载变更历史失败:', result.error);
+        logger.error("[TaskStore] 加载变更历史失败:", result.error);
       }
     } catch (error) {
-      logger.error('[TaskStore] 加载变更历史异常:', error);
+      logger.error("[TaskStore] 加载变更历史异常:", error);
     }
   }
 
@@ -520,20 +551,20 @@ export const useTaskStore = defineStore('task', () => {
     loading.value = true;
 
     try {
-      const result = await window.ipc.invoke('tasks:board:list', {
+      const result = await window.ipc.invoke("tasks:board:list", {
         orgId,
-        workspaceId
+        workspaceId,
       });
 
       if (result.success) {
         // 解析JSON字段
-        boards.value = (result.boards || []).map(board => ({
+        boards.value = (result.boards || []).map((board) => ({
           ...board,
-          columns: board.columns ? JSON.parse(board.columns) : [],
-          filters: board.filters ? JSON.parse(board.filters) : {}
+          columns: safeParseJSON(board?.columns, []),
+          filters: safeParseJSON(board?.filters, {}),
         }));
 
-        logger.info('[TaskStore] 看板列表加载成功', boards.value.length);
+        logger.info("[TaskStore] 看板列表加载成功", boards.value.length);
 
         // 如果当前没有选中看板，自动选中第一个
         if (!currentBoard.value && boards.value.length > 0) {
@@ -541,11 +572,11 @@ export const useTaskStore = defineStore('task', () => {
         }
       } else {
         message.error(`加载看板列表失败: ${result.error}`);
-        logger.error('[TaskStore] 加载看板列表失败:', result.error);
+        logger.error("[TaskStore] 加载看板列表失败:", result.error);
       }
     } catch (error) {
-      message.error('加载看板列表异常');
-      logger.error('[TaskStore] 加载看板列表异常:', error);
+      message.error("加载看板列表异常");
+      logger.error("[TaskStore] 加载看板列表异常:", error);
     } finally {
       loading.value = false;
     }
@@ -560,14 +591,14 @@ export const useTaskStore = defineStore('task', () => {
     loading.value = true;
 
     try {
-      const result = await window.ipc.invoke('tasks:board:create', {
+      const result = await window.ipc.invoke("tasks:board:create", {
         orgId,
-        boardData
+        boardData,
       });
 
       if (result.success) {
-        message.success('看板创建成功');
-        logger.info('[TaskStore] 看板创建成功:', result.board);
+        message.success("看板创建成功");
+        logger.info("[TaskStore] 看板创建成功:", result.board);
 
         // 重新加载看板列表
         await loadBoards(orgId, boardData.workspace_id);
@@ -575,12 +606,12 @@ export const useTaskStore = defineStore('task', () => {
         return result.board;
       } else {
         message.error(`创建看板失败: ${result.error}`);
-        logger.error('[TaskStore] 创建看板失败:', result.error);
+        logger.error("[TaskStore] 创建看板失败:", result.error);
         return null;
       }
     } catch (error) {
-      message.error('创建看板异常');
-      logger.error('[TaskStore] 创建看板异常:', error);
+      message.error("创建看板异常");
+      logger.error("[TaskStore] 创建看板异常:", error);
       return null;
     } finally {
       loading.value = false;
@@ -594,7 +625,7 @@ export const useTaskStore = defineStore('task', () => {
   function updateFilters(newFilters) {
     filters.value = {
       ...filters.value,
-      ...newFilters
+      ...newFilters,
     };
     loadTasks();
   }
@@ -608,7 +639,7 @@ export const useTaskStore = defineStore('task', () => {
       priority: null,
       assigned_to: null,
       workspace_id: null,
-      org_id: null
+      org_id: null,
     };
     loadTasks();
   }
@@ -650,7 +681,7 @@ export const useTaskStore = defineStore('task', () => {
       priority: null,
       assigned_to: null,
       workspace_id: null,
-      org_id: null
+      org_id: null,
     };
   }
 
@@ -697,6 +728,6 @@ export const useTaskStore = defineStore('task', () => {
     clearFilters,
     openTaskDetail,
     closeTaskDetail,
-    reset
+    reset,
   };
 });

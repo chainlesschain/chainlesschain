@@ -54,7 +54,9 @@
                       <div class="order-total">
                         总价:
                         <strong>{{
-                          (item.price_amount * item.quantity).toFixed(2)
+                          (
+                            (item.price_amount ?? 0) * (item.quantity ?? 0)
+                          ).toFixed(2)
                         }}</strong>
                       </div>
                       <div class="order-time">
@@ -115,7 +117,9 @@
                   </a-descriptions-item>
                   <a-descriptions-item label="金额">
                     <strong>{{
-                      (item.payment_amount * item.quantity).toFixed(2)
+                      (
+                        (item.payment_amount ?? 0) * (item.quantity ?? 0)
+                      ).toFixed(2)
                     }}</strong>
                   </a-descriptions-item>
                   <a-descriptions-item label="创建时间">

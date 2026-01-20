@@ -201,8 +201,8 @@ export const useSocialStore = defineStore("social", {
     async openChatWithFriend(friend) {
       try {
         // 查找或创建聊天会话
-        let session = this.chatSessions.find(
-          (s) => s.participant_did === friend.friend_did,
+        let session = (this.chatSessions || []).find(
+          (s) => s?.participant_did === friend.friend_did,
         );
 
         if (!session) {
@@ -245,11 +245,11 @@ export const useSocialStore = defineStore("social", {
     async loadChatSessions() {
       try {
         const sessions = await ipcRenderer.invoke("chat:get-sessions");
-        this.chatSessions = sessions;
+        this.chatSessions = Array.isArray(sessions) ? sessions : [];
 
         // 计算未读消息总数
-        this.unreadCount = sessions.reduce(
-          (sum, s) => sum + (s.unread_count || 0),
+        this.unreadCount = this.chatSessions.reduce(
+          (sum, s) => sum + (s?.unread_count || 0),
           0,
         );
       } catch (error) {
@@ -270,12 +270,15 @@ export const useSocialStore = defineStore("social", {
           offset,
         );
 
+        // 确保 messages 是数组
+        const safeMessages = Array.isArray(messages) ? messages : [];
+
         if (offset === 0) {
-          this.currentMessages = messages.reverse(); // 反转为时间升序
+          this.currentMessages = safeMessages.reverse(); // 反转为时间升序
         } else {
           this.currentMessages = [
-            ...messages.reverse(),
-            ...this.currentMessages,
+            ...safeMessages.reverse(),
+            ...(this.currentMessages || []),
           ];
         }
       } catch (error) {
@@ -352,8 +355,8 @@ export const useSocialStore = defineStore("social", {
     async receiveMessage(message) {
       try {
         // 查找或创建会话
-        let session = this.chatSessions.find(
-          (s) => s.participant_did === message.senderDid,
+        let session = (this.chatSessions || []).find(
+          (s) => s?.participant_did === message.senderDid,
         );
 
         if (!session) {
@@ -433,7 +436,9 @@ export const useSocialStore = defineStore("social", {
       try {
         await ipcRenderer.invoke("chat:mark-as-read", sessionId);
 
-        const session = this.chatSessions.find((s) => s.id === sessionId);
+        const session = (this.chatSessions || []).find(
+          (s) => s?.id === sessionId,
+        );
         if (session) {
           this.unreadCount -= session.unread_count || 0;
           session.unread_count = 0;
@@ -498,7 +503,7 @@ export const useSocialStore = defineStore("social", {
       try {
         await ipcRenderer.invoke("post:like", postId);
 
-        const post = this.posts.find((p) => p.id === postId);
+        const post = (this.posts || []).find((p) => p?.id === postId);
         if (post) {
           post.like_count = (post.like_count || 0) + 1;
           post.is_liked = true;
@@ -516,7 +521,7 @@ export const useSocialStore = defineStore("social", {
       try {
         await ipcRenderer.invoke("post:unlike", postId);
 
-        const post = this.posts.find((p) => p.id === postId);
+        const post = (this.posts || []).find((p) => p?.id === postId);
         if (post) {
           post.like_count = Math.max((post.like_count || 0) - 1, 0);
           post.is_liked = false;
@@ -630,7 +635,9 @@ export const useSocialStore = defineStore("social", {
       try {
         await ipcRenderer.invoke("notification:mark-read", id);
 
-        const notification = this.notifications.find((n) => n.id === id);
+        const notification = (this.notifications || []).find(
+          (n) => n?.id === id,
+        );
         if (notification && notification.is_read === 0) {
           notification.is_read = 1;
           this.unreadNotifications = Math.max(this.unreadNotifications - 1, 0);
@@ -647,8 +654,10 @@ export const useSocialStore = defineStore("social", {
       try {
         await ipcRenderer.invoke("notification:mark-all-read");
 
-        this.notifications.forEach((n) => {
-          n.is_read = 1;
+        (this.notifications || []).forEach((n) => {
+          if (n) {
+            n.is_read = 1;
+          }
         });
         this.unreadNotifications = 0;
       } catch (error) {
@@ -697,7 +706,9 @@ export const useSocialStore = defineStore("social", {
         this.onlineStatus.set(friendDid, "online");
 
         // 更新好友列表中的在线状态
-        const friend = this.friends.find((f) => f.friend_did === friendDid);
+        const friend = (this.friends || []).find(
+          (f) => f?.friend_did === friendDid,
+        );
         if (friend) {
           if (!friend.onlineStatus) {
             friend.onlineStatus = {};
@@ -727,7 +738,9 @@ export const useSocialStore = defineStore("social", {
         this.onlineStatus.set(friendDid, "offline");
 
         // 更新好友列表中的在线状态
-        const friend = this.friends.find((f) => f.friend_did === friendDid);
+        const friend = (this.friends || []).find(
+          (f) => f?.friend_did === friendDid,
+        );
         if (friend) {
           if (!friend.onlineStatus) {
             friend.onlineStatus = {};

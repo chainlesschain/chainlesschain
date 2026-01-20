@@ -6,19 +6,12 @@
     :loading="loading"
   >
     <template #extra>
-      <a-button
-        type="link"
-        size="small"
-        @click="handleViewDetails"
-      >
+      <a-button type="link" size="small" @click="handleViewDetails">
         查看详情 <RightOutlined />
       </a-button>
     </template>
 
-    <a-row
-      :gutter="16"
-      class="stats-row"
-    >
+    <a-row :gutter="16" class="stats-row">
       <a-col :span="12">
         <a-statistic
           title="今日"
@@ -26,9 +19,7 @@
           suffix="tokens"
           :value-style="{ fontSize: '18px', color: '#1890ff' }"
         />
-        <div class="cost-label">
-          ${{ stats.todayCost.toFixed(4) }}
-        </div>
+        <div class="cost-label">${{ safeToFixed(stats.todayCost, 4) }}</div>
       </a-col>
       <a-col :span="12">
         <a-statistic
@@ -37,9 +28,7 @@
           suffix="tokens"
           :value-style="{ fontSize: '18px', color: '#52c41a' }"
         />
-        <div class="cost-label">
-          ${{ stats.weekCost.toFixed(4) }}
-        </div>
+        <div class="cost-label">${{ safeToFixed(stats.weekCost, 4) }}</div>
       </a-col>
     </a-row>
 
@@ -48,32 +37,20 @@
     <a-row :gutter="8">
       <a-col :span="12">
         <div class="metric-item">
-          <ThunderboltOutlined
-            class="metric-icon"
-            style="color: #faad14"
-          />
+          <ThunderboltOutlined class="metric-icon" style="color: #faad14" />
           <div class="metric-content">
-            <div class="metric-label">
-              缓存命中率
-            </div>
-            <div class="metric-value">
-              {{ stats.cacheHitRate }}%
-            </div>
+            <div class="metric-label">缓存命中率</div>
+            <div class="metric-value">{{ stats.cacheHitRate }}%</div>
           </div>
         </div>
       </a-col>
       <a-col :span="12">
         <div class="metric-item">
-          <DollarOutlined
-            class="metric-icon"
-            style="color: #13c2c2"
-          />
+          <DollarOutlined class="metric-icon" style="color: #13c2c2" />
           <div class="metric-content">
-            <div class="metric-label">
-              平均成本/次
-            </div>
+            <div class="metric-label">平均成本/次</div>
             <div class="metric-value">
-              ${{ stats.avgCostPerCall.toFixed(5) }}
+              ${{ safeToFixed(stats.avgCostPerCall, 5) }}
             </div>
           </div>
         </div>
@@ -87,7 +64,9 @@
       <div class="budget-header">
         <span class="budget-title">本周预算</span>
         <span class="budget-amount">
-          ${{ stats.weekCost.toFixed(2) }} / ${{ stats.weeklyLimit.toFixed(2) }}
+          ${{ safeToFixed(stats.weekCost, 2) }} / ${{
+            safeToFixed(stats.weeklyLimit, 2)
+          }}
         </span>
       </div>
       <a-progress
@@ -112,7 +91,7 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger, createLogger } from "@/utils/logger";
 
 import { ref, reactive, onMounted, computed } from "vue";
 import { useRouter } from "vue-router";
@@ -138,22 +117,43 @@ const stats = reactive({
 
 const optimizationTip = ref("");
 
+/**
+ * 安全格式化数值，防止 undefined/null 导致的 toFixed 错误
+ */
+function safeToFixed(value, decimals = 2) {
+  const num = Number(value);
+  if (value == null || isNaN(num)) {
+    return "0.00";
+  }
+  return num.toFixed(decimals);
+}
+
 // 计算属性
 const weeklyBudgetPercent = computed(() => {
-  if (stats.weeklyLimit === 0) {return 0;}
+  if (stats.weeklyLimit === 0) {
+    return 0;
+  }
   return Math.min((stats.weekCost / stats.weeklyLimit) * 100, 100);
 });
 
 // 方法
 function getBudgetStatus(percent) {
-  if (percent >= 95) {return "exception";}
-  if (percent >= 80) {return "normal";}
+  if (percent >= 95) {
+    return "exception";
+  }
+  if (percent >= 80) {
+    return "normal";
+  }
   return "active";
 }
 
 function getBudgetColor(percent) {
-  if (percent >= 95) {return "#ff4d4f";}
-  if (percent >= 80) {return "#faad14";}
+  if (percent >= 95) {
+    return "#ff4d4f";
+  }
+  if (percent >= 80) {
+    return "#faad14";
+  }
   return "#52c41a";
 }
 
@@ -163,6 +163,13 @@ function handleViewDetails() {
 }
 
 async function loadStats() {
+  // 检查 IPC API 是否就绪
+  if (!window.electronAPI?.llm) {
+    logger.warn("[TokenStatsCard] IPC API 未就绪，稍后重试");
+    setTimeout(loadStats, 500);
+    return;
+  }
+
   loading.value = true;
   try {
     const now = Date.now();
@@ -185,19 +192,27 @@ async function loadStats() {
     const budget = await window.electronAPI.llm.getBudget();
 
     // 更新统计数据
-    Object.assign(stats, {
-      todayTokens: todayStats.totalTokens || 0,
-      todayCost: todayStats.totalCost || 0,
-      weekTokens: weekStats.totalTokens || 0,
-      weekCost: weekStats.totalCost || 0,
-      cacheHitRate: weekStats.cacheHitRate || 0,
-      avgCostPerCall: weekStats.avgCostPerCall || 0,
-      weeklyLimit: budget?.weeklyLimit || 5.0,
-    });
+    if (todayStats && weekStats) {
+      Object.assign(stats, {
+        todayTokens: todayStats.totalTokens || 0,
+        todayCost: todayStats.totalCost || 0,
+        weekTokens: weekStats.totalTokens || 0,
+        weekCost: weekStats.totalCost || 0,
+        cacheHitRate: weekStats.cacheHitRate || 0,
+        avgCostPerCall: weekStats.avgCostPerCall || 0,
+        weeklyLimit: budget?.weeklyLimit || 5.0,
+      });
+    }
 
     // 生成优化建议
     generateOptimizationTip();
   } catch (error) {
+    // IPC 未就绪时静默处理
+    if (error.message?.includes("No handler registered")) {
+      logger.warn("[TokenStatsCard] IPC 处理器未注册，稍后重试");
+      setTimeout(loadStats, 1000);
+      return;
+    }
     logger.error("加载 Token 统计失败:", error);
   } finally {
     loading.value = false;

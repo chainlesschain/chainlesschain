@@ -1,9 +1,6 @@
 <template>
   <div class="friends-container">
-    <a-card
-      title="好友管理"
-      :loading="loading"
-    >
+    <a-card title="好友管理" :loading="loading">
       <template #extra>
         <a-space>
           <a-badge
@@ -17,10 +14,7 @@
               好友请求
             </a-button>
           </a-badge>
-          <a-button
-            type="primary"
-            @click="showAddFriendModal = true"
-          >
+          <a-button type="primary" @click="showAddFriendModal = true">
             <template #icon>
               <user-add-outlined />
             </template>
@@ -36,15 +30,9 @@
       </template>
 
       <!-- 统计信息 -->
-      <a-row
-        :gutter="16"
-        style="margin-bottom: 16px"
-      >
+      <a-row :gutter="16" style="margin-bottom: 16px">
         <a-col :span="8">
-          <a-statistic
-            title="好友总数"
-            :value="statistics.total"
-          >
+          <a-statistic title="好友总数" :value="statistics.total">
             <template #prefix>
               <user-outlined />
             </template>
@@ -62,10 +50,7 @@
           </a-statistic>
         </a-col>
         <a-col :span="8">
-          <a-statistic
-            title="离线"
-            :value="statistics.offline"
-          >
+          <a-statistic title="离线" :value="statistics.offline">
             <template #prefix>
               <minus-circle-outlined />
             </template>
@@ -81,9 +66,7 @@
           button-style="solid"
           @change="handleGroupChange"
         >
-          <a-radio-button value="">
-            全部
-          </a-radio-button>
+          <a-radio-button value=""> 全部 </a-radio-button>
           <a-radio-button
             v-for="(count, group) in statistics.byGroup"
             :key="group"
@@ -149,10 +132,7 @@
                 </a-button>
               </a-tooltip>
               <a-dropdown>
-                <a-button
-                  type="link"
-                  size="small"
-                >
+                <a-button type="link" size="small">
                   <template #icon>
                     <ellipsis-outlined />
                   </template>
@@ -166,10 +146,7 @@
                       <folder-outlined /> 修改分组
                     </a-menu-item>
                     <a-menu-divider />
-                    <a-menu-item
-                      danger
-                      @click="handleRemoveFriend(item)"
-                    >
+                    <a-menu-item danger @click="handleRemoveFriend(item)">
                       <delete-outlined /> 删除好友
                     </a-menu-item>
                   </a-menu>
@@ -179,11 +156,12 @@
 
             <a-list-item-meta>
               <template #avatar>
-                <a-badge
-                  :status="getOnlineStatus(item)"
-                  :offset="[-5, 35]"
-                >
-                  <a-avatar :style="{ backgroundColor: getAvatarColor(item.friend_did) }">
+                <a-badge :status="getOnlineStatus(item)" :offset="[-5, 35]">
+                  <a-avatar
+                    :style="{
+                      backgroundColor: getAvatarColor(item.friend_did),
+                    }"
+                  >
                     <template #icon>
                       <user-outlined />
                     </template>
@@ -192,21 +170,16 @@
               </template>
               <template #title>
                 <a-space>
-                  <span>{{ item.nickname || shortenDid(item.friend_did) }}</span>
-                  <a-tag
-                    v-if="item.group_name"
-                    color="blue"
-                    size="small"
-                  >
+                  <span>{{
+                    item.nickname || shortenDid(item.friend_did)
+                  }}</span>
+                  <a-tag v-if="item.group_name" color="blue" size="small">
                     {{ item.group_name }}
                   </a-tag>
                 </a-space>
               </template>
               <template #description>
-                <a-space
-                  direction="vertical"
-                  size="small"
-                >
+                <a-space direction="vertical" size="small">
                   <a-typography-text
                     copyable
                     type="secondary"
@@ -225,10 +198,7 @@
 
         <template #empty>
           <a-empty description="暂无好友">
-            <a-button
-              type="primary"
-              @click="showAddFriendModal = true"
-            >
+            <a-button type="primary" @click="showAddFriendModal = true">
               添加第一个好友
             </a-button>
           </a-empty>
@@ -243,14 +213,8 @@
       :confirm-loading="adding"
       @ok="handleAddFriend"
     >
-      <a-form
-        :model="addFriendForm"
-        layout="vertical"
-      >
-        <a-form-item
-          label="好友 DID"
-          required
-        >
+      <a-form :model="addFriendForm" layout="vertical">
+        <a-form-item label="好友 DID" required>
           <a-input
             v-model:value="addFriendForm.targetDid"
             placeholder="输入好友的 DID"
@@ -275,10 +239,7 @@
       width="600px"
       :footer="null"
     >
-      <a-list
-        :data-source="pendingRequests"
-        :loading="loadingRequests"
-      >
+      <a-list :data-source="pendingRequests" :loading="loadingRequests">
         <template #renderItem="{ item }">
           <a-list-item>
             <template #actions>
@@ -311,10 +272,7 @@
                 {{ shortenDid(item.from_did) }}
               </template>
               <template #description>
-                <a-space
-                  direction="vertical"
-                  size="small"
-                >
+                <a-space direction="vertical" size="small">
                   <a-typography-text
                     copyable
                     type="secondary"
@@ -322,10 +280,7 @@
                   >
                     {{ item.from_did }}
                   </a-typography-text>
-                  <div
-                    v-if="item.message"
-                    style="font-size: 12px"
-                  >
+                  <div v-if="item.message" style="font-size: 12px">
                     验证消息: {{ item.message }}
                   </div>
                   <div style="font-size: 12px; color: #999">
@@ -382,12 +337,12 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger, createLogger } from "@/utils/logger";
 
-import { ref, reactive, computed, onMounted, onUnmounted } from 'vue';
-import { useRouter } from 'vue-router';
-import { message as antMessage } from 'ant-design-vue';
-import { useSocialStore } from '../stores/social';
+import { ref, reactive, computed, onMounted, onUnmounted } from "vue";
+import { useRouter } from "vue-router";
+import { message as antMessage } from "ant-design-vue";
+import { useSocialStore } from "../stores/social";
 import {
   UserOutlined,
   UserAddOutlined,
@@ -403,7 +358,10 @@ import {
   MinusCircleOutlined,
   PhoneOutlined,
   VideoCameraOutlined,
-} from '@ant-design/icons-vue';
+} from "@ant-design/icons-vue";
+
+// 定时刷新间隔ID
+let refreshInterval = null;
 
 // 状态
 const router = useRouter();
@@ -423,22 +381,23 @@ const statistics = ref({
   byGroup: {},
 });
 
-const selectedGroup = ref('');
-const searchText = ref('');
+const selectedGroup = ref("");
+const searchText = ref("");
 const filteredFriends = computed(() => {
   let result = friends.value;
 
   // 分组筛选
   if (selectedGroup.value) {
-    result = result.filter(f => f.group_name === selectedGroup.value);
+    result = result.filter((f) => f.group_name === selectedGroup.value);
   }
 
   // 搜索筛选
   if (searchText.value) {
     const search = searchText.value.toLowerCase();
-    result = result.filter(f =>
-      f.friend_did.toLowerCase().includes(search) ||
-      (f.nickname && f.nickname.toLowerCase().includes(search))
+    result = result.filter(
+      (f) =>
+        f.friend_did.toLowerCase().includes(search) ||
+        (f.nickname && f.nickname.toLowerCase().includes(search)),
     );
   }
 
@@ -455,50 +414,54 @@ const showChangeGroupModal = ref(false);
 
 // 表单数据
 const addFriendForm = reactive({
-  targetDid: '',
-  message: '',
+  targetDid: "",
+  message: "",
 });
 
 const editNicknameForm = reactive({
-  friendDid: '',
-  nickname: '',
+  friendDid: "",
+  nickname: "",
 });
 
 const changeGroupForm = reactive({
-  friendDid: '',
-  groupName: '我的好友',
+  friendDid: "",
+  groupName: "我的好友",
 });
 
 // 工具函数
 const shortenDid = (did) => {
-  if (!did) {return '';}
+  if (!did) {
+    return "";
+  }
   return did.length > 20 ? `${did.slice(0, 10)}...${did.slice(-8)}` : did;
 };
 
 const getAvatarColor = (did) => {
-  const colors = ['#f56a00', '#7265e6', '#ffbf00', '#00a2ae', '#1890ff'];
-  const hash = did.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const colors = ["#f56a00", "#7265e6", "#ffbf00", "#00a2ae", "#1890ff"];
+  const hash = did.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
   return colors[hash % colors.length];
 };
 
 const getOnlineStatus = (friend) => {
-  if (!friend.onlineStatus) {return 'default';}
-  return friend.onlineStatus.status === 'online' ? 'success' : 'default';
+  if (!friend.onlineStatus) {
+    return "default";
+  }
+  return friend.onlineStatus.status === "online" ? "success" : "default";
 };
 
 const getStatusText = (friend) => {
-  if (!friend.onlineStatus || friend.onlineStatus.status === 'offline') {
+  if (!friend.onlineStatus || friend.onlineStatus.status === "offline") {
     if (friend.onlineStatus?.lastSeen) {
       return `最后上线: ${formatTime(friend.onlineStatus.lastSeen)}`;
     }
-    return '离线';
+    return "离线";
   }
 
   if (friend.onlineStatus.deviceCount > 1) {
     return `在线 (${friend.onlineStatus.deviceCount} 台设备)`;
   }
 
-  return '在线';
+  return "在线";
 };
 
 const formatTime = (timestamp) => {
@@ -507,7 +470,7 @@ const formatTime = (timestamp) => {
   const diff = now - date;
 
   if (diff < 60 * 1000) {
-    return '刚刚';
+    return "刚刚";
   }
 
   if (diff < 60 * 60 * 1000) {
@@ -525,18 +488,20 @@ const formatTime = (timestamp) => {
     return `${days} 天前`;
   }
 
-  return date.toLocaleDateString('zh-CN');
+  return date.toLocaleDateString("zh-CN");
 };
 
 // 加载好友列表
 const loadFriends = async () => {
   try {
     loading.value = true;
-    friends.value = await window.electronAPI.friend.getFriends(selectedGroup.value || null);
-    logger.info('好友列表已加载:', friends.value.length);
+    friends.value = await window.electronAPI.friend.getFriends(
+      selectedGroup.value || null,
+    );
+    logger.info("好友列表已加载:", friends.value.length);
   } catch (error) {
-    logger.error('加载好友列表失败:', error);
-    antMessage.error('加载好友列表失败: ' + error.message);
+    logger.error("加载好友列表失败:", error);
+    antMessage.error("加载好友列表失败: " + error.message);
   } finally {
     loading.value = false;
   }
@@ -547,7 +512,7 @@ const loadStatistics = async () => {
   try {
     statistics.value = await window.electronAPI.friend.getStatistics();
   } catch (error) {
-    logger.error('加载统计信息失败:', error);
+    logger.error("加载统计信息失败:", error);
   }
 };
 
@@ -555,9 +520,10 @@ const loadStatistics = async () => {
 const loadPendingRequests = async () => {
   try {
     loadingRequests.value = true;
-    pendingRequests.value = await window.electronAPI.friend.getPendingRequests();
+    pendingRequests.value =
+      await window.electronAPI.friend.getPendingRequests();
   } catch (error) {
-    logger.error('加载好友请求失败:', error);
+    logger.error("加载好友请求失败:", error);
   } finally {
     loadingRequests.value = false;
   }
@@ -576,22 +542,25 @@ const handleSearch = () => {
 // 添加好友
 const handleAddFriend = async () => {
   if (!addFriendForm.targetDid) {
-    antMessage.warning('请输入好友 DID');
+    antMessage.warning("请输入好友 DID");
     return;
   }
 
   try {
     adding.value = true;
-    await window.electronAPI.friend.sendRequest(addFriendForm.targetDid, addFriendForm.message);
-    antMessage.success('好友请求已发送');
+    await window.electronAPI.friend.sendRequest(
+      addFriendForm.targetDid,
+      addFriendForm.message,
+    );
+    antMessage.success("好友请求已发送");
     showAddFriendModal.value = false;
 
     // 重置表单
-    addFriendForm.targetDid = '';
-    addFriendForm.message = '';
+    addFriendForm.targetDid = "";
+    addFriendForm.message = "";
   } catch (error) {
-    logger.error('发送好友请求失败:', error);
-    antMessage.error('发送好友请求失败: ' + error.message);
+    logger.error("发送好友请求失败:", error);
+    antMessage.error("发送好友请求失败: " + error.message);
   } finally {
     adding.value = false;
   }
@@ -602,17 +571,13 @@ const handleAcceptRequest = async (requestId) => {
   try {
     processingRequest.value = requestId;
     await window.electronAPI.friend.acceptRequest(requestId);
-    antMessage.success('已接受好友请求');
+    antMessage.success("已接受好友请求");
 
     // 刷新列表
-    await Promise.all([
-      loadFriends(),
-      loadPendingRequests(),
-      loadStatistics(),
-    ]);
+    await Promise.all([loadFriends(), loadPendingRequests(), loadStatistics()]);
   } catch (error) {
-    logger.error('接受好友请求失败:', error);
-    antMessage.error('接受好友请求失败: ' + error.message);
+    logger.error("接受好友请求失败:", error);
+    antMessage.error("接受好友请求失败: " + error.message);
   } finally {
     processingRequest.value = null;
   }
@@ -623,13 +588,13 @@ const handleRejectRequest = async (requestId) => {
   try {
     processingRequest.value = requestId;
     await window.electronAPI.friend.rejectRequest(requestId);
-    antMessage.success('已拒绝好友请求');
+    antMessage.success("已拒绝好友请求");
 
     // 刷新列表
     await loadPendingRequests();
   } catch (error) {
-    logger.error('拒绝好友请求失败:', error);
-    antMessage.error('拒绝好友请求失败: ' + error.message);
+    logger.error("拒绝好友请求失败:", error);
+    antMessage.error("拒绝好友请求失败: " + error.message);
   } finally {
     processingRequest.value = null;
   }
@@ -642,12 +607,14 @@ const handleOpenChat = async (friend) => {
     await socialStore.openChatWithFriend(friend);
 
     // 跳转到聊天窗口页面
-    router.push('/chat');
+    router.push("/chat");
 
-    antMessage.success(`已打开与 ${friend.nickname || friend.friend_did.substring(0, 16)} 的聊天`);
+    antMessage.success(
+      `已打开与 ${friend.nickname || friend.friend_did.substring(0, 16)} 的聊天`,
+    );
   } catch (error) {
-    logger.error('打开聊天失败:', error);
-    antMessage.error('打开聊天失败');
+    logger.error("打开聊天失败:", error);
+    antMessage.error("打开聊天失败");
   }
 };
 
@@ -666,12 +633,12 @@ const handleVoiceCall = async (friend) => {
     if (result.success) {
       antMessage.success(`语音通话已建立`);
     } else {
-      antMessage.error(`语音通话失败: ${result.error || '未知错误'}`);
+      antMessage.error(`语音通话失败: ${result.error || "未知错误"}`);
     }
   } catch (error) {
     antMessage.destroy();
-    logger.error('发起语音通话失败:', error);
-    antMessage.error('发起语音通话失败');
+    logger.error("发起语音通话失败:", error);
+    antMessage.error("发起语音通话失败");
   }
 };
 
@@ -690,19 +657,19 @@ const handleVideoCall = async (friend) => {
     if (result.success) {
       antMessage.success(`视频通话已建立`);
     } else {
-      antMessage.error(`视频通话失败: ${result.error || '未知错误'}`);
+      antMessage.error(`视频通话失败: ${result.error || "未知错误"}`);
     }
   } catch (error) {
     antMessage.destroy();
-    logger.error('发起视频通话失败:', error);
-    antMessage.error('发起视频通话失败');
+    logger.error("发起视频通话失败:", error);
+    antMessage.error("发起视频通话失败");
   }
 };
 
 // 修改备注
 const handleEditNickname = (friend) => {
   editNicknameForm.friendDid = friend.friend_did;
-  editNicknameForm.nickname = friend.nickname || '';
+  editNicknameForm.nickname = friend.nickname || "";
   showEditNicknameModal.value = true;
 };
 
@@ -710,21 +677,21 @@ const handleSaveNickname = async () => {
   try {
     await window.electronAPI.friend.updateNickname(
       editNicknameForm.friendDid,
-      editNicknameForm.nickname
+      editNicknameForm.nickname,
     );
-    antMessage.success('备注已更新');
+    antMessage.success("备注已更新");
     showEditNicknameModal.value = false;
     await loadFriends();
   } catch (error) {
-    logger.error('更新备注失败:', error);
-    antMessage.error('更新备注失败: ' + error.message);
+    logger.error("更新备注失败:", error);
+    antMessage.error("更新备注失败: " + error.message);
   }
 };
 
 // 修改分组
 const handleChangeGroup = (friend) => {
   changeGroupForm.friendDid = friend.friend_did;
-  changeGroupForm.groupName = friend.group_name || '我的好友';
+  changeGroupForm.groupName = friend.group_name || "我的好友";
   showChangeGroupModal.value = true;
 };
 
@@ -732,30 +699,30 @@ const handleSaveGroup = async () => {
   try {
     await window.electronAPI.friend.updateGroup(
       changeGroupForm.friendDid,
-      changeGroupForm.groupName
+      changeGroupForm.groupName,
     );
-    antMessage.success('分组已更新');
+    antMessage.success("分组已更新");
     showChangeGroupModal.value = false;
     await Promise.all([loadFriends(), loadStatistics()]);
   } catch (error) {
-    logger.error('更新分组失败:', error);
-    antMessage.error('更新分组失败: ' + error.message);
+    logger.error("更新分组失败:", error);
+    antMessage.error("更新分组失败: " + error.message);
   }
 };
 
 // 删除好友
 const handleRemoveFriend = (friend) => {
   antMessage.confirm({
-    title: '确认删除好友',
+    title: "确认删除好友",
     content: `确定要删除好友 ${friend.nickname || shortenDid(friend.friend_did)} 吗？`,
     async onOk() {
       try {
         await window.electronAPI.friend.remove(friend.friend_did);
-        antMessage.success('已删除好友');
+        antMessage.success("已删除好友");
         await Promise.all([loadFriends(), loadStatistics()]);
       } catch (error) {
-        logger.error('删除好友失败:', error);
-        antMessage.error('删除好友失败: ' + error.message);
+        logger.error("删除好友失败:", error);
+        antMessage.error("删除好友失败: " + error.message);
       }
     },
   });
@@ -763,26 +730,20 @@ const handleRemoveFriend = (friend) => {
 
 // 生命周期
 onMounted(async () => {
-  await Promise.all([
-    loadFriends(),
-    loadPendingRequests(),
-    loadStatistics(),
-  ]);
+  await Promise.all([loadFriends(), loadPendingRequests(), loadStatistics()]);
 
-  // 定期刷新
-  const refreshInterval = setInterval(() => {
+  // 定期刷新 - 使用模块级变量存储 interval ID
+  refreshInterval = setInterval(() => {
     loadFriends();
     loadPendingRequests();
     loadStatistics();
   }, 30000); // 30 秒刷新一次
-
-  // Store interval ID for cleanup
-  window.__friendsRefreshInterval = refreshInterval;
 });
 
 onUnmounted(() => {
-  if (window.__friendsRefreshInterval) {
-    clearInterval(window.__friendsRefreshInterval);
+  if (refreshInterval) {
+    clearInterval(refreshInterval);
+    refreshInterval = null;
   }
 });
 </script>
