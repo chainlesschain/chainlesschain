@@ -2,10 +2,7 @@
   <div class="new-project-page">
     <!-- 页面头部 -->
     <div class="page-header">
-      <a-button
-        type="text"
-        @click="handleBack"
-      >
+      <a-button type="text" @click="handleBack">
         <ArrowLeftOutlined />
         返回
       </a-button>
@@ -14,16 +11,9 @@
 
     <!-- 创建方式选择 -->
     <div class="page-content">
-      <a-tabs
-        v-model:active-key="activeTab"
-        type="card"
-        size="large"
-      >
+      <a-tabs v-model:active-key="activeTab" type="card" size="large">
         <!-- 自定义创建 -->
-        <a-tab-pane
-          key="ai"
-          tab="自定义创建"
-        >
+        <a-tab-pane key="ai" tab="自定义创建">
           <template #tab>
             <span>
               <RobotOutlined />
@@ -34,10 +24,7 @@
         </a-tab-pane>
 
         <!-- 手动创建 -->
-        <a-tab-pane
-          key="manual"
-          tab="手动创建"
-        >
+        <a-tab-pane key="manual" tab="手动创建">
           <template #tab>
             <span>
               <FormOutlined />
@@ -82,10 +69,7 @@
           </div>
         </div>
         <div class="recommend-actions">
-          <a-button
-            size="large"
-            @click="handleTemplateRecommendDecline"
-          >
+          <a-button size="large" @click="handleTemplateRecommendDecline">
             跳过，手动创建
           </a-button>
           <a-button
@@ -110,13 +94,13 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger, createLogger } from "@/utils/logger";
 
-import { ref, computed, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
-import { message } from 'ant-design-vue';
-import { useProjectStore } from '@/stores/project';
-import { useAuthStore } from '@/stores/auth';
+import { ref, computed, onMounted } from "vue";
+import { useRouter } from "vue-router";
+import { message } from "ant-design-vue";
+import { useProjectStore } from "@/stores/project";
+import { useAuthStore } from "@/stores/auth";
 import {
   ArrowLeftOutlined,
   RobotOutlined,
@@ -124,24 +108,24 @@ import {
   FormOutlined,
   ExclamationCircleOutlined,
   CheckCircleOutlined,
-} from '@ant-design/icons-vue';
-import AIProjectCreator from '@/components/projects/AIProjectCreator.vue';
-import ManualProjectForm from '@/components/projects/ManualProjectForm.vue';
-import TemplateSelectionModal from '@/components/projects/TemplateSelectionModal.vue';
+} from "@ant-design/icons-vue";
+import AIProjectCreator from "@/components/projects/AIProjectCreator.vue";
+import ManualProjectForm from "@/components/projects/ManualProjectForm.vue";
+import TemplateSelectionModal from "@/components/projects/TemplateSelectionModal.vue";
 
 const router = useRouter();
 const projectStore = useProjectStore();
 const authStore = useAuthStore();
 
 // 响应式状态
-const activeTab = ref('ai');
+const activeTab = ref("ai");
 const showTemplateRecommendModal = ref(false);
 const showTemplateSelectorModal = ref(false);
 const hasShownTemplateRecommend = ref(false);
 
 // 返回项目列表
 const handleBack = () => {
-  router.push('/projects');
+  router.push("/projects");
 };
 
 // 处理创建项目（直接跳转到 ai-creating 模式，在 ProjectDetailPage 的对话框中展示创建过程）
@@ -153,10 +137,10 @@ const handleCreateProject = async (createData) => {
 const handleTemplateSelect = async (template) => {
   // 构建创建数据，避免 undefined 值
   const createData = {
-    userPrompt: `使用${template.name}模板创建项目${template.description ? '：' + template.description : ''}`,  // 后端必填
+    userPrompt: `使用${template.name}模板创建项目${template.description ? "：" + template.description : ""}`, // 后端必填
     name: `基于${template.name}的新项目`,
-    projectType: template.project_type || 'general',
-    userId: authStore.currentUser?.id || 'default-user',
+    projectType: template.project_type || "general",
+    userId: authStore.currentUser?.id || "default-user",
   };
 
   // 只有当 templateId 存在时才添加
@@ -179,8 +163,8 @@ const startCreateProcess = async (createData) => {
       },
     });
   } catch (error) {
-    logger.error('Start create process failed:', error);
-    message.error('启动创建流程失败：' + error.message);
+    logger.error("Start create process failed:", error);
+    message.error("启动创建流程失败：" + error.message);
   }
 };
 
@@ -199,7 +183,7 @@ const handleTemplateSelectFromModal = async (template) => {
   // 将模板信息传递给 AIProjectCreator
   message.success(`已选择模板：${template.display_name || template.name}`);
   // 切换到 AI 创建标签页
-  activeTab.value = 'ai';
+  activeTab.value = "ai";
   // TODO: 将模板信息传递给 AIProjectCreator 组件
 };
 
@@ -210,13 +194,22 @@ const handleTemplateSelectorCancel = () => {
 // 检查是否应该显示模板推荐
 const checkTemplateRecommend = () => {
   // 如果是首次访问（可以通过 localStorage 或 session 检查）
-  const hasVisited = localStorage.getItem('hasVisitedNewProject');
+  let hasVisited = false;
+  try {
+    hasVisited = localStorage.getItem("hasVisitedNewProject");
+  } catch (error) {
+    logger.warn("[NewProject] 读取访问记录失败:", error.message);
+  }
   if (!hasVisited && !hasShownTemplateRecommend.value) {
     setTimeout(() => {
       showTemplateRecommendModal.value = true;
       hasShownTemplateRecommend.value = true;
     }, 500);
-    localStorage.setItem('hasVisitedNewProject', 'true');
+    try {
+      localStorage.setItem("hasVisitedNewProject", "true");
+    } catch (error) {
+      logger.warn("[NewProject] 保存访问记录失败:", error.message);
+    }
   }
 };
 

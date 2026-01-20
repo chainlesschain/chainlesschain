@@ -6,28 +6,22 @@
         <WarningOutlined />
         错误降级策略
       </h4>
-      <a-button
-        type="text"
-        size="small"
-        @click="$emit('close')"
-      >
+      <a-button type="text" size="small" @click="$emit('close')">
         <CloseOutlined />
       </a-button>
     </div>
 
     <!-- 错误监控状态 -->
     <div class="monitoring-status">
-      <a-card
-        size="small"
-        title="监控状态"
-        :bordered="false"
-      >
+      <a-card size="small" title="监控状态" :bordered="false">
         <a-row :gutter="16">
           <a-col :span="8">
             <a-statistic
               title="错误数"
               :value="errorStats.total"
-              :value-style="{ color: errorStats.total > 0 ? '#ff4d4f' : '#52c41a' }"
+              :value-style="{
+                color: errorStats.total > 0 ? '#ff4d4f' : '#52c41a',
+              }"
             >
               <template #prefix>
                 <ExclamationCircleOutlined />
@@ -62,11 +56,7 @@
 
     <!-- 降级策略配置 -->
     <div class="fallback-config">
-      <a-card
-        size="small"
-        title="降级策略配置"
-        :bordered="false"
-      >
+      <a-card size="small" title="降级策略配置" :bordered="false">
         <a-form layout="vertical">
           <a-form-item label="启用自动降级">
             <a-switch v-model:checked="config.autoFallback" />
@@ -80,20 +70,16 @@
               :max="10"
               :marks="{ 1: '1', 5: '5', 10: '10' }"
             />
-            <span class="config-hint">连续错误 {{ config.errorThreshold }} 次后触发降级</span>
+            <span class="config-hint"
+              >连续错误 {{ config.errorThreshold }} 次后触发降级</span
+            >
           </a-form-item>
 
           <a-form-item label="降级级别">
             <a-radio-group v-model:value="config.fallbackLevel">
-              <a-radio value="minimal">
-                最小功能
-              </a-radio>
-              <a-radio value="basic">
-                基础功能
-              </a-radio>
-              <a-radio value="full">
-                完整功能
-              </a-radio>
+              <a-radio value="minimal"> 最小功能 </a-radio>
+              <a-radio value="basic"> 基础功能 </a-radio>
+              <a-radio value="full"> 完整功能 </a-radio>
             </a-radio-group>
           </a-form-item>
 
@@ -112,11 +98,7 @@
           </a-form-item>
         </a-form>
 
-        <a-button
-          type="primary"
-          block
-          @click="handleSaveConfig"
-        >
+        <a-button type="primary" block @click="handleSaveConfig">
           保存配置
         </a-button>
       </a-card>
@@ -124,27 +106,23 @@
 
     <!-- 错误日志 -->
     <div class="error-logs">
-      <a-card
-        size="small"
-        :bordered="false"
-      >
+      <a-card size="small" :bordered="false">
         <template #title>
-          <div style="display: flex; justify-content: space-between; align-items: center">
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+            "
+          >
             <span>错误日志</span>
-            <a-button
-              type="link"
-              size="small"
-              @click="handleClearLogs"
-            >
+            <a-button type="link" size="small" @click="handleClearLogs">
               清空日志
             </a-button>
           </div>
         </template>
 
-        <div
-          v-if="errorLogs.length === 0"
-          class="logs-empty"
-        >
+        <div v-if="errorLogs.length === 0" class="logs-empty">
           <CheckCircleOutlined style="font-size: 48px; color: #52c41a" />
           <p>暂无错误记录</p>
         </div>
@@ -165,23 +143,14 @@
               <div class="log-message">
                 {{ log.message }}
               </div>
-              <div
-                v-if="log.stack"
-                class="log-stack"
-              >
+              <div v-if="log.stack" class="log-stack">
                 <a-collapse ghost>
-                  <a-collapse-panel
-                    key="1"
-                    header="查看堆栈"
-                  >
+                  <a-collapse-panel key="1" header="查看堆栈">
                     <pre>{{ log.stack }}</pre>
                   </a-collapse-panel>
                 </a-collapse>
               </div>
-              <div
-                v-if="log.fallbackAction"
-                class="log-action"
-              >
+              <div v-if="log.fallbackAction" class="log-action">
                 <BulbOutlined />
                 降级操作: {{ log.fallbackAction }}
               </div>
@@ -193,15 +162,8 @@
 
     <!-- 降级功能列表 -->
     <div class="fallback-features">
-      <a-card
-        size="small"
-        title="功能降级状态"
-        :bordered="false"
-      >
-        <a-list
-          size="small"
-          :data-source="features"
-        >
+      <a-card size="small" title="功能降级状态" :bordered="false">
+        <a-list size="small" :data-source="features">
           <template #renderItem="{ item }">
             <a-list-item>
               <template #actions>
@@ -216,18 +178,10 @@
                   <div style="display: flex; align-items: center; gap: 8px">
                     <component :is="item.icon" />
                     <span>{{ item.name }}</span>
-                    <a-tag
-                      v-if="item.required"
-                      color="red"
-                      size="small"
-                    >
+                    <a-tag v-if="item.required" color="red" size="small">
                       必需
                     </a-tag>
-                    <a-tag
-                      v-if="item.fallback"
-                      color="orange"
-                      size="small"
-                    >
+                    <a-tag v-if="item.fallback" color="orange" size="small">
                       已降级
                     </a-tag>
                   </div>
@@ -245,20 +199,11 @@
     <!-- 手动操作 -->
     <div class="manual-actions">
       <a-space style="width: 100%">
-        <a-button
-          type="primary"
-          danger
-          block
-          @click="handleManualFallback"
-        >
+        <a-button type="primary" danger block @click="handleManualFallback">
           <FallOutlined />
           手动降级
         </a-button>
-        <a-button
-          type="primary"
-          block
-          @click="handleManualRecovery"
-        >
+        <a-button type="primary" block @click="handleManualRecovery">
           <CheckCircleOutlined />
           手动恢复
         </a-button>
@@ -268,7 +213,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onUnmounted } from 'vue';
+import { ref, reactive, onMounted, onUnmounted } from "vue";
 import {
   WarningOutlined,
   CloseOutlined,
@@ -281,8 +226,9 @@ import {
   CloudOutlined,
   FileTextOutlined,
   MessageOutlined,
-} from '@ant-design/icons-vue';
-import { message } from 'ant-design-vue';
+} from "@ant-design/icons-vue";
+import { message } from "ant-design-vue";
+import { logger } from "@/utils/logger";
 
 const props = defineProps({
   projectId: {
@@ -291,7 +237,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['close', 'fallback-triggered', 'recovery-triggered']);
+const emit = defineEmits(["close", "fallback-triggered", "recovery-triggered"]);
 
 // 错误统计
 const errorStats = reactive({
@@ -304,7 +250,7 @@ const errorStats = reactive({
 const config = reactive({
   autoFallback: true,
   errorThreshold: 3,
-  fallbackLevel: 'basic',
+  fallbackLevel: "basic",
   autoRecovery: true,
   recoveryDelay: 30,
 });
@@ -315,45 +261,45 @@ const errorLogs = ref([]);
 // 功能列表
 const features = ref([
   {
-    id: 'api',
-    name: 'API 调用',
-    description: '与后端服务的通信',
+    id: "api",
+    name: "API 调用",
+    description: "与后端服务的通信",
     icon: ApiOutlined,
     enabled: true,
     required: true,
     fallback: false,
   },
   {
-    id: 'database',
-    name: '数据库操作',
-    description: '本地数据存储和查询',
+    id: "database",
+    name: "数据库操作",
+    description: "本地数据存储和查询",
     icon: DatabaseOutlined,
     enabled: true,
     required: true,
     fallback: false,
   },
   {
-    id: 'cloud',
-    name: '云端同步',
-    description: '数据云端备份和同步',
+    id: "cloud",
+    name: "云端同步",
+    description: "数据云端备份和同步",
     icon: CloudOutlined,
     enabled: true,
     required: false,
     fallback: false,
   },
   {
-    id: 'file',
-    name: '文件操作',
-    description: '文件读写和管理',
+    id: "file",
+    name: "文件操作",
+    description: "文件读写和管理",
     icon: FileTextOutlined,
     enabled: true,
     required: false,
     fallback: false,
   },
   {
-    id: 'realtime',
-    name: '实时通信',
-    description: 'WebSocket 实时消息',
+    id: "realtime",
+    name: "实时通信",
+    description: "WebSocket 实时消息",
     icon: MessageOutlined,
     enabled: true,
     required: false,
@@ -374,7 +320,7 @@ onMounted(() => {
 // 清理
 onUnmounted(() => {
   if (errorHandler) {
-    window.removeEventListener('error', errorHandler);
+    window.removeEventListener("error", errorHandler);
   }
 });
 
@@ -384,18 +330,18 @@ const setupErrorHandler = () => {
     handleError({
       message: event.message,
       stack: event.error?.stack,
-      level: 'error',
+      level: "error",
     });
   };
 
-  window.addEventListener('error', errorHandler);
+  window.addEventListener("error", errorHandler);
 
   // 监听未捕获的 Promise 错误
-  window.addEventListener('unhandledrejection', (event) => {
+  window.addEventListener("unhandledrejection", (event) => {
     handleError({
-      message: event.reason?.message || 'Unhandled Promise Rejection',
+      message: event.reason?.message || "Unhandled Promise Rejection",
       stack: event.reason?.stack,
-      level: 'error',
+      level: "error",
     });
   });
 };
@@ -407,7 +353,7 @@ const handleError = (error) => {
   const log = {
     id: Date.now(),
     timestamp: Date.now(),
-    level: error.level || 'error',
+    level: error.level || "error",
     message: error.message,
     stack: error.stack,
     fallbackAction: null,
@@ -433,7 +379,7 @@ const shouldTriggerFallback = () => {
   const recentTime = Date.now() - 60000; // 最近1分钟
 
   const recentErrorCount = recentErrors.filter(
-    log => log.timestamp > recentTime && log.level === 'error'
+    (log) => log.timestamp > recentTime && log.level === "error",
   ).length;
 
   return recentErrorCount >= config.errorThreshold;
@@ -447,9 +393,9 @@ const triggerFallback = (log) => {
   const fallbackActions = [];
 
   switch (config.fallbackLevel) {
-    case 'minimal':
+    case "minimal":
       // 只保留必需功能
-      features.value.forEach(feature => {
+      features.value.forEach((feature) => {
         if (!feature.required) {
           feature.enabled = false;
           feature.fallback = true;
@@ -458,10 +404,10 @@ const triggerFallback = (log) => {
       });
       break;
 
-    case 'basic':
+    case "basic": {
       // 禁用非核心功能
-      const nonCoreFeatures = ['cloud', 'realtime'];
-      features.value.forEach(feature => {
+      const nonCoreFeatures = ["cloud", "realtime"];
+      features.value.forEach((feature) => {
         if (nonCoreFeatures.includes(feature.id)) {
           feature.enabled = false;
           feature.fallback = true;
@@ -469,16 +415,22 @@ const triggerFallback = (log) => {
         }
       });
       break;
+    }
 
-    case 'full':
+    case "full":
       // 保持所有功能
       break;
   }
 
   if (fallbackActions.length > 0) {
-    log.fallbackAction = `禁用: ${fallbackActions.join(', ')}`;
-    message.warning(`系统已降级，禁用了部分功能: ${fallbackActions.join(', ')}`);
-    emit('fallback-triggered', { level: config.fallbackLevel, features: fallbackActions });
+    log.fallbackAction = `禁用: ${fallbackActions.join(", ")}`;
+    message.warning(
+      `系统已降级，禁用了部分功能: ${fallbackActions.join(", ")}`,
+    );
+    emit("fallback-triggered", {
+      level: config.fallbackLevel,
+      features: fallbackActions,
+    });
   }
 
   // 自动恢复
@@ -494,12 +446,12 @@ const attemptRecovery = () => {
   // 检查最近是否还有错误
   const recentTime = Date.now() - 60000;
   const recentErrors = errorLogs.value.filter(
-    log => log.timestamp > recentTime && log.level === 'error'
+    (log) => log.timestamp > recentTime && log.level === "error",
   );
 
   if (recentErrors.length === 0) {
     // 恢复所有功能
-    features.value.forEach(feature => {
+    features.value.forEach((feature) => {
       if (feature.fallback) {
         feature.enabled = true;
         feature.fallback = false;
@@ -507,8 +459,8 @@ const attemptRecovery = () => {
     });
 
     errorStats.recoveryCount++;
-    message.success('系统已恢复正常');
-    emit('recovery-triggered');
+    message.success("系统已恢复正常");
+    emit("recovery-triggered");
   }
 };
 
@@ -517,14 +469,14 @@ const handleManualFallback = () => {
   triggerFallback({
     id: Date.now(),
     timestamp: Date.now(),
-    level: 'warning',
-    message: '手动触发降级',
+    level: "warning",
+    message: "手动触发降级",
   });
 };
 
 // 手动恢复
 const handleManualRecovery = () => {
-  features.value.forEach(feature => {
+  features.value.forEach((feature) => {
     if (feature.fallback) {
       feature.enabled = true;
       feature.fallback = false;
@@ -532,8 +484,8 @@ const handleManualRecovery = () => {
   });
 
   errorStats.recoveryCount++;
-  message.success('系统已手动恢复');
-  emit('recovery-triggered');
+  message.success("系统已手动恢复");
+  emit("recovery-triggered");
 };
 
 // 功能切换
@@ -548,23 +500,36 @@ const handleFeatureToggle = (feature) => {
 // 保存配置
 const handleSaveConfig = () => {
   // 实际项目中应该保存到本地存储或数据库
-  localStorage.setItem('errorFallbackConfig', JSON.stringify(config));
-  message.success('配置已保存');
+  try {
+    localStorage.setItem("errorFallbackConfig", JSON.stringify(config));
+    message.success("配置已保存");
+  } catch (error) {
+    logger.warn("[ErrorFallback] 保存配置失败:", error.message);
+    message.error("保存配置失败");
+  }
 };
 
 // 加载配置
 const loadConfig = () => {
-  const saved = localStorage.getItem('errorFallbackConfig');
-  if (saved) {
-    Object.assign(config, JSON.parse(saved));
+  try {
+    const saved = localStorage.getItem("errorFallbackConfig");
+    if (saved) {
+      Object.assign(config, JSON.parse(saved));
+    }
+  } catch (error) {
+    logger.warn("[ErrorFallback] 加载配置失败:", error.message);
   }
 };
 
 // 加载错误日志
 const loadErrorLogs = () => {
-  const saved = localStorage.getItem('errorLogs');
-  if (saved) {
-    errorLogs.value = JSON.parse(saved);
+  try {
+    const saved = localStorage.getItem("errorLogs");
+    if (saved) {
+      errorLogs.value = JSON.parse(saved);
+    }
+  } catch (error) {
+    logger.warn("[ErrorFallback] 加载错误日志失败:", error.message);
   }
 };
 
@@ -572,26 +537,31 @@ const loadErrorLogs = () => {
 const handleClearLogs = () => {
   errorLogs.value = [];
   errorStats.total = 0;
-  localStorage.removeItem('errorLogs');
-  message.success('日志已清空');
+  try {
+    localStorage.removeItem("errorLogs");
+    message.success("日志已清空");
+  } catch (error) {
+    logger.warn("[ErrorFallback] 清空日志失败:", error.message);
+    message.error("清空日志失败");
+  }
 };
 
 // 获取日志颜色
 const getLogColor = (level) => {
   const colorMap = {
-    error: 'red',
-    warning: 'orange',
-    info: 'blue',
+    error: "red",
+    warning: "orange",
+    info: "blue",
   };
-  return colorMap[level] || 'default';
+  return colorMap[level] || "default";
 };
 
 // 获取日志级别文本
 const getLogLevelText = (level) => {
   const textMap = {
-    error: '错误',
-    warning: '警告',
-    info: '信息',
+    error: "错误",
+    warning: "警告",
+    info: "信息",
   };
   return textMap[level] || level;
 };
@@ -599,7 +569,7 @@ const getLogLevelText = (level) => {
 // 格式化时间
 const formatTime = (timestamp) => {
   const date = new Date(timestamp);
-  return date.toLocaleString('zh-CN');
+  return date.toLocaleString("zh-CN");
 };
 </script>
 

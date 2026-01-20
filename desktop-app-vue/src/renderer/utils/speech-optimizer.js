@@ -1,4 +1,4 @@
-import { logger, createLogger } from '@/utils/logger';
+import { logger, createLogger } from "@/utils/logger";
 
 /**
  * 语音识别性能优化模块
@@ -22,6 +22,40 @@ class SpeechPerformanceOptimizer {
       averageRecognitionTime: 0,
       recognitionTimes: [],
     };
+
+    // 清理定时器ID
+    this._cleanupIntervalId = null;
+  }
+
+  /**
+   * 启动自动清理定时器
+   */
+  startAutoCleanup(interval = 600000) {
+    if (this._cleanupIntervalId) {
+      clearInterval(this._cleanupIntervalId);
+    }
+    this._cleanupIntervalId = setInterval(() => {
+      this.cleanupExpiredCache();
+    }, interval);
+  }
+
+  /**
+   * 停止自动清理定时器
+   */
+  stopAutoCleanup() {
+    if (this._cleanupIntervalId) {
+      clearInterval(this._cleanupIntervalId);
+      this._cleanupIntervalId = null;
+    }
+  }
+
+  /**
+   * 销毁实例，清理资源
+   */
+  destroy() {
+    this.stopAutoCleanup();
+    this.audioBufferPool.clear();
+    this.recognitionCache.clear();
   }
 
   /**
@@ -33,7 +67,9 @@ class SpeechPerformanceOptimizer {
 
     try {
       // 创建AudioContext
-      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const audioContext = new (
+        window.AudioContext || window.webkitAudioContext
+      )();
 
       // 解码音频数据
       const arrayBuffer = await audioBlob.arrayBuffer();
@@ -41,10 +77,7 @@ class SpeechPerformanceOptimizer {
 
       // 降采样到16kHz（Whisper标准）
       const targetSampleRate = 16000;
-      const resampledBuffer = this.resampleAudio(
-        audioBuffer,
-        targetSampleRate
-      );
+      const resampledBuffer = this.resampleAudio(audioBuffer, targetSampleRate);
 
       // 应用降噪滤波器
       const filteredBuffer = this.applyNoiseReduction(resampledBuffer);
@@ -53,11 +86,13 @@ class SpeechPerformanceOptimizer {
       const normalizedBuffer = this.normalizeVolume(filteredBuffer);
 
       const processingTime = performance.now() - startTime;
-      logger.info(`[SpeechOptimizer] 音频优化完成: ${processingTime.toFixed(2)}ms`);
+      logger.info(
+        `[SpeechOptimizer] 音频优化完成: ${processingTime.toFixed(2)}ms`,
+      );
 
       return normalizedBuffer;
     } catch (error) {
-      logger.error('[SpeechOptimizer] 音频优化失败:', error);
+      logger.error("[SpeechOptimizer] 音频优化失败:", error);
       return audioBlob;
     }
   }
@@ -155,9 +190,9 @@ class SpeechPerformanceOptimizer {
   async calculateAudioHash(audioData) {
     // 使用SubtleCrypto API计算SHA-256哈希
     const buffer = audioData.buffer || audioData;
-    const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+    const hashBuffer = await crypto.subtle.digest("SHA-256", buffer);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
   }
 
   /**
@@ -168,7 +203,9 @@ class SpeechPerformanceOptimizer {
     const startTime = performance.now();
 
     // 创建Worker池
-    const workerPool = this.createWorkerPool(navigator.hardwareConcurrency || 4);
+    const workerPool = this.createWorkerPool(
+      navigator.hardwareConcurrency || 4,
+    );
 
     // 分配任务
     const tasks = audioFiles.map((file, index) => ({
@@ -178,11 +215,11 @@ class SpeechPerformanceOptimizer {
 
     // 并行处理
     const results = await Promise.all(
-      tasks.map(task => this.processWithWorker(workerPool, task))
+      tasks.map((task) => this.processWithWorker(workerPool, task)),
     );
 
     // 清理Worker
-    workerPool.forEach(worker => worker.terminate());
+    workerPool.forEach((worker) => worker.terminate());
 
     const totalTime = performance.now() - startTime;
     logger.info(`[SpeechOptimizer] 批量识别完成: ${totalTime.toFixed(2)}ms`);
@@ -227,7 +264,10 @@ class SpeechPerformanceOptimizer {
    * 根据网络状况和设备性能动态调整
    */
   getOptimalSettings() {
-    const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    const connection =
+      navigator.connection ||
+      navigator.mozConnection ||
+      navigator.webkitConnection;
     const memory = navigator.deviceMemory || 4; // GB
 
     const settings = {
@@ -241,13 +281,13 @@ class SpeechPerformanceOptimizer {
     if (connection) {
       const effectiveType = connection.effectiveType;
 
-      if (effectiveType === '4g') {
+      if (effectiveType === "4g") {
         settings.bitRate = 192000;
         settings.chunkSize = 8192;
-      } else if (effectiveType === '3g') {
+      } else if (effectiveType === "3g") {
         settings.bitRate = 96000;
         settings.chunkSize = 2048;
-      } else if (effectiveType === '2g' || effectiveType === 'slow-2g') {
+      } else if (effectiveType === "2g" || effectiveType === "slow-2g") {
         settings.bitRate = 64000;
         settings.chunkSize = 1024;
       }
@@ -260,7 +300,7 @@ class SpeechPerformanceOptimizer {
       settings.chunkSize = Math.max(settings.chunkSize, 8192);
     }
 
-    logger.info('[SpeechOptimizer] 优化设置:', settings);
+    logger.info("[SpeechOptimizer] 优化设置:", settings);
     return settings;
   }
 
@@ -269,23 +309,24 @@ class SpeechPerformanceOptimizer {
    * 提前加载识别模型以减少首次识别延迟
    */
   async preloadModels() {
-    logger.info('[SpeechOptimizer] 预加载识别模型...');
+    logger.info("[SpeechOptimizer] 预加载识别模型...");
 
     try {
       // 创建一个临时的SpeechRecognition实例
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const SpeechRecognition =
+        window.SpeechRecognition || window.webkitSpeechRecognition;
       if (SpeechRecognition) {
         const recognition = new SpeechRecognition();
-        recognition.lang = 'zh-CN';
+        recognition.lang = "zh-CN";
 
         // 启动并立即停止以触发模型加载
         recognition.start();
         setTimeout(() => recognition.stop(), 100);
 
-        logger.info('[SpeechOptimizer] 模型预加载完成');
+        logger.info("[SpeechOptimizer] 模型预加载完成");
       }
     } catch (error) {
-      logger.warn('[SpeechOptimizer] 模型预加载失败:', error);
+      logger.warn("[SpeechOptimizer] 模型预加载失败:", error);
     }
   }
 
@@ -293,9 +334,13 @@ class SpeechPerformanceOptimizer {
    * 获取性能指标
    */
   getMetrics() {
-    const cacheHitRate = this.metrics.totalRecognitions > 0
-      ? (this.metrics.cacheHits / this.metrics.totalRecognitions * 100).toFixed(2)
-      : 0;
+    const cacheHitRate =
+      this.metrics.totalRecognitions > 0
+        ? (
+            (this.metrics.cacheHits / this.metrics.totalRecognitions) *
+            100
+          ).toFixed(2)
+        : 0;
 
     return {
       ...this.metrics,
@@ -311,13 +356,14 @@ class SpeechPerformanceOptimizer {
   clearCache() {
     this.recognitionCache.clear();
     this.audioBufferPool.clear();
-    logger.info('[SpeechOptimizer] 缓存已清理');
+    logger.info("[SpeechOptimizer] 缓存已清理");
   }
 
   /**
    * 清理过期缓存
    */
-  cleanupExpiredCache(maxAge = 3600000) { // 默认1小时
+  cleanupExpiredCache(maxAge = 3600000) {
+    // 默认1小时
     const now = Date.now();
     let cleaned = 0;
 
@@ -347,16 +393,15 @@ class SpeechPerformanceOptimizer {
 
     // 计算平均时间
     const sum = this.metrics.recognitionTimes.reduce((a, b) => a + b, 0);
-    this.metrics.averageRecognitionTime = sum / this.metrics.recognitionTimes.length;
+    this.metrics.averageRecognitionTime =
+      sum / this.metrics.recognitionTimes.length;
   }
 }
 
 // 导出单例
 const speechOptimizer = new SpeechPerformanceOptimizer();
 
-// 自动清理过期缓存（每10分钟）
-setInterval(() => {
-  speechOptimizer.cleanupExpiredCache();
-}, 600000);
+// 启动自动清理过期缓存（每10分钟）
+speechOptimizer.startAutoCleanup(600000);
 
 export default speechOptimizer;
