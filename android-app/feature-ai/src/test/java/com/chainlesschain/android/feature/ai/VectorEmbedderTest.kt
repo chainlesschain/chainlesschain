@@ -55,15 +55,15 @@ class VectorEmbedderTest {
 
     @Test
     fun `TfIdfEmbedder should produce similar vectors for similar text`() = runTest {
-        // Given
-        val text1 = "Kotlin协程编程"
-        val text2 = "Kotlin协程开发"
+        // Given - use texts with overlapping words for tokenizer to find similarity
+        val text1 = "kotlin coroutine programming async"
+        val text2 = "kotlin coroutine development async"
 
         // When
         val vector1 = tfIdfEmbedder.embed(text1)
         val vector2 = tfIdfEmbedder.embed(text2)
 
-        // Then
+        // Then - texts share 3/4 words, should have high similarity
         val similarity = VectorMath.cosineSimilarity(vector1, vector2)
         assertTrue(similarity > 0.5, "Similar texts should have high similarity: $similarity")
     }

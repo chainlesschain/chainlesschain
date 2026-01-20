@@ -4,6 +4,7 @@ import android.util.Log
 import com.chainlesschain.android.core.did.crypto.Ed25519KeyPair
 import com.chainlesschain.android.core.did.crypto.toBase64Url
 import com.chainlesschain.android.core.did.model.DIDDocument
+import io.ipfs.multibase.Multibase
 import java.nio.ByteBuffer
 
 /**
@@ -41,13 +42,10 @@ object DidKeyGenerator {
         // 1. 公钥添加Multicodec前缀
         val multicodecKey = ED25519_MULTICODEC_PREFIX + keyPair.publicKey
 
-        // 2. Base58btc编码（Multibase z前缀表示base58btc）
-        val base58Key = encodeBase58(multicodecKey)
+        // 2. 使用Multibase库进行Base58btc编码（'z'前缀）
+        val multibaseKey = Multibase.encode(Multibase.Base.Base58BTC, multicodecKey)
 
-        // 3. 添加Multibase前缀'z'（表示base58btc编码）
-        val multibaseKey = "z$base58Key"
-
-        // 4. 组装did:key
+        // 3. 组装did:key
         val didKey = "$DID_KEY_PREFIX$multibaseKey"
 
         Log.d(TAG, "Generated did:key: $didKey")
@@ -71,16 +69,14 @@ object DidKeyGenerator {
         // 1. 移除did:key前缀
         val multibaseKey = didKey.removePrefix(DID_KEY_PREFIX)
 
-        // 2. 检查Multibase前缀（必须是'z'表示base58btc）
-        require(multibaseKey.startsWith("z")) {
-            "Invalid multibase encoding: must start with 'z' (base58btc)"
+        // 2. 使用Multibase库解码
+        val multicodecKey = try {
+            Multibase.decode(multibaseKey)
+        } catch (e: Exception) {
+            throw IllegalArgumentException("Invalid multibase encoding: ${e.message}", e)
         }
 
-        // 3. 移除Multibase前缀并Base58解码
-        val base58Key = multibaseKey.removePrefix("z")
-        val multicodecKey = decodeBase58(base58Key)
-
-        // 4. 移除Multicodec前缀
+        // 3. 移除Multicodec前缀
         require(multicodecKey.size > ED25519_MULTICODEC_PREFIX.size) {
             "Invalid multicodec key: too short"
         }
@@ -112,8 +108,7 @@ object DidKeyGenerator {
 
         // 重新生成Multibase公钥（用于DID Document）
         val multicodecKey = ED25519_MULTICODEC_PREFIX + publicKey
-        val base58Key = encodeBase58(multicodecKey)
-        val publicKeyMultibase = "z$base58Key"
+        val publicKeyMultibase = Multibase.encode(Multibase.Base.Base58BTC, multicodecKey)
 
         return DIDDocument.fromDidKey(didKey, publicKeyMultibase)
     }

@@ -265,6 +265,24 @@ class ProjectRepository {
 
     // MARK: - Project Files
 
+    /// 获取单个项目文件
+    func getProjectFile(id: String) throws -> ProjectFileEntity? {
+        guard !id.isEmpty else {
+            throw ProjectError.invalidInput("File ID cannot be empty")
+        }
+
+        let sql = """
+            SELECT id, project_id, name, path, type, size, content, mime_type,
+                   is_directory, parent_id, metadata, created_at, updated_at
+            FROM project_files
+            WHERE id = ?
+        """
+
+        return try database.queryOne(sql, parameters: [id]) { stmt in
+            parseProjectFileEntity(stmt)
+        }
+    }
+
     /// 获取项目文件列表
     func getProjectFiles(projectId: String, parentId: String? = nil) throws -> [ProjectFileEntity] {
         var sql = """

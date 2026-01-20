@@ -63,8 +63,10 @@ class SignalingClient @Inject constructor() {
     private val _connectionState = MutableStateFlow<SignalingConnectionState>(SignalingConnectionState.Disconnected)
     val connectionState: StateFlow<SignalingConnectionState> = _connectionState.asStateFlow()
 
-    // 连接事件流
-    private val _connectionEvents = MutableSharedFlow<SignalingConnectionEvent>()
+    // 连接事件流 - 使用extraBufferCapacity确保事件不会丢失
+    private val _connectionEvents = MutableSharedFlow<SignalingConnectionEvent>(
+        extraBufferCapacity = 64
+    )
     val connectionEvents: SharedFlow<SignalingConnectionEvent> = _connectionEvents.asSharedFlow()
 
     // 服务器Socket（接收连接）

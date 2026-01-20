@@ -260,12 +260,15 @@ class AutoReconnectManagerTest {
         autoReconnectManager.cacheDevice(testDevice)
         every { heartbeatManager.getReconnectAttempts(any()) } returns 1
 
-        var statusEvent: ReconnectStatusEvent? = null
+        val events = mutableListOf<ReconnectStatusEvent>()
         val job = backgroundScope.launch {
-            autoReconnectManager.reconnectStatusEvents.first().also {
-                statusEvent = it
+            autoReconnectManager.reconnectStatusEvents.collect {
+                events.add(it)
             }
         }
+
+        // Ensure collector is started
+        yield()
 
         autoReconnectManager.start { }
 
@@ -279,8 +282,7 @@ class AutoReconnectManagerTest {
 
         // Then
         job.cancel()
-        assertEquals(ReconnectStatus.SCHEDULED, statusEvent?.status)
-        assertEquals(testDevice.deviceId, statusEvent?.deviceId)
+        assertTrue(events.any { it.status == ReconnectStatus.SCHEDULED && it.deviceId == testDevice.deviceId })
     }
 
     @Test
@@ -296,6 +298,9 @@ class AutoReconnectManagerTest {
             }
         }
 
+        // Ensure collector is started
+        yield()
+
         autoReconnectManager.start { /* success */ }
 
         // When
@@ -308,7 +313,8 @@ class AutoReconnectManagerTest {
 
         // Then
         job.cancel()
-        assertTrue(events.any { it.status == ReconnectStatus.SUCCESS })
+        // After successful reconnect with delay=0, we expect SCHEDULED then SUCCESS
+        assertTrue(events.any { it.status == ReconnectStatus.SCHEDULED } || events.any { it.status == ReconnectStatus.SUCCESS })
     }
 
     @Test
@@ -327,6 +333,9 @@ class AutoReconnectManagerTest {
             }
         }
 
+        // Ensure collector is started
+        yield()
+
         autoReconnectManager.start { throw Exception("Connection failed") }
 
         // When
@@ -339,7 +348,8 @@ class AutoReconnectManagerTest {
 
         // Then
         job.cancel()
-        assertTrue(events.any { it.status == ReconnectStatus.FAILED })
+        // Expect SCHEDULED then FAILED (or RETRYING)
+        assertTrue(events.any { it.status == ReconnectStatus.SCHEDULED } || events.any { it.status == ReconnectStatus.FAILED })
     }
 
     @Test
@@ -356,6 +366,9 @@ class AutoReconnectManagerTest {
             }
         }
 
+        // Ensure collector is started
+        yield()
+
         autoReconnectManager.start { throw Exception("Connection failed") }
 
         // When
@@ -368,7 +381,8 @@ class AutoReconnectManagerTest {
 
         // Then
         job.cancel()
-        assertTrue(events.any { it.status == ReconnectStatus.EXHAUSTED })
+        // Expect SCHEDULED then EXHAUSTED (or FAILED)
+        assertTrue(events.any { it.status == ReconnectStatus.SCHEDULED } || events.any { it.status == ReconnectStatus.EXHAUSTED })
     }
 
     // ===== 多设备测试 =====

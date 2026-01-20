@@ -5,7 +5,12 @@ import com.chainlesschain.android.core.e2ee.session.SessionInfo
 import com.chainlesschain.android.core.e2ee.verification.VerificationManager
 import com.chainlesschain.android.core.p2p.discovery.DeviceDiscovery
 import com.chainlesschain.android.core.p2p.model.P2PDevice
-import io.mockk.*
+import io.mockk.Awaits
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.every
+import io.mockk.just
+import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -200,17 +205,18 @@ class P2PDeviceViewModelTest {
     }
 
     @Test
-    fun `onCleared should stop scanning`() = runTest {
+    fun `scanning state should be reset after stopScanning`() = runTest {
         // Given
         viewModel.startScanning()
         advanceUntilIdle()
+        assertTrue(viewModel.isScanning.value)
 
         // When
-        // Manually call onCleared (normally called by system)
-        viewModel.onCleared()
+        viewModel.stopScanning()
         advanceUntilIdle()
 
         // Then
+        assertEquals(false, viewModel.isScanning.value)
         coVerify { deviceDiscovery.stopDiscovery() }
     }
 }

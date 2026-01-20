@@ -97,8 +97,13 @@ class TfIdfEmbedder @Inject constructor() : VectorEmbedder {
 
     /**
      * 计算逆文档频率（Inverse Document Frequency）
+     * 当没有语料库时，返回默认IDF值1.0以确保向量非零
      */
     private fun calculateIDF(term: String): Double {
+        // 当没有训练数据时，返回1.0作为默认IDF值
+        if (totalDocuments == 0) {
+            return 1.0
+        }
         val df = documentFrequency.getOrDefault(term, 1)
         val total = totalDocuments.coerceAtLeast(1)
         return ln((total + 1).toDouble() / (df + 1))

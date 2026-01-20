@@ -160,10 +160,16 @@ class ConversationViewModelTest {
     @Test
     fun `setApiKey should update state`() = runTest {
         // Given
+        val model = LLMModel("gpt-4", LLMProvider.OPENAI, "GPT-4")
         val apiKey = "test-api-key"
+
+        // First set a model (setApiKey requires currentModel to be set)
+        viewModel.setCurrentModel(model)
+        testDispatcher.scheduler.advanceUntilIdle()
 
         // When
         viewModel.setApiKey(apiKey)
+        testDispatcher.scheduler.advanceUntilIdle()
 
         // Then
         assertEquals(apiKey, viewModel.uiState.first().currentApiKey)
