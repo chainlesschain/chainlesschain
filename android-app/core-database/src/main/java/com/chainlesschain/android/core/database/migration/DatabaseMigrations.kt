@@ -25,7 +25,8 @@ object DatabaseMigrations {
             MIGRATION_1_2,
             MIGRATION_2_3,
             MIGRATION_3_4,
-            MIGRATION_4_5
+            MIGRATION_4_5,
+            MIGRATION_5_6
         )
     }
 
@@ -177,6 +178,109 @@ object DatabaseMigrations {
             db.execSQL("CREATE INDEX IF NOT EXISTS `index_file_transfers_peerId_createdAt` ON `file_transfers` (`peerId`, `createdAt`)")
 
             Log.i(TAG, "Migration 4 to 5 completed successfully")
+        }
+    }
+
+    /**
+     * 迁移 5 -> 6
+     *
+     * 添加项目管理表（projects, project_files, project_activities）
+     */
+    val MIGRATION_5_6 = object : Migration(5, 6) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            Log.i(TAG, "Migrating database from version 5 to 6")
+
+            // 创建 projects 表
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS `projects` (
+                    `id` TEXT NOT NULL PRIMARY KEY,
+                    `name` TEXT NOT NULL,
+                    `description` TEXT,
+                    `type` TEXT NOT NULL DEFAULT 'other',
+                    `status` TEXT NOT NULL DEFAULT 'active',
+                    `userId` TEXT NOT NULL,
+                    `rootPath` TEXT,
+                    `icon` TEXT,
+                    `coverImage` TEXT,
+                    `tags` TEXT,
+                    `metadata` TEXT,
+                    `isFavorite` INTEGER NOT NULL DEFAULT 0,
+                    `isArchived` INTEGER NOT NULL DEFAULT 0,
+                    `isSynced` INTEGER NOT NULL DEFAULT 0,
+                    `remoteId` TEXT,
+                    `lastSyncedAt` INTEGER,
+                    `fileCount` INTEGER NOT NULL DEFAULT 0,
+                    `totalSize` INTEGER NOT NULL DEFAULT 0,
+                    `lastAccessedAt` INTEGER,
+                    `accessCount` INTEGER NOT NULL DEFAULT 0,
+                    `gitEnabled` INTEGER NOT NULL DEFAULT 0,
+                    `gitRemoteUrl` TEXT,
+                    `gitBranch` TEXT,
+                    `lastCommitHash` TEXT,
+                    `uncommittedChanges` INTEGER NOT NULL DEFAULT 0,
+                    `createdAt` INTEGER NOT NULL,
+                    `updatedAt` INTEGER NOT NULL,
+                    `completedAt` INTEGER
+                )
+            """.trimIndent())
+
+            // 创建 projects 索引
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_projects_userId` ON `projects` (`userId`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_projects_status` ON `projects` (`status`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_projects_type` ON `projects` (`type`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_projects_createdAt` ON `projects` (`createdAt`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_projects_updatedAt` ON `projects` (`updatedAt`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_projects_isFavorite` ON `projects` (`isFavorite`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_projects_isArchived` ON `projects` (`isArchived`)")
+
+            // 创建 project_files 表
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS `project_files` (
+                    `id` TEXT NOT NULL PRIMARY KEY,
+                    `projectId` TEXT NOT NULL,
+                    `parentId` TEXT,
+                    `name` TEXT NOT NULL,
+                    `path` TEXT NOT NULL,
+                    `type` TEXT NOT NULL DEFAULT 'file',
+                    `mimeType` TEXT,
+                    `size` INTEGER NOT NULL DEFAULT 0,
+                    `extension` TEXT,
+                    `content` TEXT,
+                    `isEncrypted` INTEGER NOT NULL DEFAULT 0,
+                    `hash` TEXT,
+                    `isOpen` INTEGER NOT NULL DEFAULT 0,
+                    `isDirty` INTEGER NOT NULL DEFAULT 0,
+                    `createdAt` INTEGER NOT NULL,
+                    `updatedAt` INTEGER NOT NULL,
+                    `lastAccessedAt` INTEGER
+                )
+            """.trimIndent())
+
+            // 创建 project_files 索引
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_project_files_projectId` ON `project_files` (`projectId`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_project_files_parentId` ON `project_files` (`parentId`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_project_files_type` ON `project_files` (`type`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_project_files_path` ON `project_files` (`path`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_project_files_updatedAt` ON `project_files` (`updatedAt`)")
+
+            // 创建 project_activities 表
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS `project_activities` (
+                    `id` TEXT NOT NULL PRIMARY KEY,
+                    `projectId` TEXT NOT NULL,
+                    `type` TEXT NOT NULL,
+                    `description` TEXT NOT NULL,
+                    `fileId` TEXT,
+                    `data` TEXT,
+                    `createdAt` INTEGER NOT NULL
+                )
+            """.trimIndent())
+
+            // 创建 project_activities 索引
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_project_activities_projectId` ON `project_activities` (`projectId`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_project_activities_createdAt` ON `project_activities` (`createdAt`)")
+
+            Log.i(TAG, "Migration 5 to 6 completed successfully")
         }
     }
 

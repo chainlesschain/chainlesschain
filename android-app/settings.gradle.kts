@@ -36,6 +36,7 @@ include(":feature-auth")
 include(":feature-knowledge")
 include(":feature-ai")
 include(":feature-p2p")
+include(":feature-project")
 
 // 数据模块
 include(":data-knowledge")
