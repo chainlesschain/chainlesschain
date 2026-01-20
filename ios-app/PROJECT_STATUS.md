@@ -1,7 +1,7 @@
 # ChainlessChain iOS 项目状态报告
 
 **生成日期**: 2026-01-20
-**版本**: v0.4.7
+**版本**: v0.4.8
 **完成度**: 100%
 
 ---
@@ -117,6 +117,8 @@
    - 滑动操作（删除、完成/重开）
    - **ProjectAIManager** ✅ 新增 - 项目AI集成（参考桌面端project-ai-ipc.js）
    - **项目单元测试** ✅ 新增 - ProjectTests.swift（30+测试用例）
+   - **IntentUnderstandingService** ✅ 新增 - 意图理解（纠错、意图识别、关键词提取）
+   - **内容处理功能** ✅ 新增 - 润色、扩写、摘要、翻译
    - 参考桌面端完整实现
 
 ---
@@ -306,6 +308,7 @@ Assets.xcassets/                # 应用资源
 | 2026-01-20 | v0.4.5 | 100%   | WebSocket重连、消息限流、联系人缓存、SHA256哈希、自动缓存清理              |
 | 2026-01-20 | v0.4.6 | 100%   | SQL注入修复（AI/Vector）、重连jitter防雷群、WebSocket取消检查、路径安全    |
 | 2026-01-20 | v0.4.7 | 100%   | ProjectAIManager项目AI集成、项目单元测试（参考桌面端project-ai-ipc.js）    |
+| 2026-01-20 | v0.4.8 | 100%   | IntentUnderstandingService意图理解、内容处理（润色/扩写/摘要/翻译）        |
 
 ---
 

@@ -26,39 +26,9 @@ class ChainlessChainApplication : Application() {
 
     private fun initTimber() {
         if (BuildConfig.DEBUG) {
-            // 开发环境：打印详细日志
-            Timber.plant(ChainlessDebugTree())
-        } else {
-            // 生产环境：只记录ERROR级别日志
-            Timber.plant(ReleaseTree())
+            // 开发环境：使用标准 DebugTree
+            Timber.plant(Timber.DebugTree())
         }
-    }
-}
-
-/**
- * 自定义Debug日志树
- */
-private class ChainlessDebugTree : Timber.DebugTree() {
-    override fun createStackElementTag(element: StackTraceElement): String {
-        // 自定义Tag格式：类名:方法名:行号
-        return String.format(
-            "[%s:%s:%s]",
-            super.createStackElementTag(element),
-            element.methodName,
-            element.lineNumber
-        )
-    }
-}
-
-/**
- * 生产环境日志树
- */
-private class ReleaseTree : Timber.Tree() {
-    override fun log(priority: Int, tag: String?, message: String, t: Throwable?) {
-        if (priority >= android.util.Log.ERROR) {
-            // TODO: 发送到崩溃报告服务（如Firebase Crashlytics）
-            // crashlytics.log(message)
-            // if (t != null) crashlytics.recordException(t)
-        }
+        // 生产环境：不植入任何日志树（静默）
     }
 }
