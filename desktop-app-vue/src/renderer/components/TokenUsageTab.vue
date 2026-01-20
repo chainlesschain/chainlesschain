@@ -34,7 +34,7 @@
               </template>
             </a-statistic>
             <div class="stat-detail">
-              本周: ${{ stats.weekCost.toFixed(4) }}
+              本周: ${{ (stats.weekCost ?? 0).toFixed(4) }}
             </div>
           </a-card>
         </a-col>
@@ -52,7 +52,7 @@
               </template>
             </a-statistic>
             <div class="stat-detail">
-              节省: {{ stats.cachedTokens.toLocaleString() }} tokens
+              节省: {{ (stats.cachedTokens ?? 0).toLocaleString() }} tokens
             </div>
           </a-card>
         </a-col>
@@ -154,8 +154,8 @@
                 :stroke-color="getBudgetColor(budgetProgress.daily)"
               />
               <div class="budget-detail">
-                ${{ budget.dailySpend.toFixed(2) }} / ${{
-                  budget.dailyLimit.toFixed(2)
+                ${{ (budget.dailySpend ?? 0).toFixed(2) }} / ${{
+                  (budget.dailyLimit ?? 0).toFixed(2)
                 }}
               </div>
             </div>
