@@ -66,7 +66,7 @@ class RAGRetrieverTest {
         }
         every { enhancedTfIdfEmbedder.getDimension() } returns 256
         coEvery { enhancedTfIdfEmbedder.initialize() } returns Unit
-        coEvery { enhancedTfIdfEmbedder.updateFromCorpus(any()) } returns Unit
+        coEvery { enhancedTfIdfEmbedder.updateFromCorpus(any()) } returns 0
         every { enhancedTfIdfEmbedder.getStats() } returns EmbedderStats(
             vocabularySize = 100,
             totalDocuments = 3,
