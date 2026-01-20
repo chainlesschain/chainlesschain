@@ -1,5 +1,7 @@
 package com.chainlesschain.android.feature.p2p.ui
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -17,6 +19,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.chainlesschain.android.core.database.entity.MessageSendStatus
 import com.chainlesschain.android.core.database.entity.P2PMessageEntity
 import com.chainlesschain.android.feature.p2p.viewmodel.ConnectionStatus
+import com.chainlesschain.android.feature.p2p.viewmodel.FileTransferViewModel
 import com.chainlesschain.android.feature.p2p.viewmodel.P2PChatViewModel
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -34,7 +37,9 @@ fun P2PChatScreen(
     deviceName: String,
     onNavigateBack: () -> Unit,
     onVerifyDevice: () -> Unit,
-    viewModel: P2PChatViewModel = hiltViewModel()
+    onNavigateToFileTransfers: () -> Unit = {},
+    viewModel: P2PChatViewModel = hiltViewModel(),
+    fileTransferViewModel: FileTransferViewModel = hiltViewModel()
 ) {
     val messages by viewModel.messages.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
@@ -45,9 +50,17 @@ fun P2PChatScreen(
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
 
+    // File picker launcher
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        uri?.let { fileTransferViewModel.sendFile(it, deviceId) }
+    }
+
     // 加载聊天历史
     LaunchedEffect(deviceId) {
         viewModel.loadChat(deviceId)
+        fileTransferViewModel.loadTransfers(deviceId)
     }
 
     // 自动滚动到底部
@@ -282,7 +295,11 @@ fun P2PChatScreen(
                         inputText = ""
                     }
                 },
-                enabled = !uiState.isSending && connectionStatus == ConnectionStatus.CONNECTED
+                onAttachment = {
+                    filePickerLauncher.launch(arrayOf("*/*"))
+                },
+                enabled = !uiState.isSending && connectionStatus == ConnectionStatus.CONNECTED,
+                showAttachment = true
             )
         }
 
@@ -435,7 +452,9 @@ fun P2PChatInput(
     value: String,
     onValueChange: (String) -> Unit,
     onSend: () -> Unit,
-    enabled: Boolean = true
+    onAttachment: () -> Unit = {},
+    enabled: Boolean = true,
+    showAttachment: Boolean = true
 ) {
     Row(
         modifier = Modifier
@@ -444,6 +463,21 @@ fun P2PChatInput(
         verticalAlignment = Alignment.Bottom,
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
+        // Attachment button
+        if (showAttachment) {
+            IconButton(
+                onClick = onAttachment,
+                enabled = enabled
+            ) {
+                Icon(
+                    Icons.Default.AttachFile,
+                    contentDescription = "附件",
+                    tint = if (enabled) MaterialTheme.colorScheme.onSurfaceVariant
+                           else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                )
+            }
+        }
+
         OutlinedTextField(
             value = value,
             onValueChange = onValueChange,

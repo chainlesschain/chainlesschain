@@ -1,14 +1,22 @@
 package com.chainlesschain.android.feature.p2p.di
 
+import android.content.Context
+import com.chainlesschain.android.core.database.dao.FileTransferDao
 import com.chainlesschain.android.core.database.dao.P2PMessageDao
 import com.chainlesschain.android.core.database.dao.OfflineQueueDao
 import com.chainlesschain.android.core.e2ee.session.PersistentSessionManager
 import com.chainlesschain.android.core.p2p.connection.P2PConnectionManager
+import com.chainlesschain.android.core.p2p.filetransfer.FileChunker
+import com.chainlesschain.android.core.p2p.filetransfer.FileTransferManager
+import com.chainlesschain.android.core.p2p.filetransfer.FileTransferTransport
+import com.chainlesschain.android.core.p2p.filetransfer.TransferProgressTracker
+import com.chainlesschain.android.feature.p2p.repository.FileTransferRepository
 import com.chainlesschain.android.feature.p2p.repository.P2PMessageRepository
 import com.chainlesschain.android.feature.p2p.queue.OfflineMessageQueue
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Singleton
 
@@ -45,5 +53,75 @@ object P2PModule {
         offlineQueueDao: OfflineQueueDao
     ): OfflineMessageQueue {
         return OfflineMessageQueue(offlineQueueDao)
+    }
+
+    // ===== File Transfer Dependencies =====
+
+    /**
+     * 提供文件分块处理器
+     */
+    @Provides
+    @Singleton
+    fun provideFileChunker(
+        @ApplicationContext context: Context
+    ): FileChunker {
+        return FileChunker(context)
+    }
+
+    /**
+     * 提供传输进度跟踪器
+     */
+    @Provides
+    @Singleton
+    fun provideTransferProgressTracker(): TransferProgressTracker {
+        return TransferProgressTracker()
+    }
+
+    /**
+     * 提供文件传输传输层
+     */
+    @Provides
+    @Singleton
+    fun provideFileTransferTransport(
+        connectionManager: P2PConnectionManager
+    ): FileTransferTransport {
+        return FileTransferTransport(connectionManager)
+    }
+
+    /**
+     * 提供文件传输管理器
+     */
+    @Provides
+    @Singleton
+    fun provideFileTransferManager(
+        @ApplicationContext context: Context,
+        fileChunker: FileChunker,
+        transport: FileTransferTransport,
+        progressTracker: TransferProgressTracker
+    ): FileTransferManager {
+        return FileTransferManager(context, fileChunker, transport, progressTracker)
+    }
+
+    /**
+     * 提供文件传输仓库
+     */
+    @Provides
+    @Singleton
+    fun provideFileTransferRepository(
+        @ApplicationContext context: Context,
+        fileTransferDao: FileTransferDao,
+        fileTransferManager: FileTransferManager,
+        progressTracker: TransferProgressTracker,
+        fileChunker: FileChunker,
+        sessionManager: PersistentSessionManager
+    ): FileTransferRepository {
+        return FileTransferRepository(
+            context = context,
+            fileTransferDao = fileTransferDao,
+            fileTransferManager = fileTransferManager,
+            progressTracker = progressTracker,
+            fileChunker = fileChunker,
+            sessionManager = sessionManager
+        )
     }
 }

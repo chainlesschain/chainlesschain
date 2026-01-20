@@ -133,7 +133,36 @@ enum class MessageType {
     HEARTBEAT,
 
     /** 确认包 */
-    ACK
+    ACK,
+
+    // File Transfer Message Types
+
+    /** 文件传输请求 */
+    FILE_TRANSFER_REQUEST,
+
+    /** 接受文件传输 */
+    FILE_TRANSFER_ACCEPT,
+
+    /** 拒绝文件传输 */
+    FILE_TRANSFER_REJECT,
+
+    /** 文件数据块 */
+    FILE_TRANSFER_CHUNK,
+
+    /** 数据块确认 */
+    FILE_TRANSFER_ACK,
+
+    /** 暂停传输 */
+    FILE_TRANSFER_PAUSE,
+
+    /** 恢复传输 */
+    FILE_TRANSFER_RESUME,
+
+    /** 取消传输 */
+    FILE_TRANSFER_CANCEL,
+
+    /** 传输完成 */
+    FILE_TRANSFER_COMPLETE
 }
 
 /**

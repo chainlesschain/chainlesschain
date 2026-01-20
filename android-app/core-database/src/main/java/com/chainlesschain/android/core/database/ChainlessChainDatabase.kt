@@ -7,11 +7,13 @@ import com.chainlesschain.android.core.database.dao.KnowledgeItemDao
 import com.chainlesschain.android.core.database.dao.ConversationDao
 import com.chainlesschain.android.core.database.dao.P2PMessageDao
 import com.chainlesschain.android.core.database.dao.OfflineQueueDao
+import com.chainlesschain.android.core.database.dao.FileTransferDao
 import com.chainlesschain.android.core.database.entity.KnowledgeItemEntity
 import com.chainlesschain.android.core.database.entity.ConversationEntity
 import com.chainlesschain.android.core.database.entity.MessageEntity
 import com.chainlesschain.android.core.database.entity.P2PMessageEntity
 import com.chainlesschain.android.core.database.entity.OfflineQueueEntity
+import com.chainlesschain.android.core.database.entity.FileTransferEntity
 import com.chainlesschain.android.core.database.util.Converters
 
 /**
@@ -28,8 +30,9 @@ import com.chainlesschain.android.core.database.util.Converters
         MessageEntity::class,
         P2PMessageEntity::class,
         OfflineQueueEntity::class,
+        FileTransferEntity::class,
     ],
-    version = 4,
+    version = 5,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -46,6 +49,9 @@ abstract class ChainlessChainDatabase : RoomDatabase() {
 
     // 离线消息队列DAO
     abstract fun offlineQueueDao(): OfflineQueueDao
+
+    // 文件传输DAO
+    abstract fun fileTransferDao(): FileTransferDao
 
     companion object {
         const val DATABASE_NAME = "chainlesschain.db"
