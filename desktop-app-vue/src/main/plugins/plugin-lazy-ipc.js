@@ -137,7 +137,15 @@ function registerLazyPluginIPC({ app, mainWindow }) {
     try {
       await ensurePluginInitialized(app);
       if (!app.pluginManager) {
-        throw new Error("插件管理器未初始化");
+        // 返回空结果而不是抛出错误（插件系统可能未启用）
+        return {
+          success: true,
+          extensions: {
+            pages: [],
+            menus: [],
+            components: [],
+          },
+        };
       }
       // 获取页面扩展
       const pageExtensions =
@@ -158,8 +166,17 @@ function registerLazyPluginIPC({ app, mainWindow }) {
         },
       };
     } catch (error) {
-      logger.error("[Plugin Lazy IPC] 获取 UI 扩展失败:", error);
-      throw error;
+      // 返回失败状态而不是抛出错误，避免 renderer 错误日志
+      logger.warn("[Plugin Lazy IPC] 获取 UI 扩展失败:", error.message);
+      return {
+        success: false,
+        error: error.message,
+        extensions: {
+          pages: [],
+          menus: [],
+          components: [],
+        },
+      };
     }
   });
 

@@ -412,9 +412,8 @@ function registerAllIPC(dependencies) {
     }
 
     // 项目AI功能 (函数模式 - 中等模块，16 handlers)
-    // 🔥 在测试模式下，即使 llmManager 为 null 也注册（handlers 内部会处理 null 情况）
-    const isTestMode = process.env.NODE_ENV === "test";
-    if (database && (llmManager || isTestMode)) {
+    // 🔥 只要有 database 就注册，handlers 内部会处理 llmManager 为 null 的情况
+    if (database) {
       logger.info("[IPC Registry] Registering Project AI IPC...");
       const { registerProjectAIIPC } = require("../project/project-ai-ipc");
       registerProjectAIIPC({
