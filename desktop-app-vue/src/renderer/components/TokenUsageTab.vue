@@ -169,8 +169,8 @@
                 :stroke-color="getBudgetColor(budgetProgress.weekly)"
               />
               <div class="budget-detail">
-                ${{ budget.weeklySpend.toFixed(2) }} / ${{
-                  budget.weeklyLimit.toFixed(2)
+                ${{ (budget.weeklySpend ?? 0).toFixed(2) }} / ${{
+                  (budget.weeklyLimit ?? 0).toFixed(2)
                 }}
               </div>
             </div>
@@ -184,8 +184,8 @@
                 :stroke-color="getBudgetColor(budgetProgress.monthly)"
               />
               <div class="budget-detail">
-                ${{ budget.monthlySpend.toFixed(2) }} / ${{
-                  budget.monthlyLimit.toFixed(2)
+                ${{ (budget.monthlySpend ?? 0).toFixed(2) }} / ${{
+                  (budget.monthlyLimit ?? 0).toFixed(2)
                 }}
               </div>
             </div>
