@@ -1,12 +1,15 @@
 package com.chainlesschain.android.core.p2p.di
 
 import android.content.Context
+import com.chainlesschain.android.core.p2p.P2PNetworkCoordinator
 import com.chainlesschain.android.core.p2p.connection.AutoReconnectManager
 import com.chainlesschain.android.core.p2p.connection.HeartbeatManager
 import com.chainlesschain.android.core.p2p.connection.P2PConnectionManager
 import com.chainlesschain.android.core.p2p.connection.SignalingClient
 import com.chainlesschain.android.core.p2p.discovery.DeviceDiscovery
 import com.chainlesschain.android.core.p2p.discovery.NSDDiscovery
+import com.chainlesschain.android.core.p2p.ice.IceServerConfig
+import com.chainlesschain.android.core.p2p.network.NetworkMonitor
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -23,10 +26,21 @@ import javax.inject.Singleton
  * - 心跳管理
  * - 自动重连
  * - 连接管理
+ * - 网络监控
+ * - P2P协调器
  */
 @Module
 @InstallIn(SingletonComponent::class)
 object P2PNetworkModule {
+
+    /**
+     * 提供 ICE 服务器配置
+     */
+    @Provides
+    @Singleton
+    fun provideIceServerConfig(): IceServerConfig {
+        return IceServerConfig()
+    }
 
     /**
      * 提供设备发现服务
@@ -84,6 +98,36 @@ object P2PNetworkModule {
             context = context,
             deviceDiscovery = deviceDiscovery,
             signalingClient = signalingClient,
+            heartbeatManager = heartbeatManager,
+            autoReconnectManager = autoReconnectManager
+        )
+    }
+
+    /**
+     * 提供网络监控器
+     */
+    @Provides
+    @Singleton
+    fun provideNetworkMonitor(
+        @ApplicationContext context: Context
+    ): NetworkMonitor {
+        return NetworkMonitor(context)
+    }
+
+    /**
+     * 提供P2P网络协调器
+     */
+    @Provides
+    @Singleton
+    fun provideP2PNetworkCoordinator(
+        connectionManager: P2PConnectionManager,
+        networkMonitor: NetworkMonitor,
+        heartbeatManager: HeartbeatManager,
+        autoReconnectManager: AutoReconnectManager
+    ): P2PNetworkCoordinator {
+        return P2PNetworkCoordinator(
+            connectionManager = connectionManager,
+            networkMonitor = networkMonitor,
             heartbeatManager = heartbeatManager,
             autoReconnectManager = autoReconnectManager
         )
