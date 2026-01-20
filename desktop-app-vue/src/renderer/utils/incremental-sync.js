@@ -1,4 +1,4 @@
-import { logger, createLogger } from '@/utils/logger';
+import { logger, createLogger } from "@/utils/logger";
 
 /**
  * Incremental Data Sync Manager
@@ -59,7 +59,9 @@ class IncrementalSyncManager {
   init() {
     // Skip initialization if sync is disabled
     if (!this.options.enabled) {
-      logger.info('[IncrementalSync] Sync is disabled, skipping initialization');
+      logger.info(
+        "[IncrementalSync] Sync is disabled, skipping initialization",
+      );
       return;
     }
 
@@ -232,10 +234,19 @@ class IncrementalSyncManager {
         import.meta.env.VITE_BACKEND_URL || "http://localhost:9090";
 
       // Get device ID (generate if not exists)
-      let deviceId = localStorage.getItem("deviceId");
-      if (!deviceId) {
-        deviceId = `device_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        localStorage.setItem("deviceId", deviceId);
+      let deviceId = null;
+      try {
+        deviceId = localStorage.getItem("deviceId");
+        if (!deviceId) {
+          deviceId = `device_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          localStorage.setItem("deviceId", deviceId);
+        }
+      } catch (error) {
+        logger.warn(
+          "[Sync] localStorage 访问失败，使用临时设备ID:",
+          error.message,
+        );
+        deviceId = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       }
 
       // Group changes by table/entity type
@@ -483,7 +494,7 @@ class IncrementalSyncManager {
   startAutoSync() {
     // Skip if sync is disabled
     if (!this.options.enabled) {
-      logger.info('[IncrementalSync] Sync disabled, skipping auto-sync setup');
+      logger.info("[IncrementalSync] Sync disabled, skipping auto-sync setup");
       return;
     }
 

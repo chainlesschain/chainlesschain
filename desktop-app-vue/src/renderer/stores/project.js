@@ -734,11 +734,16 @@ export const useProjectStore = defineStore("project", {
      */
     shouldSync() {
       // 超过5分钟自动同步
-      const lastSync = localStorage.getItem("project_last_sync");
-      if (!lastSync) {
+      try {
+        const lastSync = localStorage.getItem("project_last_sync");
+        if (!lastSync) {
+          return true;
+        }
+        return Date.now() - parseInt(lastSync) > 5 * 60 * 1000;
+      } catch (error) {
+        logger.warn("[ProjectStore] 读取同步时间失败:", error.message);
         return true;
       }
-      return Date.now() - parseInt(lastSync) > 5 * 60 * 1000;
     },
 
     // ==================== 筛选和视图 ====================
@@ -782,7 +787,11 @@ export const useProjectStore = defineStore("project", {
      */
     setViewMode(mode) {
       this.viewMode = mode;
-      localStorage.setItem("project_view_mode", mode);
+      try {
+        localStorage.setItem("project_view_mode", mode);
+      } catch (error) {
+        logger.warn("[ProjectStore] 保存视图模式失败:", error.message);
+      }
     },
 
     /**
@@ -929,9 +938,13 @@ export const useProjectStore = defineStore("project", {
      * 从localStorage恢复视图模式
      */
     restoreViewMode() {
-      const savedMode = localStorage.getItem("project_view_mode");
-      if (savedMode) {
-        this.viewMode = savedMode;
+      try {
+        const savedMode = localStorage.getItem("project_view_mode");
+        if (savedMode) {
+          this.viewMode = savedMode;
+        }
+      } catch (error) {
+        logger.warn("[ProjectStore] 恢复视图模式失败:", error.message);
       }
     },
   },

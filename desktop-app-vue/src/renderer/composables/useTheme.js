@@ -2,13 +2,14 @@
  * 主题管理 Hook
  */
 
-import { ref, watch, onMounted } from 'vue';
+import { ref, watch, onMounted } from "vue";
+import { logger } from "@/utils/logger";
 
 // 主题类型
 export const THEMES = {
-  LIGHT: 'light',
-  DARK: 'dark',
-  AUTO: 'auto',
+  LIGHT: "light",
+  DARK: "dark",
+  AUTO: "auto",
 };
 
 // 当前主题
@@ -18,13 +19,16 @@ const currentTheme = ref(THEMES.LIGHT);
 const appliedTheme = ref(THEMES.LIGHT);
 
 // 本地存储键
-const STORAGE_KEY = 'skill-tool-theme';
+const STORAGE_KEY = "skill-tool-theme";
 
 /**
  * 检测系统主题偏好
  */
 function detectSystemTheme() {
-  if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+  if (
+    window.matchMedia &&
+    window.matchMedia("(prefers-color-scheme: dark)").matches
+  ) {
     return THEMES.DARK;
   }
   return THEMES.LIGHT;
@@ -37,11 +41,11 @@ function applyTheme(theme) {
   const root = document.documentElement;
 
   if (theme === THEMES.DARK) {
-    root.classList.add('dark-theme');
-    root.classList.remove('light-theme');
+    root.classList.add("dark-theme");
+    root.classList.remove("light-theme");
   } else {
-    root.classList.add('light-theme');
-    root.classList.remove('dark-theme');
+    root.classList.add("light-theme");
+    root.classList.remove("dark-theme");
   }
 
   appliedTheme.value = theme;
@@ -54,7 +58,11 @@ export function setTheme(theme) {
   currentTheme.value = theme;
 
   // 保存到本地存储
-  localStorage.setItem(STORAGE_KEY, theme);
+  try {
+    localStorage.setItem(STORAGE_KEY, theme);
+  } catch (error) {
+    logger.warn("[Theme] 保存主题到 localStorage 失败:", error.message);
+  }
 
   // 应用主题
   if (theme === THEMES.AUTO) {
@@ -68,7 +76,8 @@ export function setTheme(theme) {
  * 切换主题
  */
 export function toggleTheme() {
-  const newTheme = currentTheme.value === THEMES.LIGHT ? THEMES.DARK : THEMES.LIGHT;
+  const newTheme =
+    currentTheme.value === THEMES.LIGHT ? THEMES.DARK : THEMES.LIGHT;
   setTheme(newTheme);
 }
 
@@ -77,10 +86,13 @@ export function toggleTheme() {
  */
 export function initTheme() {
   // 从本地存储读取
-  const savedTheme = localStorage.getItem(STORAGE_KEY);
-
-  if (savedTheme && Object.values(THEMES).includes(savedTheme)) {
-    currentTheme.value = savedTheme;
+  try {
+    const savedTheme = localStorage.getItem(STORAGE_KEY);
+    if (savedTheme && Object.values(THEMES).includes(savedTheme)) {
+      currentTheme.value = savedTheme;
+    }
+  } catch (error) {
+    logger.warn("[Theme] 从 localStorage 读取主题失败:", error.message);
   }
 
   // 应用主题
@@ -89,11 +101,13 @@ export function initTheme() {
 
     // 监听系统主题变化
     if (window.matchMedia) {
-      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
-        if (currentTheme.value === THEMES.AUTO) {
-          applyTheme(e.matches ? THEMES.DARK : THEMES.LIGHT);
-        }
-      });
+      window
+        .matchMedia("(prefers-color-scheme: dark)")
+        .addEventListener("change", (e) => {
+          if (currentTheme.value === THEMES.AUTO) {
+            applyTheme(e.matches ? THEMES.DARK : THEMES.LIGHT);
+          }
+        });
     }
   } else {
     applyTheme(currentTheme.value);

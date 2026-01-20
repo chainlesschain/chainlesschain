@@ -1,19 +1,10 @@
 <template>
-  <div
-    class="project-sidebar"
-    :class="{ collapsed: collapsed }"
-  >
+  <div class="project-sidebar" :class="{ collapsed: collapsed }">
     <!-- 折叠/展开按钮 -->
     <div class="sidebar-header">
       <div class="header-content">
-        <FolderOpenOutlined
-          v-if="!collapsed"
-          class="header-icon"
-        />
-        <span
-          v-if="!collapsed"
-          class="header-title"
-        >我的项目</span>
+        <FolderOpenOutlined v-if="!collapsed" class="header-icon" />
+        <span v-if="!collapsed" class="header-title">我的项目</span>
       </div>
       <a-button
         type="text"
@@ -27,10 +18,7 @@
     </div>
 
     <!-- 新建项目按钮 -->
-    <div
-      v-if="!collapsed"
-      class="new-project-section"
-    >
+    <div v-if="!collapsed" class="new-project-section">
       <a-button
         type="primary"
         block
@@ -40,11 +28,7 @@
       >
         快速新建项目
       </a-button>
-      <a-button
-        block
-        class="ai-create-btn"
-        @click="handleAICreate"
-      >
+      <a-button block class="ai-create-btn" @click="handleAICreate">
         <template #icon>
           <span class="ai-icon">AI</span>
         </template>
@@ -54,10 +38,7 @@
 
     <!-- 项目列表 -->
     <div class="project-list">
-      <a-spin
-        :spinning="loading"
-        size="small"
-      >
+      <a-spin :spinning="loading" size="small">
         <template v-if="!collapsed">
           <!-- 搜索框 -->
           <div class="search-box">
@@ -84,25 +65,15 @@
                   <component :is="getProjectIcon(project.project_type)" />
                 </div>
                 <div class="project-info">
-                  <div
-                    class="project-name"
-                    :title="project.name"
-                  >
+                  <div class="project-name" :title="project.name">
                     {{ project.name }}
                   </div>
                   <div class="project-meta">
                     {{ formatDate(project.updated_at) }}
                   </div>
                 </div>
-                <a-dropdown
-                  :trigger="['click']"
-                  @click.stop
-                >
-                  <a-button
-                    type="text"
-                    size="small"
-                    class="more-btn"
-                  >
+                <a-dropdown :trigger="['click']" @click.stop>
+                  <a-button type="text" size="small" class="more-btn">
                     <MoreOutlined />
                   </a-button>
                   <template #overlay>
@@ -116,10 +87,7 @@
                         重命名
                       </a-menu-item>
                       <a-menu-divider />
-                      <a-menu-item
-                        key="delete"
-                        danger
-                      >
+                      <a-menu-item key="delete" danger>
                         <DeleteOutlined />
                         删除
                       </a-menu-item>
@@ -133,11 +101,7 @@
               :image="Empty.PRESENTED_IMAGE_SIMPLE"
               description="暂无项目"
             >
-              <a-button
-                type="primary"
-                size="small"
-                @click="handleNewProject"
-              >
+              <a-button type="primary" size="small" @click="handleNewProject">
                 创建第一个项目
               </a-button>
             </a-empty>
@@ -173,14 +137,8 @@
       @ok="handleRename"
       @cancel="renameModalVisible = false"
     >
-      <a-form
-        :model="renameForm"
-        layout="vertical"
-      >
-        <a-form-item
-          label="项目名称"
-          required
-        >
+      <a-form :model="renameForm" layout="vertical">
+        <a-form-item label="项目名称" required>
           <a-input
             v-model:value="renameForm.name"
             placeholder="请输入项目名称"
@@ -201,7 +159,7 @@
       <a-form
         :model="quickCreateForm"
         layout="vertical"
-        style="margin-top: 24px;"
+        style="margin-top: 24px"
       >
         <a-form-item
           label="项目名称"
@@ -215,10 +173,7 @@
             @press-enter="handleQuickCreateSubmit"
           />
         </a-form-item>
-        <a-form-item
-          label="项目描述（可选）"
-          name="description"
-        >
+        <a-form-item label="项目描述（可选）" name="description">
           <a-textarea
             v-model:value="quickCreateForm.description"
             placeholder="简要描述项目用途"
@@ -231,11 +186,11 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger, createLogger } from "@/utils/logger";
 
-import { ref, computed, onMounted, watch, h } from 'vue';
-import { useRouter, useRoute } from 'vue-router';
-import { message, Modal, Empty } from 'ant-design-vue';
+import { ref, computed, onMounted, watch, h } from "vue";
+import { useRouter, useRoute } from "vue-router";
+import { message, Modal, Empty } from "ant-design-vue";
 import {
   FolderOpenOutlined,
   DoubleRightOutlined,
@@ -249,9 +204,9 @@ import {
   GlobalOutlined,
   DatabaseOutlined,
   AppstoreOutlined,
-} from '@ant-design/icons-vue';
-import { useProjectStore } from '../stores/project';
-import { useAuthStore } from '../stores/auth';
+} from "@ant-design/icons-vue";
+import { useProjectStore } from "../stores/project";
+import { useAuthStore } from "../stores/auth";
 
 const router = useRouter();
 const route = useRoute();
@@ -261,21 +216,21 @@ const authStore = useAuthStore();
 // 状态
 const collapsed = ref(false);
 const loading = ref(false);
-const searchKeyword = ref('');
+const searchKeyword = ref("");
 const currentProjectId = ref(null);
 
 // 重命名相关
 const renameModalVisible = ref(false);
 const renameForm = ref({
   projectId: null,
-  name: '',
+  name: "",
 });
 
 // 快速新建项目相关
 const showQuickCreateModal = ref(false);
 const quickCreateForm = ref({
-  name: '',
-  description: '',
+  name: "",
+  description: "",
 });
 
 // 从store获取项目列表
@@ -287,9 +242,10 @@ const filteredProjects = computed(() => {
     return projects.value;
   }
   const keyword = searchKeyword.value.toLowerCase();
-  return projects.value.filter(p =>
-    p.name.toLowerCase().includes(keyword) ||
-    (p.description && p.description.toLowerCase().includes(keyword))
+  return projects.value.filter(
+    (p) =>
+      p.name.toLowerCase().includes(keyword) ||
+      (p.description && p.description.toLowerCase().includes(keyword)),
   );
 });
 
@@ -303,7 +259,14 @@ const recentProjects = computed(() => {
 // 切换折叠状态
 const toggleCollapse = () => {
   collapsed.value = !collapsed.value;
-  localStorage.setItem('project_sidebar_collapsed', collapsed.value ? '1' : '0');
+  try {
+    localStorage.setItem(
+      "project_sidebar_collapsed",
+      collapsed.value ? "1" : "0",
+    );
+  } catch (error) {
+    logger.warn("[ProjectSidebar] 保存折叠状态失败:", error.message);
+  }
 };
 
 // 获取项目图标
@@ -319,31 +282,41 @@ const getProjectIcon = (type) => {
 
 // 格式化日期
 const formatDate = (timestamp) => {
-  if (!timestamp) {return '';}
+  if (!timestamp) {
+    return "";
+  }
   const date = new Date(timestamp);
   const now = new Date();
   const diff = now - date;
 
-  if (diff < 60000) {return '刚刚';}
-  if (diff < 3600000) {return `${Math.floor(diff / 60000)}分钟前`;}
-  if (diff < 86400000) {return `${Math.floor(diff / 3600000)}小时前`;}
-  if (diff < 604800000) {return `${Math.floor(diff / 86400000)}天前`;}
+  if (diff < 60000) {
+    return "刚刚";
+  }
+  if (diff < 3600000) {
+    return `${Math.floor(diff / 60000)}分钟前`;
+  }
+  if (diff < 86400000) {
+    return `${Math.floor(diff / 3600000)}小时前`;
+  }
+  if (diff < 604800000) {
+    return `${Math.floor(diff / 86400000)}天前`;
+  }
 
-  return date.toLocaleDateString('zh-CN', {
-    month: 'short',
-    day: 'numeric'
+  return date.toLocaleDateString("zh-CN", {
+    month: "short",
+    day: "numeric",
   });
 };
 
 // 快速新建项目 - 打开弹窗
 const handleQuickCreate = () => {
   showQuickCreateModal.value = true;
-  quickCreateForm.value = { name: '', description: '' };
+  quickCreateForm.value = { name: "", description: "" };
 };
 
 // 自定义新建 - 跳转到新建项目页面（包含职业专用模板）
 const handleAICreate = () => {
-  router.push('/projects/new');
+  router.push("/projects/new");
 };
 
 // 新建项目 - 与快速新建相同
@@ -354,29 +327,37 @@ const handleNewProject = () => {
 // 快速新建项目提交
 const handleQuickCreateSubmit = async () => {
   if (!quickCreateForm.value.name || !quickCreateForm.value.name.trim()) {
-    message.warning('请输入项目名称');
+    message.warning("请输入项目名称");
     return;
   }
 
   try {
-    const userId = authStore.currentUser?.id || 'default-user';
+    const userId = authStore.currentUser?.id || "default-user";
     const projectData = {
       name: quickCreateForm.value.name.trim(),
-      description: quickCreateForm.value.description || '',
-      projectType: 'document', // 使用document类型（允许的类型：web, document, data, app）
+      description: quickCreateForm.value.description || "",
+      projectType: "document", // 使用document类型（允许的类型：web, document, data, app）
       userId: userId,
     };
 
-    message.loading({ content: '正在创建项目...', key: 'quick-create', duration: 0 });
+    message.loading({
+      content: "正在创建项目...",
+      key: "quick-create",
+      duration: 0,
+    });
 
     // 调用快速创建API
     const project = await window.electronAPI.project.createQuick(projectData);
 
-    message.success({ content: '项目创建成功！', key: 'quick-create', duration: 2 });
+    message.success({
+      content: "项目创建成功！",
+      key: "quick-create",
+      duration: 2,
+    });
 
     // 关闭弹窗并重置表单
     showQuickCreateModal.value = false;
-    quickCreateForm.value = { name: '', description: '' };
+    quickCreateForm.value = { name: "", description: "" };
 
     // 刷新项目列表
     await loadProjects();
@@ -384,8 +365,12 @@ const handleQuickCreateSubmit = async () => {
     // 跳转到项目详情页
     router.push(`/projects/${project.id || project.projectId}`);
   } catch (error) {
-    logger.error('快速创建项目失败:', error);
-    message.error({ content: '创建失败：' + error.message, key: 'quick-create', duration: 3 });
+    logger.error("快速创建项目失败:", error);
+    message.error({
+      content: "创建失败：" + error.message,
+      key: "quick-create",
+      duration: 3,
+    });
   }
 };
 
@@ -398,17 +383,17 @@ const handleSelectProject = (project) => {
 // 菜单点击
 const handleMenuClick = ({ key }, project) => {
   switch (key) {
-    case 'open':
+    case "open":
       handleSelectProject(project);
       break;
-    case 'rename':
+    case "rename":
       renameForm.value = {
         projectId: project.id,
         name: project.name,
       };
       renameModalVisible.value = true;
       break;
-    case 'delete':
+    case "delete":
       handleDelete(project);
       break;
   }
@@ -417,7 +402,7 @@ const handleMenuClick = ({ key }, project) => {
 // 重命名
 const handleRename = async () => {
   if (!renameForm.value.name.trim()) {
-    message.warning('请输入项目名称');
+    message.warning("请输入项目名称");
     return;
   }
 
@@ -425,31 +410,31 @@ const handleRename = async () => {
     await projectStore.updateProject(renameForm.value.projectId, {
       name: renameForm.value.name,
     });
-    message.success('重命名成功');
+    message.success("重命名成功");
     renameModalVisible.value = false;
   } catch (error) {
-    message.error('重命名失败：' + error.message);
+    message.error("重命名失败：" + error.message);
   }
 };
 
 // 删除
 const handleDelete = (project) => {
   Modal.confirm({
-    title: '确认删除',
+    title: "确认删除",
     content: `确定要删除项目"${project.name}"吗？此操作不可恢复。`,
-    okText: '删除',
-    okType: 'danger',
-    cancelText: '取消',
+    okText: "删除",
+    okType: "danger",
+    cancelText: "取消",
     onOk: async () => {
       try {
         await projectStore.deleteProject(project.id);
-        message.success('删除成功');
+        message.success("删除成功");
         if (currentProjectId.value === project.id) {
           currentProjectId.value = null;
-          router.push('/projects');
+          router.push("/projects");
         }
       } catch (error) {
-        message.error('删除失败：' + error.message);
+        message.error("删除失败：" + error.message);
       }
     },
   });
@@ -460,13 +445,16 @@ const loadProjects = async () => {
   loading.value = true;
   try {
     // 从authStore获取用户ID，或使用默认值
-    const userId = authStore.currentUser?.id || 'default-user';
-    logger.info('[ProjectSidebar] 加载项目列表, userId:', userId);
+    const userId = authStore.currentUser?.id || "default-user";
+    logger.info("[ProjectSidebar] 加载项目列表, userId:", userId);
     await projectStore.fetchProjects(userId);
-    logger.info('[ProjectSidebar] 项目列表加载完成, 项目数量:', projectStore.projects.length);
+    logger.info(
+      "[ProjectSidebar] 项目列表加载完成, 项目数量:",
+      projectStore.projects.length,
+    );
   } catch (error) {
-    logger.error('[ProjectSidebar] 加载项目列表失败:', error);
-    message.error('加载项目列表失败');
+    logger.error("[ProjectSidebar] 加载项目列表失败:", error);
+    message.error("加载项目列表失败");
   } finally {
     loading.value = false;
   }
@@ -478,18 +466,22 @@ watch(
   (newId) => {
     if (newId) {
       currentProjectId.value = newId;
-      logger.info('[ProjectSidebar] 路由变化，当前项目ID:', newId);
+      logger.info("[ProjectSidebar] 路由变化，当前项目ID:", newId);
     }
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 // 初始化
 onMounted(() => {
   // 恢复折叠状态
-  const savedCollapsed = localStorage.getItem('project_sidebar_collapsed');
-  if (savedCollapsed === '1') {
-    collapsed.value = true;
+  try {
+    const savedCollapsed = localStorage.getItem("project_sidebar_collapsed");
+    if (savedCollapsed === "1") {
+      collapsed.value = true;
+    }
+  } catch (error) {
+    logger.warn("[ProjectSidebar] 恢复折叠状态失败:", error.message);
   }
 
   // 加载项目列表
