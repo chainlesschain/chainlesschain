@@ -199,8 +199,8 @@ class P2PViewModel: ObservableObject {
             let conversation = try messageRepository.getOrCreateConversation(with: peerId, myDid: myDid)
             currentConversationId = conversation.id
 
-            // Compress and encode image
-            let (compressedData, thumbnailData, imageSize) = compressImage(image)
+            // Compress image on background thread to avoid blocking UI
+            let (compressedData, thumbnailData, imageSize) = await compressImageInBackground(image)
 
             guard let imageData = compressedData else {
                 handleError(P2PError.invalidMessageFormat)
@@ -278,8 +278,16 @@ class P2PViewModel: ObservableObject {
         }
     }
 
-    /// Compress image for sending
-    private func compressImage(_ image: UIImage) -> (Data?, Data?, CGSize) {
+    /// Compress image in background to avoid blocking UI
+    private func compressImageInBackground(_ image: UIImage) async -> (Data?, Data?, CGSize) {
+        // Run compression on background thread
+        return await Task.detached(priority: .userInitiated) {
+            Self.compressImageSync(image)
+        }.value
+    }
+
+    /// Synchronous image compression (runs off main thread)
+    private static func compressImageSync(_ image: UIImage) -> (Data?, Data?, CGSize) {
         let maxDimension: CGFloat = 1920
         let thumbnailDimension: CGFloat = 200
         let compressionQuality: CGFloat = 0.7
@@ -287,7 +295,7 @@ class P2PViewModel: ObservableObject {
         // Get original size
         let originalSize = image.size
 
-        // Resize if needed
+        // Resize if needed using UIGraphicsImageRenderer for better memory management
         var processedImage = image
         if max(originalSize.width, originalSize.height) > maxDimension {
             let scale = maxDimension / max(originalSize.width, originalSize.height)
@@ -295,27 +303,29 @@ class P2PViewModel: ObservableObject {
                 width: originalSize.width * scale,
                 height: originalSize.height * scale
             )
-            UIGraphicsBeginImageContextWithOptions(newSize, false, 1.0)
-            image.draw(in: CGRect(origin: .zero, size: newSize))
-            processedImage = UIGraphicsGetImageFromCurrentImageContext() ?? image
-            UIGraphicsEndImageContext()
+
+            let renderer = UIGraphicsImageRenderer(size: newSize)
+            processedImage = renderer.image { _ in
+                image.draw(in: CGRect(origin: .zero, size: newSize))
+            }
         }
 
         // Compress to JPEG
         let compressedData = processedImage.jpegData(compressionQuality: compressionQuality)
 
-        // Create thumbnail
+        // Create thumbnail using UIGraphicsImageRenderer
         let thumbnailScale = thumbnailDimension / max(processedImage.size.width, processedImage.size.height)
         let thumbnailSize = CGSize(
             width: processedImage.size.width * thumbnailScale,
             height: processedImage.size.height * thumbnailScale
         )
-        UIGraphicsBeginImageContextWithOptions(thumbnailSize, false, 1.0)
-        processedImage.draw(in: CGRect(origin: .zero, size: thumbnailSize))
-        let thumbnailImage = UIGraphicsGetImageFromCurrentImageContext()
-        UIGraphicsEndImageContext()
 
-        let thumbnailData = thumbnailImage?.jpegData(compressionQuality: 0.5)
+        let thumbnailRenderer = UIGraphicsImageRenderer(size: thumbnailSize)
+        let thumbnailImage = thumbnailRenderer.image { _ in
+            processedImage.draw(in: CGRect(origin: .zero, size: thumbnailSize))
+        }
+
+        let thumbnailData = thumbnailImage.jpegData(compressionQuality: 0.5)
 
         return (compressedData, thumbnailData, processedImage.size)
     }

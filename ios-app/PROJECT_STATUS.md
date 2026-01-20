@@ -1,7 +1,7 @@
 # ChainlessChain iOS 项目状态报告
 
 **生成日期**: 2026-01-20
-**版本**: v0.4.3
+**版本**: v0.4.4
 **完成度**: 100%
 
 ---
@@ -300,6 +300,7 @@ Assets.xcassets/                # 应用资源
 | 2026-01-20 | v0.4.1 | 100%   | 内存泄漏修复、SQL注入防护、输入验证增强                                    |
 | 2026-01-20 | v0.4.2 | 100%   | P2PContactRepository安全修复、MessageDeliveryManager内存修复、集合大小限制 |
 | 2026-01-20 | v0.4.3 | 100%   | 项目管理模块完整实现（参考桌面端）、ProjectRepository/Manager/Views        |
+| 2026-01-20 | v0.4.4 | 100%   | LLM上下文限制、VectorStore SIMD优化、图片压缩后台线程、安全修复            |
 
 ---
 
@@ -325,6 +326,13 @@ Assets.xcassets/                # 应用资源
 18. ~~**P2PContactRepository SQL注入**：deleteContact/searchContacts~~ ✅ 已修复参数化查询
 19. ~~**MessageDeliveryManager内存泄漏**：通知观察者未存储~~ ✅ 已添加observer数组和cleanup
 20. ~~**无界集合**：reconnectAttempts/disconnectedPeers无限增长~~ ✅ 已添加maxTrackedPeers限制
+21. ~~**LLM上下文无界**：conversationContext无限增长~~ ✅ 已添加LRU限制（50会话/100消息）
+22. ~~**SignalProtocol强制解包**：sealedBox.combined!~~ ✅ 已改为guard let安全处理
+23. ~~**DatabaseManager强制解包**：errorMessage!~~ ✅ 已改为if let安全处理
+24. ~~**AppState空指针**：sqlite3_column_text无null检查~~ ✅ 已添加guard let
+25. ~~**路径遍历漏洞**：ProjectManager文件名未验证~~ ✅ 已添加sanitizeFileName安全函数
+26. ~~**VectorStore搜索性能**：O(n log n)排序~~ ✅ 已优化为O(n log k)最小堆+SIMD
+27. ~~**图片压缩阻塞UI**：主线程处理图片~~ ✅ 已移至后台线程+UIGraphicsImageRenderer
 
 ---
 
