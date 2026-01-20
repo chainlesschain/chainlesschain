@@ -1,23 +1,10 @@
 <template>
-  <div
-    class="login-container"
-    data-testid="login-container"
-  >
-    <a-card
-      class="login-card"
-      data-testid="login-card"
-    >
+  <div class="login-container" data-testid="login-container">
+    <a-card class="login-card" data-testid="login-card">
       <!-- 设置按钮 -->
       <div class="settings-trigger">
-        <a-tooltip
-          title="系统设置"
-          placement="left"
-        >
-          <a-button
-            type="text"
-            shape="circle"
-            @click="showSettings = true"
-          >
+        <a-tooltip title="系统设置" placement="left">
+          <a-button type="text" shape="circle" @click="showSettings = true">
             <template #icon>
               <SettingOutlined />
             </template>
@@ -25,20 +12,12 @@
         </a-tooltip>
       </div>
 
-      <a-space
-        direction="vertical"
-        :size="24"
-        style="width: 100%"
-      >
+      <a-space direction="vertical" :size="24" style="width: 100%">
         <!-- Logo和标题 -->
         <div class="login-header">
           <LockOutlined :style="{ fontSize: '48px', color: '#1890ff' }" />
-          <h2 class="login-title">
-            ChainlessChain
-          </h2>
-          <p class="login-subtitle">
-            个人AI知识库
-          </p>
+          <h2 class="login-title">ChainlessChain</h2>
+          <p class="login-subtitle">个人AI知识库</p>
         </div>
 
         <!-- U盾状态 -->
@@ -49,15 +28,16 @@
           <template #message>
             <a-space>
               <UsbOutlined />
-              <span>{{ ukeyStatus.detected ? 'U盾已连接 - 使用PIN码登录' : '未检测到U盾 - 使用密码登录' }}</span>
+              <span>{{
+                ukeyStatus.detected
+                  ? "U盾已连接 - 使用PIN码登录"
+                  : "未检测到U盾 - 使用密码登录"
+              }}</span>
               <CheckCircleOutlined
                 v-if="ukeyStatus.detected"
                 :style="{ color: '#52c41a' }"
               />
-              <InfoCircleOutlined
-                v-else
-                :style="{ color: '#1890ff' }"
-              />
+              <InfoCircleOutlined v-else :style="{ color: '#1890ff' }" />
             </a-space>
           </template>
         </a-alert>
@@ -129,18 +109,16 @@
           data-testid="login-button"
           @click="handleLogin"
         >
-          {{ loading ? '验证中...' : '登录' }}
+          {{ loading ? "验证中..." : "登录" }}
         </a-button>
 
         <!-- 提示信息 -->
         <div class="login-hint">
-          <a-typography-text
-            type="secondary"
-            :style="{ fontSize: '12px' }"
-          >
-            {{ ukeyStatus.detected
-              ? '开发模式: 默认PIN为 123456'
-              : '开发模式: 默认用户名 admin, 密码 123456'
+          <a-typography-text type="secondary" :style="{ fontSize: '12px' }">
+            {{
+              ukeyStatus.detected
+                ? "开发模式: 默认PIN为 123456"
+                : "开发模式: 默认用户名 admin, 密码 123456"
             }}
           </a-typography-text>
         </div>
@@ -158,11 +136,11 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger, createLogger } from "@/utils/logger";
 
-import { ref, onMounted, onUnmounted } from 'vue';
-import { useRouter } from 'vue-router';
-import { message, Modal } from 'ant-design-vue';
+import { ref, onMounted, onUnmounted } from "vue";
+import { useRouter } from "vue-router";
+import { message, Modal } from "ant-design-vue";
 import {
   LockOutlined,
   UsbOutlined,
@@ -170,17 +148,17 @@ import {
   InfoCircleOutlined,
   UserOutlined,
   SettingOutlined,
-} from '@ant-design/icons-vue';
-import { useAppStore } from '../stores/app';
-import { ukeyAPI, authAPI, systemAPI } from '../utils/ipc';
-import GlobalSettingsWizard from '../components/GlobalSettingsWizard.vue';
+} from "@ant-design/icons-vue";
+import { useAppStore } from "../stores/app";
+import { ukeyAPI, authAPI, systemAPI } from "../utils/ipc";
+import GlobalSettingsWizard from "../components/GlobalSettingsWizard.vue";
 
 const router = useRouter();
 const store = useAppStore();
 
-const pin = ref('');
-const username = ref('');
-const password = ref('');
+const pin = ref("");
+const username = ref("");
+const password = ref("");
 const loading = ref(false);
 const ukeyStatus = ref({ detected: false, unlocked: false });
 const showSettings = ref(false);
@@ -216,7 +194,7 @@ const handleLogin = async () => {
     if (ukeyStatus.value.detected) {
       // U盾PIN码登录
       if (!pin.value) {
-        message.warning('请输入PIN码');
+        message.warning("请输入PIN码");
         loading.value = false;
         return;
       }
@@ -230,42 +208,50 @@ const handleLogin = async () => {
         store.setUKeyStatus(newStatus);
         store.setDeviceId(newStatus.deviceId || null);
       } else {
-        message.error('PIN码错误,请重试');
-        pin.value = '';
+        message.error("PIN码错误,请重试");
+        pin.value = "";
       }
     } else {
       // 用户名密码登录
       if (!username.value) {
-        message.warning('请输入用户名');
+        message.warning("请输入用户名");
         loading.value = false;
         return;
       }
 
       if (!password.value) {
-        message.warning('请输入密码');
+        message.warning("请输入密码");
         loading.value = false;
         return;
       }
 
-      logger.info('[Login] 尝试登录 - 用户名:', username.value, '密码长度:', password.value.length);
-      const result = await authAPI.verifyPassword(username.value, password.value);
-      logger.info('[Login] 登录结果:', result);
+      logger.info(
+        "[Login] 尝试登录 - 用户名:",
+        username.value,
+        "密码长度:",
+        password.value.length,
+      );
+      const result = await authAPI.verifyPassword(
+        username.value,
+        password.value,
+      );
+      logger.info("[Login] 登录结果:", result);
       success = result.success;
 
       if (success) {
-        logger.info('[Login] 登录成功');
+        logger.info("[Login] 登录成功");
         // 设置用户信息
-        store.setDeviceId(result.userId || 'local-user');
+        store.setDeviceId(result.userId || "local-user");
       } else {
-        logger.info('[Login] 登录失败:', result.error);
-        message.error(result.error || '用户名或密码错误');
-        password.value = '';
+        logger.info("[Login] 登录失败:", result.error);
+        message.error(result.error || "用户名或密码错误");
+        password.value = "";
       }
     }
 
     // 登录成功后的处理
     if (success) {
-      message.success('登录成功!');
+      message.success("登录成功!");
 
       // 设置为已认证
       store.setAuthenticated(true);
@@ -278,29 +264,40 @@ const handleLogin = async () => {
       }
 
       // 启动后台同步（异步，不阻塞）
-      window.electronAPI.sync.start(deviceId)
-        .then(() => {
-          logger.info('[Login] 数据同步完成');
-          message.success('数据同步完成', 2);
-        })
-        .catch(error => {
-          logger.error('[Login] 数据同步失败:', error);
-          message.warning('数据同步失败，请稍后手动同步', 3);
-        });
+      if (window.electronAPI?.sync?.start) {
+        window.electronAPI.sync
+          .start(deviceId)
+          .then(() => {
+            logger.info("[Login] 数据同步完成");
+            message.success("数据同步完成", 2);
+          })
+          .catch((error) => {
+            // IPC 未就绪时静默处理
+            if (!error.message?.includes("No handler registered")) {
+              logger.warn("[Login] 数据同步失败:", error.message);
+              message.warning("数据同步失败，请稍后手动同步", 3);
+            }
+          });
+      }
 
       // 最大化窗口（不等待同步完成）
       try {
-        await systemAPI.maximize();
+        if (systemAPI?.maximize) {
+          await systemAPI.maximize();
+        }
       } catch (error) {
-        logger.error('窗口最大化失败:', error);
+        // 窗口最大化失败不影响登录流程，静默处理
+        if (!error.message?.includes("No handler registered")) {
+          logger.warn("[Login] 窗口最大化失败:", error.message);
+        }
       }
 
       // 立即跳转到我的项目
-      router.push('/projects');
+      router.push("/projects");
     }
   } catch (error) {
-    logger.error('登录失败:', error);
-    message.error('登录失败,请重试');
+    logger.error("登录失败:", error);
+    message.error("登录失败,请重试");
   } finally {
     loading.value = false;
   }
@@ -309,20 +306,20 @@ const handleLogin = async () => {
 // 设置完成处理
 const handleSettingsComplete = async () => {
   showSettings.value = false;
-  message.success('设置已保存，部分配置需要重启应用后生效');
+  message.success("设置已保存，部分配置需要重启应用后生效");
 
   // 询问是否立即重启
   Modal.confirm({
-    title: '需要重启应用',
-    content: '配置已更新，是否立即重启应用使配置生效？',
-    okText: '立即重启',
-    cancelText: '稍后重启',
+    title: "需要重启应用",
+    content: "配置已更新，是否立即重启应用使配置生效？",
+    okText: "立即重启",
+    cancelText: "稍后重启",
     onOk: async () => {
       try {
         await window.electronAPI.app.restart();
       } catch (error) {
-        logger.error('重启应用失败:', error);
-        message.error('重启失败，请手动重启应用');
+        logger.error("重启应用失败:", error);
+        message.error("重启失败，请手动重启应用");
       }
     },
   });

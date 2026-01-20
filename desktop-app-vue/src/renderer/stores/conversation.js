@@ -1,7 +1,7 @@
-import { logger, createLogger } from '@/utils/logger';
-import { defineStore } from 'pinia';
+import { logger, createLogger } from "@/utils/logger";
+import { defineStore } from "pinia";
 
-export const useConversationStore = defineStore('conversation', {
+export const useConversationStore = defineStore("conversation", {
   state: () => ({
     // 对话列表
     conversations: [],
@@ -39,7 +39,7 @@ export const useConversationStore = defineStore('conversation', {
 
     // 当前对话标题
     currentConversationTitle: (state) => {
-      return state.currentConversation?.title || '新对话';
+      return state.currentConversation?.title || "新对话";
     },
 
     // 是否有当前对话
@@ -60,13 +60,13 @@ export const useConversationStore = defineStore('conversation', {
     createNewConversation() {
       const newConversation = {
         id: `conv_${Date.now()}`,
-        title: `对话 ${new Date().toLocaleString('zh-CN')}`,
+        title: `对话 ${new Date().toLocaleString("zh-CN")}`,
         messages: [],
         created_at: Date.now(),
         updated_at: Date.now(),
         metadata: {
-          model: '',
-          provider: '',
+          model: "",
+          provider: "",
           totalTokens: 0,
         },
       };
@@ -85,7 +85,10 @@ export const useConversationStore = defineStore('conversation', {
 
       try {
         // 从数据库加载对话
-        const result = await window.electronAPI.db.getConversations?.(offset, limit);
+        const result = await window.electronAPI.db.getConversations?.(
+          offset,
+          limit,
+        );
 
         if (result && result.conversations) {
           if (offset === 0) {
@@ -106,7 +109,10 @@ export const useConversationStore = defineStore('conversation', {
           }
         }
       } catch (error) {
-        logger.error('加载对话列表失败:', error);
+        // IPC 未就绪时静默处理
+        if (!error.message?.includes("No handler registered")) {
+          logger.error("[Conversation Store] 加载对话列表失败:", error);
+        }
         // 如果加载失败，使用内存中的对话
         if (offset === 0) {
           this.conversations = [];
@@ -122,11 +128,14 @@ export const useConversationStore = defineStore('conversation', {
     async loadConversation(conversationId) {
       try {
         // 先从内存中查找
-        let conversation = this.conversations.find((c) => c.id === conversationId);
+        let conversation = this.conversations.find(
+          (c) => c.id === conversationId,
+        );
 
         if (!conversation) {
           // 从数据库加载
-          conversation = await window.electronAPI.db.getConversation?.(conversationId);
+          conversation =
+            await window.electronAPI.db.getConversation?.(conversationId);
         }
 
         if (conversation) {
@@ -135,7 +144,7 @@ export const useConversationStore = defineStore('conversation', {
 
         return conversation;
       } catch (error) {
-        logger.error('加载对话失败:', error);
+        logger.error("加载对话失败:", error);
         throw error;
       }
     },
@@ -164,7 +173,7 @@ export const useConversationStore = defineStore('conversation', {
 
         // 更新列表中的对话
         const index = this.conversations.findIndex(
-          (c) => c.id === this.currentConversation.id
+          (c) => c.id === this.currentConversation.id,
         );
 
         if (index !== -1) {
@@ -173,7 +182,7 @@ export const useConversationStore = defineStore('conversation', {
           this.conversations.unshift({ ...this.currentConversation });
         }
       } catch (error) {
-        logger.error('保存对话失败:', error);
+        logger.error("保存对话失败:", error);
         throw error;
       }
     },
@@ -219,13 +228,15 @@ export const useConversationStore = defineStore('conversation', {
             await window.electronAPI.db.saveConversation(conv);
           }
 
-          logger.info(`[ConversationStore] 批量保存完成: ${conversationMap.size} 个对话`);
+          logger.info(
+            `[ConversationStore] 批量保存完成: ${conversationMap.size} 个对话`,
+          );
         }
 
         // 清空队列
         this.pendingMessages = [];
       } catch (error) {
-        logger.error('批量保存对话失败:', error);
+        logger.error("批量保存对话失败:", error);
         // 保留队列，下次重试
       }
     },
@@ -257,11 +268,13 @@ export const useConversationStore = defineStore('conversation', {
 
       // 自动生成标题（基于第一条用户消息）
       if (
-        message.role === 'user' &&
-        this.currentConversation.messages.filter((m) => m.role === 'user').length === 1
+        message.role === "user" &&
+        this.currentConversation.messages.filter((m) => m.role === "user")
+          .length === 1
       ) {
         const title = message.content.slice(0, 30);
-        this.currentConversation.title = title + (message.content.length > 30 ? '...' : '');
+        this.currentConversation.title =
+          title + (message.content.length > 30 ? "..." : "");
       }
 
       return newMessage;
@@ -275,7 +288,9 @@ export const useConversationStore = defineStore('conversation', {
         return;
       }
 
-      const index = this.currentConversation.messages.findIndex((m) => m.id === messageId);
+      const index = this.currentConversation.messages.findIndex(
+        (m) => m.id === messageId,
+      );
 
       if (index !== -1) {
         this.currentConversation.messages[index] = {
@@ -294,7 +309,9 @@ export const useConversationStore = defineStore('conversation', {
         return;
       }
 
-      const index = this.currentConversation.messages.findIndex((m) => m.id === messageId);
+      const index = this.currentConversation.messages.findIndex(
+        (m) => m.id === messageId,
+      );
 
       if (index !== -1) {
         this.currentConversation.messages.splice(index, 1);
@@ -319,7 +336,9 @@ export const useConversationStore = defineStore('conversation', {
     async updateConversation(conversationId, updates) {
       try {
         // 更新内存中的对话
-        const index = this.conversations.findIndex((c) => c.id === conversationId);
+        const index = this.conversations.findIndex(
+          (c) => c.id === conversationId,
+        );
 
         if (index !== -1) {
           this.conversations[index] = {
@@ -341,12 +360,12 @@ export const useConversationStore = defineStore('conversation', {
           if (window.electronAPI.db.updateConversation) {
             await window.electronAPI.db.updateConversation(
               conversationId,
-              this.conversations[index]
+              this.conversations[index],
             );
           }
         }
       } catch (error) {
-        logger.error('更新对话失败:', error);
+        logger.error("更新对话失败:", error);
         throw error;
       }
     },
@@ -362,7 +381,9 @@ export const useConversationStore = defineStore('conversation', {
         }
 
         // 从列表中删除
-        const index = this.conversations.findIndex((c) => c.id === conversationId);
+        const index = this.conversations.findIndex(
+          (c) => c.id === conversationId,
+        );
         if (index !== -1) {
           this.conversations.splice(index, 1);
         }
@@ -377,7 +398,7 @@ export const useConversationStore = defineStore('conversation', {
           }
         }
       } catch (error) {
-        logger.error('删除对话失败:', error);
+        logger.error("删除对话失败:", error);
         throw error;
       }
     },
@@ -395,7 +416,9 @@ export const useConversationStore = defineStore('conversation', {
       return this.conversations.filter(
         (conv) =>
           conv.title.toLowerCase().includes(lowerQuery) ||
-          conv.messages.some((msg) => msg.content.toLowerCase().includes(lowerQuery))
+          conv.messages.some((msg) =>
+            msg.content.toLowerCase().includes(lowerQuery),
+          ),
       );
     },
 
@@ -403,7 +426,9 @@ export const useConversationStore = defineStore('conversation', {
      * 导出对话
      */
     exportConversation(conversationId) {
-      const conversation = this.conversations.find((c) => c.id === conversationId);
+      const conversation = this.conversations.find(
+        (c) => c.id === conversationId,
+      );
 
       if (!conversation) {
         return null;
@@ -443,7 +468,7 @@ export const useConversationStore = defineStore('conversation', {
 
         return newConversation;
       } catch (error) {
-        logger.error('导入对话失败:', error);
+        logger.error("导入对话失败:", error);
         throw error;
       }
     },
