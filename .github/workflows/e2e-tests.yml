@@ -10,7 +10,8 @@ jobs:
   e2e-tests:
     name: E2E Tests (Electron + Playwright)
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
+    # macOS runners are slower; allow up to 60 minutes for all platforms
+    timeout-minutes: 60
 
     strategy:
       fail-fast: false
@@ -37,8 +38,21 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium
 
+      - name: Install Xvfb for Linux
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y xvfb
+
       - name: Run E2E tests
-        run: npx playwright test tests/e2e/ --reporter=list
+        run: |
+          if [ "$RUNNER_OS" == "Linux" ]; then
+            xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" npx playwright test tests/e2e/ --reporter=list
+          else
+            npx playwright test tests/e2e/ --reporter=list
+          fi
+        shell: bash
+        env:
+          CI: true
+          ELECTRON_DISABLE_SECURITY_WARNINGS: "true"
 
       - name: Upload test results
         if: always()
