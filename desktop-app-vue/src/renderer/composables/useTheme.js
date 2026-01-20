@@ -2,7 +2,7 @@
  * 主题管理 Hook
  */
 
-import { ref, watch, onMounted } from "vue";
+import { ref, watch, onMounted, onUnmounted } from "vue";
 import { logger } from "@/utils/logger";
 
 // 主题类型
@@ -20,6 +20,10 @@ const appliedTheme = ref(THEMES.LIGHT);
 
 // 本地存储键
 const STORAGE_KEY = "skill-tool-theme";
+
+// 媒体查询监听器引用（用于清理）
+let mediaQueryList = null;
+let mediaQueryHandler = null;
 
 /**
  * 检测系统主题偏好
@@ -99,18 +103,32 @@ export function initTheme() {
   if (currentTheme.value === THEMES.AUTO) {
     applyTheme(detectSystemTheme());
 
-    // 监听系统主题变化
+    // 监听系统主题变化（存储引用以便清理）
     if (window.matchMedia) {
-      window
-        .matchMedia("(prefers-color-scheme: dark)")
-        .addEventListener("change", (e) => {
-          if (currentTheme.value === THEMES.AUTO) {
-            applyTheme(e.matches ? THEMES.DARK : THEMES.LIGHT);
-          }
-        });
+      // 先清理旧的监听器
+      cleanupThemeListener();
+
+      mediaQueryList = window.matchMedia("(prefers-color-scheme: dark)");
+      mediaQueryHandler = (e) => {
+        if (currentTheme.value === THEMES.AUTO) {
+          applyTheme(e.matches ? THEMES.DARK : THEMES.LIGHT);
+        }
+      };
+      mediaQueryList.addEventListener("change", mediaQueryHandler);
     }
   } else {
     applyTheme(currentTheme.value);
+  }
+}
+
+/**
+ * 清理主题监听器
+ */
+export function cleanupThemeListener() {
+  if (mediaQueryList && mediaQueryHandler) {
+    mediaQueryList.removeEventListener("change", mediaQueryHandler);
+    mediaQueryList = null;
+    mediaQueryHandler = null;
   }
 }
 
@@ -120,6 +138,10 @@ export function initTheme() {
 export function useTheme() {
   onMounted(() => {
     initTheme();
+  });
+
+  onUnmounted(() => {
+    cleanupThemeListener();
   });
 
   return {

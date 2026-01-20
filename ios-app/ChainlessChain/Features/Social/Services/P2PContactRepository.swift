@@ -142,6 +142,17 @@ class P2PContactRepository {
 
     /// 添加联系人
     func addContact(_ contact: P2PContactEntity) throws {
+        // Input validation
+        guard !contact.id.isEmpty else {
+            throw P2PContactError.invalidInput("Contact ID cannot be empty")
+        }
+        guard !contact.did.isEmpty else {
+            throw P2PContactError.invalidInput("Contact DID cannot be empty")
+        }
+        guard !contact.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw P2PContactError.invalidInput("Contact name cannot be empty")
+        }
+
         let sql = """
             INSERT INTO p2p_contacts (id, did, name, avatar, public_key, pre_key_bundle, status,
                                        is_blocked, is_verified, last_seen_at, metadata, created_at, updated_at)
@@ -240,7 +251,14 @@ class P2PContactRepository {
 
     /// 删除联系人
     func deleteContact(id: String) throws {
-        try database.execute("DELETE FROM p2p_contacts WHERE id = '\(id)'")
+        // Input validation
+        guard !id.isEmpty else {
+            throw P2PContactError.invalidInput("Contact ID cannot be empty")
+        }
+
+        // Use parameterized query to prevent SQL injection
+        let sql = "DELETE FROM p2p_contacts WHERE id = ?"
+        _ = try database.query(sql, parameters: [id]) { _ in () }
 
         logger.database("Deleted P2P contact: \(id)")
     }
@@ -249,16 +267,29 @@ class P2PContactRepository {
 
     /// 搜索联系人
     func searchContacts(query: String, limit: Int = 50) throws -> [P2PContactEntity] {
+        // Input validation
+        guard !query.isEmpty else {
+            return [] // Empty query returns no results
+        }
+
+        // Sanitize query - escape LIKE special characters to prevent SQL injection
+        let sanitizedQuery = query
+            .replacingOccurrences(of: "%", with: "\\%")
+            .replacingOccurrences(of: "_", with: "\\_")
+
+        // Limit query length
+        let truncatedQuery = String(sanitizedQuery.prefix(200))
+
         let sql = """
             SELECT id, did, name, avatar, public_key, pre_key_bundle, status,
                    is_blocked, is_verified, last_seen_at, metadata, created_at, updated_at
             FROM p2p_contacts
-            WHERE (name LIKE ? OR did LIKE ?) AND is_blocked = 0
+            WHERE (name LIKE ? ESCAPE '\\' OR did LIKE ? ESCAPE '\\') AND is_blocked = 0
             ORDER BY name ASC
             LIMIT ?
         """
 
-        let searchPattern = "%\(query)%"
+        let searchPattern = "%\(truncatedQuery)%"
 
         return try database.query(sql, parameters: [searchPattern, searchPattern, limit]) { stmt in
             P2PContactEntity(
@@ -369,4 +400,22 @@ struct P2PContactStatistics {
     let totalCount: Int
     let blockedCount: Int
     let verifiedCount: Int
+}
+
+/// P2P 联系人错误
+enum P2PContactError: LocalizedError {
+    case invalidInput(String)
+    case contactNotFound
+    case duplicateContact
+
+    var errorDescription: String? {
+        switch self {
+        case .invalidInput(let message):
+            return "输入无效: \(message)"
+        case .contactNotFound:
+            return "联系人不存在"
+        case .duplicateContact:
+            return "联系人已存在"
+        }
+    }
 }
