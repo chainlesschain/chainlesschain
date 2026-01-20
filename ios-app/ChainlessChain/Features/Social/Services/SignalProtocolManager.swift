@@ -65,11 +65,39 @@ class SignalProtocolManager: ObservableObject {
 
     struct Session {
         let recipientId: String
-        let sharedSecret: SymmetricKey
-        let sendingChainKey: Data
-        let receivingChainKey: Data
-        var messageNumber: UInt32
+        let rootKey: SymmetricKey
+        var sendingChainKey: Data
+        var receivingChainKey: Data
+        var sendingMessageNumber: UInt32
+        var receivingMessageNumber: UInt32
+        var previousSendingChainLength: UInt32
+        var dhRatchetKeyPair: KeyPair?
+        var remoteDhPublicKey: P256.KeyAgreement.PublicKey?
         let timestamp: Date
+
+        /// Derive message keys from chain key using HKDF
+        mutating func deriveMessageKey(fromChainKey chainKey: inout Data, isSending: Bool) -> SymmetricKey {
+            // KDF Chain: chain_key, message_key = HKDF(chain_key, info)
+            let info = isSending ? "MessageKeySend".data(using: .utf8)! : "MessageKeyRecv".data(using: .utf8)!
+            let salt = "ChainlessChain-Chain".data(using: .utf8)!
+
+            let inputKey = SymmetricKey(data: chainKey)
+
+            // Derive new chain key and message key
+            let derived = HKDF<SHA256>.deriveKey(
+                inputKeyMaterial: inputKey,
+                salt: salt,
+                info: info,
+                outputByteCount: 64  // 32 for chain key + 32 for message key
+            )
+
+            // Split derived key
+            let derivedData = derived.withUnsafeBytes { Data($0) }
+            chainKey = Data(derivedData[0..<32])  // New chain key
+            let messageKey = SymmetricKey(data: derivedData[32..<64])  // Message key
+
+            return messageKey
+        }
     }
 
     private init() {}
@@ -232,15 +260,23 @@ class SignalProtocolManager: ObservableObject {
         )
 
         // Initialize double ratchet
-        let (sendingChainKey, receivingChainKey) = try initializeDoubleRatchet(sharedSecret: sharedSecret)
+        let (rootKey, sendingChainKey, receivingChainKey) = try initializeDoubleRatchet(sharedSecret: sharedSecret)
+
+        // Generate initial DH ratchet key pair
+        let dhPrivateKey = P256.KeyAgreement.PrivateKey()
+        let dhKeyPair = KeyPair(publicKey: dhPrivateKey.publicKey, privateKey: dhPrivateKey)
 
         // Create session
         let session = Session(
             recipientId: recipientId,
-            sharedSecret: sharedSecret,
+            rootKey: rootKey,
             sendingChainKey: sendingChainKey,
             receivingChainKey: receivingChainKey,
-            messageNumber: 0,
+            sendingMessageNumber: 0,
+            receivingMessageNumber: 0,
+            previousSendingChainLength: 0,
+            dhRatchetKeyPair: dhKeyPair,
+            remoteDhPublicKey: bundle.signedPreKey.publicKey,
             timestamp: Date()
         )
 
@@ -284,11 +320,82 @@ class SignalProtocolManager: ObservableObject {
         return sharedSecret
     }
 
-    /// Initialize double ratchet
-    private func initializeDoubleRatchet(sharedSecret: SymmetricKey) throws -> (Data, Data) {
-        let sendingChainKey = sharedSecret.withUnsafeBytes { Data($0) }
-        let receivingChainKey = sharedSecret.withUnsafeBytes { Data($0) }
-        return (sendingChainKey, receivingChainKey)
+    /// Initialize double ratchet with proper key derivation
+    private func initializeDoubleRatchet(sharedSecret: SymmetricKey) throws -> (rootKey: SymmetricKey, sendingChainKey: Data, receivingChainKey: Data) {
+        // Derive root key from shared secret
+        let rootInfo = "ChainlessChain-RootKey".data(using: .utf8)!
+        let salt = "ChainlessChain-Salt".data(using: .utf8)!
+
+        let rootKey = HKDF<SHA256>.deriveKey(
+            inputKeyMaterial: sharedSecret,
+            salt: salt,
+            info: rootInfo,
+            outputByteCount: 32
+        )
+
+        // Derive initial chain keys from root key
+        let chainInfo = "ChainlessChain-ChainKeys".data(using: .utf8)!
+        let chainKeys = HKDF<SHA256>.deriveKey(
+            inputKeyMaterial: rootKey,
+            salt: salt,
+            info: chainInfo,
+            outputByteCount: 64
+        )
+
+        let chainData = chainKeys.withUnsafeBytes { Data($0) }
+        let sendingChainKey = Data(chainData[0..<32])
+        let receivingChainKey = Data(chainData[32..<64])
+
+        return (rootKey, sendingChainKey, receivingChainKey)
+    }
+
+    /// Perform DH ratchet step
+    private func performDhRatchet(session: inout Session, remoteDhPublicKey: P256.KeyAgreement.PublicKey) throws {
+        guard let dhKeyPair = session.dhRatchetKeyPair else {
+            // Generate new DH key pair for ratchet
+            let newPrivateKey = P256.KeyAgreement.PrivateKey()
+            session.dhRatchetKeyPair = KeyPair(publicKey: newPrivateKey.publicKey, privateKey: newPrivateKey)
+            session.remoteDhPublicKey = remoteDhPublicKey
+            return
+        }
+
+        // Calculate shared secret from DH exchange
+        let dhSharedSecret = try dhKeyPair.privateKey.sharedSecretFromKeyAgreement(with: remoteDhPublicKey)
+
+        // Derive new root key and chain key
+        let salt = session.rootKey.withUnsafeBytes { Data($0) }
+        let info = "ChainlessChain-DH-Ratchet".data(using: .utf8)!
+
+        let newRootKey = HKDF<SHA256>.deriveKey(
+            inputKeyMaterial: SymmetricKey(data: dhSharedSecret.withUnsafeBytes { Data($0) }),
+            salt: salt,
+            info: info,
+            outputByteCount: 64
+        )
+
+        let derived = newRootKey.withUnsafeBytes { Data($0) }
+
+        // Update session
+        session.receivingChainKey = Data(derived[32..<64])
+        session.previousSendingChainLength = session.sendingMessageNumber
+        session.sendingMessageNumber = 0
+        session.receivingMessageNumber = 0
+        session.remoteDhPublicKey = remoteDhPublicKey
+
+        // Generate new DH key pair
+        let newPrivateKey = P256.KeyAgreement.PrivateKey()
+        session.dhRatchetKeyPair = KeyPair(publicKey: newPrivateKey.publicKey, privateKey: newPrivateKey)
+
+        // Derive new sending chain key
+        let newDhSharedSecret = try newPrivateKey.sharedSecretFromKeyAgreement(with: remoteDhPublicKey)
+        let newSendingKey = HKDF<SHA256>.deriveKey(
+            inputKeyMaterial: SymmetricKey(data: newDhSharedSecret.withUnsafeBytes { Data($0) }),
+            salt: Data(derived[0..<32]),
+            info: info,
+            outputByteCount: 32
+        )
+
+        session.sendingChainKey = newSendingKey.withUnsafeBytes { Data($0) }
     }
 
     /// Verify signature
@@ -301,40 +408,94 @@ class SignalProtocolManager: ObservableObject {
 
     // MARK: - Encryption/Decryption
 
-    /// Encrypt message
+    /// Encrypt message with Double Ratchet
     func encryptMessage(_ message: String, for recipientId: String) throws -> Data {
-        guard let session = sessions[recipientId] else {
+        guard var session = sessions[recipientId] else {
             throw SignalProtocolError.sessionNotFound
         }
 
         let messageData = message.data(using: .utf8)!
 
-        // Use AES-GCM for encryption
-        let sealedBox = try AES.GCM.seal(messageData, using: session.sharedSecret)
+        // Derive message key from sending chain
+        let messageKey = session.deriveMessageKey(fromChainKey: &session.sendingChainKey, isSending: true)
 
-        // Update message number
-        var updatedSession = session
-        updatedSession.messageNumber += 1
-        sessions[recipientId] = updatedSession
+        // Generate nonce from message number
+        var nonceData = Data(count: 12)
+        withUnsafeMutableBytes(of: session.sendingMessageNumber.bigEndian) { bytes in
+            nonceData.replaceSubrange(8..<12, with: bytes)
+        }
+        let nonce = try AES.GCM.Nonce(data: nonceData)
 
-        return sealedBox.combined!
+        // Use AES-GCM for encryption with derived message key
+        let sealedBox = try AES.GCM.seal(messageData, using: messageKey, nonce: nonce)
+
+        // Create message envelope with header
+        let envelope = MessageEnvelope(
+            dhPublicKey: session.dhRatchetKeyPair?.publicKey.rawRepresentation,
+            previousChainLength: session.previousSendingChainLength,
+            messageNumber: session.sendingMessageNumber,
+            ciphertext: sealedBox.combined!
+        )
+
+        // Update session
+        session.sendingMessageNumber += 1
+        sessions[recipientId] = session
+
+        // Serialize envelope
+        let encoder = JSONEncoder()
+        return try encoder.encode(envelope)
     }
 
-    /// Decrypt message
+    /// Decrypt message with Double Ratchet
     func decryptMessage(_ encryptedData: Data, from senderId: String) throws -> String {
-        guard let session = sessions[senderId] else {
+        guard var session = sessions[senderId] else {
             throw SignalProtocolError.sessionNotFound
         }
 
+        // Parse message envelope
+        let decoder = JSONDecoder()
+        let envelope = try decoder.decode(MessageEnvelope.self, from: encryptedData)
+
+        // Check if DH ratchet needed
+        if let dhPublicKeyData = envelope.dhPublicKey,
+           let remoteDhPublicKey = try? P256.KeyAgreement.PublicKey(rawRepresentation: dhPublicKeyData) {
+            // Check if this is a new DH public key
+            if session.remoteDhPublicKey?.rawRepresentation != dhPublicKeyData {
+                try performDhRatchet(session: &session, remoteDhPublicKey: remoteDhPublicKey)
+            }
+        }
+
+        // Derive message key from receiving chain
+        let messageKey = session.deriveMessageKey(fromChainKey: &session.receivingChainKey, isSending: false)
+
+        // Generate nonce from message number
+        var nonceData = Data(count: 12)
+        withUnsafeMutableBytes(of: envelope.messageNumber.bigEndian) { bytes in
+            nonceData.replaceSubrange(8..<12, with: bytes)
+        }
+        let nonce = try AES.GCM.Nonce(data: nonceData)
+
         // Use AES-GCM for decryption
-        let sealedBox = try AES.GCM.SealedBox(combined: encryptedData)
-        let decryptedData = try AES.GCM.open(sealedBox, using: session.sharedSecret)
+        let sealedBox = try AES.GCM.SealedBox(combined: envelope.ciphertext)
+        let decryptedData = try AES.GCM.open(sealedBox, using: messageKey)
 
         guard let message = String(data: decryptedData, encoding: .utf8) else {
             throw SignalProtocolError.decryptionFailed
         }
 
+        // Update session
+        session.receivingMessageNumber += 1
+        sessions[senderId] = session
+
         return message
+    }
+
+    /// Message envelope for serialization
+    private struct MessageEnvelope: Codable {
+        let dhPublicKey: Data?
+        let previousChainLength: UInt32
+        let messageNumber: UInt32
+        let ciphertext: Data
     }
 
     // MARK: - Persistence

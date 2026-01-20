@@ -3,14 +3,30 @@ import SwiftUI
 struct AIConversationListView: View {
     @StateObject private var viewModel = AIConversationListViewModel()
     @State private var showingNewChat = false
+    @State private var selectedConversation: AIConversation?
+    @State private var navigateToNewChat = false
 
     var body: some View {
         NavigationView {
             ZStack {
-                if viewModel.conversations.isEmpty {
+                if viewModel.isLoading && viewModel.conversations.isEmpty {
+                    ProgressView("加载中...")
+                } else if viewModel.conversations.isEmpty {
                     emptyView
                 } else {
                     listView
+                }
+
+                // Hidden navigation link for programmatic navigation
+                NavigationLink(
+                    destination: Group {
+                        if let conversation = selectedConversation {
+                            AIChatView(conversation: conversation)
+                        }
+                    },
+                    isActive: $navigateToNewChat
+                ) {
+                    EmptyView()
                 }
             }
             .navigationTitle("AI 对话")
@@ -24,8 +40,13 @@ struct AIConversationListView: View {
             .sheet(isPresented: $showingNewChat) {
                 NewAIChatView { model in
                     Task {
-                        await viewModel.createConversation(model: model)
-                        showingNewChat = false
+                        if let conversation = await viewModel.createConversation(model: model) {
+                            selectedConversation = conversation
+                            showingNewChat = false
+                            // Small delay to allow sheet dismissal before navigation
+                            try? await Task.sleep(nanoseconds: 300_000_000)
+                            navigateToNewChat = true
+                        }
                     }
                 }
             }
@@ -34,13 +55,30 @@ struct AIConversationListView: View {
                     await viewModel.loadConversations()
                 }
             }
+            .refreshable {
+                await viewModel.loadConversations()
+            }
+            .alert("错误", isPresented: .constant(viewModel.errorMessage != nil)) {
+                Button("确定") {
+                    viewModel.errorMessage = nil
+                }
+            } message: {
+                Text(viewModel.errorMessage ?? "")
+            }
         }
     }
 
     private var listView: some View {
         List {
             ForEach(viewModel.conversations) { conversation in
-                NavigationLink(destination: AIChatView(conversation: conversation)) {
+                NavigationLink(destination: AIChatView(conversation: conversation)
+                    .onDisappear {
+                        // Refresh conversation stats when returning from chat
+                        Task {
+                            await viewModel.refreshConversation(id: conversation.id)
+                        }
+                    }
+                ) {
                     AIConversationRow(conversation: conversation)
                 }
                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
@@ -54,6 +92,7 @@ struct AIConversationListView: View {
                 }
             }
         }
+        .listStyle(.insetGrouped)
     }
 
     private var emptyView: some View {
@@ -158,29 +197,92 @@ struct NewAIChatView: View {
 @MainActor
 class AIConversationListViewModel: ObservableObject {
     @Published var conversations: [AIConversation] = []
+    @Published var isLoading = false
+    @Published var errorMessage: String?
+
+    private let repository = AIConversationRepository.shared
 
     func loadConversations() async {
-        // TODO: Load from database
-        conversations = []
+        isLoading = true
+        defer { isLoading = false }
+
+        do {
+            let entities = try repository.getAllConversations()
+            conversations = entities.map { $0.toConversation() }
+            print("[AIConversationListViewModel] Loaded \(conversations.count) conversations")
+        } catch {
+            print("[AIConversationListViewModel] Error loading conversations: \(error)")
+            errorMessage = error.localizedDescription
+            conversations = []
+        }
     }
 
-    func createConversation(model: String) async {
-        // TODO: Create in database
+    func createConversation(model: String) async -> AIConversation? {
+        let entity = AIConversationEntity(
+            id: UUID().uuidString,
+            title: nil,
+            model: model,
+            systemPrompt: nil,
+            temperature: 0.7,
+            totalTokens: 0,
+            messageCount: 0,
+            createdAt: Date(),
+            updatedAt: Date()
+        )
+
+        do {
+            try repository.createConversation(entity)
+            let conversation = entity.toConversation()
+            conversations.insert(conversation, at: 0)
+            print("[AIConversationListViewModel] Created conversation: \(entity.id)")
+            return conversation
+        } catch {
+            print("[AIConversationListViewModel] Error creating conversation: \(error)")
+            errorMessage = error.localizedDescription
+            return nil
+        }
     }
 
     func deleteConversation(id: String) async {
-        // TODO: Delete from database
-        conversations.removeAll { $0.id == id }
+        do {
+            try repository.deleteConversation(id: id)
+            conversations.removeAll { $0.id == id }
+            print("[AIConversationListViewModel] Deleted conversation: \(id)")
+        } catch {
+            print("[AIConversationListViewModel] Error deleting conversation: \(error)")
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func refreshConversation(id: String) async {
+        // Reload a specific conversation to update its stats
+        do {
+            if let entity = try repository.getConversation(id: id) {
+                if let index = conversations.firstIndex(where: { $0.id == id }) {
+                    conversations[index] = entity.toConversation()
+                }
+            }
+        } catch {
+            print("[AIConversationListViewModel] Error refreshing conversation: \(error)")
+        }
     }
 }
 
-struct AIConversation: Identifiable {
+struct AIConversation: Identifiable, Hashable {
     let id: String
     let title: String?
     let model: String
     let messageCount: Int
     let totalTokens: Int
     let updatedAt: Date
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(id)
+    }
+
+    static func == (lhs: AIConversation, rhs: AIConversation) -> Bool {
+        lhs.id == rhs.id
+    }
 }
 
 #Preview {

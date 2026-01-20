@@ -4,11 +4,29 @@ import CoreImage.CIFilterBuiltins
 /// P2P Chat View - Direct encrypted peer-to-peer messaging
 struct P2PChatView: View {
     @StateObject private var viewModel = P2PViewModel()
+    @StateObject private var performanceManager = PerformanceManager.shared
+    @Environment(\.colorScheme) var colorScheme
+
     @State private var messageText = ""
     @State private var showingConnectionSheet = false
     @State private var showingQRScanner = false
     @State private var showingQRCode = false
     @State private var selectedPeer: P2PViewModel.PeerInfo?
+    @State private var isTyping = false
+    @State private var typingTimer: Timer?
+    @State private var peerIsTyping = false
+
+    // Image picking
+    @State private var showingImagePicker = false
+    @State private var selectedImages: [UIImage] = []
+
+    // Toast
+    @State private var showToast = false
+    @State private var toastMessage = ""
+    @State private var toastType: ToastView.ToastType = .info
+
+    // Connection status
+    @State private var connectionStatus: ConnectionStatusBanner.ConnectionStatus = .disconnected
 
     var body: some View {
         NavigationView {
@@ -19,6 +37,13 @@ struct P2PChatView: View {
                     emptyView
                 } else {
                     chatView
+                }
+
+                // Connection status banner
+                VStack {
+                    ConnectionStatusBanner(status: connectionStatus)
+                        .padding(.top, 8)
+                    Spacer()
                 }
             }
             .navigationTitle("P2P 聊天")
@@ -45,6 +70,15 @@ struct P2PChatView: View {
                             }
                             .disabled(true)
                         }
+
+                        // Memory stats in debug
+                        #if DEBUG
+                        Divider()
+                        Button(action: {}) {
+                            Label("内存: \(performanceManager.memoryUsage.formattedApp)", systemImage: "memorychip")
+                        }
+                        .disabled(true)
+                        #endif
                     } label: {
                         Image(systemName: "ellipsis.circle")
                     }
@@ -56,6 +90,17 @@ struct P2PChatView: View {
             .sheet(isPresented: $showingQRCode) {
                 QRCodeView(viewModel: viewModel)
             }
+            .sheet(isPresented: $showingImagePicker) {
+                ImagePickerView(
+                    selectedImages: $selectedImages,
+                    isPresented: $showingImagePicker,
+                    maxSelection: 9
+                ) { images in
+                    // Handle selected images
+                    sendImages(images)
+                }
+            }
+            .toast(isPresented: $showToast, message: toastMessage, type: toastType)
             .alert("错误", isPresented: .constant(viewModel.errorMessage != nil)) {
                 Button("确定") {
                     viewModel.clearError()
@@ -65,9 +110,49 @@ struct P2PChatView: View {
                     Text(error)
                 }
             }
+            .onReceive(NotificationCenter.default.publisher(for: .peerTyping)) { notification in
+                if let senderDid = notification.userInfo?["senderDid"] as? String,
+                   senderDid == selectedPeer?.id {
+                    withAnimation {
+                        peerIsTyping = true
+                    }
+                    // Auto hide after 3 seconds
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                        withAnimation {
+                            peerIsTyping = false
+                        }
+                    }
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .peerStoppedTyping)) { _ in
+                withAnimation {
+                    peerIsTyping = false
+                }
+            }
         }
         .task {
+            performanceManager.startMonitoring()
             await viewModel.initialize(signalingServerURL: "ws://localhost:9001")
+            connectionStatus = viewModel.isInitialized ? .connected : .disconnected
+        }
+        .onDisappear {
+            performanceManager.stopMonitoring()
+        }
+    }
+
+    private func sendImages(_ images: [UIImage]) {
+        guard let peer = selectedPeer else { return }
+
+        // TODO: Implement image sending via P2P
+        // For now, show a toast
+        showToast(message: "图片发送功能开发中", type: .info)
+    }
+
+    private func showToast(message: String, type: ToastView.ToastType) {
+        toastMessage = message
+        toastType = type
+        withAnimation {
+            showToast = true
         }
     }
 
@@ -160,8 +245,11 @@ struct P2PChatView: View {
                 HStack(spacing: 12) {
                     ForEach(viewModel.connectedPeers) { peer in
                         PeerButton(peer: peer, isSelected: selectedPeer?.id == peer.id) {
-                            selectedPeer = peer
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                selectedPeer = peer
+                            }
                             viewModel.selectPeer(peerId: peer.id)
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
                         }
                     }
                 }
@@ -173,41 +261,162 @@ struct P2PChatView: View {
 
             // Messages
             if let peer = selectedPeer {
-                ScrollView {
-                    LazyVStack(spacing: 8) {
-                        ForEach(viewModel.messages.filter { $0.peerId == peer.id }) { message in
-                            MessageBubble(message: message)
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        LazyVStack(spacing: 8) {
+                            ForEach(viewModel.messages.filter { $0.peerId == peer.id }) { message in
+                                EnhancedMessageBubble(
+                                    message: message,
+                                    colorScheme: colorScheme,
+                                    onRecall: { messageId in
+                                        Task {
+                                            await viewModel.recallMessage(messageId: messageId)
+                                        }
+                                    },
+                                    onEdit: { messageId, newContent in
+                                        Task {
+                                            await viewModel.editMessage(messageId: messageId, newContent: newContent)
+                                        }
+                                    },
+                                    onResend: { messageId in
+                                        if let msg = viewModel.messages.first(where: { $0.id == messageId }) {
+                                            Task {
+                                                await viewModel.sendMessage(to: peer.id, content: msg.content, type: msg.type)
+                                            }
+                                        }
+                                    }
+                                )
+                                .id(message.id)
+                                .transition(.asymmetric(
+                                    insertion: .scale.combined(with: .opacity),
+                                    removal: .opacity
+                                ))
+                            }
+                        }
+                        .padding()
+                    }
+                    .onChange(of: viewModel.messages.count) { _ in
+                        if let lastMessage = viewModel.messages.filter({ $0.peerId == peer.id }).last {
+                            withAnimation(.easeOut(duration: 0.3)) {
+                                proxy.scrollTo(lastMessage.id, anchor: .bottom)
+                            }
                         }
                     }
-                    .padding()
-                }
-
-                // Input
-                HStack(spacing: 12) {
-                    TextField("输入消息...", text: $messageText)
-                        .textFieldStyle(.roundedBorder)
-                        .submitLabel(.send)
-                        .onSubmit {
-                            sendMessage()
+                    .onAppear {
+                        Task {
+                            await viewModel.markConversationAsRead()
                         }
-
-                    Button(action: sendMessage) {
-                        Image(systemName: "paperplane.fill")
-                            .foregroundColor(.white)
-                            .padding(10)
-                            .background(messageText.isEmpty ? Color.gray : Color.blue)
-                            .clipShape(Circle())
                     }
-                    .disabled(messageText.isEmpty)
                 }
-                .padding()
-                .background(Color(.systemGroupedBackground))
+
+                // Typing indicator
+                if peerIsTyping {
+                    HStack {
+                        TypingIndicator()
+                        Text("\(peer.name) 正在输入...")
+                            .font(.caption)
+                            .foregroundColor(.gray)
+                        Spacer()
+                    }
+                    .padding(.horizontal)
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
+                }
+
+                // Input bar
+                inputBar(peer: peer)
             } else {
                 Spacer()
-                Text("选择一个设备开始聊天")
-                    .foregroundColor(.gray)
+                EmptyStateView(
+                    icon: "person.2.circle",
+                    title: "选择一个设备",
+                    subtitle: "从上方列表中选择设备开始聊天"
+                )
                 Spacer()
             }
+        }
+    }
+
+    // MARK: - Input Bar
+
+    private func inputBar(peer: P2PViewModel.PeerInfo) -> some View {
+        VStack(spacing: 0) {
+            // Selected images preview
+            if !selectedImages.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(Array(selectedImages.enumerated()), id: \.offset) { index, image in
+                            ZStack(alignment: .topTrailing) {
+                                Image(uiImage: image)
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(width: 60, height: 60)
+                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+
+                                Button(action: {
+                                    withAnimation {
+                                        selectedImages.remove(at: index)
+                                    }
+                                }) {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .foregroundColor(.white)
+                                        .background(Color.black.opacity(0.5))
+                                        .clipShape(Circle())
+                                        .font(.caption)
+                                }
+                                .offset(x: 6, y: -6)
+                            }
+                        }
+                    }
+                    .padding(.horizontal)
+                    .padding(.top, 8)
+                }
+            }
+
+            HStack(spacing: 12) {
+                // Image picker button
+                Button(action: { showingImagePicker = true }) {
+                    Image(systemName: "photo")
+                        .foregroundColor(.blue)
+                        .font(.title3)
+                }
+
+                // Text input
+                TextField("输入消息...", text: $messageText)
+                    .textFieldStyle(.roundedBorder)
+                    .submitLabel(.send)
+                    .onSubmit {
+                        sendMessage()
+                    }
+                    .onChange(of: messageText) { newValue in
+                        if !newValue.isEmpty {
+                            viewModel.sendTypingIndicator(to: peer.id)
+                            typingTimer?.invalidate()
+                            typingTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: false) { _ in
+                                Task { @MainActor in
+                                    viewModel.sendStopTypingIndicator(to: peer.id)
+                                }
+                            }
+                        }
+                    }
+
+                // Send button
+                HapticButton(feedbackStyle: .medium) {
+                    sendMessage()
+                } content: {
+                    Image(systemName: "paperplane.fill")
+                        .foregroundColor(.white)
+                        .padding(10)
+                        .background(messageText.isEmpty && selectedImages.isEmpty ? Color.gray : Color.blue)
+                        .clipShape(Circle())
+                }
+                .disabled(messageText.isEmpty && selectedImages.isEmpty)
+            }
+            .padding()
+            .background(
+                colorScheme == .dark
+                    ? Color(.systemGray6)
+                    : Color(.systemGroupedBackground)
+            )
         }
     }
 
@@ -276,59 +485,225 @@ struct PeerButton: View {
     }
 }
 
-// MARK: - Message Bubble
+// MARK: - Enhanced Message Bubble
 
-struct MessageBubble: View {
+struct EnhancedMessageBubble: View {
     let message: P2PViewModel.ChatMessage
+    let colorScheme: ColorScheme
+    var onRecall: ((String) -> Void)?
+    var onEdit: ((String, String) -> Void)?
+    var onResend: ((String) -> Void)?
+
+    @State private var showEditSheet = false
+    @State private var editedContent = ""
+    @State private var isPressed = false
 
     var body: some View {
         HStack {
             if message.isOutgoing {
-                Spacer()
+                Spacer(minLength: 60)
             }
 
             VStack(alignment: message.isOutgoing ? .trailing : .leading, spacing: 4) {
-                Text(message.content)
-                    .padding(12)
-                    .background(message.isOutgoing ? Color.blue : Color(.systemGray5))
-                    .foregroundColor(message.isOutgoing ? .white : .primary)
-                    .cornerRadius(16)
+                // Message content
+                messageContent
+                    .scaleEffect(isPressed ? 0.98 : 1.0)
+                    .animation(.easeInOut(duration: 0.1), value: isPressed)
+                    .onLongPressGesture(minimumDuration: 0.5, pressing: { pressing in
+                        withAnimation {
+                            isPressed = pressing
+                        }
+                        if pressing {
+                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                        }
+                    }) {}
+                    .contextMenu {
+                        contextMenuItems
+                    }
 
+                // Status row
                 HStack(spacing: 4) {
+                    if message.isEdited {
+                        Text("已编辑")
+                            .font(.caption2)
+                            .foregroundColor(.gray)
+                    }
+
                     Text(message.timestamp, style: .time)
                         .font(.caption2)
                         .foregroundColor(.gray)
 
                     if message.isOutgoing {
-                        statusIcon
+                        AnimatedMessageStatus(status: mapStatus(message.status))
                     }
                 }
             }
 
             if !message.isOutgoing {
-                Spacer()
+                Spacer(minLength: 60)
             }
+        }
+        .sheet(isPresented: $showEditSheet) {
+            EditMessageSheet(
+                content: editedContent,
+                onSave: { newContent in
+                    onEdit?(message.id, newContent)
+                }
+            )
         }
     }
 
     @ViewBuilder
-    private var statusIcon: some View {
-        switch message.status {
-        case .sending:
-            ProgressView()
-                .scaleEffect(0.5)
-        case .sent:
-            Image(systemName: "checkmark")
-                .font(.caption2)
-                .foregroundColor(.gray)
-        case .delivered:
-            Image(systemName: "checkmark.circle.fill")
-                .font(.caption2)
-                .foregroundColor(.blue)
-        case .failed:
-            Image(systemName: "exclamationmark.circle.fill")
-                .font(.caption2)
-                .foregroundColor(.red)
+    private var messageContent: some View {
+        if message.isRecalled {
+            HStack(spacing: 6) {
+                Image(systemName: "arrow.uturn.backward")
+                    .font(.caption)
+                Text("消息已撤回")
+                    .font(.subheadline)
+            }
+            .foregroundColor(.gray)
+            .padding(12)
+            .background(Color(.systemGray6))
+            .cornerRadius(16)
+        } else {
+            Text(message.content)
+                .padding(12)
+                .background(bubbleColor)
+                .foregroundColor(textColor)
+                .cornerRadius(16)
+                .shadow(color: .black.opacity(0.05), radius: 2, x: 0, y: 1)
+        }
+    }
+
+    private var bubbleColor: Color {
+        AdaptiveColor.messageBubble(isOutgoing: message.isOutgoing, colorScheme: colorScheme)
+    }
+
+    private var textColor: Color {
+        AdaptiveColor.textColor(isOutgoing: message.isOutgoing, colorScheme: colorScheme)
+    }
+
+    @ViewBuilder
+    private var contextMenuItems: some View {
+        // Copy
+        Button {
+            UIPasteboard.general.string = message.content
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+        } label: {
+            Label("复制", systemImage: "doc.on.doc")
+        }
+
+        if message.isOutgoing && !message.isRecalled {
+            // Edit
+            if canEdit {
+                Button {
+                    editedContent = message.content
+                    showEditSheet = true
+                } label: {
+                    Label("编辑", systemImage: "pencil")
+                }
+            }
+
+            // Recall
+            if canRecall {
+                Button(role: .destructive) {
+                    UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+                    onRecall?(message.id)
+                } label: {
+                    Label("撤回", systemImage: "arrow.uturn.backward")
+                }
+            }
+        }
+
+        // Resend if failed
+        if message.status == .failed {
+            Button {
+                onResend?(message.id)
+            } label: {
+                Label("重新发送", systemImage: "arrow.clockwise")
+            }
+        }
+    }
+
+    private func mapStatus(_ status: P2PViewModel.ChatMessage.MessageStatus) -> AnimatedMessageStatus.MessageStatusType {
+        switch status {
+        case .sending: return .sending
+        case .sent: return .sent
+        case .delivered: return .delivered
+        case .read: return .read
+        case .failed: return .failed
+        case .recalled: return .sent
+        case .edited: return .delivered
+        }
+    }
+
+    private var canRecall: Bool {
+        let recallTimeLimit: TimeInterval = 2 * 60
+        return Date().timeIntervalSince(message.timestamp) <= recallTimeLimit
+    }
+
+    private var canEdit: Bool {
+        let editTimeLimit: TimeInterval = 15 * 60
+        return Date().timeIntervalSince(message.timestamp) <= editTimeLimit && message.editCount < 5
+    }
+}
+
+// MARK: - Legacy Message Bubble (for compatibility)
+
+struct MessageBubble: View {
+    let message: P2PViewModel.ChatMessage
+    var onRecall: ((String) -> Void)?
+    var onEdit: ((String, String) -> Void)?
+    var onResend: ((String) -> Void)?
+
+    @Environment(\.colorScheme) var colorScheme
+
+    var body: some View {
+        EnhancedMessageBubble(
+            message: message,
+            colorScheme: colorScheme,
+            onRecall: onRecall,
+            onEdit: onEdit,
+            onResend: onResend
+        )
+    }
+}
+
+// MARK: - Edit Message Sheet
+
+struct EditMessageSheet: View {
+    @State var content: String
+    let onSave: (String) -> Void
+    @Environment(\.dismiss) var dismiss
+
+    var body: some View {
+        NavigationView {
+            VStack {
+                TextEditor(text: $content)
+                    .padding()
+                    .background(Color(.systemGray6))
+                    .cornerRadius(8)
+                    .padding()
+
+                Spacer()
+            }
+            .navigationTitle("编辑消息")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("取消") {
+                        dismiss()
+                    }
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("保存") {
+                        onSave(content)
+                        dismiss()
+                    }
+                    .disabled(content.isEmpty)
+                }
+            }
         }
     }
 }

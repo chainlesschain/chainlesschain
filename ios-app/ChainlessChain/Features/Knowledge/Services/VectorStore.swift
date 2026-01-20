@@ -2,15 +2,19 @@ import Foundation
 
 /// Vector Store - Manages vector storage and similarity search
 /// Reference: desktop-app-vue/src/main/vector/vector-store.js
-/// iOS implementation uses in-memory storage (no ChromaDB dependency)
+/// iOS implementation uses SQLite-based persistent storage via VectorStoreRepository
 @MainActor
 class VectorStore: ObservableObject {
     // Configuration
     private let similarityThreshold: Float
     private let topK: Int
 
-    // In-memory vector storage
+    // Persistence repository
+    private let repository = VectorStoreRepository.shared
+
+    // In-memory cache for fast access
     private var vectors: [String: VectorEntry] = [:]
+    private var isCacheLoaded = false
 
     @Published var isInitialized = false
 
@@ -43,40 +47,113 @@ class VectorStore: ObservableObject {
 
     /// Initialize vector store
     func initialize() async -> Bool {
-        AppLogger.log("[VectorStore] Initializing vector store (in-memory mode)...")
+        AppLogger.log("[VectorStore] Initializing vector store (SQLite persistent mode)...")
+
+        // Load vectors from repository into memory cache
+        await loadFromRepository()
 
         isInitialized = true
-        AppLogger.log("[VectorStore] Vector store initialized successfully")
+        AppLogger.log("[VectorStore] Vector store initialized successfully with \(vectors.count) vectors")
 
         return true
     }
 
+    /// Load all vectors from repository into memory cache
+    private func loadFromRepository() async {
+        guard !isCacheLoaded else { return }
+
+        do {
+            let entries = try repository.getAllVectors()
+            vectors.removeAll()
+
+            for entry in entries {
+                let localEntry = VectorEntry(
+                    id: entry.id,
+                    embedding: entry.embedding,
+                    metadata: VectorMetadata(
+                        title: entry.metadata.title,
+                        type: entry.metadata.type,
+                        createdAt: entry.metadata.createdAt,
+                        updatedAt: entry.metadata.updatedAt
+                    ),
+                    document: entry.document,
+                    timestamp: entry.timestamp
+                )
+                vectors[entry.id] = localEntry
+            }
+
+            isCacheLoaded = true
+            AppLogger.log("[VectorStore] Loaded \(entries.count) vectors from repository")
+
+        } catch {
+            AppLogger.error("[VectorStore] Failed to load vectors from repository: \(error)")
+        }
+    }
+
     /// Add a single vector
     func addVector(id: String, embedding: [Float], metadata: VectorMetadata, document: String) async throws {
+        let timestamp = Date()
         let entry = VectorEntry(
             id: id,
             embedding: embedding,
             metadata: metadata,
             document: document,
-            timestamp: Date()
+            timestamp: timestamp
         )
 
+        // Persist to repository
+        let repoEntry = RepoVectorEntry(
+            id: id,
+            embedding: embedding,
+            metadata: RepoVectorMetadata(
+                title: metadata.title,
+                type: metadata.type,
+                createdAt: metadata.createdAt,
+                updatedAt: metadata.updatedAt
+            ),
+            document: document,
+            timestamp: timestamp
+        )
+
+        try repository.saveVector(repoEntry)
+
+        // Update memory cache
         vectors[id] = entry
         AppLogger.log("[VectorStore] Added vector: \(metadata.title)")
     }
 
     /// Add multiple vectors in batch
     func addVectorsBatch(items: [(id: String, embedding: [Float], metadata: VectorMetadata, document: String)]) async throws -> Int {
+        var repoEntries: [RepoVectorEntry] = []
+        let timestamp = Date()
+
         for item in items {
             let entry = VectorEntry(
                 id: item.id,
                 embedding: item.embedding,
                 metadata: item.metadata,
                 document: item.document,
-                timestamp: Date()
+                timestamp: timestamp
             )
             vectors[item.id] = entry
+
+            // Prepare for batch save
+            repoEntries.append(RepoVectorEntry(
+                id: item.id,
+                embedding: item.embedding,
+                metadata: RepoVectorMetadata(
+                    title: item.metadata.title,
+                    type: item.metadata.type,
+                    createdAt: item.metadata.createdAt,
+                    updatedAt: item.metadata.updatedAt
+                ),
+                document: item.document,
+                timestamp: timestamp
+            ))
         }
+
+        // Batch persist to repository
+        try repository.saveVectorsBatch(repoEntries)
 
         AppLogger.log("[VectorStore] Batch added \(items.count) vectors")
         return items.count
@@ -88,13 +165,31 @@ class VectorStore: ObservableObject {
             throw VectorStoreError.vectorNotFound(id)
         }
 
+        let newMetadata = metadata ?? entry.metadata
+        let timestamp = Date()
+
         entry = VectorEntry(
             id: entry.id,
             embedding: embedding,
-            metadata: metadata ?? entry.metadata,
+            metadata: newMetadata,
             document: entry.document,
-            timestamp: Date()
+            timestamp: timestamp
         )
+
+        // Persist to repository
+        let repoEntry = RepoVectorEntry(
+            id: entry.id,
+            embedding: embedding,
+            metadata: RepoVectorMetadata(
+                title: newMetadata.title,
+                type: newMetadata.type,
+                createdAt: newMetadata.createdAt,
+                updatedAt: newMetadata.updatedAt
+            ),
+            document: entry.document,
+            timestamp: timestamp
+        )
+        try repository.saveVector(repoEntry)
 
         vectors[id] = entry
         AppLogger.log("[VectorStore] Updated vector: \(id)")
@@ -105,6 +200,9 @@ class VectorStore: ObservableObject {
         guard vectors.removeValue(forKey: id) != nil else {
             throw VectorStoreError.vectorNotFound(id)
         }
+
+        // Delete from repository
+        try repository.deleteVector(id: id)
 
         AppLogger.log("[VectorStore] Deleted vector: \(id)")
     }
@@ -194,17 +292,43 @@ class VectorStore: ObservableObject {
 
     /// Get vector store statistics
     func getStats() async -> VectorStoreStats {
-        return VectorStoreStats(
-            mode: "memory",
-            count: vectors.count,
-            collectionName: "knowledge_base"
-        )
+        do {
+            let repoStats = try repository.getStatistics()
+            return VectorStoreStats(
+                mode: repoStats.mode,
+                count: repoStats.vectorCount,
+                collectionName: "knowledge_base",
+                storageSizeMB: repoStats.storageSizeMB,
+                cacheCount: repoStats.cacheCount
+            )
+        } catch {
+            return VectorStoreStats(
+                mode: "sqlite",
+                count: vectors.count,
+                collectionName: "knowledge_base",
+                storageSizeMB: 0,
+                cacheCount: 0
+            )
+        }
     }
 
     /// Clear all vectors
     func clear() async throws {
+        // Clear repository
+        try repository.deleteAllVectors()
+
+        // Clear memory cache
         vectors.removeAll()
+        isCacheLoaded = false
+
         AppLogger.log("[VectorStore] Vector store cleared")
+    }
+
+    /// Reload vectors from repository (refresh cache)
+    func refresh() async {
+        isCacheLoaded = false
+        await loadFromRepository()
+        AppLogger.log("[VectorStore] Vector store refreshed from repository")
     }
 
     /// Rebuild index from knowledge items
@@ -261,6 +385,8 @@ class VectorStore: ObservableObject {
         let mode: String
         let count: Int
         let collectionName: String
+        var storageSizeMB: Double = 0
+        var cacheCount: Int = 0
     }
 }
 
