@@ -5,6 +5,8 @@
 
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
+import { createRequire } from 'module';
 import {
   LOG_LEVELS,
   LOG_LEVEL_NAMES,
@@ -13,6 +15,9 @@ import {
   getStackTrace,
   sanitizeData,
 } from '../../shared/logger-config.js';
+
+// Create require function for ESM compatibility
+const require = createRequire(import.meta.url);
 
 // Lazy initialization for electron - avoid import errors in test environment
 let app = null;
@@ -24,12 +29,16 @@ function getApp() {
   }
 
   try {
-    // Use synchronous require for CommonJS compatibility
+    // Use require for electron (native module)
     const electron = require('electron');
-    app = electron.app;
+    // Check if electron.app is available (not in test/non-Electron environment)
+    if (electron && electron.app && typeof electron.app.getPath === 'function') {
+      app = electron.app;
+    } else {
+      throw new Error('Electron app not available');
+    }
   } catch (error) {
     // In test environment, provide a mock with temp directory
-    const os = require('os');
     const tmpDir = path.join(os.tmpdir(), 'chainlesschain-test');
     app = {
       getPath: () => tmpDir,
