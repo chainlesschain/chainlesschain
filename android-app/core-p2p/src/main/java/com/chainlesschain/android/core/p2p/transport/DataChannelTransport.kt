@@ -4,9 +4,13 @@ import android.util.Log
 import com.chainlesschain.android.core.p2p.connection.P2PConnection
 import com.chainlesschain.android.core.p2p.model.MessageType
 import com.chainlesschain.android.core.p2p.model.P2PMessage
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.launch
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
@@ -55,9 +59,12 @@ class DataChannelTransport @Inject constructor(
     // 消息分片缓存（用于重组大消息）
     private val fragmentCache = ConcurrentHashMap<String, MutableList<MessageFragment>>()
 
+    // 协程作用域
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+
     init {
         // 监听连接收到的消息
-        kotlinx.coroutines.GlobalScope.launch {
+        scope.launch {
             connection.observeMessages().collect { message ->
                 handleReceivedMessage(message)
             }

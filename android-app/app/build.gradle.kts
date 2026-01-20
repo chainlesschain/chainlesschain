@@ -88,6 +88,11 @@ android {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
             excludes += "/META-INF/LICENSE*"
+            // Exclude duplicate JetBrains annotations
+            pickFirsts += "META-INF/versions/9/module-info.class"
+        }
+        jniLibs {
+            pickFirsts += "**/libc++_shared.so"
         }
     }
 
@@ -108,6 +113,11 @@ android {
             "ObsoleteLintCustomCheck"  // Custom lint check warnings
         )
     }
+}
+
+configurations.all {
+    // Exclude duplicate JetBrains annotations
+    exclude(group = "org.jetbrains", module = "annotations")
 }
 
 dependencies {

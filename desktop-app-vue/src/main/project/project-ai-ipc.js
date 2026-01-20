@@ -6,7 +6,7 @@
  * @description 提供 AI 对话、任务规划、代码助手、内容处理等 IPC 接口
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger, createLogger } = require("../utils/logger.js");
 const { ipcMain } = require("electron");
 const axios = require("axios");
 const crypto = require("crypto");
@@ -217,6 +217,8 @@ async function generateWordFile(wordRequest, projectPath, llmManager) {
  * @param {Object} dependencies.chatSkillBridge - 聊天技能桥接器
  * @param {Object} dependencies.mainWindow - 主窗口实例
  * @param {Function} dependencies.scanAndRegisterProjectFiles - 扫描注册文件函数
+ * @param {Object} [dependencies.mcpClientManager] - MCP 客户端管理器（可选，用于MCP工具调用）
+ * @param {Object} [dependencies.mcpToolAdapter] - MCP 工具适配器（可选，用于MCP工具调用）
  */
 function registerProjectAIIPC({
   database,
@@ -225,6 +227,8 @@ function registerProjectAIIPC({
   chatSkillBridge,
   mainWindow,
   scanAndRegisterProjectFiles,
+  mcpClientManager,
+  mcpToolAdapter,
 }) {
   logger.info("[Project AI IPC] Registering Project AI IPC handlers...");
 
@@ -627,35 +631,159 @@ ${currentFilePath ? `当前文件: ${currentFilePath}` : ""}
           }
         }
 
+        // 🔥 获取 MCP 工具（如果可用）
+        let mcpFunctions = [];
+        let mcpExecutor = null;
+
+        if (mcpToolAdapter && mcpClientManager) {
+          try {
+            const connectedServers = mcpClientManager.getConnectedServers();
+            if (connectedServers.length > 0) {
+              const MCPFunctionExecutor = require("../mcp/mcp-function-executor");
+              mcpExecutor = new MCPFunctionExecutor(
+                mcpClientManager,
+                mcpToolAdapter,
+              );
+              mcpFunctions = await mcpExecutor.getFunctions();
+
+              if (mcpFunctions.length > 0) {
+                logger.info(
+                  "[Project AI] MCP 工具可用:",
+                  mcpFunctions.map((f) => f.name).join(", "),
+                );
+              }
+            }
+          } catch (mcpError) {
+            logger.warn("[Project AI] 获取 MCP 工具失败:", mcpError.message);
+          }
+        }
+
         // 调用本地LLM（根据是否需要工具调用选择不同方法）
         let llmResult;
-        if (toolsToUse.length > 0 && toolsToUse.includes("web_search")) {
-          // 使用通用联网搜索（不依赖特定LLM提供商）
-          logger.info("[Main] 项目AI对话使用联网搜索");
-          try {
-            const { enhanceChatWithSearch } = require("../utils/web-search");
+        let usedMCPTools = false;
 
-            // 使用搜索结果增强对话
-            llmResult = await enhanceChatWithSearch(
-              userMessage,
-              messages,
-              (msgs, opts) => llmManager.chat(msgs, opts),
-              {
+        // 🔥 优先使用 MCP 工具（如果有）
+        if (mcpFunctions.length > 0 && mcpExecutor) {
+          const provider = llmManager.provider;
+
+          // OpenAI 和 DeepSeek 使用标准 chat 接口的 tools 参数
+          if (provider === "openai" || provider === "deepseek") {
+            logger.info(
+              "[Project AI] 使用 MCP Function Calling，工具数:",
+              mcpFunctions.length,
+            );
+
+            try {
+              // 将 MCP 函数转换为 OpenAI tools 格式
+              const tools = mcpFunctions.map((func) => ({
+                type: "function",
+                function: func,
+              }));
+
+              // 第一次调用：让 LLM 决定是否调用工具
+              let result = await llmManager.chatWithMessages(messages, {
                 ...chatOptions,
-                maxResults: 5,
-                engine: "auto", // 自动选择可用搜索引擎（默认DuckDuckGo）
-              },
-            );
-          } catch (searchError) {
-            logger.warn(
-              "[Main] 联网搜索失败，使用标准对话:",
-              searchError.message,
-            );
+                tools: tools,
+                tool_choice: "auto",
+              });
+
+              // 如果 LLM 请求调用工具
+              let currentMessages = messages;
+              while (result.message?.tool_calls) {
+                const toolCalls = result.message.tool_calls;
+                logger.info(
+                  "[Project AI] LLM 请求调用",
+                  toolCalls.length,
+                  "个 MCP 工具",
+                );
+
+                // 执行所有工具调用
+                const toolResults = [];
+                for (const toolCall of toolCalls) {
+                  const functionName = toolCall.function.name;
+                  const functionArgs = JSON.parse(toolCall.function.arguments);
+
+                  logger.info("[Project AI] 执行 MCP 工具:", functionName);
+
+                  try {
+                    const execResult = await mcpExecutor.execute(
+                      functionName,
+                      functionArgs,
+                    );
+                    toolResults.push({
+                      tool_call_id: toolCall.id,
+                      role: "tool",
+                      content: JSON.stringify(execResult),
+                    });
+                  } catch (execError) {
+                    logger.error(
+                      "[Project AI] MCP 工具执行失败:",
+                      execError.message,
+                    );
+                    toolResults.push({
+                      tool_call_id: toolCall.id,
+                      role: "tool",
+                      content: JSON.stringify({ error: execError.message }),
+                    });
+                  }
+                }
+
+                // 将工具结果返回给 LLM
+                currentMessages = [
+                  ...currentMessages,
+                  result.message,
+                  ...toolResults,
+                ];
+
+                // 再次调用 LLM 获取最终回答
+                result = await llmManager.chatWithMessages(currentMessages, {
+                  ...chatOptions,
+                  tools: tools,
+                  tool_choice: "auto",
+                });
+              }
+
+              llmResult = result;
+              usedMCPTools = true;
+            } catch (fcError) {
+              logger.warn(
+                "[Project AI] MCP Function Calling 失败，回退到标准对话:",
+                fcError.message,
+              );
+            }
+          }
+        }
+
+        // 如果没有使用 MCP 工具，使用标准对话
+        if (!usedMCPTools) {
+          if (toolsToUse.length > 0 && toolsToUse.includes("web_search")) {
+            // 使用通用联网搜索（不依赖特定LLM提供商）
+            logger.info("[Main] 项目AI对话使用联网搜索");
+            try {
+              const { enhanceChatWithSearch } = require("../utils/web-search");
+
+              // 使用搜索结果增强对话
+              llmResult = await enhanceChatWithSearch(
+                userMessage,
+                messages,
+                (msgs, opts) => llmManager.chat(msgs, opts),
+                {
+                  ...chatOptions,
+                  maxResults: 5,
+                  engine: "auto", // 自动选择可用搜索引擎（默认DuckDuckGo）
+                },
+              );
+            } catch (searchError) {
+              logger.warn(
+                "[Main] 联网搜索失败，使用标准对话:",
+                searchError.message,
+              );
+              llmResult = await llmManager.chat(messages, chatOptions);
+            }
+          } else {
+            // 标准对话
             llmResult = await llmManager.chat(messages, chatOptions);
           }
-        } else {
-          // 标准对话
-          llmResult = await llmManager.chat(messages, chatOptions);
         }
 
         aiResponse = llmResult.content || llmResult.text || llmResult;

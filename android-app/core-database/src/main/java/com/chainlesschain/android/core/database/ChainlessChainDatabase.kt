@@ -18,6 +18,7 @@ import com.chainlesschain.android.core.database.entity.FileTransferEntity
 import com.chainlesschain.android.core.database.entity.ProjectEntity
 import com.chainlesschain.android.core.database.entity.ProjectFileEntity
 import com.chainlesschain.android.core.database.entity.ProjectActivityEntity
+import com.chainlesschain.android.core.database.entity.KnowledgeItemFts
 import com.chainlesschain.android.core.database.util.Converters
 
 /**
@@ -30,6 +31,7 @@ import com.chainlesschain.android.core.database.util.Converters
 @Database(
     entities = [
         KnowledgeItemEntity::class,
+        KnowledgeItemFts::class,
         ConversationEntity::class,
         MessageEntity::class,
         P2PMessageEntity::class,
@@ -39,7 +41,7 @@ import com.chainlesschain.android.core.database.util.Converters
         ProjectFileEntity::class,
         ProjectActivityEntity::class,
     ],
-    version = 6,
+    version = 7,
     exportSchema = true
 )
 @TypeConverters(Converters::class)

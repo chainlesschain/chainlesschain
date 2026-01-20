@@ -52,15 +52,14 @@ interface KnowledgeItemDao {
     fun getItemById(id: String): Flow<KnowledgeItemEntity?>
 
     /**
-     * 全文搜索（FTS5）
-     * 使用FTS5虚拟表提供高性能全文搜索
+     * 全文搜索（FTS4）
+     * 使用FTS4虚拟表提供高性能全文搜索
      */
     @Query("""
         SELECT knowledge_items.* FROM knowledge_items
-        INNER JOIN knowledge_items_fts ON knowledge_items.id = knowledge_items_fts.rowid
+        INNER JOIN knowledge_items_fts ON knowledge_items.rowid = knowledge_items_fts.docid
         WHERE knowledge_items_fts MATCH :query
         AND knowledge_items.isDeleted = 0
-        ORDER BY rank
     """)
     fun searchItems(query: String): PagingSource<Int, KnowledgeItemEntity>
 

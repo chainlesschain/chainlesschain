@@ -45,6 +45,7 @@ dependencies {
     val roomVersion = "2.6.1"
     api("androidx.room:room-runtime:$roomVersion")
     api("androidx.room:room-ktx:$roomVersion")
+    api("androidx.room:room-paging:$roomVersion")
     ksp("androidx.room:room-compiler:$roomVersion")
 
     // SQLCipher (使用新的artifact ID和最新版本)

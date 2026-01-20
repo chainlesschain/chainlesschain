@@ -1,6 +1,7 @@
 plugins {
     id("com.android.library")
     id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.plugin.serialization")
     id("com.google.dagger.hilt.android")
     id("com.google.devtools.ksp")
 }
@@ -46,7 +47,8 @@ dependencies {
     ksp("com.google.dagger:hilt-compiler:2.50")
 
     // WebRTC (for P2P connections)
-    implementation("org.webrtc:google-webrtc:1.0.32006")
+    // Using Threema's maintained WebRTC build (m134)
+    implementation("ch.threema:webrtc-android:134.0.0")
 
     // Protobuf (for message serialization)
     implementation("com.google.protobuf:protobuf-javalite:3.25.1")
