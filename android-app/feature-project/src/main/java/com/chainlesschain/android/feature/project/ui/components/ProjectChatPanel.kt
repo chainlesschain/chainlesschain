@@ -172,38 +172,36 @@ fun ProjectChatPanel(
             }
 
             // Enhanced thinking indicator
-            AnimatedVisibility(
-                visible = isAiResponding,
-                enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
-                exit = fadeOut() + slideOutVertically(targetOffsetY = { it / 2 }),
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = 8.dp)
-            ) {
-                EnhancedThinkingIndicator(
-                    currentStage = currentThinkingStage,
-                    isVisible = true,
-                    showProgress = true
-                )
+            if (isAiResponding) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 8.dp)
+                ) {
+                    EnhancedThinkingIndicator(
+                        currentStage = currentThinkingStage,
+                        isVisible = true,
+                        showProgress = true
+                    )
+                }
             }
 
             // File mention popup
-            AnimatedVisibility(
-                visible = isFileMentionVisible,
-                enter = fadeIn() + slideInVertically(initialOffsetY = { it }),
-                exit = fadeOut() + slideOutVertically(targetOffsetY = { it }),
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-            ) {
-                FileMentionPopup(
-                    isVisible = isFileMentionVisible,
-                    files = projectFiles,
-                    searchQuery = fileMentionSearchQuery,
-                    onSearchQueryChange = onFileMentionSearchChange,
-                    onFileSelected = onFileSelected,
-                    onDismiss = onHideFileMention
-                )
+            if (isFileMentionVisible) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                ) {
+                    FileMentionPopup(
+                        isVisible = isFileMentionVisible,
+                        files = projectFiles,
+                        searchQuery = fileMentionSearchQuery,
+                        onSearchQueryChange = onFileMentionSearchChange,
+                        onFileSelected = onFileSelected,
+                        onDismiss = onHideFileMention
+                    )
+                }
             }
         }
 
@@ -439,9 +437,10 @@ private fun ChatMessageBubble(
             ) {
                 Column(modifier = Modifier.padding(12.dp)) {
                     // Message type badge
+                    val quickActionType = message.quickActionType
                     val typeBadge = when {
-                        message.isQuickAction && message.quickActionType != null ->
-                            message.quickActionType.replace("_", " ").uppercase()
+                        message.isQuickAction && quickActionType != null ->
+                            quickActionType.replace("_", " ").uppercase()
                         message.messageType == ProjectMessageType.TASK_PLAN -> "TASK PLAN"
                         message.messageType == ProjectMessageType.TASK_ANALYSIS -> "ANALYSIS"
                         message.messageType == ProjectMessageType.INTENT_CONFIRM -> "CONFIRM"
@@ -483,7 +482,8 @@ private fun ChatMessageBubble(
                     }
 
                     // Error state
-                    if (message.error != null) {
+                    val messageError = message.error
+                    if (messageError != null) {
                         Spacer(modifier = Modifier.height(8.dp))
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
@@ -494,7 +494,7 @@ private fun ChatMessageBubble(
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                text = message.error,
+                                text = messageError,
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.error
                             )

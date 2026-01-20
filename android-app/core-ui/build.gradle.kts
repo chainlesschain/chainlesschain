@@ -47,10 +47,7 @@ dependencies {
     // Coil图片加载
     api("io.coil-kt:coil-compose:2.6.0")
 
-    // Markdown rendering
-    api("io.noties.markwon:markwon-core:4.6.2")
-    api("io.noties.markwon:markwon-ext-tables:4.6.2")
-    api("io.noties.markwon:markwon-linkify:4.6.2")
+    // Markdown rendering - using native Compose Text (no external dependency)
 
     // Navigation
     api("androidx.navigation:navigation-compose:2.7.6")

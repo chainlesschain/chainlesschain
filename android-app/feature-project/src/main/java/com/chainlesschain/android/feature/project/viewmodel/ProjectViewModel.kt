@@ -29,6 +29,7 @@ import com.chainlesschain.android.feature.project.model.ThinkingStage
 import com.chainlesschain.android.feature.project.model.UpdateProjectRequest
 import com.chainlesschain.android.feature.project.repository.ProjectChatRepository
 import com.chainlesschain.android.feature.project.repository.ProjectRepository
+import com.chainlesschain.android.core.common.fold
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -901,9 +902,10 @@ class ProjectViewModel @Inject constructor(
                         messages = messages,
                         model = _currentModel.value
                     ).collect { chunk ->
-                        if (chunk.error != null) {
-                            projectChatRepository.setMessageError(placeholderMessage.id, chunk.error)
-                            _uiEvents.emit(ProjectUiEvent.ShowError(chunk.error))
+                        val chunkError = chunk.error
+                        if (chunkError != null) {
+                            projectChatRepository.setMessageError(placeholderMessage.id, chunkError)
+                            _uiEvents.emit(ProjectUiEvent.ShowError(chunkError))
                         } else {
                             fullResponse.append(chunk.content)
                             projectChatRepository.updateStreamingContent(

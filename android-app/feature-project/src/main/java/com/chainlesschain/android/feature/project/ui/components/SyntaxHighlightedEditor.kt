@@ -46,8 +46,6 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
-import io.noties.prism4j.Prism4j
-import io.noties.prism4j.GrammarLocator
 import java.util.regex.Pattern
 
 /**
