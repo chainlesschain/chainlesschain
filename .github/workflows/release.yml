@@ -37,7 +37,6 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        working-directory: desktop-app-vue
         run: npm ci
 
       - name: Build main process
@@ -56,6 +55,7 @@ jobs:
         env:
           CHAINLESSCHAIN_DISABLE_NATIVE_DB: "1"
           SKIP_BACKEND_CHECK: "true"
+          NODE_OPTIONS: "--max-old-space-size=4096"
 
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
@@ -84,7 +84,6 @@ jobs:
           cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        working-directory: desktop-app-vue
         run: npm ci
 
       - name: Build main process
@@ -102,6 +101,7 @@ jobs:
         run: npm run make:mac:${{ matrix.arch }}
         env:
           CHAINLESSCHAIN_DISABLE_NATIVE_DB: "1"
+          NODE_OPTIONS: "--max-old-space-size=4096"
 
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
@@ -136,7 +136,6 @@ jobs:
             libarchive-tools
 
       - name: Install dependencies
-        working-directory: desktop-app-vue
         run: npm ci
 
       - name: Build main process
@@ -155,6 +154,7 @@ jobs:
         env:
           CHAINLESSCHAIN_DISABLE_NATIVE_DB: "1"
           SKIP_BACKEND_CHECK: "true"
+          NODE_OPTIONS: "--max-old-space-size=4096"
 
       - name: Upload Linux artifacts
         uses: actions/upload-artifact@v4
