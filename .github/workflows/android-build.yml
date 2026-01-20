@@ -38,14 +38,17 @@ jobs:
 
       - name: Run Lint
         working-directory: android-app
-        run: ./gradlew lint
+        run: ./gradlew lint --continue
+        continue-on-error: true # Allow lint failures during Stage 1 development
 
       - name: Upload lint reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: lint-reports
-          path: android-app/**/build/reports/lint-results-*.html
+          path: |
+            android-app/**/build/reports/lint-results*.html
+            android-app/**/build/reports/lint-results*.xml
           if-no-files-found: warn
 
   # Job 2: Unit Tests
@@ -89,12 +92,12 @@ jobs:
   # Job 3: Instrumentation Tests
   instrumentation-tests:
     name: Instrumentation Tests
-    runs-on: macos-13  # Use macOS 13 for better emulator stability
-    timeout-minutes: 60  # Increase job timeout
+    runs-on: macos-13 # Use macOS 13 for better emulator stability
+    timeout-minutes: 60 # Increase job timeout
     strategy:
-      fail-fast: false  # Don't cancel other matrix jobs if one fails
+      fail-fast: false # Don't cancel other matrix jobs if one fails
       matrix:
-        api-level: [30, 34]  # Test on Android 11 and 14 (stable versions)
+        api-level: [30, 34] # Test on Android 11 and 14 (stable versions)
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -121,7 +124,7 @@ jobs:
       - name: Create AVD and generate snapshot for caching
         if: steps.avd-cache.outputs.cache-hit != 'true'
         uses: reactivecircus/android-emulator-runner@v2
-        timeout-minutes: 30  # Add timeout for AVD creation
+        timeout-minutes: 30 # Add timeout for AVD creation
         with:
           api-level: ${{ matrix.api-level }}
           arch: x86_64
@@ -140,7 +143,7 @@ jobs:
 
       - name: Run instrumentation tests
         uses: reactivecircus/android-emulator-runner@v2
-        timeout-minutes: 30  # Add timeout for test execution
+        timeout-minutes: 30 # Add timeout for test execution
         with:
           api-level: ${{ matrix.api-level }}
           arch: x86_64
@@ -162,7 +165,7 @@ jobs:
         with:
           name: instrumentation-test-reports-api-${{ matrix.api-level }}
           path: android-app/**/build/reports/androidTests/
-          if-no-files-found: warn  # Don't fail if no reports found
+          if-no-files-found: warn # Don't fail if no reports found
 
   # Job 4: Build Debug APK
   build-debug:

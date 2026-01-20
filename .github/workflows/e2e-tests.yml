@@ -48,11 +48,12 @@ jobs:
         run: |
           # Run only simple-api test as smoke test (full E2E suite is too heavy for CI)
           # Increase timeout to 3 minutes per test for Electron startup
+          # Use list,html reporters to get both console output and HTML report
           if [ "$RUNNER_OS" == "Linux" ]; then
             xvfb-run --auto-servernum --server-args="-screen 0 1280x960x24" \
-              npx playwright test tests/e2e/simple-api.e2e.test.ts --timeout=180000 --reporter=list
+              npx playwright test tests/e2e/simple-api.e2e.test.ts --timeout=180000 --reporter=list,html
           else
-            npx playwright test tests/e2e/simple-api.e2e.test.ts --timeout=180000 --reporter=list
+            npx playwright test tests/e2e/simple-api.e2e.test.ts --timeout=180000 --reporter=list,html
           fi
         shell: bash
         env:
@@ -67,6 +68,7 @@ jobs:
         with:
           name: playwright-report-${{ matrix.os }}
           path: test-results/
+          if-no-files-found: ignore
           retention-days: 30
 
       - name: Upload HTML report
@@ -75,6 +77,7 @@ jobs:
         with:
           name: playwright-html-report-${{ matrix.os }}
           path: playwright-report/
+          if-no-files-found: ignore
           retention-days: 30
 
   test-summary:
