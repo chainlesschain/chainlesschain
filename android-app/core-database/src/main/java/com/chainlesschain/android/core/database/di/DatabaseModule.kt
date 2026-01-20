@@ -1,11 +1,13 @@
 package com.chainlesschain.android.core.database.di
 
 import android.content.Context
+import android.util.Log
 import androidx.room.Room
 import com.chainlesschain.android.core.database.ChainlessChainDatabase
 import com.chainlesschain.android.core.database.dao.ConversationDao
 import com.chainlesschain.android.core.database.dao.KnowledgeItemDao
 import com.chainlesschain.android.core.database.dao.P2PMessageDao
+import com.chainlesschain.android.core.database.migration.DatabaseMigrations
 import com.chainlesschain.android.core.security.KeyManager
 import dagger.Module
 import dagger.Provides
@@ -23,8 +25,16 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object DatabaseModule {
 
+    private const val TAG = "DatabaseModule"
+
     /**
      * 提供数据库实例（使用SQLCipher加密）
+     *
+     * 数据库配置：
+     * - SQLCipher AES-256 加密
+     * - 自动迁移支持
+     * - WAL 模式启用
+     * - Schema 导出启用
      */
     @Provides
     @Singleton
@@ -32,6 +42,8 @@ object DatabaseModule {
         @ApplicationContext context: Context,
         keyManager: KeyManager
     ): ChainlessChainDatabase {
+        Log.i(TAG, "Initializing ChainlessChain database")
+
         // 从Keystore获取数据库加密密钥
         val passphrase = keyManager.getDatabaseKey()
 
@@ -44,10 +56,17 @@ object DatabaseModule {
             ChainlessChainDatabase.DATABASE_NAME
         )
             .openHelperFactory(factory)
-            // TODO: 添加数据库迁移策略
-            // .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
-            .fallbackToDestructiveMigration() // 开发阶段使用，生产环境需要移除
+            // 添加所有迁移
+            .addMigrations(*DatabaseMigrations.getAllMigrations())
+            // 添加迁移回调
+            .addCallback(DatabaseMigrations.MigrationCallback())
+            // 仅在开发环境允许破坏性迁移作为最后手段
+            // 生产环境应该移除此行并确保所有迁移都已实现
+            .fallbackToDestructiveMigrationOnDowngrade()
             .build()
+            .also {
+                Log.i(TAG, "ChainlessChain database initialized successfully")
+            }
     }
 
     /**
