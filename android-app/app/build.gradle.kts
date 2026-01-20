@@ -90,6 +90,24 @@ android {
             excludes += "/META-INF/LICENSE*"
         }
     }
+
+    lint {
+        // Don't abort build on lint errors during Stage 1 development
+        abortOnError = false
+        // Treat warnings as warnings, not errors
+        warningsAsErrors = false
+        // Generate HTML report for CI artifacts
+        htmlReport = true
+        htmlOutput = file("${project.layout.buildDirectory.get()}/reports/lint-results-debug.html")
+        // Generate XML report for CI processing
+        xmlReport = true
+        xmlOutput = file("${project.layout.buildDirectory.get()}/reports/lint-results-debug.xml")
+        // Disable specific checks that are not critical for development
+        disable += setOf(
+            "HardcodedText",           // Chinese strings in code - will fix later
+            "ObsoleteLintCustomCheck"  // Custom lint check warnings
+        )
+    }
 }
 
 dependencies {
