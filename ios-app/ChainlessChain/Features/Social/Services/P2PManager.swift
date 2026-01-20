@@ -11,6 +11,7 @@ class P2PManager: ObservableObject {
     private let webrtcManager = WebRTCManager.shared
     private let signalManager = SignalProtocolManager.shared
     private let messageManager = MessageManager.shared
+    private let offlineQueue = OfflineMessageQueue.shared
 
     // Connection state
     @Published var isInitialized = false
@@ -19,6 +20,21 @@ class P2PManager: ObservableObject {
 
     // Signaling
     private var signalingService: SignalingService?
+
+    // Auto-reconnect configuration
+    private var autoReconnectEnabled = true
+    private var reconnectAttempts: [String: Int] = [:]
+    private var reconnectTimers: [String: Timer] = [:]
+    private let maxReconnectAttempts = 5
+    private let baseReconnectDelay: TimeInterval = 2.0  // seconds
+    private var disconnectedPeers: [String: PeerReconnectInfo] = [:]
+
+    struct PeerReconnectInfo {
+        let peerId: String
+        let preKeyBundle: SignalProtocolManager.PreKeyBundle?
+        var lastAttempt: Date
+        var attemptCount: Int
+    }
 
     enum ConnectionStatus: String {
         case disconnected
@@ -169,33 +185,75 @@ class P2PManager: ObservableObject {
     // MARK: - Messaging
 
     /// Send encrypted message to peer
+    /// If peer is not connected, message is queued for offline delivery
     func sendMessage(
         to peerId: String,
         content: String,
         type: MessageManager.Message.MessageType = .text,
         priority: MessageManager.Message.Priority = .normal
     ) async throws -> String {
-        guard connectedPeers.contains(peerId) else {
-            throw P2PError.peerNotConnected
-        }
-
         // 1. Encrypt message using Signal Protocol
         let encryptedData = try signalManager.encryptMessage(content, for: peerId)
         let encryptedBase64 = encryptedData.base64EncodedString()
 
-        // 2. Send via message manager (handles batching, deduplication)
-        let messageId = await messageManager.sendMessage(
-            to: peerId,
-            payload: encryptedBase64,
-            type: type,
-            priority: priority,
-            requireAck: true,
-            immediate: priority == .high
-        )
+        // 2. Check if peer is connected
+        if connectedPeers.contains(peerId) {
+            // Send immediately via message manager
+            let messageId = await messageManager.sendMessage(
+                to: peerId,
+                payload: encryptedBase64,
+                type: type,
+                priority: priority,
+                requireAck: true,
+                immediate: priority == .high
+            )
 
-        AppLogger.log("[P2P] Sent encrypted message to \(peerId): \(messageId)")
+            AppLogger.log("[P2P] Sent encrypted message to \(peerId): \(messageId)")
+            return messageId
+        } else {
+            // Queue for offline delivery
+            let messageId = try offlineQueue.enqueue(
+                peerId: peerId,
+                messageType: type.rawValue,
+                payload: encryptedBase64,
+                priority: priority,
+                requireAck: true,
+                expiresIn: 24 * 60 * 60  // 24 hours
+            )
 
-        return messageId
+            AppLogger.log("[P2P] Queued offline message for \(peerId): \(messageId)")
+            return messageId
+        }
+    }
+
+    /// Process offline message queue for a peer
+    private func processOfflineQueue(for peerId: String) async {
+        let pendingMessages = offlineQueue.getPendingMessages(for: peerId)
+
+        guard !pendingMessages.isEmpty else { return }
+
+        AppLogger.log("[P2P] Processing \(pendingMessages.count) offline messages for \(peerId)")
+
+        for queuedMessage in pendingMessages {
+            do {
+                // Send via message manager
+                _ = await messageManager.sendMessage(
+                    to: peerId,
+                    payload: queuedMessage.payload,
+                    type: MessageManager.Message.MessageType(rawValue: queuedMessage.messageType) ?? .text,
+                    priority: queuedMessage.priority,
+                    requireAck: queuedMessage.requireAck,
+                    immediate: queuedMessage.priority == .high
+                )
+
+                // Mark as sent
+                try offlineQueue.markAsSent(messageId: queuedMessage.id)
+
+            } catch {
+                AppLogger.error("[P2P] Failed to send queued message: \(error)")
+                try? offlineQueue.markAsFailed(messageId: queuedMessage.id, shouldRetry: true)
+            }
+        }
     }
 
     /// Handle received message
@@ -378,15 +436,136 @@ class P2PManager: ObservableObject {
         case .connected:
             connectionStatus[peerId] = .connected
             connectedPeers.insert(peerId)
-        case .disconnected, .closed:
+
+            // Clear reconnect state on successful connection
+            cancelReconnect(for: peerId)
+            AppLogger.log("[P2P] Connection established: \(peerId)")
+
+            // Process offline message queue for this peer
+            Task {
+                await processOfflineQueue(for: peerId)
+            }
+
+        case .disconnected:
             connectionStatus[peerId] = .disconnected
             connectedPeers.remove(peerId)
+
+            // Schedule reconnect attempt
+            if autoReconnectEnabled {
+                scheduleReconnect(for: peerId)
+            }
+
+        case .closed:
+            connectionStatus[peerId] = .disconnected
+            connectedPeers.remove(peerId)
+            cancelReconnect(for: peerId)
+
         case .failed:
             connectionStatus[peerId] = .failed
             connectedPeers.remove(peerId)
+
+            // Schedule reconnect attempt for failed connections
+            if autoReconnectEnabled {
+                scheduleReconnect(for: peerId)
+            }
+
         default:
             break
         }
+    }
+
+    // MARK: - Auto-Reconnect
+
+    /// Schedule a reconnect attempt with exponential backoff
+    private func scheduleReconnect(for peerId: String) {
+        let attempts = reconnectAttempts[peerId] ?? 0
+
+        guard attempts < maxReconnectAttempts else {
+            AppLogger.log("[P2P] Max reconnect attempts reached for: \(peerId)")
+            connectionStatus[peerId] = .failed
+            return
+        }
+
+        // Calculate delay with exponential backoff
+        let delay = baseReconnectDelay * pow(2.0, Double(attempts))
+        let jitter = Double.random(in: 0..<1.0)  // Add jitter to prevent thundering herd
+        let totalDelay = delay + jitter
+
+        AppLogger.log("[P2P] Scheduling reconnect for \(peerId) in \(totalDelay)s (attempt \(attempts + 1)/\(maxReconnectAttempts))")
+
+        // Cancel existing timer
+        reconnectTimers[peerId]?.invalidate()
+
+        // Schedule new reconnect attempt
+        let timer = Timer.scheduledTimer(withTimeInterval: totalDelay, repeats: false) { [weak self] _ in
+            Task { @MainActor in
+                await self?.attemptReconnect(peerId: peerId)
+            }
+        }
+
+        reconnectTimers[peerId] = timer
+        reconnectAttempts[peerId] = attempts + 1
+    }
+
+    /// Attempt to reconnect to a peer
+    private func attemptReconnect(peerId: String) async {
+        guard connectionStatus[peerId] != .connected else {
+            AppLogger.log("[P2P] Already connected to: \(peerId)")
+            return
+        }
+
+        AppLogger.log("[P2P] Attempting reconnect to: \(peerId)")
+        connectionStatus[peerId] = .connecting
+
+        do {
+            // Get stored pre-key bundle if available
+            let preKeyBundle = disconnectedPeers[peerId]?.preKeyBundle
+
+            try await connectToPeer(peerId: peerId, preKeyBundle: preKeyBundle)
+
+            AppLogger.log("[P2P] Reconnect successful: \(peerId)")
+
+        } catch {
+            AppLogger.error("[P2P] Reconnect failed: \(error)")
+
+            // Schedule another attempt if not at max
+            if (reconnectAttempts[peerId] ?? 0) < maxReconnectAttempts {
+                scheduleReconnect(for: peerId)
+            } else {
+                connectionStatus[peerId] = .failed
+            }
+        }
+    }
+
+    /// Cancel reconnect attempts for a peer
+    private func cancelReconnect(for peerId: String) {
+        reconnectTimers[peerId]?.invalidate()
+        reconnectTimers.removeValue(forKey: peerId)
+        reconnectAttempts.removeValue(forKey: peerId)
+    }
+
+    /// Enable or disable auto-reconnect
+    func setAutoReconnect(enabled: Bool) {
+        autoReconnectEnabled = enabled
+
+        if !enabled {
+            // Cancel all pending reconnects
+            for (_, timer) in reconnectTimers {
+                timer.invalidate()
+            }
+            reconnectTimers.removeAll()
+            reconnectAttempts.removeAll()
+        }
+    }
+
+    /// Store peer info for reconnection
+    func storePeerForReconnect(peerId: String, preKeyBundle: SignalProtocolManager.PreKeyBundle?) {
+        disconnectedPeers[peerId] = PeerReconnectInfo(
+            peerId: peerId,
+            preKeyBundle: preKeyBundle,
+            lastAttempt: Date(),
+            attemptCount: 0
+        )
     }
 
     private func sendMessageViaWebRTC(to peerId: String, message: MessageManager.Message) async throws {

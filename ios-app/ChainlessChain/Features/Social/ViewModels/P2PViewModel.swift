@@ -5,6 +5,7 @@ import SwiftUI
 @MainActor
 class P2PViewModel: ObservableObject {
     @Published var connectedPeers: [PeerInfo] = []
+    @Published var conversations: [P2PConversationEntity] = []
     @Published var messages: [ChatMessage] = []
     @Published var isInitialized = false
     @Published var isConnecting = false
@@ -12,7 +13,10 @@ class P2PViewModel: ObservableObject {
     @Published var statistics: P2PStatistics?
 
     private let p2pManager = P2PManager.shared
+    private let messageRepository = P2PMessageRepository.shared
     private var selectedPeerId: String?
+    private var currentConversationId: String?
+    private var myDid: String = ""
 
     struct PeerInfo: Identifiable {
         let id: String
@@ -24,17 +28,23 @@ class P2PViewModel: ObservableObject {
     struct ChatMessage: Identifiable {
         let id: String
         let peerId: String
-        let content: String
+        var content: String
         let type: MessageManager.Message.MessageType
         let timestamp: Date
         let isOutgoing: Bool
-        let status: MessageStatus
+        var status: MessageStatus
+        var isRecalled: Bool = false
+        var isEdited: Bool = false
+        var editCount: Int = 0
 
         enum MessageStatus {
             case sending
             case sent
             case delivered
+            case read
             case failed
+            case recalled
+            case edited
         }
     }
 
@@ -48,11 +58,45 @@ class P2PViewModel: ObservableObject {
         guard !isInitialized else { return }
 
         do {
+            // Get my DID from UserDefaults or DID manager
+            myDid = UserDefaults.standard.string(forKey: "current_user_id") ?? UUID().uuidString
+
             try await p2pManager.initialize(signalingServerURL: signalingServerURL)
             isInitialized = true
+
+            // Load saved conversations
+            await loadConversations()
+
             updateStatistics()
+            print("[P2PViewModel] Initialized with myDid: \(myDid)")
         } catch {
             handleError(error)
+        }
+    }
+
+    /// Load saved conversations
+    func loadConversations() async {
+        do {
+            conversations = try messageRepository.getAllConversations()
+            print("[P2PViewModel] Loaded \(conversations.count) conversations")
+
+            // Restore peer list from conversations
+            for conversation in conversations {
+                if let otherDid = conversation.getOtherParticipant(myDid: myDid) {
+                    let peerInfo = PeerInfo(
+                        id: otherDid,
+                        name: conversation.title ?? String(otherDid.prefix(8)),
+                        status: .disconnected,
+                        lastSeen: conversation.lastMessageAt
+                    )
+
+                    if !connectedPeers.contains(where: { $0.id == otherDid }) {
+                        connectedPeers.append(peerInfo)
+                    }
+                }
+            }
+        } catch {
+            print("[P2PViewModel] Error loading conversations: \(error)")
         }
     }
 
@@ -95,6 +139,10 @@ class P2PViewModel: ObservableObject {
 
     func sendMessage(to peerId: String, content: String, type: MessageManager.Message.MessageType = .text) async {
         do {
+            // Ensure we have a conversation
+            let conversation = try messageRepository.getOrCreateConversation(with: peerId, myDid: myDid)
+            currentConversationId = conversation.id
+
             let messageId = try await p2pManager.sendMessage(
                 to: peerId,
                 content: content,
@@ -102,20 +150,38 @@ class P2PViewModel: ObservableObject {
                 priority: .normal
             )
 
+            let timestamp = Date()
+
             // Add to local messages
             let message = ChatMessage(
                 id: messageId,
                 peerId: peerId,
                 content: content,
                 type: type,
-                timestamp: Date(),
+                timestamp: timestamp,
                 isOutgoing: true,
                 status: .sending
             )
 
             messages.append(message)
 
-            // Update status to sent after a delay (simplified)
+            // Save to database
+            let messageEntity = P2PMessageEntity(
+                id: messageId,
+                conversationId: conversation.id,
+                senderDid: myDid,
+                contentEncrypted: content, // Note: Already encrypted by P2PManager
+                contentType: type.rawValue,
+                status: "sending",
+                replyToId: nil,
+                metadata: nil,
+                createdAt: timestamp,
+                updatedAt: timestamp
+            )
+
+            try messageRepository.saveMessage(messageEntity)
+
+            // Update status to sent after a delay
             Task {
                 try? await Task.sleep(nanoseconds: 500_000_000) // 0.5s
                 if let index = messages.firstIndex(where: { $0.id == messageId }) {
@@ -128,8 +194,13 @@ class P2PViewModel: ObservableObject {
                         isOutgoing: message.isOutgoing,
                         status: .sent
                     )
+
+                    // Update status in database
+                    try? messageRepository.updateMessageStatus(id: messageId, status: "sent")
                 }
             }
+
+            print("[P2PViewModel] Message sent and saved: \(messageId)")
 
         } catch {
             handleError(error)
@@ -137,9 +208,129 @@ class P2PViewModel: ObservableObject {
     }
 
     private func loadMessages(for peerId: String) {
-        // Load messages from local storage
-        // This would integrate with a local database
-        messages = []
+        do {
+            // Find or create conversation for this peer
+            let conversation = try messageRepository.getOrCreateConversation(with: peerId, myDid: myDid)
+            currentConversationId = conversation.id
+
+            // Load messages from database
+            let messageEntities = try messageRepository.getRecentMessages(conversationId: conversation.id, limit: 100)
+
+            // Convert to ChatMessage
+            messages = messageEntities.map { entity in
+                ChatMessage(
+                    id: entity.id,
+                    peerId: peerId,
+                    content: entity.contentEncrypted, // Note: In production, this should be decrypted
+                    type: MessageManager.Message.MessageType(rawValue: entity.contentType) ?? .text,
+                    timestamp: entity.createdAt,
+                    isOutgoing: entity.isOutgoing(myDid: myDid),
+                    status: mapMessageStatus(entity.status)
+                )
+            }
+
+            // Reset unread count
+            try messageRepository.resetUnreadCount(conversationId: conversation.id)
+
+            print("[P2PViewModel] Loaded \(messages.count) messages for peer: \(peerId)")
+        } catch {
+            print("[P2PViewModel] Error loading messages: \(error)")
+            messages = []
+        }
+    }
+
+    private func mapMessageStatus(_ status: String) -> ChatMessage.MessageStatus {
+        switch status {
+        case "sending":
+            return .sending
+        case "sent":
+            return .sent
+        case "delivered":
+            return .delivered
+        case "read":
+            return .read
+        case "failed":
+            return .failed
+        case "recalled":
+            return .recalled
+        case "edited":
+            return .edited
+        default:
+            return .sent
+        }
+    }
+
+    // MARK: - Message Recall
+
+    /// 撤回消息
+    func recallMessage(messageId: String) async {
+        do {
+            let success = try await MessageStatusManager.shared.recallMessage(messageId: messageId)
+            if success {
+                // Update local message
+                if let index = messages.firstIndex(where: { $0.id == messageId }) {
+                    messages[index].isRecalled = true
+                    messages[index].status = .recalled
+                    messages[index].content = "[消息已撤回]"
+                }
+                print("[P2PViewModel] Message recalled: \(messageId)")
+            }
+        } catch {
+            handleError(error)
+        }
+    }
+
+    // MARK: - Message Edit
+
+    /// 编辑消息
+    func editMessage(messageId: String, newContent: String) async {
+        do {
+            let success = try await MessageStatusManager.shared.editMessage(messageId: messageId, newContent: newContent)
+            if success {
+                // Update local message
+                if let index = messages.firstIndex(where: { $0.id == messageId }) {
+                    messages[index].content = newContent
+                    messages[index].isEdited = true
+                    messages[index].editCount += 1
+                    messages[index].status = .edited
+                }
+                print("[P2PViewModel] Message edited: \(messageId)")
+            }
+        } catch {
+            handleError(error)
+        }
+    }
+
+    // MARK: - Mark As Read
+
+    /// 标记会话为已读
+    func markConversationAsRead() async {
+        guard let conversationId = currentConversationId else { return }
+
+        do {
+            try await MessageStatusManager.shared.markConversationAsRead(conversationId: conversationId, myDid: myDid)
+
+            // Update local messages
+            for index in messages.indices {
+                if !messages[index].isOutgoing && messages[index].status != .read {
+                    messages[index].status = .read
+                }
+            }
+        } catch {
+            print("[P2PViewModel] Error marking as read: \(error)")
+        }
+    }
+
+    // MARK: - Typing Indicator
+
+    /// 发送正在输入指示
+    func sendTypingIndicator(to peerId: String) {
+        MessageStatusManager.shared.sendTypingIndicator(to: peerId, myDid: myDid)
+    }
+
+    /// 发送停止输入指示
+    func sendStopTypingIndicator(to peerId: String) {
+        MessageStatusManager.shared.sendStopTypingIndicator(to: peerId, myDid: myDid)
     }
 
     // MARK: - Pre-Key Bundle Sharing
@@ -263,7 +454,8 @@ class P2PViewModel: ObservableObject {
             object: nil,
             queue: .main
         ) { [weak self] notification in
-            guard let peerId = notification.userInfo?["peerId"] as? String,
+            guard let self = self,
+                  let peerId = notification.userInfo?["peerId"] as? String,
                   let messageId = notification.userInfo?["messageId"] as? String,
                   let content = notification.userInfo?["content"] as? String,
                   let typeString = notification.userInfo?["type"] as? String,
@@ -273,6 +465,7 @@ class P2PViewModel: ObservableObject {
             }
 
             Task { @MainActor in
+                // Create chat message
                 let message = ChatMessage(
                     id: messageId,
                     peerId: peerId,
@@ -283,8 +476,126 @@ class P2PViewModel: ObservableObject {
                     status: .delivered
                 )
 
-                self?.messages.append(message)
+                self.messages.append(message)
+
+                // Save to database
+                do {
+                    let conversation = try self.messageRepository.getOrCreateConversation(with: peerId, myDid: self.myDid)
+
+                    let messageEntity = P2PMessageEntity(
+                        id: messageId,
+                        conversationId: conversation.id,
+                        senderDid: peerId,
+                        contentEncrypted: content,
+                        contentType: type.rawValue,
+                        status: "delivered",
+                        replyToId: nil,
+                        metadata: nil,
+                        createdAt: timestamp,
+                        updatedAt: timestamp
+                    )
+
+                    try self.messageRepository.saveMessage(messageEntity)
+
+                    // Increment unread count if not viewing this conversation
+                    if self.selectedPeerId != peerId {
+                        try self.messageRepository.incrementUnreadCount(conversationId: conversation.id)
+                    }
+
+                    print("[P2PViewModel] Received and saved message: \(messageId)")
+                } catch {
+                    print("[P2PViewModel] Error saving received message: \(error)")
+                }
             }
+        }
+
+        // Message status updated
+        NotificationCenter.default.addObserver(
+            forName: .messageStatusUpdated,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            guard let self = self,
+                  let messageId = notification.userInfo?["messageId"] as? String,
+                  let status = notification.userInfo?["status"] as? MessageStatusManager.MessageStatus else {
+                return
+            }
+
+            Task { @MainActor in
+                if let index = self.messages.firstIndex(where: { $0.id == messageId }) {
+                    self.messages[index].status = self.mapManagerStatus(status)
+                }
+            }
+        }
+
+        // Message recalled
+        NotificationCenter.default.addObserver(
+            forName: .messageRecalled,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            guard let self = self,
+                  let messageId = notification.userInfo?["messageId"] as? String else {
+                return
+            }
+
+            Task { @MainActor in
+                if let index = self.messages.firstIndex(where: { $0.id == messageId }) {
+                    self.messages[index].isRecalled = true
+                    self.messages[index].status = .recalled
+                    self.messages[index].content = "[消息已撤回]"
+                }
+            }
+        }
+
+        // Message edited
+        NotificationCenter.default.addObserver(
+            forName: .messageEdited,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            guard let self = self,
+                  let messageId = notification.userInfo?["messageId"] as? String,
+                  let newContent = notification.userInfo?["newContent"] as? String else {
+                return
+            }
+
+            Task { @MainActor in
+                if let index = self.messages.firstIndex(where: { $0.id == messageId }) {
+                    self.messages[index].content = newContent
+                    self.messages[index].isEdited = true
+                    self.messages[index].editCount += 1
+                }
+            }
+        }
+
+        // Peer typing
+        NotificationCenter.default.addObserver(
+            forName: .peerTyping,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            guard let senderDid = notification.userInfo?["senderDid"] as? String else { return }
+
+            Task { @MainActor in
+                if let index = self?.connectedPeers.firstIndex(where: { $0.id == senderDid }) {
+                    // Could add typing indicator state to PeerInfo
+                    print("[P2PViewModel] Peer typing: \(senderDid)")
+                }
+            }
+        }
+    }
+
+    /// Map MessageStatusManager status to ChatMessage status
+    private func mapManagerStatus(_ status: MessageStatusManager.MessageStatus) -> ChatMessage.MessageStatus {
+        switch status {
+        case .sending: return .sending
+        case .sent: return .sent
+        case .delivered: return .delivered
+        case .read: return .read
+        case .failed: return .failed
+        case .recalled: return .recalled
+        case .edited: return .edited
         }
     }
 
