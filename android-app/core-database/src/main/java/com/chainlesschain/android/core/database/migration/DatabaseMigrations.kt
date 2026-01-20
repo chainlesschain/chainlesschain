@@ -27,7 +27,8 @@ object DatabaseMigrations {
             MIGRATION_3_4,
             MIGRATION_4_5,
             MIGRATION_5_6,
-            MIGRATION_6_7
+            MIGRATION_6_7,
+            MIGRATION_7_8
         )
     }
 
@@ -336,6 +337,43 @@ object DatabaseMigrations {
             db.execSQL("INSERT INTO knowledge_items_fts(knowledge_items_fts) VALUES('rebuild')")
 
             Log.i(TAG, "Migration 6 to 7 completed successfully")
+        }
+    }
+
+    /**
+     * 迁移 7 -> 8
+     *
+     * 添加项目AI聊天消息表 (project_chat_messages)
+     */
+    val MIGRATION_7_8 = object : Migration(7, 8) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            Log.i(TAG, "Migrating database from version 7 to 8")
+
+            // 创建 project_chat_messages 表
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS `project_chat_messages` (
+                    `id` TEXT NOT NULL PRIMARY KEY,
+                    `projectId` TEXT NOT NULL,
+                    `role` TEXT NOT NULL,
+                    `content` TEXT NOT NULL,
+                    `referencedFileIds` TEXT,
+                    `model` TEXT,
+                    `tokenCount` INTEGER,
+                    `isQuickAction` INTEGER NOT NULL DEFAULT 0,
+                    `quickActionType` TEXT,
+                    `createdAt` INTEGER NOT NULL,
+                    `isStreaming` INTEGER NOT NULL DEFAULT 0,
+                    `error` TEXT,
+                    FOREIGN KEY (`projectId`) REFERENCES `projects`(`id`) ON DELETE CASCADE
+                )
+            """.trimIndent())
+
+            // 创建索引
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_project_chat_messages_projectId` ON `project_chat_messages` (`projectId`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_project_chat_messages_createdAt` ON `project_chat_messages` (`createdAt`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_project_chat_messages_projectId_createdAt` ON `project_chat_messages` (`projectId`, `createdAt`)")
+
+            Log.i(TAG, "Migration 7 to 8 completed successfully")
         }
     }
 

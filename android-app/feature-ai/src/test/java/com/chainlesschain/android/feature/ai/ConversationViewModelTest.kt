@@ -160,7 +160,7 @@ class ConversationViewModelTest {
     @Test
     fun `setApiKey should update state`() = runTest {
         // Given
-        val model = LLMModel("gpt-4", LLMProvider.OPENAI, "GPT-4")
+        val model = LLMModel(id = "gpt-4", name = "GPT-4", provider = LLMProvider.OPENAI)
         val apiKey = "test-api-key"
 
         // First set a model (setApiKey requires currentModel to be set)

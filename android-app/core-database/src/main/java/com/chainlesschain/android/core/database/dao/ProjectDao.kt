@@ -105,6 +105,9 @@ interface ProjectDao {
     @Query("SELECT * FROM project_files WHERE projectId = :projectId ORDER BY type DESC, name ASC")
     fun getProjectFiles(projectId: String): Flow<List<ProjectFileEntity>>
 
+    @Query("SELECT * FROM project_files WHERE projectId = :projectId ORDER BY type DESC, name ASC")
+    suspend fun getProjectFilesSync(projectId: String): List<ProjectFileEntity>
+
     @Query("SELECT * FROM project_files WHERE projectId = :projectId AND parentId IS NULL ORDER BY type DESC, name ASC")
     fun getRootFiles(projectId: String): Flow<List<ProjectFileEntity>>
 

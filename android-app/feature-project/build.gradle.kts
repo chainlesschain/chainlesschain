@@ -56,6 +56,10 @@ dependencies {
     implementation(project(":core-common"))
     implementation(project(":core-database"))
     implementation(project(":core-ui"))
+    implementation(project(":core-security"))
+
+    // Feature modules (for AI integration)
+    implementation(project(":feature-ai"))
 
     // Android Core
     implementation("androidx.core:core-ktx:1.12.0")
