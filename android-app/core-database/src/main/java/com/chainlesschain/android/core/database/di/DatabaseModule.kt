@@ -5,6 +5,7 @@ import androidx.room.Room
 import com.chainlesschain.android.core.database.ChainlessChainDatabase
 import com.chainlesschain.android.core.database.dao.ConversationDao
 import com.chainlesschain.android.core.database.dao.KnowledgeItemDao
+import com.chainlesschain.android.core.database.dao.P2PMessageDao
 import com.chainlesschain.android.core.security.KeyManager
 import dagger.Module
 import dagger.Provides
@@ -65,5 +66,14 @@ object DatabaseModule {
     @Singleton
     fun provideConversationDao(database: ChainlessChainDatabase): ConversationDao {
         return database.conversationDao()
+    }
+
+    /**
+     * 提供P2P消息DAO
+     */
+    @Provides
+    @Singleton
+    fun provideP2PMessageDao(database: ChainlessChainDatabase): P2PMessageDao {
+        return database.p2pMessageDao()
     }
 }
