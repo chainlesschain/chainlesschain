@@ -181,3 +181,8 @@ desktop-app-vue/docs/api/
 *.jks
 *.keystore
 *.base64
+docs/tools/file_reader.md
+docs/tools/tool2.md
+docs/tools/tool3.md
+docs/skills/skill-2.md
+docs/tools/tool1.md
