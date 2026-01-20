@@ -202,7 +202,15 @@ class OfflineMessageQueue {
 
     /// Clear queue for a peer
     func clearQueue(for peerId: String) throws {
-        try database.execute("DELETE FROM offline_message_queue WHERE peer_id = '\(peerId)'")
+        // Validate input
+        guard !peerId.isEmpty else {
+            logger.warning("Attempted to clear queue with empty peerId", category: "P2P")
+            return
+        }
+
+        // Use parameterized query to prevent SQL injection
+        let sql = "DELETE FROM offline_message_queue WHERE peer_id = ?"
+        _ = try database.query(sql, parameters: [peerId]) { _ in () }
         pendingMessages.removeValue(forKey: peerId)
 
         logger.info("Cleared offline queue for peer: \(peerId)", category: "P2P")

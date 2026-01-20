@@ -26,6 +26,11 @@ class ImageCacheManager: ObservableObject {
 
     // Notification observer token for cleanup
     private var memoryWarningObserver: NSObjectProtocol?
+    private var backgroundObserver: NSObjectProtocol?
+
+    // Scheduled cleanup
+    private var cleanupTask: Task<Void, Never>?
+    private let cleanupInterval: TimeInterval = 24 * 60 * 60  // Daily cleanup
 
     struct CacheStatistics {
         var memoryHits: Int = 0
@@ -64,11 +69,61 @@ class ImageCacheManager: ObservableObject {
         ) { [weak self] _ in
             self?.clearMemoryCache()
         }
+
+        // Set up background observer for cleanup
+        backgroundObserver = NotificationCenter.default.addObserver(
+            forName: UIApplication.didEnterBackgroundNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                await self?.cleanupExpiredFilesIfNeeded()
+            }
+        }
+
+        // Schedule periodic cleanup
+        scheduleCleanup()
+    }
+
+    /// Schedule periodic cache cleanup
+    private func scheduleCleanup() {
+        cleanupTask?.cancel()
+        cleanupTask = Task { [weak self] in
+            while !Task.isCancelled {
+                // Wait for cleanup interval
+                try? await Task.sleep(nanoseconds: UInt64(self?.cleanupInterval ?? 86400) * 1_000_000_000)
+
+                guard !Task.isCancelled else { break }
+
+                // Perform cleanup
+                await self?.cleanupExpiredFilesIfNeeded()
+            }
+        }
+    }
+
+    /// Cleanup expired files if needed (checks last cleanup time)
+    private func cleanupExpiredFilesIfNeeded() async {
+        let lastCleanupKey = "ImageCacheLastCleanup"
+        let lastCleanup = UserDefaults.standard.double(forKey: lastCleanupKey)
+        let now = Date().timeIntervalSince1970
+
+        // Only cleanup if more than 24 hours since last cleanup
+        if now - lastCleanup > cleanupInterval {
+            await cleanupExpiredFiles()
+            UserDefaults.standard.set(now, forKey: lastCleanupKey)
+            logger.info("[ImageCache] Automatic cleanup completed", category: "Cache")
+        }
     }
 
     deinit {
-        // Remove notification observer
+        // Cancel cleanup task
+        cleanupTask?.cancel()
+
+        // Remove notification observers
         if let observer = memoryWarningObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
+        if let observer = backgroundObserver {
             NotificationCenter.default.removeObserver(observer)
         }
     }

@@ -1,7 +1,7 @@
 # ChainlessChain iOS 项目状态报告
 
 **生成日期**: 2026-01-20
-**版本**: v0.4.4
+**版本**: v0.4.5
 **完成度**: 100%
 
 ---
@@ -301,6 +301,7 @@ Assets.xcassets/                # 应用资源
 | 2026-01-20 | v0.4.2 | 100%   | P2PContactRepository安全修复、MessageDeliveryManager内存修复、集合大小限制 |
 | 2026-01-20 | v0.4.3 | 100%   | 项目管理模块完整实现（参考桌面端）、ProjectRepository/Manager/Views        |
 | 2026-01-20 | v0.4.4 | 100%   | LLM上下文限制、VectorStore SIMD优化、图片压缩后台线程、安全修复            |
+| 2026-01-20 | v0.4.5 | 100%   | WebSocket重连、消息限流、联系人缓存、SHA256哈希、自动缓存清理              |
 
 ---
 
@@ -333,6 +334,13 @@ Assets.xcassets/                # 应用资源
 25. ~~**路径遍历漏洞**：ProjectManager文件名未验证~~ ✅ 已添加sanitizeFileName安全函数
 26. ~~**VectorStore搜索性能**：O(n log n)排序~~ ✅ 已优化为O(n log k)最小堆+SIMD
 27. ~~**图片压缩阻塞UI**：主线程处理图片~~ ✅ 已移至后台线程+UIGraphicsImageRenderer
+28. ~~**OfflineMessageQueue SQL注入**：clearQueue字符串拼接~~ ✅ 已改用参数化查询
+29. ~~**WebSocket无重连**：断连后不会自动重连~~ ✅ 已添加指数退避重连（最多10次）
+30. ~~**重试延迟无上限**：指数退避可能溢出~~ ✅ 已添加5分钟最大延迟
+31. ~~**哈希碰撞风险**：EmbeddingsService 32位哈希~~ ✅ 已改用SHA256
+32. ~~**无消息限流**：可无限发送消息~~ ✅ 已添加10条/秒限制
+33. ~~**N+1联系人查询**：getPeerName重复查数据库~~ ✅ 已添加contactNameCache
+34. ~~**缓存无自动清理**：过期文件不会删除~~ ✅ 已添加每日自动清理
 
 ---
 
