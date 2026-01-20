@@ -4,10 +4,17 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chainlesschain.android.core.database.entity.ProjectActivityEntity
+import com.chainlesschain.android.core.database.entity.ProjectChatMessageEntity
 import com.chainlesschain.android.core.database.entity.ProjectEntity
 import com.chainlesschain.android.core.database.entity.ProjectFileEntity
+import com.chainlesschain.android.core.database.entity.ProjectQuickAction
 import com.chainlesschain.android.core.database.entity.ProjectStatus
 import com.chainlesschain.android.core.database.entity.ProjectType
+import com.chainlesschain.android.feature.ai.data.repository.ConversationRepository
+import com.chainlesschain.android.feature.ai.data.repository.LLMAdapterFactory
+import com.chainlesschain.android.feature.ai.domain.model.LLMProvider
+import com.chainlesschain.android.feature.ai.domain.model.Message
+import com.chainlesschain.android.feature.ai.domain.model.MessageRole
 import com.chainlesschain.android.feature.project.model.CreateProjectRequest
 import com.chainlesschain.android.feature.project.model.FileTreeNode
 import com.chainlesschain.android.feature.project.model.ProjectDetailState
@@ -17,8 +24,10 @@ import com.chainlesschain.android.feature.project.model.ProjectSortBy
 import com.chainlesschain.android.feature.project.model.ProjectWithStats
 import com.chainlesschain.android.feature.project.model.SortDirection
 import com.chainlesschain.android.feature.project.model.UpdateProjectRequest
+import com.chainlesschain.android.feature.project.repository.ProjectChatRepository
 import com.chainlesschain.android.feature.project.repository.ProjectRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -50,11 +59,16 @@ sealed class ProjectUiEvent {
  */
 @HiltViewModel
 class ProjectViewModel @Inject constructor(
-    private val projectRepository: ProjectRepository
+    private val projectRepository: ProjectRepository,
+    private val projectChatRepository: ProjectChatRepository,
+    private val conversationRepository: ConversationRepository,
+    private val llmAdapterFactory: LLMAdapterFactory
 ) : ViewModel() {
 
     companion object {
         private const val TAG = "ProjectViewModel"
+        private const val DEFAULT_MODEL = "deepseek-chat"
+        private const val DEFAULT_PROVIDER = "DEEPSEEK"
     }
 
     // ===== 当前用户 =====
@@ -113,6 +127,25 @@ class ProjectViewModel @Inject constructor(
 
     private val _projectCountByType = MutableStateFlow<Map<String, Int>>(emptyMap())
     val projectCountByType: StateFlow<Map<String, Int>> = _projectCountByType.asStateFlow()
+
+    // ===== AI Chat State =====
+    private val _chatMessages = MutableStateFlow<List<ProjectChatMessageEntity>>(emptyList())
+    val chatMessages: StateFlow<List<ProjectChatMessageEntity>> = _chatMessages.asStateFlow()
+
+    private val _chatInputText = MutableStateFlow("")
+    val chatInputText: StateFlow<String> = _chatInputText.asStateFlow()
+
+    private val _isAiResponding = MutableStateFlow(false)
+    val isAiResponding: StateFlow<Boolean> = _isAiResponding.asStateFlow()
+
+    private val _currentModel = MutableStateFlow(DEFAULT_MODEL)
+    val currentModel: StateFlow<String> = _currentModel.asStateFlow()
+
+    private val _currentProvider = MutableStateFlow(LLMProvider.DEEPSEEK)
+    val currentProvider: StateFlow<LLMProvider> = _currentProvider.asStateFlow()
+
+    private var currentStreamingJob: Job? = null
+    private var lastUserMessage: String = ""
 
     /**
      * 设置当前用户
@@ -438,6 +471,9 @@ class ProjectViewModel @Inject constructor(
 
         // 加载活动
         loadProjectActivities(projectId)
+
+        // 加载AI聊天消息
+        loadChatMessages(projectId)
     }
 
     /**
@@ -673,11 +709,237 @@ class ProjectViewModel @Inject constructor(
         return projectRepository.getDirtyFiles(projectId)
     }
 
+    // ===== AI Chat Operations =====
+
+    /**
+     * Load chat messages for current project
+     */
+    private fun loadChatMessages(projectId: String) {
+        viewModelScope.launch {
+            projectChatRepository.getMessages(projectId)
+                .catch { e ->
+                    Log.e(TAG, "Error loading chat messages", e)
+                }
+                .collect { messages ->
+                    _chatMessages.value = messages
+                }
+        }
+    }
+
+    /**
+     * Update chat input text
+     */
+    fun updateChatInput(text: String) {
+        _chatInputText.value = text
+    }
+
+    /**
+     * Send chat message
+     */
+    fun sendChatMessage() {
+        val projectId = _currentProjectId.value ?: return
+        val content = _chatInputText.value.trim()
+        if (content.isBlank()) return
+
+        lastUserMessage = content
+        _chatInputText.value = ""
+
+        viewModelScope.launch {
+            // Add user message
+            val userMessageResult = projectChatRepository.addUserMessage(projectId, content)
+            if (userMessageResult.isError()) {
+                _uiEvents.emit(ProjectUiEvent.ShowError("Failed to send message"))
+                return@launch
+            }
+
+            // Get AI response
+            sendToAi(projectId, content)
+        }
+    }
+
+    /**
+     * Execute quick action
+     */
+    fun executeQuickAction(actionType: String) {
+        val projectId = _currentProjectId.value ?: return
+
+        viewModelScope.launch {
+            val prompt = when (actionType) {
+                ProjectQuickAction.GENERATE_README -> "Generate a comprehensive README.md file for this project. Include sections for: project title, description, features, installation, usage, and license."
+                ProjectQuickAction.EXPLAIN_CODE -> "Explain what this project does, its main components, and how they work together."
+                ProjectQuickAction.REVIEW_CODE -> "Review this project's code structure and suggest improvements for code quality, organization, and best practices."
+                ProjectQuickAction.SUGGEST_FILES -> "Based on this project's structure, suggest what additional files might be useful to add."
+                "explain_project" -> "What does this project do? Explain its purpose and main functionality."
+                "suggest_improvements" -> "Analyze this project and suggest specific improvements for code quality, performance, and maintainability."
+                else -> actionType
+            }
+
+            // Add user message for the quick action
+            projectChatRepository.addUserMessage(projectId, prompt)
+
+            // Send to AI with quick action flag
+            sendToAi(projectId, prompt, isQuickAction = true, quickActionType = actionType)
+        }
+    }
+
+    /**
+     * Send message to AI and handle streaming response
+     */
+    private suspend fun sendToAi(
+        projectId: String,
+        content: String,
+        isQuickAction: Boolean = false,
+        quickActionType: String? = null
+    ) {
+        _isAiResponding.value = true
+        currentStreamingJob?.cancel()
+
+        try {
+            // Build context with project info
+            val systemPrompt = projectChatRepository.buildProjectContext(projectId)
+
+            // Get recent messages for conversation history
+            val recentMessages = projectChatRepository.getRecentMessages(projectId, 10)
+
+            // Build message list for LLM
+            val messages = mutableListOf<Message>()
+
+            // Add system message
+            messages.add(Message(
+                id = "system",
+                conversationId = projectId,
+                role = MessageRole.SYSTEM,
+                content = systemPrompt,
+                createdAt = System.currentTimeMillis()
+            ))
+
+            // Add conversation history
+            recentMessages.forEach { msg ->
+                messages.add(Message(
+                    id = msg.id,
+                    conversationId = projectId,
+                    role = when (msg.role) {
+                        "user" -> MessageRole.USER
+                        "assistant" -> MessageRole.ASSISTANT
+                        else -> MessageRole.SYSTEM
+                    },
+                    content = msg.content,
+                    createdAt = msg.createdAt
+                ))
+            }
+
+            // Create placeholder for assistant response
+            val placeholderResult = projectChatRepository.createAssistantMessagePlaceholder(
+                projectId = projectId,
+                model = _currentModel.value,
+                isQuickAction = isQuickAction,
+                quickActionType = quickActionType
+            )
+
+            if (placeholderResult.isError()) {
+                _uiEvents.emit(ProjectUiEvent.ShowError("Failed to create response placeholder"))
+                _isAiResponding.value = false
+                return
+            }
+
+            val placeholderMessage = placeholderResult.data!!
+
+            // Get API key for the provider
+            val apiKey = conversationRepository.getApiKey(_currentProvider.value)
+
+            // Create adapter and stream response
+            val adapter = llmAdapterFactory.createAdapter(_currentProvider.value, apiKey)
+            var fullResponse = StringBuilder()
+
+            currentStreamingJob = viewModelScope.launch {
+                try {
+                    adapter.streamChat(
+                        messages = messages,
+                        model = _currentModel.value
+                    ).collect { chunk ->
+                        if (chunk.error != null) {
+                            projectChatRepository.setMessageError(placeholderMessage.id, chunk.error)
+                            _uiEvents.emit(ProjectUiEvent.ShowError(chunk.error))
+                        } else {
+                            fullResponse.append(chunk.content)
+                            projectChatRepository.updateStreamingContent(
+                                placeholderMessage.id,
+                                fullResponse.toString()
+                            )
+                        }
+
+                        if (chunk.isDone) {
+                            projectChatRepository.completeMessage(placeholderMessage.id, null)
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error streaming AI response", e)
+                    projectChatRepository.setMessageError(placeholderMessage.id, e.message ?: "Unknown error")
+                    _uiEvents.emit(ProjectUiEvent.ShowError(e.message ?: "AI response failed"))
+                }
+            }
+
+            currentStreamingJob?.join()
+
+        } catch (e: Exception) {
+            Log.e(TAG, "Error sending to AI", e)
+            _uiEvents.emit(ProjectUiEvent.ShowError(e.message ?: "Failed to get AI response"))
+        } finally {
+            _isAiResponding.value = false
+        }
+    }
+
+    /**
+     * Retry last message
+     */
+    fun retryChatMessage() {
+        if (lastUserMessage.isNotBlank()) {
+            val projectId = _currentProjectId.value ?: return
+            viewModelScope.launch {
+                sendToAi(projectId, lastUserMessage)
+            }
+        }
+    }
+
+    /**
+     * Clear chat history for current project
+     */
+    fun clearChatHistory() {
+        val projectId = _currentProjectId.value ?: return
+
+        viewModelScope.launch {
+            val result = projectChatRepository.clearChatHistory(projectId)
+            result.fold(
+                onSuccess = {
+                    _uiEvents.emit(ProjectUiEvent.ShowMessage("Chat history cleared"))
+                },
+                onFailure = { error ->
+                    _uiEvents.emit(ProjectUiEvent.ShowError(error.message ?: "Failed to clear chat"))
+                }
+            )
+        }
+    }
+
+    /**
+     * Set LLM model
+     */
+    fun setModel(model: String) {
+        _currentModel.value = model
+    }
+
+    /**
+     * Set LLM provider
+     */
+    fun setProvider(provider: LLMProvider) {
+        _currentProvider.value = provider
+    }
+
     /**
      * 清理资源
      */
     override fun onCleared() {
         super.onCleared()
+        currentStreamingJob?.cancel()
         Log.d(TAG, "ProjectViewModel cleared")
     }
 }
