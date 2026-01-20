@@ -8,12 +8,16 @@ import com.chainlesschain.android.core.database.dao.ConversationDao
 import com.chainlesschain.android.core.database.dao.P2PMessageDao
 import com.chainlesschain.android.core.database.dao.OfflineQueueDao
 import com.chainlesschain.android.core.database.dao.FileTransferDao
+import com.chainlesschain.android.core.database.dao.ProjectDao
 import com.chainlesschain.android.core.database.entity.KnowledgeItemEntity
 import com.chainlesschain.android.core.database.entity.ConversationEntity
 import com.chainlesschain.android.core.database.entity.MessageEntity
 import com.chainlesschain.android.core.database.entity.P2PMessageEntity
 import com.chainlesschain.android.core.database.entity.OfflineQueueEntity
 import com.chainlesschain.android.core.database.entity.FileTransferEntity
+import com.chainlesschain.android.core.database.entity.ProjectEntity
+import com.chainlesschain.android.core.database.entity.ProjectFileEntity
+import com.chainlesschain.android.core.database.entity.ProjectActivityEntity
 import com.chainlesschain.android.core.database.util.Converters
 
 /**
@@ -31,8 +35,11 @@ import com.chainlesschain.android.core.database.util.Converters
         P2PMessageEntity::class,
         OfflineQueueEntity::class,
         FileTransferEntity::class,
+        ProjectEntity::class,
+        ProjectFileEntity::class,
+        ProjectActivityEntity::class,
     ],
-    version = 5,
+    version = 6,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -52,6 +59,9 @@ abstract class ChainlessChainDatabase : RoomDatabase() {
 
     // 文件传输DAO
     abstract fun fileTransferDao(): FileTransferDao
+
+    // 项目管理DAO
+    abstract fun projectDao(): ProjectDao
 
     companion object {
         const val DATABASE_NAME = "chainlesschain.db"
