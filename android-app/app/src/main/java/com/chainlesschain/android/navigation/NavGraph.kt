@@ -1,8 +1,16 @@
 package com.chainlesschain.android.navigation
 
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -121,8 +129,8 @@ fun NavGraph(
                 onNewConversation = {
                     navController.navigate(Screen.NewConversation.route)
                 },
-                onNavigateBack = {
-                    navController.popBackStack()
+                onSettings = {
+                    navController.navigate(Screen.AISettings.route)
                 }
             )
         }
@@ -160,6 +168,15 @@ fun NavGraph(
             )
         }
 
+        // AI设置界面（占位）
+        composable(route = Screen.AISettings.route) {
+            AISettingsPlaceholder(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
         // P2P 功能导航图
         p2pGraph(
             navController = navController,
@@ -188,6 +205,7 @@ sealed class Screen(val route: String) {
     data object Chat : Screen("chat") {
         fun createRoute(conversationId: String) = "chat/$conversationId"
     }
+    data object AISettings : Screen("ai_settings")
 }
 
 /**
@@ -201,5 +219,51 @@ fun getStartDestination(viewModel: AuthViewModel = hiltViewModel()): String {
         !uiState.isSetupComplete -> Screen.SetupPin.route
         !uiState.isAuthenticated -> Screen.Login.route
         else -> Screen.Home.route
+    }
+}
+
+/**
+ * AI设置占位界面
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AISettingsPlaceholder(
+    onNavigateBack: () -> Unit
+) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("AI 设置") },
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
+                    }
+                }
+            )
+        }
+    ) { paddingValues ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Settings,
+                    contentDescription = null,
+                    modifier = Modifier.size(64.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                )
+                Text(
+                    text = "AI 设置功能开发中...",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
     }
 }

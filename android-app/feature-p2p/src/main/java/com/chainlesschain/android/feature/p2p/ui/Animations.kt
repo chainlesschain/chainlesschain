@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalAnimationApi::class)
+
 package com.chainlesschain.android.feature.p2p.ui
 
 import androidx.compose.animation.*
