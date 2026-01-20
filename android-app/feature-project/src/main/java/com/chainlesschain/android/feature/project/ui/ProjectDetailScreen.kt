@@ -80,10 +80,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.chainlesschain.android.core.database.entity.ProjectActivityEntity
+import com.chainlesschain.android.core.database.entity.ProjectChatMessageEntity
 import com.chainlesschain.android.core.database.entity.ProjectEntity
 import com.chainlesschain.android.core.database.entity.ProjectStatus
 import com.chainlesschain.android.feature.project.model.FileTreeNode
 import com.chainlesschain.android.feature.project.model.ProjectDetailState
+import com.chainlesschain.android.feature.project.ui.components.ProjectChatPanel
 import com.chainlesschain.android.feature.project.viewmodel.ProjectUiEvent
 import com.chainlesschain.android.feature.project.viewmodel.ProjectViewModel
 import java.text.SimpleDateFormat
@@ -102,6 +104,11 @@ fun ProjectDetailScreen(
     val fileTree by viewModel.fileTree.collectAsState()
     val activities by viewModel.projectActivities.collectAsState()
     val openFiles by viewModel.openFiles.collectAsState()
+
+    // AI Chat states
+    val chatMessages by viewModel.chatMessages.collectAsState()
+    val chatInputText by viewModel.chatInputText.collectAsState()
+    val isAiResponding by viewModel.isAiResponding.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
     var selectedTab by remember { mutableIntStateOf(0) }
@@ -307,6 +314,11 @@ fun ProjectDetailScreen(
                         Tab(
                             selected = selectedTab == 1,
                             onClick = { selectedTab = 1 },
+                            text = { Text("AI 助手") }
+                        )
+                        Tab(
+                            selected = selectedTab == 2,
+                            onClick = { selectedTab = 2 },
                             text = { Text("活动") }
                         )
                     }
@@ -324,7 +336,17 @@ fun ProjectDetailScreen(
                             },
                             onDeleteFile = { viewModel.deleteFile(it) }
                         )
-                        1 -> ActivityListView(activities = activities)
+                        1 -> ProjectChatPanel(
+                            messages = chatMessages,
+                            isAiResponding = isAiResponding,
+                            inputText = chatInputText,
+                            onInputChange = { viewModel.updateChatInput(it) },
+                            onSendMessage = { viewModel.sendChatMessage() },
+                            onQuickAction = { viewModel.executeQuickAction(it) },
+                            onClearChat = { viewModel.clearChatHistory() },
+                            onRetry = { viewModel.retryChatMessage() }
+                        )
+                        2 -> ActivityListView(activities = activities)
                     }
                 }
             }

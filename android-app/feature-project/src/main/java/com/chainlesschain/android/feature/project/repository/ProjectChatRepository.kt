@@ -204,7 +204,7 @@ Be concise and helpful. Reference specific files when relevant.
      * Get file content by ID
      */
     suspend fun getFileContentById(fileId: String): String? {
-        return projectDao.getFileByIdSync(fileId)?.content
+        return projectDao.getFileById(fileId)?.content
     }
 
     private fun buildFileTreeString(files: List<ProjectFileEntity>, indent: String = ""): String {

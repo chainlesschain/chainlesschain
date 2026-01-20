@@ -1,7 +1,7 @@
 # ChainlessChain iOS 项目状态报告
 
 **生成日期**: 2026-01-20
-**版本**: v0.5.2
+**版本**: v0.5.3
 **完成度**: 100%
 
 ---
@@ -130,6 +130,12 @@
      - 历史与差异：log、showCommit、getDiff
      - 分支管理：branches、createBranch、checkout、merge、deleteBranch
      - 配置管理：author、remotes、generateCommitMessage
+   - **SyncManager** ✅ 新增 - 同步与恢复完整实现（参考桌面端project-core-ipc.js）
+     - 同步操作：syncAll、syncProject、markForSync
+     - 恢复操作：scanRecoverableProjects、recoverProject、recoverProjects、autoRecoverAll
+     - 备份管理：backupProject、cleanupOldBackups
+     - 冲突解决：resolveConflict（serverWins/localWins/newest/manual）
+     - 自动同步：startAutoSync、配置管理
    - 参考桌面端完整实现
 
 ---
@@ -190,7 +196,7 @@
 
 ## ❌ 未开始功能
 
-1. **数据同步** - 跨设备同步
+1. ~~**数据同步** - 跨设备同步~~ ✅ 已完成（SyncManager）
 2. ~~**推送通知** - APNs 集成~~ ✅ 已完成
 3. **Widgets** - iOS 14+ 小组件
 4. ~~**本地化** - 仅中文~~ ✅ 已添加中英文支持
@@ -324,6 +330,7 @@ Assets.xcassets/                # 应用资源
 | 2026-01-20 | v0.5.0 | 100%   | 安全修复（NULL指针、强制解包）、内存泄漏修复、Timer管理、VectorStore优化       |
 | 2026-01-20 | v0.5.1 | 100%   | 文件操作（复制/移动/导入/导出）、DocumentExportManager、PDF/HTML导出           |
 | 2026-01-20 | v0.5.2 | 100%   | GitManager完整实现（14个操作：init/status/commit/push/pull/log/diff/分支管理） |
+| 2026-01-20 | v0.5.3 | 100%   | SyncManager同步恢复（syncAll/recoverProject/backup/conflict解决/自动同步）     |
 
 ---
 
