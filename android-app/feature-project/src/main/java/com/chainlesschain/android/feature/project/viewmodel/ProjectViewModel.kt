@@ -15,6 +15,7 @@ import com.chainlesschain.android.feature.ai.data.repository.LLMAdapterFactory
 import com.chainlesschain.android.feature.ai.domain.model.LLMProvider
 import com.chainlesschain.android.feature.ai.domain.model.Message
 import com.chainlesschain.android.feature.ai.domain.model.MessageRole
+import com.chainlesschain.android.feature.project.model.ChatContextMode
 import com.chainlesschain.android.feature.project.model.CreateProjectRequest
 import com.chainlesschain.android.feature.project.model.FileTreeNode
 import com.chainlesschain.android.feature.project.model.ProjectDetailState
@@ -23,6 +24,8 @@ import com.chainlesschain.android.feature.project.model.ProjectListState
 import com.chainlesschain.android.feature.project.model.ProjectSortBy
 import com.chainlesschain.android.feature.project.model.ProjectWithStats
 import com.chainlesschain.android.feature.project.model.SortDirection
+import com.chainlesschain.android.feature.project.model.TaskPlan
+import com.chainlesschain.android.feature.project.model.ThinkingStage
 import com.chainlesschain.android.feature.project.model.UpdateProjectRequest
 import com.chainlesschain.android.feature.project.repository.ProjectChatRepository
 import com.chainlesschain.android.feature.project.repository.ProjectRepository
@@ -143,6 +146,41 @@ class ProjectViewModel @Inject constructor(
 
     private val _currentProvider = MutableStateFlow(LLMProvider.DEEPSEEK)
     val currentProvider: StateFlow<LLMProvider> = _currentProvider.asStateFlow()
+
+    // ===== Context Mode State =====
+    private val _contextMode = MutableStateFlow(ChatContextMode.PROJECT)
+    val contextMode: StateFlow<ChatContextMode> = _contextMode.asStateFlow()
+
+    private val _selectedFileForContext = MutableStateFlow<ProjectFileEntity?>(null)
+    val selectedFileForContext: StateFlow<ProjectFileEntity?> = _selectedFileForContext.asStateFlow()
+
+    // ===== File Search State =====
+    private val _fileSearchQuery = MutableStateFlow("")
+    val fileSearchQuery: StateFlow<String> = _fileSearchQuery.asStateFlow()
+
+    private val _isFileSearchExpanded = MutableStateFlow(false)
+    val isFileSearchExpanded: StateFlow<Boolean> = _isFileSearchExpanded.asStateFlow()
+
+    private val _filteredFiles = MutableStateFlow<List<ProjectFileEntity>>(emptyList())
+    val filteredFiles: StateFlow<List<ProjectFileEntity>> = _filteredFiles.asStateFlow()
+
+    // ===== File Mention State =====
+    private val _isFileMentionVisible = MutableStateFlow(false)
+    val isFileMentionVisible: StateFlow<Boolean> = _isFileMentionVisible.asStateFlow()
+
+    private val _fileMentionSearchQuery = MutableStateFlow("")
+    val fileMentionSearchQuery: StateFlow<String> = _fileMentionSearchQuery.asStateFlow()
+
+    private val _mentionedFiles = MutableStateFlow<List<ProjectFileEntity>>(emptyList())
+    val mentionedFiles: StateFlow<List<ProjectFileEntity>> = _mentionedFiles.asStateFlow()
+
+    // ===== Thinking Stage State =====
+    private val _currentThinkingStage = MutableStateFlow(ThinkingStage.UNDERSTANDING)
+    val currentThinkingStage: StateFlow<ThinkingStage> = _currentThinkingStage.asStateFlow()
+
+    // ===== Task Plan State =====
+    private val _currentTaskPlan = MutableStateFlow<TaskPlan?>(null)
+    val currentTaskPlan: StateFlow<TaskPlan?> = _currentTaskPlan.asStateFlow()
 
     private var currentStreamingJob: Job? = null
     private var lastUserMessage: String = ""
@@ -747,7 +785,7 @@ class ProjectViewModel @Inject constructor(
         viewModelScope.launch {
             // Add user message
             val userMessageResult = projectChatRepository.addUserMessage(projectId, content)
-            if (userMessageResult.isError()) {
+            if (userMessageResult.isError) {
                 _uiEvents.emit(ProjectUiEvent.ShowError("Failed to send message"))
                 return@launch
             }
@@ -792,11 +830,13 @@ class ProjectViewModel @Inject constructor(
         quickActionType: String? = null
     ) {
         _isAiResponding.value = true
+        _currentThinkingStage.value = ThinkingStage.UNDERSTANDING
         currentStreamingJob?.cancel()
 
         try {
-            // Build context with project info
-            val systemPrompt = projectChatRepository.buildProjectContext(projectId)
+            // Build context based on context mode
+            _currentThinkingStage.value = ThinkingStage.ANALYZING
+            val systemPrompt = buildContextPrompt(projectId)
 
             // Get recent messages for conversation history
             val recentMessages = projectChatRepository.getRecentMessages(projectId, 10)
@@ -836,13 +876,13 @@ class ProjectViewModel @Inject constructor(
                 quickActionType = quickActionType
             )
 
-            if (placeholderResult.isError()) {
+            if (placeholderResult.isError) {
                 _uiEvents.emit(ProjectUiEvent.ShowError("Failed to create response placeholder"))
                 _isAiResponding.value = false
                 return
             }
 
-            val placeholderMessage = placeholderResult.data!!
+            val placeholderMessage = placeholderResult.getOrNull()!!
 
             // Get API key for the provider
             val apiKey = conversationRepository.getApiKey(_currentProvider.value)
@@ -851,8 +891,12 @@ class ProjectViewModel @Inject constructor(
             val adapter = llmAdapterFactory.createAdapter(_currentProvider.value, apiKey)
             var fullResponse = StringBuilder()
 
+            _currentThinkingStage.value = ThinkingStage.PLANNING
+
             currentStreamingJob = viewModelScope.launch {
                 try {
+                    _currentThinkingStage.value = ThinkingStage.GENERATING
+
                     adapter.streamChat(
                         messages = messages,
                         model = _currentModel.value
@@ -866,10 +910,15 @@ class ProjectViewModel @Inject constructor(
                                 placeholderMessage.id,
                                 fullResponse.toString()
                             )
+
+                            // Check if response contains a task plan
+                            checkForTaskPlan(fullResponse.toString(), projectId)
                         }
 
                         if (chunk.isDone) {
                             projectChatRepository.completeMessage(placeholderMessage.id, null)
+                            // Clear mentioned files after successful send
+                            clearFileMentions()
                         }
                     }
                 } catch (e: Exception) {
@@ -886,6 +935,99 @@ class ProjectViewModel @Inject constructor(
             _uiEvents.emit(ProjectUiEvent.ShowError(e.message ?: "Failed to get AI response"))
         } finally {
             _isAiResponding.value = false
+            _currentThinkingStage.value = ThinkingStage.UNDERSTANDING
+        }
+    }
+
+    /**
+     * Build context prompt based on context mode
+     */
+    private suspend fun buildContextPrompt(projectId: String): String {
+        val baseContext = projectChatRepository.buildProjectContext(projectId)
+
+        return when (_contextMode.value) {
+            ChatContextMode.PROJECT -> {
+                baseContext
+            }
+
+            ChatContextMode.FILE -> {
+                val file = _selectedFileForContext.value
+                if (file != null) {
+                    """
+                    |$baseContext
+                    |
+                    |---
+                    |当前聚焦文件: ${file.name}
+                    |文件路径: ${file.path}
+                    |文件内容:
+                    |```${file.extension ?: ""}
+                    |${file.content ?: "(文件内容不可用)"}
+                    |```
+                    |
+                    |请专注于这个文件的分析和修改。
+                    """.trimMargin()
+                } else {
+                    baseContext
+                }
+            }
+
+            ChatContextMode.GLOBAL -> {
+                """
+                |你是一个通用的AI助手，可以帮助回答各种问题。
+                |当前用户在一个项目管理应用中与你对话。
+                |如果问题与当前项目相关，请告诉用户切换到"项目"模式以获得更好的上下文。
+                """.trimMargin()
+            }
+        } + getMentionedFilesContext()
+    }
+
+    /**
+     * Get context for mentioned files
+     */
+    private fun getMentionedFilesContext(): String {
+        val mentionedFiles = _mentionedFiles.value
+        if (mentionedFiles.isEmpty()) return ""
+
+        val filesContent = mentionedFiles.joinToString("\n\n") { file ->
+            """
+            |--- @${file.name} ---
+            |路径: ${file.path}
+            |```${file.extension ?: ""}
+            |${file.content ?: "(内容不可用)"}
+            |```
+            """.trimMargin()
+        }
+
+        return """
+            |
+            |---
+            |用户引用的文件:
+            |$filesContent
+        """.trimMargin()
+    }
+
+    /**
+     * Check if AI response contains a task plan
+     */
+    private fun checkForTaskPlan(response: String, projectId: String) {
+        // Look for task plan markers in the response
+        val taskPlanPatterns = listOf(
+            "任务计划",
+            "Task Plan",
+            "执行步骤",
+            "Implementation Steps"
+        )
+
+        val containsTaskPlan = taskPlanPatterns.any {
+            response.contains(it, ignoreCase = true)
+        }
+
+        if (containsTaskPlan && _currentTaskPlan.value == null) {
+            // Try to parse the task plan
+            val plan = TaskPlan.fromAIResponse(response, projectId)
+            if (plan != null) {
+                _currentTaskPlan.value = plan
+            }
         }
     }
 
@@ -932,6 +1074,244 @@ class ProjectViewModel @Inject constructor(
      */
     fun setProvider(provider: LLMProvider) {
         _currentProvider.value = provider
+    }
+
+    // ===== Context Mode Operations =====
+
+    /**
+     * Set chat context mode
+     */
+    fun setContextMode(mode: ChatContextMode) {
+        _contextMode.value = mode
+        // If switching to FILE mode without a selected file, select the first open file
+        if (mode == ChatContextMode.FILE && _selectedFileForContext.value == null) {
+            _selectedFileForContext.value = _openFiles.value.firstOrNull()
+        }
+    }
+
+    /**
+     * Set the file to use for FILE context mode
+     */
+    fun setContextFile(file: ProjectFileEntity?) {
+        _selectedFileForContext.value = file
+        if (file != null) {
+            _contextMode.value = ChatContextMode.FILE
+        }
+    }
+
+    // ===== File Search Operations =====
+
+    /**
+     * Update file search query
+     */
+    fun updateFileSearchQuery(query: String) {
+        _fileSearchQuery.value = query
+        filterFiles(query)
+    }
+
+    /**
+     * Toggle file search expansion
+     */
+    fun toggleFileSearchExpanded() {
+        _isFileSearchExpanded.value = !_isFileSearchExpanded.value
+        if (!_isFileSearchExpanded.value) {
+            _fileSearchQuery.value = ""
+            _filteredFiles.value = emptyList()
+        }
+    }
+
+    /**
+     * Set file search expanded state
+     */
+    fun setFileSearchExpanded(expanded: Boolean) {
+        _isFileSearchExpanded.value = expanded
+        if (!expanded) {
+            _fileSearchQuery.value = ""
+            _filteredFiles.value = emptyList()
+        }
+    }
+
+    /**
+     * Filter files by search query
+     */
+    private fun filterFiles(query: String) {
+        if (query.isBlank()) {
+            _filteredFiles.value = emptyList()
+            return
+        }
+
+        _filteredFiles.value = _projectFiles.value.filter { file ->
+            file.name.contains(query, ignoreCase = true) ||
+            file.path.contains(query, ignoreCase = true)
+        }
+    }
+
+    // ===== File Mention Operations =====
+
+    /**
+     * Show file mention popup
+     */
+    fun showFileMentionPopup() {
+        _isFileMentionVisible.value = true
+        _fileMentionSearchQuery.value = ""
+    }
+
+    /**
+     * Hide file mention popup
+     */
+    fun hideFileMentionPopup() {
+        _isFileMentionVisible.value = false
+        _fileMentionSearchQuery.value = ""
+    }
+
+    /**
+     * Update file mention search query
+     */
+    fun updateFileMentionSearchQuery(query: String) {
+        _fileMentionSearchQuery.value = query
+    }
+
+    /**
+     * Add file to mentions
+     */
+    fun addFileMention(file: ProjectFileEntity) {
+        val current = _mentionedFiles.value.toMutableList()
+        if (!current.any { it.id == file.id }) {
+            current.add(file)
+            _mentionedFiles.value = current
+        }
+
+        // Update chat input with @mention
+        val currentInput = _chatInputText.value
+        val mentionText = "@${file.name} "
+        _chatInputText.value = currentInput + mentionText
+
+        hideFileMentionPopup()
+    }
+
+    /**
+     * Remove file from mentions
+     */
+    fun removeFileMention(file: ProjectFileEntity) {
+        _mentionedFiles.value = _mentionedFiles.value.filter { it.id != file.id }
+    }
+
+    /**
+     * Clear all file mentions
+     */
+    fun clearFileMentions() {
+        _mentionedFiles.value = emptyList()
+    }
+
+    /**
+     * Check if chat input has @ trigger for file mention
+     */
+    fun checkForFileMentionTrigger(text: String) {
+        // Check if user just typed @ at the end
+        if (text.endsWith("@")) {
+            showFileMentionPopup()
+        }
+    }
+
+    // ===== Task Plan Operations =====
+
+    /**
+     * Confirm and execute task plan
+     */
+    fun confirmTaskPlan() {
+        val plan = _currentTaskPlan.value ?: return
+        _currentTaskPlan.value = plan.copy(
+            status = com.chainlesschain.android.feature.project.model.TaskPlanStatus.CONFIRMED
+        )
+
+        viewModelScope.launch {
+            executeTaskPlan(plan)
+        }
+    }
+
+    /**
+     * Cancel task plan
+     */
+    fun cancelTaskPlan() {
+        _currentTaskPlan.value = _currentTaskPlan.value?.copy(
+            status = com.chainlesschain.android.feature.project.model.TaskPlanStatus.CANCELLED
+        )
+        _currentTaskPlan.value = null
+    }
+
+    /**
+     * Modify task plan
+     */
+    fun modifyTaskPlan() {
+        val plan = _currentTaskPlan.value ?: return
+        // Add plan description to chat input for user to modify
+        _chatInputText.value = "修改计划: ${plan.title}\n\n${plan.steps.joinToString("\n") { "- ${it.description}" }}\n\n请告诉我需要修改的内容:"
+        _currentTaskPlan.value = null
+    }
+
+    /**
+     * Retry a specific task step
+     */
+    fun retryTaskStep(step: com.chainlesschain.android.feature.project.model.TaskStep) {
+        viewModelScope.launch {
+            _uiEvents.emit(ProjectUiEvent.ShowMessage("重试步骤: ${step.description}"))
+            // TODO: Implement actual step retry logic
+        }
+    }
+
+    /**
+     * Execute task plan steps
+     */
+    private suspend fun executeTaskPlan(plan: TaskPlan) {
+        _currentTaskPlan.value = plan.copy(
+            status = com.chainlesschain.android.feature.project.model.TaskPlanStatus.EXECUTING
+        )
+
+        try {
+            plan.steps.forEachIndexed { index, step ->
+                // Update step to in_progress
+                updateStepStatus(index, com.chainlesschain.android.feature.project.model.StepStatus.IN_PROGRESS)
+
+                // Simulate step execution (TODO: implement actual execution)
+                kotlinx.coroutines.delay(1000)
+
+                // Mark step as completed
+                updateStepStatus(index, com.chainlesschain.android.feature.project.model.StepStatus.COMPLETED)
+            }
+
+            _currentTaskPlan.value = _currentTaskPlan.value?.copy(
+                status = com.chainlesschain.android.feature.project.model.TaskPlanStatus.COMPLETED,
+                completedAt = System.currentTimeMillis()
+            )
+
+            _uiEvents.emit(ProjectUiEvent.ShowMessage("任务计划执行完成"))
+        } catch (e: Exception) {
+            _currentTaskPlan.value = _currentTaskPlan.value?.copy(
+                status = com.chainlesschain.android.feature.project.model.TaskPlanStatus.FAILED
+            )
+            _uiEvents.emit(ProjectUiEvent.ShowError("任务执行失败: ${e.message}"))
+        }
+    }
+
+    /**
+     * Update a step's status in the current task plan
+     */
+    private fun updateStepStatus(stepIndex: Int, status: com.chainlesschain.android.feature.project.model.StepStatus) {
+        val currentPlan = _currentTaskPlan.value ?: return
+        val updatedSteps = currentPlan.steps.mapIndexed { index, step ->
+            if (index == stepIndex) {
+                step.copy(
+                    status = status,
+                    startedAt = if (status == com.chainlesschain.android.feature.project.model.StepStatus.IN_PROGRESS)
+                        System.currentTimeMillis() else step.startedAt,
+                    completedAt = if (status == com.chainlesschain.android.feature.project.model.StepStatus.COMPLETED)
+                        System.currentTimeMillis() else step.completedAt
+                )
+            } else {
+                step
+            }
+        }
+        _currentTaskPlan.value = currentPlan.copy(steps = updatedSteps)
     }
 
     /**

@@ -10,6 +10,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import androidx.navigation.navigation
 import com.chainlesschain.android.feature.project.ui.CreateProjectScreen
+import com.chainlesschain.android.feature.project.ui.FileEditorScreen
 import com.chainlesschain.android.feature.project.ui.ProjectDetailScreen
 import com.chainlesschain.android.feature.project.ui.ProjectListScreen
 import com.chainlesschain.android.feature.project.viewmodel.ProjectViewModel
@@ -127,7 +128,7 @@ fun NavGraphBuilder.projectNavGraph(
             )
         }
 
-        // 文件编辑（可以后续扩展）
+        // 文件编辑
         composable(
             route = ProjectRoute.FILE,
             arguments = listOf(
@@ -138,11 +139,11 @@ fun NavGraphBuilder.projectNavGraph(
             val projectId = backStackEntry.arguments?.getString("projectId") ?: return@composable
             val fileId = backStackEntry.arguments?.getString("fileId") ?: return@composable
 
-            // TODO: FileEditorScreen
-            // 暂时返回详情页
-            LaunchedEffect(Unit) {
-                navController.popBackStack()
-            }
+            FileEditorScreen(
+                projectId = projectId,
+                fileId = fileId,
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
     }
 }

@@ -5,7 +5,10 @@ import com.chainlesschain.android.core.database.dao.ProjectChatMessageDao
 import com.chainlesschain.android.core.database.dao.ProjectDao
 import com.chainlesschain.android.core.database.entity.ProjectChatMessageEntity
 import com.chainlesschain.android.core.database.entity.ProjectChatRole
+import com.chainlesschain.android.core.database.entity.ProjectContextMode
 import com.chainlesschain.android.core.database.entity.ProjectFileEntity
+import com.chainlesschain.android.core.database.entity.ProjectMessageType
+import com.chainlesschain.android.feature.project.model.ChatContextMode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.serialization.encodeToString
@@ -59,7 +62,10 @@ class ProjectChatRepository @Inject constructor(
     suspend fun addUserMessage(
         projectId: String,
         content: String,
-        referencedFileIds: List<String>? = null
+        referencedFileIds: List<String>? = null,
+        referencedFilePaths: List<String>? = null,
+        contextMode: ChatContextMode = ChatContextMode.PROJECT,
+        messageType: String = ProjectMessageType.NORMAL
     ): Result<ProjectChatMessageEntity> {
         return try {
             val message = ProjectChatMessageEntity(
@@ -67,7 +73,10 @@ class ProjectChatRepository @Inject constructor(
                 projectId = projectId,
                 role = ProjectChatRole.USER,
                 content = content,
+                messageType = messageType,
+                contextMode = contextMode.name,
                 referencedFileIds = referencedFileIds?.let { json.encodeToString(it) },
+                referencedFilePaths = referencedFilePaths?.let { json.encodeToString(it) },
                 createdAt = System.currentTimeMillis()
             )
             projectChatMessageDao.insertMessage(message)
@@ -84,7 +93,9 @@ class ProjectChatRepository @Inject constructor(
         projectId: String,
         model: String,
         isQuickAction: Boolean = false,
-        quickActionType: String? = null
+        quickActionType: String? = null,
+        contextMode: ChatContextMode = ChatContextMode.PROJECT,
+        messageType: String = ProjectMessageType.NORMAL
     ): Result<ProjectChatMessageEntity> {
         return try {
             val message = ProjectChatMessageEntity(
@@ -92,6 +103,8 @@ class ProjectChatRepository @Inject constructor(
                 projectId = projectId,
                 role = ProjectChatRole.ASSISTANT,
                 content = "",
+                messageType = messageType,
+                contextMode = contextMode.name,
                 model = model,
                 isQuickAction = isQuickAction,
                 quickActionType = quickActionType,
@@ -103,6 +116,92 @@ class ProjectChatRepository @Inject constructor(
         } catch (e: Exception) {
             Result.error(e, "Failed to create assistant message placeholder")
         }
+    }
+
+    /**
+     * Add a system message
+     */
+    suspend fun addSystemMessage(
+        projectId: String,
+        content: String,
+        messageType: String = ProjectMessageType.SYSTEM
+    ): Result<ProjectChatMessageEntity> {
+        return try {
+            val message = ProjectChatMessageEntity(
+                id = UUID.randomUUID().toString(),
+                projectId = projectId,
+                role = ProjectChatRole.SYSTEM,
+                content = content,
+                messageType = messageType,
+                createdAt = System.currentTimeMillis()
+            )
+            projectChatMessageDao.insertMessage(message)
+            Result.success(message)
+        } catch (e: Exception) {
+            Result.error(e, "Failed to add system message")
+        }
+    }
+
+    /**
+     * Add a task plan message
+     */
+    suspend fun addTaskPlanMessage(
+        projectId: String,
+        content: String,
+        taskPlanData: String,
+        model: String
+    ): Result<ProjectChatMessageEntity> {
+        return try {
+            val message = ProjectChatMessageEntity(
+                id = UUID.randomUUID().toString(),
+                projectId = projectId,
+                role = ProjectChatRole.ASSISTANT,
+                content = content,
+                messageType = ProjectMessageType.TASK_PLAN,
+                taskPlanData = taskPlanData,
+                model = model,
+                createdAt = System.currentTimeMillis()
+            )
+            projectChatMessageDao.insertMessage(message)
+            Result.success(message)
+        } catch (e: Exception) {
+            Result.error(e, "Failed to add task plan message")
+        }
+    }
+
+    /**
+     * Parse and extract @file mentions from content
+     */
+    fun extractFileMentions(content: String): List<String> {
+        val mentionPattern = Regex("""@(\S+)""")
+        return mentionPattern.findAll(content)
+            .map { it.groupValues[1] }
+            .toList()
+    }
+
+    /**
+     * Get file contents for mentioned files
+     */
+    suspend fun getMentionedFilesContent(
+        projectId: String,
+        mentions: List<String>
+    ): Map<String, String> {
+        val files = projectDao.getProjectFilesSync(projectId)
+        val result = mutableMapOf<String, String>()
+
+        mentions.forEach { mention ->
+            val file = files.find { file ->
+                file.name == mention ||
+                file.path == mention ||
+                file.name.startsWith(mention) ||
+                file.path.endsWith(mention)
+            }
+            file?.content?.let { content ->
+                result[mention] = content
+            }
+        }
+
+        return result
     }
 
     /**

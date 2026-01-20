@@ -88,6 +88,12 @@ dependencies {
     // JSON
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2")
 
+    // Markdown rendering
+    implementation("io.noties.markwon:markwon-core:4.6.2")
+    implementation("io.noties.markwon:markwon-ext-tables:4.6.2")
+    implementation("io.noties.markwon:markwon-syntax-highlight:4.6.2")
+    implementation("io.noties.prism4j:prism4j:2.0.0")
+
     // Testing
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")

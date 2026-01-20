@@ -1,5 +1,8 @@
 package com.chainlesschain.android.feature.project.ui
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -23,28 +26,35 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.Apps
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.DesignServices
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.Science
+import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.Web
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.InputChip
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -60,6 +70,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.chainlesschain.android.core.database.entity.ProjectType
@@ -81,6 +92,12 @@ fun CreateProjectScreen(
     var selectedType by remember { mutableStateOf(ProjectType.OTHER) }
     var tagInput by remember { mutableStateOf("") }
     val tags = remember { mutableStateListOf<String>() }
+
+    // AI Assistant state
+    var showAiAssistant by remember { mutableStateOf(false) }
+    var aiPrompt by remember { mutableStateOf("") }
+    var isAiThinking by remember { mutableStateOf(false) }
+    var aiSuggestion by remember { mutableStateOf<String?>(null) }
 
     // 处理 UI 事件
     LaunchedEffect(Unit) {
@@ -120,6 +137,41 @@ fun CreateProjectScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
+            // AI Assistant Section
+            AiAssistantSection(
+                showAssistant = showAiAssistant,
+                onToggleAssistant = { showAiAssistant = !showAiAssistant },
+                aiPrompt = aiPrompt,
+                onPromptChange = { aiPrompt = it },
+                isThinking = isAiThinking,
+                suggestion = aiSuggestion,
+                onSubmitPrompt = {
+                    // TODO: Integrate with AI service
+                    isAiThinking = true
+                    // Simulate AI response for now
+                    aiSuggestion = "Based on your description, I suggest:\n\n" +
+                        "- Project Name: ${if (aiPrompt.length > 20) aiPrompt.take(20) + "..." else aiPrompt}\n" +
+                        "- Type: Document\n" +
+                        "- Tags: AI, Project\n\n" +
+                        "Would you like me to apply these suggestions?"
+                    isAiThinking = false
+                },
+                onApplySuggestion = {
+                    // Apply AI suggestions to form
+                    if (aiPrompt.isNotBlank()) {
+                        name = aiPrompt.take(50)
+                        description = "AI-generated project based on: $aiPrompt"
+                    }
+                    showAiAssistant = false
+                    aiSuggestion = null
+                },
+                onDismissSuggestion = {
+                    aiSuggestion = null
+                }
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             // 项目名称
             OutlinedTextField(
                 value = name,
@@ -344,5 +396,195 @@ private fun getTypeDisplayName(type: String): String {
         ProjectType.RESEARCH -> "研究"
         ProjectType.OTHER -> "其他"
         else -> "未知"
+    }
+}
+
+/**
+ * AI Assistant Section for project creation
+ */
+@Composable
+private fun AiAssistantSection(
+    showAssistant: Boolean,
+    onToggleAssistant: () -> Unit,
+    aiPrompt: String,
+    onPromptChange: (String) -> Unit,
+    isThinking: Boolean,
+    suggestion: String?,
+    onSubmitPrompt: () -> Unit,
+    onApplySuggestion: () -> Unit,
+    onDismissSuggestion: () -> Unit
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+        )
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            // Header
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onToggleAssistant),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.AutoAwesome,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "AI 创建助手",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    Text(
+                        text = "描述你的项目，AI 会帮你创建",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Icon(
+                    imageVector = if (showAssistant) Icons.Default.Close else Icons.Default.SmartToy,
+                    contentDescription = if (showAssistant) "关闭" else "展开",
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+
+            // Expandable content
+            AnimatedVisibility(
+                visible = showAssistant,
+                enter = expandVertically(),
+                exit = shrinkVertically()
+            ) {
+                Column {
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Quick templates
+                    Text(
+                        text = "快速模板:",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        QuickTemplateChip(
+                            text = "Web App",
+                            onClick = { onPromptChange("Create a web application project") }
+                        )
+                        QuickTemplateChip(
+                            text = "文档",
+                            onClick = { onPromptChange("Create a documentation project") }
+                        )
+                        QuickTemplateChip(
+                            text = "数据分析",
+                            onClick = { onPromptChange("Create a data analysis project") }
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Input field
+                    OutlinedTextField(
+                        value = aiPrompt,
+                        onValueChange = onPromptChange,
+                        label = { Text("描述你想创建的项目") },
+                        placeholder = { Text("例如：创建一个博客项目，包含文章、评论功能...") },
+                        modifier = Modifier.fillMaxWidth(),
+                        minLines = 2,
+                        maxLines = 4,
+                        trailingIcon = {
+                            if (aiPrompt.isNotBlank() && !isThinking) {
+                                IconButton(onClick = onSubmitPrompt) {
+                                    Icon(
+                                        Icons.AutoMirrored.Filled.Send,
+                                        contentDescription = "发送",
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            } else if (isThinking) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(24.dp),
+                                    strokeWidth = 2.dp
+                                )
+                            }
+                        }
+                    )
+
+                    // AI Suggestion
+                    if (suggestion != null) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Card(
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant
+                            )
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.SmartToy,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(20.dp),
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = "AI 建议",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = suggestion,
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.End
+                                ) {
+                                    TextButton(onClick = onDismissSuggestion) {
+                                        Text("忽略")
+                                    }
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Button(onClick = onApplySuggestion) {
+                                        Text("应用建议")
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Quick template chip
+ */
+@Composable
+private fun QuickTemplateChip(
+    text: String,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant
+    ) {
+        Text(
+            text = text,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.primary
+        )
     }
 }
