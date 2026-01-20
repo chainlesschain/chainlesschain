@@ -229,11 +229,13 @@ const emptyDescription = computed(() => {
 
 // 筛选后的订单
 const filteredOrders = computed(() => {
-  let result = orders.value;
+  let result = orders.value || [];
 
   // 类型筛选
   if (filterState.value.orderType) {
-    result = result.filter((o) => o.order_type === filterState.value.orderType);
+    result = result.filter(
+      (o) => o?.order_type === filterState.value.orderType,
+    );
   }
 
   // 关键词搜索
@@ -241,17 +243,21 @@ const filteredOrders = computed(() => {
     const keyword = filterState.value.keyword.toLowerCase();
     result = result.filter(
       (o) =>
-        o.title.toLowerCase().includes(keyword) ||
-        (o.description && o.description.toLowerCase().includes(keyword)),
+        o?.title?.toLowerCase().includes(keyword) ||
+        (o?.description && o.description.toLowerCase().includes(keyword)),
     );
   }
 
   // 高级筛选 - 价格范围
   if (advancedFilters.priceMin != null) {
-    result = result.filter((o) => o.price_amount >= advancedFilters.priceMin);
+    result = result.filter(
+      (o) => (o?.price_amount ?? 0) >= advancedFilters.priceMin,
+    );
   }
   if (advancedFilters.priceMax != null) {
-    result = result.filter((o) => o.price_amount <= advancedFilters.priceMax);
+    result = result.filter(
+      (o) => (o?.price_amount ?? 0) <= advancedFilters.priceMax,
+    );
   }
 
   // 高级筛选 - 日期范围
@@ -264,7 +270,7 @@ const filteredOrders = computed(() => {
   }
 
   // 只显示开放状态的订单
-  result = result.filter((o) => o.status === "open");
+  result = result.filter((o) => o?.status === "open");
 
   // 排序
   result = [...result].sort((a, b) => {

@@ -828,7 +828,15 @@
 <script setup>
 import { logger, createLogger } from "@/utils/logger";
 
-import { ref, reactive, computed, onMounted, watch, toRaw } from "vue";
+import {
+  ref,
+  reactive,
+  computed,
+  onMounted,
+  onUnmounted,
+  watch,
+  toRaw,
+} from "vue";
 import { message } from "ant-design-vue";
 import {
   CheckCircleOutlined,
@@ -1668,12 +1676,22 @@ onMounted(async () => {
   await loadAvailableServers();
   await loadConnectedServers();
   await loadMetrics();
+});
 
-  // 定期刷新连接状态和指标
-  setInterval(() => {
+// 定期刷新连接状态和指标
+let refreshInterval = null;
+onMounted(() => {
+  refreshInterval = setInterval(() => {
     loadConnectedServers();
     loadMetrics();
   }, 5000);
+});
+
+onUnmounted(() => {
+  if (refreshInterval) {
+    clearInterval(refreshInterval);
+    refreshInterval = null;
+  }
 });
 </script>
 

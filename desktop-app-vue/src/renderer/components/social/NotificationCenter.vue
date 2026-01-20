@@ -12,12 +12,7 @@
         >
           全部已读
         </a-button>
-        <a-button
-          type="link"
-          size="small"
-          danger
-          @click="handleClearAll"
-        >
+        <a-button type="link" size="small" danger @click="handleClearAll">
           清空
         </a-button>
       </div>
@@ -36,18 +31,10 @@
         <a-radio-button value="unread">
           未读 ({{ unreadNotifications.length }})
         </a-radio-button>
-        <a-radio-button value="friend_request">
-          好友请求
-        </a-radio-button>
-        <a-radio-button value="message">
-          消息
-        </a-radio-button>
-        <a-radio-button value="like">
-          点赞
-        </a-radio-button>
-        <a-radio-button value="comment">
-          评论
-        </a-radio-button>
+        <a-radio-button value="friend_request"> 好友请求 </a-radio-button>
+        <a-radio-button value="message"> 消息 </a-radio-button>
+        <a-radio-button value="like"> 点赞 </a-radio-button>
+        <a-radio-button value="comment"> 评论 </a-radio-button>
       </a-radio-group>
     </div>
 
@@ -67,10 +54,7 @@
           @click="handleNotificationClick(notification)"
         >
           <!-- 通知图标 -->
-          <div
-            class="notification-icon"
-            :class="`type-${notification.type}`"
-          >
+          <div class="notification-icon" :class="`type-${notification.type}`">
             <component :is="getNotificationIcon(notification.type)" />
           </div>
 
@@ -88,18 +72,12 @@
           </div>
 
           <!-- 未读标记 -->
-          <div
-            v-if="notification.is_read === 0"
-            class="notification-badge"
-          />
+          <div v-if="notification.is_read === 0" class="notification-badge" />
 
           <!-- 操作按钮 -->
           <div class="notification-actions-btn">
             <a-dropdown :trigger="['click']">
-              <a-button
-                type="text"
-                size="small"
-              >
+              <a-button type="text" size="small">
                 <template #icon>
                   <MoreOutlined />
                 </template>
@@ -126,10 +104,10 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger, createLogger } from "@/utils/logger";
 
-import { ref, computed, onMounted, watch } from 'vue'
-import { useSocialStore } from '../../stores/social'
+import { ref, computed, onMounted, watch } from "vue";
+import { useSocialStore } from "../../stores/social";
 import {
   BellOutlined,
   UserAddOutlined,
@@ -139,114 +117,133 @@ import {
   InfoCircleOutlined,
   MoreOutlined,
   CheckOutlined,
-  DeleteOutlined
-} from '@ant-design/icons-vue'
-import { message } from 'ant-design-vue'
+  DeleteOutlined,
+} from "@ant-design/icons-vue";
+import { message } from "ant-design-vue";
 
-const socialStore = useSocialStore()
+const socialStore = useSocialStore();
 
 // 状态
-const loading = ref(false)
-const currentFilter = ref('all')
+const loading = ref(false);
+const currentFilter = ref("all");
 
 // 计算属性
-const notifications = computed(() => socialStore.notifications)
-const unreadNotifications = computed(() => socialStore.unreadNotificationsList)
+const notifications = computed(() => socialStore.notifications);
+const unreadNotifications = computed(() => socialStore.unreadNotificationsList);
 
 const filteredNotifications = computed(() => {
-  if (currentFilter.value === 'all') {
-    return notifications.value
-  } else if (currentFilter.value === 'unread') {
-    return unreadNotifications.value
+  if (currentFilter.value === "all") {
+    return notifications.value || [];
+  } else if (currentFilter.value === "unread") {
+    return unreadNotifications.value || [];
   } else {
-    return notifications.value.filter(n => n.type === currentFilter.value)
+    return (notifications.value || []).filter(
+      (n) => n?.type === currentFilter.value,
+    );
   }
-})
+});
 
 // 方法
 const loadNotifications = async () => {
-  loading.value = true
+  loading.value = true;
   try {
-    await socialStore.loadNotifications()
+    await socialStore.loadNotifications();
   } catch (error) {
-    logger.error('加载通知失败:', error)
-    message.error('加载通知失败')
+    // IPC 未就绪时静默处理（socialStore 内部会处理重试）
+    if (
+      !error.message?.includes("No handler registered") &&
+      !error.message?.includes("interrupted")
+    ) {
+      logger.error("加载通知失败:", error);
+      message.error("加载通知失败");
+    }
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
 
 const handleNotificationClick = async (notification) => {
+  if (!notification) {
+    return;
+  }
+
   // 标记为已读
   if (notification.is_read === 0) {
-    await handleMarkAsRead(notification.id)
+    await handleMarkAsRead(notification.id);
   }
 
   // 根据通知类型执行相应操作
   if (notification.data) {
     try {
-      const data = JSON.parse(notification.data)
+      const data =
+        typeof notification.data === "string"
+          ? JSON.parse(notification.data)
+          : notification.data;
 
-      if (notification.type === 'message' && data.sessionId) {
+      if (notification.type === "message" && data?.sessionId) {
         // 跳转到聊天窗口
-        const session = socialStore.chatSessions.find(s => s.id === data.sessionId)
+        const sessions = socialStore.chatSessions || [];
+        const session = sessions.find((s) => s?.id === data.sessionId);
         if (session) {
-          const friend = socialStore.friends.find(f => f.friend_did === session.participant_did)
+          const friends = socialStore.friends || [];
+          const friend = friends.find(
+            (f) => f?.friend_did === session.participant_did,
+          );
           if (friend) {
-            await socialStore.openChatWithFriend(friend)
+            await socialStore.openChatWithFriend(friend);
           }
         }
-      } else if (notification.type === 'friend_request') {
+      } else if (notification.type === "friend_request") {
         // 可以跳转到好友管理页面
-        logger.info('打开好友管理页面')
+        logger.info("打开好友管理页面");
       }
     } catch (error) {
-      logger.error('处理通知数据失败:', error)
+      logger.error("处理通知数据失败:", error);
     }
   }
-}
+};
 
 const handleMarkAsRead = async (id) => {
   try {
-    await socialStore.markNotificationAsRead(id)
+    await socialStore.markNotificationAsRead(id);
   } catch (error) {
-    logger.error('标记已读失败:', error)
-    message.error('操作失败')
+    logger.error("标记已读失败:", error);
+    message.error("操作失败");
   }
-}
+};
 
 const handleMarkAllRead = async () => {
   try {
-    await socialStore.markAllNotificationsAsRead()
-    message.success('已全部标记为已读')
+    await socialStore.markAllNotificationsAsRead();
+    message.success("已全部标记为已读");
   } catch (error) {
-    logger.error('全部标记已读失败:', error)
-    message.error('操作失败')
+    logger.error("全部标记已读失败:", error);
+    message.error("操作失败");
   }
-}
+};
 
 const handleDelete = async (id) => {
   try {
-    const index = socialStore.notifications.findIndex(n => n.id === id)
+    const index = socialStore.notifications.findIndex((n) => n.id === id);
     if (index > -1) {
-      socialStore.notifications.splice(index, 1)
+      socialStore.notifications.splice(index, 1);
     }
-    message.success('已删除')
+    message.success("已删除");
   } catch (error) {
-    logger.error('删除通知失败:', error)
-    message.error('删除失败')
+    logger.error("删除通知失败:", error);
+    message.error("删除失败");
   }
-}
+};
 
 const handleClearAll = () => {
   if (notifications.value.length === 0) {
-    message.info('暂无通知')
-    return
+    message.info("暂无通知");
+    return;
   }
 
-  socialStore.clearAllNotifications()
-  message.success('已清空所有通知')
-}
+  socialStore.clearAllNotifications();
+  message.success("已清空所有通知");
+};
 
 const getNotificationIcon = (type) => {
   const iconMap = {
@@ -255,40 +252,43 @@ const getNotificationIcon = (type) => {
     like: HeartOutlined,
     comment: CommentOutlined,
     system: InfoCircleOutlined,
-  }
-  return iconMap[type] || BellOutlined
-}
+  };
+  return iconMap[type] || BellOutlined;
+};
 
 const formatTime = (timestamp) => {
-  const now = Date.now()
-  const diff = now - timestamp
-  const minute = 60 * 1000
-  const hour = 60 * minute
-  const day = 24 * hour
+  const now = Date.now();
+  const diff = now - timestamp;
+  const minute = 60 * 1000;
+  const hour = 60 * minute;
+  const day = 24 * hour;
 
   if (diff < minute) {
-    return '刚刚'
+    return "刚刚";
   } else if (diff < hour) {
-    return `${Math.floor(diff / minute)}分钟前`
+    return `${Math.floor(diff / minute)}分钟前`;
   } else if (diff < day) {
-    return `${Math.floor(diff / hour)}小时前`
+    return `${Math.floor(diff / hour)}小时前`;
   } else if (diff < 7 * day) {
-    return `${Math.floor(diff / day)}天前`
+    return `${Math.floor(diff / day)}天前`;
   } else {
-    const date = new Date(timestamp)
-    return `${date.getMonth() + 1}/${date.getDate()}`
+    const date = new Date(timestamp);
+    return `${date.getMonth() + 1}/${date.getDate()}`;
   }
-}
+};
 
 // 生命周期
 onMounted(() => {
-  loadNotifications()
-})
+  loadNotifications();
+});
 
 // 监听通知变化
-watch(() => socialStore.notifications.length, () => {
-  // 通知数量变化时，可以添加一些提示
-})
+watch(
+  () => socialStore.notifications.length,
+  () => {
+    // 通知数量变化时，可以添加一些提示
+  },
+);
 </script>
 
 <style scoped>

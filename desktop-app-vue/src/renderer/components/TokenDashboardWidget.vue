@@ -17,12 +17,10 @@
 
     <!-- 本周支出 -->
     <div class="main-stat">
-      <div class="stat-label">
-        本周支出
-      </div>
+      <div class="stat-label">本周支出</div>
       <div class="stat-value">
-        <span class="amount">${{ weekSpend.toFixed(2) }}</span>
-        <span class="limit">/ ${{ weekLimit.toFixed(2) }}</span>
+        <span class="amount">${{ safeToFixed(weekSpend, 2) }}</span>
+        <span class="limit">/ ${{ safeToFixed(weekLimit, 2) }}</span>
       </div>
       <a-progress
         :percent="weekPercent"
@@ -37,37 +35,22 @@
     <a-divider style="margin: 12px 0" />
 
     <!-- 关键指标 -->
-    <a-row
-      :gutter="8"
-      class="metrics-row"
-    >
-      <a-col
-        :span="12"
-      >
+    <a-row :gutter="8" class="metrics-row">
+      <a-col :span="12">
         <div class="metric-box">
           <ThunderboltOutlined class="metric-icon cache" />
           <div class="metric-info">
-            <div class="metric-label">
-              缓存命中
-            </div>
-            <div class="metric-value">
-              {{ cacheHitRate }}%
-            </div>
+            <div class="metric-label">缓存命中</div>
+            <div class="metric-value">{{ cacheHitRate }}%</div>
           </div>
         </div>
       </a-col>
-      <a-col
-        :span="12"
-      >
+      <a-col :span="12">
         <div class="metric-box">
           <DollarOutlined class="metric-icon cost" />
           <div class="metric-info">
-            <div class="metric-label">
-              节省成本
-            </div>
-            <div class="metric-value">
-              ${{ savedCost.toFixed(2) }}
-            </div>
+            <div class="metric-label">节省成本</div>
+            <div class="metric-value">${{ safeToFixed(savedCost, 2) }}</div>
           </div>
         </div>
       </a-col>
@@ -81,7 +64,7 @@
       </div>
       <div class="daily-item">
         <span class="daily-label">今日成本:</span>
-        <span class="daily-value">${{ todayCost.toFixed(4) }}</span>
+        <span class="daily-value">${{ safeToFixed(todayCost, 4) }}</span>
       </div>
     </div>
 
@@ -109,17 +92,17 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger, createLogger } from "@/utils/logger";
 
-import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { useRouter } from 'vue-router';
-import dayjs from 'dayjs';
+import { ref, computed, onMounted, onUnmounted } from "vue";
+import { useRouter } from "vue-router";
+import dayjs from "dayjs";
 import {
   ReloadOutlined,
   ThunderboltOutlined,
   DollarOutlined,
   RightOutlined,
-} from '@ant-design/icons-vue';
+} from "@ant-design/icons-vue";
 
 const router = useRouter();
 const loading = ref(false);
@@ -134,9 +117,22 @@ const todayCost = ref(0);
 
 let refreshInterval = null;
 
+/**
+ * 安全格式化数值，防止 undefined/null 导致的 toFixed 错误
+ */
+function safeToFixed(value, decimals = 2) {
+  const num = Number(value);
+  if (value == null || isNaN(num)) {
+    return "0.00";
+  }
+  return num.toFixed(decimals);
+}
+
 // 计算属性
 const weekPercent = computed(() => {
-  if (weekLimit.value === 0) {return 0;}
+  if (weekLimit.value === 0) {
+    return 0;
+  }
   return Math.min((weekSpend.value / weekLimit.value) * 100, 100);
 });
 
@@ -147,35 +143,54 @@ const budgetWarning = computed(() => {
   } else if (percent >= 80) {
     return `本周预算已使用 ${percent.toFixed(0)}%，请注意控制成本`;
   }
-  return '';
+  return "";
 });
 
 const budgetWarningType = computed(() => {
   const percent = weekPercent.value;
-  if (percent >= 95) {return 'error';}
-  if (percent >= 80) {return 'warning';}
-  return 'info';
+  if (percent >= 95) {
+    return "error";
+  }
+  if (percent >= 80) {
+    return "warning";
+  }
+  return "info";
 });
 
 // 方法
 function getProgressStatus(percent) {
-  if (percent >= 95) {return 'exception';}
-  if (percent >= 80) {return 'normal';}
-  return 'active';
+  if (percent >= 95) {
+    return "exception";
+  }
+  if (percent >= 80) {
+    return "normal";
+  }
+  return "active";
 }
 
 function getProgressColor(percent) {
-  if (percent >= 95) {return '#ff4d4f';}
-  if (percent >= 80) {return '#faad14';}
-  return '#52c41a';
+  if (percent >= 95) {
+    return "#ff4d4f";
+  }
+  if (percent >= 80) {
+    return "#faad14";
+  }
+  return "#52c41a";
 }
 
 async function loadStats() {
+  // 检查 IPC API 是否就绪
+  if (!window.electronAPI?.llm) {
+    logger.warn("[TokenDashboardWidget] IPC API 未就绪，稍后重试");
+    setTimeout(loadStats, 500);
+    return;
+  }
+
   loading.value = true;
   try {
     const now = Date.now();
-    const todayStart = dayjs().startOf('day').valueOf();
-    const weekStart = dayjs().startOf('week').valueOf();
+    const todayStart = dayjs().startOf("day").valueOf();
+    const weekStart = dayjs().startOf("week").valueOf();
 
     // 获取本周统计
     const weekStats = await window.electronAPI.llm.getUsageStats({
@@ -192,25 +207,42 @@ async function loadStats() {
     // 获取预算
     const budget = await window.electronAPI.llm.getBudget();
 
-    // 获取缓存统计
-    const cacheStats = await window.electronAPI.llm.getCacheStats();
+    // 获取缓存统计（可能不存在，静默处理）
+    let cacheStats = null;
+    try {
+      cacheStats = await window.electronAPI.llm.getCacheStats();
+    } catch {
+      // 忽略缓存统计获取失败
+    }
 
-    // 更新数据
-    weekSpend.value = weekStats.totalCost || 0;
+    // 更新数据（确保数据有效）
+    if (weekStats) {
+      weekSpend.value = weekStats.totalCost || 0;
+      cacheHitRate.value = parseFloat(
+        safeToFixed(weekStats.cacheHitRate || 0, 1),
+      );
+      savedCost.value = weekStats.costSaved || 0;
+    }
     weekLimit.value = budget?.weeklyLimit || 5.0;
-    cacheHitRate.value = parseFloat((weekStats.cacheHitRate || 0).toFixed(1));
-    savedCost.value = weekStats.costSaved || 0;
-    todayCalls.value = todayStats.totalCalls || 0;
-    todayCost.value = todayStats.totalCost || 0;
+    if (todayStats) {
+      todayCalls.value = todayStats.totalCalls || 0;
+      todayCost.value = todayStats.totalCost || 0;
+    }
   } catch (error) {
-    logger.error('加载 Dashboard 统计失败:', error);
+    // IPC 未就绪时静默处理
+    if (error.message?.includes("No handler registered")) {
+      logger.warn("[TokenDashboardWidget] IPC 处理器未注册，稍后重试");
+      setTimeout(loadStats, 1000);
+      return;
+    }
+    logger.error("加载 Dashboard 统计失败:", error);
   } finally {
     loading.value = false;
   }
 }
 
 function navigateToDetails() {
-  router.push('/settings?tab=token-usage');
+  router.push("/settings?tab=token-usage");
 }
 
 // 生命周期

@@ -1,8 +1,5 @@
 <template>
-  <div
-    class="skill-card"
-    :class="{ disabled: !skill.enabled }"
-  >
+  <div class="skill-card" :class="{ disabled: !skill.enabled }">
     <div class="card-header">
       <div class="title-row">
         <h3 class="skill-name">
@@ -22,18 +19,11 @@
 
     <div class="card-body">
       <p class="description">
-        {{ skill.description || '暂无描述' }}
+        {{ skill.description || "暂无描述" }}
       </p>
 
-      <div
-        v-if="parsedTags && parsedTags.length"
-        class="tags"
-      >
-        <a-tag
-          v-for="tag in parsedTags"
-          :key="tag"
-          size="small"
-        >
+      <div v-if="parsedTags && parsedTags.length" class="tags">
+        <a-tag v-for="tag in parsedTags" :key="tag" size="small">
           {{ tag }}
         </a-tag>
       </div>
@@ -62,11 +52,7 @@
           </template>
           详情
         </a-button>
-        <a-button
-          type="link"
-          size="small"
-          @click="$emit('view-doc', skill)"
-        >
+        <a-button type="link" size="small" @click="$emit('view-doc', skill)">
           <template #icon>
             <FileTextOutlined />
           </template>
@@ -75,18 +61,8 @@
       </a-space>
 
       <div class="meta-info">
-        <a-tag
-          v-if="skill.is_builtin"
-          color="blue"
-          size="small"
-        >
-          内置
-        </a-tag>
-        <a-tag
-          v-else-if="skill.plugin_id"
-          color="purple"
-          size="small"
-        >
+        <a-tag v-if="skill.is_builtin" color="blue" size="small"> 内置 </a-tag>
+        <a-tag v-else-if="skill.plugin_id" color="purple" size="small">
           插件
         </a-tag>
       </div>
@@ -95,8 +71,8 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
-import { EyeOutlined, FileTextOutlined } from '@ant-design/icons-vue';
+import { ref, computed } from "vue";
+import { EyeOutlined, FileTextOutlined } from "@ant-design/icons-vue";
 
 const props = defineProps({
   skill: {
@@ -105,7 +81,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(['view-details', 'toggle-enabled', 'view-doc']);
+const emit = defineEmits(["view-details", "toggle-enabled", "view-doc"]);
 
 const switching = ref(false);
 
@@ -114,7 +90,7 @@ const parsedTags = computed(() => {
   if (Array.isArray(props.skill.tags)) {
     return props.skill.tags;
   }
-  if (typeof props.skill.tags === 'string') {
+  if (typeof props.skill.tags === "string") {
     try {
       return JSON.parse(props.skill.tags);
     } catch {
@@ -126,45 +102,47 @@ const parsedTags = computed(() => {
 
 // 计算成功率
 const successRate = computed(() => {
-  const { usage_count, success_count } = props.skill;
-  if (!usage_count || usage_count === 0) {return 0;}
-  return ((success_count / usage_count) * 100).toFixed(1);
+  const { usage_count, success_count } = props.skill || {};
+  if (!usage_count || usage_count === 0) {
+    return 0;
+  }
+  return (((success_count ?? 0) / usage_count) * 100).toFixed(1);
 });
 
 // 获取分类颜色
 const getCategoryColor = (category) => {
   const colorMap = {
-    code: 'blue',
-    web: 'cyan',
-    data: 'green',
-    content: 'orange',
-    document: 'geekblue',
-    media: 'purple',
-    ai: 'magenta',
-    system: 'volcano',
-    network: 'lime',
-    automation: 'gold',
-    project: 'red',
-    template: 'pink',
+    code: "blue",
+    web: "cyan",
+    data: "green",
+    content: "orange",
+    document: "geekblue",
+    media: "purple",
+    ai: "magenta",
+    system: "volcano",
+    network: "lime",
+    automation: "gold",
+    project: "red",
+    template: "pink",
   };
-  return colorMap[category] || 'default';
+  return colorMap[category] || "default";
 };
 
 // 获取分类名称
 const getCategoryName = (category) => {
   const nameMap = {
-    code: '代码开发',
-    web: 'Web开发',
-    data: '数据处理',
-    content: '内容创作',
-    document: '文档处理',
-    media: '媒体处理',
-    ai: 'AI功能',
-    system: '系统操作',
-    network: '网络请求',
-    automation: '自动化',
-    project: '项目管理',
-    template: '模板应用',
+    code: "代码开发",
+    web: "Web开发",
+    data: "数据处理",
+    content: "内容创作",
+    document: "文档处理",
+    media: "媒体处理",
+    ai: "AI功能",
+    system: "系统操作",
+    network: "网络请求",
+    automation: "自动化",
+    project: "项目管理",
+    template: "模板应用",
   };
   return nameMap[category] || category;
 };
@@ -173,7 +151,7 @@ const getCategoryName = (category) => {
 const handleToggle = async () => {
   switching.value = true;
   try {
-    await emit('toggle-enabled', props.skill);
+    await emit("toggle-enabled", props.skill);
   } finally {
     switching.value = false;
   }
@@ -185,12 +163,16 @@ const handleToggle = async () => {
   background: white;
   border-radius: 8px;
   padding: 20px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03), 0 2px 6px rgba(0, 0, 0, 0.05);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.03),
+    0 2px 6px rgba(0, 0, 0, 0.05);
   transition: all 0.3s ease;
   border: 1px solid #f0f0f0;
 
   &:hover {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.08);
+    box-shadow:
+      0 2px 8px rgba(0, 0, 0, 0.08),
+      0 4px 12px rgba(0, 0, 0, 0.08);
     transform: translateY(-2px);
   }
 

@@ -69,8 +69,11 @@ const containerRef = ref(null);
 const scrollTop = ref(0);
 const containerHeight = ref(0);
 
+// 安全获取 items 数组
+const safeItems = computed(() => props.items || []);
+
 // 计算属性
-const totalHeight = computed(() => props.items.length * props.itemHeight);
+const totalHeight = computed(() => safeItems.value.length * props.itemHeight);
 
 // 可见区域的起始和结束索引
 const visibleRange = computed(() => {
@@ -80,7 +83,7 @@ const visibleRange = computed(() => {
 
   // 添加缓冲区
   const bufferedStart = Math.max(0, start - props.buffer);
-  const bufferedEnd = Math.min(props.items.length, end + props.buffer);
+  const bufferedEnd = Math.min(safeItems.value.length, end + props.buffer);
 
   return { start: bufferedStart, end: bufferedEnd };
 });
@@ -88,7 +91,7 @@ const visibleRange = computed(() => {
 // 可见项目列表
 const visibleItems = computed(() => {
   const { start, end } = visibleRange.value;
-  return props.items.slice(start, end).map((data, i) => ({
+  return safeItems.value.slice(start, end).map((data, i) => ({
     data,
     index: start + i,
   }));
