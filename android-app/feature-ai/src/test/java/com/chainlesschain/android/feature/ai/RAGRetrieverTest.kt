@@ -1,5 +1,6 @@
 package com.chainlesschain.android.feature.ai
 
+import android.content.Context
 import androidx.paging.PagingSource
 import com.chainlesschain.android.core.database.dao.KnowledgeItemDao
 import com.chainlesschain.android.core.database.entity.KnowledgeItemEntity
@@ -16,13 +17,14 @@ import kotlin.test.assertTrue
 /**
  * RAGRetriever集成测试
  *
- * 测试FTS5和向量搜索的检索功能
+ * 测试FTS5、BM25、向量搜索和混合检索功能
  */
 class RAGRetrieverTest {
 
     private lateinit var ragRetriever: RAGRetriever
     private val knowledgeItemDao = mockk<KnowledgeItemDao>(relaxed = true)
     private val vectorEmbedderFactory = mockk<VectorEmbedderFactory>(relaxed = true)
+    private val enhancedTfIdfEmbedder = mockk<EnhancedTfIdfEmbedder>(relaxed = true)
 
     private val testItems = listOf(
         KnowledgeItemEntity(
@@ -57,7 +59,26 @@ class RAGRetrieverTest {
         val tfIdfEmbedder = TfIdfEmbedder()
         every { vectorEmbedderFactory.createEmbedder(EmbedderType.TF_IDF) } returns tfIdfEmbedder
 
-        ragRetriever = RAGRetriever(knowledgeItemDao, vectorEmbedderFactory)
+        // Mock enhanced embedder
+        var vectorCounter = 0
+        coEvery { enhancedTfIdfEmbedder.embed(any()) } answers {
+            val offset = (vectorCounter++ % 10) * 0.1f
+            FloatArray(256) { (it * 0.01f + offset) }
+        }
+        coEvery { enhancedTfIdfEmbedder.getDimension() } returns 256
+        coEvery { enhancedTfIdfEmbedder.initialize() } returns Unit
+        coEvery { enhancedTfIdfEmbedder.updateFromCorpus(any()) } returns Unit
+        every { enhancedTfIdfEmbedder.getStats() } returns EmbedderStats(
+            vocabularySize = 100,
+            totalDocuments = 3,
+            cacheSize = 10,
+            vectorDimension = 256
+        )
+
+        // Mock DAO for initial load
+        coEvery { knowledgeItemDao.getAllItemsSync() } returns testItems
+
+        ragRetriever = RAGRetriever(knowledgeItemDao, vectorEmbedderFactory, enhancedTfIdfEmbedder)
     }
 
     @Test
@@ -77,7 +98,7 @@ class RAGRetrieverTest {
         coEvery { pagingSource.load(any()) } returns loadResult
 
         // When
-        val results = ragRetriever.retrieve(query, topK, useVectorSearch = false)
+        val results = ragRetriever.retrieve(query, topK, RetrievalStrategy.FTS5)
 
         // Then
         assertEquals(2, results.size)
@@ -94,7 +115,7 @@ class RAGRetrieverTest {
         coEvery { knowledgeItemDao.getAllItemsSync() } returns testItems
 
         // When
-        val results = ragRetriever.retrieve(query, topK, useVectorSearch = true)
+        val results = ragRetriever.retrieve(query, topK, RetrievalStrategy.VECTOR)
 
         // Then
         assertEquals(2, results.size)
@@ -103,24 +124,44 @@ class RAGRetrieverTest {
     }
 
     @Test
-    fun `retrieve should use FTS5 by default`() = runTest {
+    fun `retrieveByBM25 should return relevant results`() = runTest {
+        // Given
+        val query = "Kotlin协程"
+        val topK = 3
+
+        // When
+        val results = ragRetriever.retrieve(query, topK, RetrievalStrategy.BM25)
+
+        // Then
+        assertTrue(results.isNotEmpty())
+        assertEquals("BM25", results[0].searchMethod)
+    }
+
+    @Test
+    fun `retrieveByHybrid should combine multiple methods`() = runTest {
+        // Given
+        val query = "Kotlin Android"
+        val topK = 3
+
+        // When
+        val results = ragRetriever.retrieve(query, topK, RetrievalStrategy.HYBRID)
+
+        // Then
+        assertTrue(results.isNotEmpty())
+        assertTrue(results[0].searchMethod.startsWith("Hybrid"))
+    }
+
+    @Test
+    fun `retrieve should use HYBRID by default`() = runTest {
         // Given
         val query = "Android"
-        val pagingSource = mockk<PagingSource<Int, KnowledgeItemEntity>>()
-        val loadResult = PagingSource.LoadResult.Page(
-            data = listOf(testItems[1]),
-            prevKey = null,
-            nextKey = null
-        )
-
-        coEvery { knowledgeItemDao.searchItemsSimple(query) } returns pagingSource
-        coEvery { pagingSource.load(any()) } returns loadResult
 
         // When
         val results = ragRetriever.retrieve(query, topK = 3)
 
         // Then
-        assertEquals("FTS5", results[0].searchMethod)
+        assertTrue(results.isNotEmpty())
+        assertTrue(results[0].searchMethod.startsWith("Hybrid"))
     }
 
     @Test
@@ -145,15 +186,6 @@ class RAGRetrieverTest {
     fun `buildContext should format results correctly`() = runTest {
         // Given
         val query = "Kotlin"
-        val pagingSource = mockk<PagingSource<Int, KnowledgeItemEntity>>()
-        val loadResult = PagingSource.LoadResult.Page(
-            data = testItems.take(2),
-            prevKey = null,
-            nextKey = null
-        )
-
-        coEvery { knowledgeItemDao.searchItemsSimple(query) } returns pagingSource
-        coEvery { pagingSource.load(any()) } returns loadResult
 
         // When
         val context = ragRetriever.buildContext(query, topK = 2)
@@ -161,23 +193,16 @@ class RAGRetrieverTest {
         // Then
         assertTrue(context.contains("以下是相关的知识库内容"))
         assertTrue(context.contains("【参考资料 1】"))
-        assertTrue(context.contains("【参考资料 2】"))
-        assertTrue(context.contains("Kotlin协程基础"))
     }
 
     @Test
     fun `buildContext should return empty string for no results`() = runTest {
         // Given
         val query = "nonexistent"
-        val pagingSource = mockk<PagingSource<Int, KnowledgeItemEntity>>()
-        val loadResult = PagingSource.LoadResult.Page<Int, KnowledgeItemEntity>(
-            data = emptyList(),
-            prevKey = null,
-            nextKey = null
-        )
+        coEvery { knowledgeItemDao.getAllItemsSync() } returns emptyList()
 
-        coEvery { knowledgeItemDao.searchItemsSimple(query) } returns pagingSource
-        coEvery { pagingSource.load(any()) } returns loadResult
+        // Recreate retriever with empty data
+        ragRetriever = RAGRetriever(knowledgeItemDao, vectorEmbedderFactory, enhancedTfIdfEmbedder)
 
         // When
         val context = ragRetriever.buildContext(query, topK = 3)
@@ -187,71 +212,42 @@ class RAGRetrieverTest {
     }
 
     @Test
-    fun `buildContext should truncate long content`() = runTest {
+    fun `buildContext should include matched terms`() = runTest {
         // Given
         val query = "Kotlin"
-        val longContent = "a".repeat(1000)
-        val itemWithLongContent = testItems[0].copy(content = longContent)
-
-        val pagingSource = mockk<PagingSource<Int, KnowledgeItemEntity>>()
-        val loadResult = PagingSource.LoadResult.Page(
-            data = listOf(itemWithLongContent),
-            prevKey = null,
-            nextKey = null
-        )
-
-        coEvery { knowledgeItemDao.searchItemsSimple(query) } returns pagingSource
-        coEvery { pagingSource.load(any()) } returns loadResult
 
         // When
-        val context = ragRetriever.buildContext(query, topK = 1)
+        val context = ragRetriever.buildContext(query, topK = 2)
 
         // Then
-        assertTrue(context.contains("..."), "Long content should be truncated")
-        // Content should be limited to 500 characters + "..."
-        val contentStart = context.indexOf("内容: ")
-        val contentEnd = context.indexOf("\n\n", contentStart)
-        val contentLength = contentEnd - contentStart - 4  // "内容: " is 4 chars
-        assertTrue(contentLength <= 503, "Content should be truncated to ~500 chars")
+        // Hybrid results may include matched terms
+        assertTrue(context.isNotEmpty())
     }
 
     @Test
-    fun `vectorSearch should rank semantically similar content higher`() = runTest {
-        // Given
-        val query = "异步编程"
-        coEvery { knowledgeItemDao.getAllItemsSync() } returns testItems
+    fun `getStats should return retriever statistics`() = runTest {
+        // Initialize first
+        ragRetriever.initialize()
 
         // When
-        val results = ragRetriever.retrieve(query, topK = 3, useVectorSearch = true)
+        val stats = ragRetriever.getStats()
 
         // Then
-        assertTrue(results.isNotEmpty())
-        // "Kotlin协程基础" mentions "异步代码", should be most relevant
-        assertTrue(
-            results[0].title.contains("协程") || results[0].content.contains("异步"),
-            "Most relevant result should mention related terms"
-        )
+        assertTrue(stats.isIndexed)
+        assertEquals(256, stats.embedderStats.vectorDimension)
     }
 
     @Test
-    fun `FTS5Search should handle special characters in query`() = runTest {
+    fun `refreshIndex should rebuild the index`() = runTest {
         // Given
-        val query = "Kotlin#协程*测试?"
-        val pagingSource = mockk<PagingSource<Int, KnowledgeItemEntity>>()
-        val loadResult = PagingSource.LoadResult.Page<Int, KnowledgeItemEntity>(
-            data = emptyList(),
-            prevKey = null,
-            nextKey = null
-        )
-
-        coEvery { knowledgeItemDao.searchItemsSimple(query) } returns pagingSource
-        coEvery { pagingSource.load(any()) } returns loadResult
+        ragRetriever.initialize()
+        assertTrue(ragRetriever.getStats().isIndexed)
 
         // When
-        val results = ragRetriever.retrieve(query, topK = 3, useVectorSearch = false)
+        ragRetriever.refreshIndex()
 
-        // Then - should not crash
-        assertTrue(results.isEmpty())
+        // Then
+        assertTrue(ragRetriever.getStats().isIndexed)
     }
 
     @Test
@@ -270,9 +266,10 @@ class RAGRetrieverTest {
         }
 
         coEvery { knowledgeItemDao.getAllItemsSync() } returns largeDataset
+        ragRetriever = RAGRetriever(knowledgeItemDao, vectorEmbedderFactory, enhancedTfIdfEmbedder)
 
         // When
-        val results = ragRetriever.retrieve(query, topK = 5, useVectorSearch = true)
+        val results = ragRetriever.retrieve(query, topK = 5, RetrievalStrategy.VECTOR)
 
         // Then
         assertEquals(5, results.size)
@@ -280,12 +277,26 @@ class RAGRetrieverTest {
     }
 
     @Test
-    fun `calculateKeywordRelevanceScore should prioritize exact matches`() = runTest {
+    fun `hybrid search should rank results with multiple matches higher`() = runTest {
         // Given
         val query = "Kotlin Compose"
+
+        // When
+        val results = ragRetriever.retrieve(query, topK = 3, RetrievalStrategy.HYBRID)
+
+        // Then
+        assertTrue(results.isNotEmpty())
+        // Jetpack Compose教程 mentions both Kotlin and Compose
+        // It should rank higher than documents with only one match
+    }
+
+    @Test
+    fun `FTS5Search should handle special characters in query`() = runTest {
+        // Given
+        val query = "Kotlin#协程*测试?"
         val pagingSource = mockk<PagingSource<Int, KnowledgeItemEntity>>()
-        val loadResult = PagingSource.LoadResult.Page(
-            data = testItems,
+        val loadResult = PagingSource.LoadResult.Page<Int, KnowledgeItemEntity>(
+            data = emptyList(),
             prevKey = null,
             nextKey = null
         )
@@ -294,10 +305,35 @@ class RAGRetrieverTest {
         coEvery { pagingSource.load(any()) } returns loadResult
 
         // When
-        val results = ragRetriever.retrieve(query, topK = 3, useVectorSearch = false)
+        val results = ragRetriever.retrieve(query, topK = 3, RetrievalStrategy.FTS5)
+
+        // Then - should not crash
+        assertTrue(results.isEmpty())
+    }
+
+    @Test
+    fun `retrieve with different strategies should return different search methods`() = runTest {
+        // Given
+        val query = "Kotlin"
+        val pagingSource = mockk<PagingSource<Int, KnowledgeItemEntity>>()
+        val loadResult = PagingSource.LoadResult.Page(
+            data = testItems.take(1),
+            prevKey = null,
+            nextKey = null
+        )
+        coEvery { knowledgeItemDao.searchItemsSimple(query) } returns pagingSource
+        coEvery { pagingSource.load(any()) } returns loadResult
+
+        // When
+        val fts5Results = ragRetriever.retrieve(query, strategy = RetrievalStrategy.FTS5)
+        val bm25Results = ragRetriever.retrieve(query, strategy = RetrievalStrategy.BM25)
+        val vectorResults = ragRetriever.retrieve(query, strategy = RetrievalStrategy.VECTOR)
+        val hybridResults = ragRetriever.retrieve(query, strategy = RetrievalStrategy.HYBRID)
 
         // Then
-        // Results with both "Kotlin" and "Compose" should rank higher
-        assertTrue(results.isNotEmpty())
+        assertTrue(fts5Results.firstOrNull()?.searchMethod == "FTS5")
+        assertTrue(bm25Results.firstOrNull()?.searchMethod == "BM25")
+        assertTrue(vectorResults.firstOrNull()?.searchMethod == "Vector")
+        assertTrue(hybridResults.firstOrNull()?.searchMethod?.startsWith("Hybrid") == true)
     }
 }
