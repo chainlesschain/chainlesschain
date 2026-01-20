@@ -11,10 +11,7 @@
           <p>基于区块链的去中心化项目交易市场，智能合约保障交易安全</p>
         </div>
         <div class="header-right">
-          <a-button
-            type="primary"
-            @click="handleSellProject"
-          >
+          <a-button type="primary" @click="handleSellProject">
             <DollarOutlined />
             出售项目
           </a-button>
@@ -61,21 +58,11 @@
           style="width: 150px"
           @change="handlePriceRangeChange"
         >
-          <a-select-option value="">
-            全部价格
-          </a-select-option>
-          <a-select-option value="0-100">
-            0-100 Token
-          </a-select-option>
-          <a-select-option value="100-500">
-            100-500 Token
-          </a-select-option>
-          <a-select-option value="500-1000">
-            500-1000 Token
-          </a-select-option>
-          <a-select-option value="1000+">
-            1000+ Token
-          </a-select-option>
+          <a-select-option value=""> 全部价格 </a-select-option>
+          <a-select-option value="0-100"> 0-100 Token </a-select-option>
+          <a-select-option value="100-500"> 100-500 Token </a-select-option>
+          <a-select-option value="500-1000"> 500-1000 Token </a-select-option>
+          <a-select-option value="1000+"> 1000+ Token </a-select-option>
         </a-select>
 
         <a-select
@@ -84,29 +71,16 @@
           style="width: 150px"
           @change="handleSortChange"
         >
-          <a-select-option value="latest">
-            最新上架
-          </a-select-option>
-          <a-select-option value="popular">
-            最受欢迎
-          </a-select-option>
-          <a-select-option value="price-asc">
-            价格从低到高
-          </a-select-option>
-          <a-select-option value="price-desc">
-            价格从高到低
-          </a-select-option>
-          <a-select-option value="rating">
-            评分最高
-          </a-select-option>
+          <a-select-option value="latest"> 最新上架 </a-select-option>
+          <a-select-option value="popular"> 最受欢迎 </a-select-option>
+          <a-select-option value="price-asc"> 价格从低到高 </a-select-option>
+          <a-select-option value="price-desc"> 价格从高到低 </a-select-option>
+          <a-select-option value="rating"> 评分最高 </a-select-option>
         </a-select>
       </div>
 
       <div class="filter-right">
-        <a-button
-          :loading="loading"
-          @click="handleRefresh"
-        >
+        <a-button :loading="loading" @click="handleRefresh">
           <ReloadOutlined :spin="loading" />
           刷新
         </a-button>
@@ -127,26 +101,14 @@
     </div>
 
     <!-- 加载状态 -->
-    <div
-      v-if="loading"
-      class="loading-container"
-    >
-      <a-spin
-        size="large"
-        tip="加载中..."
-      />
+    <div v-if="loading" class="loading-container">
+      <a-spin size="large" tip="加载中..." />
     </div>
 
     <!-- 市场项目列表 -->
-    <div
-      v-else-if="filteredProjects.length > 0"
-      class="projects-container"
-    >
+    <div v-else-if="filteredProjects.length > 0" class="projects-container">
       <!-- 网格视图 -->
-      <div
-        v-if="viewMode === 'grid'"
-        class="projects-grid"
-      >
+      <div v-if="viewMode === 'grid'" class="projects-grid">
         <div
           v-for="project in paginatedProjects"
           :key="project.id"
@@ -154,20 +116,14 @@
         >
           <!-- 项目缩略图 -->
           <div class="card-image">
-            <div
-              v-if="project.thumbnail"
-              class="image-wrapper"
-            >
+            <div v-if="project.thumbnail" class="image-wrapper">
               <img
                 :src="project.thumbnail"
                 :alt="project.name"
                 @error="handleImageError"
-              >
+              />
             </div>
-            <div
-              v-else
-              class="image-placeholder"
-            >
+            <div v-else class="image-placeholder">
               <component
                 :is="getCategoryIcon(project.category)"
                 :style="{ fontSize: '64px' }"
@@ -175,19 +131,12 @@
               <span>{{ getCategoryName(project.category) }}</span>
             </div>
             <div class="card-overlay">
-              <a-button
-                type="primary"
-                @click="handleViewDetail(project.id)"
-              >
+              <a-button type="primary" @click="handleViewDetail(project.id)">
                 <EyeOutlined />
                 查看详情
               </a-button>
             </div>
-            <a-tag
-              v-if="project.featured"
-              color="gold"
-              class="featured-tag"
-            >
+            <a-tag v-if="project.featured" color="gold" class="featured-tag">
               <StarFilled />
               精选
             </a-tag>
@@ -203,7 +152,7 @@
             </div>
 
             <p class="description">
-              {{ project.description || '暂无描述' }}
+              {{ project.description || "暂无描述" }}
             </p>
 
             <!-- 卖家信息 -->
@@ -212,7 +161,7 @@
                 :size="24"
                 :style="{ backgroundColor: getAvatarColor(project.seller.did) }"
               >
-                {{ project.seller.name?.charAt(0) || 'U' }}
+                {{ project.seller.name?.charAt(0) || "U" }}
               </a-avatar>
               <span class="seller-name">{{ project.seller.name }}</span>
               <a-rate
@@ -245,10 +194,7 @@
                 <span class="price-label">价格:</span>
                 <span class="price-value">{{ project.price }} Token</span>
               </div>
-              <a-button
-                type="primary"
-                @click="handleBuyProject(project)"
-              >
+              <a-button type="primary" @click="handleBuyProject(project)">
                 <ShoppingCartOutlined />
                 购买
               </a-button>
@@ -258,40 +204,27 @@
       </div>
 
       <!-- 列表视图 -->
-      <div
-        v-else
-        class="projects-list"
-      >
+      <div v-else class="projects-list">
         <div
           v-for="project in paginatedProjects"
           :key="project.id"
           class="market-project-item"
         >
           <div class="item-image">
-            <div
-              v-if="project.thumbnail"
-              class="image-wrapper"
-            >
+            <div v-if="project.thumbnail" class="image-wrapper">
               <img
                 :src="project.thumbnail"
                 :alt="project.name"
                 @error="handleImageError"
-              >
+              />
             </div>
-            <div
-              v-else
-              class="image-placeholder"
-            >
+            <div v-else class="image-placeholder">
               <component
                 :is="getCategoryIcon(project.category)"
                 :style="{ fontSize: '48px' }"
               />
             </div>
-            <a-tag
-              v-if="project.featured"
-              color="gold"
-              class="featured-badge"
-            >
+            <a-tag v-if="project.featured" color="gold" class="featured-badge">
               <StarFilled />
               精选
             </a-tag>
@@ -305,15 +238,17 @@
               </a-tag>
             </div>
 
-            <p>{{ project.description || '暂无描述' }}</p>
+            <p>{{ project.description || "暂无描述" }}</p>
 
             <div class="item-meta">
               <div class="seller-info-inline">
                 <a-avatar
                   :size="20"
-                  :style="{ backgroundColor: getAvatarColor(project.seller.did) }"
+                  :style="{
+                    backgroundColor: getAvatarColor(project.seller.did),
+                  }"
                 >
-                  {{ project.seller.name?.charAt(0) || 'U' }}
+                  {{ project.seller.name?.charAt(0) || "U" }}
                 </a-avatar>
                 <span>{{ project.seller.name }}</span>
                 <a-rate
@@ -334,12 +269,8 @@
 
           <div class="item-actions">
             <div class="price-large">
-              <div class="price-label">
-                价格
-              </div>
-              <div class="price-value">
-                {{ project.price }} Token
-              </div>
+              <div class="price-label">价格</div>
+              <div class="price-value">{{ project.price }} Token</div>
             </div>
             <a-button
               type="primary"
@@ -363,7 +294,7 @@
           v-model:current="currentPage"
           v-model:page-size="pageSize"
           :total="filteredProjects.length"
-          :show-total="total => `共 ${total} 个项目`"
+          :show-total="(total) => `共 ${total} 个项目`"
           :show-size-changer="true"
           :page-size-options="['12', '24', '48', '96']"
           @change="handlePageChange"
@@ -373,15 +304,24 @@
     </div>
 
     <!-- 空状态 -->
-    <div
-      v-else
-      class="empty-state"
-    >
+    <div v-else class="empty-state">
       <div class="empty-icon">
         <ShopOutlined />
       </div>
-      <h3>{{ searchKeyword || selectedCategory ? '没有找到匹配的项目' : '市场暂无项目' }}</h3>
-      <p>{{ searchKeyword || selectedCategory ? '尝试调整筛选条件' : '成为第一个出售项目的人' }}</p>
+      <h3>
+        {{
+          searchKeyword || selectedCategory
+            ? "没有找到匹配的项目"
+            : "市场暂无项目"
+        }}
+      </h3>
+      <p>
+        {{
+          searchKeyword || selectedCategory
+            ? "尝试调整筛选条件"
+            : "成为第一个出售项目的人"
+        }}
+      </p>
       <a-button
         v-if="!searchKeyword && !selectedCategory"
         type="primary"
@@ -399,26 +339,17 @@
       :confirm-loading="purchasing"
       @ok="handleConfirmPurchase"
     >
-      <div
-        v-if="selectedProject"
-        class="purchase-modal"
-      >
+      <div v-if="selectedProject" class="purchase-modal">
         <div class="project-preview">
           <div class="preview-image">
-            <div
-              v-if="selectedProject.thumbnail"
-              class="image-wrapper"
-            >
+            <div v-if="selectedProject.thumbnail" class="image-wrapper">
               <img
                 :src="selectedProject.thumbnail"
                 :alt="selectedProject.name"
                 @error="handleImageError"
-              >
+              />
             </div>
-            <div
-              v-else
-              class="image-placeholder-small"
-            >
+            <div v-else class="image-placeholder-small">
               <component
                 :is="getCategoryIcon(selectedProject.category)"
                 :style="{ fontSize: '32px' }"
@@ -440,17 +371,23 @@
           </div>
           <div class="detail-row">
             <span>价格:</span>
-            <span class="price-highlight">{{ selectedProject.price }} Token</span>
+            <span class="price-highlight"
+              >{{ selectedProject.price }} Token</span
+            >
           </div>
           <div class="detail-row">
             <span>支付方式:</span>
-            <a-tag color="blue">
-              智能合约
-            </a-tag>
+            <a-tag color="blue"> 智能合约 </a-tag>
           </div>
           <div class="detail-row">
             <span>你的余额:</span>
-            <span :class="walletBalance >= selectedProject.price ? 'balance-ok' : 'balance-low'">
+            <span
+              :class="
+                walletBalance >= selectedProject.price
+                  ? 'balance-ok'
+                  : 'balance-low'
+              "
+            >
               {{ walletBalance }} Token
             </span>
           </div>
@@ -485,10 +422,7 @@
       @ok="handleConfirmSell"
     >
       <a-form layout="vertical">
-        <a-form-item
-          label="选择项目"
-          required
-        >
+        <a-form-item label="选择项目" required>
           <a-select
             v-model:value="sellForm.projectId"
             placeholder="选择要出售的项目"
@@ -503,36 +437,17 @@
           </a-select>
         </a-form-item>
 
-        <a-form-item
-          label="项目分类"
-          required
-        >
-          <a-select
-            v-model:value="sellForm.category"
-            placeholder="选择分类"
-          >
-            <a-select-option value="web">
-              Web开发
-            </a-select-option>
-            <a-select-option value="document">
-              文档模板
-            </a-select-option>
-            <a-select-option value="data">
-              数据分析
-            </a-select-option>
-            <a-select-option value="app">
-              应用开发
-            </a-select-option>
-            <a-select-option value="other">
-              其他
-            </a-select-option>
+        <a-form-item label="项目分类" required>
+          <a-select v-model:value="sellForm.category" placeholder="选择分类">
+            <a-select-option value="web"> Web开发 </a-select-option>
+            <a-select-option value="document"> 文档模板 </a-select-option>
+            <a-select-option value="data"> 数据分析 </a-select-option>
+            <a-select-option value="app"> 应用开发 </a-select-option>
+            <a-select-option value="other"> 其他 </a-select-option>
           </a-select>
         </a-form-item>
 
-        <a-form-item
-          label="售价 (Token)"
-          required
-        >
+        <a-form-item label="售价 (Token)" required>
           <a-input-number
             v-model:value="sellForm.price"
             :min="1"
@@ -540,15 +455,10 @@
             :style="{ width: '100%' }"
             placeholder="设置价格"
           />
-          <div class="price-suggestion">
-            建议价格范围: 100-1000 Token
-          </div>
+          <div class="price-suggestion">建议价格范围: 100-1000 Token</div>
         </a-form-item>
 
-        <a-form-item
-          label="项目描述"
-          required
-        >
+        <a-form-item label="项目描述" required>
           <a-textarea
             v-model:value="sellForm.description"
             placeholder="详细描述你的项目，包括功能特点、技术栈等..."
@@ -568,14 +478,8 @@
               上传图片
             </a-button>
           </a-upload>
-          <div
-            v-if="sellForm.thumbnail"
-            class="thumbnail-preview"
-          >
-            <img
-              :src="sellForm.thumbnail"
-              alt="缩略图"
-            >
+          <div v-if="sellForm.thumbnail" class="thumbnail-preview">
+            <img :src="sellForm.thumbnail" alt="缩略图" />
           </div>
         </a-form-item>
       </a-form>
@@ -584,13 +488,13 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger, createLogger } from "@/utils/logger";
 
-import { ref, computed, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
-import { message, Modal } from 'ant-design-vue';
-import { useProjectStore } from '@/stores/project';
-import { useAuthStore } from '@/stores/auth';
+import { ref, computed, onMounted } from "vue";
+import { useRouter } from "vue-router";
+import { message, Modal } from "ant-design-vue";
+import { useProjectStore } from "@/stores/project";
+import { useAuthStore } from "@/stores/auth";
 import {
   ShopOutlined,
   DollarOutlined,
@@ -609,7 +513,7 @@ import {
   AppstoreAddOutlined,
   UploadOutlined,
   SafetyOutlined,
-} from '@ant-design/icons-vue';
+} from "@ant-design/icons-vue";
 
 const router = useRouter();
 const projectStore = useProjectStore();
@@ -619,11 +523,11 @@ const authStore = useAuthStore();
 const loading = ref(false);
 const purchasing = ref(false);
 const selling = ref(false);
-const searchKeyword = ref('');
-const selectedCategory = ref('');
-const priceRange = ref('');
-const sortConfig = ref('latest');
-const viewMode = ref('grid');
+const searchKeyword = ref("");
+const selectedCategory = ref("");
+const priceRange = ref("");
+const sortConfig = ref("latest");
+const viewMode = ref("grid");
 const currentPage = ref(1);
 const pageSize = ref(12);
 const showBuyModal = ref(false);
@@ -633,20 +537,20 @@ const walletBalance = ref(1500); // 模拟钱包余额
 
 // 分类列表
 const categories = [
-  { value: '', label: '全部', icon: AppstoreOutlined },
-  { value: 'web', label: 'Web开发', icon: CodeOutlined },
-  { value: 'document', label: '文档模板', icon: FileTextOutlined },
-  { value: 'data', label: '数据分析', icon: BarChartOutlined },
-  { value: 'app', label: '应用开发', icon: AppstoreAddOutlined },
+  { value: "", label: "全部", icon: AppstoreOutlined },
+  { value: "web", label: "Web开发", icon: CodeOutlined },
+  { value: "document", label: "文档模板", icon: FileTextOutlined },
+  { value: "data", label: "数据分析", icon: BarChartOutlined },
+  { value: "app", label: "应用开发", icon: AppstoreAddOutlined },
 ];
 
 // 出售表单
 const sellForm = ref({
   projectId: null,
-  category: '',
+  category: "",
   price: 100,
-  description: '',
-  thumbnail: '',
+  description: "",
+  thumbnail: "",
 });
 
 // 模拟市场项目数据
@@ -659,13 +563,15 @@ const filteredProjects = computed(() => {
 
   // 分类筛选
   if (selectedCategory.value) {
-    result = result.filter(p => p.category === selectedCategory.value);
+    result = result.filter((p) => p.category === selectedCategory.value);
   }
 
   // 价格筛选
   if (priceRange.value) {
-    const [min, max] = priceRange.value.split('-').map(v => v.replace('+', ''));
-    result = result.filter(p => {
+    const [min, max] = priceRange.value
+      .split("-")
+      .map((v) => v.replace("+", ""));
+    result = result.filter((p) => {
       if (max) {
         return p.price >= parseInt(min) && p.price <= parseInt(max);
       } else {
@@ -677,27 +583,28 @@ const filteredProjects = computed(() => {
   // 搜索筛选
   if (searchKeyword.value) {
     const keyword = searchKeyword.value.toLowerCase();
-    result = result.filter(p =>
-      p.name.toLowerCase().includes(keyword) ||
-      (p.description && p.description.toLowerCase().includes(keyword))
+    result = result.filter(
+      (p) =>
+        p.name.toLowerCase().includes(keyword) ||
+        (p.description && p.description.toLowerCase().includes(keyword)),
     );
   }
 
   // 排序
   switch (sortConfig.value) {
-    case 'latest':
+    case "latest":
       result.sort((a, b) => b.listedAt - a.listedAt);
       break;
-    case 'popular':
+    case "popular":
       result.sort((a, b) => b.sales - a.sales);
       break;
-    case 'price-asc':
+    case "price-asc":
       result.sort((a, b) => a.price - b.price);
       break;
-    case 'price-desc':
+    case "price-desc":
       result.sort((a, b) => b.price - a.price);
       break;
-    case 'rating':
+    case "rating":
       result.sort((a, b) => b.rating - a.rating);
       break;
   }
@@ -714,23 +621,23 @@ const paginatedProjects = computed(() => {
 // 分类颜色
 const getCategoryColor = (category) => {
   const colorMap = {
-    web: 'blue',
-    document: 'green',
-    data: 'orange',
-    app: 'purple',
-    other: 'default',
+    web: "blue",
+    document: "green",
+    data: "orange",
+    app: "purple",
+    other: "default",
   };
-  return colorMap[category] || 'default';
+  return colorMap[category] || "default";
 };
 
 // 分类名称
 const getCategoryName = (category) => {
   const nameMap = {
-    web: 'Web开发',
-    document: '文档模板',
-    data: '数据分析',
-    app: '应用开发',
-    other: '其他',
+    web: "Web开发",
+    document: "文档模板",
+    data: "数据分析",
+    app: "应用开发",
+    other: "其他",
   };
   return nameMap[category] || category;
 };
@@ -749,14 +656,15 @@ const getCategoryIcon = (category) => {
 
 // 处理图片加载错误
 const handleImageError = (e) => {
-  logger.warn('Image load failed:', e.target.src);
-  e.target.style.display = 'none';
+  logger.warn("Image load failed:", e.target.src);
+  e.target.style.display = "none";
 };
 
 // 头像颜色
 const getAvatarColor = (did) => {
-  const colors = ['#f56a00', '#7265e6', '#ffbf00', '#00a2ae', '#87d068'];
-  const hash = did?.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) || 0;
+  const colors = ["#f56a00", "#7265e6", "#ffbf00", "#00a2ae", "#87d068"];
+  const hash =
+    did?.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0) || 0;
   return colors[hash % colors.length];
 };
 
@@ -792,7 +700,11 @@ const handleSortChange = () => {
 
 // 处理视图模式切换
 const handleViewModeChange = () => {
-  localStorage.setItem('market_view_mode', viewMode.value);
+  try {
+    localStorage.setItem("market_view_mode", viewMode.value);
+  } catch (error) {
+    logger.warn("[MarketPage] 保存视图模式失败:", error.message);
+  }
 };
 
 // 刷新
@@ -800,10 +712,10 @@ const handleRefresh = async () => {
   loading.value = true;
   try {
     await loadMarketProjects();
-    message.success('刷新成功');
+    message.success("刷新成功");
   } catch (error) {
-    logger.error('Refresh failed:', error);
-    message.error('刷新失败：' + error.message);
+    logger.error("Refresh failed:", error);
+    message.error("刷新失败：" + error.message);
   } finally {
     loading.value = false;
   }
@@ -821,12 +733,12 @@ const handlePageSizeChange = (current, size) => {
 
 // 返回我的项目
 const handleBackToProjects = () => {
-  router.push('/projects');
+  router.push("/projects");
 };
 
 // 查看详情
 const handleViewDetail = (projectId) => {
-  message.info('项目详情页开发中...');
+  message.info("项目详情页开发中...");
   // TODO: 跳转到项目详情页
 };
 
@@ -839,22 +751,22 @@ const handleBuyProject = (project) => {
 // 确认购买
 const handleConfirmPurchase = async () => {
   if (walletBalance.value < selectedProject.value.price) {
-    message.error('余额不足，无法购买');
+    message.error("余额不足，无法购买");
     return;
   }
 
   purchasing.value = true;
   try {
     // TODO: 调用智能合约执行购买
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await new Promise((resolve) => setTimeout(resolve, 2000));
 
     walletBalance.value -= selectedProject.value.price;
-    message.success('购买成功！项目已添加到你的账户');
+    message.success("购买成功！项目已添加到你的账户");
     showBuyModal.value = false;
     selectedProject.value = null;
   } catch (error) {
-    logger.error('Purchase failed:', error);
-    message.error('购买失败：' + error.message);
+    logger.error("Purchase failed:", error);
+    message.error("购买失败：" + error.message);
   } finally {
     purchasing.value = false;
   }
@@ -863,7 +775,7 @@ const handleConfirmPurchase = async () => {
 // 出售项目
 const handleSellProject = () => {
   if (myProjects.value.length === 0) {
-    message.warning('你还没有可以出售的项目');
+    message.warning("你还没有可以出售的项目");
     return;
   }
   showSellModal.value = true;
@@ -872,40 +784,40 @@ const handleSellProject = () => {
 // 确认出售
 const handleConfirmSell = async () => {
   if (!sellForm.value.projectId) {
-    message.warning('请选择项目');
+    message.warning("请选择项目");
     return;
   }
   if (!sellForm.value.category) {
-    message.warning('请选择分类');
+    message.warning("请选择分类");
     return;
   }
   if (!sellForm.value.price || sellForm.value.price < 1) {
-    message.warning('请设置正确的价格');
+    message.warning("请设置正确的价格");
     return;
   }
   if (!sellForm.value.description) {
-    message.warning('请填写项目描述');
+    message.warning("请填写项目描述");
     return;
   }
 
   selling.value = true;
   try {
     // TODO: 调用后端API上架项目
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    await new Promise((resolve) => setTimeout(resolve, 1500));
 
-    message.success('项目已成功上架到市场！');
+    message.success("项目已成功上架到市场！");
     showSellModal.value = false;
     sellForm.value = {
       projectId: null,
-      category: '',
+      category: "",
       price: 100,
-      description: '',
-      thumbnail: '',
+      description: "",
+      thumbnail: "",
     };
     await loadMarketProjects();
   } catch (error) {
-    logger.error('Sell failed:', error);
-    message.error('上架失败：' + error.message);
+    logger.error("Sell failed:", error);
+    message.error("上架失败：" + error.message);
   } finally {
     selling.value = false;
   }
@@ -913,15 +825,15 @@ const handleConfirmSell = async () => {
 
 // 处理图片上传
 const handleBeforeUpload = (file) => {
-  const isImage = file.type.startsWith('image/');
+  const isImage = file.type.startsWith("image/");
   if (!isImage) {
-    message.error('只能上传图片文件');
+    message.error("只能上传图片文件");
     return false;
   }
 
   const isLt2M = file.size / 1024 / 1024 < 2;
   if (!isLt2M) {
-    message.error('图片大小不能超过2MB');
+    message.error("图片大小不能超过2MB");
     return false;
   }
 
@@ -941,15 +853,16 @@ const loadMarketProjects = async () => {
   // 模拟数据 - 不使用外部图片，改用图标占位
   marketProjects.value = [
     {
-      id: 'market-1',
-      name: 'React电商后台管理系统',
-      description: '完整的电商后台管理系统，包含商品管理、订单管理、用户管理等功能',
-      category: 'web',
+      id: "market-1",
+      name: "React电商后台管理系统",
+      description:
+        "完整的电商后台管理系统，包含商品管理、订单管理、用户管理等功能",
+      category: "web",
       price: 299,
-      thumbnail: '', // 留空使用图标占位
+      thumbnail: "", // 留空使用图标占位
       seller: {
-        did: 'did:chainless:seller1',
-        name: '前端大师',
+        did: "did:chainless:seller1",
+        name: "前端大师",
         rating: 4.8,
       },
       views: 1250,
@@ -959,15 +872,16 @@ const loadMarketProjects = async () => {
       listedAt: Date.now() - 86400000,
     },
     {
-      id: 'market-2',
-      name: 'Vue3企业级项目模板',
-      description: 'Vue3 + TypeScript + Vite企业级项目模板，包含完整的工程化配置',
-      category: 'web',
+      id: "market-2",
+      name: "Vue3企业级项目模板",
+      description:
+        "Vue3 + TypeScript + Vite企业级项目模板，包含完整的工程化配置",
+      category: "web",
       price: 199,
-      thumbnail: '', // 留空使用图标占位
+      thumbnail: "", // 留空使用图标占位
       seller: {
-        did: 'did:chainless:seller2',
-        name: 'Vue开发者',
+        did: "did:chainless:seller2",
+        name: "Vue开发者",
         rating: 4.9,
       },
       views: 980,
@@ -977,15 +891,15 @@ const loadMarketProjects = async () => {
       listedAt: Date.now() - 172800000,
     },
     {
-      id: 'market-3',
-      name: 'Python数据分析工具包',
-      description: '包含数据清洗、可视化、机器学习等常用工具的Python包',
-      category: 'data',
+      id: "market-3",
+      name: "Python数据分析工具包",
+      description: "包含数据清洗、可视化、机器学习等常用工具的Python包",
+      category: "data",
       price: 399,
-      thumbnail: '', // 留空使用图标占位
+      thumbnail: "", // 留空使用图标占位
       seller: {
-        did: 'did:chainless:seller3',
-        name: '数据科学家',
+        did: "did:chainless:seller3",
+        name: "数据科学家",
         rating: 5.0,
       },
       views: 756,
@@ -995,15 +909,15 @@ const loadMarketProjects = async () => {
       listedAt: Date.now() - 259200000,
     },
     {
-      id: 'market-4',
-      name: '技术文档Markdown模板',
-      description: '专业的技术文档模板，适用于API文档、技术方案等',
-      category: 'document',
+      id: "market-4",
+      name: "技术文档Markdown模板",
+      description: "专业的技术文档模板，适用于API文档、技术方案等",
+      category: "document",
       price: 49,
-      thumbnail: '', // 留空使用图标占位
+      thumbnail: "", // 留空使用图标占位
       seller: {
-        did: 'did:chainless:seller4',
-        name: '文档专家',
+        did: "did:chainless:seller4",
+        name: "文档专家",
         rating: 4.6,
       },
       views: 2100,
@@ -1015,24 +929,31 @@ const loadMarketProjects = async () => {
   ];
 
   // 模拟我的项目
-  myProjects.value = projectStore.projects.filter(p => p.status === 'completed').slice(0, 3);
+  myProjects.value = projectStore.projects
+    .filter((p) => p.status === "completed")
+    .slice(0, 3);
 };
 
 // 组件挂载
 onMounted(async () => {
   loading.value = true;
+
+  // 从localStorage恢复视图模式
   try {
-    // 从localStorage恢复视图模式
-    const savedViewMode = localStorage.getItem('market_view_mode');
+    const savedViewMode = localStorage.getItem("market_view_mode");
     if (savedViewMode) {
       viewMode.value = savedViewMode;
     }
+  } catch (error) {
+    logger.warn("[MarketPage] 恢复视图模式失败:", error.message);
+  }
 
+  try {
     // 加载市场项目
     await loadMarketProjects();
   } catch (error) {
-    logger.error('Failed to load market projects:', error);
-    message.error('加载失败：' + error.message);
+    logger.error("Failed to load market projects:", error);
+    message.error("加载失败：" + error.message);
   } finally {
     loading.value = false;
   }

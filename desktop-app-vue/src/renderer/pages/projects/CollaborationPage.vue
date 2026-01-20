@@ -11,10 +11,7 @@
           <p>基于DID的去中心化协作，支持权限管理和版本控制</p>
         </div>
         <div class="header-right">
-          <a-button
-            type="primary"
-            @click="handleInviteCollaborator"
-          >
+          <a-button type="primary" @click="handleInviteCollaborator">
             <UserAddOutlined />
             邀请协作者
           </a-button>
@@ -28,14 +25,8 @@
 
     <!-- 标签页 -->
     <div class="tabs-container">
-      <a-tabs
-        v-model:active-key="activeTab"
-        @change="handleTabChange"
-      >
-        <a-tab-pane
-          key="owned"
-          tab="我创建的"
-        >
+      <a-tabs v-model:active-key="activeTab" @change="handleTabChange">
+        <a-tab-pane key="owned" tab="我创建的">
           <template #tab>
             <span>
               <CrownOutlined />
@@ -43,10 +34,7 @@
             </span>
           </template>
         </a-tab-pane>
-        <a-tab-pane
-          key="joined"
-          tab="我参与的"
-        >
+        <a-tab-pane key="joined" tab="我参与的">
           <template #tab>
             <span>
               <UsergroupAddOutlined />
@@ -54,10 +42,7 @@
             </span>
           </template>
         </a-tab-pane>
-        <a-tab-pane
-          key="invitations"
-          tab="邀请通知"
-        >
+        <a-tab-pane key="invitations" tab="邀请通知">
           <template #tab>
             <span>
               <MailOutlined />
@@ -93,29 +78,16 @@
           style="width: 150px"
           @change="handleTypeChange"
         >
-          <a-select-option value="">
-            全部类型
-          </a-select-option>
-          <a-select-option value="web">
-            Web开发
-          </a-select-option>
-          <a-select-option value="document">
-            文档处理
-          </a-select-option>
-          <a-select-option value="data">
-            数据分析
-          </a-select-option>
-          <a-select-option value="app">
-            应用开发
-          </a-select-option>
+          <a-select-option value=""> 全部类型 </a-select-option>
+          <a-select-option value="web"> Web开发 </a-select-option>
+          <a-select-option value="document"> 文档处理 </a-select-option>
+          <a-select-option value="data"> 数据分析 </a-select-option>
+          <a-select-option value="app"> 应用开发 </a-select-option>
         </a-select>
       </div>
 
       <div class="filter-right">
-        <a-button
-          :loading="loading"
-          @click="handleRefresh"
-        >
+        <a-button :loading="loading" @click="handleRefresh">
           <ReloadOutlined :spin="loading" />
           刷新
         </a-button>
@@ -136,25 +108,13 @@
     </div>
 
     <!-- 加载状态 -->
-    <div
-      v-if="loading"
-      class="loading-container"
-    >
-      <a-spin
-        size="large"
-        tip="加载中..."
-      />
+    <div v-if="loading" class="loading-container">
+      <a-spin size="large" tip="加载中..." />
     </div>
 
     <!-- 邀请通知列表 -->
-    <div
-      v-else-if="activeTab === 'invitations'"
-      class="invitations-container"
-    >
-      <div
-        v-if="pendingInvitations.length > 0"
-        class="invitations-list"
-      >
+    <div v-else-if="activeTab === 'invitations'" class="invitations-container">
+      <div v-if="pendingInvitations.length > 0" class="invitations-list">
         <div
           v-for="invitation in pendingInvitations"
           :key="invitation.id"
@@ -163,9 +123,11 @@
           <div class="invitation-header">
             <a-avatar
               :size="48"
-              :style="{ backgroundColor: getAvatarColor(invitation.inviter.did) }"
+              :style="{
+                backgroundColor: getAvatarColor(invitation.inviter.did),
+              }"
             >
-              {{ invitation.inviter.name?.charAt(0) || 'U' }}
+              {{ invitation.inviter.name?.charAt(0) || "U" }}
             </a-avatar>
             <div class="invitation-info">
               <h4>{{ invitation.inviter.name }}</h4>
@@ -175,7 +137,7 @@
 
           <div class="invitation-body">
             <h3>{{ invitation.project.name }}</h3>
-            <p>{{ invitation.project.description || '暂无描述' }}</p>
+            <p>{{ invitation.project.description || "暂无描述" }}</p>
             <div class="invitation-meta">
               <span>
                 <ClockCircleOutlined />
@@ -203,10 +165,7 @@
         </div>
       </div>
 
-      <div
-        v-else
-        class="empty-state"
-      >
+      <div v-else class="empty-state">
         <div class="empty-icon">
           <MailOutlined />
         </div>
@@ -216,15 +175,9 @@
     </div>
 
     <!-- 协作项目列表 -->
-    <div
-      v-else-if="filteredProjects.length > 0"
-      class="projects-container"
-    >
+    <div v-else-if="filteredProjects.length > 0" class="projects-container">
       <!-- 网格视图 -->
-      <div
-        v-if="viewMode === 'grid'"
-        class="projects-grid"
-      >
+      <div v-if="viewMode === 'grid'" class="projects-grid">
         <div
           v-for="project in filteredProjects"
           :key="project.id"
@@ -234,17 +187,11 @@
             <div class="project-icon">
               <component :is="getProjectTypeIcon(project.project_type)" />
             </div>
-            <a-tag
-              v-if="project.isOwner"
-              color="gold"
-            >
+            <a-tag v-if="project.isOwner" color="gold">
               <CrownOutlined />
               创建者
             </a-tag>
-            <a-tag
-              v-else
-              :color="getRoleColor(project.myRole)"
-            >
+            <a-tag v-else :color="getRoleColor(project.myRole)">
               {{ getRoleName(project.myRole) }}
             </a-tag>
           </div>
@@ -252,7 +199,7 @@
           <div class="card-body">
             <h3>{{ project.name }}</h3>
             <p class="description">
-              {{ project.description || '暂无描述' }}
+              {{ project.description || "暂无描述" }}
             </p>
 
             <!-- 协作者头像组 -->
@@ -264,11 +211,13 @@
                   :style="{ backgroundColor: getAvatarColor(collaborator.did) }"
                 >
                   <a-tooltip :title="collaborator.name">
-                    {{ collaborator.name?.charAt(0) || 'U' }}
+                    {{ collaborator.name?.charAt(0) || "U" }}
                   </a-tooltip>
                 </a-avatar>
               </a-avatar-group>
-              <span class="collaborator-count">{{ project.collaborators.length }} 人</span>
+              <span class="collaborator-count"
+                >{{ project.collaborators.length }} 人</span
+              >
             </div>
 
             <div class="meta-info">
@@ -297,10 +246,7 @@
       </div>
 
       <!-- 列表视图 -->
-      <div
-        v-else
-        class="projects-list"
-      >
+      <div v-else class="projects-list">
         <div
           v-for="project in filteredProjects"
           :key="project.id"
@@ -313,48 +259,40 @@
           <div class="item-content">
             <div class="item-header">
               <h4>{{ project.name }}</h4>
-              <a-tag
-                v-if="project.isOwner"
-                color="gold"
-              >
+              <a-tag v-if="project.isOwner" color="gold">
                 <CrownOutlined />
                 创建者
               </a-tag>
-              <a-tag
-                v-else
-                :color="getRoleColor(project.myRole)"
-              >
+              <a-tag v-else :color="getRoleColor(project.myRole)">
                 {{ getRoleName(project.myRole) }}
               </a-tag>
             </div>
-            <p>{{ project.description || '暂无描述' }}</p>
+            <p>{{ project.description || "暂无描述" }}</p>
             <div class="item-meta">
               <div class="collaborators-inline">
-                <a-avatar-group
-                  :max-count="3"
-                  size="small"
-                >
+                <a-avatar-group :max-count="3" size="small">
                   <a-avatar
                     v-for="(collaborator, index) in project.collaborators"
                     :key="index"
                     :size="24"
-                    :style="{ backgroundColor: getAvatarColor(collaborator.did) }"
+                    :style="{
+                      backgroundColor: getAvatarColor(collaborator.did),
+                    }"
                   >
-                    {{ collaborator.name?.charAt(0) || 'U' }}
+                    {{ collaborator.name?.charAt(0) || "U" }}
                   </a-avatar>
                 </a-avatar-group>
                 <span>{{ project.collaborators.length }} 人</span>
               </div>
-              <span><CalendarOutlined /> {{ formatDate(project.updated_at) }}</span>
+              <span
+                ><CalendarOutlined /> {{ formatDate(project.updated_at) }}</span
+              >
               <span><SafetyOutlined /> DID加密</span>
             </div>
           </div>
 
           <div class="item-actions">
-            <a-button
-              type="primary"
-              @click="handleViewProject(project.id)"
-            >
+            <a-button type="primary" @click="handleViewProject(project.id)">
               <EyeOutlined />
               打开
             </a-button>
@@ -364,17 +302,11 @@
               </a-button>
               <template #overlay>
                 <a-menu @click="({ key }) => handleAction(key, project.id)">
-                  <a-menu-item
-                    v-if="project.isOwner"
-                    key="manage"
-                  >
+                  <a-menu-item v-if="project.isOwner" key="manage">
                     <SettingOutlined />
                     管理协作者
                   </a-menu-item>
-                  <a-menu-item
-                    v-if="!project.isOwner"
-                    key="leave"
-                  >
+                  <a-menu-item v-if="!project.isOwner" key="leave">
                     <LogoutOutlined />
                     退出协作
                   </a-menu-item>
@@ -387,15 +319,24 @@
     </div>
 
     <!-- 空状态 -->
-    <div
-      v-else
-      class="empty-state"
-    >
+    <div v-else class="empty-state">
       <div class="empty-icon">
         <TeamOutlined />
       </div>
-      <h3>{{ searchKeyword || selectedType ? '没有找到匹配的协作项目' : getEmptyMessage() }}</h3>
-      <p>{{ searchKeyword || selectedType ? '尝试调整筛选条件' : getEmptyDescription() }}</p>
+      <h3>
+        {{
+          searchKeyword || selectedType
+            ? "没有找到匹配的协作项目"
+            : getEmptyMessage()
+        }}
+      </h3>
+      <p>
+        {{
+          searchKeyword || selectedType
+            ? "尝试调整筛选条件"
+            : getEmptyDescription()
+        }}
+      </p>
     </div>
 
     <!-- 邀请协作者Modal -->
@@ -406,10 +347,7 @@
       @ok="handleConfirmInvite"
     >
       <a-form layout="vertical">
-        <a-form-item
-          label="选择项目"
-          required
-        >
+        <a-form-item label="选择项目" required>
           <a-select
             v-model:value="inviteForm.projectId"
             placeholder="选择要邀请协作的项目"
@@ -424,33 +362,18 @@
           </a-select>
         </a-form-item>
 
-        <a-form-item
-          label="协作者DID"
-          required
-        >
+        <a-form-item label="协作者DID" required>
           <a-input
             v-model:value="inviteForm.collaboratorDid"
             placeholder="输入协作者的DID地址"
           />
         </a-form-item>
 
-        <a-form-item
-          label="角色"
-          required
-        >
-          <a-select
-            v-model:value="inviteForm.role"
-            placeholder="选择角色"
-          >
-            <a-select-option value="admin">
-              管理员
-            </a-select-option>
-            <a-select-option value="editor">
-              编辑者
-            </a-select-option>
-            <a-select-option value="viewer">
-              查看者
-            </a-select-option>
+        <a-form-item label="角色" required>
+          <a-select v-model:value="inviteForm.role" placeholder="选择角色">
+            <a-select-option value="admin"> 管理员 </a-select-option>
+            <a-select-option value="editor"> 编辑者 </a-select-option>
+            <a-select-option value="viewer"> 查看者 </a-select-option>
           </a-select>
         </a-form-item>
 
@@ -467,14 +390,14 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger, createLogger } from "@/utils/logger";
 
-import { ref, computed, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
-import { message, Modal } from 'ant-design-vue';
-import { useProjectStore } from '@/stores/project';
-import { useAuthStore } from '@/stores/auth';
-import { useAppStore } from '@/stores/app';
+import { ref, computed, onMounted } from "vue";
+import { useRouter } from "vue-router";
+import { message, Modal } from "ant-design-vue";
+import { useProjectStore } from "@/stores/project";
+import { useAuthStore } from "@/stores/auth";
+import { useAppStore } from "@/stores/app";
 import {
   TeamOutlined,
   UserAddOutlined,
@@ -500,9 +423,9 @@ import {
   BarChartOutlined,
   AppstoreAddOutlined,
   FolderOutlined,
-} from '@ant-design/icons-vue';
-import { format } from 'date-fns';
-import { zhCN } from 'date-fns/locale';
+} from "@ant-design/icons-vue";
+import { format } from "date-fns";
+import { zhCN } from "date-fns/locale";
 
 const router = useRouter();
 const projectStore = useProjectStore();
@@ -512,18 +435,18 @@ const appStore = useAppStore();
 // 响应式状态
 const loading = ref(false);
 const inviting = ref(false);
-const activeTab = ref('owned');
-const searchKeyword = ref('');
-const selectedType = ref('');
-const viewMode = ref('grid');
+const activeTab = ref("owned");
+const searchKeyword = ref("");
+const selectedType = ref("");
+const viewMode = ref("grid");
 const showInviteModal = ref(false);
 
 // 邀请表单
 const inviteForm = ref({
   projectId: null,
-  collaboratorDid: '',
-  role: 'editor',
-  message: '',
+  collaboratorDid: "",
+  role: "editor",
+  message: "",
 });
 
 // 模拟数据（实际应从后端API获取）
@@ -532,27 +455,29 @@ const pendingInvitations = ref([]);
 
 // 计算属性
 const ownedProjects = computed(() => {
-  return collaborationProjects.value.filter(p => p.isOwner);
+  return collaborationProjects.value.filter((p) => p.isOwner);
 });
 
 const joinedProjects = computed(() => {
-  return collaborationProjects.value.filter(p => !p.isOwner);
+  return collaborationProjects.value.filter((p) => !p.isOwner);
 });
 
 const filteredProjects = computed(() => {
-  let result = activeTab.value === 'owned' ? ownedProjects.value : joinedProjects.value;
+  let result =
+    activeTab.value === "owned" ? ownedProjects.value : joinedProjects.value;
 
   // 类型筛选
   if (selectedType.value) {
-    result = result.filter(p => p.project_type === selectedType.value);
+    result = result.filter((p) => p.project_type === selectedType.value);
   }
 
   // 搜索筛选
   if (searchKeyword.value) {
     const keyword = searchKeyword.value.toLowerCase();
-    result = result.filter(p =>
-      p.name.toLowerCase().includes(keyword) ||
-      (p.description && p.description.toLowerCase().includes(keyword))
+    result = result.filter(
+      (p) =>
+        p.name.toLowerCase().includes(keyword) ||
+        (p.description && p.description.toLowerCase().includes(keyword)),
     );
   }
 
@@ -573,51 +498,56 @@ const getProjectTypeIcon = (type) => {
 // 角色颜色
 const getRoleColor = (role) => {
   const colorMap = {
-    owner: 'gold',
-    admin: 'red',
-    editor: 'blue',
-    viewer: 'green',
+    owner: "gold",
+    admin: "red",
+    editor: "blue",
+    viewer: "green",
   };
-  return colorMap[role] || 'default';
+  return colorMap[role] || "default";
 };
 
 // 角色名称
 const getRoleName = (role) => {
   const nameMap = {
-    owner: '所有者',
-    admin: '管理员',
-    editor: '编辑者',
-    viewer: '查看者',
+    owner: "所有者",
+    admin: "管理员",
+    editor: "编辑者",
+    viewer: "查看者",
   };
   return nameMap[role] || role;
 };
 
 // 头像颜色（基于DID生成）
 const getAvatarColor = (did) => {
-  const colors = ['#f56a00', '#7265e6', '#ffbf00', '#00a2ae', '#87d068'];
-  const hash = did?.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) || 0;
+  const colors = ["#f56a00", "#7265e6", "#ffbf00", "#00a2ae", "#87d068"];
+  const hash =
+    did?.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0) || 0;
   return colors[hash % colors.length];
 };
 
 // 格式化日期
 const formatDate = (timestamp) => {
-  if (!timestamp) {return '未知';}
+  if (!timestamp) {
+    return "未知";
+  }
   try {
-    return format(new Date(timestamp), 'yyyy-MM-dd HH:mm', { locale: zhCN });
+    return format(new Date(timestamp), "yyyy-MM-dd HH:mm", { locale: zhCN });
   } catch {
-    return '未知';
+    return "未知";
   }
 };
 
 // 空状态消息
 const getEmptyMessage = () => {
-  return activeTab.value === 'owned' ? '还没有创建协作项目' : '还没有参与协作项目';
+  return activeTab.value === "owned"
+    ? "还没有创建协作项目"
+    : "还没有参与协作项目";
 };
 
 const getEmptyDescription = () => {
-  return activeTab.value === 'owned'
-    ? '创建项目并邀请协作者一起工作'
-    : '等待项目邀请或主动申请加入';
+  return activeTab.value === "owned"
+    ? "创建项目并邀请协作者一起工作"
+    : "等待项目邀请或主动申请加入";
 };
 
 // 防抖搜索
@@ -641,13 +571,17 @@ const handleTypeChange = () => {
 
 // 处理标签页切换
 const handleTabChange = () => {
-  searchKeyword.value = '';
-  selectedType.value = '';
+  searchKeyword.value = "";
+  selectedType.value = "";
 };
 
 // 处理视图模式切换
 const handleViewModeChange = () => {
-  localStorage.setItem('collaboration_view_mode', viewMode.value);
+  try {
+    localStorage.setItem("collaboration_view_mode", viewMode.value);
+  } catch (error) {
+    logger.warn("[CollaborationPage] 保存视图模式失败:", error.message);
+  }
 };
 
 // 刷新
@@ -655,10 +589,10 @@ const handleRefresh = async () => {
   loading.value = true;
   try {
     await loadCollaborationProjects();
-    message.success('刷新成功');
+    message.success("刷新成功");
   } catch (error) {
-    logger.error('Refresh failed:', error);
-    message.error('刷新失败：' + error.message);
+    logger.error("Refresh failed:", error);
+    message.error("刷新失败：" + error.message);
   } finally {
     loading.value = false;
   }
@@ -666,24 +600,24 @@ const handleRefresh = async () => {
 
 // 返回我的项目
 const handleBackToProjects = () => {
-  router.push('/projects');
+  router.push("/projects");
 };
 
 // 查看项目
 const handleViewProject = (projectId) => {
   // 查找项目信息
-  const project = filteredProjects.value.find(p => p.id === projectId);
+  const project = filteredProjects.value.find((p) => p.id === projectId);
 
   // 检查是否是演示数据
-  if (project?._isDemo || projectId.startsWith('collab-demo-')) {
-    message.info('这是演示数据，协作项目功能需要连接后端服务才能使用');
+  if (project?._isDemo || projectId.startsWith("collab-demo-")) {
+    message.info("这是演示数据，协作项目功能需要连接后端服务才能使用");
     return;
   }
 
   // 检查项目是否真实存在于项目store中
-  const realProject = projectStore.projects.find(p => p.id === projectId);
+  const realProject = projectStore.projects.find((p) => p.id === projectId);
   if (!realProject) {
-    message.warning('项目不存在，可能已被删除');
+    message.warning("项目不存在，可能已被删除");
     return;
   }
 
@@ -704,7 +638,7 @@ const handleViewProject = (projectId) => {
 // 邀请协作者
 const handleInviteCollaborator = () => {
   if (ownedProjects.value.length === 0) {
-    message.warning('请先创建项目才能邀请协作者');
+    message.warning("请先创建项目才能邀请协作者");
     return;
   }
   showInviteModal.value = true;
@@ -713,30 +647,30 @@ const handleInviteCollaborator = () => {
 // 确认邀请
 const handleConfirmInvite = async () => {
   if (!inviteForm.value.projectId) {
-    message.warning('请选择项目');
+    message.warning("请选择项目");
     return;
   }
   if (!inviteForm.value.collaboratorDid) {
-    message.warning('请输入协作者DID');
+    message.warning("请输入协作者DID");
     return;
   }
 
   inviting.value = true;
   try {
     // TODO: 调用后端API发送邀请
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
 
-    message.success('邀请已发送');
+    message.success("邀请已发送");
     showInviteModal.value = false;
     inviteForm.value = {
       projectId: null,
-      collaboratorDid: '',
-      role: 'editor',
-      message: '',
+      collaboratorDid: "",
+      role: "editor",
+      message: "",
     };
   } catch (error) {
-    logger.error('Invite failed:', error);
-    message.error('邀请失败：' + error.message);
+    logger.error("Invite failed:", error);
+    message.error("邀请失败：" + error.message);
   } finally {
     inviting.value = false;
   }
@@ -746,16 +680,16 @@ const handleConfirmInvite = async () => {
 const handleAcceptInvitation = async (invitationId) => {
   try {
     // TODO: 调用后端API接受邀请
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise((resolve) => setTimeout(resolve, 500));
 
     pendingInvitations.value = pendingInvitations.value.filter(
-      inv => inv.id !== invitationId
+      (inv) => inv.id !== invitationId,
     );
-    message.success('已接受邀请');
+    message.success("已接受邀请");
     await loadCollaborationProjects();
   } catch (error) {
-    logger.error('Accept invitation failed:', error);
-    message.error('接受失败：' + error.message);
+    logger.error("Accept invitation failed:", error);
+    message.error("接受失败：" + error.message);
   }
 };
 
@@ -763,42 +697,42 @@ const handleAcceptInvitation = async (invitationId) => {
 const handleRejectInvitation = async (invitationId) => {
   try {
     // TODO: 调用后端API拒绝邀请
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise((resolve) => setTimeout(resolve, 500));
 
     pendingInvitations.value = pendingInvitations.value.filter(
-      inv => inv.id !== invitationId
+      (inv) => inv.id !== invitationId,
     );
-    message.success('已拒绝邀请');
+    message.success("已拒绝邀请");
   } catch (error) {
-    logger.error('Reject invitation failed:', error);
-    message.error('拒绝失败：' + error.message);
+    logger.error("Reject invitation failed:", error);
+    message.error("拒绝失败：" + error.message);
   }
 };
 
 // 处理下拉菜单操作
 const handleAction = (key, projectId) => {
-  if (key === 'manage') {
+  if (key === "manage") {
     // TODO: 打开管理协作者对话框
-    message.info('管理协作者功能开发中...');
-  } else if (key === 'leave') {
+    message.info("管理协作者功能开发中...");
+  } else if (key === "leave") {
     Modal.confirm({
-      title: '确认退出',
-      content: '确定要退出这个协作项目吗？',
-      okText: '退出',
-      okType: 'danger',
-      cancelText: '取消',
+      title: "确认退出",
+      content: "确定要退出这个协作项目吗？",
+      okText: "退出",
+      okType: "danger",
+      cancelText: "取消",
       onOk: async () => {
         try {
           // TODO: 调用后端API退出协作
-          await new Promise(resolve => setTimeout(resolve, 500));
+          await new Promise((resolve) => setTimeout(resolve, 500));
 
           collaborationProjects.value = collaborationProjects.value.filter(
-            p => p.id !== projectId
+            (p) => p.id !== projectId,
           );
-          message.success('已退出协作项目');
+          message.success("已退出协作项目");
         } catch (error) {
-          logger.error('Leave project failed:', error);
-          message.error('退出失败：' + error.message);
+          logger.error("Leave project failed:", error);
+          message.error("退出失败：" + error.message);
         }
       },
     });
@@ -810,50 +744,49 @@ const loadCollaborationProjects = async () => {
   // TODO: 从后端API获取实际数据
 
   // 1. 从真实项目中获取（作为示例）
-  const realProjects = projectStore.projects.slice(0, 2).map(p => ({
+  const realProjects = projectStore.projects.slice(0, 2).map((p) => ({
     id: p.id,
     name: p.name,
     description: p.description,
     project_type: p.project_type,
     isOwner: true,
-    myRole: 'owner',
-    collaborators: [
-      { did: 'did:chainless:self', name: '我' },
-    ],
+    myRole: "owner",
+    collaborators: [{ did: "did:chainless:self", name: "我" }],
     updated_at: p.updated_at,
   }));
 
   // 2. 模拟协作数据（用于演示）
   const mockProjects = [
     {
-      id: 'collab-demo-1',
-      name: '【演示】ChainlessChain Web3协作文档',
-      description: '去中心化协作文档项目，使用DID进行身份验证和权限管理（演示数据）',
-      project_type: 'document',
+      id: "collab-demo-1",
+      name: "【演示】ChainlessChain Web3协作文档",
+      description:
+        "去中心化协作文档项目，使用DID进行身份验证和权限管理（演示数据）",
+      project_type: "document",
       isOwner: true,
-      myRole: 'owner',
+      myRole: "owner",
       collaborators: [
-        { did: 'did:chainless:abc123', name: '张三' },
-        { did: 'did:chainless:def456', name: '李四' },
-        { did: 'did:chainless:ghi789', name: '王五' },
+        { did: "did:chainless:abc123", name: "张三" },
+        { did: "did:chainless:def456", name: "李四" },
+        { did: "did:chainless:ghi789", name: "王五" },
       ],
       updated_at: Date.now() - 3600000,
       _isDemo: true,
     },
     {
-      id: 'collab-demo-2',
-      name: '【演示】去中心化交易平台前端',
-      description: 'Web3交易平台的React前端开发（演示数据）',
-      project_type: 'web',
+      id: "collab-demo-2",
+      name: "【演示】去中心化交易平台前端",
+      description: "Web3交易平台的React前端开发（演示数据）",
+      project_type: "web",
       isOwner: false,
-      myRole: 'editor',
+      myRole: "editor",
       collaborators: [
-        { did: 'did:chainless:owner1', name: '项目负责人' },
-        { did: 'did:chainless:member1', name: '成员A' },
-        { did: 'did:chainless:member2', name: '成员B' },
-        { did: 'did:chainless:member3', name: '成员C' },
-        { did: 'did:chainless:member4', name: '成员D' },
-        { did: 'did:chainless:member5', name: '成员E' },
+        { did: "did:chainless:owner1", name: "项目负责人" },
+        { did: "did:chainless:member1", name: "成员A" },
+        { did: "did:chainless:member2", name: "成员B" },
+        { did: "did:chainless:member3", name: "成员C" },
+        { did: "did:chainless:member4", name: "成员D" },
+        { did: "did:chainless:member5", name: "成员E" },
       ],
       updated_at: Date.now() - 7200000,
       _isDemo: true,
@@ -866,16 +799,16 @@ const loadCollaborationProjects = async () => {
   // 模拟邀请数据
   pendingInvitations.value = [
     {
-      id: 'inv-1',
+      id: "inv-1",
       inviter: {
-        did: 'did:chainless:inviter1',
-        name: '赵六',
+        did: "did:chainless:inviter1",
+        name: "赵六",
       },
       project: {
-        name: '数据分析项目',
-        description: '基于区块链的数据分析平台',
+        name: "数据分析项目",
+        description: "基于区块链的数据分析平台",
       },
-      role: 'editor',
+      role: "editor",
       created_at: Date.now() - 1800000,
     },
   ];
@@ -884,18 +817,23 @@ const loadCollaborationProjects = async () => {
 // 组件挂载
 onMounted(async () => {
   loading.value = true;
+
+  // 从localStorage恢复视图模式
   try {
-    // 从localStorage恢复视图模式
-    const savedViewMode = localStorage.getItem('collaboration_view_mode');
+    const savedViewMode = localStorage.getItem("collaboration_view_mode");
     if (savedViewMode) {
       viewMode.value = savedViewMode;
     }
+  } catch (error) {
+    logger.warn("[CollaborationPage] 恢复视图模式失败:", error.message);
+  }
 
+  try {
     // 加载协作项目
     await loadCollaborationProjects();
   } catch (error) {
-    logger.error('Failed to load collaboration projects:', error);
-    message.error('加载失败：' + error.message);
+    logger.error("Failed to load collaboration projects:", error);
+    message.error("加载失败：" + error.message);
   } finally {
     loading.value = false;
   }

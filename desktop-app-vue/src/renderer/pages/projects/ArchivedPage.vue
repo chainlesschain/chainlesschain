@@ -40,21 +40,11 @@
           style="width: 150px"
           @change="handleTypeChange"
         >
-          <a-select-option value="">
-            全部类型
-          </a-select-option>
-          <a-select-option value="web">
-            Web开发
-          </a-select-option>
-          <a-select-option value="document">
-            文档处理
-          </a-select-option>
-          <a-select-option value="data">
-            数据分析
-          </a-select-option>
-          <a-select-option value="app">
-            应用开发
-          </a-select-option>
+          <a-select-option value=""> 全部类型 </a-select-option>
+          <a-select-option value="web"> Web开发 </a-select-option>
+          <a-select-option value="document"> 文档处理 </a-select-option>
+          <a-select-option value="data"> 数据分析 </a-select-option>
+          <a-select-option value="app"> 应用开发 </a-select-option>
         </a-select>
 
         <a-select
@@ -69,20 +59,13 @@
           <a-select-option value="archived_at:asc">
             归档时间（最早）
           </a-select-option>
-          <a-select-option value="name:asc">
-            名称 A-Z
-          </a-select-option>
-          <a-select-option value="name:desc">
-            名称 Z-A
-          </a-select-option>
+          <a-select-option value="name:asc"> 名称 A-Z </a-select-option>
+          <a-select-option value="name:desc"> 名称 Z-A </a-select-option>
         </a-select>
       </div>
 
       <div class="filter-right">
-        <a-button
-          :loading="loading"
-          @click="handleRefresh"
-        >
+        <a-button :loading="loading" @click="handleRefresh">
           <ReloadOutlined :spin="loading" />
           刷新
         </a-button>
@@ -103,65 +86,42 @@
     </div>
 
     <!-- 统计栏 -->
-    <div
-      v-if="archivedProjects.length > 0"
-      class="stats-bar"
-    >
+    <div v-if="archivedProjects.length > 0" class="stats-bar">
       <div class="stat-item">
         <div class="stat-value">
           {{ archivedProjects.length }}
         </div>
-        <div class="stat-label">
-          已归档项目
-        </div>
+        <div class="stat-label">已归档项目</div>
       </div>
       <div class="stat-item">
         <div class="stat-value">
           {{ typeStats.web || 0 }}
         </div>
-        <div class="stat-label">
-          Web开发
-        </div>
+        <div class="stat-label">Web开发</div>
       </div>
       <div class="stat-item">
         <div class="stat-value">
           {{ typeStats.document || 0 }}
         </div>
-        <div class="stat-label">
-          文档处理
-        </div>
+        <div class="stat-label">文档处理</div>
       </div>
       <div class="stat-item">
         <div class="stat-value">
           {{ typeStats.data || 0 }}
         </div>
-        <div class="stat-label">
-          数据分析
-        </div>
+        <div class="stat-label">数据分析</div>
       </div>
     </div>
 
     <!-- 加载状态 -->
-    <div
-      v-if="loading"
-      class="loading-container"
-    >
-      <a-spin
-        size="large"
-        tip="加载中..."
-      />
+    <div v-if="loading" class="loading-container">
+      <a-spin size="large" tip="加载中..." />
     </div>
 
     <!-- 项目列表 -->
-    <div
-      v-else-if="paginatedProjects.length > 0"
-      class="projects-container"
-    >
+    <div v-else-if="paginatedProjects.length > 0" class="projects-container">
       <!-- 网格视图 -->
-      <div
-        v-if="viewMode === 'grid'"
-        class="projects-grid"
-      >
+      <div v-if="viewMode === 'grid'" class="projects-grid">
         <div
           v-for="project in paginatedProjects"
           :key="project.id"
@@ -173,10 +133,7 @@
             </div>
             <div class="card-actions">
               <a-dropdown>
-                <a-button
-                  type="text"
-                  size="small"
-                >
+                <a-button type="text" size="small">
                   <MoreOutlined />
                 </a-button>
                 <template #overlay>
@@ -186,10 +143,7 @@
                       恢复项目
                     </a-menu-item>
                     <a-menu-divider />
-                    <a-menu-item
-                      key="delete"
-                      danger
-                    >
+                    <a-menu-item key="delete" danger>
                       <DeleteOutlined />
                       永久删除
                     </a-menu-item>
@@ -202,13 +156,14 @@
           <div class="card-body">
             <h3>{{ project.name }}</h3>
             <p class="description">
-              {{ project.description || '暂无描述' }}
+              {{ project.description || "暂无描述" }}
             </p>
 
             <div class="meta-info">
               <div class="meta-item">
                 <CalendarOutlined />
-                归档于: {{ formatDate(project.archived_at || project.updated_at) }}
+                归档于:
+                {{ formatDate(project.archived_at || project.updated_at) }}
               </div>
               <div class="meta-item">
                 <FolderOutlined />
@@ -232,10 +187,7 @@
       </div>
 
       <!-- 列表视图 -->
-      <div
-        v-else
-        class="projects-list"
-      >
+      <div v-else class="projects-list">
         <div
           v-for="project in paginatedProjects"
           :key="project.id"
@@ -247,26 +199,27 @@
 
           <div class="item-content">
             <h4>{{ project.name }}</h4>
-            <p>{{ project.description || '暂无描述' }}</p>
+            <p>{{ project.description || "暂无描述" }}</p>
             <div class="item-meta">
-              <span><CalendarOutlined /> 归档于: {{ formatDate(project.archived_at || project.updated_at) }}</span>
-              <span><FolderOutlined /> {{ getProjectTypeName(project.project_type) }}</span>
+              <span
+                ><CalendarOutlined /> 归档于:
+                {{
+                  formatDate(project.archived_at || project.updated_at)
+                }}</span
+              >
+              <span
+                ><FolderOutlined />
+                {{ getProjectTypeName(project.project_type) }}</span
+              >
             </div>
           </div>
 
           <div class="item-actions">
-            <a-button
-              type="primary"
-              ghost
-              @click="handleRestore(project.id)"
-            >
+            <a-button type="primary" ghost @click="handleRestore(project.id)">
               <RollbackOutlined />
               恢复
             </a-button>
-            <a-button
-              danger
-              @click="handleDelete(project.id)"
-            >
+            <a-button danger @click="handleDelete(project.id)">
               <DeleteOutlined />
               删除
             </a-button>
@@ -280,7 +233,7 @@
           v-model:current="currentPage"
           v-model:page-size="pageSize"
           :total="filteredProjects.length"
-          :show-total="total => `共 ${total} 个已归档项目`"
+          :show-total="(total) => `共 ${total} 个已归档项目`"
           :show-size-changer="true"
           :page-size-options="['12', '24', '48', '96']"
           @change="handlePageChange"
@@ -290,15 +243,24 @@
     </div>
 
     <!-- 空状态 -->
-    <div
-      v-else
-      class="empty-state"
-    >
+    <div v-else class="empty-state">
       <div class="empty-icon">
         <InboxOutlined />
       </div>
-      <h3>{{ searchKeyword || selectedType ? '没有找到匹配的已归档项目' : '还没有归档项目' }}</h3>
-      <p>{{ searchKeyword || selectedType ? '尝试调整筛选条件' : '归档的项目将显示在这里' }}</p>
+      <h3>
+        {{
+          searchKeyword || selectedType
+            ? "没有找到匹配的已归档项目"
+            : "还没有归档项目"
+        }}
+      </h3>
+      <p>
+        {{
+          searchKeyword || selectedType
+            ? "尝试调整筛选条件"
+            : "归档的项目将显示在这里"
+        }}
+      </p>
       <a-button
         v-if="!searchKeyword && !selectedType"
         @click="handleBackToProjects"
@@ -311,13 +273,13 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger, createLogger } from "@/utils/logger";
 
-import { ref, computed, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
-import { message, Modal } from 'ant-design-vue';
-import { useProjectStore } from '@/stores/project';
-import { useAuthStore } from '@/stores/auth';
+import { ref, computed, onMounted } from "vue";
+import { useRouter } from "vue-router";
+import { message, Modal } from "ant-design-vue";
+import { useProjectStore } from "@/stores/project";
+import { useAuthStore } from "@/stores/auth";
 import {
   InboxOutlined,
   ArrowLeftOutlined,
@@ -334,9 +296,9 @@ import {
   FileTextOutlined,
   BarChartOutlined,
   AppstoreAddOutlined,
-} from '@ant-design/icons-vue';
-import { format } from 'date-fns';
-import { zhCN } from 'date-fns/locale';
+} from "@ant-design/icons-vue";
+import { format } from "date-fns";
+import { zhCN } from "date-fns/locale";
 
 const router = useRouter();
 const projectStore = useProjectStore();
@@ -344,16 +306,16 @@ const authStore = useAuthStore();
 
 // 响应式状态
 const loading = ref(false);
-const searchKeyword = ref('');
-const selectedType = ref('');
-const sortConfig = ref('archived_at:desc');
-const viewMode = ref('grid');
+const searchKeyword = ref("");
+const selectedType = ref("");
+const sortConfig = ref("archived_at:desc");
+const viewMode = ref("grid");
 const currentPage = ref(1);
 const pageSize = ref(12);
 
 // 计算属性
 const archivedProjects = computed(() => {
-  return projectStore.projects.filter(p => p.status === 'archived');
+  return projectStore.projects.filter((p) => p.status === "archived");
 });
 
 const filteredProjects = computed(() => {
@@ -361,31 +323,32 @@ const filteredProjects = computed(() => {
 
   // 类型筛选
   if (selectedType.value) {
-    result = result.filter(p => p.project_type === selectedType.value);
+    result = result.filter((p) => p.project_type === selectedType.value);
   }
 
   // 搜索筛选
   if (searchKeyword.value) {
     const keyword = searchKeyword.value.toLowerCase();
-    result = result.filter(p =>
-      p.name.toLowerCase().includes(keyword) ||
-      (p.description && p.description.toLowerCase().includes(keyword))
+    result = result.filter(
+      (p) =>
+        p.name.toLowerCase().includes(keyword) ||
+        (p.description && p.description.toLowerCase().includes(keyword)),
     );
   }
 
   // 排序
-  const [sortBy, sortOrder] = sortConfig.value.split(':');
+  const [sortBy, sortOrder] = sortConfig.value.split(":");
   result.sort((a, b) => {
     const aVal = a[sortBy] || a.updated_at;
     const bVal = b[sortBy] || b.updated_at;
 
-    if (sortBy === 'name') {
-      return sortOrder === 'asc'
+    if (sortBy === "name") {
+      return sortOrder === "asc"
         ? aVal.localeCompare(bVal)
         : bVal.localeCompare(aVal);
     }
 
-    return sortOrder === 'asc' ? aVal - bVal : bVal - aVal;
+    return sortOrder === "asc" ? aVal - bVal : bVal - aVal;
   });
 
   return result;
@@ -399,7 +362,7 @@ const paginatedProjects = computed(() => {
 
 const typeStats = computed(() => {
   const stats = {};
-  archivedProjects.value.forEach(p => {
+  archivedProjects.value.forEach((p) => {
     stats[p.project_type] = (stats[p.project_type] || 0) + 1;
   });
   return stats;
@@ -419,21 +382,23 @@ const getProjectTypeIcon = (type) => {
 // 项目类型名称
 const getProjectTypeName = (type) => {
   const nameMap = {
-    web: 'Web开发',
-    document: '文档处理',
-    data: '数据分析',
-    app: '应用开发',
+    web: "Web开发",
+    document: "文档处理",
+    data: "数据分析",
+    app: "应用开发",
   };
   return nameMap[type] || type;
 };
 
 // 格式化日期
 const formatDate = (timestamp) => {
-  if (!timestamp) {return '未知';}
+  if (!timestamp) {
+    return "未知";
+  }
   try {
-    return format(new Date(timestamp), 'yyyy-MM-dd HH:mm', { locale: zhCN });
+    return format(new Date(timestamp), "yyyy-MM-dd HH:mm", { locale: zhCN });
   } catch {
-    return '未知';
+    return "未知";
   }
 };
 
@@ -463,19 +428,23 @@ const handleSortChange = () => {
 
 // 处理视图模式切换
 const handleViewModeChange = () => {
-  localStorage.setItem('archived_view_mode', viewMode.value);
+  try {
+    localStorage.setItem("archived_view_mode", viewMode.value);
+  } catch (error) {
+    logger.warn("[ArchivedPage] 保存视图模式失败:", error.message);
+  }
 };
 
 // 刷新
 const handleRefresh = async () => {
   loading.value = true;
   try {
-    const userId = authStore.currentUser?.id || 'default-user';
+    const userId = authStore.currentUser?.id || "default-user";
     await projectStore.fetchProjects(userId, true);
-    message.success('刷新成功');
+    message.success("刷新成功");
   } catch (error) {
-    logger.error('Refresh failed:', error);
-    message.error('刷新失败：' + error.message);
+    logger.error("Refresh failed:", error);
+    message.error("刷新失败：" + error.message);
   } finally {
     loading.value = false;
   }
@@ -493,26 +462,26 @@ const handlePageSizeChange = (current, size) => {
 
 // 返回我的项目
 const handleBackToProjects = () => {
-  router.push('/projects');
+  router.push("/projects");
 };
 
 // 恢复项目
 const handleRestore = async (projectId) => {
   Modal.confirm({
-    title: '确认恢复',
+    title: "确认恢复",
     content: '确定要恢复这个项目吗？项目将恢复到"进行中"状态。',
-    okText: '恢复',
-    cancelText: '取消',
+    okText: "恢复",
+    cancelText: "取消",
     onOk: async () => {
       try {
         await projectStore.updateProject(projectId, {
-          status: 'active',
+          status: "active",
           archived_at: null,
         });
-        message.success('项目已恢复');
+        message.success("项目已恢复");
       } catch (error) {
-        logger.error('Restore project failed:', error);
-        message.error('恢复失败：' + error.message);
+        logger.error("Restore project failed:", error);
+        message.error("恢复失败：" + error.message);
       }
     },
   });
@@ -521,18 +490,18 @@ const handleRestore = async (projectId) => {
 // 永久删除项目
 const handleDelete = async (projectId) => {
   Modal.confirm({
-    title: '确认删除',
-    content: '确定要永久删除这个项目吗？此操作不可恢复！',
-    okText: '删除',
-    okType: 'danger',
-    cancelText: '取消',
+    title: "确认删除",
+    content: "确定要永久删除这个项目吗？此操作不可恢复！",
+    okText: "删除",
+    okType: "danger",
+    cancelText: "取消",
     onOk: async () => {
       try {
         await projectStore.deleteProject(projectId);
-        message.success('项目已永久删除');
+        message.success("项目已永久删除");
       } catch (error) {
-        logger.error('Delete project failed:', error);
-        message.error('删除失败：' + error.message);
+        logger.error("Delete project failed:", error);
+        message.error("删除失败：" + error.message);
       }
     },
   });
@@ -540,9 +509,9 @@ const handleDelete = async (projectId) => {
 
 // 处理下拉菜单操作
 const handleAction = (key, projectId) => {
-  if (key === 'restore') {
+  if (key === "restore") {
     handleRestore(projectId);
-  } else if (key === 'delete') {
+  } else if (key === "delete") {
     handleDelete(projectId);
   }
 };
@@ -550,19 +519,24 @@ const handleAction = (key, projectId) => {
 // 组件挂载
 onMounted(async () => {
   loading.value = true;
+
+  // 从localStorage恢复视图模式
   try {
-    // 从localStorage恢复视图模式
-    const savedViewMode = localStorage.getItem('archived_view_mode');
+    const savedViewMode = localStorage.getItem("archived_view_mode");
     if (savedViewMode) {
       viewMode.value = savedViewMode;
     }
+  } catch (error) {
+    logger.warn("[ArchivedPage] 恢复视图模式失败:", error.message);
+  }
 
+  try {
     // 加载项目
-    const userId = authStore.currentUser?.id || 'default-user';
+    const userId = authStore.currentUser?.id || "default-user";
     await projectStore.fetchProjects(userId);
   } catch (error) {
-    logger.error('Failed to load archived projects:', error);
-    message.error('加载失败：' + error.message);
+    logger.error("Failed to load archived projects:", error);
+    message.error("加载失败：" + error.message);
   } finally {
     loading.value = false;
   }
