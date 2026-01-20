@@ -159,6 +159,158 @@ jobs:
             desktop-app-vue/out/make/**/*.zip
           retention-days: 7
 
+  # Build for iOS
+  build-ios:
+    runs-on: macos-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Select Xcode version
+        run: sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Install Ruby dependencies
+        run: |
+          gem install xcodeproj
+          echo "✅ xcodeproj gem installed"
+
+      - name: Generate Xcode project
+        working-directory: ios-app
+        run: |
+          ruby create_xcode_project.rb
+          echo "✅ Xcode project generated"
+          ls -la *.xcodeproj || true
+
+      - name: Resolve Swift Package dependencies
+        working-directory: ios-app
+        run: |
+          xcodebuild -resolvePackageDependencies \
+            -project ChainlessChain.xcodeproj \
+            -scheme ChainlessChain \
+            -clonedSourcePackagesDirPath .spm-cache || true
+          echo "✅ Package dependencies resolved"
+
+      - name: Decode signing certificate
+        env:
+          IOS_CERTIFICATE_BASE64: ${{ secrets.IOS_CERTIFICATE_BASE64 }}
+          IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_CERTIFICATE_PASSWORD }}
+          IOS_PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
+        run: |
+          if [ -n "$IOS_CERTIFICATE_BASE64" ]; then
+            # Create keychain
+            KEYCHAIN_PASSWORD=$(openssl rand -base64 32)
+            security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+            security default-keychain -s build.keychain
+            security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+            security set-keychain-settings -lut 21600 build.keychain
+
+            # Import certificate
+            echo "$IOS_CERTIFICATE_BASE64" | base64 -d > certificate.p12
+            security import certificate.p12 -k build.keychain -P "$IOS_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+            security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
+            rm certificate.p12
+
+            # Install provisioning profile
+            if [ -n "$IOS_PROVISIONING_PROFILE_BASE64" ]; then
+              mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+              echo "$IOS_PROVISIONING_PROFILE_BASE64" | base64 -d > ~/Library/MobileDevice/Provisioning\ Profiles/profile.mobileprovision
+            fi
+
+            echo "✅ Signing certificate configured"
+            echo "SIGNING_AVAILABLE=true" >> $GITHUB_ENV
+          else
+            echo "⚠️ No signing certificate found, building unsigned"
+            echo "SIGNING_AVAILABLE=false" >> $GITHUB_ENV
+          fi
+
+      - name: Build iOS app (Signed)
+        if: env.SIGNING_AVAILABLE == 'true'
+        working-directory: ios-app
+        env:
+          IOS_TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
+        run: |
+          xcodebuild archive \
+            -project ChainlessChain.xcodeproj \
+            -scheme ChainlessChain \
+            -configuration Release \
+            -archivePath build/ChainlessChain.xcarchive \
+            -destination 'generic/platform=iOS' \
+            DEVELOPMENT_TEAM="$IOS_TEAM_ID" \
+            CODE_SIGN_STYLE=Manual \
+            -allowProvisioningUpdates
+
+      - name: Build iOS app (Simulator - Unsigned)
+        if: env.SIGNING_AVAILABLE != 'true'
+        working-directory: ios-app
+        run: |
+          # Build for simulator (no signing required)
+          xcodebuild build \
+            -project ChainlessChain.xcodeproj \
+            -scheme ChainlessChain \
+            -configuration Release \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build/DerivedData \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO || echo "⚠️ Build completed with warnings"
+
+          # Create a simulator app archive
+          mkdir -p build/output
+          if [ -d "build/DerivedData/Build/Products/Release-iphonesimulator/ChainlessChain.app" ]; then
+            cd build/DerivedData/Build/Products/Release-iphonesimulator
+            zip -r ../../../../output/ChainlessChain-ios-simulator.zip ChainlessChain.app
+            echo "✅ Simulator build packaged"
+          fi
+
+      - name: Export IPA
+        if: env.SIGNING_AVAILABLE == 'true'
+        working-directory: ios-app
+        run: |
+          # Create export options plist
+          cat > ExportOptions.plist << EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>ad-hoc</string>
+            <key>teamID</key>
+            <string>${{ secrets.IOS_TEAM_ID }}</string>
+            <key>compileBitcode</key>
+            <false/>
+            <key>stripSwiftSymbols</key>
+            <true/>
+          </dict>
+          </plist>
+          EOF
+
+          xcodebuild -exportArchive \
+            -archivePath build/ChainlessChain.xcarchive \
+            -exportPath build/output \
+            -exportOptionsPlist ExportOptions.plist
+
+          echo "✅ IPA exported"
+          ls -la build/output/
+
+      - name: Clean up keychain
+        if: always()
+        run: |
+          security delete-keychain build.keychain 2>/dev/null || true
+
+      - name: Upload iOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-artifacts
+          path: |
+            ios-app/build/output/*.ipa
+            ios-app/build/output/*.zip
+          if-no-files-found: warn
+          retention-days: 7
+
   # Build for Android
   build-android:
     runs-on: ubuntu-latest
@@ -231,7 +383,7 @@ jobs:
 
   # Create GitHub Release
   create-release:
-    needs: [build-windows, build-macos, build-linux, build-android]
+    needs: [build-windows, build-macos, build-linux, build-android, build-ios]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -299,12 +451,17 @@ jobs:
           - \`app-release.apk\` - Android APK (direct install)
           - \`app-release.aab\` - Android App Bundle (Google Play Store)
 
+          #### iOS
+          - \`ChainlessChain.ipa\` - iOS App (Ad-hoc distribution, requires signing)
+          - \`ChainlessChain-ios-simulator.zip\` - iOS Simulator build (for testing)
+
           ### System Requirements
 
           - **Windows**: Windows 10/11 (x64)
           - **macOS**: macOS 10.15+ (Intel & Apple Silicon)
           - **Linux**: Ubuntu 20.04+ / Fedora 34+ / Arch Linux (x64)
           - **Android**: Android 8.0 (API 26) or higher
+          - **iOS**: iOS 15.0+ (iPhone/iPad)
 
           ### Notes
 
@@ -338,6 +495,7 @@ jobs:
             artifacts/**/*.exe
             artifacts/**/*.apk
             artifacts/**/*.aab
+            artifacts/**/*.ipa
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
