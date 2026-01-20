@@ -1,11 +1,14 @@
 import Foundation
 import UIKit
+import CoreCommon
 
 /// Image Storage Manager - Handles image file storage, retrieval, and management
 /// Reference: desktop-app-vue/src/main/image/image-storage.js
 @MainActor
 class ImageStorageManager: ObservableObject {
     static let shared = ImageStorageManager()
+
+    private let logger = Logger.shared
 
     // Storage directories
     private let storageDir = "images"
@@ -68,7 +71,7 @@ class ImageStorageManager: ObservableObject {
                 withIntermediateDirectories: true
             )
 
-            AppLogger.log("[ImageStorage] Storage directories created: \(storageBasePath.path)")
+            logger.debug("[ImageStorage] Storage directories created: \(storageBasePath.path)")
         }
 
         // Load statistics
@@ -136,7 +139,7 @@ class ImageStorageManager: ObservableObject {
         statistics.totalImages += 1
         statistics.totalSize += fileSize
 
-        AppLogger.log("[ImageStorage] Image saved: \(newFilename)")
+        logger.debug("[ImageStorage] Image saved: \(newFilename)")
 
         return imageRecord
     }
@@ -186,7 +189,7 @@ class ImageStorageManager: ObservableObject {
         statistics.totalImages += 1
         statistics.totalSize += fileSize
 
-        AppLogger.log("[ImageStorage] Image saved from file: \(newFilename)")
+        logger.debug("[ImageStorage] Image saved from file: \(newFilename)")
 
         return imageRecord
     }
@@ -212,7 +215,7 @@ class ImageStorageManager: ObservableObject {
         // Update statistics
         statistics.thumbnailsGenerated += 1
 
-        AppLogger.log("[ImageStorage] Thumbnail saved: \(thumbnailFilename)")
+        logger.debug("[ImageStorage] Thumbnail saved: \(thumbnailFilename)")
 
         return thumbnailPath.path
     }
@@ -276,7 +279,7 @@ class ImageStorageManager: ObservableObject {
         statistics.totalImages -= 1
         statistics.totalSize -= record.size
 
-        AppLogger.log("[ImageStorage] Image deleted: \(id)")
+        logger.debug("[ImageStorage] Image deleted: \(id)")
     }
 
     /// Delete all images for knowledge item
@@ -293,7 +296,7 @@ class ImageStorageManager: ObservableObject {
     private func saveImageRecord(_ record: ImageRecord) async throws {
         // This would save to CoreData or SQLite
         // For now, just log
-        AppLogger.log("[ImageStorage] Saving record to database: \(record.id)")
+        logger.debug("[ImageStorage] Saving record to database: \(record.id)")
     }
 
     private func getImageRecord(id: String) async throws -> ImageRecord? {
@@ -303,12 +306,12 @@ class ImageStorageManager: ObservableObject {
 
     private func updateThumbnailPath(imageId: String, thumbnailPath: String) async throws {
         // This would update the database
-        AppLogger.log("[ImageStorage] Updating thumbnail path: \(imageId)")
+        logger.debug("[ImageStorage] Updating thumbnail path: \(imageId)")
     }
 
     private func deleteImageRecord(id: String) async throws {
         // This would delete from database
-        AppLogger.log("[ImageStorage] Deleting record from database: \(id)")
+        logger.debug("[ImageStorage] Deleting record from database: \(id)")
     }
 
     // MARK: - Statistics
@@ -332,7 +335,7 @@ class ImageStorageManager: ObservableObject {
             statistics.thumbnailsGenerated = thumbnails.count
 
         } catch {
-            AppLogger.error("[ImageStorage] Failed to update statistics: \(error)")
+            logger.error("[ImageStorage] Failed to update statistics: \(error)")
         }
     }
 
@@ -345,7 +348,7 @@ class ImageStorageManager: ObservableObject {
     /// Clean up orphaned files
     func cleanup() async throws {
         // This would remove files not referenced in database
-        AppLogger.log("[ImageStorage] Cleanup started")
+        logger.debug("[ImageStorage] Cleanup started")
 
         // Get all files
         let files = try FileManager.default.contentsOfDirectory(at: storageBasePath, includingPropertiesForKeys: nil)
@@ -354,7 +357,7 @@ class ImageStorageManager: ObservableObject {
         // Delete if not found in database
         // (Implementation would depend on database structure)
 
-        AppLogger.log("[ImageStorage] Cleanup complete")
+        logger.debug("[ImageStorage] Cleanup complete")
     }
 
     /// Get storage size
@@ -404,14 +407,3 @@ enum ImageStorageError: LocalizedError {
     }
 }
 
-// MARK: - Logger
-
-private struct AppLogger {
-    static func log(_ message: String) {
-        print(message)
-    }
-
-    static func error(_ message: String) {
-        print("❌ \(message)")
-    }
-}

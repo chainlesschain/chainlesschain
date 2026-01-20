@@ -1,11 +1,14 @@
 import Foundation
 import WebRTC
+import CoreCommon
 
 /// P2P Manager - Coordinates WebRTC, Signal Protocol, and Message Management
 /// Reference: desktop-app-vue/src/main/p2p/p2p-manager.js
 @MainActor
 class P2PManager: ObservableObject {
     static let shared = P2PManager()
+
+    private let logger = Logger.shared
 
     // Sub-managers
     private let webrtcManager = WebRTCManager.shared
@@ -25,8 +28,8 @@ class P2PManager: ObservableObject {
     private var autoReconnectEnabled = true
     private var reconnectAttempts: [String: Int] = [:]
     private var reconnectTimers: [String: Timer] = [:]
-    private let maxReconnectAttempts = 5
-    private let baseReconnectDelay: TimeInterval = 2.0  // seconds
+    private let maxReconnectAttempts = AppConfig.P2P.maxReconnectAttempts
+    private let baseReconnectDelay: TimeInterval = AppConfig.P2P.baseReconnectDelay
     private var disconnectedPeers: [String: PeerReconnectInfo] = [:]
 
     struct PeerReconnectInfo {
@@ -51,7 +54,7 @@ class P2PManager: ObservableObject {
 
     /// Initialize P2P Manager
     func initialize(signalingServerURL: String? = nil) async throws {
-        AppLogger.log("[P2P] Initializing P2P Manager...")
+        logger.debug("[P2P] Initializing P2P Manager...")
 
         // Initialize WebRTC
         webrtcManager.initialize()
@@ -66,7 +69,7 @@ class P2PManager: ObservableObject {
         }
 
         isInitialized = true
-        AppLogger.log("[P2P] P2P Manager initialized")
+        logger.debug("[P2P] P2P Manager initialized")
     }
 
     // MARK: - Connection Management
@@ -77,7 +80,7 @@ class P2PManager: ObservableObject {
             throw P2PError.notInitialized
         }
 
-        AppLogger.log("[P2P] Connecting to peer: \(peerId)")
+        logger.debug("[P2P] Connecting to peer: \(peerId)")
         connectionStatus[peerId] = .connecting
 
         do {
@@ -108,7 +111,7 @@ class P2PManager: ObservableObject {
             connectedPeers.insert(peerId)
             connectionStatus[peerId] = .connected
 
-            AppLogger.log("[P2P] Connected to peer: \(peerId)")
+            logger.debug("[P2P] Connected to peer: \(peerId)")
 
             // Notify observers
             NotificationCenter.default.post(
@@ -119,7 +122,7 @@ class P2PManager: ObservableObject {
 
         } catch {
             connectionStatus[peerId] = .failed
-            AppLogger.error("[P2P] Failed to connect to peer: \(error)")
+            logger.error("[P2P] Failed to connect to peer: \(error)")
             throw error
         }
     }
@@ -130,7 +133,7 @@ class P2PManager: ObservableObject {
             throw P2PError.notInitialized
         }
 
-        AppLogger.log("[P2P] Accepting connection from: \(peerId)")
+        logger.debug("[P2P] Accepting connection from: \(peerId)")
         connectionStatus[peerId] = .connecting
 
         do {
@@ -149,7 +152,7 @@ class P2PManager: ObservableObject {
             connectedPeers.insert(peerId)
             connectionStatus[peerId] = .connected
 
-            AppLogger.log("[P2P] Accepted connection from: \(peerId)")
+            logger.debug("[P2P] Accepted connection from: \(peerId)")
 
             NotificationCenter.default.post(
                 name: .p2pPeerConnected,
@@ -159,14 +162,14 @@ class P2PManager: ObservableObject {
 
         } catch {
             connectionStatus[peerId] = .failed
-            AppLogger.error("[P2P] Failed to accept connection: \(error)")
+            logger.error("[P2P] Failed to accept connection: \(error)")
             throw error
         }
     }
 
     /// Disconnect from peer
     func disconnectFromPeer(peerId: String) {
-        AppLogger.log("[P2P] Disconnecting from peer: \(peerId)")
+        logger.debug("[P2P] Disconnecting from peer: \(peerId)")
 
         webrtcManager.closeConnection(for: peerId)
         signalManager.removeSession(recipientId: peerId)
@@ -208,7 +211,7 @@ class P2PManager: ObservableObject {
                 immediate: priority == .high
             )
 
-            AppLogger.log("[P2P] Sent encrypted message to \(peerId): \(messageId)")
+            logger.debug("[P2P] Sent encrypted message to \(peerId): \(messageId)")
             return messageId
         } else {
             // Queue for offline delivery
@@ -221,7 +224,7 @@ class P2PManager: ObservableObject {
                 expiresIn: 24 * 60 * 60  // 24 hours
             )
 
-            AppLogger.log("[P2P] Queued offline message for \(peerId): \(messageId)")
+            logger.debug("[P2P] Queued offline message for \(peerId): \(messageId)")
             return messageId
         }
     }
@@ -232,7 +235,7 @@ class P2PManager: ObservableObject {
 
         guard !pendingMessages.isEmpty else { return }
 
-        AppLogger.log("[P2P] Processing \(pendingMessages.count) offline messages for \(peerId)")
+        logger.debug("[P2P] Processing \(pendingMessages.count) offline messages for \(peerId)")
 
         for queuedMessage in pendingMessages {
             do {
@@ -250,8 +253,12 @@ class P2PManager: ObservableObject {
                 try offlineQueue.markAsSent(messageId: queuedMessage.id)
 
             } catch {
-                AppLogger.error("[P2P] Failed to send queued message: \(error)")
-                try? offlineQueue.markAsFailed(messageId: queuedMessage.id, shouldRetry: true)
+                logger.error("[P2P] Failed to send queued message: \(error)")
+                do {
+                    try offlineQueue.markAsFailed(messageId: queuedMessage.id, shouldRetry: true)
+                } catch {
+                    logger.error("[P2P] Failed to mark message as failed: \(error)")
+                }
             }
         }
     }
@@ -284,10 +291,10 @@ class P2PManager: ObservableObject {
                 ]
             )
 
-            AppLogger.log("[P2P] Received and decrypted message from \(peerId)")
+            logger.debug("[P2P] Received and decrypted message from \(peerId)")
 
         } catch {
-            AppLogger.error("[P2P] Failed to handle received message: \(error)")
+            logger.error("[P2P] Failed to handle received message: \(error)")
         }
     }
 
@@ -374,7 +381,11 @@ class P2PManager: ObservableObject {
             }
 
             Task { @MainActor in
-                try? await self?.sendSignalingMessage(to: peerId, type: .iceCandidate, candidate: candidate)
+                do {
+                    try await self?.sendSignalingMessage(to: peerId, type: .iceCandidate, candidate: candidate)
+                } catch {
+                    self?.logger.error("[P2P] Failed to send ICE candidate: \(error)")
+                }
             }
         }
 
@@ -408,7 +419,11 @@ class P2PManager: ObservableObject {
             }
 
             Task { @MainActor in
-                try? await self?.sendMessageViaWebRTC(to: peerId, message: message)
+                do {
+                    try await self?.sendMessageViaWebRTC(to: peerId, message: message)
+                } catch {
+                    self?.logger.error("[P2P] Failed to send message via WebRTC: \(error)")
+                }
             }
         }
 
@@ -425,7 +440,11 @@ class P2PManager: ObservableObject {
 
             Task { @MainActor in
                 for message in messages {
-                    try? await self?.sendMessageViaWebRTC(to: peerId, message: message)
+                    do {
+                        try await self?.sendMessageViaWebRTC(to: peerId, message: message)
+                    } catch {
+                        self?.logger.error("[P2P] Failed to send batch message via WebRTC: \(error)")
+                    }
                 }
             }
         }
@@ -439,7 +458,7 @@ class P2PManager: ObservableObject {
 
             // Clear reconnect state on successful connection
             cancelReconnect(for: peerId)
-            AppLogger.log("[P2P] Connection established: \(peerId)")
+            logger.debug("[P2P] Connection established: \(peerId)")
 
             // Process offline message queue for this peer
             Task {
@@ -481,7 +500,7 @@ class P2PManager: ObservableObject {
         let attempts = reconnectAttempts[peerId] ?? 0
 
         guard attempts < maxReconnectAttempts else {
-            AppLogger.log("[P2P] Max reconnect attempts reached for: \(peerId)")
+            logger.debug("[P2P] Max reconnect attempts reached for: \(peerId)")
             connectionStatus[peerId] = .failed
             return
         }
@@ -491,7 +510,7 @@ class P2PManager: ObservableObject {
         let jitter = Double.random(in: 0..<1.0)  // Add jitter to prevent thundering herd
         let totalDelay = delay + jitter
 
-        AppLogger.log("[P2P] Scheduling reconnect for \(peerId) in \(totalDelay)s (attempt \(attempts + 1)/\(maxReconnectAttempts))")
+        logger.debug("[P2P] Scheduling reconnect for \(peerId) in \(totalDelay)s (attempt \(attempts + 1)/\(maxReconnectAttempts))")
 
         // Cancel existing timer
         reconnectTimers[peerId]?.invalidate()
@@ -510,11 +529,11 @@ class P2PManager: ObservableObject {
     /// Attempt to reconnect to a peer
     private func attemptReconnect(peerId: String) async {
         guard connectionStatus[peerId] != .connected else {
-            AppLogger.log("[P2P] Already connected to: \(peerId)")
+            logger.debug("[P2P] Already connected to: \(peerId)")
             return
         }
 
-        AppLogger.log("[P2P] Attempting reconnect to: \(peerId)")
+        logger.debug("[P2P] Attempting reconnect to: \(peerId)")
         connectionStatus[peerId] = .connecting
 
         do {
@@ -523,10 +542,10 @@ class P2PManager: ObservableObject {
 
             try await connectToPeer(peerId: peerId, preKeyBundle: preKeyBundle)
 
-            AppLogger.log("[P2P] Reconnect successful: \(peerId)")
+            logger.debug("[P2P] Reconnect successful: \(peerId)")
 
         } catch {
-            AppLogger.error("[P2P] Reconnect failed: \(error)")
+            logger.error("[P2P] Reconnect failed: \(error)")
 
             // Schedule another attempt if not at max
             if (reconnectAttempts[peerId] ?? 0) < maxReconnectAttempts {
@@ -571,7 +590,9 @@ class P2PManager: ObservableObject {
     private func sendMessageViaWebRTC(to peerId: String, message: MessageManager.Message) async throws {
         let encoder = JSONEncoder()
         let messageData = try encoder.encode(message)
-        let messageJson = String(data: messageData, encoding: .utf8)!
+        guard let messageJson = String(data: messageData, encoding: .utf8) else {
+            throw P2PError.invalidMessageFormat
+        }
 
         try webrtcManager.sendMessage(messageJson, to: peerId)
     }
@@ -599,7 +620,7 @@ class P2PManager: ObservableObject {
         signalManager.clearSessions()
         messageManager.clearQueues()
 
-        AppLogger.log("[P2P] Cleanup complete")
+        logger.debug("[P2P] Cleanup complete")
     }
 }
 
@@ -656,7 +677,7 @@ class SignalingService {
         // Start receiving messages
         receiveMessage()
 
-        AppLogger.log("[Signaling] Connected to signaling server")
+        logger.debug("[Signaling] Connected to signaling server")
     }
 
     func send(_ message: SignalingMessage) async throws {
@@ -666,7 +687,9 @@ class SignalingService {
 
         let encoder = JSONEncoder()
         let data = try encoder.encode(message)
-        let string = String(data: data, encoding: .utf8)!
+        guard let string = String(data: data, encoding: .utf8) else {
+            throw P2PError.invalidMessageFormat
+        }
 
         try await webSocket.send(.string(string))
     }
@@ -690,7 +713,7 @@ class SignalingService {
                 self?.receiveMessage()
 
             case .failure(let error):
-                AppLogger.error("[Signaling] Receive error: \(error)")
+                logger.error("[Signaling] Receive error: \(error)")
             }
         }
     }
@@ -762,14 +785,3 @@ extension Notification.Name {
     static let signalingMessageReceived = Notification.Name("signalingMessageReceived")
 }
 
-// MARK: - Logger
-
-private struct AppLogger {
-    static func log(_ message: String) {
-        print(message)
-    }
-
-    static func error(_ message: String) {
-        print("❌ \(message)")
-    }
-}

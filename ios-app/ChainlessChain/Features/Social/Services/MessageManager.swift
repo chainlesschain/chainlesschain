@@ -1,4 +1,5 @@
 import Foundation
+import CoreCommon
 
 /// Message Manager - Handles message deduplication, batching, and delivery
 /// Reference: desktop-app-vue/src/main/p2p/message-manager.js
@@ -6,11 +7,13 @@ import Foundation
 class MessageManager: ObservableObject {
     static let shared = MessageManager()
 
+    private let logger = Logger.shared
+
     // Configuration
-    private let batchSize: Int = 10
-    private let batchInterval: TimeInterval = 0.1 // 100ms
-    private let deduplicationWindow: TimeInterval = 60 // 60 seconds
-    private let maxDeduplicationCache: Int = 10000
+    private let batchSize: Int = AppConfig.P2P.batchSize
+    private let batchInterval: TimeInterval = AppConfig.P2P.batchInterval
+    private let deduplicationWindow: TimeInterval = AppConfig.P2P.deduplicationWindow
+    private let maxDeduplicationCache: Int = AppConfig.P2P.maxDeduplicationCache
 
     // Message queues
     private var outgoingQueues: [String: [Message]] = [:] // peerId -> messages
@@ -113,7 +116,7 @@ class MessageManager: ObservableObject {
     func receiveMessage(from peerId: String, message: Message) -> Bool {
         // Check for duplicates
         if isDuplicate(messageId: message.id) {
-            AppLogger.log("[MessageManager] Duplicate message ignored: \(message.id)")
+            logger.debug("[MessageManager] Duplicate message ignored: \(message.id)")
             stats.messagesDuplicated += 1
             return false
         }
@@ -123,7 +126,7 @@ class MessageManager: ObservableObject {
 
         stats.messagesReceived += 1
 
-        AppLogger.log("[MessageManager] Message received from \(peerId): \(message.id)")
+        logger.debug("[MessageManager] Message received from \(peerId): \(message.id)")
 
         return true
     }
@@ -170,7 +173,7 @@ class MessageManager: ObservableObject {
             return
         }
 
-        AppLogger.log("[MessageManager] Batch sending \(queue.count) messages to: \(peerId)")
+        logger.debug("[MessageManager] Batch sending \(queue.count) messages to: \(peerId)")
 
         // Cancel timer
         batchTimers[peerId]?.invalidate()
@@ -187,7 +190,7 @@ class MessageManager: ObservableObject {
 
     /// Send immediately
     private func sendImmediately(peerId: String, message: Message) async {
-        AppLogger.log("[MessageManager] Sending message immediately: \(message.id)")
+        logger.debug("[MessageManager] Sending message immediately: \(message.id)")
 
         // Notify P2P manager to send
         NotificationCenter.default.post(
@@ -199,7 +202,7 @@ class MessageManager: ObservableObject {
 
     /// Send batch
     private func sendBatch(peerId: String, messages: [Message]) async {
-        AppLogger.log("[MessageManager] Sending batch: \(messages.count) messages")
+        logger.debug("[MessageManager] Sending batch: \(messages.count) messages")
 
         // Notify P2P manager to send batch
         NotificationCenter.default.post(
@@ -255,7 +258,7 @@ class MessageManager: ObservableObject {
             keysToRemove.forEach { receivedMessages.removeValue(forKey: $0) }
         }
 
-        AppLogger.log("[MessageManager] Cleanup: \(receivedMessages.count) messages in cache")
+        logger.debug("[MessageManager] Cleanup: \(receivedMessages.count) messages in cache")
     }
 
     /// Clear all queues
@@ -264,7 +267,7 @@ class MessageManager: ObservableObject {
         batchTimers.values.forEach { $0.invalidate() }
         batchTimers.removeAll()
 
-        AppLogger.log("[MessageManager] All queues cleared")
+        logger.debug("[MessageManager] All queues cleared")
     }
 
     /// Get statistics
@@ -281,14 +284,3 @@ extension Notification.Name {
     static let p2pMessageReceived = Notification.Name("p2pMessageReceived")
 }
 
-// MARK: - Logger
-
-private struct AppLogger {
-    static func log(_ message: String) {
-        print(message)
-    }
-
-    static func error(_ message: String) {
-        print("❌ \(message)")
-    }
-}

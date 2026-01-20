@@ -1,10 +1,13 @@
 import Foundation
+import CoreCommon
 
 /// Vector Store - Manages vector storage and similarity search
 /// Reference: desktop-app-vue/src/main/vector/vector-store.js
 /// iOS implementation uses SQLite-based persistent storage via VectorStoreRepository
 @MainActor
 class VectorStore: ObservableObject {
+    private let logger = Logger.shared
+
     // Configuration
     private let similarityThreshold: Float
     private let topK: Int
@@ -47,13 +50,13 @@ class VectorStore: ObservableObject {
 
     /// Initialize vector store
     func initialize() async -> Bool {
-        AppLogger.log("[VectorStore] Initializing vector store (SQLite persistent mode)...")
+        logger.debug("[VectorStore] Initializing vector store (SQLite persistent mode)...")
 
         // Load vectors from repository into memory cache
         await loadFromRepository()
 
         isInitialized = true
-        AppLogger.log("[VectorStore] Vector store initialized successfully with \(vectors.count) vectors")
+        logger.debug("[VectorStore] Vector store initialized successfully with \(vectors.count) vectors")
 
         return true
     }
@@ -83,10 +86,10 @@ class VectorStore: ObservableObject {
             }
 
             isCacheLoaded = true
-            AppLogger.log("[VectorStore] Loaded \(entries.count) vectors from repository")
+            logger.debug("[VectorStore] Loaded \(entries.count) vectors from repository")
 
         } catch {
-            AppLogger.error("[VectorStore] Failed to load vectors from repository: \(error)")
+            logger.error("[VectorStore] Failed to load vectors from repository: \(error)")
         }
     }
 
@@ -119,7 +122,7 @@ class VectorStore: ObservableObject {
 
         // Update memory cache
         vectors[id] = entry
-        AppLogger.log("[VectorStore] Added vector: \(metadata.title)")
+        logger.debug("[VectorStore] Added vector: \(metadata.title)")
     }
 
     /// Add multiple vectors in batch
@@ -155,7 +158,7 @@ class VectorStore: ObservableObject {
         // Batch persist to repository
         try repository.saveVectorsBatch(repoEntries)
 
-        AppLogger.log("[VectorStore] Batch added \(items.count) vectors")
+        logger.debug("[VectorStore] Batch added \(items.count) vectors")
         return items.count
     }
 
@@ -192,7 +195,7 @@ class VectorStore: ObservableObject {
         try repository.saveVector(repoEntry)
 
         vectors[id] = entry
-        AppLogger.log("[VectorStore] Updated vector: \(id)")
+        logger.debug("[VectorStore] Updated vector: \(id)")
     }
 
     /// Delete a vector
@@ -204,7 +207,7 @@ class VectorStore: ObservableObject {
         // Delete from repository
         try repository.deleteVector(id: id)
 
-        AppLogger.log("[VectorStore] Deleted vector: \(id)")
+        logger.debug("[VectorStore] Deleted vector: \(id)")
     }
 
     /// Search for similar vectors
@@ -262,7 +265,7 @@ class VectorStore: ObservableObject {
 
         // Return top-K results
         let topResults = Array(results.prefix(k))
-        AppLogger.log("[VectorStore] Search returned \(topResults.count) results")
+        logger.debug("[VectorStore] Search returned \(topResults.count) results")
 
         return topResults
     }
@@ -321,14 +324,14 @@ class VectorStore: ObservableObject {
         vectors.removeAll()
         isCacheLoaded = false
 
-        AppLogger.log("[VectorStore] Vector store cleared")
+        logger.debug("[VectorStore] Vector store cleared")
     }
 
     /// Reload vectors from repository (refresh cache)
     func refresh() async {
         isCacheLoaded = false
         await loadFromRepository()
-        AppLogger.log("[VectorStore] Vector store refreshed from repository")
+        logger.debug("[VectorStore] Vector store refreshed from repository")
     }
 
     /// Rebuild index from knowledge items
@@ -336,7 +339,7 @@ class VectorStore: ObservableObject {
     ///   - items: Knowledge items to index
     ///   - embeddingFn: Function to generate embeddings
     func rebuildIndex(items: [KnowledgeItem], embeddingFn: (String) async throws -> [Float]) async throws {
-        AppLogger.log("[VectorStore] Rebuilding index for \(items.count) items...")
+        logger.debug("[VectorStore] Rebuilding index for \(items.count) items...")
 
         // Clear existing index
         try await clear()
@@ -375,10 +378,10 @@ class VectorStore: ObservableObject {
 
             processed += batch.count
             let percentage = Int((Float(processed) / Float(items.count)) * 100)
-            AppLogger.log("[VectorStore] Rebuild progress: \(processed)/\(items.count) (\(percentage)%)")
+            logger.debug("[VectorStore] Rebuild progress: \(processed)/\(items.count) (\(percentage)%)")
         }
 
-        AppLogger.log("[VectorStore] Index rebuild complete")
+        logger.debug("[VectorStore] Index rebuild complete")
     }
 
     struct VectorStoreStats {
@@ -409,14 +412,3 @@ enum VectorStoreError: LocalizedError {
     }
 }
 
-// MARK: - Logger
-
-private struct AppLogger {
-    static func log(_ message: String) {
-        print(message)
-    }
-
-    static func error(_ message: String) {
-        print("❌ \(message)")
-    }
-}

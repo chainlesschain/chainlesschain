@@ -133,12 +133,20 @@ public class KeychainManager {
 
     /// 在 Secure Enclave 中生成密钥
     public func generateSecureEnclaveKey(tag: String) throws -> SecKey {
-        let access = SecAccessControlCreateWithFlags(
+        guard let access = SecAccessControlCreateWithFlags(
             kCFAllocatorDefault,
             kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
             [.privateKeyUsage, .biometryCurrentSet],
             nil
-        )!
+        ) else {
+            logger.error("Failed to create SecAccessControl", category: "Keychain")
+            throw KeychainError.secureEnclaveKeyGenerationFailed
+        }
+
+        guard let tagData = tag.data(using: .utf8) else {
+            logger.error("Failed to convert tag to data", category: "Keychain")
+            throw KeychainError.invalidData
+        }
 
         let attributes: [String: Any] = [
             kSecAttrKeyType as String: kSecAttrKeyTypeECSECPrimeRandom,
@@ -146,7 +154,7 @@ public class KeychainManager {
             kSecAttrTokenID as String: kSecAttrTokenIDSecureEnclave,
             kSecPrivateKeyAttrs as String: [
                 kSecAttrIsPermanent as String: true,
-                kSecAttrApplicationTag as String: tag.data(using: .utf8)!,
+                kSecAttrApplicationTag as String: tagData,
                 kSecAttrAccessControl as String: access
             ]
         ]
@@ -165,9 +173,13 @@ public class KeychainManager {
 
     /// 从 Secure Enclave 加载密钥
     public func loadSecureEnclaveKey(tag: String) throws -> SecKey {
+        guard let tagData = tag.data(using: .utf8) else {
+            throw KeychainError.invalidData
+        }
+
         let query: [String: Any] = [
             kSecClass as String: kSecClassKey,
-            kSecAttrApplicationTag as String: tag.data(using: .utf8)!,
+            kSecAttrApplicationTag as String: tagData,
             kSecAttrKeyType as String: kSecAttrKeyTypeECSECPrimeRandom,
             kSecReturnRef as String: true
         ]
@@ -182,7 +194,7 @@ public class KeychainManager {
             throw KeychainError.loadFailed(status)
         }
 
-        guard let key = result as! SecKey? else {
+        guard let key = result as? SecKey else {
             throw KeychainError.invalidData
         }
 
@@ -191,9 +203,13 @@ public class KeychainManager {
 
     /// 删除 Secure Enclave 密钥
     public func deleteSecureEnclaveKey(tag: String) throws {
+        guard let tagData = tag.data(using: .utf8) else {
+            throw KeychainError.invalidData
+        }
+
         let query: [String: Any] = [
             kSecClass as String: kSecClassKey,
-            kSecAttrApplicationTag as String: tag.data(using: .utf8)!,
+            kSecAttrApplicationTag as String: tagData,
             kSecAttrKeyType as String: kSecAttrKeyTypeECSECPrimeRandom
         ]
 

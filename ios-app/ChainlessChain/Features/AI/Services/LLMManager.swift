@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import CoreCommon
 
 /// LLM Provider types
 enum LLMProvider: String, Codable {
@@ -58,6 +59,7 @@ class LLMManager: ObservableObject {
     private var client: LLMClient?
     private var conversationContext: [String: [LLMMessage]] = [:]
     private var config: LLMConfig
+    private let logger = Logger.shared
 
     // MARK: - Configuration
     struct LLMConfig {
@@ -86,7 +88,7 @@ class LLMManager: ObservableObject {
 
     /// Initialize the LLM manager with current configuration
     func initialize() async throws {
-        print("[LLMManager] Initializing with provider: \(config.provider)")
+        logger.debug("[LLMManager] Initializing with provider: \(config.provider)")
 
         // Create appropriate client based on provider
         switch config.provider {
@@ -109,13 +111,13 @@ class LLMManager: ObservableObject {
         isInitialized = status?.available == true
         availableModels = status?.models ?? []
 
-        print("[LLMManager] Initialized: \(isInitialized)")
-        print("[LLMManager] Available models: \(availableModels.count)")
+        logger.debug("[LLMManager] Initialized: \(isInitialized)")
+        logger.debug("[LLMManager] Available models: \(availableModels.count)")
     }
 
     /// Switch to a different provider
     func switchProvider(_ provider: LLMProvider, apiKey: String? = nil, baseURL: String? = nil, model: String? = nil) async throws {
-        print("[LLMManager] Switching provider to: \(provider)")
+        logger.debug("[LLMManager] Switching provider to: \(provider)")
 
         config.provider = provider
         if let apiKey = apiKey {
@@ -275,7 +277,9 @@ class LLMManager: ObservableObject {
 
     /// Generate embedding using Ollama's embedding endpoint
     private func generateOllamaEmbedding(_ text: String) async throws -> [Float] {
-        let url = URL(string: "\(config.baseURL)/api/embeddings")!
+        guard let url = URL(string: "\(config.baseURL)/api/embeddings") else {
+            throw LLMError.invalidConfiguration("Invalid embeddings URL")
+        }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")

@@ -945,13 +945,31 @@ struct ImageMessageView: View {
     }
 
     private func loadImage() {
-        // Try to get image from message
-        DispatchQueue.global(qos: .userInitiated).async {
-            let loadedImage = message.getImage()
+        let cacheKey = "p2p_image_\(message.id)"
 
-            DispatchQueue.main.async {
+        Task {
+            // Check cache first
+            if let cachedImage = await ImageCacheManager.shared.getImage(forKey: cacheKey) {
+                await MainActor.run {
+                    self.image = cachedImage
+                    self.isLoading = false
+                }
+                return
+            }
+
+            // Load from message data
+            let loadedImage = await Task.detached(priority: .userInitiated) {
+                return self.message.getImage()
+            }.value
+
+            await MainActor.run {
                 self.image = loadedImage
                 self.isLoading = false
+            }
+
+            // Cache the loaded image
+            if let img = loadedImage {
+                await ImageCacheManager.shared.storeImage(img, forKey: cacheKey)
             }
         }
     }

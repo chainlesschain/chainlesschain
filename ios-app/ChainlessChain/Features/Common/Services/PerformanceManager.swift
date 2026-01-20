@@ -1,5 +1,6 @@
 import Foundation
 import UIKit
+import CoreCommon
 
 /// 性能管理器
 /// 负责内存监控、性能优化和资源管理
@@ -17,10 +18,11 @@ class PerformanceManager: ObservableObject {
 
     // MARK: - Configuration
 
-    private let memoryWarningThreshold: Float = 0.8  // 80%
-    private let criticalMemoryThreshold: Float = 0.9  // 90%
+    private let memoryWarningThreshold: Float = AppConfig.Performance.memoryWarningThreshold
+    private let criticalMemoryThreshold: Float = AppConfig.Performance.criticalMemoryThreshold
     private var monitoringTimer: Timer?
     private var isMonitoring = false
+    private let logger = Logger.shared
 
     // MARK: - Types
 
@@ -74,7 +76,7 @@ class PerformanceManager: ObservableObject {
         // Initial update
         updateMemoryUsage()
 
-        print("[PerformanceManager] Started monitoring")
+        logger.debug("[PerformanceManager] Started monitoring")
     }
 
     /// 停止性能监控
@@ -83,7 +85,7 @@ class PerformanceManager: ObservableObject {
         monitoringTimer = nil
         isMonitoring = false
 
-        print("[PerformanceManager] Stopped monitoring")
+        logger.debug("[PerformanceManager] Stopped monitoring")
     }
 
     /// 更新内存使用情况
@@ -137,7 +139,7 @@ class PerformanceManager: ObservableObject {
     }
 
     private func handleSystemMemoryWarning() {
-        print("[PerformanceManager] System memory warning received")
+        logger.debug("[PerformanceManager] System memory warning received")
         isLowMemory = true
 
         // Clear caches
@@ -148,7 +150,7 @@ class PerformanceManager: ObservableObject {
     }
 
     private func handleMemoryWarning() {
-        print("[PerformanceManager] Memory warning: \(String(format: "%.1f", memoryUsage.percentage * 100))%")
+        logger.debug("[PerformanceManager] Memory warning: \(String(format: "%.1f", memoryUsage.percentage * 100))%")
         isLowMemory = true
 
         // Clear non-essential caches
@@ -156,7 +158,7 @@ class PerformanceManager: ObservableObject {
     }
 
     private func handleCriticalMemory() {
-        print("[PerformanceManager] Critical memory: \(String(format: "%.1f", memoryUsage.percentage * 100))%")
+        logger.debug("[PerformanceManager] Critical memory: \(String(format: "%.1f", memoryUsage.percentage * 100))%")
         isLowMemory = true
 
         // Clear all caches
@@ -179,7 +181,7 @@ class PerformanceManager: ObservableObject {
         // Notify image cache manager
         NotificationCenter.default.post(name: .clearImageCache, object: nil)
 
-        print("[PerformanceManager] Cleared all caches")
+        logger.debug("[PerformanceManager] Cleared all caches")
     }
 
     /// 清除非必要缓存
@@ -187,7 +189,7 @@ class PerformanceManager: ObservableObject {
         // Clear only URL cache
         URLCache.shared.removeAllCachedResponses()
 
-        print("[PerformanceManager] Cleared non-essential caches")
+        logger.debug("[PerformanceManager] Cleared non-essential caches")
     }
 
     // MARK: - Performance Tracking
@@ -198,7 +200,7 @@ class PerformanceManager: ObservableObject {
         let result = try await block()
         let timeElapsed = CFAbsoluteTimeGetCurrent() - startTime
 
-        print("[PerformanceManager] \(operation) took \(String(format: "%.3f", timeElapsed))s")
+        logger.debug("[PerformanceManager] \(operation) took \(String(format: "%.3f", timeElapsed))s")
 
         return result
     }
@@ -209,7 +211,7 @@ class PerformanceManager: ObservableObject {
         let result = try block()
         let timeElapsed = CFAbsoluteTimeGetCurrent() - startTime
 
-        print("[PerformanceManager] \(operation) took \(String(format: "%.3f", timeElapsed))s")
+        logger.debug("[PerformanceManager] \(operation) took \(String(format: "%.3f", timeElapsed))s")
 
         return result
     }
@@ -268,7 +270,7 @@ class PerformanceManager: ObservableObject {
         }
         backgroundTasks[key] = task
 
-        print("[PerformanceManager] Started background task: \(key)")
+        logger.debug("[PerformanceManager] Started background task: \(key)")
     }
 
     /// 结束后台任务
@@ -278,7 +280,7 @@ class PerformanceManager: ObservableObject {
         UIApplication.shared.endBackgroundTask(task)
         backgroundTasks.removeValue(forKey: key)
 
-        print("[PerformanceManager] Ended background task: \(key)")
+        logger.debug("[PerformanceManager] Ended background task: \(key)")
     }
 
     // MARK: - Statistics

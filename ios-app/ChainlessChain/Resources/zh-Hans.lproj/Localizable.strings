@@ -1,0 +1,200 @@
+/*
+  Localizable.strings (Chinese Simplified)
+  ChainlessChain
+
+  Created for iOS localization support
+*/
+
+// MARK: - 通用
+
+"common.ok" = "确定";
+"common.cancel" = "取消";
+"common.save" = "保存";
+"common.delete" = "删除";
+"common.edit" = "编辑";
+"common.done" = "完成";
+"common.loading" = "加载中...";
+"common.error" = "错误";
+"common.success" = "成功";
+"common.retry" = "重试";
+"common.close" = "关闭";
+"common.search" = "搜索";
+"common.settings" = "设置";
+"common.back" = "返回";
+"common.next" = "下一步";
+"common.confirm" = "确认";
+"common.share" = "分享";
+"common.copy" = "复制";
+
+// MARK: - 认证
+
+"auth.title" = "ChainlessChain";
+"auth.subtitle" = "去中心化个人AI管理系统";
+"auth.enter_pin" = "请输入PIN码";
+"auth.create_pin" = "创建PIN码";
+"auth.confirm_pin" = "确认PIN码";
+"auth.pin_mismatch" = "PIN码不匹配";
+"auth.biometric_prompt" = "使用Face ID / Touch ID解锁";
+"auth.biometric_reason" = "验证身份以访问应用";
+"auth.pin_incorrect" = "PIN码错误";
+"auth.pin_hint" = "请输入6-8位数字PIN码";
+
+// MARK: - 主页
+
+"home.knowledge" = "知识库";
+"home.ai_chat" = "AI对话";
+"home.social" = "社交";
+"home.settings" = "设置";
+
+// MARK: - 知识库
+
+"knowledge.title" = "知识库";
+"knowledge.empty" = "暂无知识条目";
+"knowledge.add" = "添加知识";
+"knowledge.search_placeholder" = "搜索知识...";
+"knowledge.all" = "全部";
+"knowledge.favorites" = "收藏";
+"knowledge.recent" = "最近";
+"knowledge.tags" = "标签";
+"knowledge.categories" = "分类";
+"knowledge.new_entry" = "新建条目";
+"knowledge.edit_entry" = "编辑条目";
+"knowledge.delete_confirm" = "确定要删除这条知识吗？";
+"knowledge.title_placeholder" = "标题";
+"knowledge.content_placeholder" = "内容";
+"knowledge.add_tag" = "添加标签";
+"knowledge.select_category" = "选择分类";
+"knowledge.views" = "浏览";
+"knowledge.created" = "创建于";
+"knowledge.updated" = "更新于";
+"knowledge.load_more" = "加载更多";
+"knowledge.no_more" = "没有更多了";
+
+// MARK: - AI对话
+
+"ai.title" = "AI对话";
+"ai.new_chat" = "新对话";
+"ai.empty" = "暂无对话";
+"ai.start_chat" = "开始新对话";
+"ai.select_model" = "选择模型";
+"ai.input_placeholder" = "输入消息...";
+"ai.send" = "发送";
+"ai.thinking" = "思考中...";
+"ai.copy_message" = "复制消息";
+"ai.delete_chat" = "删除对话";
+"ai.delete_confirm" = "确定要删除这个对话吗？";
+"ai.tokens" = "Token";
+"ai.messages" = "消息";
+"ai.model" = "模型";
+
+// MARK: - P2P消息
+
+"p2p.title" = "消息";
+"p2p.contacts" = "联系人";
+"p2p.groups" = "群组";
+"p2p.new_chat" = "新建聊天";
+"p2p.new_group" = "新建群组";
+"p2p.add_contact" = "添加联系人";
+"p2p.scan_qr" = "扫描二维码";
+"p2p.my_qr" = "我的二维码";
+"p2p.empty" = "暂无消息";
+"p2p.input_placeholder" = "输入消息...";
+"p2p.send" = "发送";
+"p2p.sending" = "发送中";
+"p2p.sent" = "已发送";
+"p2p.delivered" = "已送达";
+"p2p.read" = "已读";
+"p2p.failed" = "发送失败";
+"p2p.typing" = "正在输入...";
+"p2p.online" = "在线";
+"p2p.offline" = "离线";
+"p2p.connecting" = "连接中...";
+"p2p.connected" = "已连接";
+"p2p.disconnected" = "未连接";
+"p2p.image" = "图片";
+"p2p.file" = "文件";
+"p2p.voice" = "语音";
+
+// MARK: - 群组
+
+"group.title" = "群组";
+"group.create" = "创建群组";
+"group.name" = "群名称";
+"group.members" = "成员";
+"group.add_member" = "添加成员";
+"group.remove_member" = "移除成员";
+"group.leave" = "退出群组";
+"group.leave_confirm" = "确定要退出这个群组吗？";
+"group.mute" = "免打扰";
+"group.unmute" = "取消免打扰";
+"group.settings" = "群设置";
+"group.created" = "群组已创建";
+"group.joined" = "已加入群组";
+"group.left" = "已退出群组";
+
+// MARK: - 设置
+
+"settings.title" = "设置";
+"settings.account" = "账户";
+"settings.security" = "安全";
+"settings.notifications" = "通知";
+"settings.appearance" = "外观";
+"settings.language" = "语言";
+"settings.about" = "关于";
+"settings.version" = "版本";
+"settings.clear_data" = "清除数据";
+"settings.clear_data_confirm" = "确定要清除所有数据吗？此操作不可恢复。";
+"settings.logout" = "退出登录";
+"settings.change_pin" = "修改PIN码";
+"settings.current_pin" = "当前PIN码";
+"settings.new_pin" = "新PIN码";
+"settings.confirm_new_pin" = "确认新PIN码";
+"settings.pin_changed" = "PIN码已修改";
+"settings.biometric" = "生物识别";
+"settings.enable_biometric" = "启用Face ID / Touch ID";
+"settings.llm_settings" = "LLM设置";
+"settings.provider" = "服务提供商";
+"settings.api_key" = "API密钥";
+"settings.model" = "模型";
+"settings.base_url" = "服务器地址";
+"settings.sync" = "同步";
+"settings.manual_sync" = "手动同步";
+"settings.syncing" = "同步中...";
+"settings.sync_complete" = "同步完成";
+"settings.backup" = "数据备份";
+"settings.export" = "导出数据";
+"settings.import" = "导入数据";
+
+// MARK: - 通知设置
+
+"notification.title" = "通知设置";
+"notification.messages" = "消息通知";
+"notification.group_messages" = "群消息通知";
+"notification.sound" = "声音";
+"notification.badge" = "角标";
+"notification.preview" = "消息预览";
+"notification.quiet_hours" = "免打扰时段";
+"notification.quiet_start" = "开始时间";
+"notification.quiet_end" = "结束时间";
+
+// MARK: - 错误消息
+
+"error.network" = "网络错误，请检查网络连接";
+"error.server" = "服务器错误，请稍后重试";
+"error.timeout" = "请求超时";
+"error.unknown" = "未知错误";
+"error.auth_failed" = "认证失败";
+"error.data_load" = "数据加载失败";
+"error.data_save" = "数据保存失败";
+"error.encryption" = "加密失败";
+"error.decryption" = "解密失败";
+"error.connection" = "连接失败";
+
+// MARK: - 空状态
+
+"empty.knowledge" = "暂无知识条目\n点击右上角添加";
+"empty.chat" = "暂无对话\n开始一个新对话吧";
+"empty.message" = "暂无消息\n添加联系人开始聊天";
+"empty.contact" = "暂无联系人\n扫描二维码添加";
+"empty.group" = "暂无群组\n创建一个新群组吧";
+"empty.search" = "未找到匹配结果";

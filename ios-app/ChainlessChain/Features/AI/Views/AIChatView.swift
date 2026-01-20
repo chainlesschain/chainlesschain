@@ -1,4 +1,5 @@
 import SwiftUI
+import CoreCommon
 
 struct AIChatView: View {
     let conversation: AIConversation
@@ -121,6 +122,7 @@ class AIChatViewModel: ObservableObject {
     let conversationId: String
     private let llmManager = LLMManager.shared
     private let repository = AIConversationRepository.shared
+    private let logger = Logger.shared
 
     init(conversationId: String) {
         self.conversationId = conversationId
@@ -130,9 +132,9 @@ class AIChatViewModel: ObservableObject {
         do {
             let entities = try repository.getMessages(conversationId: conversationId)
             messages = entities.map { $0.toMessage() }
-            print("[AIChatViewModel] Loaded \(messages.count) messages from database")
+            logger.debug("[AIChatViewModel] Loaded \(messages.count) messages from database")
         } catch {
-            print("[AIChatViewModel] Error loading messages: \(error)")
+            logger.debug("[AIChatViewModel] Error loading messages: \(error)")
             errorMessage = error.localizedDescription
             messages = []
         }
@@ -225,7 +227,7 @@ class AIChatViewModel: ObservableObject {
 
         } catch {
             errorMessage = error.localizedDescription
-            print("[AIChatViewModel] Error sending message: \(error)")
+            logger.debug("[AIChatViewModel] Error sending message: \(error)")
 
             // Add error message (not saved to database)
             let errorMsg = AIMessage(
@@ -263,9 +265,9 @@ class AIChatViewModel: ObservableObject {
 
         do {
             try repository.addMessage(entity)
-            print("[AIChatViewModel] Saved message: \(message.id)")
+            logger.debug("[AIChatViewModel] Saved message: \(message.id)")
         } catch {
-            print("[AIChatViewModel] Error saving message: \(error)")
+            logger.debug("[AIChatViewModel] Error saving message: \(error)")
         }
     }
 
@@ -286,9 +288,9 @@ class AIChatViewModel: ObservableObject {
 
         do {
             try repository.updateConversationTitle(id: conversationId, title: title)
-            print("[AIChatViewModel] Auto-generated title: \(title)")
+            logger.debug("[AIChatViewModel] Auto-generated title: \(title)")
         } catch {
-            print("[AIChatViewModel] Error updating title: \(error)")
+            logger.debug("[AIChatViewModel] Error updating title: \(error)")
         }
     }
 
@@ -297,9 +299,9 @@ class AIChatViewModel: ObservableObject {
         do {
             try repository.clearMessages(conversationId: conversationId)
             messages = []
-            print("[AIChatViewModel] Cleared all messages")
+            logger.debug("[AIChatViewModel] Cleared all messages")
         } catch {
-            print("[AIChatViewModel] Error clearing messages: \(error)")
+            logger.debug("[AIChatViewModel] Error clearing messages: \(error)")
             errorMessage = error.localizedDescription
         }
     }

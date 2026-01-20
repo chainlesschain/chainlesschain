@@ -1,5 +1,6 @@
 import Foundation
 import CryptoKit
+import CoreCommon
 
 /// Signal Protocol Manager - End-to-end encryption for P2P messaging
 /// Reference: desktop-app-vue/src/main/p2p/signal-session-manager.js
@@ -7,6 +8,18 @@ import CryptoKit
 @MainActor
 class SignalProtocolManager: ObservableObject {
     static let shared = SignalProtocolManager()
+
+    private let logger = Logger.shared
+
+    // Crypto constants (safe to force unwrap as they're always valid ASCII)
+    private static let messageKeySendInfo = "MessageKeySend".data(using: .utf8)!
+    private static let messageKeyRecvInfo = "MessageKeyRecv".data(using: .utf8)!
+    private static let chainSalt = "ChainlessChain-Chain".data(using: .utf8)!
+    private static let x3dhSalt = "ChainlessChain-Signal-X3DH".data(using: .utf8)!
+    private static let rootKeyInfo = "ChainlessChain-RootKey".data(using: .utf8)!
+    private static let keySalt = "ChainlessChain-Salt".data(using: .utf8)!
+    private static let chainKeyInfo = "ChainlessChain-ChainKeys".data(using: .utf8)!
+    private static let dhRatchetInfo = "ChainlessChain-DH-Ratchet".data(using: .utf8)!
 
     // Identity
     private var identityKeyPair: IdentityKeyPair?
@@ -78,8 +91,8 @@ class SignalProtocolManager: ObservableObject {
         /// Derive message keys from chain key using HKDF
         mutating func deriveMessageKey(fromChainKey chainKey: inout Data, isSending: Bool) -> SymmetricKey {
             // KDF Chain: chain_key, message_key = HKDF(chain_key, info)
-            let info = isSending ? "MessageKeySend".data(using: .utf8)! : "MessageKeyRecv".data(using: .utf8)!
-            let salt = "ChainlessChain-Chain".data(using: .utf8)!
+            let info = isSending ? SignalProtocolManager.messageKeySendInfo : SignalProtocolManager.messageKeyRecvInfo
+            let salt = SignalProtocolManager.chainSalt
 
             let inputKey = SymmetricKey(data: chainKey)
 
@@ -106,7 +119,7 @@ class SignalProtocolManager: ObservableObject {
 
     /// Initialize Signal Protocol Manager
     func initialize() async throws {
-        AppLogger.log("[SignalProtocol] Initializing Signal Protocol Manager...")
+        logger.debug("[SignalProtocol] Initializing Signal Protocol Manager...")
 
         // Load or generate identity
         try await loadOrGenerateIdentity()
@@ -115,8 +128,8 @@ class SignalProtocolManager: ObservableObject {
         try await generatePreKeys()
 
         isInitialized = true
-        AppLogger.log("[SignalProtocol] Signal Protocol Manager initialized")
-        AppLogger.log("[SignalProtocol] Registration ID: \(registrationId ?? 0)")
+        logger.debug("[SignalProtocol] Signal Protocol Manager initialized")
+        logger.debug("[SignalProtocol] Registration ID: \(registrationId ?? 0)")
     }
 
     /// Load or generate identity
@@ -125,7 +138,7 @@ class SignalProtocolManager: ObservableObject {
         if let savedIdentity = loadIdentityFromStorage() {
             identityKeyPair = savedIdentity.keyPair
             registrationId = savedIdentity.registrationId
-            AppLogger.log("[SignalProtocol] Loaded existing identity")
+            logger.debug("[SignalProtocol] Loaded existing identity")
             return
         }
 
@@ -138,7 +151,7 @@ class SignalProtocolManager: ObservableObject {
 
     /// Generate new identity
     private func generateIdentity() async throws {
-        AppLogger.log("[SignalProtocol] Generating new identity...")
+        logger.debug("[SignalProtocol] Generating new identity...")
 
         // Generate identity key pair using P256
         let privateKey = P256.KeyAgreement.PrivateKey()
@@ -149,12 +162,12 @@ class SignalProtocolManager: ObservableObject {
         // Generate registration ID (random 32-bit number)
         registrationId = UInt32.random(in: 1...UInt32.max)
 
-        AppLogger.log("[SignalProtocol] New identity generated")
+        logger.debug("[SignalProtocol] New identity generated")
     }
 
     /// Generate pre-keys
     private func generatePreKeys() async throws {
-        AppLogger.log("[SignalProtocol] Generating pre-keys...")
+        logger.debug("[SignalProtocol] Generating pre-keys...")
 
         guard let identityKeyPair = identityKeyPair else {
             throw SignalProtocolError.identityNotInitialized
@@ -190,7 +203,7 @@ class SignalProtocolManager: ObservableObject {
             preKeys[preKeyId] = PreKey(keyId: preKeyId, keyPair: keyPair)
         }
 
-        AppLogger.log("[SignalProtocol] Generated \(preKeys.count) pre-keys")
+        logger.debug("[SignalProtocol] Generated \(preKeys.count) pre-keys")
     }
 
     /// Sign public key
@@ -240,7 +253,7 @@ class SignalProtocolManager: ObservableObject {
 
     /// Process pre-key bundle and establish session
     func processPreKeyBundle(recipientId: String, bundle: PreKeyBundle) async throws {
-        AppLogger.log("[SignalProtocol] Processing pre-key bundle for: \(recipientId)")
+        logger.debug("[SignalProtocol] Processing pre-key bundle for: \(recipientId)")
 
         guard let identityKeyPair = identityKeyPair else {
             throw SignalProtocolError.identityNotInitialized
@@ -285,7 +298,7 @@ class SignalProtocolManager: ObservableObject {
         // Remove used pre-key
         preKeys.removeValue(forKey: bundle.preKey.keyId)
 
-        AppLogger.log("[SignalProtocol] Session established with: \(recipientId)")
+        logger.debug("[SignalProtocol] Session established with: \(recipientId)")
     }
 
     /// Perform X3DH key agreement
@@ -310,10 +323,9 @@ class SignalProtocolManager: ObservableObject {
         combinedData.append(dh2.withUnsafeBytes { Data($0) })
         combinedData.append(dh3.withUnsafeBytes { Data($0) })
 
-        let salt = "ChainlessChain-Signal-X3DH".data(using: .utf8)!
         let sharedSecret = HKDF<SHA256>.deriveKey(
             inputKeyMaterial: SymmetricKey(data: combinedData),
-            salt: salt,
+            salt: SignalProtocolManager.x3dhSalt,
             outputByteCount: 32
         )
 
@@ -323,22 +335,18 @@ class SignalProtocolManager: ObservableObject {
     /// Initialize double ratchet with proper key derivation
     private func initializeDoubleRatchet(sharedSecret: SymmetricKey) throws -> (rootKey: SymmetricKey, sendingChainKey: Data, receivingChainKey: Data) {
         // Derive root key from shared secret
-        let rootInfo = "ChainlessChain-RootKey".data(using: .utf8)!
-        let salt = "ChainlessChain-Salt".data(using: .utf8)!
-
         let rootKey = HKDF<SHA256>.deriveKey(
             inputKeyMaterial: sharedSecret,
-            salt: salt,
-            info: rootInfo,
+            salt: SignalProtocolManager.keySalt,
+            info: SignalProtocolManager.rootKeyInfo,
             outputByteCount: 32
         )
 
         // Derive initial chain keys from root key
-        let chainInfo = "ChainlessChain-ChainKeys".data(using: .utf8)!
         let chainKeys = HKDF<SHA256>.deriveKey(
             inputKeyMaterial: rootKey,
-            salt: salt,
-            info: chainInfo,
+            salt: SignalProtocolManager.keySalt,
+            info: SignalProtocolManager.chainKeyInfo,
             outputByteCount: 64
         )
 
@@ -364,12 +372,11 @@ class SignalProtocolManager: ObservableObject {
 
         // Derive new root key and chain key
         let salt = session.rootKey.withUnsafeBytes { Data($0) }
-        let info = "ChainlessChain-DH-Ratchet".data(using: .utf8)!
 
         let newRootKey = HKDF<SHA256>.deriveKey(
             inputKeyMaterial: SymmetricKey(data: dhSharedSecret.withUnsafeBytes { Data($0) }),
             salt: salt,
-            info: info,
+            info: SignalProtocolManager.dhRatchetInfo,
             outputByteCount: 64
         )
 
@@ -391,7 +398,7 @@ class SignalProtocolManager: ObservableObject {
         let newSendingKey = HKDF<SHA256>.deriveKey(
             inputKeyMaterial: SymmetricKey(data: newDhSharedSecret.withUnsafeBytes { Data($0) }),
             salt: Data(derived[0..<32]),
-            info: info,
+            info: SignalProtocolManager.dhRatchetInfo,
             outputByteCount: 32
         )
 
@@ -403,7 +410,7 @@ class SignalProtocolManager: ObservableObject {
         // Signature verification using CryptoKit
         // In production, use P256.Signing for verification
         // For now, we'll skip verification as it requires converting key types
-        AppLogger.log("[SignalProtocol] Signature verification skipped (simplified implementation)")
+        logger.debug("[SignalProtocol] Signature verification skipped (simplified implementation)")
     }
 
     // MARK: - Encryption/Decryption
@@ -414,7 +421,9 @@ class SignalProtocolManager: ObservableObject {
             throw SignalProtocolError.sessionNotFound
         }
 
-        let messageData = message.data(using: .utf8)!
+        guard let messageData = message.data(using: .utf8) else {
+            throw SignalProtocolError.encryptionFailed
+        }
 
         // Derive message key from sending chain
         let messageKey = session.deriveMessageKey(fromChainKey: &session.sendingChainKey, isSending: true)
@@ -514,7 +523,7 @@ class SignalProtocolManager: ObservableObject {
 
             return (IdentityKeyPair(publicKey: publicKey, privateKey: privateKey), registrationId)
         } catch {
-            AppLogger.error("[SignalProtocol] Failed to load identity: \(error)")
+            logger.error("[SignalProtocol] Failed to load identity: \(error)")
             return nil
         }
     }
@@ -529,19 +538,19 @@ class SignalProtocolManager: ObservableObject {
         UserDefaults.standard.set(identityKeyPair.publicKey.rawRepresentation, forKey: "signal_public_key")
         UserDefaults.standard.set(registrationId, forKey: "signal_registration_id")
 
-        AppLogger.log("[SignalProtocol] Identity saved to storage")
+        logger.debug("[SignalProtocol] Identity saved to storage")
     }
 
     /// Clear all sessions
     func clearSessions() {
         sessions.removeAll()
-        AppLogger.log("[SignalProtocol] All sessions cleared")
+        logger.debug("[SignalProtocol] All sessions cleared")
     }
 
     /// Remove session
     func removeSession(recipientId: String) {
         sessions.removeValue(forKey: recipientId)
-        AppLogger.log("[SignalProtocol] Session removed: \(recipientId)")
+        logger.debug("[SignalProtocol] Session removed: \(recipientId)")
     }
 }
 
@@ -579,14 +588,3 @@ enum SignalProtocolError: LocalizedError {
     }
 }
 
-// MARK: - Logger
-
-private struct AppLogger {
-    static func log(_ message: String) {
-        print(message)
-    }
-
-    static func error(_ message: String) {
-        print("❌ \(message)")
-    }
-}

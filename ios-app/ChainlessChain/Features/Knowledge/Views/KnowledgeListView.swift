@@ -32,8 +32,12 @@ struct KnowledgeListView: View {
                 }
             }
             .searchable(text: $viewModel.searchText, prompt: "搜索知识库")
-            .onChange(of: viewModel.searchText) { oldValue, newValue in
-                viewModel.applyFilters()
+            .overlay(alignment: .topTrailing) {
+                if viewModel.isSearching {
+                    ProgressView()
+                        .padding(.trailing, 8)
+                        .padding(.top, 50)
+                }
             }
             .refreshable {
                 await viewModel.refresh()
@@ -103,6 +107,10 @@ struct KnowledgeListView: View {
                                 await viewModel.incrementViewCount(id: item.id)
                             }
                         }
+                        .onAppear {
+                            // Trigger pagination when item appears
+                            viewModel.loadMoreIfNeeded(currentItem: item)
+                        }
                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                             Button(role: .destructive) {
                                 Task {
@@ -124,6 +132,16 @@ struct KnowledgeListView: View {
                             }
                             .tint(.yellow)
                         }
+                }
+
+                // Loading more indicator
+                if viewModel.isLoadingMore {
+                    HStack {
+                        Spacer()
+                        ProgressView()
+                            .padding()
+                        Spacer()
+                    }
                 }
             }
         }

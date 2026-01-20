@@ -5,10 +5,17 @@ import com.chainlesschain.android.core.p2p.connection.*
 import com.chainlesschain.android.core.p2p.model.ConnectionStatus
 import com.chainlesschain.android.core.p2p.model.DeviceType
 import com.chainlesschain.android.core.p2p.model.P2PDevice
+import io.mockk.every
 import io.mockk.mockk
+import io.mockk.mockkStatic
+import io.mockk.unmockkAll
 import kotlinx.coroutines.test.runTest
+import org.junit.After
 import org.junit.Before
 import org.junit.Test
+import org.webrtc.EglBase
+import org.webrtc.PeerConnection
+import org.webrtc.PeerConnectionFactory
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
@@ -32,8 +39,45 @@ class WebRTCPeerConnectionTest {
 
     @Before
     fun setup() {
+        // Mock WebRTC static methods for JVM tests
+        mockkStatic(PeerConnectionFactory::class)
+        mockkStatic(EglBase::class)
+
+        // Mock PeerConnectionFactory.InitializationOptions.builder
+        val mockInitOptions = mockk<PeerConnectionFactory.InitializationOptions>(relaxed = true)
+        val mockInitBuilder = mockk<PeerConnectionFactory.InitializationOptions.Builder>(relaxed = true)
+        every { PeerConnectionFactory.InitializationOptions.builder(any()) } returns mockInitBuilder
+        every { mockInitBuilder.setEnableInternalTracer(any()) } returns mockInitBuilder
+        every { mockInitBuilder.createInitializationOptions() } returns mockInitOptions
+
+        // Mock PeerConnectionFactory.initialize (static void method)
+        every { PeerConnectionFactory.initialize(any()) } returns Unit
+
+        // Mock EglBase.create
+        val mockEglBase = mockk<EglBase>(relaxed = true)
+        every { EglBase.create() } returns mockEglBase
+
+        // Mock PeerConnectionFactory.builder
+        val mockFactory = mockk<PeerConnectionFactory>(relaxed = true)
+        val mockFactoryBuilder = mockk<PeerConnectionFactory.Builder>(relaxed = true)
+        every { PeerConnectionFactory.builder() } returns mockFactoryBuilder
+        every { mockFactoryBuilder.setOptions(any()) } returns mockFactoryBuilder
+        every { mockFactoryBuilder.createPeerConnectionFactory() } returns mockFactory
+
+        // Mock IceServer.builder for static ICE_SERVERS initialization
+        mockkStatic(PeerConnection.IceServer::class)
+        val mockIceServer = mockk<PeerConnection.IceServer>(relaxed = true)
+        val mockIceBuilder = mockk<PeerConnection.IceServer.Builder>(relaxed = true)
+        every { PeerConnection.IceServer.builder(any<String>()) } returns mockIceBuilder
+        every { mockIceBuilder.createIceServer() } returns mockIceServer
+
         context = mockk(relaxed = true)
         connection = WebRTCPeerConnection(context)
+    }
+
+    @After
+    fun tearDown() {
+        unmockkAll()
     }
 
     @Test

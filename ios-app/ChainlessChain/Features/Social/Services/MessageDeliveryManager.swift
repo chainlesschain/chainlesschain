@@ -22,8 +22,8 @@ class MessageDeliveryManager: ObservableObject {
 
     // MARK: - Configuration
 
-    private let deliveryTimeout: TimeInterval = 30.0  // 30 seconds
-    private let maxRetries = 3
+    private let deliveryTimeout: TimeInterval = AppConfig.Delivery.timeout
+    private let maxRetries = AppConfig.Delivery.maxRetries
     private var deliveryTimers: [String: Timer] = [:]
 
     // MARK: - Types
@@ -114,7 +114,11 @@ class MessageDeliveryManager: ObservableObject {
         pendingDeliveries[messageId] = info
 
         // Update database
-        try? messageRepository.updateMessageStatus(id: messageId, status: "sent")
+        do {
+            try messageRepository.updateMessageStatus(id: messageId, status: "sent")
+        } catch {
+            logger.error("Failed to update message status to sent: \(error)", category: "Delivery")
+        }
 
         // Notify UI
         NotificationCenter.default.post(
@@ -130,7 +134,11 @@ class MessageDeliveryManager: ObservableObject {
     func confirmDelivered(messageId: String, senderDid: String) async {
         guard var info = pendingDeliveries[messageId] else {
             // Message might not be tracked, update directly
-            try? await statusManager.updateMessageStatus(messageId: messageId, status: .delivered)
+            do {
+                try await statusManager.updateMessageStatus(messageId: messageId, status: .delivered)
+            } catch {
+                logger.error("Failed to update untracked message status: \(error)", category: "Delivery")
+            }
             return
         }
 
@@ -148,7 +156,11 @@ class MessageDeliveryManager: ObservableObject {
         deliveryStats.update()
 
         // Update status
-        try? await statusManager.updateMessageStatus(messageId: messageId, status: .delivered)
+        do {
+            try await statusManager.updateMessageStatus(messageId: messageId, status: .delivered)
+        } catch {
+            logger.error("Failed to update message delivered status: \(error)", category: "Delivery")
+        }
 
         // Remove from pending after a delay
         Task {
@@ -168,7 +180,11 @@ class MessageDeliveryManager: ObservableObject {
         pendingDeliveries.removeValue(forKey: messageId)
 
         // Update status
-        try? await statusManager.updateMessageStatus(messageId: messageId, status: .read)
+        do {
+            try await statusManager.updateMessageStatus(messageId: messageId, status: .read)
+        } catch {
+            logger.error("Failed to update message read status: \(error)", category: "Delivery")
+        }
 
         logger.info("Message read: \(messageId)", category: "Delivery")
     }
@@ -198,7 +214,11 @@ class MessageDeliveryManager: ObservableObject {
             deliveryStats.update()
 
             // Update database
-            try? await statusManager.updateMessageStatus(messageId: messageId, status: .failed)
+            do {
+                try await statusManager.updateMessageStatus(messageId: messageId, status: .failed)
+            } catch {
+                logger.error("Failed to update message failed status: \(error)", category: "Delivery")
+            }
 
             logger.error("Message delivery failed permanently: \(messageId)", category: "Delivery")
 
@@ -250,7 +270,11 @@ class MessageDeliveryManager: ObservableObject {
             deliveryStats.update()
 
             Task {
-                try? await statusManager.updateMessageStatus(messageId: messageId, status: .failed)
+                do {
+                    try await statusManager.updateMessageStatus(messageId: messageId, status: .failed)
+                } catch {
+                    logger.error("Failed to update timeout status: \(error)", category: "Delivery")
+                }
             }
 
             logger.error("Message delivery timed out: \(messageId)", category: "Delivery")
@@ -306,11 +330,19 @@ class MessageDeliveryManager: ObservableObject {
         // Send via MessageStatusManager
         if status == "delivered" {
             Task {
-                try? await statusManager.markAsDelivered(messageId: messageId, senderDid: peerId)
+                do {
+                    try await statusManager.markAsDelivered(messageId: messageId, senderDid: peerId)
+                } catch {
+                    logger.error("Failed to mark as delivered: \(error)", category: "Delivery")
+                }
             }
         } else if status == "read" {
             Task {
-                try? await statusManager.markAsRead(messageId: messageId, senderDid: peerId)
+                do {
+                    try await statusManager.markAsRead(messageId: messageId, senderDid: peerId)
+                } catch {
+                    logger.error("Failed to mark as read: \(error)", category: "Delivery")
+                }
             }
         }
 
