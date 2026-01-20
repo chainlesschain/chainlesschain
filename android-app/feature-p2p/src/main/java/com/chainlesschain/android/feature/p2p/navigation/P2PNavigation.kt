@@ -1,5 +1,10 @@
 package com.chainlesschain.android.feature.p2p.navigation
 
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavType
@@ -22,6 +27,8 @@ const val SESSION_FINGERPRINT_COMPARISON_ROUTE = "session_fingerprint_comparison
 const val DID_MANAGEMENT_ROUTE = "did_management"
 const val MESSAGE_QUEUE_ROUTE = "message_queue"
 const val DEVICE_MANAGEMENT_ROUTE = "device_management"
+const val FILE_TRANSFERS_ROUTE = "file_transfers/{peerId}/{peerName}"
+const val ALL_FILE_TRANSFERS_ROUTE = "all_file_transfers"
 
 /**
  * 添加 P2P 导航图到主导航
@@ -65,6 +72,9 @@ fun NavGraphBuilder.p2pGraph(
                 },
                 onVerifyDevice = {
                     navController.navigate("safety_numbers/$deviceId")
+                },
+                onNavigateToFileTransfers = {
+                    navController.navigate("file_transfers/$deviceId/$deviceName")
                 }
             )
         }
@@ -258,6 +268,37 @@ fun NavGraphBuilder.p2pGraph(
                 }
             )
         }
+
+        // 文件传输（与特定设备）
+        composable(
+            route = FILE_TRANSFERS_ROUTE,
+            arguments = listOf(
+                navArgument("peerId") { type = NavType.StringType },
+                navArgument("peerName") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val peerId = backStackEntry.arguments?.getString("peerId") ?: ""
+            val peerName = backStackEntry.arguments?.getString("peerName") ?: ""
+
+            FileTransferScreen(
+                peerId = peerId,
+                peerName = peerName,
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        // 所有文件传输
+        composable(route = ALL_FILE_TRANSFERS_ROUTE) {
+            FileTransferScreen(
+                peerId = null,
+                peerName = null,
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
     }
 }
 
@@ -292,4 +333,12 @@ fun NavController.navigateToMessageQueue() {
 
 fun NavController.navigateToDeviceManagement() {
     navigate(DEVICE_MANAGEMENT_ROUTE)
+}
+
+fun NavController.navigateToFileTransfers(peerId: String, peerName: String) {
+    navigate("file_transfers/$peerId/$peerName")
+}
+
+fun NavController.navigateToAllFileTransfers() {
+    navigate(ALL_FILE_TRANSFERS_ROUTE)
 }

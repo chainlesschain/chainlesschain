@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.room.Room
 import com.chainlesschain.android.core.database.ChainlessChainDatabase
 import com.chainlesschain.android.core.database.dao.ConversationDao
+import com.chainlesschain.android.core.database.dao.FileTransferDao
 import com.chainlesschain.android.core.database.dao.KnowledgeItemDao
 import com.chainlesschain.android.core.database.dao.P2PMessageDao
 import com.chainlesschain.android.core.database.dao.OfflineQueueDao
@@ -104,5 +105,14 @@ object DatabaseModule {
     @Singleton
     fun provideOfflineQueueDao(database: ChainlessChainDatabase): OfflineQueueDao {
         return database.offlineQueueDao()
+    }
+
+    /**
+     * 提供文件传输DAO
+     */
+    @Provides
+    @Singleton
+    fun provideFileTransferDao(database: ChainlessChainDatabase): FileTransferDao {
+        return database.fileTransferDao()
     }
 }

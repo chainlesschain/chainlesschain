@@ -24,7 +24,8 @@ object DatabaseMigrations {
         return arrayOf(
             MIGRATION_1_2,
             MIGRATION_2_3,
-            MIGRATION_3_4
+            MIGRATION_3_4,
+            MIGRATION_4_5
         )
     }
 
@@ -130,6 +131,52 @@ object DatabaseMigrations {
             db.execSQL("CREATE INDEX IF NOT EXISTS `index_offline_message_queue_priority_createdAt` ON `offline_message_queue` (`priority`, `createdAt`)")
 
             Log.i(TAG, "Migration 3 to 4 completed successfully")
+        }
+    }
+
+    /**
+     * 迁移 4 -> 5
+     *
+     * 添加文件传输表
+     */
+    val MIGRATION_4_5 = object : Migration(4, 5) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            Log.i(TAG, "Migrating database from version 4 to 5")
+
+            // 创建 file_transfers 表
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS `file_transfers` (
+                    `id` TEXT NOT NULL PRIMARY KEY,
+                    `peerId` TEXT NOT NULL,
+                    `fileName` TEXT NOT NULL,
+                    `fileSize` INTEGER NOT NULL,
+                    `mimeType` TEXT NOT NULL,
+                    `fileChecksum` TEXT NOT NULL,
+                    `thumbnailBase64` TEXT,
+                    `localFilePath` TEXT,
+                    `tempFilePath` TEXT,
+                    `isOutgoing` INTEGER NOT NULL,
+                    `status` TEXT NOT NULL DEFAULT 'PENDING',
+                    `chunkSize` INTEGER NOT NULL,
+                    `totalChunks` INTEGER NOT NULL,
+                    `completedChunks` INTEGER NOT NULL DEFAULT 0,
+                    `bytesTransferred` INTEGER NOT NULL DEFAULT 0,
+                    `retryCount` INTEGER NOT NULL DEFAULT 0,
+                    `errorMessage` TEXT,
+                    `createdAt` INTEGER NOT NULL,
+                    `updatedAt` INTEGER NOT NULL,
+                    `completedAt` INTEGER
+                )
+            """.trimIndent())
+
+            // 创建索引
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_file_transfers_peerId` ON `file_transfers` (`peerId`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_file_transfers_status` ON `file_transfers` (`status`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_file_transfers_createdAt` ON `file_transfers` (`createdAt`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_file_transfers_peerId_status` ON `file_transfers` (`peerId`, `status`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_file_transfers_peerId_createdAt` ON `file_transfers` (`peerId`, `createdAt`)")
+
+            Log.i(TAG, "Migration 4 to 5 completed successfully")
         }
     }
 

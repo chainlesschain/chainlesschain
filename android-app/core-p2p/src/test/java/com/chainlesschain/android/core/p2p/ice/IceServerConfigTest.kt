@@ -1,7 +1,13 @@
 package com.chainlesschain.android.core.p2p.ice
 
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.mockkStatic
+import io.mockk.unmockkAll
+import org.junit.After
 import org.junit.Before
 import org.junit.Test
+import org.webrtc.PeerConnection
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -15,7 +21,21 @@ class IceServerConfigTest {
 
     @Before
     fun setup() {
+        // Mock WebRTC PeerConnection.IceServer.builder() for JVM tests
+        mockkStatic(PeerConnection.IceServer::class)
+        val mockIceServer = mockk<PeerConnection.IceServer>(relaxed = true)
+        val mockBuilder = mockk<PeerConnection.IceServer.Builder>(relaxed = true)
+        every { PeerConnection.IceServer.builder(any<String>()) } returns mockBuilder
+        every { mockBuilder.setUsername(any()) } returns mockBuilder
+        every { mockBuilder.setPassword(any()) } returns mockBuilder
+        every { mockBuilder.createIceServer() } returns mockIceServer
+
         iceServerConfig = IceServerConfig()
+    }
+
+    @After
+    fun tearDown() {
+        unmockkAll()
     }
 
     // ===== 默认配置测试 =====
