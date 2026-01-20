@@ -104,14 +104,15 @@ export const useSocialStore = defineStore("social", {
 
           // 加载好友在线状态
           for (const friend of this.friends) {
+            let status = "offline";
             if (friend.onlineStatus) {
-              this.onlineStatus.set(
-                friend.friend_did,
-                friend.onlineStatus.status || "offline",
-              );
-            } else {
-              this.onlineStatus.set(friend.friend_did, "offline");
+              // 支持 onlineStatus 为对象或字符串
+              status =
+                typeof friend.onlineStatus === "object"
+                  ? friend.onlineStatus.status || "offline"
+                  : String(friend.onlineStatus);
             }
+            this.onlineStatus.set(friend.friend_did, status);
           }
         }
       } catch (error) {

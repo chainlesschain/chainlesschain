@@ -196,7 +196,11 @@ export const useConversationStore = defineStore("conversation", {
       }
 
       this.batchSaveTimer = setTimeout(async () => {
-        await this.flushPendingMessages();
+        try {
+          await this.flushPendingMessages();
+        } catch (error) {
+          logger.error("[ConversationStore] 批量保存定时器错误:", error);
+        }
       }, this.batchSaveInterval);
     },
 
@@ -249,6 +253,11 @@ export const useConversationStore = defineStore("conversation", {
         this.createNewConversation();
       }
 
+      // 确保 messages 数组存在
+      if (!Array.isArray(this.currentConversation.messages)) {
+        this.currentConversation.messages = [];
+      }
+
       const newMessage = {
         id: `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         ...message,
@@ -288,6 +297,11 @@ export const useConversationStore = defineStore("conversation", {
         return;
       }
 
+      // 确保 messages 数组存在
+      if (!Array.isArray(this.currentConversation.messages)) {
+        return;
+      }
+
       const index = this.currentConversation.messages.findIndex(
         (m) => m.id === messageId,
       );
@@ -306,6 +320,11 @@ export const useConversationStore = defineStore("conversation", {
      */
     deleteMessage(messageId) {
       if (!this.currentConversation) {
+        return;
+      }
+
+      // 确保 messages 数组存在
+      if (!Array.isArray(this.currentConversation.messages)) {
         return;
       }
 
