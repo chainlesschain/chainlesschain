@@ -244,14 +244,16 @@ data class TimestampedSignature(
 
 /**
  * Base64 URL编码（RFC 4648）
+ * 使用Java标准库以确保JVM单元测试兼容性
  */
 fun ByteArray.toBase64Url(): String {
-    return android.util.Base64.encodeToString(this, android.util.Base64.URL_SAFE or android.util.Base64.NO_WRAP)
+    return java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(this)
 }
 
 /**
  * Base64 URL解码
+ * 使用Java标准库以确保JVM单元测试兼容性
  */
 fun String.fromBase64Url(): ByteArray {
-    return android.util.Base64.decode(this, android.util.Base64.URL_SAFE or android.util.Base64.NO_WRAP)
+    return java.util.Base64.getUrlDecoder().decode(this)
 }

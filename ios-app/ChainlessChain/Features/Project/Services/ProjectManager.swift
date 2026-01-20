@@ -299,6 +299,294 @@ class ProjectManager: ObservableObject {
         logger.info("Deleted file: \(file.name)", category: "Project")
     }
 
+    /// 复制文件
+    /// Reference: desktop-app-vue/src/main/project/project-export-ipc.js (project:copyFile)
+    func copyFile(_ file: ProjectFileEntity, toParentId: String? = nil, newName: String? = nil) throws -> ProjectFileEntity {
+        let targetName = newName ?? "\(file.name)_copy"
+        let sanitizedName = try sanitizeFileName(targetName)
+
+        let targetPath: String
+        if let parentId = toParentId {
+            guard !parentId.contains("..") else {
+                throw ProjectError.invalidInput("无效的目标目录")
+            }
+            targetPath = "\(parentId)/\(sanitizedName)"
+        } else {
+            targetPath = sanitizedName
+        }
+
+        let newFile = ProjectFileEntity(
+            projectId: file.projectId,
+            name: sanitizedName,
+            path: targetPath,
+            type: file.type,
+            size: file.size,
+            content: file.content,
+            isDirectory: file.isDirectory,
+            parentId: toParentId ?? file.parentId
+        )
+
+        try repository.createProjectFile(newFile)
+
+        // Log activity
+        try repository.logActivity(
+            projectId: file.projectId,
+            action: "file_copy",
+            description: "复制文件: \(file.name) -> \(sanitizedName)"
+        )
+
+        // Refresh file list
+        loadProjectFiles(projectId: file.projectId, parentId: toParentId ?? file.parentId)
+
+        logger.info("Copied file: \(file.name) to \(sanitizedName)", category: "Project")
+        return newFile
+    }
+
+    /// 移动文件
+    /// Reference: desktop-app-vue/src/main/project/project-export-ipc.js (project:move-file)
+    func moveFile(_ file: ProjectFileEntity, toParentId: String?) throws {
+        var movedFile = file
+
+        let newPath: String
+        if let parentId = toParentId {
+            guard !parentId.contains("..") else {
+                throw ProjectError.invalidInput("无效的目标目录")
+            }
+            newPath = "\(parentId)/\(file.name)"
+        } else {
+            newPath = file.name
+        }
+
+        movedFile.path = newPath
+        movedFile.parentId = toParentId
+
+        try repository.updateProjectFile(movedFile)
+
+        // Log activity
+        try repository.logActivity(
+            projectId: file.projectId,
+            action: "file_move",
+            description: "移动文件: \(file.name)"
+        )
+
+        // Refresh file lists
+        loadProjectFiles(projectId: file.projectId, parentId: file.parentId)
+        if toParentId != file.parentId {
+            loadProjectFiles(projectId: file.projectId, parentId: toParentId)
+        }
+
+        logger.info("Moved file: \(file.name) to \(newPath)", category: "Project")
+    }
+
+    /// 重命名文件
+    func renameFile(_ file: ProjectFileEntity, newName: String) throws {
+        let sanitizedName = try sanitizeFileName(newName)
+
+        var renamedFile = file
+        renamedFile.name = sanitizedName
+
+        // Update path
+        if let parentId = file.parentId {
+            renamedFile.path = "\(parentId)/\(sanitizedName)"
+        } else {
+            renamedFile.path = sanitizedName
+        }
+
+        try repository.updateProjectFile(renamedFile)
+
+        // Log activity
+        try repository.logActivity(
+            projectId: file.projectId,
+            action: "file_rename",
+            description: "重命名文件: \(file.name) -> \(sanitizedName)"
+        )
+
+        // Refresh file list
+        loadProjectFiles(projectId: file.projectId, parentId: file.parentId)
+
+        logger.info("Renamed file: \(file.name) to \(sanitizedName)", category: "Project")
+    }
+
+    /// 导入文件（从设备）
+    /// Reference: desktop-app-vue/src/main/project/project-export-ipc.js (project:import-file)
+    func importFile(
+        projectId: String,
+        fileName: String,
+        fileData: Data,
+        fileType: String,
+        parentId: String? = nil
+    ) throws -> ProjectFileEntity {
+        let sanitizedName = try sanitizeFileName(fileName)
+
+        // Determine content based on file type
+        var content: String? = nil
+        if isTextFileType(fileType) {
+            content = String(data: fileData, encoding: .utf8)
+        }
+
+        let file = try createFile(
+            projectId: projectId,
+            name: sanitizedName,
+            type: fileType,
+            content: content,
+            parentId: parentId
+        )
+
+        // Log activity
+        try repository.logActivity(
+            projectId: projectId,
+            action: "file_import",
+            description: "导入文件: \(sanitizedName)"
+        )
+
+        logger.info("Imported file: \(sanitizedName)", category: "Project")
+        return file
+    }
+
+    /// 批量导入文件
+    /// Reference: desktop-app-vue/src/main/project/project-export-ipc.js (project:import-files)
+    func importFiles(
+        projectId: String,
+        files: [(name: String, data: Data, type: String)],
+        parentId: String? = nil
+    ) throws -> [ProjectFileEntity] {
+        var importedFiles: [ProjectFileEntity] = []
+
+        for file in files {
+            do {
+                let imported = try importFile(
+                    projectId: projectId,
+                    fileName: file.name,
+                    fileData: file.data,
+                    fileType: file.type,
+                    parentId: parentId
+                )
+                importedFiles.append(imported)
+            } catch {
+                logger.error("Failed to import file: \(file.name)", error: error, category: "Project")
+                // Continue with other files
+            }
+        }
+
+        // Log batch activity
+        if !importedFiles.isEmpty {
+            try? repository.logActivity(
+                projectId: projectId,
+                action: "file_import_batch",
+                description: "批量导入 \(importedFiles.count) 个文件"
+            )
+        }
+
+        return importedFiles
+    }
+
+    /// 导出文件（到设备）
+    /// Reference: desktop-app-vue/src/main/project/project-export-ipc.js (project:export-file)
+    func exportFile(_ file: ProjectFileEntity) throws -> Data {
+        guard let content = file.content else {
+            throw ProjectError.invalidInput("文件内容为空")
+        }
+
+        guard let data = content.data(using: .utf8) else {
+            throw ProjectError.invalidInput("无法转换文件内容")
+        }
+
+        // Log activity
+        try repository.logActivity(
+            projectId: file.projectId,
+            action: "file_export",
+            description: "导出文件: \(file.name)"
+        )
+
+        logger.info("Exported file: \(file.name)", category: "Project")
+        return data
+    }
+
+    /// 批量导出文件
+    /// Reference: desktop-app-vue/src/main/project/project-export-ipc.js (project:export-files)
+    func exportFiles(projectId: String, fileIds: [String]? = nil) throws -> [(name: String, data: Data)] {
+        let files: [ProjectFileEntity]
+
+        if let ids = fileIds {
+            files = try ids.compactMap { id in
+                try repository.getProjectFile(id: id)
+            }
+        } else {
+            files = try repository.getProjectFiles(projectId: projectId)
+        }
+
+        var exportedFiles: [(name: String, data: Data)] = []
+
+        for file in files where !file.isDirectory {
+            if let content = file.content, let data = content.data(using: .utf8) {
+                exportedFiles.append((name: file.name, data: data))
+            }
+        }
+
+        // Log batch activity
+        if !exportedFiles.isEmpty {
+            try? repository.logActivity(
+                projectId: projectId,
+                action: "file_export_batch",
+                description: "批量导出 \(exportedFiles.count) 个文件"
+            )
+        }
+
+        return exportedFiles
+    }
+
+    /// 创建目录
+    func createDirectory(
+        projectId: String,
+        name: String,
+        parentId: String? = nil
+    ) throws -> ProjectFileEntity {
+        return try createFile(
+            projectId: projectId,
+            name: name,
+            type: "directory",
+            content: nil,
+            parentId: parentId,
+            isDirectory: true
+        )
+    }
+
+    /// 获取文件树结构
+    func getFileTree(projectId: String) throws -> [FileTreeNode] {
+        let allFiles = try repository.getProjectFiles(projectId: projectId)
+        return buildFileTree(from: allFiles, parentId: nil)
+    }
+
+    /// 构建文件树
+    private func buildFileTree(from files: [ProjectFileEntity], parentId: String?) -> [FileTreeNode] {
+        let children = files.filter { $0.parentId == parentId }
+
+        return children.map { file in
+            FileTreeNode(
+                file: file,
+                children: file.isDirectory ? buildFileTree(from: files, parentId: file.id) : []
+            )
+        }.sorted { node1, node2 in
+            // Directories first, then alphabetically
+            if node1.file.isDirectory != node2.file.isDirectory {
+                return node1.file.isDirectory
+            }
+            return node1.file.name.localizedCaseInsensitiveCompare(node2.file.name) == .orderedAscending
+        }
+    }
+
+    /// 检查是否为文本文件类型
+    private func isTextFileType(_ type: String) -> Bool {
+        let textTypes = [
+            "txt", "md", "markdown", "json", "xml", "yaml", "yml",
+            "swift", "kt", "java", "js", "ts", "jsx", "tsx",
+            "py", "rb", "go", "rs", "c", "cpp", "h", "hpp",
+            "html", "css", "scss", "sass", "less",
+            "sql", "sh", "bash", "zsh", "vue", "svelte"
+        ]
+        return textTypes.contains(type.lowercased())
+    }
+
     // MARK: - Statistics
 
     /// 加载统计数据
@@ -425,3 +713,52 @@ extension ProjectActivityEntity: Codable {}
 extension ProjectType: Codable {}
 extension ProjectStatus: Codable {}
 extension SyncStatus: Codable {}
+
+// MARK: - File Tree Node
+
+/// 文件树节点
+struct FileTreeNode: Identifiable {
+    let id: String
+    let file: ProjectFileEntity
+    let children: [FileTreeNode]
+
+    init(file: ProjectFileEntity, children: [FileTreeNode] = []) {
+        self.id = file.id
+        self.file = file
+        self.children = children
+    }
+
+    var isDirectory: Bool {
+        file.isDirectory
+    }
+
+    var name: String {
+        file.name
+    }
+
+    var hasChildren: Bool {
+        !children.isEmpty
+    }
+
+    /// 获取所有子文件（递归）
+    func allFiles() -> [ProjectFileEntity] {
+        var result = [file]
+        for child in children {
+            result.append(contentsOf: child.allFiles())
+        }
+        return result
+    }
+
+    /// 查找文件
+    func findFile(id: String) -> FileTreeNode? {
+        if file.id == id {
+            return self
+        }
+        for child in children {
+            if let found = child.findFile(id: id) {
+                return found
+            }
+        }
+        return nil
+    }
+}

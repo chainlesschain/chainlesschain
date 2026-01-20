@@ -78,7 +78,7 @@ class DIDManager @Inject constructor(
      * @param deviceName 设备名称
      * @return DID身份
      */
-    fun createIdentity(deviceName: String = android.os.Build.MODEL): DIDIdentity {
+    fun createIdentity(deviceName: String = android.os.Build.MODEL ?: "Unknown Device"): DIDIdentity {
         Log.i(TAG, "Creating new DID identity for device: $deviceName")
 
         // 生成Ed25519密钥对

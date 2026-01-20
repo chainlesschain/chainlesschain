@@ -25,11 +25,13 @@ class WebRTCPeerConnection @Inject constructor(
         private const val TAG = "WebRTCPeerConnection"
         private const val DATA_CHANNEL_LABEL = "chainlesschain-data"
 
-        // STUN服务器配置
-        private val ICE_SERVERS = listOf(
-            PeerConnection.IceServer.builder("stun:stun.l.google.com:19302").createIceServer(),
-            PeerConnection.IceServer.builder("stun:stun1.l.google.com:19302").createIceServer()
-        )
+        // STUN服务器配置 - 使用lazy初始化以支持测试时的mock
+        private val ICE_SERVERS: List<PeerConnection.IceServer> by lazy {
+            listOf(
+                PeerConnection.IceServer.builder("stun:stun.l.google.com:19302").createIceServer(),
+                PeerConnection.IceServer.builder("stun:stun1.l.google.com:19302").createIceServer()
+            )
+        }
     }
 
     // WebRTC组件

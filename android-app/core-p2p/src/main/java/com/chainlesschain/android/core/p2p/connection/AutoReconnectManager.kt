@@ -40,8 +40,10 @@ class AutoReconnectManager @Inject constructor(
     // 重连回调
     private var onReconnect: (suspend (P2PDevice) -> Unit)? = null
 
-    // 重连状态事件
-    private val _reconnectStatusEvents = MutableSharedFlow<ReconnectStatusEvent>()
+    // 重连状态事件 - 使用extraBufferCapacity确保事件不会丢失
+    private val _reconnectStatusEvents = MutableSharedFlow<ReconnectStatusEvent>(
+        extraBufferCapacity = 64
+    )
     val reconnectStatusEvents: SharedFlow<ReconnectStatusEvent> = _reconnectStatusEvents.asSharedFlow()
 
     // 队列处理任务
