@@ -1,4 +1,4 @@
-import { logger, createLogger } from '@/utils/logger';
+import { logger, createLogger } from "@/utils/logger";
 
 /**
  * Performance Budget and Real-time Monitoring System
@@ -23,9 +23,9 @@ export class PerformanceBudgetManager {
       // Time budgets (ms)
       FCP: budgets.FCP || 1800, // First Contentful Paint
       LCP: budgets.LCP || 2500, // Largest Contentful Paint
-      FID: budgets.FID || 100,  // First Input Delay
+      FID: budgets.FID || 100, // First Input Delay
       TTI: budgets.TTI || 3800, // Time to Interactive
-      TBT: budgets.TBT || 300,  // Total Blocking Time
+      TBT: budgets.TBT || 300, // Total Blocking Time
 
       // Size budgets (KB)
       totalJS: budgets.totalJS || 200,
@@ -39,7 +39,7 @@ export class PerformanceBudgetManager {
 
       // Other metrics
       CLS: budgets.CLS || 0.1, // Cumulative Layout Shift
-      FPS: budgets.FPS || 55,   // Frames per second
+      FPS: budgets.FPS || 55, // Frames per second
       ...budgets,
     };
 
@@ -68,7 +68,10 @@ export class PerformanceBudgetManager {
 
         this.violations.push(violation);
 
-        logger.warn(`[PerformanceBudget] ⚠️ Budget exceeded: ${key}`, violation);
+        logger.warn(
+          `[PerformanceBudget] ⚠️ Budget exceeded: ${key}`,
+          violation,
+        );
 
         // Notify listeners
         this.notifyViolation(violation);
@@ -136,7 +139,8 @@ export class CoreWebVitalsMonitor {
     };
 
     this.listeners = [];
-    this.observer = null;
+    this.observers = []; // 存储所有 PerformanceObserver 实例
+    this._loadHandler = null; // 存储 load 事件处理器引用
 
     this.init();
   }
@@ -160,14 +164,16 @@ export class CoreWebVitalsMonitor {
     // Monitor TTFB (Time to First Byte)
     this.observeTTFB();
 
-    logger.info('[WebVitals] Monitoring started');
+    logger.info("[WebVitals] Monitoring started");
   }
 
   /**
    * Observe LCP
    */
   observeLCP() {
-    if (!window.PerformanceObserver) {return;}
+    if (!window.PerformanceObserver) {
+      return;
+    }
 
     try {
       const observer = new PerformanceObserver((list) => {
@@ -177,15 +183,16 @@ export class CoreWebVitalsMonitor {
         this.metrics.LCP = lastEntry.renderTime || lastEntry.loadTime;
 
         if (this.options.debug) {
-          logger.info('[WebVitals] LCP:', this.metrics.LCP);
+          logger.info("[WebVitals] LCP:", this.metrics.LCP);
         }
 
-        this.notifyListeners('LCP', this.metrics.LCP);
+        this.notifyListeners("LCP", this.metrics.LCP);
       });
 
-      observer.observe({ type: 'largest-contentful-paint', buffered: true });
+      observer.observe({ type: "largest-contentful-paint", buffered: true });
+      this.observers.push(observer);
     } catch (error) {
-      logger.warn('[WebVitals] LCP observation failed:', error);
+      logger.warn("[WebVitals] LCP observation failed:", error);
     }
   }
 
@@ -193,7 +200,9 @@ export class CoreWebVitalsMonitor {
    * Observe FID
    */
   observeFID() {
-    if (!window.PerformanceObserver) {return;}
+    if (!window.PerformanceObserver) {
+      return;
+    }
 
     try {
       const observer = new PerformanceObserver((list) => {
@@ -204,17 +213,18 @@ export class CoreWebVitalsMonitor {
             this.metrics.FID = entry.processingStart - entry.startTime;
 
             if (this.options.debug) {
-              logger.info('[WebVitals] FID:', this.metrics.FID);
+              logger.info("[WebVitals] FID:", this.metrics.FID);
             }
 
-            this.notifyListeners('FID', this.metrics.FID);
+            this.notifyListeners("FID", this.metrics.FID);
           }
         });
       });
 
-      observer.observe({ type: 'first-input', buffered: true });
+      observer.observe({ type: "first-input", buffered: true });
+      this.observers.push(observer);
     } catch (error) {
-      logger.warn('[WebVitals] FID observation failed:', error);
+      logger.warn("[WebVitals] FID observation failed:", error);
     }
   }
 
@@ -222,7 +232,9 @@ export class CoreWebVitalsMonitor {
    * Observe CLS
    */
   observeCLS() {
-    if (!window.PerformanceObserver) {return;}
+    if (!window.PerformanceObserver) {
+      return;
+    }
 
     let clsValue = 0;
     let sessionValue = 0;
@@ -252,18 +264,19 @@ export class CoreWebVitalsMonitor {
               this.metrics.CLS = clsValue;
 
               if (this.options.debug) {
-                logger.info('[WebVitals] CLS:', this.metrics.CLS);
+                logger.info("[WebVitals] CLS:", this.metrics.CLS);
               }
 
-              this.notifyListeners('CLS', this.metrics.CLS);
+              this.notifyListeners("CLS", this.metrics.CLS);
             }
           }
         }
       });
 
-      observer.observe({ type: 'layout-shift', buffered: true });
+      observer.observe({ type: "layout-shift", buffered: true });
+      this.observers.push(observer);
     } catch (error) {
-      logger.warn('[WebVitals] CLS observation failed:', error);
+      logger.warn("[WebVitals] CLS observation failed:", error);
     }
   }
 
@@ -271,28 +284,31 @@ export class CoreWebVitalsMonitor {
    * Observe FCP
    */
   observeFCP() {
-    if (!window.PerformanceObserver) {return;}
+    if (!window.PerformanceObserver) {
+      return;
+    }
 
     try {
       const observer = new PerformanceObserver((list) => {
         const entries = list.getEntries();
 
         entries.forEach((entry) => {
-          if (entry.name === 'first-contentful-paint') {
+          if (entry.name === "first-contentful-paint") {
             this.metrics.FCP = entry.startTime;
 
             if (this.options.debug) {
-              logger.info('[WebVitals] FCP:', this.metrics.FCP);
+              logger.info("[WebVitals] FCP:", this.metrics.FCP);
             }
 
-            this.notifyListeners('FCP', this.metrics.FCP);
+            this.notifyListeners("FCP", this.metrics.FCP);
           }
         });
       });
 
-      observer.observe({ type: 'paint', buffered: true });
+      observer.observe({ type: "paint", buffered: true });
+      this.observers.push(observer);
     } catch (error) {
-      logger.warn('[WebVitals] FCP observation failed:', error);
+      logger.warn("[WebVitals] FCP observation failed:", error);
     }
   }
 
@@ -300,18 +316,47 @@ export class CoreWebVitalsMonitor {
    * Observe TTFB
    */
   observeTTFB() {
-    if (!window.performance || !window.performance.timing) {return;}
+    if (!window.performance || !window.performance.timing) {
+      return;
+    }
 
-    window.addEventListener('load', () => {
+    this._loadHandler = () => {
       const timing = performance.timing;
       this.metrics.TTFB = timing.responseStart - timing.requestStart;
 
       if (this.options.debug) {
-        logger.info('[WebVitals] TTFB:', this.metrics.TTFB);
+        logger.info("[WebVitals] TTFB:", this.metrics.TTFB);
       }
 
-      this.notifyListeners('TTFB', this.metrics.TTFB);
+      this.notifyListeners("TTFB", this.metrics.TTFB);
+    };
+    window.addEventListener("load", this._loadHandler);
+  }
+
+  /**
+   * Destroy and cleanup
+   */
+  destroy() {
+    // 断开所有 PerformanceObserver
+    this.observers.forEach((observer) => {
+      try {
+        observer.disconnect();
+      } catch (e) {
+        // 忽略断开错误
+      }
     });
+    this.observers = [];
+
+    // 移除 load 事件监听
+    if (this._loadHandler) {
+      window.removeEventListener("load", this._loadHandler);
+      this._loadHandler = null;
+    }
+
+    // 清空监听器
+    this.listeners = [];
+
+    logger.info("[WebVitals] Monitoring stopped");
   }
 
   /**
@@ -348,11 +393,17 @@ export class CoreWebVitalsMonitor {
     };
 
     const threshold = thresholds[metric];
-    if (!threshold) {return 'unknown';}
+    if (!threshold) {
+      return "unknown";
+    }
 
-    if (value <= threshold.good) {return 'good';}
-    if (value <= threshold.needsImprovement) {return 'needs-improvement';}
-    return 'poor';
+    if (value <= threshold.good) {
+      return "good";
+    }
+    if (value <= threshold.needsImprovement) {
+      return "needs-improvement";
+    }
+    return "poor";
   }
 
   /**
@@ -363,16 +414,22 @@ export class CoreWebVitalsMonitor {
       .filter((key) => this.metrics[key] !== null)
       .map((key) => this.getScore(key, this.metrics[key]));
 
-    const goodCount = scores.filter((s) => s === 'good').length;
+    const goodCount = scores.filter((s) => s === "good").length;
     const totalCount = scores.length;
 
-    if (totalCount === 0) {return 'unknown';}
+    if (totalCount === 0) {
+      return "unknown";
+    }
 
     const percentage = (goodCount / totalCount) * 100;
 
-    if (percentage >= 75) {return 'good';}
-    if (percentage >= 50) {return 'needs-improvement';}
-    return 'poor';
+    if (percentage >= 75) {
+      return "good";
+    }
+    if (percentage >= 50) {
+      return "needs-improvement";
+    }
+    return "poor";
   }
 }
 
@@ -408,7 +465,7 @@ export class RealtimePerformanceMonitor {
    */
   start() {
     if (this.intervalId) {
-      logger.warn('[RealtimeMonitor] Already monitoring');
+      logger.warn("[RealtimeMonitor] Already monitoring");
       return;
     }
 
@@ -422,7 +479,7 @@ export class RealtimePerformanceMonitor {
       this.update();
     }, this.options.interval);
 
-    logger.info('[RealtimeMonitor] Monitoring started');
+    logger.info("[RealtimeMonitor] Monitoring started");
   }
 
   /**
@@ -434,7 +491,7 @@ export class RealtimePerformanceMonitor {
       this.intervalId = null;
     }
 
-    logger.info('[RealtimeMonitor] Monitoring stopped');
+    logger.info("[RealtimeMonitor] Monitoring stopped");
   }
 
   /**
@@ -486,7 +543,7 @@ export class RealtimePerformanceMonitor {
     }
 
     if (this.options.debug) {
-      logger.info('[RealtimeMonitor] Metrics:', this.metrics);
+      logger.info("[RealtimeMonitor] Metrics:", this.metrics);
     }
 
     // Notify listeners
@@ -525,7 +582,7 @@ export class PerformanceAlertSystem {
       // Alert thresholds
       lowFPS: options.lowFPS || 30,
       highMemory: options.highMemory || 100, // MB
-      slowNetwork: options.slowNetwork || 'slow-2g',
+      slowNetwork: options.slowNetwork || "slow-2g",
 
       // Alert cooldown (ms)
       cooldown: options.cooldown || 5000,
@@ -545,17 +602,33 @@ export class PerformanceAlertSystem {
 
     // Check FPS
     if (metrics.fps && metrics.fps < this.options.lowFPS) {
-      alerts.push(this.createAlert('low-fps', `FPS is low: ${metrics.fps}`));
+      alerts.push(this.createAlert("low-fps", `FPS is low: ${metrics.fps}`));
     }
 
     // Check memory
-    if (metrics.memory && parseFloat(metrics.memory.usedMB) > this.options.highMemory) {
-      alerts.push(this.createAlert('high-memory', `Memory usage is high: ${metrics.memory.usedMB} MB`));
+    if (
+      metrics.memory &&
+      parseFloat(metrics.memory.usedMB) > this.options.highMemory
+    ) {
+      alerts.push(
+        this.createAlert(
+          "high-memory",
+          `Memory usage is high: ${metrics.memory.usedMB} MB`,
+        ),
+      );
     }
 
     // Check network
-    if (metrics.network && metrics.network.effectiveType === this.options.slowNetwork) {
-      alerts.push(this.createAlert('slow-network', `Network is slow: ${metrics.network.effectiveType}`));
+    if (
+      metrics.network &&
+      metrics.network.effectiveType === this.options.slowNetwork
+    ) {
+      alerts.push(
+        this.createAlert(
+          "slow-network",
+          `Network is slow: ${metrics.network.effectiveType}`,
+        ),
+      );
     }
 
     // Process alerts
@@ -581,12 +654,12 @@ export class PerformanceAlertSystem {
    */
   getSeverity(type) {
     const severityMap = {
-      'low-fps': 'warning',
-      'high-memory': 'error',
-      'slow-network': 'info',
+      "low-fps": "warning",
+      "high-memory": "error",
+      "slow-network": "info",
     };
 
-    return severityMap[type] || 'info';
+    return severityMap[type] || "info";
   }
 
   /**
@@ -601,13 +674,19 @@ export class PerformanceAlertSystem {
 
     this.lastAlerts[alert.type] = Date.now();
 
-    logger.warn(`[PerformanceAlert] ${alert.severity.toUpperCase()}: ${alert.message}`);
+    logger.warn(
+      `[PerformanceAlert] ${alert.severity.toUpperCase()}: ${alert.message}`,
+    );
 
     // Show browser notification if enabled
-    if (this.options.notifications && 'Notification' in window && Notification.permission === 'granted') {
-      new Notification('Performance Alert', {
+    if (
+      this.options.notifications &&
+      "Notification" in window &&
+      Notification.permission === "granted"
+    ) {
+      new Notification("Performance Alert", {
         body: alert.message,
-        icon: '/icon.png',
+        icon: "/icon.png",
       });
     }
   }
@@ -616,7 +695,7 @@ export class PerformanceAlertSystem {
    * Request notification permission
    */
   static async requestNotificationPermission() {
-    if ('Notification' in window && Notification.permission === 'default') {
+    if ("Notification" in window && Notification.permission === "default") {
       return await Notification.requestPermission();
     }
 
