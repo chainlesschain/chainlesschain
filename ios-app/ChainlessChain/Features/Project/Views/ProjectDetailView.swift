@@ -2,76 +2,56 @@ import SwiftUI
 import CoreCommon
 
 /// 项目详情视图
+/// Reference: desktop-app-vue/src/renderer/pages/projects/ProjectDetailPage.vue
 struct ProjectDetailView: View {
     let project: ProjectEntity
 
     @StateObject private var projectManager = ProjectManager.shared
-    @State private var selectedTab = 0
+    @State private var selectedTab: ProjectTab = .files
+    @State private var selectedFile: ProjectFileEntity?
     @State private var showEditSheet = false
     @State private var showShareSheet = false
+    @State private var showExportSheet = false
     @State private var showAddFileSheet = false
     @State private var fileToDelete: ProjectFileEntity?
     @State private var showDeleteFileAlert = false
 
     private let logger = Logger.shared
 
+    enum ProjectTab: String, CaseIterable {
+        case files = "文件"
+        case chat = "对话"
+        case editor = "编辑"
+        case git = "Git"
+        case info = "信息"
+
+        var icon: String {
+            switch self {
+            case .files: return "folder"
+            case .chat: return "bubble.left.and.bubble.right"
+            case .editor: return "doc.text"
+            case .git: return "point.3.connected.trianglepath.dotted"
+            case .info: return "info.circle"
+            }
+        }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
-            // Project header
-            projectHeader
+            // Project header (collapsed version)
+            collapsedHeader
 
-            // Tab picker
-            Picker("", selection: $selectedTab) {
-                Text("文件").tag(0)
-                Text("活动").tag(1)
-                Text("信息").tag(2)
-            }
-            .pickerStyle(.segmented)
-            .padding()
+            // Tab bar
+            tabBar
 
             // Tab content
-            TabView(selection: $selectedTab) {
-                filesTab.tag(0)
-                activitiesTab.tag(1)
-                infoTab.tag(2)
-            }
-            .tabViewStyle(.page(indexDisplayMode: .never))
+            tabContent
         }
         .navigationTitle(project.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                Menu {
-                    Button {
-                        showEditSheet = true
-                    } label: {
-                        Label("编辑", systemImage: "pencil")
-                    }
-
-                    Button {
-                        showShareSheet = true
-                    } label: {
-                        Label("分享", systemImage: "square.and.arrow.up")
-                    }
-
-                    Divider()
-
-                    Menu("更改状态") {
-                        ForEach(ProjectStatus.allCases, id: \.self) { status in
-                            Button {
-                                updateStatus(status)
-                            } label: {
-                                if project.status == status {
-                                    Label(status.displayName, systemImage: "checkmark")
-                                } else {
-                                    Text(status.displayName)
-                                }
-                            }
-                        }
-                    }
-                } label: {
-                    Image(systemName: "ellipsis.circle")
-                }
+                toolbarMenu
             }
         }
         .sheet(isPresented: $showEditSheet) {
@@ -79,6 +59,9 @@ struct ProjectDetailView: View {
         }
         .sheet(isPresented: $showShareSheet) {
             ShareProjectView(project: project)
+        }
+        .sheet(isPresented: $showExportSheet) {
+            ExportMenuView(projectId: project.id, file: selectedFile)
         }
         .sheet(isPresented: $showAddFileSheet) {
             AddFileView(projectId: project.id)
@@ -98,168 +81,204 @@ struct ProjectDetailView: View {
         }
     }
 
-    // MARK: - Project Header
+    // MARK: - Collapsed Header
 
-    private var projectHeader: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                // Type icon
-                Image(systemName: project.typeIcon)
-                    .font(.title)
-                    .foregroundColor(statusColor)
-                    .frame(width: 56, height: 56)
-                    .background(statusColor.opacity(0.1))
-                    .cornerRadius(12)
+    private var collapsedHeader: some View {
+        HStack(spacing: 12) {
+            // Type icon
+            Image(systemName: project.typeIcon)
+                .font(.title2)
+                .foregroundColor(statusColor)
+                .frame(width: 44, height: 44)
+                .background(statusColor.opacity(0.1))
+                .cornerRadius(10)
 
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack {
-                        Text(project.status.displayName)
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 8) {
+                    Text(project.status.displayName)
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(statusColor.opacity(0.1))
+                        .foregroundColor(statusColor)
+                        .cornerRadius(4)
+
+                    if project.isShared {
+                        Image(systemName: "link")
                             .font(.caption)
-                            .fontWeight(.medium)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 2)
-                            .background(statusColor.opacity(0.1))
-                            .foregroundColor(statusColor)
-                            .cornerRadius(4)
-
-                        if project.isShared {
-                            Label("已分享", systemImage: "link")
-                                .font(.caption)
-                                .foregroundColor(.blue)
-                        }
-
-                        Spacer()
-
-                        Image(systemName: project.syncStatus.icon)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(.blue)
                     }
 
-                    if let description = project.description, !description.isEmpty {
-                        Text(description)
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                            .lineLimit(2)
+                    Spacer()
+
+                    // Quick stats
+                    HStack(spacing: 12) {
+                        Label("\(project.fileCount)", systemImage: "doc")
+                        Label(project.formattedSize, systemImage: "externaldrive")
                     }
+                    .font(.caption)
+                    .foregroundColor(.secondary)
                 }
-            }
 
-            // Stats row
-            HStack(spacing: 20) {
-                Label("\(project.fileCount) 个文件", systemImage: "doc")
-                Label(project.formattedSize, systemImage: "externaldrive")
-                Label(project.updatedAt.formatted(date: .abbreviated, time: .shortened), systemImage: "clock")
-            }
-            .font(.caption)
-            .foregroundColor(.secondary)
-
-            // Tags
-            if !project.tags.isEmpty {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach(project.tags, id: \.self) { tag in
-                            Text(tag)
-                                .font(.caption)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(Color.blue.opacity(0.1))
-                                .foregroundColor(.blue)
-                                .cornerRadius(8)
-                        }
-                    }
+                if let description = project.description, !description.isEmpty {
+                    Text(description)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
                 }
             }
         }
-        .padding()
-        .background(Color(.systemGroupedBackground))
+        .padding(.horizontal)
+        .padding(.vertical, 10)
+        .background(Color(.systemBackground))
+    }
+
+    // MARK: - Tab Bar
+
+    private var tabBar: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 0) {
+                ForEach(ProjectTab.allCases, id: \.self) { tab in
+                    tabButton(tab)
+                }
+            }
+            .padding(.horizontal)
+        }
+        .background(Color(.systemBackground))
+    }
+
+    private func tabButton(_ tab: ProjectTab) -> some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                // If switching to editor without a file, show files instead
+                if tab == .editor && selectedFile == nil {
+                    selectedTab = .files
+                } else {
+                    selectedTab = tab
+                }
+            }
+        } label: {
+            VStack(spacing: 4) {
+                Image(systemName: tab.icon)
+                    .font(.system(size: 18))
+
+                Text(tab.rawValue)
+                    .font(.caption)
+            }
+            .foregroundColor(selectedTab == tab ? .blue : .secondary)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .background(
+                selectedTab == tab ?
+                    Color.blue.opacity(0.1) : Color.clear
+            )
+            .cornerRadius(8)
+        }
+        .disabled(tab == .editor && selectedFile == nil)
+        .opacity(tab == .editor && selectedFile == nil ? 0.5 : 1)
+    }
+
+    // MARK: - Tab Content
+
+    @ViewBuilder
+    private var tabContent: some View {
+        switch selectedTab {
+        case .files:
+            filesTabContent
+        case .chat:
+            chatTabContent
+        case .editor:
+            editorTabContent
+        case .git:
+            gitTabContent
+        case .info:
+            infoTabContent
+        }
     }
 
     // MARK: - Files Tab
 
-    private var filesTab: some View {
-        VStack {
-            if projectManager.currentFiles.isEmpty {
-                emptyFilesView
-            } else {
-                filesList
-            }
-        }
-    }
-
-    private var emptyFilesView: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "doc.badge.plus")
-                .font(.system(size: 48))
-                .foregroundColor(.secondary)
-
-            Text("暂无文件")
-                .font(.headline)
-
-            Button {
-                showAddFileSheet = true
-            } label: {
-                Label("添加文件", systemImage: "plus")
-            }
-            .buttonStyle(.borderedProminent)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-    }
-
-    private var filesList: some View {
-        List {
-            ForEach(projectManager.currentFiles) { file in
-                FileRowView(file: file)
-                    .swipeActions(edge: .trailing) {
-                        Button(role: .destructive) {
-                            fileToDelete = file
-                            showDeleteFileAlert = true
-                        } label: {
-                            Label("删除", systemImage: "trash")
-                        }
-                    }
-            }
-
-            // Add file button
-            Button {
-                showAddFileSheet = true
-            } label: {
-                Label("添加文件", systemImage: "plus.circle")
-                    .foregroundColor(.blue)
-            }
-        }
-        .listStyle(.plain)
-    }
-
-    // MARK: - Activities Tab
-
-    private var activitiesTab: some View {
-        let activities = projectManager.getProjectActivities(projectId: project.id)
-
-        return Group {
-            if activities.isEmpty {
-                VStack(spacing: 16) {
-                    Image(systemName: "clock.arrow.circlepath")
-                        .font(.system(size: 48))
-                        .foregroundColor(.secondary)
-
-                    Text("暂无活动记录")
-                        .font(.headline)
+    private var filesTabContent: some View {
+        FileTreeView(
+            projectId: project.id,
+            onFileSelected: { file in
+                selectedFile = file
+                if !file.isDirectory {
+                    selectedTab = .editor
                 }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                List(activities) { activity in
-                    ActivityRowView(activity: activity)
-                }
-                .listStyle(.plain)
+            },
+            onFileOperation: { operation, file in
+                handleFileOperation(operation, file: file)
             }
+        )
+    }
+
+    // MARK: - Chat Tab
+
+    private var chatTabContent: some View {
+        ProjectChatView(
+            projectId: project.id,
+            currentFile: selectedFile,
+            onFileOperation: { type, path in
+                // Handle file operations from chat
+                logger.info("Chat file operation: \(type) - \(path)", category: "Project")
+            }
+        )
+    }
+
+    // MARK: - Editor Tab
+
+    @ViewBuilder
+    private var editorTabContent: some View {
+        if let file = selectedFile {
+            FileEditorView(
+                file: file,
+                onSave: {
+                    projectManager.loadProjectFiles(projectId: project.id)
+                },
+                onClose: {
+                    selectedFile = nil
+                    selectedTab = .files
+                }
+            )
+        } else {
+            VStack(spacing: 16) {
+                Image(systemName: "doc.text")
+                    .font(.system(size: 48))
+                    .foregroundColor(.secondary)
+
+                Text("请先选择一个文件")
+                    .font(.headline)
+                    .foregroundColor(.secondary)
+
+                Button {
+                    selectedTab = .files
+                } label: {
+                    Label("浏览文件", systemImage: "folder")
+                }
+                .buttonStyle(.borderedProminent)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+    }
+
+    // MARK: - Git Tab
+
+    private var gitTabContent: some View {
+        GitOperationsView(projectId: project.id)
     }
 
     // MARK: - Info Tab
 
-    private var infoTab: some View {
+    private var infoTabContent: some View {
         List {
             Section("基本信息") {
-                LabeledContent("项目ID", value: project.id)
+                LabeledContent("项目ID") {
+                    Text(project.id)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
                 LabeledContent("类型", value: project.type.displayName)
                 LabeledContent("状态", value: project.status.displayName)
             }
@@ -281,10 +300,96 @@ struct ProjectDetailView: View {
                 LabeledContent("同步状态", value: project.syncStatus.displayName)
                 if project.isShared {
                     LabeledContent("分享状态", value: "已分享")
+                    if let token = project.shareToken {
+                        LabeledContent("分享Token") {
+                            Text(String(token.prefix(16)) + "...")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+            }
+
+            if !project.tags.isEmpty {
+                Section("标签") {
+                    FlowLayout(spacing: 8) {
+                        ForEach(project.tags, id: \.self) { tag in
+                            Text(tag)
+                                .font(.caption)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(Color.blue.opacity(0.1))
+                                .foregroundColor(.blue)
+                                .cornerRadius(8)
+                        }
+                    }
+                }
+            }
+
+            // Activities section
+            Section("最近活动") {
+                let activities = projectManager.getProjectActivities(projectId: project.id).prefix(5)
+                if activities.isEmpty {
+                    Text("暂无活动记录")
+                        .foregroundColor(.secondary)
+                } else {
+                    ForEach(Array(activities)) { activity in
+                        ActivityRowView(activity: activity)
+                    }
                 }
             }
         }
         .listStyle(.insetGrouped)
+    }
+
+    // MARK: - Toolbar Menu
+
+    private var toolbarMenu: some View {
+        Menu {
+            Button {
+                showEditSheet = true
+            } label: {
+                Label("编辑项目", systemImage: "pencil")
+            }
+
+            Button {
+                showExportSheet = true
+            } label: {
+                Label("导出", systemImage: "square.and.arrow.up")
+            }
+
+            Button {
+                showShareSheet = true
+            } label: {
+                Label("分享", systemImage: "link")
+            }
+
+            Divider()
+
+            Menu("更改状态") {
+                ForEach(ProjectStatus.allCases, id: \.self) { status in
+                    Button {
+                        updateStatus(status)
+                    } label: {
+                        if project.status == status {
+                            Label(status.displayName, systemImage: "checkmark")
+                        } else {
+                            Text(status.displayName)
+                        }
+                    }
+                }
+            }
+
+            Divider()
+
+            Button {
+                showAddFileSheet = true
+            } label: {
+                Label("添加文件", systemImage: "doc.badge.plus")
+            }
+        } label: {
+            Image(systemName: "ellipsis.circle")
+        }
     }
 
     // MARK: - Helpers
@@ -311,6 +416,79 @@ struct ProjectDetailView: View {
             try projectManager.deleteFile(file)
         } catch {
             logger.error("Failed to delete file", error: error, category: "Project")
+        }
+    }
+
+    private func handleFileOperation(_ operation: String, file: ProjectFileEntity) {
+        switch operation {
+        case "open":
+            selectedFile = file
+            selectedTab = .editor
+        case "share":
+            // Share file
+            if let content = file.content {
+                let activityVC = UIActivityViewController(
+                    activityItems: [content],
+                    applicationActivities: nil
+                )
+                if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                   let window = windowScene.windows.first,
+                   let rootVC = window.rootViewController {
+                    rootVC.present(activityVC, animated: true)
+                }
+            }
+        case "delete":
+            fileToDelete = file
+            showDeleteFileAlert = true
+        default:
+            logger.debug("Unhandled file operation: \(operation)", category: "Project")
+        }
+    }
+}
+
+// MARK: - Flow Layout
+
+struct FlowLayout: Layout {
+    var spacing: CGFloat = 8
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let result = FlowResult(in: proposal.width ?? 0, subviews: subviews, spacing: spacing)
+        return result.size
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let result = FlowResult(in: bounds.width, subviews: subviews, spacing: spacing)
+        for (index, subview) in subviews.enumerated() {
+            subview.place(at: CGPoint(x: bounds.minX + result.positions[index].x,
+                                      y: bounds.minY + result.positions[index].y),
+                         proposal: .unspecified)
+        }
+    }
+
+    struct FlowResult {
+        var size: CGSize = .zero
+        var positions: [CGPoint] = []
+
+        init(in maxWidth: CGFloat, subviews: Subviews, spacing: CGFloat) {
+            var x: CGFloat = 0
+            var y: CGFloat = 0
+            var rowHeight: CGFloat = 0
+
+            for subview in subviews {
+                let size = subview.sizeThatFits(.unspecified)
+
+                if x + size.width > maxWidth && x > 0 {
+                    x = 0
+                    y += rowHeight + spacing
+                    rowHeight = 0
+                }
+
+                positions.append(CGPoint(x: x, y: y))
+                rowHeight = max(rowHeight, size.height)
+                x += size.width + spacing
+            }
+
+            self.size = CGSize(width: maxWidth, height: y + rowHeight)
         }
     }
 }
