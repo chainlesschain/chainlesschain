@@ -32,6 +32,9 @@ class P2PManager: ObservableObject {
     private let baseReconnectDelay: TimeInterval = AppConfig.P2P.baseReconnectDelay
     private var disconnectedPeers: [String: PeerReconnectInfo] = [:]
 
+    // Notification observer tokens for cleanup
+    private var notificationObservers: [NSObjectProtocol] = []
+
     struct PeerReconnectInfo {
         let peerId: String
         let preKeyBundle: SignalProtocolManager.PreKeyBundle?
@@ -354,7 +357,7 @@ class P2PManager: ObservableObject {
 
     private func setupNotificationObservers() {
         // WebRTC connection state changes
-        NotificationCenter.default.addObserver(
+        let connectionStateObserver = NotificationCenter.default.addObserver(
             forName: .webrtcConnectionStateChanged,
             object: nil,
             queue: .main
@@ -368,9 +371,10 @@ class P2PManager: ObservableObject {
                 self?.handleConnectionStateChange(peerId: peerId, state: state)
             }
         }
+        notificationObservers.append(connectionStateObserver)
 
         // WebRTC ICE candidates
-        NotificationCenter.default.addObserver(
+        let iceCandidateObserver = NotificationCenter.default.addObserver(
             forName: .webrtcIceCandidate,
             object: nil,
             queue: .main
@@ -388,9 +392,10 @@ class P2PManager: ObservableObject {
                 }
             }
         }
+        notificationObservers.append(iceCandidateObserver)
 
         // WebRTC messages received
-        NotificationCenter.default.addObserver(
+        let messageReceivedObserver = NotificationCenter.default.addObserver(
             forName: .webrtcMessageReceived,
             object: nil,
             queue: .main
@@ -406,9 +411,10 @@ class P2PManager: ObservableObject {
                 self?.handleReceivedMessage(from: peerId, message: message)
             }
         }
+        notificationObservers.append(messageReceivedObserver)
 
         // Message manager send requests
-        NotificationCenter.default.addObserver(
+        let sendMessageObserver = NotificationCenter.default.addObserver(
             forName: .p2pSendMessage,
             object: nil,
             queue: .main
@@ -426,9 +432,10 @@ class P2PManager: ObservableObject {
                 }
             }
         }
+        notificationObservers.append(sendMessageObserver)
 
         // Message manager batch send requests
-        NotificationCenter.default.addObserver(
+        let sendBatchObserver = NotificationCenter.default.addObserver(
             forName: .p2pSendBatch,
             object: nil,
             queue: .main
@@ -448,6 +455,7 @@ class P2PManager: ObservableObject {
                 }
             }
         }
+        notificationObservers.append(sendBatchObserver)
     }
 
     private func handleConnectionStateChange(peerId: String, state: RTCPeerConnectionState) {
@@ -615,11 +623,25 @@ class P2PManager: ObservableObject {
 
     /// Cleanup
     func cleanup() {
+        // Invalidate all reconnect timers
+        for (_, timer) in reconnectTimers {
+            timer.invalidate()
+        }
+        reconnectTimers.removeAll()
+        reconnectAttempts.removeAll()
+        disconnectedPeers.removeAll()
+
+        // Remove notification observers
+        notificationObservers.forEach { NotificationCenter.default.removeObserver($0) }
+        notificationObservers.removeAll()
+
+        // Cleanup connections
         connectedPeers.forEach { disconnectFromPeer(peerId: $0) }
         webrtcManager.cleanup()
         signalManager.clearSessions()
         messageManager.clearQueues()
 
+        isInitialized = false
         logger.debug("[P2P] Cleanup complete")
     }
 }

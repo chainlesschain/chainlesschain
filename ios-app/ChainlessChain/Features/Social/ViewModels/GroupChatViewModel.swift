@@ -23,12 +23,21 @@ class GroupChatViewModel: ObservableObject {
     private let logger = Logger.shared
     private(set) var myDid: String = ""
 
+    // Notification observer tokens for cleanup
+    private var notificationObservers: [NSObjectProtocol] = []
+
     // MARK: - Initialization
 
     init() {
         myDid = UserDefaults.standard.string(forKey: "current_user_id") ?? UUID().uuidString
         loadAvailableContacts()
         setupNotificationObservers()
+    }
+
+    deinit {
+        // Remove all notification observers to prevent memory leaks
+        notificationObservers.forEach { NotificationCenter.default.removeObserver($0) }
+        notificationObservers.removeAll()
     }
 
     // MARK: - Group Management
@@ -344,7 +353,7 @@ class GroupChatViewModel: ObservableObject {
 
     private func setupNotificationObservers() {
         // Peer connected - update online status
-        NotificationCenter.default.addObserver(
+        let peerConnectedObserver = NotificationCenter.default.addObserver(
             forName: .p2pPeerConnected,
             object: nil,
             queue: .main
@@ -355,9 +364,10 @@ class GroupChatViewModel: ObservableObject {
                 self?.onlineMembers.insert(peerId)
             }
         }
+        notificationObservers.append(peerConnectedObserver)
 
         // Peer disconnected
-        NotificationCenter.default.addObserver(
+        let peerDisconnectedObserver = NotificationCenter.default.addObserver(
             forName: .p2pPeerDisconnected,
             object: nil,
             queue: .main
@@ -368,9 +378,10 @@ class GroupChatViewModel: ObservableObject {
                 self?.onlineMembers.remove(peerId)
             }
         }
+        notificationObservers.append(peerDisconnectedObserver)
 
         // Message received
-        NotificationCenter.default.addObserver(
+        let messageReceivedObserver = NotificationCenter.default.addObserver(
             forName: .p2pMessageReceived,
             object: nil,
             queue: .main
@@ -420,11 +431,16 @@ class GroupChatViewModel: ObservableObject {
                 try? self.messageRepository.saveMessage(messageEntity)
             }
         }
+        notificationObservers.append(messageReceivedObserver)
     }
 
     // MARK: - Cleanup
 
     func cleanup() {
+        // Remove notification observers
+        notificationObservers.forEach { NotificationCenter.default.removeObserver($0) }
+        notificationObservers.removeAll()
+
         currentGroup = nil
         messages = []
         memberNames = [:]
