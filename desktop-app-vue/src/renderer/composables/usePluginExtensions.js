@@ -459,6 +459,12 @@ export async function getPluginMenuItems() {
 
     const menus = result.extensions?.menus || [];
 
+    // Ensure menus is an array
+    if (!Array.isArray(menus)) {
+      logger.warn("[getPluginMenuItems] menus is not an array:", typeof menus);
+      return [];
+    }
+
     return menus.map((menu) => ({
       key: `plugin-${menu.plugin_id}`,
       label: menu.config?.label || menu.plugin_name,
@@ -467,7 +473,10 @@ export async function getPluginMenuItems() {
       pluginId: menu.plugin_id,
       order: menu.priority || 1000,
       badge: menu.config?.badge,
-      children: (menu.config?.children || []).map((child, idx) => ({
+      children: (Array.isArray(menu.config?.children)
+        ? menu.config.children
+        : []
+      ).map((child, idx) => ({
         key: `plugin-${menu.plugin_id}-${child.id || idx}`,
         label: child.label,
         icon: child.icon,
