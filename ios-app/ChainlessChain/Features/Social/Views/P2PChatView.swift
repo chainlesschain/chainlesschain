@@ -142,10 +142,19 @@ struct P2PChatView: View {
 
     private func sendImages(_ images: [UIImage]) {
         guard let peer = selectedPeer else { return }
+        guard !images.isEmpty else { return }
 
-        // TODO: Implement image sending via P2P
-        // For now, show a toast
-        showToast(message: "图片发送功能开发中", type: .info)
+        // Show sending toast
+        showToast(message: "正在发送 \(images.count) 张图片...", type: .info)
+
+        // Clear selected images
+        selectedImages = []
+
+        // Send images via P2P
+        Task {
+            await viewModel.sendImageMessages(to: peer.id, images: images)
+            showToast(message: "图片发送完成", type: .success)
+        }
     }
 
     private func showToast(message: String, type: ToastView.ToastType) {
@@ -493,10 +502,13 @@ struct EnhancedMessageBubble: View {
     var onRecall: ((String) -> Void)?
     var onEdit: ((String, String) -> Void)?
     var onResend: ((String) -> Void)?
+    var onImageTap: ((UIImage) -> Void)?
 
     @State private var showEditSheet = false
     @State private var editedContent = ""
     @State private var isPressed = false
+    @State private var showFullScreenImage = false
+    @State private var loadedImage: UIImage?
 
     var body: some View {
         HStack {
@@ -551,6 +563,11 @@ struct EnhancedMessageBubble: View {
                 }
             )
         }
+        .fullScreenCover(isPresented: $showFullScreenImage) {
+            if let image = loadedImage {
+                ImageViewerOverlay(image: image, isPresented: $showFullScreenImage)
+            }
+        }
     }
 
     @ViewBuilder
@@ -566,6 +583,16 @@ struct EnhancedMessageBubble: View {
             .padding(12)
             .background(Color(.systemGray6))
             .cornerRadius(16)
+        } else if message.isImageMessage {
+            // Image message
+            ImageMessageView(
+                message: message,
+                isOutgoing: message.isOutgoing,
+                onTap: { image in
+                    loadedImage = image
+                    showFullScreenImage = true
+                }
+            )
         } else {
             Text(message.content)
                 .padding(12)
@@ -586,25 +613,54 @@ struct EnhancedMessageBubble: View {
 
     @ViewBuilder
     private var contextMenuItems: some View {
-        // Copy
-        Button {
-            UIPasteboard.general.string = message.content
-            UINotificationFeedbackGenerator().notificationOccurred(.success)
-        } label: {
-            Label("复制", systemImage: "doc.on.doc")
-        }
-
-        if message.isOutgoing && !message.isRecalled {
-            // Edit
-            if canEdit {
+        if message.isImageMessage {
+            // Image-specific actions
+            if let image = message.getImage() {
                 Button {
-                    editedContent = message.content
-                    showEditSheet = true
+                    UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil)
+                    UINotificationFeedbackGenerator().notificationOccurred(.success)
                 } label: {
-                    Label("编辑", systemImage: "pencil")
+                    Label("保存图片", systemImage: "square.and.arrow.down")
+                }
+
+                Button {
+                    let activityVC = UIActivityViewController(
+                        activityItems: [image],
+                        applicationActivities: nil
+                    )
+                    if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                       let window = windowScene.windows.first,
+                       let rootVC = window.rootViewController {
+                        rootVC.present(activityVC, animated: true)
+                    }
+                } label: {
+                    Label("分享", systemImage: "square.and.arrow.up")
                 }
             }
+        } else {
+            // Text message - Copy
+            Button {
+                UIPasteboard.general.string = message.content
+                UINotificationFeedbackGenerator().notificationOccurred(.success)
+            } label: {
+                Label("复制", systemImage: "doc.on.doc")
+            }
 
+            if message.isOutgoing && !message.isRecalled {
+                // Edit (text only)
+                if canEdit {
+                    Button {
+                        editedContent = message.content
+                        showEditSheet = true
+                    } label: {
+                        Label("编辑", systemImage: "pencil")
+                    }
+                }
+            }
+        }
+
+        // Common actions
+        if message.isOutgoing && !message.isRecalled {
             // Recall
             if canRecall {
                 Button(role: .destructive) {
@@ -819,6 +875,300 @@ struct QRCodeView: View {
         }
 
         return nil
+    }
+}
+
+// MARK: - Image Message View
+
+struct ImageMessageView: View {
+    let message: P2PViewModel.ChatMessage
+    let isOutgoing: Bool
+    var onTap: ((UIImage) -> Void)?
+
+    @State private var image: UIImage?
+    @State private var isLoading = true
+
+    private let maxWidth: CGFloat = 220
+    private let maxHeight: CGFloat = 280
+
+    var body: some View {
+        Group {
+            if let displayImage = image {
+                let aspectRatio = displayImage.size.width / displayImage.size.height
+                let displaySize = calculateDisplaySize(aspectRatio: aspectRatio)
+
+                Button {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    onTap?(displayImage)
+                } label: {
+                    Image(uiImage: displayImage)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: displaySize.width, height: displaySize.height)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                        )
+                        .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
+                }
+                .buttonStyle(PlainButtonStyle())
+            } else if isLoading {
+                // Loading placeholder
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.gray.opacity(0.2))
+                    .frame(width: maxWidth, height: 150)
+                    .overlay(
+                        ProgressView()
+                            .scaleEffect(1.2)
+                    )
+            } else {
+                // Failed to load
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.gray.opacity(0.2))
+                    .frame(width: maxWidth, height: 100)
+                    .overlay(
+                        VStack(spacing: 8) {
+                            Image(systemName: "photo.badge.exclamationmark")
+                                .font(.title2)
+                                .foregroundColor(.gray)
+                            Text("图片加载失败")
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                        }
+                    )
+            }
+        }
+        .onAppear {
+            loadImage()
+        }
+    }
+
+    private func loadImage() {
+        // Try to get image from message
+        DispatchQueue.global(qos: .userInitiated).async {
+            let loadedImage = message.getImage()
+
+            DispatchQueue.main.async {
+                self.image = loadedImage
+                self.isLoading = false
+            }
+        }
+    }
+
+    private func calculateDisplaySize(aspectRatio: CGFloat) -> CGSize {
+        if aspectRatio > 1 {
+            // Landscape
+            let width = min(maxWidth, maxWidth)
+            let height = width / aspectRatio
+            return CGSize(width: width, height: min(height, maxHeight))
+        } else {
+            // Portrait or square
+            let height = min(maxHeight, maxHeight)
+            let width = height * aspectRatio
+            return CGSize(width: min(width, maxWidth), height: height)
+        }
+    }
+}
+
+// MARK: - Image Viewer Overlay
+
+struct ImageViewerOverlay: View {
+    let image: UIImage
+    @Binding var isPresented: Bool
+
+    @State private var scale: CGFloat = 1.0
+    @State private var lastScale: CGFloat = 1.0
+    @State private var offset: CGSize = .zero
+    @State private var lastOffset: CGSize = .zero
+
+    var body: some View {
+        ZStack {
+            Color.black.edgesIgnoringSafeArea(.all)
+
+            Image(uiImage: image)
+                .resizable()
+                .aspectRatio(contentMode: .fit)
+                .scaleEffect(scale)
+                .offset(offset)
+                .gesture(
+                    MagnificationGesture()
+                        .onChanged { value in
+                            scale = lastScale * value
+                        }
+                        .onEnded { _ in
+                            lastScale = scale
+                            if scale < 1.0 {
+                                withAnimation {
+                                    scale = 1.0
+                                    lastScale = 1.0
+                                }
+                            }
+                        }
+                )
+                .gesture(
+                    DragGesture()
+                        .onChanged { value in
+                            offset = CGSize(
+                                width: lastOffset.width + value.translation.width,
+                                height: lastOffset.height + value.translation.height
+                            )
+                        }
+                        .onEnded { _ in
+                            lastOffset = offset
+                        }
+                )
+                .onTapGesture(count: 2) {
+                    withAnimation {
+                        if scale > 1.0 {
+                            scale = 1.0
+                            lastScale = 1.0
+                            offset = .zero
+                            lastOffset = .zero
+                        } else {
+                            scale = 2.0
+                            lastScale = 2.0
+                        }
+                    }
+                }
+
+            // Close button
+            VStack {
+                HStack {
+                    Spacer()
+                    Button {
+                        isPresented = false
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.title)
+                            .foregroundColor(.white)
+                            .padding()
+                    }
+                }
+                Spacer()
+            }
+
+            // Bottom toolbar
+            VStack {
+                Spacer()
+                HStack(spacing: 40) {
+                    // Save button
+                    Button {
+                        saveImage()
+                    } label: {
+                        VStack(spacing: 4) {
+                            Image(systemName: "square.and.arrow.down")
+                                .font(.title2)
+                            Text("保存")
+                                .font(.caption)
+                        }
+                        .foregroundColor(.white)
+                    }
+
+                    // Share button
+                    Button {
+                        shareImage()
+                    } label: {
+                        VStack(spacing: 4) {
+                            Image(systemName: "square.and.arrow.up")
+                                .font(.title2)
+                            Text("分享")
+                                .font(.caption)
+                        }
+                        .foregroundColor(.white)
+                    }
+                }
+                .padding(.bottom, 40)
+            }
+        }
+        .onTapGesture {
+            // Single tap to dismiss if not zoomed
+            if scale <= 1.0 {
+                isPresented = false
+            }
+        }
+    }
+
+    private func saveImage() {
+        UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil)
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
+    }
+
+    private func shareImage() {
+        let activityVC = UIActivityViewController(
+            activityItems: [image],
+            applicationActivities: nil
+        )
+
+        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let window = windowScene.windows.first,
+           let rootVC = window.rootViewController {
+            rootVC.present(activityVC, animated: true)
+        }
+    }
+}
+
+// MARK: - Multiple Images Grid View
+
+struct MultipleImagesMessageView: View {
+    let images: [UIImage]
+    let isOutgoing: Bool
+    var onImageTap: ((UIImage, Int) -> Void)?
+
+    private let spacing: CGFloat = 2
+    private let cornerRadius: CGFloat = 12
+
+    var body: some View {
+        let columns = calculateColumns()
+
+        LazyVGrid(columns: columns, spacing: spacing) {
+            ForEach(Array(images.enumerated()), id: \.offset) { index, image in
+                Button {
+                    onImageTap?(image, index)
+                } label: {
+                    Image(uiImage: image)
+                        .resizable()
+                        .aspectRatio(contentMode: .fill)
+                        .frame(width: cellSize, height: cellSize)
+                        .clipped()
+                }
+                .buttonStyle(PlainButtonStyle())
+            }
+        }
+        .frame(width: gridWidth)
+        .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
+        .overlay(
+            RoundedRectangle(cornerRadius: cornerRadius)
+                .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+        )
+    }
+
+    private var gridWidth: CGFloat {
+        switch images.count {
+        case 1: return 200
+        case 2...4: return 160
+        default: return 180
+        }
+    }
+
+    private var cellSize: CGFloat {
+        let columnsCount = CGFloat(calculateColumnCount())
+        return (gridWidth - spacing * (columnsCount - 1)) / columnsCount
+    }
+
+    private func calculateColumnCount() -> Int {
+        switch images.count {
+        case 1: return 1
+        case 2: return 2
+        case 3: return 3
+        case 4: return 2
+        default: return 3
+        }
+    }
+
+    private func calculateColumns() -> [GridItem] {
+        let count = calculateColumnCount()
+        return Array(repeating: GridItem(.flexible(), spacing: spacing), count: count)
     }
 }
 

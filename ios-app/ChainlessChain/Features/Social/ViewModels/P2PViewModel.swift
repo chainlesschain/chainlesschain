@@ -37,6 +37,11 @@ class P2PViewModel: ObservableObject {
         var isEdited: Bool = false
         var editCount: Int = 0
 
+        // Image support
+        var imageData: Data?
+        var thumbnailData: Data?
+        var imageSize: CGSize?
+
         enum MessageStatus {
             case sending
             case sent
@@ -45,6 +50,38 @@ class P2PViewModel: ObservableObject {
             case failed
             case recalled
             case edited
+        }
+
+        /// Check if this is an image message
+        var isImageMessage: Bool {
+            return type == .image && (imageData != nil || content.hasPrefix("data:image"))
+        }
+
+        /// Get UIImage from image data
+        func getImage() -> UIImage? {
+            if let data = imageData {
+                return UIImage(data: data)
+            }
+            // Try to decode from base64 content
+            if content.hasPrefix("data:image") {
+                if let base64Start = content.range(of: ";base64,") {
+                    let base64String = String(content[base64Start.upperBound...])
+                    if let data = Data(base64Encoded: base64String) {
+                        return UIImage(data: data)
+                    }
+                }
+            } else if let data = Data(base64Encoded: content) {
+                return UIImage(data: data)
+            }
+            return nil
+        }
+
+        /// Get thumbnail image
+        func getThumbnail() -> UIImage? {
+            if let data = thumbnailData {
+                return UIImage(data: data)
+            }
+            return getImage()
         }
     }
 
@@ -136,6 +173,141 @@ class P2PViewModel: ObservableObject {
     }
 
     // MARK: - Messaging
+
+    /// Send image messages
+    func sendImageMessages(to peerId: String, images: [UIImage]) async {
+        for image in images {
+            await sendImageMessage(to: peerId, image: image)
+        }
+    }
+
+    /// Send single image message
+    func sendImageMessage(to peerId: String, image: UIImage) async {
+        do {
+            // Ensure we have a conversation
+            let conversation = try messageRepository.getOrCreateConversation(with: peerId, myDid: myDid)
+            currentConversationId = conversation.id
+
+            // Compress and encode image
+            let (compressedData, thumbnailData, imageSize) = compressImage(image)
+
+            guard let imageData = compressedData else {
+                handleError(P2PError.invalidMessageFormat)
+                return
+            }
+
+            // Create base64 content with data URI
+            let base64Content = "data:image/jpeg;base64,\(imageData.base64EncodedString())"
+
+            let messageId = try await p2pManager.sendMessage(
+                to: peerId,
+                content: base64Content,
+                type: .image,
+                priority: .normal
+            )
+
+            let timestamp = Date()
+
+            // Add to local messages with image data
+            let message = ChatMessage(
+                id: messageId,
+                peerId: peerId,
+                content: base64Content,
+                type: .image,
+                timestamp: timestamp,
+                isOutgoing: true,
+                status: .sending,
+                imageData: imageData,
+                thumbnailData: thumbnailData,
+                imageSize: imageSize
+            )
+
+            messages.append(message)
+
+            // Save to database
+            let metadata = ImageMessageMetadata(
+                width: Int(imageSize.width),
+                height: Int(imageSize.height),
+                size: imageData.count,
+                mimeType: "image/jpeg"
+            )
+
+            let messageEntity = P2PMessageEntity(
+                id: messageId,
+                conversationId: conversation.id,
+                senderDid: myDid,
+                contentEncrypted: base64Content,
+                contentType: "image",
+                status: "sending",
+                replyToId: nil,
+                metadata: try? JSONEncoder().encode(metadata).base64EncodedString(),
+                createdAt: timestamp,
+                updatedAt: timestamp
+            )
+
+            try messageRepository.saveMessage(messageEntity)
+
+            // Update status to sent after a delay
+            Task {
+                try? await Task.sleep(nanoseconds: 500_000_000) // 0.5s
+                if let index = messages.firstIndex(where: { $0.id == messageId }) {
+                    var updatedMessage = messages[index]
+                    updatedMessage.status = .sent
+                    messages[index] = updatedMessage
+
+                    // Update status in database
+                    try? messageRepository.updateMessageStatus(id: messageId, status: "sent")
+                }
+            }
+
+            print("[P2PViewModel] Image message sent and saved: \(messageId)")
+
+        } catch {
+            handleError(error)
+        }
+    }
+
+    /// Compress image for sending
+    private func compressImage(_ image: UIImage) -> (Data?, Data?, CGSize) {
+        let maxDimension: CGFloat = 1920
+        let thumbnailDimension: CGFloat = 200
+        let compressionQuality: CGFloat = 0.7
+
+        // Get original size
+        let originalSize = image.size
+
+        // Resize if needed
+        var processedImage = image
+        if max(originalSize.width, originalSize.height) > maxDimension {
+            let scale = maxDimension / max(originalSize.width, originalSize.height)
+            let newSize = CGSize(
+                width: originalSize.width * scale,
+                height: originalSize.height * scale
+            )
+            UIGraphicsBeginImageContextWithOptions(newSize, false, 1.0)
+            image.draw(in: CGRect(origin: .zero, size: newSize))
+            processedImage = UIGraphicsGetImageFromCurrentImageContext() ?? image
+            UIGraphicsEndImageContext()
+        }
+
+        // Compress to JPEG
+        let compressedData = processedImage.jpegData(compressionQuality: compressionQuality)
+
+        // Create thumbnail
+        let thumbnailScale = thumbnailDimension / max(processedImage.size.width, processedImage.size.height)
+        let thumbnailSize = CGSize(
+            width: processedImage.size.width * thumbnailScale,
+            height: processedImage.size.height * thumbnailScale
+        )
+        UIGraphicsBeginImageContextWithOptions(thumbnailSize, false, 1.0)
+        processedImage.draw(in: CGRect(origin: .zero, size: thumbnailSize))
+        let thumbnailImage = UIGraphicsGetImageFromCurrentImageContext()
+        UIGraphicsEndImageContext()
+
+        let thumbnailData = thumbnailImage?.jpegData(compressionQuality: 0.5)
+
+        return (compressedData, thumbnailData, processedImage.size)
+    }
 
     func sendMessage(to peerId: String, content: String, type: MessageManager.Message.MessageType = .text) async {
         do {
@@ -621,6 +793,14 @@ class P2PViewModel: ObservableObject {
 }
 
 // MARK: - Supporting Types
+
+/// Image message metadata
+struct ImageMessageMetadata: Codable {
+    let width: Int
+    let height: Int
+    let size: Int  // bytes
+    let mimeType: String
+}
 
 private struct PreKeyBundleData: Codable {
     let registrationId: UInt32
