@@ -9,7 +9,7 @@
  */
 
 // Default imports - can be overridden via dependency injection for testing
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger, createLogger } = require("../utils/logger.js");
 const defaultMcpClient = require("@modelcontextprotocol/sdk/client/index.js");
 const defaultMcpStdio = require("@modelcontextprotocol/sdk/client/stdio.js");
 const defaultMcpTypes = require("@modelcontextprotocol/sdk/types.js");
@@ -207,6 +207,24 @@ class MCPClientManager extends EventEmitter {
         // Add repository path for git
         if (serverConfig.repositoryPath) {
           serverEnv.GIT_REPOSITORY_PATH = serverConfig.repositoryPath;
+        }
+
+        // Add GitHub personal access token
+        if (serverConfig.authentication?.personalAccessToken) {
+          serverEnv.GITHUB_PERSONAL_ACCESS_TOKEN =
+            serverConfig.authentication.personalAccessToken;
+          serverEnv.GITHUB_TOKEN =
+            serverConfig.authentication.personalAccessToken;
+        }
+
+        // Add fetch/HTTP configuration
+        if (serverConfig.permissions?.allowedDomains?.length > 0) {
+          serverEnv.ALLOWED_DOMAINS =
+            serverConfig.permissions.allowedDomains.join(",");
+        }
+        if (serverConfig.permissions?.forbiddenDomains?.length > 0) {
+          serverEnv.FORBIDDEN_DOMAINS =
+            serverConfig.permissions.forbiddenDomains.join(",");
         }
 
         transport = new this._deps.StdioClientTransport({
@@ -665,7 +683,9 @@ class MCPClientManager extends EventEmitter {
    * @private
    */
   _percentile(arr, p) {
-    if (arr.length === 0) {return 0;}
+    if (arr.length === 0) {
+      return 0;
+    }
 
     const sorted = arr.slice().sort((a, b) => a - b);
     const index = Math.ceil((p / 100) * sorted.length) - 1;

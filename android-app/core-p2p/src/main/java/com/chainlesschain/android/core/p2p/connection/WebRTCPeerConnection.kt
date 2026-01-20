@@ -8,6 +8,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.filterNotNull
 import org.webrtc.*
 import javax.inject.Inject
 
@@ -129,8 +130,8 @@ class WebRTCPeerConnection @Inject constructor(
         }
     }
 
-    override fun observeMessages(): Flow<P2PMessage?> {
-        return _messages.asStateFlow()
+    override fun observeMessages(): Flow<P2PMessage> {
+        return _messages.asStateFlow().filterNotNull()
     }
 
     override fun observeConnectionState(): Flow<ConnectionState> {

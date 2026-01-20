@@ -43,6 +43,7 @@ dependencies {
     implementation(project(":core-common"))
     implementation(project(":core-database"))
     implementation(project(":core-network"))
+    implementation(project(":core-security"))
     implementation(project(":core-ui"))
     implementation(project(":data-ai"))
 

@@ -301,12 +301,11 @@ class SessionStorage(private val context: Context) {
         )
 
         val skippedMessageKeys = serialized.skippedMessageKeys.associate { skipped ->
-            val header = MessageHeader(
+            val keyId = DoubleRatchet.MessageKeyId(
                 ratchetKey = skipped.publicKey,
-                previousChainLength = 0, // 不需要存储
                 messageNumber = skipped.messageNumber
             )
-            Pair<MessageHeader, ByteArray>(header, skipped.messageKey)
+            Pair(keyId, skipped.messageKey)
         }.toMutableMap()
 
         return DoubleRatchet.RatchetState(

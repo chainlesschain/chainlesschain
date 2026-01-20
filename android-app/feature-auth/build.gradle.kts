@@ -44,6 +44,9 @@ dependencies {
     implementation(project(":core-security"))
     implementation(project(":core-ui"))
 
+    // DataStore
+    implementation("androidx.datastore:datastore-preferences:1.0.0")
+
     // Hilt
     implementation("com.google.dagger:hilt-android:2.50")
     ksp("com.google.dagger:hilt-compiler:2.50")

@@ -25,6 +25,7 @@ fun SetupPinScreen(
     var confirmPin by remember { mutableStateOf("") }
     var step by remember { mutableStateOf(SetupStep.EnterPin) }
     var shake by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
     // 监听认证成功
     LaunchedEffect(uiState.isAuthenticated) {

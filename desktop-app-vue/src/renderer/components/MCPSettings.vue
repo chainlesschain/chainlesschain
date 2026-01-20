@@ -576,6 +576,81 @@
             </a-form-item>
           </template>
 
+          <!-- GitHub服务器配置 -->
+          <template v-if="selectedServer.id === 'github'">
+            <a-divider>认证配置</a-divider>
+
+            <a-form-item label="Personal Access Token" required>
+              <a-input-password
+                v-model:value="serverConfig.authentication.personalAccessToken"
+                placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+              />
+              <div class="form-hint">
+                从 GitHub Settings → Developer settings → Personal access tokens
+                获取
+              </div>
+            </a-form-item>
+
+            <a-divider>权限配置</a-divider>
+
+            <a-form-item label="允许的仓库">
+              <a-select
+                v-model:value="serverConfig.permissions.allowedRepos"
+                mode="tags"
+                placeholder="owner/repo 格式，留空表示所有仓库"
+                style="width: 100%"
+              />
+              <div class="form-hint">
+                格式：owner/repo，例如：facebook/react
+              </div>
+            </a-form-item>
+
+            <a-form-item label="禁止的仓库">
+              <a-select
+                v-model:value="serverConfig.permissions.forbiddenRepos"
+                mode="tags"
+                placeholder="输入禁止访问的仓库"
+                style="width: 100%"
+              />
+            </a-form-item>
+
+            <a-form-item label="允许的操作">
+              <a-checkbox-group
+                v-model:value="serverConfig.permissions.allowedOperations"
+              >
+                <a-checkbox value="read_repo"> 读取仓库 </a-checkbox>
+                <a-checkbox value="read_issues"> 读取Issues </a-checkbox>
+                <a-checkbox value="write_issues"> 创建/编辑Issues </a-checkbox>
+                <a-checkbox value="read_pulls"> 读取PR </a-checkbox>
+                <a-checkbox value="write_pulls"> 创建/编辑PR </a-checkbox>
+                <a-checkbox value="read_actions"> 读取Actions </a-checkbox>
+              </a-checkbox-group>
+            </a-form-item>
+
+            <a-form-item label="只读模式">
+              <a-switch v-model:checked="serverConfig.permissions.readOnly" />
+              <span style="margin-left: 8px; color: #666">
+                开启后只允许读取操作
+              </span>
+            </a-form-item>
+
+            <a-divider>功能选项</a-divider>
+
+            <a-form-item label="启用搜索">
+              <a-switch v-model:checked="serverConfig.features.enableSearch" />
+            </a-form-item>
+
+            <a-form-item label="启用Gist">
+              <a-switch v-model:checked="serverConfig.features.enableGists" />
+            </a-form-item>
+
+            <a-form-item label="启用组织">
+              <a-switch
+                v-model:checked="serverConfig.features.enableOrganizations"
+              />
+            </a-form-item>
+          </template>
+
           <!-- 配置模板 -->
           <a-divider>快速配置</a-divider>
           <a-space>
@@ -990,6 +1065,31 @@ const getDefaultConfig = (serverId) => {
           allowedMethods: ["GET", "POST"],
         },
         timeout: 30,
+      };
+    case "github":
+      return {
+        ...baseConfig,
+        command: "npx",
+        args: ["-y", "@modelcontextprotocol/server-github"],
+        authentication: {
+          personalAccessToken: "",
+        },
+        permissions: {
+          allowedRepos: [],
+          forbiddenRepos: [],
+          allowedOperations: [
+            "read_repo",
+            "read_issues",
+            "read_pulls",
+            "read_actions",
+          ],
+          readOnly: true,
+        },
+        features: {
+          enableSearch: true,
+          enableGists: false,
+          enableOrganizations: false,
+        },
       };
     default:
       return {

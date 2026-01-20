@@ -389,7 +389,7 @@ class FileTransferManager @Inject constructor(
         when (state) {
             is TransferState.Outgoing -> {
                 if (state.status.canRetry()) {
-                    state.retryCount = 0
+                    state.chunkRetryCount.clear()
                     state.currentChunk = 0
                     state.status = FileTransferStatus.REQUESTING
 
