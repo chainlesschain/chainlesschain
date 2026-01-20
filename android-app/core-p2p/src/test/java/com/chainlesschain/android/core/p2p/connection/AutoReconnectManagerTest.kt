@@ -27,6 +27,7 @@ class AutoReconnectManagerTest {
 
     private lateinit var autoReconnectManager: AutoReconnectManager
     private lateinit var heartbeatManager: HeartbeatManager
+    private val mockReconnectEvents = MutableSharedFlow<ReconnectEvent>()
 
     private val testDispatcher = StandardTestDispatcher()
 
@@ -42,6 +43,7 @@ class AutoReconnectManagerTest {
     fun setup() {
         Dispatchers.setMain(testDispatcher)
         heartbeatManager = mockk(relaxed = true)
+        every { heartbeatManager.reconnectEvents } returns mockReconnectEvents
         autoReconnectManager = AutoReconnectManager(heartbeatManager)
     }
 
