@@ -3,10 +3,37 @@ package com.chainlesschain.android.core.p2p.filetransfer.model
 import kotlinx.serialization.Serializable
 
 /**
+ * 网络类型枚举
+ */
+enum class NetworkType {
+    /** 未知网络 */
+    UNKNOWN,
+    /** WiFi网络 */
+    WIFI,
+    /** 移动数据 - 2G */
+    CELLULAR_2G,
+    /** 移动数据 - 3G */
+    CELLULAR_3G,
+    /** 移动数据 - 4G/LTE */
+    CELLULAR_4G,
+    /** 移动数据 - 5G */
+    CELLULAR_5G,
+    /** 以太网 */
+    ETHERNET,
+    /** 无网络 */
+    NONE
+}
+
+/**
  * 文件传输元数据
  *
  * Contains all metadata about a file transfer including file info, checksum, and chunking details.
  * Sent with FILE_TRANSFER_REQUEST message to initiate transfer.
+ *
+ * Features:
+ * - Adaptive chunk sizing based on network type and file size
+ * - Support for compression negotiation
+ * - Thumbnail preview for media files
  */
 @Serializable
 data class FileTransferMetadata(
@@ -40,6 +67,9 @@ data class FileTransferMetadata(
     /** 接收方设备ID */
     val receiverDeviceId: String,
 
+    /** 是否启用压缩 */
+    val compressionEnabled: Boolean = true,
+
     /** 创建时间 */
     val createdAt: Long = System.currentTimeMillis(),
 
@@ -50,11 +80,17 @@ data class FileTransferMetadata(
     val isMedia: Boolean = isMediaType(mimeType)
 ) {
     companion object {
+        /** 最小分块大小: 64KB (用于慢速网络) */
+        const val MIN_CHUNK_SIZE = 64 * 1024
+
         /** 默认分块大小: 256KB */
         const val DEFAULT_CHUNK_SIZE = 256 * 1024
 
         /** 大文件分块大小: 512KB (文件 > 100MB) */
         const val LARGE_FILE_CHUNK_SIZE = 512 * 1024
+
+        /** 高速网络分块大小: 1MB (WiFi/5G/以太网) */
+        const val HIGH_SPEED_CHUNK_SIZE = 1024 * 1024
 
         /** 大文件阈值: 100MB */
         const val LARGE_FILE_THRESHOLD = 100L * 1024 * 1024
@@ -63,14 +99,48 @@ data class FileTransferMetadata(
         const val MAX_THUMBNAIL_SIZE = 50 * 1024
 
         /**
-         * 根据文件大小计算最优分块大小
+         * 根据文件大小计算最优分块大小（不考虑网络类型）
          */
         fun calculateOptimalChunkSize(fileSize: Long): Int {
-            return if (fileSize > LARGE_FILE_THRESHOLD) {
-                LARGE_FILE_CHUNK_SIZE
-            } else {
-                DEFAULT_CHUNK_SIZE
+            return calculateOptimalChunkSize(fileSize, NetworkType.UNKNOWN, false)
+        }
+
+        /**
+         * 根据文件大小和网络类型计算最优分块大小
+         *
+         * @param fileSize 文件大小
+         * @param networkType 当前网络类型
+         * @param isMetered 是否为计费网络
+         * @return 最优分块大小
+         */
+        fun calculateOptimalChunkSize(
+            fileSize: Long,
+            networkType: NetworkType,
+            isMetered: Boolean
+        ): Int {
+            // 计费网络使用较小分块以减少重传成本
+            if (isMetered) {
+                return MIN_CHUNK_SIZE
             }
+
+            // 根据网络类型确定基础分块大小
+            val baseChunkSize = when (networkType) {
+                NetworkType.WIFI, NetworkType.ETHERNET, NetworkType.CELLULAR_5G -> {
+                    if (fileSize > LARGE_FILE_THRESHOLD) HIGH_SPEED_CHUNK_SIZE else LARGE_FILE_CHUNK_SIZE
+                }
+                NetworkType.CELLULAR_4G -> {
+                    if (fileSize > LARGE_FILE_THRESHOLD) LARGE_FILE_CHUNK_SIZE else DEFAULT_CHUNK_SIZE
+                }
+                NetworkType.CELLULAR_3G -> DEFAULT_CHUNK_SIZE
+                NetworkType.CELLULAR_2G -> MIN_CHUNK_SIZE
+                NetworkType.NONE -> DEFAULT_CHUNK_SIZE // 离线队列
+                NetworkType.UNKNOWN -> {
+                    // 未知网络时根据文件大小决定
+                    if (fileSize > LARGE_FILE_THRESHOLD) LARGE_FILE_CHUNK_SIZE else DEFAULT_CHUNK_SIZE
+                }
+            }
+
+            return baseChunkSize
         }
 
         /**
@@ -90,7 +160,7 @@ data class FileTransferMetadata(
         }
 
         /**
-         * 创建传输元数据
+         * 创建传输元数据（使用默认网络设置）
          */
         fun create(
             transferId: String,
@@ -102,7 +172,49 @@ data class FileTransferMetadata(
             receiverDeviceId: String,
             thumbnail: String? = null
         ): FileTransferMetadata {
-            val chunkSize = calculateOptimalChunkSize(fileSize)
+            return create(
+                transferId = transferId,
+                fileName = fileName,
+                fileSize = fileSize,
+                mimeType = mimeType,
+                checksum = checksum,
+                senderDeviceId = senderDeviceId,
+                receiverDeviceId = receiverDeviceId,
+                thumbnail = thumbnail,
+                networkType = NetworkType.UNKNOWN,
+                isMetered = false
+            )
+        }
+
+        /**
+         * 创建传输元数据（自适应网络类型）
+         *
+         * @param transferId 传输ID
+         * @param fileName 文件名
+         * @param fileSize 文件大小
+         * @param mimeType MIME类型
+         * @param checksum 文件校验和
+         * @param senderDeviceId 发送方设备ID
+         * @param receiverDeviceId 接收方设备ID
+         * @param thumbnail 缩略图（可选）
+         * @param networkType 当前网络类型
+         * @param isMetered 是否为计费网络
+         * @param compressionEnabled 是否启用压缩
+         */
+        fun create(
+            transferId: String,
+            fileName: String,
+            fileSize: Long,
+            mimeType: String,
+            checksum: String,
+            senderDeviceId: String,
+            receiverDeviceId: String,
+            thumbnail: String? = null,
+            networkType: NetworkType = NetworkType.UNKNOWN,
+            isMetered: Boolean = false,
+            compressionEnabled: Boolean = true
+        ): FileTransferMetadata {
+            val chunkSize = calculateOptimalChunkSize(fileSize, networkType, isMetered)
             val totalChunks = calculateTotalChunks(fileSize, chunkSize)
 
             return FileTransferMetadata(
@@ -115,7 +227,8 @@ data class FileTransferMetadata(
                 chunkSize = chunkSize,
                 totalChunks = totalChunks,
                 senderDeviceId = senderDeviceId,
-                receiverDeviceId = receiverDeviceId
+                receiverDeviceId = receiverDeviceId,
+                compressionEnabled = compressionEnabled
             )
         }
     }
