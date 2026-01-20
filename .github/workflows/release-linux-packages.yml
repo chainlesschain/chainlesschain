@@ -30,6 +30,9 @@ jobs:
 
       - name: Build Linux packages
         run: npm run make:linux --workspace=desktop-app-vue
+        env:
+          CHAINLESSCHAIN_DISABLE_NATIVE_DB: "1"
+          SKIP_BACKEND_CHECK: "true"
 
       - name: Inspect generated artifacts
         run: ls -R desktop-app-vue/out/make
