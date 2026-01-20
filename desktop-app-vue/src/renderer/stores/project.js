@@ -1,12 +1,12 @@
-import { logger, createLogger } from '@/utils/logger';
-import { defineStore } from 'pinia';
-import { electronAPI } from '../utils/ipc';
+import { logger, createLogger } from "@/utils/logger";
+import { defineStore } from "pinia";
+import { electronAPI } from "../utils/ipc";
 
 /**
  * 项目管理Store
  * 管理项目列表、文件、模板、同步状态等
  */
-export const useProjectStore = defineStore('project', {
+export const useProjectStore = defineStore("project", {
   state: () => ({
     // 项目列表
     projects: [],
@@ -26,18 +26,18 @@ export const useProjectStore = defineStore('project', {
 
     // 筛选和搜索
     filters: {
-      projectType: '', // '', 'web', 'document', 'data', 'app'
-      status: '', // '', 'active', 'completed', 'archived'
+      projectType: "", // '', 'web', 'document', 'data', 'app'
+      status: "", // '', 'active', 'completed', 'archived'
       tags: [],
-      searchKeyword: '',
+      searchKeyword: "",
     },
 
     // 排序
-    sortBy: 'updated_at', // 'updated_at', 'created_at', 'name'
-    sortOrder: 'desc', // 'asc', 'desc'
+    sortBy: "updated_at", // 'updated_at', 'created_at', 'name'
+    sortOrder: "desc", // 'asc', 'desc'
 
     // 视图模式
-    viewMode: 'grid', // 'grid', 'list'
+    viewMode: "grid", // 'grid', 'list'
 
     // UI状态
     loading: false,
@@ -47,7 +47,7 @@ export const useProjectStore = defineStore('project', {
     // 新建项目状态
     creatingProject: false,
     createProgress: 0,
-    createStatus: '',
+    createStatus: "",
   }),
 
   getters: {
@@ -59,7 +59,9 @@ export const useProjectStore = defineStore('project', {
 
       // 筛选
       if (state.filters.projectType) {
-        result = result.filter((p) => p.project_type === state.filters.projectType);
+        result = result.filter(
+          (p) => p.project_type === state.filters.projectType,
+        );
       }
       if (state.filters.status) {
         result = result.filter((p) => p.status === state.filters.status);
@@ -67,7 +69,7 @@ export const useProjectStore = defineStore('project', {
       if (state.filters.tags.length > 0) {
         result = result.filter((p) => {
           try {
-            const projectTags = JSON.parse(p.tags || '[]');
+            const projectTags = JSON.parse(p.tags || "[]");
             return state.filters.tags.some((tag) => projectTags.includes(tag));
           } catch {
             return false;
@@ -79,7 +81,7 @@ export const useProjectStore = defineStore('project', {
         result = result.filter(
           (p) =>
             p.name.toLowerCase().includes(keyword) ||
-            (p.description && p.description.toLowerCase().includes(keyword))
+            (p.description && p.description.toLowerCase().includes(keyword)),
         );
       }
 
@@ -88,13 +90,13 @@ export const useProjectStore = defineStore('project', {
         const aVal = a[state.sortBy];
         const bVal = b[state.sortBy];
 
-        if (state.sortBy === 'name') {
-          return state.sortOrder === 'asc'
+        if (state.sortBy === "name") {
+          return state.sortOrder === "asc"
             ? aVal.localeCompare(bVal)
             : bVal.localeCompare(aVal);
         }
 
-        return state.sortOrder === 'asc' ? aVal - bVal : bVal - aVal;
+        return state.sortOrder === "asc" ? aVal - bVal : bVal - aVal;
       });
 
       return result;
@@ -133,16 +135,16 @@ export const useProjectStore = defineStore('project', {
      */
     fileTree: (state) => {
       // 将扁平的文件列表转换为树形结构
-      const root = { name: '/', path: '/', children: [], files: [] };
+      const root = { name: "/", path: "/", children: [], files: [] };
 
       state.projectFiles.forEach((file) => {
-        const parts = file.file_path.split('/').filter(Boolean);
+        const parts = file.file_path.split("/").filter(Boolean);
         let current = root;
 
         // 构建目录结构
         for (let i = 0; i < parts.length - 1; i++) {
           const partName = parts[i];
-          const partPath = '/' + parts.slice(0, i + 1).join('/');
+          const partPath = "/" + parts.slice(0, i + 1).join("/");
 
           let child = current.children.find((c) => c.name === partName);
           if (!child) {
@@ -186,7 +188,7 @@ export const useProjectStore = defineStore('project', {
           await this.syncProjects(userId);
         }
       } catch (error) {
-        logger.error('加载项目列表失败:', error);
+        logger.error("加载项目列表失败:", error);
         throw error;
       } finally {
         this.loading = false;
@@ -200,17 +202,17 @@ export const useProjectStore = defineStore('project', {
     async createProject(createData) {
       this.creatingProject = true;
       this.createProgress = 0;
-      this.createStatus = '正在连接AI服务...';
+      this.createStatus = "正在连接AI服务...";
 
       try {
         // 调用后端创建项目（含AI生成）
         this.createProgress = 10;
-        this.createStatus = '正在生成项目文件...';
+        this.createStatus = "正在生成项目文件...";
 
         const response = await window.electronAPI.project.create(createData);
 
         this.createProgress = 90;
-        this.createStatus = '项目创建成功！';
+        this.createStatus = "项目创建成功！";
 
         // 添加到列表
         this.projects.unshift(response);
@@ -220,13 +222,13 @@ export const useProjectStore = defineStore('project', {
 
         return response;
       } catch (error) {
-        this.createStatus = '创建失败: ' + error.message;
+        this.createStatus = "创建失败: " + error.message;
         throw error;
       } finally {
         setTimeout(() => {
           this.creatingProject = false;
           this.createProgress = 0;
-          this.createStatus = '';
+          this.createStatus = "";
         }, 1000);
       }
     },
@@ -238,10 +240,10 @@ export const useProjectStore = defineStore('project', {
      * @returns {Promise<Object>} 创建结果
      */
     async createProjectStream(createData, onProgress) {
-      logger.info('[Store] ===== createProjectStream被调用 =====');
-      logger.info('[Store] createData:', createData);
-      logger.info('[Store] onProgress存在?', !!onProgress);
-      logger.info('[Store] onProgress类型:', typeof onProgress);
+      logger.info("[Store] ===== createProjectStream被调用 =====");
+      logger.info("[Store] createData:", createData);
+      logger.info("[Store] onProgress存在?", !!onProgress);
+      logger.info("[Store] onProgress类型:", typeof onProgress);
 
       // 从 createData 中提取回调函数（如果存在）
       const {
@@ -252,17 +254,17 @@ export const useProjectStore = defineStore('project', {
         ...pureData
       } = createData;
 
-      logger.info('[Store] 提取后的纯数据:', pureData);
-      logger.info('[Store] 是否有回调函数:', {
+      logger.info("[Store] 提取后的纯数据:", pureData);
+      logger.info("[Store] 是否有回调函数:", {
         onProgress: !!dataOnProgress,
         onContent: !!dataOnContent,
         onComplete: !!dataOnComplete,
-        onError: !!dataOnError
+        onError: !!dataOnError,
       });
 
       return new Promise((resolve, reject) => {
         const progressData = {
-          currentStage: '',
+          currentStage: "",
           stages: [],
           contentByStage: {},
           logs: [],
@@ -271,34 +273,36 @@ export const useProjectStore = defineStore('project', {
 
         const callbacks = {
           onProgress: (data) => {
-            logger.info('[Store] ===== onProgress回调被触发 =====');
-            logger.info('[Store] Progress data:', data);
-            logger.info('[Store] Progress stage:', data.stage);
-            logger.info('[Store] Progress message:', data.message);
+            logger.info("[Store] ===== onProgress回调被触发 =====");
+            logger.info("[Store] Progress data:", data);
+            logger.info("[Store] Progress stage:", data.stage);
+            logger.info("[Store] Progress message:", data.message);
 
             // 更新当前阶段
             progressData.currentStage = data.stage;
 
             // 查找是否已有该阶段
-            const existingStage = progressData.stages.find(s => s.stage === data.stage);
+            const existingStage = progressData.stages.find(
+              (s) => s.stage === data.stage,
+            );
 
             if (existingStage) {
               // 更新已有阶段
               existingStage.message = data.message;
               existingStage.timestamp = Date.now();
-              existingStage.status = 'running';
+              existingStage.status = "running";
 
               // 标记之前的阶段为completed
-              progressData.stages.forEach(s => {
-                if (s.stage !== data.stage && s.status === 'running') {
-                  s.status = 'completed';
+              progressData.stages.forEach((s) => {
+                if (s.stage !== data.stage && s.status === "running") {
+                  s.status = "completed";
                 }
               });
             } else {
               // 标记之前所有running的阶段为completed
-              progressData.stages.forEach(s => {
-                if (s.status === 'running') {
-                  s.status = 'completed';
+              progressData.stages.forEach((s) => {
+                if (s.status === "running") {
+                  s.status = "completed";
                 }
               });
 
@@ -307,12 +311,12 @@ export const useProjectStore = defineStore('project', {
                 stage: data.stage,
                 message: data.message,
                 timestamp: Date.now(),
-                status: 'running',
+                status: "running",
               });
             }
 
             progressData.logs.push({
-              type: 'info',
+              type: "info",
               message: data.message,
               timestamp: Date.now(),
             });
@@ -325,7 +329,7 @@ export const useProjectStore = defineStore('project', {
             // 回调给UI（使用参数传入的onProgress或createData中的）
             const progressCallback = onProgress || dataOnProgress;
             progressCallback?.({
-              type: 'progress',
+              type: "progress",
               ...progressData,
             });
           },
@@ -333,7 +337,7 @@ export const useProjectStore = defineStore('project', {
           onContent: (data) => {
             // 累积内容
             if (!progressData.contentByStage[data.stage]) {
-              progressData.contentByStage[data.stage] = '';
+              progressData.contentByStage[data.stage] = "";
             }
             progressData.contentByStage[data.stage] += data.content;
 
@@ -345,44 +349,50 @@ export const useProjectStore = defineStore('project', {
             // 回调给UI
             const progressCallback = onProgress || dataOnProgress;
             progressCallback?.({
-              type: 'content',
+              type: "content",
               ...progressData,
             });
           },
 
           onComplete: (data) => {
-            logger.info('[Store] ===== onComplete回调被触发 =====');
-            logger.info('[Store] Complete data:', data);
-            logger.info('[Store] Complete data.projectId:', data.projectId);
-            logger.info('[Store] Complete data.files length:', data.files?.length);
+            logger.info("[Store] ===== onComplete回调被触发 =====");
+            logger.info("[Store] Complete data:", data);
+            logger.info("[Store] Complete data.projectId:", data.projectId);
+            logger.info(
+              "[Store] Complete data.files length:",
+              data.files?.length,
+            );
 
             // 标记所有阶段完成
-            progressData.stages.forEach(s => s.status = 'completed');
+            progressData.stages.forEach((s) => (s.status = "completed"));
             progressData.metadata = data.metadata || {};
             progressData.logs.push({
-              type: 'success',
+              type: "success",
               message: `成功生成${data.files?.length || 0}个文件`,
               timestamp: Date.now(),
             });
 
-            logger.info('[Store] 所有阶段已标记为completed');
+            logger.info("[Store] 所有阶段已标记为completed");
 
             // 添加到项目列表
             if (data.projectId) {
-              logger.info('[Store] 添加项目到列表');
+              logger.info("[Store] 添加项目到列表");
               this.projects.unshift({
                 id: data.projectId,
-                name: pureData.name || '未命名项目',
-                project_type: pureData.type || 'web',
+                name: pureData.name || "未命名项目",
+                project_type: pureData.type || "web",
                 files: data.files || [],
                 metadata: data.metadata,
                 created_at: Date.now(),
                 updated_at: Date.now(),
               });
               this.pagination.total++;
-              logger.info('[Store] 项目已添加，当前项目总数:', this.projects.length);
+              logger.info(
+                "[Store] 项目已添加，当前项目总数:",
+                this.projects.length,
+              );
             } else {
-              logger.warn('[Store] 警告: data.projectId为空，未添加到列表');
+              logger.warn("[Store] 警告: data.projectId为空，未添加到列表");
             }
 
             // 调用来自 createData 的回调（如果存在）
@@ -391,27 +401,29 @@ export const useProjectStore = defineStore('project', {
             }
 
             // 回调给UI
-            logger.info('[Store] 调用onProgress回调，type=complete');
+            logger.info("[Store] 调用onProgress回调，type=complete");
             const progressCallback = onProgress || dataOnProgress;
             progressCallback?.({
-              type: 'complete',
+              type: "complete",
               ...progressData,
               result: data,
             });
 
-            logger.info('[Store] 调用resolve，完成Promise');
+            logger.info("[Store] 调用resolve，完成Promise");
             resolve(data);
-            logger.info('[Store] ===== onComplete处理完毕 =====');
+            logger.info("[Store] ===== onComplete处理完毕 =====");
           },
 
           onError: (error) => {
             // 标记当前阶段失败
-            const currentStage = progressData.stages.find(s => s.status === 'running');
+            const currentStage = progressData.stages.find(
+              (s) => s.status === "running",
+            );
             if (currentStage) {
-              currentStage.status = 'error';
+              currentStage.status = "error";
             }
             progressData.logs.push({
-              type: 'error',
+              type: "error",
               message: error.message,
               timestamp: Date.now(),
             });
@@ -424,7 +436,7 @@ export const useProjectStore = defineStore('project', {
             // 回调给UI
             const progressCallback = onProgress || dataOnProgress;
             progressCallback?.({
-              type: 'error',
+              type: "error",
               ...progressData,
               error: error.message,
             });
@@ -434,10 +446,13 @@ export const useProjectStore = defineStore('project', {
         };
 
         // 调用流式创建 - 只传递纯数据（不包含函数）
-        logger.info('[Store] 调用window.electronAPI.project.createStream，传递纯数据');
-        window.electronAPI.project.createStream(pureData, callbacks)
-          .catch(err => {
-            logger.error('[Store] createStream Promise rejected:', err);
+        logger.info(
+          "[Store] 调用window.electronAPI.project.createStream，传递纯数据",
+        );
+        window.electronAPI.project
+          .createStream(pureData, callbacks)
+          .catch((err) => {
+            logger.error("[Store] createStream Promise rejected:", err);
             reject(err);
           });
       });
@@ -462,7 +477,8 @@ export const useProjectStore = defineStore('project', {
 
         if (!project) {
           // 2. 从后端获取并缓存
-          project = await window.electronAPI.project.fetchFromBackend(projectId);
+          project =
+            await window.electronAPI.project.fetchFromBackend(projectId);
         }
 
         this.currentProject = project;
@@ -472,7 +488,7 @@ export const useProjectStore = defineStore('project', {
 
         return project;
       } catch (error) {
-        logger.error('获取项目详情失败:', error);
+        logger.error("获取项目详情失败:", error);
         throw error;
       } finally {
         this.loading = false;
@@ -514,7 +530,7 @@ export const useProjectStore = defineStore('project', {
         // 3. 后台同步到后端
         this.syncProjectToBackend(projectId);
       } catch (error) {
-        logger.error('更新项目失败:', error);
+        logger.error("更新项目失败:", error);
         throw error;
       }
     },
@@ -536,7 +552,7 @@ export const useProjectStore = defineStore('project', {
           this.currentProject = null;
         }
       } catch (error) {
-        logger.error('删除项目失败:', error);
+        logger.error("删除项目失败:", error);
         throw error;
       }
     },
@@ -549,34 +565,40 @@ export const useProjectStore = defineStore('project', {
      */
     async loadProjectFiles(projectId) {
       const startTime = Date.now();
-      logger.info('[Store] ========== loadProjectFiles 开始 ==========');
-      logger.info('[Store] 项目ID:', projectId);
-      logger.info('[Store] 当前文件数:', this.projectFiles.length);
+      logger.info("[Store] ========== loadProjectFiles 开始 ==========");
+      logger.info("[Store] 项目ID:", projectId);
+      logger.info("[Store] 当前文件数:", this.projectFiles.length);
 
       try {
         const files = await window.electronAPI.project.getFiles(projectId);
         const elapsed = Date.now() - startTime;
 
-        logger.info('[Store] ✓ IPC 返回，耗时:', elapsed, 'ms');
-        logger.info('[Store] 接收文件数:', files?.length || 0);
+        logger.info("[Store] ✓ IPC 返回，耗时:", elapsed, "ms");
+        logger.info("[Store] 接收文件数:", files?.length || 0);
 
         if (files && files.length > 0) {
-          logger.info('[Store] 前3个文件:', files.slice(0, 3).map(f => f.file_name).join(', '));
+          logger.info(
+            "[Store] 前3个文件:",
+            files
+              .slice(0, 3)
+              .map((f) => f.file_name)
+              .join(", "),
+          );
         }
 
         // 强制创建新数组引用，确保 Vue 响应式系统能检测到变化
         this.projectFiles = files ? [...files] : [];
 
-        logger.info('[Store] ✓ projectFiles 已更新');
-        logger.info('[Store] 新长度:', this.projectFiles.length);
-        logger.info('[Store] 引用已改变: true');
-        logger.info('[Store] 更新时间戳:', Date.now());
-        logger.info('[Store] ========== loadProjectFiles 结束 ==========');
+        logger.info("[Store] ✓ projectFiles 已更新");
+        logger.info("[Store] 新长度:", this.projectFiles.length);
+        logger.info("[Store] 引用已改变: true");
+        logger.info("[Store] 更新时间戳:", Date.now());
+        logger.info("[Store] ========== loadProjectFiles 结束 ==========");
 
         return this.projectFiles;
       } catch (error) {
-        logger.error('[Store] ========== loadProjectFiles 错误 ==========');
-        logger.error('[Store] Error:', error);
+        logger.error("[Store] ========== loadProjectFiles 错误 ==========");
+        logger.error("[Store] Error:", error);
         throw error;
       }
     },
@@ -591,7 +613,7 @@ export const useProjectStore = defineStore('project', {
         await window.electronAPI.project.saveFiles(projectId, files);
         this.projectFiles = files;
       } catch (error) {
-        logger.error('保存项目文件失败:', error);
+        logger.error("保存项目文件失败:", error);
         throw error;
       }
     },
@@ -615,14 +637,17 @@ export const useProjectStore = defineStore('project', {
         // 更新store
         const index = this.projectFiles.findIndex((f) => f.id === fileId);
         if (index !== -1) {
-          this.projectFiles[index] = { ...this.projectFiles[index], ...updatedFile };
+          this.projectFiles[index] = {
+            ...this.projectFiles[index],
+            ...updatedFile,
+          };
         }
 
         if (this.currentFile?.id === fileId) {
           this.currentFile = { ...this.currentFile, ...updatedFile };
         }
       } catch (error) {
-        logger.error('更新文件失败:', error);
+        logger.error("更新文件失败:", error);
         throw error;
       }
     },
@@ -657,7 +682,14 @@ export const useProjectStore = defineStore('project', {
      * @param {string} userId - 用户ID
      */
     async syncProjects(userId) {
-      if (this.syncing) {return;}
+      if (this.syncing) {
+        return;
+      }
+
+      // 检查 API 是否可用
+      if (!electronAPI?.project?.sync) {
+        return;
+      }
 
       this.syncing = true;
       this.syncError = null;
@@ -670,10 +702,15 @@ export const useProjectStore = defineStore('project', {
         this.projects = localProjects;
 
         // 更新最后同步时间
-        localStorage.setItem('project_last_sync', Date.now().toString());
+        localStorage.setItem("project_last_sync", Date.now().toString());
       } catch (error) {
+        // IPC 未就绪时静默处理
+        if (error.message?.includes("No handler registered")) {
+          // 静默忽略，等待 IPC 就绪
+          return;
+        }
         this.syncError = error.message;
-        logger.error('同步项目失败:', error);
+        logger.error("[Project Store] 同步项目失败:", error);
       } finally {
         this.syncing = false;
       }
@@ -687,7 +724,7 @@ export const useProjectStore = defineStore('project', {
       try {
         await window.electronAPI.project.syncOne(projectId);
       } catch (error) {
-        logger.error('同步项目到后端失败:', error);
+        logger.error("同步项目到后端失败:", error);
       }
     },
 
@@ -697,8 +734,10 @@ export const useProjectStore = defineStore('project', {
      */
     shouldSync() {
       // 超过5分钟自动同步
-      const lastSync = localStorage.getItem('project_last_sync');
-      if (!lastSync) {return true;}
+      const lastSync = localStorage.getItem("project_last_sync");
+      if (!lastSync) {
+        return true;
+      }
       return Date.now() - parseInt(lastSync) > 5 * 60 * 1000;
     },
 
@@ -719,10 +758,10 @@ export const useProjectStore = defineStore('project', {
      */
     resetFilters() {
       this.filters = {
-        projectType: '',
-        status: '',
+        projectType: "",
+        status: "",
         tags: [],
-        searchKeyword: '',
+        searchKeyword: "",
       };
       this.pagination.current = 1;
     },
@@ -743,7 +782,7 @@ export const useProjectStore = defineStore('project', {
      */
     setViewMode(mode) {
       this.viewMode = mode;
-      localStorage.setItem('project_view_mode', mode);
+      localStorage.setItem("project_view_mode", mode);
     },
 
     /**
@@ -769,12 +808,12 @@ export const useProjectStore = defineStore('project', {
       try {
         const project = this.projects.find((p) => p.id === projectId);
         if (!project?.root_path) {
-          throw new Error('项目路径不存在');
+          throw new Error("项目路径不存在");
         }
 
         await window.electronAPI.project.gitInit(project.root_path, remoteUrl);
       } catch (error) {
-        logger.error('初始化Git失败:', error);
+        logger.error("初始化Git失败:", error);
         throw error;
       }
     },
@@ -789,12 +828,17 @@ export const useProjectStore = defineStore('project', {
       try {
         const project = this.projects.find((p) => p.id === projectId);
         if (!project?.root_path) {
-          throw new Error('项目路径不存在');
+          throw new Error("项目路径不存在");
         }
 
-        await window.electronAPI.project.gitCommit(projectId, project.root_path, message, autoGenerate);
+        await window.electronAPI.project.gitCommit(
+          projectId,
+          project.root_path,
+          message,
+          autoGenerate,
+        );
       } catch (error) {
-        logger.error('Git提交失败:', error);
+        logger.error("Git提交失败:", error);
         throw error;
       }
     },
@@ -805,16 +849,20 @@ export const useProjectStore = defineStore('project', {
      * @param {string} remote - 远程仓库名（默认origin）
      * @param {string} branch - 分支名（默认当前分支）
      */
-    async gitPush(projectId, remote = 'origin', branch = null) {
+    async gitPush(projectId, remote = "origin", branch = null) {
       try {
         const project = this.projects.find((p) => p.id === projectId);
         if (!project?.root_path) {
-          throw new Error('项目路径不存在');
+          throw new Error("项目路径不存在");
         }
 
-        await window.electronAPI.project.gitPush(project.root_path, remote, branch);
+        await window.electronAPI.project.gitPush(
+          project.root_path,
+          remote,
+          branch,
+        );
       } catch (error) {
-        logger.error('Git推送失败:', error);
+        logger.error("Git推送失败:", error);
         throw error;
       }
     },
@@ -825,19 +873,24 @@ export const useProjectStore = defineStore('project', {
      * @param {string} remote - 远程仓库名（默认origin）
      * @param {string} branch - 分支名（默认当前分支）
      */
-    async gitPull(projectId, remote = 'origin', branch = null) {
+    async gitPull(projectId, remote = "origin", branch = null) {
       try {
         const project = this.projects.find((p) => p.id === projectId);
         if (!project?.root_path) {
-          throw new Error('项目路径不存在');
+          throw new Error("项目路径不存在");
         }
 
-        await window.electronAPI.project.gitPull(projectId, project.root_path, remote, branch);
+        await window.electronAPI.project.gitPull(
+          projectId,
+          project.root_path,
+          remote,
+          branch,
+        );
 
         // 重新加载文件
         await this.loadProjectFiles(projectId);
       } catch (error) {
-        logger.error('Git拉取失败:', error);
+        logger.error("Git拉取失败:", error);
         throw error;
       }
     },
@@ -850,12 +903,12 @@ export const useProjectStore = defineStore('project', {
       try {
         const project = this.projects.find((p) => p.id === projectId);
         if (!project?.root_path) {
-          throw new Error('项目路径不存在');
+          throw new Error("项目路径不存在");
         }
 
         return await window.electronAPI.project.gitStatus(project.root_path);
       } catch (error) {
-        logger.error('获取Git状态失败:', error);
+        logger.error("获取Git状态失败:", error);
         throw error;
       }
     },
@@ -876,7 +929,7 @@ export const useProjectStore = defineStore('project', {
      * 从localStorage恢复视图模式
      */
     restoreViewMode() {
-      const savedMode = localStorage.getItem('project_view_mode');
+      const savedMode = localStorage.getItem("project_view_mode");
       if (savedMode) {
         this.viewMode = savedMode;
       }

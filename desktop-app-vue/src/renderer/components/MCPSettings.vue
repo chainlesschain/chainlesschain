@@ -1,19 +1,10 @@
 <template>
   <div class="mcp-settings">
-    <a-card
-      title="MCP (Model Context Protocol) 服务器管理"
-      :loading="loading"
-    >
+    <a-card title="MCP (Model Context Protocol) 服务器管理" :loading="loading">
       <!-- 概览统计 -->
-      <a-row
-        :gutter="16"
-        style="margin-bottom: 24px"
-      >
+      <a-row :gutter="16" style="margin-bottom: 24px">
         <a-col :span="6">
-          <a-statistic
-            title="可用服务器"
-            :value="availableServers.length"
-          />
+          <a-statistic title="可用服务器" :value="availableServers.length" />
         </a-col>
         <a-col :span="6">
           <a-statistic
@@ -23,16 +14,10 @@
           />
         </a-col>
         <a-col :span="6">
-          <a-statistic
-            title="可用工具"
-            :value="totalTools"
-          />
+          <a-statistic title="可用工具" :value="totalTools" />
         </a-col>
         <a-col :span="6">
-          <a-statistic
-            title="总调用次数"
-            :value="metrics.totalCalls"
-          />
+          <a-statistic title="总调用次数" :value="metrics.totalCalls" />
         </a-col>
       </a-row>
 
@@ -60,9 +45,7 @@
       />
 
       <!-- 服务器列表 -->
-      <a-divider orientation="left">
-        服务器列表
-      </a-divider>
+      <a-divider orientation="left"> 服务器列表 </a-divider>
 
       <a-table
         :columns="serverColumns"
@@ -90,22 +73,13 @@
           </template>
 
           <template v-else-if="column.key === 'status'">
-            <a-tag
-              v-if="record.isConnected"
-              color="success"
-            >
+            <a-tag v-if="record.isConnected" color="success">
               <check-circle-outlined /> 已连接
             </a-tag>
-            <a-tag
-              v-else-if="record.serverState === 'error'"
-              color="error"
-            >
+            <a-tag v-else-if="record.serverState === 'error'" color="error">
               <minus-circle-outlined /> 连接错误
             </a-tag>
-            <a-tag
-              v-else
-              color="default"
-            >
+            <a-tag v-else color="default">
               <minus-circle-outlined /> 未连接
             </a-tag>
           </template>
@@ -114,10 +88,7 @@
             <span v-if="record.isConnected">
               {{ record.toolCount }} 个工具
             </span>
-            <span
-              v-else
-              style="color: rgba(0, 0, 0, 0.25)"
-            >-</span>
+            <span v-else style="color: rgba(0, 0, 0, 0.25)">-</span>
           </template>
 
           <template v-else-if="column.key === 'security'">
@@ -149,10 +120,7 @@
                 断开
               </a-button>
 
-              <a-button
-                size="small"
-                @click="showServerConfig(record)"
-              >
+              <a-button size="small" @click="showServerConfig(record)">
                 配置
               </a-button>
 
@@ -169,14 +137,9 @@
       </a-table>
 
       <!-- 性能指标 -->
-      <a-divider orientation="left">
-        性能指标
-      </a-divider>
+      <a-divider orientation="left"> 性能指标 </a-divider>
 
-      <a-descriptions
-        bordered
-        :column="2"
-      >
+      <a-descriptions bordered :column="2">
         <a-descriptions-item label="总调用次数">
           {{ metrics.totalCalls }}
         </a-descriptions-item>
@@ -187,8 +150,8 @@
           {{
             metrics.totalCalls > 0
               ? ((metrics.successfulCalls / metrics.totalCalls) * 100).toFixed(
-                2,
-              )
+                  2,
+                )
               : 0
           }}%
         </a-descriptions-item>
@@ -213,12 +176,8 @@
           button-style="solid"
           style="margin-bottom: 16px"
         >
-          <a-radio-button value="form">
-            可视化表单
-          </a-radio-button>
-          <a-radio-button value="json">
-            JSON编辑器
-          </a-radio-button>
+          <a-radio-button value="form"> 可视化表单 </a-radio-button>
+          <a-radio-button value="json"> JSON编辑器 </a-radio-button>
         </a-radio-group>
 
         <!-- JSON编辑器模式 -->
@@ -240,15 +199,9 @@
         </div>
 
         <!-- 可视化表单模式 -->
-        <a-form
-          v-show="configEditMode === 'form'"
-          layout="vertical"
-        >
+        <a-form v-show="configEditMode === 'form'" layout="vertical">
           <a-form-item label="服务器ID">
-            <a-input
-              :value="selectedServer.id"
-              disabled
-            />
+            <a-input :value="selectedServer.id" disabled />
           </a-form-item>
 
           <a-form-item label="启用">
@@ -257,19 +210,13 @@
 
           <a-form-item label="自动连接">
             <a-switch v-model:checked="serverConfig.autoConnect" />
-            <div class="form-hint">
-              应用启动时自动连接此服务器
-            </div>
+            <div class="form-hint">应用启动时自动连接此服务器</div>
           </a-form-item>
 
           <a-form-item label="传输方式">
             <a-radio-group v-model:value="serverConfig.transport">
-              <a-radio value="stdio">
-                Stdio（本地进程）
-              </a-radio>
-              <a-radio value="http-sse">
-                HTTP+SSE（远程服务）
-              </a-radio>
+              <a-radio value="stdio"> Stdio（本地进程） </a-radio>
+              <a-radio value="http-sse"> HTTP+SSE（远程服务） </a-radio>
             </a-radio-group>
             <div class="form-hint">
               Stdio适用于本地MCP服务器，HTTP+SSE适用于远程或Web服务
@@ -280,10 +227,7 @@
           <template v-if="serverConfig.transport === 'http-sse'">
             <a-divider>HTTP+SSE配置</a-divider>
 
-            <a-form-item
-              label="服务器URL"
-              required
-            >
+            <a-form-item label="服务器URL" required>
               <a-input
                 v-model:value="serverConfig.baseURL"
                 placeholder="http://localhost:3000"
@@ -313,17 +257,12 @@
           <template v-if="selectedServer.id === 'filesystem'">
             <a-divider>文件系统配置</a-divider>
 
-            <a-form-item
-              label="根目录路径"
-              required
-            >
+            <a-form-item label="根目录路径" required>
               <a-input
                 v-model:value="serverConfig.rootPath"
                 placeholder="D:\code\chainlesschain\data"
               />
-              <div class="form-hint">
-                服务器可访问的根目录（绝对路径）
-              </div>
+              <div class="form-hint">服务器可访问的根目录（绝对路径）</div>
             </a-form-item>
 
             <a-form-item label="允许路径">
@@ -333,22 +272,12 @@
                 placeholder="输入允许访问的相对路径"
                 style="width: 100%"
               >
-                <a-select-option value="notes/">
-                  notes/
-                </a-select-option>
-                <a-select-option value="imports/">
-                  imports/
-                </a-select-option>
-                <a-select-option value="exports/">
-                  exports/
-                </a-select-option>
-                <a-select-option value="projects/">
-                  projects/
-                </a-select-option>
+                <a-select-option value="notes/"> notes/ </a-select-option>
+                <a-select-option value="imports/"> imports/ </a-select-option>
+                <a-select-option value="exports/"> exports/ </a-select-option>
+                <a-select-option value="projects/"> projects/ </a-select-option>
               </a-select>
-              <div class="form-hint">
-                相对于根目录的允许访问路径（白名单）
-              </div>
+              <div class="form-hint">相对于根目录的允许访问路径（白名单）</div>
             </a-form-item>
 
             <a-form-item label="禁止路径">
@@ -361,15 +290,11 @@
                 <a-select-option value="chainlesschain.db">
                   chainlesschain.db
                 </a-select-option>
-                <a-select-option value="ukey/">
-                  ukey/
-                </a-select-option>
+                <a-select-option value="ukey/"> ukey/ </a-select-option>
                 <a-select-option value="did/private-keys/">
                   did/private-keys/
                 </a-select-option>
-                <a-select-option value="p2p/keys/">
-                  p2p/keys/
-                </a-select-option>
+                <a-select-option value="p2p/keys/"> p2p/keys/ </a-select-option>
               </a-select>
               <div class="form-hint">
                 永久禁止访问的路径（黑名单，优先级高于白名单）
@@ -397,17 +322,11 @@
           <template v-if="selectedServer.id === 'postgres'">
             <a-divider>数据库连接</a-divider>
 
-            <a-form-item
-              label="数据库主机"
-              required
-            >
+            <a-form-item label="数据库主机" required>
               <a-input v-model:value="serverConfig.connection.host" />
             </a-form-item>
 
-            <a-form-item
-              label="端口"
-              required
-            >
+            <a-form-item label="端口" required>
               <a-input-number
                 v-model:value="serverConfig.connection.port"
                 :min="1"
@@ -416,30 +335,19 @@
               />
             </a-form-item>
 
-            <a-form-item
-              label="数据库名"
-              required
-            >
+            <a-form-item label="数据库名" required>
               <a-input v-model:value="serverConfig.connection.database" />
             </a-form-item>
 
-            <a-form-item
-              label="用户名"
-              required
-            >
+            <a-form-item label="用户名" required>
               <a-input v-model:value="serverConfig.connection.user" />
             </a-form-item>
 
-            <a-form-item
-              label="密码"
-              required
-            >
+            <a-form-item label="密码" required>
               <a-input-password
                 v-model:value="serverConfig.connection.password"
               />
-              <div class="form-hint">
-                支持环境变量，如 ${DB_PASSWORD}
-              </div>
+              <div class="form-hint">支持环境变量，如 ${DB_PASSWORD}</div>
             </a-form-item>
 
             <a-divider>权限配置</a-divider>
@@ -451,9 +359,7 @@
                 placeholder="输入允许访问的schema"
                 style="width: 100%"
               >
-                <a-select-option value="public">
-                  public
-                </a-select-option>
+                <a-select-option value="public"> public </a-select-option>
               </a-select>
             </a-form-item>
 
@@ -464,23 +370,17 @@
                 placeholder="输入禁止访问的表名"
                 style="width: 100%"
               >
-                <a-select-option value="users">
-                  users
-                </a-select-option>
+                <a-select-option value="users"> users </a-select-option>
                 <a-select-option value="credentials">
                   credentials
                 </a-select-option>
-                <a-select-option value="api_keys">
-                  api_keys
-                </a-select-option>
+                <a-select-option value="api_keys"> api_keys </a-select-option>
               </a-select>
             </a-form-item>
 
             <a-form-item label="只读模式">
               <a-switch v-model:checked="serverConfig.permissions.readOnly" />
-              <div class="form-hint">
-                启用后只允许SELECT查询
-              </div>
+              <div class="form-hint">启用后只允许SELECT查询</div>
             </a-form-item>
 
             <a-form-item label="最大结果行数">
@@ -497,17 +397,12 @@
           <template v-if="selectedServer.id === 'sqlite'">
             <a-divider>数据库配置</a-divider>
 
-            <a-form-item
-              label="数据库路径"
-              required
-            >
+            <a-form-item label="数据库路径" required>
               <a-input
                 v-model:value="serverConfig.databasePath"
                 placeholder="D:\code\chainlesschain\data\app.db"
               />
-              <div class="form-hint">
-                SQLite数据库文件的绝对路径
-              </div>
+              <div class="form-hint">SQLite数据库文件的绝对路径</div>
             </a-form-item>
 
             <a-divider>权限配置</a-divider>
@@ -519,15 +414,9 @@
                 placeholder="输入允许访问的表名"
                 style="width: 100%"
               >
-                <a-select-option value="notes">
-                  notes
-                </a-select-option>
-                <a-select-option value="tags">
-                  tags
-                </a-select-option>
-                <a-select-option value="bookmarks">
-                  bookmarks
-                </a-select-option>
+                <a-select-option value="notes"> notes </a-select-option>
+                <a-select-option value="tags"> tags </a-select-option>
+                <a-select-option value="bookmarks"> bookmarks </a-select-option>
               </a-select>
             </a-form-item>
 
@@ -538,9 +427,7 @@
                 placeholder="输入禁止访问的表名"
                 style="width: 100%"
               >
-                <a-select-option value="users">
-                  users
-                </a-select-option>
+                <a-select-option value="users"> users </a-select-option>
                 <a-select-option value="credentials">
                   credentials
                 </a-select-option>
@@ -552,9 +439,7 @@
 
             <a-form-item label="只读模式">
               <a-switch v-model:checked="serverConfig.permissions.readOnly" />
-              <div class="form-hint">
-                启用后只允许SELECT查询
-              </div>
+              <div class="form-hint">启用后只允许SELECT查询</div>
             </a-form-item>
 
             <a-form-item label="启用全文搜索(FTS)">
@@ -579,17 +464,12 @@
           <template v-if="selectedServer.id === 'git'">
             <a-divider>仓库配置</a-divider>
 
-            <a-form-item
-              label="仓库路径"
-              required
-            >
+            <a-form-item label="仓库路径" required>
               <a-input
                 v-model:value="serverConfig.repositoryPath"
                 placeholder="D:\code\chainlesschain"
               />
-              <div class="form-hint">
-                Git仓库的绝对路径
-              </div>
+              <div class="form-hint">Git仓库的绝对路径</div>
             </a-form-item>
 
             <a-divider>权限配置</a-divider>
@@ -604,9 +484,7 @@
                 <a-select-option value="status">
                   status（查看状态）
                 </a-select-option>
-                <a-select-option value="log">
-                  log（查看历史）
-                </a-select-option>
+                <a-select-option value="log"> log（查看历史） </a-select-option>
                 <a-select-option value="diff">
                   diff（查看差异）
                 </a-select-option>
@@ -619,12 +497,8 @@
                 <a-select-option value="commit">
                   commit（提交）
                 </a-select-option>
-                <a-select-option value="push">
-                  push（推送）
-                </a-select-option>
-                <a-select-option value="pull">
-                  pull（拉取）
-                </a-select-option>
+                <a-select-option value="push"> push（推送） </a-select-option>
+                <a-select-option value="pull"> pull（拉取） </a-select-option>
               </a-select>
             </a-form-item>
 
@@ -665,9 +539,7 @@
                   api.example.com
                 </a-select-option>
               </a-select>
-              <div class="form-hint">
-                留空表示允许所有域名
-              </div>
+              <div class="form-hint">留空表示允许所有域名</div>
             </a-form-item>
 
             <a-form-item label="禁止的域名">
@@ -677,12 +549,8 @@
                 placeholder="输入禁止访问的域名"
                 style="width: 100%"
               >
-                <a-select-option value="localhost">
-                  localhost
-                </a-select-option>
-                <a-select-option value="127.0.0.1">
-                  127.0.0.1
-                </a-select-option>
+                <a-select-option value="localhost"> localhost </a-select-option>
+                <a-select-option value="127.0.0.1"> 127.0.0.1 </a-select-option>
               </a-select>
             </a-form-item>
 
@@ -690,21 +558,11 @@
               <a-checkbox-group
                 v-model:value="serverConfig.permissions.allowedMethods"
               >
-                <a-checkbox value="GET">
-                  GET
-                </a-checkbox>
-                <a-checkbox value="POST">
-                  POST
-                </a-checkbox>
-                <a-checkbox value="PUT">
-                  PUT
-                </a-checkbox>
-                <a-checkbox value="DELETE">
-                  DELETE
-                </a-checkbox>
-                <a-checkbox value="PATCH">
-                  PATCH
-                </a-checkbox>
+                <a-checkbox value="GET"> GET </a-checkbox>
+                <a-checkbox value="POST"> POST </a-checkbox>
+                <a-checkbox value="PUT"> PUT </a-checkbox>
+                <a-checkbox value="DELETE"> DELETE </a-checkbox>
+                <a-checkbox value="PATCH"> PATCH </a-checkbox>
               </a-checkbox-group>
             </a-form-item>
 
@@ -754,12 +612,7 @@
           </template>
 
           <template v-if="column.key === 'actions'">
-            <a-button
-              size="small"
-              @click="testTool(record)"
-            >
-              测试
-            </a-button>
+            <a-button size="small" @click="testTool(record)"> 测试 </a-button>
           </template>
         </template>
       </a-table>
@@ -787,14 +640,9 @@
         <!-- 参数输入表单 -->
         <a-form layout="vertical">
           <template v-if="toolParameters.length > 0">
-            <a-divider orientation="left">
-              参数输入
-            </a-divider>
+            <a-divider orientation="left"> 参数输入 </a-divider>
 
-            <template
-              v-for="param in toolParameters"
-              :key="param.name"
-            >
+            <template v-for="param in toolParameters" :key="param.name">
               <!-- 字符串参数 -->
               <a-form-item
                 v-if="param.type === 'string'"
@@ -812,10 +660,7 @@
                   v-model:value="toolTestArgs[param.name]"
                   :placeholder="param.description || `请输入 ${param.name}`"
                 />
-                <div
-                  v-if="param.description"
-                  class="form-hint"
-                >
+                <div v-if="param.description" class="form-hint">
                   {{ param.description }}
                 </div>
               </a-form-item>
@@ -831,10 +676,7 @@
                   :placeholder="param.description || `请输入 ${param.name}`"
                   style="width: 100%"
                 />
-                <div
-                  v-if="param.description"
-                  class="form-hint"
-                >
+                <div v-if="param.description" class="form-hint">
                   {{ param.description }}
                 </div>
               </a-form-item>
@@ -846,10 +688,7 @@
                 :required="param.required"
               >
                 <a-switch v-model:checked="toolTestArgs[param.name]" />
-                <div
-                  v-if="param.description"
-                  class="form-hint"
-                >
+                <div v-if="param.description" class="form-hint">
                   {{ param.description }}
                 </div>
               </a-form-item>
@@ -873,10 +712,7 @@
                     {{ opt }}
                   </a-select-option>
                 </a-select>
-                <div
-                  v-if="param.description"
-                  class="form-hint"
-                >
+                <div v-if="param.description" class="form-hint">
                   {{ param.description }}
                 </div>
               </a-form-item>
@@ -892,14 +728,11 @@
                   mode="tags"
                   :placeholder="
                     param.description ||
-                      `请输入 ${param.name} (多个值用回车分隔)`
+                    `请输入 ${param.name} (多个值用回车分隔)`
                   "
                   style="width: 100%"
                 />
-                <div
-                  v-if="param.description"
-                  class="form-hint"
-                >
+                <div v-if="param.description" class="form-hint">
                   {{ param.description }}
                 </div>
               </a-form-item>
@@ -924,11 +757,7 @@
             </template>
           </template>
 
-          <a-empty
-            v-else
-            description="此工具无需参数"
-            style="margin: 16px 0"
-          />
+          <a-empty v-else description="此工具无需参数" style="margin: 16px 0" />
 
           <!-- JSON模式切换 -->
           <a-divider orientation="left">
@@ -944,7 +773,7 @@
             v-if="toolTestJsonMode"
             v-model:value="toolTestArgsJson"
             :rows="6"
-            placeholder="{&quot;param1&quot;: &quot;value1&quot;, &quot;param2&quot;: &quot;value2&quot;}"
+            placeholder='{"param1": "value1", "param2": "value2"}'
             style="font-family: &quot;Courier New&quot;, monospace"
           />
           <a-alert
@@ -959,9 +788,7 @@
 
         <!-- 执行结果 -->
         <template v-if="toolTestResult !== null">
-          <a-divider orientation="left">
-            执行结果
-          </a-divider>
+          <a-divider orientation="left"> 执行结果 </a-divider>
 
           <a-alert
             v-if="toolTestResult.success"
@@ -985,16 +812,10 @@
           </div>
 
           <a-space style="margin-top: 12px">
-            <a-button
-              size="small"
-              @click="copyToolResult"
-            >
+            <a-button size="small" @click="copyToolResult">
               <copy-outlined /> 复制结果
             </a-button>
-            <a-button
-              size="small"
-              @click="clearToolResult"
-            >
+            <a-button size="small" @click="clearToolResult">
               <delete-outlined /> 清除结果
             </a-button>
           </a-space>
@@ -1005,7 +826,7 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger, createLogger } from "@/utils/logger";
 
 import { ref, reactive, computed, onMounted, watch, toRaw } from "vue";
 import { message } from "ant-design-vue";
@@ -1262,7 +1083,9 @@ const totalTools = computed(() => {
 
 const averageLatency = computed(() => {
   const latencies = Array.from(metrics.toolCallLatencies.values()).flat();
-  if (latencies.length === 0) {return 0;}
+  if (latencies.length === 0) {
+    return 0;
+  }
   const sum = latencies.reduce((a, b) => a + b, 0);
   return (sum / latencies.length).toFixed(2);
 });
@@ -1371,12 +1194,18 @@ const loadMetrics = async () => {
 const loadConfig = async () => {
   loading.value = true;
   try {
+    if (!window.electronAPI?.invoke) {
+      return;
+    }
     const result = await window.electronAPI.invoke("mcp:get-config");
-    if (result.success) {
-      config.enabled = result.config.enabled || false;
+    if (result?.success) {
+      config.enabled = result.config?.enabled || false;
     }
   } catch (error) {
-    logger.error("加载配置失败:", error);
+    // IPC 未就绪时静默处理
+    if (!error.message?.includes("No handler registered")) {
+      logger.error("[MCPSettings] 加载配置失败:", error);
+    }
   } finally {
     loading.value = false;
   }
@@ -1405,22 +1234,32 @@ const loadServerConfig = async (serverId) => {
 
 const handleEnableChange = async (enabled) => {
   try {
+    if (!window.electronAPI?.invoke) {
+      message.warning("IPC 通道未就绪，请稍后重试");
+      config.enabled = !enabled;
+      return;
+    }
     const result = await window.electronAPI.invoke("mcp:update-config", {
       config: { ...toRaw(config), enabled },
     });
 
-    if (result.success) {
+    if (result?.success) {
       if (enabled) {
         message.success("MCP系统已启用，请重启应用以加载 MCP 服务");
       } else {
         message.success("MCP系统已禁用");
       }
     } else {
-      throw new Error(result.error);
+      throw new Error(result?.error || "更新失败");
     }
   } catch (error) {
-    logger.error("更新配置失败:", error);
-    message.error("更新配置失败: " + error.message);
+    // IPC 未就绪时静默恢复状态
+    if (error.message?.includes("No handler registered")) {
+      message.warning("MCP 服务尚未就绪，请稍后重试");
+    } else {
+      logger.error("[MCPSettings] 更新配置失败:", error);
+      message.error("更新配置失败: " + error.message);
+    }
     config.enabled = !enabled;
   }
 };
@@ -1693,7 +1532,9 @@ const executeToolTest = async () => {
 };
 
 const formatToolResult = (result) => {
-  if (!result) {return "";}
+  if (!result) {
+    return "";
+  }
 
   try {
     if (result.success && result.result) {
@@ -1792,22 +1633,35 @@ const getSecurityLabel = (level) => {
 // 生命周期
 onMounted(async () => {
   // 获取用户数据路径用于默认配置
-  try {
-    const result = await window.electronAPI.invoke(
-      "system:get-path",
-      "userData",
-    );
-    if (result.success) {
-      userDataPath.value = result.path;
+  if (window.electronAPI?.invoke) {
+    try {
+      const result = await window.electronAPI.invoke(
+        "system:get-path",
+        "userData",
+      );
+      if (result?.success) {
+        userDataPath.value = result.path;
+      }
+    } catch (error) {
+      // IPC 未就绪时静默处理
+      if (!error.message?.includes("No handler registered")) {
+        logger.warn("[MCPSettings] 获取用户数据路径失败:", error.message);
+      }
     }
-    // 获取项目路径（当前工作目录）
-    const cwd = await window.electronAPI.invoke("system:get-path", "exe");
-    if (cwd.success) {
-      // exe 路径的父目录通常是项目目录
-      projectPath.value = cwd.path.replace(/[/\\][^/\\]+$/, "");
+
+    try {
+      // 获取项目路径（当前工作目录）
+      const cwd = await window.electronAPI.invoke("system:get-path", "exe");
+      if (cwd?.success) {
+        // exe 路径的父目录通常是项目目录
+        projectPath.value = cwd.path.replace(/[/\\][^/\\]+$/, "");
+      }
+    } catch (error) {
+      // IPC 未就绪时静默处理
+      if (!error.message?.includes("No handler registered")) {
+        logger.warn("[MCPSettings] 获取项目路径失败:", error.message);
+      }
     }
-  } catch (error) {
-    logger.error("获取路径失败:", error);
   }
 
   await loadConfig();

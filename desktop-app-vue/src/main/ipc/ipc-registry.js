@@ -6,7 +6,7 @@
  * @description 负责注册所有模块化的 IPC 处理器，实现主进程入口文件的解耦
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger, createLogger } = require("../utils/logger.js");
 const ipcGuard = require("./ipc-guard");
 
 /**
@@ -343,7 +343,7 @@ function registerAllIPC(dependencies) {
 
     // 项目AI功能 (函数模式 - 中等模块，16 handlers)
     // 🔥 在测试模式下，即使 llmManager 为 null 也注册（handlers 内部会处理 null 情况）
-    const isTestMode = process.env.NODE_ENV === 'test';
+    const isTestMode = process.env.NODE_ENV === "test";
     if (database && (llmManager || isTestMode)) {
       logger.info("[IPC Registry] Registering Project AI IPC...");
       const { registerProjectAIIPC } = require("../project/project-ai-ipc");
@@ -353,10 +353,13 @@ function registerAllIPC(dependencies) {
         aiEngineManager: aiEngineManager || null,
         chatSkillBridge: chatSkillBridge || null,
         mainWindow: mainWindow || null,
-        scanAndRegisterProjectFiles: app?.scanAndRegisterProjectFiles?.bind(app) || null,
+        scanAndRegisterProjectFiles:
+          app?.scanAndRegisterProjectFiles?.bind(app) || null,
       });
       if (!llmManager) {
-        logger.info("[IPC Registry] ⚠️  LLM manager not initialized (Project AI handlers registered with degraded functionality)");
+        logger.info(
+          "[IPC Registry] ⚠️  LLM manager not initialized (Project AI handlers registered with degraded functionality)",
+        );
       }
       logger.info("[IPC Registry] ✓ Project AI IPC registered (16 handlers)");
     }
@@ -588,9 +591,13 @@ function registerAllIPC(dependencies) {
     // 区块链核心 (7个模块, 75 handlers) - 懒加载模式
     // 注册懒加载的区块链 IPC 处理器，在首次访问时才初始化区块链模块
     logger.info("[IPC Registry] Registering Blockchain IPC (Lazy Loading)...");
-    const { registerLazyBlockchainIPC } = require("../blockchain/blockchain-lazy-ipc");
+    const {
+      registerLazyBlockchainIPC,
+    } = require("../blockchain/blockchain-lazy-ipc");
     registerLazyBlockchainIPC({ app, database, mainWindow });
-    logger.info("[IPC Registry] ✓ Blockchain IPC registered (75 handlers, lazy loading enabled)");
+    logger.info(
+      "[IPC Registry] ✓ Blockchain IPC registered (75 handlers, lazy loading enabled)",
+    );
 
     // 代码工具 (2个模块, 20 handlers)
     if (llmManager) {
@@ -656,7 +663,9 @@ function registerAllIPC(dependencies) {
     logger.info("[IPC Registry] Registering Plugin IPC (Lazy Loading)...");
     const { registerLazyPluginIPC } = require("../plugins/plugin-lazy-ipc");
     registerLazyPluginIPC({ app, mainWindow });
-    logger.info("[IPC Registry] ✓ Plugin IPC registered (lazy loading enabled)");
+    logger.info(
+      "[IPC Registry] ✓ Plugin IPC registered (lazy loading enabled)",
+    );
 
     // 其他功能 (3个模块, 13 handlers)
     if (fileImporter) {
@@ -693,6 +702,23 @@ function registerAllIPC(dependencies) {
     } = require("../notification/notification-ipc");
     registerNotificationIPC({ database: database || null });
     logger.info("[IPC Registry] ✓ Notification IPC registered (5 handlers)");
+
+    // Preference Manager IPC
+    logger.info("[IPC Registry] Registering Preference Manager IPC...");
+    const preferenceManager = app ? app.preferenceManager || null : null;
+    if (preferenceManager) {
+      const {
+        registerPreferenceManagerIPC,
+      } = require("../memory/preference-manager-ipc");
+      registerPreferenceManagerIPC({ preferenceManager });
+      logger.info(
+        "[IPC Registry] ✓ Preference Manager IPC registered (12 handlers)",
+      );
+    } else {
+      logger.warn(
+        "[IPC Registry] ⚠️ preferenceManager 未初始化，跳过 Preference IPC 注册",
+      );
+    }
 
     // 对话管理 (函数模式 - 中等模块，17 handlers)
     // 注意：即使 database 为 null 也注册，handler 内部会处理 null 情况

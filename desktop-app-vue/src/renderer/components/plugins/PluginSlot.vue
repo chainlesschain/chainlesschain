@@ -20,14 +20,8 @@
         :data-plugin-id="extension.pluginId"
       >
         <!-- 调试信息（仅开发模式） -->
-        <div
-          v-if="debug"
-          class="plugin-slot-debug"
-        >
-          <a-tag
-            color="purple"
-            size="small"
-          >
+        <div v-if="debug" class="plugin-slot-debug">
+          <a-tag color="purple" size="small">
             {{ extension.pluginName || extension.pluginId }}
           </a-tag>
         </div>
@@ -49,7 +43,7 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger, createLogger } from "@/utils/logger";
 
 import { ref, computed, onMounted, onUnmounted, watch, provide } from "vue";
 import PluginComponentWrapper from "./PluginComponentWrapper.vue";
@@ -117,7 +111,9 @@ const mergedContext = computed(() => ({
 const visibleExtensions = computed(() => {
   let result = extensions.value.filter((ext) => {
     // 检查扩展自身的可见性条件
-    if (ext.componentConfig?.visible === false) {return false;}
+    if (ext.componentConfig?.visible === false) {
+      return false;
+    }
 
     // 检查条件
     const conditions = ext.componentConfig?.conditions || [];
@@ -148,7 +144,9 @@ const visibleExtensions = computed(() => {
 
 // 评估条件表达式
 function evaluateCondition(condition, context) {
-  if (!condition) {return true;}
+  if (!condition) {
+    return true;
+  }
 
   switch (condition.type) {
     case "equals":
@@ -176,8 +174,16 @@ async function loadSlotExtensions() {
   loading.value = true;
   error.value = null;
 
+  // 检查 API 是否可用
+  if (!window.electronAPI?.plugin?.getSlotExtensions) {
+    // API 未就绪时静默返回，不报错
+    extensions.value = [];
+    loading.value = false;
+    return;
+  }
+
   try {
-    const result = await window.electronAPI?.plugin?.getSlotExtensions(
+    const result = await window.electronAPI.plugin.getSlotExtensions(
       props.slotName,
     );
 
@@ -195,12 +201,25 @@ async function loadSlotExtensions() {
         extensions: extensions.value,
       });
     } else {
-      throw new Error(result?.error || "获取插槽扩展失败");
+      // IPC 返回失败但不是致命错误
+      extensions.value = [];
+      if (result?.error && !result.error.includes("No handler registered")) {
+        logger.warn(
+          `[PluginSlot:${props.slotName}] 获取扩展失败:`,
+          result.error,
+        );
+      }
     }
   } catch (err) {
-    logger.error(`[PluginSlot:${props.slotName}] 加载失败:`, err);
-    error.value = err.message;
-    emit("error", err);
+    // 区分 IPC 未注册错误和其他错误
+    if (err.message?.includes("No handler registered")) {
+      // IPC 处理器未就绪，静默处理
+      extensions.value = [];
+    } else {
+      logger.error(`[PluginSlot:${props.slotName}] 加载失败:`, err);
+      error.value = err.message;
+      emit("error", err);
+    }
   } finally {
     loading.value = false;
   }
@@ -240,7 +259,9 @@ defineExpose({
 let eventUnsubscribers = [];
 
 function setupEventListeners() {
-  if (!window.electronAPI?.plugin) {return;}
+  if (!window.electronAPI?.plugin) {
+    return;
+  }
 
   const events = [
     "plugin:installed",

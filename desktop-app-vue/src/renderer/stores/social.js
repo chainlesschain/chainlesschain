@@ -1,4 +1,4 @@
-import { logger, createLogger } from '@/utils/logger';
+import { logger, createLogger } from "@/utils/logger";
 import { defineStore } from "pinia";
 import { createRetryableIPC } from "../utils/ipc";
 
@@ -531,8 +531,12 @@ export const useSocialStore = defineStore("social", {
 
     /**
      * 加载通知列表
+     * @param {number} limit - 加载数量限制
+     * @param {number} _retryCount - 内部使用的重试计数（不要手动传递）
      */
-    async loadNotifications(limit = 50) {
+    async loadNotifications(limit = 50, _retryCount = 0) {
+      const MAX_RETRIES = 3;
+
       this.notificationsLoading = true;
       try {
         // 检查IPC API是否可用
@@ -563,22 +567,32 @@ export const useSocialStore = defineStore("social", {
           return;
         }
 
-        logger.error("加载通知失败:", error);
+        // 只在首次失败时记录错误，避免日志刷屏
+        if (_retryCount === 0) {
+          logger.error("加载通知失败:", error);
+        }
 
         // 如果是"No handler registered"错误，说明后端还未初始化完成
         if (error.message && error.message.includes("No handler registered")) {
-          logger.warn("[Social Store] IPC处理器未注册，将在稍后重试");
           // 设置空数据，避免前端报错
           this.notifications = [];
           this.unreadNotifications = 0;
 
-          // 延迟重试一次
-          setTimeout(() => {
-            logger.info("[Social Store] 重试加载通知...");
-            this.loadNotifications(limit).catch((err) => {
-              logger.error("[Social Store] 重试加载通知失败:", err);
-            });
-          }, 2000);
+          // 检查是否超过最大重试次数
+          if (_retryCount < MAX_RETRIES) {
+            const delay = Math.min(2000 * Math.pow(2, _retryCount), 30000); // 指数退避，最大30秒
+            logger.warn(
+              `[Social Store] IPC处理器未注册，将在 ${delay / 1000}s 后重试 (${_retryCount + 1}/${MAX_RETRIES})`,
+            );
+
+            setTimeout(() => {
+              this.loadNotifications(limit, _retryCount + 1).catch(() => {
+                // 静默处理，避免重复日志
+              });
+            }, delay);
+          } else {
+            logger.warn("[Social Store] 通知加载达到最大重试次数，放弃重试");
+          }
         } else {
           // 其他错误，设置空数据
           this.notifications = [];

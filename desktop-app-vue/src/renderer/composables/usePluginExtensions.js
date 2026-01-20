@@ -4,7 +4,7 @@
  * 提供获取和使用插件UI扩展的Vue Composition API
  */
 
-import { logger, createLogger } from '@/utils/logger';
+import { logger, createLogger } from "@/utils/logger";
 import {
   ref,
   computed,
@@ -446,12 +446,16 @@ export async function getPluginPageContent(pluginId, pageId = "main") {
  */
 export async function getPluginMenuItems() {
   if (!window.electronAPI?.plugin?.getUIExtensions) {
+    // API 未就绪时静默返回空数组
     return [];
   }
 
   try {
     const result = await window.electronAPI.plugin.getUIExtensions();
-    if (!result.success) {return [];}
+    if (!result.success) {
+      // IPC 返回失败但不记录为错误（可能是正常的初始化时序）
+      return [];
+    }
 
     const menus = result.extensions?.menus || [];
 
@@ -472,6 +476,11 @@ export async function getPluginMenuItems() {
       })),
     }));
   } catch (err) {
+    // 区分 IPC 未注册错误和其他错误
+    if (err.message?.includes("No handler registered")) {
+      // IPC 处理器未就绪，静默处理
+      return [];
+    }
     logger.error("[getPluginMenuItems] 失败:", err);
     return [];
   }
@@ -552,9 +561,16 @@ export function usePluginSlot(slotName) {
     loading.value = true;
     error.value = null;
 
+    // 检查 API 是否可用
+    if (!window.electronAPI?.plugin?.getSlotExtensions) {
+      extensions.value = [];
+      loading.value = false;
+      return;
+    }
+
     try {
       const result =
-        await window.electronAPI?.plugin?.getSlotExtensions(slotName);
+        await window.electronAPI.plugin.getSlotExtensions(slotName);
 
       if (result?.success) {
         extensions.value = (result.extensions || [])
@@ -567,11 +583,23 @@ export function usePluginSlot(slotName) {
           }))
           .sort((a, b) => a.priority - b.priority);
       } else {
-        throw new Error(result?.error || "获取插槽扩展失败");
+        // IPC 返回失败但不是致命错误
+        extensions.value = [];
+        if (result?.error && !result.error.includes("No handler registered")) {
+          logger.warn(
+            `[usePluginSlot:${slotName}] 获取扩展失败:`,
+            result.error,
+          );
+        }
       }
     } catch (err) {
-      logger.error(`[usePluginSlot:${slotName}]`, err);
-      error.value = err.message;
+      // 区分 IPC 未注册错误和其他错误
+      if (err.message?.includes("No handler registered")) {
+        extensions.value = [];
+      } else {
+        logger.error(`[usePluginSlot:${slotName}]`, err);
+        error.value = err.message;
+      }
     } finally {
       loading.value = false;
     }
