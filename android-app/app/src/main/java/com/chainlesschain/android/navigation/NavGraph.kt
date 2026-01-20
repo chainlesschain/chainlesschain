@@ -26,6 +26,7 @@ import com.chainlesschain.android.feature.ai.presentation.ConversationListScreen
 import com.chainlesschain.android.feature.ai.presentation.ChatScreen
 import com.chainlesschain.android.feature.ai.presentation.NewConversationScreen
 import com.chainlesschain.android.presentation.HomeScreen
+import com.chainlesschain.android.presentation.MainContainer
 import com.chainlesschain.android.feature.p2p.navigation.p2pGraph
 import com.chainlesschain.android.feature.p2p.navigation.P2P_ROUTE
 
@@ -63,22 +64,13 @@ fun NavGraph(
             )
         }
 
-        // 主界面
+        // 主界面（使用新的MainContainer）
         composable(route = Screen.Home.route) {
-            HomeScreen(
+            MainContainer(
                 onLogout = {
                     navController.navigate(Screen.Login.route) {
                         popUpTo(Screen.Home.route) { inclusive = true }
                     }
-                },
-                onNavigateToKnowledge = {
-                    navController.navigate(Screen.KnowledgeList.route)
-                },
-                onNavigateToAI = {
-                    navController.navigate(Screen.ConversationList.route)
-                },
-                onNavigateToP2P = {
-                    navController.navigate(P2P_ROUTE)
                 }
             )
         }
