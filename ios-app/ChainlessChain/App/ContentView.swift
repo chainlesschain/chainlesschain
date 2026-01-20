@@ -65,23 +65,29 @@ struct MainTabView: View {
                 }
                 .tag(1)
 
+            ProjectListView()
+                .tabItem {
+                    Label("项目", systemImage: "folder.fill")
+                }
+                .tag(2)
+
             ConversationListView()
                 .tabItem {
                     Label("消息", systemImage: "bubble.left.and.bubble.right.fill")
                 }
-                .tag(2)
+                .tag(3)
 
             SocialFeedView()
                 .tabItem {
                     Label("社交", systemImage: "person.3.fill")
                 }
-                .tag(3)
+                .tag(4)
 
             SettingsView()
                 .tabItem {
                     Label("设置", systemImage: "gearshape.fill")
                 }
-                .tag(4)
+                .tag(5)
         }
     }
 }
