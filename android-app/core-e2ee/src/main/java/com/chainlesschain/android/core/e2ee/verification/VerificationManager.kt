@@ -3,16 +3,20 @@ package com.chainlesschain.android.core.e2ee.verification
 import android.content.Context
 import android.util.Log
 import com.chainlesschain.android.core.e2ee.session.E2EESession
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import javax.inject.Inject
+import javax.inject.Singleton
 
 /**
  * 验证管理器
  *
  * 管理会话的安全验证，包括 Safety Numbers 和会话指纹
  */
-class VerificationManager(
-    private val context: Context
+@Singleton
+class VerificationManager @Inject constructor(
+    @ApplicationContext private val context: Context
 ) {
 
     companion object {

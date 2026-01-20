@@ -116,8 +116,8 @@ android {
 }
 
 configurations.all {
-    // Exclude duplicate JetBrains annotations
-    exclude(group = "org.jetbrains", module = "annotations")
+    // Exclude old annotations-java5 to avoid duplicate classes with annotations:23.0.0
+    exclude(group = "org.jetbrains", module = "annotations-java5")
 }
 
 dependencies {
