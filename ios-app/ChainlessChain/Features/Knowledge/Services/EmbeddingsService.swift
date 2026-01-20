@@ -1,10 +1,12 @@
 import Foundation
+import CoreCommon
 
 /// Embeddings Service - Generates text embeddings for semantic search
 /// Reference: desktop-app-vue/src/main/rag/embeddings-service.js
 @MainActor
 class EmbeddingsService: ObservableObject {
     private let llmManager: LLMManager
+    private let logger = Logger.shared
 
     // LRU Cache for embeddings (max 2000 entries, 1 hour TTL)
     private var cache: [String: CachedEmbedding] = [:]
@@ -29,16 +31,16 @@ class EmbeddingsService: ObservableObject {
 
     /// Initialize the embeddings service
     func initialize() async throws {
-        AppLogger.log("[EmbeddingsService] Initializing embeddings service...")
+        logger.debug("[EmbeddingsService] Initializing embeddings service...")
 
         guard llmManager.isInitialized else {
-            AppLogger.warn("[EmbeddingsService] LLM service not initialized")
+            logger.warning("[EmbeddingsService] LLM service not initialized")
             isInitialized = false
             return
         }
 
         isInitialized = true
-        AppLogger.log("[EmbeddingsService] Embeddings service initialized successfully")
+        logger.debug("[EmbeddingsService] Embeddings service initialized successfully")
     }
 
     /// Generate embedding for text
@@ -58,7 +60,7 @@ class EmbeddingsService: ObservableObject {
             if Date().timeIntervalSince(cached.timestamp) < cacheMaxAge {
                 cacheHits += 1
                 updateCacheAccessOrder(cacheKey)
-                AppLogger.log("[EmbeddingsService] Using cached embedding (hit rate: \(getCacheHitRate()))")
+                logger.debug("[EmbeddingsService] Using cached embedding (hit rate: \(getCacheHitRate()))")
                 return cached.embedding
             } else {
                 // Remove expired entry
@@ -78,7 +80,7 @@ class EmbeddingsService: ObservableObject {
 
             return embedding
         } catch {
-            AppLogger.error("[EmbeddingsService] Failed to generate embedding, using fallback: \(error)")
+            logger.error("[EmbeddingsService] Failed to generate embedding, using fallback: \(error)")
             // Fallback to simple embedding
             return generateSimpleEmbedding(text)
         }
@@ -93,7 +95,7 @@ class EmbeddingsService: ObservableObject {
                 let embedding = try await generateEmbedding(text, skipCache: skipCache)
                 embeddings.append(embedding)
             } catch {
-                AppLogger.error("[EmbeddingsService] Failed to generate embedding for text: \(error)")
+                logger.error("[EmbeddingsService] Failed to generate embedding for text: \(error)")
                 embeddings.append(generateSimpleEmbedding(text))
             }
         }
@@ -167,7 +169,7 @@ class EmbeddingsService: ObservableObject {
         cacheAccessOrder.removeAll()
         cacheHits = 0
         cacheMisses = 0
-        AppLogger.log("[EmbeddingsService] Cache cleared")
+        logger.debug("[EmbeddingsService] Cache cleared")
     }
 
     /// Get cache statistics
@@ -247,18 +249,3 @@ enum EmbeddingsError: LocalizedError {
     }
 }
 
-// MARK: - Logger Extension
-
-private struct AppLogger {
-    static func log(_ message: String) {
-        print(message)
-    }
-
-    static func warn(_ message: String) {
-        print("⚠️ \(message)")
-    }
-
-    static func error(_ message: String) {
-        print("❌ \(message)")
-    }
-}

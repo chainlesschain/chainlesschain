@@ -1,10 +1,13 @@
 import Foundation
+import CoreCommon
 
 /// RAG Manager - Retrieval-Augmented Generation for knowledge base
 /// Reference: desktop-app-vue/src/main/rag/rag-manager.js
 @MainActor
 class RAGManager: ObservableObject {
     static let shared = RAGManager()
+
+    private let logger = Logger.shared
 
     // Services
     private let embeddingsService: EmbeddingsService
@@ -55,7 +58,7 @@ class RAGManager: ObservableObject {
 
     /// Initialize RAG manager
     func initialize() async throws {
-        AppLogger.log("[RAGManager] Initializing RAG manager...")
+        logger.debug("[RAGManager] Initializing RAG manager...")
 
         // Initialize embeddings service
         try await embeddingsService.initialize()
@@ -67,33 +70,33 @@ class RAGManager: ObservableObject {
         await buildVectorIndex()
 
         isInitialized = true
-        AppLogger.log("[RAGManager] RAG manager initialized successfully")
+        logger.debug("[RAGManager] RAG manager initialized successfully")
     }
 
     /// Build vector index from knowledge base
     func buildVectorIndex() async {
         guard config.enableRAG else {
-            AppLogger.log("[RAGManager] RAG disabled, skipping index build")
+            logger.debug("[RAGManager] RAG disabled, skipping index build")
             return
         }
 
         guard let repository = knowledgeRepository else {
-            AppLogger.warn("[RAGManager] Knowledge repository not set")
+            logger.warning("[RAGManager] Knowledge repository not set")
             return
         }
 
-        AppLogger.log("[RAGManager] Building vector index...")
+        logger.debug("[RAGManager] Building vector index...")
 
         do {
             // Get all knowledge items
             let items = repository.getAllItems()
 
             guard !items.isEmpty else {
-                AppLogger.log("[RAGManager] Knowledge base is empty")
+                logger.debug("[RAGManager] Knowledge base is empty")
                 return
             }
 
-            AppLogger.log("[RAGManager] Indexing \(items.count) items...")
+            logger.debug("[RAGManager] Indexing \(items.count) items...")
 
             // Rebuild index
             try await vectorStore.rebuildIndex(items: items) { text in
@@ -101,10 +104,10 @@ class RAGManager: ObservableObject {
             }
 
             let stats = await vectorStore.getStats()
-            AppLogger.log("[RAGManager] Index built successfully, \(stats.count) items indexed")
+            logger.debug("[RAGManager] Index built successfully, \(stats.count) items indexed")
 
         } catch {
-            AppLogger.error("[RAGManager] Failed to build index: \(error)")
+            logger.error("[RAGManager] Failed to build index: \(error)")
         }
     }
 
@@ -119,7 +122,7 @@ class RAGManager: ObservableObject {
         }
 
         let opts = options ?? RetrievalOptions()
-        AppLogger.log("[RAGManager] Retrieving for query: \"\(query)\"")
+        logger.debug("[RAGManager] Retrieving for query: \"\(query)\"")
 
         var results: [RetrievedDocument] = []
 
@@ -143,7 +146,7 @@ class RAGManager: ObservableObject {
         // Limit to topK
         results = Array(results.prefix(opts.topK ?? config.topK))
 
-        AppLogger.log("[RAGManager] Retrieved \(results.count) relevant items")
+        logger.debug("[RAGManager] Retrieved \(results.count) relevant items")
 
         return results
     }
@@ -283,7 +286,7 @@ class RAGManager: ObservableObject {
                 retrievedDocs: retrievedDocs
             )
         } catch {
-            AppLogger.error("[RAGManager] Failed to enhance query: \(error)")
+            logger.error("[RAGManager] Failed to enhance query: \(error)")
             return EnhancedQuery(query: query, context: "", retrievedDocs: [])
         }
     }
@@ -309,13 +312,13 @@ class RAGManager: ObservableObject {
             document: item.content ?? item.title
         )
 
-        AppLogger.log("[RAGManager] Added item to index: \(item.id)")
+        logger.debug("[RAGManager] Added item to index: \(item.id)")
     }
 
     /// Remove item from index
     func removeFromIndex(_ itemId: String) async throws {
         try await vectorStore.deleteVector(id: itemId)
-        AppLogger.log("[RAGManager] Removed item from index: \(itemId)")
+        logger.debug("[RAGManager] Removed item from index: \(itemId)")
     }
 
     /// Update item in index
@@ -326,7 +329,7 @@ class RAGManager: ObservableObject {
 
     /// Rebuild entire index
     func rebuildIndex() async throws {
-        AppLogger.log("[RAGManager] Rebuilding index...")
+        logger.debug("[RAGManager] Rebuilding index...")
         embeddingsService.clearCache()
         await buildVectorIndex()
     }
@@ -383,18 +386,3 @@ struct EnhancedQuery {
     let retrievedDocs: [RetrievedDocument]
 }
 
-// MARK: - Logger
-
-private struct AppLogger {
-    static func log(_ message: String) {
-        print(message)
-    }
-
-    static func warn(_ message: String) {
-        print("⚠️ \(message)")
-    }
-
-    static func error(_ message: String) {
-        print("❌ \(message)")
-    }
-}

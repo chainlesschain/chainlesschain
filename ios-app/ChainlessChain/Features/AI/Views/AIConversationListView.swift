@@ -1,4 +1,5 @@
 import SwiftUI
+import CoreCommon
 
 struct AIConversationListView: View {
     @StateObject private var viewModel = AIConversationListViewModel()
@@ -201,6 +202,7 @@ class AIConversationListViewModel: ObservableObject {
     @Published var errorMessage: String?
 
     private let repository = AIConversationRepository.shared
+    private let logger = Logger.shared
 
     func loadConversations() async {
         isLoading = true
@@ -209,9 +211,9 @@ class AIConversationListViewModel: ObservableObject {
         do {
             let entities = try repository.getAllConversations()
             conversations = entities.map { $0.toConversation() }
-            print("[AIConversationListViewModel] Loaded \(conversations.count) conversations")
+            logger.debug("[AIConversationListViewModel] Loaded \(conversations.count) conversations")
         } catch {
-            print("[AIConversationListViewModel] Error loading conversations: \(error)")
+            logger.error("[AIConversationListViewModel] Error loading conversations: \(error)")
             errorMessage = error.localizedDescription
             conversations = []
         }
@@ -234,10 +236,10 @@ class AIConversationListViewModel: ObservableObject {
             try repository.createConversation(entity)
             let conversation = entity.toConversation()
             conversations.insert(conversation, at: 0)
-            print("[AIConversationListViewModel] Created conversation: \(entity.id)")
+            logger.debug("[AIConversationListViewModel] Created conversation: \(entity.id)")
             return conversation
         } catch {
-            print("[AIConversationListViewModel] Error creating conversation: \(error)")
+            logger.error("[AIConversationListViewModel] Error creating conversation: \(error)")
             errorMessage = error.localizedDescription
             return nil
         }
@@ -247,9 +249,9 @@ class AIConversationListViewModel: ObservableObject {
         do {
             try repository.deleteConversation(id: id)
             conversations.removeAll { $0.id == id }
-            print("[AIConversationListViewModel] Deleted conversation: \(id)")
+            logger.debug("[AIConversationListViewModel] Deleted conversation: \(id)")
         } catch {
-            print("[AIConversationListViewModel] Error deleting conversation: \(error)")
+            logger.error("[AIConversationListViewModel] Error deleting conversation: \(error)")
             errorMessage = error.localizedDescription
         }
     }
@@ -263,7 +265,7 @@ class AIConversationListViewModel: ObservableObject {
                 }
             }
         } catch {
-            print("[AIConversationListViewModel] Error refreshing conversation: \(error)")
+            logger.error("[AIConversationListViewModel] Error refreshing conversation: \(error)")
         }
     }
 }

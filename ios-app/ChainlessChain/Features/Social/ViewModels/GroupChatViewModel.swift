@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import CoreCommon
 
 /// Group Chat View Model - Manages group chat state and operations
 @MainActor
@@ -19,6 +20,7 @@ class GroupChatViewModel: ObservableObject {
     private let p2pManager = P2PManager.shared
     private let messageRepository = P2PMessageRepository.shared
     private let contactRepository = P2PContactRepository.shared
+    private let logger = Logger.shared
     private(set) var myDid: String = ""
 
     // MARK: - Initialization
@@ -45,7 +47,7 @@ class GroupChatViewModel: ObservableObject {
             }
         } catch {
             errorMessage = error.localizedDescription
-            print("[GroupChatViewModel] Error loading group: \(error)")
+            logger.debug("[GroupChatViewModel] Error loading group: \(error)")
         }
     }
 
@@ -72,10 +74,10 @@ class GroupChatViewModel: ObservableObject {
             // Send system message about group creation
             await sendSystemMessage("群组「\(title)」已创建")
 
-            print("[GroupChatViewModel] Created group: \(currentGroup?.id ?? "unknown")")
+            logger.debug("[GroupChatViewModel] Created group: \(currentGroup?.id ?? "unknown")")
         } catch {
             errorMessage = error.localizedDescription
-            print("[GroupChatViewModel] Error creating group: \(error)")
+            logger.debug("[GroupChatViewModel] Error creating group: \(error)")
         }
     }
 
@@ -152,7 +154,7 @@ class GroupChatViewModel: ObservableObject {
         guard let group = currentGroup else { return }
 
         // Toggle mute status (would need to add this to repository)
-        print("[GroupChatViewModel] Toggle mute for group: \(group.id)")
+        logger.debug("[GroupChatViewModel] Toggle mute for group: \(group.id)")
     }
 
     // MARK: - Messaging
@@ -204,7 +206,7 @@ class GroupChatViewModel: ObservableObject {
                         priority: .normal
                     )
                 } catch {
-                    print("[GroupChatViewModel] Failed to send to \(memberDid): \(error)")
+                    logger.debug("[GroupChatViewModel] Failed to send to \(memberDid): \(error)")
                 }
             }
 
@@ -297,7 +299,7 @@ class GroupChatViewModel: ObservableObject {
                 )
             }
         } catch {
-            print("[GroupChatViewModel] Error loading messages: \(error)")
+            logger.debug("[GroupChatViewModel] Error loading messages: \(error)")
         }
     }
 
@@ -323,7 +325,7 @@ class GroupChatViewModel: ObservableObject {
                 memberNames[contact.did] = contact.displayName ?? contact.nickname ?? String(contact.did.prefix(8))
             }
         } catch {
-            print("[GroupChatViewModel] Error loading contacts: \(error)")
+            logger.debug("[GroupChatViewModel] Error loading contacts: \(error)")
         }
     }
 

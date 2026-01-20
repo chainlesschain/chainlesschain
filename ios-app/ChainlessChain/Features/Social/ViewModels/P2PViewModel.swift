@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import CoreCommon
 
 /// P2P View Model - Manages P2P connections and messaging for UI
 @MainActor
@@ -14,6 +15,7 @@ class P2PViewModel: ObservableObject {
 
     private let p2pManager = P2PManager.shared
     private let messageRepository = P2PMessageRepository.shared
+    private let logger = Logger.shared
     private var selectedPeerId: String?
     private var currentConversationId: String?
     private var myDid: String = ""
@@ -105,7 +107,7 @@ class P2PViewModel: ObservableObject {
             await loadConversations()
 
             updateStatistics()
-            print("[P2PViewModel] Initialized with myDid: \(myDid)")
+            logger.debug("[P2PViewModel] Initialized with myDid: \(myDid)")
         } catch {
             handleError(error)
         }
@@ -115,7 +117,7 @@ class P2PViewModel: ObservableObject {
     func loadConversations() async {
         do {
             conversations = try messageRepository.getAllConversations()
-            print("[P2PViewModel] Loaded \(conversations.count) conversations")
+            logger.debug("[P2PViewModel] Loaded \(conversations.count) conversations")
 
             // Restore peer list from conversations
             for conversation in conversations {
@@ -133,7 +135,7 @@ class P2PViewModel: ObservableObject {
                 }
             }
         } catch {
-            print("[P2PViewModel] Error loading conversations: \(error)")
+            logger.debug("[P2PViewModel] Error loading conversations: \(error)")
         }
     }
 
@@ -260,7 +262,7 @@ class P2PViewModel: ObservableObject {
                 }
             }
 
-            print("[P2PViewModel] Image message sent and saved: \(messageId)")
+            logger.debug("[P2PViewModel] Image message sent and saved: \(messageId)")
 
         } catch {
             handleError(error)
@@ -372,7 +374,7 @@ class P2PViewModel: ObservableObject {
                 }
             }
 
-            print("[P2PViewModel] Message sent and saved: \(messageId)")
+            logger.debug("[P2PViewModel] Message sent and saved: \(messageId)")
 
         } catch {
             handleError(error)
@@ -404,9 +406,9 @@ class P2PViewModel: ObservableObject {
             // Reset unread count
             try messageRepository.resetUnreadCount(conversationId: conversation.id)
 
-            print("[P2PViewModel] Loaded \(messages.count) messages for peer: \(peerId)")
+            logger.debug("[P2PViewModel] Loaded \(messages.count) messages for peer: \(peerId)")
         } catch {
-            print("[P2PViewModel] Error loading messages: \(error)")
+            logger.debug("[P2PViewModel] Error loading messages: \(error)")
             messages = []
         }
     }
@@ -445,7 +447,7 @@ class P2PViewModel: ObservableObject {
                     messages[index].status = .recalled
                     messages[index].content = "[消息已撤回]"
                 }
-                print("[P2PViewModel] Message recalled: \(messageId)")
+                logger.debug("[P2PViewModel] Message recalled: \(messageId)")
             }
         } catch {
             handleError(error)
@@ -466,7 +468,7 @@ class P2PViewModel: ObservableObject {
                     messages[index].editCount += 1
                     messages[index].status = .edited
                 }
-                print("[P2PViewModel] Message edited: \(messageId)")
+                logger.debug("[P2PViewModel] Message edited: \(messageId)")
             }
         } catch {
             handleError(error)
@@ -489,7 +491,7 @@ class P2PViewModel: ObservableObject {
                 }
             }
         } catch {
-            print("[P2PViewModel] Error marking as read: \(error)")
+            logger.debug("[P2PViewModel] Error marking as read: \(error)")
         }
     }
 
@@ -672,11 +674,19 @@ class P2PViewModel: ObservableObject {
                     // Increment unread count if not viewing this conversation
                     if self.selectedPeerId != peerId {
                         try self.messageRepository.incrementUnreadCount(conversationId: conversation.id)
+
+                        // Trigger push notification for new message
+                        await self.triggerMessageNotification(
+                            from: peerId,
+                            content: content,
+                            type: type,
+                            conversationId: conversation.id
+                        )
                     }
 
-                    print("[P2PViewModel] Received and saved message: \(messageId)")
+                    logger.debug("[P2PViewModel] Received and saved message: \(messageId)")
                 } catch {
-                    print("[P2PViewModel] Error saving received message: \(error)")
+                    logger.debug("[P2PViewModel] Error saving received message: \(error)")
                 }
             }
         }
@@ -752,7 +762,7 @@ class P2PViewModel: ObservableObject {
             Task { @MainActor in
                 if let index = self?.connectedPeers.firstIndex(where: { $0.id == senderDid }) {
                     // Could add typing indicator state to PeerInfo
-                    print("[P2PViewModel] Peer typing: \(senderDid)")
+                    logger.debug("[P2PViewModel] Peer typing: \(senderDid)")
                 }
             }
         }
@@ -771,11 +781,61 @@ class P2PViewModel: ObservableObject {
         }
     }
 
+    // MARK: - Push Notifications
+
+    /// Trigger a push notification for incoming message
+    private func triggerMessageNotification(
+        from peerId: String,
+        content: String,
+        type: MessageManager.Message.MessageType,
+        conversationId: String
+    ) async {
+        // Get sender name from contacts or use peer ID
+        let senderName = getPeerName(peerId: peerId)
+
+        // Prepare notification content based on message type
+        let notificationContent: String
+        switch type {
+        case .image:
+            notificationContent = "[图片消息]"
+        case .audio:
+            notificationContent = "[语音消息]"
+        case .video:
+            notificationContent = "[视频消息]"
+        case .file:
+            notificationContent = "[文件]"
+        default:
+            notificationContent = content
+        }
+
+        await PushNotificationManager.shared.scheduleMessageNotification(
+            from: senderName,
+            senderId: peerId,
+            content: notificationContent,
+            conversationId: conversationId,
+            isGroupMessage: false
+        )
+    }
+
+    /// Get peer display name
+    private func getPeerName(peerId: String) -> String {
+        if let peer = connectedPeers.first(where: { $0.id == peerId }) {
+            return peer.name
+        }
+
+        // Try to get from contacts repository
+        if let contact = try? P2PContactRepository.shared.getContact(did: peerId) {
+            return contact.displayName ?? String(peerId.prefix(8))
+        }
+
+        return String(peerId.prefix(8))
+    }
+
     // MARK: - Error Handling
 
     private func handleError(_ error: Error) {
         errorMessage = error.localizedDescription
-        print("❌ [P2PViewModel] Error: \(error)")
+        logger.error("P2PViewModel error", error: error, category: "P2P")
     }
 
     func clearError() {

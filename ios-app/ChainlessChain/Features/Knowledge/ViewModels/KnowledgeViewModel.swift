@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import Combine
 import CoreCommon
 
 @MainActor
@@ -11,6 +12,9 @@ class KnowledgeViewModel: ObservableObject {
     @Published var selectedTag: String?
     @Published var showFavoritesOnly = false
     @Published var isLoading = false
+    @Published var isSearching = false
+    @Published var isLoadingMore = false
+    @Published var hasMoreItems = true
     @Published var errorMessage: String?
     @Published var statistics: KnowledgeStatistics?
     @Published var useSemanticSearch = false // Toggle for semantic search
@@ -21,14 +25,64 @@ class KnowledgeViewModel: ObservableObject {
     private let repository = KnowledgeRepository.shared
     private let logger = Logger.shared
     private let ragManager = RAGManager.shared
+    private var cancellables = Set<AnyCancellable>()
+    private var searchTask: Task<Void, Never>?
+
+    // Pagination
+    private let pageSize = 50
+    private var currentOffset = 0
+
+    // Debounce intervals
+    private let keywordDebounceInterval: TimeInterval = 0.3  // 300ms for keyword search
+    private let semanticDebounceInterval: TimeInterval = 0.5 // 500ms for semantic search
 
     init() {
         // Set repository for RAG manager
         ragManager.setKnowledgeRepository(repository)
 
+        // Setup debounced search
+        setupDebouncedSearch()
+
         Task {
             await loadInitialData()
             await initializeRAG()
+        }
+    }
+
+    // MARK: - Debounced Search Setup
+
+    private func setupDebouncedSearch() {
+        $searchText
+            .removeDuplicates()
+            .debounce(for: .seconds(useSemanticSearch ? semanticDebounceInterval : keywordDebounceInterval), scheduler: DispatchQueue.main)
+            .sink { [weak self] newValue in
+                guard let self = self else { return }
+                Task { @MainActor in
+                    await self.debouncedSearchHandler(newValue)
+                }
+            }
+            .store(in: &cancellables)
+    }
+
+    private func debouncedSearchHandler(_ query: String) async {
+        // Cancel previous search task
+        searchTask?.cancel()
+
+        guard !query.isEmpty else {
+            // If search is cleared, show all items
+            applyFilters()
+            return
+        }
+
+        searchTask = Task {
+            isSearching = true
+            defer { isSearching = false }
+
+            if useSemanticSearch && ragManager.isInitialized {
+                await performSemanticSearch(query)
+            } else {
+                applyFilters()
+            }
         }
     }
 
@@ -60,13 +114,57 @@ class KnowledgeViewModel: ObservableObject {
     }
 
     func loadItems() async throws {
-        logger.info("Loading knowledge items", category: "Knowledge")
+        logger.info("Loading knowledge items (paginated)", category: "Knowledge")
 
-        let items = try repository.getAll(limit: 1000)
-        self.items = items
+        // Reset pagination state
+        currentOffset = 0
+        hasMoreItems = true
+
+        let newItems = try repository.getAll(limit: pageSize, offset: 0)
+        self.items = newItems
+        hasMoreItems = newItems.count >= pageSize
+        currentOffset = newItems.count
         applyFilters()
 
-        logger.info("Loaded \(items.count) items", category: "Knowledge")
+        logger.info("Loaded \(newItems.count) items (page 1)", category: "Knowledge")
+    }
+
+    /// Load more items for pagination
+    func loadMoreItems() async {
+        guard !isLoadingMore && hasMoreItems else { return }
+
+        isLoadingMore = true
+        defer { isLoadingMore = false }
+
+        do {
+            let newItems = try repository.getAll(limit: pageSize, offset: currentOffset)
+
+            if newItems.isEmpty {
+                hasMoreItems = false
+                return
+            }
+
+            items.append(contentsOf: newItems)
+            currentOffset += newItems.count
+            hasMoreItems = newItems.count >= pageSize
+            applyFilters()
+
+            logger.info("Loaded \(newItems.count) more items (offset: \(currentOffset))", category: "Knowledge")
+        } catch {
+            logger.error("Failed to load more items", error: error, category: "Knowledge")
+        }
+    }
+
+    /// Check if should load more when reaching end of list
+    func loadMoreIfNeeded(currentItem: KnowledgeItem) {
+        guard let index = filteredItems.firstIndex(where: { $0.id == currentItem.id }) else { return }
+
+        // Load more when within 5 items of the end
+        if index >= filteredItems.count - 5 {
+            Task {
+                await loadMoreItems()
+            }
+        }
     }
 
     func loadCategories() async throws {

@@ -1,12 +1,15 @@
 import UIKit
 import CoreImage
 import CoreImage.CIFilterBuiltins
+import CoreCommon
 
 /// Image Processor - Handles image compression, thumbnail generation, and format conversion
 /// Reference: desktop-app-vue/src/main/image/image-processor.js
 @MainActor
 class ImageProcessor: ObservableObject {
     static let shared = ImageProcessor()
+
+    private let logger = Logger.shared
 
     // Configuration
     private let maxWidth: CGFloat = 1920
@@ -173,7 +176,7 @@ class ImageProcessor: ObservableObject {
         statistics.averageCompressionRatio = Double(statistics.totalOriginalSize - statistics.totalCompressedSize) /
             Double(statistics.totalOriginalSize) * 100.0
 
-        AppLogger.log("[ImageProcessor] Compressed image: \(compressionRatio)% reduction")
+        logger.debug("[ImageProcessor] Compressed image: \(compressionRatio)% reduction")
 
         return ProcessingResult(
             success: true,
@@ -203,7 +206,7 @@ class ImageProcessor: ObservableObject {
         let isLargeFile = fileSize > largeFileThreshold
 
         if isLargeFile {
-            AppLogger.log("[ImageProcessor] Large file detected: \(fileSize / 1024 / 1024)MB, using optimized mode")
+            logger.debug("[ImageProcessor] Large file detected: \(fileSize / 1024 / 1024)MB, using optimized mode")
         }
 
         // Load image
@@ -251,7 +254,7 @@ class ImageProcessor: ObservableObject {
 
         let thumbnailSize = Int64(thumbnailData.count)
 
-        AppLogger.log("[ImageProcessor] Generated thumbnail: \(targetWidth)x\(targetHeight)")
+        logger.debug("[ImageProcessor] Generated thumbnail: \(targetWidth)x\(targetHeight)")
 
         return ProcessingResult(
             success: true,
@@ -428,7 +431,7 @@ class ImageProcessor: ObservableObject {
                 )
                 results.append(result)
             } catch {
-                AppLogger.error("[ImageProcessor] Failed to process image \(index): \(error)")
+                logger.error("[ImageProcessor] Failed to process image \(index): \(error)")
                 throw error
             }
         }
@@ -486,14 +489,3 @@ enum ImageProcessorError: LocalizedError {
     }
 }
 
-// MARK: - Logger
-
-private struct AppLogger {
-    static func log(_ message: String) {
-        print(message)
-    }
-
-    static func error(_ message: String) {
-        print("❌ \(message)")
-    }
-}

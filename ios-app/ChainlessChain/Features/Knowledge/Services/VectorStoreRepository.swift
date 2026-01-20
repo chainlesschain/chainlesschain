@@ -293,10 +293,15 @@ class VectorStoreRepository {
     private func parseVectorEntry(_ stmt: OpaquePointer?) -> RepoVectorEntry {
         let id = String(cString: sqlite3_column_text(stmt, 0))
 
-        let embeddingPointer = sqlite3_column_blob(stmt, 1)
-        let embeddingSize = Int(sqlite3_column_bytes(stmt, 1))
-        let embeddingData = Data(bytes: embeddingPointer!, count: embeddingSize)
-        let embedding = decodeEmbedding(embeddingData)
+        // Safely handle embedding data
+        var embedding: [Float] = []
+        if let embeddingPointer = sqlite3_column_blob(stmt, 1) {
+            let embeddingSize = Int(sqlite3_column_bytes(stmt, 1))
+            if embeddingSize > 0 {
+                let embeddingData = Data(bytes: embeddingPointer, count: embeddingSize)
+                embedding = decodeEmbedding(embeddingData)
+            }
+        }
 
         let document = String(cString: sqlite3_column_text(stmt, 2))
         let title = String(cString: sqlite3_column_text(stmt, 3))

@@ -1,11 +1,14 @@
 import UIKit
 import Foundation
+import CoreCommon
 
 /// Image Cache Manager - Handles memory and disk caching of images
 /// Provides functionality similar to SDWebImage but using native iOS frameworks
 @MainActor
 class ImageCacheManager: ObservableObject {
     static let shared = ImageCacheManager()
+
+    private let logger = Logger.shared
 
     // Memory cache
     private let memoryCache = NSCache<NSString, UIImage>()
@@ -69,7 +72,7 @@ class ImageCacheManager: ObservableObject {
         // Check memory cache first
         if let cachedImage = memoryCache.object(forKey: key as NSString) {
             statistics.memoryHits += 1
-            AppLogger.log("[ImageCache] Memory cache hit: \(key)")
+            logger.debug("[ImageCache] Memory cache hit: \(key)")
             return cachedImage
         }
 
@@ -81,12 +84,12 @@ class ImageCacheManager: ObservableObject {
             let cost = estimateImageSize(diskImage)
             memoryCache.setObject(diskImage, forKey: key as NSString, cost: cost)
 
-            AppLogger.log("[ImageCache] Disk cache hit: \(key)")
+            logger.debug("[ImageCache] Disk cache hit: \(key)")
             return diskImage
         }
 
         statistics.misses += 1
-        AppLogger.log("[ImageCache] Cache miss: \(key)")
+        logger.debug("[ImageCache] Cache miss: \(key)")
         return nil
     }
 
@@ -100,7 +103,7 @@ class ImageCacheManager: ObservableObject {
         // Store in disk cache
         await saveToDisk(image: image, key: key)
 
-        AppLogger.log("[ImageCache] Image cached: \(key)")
+        logger.debug("[ImageCache] Image cached: \(key)")
     }
 
     /// Remove image from cache
@@ -111,7 +114,7 @@ class ImageCacheManager: ObservableObject {
         // Remove from disk
         await removeFromDisk(key: key)
 
-        AppLogger.log("[ImageCache] Image removed from cache: \(key)")
+        logger.debug("[ImageCache] Image removed from cache: \(key)")
     }
 
     // MARK: - Memory Cache
@@ -121,7 +124,7 @@ class ImageCacheManager: ObservableObject {
         memoryCache.removeAllObjects()
         statistics.memorySize = 0
         statistics.memoryHits = 0
-        AppLogger.log("[ImageCache] Memory cache cleared")
+        logger.debug("[ImageCache] Memory cache cleared")
     }
 
     // MARK: - Disk Cache
@@ -171,7 +174,7 @@ class ImageCacheManager: ObservableObject {
             await cleanupDiskCacheIfNeeded()
 
         } catch {
-            AppLogger.error("[ImageCache] Failed to save to disk: \(error)")
+            logger.error("[ImageCache] Failed to save to disk: \(error)")
         }
     }
 
@@ -191,7 +194,7 @@ class ImageCacheManager: ObservableObject {
             statistics.diskSize -= fileSize
 
         } catch {
-            AppLogger.error("[ImageCache] Failed to remove from disk: \(error)")
+            logger.error("[ImageCache] Failed to remove from disk: \(error)")
         }
     }
 
@@ -212,10 +215,10 @@ class ImageCacheManager: ObservableObject {
 
             statistics.diskSize = 0
             statistics.diskHits = 0
-            AppLogger.log("[ImageCache] Disk cache cleared")
+            logger.debug("[ImageCache] Disk cache cleared")
 
         } catch {
-            AppLogger.error("[ImageCache] Failed to clear disk cache: \(error)")
+            logger.error("[ImageCache] Failed to clear disk cache: \(error)")
         }
     }
 
@@ -225,7 +228,7 @@ class ImageCacheManager: ObservableObject {
             return
         }
 
-        AppLogger.log("[ImageCache] Disk cache size exceeded, cleaning up...")
+        logger.debug("[ImageCache] Disk cache size exceeded, cleaning up...")
 
         do {
             let files = try FileManager.default.contentsOfDirectory(
@@ -255,10 +258,10 @@ class ImageCacheManager: ObservableObject {
             }
 
             statistics.diskSize = currentSize
-            AppLogger.log("[ImageCache] Cleanup complete, new size: \(currentSize / 1024 / 1024)MB")
+            logger.debug("[ImageCache] Cleanup complete, new size: \(currentSize / 1024 / 1024)MB")
 
         } catch {
-            AppLogger.error("[ImageCache] Cleanup failed: \(error)")
+            logger.error("[ImageCache] Cleanup failed: \(error)")
         }
     }
 
@@ -290,10 +293,10 @@ class ImageCacheManager: ObservableObject {
             }
 
             statistics.diskSize -= removedSize
-            AppLogger.log("[ImageCache] Removed \(removedCount) expired files, freed \(removedSize / 1024 / 1024)MB")
+            logger.debug("[ImageCache] Removed \(removedCount) expired files, freed \(removedSize / 1024 / 1024)MB")
 
         } catch {
-            AppLogger.error("[ImageCache] Failed to cleanup expired files: \(error)")
+            logger.error("[ImageCache] Failed to cleanup expired files: \(error)")
         }
     }
 
@@ -345,7 +348,7 @@ class ImageCacheManager: ObservableObject {
             return totalSize
 
         } catch {
-            AppLogger.error("[ImageCache] Failed to calculate disk cache size: \(error)")
+            logger.error("[ImageCache] Failed to calculate disk cache size: \(error)")
             return 0
         }
     }
@@ -375,20 +378,9 @@ class ImageCacheManager: ObservableObject {
             return image
 
         } catch {
-            AppLogger.error("[ImageCache] Failed to load image from URL: \(error)")
+            logger.error("[ImageCache] Failed to load image from URL: \(error)")
             return nil
         }
     }
 }
 
-// MARK: - Logger
-
-private struct AppLogger {
-    static func log(_ message: String) {
-        print(message)
-    }
-
-    static func error(_ message: String) {
-        print("❌ \(message)")
-    }
-}

@@ -1,11 +1,14 @@
 import Foundation
 import WebRTC
+import CoreCommon
 
 /// WebRTC Manager - Manages peer-to-peer WebRTC connections
 /// Reference: desktop-app-vue/src/main/p2p/p2p-manager.js
 @MainActor
 class WebRTCManager: NSObject, ObservableObject {
     static let shared = WebRTCManager()
+
+    private let logger = Logger.shared
 
     // WebRTC Components
     private var peerConnectionFactory: RTCPeerConnectionFactory!
@@ -34,7 +37,7 @@ class WebRTCManager: NSObject, ObservableObject {
 
     /// Initialize WebRTC Manager
     func initialize() {
-        AppLogger.log("[WebRTC] Initializing WebRTC Manager...")
+        logger.debug("[WebRTC] Initializing WebRTC Manager...")
 
         // Initialize factory
         RTCInitializeSSL()
@@ -47,7 +50,7 @@ class WebRTCManager: NSObject, ObservableObject {
         )
 
         isInitialized = true
-        AppLogger.log("[WebRTC] WebRTC Manager initialized")
+        logger.debug("[WebRTC] WebRTC Manager initialized")
     }
 
     // MARK: - Connection Management
@@ -87,7 +90,7 @@ class WebRTCManager: NSObject, ObservableObject {
         peerConnections[peerId] = peerConnection
         connectionStates[peerId] = .new
 
-        AppLogger.log("[WebRTC] Peer connection created for: \(peerId)")
+        logger.debug("[WebRTC] Peer connection created for: \(peerId)")
 
         return peerConnection
     }
@@ -110,7 +113,7 @@ class WebRTCManager: NSObject, ObservableObject {
 
         dataChannels[peerId] = dataChannel
 
-        AppLogger.log("[WebRTC] Data channel created for: \(peerId)")
+        logger.debug("[WebRTC] Data channel created for: \(peerId)")
 
         return dataChannel
     }
@@ -227,7 +230,9 @@ class WebRTCManager: NSObject, ObservableObject {
             throw WebRTCError.dataChannelNotOpen
         }
 
-        let data = message.data(using: .utf8)!
+        guard let data = message.data(using: .utf8) else {
+            throw WebRTCError.sendFailed
+        }
         let buffer = RTCDataBuffer(data: data, isBinary: false)
 
         let success = dataChannel.sendData(buffer)
@@ -236,7 +241,7 @@ class WebRTCManager: NSObject, ObservableObject {
             throw WebRTCError.sendFailed
         }
 
-        AppLogger.log("[WebRTC] Message sent to \(peerId)")
+        logger.debug("[WebRTC] Message sent to \(peerId)")
     }
 
     /// Send data via data channel
@@ -257,7 +262,7 @@ class WebRTCManager: NSObject, ObservableObject {
             throw WebRTCError.sendFailed
         }
 
-        AppLogger.log("[WebRTC] Data sent to \(peerId)")
+        logger.debug("[WebRTC] Data sent to \(peerId)")
     }
 
     // MARK: - Connection State
@@ -273,7 +278,7 @@ class WebRTCManager: NSObject, ObservableObject {
         connectionDelegates.removeValue(forKey: peerId)
         connectionStates.removeValue(forKey: peerId)
 
-        AppLogger.log("[WebRTC] Connection closed for: \(peerId)")
+        logger.debug("[WebRTC] Connection closed for: \(peerId)")
     }
 
     /// Get connection state
@@ -286,7 +291,7 @@ class WebRTCManager: NSObject, ObservableObject {
         peerConnections.keys.forEach { closeConnection(for: $0) }
         RTCCleanupSSL()
 
-        AppLogger.log("[WebRTC] Cleanup complete")
+        logger.debug("[WebRTC] Cleanup complete")
     }
 
     // MARK: - Delegate Callbacks
@@ -294,7 +299,7 @@ class WebRTCManager: NSObject, ObservableObject {
     fileprivate func handleConnectionStateChange(peerId: String, state: RTCPeerConnectionState) {
         connectionStates[peerId] = state
 
-        AppLogger.log("[WebRTC] Connection state changed for \(peerId): \(state.rawValue)")
+        logger.debug("[WebRTC] Connection state changed for \(peerId): \(state.rawValue)")
 
         // Notify observers
         NotificationCenter.default.post(
@@ -305,7 +310,7 @@ class WebRTCManager: NSObject, ObservableObject {
     }
 
     fileprivate func handleIceCandidate(peerId: String, candidate: RTCIceCandidate) {
-        AppLogger.log("[WebRTC] ICE candidate for \(peerId)")
+        logger.debug("[WebRTC] ICE candidate for \(peerId)")
 
         // Notify observers to send candidate to remote peer
         NotificationCenter.default.post(
@@ -360,28 +365,28 @@ private class PeerConnectionDelegate: NSObject, RTCPeerConnectionDelegate {
     }
 
     func peerConnection(_ peerConnection: RTCPeerConnection, didChange newState: RTCIceConnectionState) {
-        AppLogger.log("[WebRTC] ICE connection state: \(newState.rawValue)")
+        logger.debug("[WebRTC] ICE connection state: \(newState.rawValue)")
     }
 
     func peerConnection(_ peerConnection: RTCPeerConnection, didChange newState: RTCIceGatheringState) {
-        AppLogger.log("[WebRTC] ICE gathering state: \(newState.rawValue)")
+        logger.debug("[WebRTC] ICE gathering state: \(newState.rawValue)")
     }
 
     func peerConnection(_ peerConnection: RTCPeerConnection, didAdd stream: RTCMediaStream) {
-        AppLogger.log("[WebRTC] Media stream added")
+        logger.debug("[WebRTC] Media stream added")
     }
 
     func peerConnection(_ peerConnection: RTCPeerConnection, didRemove stream: RTCMediaStream) {
-        AppLogger.log("[WebRTC] Media stream removed")
+        logger.debug("[WebRTC] Media stream removed")
     }
 
     func peerConnection(_ peerConnection: RTCPeerConnection, didOpen dataChannel: RTCDataChannel) {
-        AppLogger.log("[WebRTC] Data channel opened")
+        logger.debug("[WebRTC] Data channel opened")
         dataChannel.delegate = DataChannelDelegate(peerId: peerId, manager: manager)
     }
 
     func peerConnectionShouldNegotiate(_ peerConnection: RTCPeerConnection) {
-        AppLogger.log("[WebRTC] Should negotiate")
+        logger.debug("[WebRTC] Should negotiate")
     }
 }
 
@@ -397,7 +402,7 @@ private class DataChannelDelegate: NSObject, RTCDataChannelDelegate {
     }
 
     func dataChannelDidChangeState(_ dataChannel: RTCDataChannel) {
-        AppLogger.log("[WebRTC] Data channel state: \(dataChannel.readyState.rawValue)")
+        logger.debug("[WebRTC] Data channel state: \(dataChannel.readyState.rawValue)")
     }
 
     func dataChannel(_ dataChannel: RTCDataChannel, didReceiveMessageWith buffer: RTCDataBuffer) {
@@ -453,14 +458,3 @@ extension Notification.Name {
     static let webrtcDataReceived = Notification.Name("webrtcDataReceived")
 }
 
-// MARK: - Logger
-
-private struct AppLogger {
-    static func log(_ message: String) {
-        print(message)
-    }
-
-    static func error(_ message: String) {
-        print("❌ \(message)")
-    }
-}
