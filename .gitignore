@@ -49,8 +49,9 @@ data/git-repos/
 data/qdrant/
 data/chromadb/
 
-# Data directory (all runtime data)
-data/
+# Data directory (all runtime data) - only top level
+/data/
+desktop-app-vue/data/
 
 # AI Models (too large)
 models/
