@@ -3,17 +3,9 @@
     <a-row :gutter="16">
       <!-- 左侧：邮箱树 -->
       <a-col :span="5">
-        <a-card
-          title="邮箱"
-          size="small"
-          :bordered="false"
-        >
+        <a-card title="邮箱" size="small" :bordered="false">
           <template #extra>
-            <a-button
-              type="link"
-              size="small"
-              @click="syncMailboxes"
-            >
+            <a-button type="link" size="small" @click="syncMailboxes">
               <ReloadOutlined />
             </a-button>
           </template>
@@ -33,11 +25,7 @@
             </template>
           </a-tree>
 
-          <a-empty
-            v-else
-            description="暂无邮箱"
-            size="small"
-          />
+          <a-empty v-else description="暂无邮箱" size="small" />
         </a-card>
       </a-col>
 
@@ -54,37 +42,21 @@
           <template #extra>
             <a-space>
               <a-dropdown>
-                <a-button size="small">
-                  <FilterOutlined /> 筛选
-                </a-button>
+                <a-button size="small"> <FilterOutlined /> 筛选 </a-button>
                 <template #overlay>
                   <a-menu @click="handleFilterChange">
-                    <a-menu-item key="all">
-                      全部
-                    </a-menu-item>
-                    <a-menu-item key="unread">
-                      未读
-                    </a-menu-item>
-                    <a-menu-item key="starred">
-                      收藏
-                    </a-menu-item>
+                    <a-menu-item key="all"> 全部 </a-menu-item>
+                    <a-menu-item key="unread"> 未读 </a-menu-item>
+                    <a-menu-item key="starred"> 收藏 </a-menu-item>
                   </a-menu>
                 </template>
               </a-dropdown>
 
-              <a-button
-                size="small"
-                :loading="syncing"
-                @click="syncEmails"
-              >
+              <a-button size="small" :loading="syncing" @click="syncEmails">
                 <SyncOutlined />
               </a-button>
 
-              <a-button
-                type="primary"
-                size="small"
-                @click="showComposer"
-              >
+              <a-button type="primary" size="small" @click="showComposer">
                 <EditOutlined /> 写邮件
               </a-button>
             </a-space>
@@ -102,7 +74,7 @@
                 :class="{
                   'email-item': true,
                   'email-read': item.is_read,
-                  'email-selected': selectedEmail?.id === item.id
+                  'email-selected': selectedEmail?.id === item.id,
                 }"
                 style="cursor: pointer"
                 @click="selectEmail(item)"
@@ -115,8 +87,12 @@
                         style="color: #faad14"
                       />
                       <PaperClipOutlined v-if="item.has_attachments" />
-                      <span :style="{ fontWeight: item.is_read ? 'normal' : 'bold' }">
-                        {{ item.subject || '(无主题)' }}
+                      <span
+                        :style="{
+                          fontWeight: item.is_read ? 'normal' : 'bold',
+                        }"
+                      >
+                        {{ item.subject || "(无主题)" }}
                       </span>
                     </a-space>
                   </template>
@@ -124,7 +100,9 @@
                   <template #description>
                     <div class="email-meta">
                       <span class="email-from">{{ item.from_address }}</span>
-                      <span class="email-date">{{ formatTime(item.date) }}</span>
+                      <span class="email-date">{{
+                        formatTime(item.date)
+                      }}</span>
                     </div>
                   </template>
                 </a-list-item-meta>
@@ -136,22 +114,23 @@
 
       <!-- 右侧：邮件内容 -->
       <a-col :span="11">
-        <a-card
-          v-if="selectedEmail"
-          :bordered="false"
-        >
+        <a-card v-if="selectedEmail" :bordered="false">
           <template #title>
             <div class="email-header">
-              <h3>{{ selectedEmail.subject || '(无主题)' }}</h3>
+              <h3>{{ selectedEmail.subject || "(无主题)" }}</h3>
             </div>
           </template>
 
           <template #extra>
             <a-space>
-              <a-tooltip :title="selectedEmail.is_starred ? '取消收藏' : '收藏'">
+              <a-tooltip
+                :title="selectedEmail.is_starred ? '取消收藏' : '收藏'"
+              >
                 <a-button
                   type="text"
-                  :style="{ color: selectedEmail.is_starred ? '#faad14' : undefined }"
+                  :style="{
+                    color: selectedEmail.is_starred ? '#faad14' : undefined,
+                  }"
                   @click="toggleStar"
                 >
                   <StarFilled v-if="selectedEmail.is_starred" />
@@ -160,28 +139,19 @@
               </a-tooltip>
 
               <a-tooltip title="回复">
-                <a-button
-                  type="text"
-                  @click="replyEmail"
-                >
+                <a-button type="text" @click="replyEmail">
                   <RollbackOutlined />
                 </a-button>
               </a-tooltip>
 
               <a-tooltip title="转发">
-                <a-button
-                  type="text"
-                  @click="forwardEmail"
-                >
+                <a-button type="text" @click="forwardEmail">
                   <ShareAltOutlined />
                 </a-button>
               </a-tooltip>
 
               <a-tooltip title="保存到知识库">
-                <a-button
-                  type="text"
-                  @click="saveToKnowledge"
-                >
+                <a-button type="text" @click="saveToKnowledge">
                   <SaveOutlined />
                 </a-button>
               </a-tooltip>
@@ -202,10 +172,7 @@
                     <a-menu-item key="archive">
                       <InboxOutlined /> 归档
                     </a-menu-item>
-                    <a-menu-item
-                      key="delete"
-                      danger
-                    >
+                    <a-menu-item key="delete" danger>
                       <DeleteOutlined /> 删除
                     </a-menu-item>
                   </a-menu>
@@ -216,20 +183,14 @@
 
           <!-- 邮件详情 -->
           <div class="email-details">
-            <a-descriptions
-              :column="1"
-              size="small"
-            >
+            <a-descriptions :column="1" size="small">
               <a-descriptions-item label="发件人">
                 {{ selectedEmail.from_address }}
               </a-descriptions-item>
               <a-descriptions-item label="收件人">
                 {{ selectedEmail.to_address }}
               </a-descriptions-item>
-              <a-descriptions-item
-                v-if="selectedEmail.cc_address"
-                label="抄送"
-              >
+              <a-descriptions-item v-if="selectedEmail.cc_address" label="抄送">
                 {{ selectedEmail.cc_address }}
               </a-descriptions-item>
               <a-descriptions-item label="日期">
@@ -241,21 +202,12 @@
           <a-divider />
 
           <!-- 邮件内容 -->
-          <div
-            class="email-content"
-            v-html="sanitizedContent"
-          />
+          <div class="email-content" v-html="sanitizedContent" />
 
           <!-- 附件列表 -->
-          <div
-            v-if="attachments.length > 0"
-            class="email-attachments"
-          >
+          <div v-if="attachments.length > 0" class="email-attachments">
             <a-divider>附件 ({{ attachments.length }})</a-divider>
-            <a-list
-              :data-source="attachments"
-              size="small"
-            >
+            <a-list :data-source="attachments" size="small">
               <template #renderItem="{ item }">
                 <a-list-item>
                   <a-list-item-meta>
@@ -307,15 +259,15 @@
 </template>
 
 <script setup>
-import { logger, createLogger } from '@/utils/logger';
+import { logger, createLogger } from "@/utils/logger";
 
-import { ref, computed, onMounted, watch } from 'vue';
-import { useRoute } from 'vue-router';
-import { message } from 'ant-design-vue';
-import DOMPurify from 'dompurify';
-import dayjs from 'dayjs';
-import relativeTime from 'dayjs/plugin/relativeTime';
-import 'dayjs/locale/zh-cn';
+import { ref, computed, onMounted, watch } from "vue";
+import { useRoute } from "vue-router";
+import { message } from "ant-design-vue";
+import DOMPurify from "dompurify";
+import dayjs from "dayjs";
+import relativeTime from "dayjs/plugin/relativeTime";
+import "dayjs/locale/zh-cn";
 import {
   InboxOutlined,
   SendOutlined,
@@ -336,11 +288,11 @@ import {
   FileOutlined,
   DownloadOutlined,
   ReloadOutlined,
-} from '@ant-design/icons-vue';
-import EmailComposer from './EmailComposer.vue';
+} from "@ant-design/icons-vue";
+import EmailComposer from "./EmailComposer.vue";
 
 dayjs.extend(relativeTime);
-dayjs.locale('zh-cn');
+dayjs.locale("zh-cn");
 
 const route = useRoute();
 
@@ -353,18 +305,18 @@ const selectedMailbox = ref([]);
 const emails = ref([]);
 const selectedEmail = ref(null);
 const attachments = ref([]);
-const filter = ref('all');
+const filter = ref("all");
 const composerVisible = ref(false);
 const replyToEmail = ref(null);
 const forwardEmailData = ref(null);
 
 // 计算属性
 const unreadCount = computed(() => {
-  return emails.value.filter(e => !e.is_read).length;
+  return emails.value.filter((e) => !e.is_read).length;
 });
 
 const mailboxTree = computed(() => {
-  return mailboxes.value.map(mb => ({
+  return mailboxes.value.map((mb) => ({
     key: mb.id,
     title: mb.display_name,
     name: mb.name,
@@ -373,22 +325,49 @@ const mailboxTree = computed(() => {
 });
 
 const sanitizedContent = computed(() => {
-  if (!selectedEmail.value) {return '';}
+  if (!selectedEmail.value) {
+    return "";
+  }
 
-  const content = selectedEmail.value.html_content || selectedEmail.value.text_content || '';
+  const content =
+    selectedEmail.value.html_content || selectedEmail.value.text_content || "";
 
   // 如果是纯文本，转换为 HTML
   const htmlContent = selectedEmail.value.html_content
     ? content
-    : content.replace(/\n/g, '<br>');
+    : content.replace(/\n/g, "<br>");
 
   return DOMPurify.sanitize(htmlContent, {
     ALLOWED_TAGS: [
-      'p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-      'ul', 'ol', 'li', 'a', 'img', 'blockquote', 'code', 'pre',
-      'table', 'thead', 'tbody', 'tr', 'th', 'td', 'div', 'span'
+      "p",
+      "br",
+      "strong",
+      "em",
+      "u",
+      "h1",
+      "h2",
+      "h3",
+      "h4",
+      "h5",
+      "h6",
+      "ul",
+      "ol",
+      "li",
+      "a",
+      "img",
+      "blockquote",
+      "code",
+      "pre",
+      "table",
+      "thead",
+      "tbody",
+      "tr",
+      "th",
+      "td",
+      "div",
+      "span",
     ],
-    ALLOWED_ATTR: ['href', 'src', 'alt', 'title', 'class', 'style']
+    ALLOWED_ATTR: ["href", "src", "alt", "title", "class", "style"],
   });
 });
 
@@ -396,32 +375,35 @@ const sanitizedContent = computed(() => {
 const loadMailboxes = async () => {
   try {
     const result = await window.electron.ipcRenderer.invoke(
-      'email:get-mailboxes',
-      accountId.value
+      "email:get-mailboxes",
+      accountId.value,
     );
 
     if (result.success) {
       mailboxes.value = result.mailboxes;
 
       // 默认选择 INBOX
-      const inbox = mailboxes.value.find(mb => mb.name === 'INBOX');
+      const inbox = mailboxes.value.find((mb) => mb.name === "INBOX");
       if (inbox && selectedMailbox.value.length === 0) {
         selectedMailbox.value = [inbox.id];
         await loadEmails(inbox.id);
       }
     }
   } catch (error) {
-    message.error('加载邮箱失败: ' + error.message);
+    message.error("加载邮箱失败: " + error.message);
   }
 };
 
 const syncMailboxes = async () => {
   try {
-    await window.electron.ipcRenderer.invoke('email:sync-mailboxes', accountId.value);
-    message.success('邮箱同步成功');
+    await window.electron.ipcRenderer.invoke(
+      "email:sync-mailboxes",
+      accountId.value,
+    );
+    message.success("邮箱同步成功");
     await loadMailboxes();
   } catch (error) {
-    message.error('同步邮箱失败: ' + error.message);
+    message.error("同步邮箱失败: " + error.message);
   }
 };
 
@@ -434,19 +416,22 @@ const loadEmails = async (mailboxId) => {
       limit: 100,
     };
 
-    if (filter.value === 'unread') {
+    if (filter.value === "unread") {
       options.isRead = false;
-    } else if (filter.value === 'starred') {
+    } else if (filter.value === "starred") {
       options.isStarred = true;
     }
 
-    const result = await window.electron.ipcRenderer.invoke('email:get-emails', options);
+    const result = await window.electron.ipcRenderer.invoke(
+      "email:get-emails",
+      options,
+    );
 
     if (result.success) {
       emails.value = result.emails;
     }
   } catch (error) {
-    message.error('加载邮件失败: ' + error.message);
+    message.error("加载邮件失败: " + error.message);
   } finally {
     loading.value = false;
   }
@@ -454,22 +439,28 @@ const loadEmails = async (mailboxId) => {
 
 const syncEmails = async () => {
   if (selectedMailbox.value.length === 0) {
-    message.warning('请先选择邮箱');
+    message.warning("请先选择邮箱");
     return;
   }
 
   syncing.value = true;
   try {
-    const mailbox = mailboxes.value.find(mb => mb.id === selectedMailbox.value[0]);
+    const mailbox = mailboxes.value.find(
+      (mb) => mb.id === selectedMailbox.value[0],
+    );
+    if (!mailbox) {
+      message.warning("未找到选中的邮箱");
+      return;
+    }
 
     const result = await window.electron.ipcRenderer.invoke(
-      'email:fetch-emails',
+      "email:fetch-emails",
       accountId.value,
       {
         mailbox: mailbox.name,
         limit: 50,
         unseen: true,
-      }
+      },
     );
 
     if (result.success) {
@@ -477,7 +468,7 @@ const syncEmails = async () => {
       await loadEmails(selectedMailbox.value[0]);
     }
   } catch (error) {
-    message.error('同步失败: ' + error.message);
+    message.error("同步失败: " + error.message);
   } finally {
     syncing.value = false;
   }
@@ -492,10 +483,10 @@ const selectEmail = async (email) => {
   // 标记为已读
   if (!email.is_read) {
     try {
-      await window.electron.ipcRenderer.invoke('email:mark-as-read', email.id);
+      await window.electron.ipcRenderer.invoke("email:mark-as-read", email.id);
       email.is_read = 1;
     } catch (error) {
-      logger.error('标记已读失败:', error);
+      logger.error("标记已读失败:", error);
     }
   }
 };
@@ -503,15 +494,15 @@ const selectEmail = async (email) => {
 const loadAttachments = async (emailId) => {
   try {
     const result = await window.electron.ipcRenderer.invoke(
-      'email:get-attachments',
-      emailId
+      "email:get-attachments",
+      emailId,
     );
 
     if (result.success) {
       attachments.value = result.attachments;
     }
   } catch (error) {
-    logger.error('加载附件失败:', error);
+    logger.error("加载附件失败:", error);
     attachments.value = [];
   }
 };
@@ -527,59 +518,63 @@ const downloadAttachment = async (attachment) => {
 
     if (!result.canceled && result.filePath) {
       await window.electron.ipcRenderer.invoke(
-        'email:download-attachment',
+        "email:download-attachment",
         attachment.id,
-        result.filePath
+        result.filePath,
       );
 
-      message.success('附件下载成功');
+      message.success("附件下载成功");
     }
   } catch (error) {
-    message.error('下载失败: ' + error.message);
+    message.error("下载失败: " + error.message);
   } finally {
     attachment.downloading = false;
   }
 };
 
 const toggleStar = async () => {
-  if (!selectedEmail.value) {return;}
+  if (!selectedEmail.value) {
+    return;
+  }
 
   const newStarred = !selectedEmail.value.is_starred;
 
   try {
     await window.electron.ipcRenderer.invoke(
-      'email:mark-as-starred',
+      "email:mark-as-starred",
       selectedEmail.value.id,
-      newStarred
+      newStarred,
     );
 
     selectedEmail.value.is_starred = newStarred ? 1 : 0;
 
-    const email = emails.value.find(e => e.id === selectedEmail.value.id);
+    const email = emails.value.find((e) => e.id === selectedEmail.value.id);
     if (email) {
       email.is_starred = newStarred ? 1 : 0;
     }
 
-    message.success(newStarred ? '已收藏' : '已取消收藏');
+    message.success(newStarred ? "已收藏" : "已取消收藏");
   } catch (error) {
-    message.error('操作失败: ' + error.message);
+    message.error("操作失败: " + error.message);
   }
 };
 
 const saveToKnowledge = async () => {
-  if (!selectedEmail.value) {return;}
+  if (!selectedEmail.value) {
+    return;
+  }
 
   try {
     const result = await window.electron.ipcRenderer.invoke(
-      'email:save-to-knowledge',
-      selectedEmail.value.id
+      "email:save-to-knowledge",
+      selectedEmail.value.id,
     );
 
     if (result.success) {
-      message.success('已保存到知识库');
+      message.success("已保存到知识库");
     }
   } catch (error) {
-    message.error('保存失败: ' + error.message);
+    message.error("保存失败: " + error.message);
   }
 };
 
@@ -600,37 +595,48 @@ const forwardEmail = () => {
 };
 
 const handleMenuClick = async ({ key }) => {
-  if (!selectedEmail.value) {return;}
+  if (!selectedEmail.value) {
+    return;
+  }
 
   try {
     switch (key) {
-      case 'markRead':
-        await window.electron.ipcRenderer.invoke('email:mark-as-read', selectedEmail.value.id);
+      case "markRead":
+        await window.electron.ipcRenderer.invoke(
+          "email:mark-as-read",
+          selectedEmail.value.id,
+        );
         selectedEmail.value.is_read = 1;
-        message.success('已标记为已读');
+        message.success("已标记为已读");
         break;
 
-      case 'markUnread':
+      case "markUnread":
         // TODO: 实现标记未读
-        message.info('功能开发中');
+        message.info("功能开发中");
         break;
 
-      case 'archive':
-        await window.electron.ipcRenderer.invoke('email:archive-email', selectedEmail.value.id);
-        message.success('已归档');
+      case "archive":
+        await window.electron.ipcRenderer.invoke(
+          "email:archive-email",
+          selectedEmail.value.id,
+        );
+        message.success("已归档");
         await loadEmails(selectedMailbox.value[0]);
         selectedEmail.value = null;
         break;
 
-      case 'delete':
-        await window.electron.ipcRenderer.invoke('email:delete-email', selectedEmail.value.id);
-        message.success('已删除');
+      case "delete":
+        await window.electron.ipcRenderer.invoke(
+          "email:delete-email",
+          selectedEmail.value.id,
+        );
+        message.success("已删除");
         await loadEmails(selectedMailbox.value[0]);
         selectedEmail.value = null;
         break;
     }
   } catch (error) {
-    message.error('操作失败: ' + error.message);
+    message.error("操作失败: " + error.message);
   }
 };
 
@@ -649,7 +655,7 @@ const onMailboxSelect = (keys) => {
 };
 
 const onEmailSent = () => {
-  message.success('邮件发送成功');
+  message.success("邮件发送成功");
   composerVisible.value = false;
 };
 
@@ -658,22 +664,29 @@ const formatTime = (timestamp) => {
 };
 
 const formatFullTime = (timestamp) => {
-  return dayjs(timestamp).format('YYYY-MM-DD HH:mm:ss');
+  return dayjs(timestamp).format("YYYY-MM-DD HH:mm:ss");
 };
 
 const formatSize = (bytes) => {
-  if (bytes < 1024) {return bytes + ' B';}
-  if (bytes < 1024 * 1024) {return (bytes / 1024).toFixed(2) + ' KB';}
-  return (bytes / 1024 / 1024).toFixed(2) + ' MB';
+  if (bytes < 1024) {
+    return bytes + " B";
+  }
+  if (bytes < 1024 * 1024) {
+    return (bytes / 1024).toFixed(2) + " KB";
+  }
+  return (bytes / 1024 / 1024).toFixed(2) + " MB";
 };
 
 // 监听路由变化
-watch(() => route.params.accountId, (newId) => {
-  if (newId) {
-    accountId.value = newId;
-    loadMailboxes();
-  }
-});
+watch(
+  () => route.params.accountId,
+  (newId) => {
+    if (newId) {
+      accountId.value = newId;
+      loadMailboxes();
+    }
+  },
+);
 
 // 生命周期
 onMounted(() => {
@@ -756,7 +769,7 @@ onMounted(() => {
   background-color: #f5f5f5;
   padding: 2px 6px;
   border-radius: 3px;
-  font-family: 'Courier New', monospace;
+  font-family: "Courier New", monospace;
 }
 
 .email-content :deep(blockquote) {
