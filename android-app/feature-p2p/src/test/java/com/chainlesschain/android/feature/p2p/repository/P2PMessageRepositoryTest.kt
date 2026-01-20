@@ -71,7 +71,7 @@ class P2PMessageRepositoryTest {
         val encryptedMessage = mockk<RatchetMessage>()
 
         every { sessionManager.hasSession(testPeerId) } returns true
-        every { sessionManager.encrypt(testPeerId, content) } returns encryptedMessage
+        coEvery { sessionManager.encrypt(testPeerId, content) } returns encryptedMessage
 
         // When
         val result = repository.sendMessage(testPeerId, testLocalDeviceId, content)
@@ -109,7 +109,7 @@ class P2PMessageRepositoryTest {
     fun `sendMessage encryption failure should fail`() = runTest {
         // Given
         every { sessionManager.hasSession(testPeerId) } returns true
-        every { sessionManager.encrypt(any(), any()) } throws Exception("Encryption failed")
+        coEvery { sessionManager.encrypt(any<String>(), any<String>()) } throws Exception("Encryption failed")
 
         // When
         val result = repository.sendMessage(testPeerId, testLocalDeviceId, "Hello")
@@ -138,7 +138,7 @@ class P2PMessageRepositoryTest {
         )
 
         every { sessionManager.hasSession(testPeerId) } returns true
-        every { sessionManager.decryptToString(testPeerId, any()) } returns decryptedContent
+        coEvery { sessionManager.decryptToString(testPeerId, any()) } returns decryptedContent
 
         // When
         val result = repository.receiveMessage(p2pMessage, testLocalDeviceId)
@@ -170,7 +170,7 @@ class P2PMessageRepositoryTest {
         )
 
         every { sessionManager.hasSession(testPeerId) } returns true
-        every { sessionManager.decryptToString(any(), any()) } returns "Hello"
+        coEvery { sessionManager.decryptToString(any(), any()) } returns "Hello"
 
         // When
         repository.receiveMessage(p2pMessage, testLocalDeviceId)
