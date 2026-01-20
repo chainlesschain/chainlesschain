@@ -48,6 +48,12 @@ class ConversationViewModel @Inject constructor(
         viewModelScope.launch {
             repository.getConversationById(id).collect { conversation ->
                 _currentConversation.value = conversation
+
+                // 自动加载对应模型的API Key
+                conversation?.let {
+                    val provider = getProviderFromModel(it.model)
+                    loadApiKey(provider)
+                }
             }
         }
 
@@ -99,6 +105,16 @@ class ConversationViewModel @Inject constructor(
 
         if (content.isBlank()) {
             _uiState.update { it.copy(error = "消息不能为空") }
+            return
+        }
+
+        // 检查API Key（非Ollama模型需要）
+        val provider = getProviderFromModel(conversation.model)
+        val apiKey = _uiState.value.currentApiKey
+        if (provider != LLMProvider.OLLAMA && apiKey.isNullOrEmpty()) {
+            _uiState.update {
+                it.copy(error = "请先配置${provider.displayName} API Key，可在AI设置中配置")
+            }
             return
         }
 

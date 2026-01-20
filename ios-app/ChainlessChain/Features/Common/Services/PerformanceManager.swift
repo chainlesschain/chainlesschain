@@ -23,6 +23,7 @@ class PerformanceManager: ObservableObject {
     private var monitoringTimer: Timer?
     private var isMonitoring = false
     private let logger = Logger.shared
+    private var memoryWarningObserver: NSObjectProtocol?
 
     // MARK: - Types
 
@@ -127,7 +128,12 @@ class PerformanceManager: ObservableObject {
     // MARK: - Memory Warning Handling
 
     private func setupMemoryWarningObserver() {
-        NotificationCenter.default.addObserver(
+        // Remove existing observer if any
+        if let observer = memoryWarningObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
+
+        memoryWarningObserver = NotificationCenter.default.addObserver(
             forName: UIApplication.didReceiveMemoryWarningNotification,
             object: nil,
             queue: .main
@@ -135,6 +141,14 @@ class PerformanceManager: ObservableObject {
             Task { @MainActor in
                 self?.handleSystemMemoryWarning()
             }
+        }
+    }
+
+    /// Remove memory warning observer
+    func removeObservers() {
+        if let observer = memoryWarningObserver {
+            NotificationCenter.default.removeObserver(observer)
+            memoryWarningObserver = nil
         }
     }
 

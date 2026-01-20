@@ -145,7 +145,7 @@ class P2PDeviceViewModelTest {
     fun `disconnectDevice should delete session`() = runTest {
         // Given
         val peerId = "peer1"
-        coEvery { sessionManager.deleteSession(peerId) } just Runs
+        coEvery { sessionManager.deleteSession(peerId) } just Awaits
 
         // When
         viewModel.disconnectDevice(peerId)

@@ -196,13 +196,20 @@ class ProjectRAGManager: ObservableObject {
         for (vector, score) in searchResults {
             guard score >= minScore else { continue }
 
+            // Extract metadata from vector entry
+            let vectorMetadata: [String: String] = [
+                "projectId": projectId,
+                "filePath": vector.metadata.title,  // filePath stored in title
+                "type": vector.metadata.type
+            ]
+
             let result = RAGQueryResult(
-                projectId: vector.metadata["projectId"] ?? projectId,
-                filePath: vector.metadata["filePath"] ?? "",
-                content: vector.content,
+                projectId: projectId,
+                filePath: vector.metadata.title,  // filePath stored in title
+                content: vector.document,  // Content is in document field
                 score: score,
-                chunkIndex: Int(vector.metadata["chunkIndex"] ?? "0") ?? 0,
-                metadata: vector.metadata
+                chunkIndex: 0,  // Would need extended metadata for this
+                metadata: vectorMetadata
             )
             results.append(result)
 
@@ -304,10 +311,12 @@ class ProjectRAGManager: ObservableObject {
         }
 
         let chunks = vectorStore.getVectors(filter: { metadata in
-            metadata["projectId"] == projectId
+            metadata["type"] == "project_chunk"
         })
 
-        let filePaths = Set(chunks.compactMap { $0.metadata["filePath"] })
+        // Filter for this project and extract unique file paths
+        let projectChunks = chunks.filter { $0.metadata.type == "project_chunk" }
+        let filePaths = Set(projectChunks.map { $0.metadata.title })
 
         return ProjectIndexInfo(
             projectId: projectId,
@@ -460,63 +469,3 @@ enum ProjectRAGError: LocalizedError {
     }
 }
 
-// MARK: - VectorStoreRepository Extensions
-
-extension VectorStoreRepository {
-    /// 根据过滤条件搜索相似向量
-    func searchSimilar(
-        query: [Float],
-        topK: Int,
-        filter: ((Dictionary<String, String>) -> Bool)? = nil
-    ) throws -> [(VectorEntity, Float)] {
-        var results: [(VectorEntity, Float)] = []
-
-        let allVectors = getAllVectors()
-
-        for vector in allVectors {
-            // Apply filter if provided
-            if let filter = filter, !filter(vector.metadata) {
-                continue
-            }
-
-            // Calculate cosine similarity
-            let similarity = cosineSimilarity(query, vector.vector)
-            results.append((vector, similarity))
-        }
-
-        // Sort by similarity descending
-        results.sort { $0.1 > $1.1 }
-
-        return Array(results.prefix(topK))
-    }
-
-    /// 根据过滤条件获取向量
-    func getVectors(filter: @escaping (Dictionary<String, String>) -> Bool) -> [VectorEntity] {
-        return getAllVectors().filter { filter($0.metadata) }
-    }
-
-    /// 根据过滤条件删除向量
-    func deleteVectors(filter: @escaping (Dictionary<String, String>) -> Bool) throws {
-        let vectorsToDelete = getVectors(filter: filter)
-        for vector in vectorsToDelete {
-            try deleteVector(id: vector.id)
-        }
-    }
-
-    private func cosineSimilarity(_ a: [Float], _ b: [Float]) -> Float {
-        guard a.count == b.count, !a.isEmpty else { return 0 }
-
-        var dotProduct: Float = 0
-        var normA: Float = 0
-        var normB: Float = 0
-
-        for i in 0..<a.count {
-            dotProduct += a[i] * b[i]
-            normA += a[i] * a[i]
-            normB += b[i] * b[i]
-        }
-
-        let denominator = sqrt(normA) * sqrt(normB)
-        return denominator > 0 ? dotProduct / denominator : 0
-    }
-}

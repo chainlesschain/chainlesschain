@@ -293,7 +293,13 @@ class VectorStoreRepository {
 
     /// Parse VectorEntry from SQLite statement
     private func parseVectorEntry(_ stmt: OpaquePointer?) -> RepoVectorEntry {
-        let id = String(cString: sqlite3_column_text(stmt, 0))
+        // Safely handle text columns with NULL check
+        let id: String
+        if let idPtr = sqlite3_column_text(stmt, 0) {
+            id = String(cString: idPtr)
+        } else {
+            id = UUID().uuidString  // Fallback for NULL id
+        }
 
         // Safely handle embedding data
         var embedding: [Float] = []
@@ -305,13 +311,34 @@ class VectorStoreRepository {
             }
         }
 
-        let document = String(cString: sqlite3_column_text(stmt, 2))
-        let title = String(cString: sqlite3_column_text(stmt, 3))
-        let contentType = String(cString: sqlite3_column_text(stmt, 4))
+        // Safely handle document column with NULL check
+        let document: String
+        if let docPtr = sqlite3_column_text(stmt, 2) {
+            document = String(cString: docPtr)
+        } else {
+            document = ""
+        }
+
+        // Safely handle title column with NULL check
+        let title: String
+        if let titlePtr = sqlite3_column_text(stmt, 3) {
+            title = String(cString: titlePtr)
+        } else {
+            title = ""
+        }
+
+        // Safely handle content_type column with NULL check
+        let contentType: String
+        if let typePtr = sqlite3_column_text(stmt, 4) {
+            contentType = String(cString: typePtr)
+        } else {
+            contentType = "text"
+        }
 
         var metadata = RepoVectorMetadata(title: title, type: contentType, createdAt: nil, updatedAt: nil)
-        if sqlite3_column_type(stmt, 5) != SQLITE_NULL {
-            let metadataString = String(cString: sqlite3_column_text(stmt, 5))
+        if sqlite3_column_type(stmt, 5) != SQLITE_NULL,
+           let metadataPtr = sqlite3_column_text(stmt, 5) {
+            let metadataString = String(cString: metadataPtr)
             if let metadataData = metadataString.data(using: .utf8),
                let decoded = try? JSONDecoder().decode(RepoVectorMetadata.self, from: metadataData) {
                 metadata = decoded
@@ -350,6 +377,130 @@ class VectorStoreRepository {
         }
 
         return dotProduct / (sqrt(normA) * sqrt(normB))
+    }
+
+    // MARK: - Extended API for ProjectRAGManager
+
+    /// Save vector with simple parameters (for ProjectRAGManager compatibility)
+    func saveVector(
+        id: String,
+        vector: [Float],
+        content: String,
+        metadata: [String: String]
+    ) throws {
+        let title = metadata["filePath"] ?? metadata["title"] ?? "Untitled"
+        let contentType = metadata["type"] ?? "project_chunk"
+
+        let entry = RepoVectorEntry(
+            id: id,
+            embedding: vector,
+            metadata: RepoVectorMetadata(
+                title: title,
+                type: contentType,
+                createdAt: metadata["createdAt"],
+                updatedAt: metadata["updatedAt"]
+            ),
+            document: content,
+            timestamp: Date()
+        )
+
+        // Store extended metadata in the metadata JSON field
+        try saveVectorWithExtendedMetadata(entry, extendedMetadata: metadata)
+    }
+
+    /// Save vector with extended metadata dictionary
+    private func saveVectorWithExtendedMetadata(_ entry: RepoVectorEntry, extendedMetadata: [String: String]) throws {
+        let sql = """
+            INSERT OR REPLACE INTO vector_embeddings
+            (id, embedding, document, title, content_type, metadata, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """
+
+        let embeddingData = encodeEmbedding(entry.embedding)
+        let metadataJson = try? JSONEncoder().encode(extendedMetadata)
+        let metadataString = metadataJson.flatMap { String(data: $0, encoding: .utf8) }
+
+        _ = try database.query(sql, parameters: [
+            entry.id,
+            embeddingData,
+            entry.document,
+            entry.metadata.title,
+            entry.metadata.type,
+            metadataString as Any?,
+            entry.timestamp.timestampMs,
+            Date().timestampMs
+        ]) { _ in () }
+
+        logger.database("Saved vector with extended metadata: \(entry.id)")
+    }
+
+    /// Search similar vectors with metadata filter
+    func searchSimilar(
+        query: [Float],
+        topK: Int,
+        filter: ((Dictionary<String, String>) -> Bool)? = nil
+    ) throws -> [(RepoVectorEntry, Float)] {
+        let allEntries = try getAllVectors()
+        var results: [(RepoVectorEntry, Float)] = []
+
+        for entry in allEntries {
+            // Parse extended metadata for filtering
+            let extendedMetadata = parseExtendedMetadata(entry)
+
+            // Apply filter if provided
+            if let filter = filter, !filter(extendedMetadata) {
+                continue
+            }
+
+            // Calculate cosine similarity
+            let similarity = cosineSimilarity(query, entry.embedding)
+            results.append((entry, similarity))
+        }
+
+        // Sort by similarity descending and return top-K
+        results.sort { $0.1 > $1.1 }
+        return Array(results.prefix(topK))
+    }
+
+    /// Get vectors with metadata filter
+    func getVectors(filter: @escaping (Dictionary<String, String>) -> Bool) -> [RepoVectorEntry] {
+        guard let allVectors = try? getAllVectors() else { return [] }
+
+        return allVectors.filter { entry in
+            let extendedMetadata = parseExtendedMetadata(entry)
+            return filter(extendedMetadata)
+        }
+    }
+
+    /// Delete vectors matching filter
+    func deleteVectors(filter: @escaping (Dictionary<String, String>) -> Bool) throws {
+        let vectorsToDelete = getVectors(filter: filter)
+        for vector in vectorsToDelete {
+            try deleteVector(id: vector.id)
+        }
+
+        if !vectorsToDelete.isEmpty {
+            logger.database("Deleted \(vectorsToDelete.count) vectors by filter")
+        }
+    }
+
+    /// Parse extended metadata from RepoVectorEntry
+    private func parseExtendedMetadata(_ entry: RepoVectorEntry) -> [String: String] {
+        // Try to get extended metadata from the stored JSON
+        // Fallback to basic metadata
+        var result: [String: String] = [
+            "title": entry.metadata.title,
+            "type": entry.metadata.type
+        ]
+
+        if let createdAt = entry.metadata.createdAt {
+            result["createdAt"] = createdAt
+        }
+        if let updatedAt = entry.metadata.updatedAt {
+            result["updatedAt"] = updatedAt
+        }
+
+        return result
     }
 
     // MARK: - Statistics
