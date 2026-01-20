@@ -23,7 +23,8 @@ object DatabaseMigrations {
     fun getAllMigrations(): Array<Migration> {
         return arrayOf(
             MIGRATION_1_2,
-            MIGRATION_2_3
+            MIGRATION_2_3,
+            MIGRATION_3_4
         )
     }
 
@@ -92,6 +93,43 @@ object DatabaseMigrations {
             """.trimIndent())
 
             Log.i(TAG, "Migration 2 to 3 completed successfully")
+        }
+    }
+
+    /**
+     * 迁移 3 -> 4
+     *
+     * 添加离线消息队列表
+     */
+    val MIGRATION_3_4 = object : Migration(3, 4) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            Log.i(TAG, "Migrating database from version 3 to 4")
+
+            // 创建 offline_message_queue 表
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS `offline_message_queue` (
+                    `id` TEXT NOT NULL PRIMARY KEY,
+                    `peerId` TEXT NOT NULL,
+                    `messageType` TEXT NOT NULL,
+                    `payload` TEXT NOT NULL,
+                    `priority` TEXT NOT NULL DEFAULT 'NORMAL',
+                    `requireAck` INTEGER NOT NULL DEFAULT 1,
+                    `retryCount` INTEGER NOT NULL DEFAULT 0,
+                    `maxRetries` INTEGER NOT NULL DEFAULT 5,
+                    `lastRetryAt` INTEGER,
+                    `expiresAt` INTEGER,
+                    `status` TEXT NOT NULL DEFAULT 'PENDING',
+                    `createdAt` INTEGER NOT NULL,
+                    `updatedAt` INTEGER NOT NULL
+                )
+            """.trimIndent())
+
+            // 创建索引
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_offline_message_queue_peerId_status` ON `offline_message_queue` (`peerId`, `status`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_offline_message_queue_status_createdAt` ON `offline_message_queue` (`status`, `createdAt`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_offline_message_queue_priority_createdAt` ON `offline_message_queue` (`priority`, `createdAt`)")
+
+            Log.i(TAG, "Migration 3 to 4 completed successfully")
         }
     }
 

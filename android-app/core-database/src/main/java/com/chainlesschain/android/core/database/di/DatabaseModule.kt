@@ -7,6 +7,7 @@ import com.chainlesschain.android.core.database.ChainlessChainDatabase
 import com.chainlesschain.android.core.database.dao.ConversationDao
 import com.chainlesschain.android.core.database.dao.KnowledgeItemDao
 import com.chainlesschain.android.core.database.dao.P2PMessageDao
+import com.chainlesschain.android.core.database.dao.OfflineQueueDao
 import com.chainlesschain.android.core.database.migration.DatabaseMigrations
 import com.chainlesschain.android.core.security.KeyManager
 import dagger.Module
@@ -94,5 +95,14 @@ object DatabaseModule {
     @Singleton
     fun provideP2PMessageDao(database: ChainlessChainDatabase): P2PMessageDao {
         return database.p2pMessageDao()
+    }
+
+    /**
+     * 提供离线消息队列DAO
+     */
+    @Provides
+    @Singleton
+    fun provideOfflineQueueDao(database: ChainlessChainDatabase): OfflineQueueDao {
+        return database.offlineQueueDao()
     }
 }

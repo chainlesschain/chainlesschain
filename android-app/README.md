@@ -4,10 +4,10 @@ ChainlessChain的Android原生旗舰版本，提供极致性能和完整硬件�
 
 ## 项目状态
 
-**当前版本**: v0.4.1 (MVP Phase 4 完整实现 - AI对话 + 向量搜索 + 全面测试)
-**完成度**: 60%
+**当前版本**: v0.5.0 (MVP Phase 5 完整实现 - P2P集成 + 离线队列 + 测试覆盖)
+**完成度**: 70%
 
-### ✅ 已完成（Phase 1 + Phase 2 + Phase 3 + Phase 4）
+### ✅ 已完成（Phase 1 + Phase 2 + Phase 3 + Phase 4 + Phase 5）
 
 **Phase 1 (Week 1-2)：**
 
@@ -74,11 +74,46 @@ ChainlessChain的Android原生旗舰版本，提供极致性能和完整硬件�
 - [x] RAGRetrieverTest (16个用例)
 - [x] **总计64个测试用例，覆盖核心功能**
 
+**Phase 5 (Week 9-10)：** ⭐完成
+
+**P2P通信模块：**
+
+- [x] P2P设备列表界面（NSD发现、配对状态、在线状态）
+- [x] P2P聊天界面（E2EE消息、流式显示、连接状态）
+- [x] 设备配对流程（5阶段配对）
+- [x] Safety Numbers验证（60位数字、QR扫描）
+- [x] 会话指纹显示（色块可视化）
+- [x] DID身份管理（导出、分享、设备管理）
+- [x] 消息队列监控界面
+- [x] QR码扫描（CameraX实时）
+
+**离线消息队列：**
+
+- [x] 离线消息持久化（Room数据库）
+- [x] 指数退避重试机制（1s, 2s, 5s, 10s, 30s）
+- [x] 消息优先级队列（HIGH, NORMAL, LOW）
+- [x] 过期消息自动清理
+- [x] 队列统计功能
+
+**核心模块：**
+
+- [x] P2PMessageRepository（E2EE加密/解密、ACK确认）
+- [x] P2PChatViewModel（消息状态管理）
+- [x] OfflineMessageQueue（离线队列管理）
+- [x] 数据库迁移（v3→v4 离线队列表）
+
+**测试覆盖：**
+
+- [x] OfflineMessageQueueTest (26个用例)
+- [x] P2PMessageRepositoryTest (18个用例)
+- [x] P2PChatViewModelTest (12个用例)
+- [x] **总计120+个测试用例，覆盖核心功能**
+
 ### 🚧 进行中
 
-- [ ] P2P网络集成
-- [ ] DID身份系统
-- [ ] 设备间同步
+- [ ] 真实P2P网络连接（libp2p集成）
+- [ ] NAT穿透（STUN/TURN）
+- [ ] 文件传输模块
 
 ---
 
