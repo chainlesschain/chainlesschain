@@ -44,7 +44,7 @@ import com.chainlesschain.android.core.database.util.Converters
         ProjectActivityEntity::class,
         ProjectChatMessageEntity::class,
     ],
-    version = 8,
+    version = 9,
     exportSchema = true
 )
 @TypeConverters(Converters::class)

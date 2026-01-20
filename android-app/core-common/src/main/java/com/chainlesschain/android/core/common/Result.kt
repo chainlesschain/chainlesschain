@@ -65,3 +65,27 @@ inline fun <T> Result<T>.onError(action: (Throwable) -> Unit): Result<T> {
     }
     return this
 }
+
+/**
+ * Fold result into a single value
+ */
+inline fun <T, R> Result<T>.fold(
+    onSuccess: (T) -> R,
+    onFailure: (Throwable) -> R
+): R {
+    return when (this) {
+        is Result.Success -> onSuccess(data)
+        is Result.Error -> onFailure(exception)
+        is Result.Loading -> throw IllegalStateException("Cannot fold Loading state")
+    }
+}
+
+/**
+ * Get data or throw exception
+ */
+val <T> Result<T>.data: T
+    get() = when (this) {
+        is Result.Success -> data
+        is Result.Error -> throw exception
+        is Result.Loading -> throw IllegalStateException("Cannot get data from Loading state")
+    }

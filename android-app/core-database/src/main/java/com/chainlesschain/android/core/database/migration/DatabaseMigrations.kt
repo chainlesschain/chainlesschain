@@ -28,7 +28,8 @@ object DatabaseMigrations {
             MIGRATION_4_5,
             MIGRATION_5_6,
             MIGRATION_6_7,
-            MIGRATION_7_8
+            MIGRATION_7_8,
+            MIGRATION_8_9
         )
     }
 
@@ -374,6 +375,55 @@ object DatabaseMigrations {
             db.execSQL("CREATE INDEX IF NOT EXISTS `index_project_chat_messages_projectId_createdAt` ON `project_chat_messages` (`projectId`, `createdAt`)")
 
             Log.i(TAG, "Migration 7 to 8 completed successfully")
+        }
+    }
+
+    /**
+     * 迁移 8 -> 9
+     *
+     * 增强项目AI聊天消息表，添加上下文模式、消息类型、任务计划等字段
+     */
+    val MIGRATION_8_9 = object : Migration(8, 9) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            Log.i(TAG, "Migrating database from version 8 to 9")
+
+            // 添加消息类型字段
+            db.execSQL("""
+                ALTER TABLE `project_chat_messages`
+                ADD COLUMN `messageType` TEXT NOT NULL DEFAULT 'NORMAL'
+            """.trimIndent())
+
+            // 添加上下文模式字段
+            db.execSQL("""
+                ALTER TABLE `project_chat_messages`
+                ADD COLUMN `contextMode` TEXT NOT NULL DEFAULT 'PROJECT'
+            """.trimIndent())
+
+            // 添加引用文件路径字段
+            db.execSQL("""
+                ALTER TABLE `project_chat_messages`
+                ADD COLUMN `referencedFilePaths` TEXT
+            """.trimIndent())
+
+            // 添加任务计划数据字段
+            db.execSQL("""
+                ALTER TABLE `project_chat_messages`
+                ADD COLUMN `taskPlanData` TEXT
+            """.trimIndent())
+
+            // 添加父消息ID字段（用于线程化回复）
+            db.execSQL("""
+                ALTER TABLE `project_chat_messages`
+                ADD COLUMN `parentMessageId` TEXT
+            """.trimIndent())
+
+            // 添加元数据字段
+            db.execSQL("""
+                ALTER TABLE `project_chat_messages`
+                ADD COLUMN `metadata` TEXT
+            """.trimIndent())
+
+            Log.i(TAG, "Migration 8 to 9 completed successfully")
         }
     }
 

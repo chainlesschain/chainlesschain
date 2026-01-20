@@ -3,6 +3,8 @@ package com.chainlesschain.android.feature.project.ui.components
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -24,6 +26,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.AlternateEmail
 import androidx.compose.material.icons.filled.AttachFile
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Clear
@@ -63,6 +66,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.chainlesschain.android.core.database.entity.ProjectChatMessageEntity
 import com.chainlesschain.android.core.database.entity.ProjectChatRole
+import com.chainlesschain.android.core.database.entity.ProjectFileEntity
+import com.chainlesschain.android.core.database.entity.ProjectMessageType
+import com.chainlesschain.android.core.ui.components.MarkdownText
+import com.chainlesschain.android.feature.project.model.ChatContextMode
+import com.chainlesschain.android.feature.project.model.TaskPlan
+import com.chainlesschain.android.feature.project.model.ThinkingStage
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -80,6 +89,26 @@ fun ProjectChatPanel(
     onQuickAction: (String) -> Unit,
     onClearChat: () -> Unit,
     onRetry: () -> Unit,
+    // Context mode props
+    contextMode: ChatContextMode = ChatContextMode.PROJECT,
+    onContextModeChange: (ChatContextMode) -> Unit = {},
+    selectedFileName: String? = null,
+    // File mention props
+    projectFiles: List<ProjectFileEntity> = emptyList(),
+    isFileMentionVisible: Boolean = false,
+    fileMentionSearchQuery: String = "",
+    onFileMentionSearchChange: (String) -> Unit = {},
+    onFileSelected: (ProjectFileEntity) -> Unit = {},
+    onShowFileMention: () -> Unit = {},
+    onHideFileMention: () -> Unit = {},
+    // Thinking stage props
+    currentThinkingStage: ThinkingStage = ThinkingStage.UNDERSTANDING,
+    // Task plan props
+    currentTaskPlan: TaskPlan? = null,
+    onConfirmTaskPlan: () -> Unit = {},
+    onCancelTaskPlan: () -> Unit = {},
+    onModifyTaskPlan: () -> Unit = {},
+    onRetryTaskStep: (com.chainlesschain.android.feature.project.model.TaskStep) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val listState = rememberLazyListState()
@@ -92,6 +121,13 @@ fun ProjectChatPanel(
     }
 
     Column(modifier = modifier.fillMaxSize()) {
+        // Context Mode Switcher
+        CompactContextModeSwitcher(
+            currentMode = contextMode,
+            onModeChange = onContextModeChange,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+        )
+
         // Quick Actions Bar
         QuickActionsBar(
             onQuickAction = onQuickAction,
@@ -119,29 +155,72 @@ fun ProjectChatPanel(
                             onRetry = onRetry
                         )
                     }
+
+                    // Show task plan card if available
+                    currentTaskPlan?.let { plan ->
+                        item {
+                            TaskPlanCard(
+                                taskPlan = plan,
+                                onConfirm = onConfirmTaskPlan,
+                                onCancel = onCancelTaskPlan,
+                                onModify = onModifyTaskPlan,
+                                onRetry = onRetryTaskStep
+                            )
+                        }
+                    }
                 }
             }
 
-            // Loading indicator
+            // Enhanced thinking indicator
             AnimatedVisibility(
                 visible = isAiResponding,
-                enter = fadeIn(),
-                exit = fadeOut(),
+                enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
+                exit = fadeOut() + slideOutVertically(targetOffsetY = { it / 2 }),
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(bottom = 8.dp)
             ) {
-                ThinkingIndicator()
+                EnhancedThinkingIndicator(
+                    currentStage = currentThinkingStage,
+                    isVisible = true,
+                    showProgress = true
+                )
+            }
+
+            // File mention popup
+            AnimatedVisibility(
+                visible = isFileMentionVisible,
+                enter = fadeIn() + slideInVertically(initialOffsetY = { it }),
+                exit = fadeOut() + slideOutVertically(targetOffsetY = { it }),
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                FileMentionPopup(
+                    isVisible = isFileMentionVisible,
+                    files = projectFiles,
+                    searchQuery = fileMentionSearchQuery,
+                    onSearchQueryChange = onFileMentionSearchChange,
+                    onFileSelected = onFileSelected,
+                    onDismiss = onHideFileMention
+                )
             }
         }
 
-        // Input Bar
-        ChatInputBar(
+        // Input Bar with file mention support
+        EnhancedChatInputBar(
             text = inputText,
-            onTextChange = onInputChange,
+            onTextChange = { newText ->
+                onInputChange(newText)
+                // Check for @ trigger
+                if (newText.endsWith("@")) {
+                    onShowFileMention()
+                }
+            },
             onSend = onSendMessage,
             isLoading = isAiResponding,
             onClearChat = onClearChat,
+            onFileMentionClick = onShowFileMention,
             modifier = Modifier.fillMaxWidth()
         )
     }
@@ -359,10 +438,20 @@ private fun ChatMessageBubble(
                 )
             ) {
                 Column(modifier = Modifier.padding(12.dp)) {
-                    // Quick action badge
-                    if (message.isQuickAction && message.quickActionType != null) {
+                    // Message type badge
+                    val typeBadge = when {
+                        message.isQuickAction && message.quickActionType != null ->
+                            message.quickActionType.replace("_", " ").uppercase()
+                        message.messageType == ProjectMessageType.TASK_PLAN -> "TASK PLAN"
+                        message.messageType == ProjectMessageType.TASK_ANALYSIS -> "ANALYSIS"
+                        message.messageType == ProjectMessageType.INTENT_CONFIRM -> "CONFIRM"
+                        message.messageType == ProjectMessageType.CREATION -> "CREATING"
+                        else -> null
+                    }
+
+                    typeBadge?.let { badge ->
                         Text(
-                            text = message.quickActionType.replace("_", " ").uppercase(),
+                            text = badge,
                             style = MaterialTheme.typography.labelSmall,
                             color = if (isUser)
                                 MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f)
@@ -372,17 +461,26 @@ private fun ChatMessageBubble(
                         Spacer(modifier = Modifier.height(4.dp))
                     }
 
-                    // Message content
-                    Text(
-                        text = message.content.ifEmpty {
-                            if (message.isStreaming) "..." else ""
-                        },
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = if (isUser)
-                            MaterialTheme.colorScheme.onPrimary
-                        else
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    // Message content - use Markdown rendering for assistant messages
+                    if (isUser || message.content.isEmpty()) {
+                        Text(
+                            text = message.content.ifEmpty {
+                                if (message.isStreaming) "..." else ""
+                            },
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (isUser)
+                                MaterialTheme.colorScheme.onPrimary
+                            else
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    } else {
+                        // Render Markdown for assistant messages
+                        MarkdownText(
+                            markdown = message.content,
+                            textColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            linkColor = MaterialTheme.colorScheme.primary
+                        )
+                    }
 
                     // Error state
                     if (message.error != null) {
@@ -565,6 +663,116 @@ private fun ChatInputBar(
 
             Spacer(modifier = Modifier.width(8.dp))
 
+            IconButton(
+                onClick = onSend,
+                enabled = text.isNotBlank() && !isLoading,
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .background(
+                        if (text.isNotBlank() && !isLoading)
+                            MaterialTheme.colorScheme.primary
+                        else
+                            MaterialTheme.colorScheme.surfaceVariant
+                    )
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.Send,
+                        contentDescription = "Send",
+                        tint = if (text.isNotBlank())
+                            MaterialTheme.colorScheme.onPrimary
+                        else
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Enhanced chat input bar with file mention support
+ */
+@Composable
+private fun EnhancedChatInputBar(
+    text: String,
+    onTextChange: (String) -> Unit,
+    onSend: () -> Unit,
+    isLoading: Boolean,
+    onClearChat: () -> Unit,
+    onFileMentionClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var showMenu by remember { mutableStateOf(false) }
+
+    Surface(
+        modifier = modifier,
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 2.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
+            verticalAlignment = Alignment.Bottom
+        ) {
+            // Menu button
+            Box {
+                IconButton(onClick = { showMenu = true }) {
+                    Icon(
+                        imageVector = Icons.Default.MoreVert,
+                        contentDescription = "More options"
+                    )
+                }
+                DropdownMenu(
+                    expanded = showMenu,
+                    onDismissRequest = { showMenu = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Clear chat") },
+                        leadingIcon = { Icon(Icons.Default.Clear, null) },
+                        onClick = {
+                            onClearChat()
+                            showMenu = false
+                        }
+                    )
+                }
+            }
+
+            // File mention button
+            IconButton(
+                onClick = onFileMentionClick,
+                enabled = !isLoading
+            ) {
+                Icon(
+                    imageVector = Icons.Default.AlternateEmail,
+                    contentDescription = "Mention file",
+                    tint = MaterialTheme.colorScheme.primary.copy(
+                        alpha = if (isLoading) 0.5f else 1f
+                    )
+                )
+            }
+
+            // Input field
+            OutlinedTextField(
+                value = text,
+                onValueChange = onTextChange,
+                modifier = Modifier.weight(1f),
+                placeholder = { Text("Ask about your project... Use @ to mention files") },
+                maxLines = 4,
+                shape = RoundedCornerShape(24.dp),
+                enabled = !isLoading
+            )
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            // Send button
             IconButton(
                 onClick = onSend,
                 enabled = text.isNotBlank() && !isLoading,
