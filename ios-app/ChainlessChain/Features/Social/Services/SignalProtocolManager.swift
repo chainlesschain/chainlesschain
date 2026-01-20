@@ -438,12 +438,17 @@ class SignalProtocolManager: ObservableObject {
         // Use AES-GCM for encryption with derived message key
         let sealedBox = try AES.GCM.seal(messageData, using: messageKey, nonce: nonce)
 
+        // Get combined ciphertext data
+        guard let combinedData = sealedBox.combined else {
+            throw SignalProtocolError.encryptionFailed
+        }
+
         // Create message envelope with header
         let envelope = MessageEnvelope(
             dhPublicKey: session.dhRatchetKeyPair?.publicKey.rawRepresentation,
             previousChainLength: session.previousSendingChainLength,
             messageNumber: session.sendingMessageNumber,
-            ciphertext: sealedBox.combined!
+            ciphertext: combinedData
         )
 
         // Update session

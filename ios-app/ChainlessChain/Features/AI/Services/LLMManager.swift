@@ -58,8 +58,13 @@ class LLMManager: ObservableObject {
     // MARK: - Private Properties
     private var client: LLMClient?
     private var conversationContext: [String: [LLMMessage]] = [:]
+    private var conversationAccessOrder: [String] = []  // LRU tracking
     private var config: LLMConfig
     private let logger = Logger.shared
+
+    // MARK: - Context Limits
+    private let maxConversations = 50
+    private let maxMessagesPerConversation = 100
 
     // MARK: - Configuration
     struct LLMConfig {
@@ -187,11 +192,11 @@ class LLMManager: ObservableObject {
 
         // Update conversation context
         if let conversationId = conversationId {
-            if conversationContext[conversationId] == nil {
-                conversationContext[conversationId] = []
-            }
-            conversationContext[conversationId]?.append(LLMMessage(role: "user", content: prompt))
-            conversationContext[conversationId]?.append(LLMMessage(role: "assistant", content: response.text))
+            updateConversationContext(
+                conversationId: conversationId,
+                userMessage: prompt,
+                assistantMessage: response.text
+            )
         }
 
         return response
@@ -225,11 +230,11 @@ class LLMManager: ObservableObject {
 
         // Update conversation context
         if let conversationId = conversationId {
-            if conversationContext[conversationId] == nil {
-                conversationContext[conversationId] = []
-            }
-            conversationContext[conversationId]?.append(LLMMessage(role: "user", content: prompt))
-            conversationContext[conversationId]?.append(LLMMessage(role: "assistant", content: response.text))
+            updateConversationContext(
+                conversationId: conversationId,
+                userMessage: prompt,
+                assistantMessage: response.text
+            )
         }
 
         return response
@@ -237,12 +242,61 @@ class LLMManager: ObservableObject {
 
     // MARK: - Context Management
 
+    /// Update conversation context with bounds checking
+    private func updateConversationContext(conversationId: String, userMessage: String, assistantMessage: String) {
+        // Update LRU order
+        if let index = conversationAccessOrder.firstIndex(of: conversationId) {
+            conversationAccessOrder.remove(at: index)
+        }
+        conversationAccessOrder.append(conversationId)
+
+        // Initialize if needed
+        if conversationContext[conversationId] == nil {
+            conversationContext[conversationId] = []
+        }
+
+        // Add new messages
+        conversationContext[conversationId]?.append(LLMMessage(role: "user", content: userMessage))
+        conversationContext[conversationId]?.append(LLMMessage(role: "assistant", content: assistantMessage))
+
+        // Trim messages if over limit (keep most recent)
+        if let count = conversationContext[conversationId]?.count, count > maxMessagesPerConversation {
+            let excess = count - maxMessagesPerConversation
+            conversationContext[conversationId]?.removeFirst(excess)
+            logger.debug("[LLMManager] Trimmed \(excess) old messages from conversation: \(conversationId)")
+        }
+
+        // Prune oldest conversations if over limit
+        pruneConversationsIfNeeded()
+    }
+
+    /// Remove oldest conversations when limit exceeded
+    private func pruneConversationsIfNeeded() {
+        guard conversationContext.count > maxConversations else { return }
+
+        let toRemove = conversationContext.count - maxConversations
+        let conversationsToRemove = Array(conversationAccessOrder.prefix(toRemove))
+
+        for conversationId in conversationsToRemove {
+            conversationContext.removeValue(forKey: conversationId)
+            if let index = conversationAccessOrder.firstIndex(of: conversationId) {
+                conversationAccessOrder.remove(at: index)
+            }
+        }
+
+        logger.debug("[LLMManager] Pruned \(toRemove) old conversations, remaining: \(conversationContext.count)")
+    }
+
     /// Clear conversation context
     func clearContext(conversationId: String? = nil) {
         if let conversationId = conversationId {
             conversationContext.removeValue(forKey: conversationId)
+            if let index = conversationAccessOrder.firstIndex(of: conversationId) {
+                conversationAccessOrder.remove(at: index)
+            }
         } else {
             conversationContext.removeAll()
+            conversationAccessOrder.removeAll()
         }
     }
 

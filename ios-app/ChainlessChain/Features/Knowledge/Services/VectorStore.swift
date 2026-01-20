@@ -1,5 +1,6 @@
 import Foundation
 import CoreCommon
+import Accelerate
 
 /// Vector Store - Manages vector storage and similarity search
 /// Reference: desktop-app-vue/src/main/vector/vector-store.js
@@ -210,15 +211,18 @@ class VectorStore: ObservableObject {
         logger.debug("[VectorStore] Deleted vector: \(id)")
     }
 
-    /// Search for similar vectors
+    /// Search for similar vectors using optimized min-heap algorithm
     /// - Parameters:
     ///   - queryEmbedding: Query vector
     ///   - topK: Number of results to return (optional, uses default if nil)
     ///   - filter: Metadata filter (optional)
-    /// - Returns: Array of search results sorted by similarity
+    /// - Returns: Array of search results sorted by similarity (O(n log k) complexity)
     func search(queryEmbedding: [Float], topK: Int? = nil, filter: [String: String]? = nil) async throws -> [SearchResult] {
         let k = topK ?? self.topK
-        var results: [SearchResult] = []
+
+        // Use a min-heap to maintain top-K results efficiently
+        // This gives us O(n log k) instead of O(n log n)
+        var minHeap = MinHeap<ScoredResult>(capacity: k)
 
         // Calculate similarity for all vectors
         for (id, entry) in vectors {
@@ -249,48 +253,128 @@ class VectorStore: ObservableObject {
 
             let similarity = cosineSimilarity(queryEmbedding, entry.embedding)
 
-            // Only include results above threshold
+            // Only consider results above threshold
             if similarity >= similarityThreshold {
-                results.append(SearchResult(
+                let scored = ScoredResult(
                     id: id,
                     score: similarity,
                     metadata: entry.metadata,
                     document: entry.document
-                ))
+                )
+
+                // Add to heap, automatically maintaining top-K
+                minHeap.insert(scored)
             }
         }
 
-        // Sort by similarity (descending)
-        results.sort { $0.score > $1.score }
+        // Extract results in descending order of score
+        let results = minHeap.extractAllDescending().map { scored in
+            SearchResult(
+                id: scored.id,
+                score: scored.score,
+                metadata: scored.metadata,
+                document: scored.document
+            )
+        }
 
-        // Return top-K results
-        let topResults = Array(results.prefix(k))
-        logger.debug("[VectorStore] Search returned \(topResults.count) results")
-
-        return topResults
+        logger.debug("[VectorStore] Search returned \(results.count) results")
+        return results
     }
 
-    /// Calculate cosine similarity between two vectors
+    /// Internal scored result for heap operations
+    private struct ScoredResult: Comparable {
+        let id: String
+        let score: Float
+        let metadata: VectorMetadata
+        let document: String
+
+        // Min-heap comparison (lower score = higher priority for removal)
+        static func < (lhs: ScoredResult, rhs: ScoredResult) -> Bool {
+            return lhs.score < rhs.score
+        }
+    }
+
+    /// Min-heap implementation for efficient top-K selection
+    private struct MinHeap<T: Comparable> {
+        private var heap: [T] = []
+        private let capacity: Int
+
+        init(capacity: Int) {
+            self.capacity = capacity
+            heap.reserveCapacity(capacity + 1)
+        }
+
+        mutating func insert(_ element: T) {
+            if heap.count < capacity {
+                heap.append(element)
+                siftUp(heap.count - 1)
+            } else if element > heap[0] {
+                // New element is larger than smallest in heap
+                heap[0] = element
+                siftDown(0)
+            }
+        }
+
+        mutating func extractAllDescending() -> [T] {
+            // Sort in descending order (highest first)
+            return heap.sorted { $0 > $1 }
+        }
+
+        private mutating func siftUp(_ index: Int) {
+            var child = index
+            var parent = (child - 1) / 2
+            while child > 0 && heap[child] < heap[parent] {
+                heap.swapAt(child, parent)
+                child = parent
+                parent = (child - 1) / 2
+            }
+        }
+
+        private mutating func siftDown(_ index: Int) {
+            var parent = index
+            while true {
+                let left = 2 * parent + 1
+                let right = 2 * parent + 2
+                var smallest = parent
+
+                if left < heap.count && heap[left] < heap[smallest] {
+                    smallest = left
+                }
+                if right < heap.count && heap[right] < heap[smallest] {
+                    smallest = right
+                }
+                if smallest == parent {
+                    break
+                }
+                heap.swapAt(parent, smallest)
+                parent = smallest
+            }
+        }
+    }
+
+    /// Calculate cosine similarity between two vectors using SIMD (Accelerate framework)
     private func cosineSimilarity(_ vecA: [Float], _ vecB: [Float]) -> Float {
         guard vecA.count == vecB.count, !vecA.isEmpty else {
             return 0
         }
 
+        let count = vDSP_Length(vecA.count)
+
+        // Calculate dot product using SIMD
         var dotProduct: Float = 0
-        var normA: Float = 0
-        var normB: Float = 0
+        vDSP_dotpr(vecA, 1, vecB, 1, &dotProduct, count)
 
-        for i in 0..<vecA.count {
-            dotProduct += vecA[i] * vecB[i]
-            normA += vecA[i] * vecA[i]
-            normB += vecB[i] * vecB[i]
-        }
+        // Calculate squared norms using SIMD
+        var normASq: Float = 0
+        var normBSq: Float = 0
+        vDSP_svesq(vecA, 1, &normASq, count)
+        vDSP_svesq(vecB, 1, &normBSq, count)
 
-        guard normA > 0, normB > 0 else {
+        guard normASq > 0, normBSq > 0 else {
             return 0
         }
 
-        return dotProduct / (sqrt(normA) * sqrt(normB))
+        return dotProduct / (sqrt(normASq) * sqrt(normBSq))
     }
 
     /// Get vector store statistics
