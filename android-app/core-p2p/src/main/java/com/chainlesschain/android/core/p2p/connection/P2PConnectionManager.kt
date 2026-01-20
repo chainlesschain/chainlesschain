@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import com.chainlesschain.android.core.p2p.discovery.DeviceDiscovery
 import com.chainlesschain.android.core.p2p.model.ConnectionStatus
+import com.chainlesschain.android.core.p2p.model.MessageType
 import com.chainlesschain.android.core.p2p.model.P2PDevice
 import com.chainlesschain.android.core.p2p.model.P2PMessage
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -16,12 +17,15 @@ import javax.inject.Singleton
  * P2P连接管理器
  *
  * 协调设备发现、信令交换和WebRTC连接建立的整个流程
+ * 支持心跳检测和自动重连
  */
 @Singleton
 class P2PConnectionManager @Inject constructor(
     @ApplicationContext private val context: Context,
     private val deviceDiscovery: DeviceDiscovery,
-    private val signalingClient: SignalingClient
+    private val signalingClient: SignalingClient,
+    private val heartbeatManager: HeartbeatManager,
+    private val autoReconnectManager: AutoReconnectManager
 ) {
 
     companion object {
@@ -44,11 +48,24 @@ class P2PConnectionManager @Inject constructor(
     private val _receivedMessages = MutableSharedFlow<P2PMessage>()
     val receivedMessages: Flow<P2PMessage> = _receivedMessages.asSharedFlow()
 
+    // 连接超时事件
+    val connectionTimeoutEvents: SharedFlow<ConnectionTimeoutEvent> = heartbeatManager.connectionTimeoutEvents
+
+    // 重连状态事件
+    val reconnectStatusEvents: SharedFlow<ReconnectStatusEvent> = autoReconnectManager.reconnectStatusEvents
+
     init {
         // 监听信令消息
         scope.launch {
             signalingClient.signalingMessages.collect { message ->
                 handleSignalingMessage(message)
+            }
+        }
+
+        // 监听连接超时事件
+        scope.launch {
+            heartbeatManager.connectionTimeoutEvents.collect { event ->
+                handleConnectionTimeout(event)
             }
         }
 
@@ -65,11 +82,69 @@ class P2PConnectionManager @Inject constructor(
         localDevice = device
         Log.i(TAG, "P2P network initialized for device: ${device.deviceName}")
 
+        // 初始化心跳管理器
+        heartbeatManager.start(device.deviceId) { deviceId, message ->
+            sendHeartbeat(deviceId, message)
+        }
+
+        // 初始化自动重连管理器
+        autoReconnectManager.start { targetDevice ->
+            reconnectToDevice(targetDevice)
+        }
+
         // 注册本地服务
         deviceDiscovery.registerService(device)
 
         // 开始发现设备
         deviceDiscovery.startDiscovery()
+    }
+
+    /**
+     * 发送心跳消息
+     */
+    private suspend fun sendHeartbeat(deviceId: String, message: P2PMessage) {
+        try {
+            connections[deviceId]?.let { connection ->
+                if (connection.isConnected()) {
+                    connection.sendMessage(message)
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to send heartbeat to $deviceId", e)
+        }
+    }
+
+    /**
+     * 重连到设备
+     */
+    private suspend fun reconnectToDevice(device: P2PDevice) {
+        Log.i(TAG, "Attempting to reconnect to: ${device.deviceName}")
+
+        // 先断开旧连接
+        connections[device.deviceId]?.let { oldConnection ->
+            try {
+                oldConnection.disconnect()
+            } catch (e: Exception) {
+                Log.w(TAG, "Error disconnecting old connection", e)
+            }
+            connections.remove(device.deviceId)
+        }
+
+        // 建立新连接
+        connectToDevice(device)
+    }
+
+    /**
+     * 处理连接超时事件
+     */
+    private fun handleConnectionTimeout(event: ConnectionTimeoutEvent) {
+        Log.w(TAG, "Connection timeout for device: ${event.deviceId}, will retry: ${event.willRetry}")
+
+        if (!event.willRetry) {
+            // 最终断开连接
+            removeConnectedDevice(event.deviceId)
+            connections.remove(event.deviceId)
+        }
     }
 
     /**
@@ -128,17 +203,25 @@ class P2PConnectionManager @Inject constructor(
                 connection.observeConnectionState().collect { state ->
                     when (state) {
                         is ConnectionState.Connected -> {
-                            addConnectedDevice(device.copy(status = ConnectionStatus.CONNECTED))
+                            val connectedDevice = device.copy(status = ConnectionStatus.CONNECTED)
+                            addConnectedDevice(connectedDevice)
+
+                            // 注册心跳监控
+                            heartbeatManager.registerDevice(device.deviceId)
+
+                            // 缓存设备信息用于重连
+                            autoReconnectManager.cacheDevice(connectedDevice)
+
+                            // 重置重连计数
+                            heartbeatManager.resetReconnectAttempts(device.deviceId)
+
                             Log.i(TAG, "Connected to device: ${device.deviceName}")
                         }
                         is ConnectionState.Disconnected -> {
-                            removeConnectedDevice(device.deviceId)
-                            connections.remove(device.deviceId)
-                            Log.i(TAG, "Disconnected from device: ${device.deviceName}")
+                            handleDeviceDisconnection(device.deviceId, device.deviceName, ReconnectReason.CONNECTION_LOST)
                         }
                         is ConnectionState.Failed -> {
-                            removeConnectedDevice(device.deviceId)
-                            connections.remove(device.deviceId)
+                            handleDeviceDisconnection(device.deviceId, device.deviceName, ReconnectReason.ICE_FAILED)
                             Log.e(TAG, "Connection failed: ${state.error}")
                         }
                         else -> {}
@@ -149,6 +232,11 @@ class P2PConnectionManager @Inject constructor(
             // 监听接收消息
             scope.launch {
                 connection.observeMessages().filterNotNull().collect { message ->
+                    // 检查是否为心跳消息
+                    if (heartbeatManager.handleHeartbeatMessage(message)) {
+                        // 心跳消息已处理，不需要转发
+                        return@collect
+                    }
                     _receivedMessages.emit(message)
                 }
             }
@@ -170,16 +258,50 @@ class P2PConnectionManager @Inject constructor(
     }
 
     /**
+     * 处理设备断开连接
+     */
+    private fun handleDeviceDisconnection(
+        deviceId: String,
+        deviceName: String,
+        reason: ReconnectReason
+    ) {
+        removeConnectedDevice(deviceId)
+        connections.remove(deviceId)
+
+        // 如果可以重连，安排重连任务
+        if (heartbeatManager.canRetryReconnect(deviceId)) {
+            val attempt = heartbeatManager.incrementReconnectAttempts(deviceId)
+            val delay = heartbeatManager.calculateReconnectDelay(deviceId)
+            autoReconnectManager.scheduleReconnect(deviceId, delay, reason)
+            Log.i(TAG, "Disconnected from $deviceName, will retry in ${delay}ms (attempt $attempt)")
+        } else {
+            // 达到最大重连次数，清理资源
+            heartbeatManager.unregisterDevice(deviceId)
+            autoReconnectManager.removeDeviceCache(deviceId)
+            Log.i(TAG, "Disconnected from $deviceName, max retries reached")
+        }
+    }
+
+    /**
      * 断开设备连接
      *
      * @param deviceId 设备ID
+     * @param permanent 是否永久断开（不尝试重连）
      */
-    suspend fun disconnectDevice(deviceId: String) {
+    suspend fun disconnectDevice(deviceId: String, permanent: Boolean = true) {
         connections[deviceId]?.let { connection ->
             connection.disconnect()
             connections.remove(deviceId)
             removeConnectedDevice(deviceId)
-            Log.i(TAG, "Disconnected device: $deviceId")
+
+            if (permanent) {
+                // 永久断开，不重连
+                heartbeatManager.unregisterDevice(deviceId)
+                autoReconnectManager.cancelReconnect(deviceId)
+                autoReconnectManager.removeDeviceCache(deviceId)
+            }
+
+            Log.i(TAG, "Disconnected device: $deviceId (permanent: $permanent)")
         }
     }
 
@@ -263,10 +385,49 @@ class P2PConnectionManager @Inject constructor(
     }
 
     /**
+     * 暂停自动重连
+     */
+    fun pauseAutoReconnect() {
+        autoReconnectManager.pause()
+    }
+
+    /**
+     * 恢复自动重连
+     */
+    fun resumeAutoReconnect() {
+        autoReconnectManager.resume()
+    }
+
+    /**
+     * 获取设备活跃状态
+     */
+    fun isDeviceActive(deviceId: String): Boolean {
+        return heartbeatManager.isDeviceActive(deviceId)
+    }
+
+    /**
+     * 获取设备最后活跃时间
+     */
+    fun getDeviceLastActiveTime(deviceId: String): Long? {
+        return heartbeatManager.getLastActiveTime(deviceId)
+    }
+
+    /**
+     * 获取待重连设备数量
+     */
+    fun getPendingReconnectCount(): Int {
+        return autoReconnectManager.getPendingReconnectCount()
+    }
+
+    /**
      * 关闭所有连接
      */
     fun shutdown() {
         scope.cancel()
+
+        // 停止心跳和自动重连
+        heartbeatManager.release()
+        autoReconnectManager.release()
 
         connections.values.forEach { it.release() }
         connections.clear()

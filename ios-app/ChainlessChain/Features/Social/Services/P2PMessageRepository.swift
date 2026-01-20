@@ -394,6 +394,116 @@ class P2PMessageRepository {
         }
     }
 
+    // MARK: - Group Conversations
+
+    /// 获取所有群组会话
+    func getGroupConversations(limit: Int = 100, offset: Int = 0) throws -> [P2PConversationEntity] {
+        let sql = """
+            SELECT id, type, title, participant_dids, last_message_id, last_message_at,
+                   unread_count, is_pinned, is_muted, created_at, updated_at
+            FROM conversations
+            WHERE type = 'group'
+            ORDER BY last_message_at DESC NULLS LAST, updated_at DESC
+            LIMIT ? OFFSET ?
+        """
+
+        return try database.query(sql, parameters: [limit, offset]) { stmt in
+            P2PConversationEntity(
+                id: String(cString: sqlite3_column_text(stmt, 0)),
+                type: String(cString: sqlite3_column_text(stmt, 1)),
+                title: sqlite3_column_type(stmt, 2) != SQLITE_NULL ? String(cString: sqlite3_column_text(stmt, 2)) : nil,
+                participantDids: String(cString: sqlite3_column_text(stmt, 3)),
+                lastMessageId: sqlite3_column_type(stmt, 4) != SQLITE_NULL ? String(cString: sqlite3_column_text(stmt, 4)) : nil,
+                lastMessageAt: sqlite3_column_type(stmt, 5) != SQLITE_NULL ? Date(timeIntervalSince1970: TimeInterval(sqlite3_column_int64(stmt, 5)) / 1000) : nil,
+                unreadCount: Int(sqlite3_column_int(stmt, 6)),
+                isPinned: sqlite3_column_int(stmt, 7) == 1,
+                isMuted: sqlite3_column_int(stmt, 8) == 1,
+                createdAt: Date(timeIntervalSince1970: TimeInterval(sqlite3_column_int64(stmt, 9)) / 1000),
+                updatedAt: Date(timeIntervalSince1970: TimeInterval(sqlite3_column_int64(stmt, 10)) / 1000)
+            )
+        }
+    }
+
+    /// 创建群组会话
+    func createGroupConversation(title: String, memberDids: [String], creatorDid: String) throws -> P2PConversationEntity {
+        let participantDidsJson = try JSONEncoder().encode(memberDids)
+        let participantDidsString = String(data: participantDidsJson, encoding: .utf8) ?? memberDids.joined(separator: ",")
+
+        let conversation = P2PConversationEntity(
+            id: UUID().uuidString,
+            type: "group",
+            title: title,
+            participantDids: participantDidsString,
+            lastMessageId: nil,
+            lastMessageAt: nil,
+            unreadCount: 0,
+            isPinned: false,
+            isMuted: false,
+            createdAt: Date(),
+            updatedAt: Date()
+        )
+
+        try createConversation(conversation)
+        logger.database("Created group conversation: \(conversation.id) with \(memberDids.count) members")
+        return conversation
+    }
+
+    /// 添加群组成员
+    func addGroupMember(conversationId: String, memberDid: String) throws {
+        guard let conversation = try getConversation(id: conversationId),
+              conversation.type == "group" else {
+            throw P2PRepositoryError.conversationNotFound
+        }
+
+        var members = conversation.participantDidArray
+        guard !members.contains(memberDid) else { return }
+
+        members.append(memberDid)
+
+        let updatedDidsJson = try JSONEncoder().encode(members)
+        let updatedDidsString = String(data: updatedDidsJson, encoding: .utf8) ?? members.joined(separator: ",")
+
+        let sql = "UPDATE conversations SET participant_dids = ?, updated_at = ? WHERE id = ?"
+        _ = try database.query(sql, parameters: [updatedDidsString, Date().timestampMs, conversationId]) { _ in () }
+
+        logger.database("Added member \(memberDid) to group: \(conversationId)")
+    }
+
+    /// 移除群组成员
+    func removeGroupMember(conversationId: String, memberDid: String) throws {
+        guard let conversation = try getConversation(id: conversationId),
+              conversation.type == "group" else {
+            throw P2PRepositoryError.conversationNotFound
+        }
+
+        var members = conversation.participantDidArray
+        members.removeAll { $0 == memberDid }
+
+        let updatedDidsJson = try JSONEncoder().encode(members)
+        let updatedDidsString = String(data: updatedDidsJson, encoding: .utf8) ?? members.joined(separator: ",")
+
+        let sql = "UPDATE conversations SET participant_dids = ?, updated_at = ? WHERE id = ?"
+        _ = try database.query(sql, parameters: [updatedDidsString, Date().timestampMs, conversationId]) { _ in () }
+
+        logger.database("Removed member \(memberDid) from group: \(conversationId)")
+    }
+
+    /// 更新群组标题
+    func updateGroupTitle(conversationId: String, title: String) throws {
+        let sql = "UPDATE conversations SET title = ?, updated_at = ? WHERE id = ?"
+        _ = try database.query(sql, parameters: [title, Date().timestampMs, conversationId]) { _ in () }
+
+        logger.database("Updated group title: \(conversationId) -> \(title)")
+    }
+
+    /// 获取群组成员数量
+    func getGroupMemberCount(conversationId: String) throws -> Int {
+        guard let conversation = try getConversation(id: conversationId) else {
+            return 0
+        }
+        return conversation.participantDidArray.count
+    }
+
     // MARK: - Statistics
 
     /// 获取消息统计
@@ -532,4 +642,25 @@ struct P2PMessageStatistics {
     let conversationCount: Int
     let messageCount: Int
     let unreadCount: Int
+}
+
+/// P2P 仓储错误
+enum P2PRepositoryError: LocalizedError {
+    case conversationNotFound
+    case messageNotFound
+    case invalidGroupOperation
+    case databaseError(String)
+
+    var errorDescription: String? {
+        switch self {
+        case .conversationNotFound:
+            return "会话不存在"
+        case .messageNotFound:
+            return "消息不存在"
+        case .invalidGroupOperation:
+            return "无效的群组操作"
+        case .databaseError(let message):
+            return "数据库错误: \(message)"
+        }
+    }
 }
