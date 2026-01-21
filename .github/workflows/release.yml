@@ -49,6 +49,16 @@ jobs:
         env:
           NODE_OPTIONS: "--max-old-space-size=4096"
 
+      - name: Link hoisted modules for packaging
+        shell: powershell
+        run: |
+          # Copy hoisted node_modules to desktop-app-vue for electron-forge
+          if (Test-Path "desktop-app-vue/node_modules") {
+            Remove-Item -Path "desktop-app-vue/node_modules" -Recurse -Force
+          }
+          Copy-Item -Path "node_modules" -Destination "desktop-app-vue/node_modules" -Recurse
+          Write-Host "Hoisted modules copied to desktop-app-vue"
+
       - name: Package Windows
         working-directory: desktop-app-vue
         run: npm run make:win
@@ -95,6 +105,13 @@ jobs:
         run: npm run build:renderer
         env:
           NODE_OPTIONS: "--max-old-space-size=4096"
+
+      - name: Link hoisted modules for packaging
+        run: |
+          # Copy hoisted node_modules to desktop-app-vue for electron-forge
+          rm -rf desktop-app-vue/node_modules
+          cp -R node_modules desktop-app-vue/node_modules
+          echo "Hoisted modules copied to desktop-app-vue"
 
       - name: Package macOS (${{ matrix.arch }})
         working-directory: desktop-app-vue
@@ -147,6 +164,13 @@ jobs:
         run: npm run build:renderer
         env:
           NODE_OPTIONS: "--max-old-space-size=4096"
+
+      - name: Link hoisted modules for packaging
+        run: |
+          # Copy hoisted node_modules to desktop-app-vue for electron-forge
+          rm -rf desktop-app-vue/node_modules
+          cp -R node_modules desktop-app-vue/node_modules
+          echo "Hoisted modules copied to desktop-app-vue"
 
       - name: Package Linux
         working-directory: desktop-app-vue
