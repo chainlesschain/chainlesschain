@@ -11,6 +11,7 @@ import com.chainlesschain.android.presentation.screens.*
 
 /**
  * 主容器，包含底部导航栏和各个页面
+ * 4个tab: 首页、项目、探索、收藏
  */
 @Composable
 fun MainContainer(
@@ -18,6 +19,7 @@ fun MainContainer(
     viewModel: AuthViewModel = hiltViewModel()
 ) {
     var selectedTab by remember { mutableStateOf(0) }
+    var showProfileDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         bottomBar = {
@@ -33,12 +35,26 @@ fun MainContainer(
                 .padding(paddingValues)
         ) {
             when (selectedTab) {
-                0 -> NewHomeScreen(viewModel = viewModel)
-                1 -> ExploreScreen()
-                2 -> ProjectScreen()
-                3 -> TaskScreen()
-                4 -> ProfileScreen(onLogout = onLogout, viewModel = viewModel)
+                0 -> NewHomeScreen(
+                    viewModel = viewModel,
+                    onProfileClick = { showProfileDialog = true }
+                )
+                1 -> ProjectScreen()
+                2 -> ExploreScreen()
+                3 -> BookmarkScreen()
             }
         }
+    }
+
+    // 个人资料弹窗
+    if (showProfileDialog) {
+        ProfileDialog(
+            onDismiss = { showProfileDialog = false },
+            onLogout = {
+                showProfileDialog = false
+                onLogout()
+            },
+            viewModel = viewModel
+        )
     }
 }
