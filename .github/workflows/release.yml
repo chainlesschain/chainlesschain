@@ -174,7 +174,8 @@ jobs:
 
       - name: Package Linux
         working-directory: desktop-app-vue
-        run: npm run make:linux:x64
+        # Use make:linux:deb to avoid RPM strip errors with cross-arch native modules
+        run: npm run make:linux:deb
         env:
           CHAINLESSCHAIN_DISABLE_NATIVE_DB: "1"
           SKIP_BACKEND_CHECK: "true"
@@ -186,8 +187,6 @@ jobs:
           name: linux-artifacts
           path: |
             desktop-app-vue/out/make/**/*.deb
-            desktop-app-vue/out/make/**/*.rpm
-            desktop-app-vue/out/make/**/*.AppImage
             desktop-app-vue/out/make/**/*.zip
           retention-days: 7
 
