@@ -2,12 +2,15 @@ package com.chainlesschain.android.presentation.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
+import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -15,58 +18,122 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import com.chainlesschain.android.feature.project.domain.*
-import com.chainlesschain.android.presentation.components.*
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import kotlin.random.Random
 
 /**
- * 探索页面（重新设计）
- * 参考: iOS ExploreCardViews.swift 和现代设计规范
+ * 探索页面（社交内容流）
+ * 参考设计稿：分类标签、瀑布流卡片、社交交互
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExploreScreen() {
-    var searchQuery by remember { mutableStateOf("") }
-    var selectedCategory by remember { mutableStateOf(ExploreCategory.ALL) }
+    var selectedCategory by remember { mutableStateOf(ExploreContentCategory.ALL) }
 
-    // 模拟数据
-    val exploreItems = remember {
+    // 模拟探索内容数据
+    val exploreContents = remember {
         listOf(
-            ExploreItem(
+            ExploreContent(
                 id = "1",
-                title = "AI驱动的项目管理系统",
-                description = "使用人工智能优化项目管理流程，提高团队协作效率",
-                category = ExploreCategory.PROJECT,
+                title = "AI绘画入门指南",
+                description = "从零开始学习AI绘画，掌握Stable Diffusion和Midjourney",
+                category = ExploreContentCategory.CREATIVE_DESIGN,
+                imageUrl = null,
+                viewCount = 2345,
+                likeCount = 189,
+                author = "设计达人",
+                height = 200
+            ),
+            ExploreContent(
+                id = "2",
+                title = "2024年投资策略分析",
+                description = "深度解读今年的市场趋势和投资机会",
+                category = ExploreContentCategory.FINANCE,
+                viewCount = 5678,
+                likeCount = 432,
+                author = "财经观察",
+                height = 160
+            ),
+            ExploreContent(
+                id = "3",
+                title = "人像摄影后期调色技巧",
+                description = "专业摄影师分享人像照片的调色秘诀",
+                category = ExploreContentCategory.PHOTOGRAPHY,
                 imageUrl = null,
                 viewCount = 1234,
-                likeCount = 89,
-                tags = listOf("AI", "项目管理", "协作")
+                likeCount = 98,
+                author = "摄影工作室",
+                height = 220
             ),
-            ExploreItem(
-                id = "2",
-                title = "Kotlin协程完全指南",
-                description = "深入理解Kotlin协程的工作原理和最佳实践",
-                category = ExploreCategory.DOCUMENT,
-                viewCount = 567,
-                likeCount = 45,
-                tags = listOf("Kotlin", "协程", "编程")
+            ExploreContent(
+                id = "4",
+                title = "高效学习方法论",
+                description = "科学的学习方法帮你事半功倍",
+                category = ExploreContentCategory.EDUCATION,
+                viewCount = 8901,
+                likeCount = 756,
+                author = "学习达人",
+                height = 150
             ),
-            ExploreItem(
-                id = "3",
-                title = "如何构建去中心化应用",
-                description = "探索区块链技术在应用开发中的实践",
-                category = ExploreCategory.AI_CHAT,
-                viewCount = 890,
-                likeCount = 67,
-                tags = listOf("区块链", "DApp", "Web3")
+            ExploreContent(
+                id = "5",
+                title = "周末美食探店vlog",
+                description = "带你发现城市里的宝藏美食店",
+                category = ExploreContentCategory.LIFESTYLE,
+                imageUrl = null,
+                viewCount = 3456,
+                likeCount = 234,
+                author = "美食探险家",
+                height = 180
+            ),
+            ExploreContent(
+                id = "6",
+                title = "UI设计趋势2024",
+                description = "今年最流行的UI设计风格和技巧",
+                category = ExploreContentCategory.CREATIVE_DESIGN,
+                viewCount = 4567,
+                likeCount = 321,
+                author = "UI设计师",
+                height = 170
+            ),
+            ExploreContent(
+                id = "7",
+                title = "Python数据分析实战",
+                description = "用Python进行数据分析的完整教程",
+                category = ExploreContentCategory.EDUCATION,
+                viewCount = 6789,
+                likeCount = 543,
+                author = "编程老师",
+                height = 190
+            ),
+            ExploreContent(
+                id = "8",
+                title = "室内人像打光技巧",
+                description = "如何在室内拍出好看的人像照片",
+                category = ExploreContentCategory.PHOTOGRAPHY,
+                imageUrl = null,
+                viewCount = 2345,
+                likeCount = 187,
+                author = "光影大师",
+                height = 210
             )
         )
+    }
+
+    // 筛选内容
+    val filteredContents = remember(selectedCategory, exploreContents) {
+        if (selectedCategory == ExploreContentCategory.ALL) {
+            exploreContents
+        } else {
+            exploreContents.filter { it.category == selectedCategory }
+        }
     }
 
     Column(
@@ -78,147 +145,132 @@ fun ExploreScreen() {
         TopAppBar(
             title = { Text("探索", fontWeight = FontWeight.Bold) },
             actions = {
-                IconButton(onClick = { /* TODO: 筛选 */ }) {
-                    Icon(Icons.Default.FilterList, contentDescription = "筛选")
+                IconButton(onClick = { /* TODO: 搜索 */ }) {
+                    Icon(Icons.Default.Search, contentDescription = "搜索")
+                }
+                IconButton(onClick = { /* TODO: 发布 */ }) {
+                    Icon(Icons.Default.Add, contentDescription = "发布")
                 }
             }
         )
 
-        LazyColumn(
+        // 分类标签
+        ExploreCategoryTabs(
+            selectedCategory = selectedCategory,
+            onCategorySelected = { selectedCategory = it }
+        )
+
+        // 瀑布流内容
+        LazyVerticalStaggeredGrid(
+            columns = StaggeredGridCells.Fixed(2),
             modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            contentPadding = PaddingValues(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalItemSpacing = 12.dp
         ) {
-            // 搜索栏
-            item {
-                EnhancedSearchBar(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
-                    placeholder = "搜索项目、文档、对话...",
-                    modifier = Modifier.padding(horizontal = 16.dp)
+            items(filteredContents, key = { it.id }) { content ->
+                ExploreContentCard(
+                    content = content,
+                    onClick = { /* TODO: 查看详情 */ },
+                    onLike = { /* TODO: 点赞 */ },
+                    onBookmark = { /* TODO: 收藏 */ }
                 )
-            }
-
-            // 分类筛选
-            item {
-                CategoryFilter(
-                    selectedCategory = selectedCategory,
-                    onCategorySelected = { selectedCategory = it }
-                )
-            }
-
-            // 热门标签
-            item {
-                PopularTags()
-            }
-
-            // 推荐内容标题
-            item {
-                Text(
-                    text = "推荐内容",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(horizontal = 16.dp)
-                )
-            }
-
-            // 内容列表
-            items(exploreItems.filter {
-                selectedCategory == ExploreCategory.ALL || it.category == selectedCategory
-            }) { item ->
-                AnimatedCard(delay = 100) {
-                    EnhancedExploreCard(
-                        item = item,
-                        onClick = { /* TODO */ }
-                    )
-                }
             }
         }
     }
 }
 
 /**
- * 分类筛选器
+ * 探索分类标签栏
  */
 @Composable
-fun CategoryFilter(
-    selectedCategory: ExploreCategory,
-    onCategorySelected: (ExploreCategory) -> Unit
+fun ExploreCategoryTabs(
+    selectedCategory: ExploreContentCategory,
+    onCategorySelected: (ExploreContentCategory) -> Unit
 ) {
     LazyRow(
         modifier = Modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(horizontal = 16.dp),
+        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        items(ExploreCategory.values()) { category ->
-            FilterChip(
+        items(ExploreContentCategory.entries) { category ->
+            ExploreCategoryChip(
+                category = category,
                 selected = selectedCategory == category,
-                onClick = { onCategorySelected(category) },
-                label = { Text(category.displayName) },
-                leadingIcon = if (selectedCategory == category) {
-                    { Icon(Icons.Default.Check, null, modifier = Modifier.size(18.dp)) }
-                } else null
+                onClick = { onCategorySelected(category) }
             )
         }
     }
 }
 
 /**
- * 热门标签
+ * 分类芯片
  */
 @Composable
-fun PopularTags() {
-    Column(
-        modifier = Modifier.padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Text(
-            text = "热门标签",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold
-        )
-
-        LazyRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            items(listOf("AI", "区块链", "移动开发", "Kotlin", "Compose", "项目管理")) { tag ->
-                SuggestionChip(
-                    onClick = { /* TODO: 搜索标签 */ },
-                    label = { Text(tag) },
-                    icon = { Icon(Icons.Default.Tag, null, modifier = Modifier.size(16.dp)) }
+fun ExploreCategoryChip(
+    category: ExploreContentCategory,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    FilterChip(
+        selected = selected,
+        onClick = onClick,
+        label = {
+            Text(
+                text = category.displayName,
+                fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
+            )
+        },
+        leadingIcon = if (selected) {
+            {
+                Icon(
+                    imageVector = category.icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
                 )
             }
-        }
-    }
+        } else null,
+        colors = FilterChipDefaults.filterChipColors(
+            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+            selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+        )
+    )
 }
 
 /**
- * 增强的探索卡片（类似iOS的设计）
+ * 探索内容卡片（瀑布流样式）
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EnhancedExploreCard(
-    item: ExploreItem,
-    onClick: () -> Unit
+fun ExploreContentCard(
+    content: ExploreContent,
+    onClick: () -> Unit,
+    onLike: () -> Unit,
+    onBookmark: () -> Unit
 ) {
+    var isLiked by remember { mutableStateOf(false) }
+    var isBookmarked by remember { mutableStateOf(false) }
+
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp),
         onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column {
             // 图片区域（如果有）
-            item.imageUrl?.let { imageUrl ->
+            if (content.imageUrl != null) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(180.dp)
+                        .height(content.height.dp)
                 ) {
                     AsyncImage(
-                        model = imageUrl,
-                        contentDescription = item.title,
+                        model = content.imageUrl,
+                        contentDescription = content.title,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
                     )
@@ -231,66 +283,94 @@ fun EnhancedExploreCard(
                                 Brush.verticalGradient(
                                     colors = listOf(
                                         Color.Transparent,
-                                        Color.Black.copy(alpha = 0.5f)
-                                    )
+                                        Color.Black.copy(alpha = 0.3f)
+                                    ),
+                                    startY = 0.5f * content.height
                                 )
                             )
                     )
 
                     // 分类标签
-                    CategoryBadge(
-                        category = item.category,
+                    Surface(
                         modifier = Modifier
                             .align(Alignment.TopStart)
-                            .padding(12.dp)
+                            .padding(8.dp),
+                        color = content.category.color.copy(alpha = 0.9f),
+                        shape = RoundedCornerShape(6.dp)
+                    ) {
+                        Text(
+                            text = content.category.displayName,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color.White,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            } else {
+                // 无图片时显示颜色占位
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height((content.height * 0.6f).dp)
+                        .background(
+                            Brush.linearGradient(
+                                colors = listOf(
+                                    content.category.color.copy(alpha = 0.3f),
+                                    content.category.color.copy(alpha = 0.1f)
+                                )
+                            )
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = content.category.icon,
+                        contentDescription = null,
+                        modifier = Modifier.size(48.dp),
+                        tint = content.category.color.copy(alpha = 0.5f)
                     )
+
+                    // 分类标签
+                    Surface(
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(8.dp),
+                        color = content.category.color.copy(alpha = 0.9f),
+                        shape = RoundedCornerShape(6.dp)
+                    ) {
+                        Text(
+                            text = content.category.displayName,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color.White,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
                 }
             }
 
             // 内容区域
             Column(
-                modifier = Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                modifier = Modifier.padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // 如果没有图片，显示分类标签
-                if (item.imageUrl == null) {
-                    CategoryBadge(category = item.category)
-                }
-
                 // 标题
                 Text(
-                    text = item.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
+                    text = content.title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
 
                 // 描述
                 Text(
-                    text = item.description,
-                    style = MaterialTheme.typography.bodyMedium,
+                    text = content.description,
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 3,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
-
-                // 标签
-                if (item.tags.isNotEmpty()) {
-                    LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        items(item.tags.take(3)) { tag ->
-                            Tag(
-                                text = tag,
-                                color = MaterialTheme.colorScheme.secondaryContainer,
-                                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                            )
-                        }
-                    }
-                }
-
-                Divider()
 
                 // 底部信息栏
                 Row(
@@ -298,26 +378,68 @@ fun EnhancedExploreCard(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // 统计信息
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        StatItem(
-                            icon = Icons.Default.Visibility,
-                            count = item.viewCount
-                        )
-                        StatItem(
-                            icon = Icons.Default.FavoriteBorder,
-                            count = item.likeCount
-                        )
-                    }
-
-                    // 时间
+                    // 作者
                     Text(
-                        text = formatRelativeTime(item.createdAt),
-                        style = MaterialTheme.typography.bodySmall,
+                        text = content.author,
+                        style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+
+                    // 互动按钮
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // 浏览数
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(2.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Visibility,
+                                contentDescription = null,
+                                modifier = Modifier.size(14.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = formatExploreCount(content.viewCount),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        // 点赞
+                        IconButton(
+                            onClick = {
+                                isLiked = !isLiked
+                                onLike()
+                            },
+                            modifier = Modifier.size(28.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (isLiked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                                contentDescription = "点赞",
+                                modifier = Modifier.size(16.dp),
+                                tint = if (isLiked) Color(0xFFE91E63) else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        // 收藏
+                        IconButton(
+                            onClick = {
+                                isBookmarked = !isBookmarked
+                                onBookmark()
+                            },
+                            modifier = Modifier.size(28.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (isBookmarked) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder,
+                                contentDescription = "收藏",
+                                modifier = Modifier.size(16.dp),
+                                tint = if (isBookmarked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -325,77 +447,9 @@ fun EnhancedExploreCard(
 }
 
 /**
- * 分类徽章
+ * 格式化数字显示
  */
-@Composable
-fun CategoryBadge(
-    category: ExploreCategory,
-    modifier: Modifier = Modifier
-) {
-    val (icon, color) = when (category) {
-        ExploreCategory.ALL -> Icons.Default.Apps to MaterialTheme.colorScheme.primary
-        ExploreCategory.PROJECT -> Icons.Default.Folder to MaterialTheme.colorScheme.tertiary
-        ExploreCategory.DOCUMENT -> Icons.Default.Description to MaterialTheme.colorScheme.secondary
-        ExploreCategory.AI_CHAT -> Icons.Default.Psychology to MaterialTheme.colorScheme.primary
-        ExploreCategory.KNOWLEDGE -> Icons.Default.School to Color(0xFFFFA726)
-    }
-
-    Surface(
-        modifier = modifier,
-        color = color.copy(alpha = 0.15f),
-        shape = RoundedCornerShape(8.dp)
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.size(16.dp),
-                tint = color
-            )
-            Text(
-                text = category.displayName,
-                style = MaterialTheme.typography.labelMedium,
-                color = color,
-                fontWeight = FontWeight.SemiBold
-            )
-        }
-    }
-}
-
-/**
- * 统计项
- */
-@Composable
-fun StatItem(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    count: Int
-) {
-    Row(
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            modifier = Modifier.size(16.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Text(
-            text = formatCount(count),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
-
-/**
- * 格式化数字
- */
-fun formatCount(count: Int): String {
+fun formatExploreCount(count: Int): String {
     return when {
         count < 1000 -> count.toString()
         count < 10000 -> "${count / 1000}.${(count % 1000) / 100}k"
@@ -405,18 +459,33 @@ fun formatCount(count: Int): String {
 }
 
 /**
- * 格式化相对时间
+ * 探索内容数据类
  */
-fun formatRelativeTime(dateTime: LocalDateTime): String {
-    val now = LocalDateTime.now()
-    val minutes = java.time.Duration.between(dateTime, now).toMinutes()
+data class ExploreContent(
+    val id: String,
+    val title: String,
+    val description: String,
+    val category: ExploreContentCategory,
+    val imageUrl: String? = null,
+    val viewCount: Int = 0,
+    val likeCount: Int = 0,
+    val author: String = "",
+    val createdAt: LocalDateTime = LocalDateTime.now(),
+    val height: Int = 180 // 用于瀑布流不同高度
+)
 
-    return when {
-        minutes < 1 -> "刚刚"
-        minutes < 60 -> "${minutes}分钟前"
-        minutes < 1440 -> "${minutes / 60}小时前"
-        minutes < 10080 -> "${minutes / 1440}天前"
-        minutes < 43200 -> "${minutes / 10080}周前"
-        else -> dateTime.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
-    }
+/**
+ * 探索内容分类
+ */
+enum class ExploreContentCategory(
+    val displayName: String,
+    val icon: ImageVector,
+    val color: Color
+) {
+    ALL("探索", Icons.Outlined.Explore, Color(0xFF2196F3)),
+    PHOTOGRAPHY("人像摄影", Icons.Outlined.CameraAlt, Color(0xFFE91E63)),
+    EDUCATION("教育学习", Icons.Outlined.School, Color(0xFF4CAF50)),
+    FINANCE("财经分析", Icons.Outlined.TrendingUp, Color(0xFFFF9800)),
+    CREATIVE_DESIGN("创意设计", Icons.Outlined.Palette, Color(0xFF9C27B0)),
+    LIFESTYLE("生活娱乐", Icons.Outlined.Celebration, Color(0xFF00BCD4))
 }

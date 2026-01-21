@@ -1,138 +1,218 @@
 package com.chainlesschain.android.presentation.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.chainlesschain.android.feature.auth.presentation.AuthViewModel
 
 /**
  * 新首页设计
+ * 参考设计稿：顶部用户头像、品牌区域、功能入口网格、底部输入框
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NewHomeScreen(
-    viewModel: AuthViewModel
+    viewModel: AuthViewModel,
+    onProfileClick: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var inputText by remember { mutableStateOf("") }
 
-    LazyColumn(
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surface),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+            .background(MaterialTheme.colorScheme.surface)
     ) {
-        // 顶部问候语和用户信息
-        item {
-            Column(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    text = "早安",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                uiState.currentUser?.let { user ->
-                    Text(
-                        text = "用户 ${user.id.take(8)}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+        // 顶部栏 - 用户头像
+        HomeTopBar(onProfileClick = onProfileClick)
+
+        // 主内容区域
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .padding(horizontal = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // 品牌区域
+            BrandSection()
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // 功能入口网格 (3x2)
+            FunctionEntryGrid()
+
+            Spacer(modifier = Modifier.weight(1f))
+        }
+
+        // 底部输入框
+        ChatInputBar(
+            value = inputText,
+            onValueChange = { inputText = it },
+            onSendMessage = { message ->
+                // TODO: 处理发送消息
+                inputText = ""
+            },
+            onVoiceInput = {
+                // TODO: 处理语音输入
+            }
+        )
+    }
+}
+
+/**
+ * 首页顶部栏
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun HomeTopBar(
+    onProfileClick: () -> Unit
+) {
+    TopAppBar(
+        title = { },
+        actions = {
+            // 用户头像按钮
+            IconButton(onClick = onProfileClick) {
+                Box(
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primaryContainer),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Person,
+                        contentDescription = "个人中心",
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                        modifier = Modifier.size(20.dp)
                     )
                 }
             }
-        }
+        },
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
+    )
+}
 
-        // 搜索栏
-        item {
-            OutlinedTextField(
-                value = "",
-                onValueChange = {},
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("搜索项目、任务...") },
-                leadingIcon = {
-                    Icon(Icons.Default.Search, contentDescription = "搜索")
-                },
-                shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant
-                )
+/**
+ * 品牌区域
+ */
+@Composable
+fun BrandSection() {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // 应用图标/吉祥物
+        Box(
+            modifier = Modifier
+                .size(80.dp)
+                .clip(RoundedCornerShape(20.dp))
+                .background(MaterialTheme.colorScheme.primaryContainer),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.AutoAwesome,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                modifier = Modifier.size(48.dp)
             )
         }
 
-        // 快捷功能卡片
-        item {
-            Text(
-                text = "快捷功能",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
-        }
+        Spacer(modifier = Modifier.height(16.dp))
 
-        item {
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(quickActions) { action ->
-                    QuickActionCard(action)
-                }
-            }
-        }
+        // 应用名称
+        Text(
+            text = "ChainlessChain",
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
 
-        // 最近项目
-        item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "最近项目",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-                TextButton(onClick = {}) {
-                    Text("查看全部")
-                }
-            }
-        }
+        Spacer(modifier = Modifier.height(4.dp))
 
-        // 项目列表
-        items(5) { index ->
-            ProjectCard(
-                title = "项目 ${index + 1}",
-                description = "这是一个示例项目描述",
-                taskCount = (index + 1) * 3,
-                progress = (index + 1) * 0.2f
+        // 副标题
+        Text(
+            text = "你的AI办公空间",
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+/**
+ * 功能入口网格
+ */
+@Composable
+fun FunctionEntryGrid() {
+    val functionItems = remember {
+        listOf(
+            FunctionEntryItem("写作", Icons.Outlined.Edit, Color(0xFF4CAF50)),
+            FunctionEntryItem("PPT", Icons.Outlined.Slideshow, Color(0xFFFF9800)),
+            FunctionEntryItem("设计", Icons.Outlined.Palette, Color(0xFF9C27B0)),
+            FunctionEntryItem("网页", Icons.Outlined.Language, Color(0xFF2196F3)),
+            FunctionEntryItem("播客", Icons.Outlined.Podcasts, Color(0xFFE91E63)),
+            FunctionEntryItem("Excel", Icons.Outlined.TableChart, Color(0xFF009688))
+        )
+    }
+
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(3),
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        userScrollEnabled = false
+    ) {
+        items(functionItems) { item ->
+            FunctionEntryCard(
+                icon = item.icon,
+                title = item.title,
+                backgroundColor = item.color,
+                onClick = { /* TODO: 处理点击 */ }
             )
         }
     }
 }
 
 /**
- * 快捷功能卡片
+ * 功能入口卡片
  */
 @Composable
-fun QuickActionCard(action: QuickAction) {
+fun FunctionEntryCard(
+    icon: ImageVector,
+    title: String,
+    backgroundColor: Color,
+    onClick: () -> Unit
+) {
     Card(
         modifier = Modifier
-            .width(120.dp)
-            .height(100.dp),
+            .aspectRatio(1f)
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer
-        )
+            containerColor = backgroundColor.copy(alpha = 0.15f)
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
         Column(
             modifier = Modifier
@@ -142,125 +222,97 @@ fun QuickActionCard(action: QuickAction) {
             verticalArrangement = Arrangement.Center
         ) {
             Icon(
-                imageVector = action.icon,
-                contentDescription = action.title,
-                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                imageVector = icon,
+                contentDescription = title,
+                tint = backgroundColor,
                 modifier = Modifier.size(32.dp)
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = action.title,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onPrimaryContainer,
-                fontWeight = FontWeight.Medium
+                text = title,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center
             )
         }
     }
 }
 
 /**
- * 项目卡片
+ * 底部聊天输入栏
  */
 @Composable
-fun ProjectCard(
-    title: String,
-    description: String,
-    taskCount: Int,
-    progress: Float
+fun ChatInputBar(
+    value: String,
+    onValueChange: (String) -> Unit,
+    onSendMessage: (String) -> Unit,
+    onVoiceInput: () -> Unit
 ) {
-    Card(
+    Surface(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = 8.dp
     ) {
-        Column(
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.Folder,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = title,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold
-                        )
+            // 输入框
+            OutlinedTextField(
+                value = value,
+                onValueChange = onValueChange,
+                modifier = Modifier.weight(1f),
+                placeholder = {
+                    Text(
+                        text = "发消息或按住说话...",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                },
+                shape = RoundedCornerShape(24.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                    focusedBorderColor = MaterialTheme.colorScheme.primary
+                ),
+                singleLine = true,
+                trailingIcon = {
+                    if (value.isEmpty()) {
+                        // 语音按钮
+                        IconButton(onClick = onVoiceInput) {
+                            Icon(
+                                imageVector = Icons.Default.Mic,
+                                contentDescription = "语音输入",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
                     }
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = description,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
                 }
-                IconButton(onClick = {}) {
-                    Icon(
-                        imageVector = Icons.Default.MoreVert,
-                        contentDescription = "更多"
-                    )
-                }
-            }
+            )
 
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // 进度条
-            Column {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+            // 发送按钮
+            if (value.isNotEmpty()) {
+                FilledIconButton(
+                    onClick = { onSendMessage(value) },
+                    modifier = Modifier.size(48.dp)
                 ) {
-                    Text(
-                        text = "$taskCount 个任务",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = "${(progress * 100).toInt()}%",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.SemiBold
+                    Icon(
+                        imageVector = Icons.Default.Send,
+                        contentDescription = "发送"
                     )
                 }
-                Spacer(modifier = Modifier.height(4.dp))
-                LinearProgressIndicator(
-                    progress = progress,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(6.dp)
-                        .clip(RoundedCornerShape(3.dp))
-                )
             }
         }
     }
 }
 
 /**
- * 快捷功能数据类
+ * 功能入口数据类
  */
-data class QuickAction(
+data class FunctionEntryItem(
     val title: String,
-    val icon: androidx.compose.ui.graphics.vector.ImageVector
-)
-
-/**
- * 快捷功能列表
- */
-val quickActions = listOf(
-    QuickAction("AI对话", Icons.Default.Chat),
-    QuickAction("知识库", Icons.Default.Book),
-    QuickAction("P2P", Icons.Default.Devices),
-    QuickAction("设置", Icons.Default.Settings)
+    val icon: ImageVector,
+    val color: Color
 )
