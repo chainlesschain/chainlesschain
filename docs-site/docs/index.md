@@ -4,7 +4,7 @@ layout: home
 hero:
   name: ChainlessChain
   text: 去中心化个人AI管理平台
-  tagline: 军事级安全 | 完全去中心化 | AI原生
+  tagline: v0.26.0 | 军事级安全 | 完全去中心化 | AI原生 | 100%完成
   image:
     src: /logo.png
     alt: ChainlessChain Logo
@@ -22,39 +22,39 @@ hero:
 features:
   - icon: 🔐
     title: 军事级安全
-    details: 基于U盾/SIMKey的硬件级加密保护，端到端加密，数据完全自主掌控
+    details: 基于U盾/SIMKey的硬件级加密保护，Signal协议端到端加密，数据完全自主掌控
 
   - icon: 🌐
     title: 完全去中心化
-    details: 数据存储在用户自己的设备上，不依赖第三方云服务，真正的隐私保护
+    details: P2P网络(libp2p 3.1.2)，数据存储在用户自己的设备上，不依赖第三方云服务
 
   - icon: 🧠
     title: AI原生
-    details: 集成本地大模型，支持Ollama、LLaMA、Qwen等，保护隐私的同时享受AI能力
+    details: 集成14+云LLM提供商 + Ollama本地部署，16个AI专用引擎，RAG增强检索
 
   - icon: 📱
     title: 跨设备协作
-    details: PC端、移动端无缝同步，支持Windows、Mac、Linux、Android、iOS
+    details: PC端、移动端无缝同步，P2P文件传输，支持Windows/Mac/Linux/Android/iOS
 
   - icon: 💾
     title: 知识库管理
-    details: 个人第二大脑，笔记、文档、对话历史统一管理，AI增强检索和智能问答
+    details: 个人第二大脑，8个图分析算法，5种可视化方式，智能实体提取，AI增强检索
 
   - icon: 👥
     title: 去中心化社交
-    details: 基于W3C DID标准，P2P通信，Signal协议端到端加密，无服务器依赖
+    details: 基于W3C DID标准，WebRTC语音/视频通话，屏幕共享，群聊，消息转发
 
-  - icon: 🔄
-    title: Git同步
-    details: 基于Git的版本控制，完整历史记录，冲突解决，支持多设备同步
+  - icon: 🔌
+    title: MCP集成
+    details: Model Context Protocol支持，5个官方服务器，安全沙箱，UI管理
 
-  - icon: 🏭
-    title: 厂家管理平台
-    details: 完整的U盾/SIMKey设备管理、APP版本发布、数据备份恢复系统
+  - icon: 🏢
+    title: 企业版
+    details: 去中心化组织协作，RBAC权限，实时协作编辑，版本历史，评论讨论
 
-  - icon: 📊
-    title: 可视化管理
-    details: Dashboard统计报表，设备监控，用户管理，操作日志，一目了然
+  - icon: ⛓️
+    title: 区块链集成
+    details: 6个智能合约，15链支持，HD钱包系统，MetaMask/WalletConnect集成
 ---
 
 ## 快速开始
@@ -104,13 +104,16 @@ start.bat
 
 ### 1. ChainlessChain 个人AI管理系统
 
-完全去中心化的个人AI助手平台，整合知识库管理、社交网络和交易辅助三大核心功能。
+完全去中心化的个人AI助手平台（v0.26.0，100%完成），整合知识库管理、社交网络和交易辅助三大核心功能。
 
 **主要特性:**
-- 🔐 军事级安全 (U盾/SIMKey硬件加密)
-- 🌐 完全去中心化 (P2P网络)
-- 🧠 本地AI模型 (隐私保护)
-- 📱 跨设备同步 (PC/移动端)
+
+- 🔐 军事级安全 (U盾/SIMKey硬件加密 + Signal协议)
+- 🌐 完全去中心化 (P2P网络 + DHT)
+- 🧠 16个AI专用引擎 + 14+云LLM提供商
+- 📱 跨设备同步 (PC/移动端/浏览器扩展)
+- 🔌 MCP集成 + 115技能 + 300工具
+- ⛓️ 区块链集成 (15链 + 6个智能合约)
 
 [查看详细文档 →](/chainlesschain/overview)
 
@@ -119,6 +122,7 @@ start.bat
 功能完整的设备厂家管理平台，提供设备全生命周期管理、多平台APP发布、数据备份恢复等功能。
 
 **主要功能:**
+
 - 💻 设备管理 (注册/激活/锁定/注销)
 - 📱 APP版本管理 (上传/发布/更新检查)
 - 💾 数据备份恢复 (加密备份/恢复到设备)
@@ -129,23 +133,36 @@ start.bat
 ## 技术栈
 
 ### 前端
-- Vue 3 + Composition API
-- Element Plus / Ant Design
-- Electron (桌面端)
+
+- Vue 3.4 + Composition API
+- Ant Design Vue 4.1
+- Electron 39.2.6 (桌面端)
 - Jetpack Compose (Android)
 - SwiftUI (iOS)
+- libp2p 3.1.2 (P2P网络)
 
 ### 后端
-- Spring Boot 3
-- MyBatis Plus
-- MySQL 8.0
+
+- Spring Boot 3.1.11 + Java 17
+- MyBatis Plus 3.5.9
+- PostgreSQL 16 / SQLite
 - Redis 7.0
-- Ollama (AI模型)
+- FastAPI (AI服务)
+- Ollama (本地AI模型)
 
 ### 区块链
-- Ethereum / Polygon
-- Solidity智能合约
-- Web3.js / Ethers.js
+
+- Ethereum / Polygon / 15链支持
+- Solidity智能合约 (6个合约)
+- Hardhat开发环境
+- MetaMask / WalletConnect
+
+### 统计数据
+
+- 📊 220,000+ 行代码
+- 🧩 243个Vue组件
+- 🔌 149个API端点
+- 🧪 94个测试文件，900+测试用例
 
 ## 社区与支持
 
