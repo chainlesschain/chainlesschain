@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v0.20.0-blue.svg)
+![Version](https://img.shields.io/badge/version-v0.26.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Phase 1](https://img.shields.io/badge/Phase%201-100%25-brightgreen.svg)
@@ -738,12 +738,12 @@ const chainInfo = blockchainAdapter.getCurrentChainInfo();
 
 #### Choose Your Version
 
-- **Intel Chip (x64)**: Download `ChainlessChain-darwin-x64-0.21.0.zip` (~1.4GB)
+- **Intel Chip (x64)**: Download `ChainlessChain-darwin-x64-0.26.0.zip` (~1.4GB)
 - **Apple Silicon (M1/M2/M3)**: ARM64 version in development, please use x64 version with Rosetta
 
 #### Installation Steps
 
-1. Download `ChainlessChain-darwin-x64-0.21.0.zip`
+1. Download `ChainlessChain-darwin-x64-0.26.0.zip`
 2. Extract the file (double-click the zip file)
 3. Drag `ChainlessChain.app` to Applications folder
 4. Double-click to run (see notes below for first run)
@@ -772,11 +772,11 @@ const chainInfo = blockchainAdapter.getCurrentChainInfo();
 
 #### Download Version
 
-- **Windows x64 (64-bit)**: Download `ChainlessChain-win32-x64-0.21.0.zip` (~1.4GB)
+- **Windows x64 (64-bit)**: Download `ChainlessChain-win32-x64-0.26.0.zip` (~1.4GB)
 
 #### Installation Steps (Portable Version)
 
-1. Download `ChainlessChain-win32-x64-0.21.0.zip`
+1. Download `ChainlessChain-win32-x64-0.26.0.zip`
 2. Extract to any folder (recommended: `C:\Program Files\ChainlessChain\`)
 3. Double-click `ChainlessChain.exe` to run
 4. No administrator privileges required
@@ -806,8 +806,8 @@ npm run make:win
 
 #### Download Version
 
-- **Linux x64 ZIP Portable**: Download `ChainlessChain-linux-x64-0.21.0.zip` (~1.4GB)
-- **Linux x64 DEB Package**: Download `chainlesschain-desktop-vue_0.21.0_amd64.deb` (~923MB) ⭐Recommended
+- **Linux x64 ZIP Portable**: Download `ChainlessChain-linux-x64-0.26.0.zip` (~1.4GB)
+- **Linux x64 DEB Package**: Download `chainlesschain-desktop-vue_0.26.0_amd64.deb` (~923MB) ⭐Recommended
 
 #### Supported Distributions
 
@@ -823,7 +823,7 @@ npm run make:win
 1. Download the deb file
 2. Install:
    ```bash
-   sudo dpkg -i chainlesschain-desktop-vue_0.21.0_amd64.deb
+   sudo dpkg -i chainlesschain-desktop-vue_0.26.0_amd64.deb
    ```
 3. If dependency issues occur:
    ```bash
@@ -839,7 +839,7 @@ npm run make:win
 1. Download the zip file
 2. Extract to any directory:
    ```bash
-   unzip ChainlessChain-linux-x64-0.21.0.zip
+   unzip ChainlessChain-linux-x64-0.26.0.zip
    cd ChainlessChain-linux-x64
    ```
 3. Grant execute permission:
@@ -1772,11 +1772,11 @@ chainlesschain/
 ### Version History
 
 | Version | Date       | Major Updates                                                                                                                                                                                                                                                                                                                                            |
-| ------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| v0.26.0 | 2026-01-19 | **Unified Logging+Android P2P UI+Memory Optimization**: Centralized logger system (700+ migrations), Android P2P complete UI (8 screens), ChatPanel 4-layer memory protection, added logger-ipc.js (120 lines), logger.js (245 lines), P2P docs (709 lines) ⭐LATEST |\n| v0.25.0 | 2026-01-17 | **Manus AI Optimization + Multi-Agent System**: Context Engineering (KV-Cache optimization), Tool Masking, TaskTrackerFile (todo.md mechanism), Recoverable Compression, 3 specialized Agents (Code Generation/Data Analysis/Document Processing), parallel/chain execution, added 5,500+ lines of code ⭐LATEST |
-| v0.24.0 | 2026-01-16 | **MCP Chat Integration**: MCP tools integrated into AI chat, invoke MCP server tools via Function Calling, added mcp-function-executor.js (268 lines) |
-| v0.23.0 | 2026-01-15 | **SessionManager Enhancement + ErrorMonitor AI Diagnostics**: Session search/tags/export/summary/templates/batch operations, AI intelligent error diagnosis and auto-fix |
-| v0.22.0 | 2026-01-13 | **Blockchain Integration Complete**: Phase 4-6 complete (15 chain support + RPC management + event listening + complete UI), added 6,566 lines of code, 12 UI components, full test coverage ⭐Major Update |
+| ------- | ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --- | ------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| v0.26.0 | 2026-01-19 | **Unified Logging+Android P2P UI+Memory Optimization**: Centralized logger system (700+ migrations), Android P2P complete UI (8 screens), ChatPanel 4-layer memory protection, added logger-ipc.js (120 lines), logger.js (245 lines), P2P docs (709 lines) ⭐LATEST                                                                                     | \n  | v0.25.0 | 2026-01-17 | **Manus AI Optimization + Multi-Agent System**: Context Engineering (KV-Cache optimization), Tool Masking, TaskTrackerFile (todo.md mechanism), Recoverable Compression, 3 specialized Agents (Code Generation/Data Analysis/Document Processing), parallel/chain execution, added 5,500+ lines of code ⭐LATEST |
+| v0.24.0 | 2026-01-16 | **MCP Chat Integration**: MCP tools integrated into AI chat, invoke MCP server tools via Function Calling, added mcp-function-executor.js (268 lines)                                                                                                                                                                                                    |
+| v0.23.0 | 2026-01-15 | **SessionManager Enhancement + ErrorMonitor AI Diagnostics**: Session search/tags/export/summary/templates/batch operations, AI intelligent error diagnosis and auto-fix                                                                                                                                                                                 |
+| v0.22.0 | 2026-01-13 | **Blockchain Integration Complete**: Phase 4-6 complete (15 chain support + RPC management + event listening + complete UI), added 6,566 lines of code, 12 UI components, full test coverage ⭐Major Update                                                                                                                                              |
 | v0.21.0 | 2026-01-06 | **Deep Performance Optimization System**: Added 14,000+ lines of optimization code, 18 utility classes, 4 specialized components, smart image optimization system (WebP/AVIF), real-time performance monitoring (Core Web Vitals), frontend deep optimization (code splitting/lazy loading/virtual scrolling/intelligent prefetch), 8 detailed documents |
 | v0.20.0 | 2026-01-03 | **Testing Framework Upgrade + Performance Optimization**: Full migration to Vitest (94 test files/900+ cases), performance optimization integration (memory downgrade/disk check/concurrency control), security protection system, 4 core module unit tests                                                                                              |
 | v0.19.5 | 2026-01-02 | **P2 Optimization + V3 Tools + Menu Integration**: AI engine P2 optimization complete (intent fusion/knowledge distillation/streaming response), V3 tool system restored (300 tools), application menu integration, production deployment                                                                                                                |
@@ -1958,20 +1958,24 @@ See [CONTRIBUTING.md](./docs/development/CONTRIBUTING.md) for details
 ### Technical Notes
 
 **USB Key**:
+
 - Cross-platform support available (Windows native, macOS/Linux via simulation)
 - XinJinKe driver complete, other drivers available via simulation mode
 
 **Blockchain**:
+
 - 15 chains supported with RPC management
 - Production-grade LayerZero cross-chain bridge integrated
 - Smart contracts ready for third-party security audit
 
 **MCP Integration** (POC Stage):
+
 - Currently supports stdio transport only
 - HTTP+SSE transport planned for future release
 - Configuration via files only (UI configuration planned)
 
 **Performance**:
+
 - Recommended: 8GB+ RAM, SSD storage
 - GPU recommended for local LLM inference (Ollama)
 

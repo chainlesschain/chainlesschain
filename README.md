@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v0.20.0-blue.svg)
+![Version](https://img.shields.io/badge/version-v0.26.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![GitHub release](https://img.shields.io/github/v/release/chainlesschain/chainlesschain?color=blue)
@@ -1188,12 +1188,12 @@ const chainInfo = blockchainAdapter.getCurrentChainInfo();
 
 #### 选择对应版本
 
-- **Intel芯片 (x64)**: 下载 `ChainlessChain-darwin-x64-0.20.0.zip` (约1.4GB)
+- **Intel芯片 (x64)**: 下载 `ChainlessChain-darwin-x64-0.26.0.zip` (约1.4GB)
 - **Apple Silicon (M1/M2/M3芯片)**: ARM64版本开发中，请使用Rosetta运行x64版本
 
 #### 安装步骤
 
-1. 下载 `ChainlessChain-darwin-x64-0.20.0.zip` 文件
+1. 下载 `ChainlessChain-darwin-x64-0.26.0.zip` 文件
 2. 解压缩（双击zip文件）
 3. 将 `ChainlessChain.app` 拖到"应用程序"文件夹
 4. 双击运行（首次运行请参考下方说明）
@@ -1222,11 +1222,11 @@ const chainInfo = blockchainAdapter.getCurrentChainInfo();
 
 #### 下载版本
 
-- **Windows x64 (64位系统)**: 下载 `ChainlessChain-win32-x64-0.20.0.zip` (约1.4GB)
+- **Windows x64 (64位系统)**: 下载 `ChainlessChain-win32-x64-0.26.0.zip` (约1.4GB)
 
 #### 安装步骤（便携版，无需安装）
 
-1. 下载 `ChainlessChain-win32-x64-0.20.0.zip` 文件
+1. 下载 `ChainlessChain-win32-x64-0.26.0.zip` 文件
 2. 解压到任意文件夹（推荐解压到 `C:\Program Files\ChainlessChain\`）
 3. 双击运行 `ChainlessChain.exe`
 4. 无需管理员权限
@@ -1258,8 +1258,8 @@ npm run make:win
 
 #### 下载版本
 
-- **Linux x64 ZIP便携版**: 下载 `ChainlessChain-linux-x64-0.20.0.zip` (约1.4GB)
-- **Linux x64 DEB安装包**: 下载 `chainlesschain-desktop-vue_0.20.0_amd64.deb` (约923MB) ⭐推荐
+- **Linux x64 ZIP便携版**: 下载 `ChainlessChain-linux-x64-0.26.0.zip` (约1.4GB)
+- **Linux x64 DEB安装包**: 下载 `chainlesschain-desktop-vue_0.26.0_amd64.deb` (约923MB) ⭐推荐
 
 #### 支持发行版
 
@@ -1275,7 +1275,7 @@ npm run make:win
 1. 下载deb文件
 2. 安装：
    ```bash
-   sudo dpkg -i chainlesschain-desktop-vue_0.20.0_amd64.deb
+   sudo dpkg -i chainlesschain-desktop-vue_0.26.0_amd64.deb
    ```
 3. 如遇依赖问题，运行：
    ```bash
@@ -1291,7 +1291,7 @@ npm run make:win
 1. 下载zip文件
 2. 解压到任意目录：
    ```bash
-   unzip ChainlessChain-linux-x64-0.20.0.zip
+   unzip ChainlessChain-linux-x64-0.26.0.zip
    cd ChainlessChain-linux-x64
    ```
 3. 赋予执行权限：
@@ -2688,10 +2688,10 @@ chainlesschain/
 
 | 版本    | 日期       | 主要更新                                                                                                                                                                                                              |
 | ------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| v0.26.0 | 2026-01-19 | **统一日志系统+Android P2P UI+内存优化**: 集中式logger系统(700+迁移)、Android P2P完整UI(8屏幕)、ChatPanel 4层内存防护、新增logger-ipc.js(120行)、logger.js(245行)、P2P文档(709行) ⭐最新 |
-| v0.25.0 | 2026-01-17 | **Manus AI优化+Multi-Agent系统**: Context Engineering(KV-Cache优化)、Tool Masking(工具掩码)、TaskTrackerFile(todo.md机制)、可恢复压缩、3个专用Agent(代码/数据/文档)、并行/链式执行，新增5,500+行代码 |
-| v0.24.0 | 2026-01-16 | **MCP Chat Integration**: MCP工具集成到AI聊天，通过Function Calling调用MCP服务器工具，新增mcp-function-executor.js(268行) |
-| v0.23.0 | 2026-01-15 | **SessionManager增强+ErrorMonitor AI诊断**: 会话搜索/标签/导出/摘要/模板/批量操作，AI智能错误诊断和自动修复 |
+| v0.26.0 | 2026-01-19 | **统一日志系统+Android P2P UI+内存优化**: 集中式logger系统(700+迁移)、Android P2P完整UI(8屏幕)、ChatPanel 4层内存防护、新增logger-ipc.js(120行)、logger.js(245行)、P2P文档(709行) ⭐最新                              |
+| v0.25.0 | 2026-01-17 | **Manus AI优化+Multi-Agent系统**: Context Engineering(KV-Cache优化)、Tool Masking(工具掩码)、TaskTrackerFile(todo.md机制)、可恢复压缩、3个专用Agent(代码/数据/文档)、并行/链式执行，新增5,500+行代码                  |
+| v0.24.0 | 2026-01-16 | **MCP Chat Integration**: MCP工具集成到AI聊天，通过Function Calling调用MCP服务器工具，新增mcp-function-executor.js(268行)                                                                                             |
+| v0.23.0 | 2026-01-15 | **SessionManager增强+ErrorMonitor AI诊断**: 会话搜索/标签/导出/摘要/模板/批量操作，AI智能错误诊断和自动修复                                                                                                           |
 | v0.22.0 | 2026-01-13 | **区块链集成完成**: Phase 4-6全部完成（15链支持+RPC管理+事件监听+完整UI），新增6,566行代码，12个UI组件，完整测试覆盖 ⭐重大更新                                                                                       |
 | v0.21.0 | 2026-01-12 | **知识图谱可视化+企业版DID邀请+移动端增强**: 8个图分析算法、5种可视化方式、智能实体提取、6种导出格式、DID邀请链接系统（安全令牌/使用控制/统计分析）、移动端Markdown渲染（代码高亮/图片预览/工具栏/实时预览/自动保存） |
 | v0.20.0 | 2026-01-11 | **语音识别完善+PC端核心功能**: Whisper集成测试通过(100%准确度)、语音设置UI完成、多语言支持、STUN/TURN网络测试、P2P通信增强(WebRTC+Signal Protocol)、文档结构重构、测试框架升级(Vitest)                                |
