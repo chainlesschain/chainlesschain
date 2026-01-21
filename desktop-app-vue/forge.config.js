@@ -419,42 +419,56 @@ module.exports = {
       const rootNodeModules = path.join(ROOT_DIR, "node_modules");
       const buildNodeModules = path.join(buildPath, "node_modules");
 
-      console.log("[Packaging] Copying workspace dependencies...");
-      console.log(`  From: ${rootNodeModules}`);
-      console.log(`  To: ${buildNodeModules}`);
+      // 在 CI 环境中，如果已经通过 junction/symlink 链接了 node_modules，跳过复制
+      // electron-forge 会自动处理 junction 指向的内容
+      const isCI = process.env.CI || process.env.GITHUB_ACTIONS;
+      const localNodeModules = path.join(__dirname, "node_modules");
 
-      // 删除现有的node_modules（包含符号链接）
-      if (fs.existsSync(buildNodeModules)) {
-        console.log("[Packaging] Removing existing node_modules...");
-        fs.rmSync(buildNodeModules, { recursive: true, force: true });
-      }
+      if (isCI && fs.existsSync(localNodeModules)) {
+        console.log(
+          "[Packaging] CI environment detected with linked node_modules",
+        );
+        console.log(
+          "[Packaging] Skipping redundant copy - electron-forge will use linked modules",
+        );
+      } else {
+        console.log("[Packaging] Copying workspace dependencies...");
+        console.log(`  From: ${rootNodeModules}`);
+        console.log(`  To: ${buildNodeModules}`);
 
-      // 跨平台复制 node_modules
-      console.log("[Packaging] Copying workspace dependencies...");
-      try {
-        if (process.platform === "win32") {
-          // Windows: use xcopy (robocopy is slower for this use case)
-          execSync(
-            `xcopy "${rootNodeModules}" "${buildNodeModules}" /E /I /H /Y /Q`,
-            {
+        // 删除现有的node_modules（包含符号链接）
+        if (fs.existsSync(buildNodeModules)) {
+          console.log("[Packaging] Removing existing node_modules...");
+          fs.rmSync(buildNodeModules, { recursive: true, force: true });
+        }
+
+        // 跨平台复制 node_modules
+        console.log("[Packaging] Copying workspace dependencies...");
+        try {
+          if (process.platform === "win32") {
+            // Windows: use xcopy (robocopy is slower for this use case)
+            execSync(
+              `xcopy "${rootNodeModules}" "${buildNodeModules}" /E /I /H /Y /Q`,
+              {
+                stdio: "inherit",
+                maxBuffer: 1024 * 1024 * 100, // 100MB buffer
+              },
+            );
+          } else {
+            // macOS/Linux: use cp -R
+            execSync(`cp -R "${rootNodeModules}" "${buildNodeModules}"`, {
               stdio: "inherit",
               maxBuffer: 1024 * 1024 * 100, // 100MB buffer
-            },
+            });
+          }
+          console.log("[Packaging] Workspace dependencies copied successfully");
+        } catch (error) {
+          console.error(
+            "[Packaging] Failed to copy node_modules:",
+            error.message,
           );
-        } else {
-          // macOS/Linux: use cp -R
-          execSync(`cp -R "${rootNodeModules}" "${buildNodeModules}"`, {
-            stdio: "inherit",
-            maxBuffer: 1024 * 1024 * 100, // 100MB buffer
-          });
+          throw error;
         }
-        console.log("[Packaging] Workspace dependencies copied successfully");
-      } catch (error) {
-        console.error(
-          "[Packaging] Failed to copy node_modules:",
-          error.message,
-        );
-        throw error;
       }
 
       // 创建必要的目录结构
