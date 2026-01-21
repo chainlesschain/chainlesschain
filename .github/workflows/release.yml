@@ -50,14 +50,14 @@ jobs:
           NODE_OPTIONS: "--max-old-space-size=4096"
 
       - name: Link hoisted modules for packaging
-        shell: powershell
+        shell: cmd
         run: |
-          # Copy hoisted node_modules to desktop-app-vue for electron-forge
-          if (Test-Path "desktop-app-vue/node_modules") {
-            Remove-Item -Path "desktop-app-vue/node_modules" -Recurse -Force
-          }
-          Copy-Item -Path "node_modules" -Destination "desktop-app-vue/node_modules" -Recurse
-          Write-Host "Hoisted modules copied to desktop-app-vue"
+          @REM Use robocopy for faster copy (Copy-Item is extremely slow on Windows)
+          if exist "desktop-app-vue\node_modules" rmdir /s /q "desktop-app-vue\node_modules"
+          robocopy node_modules desktop-app-vue\node_modules /E /MT:8 /NFL /NDL /NJH /NJS /NC /NS
+          @REM robocopy returns 1 for successful copy, treat as success
+          if %ERRORLEVEL% LEQ 7 exit /b 0
+          echo Hoisted modules copied to desktop-app-vue
 
       - name: Package Windows
         working-directory: desktop-app-vue
