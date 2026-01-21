@@ -52,12 +52,15 @@ jobs:
       - name: Link hoisted modules for packaging
         shell: cmd
         run: |
-          @REM Use robocopy for faster copy (Copy-Item is extremely slow on Windows)
+          @REM Use directory junction (mklink /J) for instant linking instead of slow copy
+          @REM This is MUCH faster than robocopy for large node_modules directories
           if exist "desktop-app-vue\node_modules" rmdir /s /q "desktop-app-vue\node_modules"
-          robocopy node_modules desktop-app-vue\node_modules /E /MT:8 /NFL /NDL /NJH /NJS /NC /NS
-          @REM robocopy returns 1 for successful copy, treat as success
-          if %ERRORLEVEL% LEQ 7 exit /b 0
-          echo Hoisted modules copied to desktop-app-vue
+          mklink /J "desktop-app-vue\node_modules" "%CD%\node_modules"
+          if %ERRORLEVEL% NEQ 0 (
+            echo Junction failed, falling back to xcopy...
+            xcopy node_modules desktop-app-vue\node_modules /E /I /H /Y /Q
+          )
+          echo Hoisted modules linked to desktop-app-vue
 
       - name: Package Windows
         working-directory: desktop-app-vue
