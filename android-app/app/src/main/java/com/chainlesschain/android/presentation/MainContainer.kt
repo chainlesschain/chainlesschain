@@ -16,6 +16,7 @@ import com.chainlesschain.android.presentation.screens.*
 @Composable
 fun MainContainer(
     onLogout: () -> Unit,
+    onNavigateToProjectDetail: (String) -> Unit = {},
     viewModel: AuthViewModel = hiltViewModel()
 ) {
     var selectedTab by remember { mutableStateOf(0) }
@@ -39,7 +40,9 @@ fun MainContainer(
                     viewModel = viewModel,
                     onProfileClick = { showProfileDialog = true }
                 )
-                1 -> ProjectScreen()
+                1 -> ProjectScreen(
+                    onProjectClick = onNavigateToProjectDetail
+                )
                 2 -> ExploreScreen()
                 3 -> BookmarkScreen()
             }

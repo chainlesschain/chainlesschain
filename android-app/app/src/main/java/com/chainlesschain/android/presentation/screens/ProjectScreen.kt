@@ -28,7 +28,9 @@ import java.time.format.DateTimeFormatter
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProjectScreen() {
+fun ProjectScreen(
+    onProjectClick: (String) -> Unit = {}
+) {
     var showAddDialog by remember { mutableStateOf(false) }
     var selectedFilter by remember { mutableStateOf("全部") }
 
@@ -175,7 +177,7 @@ fun ProjectScreen() {
             items(filteredProjects, key = { it.project.id }) { projectWithTasks ->
                 EnhancedProjectCard(
                     projectWithTasks = projectWithTasks,
-                    onClick = { /* TODO: 查看详情 */ }
+                    onClick = { onProjectClick(projectWithTasks.project.id) }
                 )
             }
         }
