@@ -196,3 +196,107 @@ enum class ExploreCategory(val displayName: String) {
     AI_CHAT("AI对话"),
     KNOWLEDGE("知识库")
 }
+
+// ==================== 项目详情和步骤相关实体 ====================
+
+/**
+ * 项目会话实体 - 用于项目详情页的对话式展示
+ */
+data class ProjectConversation(
+    val id: String,
+    val projectId: String,
+    val title: String,
+    val messages: List<ProjectMessage> = emptyList(),
+    val steps: List<ExecutionStep> = emptyList(),
+    val createdAt: LocalDateTime = LocalDateTime.now(),
+    val updatedAt: LocalDateTime = LocalDateTime.now()
+)
+
+/**
+ * 项目消息实体 - 对话式交互中的单条消息
+ */
+data class ProjectMessage(
+    val id: String,
+    val type: MessageType,
+    val content: String,
+    val imageUrl: String? = null,
+    val webPreview: WebPreviewData? = null,
+    val codeBlock: CodeBlockData? = null,
+    val timestamp: LocalDateTime = LocalDateTime.now()
+)
+
+/**
+ * 消息类型
+ */
+enum class MessageType(val displayName: String) {
+    USER("用户消息"),
+    AI("AI消息"),
+    SYSTEM("系统消息")
+}
+
+/**
+ * 网页预览数据
+ */
+data class WebPreviewData(
+    val url: String,
+    val title: String,
+    val description: String? = null,
+    val imageUrl: String? = null
+)
+
+/**
+ * 代码块数据
+ */
+data class CodeBlockData(
+    val language: String,
+    val code: String,
+    val fileName: String? = null
+)
+
+/**
+ * 执行步骤实体 - 用于步骤详情页的时间线展示
+ */
+data class ExecutionStep(
+    val id: String,
+    val type: StepType,
+    val title: String,
+    val content: String? = null,
+    val imageUrl: String? = null,
+    val fileData: StepFileData? = null,
+    val codeBlock: CodeBlockData? = null,
+    val terminalOutput: TerminalOutputData? = null,
+    val order: Int = 0,
+    val timestamp: LocalDateTime = LocalDateTime.now()
+)
+
+/**
+ * 步骤类型
+ */
+enum class StepType(val displayName: String, val iconName: String) {
+    USER_MESSAGE("用户发送消息", "person"),
+    FILE_READ("文件读取", "folder"),
+    AI_MESSAGE("AI发送消息", "smart_toy"),
+    TERMINAL("虚拟终端", "terminal"),
+    WEB_BROWSE("网页浏览", "language"),
+    CODE_EXECUTE("代码执行", "code")
+}
+
+/**
+ * 步骤文件数据
+ */
+data class StepFileData(
+    val fileName: String,
+    val filePath: String? = null,
+    val fileType: FileType = FileType.OTHER,
+    val fileSize: Long? = null
+)
+
+/**
+ * 终端输出数据
+ */
+data class TerminalOutputData(
+    val command: String,
+    val output: String,
+    val isError: Boolean = false,
+    val language: String = "bash"
+)

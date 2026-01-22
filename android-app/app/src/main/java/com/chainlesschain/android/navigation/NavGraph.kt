@@ -27,6 +27,8 @@ import com.chainlesschain.android.feature.ai.presentation.ChatScreen
 import com.chainlesschain.android.feature.ai.presentation.NewConversationScreen
 import com.chainlesschain.android.presentation.HomeScreen
 import com.chainlesschain.android.presentation.MainContainer
+import com.chainlesschain.android.presentation.screens.ProjectDetailScreenV2
+import com.chainlesschain.android.presentation.screens.StepDetailScreen
 import com.chainlesschain.android.feature.p2p.navigation.p2pGraph
 import com.chainlesschain.android.feature.p2p.navigation.P2P_ROUTE
 
@@ -71,6 +73,9 @@ fun NavGraph(
                     navController.navigate(Screen.Login.route) {
                         popUpTo(Screen.Home.route) { inclusive = true }
                     }
+                },
+                onNavigateToProjectDetail = { projectId ->
+                    navController.navigate(Screen.ProjectDetail.createRoute(projectId))
                 }
             )
         }
@@ -178,6 +183,41 @@ fun NavGraph(
                 navController.navigate(Screen.ConversationList.route)
             }
         )
+
+        // 项目详情页 V2
+        composable(
+            route = "${Screen.ProjectDetail.route}/{projectId}",
+            arguments = listOf(
+                navArgument("projectId") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val projectId = backStackEntry.arguments?.getString("projectId") ?: return@composable
+            ProjectDetailScreenV2(
+                projectId = projectId,
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onNavigateToSteps = { id ->
+                    navController.navigate(Screen.StepDetail.createRoute(id))
+                }
+            )
+        }
+
+        // 步骤详情页
+        composable(
+            route = "${Screen.StepDetail.route}/{projectId}",
+            arguments = listOf(
+                navArgument("projectId") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val projectId = backStackEntry.arguments?.getString("projectId") ?: return@composable
+            StepDetailScreen(
+                projectId = projectId,
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
     }
 }
 
@@ -198,6 +238,12 @@ sealed class Screen(val route: String) {
         fun createRoute(conversationId: String) = "chat/$conversationId"
     }
     data object AISettings : Screen("ai_settings")
+    data object ProjectDetail : Screen("project_detail") {
+        fun createRoute(projectId: String) = "project_detail/$projectId"
+    }
+    data object StepDetail : Screen("step_detail") {
+        fun createRoute(projectId: String) = "step_detail/$projectId"
+    }
 }
 
 /**
