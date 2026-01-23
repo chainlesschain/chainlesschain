@@ -9,10 +9,14 @@ import com.chainlesschain.android.core.common.viewmodel.UiState
 import com.chainlesschain.android.core.database.entity.social.FriendEntity
 import com.chainlesschain.android.core.database.entity.social.FriendGroupEntity
 import com.chainlesschain.android.core.database.entity.social.FriendStatus
+import com.chainlesschain.android.core.p2p.realtime.PresenceInfo
+import com.chainlesschain.android.core.p2p.realtime.PresenceManager
+import com.chainlesschain.android.core.p2p.realtime.RealtimeEventManager
 import com.chainlesschain.android.feature.p2p.repository.social.FriendRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 
 /**
@@ -22,16 +26,89 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class FriendViewModel @Inject constructor(
-    private val friendRepository: FriendRepository
+    private val friendRepository: FriendRepository,
+    private val realtimeEventManager: RealtimeEventManager,
+    private val presenceManager: PresenceManager
 ) : BaseViewModel<FriendUiState, FriendEvent>(
     initialState = FriendUiState()
 ) {
+
+    // 在线状态缓存
+    private val presenceCache = ConcurrentHashMap<String, PresenceInfo>()
 
     init {
         loadFriends()
         loadGroups()
         loadPendingRequests()
         observePendingRequestCount()
+
+        // 启动实时事件监听
+        startRealtimeListening()
+    }
+
+    // ===== 实时事件监听 =====
+
+    /**
+     * 启动实时事件监听
+     */
+    private fun startRealtimeListening() {
+        // 监听好友请求
+        viewModelScope.launch(exceptionHandler) {
+            realtimeEventManager.friendRequestEvents.collect { event ->
+                handleFriendRequest(event.fromDid, event.message)
+            }
+        }
+
+        // 监听在线状态更新
+        viewModelScope.launch(exceptionHandler) {
+            presenceManager.presenceUpdates.collect { event ->
+                presenceCache[event.did] = PresenceInfo(
+                    did = event.did,
+                    status = event.status,
+                    lastActiveAt = event.lastActiveAt,
+                    receivedAt = System.currentTimeMillis()
+                )
+                // 刷新好友列表显示
+                updateState { copy() }
+            }
+        }
+    }
+
+    /**
+     * 处理收到的好友请求
+     */
+    private suspend fun handleFriendRequest(fromDid: String, message: String?) {
+        // 检查是否已存在该好友
+        friendRepository.getFriendByDid(fromDid).onSuccess { existingFriend ->
+            if (existingFriend == null) {
+                // 创建新的好友请求记录
+                val friend = FriendEntity(
+                    did = fromDid,
+                    nickname = "用户 ${fromDid.take(8)}", // 临时昵称
+                    avatar = null,
+                    bio = message,
+                    status = FriendStatus.PENDING,
+                    addedAt = System.currentTimeMillis()
+                )
+                friendRepository.addFriend(friend)
+                sendEvent(FriendEvent.ShowToast("收到新的好友请求"))
+            }
+        }
+    }
+
+    /**
+     * 获取好友的在线状态
+     */
+    fun getFriendPresence(did: String): PresenceInfo? {
+        return presenceCache[did]
+    }
+
+    /**
+     * 发送好友请求
+     */
+    fun sendFriendRequest(targetDid: String, message: String?) = launchSafely {
+        realtimeEventManager.sendFriendRequest(targetDid, message)
+        sendEvent(FriendEvent.ShowToast("好友请求已发送"))
     }
 
     // ===== 数据加载 =====
@@ -155,6 +232,8 @@ class FriendViewModel @Inject constructor(
     fun acceptFriendRequest(did: String) = launchSafely {
         friendRepository.acceptFriendRequest(did)
             .onSuccess {
+                // 发送实时响应
+                realtimeEventManager.respondToFriendRequest(did, accepted = true)
                 sendEvent(FriendEvent.ShowToast("已接受好友请求"))
                 sendEvent(FriendEvent.FriendRequestAccepted(did))
             }.onFailure { error ->
@@ -168,6 +247,8 @@ class FriendViewModel @Inject constructor(
     fun rejectFriendRequest(did: String) = launchSafely {
         friendRepository.rejectFriendRequest(did)
             .onSuccess {
+                // 发送实时响应
+                realtimeEventManager.respondToFriendRequest(did, accepted = false)
                 sendEvent(FriendEvent.ShowToast("已拒绝好友请求"))
             }.onFailure { error ->
                 handleError(error)
@@ -352,7 +433,9 @@ data class FriendUiState(
     val searchQuery: String = "",
     val showFriendMenu: Boolean = false,
     val showGroupSelector: Boolean = false,
-    val isGridView: Boolean = false
+    val isGridView: Boolean = false,
+    // 在线好友数量
+    val onlineFriendCount: Int = 0
 ) : UiState
 
 /**

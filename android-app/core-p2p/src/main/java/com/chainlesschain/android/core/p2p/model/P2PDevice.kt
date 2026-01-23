@@ -162,7 +162,39 @@ enum class MessageType {
     FILE_TRANSFER_CANCEL,
 
     /** 传输完成 */
-    FILE_TRANSFER_COMPLETE
+    FILE_TRANSFER_COMPLETE,
+
+    // Social Feature Real-time Message Types
+
+    /** 好友请求 */
+    FRIEND_REQUEST,
+
+    /** 好友请求响应 */
+    FRIEND_RESPONSE,
+
+    /** 好友状态更新 */
+    FRIEND_STATUS_UPDATE,
+
+    /** 在线状态变更 */
+    PRESENCE_UPDATE,
+
+    /** 动态发布通知 */
+    POST_NOTIFICATION,
+
+    /** 点赞通知 */
+    LIKE_NOTIFICATION,
+
+    /** 评论通知 */
+    COMMENT_NOTIFICATION,
+
+    /** 提及通知 */
+    MENTION_NOTIFICATION,
+
+    /** 实时聊天消息 */
+    CHAT_MESSAGE,
+
+    /** 正在输入指示 */
+    TYPING_INDICATOR
 }
 
 /**
