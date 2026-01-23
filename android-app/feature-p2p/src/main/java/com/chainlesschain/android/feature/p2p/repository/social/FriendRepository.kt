@@ -18,7 +18,8 @@ import javax.inject.Singleton
  */
 @Singleton
 class FriendRepository @Inject constructor(
-    private val friendDao: FriendDao
+    private val friendDao: FriendDao,
+    private val syncAdapter: Lazy<SocialSyncAdapter> // 使用 Lazy 避免循环依赖
 ) {
 
     // ===== 查询方法 =====
@@ -127,6 +128,7 @@ class FriendRepository @Inject constructor(
     suspend fun addFriend(friend: FriendEntity): Result<Unit> {
         return try {
             friendDao.insert(friend)
+            syncAdapter.get().syncFriendAdded(friend)
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e)
@@ -139,6 +141,7 @@ class FriendRepository @Inject constructor(
     suspend fun addFriends(friends: List<FriendEntity>): Result<Unit> {
         return try {
             friendDao.insertAll(friends)
+            friends.forEach { syncAdapter.get().syncFriendAdded(it) }
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e)
@@ -151,6 +154,7 @@ class FriendRepository @Inject constructor(
     suspend fun updateFriend(friend: FriendEntity): Result<Unit> {
         return try {
             friendDao.update(friend)
+            syncAdapter.get().syncFriendUpdated(friend)
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e)
@@ -163,6 +167,10 @@ class FriendRepository @Inject constructor(
     suspend fun updateFriendStatus(did: String, status: FriendStatus): Result<Unit> {
         return try {
             friendDao.updateStatus(did, status)
+            // 获取更新后的好友信息并同步
+            friendDao.getFriendByDid(did)?.let { friend ->
+                syncAdapter.get().syncFriendUpdated(friend)
+            }
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e)
@@ -189,6 +197,10 @@ class FriendRepository @Inject constructor(
     suspend fun updateRemarkName(did: String, remarkName: String?): Result<Unit> {
         return try {
             friendDao.updateRemarkName(did, remarkName)
+            // 获取更新后的好友信息并同步
+            friendDao.getFriendByDid(did)?.let { friend ->
+                syncAdapter.get().syncFriendUpdated(friend)
+            }
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e)
@@ -201,6 +213,10 @@ class FriendRepository @Inject constructor(
     suspend fun updateGroup(did: String, groupId: String?): Result<Unit> {
         return try {
             friendDao.updateGroup(did, groupId)
+            // 获取更新后的好友信息并同步
+            friendDao.getFriendByDid(did)?.let { friend ->
+                syncAdapter.get().syncFriendUpdated(friend)
+            }
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e)
@@ -213,6 +229,10 @@ class FriendRepository @Inject constructor(
     suspend fun blockFriend(did: String): Result<Unit> {
         return try {
             friendDao.updateBlockStatus(did, true)
+            // 获取更新后的好友信息并同步
+            friendDao.getFriendByDid(did)?.let { friend ->
+                syncAdapter.get().syncFriendUpdated(friend)
+            }
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e)
@@ -225,6 +245,10 @@ class FriendRepository @Inject constructor(
     suspend fun unblockFriend(did: String): Result<Unit> {
         return try {
             friendDao.updateBlockStatus(did, false)
+            // 获取更新后的好友信息并同步
+            friendDao.getFriendByDid(did)?.let { friend ->
+                syncAdapter.get().syncFriendUpdated(friend)
+            }
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e)
@@ -237,6 +261,10 @@ class FriendRepository @Inject constructor(
     suspend fun updateLastActiveAt(did: String, time: Long): Result<Unit> {
         return try {
             friendDao.updateLastActiveAt(did, time)
+            // 获取更新后的好友信息并同步
+            friendDao.getFriendByDid(did)?.let { friend ->
+                syncAdapter.get().syncFriendUpdated(friend)
+            }
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e)
@@ -251,6 +279,7 @@ class FriendRepository @Inject constructor(
     suspend fun deleteFriend(did: String): Result<Unit> {
         return try {
             friendDao.deleteByDid(did)
+            syncAdapter.get().syncFriendDeleted(did)
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e)
