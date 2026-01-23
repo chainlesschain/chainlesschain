@@ -21,7 +21,8 @@ import javax.inject.Singleton
 @Singleton
 class PostRepository @Inject constructor(
     private val postDao: PostDao,
-    private val interactionDao: PostInteractionDao
+    private val interactionDao: PostInteractionDao,
+    private val syncAdapter: Lazy<SocialSyncAdapter> // 使用 Lazy 避免循环依赖
 ) {
 
     // ===== 动态查询 =====
@@ -135,6 +136,7 @@ class PostRepository @Inject constructor(
     suspend fun createPost(post: PostEntity): Result<Unit> {
         return try {
             postDao.insert(post)
+            syncAdapter.get().syncPostCreated(post)
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e)
@@ -147,6 +149,7 @@ class PostRepository @Inject constructor(
     suspend fun updatePost(post: PostEntity): Result<Unit> {
         return try {
             postDao.update(post)
+            syncAdapter.get().syncPostUpdated(post)
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e)
@@ -159,6 +162,10 @@ class PostRepository @Inject constructor(
     suspend fun updatePostContent(postId: String, content: String, updatedAt: Long): Result<Unit> {
         return try {
             postDao.updateContent(postId, content, updatedAt)
+            // 获取更新后的动态并同步
+            postDao.getPostById(postId)?.let { post ->
+                syncAdapter.get().syncPostUpdated(post)
+            }
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e)
@@ -171,6 +178,7 @@ class PostRepository @Inject constructor(
     suspend fun deletePost(id: String): Result<Unit> {
         return try {
             postDao.deleteById(id)
+            syncAdapter.get().syncPostDeleted(id)
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e)
@@ -186,6 +194,10 @@ class PostRepository @Inject constructor(
             postDao.unpinAllPosts(did)
             // 再置顶当前动态
             postDao.updatePinnedStatus(postId, true)
+            // 获取更新后的动态并同步
+            postDao.getPostById(postId)?.let { post ->
+                syncAdapter.get().syncPostUpdated(post)
+            }
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e)
@@ -198,6 +210,10 @@ class PostRepository @Inject constructor(
     suspend fun unpinPost(postId: String): Result<Unit> {
         return try {
             postDao.updatePinnedStatus(postId, false)
+            // 获取更新后的动态并同步
+            postDao.getPostById(postId)?.let { post ->
+                syncAdapter.get().syncPostUpdated(post)
+            }
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e)
@@ -228,6 +244,7 @@ class PostRepository @Inject constructor(
             )
             interactionDao.insertLike(like)
             postDao.incrementLikeCount(postId)
+            syncAdapter.get().syncLikeAdded(like)
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e)
@@ -239,8 +256,10 @@ class PostRepository @Inject constructor(
      */
     suspend fun unlikePost(postId: String, userDid: String): Result<Unit> {
         return try {
+            val likeId = "${postId}_${userDid}"
             interactionDao.deleteLike(postId, userDid)
             postDao.decrementLikeCount(postId)
+            syncAdapter.get().syncLikeRemoved(likeId)
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e)
@@ -285,6 +304,7 @@ class PostRepository @Inject constructor(
         return try {
             interactionDao.insertComment(comment)
             postDao.incrementCommentCount(comment.postId)
+            syncAdapter.get().syncCommentAdded(comment)
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e)
@@ -302,6 +322,7 @@ class PostRepository @Inject constructor(
             interactionDao.deleteComment(comment)
             // 更新评论数
             postDao.decrementCommentCount(comment.postId)
+            syncAdapter.get().syncCommentDeleted(comment.id)
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e)
