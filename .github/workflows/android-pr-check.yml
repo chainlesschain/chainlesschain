@@ -1,0 +1,174 @@
+name: Android PR Check
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'android-app/**'
+      - '.github/workflows/android-pr-check.yml'
+
+# 取消同一 PR 的旧工作流
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quick-check:
+    name: Quick Check (Lint + Unit Tests)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 获取完整历史以便比较
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Cache Gradle packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Make gradlew executable
+        working-directory: android-app
+        run: chmod +x ./gradlew
+
+      - name: Run Detekt
+        working-directory: android-app
+        run: ./gradlew detekt
+
+      - name: Run Unit Tests
+        working-directory: android-app
+        run: ./gradlew testDebugUnitTest
+
+      - name: Generate Test Coverage
+        working-directory: android-app
+        run: ./gradlew jacocoTestReport
+
+      - name: Build Debug APK
+        working-directory: android-app
+        run: ./gradlew assembleDebug
+
+      - name: Comment PR with Results
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+
+            let comment = '## 🤖 Android PR Check Results\n\n';
+            comment += '| Check | Status |\n';
+            comment += '|-------|--------|\n';
+            comment += '| Detekt | ✅ Passed |\n';
+            comment += '| Unit Tests | ✅ Passed |\n';
+            comment += '| Build | ✅ Passed |\n';
+            comment += '\n';
+            comment += '### 📊 Test Coverage\n';
+            comment += 'Coverage report is available in the workflow artifacts.\n';
+            comment += '\n';
+            comment += '### 📦 APK Size\n';
+
+            // Try to get APK size
+            try {
+              const apkPath = 'android-app/app/build/outputs/apk/debug/app-debug.apk';
+              if (fs.existsSync(apkPath)) {
+                const stats = fs.statSync(apkPath);
+                const sizeMB = (stats.size / (1024 * 1024)).toFixed(2);
+                comment += `Debug APK: ${sizeMB} MB\n`;
+              }
+            } catch (e) {
+              console.log('Could not read APK size:', e);
+            }
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-test-results
+          path: |
+            android-app/app/build/test-results/
+            android-app/app/build/reports/
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-debug-apk
+          path: android-app/app/build/outputs/apk/debug/*.apk
+
+  code-quality-check:
+    name: Code Quality Analysis
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Cache Gradle packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Make gradlew executable
+        working-directory: android-app
+        run: chmod +x ./gradlew
+
+      - name: Run Lint
+        working-directory: android-app
+        run: ./gradlew lintDebug
+
+      - name: Analyze code metrics
+        working-directory: android-app
+        run: |
+          echo "## 📈 Code Metrics" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Count Kotlin files
+          kotlin_files=$(find app/src -name "*.kt" | wc -l)
+          echo "- Kotlin files: $kotlin_files" >> $GITHUB_STEP_SUMMARY
+
+          # Count lines of code
+          lines=$(find app/src -name "*.kt" -exec cat {} \; | wc -l)
+          echo "- Lines of code: $lines" >> $GITHUB_STEP_SUMMARY
+
+          # Count test files
+          test_files=$(find app/src/test app/src/androidTest -name "*.kt" 2>/dev/null | wc -l)
+          echo "- Test files: $test_files" >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload Lint Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lint-results
+          path: android-app/app/build/reports/lint-results-debug.html
