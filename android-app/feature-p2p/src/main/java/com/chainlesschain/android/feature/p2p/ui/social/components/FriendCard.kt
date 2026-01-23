@@ -15,6 +15,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.chainlesschain.android.core.database.entity.social.FriendEntity
 import com.chainlesschain.android.core.database.entity.social.FriendStatus
+import com.chainlesschain.android.core.ui.image.Avatar
+import com.chainlesschain.android.core.ui.image.AvatarSize
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -119,7 +121,7 @@ fun FriendCard(
 }
 
 /**
- * 头像图片组件
+ * 头像图片组件（带在线状态）
  */
 @Composable
 fun AvatarImage(
@@ -131,20 +133,19 @@ fun AvatarImage(
     isOnline: Boolean = false
 ) {
     Box(modifier = modifier) {
-        // 头像（暂时使用首字母占位）
-        Box(
-            modifier = Modifier
-                .size(size)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primaryContainer),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = nickname.take(1).uppercase(),
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
-            )
+        // 头像
+        val avatarSize = when {
+            size <= 32.dp -> AvatarSize.SMALL
+            size <= 48.dp -> AvatarSize.MEDIUM
+            size <= 64.dp -> AvatarSize.LARGE
+            else -> AvatarSize.EXTRA_LARGE
         }
+
+        Avatar(
+            avatarUrl = avatar,
+            name = nickname,
+            size = avatarSize
+        )
 
         // 在线状态指示器
         if (showOnlineStatus && isOnline) {
