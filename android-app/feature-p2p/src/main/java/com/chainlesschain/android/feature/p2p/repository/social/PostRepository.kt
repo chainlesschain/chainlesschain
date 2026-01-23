@@ -1,0 +1,396 @@
+package com.chainlesschain.android.feature.p2p.repository.social
+
+import com.chainlesschain.android.core.common.error.Result
+import com.chainlesschain.android.core.database.dao.social.PostDao
+import com.chainlesschain.android.core.database.dao.social.PostInteractionDao
+import com.chainlesschain.android.core.database.entity.social.PostEntity
+import com.chainlesschain.android.core.database.entity.social.PostCommentEntity
+import com.chainlesschain.android.core.database.entity.social.PostLikeEntity
+import com.chainlesschain.android.core.database.entity.social.PostShareEntity
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.map
+import javax.inject.Inject
+import javax.inject.Singleton
+
+/**
+ * 动态数据仓库
+ *
+ * 管理用户动态、时间流、点赞、评论和转发
+ */
+@Singleton
+class PostRepository @Inject constructor(
+    private val postDao: PostDao,
+    private val interactionDao: PostInteractionDao
+) {
+
+    // ===== 动态查询 =====
+
+    /**
+     * 获取时间流
+     */
+    fun getTimeline(
+        friendDids: List<String>,
+        myDid: String,
+        limit: Int = 20,
+        offset: Int = 0
+    ): Flow<Result<List<PostEntity>>> {
+        return postDao.getTimeline(friendDids, myDid, limit, offset)
+            .map { Result.Success(it) }
+            .catch { emit(Result.Error(it)) }
+    }
+
+    /**
+     * 获取用户动态
+     */
+    fun getUserPosts(did: String): Flow<Result<List<PostEntity>>> {
+        return postDao.getUserPosts(did)
+            .map { Result.Success(it) }
+            .catch { emit(Result.Error(it)) }
+    }
+
+    /**
+     * 根据 ID 获取动态
+     */
+    suspend fun getPostById(id: String): Result<PostEntity?> {
+        return try {
+            Result.Success(postDao.getPostById(id))
+        } catch (e: Exception) {
+            Result.Error(e)
+        }
+    }
+
+    /**
+     * 观察动态
+     */
+    fun observePostById(id: String): Flow<Result<PostEntity?>> {
+        return postDao.observePostById(id)
+            .map { Result.Success(it) }
+            .catch { emit(Result.Error(it)) }
+    }
+
+    /**
+     * 搜索动态
+     */
+    fun searchPosts(
+        query: String,
+        tag: String? = null,
+        myDid: String,
+        friendDids: List<String>,
+        limit: Int = 50
+    ): Flow<Result<List<PostEntity>>> {
+        return postDao.searchPosts(query, tag, myDid, friendDids, limit)
+            .map { Result.Success(it) }
+            .catch { emit(Result.Error(it)) }
+    }
+
+    /**
+     * 获取包含特定标签的动态
+     */
+    fun getPostsByTag(
+        tag: String,
+        myDid: String,
+        friendDids: List<String>,
+        limit: Int = 50
+    ): Flow<Result<List<PostEntity>>> {
+        return postDao.getPostsByTag(tag, myDid, friendDids, limit)
+            .map { Result.Success(it) }
+            .catch { emit(Result.Error(it)) }
+    }
+
+    /**
+     * 获取提及自己的动态
+     */
+    fun getMentionedPosts(myDid: String): Flow<Result<List<PostEntity>>> {
+        return postDao.getMentionedPosts(myDid)
+            .map { Result.Success(it) }
+            .catch { emit(Result.Error(it)) }
+    }
+
+    /**
+     * 获取置顶动态
+     */
+    fun getPinnedPosts(did: String): Flow<Result<List<PostEntity>>> {
+        return postDao.getPinnedPosts(did)
+            .map { Result.Success(it) }
+            .catch { emit(Result.Error(it)) }
+    }
+
+    /**
+     * 获取动态数量
+     */
+    suspend fun getPostCount(did: String): Result<Int> {
+        return try {
+            Result.Success(postDao.getPostCount(did))
+        } catch (e: Exception) {
+            Result.Error(e)
+        }
+    }
+
+    // ===== 动态管理 =====
+
+    /**
+     * 发布动态
+     */
+    suspend fun createPost(post: PostEntity): Result<Unit> {
+        return try {
+            postDao.insert(post)
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            Result.Error(e)
+        }
+    }
+
+    /**
+     * 更新动态
+     */
+    suspend fun updatePost(post: PostEntity): Result<Unit> {
+        return try {
+            postDao.update(post)
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            Result.Error(e)
+        }
+    }
+
+    /**
+     * 更新动态内容
+     */
+    suspend fun updatePostContent(postId: String, content: String, updatedAt: Long): Result<Unit> {
+        return try {
+            postDao.updateContent(postId, content, updatedAt)
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            Result.Error(e)
+        }
+    }
+
+    /**
+     * 删除动态
+     */
+    suspend fun deletePost(id: String): Result<Unit> {
+        return try {
+            postDao.deleteById(id)
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            Result.Error(e)
+        }
+    }
+
+    /**
+     * 置顶动态
+     */
+    suspend fun pinPost(postId: String, did: String): Result<Unit> {
+        return try {
+            // 先取消该用户的所有置顶
+            postDao.unpinAllPosts(did)
+            // 再置顶当前动态
+            postDao.updatePinnedStatus(postId, true)
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            Result.Error(e)
+        }
+    }
+
+    /**
+     * 取消置顶
+     */
+    suspend fun unpinPost(postId: String): Result<Unit> {
+        return try {
+            postDao.updatePinnedStatus(postId, false)
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            Result.Error(e)
+        }
+    }
+
+    // ===== 点赞管理 =====
+
+    /**
+     * 获取动态的点赞列表
+     */
+    fun getPostLikes(postId: String): Flow<Result<List<PostLikeEntity>>> {
+        return interactionDao.getPostLikes(postId)
+            .map { Result.Success(it) }
+            .catch { emit(Result.Error(it)) }
+    }
+
+    /**
+     * 点赞动态
+     */
+    suspend fun likePost(postId: String, userDid: String): Result<Unit> {
+        return try {
+            val like = PostLikeEntity(
+                id = "${postId}_${userDid}",
+                postId = postId,
+                userDid = userDid,
+                createdAt = System.currentTimeMillis()
+            )
+            interactionDao.insertLike(like)
+            postDao.incrementLikeCount(postId)
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            Result.Error(e)
+        }
+    }
+
+    /**
+     * 取消点赞
+     */
+    suspend fun unlikePost(postId: String, userDid: String): Result<Unit> {
+        return try {
+            interactionDao.deleteLike(postId, userDid)
+            postDao.decrementLikeCount(postId)
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            Result.Error(e)
+        }
+    }
+
+    /**
+     * 检查是否已点赞
+     */
+    suspend fun hasUserLikedPost(postId: String, userDid: String): Result<Boolean> {
+        return try {
+            Result.Success(interactionDao.hasUserLikedPost(postId, userDid))
+        } catch (e: Exception) {
+            Result.Error(e)
+        }
+    }
+
+    // ===== 评论管理 =====
+
+    /**
+     * 获取动态的评论
+     */
+    fun getPostComments(postId: String): Flow<Result<List<PostCommentEntity>>> {
+        return interactionDao.getPostComments(postId)
+            .map { Result.Success(it) }
+            .catch { emit(Result.Error(it)) }
+    }
+
+    /**
+     * 获取评论的回复
+     */
+    fun getCommentReplies(commentId: String): Flow<Result<List<PostCommentEntity>>> {
+        return interactionDao.getCommentReplies(commentId)
+            .map { Result.Success(it) }
+            .catch { emit(Result.Error(it)) }
+    }
+
+    /**
+     * 发表评论
+     */
+    suspend fun addComment(comment: PostCommentEntity): Result<Unit> {
+        return try {
+            interactionDao.insertComment(comment)
+            postDao.incrementCommentCount(comment.postId)
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            Result.Error(e)
+        }
+    }
+
+    /**
+     * 删除评论
+     */
+    suspend fun deleteComment(comment: PostCommentEntity): Result<Unit> {
+        return try {
+            // 删除所有回复
+            interactionDao.deleteCommentReplies(comment.id)
+            // 删除评论
+            interactionDao.deleteComment(comment)
+            // 更新评论数
+            postDao.decrementCommentCount(comment.postId)
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            Result.Error(e)
+        }
+    }
+
+    /**
+     * 点赞评论
+     */
+    suspend fun likeComment(commentId: String): Result<Unit> {
+        return try {
+            interactionDao.incrementCommentLikeCount(commentId)
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            Result.Error(e)
+        }
+    }
+
+    /**
+     * 取消点赞评论
+     */
+    suspend fun unlikeComment(commentId: String): Result<Unit> {
+        return try {
+            interactionDao.decrementCommentLikeCount(commentId)
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            Result.Error(e)
+        }
+    }
+
+    // ===== 转发管理 =====
+
+    /**
+     * 获取动态的转发列表
+     */
+    fun getPostShares(postId: String): Flow<Result<List<PostShareEntity>>> {
+        return interactionDao.getPostShares(postId)
+            .map { Result.Success(it) }
+            .catch { emit(Result.Error(it)) }
+    }
+
+    /**
+     * 转发动态
+     */
+    suspend fun sharePost(share: PostShareEntity): Result<Unit> {
+        return try {
+            interactionDao.insertShare(share)
+            postDao.incrementShareCount(share.postId)
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            Result.Error(e)
+        }
+    }
+
+    /**
+     * 取消转发
+     */
+    suspend fun unsharePost(postId: String, userDid: String): Result<Unit> {
+        return try {
+            interactionDao.deleteShare(postId, userDid)
+            // Note: 不减少转发数，因为转发记录已经产生
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            Result.Error(e)
+        }
+    }
+
+    /**
+     * 检查是否已转发
+     */
+    suspend fun hasUserSharedPost(postId: String, userDid: String): Result<Boolean> {
+        return try {
+            Result.Success(interactionDao.hasUserSharedPost(postId, userDid))
+        } catch (e: Exception) {
+            Result.Error(e)
+        }
+    }
+
+    // ===== 清理操作 =====
+
+    /**
+     * 清理旧动态
+     */
+    suspend fun cleanupOldPosts(cutoffTime: Long): Result<Unit> {
+        return try {
+            postDao.cleanupOldPosts(cutoffTime)
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            Result.Error(e)
+        }
+    }
+}
