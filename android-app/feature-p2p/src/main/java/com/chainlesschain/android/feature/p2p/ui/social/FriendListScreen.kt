@@ -68,21 +68,7 @@ fun FriendListScreen(
                 )
             } else {
                 TopAppBar(
-                    title = {
-                        Column {
-                            Text("好友")
-                            Text(
-                                text = "${uiState.friends.size} 位好友",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = onNavigateBack) {
-                            Icon(Icons.Default.ArrowBack, contentDescription = "返回")
-                        }
-                    },
+                    title = { },
                     actions = {
                         // 搜索
                         IconButton(onClick = { showSearchBar = true }) {

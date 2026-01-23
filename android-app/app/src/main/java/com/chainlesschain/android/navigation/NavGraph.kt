@@ -31,6 +31,8 @@ import com.chainlesschain.android.presentation.screens.ProjectDetailScreenV2
 import com.chainlesschain.android.presentation.screens.StepDetailScreen
 import com.chainlesschain.android.feature.p2p.navigation.p2pGraph
 import com.chainlesschain.android.feature.p2p.navigation.P2P_ROUTE
+import com.chainlesschain.android.feature.p2p.ui.social.PostDetailScreen
+import com.chainlesschain.android.feature.p2p.ui.social.PublishPostScreen
 
 /**
  * 应用导航图
@@ -76,6 +78,24 @@ fun NavGraph(
                 },
                 onNavigateToProjectDetail = { projectId ->
                     navController.navigate(Screen.ProjectDetail.createRoute(projectId))
+                },
+                onNavigateToFriendDetail = { did ->
+                    navController.navigate(Screen.FriendDetail.createRoute(did))
+                },
+                onNavigateToAddFriend = {
+                    navController.navigate(Screen.AddFriend.route)
+                },
+                onNavigateToPublishPost = {
+                    navController.navigate(Screen.PublishPost.route)
+                },
+                onNavigateToPostDetail = { postId ->
+                    navController.navigate(Screen.PostDetail.createRoute(postId))
+                },
+                onNavigateToUserProfile = { did ->
+                    navController.navigate(Screen.UserProfile.createRoute(did))
+                },
+                onNavigateToComment = { commentId ->
+                    // TODO: 实现评论详情页导航
                 }
             )
         }
@@ -218,6 +238,83 @@ fun NavGraph(
                 }
             )
         }
+
+        // ===== 社交功能路由 =====
+
+        // 发布动态页面
+        composable(route = Screen.PublishPost.route) {
+            PublishPostScreen(
+                myDid = "did:example:123456", // TODO: 从实际的 DID 服务获取
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        // 动态详情页面
+        composable(
+            route = "${Screen.PostDetail.route}/{postId}",
+            arguments = listOf(
+                navArgument("postId") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val postId = backStackEntry.arguments?.getString("postId") ?: return@composable
+            PostDetailScreen(
+                postId = postId,
+                myDid = "did:example:123456", // TODO: 从实际的 DID 服务获取
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onNavigateToUserProfile = { did ->
+                    navController.navigate(Screen.UserProfile.createRoute(did))
+                }
+            )
+        }
+
+        // 好友详情页面（占位）
+        composable(
+            route = "${Screen.FriendDetail.route}/{did}",
+            arguments = listOf(
+                navArgument("did") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val did = backStackEntry.arguments?.getString("did") ?: return@composable
+            PlaceholderScreen(
+                title = "好友详情",
+                message = "好友详情页面开发中...",
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        // 用户资料页面（占位）
+        composable(
+            route = "${Screen.UserProfile.route}/{did}",
+            arguments = listOf(
+                navArgument("did") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val did = backStackEntry.arguments?.getString("did") ?: return@composable
+            PlaceholderScreen(
+                title = "用户资料",
+                message = "用户资料页面开发中...",
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        // 添加好友页面（占位）
+        composable(route = Screen.AddFriend.route) {
+            PlaceholderScreen(
+                title = "添加好友",
+                message = "添加好友功能开发中...",
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
     }
 }
 
@@ -244,6 +341,19 @@ sealed class Screen(val route: String) {
     data object StepDetail : Screen("step_detail") {
         fun createRoute(projectId: String) = "step_detail/$projectId"
     }
+
+    // 社交功能路由
+    data object PublishPost : Screen("publish_post")
+    data object PostDetail : Screen("post_detail") {
+        fun createRoute(postId: String) = "post_detail/$postId"
+    }
+    data object FriendDetail : Screen("friend_detail") {
+        fun createRoute(did: String) = "friend_detail/$did"
+    }
+    data object UserProfile : Screen("user_profile") {
+        fun createRoute(did: String) = "user_profile/$did"
+    }
+    data object AddFriend : Screen("add_friend")
 }
 
 /**
@@ -268,10 +378,29 @@ fun getStartDestination(viewModel: AuthViewModel = hiltViewModel()): String {
 fun AISettingsPlaceholder(
     onNavigateBack: () -> Unit
 ) {
+    PlaceholderScreen(
+        title = "AI 设置",
+        message = "AI 设置功能开发中...",
+        icon = Icons.Default.Settings,
+        onNavigateBack = onNavigateBack
+    )
+}
+
+/**
+ * 通用占位界面
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PlaceholderScreen(
+    title: String,
+    message: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector = Icons.Default.Settings,
+    onNavigateBack: () -> Unit
+) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("AI 设置") },
+                title = { Text(title) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "返回")
@@ -291,13 +420,13 @@ fun AISettingsPlaceholder(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Default.Settings,
+                    imageVector = icon,
                     contentDescription = null,
                     modifier = Modifier.size(64.dp),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                 )
                 Text(
-                    text = "AI 设置功能开发中...",
+                    text = message,
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

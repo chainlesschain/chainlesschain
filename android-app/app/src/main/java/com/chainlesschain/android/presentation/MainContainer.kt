@@ -12,7 +12,7 @@ import com.chainlesschain.android.presentation.screens.*
 
 /**
  * 主容器，包含底部导航栏和各个页面
- * 4个tab: 首页、项目、探索、收藏
+ * 4个tab: 首页、项目、社交、收藏
  *
  * 性能优化：
  * 1. 使用 rememberSaveable 保存 Tab 状态（进程终止后恢复）
@@ -23,6 +23,12 @@ import com.chainlesschain.android.presentation.screens.*
 fun MainContainer(
     onLogout: () -> Unit,
     onNavigateToProjectDetail: (String) -> Unit = {},
+    onNavigateToFriendDetail: (String) -> Unit = {},
+    onNavigateToAddFriend: () -> Unit = {},
+    onNavigateToPublishPost: () -> Unit = {},
+    onNavigateToPostDetail: (String) -> Unit = {},
+    onNavigateToUserProfile: (String) -> Unit = {},
+    onNavigateToComment: (String) -> Unit = {},
     viewModel: AuthViewModel = hiltViewModel()
 ) {
     // 使用 rememberSaveable 保存状态（进程重建后恢复）
@@ -71,8 +77,15 @@ fun MainContainer(
                         onProjectClick = onNavigateToProjectDetail
                     )
                 }
-                2 -> key("explore") {
-                    ExploreScreen()
+                2 -> key("social") {
+                    SocialScreen(
+                        onNavigateToFriendDetail = onNavigateToFriendDetail,
+                        onNavigateToAddFriend = onNavigateToAddFriend,
+                        onNavigateToPublishPost = onNavigateToPublishPost,
+                        onNavigateToPostDetail = onNavigateToPostDetail,
+                        onNavigateToUserProfile = onNavigateToUserProfile,
+                        onNavigateToComment = onNavigateToComment
+                    )
                 }
                 3 -> key("bookmark") {
                     BookmarkScreen()

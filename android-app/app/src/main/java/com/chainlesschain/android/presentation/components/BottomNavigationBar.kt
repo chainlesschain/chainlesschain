@@ -60,7 +60,7 @@ data class BottomNavItem(
 
 /**
  * 底部导航项列表
- * 4个tab: 首页、项目、探索、收藏
+ * 4个tab: 首页、项目、社交、收藏
  */
 val bottomNavItems = listOf(
     BottomNavItem(
@@ -74,9 +74,9 @@ val bottomNavItems = listOf(
         unselectedIcon = Icons.Outlined.FolderOpen
     ),
     BottomNavItem(
-        label = "探索",
-        selectedIcon = Icons.Filled.Explore,
-        unselectedIcon = Icons.Outlined.Explore
+        label = "社交",
+        selectedIcon = Icons.Filled.People,
+        unselectedIcon = Icons.Outlined.People
     ),
     BottomNavItem(
         label = "收藏",

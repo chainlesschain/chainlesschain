@@ -63,23 +63,7 @@ fun NotificationCenterScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = {
-                    Column {
-                        Text("通知")
-                        if (uiState.unreadCount > 0) {
-                            Text(
-                                text = "${uiState.unreadCount} 条未读",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "返回")
-                    }
-                },
+                title = { },
                 actions = {
                     // 筛选菜单
                     IconButton(onClick = { viewModel.toggleFilterMenu() }) {
