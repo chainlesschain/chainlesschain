@@ -29,7 +29,8 @@ object DatabaseMigrations {
             MIGRATION_5_6,
             MIGRATION_6_7,
             MIGRATION_7_8,
-            MIGRATION_8_9
+            MIGRATION_8_9,
+            MIGRATION_9_10
         )
     }
 
@@ -424,6 +425,164 @@ object DatabaseMigrations {
             """.trimIndent())
 
             Log.i(TAG, "Migration 8 to 9 completed successfully")
+        }
+    }
+
+    /**
+     * 迁移 9 -> 10
+     *
+     * 添加社交功能表（好友、动态、通知等）
+     */
+    val MIGRATION_9_10 = object : Migration(9, 10) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            Log.i(TAG, "Migrating database from version 9 to 10")
+
+            // ===== 创建好友相关表 =====
+
+            // 创建 friends 表
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS `friends` (
+                    `did` TEXT NOT NULL PRIMARY KEY,
+                    `nickname` TEXT NOT NULL,
+                    `avatar` TEXT,
+                    `bio` TEXT,
+                    `remarkName` TEXT,
+                    `groupId` TEXT,
+                    `addedAt` INTEGER NOT NULL,
+                    `status` TEXT NOT NULL,
+                    `isBlocked` INTEGER NOT NULL DEFAULT 0,
+                    `lastActiveAt` INTEGER,
+                    `metadata` TEXT
+                )
+            """.trimIndent())
+
+            // 创建 friends 索引
+            db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_friends_did` ON `friends` (`did`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_friends_status` ON `friends` (`status`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_friends_groupId` ON `friends` (`groupId`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_friends_addedAt` ON `friends` (`addedAt`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_friends_lastActiveAt` ON `friends` (`lastActiveAt`)")
+
+            // 创建 friend_groups 表
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS `friend_groups` (
+                    `id` TEXT NOT NULL PRIMARY KEY,
+                    `name` TEXT NOT NULL,
+                    `sortOrder` INTEGER NOT NULL DEFAULT 0,
+                    `createdAt` INTEGER NOT NULL
+                )
+            """.trimIndent())
+
+            // 创建 friend_groups 索引
+            db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_friend_groups_name` ON `friend_groups` (`name`)")
+
+            // ===== 创建动态相关表 =====
+
+            // 创建 posts 表
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS `posts` (
+                    `id` TEXT NOT NULL PRIMARY KEY,
+                    `authorDid` TEXT NOT NULL,
+                    `content` TEXT NOT NULL,
+                    `images` TEXT NOT NULL,
+                    `linkUrl` TEXT,
+                    `linkPreview` TEXT,
+                    `tags` TEXT NOT NULL,
+                    `mentions` TEXT NOT NULL,
+                    `visibility` TEXT NOT NULL,
+                    `createdAt` INTEGER NOT NULL,
+                    `updatedAt` INTEGER,
+                    `isPinned` INTEGER NOT NULL DEFAULT 0,
+                    `likeCount` INTEGER NOT NULL DEFAULT 0,
+                    `commentCount` INTEGER NOT NULL DEFAULT 0,
+                    `shareCount` INTEGER NOT NULL DEFAULT 0,
+                    `isLiked` INTEGER NOT NULL DEFAULT 0,
+                    `metadata` TEXT
+                )
+            """.trimIndent())
+
+            // 创建 posts 索引
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_posts_authorDid` ON `posts` (`authorDid`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_posts_createdAt` ON `posts` (`createdAt`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_posts_visibility` ON `posts` (`visibility`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_posts_authorDid_createdAt` ON `posts` (`authorDid`, `createdAt`)")
+
+            // 创建 post_likes 表
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS `post_likes` (
+                    `id` TEXT NOT NULL PRIMARY KEY,
+                    `postId` TEXT NOT NULL,
+                    `userDid` TEXT NOT NULL,
+                    `createdAt` INTEGER NOT NULL
+                )
+            """.trimIndent())
+
+            // 创建 post_likes 索引
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_post_likes_postId` ON `post_likes` (`postId`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_post_likes_userDid` ON `post_likes` (`userDid`)")
+            db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_post_likes_postId_userDid` ON `post_likes` (`postId`, `userDid`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_post_likes_createdAt` ON `post_likes` (`createdAt`)")
+
+            // 创建 post_comments 表
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS `post_comments` (
+                    `id` TEXT NOT NULL PRIMARY KEY,
+                    `postId` TEXT NOT NULL,
+                    `authorDid` TEXT NOT NULL,
+                    `content` TEXT NOT NULL,
+                    `parentCommentId` TEXT,
+                    `createdAt` INTEGER NOT NULL,
+                    `likeCount` INTEGER NOT NULL DEFAULT 0,
+                    `isLiked` INTEGER NOT NULL DEFAULT 0
+                )
+            """.trimIndent())
+
+            // 创建 post_comments 索引
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_post_comments_postId` ON `post_comments` (`postId`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_post_comments_authorDid` ON `post_comments` (`authorDid`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_post_comments_parentCommentId` ON `post_comments` (`parentCommentId`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_post_comments_createdAt` ON `post_comments` (`createdAt`)")
+
+            // 创建 post_shares 表
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS `post_shares` (
+                    `id` TEXT NOT NULL PRIMARY KEY,
+                    `postId` TEXT NOT NULL,
+                    `userDid` TEXT NOT NULL,
+                    `comment` TEXT,
+                    `createdAt` INTEGER NOT NULL
+                )
+            """.trimIndent())
+
+            // 创建 post_shares 索引
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_post_shares_postId` ON `post_shares` (`postId`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_post_shares_userDid` ON `post_shares` (`userDid`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_post_shares_createdAt` ON `post_shares` (`createdAt`)")
+
+            // ===== 创建通知表 =====
+
+            // 创建 notifications 表
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS `notifications` (
+                    `id` TEXT NOT NULL PRIMARY KEY,
+                    `type` TEXT NOT NULL,
+                    `title` TEXT NOT NULL,
+                    `content` TEXT NOT NULL,
+                    `actorDid` TEXT,
+                    `targetId` TEXT,
+                    `createdAt` INTEGER NOT NULL,
+                    `isRead` INTEGER NOT NULL DEFAULT 0,
+                    `data` TEXT
+                )
+            """.trimIndent())
+
+            // 创建 notifications 索引
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_notifications_type` ON `notifications` (`type`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_notifications_isRead` ON `notifications` (`isRead`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_notifications_createdAt` ON `notifications` (`createdAt`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_notifications_actorDid` ON `notifications` (`actorDid`)")
+
+            Log.i(TAG, "Migration 9 to 10 completed successfully")
         }
     }
 
