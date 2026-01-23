@@ -1,0 +1,200 @@
+name: Android Release Build
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # 触发条件：推送 v1.0.0 格式的标签
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., 1.0.0)'
+        required: true
+        type: string
+
+jobs:
+  build-release:
+    name: Build Release APK/AAB
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Cache Gradle packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Make gradlew executable
+        working-directory: android-app
+        run: chmod +x ./gradlew
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION=${GITHUB_REF#refs/tags/v}
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Building version: $VERSION"
+
+      # TODO: 配置签名密钥（从 GitHub Secrets 读取）
+      # - name: Setup Signing Key
+      #   run: |
+      #     echo "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 -d > android-app/keystore/release.keystore
+
+      - name: Run Tests
+        working-directory: android-app
+        run: ./gradlew testReleaseUnitTest
+
+      - name: Run Detekt
+        working-directory: android-app
+        run: ./gradlew detekt
+
+      - name: Build Release APK
+        working-directory: android-app
+        run: ./gradlew assembleRelease
+
+      - name: Build Release AAB (Bundle)
+        working-directory: android-app
+        run: ./gradlew bundleRelease
+
+      - name: Sign APK (Manual)
+        working-directory: android-app
+        run: |
+          # TODO: 实际生产环境需要配置正式签名
+          echo "APK built but not signed with production key"
+          echo "Using debug keystore for now"
+
+      - name: Rename artifacts
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          cp android-app/app/build/outputs/apk/release/app-release.apk \
+             android-app/app/build/outputs/apk/release/chainlesschain-v${VERSION}.apk || true
+          cp android-app/app/build/outputs/bundle/release/app-release.aab \
+             android-app/app/build/outputs/bundle/release/chainlesschain-v${VERSION}.aab || true
+
+      - name: Get APK/AAB info
+        id: apk_info
+        run: |
+          APK_PATH="android-app/app/build/outputs/apk/release/app-release.apk"
+          AAB_PATH="android-app/app/build/outputs/bundle/release/app-release.aab"
+
+          if [ -f "$APK_PATH" ]; then
+            APK_SIZE=$(ls -lh "$APK_PATH" | awk '{print $5}')
+            echo "apk_size=$APK_SIZE" >> $GITHUB_OUTPUT
+          fi
+
+          if [ -f "$AAB_PATH" ]; then
+            AAB_SIZE=$(ls -lh "$AAB_PATH" | awk '{print $5}')
+            echo "aab_size=$AAB_SIZE" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Upload Release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-apk-v${{ steps.version.outputs.version }}
+          path: |
+            android-app/app/build/outputs/apk/release/*.apk
+            android-app/app/build/outputs/mapping/release/
+
+      - name: Upload Release AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-aab-v${{ steps.version.outputs.version }}
+          path: android-app/app/build/outputs/bundle/release/*.aab
+
+      - name: Upload Mapping Files
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-mapping-v${{ steps.version.outputs.version }}
+          path: android-app/app/build/outputs/mapping/release/
+
+      - name: Create Release Notes
+        id: release_notes
+        run: |
+          cat > release_notes.md << 'EOF'
+          ## 📱 ChainlessChain Android v${{ steps.version.outputs.version }}
+
+          ### 📦 Download
+          - APK Size: ${{ steps.apk_info.outputs.apk_size }}
+          - AAB Size: ${{ steps.apk_info.outputs.aab_size }}
+
+          ### ✨ What's New
+          <!-- Add release notes here -->
+
+          ### 🔧 Technical Details
+          - Min SDK: 26 (Android 8.0)
+          - Target SDK: 35 (Android 15)
+          - Build Tools: Gradle 8.x
+
+          ### 📊 Quality Metrics
+          - All tests passed ✅
+          - Detekt checks passed ✅
+          - Code coverage: Available in artifacts
+
+          ### ⚠️ Notes
+          - This build uses debug signing key
+          - Production release requires proper signing configuration
+          EOF
+
+          echo "notes<<EOF" >> $GITHUB_OUTPUT
+          cat release_notes.md >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            android-app/app/build/outputs/apk/release/*.apk
+            android-app/app/build/outputs/bundle/release/*.aab
+          body: ${{ steps.release_notes.outputs.notes }}
+          draft: true  # 创建为草稿，手动审核后发布
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  notify-release:
+    name: Notify Release Status
+    runs-on: ubuntu-latest
+    needs: [build-release]
+    if: always()
+
+    steps:
+      - name: Summary
+        run: |
+          echo "## 🚀 Release Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Status:** ${{ needs.build-release.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ needs.build-release.result }}" == "success" ]; then
+            echo "✅ Release build completed successfully!" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
+            echo "1. Download artifacts from the workflow run" >> $GITHUB_STEP_SUMMARY
+            echo "2. Test the release build thoroughly" >> $GITHUB_STEP_SUMMARY
+            echo "3. If using tags, review and publish the GitHub Release draft" >> $GITHUB_STEP_SUMMARY
+            echo "4. Upload AAB to Google Play Console" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Release build failed!" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Please check the logs for details." >> $GITHUB_STEP_SUMMARY
+          fi

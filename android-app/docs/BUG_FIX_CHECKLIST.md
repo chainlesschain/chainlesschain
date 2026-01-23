@@ -12,7 +12,7 @@
 ### 1.1 高优先级 (P0)
 
 #### Bug #1: 应用启动时偶尔崩溃
-- **状态**: ⏳ 修复中
+- **状态**: ✅ 已修复（预防性）
 - **描述**: 冷启动时，偶尔出现 NullPointerException
 - **重现步骤**:
   1. 完全关闭应用
@@ -26,14 +26,18 @@
   ```
 - **根本原因**: 数据库初始化和 Hilt 注入存在竞态条件
 - **修复方案**:
-  1. 延迟数据库初始化
-  2. 添加非空检查
-  3. 使用 lateinit 而非直接引用
-- **修复人**: [待分配]
-- **预计完成**: 2026-01-25
+  1. ✅ 已实现延迟数据库初始化（ProcessLifecycleOwner）
+  2. ✅ 创建 SafetyExtensions.kt 提供安全扩展函数
+  3. ✅ 使用 try-catch 保护关键初始化代码
+  4. ✅ 添加详细的日志记录便于追踪
+- **修复人**: Android Team
+- **修复日期**: 2026-01-23
+- **修复文件**:
+  - `ChainlessChainApplication.kt` (已优化)
+  - `SafetyExtensions.kt` (新增)
 
 #### Bug #2: 内存泄漏导致 OOM
-- **状态**: ⏳ 修复中
+- **状态**: ✅ 已修复（预防性）
 - **描述**: 长时间使用应用后，内存持续增长，最终 OutOfMemoryError
 - **重现步骤**:
   1. 启动应用
@@ -49,12 +53,19 @@
   - Compose remember 使用不当
   - 未取消订阅的 Flow
 - **修复方案**:
-  1. 使用 LocalContext.current.imageLoader
-  2. 在 remember 中正确使用 keys
-  3. 使用 collectAsStateWithLifecycle()
-  4. 在 DisposableEffect 中取消订阅
-- **修复人**: [待分配]
-- **预计完成**: 2026-01-26
+  1. ✅ 创建 ImageLoaderConfig 优化 Coil 配置
+  2. ✅ 创建 ComposePerformanceUtils 提供性能工具
+  3. ✅ 创建 SafetyExtensions 提供生命周期感知的 Flow 收集
+  4. ✅ 集成 LeakCanary (debugImplementation)
+  5. ✅ 优化 MainContainer 和 BottomNavigationBar 的 remember 使用
+- **修复人**: Android Team
+- **修复日期**: 2026-01-23
+- **修复文件**:
+  - `ImageLoaderConfig.kt` (新增)
+  - `ComposePerformanceUtils.kt` (新增)
+  - `SafetyExtensions.kt` (新增 - collectSafelyWithLifecycle)
+  - `MainContainer.kt` (已优化)
+  - `app/build.gradle.kts` (已添加 LeakCanary)
 
 ---
 
