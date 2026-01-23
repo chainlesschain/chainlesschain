@@ -4,6 +4,7 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization")
     id("com.google.dagger.hilt.android")
     id("com.google.devtools.ksp")
+    id("io.gitlab.arturbosch.detekt") version "1.23.4"
 }
 
 android {
@@ -170,6 +171,17 @@ dependencies {
 
     // Coil for image loading
     implementation("io.coil-kt:coil-compose:2.5.0")
+    implementation("io.coil-kt:coil-gif:2.5.0")
+    implementation("io.coil-kt:coil-svg:2.5.0")
+
+    // SplashScreen API (Android 12+)
+    implementation("androidx.core:core-splashscreen:1.0.1")
+
+    // Startup library for delayed initialization
+    implementation("androidx.startup:startup-runtime:1.1.1")
+
+    // Baseline Profile
+    implementation("androidx.profileinstaller:profileinstaller:1.3.1")
 
     // Testing
     testImplementation("junit:junit:4.13.2")
@@ -183,4 +195,7 @@ dependencies {
 
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
+
+    // LeakCanary - 内存泄漏检测（仅 Debug）
+    debugImplementation("com.squareup.leakcanary:leakcanary-android:2.13")
 }
