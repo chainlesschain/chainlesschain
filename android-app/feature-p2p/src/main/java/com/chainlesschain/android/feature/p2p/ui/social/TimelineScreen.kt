@@ -82,7 +82,7 @@ fun TimelineScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("动态") },
+                title = { },
                 actions = {
                     // 标签筛选
                     if (uiState.selectedTag != null) {
