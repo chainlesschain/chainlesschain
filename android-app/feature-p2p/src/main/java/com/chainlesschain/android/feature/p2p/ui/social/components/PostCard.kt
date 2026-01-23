@@ -15,6 +15,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.chainlesschain.android.core.database.entity.social.PostEntity
 import com.chainlesschain.android.core.database.entity.social.PostVisibility
+import com.chainlesschain.android.core.ui.image.Avatar
+import com.chainlesschain.android.core.ui.image.AvatarSize
+import com.chainlesschain.android.core.ui.image.ImageGrid
+import com.chainlesschain.android.core.ui.image.ImagePreviewDialog
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -35,6 +39,8 @@ fun PostCard(
     onMoreClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var showImagePreview by remember { mutableStateOf(false) }
+    var selectedImageIndex by remember { mutableStateOf(0) }
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -54,10 +60,10 @@ fun PostCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // 作者头像
-                AvatarImage(
-                    avatar = authorAvatar,
-                    nickname = authorNickname,
-                    size = 40.dp,
+                Avatar(
+                    avatarUrl = authorAvatar,
+                    name = authorNickname,
+                    size = AvatarSize.MEDIUM,
                     modifier = Modifier.clickable(onClick = onAuthorClick)
                 )
 
@@ -136,7 +142,11 @@ fun PostCard(
             if (post.images.isNotEmpty()) {
                 ImageGrid(
                     images = post.images,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    onImageClick = { index, _ ->
+                        selectedImageIndex = index
+                        showImagePreview = true
+                    }
                 )
             }
 
@@ -193,6 +203,15 @@ fun PostCard(
             }
         }
     }
+
+    // 图片预览对话框
+    if (showImagePreview) {
+        ImagePreviewDialog(
+            images = post.images,
+            initialIndex = selectedImageIndex,
+            onDismiss = { showImagePreview = false }
+        )
+    }
 }
 
 /**
@@ -221,109 +240,6 @@ private fun InteractionButton(
             text = text,
             style = MaterialTheme.typography.labelMedium
         )
-    }
-}
-
-/**
- * 图片网格组件
- */
-@Composable
-private fun ImageGrid(
-    images: List<String>,
-    modifier: Modifier = Modifier
-) {
-    val imageCount = images.size
-
-    when {
-        imageCount == 1 -> {
-            // 单图显示
-            Box(
-                modifier = modifier
-                    .fillMaxWidth()
-                    .height(200.dp)
-                    .clip(RoundedCornerShape(8.dp))
-            ) {
-                // TODO: 加载图片
-                Surface(
-                    color = MaterialTheme.colorScheme.surfaceVariant,
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = Icons.Default.Image,
-                            contentDescription = null,
-                            modifier = Modifier.size(48.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
-        }
-        imageCount in 2..4 -> {
-            // 2-4张图片网格
-            Row(
-                modifier = modifier,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                images.take(2).forEach { _ ->
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(120.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                    ) {
-                        Surface(
-                            color = MaterialTheme.colorScheme.surfaceVariant,
-                            modifier = Modifier.fillMaxSize()
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Icon(
-                                    imageVector = Icons.Default.Image,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        else -> {
-            // 多图网格（3列）
-            Column(
-                modifier = modifier,
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                images.chunked(3).forEach { rowImages ->
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        rowImages.forEach { _ ->
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .aspectRatio(1f)
-                                    .clip(RoundedCornerShape(8.dp))
-                            ) {
-                                Surface(
-                                    color = MaterialTheme.colorScheme.surfaceVariant,
-                                    modifier = Modifier.fillMaxSize()
-                                ) {
-                                    Box(contentAlignment = Alignment.Center) {
-                                        Icon(
-                                            imageVector = Icons.Default.Image,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(24.dp),
-                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
     }
 }
 

@@ -46,6 +46,11 @@ dependencies {
 
     // Coil图片加载
     api("io.coil-kt:coil-compose:2.6.0")
+    api("io.coil-kt:coil-svg:2.6.0")
+    api("io.coil-kt:coil-gif:2.6.0")
+
+    // 图片缩放（用于图片预览）
+    api("net.engawapg.lib:zoomable:1.6.1")
 
     // Markdown rendering - using native Compose Text (no external dependency)
 
