@@ -9,6 +9,8 @@ import com.chainlesschain.android.core.common.viewmodel.UiState
 import com.chainlesschain.android.core.database.entity.social.PostEntity
 import com.chainlesschain.android.core.database.entity.social.PostCommentEntity
 import com.chainlesschain.android.core.database.entity.social.PostVisibility
+import com.chainlesschain.android.core.p2p.realtime.NotificationType
+import com.chainlesschain.android.core.p2p.realtime.RealtimeEventManager
 import com.chainlesschain.android.feature.p2p.repository.social.PostRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.collectLatest
@@ -22,7 +24,8 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class PostViewModel @Inject constructor(
-    private val postRepository: PostRepository
+    private val postRepository: PostRepository,
+    private val realtimeEventManager: RealtimeEventManager
 ) : BaseViewModel<PostUiState, PostEvent>(
     initialState = PostUiState()
 ) {
@@ -211,11 +214,23 @@ class PostViewModel @Inject constructor(
     /**
      * 切换点赞状态
      */
-    fun toggleLike(postId: String, currentlyLiked: Boolean) = launchSafely {
+    fun toggleLike(postId: String, currentlyLiked: Boolean, authorDid: String) = launchSafely {
         if (currentlyLiked) {
             postRepository.unlikePost(postId, currentMyDid)
         } else {
             postRepository.likePost(postId, currentMyDid)
+                .onSuccess {
+                    // 发送实时通知给动态作者
+                    if (authorDid != currentMyDid) {
+                        realtimeEventManager.sendNotification(
+                            targetDid = authorDid,
+                            notificationType = NotificationType.LIKE,
+                            title = "收到新的点赞",
+                            content = "有人赞了你的动态",
+                            targetId = postId
+                        )
+                    }
+                }
         }.onSuccess {
             // 点赞状态会通过 Flow 自动更新
         }.onFailure { error ->
@@ -260,7 +275,7 @@ class PostViewModel @Inject constructor(
     /**
      * 发表评论
      */
-    fun addComment(postId: String, content: String, parentCommentId: String? = null) = launchSafely {
+    fun addComment(postId: String, content: String, authorDid: String, parentCommentId: String? = null) = launchSafely {
         val comment = PostCommentEntity(
             id = "comment_${System.currentTimeMillis()}",
             postId = postId,
@@ -272,6 +287,16 @@ class PostViewModel @Inject constructor(
 
         postRepository.addComment(comment)
             .onSuccess {
+                // 发送实时通知给动态作者
+                if (authorDid != currentMyDid) {
+                    realtimeEventManager.sendNotification(
+                        targetDid = authorDid,
+                        notificationType = NotificationType.COMMENT,
+                        title = "收到新评论",
+                        content = content.take(50),
+                        targetId = postId
+                    )
+                }
                 sendEvent(PostEvent.ShowToast("评论已发布"))
                 sendEvent(PostEvent.CommentAdded)
             }.onFailure { error ->
