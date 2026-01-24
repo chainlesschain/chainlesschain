@@ -4,7 +4,11 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chainlesschain.android.core.database.entity.ProjectFileEntity
+import com.chainlesschain.android.feature.ai.data.llm.LLMAdapter
+import com.chainlesschain.android.feature.ai.domain.model.Message
+import com.chainlesschain.android.feature.ai.domain.model.MessageRole
 import com.chainlesschain.android.feature.project.repository.ProjectRepository
+import com.chainlesschain.android.feature.project.ui.components.AIAssistAction
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -25,6 +29,7 @@ sealed class FileEditorUiEvent {
     data class ShowError(val error: String) : FileEditorUiEvent()
     object NavigateBack : FileEditorUiEvent()
     object FileSaved : FileEditorUiEvent()
+    data class AIResultReady(val result: String) : FileEditorUiEvent()
 }
 
 /**
@@ -32,7 +37,8 @@ sealed class FileEditorUiEvent {
  */
 @HiltViewModel
 class FileEditorViewModel @Inject constructor(
-    private val projectRepository: ProjectRepository
+    private val projectRepository: ProjectRepository,
+    private val llmAdapter: LLMAdapter
 ) : ViewModel() {
 
     companion object {
@@ -81,6 +87,14 @@ class FileEditorViewModel @Inject constructor(
     // UI events
     private val _uiEvents = MutableSharedFlow<FileEditorUiEvent>()
     val uiEvents: SharedFlow<FileEditorUiEvent> = _uiEvents.asSharedFlow()
+
+    // AI processing state
+    private val _isAIProcessing = MutableStateFlow(false)
+    val isAIProcessing: StateFlow<Boolean> = _isAIProcessing.asStateFlow()
+
+    // AI result
+    private val _aiResult = MutableStateFlow<String?>(null)
+    val aiResult: StateFlow<String?> = _aiResult.asStateFlow()
 
     /**
      * Load file content
@@ -224,6 +238,252 @@ class FileEditorViewModel @Inject constructor(
                 projectRepository.closeFile(fileId)
             }
         }
+    }
+
+    /**
+     * Process AI assist action
+     */
+    fun processAIAssist(action: AIAssistAction, model: String = "deepseek-chat") {
+        val content = _fileContent.value
+        val fileName = _currentFile.value?.name ?: "未命名文件"
+        val fileExtension = _currentFile.value?.extension ?: "txt"
+
+        if (content.isEmpty()) {
+            viewModelScope.launch {
+                _uiEvents.emit(FileEditorUiEvent.ShowError("文件内容为空"))
+            }
+            return
+        }
+
+        _isAIProcessing.value = true
+        _aiResult.value = null
+
+        viewModelScope.launch {
+            try {
+                val prompt = buildAIPrompt(action, content, fileName, fileExtension)
+                val messages = listOf(
+                    Message(
+                        id = "system",
+                        conversationId = "file-editor",
+                        role = MessageRole.SYSTEM,
+                        content = "你是一个专业的代码助手。请根据用户的要求分析和处理代码。",
+                        createdAt = System.currentTimeMillis()
+                    ),
+                    Message(
+                        id = "user",
+                        conversationId = "file-editor",
+                        role = MessageRole.USER,
+                        content = prompt,
+                        createdAt = System.currentTimeMillis()
+                    )
+                )
+
+                val result = llmAdapter.chat(
+                    messages = messages,
+                    model = model,
+                    temperature = 0.7f,
+                    maxTokens = 4096
+                )
+
+                _aiResult.value = result
+                _isAIProcessing.value = false
+                _uiEvents.emit(FileEditorUiEvent.AIResultReady(result))
+
+                // For certain actions, automatically apply the result
+                when (action) {
+                    AIAssistAction.ADD_COMMENTS,
+                    AIAssistAction.IMPROVE_NAMING,
+                    AIAssistAction.REFACTOR,
+                    AIAssistAction.COMPLETE_CODE -> {
+                        // These actions might want to modify the file content
+                        // User can choose to apply or discard
+                    }
+                    else -> {
+                        // Just show the result
+                    }
+                }
+
+                Log.d(TAG, "AI assist completed: ${action.title}")
+            } catch (e: Exception) {
+                Log.e(TAG, "AI assist error", e)
+                _isAIProcessing.value = false
+                _uiEvents.emit(
+                    FileEditorUiEvent.ShowError("AI处理失败: ${e.message ?: "未知错误"}")
+                )
+            }
+        }
+    }
+
+    /**
+     * Build AI prompt based on action type
+     */
+    private fun buildAIPrompt(
+        action: AIAssistAction,
+        content: String,
+        fileName: String,
+        fileExtension: String
+    ): String {
+        return when (action) {
+            AIAssistAction.EXPLAIN -> """
+                请解释以下${fileExtension}代码的功能和工作原理：
+
+                文件名: $fileName
+
+                ```$fileExtension
+                $content
+                ```
+
+                请包含：
+                1. 代码的主要功能
+                2. 关键逻辑和算法
+                3. 重要的设计模式或架构
+                4. 潜在的使用场景
+            """.trimIndent()
+
+            AIAssistAction.OPTIMIZE -> """
+                请分析以下${fileExtension}代码并提供优化建议：
+
+                文件名: $fileName
+
+                ```$fileExtension
+                $content
+                ```
+
+                请提供：
+                1. 性能优化建议
+                2. 代码结构优化
+                3. 可读性改进
+                4. 最佳实践建议
+                5. 具体的优化代码示例（如果适用）
+            """.trimIndent()
+
+            AIAssistAction.FIX_BUGS -> """
+                请检测以下${fileExtension}代码中可能存在的bug和问题：
+
+                文件名: $fileName
+
+                ```$fileExtension
+                $content
+                ```
+
+                请分析：
+                1. 潜在的运行时错误
+                2. 逻辑错误
+                3. 边界条件问题
+                4. 资源泄漏风险
+                5. 安全隐患
+                6. 每个问题的修复建议
+            """.trimIndent()
+
+            AIAssistAction.ADD_COMMENTS -> """
+                请为以下${fileExtension}代码添加详细的注释和文档：
+
+                文件名: $fileName
+
+                ```$fileExtension
+                $content
+                ```
+
+                要求：
+                1. 为函数/方法添加文档注释
+                2. 为复杂逻辑添加行内注释
+                3. 说明参数和返回值
+                4. 注释应该清晰、准确、有帮助
+                5. 使用该语言的标准注释格式
+
+                请返回添加了注释的完整代码。
+            """.trimIndent()
+
+            AIAssistAction.REFACTOR -> """
+                请为以下${fileExtension}代码提供重构建议：
+
+                文件名: $fileName
+
+                ```$fileExtension
+                $content
+                ```
+
+                请提供：
+                1. 代码结构改进建议
+                2. 设计模式应用建议
+                3. 函数/类的拆分建议
+                4. 命名改进建议
+                5. 重构后的代码示例
+                6. 每个重构的理由和好处
+            """.trimIndent()
+
+            AIAssistAction.GENERATE_TESTS -> """
+                请为以下${fileExtension}代码生成单元测试：
+
+                文件名: $fileName
+
+                ```$fileExtension
+                $content
+                ```
+
+                要求：
+                1. 覆盖主要功能和边界条件
+                2. 使用该语言的标准测试框架
+                3. 包含正常情况和异常情况
+                4. 测试代码清晰易懂
+                5. 添加适当的断言和验证
+
+                请返回完整的测试代码。
+            """.trimIndent()
+
+            AIAssistAction.IMPROVE_NAMING -> """
+                请分析以下${fileExtension}代码的命名，并提供改进建议：
+
+                文件名: $fileName
+
+                ```$fileExtension
+                $content
+                ```
+
+                请：
+                1. 识别命名不够清晰的变量、函数、类
+                2. 提供更好的命名建议
+                3. 解释为什么新名称更好
+                4. 返回改进命名后的代码
+                5. 遵循该语言的命名规范
+            """.trimIndent()
+
+            AIAssistAction.COMPLETE_CODE -> """
+                请分析以下${fileExtension}代码，并智能补全未完成的部分：
+
+                文件名: $fileName
+
+                ```$fileExtension
+                $content
+                ```
+
+                请：
+                1. 识别未完成的函数或逻辑
+                2. 基于上下文智能补全代码
+                3. 保持代码风格一致
+                4. 添加必要的错误处理
+                5. 返回补全后的完整代码
+                6. 解释补全的逻辑
+            """.trimIndent()
+        }
+    }
+
+    /**
+     * Apply AI result to file content
+     */
+    fun applyAIResult() {
+        val result = _aiResult.value
+        if (result != null) {
+            updateContent(result)
+            _aiResult.value = null
+        }
+    }
+
+    /**
+     * Discard AI result
+     */
+    fun discardAIResult() {
+        _aiResult.value = null
     }
 
     override fun onCleared() {

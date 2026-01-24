@@ -114,6 +114,10 @@ fun ProjectChatPanel(
     currentModel: String = "deepseek-chat",
     currentProvider: LLMProvider = LLMProvider.DEEPSEEK,
     onModelSelected: (String, LLMProvider) -> Unit = { _, _ -> },
+    // Context stats props
+    contextStats: com.chainlesschain.android.feature.project.util.ContextResult? = null,
+    totalContextTokens: Int = 0,
+    maxContextTokens: Int = 4000,
     modifier: Modifier = Modifier
 ) {
     val listState = rememberLazyListState()
@@ -178,6 +182,15 @@ fun ProjectChatPanel(
             isLoading = isAiResponding,
             modifier = Modifier.fillMaxWidth()
         )
+
+        // Context Stats Indicator
+        if (contextStats != null) {
+            ContextStatsIndicator(
+                contextStats = contextStats,
+                maxContextTokens = maxContextTokens,
+                onClearHistory = onClearChat
+            )
+        }
 
         // Messages List
         Box(modifier = Modifier.weight(1f)) {

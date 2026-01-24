@@ -138,6 +138,8 @@ fun ProjectDetailScreen(
     // Model selection states
     val currentModel by viewModel.currentModel.collectAsState()
     val currentProvider by viewModel.currentProvider.collectAsState()
+    val contextStats by viewModel.contextStats.collectAsState()
+    val totalContextTokens by viewModel.totalContextTokens.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
     var selectedTab by remember { mutableIntStateOf(0) }
@@ -423,7 +425,11 @@ fun ProjectDetailScreen(
                             onModelSelected = { model, provider ->
                                 viewModel.setModel(model)
                                 viewModel.setProvider(provider)
-                            }
+                            },
+                            // Context stats props
+                            contextStats = contextStats,
+                            totalContextTokens = totalContextTokens,
+                            maxContextTokens = 4000
                         )
                         2 -> ActivityListView(activities = activities)
                     }
