@@ -38,6 +38,7 @@ const ALLOWED_FILES = [
   "test-ukey.js",
   "README.md", // 文档示例
   "README_EN.md", // 文档示例（英文）
+  "BLOCKCHAIN.md", // 区块链文档（包含示例密码）
   ".chainlesschain/examples/database-bad.js", // 故意包含错误示例
   ".chainlesschain/examples/database-good.js",
   ".chainlesschain/examples/p2p-encryption-bad.js",
