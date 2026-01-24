@@ -23,13 +23,18 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Preview
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.SmartToy
+import androidx.compose.material.icons.filled.ToggleOff
+import androidx.compose.material.icons.filled.ToggleOn
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -62,6 +67,8 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.chainlesschain.android.core.database.entity.ProjectFileEntity
 import com.chainlesschain.android.core.ui.components.MarkdownText
+import com.chainlesschain.android.feature.project.ui.components.BreadcrumbItem
+import com.chainlesschain.android.feature.project.ui.components.BreadcrumbNav
 import com.chainlesschain.android.feature.project.ui.components.SyntaxHighlightedEditor
 import com.chainlesschain.android.feature.project.viewmodel.FileEditorViewModel
 import com.chainlesschain.android.feature.project.viewmodel.FileEditorUiEvent
@@ -82,10 +89,13 @@ fun FileEditorScreen(
     val isDirty by viewModel.isDirty.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val isSaving by viewModel.isSaving.collectAsState()
+    val isAutoSaveEnabled by viewModel.isAutoSaveEnabled.collectAsState()
+    val lastSaveTime by viewModel.lastSaveTime.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
     var selectedTab by remember { mutableIntStateOf(0) }
     var showExitDialog by remember { mutableStateOf(false) }
+    var showOptionsMenu by remember { mutableStateOf(false) }
 
     // Load file on start
     LaunchedEffect(fileId) {
@@ -149,11 +159,6 @@ fun FileEditorScreen(
                     }
                 },
                 actions = {
-                    // AI assist button
-                    IconButton(onClick = { /* TODO: AI assist */ }) {
-                        Icon(Icons.Default.SmartToy, contentDescription = "AI Assist")
-                    }
-
                     // Save button
                     IconButton(
                         onClick = { viewModel.saveFile() },
@@ -169,6 +174,40 @@ fun FileEditorScreen(
                                 Icons.Default.Save,
                                 contentDescription = "Save",
                                 tint = if (isDirty) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+
+                    // Options menu
+                    Box {
+                        IconButton(onClick = { showOptionsMenu = true }) {
+                            Icon(Icons.Default.MoreVert, contentDescription = "More options")
+                        }
+                        DropdownMenu(
+                            expanded = showOptionsMenu,
+                            onDismissRequest = { showOptionsMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = { Text("Auto-save: ${if (isAutoSaveEnabled) "ON" else "OFF"}") },
+                                leadingIcon = {
+                                    Icon(
+                                        if (isAutoSaveEnabled) Icons.Default.ToggleOn else Icons.Default.ToggleOff,
+                                        contentDescription = null,
+                                        tint = if (isAutoSaveEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                },
+                                onClick = {
+                                    viewModel.toggleAutoSave()
+                                    showOptionsMenu = false
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text("AI Assist") },
+                                leadingIcon = { Icon(Icons.Default.SmartToy, null) },
+                                onClick = {
+                                    // TODO: AI assist
+                                    showOptionsMenu = false
+                                }
                             )
                         }
                     }
@@ -204,8 +243,36 @@ fun FileEditorScreen(
                     .fillMaxSize()
                     .padding(padding)
             ) {
+                // Breadcrumb navigation
+                file?.let { currentFile ->
+                    val breadcrumbItems = buildList {
+                        add(BreadcrumbItem("Projects", onClick = onNavigateBack))
+                        add(BreadcrumbItem("Project")) // Project name not available in current context
+
+                        // Add path segments
+                        val pathParts = currentFile.path.split("/")
+                        if (pathParts.size > 1) {
+                            pathParts.dropLast(1).forEach { part ->
+                                add(BreadcrumbItem(part))
+                            }
+                        }
+
+                        // Add current file
+                        add(BreadcrumbItem(currentFile.name))
+                    }
+
+                    BreadcrumbNav(
+                        items = breadcrumbItems,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
                 // File info bar
-                FileInfoBar(file = file!!)
+                FileInfoBar(
+                    file = file!!,
+                    isAutoSaveEnabled = isAutoSaveEnabled,
+                    lastSaveTime = lastSaveTime
+                )
 
                 // Tab row for markdown files (Edit / Preview)
                 if (isMarkdown) {
@@ -293,11 +360,13 @@ fun FileEditorScreen(
 }
 
 /**
- * File info bar showing file metadata
+ * File info bar showing file metadata and auto-save status
  */
 @Composable
 private fun FileInfoBar(
     file: ProjectFileEntity,
+    isAutoSaveEnabled: Boolean,
+    lastSaveTime: Long?,
     modifier: Modifier = Modifier
 ) {
     Card(
@@ -308,38 +377,88 @@ private fun FileInfoBar(
             containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
         )
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Default.Code,
-                    contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.width(8.dp))
+            // First row: File type, size, path
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Code,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = file.extension?.uppercase() ?: "TXT",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
                 Text(
-                    text = file.extension?.uppercase() ?: "TXT",
+                    text = formatFileSize(file.size),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                Text(
+                    text = file.path,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1
+                )
             }
-            Text(
-                text = formatFileSize(file.size),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                text = file.path,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1
-            )
+
+            // Second row: Auto-save status
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = if (isAutoSaveEnabled) Icons.Default.ToggleOn else Icons.Default.ToggleOff,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = if (isAutoSaveEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "Auto-save ${if (isAutoSaveEnabled) "ON" else "OFF"}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                lastSaveTime?.let { time ->
+                    Text(
+                        text = "Saved ${formatTimeAgo(time)}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    )
+                }
+            }
         }
+    }
+}
+
+/**
+ * Format time ago (e.g., "2s ago", "1m ago")
+ */
+private fun formatTimeAgo(timestamp: Long): String {
+    val diff = System.currentTimeMillis() - timestamp
+    return when {
+        diff < 1000 -> "just now"
+        diff < 60 * 1000 -> "${diff / 1000}s ago"
+        diff < 60 * 60 * 1000 -> "${diff / (60 * 1000)}m ago"
+        diff < 24 * 60 * 60 * 1000 -> "${diff / (60 * 60 * 1000)}h ago"
+        else -> "${diff / (24 * 60 * 60 * 1000)}d ago"
     }
 }
 
