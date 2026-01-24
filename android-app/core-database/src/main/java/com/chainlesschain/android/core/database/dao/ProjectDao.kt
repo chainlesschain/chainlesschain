@@ -134,6 +134,45 @@ interface ProjectDao {
     @Query("SELECT * FROM project_files WHERE projectId = :projectId AND isDirty = 1")
     suspend fun getDirtyFiles(projectId: String): List<ProjectFileEntity>
 
+    @Query("""
+        SELECT * FROM project_files
+        WHERE projectId = :projectId
+          AND type = 'file'
+          AND lastAccessedAt IS NOT NULL
+        ORDER BY lastAccessedAt DESC
+        LIMIT :limit
+    """)
+    fun getRecentlyOpenedFiles(projectId: String, limit: Int = 10): Flow<List<ProjectFileEntity>>
+
+    @Query("""
+        SELECT * FROM project_files
+        WHERE projectId = :projectId AND type = 'file'
+        ORDER BY updatedAt DESC
+        LIMIT :limit
+    """)
+    fun getRecentlyModifiedFiles(projectId: String, limit: Int = 10): Flow<List<ProjectFileEntity>>
+
+    @Query("""
+        SELECT * FROM project_files
+        WHERE projectId = :projectId
+          AND type = 'file'
+          AND extension IN (:extensions)
+        ORDER BY name ASC
+    """)
+    fun getFilesByExtensions(projectId: String, extensions: List<String>): Flow<List<ProjectFileEntity>>
+
+    @Query("""
+        SELECT * FROM project_files
+        WHERE projectId = :projectId
+          AND type = 'file'
+          AND size > :minSize AND size < :maxSize
+        ORDER BY size DESC
+    """)
+    fun getFilesBySizeRange(projectId: String, minSize: Long, maxSize: Long): Flow<List<ProjectFileEntity>>
+
+    @Query("UPDATE project_files SET lastAccessedAt = :accessedAt, isOpen = 1 WHERE id = :fileId")
+    suspend fun markFileAsOpened(fileId: String, accessedAt: Long = System.currentTimeMillis())
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertFile(file: ProjectFileEntity): Long
 
