@@ -378,6 +378,59 @@ class ProjectViewModel @Inject constructor(
     }
 
     /**
+     * 从模板创建项目
+     */
+    fun createProjectFromTemplate(
+        template: com.chainlesschain.android.feature.project.model.ProjectTemplate,
+        name: String
+    ) {
+        val userId = _currentUserId.value ?: return
+
+        viewModelScope.launch {
+            _isLoading.value = true
+
+            try {
+                // Apply template
+                val templateManager = com.chainlesschain.android.feature.project.util.ProjectTemplateManager()
+                val result = templateManager.applyTemplate(template, name, userId)
+
+                // Create project
+                val projectResult = projectRepository.createProject(result.projectRequest)
+
+                projectResult.fold(
+                    onSuccess = { project ->
+                        // Insert template files
+                        result.files.forEach { file ->
+                            projectRepository.createFile(
+                                file.copy(projectId = project.id)
+                            )
+                        }
+
+                        // Update project stats
+                        projectRepository.updateProjectStats(
+                            projectId = project.id,
+                            fileCount = result.files.size,
+                            totalSize = result.files.sumOf { it.size }
+                        )
+
+                        _uiEvents.emit(ProjectUiEvent.ShowMessage("项目创建成功 (使用模板: ${template.name})"))
+                        _uiEvents.emit(ProjectUiEvent.NavigateToProject(project.id))
+                        loadStatistics()
+                    },
+                    onFailure = { error ->
+                        _uiEvents.emit(ProjectUiEvent.ShowError(error.message ?: "创建失败"))
+                    }
+                )
+            } catch (e: Exception) {
+                Log.e(TAG, "Error creating project from template", e)
+                _uiEvents.emit(ProjectUiEvent.ShowError(e.message ?: "创建失败"))
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    /**
      * 更新项目
      */
     fun updateProject(projectId: String, request: UpdateProjectRequest) {
