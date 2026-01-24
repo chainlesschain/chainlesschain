@@ -7,6 +7,7 @@ Phase 2 (Week 3-4) authentication functionality is **code-complete** but require
 ## Required Software
 
 ### ✅ Already Configured
+
 - ✅ Gradle 8.7 (via Gradle Wrapper)
 - ✅ Android Gradle Plugin 8.5.2
 - ✅ Kotlin 1.9.22
@@ -21,6 +22,7 @@ Phase 2 (Week 3-4) authentication functionality is **code-complete** but require
 **Location:** `C:\Program Files\Zulu\zulu-11`
 
 **Error Message:**
+
 ```
 Android Gradle plugin requires Java 17 to run. You are currently using Java 11.
 Your current JDK is located in C:\Program Files\Zulu\zulu-11
@@ -41,6 +43,7 @@ Your current JDK is located in C:\Program Files\Zulu\zulu-11
    - Typical location: `C:\Program Files\Eclipse Adoptium\jdk-17.x.x`
 
 3. **Set Environment Variables:**
+
    ```cmd
    setx JAVA_HOME "C:\Program Files\Eclipse Adoptium\jdk-17.x.x"
    setx PATH "%JAVA_HOME%\bin;%PATH%"
@@ -138,6 +141,7 @@ cd D:/code/chainlesschain/android-app
 ## Android Studio Setup
 
 ### Requirements
+
 - **Android Studio:** Koala | 2024.1.1 or higher
 - **Android SDK:** 35 (Android 15)
 - **Gradle JDK:** 17+
@@ -171,35 +175,43 @@ cd D:/code/chainlesschain/android-app
 ## Troubleshooting
 
 ### Issue: "Gradle daemon failed to start"
+
 **Solution:** Ensure JAVA_HOME points to JDK 17+
 
 ### Issue: "SDK location not found"
+
 **Solution:** Create `local.properties`:
+
 ```properties
 sdk.dir=C\:\\Users\\YourUsername\\AppData\\Local\\Android\\Sdk
 ```
 
 ### Issue: "Could not resolve dependencies"
+
 **Solution:** Check network connection, retry:
+
 ```bash
 ./gradlew build --refresh-dependencies
 ```
 
 ### Issue: "Execution failed for task ':app:compileDebugKotlin'"
+
 **Solution:** Clean and rebuild:
+
 ```bash
 ./gradlew clean build
 ```
 
 ## Current Project Status
 
-| Phase | Status | Completion |
-|-------|--------|------------|
-| Phase 1 (Week 1-2) | ✅ Complete | 100% |
+| Phase              | Status           | Completion         |
+| ------------------ | ---------------- | ------------------ |
+| Phase 1 (Week 1-2) | ✅ Complete      | 100%               |
 | Phase 2 (Week 3-4) | ✅ Code Complete | 100% (needs build) |
-| Phase 3 (Week 5-6) | ⏸️ Pending | 0% |
+| Phase 3 (Week 5-6) | ⏸️ Pending       | 0%                 |
 
 **Next Steps:**
+
 1. Install Java 17
 2. Run `./gradlew test` to verify Phase 2 tests pass
 3. Proceed to Week 5-6 (Knowledge Base Management)
@@ -207,6 +219,7 @@ sdk.dir=C\:\\Users\\YourUsername\\AppData\\Local\\Android\\Sdk
 ## Support
 
 For build issues:
+
 - Check `build/reports/` for error details
 - Run with `--stacktrace` flag: `./gradlew build --stacktrace`
 - Run with `--debug` flag: `./gradlew build --debug > build-log.txt`

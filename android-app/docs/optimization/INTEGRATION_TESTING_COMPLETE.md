@@ -579,13 +579,13 @@ The ChainlessChain Android P2P feature is **ready for production deployment** fo
 
 ## Sign-Off
 
-**Testing Lead**: ********\_******** Date: **\_\_\_**
+**Testing Lead**: **\*\*\*\***\_**\*\*\*\*** Date: **\_\_\_**
 
-**Security Officer**: ********\_******** Date: **\_\_\_**
+**Security Officer**: **\*\*\*\***\_**\*\*\*\*** Date: **\_\_\_**
 
-**Tech Lead**: ********\_******** Date: **\_\_\_**
+**Tech Lead**: **\*\*\*\***\_**\*\*\*\*** Date: **\_\_\_**
 
-**Product Manager**: ********\_******** Date: **\_\_\_**
+**Product Manager**: **\*\*\*\***\_**\*\*\*\*** Date: **\_\_\_**
 
 ---
 

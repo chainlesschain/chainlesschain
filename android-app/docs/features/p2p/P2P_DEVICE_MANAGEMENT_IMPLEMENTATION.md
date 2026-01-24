@@ -91,6 +91,7 @@ fun DeviceStatisticsCard(
 ```
 
 **功能**:
+
 - 显示总设备数量
 - 显示已验证设备数量
 - 使用Material3 Card和图标展示
@@ -107,6 +108,7 @@ fun DeviceCard(
 ```
 
 **功能**:
+
 - 显示设备基本信息（名称、ID、验证状态）
 - 显示E2EE会话信息和创建时间
 - 提供操作菜单（查看详情、验证、断开连接）
@@ -124,6 +126,7 @@ fun DisconnectConfirmDialog(
 ```
 
 **功能**:
+
 - 显示断开连接确认对话框
 - 警告用户断开连接的后果
 - 调用`P2PDeviceViewModel.disconnectDevice()`执行断开
@@ -136,6 +139,7 @@ fun EmptyDeviceList()
 ```
 
 **功能**:
+
 - 当没有已连接设备时显示友好的空状态
 - 提示用户扫描附近设备
 
@@ -311,6 +315,7 @@ class P2PDeviceViewModel @Inject constructor(
 ### 2. 设备详情页
 
 创建专门的设备详情页面，显示：
+
 - 完整的设备信息
 - 会话历史
 - 验证历史

@@ -51,7 +51,7 @@ const ALLOWED_FILES = [
   "RELEASE_GUIDE.md",
   "docker-compose.production.yml",
   // Android 文档（包含示例密码和密钥）
-  "ANDROID_SIGNING_SETUP_md",
+  "ANDROID_SIGNING_SETUP.md",
   "GOOGLE_PLAY_SETUP.md",
   "RELEASE_TESTING_GUIDE.md",
   "ANDROID_CI_CD_GUIDE.md",

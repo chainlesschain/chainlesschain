@@ -9,6 +9,7 @@
 ## 执行摘要
 
 Phase 3 知识库管理功能开发已**完成所有代码实现**，包括：
+
 - 知识库CRUD操作（Create, Read, Update, Delete）
 - Paging 3分页列表
 - FTS5全文搜索支持
@@ -27,11 +28,13 @@ Phase 3 知识库管理功能开发已**完成所有代码实现**，包括：
 #### 1. 数据层（Data Layer）
 
 **KnowledgeItemFts（FTS5全文搜索）**
+
 - [x] `KnowledgeItemFts.kt` - FTS5虚拟表实体
 - [x] 使用unicode61分词器
 - [x] 标题、内容、标签全文搜索
 
 **KnowledgeRepository（数据仓库）**
+
 - [x] `KnowledgeRepository.kt` (250行)
   - [x] CRUD操作（创建、读取、更新、删除）
   - [x] Paging 3分页支持
@@ -45,6 +48,7 @@ Phase 3 知识库管理功能开发已**完成所有代码实现**，包括：
 #### 2. 领域层（Domain Layer）
 
 **领域模型**
+
 - [x] `KnowledgeItem.kt` - 知识库条目模型
 - [x] `KnowledgeType` - 类型枚举（note, document, conversation, web_clip）
 - [x] `SyncStatus` - 同步状态枚举（pending, synced, conflict）
@@ -53,6 +57,7 @@ Phase 3 知识库管理功能开发已**完成所有代码实现**，包括：
 #### 3. 展示层（Presentation Layer）
 
 **KnowledgeViewModel（视图模型）**
+
 - [x] `KnowledgeViewModel.kt` (260行)
   - [x] StateFlow状态管理
   - [x] Paging 3 Flow集成
@@ -63,6 +68,7 @@ Phase 3 知识库管理功能开发已**完成所有代码实现**，包括：
   - [x] 加载状态管理
 
 **KnowledgeListScreen（列表界面）**
+
 - [x] `KnowledgeListScreen.kt` (330行)
   - [x] 顶部搜索栏
   - [x] 筛选芯片（全部/收藏）
@@ -79,6 +85,7 @@ Phase 3 知识库管理功能开发已**完成所有代码实现**，包括：
   - [x] 浮动添加按钮
 
 **KnowledgeEditorScreen（编辑界面）**
+
 - [x] `KnowledgeEditorScreen.kt` (280行)
   - [x] 标题输入框
   - [x] 标签输入（逗号分隔）
@@ -151,21 +158,21 @@ Phase 3 知识库管理功能开发已**完成所有代码实现**，包括：
 
 ### 文件清单
 
-| 类型 | 文件 | 行数 |
-|------|------|------|
-| 实体 | `core-database/entity/KnowledgeItemFts.kt` | 25 |
-| DAO | `core-database/dao/KnowledgeItemDao.kt` (更新) | +10 |
-| 领域 | `feature-knowledge/domain/model/KnowledgeItem.kt` | 65 |
-| 数据 | `feature-knowledge/data/repository/KnowledgeRepository.kt` | 250 |
-| 展示 | `feature-knowledge/presentation/KnowledgeViewModel.kt` | 260 |
-| 展示 | `feature-knowledge/presentation/KnowledgeListScreen.kt` | 330 |
-| 展示 | `feature-knowledge/presentation/KnowledgeEditorScreen.kt` | 280 |
-| DI | `feature-knowledge/di/KnowledgeModule.kt` | 25 |
-| 导航 | `app/navigation/NavGraph.kt` (更新) | +40 |
-| UI | `app/presentation/HomeScreen.kt` (更新) | +20 |
-| 测试 | `KnowledgeViewModelTest.kt` | 150 |
-| 测试 | `KnowledgeRepositoryTest.kt` | 120 |
-| **总计** | **12 个文件** | **~1,575 行** |
+| 类型     | 文件                                                       | 行数          |
+| -------- | ---------------------------------------------------------- | ------------- |
+| 实体     | `core-database/entity/KnowledgeItemFts.kt`                 | 25            |
+| DAO      | `core-database/dao/KnowledgeItemDao.kt` (更新)             | +10           |
+| 领域     | `feature-knowledge/domain/model/KnowledgeItem.kt`          | 65            |
+| 数据     | `feature-knowledge/data/repository/KnowledgeRepository.kt` | 250           |
+| 展示     | `feature-knowledge/presentation/KnowledgeViewModel.kt`     | 260           |
+| 展示     | `feature-knowledge/presentation/KnowledgeListScreen.kt`    | 330           |
+| 展示     | `feature-knowledge/presentation/KnowledgeEditorScreen.kt`  | 280           |
+| DI       | `feature-knowledge/di/KnowledgeModule.kt`                  | 25            |
+| 导航     | `app/navigation/NavGraph.kt` (更新)                        | +40           |
+| UI       | `app/presentation/HomeScreen.kt` (更新)                    | +20           |
+| 测试     | `KnowledgeViewModelTest.kt`                                | 150           |
+| 测试     | `KnowledgeRepositoryTest.kt`                               | 120           |
+| **总计** | **12 个文件**                                              | **~1,575 行** |
 
 ---
 
@@ -174,12 +181,14 @@ Phase 3 知识库管理功能开发已**完成所有代码实现**，包括：
 ### 1. Paging 3集成
 
 **分页加载优势**:
+
 - 按需加载数据，减少内存占用
 - 自动处理加载状态（Loading, Error, Success）
 - 支持下拉刷新和上拉加载
 - 缓存机制提升性能
 
 **实现细节**:
+
 ```kotlin
 fun getItems(): Flow<PagingData<KnowledgeItem>> {
     return Pager(
@@ -198,12 +207,14 @@ fun getItems(): Flow<PagingData<KnowledgeItem>> {
 ### 2. FTS5全文搜索
 
 **搜索功能**:
+
 - SQLite FTS5虚拟表
 - Unicode61分词器（支持中文）
 - 标题、内容、标签全文索引
 - Rank排序（相关性排序）
 
 **SQL查询**:
+
 ```sql
 SELECT knowledge_items.* FROM knowledge_items
 INNER JOIN knowledge_items_fts ON knowledge_items.id = knowledge_items_fts.rowid
@@ -215,6 +226,7 @@ ORDER BY rank
 ### 3. Markdown编辑器
 
 **功能特性**:
+
 - 实时编辑
 - 工具栏快捷插入
 - 编辑/预览模式切换
@@ -222,6 +234,7 @@ ORDER BY rank
 - 预留Markwon集成接口
 
 **工具栏按钮**:
+
 - 标题（H1, H2）
 - 样式（加粗, 斜体）
 - 列表（无序列表）
@@ -232,12 +245,14 @@ ORDER BY rank
 ### 4. 标签系统
 
 **实现方式**:
+
 - JSON数组序列化存储
 - Kotlinx Serialization
 - 逗号分隔输入
 - 芯片式显示（最多3个+更多）
 
 **存储格式**:
+
 ```json
 ["技术", "学习", "笔记"]
 ```
@@ -245,6 +260,7 @@ ORDER BY rank
 ### 5. 响应式UI
 
 **状态管理**:
+
 ```kotlin
 data class KnowledgeUiState(
     val isLoading: Boolean = false,
@@ -258,6 +274,7 @@ data class KnowledgeUiState(
 ```
 
 **Flow集成**:
+
 - StateFlow单向数据流
 - collectAsState自动重组
 - Paging Flow懒加载
@@ -265,6 +282,7 @@ data class KnowledgeUiState(
 ### 6. Material 3设计
 
 **UI组件**:
+
 - TopAppBar搜索栏
 - FilterChip筛选器
 - Card卡片组件
@@ -273,6 +291,7 @@ data class KnowledgeUiState(
 - AlertDialog确认对话框
 
 **视觉元素**:
+
 - 置顶图标（PushPin）
 - 收藏图标（Favorite）
 - 相对时间显示
@@ -409,6 +428,7 @@ data class KnowledgeUiState(
 ### 数据流
 
 **创建条目流程**:
+
 ```
 UI (KnowledgeEditorScreen)
    ↓ 用户输入
@@ -426,6 +446,7 @@ UI更新（LazyColumn）
 ```
 
 **搜索流程**:
+
 ```
 UI (SearchField)
    ↓ 输入关键词
@@ -447,6 +468,7 @@ UI (LazyPagingItems)
 ### 单元测试（KnowledgeViewModelTest）
 
 **测试覆盖**:
+
 - ✅ 初始状态验证
 - ✅ 创建成功/失败场景
 - ✅ 更新操作
@@ -456,6 +478,7 @@ UI (LazyPagingItems)
 - ✅ 错误处理
 
 **测试模式**:
+
 ```kotlin
 @Test
 fun `createItem with valid data should succeed`() = runTest {
@@ -476,6 +499,7 @@ fun `createItem with valid data should succeed`() = runTest {
 ### 集成测试（KnowledgeRepositoryTest）
 
 **测试覆盖**:
+
 - ✅ DAO集成
 - ✅ 实体转换
 - ✅ CRUD操作
@@ -524,13 +548,13 @@ testImplementation("io.mockk:mockk:1.13.9")
 
 ## 性能指标（预期）
 
-| 指标 | 目标值 | 说明 |
-|------|--------|------|
-| **列表初始加载** | <500ms | 前20条数据 |
-| **搜索响应时间** | <200ms | FTS5索引 |
-| **创建条目** | <100ms | 插入+索引更新 |
-| **滚动流畅度** | 60fps | Compose性能 |
-| **内存占用** | <150MB | 包含缓存 |
+| 指标             | 目标值 | 说明          |
+| ---------------- | ------ | ------------- |
+| **列表初始加载** | <500ms | 前20条数据    |
+| **搜索响应时间** | <200ms | FTS5索引      |
+| **创建条目**     | <100ms | 插入+索引更新 |
+| **滚动流畅度**   | 60fps  | Compose性能   |
+| **内存占用**     | <150MB | 包含缓存      |
 
 ---
 
@@ -580,18 +604,19 @@ testImplementation("io.mockk:mockk:1.13.9")
 
 ## 签字确认
 
-| 角色 | 姓名 | 日期 | 签名 |
-|------|------|------|------|
-| 开发负责人 | Claude Sonnet 4.5 | 2026-01-19 | ✅ |
-| 技术审查 | - | - | ⏳ 待Java 17 |
-| 测试负责人 | - | - | ⏳ 待Java 17 |
-| 项目经理 | - | - | ⏳ |
+| 角色       | 姓名              | 日期       | 签名         |
+| ---------- | ----------------- | ---------- | ------------ |
+| 开发负责人 | Claude Sonnet 4.5 | 2026-01-19 | ✅           |
+| 技术审查   | -                 | -          | ⏳ 待Java 17 |
+| 测试负责人 | -                 | -          | ⏳ 待Java 17 |
+| 项目经理   | -                 | -          | ⏳           |
 
 ---
 
 **Phase 3 知识库管理功能代码实现完成！**
 
 **关键成就**:
+
 - ✅ 完整的知识库CRUD功能
 - ✅ Paging 3分页加载（性能优化）
 - ✅ FTS5全文搜索（高效检索）
