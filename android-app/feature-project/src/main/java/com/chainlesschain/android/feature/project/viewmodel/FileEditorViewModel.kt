@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.chainlesschain.android.core.database.entity.ProjectFileEntity
 import com.chainlesschain.android.feature.project.repository.ProjectRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -35,7 +37,19 @@ class FileEditorViewModel @Inject constructor(
 
     companion object {
         private const val TAG = "FileEditorViewModel"
+        private const val AUTO_SAVE_DELAY_MS = 2000L // 2 seconds
     }
+
+    // Auto-save job for debouncing
+    private var autoSaveJob: Job? = null
+
+    // Auto-save enabled flag
+    private val _isAutoSaveEnabled = MutableStateFlow(true)
+    val isAutoSaveEnabled: StateFlow<Boolean> = _isAutoSaveEnabled.asStateFlow()
+
+    // Last auto-save time
+    private val _lastSaveTime = MutableStateFlow<Long?>(null)
+    val lastSaveTime: StateFlow<Long?> = _lastSaveTime.asStateFlow()
 
     // Current file being edited
     private val _currentFile = MutableStateFlow<ProjectFileEntity?>(null)
@@ -112,12 +126,53 @@ class FileEditorViewModel @Inject constructor(
                 projectRepository.updateFileContent(fileId, newContent)
             }
         }
+
+        // Trigger auto-save with debounce
+        if (_isAutoSaveEnabled.value && _isDirty.value) {
+            scheduleAutoSave()
+        }
+    }
+
+    /**
+     * Schedule auto-save with debounce
+     */
+    private fun scheduleAutoSave() {
+        // Cancel previous auto-save job
+        autoSaveJob?.cancel()
+
+        // Schedule new auto-save
+        autoSaveJob = viewModelScope.launch {
+            delay(AUTO_SAVE_DELAY_MS)
+            if (_isDirty.value) {
+                saveFile(isAutoSave = true)
+            }
+        }
+    }
+
+    /**
+     * Toggle auto-save
+     */
+    fun toggleAutoSave() {
+        _isAutoSaveEnabled.value = !_isAutoSaveEnabled.value
+        if (!_isAutoSaveEnabled.value) {
+            autoSaveJob?.cancel()
+        }
+    }
+
+    /**
+     * Set auto-save enabled state
+     */
+    fun setAutoSaveEnabled(enabled: Boolean) {
+        _isAutoSaveEnabled.value = enabled
+        if (!enabled) {
+            autoSaveJob?.cancel()
+        }
     }
 
     /**
      * Save file
      */
-    fun saveFile() {
+    fun saveFile(isAutoSave: Boolean = false) {
         val fileId = currentFileId ?: return
         if (!_isDirty.value) return
 
@@ -130,7 +185,14 @@ class FileEditorViewModel @Inject constructor(
                     onSuccess = {
                         originalContent = _fileContent.value
                         _isDirty.value = false
-                        _uiEvents.emit(FileEditorUiEvent.FileSaved)
+                        _lastSaveTime.value = System.currentTimeMillis()
+
+                        // Only show snackbar for manual saves
+                        if (!isAutoSave) {
+                            _uiEvents.emit(FileEditorUiEvent.FileSaved)
+                        }
+
+                        Log.d(TAG, "File saved ${if (isAutoSave) "(auto)" else "(manual)"}")
                     },
                     onFailure = { error ->
                         _uiEvents.emit(FileEditorUiEvent.ShowError(error.message ?: "Save failed"))

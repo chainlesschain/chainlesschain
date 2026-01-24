@@ -69,6 +69,7 @@ import com.chainlesschain.android.core.database.entity.ProjectChatRole
 import com.chainlesschain.android.core.database.entity.ProjectFileEntity
 import com.chainlesschain.android.core.database.entity.ProjectMessageType
 import com.chainlesschain.android.core.ui.components.MarkdownText
+import com.chainlesschain.android.feature.ai.domain.model.LLMProvider
 import com.chainlesschain.android.feature.project.model.ChatContextMode
 import com.chainlesschain.android.feature.project.model.TaskPlan
 import com.chainlesschain.android.feature.project.model.ThinkingStage
@@ -109,9 +110,14 @@ fun ProjectChatPanel(
     onCancelTaskPlan: () -> Unit = {},
     onModifyTaskPlan: () -> Unit = {},
     onRetryTaskStep: (com.chainlesschain.android.feature.project.model.TaskStep) -> Unit = {},
+    // Model selection props
+    currentModel: String = "deepseek-chat",
+    currentProvider: LLMProvider = LLMProvider.DEEPSEEK,
+    onModelSelected: (String, LLMProvider) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier
 ) {
     val listState = rememberLazyListState()
+    var showModelSelector by remember { mutableStateOf(false) }
 
     // Auto-scroll to bottom when new messages arrive
     LaunchedEffect(messages.size) {
@@ -121,12 +127,50 @@ fun ProjectChatPanel(
     }
 
     Column(modifier = modifier.fillMaxSize()) {
-        // Context Mode Switcher
-        CompactContextModeSwitcher(
-            currentMode = contextMode,
-            onModeChange = onContextModeChange,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
-        )
+        // Top bar: Context Mode Switcher + Model Selector
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Context Mode Switcher
+            CompactContextModeSwitcher(
+                currentMode = contextMode,
+                onModeChange = onContextModeChange,
+                modifier = Modifier.weight(1f)
+            )
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            // Model Selector Button
+            Surface(
+                onClick = { showModelSelector = true },
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.secondaryContainer
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.SmartToy,
+                        contentDescription = "选择模型",
+                        modifier = Modifier.size(16.dp),
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                    Text(
+                        text = getModelDisplayName(currentModel),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+        }
 
         // Quick Actions Bar
         QuickActionsBar(
@@ -220,6 +264,18 @@ fun ProjectChatPanel(
             onClearChat = onClearChat,
             onFileMentionClick = onShowFileMention,
             modifier = Modifier.fillMaxWidth()
+        )
+    }
+
+    // Model Selector Dialog
+    if (showModelSelector) {
+        ModelSelectorDialog(
+            currentModel = currentModel,
+            currentProvider = currentProvider,
+            onModelSelected = { model, provider ->
+                onModelSelected(model, provider)
+            },
+            onDismiss = { showModelSelector = false }
         )
     }
 }
@@ -445,6 +501,10 @@ private fun ChatMessageBubble(
                         message.messageType == ProjectMessageType.TASK_ANALYSIS -> "ANALYSIS"
                         message.messageType == ProjectMessageType.INTENT_CONFIRM -> "CONFIRM"
                         message.messageType == ProjectMessageType.CREATION -> "CREATING"
+                        message.messageType == ProjectMessageType.CODE_BLOCK -> "CODE"
+                        message.messageType == ProjectMessageType.FILE_REFERENCE -> "FILE REF"
+                        message.messageType == ProjectMessageType.EXECUTION_RESULT -> "EXECUTION"
+                        message.messageType == ProjectMessageType.SYSTEM -> "SYSTEM"
                         else -> null
                     }
 
@@ -455,30 +515,52 @@ private fun ChatMessageBubble(
                             color = if (isUser)
                                 MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f)
                             else
-                                MaterialTheme.colorScheme.primary
+                                when (message.messageType) {
+                                    ProjectMessageType.CODE_BLOCK -> Color(0xFFA97BFF)
+                                    ProjectMessageType.EXECUTION_RESULT -> Color(0xFF4CAF50)
+                                    ProjectMessageType.SYSTEM -> MaterialTheme.colorScheme.tertiary
+                                    else -> MaterialTheme.colorScheme.primary
+                                }
                         )
                         Spacer(modifier = Modifier.height(4.dp))
                     }
 
-                    // Message content - use Markdown rendering for assistant messages
-                    if (isUser || message.content.isEmpty()) {
-                        Text(
-                            text = message.content.ifEmpty {
-                                if (message.isStreaming) "..." else ""
-                            },
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = if (isUser)
-                                MaterialTheme.colorScheme.onPrimary
-                            else
-                                MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    } else {
-                        // Render Markdown for assistant messages
-                        MarkdownText(
-                            markdown = message.content,
-                            textColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            linkColor = MaterialTheme.colorScheme.primary
-                        )
+                    // Message content - specialized rendering based on type
+                    when (message.messageType) {
+                        ProjectMessageType.CODE_BLOCK -> {
+                            // Code block with syntax highlighting
+                            CodeBlockMessage(content = message.content)
+                        }
+                        ProjectMessageType.EXECUTION_RESULT -> {
+                            // Terminal-style output
+                            ExecutionResultMessage(content = message.content)
+                        }
+                        ProjectMessageType.FILE_REFERENCE -> {
+                            // File reference card
+                            FileReferenceMessage(content = message.content)
+                        }
+                        else -> {
+                            // Standard message rendering
+                            if (isUser || message.content.isEmpty()) {
+                                Text(
+                                    text = message.content.ifEmpty {
+                                        if (message.isStreaming) "..." else ""
+                                    },
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = if (isUser)
+                                        MaterialTheme.colorScheme.onPrimary
+                                    else
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            } else {
+                                // Render Markdown for assistant messages
+                                MarkdownText(
+                                    markdown = message.content,
+                                    textColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    linkColor = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
                     }
 
                     // Error state
@@ -818,6 +900,133 @@ private fun formatMessageTime(timestamp: Long): String {
         }
         else -> {
             SimpleDateFormat("MM/dd HH:mm", Locale.getDefault()).format(Date(timestamp))
+        }
+    }
+}
+
+/**
+ * Get display name for current model
+ */
+private fun getModelDisplayName(modelId: String): String = when (modelId) {
+    "gpt-4" -> "GPT-4"
+    "gpt-3.5-turbo" -> "GPT-3.5"
+    "deepseek-chat" -> "DeepSeek"
+    "deepseek-coder" -> "DeepSeek Coder"
+    "qwen2:7b" -> "Qwen2 7B"
+    "llama3:8b" -> "Llama3 8B"
+    else -> modelId.take(12)
+}
+
+/**
+ * Code block message with syntax highlighting
+ */
+@Composable
+private fun CodeBlockMessage(content: String) {
+    // Extract language and code from content (format: language\ncode)
+    val parts = content.split("\n", limit = 2)
+    val language = if (parts.size > 1) parts[0] else null
+    val code = if (parts.size > 1) parts[1] else content
+
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = Color(0xFF1E1E1E), // VS Code dark background
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column {
+            // Language badge
+            if (language != null) {
+                Text(
+                    text = language.uppercase(),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color(0xFFA97BFF),
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                )
+            }
+
+            // Code content
+            Text(
+                text = code,
+                style = MaterialTheme.typography.bodySmall.copy(
+                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                ),
+                color = Color(0xFFD4D4D4), // VS Code text color
+                modifier = Modifier.padding(12.dp)
+            )
+        }
+    }
+}
+
+/**
+ * Execution result message with terminal styling
+ */
+@Composable
+private fun ExecutionResultMessage(content: String) {
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = Color(0xFF0E1E0E), // Dark green terminal background
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Terminal prompt symbol
+            Text(
+                text = "$ ",
+                style = MaterialTheme.typography.bodySmall.copy(
+                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                ),
+                color = Color(0xFF4CAF50)
+            )
+
+            // Output
+            Text(
+                text = content,
+                style = MaterialTheme.typography.bodySmall.copy(
+                    fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace
+                ),
+                color = Color(0xFF76FF03) // Bright green
+            )
+        }
+    }
+}
+
+/**
+ * File reference message card
+ */
+@Composable
+private fun FileReferenceMessage(content: String) {
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.3f),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Description,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.tertiary,
+                modifier = Modifier.size(20.dp)
+            )
+
+            Column {
+                Text(
+                    text = "Referenced File",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.tertiary
+                )
+                Text(
+                    text = content,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
         }
     }
 }
