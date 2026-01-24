@@ -11,7 +11,7 @@
 按照实施方案，完成了v1.0 MVP的第一阶段（Week 1-2）所有任务：
 
 - [x] 创建Android项目结构（Gradle Kotlin DSL配置）
-- [x] 配置多模块架构（app, core-*, feature-*, data-*）
+- [x] 配置多模块架构（app, core-_, feature-_, data-\*）
 - [x] 配置Hilt依赖注入
 - [x] 配置Room数据库 + SQLCipher集成
 - [x] 配置Retrofit网络层
@@ -26,24 +26,25 @@
 
 ### 1. 项目配置文件
 
-| 文件 | 说明 |
-|------|------|
-| `build.gradle.kts` | 根级Gradle配置，定义插件版本 |
-| `settings.gradle.kts` | 模块配置，包含11个子模块 |
-| `gradle.properties` | Gradle属性配置（并行编译、JVM参数） |
-| `gradle/wrapper/gradle-wrapper.properties` | Gradle 8.5包装器 |
+| 文件                                       | 说明                                |
+| ------------------------------------------ | ----------------------------------- |
+| `build.gradle.kts`                         | 根级Gradle配置，定义插件版本        |
+| `settings.gradle.kts`                      | 模块配置，包含11个子模块            |
+| `gradle.properties`                        | Gradle属性配置（并行编译、JVM参数） |
+| `gradle/wrapper/gradle-wrapper.properties` | Gradle 8.5包装器                    |
 
 ### 2. 主应用模块 (app/)
 
-| 文件 | 说明 |
-|------|------|
+| 文件                           | 说明                        |
+| ------------------------------ | --------------------------- |
 | `ChainlessChainApplication.kt` | Application入口，Hilt初始化 |
-| `MainActivity.kt` | 主Activity，Compose UI |
-| `di/AppModule.kt` | 应用级依赖注入模块 |
-| `AndroidManifest.xml` | 应用清单，权限声明 |
-| `proguard-rules.pro` | 混淆规则 |
+| `MainActivity.kt`              | 主Activity，Compose UI      |
+| `di/AppModule.kt`              | 应用级依赖注入模块          |
+| `AndroidManifest.xml`          | 应用清单，权限声明          |
+| `proguard-rules.pro`           | 混淆规则                    |
 
 **资源文件：**
+
 - `res/values/strings.xml` - 字符串资源
 - `res/values/themes.xml` - Material 3主题
 - `res/xml/backup_rules.xml` - 备份规则
@@ -53,9 +54,11 @@
 ### 3. 核心模块
 
 #### core-common
+
 - `build.gradle.kts` - 通用依赖配置
 
 #### core-database
+
 - `ChainlessChainDatabase.kt` - Room数据库定义
 - `entity/KnowledgeItemEntity.kt` - 知识库实体
 - `entity/ConversationEntity.kt` - 对话实体
@@ -65,19 +68,23 @@
 - `di/DatabaseModule.kt` - 数据库依赖注入
 
 #### core-network
+
 - `di/NetworkModule.kt` - 网络依赖注入
 - `interceptor/AuthInterceptor.kt` - 认证拦截器
 - `interceptor/LoggingInterceptor.kt` - 日志拦截器
 
 #### core-security
+
 - `KeyManager.kt` - 密钥管理器（Keystore集成）
 - `di/SecurityModule.kt` - 安全依赖注入
 
 #### core-ui
+
 - `theme/Theme.kt` - Material 3主题定义
 - `theme/Type.kt` - Typography定义
 
 #### core-p2p
+
 - `build.gradle.kts` - P2P模块配置（待实现）
 
 ### 4. 功能模块
@@ -120,12 +127,12 @@ app
 
 ### 技术栈统计
 
-| 类别 | 数量 |
-|------|------|
-| **模块总数** | 11 |
-| **Gradle配置文件** | 13 |
-| **Kotlin源文件** | 15 |
-| **XML资源文件** | 7 |
+| 类别                 | 数量    |
+| -------------------- | ------- |
+| **模块总数**         | 11      |
+| **Gradle配置文件**   | 13      |
+| **Kotlin源文件**     | 15      |
+| **XML资源文件**      | 7       |
 | **代码行数（估算）** | ~1500行 |
 
 ---
@@ -135,12 +142,14 @@ app
 ### 1. 数据库加密（SQLCipher）
 
 **实现特性：**
+
 - AES-256加密
 - Android Keystore密钥存储
 - EncryptedSharedPreferences密钥管理
 - 自动密钥派生和保存
 
 **代码示例：**
+
 ```kotlin
 // core-database/di/DatabaseModule.kt
 val passphrase = keyManager.getDatabaseKey()
@@ -154,12 +163,14 @@ Room.databaseBuilder(context, ChainlessChainDatabase::class.java, "chainlesschai
 ### 2. 依赖注入（Hilt）
 
 **配置模块：**
+
 - `AppModule` - 应用Context
 - `DatabaseModule` - Room数据库、DAO
 - `SecurityModule` - KeyManager
 - `NetworkModule` - Retrofit、OkHttp
 
 **注入示例：**
+
 ```kotlin
 @HiltViewModel
 class KnowledgeViewModel @Inject constructor(
@@ -171,12 +182,14 @@ class KnowledgeViewModel @Inject constructor(
 ### 3. 网络层（Retrofit）
 
 **实现特性：**
+
 - OkHttp连接池
 - 自动添加Authorization头
 - HTTP日志记录（开发环境）
 - Kotlinx.serialization转换器
 
 **配置：**
+
 ```kotlin
 OkHttpClient.Builder()
     .connectTimeout(30, TimeUnit.SECONDS)
@@ -188,6 +201,7 @@ OkHttpClient.Builder()
 ### 4. Material 3 主题
 
 **实现特性：**
+
 - 动态颜色支持（Android 12+）
 - 深色模式适配
 - ChainlessChain品牌色（紫色）
@@ -210,17 +224,17 @@ android-app/
 
 ### 依赖项统计
 
-| 类型 | 数量 |
-|------|------|
-| **Kotlin标准库** | 3 |
-| **AndroidX核心** | 5 |
-| **Jetpack Compose** | 8 |
-| **Room数据库** | 4 |
-| **Retrofit网络** | 3 |
-| **Hilt依赖注入** | 3 |
-| **安全加密** | 3 |
-| **测试框架** | 6 |
-| **总计** | 35+ |
+| 类型                | 数量 |
+| ------------------- | ---- |
+| **Kotlin标准库**    | 3    |
+| **AndroidX核心**    | 5    |
+| **Jetpack Compose** | 8    |
+| **Room数据库**      | 4    |
+| **Retrofit网络**    | 3    |
+| **Hilt依赖注入**    | 3    |
+| **安全加密**        | 3    |
+| **测试框架**        | 6    |
+| **总计**            | 35+  |
 
 ---
 
@@ -279,6 +293,7 @@ android-app/
    - [ ] 配置迁移
 
 **预计交付：**
+
 - 完整的认证流程（登录/注册）
 - 数据库加密验证通过
 - 配置管理系统
@@ -298,10 +313,12 @@ android-app/
 ## 🎓 学习资源
 
 **已创建文档：**
+
 - [实施方案](../docs/mobile/ANDROID_NATIVE_IMPLEMENTATION_PLAN.md) - 完整技术方案
 - [README.md](README.md) - 项目说明和快速开始
 
 **推荐阅读：**
+
 - [Android官方文档](https://developer.android.com/)
 - [Jetpack Compose教程](https://developer.android.com/jetpack/compose/tutorial)
 - [Hilt依赖注入指南](https://developer.android.com/training/dependency-injection/hilt-android)
@@ -312,6 +329,7 @@ android-app/
 ## 📞 支持
 
 如有问题，请参考：
+
 - 项目README: `android-app/README.md`
 - 实施方案: `docs/mobile/ANDROID_NATIVE_IMPLEMENTATION_PLAN.md`
 - GitHub Issues

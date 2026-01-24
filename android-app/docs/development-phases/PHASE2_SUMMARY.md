@@ -25,9 +25,11 @@
 ### 1. 核心业务逻辑
 
 #### AuthRepository（认证数据仓库）
+
 **文件**: `feature-auth/data/repository/AuthRepository.kt`
 
 **功能：**
+
 - ✅ 用户注册（设置PIN码）
 - ✅ PIN码验证（SHA-256哈希）
 - ✅ PIN码修改
@@ -36,6 +38,7 @@
 - ✅ DataStore Preferences持久化
 
 **关键方法：**
+
 ```kotlin
 suspend fun register(pin: String): Result<User>
 suspend fun verifyPIN(pin: String): Result<User>
@@ -45,21 +48,25 @@ suspend fun getCurrentUser(): User?
 ```
 
 **安全特性：**
+
 - PIN码SHA-256哈希存储
 - 设备ID自动生成和绑定
 - 数据库密钥自动初始化
 - 加密存储（DataStore Encrypted Preferences）
 
 #### BiometricAuthenticator（生物识别认证器）
+
 **文件**: `feature-auth/data/biometric/BiometricAuthenticator.kt`
 
 **功能：**
+
 - ✅ 生物识别可用性检测（7种状态）
 - ✅ BiometricPrompt集成
 - ✅ Kotlin Coroutine挂起函数支持
 - ✅ 错误处理和用户取消
 
 **支持状态：**
+
 ```kotlin
 sealed class BiometricAvailability {
     Available              // 可用
@@ -73,9 +80,11 @@ sealed class BiometricAvailability {
 ```
 
 #### AuthViewModel（认证视图模型）
+
 **文件**: `feature-auth/presentation/AuthViewModel.kt`
 
 **功能：**
+
 - ✅ 状态管理（StateFlow）
 - ✅ PIN码设置和验证
 - ✅ 生物识别认证
@@ -83,6 +92,7 @@ sealed class BiometricAvailability {
 - ✅ 自动状态检测
 
 **UI状态：**
+
 ```kotlin
 data class AuthUiState(
     val isLoading: Boolean,
@@ -101,34 +111,39 @@ data class AuthUiState(
 ### 2. UI组件
 
 #### PIN码输入组件
+
 **文件**: `feature-auth/presentation/components/PinInput.kt`
 
 **组件清单：**
 
-| 组件 | 功能 | 特性 |
-|------|------|------|
+| 组件           | 功能            | 特性                                            |
+| -------------- | --------------- | ----------------------------------------------- |
 | `PinIndicator` | PIN码输入指示器 | 6个圆点，已输入实心，未输入空心，错误时抖动动画 |
-| `NumberKeypad` | 数字键盘 | 0-9数字键，删除键，可选生物识别键 |
-| `NumberKey` | 数字按钮 | 圆形FilledTonalButton，大字体显示 |
-| `DeleteKey` | 删除按钮 | 退格符号⌫ |
-| `BiometricKey` | 生物识别按钮 | 指纹符号👆 |
+| `NumberKeypad` | 数字键盘        | 0-9数字键，删除键，可选生物识别键               |
+| `NumberKey`    | 数字按钮        | 圆形FilledTonalButton，大字体显示               |
+| `DeleteKey`    | 删除按钮        | 退格符号⌫                                       |
+| `BiometricKey` | 生物识别按钮    | 指纹符号👆                                      |
 
 **交互特性：**
+
 - ✅ 错误时抖动动画（3次左右摆动）
 - ✅ 圆形按钮，Material 3设计
 - ✅ 16dp间距，AspectRatio 1:1
 - ✅ 支持触觉反馈
 
 #### 设置PIN码界面
+
 **文件**: `feature-auth/presentation/SetupPinScreen.kt`
 
 **功能流程：**
+
 1. **第一步**：输入6位PIN码
 2. **第二步**：确认PIN码
 3. **验证**：两次输入一致则完成设置
 4. **错误处理**：不一致时清空并提示
 
 **UI结构：**
+
 ```
 ┌─────────────────────────┐
 │   ChainlessChain        │ ← 标题
@@ -145,23 +160,28 @@ data class AuthUiState(
 ```
 
 #### 登录界面
+
 **文件**: `feature-auth/presentation/LoginScreen.kt`
 
 **功能：**
+
 - ✅ PIN码输入验证
 - ✅ 自动触发生物识别（如果已启用）
 - ✅ 错误提示和重试计数
 - ✅ 输入完成自动验证
 
 **优化特性：**
+
 - 启动时自动弹出生物识别（体验优化）
 - PIN错误时自动清空并抖动
 - 显示尝试次数（≥3次后）
 
 #### 主界面
+
 **文件**: `app/presentation/HomeScreen.kt`
 
 **功能：**
+
 - ✅ 认证成功后显示
 - ✅ 用户信息卡片
 - ✅ 退出登录确认对话框
@@ -172,9 +192,11 @@ data class AuthUiState(
 ### 3. 导航系统
 
 #### NavGraph（导航图）
+
 **文件**: `app/navigation/NavGraph.kt`
 
 **路由定义：**
+
 ```kotlin
 sealed class Screen(val route: String) {
     SetupPin : "setup_pin"    // 首次设置PIN
@@ -184,6 +206,7 @@ sealed class Screen(val route: String) {
 ```
 
 **导航逻辑：**
+
 ```
 启动应用
    ↓
@@ -195,6 +218,7 @@ sealed class Screen(val route: String) {
 ```
 
 **导航规则：**
+
 - 设置完成后：`SetupPin → Home`（清除返回栈）
 - 登录成功后：`Login → Home`（清除返回栈）
 - 退出登录后：`Home → Login`（清除返回栈）
@@ -204,9 +228,11 @@ sealed class Screen(val route: String) {
 ### 4. 依赖注入
 
 #### AuthModule（认证模块注入）
+
 **文件**: `feature-auth/di/AuthModule.kt`
 
 **提供的依赖：**
+
 ```kotlin
 @Singleton
 AuthRepository(Context, KeyManager)
@@ -216,6 +242,7 @@ BiometricAuthenticator(Context)
 ```
 
 **依赖关系：**
+
 ```
 AuthViewModel
     ├── AuthRepository
@@ -230,6 +257,7 @@ AuthViewModel
 ### 5. 数据模型
 
 #### User（用户模型）
+
 **文件**: `feature-auth/domain/model/User.kt`
 
 ```kotlin
@@ -243,6 +271,7 @@ data class User(
 ```
 
 #### Result（结果封装）
+
 **文件**: `core-common/Result.kt`
 
 ```kotlin
@@ -254,6 +283,7 @@ sealed class Result<out T> {
 ```
 
 **扩展函数：**
+
 - `map()` - 结果映射
 - `onSuccess()` - 成功回调
 - `onError()` - 失败回调
@@ -263,9 +293,11 @@ sealed class Result<out T> {
 ### 6. 测试
 
 #### AuthViewModelTest（ViewModel单元测试）
+
 **文件**: `feature-auth/test/AuthViewModelTest.kt`
 
 **测试用例：**
+
 - ✅ 初始状态验证
 - ✅ 设置PIN码成功
 - ✅ 设置PIN码失败（长度错误）
@@ -275,15 +307,18 @@ sealed class Result<out T> {
 - ✅ 退出登录
 
 **Mock依赖：**
+
 - AuthRepository（MockK）
 - BiometricAuthenticator（MockK）
 
 **测试覆盖率：** ~80%
 
 #### AuthRepositoryTest（Repository集成测试）
+
 **文件**: `feature-auth/test/AuthRepositoryTest.kt`
 
 **测试用例：**
+
 - ✅ 初始状态未设置
 - ✅ 注册用户成功
 - ✅ 验证正确PIN
@@ -301,12 +336,14 @@ sealed class Result<out T> {
 ### 1. 安全设计
 
 **PIN码安全：**
+
 - SHA-256哈希存储（不存储明文）
 - 256,000次PBKDF2迭代（数据库密钥派生）
 - DataStore Encrypted Preferences加密存储
 - 设备ID绑定防止跨设备攻击
 
 **生物识别安全：**
+
 - BiometricPrompt.BIOMETRIC_STRONG强认证
 - 只在本地验证，不传输数据
 - 失败时降级到PIN码
@@ -315,12 +352,14 @@ sealed class Result<out T> {
 ### 2. 用户体验优化
 
 **流畅交互：**
+
 - PIN输入完成自动验证（无需手动确认）
 - 错误时抖动动画反馈
 - 生物识别自动触发
 - 加载状态实时显示
 
 **Material 3设计：**
+
 - 动态颜色支持（Android 12+）
 - 圆形按钮，触觉反馈
 - 渐变色主题
@@ -329,6 +368,7 @@ sealed class Result<out T> {
 ### 3. 架构设计
 
 **Clean Architecture：**
+
 ```
 Presentation (ViewModel + UI)
     ↓
@@ -338,6 +378,7 @@ Data (Repository + Data Sources)
 ```
 
 **MVVM模式：**
+
 - StateFlow单向数据流
 - 状态不可变（Immutable State）
 - ViewModel生命周期感知
@@ -346,6 +387,7 @@ Data (Repository + Data Sources)
 ### 4. 协程最佳实践
 
 **结构化并发：**
+
 ```kotlin
 viewModelScope.launch {
     _uiState.update { it.copy(isLoading = true) }
@@ -360,6 +402,7 @@ viewModelScope.launch {
 ```
 
 **挂起函数：**
+
 ```kotlin
 suspend fun authenticate(activity: FragmentActivity): Result<Unit> {
     return suspendCancellableCoroutine { continuation ->
@@ -374,33 +417,37 @@ suspend fun authenticate(activity: FragmentActivity): Result<Unit> {
 
 ### 代码统计
 
-| 类别 | 数量 |
-|------|------|
-| **Kotlin文件** | 13个 |
-| **代码行数** | ~1800行 |
-| **Composable函数** | 8个 |
-| **ViewModel** | 1个 |
-| **Repository** | 1个 |
-| **数据模型** | 2个 |
-| **测试用例** | 15个 |
+| 类别               | 数量    |
+| ------------------ | ------- |
+| **Kotlin文件**     | 13个    |
+| **代码行数**       | ~1800行 |
+| **Composable函数** | 8个     |
+| **ViewModel**      | 1个     |
+| **Repository**     | 1个     |
+| **数据模型**       | 2个     |
+| **测试用例**       | 15个    |
 
 ### 文件列表
 
 **业务逻辑：**
+
 - `AuthRepository.kt` (240行)
 - `BiometricAuthenticator.kt` (150行)
 - `AuthViewModel.kt` (190行)
 
 **UI组件：**
+
 - `PinInput.kt` (220行)
 - `SetupPinScreen.kt` (180行)
 - `LoginScreen.kt` (150行)
 - `HomeScreen.kt` (120行)
 
 **导航：**
+
 - `NavGraph.kt` (90行)
 
 **测试：**
+
 - `AuthViewModelTest.kt` (180行)
 - `AuthRepositoryTest.kt` (150行)
 
@@ -476,6 +523,7 @@ suspend fun authenticate(activity: FragmentActivity): Result<Unit> {
    - [ ] 同步状态管理
 
 **预计交付：**
+
 - 完整的知识库管理功能
 - Markdown渲染和编辑
 - 数据库集成验证
@@ -488,6 +536,7 @@ suspend fun authenticate(activity: FragmentActivity): Result<Unit> {
 无技术债务。所有功能均按计划实现。
 
 **后续优化建议：**
+
 1. 添加PIN码重置流程（通过备份恢复）
 2. 增加PIN错误锁定机制（5次错误锁定30分钟）
 3. 支持指纹+PIN双因素认证
@@ -498,10 +547,12 @@ suspend fun authenticate(activity: FragmentActivity): Result<Unit> {
 ## 🎓 学习资源
 
 **新增文档：**
+
 - 认证模块代码实现（13个文件）
 - 单元测试示例（2个测试类）
 
 **推荐阅读：**
+
 - [BiometricPrompt官方文档](https://developer.android.com/training/sign-in/biometric-auth)
 - [DataStore使用指南](https://developer.android.com/topic/libraries/architecture/datastore)
 - [Navigation Compose](https://developer.android.com/jetpack/compose/navigation)

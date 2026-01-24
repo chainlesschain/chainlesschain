@@ -495,10 +495,10 @@ aapt dump badging app-release-unsigned.apk
 
 ## Sign-off
 
-**QA Approval**: ********\_******** Date: **\_\_\_**
-**Security Approval**: ********\_******** Date: **\_\_\_**
-**Product Manager Approval**: ********\_******** Date: **\_\_\_**
-**Release Manager Approval**: ********\_******** Date: **\_\_\_**
+**QA Approval**: **\*\*\*\***\_**\*\*\*\*** Date: **\_\_\_**
+**Security Approval**: **\*\*\*\***\_**\*\*\*\*** Date: **\_\_\_**
+**Product Manager Approval**: **\*\*\*\***\_**\*\*\*\*** Date: **\_\_\_**
+**Release Manager Approval**: **\*\*\*\***\_**\*\*\*\*** Date: **\_\_\_**
 
 ---
 

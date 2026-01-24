@@ -205,6 +205,7 @@ The CI/CD workflow runs automatically on:
    - Runs: lint, unit-tests, instrumentation-tests, build-debug
 
 3. **Git Tag (vX.Y.Z)**
+
    ```bash
    git tag v1.0.0
    git push origin v1.0.0
