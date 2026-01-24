@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.FindReplace
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Preview
 import androidx.compose.material.icons.filled.Save
@@ -95,6 +96,7 @@ fun FileEditorScreen(
     val lastSaveTime by viewModel.lastSaveTime.collectAsState()
     val isAIProcessing by viewModel.isAIProcessing.collectAsState()
     val aiResult by viewModel.aiResult.collectAsState()
+    val showFindReplace by viewModel.showFindReplace.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
     var selectedTab by remember { mutableIntStateOf(0) }
@@ -197,6 +199,14 @@ fun FileEditorScreen(
                             expanded = showOptionsMenu,
                             onDismissRequest = { showOptionsMenu = false }
                         ) {
+                            DropdownMenuItem(
+                                text = { Text("Find and Replace") },
+                                leadingIcon = { Icon(Icons.Default.FindReplace, null) },
+                                onClick = {
+                                    viewModel.toggleFindReplace()
+                                    showOptionsMenu = false
+                                }
+                            )
                             DropdownMenuItem(
                                 text = { Text("Auto-save: ${if (isAutoSaveEnabled) "ON" else "OFF"}") },
                                 leadingIcon = {
@@ -399,6 +409,22 @@ fun FileEditorScreen(
             },
             onDismiss = {
                 showAIResultDialog = false
+            }
+        )
+    }
+
+    // Find and Replace Dialog
+    if (showFindReplace) {
+        FindReplaceDialog(
+            content = content,
+            onReplace = { newContent ->
+                viewModel.updateContent(newContent)
+            },
+            onFindResult = { matchIndex, totalMatches ->
+                viewModel.updateFindResult(matchIndex, totalMatches)
+            },
+            onDismiss = {
+                viewModel.toggleFindReplace()
             }
         )
     }
