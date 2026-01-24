@@ -96,6 +96,52 @@ class FileEditorViewModel @Inject constructor(
     private val _aiResult = MutableStateFlow<String?>(null)
     val aiResult: StateFlow<String?> = _aiResult.asStateFlow()
 
+    // Find and replace state
+    private val _showFindReplace = MutableStateFlow(false)
+    val showFindReplace: StateFlow<Boolean> = _showFindReplace.asStateFlow()
+
+    private val _findMatchIndex = MutableStateFlow(0)
+    val findMatchIndex: StateFlow<Int> = _findMatchIndex.asStateFlow()
+
+    private val _findTotalMatches = MutableStateFlow(0)
+    val findTotalMatches: StateFlow<Int> = _findTotalMatches.asStateFlow()
+
+    // Autocomplete state
+    private val _showAutocomplete = MutableStateFlow(false)
+    val showAutocomplete: StateFlow<Boolean> = _showAutocomplete.asStateFlow()
+
+    private val _cursorPosition = MutableStateFlow(0)
+    val cursorPosition: StateFlow<Int> = _cursorPosition.asStateFlow()
+
+    /**
+     * Toggle find and replace dialog
+     */
+    fun toggleFindReplace() {
+        _showFindReplace.value = !_showFindReplace.value
+    }
+
+    /**
+     * Update find result
+     */
+    fun updateFindResult(matchIndex: Int, totalMatches: Int) {
+        _findMatchIndex.value = matchIndex
+        _findTotalMatches.value = totalMatches
+    }
+
+    /**
+     * Update cursor position for autocomplete
+     */
+    fun updateCursorPosition(position: Int) {
+        _cursorPosition.value = position
+    }
+
+    /**
+     * Toggle autocomplete
+     */
+    fun toggleAutocomplete(show: Boolean) {
+        _showAutocomplete.value = show
+    }
+
     /**
      * Load file content
      */
