@@ -29,10 +29,18 @@ class ProjectChatRepository @Inject constructor(
     private val json = Json { ignoreUnknownKeys = true }
 
     /**
-     * Get all chat messages for a project
+     * Get all chat messages for a project (Flow)
      */
     fun getMessages(projectId: String): Flow<List<ProjectChatMessageEntity>> {
         return projectChatMessageDao.getMessagesByProject(projectId)
+    }
+
+    /**
+     * Get all chat messages for a project (suspended, returns List)
+     * Used by ContextManager for intelligent context selection
+     */
+    suspend fun getAllMessages(projectId: String): List<ProjectChatMessageEntity> {
+        return projectChatMessageDao.getMessagesByProject(projectId).first()
     }
 
     /**

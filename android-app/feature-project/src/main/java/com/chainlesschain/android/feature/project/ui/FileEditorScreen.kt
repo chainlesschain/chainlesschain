@@ -67,6 +67,8 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.chainlesschain.android.core.database.entity.ProjectFileEntity
 import com.chainlesschain.android.core.ui.components.MarkdownText
+import com.chainlesschain.android.feature.project.ui.components.AIAssistAction
+import com.chainlesschain.android.feature.project.ui.components.AIAssistDialog
 import com.chainlesschain.android.feature.project.ui.components.BreadcrumbItem
 import com.chainlesschain.android.feature.project.ui.components.BreadcrumbNav
 import com.chainlesschain.android.feature.project.ui.components.SyntaxHighlightedEditor
@@ -91,11 +93,15 @@ fun FileEditorScreen(
     val isSaving by viewModel.isSaving.collectAsState()
     val isAutoSaveEnabled by viewModel.isAutoSaveEnabled.collectAsState()
     val lastSaveTime by viewModel.lastSaveTime.collectAsState()
+    val isAIProcessing by viewModel.isAIProcessing.collectAsState()
+    val aiResult by viewModel.aiResult.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
     var selectedTab by remember { mutableIntStateOf(0) }
     var showExitDialog by remember { mutableStateOf(false) }
     var showOptionsMenu by remember { mutableStateOf(false) }
+    var showAIAssistDialog by remember { mutableStateOf(false) }
+    var showAIResultDialog by remember { mutableStateOf(false) }
 
     // Load file on start
     LaunchedEffect(fileId) {
@@ -117,6 +123,10 @@ fun FileEditorScreen(
                 }
                 is FileEditorUiEvent.FileSaved -> {
                     snackbarHostState.showSnackbar("File saved")
+                }
+                is FileEditorUiEvent.AIResultReady -> {
+                    showAIAssistDialog = false
+                    showAIResultDialog = true
                 }
             }
         }
@@ -205,7 +215,7 @@ fun FileEditorScreen(
                                 text = { Text("AI Assist") },
                                 leadingIcon = { Icon(Icons.Default.SmartToy, null) },
                                 onClick = {
-                                    // TODO: AI assist
+                                    showAIAssistDialog = true
                                     showOptionsMenu = false
                                 }
                             )
@@ -357,6 +367,41 @@ fun FileEditorScreen(
             }
         )
     }
+
+    // AI Assist Dialog
+    if (showAIAssistDialog) {
+        AIAssistDialog(
+            fileName = file?.name,
+            fileExtension = file?.extension,
+            onActionSelected = { action ->
+                viewModel.processAIAssist(action)
+            },
+            onDismiss = {
+                if (!isAIProcessing) {
+                    showAIAssistDialog = false
+                }
+            },
+            isProcessing = isAIProcessing
+        )
+    }
+
+    // AI Result Dialog
+    if (showAIResultDialog && aiResult != null) {
+        AIResultDialog(
+            result = aiResult!!,
+            onApply = {
+                viewModel.applyAIResult()
+                showAIResultDialog = false
+            },
+            onDiscard = {
+                viewModel.discardAIResult()
+                showAIResultDialog = false
+            },
+            onDismiss = {
+                showAIResultDialog = false
+            }
+        )
+    }
 }
 
 /**
@@ -482,6 +527,107 @@ private fun MarkdownPreview(
             modifier = Modifier.fillMaxWidth()
         )
     }
+}
+
+/**
+ * AI结果对话框
+ * 显示AI处理结果，允许用户应用或丢弃
+ */
+@Composable
+private fun AIResultDialog(
+    result: String,
+    onApply: () -> Unit,
+    onDiscard: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.SmartToy,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
+                )
+                Text(
+                    text = "AI 处理结果",
+                    style = MaterialTheme.typography.titleLarge
+                )
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+            ) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                    )
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        // Use markdown rendering for AI result
+                        MarkdownText(
+                            markdown = result,
+                            textColor = MaterialTheme.colorScheme.onSurface,
+                            linkColor = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Info text
+                Text(
+                    text = "您可以选择应用此结果到文件，或者丢弃它。",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        },
+        confirmButton = {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TextButton(onClick = onDiscard) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Text("丢弃")
+                    }
+                }
+                TextButton(
+                    onClick = onApply,
+                    colors = androidx.compose.material3.ButtonDefaults.textButtonColors(
+                        contentColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Text("应用到文件")
+                    }
+                }
+            }
+        }
+    )
 }
 
 private fun formatFileSize(bytes: Long): String {

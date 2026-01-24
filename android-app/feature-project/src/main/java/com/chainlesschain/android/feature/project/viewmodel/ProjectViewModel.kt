@@ -29,6 +29,8 @@ import com.chainlesschain.android.feature.project.model.ThinkingStage
 import com.chainlesschain.android.feature.project.model.UpdateProjectRequest
 import com.chainlesschain.android.feature.project.repository.ProjectChatRepository
 import com.chainlesschain.android.feature.project.repository.ProjectRepository
+import com.chainlesschain.android.feature.project.util.ContextManager
+import com.chainlesschain.android.feature.project.util.ContextResult
 import com.chainlesschain.android.core.common.fold
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -73,7 +75,11 @@ class ProjectViewModel @Inject constructor(
         private const val TAG = "ProjectViewModel"
         private const val DEFAULT_MODEL = "deepseek-chat"
         private const val DEFAULT_PROVIDER = "DEEPSEEK"
+        private const val MAX_CONTEXT_TOKENS = 4000  // DeepSeek 默认上下文窗口
     }
+
+    // Context Manager
+    private val contextManager = ContextManager(maxContextTokens = MAX_CONTEXT_TOKENS)
 
     // ===== 当前用户 =====
     private val _currentUserId = MutableStateFlow<String?>(null)
@@ -182,6 +188,13 @@ class ProjectViewModel @Inject constructor(
     // ===== Task Plan State =====
     private val _currentTaskPlan = MutableStateFlow<TaskPlan?>(null)
     val currentTaskPlan: StateFlow<TaskPlan?> = _currentTaskPlan.asStateFlow()
+
+    // ===== Context Management State =====
+    private val _contextStats = MutableStateFlow<ContextResult?>(null)
+    val contextStats: StateFlow<ContextResult?> = _contextStats.asStateFlow()
+
+    private val _totalContextTokens = MutableStateFlow(0)
+    val totalContextTokens: StateFlow<Int> = _totalContextTokens.asStateFlow()
 
     private var currentStreamingJob: Job? = null
     private var lastUserMessage: String = ""
@@ -839,8 +852,20 @@ class ProjectViewModel @Inject constructor(
             _currentThinkingStage.value = ThinkingStage.ANALYZING
             val systemPrompt = buildContextPrompt(projectId)
 
-            // Get recent messages for conversation history
-            val recentMessages = projectChatRepository.getRecentMessages(projectId, 10)
+            // Get ALL messages for intelligent context selection
+            val allMessages = projectChatRepository.getAllMessages(projectId)
+
+            // Use ContextManager to intelligently select messages
+            val contextResult = contextManager.selectMessagesForContext(
+                allMessages = allMessages,
+                systemPrompt = systemPrompt
+            )
+
+            // Update context stats
+            _contextStats.value = contextResult
+            _totalContextTokens.value = contextResult.totalTokens
+
+            Log.d(TAG, contextManager.generateContextSummary(contextResult))
 
             // Build message list for LLM
             val messages = mutableListOf<Message>()
@@ -851,23 +876,16 @@ class ProjectViewModel @Inject constructor(
                 conversationId = projectId,
                 role = MessageRole.SYSTEM,
                 content = systemPrompt,
-                createdAt = System.currentTimeMillis()
+                createdAt = System.currentTimeMillis(),
+                tokenCount = contextManager.estimateTokens(systemPrompt)
             ))
 
-            // Add conversation history
-            recentMessages.forEach { msg ->
-                messages.add(Message(
-                    id = msg.id,
-                    conversationId = projectId,
-                    role = when (msg.role) {
-                        "user" -> MessageRole.USER
-                        "assistant" -> MessageRole.ASSISTANT
-                        else -> MessageRole.SYSTEM
-                    },
-                    content = msg.content,
-                    createdAt = msg.createdAt
-                ))
-            }
+            // Convert selected messages to LLM format
+            val llmMessages = contextManager.convertToLLMMessages(
+                messages = contextResult.messages,
+                conversationId = projectId
+            )
+            messages.addAll(llmMessages)
 
             // Create placeholder for assistant response
             val placeholderResult = projectChatRepository.createAssistantMessagePlaceholder(
