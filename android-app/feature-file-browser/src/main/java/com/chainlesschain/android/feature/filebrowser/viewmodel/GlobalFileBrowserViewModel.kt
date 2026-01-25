@@ -2,11 +2,11 @@ package com.chainlesschain.android.feature.filebrowser.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.chainlesschain.android.core.permission.PermissionManager
 import com.chainlesschain.android.feature.filebrowser.data.repository.ExternalFileRepository
 import com.chainlesschain.android.feature.filebrowser.data.repository.FileImportRepository
 import com.chainlesschain.android.feature.filebrowser.data.scanner.MediaStoreScanner
-import com.chainlesschain.android.feature.filebrowser.domain.model.ExternalFile
+import com.chainlesschain.android.core.database.entity.ExternalFileEntity
+import com.chainlesschain.android.core.database.entity.FileCategory
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -35,7 +35,6 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class GlobalFileBrowserViewModel @Inject constructor(
-    private val permissionManager: PermissionManager,
     private val mediaStoreScanner: MediaStoreScanner,
     private val externalFileRepository: ExternalFileRepository,
     private val fileImportRepository: FileImportRepository
@@ -60,16 +59,16 @@ class GlobalFileBrowserViewModel @Inject constructor(
     val uiState: StateFlow<FileBrowserUiState> = _uiState.asStateFlow()
 
     // Files list
-    private val _files = MutableStateFlow<List<ExternalFile>>(emptyList())
-    val files: StateFlow<List<ExternalFile>> = _files.asStateFlow()
+    private val _files = MutableStateFlow<List<ExternalFileEntity>>(emptyList())
+    val files: StateFlow<List<ExternalFileEntity>> = _files.asStateFlow()
 
     // Search query
     private val _searchQuery = MutableStateFlow("")
     val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
 
     // Selected category
-    private val _selectedCategory = MutableStateFlow<String?>(null)
-    val selectedCategory: StateFlow<String?> = _selectedCategory.asStateFlow()
+    private val _selectedCategory = MutableStateFlow<FileCategory?>(null)
+    val selectedCategory: StateFlow<FileCategory?> = _selectedCategory.asStateFlow()
 
     // Sort options
     private val _sortBy = MutableStateFlow(SortBy.DATE)
@@ -140,11 +139,13 @@ class GlobalFileBrowserViewModel @Inject constructor(
 
     /**
      * Check storage permissions
+     *
+     * Note: Permission checking should be handled by the UI layer
+     * This method is retained for API compatibility
      */
     fun checkPermissions() {
-        viewModelScope.launch {
-            _permissionGranted.value = permissionManager.hasStoragePermissions()
-        }
+        // Permission checking delegated to UI layer
+        // UI should call onPermissionsGranted() after checking permissions
     }
 
     /**
@@ -245,14 +246,14 @@ class GlobalFileBrowserViewModel @Inject constructor(
      * Sort files based on criteria
      */
     private fun sortFiles(
-        files: List<ExternalFile>,
+        files: List<ExternalFileEntity>,
         sortBy: SortBy,
         ascending: Boolean
-    ): List<ExternalFile> {
+    ): List<ExternalFileEntity> {
         val sorted = when (sortBy) {
-            SortBy.NAME -> files.sortedBy { it.name.lowercase() }
+            SortBy.NAME -> files.sortedBy { it.displayName.lowercase() }
             SortBy.SIZE -> files.sortedBy { it.size }
-            SortBy.DATE -> files.sortedBy { it.modifiedTime }
+            SortBy.DATE -> files.sortedBy { it.lastModified }
             SortBy.TYPE -> files.sortedBy { it.mimeType }
         }
         return if (ascending) sorted else sorted.reversed()
@@ -263,26 +264,29 @@ class GlobalFileBrowserViewModel @Inject constructor(
      */
     private fun loadStatistics() {
         viewModelScope.launch {
-            externalFileRepository.getStatistics()
-                .catch { e ->
-                    // Log error but don't fail the entire operation
-                    android.util.Log.e(TAG, "Error loading statistics", e)
-                }
-                .collect { stats ->
-                    _statistics.value = FileBrowserStatistics(
-                        totalFiles = stats.totalFiles,
-                        totalSize = stats.totalSize,
-                        categories = stats.categoryBreakdown.map { entry ->
-                            CategoryStats(
-                                category = entry.key,
-                                count = entry.value.first,
-                                totalSize = entry.value.second
-                            )
-                        },
-                        favoriteCount = stats.favoriteCount,
-                        importedCount = stats.importedCount
+            try {
+                val totalFiles = externalFileRepository.getFilesCount()
+                val totalSize = externalFileRepository.getTotalSize()
+
+                // Calculate category stats
+                val categoryStats = FileCategory.values().map { category ->
+                    CategoryStats(
+                        category = category.name,
+                        count = externalFileRepository.getFileCountByCategory(category),
+                        totalSize = 0L // TODO: implement getTotalSizeByCategory if needed
                     )
                 }
+
+                _statistics.value = FileBrowserStatistics(
+                    totalFiles = totalFiles,
+                    totalSize = totalSize,
+                    categories = categoryStats,
+                    favoriteCount = 0, // TODO: implement if needed
+                    importedCount = 0  // TODO: implement if needed
+                )
+            } catch (e: Exception) {
+                android.util.Log.e(TAG, "Error loading statistics", e)
+            }
         }
     }
 
@@ -296,7 +300,7 @@ class GlobalFileBrowserViewModel @Inject constructor(
     /**
      * Select category filter
      */
-    fun selectCategory(category: String?) {
+    fun selectCategory(category: FileCategory?) {
         _selectedCategory.value = category
     }
 
@@ -322,23 +326,23 @@ class GlobalFileBrowserViewModel @Inject constructor(
     /**
      * Toggle favorite status of a file
      */
-    fun toggleFavorite(fileId: Long) {
+    fun toggleFavorite(fileId: String) {
         viewModelScope.launch {
-            val file = _files.value.find { it.id == fileId } ?: return@launch
-            externalFileRepository.updateFavoriteStatus(fileId, !file.isFavorite)
+            externalFileRepository.toggleFavorite(fileId)
         }
     }
 
     /**
      * Import file to knowledge base
      */
-    fun importFile(fileId: Long) {
+    fun importFile(fileId: String) {
         viewModelScope.launch {
             val file = _files.value.find { it.id == fileId } ?: return@launch
 
             fileImportRepository.importFile(file)
                 .onSuccess {
-                    externalFileRepository.markAsImported(fileId)
+                    // TODO: implement markAsImported in repository
+                    // externalFileRepository.markAsImported(fileId)
                     // Optionally show success message
                 }
                 .onFailure { e ->
@@ -372,7 +376,7 @@ class GlobalFileBrowserViewModel @Inject constructor(
      */
     private data class FilterState(
         val query: String,
-        val category: String?,
+        val category: FileCategory?,
         val sortBy: SortBy,
         val sortDirection: SortDirection
     )

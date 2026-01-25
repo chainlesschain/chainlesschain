@@ -5,8 +5,9 @@ import android.content.Context
 import android.database.Cursor
 import android.provider.MediaStore
 import android.util.Log
-import com.chainlesschain.android.feature.filebrowser.data.local.dao.ExternalFileDao
-import com.chainlesschain.android.feature.filebrowser.data.local.entity.ExternalFileEntity
+import com.chainlesschain.android.core.database.dao.ExternalFileDao
+import com.chainlesschain.android.core.database.entity.ExternalFileEntity
+import com.chainlesschain.android.core.database.entity.FileCategory
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -166,21 +167,25 @@ class MediaStoreScanner @Inject constructor(
                         continue
                     }
 
+                    val id = cursor.getLong(idColumn)
+                    val uri = android.net.Uri.withAppendedPath(contentUri, id.toString()).toString()
+                    val displayName = cursor.getString(nameColumn)
+                    val mimeType = cursor.getString(mimeColumn) ?: ""
+                    val extension = displayName.substringAfterLast('.', "")
+
                     val entity = ExternalFileEntity(
-                        id = cursor.getLong(idColumn),
-                        name = cursor.getString(nameColumn),
-                        path = filePath,
-                        parentFolder = extractParentFolder(filePath),
+                        id = uri,
+                        uri = uri,
+                        displayName = displayName,
+                        mimeType = mimeType,
                         size = cursor.getLong(sizeColumn),
-                        mimeType = cursor.getString(mimeColumn) ?: "",
-                        modifiedTime = cursor.getLong(dateColumn) * 1000, // Convert to milliseconds
-                        isDirectory = false,
-                        category = mediaType.category,
-                        width = if (widthColumn >= 0) cursor.getIntOrNull(widthColumn) else null,
-                        height = if (heightColumn >= 0) cursor.getIntOrNull(heightColumn) else null,
-                        duration = if (durationColumn >= 0) cursor.getLongOrNull(durationColumn) else null,
+                        category = mediaType.toFileCategory(),
+                        lastModified = cursor.getLong(dateColumn) * 1000, // Convert to milliseconds
+                        displayPath = filePath,
+                        parentFolder = extractParentFolder(filePath),
+                        scannedAt = System.currentTimeMillis(),
                         isFavorite = false,
-                        isImported = false
+                        extension = if (extension.isNotEmpty()) extension else null
                     )
 
                     batch.add(entity)
@@ -247,7 +252,13 @@ class MediaStoreScanner @Inject constructor(
     private enum class MediaType(val category: String) {
         IMAGE("Images"),
         VIDEO("Videos"),
-        AUDIO("Audio")
+        AUDIO("Audio");
+
+        fun toFileCategory(): FileCategory = when (this) {
+            IMAGE -> FileCategory.IMAGE
+            VIDEO -> FileCategory.VIDEO
+            AUDIO -> FileCategory.AUDIO
+        }
     }
 }
 
