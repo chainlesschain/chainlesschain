@@ -18,7 +18,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.chainlesschain.android.feature.auth.presentation.AuthViewModel
 import com.chainlesschain.android.feature.project.domain.*
+import com.chainlesschain.android.feature.project.viewmodel.ProjectViewModel
+import com.chainlesschain.android.feature.project.viewmodel.ProjectUiEvent
+import com.chainlesschain.android.feature.project.model.ProjectListState
+import com.chainlesschain.android.feature.project.ui.components.TemplateSelectionDialog
+import kotlinx.coroutines.flow.collectLatest
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -30,14 +37,60 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun ProjectScreen(
     onProjectClick: (String) -> Unit = {},
-    onNavigateToFileBrowser: () -> Unit = {}
+    onNavigateToFileBrowser: () -> Unit = {},
+    projectViewModel: ProjectViewModel = hiltViewModel(),
+    authViewModel: AuthViewModel = hiltViewModel()
 ) {
     var showAddDialog by remember { mutableStateOf(false) }
     var selectedFilter by remember { mutableStateOf("全部") }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
-    // 模拟项目数据（包含任务信息）
-    val projects = remember {
-        listOf(
+    // 获取认证状态和项目列表状态
+    val authState by authViewModel.uiState.collectAsState()
+    val projectListState by projectViewModel.projectListState.collectAsState()
+
+    // 加载用户项目
+    LaunchedEffect(authState.currentUser) {
+        authState.currentUser?.let { user ->
+            projectViewModel.setCurrentUser(user.id)
+        }
+    }
+
+    // 监听UI事件
+    LaunchedEffect(Unit) {
+        projectViewModel.uiEvents.collectLatest { event ->
+            when (event) {
+                is ProjectUiEvent.ShowMessage -> {
+                    snackbarHostState.showSnackbar(event.message)
+                }
+                is ProjectUiEvent.ShowError -> {
+                    snackbarHostState.showSnackbar("错误: ${event.error}")
+                }
+                is ProjectUiEvent.NavigateToProject -> {
+                    onProjectClick(event.projectId)
+                }
+                else -> {}
+            }
+        }
+    }
+
+    // 从真实数据或使用模拟数据
+    val projects = when (val state = projectListState) {
+        is ProjectListState.Success -> state.projects.map { projectWithStats ->
+            // 转换为ProjectWithTasks格式
+            ProjectWithTasks(
+                project = projectWithStats.project,
+                totalTasks = projectWithStats.statistics.totalFiles,
+                completedTasks = (projectWithStats.statistics.totalFiles * projectWithStats.project.progress).toInt(),
+                pendingTasks = projectWithStats.statistics.totalFiles - (projectWithStats.statistics.totalFiles * projectWithStats.project.progress).toInt(),
+                lastUpdated = projectWithStats.project.updatedAt
+            )
+        }
+        is ProjectListState.Loading -> emptyList()
+        is ProjectListState.Error -> {
+            // 如果加载失败，使用模拟数据作为后备
+            listOf(
             ProjectWithTasks(
                 project = ProjectEntity(
                     id = "1",
