@@ -15,10 +15,9 @@ test.describe('调试页面内容', () => {
   });
 
   test('查看页面实际内容', async () => {
-    // 设置全局E2E测试标志
+    // 测试独立路由（不在MainLayout下）
     await window.evaluate(() => {
-      window.__E2E_TEST_MODE__ = true;
-      window.location.hash = '#/test/android-features';
+      window.location.hash = '#/test/android-features-standalone';
     });
 
     await window.waitForSelector('body', { timeout: 10000 });
