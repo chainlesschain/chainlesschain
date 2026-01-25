@@ -399,19 +399,19 @@ class ProjectViewModel @Inject constructor(
 
                 projectResult.fold(
                     onSuccess = { project ->
-                        // Insert template files
+                        // Insert template files - addFile internally updates project stats
                         result.files.forEach { file ->
-                            projectRepository.createFile(
-                                file.copy(projectId = project.id)
+                            projectRepository.addFile(
+                                projectId = project.id,
+                                name = file.name,
+                                path = file.path,
+                                type = file.type,
+                                parentId = file.parentId,
+                                mimeType = file.mimeType,
+                                size = file.size,
+                                content = file.content
                             )
                         }
-
-                        // Update project stats
-                        projectRepository.updateProjectStats(
-                            projectId = project.id,
-                            fileCount = result.files.size,
-                            totalSize = result.files.sumOf { it.size }
-                        )
 
                         _uiEvents.emit(ProjectUiEvent.ShowMessage("项目创建成功 (使用模板: ${template.name})"))
                         _uiEvents.emit(ProjectUiEvent.NavigateToProject(project.id))

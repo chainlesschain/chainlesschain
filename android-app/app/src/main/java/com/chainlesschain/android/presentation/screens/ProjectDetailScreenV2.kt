@@ -594,7 +594,7 @@ fun EmptyConversationHint(
  * 快捷操作按钮
  */
 @Composable
-fun QuickActionButton(
+private fun QuickActionButton(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     text: String,
     onClick: () -> Unit

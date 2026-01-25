@@ -14,7 +14,7 @@ import androidx.compose.material.icons.filled.ArrowDownward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FindReplace
-import androidx.compose.material.icons.filled.MatchCase
+import androidx.compose.material.icons.filled.TextFormat
 import androidx.compose.material.icons.filled.Pattern
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
@@ -249,7 +249,7 @@ fun FindReplaceDialog(
                             }
                         )
                         Icon(
-                            imageVector = Icons.Default.MatchCase,
+                            imageVector = Icons.Default.TextFormat,
                             contentDescription = null,
                             modifier = Modifier.size(18.dp),
                             tint = MaterialTheme.colorScheme.onSurfaceVariant

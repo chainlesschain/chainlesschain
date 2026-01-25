@@ -211,14 +211,18 @@ class CodeFoldingManager(
                         currentIndent = indent
                     } else if (blockType == FoldableRegionType.COMMENT && blockStart != null) {
                         // End of multiline
-                        regions.add(FoldableRegion(blockStart, index, blockType, lines[blockStart].trim()))
+                        val start = blockStart!!
+                        val type = blockType!!
+                        regions.add(FoldableRegion(start, index, type, lines[start].trim()))
                         blockStart = null
                         blockType = null
                     }
                 }
                 indent <= currentIndent && blockStart != null -> {
                     // End of current block
-                    regions.add(FoldableRegion(blockStart, index - 1, blockType!!, lines[blockStart].trim()))
+                    val start = blockStart!!
+                    val type = blockType!!
+                    regions.add(FoldableRegion(start, index - 1, type, lines[start].trim()))
                     blockStart = null
                     blockType = null
                 }
@@ -227,7 +231,8 @@ class CodeFoldingManager(
 
         // Close last block if any
         blockStart?.let { start ->
-            regions.add(FoldableRegion(start, lines.size - 1, blockType!!, lines[start].trim()))
+            val type = blockType!!
+            regions.add(FoldableRegion(start, lines.size - 1, type, lines[start].trim()))
         }
 
         return regions

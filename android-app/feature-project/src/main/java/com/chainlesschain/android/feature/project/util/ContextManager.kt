@@ -4,7 +4,6 @@ import android.util.Log
 import com.chainlesschain.android.core.database.entity.ProjectChatMessageEntity
 import com.chainlesschain.android.feature.ai.domain.model.Message
 import com.chainlesschain.android.feature.ai.domain.model.MessageRole
-import com.chainlesschain.android.feature.project.model.MessagePriority
 import com.chainlesschain.android.feature.project.model.ProjectMessageType
 
 /**
@@ -30,15 +29,15 @@ class ContextManager(
 
         // 消息类型权重（用于优先级计算）
         private val TYPE_WEIGHTS = mapOf(
-            ProjectMessageType.SYSTEM to 10,
-            ProjectMessageType.TASK_PLAN to 9,
-            ProjectMessageType.TASK_ANALYSIS to 8,
-            ProjectMessageType.CODE_BLOCK to 7,
-            ProjectMessageType.FILE_REFERENCE to 6,
-            ProjectMessageType.EXECUTION_RESULT to 5,
-            ProjectMessageType.CREATION to 4,
-            ProjectMessageType.INTENT_CONFIRM to 3,
-            ProjectMessageType.NORMAL to 2
+            "SYSTEM" to 10,
+            "TASK_PLAN" to 9,
+            "TASK_ANALYSIS" to 8,
+            "CODE_BLOCK" to 7,
+            "FILE_REFERENCE" to 6,
+            "EXECUTION_RESULT" to 5,
+            "CREATION" to 4,
+            "INTENT_CONFIRM" to 3,
+            "NORMAL" to 2
         )
     }
 
@@ -195,17 +194,17 @@ class ContextManager(
         val targetLength = (content.length * compressionRatio).toInt()
 
         val compressed = when (message.messageType) {
-            ProjectMessageType.CODE_BLOCK -> {
+            "CODE_BLOCK" -> {
                 // 保留代码块的前后部分，中间用省略号
                 compressCodeBlock(content, targetLength)
             }
 
-            ProjectMessageType.FILE_REFERENCE -> {
+            "FILE_REFERENCE" -> {
                 // 保留文件路径，压缩文件内容
                 compressFileReference(content, targetLength)
             }
 
-            ProjectMessageType.TASK_PLAN -> {
+            "TASK_PLAN" -> {
                 // 保留任务标题和关键步骤
                 compressTaskPlan(content, targetLength)
             }
@@ -222,8 +221,7 @@ class ContextManager(
         }
 
         return message.copy(
-            content = compressed,
-            metadata = (message.metadata ?: emptyMap()) + ("compressed" to "true")
+            content = compressed
         )
     }
 

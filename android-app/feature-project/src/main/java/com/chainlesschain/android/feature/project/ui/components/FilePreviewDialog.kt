@@ -163,8 +163,8 @@ private fun FileMetadataCard(file: ProjectFileEntity) {
             MetadataRow(label = "大小", value = file.getReadableSize())
             MetadataRow(label = "类型", value = file.extension?.uppercase() ?: "UNKNOWN")
             MetadataRow(label = "修改时间", value = formatTimestamp(file.updatedAt))
-            if (file.lastAccessedAt != null) {
-                MetadataRow(label = "访问时间", value = formatTimestamp(file.lastAccessedAt))
+            file.lastAccessedAt?.let { lastAccessed ->
+                MetadataRow(label = "访问时间", value = formatTimestamp(lastAccessed))
             }
         }
     }

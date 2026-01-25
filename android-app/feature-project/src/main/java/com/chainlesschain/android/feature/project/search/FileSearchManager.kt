@@ -153,7 +153,7 @@ class FileSearchManager @Inject constructor() {
                 // Skip binary files
                 if (isBinaryFile(file.extension)) continue
 
-                val content = file.content
+                val content = file.content ?: continue
                 val matches = findContentMatches(query, content, pattern, options)
 
                 if (matches.isNotEmpty()) {

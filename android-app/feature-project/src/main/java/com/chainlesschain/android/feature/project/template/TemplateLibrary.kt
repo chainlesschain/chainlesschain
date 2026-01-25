@@ -40,6 +40,11 @@ class TemplateLibrary @Inject constructor(
         private const val TAG = "TemplateLibrary"
         private const val CUSTOM_TEMPLATES_FILE = "custom_templates.json"
         private const val MAX_CUSTOM_TEMPLATES = 50
+        private const val TEMPLATE_GENERATION_SYSTEM_PROMPT = """You are a project template generator.
+Generate project templates based on user descriptions.
+Return JSON format with: name, description, category, folders (list of folder paths), files (list of {path, content}).
+Focus on creating practical, well-structured project scaffolds.
+Use common conventions and best practices for the chosen technology stack."""
     }
 
     private val gson = Gson()
@@ -540,6 +545,8 @@ class TemplateLibrary @Inject constructor(
             TemplateCategory.MOBILE -> "📱"
             TemplateCategory.DESKTOP -> "💻"
             TemplateCategory.LIBRARY -> "📚"
+            TemplateCategory.MULTIPLATFORM -> "🔄"
+            TemplateCategory.FLUTTER -> "🐦"
             TemplateCategory.OTHER -> "📄"
         }
     }
@@ -553,6 +560,8 @@ class TemplateLibrary @Inject constructor(
             TemplateCategory.MOBILE -> "mobile"
             TemplateCategory.DESKTOP -> "desktop"
             TemplateCategory.LIBRARY -> "library"
+            TemplateCategory.MULTIPLATFORM -> "multiplatform"
+            TemplateCategory.FLUTTER -> "flutter"
             TemplateCategory.OTHER -> "other"
         }
     }
@@ -593,14 +602,6 @@ class TemplateLibrary @Inject constructor(
             }
         }
         return languages.toList()
-    }
-
-    companion object {
-        private const val TEMPLATE_GENERATION_SYSTEM_PROMPT = """You are a project template generator.
-Generate project templates based on user descriptions.
-Return JSON format with: name, description, category, folders (list of folder paths), files (list of {path, content}).
-Focus on creating practical, well-structured project scaffolds.
-Use common conventions and best practices for the chosen technology stack."""
     }
 }
 
