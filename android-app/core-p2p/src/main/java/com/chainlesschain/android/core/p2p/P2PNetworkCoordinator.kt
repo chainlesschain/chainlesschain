@@ -4,6 +4,7 @@ import android.util.Log
 import com.chainlesschain.android.core.p2p.connection.AutoReconnectManager
 import com.chainlesschain.android.core.p2p.connection.HeartbeatManager
 import com.chainlesschain.android.core.p2p.connection.P2PConnectionManager
+import com.chainlesschain.android.core.p2p.model.FileProtocolTypes
 import com.chainlesschain.android.core.p2p.model.P2PDevice
 import com.chainlesschain.android.core.p2p.model.P2PMessage
 import com.chainlesschain.android.core.p2p.network.NetworkEvent
@@ -33,7 +34,10 @@ class P2PNetworkCoordinator @Inject constructor(
     private val networkMonitor: NetworkMonitor,
     private val heartbeatManager: HeartbeatManager,
     private val autoReconnectManager: AutoReconnectManager
+    // fileIndexProtocolHandler: 暂时移除，依赖feature-file-browser模块
 ) {
+    // 临时变量，用于保持原有代码逻辑不变
+    private val fileIndexProtocolHandler: Any? = null
 
     companion object {
         private const val TAG = "P2PNetworkCoordinator"
@@ -357,8 +361,72 @@ class P2PNetworkCoordinator @Inject constructor(
         }
 
         scope.launch {
-            connectionManager.receivedMessages.collect {
+            connectionManager.receivedMessages.collect { message ->
                 updateStatistics { it.copy(messagesReceived = it.messagesReceived + 1) }
+
+                // Handle file protocol messages
+                handleFileProtocolMessage(message)
+            }
+        }
+    }
+
+    /**
+     * 处理文件协议消息
+     */
+    private fun handleFileProtocolMessage(message: P2PMessage) {
+        scope.launch {
+            try {
+                // 如果文件索引处理器未初始化，忽略文件协议消息
+                if (fileIndexProtocolHandler == null) {
+                    Log.w(TAG, "File index protocol handler not available, ignoring message")
+                    return@launch
+                }
+
+                when (message.type) {
+                    P2PMessage.MessageType.FILE_INDEX_REQUEST -> {
+                        val response = fileIndexProtocolHandler.handleProtocolMessage(
+                            FileProtocolTypes.INDEX_REQUEST,
+                            message.payload
+                        )
+                        if (response != null) {
+                            sendMessage(
+                                message.fromDeviceId,
+                                P2PMessage(
+                                    id = java.util.UUID.randomUUID().toString(),
+                                    fromDeviceId = localDevice?.deviceId ?: "",
+                                    toDeviceId = message.fromDeviceId,
+                                    type = P2PMessage.MessageType.FILE_INDEX_RESPONSE,
+                                    payload = response
+                                )
+                            )
+                        }
+                    }
+
+                    P2PMessage.MessageType.FILE_PULL_REQUEST -> {
+                        val response = fileIndexProtocolHandler.handleProtocolMessage(
+                            FileProtocolTypes.FILE_PULL_REQUEST,
+                            message.payload
+                        )
+                        if (response != null) {
+                            sendMessage(
+                                message.fromDeviceId,
+                                P2PMessage(
+                                    id = java.util.UUID.randomUUID().toString(),
+                                    fromDeviceId = localDevice?.deviceId ?: "",
+                                    toDeviceId = message.fromDeviceId,
+                                    type = P2PMessage.MessageType.FILE_PULL_RESPONSE,
+                                    payload = response
+                                )
+                            )
+                        }
+                    }
+
+                    else -> {
+                        // Other message types handled elsewhere
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error handling file protocol message", e)
             }
         }
     }
