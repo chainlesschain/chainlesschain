@@ -8,13 +8,13 @@ import kotlinx.coroutines.flow.Flow
 /**
  * 项目文件全文搜索 DAO
  *
- * 使用 FTS5 提供高性能的内容搜索
+ * 使用 FTS4 提供高性能的内容搜索
  */
 @Dao
 interface ProjectFileFtsDao {
 
     /**
-     * 全文搜索文件内容
+     * 全文搜索文件内容（使用FTS4）
      *
      * @param query 搜索查询
      * @return 匹配的文件列表（按相关性排序）
@@ -22,15 +22,14 @@ interface ProjectFileFtsDao {
     @Query("""
         SELECT pf.*
         FROM project_files pf
-        WHERE pf.name LIKE '%' || :query || '%'
-           OR pf.path LIKE '%' || :query || '%'
-           OR pf.content LIKE '%' || :query || '%'
+        JOIN project_files_fts fts ON pf.rowid = fts.rowid
+        WHERE project_files_fts MATCH :query
         ORDER BY pf.updatedAt DESC
     """)
     fun searchFileContent(query: String): Flow<List<ProjectFileEntity>>
 
     /**
-     * 在特定项目中全文搜索
+     * 在特定项目中全文搜索（使用FTS4）
      *
      * @param projectId 项目 ID
      * @param query 搜索查询
@@ -39,17 +38,16 @@ interface ProjectFileFtsDao {
     @Query("""
         SELECT pf.*
         FROM project_files pf
+        JOIN project_files_fts fts ON pf.rowid = fts.rowid
         WHERE pf.projectId = :projectId
-          AND (pf.name LIKE '%' || :query || '%'
-               OR pf.path LIKE '%' || :query || '%'
-               OR pf.content LIKE '%' || :query || '%')
+          AND project_files_fts MATCH :query
         ORDER BY pf.updatedAt DESC
         LIMIT :limit
     """)
     fun searchInProject(projectId: String, query: String, limit: Int = 50): Flow<List<ProjectFileEntity>>
 
     /**
-     * 搜索特定类型的文件
+     * 搜索特定类型的文件（使用FTS4）
      *
      * @param projectId 项目 ID
      * @param query 搜索查询
@@ -59,11 +57,10 @@ interface ProjectFileFtsDao {
     @Query("""
         SELECT pf.*
         FROM project_files pf
+        JOIN project_files_fts fts ON pf.rowid = fts.rowid
         WHERE pf.projectId = :projectId
           AND pf.extension = :extension
-          AND (pf.name LIKE '%' || :query || '%'
-               OR pf.path LIKE '%' || :query || '%'
-               OR pf.content LIKE '%' || :query || '%')
+          AND project_files_fts MATCH :query
         ORDER BY pf.updatedAt DESC
         LIMIT :limit
     """)
@@ -75,7 +72,7 @@ interface ProjectFileFtsDao {
     ): Flow<List<ProjectFileEntity>>
 
     /**
-     * 使用 snippet 函数搜索并返回匹配的上下文
+     * 使用 FTS4 snippet 函数搜索并返回匹配的上下文
      *
      * @param projectId 项目 ID
      * @param query 搜索查询
@@ -91,12 +88,11 @@ interface ProjectFileFtsDao {
             pf.extension,
             pf.size,
             pf.type,
-            SUBSTR(pf.content, 1, 100) as snippet
+            snippet(project_files_fts, 2, '<b>', '</b>', '...', 20) as snippet
         FROM project_files pf
+        JOIN project_files_fts fts ON pf.rowid = fts.rowid
         WHERE pf.projectId = :projectId
-          AND (pf.name LIKE '%' || :query || '%'
-               OR pf.path LIKE '%' || :query || '%'
-               OR pf.content LIKE '%' || :query || '%')
+          AND project_files_fts MATCH :query
         ORDER BY pf.updatedAt DESC
         LIMIT :limit
     """)
@@ -107,7 +103,7 @@ interface ProjectFileFtsDao {
     ): List<FileSearchResult>
 
     /**
-     * 搜索多个项目
+     * 搜索多个项目（使用FTS4）
      *
      * @param projectIds 项目 ID 列表
      * @param query 搜索查询
@@ -116,10 +112,9 @@ interface ProjectFileFtsDao {
     @Query("""
         SELECT pf.*
         FROM project_files pf
+        JOIN project_files_fts fts ON pf.rowid = fts.rowid
         WHERE pf.projectId IN (:projectIds)
-          AND (pf.name LIKE '%' || :query || '%'
-               OR pf.path LIKE '%' || :query || '%'
-               OR pf.content LIKE '%' || :query || '%')
+          AND project_files_fts MATCH :query
         ORDER BY pf.projectId, pf.updatedAt DESC
         LIMIT :limit
     """)

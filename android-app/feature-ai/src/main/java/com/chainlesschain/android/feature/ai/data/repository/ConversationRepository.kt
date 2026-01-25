@@ -6,6 +6,7 @@ import com.chainlesschain.android.core.database.entity.ConversationEntity
 import com.chainlesschain.android.core.database.entity.MessageEntity
 import com.chainlesschain.android.core.security.SecurePreferences
 import com.chainlesschain.android.feature.ai.data.llm.LLMAdapter
+import com.chainlesschain.android.feature.ai.di.LLMAdapterFactory
 import com.chainlesschain.android.feature.ai.domain.model.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -253,42 +254,3 @@ class ConversationRepository @Inject constructor(
     )
 }
 
-/**
- * LLM适配器工厂
- */
-@Singleton
-class LLMAdapterFactory @Inject constructor() {
-
-    private val adapters = mutableMapOf<String, LLMAdapter>()
-
-    fun createAdapter(
-        provider: LLMProvider,
-        apiKey: String? = null
-    ): LLMAdapter {
-        val key = "${provider.name}_$apiKey"
-
-        return adapters.getOrPut(key) {
-            when (provider) {
-                LLMProvider.OPENAI -> {
-                    require(apiKey != null) { "OpenAI需要API Key" }
-                    com.chainlesschain.android.feature.ai.data.llm.OpenAIAdapter(apiKey)
-                }
-                LLMProvider.DEEPSEEK -> {
-                    require(apiKey != null) { "DeepSeek需要API Key" }
-                    com.chainlesschain.android.feature.ai.data.llm.DeepSeekAdapter(apiKey)
-                }
-                LLMProvider.OLLAMA -> {
-                    com.chainlesschain.android.feature.ai.data.llm.OllamaAdapter()
-                }
-                LLMProvider.CUSTOM -> {
-                    require(apiKey != null) { "${provider.displayName}需要API Key" }
-                    com.chainlesschain.android.feature.ai.data.llm.OpenAIAdapter(apiKey)
-                }
-            }
-        }
-    }
-
-    fun clearCache() {
-        adapters.clear()
-    }
-}

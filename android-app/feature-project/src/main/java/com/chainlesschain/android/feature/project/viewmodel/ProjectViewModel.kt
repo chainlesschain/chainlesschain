@@ -11,7 +11,7 @@ import com.chainlesschain.android.core.database.entity.ProjectQuickAction
 import com.chainlesschain.android.core.database.entity.ProjectStatus
 import com.chainlesschain.android.core.database.entity.ProjectType
 import com.chainlesschain.android.feature.ai.data.repository.ConversationRepository
-import com.chainlesschain.android.feature.ai.data.repository.LLMAdapterFactory
+import com.chainlesschain.android.feature.ai.di.LLMAdapterFactory
 import com.chainlesschain.android.feature.ai.domain.model.LLMProvider
 import com.chainlesschain.android.feature.ai.domain.model.Message
 import com.chainlesschain.android.feature.ai.domain.model.MessageRole

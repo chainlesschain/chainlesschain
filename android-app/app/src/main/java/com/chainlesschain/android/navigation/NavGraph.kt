@@ -29,6 +29,9 @@ import com.chainlesschain.android.presentation.HomeScreen
 import com.chainlesschain.android.presentation.MainContainer
 import com.chainlesschain.android.presentation.screens.ProjectDetailScreenV2
 import com.chainlesschain.android.presentation.screens.StepDetailScreen
+import com.chainlesschain.android.presentation.screens.LLMSettingsScreen
+import com.chainlesschain.android.presentation.screens.LLMTestChatScreen
+import com.chainlesschain.android.feature.ai.domain.model.LLMProvider
 import com.chainlesschain.android.feature.p2p.navigation.p2pGraph
 import com.chainlesschain.android.feature.p2p.navigation.P2P_ROUTE
 
@@ -76,6 +79,12 @@ fun NavGraph(
                 },
                 onNavigateToProjectDetail = { projectId ->
                     navController.navigate(Screen.ProjectDetail.createRoute(projectId))
+                },
+                onNavigateToLLMSettings = {
+                    navController.navigate(Screen.LLMSettings.route)
+                },
+                onNavigateToLLMTest = {
+                    navController.navigate(Screen.LLMTest.route)
                 }
             )
         }
@@ -218,6 +227,47 @@ fun NavGraph(
                 }
             )
         }
+
+        // LLM设置界面
+        composable(route = Screen.LLMSettings.route) {
+            LLMSettingsScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        // LLM测试对话界面
+        composable(route = Screen.LLMTest.route) {
+            LLMTestChatScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                provider = LLMProvider.DOUBAO  // 默认使用火山引擎
+            )
+        }
+
+        // LLM测试对话界面（带提供商参数）
+        composable(
+            route = "${Screen.LLMTest.route}/{provider}",
+            arguments = listOf(
+                navArgument("provider") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val providerName = backStackEntry.arguments?.getString("provider") ?: "DOUBAO"
+            val provider = try {
+                LLMProvider.valueOf(providerName)
+            } catch (e: Exception) {
+                LLMProvider.DOUBAO
+            }
+
+            LLMTestChatScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                provider = provider
+            )
+        }
     }
 }
 
@@ -243,6 +293,10 @@ sealed class Screen(val route: String) {
     }
     data object StepDetail : Screen("step_detail") {
         fun createRoute(projectId: String) = "step_detail/$projectId"
+    }
+    data object LLMSettings : Screen("llm_settings")
+    data object LLMTest : Screen("llm_test") {
+        fun createRoute(provider: String) = "llm_test/$provider"
     }
 }
 

@@ -11,12 +11,14 @@ import com.chainlesschain.android.presentation.screens.*
 
 /**
  * 主容器，包含底部导航栏和各个页面
- * 4个tab: 首页、项目、探索、收藏
+ * 4个tab: 首页、项目、探索、个人中心
  */
 @Composable
 fun MainContainer(
     onLogout: () -> Unit,
     onNavigateToProjectDetail: (String) -> Unit = {},
+    onNavigateToLLMSettings: () -> Unit = {},
+    onNavigateToLLMTest: () -> Unit = {},
     viewModel: AuthViewModel = hiltViewModel()
 ) {
     var selectedTab by remember { mutableStateOf(0) }
@@ -44,18 +46,30 @@ fun MainContainer(
                     onProjectClick = onNavigateToProjectDetail
                 )
                 2 -> ExploreScreen()
-                3 -> BookmarkScreen()
+                3 -> ProfileScreen(
+                    onLogout = onLogout,
+                    onNavigateToLLMSettings = onNavigateToLLMSettings,
+                    viewModel = viewModel
+                )
             }
         }
     }
 
-    // 个人资料弹窗
+    // 个人资料弹窗（从首页头像点击打开）
     if (showProfileDialog) {
         ProfileDialog(
             onDismiss = { showProfileDialog = false },
             onLogout = {
                 showProfileDialog = false
                 onLogout()
+            },
+            onNavigateToLLMSettings = {
+                showProfileDialog = false
+                onNavigateToLLMSettings()
+            },
+            onNavigateToLLMTest = {
+                showProfileDialog = false
+                onNavigateToLLMTest()
             },
             viewModel = viewModel
         )

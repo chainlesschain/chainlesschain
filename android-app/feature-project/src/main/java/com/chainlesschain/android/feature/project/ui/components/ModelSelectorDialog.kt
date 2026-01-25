@@ -349,6 +349,14 @@ private fun EmptyModelsMessage(provider: LLMProvider) {
 private fun getProviderIcon(provider: LLMProvider): ImageVector = when (provider) {
     LLMProvider.OPENAI -> Icons.Default.Cloud
     LLMProvider.DEEPSEEK -> Icons.Default.Cloud
+    LLMProvider.CLAUDE -> Icons.Default.Cloud
+    LLMProvider.GEMINI -> Icons.Default.Cloud
+    LLMProvider.QWEN -> Icons.Default.Cloud
+    LLMProvider.ERNIE -> Icons.Default.Cloud
+    LLMProvider.CHATGLM -> Icons.Default.Cloud
+    LLMProvider.MOONSHOT -> Icons.Default.Cloud
+    LLMProvider.SPARK -> Icons.Default.Cloud
+    LLMProvider.DOUBAO -> Icons.Default.Cloud
     LLMProvider.OLLAMA -> Icons.Default.Computer
     LLMProvider.CUSTOM -> Icons.Default.Cloud
 }
@@ -373,6 +381,14 @@ private fun getSpeedRating(model: LLMModel): String = when (model.provider) {
         else -> "中"
     }
     LLMProvider.DEEPSEEK -> "快"
+    LLMProvider.CLAUDE -> "中"
+    LLMProvider.GEMINI -> "快"
+    LLMProvider.QWEN -> "快"
+    LLMProvider.ERNIE -> "中"
+    LLMProvider.CHATGLM -> "快"
+    LLMProvider.MOONSHOT -> "快"
+    LLMProvider.SPARK -> "中"
+    LLMProvider.DOUBAO -> "快"
     LLMProvider.OLLAMA -> "快"
     LLMProvider.CUSTOM -> "中"
 }

@@ -27,6 +27,8 @@ import com.chainlesschain.android.feature.auth.presentation.AuthViewModel
 fun ProfileDialog(
     onDismiss: () -> Unit,
     onLogout: () -> Unit,
+    onNavigateToLLMSettings: () -> Unit = {},
+    onNavigateToLLMTest: () -> Unit = {},
     viewModel: AuthViewModel
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -171,6 +173,24 @@ fun ProfileDialog(
                             title = "AI对话",
                             subtitle = "智能助手对话记录",
                             onClick = {}
+                        )
+                    }
+
+                    item {
+                        ProfileDialogMenuItem(
+                            icon = Icons.Default.SmartToy,
+                            title = "AI配置",
+                            subtitle = "配置LLM提供商和API密钥",
+                            onClick = onNavigateToLLMSettings
+                        )
+                    }
+
+                    item {
+                        ProfileDialogMenuItem(
+                            icon = Icons.Default.Science,
+                            title = "AI测试",
+                            subtitle = "测试LLM连接和性能",
+                            onClick = onNavigateToLLMTest
                         )
                     }
 
