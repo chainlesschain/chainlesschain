@@ -139,7 +139,7 @@ describe.skipIf(!ffmpegAvailable)("视频引擎测试", () => {
     mockFs = await import("fs");
 
     // Import VideoEngine after mocks and reset
-    const module = await import("../../src/main/engines/video-engine.js");
+    const module = await import("../../../src/main/engines/video-engine.js");
     VideoEngine = module.VideoEngine;
     getVideoEngine = module.getVideoEngine;
 

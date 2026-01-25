@@ -20,7 +20,7 @@ vi.mock("fs", () => ({
 }));
 
 // Import after mocks
-const ApiDocGenerator = require("../../src/main/skill-tool-system/api-doc-generator");
+const ApiDocGenerator = require("../../../src/main/skill-tool-system/api-doc-generator");
 
 // ===================== TESTS =====================
 

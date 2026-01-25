@@ -130,7 +130,7 @@ describe("SkillToolIPC", () => {
 
     // 动态导入模块
     const module =
-      await import("../../src/main/skill-tool-system/skill-tool-ipc.js");
+      await import("../../../src/main/skill-tool-system/skill-tool-ipc.js");
     registerSkillToolIPC = module.registerSkillToolIPC;
 
     // 注册 Skill Tool IPC 并注入 mock 对象

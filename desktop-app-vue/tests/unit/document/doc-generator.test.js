@@ -26,7 +26,7 @@ vi.mock("electron", () => {
 });
 
 // Import after mocks
-const DocGenerator = require("../../src/main/skill-tool-system/doc-generator");
+const DocGenerator = require("../../../src/main/skill-tool-system/doc-generator");
 
 // ===================== MOCK DATA =====================
 

@@ -20,7 +20,7 @@ import {
   normalizeOperations,
   validateOperation,
   validateOperations
-} from '../../src/main/ai-engine/response-parser.js';
+} from '../../../src/main/ai-engine/response-parser.js';
 
 describe('ResponseParser', () => {
   // ==================== parseAIResponse 测试 ====================

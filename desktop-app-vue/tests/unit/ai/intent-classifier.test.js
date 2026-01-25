@@ -10,7 +10,7 @@
  */
 
 import { describe, it, expect, beforeEach } from "vitest";
-import IntentClassifier from "../../src/main/ai-engine/intent-classifier.js";
+import IntentClassifier from "../../../src/main/ai-engine/intent-classifier.js";
 
 describe("IntentClassifier", () => {
   let classifier;

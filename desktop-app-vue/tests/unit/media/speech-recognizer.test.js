@@ -79,7 +79,7 @@ const {
   WhisperLocalRecognizer,
   WebSpeechRecognizer,
   BaseSpeechRecognizer,
-} = require("../../src/main/speech/speech-recognizer");
+} = require("../../../src/main/speech/speech-recognizer");
 
 // ===================== TESTS =====================
 

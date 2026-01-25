@@ -81,7 +81,7 @@ describe("ExcelEngine", () => {
     // 清除模块缓存并重新导入
     vi.resetModules();
     const ExcelEngineModule =
-      await import("../../src/main/engines/excel-engine.js");
+      await import("../../../src/main/engines/excel-engine.js");
     excelEngine = ExcelEngineModule.default;
 
     // 创建临时测试目录

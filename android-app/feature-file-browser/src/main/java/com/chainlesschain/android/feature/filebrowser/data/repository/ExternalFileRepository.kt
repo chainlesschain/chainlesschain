@@ -122,6 +122,16 @@ class ExternalFileRepository @Inject constructor(
     }
 
     /**
+     * 更新文件分类
+     *
+     * @param fileId 文件ID
+     * @param newCategory 新的文件分类
+     */
+    suspend fun updateFileCategory(fileId: String, newCategory: FileCategory) {
+        externalFileDao.updateCategory(fileId, newCategory)
+    }
+
+    /**
      * 获取文件总数
      */
     suspend fun getFilesCount(): Int {

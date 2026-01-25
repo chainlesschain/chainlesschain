@@ -29,15 +29,14 @@ const props = defineProps({
 const emit = defineEmits(['resize']);
 
 let isResizing = false;
-let startX = 0;
-let startY = 0;
-const startSize = 0;
+let lastX = 0;
+let lastY = 0;
 
 const handleMouseDown = (e) => {
   e.preventDefault();
   isResizing = true;
-  startX = e.clientX;
-  startY = e.clientY;
+  lastX = e.clientX;
+  lastY = e.clientY;
 
   // 添加全局事件监听
   document.addEventListener('mousemove', handleMouseMove);
@@ -51,9 +50,17 @@ const handleMouseDown = (e) => {
 const handleMouseMove = (e) => {
   if (!isResizing) {return;}
 
+  // 计算增量（从上一个位置到当前位置）
+  const currentX = e.clientX;
+  const currentY = e.clientY;
+
   const delta = props.direction === 'vertical'
-    ? e.clientX - startX
-    : e.clientY - startY;
+    ? currentX - lastX
+    : currentY - lastY;
+
+  // 更新last位置为当前位置
+  lastX = currentX;
+  lastY = currentY;
 
   emit('resize', delta);
 };

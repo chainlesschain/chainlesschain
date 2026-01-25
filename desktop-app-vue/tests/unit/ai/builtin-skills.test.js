@@ -7,7 +7,7 @@
 import { describe, it, expect } from "vitest";
 
 // Import the builtin skills
-const builtinSkills = require("../../src/main/skill-tool-system/builtin-skills");
+const builtinSkills = require("../../../src/main/skill-tool-system/builtin-skills");
 
 describe("BuiltinSkills", () => {
   describe("数据结构", () => {

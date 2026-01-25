@@ -8,7 +8,7 @@
 import { describe, it, expect } from "vitest";
 
 // Import the builtin tools
-const builtinTools = require("../../src/main/skill-tool-system/builtin-tools");
+const builtinTools = require("../../../src/main/skill-tool-system/builtin-tools");
 
 describe("BuiltinTools", () => {
   describe("数据结构", () => {

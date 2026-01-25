@@ -33,7 +33,7 @@ describe('TaskPlanner', () => {
     vi.clearAllMocks();
 
     // 重新导入模块
-    const TaskPlannerModule = await import('../../src/main/ai-engine/task-planner.js');
+    const TaskPlannerModule = await import('../../../src/main/ai-engine/task-planner.js');
     TaskPlanner = TaskPlannerModule.TaskPlanner;
     getTaskPlanner = TaskPlannerModule.getTaskPlanner;
 

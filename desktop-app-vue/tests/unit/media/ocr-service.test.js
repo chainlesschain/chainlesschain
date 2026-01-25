@@ -111,7 +111,7 @@ describe("OCRService - OCR文字识别服务", () => {
     mockTesseract = createMockTesseract(mockWorker);
 
     // 动态导入OCRService
-    const module = await import("../../src/main/image/ocr-service.js");
+    const module = await import("../../../src/main/image/ocr-service.js");
     OCRService = module.default;
 
     // Create OCRService with injected mock tesseract (依赖注入)

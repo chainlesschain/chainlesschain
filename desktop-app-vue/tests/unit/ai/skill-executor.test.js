@@ -25,7 +25,7 @@ vi.mock("node-cron", () => ({
 }));
 
 // Import after mocks
-const SkillExecutor = require("../../src/main/skill-tool-system/skill-executor");
+const SkillExecutor = require("../../../src/main/skill-tool-system/skill-executor");
 
 // ===================== MOCK FACTORIES =====================
 

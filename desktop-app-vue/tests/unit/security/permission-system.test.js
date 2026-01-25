@@ -11,8 +11,8 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import PermissionMiddleware from "../../src/main/organization/permission-middleware.js";
-import PermissionManager from "../../src/main/collaboration/permission-manager.js";
+import PermissionMiddleware from "../../../src/main/organization/permission-middleware.js";
+import PermissionManager from "../../../src/main/collaboration/permission-manager.js";
 
 describe("Permission System", () => {
   let database;

@@ -7,7 +7,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 // Import after setup
-const SkillRecommender = require("../../src/main/skill-tool-system/skill-recommender");
+const SkillRecommender = require("../../../src/main/skill-tool-system/skill-recommender");
 
 // ===================== MOCK FACTORIES =====================
 

@@ -36,7 +36,7 @@ vi.mock("path", async () => {
 
 // Import SpeechManager WITHOUT mocking its dependencies
 // We'll inject mocks via constructor
-const SpeechManager = require("../../src/main/speech/speech-manager");
+const SpeechManager = require("../../../src/main/speech/speech-manager");
 
 // ===================== MOCK FACTORIES =====================
 

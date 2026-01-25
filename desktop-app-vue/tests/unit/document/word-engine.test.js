@@ -89,7 +89,7 @@ describe("Word引擎测试", () => {
     wordEngineFsMock = globalThis.__WORD_ENGINE_FS__;
 
     // Import WordEngine after mocks are set up (fresh import due to resetModules)
-    const module = await import("../../src/main/engines/word-engine.js");
+    const module = await import("../../../src/main/engines/word-engine.js");
     WordEngine = module.default;
     wordEngine = WordEngine;
 

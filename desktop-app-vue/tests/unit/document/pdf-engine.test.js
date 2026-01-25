@@ -11,7 +11,7 @@ import {
   _setBrowserWindowForTesting,
   _setFsExtraForTesting,
   _setMarkedForTesting,
-} from "../../src/main/engines/pdf-engine.js";
+} from "../../../src/main/engines/pdf-engine.js";
 
 // Helper to create mock BrowserWindow instance
 const createMockBrowserWindow = () => ({

@@ -73,6 +73,12 @@ dependencies {
     implementation("androidx.media3:media3-ui:1.2.1")
     implementation("androidx.media3:media3-common:1.2.1")
 
+    // ML Kit for image labeling
+    implementation("com.google.mlkit:image-labeling:17.0.7")
+
+    // ML Kit for text recognition
+    implementation("com.google.mlkit:text-recognition:16.0.0")
+
     // Testing
     testImplementation("junit:junit:4.13.2")
     testImplementation("io.mockk:mockk:1.13.8")
