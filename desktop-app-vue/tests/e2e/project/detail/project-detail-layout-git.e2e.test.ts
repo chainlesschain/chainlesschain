@@ -246,24 +246,35 @@ test.describe('项目详情页 - Git操作测试', () => {
       expect(gitButton).toBeTruthy();
 
       await gitButton?.click();
+      await window.waitForTimeout(300);
+
+      // 等待下拉菜单完全渲染 (使用备用选择器)
+      try {
+        await window.waitForSelector('[data-testid="git-actions-menu"]', { timeout: 2000 });
+      } catch {
+        // 如果找不到 data-testid，尝试 Ant Design 的标准类名
+        await window.waitForSelector('.ant-dropdown-menu', { timeout: 2000 });
+      }
       await window.waitForTimeout(500);
 
       console.log('[Test] 点击提交更改');
       const commitItem = await window.$('[data-testid="git-commit-item"]');
-      if (commitItem) {
-        await commitItem.click();
-        await window.waitForTimeout(1000);
+      expect(commitItem).toBeTruthy();
 
-        console.log('[Test] 验证提交对话框显示');
-        const modal = await window.$('.ant-modal:has-text("提交更改")');
-        expect(modal).toBeTruthy();
+      await commitItem?.click();
+      await window.waitForTimeout(1000);
 
-        await takeScreenshot(window, 'git-commit-modal-opened');
+      console.log('[Test] 验证提交对话框显示');
+      // 使用更可靠的方式验证模态框：检查是否有模态框和提交相关的输入框
+      const modal = await window.$('.ant-modal');
+      const textarea = await window.$('.ant-modal textarea');
 
-        console.log('[Test] ✅ Git提交对话框测试通过');
-      } else {
-        console.log('[Test] ⚠️ 未找到提交菜单项');
-      }
+      expect(modal).toBeTruthy();
+      expect(textarea).toBeTruthy();
+
+      await takeScreenshot(window, 'git-commit-modal-opened');
+
+      console.log('[Test] ✅ Git提交对话框测试通过');
     } finally {
       await closeElectronApp(app);
     }

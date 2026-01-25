@@ -29,8 +29,8 @@ import com.chainlesschain.android.presentation.HomeScreen
 import com.chainlesschain.android.presentation.MainContainer
 import com.chainlesschain.android.presentation.screens.ProjectDetailScreenV2
 import com.chainlesschain.android.presentation.screens.StepDetailScreen
-import com.chainlesschain.android.presentation.screens.LLMSettingsScreen
 import com.chainlesschain.android.presentation.screens.LLMTestChatScreen
+import com.chainlesschain.android.feature.ai.presentation.settings.LLMSettingsScreen
 import com.chainlesschain.android.feature.ai.domain.model.LLMProvider
 import com.chainlesschain.android.feature.p2p.navigation.p2pGraph
 import com.chainlesschain.android.feature.p2p.navigation.P2P_ROUTE

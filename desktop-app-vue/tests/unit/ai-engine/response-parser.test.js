@@ -51,9 +51,8 @@ describe("ResponseParser", () => {
     vi.clearAllMocks();
 
     // Dynamic import
-    const module = await import(
-      "../../../src/main/ai-engine/response-parser.js"
-    );
+    const module =
+      await import("../../../src/main/ai-engine/response-parser.js");
     parseAIResponse = module.parseAIResponse;
     extractJSONOperations = module.extractJSONOperations;
     extractFileBlocks = module.extractFileBlocks;
@@ -473,21 +472,18 @@ export default function App() {}
       const ops = [{ type: "CREATE", content: "test" }];
 
       normalizeOperations(ops);
-
     });
 
     it("应该警告CREATE操作缺失内容", () => {
       const ops = [{ type: "CREATE", path: "test.js" }];
 
       normalizeOperations(ops);
-
     });
 
     it("应该警告UPDATE操作缺失内容", () => {
       const ops = [{ type: "UPDATE", path: "test.js" }];
 
       normalizeOperations(ops);
-
     });
 
     it("应该允许DELETE操作无内容", () => {

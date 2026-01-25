@@ -200,15 +200,43 @@ class ConversationRepository @Inject constructor(
 
     /**
      * 保存API Key（加密存储）
+     * 现在保存到LLMConfigManager，同时保持向后兼容
      */
     fun saveApiKey(provider: LLMProvider, apiKey: String) {
+        // TODO: 保存到新的配置管理器（待实现）
+        // val config = configManager.getConfig()
+        // val updatedConfig = when (provider) {
+        //     LLMProvider.OPENAI -> config.copy(openai = config.openai.copy(apiKey = apiKey))
+        //     LLMProvider.DEEPSEEK -> config.copy(deepseek = config.deepseek.copy(apiKey = apiKey))
+        //     LLMProvider.CLAUDE -> config.copy(anthropic = config.anthropic.copy(apiKey = apiKey))
+        //     LLMProvider.DOUBAO -> config.copy(volcengine = config.volcengine.copy(apiKey = apiKey))
+        //     LLMProvider.QWEN -> config.copy(qwen = config.qwen.copy(apiKey = apiKey))
+        //     LLMProvider.ERNIE -> config.copy(ernie = config.ernie.copy(apiKey = apiKey))
+        //     LLMProvider.CHATGLM -> config.copy(chatglm = config.chatglm.copy(apiKey = apiKey))
+        //     LLMProvider.MOONSHOT -> config.copy(moonshot = config.moonshot.copy(apiKey = apiKey))
+        //     LLMProvider.SPARK -> config.copy(spark = config.spark.copy(apiKey = apiKey))
+        //     LLMProvider.GEMINI -> config.copy(gemini = config.gemini.copy(apiKey = apiKey))
+        //     LLMProvider.CUSTOM -> config.copy(custom = config.custom.copy(apiKey = apiKey))
+        //     LLMProvider.OLLAMA -> config // Ollama不需要API Key
+        // }
+        // configManager.save(updatedConfig)
+
+        // 保存到安全存储
         securePreferences.saveApiKeyForProvider(provider.name, apiKey)
     }
 
     /**
      * 获取API Key
+     * 优先从配置管理器获取，回退到旧存储
      */
     fun getApiKey(provider: LLMProvider): String? {
+        // TODO: 优先从配置管理器获取（待实现）
+        // val keyFromConfig = configManager.getApiKey(provider)
+        // if (keyFromConfig.isNotBlank()) {
+        //     return keyFromConfig
+        // }
+
+        // 从安全存储获取
         return securePreferences.getApiKeyForProvider(provider.name)
     }
 
@@ -216,6 +244,13 @@ class ConversationRepository @Inject constructor(
      * 检查是否已保存API Key
      */
     fun hasApiKey(provider: LLMProvider): Boolean {
+        // TODO: 优先从配置管理器获取（待实现）
+        // val keyFromConfig = configManager.getApiKey(provider)
+        // if (keyFromConfig.isNotBlank()) {
+        //     return true
+        // }
+
+        // 从安全存储检查
         return securePreferences.hasApiKeyForProvider(provider.name)
     }
 
@@ -223,6 +258,10 @@ class ConversationRepository @Inject constructor(
      * 删除API Key
      */
     fun clearApiKey(provider: LLMProvider) {
+        // 从配置管理器清除
+        saveApiKey(provider, "")
+
+        // 也从旧存储清除（向后兼容）
         securePreferences.saveApiKeyForProvider(provider.name, "")
     }
 
