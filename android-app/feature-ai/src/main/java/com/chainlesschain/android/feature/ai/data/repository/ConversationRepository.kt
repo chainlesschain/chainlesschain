@@ -137,26 +137,43 @@ class ConversationRepository @Inject constructor(
         provider: LLMProvider,
         apiKey: String? = null
     ): Flow<StreamChunk> {
+        // 重置token计数
+        currentInputTokens = 0
+        currentOutputTokens = 0
+
+        // 估算输入token（简单估算：字符数 / 4）
+        val inputText = messages.joinToString(" ") { it.content }
+        currentInputTokens = (inputText.length / 4).coerceAtLeast(1)
+
         val adapter = llmAdapterFactory.createAdapter(provider, apiKey)
-        return adapter.streamChat(messages, model)
+        return adapter.streamChat(messages, model).onEach { chunk ->
+            // 估算输出token
+            if (chunk.content.isNotEmpty() && !chunk.isDone) {
+                currentOutputTokens += (chunk.content.length / 4).coerceAtLeast(1)
+            }
+        }
     }
 
     /**
-     * 保存AI响应消息
+     * 保存AI响应消息并记录使用统计
      */
     suspend fun saveAssistantMessage(
         conversationId: String,
         content: String,
-        tokenCount: Int? = null
+        tokenCount: Int? = null,
+        provider: LLMProvider? = null
     ): Result<Message> {
         return try {
+            // 如果没有提供tokenCount，使用估算值
+            val finalTokenCount = tokenCount ?: currentOutputTokens
+
             val entity = MessageEntity(
                 id = UUID.randomUUID().toString(),
                 conversationId = conversationId,
                 role = MessageRole.ASSISTANT.value,
                 content = content,
                 createdAt = System.currentTimeMillis(),
-                tokenCount = tokenCount
+                tokenCount = finalTokenCount
             )
 
             conversationDao.insertMessage(entity)
@@ -166,6 +183,20 @@ class ConversationRepository @Inject constructor(
                 conversationId,
                 System.currentTimeMillis()
             )
+
+            // 记录token使用统计
+            if (provider != null) {
+                try {
+                    usageTracker.recordUsage(
+                        provider = provider,
+                        inputTokens = currentInputTokens,
+                        outputTokens = currentOutputTokens
+                    )
+                } catch (e: Exception) {
+                    // 使用统计记录失败不影响主流程
+                    android.util.Log.e("ConversationRepository", "Failed to record usage", e)
+                }
+            }
 
             Result.success(entity.toDomainModel())
         } catch (e: Exception) {
@@ -209,28 +240,28 @@ class ConversationRepository @Inject constructor(
 
     /**
      * 保存API Key（加密存储）
-     * 现在保存到LLMConfigManager，同时保持向后兼容
+     * 保存到LLMConfigManager，同时保持向后兼容
      */
     fun saveApiKey(provider: LLMProvider, apiKey: String) {
-        // TODO: 保存到新的配置管理器（待实现）
-        // val config = configManager.getConfig()
-        // val updatedConfig = when (provider) {
-        //     LLMProvider.OPENAI -> config.copy(openai = config.openai.copy(apiKey = apiKey))
-        //     LLMProvider.DEEPSEEK -> config.copy(deepseek = config.deepseek.copy(apiKey = apiKey))
-        //     LLMProvider.CLAUDE -> config.copy(anthropic = config.anthropic.copy(apiKey = apiKey))
-        //     LLMProvider.DOUBAO -> config.copy(volcengine = config.volcengine.copy(apiKey = apiKey))
-        //     LLMProvider.QWEN -> config.copy(qwen = config.qwen.copy(apiKey = apiKey))
-        //     LLMProvider.ERNIE -> config.copy(ernie = config.ernie.copy(apiKey = apiKey))
-        //     LLMProvider.CHATGLM -> config.copy(chatglm = config.chatglm.copy(apiKey = apiKey))
-        //     LLMProvider.MOONSHOT -> config.copy(moonshot = config.moonshot.copy(apiKey = apiKey))
-        //     LLMProvider.SPARK -> config.copy(spark = config.spark.copy(apiKey = apiKey))
-        //     LLMProvider.GEMINI -> config.copy(gemini = config.gemini.copy(apiKey = apiKey))
-        //     LLMProvider.CUSTOM -> config.copy(custom = config.custom.copy(apiKey = apiKey))
-        //     LLMProvider.OLLAMA -> config // Ollama不需要API Key
-        // }
-        // configManager.save(updatedConfig)
+        // 保存到新的配置管理器
+        val config = configManager.getConfig()
+        val updatedConfig = when (provider) {
+            LLMProvider.OPENAI -> config.copy(openai = config.openai.copy(apiKey = apiKey))
+            LLMProvider.DEEPSEEK -> config.copy(deepseek = config.deepseek.copy(apiKey = apiKey))
+            LLMProvider.CLAUDE -> config.copy(anthropic = config.anthropic.copy(apiKey = apiKey))
+            LLMProvider.DOUBAO -> config.copy(volcengine = config.volcengine.copy(apiKey = apiKey))
+            LLMProvider.QWEN -> config.copy(qwen = config.qwen.copy(apiKey = apiKey))
+            LLMProvider.ERNIE -> config.copy(ernie = config.ernie.copy(apiKey = apiKey))
+            LLMProvider.CHATGLM -> config.copy(chatglm = config.chatglm.copy(apiKey = apiKey))
+            LLMProvider.MOONSHOT -> config.copy(moonshot = config.moonshot.copy(apiKey = apiKey))
+            LLMProvider.SPARK -> config.copy(spark = config.spark.copy(apiKey = apiKey))
+            LLMProvider.GEMINI -> config.copy(gemini = config.gemini.copy(apiKey = apiKey))
+            LLMProvider.CUSTOM -> config.copy(custom = config.custom.copy(apiKey = apiKey))
+            LLMProvider.OLLAMA -> config // Ollama不需要API Key
+        }
+        configManager.save(updatedConfig)
 
-        // 保存到安全存储
+        // 同时保存到旧存储（向后兼容）
         securePreferences.saveApiKeyForProvider(provider.name, apiKey)
     }
 
@@ -239,13 +270,28 @@ class ConversationRepository @Inject constructor(
      * 优先从配置管理器获取，回退到旧存储
      */
     fun getApiKey(provider: LLMProvider): String? {
-        // TODO: 优先从配置管理器获取（待实现）
-        // val keyFromConfig = configManager.getApiKey(provider)
-        // if (keyFromConfig.isNotBlank()) {
-        //     return keyFromConfig
-        // }
+        // 优先从配置管理器获取
+        val config = configManager.getConfig()
+        val keyFromConfig = when (provider) {
+            LLMProvider.OPENAI -> config.openai.apiKey
+            LLMProvider.DEEPSEEK -> config.deepseek.apiKey
+            LLMProvider.CLAUDE -> config.anthropic.apiKey
+            LLMProvider.DOUBAO -> config.volcengine.apiKey
+            LLMProvider.QWEN -> config.qwen.apiKey
+            LLMProvider.ERNIE -> config.ernie.apiKey
+            LLMProvider.CHATGLM -> config.chatglm.apiKey
+            LLMProvider.MOONSHOT -> config.moonshot.apiKey
+            LLMProvider.SPARK -> config.spark.apiKey
+            LLMProvider.GEMINI -> config.gemini.apiKey
+            LLMProvider.CUSTOM -> config.custom.apiKey
+            LLMProvider.OLLAMA -> "" // Ollama不需要API Key
+        }
 
-        // 从安全存储获取
+        if (keyFromConfig.isNotBlank()) {
+            return keyFromConfig
+        }
+
+        // 回退到旧存储（向后兼容）
         return securePreferences.getApiKeyForProvider(provider.name)
     }
 
@@ -253,14 +299,8 @@ class ConversationRepository @Inject constructor(
      * 检查是否已保存API Key
      */
     fun hasApiKey(provider: LLMProvider): Boolean {
-        // TODO: 优先从配置管理器获取（待实现）
-        // val keyFromConfig = configManager.getApiKey(provider)
-        // if (keyFromConfig.isNotBlank()) {
-        //     return true
-        // }
-
-        // 从安全存储检查
-        return securePreferences.hasApiKeyForProvider(provider.name)
+        val apiKey = getApiKey(provider)
+        return !apiKey.isNullOrBlank()
     }
 
     /**

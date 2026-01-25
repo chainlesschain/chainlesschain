@@ -205,4 +205,40 @@ class LLMAdapterFactory @javax.inject.Inject constructor(
             else -> OpenAIAdapter("")
         }
     }
+
+    /**
+     * 测试连接
+     * 检查指定提供商的API是否可用
+     */
+    suspend fun testConnection(provider: LLMProvider): Result<String> {
+        return try {
+            // 获取API Key（如果需要）
+            val apiKey = if (provider != LLMProvider.OLLAMA) {
+                configManager.getApiKey(provider)
+            } else {
+                null
+            }
+
+            // 创建适配器
+            val adapter = if (provider == LLMProvider.OLLAMA) {
+                createOllamaAdapter()
+            } else {
+                if (apiKey.isNullOrBlank()) {
+                    return Result.failure(Exception("请先配置${provider.displayName}的API Key"))
+                }
+                createAdapter(provider, apiKey)
+            }
+
+            // 测试可用性
+            val isAvailable = adapter.checkAvailability()
+
+            if (isAvailable) {
+                Result.success("连接成功！${provider.displayName}服务正常")
+            } else {
+                Result.failure(Exception("连接失败：服务不可用"))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception("连接失败：${e.message ?: "未知错误"}"))
+        }
+    }
 }

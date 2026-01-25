@@ -19,7 +19,7 @@ class LLMSettingsViewModel @Inject constructor(
     private val configManager: LLMConfigManager,
     private val importExportManager: com.chainlesschain.android.feature.ai.data.config.ConfigImportExportManager,
     private val recommendationEngine: com.chainlesschain.android.feature.ai.domain.recommendation.LLMRecommendationEngine,
-    private val adapterFactory: com.chainlesschain.android.feature.ai.domain.adapter.LLMAdapterFactory
+    private val adapterFactory: com.chainlesschain.android.feature.ai.di.LLMAdapterFactory
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<LLMSettingsUiState>(LLMSettingsUiState.Loading)

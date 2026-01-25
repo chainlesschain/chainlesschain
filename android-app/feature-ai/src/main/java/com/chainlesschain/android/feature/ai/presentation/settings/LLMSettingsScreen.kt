@@ -24,6 +24,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.chainlesschain.android.feature.ai.data.config.LLMConfiguration
 import com.chainlesschain.android.feature.ai.domain.model.LLMProvider
 
 /**
@@ -547,7 +548,7 @@ private fun OllamaConfigCard(
             placeholder = { Text("nomic-embed-text") },
             modifier = Modifier.fillMaxWidth(),
             leadingIcon = {
-                Icon(Icons.Default.VectorizeTouch, contentDescription = null)
+                Icon(Icons.Default.Memory, contentDescription = null)
             }
         )
     }
