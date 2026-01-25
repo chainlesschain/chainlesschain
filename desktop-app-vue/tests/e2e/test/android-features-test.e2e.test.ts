@@ -21,7 +21,8 @@ test.describe('安卓端功能测试入口页面', () => {
     });
 
     await window.waitForSelector('body', { timeout: 10000 });
-    await window.waitForTimeout(2000);
+    await window.waitForSelector('body', { timeout: 10000 });
+    await window.waitForTimeout(3000); // 等待Vue组件渲染
 
     const url = await window.evaluate(() => window.location.hash);
     expect(url).toContain('/test/android-features');
@@ -31,7 +32,8 @@ test.describe('安卓端功能测试入口页面', () => {
     await window.evaluate(() => {
       window.location.hash = '#/test/android-features?e2e=true';
     });
-    await window.waitForTimeout(2000);
+    await window.waitForSelector('body', { timeout: 10000 });
+    await window.waitForTimeout(3000); // 等待Vue组件渲染
 
     const hasPageHeader = await window.evaluate(() => {
       const bodyText = document.body.innerText;
@@ -47,7 +49,8 @@ test.describe('安卓端功能测试入口页面', () => {
     await window.evaluate(() => {
       window.location.hash = '#/test/android-features?e2e=true';
     });
-    await window.waitForTimeout(2000);
+    await window.waitForSelector('body', { timeout: 10000 });
+    await window.waitForTimeout(3000); // 等待Vue组件渲染
 
     const hasLLMSection = await window.evaluate(() => {
       const bodyText = document.body.innerText;
@@ -64,7 +67,8 @@ test.describe('安卓端功能测试入口页面', () => {
     await window.evaluate(() => {
       window.location.hash = '#/test/android-features?e2e=true';
     });
-    await window.waitForTimeout(2000);
+    await window.waitForSelector('body', { timeout: 10000 });
+    await window.waitForTimeout(3000); // 等待Vue组件渲染
 
     const hasP2PSection = await window.evaluate(() => {
       const bodyText = document.body.innerText;
@@ -81,7 +85,8 @@ test.describe('安卓端功能测试入口页面', () => {
     await window.evaluate(() => {
       window.location.hash = '#/test/android-features?e2e=true';
     });
-    await window.waitForTimeout(2000);
+    await window.waitForSelector('body', { timeout: 10000 });
+    await window.waitForTimeout(3000); // 等待Vue组件渲染
 
     const hasKnowledgeSection = await window.evaluate(() => {
       const bodyText = document.body.innerText;
@@ -97,7 +102,8 @@ test.describe('安卓端功能测试入口页面', () => {
     await window.evaluate(() => {
       window.location.hash = '#/test/android-features?e2e=true';
     });
-    await window.waitForTimeout(2000);
+    await window.waitForSelector('body', { timeout: 10000 });
+    await window.waitForTimeout(3000); // 等待Vue组件渲染
 
     const hasOtherSection = await window.evaluate(() => {
       const bodyText = document.body.innerText;
@@ -113,7 +119,8 @@ test.describe('安卓端功能测试入口页面', () => {
     await window.evaluate(() => {
       window.location.hash = '#/test/android-features?e2e=true';
     });
-    await window.waitForTimeout(2000);
+    await window.waitForSelector('body', { timeout: 10000 });
+    await window.waitForTimeout(3000); // 等待Vue组件渲染
 
     const hasClickableCards = await window.evaluate(() => {
       const cards = document.querySelectorAll('.ant-card');
@@ -128,7 +135,8 @@ test.describe('安卓端功能测试入口页面', () => {
     await window.evaluate(() => {
       window.location.hash = '#/test/android-features?e2e=true';
     });
-    await window.waitForTimeout(2000);
+    await window.waitForSelector('body', { timeout: 10000 });
+    await window.waitForTimeout(3000); // 等待Vue组件渲染
 
     const hasIcons = await window.evaluate(() => {
       const icons = document.querySelectorAll('[class*="icon"]');
@@ -143,7 +151,8 @@ test.describe('安卓端功能测试入口页面', () => {
     await window.evaluate(() => {
       window.location.hash = '#/test/android-features?e2e=true';
     });
-    await window.waitForTimeout(2000);
+    await window.waitForSelector('body', { timeout: 10000 });
+    await window.waitForTimeout(3000); // 等待Vue组件渲染
 
     const hasDescriptions = await window.evaluate(() => {
       const bodyText = document.body.innerText;
@@ -161,7 +170,8 @@ test.describe('安卓端功能测试入口页面', () => {
     await window.evaluate(() => {
       window.location.hash = '#/test/android-features?e2e=true';
     });
-    await window.waitForTimeout(2000);
+    await window.waitForSelector('body', { timeout: 10000 });
+    await window.waitForTimeout(3000); // 等待Vue组件渲染
 
     const hasGridLayout = await window.evaluate(() => {
       const rows = document.querySelectorAll('.ant-row');
@@ -176,7 +186,8 @@ test.describe('安卓端功能测试入口页面', () => {
     await window.evaluate(() => {
       window.location.hash = '#/test/android-features?e2e=true';
     });
-    await window.waitForTimeout(2000);
+    await window.waitForSelector('body', { timeout: 10000 });
+    await window.waitForTimeout(3000); // 等待Vue组件渲染
 
     const cardCount = await window.evaluate(() => {
       const cards = document.querySelectorAll('.ant-card');
@@ -190,7 +201,8 @@ test.describe('安卓端功能测试入口页面', () => {
     await window.evaluate(() => {
       window.location.hash = '#/test/android-features?e2e=true';
     });
-    await window.waitForTimeout(2000);
+    await window.waitForSelector('body', { timeout: 10000 });
+    await window.waitForTimeout(3000); // 等待Vue组件渲染
 
     const isLoaded = await window.evaluate(() => {
       return document.readyState === 'complete' && document.body.innerText.length > 0;

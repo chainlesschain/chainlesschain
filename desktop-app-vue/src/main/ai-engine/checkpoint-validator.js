@@ -180,6 +180,18 @@ class CheckpointValidator {
       missingOutputs: []
     };
 
+    // 如果result为null或undefined，认为所有输出缺失
+    if (!result || typeof result !== 'object') {
+      const expectedKeys = step.expected_outputs
+        || this.expectedOutputs[step.tool]
+        || [];
+
+      validation.passed = false;
+      validation.missingOutputs = [...expectedKeys];
+      validation.reason = `结果为空或类型错误，缺少所有预期输出: ${validation.missingOutputs.join(', ')}`;
+      return validation;
+    }
+
     // 获取该工具的预期输出列表
     const expectedKeys = step.expected_outputs
       || this.expectedOutputs[step.tool]
