@@ -101,16 +101,20 @@ describe("SessionManager", () => {
   let mockDatabase;
   let mockLLMManager;
 
+  // Helper to create properly formed mock statements
+  const createMockStatement = (overrides = {}) => ({
+    run: vi.fn(() => ({ changes: 1 })),
+    get: vi.fn(() => null),
+    all: vi.fn(() => []),
+    ...overrides,
+  });
+
   beforeEach(async () => {
     vi.clearAllMocks();
 
-    // Mock database
+    // Mock database with proper chaining support
     mockDatabase = {
-      prepare: vi.fn(() => ({
-        run: vi.fn(),
-        get: vi.fn(() => null),
-        all: vi.fn(() => []),
-      })),
+      prepare: vi.fn(() => createMockStatement()),
     };
 
     // Mock LLM manager
@@ -954,9 +958,15 @@ describe("SessionManager", () => {
         { id: "sess-1", messages: [], metadata: {} },
         { id: "sess-2", messages: [], metadata: {} },
       ];
+
+      // Mock listSessions to return our test sessions
+      mockDatabase.prepare.mockReturnValueOnce({
+        all: vi.fn(() => sessions),
+      });
+
       sessions.forEach((s) => sessionManager.sessionCache.set(s.id, s));
 
-      await sessionManager.generateSummariesBatch(["sess-1", "sess-2"]);
+      await sessionManager.generateSummariesBatch({ limit: 10 });
 
       expect(mockLLMManager.query).toHaveBeenCalled();
     });
