@@ -238,6 +238,30 @@ fun ProjectScreen(
                 )
             }
         }
+
+        // Snackbar提示
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.BottomCenter)
+                .padding(16.dp)
+        )
+    }
+
+    // 创建项目对话框
+    if (showAddDialog) {
+        TemplateSelectionDialog(
+            onTemplateSelected = { template ->
+                // 使用模板创建项目
+                projectViewModel.createProjectFromTemplate(
+                    template = template,
+                    name = template.name
+                )
+                showAddDialog = false
+            },
+            onDismiss = { showAddDialog = false }
+        )
     }
 }
 
