@@ -30,6 +30,8 @@ enum class TemplateCategory(val displayName: String) {
     MOBILE("移动开发"),
     DESKTOP("桌面应用"),
     LIBRARY("库/框架"),
+    MULTIPLATFORM("跨平台"),
+    FLUTTER("Flutter"),
     OTHER("其他")
 }
 

@@ -65,6 +65,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.chainlesschain.android.feature.project.ui.components.FindReplaceDialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.chainlesschain.android.core.database.entity.ProjectFileEntity
 import com.chainlesschain.android.core.ui.components.MarkdownText

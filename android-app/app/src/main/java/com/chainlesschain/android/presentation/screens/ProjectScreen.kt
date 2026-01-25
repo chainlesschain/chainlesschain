@@ -501,6 +501,11 @@ fun getProjectTypeIcon(type: ProjectType): androidx.compose.ui.graphics.vector.I
         ProjectType.DEVELOPMENT -> Icons.Outlined.Code
         ProjectType.WRITING -> Icons.Outlined.Edit
         ProjectType.DESIGN -> Icons.Outlined.Palette
+        ProjectType.ANDROID -> Icons.Outlined.PhoneAndroid
+        ProjectType.BACKEND -> Icons.Outlined.Storage
+        ProjectType.DATA_SCIENCE -> Icons.Outlined.Analytics
+        ProjectType.MULTIPLATFORM -> Icons.Outlined.Devices
+        ProjectType.FLUTTER -> Icons.Outlined.Folder
     }
 }
 

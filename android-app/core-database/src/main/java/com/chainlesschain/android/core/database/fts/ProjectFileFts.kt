@@ -1,14 +1,14 @@
 package com.chainlesschain.android.core.database.fts
 
 import androidx.room.Entity
-import androidx.room.Fts5
+import androidx.room.Fts4
 
 /**
- * 项目文件全文搜索表 (FTS5)
+ * 项目文件全文搜索表 (FTS4)
  *
  * 用于快速搜索文件内容
  */
-@Fts5(contentEntity = com.chainlesschain.android.core.database.entity.ProjectFileEntity::class)
+@Fts4(contentEntity = com.chainlesschain.android.core.database.entity.ProjectFileEntity::class)
 @Entity(tableName = "project_files_fts")
 data class ProjectFileFts(
     /**

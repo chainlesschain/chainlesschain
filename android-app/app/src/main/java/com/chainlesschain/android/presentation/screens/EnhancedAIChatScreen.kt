@@ -528,7 +528,7 @@ fun QuickActionFAB(modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun QuickActionButton(
+private fun QuickActionButton(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     text: String,
     onClick: () -> Unit
