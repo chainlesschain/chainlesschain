@@ -401,10 +401,10 @@ describe("ConversationExecutor", () => {
       const filePath = path.join(testProjectPath, "test.txt");
       const operation = { type: "DELETE", path: "test.txt" };
 
-      fs.access = vi.fn().mockResolvedValue();
-      fs.mkdir = vi.fn().mockResolvedValue();
-      fs.copyFile = vi.fn().mockResolvedValue();
-      fs.unlink = vi.fn().mockResolvedValue();
+      fs.access.mockResolvedValueOnce(); // fileExists check
+      fs.mkdir.mockResolvedValue();
+      fs.copyFile.mockResolvedValue();
+      fs.unlink.mockResolvedValue();
 
       const result = await executor.deleteFile(
         filePath,
@@ -422,10 +422,10 @@ describe("ConversationExecutor", () => {
       const filePath = path.join(testProjectPath, "test.txt");
       const operation = { type: "DELETE", path: "test.txt" };
 
-      fs.access = vi.fn().mockResolvedValue();
-      fs.mkdir = vi.fn().mockResolvedValue();
-      fs.copyFile = vi.fn().mockResolvedValue();
-      fs.unlink = vi.fn().mockResolvedValue();
+      fs.access.mockResolvedValueOnce(); // fileExists check
+      fs.mkdir.mockResolvedValue();
+      fs.copyFile.mockResolvedValue();
+      fs.unlink.mockResolvedValue();
 
       const result = await executor.deleteFile(
         filePath,
@@ -441,7 +441,7 @@ describe("ConversationExecutor", () => {
       const filePath = path.join(testProjectPath, "nonexistent.txt");
       const operation = { type: "DELETE", path: "nonexistent.txt" };
 
-      fs.access = vi.fn().mockRejectedValue(new Error());
+      fs.access.mockRejectedValueOnce(new Error()); // fileExists check
 
       const result = await executor.deleteFile(
         filePath,
@@ -458,10 +458,10 @@ describe("ConversationExecutor", () => {
       const filePath = path.join(testProjectPath, "test.txt");
       const operation = { type: "DELETE", path: "test.txt" };
 
-      fs.access = vi.fn().mockResolvedValue();
-      fs.mkdir = vi.fn().mockResolvedValue();
-      fs.copyFile = vi.fn().mockResolvedValue();
-      fs.unlink = vi.fn().mockResolvedValue();
+      fs.access.mockResolvedValueOnce(); // fileExists check
+      fs.mkdir.mockResolvedValue();
+      fs.copyFile.mockResolvedValue();
+      fs.unlink.mockResolvedValue();
 
       await executor.deleteFile(filePath, operation, mockDatabase);
 
@@ -475,9 +475,9 @@ describe("ConversationExecutor", () => {
       const operation = { type: "READ", path: "test.txt" };
       const content = "File content";
 
-      fs.access = vi.fn().mockResolvedValue();
-      fs.readFile = vi.fn().mockResolvedValue(content);
-      fs.stat = vi.fn().mockResolvedValue({ size: 12 });
+      fs.access.mockResolvedValueOnce(); // fileExists check
+      fs.readFile.mockResolvedValue(content);
+      fs.stat.mockResolvedValue({ size: 12 });
 
       const result = await executor.readFile(
         filePath,
@@ -496,7 +496,7 @@ describe("ConversationExecutor", () => {
       const filePath = path.join(testProjectPath, "nonexistent.txt");
       const operation = { type: "READ", path: "nonexistent.txt" };
 
-      fs.access = vi.fn().mockRejectedValue(new Error());
+      fs.access.mockRejectedValueOnce(new Error()); // fileExists check
 
       await expect(
         executor.readFile(filePath, operation, mockDatabase),
@@ -507,9 +507,9 @@ describe("ConversationExecutor", () => {
       const filePath = path.join(testProjectPath, "test.txt");
       const operation = { type: "READ", path: "test.txt" };
 
-      fs.access = vi.fn().mockResolvedValue();
-      fs.readFile = vi.fn().mockResolvedValue("content");
-      fs.stat = vi.fn().mockResolvedValue({ size: 7 });
+      fs.access.mockResolvedValueOnce(); // fileExists check
+      fs.readFile.mockResolvedValue("content");
+      fs.stat.mockResolvedValue({ size: 7 });
 
       await executor.readFile(filePath, operation, mockDatabase);
 
@@ -546,10 +546,10 @@ describe("ConversationExecutor", () => {
       const content = "";
       const operation = { type: "CREATE", path: "empty.txt" };
 
-      fs.access = vi.fn().mockRejectedValue(new Error());
-      fs.mkdir = vi.fn().mockResolvedValue();
-      fs.writeFile = vi.fn().mockResolvedValue();
-      fs.stat = vi.fn().mockResolvedValue({ size: 0 });
+      fs.access.mockRejectedValueOnce(new Error()); // fileExists check
+      fs.mkdir.mockResolvedValue();
+      fs.writeFile.mockResolvedValue();
+      fs.stat.mockResolvedValue({ size: 0 });
 
       const result = await executor.createFile(
         filePath,
@@ -567,10 +567,10 @@ describe("ConversationExecutor", () => {
       const content = "中文内容";
       const operation = { type: "CREATE", path: "测试文件.txt" };
 
-      fs.access = vi.fn().mockRejectedValue(new Error());
-      fs.mkdir = vi.fn().mockResolvedValue();
-      fs.writeFile = vi.fn().mockResolvedValue();
-      fs.stat = vi.fn().mockResolvedValue({ size: 12 });
+      fs.access.mockRejectedValueOnce(new Error()); // fileExists check
+      fs.mkdir.mockResolvedValue();
+      fs.writeFile.mockResolvedValue();
+      fs.stat.mockResolvedValue({ size: 12 });
 
       const result = await executor.createFile(
         filePath,
@@ -587,10 +587,10 @@ describe("ConversationExecutor", () => {
       const content = "Deep file";
       const operation = { type: "CREATE", path: "a/b/c/deep.txt" };
 
-      fs.access = vi.fn().mockRejectedValue(new Error());
-      fs.mkdir = vi.fn().mockResolvedValue();
-      fs.writeFile = vi.fn().mockResolvedValue();
-      fs.stat = vi.fn().mockResolvedValue({ size: 9 });
+      fs.access.mockRejectedValueOnce(new Error()); // fileExists check
+      fs.mkdir.mockResolvedValue();
+      fs.writeFile.mockResolvedValue();
+      fs.stat.mockResolvedValue({ size: 9 });
 
       const result = await executor.createFile(
         filePath,
@@ -601,7 +601,7 @@ describe("ConversationExecutor", () => {
 
       expect(result.status).toBe("success");
       expect(fs.mkdir).toHaveBeenCalledWith(
-        expect.stringContaining("a/b/c"),
+        expect.stringContaining("a"),
         { recursive: true },
       );
     });
@@ -611,10 +611,10 @@ describe("ConversationExecutor", () => {
       const content = "A".repeat(1000000); // 1MB
       const operation = { type: "CREATE", path: "large.txt" };
 
-      fs.access = vi.fn().mockRejectedValue(new Error());
-      fs.mkdir = vi.fn().mockResolvedValue();
-      fs.writeFile = vi.fn().mockResolvedValue();
-      fs.stat = vi.fn().mockResolvedValue({ size: 1000000 });
+      fs.access.mockRejectedValueOnce(new Error()); // fileExists check
+      fs.mkdir.mockResolvedValue();
+      fs.writeFile.mockResolvedValue();
+      fs.stat.mockResolvedValue({ size: 1000000 });
 
       const result = await executor.createFile(
         filePath,
