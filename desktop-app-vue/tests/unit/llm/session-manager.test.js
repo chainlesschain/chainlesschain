@@ -462,34 +462,204 @@ describe("SessionManager", () => {
     });
   });
 
-  describe.skip("addMessage", () => {
-    // TODO: Skipped - Depends on db.prepare()
+  describe("addMessage", () => {
+    beforeEach(async () => {
+      sessionManager = new SessionManager({ database: mockDatabase });
+      await sessionManager.initialize();
+    });
 
-    it("应该添加消息到会话", async () => {});
+    it("应该添加消息到会话", async () => {
+      const session = { id: "sess-1", messages: [], metadata: {} };
+      sessionManager.sessionCache.set("sess-1", session);
+
+      await sessionManager.addMessage("sess-1", {
+        role: "user",
+        content: "Hello",
+      });
+
+      expect(session.messages).toHaveLength(1);
+      expect(session.messages[0].content).toBe("Hello");
+    });
+
+    it("应该更新元数据中的消息计数", async () => {
+      const session = { id: "sess-1", messages: [], metadata: { messageCount: 0 } };
+      sessionManager.sessionCache.set("sess-1", session);
+
+      await sessionManager.addMessage("sess-1", { role: "user", content: "Hi" });
+
+      expect(session.metadata.messageCount).toBe(1);
+    });
+
+    it("enableAutoSave时应自动保存", async () => {
+      sessionManager.enableAutoSave = true;
+      const session = { id: "sess-1", messages: [], metadata: {} };
+      sessionManager.sessionCache.set("sess-1", session);
+      const saveSpy = vi.spyOn(sessionManager, "saveSession");
+
+      await sessionManager.addMessage("sess-1", { role: "user", content: "Test" });
+
+      expect(saveSpy).toHaveBeenCalled();
+    });
+
+    it("达到压缩阈值时应触发压缩", async () => {
+      sessionManager.compressionThreshold = 2;
+      sessionManager.enableCompression = true;
+      const session = { id: "sess-1", messages: [{ role: "user", content: "msg1" }], metadata: {} };
+      sessionManager.sessionCache.set("sess-1", session);
+      const compressSpy = vi.spyOn(sessionManager, "compressSession");
+
+      await sessionManager.addMessage("sess-1", { role: "user", content: "msg2" });
+
+      expect(compressSpy).toHaveBeenCalled();
+    });
   });
 
-  describe.skip("compressSession", () => {
-    // TODO: Skipped - Depends on db.prepare() and PromptCompressor
+  describe("compressSession", () => {
+    beforeEach(async () => {
+      sessionManager = new SessionManager({ database: mockDatabase });
+      await sessionManager.initialize();
+    });
 
-    it("应该压缩会话历史", async () => {});
+    it("应该压缩会话历史", async () => {
+      const messages = Array.from({ length: 10 }, (_, i) => ({
+        role: "user",
+        content: `Message ${i}`,
+      }));
+      const session = { id: "sess-1", messages, metadata: { compressionCount: 0 } };
+      sessionManager.sessionCache.set("sess-1", session);
+
+      await sessionManager.compressSession("sess-1");
+
+      expect(mockPromptCompressor.compress).toHaveBeenCalled();
+    });
+
+    it("应该更新压缩计数", async () => {
+      const session = { id: "sess-1", messages: [], metadata: { compressionCount: 0 } };
+      sessionManager.sessionCache.set("sess-1", session);
+
+      await sessionManager.compressSession("sess-1");
+
+      expect(session.metadata.compressionCount).toBe(1);
+    });
+
+    it("应该触发compression-triggered事件", async () => {
+      const session = { id: "sess-1", messages: [], metadata: {} };
+      sessionManager.sessionCache.set("sess-1", session);
+      const listener = vi.fn();
+      sessionManager.on("compression-triggered", listener);
+
+      await sessionManager.compressSession("sess-1");
+
+      expect(listener).toHaveBeenCalled();
+    });
   });
 
-  describe.skip("saveSession", () => {
-    // TODO: Skipped - Depends on db.prepare()
+  describe("saveSession", () => {
+    beforeEach(async () => {
+      sessionManager = new SessionManager({ database: mockDatabase });
+      await sessionManager.initialize();
+    });
 
-    it("应该保存会话", async () => {});
+    it("应该保存会话到数据库", async () => {
+      const session = {
+        id: "sess-1",
+        conversationId: "conv-1",
+        title: "Test",
+        messages: [],
+        compressedHistory: null,
+        metadata: {},
+      };
+      sessionManager.sessionCache.set("sess-1", session);
+
+      await sessionManager.saveSession("sess-1");
+
+      expect(mockDatabase.prepare).toHaveBeenCalled();
+      const sql = mockDatabase.prepare.mock.calls[0][0];
+      expect(sql).toContain("UPDATE llm_sessions");
+    });
+
+    it("应该触发session-saved事件", async () => {
+      const session = { id: "sess-1", conversationId: "conv-1", messages: [], metadata: {} };
+      sessionManager.sessionCache.set("sess-1", session);
+      const listener = vi.fn();
+      sessionManager.on("session-saved", listener);
+
+      await sessionManager.saveSession("sess-1");
+
+      expect(listener).toHaveBeenCalled();
+    });
+
+    it("会话不存在时应抛出错误", async () => {
+      await expect(sessionManager.saveSession("nonexistent")).rejects.toThrow();
+    });
   });
 
-  describe.skip("saveSessionToFile", () => {
-    // TODO: Skipped - Depends on fs.promises.writeFile()
+  describe("saveSessionToFile", () => {
+    beforeEach(async () => {
+      sessionManager = new SessionManager({ database: mockDatabase });
+      await sessionManager.initialize();
+    });
 
-    it("应该保存会话到文件", async () => {});
+    it("应该保存会话到文件", async () => {
+      const fs = await import("fs");
+      const session = { id: "sess-1", messages: [], metadata: {} };
+      sessionManager.sessionCache.set("sess-1", session);
+
+      await sessionManager.saveSessionToFile(session);
+
+      expect(fs.default.promises.writeFile).toHaveBeenCalled();
+    });
+
+    it("文件内容应该是JSON格式", async () => {
+      const fs = await import("fs");
+      const session = { id: "sess-1", messages: [{ role: "user", content: "test" }], metadata: {} };
+      sessionManager.sessionCache.set("sess-1", session);
+
+      await sessionManager.saveSessionToFile(session);
+
+      const writeCall = fs.default.promises.writeFile.mock.calls[0];
+      expect(() => JSON.parse(writeCall[1])).not.toThrow();
+    });
   });
 
-  describe.skip("loadSessionFromFile", () => {
-    // TODO: Skipped - Depends on fs.promises.readFile()
+  describe("loadSessionFromFile", () => {
+    beforeEach(async () => {
+      sessionManager = new SessionManager({ database: mockDatabase });
+      await sessionManager.initialize();
+    });
 
-    it("应该从文件加载会话", async () => {});
+    it("应该从文件加载会话", async () => {
+      const fs = await import("fs");
+      const sessionData = { id: "sess-1", messages: [], metadata: {} };
+      fs.default.promises.readFile.mockResolvedValueOnce(
+        JSON.stringify(sessionData)
+      );
+
+      const session = await sessionManager.loadSessionFromFile("sess-1");
+
+      expect(session).toBeDefined();
+      expect(session.id).toBe("sess-1");
+    });
+
+    it("文件不存在时应抛出错误", async () => {
+      const fs = await import("fs");
+      fs.default.promises.readFile.mockRejectedValueOnce(
+        new Error("ENOENT")
+      );
+
+      await expect(
+        sessionManager.loadSessionFromFile("nonexistent")
+      ).rejects.toThrow();
+    });
+
+    it("无效JSON应抛出错误", async () => {
+      const fs = await import("fs");
+      fs.default.promises.readFile.mockResolvedValueOnce("invalid-json{");
+
+      await expect(
+        sessionManager.loadSessionFromFile("sess-1")
+      ).rejects.toThrow();
+    });
   });
 
   describe.skip("getEffectiveMessages", () => {
