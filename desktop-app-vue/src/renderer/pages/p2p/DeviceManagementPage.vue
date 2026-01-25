@@ -321,18 +321,16 @@ export default {
       Modal.info({
         title: '设备详情',
         width: 600,
-        content: () => {
-          return (
-            <div>
-              <p><strong>设备ID:</strong> {device.deviceId}</p>
-              <p><strong>设备名称:</strong> {device.deviceName}</p>
-              <p><strong>验证状态:</strong> {device.isVerified ? '已验证' : '未验证'}</p>
-              <p><strong>在线状态:</strong> {device.isOnline ? '在线' : '离线'}</p>
-              <p><strong>配对时间:</strong> {new Date(device.pairedAt).toLocaleString('zh-CN')}</p>
-              <p><strong>最后在线:</strong> {new Date(device.lastSeen).toLocaleString('zh-CN')}</p>
-            </div>
-          );
-        },
+        content: `
+          <div>
+            <p><strong>设备ID:</strong> ${device.deviceId}</p>
+            <p><strong>设备名称:</strong> ${device.deviceName}</p>
+            <p><strong>验证状态:</strong> ${device.isVerified ? '已验证' : '未验证'}</p>
+            <p><strong>在线状态:</strong> ${device.isOnline ? '在线' : '离线'}</p>
+            <p><strong>配对时间:</strong> ${new Date(device.pairedAt).toLocaleString('zh-CN')}</p>
+            <p><strong>最后在线:</strong> ${new Date(device.lastSeen).toLocaleString('zh-CN')}</p>
+          </div>
+        `,
       });
     };
 
