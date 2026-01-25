@@ -46,11 +46,10 @@ fun ProjectScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
-    // 获取认证状态和项目列表状态
+    // 获取认证状态
     val authState by authViewModel.uiState.collectAsState()
-    val projectListState by projectViewModel.projectListState.collectAsState()
 
-    // 加载用户项目
+    // 初始化用户上下文
     LaunchedEffect(authState.currentUser) {
         authState.currentUser?.let { user ->
             projectViewModel.setCurrentUser(user.id)
@@ -75,22 +74,9 @@ fun ProjectScreen(
         }
     }
 
-    // 从真实数据或使用模拟数据
-    val projects = when (val state = projectListState) {
-        is ProjectListState.Success -> state.projects.map { projectWithStats ->
-            // 转换为ProjectWithTasks格式
-            ProjectWithTasks(
-                project = projectWithStats.project,
-                totalTasks = projectWithStats.statistics.totalFiles,
-                completedTasks = (projectWithStats.statistics.totalFiles * projectWithStats.project.progress).toInt(),
-                pendingTasks = projectWithStats.statistics.totalFiles - (projectWithStats.statistics.totalFiles * projectWithStats.project.progress).toInt(),
-                lastUpdated = projectWithStats.project.updatedAt
-            )
-        }
-        is ProjectListState.Loading -> emptyList()
-        is ProjectListState.Error -> {
-            // 如果加载失败，使用模拟数据作为后备
-            listOf(
+    // 使用模拟项目数据（待实现真实数据集成）
+    val projects = remember {
+        listOf(
             ProjectWithTasks(
                 project = ProjectEntity(
                     id = "1",
@@ -148,7 +134,6 @@ fun ProjectScreen(
                 lastUpdated = LocalDateTime.now().minusWeeks(1)
             )
         )
-        }
     }
 
     // 筛选项目
