@@ -193,7 +193,7 @@ class MediaStoreScanner @Inject constructor(
 
                     // Insert batch when size limit reached
                     if (batch.size >= BATCH_SIZE) {
-                        externalFileDao.insertOrUpdateBatch(batch)
+                        externalFileDao.insertAll(batch)
                         _scanProgress.value = ScanProgress.Scanning(
                             totalCount,
                             totalFiles,
@@ -209,7 +209,7 @@ class MediaStoreScanner @Inject constructor(
 
             // Insert remaining files
             if (batch.isNotEmpty()) {
-                externalFileDao.insertOrUpdateBatch(batch)
+                externalFileDao.insertAll(batch)
                 batch.clear()
             }
         }

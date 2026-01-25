@@ -275,6 +275,15 @@ const routes = [
         meta: { title: "P2P加密消息" },
       },
       {
+        path: "external-devices",
+        name: "ExternalDevices",
+        component: () =>
+          import(
+            /* webpackChunkName: "external-devices" */ "../pages/ExternalDeviceBrowser.vue"
+          ),
+        meta: { title: "设备文件浏览器" },
+      },
+      {
         path: "offline-queue",
         name: "OfflineQueue",
         component: () => import("../components/OfflineQueueManager.vue"),

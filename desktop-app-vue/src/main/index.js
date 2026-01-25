@@ -209,6 +209,28 @@ class ChainlessChainApp {
       () => this.initializeMobileBridge(),
     );
 
+    // 初始化外部设备文件管理器
+    if (this.database && this.p2pManager) {
+      try {
+        const ExternalDeviceFileManager = require("./file/external-device-file-manager");
+        const fileTransferManager = this.p2pManager.fileTransferManager;
+
+        this.externalFileManager = new ExternalDeviceFileManager(
+          this.database,
+          this.p2pManager,
+          fileTransferManager,
+          {
+            cacheDir: path.join(app.getPath("userData"), "external-file-cache"),
+            maxCacheSize: 1024 * 1024 * 1024, // 1GB
+          }
+        );
+
+        logger.info("[Main] ✓ ExternalDeviceFileManager 初始化完成");
+      } catch (error) {
+        logger.error("[Main] ExternalDeviceFileManager 初始化失败:", error);
+      }
+    }
+
     // 注册技能工具 IPC
     this.registerSkillToolIPC();
 
@@ -572,6 +594,7 @@ class ChainlessChainApp {
         gitHotReload: this.gitHotReload,
         didManager: this.didManager,
         p2pManager: this.p2pManager,
+        externalFileManager: this.externalFileManager,
         skillManager: this.skillManager,
         toolManager: this.toolManager,
         imageUploader: this.imageUploader,

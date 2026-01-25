@@ -43,8 +43,11 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
 import javax.inject.Inject
 
 /**
@@ -69,10 +72,12 @@ class ProjectViewModel @Inject constructor(
     private val projectRepository: ProjectRepository,
     private val projectChatRepository: ProjectChatRepository,
     private val conversationRepository: ConversationRepository,
-    private val llmAdapterFactory: LLMAdapterFactory,
-    private val externalFileRepository: com.chainlesschain.android.feature.filebrowser.data.repository.ExternalFileRepository,
-    private val fileImportRepository: com.chainlesschain.android.feature.filebrowser.data.repository.FileImportRepository
+    private val llmAdapterFactory: LLMAdapterFactory
+    // externalFileRepository and fileImportRepository: Temporarily removed - depend on feature-file-browser
 ) : ViewModel() {
+    // Temporary placeholders for file browser functionality
+    private val externalFileRepository: Any? = null
+    private val fileImportRepository: Any? = null
 
     companion object {
         private const val TAG = "ProjectViewModel"
@@ -1097,18 +1102,17 @@ class ProjectViewModel @Inject constructor(
      * Load file content, supporting both normal files and LINK mode files
      *
      * For normal files: returns content field
-     * For LINK mode files: loads content from external URI
+     * For LINK mode files: loads content from external URI (stored in path field)
      */
-    private suspend fun loadFileContent(file: ProjectFileEntity): String = withContext(kotlinx.coroutines.Dispatchers.IO) {
+    private suspend fun loadFileContent(file: ProjectFileEntity): String = withContext(Dispatchers.IO) {
         when {
             // If content is directly available, use it
             file.content != null -> file.content
 
-            // If it's a LINK mode file (has externalUri in metadata)
-            file.metadata?.contains("externalUri=") == true -> {
+            // If path looks like a URI (LINK mode - starts with content:// or file://)
+            file.path.startsWith("content://") || file.path.startsWith("file://") -> {
                 try {
-                    val uriString = file.metadata.substringAfter("externalUri=").substringBefore(",")
-                    val uri = android.net.Uri.parse(uriString)
+                    val uri = android.net.Uri.parse(file.path)
 
                     appContext.contentResolver.openInputStream(uri)?.use { inputStream ->
                         inputStream.bufferedReader().readText()
@@ -1119,13 +1123,13 @@ class ProjectViewModel @Inject constructor(
                 }
             }
 
-            // If it has a local path, load from filesystem
-            file.localPath != null -> {
+            // If path looks like a filesystem path, try to load from it
+            file.path.startsWith("/") -> {
                 try {
-                    java.io.File(file.localPath).readText()
+                    java.io.File(file.path).readText()
                 } catch (e: Exception) {
-                    Log.e(TAG, "Failed to load file from local path", e)
-                    "(加载本地文件失败: ${e.message})"
+                    Log.e(TAG, "Failed to load file from path", e)
+                    "(加载文件失败: ${e.message})"
                 }
             }
 

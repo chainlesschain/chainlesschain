@@ -123,13 +123,12 @@ class FileImportRepository @Inject constructor(
             id = fileId,
             projectId = targetProjectId,
             name = externalFile.displayName,
-            path = externalFile.displayPath ?: externalFile.displayName,
+            path = filePath ?: (externalFile.displayPath ?: externalFile.displayName),
             type = "file",
             mimeType = externalFile.mimeType,
             extension = externalFile.displayName.substringAfterLast('.', ""),
             size = externalFile.size,
             content = storedContent,
-            localPath = filePath,
             hash = hash,
             createdAt = System.currentTimeMillis(),
             updatedAt = System.currentTimeMillis()
@@ -139,7 +138,14 @@ class FileImportRepository @Inject constructor(
         projectDao.insertFile(projectFile)
 
         // Update project stats
-        projectDao.incrementFileCountAndSize(targetProjectId, 1, externalFile.size)
+        val project = projectDao.getProjectById(targetProjectId)
+        if (project != null) {
+            projectDao.updateProjectStats(
+                targetProjectId,
+                project.fileCount + 1,
+                project.totalSize + externalFile.size
+            )
+        }
 
         return ImportResult.Success(projectFile)
     }
@@ -156,20 +162,19 @@ class FileImportRepository @Inject constructor(
     ): ImportResult {
         val fileId = UUID.randomUUID().toString()
 
-        // Create ProjectFileEntity with URI in metadata
+        // Create ProjectFileEntity with URI reference
+        // Note: External URI is stored in the path field for LINK mode
         val projectFile = ProjectFileEntity(
             id = fileId,
             projectId = targetProjectId,
             name = externalFile.displayName,
-            path = externalFile.displayPath ?: externalFile.displayName,
+            path = externalFile.uri, // Store external URI as path for LINK mode
             type = "file",
             mimeType = externalFile.mimeType,
             extension = externalFile.displayName.substringAfterLast('.', ""),
             size = externalFile.size,
             content = null, // No content stored
-            localPath = null,
             hash = null,
-            metadata = "externalUri=${externalFile.uri}", // Store URI in metadata
             createdAt = System.currentTimeMillis(),
             updatedAt = System.currentTimeMillis()
         )
@@ -178,7 +183,14 @@ class FileImportRepository @Inject constructor(
         projectDao.insertFile(projectFile)
 
         // Update project stats (LINK mode doesn't count toward storage)
-        projectDao.incrementFileCountAndSize(targetProjectId, 1, 0)
+        val project = projectDao.getProjectById(targetProjectId)
+        if (project != null) {
+            projectDao.updateProjectStats(
+                targetProjectId,
+                project.fileCount + 1,
+                project.totalSize // No size increase for LINK mode
+            )
+        }
 
         return ImportResult.Success(projectFile)
     }

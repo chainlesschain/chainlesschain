@@ -2253,6 +2253,67 @@ class DatabaseManager {
         FOREIGN KEY (label_id) REFERENCES email_labels(id) ON DELETE CASCADE
       );
 
+      -- ============================
+      -- 外部设备文件管理模块
+      -- ============================
+
+      -- 外部设备文件索引表
+      CREATE TABLE IF NOT EXISTS external_device_files (
+        id TEXT PRIMARY KEY,
+        device_id TEXT NOT NULL,
+        file_id TEXT NOT NULL,
+        display_name TEXT NOT NULL,
+        file_path TEXT,
+        mime_type TEXT,
+        file_size INTEGER,
+        category TEXT CHECK(category IN ('DOCUMENT', 'IMAGE', 'VIDEO', 'AUDIO', 'CODE', 'OTHER')),
+        last_modified INTEGER,
+        indexed_at INTEGER,
+        is_cached INTEGER DEFAULT 0,
+        cache_path TEXT,
+        checksum TEXT,
+        metadata TEXT,
+        sync_status TEXT DEFAULT 'pending' CHECK(sync_status IN ('pending', 'syncing', 'synced', 'error')),
+        last_access INTEGER,
+        is_favorite INTEGER DEFAULT 0,
+        tags TEXT,
+        created_at INTEGER,
+        updated_at INTEGER,
+        FOREIGN KEY (device_id) REFERENCES devices(device_id) ON DELETE CASCADE
+      );
+
+      -- 文件传输任务表
+      CREATE TABLE IF NOT EXISTS file_transfer_tasks (
+        id TEXT PRIMARY KEY,
+        device_id TEXT NOT NULL,
+        file_id TEXT NOT NULL,
+        transfer_type TEXT NOT NULL CHECK(transfer_type IN ('pull', 'push')),
+        status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'in_progress', 'completed', 'failed', 'cancelled')),
+        progress REAL DEFAULT 0,
+        bytes_transferred INTEGER DEFAULT 0,
+        total_bytes INTEGER,
+        error_message TEXT,
+        started_at INTEGER,
+        completed_at INTEGER,
+        created_at INTEGER,
+        FOREIGN KEY (device_id) REFERENCES devices(device_id) ON DELETE CASCADE,
+        FOREIGN KEY (file_id) REFERENCES external_device_files(id) ON DELETE CASCADE
+      );
+
+      -- 文件同步日志表
+      CREATE TABLE IF NOT EXISTS file_sync_logs (
+        id TEXT PRIMARY KEY,
+        device_id TEXT NOT NULL,
+        sync_type TEXT NOT NULL CHECK(sync_type IN ('index_sync', 'file_pull')),
+        items_count INTEGER DEFAULT 0,
+        bytes_transferred INTEGER DEFAULT 0,
+        duration_ms INTEGER,
+        status TEXT CHECK(status IN ('success', 'partial', 'failed')),
+        error_details TEXT,
+        created_at INTEGER,
+        FOREIGN KEY (device_id) REFERENCES devices(device_id) ON DELETE CASCADE
+      );
+
       -- 协作模块索引
       CREATE INDEX IF NOT EXISTS idx_yjs_updates_knowledge ON knowledge_yjs_updates(knowledge_id, created_at);
       CREATE INDEX IF NOT EXISTS idx_snapshots_knowledge ON knowledge_snapshots(knowledge_id, created_at DESC);
@@ -2295,6 +2356,17 @@ class DatabaseManager {
       CREATE INDEX IF NOT EXISTS idx_emails_archived ON emails(is_archived);
       CREATE INDEX IF NOT EXISTS idx_emails_knowledge ON emails(knowledge_item_id);
       CREATE INDEX IF NOT EXISTS idx_email_attachments_email ON email_attachments(email_id);
+
+      -- 外部设备文件模块索引
+      CREATE INDEX IF NOT EXISTS idx_external_device_files_device ON external_device_files(device_id);
+      CREATE INDEX IF NOT EXISTS idx_external_device_files_category ON external_device_files(category);
+      CREATE INDEX IF NOT EXISTS idx_external_device_files_sync_status ON external_device_files(sync_status);
+      CREATE INDEX IF NOT EXISTS idx_external_device_files_checksum ON external_device_files(checksum);
+      CREATE INDEX IF NOT EXISTS idx_external_device_files_is_cached ON external_device_files(is_cached);
+      CREATE INDEX IF NOT EXISTS idx_external_device_files_last_access ON external_device_files(last_access);
+      CREATE INDEX IF NOT EXISTS idx_file_transfer_tasks_status ON file_transfer_tasks(status);
+      CREATE INDEX IF NOT EXISTS idx_file_transfer_tasks_device ON file_transfer_tasks(device_id);
+      CREATE INDEX IF NOT EXISTS idx_file_sync_logs_created_at ON file_sync_logs(created_at DESC);
     `);
 
       logger.info("[Database] ✓ 所有表和索引创建成功");
