@@ -270,26 +270,47 @@ describe("SessionManager", () => {
     });
   });
 
-  describe.skip("initialize", () => {
-    // TODO: Skipped - Depends on fs.promises.mkdir()
-    // vi.mock('fs') doesn't intercept CommonJS require()
-
+  describe("initialize", () => {
     beforeEach(() => {
       sessionManager = new SessionManager({ database: mockDatabase });
     });
 
     it("应该创建会话目录", async () => {
+      const fs = await import("fs");
+
       await sessionManager.initialize();
 
-      // expect(fs.promises.mkdir).toHaveBeenCalled();
+      expect(fs.default.promises.mkdir).toHaveBeenCalledWith(
+        expect.stringContaining("sessions"),
+        { recursive: true }
+      );
+    });
+
+    it("创建目录失败应抛出错误", async () => {
+      const fs = await import("fs");
+      fs.default.promises.mkdir.mockRejectedValueOnce(new Error("EACCES"));
+
+      await expect(sessionManager.initialize()).rejects.toThrow();
+    });
+
+    it("enableBackgroundSummary时应启动后台任务", async () => {
+      const mgr = new SessionManager({
+        database: mockDatabase,
+        llmManager: mockLLMManager,
+        enableBackgroundSummary: true,
+      });
+
+      await mgr.initialize();
+
+      expect(mgr._backgroundSummaryTimer).toBeDefined();
+      mgr.destroy();
     });
   });
 
-  describe.skip("createSession", () => {
-    // TODO: Skipped - Depends on db.prepare() and fs operations
-
-    beforeEach(() => {
+  describe("createSession", () => {
+    beforeEach(async () => {
       sessionManager = new SessionManager({ database: mockDatabase });
+      await sessionManager.initialize();
     });
 
     it("应该创建新会话", async () => {
@@ -299,13 +320,146 @@ describe("SessionManager", () => {
       });
 
       expect(session.conversationId).toBe("conv1");
+      expect(session.title).toBe("Test Session");
+      expect(session.id).toBe("mocked-uuid-1234");
+    });
+
+    it("应该使用UUID生成会话ID", async () => {
+      const uuid = await import("uuid");
+
+      await sessionManager.createSession({ conversationId: "conv1" });
+
+      expect(uuid.v4).toHaveBeenCalled();
+    });
+
+    it("conversationId是必需的", async () => {
+      await expect(sessionManager.createSession({})).rejects.toThrow(
+        "conversationId 是必需的"
+      );
+    });
+
+    it("应该调用数据库prepare", async () => {
+      await sessionManager.createSession({
+        conversationId: "conv1",
+        title: "Test",
+      });
+
+      expect(mockDatabase.prepare).toHaveBeenCalled();
+      const sql = mockDatabase.prepare.mock.calls[0][0];
+      expect(sql).toContain("INSERT INTO llm_sessions");
+    });
+
+    it("应该触发session-created事件", async () => {
+      const listener = vi.fn();
+      sessionManager.on("session-created", listener);
+
+      const session = await sessionManager.createSession({
+        conversationId: "conv1",
+      });
+
+      expect(listener).toHaveBeenCalledWith(session);
+    });
+
+    it("应该初始化空消息数组", async () => {
+      const session = await sessionManager.createSession({
+        conversationId: "conv1",
+      });
+
+      expect(session.messages).toEqual([]);
+    });
+
+    it("应该设置元数据", async () => {
+      const session = await sessionManager.createSession({
+        conversationId: "conv1",
+        metadata: { custom: "value" },
+      });
+
+      expect(session.metadata.custom).toBe("value");
+      expect(session.metadata.createdAt).toBeDefined();
+      expect(session.metadata.messageCount).toBe(0);
+      expect(session.metadata.totalTokens).toBe(0);
+    });
+
+    it("应该缓存会话", async () => {
+      const session = await sessionManager.createSession({
+        conversationId: "conv1",
+      });
+
+      expect(sessionManager.sessionCache.has(session.id)).toBe(true);
     });
   });
 
-  describe.skip("loadSession", () => {
-    // TODO: Skipped - Depends on db.prepare()
+  describe("loadSession", () => {
+    beforeEach(async () => {
+      sessionManager = new SessionManager({ database: mockDatabase });
+      await sessionManager.initialize();
+    });
 
-    it("应该加载会话", async () => {});
+    it("应该从数据库加载会话", async () => {
+      const mockSessionData = {
+        id: "sess-123",
+        conversation_id: "conv-123",
+        title: "Test Session",
+        messages: JSON.stringify([{ role: "user", content: "hello" }]),
+        compressed_history: null,
+        metadata: JSON.stringify({ createdAt: Date.now() }),
+        created_at: Date.now(),
+        updated_at: Date.now(),
+      };
+
+      mockDatabase.prepare.mockReturnValueOnce({
+        get: vi.fn(() => mockSessionData),
+      });
+
+      const session = await sessionManager.loadSession("sess-123");
+
+      expect(session).toBeDefined();
+      expect(session.id).toBe("sess-123");
+      expect(session.conversationId).toBe("conv-123");
+      expect(mockDatabase.prepare).toHaveBeenCalled();
+    });
+
+    it("加载不存在的会话应返回null", async () => {
+      mockDatabase.prepare.mockReturnValueOnce({
+        get: vi.fn(() => null),
+      });
+
+      const session = await sessionManager.loadSession("nonexistent");
+
+      expect(session).toBeNull();
+    });
+
+    it("应该使用缓存", async () => {
+      const cachedSession = { id: "sess-123", messages: [] };
+      sessionManager.sessionCache.set("sess-123", cachedSession);
+
+      const session = await sessionManager.loadSession("sess-123", {
+        fromCache: true,
+      });
+
+      expect(session).toBe(cachedSession);
+    });
+
+    it("fromCache=false应跳过缓存", async () => {
+      const mockSessionData = {
+        id: "sess-123",
+        conversation_id: "conv-123",
+        title: "Test",
+        messages: "[]",
+        compressed_history: null,
+        metadata: "{}",
+      };
+
+      mockDatabase.prepare.mockReturnValueOnce({
+        get: vi.fn(() => mockSessionData),
+      });
+
+      sessionManager.sessionCache.set("sess-123", { cached: true });
+
+      await sessionManager.loadSession("sess-123", { fromCache: false });
+
+      expect(mockDatabase.prepare).toHaveBeenCalled();
+    });
   });
 
   describe.skip("addMessage", () => {
