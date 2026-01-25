@@ -401,10 +401,22 @@ class ProjectViewModel @Inject constructor(
         template: com.chainlesschain.android.feature.project.model.ProjectTemplate,
         name: String
     ) {
-        val userId = _currentUserId.value ?: return
+        val userId = _currentUserId.value
+
+        // 添加日志和错误处理
+        Log.d(TAG, "createProjectFromTemplate called. userId=$userId, template=${template.name}")
+
+        if (userId == null) {
+            Log.e(TAG, "Cannot create project: userId is null")
+            viewModelScope.launch {
+                _uiEvents.emit(ProjectUiEvent.ShowError("请先登录"))
+            }
+            return
+        }
 
         viewModelScope.launch {
             _isLoading.value = true
+            Log.d(TAG, "Creating project from template: ${template.name}")
 
             try {
                 // Apply template
