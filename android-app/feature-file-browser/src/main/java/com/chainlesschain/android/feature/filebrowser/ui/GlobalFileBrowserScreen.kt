@@ -25,6 +25,7 @@ import com.chainlesschain.android.core.database.entity.ExternalFileEntity
 import com.chainlesschain.android.feature.filebrowser.data.scanner.MediaStoreScanner
 import com.chainlesschain.android.feature.filebrowser.ui.components.FileListItem
 import com.chainlesschain.android.feature.filebrowser.ui.components.FilePreviewDialog
+import com.chainlesschain.android.feature.filebrowser.ui.components.FileBrowserSettingsDialog
 import com.chainlesschain.android.feature.filebrowser.viewmodel.GlobalFileBrowserViewModel
 
 /**
@@ -62,6 +63,7 @@ fun GlobalFileBrowserScreen(
 
     var showSearchBar by remember { mutableStateOf(false) }
     var fileToPreview by remember { mutableStateOf<ExternalFileEntity?>(null) }
+    var showSettings by remember { mutableStateOf(false) }
 
     // Permission launcher
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -118,6 +120,9 @@ fun GlobalFileBrowserScreen(
                     }
                     IconButton(onClick = { viewModel.refresh() }) {
                         Icon(Icons.Default.Refresh, contentDescription = "刷新")
+                    }
+                    IconButton(onClick = { showSettings = true }) {
+                        Icon(Icons.Default.Settings, contentDescription = "设置")
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -259,6 +264,16 @@ fun GlobalFileBrowserScreen(
         FilePreviewDialog(
             file = file,
             onDismiss = { fileToPreview = null }
+        )
+    }
+
+    // Settings dialog
+    if (showSettings) {
+        FileBrowserSettingsDialog(
+            onDismiss = { showSettings = false },
+            onClearCache = {
+                viewModel.clearCache()
+            }
         )
     }
 }
