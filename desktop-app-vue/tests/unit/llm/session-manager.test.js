@@ -604,23 +604,21 @@ describe("SessionManager", () => {
     });
 
     it("应该保存会话到文件", async () => {
-      const fs = await import("fs");
       const session = { id: "sess-1", messages: [], metadata: {} };
       sessionManager.sessionCache.set("sess-1", session);
 
       await sessionManager.saveSessionToFile(session);
 
-      expect(fs.default.promises.writeFile).toHaveBeenCalled();
+      expect(mockWriteFile).toHaveBeenCalled();
     });
 
     it("文件内容应该是JSON格式", async () => {
-      const fs = await import("fs");
       const session = { id: "sess-1", messages: [{ role: "user", content: "test" }], metadata: {} };
       sessionManager.sessionCache.set("sess-1", session);
 
       await sessionManager.saveSessionToFile(session);
 
-      const writeCall = fs.default.promises.writeFile.mock.calls[0];
+      const writeCall = mockWriteFile.mock.calls[0];
       expect(() => JSON.parse(writeCall[1])).not.toThrow();
     });
   });
@@ -632,9 +630,8 @@ describe("SessionManager", () => {
     });
 
     it("应该从文件加载会话", async () => {
-      const fs = await import("fs");
       const sessionData = { id: "sess-1", messages: [], metadata: {} };
-      fs.default.promises.readFile.mockResolvedValueOnce(
+      mockReadFile.mockResolvedValueOnce(
         JSON.stringify(sessionData)
       );
 
@@ -645,8 +642,7 @@ describe("SessionManager", () => {
     });
 
     it("文件不存在时应抛出错误", async () => {
-      const fs = await import("fs");
-      fs.default.promises.readFile.mockRejectedValueOnce(
+      mockReadFile.mockRejectedValueOnce(
         new Error("ENOENT")
       );
 
@@ -656,8 +652,7 @@ describe("SessionManager", () => {
     });
 
     it("无效JSON应抛出错误", async () => {
-      const fs = await import("fs");
-      fs.default.promises.readFile.mockResolvedValueOnce("invalid-json{");
+      mockReadFile.mockResolvedValueOnce("invalid-json{");
 
       await expect(
         sessionManager.loadSessionFromFile("sess-1")
