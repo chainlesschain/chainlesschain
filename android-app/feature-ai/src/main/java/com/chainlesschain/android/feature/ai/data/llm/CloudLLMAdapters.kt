@@ -477,6 +477,16 @@ class DoubaoAdapter @Inject constructor(
     private val baseUrl: String = "https://ark.cn-beijing.volces.com/api/v3"
 ) : LLMAdapter {
 
+    private val client = OkHttpClient.Builder()
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(60, TimeUnit.SECONDS)
+        .build()
+
+    private val json = Json {
+        ignoreUnknownKeys = true
+        encodeDefaults = true
+    }
+
     private val openAIAdapter = OpenAIAdapter(
         apiKey = apiKey,
         baseUrl = baseUrl
@@ -501,6 +511,33 @@ class DoubaoAdapter @Inject constructor(
     }
 
     override suspend fun checkAvailability(): Boolean {
-        return openAIAdapter.checkAvailability()
+        return try {
+            // 火山引擎API使用OpenAI兼容格式，发送一个简单的测试请求
+            val testMessages = listOf(
+                mapOf("role" to "user", "content" to "test")
+            )
+
+            val requestBody = mapOf(
+                "model" to "doubao-pro-32k",
+                "messages" to testMessages,
+                "max_tokens" to 10
+            )
+
+            val jsonBody = json.encodeToString(requestBody)
+            val request = Request.Builder()
+                .url("$baseUrl/chat/completions")
+                .post(jsonBody.toRequestBody("application/json".toMediaType()))
+                .addHeader("Authorization", "Bearer $apiKey")
+                .addHeader("Content-Type", "application/json")
+                .build()
+
+            client.newCall(request).execute().use { response ->
+                // 只要不是401/403认证错误，就认为API Key有效
+                // 其他错误可能是模型不存在等，但说明API Key本身是正确的
+                response.code != 401 && response.code != 403
+            }
+        } catch (e: Exception) {
+            false
+        }
     }
 }
