@@ -111,7 +111,8 @@ class FileTransferManager @Inject constructor(
     @ApplicationContext private val context: Context,
     private val fileChunker: FileChunker,
     private val transport: FileTransferTransport,
-    private val progressTracker: TransferProgressTracker
+    private val progressTracker: TransferProgressTracker,
+    private val checkpointManager: CheckpointManager
 ) {
     companion object {
         private const val TAG = "FileTransferManager"
@@ -203,6 +204,13 @@ class FileTransferManager @Inject constructor(
             // Start progress tracking
             progressTracker.startTracking(metadata, isOutgoing = true)
             progressTracker.updateStatus(metadata.transferId, FileTransferStatus.REQUESTING)
+
+            // Create checkpoint for resume support
+            checkpointManager.createCheckpoint(
+                metadata = metadata,
+                isOutgoing = true,
+                sourceFileUri = fileUri.toString()
+            )
 
             // Send request to peer
             val sent = transport.sendTransferRequest(metadata, toDeviceId, localId)
@@ -505,6 +513,13 @@ class FileTransferManager @Inject constructor(
         // Start progress tracking
         progressTracker.startTracking(event.metadata, isOutgoing = false)
 
+        // Create checkpoint for resume support
+        checkpointManager.createCheckpoint(
+            metadata = event.metadata,
+            isOutgoing = false,
+            tempFilePath = tempFile.absolutePath
+        )
+
         // Add to pending requests for UI
         updatePendingRequests()
     }
@@ -555,6 +570,17 @@ class FileTransferManager @Inject constructor(
                 state.receivedChunks.size
             )
 
+            // Update checkpoint periodically (every 10 chunks)
+            if (state.receivedChunks.size % CheckpointManager.AUTO_SAVE_INTERVAL == 0) {
+                scope.launch {
+                    checkpointManager.updateCheckpoint(
+                        transferId = event.chunk.transferId,
+                        chunkIndex = event.chunk.chunkIndex,
+                        chunkSize = event.chunk.data.size.toLong()
+                    )
+                }
+            }
+
             // Check if transfer is complete
             if (state.receivedChunks.size == state.metadata.totalChunks) {
                 finalizeIncomingTransfer(state)
@@ -574,6 +600,17 @@ class FileTransferManager @Inject constructor(
                 event.ack.chunkIndex,
                 state.metadata.chunkSize
             )
+
+            // Update checkpoint periodically (every 10 chunks)
+            if (event.ack.chunkIndex % CheckpointManager.AUTO_SAVE_INTERVAL == 0) {
+                scope.launch {
+                    checkpointManager.updateCheckpoint(
+                        transferId = event.ack.transferId,
+                        chunkIndex = event.ack.chunkIndex,
+                        chunkSize = state.metadata.chunkSize.toLong()
+                    )
+                }
+            }
         } else {
             Log.w(TAG, "Chunk ${event.ack.chunkIndex} failed: ${event.ack.errorMessage}")
             // Chunk will be retried by the sending loop
@@ -633,6 +670,9 @@ class FileTransferManager @Inject constructor(
             transferId = event.transferId,
             success = true
         ))
+
+        // Delete checkpoint on successful completion
+        checkpointManager.deleteCheckpoint(event.transferId)
 
         Log.i(TAG, "Transfer completed: ${state.metadata.fileName}")
     }
@@ -758,6 +798,9 @@ class FileTransferManager @Inject constructor(
                 localFilePath = finalFile.absolutePath
             ))
 
+            // Delete checkpoint on successful completion
+            checkpointManager.deleteCheckpoint(state.metadata.transferId)
+
             Log.i(TAG, "Transfer completed and saved: ${finalFile.absolutePath}")
         } else {
             cleanupTransfer(state.metadata.transferId, "Failed to finalize file")
@@ -780,8 +823,10 @@ class FileTransferManager @Inject constructor(
             }
             is TransferState.Incoming -> {
                 state.status = status
-                // Clean up temp file
-                state.tempFile.delete()
+                // Clean up temp file (except for paused transfers)
+                if (status != FileTransferStatus.PAUSED) {
+                    state.tempFile.delete()
+                }
             }
             null -> {}
         }
@@ -789,6 +834,11 @@ class FileTransferManager @Inject constructor(
         progressTracker.updateStatus(transferId, status)
         transport.clearTransferState(transferId)
         fileChunker.cleanupTempFiles(transferId)
+
+        // Delete checkpoint only for terminal states (not paused)
+        if (status.isTerminal()) {
+            checkpointManager.deleteCheckpoint(transferId)
+        }
 
         updatePendingRequests()
 

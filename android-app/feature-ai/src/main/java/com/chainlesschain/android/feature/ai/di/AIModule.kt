@@ -1,5 +1,6 @@
 package com.chainlesschain.android.feature.ai.di
 
+import com.chainlesschain.android.feature.ai.data.config.LLMConfigManager
 import com.chainlesschain.android.feature.ai.data.llm.DeepSeekAdapter
 import com.chainlesschain.android.feature.ai.data.llm.LLMAdapter
 import com.chainlesschain.android.feature.ai.data.llm.OllamaAdapter
@@ -20,15 +21,30 @@ import javax.inject.Singleton
 object AIModule {
 
     /**
+     * 提供LLM配置管理器
+     */
+    @Provides
+    @Singleton
+    fun provideLLMConfigManager(
+        @dagger.hilt.android.qualifiers.ApplicationContext context: android.content.Context
+    ): LLMConfigManager {
+        val configManager = LLMConfigManager(context)
+        configManager.load()
+        return configManager
+    }
+
+    /**
      * 提供OpenAI适配器
      */
     @Provides
     @Singleton
     @Named("OpenAI")
-    fun provideOpenAIAdapter(): LLMAdapter {
-        // TODO: 从配置中读取API Key
-        val apiKey = System.getenv("OPENAI_API_KEY") ?: ""
-        return OpenAIAdapter(apiKey)
+    fun provideOpenAIAdapter(configManager: LLMConfigManager): LLMAdapter {
+        val config = configManager.getConfig().openai
+        return OpenAIAdapter(
+            apiKey = config.apiKey,
+            baseUrl = config.baseURL
+        )
     }
 
     /**
@@ -37,10 +53,12 @@ object AIModule {
     @Provides
     @Singleton
     @Named("DeepSeek")
-    fun provideDeepSeekAdapter(): LLMAdapter {
-        // TODO: 从配置中读取API Key
-        val apiKey = System.getenv("DEEPSEEK_API_KEY") ?: ""
-        return DeepSeekAdapter(apiKey)
+    fun provideDeepSeekAdapter(configManager: LLMConfigManager): LLMAdapter {
+        val config = configManager.getConfig().deepseek
+        return DeepSeekAdapter(
+            apiKey = config.apiKey,
+            baseUrl = config.baseURL
+        )
     }
 
     /**
@@ -49,10 +67,9 @@ object AIModule {
     @Provides
     @Singleton
     @Named("Ollama")
-    fun provideOllamaAdapterNamed(): LLMAdapter {
-        // TODO: 从配置中读取base URL
-        val baseUrl = System.getenv("OLLAMA_BASE_URL") ?: "http://localhost:11434"
-        return OllamaAdapter(baseUrl)
+    fun provideOllamaAdapterNamed(configManager: LLMConfigManager): LLMAdapter {
+        val config = configManager.getConfig().ollama
+        return OllamaAdapter(baseUrl = config.url)
     }
 
     /**
@@ -61,21 +78,21 @@ object AIModule {
      */
     @Provides
     @Singleton
-    fun provideOllamaAdapter(): OllamaAdapter {
-        // TODO: 从配置中读取base URL
-        val baseUrl = System.getenv("OLLAMA_BASE_URL") ?: "http://localhost:11434"
-        return OllamaAdapter(baseUrl)
+    fun provideOllamaAdapter(configManager: LLMConfigManager): OllamaAdapter {
+        val config = configManager.getConfig().ollama
+        return OllamaAdapter(baseUrl = config.url)
     }
 
     /**
-     * 提供默认LLM适配器（DeepSeek）
+     * 提供默认LLM适配器（根据配置选择）
      */
     @Provides
     @Singleton
     fun provideDefaultLLMAdapter(
-        @Named("DeepSeek") deepSeekAdapter: LLMAdapter
+        configManager: LLMConfigManager,
+        @Named("Ollama") ollamaAdapter: LLMAdapter
     ): LLMAdapter {
-        return deepSeekAdapter
+        return ollamaAdapter // 默认使用Ollama
     }
 }
 
@@ -83,20 +100,32 @@ object AIModule {
  * LLM适配器工厂
  * 根据provider动态创建adapter
  */
-class LLMAdapterFactory @javax.inject.Inject constructor() {
+class LLMAdapterFactory @javax.inject.Inject constructor(
+    private val configManager: LLMConfigManager
+) {
     /**
      * 根据提供商和API Key创建适配器
      */
     fun createAdapter(provider: LLMProvider, apiKey: String?): LLMAdapter {
-        requireNotNull(apiKey) { "API Key不能为空" }
+        val finalApiKey = apiKey ?: configManager.getApiKey(provider)
+        requireNotNull(finalApiKey.takeIf { it.isNotBlank() }) { "API Key不能为空" }
 
         return when (provider) {
-            LLMProvider.OPENAI -> OpenAIAdapter(apiKey)
-            LLMProvider.DEEPSEEK -> DeepSeekAdapter(apiKey)
-            LLMProvider.OLLAMA -> throw IllegalArgumentException("请使用createOllamaAdapter创建Ollama适配器")
+            LLMProvider.OPENAI -> {
+                val config = configManager.getConfig().openai
+                OpenAIAdapter(finalApiKey, config.baseURL)
+            }
+            LLMProvider.DEEPSEEK -> {
+                val config = configManager.getConfig().deepseek
+                DeepSeekAdapter(finalApiKey, config.baseURL)
+            }
+            LLMProvider.OLLAMA -> {
+                val config = configManager.getConfig().ollama
+                OllamaAdapter(config.url)
+            }
             else -> {
                 // 其他提供商使用CloudLLMAdapters
-                createCloudAdapter(provider, apiKey)
+                createCloudAdapter(provider, finalApiKey)
             }
         }
     }
@@ -104,8 +133,9 @@ class LLMAdapterFactory @javax.inject.Inject constructor() {
     /**
      * 创建Ollama适配器
      */
-    fun createOllamaAdapter(baseUrl: String): LLMAdapter {
-        return OllamaAdapter(baseUrl)
+    fun createOllamaAdapter(baseUrl: String? = null): LLMAdapter {
+        val url = baseUrl ?: configManager.getConfig().ollama.url
+        return OllamaAdapter(url)
     }
 
     /**
