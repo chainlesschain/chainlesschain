@@ -11,7 +11,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import ProjectTemplateManager from '../../src/main/template/template-manager.js';
+import ProjectTemplateManager from '../../../src/main/template/template-manager.js';
 import path from 'path';
 import fs from 'fs/promises';
 

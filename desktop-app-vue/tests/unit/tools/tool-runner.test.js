@@ -27,7 +27,7 @@ vi.mock("path", async () => {
 });
 
 // Import after mocks
-const ToolRunner = require("../../src/main/skill-tool-system/tool-runner");
+const ToolRunner = require("../../../src/main/skill-tool-system/tool-runner");
 
 // ===================== MOCK FACTORIES =====================
 

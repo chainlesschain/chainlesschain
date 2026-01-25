@@ -2,7 +2,7 @@
  * P2PSyncEngine 单元测试
  */
 
-const P2PSyncEngine = require('../../src/main/sync/p2p-sync-engine');
+const P2PSyncEngine = require('../../../src/main/sync/p2p-sync-engine');
 const BetterSQLite3 = require('better-sqlite3');
 const fs = require('fs');
 const path = require('path');

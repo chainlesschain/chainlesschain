@@ -18,7 +18,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
-import MarkdownExporter from '../../src/main/git/markdown-exporter.js';
+import MarkdownExporter from '../../../src/main/git/markdown-exporter.js';
 
 describe('MarkdownExporter - Markdown导出器', () => {
   let exporter;

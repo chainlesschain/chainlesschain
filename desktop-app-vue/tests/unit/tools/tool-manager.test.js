@@ -26,17 +26,17 @@ const mockDocGenerator = {
   generateToolDoc: vi.fn().mockResolvedValue({ success: true, path: '/docs/tool.md' }),
 };
 
-vi.mock('../../src/main/skill-tool-system/doc-generator', () => ({
+vi.mock('../../../src/main/skill-tool-system/doc-generator', () => ({
   default: vi.fn(() => mockDocGenerator),
 }));
 
 // Mock builtin-tools
-vi.mock('../../src/main/skill-tool-system/builtin-tools', () => ({
+vi.mock('../../../src/main/skill-tool-system/builtin-tools', () => ({
   default: [],
 }));
 
 // Import after mocks
-const ToolManager = require('../../src/main/skill-tool-system/tool-manager');
+const ToolManager = require('../../../src/main/skill-tool-system/tool-manager');
 
 // ===================== MOCK FACTORIES =====================
 

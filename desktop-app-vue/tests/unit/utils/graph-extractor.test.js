@@ -15,7 +15,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import GraphExtractor from "../../src/main/knowledge-graph/graph-extractor.js";
+import GraphExtractor from "../../../src/main/knowledge-graph/graph-extractor.js";
 
 describe("GraphExtractor - 知识图谱关系提取器", () => {
   let extractor;

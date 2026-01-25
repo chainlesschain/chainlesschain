@@ -93,7 +93,7 @@ class MediaStoreScannerTest {
             )
         } returns mockAudioCursor
 
-        coEvery { externalFileDao.insertAll(any()) } just runs
+        coJustRun { externalFileDao.insertAll(any()) }
 
         // Act
         val result = mediaStoreScanner.scanAllFiles()
@@ -120,7 +120,7 @@ class MediaStoreScannerTest {
             contentResolver.query(any(), any(), any(), any(), any())
         } returns emptyCursor
 
-        coEvery { externalFileDao.insertAll(any()) } just runs
+        coJustRun { externalFileDao.insertAll(any()) }
 
         // Act
         val result = mediaStoreScanner.scanAllFiles()
@@ -192,7 +192,7 @@ class MediaStoreScannerTest {
         } returns createMockCursor(emptyList())
 
         val batches = mutableListOf<List<ExternalFileEntity>>()
-        coEvery { externalFileDao.insertAll(capture(batches)) } just runs
+        coJustRun { externalFileDao.insertAll(capture(batches)) }
 
         // Act
         val result = mediaStoreScanner.scanAllFiles()
@@ -248,7 +248,7 @@ class MediaStoreScannerTest {
         } returns createMockCursor(emptyList())
 
         val insertedBatches = mutableListOf<List<ExternalFileEntity>>()
-        coEvery { externalFileDao.insertAll(capture(insertedBatches)) } just runs
+        coJustRun { externalFileDao.insertAll(capture(insertedBatches)) }
 
         // Act
         mediaStoreScanner.scanAllFiles()
@@ -306,7 +306,7 @@ class MediaStoreScannerTest {
             )
         } returns createMockCursor(emptyList())
 
-        coEvery { externalFileDao.insertAll(any()) } just runs
+        coJustRun { externalFileDao.insertAll(any()) }
 
         // Act
         val result = mediaStoreScanner.scanIncrementalFiles()
@@ -351,7 +351,7 @@ class MediaStoreScannerTest {
     @Test
     fun `clearCache should delete all files and reset progress`() = runTest {
         // Arrange
-        coEvery { externalFileDao.deleteAll() } just runs
+        coJustRun { externalFileDao.deleteAll() }
 
         // Act
         val result = mediaStoreScanner.clearCache()
@@ -416,7 +416,7 @@ class MediaStoreScannerTest {
             )
         } returns createMockCursor(emptyList())
 
-        coEvery { externalFileDao.insertAll(any()) } just runs
+        coJustRun { externalFileDao.insertAll(any()) }
 
         // Act
         mediaStoreScanner.scanAllFiles()

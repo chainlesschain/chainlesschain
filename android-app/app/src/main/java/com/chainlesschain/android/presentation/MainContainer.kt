@@ -41,7 +41,8 @@ fun MainContainer(
             when (selectedTab) {
                 0 -> NewHomeScreen(
                     viewModel = viewModel,
-                    onProfileClick = { showProfileDialog = true }
+                    onProfileClick = { showProfileDialog = true },
+                    onNavigateToFileBrowser = onNavigateToFileBrowser
                 )
                 1 -> ProjectScreen(
                     onProjectClick = onNavigateToProjectDetail,
