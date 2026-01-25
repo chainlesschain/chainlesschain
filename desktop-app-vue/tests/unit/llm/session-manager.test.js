@@ -45,31 +45,39 @@ vi.mock("../../../src/main/utils/logger.js", () => ({
   createLogger: vi.fn(() => mockLogger),
 }));
 
-// Mock fs.promises
+// Mock fs.promises (CommonJS format - no default wrapper)
+const mockMkdir = vi.fn(async () => undefined);
+const mockWriteFile = vi.fn(async () => undefined);
+const mockReadFile = vi.fn(async () => "{}");
+const mockUnlink = vi.fn(async () => undefined);
+const mockReaddir = vi.fn(async () => []);
+
 vi.mock("fs", () => ({
-  default: {
-    promises: {
-      mkdir: vi.fn(async () => undefined),
-      writeFile: vi.fn(async () => undefined),
-      readFile: vi.fn(async () => "{}"),
-      unlink: vi.fn(async () => undefined),
-      readdir: vi.fn(async () => []),
-    },
+  promises: {
+    mkdir: mockMkdir,
+    writeFile: mockWriteFile,
+    readFile: mockReadFile,
+    unlink: mockUnlink,
+    readdir: mockReaddir,
   },
 }));
 
-// Mock path
+// Mock path (CommonJS format)
+const mockJoin = vi.fn((...args) => args.join("/"));
+const mockBasename = vi.fn((p) => p.split("/").pop());
+const mockDirname = vi.fn((p) => p.split("/").slice(0, -1).join("/"));
+
 vi.mock("path", () => ({
-  default: {
-    join: vi.fn((...args) => args.join("/")),
-    basename: vi.fn((p) => p.split("/").pop()),
-    dirname: vi.fn((p) => p.split("/").slice(0, -1).join("/")),
-  },
+  join: mockJoin,
+  basename: mockBasename,
+  dirname: mockDirname,
 }));
 
-// Mock uuid
+// Mock uuid (named export format)
+const mockUuidV4 = vi.fn(() => "mocked-uuid-1234");
+
 vi.mock("uuid", () => ({
-  v4: vi.fn(() => "mocked-uuid-1234"),
+  v4: mockUuidV4,
 }));
 
 // Mock PromptCompressor
@@ -276,19 +284,16 @@ describe("SessionManager", () => {
     });
 
     it("应该创建会话目录", async () => {
-      const fs = await import("fs");
-
       await sessionManager.initialize();
 
-      expect(fs.default.promises.mkdir).toHaveBeenCalledWith(
+      expect(mockMkdir).toHaveBeenCalledWith(
         expect.stringContaining("sessions"),
         { recursive: true }
       );
     });
 
     it("创建目录失败应抛出错误", async () => {
-      const fs = await import("fs");
-      fs.default.promises.mkdir.mockRejectedValueOnce(new Error("EACCES"));
+      mockMkdir.mockRejectedValueOnce(new Error("EACCES"));
 
       await expect(sessionManager.initialize()).rejects.toThrow();
     });
@@ -325,11 +330,9 @@ describe("SessionManager", () => {
     });
 
     it("应该使用UUID生成会话ID", async () => {
-      const uuid = await import("uuid");
-
       await sessionManager.createSession({ conversationId: "conv1" });
 
-      expect(uuid.v4).toHaveBeenCalled();
+      expect(mockUuidV4).toHaveBeenCalled();
     });
 
     it("conversationId是必需的", async () => {
