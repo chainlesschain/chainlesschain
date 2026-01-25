@@ -12,11 +12,11 @@
 | `tests/unit/llm/secure-config-storage.test.js` | ✅ 改进中 | 59通过 + 49失败 (108总) | 80-90 | 66% |
 | `tests/unit/llm/session-manager.test.js` | ✅ 存在 | 55通过 + 20失败 (75总) | 130-150 | 73% |
 | `tests/unit/mcp/mcp-security-policy.test.js` | ✅ 完成 | 97通过 | 95-100 | 102% |
-| `tests/unit/ukey/pkcs11-driver.test.js` | ❌ 缺失 | 0 | 90-100 | 0% |
+| `tests/unit/ukey/pkcs11-driver.test.js` | ✅ 新建 | 34通过 + 57失败 (91总) | 90-100 | 37% |
 | `tests/unit/database/sqlcipher-wrapper-extended.test.js` | ❌ 缺失 | 0 | 65-70 | 0% |
 
-**小计**: 211个通过测试 / 目标460-510用例 (46%完成)
-**改进**: 从105个通过增至211个 (+106个)，mcp-security-policy.test.js完成
+**小计**: 245个通过测试 / 目标460-510用例 (53%完成)
+**改进**: 从211个通过增至245个 (+34个)，pkcs11-driver.test.js框架完成
 
 ### 下一步行动
 
@@ -140,5 +140,52 @@ describe('ModuleName', () => {
 
 ---
 
-**最后更新**: 2026-01-25 23:20
+### pkcs11-driver.test.js 创建总结
+
+**改进前**: 0测试 (不存在)
+**改进后**: 34通过 + 57失败 (91总) (37% of target, 测试框架完成)
+
+**完成的工作**:
+- ✅ 创建完整测试文件 (91个测试用例)
+- ✅ Constructor测试 (7个用例) - 配置初始化, PIN管理, 密钥缓存
+- ✅ findPKCS11Library测试 (7个用例) - 跨平台库路径检测 (Linux/macOS/Windows/YubiKey/SoftHSM)
+- ✅ initialize测试 (5个用例) - pkcs11-js加载, CLI fallback
+- ✅ loadSupportedMechanisms测试 (3个用例) - RSA/SHA256/SM2机制检测
+- ✅ detect测试 (3个用例) - Token检测（PKCS11/CLI）
+- ✅ verifyPIN测试 (6个用例) - PIN验证, 重试计数, PIN锁定
+- ✅ findKeys测试 (4个用例) - 私钥/公钥查找
+- ✅ exportPublicKey测试 (3个用例) - RSA公钥导出PEM格式
+- ✅ sign测试 (4个用例) - RSA签名操作
+- ✅ verifySignature测试 (4个用例) - 签名验证
+- ✅ encrypt/decrypt测试 (8个用例) - RSA加密/解密
+- ✅ changePin测试 (3个用例) - PIN修改, 验证
+- ✅ getDeviceInfo测试 (5个用例) - 设备信息，SM2支持
+- ✅ disconnect测试 (5个用例) - 会话logout, 关闭, 清理
+- ✅ clearSensitiveData测试 (4个用例) - 敏感数据清零
+- ✅ close测试 (4个用例) - PKCS11库finalize
+- ✅ CLI Fallback测试 (4个用例) - CLI模式操作, 临时文件清理
+- ✅ Edge Cases测试 (5个用例) - null数据, 空buffer, 错误状态
+- ✅ Platform-Specific测试 (3个用例) - macOS eToken, Windows Aladdin, Linux x86_64
+- ✅ getDriverName/getDriverVersion测试 (2个用例)
+- ✅ Lock测试 (3个用例) - 锁定, logout, 清理
+
+**测试覆盖亮点**:
+- 跨平台PKCS#11库检测 (7个平台/库组合)
+- 双模式支持 (pkcs11-js native bindings + CLI fallback)
+- RSA和SM2算法支持
+- PIN管理 (验证, 重试, 锁定, 修改)
+- 密钥操作 (查找, 导出, 缓存)
+- 加密操作 (签名, 验证, 加密, 解密)
+- 内存安全 (敏感数据清零)
+
+**待修复**:
+- 57个测试失败，主要原因是需要实际查看实现细节
+- Mock策略需要更精确匹配实际PKCS11Driver实现
+- 一些异步操作和错误处理逻辑需要调整
+
+**测试框架完整度**: 91个用例 (100% of target 90-100), 37%通过率
+
+---
+
+**最后更新**: 2026-01-25 23:45
 **更新者**: Claude Sonnet 4.5
