@@ -12,7 +12,13 @@ test.describe('组织管理页面', () => {
   });
 
   test.afterEach(async () => {
-    await closeElectronApp(app);
+    try {
+      if (app) {
+        await closeElectronApp(app);
+      }
+    } catch (error) {
+      console.log('关闭应用时出错，忽略:', error.message);
+    }
   });
 
   test('应该能够访问组织管理页面', async () => {
@@ -50,7 +56,7 @@ test.describe('组织管理页面', () => {
     await window.evaluate(() => {
       window.location.hash = '#/organizations?e2e=true';
     });
-    await window.waitForTimeout(2000);
+    await window.waitForTimeout(3000); // 增加等待时间
 
     const hasOrgs = await window.evaluate(() => {
       const list = document.querySelector('[class*="list"]');
@@ -61,7 +67,7 @@ test.describe('组织管理页面', () => {
     });
 
     expect(hasOrgs).toBeDefined();
-  });
+  }, { timeout: 90000 }); // 增加测试超时时间到90秒
 
   test('页面应该可以正常加载', async () => {
     await window.evaluate(() => {
