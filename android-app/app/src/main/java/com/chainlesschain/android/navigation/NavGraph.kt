@@ -31,6 +31,7 @@ import com.chainlesschain.android.presentation.screens.ProjectDetailScreenV2
 import com.chainlesschain.android.presentation.screens.StepDetailScreen
 import com.chainlesschain.android.presentation.screens.LLMTestChatScreen
 import com.chainlesschain.android.feature.ai.presentation.settings.LLMSettingsScreen
+import com.chainlesschain.android.feature.ai.presentation.usage.UsageStatisticsScreen
 import com.chainlesschain.android.feature.ai.domain.model.LLMProvider
 import com.chainlesschain.android.feature.p2p.navigation.p2pGraph
 import com.chainlesschain.android.feature.p2p.navigation.P2P_ROUTE
@@ -240,6 +241,18 @@ fun NavGraph(
             LLMSettingsScreen(
                 onNavigateBack = {
                     navController.popBackStack()
+                },
+                onNavigateToUsageStatistics = {
+                    navController.navigate(Screen.UsageStatistics.route)
+                }
+            )
+        }
+
+        // Token使用统计界面
+        composable(route = Screen.UsageStatistics.route) {
+            UsageStatisticsScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
                 }
             )
         }
@@ -347,6 +360,7 @@ sealed class Screen(val route: String) {
         fun createRoute(projectId: String) = "step_detail/$projectId"
     }
     data object LLMSettings : Screen("llm_settings")
+    data object UsageStatistics : Screen("usage_statistics")
     data object LLMTest : Screen("llm_test") {
         fun createRoute(provider: String) = "llm_test/$provider"
     }

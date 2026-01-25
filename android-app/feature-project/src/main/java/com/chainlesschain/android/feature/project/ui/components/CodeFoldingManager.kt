@@ -90,6 +90,9 @@ class CodeFoldingManager(
         val regions = mutableListOf<FoldableRegion>()
         val stack = mutableListOf<Pair<Int, FoldableRegionType>>() // (lineIndex, type)
 
+        // Detect import groups
+        regions.addAll(detectImportGroups(lines))
+
         lines.forEachIndexed { index, line ->
             val trimmed = line.trim()
 
@@ -108,6 +111,23 @@ class CodeFoldingManager(
                             else -> FoldableRegionType.CLASS
                         }
                         stack.add(index to type)
+                    }
+                }
+                // Control flow blocks
+                trimmed.startsWith("if ") ||
+                trimmed.startsWith("if(") ||
+                trimmed.startsWith("else if ") ||
+                trimmed.startsWith("else if(") ||
+                trimmed.startsWith("else {") ||
+                trimmed.startsWith("when ") ||
+                trimmed.startsWith("when(") ||
+                trimmed.startsWith("for ") ||
+                trimmed.startsWith("for(") ||
+                trimmed.startsWith("while ") ||
+                trimmed.startsWith("while(") ||
+                trimmed.startsWith("do {") -> {
+                    if (trimmed.endsWith("{")) {
+                        stack.add(index to FoldableRegionType.CONTROL_FLOW)
                     }
                 }
                 trimmed.startsWith("/*") && !trimmed.endsWith("*/") -> {
@@ -135,6 +155,9 @@ class CodeFoldingManager(
         val regions = mutableListOf<FoldableRegion>()
         val stack = mutableListOf<Pair<Int, FoldableRegionType>>()
 
+        // Detect import groups
+        regions.addAll(detectImportGroups(lines))
+
         lines.forEachIndexed { index, line ->
             val trimmed = line.trim()
 
@@ -150,6 +173,27 @@ class CodeFoldingManager(
                 trimmed.matches(Regex(".*\\s+\\w+\\s*\\([^)]*\\)\\s*\\{.*")) -> {
                     // Method declaration
                     stack.add(index to FoldableRegionType.FUNCTION)
+                }
+                // Control flow blocks
+                trimmed.startsWith("if ") ||
+                trimmed.startsWith("if(") ||
+                trimmed.startsWith("else if ") ||
+                trimmed.startsWith("else if(") ||
+                trimmed.startsWith("else {") ||
+                trimmed.startsWith("switch ") ||
+                trimmed.startsWith("switch(") ||
+                trimmed.startsWith("for ") ||
+                trimmed.startsWith("for(") ||
+                trimmed.startsWith("while ") ||
+                trimmed.startsWith("while(") ||
+                trimmed.startsWith("do {") ||
+                trimmed.startsWith("try {") ||
+                trimmed.startsWith("catch ") ||
+                trimmed.startsWith("catch(") ||
+                trimmed.startsWith("finally {") -> {
+                    if (trimmed.endsWith("{")) {
+                        stack.add(index to FoldableRegionType.CONTROL_FLOW)
+                    }
                 }
                 trimmed.startsWith("/*") && !trimmed.endsWith("*/") -> {
                     stack.add(index to FoldableRegionType.COMMENT)
@@ -242,6 +286,9 @@ class CodeFoldingManager(
         val regions = mutableListOf<FoldableRegion>()
         val stack = mutableListOf<Pair<Int, FoldableRegionType>>()
 
+        // Detect import groups
+        regions.addAll(detectImportGroups(lines))
+
         lines.forEachIndexed { index, line ->
             val trimmed = line.trim()
 
@@ -256,6 +303,27 @@ class CodeFoldingManager(
                 trimmed.startsWith("class ") -> {
                     if (trimmed.endsWith("{")) {
                         stack.add(index to FoldableRegionType.CLASS)
+                    }
+                }
+                // Control flow blocks
+                trimmed.startsWith("if ") ||
+                trimmed.startsWith("if(") ||
+                trimmed.startsWith("else if ") ||
+                trimmed.startsWith("else if(") ||
+                trimmed.startsWith("else {") ||
+                trimmed.startsWith("switch ") ||
+                trimmed.startsWith("switch(") ||
+                trimmed.startsWith("for ") ||
+                trimmed.startsWith("for(") ||
+                trimmed.startsWith("while ") ||
+                trimmed.startsWith("while(") ||
+                trimmed.startsWith("do {") ||
+                trimmed.startsWith("try {") ||
+                trimmed.startsWith("catch ") ||
+                trimmed.startsWith("catch(") ||
+                trimmed.startsWith("finally {") -> {
+                    if (trimmed.endsWith("{")) {
+                        stack.add(index to FoldableRegionType.CONTROL_FLOW)
                     }
                 }
                 trimmed.startsWith("/*") && !trimmed.endsWith("*/") -> {
@@ -284,6 +352,9 @@ class CodeFoldingManager(
         val regions = mutableListOf<FoldableRegion>()
         val stack = mutableListOf<Pair<Int, FoldableRegionType>>()
 
+        // Detect import groups
+        regions.addAll(detectImportGroups(lines))
+
         lines.forEachIndexed { index, line ->
             val trimmed = line.trim()
 
@@ -298,6 +369,20 @@ class CodeFoldingManager(
                         val type = if (trimmed.startsWith("func "))
                             FoldableRegionType.FUNCTION else FoldableRegionType.CLASS
                         stack.add(index to type)
+                    }
+                }
+                // Control flow blocks
+                trimmed.startsWith("if ") ||
+                trimmed.startsWith("else if ") ||
+                trimmed.startsWith("else {") ||
+                trimmed.startsWith("guard ") ||
+                trimmed.startsWith("switch ") ||
+                trimmed.startsWith("for ") ||
+                trimmed.startsWith("while ") ||
+                trimmed.startsWith("do {") ||
+                trimmed.startsWith("catch ") -> {
+                    if (trimmed.endsWith("{")) {
+                        stack.add(index to FoldableRegionType.CONTROL_FLOW)
                     }
                 }
                 trimmed.startsWith("/*") && !trimmed.endsWith("*/") -> {
@@ -315,6 +400,61 @@ class CodeFoldingManager(
                         regions.add(FoldableRegion(start, index, type, lines[start].trim()))
                     }
                 }
+            }
+        }
+
+        return regions
+    }
+
+    /**
+     * Detect import grouping regions
+     *
+     * Groups consecutive import statements into a foldable region
+     */
+    private fun detectImportGroups(lines: List<String>): List<FoldableRegion> {
+        val regions = mutableListOf<FoldableRegion>()
+        var importStart: Int? = null
+        var lastImportLine: Int? = null
+
+        lines.forEachIndexed { index, line ->
+            val trimmed = line.trim()
+
+            if (trimmed.startsWith("import ") || trimmed.startsWith("from ")) {
+                if (importStart == null) {
+                    importStart = index
+                }
+                lastImportLine = index
+            } else if (trimmed.isNotBlank() && importStart != null && lastImportLine != null) {
+                // End of import group (non-blank, non-import line)
+                val start = importStart!!
+                val end = lastImportLine!!
+
+                // Only create region if there are at least 3 imports
+                if (end - start >= 2) {
+                    regions.add(FoldableRegion(
+                        startLine = start,
+                        endLine = end,
+                        type = FoldableRegionType.IMPORT,
+                        preview = "imports (${end - start + 1} lines)"
+                    ))
+                }
+
+                importStart = null
+                lastImportLine = null
+            }
+        }
+
+        // Handle imports at end of file
+        if (importStart != null && lastImportLine != null) {
+            val start = importStart!!
+            val end = lastImportLine!!
+            if (end - start >= 2) {
+                regions.add(FoldableRegion(
+                    startLine = start,
+                    endLine = end,
+                    type = FoldableRegionType.IMPORT,
+                    preview = "imports (${end - start + 1} lines)"
+                ))
             }
         }
 
