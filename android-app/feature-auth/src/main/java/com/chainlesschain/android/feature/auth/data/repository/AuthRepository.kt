@@ -211,14 +211,16 @@ class AuthRepository @Inject constructor(
     }
 
     /**
-     * 退出登录（清除用户数据）
+     * 退出登录（仅清除会话状态，保留PIN码和设备信息）
      */
     suspend fun logout(): Result<Unit> {
         return try {
+            // 只清除最后登录时间，不清除PIN码和其他注册信息
+            // 这样用户可以重新登录，而不需要重新设置PIN
             context.dataStore.edit { prefs ->
-                prefs.clear()
+                prefs[KEY_LAST_LOGIN_AT] = 0L
             }
-            Timber.d("User logged out")
+            Timber.d("User logged out (PIN and setup data preserved)")
             Result.success(Unit)
         } catch (e: Exception) {
             Timber.e(e, "Failed to logout")

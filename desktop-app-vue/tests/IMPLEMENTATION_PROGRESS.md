@@ -255,5 +255,35 @@ describe('ModuleName', () => {
 
 ---
 
-**最后更新**: 2026-01-25 23:55
+---
+
+## Session继续：Mock修复尝试
+
+**时间**: 2026-01-26 00:15
+
+###尝试修复session-manager.test.js的Mock
+
+**修复内容**:
+- ✅ 修改fs.promises mock为CommonJS格式（移除default wrapper）
+- ✅ 修改path mock为CommonJS格式
+- ✅ 修改uuid mock使用命名导出
+- ✅ 使用直接定义的mock函数（mockMkdir, mockWriteFile等）替代动态import
+
+**结果**: 55通过 + 20失败（通过率保持73%）
+
+**剩余问题**:
+1. UUID mock未生效 - 实际代码仍生成真实UUID而非mocked值
+2. fs.promises方法调用未被mock拦截
+3. EventEmitter的emit事件未被捕获
+4. 数据库mock的run方法未正确返回
+5. 部分方法不存在（findSessionsByTag, exportMultipleSessions）
+
+**建议下一步**:
+- 深入调查vitest的ESM/CommonJS mock机制
+- 可能需要使用vi.doMock或不同的mock策略
+- 考虑使用实际的小型数据库（:memory:）而非mock
+
+---
+
+**最后更新**: 2026-01-26 00:15
 **更新者**: Claude Sonnet 4.5
