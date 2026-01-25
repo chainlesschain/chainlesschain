@@ -40,7 +40,8 @@ class GlobalFileBrowserViewModel @Inject constructor(
     private val fileImportRepository: FileImportRepository,
     val thumbnailCache: com.chainlesschain.android.feature.filebrowser.cache.ThumbnailCache,
     private val fileClassifier: com.chainlesschain.android.feature.filebrowser.ml.FileClassifier,
-    val textRecognizer: com.chainlesschain.android.feature.filebrowser.ml.TextRecognizer
+    val textRecognizer: com.chainlesschain.android.feature.filebrowser.ml.TextRecognizer,
+    val fileSummarizer: com.chainlesschain.android.feature.filebrowser.ai.FileSummarizer
 ) : ViewModel() {
 
     companion object {

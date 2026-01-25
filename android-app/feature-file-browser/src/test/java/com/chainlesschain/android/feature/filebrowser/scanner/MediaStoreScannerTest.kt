@@ -219,7 +219,7 @@ class MediaStoreScannerTest {
 
     @Test
     fun `clearCache should delete all files and reset progress`() = runTest {
-        coEvery { mockDao.deleteAll() } just Runs
+        coEvery { mockDao.deleteAll() } just runs
 
         val result = scanner.clearCache()
 

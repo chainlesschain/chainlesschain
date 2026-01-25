@@ -8,7 +8,7 @@ import {
   createAndOpenProject,
   waitForProjectDetailLoad,
   refreshFileList
-} from './project-detail-helpers';
+} from '../../helpers/project-detail';
 
 test.describe('Debug: 文件树UI刷新', () => {
   test('创建文件后UI刷新测试', async () => {

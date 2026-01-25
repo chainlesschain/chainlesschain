@@ -3,9 +3,13 @@ package com.chainlesschain.android.feature.filebrowser.integration
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import app.cash.turbine.test
 import com.chainlesschain.android.core.database.entity.FileCategory
+import com.chainlesschain.android.feature.filebrowser.ai.FileSummarizer
+import com.chainlesschain.android.feature.filebrowser.cache.ThumbnailCache
 import com.chainlesschain.android.feature.filebrowser.data.repository.ExternalFileRepository
 import com.chainlesschain.android.feature.filebrowser.data.repository.FileImportRepository
 import com.chainlesschain.android.feature.filebrowser.data.scanner.MediaStoreScanner
+import com.chainlesschain.android.feature.filebrowser.ml.FileClassifier
+import com.chainlesschain.android.feature.filebrowser.ml.TextRecognizer
 import com.chainlesschain.android.feature.filebrowser.viewmodel.GlobalFileBrowserViewModel
 import io.mockk.clearAllMocks
 import io.mockk.coEvery
@@ -13,6 +17,7 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.*
 import org.junit.After
@@ -40,6 +45,10 @@ class FileBrowserIntegrationTest {
     private lateinit var mockScanner: MediaStoreScanner
     private lateinit var mockFileRepository: ExternalFileRepository
     private lateinit var mockImportRepository: FileImportRepository
+    private lateinit var mockThumbnailCache: ThumbnailCache
+    private lateinit var mockFileClassifier: FileClassifier
+    private lateinit var mockTextRecognizer: TextRecognizer
+    private lateinit var mockFileSummarizer: FileSummarizer
 
     private val testDispatcher = StandardTestDispatcher()
 
@@ -50,6 +59,10 @@ class FileBrowserIntegrationTest {
         mockScanner = mockk(relaxed = true)
         mockFileRepository = mockk(relaxed = true)
         mockImportRepository = mockk(relaxed = true)
+        mockThumbnailCache = mockk(relaxed = true)
+        mockFileClassifier = mockk(relaxed = true)
+        mockTextRecognizer = mockk(relaxed = true)
+        mockFileSummarizer = mockk(relaxed = true)
     }
 
     @After
@@ -61,9 +74,7 @@ class FileBrowserIntegrationTest {
     @Test
     fun `full workflow - permission, scan, display, filter, import`() = runTest {
         // Step 1: Setup - Permission granted
-        every { mockScanner.scanProgress } returns flowOf(
-            MediaStoreScanner.ScanProgress.Idle,
-            MediaStoreScanner.ScanProgress.Scanning(50, 100, "Images"),
+        every { mockScanner.scanProgress } returns MutableStateFlow<MediaStoreScanner.ScanProgress>(
             MediaStoreScanner.ScanProgress.Completed(100)
         )
         coEvery { mockScanner.scanAllFiles() } returns Result.success(100)
@@ -97,7 +108,11 @@ class FileBrowserIntegrationTest {
         viewModel = GlobalFileBrowserViewModel(
             mediaStoreScanner = mockScanner,
             externalFileRepository = mockFileRepository,
-            fileImportRepository = mockImportRepository
+            fileImportRepository = mockImportRepository,
+            thumbnailCache = mockThumbnailCache,
+            fileClassifier = mockFileClassifier,
+            textRecognizer = mockTextRecognizer,
+            fileSummarizer = mockFileSummarizer
         )
 
         testDispatcher.scheduler.advanceUntilIdle()
@@ -167,8 +182,7 @@ class FileBrowserIntegrationTest {
 
     @Test
     fun `error scenario - scan permission denied`() = runTest {
-        every { mockScanner.scanProgress } returns flowOf(
-            MediaStoreScanner.ScanProgress.Idle,
+        every { mockScanner.scanProgress } returns MutableStateFlow<MediaStoreScanner.ScanProgress>(
             MediaStoreScanner.ScanProgress.Error("Permission denied")
         )
         every { mockFileRepository.getAllFiles(any(), any()) } returns flowOf(emptyList())
@@ -176,7 +190,11 @@ class FileBrowserIntegrationTest {
         viewModel = GlobalFileBrowserViewModel(
             mediaStoreScanner = mockScanner,
             externalFileRepository = mockFileRepository,
-            fileImportRepository = mockImportRepository
+            fileImportRepository = mockImportRepository,
+            thumbnailCache = mockThumbnailCache,
+            fileClassifier = mockFileClassifier,
+            textRecognizer = mockTextRecognizer,
+            fileSummarizer = mockFileSummarizer
         )
 
         testDispatcher.scheduler.advanceUntilIdle()
@@ -191,8 +209,7 @@ class FileBrowserIntegrationTest {
 
     @Test
     fun `error scenario - empty scan result`() = runTest {
-        every { mockScanner.scanProgress } returns flowOf(
-            MediaStoreScanner.ScanProgress.Idle,
+        every { mockScanner.scanProgress } returns MutableStateFlow<MediaStoreScanner.ScanProgress>(
             MediaStoreScanner.ScanProgress.Completed(0)
         )
         every { mockFileRepository.getAllFiles(any(), any()) } returns flowOf(emptyList())
@@ -201,7 +218,11 @@ class FileBrowserIntegrationTest {
         viewModel = GlobalFileBrowserViewModel(
             mediaStoreScanner = mockScanner,
             externalFileRepository = mockFileRepository,
-            fileImportRepository = mockImportRepository
+            fileImportRepository = mockImportRepository,
+            thumbnailCache = mockThumbnailCache,
+            fileClassifier = mockFileClassifier,
+            textRecognizer = mockTextRecognizer,
+            fileSummarizer = mockFileSummarizer
         )
 
         testDispatcher.scheduler.advanceUntilIdle()
@@ -229,9 +250,7 @@ class FileBrowserIntegrationTest {
             )
         }
 
-        every { mockScanner.scanProgress } returns flowOf(
-            MediaStoreScanner.ScanProgress.Idle,
-            MediaStoreScanner.ScanProgress.Scanning(5000, 10000, "Documents"),
+        every { mockScanner.scanProgress } returns MutableStateFlow<MediaStoreScanner.ScanProgress>(
             MediaStoreScanner.ScanProgress.Completed(10000)
         )
         coEvery { mockScanner.scanAllFiles() } returns Result.success(10000)
@@ -243,7 +262,11 @@ class FileBrowserIntegrationTest {
         viewModel = GlobalFileBrowserViewModel(
             mediaStoreScanner = mockScanner,
             externalFileRepository = mockFileRepository,
-            fileImportRepository = mockImportRepository
+            fileImportRepository = mockImportRepository,
+            thumbnailCache = mockThumbnailCache,
+            fileClassifier = mockFileClassifier,
+            textRecognizer = mockTextRecognizer,
+            fileSummarizer = mockFileSummarizer
         )
 
         testDispatcher.scheduler.advanceUntilIdle()
@@ -286,8 +309,7 @@ class FileBrowserIntegrationTest {
     @Test
     fun `refresh workflow - rescan and reload`() = runTest {
         // Initial scan
-        every { mockScanner.scanProgress } returns flowOf(
-            MediaStoreScanner.ScanProgress.Idle,
+        every { mockScanner.scanProgress } returns MutableStateFlow<MediaStoreScanner.ScanProgress>(
             MediaStoreScanner.ScanProgress.Completed(50)
         )
         coEvery { mockScanner.scanAllFiles() } returns Result.success(50)
@@ -299,7 +321,11 @@ class FileBrowserIntegrationTest {
         viewModel = GlobalFileBrowserViewModel(
             mediaStoreScanner = mockScanner,
             externalFileRepository = mockFileRepository,
-            fileImportRepository = mockImportRepository
+            fileImportRepository = mockImportRepository,
+            thumbnailCache = mockThumbnailCache,
+            fileClassifier = mockFileClassifier,
+            textRecognizer = mockTextRecognizer,
+            fileSummarizer = mockFileSummarizer
         )
 
         testDispatcher.scheduler.advanceUntilIdle()

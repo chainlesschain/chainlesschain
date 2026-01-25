@@ -64,8 +64,8 @@ class FileImportRepositoryTest {
 
         val project = createProject("project-1", fileCount = 5, totalSize = 10000L)
         coEvery { projectDao.getProjectById("project-1") } returns project
-        coEvery { projectDao.insertFile(any()) } just Runs
-        coEvery { projectDao.updateProjectStats(any(), any(), any()) } just Runs
+        coEvery { projectDao.insertFile(any()) } just runs
+        coEvery { projectDao.updateProjectStats(any(), any(), any()) } just runs
 
         // Act
         val result = fileImportRepository.importFileToProject(
@@ -122,8 +122,8 @@ class FileImportRepositoryTest {
 
         val project = createProject("project-1", fileCount = 0, totalSize = 0L)
         coEvery { projectDao.getProjectById("project-1") } returns project
-        coEvery { projectDao.insertFile(any()) } just Runs
-        coEvery { projectDao.updateProjectStats(any(), any(), any()) } just Runs
+        coEvery { projectDao.insertFile(any()) } just runs
+        coEvery { projectDao.updateProjectStats(any(), any(), any()) } just runs
 
         // Act
         val result = fileImportRepository.importFileToProject(
@@ -157,8 +157,8 @@ class FileImportRepositoryTest {
 
         val project = createProject("project-1", fileCount = 10, totalSize = 50000L)
         coEvery { projectDao.getProjectById("project-1") } returns project
-        coEvery { projectDao.insertFile(any()) } just Runs
-        coEvery { projectDao.updateProjectStats(any(), any(), any()) } just Runs
+        coEvery { projectDao.insertFile(any()) } just runs
+        coEvery { projectDao.updateProjectStats(any(), any(), any()) } just runs
 
         // Act
         val result = fileImportRepository.importFileToProject(
@@ -194,8 +194,8 @@ class FileImportRepositoryTest {
 
         val project = createProject("project-1")
         coEvery { projectDao.getProjectById("project-1") } returns project
-        coEvery { projectDao.insertFile(any()) } just Runs
-        coEvery { projectDao.updateProjectStats(any(), any(), any()) } just Runs
+        coEvery { projectDao.insertFile(any()) } just runs
+        coEvery { projectDao.updateProjectStats(any(), any(), any()) } just runs
 
         // Act
         val result = fileImportRepository.importFileToProject(
@@ -251,8 +251,8 @@ class FileImportRepositoryTest {
 
         val project = createProject("project-1")
         coEvery { projectDao.getProjectById("project-1") } returns project
-        coEvery { projectDao.insertFile(any()) } just Runs
-        coEvery { projectDao.updateProjectStats(any(), any(), any()) } just Runs
+        coEvery { projectDao.insertFile(any()) } just runs
+        coEvery { projectDao.updateProjectStats(any(), any(), any()) } just runs
 
         // Act
         val result = fileImportRepository.importFileToProject(
@@ -278,8 +278,8 @@ class FileImportRepositoryTest {
 
         val project = createProject("project-1", fileCount = 5, totalSize = 10000L)
         coEvery { projectDao.getProjectById("project-1") } returns project
-        coEvery { projectDao.insertFile(any()) } just Runs
-        coEvery { projectDao.updateProjectStats(any(), any(), any()) } just Runs
+        coEvery { projectDao.insertFile(any()) } just runs
+        coEvery { projectDao.updateProjectStats(any(), any(), any()) } just runs
 
         // Act
         fileImportRepository.importFileToProject(
@@ -307,7 +307,7 @@ class FileImportRepositoryTest {
         every { contentResolver.openInputStream(Uri.parse(externalFile.uri)) } returns inputStream
 
         coEvery { projectDao.getProjectById("missing-project") } returns null
-        coEvery { projectDao.insertFile(any()) } just Runs
+        coEvery { projectDao.insertFile(any()) } just runs
 
         // Act
         val result = fileImportRepository.importFileToProject(
@@ -333,8 +333,8 @@ class FileImportRepositoryTest {
 
         val project = createProject("project-1")
         coEvery { projectDao.getProjectById("project-1") } returns project
-        coEvery { projectDao.insertFile(any()) } just Runs
-        coEvery { projectDao.updateProjectStats(any(), any(), any()) } just Runs
+        coEvery { projectDao.insertFile(any()) } just runs
+        coEvery { projectDao.updateProjectStats(any(), any(), any()) } just runs
 
         // Act
         val result = fileImportRepository.importFileToProject(

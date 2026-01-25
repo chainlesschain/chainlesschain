@@ -15,8 +15,8 @@ export interface ElectronTestContext {
  * 启动Electron应用
  */
 export async function launchElectronApp(): Promise<ElectronTestContext> {
-  // 确定主进程入口文件路径
-  const mainPath = path.join(__dirname, '../../dist/main/index.js');
+  // 确定主进程入口文件路径 (从项目根目录的 dist/main/index.js)
+  const mainPath = path.join(__dirname, '../../../dist/main/index.js');
 
   // 设置固定的 userData 路径，确保配置文件能被读取
   const os = require('os');

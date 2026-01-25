@@ -27,7 +27,7 @@ jobs:
         continue-on-error: true
 
       - name: Run Vitest tests (no coverage)
-        run: npx vitest run tests/unit/ai-engine-workflow.test.js tests/unit/ai-skill-scheduler.test.js
+        run: npx vitest run tests/unit/ai/ai-engine-workflow.test.js tests/unit/ai/ai-skill-scheduler.test.js
         continue-on-error: true
 
       - name: Comment PR

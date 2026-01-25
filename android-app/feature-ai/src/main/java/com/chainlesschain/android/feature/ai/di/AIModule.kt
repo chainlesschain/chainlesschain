@@ -44,12 +44,24 @@ object AIModule {
     }
 
     /**
-     * 提供Ollama适配器
+     * 提供Ollama适配器（Named）
      */
     @Provides
     @Singleton
     @Named("Ollama")
-    fun provideOllamaAdapter(): LLMAdapter {
+    fun provideOllamaAdapterNamed(): LLMAdapter {
+        // TODO: 从配置中读取base URL
+        val baseUrl = System.getenv("OLLAMA_BASE_URL") ?: "http://localhost:11434"
+        return OllamaAdapter(baseUrl)
+    }
+
+    /**
+     * 提供Ollama适配器（直接类型）
+     * 用于需要直接注入OllamaAdapter的场景（如FileSummarizer）
+     */
+    @Provides
+    @Singleton
+    fun provideOllamaAdapter(): OllamaAdapter {
         // TODO: 从配置中读取base URL
         val baseUrl = System.getenv("OLLAMA_BASE_URL") ?: "http://localhost:11434"
         return OllamaAdapter(baseUrl)

@@ -105,7 +105,20 @@ fun OCRResultDialog(
                         }
 
                         // Share button
-                        IconButton(onClick = { /* TODO: Share */ }) {
+                        IconButton(onClick = {
+                            // Share OCR text using Android Share Sheet
+                            try {
+                                val textToShare = if (isEditMode) editedText else result.text
+                                val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                    type = "text/plain"
+                                    putExtra(android.content.Intent.EXTRA_TEXT, textToShare)
+                                    putExtra(android.content.Intent.EXTRA_SUBJECT, "OCR识别结果: $fileName")
+                                }
+                                context.startActivity(android.content.Intent.createChooser(intent, "分享文字"))
+                            } catch (e: Exception) {
+                                android.util.Log.e("OCRResultDialog", "Error sharing text", e)
+                            }
+                        }) {
                             Icon(Icons.Default.Share, contentDescription = "分享")
                         }
                     }
@@ -592,5 +605,10 @@ private fun copyToClipboard(context: Context, text: String) {
     val clip = ClipData.newPlainText("OCR Text", text)
     clipboard.setPrimaryClip(clip)
 
-    // TODO: Show snackbar notification
+    // Show toast notification
+    android.widget.Toast.makeText(
+        context,
+        "已复制到剪贴板",
+        android.widget.Toast.LENGTH_SHORT
+    ).show()
 }
