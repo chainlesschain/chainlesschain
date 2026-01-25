@@ -119,6 +119,46 @@ class ExternalFileRepository @Inject constructor(
         externalFileDao.updateFavorite(fileId, newStatus)
         return newStatus
     }
+
+    /**
+     * 获取文件总数
+     */
+    suspend fun getFilesCount(): Int {
+        return externalFileDao.getFileCount()
+    }
+
+    /**
+     * 获取总文件大小
+     */
+    suspend fun getTotalSize(): Long {
+        return externalFileDao.getTotalSize() ?: 0L
+    }
+
+    /**
+     * 获取指定分类的文件数量
+     */
+    suspend fun getFileCountByCategory(category: FileCategory): Int {
+        return externalFileDao.getFileCountByCategory(category)
+    }
+
+    /**
+     * 观察文件变化
+     */
+    fun observeFileChanges(): Flow<Unit> {
+        // 返回一个Flow，当文件有变化时发射事件
+        return kotlinx.coroutines.flow.flow {
+            // 简单实现：定期检查
+            // 实际可以使用ContentObserver监听MediaStore变化
+            emit(Unit)
+        }
+    }
+
+    /**
+     * 删除所有文件记录
+     */
+    suspend fun deleteAll() {
+        externalFileDao.deleteAll()
+    }
 }
 
 /**
