@@ -46,7 +46,8 @@ fun MainContainer(
                 )
                 1 -> ProjectScreen(
                     onProjectClick = onNavigateToProjectDetail,
-                    onNavigateToFileBrowser = onNavigateToFileBrowser
+                    onNavigateToFileBrowser = onNavigateToFileBrowser,
+                    authViewModel = viewModel  // 传递共享的AuthViewModel实例
                 )
                 2 -> ExploreScreen()
                 3 -> ProfileScreen(

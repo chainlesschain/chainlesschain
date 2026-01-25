@@ -15,9 +15,9 @@ test.describe('调试页面内容', () => {
   });
 
   test('查看页面实际内容', async () => {
-    // 测试极简页面
+    // 测试AndroidFeaturesTestPage
     await window.evaluate(() => {
-      window.location.hash = '#/test/simple';
+      window.location.hash = '#/test/android-features-standalone';
     });
 
     await window.waitForSelector('body', { timeout: 10000 });
@@ -46,16 +46,21 @@ test.describe('调试页面内容', () => {
         bodyText: document.body.innerText,
         bodyHTML: document.body.innerHTML.substring(0, 500), // 前500字符
         hasVueApp: !!document.querySelector('#app'),
-        vueAppContent: document.querySelector('#app')?.innerHTML.substring(0, 1000),
+        vueAppContent: document.querySelector('#app')?.innerHTML.substring(0, 2000),
         allClasses: Array.from(new Set(
           Array.from(document.querySelectorAll('*')).map(el => el.className).filter(c => c)
-        )).slice(0, 20),
+        )).slice(0, 30),
         hasRouterView: !!document.querySelector('.layout-content'),
         routerViewContent: document.querySelector('.layout-content')?.innerText.substring(0, 500),
         hasMainLayout: !!document.querySelector('.main-layout') || document.body.innerHTML.includes('MainLayout'),
         hasLoadingOverlay: !!document.querySelector('.loading-overlay'),
         hasLoginPage: document.body.innerHTML.includes('login') || document.body.innerHTML.includes('登录'),
         currentPath: window.location.hash.split('?')[0],
+        hasTestPage: document.body.innerHTML.includes('android-features') ||
+                     document.body.innerHTML.includes('安卓端功能') ||
+                     document.body.innerText.includes('LLM功能') ||
+                     document.body.innerText.includes('P2P功能'),
+        cardCount: document.querySelectorAll('.ant-card').length,
       };
     });
 
@@ -64,14 +69,18 @@ test.describe('调试页面内容', () => {
     console.log('Hash:', pageInfo.hash);
     console.log('Current Path:', pageInfo.currentPath);
     console.log('Has Vue App:', pageInfo.hasVueApp);
+    console.log('Has Test Page Content:', pageInfo.hasTestPage);
+    console.log('Card Count:', pageInfo.cardCount);
     console.log('Has Loading Overlay:', pageInfo.hasLoadingOverlay);
     console.log('Has Login Page:', pageInfo.hasLoginPage);
     console.log('Has MainLayout:', pageInfo.hasMainLayout);
     console.log('Has RouterView (.layout-content):', pageInfo.hasRouterView);
-    console.log('Body Text (前200字符):', pageInfo.bodyText.substring(0, 200));
-    console.log('RouterView Content:', pageInfo.routerViewContent);
-    console.log('Vue App Content (前1000字符):', pageInfo.vueAppContent);
-    console.log('CSS Classes:', pageInfo.allClasses);
+    console.log('\nBody Text (前500字符):');
+    console.log(pageInfo.bodyText.substring(0, 500));
+    console.log('\nRouterView Content:', pageInfo.routerViewContent);
+    console.log('\nVue App Content (前2000字符):');
+    console.log(pageInfo.vueAppContent);
+    console.log('\nCSS Classes (前30个):', pageInfo.allClasses);
     console.log('===================');
 
     // 这个测试总是通过，只是用来输出调试信息

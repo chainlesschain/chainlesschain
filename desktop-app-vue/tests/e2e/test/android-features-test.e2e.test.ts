@@ -17,7 +17,7 @@ test.describe('安卓端功能测试入口页面', () => {
 
   test('应该能够访问安卓功能测试页面', async () => {
     await window.evaluate(() => {
-      window.location.hash = '#/test/android-features?e2e=true';
+      window.location.hash = '#/test/android-features-standalone';
     });
 
     await window.waitForSelector('body', { timeout: 10000 });
@@ -30,7 +30,7 @@ test.describe('安卓端功能测试入口页面', () => {
 
   test('应该显示页面标题', async () => {
     await window.evaluate(() => {
-      window.location.hash = '#/test/android-features?e2e=true';
+      window.location.hash = '#/test/android-features-standalone';
     });
     await window.waitForSelector('body', { timeout: 10000 });
     await window.waitForTimeout(3000); // 等待Vue组件渲染
@@ -47,7 +47,7 @@ test.describe('安卓端功能测试入口页面', () => {
 
   test('应该显示LLM功能测试卡片区域', async () => {
     await window.evaluate(() => {
-      window.location.hash = '#/test/android-features?e2e=true';
+      window.location.hash = '#/test/android-features-standalone';
     });
     await window.waitForSelector('body', { timeout: 10000 });
     await window.waitForTimeout(3000); // 等待Vue组件渲染
@@ -65,7 +65,7 @@ test.describe('安卓端功能测试入口页面', () => {
 
   test('应该显示P2P功能测试卡片区域', async () => {
     await window.evaluate(() => {
-      window.location.hash = '#/test/android-features?e2e=true';
+      window.location.hash = '#/test/android-features-standalone';
     });
     await window.waitForSelector('body', { timeout: 10000 });
     await window.waitForTimeout(3000); // 等待Vue组件渲染
@@ -83,7 +83,7 @@ test.describe('安卓端功能测试入口页面', () => {
 
   test('应该显示知识库与AI功能卡片区域', async () => {
     await window.evaluate(() => {
-      window.location.hash = '#/test/android-features?e2e=true';
+      window.location.hash = '#/test/android-features-standalone';
     });
     await window.waitForSelector('body', { timeout: 10000 });
     await window.waitForTimeout(3000); // 等待Vue组件渲染
@@ -100,7 +100,7 @@ test.describe('安卓端功能测试入口页面', () => {
 
   test('应该显示其他功能卡片区域', async () => {
     await window.evaluate(() => {
-      window.location.hash = '#/test/android-features?e2e=true';
+      window.location.hash = '#/test/android-features-standalone';
     });
     await window.waitForSelector('body', { timeout: 10000 });
     await window.waitForTimeout(3000); // 等待Vue组件渲染
@@ -117,7 +117,7 @@ test.describe('安卓端功能测试入口页面', () => {
 
   test('应该有可点击的功能卡片', async () => {
     await window.evaluate(() => {
-      window.location.hash = '#/test/android-features?e2e=true';
+      window.location.hash = '#/test/android-features-standalone';
     });
     await window.waitForSelector('body', { timeout: 10000 });
     await window.waitForTimeout(3000); // 等待Vue组件渲染
@@ -133,7 +133,7 @@ test.describe('安卓端功能测试入口页面', () => {
 
   test('应该显示功能图标', async () => {
     await window.evaluate(() => {
-      window.location.hash = '#/test/android-features?e2e=true';
+      window.location.hash = '#/test/android-features-standalone';
     });
     await window.waitForSelector('body', { timeout: 10000 });
     await window.waitForTimeout(3000); // 等待Vue组件渲染
@@ -149,7 +149,7 @@ test.describe('安卓端功能测试入口页面', () => {
 
   test('应该显示功能描述', async () => {
     await window.evaluate(() => {
-      window.location.hash = '#/test/android-features?e2e=true';
+      window.location.hash = '#/test/android-features-standalone';
     });
     await window.waitForSelector('body', { timeout: 10000 });
     await window.waitForTimeout(3000); // 等待Vue组件渲染
@@ -168,7 +168,7 @@ test.describe('安卓端功能测试入口页面', () => {
 
   test('卡片应该按行列布局', async () => {
     await window.evaluate(() => {
-      window.location.hash = '#/test/android-features?e2e=true';
+      window.location.hash = '#/test/android-features-standalone';
     });
     await window.waitForSelector('body', { timeout: 10000 });
     await window.waitForTimeout(3000); // 等待Vue组件渲染
@@ -184,7 +184,7 @@ test.describe('安卓端功能测试入口页面', () => {
 
   test('应该有至少15个功能卡片', async () => {
     await window.evaluate(() => {
-      window.location.hash = '#/test/android-features?e2e=true';
+      window.location.hash = '#/test/android-features-standalone';
     });
     await window.waitForSelector('body', { timeout: 10000 });
     await window.waitForTimeout(3000); // 等待Vue组件渲染
@@ -199,7 +199,7 @@ test.describe('安卓端功能测试入口页面', () => {
 
   test('页面应该可以正常加载', async () => {
     await window.evaluate(() => {
-      window.location.hash = '#/test/android-features?e2e=true';
+      window.location.hash = '#/test/android-features-standalone';
     });
     await window.waitForSelector('body', { timeout: 10000 });
     await window.waitForTimeout(3000); // 等待Vue组件渲染

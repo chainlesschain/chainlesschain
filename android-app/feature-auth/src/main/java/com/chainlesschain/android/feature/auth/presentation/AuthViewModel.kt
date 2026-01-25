@@ -231,10 +231,12 @@ class AuthViewModel @Inject constructor(
         viewModelScope.launch {
             authRepository.logout()
             _uiState.update {
-                AuthUiState(
-                    isSetupComplete = false,
-                    isAuthenticated = false
+                it.copy(
+                    isAuthenticated = false,
+                    currentUser = null,
+                    error = null
                 )
+                // 保持 isSetupComplete = true，因为PIN码仍然存在
             }
         }
     }
