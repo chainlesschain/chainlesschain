@@ -5,8 +5,8 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import SyncQueue from "../../src/main/sync/sync-queue.js";
-import DBSyncManager from "../../src/main/sync/db-sync-manager.js";
+import SyncQueue from "../../../src/main/sync/sync-queue.js";
+import DBSyncManager from "../../../src/main/sync/db-sync-manager.js";
 
 describe("SyncQueue - 并发同步队列测试", () => {
   let syncQueue;

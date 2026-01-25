@@ -31,12 +31,12 @@ const mockDocGenerator = {
     .mockResolvedValue({ success: true, path: "/docs/tool.md" }),
 };
 
-vi.mock("../../src/main/skill-tool-system/doc-generator", () => ({
+vi.mock("../../../src/main/skill-tool-system/doc-generator", () => ({
   default: vi.fn(() => mockDocGenerator),
 }));
 
 // Mock builtin-skills
-vi.mock("../../src/main/skill-tool-system/builtin-skills", () => ({
+vi.mock("../../../src/main/skill-tool-system/builtin-skills", () => ({
   default: [],
 }));
 

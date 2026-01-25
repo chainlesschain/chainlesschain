@@ -35,19 +35,19 @@ vi.mock('fs', async (importOriginal) => {
 const FunctionCaller = (await import('../../../src/main/ai-engine/function-caller.js')).default;
 
 // Mock extended-tools modules
-vi.mock('../../src/main/ai-engine/extended-tools.js', () => ({
+vi.mock('../../../src/main/ai-engine/extended-tools.js', () => ({
   default: {
     registerAll: vi.fn()
   }
 }));
 
-vi.mock('../../src/main/ai-engine/extended-tools-2.js', () => ({
+vi.mock('../../../src/main/ai-engine/extended-tools-2.js', () => ({
   default: {
     registerAll: vi.fn()
   }
 }));
 
-vi.mock('../../src/main/ai-engine/extended-tools-3.js', () => ({
+vi.mock('../../../src/main/ai-engine/extended-tools-3.js', () => ({
   default: {
     registerAll: vi.fn()
   }

@@ -103,7 +103,7 @@ function validateImportPath(importPath, requiredLevels) {
     actualLevels,
     requiredLevels,
     suggested: importPath.replace(
-      new RegExp(`^(\\.\\./)+ {${actualLevels}}`),
+      new RegExp(`^(\\.\\./){${actualLevels}}`),
       '../'.repeat(requiredLevels)
     ),
   };
