@@ -576,7 +576,7 @@ class FileTransferManager @Inject constructor(
                     checkpointManager.updateCheckpoint(
                         transferId = event.chunk.transferId,
                         chunkIndex = event.chunk.chunkIndex,
-                        chunkSize = event.chunk.data.size.toLong()
+                        chunkSize = event.chunk.chunkSize.toLong()
                     )
                 }
             }

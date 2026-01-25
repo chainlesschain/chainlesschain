@@ -34,6 +34,7 @@ android {
 dependencies {
     implementation(project(":core-common"))
     implementation(project(":core-security"))
+    implementation(project(":core-database"))
 
     // Android Core
     implementation("androidx.core:core-ktx:1.12.0")

@@ -6,6 +6,7 @@ import com.chainlesschain.android.core.database.dao.P2PMessageDao
 import com.chainlesschain.android.core.database.dao.OfflineQueueDao
 import com.chainlesschain.android.core.e2ee.session.PersistentSessionManager
 import com.chainlesschain.android.core.p2p.connection.P2PConnectionManager
+import com.chainlesschain.android.core.p2p.filetransfer.CheckpointManager
 import com.chainlesschain.android.core.p2p.filetransfer.FileChunker
 import com.chainlesschain.android.core.p2p.filetransfer.FileTransferManager
 import com.chainlesschain.android.core.p2p.filetransfer.FileTransferTransport
@@ -97,9 +98,10 @@ object P2PModule {
         @ApplicationContext context: Context,
         fileChunker: FileChunker,
         transport: FileTransferTransport,
-        progressTracker: TransferProgressTracker
+        progressTracker: TransferProgressTracker,
+        checkpointManager: CheckpointManager
     ): FileTransferManager {
-        return FileTransferManager(context, fileChunker, transport, progressTracker)
+        return FileTransferManager(context, fileChunker, transport, progressTracker, checkpointManager)
     }
 
     /**
