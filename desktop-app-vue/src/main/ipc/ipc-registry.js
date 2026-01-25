@@ -348,6 +348,19 @@ function registerAllIPC(dependencies) {
       logger.info("[IPC Registry] ✓ P2P IPC registered (18 handlers)");
     }
 
+    // 外部设备文件管理 (函数模式 - 中等模块，15 handlers)
+    if (p2pManager && database) {
+      const externalFileManager = dependencies.externalFileManager;
+      if (externalFileManager) {
+        logger.info("[IPC Registry] Registering External Device File IPC...");
+        const {
+          registerExternalDeviceFileIPC,
+        } = require("../file/external-device-file-ipc");
+        registerExternalDeviceFileIPC(require("electron").ipcMain, externalFileManager);
+        logger.info("[IPC Registry] ✓ External Device File IPC registered (15 handlers)");
+      }
+    }
+
     // 社交网络 (函数模式 - 大模块，33 handlers: contact + friend + post + chat)
     if (contactManager || friendManager || postManager || database) {
       logger.info("[IPC Registry] Registering Social IPC...");

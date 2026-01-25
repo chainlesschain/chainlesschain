@@ -333,22 +333,30 @@ class GlobalFileBrowserViewModel @Inject constructor(
     }
 
     /**
-     * Import file to knowledge base
+     * Import file to project
+     *
+     * @param fileId External file ID
+     * @param projectId Target project ID
      */
-    fun importFile(fileId: String) {
+    fun importFile(fileId: String, projectId: String) {
         viewModelScope.launch {
             val file = _files.value.find { it.id == fileId } ?: return@launch
 
-            fileImportRepository.importFile(file)
-                .onSuccess {
+            val result = fileImportRepository.importFileToProject(
+                externalFile = file,
+                targetProjectId = projectId
+            )
+
+            when (result) {
+                is FileImportRepository.ImportResult.Success -> {
                     // TODO: implement markAsImported in repository
                     // externalFileRepository.markAsImported(fileId)
-                    // Optionally show success message
+                    android.util.Log.d(TAG, "File imported successfully: ${result.projectFile.id}")
                 }
-                .onFailure { e ->
-                    // Handle import error
-                    android.util.Log.e(TAG, "Error importing file", e)
+                is FileImportRepository.ImportResult.Failure -> {
+                    android.util.Log.e(TAG, "Error importing file", result.error.cause)
                 }
+            }
         }
     }
 
