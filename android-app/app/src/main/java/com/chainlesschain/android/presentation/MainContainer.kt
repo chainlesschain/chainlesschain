@@ -19,6 +19,7 @@ fun MainContainer(
     onNavigateToProjectDetail: (String) -> Unit = {},
     onNavigateToLLMSettings: () -> Unit = {},
     onNavigateToLLMTest: () -> Unit = {},
+    onNavigateToFileBrowser: () -> Unit = {},
     viewModel: AuthViewModel = hiltViewModel()
 ) {
     var selectedTab by remember { mutableStateOf(0) }
@@ -43,7 +44,8 @@ fun MainContainer(
                     onProfileClick = { showProfileDialog = true }
                 )
                 1 -> ProjectScreen(
-                    onProjectClick = onNavigateToProjectDetail
+                    onProjectClick = onNavigateToProjectDetail,
+                    onNavigateToFileBrowser = onNavigateToFileBrowser
                 )
                 2 -> ExploreScreen()
                 3 -> ProfileScreen(

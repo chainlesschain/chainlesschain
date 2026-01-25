@@ -29,7 +29,9 @@ object DatabaseMigrations {
             MIGRATION_5_6,
             MIGRATION_6_7,
             MIGRATION_7_8,
-            MIGRATION_8_9
+            MIGRATION_8_9,
+            MIGRATION_9_10,
+            MIGRATION_10_11
         )
     }
 
@@ -424,6 +426,126 @@ object DatabaseMigrations {
             """.trimIndent())
 
             Log.i(TAG, "Migration 8 to 9 completed successfully")
+        }
+    }
+
+    /**
+     * 迁移 9 -> 10
+     *
+     * 添加项目文件全文搜索表（project_files_fts）
+     */
+    val MIGRATION_9_10 = object : Migration(9, 10) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            Log.i(TAG, "Migrating database from version 9 to 10")
+
+            // 创建项目文件 FTS4 虚拟表
+            db.execSQL("""
+                CREATE VIRTUAL TABLE IF NOT EXISTS `project_files_fts` USING FTS4(
+                    `name`,
+                    `path`,
+                    `content`,
+                    content=`project_files`
+                )
+            """.trimIndent())
+
+            // 创建触发器以保持 FTS 表与主表同步
+            // INSERT 触发器
+            db.execSQL("""
+                CREATE TRIGGER IF NOT EXISTS project_files_fts_ai AFTER INSERT ON project_files BEGIN
+                    INSERT INTO project_files_fts(docid, name, path, content)
+                    VALUES (NEW.rowid, NEW.name, NEW.path, COALESCE(NEW.content, ''));
+                END
+            """.trimIndent())
+
+            // DELETE 触发器
+            db.execSQL("""
+                CREATE TRIGGER IF NOT EXISTS project_files_fts_ad AFTER DELETE ON project_files BEGIN
+                    INSERT INTO project_files_fts(project_files_fts, docid, name, path, content)
+                    VALUES ('delete', OLD.rowid, OLD.name, OLD.path, COALESCE(OLD.content, ''));
+                END
+            """.trimIndent())
+
+            // UPDATE 触发器
+            db.execSQL("""
+                CREATE TRIGGER IF NOT EXISTS project_files_fts_au AFTER UPDATE ON project_files BEGIN
+                    INSERT INTO project_files_fts(project_files_fts, docid, name, path, content)
+                    VALUES ('delete', OLD.rowid, OLD.name, OLD.path, COALESCE(OLD.content, ''));
+                    INSERT INTO project_files_fts(docid, name, path, content)
+                    VALUES (NEW.rowid, NEW.name, NEW.path, COALESCE(NEW.content, ''));
+                END
+            """.trimIndent())
+
+            // 初始填充 FTS 表
+            db.execSQL("INSERT INTO project_files_fts(project_files_fts) VALUES('rebuild')")
+
+            Log.i(TAG, "Migration 9 to 10 completed successfully")
+        }
+    }
+
+    /**
+     * 迁移 10 -> 11
+     *
+     * 添加外部文件浏览器功能表：external_files 和 file_import_history
+     */
+    val MIGRATION_10_11 = object : Migration(10, 11) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            Log.i(TAG, "Migrating database from version 10 to 11")
+
+            // 创建 external_files 表
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS `external_files` (
+                    `id` TEXT NOT NULL PRIMARY KEY,
+                    `uri` TEXT NOT NULL,
+                    `displayName` TEXT NOT NULL,
+                    `mimeType` TEXT NOT NULL,
+                    `size` INTEGER NOT NULL,
+                    `category` TEXT NOT NULL,
+                    `lastModified` INTEGER NOT NULL,
+                    `displayPath` TEXT,
+                    `parentFolder` TEXT,
+                    `scannedAt` INTEGER NOT NULL,
+                    `isFavorite` INTEGER NOT NULL DEFAULT 0,
+                    `extension` TEXT
+                )
+            """.trimIndent())
+
+            // 创建 external_files 索引
+            db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_external_files_uri` ON `external_files` (`uri`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_external_files_mimeType` ON `external_files` (`mimeType`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_external_files_category` ON `external_files` (`category`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_external_files_size` ON `external_files` (`size`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_external_files_lastModified` ON `external_files` (`lastModified`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_external_files_scannedAt` ON `external_files` (`scannedAt`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_external_files_isFavorite` ON `external_files` (`isFavorite`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_external_files_displayName` ON `external_files` (`displayName`)")
+
+            // 创建 file_import_history 表
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS `file_import_history` (
+                    `id` TEXT NOT NULL PRIMARY KEY,
+                    `projectId` TEXT NOT NULL,
+                    `projectFileId` TEXT NOT NULL,
+                    `sourceUri` TEXT NOT NULL,
+                    `sourceFileName` TEXT NOT NULL,
+                    `sourceFileSize` INTEGER NOT NULL,
+                    `importType` TEXT NOT NULL,
+                    `importedAt` INTEGER NOT NULL,
+                    `importedFrom` TEXT NOT NULL,
+                    `sourceMimeType` TEXT,
+                    `note` TEXT,
+                    FOREIGN KEY (`projectId`) REFERENCES `projects`(`id`) ON DELETE CASCADE
+                )
+            """.trimIndent())
+
+            // 创建 file_import_history 索引
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_file_import_history_projectId` ON `file_import_history` (`projectId`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_file_import_history_importedAt` ON `file_import_history` (`importedAt`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_file_import_history_sourceUri` ON `file_import_history` (`sourceUri`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_file_import_history_importType` ON `file_import_history` (`importType`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_file_import_history_importedFrom` ON `file_import_history` (`importedFrom`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_file_import_history_projectFileId` ON `file_import_history` (`projectFileId`)")
+
+            Log.i(TAG, "Migration 10 to 11 completed successfully")
         }
     }
 

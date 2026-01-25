@@ -65,10 +65,13 @@ sealed class ProjectUiEvent {
  */
 @HiltViewModel
 class ProjectViewModel @Inject constructor(
+    @dagger.hilt.android.qualifiers.ApplicationContext private val appContext: android.content.Context,
     private val projectRepository: ProjectRepository,
     private val projectChatRepository: ProjectChatRepository,
     private val conversationRepository: ConversationRepository,
-    private val llmAdapterFactory: LLMAdapterFactory
+    private val llmAdapterFactory: LLMAdapterFactory,
+    private val externalFileRepository: com.chainlesschain.android.feature.filebrowser.data.repository.ExternalFileRepository,
+    private val fileImportRepository: com.chainlesschain.android.feature.filebrowser.data.repository.FileImportRepository
 ) : ViewModel() {
 
     companion object {
@@ -180,6 +183,13 @@ class ProjectViewModel @Inject constructor(
 
     private val _mentionedFiles = MutableStateFlow<List<ProjectFileEntity>>(emptyList())
     val mentionedFiles: StateFlow<List<ProjectFileEntity>> = _mentionedFiles.asStateFlow()
+
+    // ===== External File Search State (for AI Chat) =====
+    private val _externalFileSearchQuery = MutableStateFlow("")
+    val externalFileSearchQuery: StateFlow<String> = _externalFileSearchQuery.asStateFlow()
+
+    private val _availableExternalFiles = MutableStateFlow<List<com.chainlesschain.android.core.database.entity.ExternalFileEntity>>(emptyList())
+    val availableExternalFiles: StateFlow<List<com.chainlesschain.android.core.database.entity.ExternalFileEntity>> = _availableExternalFiles.asStateFlow()
 
     // ===== Thinking Stage State =====
     private val _currentThinkingStage = MutableStateFlow(ThinkingStage.UNDERSTANDING)
@@ -1051,22 +1061,26 @@ class ProjectViewModel @Inject constructor(
                 |如果问题与当前项目相关，请告诉用户切换到"项目"模式以获得更好的上下文。
                 """.trimMargin()
             }
-        } + getMentionedFilesContext()
+        }.let { contextPrompt ->
+            // Append mentioned files context (suspend call)
+            contextPrompt + getMentionedFilesContext()
+        }
     }
 
     /**
      * Get context for mentioned files
      */
-    private fun getMentionedFilesContext(): String {
+    private suspend fun getMentionedFilesContext(): String {
         val mentionedFiles = _mentionedFiles.value
         if (mentionedFiles.isEmpty()) return ""
 
         val filesContent = mentionedFiles.joinToString("\n\n") { file ->
+            val content = loadFileContent(file)
             """
             |--- @${file.name} ---
             |路径: ${file.path}
             |```${file.extension ?: ""}
-            |${file.content ?: "(内容不可用)"}
+            |$content
             |```
             """.trimMargin()
         }
@@ -1077,6 +1091,46 @@ class ProjectViewModel @Inject constructor(
             |用户引用的文件:
             |$filesContent
         """.trimMargin()
+    }
+
+    /**
+     * Load file content, supporting both normal files and LINK mode files
+     *
+     * For normal files: returns content field
+     * For LINK mode files: loads content from external URI
+     */
+    private suspend fun loadFileContent(file: ProjectFileEntity): String = withContext(kotlinx.coroutines.Dispatchers.IO) {
+        when {
+            // If content is directly available, use it
+            file.content != null -> file.content
+
+            // If it's a LINK mode file (has externalUri in metadata)
+            file.metadata?.contains("externalUri=") == true -> {
+                try {
+                    val uriString = file.metadata.substringAfter("externalUri=").substringBefore(",")
+                    val uri = android.net.Uri.parse(uriString)
+
+                    appContext.contentResolver.openInputStream(uri)?.use { inputStream ->
+                        inputStream.bufferedReader().readText()
+                    } ?: "(无法读取外部文件内容)"
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to load external file content", e)
+                    "(加载外部文件失败: ${e.message})"
+                }
+            }
+
+            // If it has a local path, load from filesystem
+            file.localPath != null -> {
+                try {
+                    java.io.File(file.localPath).readText()
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to load file from local path", e)
+                    "(加载本地文件失败: ${e.message})"
+                }
+            }
+
+            else -> "(文件内容不可用)"
+        }
     }
 
     /**
@@ -1284,6 +1338,97 @@ class ProjectViewModel @Inject constructor(
         if (text.endsWith("@")) {
             showFileMentionPopup()
         }
+    }
+
+    // ===== External File Search Operations (for AI Chat) =====
+
+    /**
+     * Update external file search query
+     */
+    fun updateExternalFileSearchQuery(query: String) {
+        _externalFileSearchQuery.value = query
+        searchExternalFilesForChat(query)
+    }
+
+    /**
+     * Search external files for AI chat
+     * Focuses on DOCUMENT and CODE categories for better context
+     */
+    fun searchExternalFilesForChat(query: String) {
+        viewModelScope.launch {
+            try {
+                val files = if (query.isBlank()) {
+                    // Return recent files when no query
+                    externalFileRepository.getRecentFiles(
+                        categories = listOf(
+                            com.chainlesschain.android.core.database.entity.FileCategory.DOCUMENT,
+                            com.chainlesschain.android.core.database.entity.FileCategory.CODE
+                        ),
+                        limit = 20
+                    )
+                } else {
+                    // Search files
+                    externalFileRepository.searchFiles(
+                        query = query,
+                        category = null,
+                        limit = 20
+                    ).first()
+                }
+                _availableExternalFiles.value = files
+            } catch (e: Exception) {
+                Log.e(TAG, "Error searching external files", e)
+                _availableExternalFiles.value = emptyList()
+            }
+        }
+    }
+
+    /**
+     * Import external file for AI chat (LINK mode, temporary)
+     *
+     * Imports the file using LINK mode to save space, then adds it to the mentioned files
+     */
+    fun importExternalFileForChat(externalFile: com.chainlesschain.android.core.database.entity.ExternalFileEntity) {
+        val projectId = _currentProjectId.value ?: return
+
+        viewModelScope.launch {
+            _isLoading.value = true
+
+            try {
+                // Import using LINK mode (no copy, just reference)
+                val result = fileImportRepository.importFileToProject(
+                    externalFile = externalFile,
+                    targetProjectId = projectId,
+                    importType = com.chainlesschain.android.core.database.entity.ImportType.LINK,
+                    importSource = com.chainlesschain.android.core.database.entity.ImportSource.AI_CHAT
+                )
+
+                when (result) {
+                    is com.chainlesschain.android.feature.filebrowser.data.repository.FileImportRepository.ImportResult.Success -> {
+                        // Add to mentioned files
+                        addFileMention(result.projectFile)
+
+                        _uiEvents.emit(ProjectUiEvent.ShowMessage("文件 ${externalFile.displayName} 已添加到对话上下文"))
+                    }
+                    is com.chainlesschain.android.feature.filebrowser.data.repository.FileImportRepository.ImportResult.Failure -> {
+                        val errorMessage = result.error.message
+                        _uiEvents.emit(ProjectUiEvent.ShowError("导入失败: $errorMessage"))
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error importing external file for chat", e)
+                _uiEvents.emit(ProjectUiEvent.ShowError("导入失败: ${e.message}"))
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    /**
+     * Load available external files
+     * Called when showing the file mention popup to populate external file list
+     */
+    fun loadAvailableExternalFiles() {
+        searchExternalFilesForChat("")
     }
 
     // ===== Task Plan Operations =====

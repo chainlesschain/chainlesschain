@@ -10,6 +10,8 @@ import com.chainlesschain.android.core.database.dao.OfflineQueueDao
 import com.chainlesschain.android.core.database.dao.FileTransferDao
 import com.chainlesschain.android.core.database.dao.ProjectDao
 import com.chainlesschain.android.core.database.dao.ProjectChatMessageDao
+import com.chainlesschain.android.core.database.dao.ExternalFileDao
+import com.chainlesschain.android.core.database.dao.FileImportHistoryDao
 import com.chainlesschain.android.core.database.entity.KnowledgeItemEntity
 import com.chainlesschain.android.core.database.entity.ConversationEntity
 import com.chainlesschain.android.core.database.entity.MessageEntity
@@ -21,6 +23,8 @@ import com.chainlesschain.android.core.database.entity.ProjectFileEntity
 import com.chainlesschain.android.core.database.entity.ProjectActivityEntity
 import com.chainlesschain.android.core.database.entity.ProjectChatMessageEntity
 import com.chainlesschain.android.core.database.entity.KnowledgeItemFts
+import com.chainlesschain.android.core.database.entity.ExternalFileEntity
+import com.chainlesschain.android.core.database.entity.FileImportHistoryEntity
 import com.chainlesschain.android.core.database.fts.ProjectFileFts
 import com.chainlesschain.android.core.database.util.Converters
 
@@ -45,8 +49,10 @@ import com.chainlesschain.android.core.database.util.Converters
         ProjectFileFts::class,
         ProjectActivityEntity::class,
         ProjectChatMessageEntity::class,
+        ExternalFileEntity::class,
+        FileImportHistoryEntity::class,
     ],
-    version = 10,
+    version = 11,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -72,6 +78,12 @@ abstract class ChainlessChainDatabase : RoomDatabase() {
 
     // 项目AI聊天消息DAO
     abstract fun projectChatMessageDao(): ProjectChatMessageDao
+
+    // 外部文件DAO
+    abstract fun externalFileDao(): ExternalFileDao
+
+    // 文件导入历史DAO
+    abstract fun fileImportHistoryDao(): FileImportHistoryDao
 
     companion object {
         const val DATABASE_NAME = "chainlesschain.db"
