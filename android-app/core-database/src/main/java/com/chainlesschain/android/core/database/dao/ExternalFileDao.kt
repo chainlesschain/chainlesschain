@@ -118,6 +118,9 @@ interface ExternalFileDao {
     @Query("SELECT COUNT(*) FROM external_files WHERE scannedAt >= :timestamp")
     suspend fun getNewFilesCount(timestamp: Long): Int
 
+    @Query("SELECT MAX(scannedAt) FROM external_files")
+    suspend fun getLastScanTimestamp(): Long?
+
     // ===== 收藏操作 =====
 
     @Query("UPDATE external_files SET isFavorite = :isFavorite WHERE id = :fileId")

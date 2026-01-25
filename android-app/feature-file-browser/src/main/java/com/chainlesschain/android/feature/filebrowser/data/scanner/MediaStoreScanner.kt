@@ -230,6 +230,174 @@ class MediaStoreScanner @Inject constructor(
     }
 
     /**
+     * Incremental scan - only scan new or modified files
+     *
+     * Scans files modified after the last scan timestamp to reduce overhead.
+     * Ideal for periodic updates without full re-scan.
+     *
+     * @return Result containing number of new/updated files
+     */
+    suspend fun scanIncrementalFiles(): Result<Int> = withContext(Dispatchers.IO) {
+        try {
+            // Get last scan timestamp
+            val lastScanTime = externalFileDao.getLastScanTimestamp() ?: 0L
+            val lastScanSeconds = lastScanTime / 1000 // Convert to seconds for MediaStore
+
+            _scanProgress.value = ScanProgress.Scanning(0, 0, "Incremental Update")
+
+            var totalScanned = 0
+
+            // Scan images modified after last scan
+            val imageCount = scanMediaTypeIncremental(
+                MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                MediaType.IMAGE,
+                lastScanSeconds
+            )
+            totalScanned += imageCount
+            Log.d(TAG, "Incremental scan: $imageCount new/updated images")
+
+            delay(BATCH_DELAY_MS)
+
+            // Scan videos modified after last scan
+            val videoCount = scanMediaTypeIncremental(
+                MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
+                MediaType.VIDEO,
+                lastScanSeconds
+            )
+            totalScanned += videoCount
+            Log.d(TAG, "Incremental scan: $videoCount new/updated videos")
+
+            delay(BATCH_DELAY_MS)
+
+            // Scan audio modified after last scan
+            val audioCount = scanMediaTypeIncremental(
+                MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
+                MediaType.AUDIO,
+                lastScanSeconds
+            )
+            totalScanned += audioCount
+            Log.d(TAG, "Incremental scan: $audioCount new/updated audio files")
+
+            _scanProgress.value = ScanProgress.Completed(totalScanned)
+            Log.d(TAG, "Incremental scan completed: $totalScanned new/updated files")
+
+            Result.success(totalScanned)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error in incremental scan", e)
+            _scanProgress.value = ScanProgress.Error(e.message ?: "Incremental scan failed")
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Scan specific media type incrementally (only new/modified files)
+     *
+     * @param contentUri MediaStore content URI
+     * @param mediaType Type of media (IMAGE, VIDEO, AUDIO)
+     * @param lastScanSeconds Timestamp of last scan (in seconds)
+     * @return Number of new/updated files
+     */
+    private suspend fun scanMediaTypeIncremental(
+        contentUri: android.net.Uri,
+        mediaType: MediaType,
+        lastScanSeconds: Long
+    ): Int = withContext(Dispatchers.IO) {
+        val contentResolver: ContentResolver = context.contentResolver
+        val projection = arrayOf(
+            MediaStore.MediaColumns._ID,
+            MediaStore.MediaColumns.DISPLAY_NAME,
+            MediaStore.MediaColumns.DATA,
+            MediaStore.MediaColumns.SIZE,
+            MediaStore.MediaColumns.DATE_MODIFIED,
+            MediaStore.MediaColumns.MIME_TYPE,
+            MediaStore.MediaColumns.WIDTH,
+            MediaStore.MediaColumns.HEIGHT,
+            MediaStore.MediaColumns.DURATION
+        )
+
+        // Selection: only files modified after last scan
+        val selection = "${MediaStore.MediaColumns.DATE_MODIFIED} > ?"
+        val selectionArgs = arrayOf(lastScanSeconds.toString())
+
+        var totalCount = 0
+        val batch = mutableListOf<ExternalFileEntity>()
+
+        contentResolver.query(
+            contentUri,
+            projection,
+            selection,
+            selectionArgs,
+            "${MediaStore.MediaColumns.DATE_MODIFIED} DESC"
+        )?.use { cursor ->
+            val idColumn = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns._ID)
+            val nameColumn = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DISPLAY_NAME)
+            val pathColumn = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DATA)
+            val sizeColumn = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.SIZE)
+            val dateColumn = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DATE_MODIFIED)
+            val mimeColumn = cursor.getColumnIndexOrThrow(MediaStore.MediaColumns.MIME_TYPE)
+
+            val totalFiles = cursor.count
+
+            while (cursor.moveToNext()) {
+                try {
+                    val filePath = cursor.getString(pathColumn)
+                    val file = File(filePath)
+
+                    if (!file.exists()) {
+                        continue
+                    }
+
+                    val id = cursor.getLong(idColumn)
+                    val uri = android.net.Uri.withAppendedPath(contentUri, id.toString()).toString()
+                    val displayName = cursor.getString(nameColumn)
+                    val mimeType = cursor.getString(mimeColumn) ?: ""
+                    val extension = displayName.substringAfterLast('.', "")
+
+                    val entity = ExternalFileEntity(
+                        id = uri,
+                        uri = uri,
+                        displayName = displayName,
+                        mimeType = mimeType,
+                        size = cursor.getLong(sizeColumn),
+                        category = mediaType.toFileCategory(),
+                        lastModified = cursor.getLong(dateColumn) * 1000,
+                        displayPath = filePath,
+                        parentFolder = extractParentFolder(filePath),
+                        scannedAt = System.currentTimeMillis(),
+                        isFavorite = false,
+                        extension = if (extension.isNotEmpty()) extension else null
+                    )
+
+                    batch.add(entity)
+                    totalCount++
+
+                    // Insert batch when size limit reached
+                    if (batch.size >= BATCH_SIZE) {
+                        externalFileDao.insertAll(batch)
+                        _scanProgress.value = ScanProgress.Scanning(
+                            totalCount,
+                            totalFiles,
+                            "${mediaType.name} (Incremental)"
+                        )
+                        batch.clear()
+                        delay(BATCH_DELAY_MS)
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error processing file in incremental scan", e)
+                }
+            }
+
+            // Insert remaining files
+            if (batch.isNotEmpty()) {
+                externalFileDao.insertAll(batch)
+                batch.clear()
+            }
+        }
+
+        totalCount
+    }
+
+    /**
      * Clear all cached files from database
      *
      * @return Result indicating success or failure

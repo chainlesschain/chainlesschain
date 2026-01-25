@@ -21,8 +21,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.chainlesschain.android.core.database.entity.FileCategory
+import com.chainlesschain.android.core.database.entity.ExternalFileEntity
 import com.chainlesschain.android.feature.filebrowser.data.scanner.MediaStoreScanner
 import com.chainlesschain.android.feature.filebrowser.ui.components.FileListItem
+import com.chainlesschain.android.feature.filebrowser.ui.components.FilePreviewDialog
 import com.chainlesschain.android.feature.filebrowser.viewmodel.GlobalFileBrowserViewModel
 
 /**
@@ -59,6 +61,7 @@ fun GlobalFileBrowserScreen(
     val sortDirection by viewModel.sortDirection.collectAsState()
 
     var showSearchBar by remember { mutableStateOf(false) }
+    var fileToPreview by remember { mutableStateOf<ExternalFileEntity?>(null) }
 
     // Permission launcher
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -233,7 +236,7 @@ fun GlobalFileBrowserScreen(
                         items(files, key = { it.id }) { file ->
                             FileListItem(
                                 file = file,
-                                onFileClick = { /* TODO: 预览文件 */ },
+                                onFileClick = { fileToPreview = file },
                                 onImportClick = {
                                     if (projectId != null) {
                                         viewModel.importFile(file.id, projectId)
@@ -249,6 +252,14 @@ fun GlobalFileBrowserScreen(
                 }
             }
         }
+    }
+
+    // File preview dialog
+    fileToPreview?.let { file ->
+        FilePreviewDialog(
+            file = file,
+            onDismiss = { fileToPreview = null }
+        )
     }
 }
 
