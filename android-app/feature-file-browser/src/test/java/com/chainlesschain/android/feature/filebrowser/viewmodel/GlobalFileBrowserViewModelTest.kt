@@ -4,13 +4,18 @@ import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import app.cash.turbine.test
 import com.chainlesschain.android.core.database.entity.ExternalFileEntity
 import com.chainlesschain.android.core.database.entity.FileCategory
+import com.chainlesschain.android.feature.filebrowser.ai.FileSummarizer
+import com.chainlesschain.android.feature.filebrowser.cache.ThumbnailCache
 import com.chainlesschain.android.feature.filebrowser.data.repository.ExternalFileRepository
 import com.chainlesschain.android.feature.filebrowser.data.repository.FileImportRepository
 import com.chainlesschain.android.feature.filebrowser.data.scanner.MediaStoreScanner
+import com.chainlesschain.android.feature.filebrowser.ml.FileClassifier
+import com.chainlesschain.android.feature.filebrowser.ml.TextRecognizer
 import com.chainlesschain.android.feature.filebrowser.viewmodel.GlobalFileBrowserViewModel
 import io.mockk.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.*
 import org.junit.After
@@ -44,6 +49,10 @@ class GlobalFileBrowserViewModelTest {
     private lateinit var mockScanner: MediaStoreScanner
     private lateinit var mockFileRepository: ExternalFileRepository
     private lateinit var mockImportRepository: FileImportRepository
+    private lateinit var mockThumbnailCache: ThumbnailCache
+    private lateinit var mockFileClassifier: FileClassifier
+    private lateinit var mockTextRecognizer: TextRecognizer
+    private lateinit var mockFileSummarizer: FileSummarizer
 
     private val testDispatcher = StandardTestDispatcher()
 
@@ -54,9 +63,13 @@ class GlobalFileBrowserViewModelTest {
         mockScanner = mockk(relaxed = true)
         mockFileRepository = mockk(relaxed = true)
         mockImportRepository = mockk(relaxed = true)
+        mockThumbnailCache = mockk(relaxed = true)
+        mockFileClassifier = mockk(relaxed = true)
+        mockTextRecognizer = mockk(relaxed = true)
+        mockFileSummarizer = mockk(relaxed = true)
 
-        // Mock scanner progress flow
-        every { mockScanner.scanProgress } returns flowOf(MediaStoreScanner.ScanProgress.Idle)
+        // Mock scanner progress flow (must be StateFlow)
+        every { mockScanner.scanProgress } returns MutableStateFlow(MediaStoreScanner.ScanProgress.Idle)
 
         // Mock empty file list by default
         every { mockFileRepository.getAllFiles(any(), any()) } returns flowOf(emptyList())
@@ -64,7 +77,11 @@ class GlobalFileBrowserViewModelTest {
         viewModel = GlobalFileBrowserViewModel(
             mediaStoreScanner = mockScanner,
             externalFileRepository = mockFileRepository,
-            fileImportRepository = mockImportRepository
+            fileImportRepository = mockImportRepository,
+            thumbnailCache = mockThumbnailCache,
+            fileClassifier = mockFileClassifier,
+            textRecognizer = mockTextRecognizer,
+            fileSummarizer = mockFileSummarizer
         )
     }
 
@@ -109,8 +126,7 @@ class GlobalFileBrowserViewModelTest {
     fun `scan completion should load files and statistics`() = runTest {
         val testFiles = List(5) { createTestFile("file$it.txt") }
 
-        every { mockScanner.scanProgress } returns flowOf(
-            MediaStoreScanner.ScanProgress.Idle,
+        every { mockScanner.scanProgress } returns MutableStateFlow<MediaStoreScanner.ScanProgress>(
             MediaStoreScanner.ScanProgress.Completed(5)
         )
         every { mockFileRepository.getAllFiles(any(), any()) } returns flowOf(testFiles)
@@ -122,7 +138,11 @@ class GlobalFileBrowserViewModelTest {
         val vm = GlobalFileBrowserViewModel(
             mediaStoreScanner = mockScanner,
             externalFileRepository = mockFileRepository,
-            fileImportRepository = mockImportRepository
+            fileImportRepository = mockImportRepository,
+            thumbnailCache = mockThumbnailCache,
+            fileClassifier = mockFileClassifier,
+            textRecognizer = mockTextRecognizer,
+            fileSummarizer = mockFileSummarizer
         )
 
         testDispatcher.scheduler.advanceUntilIdle()
@@ -341,7 +361,7 @@ class GlobalFileBrowserViewModelTest {
 
     @Test
     fun `empty file list should show empty state`() = runTest {
-        every { mockScanner.scanProgress } returns flowOf(
+        every { mockScanner.scanProgress } returns MutableStateFlow<MediaStoreScanner.ScanProgress>(
             MediaStoreScanner.ScanProgress.Completed(0)
         )
         every { mockFileRepository.getAllFiles(any(), any()) } returns flowOf(emptyList())
@@ -349,7 +369,11 @@ class GlobalFileBrowserViewModelTest {
         val vm = GlobalFileBrowserViewModel(
             mediaStoreScanner = mockScanner,
             externalFileRepository = mockFileRepository,
-            fileImportRepository = mockImportRepository
+            fileImportRepository = mockImportRepository,
+            thumbnailCache = mockThumbnailCache,
+            fileClassifier = mockFileClassifier,
+            textRecognizer = mockTextRecognizer,
+            fileSummarizer = mockFileSummarizer
         )
 
         testDispatcher.scheduler.advanceUntilIdle()
@@ -362,14 +386,18 @@ class GlobalFileBrowserViewModelTest {
 
     @Test
     fun `scan error should show error state`() = runTest {
-        every { mockScanner.scanProgress } returns flowOf(
+        every { mockScanner.scanProgress } returns MutableStateFlow<MediaStoreScanner.ScanProgress>(
             MediaStoreScanner.ScanProgress.Error("Permission denied")
         )
 
         val vm = GlobalFileBrowserViewModel(
             mediaStoreScanner = mockScanner,
             externalFileRepository = mockFileRepository,
-            fileImportRepository = mockImportRepository
+            fileImportRepository = mockImportRepository,
+            thumbnailCache = mockThumbnailCache,
+            fileClassifier = mockFileClassifier,
+            textRecognizer = mockTextRecognizer,
+            fileSummarizer = mockFileSummarizer
         )
 
         testDispatcher.scheduler.advanceUntilIdle()

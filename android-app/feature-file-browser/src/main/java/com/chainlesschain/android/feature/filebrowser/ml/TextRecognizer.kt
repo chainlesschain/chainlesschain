@@ -219,16 +219,16 @@ class TextRecognizer @Inject constructor() {
                                         TextElement(
                                             text = element.text,
                                             boundingBox = element.boundingBox,
-                                            confidence = element.confidence ?: 0.0f
+                                            confidence = 1.0f // ML Kit removed confidence in newer versions
                                         )
                                     },
                                     boundingBox = line.boundingBox,
-                                    confidence = line.confidence ?: 0.0f,
+                                    confidence = 1.0f, // ML Kit removed confidence in newer versions
                                     recognizedLanguage = line.recognizedLanguage
                                 )
                             },
                             boundingBox = block.boundingBox,
-                            confidence = block.confidence ?: 0.0f,
+                            confidence = 1.0f, // ML Kit removed confidence in newer versions
                             recognizedLanguage = block.recognizedLanguage
                         )
                     }

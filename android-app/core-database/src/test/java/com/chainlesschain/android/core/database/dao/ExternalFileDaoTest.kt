@@ -270,9 +270,9 @@ class ExternalFileDaoTest {
     fun `searchFiles should search in displayPath`() = runTest {
         // Arrange
         externalFileDao.insertAll(listOf(
-            createTestFile(id = "file-1", displayPath = "/storage/emulated/0/Documents/work.pdf"),
-            createTestFile(id = "file-2", displayPath = "/storage/emulated/0/Pictures/photo.jpg"),
-            createTestFile(id = "file-3", displayPath = "/storage/emulated/0/Documents/report.pdf")
+            createTestFile(id = "file-1", displayPath = "/storage/emulated/0/Documents/work.pdf", parentFolder = "Documents"),
+            createTestFile(id = "file-2", displayPath = "/storage/emulated/0/Pictures/photo.jpg", parentFolder = "Pictures"),
+            createTestFile(id = "file-3", displayPath = "/storage/emulated/0/Documents/report.pdf", parentFolder = "Documents")
         ))
 
         // Act

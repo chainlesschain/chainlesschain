@@ -4,7 +4,7 @@
 
 import { test, expect } from '@playwright/test';
 import { launchElectronApp, closeElectronApp, login, callIPC } from '../../helpers/common';
-import { createAndOpenProject, waitForProjectDetailLoad } from './project-detail-helpers';
+import { createAndOpenProject, waitForProjectDetailLoad } from '../../helpers/project-detail';
 
 test.describe('Debug: 文件创建和文件树', () => {
   test('创建文件并验证文件树更新', async () => {

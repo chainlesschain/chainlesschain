@@ -289,8 +289,28 @@ fun NavGraph(
         ) { backStackEntry ->
             val projectId = backStackEntry.arguments?.getString("projectId")
 
+            // Get ProjectViewModel to fetch available projects
+            val projectViewModel: com.chainlesschain.android.feature.project.viewmodel.ProjectViewModel = hiltViewModel()
+            val authViewModel: AuthViewModel = hiltViewModel()
+            val authState by authViewModel.uiState.collectAsState()
+            val projectListState by projectViewModel.projectListState.collectAsState()
+
+            // Load projects when screen launches
+            LaunchedEffect(authState.currentUser) {
+                authState.currentUser?.let { user ->
+                    projectViewModel.setCurrentUser(user.id)
+                }
+            }
+
+            // Extract projects from state
+            val availableProjects = when (val state = projectListState) {
+                is com.chainlesschain.android.feature.project.model.ProjectListState.Success -> state.projects.map { it.project }
+                else -> emptyList()
+            }
+
             GlobalFileBrowserScreen(
                 projectId = projectId,
+                availableProjects = availableProjects,
                 onNavigateBack = {
                     navController.popBackStack()
                 },

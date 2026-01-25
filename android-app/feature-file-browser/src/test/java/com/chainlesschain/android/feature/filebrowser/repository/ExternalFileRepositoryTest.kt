@@ -191,7 +191,7 @@ class ExternalFileRepositoryTest {
         val testFile = createTestFile("test.txt", isFavorite = false)
 
         coEvery { mockDao.getById(testFile.id) } returns testFile
-        coEvery { mockDao.updateFavorite(testFile.id, true) } just Runs
+        coEvery { mockDao.updateFavorite(testFile.id, true) } just runs
 
         val result = repository.toggleFavorite(testFile.id)
 
@@ -250,7 +250,7 @@ class ExternalFileRepositoryTest {
 
     @Test
     fun `deleteAll should clear all files`() = runTest {
-        coEvery { mockDao.deleteAll() } just Runs
+        coEvery { mockDao.deleteAll() } just runs
 
         repository.deleteAll()
 

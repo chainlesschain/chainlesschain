@@ -43,7 +43,8 @@ import java.io.InputStreamReader
 fun FilePreviewDialog(
     file: ExternalFileEntity,
     onDismiss: () -> Unit,
-    textRecognizer: com.chainlesschain.android.feature.filebrowser.ml.TextRecognizer? = null
+    textRecognizer: com.chainlesschain.android.feature.filebrowser.ml.TextRecognizer? = null,
+    fileSummarizer: com.chainlesschain.android.feature.filebrowser.ai.FileSummarizer? = null
 ) {
     val context = LocalContext.current
     val contentResolver = context.contentResolver
@@ -51,6 +52,8 @@ fun FilePreviewDialog(
     var previewState by remember { mutableStateOf<PreviewState>(PreviewState.Loading) }
     var ocrResult by remember { mutableStateOf<com.chainlesschain.android.feature.filebrowser.ml.TextRecognizer.RecognitionResult?>(null) }
     var isRecognizingText by remember { mutableStateOf(false) }
+    var summaryResult by remember { mutableStateOf<com.chainlesschain.android.feature.filebrowser.ai.FileSummarizer.SummaryResult?>(null) }
+    var isGeneratingSummary by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
 
     // Load preview content
@@ -144,7 +147,16 @@ fun FilePreviewDialog(
 
                         IconButton(
                             onClick = {
-                                // TODO: 打开文件所在位置
+                                // Open file location in file manager
+                                try {
+                                    val intent = android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
+                                        setDataAndType(android.net.Uri.parse(file.uri), "resource/folder")
+                                        addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                                    }
+                                    context.startActivity(intent)
+                                } catch (e: Exception) {
+                                    android.util.Log.e("FilePreviewDialog", "Error opening file location", e)
+                                }
                             }
                         ) {
                             Icon(Icons.Default.FolderOpen, contentDescription = "打开所在文件夹")
@@ -152,7 +164,17 @@ fun FilePreviewDialog(
 
                         IconButton(
                             onClick = {
-                                // TODO: 分享文件
+                                // Share file using Android Share Sheet
+                                try {
+                                    val intent = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+                                        type = file.mimeType ?: "*/*"
+                                        putExtra(android.content.Intent.EXTRA_STREAM, android.net.Uri.parse(file.uri))
+                                        addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                    }
+                                    context.startActivity(android.content.Intent.createChooser(intent, "分享文件"))
+                                } catch (e: Exception) {
+                                    android.util.Log.e("FilePreviewDialog", "Error sharing file", e)
+                                }
                             }
                         ) {
                             Icon(Icons.Default.Share, contentDescription = "分享")
@@ -161,51 +183,78 @@ fun FilePreviewDialog(
                 )
 
                 // Content area
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
-                ) {
-                    when (val state = previewState) {
-                        is PreviewState.Loading -> {
-                            CircularProgressIndicator(
-                                modifier = Modifier.align(Alignment.Center)
-                            )
-                        }
+                Column(modifier = Modifier.fillMaxSize()) {
+                    // Main preview content
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                    ) {
+                        when (val state = previewState) {
+                            is PreviewState.Loading -> {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.align(Alignment.Center)
+                                )
+                            }
 
-                        is PreviewState.Image -> {
-                            ImagePreview(uri = state.uri)
-                        }
+                            is PreviewState.Image -> {
+                                ImagePreview(uri = state.uri)
+                            }
 
-                        is PreviewState.Text -> {
-                            TextPreview(content = state.content)
-                        }
+                            is PreviewState.Text -> {
+                                TextPreview(content = state.content)
+                            }
 
-                        is PreviewState.Pdf -> {
-                            PdfPreviewScreen(
-                                uri = state.uri,
-                                contentResolver = contentResolver
-                            )
-                        }
+                            is PreviewState.Pdf -> {
+                                PdfPreviewScreen(
+                                    uri = state.uri,
+                                    contentResolver = contentResolver
+                                )
+                            }
 
-                        is PreviewState.Media -> {
-                            MediaPlayerScreen(
-                                file = state.file,
-                                uri = state.uri
-                            )
-                        }
+                            is PreviewState.Media -> {
+                                MediaPlayerScreen(
+                                    file = state.file,
+                                    uri = state.uri
+                                )
+                            }
 
-                        is PreviewState.MediaInfo -> {
-                            MediaInfoPreview(file = state.file)
-                        }
+                            is PreviewState.MediaInfo -> {
+                                MediaInfoPreview(file = state.file)
+                            }
 
-                        is PreviewState.Info -> {
-                            FileInfoPreview(file = state.file)
-                        }
+                            is PreviewState.Info -> {
+                                FileInfoPreview(file = state.file)
+                            }
 
-                        is PreviewState.Error -> {
-                            ErrorPreview(message = state.message)
+                            is PreviewState.Error -> {
+                                ErrorPreview(message = state.message)
+                            }
                         }
+                    }
+
+                    // File Summary Card (for text, code, document files)
+                    if (fileSummarizer != null && shouldShowSummary(file.category)) {
+                        FileSummaryCard(
+                            summary = summaryResult,
+                            isLoading = isGeneratingSummary,
+                            onGenerate = {
+                                coroutineScope.launch {
+                                    isGeneratingSummary = true
+                                    val result = fileSummarizer.summarizeFile(
+                                        contentResolver = contentResolver,
+                                        uri = file.uri,
+                                        mimeType = file.mimeType,
+                                        fileName = file.displayName,
+                                        maxLength = com.chainlesschain.android.feature.filebrowser.ai.FileSummarizer.LENGTH_MEDIUM
+                                    )
+                                    summaryResult = result
+                                    isGeneratingSummary = false
+                                }
+                            },
+                            modifier = Modifier.padding(16.dp)
+                        )
                     }
                 }
             }
@@ -219,9 +268,49 @@ fun FilePreviewDialog(
             fileName = file.displayName,
             onDismiss = { ocrResult = null },
             onSave = { editedText ->
-                // TODO: Save edited text to file or knowledge base
+                // Save edited OCR text as a new text file
+                coroutineScope.launch {
+                    try {
+                        val fileName = "${file.displayName.substringBeforeLast(".")}_ocr_${System.currentTimeMillis()}.txt"
+                        val documentsDir = android.os.Environment.getExternalStoragePublicDirectory(
+                            android.os.Environment.DIRECTORY_DOCUMENTS
+                        )
+                        val outputFile = java.io.File(documentsDir, fileName)
+
+                        // Create directory if it doesn't exist
+                        documentsDir.mkdirs()
+
+                        // Write text to file
+                        outputFile.writeText(editedText)
+
+                        // Show success message via Log (UI can show Snackbar if available)
+                        android.util.Log.i("FilePreviewDialog", "OCR text saved to: ${outputFile.absolutePath}")
+
+                        // Optionally, scan the file so it appears in MediaStore
+                        android.media.MediaScannerConnection.scanFile(
+                            context,
+                            arrayOf(outputFile.absolutePath),
+                            arrayOf("text/plain"),
+                            null
+                        )
+                    } catch (e: Exception) {
+                        android.util.Log.e("FilePreviewDialog", "Error saving OCR text", e)
+                    }
+                }
             }
         )
+    }
+}
+
+/**
+ * Check if summary should be shown for this file category
+ */
+private fun shouldShowSummary(category: FileCategory): Boolean {
+    return when (category) {
+        FileCategory.DOCUMENT -> true
+        FileCategory.CODE -> true
+        FileCategory.OTHER -> true  // May contain text files
+        else -> false  // Images, videos, audio don't need text summary
     }
 }
 

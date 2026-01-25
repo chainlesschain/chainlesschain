@@ -9,7 +9,7 @@
 
 import { test, expect } from '@playwright/test';
 import { launchElectronApp, closeElectronApp, takeScreenshot, login, callIPC } from '../../helpers/common';
-import { createAndOpenProject, sendChatMessage } from './project-detail-helpers';
+import { createAndOpenProject, sendChatMessage } from '../../helpers/project-detail';
 
 test.describe('消息显示修复验证', () => {
   test('历史消息应该正常显示', async () => {

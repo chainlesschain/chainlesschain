@@ -7,7 +7,7 @@ import { launchElectronApp, closeElectronApp, login, callIPC } from '../../helpe
 import {
   createAndOpenProject,
   waitForProjectDetailLoad,
-} from './project-detail-helpers';
+} from '../../helpers/project-detail';
 
 test.describe('Debug: 控制台日志分析', () => {
   test('捕获刷新过程的所有日志', async () => {

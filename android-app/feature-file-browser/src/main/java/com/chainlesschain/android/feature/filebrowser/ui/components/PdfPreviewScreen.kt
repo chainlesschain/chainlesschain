@@ -49,6 +49,7 @@ fun PdfPreviewScreen(
     var totalPages by remember { mutableIntStateOf(0) }
     var scale by remember { mutableFloatStateOf(1f) }
     var offset by remember { mutableStateOf(Offset.Zero) }
+    var showPageJumpDialog by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
 
@@ -261,7 +262,7 @@ fun PdfPreviewScreen(
                         // Jump to page button
                         IconButton(
                             onClick = {
-                                // TODO: Show page jump dialog
+                                showPageJumpDialog = true
                             }
                         ) {
                             Icon(
@@ -285,6 +286,57 @@ fun PdfPreviewScreen(
                 }
             }
         }
+    }
+
+    // Page jump dialog
+    if (showPageJumpDialog) {
+        var pageInput by remember { mutableStateOf("${currentPage + 1}") }
+
+        AlertDialog(
+            onDismissRequest = { showPageJumpDialog = false },
+            title = { Text("跳转到页面") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = "输入页码 (1-$totalPages):",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    OutlinedTextField(
+                        value = pageInput,
+                        onValueChange = { pageInput = it },
+                        singleLine = true,
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                            keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                FilledTonalButton(
+                    onClick = {
+                        val targetPage = pageInput.toIntOrNull()
+                        if (targetPage != null && targetPage in 1..totalPages) {
+                            currentPage = targetPage - 1
+                            showPageJumpDialog = false
+                        } else {
+                            android.widget.Toast.makeText(
+                                context,
+                                "请输入有效的页码 (1-$totalPages)",
+                                android.widget.Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    }
+                ) {
+                    Text("跳转")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showPageJumpDialog = false }) {
+                    Text("取消")
+                }
+            }
+        )
     }
 }
 

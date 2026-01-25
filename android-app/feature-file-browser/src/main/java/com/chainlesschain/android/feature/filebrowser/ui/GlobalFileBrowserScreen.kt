@@ -309,7 +309,8 @@ fun GlobalFileBrowserScreen(
         FilePreviewDialog(
             file = file,
             onDismiss = { fileToPreview = null },
-            textRecognizer = viewModel.textRecognizer
+            textRecognizer = viewModel.textRecognizer,
+            fileSummarizer = viewModel.fileSummarizer
         )
     }
 

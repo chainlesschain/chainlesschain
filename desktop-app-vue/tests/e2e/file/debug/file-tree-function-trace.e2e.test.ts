@@ -7,7 +7,7 @@ import { launchElectronApp, closeElectronApp, login, callIPC } from '../../helpe
 import {
   createAndOpenProject,
   waitForProjectDetailLoad,
-} from './project-detail-helpers';
+} from '../../helpers/project-detail';
 
 test.describe('Debug: 追踪刷新函数', () => {
   test('监控handleRefreshFiles函数调用', async () => {
