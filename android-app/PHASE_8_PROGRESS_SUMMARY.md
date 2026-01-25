@@ -489,18 +489,20 @@ statistics: StateFlow<FileBrowserStatistics?>
 
 ## 📁 文件清单
 
-### 已实现文件 (10个, 2,735行)
+### 已实现文件 (13个, 3,852行)
 
 ```
 android-app/
 ├── core-database/
-│   └── entity/
-│       └── ExternalFileEntity.kt           (170行) ✅ 数据模型
+│   ├── entity/
+│   │   └── ExternalFileEntity.kt           (170行) ✅ 数据模型
+│   └── dao/
+│       └── ExternalFileDao.kt              (205行) ✅ 数据访问 (+3行)
 │
 ├── feature-file-browser/
 │   ├── data/
 │   │   ├── scanner/
-│   │   │   └── MediaStoreScanner.kt         (278行) ✅ 扫描引擎
+│   │   │   └── MediaStoreScanner.kt         (436行) ✅ 扫描引擎 (+158行增量扫描)
 │   │   └── repository/
 │   │       ├── ExternalFileRepository.kt    (176行) ✅ 文件仓库
 │   │       └── FileImportRepository.kt      (207行) ✅ 导入仓库
@@ -508,11 +510,23 @@ android-app/
 │   ├── viewmodel/
 │   │   └── GlobalFileBrowserViewModel.kt    (391行) ✅ 状态管理
 │   │
-│   └── ui/
-│       ├── GlobalFileBrowserScreen.kt       (443行) ✅ 主界面
-│       └── components/
-│           ├── FileListItem.kt              (203行) ✅ 列表项
-│           └── FileImportDialog.kt          (200行) ✅ 导入对话框
+│   ├── ui/
+│   │   ├── GlobalFileBrowserScreen.kt       (451行) ✅ 主界面 (+8行预览集成)
+│   │   └── components/
+│   │       ├── FileListItem.kt              (203行) ✅ 列表项
+│   │       ├── FileImportDialog.kt          (200行) ✅ 导入对话框
+│   │       └── FilePreviewDialog.kt         (478行) ✅ 文件预览 [NEW]
+│   │
+│   └── src/
+│       ├── test/java/ (单元测试)
+│       │   ├── MediaStoreScannerTest.kt             (342行) ✅
+│       │   ├── ExternalFileRepositoryTest.kt        (320行) ✅
+│       │   ├── FileImportRepositoryTest.kt          (229行) ✅
+│       │   └── GlobalFileBrowserViewModelTest.kt    (407行) ✅
+│       │
+│       └── androidTest/java/ (集成测试)
+│           └── integration/
+│               └── FileBrowserIntegrationTest.kt    (545行) ✅ [NEW]
 │
 ├── feature-project/
 │   └── ui/
@@ -524,18 +538,11 @@ android-app/
             └── EnhancedAIChatScreen.kt      (868行) ✅ AI聊天界面(含附件功能)
 ```
 
-### 待添加文件 (测试)
-
-```
-android-app/feature-file-browser/
-└── src/test/java/
-    ├── MediaStoreScannerTest.kt         (待添加) ❌ Scanner单元测试
-    ├── ExternalFileRepositoryTest.kt    (待添加) ❌ Repository单元测试
-    ├── FileImportRepositoryTest.kt      (待添加) ❌ Import单元测试
-    ├── GlobalFileBrowserViewModelTest.kt (待添加) ❌ ViewModel单元测试
-    └── integration/
-        └── FileBrowserIntegrationTest.kt (待添加) ❌ 集成测试
-```
+**代码统计**:
+- 产品代码: 3,307行
+- 单元测试: 1,298行 (48个测试用例)
+- 集成测试: 545行 (10个测试场景)
+- **总计**: 5,150行 (不含注释和空行)
 
 ---
 
