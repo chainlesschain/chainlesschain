@@ -60,10 +60,17 @@ fun GlobalFileBrowserScreen(
     val searchQuery by viewModel.searchQuery.collectAsState()
     val sortBy by viewModel.sortBy.collectAsState()
     val sortDirection by viewModel.sortDirection.collectAsState()
+    val availableProjects by viewModel.availableProjects.collectAsState()
 
     var showSearchBar by remember { mutableStateOf(false) }
     var fileToPreview by remember { mutableStateOf<ExternalFileEntity?>(null) }
+    var fileToImport by remember { mutableStateOf<ExternalFileEntity?>(null) }
     var showSettings by remember { mutableStateOf(false) }
+
+    // Load available projects for import
+    LaunchedEffect(Unit) {
+        viewModel.loadAvailableProjects()
+    }
 
     // Permission launcher
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -244,12 +251,16 @@ fun GlobalFileBrowserScreen(
                                 onFileClick = { fileToPreview = file },
                                 onImportClick = {
                                     if (projectId != null) {
+                                        // If project is pre-selected, import directly
                                         viewModel.importFile(file.id, projectId)
                                         onFileImported(file.id)
+                                    } else {
+                                        // Show project selector dialog
+                                        fileToImport = file
                                     }
                                 },
                                 onFavoriteClick = { viewModel.toggleFavorite(file.id) },
-                                showImportButton = projectId != null
+                                showImportButton = true // Always show import button
                             )
                             HorizontalDivider()
                         }
@@ -273,6 +284,21 @@ fun GlobalFileBrowserScreen(
             onDismiss = { showSettings = false },
             onClearCache = {
                 viewModel.clearCache()
+            }
+        )
+    }
+
+    // File import dialog
+    fileToImport?.let { file ->
+        FileImportDialog(
+            file = file,
+            projectId = projectId,
+            availableProjects = availableProjects,
+            onDismiss = { fileToImport = null },
+            onImport = { selectedProjectId ->
+                viewModel.importFile(file.id, selectedProjectId)
+                onFileImported(file.id)
+                fileToImport = null
             }
         )
     }

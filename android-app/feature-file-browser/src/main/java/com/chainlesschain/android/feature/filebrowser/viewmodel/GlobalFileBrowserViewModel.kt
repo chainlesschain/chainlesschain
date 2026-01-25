@@ -81,6 +81,9 @@ class GlobalFileBrowserViewModel @Inject constructor(
     private val _statistics = MutableStateFlow<FileBrowserStatistics?>(null)
     val statistics: StateFlow<FileBrowserStatistics?> = _statistics.asStateFlow()
 
+    // TODO: Project import functionality moved to UI layer to avoid circular dependency
+    // Available projects for import should be provided by the UI layer
+
     private var loadFilesJob: Job? = null
 
     init {
@@ -378,6 +381,14 @@ class GlobalFileBrowserViewModel @Inject constructor(
         _searchQuery.value = ""
         _selectedCategory.value = null
     }
+
+    /**
+     * Load available projects for file import
+     *
+     * TODO: This functionality has been moved to the UI layer to avoid circular dependencies.
+     * The UI should fetch projects directly and provide them when calling importFile.
+     */
+    // Removed to avoid circular dependency with feature-project module
 
     /**
      * Clear file cache from database

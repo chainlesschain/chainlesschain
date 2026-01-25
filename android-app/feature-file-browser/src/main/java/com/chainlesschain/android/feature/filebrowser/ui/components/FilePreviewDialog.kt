@@ -33,8 +33,9 @@ import java.io.InputStreamReader
  *
  * 支持预览类型:
  * - 图片 (使用Coil加载)
+ * - PDF (使用PdfRenderer，支持页面导航和缩放)
+ * - 视频/音频 (使用ExoPlayer，支持播放控制)
  * - 文本文件 (显示前1000行)
- * - 视频/音频 (显示文件信息，不支持播放)
  * - 其他文件 (仅显示元数据)
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -52,18 +53,26 @@ fun FilePreviewDialog(
     // Load preview content
     LaunchedEffect(file.id) {
         previewState = PreviewState.Loading
-        previewState = when (file.category) {
-            FileCategory.IMAGE -> PreviewState.Image(file.uri)
-            FileCategory.DOCUMENT, FileCategory.CODE -> {
+
+        // Check if file is PDF
+        val isPdf = file.mimeType?.equals("application/pdf", ignoreCase = true) == true ||
+                    file.displayName.endsWith(".pdf", ignoreCase = true)
+
+        // Check if file is playable media
+        val isPlayableMedia = file.category == FileCategory.VIDEO ||
+                              file.category == FileCategory.AUDIO
+
+        previewState = when {
+            isPdf -> PreviewState.Pdf(file.uri)
+            file.category == FileCategory.IMAGE -> PreviewState.Image(file.uri)
+            isPlayableMedia -> PreviewState.Media(file, file.uri)
+            file.category == FileCategory.DOCUMENT || file.category == FileCategory.CODE -> {
                 val content = loadTextContent(contentResolver, file.uri, maxLines = 1000)
                 if (content != null) {
                     PreviewState.Text(content)
                 } else {
                     PreviewState.Error("无法读取文件内容")
                 }
-            }
-            FileCategory.VIDEO, FileCategory.AUDIO -> {
-                PreviewState.MediaInfo(file)
             }
             else -> PreviewState.Info(file)
         }
@@ -142,6 +151,20 @@ fun FilePreviewDialog(
                             TextPreview(content = state.content)
                         }
 
+                        is PreviewState.Pdf -> {
+                            PdfPreviewScreen(
+                                uri = state.uri,
+                                contentResolver = contentResolver
+                            )
+                        }
+
+                        is PreviewState.Media -> {
+                            MediaPlayerScreen(
+                                file = state.file,
+                                uri = state.uri
+                            )
+                        }
+
                         is PreviewState.MediaInfo -> {
                             MediaInfoPreview(file = state.file)
                         }
@@ -167,6 +190,8 @@ sealed class PreviewState {
     object Loading : PreviewState()
     data class Image(val uri: String) : PreviewState()
     data class Text(val content: String) : PreviewState()
+    data class Pdf(val uri: String) : PreviewState()
+    data class Media(val file: ExternalFileEntity, val uri: String) : PreviewState()
     data class MediaInfo(val file: ExternalFileEntity) : PreviewState()
     data class Info(val file: ExternalFileEntity) : PreviewState()
     data class Error(val message: String) : PreviewState()
