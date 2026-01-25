@@ -160,29 +160,32 @@ fun ProjectScreen(
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surface)
-    ) {
-        // 顶部栏
-        TopAppBar(
-            title = { Text("我的项目", fontWeight = FontWeight.Bold) },
-            actions = {
-                IconButton(onClick = onNavigateToFileBrowser) {
-                    Icon(Icons.Default.FolderOpen, contentDescription = "文件浏览器")
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        topBar = {
+            TopAppBar(
+                title = { Text("我的项目", fontWeight = FontWeight.Bold) },
+                actions = {
+                    IconButton(onClick = onNavigateToFileBrowser) {
+                        Icon(Icons.Default.FolderOpen, contentDescription = "文件浏览器")
+                    }
+                    IconButton(onClick = { /* TODO: 搜索 */ }) {
+                        Icon(Icons.Default.Search, contentDescription = "搜索")
+                    }
+                    IconButton(onClick = { showAddDialog = true }) {
+                        Icon(Icons.Default.Add, contentDescription = "新建项目")
+                    }
                 }
-                IconButton(onClick = { /* TODO: 搜索 */ }) {
-                    Icon(Icons.Default.Search, contentDescription = "搜索")
-                }
-                IconButton(onClick = { showAddDialog = true }) {
-                    Icon(Icons.Default.Add, contentDescription = "新建项目")
-                }
-            }
-        )
-
+            )
+        },
+        snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState)
+        }
+    ) { paddingValues ->
         LazyColumn(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues),
             contentPadding = PaddingValues(vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
