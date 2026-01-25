@@ -9,6 +9,7 @@ import com.chainlesschain.android.core.database.dao.P2PMessageDao
 import com.chainlesschain.android.core.database.dao.OfflineQueueDao
 import com.chainlesschain.android.core.database.dao.FileTransferDao
 import com.chainlesschain.android.core.database.dao.TransferCheckpointDao
+import com.chainlesschain.android.core.database.dao.TransferQueueDao
 import com.chainlesschain.android.core.database.dao.ProjectDao
 import com.chainlesschain.android.core.database.dao.ProjectChatMessageDao
 import com.chainlesschain.android.core.database.dao.ExternalFileDao
@@ -20,6 +21,7 @@ import com.chainlesschain.android.core.database.entity.P2PMessageEntity
 import com.chainlesschain.android.core.database.entity.OfflineQueueEntity
 import com.chainlesschain.android.core.database.entity.FileTransferEntity
 import com.chainlesschain.android.core.database.entity.TransferCheckpointEntity
+import com.chainlesschain.android.core.database.entity.TransferQueueEntity
 import com.chainlesschain.android.core.database.entity.ProjectEntity
 import com.chainlesschain.android.core.database.entity.ProjectFileEntity
 import com.chainlesschain.android.core.database.entity.ProjectActivityEntity
@@ -47,6 +49,7 @@ import com.chainlesschain.android.core.database.util.Converters
         OfflineQueueEntity::class,
         FileTransferEntity::class,
         TransferCheckpointEntity::class,
+        TransferQueueEntity::class,
         ProjectEntity::class,
         ProjectFileEntity::class,
         ProjectFileFts::class,
@@ -55,7 +58,7 @@ import com.chainlesschain.android.core.database.util.Converters
         ExternalFileEntity::class,
         FileImportHistoryEntity::class,
     ],
-    version = 12,
+    version = 13,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -78,6 +81,9 @@ abstract class ChainlessChainDatabase : RoomDatabase() {
 
     // 传输断点DAO
     abstract fun transferCheckpointDao(): TransferCheckpointDao
+
+    // 传输队列DAO
+    abstract fun transferQueueDao(): TransferQueueDao
 
     // 项目管理DAO
     abstract fun projectDao(): ProjectDao
