@@ -554,7 +554,7 @@ describe("IntentClassifier", () => {
       expect(result.entities.targets).toContain("标题");
       expect(result.entities.colors).toContain("红色");
       expect(result.entities.numbers).toContain(20);
-      expect(result.entities.actions).toContain("改");
+      expect(result.entities.actions).toContain("改成");
     });
 
     it("应该正确处理复杂查询请求", async () => {
