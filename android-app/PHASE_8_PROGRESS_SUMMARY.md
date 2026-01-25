@@ -161,6 +161,7 @@ statistics: StateFlow<FileBrowserStatistics?>
 **测试文件**: 4个, 1,649行, 48个测试用例
 
 **MediaStoreScannerTest.kt** (342行, 10个测试)
+
 - ✅ 文件扫描功能 (Images, Videos, Audio)
 - ✅ 批量处理 (500文件/批次)
 - ✅ 进度追踪 (StateFlow事件)
@@ -169,6 +170,7 @@ statistics: StateFlow<FileBrowserStatistics?>
 - ✅ 错误处理和缓存清理
 
 **ExternalFileRepositoryTest.kt** (320行, 18个测试)
+
 - ✅ 全局搜索和分类搜索
 - ✅ 最近文件获取 (30天内)
 - ✅ 收藏功能切换
@@ -176,11 +178,13 @@ statistics: StateFlow<FileBrowserStatistics?>
 - ✅ 分页支持
 
 **FileImportRepositoryTest.kt** (229行, 3个测试)
+
 - ✅ COPY模式 (小文件存DB)
 - ✅ LINK模式 (URI引用)
 - ✅ 错误处理
 
 **GlobalFileBrowserViewModelTest.kt** (407行, 17个测试)
+
 - ✅ 权限管理
 - ✅ 扫描触发和完成流程
 - ✅ 搜索和分类筛选
@@ -192,6 +196,7 @@ statistics: StateFlow<FileBrowserStatistics?>
 #### 9. AI会话集成 (Phase 6) - 100% ✅
 
 **新增文件**:
+
 - `feature-project/ui/FilePickerDialog.kt` (451行)
 - `EnhancedAIChatScreen.kt` (修改 +230行)
 
@@ -199,7 +204,7 @@ statistics: StateFlow<FileBrowserStatistics?>
 
 - ✅ **FilePickerDialog** - 专用文件选择对话框
   - 多选文件支持 (Checkbox选择)
-  - 权限请求集成 (READ_MEDIA_*/READ_EXTERNAL_STORAGE)
+  - 权限请求集成 (READ*MEDIA*\*/READ_EXTERNAL_STORAGE)
   - 分类筛选 (全部, 文档, 图片, 视频, 音频, 压缩包, 代码, 其他)
   - 搜索功能 (按文件名)
   - 已选文件计数显示
@@ -223,6 +228,7 @@ statistics: StateFlow<FileBrowserStatistics?>
   6. AttachmentBubble在消息气泡中显示附件
 
 **技术特性**:
+
 - Material 3 设计语言
 - 响应式状态管理 (StateFlow)
 - Hilt依赖注入 (ViewModel)
@@ -233,17 +239,17 @@ statistics: StateFlow<FileBrowserStatistics?>
 
 ## 📊 整体状态对比
 
-| Phase    | 功能     | 状态       | 进度 | 代码量       |
-| -------- | -------- | ---------- | ---- | ------------ |
-| Phase 1  | 数据库层 | ✅ 完成    | 100% | 170行        |
-| Phase 2  | 扫描引擎 | ✅ 完成    | 100% | 278行        |
-| Phase 3  | 文件导入 | ✅ 完成    | 100% | 383行        |
-| Phase 4  | 权限管理 | ✅ 完成    | 100% | (集成在UI中) |
-| Phase 5  | UI界面   | ✅ 完成    | 95%  | 846行        |
-| Phase 6  | AI集成   | ❌ 待实现  | 0%   | -            |
-| Phase 7  | 导航入口 | ✅ 完成    | 100% | (已有)       |
+| Phase    | 功能     | 状态        | 进度 | 代码量        |
+| -------- | -------- | ----------- | ---- | ------------- |
+| Phase 1  | 数据库层 | ✅ 完成     | 100% | 170行         |
+| Phase 2  | 扫描引擎 | ✅ 完成     | 100% | 278行         |
+| Phase 3  | 文件导入 | ✅ 完成     | 100% | 383行         |
+| Phase 4  | 权限管理 | ✅ 完成     | 100% | (集成在UI中)  |
+| Phase 5  | UI界面   | ✅ 完成     | 95%  | 846行         |
+| Phase 6  | AI集成   | ✅ 完成     | 100% | 681行         |
+| Phase 7  | 导航入口 | ✅ 完成     | 100% | (已有)        |
 | Phase 8  | 优化测试 | ✅ 接近完成 | 90%  | 1,649行(测试) |
-| **总体** |          | **✅ 95%**  | 95%  | **3,703行**  |
+| **总体** |          | **✅ 98%**  | 98%  | **4,384行**   |
 
 ---
 
@@ -283,6 +289,11 @@ statistics: StateFlow<FileBrowserStatistics?>
 | **数据库**   | Room实体定义                           | ✅   |
 |              | 8个索引优化                            | ✅   |
 |              | FTS全文搜索准备                        | ✅   |
+| **AI集成**   | 文件选择对话框 (FilePickerDialog)      | ✅   |
+|              | 多选文件支持                           | ✅   |
+|              | 附件预览栏 (AttachmentPreviewBar)      | ✅   |
+|              | 消息附件显示 (AttachmentBubble)        | ✅   |
+|              | 文件添加到会话上下文                   | ✅   |
 
 ### ❌ 待实现功能
 
@@ -293,8 +304,8 @@ statistics: StateFlow<FileBrowserStatistics?>
 | **统计**   | 分类总大小统计                     | P3     | 1h       |
 |            | 收藏数统计                         | P3     | 0.5h     |
 |            | 导入数统计                         | P3     | 0.5h     |
-| **AI集成** | AI会话中引用外部文件               | P1     | 4h       |
-|            | 自动文件分类 (基于内容)            | P2     | 3h       |
+| **AI增强** | 自动文件分类 (基于内容)            | P2     | 3h       |
+|            | 文件内容AI摘要                     | P3     | 2h       |
 | **测试**   | 单元测试 (Scanner, Repository, VM) | P1     | 6h       |
 |            | 集成测试 (端到端流程)              | P1     | 4h       |
 |            | 性能测试 (10000+文件场景)          | P2     | 3h       |
@@ -339,11 +350,18 @@ statistics: StateFlow<FileBrowserStatistics?>
    - LINK模式: 仅保存URI引用
    - 自动更新项目统计 (文件数, 总大小)
 
+7. **AI会话集成**
+   - 在AI聊天中点击附件按钮打开文件选择器
+   - 多选文件并添加到会话
+   - 发送前预览附件列表 (可单独移除)
+   - 消息气泡中显示附件信息
+   - 支持所有文件类型 (文档/图片/视频/音频/代码等)
+
 ### ❌ 暂不可用:
 
 1. 文件预览 (点击文件查看内容)
-2. AI会话中引用外部文件
-3. 自动文件分类 (基于内容)
+2. 自动文件分类 (基于内容)
+3. 文件内容AI摘要
 4. 后台自动扫描
 5. 增量更新 (仅扫描新增/修改文件)
 
