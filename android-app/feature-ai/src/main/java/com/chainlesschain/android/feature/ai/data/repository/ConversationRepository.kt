@@ -281,9 +281,8 @@ class LLMAdapterFactory @Inject constructor() {
                     com.chainlesschain.android.feature.ai.data.llm.OllamaAdapter()
                 }
                 LLMProvider.CUSTOM -> {
-                    require(apiKey != null) { "自定义API需要API Key" }
-                    // TODO: 实现自定义适配器
-                    throw NotImplementedError("自定义适配器尚未实现")
+                    require(apiKey != null) { "${provider.displayName}需要API Key" }
+                    com.chainlesschain.android.feature.ai.data.llm.OpenAIAdapter(apiKey)
                 }
             }
         }

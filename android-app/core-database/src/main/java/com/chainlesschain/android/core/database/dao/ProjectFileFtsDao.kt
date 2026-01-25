@@ -22,9 +22,10 @@ interface ProjectFileFtsDao {
     @Query("""
         SELECT pf.*
         FROM project_files pf
-        JOIN project_files_fts fts ON pf.id = fts.rowid
-        WHERE project_files_fts MATCH :query
-        ORDER BY rank
+        WHERE pf.name LIKE '%' || :query || '%'
+           OR pf.path LIKE '%' || :query || '%'
+           OR pf.content LIKE '%' || :query || '%'
+        ORDER BY pf.updatedAt DESC
     """)
     fun searchFileContent(query: String): Flow<List<ProjectFileEntity>>
 
@@ -38,10 +39,11 @@ interface ProjectFileFtsDao {
     @Query("""
         SELECT pf.*
         FROM project_files pf
-        JOIN project_files_fts fts ON pf.id = fts.rowid
         WHERE pf.projectId = :projectId
-          AND project_files_fts MATCH :query
-        ORDER BY rank
+          AND (pf.name LIKE '%' || :query || '%'
+               OR pf.path LIKE '%' || :query || '%'
+               OR pf.content LIKE '%' || :query || '%')
+        ORDER BY pf.updatedAt DESC
         LIMIT :limit
     """)
     fun searchInProject(projectId: String, query: String, limit: Int = 50): Flow<List<ProjectFileEntity>>
@@ -57,11 +59,12 @@ interface ProjectFileFtsDao {
     @Query("""
         SELECT pf.*
         FROM project_files pf
-        JOIN project_files_fts fts ON pf.id = fts.rowid
         WHERE pf.projectId = :projectId
           AND pf.extension = :extension
-          AND project_files_fts MATCH :query
-        ORDER BY rank
+          AND (pf.name LIKE '%' || :query || '%'
+               OR pf.path LIKE '%' || :query || '%'
+               OR pf.content LIKE '%' || :query || '%')
+        ORDER BY pf.updatedAt DESC
         LIMIT :limit
     """)
     fun searchByExtension(
@@ -80,13 +83,21 @@ interface ProjectFileFtsDao {
      */
     @Query("""
         SELECT
-            pf.*,
-            snippet(project_files_fts, 2, '<mark>', '</mark>', '...', 20) as snippet
+            pf.id,
+            pf.projectId,
+            pf.name,
+            pf.path,
+            pf.content,
+            pf.extension,
+            pf.size,
+            pf.type,
+            SUBSTR(pf.content, 1, 100) as snippet
         FROM project_files pf
-        JOIN project_files_fts fts ON pf.id = fts.rowid
         WHERE pf.projectId = :projectId
-          AND project_files_fts MATCH :query
-        ORDER BY rank
+          AND (pf.name LIKE '%' || :query || '%'
+               OR pf.path LIKE '%' || :query || '%'
+               OR pf.content LIKE '%' || :query || '%')
+        ORDER BY pf.updatedAt DESC
         LIMIT :limit
     """)
     suspend fun searchWithSnippets(
@@ -105,10 +116,11 @@ interface ProjectFileFtsDao {
     @Query("""
         SELECT pf.*
         FROM project_files pf
-        JOIN project_files_fts fts ON pf.id = fts.rowid
         WHERE pf.projectId IN (:projectIds)
-          AND project_files_fts MATCH :query
-        ORDER BY pf.projectId, rank
+          AND (pf.name LIKE '%' || :query || '%'
+               OR pf.path LIKE '%' || :query || '%'
+               OR pf.content LIKE '%' || :query || '%')
+        ORDER BY pf.projectId, pf.updatedAt DESC
         LIMIT :limit
     """)
     fun searchInMultipleProjects(
