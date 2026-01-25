@@ -29,7 +29,8 @@ import java.time.format.DateTimeFormatter
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProjectScreen(
-    onProjectClick: (String) -> Unit = {}
+    onProjectClick: (String) -> Unit = {},
+    onNavigateToFileBrowser: () -> Unit = {}
 ) {
     var showAddDialog by remember { mutableStateOf(false) }
     var selectedFilter by remember { mutableStateOf("全部") }
@@ -115,6 +116,9 @@ fun ProjectScreen(
         TopAppBar(
             title = { Text("我的项目", fontWeight = FontWeight.Bold) },
             actions = {
+                IconButton(onClick = onNavigateToFileBrowser) {
+                    Icon(Icons.Default.FolderOpen, contentDescription = "文件浏览器")
+                }
                 IconButton(onClick = { /* TODO: 搜索 */ }) {
                     Icon(Icons.Default.Search, contentDescription = "搜索")
                 }

@@ -34,6 +34,7 @@ import com.chainlesschain.android.presentation.screens.LLMTestChatScreen
 import com.chainlesschain.android.feature.ai.domain.model.LLMProvider
 import com.chainlesschain.android.feature.p2p.navigation.p2pGraph
 import com.chainlesschain.android.feature.p2p.navigation.P2P_ROUTE
+import com.chainlesschain.android.feature.filebrowser.ui.GlobalFileBrowserScreen
 
 /**
  * 应用导航图
@@ -85,6 +86,9 @@ fun NavGraph(
                 },
                 onNavigateToLLMTest = {
                     navController.navigate(Screen.LLMTest.route)
+                },
+                onNavigateToFileBrowser = {
+                    navController.navigate(Screen.FileBrowser.route)
                 }
             )
         }
@@ -208,6 +212,9 @@ fun NavGraph(
                 },
                 onNavigateToSteps = { id ->
                     navController.navigate(Screen.StepDetail.createRoute(id))
+                },
+                onNavigateToFileBrowser = { id ->
+                    navController.navigate(Screen.FileBrowser.createRoute(id))
                 }
             )
         }
@@ -268,6 +275,31 @@ fun NavGraph(
                 provider = provider
             )
         }
+
+        // 文件浏览器界面
+        composable(
+            route = Screen.FileBrowser.route,
+            arguments = listOf(
+                navArgument("projectId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) { backStackEntry ->
+            val projectId = backStackEntry.arguments?.getString("projectId")
+
+            GlobalFileBrowserScreen(
+                projectId = projectId,
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onFileImported = { fileId ->
+                    // File imported successfully, could navigate back or show confirmation
+                    // For now, just stay on the screen
+                }
+            )
+        }
     }
 }
 
@@ -297,6 +329,13 @@ sealed class Screen(val route: String) {
     data object LLMSettings : Screen("llm_settings")
     data object LLMTest : Screen("llm_test") {
         fun createRoute(provider: String) = "llm_test/$provider"
+    }
+    data object FileBrowser : Screen("file_browser") {
+        fun createRoute(projectId: String? = null) = if (projectId != null) {
+            "file_browser?projectId=$projectId"
+        } else {
+            "file_browser"
+        }
     }
 }
 
