@@ -66,16 +66,17 @@ enum class LLMProvider(val displayName: String) {
     companion object {
         val DEFAULT_MODELS = mapOf(
             OPENAI to listOf(
-                LLMModel("gpt-4", "GPT-4", OPENAI, 8192),
-                LLMModel("gpt-3.5-turbo", "GPT-3.5 Turbo", OPENAI, 4096)
+                LLMModel("gpt-4o", "GPT-4o", OPENAI, 128000),
+                LLMModel("gpt-3.5-turbo", "GPT-3.5 Turbo", OPENAI, 16385)
             ),
             DEEPSEEK to listOf(
-                LLMModel("deepseek-chat", "DeepSeek Chat", DEEPSEEK, 32768),
-                LLMModel("deepseek-coder", "DeepSeek Coder", DEEPSEEK, 16384)
+                LLMModel("deepseek-chat", "DeepSeek Chat", DEEPSEEK, 64000),
+                LLMModel("deepseek-coder", "DeepSeek Coder", DEEPSEEK, 64000)
             ),
             OLLAMA to listOf(
                 LLMModel("qwen2:7b", "Qwen2 7B", OLLAMA, 8192),
-                LLMModel("llama3:8b", "Llama 3 8B", OLLAMA, 8192)
+                LLMModel("llama3:8b", "Llama 3 8B", OLLAMA, 8192),
+                LLMModel("deepseek-coder:6.7b", "DeepSeek Coder 6.7B", OLLAMA, 16384)
             )
         )
     }

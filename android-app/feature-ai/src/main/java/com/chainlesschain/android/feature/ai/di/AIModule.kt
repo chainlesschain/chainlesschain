@@ -81,7 +81,7 @@ class LLMAdapterFactory(
             LLMProvider.OPENAI -> openAIAdapter
             LLMProvider.DEEPSEEK -> deepSeekAdapter
             LLMProvider.OLLAMA -> ollamaAdapter
-            LLMProvider.CUSTOM -> deepSeekAdapter // 默认使用DeepSeek
+            LLMProvider.CUSTOM -> deepSeekAdapter
         }
     }
 }
