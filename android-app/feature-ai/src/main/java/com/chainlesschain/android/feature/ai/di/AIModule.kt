@@ -69,19 +69,98 @@ object AIModule {
 
 /**
  * LLM适配器工厂
- * 根据provider选择合适的adapter
+ * 根据provider动态创建adapter
  */
-class LLMAdapterFactory(
-    @Named("OpenAI") private val openAIAdapter: LLMAdapter,
-    @Named("DeepSeek") private val deepSeekAdapter: LLMAdapter,
-    @Named("Ollama") private val ollamaAdapter: LLMAdapter
-) {
+class LLMAdapterFactory @javax.inject.Inject constructor() {
+    /**
+     * 根据提供商和API Key创建适配器
+     */
+    fun createAdapter(provider: LLMProvider, apiKey: String?): LLMAdapter {
+        requireNotNull(apiKey) { "API Key不能为空" }
+
+        return when (provider) {
+            LLMProvider.OPENAI -> OpenAIAdapter(apiKey)
+            LLMProvider.DEEPSEEK -> DeepSeekAdapter(apiKey)
+            LLMProvider.OLLAMA -> throw IllegalArgumentException("请使用createOllamaAdapter创建Ollama适配器")
+            else -> {
+                // 其他提供商使用CloudLLMAdapters
+                createCloudAdapter(provider, apiKey)
+            }
+        }
+    }
+
+    /**
+     * 创建Ollama适配器
+     */
+    fun createOllamaAdapter(baseUrl: String): LLMAdapter {
+        return OllamaAdapter(baseUrl)
+    }
+
+    /**
+     * 创建云端LLM适配器
+     */
+    private fun createCloudAdapter(provider: LLMProvider, apiKey: String): LLMAdapter {
+        // 动态加载CloudLLMAdapters中的适配器
+        return try {
+            when (provider) {
+                LLMProvider.CLAUDE -> {
+                    val clazz = Class.forName("com.chainlesschain.android.feature.ai.data.llm.ClaudeAdapter")
+                    val constructor = clazz.getConstructor(String::class.java)
+                    constructor.newInstance(apiKey) as LLMAdapter
+                }
+                LLMProvider.GEMINI -> {
+                    val clazz = Class.forName("com.chainlesschain.android.feature.ai.data.llm.GeminiAdapter")
+                    val constructor = clazz.getConstructor(String::class.java)
+                    constructor.newInstance(apiKey) as LLMAdapter
+                }
+                LLMProvider.QWEN -> {
+                    val clazz = Class.forName("com.chainlesschain.android.feature.ai.data.llm.QwenAdapter")
+                    val constructor = clazz.getConstructor(String::class.java)
+                    constructor.newInstance(apiKey) as LLMAdapter
+                }
+                LLMProvider.ERNIE -> {
+                    val clazz = Class.forName("com.chainlesschain.android.feature.ai.data.llm.ErnieAdapter")
+                    val constructor = clazz.getConstructor(String::class.java)
+                    constructor.newInstance(apiKey) as LLMAdapter
+                }
+                LLMProvider.CHATGLM -> {
+                    val clazz = Class.forName("com.chainlesschain.android.feature.ai.data.llm.ChatGLMAdapter")
+                    val constructor = clazz.getConstructor(String::class.java)
+                    constructor.newInstance(apiKey) as LLMAdapter
+                }
+                LLMProvider.MOONSHOT -> {
+                    val clazz = Class.forName("com.chainlesschain.android.feature.ai.data.llm.MoonshotAdapter")
+                    val constructor = clazz.getConstructor(String::class.java)
+                    constructor.newInstance(apiKey) as LLMAdapter
+                }
+                LLMProvider.SPARK -> {
+                    val clazz = Class.forName("com.chainlesschain.android.feature.ai.data.llm.SparkAdapter")
+                    val constructor = clazz.getConstructor(String::class.java)
+                    constructor.newInstance(apiKey) as LLMAdapter
+                }
+                LLMProvider.DOUBAO -> {
+                    val clazz = Class.forName("com.chainlesschain.android.feature.ai.data.llm.DoubaoAdapter")
+                    val constructor = clazz.getConstructor(String::class.java)
+                    constructor.newInstance(apiKey) as LLMAdapter
+                }
+                LLMProvider.CUSTOM -> OpenAIAdapter(apiKey)
+                else -> throw IllegalArgumentException("不支持的提供商: $provider")
+            }
+        } catch (e: Exception) {
+            // 如果反射失败，使用OpenAI适配器作为兼容方案
+            OpenAIAdapter(apiKey)
+        }
+    }
+
+    /**
+     * 根据预配置获取适配器（用于向后兼容）
+     */
     fun getAdapter(provider: LLMProvider): LLMAdapter {
         return when (provider) {
-            LLMProvider.OPENAI -> openAIAdapter
-            LLMProvider.DEEPSEEK -> deepSeekAdapter
-            LLMProvider.OLLAMA -> ollamaAdapter
-            LLMProvider.CUSTOM -> deepSeekAdapter
+            LLMProvider.OPENAI -> OpenAIAdapter(System.getenv("OPENAI_API_KEY") ?: "")
+            LLMProvider.DEEPSEEK -> DeepSeekAdapter(System.getenv("DEEPSEEK_API_KEY") ?: "")
+            LLMProvider.OLLAMA -> OllamaAdapter(System.getenv("OLLAMA_BASE_URL") ?: "http://localhost:11434")
+            else -> OpenAIAdapter("")
         }
     }
 }

@@ -22,6 +22,7 @@ import com.chainlesschain.android.feature.auth.presentation.AuthViewModel
 @Composable
 fun ProfileScreen(
     onLogout: () -> Unit,
+    onNavigateToLLMSettings: () -> Unit = {},
     viewModel: AuthViewModel
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -146,6 +147,15 @@ fun ProfileScreen(
                     title = "AI对话",
                     subtitle = "智能助手对话记录",
                     onClick = {}
+                )
+            }
+
+            item {
+                ProfileMenuItem(
+                    icon = Icons.Default.SmartToy,
+                    title = "AI配置",
+                    subtitle = "配置LLM提供商和API密钥",
+                    onClick = onNavigateToLLMSettings
                 )
             }
 
