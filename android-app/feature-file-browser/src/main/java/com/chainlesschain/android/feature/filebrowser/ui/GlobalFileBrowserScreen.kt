@@ -12,6 +12,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,10 +23,12 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.chainlesschain.android.core.database.entity.FileCategory
 import com.chainlesschain.android.core.database.entity.ExternalFileEntity
+import com.chainlesschain.android.core.database.entity.ProjectEntity
 import com.chainlesschain.android.feature.filebrowser.data.scanner.MediaStoreScanner
 import com.chainlesschain.android.feature.filebrowser.ui.components.FileListItem
 import com.chainlesschain.android.feature.filebrowser.ui.components.FilePreviewDialog
 import com.chainlesschain.android.feature.filebrowser.ui.components.FileBrowserSettingsDialog
+import com.chainlesschain.android.feature.filebrowser.ui.components.FileImportDialog
 import com.chainlesschain.android.feature.filebrowser.viewmodel.GlobalFileBrowserViewModel
 
 /**
@@ -39,6 +42,7 @@ import com.chainlesschain.android.feature.filebrowser.viewmodel.GlobalFileBrowse
  * - File import to projects
  *
  * @param projectId Optional project ID for context-aware file browsing
+ * @param availableProjects List of available projects for file import (provided by parent)
  * @param onNavigateBack Callback invoked when user navigates back
  * @param onFileImported Callback invoked when a file is imported with the file ID
  * @param viewModel ViewModel for state management (injected by Hilt)
@@ -47,6 +51,7 @@ import com.chainlesschain.android.feature.filebrowser.viewmodel.GlobalFileBrowse
 @Composable
 fun GlobalFileBrowserScreen(
     projectId: String?,
+    availableProjects: List<ProjectEntity> = emptyList(),
     onNavigateBack: () -> Unit,
     onFileImported: (String) -> Unit,
     viewModel: GlobalFileBrowserViewModel = hiltViewModel()
@@ -60,17 +65,11 @@ fun GlobalFileBrowserScreen(
     val searchQuery by viewModel.searchQuery.collectAsState()
     val sortBy by viewModel.sortBy.collectAsState()
     val sortDirection by viewModel.sortDirection.collectAsState()
-    val availableProjects by viewModel.availableProjects.collectAsState()
 
     var showSearchBar by remember { mutableStateOf(false) }
     var fileToPreview by remember { mutableStateOf<ExternalFileEntity?>(null) }
     var fileToImport by remember { mutableStateOf<ExternalFileEntity?>(null) }
     var showSettings by remember { mutableStateOf(false) }
-
-    // Load available projects for import
-    LaunchedEffect(Unit) {
-        viewModel.loadAvailableProjects()
-    }
 
     // Permission launcher
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -260,7 +259,8 @@ fun GlobalFileBrowserScreen(
                                     }
                                 },
                                 onFavoriteClick = { viewModel.toggleFavorite(file.id) },
-                                showImportButton = true // Always show import button
+                                showImportButton = true, // Always show import button
+                                thumbnailCache = viewModel.thumbnailCache
                             )
                             HorizontalDivider()
                         }

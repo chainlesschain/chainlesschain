@@ -3,18 +3,18 @@
  * 测试 PowerPoint 演示文稿生成、主题配置和LLM增强功能
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import fs from 'fs/promises';
-import path from 'path';
-import os from 'os';
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import fs from "fs/promises";
+import path from "path";
+import os from "os";
 
 // Mock dependencies
-vi.mock('pptxgenjs', () => {
+vi.mock("pptxgenjs", () => {
   return {
     default: vi.fn(() => ({
-      author: '',
-      title: '',
-      company: '',
+      author: "",
+      title: "",
+      company: "",
       slides: [],
       addSlide: vi.fn(() => ({
         background: null,
@@ -27,7 +27,7 @@ vi.mock('pptxgenjs', () => {
   };
 });
 
-vi.mock('fs', () => ({
+vi.mock("fs", () => ({
   default: {
     promises: {
       writeFile: vi.fn(),
@@ -40,14 +40,14 @@ vi.mock('fs', () => ({
   },
 }));
 
-vi.mock('http', () => ({
+vi.mock("http", () => ({
   default: {
     request: vi.fn(),
   },
   request: vi.fn(),
 }));
 
-describe('PPT引擎测试', () => {
+describe("PPT引擎测试", () => {
   let PPTEngine;
   let pptEngine;
   let mockPptxgen;
@@ -60,18 +60,18 @@ describe('PPT引擎测试', () => {
     vi.clearAllMocks();
 
     // Create temporary directory for test files
-    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'ppt-test-'));
-    testPptxPath = path.join(tmpDir, 'test.pptx');
+    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "ppt-test-"));
+    testPptxPath = path.join(tmpDir, "test.pptx");
 
     // Import mocked modules
-    const pptxgenModule = await import('pptxgenjs');
+    const pptxgenModule = await import("pptxgenjs");
     mockPptxgen = pptxgenModule.default;
 
-    mockFs = await import('fs');
-    mockHttp = await import('http');
+    mockFs = await import("fs");
+    mockHttp = await import("http");
 
     // Import PPTEngine after mocks
-    const module = await import('../../src/main/engines/ppt-engine.js');
+    const module = await import("../../src/main/engines/ppt-engine.js");
     PPTEngine = module.default;
     pptEngine = new PPTEngine();
   });
@@ -83,58 +83,58 @@ describe('PPT引擎测试', () => {
       try {
         await fs.rm(tmpDir, { recursive: true, force: true });
       } catch (error) {
-        console.warn('Failed to clean up temp directory:', error);
+        console.warn("Failed to clean up temp directory:", error);
       }
     }
   });
 
-  describe('基础功能', () => {
-    it('should create PPTEngine instance', () => {
+  describe("基础功能", () => {
+    it("should create PPTEngine instance", () => {
       expect(pptEngine).toBeDefined();
       expect(pptEngine.themes).toBeDefined();
     });
 
-    it('should have all theme configurations', () => {
+    it("should have all theme configurations", () => {
       expect(pptEngine.themes.business).toBeDefined();
       expect(pptEngine.themes.academic).toBeDefined();
       expect(pptEngine.themes.creative).toBeDefined();
       expect(pptEngine.themes.dark).toBeDefined();
     });
 
-    it('should have all required methods', () => {
-      expect(typeof pptEngine.generateFromOutline).toBe('function');
-      expect(typeof pptEngine.generateFromMarkdown).toBe('function');
-      expect(typeof pptEngine.parseMarkdownToOutline).toBe('function');
-      expect(typeof pptEngine.createTitleSlide).toBe('function');
-      expect(typeof pptEngine.createSectionSlide).toBe('function');
-      expect(typeof pptEngine.createContentSlide).toBe('function');
-      expect(typeof pptEngine.createEndSlide).toBe('function');
-      expect(typeof pptEngine.addChart).toBe('function');
-      expect(typeof pptEngine.addImage).toBe('function');
+    it("should have all required methods", () => {
+      expect(typeof pptEngine.generateFromOutline).toBe("function");
+      expect(typeof pptEngine.generateFromMarkdown).toBe("function");
+      expect(typeof pptEngine.parseMarkdownToOutline).toBe("function");
+      expect(typeof pptEngine.createTitleSlide).toBe("function");
+      expect(typeof pptEngine.createSectionSlide).toBe("function");
+      expect(typeof pptEngine.createContentSlide).toBe("function");
+      expect(typeof pptEngine.createEndSlide).toBe("function");
+      expect(typeof pptEngine.addChart).toBe("function");
+      expect(typeof pptEngine.addImage).toBe("function");
     });
 
-    it('should have correct theme properties', () => {
+    it("should have correct theme properties", () => {
       const theme = pptEngine.themes.business;
-      expect(theme.name).toBe('商务主题');
-      expect(theme.primaryColor).toBe('1E40AF');
-      expect(theme.secondaryColor).toBe('3B82F6');
-      expect(theme.backgroundColor).toBe('FFFFFF');
-      expect(theme.textColor).toBe('1F2937');
+      expect(theme.name).toBe("商务主题");
+      expect(theme.primaryColor).toBe("1E40AF");
+      expect(theme.secondaryColor).toBe("3B82F6");
+      expect(theme.backgroundColor).toBe("FFFFFF");
+      expect(theme.textColor).toBe("1F2937");
     });
   });
 
-  describe('generateFromOutline', () => {
-    it('should generate PPT from outline', async () => {
+  describe("generateFromOutline", () => {
+    it("should generate PPT from outline", async () => {
       const outline = {
-        title: 'Test Presentation',
-        subtitle: 'Subtitle',
+        title: "Test Presentation",
+        subtitle: "Subtitle",
         sections: [
           {
-            title: 'Section 1',
+            title: "Section 1",
             subsections: [
               {
-                title: 'Subsection 1',
-                points: ['Point 1', 'Point 2'],
+                title: "Subsection 1",
+                points: ["Point 1", "Point 2"],
               },
             ],
           },
@@ -147,48 +147,48 @@ describe('PPT引擎测试', () => {
 
       expect(result.success).toBe(true);
       expect(result.path).toBe(testPptxPath);
-      expect(result.fileName).toBe('Test Presentation.pptx');
+      expect(result.fileName).toBe("Test Presentation.pptx");
       expect(mockPptxgen).toHaveBeenCalled();
     });
 
-    it('should use custom theme', async () => {
+    it("should use custom theme", async () => {
       const outline = {
-        title: 'Test',
+        title: "Test",
         sections: [],
       };
 
       await pptEngine.generateFromOutline(outline, {
-        theme: 'academic',
+        theme: "academic",
         outputPath: testPptxPath,
       });
 
       expect(mockPptxgen).toHaveBeenCalled();
     });
 
-    it('should use custom author', async () => {
+    it("should use custom author", async () => {
       const outline = {
-        title: 'Test',
+        title: "Test",
         sections: [],
       };
 
       await pptEngine.generateFromOutline(outline, {
-        author: 'John Doe',
+        author: "John Doe",
         outputPath: testPptxPath,
       });
 
       const pptInstance = mockPptxgen.mock.results[0].value;
-      expect(pptInstance.author).toBe('John Doe');
+      expect(pptInstance.author).toBe("John Doe");
     });
 
-    it('should create title slide', async () => {
+    it("should create title slide", async () => {
       const outline = {
-        title: 'My Presentation',
-        subtitle: 'My Subtitle',
+        title: "My Presentation",
+        subtitle: "My Subtitle",
         sections: [],
       };
 
       await pptEngine.generateFromOutline(outline, {
-        author: 'Author',
+        author: "Author",
         outputPath: testPptxPath,
       });
 
@@ -196,12 +196,12 @@ describe('PPT引擎测试', () => {
       expect(pptInstance.addSlide).toHaveBeenCalled();
     });
 
-    it('should create section slides', async () => {
+    it("should create section slides", async () => {
       const outline = {
-        title: 'Test',
+        title: "Test",
         sections: [
-          { title: 'Section 1', subsections: [] },
-          { title: 'Section 2', subsections: [] },
+          { title: "Section 1", subsections: [] },
+          { title: "Section 2", subsections: [] },
         ],
       };
 
@@ -214,15 +214,15 @@ describe('PPT引擎测试', () => {
       expect(pptInstance.addSlide).toHaveBeenCalled();
     });
 
-    it('should create content slides for subsections', async () => {
+    it("should create content slides for subsections", async () => {
       const outline = {
-        title: 'Test',
+        title: "Test",
         sections: [
           {
-            title: 'Section 1',
+            title: "Section 1",
             subsections: [
-              { title: 'Sub 1', points: ['Point 1'] },
-              { title: 'Sub 2', points: ['Point 2'] },
+              { title: "Sub 1", points: ["Point 1"] },
+              { title: "Sub 2", points: ["Point 2"] },
             ],
           },
         ],
@@ -236,9 +236,9 @@ describe('PPT引擎测试', () => {
       expect(pptInstance.addSlide).toHaveBeenCalled();
     });
 
-    it('should create end slide', async () => {
+    it("should create end slide", async () => {
       const outline = {
-        title: 'Test',
+        title: "Test",
         sections: [],
       };
 
@@ -250,47 +250,45 @@ describe('PPT引擎测试', () => {
       expect(pptInstance.addSlide).toHaveBeenCalled();
     });
 
-    it('should handle generation errors', async () => {
+    it("should handle generation errors", async () => {
       mockPptxgen.mockImplementationOnce(() => {
-        throw new Error('Generation failed');
+        throw new Error("Generation failed");
       });
 
-      const outline = { title: 'Test', sections: [] };
+      const outline = { title: "Test", sections: [] };
 
       await expect(
-        pptEngine.generateFromOutline(outline, { outputPath: testPptxPath })
-      ).rejects.toThrow('生成PPT失败');
+        pptEngine.generateFromOutline(outline, { outputPath: testPptxPath }),
+      ).rejects.toThrow("生成PPT失败");
     });
 
-    it('should use default output path if not provided', async () => {
+    it("should use default output path if not provided", async () => {
       const outline = {
-        title: 'My Presentation',
+        title: "My Presentation",
         sections: [],
       };
 
       const result = await pptEngine.generateFromOutline(outline);
 
       expect(result.success).toBe(true);
-      expect(result.fileName).toContain('My Presentation.pptx');
+      expect(result.fileName).toContain("My Presentation.pptx");
     });
 
-    it('should return slide count', async () => {
+    it("should return slide count", async () => {
       const outline = {
-        title: 'Test',
+        title: "Test",
         sections: [
           {
-            title: 'Section 1',
-            subsections: [
-              { title: 'Sub 1', points: [] },
-            ],
+            title: "Section 1",
+            subsections: [{ title: "Sub 1", points: [] }],
           },
         ],
       };
 
       const pptInstance = {
-        author: '',
-        title: '',
-        company: '',
+        author: "",
+        title: "",
+        company: "",
         slides: [1, 2, 3, 4], // Mock slides array
         addSlide: vi.fn(() => ({
           background: null,
@@ -309,8 +307,8 @@ describe('PPT引擎测试', () => {
     });
   });
 
-  describe('parseMarkdownToOutline', () => {
-    it('should parse simple markdown', () => {
+  describe("parseMarkdownToOutline", () => {
+    it("should parse simple markdown", () => {
       const markdown = `# Main Title
 ## Section 1
 ### Subsection 1
@@ -319,33 +317,33 @@ describe('PPT引擎测试', () => {
 
       const outline = pptEngine.parseMarkdownToOutline(markdown);
 
-      expect(outline.title).toBe('Main Title');
+      expect(outline.title).toBe("Main Title");
       expect(outline.sections).toHaveLength(1);
-      expect(outline.sections[0].title).toBe('Section 1');
+      expect(outline.sections[0].title).toBe("Section 1");
       expect(outline.sections[0].subsections).toHaveLength(1);
       expect(outline.sections[0].subsections[0].points).toHaveLength(2);
     });
 
-    it('should handle H1 as title', () => {
-      const markdown = '# My Presentation\n## Section';
+    it("should handle H1 as title", () => {
+      const markdown = "# My Presentation\n## Section";
 
       const outline = pptEngine.parseMarkdownToOutline(markdown);
 
-      expect(outline.title).toBe('My Presentation');
+      expect(outline.title).toBe("My Presentation");
     });
 
-    it('should handle H2 as sections', () => {
+    it("should handle H2 as sections", () => {
       const markdown = `## Section 1
 ## Section 2`;
 
       const outline = pptEngine.parseMarkdownToOutline(markdown);
 
       expect(outline.sections).toHaveLength(2);
-      expect(outline.sections[0].title).toBe('Section 1');
-      expect(outline.sections[1].title).toBe('Section 2');
+      expect(outline.sections[0].title).toBe("Section 1");
+      expect(outline.sections[1].title).toBe("Section 2");
     });
 
-    it('should handle H3 as subsections', () => {
+    it("should handle H3 as subsections", () => {
       const markdown = `## Section
 ### Sub 1
 ### Sub 2`;
@@ -355,7 +353,7 @@ describe('PPT引擎测试', () => {
       expect(outline.sections[0].subsections).toHaveLength(2);
     });
 
-    it('should parse bullet points', () => {
+    it("should parse bullet points", () => {
       const markdown = `## Section
 ### Subsection
 - Point 1
@@ -366,10 +364,10 @@ describe('PPT引擎测试', () => {
 
       const points = outline.sections[0].subsections[0].points;
       expect(points).toHaveLength(3);
-      expect(points[0]).toBe('Point 1');
+      expect(points[0]).toBe("Point 1");
     });
 
-    it('should parse numbered lists', () => {
+    it("should parse numbered lists", () => {
       const markdown = `## Section
 ### Subsection
 1. First
@@ -380,10 +378,10 @@ describe('PPT引擎测试', () => {
 
       const points = outline.sections[0].subsections[0].points;
       expect(points).toHaveLength(3);
-      expect(points[0]).toBe('First');
+      expect(points[0]).toBe("First");
     });
 
-    it('should handle mixed list types', () => {
+    it("should handle mixed list types", () => {
       const markdown = `## Section
 ### Subsection
 - Bullet
@@ -397,8 +395,8 @@ describe('PPT引擎测试', () => {
       expect(points).toHaveLength(4);
     });
 
-    it('should truncate long lines', () => {
-      const longLine = 'a'.repeat(150);
+    it("should truncate long lines", () => {
+      const longLine = "a".repeat(150);
       const markdown = `## Section
 ### Subsection
 ${longLine}`;
@@ -407,10 +405,10 @@ ${longLine}`;
 
       const point = outline.sections[0].subsections[0].points[0];
       expect(point.length).toBe(103); // 100 + '...'
-      expect(point.endsWith('...')).toBe(true);
+      expect(point.endsWith("...")).toBe(true);
     });
 
-    it('should skip short lines', () => {
+    it("should skip short lines", () => {
       const markdown = `## Section
 ### Subsection
 Short
@@ -421,10 +419,10 @@ This is a longer line that should be included`;
       const points = outline.sections[0].subsections[0].points;
       // "Short" is only 5 chars, should be skipped (< 10)
       expect(points).toHaveLength(1);
-      expect(points[0]).toContain('longer line');
+      expect(points[0]).toContain("longer line");
     });
 
-    it('should skip separator lines', () => {
+    it("should skip separator lines", () => {
       const markdown = `## Section
 ### Subsection
 ---
@@ -435,36 +433,36 @@ Valid point
 
       const points = outline.sections[0].subsections[0].points;
       expect(points).toHaveLength(1);
-      expect(points[0]).toBe('Valid point');
+      expect(points[0]).toBe("Valid point");
     });
 
-    it('should use first section as title if no H1', () => {
+    it("should use first section as title if no H1", () => {
       const markdown = `## First Section
 ## Second Section`;
 
       const outline = pptEngine.parseMarkdownToOutline(markdown);
 
-      expect(outline.title).toBe('First Section');
+      expect(outline.title).toBe("First Section");
       expect(outline.sections).toHaveLength(1);
-      expect(outline.sections[0].title).toBe('Second Section');
+      expect(outline.sections[0].title).toBe("Second Section");
     });
 
-    it('should set default subtitle', () => {
-      const markdown = '# Title';
+    it("should set default subtitle", () => {
+      const markdown = "# Title";
 
       const outline = pptEngine.parseMarkdownToOutline(markdown);
 
-      expect(outline.subtitle).toContain('2025'); // Current date
+      expect(outline.subtitle).toContain("2025"); // Current date
     });
 
-    it('should handle empty markdown', () => {
-      const outline = pptEngine.parseMarkdownToOutline('');
+    it("should handle empty markdown", () => {
+      const outline = pptEngine.parseMarkdownToOutline("");
 
-      expect(outline.title).toBe('');
+      expect(outline.title).toBe("");
       expect(outline.sections).toHaveLength(0);
     });
 
-    it('should handle points without subsection', () => {
+    it("should handle points without subsection", () => {
       const markdown = `## Section
 - Point 1
 - Point 2`;
@@ -472,13 +470,13 @@ Valid point
       const outline = pptEngine.parseMarkdownToOutline(markdown);
 
       expect(outline.sections[0].subsections).toHaveLength(1);
-      expect(outline.sections[0].subsections[0].title).toBe('Section');
+      expect(outline.sections[0].subsections[0].title).toBe("Section");
       expect(outline.sections[0].subsections[0].points).toHaveLength(2);
     });
   });
 
-  describe('generateFromMarkdown', () => {
-    it('should generate PPT from markdown', async () => {
+  describe("generateFromMarkdown", () => {
+    it("should generate PPT from markdown", async () => {
       const markdown = `# Test Presentation
 ## Section 1
 ### Subsection
@@ -492,15 +490,15 @@ Valid point
       expect(mockPptxgen).toHaveBeenCalled();
     });
 
-    it('should use LLM enhancement if parsing fails', async () => {
-      const markdown = 'Some unstructured text without headings';
+    it("should use LLM enhancement if parsing fails", async () => {
+      const markdown = "Some unstructured text without headings";
 
       // Mock LLM manager
       const mockLLMManager = {
         query: vi.fn().mockResolvedValue({
           text: JSON.stringify({
-            title: 'Generated Title',
-            sections: [{ title: 'Section', subsections: [] }],
+            title: "Generated Title",
+            sections: [{ title: "Section", subsections: [] }],
           }),
         }),
       };
@@ -513,43 +511,43 @@ Valid point
       expect(result.success).toBe(true);
     });
 
-    it('should pass theme to generateFromOutline', async () => {
-      const markdown = '# Test\n## Section';
+    it("should pass theme to generateFromOutline", async () => {
+      const markdown = "# Test\n## Section";
 
       const result = await pptEngine.generateFromMarkdown(markdown, {
-        theme: 'creative',
+        theme: "creative",
         outputPath: testPptxPath,
       });
 
       expect(result.success).toBe(true);
-      expect(result.theme).toBe('creative');
+      expect(result.theme).toBe("creative");
     });
 
-    it('should handle markdown conversion errors', async () => {
+    it("should handle markdown conversion errors", async () => {
       // Force an error by mocking pptxgen to throw
       mockPptxgen.mockImplementationOnce(() => {
-        throw new Error('PPT creation failed');
+        throw new Error("PPT creation failed");
       });
 
       await expect(
-        pptEngine.generateFromMarkdown('# Test', { outputPath: testPptxPath })
-      ).rejects.toThrow('从Markdown生成PPT失败');
+        pptEngine.generateFromMarkdown("# Test", { outputPath: testPptxPath }),
+      ).rejects.toThrow("从Markdown生成PPT失败");
     });
   });
 
-  describe('generateOutlineFromDescription', () => {
-    it('should generate outline using LLM', async () => {
+  describe("generateOutlineFromDescription", () => {
+    it("should generate outline using LLM", async () => {
       const mockLLMManager = {
         isInitialized: true,
         query: vi.fn().mockResolvedValue({
           text: JSON.stringify({
-            title: 'AI Generated Title',
-            subtitle: 'Subtitle',
+            title: "AI Generated Title",
+            subtitle: "Subtitle",
             sections: [
               {
-                title: 'Section 1',
+                title: "Section 1",
                 subsections: [
-                  { title: 'Sub 1', points: ['Point 1', 'Point 2'] },
+                  { title: "Sub 1", points: ["Point 1", "Point 2"] },
                 ],
               },
             ],
@@ -558,16 +556,16 @@ Valid point
       };
 
       const outline = await pptEngine.generateOutlineFromDescription(
-        'Create a presentation about AI',
-        mockLLMManager
+        "Create a presentation about AI",
+        mockLLMManager,
       );
 
-      expect(outline.title).toBe('AI Generated Title');
+      expect(outline.title).toBe("AI Generated Title");
       expect(outline.sections).toHaveLength(1);
       expect(mockLLMManager.query).toHaveBeenCalled();
     });
 
-    it('should extract JSON from LLM response', async () => {
+    it("should extract JSON from LLM response", async () => {
       const mockLLMManager = {
         isInitialized: true,
         query: vi.fn().mockResolvedValue({
@@ -576,45 +574,45 @@ Valid point
       };
 
       const outline = await pptEngine.generateOutlineFromDescription(
-        'Test',
-        mockLLMManager
+        "Test",
+        mockLLMManager,
       );
 
-      expect(outline.title).toBe('Test');
+      expect(outline.title).toBe("Test");
     });
 
-    it('should use default outline if LLM fails', async () => {
+    it("should use default outline if LLM fails", async () => {
       const mockLLMManager = {
         isInitialized: true,
-        query: vi.fn().mockRejectedValue(new Error('LLM failed')),
+        query: vi.fn().mockRejectedValue(new Error("LLM failed")),
       };
 
       const outline = await pptEngine.generateOutlineFromDescription(
-        'Test description',
-        mockLLMManager
+        "Test description",
+        mockLLMManager,
       );
 
-      expect(outline.title).toContain('Test description');
+      expect(outline.title).toContain("Test description");
       expect(outline.sections).toHaveLength(3); // Default outline has 3 sections
     });
 
-    it('should use default outline if JSON parsing fails', async () => {
+    it("should use default outline if JSON parsing fails", async () => {
       const mockLLMManager = {
         isInitialized: true,
         query: vi.fn().mockResolvedValue({
-          text: 'Invalid JSON response',
+          text: "Invalid JSON response",
         }),
       };
 
       const outline = await pptEngine.generateOutlineFromDescription(
-        'Test',
-        mockLLMManager
+        "Test",
+        mockLLMManager,
       );
 
       expect(outline.sections).toBeDefined();
     });
 
-    it('should fall back to backend AI if LLM not initialized', async () => {
+    it("should fall back to backend AI if LLM not initialized", async () => {
       const mockLLMManager = {
         isInitialized: false,
       };
@@ -622,8 +620,12 @@ Valid point
       // Mock HTTP request
       const mockReq = {
         on: vi.fn((event, handler) => {
-          if (event === 'error') return mockReq;
-          if (event === 'timeout') return mockReq;
+          if (event === "error") {
+            return mockReq;
+          }
+          if (event === "timeout") {
+            return mockReq;
+          }
           return mockReq;
         }),
         write: vi.fn(),
@@ -633,13 +635,15 @@ Valid point
 
       const mockRes = {
         on: vi.fn((event, handler) => {
-          if (event === 'data') {
+          if (event === "data") {
             // Simulate SSE response
-            handler('data: {"type":"content","content":"{\\"title\\":\\"Test\\""}\n');
+            handler(
+              'data: {"type":"content","content":"{\\"title\\":\\"Test\\""}\n',
+            );
             handler('data: {"type":"content","content":","sections\\":[]}"}\n');
             handler('data: {"type":"done"}\n');
           }
-          if (event === 'end') {
+          if (event === "end") {
             setTimeout(handler, 0);
           }
           return mockRes;
@@ -652,16 +656,16 @@ Valid point
       });
 
       const outline = await pptEngine.generateOutlineFromDescription(
-        'Test',
-        mockLLMManager
+        "Test",
+        mockLLMManager,
       );
 
       expect(outline).toBeDefined();
     });
   });
 
-  describe('createTitleSlide', () => {
-    it('should create title slide with all elements', () => {
+  describe("createTitleSlide", () => {
+    it("should create title slide with all elements", () => {
       const mockSlide = {
         background: null,
         addText: vi.fn(),
@@ -673,12 +677,18 @@ Valid point
 
       const theme = pptEngine.themes.business;
 
-      pptEngine.createTitleSlide(mockPpt, 'My Title', 'My Subtitle', 'Author', theme);
+      pptEngine.createTitleSlide(
+        mockPpt,
+        "My Title",
+        "My Subtitle",
+        "Author",
+        theme,
+      );
 
       expect(mockSlide.addText).toHaveBeenCalledTimes(3); // Title, subtitle, author+date
     });
 
-    it('should handle missing subtitle', () => {
+    it("should handle missing subtitle", () => {
       const mockSlide = {
         background: null,
         addText: vi.fn(),
@@ -688,14 +698,20 @@ Valid point
         addSlide: vi.fn(() => mockSlide),
       };
 
-      pptEngine.createTitleSlide(mockPpt, 'Title', null, 'Author', pptEngine.themes.business);
+      pptEngine.createTitleSlide(
+        mockPpt,
+        "Title",
+        null,
+        "Author",
+        pptEngine.themes.business,
+      );
 
       expect(mockSlide.addText).toHaveBeenCalledTimes(2); // Title and author+date only
     });
   });
 
-  describe('createSectionSlide', () => {
-    it('should create section slide', () => {
+  describe("createSectionSlide", () => {
+    it("should create section slide", () => {
       const mockSlide = {
         background: null,
         addText: vi.fn(),
@@ -705,20 +721,24 @@ Valid point
         addSlide: vi.fn(() => mockSlide),
       };
 
-      pptEngine.createSectionSlide(mockPpt, 'Section Title', pptEngine.themes.academic);
+      pptEngine.createSectionSlide(
+        mockPpt,
+        "Section Title",
+        pptEngine.themes.academic,
+      );
 
       expect(mockSlide.addText).toHaveBeenCalledWith(
-        'Section Title',
+        "Section Title",
         expect.objectContaining({
           fontSize: 40,
           bold: true,
-        })
+        }),
       );
     });
   });
 
-  describe('createContentSlide', () => {
-    it('should create content slide with bullet points', () => {
+  describe("createContentSlide", () => {
+    it("should create content slide with bullet points", () => {
       const mockSlide = {
         background: null,
         addText: vi.fn(),
@@ -729,17 +749,21 @@ Valid point
       };
 
       const slideData = {
-        title: 'Content Title',
-        bulletPoints: ['Point 1', 'Point 2', 'Point 3'],
-        layout: 'content',
+        title: "Content Title",
+        bulletPoints: ["Point 1", "Point 2", "Point 3"],
+        layout: "content",
       };
 
-      pptEngine.createContentSlide(mockPpt, slideData, pptEngine.themes.creative);
+      pptEngine.createContentSlide(
+        mockPpt,
+        slideData,
+        pptEngine.themes.creative,
+      );
 
       expect(mockSlide.addText).toHaveBeenCalledTimes(2); // Title + bullet points
     });
 
-    it('should handle slide without bullet points', () => {
+    it("should handle slide without bullet points", () => {
       const mockSlide = {
         background: null,
         addText: vi.fn(),
@@ -750,7 +774,7 @@ Valid point
       };
 
       const slideData = {
-        title: 'Title Only',
+        title: "Title Only",
         bulletPoints: [],
       };
 
@@ -760,8 +784,8 @@ Valid point
     });
   });
 
-  describe('createEndSlide', () => {
-    it('should create end slide', () => {
+  describe("createEndSlide", () => {
+    it("should create end slide", () => {
       const mockSlide = {
         background: null,
         addText: vi.fn(),
@@ -771,52 +795,52 @@ Valid point
         addSlide: vi.fn(() => mockSlide),
       };
 
-      pptEngine.createEndSlide(mockPpt, '谢谢观看', pptEngine.themes.business);
+      pptEngine.createEndSlide(mockPpt, "谢谢观看", pptEngine.themes.business);
 
       expect(mockSlide.addText).toHaveBeenCalledWith(
-        '谢谢观看',
+        "谢谢观看",
         expect.objectContaining({
           fontSize: 48,
           bold: true,
-        })
+        }),
       );
     });
   });
 
-  describe('addChart', () => {
-    it('should add chart to slide', () => {
+  describe("addChart", () => {
+    it("should add chart to slide", () => {
       const mockSlide = {
         addText: vi.fn(),
         addChart: vi.fn(),
       };
 
       const chartData = {
-        type: 'bar',
-        title: 'Sales Data',
+        type: "bar",
+        title: "Sales Data",
         data: [
-          { name: 'Q1', values: [100] },
-          { name: 'Q2', values: [150] },
+          { name: "Q1", values: [100] },
+          { name: "Q2", values: [150] },
         ],
       };
 
       pptEngine.addChart(mockSlide, chartData, pptEngine.themes.business);
 
       expect(mockSlide.addText).toHaveBeenCalledWith(
-        'Sales Data',
-        expect.anything()
+        "Sales Data",
+        expect.anything(),
       );
       expect(mockSlide.addChart).toHaveBeenCalled();
     });
 
-    it('should use custom position', () => {
+    it("should use custom position", () => {
       const mockSlide = {
         addText: vi.fn(),
         addChart: vi.fn(),
       };
 
       const chartData = {
-        type: 'line',
-        title: 'Chart',
+        type: "line",
+        title: "Chart",
         data: [],
         position: { x: 2, y: 3, w: 6, h: 3 },
       };
@@ -824,28 +848,28 @@ Valid point
       pptEngine.addChart(mockSlide, chartData, pptEngine.themes.academic);
 
       expect(mockSlide.addChart).toHaveBeenCalledWith(
-        'line',
+        "line",
         [],
         expect.objectContaining({
           x: 2,
           y: 3,
           w: 6,
           h: 3,
-        })
+        }),
       );
     });
 
-    it('should handle chart errors gracefully', () => {
+    it("should handle chart errors gracefully", () => {
       const mockSlide = {
         addText: vi.fn(),
         addChart: vi.fn(() => {
-          throw new Error('Chart error');
+          throw new Error("Chart error");
         }),
       };
 
       const chartData = {
-        type: 'bar',
-        title: 'Chart',
+        type: "bar",
+        title: "Chart",
         data: [],
       };
 
@@ -856,14 +880,14 @@ Valid point
     });
   });
 
-  describe('addImage', () => {
-    it('should add image from path', () => {
+  describe("addImage", () => {
+    it("should add image from path", () => {
       const mockSlide = {
         addImage: vi.fn(),
       };
 
       const imageData = {
-        path: '/path/to/image.jpg',
+        path: "/path/to/image.jpg",
         position: { x: 2, y: 2, w: 6, h: 4 },
       };
 
@@ -871,40 +895,40 @@ Valid point
 
       expect(mockSlide.addImage).toHaveBeenCalledWith(
         expect.objectContaining({
-          path: '/path/to/image.jpg',
+          path: "/path/to/image.jpg",
           x: 2,
           y: 2,
           w: 6,
           h: 4,
-        })
+        }),
       );
     });
 
-    it('should add image from data URL', () => {
+    it("should add image from data URL", () => {
       const mockSlide = {
         addImage: vi.fn(),
       };
 
       const imageData = {
-        data: 'data:image/png;base64,iVBORw0KGgo...',
+        data: "data:image/png;base64,iVBORw0KGgo...",
       };
 
       pptEngine.addImage(mockSlide, imageData);
 
       expect(mockSlide.addImage).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: 'data:image/png;base64,iVBORw0KGgo...',
-        })
+          data: "data:image/png;base64,iVBORw0KGgo...",
+        }),
       );
     });
 
-    it('should use default position if not provided', () => {
+    it("should use default position if not provided", () => {
       const mockSlide = {
         addImage: vi.fn(),
       };
 
       const imageData = {
-        path: '/image.jpg',
+        path: "/image.jpg",
       };
 
       pptEngine.addImage(mockSlide, imageData);
@@ -915,19 +939,19 @@ Valid point
           y: 2,
           w: 6,
           h: 4,
-        })
+        }),
       );
     });
 
-    it('should handle image errors gracefully', () => {
+    it("should handle image errors gracefully", () => {
       const mockSlide = {
         addImage: vi.fn(() => {
-          throw new Error('Image error');
+          throw new Error("Image error");
         }),
       };
 
       const imageData = {
-        path: '/image.jpg',
+        path: "/image.jpg",
       };
 
       // Should not throw
@@ -937,8 +961,8 @@ Valid point
     });
   });
 
-  describe('边界条件和错误处理', () => {
-    it('should handle outline without title', async () => {
+  describe("边界条件和错误处理", () => {
+    it("should handle outline without title", async () => {
       const outline = {
         sections: [],
       };
@@ -950,9 +974,9 @@ Valid point
       expect(result.success).toBe(true);
     });
 
-    it('should handle outline without sections', async () => {
+    it("should handle outline without sections", async () => {
       const outline = {
-        title: 'Test',
+        title: "Test",
         sections: [],
       };
 
@@ -963,12 +987,12 @@ Valid point
       expect(result.success).toBe(true);
     });
 
-    it('should handle empty subsections', async () => {
+    it("should handle empty subsections", async () => {
       const outline = {
-        title: 'Test',
+        title: "Test",
         sections: [
           {
-            title: 'Section',
+            title: "Section",
             subsections: [],
           },
         ],
@@ -981,16 +1005,16 @@ Valid point
       expect(result.success).toBe(true);
     });
 
-    it('should handle Unicode in content', async () => {
+    it("should handle Unicode in content", async () => {
       const outline = {
-        title: '你好世界 🌍',
+        title: "你好世界 🌍",
         sections: [
           {
-            title: 'مرحبا',
+            title: "مرحبا",
             subsections: [
               {
-                title: 'こんにちは',
-                points: ['안녕하세요'],
+                title: "こんにちは",
+                points: ["안녕하세요"],
               },
             ],
           },
@@ -1004,8 +1028,8 @@ Valid point
       expect(result.success).toBe(true);
     });
 
-    it('should handle very long titles', async () => {
-      const longTitle = 'A'.repeat(200);
+    it("should handle very long titles", async () => {
+      const longTitle = "A".repeat(200);
       const outline = {
         title: longTitle,
         sections: [],
@@ -1018,14 +1042,14 @@ Valid point
       expect(result.success).toBe(true);
     });
 
-    it('should handle unknown theme gracefully', async () => {
+    it("should handle unknown theme gracefully", async () => {
       const outline = {
-        title: 'Test',
+        title: "Test",
         sections: [],
       };
 
       const result = await pptEngine.generateFromOutline(outline, {
-        theme: 'unknown',
+        theme: "unknown",
         outputPath: testPptxPath,
       });
 

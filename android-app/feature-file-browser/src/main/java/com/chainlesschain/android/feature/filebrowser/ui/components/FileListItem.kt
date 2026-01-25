@@ -22,7 +22,7 @@ import java.util.*
  * File List Item Component
  *
  * Displays a single file in the file browser list with:
- * - Category-based icon with color
+ * - Category-based icon with color (or thumbnail for images)
  * - File name, size, and last modified date
  * - Import and favorite buttons
  *
@@ -31,6 +31,7 @@ import java.util.*
  * @param onImportClick Callback when import button is clicked
  * @param onFavoriteClick Callback when favorite button is clicked
  * @param showImportButton Whether to show the import button
+ * @param thumbnailCache Optional thumbnail cache for image thumbnails
  */
 @Composable
 fun FileListItem(
@@ -38,7 +39,8 @@ fun FileListItem(
     onFileClick: () -> Unit,
     onImportClick: () -> Unit,
     onFavoriteClick: () -> Unit,
-    showImportButton: Boolean = true
+    showImportButton: Boolean = true,
+    thumbnailCache: com.chainlesschain.android.feature.filebrowser.cache.ThumbnailCache? = null
 ) {
     Row(
         modifier = Modifier
@@ -48,10 +50,11 @@ fun FileListItem(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // File icon with category color
+        // File icon with category color (or thumbnail for images)
         FileTypeIcon(
-            category = file.category,
-            modifier = Modifier.size(40.dp)
+            file = file,
+            thumbnailCache = thumbnailCache,
+            modifier = Modifier.size(48.dp)
         )
 
         // File info
@@ -145,38 +148,51 @@ fun FileListItem(
 /**
  * File Type Icon
  *
- * Displays a category-appropriate icon with color coding
+ * Displays a category-appropriate icon with color coding, or thumbnail for images
  */
 @Composable
 private fun FileTypeIcon(
-    category: FileCategory,
+    file: ExternalFileEntity,
+    thumbnailCache: com.chainlesschain.android.feature.filebrowser.cache.ThumbnailCache?,
     modifier: Modifier = Modifier
 ) {
-    val (icon, color) = when (category) {
-        FileCategory.DOCUMENT -> Icons.Default.Description to Color(0xFF1976D2) // Blue
-        FileCategory.IMAGE -> Icons.Default.Image to Color(0xFF388E3C) // Green
-        FileCategory.VIDEO -> Icons.Default.VideoLibrary to Color(0xFFD32F2F) // Red
-        FileCategory.AUDIO -> Icons.Default.AudioFile to Color(0xFFF57C00) // Orange
-        FileCategory.ARCHIVE -> Icons.Default.FolderZip to Color(0xFF7B1FA2) // Purple
-        FileCategory.CODE -> Icons.Default.Code to Color(0xFF0288D1) // Cyan
-        FileCategory.OTHER -> Icons.Default.InsertDriveFile to Color(0xFF616161) // Gray
-    }
+    // Show thumbnail for images if cache is available
+    if (file.category == FileCategory.IMAGE && thumbnailCache != null) {
+        ThumbnailImage(
+            uri = file.uri,
+            thumbnailCache = thumbnailCache,
+            modifier = modifier,
+            size = 48.dp,
+            contentDescription = file.displayName
+        )
+    } else {
+        // Show category icon for other files
+        val (icon, color) = when (file.category) {
+            FileCategory.DOCUMENT -> Icons.Default.Description to Color(0xFF1976D2) // Blue
+            FileCategory.IMAGE -> Icons.Default.Image to Color(0xFF388E3C) // Green
+            FileCategory.VIDEO -> Icons.Default.VideoLibrary to Color(0xFFD32F2F) // Red
+            FileCategory.AUDIO -> Icons.Default.AudioFile to Color(0xFFF57C00) // Orange
+            FileCategory.ARCHIVE -> Icons.Default.FolderZip to Color(0xFF7B1FA2) // Purple
+            FileCategory.CODE -> Icons.Default.Code to Color(0xFF0288D1) // Cyan
+            FileCategory.OTHER -> Icons.Default.InsertDriveFile to Color(0xFF616161) // Gray
+        }
 
-    Surface(
-        modifier = modifier,
-        shape = MaterialTheme.shapes.small,
-        color = color.copy(alpha = 0.1f)
-    ) {
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier.fillMaxSize()
+        Surface(
+            modifier = modifier,
+            shape = MaterialTheme.shapes.small,
+            color = color.copy(alpha = 0.1f)
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = category.name,
-                tint = color,
-                modifier = Modifier.size(24.dp)
-            )
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier.fillMaxSize()
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = file.category.name,
+                    tint = color,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
         }
     }
 }

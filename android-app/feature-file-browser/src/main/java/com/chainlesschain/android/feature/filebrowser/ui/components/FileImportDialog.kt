@@ -10,7 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.chainlesschain.android.core.database.entity.ExternalFileEntity
-import ProjectEntity
+import com.chainlesschain.android.core.database.entity.ProjectEntity
 
 /**
  * File Import Dialog Component
