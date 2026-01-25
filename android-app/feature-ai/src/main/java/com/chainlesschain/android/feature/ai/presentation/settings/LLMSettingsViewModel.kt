@@ -18,7 +18,8 @@ import javax.inject.Inject
 class LLMSettingsViewModel @Inject constructor(
     private val configManager: LLMConfigManager,
     private val importExportManager: com.chainlesschain.android.feature.ai.data.config.ConfigImportExportManager,
-    private val recommendationEngine: com.chainlesschain.android.feature.ai.domain.recommendation.LLMRecommendationEngine
+    private val recommendationEngine: com.chainlesschain.android.feature.ai.domain.recommendation.LLMRecommendationEngine,
+    private val adapterFactory: com.chainlesschain.android.feature.ai.domain.adapter.LLMAdapterFactory
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<LLMSettingsUiState>(LLMSettingsUiState.Loading)
@@ -293,16 +294,22 @@ class LLMSettingsViewModel @Inject constructor(
             try {
                 _uiState.value = LLMSettingsUiState.Testing(provider)
 
-                // TODO: 实际测试API连接
-                // 这里需要调用适配器的checkAvailability方法
+                // 实际测试API连接
+                val result = adapterFactory.testConnection(provider)
 
-                kotlinx.coroutines.delay(1500) // 模拟测试
-
-                _uiState.value = LLMSettingsUiState.TestResult(
-                    provider = provider,
-                    success = true,
-                    message = "连接成功"
-                )
+                _uiState.value = if (result.isSuccess) {
+                    LLMSettingsUiState.TestResult(
+                        provider = provider,
+                        success = true,
+                        message = result.getOrNull() ?: "连接成功"
+                    )
+                } else {
+                    LLMSettingsUiState.TestResult(
+                        provider = provider,
+                        success = false,
+                        message = result.exceptionOrNull()?.message ?: "连接失败"
+                    )
+                }
 
                 // 2秒后恢复到正常状态
                 kotlinx.coroutines.delay(2000)
@@ -313,6 +320,9 @@ class LLMSettingsViewModel @Inject constructor(
                     success = false,
                     message = e.message ?: "连接失败"
                 )
+                // 2秒后恢复到正常状态
+                kotlinx.coroutines.delay(2000)
+                loadConfig()
             }
         }
     }
