@@ -37,6 +37,10 @@ class FileScanWorker @AssistedInject constructor(
         private const val MAX_RETRY_COUNT = 3
         private const val INITIAL_BACKOFF_SECONDS = 30L
 
+        // Notification配置
+        private const val NOTIFICATION_CHANNEL_ID = "file_scan_channel"
+        private const val NOTIFICATION_ID = 1001
+
         /**
          * 调度周期性文件扫描任务
          *
@@ -108,6 +112,29 @@ class FileScanWorker @AssistedInject constructor(
         private const val KEY_USE_INCREMENTAL_SCAN = "use_incremental_scan"
         private const val KEY_SCAN_RESULT = "scan_result"
         private const val KEY_FILE_COUNT = "file_count"
+
+        /**
+         * 创建通知渠道 (Android 8.0+)
+         *
+         * 应该在Application.onCreate()中调用
+         */
+        fun createNotificationChannel(context: Context) {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                val channel = android.app.NotificationChannel(
+                    NOTIFICATION_CHANNEL_ID,
+                    "文件扫描",
+                    android.app.NotificationManager.IMPORTANCE_LOW
+                ).apply {
+                    description = "后台文件扫描进度通知"
+                    setShowBadge(false)
+                }
+
+                val notificationManager = context.getSystemService(
+                    android.app.NotificationManager::class.java
+                )
+                notificationManager.createNotificationChannel(channel)
+            }
+        }
     }
 
     override suspend fun doWork(): Result {
@@ -176,7 +203,7 @@ class FileScanWorker @AssistedInject constructor(
      * Note: 长时间运行的Worker需要显示通知
      */
     private fun createForegroundInfo(): ForegroundInfo {
-        val notification = android.app.NotificationCompat.Builder(
+        val notification = androidx.core.app.NotificationCompat.Builder(
             applicationContext,
             NOTIFICATION_CHANNEL_ID
         )
@@ -187,34 +214,6 @@ class FileScanWorker @AssistedInject constructor(
             .build()
 
         return ForegroundInfo(NOTIFICATION_ID, notification)
-    }
-
-    companion object NotificationConfig {
-        private const val NOTIFICATION_CHANNEL_ID = "file_scan_channel"
-        private const val NOTIFICATION_ID = 1001
-
-        /**
-         * 创建通知渠道 (Android 8.0+)
-         *
-         * 应该在Application.onCreate()中调用
-         */
-        fun createNotificationChannel(context: Context) {
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                val channel = android.app.NotificationChannel(
-                    NOTIFICATION_CHANNEL_ID,
-                    "文件扫描",
-                    android.app.NotificationManager.IMPORTANCE_LOW
-                ).apply {
-                    description = "后台文件扫描进度通知"
-                    setShowBadge(false)
-                }
-
-                val notificationManager = context.getSystemService(
-                    android.app.NotificationManager::class.java
-                )
-                notificationManager.createNotificationChannel(channel)
-            }
-        }
     }
 }
 

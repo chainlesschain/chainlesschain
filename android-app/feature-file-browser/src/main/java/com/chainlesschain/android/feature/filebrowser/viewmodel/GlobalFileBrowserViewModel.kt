@@ -37,7 +37,8 @@ import javax.inject.Inject
 class GlobalFileBrowserViewModel @Inject constructor(
     private val mediaStoreScanner: MediaStoreScanner,
     private val externalFileRepository: ExternalFileRepository,
-    private val fileImportRepository: FileImportRepository
+    private val fileImportRepository: FileImportRepository,
+    val thumbnailCache: com.chainlesschain.android.feature.filebrowser.cache.ThumbnailCache
 ) : ViewModel() {
 
     companion object {

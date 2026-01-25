@@ -1,6 +1,6 @@
 # Phase 9: 增强功能实现 - 进度报告
 
-**当前进度**: 60% | **最后更新**: 2026-01-26 02:30
+**当前进度**: 70% | **最后更新**: 2026-01-26 03:00
 
 ---
 
@@ -508,6 +508,243 @@ implementation("androidx.media3:media3-exoplayer:1.2.1")
 implementation("androidx.media3:media3-ui:1.2.1")
 implementation("androidx.media3:media3-common:1.2.1")
 ```
+
+---
+
+### 5. 缩略图缓存 (LRU Cache) - 100% ✅
+
+**新增文件**:
+
+- `ThumbnailCache.kt` (241行)
+- `ThumbnailImage.kt` (130行)
+- `FileListItem.kt` (修改 +15行)
+- `GlobalFileBrowserViewModel.kt` (修改 +1行)
+- `GlobalFileBrowserScreen.kt` (修改 +1行)
+
+**功能实现**:
+
+#### ThumbnailCache - LRU缓存管理器
+
+**核心功能**:
+
+- ✅ **LRU缓存策略** - 使用Android LruCache，自动清理最少使用的缩略图
+- ✅ **内存管理** - 使用12.5%的应用内存作为缓存空间
+- ✅ **异步加载** - 在IO线程加载缩略图
+- ✅ **智能缩放** - 自动缩放图片到200x200像素
+- ✅ **内存优化** - 使用RGB_565格式减少内存占用
+- ✅ **自动回收** - 缓存清理时自动回收Bitmap
+- ✅ **统计信息** - 提供缓存命中率、大小等统计
+
+**技术实现**:
+
+```kotlin
+// LRU缓存初始化
+val maxMemory = (Runtime.getRuntime().maxMemory() / 1024).toInt()
+val cacheSize = (maxMemory * 0.125).toInt() // 12.5%内存
+
+cache = object : LruCache<String, Bitmap>(cacheSize) {
+    override fun sizeOf(key: String, bitmap: Bitmap): Int {
+        return bitmap.byteCount / 1024 // KB
+    }
+
+    override fun entryRemoved(
+        evicted: Boolean,
+        key: String?,
+        oldValue: Bitmap?,
+        newValue: Bitmap?
+    ) {
+        if (evicted && oldValue != null && !oldValue.isRecycled) {
+            oldValue.recycle() // 回收Bitmap
+        }
+    }
+}
+```
+
+**智能缩放算法**:
+
+```kotlin
+// 计算缩放比例（2的幂次方）
+private fun calculateScaleFactor(
+    srcWidth: Int,
+    srcHeight: Int,
+    maxWidth: Int,
+    maxHeight: Int
+): Int {
+    var scaleFactor = 1
+
+    if (srcHeight > maxHeight || srcWidth > maxWidth) {
+        val heightRatio = srcHeight / maxHeight
+        val widthRatio = srcWidth / maxWidth
+
+        scaleFactor = if (heightRatio > widthRatio) heightRatio else widthRatio
+
+        // inSampleSize应该是2的幂次方
+        var powerOfTwo = 1
+        while (powerOfTwo < scaleFactor) {
+            powerOfTwo *= 2
+        }
+        scaleFactor = powerOfTwo
+    }
+
+    return scaleFactor
+}
+```
+
+**缓存加载逻辑**:
+
+```kotlin
+suspend fun loadThumbnail(
+    contentResolver: ContentResolver,
+    uri: String
+): Bitmap? = withContext(Dispatchers.IO) {
+    // 1. 检查缓存
+    val cached = get(uri)
+    if (cached != null) {
+        return@withContext cached // 缓存命中
+    }
+
+    // 2. 首次获取图片尺寸（不加载完整图片）
+    val options = BitmapFactory.Options().apply {
+        inJustDecodeBounds = true
+    }
+    BitmapFactory.decodeStream(inputStream, null, options)
+
+    // 3. 计算缩放比例
+    val scaleFactor = calculateScaleFactor(...)
+
+    // 4. 加载缩略图
+    val thumbnailOptions = BitmapFactory.Options().apply {
+        inSampleSize = scaleFactor
+        inPreferredConfig = Bitmap.Config.RGB_565 // 节省内存
+    }
+    val bitmap = BitmapFactory.decodeStream(inputStream2, null, thumbnailOptions)
+
+    // 5. 添加到缓存
+    put(uri, bitmap)
+
+    bitmap
+}
+```
+
+**缓存统计**:
+
+```kotlin
+data class CacheStats(
+    val size: Int,              // 当前大小（KB）
+    val maxSize: Int,           // 最大大小（KB）
+    val hitCount: Int,          // 命中次数
+    val missCount: Int,         // 未命中次数
+    val evictionCount: Int      // 清除次数
+) {
+    val hitRate: Float
+        get() = if (hitCount + missCount > 0) {
+            hitCount.toFloat() / (hitCount + missCount)
+        } else {
+            0f
+        }
+}
+```
+
+#### ThumbnailImage - 缩略图组件
+
+**核心功能**:
+
+- ✅ **异步加载** - LaunchedEffect协程加载
+- ✅ **加载状态** - Loading/Success/Error三种状态
+- ✅ **加载指示器** - 显示CircularProgressIndicator
+- ✅ **错误处理** - 显示错误图标
+- ✅ **自动裁剪** - ContentScale.Crop填充容器
+
+**组件实现**:
+
+```kotlin
+@Composable
+fun ThumbnailImage(
+    uri: String,
+    thumbnailCache: ThumbnailCache,
+    modifier: Modifier = Modifier,
+    size: Dp = 48.dp,
+    contentDescription: String? = null
+) {
+    var thumbnailState by remember(uri) {
+        mutableStateOf<ThumbnailState>(ThumbnailState.Loading)
+    }
+
+    // 异步加载
+    LaunchedEffect(uri) {
+        coroutineScope.launch {
+            val bitmap = thumbnailCache.loadThumbnail(contentResolver, uri)
+            thumbnailState = if (bitmap != null) {
+                ThumbnailState.Success(bitmap)
+            } else {
+                ThumbnailState.Error
+            }
+        }
+    }
+
+    // 显示不同状态
+    Box(modifier = modifier.size(size)) {
+        when (val state = thumbnailState) {
+            is ThumbnailState.Loading -> CircularProgressIndicator(...)
+            is ThumbnailState.Success -> Image(bitmap = state.bitmap.asImageBitmap(), ...)
+            is ThumbnailState.Error -> Icon(Icons.Default.BrokenImage, ...)
+        }
+    }
+}
+```
+
+#### FileListItem - 缩略图集成
+
+**修改**:
+
+- ✅ 添加`thumbnailCache`参数
+- ✅ 修改`FileTypeIcon`函数，接受file和thumbnailCache
+- ✅ 图片文件显示缩略图，其他文件显示图标
+- ✅ 自动判断文件类型
+
+**集成逻辑**:
+
+```kotlin
+@Composable
+private fun FileTypeIcon(
+    file: ExternalFileEntity,
+    thumbnailCache: ThumbnailCache?,
+    modifier: Modifier = Modifier
+) {
+    // 图片文件显示缩略图
+    if (file.category == FileCategory.IMAGE && thumbnailCache != null) {
+        ThumbnailImage(
+            uri = file.uri,
+            thumbnailCache = thumbnailCache,
+            modifier = modifier,
+            size = 48.dp
+        )
+    } else {
+        // 其他文件显示图标
+        FileTypeIconPlaceholder(...)
+    }
+}
+```
+
+#### 性能优化特性
+
+**内存优化**:
+
+- 使用RGB_565格式（16位色）替代ARGB_8888（32位色），节省50%内存
+- LRU缓存自动清理，防止OOM
+- Bitmap自动回收，避免内存泄漏
+
+**加载优化**:
+
+- 首次仅获取尺寸（inJustDecodeBounds），不加载完整图片
+- inSampleSize缩放，在解码时直接缩小
+- 异步加载，不阻塞UI线程
+
+**缓存优化**:
+
+- 缓存命中率高，减少重复加载
+- 自动管理缓存大小
+- 最少使用算法（LRU），优先保留常用缩略图
 
 ---
 

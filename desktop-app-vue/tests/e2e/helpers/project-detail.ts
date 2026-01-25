@@ -3,7 +3,7 @@
  */
 
 import { Page } from '@playwright/test';
-import { callIPC } from './helpers';
+import { callIPC, forceCloseAllModals } from './common';
 
 /**
  * 创建测试项目并导航到详情页
@@ -79,10 +79,13 @@ export async function createTestFile(
 }
 
 /**
- * 在文件树中选择文件
+ * 在文件树中选择文件（大小写不敏感）
  */
 export async function selectFileInTree(window: Page, fileName: string): Promise<boolean> {
   try {
+    // 先关闭所有可能的modal，防止遮挡
+    await forceCloseAllModals(window);
+
     // 等待文件树加载
     await window.waitForSelector('[data-testid="file-tree-container"]', { timeout: 5000 });
 
@@ -91,23 +94,49 @@ export async function selectFileInTree(window: Page, fileName: string): Promise<
     const lowerFileName = fileName.toLowerCase();
 
     for (let i = 0; i < 5; i++) {
-      // 先尝试精确匹配
-      fileNode = await window.$(`text="${fileName}"`);
-      if (fileNode) {
-        break;
-      }
-
-      // 如果精确匹配失败，尝试大小写不敏感匹配（使用contains）
-      // 使用XPath进行大小写不敏感的匹配
+      // 使用evaluate进行完全大小写不敏感的匹配
       fileNode = await window.evaluateHandle((searchName) => {
-        // 查找所有可能包含文件名的元素
-        const allNodes = Array.from(document.querySelectorAll('[data-testid="file-tree-container"] *'));
-        const found = allNodes.find(node => {
+        const lowerSearchName = searchName.toLowerCase();
+
+        // 查找所有可能的文件节点
+        const allNodes = Array.from(document.querySelectorAll(
+          '[data-testid="file-tree-container"] .file-node, ' +
+          '[data-testid="file-tree-container"] .tree-node, ' +
+          '[data-testid="file-tree-container"] [class*="file"], ' +
+          '[data-testid="file-tree-container"] [class*="item"]'
+        ));
+
+        // 优先查找精确的文件名匹配（忽略大小写）
+        let found = allNodes.find(node => {
           const text = node.textContent?.trim() || '';
-          // 大小写不敏感，并且去除可能的标记（如'U'代表未保存）
-          return text.toLowerCase().includes(searchName.toLowerCase()) &&
-                 text.length < searchName.length + 5; // 避免匹配到包含文件名的父节点
+          // 完全匹配文件名（忽略大小写）
+          return text.toLowerCase() === lowerSearchName;
         });
+
+        // 如果没找到，尝试包含匹配
+        if (!found) {
+          found = allNodes.find(node => {
+            const text = node.textContent?.trim() || '';
+            // 大小写不敏感包含匹配，但要避免匹配到太长的父节点
+            return text.toLowerCase().includes(lowerSearchName) &&
+                   text.length < lowerSearchName.length + 10;
+          });
+        }
+
+        // 如果还没找到，尝试所有包含文件名的元素
+        if (!found) {
+          const allElements = Array.from(document.querySelectorAll('[data-testid="file-tree-container"] *'));
+          found = allElements.find(elem => {
+            const text = elem.textContent?.trim() || '';
+            return text.toLowerCase() === lowerSearchName ||
+                   (text.toLowerCase().includes(lowerSearchName) && text.length < lowerSearchName.length + 10);
+          });
+        }
+
+        if (found) {
+          console.log('[Helper] 找到文件节点:', found.textContent?.trim());
+        }
+
         return found || null;
       }, fileName);
 
@@ -121,20 +150,20 @@ export async function selectFileInTree(window: Page, fileName: string): Promise<
     }
 
     if (fileNode && await fileNode.asElement()) {
-      // 使用force click绕过modal阻挡
+      // 使用force click绕过可能的遮挡
       await fileNode.click({ force: true });
       await window.waitForTimeout(1000);
-      console.log(`[Helper] 成功选择文件: ${fileName}`);
+      console.log(`[Helper] ✅ 成功选择文件: ${fileName}`);
       return true;
     }
 
-    console.error(`[Helper] 未找到文件: ${fileName}`);
+    console.error(`[Helper] ❌ 未找到文件: ${fileName}`);
     // 输出文件树内容以便调试
     const treeContent = await window.textContent('[data-testid="file-tree-container"]');
     console.log('[Helper] 文件树内容:', treeContent);
     return false;
   } catch (error) {
-    console.error('Failed to select file in tree:', error);
+    console.error('[Helper] Failed to select file in tree:', error);
     return false;
   }
 }
@@ -144,38 +173,52 @@ export async function selectFileInTree(window: Page, fileName: string): Promise<
  */
 export async function sendChatMessage(window: Page, message: string): Promise<boolean> {
   try {
-    // 输入消息并点击发送
-    const success = await window.evaluate((msg) => {
-      const input = document.querySelector('[data-testid="chat-input"]') as HTMLTextAreaElement;
-      if (!input) {
-        console.error('[Helper] Chat input not found');
-        return false;
+    // 先关闭所有可能的modal，防止遮挡
+    await forceCloseAllModals(window);
+
+    // 输入消息并点击发送（使用重试逻辑提高可靠性）
+    let attempts = 0;
+    const maxAttempts = 3;
+
+    while (attempts < maxAttempts) {
+      const success = await window.evaluate((msg) => {
+        const input = document.querySelector('[data-testid="chat-input"]') as HTMLTextAreaElement;
+        if (!input) {
+          console.error('[Helper] Chat input not found');
+          return false;
+        }
+
+        // 设置输入值
+        input.value = msg;
+        // 触发input事件让Vue响应
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+
+        // 等待一小会儿让Vue更新
+        setTimeout(() => {
+          const btn = document.querySelector('[data-testid="chat-send-button"]') as HTMLElement;
+          if (btn) {
+            btn.click();
+          }
+        }, 100);
+
+        return true;
+      }, message);
+
+      if (success) {
+        await window.waitForTimeout(1000);
+        console.log('[Helper] ✅ Chat message sent successfully');
+        return true;
       }
 
-      // 设置输入值
-      input.value = msg;
-      // 触发input事件让Vue响应
-      input.dispatchEvent(new Event('input', { bubbles: true }));
-
-      // 等待一小会儿让Vue更新
-      setTimeout(() => {
-        const btn = document.querySelector('[data-testid="chat-send-button"]') as HTMLElement;
-        if (btn) {
-          btn.click();
-        }
-      }, 100);
-
-      return true;
-    }, message);
-
-    if (!success) {
-      console.error('[Helper] Failed to send chat message');
-      return false;
+      attempts++;
+      if (attempts < maxAttempts) {
+        console.warn(`[Helper] Attempt ${attempts} failed, retrying...`);
+        await window.waitForTimeout(1000);
+      }
     }
 
-    await window.waitForTimeout(1000);
-
-    return true;
+    console.error('[Helper] Failed to send chat message after all attempts');
+    return false;
   } catch (error) {
     console.error('[Helper] Failed to send chat message:', error);
     return false;
@@ -343,6 +386,9 @@ export async function performGitAction(
   action: 'status' | 'history' | 'commit' | 'push' | 'pull'
 ): Promise<boolean> {
   try {
+    // 先关闭所有可能的modal，防止遮挡
+    await forceCloseAllModals(window);
+
     // 点击Git按钮
     const gitButton = await window.$('[data-testid="git-actions-button"]');
     if (!gitButton) {
@@ -779,6 +825,9 @@ export async function toggleFileTreeMode(window: Page): Promise<boolean> {
  */
 export async function clearConversation(window: Page): Promise<boolean> {
   try {
+    // 先关闭所有可能的modal，防止遮挡
+    await forceCloseAllModals(window);
+
     const clearButton = await window.$('[data-testid="clear-conversation-button"]');
     if (!clearButton) {
       console.error('Clear conversation button not found');
