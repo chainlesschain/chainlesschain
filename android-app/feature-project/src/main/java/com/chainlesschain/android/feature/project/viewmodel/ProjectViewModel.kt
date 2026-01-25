@@ -35,7 +35,10 @@ import com.chainlesschain.android.core.common.fold
 import com.chainlesschain.android.feature.filebrowser.data.repository.ExternalFileRepository
 import com.chainlesschain.android.feature.filebrowser.data.repository.FileImportRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -49,7 +52,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.Dispatchers
 import javax.inject.Inject
 
 /**
@@ -1074,25 +1076,29 @@ class ProjectViewModel @Inject constructor(
 
     /**
      * Get context for mentioned files
+     * Uses parallel loading for better performance
      */
-    private suspend fun getMentionedFilesContext(): String {
+    private suspend fun getMentionedFilesContext(): String = withContext(Dispatchers.IO) {
         val mentionedFiles = _mentionedFiles.value
-        if (mentionedFiles.isEmpty()) return ""
+        if (mentionedFiles.isEmpty()) return@withContext ""
 
-        val fileContents = mutableListOf<String>()
-        for (file in mentionedFiles) {
-            val content = loadFileContent(file)
-            fileContents.add("""
-            |--- @${file.name} ---
-            |路径: ${file.path}
-            |```${file.extension ?: ""}
-            |$content
-            |```
-            """.trimMargin())
-        }
+        // Load files in parallel using async
+        val fileContents = mentionedFiles.map { file ->
+            async {
+                val content = loadFileContent(file)
+                """
+                |--- @${file.name} ---
+                |路径: ${file.path}
+                |```${file.extension ?: ""}
+                |$content
+                |```
+                """.trimMargin()
+            }
+        }.awaitAll()
+
         val filesContent = fileContents.joinToString("\n\n")
 
-        return """
+        return@withContext """
             |
             |---
             |用户引用的文件:

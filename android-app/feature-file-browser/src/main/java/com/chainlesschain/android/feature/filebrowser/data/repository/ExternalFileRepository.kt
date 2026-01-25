@@ -4,6 +4,7 @@ import com.chainlesschain.android.core.database.dao.ExternalFileDao
 import com.chainlesschain.android.core.database.entity.ExternalFileEntity
 import com.chainlesschain.android.core.database.entity.FileCategory
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -159,17 +160,4 @@ class ExternalFileRepository @Inject constructor(
     suspend fun deleteAll() {
         externalFileDao.deleteAll()
     }
-}
-
-/**
- * 辅助扩展函数：获取Flow的第一个值
- */
-private suspend fun <T> Flow<T>.first(): T {
-    var result: T? = null
-    collect { value ->
-        if (result == null) {
-            result = value
-        }
-    }
-    return result ?: throw NoSuchElementException("Flow was empty")
 }

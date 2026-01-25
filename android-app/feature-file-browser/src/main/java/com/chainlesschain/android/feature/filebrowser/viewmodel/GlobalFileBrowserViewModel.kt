@@ -380,6 +380,19 @@ class GlobalFileBrowserViewModel @Inject constructor(
     }
 
     /**
+     * Clear file cache from database
+     */
+    fun clearCache() {
+        viewModelScope.launch {
+            mediaStoreScanner.clearCache()
+            _files.value = emptyList()
+            _statistics.value = null
+            _uiState.value = FileBrowserUiState.Empty
+            android.util.Log.d(TAG, "File cache cleared")
+        }
+    }
+
+    /**
      * Internal filter state for combining flows
      */
     private data class FilterState(
