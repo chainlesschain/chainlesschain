@@ -65,7 +65,7 @@ vi.mock("../../src/main/ai-engine/function-caller.js", () => ({
 
 // Import after all mocks
 const { AIEngineManager, getAIEngineManager } =
-  await import("../../src/main/ai-engine/ai-engine-manager.js");
+  await import("../../../src/main/ai-engine/ai-engine-manager.js");
 
 describe("AIEngineManager", () => {
   let manager;

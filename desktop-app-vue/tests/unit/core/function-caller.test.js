@@ -32,7 +32,7 @@ vi.mock('fs', async (importOriginal) => {
 });
 
 // Import after mocking
-const FunctionCaller = (await import('../../src/main/ai-engine/function-caller.js')).default;
+const FunctionCaller = (await import('../../../src/main/ai-engine/function-caller.js')).default;
 
 // Mock extended-tools modules
 vi.mock('../../src/main/ai-engine/extended-tools.js', () => ({

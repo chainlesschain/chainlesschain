@@ -38,7 +38,7 @@ describe("InitialSetupConfig - 配置管理器单元测试", () => {
     // 清除模块缓存并重新导入
     vi.resetModules();
     const module =
-      await import("../../src/main/config/initial-setup-config.js");
+      await import("../../../src/main/config/initial-setup-config.js");
     InitialSetupConfig = module.default || module.InitialSetupConfig;
 
     configInstance = new InitialSetupConfig(testDir);
@@ -232,7 +232,7 @@ describe("InitialSetupConfig - 配置应用到系统", () => {
     // 清除模块缓存并重新导入
     vi.resetModules();
     const module =
-      await import("../../src/main/config/initial-setup-config.js");
+      await import("../../../src/main/config/initial-setup-config.js");
     const InitialSetupConfig = module.default || module.InitialSetupConfig;
     configInstance = new InitialSetupConfig(testDir);
 

@@ -38,7 +38,9 @@ class GlobalFileBrowserViewModel @Inject constructor(
     private val mediaStoreScanner: MediaStoreScanner,
     private val externalFileRepository: ExternalFileRepository,
     private val fileImportRepository: FileImportRepository,
-    val thumbnailCache: com.chainlesschain.android.feature.filebrowser.cache.ThumbnailCache
+    val thumbnailCache: com.chainlesschain.android.feature.filebrowser.cache.ThumbnailCache,
+    private val fileClassifier: com.chainlesschain.android.feature.filebrowser.ml.FileClassifier,
+    val textRecognizer: com.chainlesschain.android.feature.filebrowser.ml.TextRecognizer
 ) : ViewModel() {
 
     companion object {
@@ -81,6 +83,14 @@ class GlobalFileBrowserViewModel @Inject constructor(
     // Statistics
     private val _statistics = MutableStateFlow<FileBrowserStatistics?>(null)
     val statistics: StateFlow<FileBrowserStatistics?> = _statistics.asStateFlow()
+
+    // AI Classification results (fileId -> ClassificationResult)
+    private val _aiClassifications = MutableStateFlow<Map<String, com.chainlesschain.android.feature.filebrowser.ml.FileClassifier.ClassificationResult>>(emptyMap())
+    val aiClassifications: StateFlow<Map<String, com.chainlesschain.android.feature.filebrowser.ml.FileClassifier.ClassificationResult>> = _aiClassifications.asStateFlow()
+
+    // AI Classification in progress
+    private val _isClassifying = MutableStateFlow(false)
+    val isClassifying: StateFlow<Boolean> = _isClassifying.asStateFlow()
 
     // TODO: Project import functionality moved to UI layer to avoid circular dependency
     // Available projects for import should be provided by the UI layer
@@ -402,6 +412,153 @@ class GlobalFileBrowserViewModel @Inject constructor(
             _uiState.value = FileBrowserUiState.Empty
             android.util.Log.d(TAG, "File cache cleared")
         }
+    }
+
+    /**
+     * Classify a single file using AI
+     *
+     * @param fileId File ID to classify
+     * @param contentResolver Content resolver for file access
+     */
+    fun classifyFile(fileId: String, contentResolver: android.content.ContentResolver) {
+        viewModelScope.launch {
+            val file = _files.value.find { it.id == fileId } ?: return@launch
+
+            try {
+                val result = fileClassifier.classifyFile(
+                    contentResolver = contentResolver,
+                    uri = file.uri,
+                    currentCategory = file.category,
+                    mimeType = file.mimeType
+                )
+
+                // Store result
+                _aiClassifications.update { current ->
+                    current + (fileId to result)
+                }
+
+                android.util.Log.d(
+                    TAG,
+                    "Classified file $fileId: ${result.suggestedCategory} (${result.confidence})"
+                )
+            } catch (e: Exception) {
+                android.util.Log.e(TAG, "Error classifying file $fileId", e)
+            }
+        }
+    }
+
+    /**
+     * Batch classify all visible files using AI
+     *
+     * @param contentResolver Content resolver for file access
+     * @param maxFiles Maximum number of files to classify (default 20)
+     */
+    fun classifyVisibleFiles(
+        contentResolver: android.content.ContentResolver,
+        maxFiles: Int = 20
+    ) {
+        viewModelScope.launch {
+            _isClassifying.value = true
+
+            try {
+                // Get files to classify (limit to avoid performance issues)
+                val filesToClassify = _files.value
+                    .take(maxFiles)
+                    .filter { file ->
+                        // Only classify images for now (to avoid ML Kit limitations)
+                        file.category == FileCategory.IMAGE &&
+                        !_aiClassifications.value.containsKey(file.id)
+                    }
+
+                android.util.Log.d(TAG, "Classifying ${filesToClassify.size} files...")
+
+                // Classify in batches
+                filesToClassify.forEach { file ->
+                    val result = fileClassifier.classifyFile(
+                        contentResolver = contentResolver,
+                        uri = file.uri,
+                        currentCategory = file.category,
+                        mimeType = file.mimeType
+                    )
+
+                    // Store result
+                    _aiClassifications.update { current ->
+                        current + (file.id to result)
+                    }
+                }
+
+                android.util.Log.d(TAG, "Classification complete")
+            } catch (e: Exception) {
+                android.util.Log.e(TAG, "Error in batch classification", e)
+            } finally {
+                _isClassifying.value = false
+            }
+        }
+    }
+
+    /**
+     * Accept AI classification suggestion for a file
+     *
+     * Updates the file's category in the database.
+     *
+     * @param fileId File ID
+     */
+    fun acceptAIClassification(fileId: String) {
+        viewModelScope.launch {
+            val classification = _aiClassifications.value[fileId] ?: return@launch
+
+            try {
+                // Update file category in repository
+                externalFileRepository.updateFileCategory(
+                    fileId = fileId,
+                    newCategory = classification.suggestedCategory
+                )
+
+                // Remove from AI classifications (suggestion applied)
+                _aiClassifications.update { current ->
+                    current - fileId
+                }
+
+                android.util.Log.d(
+                    TAG,
+                    "Accepted AI classification for $fileId: ${classification.suggestedCategory}"
+                )
+            } catch (e: Exception) {
+                android.util.Log.e(TAG, "Error accepting AI classification", e)
+            }
+        }
+    }
+
+    /**
+     * Reject AI classification suggestion for a file
+     *
+     * Removes the suggestion from the UI without changing the file.
+     *
+     * @param fileId File ID
+     */
+    fun rejectAIClassification(fileId: String) {
+        _aiClassifications.update { current ->
+            current - fileId
+        }
+        android.util.Log.d(TAG, "Rejected AI classification for $fileId")
+    }
+
+    /**
+     * Clear all AI classification results
+     */
+    fun clearAIClassifications() {
+        _aiClassifications.value = emptyMap()
+        android.util.Log.d(TAG, "Cleared all AI classifications")
+    }
+
+    /**
+     * Get AI classification for a specific file
+     *
+     * @param fileId File ID
+     * @return Classification result, or null if not classified
+     */
+    fun getAIClassification(fileId: String): com.chainlesschain.android.feature.filebrowser.ml.FileClassifier.ClassificationResult? {
+        return _aiClassifications.value[fileId]
     }
 
     /**

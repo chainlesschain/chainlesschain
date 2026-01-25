@@ -31,7 +31,7 @@ vi.mock("path", async () => {
 });
 
 // Import after mocks
-const ConfigManager = require("../../src/main/skill-tool-system/config-manager");
+const ConfigManager = require("../../../src/main/skill-tool-system/config-manager");
 
 // ===================== MOCK FACTORIES =====================
 

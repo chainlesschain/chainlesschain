@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
@@ -65,11 +66,15 @@ fun GlobalFileBrowserScreen(
     val searchQuery by viewModel.searchQuery.collectAsState()
     val sortBy by viewModel.sortBy.collectAsState()
     val sortDirection by viewModel.sortDirection.collectAsState()
+    val aiClassifications by viewModel.aiClassifications.collectAsState()
+    val isClassifying by viewModel.isClassifying.collectAsState()
 
     var showSearchBar by remember { mutableStateOf(false) }
     var fileToPreview by remember { mutableStateOf<ExternalFileEntity?>(null) }
     var fileToImport by remember { mutableStateOf<ExternalFileEntity?>(null) }
     var showSettings by remember { mutableStateOf(false) }
+
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     // Permission launcher
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -123,6 +128,14 @@ fun GlobalFileBrowserScreen(
                 actions = {
                     IconButton(onClick = { showSearchBar = !showSearchBar }) {
                         Icon(Icons.Default.Search, contentDescription = "搜索")
+                    }
+                    IconButton(
+                        onClick = {
+                            viewModel.classifyVisibleFiles(context.contentResolver)
+                        },
+                        enabled = !isClassifying && files.isNotEmpty()
+                    ) {
+                        Icon(Icons.Default.AutoAwesome, contentDescription = "AI分类")
                     }
                     IconButton(onClick = { viewModel.refresh() }) {
                         Icon(Icons.Default.Refresh, contentDescription = "刷新")
@@ -217,6 +230,27 @@ fun GlobalFileBrowserScreen(
                 else -> {}
             }
 
+            // AI Classification progress indicator
+            if (isClassifying) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp
+                    )
+                    Text(
+                        text = "AI 分类中...",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+
             // File list
             when (uiState) {
                 is GlobalFileBrowserViewModel.FileBrowserUiState.Loading -> {
@@ -274,7 +308,8 @@ fun GlobalFileBrowserScreen(
     fileToPreview?.let { file ->
         FilePreviewDialog(
             file = file,
-            onDismiss = { fileToPreview = null }
+            onDismiss = { fileToPreview = null },
+            textRecognizer = viewModel.textRecognizer
         )
     }
 

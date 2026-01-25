@@ -42,12 +42,15 @@ import java.io.InputStreamReader
 @Composable
 fun FilePreviewDialog(
     file: ExternalFileEntity,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    textRecognizer: com.chainlesschain.android.feature.filebrowser.ml.TextRecognizer? = null
 ) {
     val context = LocalContext.current
     val contentResolver = context.contentResolver
 
     var previewState by remember { mutableStateOf<PreviewState>(PreviewState.Loading) }
+    var ocrResult by remember { mutableStateOf<com.chainlesschain.android.feature.filebrowser.ml.TextRecognizer.RecognitionResult?>(null) }
+    var isRecognizingText by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
 
     // Load preview content
@@ -112,6 +115,33 @@ fun FilePreviewDialog(
                         }
                     },
                     actions = {
+                        // OCR button (only for images)
+                        if (file.category == FileCategory.IMAGE && textRecognizer != null) {
+                            IconButton(
+                                onClick = {
+                                    coroutineScope.launch {
+                                        isRecognizingText = true
+                                        val result = textRecognizer.recognizeText(
+                                            contentResolver,
+                                            file.uri
+                                        )
+                                        ocrResult = result
+                                        isRecognizingText = false
+                                    }
+                                },
+                                enabled = !isRecognizingText
+                            ) {
+                                if (isRecognizingText) {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(20.dp),
+                                        strokeWidth = 2.dp
+                                    )
+                                } else {
+                                    Icon(Icons.Default.TextFields, contentDescription = "文字识别")
+                                }
+                            }
+                        }
+
                         IconButton(
                             onClick = {
                                 // TODO: 打开文件所在位置
@@ -180,6 +210,18 @@ fun FilePreviewDialog(
                 }
             }
         }
+    }
+
+    // OCR Result Dialog
+    ocrResult?.let { result ->
+        OCRResultDialog(
+            result = result,
+            fileName = file.displayName,
+            onDismiss = { ocrResult = null },
+            onSave = { editedText ->
+                // TODO: Save edited text to file or knowledge base
+            }
+        )
     }
 }
 

@@ -31,7 +31,7 @@ const {
   deleteFile,
   readFile,
   ensureLogTable,
-} = await import("../../src/main/ai-engine/conversation-executor.js");
+} = await import("../../../src/main/ai-engine/conversation-executor.js");
 
 describe("ConversationExecutor", () => {
   let testDir;

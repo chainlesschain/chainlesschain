@@ -2,7 +2,7 @@
  * TaskPlanner 单元测试
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { TaskPlanner, PlanningSession, PlanningState } from '../../src/renderer/utils/taskPlanner';
+import { TaskPlanner, PlanningSession, PlanningState } from '../../../src/renderer/utils/taskPlanner';
 
 describe('PlanningState', () => {
   it('应该定义所有必要的状态', () => {

@@ -143,7 +143,7 @@ describe("图片引擎测试", () => {
     mockFsStat.mockResolvedValue({ size: 1024 * 1024 });
 
     // Import ImageEngine after mocks are configured
-    const module = await import("../../src/main/engines/image-engine.js");
+    const module = await import("../../../src/main/engines/image-engine.js");
     ImageEngine = module.ImageEngine;
     getImageEngine = module.getImageEngine;
 
@@ -877,7 +877,7 @@ describe("图片引擎测试", () => {
     beforeEach(async () => {
       // Reset modules to get a fresh singleton for each test
       vi.resetModules();
-      const module = await import("../../src/main/engines/image-engine.js");
+      const module = await import("../../../src/main/engines/image-engine.js");
       localGetImageEngine = module.getImageEngine;
     });
 

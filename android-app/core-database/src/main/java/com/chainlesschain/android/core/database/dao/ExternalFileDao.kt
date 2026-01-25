@@ -126,6 +126,11 @@ interface ExternalFileDao {
     @Query("UPDATE external_files SET isFavorite = :isFavorite WHERE id = :fileId")
     suspend fun updateFavorite(fileId: String, isFavorite: Boolean)
 
+    // ===== 分类更新 =====
+
+    @Query("UPDATE external_files SET category = :category WHERE id = :fileId")
+    suspend fun updateCategory(fileId: String, category: FileCategory)
+
     // ===== 批量操作 =====
 
     @Query("DELETE FROM external_files WHERE scannedAt < :timestamp")

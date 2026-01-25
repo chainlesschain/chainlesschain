@@ -71,7 +71,7 @@ describe("PPT引擎测试", () => {
     mockHttp = await import("http");
 
     // Import PPTEngine after mocks
-    const module = await import("../../src/main/engines/ppt-engine.js");
+    const module = await import("../../../src/main/engines/ppt-engine.js");
     PPTEngine = module.default;
     pptEngine = new PPTEngine();
   });

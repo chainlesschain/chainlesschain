@@ -10,7 +10,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import TaskPlannerEnhanced from '../../src/main/ai-engine/task-planner-enhanced.js';
+import TaskPlannerEnhanced from '../../../src/main/ai-engine/task-planner-enhanced.js';
 import EventEmitter from 'events';
 
 describe('TaskPlannerEnhanced', () => {

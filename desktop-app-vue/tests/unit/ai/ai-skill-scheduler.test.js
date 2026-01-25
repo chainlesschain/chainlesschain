@@ -7,7 +7,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 
 // Import after setup
-const AISkillScheduler = require("../../src/main/skill-tool-system/ai-skill-scheduler");
+const AISkillScheduler = require("../../../src/main/skill-tool-system/ai-skill-scheduler");
 
 // ===================== MOCK FACTORIES =====================
 

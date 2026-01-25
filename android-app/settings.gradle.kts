@@ -1,5 +1,11 @@
 pluginManagement {
     repositories {
+        // 阿里云镜像（优先使用，加速国内下载）
+        maven { url = uri("https://maven.aliyun.com/repository/google") }
+        maven { url = uri("https://maven.aliyun.com/repository/public") }
+        maven { url = uri("https://maven.aliyun.com/repository/gradle-plugin") }
+
+        // 官方仓库（备用）
         google()
         mavenCentral()
         gradlePluginPortal()
@@ -9,6 +15,11 @@ pluginManagement {
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
+        // 阿里云镜像（优先使用，加速国内下载）
+        maven { url = uri("https://maven.aliyun.com/repository/google") }
+        maven { url = uri("https://maven.aliyun.com/repository/public") }
+
+        // 官方仓库（备用）
         google()
         mavenCentral()
         maven { url = uri("https://jitpack.io") }

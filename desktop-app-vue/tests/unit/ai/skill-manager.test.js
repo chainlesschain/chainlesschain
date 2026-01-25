@@ -41,7 +41,7 @@ vi.mock("../../src/main/skill-tool-system/builtin-skills", () => ({
 }));
 
 // Import after mocks
-const SkillManager = require("../../src/main/skill-tool-system/skill-manager");
+const SkillManager = require("../../../src/main/skill-tool-system/skill-manager");
 
 // ===================== MOCK FACTORIES =====================
 

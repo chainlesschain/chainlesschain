@@ -629,6 +629,52 @@ export async function openShareModal(window: Page): Promise<boolean> {
 }
 
 /**
+ * 等待AI创建模式页面加载完成（专用）
+ */
+export async function waitForAICreatingModeLoad(window: Page, timeout: number = 10000): Promise<boolean> {
+  try {
+    console.log('[Helper] 等待AI创建模式页面加载...');
+
+    // 等待主容器
+    await window.waitForSelector('[data-testid="project-detail-wrapper"]', { timeout });
+    console.log('[Helper] ✅ Wrapper loaded');
+
+    // 等待主页面元素
+    await window.waitForSelector('[data-testid="project-detail-page"]', { timeout });
+    console.log('[Helper] ✅ Detail page loaded');
+
+    // 等待loading状态消失
+    await window.waitForFunction(
+      () => {
+        const loading = document.querySelector('[data-testid="loading-container"]');
+        return !loading || window.getComputedStyle(loading).display === 'none';
+      },
+      { timeout }
+    );
+    console.log('[Helper] ✅ Loading完成');
+
+    // 等待content-container出现（AI创建模式下会显示）
+    await window.waitForSelector('[data-testid="content-container"]', { timeout });
+    console.log('[Helper] ✅ Content container loaded');
+
+    // 等待聊天面板（AI创建模式的主要交互界面）
+    await window.waitForSelector('[data-testid="chat-panel"]', { timeout });
+    console.log('[Helper] ✅ Chat panel loaded');
+
+    await window.waitForTimeout(1000);
+
+    // 强制关闭所有模态框
+    await forceCloseAllModals(window);
+
+    console.log('[Helper] ✅ AI创建模式页面完全加载');
+    return true;
+  } catch (error) {
+    console.error('[Helper] AI创建模式页面加载失败:', error);
+    return false;
+  }
+}
+
+/**
  * 等待项目详情页加载完成
  */
 export async function waitForProjectDetailLoad(window: Page, timeout: number = 10000): Promise<boolean> {
@@ -864,6 +910,9 @@ export async function navigateToAICreatingMode(
   try {
     console.log('[Helper] 导航到AI创建模式...');
 
+    // 先关闭所有可能的modal
+    await forceCloseAllModals(window);
+
     // 构建URL
     let url = '#/projects/ai-creating';
     if (createData) {
@@ -875,7 +924,7 @@ export async function navigateToAICreatingMode(
 
     console.log('[Helper] 目标URL:', url);
 
-    // 方法1: 尝试使用window.location.hash
+    // 导航到AI创建模式URL
     await window.evaluate((targetUrl) => {
       console.log('[Browser] 设置hash:', targetUrl);
       window.location.hash = targetUrl.replace('#', '');
@@ -890,10 +939,9 @@ export async function navigateToAICreatingMode(
     if (!currentHash.includes('ai-creating')) {
       console.warn('[Helper] Hash未改变，尝试强制刷新...');
 
-      // 方法2: 强制触发hashchange事件
+      // 强制触发hashchange事件
       await window.evaluate((targetUrl) => {
         window.location.hash = targetUrl.replace('#', '');
-        // 手动触发hashchange事件
         window.dispatchEvent(new HashChangeEvent('hashchange'));
       }, url);
 
@@ -909,50 +957,14 @@ export async function navigateToAICreatingMode(
       return false;
     }
 
-    // 等待页面元素出现
-    try {
-      // 首先等待wrapper出现
-      await window.waitForSelector('[data-testid="project-detail-wrapper"]', { timeout: 5000 });
-      console.log('[Helper] ✅ 页面wrapper已加载');
+    // 使用专用的AI创建模式等待函数
+    const loaded = await waitForAICreatingModeLoad(window, 10000);
 
-      // 然后等待loading状态消失
-      try {
-        await window.waitForSelector('[data-testid="loading-container"]', { state: 'hidden', timeout: 5000 });
-        console.log('[Helper] ✅ Loading状态已消失');
-      } catch (e) {
-        console.log('[Helper] ℹ️  未检测到loading容器或已经消失');
-      }
-
-      // 最后等待content-container出现
-      try {
-        await window.waitForSelector('[data-testid="content-container"]', { timeout: 5000 });
-        console.log('[Helper] ✅ AI创建模式页面已完全加载');
-        return true;
-      } catch (e) {
-        console.error('[Helper] ❌ content-container未出现，调查页面状态...');
-
-        // Debug: 检查页面上有哪些元素
-        const hasError = await window.$('[data-testid="error-container"]');
-        const hasLoading = await window.$('[data-testid="loading-container"]');
-        const hasContent = await window.$('[data-testid="content-container"]');
-
-        console.log('[Helper] Debug - 页面状态:', {
-          hasError: !!hasError,
-          hasLoading: !!hasLoading,
-          hasContent: !!hasContent
-        });
-
-        // 检查页面HTML
-        const errorContainerText = await window.evaluate(() => {
-          const errorDiv = document.querySelector('[data-testid="error-container"]');
-          return errorDiv ? errorDiv.innerText : '未找到error-container';
-        });
-        console.log('[Helper] Debug - 错误容器文本:', errorContainerText);
-
-        return false;
-      }
-    } catch (error) {
-      console.error('[Helper] ❌ 导航过程发生错误:', error);
+    if (loaded) {
+      console.log('[Helper] ✅ 成功导航到AI创建模式');
+      return true;
+    } else {
+      console.error('[Helper] ❌ AI创建模式页面加载超时');
       return false;
     }
 
