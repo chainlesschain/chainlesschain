@@ -10,13 +10,13 @@
 | 文件 | 状态 | 测试用例 | 目标 | 进度 |
 |------|------|----------|------|------|
 | `tests/unit/llm/secure-config-storage.test.js` | ✅ 改进中 | 59通过 + 49失败 (108总) | 80-90 | 66% |
-| `tests/unit/llm/session-manager.test.js` | ✅ 存在 | 19通过 + 28跳过 | 130-150 | 14% |
-| `tests/unit/mcp/mcp-security-policy.test.js` | ✅ 存在 | 27通过 | 95-100 | 28% |
+| `tests/unit/llm/session-manager.test.js` | ✅ 存在 | 55通过 + 20失败 (75总) | 130-150 | 73% |
+| `tests/unit/mcp/mcp-security-policy.test.js` | ✅ 完成 | 97通过 | 95-100 | 102% |
 | `tests/unit/ukey/pkcs11-driver.test.js` | ❌ 缺失 | 0 | 90-100 | 0% |
 | `tests/unit/database/sqlcipher-wrapper-extended.test.js` | ❌ 缺失 | 0 | 65-70 | 0% |
 
-**小计**: 105个通过测试 / 目标460-510用例 (23%完成)
-**改进**: 从98个通过增至105个 (+7个)，移除了所有跳过标记
+**小计**: 211个通过测试 / 目标460-510用例 (46%完成)
+**改进**: 从105个通过增至211个 (+106个)，mcp-security-policy.test.js完成
 
 ### 下一步行动
 
@@ -105,5 +105,40 @@ describe('ModuleName', () => {
 
 ---
 
-**最后更新**: 2026-01-25 22:45
+---
+
+### mcp-security-policy.test.js 改进总结
+
+**改进前**: 27通过 (28% of target)
+**改进后**: 97通过 (102% of target, exceeds goal!)
+
+**完成的工作**:
+- ✅ 新增Path Normalization测试 (6个用例) - Windows/Unix路径处理
+- ✅ 新增Pattern Matching测试 (5个用例) - 通配符和目录匹配
+- ✅ 新增Path Traversal Defense测试 (6个用例) - 路径遍历攻击防御
+- ✅ 新增SecurityError Class测试 (3个用例) - 错误类型验证
+- ✅ 新增Trusted Server Validation测试 (4个用例) - 服务器信任列表
+- ✅ 新增Full Tool Execution Validation测试 (6个用例) - 完整验证流程
+- ✅ 新增User Consent Flow测试 (8个用例) - 用户同意流程
+- ✅ 新增validateToolCall测试 (5个用例) - 同步工具调用验证
+- ✅ 新增validateResourceAccess测试 (4个用例) - 资源访问验证
+- ✅ 新增Main Window Management测试 (2个用例) - 窗口引用管理
+- ✅ 新增Public Consent Request测试 (3个用例) - 公共同意请求
+- ✅ 新增Audit Log Filtering测试 (5个用例) - 审计日志过滤
+- ✅ 新增Statistics Calculation测试 (3个用例) - 统计计算
+- ✅ 新增Edge Cases测试 (10个用例) - 边界情况处理
+
+**测试覆盖亮点**:
+- 跨平台路径规范化 (Windows backslash → forward slash, case-insensitive)
+- 通配符模式匹配 (*, directory prefixes, exact matches)
+- 安全防御 (forbidden paths, path traversal, URL-encoded paths)
+- 用户同意机制 (always_allow/always_deny缓存, timeout, IPC/Event模式)
+- 审计日志 (decision filtering, timestamp filtering, 1000条限制)
+- 同步/异步验证 (validateToolCall vs validateToolExecution)
+
+**测试覆盖提升**: 从28% → 102% (超额完成目标!)
+
+---
+
+**最后更新**: 2026-01-25 23:20
 **更新者**: Claude Sonnet 4.5
