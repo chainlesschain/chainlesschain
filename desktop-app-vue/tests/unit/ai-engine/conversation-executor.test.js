@@ -1,31 +1,75 @@
 /**
  * ConversationExecutor 单元测试
  * 测试文件操作执行器的所有功能
+ *
+ * TODO: 修复fs mock配置问题 (当前20/34测试通过)
+ * 问题: conversation-executor.js使用require('fs').promises (CommonJS)
+ * 而测试环境使用ES modules，导致mock配置复杂
+ *
+ * 已尝试方案:
+ * 1. vi.mock("fs/promises") - 失败，源码使用require('fs').promises
+ * 2. vi.mock("fs") with promises对象 - 部分工作，但mockRejectedValueOnce不生效
+ * 3. vi.mocked(fsPromises.access) - 仍有14个测试失败
+ *
+ * 需要进一步调查:
+ * - 可能需要使用vi.spyOn或jest.mock替代方案
+ * - 或将源文件改为ES模块以简化测试
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import fs from "fs/promises";
 import path from "path";
-import os from "os";
 
-// Mock fs module and response-parser
-vi.mock("fs/promises");
-vi.mock("os");
+// Mock fs module (the source uses require('fs').promises)
+vi.mock("fs", async () => {
+  const actual = await vi.importActual("fs");
+  return {
+    ...actual,
+    promises: {
+      access: vi.fn(),
+      mkdir: vi.fn(),
+      writeFile: vi.fn(),
+      readFile: vi.fn(),
+      stat: vi.fn(),
+      copyFile: vi.fn(),
+      unlink: vi.fn(),
+    },
+  };
+});
+
+vi.mock("os", () => ({
+  tmpdir: vi.fn(() => "C:\\tmp"),
+}));
+
 vi.mock("../../../src/main/ai-engine/response-parser", () => ({
   validateOperations: vi.fn((operations, projectPath) => ({
     valid: true,
-    errors: []
+    errors: [],
   })),
-  validateOperation: vi.fn(() => ({ valid: true }))
+  validateOperation: vi.fn(() => ({ valid: true })),
 }));
+
+// Import fs to get references to mocked functions
+import { promises as fsPromises } from "fs";
 
 describe("ConversationExecutor", () => {
   let executor;
   let mockDatabase;
   let testProjectPath;
+  let fs;
 
   beforeEach(async () => {
     vi.clearAllMocks();
+
+    // Get mocked instances
+    fs = {
+      access: vi.mocked(fsPromises.access),
+      mkdir: vi.mocked(fsPromises.mkdir),
+      writeFile: vi.mocked(fsPromises.writeFile),
+      readFile: vi.mocked(fsPromises.readFile),
+      stat: vi.mocked(fsPromises.stat),
+      copyFile: vi.mocked(fsPromises.copyFile),
+      unlink: vi.mocked(fsPromises.unlink),
+    };
 
     testProjectPath = "C:\\test\\project";
 
@@ -39,13 +83,9 @@ describe("ConversationExecutor", () => {
       },
     };
 
-    // Mock os.tmpdir
-    os.tmpdir.mockReturnValue("C:\\tmp");
-
     // Dynamic import
-    const module = await import(
-      "../../../src/main/ai-engine/conversation-executor.js"
-    );
+    const module =
+      await import("../../../src/main/ai-engine/conversation-executor.js");
     executor = module;
   });
 
@@ -68,7 +108,8 @@ describe("ConversationExecutor", () => {
       ];
 
       // Mock file operations - CREATE: file doesn't exist, then READ: file exists
-      fs.access.mockRejectedValueOnce(new Error()) // CREATE fileExists check
+      fs.access
+        .mockRejectedValueOnce(new Error()) // CREATE fileExists check
         .mockResolvedValueOnce(); // READ fileExists check
       fs.mkdir.mockResolvedValue();
       fs.writeFile.mockResolvedValue();
@@ -87,14 +128,13 @@ describe("ConversationExecutor", () => {
 
     it("应该验证操作列表", async () => {
       // Import the mocked response-parser
-      const { validateOperations } = await import(
-        "../../../src/main/ai-engine/response-parser"
-      );
+      const { validateOperations } =
+        await import("../../../src/main/ai-engine/response-parser");
 
       // Override for this test only
       validateOperations.mockReturnValueOnce({
         valid: false,
-        errors: ["不支持的操作类型: INVALID"]
+        errors: ["不支持的操作类型: INVALID"],
       });
 
       const invalidOperations = [
@@ -123,7 +163,8 @@ describe("ConversationExecutor", () => {
       ];
 
       // DELETE: file doesn't exist, CREATE: file doesn't exist
-      fs.access.mockRejectedValueOnce(new Error()) // DELETE fileExists
+      fs.access
+        .mockRejectedValueOnce(new Error()) // DELETE fileExists
         .mockRejectedValueOnce(new Error()); // CREATE fileExists
       fs.mkdir.mockResolvedValue();
       fs.writeFile.mockResolvedValue();
@@ -281,10 +322,9 @@ describe("ConversationExecutor", () => {
 
       await executor.createFile(filePath, content, operation, mockDatabase);
 
-      expect(fs.mkdir).toHaveBeenCalledWith(
-        expect.any(String),
-        { recursive: true },
-      );
+      expect(fs.mkdir).toHaveBeenCalledWith(expect.any(String), {
+        recursive: true,
+      });
     });
 
     it("应该在文件已存在时改为更新", async () => {
@@ -331,7 +371,12 @@ describe("ConversationExecutor", () => {
       fs.writeFile.mockResolvedValue();
       fs.stat.mockResolvedValue({ size: 5 });
 
-      const result = await executor.createFile(filePath, content, operation, null);
+      const result = await executor.createFile(
+        filePath,
+        content,
+        operation,
+        null,
+      );
 
       expect(result.status).toBe("success");
     });
@@ -365,7 +410,8 @@ describe("ConversationExecutor", () => {
       const content = "New content";
       const operation = { type: "UPDATE", path: "test.txt" };
 
-      fs.access.mockRejectedValueOnce(new Error()) // updateFile fileExists check
+      fs.access
+        .mockRejectedValueOnce(new Error()) // updateFile fileExists check
         .mockRejectedValueOnce(new Error()); // createFile fileExists check (nested call)
       fs.mkdir.mockResolvedValue();
       fs.writeFile.mockResolvedValue();
@@ -479,11 +525,7 @@ describe("ConversationExecutor", () => {
       fs.readFile.mockResolvedValue(content);
       fs.stat.mockResolvedValue({ size: 12 });
 
-      const result = await executor.readFile(
-        filePath,
-        operation,
-        mockDatabase,
-      );
+      const result = await executor.readFile(filePath, operation, mockDatabase);
 
       expect(result.status).toBe("success");
       expect(result.message).toContain("读取成功");
@@ -536,7 +578,9 @@ describe("ConversationExecutor", () => {
         throw new Error("Database error");
       });
 
-      await expect(executor.ensureLogTable(mockDatabase)).resolves.not.toThrow();
+      await expect(
+        executor.ensureLogTable(mockDatabase),
+      ).resolves.not.toThrow();
     });
   });
 
@@ -600,10 +644,9 @@ describe("ConversationExecutor", () => {
       );
 
       expect(result.status).toBe("success");
-      expect(fs.mkdir).toHaveBeenCalledWith(
-        expect.stringContaining("a"),
-        { recursive: true },
-      );
+      expect(fs.mkdir).toHaveBeenCalledWith(expect.stringContaining("a"), {
+        recursive: true,
+      });
     });
 
     it("应该处理大文件内容", async () => {
@@ -634,12 +677,12 @@ describe("ConversationExecutor", () => {
       const content = "Hello";
       const operation = { type: "CREATE", path: "test.txt" };
 
-      fs.access = vi.fn().mockRejectedValue(new Error());
-      fs.mkdir = vi.fn().mockRejectedValue(new Error("Permission denied"));
+      fs.access.mockRejectedValueOnce(new Error()); // fileExists check
+      fs.mkdir.mockRejectedValueOnce(new Error("Permission denied"));
 
       await expect(
         executor.createFile(filePath, content, operation, mockDatabase),
-      ).rejects.toThrow();
+      ).rejects.toThrow("Permission denied");
     });
 
     it("应该处理数据库日志错误而不影响主流程", async () => {
@@ -655,10 +698,10 @@ describe("ConversationExecutor", () => {
         },
       };
 
-      fs.access = vi.fn().mockRejectedValue(new Error());
-      fs.mkdir = vi.fn().mockResolvedValue();
-      fs.writeFile = vi.fn().mockResolvedValue();
-      fs.stat = vi.fn().mockResolvedValue({ size: 5 });
+      fs.access.mockRejectedValueOnce(new Error()); // fileExists check
+      fs.mkdir.mockResolvedValue();
+      fs.writeFile.mockResolvedValue();
+      fs.stat.mockResolvedValue({ size: 5 });
 
       const result = await executor.createFile(
         filePath,
@@ -674,11 +717,11 @@ describe("ConversationExecutor", () => {
       const filePath = path.join(testProjectPath, "nonexistent.txt");
       const operation = { type: "READ", path: "nonexistent.txt" };
 
-      fs.access = vi.fn().mockRejectedValue(new Error());
+      fs.access.mockRejectedValueOnce(new Error()); // fileExists check
 
       await expect(
         executor.readFile(filePath, operation, mockDatabase),
-      ).rejects.toThrow();
+      ).rejects.toThrow("文件不存在");
     });
   });
 });
