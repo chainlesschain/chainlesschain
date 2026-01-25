@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import PathConverter from '../../src/main/git/path-converter.js';
+import PathConverter from '../../../src/main/git/path-converter.js';
 
 describe('PathConverter - Windows ↔ POSIX路径转换', () => {
   let converter;

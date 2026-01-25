@@ -18,7 +18,7 @@ const mockPlan = vi.fn();
 const mockCall = vi.fn();
 
 // Mock IntentClassifier
-vi.mock("../../src/main/ai-engine/intent-classifier.js", () => ({
+vi.mock("../../../src/main/ai-engine/intent-classifier.js", () => ({
   default: vi.fn().mockImplementation(() => ({
     classify: mockClassify,
     INTENTS: {
@@ -33,14 +33,14 @@ vi.mock("../../src/main/ai-engine/intent-classifier.js", () => ({
 }));
 
 // Mock TaskPlanner
-vi.mock("../../src/main/ai-engine/task-planner.js", () => ({
+vi.mock("../../../src/main/ai-engine/task-planner.js", () => ({
   TaskPlanner: vi.fn().mockImplementation(() => ({
     plan: mockPlan,
   })),
 }));
 
 // Mock TaskPlannerEnhanced
-vi.mock("../../src/main/ai-engine/task-planner-enhanced.js", () => ({
+vi.mock("../../../src/main/ai-engine/task-planner-enhanced.js", () => ({
   default: vi.fn().mockImplementation(function () {
     this.plan = vi.fn().mockResolvedValue({
       steps: [{ tool: "test_tool", params: { test: true } }],
@@ -49,7 +49,7 @@ vi.mock("../../src/main/ai-engine/task-planner-enhanced.js", () => ({
 }));
 
 // Mock FunctionCaller
-vi.mock("../../src/main/ai-engine/function-caller.js", () => ({
+vi.mock("../../../src/main/ai-engine/function-caller.js", () => ({
   default: vi.fn().mockImplementation(() => ({
     call: mockCall,
     registerTool: vi.fn(),

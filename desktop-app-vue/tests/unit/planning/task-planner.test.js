@@ -14,11 +14,11 @@ const mockRAGManager = {
   enhancedQuery: vi.fn()
 };
 
-vi.mock('../../src/main/llm/llm-manager', () => ({
+vi.mock('../../../src/main/llm/llm-manager', () => ({
   getLLMService: vi.fn(() => mockLLMService)
 }));
 
-vi.mock('../../src/main/project/project-rag', () => ({
+vi.mock('../../../src/main/project/project-rag', () => ({
   getProjectRAGManager: vi.fn(() => mockRAGManager)
 }));
 

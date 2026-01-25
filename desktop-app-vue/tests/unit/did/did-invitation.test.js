@@ -33,9 +33,9 @@ describe("DID Invitation Mechanism", () => {
     }
 
     // 加载模块
-    DatabaseManager = require("../../src/main/database");
-    DIDManager = require("../../src/main/did/did-manager");
-    OrganizationManager = require("../../src/main/organization/organization-manager");
+    DatabaseManager = require("../../../src/main/database");
+    DIDManager = require("../../../src/main/did/did-manager");
+    OrganizationManager = require("../../../src/main/organization/organization-manager");
 
     // 初始化数据库
     db = new DatabaseManager(testDbPath, { encryptionEnabled: false });

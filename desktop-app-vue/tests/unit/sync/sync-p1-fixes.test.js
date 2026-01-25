@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import RetryPolicy from '../../src/main/sync/retry-policy.js';
+import RetryPolicy from '../../../src/main/sync/retry-policy.js';
 
 describe('P1修复验证 - 乐观锁版本控制', () => {
   it('应该检测版本号冲突', () => {

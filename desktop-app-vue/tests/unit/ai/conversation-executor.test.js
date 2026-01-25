@@ -18,7 +18,7 @@ import fs from "fs/promises";
 
 // Mock response-parser
 const mockValidateOperations = vi.fn();
-vi.mock("../../src/main/ai-engine/response-parser.js", () => ({
+vi.mock("../../../src/main/ai-engine/response-parser.js", () => ({
   validateOperations: mockValidateOperations,
 }));
 

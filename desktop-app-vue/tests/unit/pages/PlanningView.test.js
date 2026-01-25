@@ -6,8 +6,8 @@
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mount } from '@vue/test-utils';
-import PlanningView from '../../src/renderer/components/projects/PlanningView.vue';
-import { PlanningState, PlanningSession } from '../../src/renderer/utils/taskPlanner';
+import PlanningView from '../../../src/renderer/components/projects/PlanningView.vue';
+import { PlanningState, PlanningSession } from '../../../src/renderer/utils/taskPlanner';
 
 describe('PlanningView', () => {
   let wrapper;
