@@ -74,67 +74,18 @@ fun ProjectScreen(
         }
     }
 
-    // 使用模拟项目数据（待实现真实数据集成）
-    val projects = remember {
-        listOf(
-            ProjectWithTasks(
-                project = ProjectEntity(
-                    id = "1",
-                    name = "AI助手开发",
-                    description = "开发一个智能AI助手应用",
-                    type = ProjectType.DEVELOPMENT,
-                    status = ProjectStatus.ACTIVE,
-                    progress = 0.65f
-                ),
-                totalTasks = 12,
-                completedTasks = 8,
-                pendingTasks = 4,
-                lastUpdated = LocalDateTime.now().minusHours(2)
-            ),
-            ProjectWithTasks(
-                project = ProjectEntity(
-                    id = "2",
-                    name = "产品设计文档",
-                    description = "整理产品设计相关文档和资料",
-                    type = ProjectType.WRITING,
-                    status = ProjectStatus.ACTIVE,
-                    progress = 0.40f
-                ),
-                totalTasks = 8,
-                completedTasks = 3,
-                pendingTasks = 5,
-                lastUpdated = LocalDateTime.now().minusDays(1)
-            ),
-            ProjectWithTasks(
-                project = ProjectEntity(
-                    id = "3",
-                    name = "市场调研分析",
-                    description = "进行竞品分析和市场调研",
-                    type = ProjectType.RESEARCH,
-                    status = ProjectStatus.DRAFT,
-                    progress = 0.15f
-                ),
-                totalTasks = 6,
-                completedTasks = 1,
-                pendingTasks = 5,
-                lastUpdated = LocalDateTime.now().minusDays(3)
-            ),
-            ProjectWithTasks(
-                project = ProjectEntity(
-                    id = "4",
-                    name = "UI界面设计",
-                    description = "设计应用的用户界面",
-                    type = ProjectType.DESIGN,
-                    status = ProjectStatus.COMPLETED,
-                    progress = 1.0f
-                ),
-                totalTasks = 10,
-                completedTasks = 10,
-                pendingTasks = 0,
-                lastUpdated = LocalDateTime.now().minusWeeks(1)
-            )
-        )
+    // 获取项目列表状态
+    val projectListState by projectViewModel.projectListState.collectAsState()
+
+    // 从ViewModel获取真实项目数据
+    val projects = when (val state = projectListState) {
+        is ProjectListState.Success -> state.projects
+        is ProjectListState.Loading -> emptyList()
+        is ProjectListState.Error -> emptyList()
     }
+
+    // 显示加载指示器
+    val isLoading = projectListState is ProjectListState.Loading
 
     // 筛选项目
     val filteredProjects = remember(selectedFilter, projects) {
@@ -215,6 +166,60 @@ fun ProjectScreen(
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text("排序")
+                    }
+                }
+            }
+
+            // 加载指示器
+            if (isLoading) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                }
+            }
+
+            // 错误状态
+            if (projectListState is ProjectListState.Error) {
+                item {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(32.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "加载项目失败",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        TextButton(onClick = { projectViewModel.loadProjects() }) {
+                            Text("重试")
+                        }
+                    }
+                }
+            }
+
+            // 空状态
+            if (!isLoading && projectListState !is ProjectListState.Error && filteredProjects.isEmpty()) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "暂无项目",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
             }
