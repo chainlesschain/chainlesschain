@@ -662,74 +662,370 @@ describe("SessionManager", () => {
     });
   });
 
-  describe.skip("getEffectiveMessages", () => {
-    // TODO: Skipped - Depends on loadSession
+  describe("getEffectiveMessages", () => {
+    beforeEach(async () => {
+      sessionManager = new SessionManager({ database: mockDatabase });
+      await sessionManager.initialize();
+    });
 
-    it("应该获取有效消息", async () => {});
+    it("应该获取有效消息", async () => {
+      const session = {
+        id: "sess-1",
+        messages: [{ role: "user", content: "msg1" }, { role: "assistant", content: "msg2" }],
+        compressedHistory: null,
+        metadata: {},
+      };
+      sessionManager.sessionCache.set("sess-1", session);
+
+      const messages = await sessionManager.getEffectiveMessages("sess-1");
+
+      expect(messages).toHaveLength(2);
+    });
+
+    it("有压缩历史时应合并消息", async () => {
+      const session = {
+        id: "sess-1",
+        messages: [{ role: "user", content: "new" }],
+        compressedHistory: { summary: "Old conversation" },
+        metadata: {},
+      };
+      sessionManager.sessionCache.set("sess-1", session);
+
+      const messages = await sessionManager.getEffectiveMessages("sess-1");
+
+      expect(messages.length).toBeGreaterThan(0);
+    });
   });
 
-  describe.skip("deleteSession", () => {
-    // TODO: Skipped - Depends on db.prepare() and fs.promises.unlink()
+  describe("deleteSession", () => {
+    beforeEach(async () => {
+      sessionManager = new SessionManager({ database: mockDatabase });
+      await sessionManager.initialize();
+    });
 
-    it("应该删除会话", async () => {});
+    it("应该删除会话", async () => {
+      const fs = await import("fs");
+      const session = { id: "sess-1", messages: [], metadata: {} };
+      sessionManager.sessionCache.set("sess-1", session);
+
+      await sessionManager.deleteSession("sess-1");
+
+      expect(mockDatabase.prepare).toHaveBeenCalled();
+      expect(fs.default.promises.unlink).toHaveBeenCalled();
+    });
+
+    it("应该从缓存中移除", async () => {
+      const session = { id: "sess-1", messages: [], metadata: {} };
+      sessionManager.sessionCache.set("sess-1", session);
+
+      await sessionManager.deleteSession("sess-1");
+
+      expect(sessionManager.sessionCache.has("sess-1")).toBe(false);
+    });
   });
 
-  describe.skip("listSessions", () => {
-    // TODO: Skipped - Depends on db.prepare().all()
+  describe("listSessions", () => {
+    beforeEach(async () => {
+      sessionManager = new SessionManager({ database: mockDatabase });
+      await sessionManager.initialize();
+    });
 
-    it("应该列出所有会话", async () => {});
+    it("应该列出所有会话", async () => {
+      mockDatabase.prepare.mockReturnValueOnce({
+        all: vi.fn(() => [
+          { id: "sess-1", title: "Session 1" },
+          { id: "sess-2", title: "Session 2" },
+        ]),
+      });
+
+      const sessions = await sessionManager.listSessions();
+
+      expect(sessions).toHaveLength(2);
+      expect(mockDatabase.prepare).toHaveBeenCalled();
+    });
+
+    it("支持分页", async () => {
+      mockDatabase.prepare.mockReturnValueOnce({
+        all: vi.fn(() => [{ id: "sess-1" }]),
+      });
+
+      await sessionManager.listSessions({ limit: 10, offset: 0 });
+
+      const sql = mockDatabase.prepare.mock.calls[0][0];
+      expect(sql).toContain("LIMIT");
+    });
   });
 
-  describe.skip("getSessionStats", () => {
-    // TODO: Skipped - Depends on loadSession
+  describe("getSessionStats", () => {
+    beforeEach(async () => {
+      sessionManager = new SessionManager({ database: mockDatabase });
+      await sessionManager.initialize();
+    });
 
-    it("应该获取会话统计", async () => {});
+    it("应该获取会话统计", async () => {
+      const session = {
+        id: "sess-1",
+        messages: [{ role: "user" }, { role: "assistant" }],
+        metadata: { totalTokens: 100, compressionCount: 2 },
+      };
+      sessionManager.sessionCache.set("sess-1", session);
+
+      const stats = await sessionManager.getSessionStats("sess-1");
+
+      expect(stats.messageCount).toBe(2);
+      expect(stats.totalTokens).toBe(100);
+      expect(stats.compressionCount).toBe(2);
+    });
   });
 
-  describe.skip("cleanupOldSessions", () => {
-    // TODO: Skipped - Depends on db.prepare() and fs operations
+  describe("cleanupOldSessions", () => {
+    beforeEach(async () => {
+      sessionManager = new SessionManager({ database: mockDatabase });
+      await sessionManager.initialize();
+    });
 
-    it("应该清理旧会话", async () => {});
+    it("应该清理旧会话", async () => {
+      const cutoffDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+      await sessionManager.cleanupOldSessions(cutoffDate);
+
+      expect(mockDatabase.prepare).toHaveBeenCalled();
+    });
+
+    it("应该删除对应的文件", async () => {
+      const fs = await import("fs");
+
+      await sessionManager.cleanupOldSessions(new Date());
+
+      // 文件删除操作应该被调用
+      expect(fs.default.promises.readdir).toHaveBeenCalled();
+    });
   });
 
-  describe.skip("searchSessions", () => {
-    // TODO: Skipped - Depends on db.prepare().all()
+  describe("searchSessions", () => {
+    beforeEach(async () => {
+      sessionManager = new SessionManager({ database: mockDatabase });
+      await sessionManager.initialize();
+    });
 
-    it("应该搜索会话", async () => {});
+    it("应该搜索会话", async () => {
+      mockDatabase.prepare.mockReturnValueOnce({
+        all: vi.fn(() => [{ id: "sess-1", title: "Test Session" }]),
+      });
+
+      const results = await sessionManager.searchSessions("test");
+
+      expect(results).toHaveLength(1);
+      expect(mockDatabase.prepare).toHaveBeenCalled();
+    });
+
+    it("搜索条件应包含在SQL中", async () => {
+      mockDatabase.prepare.mockReturnValueOnce({
+        all: vi.fn(() => []),
+      });
+
+      await sessionManager.searchSessions("keyword");
+
+      const sql = mockDatabase.prepare.mock.calls[0][0];
+      expect(sql).toContain("LIKE");
+    });
   });
 
-  describe.skip("标签管理", () => {
-    // TODO: Skipped - Depends on db.prepare()
+  describe("标签管理", () => {
+    beforeEach(async () => {
+      sessionManager = new SessionManager({ database: mockDatabase });
+      await sessionManager.initialize();
+    });
 
-    it("应该添加标签", async () => {});
-    it("应该移除标签", async () => {});
-    it("应该获取所有标签", async () => {});
-    it("应该按标签查找会话", async () => {});
+    it("应该添加标签", async () => {
+      const session = { id: "sess-1", metadata: { tags: [] } };
+      sessionManager.sessionCache.set("sess-1", session);
+
+      await sessionManager.addTags("sess-1", ["tag1", "tag2"]);
+
+      expect(session.metadata.tags).toContain("tag1");
+      expect(session.metadata.tags).toContain("tag2");
+    });
+
+    it("应该移除标签", async () => {
+      const session = { id: "sess-1", metadata: { tags: ["tag1", "tag2"] } };
+      sessionManager.sessionCache.set("sess-1", session);
+
+      await sessionManager.removeTags("sess-1", ["tag1"]);
+
+      expect(session.metadata.tags).not.toContain("tag1");
+      expect(session.metadata.tags).toContain("tag2");
+    });
+
+    it("应该获取所有标签", async () => {
+      mockDatabase.prepare.mockReturnValueOnce({
+        all: vi.fn(() => [{ tags: '["tag1","tag2"]' }, { tags: '["tag2","tag3"]' }]),
+      });
+
+      const tags = await sessionManager.getAllTags();
+
+      expect(Array.isArray(tags)).toBe(true);
+    });
+
+    it("应该按标签查找会话", async () => {
+      mockDatabase.prepare.mockReturnValueOnce({
+        all: vi.fn(() => [{ id: "sess-1", metadata: '{"tags":["tag1"]}' }]),
+      });
+
+      const sessions = await sessionManager.findSessionsByTag("tag1");
+
+      expect(Array.isArray(sessions)).toBe(true);
+    });
   });
 
-  describe.skip("导出导入", () => {
-    // TODO: Skipped - Depends on loadSession and fs operations
+  describe("导出导入", () => {
+    beforeEach(async () => {
+      sessionManager = new SessionManager({ database: mockDatabase });
+      await sessionManager.initialize();
+    });
 
-    it("应该导出为JSON", async () => {});
-    it("应该导出为Markdown", async () => {});
-    it("应该从JSON导入", async () => {});
-    it("应该导出多个会话", async () => {});
+    it("应该导出为JSON", async () => {
+      const session = { id: "sess-1", messages: [], metadata: {} };
+      sessionManager.sessionCache.set("sess-1", session);
+
+      const json = await sessionManager.exportToJSON("sess-1");
+
+      expect(typeof json).toBe("string");
+      expect(() => JSON.parse(json)).not.toThrow();
+    });
+
+    it("应该导出为Markdown", async () => {
+      const session = {
+        id: "sess-1",
+        title: "Test",
+        messages: [{ role: "user", content: "Hello" }],
+        metadata: {},
+      };
+      sessionManager.sessionCache.set("sess-1", session);
+
+      const markdown = await sessionManager.exportToMarkdown("sess-1");
+
+      expect(typeof markdown).toBe("string");
+      expect(markdown).toContain("Hello");
+    });
+
+    it("应该从JSON导入", async () => {
+      const sessionData = { id: "imported", messages: [], metadata: {} };
+      const json = JSON.stringify(sessionData);
+
+      await sessionManager.importFromJSON(json);
+
+      expect(mockDatabase.prepare).toHaveBeenCalled();
+    });
+
+    it("应该导出多个会话", async () => {
+      const sessions = [
+        { id: "sess-1", messages: [], metadata: {} },
+        { id: "sess-2", messages: [], metadata: {} },
+      ];
+      sessions.forEach((s) => sessionManager.sessionCache.set(s.id, s));
+
+      const exported = await sessionManager.exportMultipleSessions(["sess-1", "sess-2"]);
+
+      expect(Array.isArray(exported)).toBe(true);
+    });
   });
 
-  describe.skip("摘要生成", () => {
-    // TODO: Skipped - Depends on loadSession and llmManager
+  describe("摘要生成", () => {
+    beforeEach(async () => {
+      sessionManager = new SessionManager({
+        database: mockDatabase,
+        llmManager: mockLLMManager,
+      });
+      await sessionManager.initialize();
+    });
 
-    it("应该生成会话摘要", async () => {});
-    it("应该批量生成摘要", async () => {});
+    it("应该生成会话摘要", async () => {
+      const session = {
+        id: "sess-1",
+        messages: [{ role: "user", content: "Test" }],
+        metadata: {},
+      };
+      sessionManager.sessionCache.set("sess-1", session);
+
+      const summary = await sessionManager.generateSummary("sess-1");
+
+      expect(typeof summary).toBe("string");
+      expect(mockLLMManager.query).toHaveBeenCalled();
+    });
+
+    it("应该批量生成摘要", async () => {
+      const sessions = [
+        { id: "sess-1", messages: [], metadata: {} },
+        { id: "sess-2", messages: [], metadata: {} },
+      ];
+      sessions.forEach((s) => sessionManager.sessionCache.set(s.id, s));
+
+      await sessionManager.generateSummariesBatch(["sess-1", "sess-2"]);
+
+      expect(mockLLMManager.query).toHaveBeenCalled();
+    });
+
+    it("llmManager未初始化时应抛出错误", async () => {
+      const mgr = new SessionManager({ database: mockDatabase });
+      await mgr.initialize();
+
+      await expect(mgr.generateSummary("sess-1")).rejects.toThrow();
+      mgr.destroy();
+    });
   });
 
-  describe.skip("模板管理", () => {
-    // TODO: Skipped - Depends on db.prepare()
+  describe("模板管理", () => {
+    beforeEach(async () => {
+      sessionManager = new SessionManager({ database: mockDatabase });
+      await sessionManager.initialize();
+    });
 
-    it("应该保存为模板", async () => {});
-    it("应该从模板创建", async () => {});
-    it("应该列出模板", async () => {});
-    it("应该删除模板", async () => {});
+    it("应该保存为模板", async () => {
+      const session = { id: "sess-1", title: "Template", messages: [], metadata: {} };
+      sessionManager.sessionCache.set("sess-1", session);
+
+      await sessionManager.saveAsTemplate("sess-1", "My Template");
+
+      expect(mockDatabase.prepare).toHaveBeenCalled();
+      const sql = mockDatabase.prepare.mock.calls[0][0];
+      expect(sql).toContain("INSERT");
+    });
+
+    it("应该从模板创建", async () => {
+      mockDatabase.prepare.mockReturnValueOnce({
+        get: vi.fn(() => ({
+          id: "template-1",
+          name: "Template",
+          content: JSON.stringify({ messages: [] }),
+        })),
+      });
+
+      const session = await sessionManager.createFromTemplate("template-1", "conv-1");
+
+      expect(session).toBeDefined();
+    });
+
+    it("应该列出模板", async () => {
+      mockDatabase.prepare.mockReturnValueOnce({
+        all: vi.fn(() => [
+          { id: "t1", name: "Template 1" },
+          { id: "t2", name: "Template 2" },
+        ]),
+      });
+
+      const templates = await sessionManager.listTemplates();
+
+      expect(templates).toHaveLength(2);
+    });
+
+    it("应该删除模板", async () => {
+      await sessionManager.deleteTemplate("template-1");
+
+      expect(mockDatabase.prepare).toHaveBeenCalled();
+      const sql = mockDatabase.prepare.mock.calls[0][0];
+      expect(sql).toContain("DELETE");
+    });
   });
 
   describe("边界情况", () => {
