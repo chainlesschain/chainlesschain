@@ -10,29 +10,53 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.chainlesschain.android.core.database.entity.ExternalFileEntity
+import ProjectEntity
 
 /**
  * File Import Dialog Component
  *
  * Provides a dialog for importing files to projects with:
  * - File information display
- * - Project selection
+ * - Project selection via dropdown
  * - Import confirmation
  *
  * @param file The file to import
  * @param projectId Target project ID (if pre-selected)
+ * @param availableProjects List of projects to choose from
  * @param onDismiss Callback when dialog is dismissed
- * @param onImport Callback when import is confirmed
+ * @param onImport Callback when import is confirmed with selected project ID
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FileImportDialog(
     file: ExternalFileEntity,
     projectId: String?,
+    availableProjects: List<ProjectEntity>,
     onDismiss: () -> Unit,
     onImport: (String) -> Unit // projectId
 ) {
     var selectedProjectId by remember { mutableStateOf(projectId ?: "") }
+    var selectedProjectName by remember {
+        mutableStateOf(
+            availableProjects.find { it.id == projectId }?.name ?: ""
+        )
+    }
+    var expanded by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
     var showProjectSelector by remember { mutableStateOf(projectId == null) }
+
+    // Filter projects based on search query
+    val filteredProjects = remember(searchQuery, availableProjects) {
+        if (searchQuery.isBlank()) {
+            availableProjects
+        } else {
+            availableProjects.filter { project ->
+                project.name.contains(searchQuery, ignoreCase = true) ||
+                project.description?.contains(searchQuery, ignoreCase = true) == true ||
+                project.getTypeDisplayName().contains(searchQuery, ignoreCase = true)
+            }
+        }
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -84,16 +108,143 @@ fun FileImportDialog(
                         fontWeight = FontWeight.Medium
                     )
 
-                    // TODO: Implement project selector dropdown
-                    // For now, show a text field for project ID input
-                    OutlinedTextField(
-                        value = selectedProjectId,
-                        onValueChange = { selectedProjectId = it },
-                        label = { Text("项目 ID") },
-                        placeholder = { Text("输入项目 ID") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
-                    )
+                    // Project dropdown selector
+                    ExposedDropdownMenuBox(
+                        expanded = expanded,
+                        onExpandedChange = { expanded = it }
+                    ) {
+                        OutlinedTextField(
+                            value = selectedProjectName,
+                            onValueChange = { query ->
+                                searchQuery = query
+                                selectedProjectName = query
+                                expanded = true
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .menuAnchor(),
+                            label = { Text("项目") },
+                            placeholder = { Text("搜索或选择项目...") },
+                            trailingIcon = {
+                                ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded)
+                            },
+                            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+                            singleLine = true
+                        )
+
+                        ExposedDropdownMenu(
+                            expanded = expanded && filteredProjects.isNotEmpty(),
+                            onDismissRequest = { expanded = false }
+                        ) {
+                            if (filteredProjects.isEmpty()) {
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            text = "未找到项目",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    },
+                                    onClick = { },
+                                    enabled = false
+                                )
+                            } else {
+                                filteredProjects.forEach { project ->
+                                    DropdownMenuItem(
+                                        text = {
+                                            Column {
+                                                Text(
+                                                    text = project.name,
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    fontWeight = FontWeight.Medium
+                                                )
+                                                Row(
+                                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                                    verticalAlignment = Alignment.CenterVertically
+                                                ) {
+                                                    Text(
+                                                        text = project.getTypeDisplayName(),
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        color = MaterialTheme.colorScheme.primary
+                                                    )
+                                                    project.description?.let { desc ->
+                                                        Text(
+                                                            text = "•",
+                                                            style = MaterialTheme.typography.bodySmall,
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                        )
+                                                        Text(
+                                                            text = desc.take(30) + if (desc.length > 30) "..." else "",
+                                                            style = MaterialTheme.typography.bodySmall,
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        onClick = {
+                                            selectedProjectId = project.id
+                                            selectedProjectName = project.name
+                                            searchQuery = ""
+                                            expanded = false
+                                        },
+                                        leadingIcon = {
+                                            Icon(
+                                                imageVector = when (project.type) {
+                                                    "document" -> Icons.Default.Description
+                                                    "web" -> Icons.Default.Language
+                                                    "app", "android" -> Icons.Default.Apps
+                                                    "data", "data_science" -> Icons.Default.DataUsage
+                                                    "design" -> Icons.Default.Palette
+                                                    "research" -> Icons.Default.Science
+                                                    else -> Icons.Default.Folder
+                                                },
+                                                contentDescription = project.getTypeDisplayName(),
+                                                tint = MaterialTheme.colorScheme.primary
+                                            )
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // Show selected project info if available
+                    if (selectedProjectId.isNotBlank()) {
+                        val selectedProject = availableProjects.find { it.id == selectedProjectId }
+                        selectedProject?.let { project ->
+                            Surface(
+                                modifier = Modifier.fillMaxWidth(),
+                                color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f),
+                                shape = MaterialTheme.shapes.small
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(12.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.CheckCircle,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Column {
+                                        Text(
+                                            text = "已选择: ${project.name}",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                        Text(
+                                            text = "${project.fileCount} 个文件 • ${project.getReadableSize()}",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         },
