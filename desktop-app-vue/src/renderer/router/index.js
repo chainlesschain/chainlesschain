@@ -196,6 +196,12 @@ const routes = [
     component: () => import("../pages/AndroidFeaturesTestPage.vue"),
     meta: { requiresAuth: false },
   },
+  {
+    path: "/test/simple",
+    name: "SimpleTest",
+    component: () => import("../pages/SimpleTestPage.vue"),
+    meta: { requiresAuth: false },
+  },
   // 公开分享页面（无需认证）
   {
     path: "/share/project/:token",
