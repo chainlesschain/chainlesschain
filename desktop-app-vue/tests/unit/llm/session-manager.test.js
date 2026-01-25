@@ -702,14 +702,13 @@ describe("SessionManager", () => {
     });
 
     it("应该删除会话", async () => {
-      const fs = await import("fs");
       const session = { id: "sess-1", messages: [], metadata: {} };
       sessionManager.sessionCache.set("sess-1", session);
 
       await sessionManager.deleteSession("sess-1");
 
       expect(mockDatabase.prepare).toHaveBeenCalled();
-      expect(fs.default.promises.unlink).toHaveBeenCalled();
+      expect(mockUnlink).toHaveBeenCalled();
     });
 
     it("应该从缓存中移除", async () => {
@@ -791,12 +790,10 @@ describe("SessionManager", () => {
     });
 
     it("应该删除对应的文件", async () => {
-      const fs = await import("fs");
-
       await sessionManager.cleanupOldSessions(new Date());
 
       // 文件删除操作应该被调用
-      expect(fs.default.promises.readdir).toHaveBeenCalled();
+      expect(mockReaddir).toHaveBeenCalled();
     });
   });
 
@@ -870,7 +867,7 @@ describe("SessionManager", () => {
         all: vi.fn(() => [{ id: "sess-1", metadata: '{"tags":["tag1"]}' }]),
       });
 
-      const sessions = await sessionManager.findSessionsByTag("tag1");
+      const sessions = await sessionManager.findSessionsByTags(["tag1"]);
 
       expect(Array.isArray(sessions)).toBe(true);
     });
@@ -908,7 +905,7 @@ describe("SessionManager", () => {
     });
 
     it("应该从JSON导入", async () => {
-      const sessionData = { id: "imported", messages: [], metadata: {} };
+      const sessionData = { session: { id: "imported", messages: [], metadata: {} } };
       const json = JSON.stringify(sessionData);
 
       await sessionManager.importFromJSON(json);
@@ -923,7 +920,7 @@ describe("SessionManager", () => {
       ];
       sessions.forEach((s) => sessionManager.sessionCache.set(s.id, s));
 
-      const exported = await sessionManager.exportMultipleSessions(["sess-1", "sess-2"]);
+      const exported = await sessionManager.exportMultiple(["sess-1", "sess-2"]);
 
       expect(Array.isArray(exported)).toBe(true);
     });
