@@ -239,12 +239,11 @@ public class ContractManager: ObservableObject {
         value: String = "0",
         gasLimit: String? = nil,
         gasPrice: String? = nil,
+        txType: TransactionType = .contract,
         chain: SupportedChain? = nil
     ) async throws -> String {
         isLoading = true
         defer { isLoading = false }
-
-        let targetChain = chain ?? chainManager.currentChain
 
         // 编码函数调用数据
         let data = try encodeFunctionCall(
@@ -253,42 +252,24 @@ public class ContractManager: ObservableObject {
             parameters: parameters
         )
 
-        // 构建交易
-        let transaction = Transaction(
-            from: wallet.address,
-            to: contractAddress,
-            value: value,
+        // 使用TransactionManager发送交易（自动处理nonce、gas估算、监控）
+        let transactionManager = TransactionManager.shared
+        let record = try await transactionManager.sendContractTransaction(
+            wallet: wallet,
+            contractAddress: contractAddress,
             data: data,
-            chainId: targetChain.rawValue,
+            value: value,
             gasLimit: gasLimit,
-            gasPrice: gasPrice
+            gasPrice: gasPrice,
+            txType: txType,
+            chain: chain
         )
 
-        // 签名并发送交易
-        let privateKey = try await walletManager.unlockWallet(
-            walletId: wallet.id,
-            password: ""  // TODO: 需要从UI获取密码
-        )
+        guard let txHash = record.hash else {
+            throw ContractError.transactionFailed
+        }
 
-        let signedTx = try WalletCoreAdapter.signTransaction(
-            privateKey: privateKey,
-            to: contractAddress,
-            value: value,
-            data: data,
-            nonce: "0",  // TODO: 获取实际nonce
-            gasPrice: gasPrice ?? "20000000000",
-            gasLimit: gasLimit ?? "100000",
-            chainId: targetChain.rawValue
-        )
-
-        // 发送交易
-        let rpcUrl = try await chainManager.getAvailableRPCUrl(for: targetChain)
-        let txHash = try await rpcClient.sendRawTransaction(
-            rpcUrl: rpcUrl,
-            signedTransaction: signedTx
-        )
-
-        Logger.shared.info("[ContractManager] 交易已发送: \(txHash)")
+        Logger.shared.info("[ContractManager] 合约交易已提交: \(txHash)")
         return txHash
     }
 
@@ -311,6 +292,7 @@ public class ContractManager: ObservableObject {
             abi: ContractABI.chainlessNFTABI,
             functionName: "mint",
             parameters: [to, uri],
+            txType: .nftMint,
             chain: chain
         )
     }
@@ -330,6 +312,7 @@ public class ContractManager: ObservableObject {
             abi: ContractABI.erc721ABI,
             functionName: "transferFrom",
             parameters: [from, to, tokenId],
+            txType: .nftTransfer,
             chain: chain
         )
     }
@@ -356,6 +339,7 @@ public class ContractManager: ObservableObject {
             functionName: "createNativeEscrow",
             parameters: [escrowId, seller, arbitrator],
             value: amount,
+            txType: .escrowCreate,
             chain: chain
         )
     }
@@ -376,6 +360,7 @@ public class ContractManager: ObservableObject {
             abi: ContractABI.escrowContractABI,
             functionName: "release",
             parameters: [escrowId],
+            txType: .escrowRelease,
             chain: chain
         )
     }
