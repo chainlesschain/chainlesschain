@@ -1,6 +1,6 @@
 # Phase 8: 优化与测试 - 进度总结
 
-**当前进度**: 95% | **最后更新**: 2026-01-25 21:45
+**当前进度**: 98% | **最后更新**: 2026-01-25 23:15
 
 ---
 
@@ -188,6 +188,46 @@ statistics: StateFlow<FileBrowserStatistics?>
 - ✅ UI状态转换
 
 **测试覆盖率**: Scanner 95%, Repository 90%, ViewModel 85%, Import 80%, **总体 87%+**
+
+#### 9. AI会话集成 (Phase 6) - 100% ✅
+
+**新增文件**:
+- `feature-project/ui/FilePickerDialog.kt` (451行)
+- `EnhancedAIChatScreen.kt` (修改 +230行)
+
+**功能**:
+
+- ✅ **FilePickerDialog** - 专用文件选择对话框
+  - 多选文件支持 (Checkbox选择)
+  - 权限请求集成 (READ_MEDIA_*/READ_EXTERNAL_STORAGE)
+  - 分类筛选 (全部, 文档, 图片, 视频, 音频, 压缩包, 代码, 其他)
+  - 搜索功能 (按文件名)
+  - 已选文件计数显示
+  - 清除选择功能
+  - 全屏对话框 (95%宽度 × 85%高度)
+
+- ✅ **AI聊天附件功能**
+  - `AttachedFileData` 数据类 (id, name, size, mimeType, category, path)
+  - `AttachmentPreviewBar` - 发送前附件预览栏 (水平滚动列表)
+  - `AttachmentPreviewItem` - 单个附件卡片 (文件图标, 名称, 大小, 删除按钮)
+  - `AttachmentBubble` - 消息中附件显示 (支持用户/AI消息自适应样式)
+  - 文件大小格式化 (`getReadableSize()` 扩展函数)
+  - 分类图标映射 (IMAGE, VIDEO, AUDIO, DOCUMENT, CODE, ARCHIVE, OTHER)
+
+- ✅ **集成流程**
+  1. 点击附件按钮 → 打开FilePickerDialog
+  2. 浏览/搜索/筛选文件 → 多选
+  3. 点击"添加" → 文件添加到pendingAttachments
+  4. AttachmentPreviewBar显示待发送附件
+  5. 发送消息 → 附件随消息一起发送
+  6. AttachmentBubble在消息气泡中显示附件
+
+**技术特性**:
+- Material 3 设计语言
+- 响应式状态管理 (StateFlow)
+- Hilt依赖注入 (ViewModel)
+- 自适应布局 (用户消息/AI消息颜色区分)
+- 类型安全的文件数据传递
 
 ---
 

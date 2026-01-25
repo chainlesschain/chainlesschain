@@ -60,6 +60,7 @@ dependencies {
 
     // Feature modules (for AI integration)
     implementation(project(":feature-ai"))
+    implementation(project(":feature-file-browser"))
 
     // Android Core
     implementation("androidx.core:core-ktx:1.12.0")

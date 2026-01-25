@@ -64,6 +64,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.chainlesschain.android.core.database.entity.ExternalFileEntity
 import com.chainlesschain.android.core.database.entity.ProjectChatMessageEntity
 import com.chainlesschain.android.core.database.entity.ProjectChatRole
 import com.chainlesschain.android.core.database.entity.ProjectFileEntity
@@ -94,7 +95,7 @@ fun ProjectChatPanel(
     contextMode: ChatContextMode = ChatContextMode.PROJECT,
     onContextModeChange: (ChatContextMode) -> Unit = {},
     selectedFileName: String? = null,
-    // File mention props
+    // File mention props - Project Files
     projectFiles: List<ProjectFileEntity> = emptyList(),
     isFileMentionVisible: Boolean = false,
     fileMentionSearchQuery: String = "",
@@ -102,6 +103,11 @@ fun ProjectChatPanel(
     onFileSelected: (ProjectFileEntity) -> Unit = {},
     onShowFileMention: () -> Unit = {},
     onHideFileMention: () -> Unit = {},
+    // File mention props - External Files
+    externalFiles: List<ExternalFileEntity> = emptyList(),
+    externalFileSearchQuery: String = "",
+    onExternalFileSearchChange: (String) -> Unit = {},
+    onExternalFileSelected: (ExternalFileEntity) -> Unit = {},
     // Thinking stage props
     currentThinkingStage: ThinkingStage = ThinkingStage.UNDERSTANDING,
     // Task plan props
@@ -243,19 +249,25 @@ fun ProjectChatPanel(
                 }
             }
 
-            // File mention popup
+            // File mention popup - Enhanced with dual-tab support
             if (isFileMentionVisible) {
                 Box(
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .padding(horizontal = 16.dp, vertical = 8.dp)
                 ) {
-                    FileMentionPopup(
+                    EnhancedFileMentionPopup(
                         isVisible = isFileMentionVisible,
-                        files = projectFiles,
-                        searchQuery = fileMentionSearchQuery,
-                        onSearchQueryChange = onFileMentionSearchChange,
-                        onFileSelected = onFileSelected,
+                        // Project files (Tab 1)
+                        projectFiles = projectFiles,
+                        projectSearchQuery = fileMentionSearchQuery,
+                        onProjectSearchQueryChange = onFileMentionSearchChange,
+                        onProjectFileSelected = onFileSelected,
+                        // External files (Tab 2)
+                        externalFiles = externalFiles,
+                        externalSearchQuery = externalFileSearchQuery,
+                        onExternalSearchQueryChange = onExternalFileSearchChange,
+                        onExternalFileSelected = onExternalFileSelected,
                         onDismiss = onHideFileMention
                     )
                 }
