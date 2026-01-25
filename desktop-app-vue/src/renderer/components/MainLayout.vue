@@ -1056,6 +1056,7 @@ import {
   DeleteOutlined,
   ArrowRightOutlined,
   PushpinOutlined,
+  AndroidOutlined,
 } from "@ant-design/icons-vue";
 import { useAppStore } from "../stores/app";
 import { useSocialStore } from "../stores/social";
@@ -1159,6 +1160,10 @@ const menuConfig = {
   // 开发工具模块
   webide: { path: "/webide", title: "Web IDE" },
   "design-editor": { path: "/design/new", title: "设计编辑器" },
+  "android-features-test": {
+    path: "/test/android-features-standalone",
+    title: "Android功能测试"
+  },
 
   // 内容聚合模块
   "rss-feeds": { path: "/rss/feeds", title: "RSS订阅" },
