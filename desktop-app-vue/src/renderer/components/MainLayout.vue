@@ -401,6 +401,21 @@
               </template>
               邮件管理
             </a-menu-item>
+            <a-menu-item key="android-features-test">
+              <template #icon>
+                <AndroidOutlined />
+              </template>
+              <span>Android功能测试</span>
+              <a-badge
+                count="测试"
+                :number-style="{
+                  backgroundColor: '#fa8c16',
+                  fontSize: '10px',
+                  padding: '0 4px',
+                }"
+                style="margin-left: 8px"
+              />
+            </a-menu-item>
           </a-sub-menu>
 
           <!-- 8. 企业版 -->

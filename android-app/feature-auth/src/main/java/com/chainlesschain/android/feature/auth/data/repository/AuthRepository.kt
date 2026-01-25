@@ -113,12 +113,40 @@ class AuthRepository @Inject constructor(
             val pinHash = hashPin(pin)
 
             if (pinHash == storedPinHash) {
-                // 更新最后登录时间
-                context.dataStore.edit { it[KEY_LAST_LOGIN_AT] = System.currentTimeMillis() }
+                // 检查用户数据是否存在
+                var user = getCurrentUser()
+
+                // 如果用户数据缺失（可能因为旧版本logout清除了数据），重新创建
+                if (user == null) {
+                    Timber.w("User data missing, regenerating...")
+                    val userId = UUID.randomUUID().toString()
+                    val deviceId = getOrCreateDeviceId()
+
+                    context.dataStore.edit { prefs ->
+                        prefs[KEY_USER_ID] = userId
+                        prefs[KEY_DEVICE_ID] = deviceId
+                        prefs[KEY_CREATED_AT] = System.currentTimeMillis()
+                        prefs[KEY_LAST_LOGIN_AT] = System.currentTimeMillis()
+                        prefs[KEY_IS_SETUP_COMPLETE] = true
+                    }
+
+                    user = User(
+                        id = userId,
+                        deviceId = deviceId,
+                        createdAt = System.currentTimeMillis(),
+                        lastLoginAt = System.currentTimeMillis(),
+                        biometricEnabled = prefs[KEY_BIOMETRIC_ENABLED] ?: false
+                    )
+
+                    Timber.d("User data regenerated: $userId")
+                } else {
+                    // 更新最后登录时间
+                    context.dataStore.edit { it[KEY_LAST_LOGIN_AT] = System.currentTimeMillis() }
+                }
 
                 Timber.d("PIN verification successful")
 
-                Result.success(getCurrentUser()!!)
+                Result.success(user)
             } else {
                 Timber.w("PIN verification failed")
                 Result.error(IllegalArgumentException("Invalid PIN"), "PIN码错误")
