@@ -51,39 +51,35 @@ vi.mock("../../../src/main/utils/logger.js", () => ({
   createLogger: vi.fn(() => mockLogger),
 }));
 
-// Mock crypto (Node built-in)
+// Mock crypto (Node built-in) - CommonJS compatible
 vi.mock("crypto", async () => {
   const actual = await vi.importActual("crypto");
-  return { default: actual };
+  return actual;
 });
 
-// Mock os (Node built-in)
+// Mock os (Node built-in) - CommonJS compatible
 vi.mock("os", async () => {
   const actual = await vi.importActual("os");
-  return { default: actual };
+  return actual;
 });
 
-// Mock fs
+// Mock fs - CommonJS compatible
 vi.mock("fs", () => ({
-  default: {
-    existsSync: vi.fn(() => false),
-    readFileSync: vi.fn(() => Buffer.from([])),
-    writeFileSync: vi.fn(),
-    mkdirSync: vi.fn(),
-    unlinkSync: vi.fn(),
-    copyFileSync: vi.fn(),
-    readdirSync: vi.fn(() => []),
-    statSync: vi.fn(() => ({ mtime: new Date(), size: 1024 })),
-  },
+  existsSync: vi.fn(() => false),
+  readFileSync: vi.fn(() => Buffer.from([])),
+  writeFileSync: vi.fn(),
+  mkdirSync: vi.fn(),
+  unlinkSync: vi.fn(),
+  copyFileSync: vi.fn(),
+  readdirSync: vi.fn(() => []),
+  statSync: vi.fn(() => ({ mtime: new Date(), size: 1024 })),
 }));
 
-// Mock path
+// Mock path - CommonJS compatible
 vi.mock("path", () => ({
-  default: {
-    join: vi.fn((...args) => args.join("/")),
-    dirname: vi.fn((p) => p.split("/").slice(0, -1).join("/")),
-    basename: vi.fn((p) => p.split("/").pop()),
-  },
+  join: vi.fn((...args) => args.join("/")),
+  dirname: vi.fn((p) => p.split("/").slice(0, -1).join("/")),
+  basename: vi.fn((p) => p.split("/").pop()),
 }));
 
 // Mock electron
@@ -537,19 +533,19 @@ describe("SecureConfigStorage", () => {
     });
   });
 
-  describe.skip("构造函数", () => {
-    // TODO: Skipped - Depends on electron (app.getPath) and fs
-
+  describe("构造函数", () => {
     it("应该创建实例", () => {
       const storage = new SecureConfigStorage();
 
       expect(storage).toBeDefined();
+      expect(storage.safeStorageAvailable).toBe(true);
     });
 
     it("应该使用默认storagePath", () => {
       const storage = new SecureConfigStorage();
 
       expect(storage.storagePath).toBeDefined();
+      expect(storage.storagePath).toContain("secure-config.enc");
     });
 
     it("应该接受自定义storagePath", () => {
@@ -557,13 +553,23 @@ describe("SecureConfigStorage", () => {
 
       expect(storage.storagePath).toBe("/custom/path");
     });
+
+    it("应该初始化缓存为null", () => {
+      const storage = new SecureConfigStorage();
+
+      expect(storage._cache).toBeNull();
+      expect(storage._cacheTimestamp).toBeNull();
+    });
+
+    it("应该设置默认缓存TTL为5分钟", () => {
+      const storage = new SecureConfigStorage();
+
+      expect(storage._cacheTTL).toBe(5 * 60 * 1000);
+    });
   });
 
-  describe.skip("clearCache", () => {
-    // TODO: Skipped - Depends on electron app.getPath in constructor
-
+  describe("clearCache", () => {
     it("应该清除缓存", () => {
-      // 使用mock electron来避免依赖
       const storage = new SecureConfigStorage();
       storage._cache = { some: "data" };
       storage._cacheTimestamp = Date.now();
@@ -573,11 +579,18 @@ describe("SecureConfigStorage", () => {
       expect(storage._cache).toBeNull();
       expect(storage._cacheTimestamp).toBeNull();
     });
+
+    it("应该处理空缓存", () => {
+      const storage = new SecureConfigStorage();
+
+      storage.clearCache();
+
+      expect(storage._cache).toBeNull();
+      expect(storage._cacheTimestamp).toBeNull();
+    });
   });
 
-  describe.skip("_getMachineKeySeed", () => {
-    // TODO: Skipped - Depends on electron app.getPath in constructor
-
+  describe("_getMachineKeySeed", () => {
     it("应该生成机器密钥种子", () => {
       const storage = new SecureConfigStorage();
 
@@ -602,11 +615,18 @@ describe("SecureConfigStorage", () => {
 
       expect(seed).toContain("|");
     });
+
+    it("种子应该是确定性的", () => {
+      const storage = new SecureConfigStorage();
+
+      const seed1 = storage._getMachineKeySeed();
+      const seed2 = storage._getMachineKeySeed();
+
+      expect(seed1).toBe(seed2);
+    });
   });
 
-  describe.skip("_getEncryptionType", () => {
-    // TODO: Skipped - Depends on electron app.getPath in constructor
-
+  describe("_getEncryptionType", () => {
     it("应该识别safeStorage加密", () => {
       const storage = new SecureConfigStorage();
       const data = Buffer.from([0x53, 0x53, 0x02, 0x01, 0x02]); // 'SS' + version 2
@@ -642,11 +662,19 @@ describe("SecureConfigStorage", () => {
 
       expect(type).toBe("unknown");
     });
+
+    it("应该识别导出格式'EX'", () => {
+      const storage = new SecureConfigStorage();
+      const data = Buffer.from([0x45, 0x58, 0x02]); // 'EX' + version
+
+      const type = storage._getEncryptionType(data);
+
+      // 导出格式可能被识别为unknown或有特殊处理
+      expect(type).toBeDefined();
+    });
   });
 
-  describe.skip("单例管理", () => {
-    // TODO: Skipped - Depends on electron app.getPath in constructor
-
+  describe("单例管理", () => {
     it("应该返回单例实例", () => {
       const instance1 = getSecureConfigStorage();
       const instance2 = getSecureConfigStorage();
@@ -676,79 +704,426 @@ describe("SecureConfigStorage", () => {
     });
   });
 
-  describe.skip("_checkSafeStorageAvailability", () => {
-    // TODO: Skipped - Depends on electron safeStorage
+  describe("_checkSafeStorageAvailability", () => {
+    it("应该检查safeStorage可用性", () => {
+      const storage = new SecureConfigStorage();
 
-    it("应该检查safeStorage可用性", () => {});
+      expect(storage.safeStorageAvailable).toBe(true);
+    });
+
+    it("当safeStorage不可用时应返回false", () => {
+      // Re-mock electron with unavailable safeStorage
+      vi.doMock("electron", () => ({
+        app: { getPath: vi.fn(() => "/mock/path") },
+        safeStorage: { isEncryptionAvailable: vi.fn(() => false) },
+      }));
+
+      const storage = new SecureConfigStorage();
+
+      expect(storage.safeStorageAvailable).toBe(false);
+    });
   });
 
-  describe.skip("_getDefaultStoragePath", () => {
-    // TODO: Skipped - Depends on electron app.getPath
+  describe("_getDefaultStoragePath", () => {
+    it("应该返回默认存储路径", () => {
+      const storage = new SecureConfigStorage();
 
-    it("应该返回默认存储路径", () => {});
+      const path = storage._getDefaultStoragePath();
+
+      expect(path).toBeDefined();
+      expect(path).toContain("secure-config.enc");
+    });
   });
 
-  describe.skip("_getBackupDir", () => {
-    // TODO: Skipped - Depends on electron app.getPath
+  describe("_getBackupDir", () => {
+    it("应该返回备份目录路径", () => {
+      const storage = new SecureConfigStorage();
 
-    it("应该返回备份目录路径", () => {});
+      const backupDir = storage._getBackupDir();
+
+      expect(backupDir).toBeDefined();
+      expect(backupDir).toContain("secure-backups");
+    });
   });
 
-  describe.skip("_deriveKey", () => {
-    // TODO: Skipped - Depends on crypto.pbkdf2Sync
+  describe("_deriveKey", () => {
+    it("应该从种子派生密钥", () => {
+      const storage = new SecureConfigStorage();
+      const salt = Buffer.alloc(32).fill(0xAA);
 
-    it("应该从种子派生密钥", () => {});
+      const key = storage._deriveKey(salt);
+
+      expect(key).toBeDefined();
+      expect(Buffer.isBuffer(key)).toBe(true);
+      expect(key.length).toBe(32); // 256-bit key
+    });
+
+    it("相同salt应产生相同密钥", () => {
+      const storage = new SecureConfigStorage();
+      const salt = Buffer.alloc(32).fill(0xBB);
+
+      const key1 = storage._deriveKey(salt);
+      const key2 = storage._deriveKey(salt);
+
+      expect(key1.equals(key2)).toBe(true);
+    });
+
+    it("不同salt应产生不同密钥", () => {
+      const storage = new SecureConfigStorage();
+      const salt1 = Buffer.alloc(32).fill(0xAA);
+      const salt2 = Buffer.alloc(32).fill(0xBB);
+
+      const key1 = storage._deriveKey(salt1);
+      const key2 = storage._deriveKey(salt2);
+
+      expect(key1.equals(key2)).toBe(false);
+    });
   });
 
-  describe.skip("encrypt/decrypt", () => {
-    // TODO: Skipped - Depends on crypto.createCipheriv and safeStorage
+  describe("encrypt/decrypt", () => {
+    it("应该加密数据", () => {
+      const storage = new SecureConfigStorage();
+      const testData = { apiKey: "sk-test123", model: "gpt-4" };
 
-    it("应该加密数据", () => {});
-    it("应该解密数据", () => {});
-    it("应该使用safeStorage加密", () => {});
-    it("应该使用AES加密", () => {});
+      const encrypted = storage.encrypt(testData);
+
+      expect(Buffer.isBuffer(encrypted)).toBe(true);
+      expect(encrypted.length).toBeGreaterThan(0);
+    });
+
+    it("应该解密数据", () => {
+      const storage = new SecureConfigStorage();
+      const testData = { apiKey: "sk-test456", provider: "openai" };
+
+      const encrypted = storage.encrypt(testData);
+      const decrypted = storage.decrypt(encrypted);
+
+      expect(decrypted).toEqual(testData);
+    });
+
+    it("应该使用safeStorage加密", () => {
+      const storage = new SecureConfigStorage();
+      const testData = { key: "value" };
+
+      const encrypted = storage.encrypt(testData);
+
+      // 验证使用了safeStorage (标记头 'SS')
+      expect(encrypted[0]).toBe(0x53);
+      expect(encrypted[1]).toBe(0x53);
+    });
+
+    it("加密/解密应roundtrip正确", () => {
+      const storage = new SecureConfigStorage();
+      const testCases = [
+        { simple: "string" },
+        { nested: { deep: { value: 123 } } },
+        { array: [1, 2, 3] },
+        { mixed: { str: "test", num: 42, bool: true, null: null } },
+      ];
+
+      testCases.forEach((testData) => {
+        const encrypted = storage.encrypt(testData);
+        const decrypted = storage.decrypt(encrypted);
+        expect(decrypted).toEqual(testData);
+      });
+    });
   });
 
-  describe.skip("save/load", () => {
-    // TODO: Skipped - Depends on fs.writeFileSync/readFileSync
+  describe("save/load", () => {
+    it("应该保存配置", () => {
+      const storage = new SecureConfigStorage();
+      const testConfig = { openai: { apiKey: "sk-test" } };
 
-    it("应该保存配置", () => {});
-    it("应该加载配置", () => {});
-    it("应该使用缓存", () => {});
+      const result = storage.save(testConfig);
+
+      expect(result).toBe(true);
+    });
+
+    it("应该加载配置", () => {
+      const storage = new SecureConfigStorage();
+      const testConfig = { anthropic: { apiKey: "sk-ant-test" } };
+
+      storage.save(testConfig);
+      const loaded = storage.load(false); // 不使用缓存
+
+      expect(loaded).toEqual(testConfig);
+    });
+
+    it("应该使用缓存", () => {
+      const storage = new SecureConfigStorage();
+      const testConfig = { test: "data" };
+
+      storage.save(testConfig);
+      const loaded1 = storage.load(true); // 使用缓存
+      const loaded2 = storage.load(true); // 应该从缓存读取
+
+      expect(loaded1).toEqual(testConfig);
+      expect(loaded2).toEqual(testConfig);
+      expect(storage._cache).toEqual(testConfig);
+    });
+
+    it("缓存过期后应重新加载", () => {
+      const storage = new SecureConfigStorage();
+      const testConfig = { data: "test" };
+
+      storage.save(testConfig);
+      storage.load(true);
+
+      // 手动使缓存过期
+      storage._cacheTimestamp = Date.now() - (6 * 60 * 1000); // 6分钟前
+
+      const loaded = storage.load(true);
+
+      expect(loaded).toEqual(testConfig);
+    });
+
+    it("加载不存在的文件应返回null", () => {
+      const storage = new SecureConfigStorage({
+        storagePath: "/nonexistent/path/config.enc",
+      });
+
+      const loaded = storage.load();
+
+      expect(loaded).toBeNull();
+    });
   });
 
-  describe.skip("exists/delete", () => {
-    // TODO: Skipped - Depends on fs.existsSync/unlinkSync
+  describe("exists/delete", () => {
+    it("应该检查配置存在", () => {
+      const storage = new SecureConfigStorage();
+      storage.save({ test: "data" });
 
-    it("应该检查配置存在", () => {});
-    it("应该删除配置", () => {});
+      const exists = storage.exists();
+
+      expect(exists).toBe(true);
+    });
+
+    it("应该检查不存在的配置", () => {
+      const storage = new SecureConfigStorage({
+        storagePath: "/nonexistent/config.enc",
+      });
+
+      const exists = storage.exists();
+
+      expect(exists).toBe(false);
+    });
+
+    it("应该删除配置", () => {
+      const storage = new SecureConfigStorage();
+      storage.save({ test: "data" });
+
+      const result = storage.delete();
+
+      expect(result).toBe(true);
+      expect(storage._cache).toBeNull();
+    });
+
+    it("删除不存在的配置应成功", () => {
+      const storage = new SecureConfigStorage({
+        storagePath: "/nonexistent/config.enc",
+      });
+
+      const result = storage.delete();
+
+      expect(result).toBe(true);
+    });
   });
 
-  describe.skip("备份恢复", () => {
-    // TODO: Skipped - Depends on fs.copyFileSync/readdirSync
+  describe("备份恢复", () => {
+    it("应该创建备份", () => {
+      const storage = new SecureConfigStorage();
+      storage.save({ test: "data" });
 
-    it("应该创建备份", () => {});
-    it("应该从备份恢复", () => {});
-    it("应该列出备份", () => {});
+      const backupPath = storage.createBackup();
+
+      expect(backupPath).toBeDefined();
+      expect(backupPath).toContain("secure-config-");
+    });
+
+    it("没有配置时创建备份应返回null", () => {
+      const storage = new SecureConfigStorage({
+        storagePath: "/nonexistent/config.enc",
+      });
+
+      const backupPath = storage.createBackup();
+
+      expect(backupPath).toBeNull();
+    });
+
+    it("应该从备份恢复", () => {
+      const storage = new SecureConfigStorage();
+      const originalConfig = { key: "original" };
+      storage.save(originalConfig);
+
+      const backupPath = storage.createBackup();
+      storage.save({ key: "modified" });
+
+      const result = storage.restoreFromBackup(backupPath);
+
+      expect(result).toBe(true);
+    });
+
+    it("从不存在的备份恢复应返回false", () => {
+      const storage = new SecureConfigStorage();
+
+      const result = storage.restoreFromBackup("/nonexistent/backup.enc.bak");
+
+      expect(result).toBe(false);
+    });
+
+    it("应该列出备份", () => {
+      const storage = new SecureConfigStorage();
+      storage.save({ test: "data" });
+
+      storage.createBackup();
+      const backups = storage.listBackups();
+
+      expect(Array.isArray(backups)).toBe(true);
+    });
+
+    it("备份列表应按时间排序（新到旧）", () => {
+      const storage = new SecureConfigStorage();
+      storage.save({ test: "data" });
+
+      storage.createBackup();
+      storage.createBackup();
+
+      const backups = storage.listBackups();
+
+      if (backups.length >= 2) {
+        expect(backups[0].date >= backups[1].date).toBe(true);
+      }
+    });
   });
 
-  describe.skip("导出导入", () => {
-    // TODO: Skipped - Depends on fs.writeFileSync/readFileSync
+  describe("导出导入", () => {
+    it("应该使用密码导出", () => {
+      const storage = new SecureConfigStorage();
+      storage.save({ test: "export-data" });
 
-    it("应该使用密码导出", () => {});
-    it("应该使用密码导入", () => {});
+      const exportPath = "/tmp/export-test.enc";
+      const result = storage.exportWithPassword("password123", exportPath);
+
+      expect(result).toBe(true);
+    });
+
+    it("没有配置时导出应返回false", () => {
+      const storage = new SecureConfigStorage({
+        storagePath: "/nonexistent/config.enc",
+      });
+
+      const result = storage.exportWithPassword("password", "/tmp/export.enc");
+
+      expect(result).toBe(false);
+    });
+
+    it("应该使用密码导入", () => {
+      const storage = new SecureConfigStorage();
+      const originalConfig = { test: "import-data" };
+      storage.save(originalConfig);
+
+      const exportPath = "/tmp/import-test.enc";
+      storage.exportWithPassword("password123", exportPath);
+
+      const result = storage.importWithPassword("password123", exportPath);
+
+      expect(result).toBe(true);
+    });
+
+    it("导入不存在的文件应返回false", () => {
+      const storage = new SecureConfigStorage();
+
+      const result = storage.importWithPassword(
+        "password",
+        "/nonexistent/import.enc",
+      );
+
+      expect(result).toBe(false);
+    });
+
+    it("错误的密码应导入失败", () => {
+      const storage = new SecureConfigStorage();
+      storage.save({ test: "data" });
+
+      const exportPath = "/tmp/password-test.enc";
+      storage.exportWithPassword("correct-password", exportPath);
+
+      const result = storage.importWithPassword("wrong-password", exportPath);
+
+      expect(result).toBe(false);
+    });
   });
 
-  describe.skip("getStorageInfo", () => {
-    // TODO: Skipped - Depends on fs.statSync/readFileSync
+  describe("getStorageInfo", () => {
+    it("应该获取存储信息", () => {
+      const storage = new SecureConfigStorage();
+      storage.save({ test: "data" });
 
-    it("应该获取存储信息", () => {});
+      const info = storage.getStorageInfo();
+
+      expect(info).toBeDefined();
+      expect(info.exists).toBe(true);
+      expect(info.safeStorageAvailable).toBe(true);
+      expect(info.storagePath).toBeDefined();
+    });
+
+    it("不存在的配置信息应正确", () => {
+      const storage = new SecureConfigStorage({
+        storagePath: "/nonexistent/config.enc",
+      });
+
+      const info = storage.getStorageInfo();
+
+      expect(info.exists).toBe(false);
+      expect(info.encryptionType).toBeNull();
+      expect(info.version).toBeNull();
+    });
+
+    it("应该包含备份计数", () => {
+      const storage = new SecureConfigStorage();
+      storage.save({ test: "data" });
+
+      const info = storage.getStorageInfo();
+
+      expect(info.backupCount).toBeDefined();
+      expect(typeof info.backupCount).toBe("number");
+    });
+
+    it("应该包含加密类型信息", () => {
+      const storage = new SecureConfigStorage();
+      storage.save({ test: "data" });
+
+      const info = storage.getStorageInfo();
+
+      expect(info.encryptionType).toBeDefined();
+      expect(["safeStorage", "aes"].includes(info.encryptionType)).toBe(true);
+    });
   });
 
-  describe.skip("migrateToSafeStorage", () => {
-    // TODO: Skipped - Depends on fs + safeStorage
+  describe("migrateToSafeStorage", () => {
+    it("应该迁移到safeStorage", () => {
+      const storage = new SecureConfigStorage();
+      storage.save({ test: "data" });
 
-    it("应该迁移到safeStorage", () => {});
+      const result = storage.migrateToSafeStorage();
+
+      // 已经在使用safeStorage时应返回true或保持不变
+      expect(typeof result).toBe("boolean");
+    });
+
+    it("safeStorage不可用时应返回false", () => {
+      // Re-mock with unavailable safeStorage
+      vi.doMock("electron", () => ({
+        app: { getPath: vi.fn(() => "/mock/path") },
+        safeStorage: { isEncryptionAvailable: vi.fn(() => false) },
+      }));
+
+      const storage = new SecureConfigStorage();
+
+      const result = storage.migrateToSafeStorage();
+
+      expect(result).toBe(false);
+    });
   });
 
   describe("边界情况", () => {
