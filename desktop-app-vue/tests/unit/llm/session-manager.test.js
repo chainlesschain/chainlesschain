@@ -414,9 +414,11 @@ describe("SessionManager", () => {
         updated_at: Date.now(),
       };
 
-      mockDatabase.prepare.mockReturnValueOnce({
-        get: vi.fn(() => mockSessionData),
-      });
+      mockDatabase.prepare.mockReturnValueOnce(
+        createMockStatement({
+          get: vi.fn(() => mockSessionData),
+        })
+      );
 
       const session = await sessionManager.loadSession("sess-123");
 
@@ -427,9 +429,11 @@ describe("SessionManager", () => {
     });
 
     it("加载不存在的会话应返回null", async () => {
-      mockDatabase.prepare.mockReturnValueOnce({
-        get: vi.fn(() => null),
-      });
+      mockDatabase.prepare.mockReturnValueOnce(
+        createMockStatement({
+          get: vi.fn(() => null),
+        })
+      );
 
       const session = await sessionManager.loadSession("nonexistent");
 
@@ -457,9 +461,11 @@ describe("SessionManager", () => {
         metadata: "{}",
       };
 
-      mockDatabase.prepare.mockReturnValueOnce({
-        get: vi.fn(() => mockSessionData),
-      });
+      mockDatabase.prepare.mockReturnValueOnce(
+        createMockStatement({
+          get: vi.fn(() => mockSessionData),
+        })
+      );
 
       sessionManager.sessionCache.set("sess-123", { cached: true });
 
