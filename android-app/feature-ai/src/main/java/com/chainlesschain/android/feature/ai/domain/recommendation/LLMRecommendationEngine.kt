@@ -26,7 +26,8 @@ class LLMRecommendationEngine @Inject constructor() {
         ANALYSIS,       // 数据分析
         TRANSLATION,    // 翻译
         CHAT,           // 日常对话
-        SUMMARIZATION   // 文本摘要
+        SUMMARIZATION,  // 文本摘要
+        GENERAL         // 通用场景
     }
 
     /**
@@ -370,6 +371,33 @@ class LLMRecommendationEngine @Inject constructor() {
                     )
                 )
             }
+
+            UseCase.GENERAL -> {
+                recommendations.add(
+                    Recommendation(
+                        provider = LLMProvider.DEEPSEEK,
+                        model = "deepseek-chat",
+                        score = 0.95f,
+                        reason = "通用场景首选，性价比高，能力全面"
+                    )
+                )
+                recommendations.add(
+                    Recommendation(
+                        provider = LLMProvider.OPENAI,
+                        model = "gpt-4o-mini",
+                        score = 0.9f,
+                        reason = "GPT-4o-mini通用能力强，速度快"
+                    )
+                )
+                recommendations.add(
+                    Recommendation(
+                        provider = LLMProvider.OLLAMA,
+                        model = "qwen2:7b",
+                        score = 0.85f,
+                        reason = "免费本地运行，隐私安全"
+                    )
+                )
+            }
         }
 
         // 根据预算过滤
@@ -410,6 +438,7 @@ class LLMRecommendationEngine @Inject constructor() {
             UseCase.TRANSLATION -> "翻译任务"
             UseCase.CHAT -> "日常对话"
             UseCase.SUMMARIZATION -> "文本摘要"
+            UseCase.GENERAL -> "通用场景，全面能力"
         }
     }
 
