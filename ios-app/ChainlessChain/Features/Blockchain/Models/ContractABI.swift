@@ -542,3 +542,230 @@ public struct EscrowInfo: Codable {
         self.completedAt = completedAt
     }
 }
+
+// MARK: - AssetBridge Contract ABI
+
+extension ContractABI {
+    /// AssetBridge 跨链桥合约 ABI
+    public static let assetBridgeABI = """
+    [
+        {
+            "inputs": [],
+            "stateMutability": "nonpayable",
+            "type": "constructor"
+        },
+        {
+            "anonymous": false,
+            "inputs": [
+                {"indexed": true, "name": "requestId", "type": "bytes32"},
+                {"indexed": true, "name": "user", "type": "address"},
+                {"indexed": true, "name": "token", "type": "address"},
+                {"indexed": false, "name": "amount", "type": "uint256"},
+                {"indexed": false, "name": "targetChainId", "type": "uint256"}
+            ],
+            "name": "AssetLocked",
+            "type": "event"
+        },
+        {
+            "anonymous": false,
+            "inputs": [
+                {"indexed": true, "name": "requestId", "type": "bytes32"},
+                {"indexed": true, "name": "user", "type": "address"},
+                {"indexed": true, "name": "token", "type": "address"},
+                {"indexed": false, "name": "amount", "type": "uint256"},
+                {"indexed": false, "name": "sourceChainId", "type": "uint256"}
+            ],
+            "name": "AssetMinted",
+            "type": "event"
+        },
+        {
+            "anonymous": false,
+            "inputs": [
+                {"indexed": true, "name": "requestId", "type": "bytes32"},
+                {"indexed": true, "name": "user", "type": "address"},
+                {"indexed": true, "name": "token", "type": "address"},
+                {"indexed": false, "name": "amount", "type": "uint256"},
+                {"indexed": false, "name": "targetChainId", "type": "uint256"}
+            ],
+            "name": "AssetBurned",
+            "type": "event"
+        },
+        {
+            "anonymous": false,
+            "inputs": [
+                {"indexed": true, "name": "requestId", "type": "bytes32"},
+                {"indexed": true, "name": "user", "type": "address"},
+                {"indexed": true, "name": "token", "type": "address"},
+                {"indexed": false, "name": "amount", "type": "uint256"},
+                {"indexed": false, "name": "sourceChainId", "type": "uint256"}
+            ],
+            "name": "AssetReleased",
+            "type": "event"
+        },
+        {
+            "anonymous": false,
+            "inputs": [
+                {"indexed": true, "name": "relayer", "type": "address"}
+            ],
+            "name": "RelayerAdded",
+            "type": "event"
+        },
+        {
+            "anonymous": false,
+            "inputs": [
+                {"indexed": true, "name": "relayer", "type": "address"}
+            ],
+            "name": "RelayerRemoved",
+            "type": "event"
+        },
+        {
+            "constant": false,
+            "inputs": [
+                {"name": "relayer", "type": "address"}
+            ],
+            "name": "addRelayer",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+        },
+        {
+            "constant": false,
+            "inputs": [
+                {"name": "relayer", "type": "address"}
+            ],
+            "name": "removeRelayer",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+        },
+        {
+            "constant": false,
+            "inputs": [
+                {"name": "token", "type": "address"},
+                {"name": "amount", "type": "uint256"},
+                {"name": "targetChainId", "type": "uint256"}
+            ],
+            "name": "lockAsset",
+            "outputs": [
+                {"name": "", "type": "bytes32"}
+            ],
+            "stateMutability": "nonpayable",
+            "type": "function"
+        },
+        {
+            "constant": false,
+            "inputs": [
+                {"name": "requestId", "type": "bytes32"},
+                {"name": "user", "type": "address"},
+                {"name": "token", "type": "address"},
+                {"name": "amount", "type": "uint256"},
+                {"name": "sourceChainId", "type": "uint256"}
+            ],
+            "name": "mintAsset",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+        },
+        {
+            "constant": false,
+            "inputs": [
+                {"name": "token", "type": "address"},
+                {"name": "amount", "type": "uint256"},
+                {"name": "targetChainId", "type": "uint256"}
+            ],
+            "name": "burnAsset",
+            "outputs": [
+                {"name": "", "type": "bytes32"}
+            ],
+            "stateMutability": "nonpayable",
+            "type": "function"
+        },
+        {
+            "constant": false,
+            "inputs": [
+                {"name": "requestId", "type": "bytes32"},
+                {"name": "user", "type": "address"},
+                {"name": "token", "type": "address"},
+                {"name": "amount", "type": "uint256"},
+                {"name": "sourceChainId", "type": "uint256"}
+            ],
+            "name": "releaseAsset",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+        },
+        {
+            "constant": true,
+            "inputs": [
+                {"name": "requestId", "type": "bytes32"}
+            ],
+            "name": "getBridgeRequest",
+            "outputs": [
+                {
+                    "components": [
+                        {"name": "id", "type": "bytes32"},
+                        {"name": "user", "type": "address"},
+                        {"name": "token", "type": "address"},
+                        {"name": "amount", "type": "uint256"},
+                        {"name": "targetChainId", "type": "uint256"},
+                        {"name": "status", "type": "uint8"},
+                        {"name": "createdAt", "type": "uint256"},
+                        {"name": "completedAt", "type": "uint256"}
+                    ],
+                    "name": "",
+                    "type": "tuple"
+                }
+            ],
+            "stateMutability": "view",
+            "type": "function"
+        },
+        {
+            "constant": true,
+            "inputs": [
+                {"name": "requestId", "type": "bytes32"}
+            ],
+            "name": "isBridgeCompleted",
+            "outputs": [
+                {"name": "", "type": "bool"}
+            ],
+            "stateMutability": "view",
+            "type": "function"
+        },
+        {
+            "constant": true,
+            "inputs": [
+                {"name": "token", "type": "address"}
+            ],
+            "name": "getLockedBalance",
+            "outputs": [
+                {"name": "", "type": "uint256"}
+            ],
+            "stateMutability": "view",
+            "type": "function"
+        },
+        {
+            "constant": true,
+            "inputs": [
+                {"name": "account", "type": "address"}
+            ],
+            "name": "isRelayer",
+            "outputs": [
+                {"name": "", "type": "bool"}
+            ],
+            "stateMutability": "view",
+            "type": "function"
+        },
+        {
+            "constant": false,
+            "inputs": [
+                {"name": "token", "type": "address"},
+                {"name": "amount", "type": "uint256"}
+            ],
+            "name": "emergencyWithdraw",
+            "outputs": [],
+            "stateMutability": "nonpayable",
+            "type": "function"
+        }
+    ]
+    """
+}
