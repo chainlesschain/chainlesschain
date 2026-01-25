@@ -1,19 +1,25 @@
 package com.chainlesschain.android.feature.project.ui.components
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 
 /**
@@ -30,6 +36,7 @@ fun FoldingGutter(
     onToggleFold: (FoldableRegion) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val density = LocalDensity.current.density
     val iconColor = MaterialTheme.colorScheme.onSurfaceVariant
     val lineColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
 
@@ -57,26 +64,23 @@ fun FoldingGutter(
             val isFolded = (region.startLine..region.endLine) in foldedRegions
             val y = region.startLine * lineHeight - scrollY
 
-            // Only show icon if line is visible
-            if (y >= -lineHeight && y < size.height.toFloat()) {
-                Box(
-                    modifier = Modifier
-                        .offset(x = 0.dp, y = (y / density).dp)
-                        .size(24.dp)
-                        .clickable { onToggleFold(region) },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = if (isFolded) {
-                            Icons.Default.KeyboardArrowRight
-                        } else {
-                            Icons.Default.KeyboardArrowDown
-                        },
-                        contentDescription = if (isFolded) "Expand" else "Collapse",
-                        tint = iconColor,
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
+            Box(
+                modifier = Modifier
+                    .offset(x = 0.dp, y = (y / density).dp)
+                    .size(24.dp)
+                    .clickable { onToggleFold(region) },
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = if (isFolded) {
+                        Icons.Default.KeyboardArrowRight
+                    } else {
+                        Icons.Default.KeyboardArrowDown
+                    },
+                    contentDescription = if (isFolded) "Expand" else "Collapse",
+                    tint = iconColor,
+                    modifier = Modifier.size(16.dp)
+                )
             }
         }
     }
@@ -132,6 +136,7 @@ fun FoldedRegionIndicator(
     scrollY: Float,
     modifier: Modifier = Modifier
 ) {
+    val density = LocalDensity.current.density
     val y = region.startLine * lineHeight - scrollY
     val textColor = MaterialTheme.colorScheme.onSurfaceVariant
     val backgroundColor = MaterialTheme.colorScheme.surfaceVariant
@@ -218,10 +223,3 @@ fun FoldedRegionPreview(
         )
     }
 }
-
-// Missing imports (add to file top)
-import androidx.compose.foundation.background
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Text
-import androidx.compose.ui.text.style.TextOverflow
