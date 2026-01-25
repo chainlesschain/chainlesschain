@@ -15,9 +15,9 @@ test.describe('调试页面内容', () => {
   });
 
   test('查看页面实际内容', async () => {
-    // 测试独立路由（不在MainLayout下）
+    // 测试极简页面
     await window.evaluate(() => {
-      window.location.hash = '#/test/android-features-standalone';
+      window.location.hash = '#/test/simple';
     });
 
     await window.waitForSelector('body', { timeout: 10000 });
