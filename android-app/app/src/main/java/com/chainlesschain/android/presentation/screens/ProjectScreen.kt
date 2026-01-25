@@ -148,6 +148,7 @@ fun ProjectScreen(
                 lastUpdated = LocalDateTime.now().minusWeeks(1)
             )
         )
+        }
     }
 
     // 筛选项目
@@ -241,15 +242,6 @@ fun ProjectScreen(
                 )
             }
         }
-
-        // Snackbar提示
-        SnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.BottomCenter)
-                .padding(16.dp)
-        )
     }
 
     // 创建项目对话框
