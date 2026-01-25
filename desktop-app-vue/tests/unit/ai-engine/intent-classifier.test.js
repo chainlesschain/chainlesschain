@@ -156,7 +156,7 @@ describe("IntentClassifier", () => {
     });
 
     it("应该识别数据分析意图 - 对比", async () => {
-      const result = await classifier.classify("对比这两个版本的性能");
+      const result = await classifier.classify("对比这2个版本的性能");
 
       expect(result.intent).toBe("analyze_data");
       expect(result.entities.numbers).toContain(2);
@@ -204,8 +204,8 @@ describe("IntentClassifier", () => {
       expect(result.intent).toBe("deploy_project");
     });
 
-    it("应该识别部署项目意图 - 打包", async () => {
-      const result = await classifier.classify("打包生产环境");
+    it("应该识别部署项目意图 - 构建", async () => {
+      const result = await classifier.classify("构建生产环境");
 
       expect(result.intent).toBe("deploy_project");
     });
@@ -291,7 +291,7 @@ describe("IntentClassifier", () => {
     });
 
     it("应该提取Markdown文件类型", async () => {
-      const result = await classifier.classify("创建markdown文档");
+      const result = await classifier.classify("创建md文件");
 
       expect(result.entities.fileType).toBe("Markdown");
     });
