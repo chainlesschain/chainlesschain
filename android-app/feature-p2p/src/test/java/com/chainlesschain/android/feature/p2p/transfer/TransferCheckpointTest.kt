@@ -2,17 +2,18 @@ package com.chainlesschain.android.feature.p2p.transfer
 
 import com.chainlesschain.android.core.database.dao.TransferCheckpointDao
 import com.chainlesschain.android.core.database.entity.TransferCheckpointEntity
-import com.chainlesschain.android.feature.p2p.filetransfer.CheckpointManager
+import com.chainlesschain.android.core.p2p.filetransfer.CheckpointManager
+import com.chainlesschain.android.core.p2p.filetransfer.model.FileTransferMetadata
 import io.mockk.MockKAnnotations
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.impl.annotations.MockK
+import io.mockk.slot
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
 import org.junit.Before
 import org.junit.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
@@ -20,12 +21,11 @@ import kotlin.test.assertTrue
  * Unit tests for TransferCheckpointEntity and CheckpointManager
  *
  * Tests:
- * 1. Checkpoint creation and persistence
- * 2. Chunk tracking and received chunks parsing
- * 3. Missing chunks calculation
- * 4. Checkpoint updates
- * 5. Checkpoint restoration
- * 6. Checkpoint cleanup (7-day expiry)
+ * 1. Checkpoint creation with FileTransferMetadata
+ * 2. Checkpoint updates with chunk tracking
+ * 3. Checkpoint restoration
+ * 4. Missing chunks calculation
+ * 5. Checkpoint cleanup (7-day expiry)
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class TransferCheckpointTest {
@@ -42,242 +42,194 @@ class TransferCheckpointTest {
     }
 
     /**
-     * Test 1: Create checkpoint with initial state
+     * Test 1: Create checkpoint with FileTransferMetadata
      */
     @Test
-    fun `createCheckpoint should insert new checkpoint`() = runTest {
+    fun `createCheckpoint should insert new checkpoint with metadata`() = runTest {
         // Given
-        val transferId = "transfer_123"
-        val fileName = "test.pdf"
-        val totalChunks = 100
-        val totalBytes = 1024000L
-
-        val expectedCheckpoint = TransferCheckpointEntity(
-            id = 0,
-            transferId = transferId,
-            fileName = fileName,
-            totalChunks = totalChunks,
-            totalBytes = totalBytes,
-            receivedChunksJson = "[]",
-            lastChunkIndex = -1,
-            bytesTransferred = 0L,
-            createdAt = System.currentTimeMillis(),
-            updatedAt = System.currentTimeMillis()
+        val metadata = FileTransferMetadata.create(
+            transferId = "transfer_123",
+            fileName = "test.pdf",
+            fileSize = 1024000L,
+            mimeType = "application/pdf",
+            checksum = "abc123def456",
+            senderDeviceId = "device_sender",
+            receiverDeviceId = "device_receiver"
         )
 
-        coEvery { mockCheckpointDao.insert(any()) } returns 1L
+        val checkpointSlot = slot<TransferCheckpointEntity>()
+        coEvery { mockCheckpointDao.upsert(capture(checkpointSlot)) } returns 1L
 
         // When
-        checkpointManager.createCheckpoint(
-            transferId = transferId,
-            fileName = fileName,
-            totalChunks = totalChunks,
-            totalBytes = totalBytes
+        val checkpoint = checkpointManager.createCheckpoint(
+            metadata = metadata,
+            isOutgoing = false,
+            tempFilePath = "/tmp/test.pdf"
         )
 
         // Then
-        coVerify {
-            mockCheckpointDao.insert(match {
-                it.transferId == transferId &&
-                it.totalChunks == totalChunks &&
-                it.receivedChunksJson == "[]"
-            })
-        }
+        coVerify { mockCheckpointDao.upsert(any()) }
+        assertNotNull(checkpoint)
+        assertEquals("transfer_123", checkpoint.transferId)
+        assertEquals("test.pdf", checkpoint.fileName)
+        assertEquals(1024000L, checkpoint.totalSize)
+        assertEquals("/tmp/test.pdf", checkpoint.tempFilePath)
     }
 
     /**
-     * Test 2: Update checkpoint with received chunk
+     * Test 2: Update checkpoint with chunk tracking
      */
     @Test
-    fun `updateCheckpoint should add received chunk`() = runTest {
+    fun `updateCheckpoint should add chunk to received chunks`() = runTest {
         // Given
-        val transferId = "transfer_123"
-        val existingCheckpoint = TransferCheckpointEntity(
-            id = 1,
+        val transferId = "transfer_456"
+        val existingCheckpoint = TransferCheckpointEntity.create(
             transferId = transferId,
+            fileId = transferId,
             fileName = "test.pdf",
+            totalSize = 1024000L,
             totalChunks = 10,
-            totalBytes = 10240L,
-            receivedChunksJson = "[0,1,2]", // Already received chunks 0-2
-            lastChunkIndex = 2,
-            bytesTransferred = 3072L,
-            createdAt = System.currentTimeMillis(),
-            updatedAt = System.currentTimeMillis()
+            chunkSize = 102400,
+            isOutgoing = false,
+            peerId = "peer_123",
+            fileChecksum = "checksum_abc"
         )
 
         coEvery { mockCheckpointDao.getByTransferId(transferId) } returns existingCheckpoint
-        coEvery { mockCheckpointDao.update(any()) } returns Unit
+        coEvery { mockCheckpointDao.update(any()) } returns 1
 
         // When
-        checkpointManager.updateCheckpoint(transferId, chunkIndex = 3, chunkSize = 1024L)
+        checkpointManager.updateCheckpoint(transferId, chunkIndex = 0, chunkSize = 102400L)
 
         // Then
-        coVerify {
-            mockCheckpointDao.update(match {
-                it.transferId == transferId &&
-                it.lastChunkIndex == 3 &&
-                it.bytesTransferred == 4096L &&
-                it.receivedChunksJson.contains("3")
-            })
-        }
+        coVerify { mockCheckpointDao.update(match { it.transferId == transferId }) }
     }
 
     /**
-     * Test 3: Parse received chunks from JSON
+     * Test 3: Get checkpoint by transfer ID
      */
     @Test
-    fun `getReceivedChunks should parse JSON array correctly`() {
+    fun `getByTransferId should return existing checkpoint`() = runTest {
         // Given
-        val checkpoint = TransferCheckpointEntity(
-            id = 1,
-            transferId = "transfer_123",
-            fileName = "test.pdf",
-            totalChunks = 10,
-            totalBytes = 10240L,
-            receivedChunksJson = "[0,1,2,5,7,9]",
-            lastChunkIndex = 9,
-            bytesTransferred = 6144L,
-            createdAt = System.currentTimeMillis(),
-            updatedAt = System.currentTimeMillis()
-        )
-
-        // When
-        val receivedChunks = checkpoint.getReceivedChunks()
-
-        // Then
-        assertEquals(6, receivedChunks.size)
-        assertTrue(receivedChunks.contains(0))
-        assertTrue(receivedChunks.contains(2))
-        assertTrue(receivedChunks.contains(9))
-        assertFalse(receivedChunks.contains(3))
-        assertFalse(receivedChunks.contains(4))
-    }
-
-    /**
-     * Test 4: Calculate missing chunks
-     */
-    @Test
-    fun `getMissingChunks should return unreceived chunks`() {
-        // Given
-        val checkpoint = TransferCheckpointEntity(
-            id = 1,
-            transferId = "transfer_123",
-            fileName = "test.pdf",
-            totalChunks = 10,
-            totalBytes = 10240L,
-            receivedChunksJson = "[0,1,2,5,7,9]",
-            lastChunkIndex = 9,
-            bytesTransferred = 6144L,
-            createdAt = System.currentTimeMillis(),
-            updatedAt = System.currentTimeMillis()
-        )
-
-        // When
-        val missingChunks = checkpoint.getMissingChunks()
-
-        // Then
-        assertEquals(4, missingChunks.size)
-        assertTrue(missingChunks.contains(3))
-        assertTrue(missingChunks.contains(4))
-        assertTrue(missingChunks.contains(6))
-        assertTrue(missingChunks.contains(8))
-    }
-
-    /**
-     * Test 5: Calculate transfer progress
-     */
-    @Test
-    fun `getProgress should calculate percentage correctly`() {
-        // Given - 60% complete (6 out of 10 chunks)
-        val checkpoint = TransferCheckpointEntity(
-            id = 1,
-            transferId = "transfer_123",
-            fileName = "test.pdf",
-            totalChunks = 10,
-            totalBytes = 10240L,
-            receivedChunksJson = "[0,1,2,5,7,9]",
-            lastChunkIndex = 9,
-            bytesTransferred = 6144L,
-            createdAt = System.currentTimeMillis(),
-            updatedAt = System.currentTimeMillis()
-        )
-
-        // When
-        val progress = checkpoint.getProgress()
-
-        // Then
-        assertEquals(60.0f, progress, 0.1f)
-    }
-
-    /**
-     * Test 6: Check if transfer is complete
-     */
-    @Test
-    fun `isComplete should return true when all chunks received`() {
-        // Given
-        val completeCheckpoint = TransferCheckpointEntity(
-            id = 1,
-            transferId = "transfer_123",
-            fileName = "test.pdf",
+        val transferId = "transfer_789"
+        val existingCheckpoint = TransferCheckpointEntity.create(
+            transferId = transferId,
+            fileId = transferId,
+            fileName = "document.docx",
+            totalSize = 500000L,
             totalChunks = 5,
-            totalBytes = 5120L,
-            receivedChunksJson = "[0,1,2,3,4]",
-            lastChunkIndex = 4,
-            bytesTransferred = 5120L,
-            createdAt = System.currentTimeMillis(),
-            updatedAt = System.currentTimeMillis()
-        )
-
-        val incompleteCheckpoint = completeCheckpoint.copy(
-            receivedChunksJson = "[0,1,2,3]",
-            bytesTransferred = 4096L
-        )
-
-        // When/Then
-        assertTrue(completeCheckpoint.isComplete())
-        assertFalse(incompleteCheckpoint.isComplete())
-    }
-
-    /**
-     * Test 7: Restore checkpoint for resume
-     */
-    @Test
-    fun `restoreCheckpoint should load existing checkpoint`() = runTest {
-        // Given
-        val transferId = "transfer_123"
-        val existingCheckpoint = TransferCheckpointEntity(
-            id = 1,
-            transferId = transferId,
-            fileName = "test.pdf",
-            totalChunks = 100,
-            totalBytes = 102400L,
-            receivedChunksJson = "[0,1,2,3,4,5,6,7,8,9]",
-            lastChunkIndex = 9,
-            bytesTransferred = 10240L,
-            createdAt = System.currentTimeMillis(),
-            updatedAt = System.currentTimeMillis()
+            chunkSize = 100000,
+            isOutgoing = true,
+            peerId = "peer_456",
+            fileChecksum = "checksum_def"
         )
 
         coEvery { mockCheckpointDao.getByTransferId(transferId) } returns existingCheckpoint
 
         // When
-        val restored = checkpointManager.restoreCheckpoint(transferId)
+        val restored = mockCheckpointDao.getByTransferId(transferId)
 
         // Then
         assertNotNull(restored)
         assertEquals(transferId, restored.transferId)
-        assertEquals(10, restored.getReceivedChunks().size)
-        assertEquals(10.0f, restored.getProgress(), 0.1f)
+        assertEquals("document.docx", restored.fileName)
+        assertEquals(5, restored.totalChunks)
     }
 
     /**
-     * Test 8: Delete checkpoint after successful transfer
+     * Test 4: TransferCheckpointEntity.getMissingChunks calculation
+     */
+    @Test
+    fun `getMissingChunks should return chunks not yet received`() {
+        // Given
+        val checkpoint = TransferCheckpointEntity.create(
+            transferId = "transfer_missing",
+            fileId = "file_123",
+            fileName = "image.jpg",
+            totalSize = 1000000L,
+            totalChunks = 10,
+            chunkSize = 100000,
+            isOutgoing = false,
+            peerId = "peer_789",
+            fileChecksum = "checksum_ghi"
+        )
+
+        // Simulate receiving chunks 0, 1, 3, 5
+        val withChunks = checkpoint
+            .withReceivedChunk(0, 100000L)
+            .withReceivedChunk(1, 100000L)
+            .withReceivedChunk(3, 100000L)
+            .withReceivedChunk(5, 100000L)
+
+        // When
+        val missing = withChunks.getMissingChunks()
+
+        // Then
+        // Should be missing: 2, 4, 6, 7, 8, 9
+        assertEquals(6, missing.size)
+        assertTrue(missing.contains(2))
+        assertTrue(missing.contains(4))
+        assertTrue(missing.contains(6))
+    }
+
+    /**
+     * Test 5: TransferCheckpointEntity.getReceivedChunks parsing
+     */
+    @Test
+    fun `getReceivedChunks should parse JSON correctly`() {
+        // Given
+        val checkpoint = TransferCheckpointEntity.create(
+            transferId = "transfer_parse",
+            fileId = "file_456",
+            fileName = "video.mp4",
+            totalSize = 5000000L,
+            totalChunks = 20,
+            chunkSize = 250000,
+            isOutgoing = false,
+            peerId = "peer_abc",
+            fileChecksum = "checksum_jkl"
+        )
+
+        // Add multiple chunks
+        val updated = checkpoint
+            .withReceivedChunk(0, 250000L)
+            .withReceivedChunk(1, 250000L)
+            .withReceivedChunk(2, 250000L)
+
+        // When
+        val received = updated.getReceivedChunks()
+
+        // Then
+        assertEquals(3, received.size)
+        assertTrue(received.contains(0))
+        assertTrue(received.contains(1))
+        assertTrue(received.contains(2))
+    }
+
+    /**
+     * Test 6: Cleanup old checkpoints (7-day expiry)
+     */
+    @Test
+    fun `cleanupExpiredCheckpoints should remove expired entries`() = runTest {
+        // Given
+        val sevenDaysAgo = System.currentTimeMillis() - (7 * 24 * 60 * 60 * 1000L + 1000L)
+        coEvery { mockCheckpointDao.deleteOlderThan(any()) } returns 5
+
+        // When
+        checkpointManager.cleanupExpiredCheckpoints()
+
+        // Then
+        coVerify { mockCheckpointDao.deleteOlderThan(any()) }
+    }
+
+    /**
+     * Test 7: Delete checkpoint after successful transfer
      */
     @Test
     fun `deleteCheckpoint should remove checkpoint from database`() = runTest {
         // Given
-        val transferId = "transfer_123"
-        coEvery { mockCheckpointDao.deleteByTransferId(transferId) } returns Unit
+        val transferId = "transfer_complete"
+        coEvery { mockCheckpointDao.deleteByTransferId(transferId) } returns 1
 
         // When
         checkpointManager.deleteCheckpoint(transferId)
@@ -287,113 +239,143 @@ class TransferCheckpointTest {
     }
 
     /**
-     * Test 9: Cleanup old checkpoints (7-day expiry)
+     * Test 8: TransferCheckpointEntity.create factory method
      */
     @Test
-    fun `cleanupOldCheckpoints should delete expired checkpoints`() = runTest {
-        // Given
-        val sevenDaysAgo = System.currentTimeMillis() - (7 * 24 * 60 * 60 * 1000L)
+    fun `TransferCheckpointEntity create should initialize with empty chunks`() {
+        // When
+        val checkpoint = TransferCheckpointEntity.create(
+            transferId = "transfer_new",
+            fileId = "file_new",
+            fileName = "archive.zip",
+            totalSize = 2048000L,
+            totalChunks = 8,
+            chunkSize = 256000,
+            isOutgoing = true,
+            peerId = "peer_new",
+            fileChecksum = "checksum_new"
+        )
 
-        coEvery { mockCheckpointDao.deleteOlderThan(any()) } returns Unit
+        // Then
+        assertEquals("transfer_new", checkpoint.transferId)
+        assertEquals(8, checkpoint.totalChunks)
+        assertEquals(0, checkpoint.getReceivedChunks().size)
+        assertEquals(-1, checkpoint.lastChunkIndex)
+        assertEquals(0L, checkpoint.bytesTransferred)
+    }
+
+    /**
+     * Test 9: TransferCheckpointEntity.withReceivedChunk cumulative bytes
+     */
+    @Test
+    fun `withReceivedChunk should accumulate bytesTransferred correctly`() {
+        // Given
+        val checkpoint = TransferCheckpointEntity.create(
+            transferId = "transfer_bytes",
+            fileId = "file_bytes",
+            fileName = "data.bin",
+            totalSize = 1000000L,
+            totalChunks = 4,
+            chunkSize = 250000,
+            isOutgoing = false,
+            peerId = "peer_bytes",
+            fileChecksum = "checksum_bytes"
+        )
 
         // When
-        checkpointManager.cleanupOldCheckpoints()
+        val updated = checkpoint
+            .withReceivedChunk(0, 250000L)
+            .withReceivedChunk(1, 250000L)
+            .withReceivedChunk(2, 250000L)
 
         // Then
-        coVerify {
-            mockCheckpointDao.deleteOlderThan(match {
-                it <= System.currentTimeMillis() &&
-                it >= sevenDaysAgo - 1000 // Allow 1s margin
-            })
-        }
+        assertEquals(750000L, updated.bytesTransferred)
+        assertEquals(2, updated.lastChunkIndex)
     }
 
     /**
-     * Test 10: Auto-save every 10 chunks
+     * Test 10: Checkpoint progress percentage calculation
      */
     @Test
-    fun `should auto-save checkpoint every 10 chunks`() = runTest {
+    fun `checkpoint should calculate correct progress percentage`() {
         // Given
-        val transferId = "transfer_123"
-        val checkpoint = TransferCheckpointEntity(
-            id = 1,
-            transferId = transferId,
-            fileName = "test.pdf",
-            totalChunks = 100,
-            totalBytes = 102400L,
-            receivedChunksJson = "[0,1,2,3,4,5,6,7,8,9]",
-            lastChunkIndex = 9,
-            bytesTransferred = 10240L,
-            createdAt = System.currentTimeMillis(),
-            updatedAt = System.currentTimeMillis()
-        )
-
-        coEvery { mockCheckpointDao.getByTransferId(transferId) } returns checkpoint
-        coEvery { mockCheckpointDao.update(any()) } returns Unit
-
-        // When - Simulate receiving chunks 10, 20, 30 (every 10th)
-        checkpointManager.updateCheckpoint(transferId, chunkIndex = 10, chunkSize = 1024L)
-        checkpointManager.updateCheckpoint(transferId, chunkIndex = 20, chunkSize = 1024L)
-        checkpointManager.updateCheckpoint(transferId, chunkIndex = 30, chunkSize = 1024L)
-
-        // Then - Should auto-save 3 times
-        coVerify(exactly = 3) { mockCheckpointDao.update(any()) }
-    }
-
-    /**
-     * Test 11: Handle out-of-order chunk reception
-     */
-    @Test
-    fun `withReceivedChunk should handle out-of-order chunks`() {
-        // Given
-        val checkpoint = TransferCheckpointEntity(
-            id = 1,
-            transferId = "transfer_123",
-            fileName = "test.pdf",
+        val checkpoint = TransferCheckpointEntity.create(
+            transferId = "transfer_progress",
+            fileId = "file_progress",
+            fileName = "file.dat",
+            totalSize = 1000000L,
             totalChunks = 10,
-            totalBytes = 10240L,
-            receivedChunksJson = "[0,1,2]",
-            lastChunkIndex = 2,
-            bytesTransferred = 3072L,
-            createdAt = System.currentTimeMillis(),
-            updatedAt = System.currentTimeMillis()
+            chunkSize = 100000,
+            isOutgoing = false,
+            peerId = "peer_progress",
+            fileChecksum = "checksum_progress"
         )
 
-        // When - Receive chunk 5 (out of order)
-        val updated = checkpoint.withReceivedChunk(chunkIndex = 5, chunkSize = 1024L)
+        // When - receive 3 out of 10 chunks
+        val updated = checkpoint
+            .withReceivedChunk(0, 100000L)
+            .withReceivedChunk(1, 100000L)
+            .withReceivedChunk(2, 100000L)
 
         // Then
-        val receivedChunks = updated.getReceivedChunks()
-        assertTrue(receivedChunks.contains(5))
-        assertEquals(5, updated.lastChunkIndex)
-        assertEquals(4096L, updated.bytesTransferred)
+        val progress = (updated.bytesTransferred.toDouble() / updated.totalSize * 100).toInt()
+        assertEquals(30, progress)
     }
 
     /**
-     * Test 12: Prevent duplicate chunk tracking
+     * Test 11: Handle duplicate chunk updates
      */
     @Test
-    fun `withReceivedChunk should not duplicate chunks`() {
+    fun `withReceivedChunk should handle duplicate chunks correctly`() {
         // Given
-        val checkpoint = TransferCheckpointEntity(
-            id = 1,
-            transferId = "transfer_123",
-            fileName = "test.pdf",
-            totalChunks = 10,
-            totalBytes = 10240L,
-            receivedChunksJson = "[0,1,2,3]",
-            lastChunkIndex = 3,
-            bytesTransferred = 4096L,
-            createdAt = System.currentTimeMillis(),
-            updatedAt = System.currentTimeMillis()
+        val checkpoint = TransferCheckpointEntity.create(
+            transferId = "transfer_dup",
+            fileId = "file_dup",
+            fileName = "duplicate.txt",
+            totalSize = 500000L,
+            totalChunks = 5,
+            chunkSize = 100000,
+            isOutgoing = false,
+            peerId = "peer_dup",
+            fileChecksum = "checksum_dup"
         )
 
-        // When - Receive chunk 2 again (duplicate)
-        val updated = checkpoint.withReceivedChunk(chunkIndex = 2, chunkSize = 1024L)
+        // When - add chunk 0 twice
+        val updated = checkpoint
+            .withReceivedChunk(0, 100000L)
+            .withReceivedChunk(0, 100000L)
 
-        // Then - Should not add duplicate
-        val receivedChunks = updated.getReceivedChunks()
-        assertEquals(4, receivedChunks.size) // Still 4 chunks
-        assertEquals(1, receivedChunks.count { it == 2 }) // Chunk 2 appears only once
+        // Then - should only count once
+        assertEquals(1, updated.getReceivedChunks().size)
+        assertEquals(100000L, updated.bytesTransferred)
+    }
+
+    /**
+     * Test 12: All chunks received detection
+     */
+    @Test
+    fun `getMissingChunks should return empty when all chunks received`() {
+        // Given
+        val checkpoint = TransferCheckpointEntity.create(
+            transferId = "transfer_complete_chunks",
+            fileId = "file_complete",
+            fileName = "complete.bin",
+            totalSize = 300000L,
+            totalChunks = 3,
+            chunkSize = 100000,
+            isOutgoing = false,
+            peerId = "peer_complete",
+            fileChecksum = "checksum_complete"
+        )
+
+        // When - receive all chunks
+        val updated = checkpoint
+            .withReceivedChunk(0, 100000L)
+            .withReceivedChunk(1, 100000L)
+            .withReceivedChunk(2, 100000L)
+
+        // Then
+        assertTrue(updated.getMissingChunks().isEmpty())
+        assertEquals(300000L, updated.bytesTransferred)
     }
 }

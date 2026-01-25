@@ -181,9 +181,13 @@ data class TransferCheckpointEntity(
      */
     fun withReceivedChunk(chunkIndex: Int, chunkSize: Long): TransferCheckpointEntity {
         val receivedChunks = getReceivedChunks().toMutableSet()
-        receivedChunks.add(chunkIndex)
+        val isNewChunk = receivedChunks.add(chunkIndex)  // add() returns true if element was added
 
-        val newBytesTransferred = bytesTransferred + chunkSize
+        val newBytesTransferred = if (isNewChunk) {
+            bytesTransferred + chunkSize
+        } else {
+            bytesTransferred  // Duplicate chunk, don't add bytes
+        }
 
         return copy(
             receivedChunksJson = serializeReceivedChunks(receivedChunks),
