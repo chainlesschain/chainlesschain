@@ -32,6 +32,8 @@ import com.chainlesschain.android.feature.project.repository.ProjectRepository
 import com.chainlesschain.android.feature.project.util.ContextManager
 import com.chainlesschain.android.feature.project.util.ContextResult
 import com.chainlesschain.android.core.common.fold
+import com.chainlesschain.android.feature.filebrowser.data.repository.ExternalFileRepository
+import com.chainlesschain.android.feature.filebrowser.data.repository.FileImportRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -72,12 +74,10 @@ class ProjectViewModel @Inject constructor(
     private val projectRepository: ProjectRepository,
     private val projectChatRepository: ProjectChatRepository,
     private val conversationRepository: ConversationRepository,
-    private val llmAdapterFactory: LLMAdapterFactory
-    // externalFileRepository and fileImportRepository: Temporarily removed - depend on feature-file-browser
+    private val llmAdapterFactory: LLMAdapterFactory,
+    private val externalFileRepository: ExternalFileRepository,
+    private val fileImportRepository: FileImportRepository
 ) : ViewModel() {
-    // Temporary placeholders for file browser functionality
-    private val externalFileRepository: Any? = null
-    private val fileImportRepository: Any? = null
 
     companion object {
         private const val TAG = "ProjectViewModel"
@@ -1079,16 +1079,18 @@ class ProjectViewModel @Inject constructor(
         val mentionedFiles = _mentionedFiles.value
         if (mentionedFiles.isEmpty()) return ""
 
-        val filesContent = mentionedFiles.joinToString("\n\n") { file ->
+        val fileContents = mutableListOf<String>()
+        for (file in mentionedFiles) {
             val content = loadFileContent(file)
-            """
+            fileContents.add("""
             |--- @${file.name} ---
             |路径: ${file.path}
             |```${file.extension ?: ""}
             |$content
             |```
-            """.trimMargin()
+            """.trimMargin())
         }
+        val filesContent = fileContents.joinToString("\n\n")
 
         return """
             |
@@ -1107,7 +1109,7 @@ class ProjectViewModel @Inject constructor(
     private suspend fun loadFileContent(file: ProjectFileEntity): String = withContext(Dispatchers.IO) {
         when {
             // If content is directly available, use it
-            file.content != null -> file.content
+            file.content != null -> file.content ?: "(文件内容为空)"
 
             // If path looks like a URI (LINK mode - starts with content:// or file://)
             file.path.startsWith("content://") || file.path.startsWith("file://") -> {

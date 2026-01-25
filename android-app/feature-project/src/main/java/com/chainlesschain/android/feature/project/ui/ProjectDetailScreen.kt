@@ -126,6 +126,10 @@ fun ProjectDetailScreen(
     val isFileMentionVisible by viewModel.isFileMentionVisible.collectAsState()
     val fileMentionSearchQuery by viewModel.fileMentionSearchQuery.collectAsState()
 
+    // External file states (for AI chat)
+    val externalFiles by viewModel.availableExternalFiles.collectAsState()
+    val externalFileSearchQuery by viewModel.externalFileSearchQuery.collectAsState()
+
     // Thinking and task plan states
     val currentThinkingStage by viewModel.currentThinkingStage.collectAsState()
     val currentTaskPlan by viewModel.currentTaskPlan.collectAsState()
@@ -403,14 +407,22 @@ fun ProjectDetailScreen(
                             contextMode = contextMode,
                             onContextModeChange = { viewModel.setContextMode(it) },
                             selectedFileName = selectedFileForContext?.name,
-                            // File mention props
+                            // File mention props - Project Files
                             projectFiles = projectFiles,
                             isFileMentionVisible = isFileMentionVisible,
                             fileMentionSearchQuery = fileMentionSearchQuery,
                             onFileMentionSearchChange = { viewModel.updateFileMentionSearchQuery(it) },
                             onFileSelected = { viewModel.addFileMention(it) },
-                            onShowFileMention = { viewModel.showFileMentionPopup() },
+                            onShowFileMention = {
+                                viewModel.showFileMentionPopup()
+                                viewModel.loadAvailableExternalFiles() // Load external files when popup opens
+                            },
                             onHideFileMention = { viewModel.hideFileMentionPopup() },
+                            // File mention props - External Files
+                            externalFiles = externalFiles,
+                            externalFileSearchQuery = externalFileSearchQuery,
+                            onExternalFileSearchChange = { viewModel.updateExternalFileSearchQuery(it) },
+                            onExternalFileSelected = { viewModel.importExternalFileForChat(it) },
                             // Thinking stage props
                             currentThinkingStage = currentThinkingStage,
                             // Task plan props

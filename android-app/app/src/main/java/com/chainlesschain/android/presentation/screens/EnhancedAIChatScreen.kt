@@ -23,6 +23,8 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import com.chainlesschain.android.feature.project.ui.AttachedFileData
+import com.chainlesschain.android.feature.project.ui.FilePickerDialog
 import kotlinx.coroutines.launch
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -40,6 +42,8 @@ fun EnhancedAIChatScreen(
 ) {
     var inputText by remember { mutableStateOf("") }
     var isTyping by remember { mutableStateOf(false) }
+    var showFilePicker by remember { mutableStateOf(false) }
+    var pendingAttachments by remember { mutableStateOf<List<AttachedFileData>>(emptyList()) }
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -105,52 +109,70 @@ fun EnhancedAIChatScreen(
             )
         },
         bottomBar = {
-            ChatInputBar(
-                inputText = inputText,
-                onInputChange = { inputText = it },
-                onSend = {
-                    if (inputText.isNotBlank()) {
-                        // 添加用户消息
-                        messages.add(
-                            ChatMessage(
-                                id = System.currentTimeMillis().toString(),
-                                content = inputText,
-                                isUser = true,
-                                timestamp = LocalDateTime.now()
-                            )
-                        )
+            Column {
+                // 附件预览区
+                if (pendingAttachments.isNotEmpty()) {
+                    AttachmentPreviewBar(
+                        attachments = pendingAttachments,
+                        onRemoveAttachment = { fileId ->
+                            pendingAttachments = pendingAttachments.filter { it.id != fileId }
+                        }
+                    )
+                }
 
-                        // 清空输入
-                        inputText = ""
-                        keyboardController?.hide()
-
-                        // 模拟AI响应
-                        isTyping = true
-                        coroutineScope.launch {
-                            kotlinx.coroutines.delay(1500)
+                // 输入栏
+                ChatInputBar(
+                    inputText = inputText,
+                    onInputChange = { inputText = it },
+                    onAttachFile = {
+                        showFilePicker = true
+                    },
+                    onSend = {
+                        if (inputText.isNotBlank() || pendingAttachments.isNotEmpty()) {
+                            // 添加用户消息（包含附件）
                             messages.add(
                                 ChatMessage(
                                     id = System.currentTimeMillis().toString(),
-                                    content = "这是AI的回复...",
-                                    isUser = false,
-                                    timestamp = LocalDateTime.now()
+                                    content = inputText.ifBlank { "[附件]" },
+                                    isUser = true,
+                                    timestamp = LocalDateTime.now(),
+                                    attachedFiles = pendingAttachments.toList()
                                 )
                             )
-                            isTyping = false
+
+                            // 清空输入和附件
+                            inputText = ""
+                            pendingAttachments = emptyList()
+                            keyboardController?.hide()
+
+                            // 模拟AI响应
+                            isTyping = true
+                            coroutineScope.launch {
+                                kotlinx.coroutines.delay(1500)
+                                messages.add(
+                                    ChatMessage(
+                                        id = System.currentTimeMillis().toString(),
+                                        content = "我已经收到了你的文件，正在分析...",
+                                        isUser = false,
+                                        timestamp = LocalDateTime.now()
+                                    )
+                                )
+                                isTyping = false
+
+                                // 滚动到底部
+                                coroutineScope.launch {
+                                    listState.animateScrollToItem(messages.size - 1)
+                                }
+                            }
 
                             // 滚动到底部
                             coroutineScope.launch {
                                 listState.animateScrollToItem(messages.size - 1)
                             }
                         }
-
-                        // 滚动到底部
-                        coroutineScope.launch {
-                            listState.animateScrollToItem(messages.size - 1)
-                        }
                     }
-                }
-            )
+                )
+            }
         }
     ) { paddingValues ->
         Box(
@@ -186,6 +208,16 @@ fun EnhancedAIChatScreen(
             )
         }
     }
+
+    // 文件选择对话框
+    if (showFilePicker) {
+        FilePickerDialog(
+            onDismiss = { showFilePicker = false },
+            onFilesSelected = { selectedFiles ->
+                pendingAttachments = pendingAttachments + selectedFiles
+            }
+        )
+    }
 }
 
 /**
@@ -197,8 +229,25 @@ data class ChatMessage(
     val isUser: Boolean,
     val timestamp: LocalDateTime,
     val codeBlock: String? = null,
-    val imageUrl: String? = null
+    val imageUrl: String? = null,
+    val attachedFiles: List<AttachedFileData> = emptyList()
 )
+
+/**
+ * AttachedFileData扩展函数 - 获取可读的文件大小
+ */
+fun AttachedFileData.getReadableSize(): String {
+    val units = arrayOf("B", "KB", "MB", "GB")
+    var currentSize = size.toDouble()
+    var unitIndex = 0
+
+    while (currentSize >= 1024 && unitIndex < units.size - 1) {
+        currentSize /= 1024
+        unitIndex++
+    }
+
+    return "%.2f %s".format(currentSize, units[unitIndex])
+}
 
 /**
  * 聊天消息气泡
@@ -267,6 +316,20 @@ fun ChatMessageBubble(message: ChatMessage) {
                     message.codeBlock?.let { code ->
                         CodeBlock(code)
                     }
+
+                    // TODO: 附件 - AttachmentBubble needs to be implemented
+                    // if (message.attachedFiles.isNotEmpty()) {
+                    //     Column(
+                    //         verticalArrangement = Arrangement.spacedBy(4.dp)
+                    //     ) {
+                    //         message.attachedFiles.forEach { file ->
+                    //             AttachmentBubble(
+                    //                 file = file,
+                    //                 isUserMessage = message.isUser
+                    //             )
+                    //         }
+                    //     }
+                    // }
                 }
             }
 
@@ -361,7 +424,8 @@ fun CodeBlock(code: String) {
 fun ChatInputBar(
     inputText: String,
     onInputChange: (String) -> Unit,
-    onSend: () -> Unit
+    onSend: () -> Unit,
+    onAttachFile: () -> Unit = {}
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -376,7 +440,7 @@ fun ChatInputBar(
         ) {
             // 附件按钮
             IconButton(
-                onClick = { /* TODO: 添加附件 */ },
+                onClick = onAttachFile,
                 modifier = Modifier.size(40.dp)
             ) {
                 Icon(Icons.Default.AttachFile, contentDescription = "附件")
@@ -553,6 +617,250 @@ private fun QuickActionButton(
             containerColor = MaterialTheme.colorScheme.secondaryContainer
         ) {
             Icon(icon, contentDescription = text)
+        }
+    }
+}
+
+/**
+ * 附件预览栏 - 显示待发送的附件
+ */
+@Composable
+fun AttachmentPreviewBar(
+    attachments: List<AttachedFileData>,
+    onRemoveAttachment: (String) -> Unit
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        tonalElevation = 2.dp,
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "附件 (${attachments.size})",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // 附件列表 - 水平滚动
+            androidx.compose.foundation.lazy.LazyRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(attachments) { file ->
+                    AttachmentPreviewItem(
+                        file = file,
+                        onRemove = { onRemoveAttachment(file.id) }
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * 附件预览项 - 单个附件卡片（带删除按钮）
+ */
+@Composable
+fun AttachmentPreviewItem(
+    file: AttachedFileData,
+    onRemove: () -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .width(120.dp)
+            .height(100.dp),
+        shape = RoundedCornerShape(8.dp),
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 1.dp
+    ) {
+        Box {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                // 文件图标
+                Icon(
+                    imageVector = when (file.category.uppercase()) {
+                        "IMAGE" -> Icons.Default.Image
+                        "VIDEO" -> Icons.Default.VideoLibrary
+                        "AUDIO" -> Icons.Default.AudioFile
+                        "DOCUMENT" -> Icons.Default.Description
+                        else -> Icons.Default.InsertDriveFile
+                    },
+                    contentDescription = file.category,
+                    modifier = Modifier.size(32.dp),
+                    tint = MaterialTheme.colorScheme.primary
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                // 文件名（截断）
+                Text(
+                    text = file.name,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                // 文件大小
+                Text(
+                    text = file.getReadableSize(),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            // 删除按钮
+            IconButton(
+                onClick = onRemove,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .size(24.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "移除",
+                    modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.error
+                )
+            }
+        }
+    }
+}
+
+/**
+ * 附件气泡 - 在消息中显示附件
+ */
+@Composable
+fun AttachmentBubble(
+    file: AttachedFileData,
+    isUserMessage: Boolean
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
+        color = if (isUserMessage) {
+            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+        } else {
+            MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
+        },
+        tonalElevation = 0.5.dp
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // 文件图标
+            Surface(
+                modifier = Modifier.size(40.dp),
+                shape = RoundedCornerShape(6.dp),
+                color = if (isUserMessage) {
+                    MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.15f)
+                } else {
+                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                }
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = when (file.category.uppercase()) {
+                            "IMAGE" -> Icons.Default.Image
+                            "VIDEO" -> Icons.Default.VideoLibrary
+                            "AUDIO" -> Icons.Default.AudioFile
+                            "DOCUMENT" -> Icons.Default.Description
+                            else -> Icons.Default.InsertDriveFile
+                        },
+                        contentDescription = file.category,
+                        modifier = Modifier.size(24.dp),
+                        tint = if (isUserMessage) {
+                            MaterialTheme.colorScheme.onPrimary
+                        } else {
+                            MaterialTheme.colorScheme.primary
+                        }
+                    )
+                }
+            }
+
+            // 文件信息
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                Text(
+                    text = file.name,
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontWeight = FontWeight.Medium
+                    ),
+                    color = if (isUserMessage) {
+                        MaterialTheme.colorScheme.onPrimary
+                    } else {
+                        MaterialTheme.colorScheme.onSurface
+                    },
+                    maxLines = 1
+                )
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = file.getReadableSize(),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (isUserMessage) {
+                            MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f)
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        }
+                    )
+
+                    Text(
+                        text = "•",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (isUserMessage) {
+                            MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.5f)
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                        }
+                    )
+
+                    Text(
+                        text = file.category,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (isUserMessage) {
+                            MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f)
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        }
+                    )
+                }
+            }
+
+            // 下载/查看图标
+            Icon(
+                imageVector = Icons.Default.FileDownload,
+                contentDescription = "下载",
+                modifier = Modifier.size(20.dp),
+                tint = if (isUserMessage) {
+                    MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f)
+                } else {
+                    MaterialTheme.colorScheme.primary
+                }
+            )
         }
     }
 }
