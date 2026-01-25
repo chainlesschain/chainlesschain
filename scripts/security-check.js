@@ -61,6 +61,9 @@ const ALLOWED_FILES = [
   "generate_keystore.bat",
   "generate_keystore.sh",
   "generate_test_keystore.bat",
+  // iOS 文档（包含BIP39测试向量和示例密钥）
+  "WALLETCORE_INTEGRATION.md",
+  "TESTING_GUIDE.md",
 ];
 
 function checkFileForSecrets(filePath) {
