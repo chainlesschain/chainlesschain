@@ -77,9 +77,21 @@ fun ProjectScreen(
     // 获取项目列表状态
     val projectListState by projectViewModel.projectListState.collectAsState()
 
-    // 从ViewModel获取真实项目数据
+    // 从ViewModel获取真实项目数据并转换为ProjectWithTasks
     val projects = when (val state = projectListState) {
-        is ProjectListState.Success -> state.projects
+        is ProjectListState.Success -> state.projects.map { projectWithStats ->
+            // 转换ProjectWithStats到ProjectWithTasks
+            ProjectWithTasks(
+                project = projectWithStats.project,
+                totalTasks = projectWithStats.statistics.totalFiles,
+                completedTasks = (projectWithStats.statistics.totalFiles * projectWithStats.project.progress).toInt(),
+                pendingTasks = projectWithStats.statistics.totalFiles - (projectWithStats.statistics.totalFiles * projectWithStats.project.progress).toInt(),
+                lastUpdated = java.time.LocalDateTime.ofInstant(
+                    java.time.Instant.ofEpochMilli(projectWithStats.project.updatedAt),
+                    java.time.ZoneId.systemDefault()
+                )
+            )
+        }
         is ProjectListState.Loading -> emptyList()
         is ProjectListState.Error -> emptyList()
     }
