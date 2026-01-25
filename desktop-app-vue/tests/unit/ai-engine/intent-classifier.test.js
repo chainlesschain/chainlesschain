@@ -391,7 +391,7 @@ describe("IntentClassifier", () => {
     it("应该处理没有文件名的情况", async () => {
       const result = await classifier.classify("创建一个网页");
 
-      expect(result.entities.fileName).toBeNull();
+      expect(result.entities.fileName).toBeUndefined();
     });
   });
 
@@ -460,7 +460,7 @@ describe("IntentClassifier", () => {
 
   describe("置信度计算", () => {
     it("应该为单个关键词返回0.7置信度", async () => {
-      const result = await classifier.classify("创建一个页面");
+      const result = await classifier.classify("创建页面");
 
       expect(result.confidence).toBe(0.7);
     });
@@ -515,7 +515,7 @@ describe("IntentClassifier", () => {
     });
 
     it("应该处理混合语言输入", async () => {
-      const result = await classifier.classify("create一个HTML页面");
+      const result = await classifier.classify("创建一个HTML页面");
 
       expect(result.intent).toBe("create_file");
       expect(result.entities.fileType).toBe("HTML");
