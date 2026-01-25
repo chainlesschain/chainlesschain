@@ -169,28 +169,40 @@ test.describe('项目详情页 - AI创建项目模式测试', () => {
         closeButton = await window.$('button:has-text("返回项目列表")');
       }
 
-      if (closeButton) {
-        const buttonText = await closeButton.textContent();
-        const buttonTestId = await closeButton.getAttribute('data-testid');
-        console.log('[Test] 找到按钮 - 文本:', buttonText?.trim(), 'testid:', buttonTestId);
-        console.log('[Test] 点击按钮返回项目列表');
-        await closeButton.click();
-        await window.waitForTimeout(1000);
+      expect(closeButton).toBeTruthy();
 
-        // 验证是否返回到项目列表
-        const hash = await window.evaluate(() => window.location.hash);
-        console.log('[Test] 当前URL hash:', hash);
+      const buttonText = await closeButton.textContent();
+      const buttonTestId = await closeButton.getAttribute('data-testid');
+      console.log('[Test] 找到按钮 - 文本:', buttonText?.trim(), 'testid:', buttonTestId);
+      console.log('[Test] 点击按钮返回项目列表');
+      await closeButton.click();
+      await window.waitForTimeout(500);
 
-        expect(hash).toContain('projects');
-        expect(hash).not.toContain('ai-creating');
-
-        await takeScreenshot(window, 'ai-creating-cancelled');
-
-        console.log('[Test] ✅ 取消AI创建流程测试通过');
+      // 检查是否出现未保存更改的确认对话框
+      console.log('[Test] 检查是否有未保存更改的确认对话框');
+      const confirmModal = await window.$('.ant-modal:has-text("有未保存的更改")');
+      if (confirmModal) {
+        console.log('[Test] 检测到确认对话框，点击"离开"按钮');
+        const okButton = await window.$('.ant-modal .ant-btn-dangerous');
+        if (okButton) {
+          await okButton.click();
+          await window.waitForTimeout(1000);
+        }
       } else {
-        console.log('[Test] ⚠️ 未找到取消按钮');
-        await takeScreenshot(window, 'cancel-button-not-found');
+        console.log('[Test] 无确认对话框，直接返回');
+        await window.waitForTimeout(500);
       }
+
+      // 验证是否返回到项目列表
+      const hash = await window.evaluate(() => window.location.hash);
+      console.log('[Test] 当前URL hash:', hash);
+
+      expect(hash).toContain('projects');
+      expect(hash).not.toContain('ai-creating');
+
+      await takeScreenshot(window, 'ai-creating-cancelled');
+
+      console.log('[Test] ✅ 取消AI创建流程测试通过');
     } finally {
       await closeElectronApp(app);
     }
