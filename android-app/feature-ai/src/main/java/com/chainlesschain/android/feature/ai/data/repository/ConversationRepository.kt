@@ -5,11 +5,14 @@ import com.chainlesschain.android.core.database.dao.ConversationDao
 import com.chainlesschain.android.core.database.entity.ConversationEntity
 import com.chainlesschain.android.core.database.entity.MessageEntity
 import com.chainlesschain.android.core.security.SecurePreferences
+import com.chainlesschain.android.feature.ai.data.config.LLMConfigManager
 import com.chainlesschain.android.feature.ai.data.llm.LLMAdapter
 import com.chainlesschain.android.feature.ai.di.LLMAdapterFactory
 import com.chainlesschain.android.feature.ai.domain.model.*
+import com.chainlesschain.android.feature.ai.domain.usage.UsageTracker
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -23,8 +26,14 @@ import javax.inject.Singleton
 class ConversationRepository @Inject constructor(
     private val conversationDao: ConversationDao,
     private val llmAdapterFactory: LLMAdapterFactory,
-    private val securePreferences: SecurePreferences
+    private val securePreferences: SecurePreferences,
+    private val configManager: LLMConfigManager,
+    private val usageTracker: UsageTracker
 ) {
+
+    // 用于追踪当前对话的token使用量
+    private var currentInputTokens = 0
+    private var currentOutputTokens = 0
 
     /**
      * 获取所有对话会话
