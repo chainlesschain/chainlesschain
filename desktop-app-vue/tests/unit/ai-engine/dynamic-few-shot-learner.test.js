@@ -831,9 +831,9 @@ describe("DynamicFewShotLearner", () => {
 
       await learner.getUserExamples('user123', null, -1);
 
-      // 负数会被 || 运算符替换为默认值
+      // 负数不是falsy值，会被原样传递给SQL
       const params = mockDatabase.all.mock.calls[0][1];
-      expect(params[params.length - 1]).toBe(3);  // defaultExamples
+      expect(params[params.length - 1]).toBe(-1);
     });
   });
 
