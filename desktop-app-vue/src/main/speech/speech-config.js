@@ -35,12 +35,42 @@ const DEFAULT_CONFIG = {
     timeout: 60000, // 60秒超时
   },
 
-  // Whisper Local 配置 (Phase 2)
+  // Whisper Local 配置 (Phase 2 + v0.27.0 增强)
   whisperLocal: {
     serverUrl: process.env.WHISPER_LOCAL_URL || "http://localhost:8002", // 本地 Whisper 服务器
-    modelSize: "base", // tiny/base/small/medium/large
+    modelSize: "base", // tiny/base/small/medium/large/large-v2/large-v3
     device: "auto", // auto/cpu/cuda
     timeout: 120000, // 2分钟超时
+
+    // v0.27.0: whisper.cpp 增强配置
+    enableGPU: true, // 自动检测并使用 GPU
+    temperature: 0, // 0 = 更准确
+    initialPrompt: null, // 初始提示（可选）
+    maxFileSize: 50 * 1024 * 1024, // 50MB 文件限制
+    outputFormat: "json", // json | text | srt | vtt
+
+    // Docker 配置
+    docker: {
+      enabled: true, // 是否使用 Docker 容器
+      image: "chainlesschain/whisper-server:cpu", // Docker 镜像
+      containerName: "chainlesschain-whisper",
+      port: 8002,
+      autoStart: true, // 自动启动容器
+      gpuImage: "chainlesschain/whisper-server:cuda", // GPU 版本镜像
+    },
+
+    // 模型管理
+    models: {
+      downloadDir: process.env.WHISPER_MODEL_DIR || null, // 模型下载目录
+      autoDownload: true, // 自动下载缺失的模型
+      availableModels: [
+        { id: "tiny", size: "75MB", speed: "fastest", accuracy: "low" },
+        { id: "base", size: "142MB", speed: "fast", accuracy: "medium" },
+        { id: "small", size: "466MB", speed: "medium", accuracy: "good" },
+        { id: "medium", size: "1.5GB", speed: "slow", accuracy: "high" },
+        { id: "large-v3", size: "3.1GB", speed: "slowest", accuracy: "best" },
+      ],
+    },
   },
 
   // 音频处理配置

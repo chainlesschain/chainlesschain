@@ -60,6 +60,102 @@ const DEFAULT_CONFIG = {
   // 是否启用智能层（数据收集、用户画像、ML推荐、混合推荐）
   enableIntelligenceLayer: true,
 
+  // ===== 多模态视觉配置 (v0.27.0) =====
+  // 是否启用视觉理解
+  enableVision: true,
+
+  // 视觉配置
+  visionConfig: {
+    // 是否启用本地视觉模型
+    enableLocalVision: true,
+
+    // 本地视觉模型名称
+    localModel: 'llava:7b',
+
+    // 是否回退到云端
+    fallbackToCloud: true,
+
+    // 云端视觉提供商 (volcengine | openai)
+    cloudProvider: 'volcengine',
+
+    // 最大图片大小 (bytes)
+    maxImageSize: 5 * 1024 * 1024,
+
+    // 超时时间 (ms)
+    timeout: 180000,
+
+    // 是否缓存结果
+    cacheResults: true,
+
+    // 缓存最大时效 (ms)
+    cacheMaxAge: 3600000
+  },
+
+  // ===== BGE Reranker 配置 (v0.27.0) =====
+  // 是否启用 BGE Reranker
+  enableBGEReranker: true,
+
+  // BGE Reranker 配置
+  bgeRerankerConfig: {
+    // 是否启用
+    enabled: true,
+
+    // BGE 服务地址
+    serverUrl: 'http://localhost:8002/rerank',
+
+    // 模型名称
+    modelName: 'BAAI/bge-reranker-base',
+
+    // 批处理大小
+    batchSize: 32,
+
+    // 混合权重 (BGE 分数 + 向量相似度)
+    hybridWeights: {
+      bge: 0.6,
+      vector: 0.4
+    },
+
+    // 超时时间 (ms)
+    timeout: 30000,
+
+    // 最大重试次数
+    maxRetries: 2
+  },
+
+  // ===== Python 沙箱配置 (v0.27.0) =====
+  // 是否启用代码执行沙箱
+  enableSandbox: true,
+
+  // 沙箱配置
+  sandboxConfig: {
+    // 是否启用
+    enabled: true,
+
+    // Docker 镜像
+    dockerImage: 'chainlesschain/python-sandbox:latest',
+
+    // 执行超时 (ms)
+    timeout: 30000,
+
+    // 内存限制
+    memoryLimit: '512m',
+
+    // CPU 限制 (核心数)
+    cpuLimit: '1.0',
+
+    // 进程数限制
+    pidsLimit: 100,
+
+    // 禁用网络
+    networkDisabled: true,
+
+    // 只读文件系统
+    readOnlyRootfs: true,
+
+    // 最大输出大小 (bytes)
+    maxOutputSize: 1024 * 1024
+  },
+
   // 工具沙箱配置
   sandboxConfig: {
     timeout: 30000,           // 工具执行超时时间（毫秒）
@@ -357,6 +453,140 @@ const DEFAULT_CONFIG = {
 
     // 进行预测所需的最少样本数
     minSamplesForPrediction: 10
+  },
+
+  // ===== MemGPT 长期记忆配置 (v0.27.0) =====
+  // 是否启用 MemGPT 记忆系统
+  enableMemGPT: true,
+
+  // ===== 语音合成配置 (v0.27.0) =====
+  // 是否启用语音合成
+  enableTTS: true,
+
+  // TTS 配置
+  ttsConfig: {
+    // 默认提供商 (auto | edge | local)
+    defaultProvider: 'auto',
+
+    // 是否启用回退
+    fallbackEnabled: true,
+
+    // 是否优先离线 (true = 优先使用本地 Piper)
+    preferOffline: false,
+
+    // 是否启用缓存
+    cacheEnabled: true,
+
+    // Edge TTS 配置
+    edgeConfig: {
+      defaultVoice: 'zh-CN-XiaoxiaoNeural',
+      rate: '+0%',
+      volume: '+0%',
+      pitch: '+0Hz'
+    },
+
+    // 本地 TTS (Piper) 配置
+    localConfig: {
+      defaultModel: 'en_US-lessac-medium',
+      lengthScale: 1.0,
+      noiseScale: 0.667
+    }
+  },
+
+  // ===== 图像生成配置 (v0.27.0) =====
+  // 是否启用图像生成
+  enableImageGen: true,
+
+  // 图像生成配置
+  imageGenConfig: {
+    // 默认提供商 (auto | sd_local | dalle)
+    defaultProvider: 'auto',
+
+    // 是否启用回退
+    fallbackEnabled: true,
+
+    // 是否启用缓存
+    cacheEnabled: true,
+
+    // 缓存最大数量
+    cacheMaxSize: 100,
+
+    // Stable Diffusion 配置
+    sdConfig: {
+      baseUrl: 'http://127.0.0.1:7860',
+      timeout: 120000,
+      defaultModel: 'sd_xl_base_1.0',
+      defaultSampler: 'DPM++ 2M Karras',
+      defaultSteps: 25,
+      defaultWidth: 1024,
+      defaultHeight: 1024
+    },
+
+    // DALL-E 配置
+    dalleConfig: {
+      model: 'dall-e-3',
+      defaultSize: '1024x1024',
+      defaultQuality: 'standard',
+      defaultStyle: 'vivid',
+      timeout: 120000
+    }
+  },
+
+  // MemGPT 配置
+  memgptConfig: {
+    // 是否启用
+    enabled: true,
+
+    // 工作记忆 Token 限制
+    workingMemoryTokens: 4000,
+
+    // 归档搜索返回数量
+    archivalSearchTopK: 10,
+
+    // 自动归档阈值（召回记忆达到此数量时自动归档）
+    autoArchiveThreshold: 20,
+
+    // 重要性阈值（超过此值的记忆优先归档）
+    importanceThreshold: 0.7,
+
+    // 是否启用自动摘要
+    enableAutoSummarize: true,
+
+    // 自动摘要触发阈值（Token 数）
+    summarizeThreshold: 2000,
+
+    // 记忆搜索配置
+    searchConfig: {
+      // 默认搜索模式 (semantic | keyword | hybrid | temporal)
+      defaultMode: 'hybrid',
+
+      // 语义搜索权重
+      semanticWeight: 0.6,
+
+      // 关键词搜索权重
+      keywordWeight: 0.4,
+
+      // 最小相关度
+      minRelevance: 0.3,
+
+      // 最大结果数
+      maxResults: 20,
+
+      // 启用缓存
+      enableCaching: true,
+
+      // 缓存过期时间 (ms)
+      cacheTTL: 300000
+    },
+
+    // 记忆层次配置
+    hierarchyConfig: {
+      // 召回记忆最大容量
+      recallMemorySize: 100,
+
+      // 工作记忆最大 Token
+      workingMemoryMaxTokens: 4000
+    }
   }
 };
 
@@ -525,6 +755,64 @@ function mergeConfig(userConfig = {}) {
     historyMemoryConfig: {
       ...baseConfig.historyMemoryConfig,
       ...(userConfig.historyMemoryConfig || {})
+    },
+    // 视觉配置
+    visionConfig: {
+      ...baseConfig.visionConfig,
+      ...(userConfig.visionConfig || {})
+    },
+    // BGE Reranker 配置
+    bgeRerankerConfig: {
+      ...baseConfig.bgeRerankerConfig,
+      ...(userConfig.bgeRerankerConfig || {}),
+      hybridWeights: {
+        ...baseConfig.bgeRerankerConfig?.hybridWeights,
+        ...(userConfig.bgeRerankerConfig?.hybridWeights || {})
+      }
+    },
+    // 沙箱配置
+    sandboxConfig: {
+      ...baseConfig.sandboxConfig,
+      ...(userConfig.sandboxConfig || {})
+    },
+    // TTS 配置
+    ttsConfig: {
+      ...baseConfig.ttsConfig,
+      ...(userConfig.ttsConfig || {}),
+      edgeConfig: {
+        ...baseConfig.ttsConfig?.edgeConfig,
+        ...(userConfig.ttsConfig?.edgeConfig || {})
+      },
+      localConfig: {
+        ...baseConfig.ttsConfig?.localConfig,
+        ...(userConfig.ttsConfig?.localConfig || {})
+      }
+    },
+    // 图像生成配置
+    imageGenConfig: {
+      ...baseConfig.imageGenConfig,
+      ...(userConfig.imageGenConfig || {}),
+      sdConfig: {
+        ...baseConfig.imageGenConfig?.sdConfig,
+        ...(userConfig.imageGenConfig?.sdConfig || {})
+      },
+      dalleConfig: {
+        ...baseConfig.imageGenConfig?.dalleConfig,
+        ...(userConfig.imageGenConfig?.dalleConfig || {})
+      }
+    },
+    // MemGPT 配置
+    memgptConfig: {
+      ...baseConfig.memgptConfig,
+      ...(userConfig.memgptConfig || {}),
+      searchConfig: {
+        ...baseConfig.memgptConfig?.searchConfig,
+        ...(userConfig.memgptConfig?.searchConfig || {})
+      },
+      hierarchyConfig: {
+        ...baseConfig.memgptConfig?.hierarchyConfig,
+        ...(userConfig.memgptConfig?.hierarchyConfig || {})
+      }
     }
   };
 }

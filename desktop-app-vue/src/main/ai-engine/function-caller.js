@@ -33,6 +33,21 @@ const OfficeToolsHandler = require('./extended-tools-office');
 const DataScienceToolsHandler = require('./extended-tools-datascience');
 const ProjectToolsHandler = require('./extended-tools-project');
 
+// 新增：视觉工具 (v0.27.0)
+const { getVisionTools } = require('./extended-tools-vision');
+
+// 新增：沙箱工具 (v0.27.0)
+const { getSandboxTools } = require('./extended-tools-sandbox');
+
+// 新增：MemGPT 记忆工具 (v0.27.0)
+const { getMemGPTTools } = require('./extended-tools-memgpt');
+
+// 新增：图像生成工具 (v0.27.0)
+const { getImageGenTools } = require('./extended-tools-imagegen');
+
+// 新增：语音合成工具 (v0.27.0)
+const { getTTSTools } = require('./extended-tools-tts');
+
 class FunctionCaller {
   constructor(options = {}) {
     // 注册的工具字典
@@ -93,6 +108,76 @@ class FunctionCaller {
   setToolManager(toolManager) {
     this.toolManager = toolManager;
     logger.info('[Function Caller] ToolManager已设置');
+  }
+
+  /**
+   * 设置 VisionManager（用于视觉工具）
+   * @param {VisionManager} visionManager - Vision 管理器
+   */
+  setVisionManager(visionManager) {
+    try {
+      const visionTools = getVisionTools();
+      visionTools.setVisionManager(visionManager);
+      logger.info('[Function Caller] VisionManager已设置');
+    } catch (error) {
+      logger.error('[Function Caller] 设置VisionManager失败:', error.message);
+    }
+  }
+
+  /**
+   * 设置 PythonSandbox（用于代码执行工具）
+   * @param {PythonSandbox} pythonSandbox - Python 沙箱实例
+   */
+  setPythonSandbox(pythonSandbox) {
+    try {
+      const sandboxTools = getSandboxTools();
+      sandboxTools.setPythonSandbox(pythonSandbox);
+      logger.info('[Function Caller] PythonSandbox已设置');
+    } catch (error) {
+      logger.error('[Function Caller] 设置PythonSandbox失败:', error.message);
+    }
+  }
+
+  /**
+   * 设置 MemGPTCore（用于长期记忆工具）
+   * @param {MemGPTCore} memgptCore - MemGPT 核心实例
+   */
+  setMemGPTCore(memgptCore) {
+    try {
+      const memgptTools = getMemGPTTools();
+      memgptTools.setMemGPTCore(memgptCore);
+      logger.info('[Function Caller] MemGPTCore已设置');
+    } catch (error) {
+      logger.error('[Function Caller] 设置MemGPTCore失败:', error.message);
+    }
+  }
+
+  /**
+   * 设置 ImageGenManager（用于图像生成工具）
+   * @param {ImageGenManager} imageGenManager - 图像生成管理器实例
+   */
+  setImageGenManager(imageGenManager) {
+    try {
+      const imageGenTools = getImageGenTools();
+      imageGenTools.setImageGenManager(imageGenManager);
+      logger.info('[Function Caller] ImageGenManager已设置');
+    } catch (error) {
+      logger.error('[Function Caller] 设置ImageGenManager失败:', error.message);
+    }
+  }
+
+  /**
+   * 设置 TTSManager（用于语音合成工具）
+   * @param {TTSManager} ttsManager - 语音合成管理器实例
+   */
+  setTTSManager(ttsManager) {
+    try {
+      const ttsTools = getTTSTools();
+      ttsTools.setTTSManager(ttsManager);
+      logger.info('[Function Caller] TTSManager已设置');
+    } catch (error) {
+      logger.error('[Function Caller] 设置TTSManager失败:', error.message);
+    }
   }
 
   /**
@@ -634,7 +719,52 @@ function initializeInteractions() {
       logger.error('[FunctionCaller] 项目初始化工具注册失败:', error.message);
     }
 
-    logger.info('[FunctionCaller] 所有工具注册完成（包括16个新增工具）');
+    // 注册视觉工具（v0.27.0）
+    try {
+      const visionTools = getVisionTools();
+      visionTools.register(this);
+      logger.info('[FunctionCaller] ✓ 视觉工具已注册（6个工具）');
+    } catch (error) {
+      logger.error('[FunctionCaller] 视觉工具注册失败:', error.message);
+    }
+
+    // 注册沙箱工具（v0.27.0）
+    try {
+      const sandboxTools = getSandboxTools();
+      sandboxTools.register(this);
+      logger.info('[FunctionCaller] ✓ 沙箱工具已注册（4个工具）');
+    } catch (error) {
+      logger.error('[FunctionCaller] 沙箱工具注册失败:', error.message);
+    }
+
+    // 注册 MemGPT 记忆工具（v0.27.0）
+    try {
+      const memgptTools = getMemGPTTools();
+      memgptTools.register(this);
+      logger.info('[FunctionCaller] ✓ MemGPT记忆工具已注册（8个工具）');
+    } catch (error) {
+      logger.error('[FunctionCaller] MemGPT记忆工具注册失败:', error.message);
+    }
+
+    // 注册图像生成工具（v0.27.0）
+    try {
+      const imageGenTools = getImageGenTools();
+      imageGenTools.register(this);
+      logger.info('[FunctionCaller] ✓ 图像生成工具已注册（4个工具）');
+    } catch (error) {
+      logger.error('[FunctionCaller] 图像生成工具注册失败:', error.message);
+    }
+
+    // 注册语音合成工具（v0.27.0）
+    try {
+      const ttsTools = getTTSTools();
+      ttsTools.register(this);
+      logger.info('[FunctionCaller] ✓ 语音合成工具已注册（3个工具）');
+    } catch (error) {
+      logger.error('[FunctionCaller] 语音合成工具注册失败:', error.message);
+    }
+
+    logger.info('[FunctionCaller] 所有工具注册完成（包括26个新增工具）');
   }
 
   /**
