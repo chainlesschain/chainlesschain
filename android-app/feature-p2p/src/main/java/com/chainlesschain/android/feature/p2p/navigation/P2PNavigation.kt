@@ -303,35 +303,7 @@ fun NavGraphBuilder.p2pGraph(
             )
         }
 
-        // 通话历史记录
-        composable(route = CALL_HISTORY_ROUTE) {
-            com.chainlesschain.android.feature.p2p.ui.call.CallHistoryScreen(
-                onNavigateBack = {
-                    navController.popBackStack()
-                },
-                onCallHistoryClick = { callHistory ->
-                    // 导航到联系人详情或发起重拨
-                }
-            )
-        }
-
-        // 指定联系人的通话历史
-        composable(
-            route = CALL_HISTORY_WITH_PEER_ROUTE,
-            arguments = listOf(
-                navArgument("peerDid") { type = NavType.StringType }
-            )
-        ) { backStackEntry ->
-            val peerDid = backStackEntry.arguments?.getString("peerDid") ?: ""
-            com.chainlesschain.android.feature.p2p.ui.call.CallHistoryScreen(
-                onNavigateBack = {
-                    navController.popBackStack()
-                },
-                onCallHistoryClick = { callHistory ->
-                    // 导航到联系人详情或发起重拨
-                }
-            )
-        }
+        // REMOVED: Call history routes - call feature has been disabled
     }
 }
 
