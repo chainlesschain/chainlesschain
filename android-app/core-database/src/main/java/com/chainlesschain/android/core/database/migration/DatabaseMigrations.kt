@@ -37,7 +37,8 @@ object DatabaseMigrations {
             MIGRATION_13_14,
             MIGRATION_14_15,
             MIGRATION_15_16,
-            MIGRATION_16_17
+            MIGRATION_16_17,
+            MIGRATION_17_18
         )
     }
 
@@ -895,6 +896,48 @@ object DatabaseMigrations {
             db.execSQL("CREATE INDEX IF NOT EXISTS `index_call_history_media_type` ON `call_history` (`media_type`)")
 
             Log.i(TAG, "Migration 16 to 17 completed successfully")
+        }
+    }
+
+    /**
+     * 迁移 17 -> 18
+     *
+     * 添加AI内容审核队列表
+     */
+    val MIGRATION_17_18 = object : Migration(17, 18) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            Log.i(TAG, "Migrating database from version 17 to 18")
+
+            // 创建 moderation_queue 表
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS `moderation_queue` (
+                    `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    `content_type` TEXT NOT NULL,
+                    `content_id` TEXT NOT NULL,
+                    `content_text` TEXT NOT NULL,
+                    `author_did` TEXT NOT NULL,
+                    `author_name` TEXT,
+                    `status` TEXT NOT NULL,
+                    `ai_result_json` TEXT NOT NULL,
+                    `human_decision` TEXT,
+                    `human_note` TEXT,
+                    `reviewer_did` TEXT,
+                    `appeal_status` TEXT NOT NULL,
+                    `appeal_text` TEXT,
+                    `appeal_at` INTEGER,
+                    `appeal_result` TEXT,
+                    `created_at` INTEGER NOT NULL,
+                    `reviewed_at` INTEGER
+                )
+            """.trimIndent())
+
+            // 创建 moderation_queue 索引
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_moderation_queue_status` ON `moderation_queue` (`status`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_moderation_queue_created_at` ON `moderation_queue` (`created_at`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_moderation_queue_content_type` ON `moderation_queue` (`content_type`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_moderation_queue_author_did` ON `moderation_queue` (`author_did`)")
+
+            Log.i(TAG, "Migration 17 to 18 completed successfully")
         }
     }
 
