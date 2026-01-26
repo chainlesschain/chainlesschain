@@ -16,9 +16,13 @@ struct HDAddressListView: View {
 
     @StateObject private var hdDerivation = HDWalletDerivation.shared
     @State private var showDeriveSheet = false
+    @State private var showPasswordInput = false
     @State private var isLoading = false
     @State private var errorMessage: String?
     @State private var showError = false
+    @State private var pendingDeriveCount: Int = 5
+    @State private var editingAddress: HDDerivedAddress?
+    @State private var deleteAddress: HDDerivedAddress?
 
     var derivedAddresses: [HDDerivedAddress] {
         hdDerivation.getDerivedAddresses(for: wallet.id)
@@ -41,10 +45,19 @@ struct HDAddressListView: View {
                         .foregroundColor(.secondary)
                 }) {
                     ForEach(derivedAddresses) { address in
-                        DerivedAddressRow(address: address) {
-                            // 复制地址
-                            UIPasteboard.general.string = address.address
-                        }
+                        DerivedAddressRow(
+                            address: address,
+                            onCopy: {
+                                // 复制地址
+                                UIPasteboard.general.string = address.address
+                            },
+                            onEditLabel: {
+                                editingAddress = address
+                            },
+                            onDelete: {
+                                deleteAddress = address
+                            }
+                        )
                     }
                 }
             }
@@ -72,7 +85,19 @@ struct HDAddressListView: View {
         }
         .sheet(isPresented: $showDeriveSheet) {
             DeriveAddressSheet(wallet: wallet) { count in
-                await deriveBatchAddresses(count: count)
+                pendingDeriveCount = count
+                showDeriveSheet = false
+                showPasswordInput = true
+            }
+        }
+        .sheet(isPresented: $showPasswordInput) {
+            PasswordInputSheet(wallet: wallet) { password in
+                await deriveBatchAddressesWithPassword(password: password, count: pendingDeriveCount)
+            }
+        }
+        .sheet(item: $editingAddress) { address in
+            EditLabelSheet(address: address) { newLabel in
+                await updateLabel(for: address, newLabel: newLabel)
             }
         }
         .alert("错误", isPresented: $showError) {
@@ -82,29 +107,70 @@ struct HDAddressListView: View {
                 Text(error)
             }
         }
+        .alert("删除地址", isPresented: Binding(
+            get: { deleteAddress != nil },
+            set: { if !$0 { deleteAddress = nil } }
+        )) {
+            Button("取消", role: .cancel) {
+                deleteAddress = nil
+            }
+            Button("删除", role: .destructive) {
+                if let address = deleteAddress {
+                    Task {
+                        await deleteAddressConfirmed(address)
+                    }
+                }
+            }
+        } message: {
+            if let address = deleteAddress {
+                Text("确定要删除地址 \(address.displayAddress) 吗？此操作无法撤销。")
+            }
+        }
     }
 
-    /// 批量派生地址
-    private func deriveBatchAddresses(count: Int) async {
+    /// 使用密码批量派生地址
+    private func deriveBatchAddressesWithPassword(password: String, count: Int) async {
         isLoading = true
         defer { isLoading = false }
 
         do {
-            // 需要助记词才能派生
-            // 这里应该提示用户输入密码解锁钱包获取助记词
-            // 简化实现：假设助记词已保存在安全位置
-            errorMessage = "需要输入密码解锁钱包以派生新地址"
+            // 使用密码解密助记词
+            let mnemonic = try await WalletManager.shared.exportMnemonic(
+                walletId: wallet.id,
+                password: password
+            )
+
+            // 批量派生地址
+            let addresses = try await hdDerivation.deriveAddresses(
+                for: wallet,
+                mnemonic: mnemonic,
+                count: count
+            )
+
+            Logger.shared.info("派生地址成功: \(addresses.count)个")
+
+        } catch {
+            errorMessage = error.localizedDescription
             showError = true
+        }
+    }
 
-            // TODO: 实现密码输入和助记词解密流程
-            // let mnemonic = try await unlockAndGetMnemonic()
-            // let addresses = try await hdDerivation.deriveAddresses(
-            //     for: wallet,
-            //     mnemonic: mnemonic,
-            //     count: count
-            // )
-            // Logger.shared.info("派生地址成功: \(addresses.count)个")
+    /// 更新地址标签
+    private func updateLabel(for address: HDDerivedAddress, newLabel: String) async {
+        do {
+            try await hdDerivation.updateAddressLabel(addressId: address.id, label: newLabel)
+            Logger.shared.info("标签更新成功: \(newLabel)")
+        } catch {
+            errorMessage = error.localizedDescription
+            showError = true
+        }
+    }
 
+    /// 删除地址（已确认）
+    private func deleteAddressConfirmed(_ address: HDDerivedAddress) async {
+        do {
+            try await hdDerivation.deleteDerivedAddress(addressId: address.id)
+            Logger.shared.info("地址删除成功")
         } catch {
             errorMessage = error.localizedDescription
             showError = true
@@ -158,8 +224,8 @@ struct MainAddressRow: View {
 struct DerivedAddressRow: View {
     let address: HDDerivedAddress
     let onCopy: () -> Void
-
-    @State private var showEditLabel = false
+    let onEditLabel: () -> Void
+    let onDelete: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -215,13 +281,13 @@ struct DerivedAddressRow: View {
                 Label("复制地址", systemImage: "doc.on.doc")
             }
 
-            Button(action: { showEditLabel = true }) {
+            Button(action: onEditLabel) {
                 Label("编辑标签", systemImage: "tag")
             }
 
             Divider()
 
-            Button(role: .destructive, action: {}) {
+            Button(role: .destructive, action: onDelete) {
                 Label("删除地址", systemImage: "trash")
             }
         }
@@ -231,11 +297,10 @@ struct DerivedAddressRow: View {
 /// 派生地址表单
 struct DeriveAddressSheet: View {
     let wallet: Wallet
-    let onDerive: (Int) async -> Void
+    let onDerive: (Int) -> Void
 
     @Environment(\.dismiss) var dismiss
     @State private var deriveCount = 5
-    @State private var isProcessing = false
 
     var body: some View {
         NavigationView {
@@ -267,9 +332,72 @@ struct DeriveAddressSheet: View {
 
                 Section {
                     Button(action: {
+                        onDerive(deriveCount)
+                    }) {
+                        Text("继续")
+                            .fontWeight(.semibold)
+                            .frame(maxWidth: .infinity)
+                    }
+                }
+            }
+            .navigationTitle("派生新地址")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("取消") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// 密码输入表单
+struct PasswordInputSheet: View {
+    let wallet: Wallet
+    let onUnlock: (String) async -> Void
+
+    @Environment(\.dismiss) var dismiss
+    @State private var password = ""
+    @State private var isProcessing = false
+    @State private var showPassword = false
+
+    var body: some View {
+        NavigationView {
+            Form {
+                Section(header: Text("钱包验证")) {
+                    Text("需要输入密码以解锁钱包并派生新地址")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+
+                Section(header: Text("密码")) {
+                    HStack {
+                        if showPassword {
+                            TextField("请输入钱包密码", text: $password)
+                                .textContentType(.password)
+                                .autocapitalization(.none)
+                        } else {
+                            SecureField("请输入钱包密码", text: $password)
+                                .textContentType(.password)
+                                .autocapitalization(.none)
+                        }
+
+                        Button(action: {
+                            showPassword.toggle()
+                        }) {
+                            Image(systemName: showPassword ? "eye.slash" : "eye")
+                                .foregroundColor(.gray)
+                        }
+                    }
+                }
+
+                Section {
+                    Button(action: {
                         Task {
                             isProcessing = true
-                            await onDerive(deriveCount)
+                            await onUnlock(password)
                             isProcessing = false
                             dismiss()
                         }
@@ -277,10 +405,82 @@ struct DeriveAddressSheet: View {
                         if isProcessing {
                             HStack {
                                 ProgressView()
-                                Text("正在派生...")
+                                Text("正在解锁...")
                             }
+                            .frame(maxWidth: .infinity)
                         } else {
-                            Text("开始派生")
+                            Text("解锁并派生")
+                                .fontWeight(.semibold)
+                                .frame(maxWidth: .infinity)
+                        }
+                    }
+                    .disabled(password.isEmpty || isProcessing)
+                }
+            }
+            .navigationTitle("输入密码")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("取消") {
+                        dismiss()
+                    }
+                    .disabled(isProcessing)
+                }
+            }
+        }
+    }
+}
+
+/// 编辑标签表单
+struct EditLabelSheet: View {
+    let address: HDDerivedAddress
+    let onSave: (String) async -> Void
+
+    @Environment(\.dismiss) var dismiss
+    @State private var label: String
+    @State private var isProcessing = false
+
+    init(address: HDDerivedAddress, onSave: @escaping (String) async -> Void) {
+        self.address = address
+        self.onSave = onSave
+        _label = State(initialValue: address.label ?? "")
+    }
+
+    var body: some View {
+        NavigationView {
+            Form {
+                Section(header: Text("地址")) {
+                    Text(address.address)
+                        .font(.system(.caption, design: .monospaced))
+                        .foregroundColor(.secondary)
+                }
+
+                Section(header: Text("标签")) {
+                    TextField("请输入标签（可选）", text: $label)
+                        .autocapitalization(.none)
+
+                    Text("标签可以帮助您识别不同的地址用途")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+
+                Section {
+                    Button(action: {
+                        Task {
+                            isProcessing = true
+                            await onSave(label)
+                            isProcessing = false
+                            dismiss()
+                        }
+                    }) {
+                        if isProcessing {
+                            HStack {
+                                ProgressView()
+                                Text("正在保存...")
+                            }
+                            .frame(maxWidth: .infinity)
+                        } else {
+                            Text("保存")
                                 .fontWeight(.semibold)
                                 .frame(maxWidth: .infinity)
                         }
@@ -288,7 +488,7 @@ struct DeriveAddressSheet: View {
                     .disabled(isProcessing)
                 }
             }
-            .navigationTitle("派生新地址")
+            .navigationTitle("编辑标签")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
@@ -310,9 +510,16 @@ struct HDAddressListView_Previews: PreviewProvider {
         NavigationView {
             HDAddressListView(wallet: .preview)
         }
+        .previewDisplayName("地址列表")
 
         DeriveAddressSheet(wallet: .preview) { _ in }
             .previewDisplayName("派生表单")
+
+        PasswordInputSheet(wallet: .preview) { _ in }
+            .previewDisplayName("密码输入")
+
+        EditLabelSheet(address: .preview) { _ in }
+            .previewDisplayName("编辑标签")
     }
 }
 #endif
