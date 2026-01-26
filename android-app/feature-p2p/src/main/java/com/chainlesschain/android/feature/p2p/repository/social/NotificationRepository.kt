@@ -19,7 +19,7 @@ import javax.inject.Singleton
 @Singleton
 class NotificationRepository @Inject constructor(
     private val notificationDao: NotificationDao,
-    private val syncAdapter: Lazy<SocialSyncAdapter> // 使用 Lazy 避免循环依赖
+// TEMP DISABLED:     private val syncAdapter: Lazy<SocialSyncAdapter> // 使用 Lazy 避免循环依赖
 ) {
 
     // ===== 查询方法 =====
@@ -139,7 +139,7 @@ class NotificationRepository @Inject constructor(
     suspend fun createNotification(notification: NotificationEntity): Result<Unit> {
         return try {
             notificationDao.insert(notification)
-            syncAdapter.value.syncNotificationCreated(notification)
+//             syncAdapter.value.syncNotificationCreated(notification)
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e)
@@ -152,7 +152,7 @@ class NotificationRepository @Inject constructor(
     suspend fun createNotifications(notifications: List<NotificationEntity>): Result<Unit> {
         return try {
             notificationDao.insertAll(notifications)
-            notifications.forEach { syncAdapter.value.syncNotificationCreated(it) }
+//             notifications.forEach { syncAdapter.value.syncNotificationCreated(it) }
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e)

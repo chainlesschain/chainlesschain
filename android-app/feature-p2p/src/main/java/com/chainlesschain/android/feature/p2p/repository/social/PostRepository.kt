@@ -28,7 +28,7 @@ class PostRepository @Inject constructor(
     private val postDao: PostDao,
     private val interactionDao: PostInteractionDao,
     private val postEditHistoryDao: PostEditHistoryDao,
-    private val syncAdapter: Lazy<SocialSyncAdapter> // 使用 Lazy 避免循环依赖
+// TEMP DISABLED:     private val syncAdapter: Lazy<SocialSyncAdapter> // 使用 Lazy 避免循环依赖
 ) {
 
     // ===== 动态查询 =====
@@ -135,7 +135,7 @@ class PostRepository @Inject constructor(
     suspend fun createPost(post: PostEntity): Result<Unit> {
         return try {
             postDao.insert(post)
-            syncAdapter.value.syncPostCreated(post)
+//             syncAdapter.value.syncPostCreated(post)
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e)
@@ -148,7 +148,7 @@ class PostRepository @Inject constructor(
     suspend fun updatePost(post: PostEntity): Result<Unit> {
         return try {
             postDao.update(post)
-            syncAdapter.value.syncPostUpdated(post)
+//             syncAdapter.value.syncPostUpdated(post)
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e)
@@ -163,7 +163,7 @@ class PostRepository @Inject constructor(
             postDao.updateContent(postId, content, updatedAt)
             // 获取更新后的动态并同步
             postDao.getPostById(postId)?.let { post ->
-                syncAdapter.value.syncPostUpdated(post)
+//                 syncAdapter.value.syncPostUpdated(post)
             }
             Result.Success(Unit)
         } catch (e: Exception) {
@@ -190,7 +190,7 @@ class PostRepository @Inject constructor(
             postDao.update(updatedPost)
 
             // 同步到P2P网络
-            syncAdapter.value.syncPostUpdated(updatedPost)
+//             syncAdapter.value.syncPostUpdated(updatedPost)
 
             Result.Success(Unit)
         } catch (e: Exception) {
@@ -231,7 +231,7 @@ class PostRepository @Inject constructor(
     suspend fun deletePost(id: String): Result<Unit> {
         return try {
             postDao.deleteById(id)
-            syncAdapter.value.syncPostDeleted(id)
+//             syncAdapter.value.syncPostDeleted(id)
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e)
@@ -249,7 +249,7 @@ class PostRepository @Inject constructor(
             postDao.updatePinnedStatus(postId, true)
             // 获取更新后的动态并同步
             postDao.getPostById(postId)?.let { post ->
-                syncAdapter.value.syncPostUpdated(post)
+//                 syncAdapter.value.syncPostUpdated(post)
             }
             Result.Success(Unit)
         } catch (e: Exception) {
@@ -265,7 +265,7 @@ class PostRepository @Inject constructor(
             postDao.updatePinnedStatus(postId, false)
             // 获取更新后的动态并同步
             postDao.getPostById(postId)?.let { post ->
-                syncAdapter.value.syncPostUpdated(post)
+//                 syncAdapter.value.syncPostUpdated(post)
             }
             Result.Success(Unit)
         } catch (e: Exception) {
@@ -296,7 +296,7 @@ class PostRepository @Inject constructor(
             )
             interactionDao.insertLike(like)
             postDao.incrementLikeCount(postId)
-            syncAdapter.value.syncLikeAdded(like)
+//             syncAdapter.value.syncLikeAdded(like)
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e)
@@ -311,7 +311,7 @@ class PostRepository @Inject constructor(
             val likeId = "${postId}_${userDid}"
             interactionDao.deleteLike(postId, userDid)
             postDao.decrementLikeCount(postId)
-            syncAdapter.value.syncLikeRemoved(likeId)
+//             syncAdapter.value.syncLikeRemoved(likeId)
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e)
@@ -362,7 +362,7 @@ class PostRepository @Inject constructor(
         return try {
             interactionDao.insertComment(comment)
             postDao.incrementCommentCount(comment.postId)
-            syncAdapter.value.syncCommentAdded(comment)
+//             syncAdapter.value.syncCommentAdded(comment)
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e)
@@ -380,7 +380,7 @@ class PostRepository @Inject constructor(
             interactionDao.deleteComment(comment)
             // 更新评论数
             postDao.decrementCommentCount(comment.postId)
-            syncAdapter.value.syncCommentDeleted(comment.id)
+//             syncAdapter.value.syncCommentDeleted(comment.id)
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e)
@@ -488,7 +488,7 @@ class PostRepository @Inject constructor(
             // interactionDao.insertReport(report)
 
             // 发送到后端审核（如果有）
-            syncAdapter.value.syncReportSubmitted(report)
+//             syncAdapter.value.syncReportSubmitted(report)
 
             Result.Success(Unit)
         } catch (e: Exception) {

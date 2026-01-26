@@ -27,9 +27,9 @@ import javax.inject.Singleton
 @Singleton
 class SocialSyncAdapter @Inject constructor(
     private val syncManager: SyncManager,
-    private val friendRepository: FriendRepository,
-    private val postRepository: PostRepository,
-    private val notificationRepository: NotificationRepository
+    private val friendRepository: Lazy<FriendRepository>,
+    private val postRepository: Lazy<PostRepository>,
+    private val notificationRepository: Lazy<NotificationRepository>
 ) {
 
     companion object {
@@ -248,11 +248,11 @@ class SocialSyncAdapter @Inject constructor(
         when (syncItem.operation) {
             SyncOperation.CREATE, SyncOperation.UPDATE -> {
                 val friend = data.toEntity()
-                friendRepository.addFriend(friend)
+                friendRepository.value.addFriend(friend)
                 Log.d(TAG, "Friend synced: ${friend.did}")
             }
             SyncOperation.DELETE -> {
-                friendRepository.deleteFriend(data.did)
+                friendRepository.value.deleteFriend(data.did)
                 Log.d(TAG, "Friend deleted: ${data.did}")
             }
         }
@@ -264,16 +264,16 @@ class SocialSyncAdapter @Inject constructor(
         when (syncItem.operation) {
             SyncOperation.CREATE -> {
                 val post = data.toEntity()
-                postRepository.createPost(post)
+                postRepository.value.createPost(post)
                 Log.d(TAG, "Post synced: ${post.id}")
             }
             SyncOperation.UPDATE -> {
                 val post = data.toEntity()
-                postRepository.updatePost(post)
+                postRepository.value.updatePost(post)
                 Log.d(TAG, "Post updated: ${post.id}")
             }
             SyncOperation.DELETE -> {
-                postRepository.deletePost(data.id)
+                postRepository.value.deletePost(data.id)
                 Log.d(TAG, "Post deleted: ${data.id}")
             }
         }
@@ -286,7 +286,7 @@ class SocialSyncAdapter @Inject constructor(
             SyncOperation.CREATE -> {
                 data.postId?.let { postId ->
                     data.userDid?.let { userDid ->
-                        postRepository.likePost(postId, userDid)
+                        postRepository.value.likePost(postId, userDid)
                         Log.d(TAG, "Like synced: ${data.id}")
                     }
                 }
@@ -294,7 +294,7 @@ class SocialSyncAdapter @Inject constructor(
             SyncOperation.DELETE -> {
                 data.postId?.let { postId ->
                     data.userDid?.let { userDid ->
-                        postRepository.unlikePost(postId, userDid)
+                        postRepository.value.unlikePost(postId, userDid)
                         Log.d(TAG, "Like removed: ${data.id}")
                     }
                 }
@@ -309,12 +309,12 @@ class SocialSyncAdapter @Inject constructor(
         when (syncItem.operation) {
             SyncOperation.CREATE -> {
                 val comment = data.toEntity()
-                postRepository.addComment(comment)
+                postRepository.value.addComment(comment)
                 Log.d(TAG, "Comment synced: ${comment.id}")
             }
             SyncOperation.DELETE -> {
                 data.toEntity().let { comment ->
-                    postRepository.deleteComment(comment)
+                    postRepository.value.deleteComment(comment)
                     Log.d(TAG, "Comment deleted: ${data.id}")
                 }
             }
@@ -328,7 +328,7 @@ class SocialSyncAdapter @Inject constructor(
         when (syncItem.operation) {
             SyncOperation.CREATE -> {
                 val notification = data.toEntity()
-                notificationRepository.createNotification(notification)
+                notificationRepository.value.createNotification(notification)
                 Log.d(TAG, "Notification synced: ${notification.id}")
             }
             else -> {}

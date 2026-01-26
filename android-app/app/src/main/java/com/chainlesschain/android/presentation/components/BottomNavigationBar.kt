@@ -23,24 +23,21 @@ fun BottomNavigationBar(
 ) {
     NavigationBar {
         bottomNavItems.forEachIndexed { index, item ->
-            // 使用 key 确保 Compose 正确追踪每个 item
-            key(item.label) {
-                NavigationBarItem(
-                    icon = {
-                        Icon(
-                            imageVector = if (selectedTab == index) {
-                                item.selectedIcon
-                            } else {
-                                item.unselectedIcon
-                            },
-                            contentDescription = item.label
-                        )
-                    },
-                    label = { Text(item.label) },
-                    selected = selectedTab == index,
-                    onClick = { onTabSelected(index) }
-                )
-            }
+            NavigationBarItem(
+                icon = {
+                    Icon(
+                        imageVector = if (selectedTab == index) {
+                            item.selectedIcon
+                        } else {
+                            item.unselectedIcon
+                        },
+                        contentDescription = item.label
+                    )
+                },
+                label = { Text(item.label) },
+                selected = selectedTab == index,
+                onClick = { onTabSelected(index) }
+            )
         }
     }
 }
