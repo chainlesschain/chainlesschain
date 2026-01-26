@@ -3,13 +3,13 @@
  * 测试设置页面的所有功能
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { mount } from '@vue/test-utils';
-import SettingsPage from '@renderer/pages/SettingsPage.vue';
-import { nextTick } from 'vue';
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { mount } from "@vue/test-utils";
+import SettingsPage from "@renderer/pages/SettingsPage.vue";
+import { nextTick } from "vue";
 
 // Mock Ant Design Vue
-vi.mock('ant-design-vue', () => ({
+vi.mock("ant-design-vue", () => ({
   message: {
     success: vi.fn(),
     error: vi.fn(),
@@ -31,7 +31,7 @@ const mockRouter = {
   },
 };
 
-vi.mock('vue-router', () => ({
+vi.mock("vue-router", () => ({
   useRouter: () => mockRouter,
 }));
 
@@ -43,14 +43,14 @@ const mockAppStore = {
   },
 };
 
-vi.mock('../stores/app', () => ({
+vi.mock("../stores/app", () => ({
   useAppStore: () => mockAppStore,
 }));
 
 // Mock i18n
 const mockT = vi.fn((key) => key);
 
-vi.mock('vue-i18n', () => ({
+vi.mock("vue-i18n", () => ({
   useI18n: () => ({
     t: mockT,
   }),
@@ -58,85 +58,100 @@ vi.mock('vue-i18n', () => ({
 
 // Mock locales
 const mockSupportedLocales = [
-  { value: 'zh-CN', label: '简体中文', icon: '🇨🇳' },
-  { value: 'en-US', label: 'English', icon: '🇺🇸' },
-  { value: 'ja-JP', label: '日本語', icon: '🇯🇵' },
+  { value: "zh-CN", label: "简体中文", icon: "🇨🇳" },
+  { value: "en-US", label: "English", icon: "🇺🇸" },
+  { value: "ja-JP", label: "日本語", icon: "🇯🇵" },
 ];
 
-const mockGetLocale = vi.fn(() => 'zh-CN');
+const mockGetLocale = vi.fn(() => "zh-CN");
 const mockSetLocale = vi.fn();
 
-vi.mock('../locales', () => ({
+vi.mock("../locales", () => ({
   supportedLocales: mockSupportedLocales,
   getLocale: mockGetLocale,
   setLocale: mockSetLocale,
 }));
 
 // Mock Ant Design Icons
-vi.mock('@ant-design/icons-vue', () => ({
-  ApiOutlined: { name: 'ApiOutlined', template: '<span>Api</span>' },
-  SyncOutlined: { name: 'SyncOutlined', template: '<span>Sync</span>' },
-  SafetyOutlined: { name: 'SafetyOutlined', template: '<span>Safety</span>' },
-  SettingOutlined: { name: 'SettingOutlined', template: '<span>Setting</span>' },
-  InfoCircleOutlined: { name: 'InfoCircleOutlined', template: '<span>Info</span>' },
-  DatabaseOutlined: { name: 'DatabaseOutlined', template: '<span>Database</span>' },
-  LockOutlined: { name: 'LockOutlined', template: '<span>Lock</span>' },
-  BarChartOutlined: { name: 'BarChartOutlined', template: '<span>BarChart</span>' },
-  DashboardOutlined: { name: 'DashboardOutlined', template: '<span>Dashboard</span>' },
-  DollarOutlined: { name: 'DollarOutlined', template: '<span>Dollar</span>' },
+vi.mock("@ant-design/icons-vue", () => ({
+  ApiOutlined: { name: "ApiOutlined", template: "<span>Api</span>" },
+  SyncOutlined: { name: "SyncOutlined", template: "<span>Sync</span>" },
+  SafetyOutlined: { name: "SafetyOutlined", template: "<span>Safety</span>" },
+  SettingOutlined: {
+    name: "SettingOutlined",
+    template: "<span>Setting</span>",
+  },
+  InfoCircleOutlined: {
+    name: "InfoCircleOutlined",
+    template: "<span>Info</span>",
+  },
+  DatabaseOutlined: {
+    name: "DatabaseOutlined",
+    template: "<span>Database</span>",
+  },
+  LockOutlined: { name: "LockOutlined", template: "<span>Lock</span>" },
+  BarChartOutlined: {
+    name: "BarChartOutlined",
+    template: "<span>BarChart</span>",
+  },
+  DashboardOutlined: {
+    name: "DashboardOutlined",
+    template: "<span>Dashboard</span>",
+  },
+  DollarOutlined: { name: "DollarOutlined", template: "<span>Dollar</span>" },
 }));
 
 // Mock child components
-vi.mock('../components/LLMSettings.vue', () => ({
+vi.mock("../components/LLMSettings.vue", () => ({
   default: {
-    name: 'LLMSettings',
+    name: "LLMSettings",
     template: '<div class="mock-llm-settings"></div>',
   },
 }));
 
-vi.mock('../components/TokenUsageTab.vue', () => ({
+vi.mock("../components/TokenUsageTab.vue", () => ({
   default: {
-    name: 'TokenUsageTab',
+    name: "TokenUsageTab",
     template: '<div class="mock-token-usage"></div>',
   },
 }));
 
-vi.mock('../components/GitSettings.vue', () => ({
+vi.mock("../components/GitSettings.vue", () => ({
   default: {
-    name: 'GitSettings',
+    name: "GitSettings",
     template: '<div class="mock-git-settings"></div>',
   },
 }));
 
-vi.mock('../components/RAGSettings.vue', () => ({
+vi.mock("../components/RAGSettings.vue", () => ({
   default: {
-    name: 'RAGSettings',
+    name: "RAGSettings",
     template: '<div class="mock-rag-settings"></div>',
   },
 }));
 
-vi.mock('../components/MCPSettings.vue', () => ({
+vi.mock("../components/MCPSettings.vue", () => ({
   default: {
-    name: 'MCPSettings',
+    name: "MCPSettings",
     template: '<div class="mock-mcp-settings"></div>',
   },
 }));
 
-vi.mock('../components/tool/AdditionalToolsStats.vue', () => ({
+vi.mock("../components/tool/AdditionalToolsStats.vue", () => ({
   default: {
-    name: 'AdditionalToolsStats',
+    name: "AdditionalToolsStats",
     template: '<div class="mock-tools-stats"></div>',
   },
 }));
 
-vi.mock('../components/PerformanceDashboard.vue', () => ({
+vi.mock("../components/PerformanceDashboard.vue", () => ({
   default: {
-    name: 'PerformanceDashboard',
+    name: "PerformanceDashboard",
     template: '<div class="mock-performance-dashboard"></div>',
   },
 }));
 
-describe('SettingsPage', () => {
+describe("SettingsPage", () => {
   let wrapper;
 
   beforeEach(() => {
@@ -150,35 +165,35 @@ describe('SettingsPage', () => {
     vi.clearAllMocks();
   });
 
-  describe('组件挂载和初始化', () => {
-    it('应该正确挂载', () => {
+  describe("组件挂载和初始化", () => {
+    it("应该正确挂载", () => {
       wrapper = mount(SettingsPage, {
         global: {
           stubs: {
-            'a-tabs': true,
-            'a-tab-pane': true,
-            'a-card': true,
-            'a-form': true,
-            'a-form-item': true,
-            'a-radio-group': true,
-            'a-radio': true,
-            'a-select': true,
-            'a-select-option': true,
-            'a-switch': true,
-            'a-button': true,
-            'a-descriptions': true,
-            'a-descriptions-item': true,
-            'a-tag': true,
-            'a-alert': true,
-            'a-result': true,
-            'a-space': true,
-            'LLMSettings': true,
-            'TokenUsageTab': true,
-            'GitSettings': true,
-            'RAGSettings': true,
-            'MCPSettings': true,
-            'AdditionalToolsStats': true,
-            'PerformanceDashboard': true,
+            "a-tabs": true,
+            "a-tab-pane": true,
+            "a-card": true,
+            "a-form": true,
+            "a-form-item": true,
+            "a-radio-group": true,
+            "a-radio": true,
+            "a-select": true,
+            "a-select-option": true,
+            "a-switch": true,
+            "a-button": true,
+            "a-descriptions": true,
+            "a-descriptions-item": true,
+            "a-tag": true,
+            "a-alert": true,
+            "a-result": true,
+            "a-space": true,
+            LLMSettings: true,
+            TokenUsageTab: true,
+            GitSettings: true,
+            RAGSettings: true,
+            MCPSettings: true,
+            AdditionalToolsStats: true,
+            PerformanceDashboard: true,
           },
         },
       });
@@ -186,282 +201,282 @@ describe('SettingsPage', () => {
       expect(wrapper.exists()).toBe(true);
     });
 
-    it('应该正确初始化状态', () => {
+    it("应该正确初始化状态", () => {
       wrapper = mount(SettingsPage, {
         global: {
           stubs: {
-            'a-tabs': true,
-            'a-tab-pane': true,
-            'a-card': true,
-            'LLMSettings': true,
-            'TokenUsageTab': true,
-            'GitSettings': true,
-            'RAGSettings': true,
-            'MCPSettings': true,
-            'AdditionalToolsStats': true,
-            'PerformanceDashboard': true,
+            "a-tabs": true,
+            "a-tab-pane": true,
+            "a-card": true,
+            LLMSettings: true,
+            TokenUsageTab: true,
+            GitSettings: true,
+            RAGSettings: true,
+            MCPSettings: true,
+            AdditionalToolsStats: true,
+            PerformanceDashboard: true,
           },
         },
       });
 
-      expect(wrapper.vm.activeTab).toBe('general');
-      expect(wrapper.vm.theme).toBe('light');
-      expect(wrapper.vm.language).toBe('zh-CN');
+      expect(wrapper.vm.activeTab).toBe("general");
+      expect(wrapper.vm.theme).toBe("light");
+      expect(wrapper.vm.language).toBe("zh-CN");
       expect(wrapper.vm.openOnStartup).toBe(false);
       expect(wrapper.vm.minimizeToTray).toBe(true);
       expect(wrapper.vm.performanceDashboardVisible).toBe(false);
     });
 
-    it('应该从URL参数加载标签页', async () => {
-      mockRouter.currentRoute.value.query = { tab: 'llm' };
+    it("应该从URL参数加载标签页", async () => {
+      mockRouter.currentRoute.value.query = { tab: "llm" };
 
       wrapper = mount(SettingsPage, {
         global: {
           stubs: {
-            'a-tabs': true,
-            'a-tab-pane': true,
-            'a-card': true,
-            'LLMSettings': true,
-            'TokenUsageTab': true,
-            'GitSettings': true,
-            'RAGSettings': true,
-            'MCPSettings': true,
-            'AdditionalToolsStats': true,
-            'PerformanceDashboard': true,
+            "a-tabs": true,
+            "a-tab-pane": true,
+            "a-card": true,
+            LLMSettings: true,
+            TokenUsageTab: true,
+            GitSettings: true,
+            RAGSettings: true,
+            MCPSettings: true,
+            AdditionalToolsStats: true,
+            PerformanceDashboard: true,
           },
         },
       });
 
       await nextTick();
 
-      expect(wrapper.vm.activeTab).toBe('llm');
+      expect(wrapper.vm.activeTab).toBe("llm");
     });
 
-    it('没有URL参数时应该使用默认标签页', () => {
+    it("没有URL参数时应该使用默认标签页", () => {
       mockRouter.currentRoute.value.query = {};
 
       wrapper = mount(SettingsPage, {
         global: {
           stubs: {
-            'a-tabs': true,
-            'a-tab-pane': true,
-            'a-card': true,
-            'LLMSettings': true,
-            'TokenUsageTab': true,
-            'GitSettings': true,
-            'RAGSettings': true,
-            'MCPSettings': true,
-            'AdditionalToolsStats': true,
-            'PerformanceDashboard': true,
+            "a-tabs": true,
+            "a-tab-pane": true,
+            "a-card": true,
+            LLMSettings: true,
+            TokenUsageTab: true,
+            GitSettings: true,
+            RAGSettings: true,
+            MCPSettings: true,
+            AdditionalToolsStats: true,
+            PerformanceDashboard: true,
           },
         },
       });
 
-      expect(wrapper.vm.activeTab).toBe('general');
+      expect(wrapper.vm.activeTab).toBe("general");
     });
   });
 
-  describe('通用设置', () => {
+  describe("通用设置", () => {
     beforeEach(() => {
       wrapper = mount(SettingsPage, {
         global: {
           stubs: {
-            'a-tabs': true,
-            'a-tab-pane': true,
-            'a-card': true,
-            'a-form': true,
-            'a-form-item': true,
-            'a-radio-group': true,
-            'a-radio': true,
-            'a-select': true,
-            'a-switch': true,
-            'a-button': true,
-            'LLMSettings': true,
-            'TokenUsageTab': true,
-            'GitSettings': true,
-            'RAGSettings': true,
-            'MCPSettings': true,
-            'AdditionalToolsStats': true,
-            'PerformanceDashboard': true,
+            "a-tabs": true,
+            "a-tab-pane": true,
+            "a-card": true,
+            "a-form": true,
+            "a-form-item": true,
+            "a-radio-group": true,
+            "a-radio": true,
+            "a-select": true,
+            "a-switch": true,
+            "a-button": true,
+            LLMSettings: true,
+            TokenUsageTab: true,
+            GitSettings: true,
+            RAGSettings: true,
+            MCPSettings: true,
+            AdditionalToolsStats: true,
+            PerformanceDashboard: true,
           },
         },
       });
     });
 
-    it('应该能选择主题', async () => {
-      wrapper.vm.theme = 'dark';
+    it("应该能选择主题", async () => {
+      wrapper.vm.theme = "dark";
       await nextTick();
 
-      expect(wrapper.vm.theme).toBe('dark');
+      expect(wrapper.vm.theme).toBe("dark");
     });
 
-    it('应该支持浅色主题', async () => {
-      wrapper.vm.theme = 'light';
+    it("应该支持浅色主题", async () => {
+      wrapper.vm.theme = "light";
       await nextTick();
 
-      expect(wrapper.vm.theme).toBe('light');
+      expect(wrapper.vm.theme).toBe("light");
     });
 
-    it('应该支持深色主题', async () => {
-      wrapper.vm.theme = 'dark';
+    it("应该支持深色主题", async () => {
+      wrapper.vm.theme = "dark";
       await nextTick();
 
-      expect(wrapper.vm.theme).toBe('dark');
+      expect(wrapper.vm.theme).toBe("dark");
     });
 
-    it('应该支持自动主题', async () => {
-      wrapper.vm.theme = 'auto';
+    it("应该支持自动主题", async () => {
+      wrapper.vm.theme = "auto";
       await nextTick();
 
-      expect(wrapper.vm.theme).toBe('auto');
+      expect(wrapper.vm.theme).toBe("auto");
     });
 
-    it('应该能切换语言', async () => {
-      const { message } = require('ant-design-vue');
+    it("应该能切换语言", async () => {
+      const { message } = require("ant-design-vue");
 
-      wrapper.vm.handleLanguageChange('en-US');
+      wrapper.vm.handleLanguageChange("en-US");
 
-      expect(mockSetLocale).toHaveBeenCalledWith('en-US');
+      expect(mockSetLocale).toHaveBeenCalledWith("en-US");
       expect(message.success).toHaveBeenCalled();
     });
 
-    it('应该显示支持的语言列表', () => {
+    it("应该显示支持的语言列表", () => {
       expect(wrapper.vm.supportedLanguages).toEqual(mockSupportedLocales);
     });
 
-    it('应该能切换启动时打开选项', async () => {
+    it("应该能切换启动时打开选项", async () => {
       wrapper.vm.openOnStartup = true;
       await nextTick();
 
       expect(wrapper.vm.openOnStartup).toBe(true);
     });
 
-    it('应该能切换最小化到托盘选项', async () => {
+    it("应该能切换最小化到托盘选项", async () => {
       wrapper.vm.minimizeToTray = false;
       await nextTick();
 
       expect(wrapper.vm.minimizeToTray).toBe(false);
     });
 
-    it('应该能保存通用设置', () => {
-      const { message } = require('ant-design-vue');
+    it("应该能保存通用设置", () => {
+      const { message } = require("ant-design-vue");
 
       wrapper.vm.handleSaveGeneral();
 
-      expect(message.success).toHaveBeenCalledWith('设置已保存');
+      expect(message.success).toHaveBeenCalledWith("设置已保存");
     });
   });
 
-  describe('标签页切换', () => {
+  describe("标签页切换", () => {
     beforeEach(() => {
       wrapper = mount(SettingsPage, {
         global: {
           stubs: {
-            'a-tabs': true,
-            'a-tab-pane': true,
-            'a-card': true,
-            'LLMSettings': true,
-            'TokenUsageTab': true,
-            'GitSettings': true,
-            'RAGSettings': true,
-            'MCPSettings': true,
-            'AdditionalToolsStats': true,
-            'PerformanceDashboard': true,
+            "a-tabs": true,
+            "a-tab-pane": true,
+            "a-card": true,
+            LLMSettings: true,
+            TokenUsageTab: true,
+            GitSettings: true,
+            RAGSettings: true,
+            MCPSettings: true,
+            AdditionalToolsStats: true,
+            PerformanceDashboard: true,
           },
         },
       });
     });
 
-    it('应该能切换到LLM设置标签', async () => {
-      wrapper.vm.activeTab = 'llm';
+    it("应该能切换到LLM设置标签", async () => {
+      wrapper.vm.activeTab = "llm";
       await nextTick();
 
-      expect(wrapper.vm.activeTab).toBe('llm');
+      expect(wrapper.vm.activeTab).toBe("llm");
     });
 
-    it('应该能切换到Token使用标签', async () => {
-      wrapper.vm.activeTab = 'token-usage';
+    it("应该能切换到Token使用标签", async () => {
+      wrapper.vm.activeTab = "token-usage";
       await nextTick();
 
-      expect(wrapper.vm.activeTab).toBe('token-usage');
+      expect(wrapper.vm.activeTab).toBe("token-usage");
     });
 
-    it('应该能切换到MCP服务器标签', async () => {
-      wrapper.vm.activeTab = 'mcp';
+    it("应该能切换到MCP服务器标签", async () => {
+      wrapper.vm.activeTab = "mcp";
       await nextTick();
 
-      expect(wrapper.vm.activeTab).toBe('mcp');
+      expect(wrapper.vm.activeTab).toBe("mcp");
     });
 
-    it('应该能切换到Git同步标签', async () => {
-      wrapper.vm.activeTab = 'git';
+    it("应该能切换到Git同步标签", async () => {
+      wrapper.vm.activeTab = "git";
       await nextTick();
 
-      expect(wrapper.vm.activeTab).toBe('git');
+      expect(wrapper.vm.activeTab).toBe("git");
     });
 
-    it('应该能切换到知识库RAG标签', async () => {
-      wrapper.vm.activeTab = 'rag';
+    it("应该能切换到知识库RAG标签", async () => {
+      wrapper.vm.activeTab = "rag";
       await nextTick();
 
-      expect(wrapper.vm.activeTab).toBe('rag');
+      expect(wrapper.vm.activeTab).toBe("rag");
     });
 
-    it('应该能切换到U盾标签', async () => {
-      wrapper.vm.activeTab = 'ukey';
+    it("应该能切换到U盾标签", async () => {
+      wrapper.vm.activeTab = "ukey";
       await nextTick();
 
-      expect(wrapper.vm.activeTab).toBe('ukey');
+      expect(wrapper.vm.activeTab).toBe("ukey");
     });
 
-    it('应该能切换到数据库安全标签', async () => {
-      wrapper.vm.activeTab = 'database';
+    it("应该能切换到数据库安全标签", async () => {
+      wrapper.vm.activeTab = "database";
       await nextTick();
 
-      expect(wrapper.vm.activeTab).toBe('database');
+      expect(wrapper.vm.activeTab).toBe("database");
     });
 
-    it('应该能切换到工具统计标签', async () => {
-      wrapper.vm.activeTab = 'additional-tools-v3';
+    it("应该能切换到工具统计标签", async () => {
+      wrapper.vm.activeTab = "additional-tools-v3";
       await nextTick();
 
-      expect(wrapper.vm.activeTab).toBe('additional-tools-v3');
+      expect(wrapper.vm.activeTab).toBe("additional-tools-v3");
     });
 
-    it('应该能切换到性能监控标签', async () => {
-      wrapper.vm.activeTab = 'performance';
+    it("应该能切换到性能监控标签", async () => {
+      wrapper.vm.activeTab = "performance";
       await nextTick();
 
-      expect(wrapper.vm.activeTab).toBe('performance');
+      expect(wrapper.vm.activeTab).toBe("performance");
     });
 
-    it('应该能切换到关于标签', async () => {
-      wrapper.vm.activeTab = 'about';
+    it("应该能切换到关于标签", async () => {
+      wrapper.vm.activeTab = "about";
       await nextTick();
 
-      expect(wrapper.vm.activeTab).toBe('about');
+      expect(wrapper.vm.activeTab).toBe("about");
     });
   });
 
-  describe('U盾设置', () => {
-    it('应该显示U盾检测状态', () => {
+  describe("U盾设置", () => {
+    it("应该显示U盾检测状态", () => {
       wrapper = mount(SettingsPage, {
         global: {
           stubs: {
-            'a-tabs': true,
-            'a-tab-pane': true,
-            'a-card': true,
-            'a-descriptions': true,
-            'a-descriptions-item': true,
-            'a-tag': true,
-            'a-alert': true,
-            'LLMSettings': true,
-            'TokenUsageTab': true,
-            'GitSettings': true,
-            'RAGSettings': true,
-            'MCPSettings': true,
-            'AdditionalToolsStats': true,
-            'PerformanceDashboard': true,
+            "a-tabs": true,
+            "a-tab-pane": true,
+            "a-card": true,
+            "a-descriptions": true,
+            "a-descriptions-item": true,
+            "a-tag": true,
+            "a-alert": true,
+            LLMSettings: true,
+            TokenUsageTab: true,
+            GitSettings: true,
+            RAGSettings: true,
+            MCPSettings: true,
+            AdditionalToolsStats: true,
+            PerformanceDashboard: true,
           },
         },
       });
@@ -469,24 +484,24 @@ describe('SettingsPage', () => {
       expect(mockAppStore.ukeyStatus.detected).toBe(true);
     });
 
-    it('应该显示U盾解锁状态', () => {
+    it("应该显示U盾解锁状态", () => {
       wrapper = mount(SettingsPage, {
         global: {
           stubs: {
-            'a-tabs': true,
-            'a-tab-pane': true,
-            'a-card': true,
-            'a-descriptions': true,
-            'a-descriptions-item': true,
-            'a-tag': true,
-            'a-alert': true,
-            'LLMSettings': true,
-            'TokenUsageTab': true,
-            'GitSettings': true,
-            'RAGSettings': true,
-            'MCPSettings': true,
-            'AdditionalToolsStats': true,
-            'PerformanceDashboard': true,
+            "a-tabs": true,
+            "a-tab-pane": true,
+            "a-card": true,
+            "a-descriptions": true,
+            "a-descriptions-item": true,
+            "a-tag": true,
+            "a-alert": true,
+            LLMSettings: true,
+            TokenUsageTab: true,
+            GitSettings: true,
+            RAGSettings: true,
+            MCPSettings: true,
+            AdditionalToolsStats: true,
+            PerformanceDashboard: true,
           },
         },
       });
@@ -494,26 +509,26 @@ describe('SettingsPage', () => {
       expect(mockAppStore.ukeyStatus.unlocked).toBe(true);
     });
 
-    it('应该处理未检测到U盾的情况', () => {
+    it("应该处理未检测到U盾的情况", () => {
       mockAppStore.ukeyStatus.detected = false;
 
       wrapper = mount(SettingsPage, {
         global: {
           stubs: {
-            'a-tabs': true,
-            'a-tab-pane': true,
-            'a-card': true,
-            'a-descriptions': true,
-            'a-descriptions-item': true,
-            'a-tag': true,
-            'a-alert': true,
-            'LLMSettings': true,
-            'TokenUsageTab': true,
-            'GitSettings': true,
-            'RAGSettings': true,
-            'MCPSettings': true,
-            'AdditionalToolsStats': true,
-            'PerformanceDashboard': true,
+            "a-tabs": true,
+            "a-tab-pane": true,
+            "a-card": true,
+            "a-descriptions": true,
+            "a-descriptions-item": true,
+            "a-tag": true,
+            "a-alert": true,
+            LLMSettings: true,
+            TokenUsageTab: true,
+            GitSettings: true,
+            RAGSettings: true,
+            MCPSettings: true,
+            AdditionalToolsStats: true,
+            PerformanceDashboard: true,
           },
         },
       });
@@ -521,26 +536,26 @@ describe('SettingsPage', () => {
       expect(mockAppStore.ukeyStatus.detected).toBe(false);
     });
 
-    it('应该处理U盾锁定状态', () => {
+    it("应该处理U盾锁定状态", () => {
       mockAppStore.ukeyStatus.unlocked = false;
 
       wrapper = mount(SettingsPage, {
         global: {
           stubs: {
-            'a-tabs': true,
-            'a-tab-pane': true,
-            'a-card': true,
-            'a-descriptions': true,
-            'a-descriptions-item': true,
-            'a-tag': true,
-            'a-alert': true,
-            'LLMSettings': true,
-            'TokenUsageTab': true,
-            'GitSettings': true,
-            'RAGSettings': true,
-            'MCPSettings': true,
-            'AdditionalToolsStats': true,
-            'PerformanceDashboard': true,
+            "a-tabs": true,
+            "a-tab-pane": true,
+            "a-card": true,
+            "a-descriptions": true,
+            "a-descriptions-item": true,
+            "a-tag": true,
+            "a-alert": true,
+            LLMSettings: true,
+            TokenUsageTab: true,
+            GitSettings: true,
+            RAGSettings: true,
+            MCPSettings: true,
+            AdditionalToolsStats: true,
+            PerformanceDashboard: true,
           },
         },
       });
@@ -549,71 +564,73 @@ describe('SettingsPage', () => {
     });
   });
 
-  describe('数据库安全设置', () => {
+  describe("数据库安全设置", () => {
     beforeEach(() => {
       wrapper = mount(SettingsPage, {
         global: {
           stubs: {
-            'a-tabs': true,
-            'a-tab-pane': true,
-            'a-card': true,
-            'a-result': true,
-            'a-button': true,
-            'LLMSettings': true,
-            'TokenUsageTab': true,
-            'GitSettings': true,
-            'RAGSettings': true,
-            'MCPSettings': true,
-            'AdditionalToolsStats': true,
-            'PerformanceDashboard': true,
+            "a-tabs": true,
+            "a-tab-pane": true,
+            "a-card": true,
+            "a-result": true,
+            "a-button": true,
+            LLMSettings: true,
+            TokenUsageTab: true,
+            GitSettings: true,
+            RAGSettings: true,
+            MCPSettings: true,
+            AdditionalToolsStats: true,
+            PerformanceDashboard: true,
           },
         },
       });
     });
 
-    it('应该能导航到数据库安全设置页面', () => {
-      wrapper.vm.activeTab = 'database';
+    it("应该能导航到数据库安全设置页面", () => {
+      wrapper.vm.activeTab = "database";
 
       // 模拟点击按钮导航
-      mockRouter.push('/settings/database-security');
+      mockRouter.push("/settings/database-security");
 
-      expect(mockRouter.push).toHaveBeenCalledWith('/settings/database-security');
+      expect(mockRouter.push).toHaveBeenCalledWith(
+        "/settings/database-security",
+      );
     });
   });
 
-  describe('性能监控', () => {
+  describe("性能监控", () => {
     beforeEach(() => {
       wrapper = mount(SettingsPage, {
         global: {
           stubs: {
-            'a-tabs': true,
-            'a-tab-pane': true,
-            'a-card': true,
-            'a-button': true,
-            'PerformanceDashboard': true,
-            'LLMSettings': true,
-            'TokenUsageTab': true,
-            'GitSettings': true,
-            'RAGSettings': true,
-            'MCPSettings': true,
-            'AdditionalToolsStats': true,
+            "a-tabs": true,
+            "a-tab-pane": true,
+            "a-card": true,
+            "a-button": true,
+            PerformanceDashboard: true,
+            LLMSettings: true,
+            TokenUsageTab: true,
+            GitSettings: true,
+            RAGSettings: true,
+            MCPSettings: true,
+            AdditionalToolsStats: true,
           },
         },
       });
     });
 
-    it('性能仪表板默认应该隐藏', () => {
+    it("性能仪表板默认应该隐藏", () => {
       expect(wrapper.vm.performanceDashboardVisible).toBe(false);
     });
 
-    it('应该能打开性能仪表板', async () => {
+    it("应该能打开性能仪表板", async () => {
       wrapper.vm.performanceDashboardVisible = true;
       await nextTick();
 
       expect(wrapper.vm.performanceDashboardVisible).toBe(true);
     });
 
-    it('应该能关闭性能仪表板', async () => {
+    it("应该能关闭性能仪表板", async () => {
       wrapper.vm.performanceDashboardVisible = true;
       await nextTick();
 
@@ -624,251 +641,251 @@ describe('SettingsPage', () => {
     });
   });
 
-  describe('关于页面', () => {
+  describe("关于页面", () => {
     beforeEach(() => {
       wrapper = mount(SettingsPage, {
         global: {
           stubs: {
-            'a-tabs': true,
-            'a-tab-pane': true,
-            'a-card': true,
-            'a-descriptions': true,
-            'a-descriptions-item': true,
-            'a-tag': true,
-            'a-space': true,
-            'a-button': true,
-            'LLMSettings': true,
-            'TokenUsageTab': true,
-            'GitSettings': true,
-            'RAGSettings': true,
-            'MCPSettings': true,
-            'AdditionalToolsStats': true,
-            'PerformanceDashboard': true,
+            "a-tabs": true,
+            "a-tab-pane": true,
+            "a-card": true,
+            "a-descriptions": true,
+            "a-descriptions-item": true,
+            "a-tag": true,
+            "a-space": true,
+            "a-button": true,
+            LLMSettings: true,
+            TokenUsageTab: true,
+            GitSettings: true,
+            RAGSettings: true,
+            MCPSettings: true,
+            AdditionalToolsStats: true,
+            PerformanceDashboard: true,
           },
         },
       });
     });
 
-    it('应该能检查更新', () => {
-      const { message } = require('ant-design-vue');
+    it("应该能检查更新", () => {
+      const { message } = require("ant-design-vue");
 
       wrapper.vm.checkUpdate();
 
-      expect(message.info).toHaveBeenCalledWith('当前已是最新版本');
+      expect(message.info).toHaveBeenCalledWith("当前已是最新版本");
     });
 
-    it('应该能打开GitHub页面', () => {
-      const { message } = require('ant-design-vue');
+    it("应该能打开GitHub页面", () => {
+      const { message } = require("ant-design-vue");
 
       wrapper.vm.openGithub();
 
-      expect(message.info).toHaveBeenCalledWith('即将打开 GitHub 页面');
+      expect(message.info).toHaveBeenCalledWith("即将打开 GitHub 页面");
     });
   });
 
-  describe('返回导航', () => {
+  describe("返回导航", () => {
     beforeEach(() => {
       wrapper = mount(SettingsPage, {
         global: {
           stubs: {
-            'a-tabs': true,
-            'a-tab-pane': true,
-            'a-card': true,
-            'LLMSettings': true,
-            'TokenUsageTab': true,
-            'GitSettings': true,
-            'RAGSettings': true,
-            'MCPSettings': true,
-            'AdditionalToolsStats': true,
-            'PerformanceDashboard': true,
+            "a-tabs": true,
+            "a-tab-pane": true,
+            "a-card": true,
+            LLMSettings: true,
+            TokenUsageTab: true,
+            GitSettings: true,
+            RAGSettings: true,
+            MCPSettings: true,
+            AdditionalToolsStats: true,
+            PerformanceDashboard: true,
           },
         },
       });
     });
 
-    it('应该能返回首页', () => {
+    it("应该能返回首页", () => {
       wrapper.vm.handleBack();
 
-      expect(mockRouter.push).toHaveBeenCalledWith('/');
+      expect(mockRouter.push).toHaveBeenCalledWith("/");
     });
   });
 
-  describe('语言设置', () => {
+  describe("语言设置", () => {
     beforeEach(() => {
       wrapper = mount(SettingsPage, {
         global: {
           stubs: {
-            'a-tabs': true,
-            'a-tab-pane': true,
-            'a-card': true,
-            'a-form': true,
-            'a-form-item': true,
-            'a-select': true,
-            'a-select-option': true,
-            'LLMSettings': true,
-            'TokenUsageTab': true,
-            'GitSettings': true,
-            'RAGSettings': true,
-            'MCPSettings': true,
-            'AdditionalToolsStats': true,
-            'PerformanceDashboard': true,
+            "a-tabs": true,
+            "a-tab-pane": true,
+            "a-card": true,
+            "a-form": true,
+            "a-form-item": true,
+            "a-select": true,
+            "a-select-option": true,
+            LLMSettings: true,
+            TokenUsageTab: true,
+            GitSettings: true,
+            RAGSettings: true,
+            MCPSettings: true,
+            AdditionalToolsStats: true,
+            PerformanceDashboard: true,
           },
         },
       });
     });
 
-    it('应该显示当前语言', () => {
-      expect(wrapper.vm.language).toBe('zh-CN');
+    it("应该显示当前语言", () => {
+      expect(wrapper.vm.language).toBe("zh-CN");
     });
 
-    it('应该支持切换到英文', () => {
-      const { message } = require('ant-design-vue');
+    it("应该支持切换到英文", () => {
+      const { message } = require("ant-design-vue");
 
-      wrapper.vm.handleLanguageChange('en-US');
+      wrapper.vm.handleLanguageChange("en-US");
 
-      expect(mockSetLocale).toHaveBeenCalledWith('en-US');
+      expect(mockSetLocale).toHaveBeenCalledWith("en-US");
       expect(message.success).toHaveBeenCalled();
     });
 
-    it('应该支持切换到日文', () => {
-      const { message } = require('ant-design-vue');
+    it("应该支持切换到日文", () => {
+      const { message } = require("ant-design-vue");
 
-      wrapper.vm.handleLanguageChange('ja-JP');
+      wrapper.vm.handleLanguageChange("ja-JP");
 
-      expect(mockSetLocale).toHaveBeenCalledWith('ja-JP');
+      expect(mockSetLocale).toHaveBeenCalledWith("ja-JP");
       expect(message.success).toHaveBeenCalled();
     });
 
-    it('应该在切换语言时显示成功消息', () => {
-      const { message } = require('ant-design-vue');
+    it("应该在切换语言时显示成功消息", () => {
+      const { message } = require("ant-design-vue");
 
-      wrapper.vm.handleLanguageChange('en-US');
+      wrapper.vm.handleLanguageChange("en-US");
 
       expect(message.success).toHaveBeenCalledWith(
-        expect.stringContaining('common.success')
+        expect.stringContaining("common.success"),
       );
     });
   });
 
-  describe('子组件渲染', () => {
+  describe("子组件渲染", () => {
     beforeEach(() => {
       wrapper = mount(SettingsPage, {
         global: {
           stubs: {
-            'a-tabs': true,
-            'a-tab-pane': true,
-            'a-card': true,
-            'LLMSettings': false, // 不stub，实际渲染
-            'TokenUsageTab': false,
-            'GitSettings': false,
-            'RAGSettings': false,
-            'MCPSettings': false,
-            'AdditionalToolsStats': false,
-            'PerformanceDashboard': false,
+            "a-tabs": true,
+            "a-tab-pane": true,
+            "a-card": true,
+            LLMSettings: false, // 不stub，实际渲染
+            TokenUsageTab: false,
+            GitSettings: false,
+            RAGSettings: false,
+            MCPSettings: false,
+            AdditionalToolsStats: false,
+            PerformanceDashboard: false,
           },
         },
       });
     });
 
-    it('应该渲染LLMSettings组件', async () => {
-      wrapper.vm.activeTab = 'llm';
+    it("应该渲染LLMSettings组件", async () => {
+      wrapper.vm.activeTab = "llm";
       await nextTick();
 
       // LLMSettings组件应该被渲染
-      expect(wrapper.vm.activeTab).toBe('llm');
+      expect(wrapper.vm.activeTab).toBe("llm");
     });
 
-    it('应该渲染TokenUsageTab组件', async () => {
-      wrapper.vm.activeTab = 'token-usage';
+    it("应该渲染TokenUsageTab组件", async () => {
+      wrapper.vm.activeTab = "token-usage";
       await nextTick();
 
-      expect(wrapper.vm.activeTab).toBe('token-usage');
+      expect(wrapper.vm.activeTab).toBe("token-usage");
     });
 
-    it('应该渲染MCPSettings组件', async () => {
-      wrapper.vm.activeTab = 'mcp';
+    it("应该渲染MCPSettings组件", async () => {
+      wrapper.vm.activeTab = "mcp";
       await nextTick();
 
-      expect(wrapper.vm.activeTab).toBe('mcp');
+      expect(wrapper.vm.activeTab).toBe("mcp");
     });
 
-    it('应该渲染GitSettings组件', async () => {
-      wrapper.vm.activeTab = 'git';
+    it("应该渲染GitSettings组件", async () => {
+      wrapper.vm.activeTab = "git";
       await nextTick();
 
-      expect(wrapper.vm.activeTab).toBe('git');
+      expect(wrapper.vm.activeTab).toBe("git");
     });
 
-    it('应该渲染RAGSettings组件', async () => {
-      wrapper.vm.activeTab = 'rag';
+    it("应该渲染RAGSettings组件", async () => {
+      wrapper.vm.activeTab = "rag";
       await nextTick();
 
-      expect(wrapper.vm.activeTab).toBe('rag');
+      expect(wrapper.vm.activeTab).toBe("rag");
     });
 
-    it('应该渲染AdditionalToolsStats组件', async () => {
-      wrapper.vm.activeTab = 'additional-tools-v3';
+    it("应该渲染AdditionalToolsStats组件", async () => {
+      wrapper.vm.activeTab = "additional-tools-v3";
       await nextTick();
 
-      expect(wrapper.vm.activeTab).toBe('additional-tools-v3');
+      expect(wrapper.vm.activeTab).toBe("additional-tools-v3");
     });
 
-    it('应该渲染PerformanceDashboard组件', async () => {
-      wrapper.vm.activeTab = 'performance';
+    it("应该渲染PerformanceDashboard组件", async () => {
+      wrapper.vm.activeTab = "performance";
       await nextTick();
 
-      expect(wrapper.vm.activeTab).toBe('performance');
+      expect(wrapper.vm.activeTab).toBe("performance");
     });
   });
 
-  describe('响应式状态', () => {
+  describe("响应式状态", () => {
     beforeEach(() => {
       wrapper = mount(SettingsPage, {
         global: {
           stubs: {
-            'a-tabs': true,
-            'a-tab-pane': true,
-            'a-card': true,
-            'LLMSettings': true,
-            'TokenUsageTab': true,
-            'GitSettings': true,
-            'RAGSettings': true,
-            'MCPSettings': true,
-            'AdditionalToolsStats': true,
-            'PerformanceDashboard': true,
+            "a-tabs": true,
+            "a-tab-pane": true,
+            "a-card": true,
+            LLMSettings: true,
+            TokenUsageTab: true,
+            GitSettings: true,
+            RAGSettings: true,
+            MCPSettings: true,
+            AdditionalToolsStats: true,
+            PerformanceDashboard: true,
           },
         },
       });
     });
 
-    it('activeTab应该是响应式的', async () => {
-      expect(wrapper.vm.activeTab).toBe('general');
+    it("activeTab应该是响应式的", async () => {
+      expect(wrapper.vm.activeTab).toBe("general");
 
-      wrapper.vm.activeTab = 'llm';
+      wrapper.vm.activeTab = "llm";
       await nextTick();
 
-      expect(wrapper.vm.activeTab).toBe('llm');
+      expect(wrapper.vm.activeTab).toBe("llm");
     });
 
-    it('theme应该是响应式的', async () => {
-      expect(wrapper.vm.theme).toBe('light');
+    it("theme应该是响应式的", async () => {
+      expect(wrapper.vm.theme).toBe("light");
 
-      wrapper.vm.theme = 'dark';
+      wrapper.vm.theme = "dark";
       await nextTick();
 
-      expect(wrapper.vm.theme).toBe('dark');
+      expect(wrapper.vm.theme).toBe("dark");
     });
 
-    it('language应该是响应式的', async () => {
-      expect(wrapper.vm.language).toBe('zh-CN');
+    it("language应该是响应式的", async () => {
+      expect(wrapper.vm.language).toBe("zh-CN");
 
-      wrapper.vm.language = 'en-US';
+      wrapper.vm.language = "en-US";
       await nextTick();
 
-      expect(wrapper.vm.language).toBe('en-US');
+      expect(wrapper.vm.language).toBe("en-US");
     });
 
-    it('openOnStartup应该是响应式的', async () => {
+    it("openOnStartup应该是响应式的", async () => {
       expect(wrapper.vm.openOnStartup).toBe(false);
 
       wrapper.vm.openOnStartup = true;
@@ -877,7 +894,7 @@ describe('SettingsPage', () => {
       expect(wrapper.vm.openOnStartup).toBe(true);
     });
 
-    it('minimizeToTray应该是响应式的', async () => {
+    it("minimizeToTray应该是响应式的", async () => {
       expect(wrapper.vm.minimizeToTray).toBe(true);
 
       wrapper.vm.minimizeToTray = false;
@@ -886,7 +903,7 @@ describe('SettingsPage', () => {
       expect(wrapper.vm.minimizeToTray).toBe(false);
     });
 
-    it('performanceDashboardVisible应该是响应式的', async () => {
+    it("performanceDashboardVisible应该是响应式的", async () => {
       expect(wrapper.vm.performanceDashboardVisible).toBe(false);
 
       wrapper.vm.performanceDashboardVisible = true;
@@ -896,72 +913,72 @@ describe('SettingsPage', () => {
     });
   });
 
-  describe('边界情况', () => {
-    it('应该处理缺少query参数的路由', () => {
+  describe("边界情况", () => {
+    it("应该处理缺少query参数的路由", () => {
       mockRouter.currentRoute.value.query = undefined;
 
       wrapper = mount(SettingsPage, {
         global: {
           stubs: {
-            'a-tabs': true,
-            'a-tab-pane': true,
-            'a-card': true,
-            'LLMSettings': true,
-            'TokenUsageTab': true,
-            'GitSettings': true,
-            'RAGSettings': true,
-            'MCPSettings': true,
-            'AdditionalToolsStats': true,
-            'PerformanceDashboard': true,
+            "a-tabs": true,
+            "a-tab-pane": true,
+            "a-card": true,
+            LLMSettings: true,
+            TokenUsageTab: true,
+            GitSettings: true,
+            RAGSettings: true,
+            MCPSettings: true,
+            AdditionalToolsStats: true,
+            PerformanceDashboard: true,
           },
         },
       });
 
-      expect(wrapper.vm.activeTab).toBe('general');
+      expect(wrapper.vm.activeTab).toBe("general");
     });
 
-    it('应该处理无效的tab参数', () => {
-      mockRouter.currentRoute.value.query = { tab: 'invalid-tab' };
+    it("应该处理无效的tab参数", () => {
+      mockRouter.currentRoute.value.query = { tab: "invalid-tab" };
 
       wrapper = mount(SettingsPage, {
         global: {
           stubs: {
-            'a-tabs': true,
-            'a-tab-pane': true,
-            'a-card': true,
-            'LLMSettings': true,
-            'TokenUsageTab': true,
-            'GitSettings': true,
-            'RAGSettings': true,
-            'MCPSettings': true,
-            'AdditionalToolsStats': true,
-            'PerformanceDashboard': true,
+            "a-tabs": true,
+            "a-tab-pane": true,
+            "a-card": true,
+            LLMSettings: true,
+            TokenUsageTab: true,
+            GitSettings: true,
+            RAGSettings: true,
+            MCPSettings: true,
+            AdditionalToolsStats: true,
+            PerformanceDashboard: true,
           },
         },
       });
 
-      expect(wrapper.vm.activeTab).toBe('invalid-tab');
+      expect(wrapper.vm.activeTab).toBe("invalid-tab");
     });
 
-    it('应该处理未定义的ukeyStatus', () => {
+    it("应该处理未定义的ukeyStatus", () => {
       mockAppStore.ukeyStatus = undefined;
 
       wrapper = mount(SettingsPage, {
         global: {
           stubs: {
-            'a-tabs': true,
-            'a-tab-pane': true,
-            'a-card': true,
-            'a-descriptions': true,
-            'a-descriptions-item': true,
-            'a-tag': true,
-            'LLMSettings': true,
-            'TokenUsageTab': true,
-            'GitSettings': true,
-            'RAGSettings': true,
-            'MCPSettings': true,
-            'AdditionalToolsStats': true,
-            'PerformanceDashboard': true,
+            "a-tabs": true,
+            "a-tab-pane": true,
+            "a-card": true,
+            "a-descriptions": true,
+            "a-descriptions-item": true,
+            "a-tag": true,
+            LLMSettings: true,
+            TokenUsageTab: true,
+            GitSettings: true,
+            RAGSettings: true,
+            MCPSettings: true,
+            AdditionalToolsStats: true,
+            PerformanceDashboard: true,
           },
         },
       });
@@ -969,22 +986,22 @@ describe('SettingsPage', () => {
       expect(wrapper.vm).toBeDefined();
     });
 
-    it('应该处理空的supportedLanguages', () => {
-      const { supportedLocales } = require('../locales');
+    it("应该处理空的supportedLanguages", () => {
+      const { supportedLocales } = require("../locales");
 
       wrapper = mount(SettingsPage, {
         global: {
           stubs: {
-            'a-tabs': true,
-            'a-tab-pane': true,
-            'a-card': true,
-            'LLMSettings': true,
-            'TokenUsageTab': true,
-            'GitSettings': true,
-            'RAGSettings': true,
-            'MCPSettings': true,
-            'AdditionalToolsStats': true,
-            'PerformanceDashboard': true,
+            "a-tabs": true,
+            "a-tab-pane": true,
+            "a-card": true,
+            LLMSettings: true,
+            TokenUsageTab: true,
+            GitSettings: true,
+            RAGSettings: true,
+            MCPSettings: true,
+            AdditionalToolsStats: true,
+            PerformanceDashboard: true,
           },
         },
       });
@@ -993,19 +1010,19 @@ describe('SettingsPage', () => {
     });
   });
 
-  describe('所有标签页可访问性', () => {
+  describe("所有标签页可访问性", () => {
     const tabs = [
-      'general',
-      'llm',
-      'token-usage',
-      'mcp',
-      'git',
-      'rag',
-      'ukey',
-      'database',
-      'additional-tools-v3',
-      'performance',
-      'about',
+      "general",
+      "llm",
+      "token-usage",
+      "mcp",
+      "git",
+      "rag",
+      "ukey",
+      "database",
+      "additional-tools-v3",
+      "performance",
+      "about",
     ];
 
     tabs.forEach((tab) => {
@@ -1013,16 +1030,16 @@ describe('SettingsPage', () => {
         wrapper = mount(SettingsPage, {
           global: {
             stubs: {
-              'a-tabs': true,
-              'a-tab-pane': true,
-              'a-card': true,
-              'LLMSettings': true,
-              'TokenUsageTab': true,
-              'GitSettings': true,
-              'RAGSettings': true,
-              'MCPSettings': true,
-              'AdditionalToolsStats': true,
-              'PerformanceDashboard': true,
+              "a-tabs": true,
+              "a-tab-pane": true,
+              "a-card": true,
+              LLMSettings: true,
+              TokenUsageTab: true,
+              GitSettings: true,
+              RAGSettings: true,
+              MCPSettings: true,
+              AdditionalToolsStats: true,
+              PerformanceDashboard: true,
             },
           },
         });

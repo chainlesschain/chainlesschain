@@ -51,7 +51,9 @@ vi.mock("fs", () => ({
 // Mock crypto module
 vi.mock("crypto", () => ({
   publicEncrypt: vi.fn((key, data) => Buffer.from("encrypted-" + data)),
-  publicDecrypt: vi.fn((key, data) => Buffer.from(data.toString().replace("encrypted-", ""))),
+  publicDecrypt: vi.fn((key, data) =>
+    Buffer.from(data.toString().replace("encrypted-", "")),
+  ),
   createVerify: vi.fn(() => ({
     update: vi.fn(),
     verify: vi.fn(() => true),
@@ -64,15 +66,22 @@ vi.mock("child_process", () => ({
     // Simulate pkcs11-tool commands
     if (cmd.includes("--list-slots")) {
       callback(null, {
-        stdout: "Available slots:\nSlot 0 (0x0): Test Token\n  token label: TestToken\n  token serial: 12345678",
+        stdout:
+          "Available slots:\nSlot 0 (0x0): Test Token\n  token label: TestToken\n  token serial: 12345678",
         stderr: "",
       });
     } else if (cmd.includes("--login") && cmd.includes("--pin")) {
       callback(null, { stdout: "Logged in successfully", stderr: "" });
     } else if (cmd.includes("--read-object")) {
-      callback(null, { stdout: Buffer.from("mock-public-key").toString("hex"), stderr: "" });
+      callback(null, {
+        stdout: Buffer.from("mock-public-key").toString("hex"),
+        stderr: "",
+      });
     } else if (cmd.includes("--sign")) {
-      callback(null, { stdout: Buffer.from("mock-signature").toString("hex"), stderr: "" });
+      callback(null, {
+        stdout: Buffer.from("mock-signature").toString("hex"),
+        stderr: "",
+      });
     } else {
       callback(null, { stdout: "", stderr: "" });
     }
@@ -109,20 +118,28 @@ const mockPKCS11Instance = {
   C_FindObjectsFinal: vi.fn(),
   C_GetAttributeValue: vi.fn((session, handle, attrs) => {
     // Mock different attributes based on request
-    if (attrs.some(a => a.type === 0x00000120)) { // CKA_MODULUS
-      return [{
-        type: 0x00000120,
-        value: Buffer.alloc(256).fill(0x01),
-      }, {
-        type: 0x00000122, // CKA_PUBLIC_EXPONENT
-        value: Buffer.from([0x01, 0x00, 0x01]),
-      }];
+    if (attrs.some((a) => a.type === 0x00000120)) {
+      // CKA_MODULUS
+      return [
+        {
+          type: 0x00000120,
+          value: Buffer.alloc(256).fill(0x01),
+        },
+        {
+          type: 0x00000122, // CKA_PUBLIC_EXPONENT
+          value: Buffer.from([0x01, 0x00, 0x01]),
+        },
+      ];
     }
-    return attrs.map(a => ({ ...a, value: Buffer.from("test") }));
+    return attrs.map((a) => ({ ...a, value: Buffer.from("test") }));
   }),
-  C_Sign: vi.fn((session, data) => Buffer.from("mock-signature-" + data.toString("hex").substring(0, 10))),
+  C_Sign: vi.fn((session, data) =>
+    Buffer.from("mock-signature-" + data.toString("hex").substring(0, 10)),
+  ),
   C_Verify: vi.fn(() => true),
-  C_Encrypt: vi.fn((session, data) => Buffer.from("encrypted-" + data.toString())),
+  C_Encrypt: vi.fn((session, data) =>
+    Buffer.from("encrypted-" + data.toString()),
+  ),
   C_Decrypt: vi.fn((session, data) => {
     const str = data.toString();
     return Buffer.from(str.replace("encrypted-", ""));
@@ -217,17 +234,24 @@ describe("PKCS11Driver", () => {
       });
 
       const newDriver = new PKCS11Driver();
-      expect(newDriver.libraryPath).toBe("/Library/OpenSC/lib/opensc-pkcs11.so");
+      expect(newDriver.libraryPath).toBe(
+        "/Library/OpenSC/lib/opensc-pkcs11.so",
+      );
     });
 
     it("should search Windows paths", () => {
       mockPlatform.mockImplementation(() => "win32");
       mockExistsSync.mockImplementation((path) => {
-        return path === "C:\\Program Files\\OpenSC Project\\OpenSC\\pkcs11\\opensc-pkcs11.dll";
+        return (
+          path ===
+          "C:\\Program Files\\OpenSC Project\\OpenSC\\pkcs11\\opensc-pkcs11.dll"
+        );
       });
 
       const newDriver = new PKCS11Driver();
-      expect(newDriver.libraryPath).toBe("C:\\Program Files\\OpenSC Project\\OpenSC\\pkcs11\\opensc-pkcs11.dll");
+      expect(newDriver.libraryPath).toBe(
+        "C:\\Program Files\\OpenSC Project\\OpenSC\\pkcs11\\opensc-pkcs11.dll",
+      );
     });
 
     it("should return first path as default if none found", () => {
@@ -939,7 +963,10 @@ describe("PKCS11Driver", () => {
     it("should handle macOS eToken library", () => {
       mockPlatform.mockReturnValue("darwin");
       mockExistsSync.mockImplementation((path) => {
-        return path === "/Library/Frameworks/eToken.framework/Versions/Current/libeToken.dylib";
+        return (
+          path ===
+          "/Library/Frameworks/eToken.framework/Versions/Current/libeToken.dylib"
+        );
       });
 
       const macDriver = new PKCS11Driver();
