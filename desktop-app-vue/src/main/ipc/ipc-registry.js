@@ -886,6 +886,57 @@ function registerAllIPC(dependencies) {
 
     // System IPC already registered early (line 299-303)
 
+    // ============================================================
+    // 第九阶段模块 (工作流系统)
+    // ============================================================
+
+    // 工作流管道 (函数模式 - 中等模块，14 handlers)
+    logger.info("[IPC Registry] Registering Workflow IPC...");
+    try {
+      const { registerWorkflowIPC } = require("../workflow/workflow-ipc");
+      const { WorkflowManager } = require("../workflow/workflow-pipeline");
+      const ProgressEmitter = require("../utils/progress-emitter");
+
+      // 创建工作流管理器
+      const progressEmitter = new ProgressEmitter({
+        autoForwardToIPC: true,
+        throttleInterval: 100,
+      });
+
+      if (mainWindow) {
+        progressEmitter.setMainWindow(mainWindow);
+      }
+
+      const workflowManager = new WorkflowManager({
+        progressEmitter,
+        llmService: llmManager,
+      });
+
+      if (mainWindow) {
+        workflowManager.setMainWindow(mainWindow);
+      }
+
+      // 保存到 app 实例以便后续使用
+      if (app) {
+        app.workflowManager = workflowManager;
+        app.workflowProgressEmitter = progressEmitter;
+      }
+
+      const workflowIPC = registerWorkflowIPC({ workflowManager });
+      if (workflowIPC) {
+        registeredModules.workflowIPC = workflowIPC;
+      }
+      logger.info("[IPC Registry] ✓ Workflow IPC registered (14 handlers)");
+    } catch (workflowError) {
+      logger.error(
+        "[IPC Registry] ❌ Workflow IPC registration failed:",
+        workflowError.message,
+      );
+      logger.info(
+        "[IPC Registry] ⚠️  Continuing with other IPC registrations...",
+      );
+    }
+
     logger.info("[IPC Registry] ========================================");
     logger.info(
       "[IPC Registry] Phase 8 Complete: 20 modules migrated (176 handlers)!",

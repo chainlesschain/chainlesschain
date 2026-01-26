@@ -555,6 +555,19 @@ const routes = [
         component: () => import("../pages/AIPromptsPage.vue"),
         meta: { title: "AI助手" },
       },
+      // ===== 工作流监控 =====
+      {
+        path: "workflow",
+        name: "WorkflowMonitor",
+        component: () => import("../pages/WorkflowMonitorPage.vue"),
+        meta: { title: "工作流监控" },
+      },
+      {
+        path: "workflow/:id",
+        name: "WorkflowDetail",
+        component: () => import("../pages/WorkflowMonitorPage.vue"),
+        meta: { title: "工作流详情" },
+      },
       // Web IDE
       {
         path: "webide",
