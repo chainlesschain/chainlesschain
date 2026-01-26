@@ -115,8 +115,8 @@ public class TransactionManager: ObservableObject {
         gasPrice: String? = nil,
         chain: SupportedChain? = nil
     ) async throws -> TransactionRecord {
-        let activeChain = chain ?? chainManager.activeChain
-        let config = NetworkConfig.config(for: activeChain)
+        let activeChain = chain ?? chainManager.currentChain
+        let config = chainManager.getConfig(for: activeChain)
 
         // 获取nonce
         let nonce = try await getNonce(address: wallet.address, chain: activeChain)
@@ -142,16 +142,21 @@ public class TransactionManager: ObservableObject {
             nonce: nonce
         )
 
+        // 获取已解锁的私钥
+        guard let privateKey = walletManager.getUnlockedPrivateKey(walletId: wallet.id) else {
+            throw TransactionError.walletLocked
+        }
+
         // 签名交易
         let signedTx = try WalletCoreAdapter.signTransaction(
-            wallet: wallet,
+            privateKey: privateKey,
             to: to,
             amount: value,
             gasLimit: estimatedGasLimit,
             gasPrice: estimatedGasPrice,
             nonce: nonce,
             data: nil,
-            chainId: activeChain.chainId
+            chainId: activeChain.rawValue
         )
 
         // 发送交易
@@ -209,8 +214,8 @@ public class TransactionManager: ObservableObject {
         txType: TransactionType,
         chain: SupportedChain? = nil
     ) async throws -> TransactionRecord {
-        let activeChain = chain ?? chainManager.activeChain
-        let config = NetworkConfig.config(for: activeChain)
+        let activeChain = chain ?? chainManager.currentChain
+        let config = chainManager.getConfig(for: activeChain)
 
         // 获取nonce
         let nonce = try await getNonce(address: wallet.address, chain: activeChain)
@@ -226,16 +231,21 @@ public class TransactionManager: ObservableObject {
 
         let estimatedGasPrice = gasPrice ?? try await getGasPrice(chain: activeChain)
 
+        // 获取已解锁的私钥
+        guard let privateKey = walletManager.getUnlockedPrivateKey(walletId: wallet.id) else {
+            throw TransactionError.walletLocked
+        }
+
         // 签名交易
         let signedTx = try WalletCoreAdapter.signTransaction(
-            wallet: wallet,
+            privateKey: privateKey,
             to: contractAddress,
             amount: value,
             gasLimit: estimatedGasLimit,
             gasPrice: estimatedGasPrice,
             nonce: nonce,
             data: data,
-            chainId: activeChain.chainId
+            chainId: activeChain.rawValue
         )
 
         // 发送交易
@@ -718,6 +728,7 @@ public enum TransactionError: Error, LocalizedError {
     case gasEstimationFailed
     case transactionFailed
     case receiptNotFound
+    case walletLocked
 
     public var errorDescription: String? {
         switch self {
@@ -733,6 +744,8 @@ public enum TransactionError: Error, LocalizedError {
             return "交易执行失败"
         case .receiptNotFound:
             return "交易收据未找到"
+        case .walletLocked:
+            return "钱包已锁定，请先解锁钱包"
         }
     }
 }
