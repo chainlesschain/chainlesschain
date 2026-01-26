@@ -364,7 +364,18 @@ class ProjectViewModel @Inject constructor(
         type: String = ProjectType.OTHER,
         tags: List<String>? = null
     ) {
-        val userId = _currentUserId.value ?: return
+        val userId = _currentUserId.value
+
+        // 添加日志和错误处理
+        Log.d(TAG, "createProject called. userId=$userId, name=$name")
+
+        if (userId == null) {
+            Log.e(TAG, "Cannot create project: userId is null")
+            viewModelScope.launch {
+                _uiEvents.emit(ProjectUiEvent.ShowError("请先登录"))
+            }
+            return
+        }
 
         viewModelScope.launch {
             _isLoading.value = true

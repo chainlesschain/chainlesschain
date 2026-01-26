@@ -33,6 +33,10 @@ dependencies {
     // AndroidX
     api("androidx.core:core-ktx:1.12.0")
 
+    // Lifecycle
+    api("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
+    api("androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0")
+
     // Timber
     api("com.jakewharton.timber:timber:5.0.1")
 

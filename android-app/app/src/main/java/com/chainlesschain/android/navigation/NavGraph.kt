@@ -101,7 +101,7 @@ fun NavGraph(
                     navController.navigate(Screen.UserProfile.createRoute(did))
                 },
                 onNavigateToComment = { commentId ->
-                    // TODO: 实现评论详情页导航
+                    navController.navigate(Screen.CommentDetail.createRoute(commentId))
                 },
                 onNavigateToLLMSettings = {
                     navController.navigate(Screen.LLMSettings.route)
@@ -389,7 +389,7 @@ fun NavGraph(
             )
         }
 
-        // 好友详情页面（占位）
+        // 好友详情页面
         composable(
             route = "${Screen.FriendDetail.route}/{did}",
             arguments = listOf(
@@ -397,16 +397,21 @@ fun NavGraph(
             )
         ) { backStackEntry ->
             val did = backStackEntry.arguments?.getString("did") ?: return@composable
-            PlaceholderScreen(
-                title = "好友详情",
-                message = "好友详情页面开发中...",
+            com.chainlesschain.android.feature.p2p.ui.social.FriendDetailScreen(
                 onNavigateBack = {
                     navController.popBackStack()
+                },
+                onNavigateToPost = { postId ->
+                    navController.navigate(Screen.PostDetail.createRoute(postId))
+                },
+                onNavigateToChat = { did ->
+                    // TODO: Navigate to P2P chat when implemented
+                    navController.navigate(Screen.ConversationList.route)
                 }
             )
         }
 
-        // 用户资料页面（占位）
+        // 用户资料页面
         composable(
             route = "${Screen.UserProfile.route}/{did}",
             arguments = listOf(
@@ -414,22 +419,43 @@ fun NavGraph(
             )
         ) { backStackEntry ->
             val did = backStackEntry.arguments?.getString("did") ?: return@composable
-            PlaceholderScreen(
-                title = "用户资料",
-                message = "用户资料页面开发中...",
+            com.chainlesschain.android.feature.p2p.ui.social.UserProfileScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onNavigateToPost = { postId ->
+                    navController.navigate(Screen.PostDetail.createRoute(postId))
+                },
+                onNavigateToChat = { did ->
+                    // TODO: Navigate to P2P chat when implemented
+                    navController.navigate(Screen.ConversationList.route)
+                }
+            )
+        }
+
+        // 添加好友页面
+        composable(route = Screen.AddFriend.route) {
+            com.chainlesschain.android.feature.p2p.ui.social.AddFriendScreen(
                 onNavigateBack = {
                     navController.popBackStack()
                 }
             )
         }
 
-        // 添加好友页面（占位）
-        composable(route = Screen.AddFriend.route) {
-            PlaceholderScreen(
-                title = "添加好友",
-                message = "添加好友功能开发中...",
+        // 评论详情页面
+        composable(
+            route = "${Screen.CommentDetail.route}/{commentId}",
+            arguments = listOf(
+                navArgument("commentId") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val commentId = backStackEntry.arguments?.getString("commentId") ?: return@composable
+            com.chainlesschain.android.feature.p2p.ui.social.CommentDetailScreen(
                 onNavigateBack = {
                     navController.popBackStack()
+                },
+                onNavigateToUserProfile = { did ->
+                    navController.navigate(Screen.UserProfile.createRoute(did))
                 }
             )
         }
@@ -486,6 +512,9 @@ sealed class Screen(val route: String) {
         fun createRoute(did: String) = "user_profile/$did"
     }
     data object AddFriend : Screen("add_friend")
+    data object CommentDetail : Screen("comment_detail") {
+        fun createRoute(commentId: String) = "comment_detail/$commentId"
+    }
 }
 
 /**

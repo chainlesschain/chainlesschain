@@ -5,6 +5,7 @@ plugins {
     id("com.google.dagger.hilt.android")
     id("com.google.devtools.ksp")
     id("io.gitlab.arturbosch.detekt") version "1.23.4"
+    jacoco
 }
 
 android {
@@ -19,6 +20,7 @@ android {
         versionName = "0.26.2"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunnerArguments["clearPackageData"] = "true"
 
         vectorDrawables {
             useSupportLibrary = true
@@ -97,6 +99,15 @@ android {
         }
     }
 
+    testOptions {
+        execution = "ANDROIDX_TEST_ORCHESTRATOR"
+        animationsDisabled = true
+        unitTests {
+            isIncludeAndroidResources = true
+            isReturnDefaultValues = true
+        }
+    }
+
     lint {
         // Don't abort build on lint errors during Stage 1 development
         abortOnError = false
@@ -114,6 +125,47 @@ android {
             "ObsoleteLintCustomCheck"  // Custom lint check warnings
         )
     }
+}
+
+// JaCoCo configuration for code coverage
+jacoco {
+    toolVersion = "0.8.11"
+}
+
+tasks.register<JacocoReport>("jacocoE2ETestReport") {
+    dependsOn("connectedDebugAndroidTest")
+
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+        html.outputLocation.set(layout.buildDirectory.dir("reports/jacoco/jacocoE2ETestReport"))
+    }
+
+    val fileFilter = listOf(
+        "**/R.class",
+        "**/R\$*.class",
+        "**/BuildConfig.*",
+        "**/Manifest*.*",
+        "**/*Test*.*",
+        "android/**/*.*",
+        "**/data/model/*",
+        "**/di/*",
+        "**/*_Factory*",
+        "**/*_HiltModules*",
+        "**/*_Provide*"
+    )
+
+    val debugTree = fileTree("${project.layout.buildDirectory.get()}/tmp/kotlin-classes/debug") {
+        exclude(fileFilter)
+    }
+
+    val mainSrc = "${project.projectDir}/src/main/java"
+
+    sourceDirectories.setFrom(files(mainSrc))
+    classDirectories.setFrom(files(debugTree))
+    executionData.setFrom(fileTree(project.layout.buildDirectory) {
+        include("outputs/code_coverage/debugAndroidTest/connected/**/*.ec")
+    })
 }
 
 configurations.all {
@@ -185,15 +237,26 @@ dependencies {
     // Baseline Profile
     implementation("androidx.profileinstaller:profileinstaller:1.3.1")
 
+    // Jsoup for HTML parsing (link preview)
+    implementation("org.jsoup:jsoup:1.17.2")
+
     // Testing
     testImplementation("junit:junit:4.13.2")
     testImplementation("io.mockk:mockk:1.13.9")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
+    testImplementation("app.cash.turbine:turbine:1.0.0")
 
     androidTestImplementation(composeBom)
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
+    androidTestImplementation("com.squareup.okhttp3:mockwebserver:4.12.0")
+    androidTestImplementation("androidx.test:runner:1.5.2")
+    androidTestImplementation("androidx.test:orchestrator:1.4.2")
+    androidTestImplementation("io.mockk:mockk-android:1.13.9")
+    androidTestImplementation("app.cash.turbine:turbine:1.0.0")
+
+    androidTestUtil("androidx.test:orchestrator:1.4.2")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")

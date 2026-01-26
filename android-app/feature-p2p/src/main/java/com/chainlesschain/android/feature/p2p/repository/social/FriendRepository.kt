@@ -5,6 +5,7 @@ import com.chainlesschain.android.core.database.dao.social.FriendDao
 import com.chainlesschain.android.core.database.entity.social.FriendEntity
 import com.chainlesschain.android.core.database.entity.social.FriendGroupEntity
 import com.chainlesschain.android.core.database.entity.social.FriendStatus
+import com.chainlesschain.android.core.database.entity.social.BlockedUserEntity
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
@@ -78,6 +79,61 @@ class FriendRepository @Inject constructor(
         return friendDao.searchFriends(query)
             .map { Result.Success(it) }
             .catch { emit(Result.Error(it)) }
+    }
+
+    /**
+     * 根据 DID 精确搜索用户（用于添加好友）
+     *
+     * @param did 用户DID
+     * @return 用户搜索结果，如果未找到则返回 null
+     */
+    suspend fun searchUserByDid(did: String): Result<com.chainlesschain.android.feature.p2p.viewmodel.social.UserSearchResult?> {
+        return try {
+            // 先在本地好友中查找
+            val friend = friendDao.getFriendByDid(did)
+            if (friend != null) {
+                val searchResult = com.chainlesschain.android.feature.p2p.viewmodel.social.UserSearchResult(
+                    did = friend.did,
+                    nickname = friend.nickname,
+                    avatar = friend.avatar,
+                    bio = friend.bio,
+                    isFriend = friend.status == FriendStatus.ACCEPTED
+                )
+                return Result.Success(searchResult)
+            }
+
+            // TODO: 如果本地没有，则通过 P2P 网络或后端 API 查询
+            // 这里暂时返回 null
+            Result.Success(null)
+        } catch (e: Exception) {
+            Result.Error(e)
+        }
+    }
+
+    /**
+     * 获取附近的人（通过 P2P 发现）
+     *
+     * @return 附近用户的列表
+     */
+    fun getNearbyUsers(): Flow<Result<List<com.chainlesschain.android.feature.p2p.viewmodel.social.UserSearchResult>>> {
+        // TODO: 集成 P2P 发现服务
+        // 暂时返回空列表
+        return kotlinx.coroutines.flow.flow {
+            emit(Result.Success(emptyList()))
+        }.catch { emit(Result.Error(it)) }
+    }
+
+    /**
+     * 获取推荐好友（基于共同好友、兴趣等）
+     *
+     * @return 推荐好友列表
+     */
+    fun getRecommendedFriends(): Flow<Result<List<com.chainlesschain.android.feature.p2p.viewmodel.social.UserSearchResult>>> {
+        // TODO: 实现推荐算法
+        // 暂时返回空列表
+        return kotlinx.coroutines.flow.flow {
+            emit(Result.Success(emptyList()))
+        }.catch { emit(Result.Error(it)) }
     }
 
     /**
@@ -362,6 +418,64 @@ class FriendRepository @Inject constructor(
     suspend fun getFriendCountInGroup(groupId: String): Result<Int> {
         return try {
             Result.Success(friendDao.getFriendCountInGroup(groupId))
+        } catch (e: Exception) {
+            Result.Error(e)
+        }
+    }
+
+    // ===== 屏蔽用户管理 =====
+
+    /**
+     * 屏蔽用户（创建屏蔽记录）
+     *
+     * @param myDid 当前用户DID
+     * @param targetDid 要屏蔽的用户DID
+     * @param reason 屏蔽原因
+     */
+    suspend fun blockUser(myDid: String, targetDid: String, reason: String? = null): Result<Unit> {
+        return try {
+            // 同时更新好友表的屏蔽状态
+            blockFriend(targetDid)
+
+            // TODO: 创建BlockedUserEntity记录
+            // val blockedUser = BlockedUserEntity(
+            //     id = "block_${System.currentTimeMillis()}",
+            //     blockerDid = myDid,
+            //     blockedDid = targetDid,
+            //     reason = reason,
+            //     createdAt = System.currentTimeMillis()
+            // )
+            // friendDao.insertBlockedUser(blockedUser)
+
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            Result.Error(e)
+        }
+    }
+
+    /**
+     * 获取屏蔽用户列表
+     *
+     * @param myDid 当前用户DID
+     */
+    fun getBlockedUsersList(myDid: String): Flow<Result<List<BlockedUserEntity>>> {
+        // TODO: 实现从DAO获取
+        return kotlinx.coroutines.flow.flow {
+            emit(Result.Success(emptyList()))
+        }.catch { emit(Result.Error(it)) }
+    }
+
+    /**
+     * 检查用户是否被屏蔽
+     *
+     * @param myDid 当前用户DID
+     * @param targetDid 目标用户DID
+     */
+    suspend fun isUserBlocked(myDid: String, targetDid: String): Result<Boolean> {
+        return try {
+            // 先检查好友表
+            val friend = friendDao.getFriendByDid(targetDid)
+            Result.Success(friend?.isBlocked == true)
         } catch (e: Exception) {
             Result.Error(e)
         }

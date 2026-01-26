@@ -7,6 +7,8 @@ import com.chainlesschain.android.core.database.entity.social.PostEntity
 import com.chainlesschain.android.core.database.entity.social.PostCommentEntity
 import com.chainlesschain.android.core.database.entity.social.PostLikeEntity
 import com.chainlesschain.android.core.database.entity.social.PostShareEntity
+import com.chainlesschain.android.core.database.entity.social.PostReportEntity
+import com.chainlesschain.android.core.database.entity.social.ReportReason
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
@@ -298,6 +300,15 @@ class PostRepository @Inject constructor(
     }
 
     /**
+     * 根据 ID 观察评论
+     */
+    fun observeCommentById(commentId: String): Flow<Result<PostCommentEntity?>> {
+        return interactionDao.observeCommentById(commentId)
+            .map { Result.Success(it) }
+            .catch { emit(Result.Error(it)) }
+    }
+
+    /**
      * 发表评论
      */
     suspend fun addComment(comment: PostCommentEntity): Result<Unit> {
@@ -399,6 +410,56 @@ class PostRepository @Inject constructor(
         } catch (e: Exception) {
             Result.Error(e)
         }
+    }
+
+    // ===== 举报管理 =====
+
+    /**
+     * 举报动态
+     *
+     * @param postId 动态ID
+     * @param reporterDid 举报人DID
+     * @param reason 举报原因
+     * @param description 详细描述
+     */
+    suspend fun reportPost(
+        postId: String,
+        reporterDid: String,
+        reason: ReportReason,
+        description: String? = null
+    ): Result<Unit> {
+        return try {
+            val report = PostReportEntity(
+                id = "report_${System.currentTimeMillis()}",
+                postId = postId,
+                reporterDid = reporterDid,
+                reason = reason,
+                description = description,
+                createdAt = System.currentTimeMillis()
+            )
+
+            // TODO: 添加到数据库
+            // interactionDao.insertReport(report)
+
+            // 发送到后端审核（如果有）
+            syncAdapter.get().syncReportSubmitted(report)
+
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            Result.Error(e)
+        }
+    }
+
+    /**
+     * 获取用户的举报记录
+     *
+     * @param reporterDid 举报人DID
+     */
+    fun getUserReports(reporterDid: String): Flow<Result<List<PostReportEntity>>> {
+        // TODO: 实现从DAO获取
+        return kotlinx.coroutines.flow.flow {
+            emit(Result.Success(emptyList()))
+        }.catch { emit(Result.Error(it)) }
     }
 
     // ===== 清理操作 =====

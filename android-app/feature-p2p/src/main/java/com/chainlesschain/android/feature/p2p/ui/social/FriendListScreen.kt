@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.chainlesschain.android.core.ui.components.EmptyState
 import com.chainlesschain.android.core.ui.components.LoadingState
+import com.chainlesschain.android.core.ui.components.RemarkNameDialog
 import com.chainlesschain.android.feature.p2p.ui.social.components.FriendCard
 import com.chainlesschain.android.feature.p2p.ui.social.components.FriendRequestCard
 import com.chainlesschain.android.feature.p2p.viewmodel.social.FriendEvent
@@ -36,6 +37,8 @@ fun FriendListScreen(
     var showGroupDialog by remember { mutableStateOf(false) }
     var showSearchBar by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
+    var showRemarkDialog by remember { mutableStateOf(false) }
+    var remarkFriend by remember { mutableStateOf<com.chainlesschain.android.core.database.entity.social.FriendEntity?>(null) }
 
     // 收集事件
     LaunchedEffect(Unit) {
@@ -294,7 +297,8 @@ fun FriendListScreen(
                     leadingContent = { Icon(Icons.Default.Edit, contentDescription = null) },
                     modifier = Modifier.clickable {
                         viewModel.hideFriendMenu()
-                        // TODO: 显示备注名对话框
+                        remarkFriend = friend
+                        showRemarkDialog = true
                     }
                 )
                 ListItem(
@@ -335,6 +339,23 @@ fun FriendListScreen(
                 }
             }
         }
+    }
+
+    // 备注名对话框
+    if (showRemarkDialog && remarkFriend != null) {
+        RemarkNameDialog(
+            currentRemarkName = remarkFriend!!.remarkName,
+            originalNickname = remarkFriend!!.nickname,
+            onDismiss = {
+                showRemarkDialog = false
+                remarkFriend = null
+            },
+            onConfirm = { newRemarkName ->
+                viewModel.updateRemarkName(remarkFriend!!.did, newRemarkName)
+                showRemarkDialog = false
+                remarkFriend = null
+            }
+        )
     }
 }
 
