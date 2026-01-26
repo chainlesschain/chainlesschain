@@ -36,7 +36,8 @@ object DatabaseMigrations {
             MIGRATION_12_13,
             MIGRATION_13_14,
             MIGRATION_14_15,
-            MIGRATION_15_16
+            MIGRATION_15_16,
+            MIGRATION_16_17
         )
     }
 
@@ -857,6 +858,43 @@ object DatabaseMigrations {
             db.execSQL("CREATE INDEX IF NOT EXISTS `index_post_edit_history_postId_editedAt` ON `post_edit_history` (`postId`, `editedAt`)")
 
             Log.i(TAG, "Migration 15 to 16 completed successfully")
+        }
+    }
+
+    /**
+     * 迁移 16 -> 17
+     *
+     * 添加通话历史记录表
+     */
+    val MIGRATION_16_17 = object : Migration(16, 17) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            Log.i(TAG, "Migrating database from version 16 to 17")
+
+            // 创建 call_history 表
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS `call_history` (
+                    `id` TEXT NOT NULL PRIMARY KEY,
+                    `peer_did` TEXT NOT NULL,
+                    `peer_name` TEXT NOT NULL,
+                    `peer_avatar` TEXT,
+                    `call_type` TEXT NOT NULL,
+                    `media_type` TEXT NOT NULL,
+                    `start_time` INTEGER NOT NULL,
+                    `end_time` INTEGER,
+                    `duration` INTEGER NOT NULL DEFAULT 0,
+                    `status` TEXT NOT NULL DEFAULT 'COMPLETED',
+                    `failure_reason` TEXT,
+                    `created_at` INTEGER NOT NULL
+                )
+            """.trimIndent())
+
+            // 创建 call_history 索引
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_call_history_peer_did` ON `call_history` (`peer_did`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_call_history_start_time` ON `call_history` (`start_time`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_call_history_call_type` ON `call_history` (`call_type`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_call_history_media_type` ON `call_history` (`media_type`)")
+
+            Log.i(TAG, "Migration 16 to 17 completed successfully")
         }
     }
 
