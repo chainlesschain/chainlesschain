@@ -34,10 +34,6 @@ export default defineConfig({
       '**/pkcs11-encryption.test.js',
       // Video engine tests require real ffmpeg binary and video files (integration test)
       '**/tests/unit/video-engine.test.js',
-      // Tests that depend on renderer logger which uses @/utils/logger (doesn't exist)
-      '**/tests/unit/planning-store.test.js',
-      '**/tests/unit/PythonExecutionPanel.test.ts',
-      '**/tests/unit/multimedia/multimedia-api.test.ts',
     ],
     coverage: {
       provider: 'v8',
@@ -80,7 +76,9 @@ export default defineConfig({
 
   resolve: {
     alias: {
-      '@': resolve(__dirname, 'src'),
+      // NOTE: @ points to src/renderer because Vue source files use @/stores, @/components, @/utils
+      // which all expect @ to resolve to the renderer directory
+      '@': resolve(__dirname, 'src/renderer'),
       '@renderer': resolve(__dirname, 'src/renderer'),
       '@main': resolve(__dirname, 'src/main'),
       '@shared': resolve(__dirname, 'src/shared'),
