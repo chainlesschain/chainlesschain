@@ -282,7 +282,8 @@ class NotificationViewModel @Inject constructor(
             }
             NotificationType.POST_LIKED,
             NotificationType.POST_COMMENTED,
-            NotificationType.POST_MENTIONED -> {
+            NotificationType.POST_MENTIONED,
+            NotificationType.POST_SHARED -> {
                 notification.targetId?.let {
                     sendEvent(NotificationEvent.NavigateToPost(it))
                 }
