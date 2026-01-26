@@ -362,7 +362,8 @@ describe("Asset IPC Handlers", () => {
       it(`${channel} should log errors on failure`, () => {
         const content = fs.readFileSync(ASSET_IPC_PATH, "utf-8");
         const handlerBlock = extractHandlerBlock(content, channel);
-        expect(handlerBlock).toMatch(/console\.error/);
+        // Implementation uses logger.error instead of console.error
+        expect(handlerBlock).toMatch(/logger\.error|console\.error/);
       });
 
       it(`${channel} should re-throw errors`, () => {
@@ -602,7 +603,8 @@ describe("Asset IPC Handlers", () => {
 
     it("should log successful registration", () => {
       const content = fs.readFileSync(ASSET_IPC_PATH, "utf-8");
-      expect(content).toMatch(/console\.log.*10 handlers registered/);
+      // Implementation uses logger.info instead of console.log
+      expect(content).toMatch(/logger\.info.*10 handlers registered|console\.log.*10 handlers registered/);
     });
   });
 
