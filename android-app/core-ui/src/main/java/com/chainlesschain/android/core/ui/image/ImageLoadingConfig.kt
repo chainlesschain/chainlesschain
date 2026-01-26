@@ -84,7 +84,7 @@ object ImageLoadingConfig {
      */
     private fun createMemoryCache(context: Context): MemoryCache {
         val maxHeapSize = Runtime.getRuntime().maxMemory()
-        val cacheSize = (maxHeapSize * 0.25).toLong()  // 25% of heap
+        val cacheSize = (maxHeapSize * 0.25).toInt()  // 25% of heap
 
         return MemoryCache.Builder(context)
             .maxSizeBytes(cacheSize)
@@ -177,8 +177,8 @@ object ImageLoadingConfig {
      * 获取缓存大小
      */
     fun getCacheSize(imageLoader: ImageLoader): CacheSize {
-        val memorySize = imageLoader.memoryCache?.size ?: 0L
-        val diskSize = imageLoader.diskCache?.size ?: 0L
+        val memorySize = (imageLoader.memoryCache?.size ?: 0).toLong()
+        val diskSize = (imageLoader.diskCache?.size ?: 0).toLong()
 
         return CacheSize(
             memoryBytes = memorySize,
@@ -275,8 +275,8 @@ object ImageLoadingExtensions {
     /**
      * 预加载图片
      */
-    fun ImageLoader.preload(url: String) {
-        val request = coil.request.ImageRequest.Builder(this.context)
+    fun ImageLoader.preload(context: Context, url: String) {
+        val request = coil.request.ImageRequest.Builder(context)
             .data(url)
             .memoryCachePolicy(CachePolicy.ENABLED)
             .diskCachePolicy(CachePolicy.ENABLED)
@@ -288,7 +288,7 @@ object ImageLoadingExtensions {
     /**
      * 批量预加载图片
      */
-    fun ImageLoader.preloadBatch(urls: List<String>) {
-        urls.forEach { url -> preload(url) }
+    fun ImageLoader.preloadBatch(context: Context, urls: List<String>) {
+        urls.forEach { url -> preload(context, url) }
     }
 }
