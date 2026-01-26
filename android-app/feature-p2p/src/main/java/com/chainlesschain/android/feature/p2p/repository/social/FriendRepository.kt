@@ -1,6 +1,7 @@
 package com.chainlesschain.android.feature.p2p.repository.social
 
-import com.chainlesschain.android.core.common.error.Result
+import com.chainlesschain.android.core.common.Result
+import com.chainlesschain.android.core.common.asResult
 import com.chainlesschain.android.core.database.dao.social.FriendDao
 import com.chainlesschain.android.core.database.entity.social.FriendEntity
 import com.chainlesschain.android.core.database.entity.social.FriendGroupEntity
@@ -28,11 +29,8 @@ class FriendRepository @Inject constructor(
     /**
      * 获取所有好友
      */
-    fun getAllFriends(): Flow<Result<List<FriendEntity>>> {
-        return friendDao.getAllFriends()
-            .map { Result.Success(it) }
-            .catch { emit(Result.Error(it)) }
-    }
+    fun getAllFriends(): Flow<Result<List<FriendEntity>>> =
+        friendDao.getAllFriends().asResult()
 
     /**
      * 根据 DID 获取好友
@@ -50,8 +48,7 @@ class FriendRepository @Inject constructor(
      */
     fun observeFriendByDid(did: String): Flow<Result<FriendEntity?>> {
         return friendDao.observeFriendByDid(did)
-            .map { Result.Success(it) }
-            .catch { emit(Result.Error(it)) }
+            .asResult()
     }
 
     /**
@@ -59,8 +56,7 @@ class FriendRepository @Inject constructor(
      */
     fun getPendingRequests(): Flow<Result<List<FriendEntity>>> {
         return friendDao.getPendingRequests()
-            .map { Result.Success(it) }
-            .catch { emit(Result.Error(it)) }
+            .asResult()
     }
 
     /**
@@ -68,8 +64,7 @@ class FriendRepository @Inject constructor(
      */
     fun getFriendsByGroup(groupId: String): Flow<Result<List<FriendEntity>>> {
         return friendDao.getFriendsByGroup(groupId)
-            .map { Result.Success(it) }
-            .catch { emit(Result.Error(it)) }
+            .asResult()
     }
 
     /**
@@ -77,8 +72,7 @@ class FriendRepository @Inject constructor(
      */
     fun searchFriends(query: String): Flow<Result<List<FriendEntity>>> {
         return friendDao.searchFriends(query)
-            .map { Result.Success(it) }
-            .catch { emit(Result.Error(it)) }
+            .asResult()
     }
 
     /**
@@ -120,7 +114,7 @@ class FriendRepository @Inject constructor(
         // 暂时返回空列表
         return kotlinx.coroutines.flow.flow {
             emit(Result.Success(emptyList()))
-        }.catch { emit(Result.Error(it)) }
+        }
     }
 
     /**
@@ -133,7 +127,7 @@ class FriendRepository @Inject constructor(
         // 暂时返回空列表
         return kotlinx.coroutines.flow.flow {
             emit(Result.Success(emptyList()))
-        }.catch { emit(Result.Error(it)) }
+        }
     }
 
     /**
@@ -141,8 +135,7 @@ class FriendRepository @Inject constructor(
      */
     fun getBlockedFriends(): Flow<Result<List<FriendEntity>>> {
         return friendDao.getBlockedFriends()
-            .map { Result.Success(it) }
-            .catch { emit(Result.Error(it)) }
+            .asResult()
     }
 
     /**
@@ -161,8 +154,7 @@ class FriendRepository @Inject constructor(
      */
     fun getPendingRequestCount(): Flow<Result<Int>> {
         return friendDao.getPendingRequestCount()
-            .map { Result.Success(it) }
-            .catch { emit(Result.Error(it)) }
+            .asResult()
     }
 
     /**
@@ -361,8 +353,7 @@ class FriendRepository @Inject constructor(
      */
     fun getAllGroups(): Flow<Result<List<FriendGroupEntity>>> {
         return friendDao.getAllGroups()
-            .map { Result.Success(it) }
-            .catch { emit(Result.Error(it)) }
+            .asResult()
     }
 
     /**
@@ -462,7 +453,7 @@ class FriendRepository @Inject constructor(
         // TODO: 实现从DAO获取
         return kotlinx.coroutines.flow.flow {
             emit(Result.Success(emptyList()))
-        }.catch { emit(Result.Error(it)) }
+        }
     }
 
     /**

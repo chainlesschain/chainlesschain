@@ -1,9 +1,10 @@
 package com.chainlesschain.android.feature.p2p.viewmodel.social
+import com.chainlesschain.android.core.common.Result
 
+import com.chainlesschain.android.core.common.onError
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
-import com.chainlesschain.android.core.common.error.onFailure
-import com.chainlesschain.android.core.common.error.onSuccess
+import com.chainlesschain.android.core.common.onSuccess
 import com.chainlesschain.android.core.common.viewmodel.BaseViewModel
 import com.chainlesschain.android.core.common.viewmodel.UiEvent
 import com.chainlesschain.android.core.common.viewmodel.UiState
@@ -49,7 +50,7 @@ class CommentDetailViewModel @Inject constructor(
                     updateState { copy(comment = comment, isLoadingComment = false) }
                     // 加载作者信息
                     comment?.let { loadAuthorInfo(it.authorDid) }
-                }.onFailure { error ->
+                }.onError { error ->
                     updateState { copy(isLoadingComment = false) }
                     handleError(error)
                 }
@@ -69,7 +70,7 @@ class CommentDetailViewModel @Inject constructor(
                     replies.forEach { reply ->
                         loadAuthorInfo(reply.authorDid)
                     }
-                }.onFailure { error ->
+                }.onError { error ->
                     handleError(error)
                 }
             }
@@ -127,7 +128,7 @@ class CommentDetailViewModel @Inject constructor(
             .onSuccess {
                 sendEvent(CommentDetailEvent.ShowToast("回复成功"))
                 sendEvent(CommentDetailEvent.ReplyAdded)
-            }.onFailure { error ->
+            }.onError { error ->
                 handleError(error)
             }
     }
@@ -139,7 +140,7 @@ class CommentDetailViewModel @Inject constructor(
         postRepository.likeComment(commentId)
             .onSuccess {
                 sendEvent(CommentDetailEvent.ShowToast("点赞成功"))
-            }.onFailure { error ->
+            }.onError { error ->
                 handleError(error)
             }
     }
@@ -151,7 +152,7 @@ class CommentDetailViewModel @Inject constructor(
         postRepository.likeComment(replyId)
             .onSuccess {
                 sendEvent(CommentDetailEvent.ShowToast("点赞成功"))
-            }.onFailure { error ->
+            }.onError { error ->
                 handleError(error)
             }
     }

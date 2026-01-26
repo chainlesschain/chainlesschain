@@ -1,8 +1,9 @@
 package com.chainlesschain.android.feature.p2p.viewmodel.social
+import com.chainlesschain.android.core.common.Result
 
+import com.chainlesschain.android.core.common.onError
 import androidx.lifecycle.viewModelScope
-import com.chainlesschain.android.core.common.error.onFailure
-import com.chainlesschain.android.core.common.error.onSuccess
+import com.chainlesschain.android.core.common.onSuccess
 import com.chainlesschain.android.core.common.viewmodel.BaseViewModel
 import com.chainlesschain.android.core.common.viewmodel.UiEvent
 import com.chainlesschain.android.core.common.viewmodel.UiState
@@ -46,7 +47,7 @@ class NotificationViewModel @Inject constructor(
                             isLoading = false
                         )
                     }
-                }.onFailure { error ->
+                }.onError { error ->
                     updateState { copy(isLoading = false) }
                     handleError(error)
                 }
@@ -62,7 +63,7 @@ class NotificationViewModel @Inject constructor(
             notificationRepository.getUnreadNotifications().collectLatest { result ->
                 result.onSuccess { notifications ->
                     updateState { copy(unreadNotifications = notifications) }
-                }.onFailure { error ->
+                }.onError { error ->
                     handleError(error)
                 }
             }
@@ -90,7 +91,7 @@ class NotificationViewModel @Inject constructor(
             notificationRepository.getRecentNotifications(limit).collectLatest { result ->
                 result.onSuccess { notifications ->
                     updateState { copy(recentNotifications = notifications) }
-                }.onFailure { error ->
+                }.onError { error ->
                     handleError(error)
                 }
             }
@@ -111,7 +112,7 @@ class NotificationViewModel @Inject constructor(
                             isLoading = false
                         )
                     }
-                }.onFailure { error ->
+                }.onError { error ->
                     updateState { copy(isLoading = false) }
                     handleError(error)
                 }
@@ -151,7 +152,7 @@ class NotificationViewModel @Inject constructor(
                             isSearching = false
                         )
                     }
-                }.onFailure { error ->
+                }.onError { error ->
                     updateState { copy(isSearching = false) }
                     handleError(error)
                 }
@@ -168,7 +169,7 @@ class NotificationViewModel @Inject constructor(
         notificationRepository.markAsRead(notificationId)
             .onSuccess {
                 // 状态会通过 Flow 自动更新
-            }.onFailure { error ->
+            }.onError { error ->
                 handleError(error)
             }
     }
@@ -180,7 +181,7 @@ class NotificationViewModel @Inject constructor(
         notificationRepository.markAsRead(notificationIds)
             .onSuccess {
                 sendEvent(NotificationEvent.ShowToast("已标记为已读"))
-            }.onFailure { error ->
+            }.onError { error ->
                 handleError(error)
             }
     }
@@ -192,7 +193,7 @@ class NotificationViewModel @Inject constructor(
         notificationRepository.markAllAsRead()
             .onSuccess {
                 sendEvent(NotificationEvent.ShowToast("所有通知已标记为已读"))
-            }.onFailure { error ->
+            }.onError { error ->
                 handleError(error)
             }
     }
@@ -204,7 +205,7 @@ class NotificationViewModel @Inject constructor(
         notificationRepository.markAsUnread(notificationId)
             .onSuccess {
                 // 状态会通过 Flow 自动更新
-            }.onFailure { error ->
+            }.onError { error ->
                 handleError(error)
             }
     }
@@ -216,7 +217,7 @@ class NotificationViewModel @Inject constructor(
         notificationRepository.deleteNotification(notificationId)
             .onSuccess {
                 sendEvent(NotificationEvent.ShowToast("通知已删除"))
-            }.onFailure { error ->
+            }.onError { error ->
                 handleError(error)
             }
     }
@@ -228,7 +229,7 @@ class NotificationViewModel @Inject constructor(
         notificationRepository.deleteNotifications(notificationIds)
             .onSuccess {
                 sendEvent(NotificationEvent.ShowToast("通知已删除"))
-            }.onFailure { error ->
+            }.onError { error ->
                 handleError(error)
             }
     }
@@ -240,7 +241,7 @@ class NotificationViewModel @Inject constructor(
         notificationRepository.deleteAllRead()
             .onSuccess {
                 sendEvent(NotificationEvent.ShowToast("已删除所有已读通知"))
-            }.onFailure { error ->
+            }.onError { error ->
                 handleError(error)
             }
     }
@@ -253,7 +254,7 @@ class NotificationViewModel @Inject constructor(
         notificationRepository.cleanupOldReadNotifications(cutoffTime)
             .onSuccess {
                 sendEvent(NotificationEvent.ShowToast("已清理旧通知"))
-            }.onFailure { error ->
+            }.onError { error ->
                 handleError(error)
             }
     }

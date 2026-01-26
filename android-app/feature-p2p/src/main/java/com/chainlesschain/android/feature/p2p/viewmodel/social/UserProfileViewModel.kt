@@ -2,8 +2,9 @@ package com.chainlesschain.android.feature.p2p.viewmodel.social
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
-import com.chainlesschain.android.core.common.error.onFailure
-import com.chainlesschain.android.core.common.error.onSuccess
+import com.chainlesschain.android.core.common.Result
+import com.chainlesschain.android.core.common.onSuccess
+import com.chainlesschain.android.core.common.onError
 import com.chainlesschain.android.core.common.viewmodel.BaseViewModel
 import com.chainlesschain.android.core.common.viewmodel.UiEvent
 import com.chainlesschain.android.core.common.viewmodel.UiState
@@ -70,7 +71,7 @@ class UserProfileViewModel @Inject constructor(
                     )
                     updateState { copy(userInfo = userInfo, isLoadingUser = false) }
                 }
-            }.onFailure { error ->
+            }.onError { error ->
                 updateState { copy(isLoadingUser = false) }
                 handleError(error)
             }
@@ -85,7 +86,7 @@ class UserProfileViewModel @Inject constructor(
             postRepository.getUserPosts(userDid).collectLatest { result ->
                 result.onSuccess { posts ->
                     updateState { copy(posts = posts, isLoadingPosts = false) }
-                }.onFailure { error ->
+                }.onError { error ->
                     updateState { copy(isLoadingPosts = false) }
                     handleError(error)
                 }
@@ -132,7 +133,7 @@ class UserProfileViewModel @Inject constructor(
                 realtimeEventManager.sendFriendRequest(userDid, null)
                 updateState { copy(relationship = FriendshipStatus.PENDING_SENT) }
                 sendEvent(UserProfileEvent.ShowToast("好友请求已发送"))
-            }.onFailure { error ->
+            }.onError { error ->
                 handleError(error)
             }
     }
@@ -183,7 +184,7 @@ class UserProfileViewModel @Inject constructor(
                 updateState { copy(relationship = FriendshipStatus.BLOCKED) }
                 sendEvent(UserProfileEvent.ShowToast("已屏蔽该用户"))
                 hideMenu()
-            }.onFailure { error ->
+            }.onError { error ->
                 handleError(error)
             }
     }
@@ -196,7 +197,7 @@ class UserProfileViewModel @Inject constructor(
             .onSuccess {
                 checkRelationship()
                 sendEvent(UserProfileEvent.ShowToast("已取消屏蔽"))
-            }.onFailure { error ->
+            }.onError { error ->
                 handleError(error)
             }
     }

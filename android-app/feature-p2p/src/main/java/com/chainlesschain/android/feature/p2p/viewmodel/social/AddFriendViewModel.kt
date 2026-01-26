@@ -1,8 +1,9 @@
 package com.chainlesschain.android.feature.p2p.viewmodel.social
 
 import androidx.lifecycle.viewModelScope
-import com.chainlesschain.android.core.common.error.onFailure
-import com.chainlesschain.android.core.common.error.onSuccess
+import com.chainlesschain.android.core.common.Result
+import com.chainlesschain.android.core.common.onSuccess
+import com.chainlesschain.android.core.common.onError
 import com.chainlesschain.android.core.common.viewmodel.BaseViewModel
 import com.chainlesschain.android.core.common.viewmodel.UiEvent
 import com.chainlesschain.android.core.common.viewmodel.UiState
@@ -100,7 +101,7 @@ class AddFriendViewModel @Inject constructor(
                     )
                 }
                 updateState { copy(searchResults = searchResults, isSearching = false) }
-            }.onFailure { error ->
+            }.onError { error ->
                 updateState { copy(isSearching = false) }
                 handleError(error)
             }
@@ -115,7 +116,7 @@ class AddFriendViewModel @Inject constructor(
             friendRepository.getNearbyUsers().collectLatest { result ->
                 result.onSuccess { users ->
                     updateState { copy(nearbyUsers = users) }
-                }.onFailure { error ->
+                }.onError { error ->
                     handleError(error)
                 }
             }
@@ -130,7 +131,7 @@ class AddFriendViewModel @Inject constructor(
             friendRepository.getRecommendedFriends().collectLatest { result ->
                 result.onSuccess { users ->
                     updateState { copy(recommendations = users) }
-                }.onFailure { error ->
+                }.onError { error ->
                     handleError(error)
                 }
             }
@@ -164,7 +165,7 @@ class AddFriendViewModel @Inject constructor(
                     realtimeEventManager.sendFriendRequest(targetDid, message)
                     sendEvent(AddFriendEvent.ShowToast("好友请求已发送"))
                     sendEvent(AddFriendEvent.FriendRequestSent(targetDid))
-                }.onFailure { error ->
+                }.onError { error ->
                     handleError(error)
                 }
         }

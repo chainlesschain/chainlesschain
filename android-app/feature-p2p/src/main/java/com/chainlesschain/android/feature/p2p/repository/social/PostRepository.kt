@@ -1,6 +1,7 @@
 package com.chainlesschain.android.feature.p2p.repository.social
 
-import com.chainlesschain.android.core.common.error.Result
+import com.chainlesschain.android.core.common.Result
+import com.chainlesschain.android.core.common.asResult
 import com.chainlesschain.android.core.database.dao.social.PostDao
 import com.chainlesschain.android.core.database.dao.social.PostInteractionDao
 import com.chainlesschain.android.core.database.entity.social.PostEntity
@@ -39,8 +40,7 @@ class PostRepository @Inject constructor(
         offset: Int = 0
     ): Flow<Result<List<PostEntity>>> {
         return postDao.getTimeline(friendDids, myDid, limit, offset)
-            .map { Result.Success(it) }
-            .catch { emit(Result.Error(it)) }
+            .asResult()
     }
 
     /**
@@ -48,8 +48,7 @@ class PostRepository @Inject constructor(
      */
     fun getUserPosts(did: String): Flow<Result<List<PostEntity>>> {
         return postDao.getUserPosts(did)
-            .map { Result.Success(it) }
-            .catch { emit(Result.Error(it)) }
+            .asResult()
     }
 
     /**
@@ -68,8 +67,7 @@ class PostRepository @Inject constructor(
      */
     fun observePostById(id: String): Flow<Result<PostEntity?>> {
         return postDao.observePostById(id)
-            .map { Result.Success(it) }
-            .catch { emit(Result.Error(it)) }
+            .asResult()
     }
 
     /**
@@ -83,8 +81,7 @@ class PostRepository @Inject constructor(
         limit: Int = 50
     ): Flow<Result<List<PostEntity>>> {
         return postDao.searchPosts(query, tag, myDid, friendDids, limit)
-            .map { Result.Success(it) }
-            .catch { emit(Result.Error(it)) }
+            .asResult()
     }
 
     /**
@@ -97,8 +94,7 @@ class PostRepository @Inject constructor(
         limit: Int = 50
     ): Flow<Result<List<PostEntity>>> {
         return postDao.getPostsByTag(tag, myDid, friendDids, limit)
-            .map { Result.Success(it) }
-            .catch { emit(Result.Error(it)) }
+            .asResult()
     }
 
     /**
@@ -106,8 +102,7 @@ class PostRepository @Inject constructor(
      */
     fun getMentionedPosts(myDid: String): Flow<Result<List<PostEntity>>> {
         return postDao.getMentionedPosts(myDid)
-            .map { Result.Success(it) }
-            .catch { emit(Result.Error(it)) }
+            .asResult()
     }
 
     /**
@@ -115,8 +110,7 @@ class PostRepository @Inject constructor(
      */
     fun getPinnedPosts(did: String): Flow<Result<List<PostEntity>>> {
         return postDao.getPinnedPosts(did)
-            .map { Result.Success(it) }
-            .catch { emit(Result.Error(it)) }
+            .asResult()
     }
 
     /**
@@ -229,8 +223,7 @@ class PostRepository @Inject constructor(
      */
     fun getPostLikes(postId: String): Flow<Result<List<PostLikeEntity>>> {
         return interactionDao.getPostLikes(postId)
-            .map { Result.Success(it) }
-            .catch { emit(Result.Error(it)) }
+            .asResult()
     }
 
     /**
@@ -286,8 +279,7 @@ class PostRepository @Inject constructor(
      */
     fun getPostComments(postId: String): Flow<Result<List<PostCommentEntity>>> {
         return interactionDao.getPostComments(postId)
-            .map { Result.Success(it) }
-            .catch { emit(Result.Error(it)) }
+            .asResult()
     }
 
     /**
@@ -295,8 +287,7 @@ class PostRepository @Inject constructor(
      */
     fun getCommentReplies(commentId: String): Flow<Result<List<PostCommentEntity>>> {
         return interactionDao.getCommentReplies(commentId)
-            .map { Result.Success(it) }
-            .catch { emit(Result.Error(it)) }
+            .asResult()
     }
 
     /**
@@ -304,8 +295,7 @@ class PostRepository @Inject constructor(
      */
     fun observeCommentById(commentId: String): Flow<Result<PostCommentEntity?>> {
         return interactionDao.observeCommentById(commentId)
-            .map { Result.Success(it) }
-            .catch { emit(Result.Error(it)) }
+            .asResult()
     }
 
     /**
@@ -371,8 +361,7 @@ class PostRepository @Inject constructor(
      */
     fun getPostShares(postId: String): Flow<Result<List<PostShareEntity>>> {
         return interactionDao.getPostShares(postId)
-            .map { Result.Success(it) }
-            .catch { emit(Result.Error(it)) }
+            .asResult()
     }
 
     /**
@@ -459,7 +448,7 @@ class PostRepository @Inject constructor(
         // TODO: 实现从DAO获取
         return kotlinx.coroutines.flow.flow {
             emit(Result.Success(emptyList()))
-        }.catch { emit(Result.Error(it)) }
+        }
     }
 
     // ===== 清理操作 =====

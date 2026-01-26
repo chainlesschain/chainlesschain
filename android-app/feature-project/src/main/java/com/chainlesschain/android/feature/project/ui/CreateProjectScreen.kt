@@ -81,7 +81,6 @@ import com.chainlesschain.android.feature.project.viewmodel.ProjectViewModel
 @Composable
 fun CreateProjectScreen(
     viewModel: ProjectViewModel = hiltViewModel(),
-    authViewModel: com.chainlesschain.android.feature.auth.presentation.AuthViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit,
     onProjectCreated: (String) -> Unit
 ) {
@@ -99,15 +98,6 @@ fun CreateProjectScreen(
     var aiPrompt by remember { mutableStateOf("") }
     var isAiThinking by remember { mutableStateOf(false) }
     var aiSuggestion by remember { mutableStateOf<String?>(null) }
-
-    // 获取认证状态并初始化用户上下文
-    val authState by authViewModel.uiState.collectAsState()
-
-    LaunchedEffect(authState.currentUser) {
-        authState.currentUser?.let { user ->
-            viewModel.setCurrentUser(user.id)
-        }
-    }
 
     // 处理 UI 事件
     LaunchedEffect(Unit) {

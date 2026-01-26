@@ -27,7 +27,7 @@ object ComposePerformanceUtils {
      */
     @Composable
     fun RecompositionCounter(tag: String) {
-        if (androidx.compose.ui.platform.BuildConfig.DEBUG) {
+        if (com.chainlesschain.android.core.ui.BuildConfig.DEBUG) {
             val recompositionCount = remember { androidx.compose.runtime.mutableStateOf(0) }
 
             SideEffect {
@@ -55,7 +55,7 @@ object ComposePerformanceUtils {
         tag: String,
         content: @Composable () -> Unit
     ) {
-        if (androidx.compose.ui.platform.BuildConfig.DEBUG) {
+        if (com.chainlesschain.android.core.ui.BuildConfig.DEBUG) {
             val startTime = remember { System.nanoTime() }
 
             content()
@@ -153,7 +153,7 @@ fun LaunchedEffectWithTiming(
     block: suspend CoroutineScope.() -> Unit
 ) {
     LaunchedEffect(key1) {
-        if (androidx.compose.ui.platform.BuildConfig.DEBUG) {
+        if (com.chainlesschain.android.core.ui.BuildConfig.DEBUG) {
             val startTime = System.nanoTime()
             block()
             val duration = (System.nanoTime() - startTime) / 1_000_000.0

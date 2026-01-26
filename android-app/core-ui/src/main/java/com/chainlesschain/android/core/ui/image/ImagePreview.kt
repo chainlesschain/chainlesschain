@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
+import kotlinx.coroutines.launch
 import net.engawapg.lib.zoomable.rememberZoomState
 import net.engawapg.lib.zoomable.zoomable
 
@@ -65,6 +66,7 @@ fun ImagePreviewDialog(
                 modifier = Modifier.fillMaxSize()
             ) { page ->
                 val zoomState = rememberZoomState()
+                val coroutineScope = rememberCoroutineScope()
 
                 AsyncImage(
                     model = images[page],
@@ -74,12 +76,14 @@ fun ImagePreviewDialog(
                         .zoomable(zoomState)
                         .pointerInput(Unit) {
                             detectTapGestures(
-                                onDoubleTap = {
+                                onDoubleTap = { offset ->
                                     // 双击缩放
-                                    if (zoomState.scale > 1f) {
-                                        zoomState.reset()
-                                    } else {
-                                        zoomState.setScale(2f)
+                                    coroutineScope.launch {
+                                        if (zoomState.scale > 1f) {
+                                            zoomState.reset()
+                                        } else {
+                                            zoomState.changeScale(2f, offset)
+                                        }
                                     }
                                 }
                             )

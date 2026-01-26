@@ -69,6 +69,9 @@ enum class NotificationType {
     /** 被 @ 提及 */
     POST_MENTIONED,
 
+    /** 动态被转发 */
+    POST_SHARED,
+
     /** 系统通知 */
     SYSTEM
 }

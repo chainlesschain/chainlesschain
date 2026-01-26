@@ -99,7 +99,7 @@ fun CommentDetailScreen(
             }
             uiState.comment == null -> {
                 EmptyState(
-                    message = "评论不存在或已被删除",
+                    title = "评论不存在或已被删除",
                     icon = Icons.Default.Error,
                     modifier = Modifier.padding(paddingValues)
                 )
@@ -158,7 +158,7 @@ fun CommentDetailScreen(
                     if (uiState.replies.isEmpty()) {
                         item {
                             EmptyState(
-                                message = "还没有回复",
+                                title = "还没有回复",
                                 icon = Icons.Default.Comment,
                                 modifier = Modifier.padding(32.dp)
                             )

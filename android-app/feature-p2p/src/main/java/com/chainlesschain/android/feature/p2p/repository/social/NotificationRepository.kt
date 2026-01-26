@@ -1,6 +1,7 @@
 package com.chainlesschain.android.feature.p2p.repository.social
 
-import com.chainlesschain.android.core.common.error.Result
+import com.chainlesschain.android.core.common.Result
+import com.chainlesschain.android.core.common.asResult
 import com.chainlesschain.android.core.database.dao.social.NotificationDao
 import com.chainlesschain.android.core.database.entity.social.NotificationEntity
 import com.chainlesschain.android.core.database.entity.social.NotificationType
@@ -28,8 +29,7 @@ class NotificationRepository @Inject constructor(
      */
     fun getAllNotifications(): Flow<Result<List<NotificationEntity>>> {
         return notificationDao.getAllNotifications()
-            .map { Result.Success(it) }
-            .catch { emit(Result.Error(it)) }
+            .asResult()
     }
 
     /**
@@ -37,8 +37,7 @@ class NotificationRepository @Inject constructor(
      */
     fun getUnreadNotifications(): Flow<Result<List<NotificationEntity>>> {
         return notificationDao.getUnreadNotifications()
-            .map { Result.Success(it) }
-            .catch { emit(Result.Error(it)) }
+            .asResult()
     }
 
     /**
@@ -46,8 +45,7 @@ class NotificationRepository @Inject constructor(
      */
     fun getNotificationsByType(type: NotificationType): Flow<Result<List<NotificationEntity>>> {
         return notificationDao.getNotificationsByType(type)
-            .map { Result.Success(it) }
-            .catch { emit(Result.Error(it)) }
+            .asResult()
     }
 
     /**
@@ -55,8 +53,7 @@ class NotificationRepository @Inject constructor(
      */
     fun getUnreadNotificationsByType(type: NotificationType): Flow<Result<List<NotificationEntity>>> {
         return notificationDao.getUnreadNotificationsByType(type)
-            .map { Result.Success(it) }
-            .catch { emit(Result.Error(it)) }
+            .asResult()
     }
 
     /**
@@ -75,8 +72,7 @@ class NotificationRepository @Inject constructor(
      */
     fun observeNotificationById(id: String): Flow<Result<NotificationEntity?>> {
         return notificationDao.observeNotificationById(id)
-            .map { Result.Success(it) }
-            .catch { emit(Result.Error(it)) }
+            .asResult()
     }
 
     /**
@@ -84,8 +80,7 @@ class NotificationRepository @Inject constructor(
      */
     fun getNotificationsByActor(actorDid: String): Flow<Result<List<NotificationEntity>>> {
         return notificationDao.getNotificationsByActor(actorDid)
-            .map { Result.Success(it) }
-            .catch { emit(Result.Error(it)) }
+            .asResult()
     }
 
     /**
@@ -93,8 +88,7 @@ class NotificationRepository @Inject constructor(
      */
     fun getNotificationsByTarget(targetId: String): Flow<Result<List<NotificationEntity>>> {
         return notificationDao.getNotificationsByTarget(targetId)
-            .map { Result.Success(it) }
-            .catch { emit(Result.Error(it)) }
+            .asResult()
     }
 
     /**
@@ -102,8 +96,7 @@ class NotificationRepository @Inject constructor(
      */
     fun getUnreadCount(): Flow<Result<Int>> {
         return notificationDao.getUnreadCount()
-            .map { Result.Success(it) }
-            .catch { emit(Result.Error(it)) }
+            .asResult()
     }
 
     /**
@@ -111,8 +104,7 @@ class NotificationRepository @Inject constructor(
      */
     fun getUnreadCountByType(type: NotificationType): Flow<Result<Int>> {
         return notificationDao.getUnreadCountByType(type)
-            .map { Result.Success(it) }
-            .catch { emit(Result.Error(it)) }
+            .asResult()
     }
 
     /**
@@ -120,8 +112,7 @@ class NotificationRepository @Inject constructor(
      */
     fun getNotificationsPaged(limit: Int, offset: Int): Flow<Result<List<NotificationEntity>>> {
         return notificationDao.getNotificationsPaged(limit, offset)
-            .map { Result.Success(it) }
-            .catch { emit(Result.Error(it)) }
+            .asResult()
     }
 
     /**
@@ -129,8 +120,7 @@ class NotificationRepository @Inject constructor(
      */
     fun getRecentNotifications(limit: Int = 20): Flow<Result<List<NotificationEntity>>> {
         return notificationDao.getRecentNotifications(limit)
-            .map { Result.Success(it) }
-            .catch { emit(Result.Error(it)) }
+            .asResult()
     }
 
     /**
@@ -138,8 +128,7 @@ class NotificationRepository @Inject constructor(
      */
     fun searchNotifications(query: String, limit: Int = 50): Flow<Result<List<NotificationEntity>>> {
         return notificationDao.searchNotifications(query, limit)
-            .map { Result.Success(it) }
-            .catch { emit(Result.Error(it)) }
+            .asResult()
     }
 
     // ===== 插入方法 =====

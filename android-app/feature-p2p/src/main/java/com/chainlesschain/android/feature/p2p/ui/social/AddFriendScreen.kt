@@ -101,7 +101,7 @@ fun AddFriendScreen(
                     } else if (uiState.searchResults.isEmpty()) {
                         item {
                             EmptyState(
-                                message = "未找到相关用户",
+                                title = "未找到相关用户",
                                 icon = Icons.Default.PersonSearch
                             )
                         }
@@ -169,7 +169,7 @@ fun AddFriendScreen(
                     if (uiState.nearbyUsers.isEmpty() && uiState.recommendations.isEmpty()) {
                         item {
                             EmptyState(
-                                message = "暂无推荐好友",
+                                title = "暂无推荐好友",
                                 icon = Icons.Default.People,
                                 actionText = "刷新",
                                 onAction = {
