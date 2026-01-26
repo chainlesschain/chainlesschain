@@ -112,9 +112,9 @@ dependencies {
     implementation("io.noties.markwon:ext-tables:$markwonVersion")
     implementation("io.noties.markwon:linkify:$markwonVersion")
 
-    // WebRTC (Voice/Video Call)
-    implementation("io.getstream:stream-webrtc-android:1.1.3")
-    implementation("io.getstream:stream-webrtc-android-ui:1.1.3")
+    // WebRTC (Voice/Video Call) - Disabled temporarily due to duplicate class conflicts
+    // implementation("io.getstream:stream-webrtc-android:1.1.3")
+    // implementation("io.getstream:stream-webrtc-android-ui:1.1.3")
     // 或使用Google官方版本
     // implementation("org.webrtc:google-webrtc:1.0.32006")
 
