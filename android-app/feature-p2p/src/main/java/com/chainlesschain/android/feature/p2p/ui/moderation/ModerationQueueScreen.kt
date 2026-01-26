@@ -18,7 +18,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.chainlesschain.android.core.database.entity.ContentType
 import com.chainlesschain.android.core.database.entity.ModerationStatus
-import com.chainlesschain.android.feature.p2p.moderation.ModerationSeverity
+import com.chainlesschain.android.feature.p2p.repository.moderation.ModerationSeverity
 import com.chainlesschain.android.feature.p2p.moderation.ViolationCategory
 import com.chainlesschain.android.feature.p2p.repository.moderation.ModerationQueueItem
 import java.text.SimpleDateFormat
@@ -266,12 +266,12 @@ private fun ModerationQueueItemCard(
                     .padding(12.dp)
             ) {
                 Text(
-                    text = item.contentText,
+                    text = item.content,
                     style = MaterialTheme.typography.bodyMedium,
                     maxLines = if (showFullContent) Int.MAX_VALUE else 3,
                     overflow = TextOverflow.Ellipsis
                 )
-                if (item.contentText.length > 100) {
+                if (item.content.length > 100) {
                     TextButton(
                         onClick = { showFullContent = !showFullContent },
                         modifier = Modifier.align(Alignment.End)
@@ -282,7 +282,7 @@ private fun ModerationQueueItemCard(
             }
 
             // AI审核结果
-            AIResultSection(aiResult = item.aiResult)
+            AIResultSection(item = item)
 
             // 等待时长提示
             if (item.isHighPriority()) {
@@ -315,13 +315,8 @@ private fun ModerationQueueItemCard(
                 )
             }
 
-            // 申诉信息
-            if (item.appealText != null) {
-                AppealSection(
-                    appealText = item.appealText,
-                    appealAt = item.appealAt ?: 0L
-                )
-            }
+            // 申诉信息 - Temporarily disabled
+            // TODO: Add appeal support back when needed
 
             Divider()
 
@@ -381,52 +376,43 @@ private fun ContentTypeBadge(contentType: ContentType) {
  * AI审核结果区域
  */
 @Composable
-private fun AIResultSection(aiResult: com.chainlesschain.android.feature.p2p.moderation.ModerationResult) {
+private fun AIResultSection(item: ModerationQueueItem) {
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Text(
-            text = "AI审核结果",
+            text = "审核信息",
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.Bold
         )
 
         // 违规类型
-        if (aiResult.violationCategories.isNotEmpty()) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                aiResult.violationCategories.forEach { category ->
-                    ViolationCategoryChip(category)
-                }
-            }
+        item.violationType?.let { vType ->
+            Text(
+                text = "违规类型: ${vType.name}",
+                style = MaterialTheme.typography.bodySmall
+            )
         }
 
         // 严重程度
-        SeverityIndicator(aiResult.severity)
-
-        // 置信度
-        LinearProgressIndicator(
-            progress = aiResult.confidence.toFloat(),
-            modifier = Modifier.fillMaxWidth()
-        )
-        Text(
-            text = "置信度: ${(aiResult.confidence * 100).toInt()}%",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        item.severity?.let { severity ->
+            SeverityIndicator(severity)
+        }
 
         // 原因和建议
-        Text(
-            text = "原因: ${aiResult.reason}",
-            style = MaterialTheme.typography.bodySmall
-        )
-        Text(
-            text = "建议: ${aiResult.suggestion}",
-            style = MaterialTheme.typography.bodySmall
-        )
+        item.reason?.let { reason ->
+            Text(
+                text = "原因: $reason",
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+        item.suggestion?.let { suggestion ->
+            Text(
+                text = "建议: $suggestion",
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
     }
 }
 
@@ -454,10 +440,10 @@ private fun ViolationCategoryChip(category: ViolationCategory) {
 @Composable
 private fun SeverityIndicator(severity: ModerationSeverity) {
     val (color, label) = when (severity) {
-        ModerationSeverity.NONE -> MaterialTheme.colorScheme.surface to "无违规"
-        ModerationSeverity.LOW -> Color(0xFFFFA726) to "轻微违规"
-        ModerationSeverity.MEDIUM -> Color(0xFFFF7043) to "明确违规"
-        ModerationSeverity.HIGH -> MaterialTheme.colorScheme.error to "严重违规"
+        ModerationSeverity.LOW -> Color(0xFF4CAF50) to severity.displayName
+        ModerationSeverity.MEDIUM -> Color(0xFFFFA726) to severity.displayName
+        ModerationSeverity.HIGH -> Color(0xFFFF7043) to severity.displayName
+        ModerationSeverity.CRITICAL -> MaterialTheme.colorScheme.error to severity.displayName
     }
 
     Surface(

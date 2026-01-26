@@ -2,7 +2,7 @@ package com.chainlesschain.android.feature.p2p.repository.moderation
 
 import com.chainlesschain.android.core.database.dao.ModerationQueueDao
 import com.chainlesschain.android.core.database.entity.*
-import com.chainlesschain.android.core.model.Result
+import com.chainlesschain.android.core.common.Result
 import com.chainlesschain.android.feature.p2p.moderation.ContentModerator
 import com.chainlesschain.android.feature.p2p.moderation.ModerationResult
 import kotlinx.coroutines.Dispatchers
@@ -70,6 +70,9 @@ class ModerationQueueRepository @Inject constructor(
                 }
                 is Result.Error -> {
                     Result.Error(moderationResult.exception)
+                }
+                is Result.Loading -> {
+                    Result.Error(Exception("Unexpected Loading state"))
                 }
             }
         } catch (e: Exception) {
@@ -438,24 +441,22 @@ class ModerationQueueRepository @Inject constructor(
      * 将Entity转换为业务模型
      */
     private fun ModerationQueueEntity.toQueueItem(): ModerationQueueItem {
+        val aiResult = deserializeModerationResult(aiResultJson)
         return ModerationQueueItem(
-            id = id,
-            contentType = contentType,
+            id = id.toString(),
+            contentType = ContentType.valueOf(contentType.name),
             contentId = contentId,
-            contentText = contentText,
+            content = contentText,
             authorDid = authorDid,
             authorName = authorName,
             status = status,
-            aiResult = deserializeModerationResult(aiResultJson),
-            humanDecision = humanDecision,
-            humanNote = humanNote,
-            reviewerDid = reviewerDid,
-            appealStatus = appealStatus,
-            appealText = appealText,
-            appealAt = appealAt,
-            appealResult = appealResult,
+            violationType = aiResult.violationType,
+            reason = aiResult.reason,
             createdAt = createdAt,
-            reviewedAt = reviewedAt
+            reviewedAt = reviewedAt,
+            severity = aiResult.severity ?: ModerationSeverity.MEDIUM,
+            suggestion = aiResult.suggestion,
+            aiAnalysis = aiResultJson
         )
     }
 
@@ -465,8 +466,9 @@ class ModerationQueueRepository @Inject constructor(
     private fun serializeModerationResult(result: ModerationResult): String {
         val json = JSONObject()
         json.put("isViolation", result.isViolation)
-        json.put("violationCategories", result.violationCategories.map { it.name })
-        json.put("severity", result.severity.name)
+        json.put("violationType", result.violationType?.name)
+        json.put("violationCategories", org.json.JSONArray(result.violationCategories))
+        json.put("severity", result.severity?.name)
         json.put("confidence", result.confidence)
         json.put("reason", result.reason)
         json.put("suggestion", result.suggestion)
@@ -480,21 +482,39 @@ class ModerationQueueRepository @Inject constructor(
         return try {
             val obj = JSONObject(json)
             ModerationResult(
-                isViolation = obj.getBoolean("isViolation"),
-                violationCategories = obj.getJSONArray("violationCategories").let { array ->
-                    (0 until array.length()).mapNotNull { i ->
-                        com.chainlesschain.android.feature.p2p.moderation.ViolationCategory.fromString(array.getString(i))
+                isViolation = obj.optBoolean("isViolation", false),
+                violationType = obj.optString("violationType")?.let {
+                    try {
+                        com.chainlesschain.android.feature.p2p.moderation.ViolationType.valueOf(it)
+                    } catch (e: Exception) {
+                        null
                     }
                 },
-                severity = com.chainlesschain.android.feature.p2p.moderation.ModerationSeverity.fromString(
-                    obj.getString("severity")
-                ) ?: com.chainlesschain.android.feature.p2p.moderation.ModerationSeverity.NONE,
-                confidence = obj.getDouble("confidence"),
-                reason = obj.getString("reason"),
-                suggestion = obj.getString("suggestion")
+                violationCategories = obj.optJSONArray("violationCategories")?.let { array ->
+                    (0 until array.length()).map { i -> array.getString(i) }
+                } ?: emptyList(),
+                severity = obj.optString("severity")?.let {
+                    try {
+                        ModerationSeverity.fromString(it)
+                    } catch (e: Exception) {
+                        null
+                    }
+                },
+                confidence = obj.optDouble("confidence", 0.0),
+                reason = obj.optString("reason"),
+                suggestion = obj.optString("suggestion")
             )
         } catch (e: Exception) {
-            ModerationResult.createSafeDefault("JSON解析失败: ${e.message}")
+            // Return default safe result
+            ModerationResult(
+                isViolation = false,
+                violationType = null,
+                confidence = 0.0,
+                reason = "JSON解析失败: ${e.message}",
+                violationCategories = emptyList(),
+                severity = null,
+                suggestion = null
+            )
         }
     }
 }
@@ -514,23 +534,20 @@ sealed class ModerationDecision {
  * 审核队列项目（业务模型）
  */
 data class ModerationQueueItem(
-    val id: Long,
+    val id: String,
     val contentType: ContentType,
     val contentId: String,
-    val contentText: String,
+    val content: String,  // Changed from contentText
     val authorDid: String,
     val authorName: String?,
     val status: ModerationStatus,
-    val aiResult: ModerationResult,
-    val humanDecision: HumanDecision?,
-    val humanNote: String?,
-    val reviewerDid: String?,
-    val appealStatus: AppealStatus,
-    val appealText: String?,
-    val appealAt: Long?,
-    val appealResult: String?,
+    val violationType: com.chainlesschain.android.feature.p2p.moderation.ViolationType?,
+    val reason: String?,
     val createdAt: Long,
-    val reviewedAt: Long?
+    val reviewedAt: Long?,
+    val severity: ModerationSeverity = ModerationSeverity.MEDIUM,
+    val suggestion: String? = null,
+    val aiAnalysis: String? = null
 ) {
     /** 获取等待时长（小时） */
     fun getWaitingHours(): Long {
@@ -541,4 +558,72 @@ data class ModerationQueueItem(
     fun isHighPriority(): Boolean {
         return getWaitingHours() >= 24
     }
+
+    companion object {
+        /**
+         * 创建安全的默认实例
+         */
+        fun createSafeDefault(): ModerationQueueItem {
+            return ModerationQueueItem(
+                id = "",
+                contentType = ContentType.POST,
+                contentId = "",
+                content = "",
+                authorDid = "",
+                authorName = null,
+                status = ModerationStatus.PENDING,
+                violationType = null,
+                reason = null,
+                createdAt = System.currentTimeMillis(),
+                reviewedAt = null,
+                severity = ModerationSeverity.MEDIUM,
+                suggestion = null,
+                aiAnalysis = null
+            )
+        }
+    }
 }
+/**
+ * 审核严重程度
+ */
+enum class ModerationSeverity {
+    LOW,       // 低
+    MEDIUM,    // 中
+    HIGH,      // 高
+    CRITICAL;  // 严重
+
+    companion object {
+        fun fromString(value: String): ModerationSeverity {
+            return values().find { it.name.equals(value, ignoreCase = true) } ?: MEDIUM
+        }
+    }
+
+    val displayName: String
+        get() = when (this) {
+            LOW -> "低"
+            MEDIUM -> "中"
+            HIGH -> "高"
+            CRITICAL -> "严重"
+        }
+}
+
+/**
+ * 审核统计（按日期）
+ */
+data class ModerationStatsByDate(
+    val date: String,
+    val totalCount: Int,
+    val approvedCount: Int,
+    val rejectedCount: Int,
+    val pendingCount: Int
+)
+
+/**
+ * 作者违规统计
+ */
+data class AuthorViolationStats(
+    val authorDid: String,
+    val authorName: String?,
+    val violationCount: Int,
+    val lastViolationTime: Long
+)

@@ -3,7 +3,7 @@ package com.chainlesschain.android.feature.p2p.ui.moderation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chainlesschain.android.core.database.entity.ModerationStatus
-import com.chainlesschain.android.core.model.Result
+import com.chainlesschain.android.core.common.Result
 import com.chainlesschain.android.feature.p2p.repository.moderation.ModerationQueueItem
 import com.chainlesschain.android.feature.p2p.repository.moderation.ModerationQueueRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -73,6 +73,11 @@ class ModerationQueueViewModel @Inject constructor(
                             )
                         }
                     }
+                    is Result.Loading -> {
+                        _uiState.update { state ->
+                            state.copy(isLoading = true)
+                        }
+                    }
                 }
             }
         }
@@ -106,7 +111,7 @@ class ModerationQueueViewModel @Inject constructor(
     /**
      * 批准内容
      */
-    fun approveContent(id: Long) {
+    fun approveContent(id: String) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 
@@ -134,6 +139,9 @@ class ModerationQueueViewModel @Inject constructor(
                         )
                     }
                 }
+                is Result.Loading -> {
+                    // Already set isLoading = true above
+                }
             }
         }
     }
@@ -141,7 +149,7 @@ class ModerationQueueViewModel @Inject constructor(
     /**
      * 拒绝内容
      */
-    fun rejectContent(id: Long) {
+    fun rejectContent(id: String) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 
@@ -168,6 +176,9 @@ class ModerationQueueViewModel @Inject constructor(
                         )
                     }
                 }
+                is Result.Loading -> {
+                    // Already set isLoading = true above
+                }
             }
         }
     }
@@ -175,7 +186,7 @@ class ModerationQueueViewModel @Inject constructor(
     /**
      * 删除内容
      */
-    fun deleteContent(id: Long) {
+    fun deleteContent(id: String) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 
@@ -202,6 +213,9 @@ class ModerationQueueViewModel @Inject constructor(
                         )
                     }
                 }
+                is Result.Loading -> {
+                    // Already set isLoading = true above
+                }
             }
         }
     }
@@ -209,7 +223,7 @@ class ModerationQueueViewModel @Inject constructor(
     /**
      * 批准申诉
      */
-    fun approveAppeal(id: Long) {
+    fun approveAppeal(id: String) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 
@@ -233,6 +247,9 @@ class ModerationQueueViewModel @Inject constructor(
                         )
                     }
                 }
+                is Result.Loading -> {
+                    // Already set isLoading = true above
+                }
             }
         }
     }
@@ -240,7 +257,7 @@ class ModerationQueueViewModel @Inject constructor(
     /**
      * 拒绝申诉
      */
-    fun rejectAppeal(id: Long) {
+    fun rejectAppeal(id: String) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 
@@ -263,6 +280,9 @@ class ModerationQueueViewModel @Inject constructor(
                             message = "操作失败: ${result.exception.message}"
                         )
                     }
+                }
+                is Result.Loading -> {
+                    // Already set isLoading = true above
                 }
             }
         }
