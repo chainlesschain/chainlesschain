@@ -547,6 +547,11 @@ fun getTypeIcon(type: ProjectType): androidx.compose.ui.graphics.vector.ImageVec
         ProjectType.DEVELOPMENT -> Icons.Default.Code
         ProjectType.WRITING -> Icons.Default.Edit
         ProjectType.DESIGN -> Icons.Default.Palette
+        ProjectType.ANDROID -> Icons.Default.PhoneAndroid
+        ProjectType.BACKEND -> Icons.Default.Storage
+        ProjectType.DATA_SCIENCE -> Icons.Default.Analytics
+        ProjectType.MULTIPLATFORM -> Icons.Default.Devices
+        ProjectType.FLUTTER -> Icons.Default.FlutterDash
     }
 }
 

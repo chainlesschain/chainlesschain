@@ -82,9 +82,16 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.chainlesschain.android.core.database.entity.ProjectActivityEntity
 import com.chainlesschain.android.core.database.entity.ProjectChatMessageEntity
 import com.chainlesschain.android.core.database.entity.ProjectEntity
+import com.chainlesschain.android.core.database.entity.ProjectFileEntity
 import com.chainlesschain.android.core.database.entity.ProjectStatus
+import com.chainlesschain.android.feature.project.model.ChatContextMode
 import com.chainlesschain.android.feature.project.model.FileTreeNode
 import com.chainlesschain.android.feature.project.model.ProjectDetailState
+import com.chainlesschain.android.feature.project.model.TaskStep
+import com.chainlesschain.android.feature.project.model.ThinkingStage
+import com.chainlesschain.android.feature.project.ui.components.BreadcrumbItem
+import com.chainlesschain.android.feature.project.ui.components.BreadcrumbNav
+import com.chainlesschain.android.feature.project.ui.components.FileSearchBar
 import com.chainlesschain.android.feature.project.ui.components.ProjectChatPanel
 import com.chainlesschain.android.feature.project.viewmodel.ProjectUiEvent
 import com.chainlesschain.android.feature.project.viewmodel.ProjectViewModel
@@ -109,6 +116,34 @@ fun ProjectDetailScreen(
     val chatMessages by viewModel.chatMessages.collectAsState()
     val chatInputText by viewModel.chatInputText.collectAsState()
     val isAiResponding by viewModel.isAiResponding.collectAsState()
+
+    // Context mode states
+    val contextMode by viewModel.contextMode.collectAsState()
+    val selectedFileForContext by viewModel.selectedFileForContext.collectAsState()
+
+    // File mention states
+    val projectFiles by viewModel.projectFiles.collectAsState()
+    val isFileMentionVisible by viewModel.isFileMentionVisible.collectAsState()
+    val fileMentionSearchQuery by viewModel.fileMentionSearchQuery.collectAsState()
+
+    // External file states (for AI chat)
+    val externalFiles by viewModel.availableExternalFiles.collectAsState()
+    val externalFileSearchQuery by viewModel.externalFileSearchQuery.collectAsState()
+
+    // Thinking and task plan states
+    val currentThinkingStage by viewModel.currentThinkingStage.collectAsState()
+    val currentTaskPlan by viewModel.currentTaskPlan.collectAsState()
+
+    // File search states
+    val fileSearchQuery by viewModel.fileSearchQuery.collectAsState()
+    val isFileSearchExpanded by viewModel.isFileSearchExpanded.collectAsState()
+    val filteredFiles by viewModel.filteredFiles.collectAsState()
+
+    // Model selection states
+    val currentModel by viewModel.currentModel.collectAsState()
+    val currentProvider by viewModel.currentProvider.collectAsState()
+    val contextStats by viewModel.contextStats.collectAsState()
+    val totalContextTokens by viewModel.totalContextTokens.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
     var selectedTab by remember { mutableIntStateOf(0) }
@@ -298,6 +333,15 @@ fun ProjectDetailScreen(
                         .fillMaxSize()
                         .padding(padding)
                 ) {
+                    // Breadcrumb navigation
+                    BreadcrumbNav(
+                        items = listOf(
+                            BreadcrumbItem("Projects", onClick = onNavigateBack),
+                            BreadcrumbItem(state.project.name)
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
                     // 项目信息卡片
                     ProjectInfoCard(
                         project = state.project,
@@ -325,17 +369,31 @@ fun ProjectDetailScreen(
 
                     // 标签页内容
                     when (selectedTab) {
-                        0 -> FileTreeView(
-                            fileTree = fileTree,
-                            onNodeClick = { node ->
-                                if (node.isFile()) {
-                                    viewModel.openFile(node.id)
-                                } else {
-                                    viewModel.toggleFileTreeNode(node.id)
-                                }
-                            },
-                            onDeleteFile = { viewModel.deleteFile(it) }
-                        )
+                        0 -> Column(modifier = Modifier.fillMaxSize()) {
+                            // File search bar
+                            FileSearchBar(
+                                query = fileSearchQuery,
+                                onQueryChange = { viewModel.updateFileSearchQuery(it) },
+                                isExpanded = isFileSearchExpanded,
+                                onExpandedChange = { viewModel.setFileSearchExpanded(it) },
+                                resultCount = if (fileSearchQuery.isBlank()) projectFiles.size else filteredFiles.size,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                            )
+
+                            // File tree
+                            FileTreeView(
+                                fileTree = if (fileSearchQuery.isBlank()) fileTree else buildFilteredTree(filteredFiles),
+                                onNodeClick = { node ->
+                                    if (node.isFile()) {
+                                        viewModel.openFile(node.id)
+                                    } else {
+                                        viewModel.toggleFileTreeNode(node.id)
+                                    }
+                                },
+                                onDeleteFile = { viewModel.deleteFile(it) },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
                         1 -> ProjectChatPanel(
                             messages = chatMessages,
                             isAiResponding = isAiResponding,
@@ -344,7 +402,46 @@ fun ProjectDetailScreen(
                             onSendMessage = { viewModel.sendChatMessage() },
                             onQuickAction = { viewModel.executeQuickAction(it) },
                             onClearChat = { viewModel.clearChatHistory() },
-                            onRetry = { viewModel.retryChatMessage() }
+                            onRetry = { viewModel.retryChatMessage() },
+                            // Context mode props
+                            contextMode = contextMode,
+                            onContextModeChange = { viewModel.setContextMode(it) },
+                            selectedFileName = selectedFileForContext?.name,
+                            // File mention props - Project Files
+                            projectFiles = projectFiles,
+                            isFileMentionVisible = isFileMentionVisible,
+                            fileMentionSearchQuery = fileMentionSearchQuery,
+                            onFileMentionSearchChange = { viewModel.updateFileMentionSearchQuery(it) },
+                            onFileSelected = { viewModel.addFileMention(it) },
+                            onShowFileMention = {
+                                viewModel.showFileMentionPopup()
+                                viewModel.loadAvailableExternalFiles() // Load external files when popup opens
+                            },
+                            onHideFileMention = { viewModel.hideFileMentionPopup() },
+                            // File mention props - External Files
+                            externalFiles = externalFiles,
+                            externalFileSearchQuery = externalFileSearchQuery,
+                            onExternalFileSearchChange = { viewModel.updateExternalFileSearchQuery(it) },
+                            onExternalFileSelected = { viewModel.importExternalFileForChat(it) },
+                            // Thinking stage props
+                            currentThinkingStage = currentThinkingStage,
+                            // Task plan props
+                            currentTaskPlan = currentTaskPlan,
+                            onConfirmTaskPlan = { viewModel.confirmTaskPlan() },
+                            onCancelTaskPlan = { viewModel.cancelTaskPlan() },
+                            onModifyTaskPlan = { viewModel.modifyTaskPlan() },
+                            onRetryTaskStep = { viewModel.retryTaskStep(it) },
+                            // Model selection props
+                            currentModel = currentModel,
+                            currentProvider = currentProvider,
+                            onModelSelected = { model, provider ->
+                                viewModel.setModel(model)
+                                viewModel.setProvider(provider)
+                            },
+                            // Context stats props
+                            contextStats = contextStats,
+                            totalContextTokens = totalContextTokens,
+                            maxContextTokens = 4000
                         )
                         2 -> ActivityListView(activities = activities)
                     }
@@ -586,11 +683,12 @@ private fun ProjectInfoCard(
 private fun FileTreeView(
     fileTree: List<FileTreeNode>,
     onNodeClick: (FileTreeNode) -> Unit,
-    onDeleteFile: (String) -> Unit
+    onDeleteFile: (String) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     if (fileTree.isEmpty()) {
         Box(
-            modifier = Modifier.fillMaxSize(),
+            modifier = modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -610,7 +708,7 @@ private fun FileTreeView(
         }
     } else {
         LazyColumn(
-            modifier = Modifier.fillMaxSize(),
+            modifier = modifier.fillMaxSize(),
             contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
@@ -623,6 +721,25 @@ private fun FileTreeView(
                 )
             }
         }
+    }
+}
+
+/**
+ * Build a flat file tree from filtered files for search results
+ */
+private fun buildFilteredTree(files: List<ProjectFileEntity>): List<FileTreeNode> {
+    return files.map { file ->
+        FileTreeNode(
+            id = file.id,
+            name = file.name,
+            path = file.path,
+            type = file.type,
+            extension = file.extension,
+            size = file.size,
+            isDirty = file.isDirty,
+            isOpen = file.isOpen,
+            isExpanded = false
+        )
     }
 }
 

@@ -35,7 +35,7 @@ class DatabaseMigrationsTest {
         // Then
         assertNotNull(migrations)
         assertTrue(migrations.isNotEmpty())
-        assertEquals(8, migrations.size)
+        assertEquals(10, migrations.size)
     }
 
     @Test

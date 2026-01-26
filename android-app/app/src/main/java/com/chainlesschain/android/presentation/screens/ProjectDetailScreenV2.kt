@@ -40,6 +40,7 @@ fun ProjectDetailScreenV2(
     projectId: String,
     onNavigateBack: () -> Unit = {},
     onNavigateToSteps: (String) -> Unit = {},
+    onNavigateToFileBrowser: (String) -> Unit = {},
     viewModel: ProjectViewModel = hiltViewModel()
 ) {
     // 加载项目详情
@@ -72,6 +73,7 @@ fun ProjectDetailScreenV2(
             ProjectDetailTopBar(
                 title = projectTitle,
                 onNavigateBack = onNavigateBack,
+                onNavigateToFileBrowser = { onNavigateToFileBrowser(projectId) },
                 isLoading = projectDetailState is ProjectDetailState.Loading
             )
         },
@@ -181,6 +183,7 @@ fun ProjectDetailScreenV2(
 fun ProjectDetailTopBar(
     title: String,
     onNavigateBack: () -> Unit,
+    onNavigateToFileBrowser: () -> Unit = {},
     isLoading: Boolean = false
 ) {
     TopAppBar(
@@ -213,8 +216,8 @@ fun ProjectDetailTopBar(
             IconButton(onClick = { /* TODO: 添加 */ }) {
                 Icon(Icons.Default.Add, contentDescription = "添加")
             }
-            IconButton(onClick = { /* TODO: 文件夹 */ }) {
-                Icon(Icons.Outlined.Folder, contentDescription = "文件")
+            IconButton(onClick = onNavigateToFileBrowser) {
+                Icon(Icons.Outlined.Folder, contentDescription = "导入文件")
             }
             IconButton(onClick = { /* TODO: 分享 */ }) {
                 Icon(Icons.Default.Share, contentDescription = "分享")
@@ -594,7 +597,7 @@ fun EmptyConversationHint(
  * 快捷操作按钮
  */
 @Composable
-fun QuickActionButton(
+private fun QuickActionButton(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     text: String,
     onClick: () -> Unit

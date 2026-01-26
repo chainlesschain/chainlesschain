@@ -352,6 +352,8 @@ public class DatabaseManager {
         switch version {
         case 1:
             try migration_v1()
+        case 2:
+            try migration_v2()
         default:
             break
         }

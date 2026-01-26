@@ -6,6 +6,7 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -29,10 +30,15 @@ import com.chainlesschain.android.presentation.HomeScreen
 import com.chainlesschain.android.presentation.MainContainer
 import com.chainlesschain.android.presentation.screens.ProjectDetailScreenV2
 import com.chainlesschain.android.presentation.screens.StepDetailScreen
+import com.chainlesschain.android.presentation.screens.LLMTestChatScreen
+import com.chainlesschain.android.feature.ai.presentation.settings.LLMSettingsScreen
+import com.chainlesschain.android.feature.ai.presentation.usage.UsageStatisticsScreen
+import com.chainlesschain.android.feature.ai.domain.model.LLMProvider
 import com.chainlesschain.android.feature.p2p.navigation.p2pGraph
 import com.chainlesschain.android.feature.p2p.navigation.P2P_ROUTE
 import com.chainlesschain.android.feature.p2p.ui.social.PostDetailScreen
 import com.chainlesschain.android.feature.p2p.ui.social.PublishPostScreen
+import com.chainlesschain.android.feature.filebrowser.ui.GlobalFileBrowserScreen
 
 /**
  * 应用导航图
@@ -96,6 +102,15 @@ fun NavGraph(
                 },
                 onNavigateToComment = { commentId ->
                     // TODO: 实现评论详情页导航
+                },
+                onNavigateToLLMSettings = {
+                    navController.navigate(Screen.LLMSettings.route)
+                },
+                onNavigateToLLMTest = {
+                    navController.navigate(Screen.LLMTest.route)
+                },
+                onNavigateToFileBrowser = {
+                    navController.navigate(Screen.FileBrowser.route)
                 }
             )
         }
@@ -219,6 +234,9 @@ fun NavGraph(
                 },
                 onNavigateToSteps = { id ->
                     navController.navigate(Screen.StepDetail.createRoute(id))
+                },
+                onNavigateToFileBrowser = { id ->
+                    navController.navigate(Screen.FileBrowser.createRoute(id))
                 }
             )
         }
@@ -235,6 +253,106 @@ fun NavGraph(
                 projectId = projectId,
                 onNavigateBack = {
                     navController.popBackStack()
+                }
+            )
+        }
+
+        // ===== LLM功能路由 =====
+
+        // LLM设置界面
+        composable(route = Screen.LLMSettings.route) {
+            LLMSettingsScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onNavigateToUsageStatistics = {
+                    navController.navigate(Screen.UsageStatistics.route)
+                }
+            )
+        }
+
+        // Token使用统计界面
+        composable(route = Screen.UsageStatistics.route) {
+            UsageStatisticsScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        // LLM测试对话界面
+        composable(route = Screen.LLMTest.route) {
+            LLMTestChatScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                provider = LLMProvider.DOUBAO  // 默认使用火山引擎
+            )
+        }
+
+        // LLM测试对话界面（带提供商参数）
+        composable(
+            route = "${Screen.LLMTest.route}/{provider}",
+            arguments = listOf(
+                navArgument("provider") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val providerName = backStackEntry.arguments?.getString("provider") ?: "DOUBAO"
+            val provider = try {
+                LLMProvider.valueOf(providerName)
+            } catch (e: Exception) {
+                LLMProvider.DOUBAO
+            }
+
+            LLMTestChatScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                provider = provider
+            )
+        }
+
+        // 文件浏览器界面
+        composable(
+            route = Screen.FileBrowser.route,
+            arguments = listOf(
+                navArgument("projectId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) { backStackEntry ->
+            val projectId = backStackEntry.arguments?.getString("projectId")
+
+            // Get ProjectViewModel to fetch available projects
+            val projectViewModel: com.chainlesschain.android.feature.project.viewmodel.ProjectViewModel = hiltViewModel()
+            val authViewModel: AuthViewModel = hiltViewModel()
+            val authState by authViewModel.uiState.collectAsState()
+            val projectListState by projectViewModel.projectListState.collectAsState()
+
+            // Load projects when screen launches
+            LaunchedEffect(authState.currentUser) {
+                authState.currentUser?.let { user ->
+                    projectViewModel.setCurrentUser(user.id)
+                }
+            }
+
+            // Extract projects from state
+            val availableProjects = when (val state = projectListState) {
+                is com.chainlesschain.android.feature.project.model.ProjectListState.Success -> state.projects.map { it.project }
+                else -> emptyList()
+            }
+
+            GlobalFileBrowserScreen(
+                projectId = projectId,
+                availableProjects = availableProjects,
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onFileImported = { fileId ->
+                    // File imported successfully, could navigate back or show confirmation
+                    // For now, just stay on the screen
                 }
             )
         }
@@ -340,6 +458,20 @@ sealed class Screen(val route: String) {
     }
     data object StepDetail : Screen("step_detail") {
         fun createRoute(projectId: String) = "step_detail/$projectId"
+    }
+
+    // LLM功能路由
+    data object LLMSettings : Screen("llm_settings")
+    data object UsageStatistics : Screen("usage_statistics")
+    data object LLMTest : Screen("llm_test") {
+        fun createRoute(provider: String) = "llm_test/$provider"
+    }
+    data object FileBrowser : Screen("file_browser") {
+        fun createRoute(projectId: String? = null) = if (projectId != null) {
+            "file_browser?projectId=$projectId"
+        } else {
+            "file_browser"
+        }
     }
 
     // 社交功能路由

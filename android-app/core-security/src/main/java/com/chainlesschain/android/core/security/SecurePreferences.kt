@@ -40,6 +40,10 @@ class SecurePreferences @Inject constructor(
         private const val KEY_DEEPSEEK_API_KEY = "deepseek_api_key"
         private const val KEY_CUSTOM_API_KEY = "custom_api_key"
         private const val KEY_CUSTOM_API_ENDPOINT = "custom_api_endpoint"
+        private const val KEY_OLLAMA_BASE_URL = "ollama_base_url"
+
+        // 通用提供商API Key前缀
+        private const val KEY_PROVIDER_PREFIX = "provider_api_key_"
     }
 
     /**
@@ -114,7 +118,10 @@ class SecurePreferences @Inject constructor(
             "OPENAI" -> getOpenAIApiKey()
             "DEEPSEEK" -> getDeepSeekApiKey()
             "CUSTOM" -> getCustomApiKey()
-            else -> null
+            else -> {
+                // 使用通用存储获取其他提供商的API Key
+                encryptedPrefs.getString("$KEY_PROVIDER_PREFIX${provider.lowercase()}", null)
+            }
         }
     }
 
@@ -126,7 +133,29 @@ class SecurePreferences @Inject constructor(
             "OPENAI" -> saveOpenAIApiKey(apiKey)
             "DEEPSEEK" -> saveDeepSeekApiKey(apiKey)
             "CUSTOM" -> saveCustomApiKey(apiKey)
+            else -> {
+                // 使用通用存储保存其他提供商的API Key
+                encryptedPrefs.edit()
+                    .putString("$KEY_PROVIDER_PREFIX${provider.lowercase()}", apiKey)
+                    .apply()
+            }
         }
+    }
+
+    /**
+     * 保存Ollama基础URL
+     */
+    fun saveOllamaBaseUrl(url: String) {
+        encryptedPrefs.edit()
+            .putString(KEY_OLLAMA_BASE_URL, url)
+            .apply()
+    }
+
+    /**
+     * 获取Ollama基础URL
+     */
+    fun getOllamaBaseUrl(): String? {
+        return encryptedPrefs.getString(KEY_OLLAMA_BASE_URL, null)
     }
 
     /**

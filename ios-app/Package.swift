@@ -31,6 +31,10 @@ let package = Package(
             name: "CoreP2P",
             targets: ["CoreP2P"]
         ),
+        .library(
+            name: "CoreBlockchain",
+            targets: ["CoreBlockchain"]
+        ),
     ],
     dependencies: [
         // Signal Protocol
@@ -62,6 +66,11 @@ let package = Package(
         .package(
             url: "https://github.com/Flight-School/AnyCodable.git",
             from: "0.6.0"
+        ),
+        // WalletCore - HD Wallet & Multi-chain support
+        .package(
+            url: "https://github.com/trustwallet/wallet-core.git",
+            from: "4.0.0"
         ),
     ],
     targets: [
@@ -124,6 +133,18 @@ let package = Package(
                 "Starscream"
             ],
             path: "Modules/CoreP2P"
+        ),
+
+        .target(
+            name: "CoreBlockchain",
+            dependencies: [
+                "CoreCommon",
+                "CoreSecurity",
+                "CoreDatabase",
+                .product(name: "WalletCore", package: "wallet-core"),
+                "CryptoSwift"
+            ],
+            path: "Modules/CoreBlockchain"
         ),
 
         // MARK: - Test Targets

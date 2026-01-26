@@ -8,18 +8,24 @@ import com.chainlesschain.android.core.database.dao.ConversationDao
 import com.chainlesschain.android.core.database.dao.P2PMessageDao
 import com.chainlesschain.android.core.database.dao.OfflineQueueDao
 import com.chainlesschain.android.core.database.dao.FileTransferDao
+import com.chainlesschain.android.core.database.dao.TransferCheckpointDao
+import com.chainlesschain.android.core.database.dao.TransferQueueDao
 import com.chainlesschain.android.core.database.dao.ProjectDao
 import com.chainlesschain.android.core.database.dao.ProjectChatMessageDao
 import com.chainlesschain.android.core.database.dao.social.FriendDao
 import com.chainlesschain.android.core.database.dao.social.PostDao
 import com.chainlesschain.android.core.database.dao.social.PostInteractionDao
 import com.chainlesschain.android.core.database.dao.social.NotificationDao
+import com.chainlesschain.android.core.database.dao.ExternalFileDao
+import com.chainlesschain.android.core.database.dao.FileImportHistoryDao
 import com.chainlesschain.android.core.database.entity.KnowledgeItemEntity
 import com.chainlesschain.android.core.database.entity.ConversationEntity
 import com.chainlesschain.android.core.database.entity.MessageEntity
 import com.chainlesschain.android.core.database.entity.P2PMessageEntity
 import com.chainlesschain.android.core.database.entity.OfflineQueueEntity
 import com.chainlesschain.android.core.database.entity.FileTransferEntity
+import com.chainlesschain.android.core.database.entity.TransferCheckpointEntity
+import com.chainlesschain.android.core.database.entity.TransferQueueEntity
 import com.chainlesschain.android.core.database.entity.ProjectEntity
 import com.chainlesschain.android.core.database.entity.ProjectFileEntity
 import com.chainlesschain.android.core.database.entity.ProjectActivityEntity
@@ -32,6 +38,9 @@ import com.chainlesschain.android.core.database.entity.social.PostLikeEntity
 import com.chainlesschain.android.core.database.entity.social.PostCommentEntity
 import com.chainlesschain.android.core.database.entity.social.PostShareEntity
 import com.chainlesschain.android.core.database.entity.social.NotificationEntity
+import com.chainlesschain.android.core.database.entity.ExternalFileEntity
+import com.chainlesschain.android.core.database.entity.FileImportHistoryEntity
+import com.chainlesschain.android.core.database.fts.ProjectFileFts
 import com.chainlesschain.android.core.database.util.Converters
 
 /**
@@ -50,10 +59,15 @@ import com.chainlesschain.android.core.database.util.Converters
         P2PMessageEntity::class,
         OfflineQueueEntity::class,
         FileTransferEntity::class,
+        TransferCheckpointEntity::class,
+        TransferQueueEntity::class,
         ProjectEntity::class,
         ProjectFileEntity::class,
+        ProjectFileFts::class,
         ProjectActivityEntity::class,
         ProjectChatMessageEntity::class,
+        ExternalFileEntity::class,
+        FileImportHistoryEntity::class,
         // 社交功能实体
         FriendEntity::class,
         FriendGroupEntity::class,
@@ -63,7 +77,7 @@ import com.chainlesschain.android.core.database.util.Converters
         PostShareEntity::class,
         NotificationEntity::class,
     ],
-    version = 10,
+    version = 14,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -84,11 +98,23 @@ abstract class ChainlessChainDatabase : RoomDatabase() {
     // 文件传输DAO
     abstract fun fileTransferDao(): FileTransferDao
 
+    // 传输断点DAO
+    abstract fun transferCheckpointDao(): TransferCheckpointDao
+
+    // 传输队列DAO
+    abstract fun transferQueueDao(): TransferQueueDao
+
     // 项目管理DAO
     abstract fun projectDao(): ProjectDao
 
     // 项目AI聊天消息DAO
     abstract fun projectChatMessageDao(): ProjectChatMessageDao
+
+    // 外部文件DAO
+    abstract fun externalFileDao(): ExternalFileDao
+
+    // 文件导入历史DAO
+    abstract fun fileImportHistoryDao(): FileImportHistoryDao
 
     // 社交功能DAO
     abstract fun friendDao(): FriendDao

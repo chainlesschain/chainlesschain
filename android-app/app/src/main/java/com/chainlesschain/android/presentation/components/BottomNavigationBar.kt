@@ -60,7 +60,7 @@ data class BottomNavItem(
 
 /**
  * 底部导航项列表
- * 4个tab: 首页、项目、社交、收藏
+ * 4个tab: 首页、项目、社交、个人中心
  */
 val bottomNavItems = listOf(
     BottomNavItem(
@@ -79,8 +79,8 @@ val bottomNavItems = listOf(
         unselectedIcon = Icons.Outlined.People
     ),
     BottomNavItem(
-        label = "收藏",
-        selectedIcon = Icons.Filled.Bookmark,
-        unselectedIcon = Icons.Outlined.BookmarkBorder
+        label = "我的",
+        selectedIcon = Icons.Filled.Person,
+        unselectedIcon = Icons.Outlined.PersonOutline
     )
 )

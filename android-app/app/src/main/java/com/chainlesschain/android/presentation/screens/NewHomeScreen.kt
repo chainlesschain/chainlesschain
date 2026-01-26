@@ -32,7 +32,8 @@ import com.chainlesschain.android.feature.auth.presentation.AuthViewModel
 @Composable
 fun NewHomeScreen(
     viewModel: AuthViewModel,
-    onProfileClick: () -> Unit = {}
+    onProfileClick: () -> Unit = {},
+    onNavigateToFileBrowser: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var inputText by remember { mutableStateOf("") }
@@ -60,7 +61,9 @@ fun NewHomeScreen(
             Spacer(modifier = Modifier.height(32.dp))
 
             // 功能入口网格 (3x2)
-            FunctionEntryGrid()
+            FunctionEntryGrid(
+                onNavigateToFileBrowser = onNavigateToFileBrowser
+            )
 
             Spacer(modifier = Modifier.weight(1f))
         }
@@ -164,15 +167,17 @@ fun BrandSection() {
  * 功能入口网格
  */
 @Composable
-fun FunctionEntryGrid() {
+fun FunctionEntryGrid(
+    onNavigateToFileBrowser: () -> Unit = {}
+) {
     val functionItems = remember {
         listOf(
-            FunctionEntryItem("写作", Icons.Outlined.Edit, Color(0xFF4CAF50)),
-            FunctionEntryItem("PPT", Icons.Outlined.Slideshow, Color(0xFFFF9800)),
+            FunctionEntryItem("AI助手", Icons.Outlined.AutoAwesome, Color(0xFFFF6B9D), onClick = { /* TODO */ }),
+            FunctionEntryItem("文件浏览", Icons.Outlined.FolderOpen, Color(0xFF4CAF50), onClick = onNavigateToFileBrowser),
+            FunctionEntryItem("写作", Icons.Outlined.Edit, Color(0xFF2196F3)),
             FunctionEntryItem("设计", Icons.Outlined.Palette, Color(0xFF9C27B0)),
-            FunctionEntryItem("网页", Icons.Outlined.Language, Color(0xFF2196F3)),
             FunctionEntryItem("播客", Icons.Outlined.Podcasts, Color(0xFFE91E63)),
-            FunctionEntryItem("Excel", Icons.Outlined.TableChart, Color(0xFF009688))
+            FunctionEntryItem("工具箱", Icons.Outlined.Build, Color(0xFF009688))
         )
     }
 
@@ -188,7 +193,7 @@ fun FunctionEntryGrid() {
                 icon = item.icon,
                 title = item.title,
                 backgroundColor = item.color,
-                onClick = { /* TODO: 处理点击 */ }
+                onClick = item.onClick ?: {}
             )
         }
     }
@@ -314,5 +319,6 @@ fun ChatInputBar(
 data class FunctionEntryItem(
     val title: String,
     val icon: ImageVector,
-    val color: Color
+    val color: Color,
+    val onClick: (() -> Unit)? = null
 )
