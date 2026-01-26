@@ -184,7 +184,7 @@ fun SyntaxHighlightedView(
 /**
  * Highlight syntax based on language
  */
-private fun highlightSyntax(
+internal fun highlightSyntax(
     code: String,
     language: String?,
     colors: SyntaxColors

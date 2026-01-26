@@ -1,0 +1,975 @@
+/**
+ * 项目详情页专用测试辅助函数
+ */
+
+import { Page } from '@playwright/test';
+import { callIPC, forceCloseAllModals } from './common';
+
+/**
+ * 创建测试项目并导航到详情页
+ */
+export async function createAndOpenProject(
+  window: Page,
+  projectData: {
+    name: string;
+    description?: string;
+    project_type?: string;
+    enable_git?: boolean;
+  }
+) {
+  // 使用 project:create-quick 避免依赖后端API
+  const project = await callIPC(window, 'project:create-quick', projectData);
+
+  // 导航到项目详情页
+  await window.evaluate((projectId) => {
+    window.location.hash = `#/projects/${projectId}`;
+  }, project.id);
+
+  // 等待页面加载
+  await window.waitForSelector('[data-testid="project-detail-page"]', { timeout: 10000 });
+  await window.waitForTimeout(1000); // 额外等待确保完全加载
+
+  return project;
+}
+
+/**
+ * 创建测试文件（物理文件 + 数据库记录）
+ */
+export async function createTestFile(
+  window: Page,
+  projectId: string,
+  fileData: {
+    fileName: string;
+    content: string;
+    fileType: string;
+  }
+) {
+  // Step 1: 创建物理文件
+  const result = await callIPC(window, 'file:createFile', {
+    projectId,
+    filePath: fileData.fileName,
+    content: fileData.content,
+  });
+
+  // Step 2: 保存文件记录到数据库
+  const timestamp = Date.now();
+  const fileRecord = {
+    project_id: projectId,
+    file_name: fileData.fileName,
+    file_path: fileData.fileName,
+    file_type: fileData.fileType,
+    content: fileData.content,
+    created_at: timestamp,
+    updated_at: timestamp,
+  };
+
+  await callIPC(window, 'project:save-files', projectId, [fileRecord]);
+
+  console.log(`[Helper] 文件创建完成: ${fileData.fileName}`);
+
+  // 等待可能的成功提示消失
+  await window.waitForTimeout(1000);
+
+  return {
+    ...result,
+    file_name: fileData.fileName,
+    file_type: fileData.fileType,
+    content: fileData.content,
+  };
+}
+
+/**
+ * 在文件树中选择文件（大小写不敏感）
+ */
+export async function selectFileInTree(window: Page, fileName: string): Promise<boolean> {
+  try {
+    // 先关闭所有可能的modal，防止遮挡
+    await forceCloseAllModals(window);
+
+    // 等待文件树加载
+    await window.waitForSelector('[data-testid="file-tree-container"]', { timeout: 5000 });
+
+    // 多次尝试查找文件（因为文件树可能需要时间刷新）
+    let fileNode: any = null;
+    const lowerFileName = fileName.toLowerCase();
+
+    for (let i = 0; i < 5; i++) {
+      // 使用evaluate进行完全大小写不敏感的匹配
+      fileNode = await window.evaluateHandle((searchName) => {
+        const lowerSearchName = searchName.toLowerCase();
+
+        // 查找所有可能的文件节点
+        const allNodes = Array.from(document.querySelectorAll(
+          '[data-testid="file-tree-container"] .file-node, ' +
+          '[data-testid="file-tree-container"] .tree-node, ' +
+          '[data-testid="file-tree-container"] [class*="file"], ' +
+          '[data-testid="file-tree-container"] [class*="item"]'
+        ));
+
+        // 优先查找精确的文件名匹配（忽略大小写）
+        let found = allNodes.find(node => {
+          const text = node.textContent?.trim() || '';
+          // 完全匹配文件名（忽略大小写）
+          return text.toLowerCase() === lowerSearchName;
+        });
+
+        // 如果没找到，尝试包含匹配
+        if (!found) {
+          found = allNodes.find(node => {
+            const text = node.textContent?.trim() || '';
+            // 大小写不敏感包含匹配，但要避免匹配到太长的父节点
+            return text.toLowerCase().includes(lowerSearchName) &&
+                   text.length < lowerSearchName.length + 10;
+          });
+        }
+
+        // 如果还没找到，尝试所有包含文件名的元素
+        if (!found) {
+          const allElements = Array.from(document.querySelectorAll('[data-testid="file-tree-container"] *'));
+          found = allElements.find(elem => {
+            const text = elem.textContent?.trim() || '';
+            return text.toLowerCase() === lowerSearchName ||
+                   (text.toLowerCase().includes(lowerSearchName) && text.length < lowerSearchName.length + 10);
+          });
+        }
+
+        if (found) {
+          console.log('[Helper] 找到文件节点:', found.textContent?.trim());
+        }
+
+        return found || null;
+      }, fileName);
+
+      if (fileNode && await fileNode.asElement()) {
+        console.log(`[Helper] 通过大小写不敏感匹配找到文件: ${fileName}`);
+        break;
+      }
+
+      console.log(`[Helper] 第${i + 1}次尝试查找文件: ${fileName}`);
+      await window.waitForTimeout(1000);
+    }
+
+    if (fileNode && await fileNode.asElement()) {
+      // 使用force click绕过可能的遮挡
+      await fileNode.click({ force: true });
+      await window.waitForTimeout(1000);
+      console.log(`[Helper] ✅ 成功选择文件: ${fileName}`);
+      return true;
+    }
+
+    console.error(`[Helper] ❌ 未找到文件: ${fileName}`);
+    // 输出文件树内容以便调试
+    const treeContent = await window.textContent('[data-testid="file-tree-container"]');
+    console.log('[Helper] 文件树内容:', treeContent);
+    return false;
+  } catch (error) {
+    console.error('[Helper] Failed to select file in tree:', error);
+    return false;
+  }
+}
+
+/**
+ * 发送AI聊天消息
+ */
+export async function sendChatMessage(window: Page, message: string): Promise<boolean> {
+  try {
+    // 先关闭所有可能的modal，防止遮挡
+    await forceCloseAllModals(window);
+
+    // 输入消息并点击发送（使用重试逻辑提高可靠性）
+    let attempts = 0;
+    const maxAttempts = 3;
+
+    while (attempts < maxAttempts) {
+      const success = await window.evaluate((msg) => {
+        const input = document.querySelector('[data-testid="chat-input"]') as HTMLTextAreaElement;
+        if (!input) {
+          console.error('[Helper] Chat input not found');
+          return false;
+        }
+
+        // 设置输入值
+        input.value = msg;
+        // 触发input事件让Vue响应
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+
+        // 等待一小会儿让Vue更新
+        setTimeout(() => {
+          const btn = document.querySelector('[data-testid="chat-send-button"]') as HTMLElement;
+          if (btn) {
+            btn.click();
+          }
+        }, 100);
+
+        return true;
+      }, message);
+
+      if (success) {
+        await window.waitForTimeout(1000);
+        console.log('[Helper] ✅ Chat message sent successfully');
+        return true;
+      }
+
+      attempts++;
+      if (attempts < maxAttempts) {
+        console.warn(`[Helper] Attempt ${attempts} failed, retrying...`);
+        await window.waitForTimeout(1000);
+      }
+    }
+
+    console.error('[Helper] Failed to send chat message after all attempts');
+    return false;
+  } catch (error) {
+    console.error('[Helper] Failed to send chat message:', error);
+    return false;
+  }
+}
+
+/**
+ * 等待AI响应完成
+ */
+export async function waitForAIResponse(window: Page, timeout: number = 30000): Promise<boolean> {
+  try {
+    // 等待加载指示器出现
+    await window.waitForSelector('[data-testid="message-loading"]', { timeout: 5000 });
+
+    // 等待加载指示器消失
+    await window.waitForSelector('[data-testid="message-loading"]', {
+      state: 'hidden',
+      timeout,
+    });
+
+    return true;
+  } catch (error) {
+    console.error('Failed to wait for AI response:', error);
+    return false;
+  }
+}
+
+/**
+ * 获取所有聊天消息
+ */
+export async function getChatMessages(window: Page): Promise<string[]> {
+  try {
+    const messagesList = await window.$('[data-testid="messages-list"]');
+    if (!messagesList) {
+      return [];
+    }
+
+    const messages = await window.$$('.message-item');
+    const messageTexts: string[] = [];
+
+    for (const msg of messages) {
+      const text = await msg.textContent();
+      if (text) {
+        messageTexts.push(text.trim());
+      }
+    }
+
+    return messageTexts;
+  } catch (error) {
+    console.error('Failed to get chat messages:', error);
+    return [];
+  }
+}
+
+/**
+ * 切换上下文模式
+ */
+export async function switchContextMode(
+  window: Page,
+  mode: 'project' | 'file' | 'global'
+): Promise<boolean> {
+  try {
+    const clicked = await window.evaluate((modeValue) => {
+      const btn = document.querySelector(`[data-testid="context-mode-${modeValue}"]`) as HTMLElement;
+      if (btn) {
+        btn.click();
+        return true;
+      }
+      return false;
+    }, mode);
+
+    if (!clicked) {
+      console.error(`Context mode button not found: ${mode}`);
+      return false;
+    }
+
+    await window.waitForTimeout(300);
+    return true;
+  } catch (error) {
+    console.error('Failed to switch context mode:', error);
+    return false;
+  }
+}
+
+/**
+ * 保存当前文件
+ */
+export async function saveCurrentFile(window: Page): Promise<boolean> {
+  try {
+    const saveButton = await window.$('[data-testid="save-button"]');
+    if (!saveButton) {
+      console.error('Save button not found');
+      return false;
+    }
+
+    // 检查按钮是否可用
+    const isDisabled = await saveButton.evaluate((el) => (el as HTMLButtonElement).disabled);
+    if (isDisabled) {
+      console.warn('Save button is disabled');
+      return false;
+    }
+
+    await saveButton.click();
+
+    // 等待保存成功提示
+    await window.waitForSelector('.ant-message-success', { timeout: 5000 });
+
+    return true;
+  } catch (error) {
+    console.error('Failed to save file:', error);
+    return false;
+  }
+}
+
+/**
+ * 刷新文件列表
+ */
+export async function refreshFileList(window: Page): Promise<boolean> {
+  try {
+    // 先尝试关闭可能存在的modal
+    try {
+      const closeButtons = await window.$$('.ant-modal-close, .ant-message-notice-close');
+      for (const closeBtn of closeButtons) {
+        if (await closeBtn.isVisible()) {
+          await closeBtn.click({ force: true });
+          await window.waitForTimeout(300);
+        }
+      }
+    } catch (e) {
+      // 忽略关闭modal的错误
+    }
+
+    // 使用evaluate直接触发DOM点击，这样更可靠
+    const clicked = await window.evaluate(() => {
+      const btn = document.querySelector('[data-testid="refresh-files-button"]') as HTMLElement;
+      if (btn) {
+        console.log('[Helper] 找到刷新按钮，触发点击');
+        btn.click();
+        return true;
+      }
+      console.log('[Helper] 未找到刷新按钮');
+      return false;
+    });
+
+    if (!clicked) {
+      console.error('[Helper] Refresh button not found');
+      return false;
+    }
+
+    // 等待刷新完成
+    await window.waitForTimeout(2000);
+
+    return true;
+  } catch (error) {
+    console.error('[Helper] Failed to refresh file list:', error);
+    return false;
+  }
+}
+
+/**
+ * 打开Git菜单并选择操作
+ */
+export async function performGitAction(
+  window: Page,
+  action: 'status' | 'history' | 'commit' | 'push' | 'pull'
+): Promise<boolean> {
+  try {
+    // 先关闭所有可能的modal，防止遮挡
+    await forceCloseAllModals(window);
+
+    // 点击Git按钮
+    const gitButton = await window.$('[data-testid="git-actions-button"]');
+    if (!gitButton) {
+      console.error('Git actions button not found');
+      return false;
+    }
+
+    await gitButton.click();
+    await window.waitForTimeout(300);
+
+    // 等待菜单显示
+    await window.waitForSelector('[data-testid="git-actions-menu"]', { timeout: 2000 });
+
+    // 点击对应的菜单项
+    const menuItem = await window.$(`[data-testid="git-${action}-item"]`);
+    if (!menuItem) {
+      console.error(`Git menu item not found: ${action}`);
+      return false;
+    }
+
+    await menuItem.click();
+    await window.waitForTimeout(1000);
+
+    return true;
+  } catch (error) {
+    console.error('Failed to perform git action:', error);
+    return false;
+  }
+}
+
+/**
+ * 切换编辑器面板显示/隐藏
+ */
+export async function toggleEditorPanel(window: Page): Promise<boolean> {
+  try {
+    const clicked = await window.evaluate(() => {
+      const btn = document.querySelector('[data-testid="toggle-editor-button"]') as HTMLElement;
+      if (btn) {
+        btn.click();
+        return true;
+      }
+      return false;
+    });
+
+    if (!clicked) {
+      console.error('Toggle editor button not found');
+      return false;
+    }
+
+    await window.waitForTimeout(500);
+
+    return true;
+  } catch (error) {
+    console.error('Failed to toggle editor panel:', error);
+    return false;
+  }
+}
+
+/**
+ * 打开文件管理对话框
+ */
+export async function openFileManageModal(window: Page): Promise<boolean> {
+  try {
+    // 使用evaluate直接触发DOM点击，绕过遮罩层
+    const clicked = await window.evaluate(() => {
+      const btn = document.querySelector('[data-testid="file-manage-button"]') as HTMLElement;
+      if (btn) {
+        console.log('[Helper] 找到文件管理按钮，触发点击');
+        btn.click();
+        return true;
+      }
+      console.log('[Helper] 未找到文件管理按钮');
+      return false;
+    });
+
+    if (!clicked) {
+      console.error('[Helper] File manage button not found');
+      return false;
+    }
+
+    await window.waitForTimeout(500);
+
+    // 验证对话框打开
+    const modal = await window.$('.ant-modal');
+    return modal !== null;
+  } catch (error) {
+    console.error('[Helper] Failed to open file manage modal:', error);
+    return false;
+  }
+}
+
+/**
+ * 切换文件管理Modal的Tab
+ */
+export async function switchFileManageTab(window: Page, tabLabel: string): Promise<boolean> {
+  try {
+    const switched = await window.evaluate((label) => {
+      const tabs = Array.from(document.querySelectorAll('.ant-tabs-tab'));
+      const target = tabs.find(tab => tab.textContent?.trim().includes(label));
+      if (target) {
+        (target as HTMLElement).click();
+        return true;
+      }
+      return false;
+    }, tabLabel);
+
+    if (!switched) {
+      console.warn(`[Helper] File manage tab not found: ${tabLabel}`);
+      return false;
+    }
+
+    await window.waitForTimeout(400);
+    return true;
+  } catch (error) {
+    console.error('[Helper] Failed to switch file manage tab:', error);
+    return false;
+  }
+}
+
+/**
+ * 获取文件管理Modal中当前显示的文件名
+ */
+export async function getFileManageModalFileNames(window: Page, prefixFilter: string = ''): Promise<string[]> {
+  try {
+    return await window.evaluate((prefix) => {
+      const nodes = Array.from(document.querySelectorAll('.file-card .file-name'));
+      return nodes
+        .map(node => node.textContent?.trim() || '')
+        .filter(name => !prefix || name.includes(prefix));
+    }, prefixFilter);
+  } catch (error) {
+    console.error('[Helper] Failed to read file manage modal file names:', error);
+    return [];
+  }
+}
+
+/**
+ * 在文件管理Modal中点击文件卡片
+ */
+export async function clickFileCardInModal(window: Page, fileName: string): Promise<boolean> {
+  try {
+    const clicked = await window.evaluate((targetName) => {
+      const cards = Array.from(document.querySelectorAll('.file-card'));
+      const card = cards.find(item => item.textContent?.trim().includes(targetName));
+      if (card) {
+        (card as HTMLElement).click();
+        return true;
+      }
+      return false;
+    }, fileName);
+
+    if (!clicked) {
+      console.warn(`[Helper] File card not found in modal: ${fileName}`);
+      return false;
+    }
+
+    await window.waitForTimeout(500);
+    return true;
+  } catch (error) {
+    console.error('[Helper] Failed to click file card:', error);
+    return false;
+  }
+}
+
+/**
+ * 触发文件管理Modal中文件卡片的操作菜单
+ */
+export async function triggerFileCardAction(window: Page, fileName: string, actionLabel: string): Promise<boolean> {
+  try {
+    const actionOpened = await window.evaluate((targetName) => {
+      const cards = Array.from(document.querySelectorAll('.file-card'));
+      const card = cards.find(item => item.textContent?.trim().includes(targetName));
+      if (!card) {
+        return false;
+      }
+
+      const actionButton = card.querySelector('.file-actions button');
+      if (actionButton) {
+        (actionButton as HTMLElement).click();
+        return true;
+      }
+      return false;
+    }, fileName);
+
+    if (!actionOpened) {
+      console.warn(`[Helper] Failed to open actions for file: ${fileName}`);
+      return false;
+    }
+
+    await window.waitForSelector('.ant-dropdown-menu-item', { timeout: 2000 }).catch(() => null);
+    const menuItem = await window.$(`.ant-dropdown-menu-item:has-text("${actionLabel}")`);
+
+    if (!menuItem) {
+      console.warn(`[Helper] Action menu item not found: ${actionLabel}`);
+      return false;
+    }
+
+    await menuItem.click({ force: true });
+    await window.waitForTimeout(500);
+    return true;
+  } catch (error) {
+    console.error('[Helper] Failed to trigger file card action:', error);
+    return false;
+  }
+}
+
+/**
+ * 打开分享对话框
+ */
+export async function openShareModal(window: Page): Promise<boolean> {
+  try {
+    // 使用evaluate直接触发DOM点击，绕过遮罩层
+    const clicked = await window.evaluate(() => {
+      const btn = document.querySelector('[data-testid="share-button"]') as HTMLElement;
+      if (btn) {
+        console.log('[Helper] 找到分享按钮，触发点击');
+        btn.click();
+        return true;
+      }
+      console.log('[Helper] 未找到分享按钮');
+      return false;
+    });
+
+    if (!clicked) {
+      console.error('[Helper] Share button not found');
+      return false;
+    }
+
+    await window.waitForTimeout(500);
+
+    // 验证对话框打开
+    const modal = await window.$('.ant-modal');
+    return modal !== null;
+  } catch (error) {
+    console.error('[Helper] Failed to open share modal:', error);
+    return false;
+  }
+}
+
+/**
+ * 等待AI创建模式页面加载完成（专用）
+ */
+export async function waitForAICreatingModeLoad(window: Page, timeout: number = 10000): Promise<boolean> {
+  try {
+    console.log('[Helper] 等待AI创建模式页面加载...');
+
+    // 等待主容器
+    await window.waitForSelector('[data-testid="project-detail-wrapper"]', { timeout });
+    console.log('[Helper] ✅ Wrapper loaded');
+
+    // 等待主页面元素
+    await window.waitForSelector('[data-testid="project-detail-page"]', { timeout });
+    console.log('[Helper] ✅ Detail page loaded');
+
+    // 等待loading状态消失
+    await window.waitForFunction(
+      () => {
+        const loading = document.querySelector('[data-testid="loading-container"]');
+        return !loading || window.getComputedStyle(loading).display === 'none';
+      },
+      { timeout }
+    );
+    console.log('[Helper] ✅ Loading完成');
+
+    // 等待content-container出现（AI创建模式下会显示）
+    await window.waitForSelector('[data-testid="content-container"]', { timeout });
+    console.log('[Helper] ✅ Content container loaded');
+
+    // 等待聊天面板（AI创建模式的主要交互界面）
+    await window.waitForSelector('[data-testid="chat-panel"]', { timeout });
+    console.log('[Helper] ✅ Chat panel loaded');
+
+    await window.waitForTimeout(1000);
+
+    // 强制关闭所有模态框
+    await forceCloseAllModals(window);
+
+    console.log('[Helper] ✅ AI创建模式页面完全加载');
+    return true;
+  } catch (error) {
+    console.error('[Helper] AI创建模式页面加载失败:', error);
+    return false;
+  }
+}
+
+/**
+ * 等待项目详情页加载完成
+ */
+export async function waitForProjectDetailLoad(window: Page, timeout: number = 10000): Promise<boolean> {
+  try {
+    // 等待主容器
+    await window.waitForSelector('[data-testid="project-detail-page"]', { timeout });
+
+    // 等待文件树
+    await window.waitForSelector('[data-testid="file-explorer-panel"]', { timeout });
+
+    // 等待聊天面板
+    await window.waitForSelector('[data-testid="chat-panel"]', { timeout });
+
+    await window.waitForTimeout(1000);
+
+    // 强力关闭所有可能的modal（最多尝试5次，使用更激进的方法）
+    for (let attempt = 0; attempt < 5; attempt++) {
+      try {
+        // 检查是否有可见的modal
+        const hasModal = await window.evaluate(() => {
+          const modals = document.querySelectorAll('.ant-modal-wrap');
+          return Array.from(modals).some((m) => {
+            const el = m as HTMLElement;
+            return el.style.display !== 'none' && el.offsetParent !== null;
+          });
+        });
+
+        if (!hasModal) {
+          if (attempt > 0) {
+            console.log('[Helper] ✅ Modal已成功关闭');
+          }
+          break;
+        }
+
+        console.log(`[Helper] 检测到modal，第${attempt + 1}次尝试关闭...`);
+
+        // 方法1: 使用evaluate直接点击所有关闭按钮
+        const closedByButton = await window.evaluate(() => {
+          const closeBtns = document.querySelectorAll('.ant-modal-close');
+          let clickedCount = 0;
+          closeBtns.forEach((btn) => {
+            const el = btn as HTMLElement;
+            if (el.offsetParent !== null) {
+              el.click();
+              clickedCount++;
+            }
+          });
+          return clickedCount > 0;
+        });
+
+        if (closedByButton) {
+          await window.waitForTimeout(500);
+          console.log('[Helper] 通过关闭按钮关闭modal');
+          continue;
+        }
+
+        // 方法2: 按ESC键（多次）
+        await window.keyboard.press('Escape');
+        await window.waitForTimeout(300);
+        await window.keyboard.press('Escape');
+        await window.waitForTimeout(300);
+        console.log('[Helper] 通过ESC键关闭modal');
+
+        // 方法3: 直接隐藏所有modal（最激进的方法）
+        if (attempt >= 2) {
+          const hiddenCount = await window.evaluate(() => {
+            const modals = document.querySelectorAll('.ant-modal-wrap');
+            let count = 0;
+            modals.forEach((modal) => {
+              const el = modal as HTMLElement;
+              if (el.offsetParent !== null) {
+                el.style.display = 'none';
+                el.style.visibility = 'hidden';
+                el.style.opacity = '0';
+                el.style.pointerEvents = 'none';
+                el.style.zIndex = '-9999';
+                count++;
+              }
+            });
+            return count;
+          });
+
+          if (hiddenCount > 0) {
+            await window.waitForTimeout(500);
+            console.log(`[Helper] 通过直接隐藏强制关闭了${hiddenCount}个modal`);
+            continue;
+          }
+        }
+
+        // 方法4: 如果上述方法都失败，直接从DOM中移除modal（最后手段）
+        if (attempt >= 3) {
+          const removedCount = await window.evaluate(() => {
+            const modals = document.querySelectorAll('.ant-modal-wrap');
+            let count = 0;
+            modals.forEach((modal) => {
+              if (modal.parentNode) {
+                modal.parentNode.removeChild(modal);
+                count++;
+              }
+            });
+            return count;
+          });
+
+          if (removedCount > 0) {
+            await window.waitForTimeout(500);
+            console.log(`[Helper] ⚠️ 从DOM中移除了${removedCount}个modal（最后手段）`);
+          }
+        }
+
+      } catch (e) {
+        console.log(`[Helper] 第${attempt + 1}次关闭尝试失败:`, e);
+        // 继续尝试
+      }
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Failed to wait for project detail load:', error);
+    return false;
+  }
+}
+
+/**
+ * 检查是否有未保存的更改
+ */
+export async function hasUnsavedChanges(window: Page): Promise<boolean> {
+  try {
+    const saveButton = await window.$('[data-testid="save-button"]');
+    if (!saveButton) {
+      return false;
+    }
+
+    const isDisabled = await saveButton.evaluate((el) => (el as HTMLButtonElement).disabled);
+    return !isDisabled; // 如果按钮可用，说明有未保存的更改
+  } catch (error) {
+    console.error('Failed to check unsaved changes:', error);
+    return false;
+  }
+}
+
+/**
+ * 返回项目列表
+ */
+export async function backToProjectList(window: Page): Promise<boolean> {
+  try {
+    const backLink = await window.$('[data-testid="back-to-projects-link"]');
+    if (!backLink) {
+      console.error('Back to projects link not found');
+      return false;
+    }
+
+    await backLink.click();
+    await window.waitForTimeout(1000);
+
+    // 验证是否返回到项目列表
+    const hash = await window.evaluate(() => window.location.hash);
+    return hash.includes('projects') && !hash.includes('/projects/');
+  } catch (error) {
+    console.error('Failed to go back to project list:', error);
+    return false;
+  }
+}
+
+/**
+ * 切换文件树模式（虚拟/标准）
+ */
+export async function toggleFileTreeMode(window: Page): Promise<boolean> {
+  try {
+    const clicked = await window.evaluate(() => {
+      const switchBtn = document.querySelector('[data-testid="file-tree-mode-switch"]') as HTMLElement;
+      if (switchBtn) {
+        switchBtn.click();
+        return true;
+      }
+      return false;
+    });
+
+    if (!clicked) {
+      console.error('File tree mode switch not found');
+      return false;
+    }
+
+    await window.waitForTimeout(500);
+
+    return true;
+  } catch (error) {
+    console.error('Failed to toggle file tree mode:', error);
+    return false;
+  }
+}
+
+/**
+ * 清空对话历史
+ */
+export async function clearConversation(window: Page): Promise<boolean> {
+  try {
+    // 先关闭所有可能的modal，防止遮挡
+    await forceCloseAllModals(window);
+
+    const clearButton = await window.$('[data-testid="clear-conversation-button"]');
+    if (!clearButton) {
+      console.error('Clear conversation button not found');
+      return false;
+    }
+
+    // 检查按钮是否可用
+    const isDisabled = await clearButton.evaluate((el) => (el as HTMLButtonElement).disabled);
+    if (isDisabled) {
+      console.warn('Clear conversation button is disabled');
+      return false;
+    }
+
+    await clearButton.click();
+    await window.waitForTimeout(500);
+
+    return true;
+  } catch (error) {
+    console.error('Failed to clear conversation:', error);
+    return false;
+  }
+}
+
+/**
+ * 导航到AI创建项目模式
+ * @param window - Playwright Page对象
+ * @param createData - 可选的创建数据
+ * @returns 是否成功导航
+ */
+export async function navigateToAICreatingMode(
+  window: Page,
+  createData?: any
+): Promise<boolean> {
+  try {
+    console.log('[Helper] 导航到AI创建模式...');
+
+    // 先关闭所有可能的modal
+    await forceCloseAllModals(window);
+
+    // 构建URL
+    let url = '#/projects/ai-creating';
+    if (createData) {
+      const queryString = new URLSearchParams({
+        createData: JSON.stringify(createData)
+      }).toString();
+      url += `?${queryString}`;
+    }
+
+    console.log('[Helper] 目标URL:', url);
+
+    // 导航到AI创建模式URL
+    await window.evaluate((targetUrl) => {
+      console.log('[Browser] 设置hash:', targetUrl);
+      window.location.hash = targetUrl.replace('#', '');
+    }, url);
+
+    await window.waitForTimeout(1000);
+
+    // 检查URL是否改变
+    const currentHash = await window.evaluate(() => window.location.hash);
+    console.log('[Helper] 当前hash:', currentHash);
+
+    if (!currentHash.includes('ai-creating')) {
+      console.warn('[Helper] Hash未改变，尝试强制刷新...');
+
+      // 强制触发hashchange事件
+      await window.evaluate((targetUrl) => {
+        window.location.hash = targetUrl.replace('#', '');
+        window.dispatchEvent(new HashChangeEvent('hashchange'));
+      }, url);
+
+      await window.waitForTimeout(1000);
+    }
+
+    // 再次检查
+    const finalHash = await window.evaluate(() => window.location.hash);
+    console.log('[Helper] 最终hash:', finalHash);
+
+    if (!finalHash.includes('ai-creating')) {
+      console.error('[Helper] ❌ 无法导航到AI创建模式');
+      return false;
+    }
+
+    // 使用专用的AI创建模式等待函数
+    const loaded = await waitForAICreatingModeLoad(window, 10000);
+
+    if (loaded) {
+      console.log('[Helper] ✅ 成功导航到AI创建模式');
+      return true;
+    } else {
+      console.error('[Helper] ❌ AI创建模式页面加载超时');
+      return false;
+    }
+
+  } catch (error) {
+    console.error('[Helper] 导航到AI创建模式失败:', error);
+    return false;
+  }
+}

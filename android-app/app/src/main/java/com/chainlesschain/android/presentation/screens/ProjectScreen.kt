@@ -18,7 +18,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.chainlesschain.android.feature.auth.presentation.AuthViewModel
 import com.chainlesschain.android.feature.project.domain.*
+import com.chainlesschain.android.feature.project.viewmodel.ProjectViewModel
+import com.chainlesschain.android.feature.project.viewmodel.ProjectUiEvent
+import com.chainlesschain.android.feature.project.model.ProjectListState
+import com.chainlesschain.android.feature.project.ui.components.TemplateSelectionDialog
+import kotlinx.coroutines.flow.collectLatest
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -29,12 +36,49 @@ import java.time.format.DateTimeFormatter
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProjectScreen(
-    onProjectClick: (String) -> Unit = {}
+    onProjectClick: (String) -> Unit = {},
+    onNavigateToFileBrowser: () -> Unit = {},
+    projectViewModel: ProjectViewModel = hiltViewModel(),
+    authViewModel: AuthViewModel = hiltViewModel()
 ) {
     var showAddDialog by remember { mutableStateOf(false) }
     var selectedFilter by remember { mutableStateOf("全部") }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
-    // 模拟项目数据（包含任务信息）
+    // 获取认证状态
+    val authState by authViewModel.uiState.collectAsState()
+
+    // 初始化用户上下文
+    LaunchedEffect(authState.currentUser) {
+        authState.currentUser?.let { user ->
+            projectViewModel.setCurrentUser(user.id)
+        }
+    }
+
+    // 监听UI事件
+    LaunchedEffect(Unit) {
+        projectViewModel.uiEvents.collectLatest { event ->
+            when (event) {
+                is ProjectUiEvent.ShowMessage -> {
+                    snackbarHostState.showSnackbar(event.message)
+                }
+                is ProjectUiEvent.ShowError -> {
+                    snackbarHostState.showSnackbar("错误: ${event.error}")
+                }
+                is ProjectUiEvent.NavigateToProject -> {
+                    onProjectClick(event.projectId)
+                }
+                else -> {}
+            }
+        }
+    }
+
+    // 获取项目列表状态
+    val projectListState by projectViewModel.projectListState.collectAsState()
+
+    // TODO: 集成真实数据（待实现数据转换）
+    // 暂时使用模拟数据避免类型不匹配
     val projects = remember {
         listOf(
             ProjectWithTasks(
@@ -64,37 +108,12 @@ fun ProjectScreen(
                 completedTasks = 3,
                 pendingTasks = 5,
                 lastUpdated = LocalDateTime.now().minusDays(1)
-            ),
-            ProjectWithTasks(
-                project = ProjectEntity(
-                    id = "3",
-                    name = "市场调研分析",
-                    description = "进行竞品分析和市场调研",
-                    type = ProjectType.RESEARCH,
-                    status = ProjectStatus.DRAFT,
-                    progress = 0.15f
-                ),
-                totalTasks = 6,
-                completedTasks = 1,
-                pendingTasks = 5,
-                lastUpdated = LocalDateTime.now().minusDays(3)
-            ),
-            ProjectWithTasks(
-                project = ProjectEntity(
-                    id = "4",
-                    name = "UI界面设计",
-                    description = "设计应用的用户界面",
-                    type = ProjectType.DESIGN,
-                    status = ProjectStatus.COMPLETED,
-                    progress = 1.0f
-                ),
-                totalTasks = 10,
-                completedTasks = 10,
-                pendingTasks = 0,
-                lastUpdated = LocalDateTime.now().minusWeeks(1)
             )
         )
     }
+
+    // 显示加载指示器
+    val isLoading = false
 
     // 筛选项目
     val filteredProjects = remember(selectedFilter, projects) {
@@ -106,26 +125,32 @@ fun ProjectScreen(
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.surface)
-    ) {
-        // 顶部栏
-        TopAppBar(
-            title = { Text("我的项目", fontWeight = FontWeight.Bold) },
-            actions = {
-                IconButton(onClick = { /* TODO: 搜索 */ }) {
-                    Icon(Icons.Default.Search, contentDescription = "搜索")
+    Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        topBar = {
+            TopAppBar(
+                title = { Text("我的项目", fontWeight = FontWeight.Bold) },
+                actions = {
+                    IconButton(onClick = onNavigateToFileBrowser) {
+                        Icon(Icons.Default.FolderOpen, contentDescription = "文件浏览器")
+                    }
+                    IconButton(onClick = { /* TODO: 搜索 */ }) {
+                        Icon(Icons.Default.Search, contentDescription = "搜索")
+                    }
+                    IconButton(onClick = { showAddDialog = true }) {
+                        Icon(Icons.Default.Add, contentDescription = "新建项目")
+                    }
                 }
-                IconButton(onClick = { showAddDialog = true }) {
-                    Icon(Icons.Default.Add, contentDescription = "新建项目")
-                }
-            }
-        )
-
+            )
+        },
+        snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState)
+        }
+    ) { paddingValues ->
         LazyColumn(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues),
             contentPadding = PaddingValues(vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
@@ -173,6 +198,60 @@ fun ProjectScreen(
                 }
             }
 
+            // 加载指示器
+            if (isLoading) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                }
+            }
+
+            // 错误状态
+            if (projectListState is ProjectListState.Error) {
+                item {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(32.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "加载项目失败",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        TextButton(onClick = { projectViewModel.loadProjects() }) {
+                            Text("重试")
+                        }
+                    }
+                }
+            }
+
+            // 空状态
+            if (!isLoading && projectListState !is ProjectListState.Error && filteredProjects.isEmpty()) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "暂无项目",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
             // 项目列表
             items(filteredProjects, key = { it.project.id }) { projectWithTasks ->
                 EnhancedProjectCard(
@@ -181,6 +260,21 @@ fun ProjectScreen(
                 )
             }
         }
+    }
+
+    // 创建项目对话框
+    if (showAddDialog) {
+        TemplateSelectionDialog(
+            onTemplateSelected = { template ->
+                // 使用模板创建项目
+                projectViewModel.createProjectFromTemplate(
+                    template = template,
+                    name = template.name
+                )
+                showAddDialog = false
+            },
+            onDismiss = { showAddDialog = false }
+        )
     }
 }
 
@@ -501,6 +595,11 @@ fun getProjectTypeIcon(type: ProjectType): androidx.compose.ui.graphics.vector.I
         ProjectType.DEVELOPMENT -> Icons.Outlined.Code
         ProjectType.WRITING -> Icons.Outlined.Edit
         ProjectType.DESIGN -> Icons.Outlined.Palette
+        ProjectType.ANDROID -> Icons.Outlined.PhoneAndroid
+        ProjectType.BACKEND -> Icons.Outlined.Storage
+        ProjectType.DATA_SCIENCE -> Icons.Outlined.Analytics
+        ProjectType.MULTIPLATFORM -> Icons.Outlined.Devices
+        ProjectType.FLUTTER -> Icons.Outlined.Folder
     }
 }
 

@@ -15,8 +15,13 @@ object ProjectType {
     const val DESIGN = "design"        // 设计类项目
     const val RESEARCH = "research"    // 研究类项目
     const val OTHER = "other"          // 其他
+    const val ANDROID = "android"      // Android项目
+    const val BACKEND = "backend"      // 后端项目
+    const val DATA_SCIENCE = "data_science"  // 数据科学项目
+    const val MULTIPLATFORM = "multiplatform"  // 多平台项目
+    const val FLUTTER = "flutter"      // Flutter项目
 
-    val ALL_TYPES = listOf(DOCUMENT, WEB, APP, DATA, DESIGN, RESEARCH, OTHER)
+    val ALL_TYPES = listOf(DOCUMENT, WEB, APP, DATA, DESIGN, RESEARCH, ANDROID, BACKEND, DATA_SCIENCE, MULTIPLATFORM, FLUTTER, OTHER)
 }
 
 /**

@@ -1,6 +1,8 @@
 package com.chainlesschain.android.core.p2p.di
 
 import android.content.Context
+// import com.chainlesschain.android.core.database.dao.ExternalFileDao
+// import com.chainlesschain.android.core.p2p.FileIndexProtocolHandler
 import com.chainlesschain.android.core.p2p.P2PNetworkCoordinator
 import com.chainlesschain.android.core.p2p.connection.AutoReconnectManager
 import com.chainlesschain.android.core.p2p.connection.HeartbeatManager
@@ -8,8 +10,10 @@ import com.chainlesschain.android.core.p2p.connection.P2PConnectionManager
 import com.chainlesschain.android.core.p2p.connection.SignalingClient
 import com.chainlesschain.android.core.p2p.discovery.DeviceDiscovery
 import com.chainlesschain.android.core.p2p.discovery.NSDDiscovery
+import com.chainlesschain.android.core.p2p.filetransfer.FileTransferManager
 import com.chainlesschain.android.core.p2p.ice.IceServerConfig
 import com.chainlesschain.android.core.p2p.network.NetworkMonitor
+import kotlinx.serialization.json.Json
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -115,6 +119,39 @@ object P2PNetworkModule {
     }
 
     /**
+     * 提供JSON序列化器
+     */
+    @Provides
+    @Singleton
+    fun provideJson(): Json {
+        return Json {
+            ignoreUnknownKeys = true
+            isLenient = true
+        }
+    }
+
+    /**
+     * 提供文件索引协议处理器
+     *
+     * 注: 暂时禁用，因为依赖feature-file-browser模块
+     */
+    // @Provides
+    // @Singleton
+    // fun provideFileIndexProtocolHandler(
+    //     @ApplicationContext context: Context,
+    //     externalFileDao: ExternalFileDao,
+    //     fileTransferManager: FileTransferManager,
+    //     json: Json
+    // ): FileIndexProtocolHandler {
+    //     return FileIndexProtocolHandler(
+    //         context = context,
+    //         externalFileDao = externalFileDao,
+    //         fileTransferManager = fileTransferManager,
+    //         json = json
+    //     )
+    // }
+
+    /**
      * 提供P2P网络协调器
      */
     @Provides
@@ -130,6 +167,7 @@ object P2PNetworkModule {
             networkMonitor = networkMonitor,
             heartbeatManager = heartbeatManager,
             autoReconnectManager = autoReconnectManager
+            // fileIndexProtocolHandler 已从构造函数中移除
         )
     }
 }

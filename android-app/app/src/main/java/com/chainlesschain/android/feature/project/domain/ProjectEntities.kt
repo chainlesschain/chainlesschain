@@ -27,6 +27,11 @@ data class ProjectEntity(
             ProjectType.DEVELOPMENT -> "code"
             ProjectType.WRITING -> "edit"
             ProjectType.DESIGN -> "palette"
+            ProjectType.ANDROID -> "android"
+            ProjectType.BACKEND -> "storage"
+            ProjectType.DATA_SCIENCE -> "analytics"
+            ProjectType.MULTIPLATFORM -> "devices"
+            ProjectType.FLUTTER -> "flutter"
         }
 
     val formattedSize: String
@@ -50,7 +55,12 @@ enum class ProjectType(val displayName: String) {
     RESEARCH("研究"),
     DEVELOPMENT("开发"),
     WRITING("写作"),
-    DESIGN("设计")
+    DESIGN("设计"),
+    ANDROID("Android"),
+    BACKEND("后端"),
+    DATA_SCIENCE("数据科学"),
+    MULTIPLATFORM("多平台"),
+    FLUTTER("Flutter")
 }
 
 /**

@@ -12,7 +12,7 @@ import com.chainlesschain.android.presentation.screens.*
 
 /**
  * 主容器，包含底部导航栏和各个页面
- * 4个tab: 首页、项目、社交、收藏
+ * 4个tab: 首页、项目、社交、个人中心
  *
  * 性能优化：
  * 1. 使用 rememberSaveable 保存 Tab 状态（进程终止后恢复）
@@ -29,6 +29,9 @@ fun MainContainer(
     onNavigateToPostDetail: (String) -> Unit = {},
     onNavigateToUserProfile: (String) -> Unit = {},
     onNavigateToComment: (String) -> Unit = {},
+    onNavigateToLLMSettings: () -> Unit = {},
+    onNavigateToLLMTest: () -> Unit = {},
+    onNavigateToFileBrowser: () -> Unit = {},
     viewModel: AuthViewModel = hiltViewModel()
 ) {
     // 使用 rememberSaveable 保存状态（进程重建后恢复）
@@ -69,12 +72,15 @@ fun MainContainer(
                 0 -> key("home") {
                     NewHomeScreen(
                         viewModel = viewModel,
-                        onProfileClick = onProfileClick
+                        onProfileClick = onProfileClick,
+                        onNavigateToFileBrowser = onNavigateToFileBrowser
                     )
                 }
                 1 -> key("project") {
                     ProjectScreen(
-                        onProjectClick = onNavigateToProjectDetail
+                        onProjectClick = onNavigateToProjectDetail,
+                        onNavigateToFileBrowser = onNavigateToFileBrowser,
+                        authViewModel = viewModel  // 传递共享的AuthViewModel实例
                     )
                 }
                 2 -> key("social") {
@@ -87,18 +93,30 @@ fun MainContainer(
                         onNavigateToComment = onNavigateToComment
                     )
                 }
-                3 -> key("bookmark") {
-                    BookmarkScreen()
+                3 -> key("profile") {
+                    ProfileScreen(
+                        onLogout = onLogout,
+                        onNavigateToLLMSettings = onNavigateToLLMSettings,
+                        viewModel = viewModel
+                    )
                 }
             }
         }
     }
 
-    // 个人资料弹窗
+    // 个人资料弹窗（从首页头像点击打开）
     if (showProfileDialog) {
         ProfileDialog(
             onDismiss = onDismissDialog,
             onLogout = onLogoutClick,
+            onNavigateToLLMSettings = {
+                showProfileDialog = false
+                onNavigateToLLMSettings()
+            },
+            onNavigateToLLMTest = {
+                showProfileDialog = false
+                onNavigateToLLMTest()
+            },
             viewModel = viewModel
         )
     }

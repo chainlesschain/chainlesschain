@@ -164,6 +164,20 @@ enum class MessageType {
     /** 传输完成 */
     FILE_TRANSFER_COMPLETE,
 
+    // File Index Sync Protocol Types
+
+    /** 文件索引请求 */
+    FILE_INDEX_REQUEST,
+
+    /** 文件索引响应 */
+    FILE_INDEX_RESPONSE,
+
+    /** 文件拉取请求 */
+    FILE_PULL_REQUEST,
+
+    /** 文件拉取响应 */
+    FILE_PULL_RESPONSE,
+
     // Social Feature Real-time Message Types
 
     /** 好友请求 */

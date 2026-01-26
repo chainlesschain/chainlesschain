@@ -6,9 +6,13 @@ import androidx.room.Room
 import com.chainlesschain.android.core.database.ChainlessChainDatabase
 import com.chainlesschain.android.core.database.dao.ConversationDao
 import com.chainlesschain.android.core.database.dao.FileTransferDao
+import com.chainlesschain.android.core.database.dao.TransferCheckpointDao
+import com.chainlesschain.android.core.database.dao.TransferQueueDao
 import com.chainlesschain.android.core.database.dao.KnowledgeItemDao
 import com.chainlesschain.android.core.database.dao.P2PMessageDao
 import com.chainlesschain.android.core.database.dao.OfflineQueueDao
+import com.chainlesschain.android.core.database.dao.ExternalFileDao
+import com.chainlesschain.android.core.database.dao.FileImportHistoryDao
 import com.chainlesschain.android.core.database.migration.DatabaseMigrations
 import com.chainlesschain.android.core.security.KeyManager
 import dagger.Module
@@ -116,5 +120,41 @@ object DatabaseModule {
     @Singleton
     fun provideFileTransferDao(database: ChainlessChainDatabase): FileTransferDao {
         return database.fileTransferDao()
+    }
+
+    /**
+     * 提供传输断点DAO
+     */
+    @Provides
+    @Singleton
+    fun provideTransferCheckpointDao(database: ChainlessChainDatabase): TransferCheckpointDao {
+        return database.transferCheckpointDao()
+    }
+
+    /**
+     * 提供传输队列DAO
+     */
+    @Provides
+    @Singleton
+    fun provideTransferQueueDao(database: ChainlessChainDatabase): TransferQueueDao {
+        return database.transferQueueDao()
+    }
+
+    /**
+     * 提供外部文件DAO
+     */
+    @Provides
+    @Singleton
+    fun provideExternalFileDao(database: ChainlessChainDatabase): ExternalFileDao {
+        return database.externalFileDao()
+    }
+
+    /**
+     * 提供文件导入历史DAO
+     */
+    @Provides
+    @Singleton
+    fun provideFileImportHistoryDao(database: ChainlessChainDatabase): FileImportHistoryDao {
+        return database.fileImportHistoryDao()
     }
 }

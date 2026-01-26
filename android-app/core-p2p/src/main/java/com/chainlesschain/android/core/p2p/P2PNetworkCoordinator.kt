@@ -4,6 +4,7 @@ import android.util.Log
 import com.chainlesschain.android.core.p2p.connection.AutoReconnectManager
 import com.chainlesschain.android.core.p2p.connection.HeartbeatManager
 import com.chainlesschain.android.core.p2p.connection.P2PConnectionManager
+import com.chainlesschain.android.core.p2p.model.FileProtocolTypes
 import com.chainlesschain.android.core.p2p.model.P2PDevice
 import com.chainlesschain.android.core.p2p.model.P2PMessage
 import com.chainlesschain.android.core.p2p.network.NetworkEvent
@@ -33,7 +34,10 @@ class P2PNetworkCoordinator @Inject constructor(
     private val networkMonitor: NetworkMonitor,
     private val heartbeatManager: HeartbeatManager,
     private val autoReconnectManager: AutoReconnectManager
+    // fileIndexProtocolHandler: 暂时移除，依赖feature-file-browser模块
 ) {
+    // 临时变量，用于保持原有代码逻辑不变
+    private val fileIndexProtocolHandler: Any? = null
 
     companion object {
         private const val TAG = "P2PNetworkCoordinator"
@@ -357,10 +361,24 @@ class P2PNetworkCoordinator @Inject constructor(
         }
 
         scope.launch {
-            connectionManager.receivedMessages.collect {
+            connectionManager.receivedMessages.collect { message ->
                 updateStatistics { it.copy(messagesReceived = it.messagesReceived + 1) }
+
+                // Handle file protocol messages
+                handleFileProtocolMessage(message)
             }
         }
+    }
+
+    /**
+     * 处理文件协议消息
+     *
+     * 注: 暂时禁用，因为依赖feature-file-browser模块
+     */
+    private fun handleFileProtocolMessage(message: P2PMessage) {
+        // 文件索引处理器未启用，忽略文件协议消息
+        Log.w(TAG, "File index protocol handler not available, ignoring file protocol message")
+        // TODO: 重新启用 feature-file-browser 后恢复此功能
     }
 
     /**

@@ -189,6 +189,19 @@ const routes = [
     name: "Login",
     component: corePages.login,
   },
+  // E2E测试路由（顶级路由，无需认证）
+  {
+    path: "/test/android-features-standalone",
+    name: "AndroidFeaturesTestStandalone",
+    component: () => import("../pages/AndroidFeaturesTestPage.vue"),
+    meta: { requiresAuth: false },
+  },
+  {
+    path: "/test/simple",
+    name: "SimpleTest",
+    component: () => import("../pages/SimpleTestPage.vue"),
+    meta: { requiresAuth: false },
+  },
   // 公开分享页面（无需认证）
   {
     path: "/share/project/:token",
@@ -275,6 +288,15 @@ const routes = [
         meta: { title: "P2P加密消息" },
       },
       {
+        path: "external-devices",
+        name: "ExternalDevices",
+        component: () =>
+          import(
+            /* webpackChunkName: "external-devices" */ "../pages/ExternalDeviceBrowser.vue"
+          ),
+        meta: { title: "设备文件浏览器" },
+      },
+      {
         path: "offline-queue",
         name: "OfflineQueue",
         component: () => import("../components/OfflineQueueManager.vue"),
@@ -291,6 +313,57 @@ const routes = [
         name: "CallHistory",
         component: socialPages.callHistory,
         meta: { title: "通话记录" },
+      },
+      // ===== LLM 测试 =====
+      {
+        path: "llm/test-chat",
+        name: "LLMTestChat",
+        component: () => import("../pages/LLMTestChatPage.vue"),
+        meta: { title: "LLM 测试聊天", requiresAuth: false },
+      },
+      // ===== P2P 高级功能 =====
+      {
+        path: "p2p/device-pairing",
+        name: "DevicePairing",
+        component: () => import("../pages/p2p/DevicePairingPage.vue"),
+        meta: { title: "设备配对", requiresAuth: false },
+      },
+      {
+        path: "p2p/safety-numbers",
+        name: "SafetyNumbers",
+        component: () => import("../pages/p2p/SafetyNumbersPage.vue"),
+        meta: { title: "安全号码验证", requiresAuth: false },
+      },
+      {
+        path: "p2p/session-fingerprint",
+        name: "SessionFingerprint",
+        component: () => import("../pages/p2p/SessionFingerprintPage.vue"),
+        meta: { title: "会话指纹验证", requiresAuth: false },
+      },
+      {
+        path: "p2p/device-management",
+        name: "DeviceManagement",
+        component: () => import("../pages/p2p/DeviceManagementPage.vue"),
+        meta: { title: "设备管理", requiresAuth: false },
+      },
+      {
+        path: "p2p/file-transfer",
+        name: "FileTransfer",
+        component: () => import("../pages/p2p/FileTransferPage.vue"),
+        meta: { title: "文件传输", requiresAuth: false },
+      },
+      {
+        path: "p2p/message-queue",
+        name: "MessageQueue",
+        component: () => import("../pages/p2p/MessageQueuePage.vue"),
+        meta: { title: "消息队列", requiresAuth: false },
+      },
+      // ===== 测试页面 =====
+      {
+        path: "test/android-features",
+        name: "AndroidFeaturesTest",
+        component: () => import("../pages/AndroidFeaturesTestPage.vue"),
+        meta: { title: "安卓端功能测试", requiresAuth: false },
       },
       {
         path: "image-upload",

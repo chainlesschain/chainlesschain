@@ -38,6 +38,7 @@ const ALLOWED_FILES = [
   "test-ukey.js",
   "README.md", // 文档示例
   "README_EN.md", // 文档示例（英文）
+  "BLOCKCHAIN.md", // 区块链文档（包含示例密码）
   ".chainlesschain/examples/database-bad.js", // 故意包含错误示例
   ".chainlesschain/examples/database-good.js",
   ".chainlesschain/examples/p2p-encryption-bad.js",
@@ -51,7 +52,7 @@ const ALLOWED_FILES = [
   "RELEASE_GUIDE.md",
   "docker-compose.production.yml",
   // Android 文档（包含示例密码和密钥）
-  "ANDROID_SIGNING_SETUP_md",
+  "ANDROID_SIGNING_SETUP.md",
   "GOOGLE_PLAY_SETUP.md",
   "RELEASE_TESTING_GUIDE.md",
   "ANDROID_CI_CD_GUIDE.md",
@@ -60,6 +61,9 @@ const ALLOWED_FILES = [
   "generate_keystore.bat",
   "generate_keystore.sh",
   "generate_test_keystore.bat",
+  // iOS 文档（包含BIP39测试向量和示例密钥）
+  "WALLETCORE_INTEGRATION.md",
+  "TESTING_GUIDE.md",
 ];
 
 function checkFileForSecrets(filePath) {

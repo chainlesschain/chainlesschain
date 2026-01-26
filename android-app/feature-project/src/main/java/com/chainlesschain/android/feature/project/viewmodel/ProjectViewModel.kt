@@ -11,7 +11,7 @@ import com.chainlesschain.android.core.database.entity.ProjectQuickAction
 import com.chainlesschain.android.core.database.entity.ProjectStatus
 import com.chainlesschain.android.core.database.entity.ProjectType
 import com.chainlesschain.android.feature.ai.data.repository.ConversationRepository
-import com.chainlesschain.android.feature.ai.data.repository.LLMAdapterFactory
+import com.chainlesschain.android.feature.ai.di.LLMAdapterFactory
 import com.chainlesschain.android.feature.ai.domain.model.LLMProvider
 import com.chainlesschain.android.feature.ai.domain.model.Message
 import com.chainlesschain.android.feature.ai.domain.model.MessageRole
@@ -29,9 +29,16 @@ import com.chainlesschain.android.feature.project.model.ThinkingStage
 import com.chainlesschain.android.feature.project.model.UpdateProjectRequest
 import com.chainlesschain.android.feature.project.repository.ProjectChatRepository
 import com.chainlesschain.android.feature.project.repository.ProjectRepository
+import com.chainlesschain.android.feature.project.util.ContextManager
+import com.chainlesschain.android.feature.project.util.ContextResult
 import com.chainlesschain.android.core.common.fold
+import com.chainlesschain.android.feature.filebrowser.data.repository.ExternalFileRepository
+import com.chainlesschain.android.feature.filebrowser.data.repository.FileImportRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -41,8 +48,10 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 /**
@@ -63,17 +72,24 @@ sealed class ProjectUiEvent {
  */
 @HiltViewModel
 class ProjectViewModel @Inject constructor(
+    @dagger.hilt.android.qualifiers.ApplicationContext private val appContext: android.content.Context,
     private val projectRepository: ProjectRepository,
     private val projectChatRepository: ProjectChatRepository,
     private val conversationRepository: ConversationRepository,
-    private val llmAdapterFactory: LLMAdapterFactory
+    private val llmAdapterFactory: LLMAdapterFactory,
+    private val externalFileRepository: ExternalFileRepository,
+    private val fileImportRepository: FileImportRepository
 ) : ViewModel() {
 
     companion object {
         private const val TAG = "ProjectViewModel"
         private const val DEFAULT_MODEL = "deepseek-chat"
         private const val DEFAULT_PROVIDER = "DEEPSEEK"
+        private const val MAX_CONTEXT_TOKENS = 4000  // DeepSeek 默认上下文窗口
     }
+
+    // Context Manager
+    private val contextManager = ContextManager(maxContextTokens = MAX_CONTEXT_TOKENS)
 
     // ===== 当前用户 =====
     private val _currentUserId = MutableStateFlow<String?>(null)
@@ -175,6 +191,13 @@ class ProjectViewModel @Inject constructor(
     private val _mentionedFiles = MutableStateFlow<List<ProjectFileEntity>>(emptyList())
     val mentionedFiles: StateFlow<List<ProjectFileEntity>> = _mentionedFiles.asStateFlow()
 
+    // ===== External File Search State (for AI Chat) =====
+    private val _externalFileSearchQuery = MutableStateFlow("")
+    val externalFileSearchQuery: StateFlow<String> = _externalFileSearchQuery.asStateFlow()
+
+    private val _availableExternalFiles = MutableStateFlow<List<com.chainlesschain.android.core.database.entity.ExternalFileEntity>>(emptyList())
+    val availableExternalFiles: StateFlow<List<com.chainlesschain.android.core.database.entity.ExternalFileEntity>> = _availableExternalFiles.asStateFlow()
+
     // ===== Thinking Stage State =====
     private val _currentThinkingStage = MutableStateFlow(ThinkingStage.UNDERSTANDING)
     val currentThinkingStage: StateFlow<ThinkingStage> = _currentThinkingStage.asStateFlow()
@@ -182,6 +205,13 @@ class ProjectViewModel @Inject constructor(
     // ===== Task Plan State =====
     private val _currentTaskPlan = MutableStateFlow<TaskPlan?>(null)
     val currentTaskPlan: StateFlow<TaskPlan?> = _currentTaskPlan.asStateFlow()
+
+    // ===== Context Management State =====
+    private val _contextStats = MutableStateFlow<ContextResult?>(null)
+    val contextStats: StateFlow<ContextResult?> = _contextStats.asStateFlow()
+
+    private val _totalContextTokens = MutableStateFlow(0)
+    val totalContextTokens: StateFlow<Int> = _totalContextTokens.asStateFlow()
 
     private var currentStreamingJob: Job? = null
     private var lastUserMessage: String = ""
@@ -361,6 +391,71 @@ class ProjectViewModel @Inject constructor(
             )
 
             _isLoading.value = false
+        }
+    }
+
+    /**
+     * 从模板创建项目
+     */
+    fun createProjectFromTemplate(
+        template: com.chainlesschain.android.feature.project.model.ProjectTemplate,
+        name: String
+    ) {
+        val userId = _currentUserId.value
+
+        // 添加日志和错误处理
+        Log.d(TAG, "createProjectFromTemplate called. userId=$userId, template=${template.name}")
+
+        if (userId == null) {
+            Log.e(TAG, "Cannot create project: userId is null")
+            viewModelScope.launch {
+                _uiEvents.emit(ProjectUiEvent.ShowError("请先登录"))
+            }
+            return
+        }
+
+        viewModelScope.launch {
+            _isLoading.value = true
+            Log.d(TAG, "Creating project from template: ${template.name}")
+
+            try {
+                // Apply template
+                val templateManager = com.chainlesschain.android.feature.project.util.ProjectTemplateManager()
+                val result = templateManager.applyTemplate(template, name, userId)
+
+                // Create project
+                val projectResult = projectRepository.createProject(result.projectRequest)
+
+                projectResult.fold(
+                    onSuccess = { project ->
+                        // Insert template files - addFile internally updates project stats
+                        result.files.forEach { file ->
+                            projectRepository.addFile(
+                                projectId = project.id,
+                                name = file.name,
+                                path = file.path,
+                                type = file.type,
+                                parentId = file.parentId,
+                                mimeType = file.mimeType,
+                                size = file.size,
+                                content = file.content
+                            )
+                        }
+
+                        _uiEvents.emit(ProjectUiEvent.ShowMessage("项目创建成功 (使用模板: ${template.name})"))
+                        _uiEvents.emit(ProjectUiEvent.NavigateToProject(project.id))
+                        loadStatistics()
+                    },
+                    onFailure = { error ->
+                        _uiEvents.emit(ProjectUiEvent.ShowError(error.message ?: "创建失败"))
+                    }
+                )
+            } catch (e: Exception) {
+                Log.e(TAG, "Error creating project from template", e)
+                _uiEvents.emit(ProjectUiEvent.ShowError(e.message ?: "创建失败"))
+            } finally {
+                _isLoading.value = false
+            }
         }
     }
 
@@ -839,8 +934,20 @@ class ProjectViewModel @Inject constructor(
             _currentThinkingStage.value = ThinkingStage.ANALYZING
             val systemPrompt = buildContextPrompt(projectId)
 
-            // Get recent messages for conversation history
-            val recentMessages = projectChatRepository.getRecentMessages(projectId, 10)
+            // Get ALL messages for intelligent context selection
+            val allMessages = projectChatRepository.getAllMessages(projectId)
+
+            // Use ContextManager to intelligently select messages
+            val contextResult = contextManager.selectMessagesForContext(
+                allMessages = allMessages,
+                systemPrompt = systemPrompt
+            )
+
+            // Update context stats
+            _contextStats.value = contextResult
+            _totalContextTokens.value = contextResult.totalTokens
+
+            Log.d(TAG, contextManager.generateContextSummary(contextResult))
 
             // Build message list for LLM
             val messages = mutableListOf<Message>()
@@ -851,23 +958,16 @@ class ProjectViewModel @Inject constructor(
                 conversationId = projectId,
                 role = MessageRole.SYSTEM,
                 content = systemPrompt,
-                createdAt = System.currentTimeMillis()
+                createdAt = System.currentTimeMillis(),
+                tokenCount = contextManager.estimateTokens(systemPrompt)
             ))
 
-            // Add conversation history
-            recentMessages.forEach { msg ->
-                messages.add(Message(
-                    id = msg.id,
-                    conversationId = projectId,
-                    role = when (msg.role) {
-                        "user" -> MessageRole.USER
-                        "assistant" -> MessageRole.ASSISTANT
-                        else -> MessageRole.SYSTEM
-                    },
-                    content = msg.content,
-                    createdAt = msg.createdAt
-                ))
-            }
+            // Convert selected messages to LLM format
+            val llmMessages = contextManager.convertToLLMMessages(
+                messages = contextResult.messages,
+                conversationId = projectId
+            )
+            messages.addAll(llmMessages)
 
             // Create placeholder for assistant response
             val placeholderResult = projectChatRepository.createAssistantMessagePlaceholder(
@@ -980,32 +1080,81 @@ class ProjectViewModel @Inject constructor(
                 |如果问题与当前项目相关，请告诉用户切换到"项目"模式以获得更好的上下文。
                 """.trimMargin()
             }
-        } + getMentionedFilesContext()
+        }.let { contextPrompt ->
+            // Append mentioned files context (suspend call)
+            contextPrompt + getMentionedFilesContext()
+        }
     }
 
     /**
      * Get context for mentioned files
+     * Uses parallel loading for better performance
      */
-    private fun getMentionedFilesContext(): String {
+    private suspend fun getMentionedFilesContext(): String = withContext(Dispatchers.IO) {
         val mentionedFiles = _mentionedFiles.value
-        if (mentionedFiles.isEmpty()) return ""
+        if (mentionedFiles.isEmpty()) return@withContext ""
 
-        val filesContent = mentionedFiles.joinToString("\n\n") { file ->
-            """
-            |--- @${file.name} ---
-            |路径: ${file.path}
-            |```${file.extension ?: ""}
-            |${file.content ?: "(内容不可用)"}
-            |```
-            """.trimMargin()
-        }
+        // Load files in parallel using async
+        val fileContents = mentionedFiles.map { file ->
+            async {
+                val content = loadFileContent(file)
+                """
+                |--- @${file.name} ---
+                |路径: ${file.path}
+                |```${file.extension ?: ""}
+                |$content
+                |```
+                """.trimMargin()
+            }
+        }.awaitAll()
 
-        return """
+        val filesContent = fileContents.joinToString("\n\n")
+
+        return@withContext """
             |
             |---
             |用户引用的文件:
             |$filesContent
         """.trimMargin()
+    }
+
+    /**
+     * Load file content, supporting both normal files and LINK mode files
+     *
+     * For normal files: returns content field
+     * For LINK mode files: loads content from external URI (stored in path field)
+     */
+    private suspend fun loadFileContent(file: ProjectFileEntity): String = withContext(Dispatchers.IO) {
+        when {
+            // If content is directly available, use it
+            file.content != null -> file.content ?: "(文件内容为空)"
+
+            // If path looks like a URI (LINK mode - starts with content:// or file://)
+            file.path.startsWith("content://") || file.path.startsWith("file://") -> {
+                try {
+                    val uri = android.net.Uri.parse(file.path)
+
+                    appContext.contentResolver.openInputStream(uri)?.use { inputStream ->
+                        inputStream.bufferedReader().readText()
+                    } ?: "(无法读取外部文件内容)"
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to load external file content", e)
+                    "(加载外部文件失败: ${e.message})"
+                }
+            }
+
+            // If path looks like a filesystem path, try to load from it
+            file.path.startsWith("/") -> {
+                try {
+                    java.io.File(file.path).readText()
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to load file from path", e)
+                    "(加载文件失败: ${e.message})"
+                }
+            }
+
+            else -> "(文件内容不可用)"
+        }
     }
 
     /**
@@ -1213,6 +1362,97 @@ class ProjectViewModel @Inject constructor(
         if (text.endsWith("@")) {
             showFileMentionPopup()
         }
+    }
+
+    // ===== External File Search Operations (for AI Chat) =====
+
+    /**
+     * Update external file search query
+     */
+    fun updateExternalFileSearchQuery(query: String) {
+        _externalFileSearchQuery.value = query
+        searchExternalFilesForChat(query)
+    }
+
+    /**
+     * Search external files for AI chat
+     * Focuses on DOCUMENT and CODE categories for better context
+     */
+    fun searchExternalFilesForChat(query: String) {
+        viewModelScope.launch {
+            try {
+                val files = if (query.isBlank()) {
+                    // Return recent files when no query
+                    externalFileRepository.getRecentFiles(
+                        categories = listOf(
+                            com.chainlesschain.android.core.database.entity.FileCategory.DOCUMENT,
+                            com.chainlesschain.android.core.database.entity.FileCategory.CODE
+                        ),
+                        limit = 20
+                    )
+                } else {
+                    // Search files
+                    externalFileRepository.searchFiles(
+                        query = query,
+                        category = null,
+                        limit = 20
+                    ).first()
+                }
+                _availableExternalFiles.value = files
+            } catch (e: Exception) {
+                Log.e(TAG, "Error searching external files", e)
+                _availableExternalFiles.value = emptyList()
+            }
+        }
+    }
+
+    /**
+     * Import external file for AI chat (LINK mode, temporary)
+     *
+     * Imports the file using LINK mode to save space, then adds it to the mentioned files
+     */
+    fun importExternalFileForChat(externalFile: com.chainlesschain.android.core.database.entity.ExternalFileEntity) {
+        val projectId = _currentProjectId.value ?: return
+
+        viewModelScope.launch {
+            _isLoading.value = true
+
+            try {
+                // Import using LINK mode (no copy, just reference)
+                val result = fileImportRepository.importFileToProject(
+                    externalFile = externalFile,
+                    targetProjectId = projectId,
+                    importType = com.chainlesschain.android.core.database.entity.ImportType.LINK,
+                    importSource = com.chainlesschain.android.core.database.entity.ImportSource.AI_CHAT
+                )
+
+                when (result) {
+                    is com.chainlesschain.android.feature.filebrowser.data.repository.FileImportRepository.ImportResult.Success -> {
+                        // Add to mentioned files
+                        addFileMention(result.projectFile)
+
+                        _uiEvents.emit(ProjectUiEvent.ShowMessage("文件 ${externalFile.displayName} 已添加到对话上下文"))
+                    }
+                    is com.chainlesschain.android.feature.filebrowser.data.repository.FileImportRepository.ImportResult.Failure -> {
+                        val errorMessage = result.error.message
+                        _uiEvents.emit(ProjectUiEvent.ShowError("导入失败: $errorMessage"))
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error importing external file for chat", e)
+                _uiEvents.emit(ProjectUiEvent.ShowError("导入失败: ${e.message}"))
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    /**
+     * Load available external files
+     * Called when showing the file mention popup to populate external file list
+     */
+    fun loadAvailableExternalFiles() {
+        searchExternalFilesForChat("")
     }
 
     // ===== Task Plan Operations =====
