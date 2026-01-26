@@ -53,6 +53,9 @@ dependencies {
     // 图片缩放（用于图片预览）
     api("net.engawapg.lib:zoomable:1.6.1")
 
+    // QR Code generation
+    api("com.google.zxing:core:3.5.3")
+
     // Markdown rendering - using native Compose Text (no external dependency)
 
     // Navigation

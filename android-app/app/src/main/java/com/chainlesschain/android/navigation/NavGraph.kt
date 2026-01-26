@@ -38,6 +38,7 @@ import com.chainlesschain.android.feature.p2p.navigation.p2pGraph
 import com.chainlesschain.android.feature.p2p.navigation.P2P_ROUTE
 import com.chainlesschain.android.feature.p2p.ui.social.PostDetailScreen
 import com.chainlesschain.android.feature.p2p.ui.social.PublishPostScreen
+import com.chainlesschain.android.feature.p2p.ui.social.MyQRCodeScreen
 import com.chainlesschain.android.feature.filebrowser.ui.GlobalFileBrowserScreen
 
 /**
@@ -459,6 +460,20 @@ fun NavGraph(
                 }
             )
         }
+
+        // ===== v0.31.0 新增功能 =====
+
+        // 我的二维码页面
+        composable(route = Screen.MyQRCode.route) {
+            MyQRCodeScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onShowToast = { message ->
+                    // TODO: 实现Toast显示（可以通过SnackbarHost或MainActivity处理）
+                }
+            )
+        }
     }
 }
 
@@ -515,6 +530,9 @@ sealed class Screen(val route: String) {
     data object CommentDetail : Screen("comment_detail") {
         fun createRoute(commentId: String) = "comment_detail/$commentId"
     }
+
+    // v0.31.0 新增
+    data object MyQRCode : Screen("my_qrcode")
 }
 
 /**

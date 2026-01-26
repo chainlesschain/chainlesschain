@@ -240,6 +240,30 @@ dependencies {
     // Jsoup for HTML parsing (link preview)
     implementation("org.jsoup:jsoup:1.17.2")
 
+    // ===== v0.31.0 新增依赖 =====
+
+    // 二维码生成
+    implementation("com.google.zxing:core:3.5.2")
+    implementation("com.journeyapps:zxing-android-embedded:4.3.0")
+
+    // CameraX（二维码扫描）
+    implementation("androidx.camera:camera-core:1.3.1")
+    implementation("androidx.camera:camera-camera2:1.3.1")
+    implementation("androidx.camera:camera-lifecycle:1.3.1")
+    implementation("androidx.camera:camera-view:1.3.1")
+
+    // ML Kit条形码扫描
+    implementation("com.google.mlkit:barcode-scanning:17.2.0")
+
+    // 权限管理
+    implementation("com.google.accompanist:accompanist-permissions:0.32.0")
+
+    // Markdown渲染（富文本编辑器）
+    implementation("io.noties.markwon:core:4.6.2")
+    implementation("io.noties.markwon:editor:4.6.2")
+    implementation("io.noties.markwon:syntax-highlight:4.6.2")
+    implementation("io.noties.markwon:image-coil:4.6.2")
+
     // Testing
     testImplementation("junit:junit:4.13.2")
     testImplementation("io.mockk:mockk:1.13.9")
