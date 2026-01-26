@@ -24,11 +24,11 @@
  * 2. Or rewrite tests using vitest's built-in vi.mock and expect
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from "vitest";
 
 // Skip all tests due to missing dependencies and Electron mocking issues
-describe.skip('Blockchain Core IPC Handlers (requires sinon/chai)', () => {
-  it('placeholder test', () => {
+describe.skip("Blockchain Core IPC Handlers (requires sinon/chai)", () => {
+  it("placeholder test", () => {
     // This file needs to be rewritten to use vitest
   });
 });

@@ -597,6 +597,7 @@ Phase 2目标: 93.3%覆盖率
    - 验证: 完整测试覆盖
 
 4. **集成测试模式**
+
    ```swift
    // 工具链测试
    let step1 = await parseJSON()
