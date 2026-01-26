@@ -43,7 +43,8 @@ describe('AgentOrchestrator', () => {
       capabilities: ['data-analysis'],
       description: 'Data agent',
       canHandle: vi.fn((task) => task.type === 'data-analysis' ? 0.8 : 0),
-      execute: vi.fn().mockResolvedValue({ analysis: 'Data processed' })
+      execute: vi.fn().mockResolvedValue({ analysis: 'Data processed' }),
+      receiveMessage: vi.fn().mockResolvedValue({ acknowledged: true })
     };
 
     mockAgent3 = {
@@ -51,7 +52,8 @@ describe('AgentOrchestrator', () => {
       capabilities: ['code-generation'],
       description: 'Alternative code agent',
       canHandle: vi.fn((task) => task.type === 'code-generation' ? 0.7 : 0),
-      execute: vi.fn().mockResolvedValue({ code: 'function alt() {}' })
+      execute: vi.fn().mockResolvedValue({ code: 'function alt() {}' }),
+      receiveMessage: vi.fn().mockResolvedValue({ acknowledged: true })
     };
   });
 
@@ -528,7 +530,8 @@ describe('AgentOrchestrator', () => {
 
         const response = await orchestrator.sendMessage('agent1', 'agent2', message);
 
-        expect(mockAgent1.receiveMessage).toHaveBeenCalledWith(
+        // agent2 is the TARGET and should receive the message
+        expect(mockAgent2.receiveMessage).toHaveBeenCalledWith(
           message,
           { from: 'agent1' }
         );
@@ -575,8 +578,11 @@ describe('AgentOrchestrator', () => {
         const message = { content: 'broadcast' };
         const results = await orchestrator.broadcast('agent1', message);
 
-        expect(results).toHaveLength(1); // Only agent2 has receiveMessage
+        // Both agent2 and agent3 have receiveMessage and should receive the broadcast
+        expect(results).toHaveLength(2);
         expect(mockAgent1.receiveMessage).not.toHaveBeenCalled(); // Sender excluded
+        expect(mockAgent2.receiveMessage).toHaveBeenCalledWith(message, { from: 'agent1' });
+        expect(mockAgent3.receiveMessage).toHaveBeenCalledWith(message, { from: 'agent1' });
       });
 
       it('should handle errors from individual agents', async () => {
