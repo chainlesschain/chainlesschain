@@ -6,8 +6,23 @@ import { vi, beforeEach } from 'vitest';
 import { config } from '@vue/test-utils';
 
 // ============================================================
-// CRITICAL: Mock electron and logger FIRST before any other imports
+// CRITICAL: Mock electron, logger, and vue-i18n FIRST before any other imports
 // ============================================================
+
+// Mock vue-i18n to avoid actual i18n setup (must be hoisted)
+vi.mock('vue-i18n', () => ({
+  createI18n: vi.fn(() => ({
+    global: {
+      t: (key: string) => key,
+      locale: 'zh-CN',
+    },
+    install: vi.fn(),
+  })),
+  useI18n: vi.fn(() => ({
+    t: (key: string) => key,
+    locale: { value: 'zh-CN' },
+  })),
+}));
 
 // Mock electron module - must be hoisted to run before any module imports
 vi.mock('electron', () => ({
