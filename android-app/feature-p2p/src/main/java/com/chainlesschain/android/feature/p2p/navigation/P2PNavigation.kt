@@ -29,9 +29,8 @@ const val MESSAGE_QUEUE_ROUTE = "message_queue"
 const val DEVICE_MANAGEMENT_ROUTE = "device_management"
 const val FILE_TRANSFERS_ROUTE = "file_transfers/{peerId}/{peerName}"
 const val ALL_FILE_TRANSFERS_ROUTE = "all_file_transfers"
-// REMOVED: Call history routes - call feature has been disabled
-// const val CALL_HISTORY_ROUTE = "call_history"
-// const val CALL_HISTORY_WITH_PEER_ROUTE = "call_history/{peerDid}"
+const val CALL_HISTORY_ROUTE = "call_history"
+const val CALL_HISTORY_WITH_PEER_ROUTE = "call_history/{peerDid}"
 
 /**
  * 添加 P2P 导航图到主导航
@@ -304,7 +303,35 @@ fun NavGraphBuilder.p2pGraph(
             )
         }
 
-        // REMOVED: Call history routes - call feature has been disabled
+        // 通话历史记录
+        composable(route = CALL_HISTORY_ROUTE) {
+            com.chainlesschain.android.feature.p2p.ui.call.CallHistoryScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onCallHistoryClick = { callHistory ->
+                    // 导航到联系人详情或发起重拨
+                }
+            )
+        }
+
+        // 指定联系人的通话历史
+        composable(
+            route = CALL_HISTORY_WITH_PEER_ROUTE,
+            arguments = listOf(
+                navArgument("peerDid") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val peerDid = backStackEntry.arguments?.getString("peerDid") ?: ""
+            com.chainlesschain.android.feature.p2p.ui.call.CallHistoryScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onCallHistoryClick = { callHistory ->
+                    // 导航到联系人详情或发起重拨
+                }
+            )
+        }
     }
 }
 
@@ -349,4 +376,10 @@ fun NavController.navigateToAllFileTransfers() {
     navigate(ALL_FILE_TRANSFERS_ROUTE)
 }
 
-// REMOVED: Call history navigation functions - call feature has been disabled
+fun NavController.navigateToCallHistory() {
+    navigate(CALL_HISTORY_ROUTE)
+}
+
+fun NavController.navigateToCallHistoryWithPeer(peerDid: String) {
+    navigate("call_history/$peerDid")
+}
