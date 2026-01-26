@@ -19,6 +19,9 @@ import com.chainlesschain.android.core.network.LinkPreview
 import com.chainlesschain.android.core.network.LinkPreviewFetcher
 import com.chainlesschain.android.core.ui.image.ImagePickerConfig
 import com.chainlesschain.android.core.ui.image.rememberImagePickerLauncher
+import com.chainlesschain.android.core.ui.markdown.RichTextEditor
+import com.chainlesschain.android.core.ui.markdown.EditorMode
+import com.chainlesschain.android.core.ui.markdown.estimateRenderedLength
 import com.chainlesschain.android.feature.p2p.service.ImageUploadService
 import com.chainlesschain.android.feature.p2p.ui.social.components.ImagePreviewGrid
 import com.chainlesschain.android.feature.p2p.ui.social.components.LinkPreviewCard
@@ -204,18 +207,21 @@ fun PublishPostScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 内容输入框
-            OutlinedTextField(
-                value = content,
-                onValueChange = { content = it },
+            // 富文本Markdown编辑器
+            Card(
                 modifier = Modifier.fillMaxWidth(),
-                placeholder = { Text("分享新鲜事...") },
-                keyboardOptions = KeyboardOptions(
-                    capitalization = KeyboardCapitalization.Sentences
-                ),
-                minLines = 5,
-                maxLines = 15
-            )
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            ) {
+                RichTextEditor(
+                    value = content,
+                    onValueChange = { content = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 200.dp, max = 400.dp),
+                    placeholder = "分享新鲜事... 支持Markdown格式",
+                    initialMode = EditorMode.EDIT
+                )
+            }
 
             // 图片预览网格
             if (selectedImages.isNotEmpty()) {
@@ -334,12 +340,30 @@ fun PublishPostScreen(
                 }
             }
 
-            // 字数统计
-            Text(
-                text = "${content.length} 字",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            // 字数统计（Markdown渲染后的实际长度）
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.TextFields,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = "${estimateRenderedLength(content)} 字 (Markdown)",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                if (content.isNotEmpty()) {
+                    Text(
+                        text = "· 原始 ${content.length} 字符",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                    )
+                }
+            }
         }
     }
 }

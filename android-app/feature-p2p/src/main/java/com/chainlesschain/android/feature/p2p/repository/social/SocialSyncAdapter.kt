@@ -11,6 +11,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -48,7 +49,7 @@ class SocialSyncAdapter @Inject constructor(
             resourceId = friend.did,
             resourceType = ResourceType.FRIEND,
             operation = SyncOperation.CREATE,
-            data = json.encodeToString<FriendSyncData>(friend.toSyncData()),
+            data = json.encodeToString(friend.toSyncData()),
             timestamp = System.currentTimeMillis()
         )
         syncManager.recordChange(syncItem)
@@ -63,7 +64,7 @@ class SocialSyncAdapter @Inject constructor(
             resourceId = friend.did,
             resourceType = ResourceType.FRIEND,
             operation = SyncOperation.UPDATE,
-            data = json.encodeToString<FriendSyncData>(friend.toSyncData()),
+            data = json.encodeToString(friend.toSyncData()),
             timestamp = System.currentTimeMillis()
         )
         syncManager.recordChange(syncItem)
@@ -78,7 +79,7 @@ class SocialSyncAdapter @Inject constructor(
             resourceId = did,
             resourceType = ResourceType.FRIEND,
             operation = SyncOperation.DELETE,
-            data = json.encodeToString<FriendSyncData>(FriendSyncData(did)),
+            data = json.encodeToString(FriendSyncData(did)),
             timestamp = System.currentTimeMillis()
         )
         syncManager.recordChange(syncItem)
@@ -95,7 +96,7 @@ class SocialSyncAdapter @Inject constructor(
             resourceId = post.id,
             resourceType = ResourceType.POST,
             operation = SyncOperation.CREATE,
-            data = json.encodeToString<PostSyncData>(post.toSyncData()),
+            data = json.encodeToString(post.toSyncData()),
             timestamp = System.currentTimeMillis()
         )
         syncManager.recordChange(syncItem)
@@ -110,7 +111,7 @@ class SocialSyncAdapter @Inject constructor(
             resourceId = post.id,
             resourceType = ResourceType.POST,
             operation = SyncOperation.UPDATE,
-            data = json.encodeToString<PostSyncData>(post.toSyncData()),
+            data = json.encodeToString(post.toSyncData()),
             timestamp = System.currentTimeMillis()
         )
         syncManager.recordChange(syncItem)
@@ -125,7 +126,7 @@ class SocialSyncAdapter @Inject constructor(
             resourceId = postId,
             resourceType = ResourceType.POST,
             operation = SyncOperation.DELETE,
-            data = json.encodeToString<PostSyncData>(PostSyncData(id = postId)),
+            data = json.encodeToString(PostSyncData(id = postId)),
             timestamp = System.currentTimeMillis()
         )
         syncManager.recordChange(syncItem)
@@ -142,7 +143,7 @@ class SocialSyncAdapter @Inject constructor(
             resourceId = like.id,
             resourceType = ResourceType.POST_LIKE,
             operation = SyncOperation.CREATE,
-            data = json.encodeToString<PostLikeSyncData>(like.toSyncData()),
+            data = json.encodeToString(like.toSyncData()),
             timestamp = System.currentTimeMillis()
         )
         syncManager.recordChange(syncItem)
@@ -157,7 +158,7 @@ class SocialSyncAdapter @Inject constructor(
             resourceId = likeId,
             resourceType = ResourceType.POST_LIKE,
             operation = SyncOperation.DELETE,
-            data = json.encodeToString<PostLikeSyncData>(PostLikeSyncData(id = likeId)),
+            data = json.encodeToString(PostLikeSyncData(id = likeId)),
             timestamp = System.currentTimeMillis()
         )
         syncManager.recordChange(syncItem)
@@ -174,7 +175,7 @@ class SocialSyncAdapter @Inject constructor(
             resourceId = comment.id,
             resourceType = ResourceType.POST_COMMENT,
             operation = SyncOperation.CREATE,
-            data = json.encodeToString<PostCommentSyncData>(comment.toSyncData()),
+            data = json.encodeToString(comment.toSyncData()),
             timestamp = System.currentTimeMillis()
         )
         syncManager.recordChange(syncItem)
@@ -189,7 +190,7 @@ class SocialSyncAdapter @Inject constructor(
             resourceId = commentId,
             resourceType = ResourceType.POST_COMMENT,
             operation = SyncOperation.DELETE,
-            data = json.encodeToString<PostCommentSyncData>(PostCommentSyncData(id = commentId)),
+            data = json.encodeToString(PostCommentSyncData(id = commentId)),
             timestamp = System.currentTimeMillis()
         )
         syncManager.recordChange(syncItem)
@@ -206,7 +207,7 @@ class SocialSyncAdapter @Inject constructor(
             resourceId = notification.id,
             resourceType = ResourceType.NOTIFICATION,
             operation = SyncOperation.CREATE,
-            data = json.encodeToString<NotificationSyncData>(notification.toSyncData()),
+            data = json.encodeToString(notification.toSyncData()),
             timestamp = System.currentTimeMillis()
         )
         syncManager.recordChange(syncItem)

@@ -103,8 +103,21 @@ test.describe('工作流监控页面 E2E测试', () => {
 
       await takeScreenshot(window, 'workflow-create-modal');
 
-      // 关闭弹窗
+      // 关闭弹窗并等待动画完成
       await window.keyboard.press('Escape');
+      await window.waitForTimeout(500);
+
+      // 确保弹窗完全关闭
+      await window.waitForFunction(() => {
+        const modals = document.querySelectorAll('.ant-modal-wrap');
+        return Array.from(modals).every(m => {
+          const style = window.getComputedStyle(m);
+          return style.display === 'none' || style.visibility === 'hidden';
+        });
+      }, { timeout: 5000 }).catch(() => {
+        // 如果超时，强制关闭
+        console.log('[Workflow E2E] 弹窗关闭超时，尝试强制关闭');
+      });
     });
 
     test('应该能够创建新工作流', async () => {
@@ -464,79 +477,73 @@ test.describe('工作流监控页面 E2E测试', () => {
       await callIPC(window, 'workflow:delete', { workflowId });
     });
   });
-});
 
-test.describe('工作流后端单元测试', () => {
-  test('WorkflowStateMachine状态转换测试', async () => {
-    const { window } = context || await launchElectronApp().then(async (ctx) => {
-      await login(ctx.window);
-      return ctx;
+  test.describe('工作流后端单元测试', () => {
+    test('WorkflowStateMachine状态转换测试', async () => {
+      const { window } = context;
+
+      // 通过IPC测试状态机行为
+      const createResult = await callIPC<{ success: boolean; data?: any }>(
+        window,
+        'workflow:create',
+        { title: '状态机测试' }
+      );
+
+      expect(createResult.success).toBe(true);
+      const workflowId = createResult.data?.workflowId;
+
+      // 获取初始状态
+      const statusResult = await callIPC<{ success: boolean; data?: any }>(
+        window,
+        'workflow:get-status',
+        { workflowId }
+      );
+
+      expect(statusResult.data?.overall?.status).toBe('idle');
+
+      // 清理
+      await callIPC(window, 'workflow:delete', { workflowId });
     });
 
-    // 通过IPC测试状态机行为
-    const createResult = await callIPC<{ success: boolean; data?: any }>(
-      window,
-      'workflow:create',
-      { title: '状态机测试' }
-    );
+    test('QualityGateManager门禁检查测试', async () => {
+      const { window } = context;
 
-    expect(createResult.success).toBe(true);
-    const workflowId = createResult.data?.workflowId;
+      // 创建工作流
+      const createResult = await callIPC<{ success: boolean; data?: any }>(
+        window,
+        'workflow:create-and-start',
+        {
+          title: '门禁测试',
+          input: { userRequest: '测试' },
+          context: {},
+        }
+      );
 
-    // 获取初始状态
-    let statusResult = await callIPC<{ success: boolean; data?: any }>(
-      window,
-      'workflow:get-status',
-      { workflowId }
-    );
-
-    expect(statusResult.data?.overall?.status).toBe('idle');
-
-    // 清理
-    await callIPC(window, 'workflow:delete', { workflowId });
-  });
-
-  test('QualityGateManager门禁检查测试', async () => {
-    const { window } = context || await launchElectronApp().then(async (ctx) => {
-      await login(ctx.window);
-      return ctx;
-    });
-
-    // 创建工作流
-    const createResult = await callIPC<{ success: boolean; data?: any }>(
-      window,
-      'workflow:create-and-start',
-      {
-        title: '门禁测试',
-        input: { userRequest: '测试' },
-        context: {},
+      if (!createResult.success) {
+        console.log('[Workflow E2E] 创建工作流失败，跳过门禁测试');
+        return;
       }
-    );
 
-    if (!createResult.success) {
-      console.log('[Workflow E2E] 创建工作流失败，跳过门禁测试');
-      return;
-    }
+      const workflowId = createResult.data?.workflowId;
 
-    const workflowId = createResult.data?.workflowId;
+      // 等待一段时间让工作流执行
+      await window.waitForTimeout(2000);
 
-    // 等待一段时间让工作流执行
-    await window.waitForTimeout(2000);
+      // 获取门禁状态
+      const gatesResult = await callIPC<{ success: boolean; data?: any }>(
+        window,
+        'workflow:get-gates',
+        { workflowId }
+      );
 
-    // 获取门禁状态
-    const gatesResult = await callIPC<{ success: boolean; data?: any }>(
-      window,
-      'workflow:get-gates',
-      { workflowId }
-    );
+      expect(gatesResult.success).toBe(true);
+      expect(gatesResult.data).toBeDefined();
 
-    expect(gatesResult.success).toBe(true);
-    expect(gatesResult.data).toBeDefined();
+      console.log('[Workflow E2E] 门禁状态:', JSON.stringify(gatesResult.data, null, 2));
 
-    console.log('[Workflow E2E] 门禁状态:', JSON.stringify(gatesResult.data, null, 2));
-
-    // 清理
-    await callIPC(window, 'workflow:cancel', { workflowId });
-    await callIPC(window, 'workflow:delete', { workflowId });
+      // 清理
+      await callIPC(window, 'workflow:cancel', { workflowId });
+      await callIPC(window, 'workflow:delete', { workflowId });
+    });
   });
 });
