@@ -49,7 +49,8 @@ import com.chainlesschain.android.feature.filebrowser.ui.GlobalFileBrowserScreen
 @Composable
 fun NavGraph(
     navController: NavHostController,
-    startDestination: String
+    startDestination: String,
+    authViewModel: AuthViewModel
 ) {
     NavHost(
         navController = navController,
@@ -58,6 +59,7 @@ fun NavGraph(
         // 设置PIN码界面
         composable(route = Screen.SetupPin.route) {
             SetupPinScreen(
+                viewModel = authViewModel,  // 传递共享的AuthViewModel
                 onSetupComplete = {
                     navController.navigate(Screen.Home.route) {
                         popUpTo(Screen.SetupPin.route) { inclusive = true }
@@ -69,6 +71,7 @@ fun NavGraph(
         // 登录界面
         composable(route = Screen.Login.route) {
             LoginScreen(
+                viewModel = authViewModel,  // 传递共享的AuthViewModel
                 onLoginSuccess = {
                     navController.navigate(Screen.Home.route) {
                         popUpTo(Screen.Login.route) { inclusive = true }
@@ -80,6 +83,7 @@ fun NavGraph(
         // 主界面（使用新的MainContainer）
         composable(route = Screen.Home.route) {
             MainContainer(
+                viewModel = authViewModel,  // 传递共享的AuthViewModel
                 onLogout = {
                     navController.navigate(Screen.Login.route) {
                         popUpTo(Screen.Home.route) { inclusive = true }

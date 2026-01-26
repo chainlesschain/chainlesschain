@@ -949,11 +949,15 @@ object DatabaseMigrations {
             super.onOpen(db)
             Log.d(TAG, "Database opened, version: ${db.version}")
 
-            // 启用 WAL 模式以提高性能
-            db.execSQL("PRAGMA journal_mode=WAL")
-
-            // 启用外键约束
-            db.execSQL("PRAGMA foreign_keys=ON")
+            // SQLCipher 不允许在 onOpen 中使用 execSQL 执行 PRAGMA
+            // 使用 query 方法代替
+            try {
+                db.query("PRAGMA journal_mode=WAL").use { }
+                db.query("PRAGMA foreign_keys=ON").use { }
+                Log.d(TAG, "PRAGMA settings applied successfully")
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to apply PRAGMA settings: ${e.message}")
+            }
         }
 
         override fun onCreate(db: SupportSQLiteDatabase) {
