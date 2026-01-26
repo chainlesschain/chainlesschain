@@ -178,8 +178,10 @@ describe("VoiceVideoIPC - Static Analysis", () => {
     test("应该记录错误日志", () => {
       const content = fs.readFileSync(VOICE_VIDEO_IPC_PATH, "utf-8");
 
-      // 验证有错误日志记录
-      expect(content).toContain("console.error");
+      // 验证有错误日志记录 (implementation uses logger.error instead of console.error)
+      expect(
+        content.includes("console.error") || content.includes("logger.error")
+      ).toBe(true);
     });
   });
 
