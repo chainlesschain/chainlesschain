@@ -267,7 +267,7 @@ class PostViewModel @Inject constructor(
                 if (authorDid != currentMyDid) {
                     realtimeEventManager.sendNotification(
                         targetDid = authorDid,
-                        notificationType = NotificationType.POST_SHARED,
+                        notificationType = NotificationType.POST,
                         title = "动态被分享",
                         content = "有人分享了你的动态",
                         targetId = postId

@@ -5,7 +5,7 @@
   "main": "dist/main/index.js",
   "scripts": {
     "_postinstall_disabled": "node scripts/link-hoisted-modules.js",
-    "dev": "npm run build:main && concurrently \"npm run dev:renderer\" \"npm run dev:electron\"",
+    "dev": "npm run build:main && npx concurrently \"npm run dev:renderer\" \"npm run dev:electron\"",
     "dev:electron": "wait-on http://127.0.0.1:5173 && cross-env CHAINLESSCHAIN_DISABLE_NATIVE_DB=1 ELECTRON_DISABLE_SECURITY_WARNINGS=true NODE_ENV=development electron .",
     "dev:renderer": "vite",
     "start": "cross-env CHAINLESSCHAIN_DISABLE_NATIVE_DB=1 ELECTRON_DISABLE_SECURITY_WARNINGS=true NODE_ENV=development electron .",
