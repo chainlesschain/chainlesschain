@@ -158,6 +158,62 @@ const socialPages = createRouteGroup("social", {
     ),
 });
 
+// 监控与诊断页面组（中优先级）
+const monitoringPages = createRouteGroup("monitoring", {
+  sessionManager: () =>
+    import(
+      /* webpackChunkName: "monitoring-sessions" */ "../pages/SessionManagerPage.vue"
+    ),
+  errorMonitor: () =>
+    import(
+      /* webpackChunkName: "monitoring-errors" */ "../pages/ErrorMonitorPage.vue"
+    ),
+  memoryDashboard: () =>
+    import(
+      /* webpackChunkName: "monitoring-memory" */ "../pages/MemoryDashboardPage.vue"
+    ),
+  tagManager: () =>
+    import(
+      /* webpackChunkName: "monitoring-tags" */ "../pages/TagManagerPage.vue"
+    ),
+  llmPerformance: () =>
+    import(
+      /* webpackChunkName: "monitoring-llm" */ "../pages/LLMPerformancePage.vue"
+    ),
+  databasePerformance: () =>
+    import(
+      /* webpackChunkName: "monitoring-database" */ "../pages/DatabasePerformancePage.vue"
+    ),
+});
+
+// P2P高级功能页面组（低优先级）
+const p2pAdvancedPages = createRouteGroup("p2p-advanced", {
+  devicePairing: () =>
+    import(
+      /* webpackChunkName: "p2p-device-pairing" */ "../pages/p2p/DevicePairingPage.vue"
+    ),
+  deviceManagement: () =>
+    import(
+      /* webpackChunkName: "p2p-device-mgmt" */ "../pages/p2p/DeviceManagementPage.vue"
+    ),
+  fileTransfer: () =>
+    import(
+      /* webpackChunkName: "p2p-file-transfer" */ "../pages/p2p/FileTransferPage.vue"
+    ),
+  safetyNumbers: () =>
+    import(
+      /* webpackChunkName: "p2p-safety-numbers" */ "../pages/p2p/SafetyNumbersPage.vue"
+    ),
+  sessionFingerprint: () =>
+    import(
+      /* webpackChunkName: "p2p-session-fp" */ "../pages/p2p/SessionFingerprintPage.vue"
+    ),
+  messageQueue: () =>
+    import(
+      /* webpackChunkName: "p2p-msg-queue" */ "../pages/p2p/MessageQueuePage.vue"
+    ),
+});
+
 // 其他功能页面（按需加载）
 const miscPages = {
   webIDE: lazyRoute(
