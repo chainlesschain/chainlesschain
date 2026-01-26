@@ -212,6 +212,7 @@ class ModerationQueueRepository @Inject constructor(
      * 批准内容
      */
     suspend fun approveContent(
+        id: String,
         id: Long,
         reviewerDid: String,
         note: String? = null
@@ -240,6 +241,7 @@ class ModerationQueueRepository @Inject constructor(
      * 拒绝内容
      */
     suspend fun rejectContent(
+        id: String,
         id: Long,
         reviewerDid: String,
         note: String? = null
@@ -268,6 +270,7 @@ class ModerationQueueRepository @Inject constructor(
      * 删除内容
      */
     suspend fun deleteContent(
+        id: String,
         id: Long,
         reviewerDid: String,
         note: String? = null
@@ -324,6 +327,7 @@ class ModerationQueueRepository @Inject constructor(
      * 批准申诉
      */
     suspend fun approveAppeal(
+        id: String,
         id: Long,
         appealResult: String
     ): Result<Unit> = withContext(Dispatchers.IO) {
@@ -350,6 +354,7 @@ class ModerationQueueRepository @Inject constructor(
      * 拒绝申诉
      */
     suspend fun rejectAppeal(
+        id: String,
         id: Long,
         appealResult: String
     ): Result<Unit> = withContext(Dispatchers.IO) {
