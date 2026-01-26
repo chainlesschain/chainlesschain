@@ -116,7 +116,7 @@ class AuthViewModel @Inject constructor(
 
             when (val result = authRepository.verifyPIN(pin)) {
                 is Result.Success -> {
-                    Timber.d("PIN verification successful")
+                    Timber.d("PIN verification successful, user=${result.data?.id}")
                     _uiState.update {
                         it.copy(
                             isLoading = false,
@@ -125,6 +125,7 @@ class AuthViewModel @Inject constructor(
                             error = null
                         )
                     }
+                    Timber.d("uiState updated: isAuthenticated=${_uiState.value.isAuthenticated}, currentUser=${_uiState.value.currentUser?.id}")
                 }
 
                 is Result.Error -> {

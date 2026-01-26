@@ -79,9 +79,12 @@ class MainActivity : ComponentActivity() {
                             else -> Screen.Home.route
                         }
 
+                        Timber.d("MainActivity: startDestination=$startDestination, isAuthenticated=${uiState.isAuthenticated}, currentUser=${uiState.currentUser?.id}")
+
                         NavGraph(
                             navController = navController,
-                            startDestination = startDestination
+                            startDestination = startDestination,
+                            authViewModel = authViewModel  // 传递AuthViewModel给NavGraph
                         )
                     }
 
