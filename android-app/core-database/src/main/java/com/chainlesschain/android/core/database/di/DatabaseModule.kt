@@ -13,6 +13,11 @@ import com.chainlesschain.android.core.database.dao.P2PMessageDao
 import com.chainlesschain.android.core.database.dao.OfflineQueueDao
 import com.chainlesschain.android.core.database.dao.ExternalFileDao
 import com.chainlesschain.android.core.database.dao.FileImportHistoryDao
+import com.chainlesschain.android.core.database.dao.social.FriendDao
+import com.chainlesschain.android.core.database.dao.social.PostDao
+import com.chainlesschain.android.core.database.dao.social.PostInteractionDao
+import com.chainlesschain.android.core.database.dao.social.NotificationDao
+import com.chainlesschain.android.core.database.dao.social.PostEditHistoryDao
 import com.chainlesschain.android.core.database.migration.DatabaseMigrations
 import com.chainlesschain.android.core.security.KeyManager
 import dagger.Module
@@ -157,4 +162,39 @@ object DatabaseModule {
     fun provideFileImportHistoryDao(database: ChainlessChainDatabase): FileImportHistoryDao {
         return database.fileImportHistoryDao()
     }
+
+    /**
+     * 提供好友DAO
+     */
+    @Provides
+    @Singleton
+    fun provideFriendDao(database: ChainlessChainDatabase) = database.friendDao()
+
+    /**
+     * 提供动态DAO
+     */
+    @Provides
+    @Singleton
+    fun providePostDao(database: ChainlessChainDatabase) = database.postDao()
+
+    /**
+     * 提供动态互动DAO
+     */
+    @Provides
+    @Singleton
+    fun providePostInteractionDao(database: ChainlessChainDatabase) = database.postInteractionDao()
+
+    /**
+     * 提供通知DAO
+     */
+    @Provides
+    @Singleton
+    fun provideNotificationDao(database: ChainlessChainDatabase) = database.notificationDao()
+
+    /**
+     * 提供动态编辑历史DAO
+     */
+    @Provides
+    @Singleton
+    fun providePostEditHistoryDao(database: ChainlessChainDatabase) = database.postEditHistoryDao()
 }
