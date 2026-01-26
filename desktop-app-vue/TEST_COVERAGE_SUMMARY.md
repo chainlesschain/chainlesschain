@@ -517,19 +517,20 @@ node -c tests/unit/ai-engine/function-caller.test.js
 
 ```bash
 # 运行新增的所有测试
-npm run test tests/unit/config tests/unit/api tests/unit/file tests/unit/ai-engine/multi-agent
+npm run test tests/unit/config tests/unit/api tests/unit/file tests/unit/ai-engine/multi-agent tests/unit/ai-engine/function-caller.test.js
 
 # 单独运行各模块测试
 npm run test tests/unit/config/unified-config-manager.test.js
 npm run test tests/unit/api/backend-client.test.js
 npm run test tests/unit/file/file-manager.test.js
 npm run test tests/unit/ai-engine/multi-agent
+npm run test tests/unit/ai-engine/function-caller.test.js
 
 # 生成覆盖率报告
 npm run test:coverage
 
 # 监听模式（开发时使用）
-npm run test:watch tests/unit/config tests/unit/api tests/unit/file tests/unit/ai-engine/multi-agent
+npm run test:watch tests/unit/config tests/unit/api tests/unit/file tests/unit/ai-engine
 ```
 
 ### 预期输出
