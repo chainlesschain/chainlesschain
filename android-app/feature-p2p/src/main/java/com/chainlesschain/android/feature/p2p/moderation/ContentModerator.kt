@@ -87,5 +87,15 @@ enum class ViolationCategory {
     DISCRIMINATION,         // 歧视
     EXPLICIT_CONTENT,       // 露骨内容
     MISINFORMATION,         // 虚假信息
-    OTHER                   // 其他
+    OTHER;                  // 其他
+
+    val displayName: String
+        get() = when (this) {
+            OFFENSIVE_LANGUAGE -> "冒犯性语言"
+            PERSONAL_ATTACK -> "人身攻击"
+            DISCRIMINATION -> "歧视"
+            EXPLICIT_CONTENT -> "露骨内容"
+            MISINFORMATION -> "虚假信息"
+            OTHER -> "其他"
+        }
 }
