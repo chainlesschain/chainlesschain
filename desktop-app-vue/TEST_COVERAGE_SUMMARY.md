@@ -433,18 +433,19 @@ node -c tests/unit/ai-engine/multi-agent/multi-agent-ipc.test.js
 
 ```bash
 # 运行新增的所有测试
-npm run test tests/unit/config tests/unit/api tests/unit/file
+npm run test tests/unit/config tests/unit/api tests/unit/file tests/unit/ai-engine/multi-agent
 
 # 单独运行各模块测试
 npm run test tests/unit/config/unified-config-manager.test.js
 npm run test tests/unit/api/backend-client.test.js
 npm run test tests/unit/file/file-manager.test.js
+npm run test tests/unit/ai-engine/multi-agent
 
 # 生成覆盖率报告
 npm run test:coverage
 
 # 监听模式（开发时使用）
-npm run test:watch tests/unit/config tests/unit/api tests/unit/file
+npm run test:watch tests/unit/config tests/unit/api tests/unit/file tests/unit/ai-engine/multi-agent
 ```
 
 ### 预期输出
@@ -459,9 +460,21 @@ PASS  tests/unit/api/backend-client.test.js
 PASS  tests/unit/file/file-manager.test.js
   ✓ FileManager (58 tests)
 
-Test Files:  3 passed (3)
-Tests:      170 passed (170)
-Duration:   ~3-7秒
+PASS  tests/unit/ai-engine/multi-agent/agent-orchestrator.test.js
+  ✓ AgentOrchestrator (59 tests)
+
+PASS  tests/unit/ai-engine/multi-agent/specialized-agent.test.js
+  ✓ SpecializedAgent (60 tests)
+
+PASS  tests/unit/ai-engine/multi-agent/index.test.js
+  ✓ Multi-Agent Index Module (30 tests)
+
+PASS  tests/unit/ai-engine/multi-agent/multi-agent-ipc.test.js
+  ✓ Multi-Agent IPC Handler (70 tests)
+
+Test Files:  7 passed (7)
+Tests:      389 passed (389)
+Duration:   ~8-15秒
 ```
 
 ---
