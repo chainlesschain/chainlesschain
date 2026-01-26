@@ -19,6 +19,7 @@ import com.chainlesschain.android.core.ui.image.Avatar
 import com.chainlesschain.android.core.ui.image.AvatarSize
 import com.chainlesschain.android.core.ui.image.ImageGrid
 import com.chainlesschain.android.core.ui.image.ImagePreviewDialog
+import com.chainlesschain.android.feature.p2p.util.PostEditPolicy
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -115,11 +116,30 @@ fun PostCard(
                         }
                     }
 
-                    Text(
-                        text = formatPostTime(post.createdAt),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = formatPostTime(post.createdAt),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        // 已编辑标签
+                        if (PostEditPolicy.isEdited(post)) {
+                            Text(
+                                text = "·",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = "已编辑",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
                 }
 
                 // 更多菜单

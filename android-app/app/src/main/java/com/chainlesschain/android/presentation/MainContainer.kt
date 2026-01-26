@@ -28,6 +28,7 @@ fun MainContainer(
     onNavigateToPublishPost: () -> Unit = {},
     onNavigateToPostDetail: (String) -> Unit = {},
     onNavigateToUserProfile: (String) -> Unit = {},
+    onNavigateToEditPost: (String) -> Unit = {},
     onNavigateToComment: (String) -> Unit = {},
     onNavigateToLLMSettings: () -> Unit = {},
     onNavigateToLLMTest: () -> Unit = {},
@@ -90,6 +91,7 @@ fun MainContainer(
                         onNavigateToPublishPost = onNavigateToPublishPost,
                         onNavigateToPostDetail = onNavigateToPostDetail,
                         onNavigateToUserProfile = onNavigateToUserProfile,
+                        onNavigateToEditPost = onNavigateToEditPost,
                         onNavigateToComment = onNavigateToComment
                     )
                 }

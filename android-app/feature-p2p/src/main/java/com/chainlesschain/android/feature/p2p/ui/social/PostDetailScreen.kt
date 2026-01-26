@@ -91,7 +91,8 @@ fun PostDetailScreen(
                         if (commentText.isNotBlank()) {
                             viewModel.addComment(
                                 postId = postId,
-                                content = commentText.trim()
+                                content = commentText.trim(),
+                                authorDid = uiState.currentPost?.authorDid ?: ""
                             )
                         }
                     },
@@ -120,7 +121,7 @@ fun PostDetailScreen(
                             authorNickname = "用户${post.authorDid.take(8)}", // TODO: 从好友信息获取
                             onPostClick = { },
                             onAuthorClick = { onNavigateToUserProfile(post.authorDid) },
-                            onLikeClick = { viewModel.toggleLike(post.id, post.isLiked) },
+                            onLikeClick = { viewModel.toggleLike(post.id, post.isLiked, post.authorDid) },
                             onCommentClick = { },
                             onShareClick = { /* TODO */ },
                             onMoreClick = { viewModel.showPostMenu(post) },

@@ -59,6 +59,7 @@ dependencies {
     implementation(project(":core-did"))
     implementation(project(":core-e2ee"))
     implementation(project(":core-ui"))
+    implementation(project(":core-network"))
 
     // Android Core
     implementation("androidx.core:core-ktx:1.12.0")
@@ -94,6 +95,12 @@ dependencies {
     implementation("androidx.camera:camera-camera2:1.3.1")
     implementation("androidx.camera:camera-lifecycle:1.3.1")
     implementation("androidx.camera:camera-view:1.3.1")
+
+    // Accompanist (permissions)
+    implementation("com.google.accompanist:accompanist-permissions:0.32.0")
+
+    // ML Kit Barcode Scanning
+    implementation("com.google.mlkit:barcode-scanning:17.2.0")
 
     // Testing
     testImplementation("junit:junit:4.13.2")

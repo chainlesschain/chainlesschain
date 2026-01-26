@@ -4,11 +4,13 @@ import com.chainlesschain.android.core.common.Result
 import com.chainlesschain.android.core.common.asResult
 import com.chainlesschain.android.core.database.dao.social.PostDao
 import com.chainlesschain.android.core.database.dao.social.PostInteractionDao
+import com.chainlesschain.android.core.database.dao.social.PostEditHistoryDao
 import com.chainlesschain.android.core.database.entity.social.PostEntity
 import com.chainlesschain.android.core.database.entity.social.PostCommentEntity
 import com.chainlesschain.android.core.database.entity.social.PostLikeEntity
 import com.chainlesschain.android.core.database.entity.social.PostShareEntity
 import com.chainlesschain.android.core.database.entity.social.PostReportEntity
+import com.chainlesschain.android.core.database.entity.social.PostEditHistoryEntity
 import com.chainlesschain.android.core.database.entity.social.ReportReason
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -25,6 +27,7 @@ import javax.inject.Singleton
 class PostRepository @Inject constructor(
     private val postDao: PostDao,
     private val interactionDao: PostInteractionDao,
+    private val postEditHistoryDao: PostEditHistoryDao,
     private val syncAdapter: Lazy<SocialSyncAdapter> // 使用 Lazy 避免循环依赖
 ) {
 
@@ -132,7 +135,7 @@ class PostRepository @Inject constructor(
     suspend fun createPost(post: PostEntity): Result<Unit> {
         return try {
             postDao.insert(post)
-            syncAdapter.get().syncPostCreated(post)
+            syncAdapter.value.syncPostCreated(post)
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e)
@@ -145,7 +148,7 @@ class PostRepository @Inject constructor(
     suspend fun updatePost(post: PostEntity): Result<Unit> {
         return try {
             postDao.update(post)
-            syncAdapter.get().syncPostUpdated(post)
+            syncAdapter.value.syncPostUpdated(post)
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e)
@@ -160,9 +163,63 @@ class PostRepository @Inject constructor(
             postDao.updateContent(postId, content, updatedAt)
             // 获取更新后的动态并同步
             postDao.getPostById(postId)?.let { post ->
-                syncAdapter.get().syncPostUpdated(post)
+                syncAdapter.value.syncPostUpdated(post)
             }
             Result.Success(Unit)
+        } catch (e: Exception) {
+            Result.Error(e)
+        }
+    }
+
+    /**
+     * 更新动态并保存编辑历史
+     *
+     * @param updatedPost 更新后的动态
+     * @param editHistory 编辑历史记录
+     * @since v0.31.0
+     */
+    suspend fun updatePostWithHistory(
+        updatedPost: PostEntity,
+        editHistory: PostEditHistoryEntity
+    ): Result<Unit> {
+        return try {
+            // 先保存编辑历史
+            postEditHistoryDao.insert(editHistory)
+
+            // 再更新动态
+            postDao.update(updatedPost)
+
+            // 同步到P2P网络
+            syncAdapter.value.syncPostUpdated(updatedPost)
+
+            Result.Success(Unit)
+        } catch (e: Exception) {
+            Result.Error(e)
+        }
+    }
+
+    /**
+     * 获取动态的编辑历史
+     *
+     * @param postId 动态ID
+     * @return 编辑历史列表（按时间倒序）
+     * @since v0.31.0
+     */
+    fun getPostEditHistory(postId: String): Flow<Result<List<PostEditHistoryEntity>>> {
+        return postEditHistoryDao.getHistoriesByPostId(postId)
+            .asResult()
+    }
+
+    /**
+     * 获取动态的编辑次数
+     *
+     * @param postId 动态ID
+     * @return 编辑次数
+     * @since v0.31.0
+     */
+    suspend fun getPostEditCount(postId: String): Result<Int> {
+        return try {
+            Result.Success(postEditHistoryDao.getEditCountByPostId(postId))
         } catch (e: Exception) {
             Result.Error(e)
         }
@@ -174,7 +231,7 @@ class PostRepository @Inject constructor(
     suspend fun deletePost(id: String): Result<Unit> {
         return try {
             postDao.deleteById(id)
-            syncAdapter.get().syncPostDeleted(id)
+            syncAdapter.value.syncPostDeleted(id)
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e)
@@ -192,7 +249,7 @@ class PostRepository @Inject constructor(
             postDao.updatePinnedStatus(postId, true)
             // 获取更新后的动态并同步
             postDao.getPostById(postId)?.let { post ->
-                syncAdapter.get().syncPostUpdated(post)
+                syncAdapter.value.syncPostUpdated(post)
             }
             Result.Success(Unit)
         } catch (e: Exception) {
@@ -208,7 +265,7 @@ class PostRepository @Inject constructor(
             postDao.updatePinnedStatus(postId, false)
             // 获取更新后的动态并同步
             postDao.getPostById(postId)?.let { post ->
-                syncAdapter.get().syncPostUpdated(post)
+                syncAdapter.value.syncPostUpdated(post)
             }
             Result.Success(Unit)
         } catch (e: Exception) {
@@ -239,7 +296,7 @@ class PostRepository @Inject constructor(
             )
             interactionDao.insertLike(like)
             postDao.incrementLikeCount(postId)
-            syncAdapter.get().syncLikeAdded(like)
+            syncAdapter.value.syncLikeAdded(like)
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e)
@@ -254,7 +311,7 @@ class PostRepository @Inject constructor(
             val likeId = "${postId}_${userDid}"
             interactionDao.deleteLike(postId, userDid)
             postDao.decrementLikeCount(postId)
-            syncAdapter.get().syncLikeRemoved(likeId)
+            syncAdapter.value.syncLikeRemoved(likeId)
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e)
@@ -305,7 +362,7 @@ class PostRepository @Inject constructor(
         return try {
             interactionDao.insertComment(comment)
             postDao.incrementCommentCount(comment.postId)
-            syncAdapter.get().syncCommentAdded(comment)
+            syncAdapter.value.syncCommentAdded(comment)
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e)
@@ -323,7 +380,7 @@ class PostRepository @Inject constructor(
             interactionDao.deleteComment(comment)
             // 更新评论数
             postDao.decrementCommentCount(comment.postId)
-            syncAdapter.get().syncCommentDeleted(comment.id)
+            syncAdapter.value.syncCommentDeleted(comment.id)
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e)
@@ -431,7 +488,7 @@ class PostRepository @Inject constructor(
             // interactionDao.insertReport(report)
 
             // 发送到后端审核（如果有）
-            syncAdapter.get().syncReportSubmitted(report)
+            syncAdapter.value.syncReportSubmitted(report)
 
             Result.Success(Unit)
         } catch (e: Exception) {

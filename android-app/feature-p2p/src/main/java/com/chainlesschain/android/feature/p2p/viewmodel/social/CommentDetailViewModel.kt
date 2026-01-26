@@ -83,7 +83,7 @@ class CommentDetailViewModel @Inject constructor(
     private fun loadAuthorInfo(did: String) {
         viewModelScope.launch(exceptionHandler) {
             friendRepository.getFriendByDid(did).onSuccess { friend ->
-                val authorInfo = friend?.let {
+                val userInfo = friend?.let {
                     UserInfo(
                         did = it.did,
                         nickname = it.remarkName ?: it.nickname,
@@ -98,7 +98,7 @@ class CommentDetailViewModel @Inject constructor(
                 )
 
                 updateState {
-                    copy(authorInfo = authorInfo + (did to authorInfo))
+                    copy(authorInfo = authorInfo + (did to userInfo))
                 }
             }
         }

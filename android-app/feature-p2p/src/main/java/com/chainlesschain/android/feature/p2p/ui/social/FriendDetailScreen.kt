@@ -291,7 +291,7 @@ private fun FriendInfoSection(
             Avatar(
                 avatarUrl = friend.avatar,
                 name = friend.nickname,
-                size = AvatarSize.XLARGE
+                size = AvatarSize.EXTRA_LARGE
             )
             // 在线状态指示器
             if (presenceInfo?.status == PresenceStatus.ONLINE) {

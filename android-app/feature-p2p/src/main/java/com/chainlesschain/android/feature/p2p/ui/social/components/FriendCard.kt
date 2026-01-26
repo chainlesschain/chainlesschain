@@ -48,13 +48,14 @@ fun FriendCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             // 头像
+            val lastActive = friend.lastActiveAt
             AvatarImage(
                 avatar = friend.avatar,
                 nickname = friend.nickname,
                 size = 48.dp,
                 showOnlineStatus = showStatus,
-                isOnline = friend.lastActiveAt != null &&
-                        System.currentTimeMillis() - friend.lastActiveAt < 5 * 60 * 1000
+                isOnline = lastActive != null &&
+                        System.currentTimeMillis() - lastActive < 5 * 60 * 1000
             )
 
             // 好友信息
@@ -93,9 +94,10 @@ fun FriendCard(
                 }
 
                 // 最后活跃时间
-                if (showStatus && friend.lastActiveAt != null) {
+                val lastActiveTime = friend.lastActiveAt
+                if (showStatus && lastActiveTime != null) {
                     Text(
-                        text = formatLastActiveTime(friend.lastActiveAt),
+                        text = formatLastActiveTime(lastActiveTime),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
