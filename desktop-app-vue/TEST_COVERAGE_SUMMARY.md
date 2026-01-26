@@ -360,20 +360,52 @@ node scripts/validate-tests.js
   Mock数量: 35个
   生命周期: 1 beforeEach, 1 afterEach
 
+文件 4: agent-orchestrator.test.js
+  ✓ 代码行数: ~680
+  ✓ 测试套件: 18个 describe
+  ✓ 测试用例: 59个 it
+  ✓ 断言数量: ~95个 expect
+  Mock数量: 25个
+  生命周期: 1 beforeEach, 1 afterEach
+
+文件 5: specialized-agent.test.js
+  ✓ 代码行数: ~720
+  ✓ 测试套件: 20个 describe
+  ✓ 测试用例: 60个 it
+  ✓ 断言数量: ~102个 expect
+  Mock数量: 28个
+  生命周期: 1 beforeEach, 1 afterEach
+
+文件 6: index.test.js
+  ✓ 代码行数: ~550
+  ✓ 测试套件: 15个 describe
+  ✓ 测试用例: 30个 it
+  ✓ 断言数量: ~50个 expect
+  Mock数量: 18个
+  生命周期: 1 beforeEach
+
+文件 7: multi-agent-ipc.test.js
+  ✓ 代码行数: ~684
+  ✓ 测试套件: 22个 describe
+  ✓ 测试用例: 70个 it
+  ✓ 断言数量: ~103个 expect
+  Mock数量: 20个
+  生命周期: 1 beforeEach
+
 ============================================
 📈 汇总统计
 ============================================
 
-测试文件: 3 个
-代码行数: 2,457 行
-测试套件: 81 个
-测试用例: 170 个
-断言数量: ~308 个
-平均每个文件: 57 个用例
+测试文件: 7 个
+代码行数: 5,091 行
+测试套件: 156 个
+测试用例: 389 个
+断言数量: ~658 个
+平均每个文件: 56 个用例
 
 质量指标:
-  断言覆盖率: 181.2% (优秀)
-  测试密度: 6.92 用例/100行 (良好)
+  断言覆盖率: 169.2% (优秀)
+  测试密度: 7.64 用例/100行 (优秀)
 
 ✅ 所有测试文件验证通过！
    结构完整，可以运行测试。
@@ -385,6 +417,10 @@ node scripts/validate-tests.js
 node -c tests/unit/config/unified-config-manager.test.js
 node -c tests/unit/api/backend-client.test.js
 node -c tests/unit/file/file-manager.test.js
+node -c tests/unit/ai-engine/multi-agent/agent-orchestrator.test.js
+node -c tests/unit/ai-engine/multi-agent/specialized-agent.test.js
+node -c tests/unit/ai-engine/multi-agent/index.test.js
+node -c tests/unit/ai-engine/multi-agent/multi-agent-ipc.test.js
 ```
 
 **结果**: ✅ 所有文件语法正确
