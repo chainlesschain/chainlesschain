@@ -64,6 +64,42 @@ android {
         }
     }
 
+    // Phase 7.4: App Bundle配置 - 按需分发
+    bundle {
+        // 按语言分包
+        language {
+            enableSplit = true
+        }
+
+        // 按屏幕密度分包
+        density {
+            enableSplit = true
+        }
+
+        // 按CPU架构分包
+        abi {
+            enableSplit = true
+        }
+    }
+
+    // Phase 7.4: APK Splits配置 - 分架构打包
+    splits {
+        // 按CPU架构分包
+        abi {
+            isEnable = true
+            reset()
+            include("armeabi-v7a", "arm64-v8a")
+            isUniversalApk = true  // 同时生成通用APK（用于测试）
+        }
+
+        // 按屏幕密度分包
+        density {
+            isEnable = true
+            reset()
+            include("mdpi", "hdpi", "xhdpi", "xxhdpi", "xxxhdpi")
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -91,11 +127,20 @@ android {
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
             excludes += "/META-INF/LICENSE*"
+            excludes += "/META-INF/NOTICE*"
+            // Phase 7.4: 排除更多冗余文件以减小APK体积
+            excludes += "/META-INF/*.kotlin_module"
+            excludes += "/META-INF/DEPENDENCIES"
+            excludes += "/META-INF/INDEX.LIST"
+            excludes += "/*.txt"
+            excludes += "/*.properties"
             // Exclude duplicate JetBrains annotations
             pickFirsts += "META-INF/versions/9/module-info.class"
         }
         jniLibs {
             pickFirsts += "**/libc++_shared.so"
+            // Phase 7.4: 仅保留必要的CPU架构
+            useLegacyPackaging = false  // 使用新的压缩方式
         }
     }
 
