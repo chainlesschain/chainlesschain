@@ -175,7 +175,7 @@
 # Aggressive optimization
 -optimizationpasses 5
 -mergeinterfacesaggressively
--optimizeaggressively
+# -optimizeaggressively  # Not supported by R8, only ProGuard
 
 # Optimizations
 -optimizations !code/simplification/arithmetic,!code/simplification/cast,!field/*,!class/merging/*

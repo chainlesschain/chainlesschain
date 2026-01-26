@@ -212,7 +212,6 @@ class ModerationQueueRepository @Inject constructor(
      * 批准内容
      */
     suspend fun approveContent(
-        id: String,
         id: Long,
         reviewerDid: String,
         note: String? = null
@@ -241,7 +240,6 @@ class ModerationQueueRepository @Inject constructor(
      * 拒绝内容
      */
     suspend fun rejectContent(
-        id: String,
         id: Long,
         reviewerDid: String,
         note: String? = null
@@ -270,7 +268,6 @@ class ModerationQueueRepository @Inject constructor(
      * 删除内容
      */
     suspend fun deleteContent(
-        id: String,
         id: Long,
         reviewerDid: String,
         note: String? = null
@@ -327,7 +324,6 @@ class ModerationQueueRepository @Inject constructor(
      * 批准申诉
      */
     suspend fun approveAppeal(
-        id: String,
         id: Long,
         appealResult: String
     ): Result<Unit> = withContext(Dispatchers.IO) {
@@ -354,7 +350,6 @@ class ModerationQueueRepository @Inject constructor(
      * 拒绝申诉
      */
     suspend fun rejectAppeal(
-        id: String,
         id: Long,
         appealResult: String
     ): Result<Unit> = withContext(Dispatchers.IO) {
@@ -415,10 +410,10 @@ class ModerationQueueRepository @Inject constructor(
             Result.Success(stats.map { daoStat ->
                 ModerationStatsByDate(
                     date = daoStat.date,
-                    totalCount = daoStat.totalCount,
-                    approvedCount = daoStat.approvedCount,
-                    rejectedCount = daoStat.rejectedCount,
-                    pendingCount = daoStat.pendingCount
+                    totalCount = daoStat.total,
+                    approvedCount = daoStat.approved,
+                    rejectedCount = daoStat.rejected,
+                    pendingCount = daoStat.total - daoStat.approved - daoStat.rejected - daoStat.deleted
                 )
             })
         }
@@ -433,8 +428,8 @@ class ModerationQueueRepository @Inject constructor(
                 AuthorViolationStats(
                     authorDid = daoStat.authorDid,
                     authorName = daoStat.authorName,
-                    violationCount = daoStat.violationCount,
-                    lastViolationTime = daoStat.lastViolationTime
+                    violationCount = daoStat.total,
+                    lastViolationTime = System.currentTimeMillis() // DAO doesn't provide this, use current time
                 )
             })
         }
@@ -463,7 +458,7 @@ class ModerationQueueRepository @Inject constructor(
     private fun ModerationQueueEntity.toQueueItem(): ModerationQueueItem {
         val aiResult = deserializeModerationResult(aiResultJson)
         return ModerationQueueItem(
-            id = id.toString(),
+            id = id,
             contentType = ContentType.valueOf(contentType.name),
             contentId = contentId,
             content = contentText,
@@ -554,7 +549,7 @@ sealed class ModerationDecision {
  * 审核队列项目（业务模型）
  */
 data class ModerationQueueItem(
-    val id: String,
+    val id: Long,
     val contentType: ContentType,
     val contentId: String,
     val content: String,  // Changed from contentText
@@ -585,7 +580,7 @@ data class ModerationQueueItem(
          */
         fun createSafeDefault(): ModerationQueueItem {
             return ModerationQueueItem(
-                id = "",
+                id = 0L,
                 contentType = ContentType.POST,
                 contentId = "",
                 content = "",
