@@ -77,6 +77,7 @@ class ProjectViewModel @Inject constructor(
     private val projectChatRepository: ProjectChatRepository,
     private val conversationRepository: ConversationRepository,
     private val llmAdapterFactory: LLMAdapterFactory,
+    private val llmConfigManager: com.chainlesschain.android.feature.ai.data.config.LLMConfigManager,
     private val externalFileRepository: ExternalFileRepository,
     private val fileImportRepository: FileImportRepository
 ) : ViewModel() {
@@ -161,7 +162,7 @@ class ProjectViewModel @Inject constructor(
     private val _currentModel = MutableStateFlow(DEFAULT_MODEL)
     val currentModel: StateFlow<String> = _currentModel.asStateFlow()
 
-    private val _currentProvider = MutableStateFlow(LLMProvider.DEEPSEEK)
+    private val _currentProvider = MutableStateFlow(llmConfigManager.getProvider())  // 从配置读取
     val currentProvider: StateFlow<LLMProvider> = _currentProvider.asStateFlow()
 
     // ===== Context Mode State =====
