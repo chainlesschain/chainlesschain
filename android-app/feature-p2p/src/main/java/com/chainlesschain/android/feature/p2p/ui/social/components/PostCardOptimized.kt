@@ -118,8 +118,8 @@ private fun PostAuthorHeader(
         formatPostTime(post.createdAt)
     }
 
-    // 使用remember缓存编辑状态，仅在lastEditedAt变化时重新计算
-    val isEdited = remember(post.lastEditedAt) {
+    // 使用remember缓存编辑状态，仅在updatedAt变化时重新计算
+    val isEdited = remember(post.updatedAt) {
         PostEditPolicy.isEdited(post)
     }
 

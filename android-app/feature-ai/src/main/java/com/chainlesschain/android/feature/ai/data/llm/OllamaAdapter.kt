@@ -146,16 +146,22 @@ class OllamaAdapter @Inject constructor(
 
     override suspend fun checkAvailability(): Boolean {
         return try {
+            android.util.Log.d(TAG, "Testing Ollama connection to: $baseUrl/api/tags")
             val request = Request.Builder()
                 .url("$baseUrl/api/tags")
                 .get()
                 .build()
 
             client.newCall(request).execute().use { response ->
-                response.isSuccessful
+                val isSuccess = response.isSuccessful
+                android.util.Log.d(TAG, "Ollama connection test result: $isSuccess (code=${response.code})")
+                if (!isSuccess) {
+                    android.util.Log.w(TAG, "Response body: ${response.body?.string()}")
+                }
+                isSuccess
             }
         } catch (e: Exception) {
-            android.util.Log.e(TAG, "Ollama not available", e)
+            android.util.Log.e(TAG, "Ollama connection failed: ${e.javaClass.simpleName}: ${e.message}", e)
             false
         }
     }

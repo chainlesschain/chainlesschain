@@ -292,10 +292,14 @@ class LLMSettingsViewModel @Inject constructor(
     fun testConnection(provider: LLMProvider) {
         viewModelScope.launch {
             try {
+                android.util.Log.d("LLMSettingsViewModel", "testConnection called for provider: ${provider.name}")
                 _uiState.value = LLMSettingsUiState.Testing(provider)
+                android.util.Log.d("LLMSettingsViewModel", "UI state set to Testing")
 
                 // 实际测试API连接
+                android.util.Log.d("LLMSettingsViewModel", "Calling adapterFactory.testConnection...")
                 val result = adapterFactory.testConnection(provider)
+                android.util.Log.d("LLMSettingsViewModel", "Test result: success=${result.isSuccess}, message=${result.getOrNull() ?: result.exceptionOrNull()?.message}")
 
                 _uiState.value = if (result.isSuccess) {
                     LLMSettingsUiState.TestResult(
@@ -310,11 +314,13 @@ class LLMSettingsViewModel @Inject constructor(
                         message = result.exceptionOrNull()?.message ?: "连接失败"
                     )
                 }
+                android.util.Log.d("LLMSettingsViewModel", "UI state set to TestResult: success=${result.isSuccess}")
 
                 // 2秒后恢复到正常状态
                 kotlinx.coroutines.delay(2000)
                 loadConfig()
             } catch (e: Exception) {
+                android.util.Log.e("LLMSettingsViewModel", "testConnection exception", e)
                 _uiState.value = LLMSettingsUiState.TestResult(
                     provider = provider,
                     success = false,
