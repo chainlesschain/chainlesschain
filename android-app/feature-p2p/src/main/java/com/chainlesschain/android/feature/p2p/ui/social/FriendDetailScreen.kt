@@ -23,7 +23,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.clickable
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.chainlesschain.android.core.p2p.realtime.UserPresenceStatus
+import com.chainlesschain.android.core.p2p.realtime.PresenceStatus
 import com.chainlesschain.android.core.ui.components.EmptyState
 import com.chainlesschain.android.core.ui.components.LoadingState
 import com.chainlesschain.android.core.ui.image.Avatar
@@ -294,7 +294,7 @@ private fun FriendInfoSection(
                 size = AvatarSize.XLARGE
             )
             // 在线状态指示器
-            if (presenceInfo?.status == UserPresenceStatus.ONLINE) {
+            if (presenceInfo?.status == PresenceStatus.ONLINE) {
                 Surface(
                     modifier = Modifier
                         .size(16.dp)
