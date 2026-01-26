@@ -26,8 +26,8 @@ import javax.inject.Singleton
 @Serializable
 data class OllamaConfig(
     val url: String = "http://localhost:11434",
-    val model: String = "qwen2:7b",
-    val embeddingModel: String = "nomic-embed-text"
+    val model: String = "qwen2.5:latest",
+    val embeddingModel: String = "bge-m3:latest"
 )
 
 /**
