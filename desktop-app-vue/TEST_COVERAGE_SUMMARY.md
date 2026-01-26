@@ -557,9 +557,12 @@ PASS  tests/unit/ai-engine/multi-agent/index.test.js
 PASS  tests/unit/ai-engine/multi-agent/multi-agent-ipc.test.js
   ✓ Multi-Agent IPC Handler (70 tests)
 
-Test Files:  7 passed (7)
-Tests:      389 passed (389)
-Duration:   ~8-15秒
+PASS  tests/unit/ai-engine/function-caller.test.js
+  ✓ FunctionCaller (75 tests)
+
+Test Files:  8 passed (8)
+Tests:      464 passed (464)
+Duration:   ~10-18秒
 ```
 
 ---
