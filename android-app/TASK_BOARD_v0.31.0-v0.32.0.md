@@ -9,10 +9,10 @@
 
 | 版本 | 状态 | 进度 | 完成任务 | 总任务 | 预计完成日期 |
 |------|------|------|----------|--------|-------------|
-| **v0.31.0** | 🟡 进行中 | 43% | 6/14 | 14 | 2026-02-15 |
+| **v0.31.0** | 🟡 进行中 | 79% | 11/14 | 14 | 2026-02-15 |
 | **v0.32.0** | ⚪ 未开始 | 0% | 0/10 | 10 | 2026-03-15 |
 
-**总进度**: 6/24 (25%)
+**总进度**: 11/24 (46%)
 
 ---
 
@@ -80,45 +80,64 @@
 ### Week 2: 动态编辑功能 (Day 6-10)
 
 #### ✅ Phase 2.1: 编辑权限检查 (Day 6)
-- [ ] **Task 2.1.1**: 创建PostEditPolicy.kt (80行)
+- [x] **Task 2.1.1**: 创建PostEditPolicy.kt (174行) ✅ 2026-01-26
   - `canEdit()` - 检查是否可以编辑（24小时限制）
   - `shouldWarnBeforeEdit()` - 检查是否需要警告
-- [ ] **Task 2.1.2**: 单元测试 - PostEditPolicyTest.kt
-  - 测试24小时限制
+  - `formatRemainingTime()` - 时间格式化
+  - `isEdited()` - 编辑状态检查
+- [x] **Task 2.1.2**: 单元测试 - PostEditPolicyTest.kt (338行) ✅ 2026-01-26
+  - 测试24小时限制（7个用例）
   - 测试非作者禁止编辑
-  - 测试已有互动的警告
+  - 测试已有互动的警告（5个用例）
+  - 测试时间格式化（6个用例）
+  - 测试编辑状态（3个用例）
 
-**预计工时**: 8h | **负责人**: ___ | **状态**: 🔵 待开始
+**预计工时**: 8h | **实际工时**: ~2h | **负责人**: Claude | **状态**: ✅ 已完成
 
 ---
 
 #### ✅ Phase 2.2: 编辑UI (Day 7-8)
-- [ ] **Task 2.2.1**: 创建EditPostScreen.kt (300行)
-  - 编辑时间倒计时显示
-  - 警告提示卡片
-  - 内容编辑器
-  - 图片编辑（删除/添加）
-- [ ] **Task 2.2.2**: 创建EditPostViewModel.kt (200行)
-  - 加载动态数据
-  - 更新内容
-  - 图片管理
-  - 保存修改
-- [ ] **Task 2.2.3**: 更新NavGraph添加EditPost路由
-- [ ] **Task 2.2.4**: 修改PostCard添加"编辑"菜单项（仅作者可见）
+- [x] **Task 2.2.1**: 创建EditPostScreen.kt (375行) ✅ 2026-01-26
+  - 编辑时间倒计时显示 (EditTimeCountdown组件)
+  - 警告提示卡片 (InteractionWarning组件)
+  - 内容编辑器 (OutlinedTextField)
+  - 图片编辑（删除/添加） (ImageEditSection)
+  - 编辑说明 (EditGuide)
+- [x] **Task 2.2.2**: 创建EditPostViewModel.kt (217行) ✅ 2026-01-26
+  - 加载动态数据 (集成PostRepository)
+  - 更新内容 (updateContent)
+  - 图片管理 (addImages/removeImage)
+  - 保存修改 (saveChanges + 编辑历史)
+- [x] **Task 2.2.3**: 更新NavGraph添加EditPost路由 ✅ 2026-01-26
+- [x] **Task 2.2.4**: 修改PostCard添加"编辑"菜单项 ✅ 2026-01-26
+  - TimelineScreen添加编辑菜单（权限检查）
+  - PostCard添加"已编辑"标签
 
-**预计工时**: 16h | **负责人**: ___ | **状态**: 🔵 待开始
+**预计工时**: 16h | **实际工时**: ~4h | **负责人**: Claude | **状态**: ✅ 已完成
 
 ---
 
-#### ✅ Phase 2.3: 编辑历史记录 (Day 9)
-- [ ] **Task 2.3.1**: 创建PostEditHistory实体
-- [ ] **Task 2.3.2**: 创建PostEditHistoryDao
-- [ ] **Task 2.3.3**: 数据库迁移 v15→v16
-- [ ] **Task 2.3.4**: 修改PostRepository添加编辑历史保存
-- [ ] **Task 2.3.5**: 在PostCard显示"已编辑"标签
-- [ ] **Task 2.3.6**: 创建EditHistoryDialog显示编辑历史
+#### ✅ Phase 2.3: 编辑历史记录 (Day 9-10)
+- [x] **Task 2.3.1**: 创建PostEditHistoryEntity ✅ 2026-01-26
+  - 包含完整历史数据（内容、图片、标签、链接）
+- [x] **Task 2.3.2**: 创建PostEditHistoryDao (99行) ✅ 2026-01-26
+  - 10个查询方法（插入、查询、删除、计数）
+- [x] **Task 2.3.3**: 数据库迁移 v15→v16 ✅ 2026-01-26
+  - MIGRATION_14_15 (PostReport/BlockedUser表)
+  - MIGRATION_15_16 (PostEditHistory表)
+- [x] **Task 2.3.4**: 修改PostRepository添加编辑历史保存 ✅ 2026-01-26
+  - updatePostWithHistory() 原子操作
+  - getPostEditHistory() Flow查询
+  - getPostEditCount() 编辑次数统计
+- [x] **Task 2.3.5**: 在PostCard显示"已编辑"标签 ✅ 2026-01-26
+  - 显示在时间戳旁边（Primary颜色）
+- [x] **Task 2.3.6**: 创建EditHistoryDialog显示编辑历史 ✅ 2026-01-26
+  - EditHistoryDialog.kt (290行) - 历史列表
+  - HistoryVersionDialog.kt (240行) - 版本详情
+  - EditHistoryDialogTest.kt (160行) - UI测试
+  - TimelineScreen集成（查看编辑历史菜单）
 
-**预计工时**: 8h | **负责人**: ___ | **状态**: 🔵 待开始
+**预计工时**: 8h | **实际工时**: ~3h | **负责人**: Claude | **状态**: ✅ 已完成
 
 ---
 
