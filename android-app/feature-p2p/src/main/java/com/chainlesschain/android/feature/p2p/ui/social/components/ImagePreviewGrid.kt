@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -157,7 +158,7 @@ private fun ImagePreviewItem(
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(
-                        imageVector = androidx.compose.material.icons.Icons.Default.CheckCircle,
+                        imageVector = Icons.Default.Check,
                         contentDescription = "已上传",
                         tint = MaterialTheme.colorScheme.onPrimary,
                         modifier = Modifier.size(16.dp)

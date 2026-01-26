@@ -158,7 +158,7 @@ fun FriendListScreen(
             }
             uiState.friends.isEmpty() -> {
                 EmptyState(
-                    message = if (uiState.searchQuery.isNotEmpty()) "没有找到相关好友" else "还没有好友",
+                    title = if (uiState.searchQuery.isNotEmpty()) "没有找到相关好友" else "还没有好友",
                     icon = Icons.Default.People,
                     actionText = if (uiState.searchQuery.isEmpty()) "添加好友" else null,
                     onAction = if (uiState.searchQuery.isEmpty()) onNavigateToAddFriend else null,

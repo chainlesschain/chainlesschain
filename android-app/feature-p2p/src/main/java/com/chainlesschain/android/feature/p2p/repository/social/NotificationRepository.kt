@@ -139,7 +139,7 @@ class NotificationRepository @Inject constructor(
     suspend fun createNotification(notification: NotificationEntity): Result<Unit> {
         return try {
             notificationDao.insert(notification)
-            syncAdapter.get().syncNotificationCreated(notification)
+            syncAdapter.value.syncNotificationCreated(notification)
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e)
@@ -152,7 +152,7 @@ class NotificationRepository @Inject constructor(
     suspend fun createNotifications(notifications: List<NotificationEntity>): Result<Unit> {
         return try {
             notificationDao.insertAll(notifications)
-            notifications.forEach { syncAdapter.get().syncNotificationCreated(it) }
+            notifications.forEach { syncAdapter.value.syncNotificationCreated(it) }
             Result.Success(Unit)
         } catch (e: Exception) {
             Result.Error(e)

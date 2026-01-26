@@ -34,7 +34,9 @@ object DatabaseMigrations {
             MIGRATION_10_11,
             MIGRATION_11_12,
             MIGRATION_12_13,
-            MIGRATION_13_14
+            MIGRATION_13_14,
+            MIGRATION_14_15,
+            MIGRATION_15_16
         )
     }
 
@@ -768,6 +770,93 @@ object DatabaseMigrations {
             db.execSQL("CREATE INDEX IF NOT EXISTS `index_notifications_actorDid` ON `notifications` (`actorDid`)")
 
             Log.i(TAG, "Migration 13 to 14 completed successfully")
+        }
+    }
+
+    /**
+     * 迁移 14 -> 15
+     *
+     * 添加社交功能增强表：举报和屏蔽用户
+     */
+    val MIGRATION_14_15 = object : Migration(14, 15) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            Log.i(TAG, "Migrating database from version 14 to 15")
+
+            // 创建 post_reports 表（举报动态）
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS `post_reports` (
+                    `id` TEXT NOT NULL PRIMARY KEY,
+                    `postId` TEXT NOT NULL,
+                    `reporterDid` TEXT NOT NULL,
+                    `reason` TEXT NOT NULL,
+                    `description` TEXT,
+                    `status` TEXT NOT NULL DEFAULT 'PENDING',
+                    `createdAt` INTEGER NOT NULL,
+                    `handledAt` INTEGER,
+                    `handlerNote` TEXT
+                )
+            """.trimIndent())
+
+            // 创建 post_reports 索引
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_post_reports_postId` ON `post_reports` (`postId`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_post_reports_reporterDid` ON `post_reports` (`reporterDid`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_post_reports_status` ON `post_reports` (`status`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_post_reports_createdAt` ON `post_reports` (`createdAt`)")
+
+            // 创建 blocked_users 表（屏蔽用户）
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS `blocked_users` (
+                    `id` TEXT NOT NULL PRIMARY KEY,
+                    `blockedDid` TEXT NOT NULL,
+                    `blockerDid` TEXT NOT NULL,
+                    `reason` TEXT,
+                    `createdAt` INTEGER NOT NULL
+                )
+            """.trimIndent())
+
+            // 创建 blocked_users 索引
+            db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_blocked_users_blockerDid_blockedDid` ON `blocked_users` (`blockerDid`, `blockedDid`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_blocked_users_blockedDid` ON `blocked_users` (`blockedDid`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_blocked_users_blockerDid` ON `blocked_users` (`blockerDid`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_blocked_users_createdAt` ON `blocked_users` (`createdAt`)")
+
+            Log.i(TAG, "Migration 14 to 15 completed successfully")
+        }
+    }
+
+    /**
+     * 迁移 15 -> 16
+     *
+     * 添加动态编辑历史记录表
+     *
+     * @since v0.31.0
+     */
+    val MIGRATION_15_16 = object : Migration(15, 16) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            Log.i(TAG, "Migrating database from version 15 to 16")
+
+            // 创建 post_edit_history 表
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS `post_edit_history` (
+                    `id` TEXT NOT NULL PRIMARY KEY,
+                    `postId` TEXT NOT NULL,
+                    `previousContent` TEXT NOT NULL,
+                    `previousImages` TEXT NOT NULL,
+                    `previousLinkUrl` TEXT,
+                    `previousLinkPreview` TEXT,
+                    `previousTags` TEXT NOT NULL,
+                    `editedAt` INTEGER NOT NULL,
+                    `editReason` TEXT,
+                    `metadata` TEXT
+                )
+            """.trimIndent())
+
+            // 创建 post_edit_history 索引
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_post_edit_history_postId` ON `post_edit_history` (`postId`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_post_edit_history_editedAt` ON `post_edit_history` (`editedAt`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_post_edit_history_postId_editedAt` ON `post_edit_history` (`postId`, `editedAt`)")
+
+            Log.i(TAG, "Migration 15 to 16 completed successfully")
         }
     }
 

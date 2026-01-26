@@ -27,6 +27,7 @@ fun SocialScreen(
     onNavigateToPublishPost: () -> Unit = {},
     onNavigateToPostDetail: (String) -> Unit = {},
     onNavigateToUserProfile: (String) -> Unit = {},
+    onNavigateToEditPost: (String) -> Unit = {},
     onNavigateToComment: (String) -> Unit = {},
     myDid: String = "did:example:123456", // TODO: 从实际的 DID 服务获取
     friendDids: List<String> = emptyList(), // TODO: 从好友列表获取
@@ -63,7 +64,8 @@ fun SocialScreen(
                         friendDids = friendDids,
                         onNavigateToPublishPost = onNavigateToPublishPost,
                         onNavigateToPostDetail = onNavigateToPostDetail,
-                        onNavigateToUserProfile = onNavigateToUserProfile
+                        onNavigateToUserProfile = onNavigateToUserProfile,
+                        onNavigateToEditPost = onNavigateToEditPost
                     )
                 }
                 2 -> key("notifications") {

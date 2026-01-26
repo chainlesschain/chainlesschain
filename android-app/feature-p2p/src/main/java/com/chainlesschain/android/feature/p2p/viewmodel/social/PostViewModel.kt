@@ -447,6 +447,17 @@ class PostViewModel @Inject constructor(
             }
     }
 
+    // ===== 编辑历史 =====
+
+    /**
+     * 获取动态的编辑历史
+     *
+     * @param postId 动态ID
+     * @return 编辑历史Flow
+     * @since v0.31.0
+     */
+    fun getPostEditHistory(postId: String) = postRepository.getPostEditHistory(postId)
+
     // ===== UI 交互 =====
 
     /**

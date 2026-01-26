@@ -16,6 +16,7 @@ import com.chainlesschain.android.core.database.dao.social.FriendDao
 import com.chainlesschain.android.core.database.dao.social.PostDao
 import com.chainlesschain.android.core.database.dao.social.PostInteractionDao
 import com.chainlesschain.android.core.database.dao.social.NotificationDao
+import com.chainlesschain.android.core.database.dao.social.PostEditHistoryDao
 import com.chainlesschain.android.core.database.dao.ExternalFileDao
 import com.chainlesschain.android.core.database.dao.FileImportHistoryDao
 import com.chainlesschain.android.core.database.entity.KnowledgeItemEntity
@@ -40,6 +41,7 @@ import com.chainlesschain.android.core.database.entity.social.PostShareEntity
 import com.chainlesschain.android.core.database.entity.social.NotificationEntity
 import com.chainlesschain.android.core.database.entity.social.PostReportEntity
 import com.chainlesschain.android.core.database.entity.social.BlockedUserEntity
+import com.chainlesschain.android.core.database.entity.social.PostEditHistoryEntity
 import com.chainlesschain.android.core.database.entity.ExternalFileEntity
 import com.chainlesschain.android.core.database.entity.FileImportHistoryEntity
 import com.chainlesschain.android.core.database.fts.ProjectFileFts
@@ -80,8 +82,9 @@ import com.chainlesschain.android.core.database.util.Converters
         NotificationEntity::class,
         PostReportEntity::class,
         BlockedUserEntity::class,
+        PostEditHistoryEntity::class,
     ],
-    version = 15,
+    version = 16,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -125,6 +128,7 @@ abstract class ChainlessChainDatabase : RoomDatabase() {
     abstract fun postDao(): PostDao
     abstract fun postInteractionDao(): PostInteractionDao
     abstract fun notificationDao(): NotificationDao
+    abstract fun postEditHistoryDao(): PostEditHistoryDao
 
     companion object {
         const val DATABASE_NAME = "chainlesschain.db"

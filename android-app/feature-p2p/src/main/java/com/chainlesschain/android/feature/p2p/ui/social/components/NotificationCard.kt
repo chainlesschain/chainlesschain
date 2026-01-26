@@ -249,6 +249,7 @@ private fun getNotificationIcon(type: NotificationType): Pair<ImageVector, andro
         NotificationType.POST_COMMENTED -> Icons.Default.Comment to androidx.compose.ui.graphics.Color(0xFF9C27B0)
         NotificationType.COMMENT_REPLIED -> Icons.Default.Reply to androidx.compose.ui.graphics.Color(0xFF673AB7)
         NotificationType.POST_MENTIONED -> Icons.Default.AlternateEmail to androidx.compose.ui.graphics.Color(0xFF00BCD4)
+        NotificationType.POST_SHARED -> Icons.Default.Share to androidx.compose.ui.graphics.Color(0xFFFF9800)
         NotificationType.SYSTEM -> Icons.Default.Info to androidx.compose.ui.graphics.Color(0xFF607D8B)
     }
 }
@@ -264,6 +265,7 @@ private fun getNotificationTypeLabel(type: NotificationType): String {
         NotificationType.POST_COMMENTED -> "评论"
         NotificationType.COMMENT_REPLIED -> "回复"
         NotificationType.POST_MENTIONED -> "提及"
+        NotificationType.POST_SHARED -> "分享"
         NotificationType.SYSTEM -> "系统"
     }
 }

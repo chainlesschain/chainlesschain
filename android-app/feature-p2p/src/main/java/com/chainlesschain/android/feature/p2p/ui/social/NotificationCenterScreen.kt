@@ -215,7 +215,7 @@ fun NotificationCenterScreen(
                 }
                 uiState.allNotifications.isEmpty() && uiState.filteredNotifications.isEmpty() -> {
                     EmptyState(
-                        message = if (uiState.selectedType != null) "没有此类通知" else "暂无通知",
+                        title = if (uiState.selectedType != null) "没有此类通知" else "暂无通知",
                         icon = Icons.Default.Notifications
                     )
                 }

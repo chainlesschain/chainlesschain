@@ -28,6 +28,12 @@ import com.chainlesschain.android.core.ui.components.EmptyState
 import com.chainlesschain.android.core.ui.components.LoadingState
 import com.chainlesschain.android.feature.p2p.ui.social.components.PostCard
 import com.chainlesschain.android.feature.p2p.ui.social.components.ReportDialog
+import com.chainlesschain.android.feature.p2p.ui.social.components.EditHistoryDialog
+import com.chainlesschain.android.feature.p2p.ui.social.components.HistoryVersionDialog
+import com.chainlesschain.android.core.common.Result
+import com.chainlesschain.android.core.database.entity.social.PostEditHistoryEntity
+import com.chainlesschain.android.feature.p2p.util.EditPermission
+import com.chainlesschain.android.feature.p2p.util.PostEditPolicy
 import com.chainlesschain.android.feature.p2p.viewmodel.social.PostEvent
 import com.chainlesschain.android.feature.p2p.viewmodel.social.PostViewModel
 import kotlinx.coroutines.flow.collectLatest
@@ -44,6 +50,7 @@ fun TimelineScreen(
     onNavigateToPublishPost: () -> Unit,
     onNavigateToPostDetail: (String) -> Unit,
     onNavigateToUserProfile: (String) -> Unit,
+    onNavigateToEditPost: (String) -> Unit,
     viewModel: PostViewModel = hiltViewModel()
 ) {
     val context = LocalContext.current
@@ -55,6 +62,13 @@ fun TimelineScreen(
     // 举报对话框状态
     var showReportDialog by remember { mutableStateOf(false) }
     var reportTargetPost by remember { mutableStateOf<com.chainlesschain.android.core.database.entity.social.PostEntity?>(null) }
+
+    // 编辑历史对话框状态
+    var showEditHistoryDialog by remember { mutableStateOf(false) }
+    var editHistoryPost by remember { mutableStateOf<PostEntity?>(null) }
+    var editHistories by remember { mutableStateOf<List<PostEditHistoryEntity>>(emptyList()) }
+    var showVersionDialog by remember { mutableStateOf(false) }
+    var selectedVersion by remember { mutableStateOf<PostEditHistoryEntity?>(null) }
 
     // 初始化
     LaunchedEffect(Unit) {
@@ -176,7 +190,7 @@ fun TimelineScreen(
                                 authorNickname = "用户${post.authorDid.take(8)}", // TODO: 从好友信息获取昵称
                                 onPostClick = { onNavigateToPostDetail(post.id) },
                                 onAuthorClick = { onNavigateToUserProfile(post.authorDid) },
-                                onLikeClick = { viewModel.toggleLike(post.id, post.isLiked) },
+                                onLikeClick = { viewModel.toggleLike(post.id, post.isLiked, post.authorDid) },
                                 onCommentClick = {
                                     onNavigateToPostDetail(post.id)
                                 },
@@ -269,14 +283,52 @@ fun TimelineScreen(
                         }
                     )
 
-                    ListItem(
-                        headlineContent = { Text("编辑") },
-                        leadingContent = { Icon(Icons.Default.Edit, contentDescription = null) },
-                        modifier = Modifier.clickable {
-                            viewModel.hidePostMenu()
-                            // TODO: 导航到编辑页面
-                        }
-                    )
+                    // 编辑动态（仅在24小时内可用）
+                    val editPermission = PostEditPolicy.canEdit(post, myDid)
+                    if (editPermission is EditPermission.Allowed) {
+                        ListItem(
+                            headlineContent = { Text("编辑") },
+                            supportingContent = {
+                                Text(
+                                    "剩余: ${PostEditPolicy.formatRemainingTime(editPermission.remainingTime)}",
+                                    style = MaterialTheme.typography.labelSmall
+                                )
+                            },
+                            leadingContent = { Icon(Icons.Default.Edit, contentDescription = null) },
+                            modifier = Modifier.clickable {
+                                viewModel.hidePostMenu()
+                                onNavigateToEditPost(post.id)
+                            }
+                        )
+                    }
+
+                    // 查看编辑历史（仅当动态已编辑时显示）
+                    if (PostEditPolicy.isEdited(post)) {
+                        ListItem(
+                            headlineContent = { Text("查看编辑历史") },
+                            leadingContent = { Icon(Icons.Default.History, contentDescription = null) },
+                            modifier = Modifier.clickable {
+                                viewModel.hidePostMenu()
+                                editHistoryPost = post
+                                // 加载编辑历史
+                                scope.launch {
+                                    viewModel.getPostEditHistory(post.id)
+                                        .collect { result ->
+                                            when (result) {
+                                                is Result.Success -> {
+                                                    editHistories = result.data
+                                                    showEditHistoryDialog = true
+                                                }
+                                                is Result.Error -> {
+                                                    snackbarHostState.showSnackbar("加载编辑历史失败")
+                                                }
+                                                is Result.Loading -> {}
+                                            }
+                                        }
+                                }
+                            }
+                        )
+                    }
 
                     Divider()
 
@@ -324,6 +376,33 @@ fun TimelineScreen(
                 viewModel.reportPost(reportTargetPost!!.id, myDid, reason, description)
                 showReportDialog = false
                 reportTargetPost = null
+            }
+        )
+    }
+
+    // 编辑历史对话框
+    if (showEditHistoryDialog) {
+        EditHistoryDialog(
+            editHistories = editHistories,
+            onDismiss = {
+                showEditHistoryDialog = false
+                editHistoryPost = null
+                editHistories = emptyList()
+            },
+            onViewVersion = { history ->
+                selectedVersion = history
+                showVersionDialog = true
+            }
+        )
+    }
+
+    // 历史版本详情对话框
+    if (showVersionDialog && selectedVersion != null) {
+        HistoryVersionDialog(
+            history = selectedVersion!!,
+            onDismiss = {
+                showVersionDialog = false
+                selectedVersion = null
             }
         )
     }

@@ -25,6 +25,7 @@ import kotlinx.coroutines.flow.collectLatest
 @Composable
 fun AddFriendScreen(
     onNavigateBack: () -> Unit,
+    onNavigateToQRScanner: () -> Unit = {},
     viewModel: AddFriendViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -41,8 +42,8 @@ fun AddFriendScreen(
                     // 好友请求发送成功，可以选择返回或显示提示
                 }
                 is AddFriendEvent.NavigateToQRScanner -> {
-                    // TODO: 导航到二维码扫描页面
-                    snackbarHostState.showSnackbar("二维码扫描功能开发中...")
+                    // 导航到二维码扫描页面
+                    onNavigateToQRScanner()
                 }
             }
         }

@@ -39,6 +39,8 @@ import com.chainlesschain.android.feature.p2p.navigation.P2P_ROUTE
 import com.chainlesschain.android.feature.p2p.ui.social.PostDetailScreen
 import com.chainlesschain.android.feature.p2p.ui.social.PublishPostScreen
 import com.chainlesschain.android.feature.p2p.ui.social.MyQRCodeScreen
+import com.chainlesschain.android.feature.p2p.ui.social.QRCodeScannerScreen
+import com.chainlesschain.android.feature.p2p.ui.social.EditPostScreen
 import com.chainlesschain.android.feature.filebrowser.ui.GlobalFileBrowserScreen
 
 /**
@@ -100,6 +102,9 @@ fun NavGraph(
                 },
                 onNavigateToUserProfile = { did ->
                     navController.navigate(Screen.UserProfile.createRoute(did))
+                },
+                onNavigateToEditPost = { postId ->
+                    navController.navigate(Screen.EditPost.createRoute(postId))
                 },
                 onNavigateToComment = { commentId ->
                     navController.navigate(Screen.CommentDetail.createRoute(commentId))
@@ -439,6 +444,9 @@ fun NavGraph(
             com.chainlesschain.android.feature.p2p.ui.social.AddFriendScreen(
                 onNavigateBack = {
                     navController.popBackStack()
+                },
+                onNavigateToQRScanner = {
+                    navController.navigate(Screen.QRCodeScanner.route)
                 }
             )
         }
@@ -471,6 +479,60 @@ fun NavGraph(
                 },
                 onShowToast = { message ->
                     // TODO: 实现Toast显示（可以通过SnackbarHost或MainActivity处理）
+                }
+            )
+        }
+
+        // 二维码扫描页面
+        composable(route = Screen.QRCodeScanner.route) {
+            QRCodeScannerScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onQRCodeScanned = { qrCode ->
+                    // 扫描成功，解析二维码内容并导航到对应页面
+                    navController.popBackStack()
+
+                    // 解析二维码URL
+                    val uri = android.net.Uri.parse(qrCode)
+                    when (uri.host) {
+                        "add-friend" -> {
+                            // 获取DID并导航到用户资料页面
+                            val did = uri.getQueryParameter("did")
+                            if (did != null) {
+                                navController.navigate(Screen.UserProfile.createRoute(did))
+                            }
+                        }
+                        "post" -> {
+                            // 导航到动态详情页面
+                            val postId = uri.getQueryParameter("id")
+                            if (postId != null) {
+                                navController.navigate(Screen.PostDetail.createRoute(postId))
+                            }
+                        }
+                        "group" -> {
+                            // TODO: 导航到群组页面（待实现）
+                        }
+                    }
+                }
+            )
+        }
+
+        // 编辑动态页面
+        composable(
+            route = "${Screen.EditPost.route}/{postId}",
+            arguments = listOf(
+                navArgument("postId") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val postId = backStackEntry.arguments?.getString("postId") ?: return@composable
+            EditPostScreen(
+                postId = postId,
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onPostUpdated = {
+                    // 更新成功，可以刷新动态列表
                 }
             )
         }
@@ -533,6 +595,10 @@ sealed class Screen(val route: String) {
 
     // v0.31.0 新增
     data object MyQRCode : Screen("my_qrcode")
+    data object QRCodeScanner : Screen("qrcode_scanner")
+    data object EditPost : Screen("edit_post") {
+        fun createRoute(postId: String) = "edit_post/$postId"
+    }
 }
 
 /**

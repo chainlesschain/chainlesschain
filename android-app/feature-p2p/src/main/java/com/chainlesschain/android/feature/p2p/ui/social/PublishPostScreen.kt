@@ -56,9 +56,9 @@ fun PublishPostScreen(
     var uploadProgress by remember { mutableStateOf<Map<Uri, Int>>(emptyMap()) }
 
     // 链接预览状态
-    var linkPreview by remember { mutableStateOf<LinkPreview?>(null) }
+    var linkPreview: LinkPreview? by remember { mutableStateOf(null) }
     var isLoadingLinkPreview by remember { mutableStateOf(false) }
-    var linkPreviewJob by remember { mutableStateOf<Job?>(null) }
+    var linkPreviewJob: Job? by remember { mutableStateOf(null) }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
