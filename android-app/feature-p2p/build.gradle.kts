@@ -102,6 +102,22 @@ dependencies {
     // ML Kit Barcode Scanning
     implementation("com.google.mlkit:barcode-scanning:17.2.0")
 
+    // Markwon (Markdown rendering and editing)
+    val markwonVersion = "4.6.2"
+    implementation("io.noties.markwon:core:$markwonVersion")
+    implementation("io.noties.markwon:editor:$markwonVersion")
+    implementation("io.noties.markwon:syntax-highlight:$markwonVersion")
+    implementation("io.noties.markwon:image-coil:$markwonVersion")
+    implementation("io.noties.markwon:ext-strikethrough:$markwonVersion")
+    implementation("io.noties.markwon:ext-tables:$markwonVersion")
+    implementation("io.noties.markwon:linkify:$markwonVersion")
+
+    // WebRTC (Voice/Video Call)
+    implementation("io.getstream:stream-webrtc-android:1.1.3")
+    implementation("io.getstream:stream-webrtc-android-ui:1.1.3")
+    // 或使用Google官方版本
+    // implementation("org.webrtc:google-webrtc:1.0.32006")
+
     // Testing
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")

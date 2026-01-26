@@ -159,7 +159,8 @@ private fun EditHistoryItem(
             }
 
             // 编辑原因
-            if (!history.editReason.isNullOrBlank()) {
+            val editReason = history.editReason
+            if (!editReason.isNullOrBlank()) {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -171,7 +172,7 @@ private fun EditHistoryItem(
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
-                        text = history.editReason,
+                        text = editReason,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

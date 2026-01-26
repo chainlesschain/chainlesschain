@@ -32,6 +32,7 @@ import com.chainlesschain.android.feature.p2p.ui.social.components.EditHistoryDi
 import com.chainlesschain.android.feature.p2p.ui.social.components.HistoryVersionDialog
 import com.chainlesschain.android.core.common.Result
 import com.chainlesschain.android.core.database.entity.social.PostEditHistoryEntity
+import com.chainlesschain.android.core.database.entity.social.PostEntity
 import com.chainlesschain.android.feature.p2p.util.EditPermission
 import com.chainlesschain.android.feature.p2p.util.PostEditPolicy
 import com.chainlesschain.android.feature.p2p.viewmodel.social.PostEvent
@@ -311,7 +312,7 @@ fun TimelineScreen(
                                 viewModel.hidePostMenu()
                                 editHistoryPost = post
                                 // 加载编辑历史
-                                scope.launch {
+                                coroutineScope.launch {
                                     viewModel.getPostEditHistory(post.id)
                                         .collect { result ->
                                             when (result) {

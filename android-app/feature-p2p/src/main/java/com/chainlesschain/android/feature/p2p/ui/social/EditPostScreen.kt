@@ -20,6 +20,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
+import com.chainlesschain.android.core.ui.markdown.RichTextEditor
+import com.chainlesschain.android.core.ui.markdown.EditorMode
 import com.chainlesschain.android.feature.p2p.util.EditPermission
 import com.chainlesschain.android.feature.p2p.util.EditWarning
 import com.chainlesschain.android.feature.p2p.util.PostEditPolicy
@@ -166,21 +168,23 @@ fun EditPostScreen(
                     }
                 }
 
-                // 内容编辑器
-                OutlinedTextField(
-                    value = uiState.content,
-                    onValueChange = { viewModel.updateContent(it) },
+                // 富文本Markdown编辑器
+                Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .defaultMinSize(minHeight = 200.dp)
                         .padding(16.dp),
-                    placeholder = { Text("分享你的想法...") },
-                    maxLines = Int.MAX_VALUE,
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                ) {
+                    RichTextEditor(
+                        value = uiState.content,
+                        onValueChange = { viewModel.updateContent(it) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(min = 250.dp, max = 500.dp),
+                        placeholder = "分享你的想法... 支持Markdown格式",
+                        initialMode = EditorMode.EDIT
                     )
-                )
+                }
 
                 // 图片编辑区域
                 if (uiState.images.isNotEmpty() || uiState.canAddImages) {

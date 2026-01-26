@@ -86,7 +86,8 @@ fun HistoryVersionDialog(
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     // 编辑原因卡片
-                    if (!history.editReason.isNullOrBlank()) {
+                    val editReason = history.editReason
+                    if (!editReason.isNullOrBlank()) {
                         Card(
                             colors = CardDefaults.cardColors(
                                 containerColor = MaterialTheme.colorScheme.primaryContainer
@@ -107,7 +108,7 @@ fun HistoryVersionDialog(
                                     modifier = Modifier.size(20.dp)
                                 )
                                 Text(
-                                    text = history.editReason,
+                                    text = editReason,
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer
                                 )
@@ -169,7 +170,8 @@ fun HistoryVersionDialog(
                     }
 
                     // 链接预览
-                    if (!history.previousLinkUrl.isNullOrBlank()) {
+                    val previousLinkUrl = history.previousLinkUrl
+                    if (!previousLinkUrl.isNullOrBlank()) {
                         ContentSection(
                             icon = Icons.Default.Link,
                             title = "链接"
@@ -194,7 +196,7 @@ fun HistoryVersionDialog(
                                         modifier = Modifier.size(16.dp)
                                     )
                                     Text(
-                                        text = history.previousLinkUrl,
+                                        text = previousLinkUrl,
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.primary,
                                         maxLines = 1
@@ -205,13 +207,14 @@ fun HistoryVersionDialog(
                     }
 
                     // 元数据
-                    if (!history.metadata.isNullOrBlank()) {
+                    val metadata = history.metadata
+                    if (!metadata.isNullOrBlank()) {
                         ContentSection(
                             icon = Icons.Default.DataObject,
                             title = "元数据"
                         ) {
                             Text(
-                                text = history.metadata,
+                                text = metadata,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
