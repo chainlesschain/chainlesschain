@@ -278,6 +278,79 @@ Multi-Agent System Tests (75个describe)
 
 ---
 
+#### 5. function-caller.test.js (753行，75用例)
+
+**源文件**: `src/main/ai-engine/function-caller.js` (1,049行)
+
+**覆盖功能**:
+- ✅ 构造函数和配置选项
+- ✅ 工具掩码系统集成
+- ✅ 依赖注入 (VisionManager, PythonSandbox, MemGPTCore, ImageGenManager, TTSManager)
+- ✅ 工具注册/注销 (registerTool, unregisterTool)
+- ✅ 工具调用 (call方法，参数验证，错误处理)
+- ✅ 工具掩码验证和阻止
+- ✅ 统计记录 (成功/失败调用)
+- ✅ 内置工具 (file_reader, file_writer, html_generator, js_generator, file_editor)
+- ✅ 工具管理API (getAvailableTools, hasTool)
+- ✅ 工具掩码控制 (setToolAvailable, enableAllTools, disableAllTools等)
+
+**测试套件结构**:
+```
+FunctionCaller (27个describe)
+├─ Constructor (5个用例)
+│  ├─ 默认选项初始化
+│  ├─ 工具掩码启用/禁用
+│  ├─ 内置工具自动注册
+│  └─ 工具同步到掩码系统
+├─ Dependency Injection (8个用例)
+│  ├─ setToolManager
+│  ├─ setVisionManager
+│  ├─ setPythonSandbox
+│  ├─ setMemGPTCore
+│  ├─ setImageGenManager
+│  ├─ setTTSManager
+│  └─ 错误处理
+├─ Tool Registration (4个用例)
+│  ├─ 注册自定义工具
+│  ├─ 同步到掩码系统
+│  ├─ 覆盖已存在工具（警告）
+│  └─ 注销工具
+├─ Tool Calling (9个用例)
+│  ├─ 成功调用
+│  ├─ 传递上下文
+│  ├─ 工具不存在错误
+│  ├─ 掩码验证
+│  ├─ 阻止非法调用
+│  ├─ 记录成功统计
+│  ├─ 记录失败统计
+│  ├─ null参数处理
+│  └─ 错误传播
+├─ Built-in Tools (23个用例)
+│  ├─ file_reader (4个用例)
+│  ├─ file_writer (6个用例)
+│  ├─ html_generator (3个用例)
+│  ├─ js_generator (2个用例)
+│  └─ file_editor (3个用例)
+├─ Tool Management API (2个用例)
+│  ├─ getAvailableTools
+│  └─ hasTool
+└─ Tool Masking Control (10个用例)
+   ├─ setToolAvailable
+   ├─ setToolsByPrefix
+   ├─ enableAllTools
+   ├─ disableAllTools
+   ├─ setOnlyAvailable
+   ├─ isToolAvailable
+   ├─ getAllToolDefinitions
+   ├─ getAvailableToolDefinitions
+   └─ 禁用掩码时的兜底处理
+```
+
+**断言数**: 估计132个 expect
+**预期覆盖率**: 88% (语句)、85% (分支)、100% (函数)
+
+---
+
 ## 🎯 整体测试质量指标
 
 ### 代码统计
