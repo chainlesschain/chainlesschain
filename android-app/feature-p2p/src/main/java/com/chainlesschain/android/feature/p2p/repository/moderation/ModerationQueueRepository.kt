@@ -407,7 +407,15 @@ class ModerationQueueRepository @Inject constructor(
     fun getStatsByDate(daysBack: Int = 30): Flow<Result<List<ModerationStatsByDate>>> {
         val startTimestamp = System.currentTimeMillis() - (daysBack * 24 * 60 * 60 * 1000L)
         return moderationQueueDao.getStatsByDateFlow(startTimestamp).map { stats ->
-            Result.Success(stats)
+            Result.Success(stats.map { daoStat ->
+                ModerationStatsByDate(
+                    date = daoStat.date,
+                    totalCount = daoStat.totalCount,
+                    approvedCount = daoStat.approvedCount,
+                    rejectedCount = daoStat.rejectedCount,
+                    pendingCount = daoStat.pendingCount
+                )
+            })
         }
     }
 
@@ -416,7 +424,14 @@ class ModerationQueueRepository @Inject constructor(
      */
     fun getTopViolators(limit: Int = 10): Flow<Result<List<AuthorViolationStats>>> {
         return moderationQueueDao.getTopViolatorsFlow(limit).map { stats ->
-            Result.Success(stats)
+            Result.Success(stats.map { daoStat ->
+                AuthorViolationStats(
+                    authorDid = daoStat.authorDid,
+                    authorName = daoStat.authorName,
+                    violationCount = daoStat.violationCount,
+                    lastViolationTime = daoStat.lastViolationTime
+                )
+            })
         }
     }
 
