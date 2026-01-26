@@ -220,7 +220,9 @@ class ProjectViewModel @Inject constructor(
      * 设置当前用户
      */
     fun setCurrentUser(userId: String) {
+        Log.d(TAG, "setCurrentUser called: userId=$userId")
         _currentUserId.value = userId
+        Log.d(TAG, "currentUserId updated to: ${_currentUserId.value}")
         loadProjects()
         loadStatistics()
     }
