@@ -85,6 +85,8 @@ struct AnyCodable: Codable {
 /// 区块链RPC客户端
 /// 支持以太坊及兼容链的JSON-RPC调用
 class BlockchainRPCClient {
+    static let shared = BlockchainRPCClient()
+
     private let session: URLSession
     private var requestIdCounter = 0
     private let requestIdLock = NSLock()
@@ -196,6 +198,27 @@ class BlockchainRPCClient {
             method: "eth_estimateGas",
             params: [transaction]
         )
+    }
+
+    /// 估算Gas（详细参数版本）
+    func estimateGas(
+        rpcUrl: String,
+        from: String,
+        to: String,
+        value: String,
+        data: String? = nil
+    ) async throws -> String {
+        var transaction: [String: Any] = [
+            "from": from,
+            "to": to,
+            "value": value
+        ]
+
+        if let data = data {
+            transaction["data"] = data
+        }
+
+        return try await estimateGas(rpcUrl: rpcUrl, transaction: transaction)
     }
 
     /// 获取Gas价格

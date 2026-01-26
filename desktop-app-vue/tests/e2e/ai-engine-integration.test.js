@@ -684,7 +684,7 @@ function testFunctionCallerIntegration() {
 
   // Test 1: Function Caller has setter methods
   test('Function Caller has new setter methods', () => {
-    const { FunctionCaller } = require('../../src/main/ai-engine/function-caller');
+    const FunctionCaller = require('../../src/main/ai-engine/function-caller');
     const caller = new FunctionCaller();
     assert(typeof caller.setVisionManager === 'function', 'setVisionManager should exist');
     assert(typeof caller.setPythonSandbox === 'function', 'setPythonSandbox should exist');
@@ -695,7 +695,7 @@ function testFunctionCallerIntegration() {
 
   // Test 2: Function Caller registers new tools
   test('Function Caller registers AI engine tools', () => {
-    const { FunctionCaller } = require('../../src/main/ai-engine/function-caller');
+    const FunctionCaller = require('../../src/main/ai-engine/function-caller');
     const caller = new FunctionCaller();
     const tools = caller.tools;
 
