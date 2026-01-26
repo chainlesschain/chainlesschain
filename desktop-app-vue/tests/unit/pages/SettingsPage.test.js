@@ -5,7 +5,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mount } from '@vue/test-utils';
-import SettingsPage from '@/pages/SettingsPage.vue';
+import SettingsPage from '@renderer/pages/SettingsPage.vue';
 import { nextTick } from 'vue';
 
 // Mock Ant Design Vue

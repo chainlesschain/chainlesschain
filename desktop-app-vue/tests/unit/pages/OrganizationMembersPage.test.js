@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mount } from '@vue/test-utils';
-import OrganizationMembersPage from '@/pages/OrganizationMembersPage.vue';
+import OrganizationMembersPage from '@renderer/pages/OrganizationMembersPage.vue';
 
 // Mock ant-design-vue
 vi.mock('ant-design-vue', () => ({

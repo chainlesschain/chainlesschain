@@ -5,7 +5,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mount } from '@vue/test-utils';
-import KnowledgeListPage from '@/pages/KnowledgeListPage.vue';
+import KnowledgeListPage from '@renderer/pages/KnowledgeListPage.vue';
 import { nextTick } from 'vue';
 
 // Mock Ant Design Vue

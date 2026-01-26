@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mount } from '@vue/test-utils';
-import MarketPage from '@/pages/projects/MarketPage.vue';
+import MarketPage from '@renderer/pages/projects/MarketPage.vue';
 
 // Mock stores
 const mockProjectStore = {

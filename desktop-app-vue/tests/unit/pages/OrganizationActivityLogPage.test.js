@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mount } from '@vue/test-utils';
-import OrganizationActivityLogPage from '@/pages/OrganizationActivityLogPage.vue';
+import OrganizationActivityLogPage from '@renderer/pages/OrganizationActivityLogPage.vue';
 import dayjs from 'dayjs';
 
 // Mock ant-design-vue

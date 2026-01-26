@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mount } from '@vue/test-utils';
-import EmailComposer from '@/pages/email/EmailComposer.vue';
+import EmailComposer from '@renderer/pages/email/EmailComposer.vue';
 
 // Mock ant-design-vue
 vi.mock('ant-design-vue', () => ({
