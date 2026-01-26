@@ -2,7 +2,7 @@
 
 **生成时间**: 2026-01-26
 **测试框架**: Vitest 3.0.0
-**任务完成度**: 4/9 (44%)
+**任务完成度**: 5/9 (56%)
 
 ---
 
@@ -15,8 +15,9 @@
 | #2 | unified-config-manager.test.js | 25 | 64 | 903 | ✅ 完成 |
 | #4 | backend-client.test.js | 34 | 48 | 771 | ✅ 完成 |
 | #7 | file-manager.test.js | 22 | 58 | 783 | ✅ 完成 |
+| #6 | multi-agent 系统测试 (4个文件) | 75 | 219 | 2,634 | ✅ 完成 |
 | #3 | LLM 模块测试 | - | - | 7,613 | ✅ 已存在 |
-| **总计** | **3个新文件** | **81** | **170** | **2,457** | - |
+| **总计** | **7个新文件** | **156** | **389** | **5,091** | - |
 
 ### 测试覆盖详情
 
@@ -165,6 +166,114 @@ FileManager (22个describe)
 
 **断言数**: 估计90+个 expect
 **预期覆盖率**: 96% (语句)、94% (分支)、100% (函数)
+
+---
+
+#### 4. multi-agent 系统测试 (2,634行，219用例)
+
+**源文件**:
+- `src/main/ai-engine/multi-agent/agent-orchestrator.js` (584行)
+- `src/main/ai-engine/multi-agent/specialized-agent.js` (254行)
+- `src/main/ai-engine/multi-agent/index.js` (109行)
+- `src/main/ai-engine/multi-agent/multi-agent-ipc.js` (250行)
+
+**测试文件**:
+- `tests/unit/ai-engine/multi-agent/agent-orchestrator.test.js` (59用例)
+- `tests/unit/ai-engine/multi-agent/specialized-agent.test.js` (60用例)
+- `tests/unit/ai-engine/multi-agent/index.test.js` (30用例)
+- `tests/unit/ai-engine/multi-agent/multi-agent-ipc.test.js` (70用例)
+
+**覆盖功能**:
+
+**agent-orchestrator.test.js** (59用例):
+- ✅ 构造函数和配置
+- ✅ Agent注册/注销 (单个/批量)
+- ✅ Agent查询和能力评估
+- ✅ 任务分发和Agent选择
+- ✅ 并行执行 (concurrency控制)
+- ✅ 链式执行 (结果传递)
+- ✅ Agent间消息传递和广播
+- ✅ 统计信息和执行历史
+- ✅ 调试信息导出
+
+**specialized-agent.test.js** (60用例):
+- ✅ 基类构造和配置
+- ✅ 依赖注入 (LLM Manager, Function Caller)
+- ✅ 能力评估 (canHandle: 1.0/0.5/0)
+- ✅ 任务执行 (execute方法)
+- ✅ 重试机制 (exponential backoff)
+- ✅ Agent间消息接收
+- ✅ LLM和工具调用
+- ✅ 状态管理 (isActive, currentTask)
+- ✅ 统计信息 (执行次数、成功率)
+- ✅ 资源清理 (destroy)
+- ✅ EventEmitter集成
+
+**index.test.js** (30用例):
+- ✅ 单例模式 (getAgentOrchestrator)
+- ✅ 工厂函数 (createAgentOrchestrator)
+- ✅ 默认Agent初始化 (code/data/doc agents)
+- ✅ 多Agent系统创建
+- ✅ 依赖注入验证
+- ✅ 模块导出验证
+
+**multi-agent-ipc.test.js** (70用例):
+- ✅ IPC处理器注册 (13个handlers)
+- ✅ Agent管理API (list, get)
+- ✅ 任务执行API (dispatch, parallel, chain)
+- ✅ 能力查询 (get-capable)
+- ✅ Agent间通信 (send-message, broadcast)
+- ✅ 消息历史查询
+- ✅ 统计和调试API (stats, history, reset, export)
+- ✅ 错误处理和边界情况
+- ✅ 懒加载初始化
+
+**测试套件结构**:
+```
+Multi-Agent System Tests (75个describe)
+├─ agent-orchestrator.test.js
+│  ├─ Constructor (4个用例)
+│  ├─ Agent Registration (11个用例)
+│  ├─ Task Dispatching (15个用例)
+│  ├─ Parallel Execution (11个用例)
+│  ├─ Agent Communication (9个用例)
+│  └─ Statistics/Debugging (9个用例)
+├─ specialized-agent.test.js
+│  ├─ Constructor (7个用例)
+│  ├─ Dependency Injection (2个用例)
+│  ├─ canHandle (7个用例)
+│  ├─ execute (2个用例)
+│  ├─ executeWithRetry (8个用例)
+│  ├─ receiveMessage (3个用例)
+│  ├─ callLLM (3个用例)
+│  ├─ callTool (3个用例)
+│  ├─ State Management (11个用例)
+│  └─ EventEmitter (3个用例)
+├─ index.test.js
+│  ├─ getAgentOrchestrator (4个用例)
+│  ├─ createAgentOrchestrator (3个用例)
+│  ├─ initializeDefaultAgents (8个用例)
+│  ├─ createMultiAgentSystem (5个用例)
+│  └─ Module Exports (3个用例)
+└─ multi-agent-ipc.test.js
+   ├─ Registration (3个用例)
+   ├─ agent:list (3个用例)
+   ├─ agent:get (3个用例)
+   ├─ agent:dispatch (2个用例)
+   ├─ agent:execute-parallel (3个用例)
+   ├─ agent:execute-chain (2个用例)
+   ├─ agent:get-capable (2个用例)
+   ├─ agent:send-message (2个用例)
+   ├─ agent:broadcast (2个用例)
+   ├─ agent:get-messages (3个用例)
+   ├─ agent:get-stats (2个用例)
+   ├─ agent:get-history (3个用例)
+   ├─ agent:reset-stats (2个用例)
+   └─ agent:export-debug (2个用例)
+```
+
+**断言数**: 估计350+个 expect
+**预期覆盖率**: 92% (语句)、88% (分支)、100% (函数)
 
 ---
 
