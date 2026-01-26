@@ -237,7 +237,7 @@ private fun UserInfoSection(
         Avatar(
             avatarUrl = userInfo.avatar,
             name = userInfo.nickname,
-            size = AvatarSize.XLARGE
+            size = AvatarSize.EXTRA_LARGE
         )
 
         // 昵称
