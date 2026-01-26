@@ -213,6 +213,14 @@ class SocialSyncAdapter @Inject constructor(
         Log.d(TAG, "Notification created in sync queue: ${notification.id}")
     }
 
+    /**
+     * 同步举报提交
+     */
+    fun syncReportSubmitted(report: com.chainlesschain.android.core.database.entity.social.PostReportEntity) {
+        // TODO: 发送到后端审核系统
+        Log.d(TAG, "Report submitted for post: ${report.postId}, reason: ${report.reason}")
+    }
+
     // ===== 应用同步变更 =====
 
     /**

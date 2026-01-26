@@ -9,11 +9,14 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.chainlesschain.android.core.ui.util.ShareManager
 import com.chainlesschain.android.core.ui.components.EmptyState
 import com.chainlesschain.android.core.ui.components.LoadingState
 import com.chainlesschain.android.feature.p2p.ui.social.components.PostCard
+import com.chainlesschain.android.feature.p2p.ui.social.components.ReportDialog
 import com.chainlesschain.android.feature.p2p.viewmodel.social.PostEvent
 import com.chainlesschain.android.feature.p2p.viewmodel.social.PostViewModel
 import kotlinx.coroutines.flow.collectLatest
@@ -32,10 +35,15 @@ fun TimelineScreen(
     onNavigateToUserProfile: (String) -> Unit,
     viewModel: PostViewModel = hiltViewModel()
 ) {
+    val context = LocalContext.current
     val uiState by viewModel.uiState.collectAsState()
     val listState = rememberLazyListState()
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
+
+    // 举报对话框状态
+    var showReportDialog by remember { mutableStateOf(false) }
+    var reportTargetPost by remember { mutableStateOf<com.chainlesschain.android.core.database.entity.social.PostEntity?>(null) }
 
     // 初始化
     LaunchedEffect(Unit) {
@@ -162,7 +170,14 @@ fun TimelineScreen(
                                     onNavigateToPostDetail(post.id)
                                 },
                                 onShareClick = {
-                                    // TODO: 分享功能
+                                    // 分享动态
+                                    ShareManager.sharePost(
+                                        context = context,
+                                        authorName = "用户${post.authorDid.take(8)}", // TODO: 从好友信息获取昵称
+                                        content = post.content
+                                    )
+                                    // 记录分享
+                                    viewModel.sharePost(post.id, post.authorDid)
                                 },
                                 onMoreClick = {
                                     viewModel.showPostMenu(post)
@@ -269,7 +284,8 @@ fun TimelineScreen(
                         leadingContent = { Icon(Icons.Default.Report, contentDescription = null) },
                         modifier = Modifier.clickable {
                             viewModel.hidePostMenu()
-                            // TODO: 举报功能
+                            reportTargetPost = post
+                            showReportDialog = true
                         }
                     )
 
@@ -278,11 +294,26 @@ fun TimelineScreen(
                         leadingContent = { Icon(Icons.Default.Block, contentDescription = null) },
                         modifier = Modifier.clickable {
                             viewModel.hidePostMenu()
-                            // TODO: 屏蔽用户
+                            viewModel.blockUserFromPost(post.authorDid)
                         }
                     )
                 }
             }
         }
+    }
+
+    // 举报对话框
+    if (showReportDialog && reportTargetPost != null) {
+        ReportDialog(
+            onDismiss = {
+                showReportDialog = false
+                reportTargetPost = null
+            },
+            onConfirm = { reason, description ->
+                viewModel.reportPost(reportTargetPost!!.id, myDid, reason, description)
+                showReportDialog = false
+                reportTargetPost = null
+            }
+        )
     }
 }

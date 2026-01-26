@@ -9,8 +9,10 @@ import com.chainlesschain.android.core.common.viewmodel.UiState
 import com.chainlesschain.android.core.database.entity.social.PostEntity
 import com.chainlesschain.android.core.database.entity.social.PostCommentEntity
 import com.chainlesschain.android.core.database.entity.social.PostVisibility
+import com.chainlesschain.android.core.database.entity.social.ReportReason
 import com.chainlesschain.android.core.p2p.realtime.NotificationType
 import com.chainlesschain.android.core.p2p.realtime.RealtimeEventManager
+import com.chainlesschain.android.feature.p2p.repository.social.FriendRepository
 import com.chainlesschain.android.feature.p2p.repository.social.PostRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.collectLatest
@@ -25,6 +27,7 @@ import javax.inject.Inject
 @HiltViewModel
 class PostViewModel @Inject constructor(
     private val postRepository: PostRepository,
+    private val friendRepository: FriendRepository,
     private val realtimeEventManager: RealtimeEventManager
 ) : BaseViewModel<PostUiState, PostEvent>(
     initialState = PostUiState()
@@ -137,7 +140,9 @@ class PostViewModel @Inject constructor(
         images: List<String> = emptyList(),
         tags: List<String> = emptyList(),
         mentions: List<String> = emptyList(),
-        visibility: PostVisibility = PostVisibility.PUBLIC
+        visibility: PostVisibility = PostVisibility.PUBLIC,
+        linkUrl: String? = null,
+        linkPreview: String? = null
     ) = launchSafely {
         val post = PostEntity(
             id = "post_${System.currentTimeMillis()}",
@@ -147,6 +152,8 @@ class PostViewModel @Inject constructor(
             tags = tags,
             mentions = mentions,
             visibility = visibility,
+            linkUrl = linkUrl,
+            linkPreview = linkPreview,
             createdAt = System.currentTimeMillis()
         )
 
@@ -236,6 +243,38 @@ class PostViewModel @Inject constructor(
         }.onFailure { error ->
             handleError(error)
         }
+    }
+
+    /**
+     * 分享动态
+     */
+    fun sharePost(postId: String, authorDid: String) = launchSafely {
+        // 创建分享记录
+        val share = com.chainlesschain.android.core.database.entity.social.PostShareEntity(
+            id = "share_${System.currentTimeMillis()}",
+            postId = postId,
+            userDid = currentMyDid,
+            createdAt = System.currentTimeMillis()
+        )
+
+        postRepository.sharePost(share)
+            .onSuccess {
+                sendEvent(PostEvent.ShowToast("分享成功"))
+                sendEvent(PostEvent.PostShared(postId))
+
+                // 发送实时通知给动态作者
+                if (authorDid != currentMyDid) {
+                    realtimeEventManager.sendNotification(
+                        targetDid = authorDid,
+                        notificationType = NotificationType.SHARE,
+                        title = "动态被分享",
+                        content = "有人分享了你的动态",
+                        targetId = postId
+                    )
+                }
+            }.onFailure { error ->
+                handleError(error)
+            }
     }
 
     // ===== 评论 =====
@@ -380,6 +419,33 @@ class PostViewModel @Inject constructor(
         refreshTimeline()
     }
 
+    // ===== 举报和屏蔽 =====
+
+    /**
+     * 举报动态
+     */
+    fun reportPost(postId: String, reporterDid: String, reason: ReportReason, description: String?) = launchSafely {
+        postRepository.reportPost(postId, reporterDid, reason, description)
+            .onSuccess {
+                sendEvent(PostEvent.ShowToast("举报已提交，感谢您的反馈"))
+            }.onFailure { error ->
+                handleError(error)
+            }
+    }
+
+    /**
+     * 屏蔽动态作者
+     */
+    fun blockUserFromPost(authorDid: String) = launchSafely {
+        friendRepository.blockUser(currentMyDid, authorDid, "从动态屏蔽")
+            .onSuccess {
+                sendEvent(PostEvent.ShowToast("已屏蔽该用户"))
+                refreshTimeline() // 刷新时间流以隐藏被屏蔽用户的内容
+            }.onFailure { error ->
+                handleError(error)
+            }
+    }
+
     // ===== UI 交互 =====
 
     /**
@@ -453,6 +519,7 @@ sealed class PostEvent : UiEvent {
     data class ShowToast(val message: String) : PostEvent()
     object PostPublished : PostEvent()
     object CommentAdded : PostEvent()
+    data class PostShared(val postId: String) : PostEvent()
     data class NavigateToPostDetail(val postId: String) : PostEvent()
     data class NavigateToUserProfile(val did: String) : PostEvent()
 }

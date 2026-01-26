@@ -87,7 +87,7 @@ fun <T> Flow<T>.collectSafelyWithLifecycle(
  * @return 执行结果，失败时返回 null
  */
 inline fun <T> trySafely(
-    onError: ((Throwable) -> Unit)? = null,
+    noinline onError: ((Throwable) -> Unit)? = null,
     block: () -> T
 ): T? {
     return try {
@@ -103,7 +103,7 @@ inline fun <T> trySafely(
  * 安全地执行挂起代码块
  */
 suspend inline fun <T> tryCoSafely(
-    onError: ((Throwable) -> Unit)? = null,
+    noinline onError: ((Throwable) -> Unit)? = null,
     block: suspend () -> T
 ): T? {
     return try {

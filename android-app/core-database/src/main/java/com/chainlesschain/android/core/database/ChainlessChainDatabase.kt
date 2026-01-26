@@ -38,6 +38,8 @@ import com.chainlesschain.android.core.database.entity.social.PostLikeEntity
 import com.chainlesschain.android.core.database.entity.social.PostCommentEntity
 import com.chainlesschain.android.core.database.entity.social.PostShareEntity
 import com.chainlesschain.android.core.database.entity.social.NotificationEntity
+import com.chainlesschain.android.core.database.entity.social.PostReportEntity
+import com.chainlesschain.android.core.database.entity.social.BlockedUserEntity
 import com.chainlesschain.android.core.database.entity.ExternalFileEntity
 import com.chainlesschain.android.core.database.entity.FileImportHistoryEntity
 import com.chainlesschain.android.core.database.fts.ProjectFileFts
@@ -76,8 +78,10 @@ import com.chainlesschain.android.core.database.util.Converters
         PostCommentEntity::class,
         PostShareEntity::class,
         NotificationEntity::class,
+        PostReportEntity::class,
+        BlockedUserEntity::class,
     ],
-    version = 14,
+    version = 15,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
