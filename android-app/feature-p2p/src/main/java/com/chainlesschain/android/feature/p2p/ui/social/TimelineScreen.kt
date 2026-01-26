@@ -27,7 +27,11 @@ import com.chainlesschain.android.core.ui.util.ShareManager
 import com.chainlesschain.android.core.ui.components.EmptyState
 import com.chainlesschain.android.core.ui.components.LoadingState
 import com.chainlesschain.android.feature.p2p.ui.social.components.PostCard
+import com.chainlesschain.android.feature.p2p.ui.social.components.PostCardOptimized
 import com.chainlesschain.android.feature.p2p.ui.social.components.ReportDialog
+import com.chainlesschain.android.feature.p2p.performance.ScrollPerformanceMonitor
+import coil.ImageLoader
+import coil.compose.LocalImageLoader
 import com.chainlesschain.android.feature.p2p.ui.social.components.EditHistoryDialog
 import com.chainlesschain.android.feature.p2p.ui.social.components.HistoryVersionDialog
 import com.chainlesschain.android.core.common.Result
@@ -59,6 +63,23 @@ fun TimelineScreen(
     val listState = rememberLazyListState()
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
+    val imageLoader = LocalImageLoader.current
+
+    // Phase 7.3: 滚动性能监控（仅在Debug模式启用）
+    ScrollPerformanceMonitor(
+        listState = listState,
+        tag = "TimelineScreen",
+        enabled = false  // TODO: 改为 BuildConfig.DEBUG
+    )
+
+    // Phase 7.3: 图片预加载
+    ImagePreloader(
+        listState = listState,
+        posts = uiState.timelinePosts,
+        imageLoader = imageLoader,
+        preloadDistance = 5,  // 预加载距离可见区域5个item
+        enabled = true
+    )
 
     // 举报对话框状态
     var showReportDialog by remember { mutableStateOf(false) }
@@ -186,7 +207,8 @@ fun TimelineScreen(
                             items = uiState.timelinePosts,
                             key = { it.id }
                         ) { post ->
-                            PostCard(
+                            // Phase 7.3: 使用优化后的PostCard
+                            PostCardOptimized(
                                 post = post,
                                 authorNickname = "用户${post.authorDid.take(8)}", // TODO: 从好友信息获取昵称
                                 onPostClick = { onNavigateToPostDetail(post.id) },
