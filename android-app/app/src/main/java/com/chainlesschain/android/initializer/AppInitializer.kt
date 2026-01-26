@@ -2,7 +2,7 @@ package com.chainlesschain.android.initializer
 
 import android.app.Application
 import android.util.Log
-import com.chainlesschain.android.core.llm.LLMAdapter
+import com.chainlesschain.android.feature.ai.data.llm.LLMAdapter
 import dagger.Lazy
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
