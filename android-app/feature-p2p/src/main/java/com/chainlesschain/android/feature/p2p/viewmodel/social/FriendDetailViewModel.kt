@@ -1,9 +1,10 @@
 package com.chainlesschain.android.feature.p2p.viewmodel.social
+import com.chainlesschain.android.core.common.Result
 
+import com.chainlesschain.android.core.common.onError
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
-import com.chainlesschain.android.core.common.error.onFailure
-import com.chainlesschain.android.core.common.error.onSuccess
+import com.chainlesschain.android.core.common.onSuccess
 import com.chainlesschain.android.core.common.viewmodel.BaseViewModel
 import com.chainlesschain.android.core.common.viewmodel.UiEvent
 import com.chainlesschain.android.core.common.viewmodel.UiState
@@ -51,7 +52,7 @@ class FriendDetailViewModel @Inject constructor(
             friendRepository.observeFriendByDid(friendDid).collectLatest { result ->
                 result.onSuccess { friend ->
                     updateState { copy(friend = friend, isLoadingFriend = false) }
-                }.onFailure { error ->
+                }.onError { error ->
                     updateState { copy(isLoadingFriend = false) }
                     handleError(error)
                 }
@@ -67,7 +68,7 @@ class FriendDetailViewModel @Inject constructor(
             postRepository.getUserPosts(friendDid).collectLatest { result ->
                 result.onSuccess { posts ->
                     updateState { copy(posts = posts, isLoadingPosts = false) }
-                }.onFailure { error ->
+                }.onError { error ->
                     updateState { copy(isLoadingPosts = false) }
                     handleError(error)
                 }
@@ -160,7 +161,7 @@ class FriendDetailViewModel @Inject constructor(
             .onSuccess {
                 sendEvent(FriendDetailEvent.ShowToast("备注名已更新"))
                 hideRemarkDialog()
-            }.onFailure { error ->
+            }.onError { error ->
                 handleError(error)
             }
     }
@@ -173,7 +174,7 @@ class FriendDetailViewModel @Inject constructor(
             .onSuccess {
                 sendEvent(FriendDetailEvent.ShowToast("已删除好友"))
                 sendEvent(FriendDetailEvent.NavigateBack)
-            }.onFailure { error ->
+            }.onError { error ->
                 handleError(error)
             }
     }
@@ -186,7 +187,7 @@ class FriendDetailViewModel @Inject constructor(
             .onSuccess {
                 sendEvent(FriendDetailEvent.ShowToast("已屏蔽好友"))
                 hideMenu()
-            }.onFailure { error ->
+            }.onError { error ->
                 handleError(error)
             }
     }

@@ -2,6 +2,7 @@ package com.chainlesschain.android.core.ui.animation
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -31,20 +32,21 @@ object AnimationUtils {
     /**
      * 标准缓动曲线
      */
-    object Easing {
-        val STANDARD = FastOutSlowInEasing
-        val EMPHASIZED = CubicBezierEasing(0.4f, 0f, 0.2f, 1f)
-        val DECELERATE = LinearOutSlowInEasing
-        val ACCELERATE = FastOutLinearInEasing
-        val BOUNCE = CubicBezierEasing(0.68f, -0.55f, 0.27f, 1.55f)
+    object AnimationEasing {
+        val STANDARD: androidx.compose.animation.core.Easing = FastOutSlowInEasing
+        val EMPHASIZED: androidx.compose.animation.core.Easing = CubicBezierEasing(0.4f, 0f, 0.2f, 1f)
+        val DECELERATE: androidx.compose.animation.core.Easing = LinearOutSlowInEasing
+        val ACCELERATE: androidx.compose.animation.core.Easing = FastOutLinearInEasing
+        val BOUNCE: androidx.compose.animation.core.Easing = CubicBezierEasing(0.68f, -0.55f, 0.27f, 1.55f)
     }
 
     /**
      * 淡入淡出动画规格
      */
+    @OptIn(ExperimentalAnimationApi::class)
     fun fadeInOut(
         duration: Int = Duration.NORMAL,
-        easing: Easing = Easing.STANDARD
+        easing: androidx.compose.animation.core.Easing = AnimationEasing.STANDARD
     ): ContentTransform {
         return fadeIn(
             animationSpec = tween(duration, easing = easing)
@@ -56,9 +58,10 @@ object AnimationUtils {
     /**
      * 滑动进入/退出动画
      */
+    @OptIn(ExperimentalAnimationApi::class)
     fun slideInOut(
         duration: Int = Duration.NORMAL,
-        easing: Easing = Easing.EMPHASIZED
+        easing: androidx.compose.animation.core.Easing = AnimationEasing.EMPHASIZED
     ): ContentTransform {
         return slideInHorizontally(
             animationSpec = tween(duration, easing = easing),
@@ -72,9 +75,10 @@ object AnimationUtils {
     /**
      * 缩放+淡入/淡出动画
      */
+    @OptIn(ExperimentalAnimationApi::class)
     fun scaleInOut(
         duration: Int = Duration.NORMAL,
-        easing: Easing = Easing.EMPHASIZED
+        easing: androidx.compose.animation.core.Easing = AnimationEasing.EMPHASIZED
     ): ContentTransform {
         return (fadeIn(
             animationSpec = tween(duration, easing = easing)
@@ -116,7 +120,7 @@ fun Modifier.pressAnimation(
         targetValue = if (isPressed) pressedScale else 1f,
         animationSpec = tween(
             durationMillis = duration,
-            easing = AnimationUtils.Easing.STANDARD
+            easing = AnimationUtils.AnimationEasing.STANDARD
         ),
         label = "pressScale"
     )
@@ -188,7 +192,7 @@ fun Modifier.hoverAnimation(
         targetValue = if (isHovered) hoverScale else 1f,
         animationSpec = tween(
             durationMillis = duration,
-            easing = AnimationUtils.Easing.STANDARD
+            easing = AnimationUtils.AnimationEasing.STANDARD
         ),
         label = "hoverScale"
     )
@@ -305,7 +309,7 @@ fun Modifier.pulseAnimation(
         initialValue = minScale,
         targetValue = maxScale,
         animationSpec = infiniteRepeatable(
-            animation = tween(duration, easing = AnimationUtils.Easing.STANDARD),
+            animation = tween(duration, easing = AnimationUtils.AnimationEasing.STANDARD),
             repeatMode = RepeatMode.Reverse
         ),
         label = "pulseScale"
@@ -372,7 +376,7 @@ fun EnterTransition.slideInFromRight(
     duration: Int = AnimationUtils.Duration.NORMAL
 ): EnterTransition {
     return slideInHorizontally(
-        animationSpec = tween(duration, easing = AnimationUtils.Easing.EMPHASIZED),
+        animationSpec = tween(duration, easing = AnimationUtils.AnimationEasing.EMPHASIZED),
         initialOffsetX = { it }
     ) + fadeIn(
         animationSpec = tween(duration)
@@ -388,7 +392,7 @@ fun ExitTransition.slideOutToLeft(
     duration: Int = AnimationUtils.Duration.NORMAL
 ): ExitTransition {
     return slideOutHorizontally(
-        animationSpec = tween(duration, easing = AnimationUtils.Easing.EMPHASIZED),
+        animationSpec = tween(duration, easing = AnimationUtils.AnimationEasing.EMPHASIZED),
         targetOffsetX = { -it }
     ) + fadeOut(
         animationSpec = tween(duration)

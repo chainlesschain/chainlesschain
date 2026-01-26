@@ -245,7 +245,7 @@ interface NotificationDao {
         WHERE isRead = 0
         GROUP BY type
     """)
-    suspend fun getUnreadCountByTypeGrouped(): Map<NotificationType, Int>
+    suspend fun getUnreadCountByTypeGrouped(): List<NotificationTypeCount>
 
     /**
      * 检查是否存在未读通知
@@ -259,3 +259,11 @@ interface NotificationDao {
     @Query("SELECT COUNT(*) > 0 FROM notifications WHERE type = :type AND isRead = 0")
     suspend fun hasUnreadNotificationsOfType(type: NotificationType): Boolean
 }
+
+/**
+ * 通知类型计数结果
+ */
+data class NotificationTypeCount(
+    val type: NotificationType,
+    val count: Int
+)

@@ -5,6 +5,7 @@ import com.chainlesschain.android.core.p2p.model.MessageType
 import com.chainlesschain.android.core.p2p.model.P2PMessage
 import com.chainlesschain.android.core.p2p.sync.MessageQueue
 import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.*
 import kotlinx.serialization.json.Json
 import java.util.concurrent.ConcurrentHashMap

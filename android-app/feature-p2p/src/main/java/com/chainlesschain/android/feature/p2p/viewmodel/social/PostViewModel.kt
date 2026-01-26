@@ -1,8 +1,9 @@
 package com.chainlesschain.android.feature.p2p.viewmodel.social
+import com.chainlesschain.android.core.common.Result
 
+import com.chainlesschain.android.core.common.onError
 import androidx.lifecycle.viewModelScope
-import com.chainlesschain.android.core.common.error.onFailure
-import com.chainlesschain.android.core.common.error.onSuccess
+import com.chainlesschain.android.core.common.onSuccess
 import com.chainlesschain.android.core.common.viewmodel.BaseViewModel
 import com.chainlesschain.android.core.common.viewmodel.UiEvent
 import com.chainlesschain.android.core.common.viewmodel.UiState
@@ -71,7 +72,7 @@ class PostViewModel @Inject constructor(
                             hasMoreTimeline = posts.isNotEmpty()
                         )
                     }
-                }.onFailure { error ->
+                }.onError { error ->
                     updateState { copy(isLoadingTimeline = false, isRefreshing = false) }
                     handleError(error)
                 }
@@ -107,7 +108,7 @@ class PostViewModel @Inject constructor(
             postRepository.getUserPosts(did).collectLatest { result ->
                 result.onSuccess { posts ->
                     updateState { copy(userPosts = posts, isLoadingUserPosts = false) }
-                }.onFailure { error ->
+                }.onError { error ->
                     updateState { copy(isLoadingUserPosts = false) }
                     handleError(error)
                 }
@@ -123,7 +124,7 @@ class PostViewModel @Inject constructor(
             postRepository.observePostById(postId).collectLatest { result ->
                 result.onSuccess { post ->
                     updateState { copy(currentPost = post) }
-                }.onFailure { error ->
+                }.onError { error ->
                     handleError(error)
                 }
             }
@@ -162,7 +163,7 @@ class PostViewModel @Inject constructor(
                 sendEvent(PostEvent.ShowToast("动态已发布"))
                 sendEvent(PostEvent.PostPublished)
                 refreshTimeline()
-            }.onFailure { error ->
+            }.onError { error ->
                 handleError(error)
             }
     }
@@ -174,7 +175,7 @@ class PostViewModel @Inject constructor(
         postRepository.updatePostContent(postId, newContent, System.currentTimeMillis())
             .onSuccess {
                 sendEvent(PostEvent.ShowToast("动态已更新"))
-            }.onFailure { error ->
+            }.onError { error ->
                 handleError(error)
             }
     }
@@ -187,7 +188,7 @@ class PostViewModel @Inject constructor(
             .onSuccess {
                 sendEvent(PostEvent.ShowToast("动态已删除"))
                 refreshTimeline()
-            }.onFailure { error ->
+            }.onError { error ->
                 handleError(error)
             }
     }
@@ -199,7 +200,7 @@ class PostViewModel @Inject constructor(
         postRepository.pinPost(postId, currentMyDid)
             .onSuccess {
                 sendEvent(PostEvent.ShowToast("动态已置顶"))
-            }.onFailure { error ->
+            }.onError { error ->
                 handleError(error)
             }
     }
@@ -211,7 +212,7 @@ class PostViewModel @Inject constructor(
         postRepository.unpinPost(postId)
             .onSuccess {
                 sendEvent(PostEvent.ShowToast("已取消置顶"))
-            }.onFailure { error ->
+            }.onError { error ->
                 handleError(error)
             }
     }
@@ -240,7 +241,7 @@ class PostViewModel @Inject constructor(
                 }
         }.onSuccess {
             // 点赞状态会通过 Flow 自动更新
-        }.onFailure { error ->
+        }.onError { error ->
             handleError(error)
         }
     }
@@ -266,13 +267,13 @@ class PostViewModel @Inject constructor(
                 if (authorDid != currentMyDid) {
                     realtimeEventManager.sendNotification(
                         targetDid = authorDid,
-                        notificationType = NotificationType.SHARE,
+                        notificationType = NotificationType.POST_SHARED,
                         title = "动态被分享",
                         content = "有人分享了你的动态",
                         targetId = postId
                     )
                 }
-            }.onFailure { error ->
+            }.onError { error ->
                 handleError(error)
             }
     }
@@ -288,7 +289,7 @@ class PostViewModel @Inject constructor(
             postRepository.getPostComments(postId).collectLatest { result ->
                 result.onSuccess { comments ->
                     updateState { copy(comments = comments, isLoadingComments = false) }
-                }.onFailure { error ->
+                }.onError { error ->
                     updateState { copy(isLoadingComments = false) }
                     handleError(error)
                 }
@@ -338,7 +339,7 @@ class PostViewModel @Inject constructor(
                 }
                 sendEvent(PostEvent.ShowToast("评论已发布"))
                 sendEvent(PostEvent.CommentAdded)
-            }.onFailure { error ->
+            }.onError { error ->
                 handleError(error)
             }
     }
@@ -350,7 +351,7 @@ class PostViewModel @Inject constructor(
         postRepository.deleteComment(comment)
             .onSuccess {
                 sendEvent(PostEvent.ShowToast("评论已删除"))
-            }.onFailure { error ->
+            }.onError { error ->
                 handleError(error)
             }
     }
@@ -365,7 +366,7 @@ class PostViewModel @Inject constructor(
             postRepository.likeComment(commentId)
         }.onSuccess {
             // 状态会通过 Flow 自动更新
-        }.onFailure { error ->
+        }.onError { error ->
             handleError(error)
         }
     }
@@ -386,7 +387,7 @@ class PostViewModel @Inject constructor(
             postRepository.searchPosts(query, null, currentMyDid, currentFriendDids).collectLatest { result ->
                 result.onSuccess { posts ->
                     updateState { copy(timelinePosts = posts, isSearching = false) }
-                }.onFailure { error ->
+                }.onError { error ->
                     updateState { copy(isSearching = false) }
                     handleError(error)
                 }
@@ -403,7 +404,7 @@ class PostViewModel @Inject constructor(
             postRepository.getPostsByTag(tag, currentMyDid, currentFriendDids).collectLatest { result ->
                 result.onSuccess { posts ->
                     updateState { copy(timelinePosts = posts, isLoadingTimeline = false) }
-                }.onFailure { error ->
+                }.onError { error ->
                     updateState { copy(isLoadingTimeline = false) }
                     handleError(error)
                 }
@@ -428,7 +429,7 @@ class PostViewModel @Inject constructor(
         postRepository.reportPost(postId, reporterDid, reason, description)
             .onSuccess {
                 sendEvent(PostEvent.ShowToast("举报已提交，感谢您的反馈"))
-            }.onFailure { error ->
+            }.onError { error ->
                 handleError(error)
             }
     }
@@ -441,7 +442,7 @@ class PostViewModel @Inject constructor(
             .onSuccess {
                 sendEvent(PostEvent.ShowToast("已屏蔽该用户"))
                 refreshTimeline() // 刷新时间流以隐藏被屏蔽用户的内容
-            }.onFailure { error ->
+            }.onError { error ->
                 handleError(error)
             }
     }

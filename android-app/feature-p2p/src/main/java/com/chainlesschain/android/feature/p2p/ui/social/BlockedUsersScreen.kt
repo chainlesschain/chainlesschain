@@ -59,7 +59,7 @@ fun BlockedUsersScreen(
             }
             blockedUsers.isEmpty() -> {
                 EmptyState(
-                    message = "没有屏蔽任何用户",
+                    title = "没有屏蔽任何用户",
                     icon = Icons.Default.Block,
                     modifier = Modifier.padding(paddingValues)
                 )

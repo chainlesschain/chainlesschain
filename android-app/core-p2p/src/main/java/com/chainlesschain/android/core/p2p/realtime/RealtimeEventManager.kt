@@ -5,6 +5,7 @@ import com.chainlesschain.android.core.p2p.model.MessageType
 import com.chainlesschain.android.core.p2p.model.P2PMessage
 import com.chainlesschain.android.core.p2p.sync.MessageQueue
 import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -65,18 +66,18 @@ class RealtimeEventManager @Inject constructor(
         isListening = true
         Log.i(TAG, "Starting realtime event listening")
 
-        // 监听消息队列中的实时消息
-        scope.launch {
-            messageQueue.incomingMessages
-                .filter { isRealtimeMessage(it.type) }
-                .collect { message ->
-                    try {
-                        handleRealtimeMessage(message)
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Failed to handle realtime message: ${message.id}", e)
-                    }
-                }
-        }
+        // TODO: 监听消息队列中的实时消息 (需要实现MessageQueue.incomingMessages)
+        // scope.launch {
+        //     messageQueue.incomingMessages
+        //         .filter { isRealtimeMessage(it.type) }
+        //         .collect { message ->
+        //             try {
+        //                 handleRealtimeMessage(message)
+        //             } catch (e: Exception) {
+        //                 Log.e(TAG, "Failed to handle realtime message: ${message.id}", e)
+        //             }
+        //         }
+        // }
 
         // 启动在线状态管理
         presenceManager.startBroadcasting()

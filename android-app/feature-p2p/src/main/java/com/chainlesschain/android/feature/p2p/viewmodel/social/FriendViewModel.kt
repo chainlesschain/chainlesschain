@@ -1,8 +1,9 @@
 package com.chainlesschain.android.feature.p2p.viewmodel.social
+import com.chainlesschain.android.core.common.Result
 
+import com.chainlesschain.android.core.common.onError
 import androidx.lifecycle.viewModelScope
-import com.chainlesschain.android.core.common.error.onFailure
-import com.chainlesschain.android.core.common.error.onSuccess
+import com.chainlesschain.android.core.common.onSuccess
 import com.chainlesschain.android.core.common.viewmodel.BaseViewModel
 import com.chainlesschain.android.core.common.viewmodel.UiEvent
 import com.chainlesschain.android.core.common.viewmodel.UiState
@@ -121,7 +122,7 @@ class FriendViewModel @Inject constructor(
             friendRepository.getAllFriends().collectLatest { result ->
                 result.onSuccess { friends ->
                     updateState { copy(friends = friends, isLoadingFriends = false) }
-                }.onFailure { error ->
+                }.onError { error ->
                     updateState { copy(isLoadingFriends = false) }
                     handleError(error)
                 }
@@ -137,7 +138,7 @@ class FriendViewModel @Inject constructor(
             friendRepository.getAllGroups().collectLatest { result ->
                 result.onSuccess { groups ->
                     updateState { copy(groups = groups) }
-                }.onFailure { error ->
+                }.onError { error ->
                     handleError(error)
                 }
             }
@@ -152,7 +153,7 @@ class FriendViewModel @Inject constructor(
             friendRepository.getPendingRequests().collectLatest { result ->
                 result.onSuccess { requests ->
                     updateState { copy(pendingRequests = requests, isLoadingRequests = false) }
-                }.onFailure { error ->
+                }.onError { error ->
                     updateState { copy(isLoadingRequests = false) }
                     handleError(error)
                 }
@@ -182,7 +183,7 @@ class FriendViewModel @Inject constructor(
             friendRepository.getFriendsByGroup(groupId).collectLatest { result ->
                 result.onSuccess { friends ->
                     updateState { copy(friends = friends, isLoadingFriends = false) }
-                }.onFailure { error ->
+                }.onError { error ->
                     updateState { copy(isLoadingFriends = false) }
                     handleError(error)
                 }
@@ -204,7 +205,7 @@ class FriendViewModel @Inject constructor(
             friendRepository.searchFriends(query).collectLatest { result ->
                 result.onSuccess { friends ->
                     updateState { copy(friends = friends, isSearching = false) }
-                }.onFailure { error ->
+                }.onError { error ->
                     updateState { copy(isSearching = false) }
                     handleError(error)
                 }
@@ -221,7 +222,7 @@ class FriendViewModel @Inject constructor(
         friendRepository.addFriend(friend)
             .onSuccess {
                 sendEvent(FriendEvent.ShowToast("好友请求已发送"))
-            }.onFailure { error ->
+            }.onError { error ->
                 handleError(error)
             }
     }
@@ -236,7 +237,7 @@ class FriendViewModel @Inject constructor(
                 realtimeEventManager.respondToFriendRequest(did, accepted = true)
                 sendEvent(FriendEvent.ShowToast("已接受好友请求"))
                 sendEvent(FriendEvent.FriendRequestAccepted(did))
-            }.onFailure { error ->
+            }.onError { error ->
                 handleError(error)
             }
     }
@@ -250,7 +251,7 @@ class FriendViewModel @Inject constructor(
                 // 发送实时响应
                 realtimeEventManager.respondToFriendRequest(did, accepted = false)
                 sendEvent(FriendEvent.ShowToast("已拒绝好友请求"))
-            }.onFailure { error ->
+            }.onError { error ->
                 handleError(error)
             }
     }
@@ -262,7 +263,7 @@ class FriendViewModel @Inject constructor(
         friendRepository.deleteFriend(did)
             .onSuccess {
                 sendEvent(FriendEvent.ShowToast("已删除好友"))
-            }.onFailure { error ->
+            }.onError { error ->
                 handleError(error)
             }
     }
@@ -274,7 +275,7 @@ class FriendViewModel @Inject constructor(
         friendRepository.updateRemarkName(did, remarkName)
             .onSuccess {
                 sendEvent(FriendEvent.ShowToast("备注名已更新"))
-            }.onFailure { error ->
+            }.onError { error ->
                 handleError(error)
             }
     }
@@ -286,7 +287,7 @@ class FriendViewModel @Inject constructor(
         friendRepository.updateGroup(did, groupId)
             .onSuccess {
                 sendEvent(FriendEvent.ShowToast("已移动到分组"))
-            }.onFailure { error ->
+            }.onError { error ->
                 handleError(error)
             }
     }
@@ -298,7 +299,7 @@ class FriendViewModel @Inject constructor(
         friendRepository.blockFriend(did)
             .onSuccess {
                 sendEvent(FriendEvent.ShowToast("已屏蔽好友"))
-            }.onFailure { error ->
+            }.onError { error ->
                 handleError(error)
             }
     }
@@ -310,7 +311,7 @@ class FriendViewModel @Inject constructor(
         friendRepository.unblockFriend(did)
             .onSuccess {
                 sendEvent(FriendEvent.ShowToast("已取消屏蔽"))
-            }.onFailure { error ->
+            }.onError { error ->
                 handleError(error)
             }
     }
@@ -329,7 +330,7 @@ class FriendViewModel @Inject constructor(
         friendRepository.createGroup(group)
             .onSuccess {
                 sendEvent(FriendEvent.ShowToast("分组创建成功"))
-            }.onFailure { error ->
+            }.onError { error ->
                 handleError(error)
             }
     }
@@ -341,7 +342,7 @@ class FriendViewModel @Inject constructor(
         friendRepository.deleteGroup(groupId)
             .onSuccess {
                 sendEvent(FriendEvent.ShowToast("分组已删除"))
-            }.onFailure { error ->
+            }.onError { error ->
                 handleError(error)
             }
     }
@@ -358,7 +359,7 @@ class FriendViewModel @Inject constructor(
                             sendEvent(FriendEvent.ShowToast("分组已重命名"))
                         }
                 }
-            }.onFailure { error ->
+            }.onError { error ->
                 handleError(error)
             }
     }

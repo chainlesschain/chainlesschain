@@ -143,7 +143,7 @@ fun TimelineScreen(
                 }
                 uiState.timelinePosts.isEmpty() -> {
                     EmptyState(
-                        message = "还没有动态",
+                        title = "还没有动态",
                         icon = Icons.Default.Article,
                         actionText = "发布第一条动态",
                         onAction = onNavigateToPublishPost

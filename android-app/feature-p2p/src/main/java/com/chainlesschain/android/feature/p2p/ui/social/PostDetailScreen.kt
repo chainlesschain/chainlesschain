@@ -168,7 +168,7 @@ fun PostDetailScreen(
                     } else if (uiState.comments.isEmpty()) {
                         item {
                             EmptyState(
-                                message = "还没有评论",
+                                title = "还没有评论",
                                 icon = Icons.Default.Comment
                             )
                         }

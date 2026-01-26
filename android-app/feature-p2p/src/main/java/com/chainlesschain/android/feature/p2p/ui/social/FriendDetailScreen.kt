@@ -87,7 +87,7 @@ fun FriendDetailScreen(
             }
             uiState.friend == null -> {
                 EmptyState(
-                    message = "好友信息加载失败",
+                    title = "好友信息加载失败",
                     icon = Icons.Default.Error,
                     actionText = "重试",
                     onAction = { viewModel.refresh() },
@@ -149,7 +149,7 @@ fun FriendDetailScreen(
                     } else if (uiState.posts.isEmpty()) {
                         item {
                             EmptyState(
-                                message = "还没有发布动态",
+                                title = "还没有发布动态",
                                 icon = Icons.Default.PostAdd,
                                 modifier = Modifier.padding(32.dp)
                             )
