@@ -18,6 +18,7 @@ import com.chainlesschain.android.core.database.dao.social.PostDao
 import com.chainlesschain.android.core.database.dao.social.PostInteractionDao
 import com.chainlesschain.android.core.database.dao.social.NotificationDao
 import com.chainlesschain.android.core.database.dao.social.PostEditHistoryDao
+import com.chainlesschain.android.core.database.dao.ModerationQueueDao
 import com.chainlesschain.android.core.database.migration.DatabaseMigrations
 import com.chainlesschain.android.core.security.KeyManager
 import dagger.Module
@@ -197,4 +198,11 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun providePostEditHistoryDao(database: ChainlessChainDatabase) = database.postEditHistoryDao()
+
+    /**
+     * 提供内容审核队列DAO
+     */
+    @Provides
+    @Singleton
+    fun provideModerationQueueDao(database: ChainlessChainDatabase) = database.moderationQueueDao()
 }

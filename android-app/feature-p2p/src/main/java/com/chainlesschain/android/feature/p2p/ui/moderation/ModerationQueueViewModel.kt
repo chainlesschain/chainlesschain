@@ -111,7 +111,7 @@ class ModerationQueueViewModel @Inject constructor(
     /**
      * 批准内容
      */
-    fun approveContent(id: String) {
+    fun approveContent(id: Long) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 
@@ -149,7 +149,7 @@ class ModerationQueueViewModel @Inject constructor(
     /**
      * 拒绝内容
      */
-    fun rejectContent(id: String) {
+    fun rejectContent(id: Long) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 
@@ -186,7 +186,7 @@ class ModerationQueueViewModel @Inject constructor(
     /**
      * 删除内容
      */
-    fun deleteContent(id: String) {
+    fun deleteContent(id: Long) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 
@@ -223,7 +223,7 @@ class ModerationQueueViewModel @Inject constructor(
     /**
      * 批准申诉
      */
-    fun approveAppeal(id: String) {
+    fun approveAppeal(id: Long) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 
@@ -257,7 +257,7 @@ class ModerationQueueViewModel @Inject constructor(
     /**
      * 拒绝申诉
      */
-    fun rejectAppeal(id: String) {
+    fun rejectAppeal(id: Long) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 
