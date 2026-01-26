@@ -44,6 +44,7 @@ fun FriendDetailScreen(
     onNavigateBack: () -> Unit,
     onNavigateToPost: (String) -> Unit = {},
     onNavigateToChat: (String) -> Unit = {},
+    onNavigateToCallHistory: (String) -> Unit = {},
     viewModel: FriendDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -119,7 +120,8 @@ fun FriendDetailScreen(
                             presenceInfo = uiState.presenceInfo,
                             onSendMessage = { viewModel.sendMessage() },
                             onVoiceCall = { viewModel.startVoiceCall() },
-                            onVideoCall = { viewModel.startVideoCall() }
+                            onVideoCall = { viewModel.startVideoCall() },
+                            onViewCallHistory = { onNavigateToCallHistory(friend.did) }
                         )
                         Divider(modifier = Modifier.padding(vertical = 12.dp))
                     }
@@ -277,6 +279,7 @@ private fun FriendInfoSection(
     onSendMessage: () -> Unit,
     onVoiceCall: () -> Unit,
     onVideoCall: () -> Unit,
+    onViewCallHistory: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -383,6 +386,16 @@ private fun FriendInfoSection(
             OutlinedButton(onClick = onVideoCall) {
                 Icon(Icons.Default.Videocam, contentDescription = "视频通话")
             }
+        }
+
+        // 查看通话记录按钮
+        OutlinedButton(
+            onClick = onViewCallHistory,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Icon(Icons.Default.History, contentDescription = null)
+            Spacer(Modifier.width(8.dp))
+            Text("查看通话记录")
         }
     }
 }
