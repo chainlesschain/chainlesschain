@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mount } from '@vue/test-utils';
-import AccountManager from '@/pages/email/AccountManager.vue';
+import AccountManager from '@renderer/pages/email/AccountManager.vue';
 
 // Mock ant-design-vue
 vi.mock('ant-design-vue', () => ({

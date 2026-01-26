@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { mockElectronAPI } from '../setup';
+import { mockElectronAPI } from '../../setup';
 
 describe('LLM Service', () => {
   beforeEach(() => {

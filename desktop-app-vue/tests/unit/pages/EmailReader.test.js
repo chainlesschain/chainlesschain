@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mount } from '@vue/test-utils';
-import EmailReader from '@/pages/email/EmailReader.vue';
+import EmailReader from '@renderer/pages/email/EmailReader.vue';
 
 // Mock DOMPurify
 vi.mock('dompurify', () => ({

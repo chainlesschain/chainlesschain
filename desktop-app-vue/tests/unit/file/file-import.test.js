@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { mockElectronAPI } from '../setup';
+import { mockElectronAPI } from '../../setup';
 
 describe('文件导入模块', () => {
   beforeEach(() => {

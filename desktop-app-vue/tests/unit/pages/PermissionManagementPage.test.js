@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mount } from '@vue/test-utils';
-import PermissionManagementPage from '@/pages/PermissionManagementPage.vue';
+import PermissionManagementPage from '@renderer/pages/PermissionManagementPage.vue';
 
 // Mock stores
 const mockIdentityStore = {

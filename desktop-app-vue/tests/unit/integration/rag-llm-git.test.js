@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { mockElectronAPI } from '../setup';
+import { mockElectronAPI } from '../../setup';
 
 describe('RAG检索模块', () => {
   beforeEach(() => {

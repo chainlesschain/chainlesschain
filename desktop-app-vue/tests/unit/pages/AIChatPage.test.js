@@ -5,7 +5,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mount } from '@vue/test-utils';
-import AIChatPage from '@/pages/AIChatPage.vue';
+import AIChatPage from '@renderer/pages/AIChatPage.vue';
 import { nextTick } from 'vue';
 
 // Mock Ant Design Vue

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mount } from '@vue/test-utils';
-import CategoryManagePage from '@/pages/projects/CategoryManagePage.vue';
+import CategoryManagePage from '@renderer/pages/projects/CategoryManagePage.vue';
 
 // Mock stores
 const mockCategoryStore = {

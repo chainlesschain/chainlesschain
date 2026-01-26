@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mount } from '@vue/test-utils';
-import ProjectManagementPage from '@/pages/projects/ProjectManagementPage.vue';
+import ProjectManagementPage from '@renderer/pages/projects/ProjectManagementPage.vue';
 
 // Mock stores
 const mockProjectStore = {
