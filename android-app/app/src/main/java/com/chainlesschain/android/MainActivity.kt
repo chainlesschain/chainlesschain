@@ -59,40 +59,35 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         setContent {
-            var isInitialized by remember { mutableStateOf(false) }
-            val navController = rememberNavController()
-
             ChainlessChainTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    // 延迟初始化 ViewModel 直到 Compose 准备好
-                    if (isInitialized) {
-                        val authViewModel: AuthViewModel = hiltViewModel()
+                    val navController = rememberNavController()
+                    val authViewModel: AuthViewModel = hiltViewModel()
 
-                        // 根据认证状态确定启动路由
-                        val uiState = authViewModel.uiState.collectAsState().value
-                        val startDestination = when {
+                    // 根据认证状态确定启动路由 (只在初始化时计算一次)
+                    val uiState = authViewModel.uiState.collectAsState().value
+                    val startDestination = remember(uiState.isSetupComplete, uiState.isAuthenticated) {
+                        when {
                             !uiState.isSetupComplete -> Screen.SetupPin.route
                             !uiState.isAuthenticated -> Screen.Login.route
                             else -> Screen.Home.route
                         }
-
-                        Timber.d("MainActivity: startDestination=$startDestination, isAuthenticated=${uiState.isAuthenticated}, currentUser=${uiState.currentUser?.id}")
-
-                        NavGraph(
-                            navController = navController,
-                            startDestination = startDestination,
-                            authViewModel = authViewModel  // 传递AuthViewModel给NavGraph
-                        )
                     }
 
-                    // 初始化完成
-                    LaunchedEffect(Unit) {
-                        isInitialized = true
-                        isReady = true
+                    Timber.d("MainActivity: startDestination=$startDestination, isAuthenticated=${uiState.isAuthenticated}, currentUser=${uiState.currentUser?.id}")
 
+                    NavGraph(
+                        navController = navController,
+                        startDestination = startDestination,
+                        authViewModel = authViewModel
+                    )
+
+                    // 标记准备完成
+                    LaunchedEffect(Unit) {
+                        isReady = true
                         val duration = System.currentTimeMillis() - startTime
                         Timber.d("MainActivity onCreate - completed in ${duration}ms")
                     }
