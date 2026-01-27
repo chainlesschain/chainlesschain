@@ -33,6 +33,7 @@ fun MainContainer(
     onNavigateToLLMSettings: () -> Unit = {},
     onNavigateToLLMTest: () -> Unit = {},
     onNavigateToFileBrowser: () -> Unit = {},
+    onNavigateToRemoteControl: () -> Unit = {},
     viewModel: AuthViewModel = hiltViewModel()
 ) {
     // 使用 rememberSaveable 保存状态（进程重建后恢复）
@@ -74,7 +75,8 @@ fun MainContainer(
                     NewHomeScreen(
                         viewModel = viewModel,
                         onProfileClick = onProfileClick,
-                        onNavigateToFileBrowser = onNavigateToFileBrowser
+                        onNavigateToFileBrowser = onNavigateToFileBrowser,
+                        onNavigateToRemoteControl = onNavigateToRemoteControl
                     )
                 }
                 1 -> key("project") {

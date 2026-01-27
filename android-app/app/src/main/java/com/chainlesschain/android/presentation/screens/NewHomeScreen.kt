@@ -33,7 +33,8 @@ import com.chainlesschain.android.feature.auth.presentation.AuthViewModel
 fun NewHomeScreen(
     viewModel: AuthViewModel,
     onProfileClick: () -> Unit = {},
-    onNavigateToFileBrowser: () -> Unit = {}
+    onNavigateToFileBrowser: () -> Unit = {},
+    onNavigateToRemoteControl: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var inputText by remember { mutableStateOf("") }
@@ -62,7 +63,8 @@ fun NewHomeScreen(
 
             // 功能入口网格 (3x2)
             FunctionEntryGrid(
-                onNavigateToFileBrowser = onNavigateToFileBrowser
+                onNavigateToFileBrowser = onNavigateToFileBrowser,
+                onNavigateToRemoteControl = onNavigateToRemoteControl
             )
 
             Spacer(modifier = Modifier.weight(1f))
@@ -168,16 +170,17 @@ fun BrandSection() {
  */
 @Composable
 fun FunctionEntryGrid(
-    onNavigateToFileBrowser: () -> Unit = {}
+    onNavigateToFileBrowser: () -> Unit = {},
+    onNavigateToRemoteControl: () -> Unit = {}
 ) {
-    val functionItems = remember {
+    val functionItems = remember(onNavigateToFileBrowser, onNavigateToRemoteControl) {
         listOf(
             FunctionEntryItem("AI助手", Icons.Outlined.AutoAwesome, Color(0xFFFF6B9D), onClick = { /* TODO */ }),
             FunctionEntryItem("文件浏览", Icons.Outlined.FolderOpen, Color(0xFF4CAF50), onClick = onNavigateToFileBrowser),
+            FunctionEntryItem("远程控制", Icons.Outlined.Computer, Color(0xFFFF9800), onClick = onNavigateToRemoteControl),
             FunctionEntryItem("写作", Icons.Outlined.Edit, Color(0xFF2196F3)),
             FunctionEntryItem("设计", Icons.Outlined.Palette, Color(0xFF9C27B0)),
-            FunctionEntryItem("播客", Icons.Outlined.Podcasts, Color(0xFFE91E63)),
-            FunctionEntryItem("工具箱", Icons.Outlined.Build, Color(0xFF009688))
+            FunctionEntryItem("播客", Icons.Outlined.Podcasts, Color(0xFFE91E63))
         )
     }
 

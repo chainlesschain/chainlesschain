@@ -346,6 +346,18 @@
               </template>
               离线消息队列
             </a-menu-item>
+            <a-menu-item key="remote-control">
+              <template #icon>
+                <MobileOutlined />
+              </template>
+              远程控制
+            </a-menu-item>
+            <a-menu-item key="command-logs">
+              <template #icon>
+                <FileTextOutlined />
+              </template>
+              命令日志
+            </a-menu-item>
           </a-sub-menu>
 
           <!-- 6. 交易市场 -->
@@ -1407,6 +1419,10 @@ const menuConfig = {
     path: "/p2p/device-management",
     title: "设备管理",
   },
+
+  // 远程控制功能
+  "remote-control": { path: "/remote/control", title: "远程控制" },
+  "command-logs": { path: "/remote/logs", title: "命令日志" },
   "p2p-file-transfer": { path: "/p2p/file-transfer", title: "文件传输" },
   "p2p-safety-numbers": {
     path: "/p2p/safety-numbers",

@@ -121,6 +121,9 @@ fun NavGraph(
                 },
                 onNavigateToFileBrowser = {
                     navController.navigate(Screen.FileBrowser.route)
+                },
+                onNavigateToRemoteControl = {
+                    navController.navigate(Screen.RemoteControl.route)
                 }
             )
         }
@@ -540,6 +543,86 @@ fun NavGraph(
                 }
             )
         }
+
+        // ===== 远程控制功能路由（Phase 2）=====
+
+        // 远程控制主界面
+        composable(route = Screen.RemoteControl.route) {
+            com.chainlesschain.android.remote.ui.RemoteControlScreen(
+                onNavigateToAIChat = {
+                    navController.navigate(Screen.RemoteAIChat.route)
+                },
+                onNavigateToRAGSearch = {
+                    navController.navigate(Screen.RemoteRAGSearch.route)
+                },
+                onNavigateToAgentControl = {
+                    navController.navigate(Screen.RemoteAgentControl.route)
+                },
+                onNavigateToScreenshot = {
+                    navController.navigate(Screen.RemoteScreenshot.route)
+                },
+                onNavigateToSystemMonitor = {
+                    navController.navigate(Screen.RemoteSystemMonitor.route)
+                },
+                onNavigateToCommandHistory = {
+                    navController.navigate(Screen.RemoteCommandHistory.route)
+                }
+            )
+        }
+
+        // 远程 AI 对话界面
+        composable(route = Screen.RemoteAIChat.route) {
+            com.chainlesschain.android.remote.ui.ai.RemoteAIChatScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        // 远程 RAG 搜索界面
+        composable(route = Screen.RemoteRAGSearch.route) {
+            com.chainlesschain.android.remote.ui.ai.RemoteRAGSearchScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        // 远程 Agent 控制界面
+        composable(route = Screen.RemoteAgentControl.route) {
+            com.chainlesschain.android.remote.ui.ai.RemoteAgentControlScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        // 远程截图界面
+        composable(route = Screen.RemoteScreenshot.route) {
+            com.chainlesschain.android.remote.ui.system.RemoteScreenshotScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        // 系统监控界面
+        composable(route = Screen.RemoteSystemMonitor.route) {
+            com.chainlesschain.android.remote.ui.system.SystemMonitorScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        // 命令历史界面
+        composable(route = Screen.RemoteCommandHistory.route) {
+            com.chainlesschain.android.remote.ui.history.CommandHistoryScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
     }
 }
 
@@ -603,6 +686,15 @@ sealed class Screen(val route: String) {
     data object EditPost : Screen("edit_post") {
         fun createRoute(postId: String) = "edit_post/$postId"
     }
+
+    // 远程控制功能路由（Phase 2）
+    data object RemoteControl : Screen("remote_control")
+    data object RemoteAIChat : Screen("remote_ai_chat")
+    data object RemoteRAGSearch : Screen("remote_rag_search")
+    data object RemoteAgentControl : Screen("remote_agent_control")
+    data object RemoteScreenshot : Screen("remote_screenshot")
+    data object RemoteSystemMonitor : Screen("remote_system_monitor")
+    data object RemoteCommandHistory : Screen("remote_command_history")
 }
 
 /**
