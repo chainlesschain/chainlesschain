@@ -8,6 +8,7 @@
 
 const { logger, createLogger } = require('../../utils/logger.js');
 const { AgentOrchestrator } = require("./agent-orchestrator");
+const { CoworkOrchestrator } = require("./cowork-orchestrator");
 const { SpecializedAgent } = require("./specialized-agent");
 const { CodeGenerationAgent } = require("./agents/code-generation-agent");
 const { DataAnalysisAgent } = require("./agents/data-analysis-agent");
@@ -93,6 +94,7 @@ function createMultiAgentSystem(options = {}) {
 module.exports = {
   // 核心类
   AgentOrchestrator,
+  CoworkOrchestrator,
   SpecializedAgent,
 
   // 专用 Agent

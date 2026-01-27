@@ -17,7 +17,7 @@ const llmLogger = createLogger('cowork-llm');
 class CoworkLLMIntegration {
   constructor(llmService) {
     this.llmService = llmService;
-    this.model = 'qwen2:7b';  // Default model
+    this.model = 'qwen2.5:latest';  // Default model (fast and accurate)
     this.temperature = 0.7;   // Creativity vs. consistency
     this.maxTokens = 1000;
   }
