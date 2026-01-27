@@ -21,6 +21,8 @@ const { CommandRouter } = require('./command-router');
 // 导入命令处理器
 const AICommandHandler = require('./handlers/ai-handler');
 const SystemCommandHandler = require('./handlers/system-handler');
+const { FileTransferHandler } = require('./handlers/file-transfer-handler');
+const { RemoteDesktopHandler } = require('./handlers/remote-desktop-handler');
 
 /**
  * 远程网关类
@@ -181,8 +183,21 @@ class RemoteGateway extends EventEmitter {
     );
     this.commandRouter.registerHandler('system', this.handlers.system);
 
+    // 3. 文件传输处理器
+    this.handlers.file = new FileTransferHandler(
+      this.database,
+      this.options.fileTransfer || {}
+    );
+    this.commandRouter.registerHandler('file', this.handlers.file);
+
+    // 4. 远程桌面处理器
+    this.handlers.desktop = new RemoteDesktopHandler(
+      this.database,
+      this.options.remoteDesktop || {}
+    );
+    this.commandRouter.registerHandler('desktop', this.handlers.desktop);
+
     // TODO: 添加更多处理器
-    // - file: 文件操作处理器
     // - knowledge: 知识库处理器
     // - channel: 多渠道消息处理器
     // - browser: 浏览器自动化处理器

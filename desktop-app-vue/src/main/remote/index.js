@@ -14,6 +14,8 @@ const { CommandRouter } = require('./command-router');
 // 导出命令处理器
 const AICommandHandler = require('./handlers/ai-handler');
 const SystemCommandHandler = require('./handlers/system-handler');
+const { FileTransferHandler } = require('./handlers/file-transfer-handler');
+const { RemoteDesktopHandler } = require('./handlers/remote-desktop-handler');
 
 /**
  * 创建并初始化远程网关
@@ -48,6 +50,8 @@ module.exports = {
   // 命令处理器
   AICommandHandler,
   SystemCommandHandler,
+  FileTransferHandler,
+  RemoteDesktopHandler,
 
   // 常量
   PERMISSION_LEVELS

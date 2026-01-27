@@ -11,12 +11,12 @@
 const path = require("path");
 const fs = require("fs-extra");
 const Database = require("../../../database");
-const TeammateTool = require("../../teammate-tool");
-const FileSandbox = require("../../file-sandbox");
-const LongRunningTaskManager = require("../../long-running-task-manager");
-const SkillRegistry = require("../../skills/skill-registry");
-const OfficeSkill = require("../../skills/office-skill");
-const CoworkOrchestrator = require("../../cowork-orchestrator");
+const TeammateTool = require("../../../ai-engine/cowork/teammate-tool");
+const FileSandbox = require("../../../ai-engine/cowork/file-sandbox");
+const LongRunningTaskManager = require("../../../ai-engine/cowork/long-running-task-manager");
+const SkillRegistry = require("../../../ai-engine/cowork/skills/skill-registry");
+const OfficeSkill = require("../../../ai-engine/cowork/skills/office-skill");
+const CoworkOrchestrator = require("../../../ai-engine/multi-agent/cowork-orchestrator");
 
 // Test configuration
 const TEST_DB_PATH = path.join(__dirname, "../../../../../../../data/test-cowork-e2e.db");
@@ -782,8 +782,8 @@ describe("Cowork E2E Integration Tests", () => {
       expect(archivedTeam.status).toBe("archived");
 
       // Verify agents are removed
-      const agent = await teammateTool.getAgent(agent.id);
-      expect(agent.status).toBe("removed");
+      const removedAgent = await teammateTool.getAgent(agent.id);
+      expect(removedAgent.status).toBe("removed");
     });
   });
 

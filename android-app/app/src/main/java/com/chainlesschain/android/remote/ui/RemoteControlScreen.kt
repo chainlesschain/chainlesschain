@@ -40,7 +40,9 @@ fun RemoteControlScreen(
     onNavigateToAgentControl: () -> Unit = {},
     onNavigateToScreenshot: () -> Unit = {},
     onNavigateToSystemMonitor: () -> Unit = {},
-    onNavigateToCommandHistory: () -> Unit = {}
+    onNavigateToCommandHistory: () -> Unit = {},
+    onNavigateToRemoteDesktop: () -> Unit = {},
+    onNavigateToFileTransfer: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val connectionState by viewModel.connectionState.collectAsState()
@@ -148,6 +150,18 @@ fun RemoteControlScreen(
                             subtitle = "实时监控 PC 端系统状态",
                             icon = Icons.Default.Monitor,
                             onClick = onNavigateToSystemMonitor
+                        ),
+                        CommandShortcut(
+                            title = "远程桌面",
+                            subtitle = "连接到 PC 端桌面并远程控制",
+                            icon = Icons.Default.DesktopWindows,
+                            onClick = onNavigateToRemoteDesktop
+                        ),
+                        CommandShortcut(
+                            title = "文件传输",
+                            subtitle = "在 PC 和 Android 之间传输文件",
+                            icon = Icons.Default.Folder,
+                            onClick = onNavigateToFileTransfer
                         ),
                         CommandShortcut(
                             title = "截图",

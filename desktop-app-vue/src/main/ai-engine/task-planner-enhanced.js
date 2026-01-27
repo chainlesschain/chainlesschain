@@ -75,42 +75,71 @@ class TaskPlannerEnhanced extends EventEmitter {
       // 2. 构建拆解提示词(异步,集成RAG上下文)
       const prompt = await this.buildDecomposePrompt(userRequest, projectContext, ragContext);
 
-      // 3. 调用LLM生成任务计划
+      // 3. ⚡ 多层降级策略: 调用LLM生成任务计划
       let response;
+      let taskPlan;
+
+      // 尝试1: 主LLM（本地Ollama或配置的主LLM）
       try {
+        logger.info('[TaskPlannerEnhanced] 尝试1: 主LLM');
         response = await this.llmManager.query(prompt, {
           systemPrompt: '你是一个专业的项目管理AI助手，擅长将用户需求拆解为清晰、可执行的步骤。你必须返回标准的JSON格式。',
           temperature: 0.3,
           maxTokens: 2000
         });
-      } catch (llmError) {
-        logger.warn('[TaskPlannerEnhanced] 本地LLM失败，尝试使用后端AI服务:', llmError.message);
-        // 降级到后端AI服务
-        response = await this.queryBackendAI(prompt, {
-          systemPrompt: '你是一个专业的项目管理AI助手，擅长将用户需求拆解为清晰、可执行的步骤。你必须返回标准的JSON格式。',
-          temperature: 0.3
-        });
+
+        taskPlan = JSON.parse(this.cleanAndFixJSON(response.text));
+        logger.info('[TaskPlannerEnhanced] ✅ 主LLM成功');
+
+      } catch (error1) {
+        logger.warn('[TaskPlannerEnhanced] 主LLM失败:', error1.message);
+
+        // 尝试2: 修复JSON格式错误
+        if (response && response.text) {
+          try {
+            logger.info('[TaskPlannerEnhanced] 尝试2: 修复JSON格式');
+            const cleaned = this.cleanAndFixJSON(response.text);
+            taskPlan = JSON.parse(cleaned);
+            logger.info('[TaskPlannerEnhanced] ✅ JSON修复成功');
+
+          } catch (error2) {
+            logger.warn('[TaskPlannerEnhanced] JSON修复失败:', error2.message);
+
+            // 尝试3: 备用LLM（后端AI服务）
+            try {
+              logger.info('[TaskPlannerEnhanced] 尝试3: 后端AI服务');
+              response = await this.queryBackendAI(prompt, {
+                systemPrompt: '你是一个专业的项目管理AI助手，擅长将用户需求拆解为清晰、可执行的步骤。你必须返回标准的JSON格式。',
+                temperature: 0.3
+              });
+
+              taskPlan = JSON.parse(this.cleanAndFixJSON(response.text));
+              logger.info('[TaskPlannerEnhanced] ✅ 后端AI服务成功');
+
+            } catch (error3) {
+              logger.warn('[TaskPlannerEnhanced] 后端AI服务失败:', error3.message);
+
+              // 尝试4: 基于规则的分解（最后降级）
+              try {
+                logger.info('[TaskPlannerEnhanced] 尝试4: 基于规则的任务分解');
+                taskPlan = this.ruleBasedDecompose(userRequest, projectContext);
+                logger.info('[TaskPlannerEnhanced] ✅ 基于规则的分解成功');
+
+              } catch (error4) {
+                logger.error('[TaskPlannerEnhanced] 基于规则的分解也失败:', error4.message);
+                // 抛出错误，进入外层catch的createFallbackPlan
+                throw new Error('所有降级策略均失败');
+              }
+            }
+          }
+        } else {
+          // 没有响应文本，直接进入规则分解
+          logger.info('[TaskPlannerEnhanced] 无LLM响应，使用规则分解');
+          taskPlan = this.ruleBasedDecompose(userRequest, projectContext);
+        }
       }
 
-      logger.info('[TaskPlannerEnhanced] LLM响应:', response.text.substring(0, 200) + '...');
-
-      // 3. 解析JSON响应
-      let taskPlan;
-      try {
-        // 提取JSON（可能包含在代码块中）
-        const jsonMatch = response.text.match(/```json\n?([\s\S]*?)\n?```/) ||
-                         response.text.match(/\{[\s\S]*\}/);
-        const jsonText = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : response.text;
-        taskPlan = JSON.parse(jsonText);
-      } catch (parseError) {
-        logger.error('[TaskPlannerEnhanced] JSON解析失败:', parseError);
-        // 如果解析失败，尝试修复常见问题
-        const cleanedText = response.text
-          .replace(/```json\n?/g, '')
-          .replace(/```\n?/g, '')
-          .trim();
-        taskPlan = JSON.parse(cleanedText);
-      }
+      logger.info('[TaskPlannerEnhanced] 任务计划生成成功，共', taskPlan?.subtasks?.length || 0, '个子任务');
 
       // 4. 规范化任务计划
       const normalizedPlan = this.normalizePlan(taskPlan, userRequest);
@@ -358,6 +387,103 @@ ${userRequest}
   /**
    * 创建降级方案（当LLM失败时）
    */
+  /**
+   * ⚡ 优化2: JSON清理和修复
+   * 尝试修复常见的JSON格式错误
+   */
+  cleanAndFixJSON(jsonText) {
+    let cleaned = jsonText
+      // 移除代码块标记
+      .replace(/```json\n?/g, '')
+      .replace(/```\n?/g, '')
+      // 移除注释
+      .replace(/\/\/.*$/gm, '')
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      // 移除尾随逗号
+      .replace(/,(\s*[}\]])/g, '$1')
+      // 修复单引号为双引号
+      .replace(/'/g, '"')
+      // 移除控制字符
+      .replace(/[\u0000-\u001F\u007F-\u009F]/g, '')
+      .trim();
+
+    // 尝试提取JSON对象
+    const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      cleaned = jsonMatch[0];
+    }
+
+    return cleaned;
+  }
+
+  /**
+   * ⚡ 优化2: 基于规则的任务分解
+   * 当所有LLM都失败时的最后降级方案
+   */
+  ruleBasedDecompose(userRequest, projectContext) {
+    logger.info('[TaskPlannerEnhanced] 使用基于规则的任务分解');
+
+    // 关键词到工具的映射
+    const keywords = {
+      'react': ['tool_npm_project_setup', 'file_writer', 'code_generator'],
+      'vue': ['tool_npm_project_setup', 'file_writer', 'code_generator'],
+      'express': ['tool_npm_project_setup', 'file_writer', 'git_init'],
+      'python': ['tool_python_project_setup', 'file_writer'],
+      'flask': ['tool_python_project_setup', 'file_writer'],
+      'django': ['tool_python_project_setup', 'file_writer'],
+      'excel': ['tool_excel_generator'],
+      'word': ['tool_word_generator'],
+      'ppt': ['tool_ppt_generator'],
+      '文档': ['tool_word_generator'],
+      '表格': ['tool_excel_generator'],
+      '幻灯片': ['tool_ppt_generator'],
+      '演示': ['tool_ppt_generator']
+    };
+
+    const requestLower = userRequest.toLowerCase();
+
+    // 检测关键词
+    const detectedKeywords = Object.keys(keywords).filter(k =>
+      requestLower.includes(k)
+    );
+
+    let tools = [];
+    if (detectedKeywords.length > 0) {
+      // 使用检测到的关键词对应的工具
+      tools = detectedKeywords.flatMap(k => keywords[k]);
+      // 去重
+      tools = [...new Set(tools)];
+    } else {
+      // 默认工具链
+      tools = ['file_writer', 'generic_executor'];
+    }
+
+    return {
+      id: uuidv4(),
+      task_title: userRequest.substring(0, 50),
+      task_type: 'create',
+      user_request: userRequest,
+      estimated_duration: '5分钟',
+      subtasks: tools.map((tool, i) => ({
+        id: uuidv4(),
+        step: i + 1,
+        title: `执行 ${tool}`,
+        tool: tool,
+        action: 'execute',
+        description: userRequest,
+        params: { request: userRequest },
+        dependencies: i > 0 ? [i] : [],
+        output_files: [],
+        priority: 'normal'
+      })),
+      final_output: {
+        type: 'file',
+        files: []
+      },
+      created_at: new Date().toISOString()
+    };
+  }
+
   createFallbackPlan(userRequest, projectContext) {
     logger.info('[TaskPlannerEnhanced] 使用降级方案');
 

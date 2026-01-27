@@ -73,6 +73,33 @@ class FunctionCaller {
       }
     }
 
+    // ⚡ 工具调用结果缓存系统
+    this.cache = new Map(); // 简单Map缓存 (LRU-Cache可选)
+    this.cacheEnabled = options.enableCache !== false;
+    this.cacheTTL = options.cacheTTL || 600000; // 默认10分钟过期
+    this.maxCacheSize = options.maxCacheSize || 1000;
+    this.cacheStats = {
+      hits: 0,
+      misses: 0,
+      evictions: 0
+    };
+
+    // 可缓存工具白名单（纯函数，无副作用）
+    this.CACHEABLE_TOOLS = new Set([
+      'file_reader',
+      'project_analyzer',
+      'data_analyzer',
+      'image_analyzer',
+      'tool_excel_formula_builder',
+      'tool_markdown_generator',
+      'html_reader',
+      'css_reader',
+      'js_reader',
+      'json_reader'
+    ]);
+
+    logger.info('[FunctionCaller] 工具调用缓存已启用 (TTL: 10分钟, 容量: 1000)');
+
     // 注册内置工具
     this.registerBuiltInTools();
 
@@ -845,6 +872,21 @@ function initializeInteractions() {
 
     const startTime = Date.now();
 
+    // ⚡ 检查缓存（仅对可缓存工具）
+    if (this.cacheEnabled && this.CACHEABLE_TOOLS.has(toolName)) {
+      const cacheKey = this._getCacheKey(toolName, params);
+      const cachedResult = this._getFromCache(cacheKey);
+
+      if (cachedResult !== null) {
+        this.cacheStats.hits++;
+        const hitRate = ((this.cacheStats.hits / (this.cacheStats.hits + this.cacheStats.misses)) * 100).toFixed(2);
+        logger.info(`[Function Caller] 🎯 缓存命中: ${toolName} (命中率: ${hitRate}%)`);
+        return cachedResult;
+      }
+
+      this.cacheStats.misses++;
+    }
+
     // 🔥 工具掩码验证
     if (this.toolMasking && this.enableToolMasking) {
       const validation = this.toolMasking.validateCall(toolName);
@@ -864,6 +906,12 @@ function initializeInteractions() {
 
     try {
       const result = await tool.handler(params, context);
+
+      // ⚡ 缓存结果（仅对可缓存工具）
+      if (this.cacheEnabled && this.CACHEABLE_TOOLS.has(toolName)) {
+        const cacheKey = this._getCacheKey(toolName, params);
+        this._setCache(cacheKey, result);
+      }
 
       // 记录成功统计
       if (this.toolManager) {
@@ -1043,6 +1091,107 @@ function initializeInteractions() {
   resetMasking() {
     if (!this.toolMasking) {return;}
     this.toolMasking.reset();
+  }
+
+  // ⚡ 缓存系统方法
+
+  /**
+   * 生成缓存键
+   * @private
+   */
+  _getCacheKey(toolName, params) {
+    // 移除不应影响缓存的参数
+    const { timestamp, requestId, ...cacheableParams } = params;
+
+    // 生成稳定的哈希键
+    const paramsStr = JSON.stringify(cacheableParams, Object.keys(cacheableParams).sort());
+    return `${toolName}:${this._hashString(paramsStr)}`;
+  }
+
+  /**
+   * 简单字符串哈希
+   * @private
+   */
+  _hashString(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32bit integer
+    }
+    return Math.abs(hash).toString(36);
+  }
+
+  /**
+   * 从缓存获取结果
+   * @private
+   */
+  _getFromCache(key) {
+    const cached = this.cache.get(key);
+
+    if (!cached) {
+      return null;
+    }
+
+    // 检查是否过期
+    if (Date.now() - cached.timestamp > this.cacheTTL) {
+      this.cache.delete(key);
+      return null;
+    }
+
+    return cached.result;
+  }
+
+  /**
+   * 设置缓存
+   * @private
+   */
+  _setCache(key, result) {
+    // LRU淘汰：如果缓存已满，删除最早的项
+    if (this.cache.size >= this.maxCacheSize) {
+      const firstKey = this.cache.keys().next().value;
+      this.cache.delete(firstKey);
+      this.cacheStats.evictions++;
+    }
+
+    this.cache.set(key, {
+      result,
+      timestamp: Date.now()
+    });
+  }
+
+  /**
+   * 获取缓存统计
+   */
+  getCacheStats() {
+    const total = this.cacheStats.hits + this.cacheStats.misses;
+    const hitRate = total > 0 ? ((this.cacheStats.hits / total) * 100).toFixed(2) : 0;
+
+    return {
+      enabled: this.cacheEnabled,
+      hits: this.cacheStats.hits,
+      misses: this.cacheStats.misses,
+      hitRate: `${hitRate}%`,
+      size: this.cache.size,
+      maxSize: this.maxCacheSize,
+      evictions: this.cacheStats.evictions
+    };
+  }
+
+  /**
+   * 清空缓存
+   */
+  clearCache() {
+    this.cache.clear();
+    logger.info('[FunctionCaller] 缓存已清空');
+  }
+
+  /**
+   * 手动添加可缓存工具
+   */
+  addCacheableTool(toolName) {
+    this.CACHEABLE_TOOLS.add(toolName);
+    logger.info(`[FunctionCaller] 工具 ${toolName} 已添加到缓存白名单`);
   }
 }
 
