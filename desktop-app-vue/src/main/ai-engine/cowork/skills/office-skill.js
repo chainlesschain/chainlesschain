@@ -6,8 +6,8 @@
  * @module ai-engine/cowork/skills/office-skill
  */
 
-const { BaseSkill } = require('./base-skill');
-const fs = require('fs').promises;
+const { BaseSkill } = require("./base-skill");
+const fs = require("fs").promises;
 
 /**
  * OfficeSkill 类
@@ -15,22 +15,22 @@ const fs = require('fs').promises;
 class OfficeSkill extends BaseSkill {
   constructor(options = {}) {
     super({
-      skillId: 'office-skill',
-      name: 'Office Document Processor',
-      description: 'Create and process Excel, Word, PowerPoint documents',
-      version: '1.0.0',
-      category: 'office',
+      skillId: "office-skill",
+      name: "Office Document Processor",
+      description: "Create and process Excel, Word, PowerPoint documents",
+      version: "1.0.0",
+      category: "office",
       capabilities: [
-        'create_excel',
-        'create_word',
-        'create_powerpoint',
-        'read_excel',
-        'read_word',
-        'format_document',
-        'data_analysis',
-        'chart_generation',
+        "create_excel",
+        "create_word",
+        "create_powerpoint",
+        "read_excel",
+        "read_word",
+        "format_document",
+        "data_analysis",
+        "chart_generation",
       ],
-      supportedFileTypes: ['.xlsx', '.xls', '.docx', '.doc', '.pptx', '.ppt'],
+      supportedFileTypes: [".xlsx", ".xls", ".docx", ".doc", ".pptx", ".ppt"],
       ...options,
     });
 
@@ -53,16 +53,16 @@ class OfficeSkill extends BaseSkill {
     let score = 0;
 
     // 检查 type 是否为 "office"
-    if (task.type === 'office') {
+    if (task.type === "office") {
       score += 50;
     }
 
     // 检查 operation 是否匹配能力
     if (task.operation) {
       const operationSnakeCase = task.operation
-        .replace(/([A-Z])/g, '_$1')
+        .replace(/([A-Z])/g, "_$1")
         .toLowerCase()
-        .replace(/^_/, ''); // createExcel -> create_excel
+        .replace(/^_/, ""); // createExcel -> create_excel
 
       if (this.capabilities.includes(operationSnakeCase)) {
         score += 50;
@@ -93,12 +93,12 @@ class OfficeSkill extends BaseSkill {
 
     // 兼容两种模式：type 或 operation
     let taskType = type;
-    if (type === 'office' && operation) {
+    if (type === "office" && operation) {
       // 将 camelCase 转换为 snake_case
       taskType = operation
-        .replace(/([A-Z])/g, '_$1')
+        .replace(/([A-Z])/g, "_$1")
         .toLowerCase()
-        .replace(/^_/, ''); // createExcel -> create_excel
+        .replace(/^_/, ""); // createExcel -> create_excel
     }
 
     // 兼容性：如果没有input字段但有operation字段，说明整个task对象就是输入
@@ -110,23 +110,23 @@ class OfficeSkill extends BaseSkill {
     }
 
     switch (taskType) {
-      case 'create_excel':
+      case "create_excel":
         return await this.createExcel(inputData, context);
 
-      case 'create_word':
+      case "create_word":
         return await this.createWord(inputData, context);
 
-      case 'create_powerpoint':
-      case 'create_power_point': // 兼容性：支持两种格式
+      case "create_powerpoint":
+      case "create_power_point": // 兼容性：支持两种格式
         return await this.createPowerPoint(inputData, context);
 
-      case 'read_excel':
+      case "read_excel":
         return await this.readExcel(inputData, context);
 
-      case 'read_word':
+      case "read_word":
         return await this.readWord(inputData, context);
 
-      case 'data_analysis':
+      case "data_analysis":
         return await this.performDataAnalysis(inputData, context);
 
       default:
@@ -151,24 +151,27 @@ class OfficeSkill extends BaseSkill {
     if (input.filePath && input.data) {
       // 标准格式: { filePath, data, options }
       ({ filePath, data, options = {} } = input);
-    } else if (input.outputPath && (input.rows || input.columns || input.sheetName)) {
+    } else if (
+      input.outputPath &&
+      (input.rows || input.columns || input.sheetName)
+    ) {
       // 测试格式: { outputPath, rows, columns, sheetName, operation }
       filePath = input.outputPath;
       data = {
         rows: input.rows || [],
         columns: input.columns || [],
-        sheetName: input.sheetName || 'Sheet1',
+        sheetName: input.sheetName || "Sheet1",
       };
       options = {};
     } else {
       // 验证输入
       const validation = this.validateInput(input, {
-        filePath: { type: 'string', required: true },
-        data: { type: 'object', required: true },
+        filePath: { type: "string", required: true },
+        data: { type: "object", required: true },
       });
 
       if (!validation.valid) {
-        throw new Error(`Invalid input: ${validation.errors.join(', ')}`);
+        throw new Error(`Invalid input: ${validation.errors.join(", ")}`);
       }
 
       ({ filePath, data, options = {} } = input);
@@ -177,9 +180,11 @@ class OfficeSkill extends BaseSkill {
     // 延迟加载 ExcelJS
     if (!this.excelLib) {
       try {
-        this.excelLib = require('exceljs');
+        this.excelLib = require("exceljs");
       } catch (_error) {
-        throw new Error('ExcelJS library not available. Please install: npm install exceljs');
+        throw new Error(
+          "ExcelJS library not available. Please install: npm install exceljs",
+        );
       }
     }
 
@@ -193,7 +198,7 @@ class OfficeSkill extends BaseSkill {
     } else {
       // 单个工作表
       const sheetData = {
-        name: data.sheetName || 'Sheet1',
+        name: data.sheetName || "Sheet1",
         columns: data.columns,
         data: data.rows || [],
       };
@@ -211,16 +216,16 @@ class OfficeSkill extends BaseSkill {
         await context.fileSandbox.recordAuditLog({
           teamId: context.teamId,
           agentId: context.agentId || null,
-          operation: 'WRITE',
+          operation: "WRITE",
           path: filePath,
           success: true,
           metadata: {
-            fileType: 'xlsx',
+            fileType: "xlsx",
             sheets: workbook.worksheets.length,
           },
         });
       } catch (_error) {
-        this._log('记录审计日志失败', 'warn');
+        this._log("记录审计日志失败", "warn");
       }
     }
 
@@ -238,7 +243,7 @@ class OfficeSkill extends BaseSkill {
    * @private
    */
   async _createExcelSheet(workbook, sheetData, _options) {
-    const worksheet = workbook.addWorksheet(sheetData.name || 'Sheet1');
+    const worksheet = workbook.addWorksheet(sheetData.name || "Sheet1");
 
     // 添加列定义
     if (sheetData.columns) {
@@ -265,9 +270,9 @@ class OfficeSkill extends BaseSkill {
     // 延迟加载 ExcelJS
     if (!this.excelLib) {
       try {
-        this.excelLib = require('exceljs');
+        this.excelLib = require("exceljs");
       } catch (_error) {
-        throw new Error('ExcelJS library not available');
+        throw new Error("ExcelJS library not available");
       }
     }
 
@@ -287,7 +292,9 @@ class OfficeSkill extends BaseSkill {
       : workbook.worksheets;
 
     for (const worksheet of worksheets) {
-      if (!worksheet) continue;
+      if (!worksheet) {
+        continue;
+      }
 
       const sheetData = {
         name: worksheet.name,
@@ -304,7 +311,9 @@ class OfficeSkill extends BaseSkill {
       result.sheets.push(sheetData);
     }
 
-    this._log(`Excel 文件已读取: ${filePath}, 工作表数: ${result.sheets.length}`);
+    this._log(
+      `Excel 文件已读取: ${filePath}, 工作表数: ${result.sheets.length}`,
+    );
 
     return result;
   }
@@ -320,12 +329,28 @@ class OfficeSkill extends BaseSkill {
    * @returns {Promise<Object>} 结果
    */
   async createWord(input, _context = {}) {
-    const { filePath, content } = input;
+    // 兼容两种输入格式
+    let filePath, content;
+
+    if (input.filePath && input.content) {
+      // 标准格式: { filePath, content }
+      ({ filePath, content } = input);
+    } else if (input.outputPath) {
+      // 测试格式: { outputPath, title, sections, ... }
+      filePath = input.outputPath;
+      content = {
+        title: input.title,
+        paragraphs: input.paragraphs || [],
+        sections: input.sections || [],
+      };
+    } else {
+      ({ filePath, content } = input);
+    }
 
     // 延迟加载 docx
     if (!this.wordLib) {
       try {
-        const docx = require('docx');
+        const docx = require("docx");
         this.wordLib = {
           Document: docx.Document,
           Packer: docx.Packer,
@@ -333,7 +358,9 @@ class OfficeSkill extends BaseSkill {
           HeadingLevel: docx.HeadingLevel,
         };
       } catch (_error) {
-        throw new Error('docx library not available. Please install: npm install docx');
+        throw new Error(
+          "docx library not available. Please install: npm install docx",
+        );
       }
     }
 
@@ -348,20 +375,37 @@ class OfficeSkill extends BaseSkill {
         new Paragraph({
           text: content.title,
           heading: HeadingLevel.HEADING_1,
-        })
+        }),
       );
     }
 
-    if (content.paragraphs && Array.isArray(content.paragraphs)) {
+    // 兼容性：处理 paragraphs 或 sections
+    if (content.sections && Array.isArray(content.sections)) {
+      // 处理 sections 格式: [{ heading, content }]
+      for (const section of content.sections) {
+        if (section.heading) {
+          children.push(
+            new Paragraph({
+              text: section.heading,
+              heading: HeadingLevel.HEADING_2,
+            }),
+          );
+        }
+        if (section.content) {
+          children.push(new Paragraph({ text: section.content }));
+        }
+      }
+    } else if (content.paragraphs && Array.isArray(content.paragraphs)) {
+      // 处理 paragraphs 格式
       for (const para of content.paragraphs) {
-        if (typeof para === 'string') {
+        if (typeof para === "string") {
           children.push(new Paragraph({ text: para }));
         } else if (para.heading) {
           children.push(
             new Paragraph({
               text: para.text,
               heading: HeadingLevel[`HEADING_${para.level || 2}`],
-            })
+            }),
           );
         } else {
           children.push(new Paragraph({ text: para.text || para }));
@@ -395,7 +439,9 @@ class OfficeSkill extends BaseSkill {
   async readWord(_input, _context = {}) {
     // 简化实现：读取文本内容
     // 实际应用中需要使用 mammoth 或 docx 库来解析
-    throw new Error('Word document reading not yet implemented. Use a library like mammoth.js');
+    throw new Error(
+      "Word document reading not yet implemented. Use a library like mammoth.js",
+    );
   }
 
   // ==========================================
@@ -409,15 +455,30 @@ class OfficeSkill extends BaseSkill {
    * @returns {Promise<Object>} 结果
    */
   async createPowerPoint(input, _context = {}) {
-    const { filePath, slides, options = {} } = input;
+    // 兼容两种输入格式
+    let filePath, slides, options;
+
+    if (input.filePath && input.slides) {
+      // 标准格式: { filePath, slides, options }
+      ({ filePath, slides, options = {} } = input);
+    } else if (input.outputPath) {
+      // 测试格式: { outputPath, title, slides }
+      filePath = input.outputPath;
+      slides = input.slides || [];
+      options = { title: input.title };
+    } else {
+      ({ filePath, slides, options = {} } = input);
+    }
 
     // 延迟加载 pptxgenjs
     if (!this.pptLib) {
       try {
-        const PptxGenJS = require('pptxgenjs');
+        const PptxGenJS = require("pptxgenjs");
         this.pptLib = PptxGenJS;
       } catch (_error) {
-        throw new Error('pptxgenjs library not available. Please install: npm install pptxgenjs');
+        throw new Error(
+          "pptxgenjs library not available. Please install: npm install pptxgenjs",
+        );
       }
     }
 
@@ -444,18 +505,30 @@ class OfficeSkill extends BaseSkill {
             y: 0.5,
             fontSize: 32,
             bold: true,
-            color: '363636',
+            color: "363636",
           });
         }
 
         // 添加内容
         if (slideData.content) {
-          slide.addText(slideData.content, {
-            x: 0.5,
-            y: 1.5,
-            fontSize: 18,
-            color: '666666',
-          });
+          // 兼容性：处理字符串或数组格式
+          if (Array.isArray(slideData.content)) {
+            slideData.content.forEach((text, index) => {
+              slide.addText(text, {
+                x: 0.5,
+                y: 1.5 + index * 0.5,
+                fontSize: 18,
+                color: "666666",
+              });
+            });
+          } else {
+            slide.addText(slideData.content, {
+              x: 0.5,
+              y: 1.5,
+              fontSize: 18,
+              color: "666666",
+            });
+          }
         }
 
         // 添加图表
@@ -489,7 +562,7 @@ class OfficeSkill extends BaseSkill {
       y: options.y || 3,
       w: options.w || 8,
       h: options.h || 4,
-      chartType: type || 'bar',
+      chartType: type || "bar",
       data,
     };
 
@@ -513,20 +586,20 @@ class OfficeSkill extends BaseSkill {
 
     for (const analysisType of analysis) {
       switch (analysisType) {
-        case 'summary':
+        case "summary":
           results.summary = this._calculateSummary(data);
           break;
 
-        case 'statistics':
+        case "statistics":
           results.statistics = this._calculateStatistics(data);
           break;
 
-        case 'groupBy':
+        case "groupBy":
           results.groupBy = this._groupByColumn(data, input.groupByColumn);
           break;
 
         default:
-          this._log(`未知的分析类型: ${analysisType}`, 'warn');
+          this._log(`未知的分析类型: ${analysisType}`, "warn");
       }
     }
 
@@ -562,7 +635,9 @@ class OfficeSkill extends BaseSkill {
     const columns = Object.keys(data[0]);
 
     for (const column of columns) {
-      const values = data.map(row => row[column]).filter(v => typeof v === 'number');
+      const values = data
+        .map((row) => row[column])
+        .filter((v) => typeof v === "number");
 
       if (values.length > 0) {
         stats[column] = {

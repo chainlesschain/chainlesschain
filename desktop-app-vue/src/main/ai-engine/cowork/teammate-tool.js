@@ -19,32 +19,32 @@
  * @module ai-engine/cowork/teammate-tool
  */
 
-const { logger } = require('../../utils/logger.js');
-const { v4: uuidv4 } = require('uuid');
-const path = require('path');
-const fs = require('fs').promises;
-const EventEmitter = require('events');
-const { AgentPool } = require('./agent-pool.js');
+const { logger } = require("../../utils/logger.js");
+const { v4: uuidv4 } = require("uuid");
+const path = require("path");
+const fs = require("fs").promises;
+const EventEmitter = require("events");
+const { AgentPool } = require("./agent-pool.js");
 
 /**
  * 团队状态
  */
 const TeamStatus = {
-  ACTIVE: 'active',
-  PAUSED: 'paused',
-  COMPLETED: 'completed',
-  FAILED: 'failed',
+  ACTIVE: "active",
+  PAUSED: "paused",
+  COMPLETED: "completed",
+  FAILED: "failed",
 };
 
 /**
  * 代理状态
  */
 const AgentStatus = {
-  IDLE: 'idle',
-  BUSY: 'busy',
-  WAITING: 'waiting',
-  TERMINATED: 'terminated',
-  REMOVED: 'removed',
+  IDLE: "idle",
+  BUSY: "busy",
+  WAITING: "waiting",
+  TERMINATED: "terminated",
+  REMOVED: "removed",
 };
 
 /**
@@ -56,7 +56,7 @@ class TeammateTool extends EventEmitter {
 
     // 兼容性：检测是否传入的是数据库对象（用于测试）
     let options = {};
-    if (dbOrOptions && typeof dbOrOptions.run === 'function') {
+    if (dbOrOptions && typeof dbOrOptions.run === "function") {
       // 传入的是数据库对象
       this.db = dbOrOptions;
     } else {
@@ -67,7 +67,9 @@ class TeammateTool extends EventEmitter {
 
     this.options = {
       // 数据存储路径
-      dataDir: options.dataDir || path.join(process.cwd(), '.chainlesschain', 'cowork'),
+      dataDir:
+        options.dataDir ||
+        path.join(process.cwd(), ".chainlesschain", "cowork"),
       // 最大团队数
       maxTeams: options.maxTeams || 10,
       // 单个团队最大代理数
@@ -99,17 +101,17 @@ class TeammateTool extends EventEmitter {
       });
 
       // 初始化代理池
-      this.agentPool.initialize().catch(error => {
-        this._log(`代理池初始化失败: ${error.message}`, 'error');
+      this.agentPool.initialize().catch((error) => {
+        this._log(`代理池初始化失败: ${error.message}`, "error");
       });
 
-      this._log('代理池已启用');
+      this._log("代理池已启用");
     } else {
       this.agentPool = null;
-      this._log('代理池未启用，使用传统代理创建模式');
+      this._log("代理池未启用，使用传统代理创建模式");
     }
 
-    this._log('TeammateTool 已初始化');
+    this._log("TeammateTool 已初始化");
   }
 
   /**
@@ -127,10 +129,14 @@ class TeammateTool extends EventEmitter {
   async _ensureDataDir() {
     try {
       await fs.mkdir(this.options.dataDir, { recursive: true });
-      await fs.mkdir(path.join(this.options.dataDir, 'teams'), { recursive: true });
-      await fs.mkdir(path.join(this.options.dataDir, 'checkpoints'), { recursive: true });
+      await fs.mkdir(path.join(this.options.dataDir, "teams"), {
+        recursive: true,
+      });
+      await fs.mkdir(path.join(this.options.dataDir, "checkpoints"), {
+        recursive: true,
+      });
     } catch (error) {
-      this._log(`初始化数据目录失败: ${error.message}`, 'error');
+      this._log(`初始化数据目录失败: ${error.message}`, "error");
       throw error;
     }
   }
@@ -148,13 +154,14 @@ class TeammateTool extends EventEmitter {
   async spawnTeam(teamName, config = {}) {
     // 检查团队数量限制（不包括已归档的团队）
     const activeTeamsCount = Array.from(this.teams.values()).filter(
-      t => t.status !== 'archived'
+      (t) => t.status !== "archived",
     ).length;
     if (activeTeamsCount >= this.options.maxTeams) {
       throw new Error(`已达到最大团队数限制: ${this.options.maxTeams}`);
     }
 
-    const teamId = config.teamId || `team_${Date.now()}_${uuidv4().slice(0, 8)}`;
+    const teamId =
+      config.teamId || `team_${Date.now()}_${uuidv4().slice(0, 8)}`;
 
     // 创建团队对象
     const team = {
@@ -172,8 +179,8 @@ class TeammateTool extends EventEmitter {
       },
       metadata: {
         createdAt: Date.now(),
-        createdBy: config.createdBy || 'system',
-        description: config.description || '',
+        createdBy: config.createdBy || "system",
+        description: config.description || "",
       },
     };
 
@@ -187,30 +194,41 @@ class TeammateTool extends EventEmitter {
         await this.db.run(
           `INSERT INTO cowork_teams (id, name, status, max_agents, created_at, metadata)
            VALUES (?, ?, ?, ?, ?, ?)`,
-          [teamId, teamName, team.status, team.maxAgents, team.metadata.createdAt, JSON.stringify(team)]
+          [
+            teamId,
+            teamName,
+            team.status,
+            team.maxAgents,
+            team.metadata.createdAt,
+            JSON.stringify(team),
+          ],
         );
       } catch (error) {
-        this._log(`保存团队到数据库失败: ${error.message}`, 'error');
+        this._log(`保存团队到数据库失败: ${error.message}`, "error");
+        // Clean up in-memory state before re-throwing
+        this.teams.delete(teamId);
+        this.messageQueues.delete(teamId);
+        throw error;
       }
     }
 
     // 保存到文件系统
     await this._ensureDataDir();
-    const teamDir = path.join(this.options.dataDir, 'teams', teamId);
+    const teamDir = path.join(this.options.dataDir, "teams", teamId);
     await fs.mkdir(teamDir, { recursive: true });
-    await fs.mkdir(path.join(teamDir, 'messages'), { recursive: true });
-    await fs.mkdir(path.join(teamDir, 'tasks'), { recursive: true });
-    await fs.mkdir(path.join(teamDir, 'results'), { recursive: true });
+    await fs.mkdir(path.join(teamDir, "messages"), { recursive: true });
+    await fs.mkdir(path.join(teamDir, "tasks"), { recursive: true });
+    await fs.mkdir(path.join(teamDir, "results"), { recursive: true });
 
     // 写入配置文件
     await fs.writeFile(
-      path.join(teamDir, 'config.json'),
+      path.join(teamDir, "config.json"),
       JSON.stringify(team, null, 2),
-      'utf-8'
+      "utf-8",
     );
 
     this._log(`团队已创建: ${teamName} (${teamId})`);
-    this.emit('team-spawned', { team });
+    this.emit("team-spawned", { team });
 
     // 兼容性：测试期望 members 而不是 agents
     return {
@@ -229,23 +247,25 @@ class TeammateTool extends EventEmitter {
 
     // 兼容性：默认过滤掉archived团队
     if (!filters.includeArchived) {
-      teams = teams.filter(t => t.status !== 'archived');
+      teams = teams.filter((t) => t.status !== "archived");
     }
 
     // 应用过滤条件
     if (filters.status) {
-      teams = teams.filter(t => t.status === filters.status);
+      teams = teams.filter((t) => t.status === filters.status);
     }
 
     if (filters.allowDynamicJoin !== undefined) {
-      teams = teams.filter(t => t.config.allowDynamicJoin === filters.allowDynamicJoin);
+      teams = teams.filter(
+        (t) => t.config.allowDynamicJoin === filters.allowDynamicJoin,
+      );
     }
 
     if (filters.maxAgents) {
-      teams = teams.filter(t => t.agents.length < t.maxAgents);
+      teams = teams.filter((t) => t.agents.length < t.maxAgents);
     }
 
-    return teams.map(t => ({
+    return teams.map((t) => ({
       id: t.id,
       name: t.name,
       status: t.status,
@@ -281,7 +301,7 @@ class TeammateTool extends EventEmitter {
     }
 
     // 检查代理是否已加入
-    if (team.agents.some(a => a.id === agentId)) {
+    if (team.agents.some((a) => a.id === agentId)) {
       throw new Error(`代理 ${agentId} 已在团队中`);
     }
 
@@ -292,7 +312,7 @@ class TeammateTool extends EventEmitter {
       // 从代理池获取代理
       agent = await this.agentPool.acquireAgent({
         capabilities: agentInfo.capabilities || [],
-        role: agentInfo.role || 'worker',
+        role: agentInfo.role || "worker",
         teamId,
       });
 
@@ -337,10 +357,10 @@ class TeammateTool extends EventEmitter {
         await this.db.run(
           `INSERT INTO cowork_agents (id, team_id, name, status, created_at)
            VALUES (?, ?, ?, ?, ?)`,
-          [agentId, teamId, agent.name, agent.status, agent.metadata.joinedAt]
+          [agentId, teamId, agent.name, agent.status, agent.metadata.joinedAt],
         );
       } catch (error) {
-        this._log(`保存代理到数据库失败: ${error.message}`, 'error');
+        this._log(`保存代理到数据库失败: ${error.message}`, "error");
       }
     }
 
@@ -348,7 +368,7 @@ class TeammateTool extends EventEmitter {
     await this._saveTeamConfig(team);
 
     this._log(`代理 ${agentId} 已加入团队 ${team.name}`);
-    this.emit('agent-joined', { teamId, agent });
+    this.emit("agent-joined", { teamId, agent });
 
     return {
       success: true,
@@ -372,7 +392,7 @@ class TeammateTool extends EventEmitter {
     // 检测调用模式：2参数 vs 3参数
     let agentId;
 
-    if (arguments.length === 2 && typeof agentIdOrTask === 'object') {
+    if (arguments.length === 2 && typeof agentIdOrTask === "object") {
       // 2参数模式: assignTask(teamId, task)
       agentId = null; // 触发自动选择
       task = agentIdOrTask;
@@ -392,10 +412,10 @@ class TeammateTool extends EventEmitter {
     const taskObj = {
       id: taskId,
       teamId,
-      description: task.description || '',
-      type: task.type || 'general',
+      description: task.description || "",
+      type: task.type || "general",
       priority: task.priority || 0,
-      status: 'pending',
+      status: "pending",
       assignedTo: null,
       result: null,
       createdAt: Date.now(),
@@ -423,7 +443,7 @@ class TeammateTool extends EventEmitter {
 
     // 兼容性：2参数模式保持pending状态，3参数模式更新为assigned
     if (arguments.length !== 2) {
-      taskObj.status = 'assigned';
+      taskObj.status = "assigned";
     }
 
     agent.assignedTask = taskId;
@@ -438,24 +458,38 @@ class TeammateTool extends EventEmitter {
         await this.db.run(
           `INSERT INTO cowork_tasks (id, team_id, description, status, priority, assigned_to, created_at)
            VALUES (?, ?, ?, ?, ?, ?, ?)`,
-          [taskId, teamId, taskObj.description, taskObj.status, taskObj.priority, agentId, taskObj.createdAt]
+          [
+            taskId,
+            teamId,
+            taskObj.description,
+            taskObj.status,
+            taskObj.priority,
+            agentId,
+            taskObj.createdAt,
+          ],
         );
 
         await this.db.run(
           `UPDATE cowork_agents SET status = ?, assigned_task = ? WHERE id = ?`,
-          [agent.status, taskId, agentId]
+          [agent.status, taskId, agentId],
         );
       } catch (error) {
-        this._log(`保存任务到数据库失败: ${error.message}`, 'error');
+        this._log(`保存任务到数据库失败: ${error.message}`, "error");
       }
     }
 
     // 保存任务文件
-    const taskFile = path.join(this.options.dataDir, 'teams', teamId, 'tasks', `${taskId}.json`);
-    await fs.writeFile(taskFile, JSON.stringify(taskObj, null, 2), 'utf-8');
+    const taskFile = path.join(
+      this.options.dataDir,
+      "teams",
+      teamId,
+      "tasks",
+      `${taskId}.json`,
+    );
+    await fs.writeFile(taskFile, JSON.stringify(taskObj, null, 2), "utf-8");
 
     this._log(`任务 ${taskId} 已分配给代理 ${agentId}`);
-    this.emit('task-assigned', { teamId, taskId, agentId, task: taskObj });
+    this.emit("task-assigned", { teamId, taskId, agentId, task: taskObj });
 
     // 兼容性：2参数模式返回task对象，3参数模式返回完整响应
     if (arguments.length === 2) {
@@ -491,7 +525,7 @@ class TeammateTool extends EventEmitter {
       teamId,
       from: fromAgent,
       to: null, // null 表示广播
-      type: message.type || 'broadcast',
+      type: message.type || "broadcast",
       content: message.content || message,
       timestamp: Date.now(),
       metadata: message.metadata || {},
@@ -512,25 +546,36 @@ class TeammateTool extends EventEmitter {
         await this.db.run(
           `INSERT INTO cowork_messages (id, team_id, from_agent, to_agent, message, timestamp)
            VALUES (?, ?, ?, ?, ?, ?)`,
-          [messageObj.id, teamId, fromAgent, null, JSON.stringify(messageObj.content), messageObj.timestamp]
+          [
+            messageObj.id,
+            teamId,
+            fromAgent,
+            null,
+            JSON.stringify(messageObj.content),
+            messageObj.timestamp,
+          ],
         );
       } catch (error) {
-        this._log(`保存消息到数据库失败: ${error.message}`, 'error');
+        this._log(`保存消息到数据库失败: ${error.message}`, "error");
       }
     }
 
     // 保存消息文件
     const messageFile = path.join(
       this.options.dataDir,
-      'teams',
+      "teams",
       teamId,
-      'messages',
-      `${messageObj.id}.json`
+      "messages",
+      `${messageObj.id}.json`,
     );
-    await fs.writeFile(messageFile, JSON.stringify(messageObj, null, 2), 'utf-8');
+    await fs.writeFile(
+      messageFile,
+      JSON.stringify(messageObj, null, 2),
+      "utf-8",
+    );
 
     this._log(`广播消息: ${fromAgent} -> 团队 ${team.name}`);
-    this.emit('message-broadcast', { teamId, message: messageObj });
+    this.emit("message-broadcast", { teamId, message: messageObj });
 
     return {
       success: true,
@@ -563,7 +608,7 @@ class TeammateTool extends EventEmitter {
     }
 
     if (sender.teamId !== receiver.teamId) {
-      throw new Error('代理不在同一团队中');
+      throw new Error("代理不在同一团队中");
     }
 
     const teamId = sender.teamId;
@@ -572,7 +617,7 @@ class TeammateTool extends EventEmitter {
       teamId,
       from: fromAgent,
       to: toAgent,
-      type: message.type || 'direct',
+      type: message.type || "direct",
       content: message.content || message,
       timestamp: Date.now(),
       metadata: message.metadata || {},
@@ -588,15 +633,22 @@ class TeammateTool extends EventEmitter {
         await this.db.run(
           `INSERT INTO cowork_messages (id, team_id, from_agent, to_agent, message, timestamp)
            VALUES (?, ?, ?, ?, ?, ?)`,
-          [messageObj.id, teamId, fromAgent, toAgent, JSON.stringify(messageObj.content), messageObj.timestamp]
+          [
+            messageObj.id,
+            teamId,
+            fromAgent,
+            toAgent,
+            JSON.stringify(messageObj.content),
+            messageObj.timestamp,
+          ],
         );
       } catch (error) {
-        this._log(`保存消息到数据库失败: ${error.message}`, 'error');
+        this._log(`保存消息到数据库失败: ${error.message}`, "error");
       }
     }
 
     this._log(`消息发送: ${fromAgent} -> ${toAgent}`);
-    this.emit('message-sent', { message: messageObj });
+    this.emit("message-sent", { message: messageObj });
 
     return {
       success: true,
@@ -618,7 +670,8 @@ class TeammateTool extends EventEmitter {
       throw new Error(`团队不存在: ${teamId}`);
     }
 
-    const decisionId = decision.id || `decision_${Date.now()}_${uuidv4().slice(0, 8)}`;
+    const decisionId =
+      decision.id || `decision_${Date.now()}_${uuidv4().slice(0, 8)}`;
 
     // 统计投票
     const voteCount = {
@@ -630,13 +683,13 @@ class TeammateTool extends EventEmitter {
 
     for (const { agentId, vote } of votes) {
       if (!this.agents.has(agentId)) {
-        this._log(`投票代理不存在: ${agentId}`, 'warn');
+        this._log(`投票代理不存在: ${agentId}`, "warn");
         continue;
       }
 
-      if (vote === 'approve') {
+      if (vote === "approve") {
         voteCount.approve++;
-      } else if (vote === 'reject') {
+      } else if (vote === "reject") {
         voteCount.reject++;
       } else {
         voteCount.abstain++;
@@ -644,8 +697,10 @@ class TeammateTool extends EventEmitter {
     }
 
     // 计算投票率和通过率
-    const votingRate = team.agents.length > 0 ? voteCount.total / team.agents.length : 0;
-    const approvalRate = voteCount.total > 0 ? voteCount.approve / voteCount.total : 0;
+    const votingRate =
+      team.agents.length > 0 ? voteCount.total / team.agents.length : 0;
+    const approvalRate =
+      voteCount.total > 0 ? voteCount.approve / voteCount.total : 0;
     const threshold = team.config.votingThreshold || 0.5;
 
     // 决定结果
@@ -662,8 +717,10 @@ class TeammateTool extends EventEmitter {
       timestamp: Date.now(),
     };
 
-    this._log(`投票决策: ${decisionId}, 通过: ${passed}, 赞成率: ${(approvalRate * 100).toFixed(2)}%`);
-    this.emit('decision-voted', { teamId, result });
+    this._log(
+      `投票决策: ${decisionId}, 通过: ${passed}, 赞成率: ${(approvalRate * 100).toFixed(2)}%`,
+    );
+    this.emit("decision-voted", { teamId, result });
 
     return result;
   }
@@ -683,20 +740,22 @@ class TeammateTool extends EventEmitter {
     // 统计任务状态
     const taskStats = {
       total: team.tasks.length,
-      pending: team.tasks.filter(t => t.status === 'pending').length,
-      assigned: team.tasks.filter(t => t.status === 'assigned').length,
-      running: team.tasks.filter(t => t.status === 'running').length,
-      completed: team.tasks.filter(t => t.status === 'completed').length,
-      failed: team.tasks.filter(t => t.status === 'failed').length,
+      pending: team.tasks.filter((t) => t.status === "pending").length,
+      assigned: team.tasks.filter((t) => t.status === "assigned").length,
+      running: team.tasks.filter((t) => t.status === "running").length,
+      completed: team.tasks.filter((t) => t.status === "completed").length,
+      failed: team.tasks.filter((t) => t.status === "failed").length,
     };
 
     // 统计代理状态
     const agentStats = {
       total: team.agents.length,
-      idle: team.agents.filter(a => a.status === AgentStatus.IDLE).length,
-      busy: team.agents.filter(a => a.status === AgentStatus.BUSY).length,
-      waiting: team.agents.filter(a => a.status === AgentStatus.WAITING).length,
-      terminated: team.agents.filter(a => a.status === AgentStatus.TERMINATED).length,
+      idle: team.agents.filter((a) => a.status === AgentStatus.IDLE).length,
+      busy: team.agents.filter((a) => a.status === AgentStatus.BUSY).length,
+      waiting: team.agents.filter((a) => a.status === AgentStatus.WAITING)
+        .length,
+      terminated: team.agents.filter((a) => a.status === AgentStatus.TERMINATED)
+        .length,
     };
 
     // 获取消息队列
@@ -706,14 +765,14 @@ class TeammateTool extends EventEmitter {
       id: team.id,
       name: team.name,
       status: team.status,
-      agents: team.agents.map(a => ({
+      agents: team.agents.map((a) => ({
         id: a.id,
         name: a.name,
         status: a.status,
         assignedTask: a.assignedTask,
       })),
       agentStats,
-      tasks: team.tasks.map(t => ({
+      tasks: team.tasks.map((t) => ({
         id: t.id,
         description: t.description,
         status: t.status,
@@ -733,7 +792,7 @@ class TeammateTool extends EventEmitter {
    * @param {string} reason - 终止原因
    * @returns {Promise<Object>} 终止结果
    */
-  async terminateAgent(agentId, reason = '') {
+  async terminateAgent(agentId, reason = "") {
     const agent = this.agents.get(agentId);
 
     if (!agent) {
@@ -753,9 +812,9 @@ class TeammateTool extends EventEmitter {
 
     // 如果有未完成的任务，标记为失败
     if (agent.assignedTask) {
-      const task = team.tasks.find(t => t.id === agent.assignedTask);
-      if (task && task.status !== 'completed') {
-        task.status = 'failed';
+      const task = team.tasks.find((t) => t.id === agent.assignedTask);
+      if (task && task.status !== "completed") {
+        task.status = "failed";
         task.result = { error: `代理被终止: ${reason}` };
         task.completedAt = Date.now();
       }
@@ -766,26 +825,26 @@ class TeammateTool extends EventEmitter {
     if (this.useAgentPool && this.agentPool) {
       try {
         this.agentPool.releaseAgent(agentId);
-        this._log(`代理已释放回池: ${agentId}`, 'debug');
+        this._log(`代理已释放回池: ${agentId}`, "debug");
       } catch (error) {
-        this._log(`释放代理回池失败: ${error.message}`, 'error');
+        this._log(`释放代理回池失败: ${error.message}`, "error");
       }
     }
 
     // 持久化到数据库
     if (this.db) {
       try {
-        await this.db.run(
-          `UPDATE cowork_agents SET status = ? WHERE id = ?`,
-          [agent.status, agentId]
-        );
+        await this.db.run(`UPDATE cowork_agents SET status = ? WHERE id = ?`, [
+          agent.status,
+          agentId,
+        ]);
       } catch (error) {
-        this._log(`更新代理状态失败: ${error.message}`, 'error');
+        this._log(`更新代理状态失败: ${error.message}`, "error");
       }
     }
 
     this._log(`代理已终止: ${agentId}, 原因: ${reason}`);
-    this.emit('agent-terminated', { agentId, reason, teamId: agent.teamId });
+    this.emit("agent-terminated", { agentId, reason, teamId: agent.teamId });
 
     return {
       success: true,
@@ -808,31 +867,33 @@ class TeammateTool extends EventEmitter {
       throw new Error(`团队不存在: ${teamId}`);
     }
 
-    const mergeType = strategy.type || 'aggregate';
+    const mergeType = strategy.type || "aggregate";
 
     let mergedResult = null;
 
     switch (mergeType) {
-      case 'aggregate':
+      case "aggregate":
         // 聚合所有结果
         mergedResult = {
-          type: 'aggregate',
+          type: "aggregate",
           results: results,
           count: results.length,
           timestamp: Date.now(),
         };
         break;
 
-      case 'vote': {
+      case "vote": {
         // 投票选择最佳结果
         const voteCounts = new Map();
         for (const result of results) {
           const key = JSON.stringify(result);
           voteCounts.set(key, (voteCounts.get(key) || 0) + 1);
         }
-        const winner = Array.from(voteCounts.entries()).sort((a, b) => b[1] - a[1])[0];
+        const winner = Array.from(voteCounts.entries()).sort(
+          (a, b) => b[1] - a[1],
+        )[0];
         mergedResult = {
-          type: 'vote',
+          type: "vote",
           result: JSON.parse(winner[0]),
           votes: winner[1],
           totalResults: results.length,
@@ -841,32 +902,37 @@ class TeammateTool extends EventEmitter {
         break;
       }
 
-      case 'concatenate':
+      case "concatenate":
         // 连接所有结果
         mergedResult = {
-          type: 'concatenate',
-          result: results.map(r => r.result || r).join('\n\n'),
+          type: "concatenate",
+          result: results.map((r) => r.result || r).join("\n\n"),
           count: results.length,
           timestamp: Date.now(),
         };
         break;
 
-      case 'average': {
+      case "average": {
         // 计算平均值（适用于数值结果）
-        const numbers = results.filter(r => typeof r === 'number' || typeof r.value === 'number');
+        const numbers = results.filter(
+          (r) => typeof r === "number" || typeof r.value === "number",
+        );
         if (numbers.length > 0) {
-          const sum = numbers.reduce((acc, r) => acc + (typeof r === 'number' ? r : r.value), 0);
+          const sum = numbers.reduce(
+            (acc, r) => acc + (typeof r === "number" ? r : r.value),
+            0,
+          );
           mergedResult = {
-            type: 'average',
+            type: "average",
             result: sum / numbers.length,
             count: numbers.length,
             timestamp: Date.now(),
           };
         } else {
           mergedResult = {
-            type: 'average',
+            type: "average",
             result: null,
-            error: '没有数值结果可以平均',
+            error: "没有数值结果可以平均",
             timestamp: Date.now(),
           };
         }
@@ -875,7 +941,7 @@ class TeammateTool extends EventEmitter {
 
       default:
         mergedResult = {
-          type: 'unknown',
+          type: "unknown",
           results,
           timestamp: Date.now(),
         };
@@ -884,15 +950,19 @@ class TeammateTool extends EventEmitter {
     // 保存合并结果
     const resultFile = path.join(
       this.options.dataDir,
-      'teams',
+      "teams",
       teamId,
-      'results',
-      `merged_${Date.now()}.json`
+      "results",
+      `merged_${Date.now()}.json`,
     );
-    await fs.writeFile(resultFile, JSON.stringify(mergedResult, null, 2), 'utf-8');
+    await fs.writeFile(
+      resultFile,
+      JSON.stringify(mergedResult, null, 2),
+      "utf-8",
+    );
 
     this._log(`结果已合并: 团队 ${team.name}, 策略: ${mergeType}`);
-    this.emit('results-merged', { teamId, mergedResult });
+    this.emit("results-merged", { teamId, mergedResult });
 
     return mergedResult;
   }
@@ -920,7 +990,7 @@ class TeammateTool extends EventEmitter {
       id: checkpointId,
       teamId,
       team: JSON.parse(JSON.stringify(team)), // 深拷贝
-      agents: team.agents.map(a => this.agents.get(a.id)),
+      agents: team.agents.map((a) => this.agents.get(a.id)),
       tasks: team.tasks,
       messageQueue: this.messageQueues.get(teamId).slice(), // 拷贝消息队列
       timestamp: Date.now(),
@@ -930,13 +1000,17 @@ class TeammateTool extends EventEmitter {
     // 保存检查点
     const checkpointFile = path.join(
       this.options.dataDir,
-      'checkpoints',
-      `${checkpointId}.json`
+      "checkpoints",
+      `${checkpointId}.json`,
     );
-    await fs.writeFile(checkpointFile, JSON.stringify(checkpoint, null, 2), 'utf-8');
+    await fs.writeFile(
+      checkpointFile,
+      JSON.stringify(checkpoint, null, 2),
+      "utf-8",
+    );
 
     this._log(`检查点已创建: ${checkpointId}`);
-    this.emit('checkpoint-created', { teamId, checkpointId });
+    this.emit("checkpoint-created", { teamId, checkpointId });
 
     return {
       id: checkpointId,
@@ -957,7 +1031,7 @@ class TeammateTool extends EventEmitter {
       throw new Error(`团队不存在: ${teamId}`);
     }
 
-    return team.agents.map(a => ({
+    return team.agents.map((a) => ({
       id: a.id,
       name: a.name,
       status: a.status,
@@ -992,7 +1066,7 @@ class TeammateTool extends EventEmitter {
     await this._saveTeamConfig(team);
 
     this._log(`团队配置已更新: ${team.name}`);
-    this.emit('team-config-updated', { teamId, config: team.config });
+    this.emit("team-config-updated", { teamId, config: team.config });
 
     return {
       success: true,
@@ -1011,10 +1085,10 @@ class TeammateTool extends EventEmitter {
    */
   _selectAgentForTask(team, _task) {
     // 找到所有空闲的代理
-    const idleAgents = team.agents.filter(a => a.status === AgentStatus.IDLE);
+    const idleAgents = team.agents.filter((a) => a.status === AgentStatus.IDLE);
 
     if (idleAgents.length === 0) {
-      throw new Error('没有空闲的代理');
+      throw new Error("没有空闲的代理");
     }
 
     // 简单策略：选择第一个空闲的代理
@@ -1027,13 +1101,13 @@ class TeammateTool extends EventEmitter {
    * @private
    */
   async _saveTeamConfig(team) {
-    const teamDir = path.join(this.options.dataDir, 'teams', team.id);
-    const configFile = path.join(teamDir, 'config.json');
+    const teamDir = path.join(this.options.dataDir, "teams", team.id);
+    const configFile = path.join(teamDir, "config.json");
 
     try {
-      await fs.writeFile(configFile, JSON.stringify(team, null, 2), 'utf-8');
+      await fs.writeFile(configFile, JSON.stringify(team, null, 2), "utf-8");
     } catch (error) {
-      this._log(`保存团队配置失败: ${error.message}`, 'error');
+      this._log(`保存团队配置失败: ${error.message}`, "error");
     }
   }
 
@@ -1041,11 +1115,11 @@ class TeammateTool extends EventEmitter {
    * 日志输出
    * @private
    */
-  _log(message, level = 'info') {
+  _log(message, level = "info") {
     if (this.options.enableLogging) {
-      if (level === 'error') {
+      if (level === "error") {
         logger.error(`[TeammateTool] ${message}`);
-      } else if (level === 'warn') {
+      } else if (level === "warn") {
         logger.warn(`[TeammateTool] ${message}`);
       } else {
         logger.info(`[TeammateTool] ${message}`);
@@ -1059,7 +1133,7 @@ class TeammateTool extends EventEmitter {
    */
   getStats() {
     const activeTeams = Array.from(this.teams.values()).filter(
-      t => t.status === TeamStatus.ACTIVE
+      (t) => t.status === TeamStatus.ACTIVE,
     );
 
     return {
@@ -1067,12 +1141,13 @@ class TeammateTool extends EventEmitter {
       activeTeams: activeTeams.length,
       totalAgents: this.agents.size,
       activeAgents: Array.from(this.agents.values()).filter(
-        a => a.status !== AgentStatus.TERMINATED
+        (a) => a.status !== AgentStatus.TERMINATED,
       ).length,
       totalTasks: activeTeams.reduce((sum, t) => sum + t.tasks.length, 0),
       completedTasks: activeTeams.reduce(
-        (sum, t) => sum + t.tasks.filter(task => task.status === 'completed').length,
-        0
+        (sum, t) =>
+          sum + t.tasks.filter((task) => task.status === "completed").length,
+        0,
       ),
     };
   }
@@ -1085,11 +1160,11 @@ class TeammateTool extends EventEmitter {
     const retention = this.options.messageRetention;
 
     for (const [teamId, messages] of this.messageQueues.entries()) {
-      const filtered = messages.filter(m => now - m.timestamp < retention);
+      const filtered = messages.filter((m) => now - m.timestamp < retention);
       this.messageQueues.set(teamId, filtered);
     }
 
-    this._log('过期消息已清理');
+    this._log("过期消息已清理");
   }
 
   /**
@@ -1105,24 +1180,24 @@ class TeammateTool extends EventEmitter {
 
     // 终止所有代理
     for (const agent of team.agents) {
-      await this.terminateAgent(agent.id, '团队被销毁');
+      await this.terminateAgent(agent.id, "团队被销毁");
       // 更新代理状态为removed
-      agent.status = AgentStatus.REMOVED || 'removed';
+      agent.status = "removed";
       // 更新数据库中的代理状态
       if (this.db) {
         try {
           await this.db.run(
             `UPDATE cowork_agents SET status = ? WHERE id = ?`,
-            ['removed', agent.id]
+            ["removed", agent.id],
           );
         } catch (error) {
-          this._log(`更新代理状态失败: ${error.message}`, 'error');
+          this._log(`更新代理状态失败: ${error.message}`, "error");
         }
       }
     }
 
-    // 兼容性：设置为archived状态而不是删除
-    team.status = 'archived';
+    // 设置为archived状态
+    team.status = "archived";
 
     // 清理消息队列
     this.messageQueues.delete(teamId);
@@ -1130,14 +1205,17 @@ class TeammateTool extends EventEmitter {
     // 更新数据库
     if (this.db) {
       try {
-        await this.db.run(`UPDATE cowork_teams SET status = ? WHERE id = ?`, ['archived', teamId]);
+        await this.db.run(`UPDATE cowork_teams SET status = ? WHERE id = ?`, [
+          "archived",
+          teamId,
+        ]);
       } catch (error) {
-        this._log(`更新团队状态失败: ${error.message}`, 'error');
+        this._log(`更新团队状态失败: ${error.message}`, "error");
       }
     }
 
     this._log(`团队已销毁: ${team.name}`);
-    this.emit('team-destroyed', { teamId });
+    this.emit("team-destroyed", { teamId });
 
     return { success: true };
   }
@@ -1153,18 +1231,18 @@ class TeammateTool extends EventEmitter {
    * @returns {Promise<object>} 代理对象
    */
   async addAgent(teamId, agentInfo = {}) {
-    const agentId = `agent_${Date.now()}_${require('uuid').v4().slice(0, 8)}`;
+    const agentId = `agent_${Date.now()}_${require("uuid").v4().slice(0, 8)}`;
     const result = await this.requestJoin(teamId, agentId, agentInfo);
 
     // 返回格式与测试期望一致
     return {
       id: agentId,
       teamId,
-      name: agentInfo.name || 'Agent',
-      status: 'active',
+      name: agentInfo.name || "Agent",
+      status: "active",
       capabilities: agentInfo.capabilities || [],
-      role: agentInfo.role || 'member',
-      ...result
+      role: agentInfo.role || "member",
+      ...result,
     };
   }
 
@@ -1199,7 +1277,7 @@ class TeammateTool extends EventEmitter {
       return {
         ...status,
         members: team.agents || [],
-        tasks: team.tasks || []
+        tasks: team.tasks || [],
       };
     }
     return status;
@@ -1222,7 +1300,7 @@ class TeammateTool extends EventEmitter {
       try {
         const row = await this.db.get(
           `SELECT * FROM cowork_agents WHERE id = ?`,
-          [agentId]
+          [agentId],
         );
 
         if (row) {
@@ -1234,11 +1312,11 @@ class TeammateTool extends EventEmitter {
             assignedTask: row.assigned_task,
             createdAt: row.created_at,
             terminatedAt: row.terminated_at,
-            metadata: row.metadata ? JSON.parse(row.metadata) : {}
+            metadata: row.metadata ? JSON.parse(row.metadata) : {},
           };
         }
       } catch (error) {
-        this._log(`获取代理失败: ${error.message}`, 'error');
+        this._log(`获取代理失败: ${error.message}`, "error");
       }
     }
 
@@ -1256,7 +1334,7 @@ class TeammateTool extends EventEmitter {
       try {
         const row = await this.db.get(
           `SELECT * FROM cowork_tasks WHERE id = ?`,
-          [taskId]
+          [taskId],
         );
 
         if (row) {
@@ -1270,11 +1348,11 @@ class TeammateTool extends EventEmitter {
             result: row.result ? JSON.parse(row.result) : null,
             createdAt: row.created_at,
             completedAt: row.completed_at,
-            metadata: row.metadata ? JSON.parse(row.metadata) : {}
+            metadata: row.metadata ? JSON.parse(row.metadata) : {},
           };
         }
       } catch (error) {
-        this._log(`获取任务失败: ${error.message}`, 'error');
+        this._log(`获取任务失败: ${error.message}`, "error");
       }
     }
 
@@ -1292,34 +1370,71 @@ class TeammateTool extends EventEmitter {
     if (this.db) {
       try {
         const now = Date.now();
-        const updates = ['status = ?'];
+
+        // Get the task first to find the assigned agent
+        const task = await this.getTask(taskId);
+
+        const updates = ["status = ?"];
         const values = [status];
 
         if (result && Object.keys(result).length > 0) {
-          updates.push('result = ?');
+          updates.push("result = ?");
           values.push(JSON.stringify(result));
         }
 
-        if (status === 'completed' || status === 'failed') {
-          updates.push('completed_at = ?');
+        if (status === "completed" || status === "failed") {
+          updates.push("completed_at = ?");
           values.push(now);
         }
 
         values.push(taskId);
 
         await this.db.run(
-          `UPDATE cowork_tasks SET ${updates.join(', ')} WHERE id = ?`,
-          values
+          `UPDATE cowork_tasks SET ${updates.join(", ")} WHERE id = ?`,
+          values,
         );
+
+        // Release the assigned agent when task completes or fails
+        if (
+          (status === "completed" || status === "failed") &&
+          task.assignedTo
+        ) {
+          const agentId = task.assignedTo;
+
+          // Update agent status to idle and clear assigned task
+          await this.db.run(
+            `UPDATE cowork_agents SET status = ?, assigned_task = NULL WHERE id = ?`,
+            ["idle", agentId],
+          );
+
+          // Update in-memory agent if it exists
+          const agent = this.agents.get(agentId);
+          if (agent) {
+            agent.status = AgentStatus.IDLE;
+            agent.assignedTask = null;
+          }
+
+          // Release agent back to pool
+          if (this.useAgentPool && this.agentPool) {
+            try {
+              this.agentPool.releaseAgent(agentId);
+              this._log(`代理已释放回池: ${agentId}`, "debug");
+            } catch (error) {
+              this._log(`释放代理回池失败: ${error.message}`, "error");
+            }
+          }
+
+          this._log(`代理 ${agentId} 已释放（任务${status}）`);
+        }
 
         return await this.getTask(taskId);
       } catch (error) {
-        this._log(`更新任务状态失败: ${error.message}`, 'error');
+        this._log(`更新任务状态失败: ${error.message}`, "error");
         throw error;
       }
     }
 
-    throw new Error('数据库未初始化');
+    throw new Error("数据库未初始化");
   }
 
   /**
@@ -1342,25 +1457,24 @@ class TeammateTool extends EventEmitter {
             SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
             SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed
           FROM cowork_tasks WHERE team_id = ?`,
-          [teamId]
+          [teamId],
         );
 
         const tasksCompleted = taskStats?.completed || 0;
         const tasksFailed = taskStats?.failed || 0;
         const tasksTotal = taskStats?.total || 0;
-        const successRate = tasksTotal > 0
-          ? Math.round((tasksCompleted / tasksTotal) * 100)
-          : 0;
+        const successRate =
+          tasksTotal > 0 ? Math.round((tasksCompleted / tasksTotal) * 100) : 0;
 
         return {
           teamId,
           tasksCompleted,
           tasksFailed,
           tasksTotal,
-          successRate
+          successRate,
         };
       } catch (error) {
-        this._log(`获取团队指标失败: ${error.message}`, 'error');
+        this._log(`获取团队指标失败: ${error.message}`, "error");
       }
     }
 
@@ -1369,7 +1483,7 @@ class TeammateTool extends EventEmitter {
       tasksCompleted: 0,
       tasksFailed: 0,
       tasksTotal: 0,
-      successRate: 0
+      successRate: 0,
     };
   }
 
@@ -1377,18 +1491,20 @@ class TeammateTool extends EventEmitter {
    * 清理资源（销毁代理池等）
    */
   async cleanup() {
-    this._log('[TeammateTool] 开始清理资源...');
+    this._log("[TeammateTool] 开始清理资源...");
 
     // 清理代理池
     if (this.useAgentPool && this.agentPool) {
       try {
         const poolStats = this.agentPool.getStats();
-        this._log(`[TeammateTool] 代理池统计: 创建=${poolStats.created}, 复用=${poolStats.reused}, 复用率=${poolStats.reuseRate}%`);
+        this._log(
+          `[TeammateTool] 代理池统计: 创建=${poolStats.created}, 复用=${poolStats.reused}, 复用率=${poolStats.reuseRate}%`,
+        );
 
         await this.agentPool.clear();
-        this._log('[TeammateTool] 代理池已清理');
+        this._log("[TeammateTool] 代理池已清理");
       } catch (error) {
-        this._log(`清理代理池失败: ${error.message}`, 'error');
+        this._log(`清理代理池失败: ${error.message}`, "error");
       }
     }
 
@@ -1398,7 +1514,7 @@ class TeammateTool extends EventEmitter {
       this.messageCleanupTimer = null;
     }
 
-    this._log('[TeammateTool] ✅ 资源清理完成');
+    this._log("[TeammateTool] ✅ 资源清理完成");
   }
 
   /**

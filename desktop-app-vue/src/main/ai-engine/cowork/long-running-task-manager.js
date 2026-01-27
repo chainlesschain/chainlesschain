@@ -367,18 +367,17 @@ class LongRunningTaskManager extends EventEmitter {
     if (this.options.taskTimeout > 0 || task.timeout) {
       const timeout = task.timeout || this.options.taskTimeout;
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(
-          () => reject(new Error("任务超时")),
-          timeout,
-        ),
+        setTimeout(() => reject(new Error("任务超时")), timeout),
       );
 
-      const racePromise = Promise.race([executorPromise, timeoutPromise]).catch((error) => {
-        if (error.message === "任务超时") {
-          this._handleTaskFailure(task, error);
-        }
-        throw error;
-      });
+      const racePromise = Promise.race([executorPromise, timeoutPromise]).catch(
+        (error) => {
+          if (error.message === "任务超时") {
+            this._handleTaskFailure(task, error);
+          }
+          throw error;
+        },
+      );
 
       return racePromise;
     }
@@ -507,6 +506,7 @@ class LongRunningTaskManager extends EventEmitter {
       checkpointCount: task.checkpoints.length,
       retryCount: task.retryCount,
       error: task.error,
+      result: task.result, // 添加result字段
     };
   }
 
@@ -524,7 +524,12 @@ class LongRunningTaskManager extends EventEmitter {
 
       // 如果有自定义执行器，使用它
       if (task.executor && typeof task.executor === "function") {
-        const result = await task.executor(task, this._createTaskContext(task));
+        const context = this._createTaskContext(task);
+        // 兼容性：根据executor的参数个数决定如何调用
+        const result =
+          task.executor.length === 1
+            ? await task.executor(context) // 只传context
+            : await task.executor(task, context); // 传task和context
         await this._handleTaskSuccess(task, result);
         return;
       }
@@ -557,7 +562,7 @@ class LongRunningTaskManager extends EventEmitter {
 
       const step = task.steps[i];
       task.currentStep = i;
-      task.progress = Math.round(((i + 1) / task.steps.length) * 100);
+      task.progress = (i + 1) / task.steps.length;
       task.progressMessage = step.name || `步骤 ${i + 1}/${task.steps.length}`;
 
       this._log(`执行步骤 ${i + 1}/${task.steps.length}: ${step.name}`);
@@ -606,10 +611,11 @@ class LongRunningTaskManager extends EventEmitter {
 
       // 进度更新函数
       updateProgress: async (progress, message) => {
-        task.progress = Math.min(100, Math.max(0, progress));
+        // Store progress in 0-1 format
+        task.progress = Math.min(1, Math.max(0, progress));
         task.progressMessage = message || "";
         await this._saveTask(task);
-        this.emit("task-progress", { task, progress, message });
+        this.emit("task-progress", { task, progress: task.progress, message });
       },
 
       // 创建检查点函数
@@ -631,7 +637,7 @@ class LongRunningTaskManager extends EventEmitter {
   async _handleTaskSuccess(task, result) {
     task.status = TaskStatus.COMPLETED;
     task.completedAt = Date.now();
-    task.progress = 100;
+    task.progress = 1;
     task.progressMessage = "已完成";
     task.result = result;
 
@@ -659,7 +665,10 @@ class LongRunningTaskManager extends EventEmitter {
     await this._markTaskFailed(task, error);
 
     // 如果还可以重试且启用了自动恢复
-    const autoRecovery = task.autoRecovery !== undefined ? task.autoRecovery : this.options.autoRecovery;
+    const autoRecovery =
+      task.autoRecovery !== undefined
+        ? task.autoRecovery
+        : this.options.autoRecovery;
     if (task.retryCount <= task.maxRetries && autoRecovery) {
       this._log(`准备重试任务 (${task.retryCount}/${task.maxRetries})`, "warn");
 
@@ -1033,7 +1042,7 @@ class LongRunningTaskManager extends EventEmitter {
 
     // 应用筛选
     if (filters.status) {
-      tasks = tasks.filter(t => t.status === filters.status);
+      tasks = tasks.filter((t) => t.status === filters.status);
     }
 
     return tasks;
