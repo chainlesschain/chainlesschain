@@ -6,8 +6,8 @@
  * @module ai-engine/cowork/skills/skill-registry
  */
 
-const { logger } = require('../../../utils/logger.js');
-const EventEmitter = require('events');
+const { logger } = require("../../../utils/logger.js");
+const EventEmitter = require("events");
 
 /**
  * SkillRegistry 类
@@ -33,7 +33,7 @@ class SkillRegistry extends EventEmitter {
     // 文件类型索引: fileType -> Set<skillId>
     this.fileTypeIndex = new Map();
 
-    this._log('SkillRegistry 已初始化');
+    this._log("SkillRegistry 已初始化");
   }
 
   // ==========================================
@@ -46,7 +46,7 @@ class SkillRegistry extends EventEmitter {
    */
   register(skill) {
     if (!skill || !skill.skillId) {
-      throw new Error('Invalid skill: missing skillId');
+      throw new Error("Invalid skill: missing skillId");
     }
 
     if (this.skills.size >= this.options.maxSkills) {
@@ -54,7 +54,7 @@ class SkillRegistry extends EventEmitter {
     }
 
     if (this.skills.has(skill.skillId)) {
-      this._log(`技能已存在，将被覆盖: ${skill.skillId}`, 'warn');
+      this._log(`技能已存在，将被覆盖: ${skill.skillId}`, "warn");
     }
 
     // 注册技能
@@ -82,7 +82,7 @@ class SkillRegistry extends EventEmitter {
     this._attachSkillEventListeners(skill);
 
     this._log(`技能已注册: ${skill.name} (${skill.skillId})`);
-    this.emit('skill-registered', { skill });
+    this.emit("skill-registered", { skill });
   }
 
   /**
@@ -103,7 +103,7 @@ class SkillRegistry extends EventEmitter {
     const skill = this.skills.get(skillId);
 
     if (!skill) {
-      this._log(`技能不存在: ${skillId}`, 'warn');
+      this._log(`技能不存在: ${skillId}`, "warn");
       return;
     }
 
@@ -131,7 +131,7 @@ class SkillRegistry extends EventEmitter {
     }
 
     this._log(`技能已注销: ${skill.name} (${skillId})`);
-    this.emit('skill-unregistered', { skillId, skill });
+    this.emit("skill-unregistered", { skillId, skill });
   }
 
   // ==========================================
@@ -197,8 +197,8 @@ class SkillRegistry extends EventEmitter {
     }
 
     return Array.from(skillIds)
-      .map(id => this.skills.get(id))
-      .filter(skill => skill !== undefined);
+      .map((id) => this.skills.get(id))
+      .filter((skill) => skill !== undefined);
   }
 
   /**
@@ -213,8 +213,8 @@ class SkillRegistry extends EventEmitter {
     }
 
     return Array.from(skillIds)
-      .map(id => this.skills.get(id))
-      .filter(skill => skill !== undefined);
+      .map((id) => this.skills.get(id))
+      .filter((skill) => skill !== undefined);
   }
 
   /**
@@ -230,7 +230,7 @@ class SkillRegistry extends EventEmitter {
    * @returns {Array<BaseSkill>}
    */
   getEnabledSkills() {
-    return this.getAllSkills().filter(skill => skill.config.enabled);
+    return this.getAllSkills().filter((skill) => skill.config.enabled);
   }
 
   // ==========================================
@@ -265,24 +265,35 @@ class SkillRegistry extends EventEmitter {
    * @returns {Promise<any>} 执行结果
    */
   async autoExecute(task, context = {}) {
-    // 兼容性：如果task没有type但有operation，推断type为office
-    let taskObj = task;
-    if (!task.type && task.operation) {
-      taskObj = {
-        ...task,
-        type: 'office',
+    try {
+      // 兼容性：如果task没有type但有operation，推断type为office
+      let taskObj = task;
+      if (!task.type && task.operation) {
+        taskObj = {
+          ...task,
+          type: "office",
+        };
+      }
+
+      const bestSkill = this.selectBestSkill(taskObj);
+
+      if (!bestSkill) {
+        throw new Error(
+          `没有可用的技能来处理任务: ${taskObj.type || "unknown"}`,
+        );
+      }
+
+      this._log(`自动选择技能: ${bestSkill.name} (${bestSkill.skillId})`);
+
+      return await bestSkill.executeWithMetrics(taskObj, context);
+    } catch (error) {
+      // 兼容性：捕获错误并返回失败结果而不是抛出异常
+      this._log(`任务执行失败: ${error.message}`, "error");
+      return {
+        success: false,
+        error: error.message,
       };
     }
-
-    const bestSkill = this.selectBestSkill(taskObj);
-
-    if (!bestSkill) {
-      throw new Error(`没有可用的技能来处理任务: ${taskObj.type || 'unknown'}`);
-    }
-
-    this._log(`自动选择技能: ${bestSkill.name} (${bestSkill.skillId})`);
-
-    return await bestSkill.executeWithMetrics(taskObj, context);
   }
 
   // ==========================================
@@ -299,16 +310,16 @@ class SkillRegistry extends EventEmitter {
 
     try {
       // 加载 Office Skill
-      const { OfficeSkill } = require('./office-skill');
+      const { OfficeSkill } = require("./office-skill");
       this.register(new OfficeSkill());
 
       // 加载其他内置技能...
       // const { DataAnalysisSkill } = require('./data-analysis-skill');
       // this.register(new DataAnalysisSkill());
 
-      this._log('内置技能已自动加载');
+      this._log("内置技能已自动加载");
     } catch (error) {
-      this._log(`自动加载内置技能失败: ${error.message}`, 'error');
+      this._log(`自动加载内置技能失败: ${error.message}`, "error");
     }
   }
 
@@ -321,16 +332,16 @@ class SkillRegistry extends EventEmitter {
    * @private
    */
   _attachSkillEventListeners(skill) {
-    skill.on('skill-started', data => {
-      this.emit('skill-started', data);
+    skill.on("skill-started", (data) => {
+      this.emit("skill-started", data);
     });
 
-    skill.on('skill-completed', data => {
-      this.emit('skill-completed', data);
+    skill.on("skill-completed", (data) => {
+      this.emit("skill-completed", data);
     });
 
-    skill.on('skill-failed', data => {
-      this.emit('skill-failed', data);
+    skill.on("skill-failed", (data) => {
+      this.emit("skill-failed", data);
     });
   }
 
@@ -369,8 +380,10 @@ class SkillRegistry extends EventEmitter {
       metrics: totalMetrics,
       successRate:
         totalMetrics.invocations > 0
-          ? ((totalMetrics.successes / totalMetrics.invocations) * 100).toFixed(2) + '%'
-          : 'N/A',
+          ? ((totalMetrics.successes / totalMetrics.invocations) * 100).toFixed(
+              2,
+            ) + "%"
+          : "N/A",
     };
   }
 
@@ -379,7 +392,7 @@ class SkillRegistry extends EventEmitter {
    * @returns {Array}
    */
   getSkillList() {
-    return this.getAllSkills().map(skill => skill.getInfo());
+    return this.getAllSkills().map((skill) => skill.getInfo());
   }
 
   /**
@@ -389,17 +402,17 @@ class SkillRegistry extends EventEmitter {
     for (const skill of this.skills.values()) {
       skill.resetMetrics();
     }
-    this._log('所有技能指标已重置');
+    this._log("所有技能指标已重置");
   }
 
   /**
    * 日志输出
    * @private
    */
-  _log(message, level = 'info') {
-    if (level === 'error') {
+  _log(message, level = "info") {
+    if (level === "error") {
       logger.error(`[SkillRegistry] ${message}`);
-    } else if (level === 'warn') {
+    } else if (level === "warn") {
       logger.warn(`[SkillRegistry] ${message}`);
     } else {
       logger.info(`[SkillRegistry] ${message}`);
@@ -420,7 +433,7 @@ class SkillRegistry extends EventEmitter {
     if (skill) {
       return {
         skill,
-        score: skill.getScore ? skill.getScore(task) : 100
+        score: skill.getScore ? skill.getScore(task) : 100,
       };
     }
     return null;

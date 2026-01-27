@@ -8,7 +8,7 @@ try {
   logger.info("[Database] sql.js not available (will use better-sqlite3)");
 }
 
-const { logger, createLogger } = require('./utils/logger.js');
+const { logger, createLogger } = require("./utils/logger.js");
 const path = require("path");
 const fs = require("fs");
 const { v4: uuidv4 } = require("uuid");
@@ -91,7 +91,7 @@ class DatabaseManager {
    */
   initializeQueryCache() {
     try {
-      const LRU = require('lru-cache');
+      const LRU = require("lru-cache");
       this.queryCache = new LRU({
         max: 500, // 最多缓存500个查询
         maxSize: 10 * 1024 * 1024, // 最大10MB
@@ -105,9 +105,12 @@ class DatabaseManager {
         ttl: 1000 * 60 * 5, // 5分钟过期
         updateAgeOnGet: true, // 访问时更新年龄
       });
-      logger.info('[Database] 查询缓存已初始化 (最大500项, 10MB, TTL: 5分钟)');
+      logger.info("[Database] 查询缓存已初始化 (最大500项, 10MB, TTL: 5分钟)");
     } catch (error) {
-      logger.warn('[Database] 查询缓存初始化失败，将不使用查询缓存:', error.message);
+      logger.warn(
+        "[Database] 查询缓存初始化失败，将不使用查询缓存:",
+        error.message,
+      );
       this.queryCache = null;
     }
   }
@@ -120,7 +123,9 @@ class DatabaseManager {
   getPreparedStatement(sql) {
     if (!this.preparedStatements.has(sql)) {
       if (!this.db || !this.db.prepare) {
-        throw new Error('Database not initialized or does not support prepare()');
+        throw new Error(
+          "Database not initialized or does not support prepare()",
+        );
       }
       this.preparedStatements.set(sql, this.db.prepare(sql));
     }
@@ -132,7 +137,7 @@ class DatabaseManager {
    */
   clearPreparedStatements() {
     this.preparedStatements.clear();
-    logger.info('[Database] Prepared statement缓存已清除');
+    logger.info("[Database] Prepared statement缓存已清除");
   }
 
   /**
@@ -2427,7 +2432,7 @@ class DatabaseManager {
       CREATE TABLE IF NOT EXISTS cowork_teams (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
-        status TEXT DEFAULT 'active' CHECK(status IN ('active', 'paused', 'completed', 'failed', 'destroyed')),
+        status TEXT DEFAULT 'active' CHECK(status IN ('active', 'paused', 'completed', 'failed', 'destroyed', 'archived')),
         max_agents INTEGER DEFAULT 5,
         created_at INTEGER NOT NULL,
         completed_at INTEGER,
@@ -2439,7 +2444,7 @@ class DatabaseManager {
         id TEXT PRIMARY KEY,
         team_id TEXT NOT NULL,
         name TEXT NOT NULL,
-        status TEXT DEFAULT 'idle' CHECK(status IN ('idle', 'busy', 'waiting', 'terminated')),
+        status TEXT DEFAULT 'idle' CHECK(status IN ('idle', 'busy', 'waiting', 'terminated', 'removed')),
         assigned_task TEXT,
         created_at INTEGER NOT NULL,
         terminated_at INTEGER,
@@ -3047,9 +3052,9 @@ class DatabaseManager {
       `);
 
       // 获取当前迁移版本
-      const currentVersion = this.db.prepare(
-        "SELECT version FROM migration_version WHERE id = 1"
-      ).get();
+      const currentVersion = this.db
+        .prepare("SELECT version FROM migration_version WHERE id = 1")
+        .get();
 
       // 定义最新迁移版本号
       const LATEST_VERSION = 2; // 增加版本号当有新迁移时
@@ -3067,13 +3072,17 @@ class DatabaseManager {
 
       // 更新迁移版本
       if (currentVersion) {
-        this.db.prepare(
-          "UPDATE migration_version SET version = ?, last_updated = ? WHERE id = 1"
-        ).run(LATEST_VERSION, Date.now());
+        this.db
+          .prepare(
+            "UPDATE migration_version SET version = ?, last_updated = ? WHERE id = 1",
+          )
+          .run(LATEST_VERSION, Date.now());
       } else {
-        this.db.prepare(
-          "INSERT INTO migration_version (id, version, last_updated) VALUES (1, ?, ?)"
-        ).run(LATEST_VERSION, Date.now());
+        this.db
+          .prepare(
+            "INSERT INTO migration_version (id, version, last_updated) VALUES (1, ?, ?)",
+          )
+          .run(LATEST_VERSION, Date.now());
       }
 
       logger.info(`[Database] 迁移版本已更新到 v${LATEST_VERSION}`);
@@ -4624,9 +4633,9 @@ class DatabaseManager {
 
       // 清理缓存
       this.clearPreparedStatements();
-      if (this.queryCache && typeof this.queryCache.clear === 'function') {
+      if (this.queryCache && typeof this.queryCache.clear === "function") {
         this.queryCache.clear();
-        logger.info('[Database] 查询缓存已清除');
+        logger.info("[Database] 查询缓存已清除");
       }
 
       this.db.close();
@@ -5007,7 +5016,9 @@ class DatabaseManager {
    * @returns {number} 添加的关系数量
    */
   addRelations(relations) {
-    if (!relations || relations.length === 0) {return 0;}
+    if (!relations || relations.length === 0) {
+      return 0;
+    }
 
     const stmt = this.db.prepare(`
       INSERT OR IGNORE INTO knowledge_relations (id, source_id, target_id, relation_type, weight, metadata, created_at)
@@ -5050,7 +5061,9 @@ class DatabaseManager {
    * @returns {number} 删除的关系数量
    */
   deleteRelations(noteId, types = []) {
-    if (!noteId) {return 0;}
+    if (!noteId) {
+      return 0;
+    }
 
     let query;
     let params;
@@ -6077,7 +6090,9 @@ class DatabaseManager {
     const stmt = this.db.prepare("SELECT * FROM conversations WHERE id = ?");
     const conversation = stmt.get(conversationId);
 
-    if (!conversation) {return null;}
+    if (!conversation) {
+      return null;
+    }
 
     // 解析 context_data
     if (conversation.context_data) {
@@ -6106,7 +6121,9 @@ class DatabaseManager {
 
     const conversation = stmt.get(projectId);
 
-    if (!conversation) {return null;}
+    if (!conversation) {
+      return null;
+    }
 
     // 解析 context_data
     if (conversation.context_data) {
@@ -6244,10 +6261,15 @@ class DatabaseManager {
     let messageType = messageData.type || messageData.message_type;
     if (!messageType) {
       // 向后兼容：根据role推断message_type
-      if (messageData.role === "user") {messageType = "USER";}
-      else if (messageData.role === "assistant") {messageType = "ASSISTANT";}
-      else if (messageData.role === "system") {messageType = "SYSTEM";}
-      else {messageType = "ASSISTANT";} // 默认值
+      if (messageData.role === "user") {
+        messageType = "USER";
+      } else if (messageData.role === "assistant") {
+        messageType = "ASSISTANT";
+      } else if (messageData.role === "system") {
+        messageType = "SYSTEM";
+      } else {
+        messageType = "ASSISTANT";
+      } // 默认值
     }
 
     // 序列化metadata为JSON字符串
@@ -6330,10 +6352,15 @@ class DatabaseManager {
       }
       // 向后兼容：如果没有message_type，根据role设置
       if (!msg.message_type) {
-        if (msg.role === "user") {msg.message_type = "USER";}
-        else if (msg.role === "assistant") {msg.message_type = "ASSISTANT";}
-        else if (msg.role === "system") {msg.message_type = "SYSTEM";}
-        else {msg.message_type = "ASSISTANT";}
+        if (msg.role === "user") {
+          msg.message_type = "USER";
+        } else if (msg.role === "assistant") {
+          msg.message_type = "ASSISTANT";
+        } else if (msg.role === "system") {
+          msg.message_type = "SYSTEM";
+        } else {
+          msg.message_type = "ASSISTANT";
+        }
       }
       return msg;
     });
@@ -6448,10 +6475,15 @@ class DatabaseManager {
       }
       // 向后兼容：如果没有message_type，根据role设置
       if (!msg.message_type) {
-        if (msg.role === "user") {msg.message_type = "USER";}
-        else if (msg.role === "assistant") {msg.message_type = "ASSISTANT";}
-        else if (msg.role === "system") {msg.message_type = "SYSTEM";}
-        else {msg.message_type = "ASSISTANT";}
+        if (msg.role === "user") {
+          msg.message_type = "USER";
+        } else if (msg.role === "assistant") {
+          msg.message_type = "ASSISTANT";
+        } else if (msg.role === "system") {
+          msg.message_type = "SYSTEM";
+        } else {
+          msg.message_type = "ASSISTANT";
+        }
       }
       return msg;
     });
