@@ -1,9 +1,12 @@
 package com.chainlesschain.android.remote.di
 
 import android.content.Context
+import com.chainlesschain.android.remote.crypto.AndroidDIDKeyStore
+import com.chainlesschain.android.remote.crypto.DIDKeyStore
 import com.chainlesschain.android.remote.data.CommandHistoryDao
 import com.chainlesschain.android.remote.data.CommandHistoryDatabase
 import com.chainlesschain.android.remote.data.FileTransferDao
+import dagger.Binds
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -16,29 +19,38 @@ import javax.inject.Singleton
  */
 @Module
 @InstallIn(SingletonComponent::class)
-object RemoteModule {
+abstract class RemoteModule {
 
-    @Provides
+    @Binds
     @Singleton
-    fun provideCommandHistoryDatabase(
-        @ApplicationContext context: Context
-    ): CommandHistoryDatabase {
-        return CommandHistoryDatabase.getDatabase(context)
-    }
+    abstract fun bindDIDKeyStore(
+        impl: AndroidDIDKeyStore
+    ): DIDKeyStore
 
-    @Provides
-    @Singleton
-    fun provideCommandHistoryDao(
-        database: CommandHistoryDatabase
-    ): CommandHistoryDao {
-        return database.commandHistoryDao()
-    }
+    companion object {
 
-    @Provides
-    @Singleton
-    fun provideFileTransferDao(
-        database: CommandHistoryDatabase
-    ): FileTransferDao {
-        return database.fileTransferDao()
+        @Provides
+        @Singleton
+        fun provideCommandHistoryDatabase(
+            @ApplicationContext context: Context
+        ): CommandHistoryDatabase {
+            return CommandHistoryDatabase.getDatabase(context)
+        }
+
+        @Provides
+        @Singleton
+        fun provideCommandHistoryDao(
+            database: CommandHistoryDatabase
+        ): CommandHistoryDao {
+            return database.commandHistoryDao()
+        }
+
+        @Provides
+        @Singleton
+        fun provideFileTransferDao(
+            database: CommandHistoryDatabase
+        ): FileTransferDao {
+            return database.fileTransferDao()
+        }
     }
 }

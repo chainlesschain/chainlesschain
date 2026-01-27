@@ -199,7 +199,85 @@ fun LLMSettingsScreen(
                 }
 
                 is LLMSettingsUiState.TestResult -> {
-                    // 显示测试结果提示（暂时）
+                    val testResult = uiState as LLMSettingsUiState.TestResult
+                    // 显示测试结果，然后返回配置界面
+                    LaunchedEffect(testResult) {
+                        kotlinx.coroutines.delay(4000) // 4秒 - 让用户有足够时间看到结果
+                        viewModel.loadConfig() // 回到配置界面
+                    }
+
+                    LLMSettingsContent(
+                        config = LLMConfiguration(), // Dummy
+                        currentProvider = currentProvider,
+                        validationErrors = emptyList(),
+                        onProviderChange = {},
+                        onUpdateOllama = { _, _, _ -> },
+                        onUpdateOpenAI = { _, _, _ -> },
+                        onUpdateDeepSeek = { _, _, _ -> },
+                        onUpdateAnthropic = { _, _, _ -> },
+                        onUpdateProvider = { _, _, _, _ -> },
+                        onUpdateOptions = { _, _, _, _ -> },
+                        onTestConnection = {},
+                        onValidate = {}
+                    )
+
+                    // 显示测试结果 Snackbar
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp),
+                        contentAlignment = Alignment.BottomCenter
+                    ) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (testResult.success) {
+                                    MaterialTheme.colorScheme.primaryContainer
+                                } else {
+                                    MaterialTheme.colorScheme.errorContainer
+                                }
+                            )
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = if (testResult.success) Icons.Default.CheckCircle else Icons.Default.Error,
+                                    contentDescription = null,
+                                    tint = if (testResult.success) {
+                                        MaterialTheme.colorScheme.onPrimaryContainer
+                                    } else {
+                                        MaterialTheme.colorScheme.onErrorContainer
+                                    }
+                                )
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = if (testResult.success) "连接成功" else "连接失败",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = if (testResult.success) {
+                                            MaterialTheme.colorScheme.onPrimaryContainer
+                                        } else {
+                                            MaterialTheme.colorScheme.onErrorContainer
+                                        }
+                                    )
+                                    Text(
+                                        text = testResult.message,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = if (testResult.success) {
+                                            MaterialTheme.colorScheme.onPrimaryContainer
+                                        } else {
+                                            MaterialTheme.colorScheme.onErrorContainer
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }

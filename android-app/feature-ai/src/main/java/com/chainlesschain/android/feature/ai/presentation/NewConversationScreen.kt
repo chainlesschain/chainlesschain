@@ -281,6 +281,22 @@ fun ModelPickerDialog(
                     )
                 }
 
+                // DOUBAO (火山引擎/豆包) 模型
+                item {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "豆包 (火山引擎)",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                items(LLMProvider.DEFAULT_MODELS[LLMProvider.DOUBAO] ?: emptyList()) { model ->
+                    ModelCard(
+                        model = model,
+                        onClick = { onModelSelected(model) }
+                    )
+                }
+
                 // Ollama模型
                 item {
                     Spacer(modifier = Modifier.height(8.dp))
