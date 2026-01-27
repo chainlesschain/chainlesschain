@@ -11,6 +11,7 @@ const { ipcMain } = require("electron");
 const axios = require("axios");
 const crypto = require("crypto");
 const path = require("path");
+const { getMessageAggregator } = require("../utils/message-aggregator.js");
 
 /**
  * 从AI响应中提取PPT大纲
@@ -1221,15 +1222,22 @@ ${currentFilePath ? `当前文件: ${currentFilePath}` : ""}
           projectContext.root_path = projectRootPath;
         }
 
+        // ⚡ 优化：使用消息聚合器批量推送进度更新
+        const messageAggregator = getMessageAggregator(mainWindow);
+
         const result = await taskPlanner.executeTaskPlan(
           taskPlan,
           projectContext,
           (progress) => {
             if (mainWindow && !mainWindow.isDestroyed()) {
-              mainWindow.webContents.send("task:progress-update", progress);
+              // 使用聚合器推送，100ms批量发送
+              messageAggregator.push("task:progress-update", progress);
             }
           },
         );
+
+        // 任务执行完成，立即flush剩余消息
+        messageAggregator.flushNow();
 
         if (result.success && scanAndRegisterProjectFiles) {
           try {

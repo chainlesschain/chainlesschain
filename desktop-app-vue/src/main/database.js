@@ -1436,6 +1436,46 @@ class DatabaseManager {
       );
 
       -- ============================
+      -- 远程控制 - 文件传输表
+      -- ============================
+
+      -- 文件传输记录表
+      CREATE TABLE IF NOT EXISTS file_transfers (
+        id TEXT PRIMARY KEY,
+        device_did TEXT NOT NULL,
+        direction TEXT NOT NULL CHECK(direction IN ('upload', 'download')),
+        file_name TEXT NOT NULL,
+        file_size INTEGER NOT NULL,
+        total_chunks INTEGER NOT NULL,
+        status TEXT NOT NULL CHECK(status IN ('in_progress', 'completed', 'failed', 'cancelled', 'expired')),
+        progress REAL DEFAULT 0,
+        error TEXT,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        completed_at INTEGER,
+        metadata TEXT
+      );
+
+      -- ============================
+      -- 远程控制 - 远程桌面表
+      -- ============================
+
+      -- 远程桌面会话表
+      CREATE TABLE IF NOT EXISTS remote_desktop_sessions (
+        id TEXT PRIMARY KEY,
+        device_did TEXT NOT NULL,
+        display_id INTEGER,
+        quality INTEGER NOT NULL DEFAULT 80,
+        max_fps INTEGER NOT NULL DEFAULT 30,
+        status TEXT NOT NULL CHECK(status IN ('active', 'stopped', 'expired')),
+        started_at INTEGER NOT NULL,
+        stopped_at INTEGER,
+        duration INTEGER,
+        frame_count INTEGER DEFAULT 0,
+        bytes_sent INTEGER DEFAULT 0
+      );
+
+      -- ============================
       -- 区块链相关表
       -- ============================
 
@@ -1546,6 +1586,17 @@ class DatabaseManager {
       CREATE INDEX IF NOT EXISTS idx_notifications_read ON notifications(is_read);
       CREATE INDEX IF NOT EXISTS idx_notifications_created ON notifications(created_at DESC);
       CREATE INDEX IF NOT EXISTS idx_notifications_type ON notifications(type);
+
+      -- 文件传输索引
+      CREATE INDEX IF NOT EXISTS idx_file_transfers_device ON file_transfers(device_did);
+      CREATE INDEX IF NOT EXISTS idx_file_transfers_status ON file_transfers(status);
+      CREATE INDEX IF NOT EXISTS idx_file_transfers_created ON file_transfers(created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_file_transfers_direction ON file_transfers(direction);
+
+      -- 远程桌面索引
+      CREATE INDEX IF NOT EXISTS idx_remote_desktop_device ON remote_desktop_sessions(device_did);
+      CREATE INDEX IF NOT EXISTS idx_remote_desktop_status ON remote_desktop_sessions(status);
+      CREATE INDEX IF NOT EXISTS idx_remote_desktop_started ON remote_desktop_sessions(started_at DESC);
 
       -- ============================
       -- 企业版（去中心化组织）表结构

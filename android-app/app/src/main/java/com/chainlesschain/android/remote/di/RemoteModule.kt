@@ -3,6 +3,7 @@ package com.chainlesschain.android.remote.di
 import android.content.Context
 import com.chainlesschain.android.remote.data.CommandHistoryDao
 import com.chainlesschain.android.remote.data.CommandHistoryDatabase
+import com.chainlesschain.android.remote.data.FileTransferDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -31,5 +32,13 @@ object RemoteModule {
         database: CommandHistoryDatabase
     ): CommandHistoryDao {
         return database.commandHistoryDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideFileTransferDao(
+        database: CommandHistoryDatabase
+    ): FileTransferDao {
+        return database.fileTransferDao()
     }
 }
