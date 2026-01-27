@@ -41,7 +41,7 @@ import com.chainlesschain.android.feature.p2p.ui.social.PublishPostScreen
 import com.chainlesschain.android.feature.p2p.ui.social.MyQRCodeScreen
 import com.chainlesschain.android.feature.p2p.ui.social.QRCodeScannerScreen
 import com.chainlesschain.android.feature.p2p.ui.social.EditPostScreen
-import com.chainlesschain.android.feature.filebrowser.ui.GlobalFileBrowserScreen
+import com.chainlesschain.android.feature.filebrowser.ui.SafeFileBrowserScreen
 
 /**
  * 应用导航图
@@ -89,9 +89,18 @@ fun NavGraph(
                         popUpTo(Screen.Home.route) { inclusive = true }
                     }
                 },
+                // 知识库管理功能
+                onNavigateToKnowledgeList = {
+                    navController.navigate(Screen.KnowledgeList.route)
+                },
+                onNavigateToAIChat = {
+                    navController.navigate(Screen.ConversationList.route)
+                },
+                // 项目管理功能
                 onNavigateToProjectDetail = { projectId ->
                     navController.navigate(Screen.ProjectDetail.createRoute(projectId))
                 },
+                // 社交功能
                 onNavigateToFriendDetail = { did ->
                     navController.navigate(Screen.FriendDetail.createRoute(did))
                 },
@@ -113,6 +122,13 @@ fun NavGraph(
                 onNavigateToComment = { commentId ->
                     navController.navigate(Screen.CommentDetail.createRoute(commentId))
                 },
+                onNavigateToMyQRCode = {
+                    navController.navigate(Screen.MyQRCode.route)
+                },
+                onNavigateToQRScanner = {
+                    navController.navigate(Screen.QRCodeScanner.route)
+                },
+                // LLM 和系统功能
                 onNavigateToLLMSettings = {
                     navController.navigate(Screen.LLMSettings.route)
                 },
@@ -357,7 +373,7 @@ fun NavGraph(
                 else -> emptyList()
             }
 
-            GlobalFileBrowserScreen(
+            SafeFileBrowserScreen(
                 projectId = projectId,
                 availableProjects = availableProjects,
                 onNavigateBack = {
@@ -545,7 +561,11 @@ fun NavGraph(
         }
 
         // ===== 远程控制功能路由（Phase 2）=====
+        // 注意：由于 WebRTC 依赖问题，远程控制功能暂时禁用
+        // 待添加 WebRTC 依赖后恢复这些路由
+        // 详见：android-app/QUICK_FIX_REMOTE_CONTROL.md
 
+        /*
         // 远程控制主界面
         composable(route = Screen.RemoteControl.route) {
             com.chainlesschain.android.remote.ui.RemoteControlScreen(
@@ -623,6 +643,7 @@ fun NavGraph(
                 }
             )
         }
+        */
     }
 }
 

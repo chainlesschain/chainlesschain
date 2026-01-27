@@ -22,6 +22,8 @@ import com.chainlesschain.android.presentation.screens.*
 @Composable
 fun MainContainer(
     onLogout: () -> Unit,
+    onNavigateToKnowledgeList: () -> Unit = {},
+    onNavigateToAIChat: () -> Unit = {},
     onNavigateToProjectDetail: (String) -> Unit = {},
     onNavigateToFriendDetail: (String) -> Unit = {},
     onNavigateToAddFriend: () -> Unit = {},
@@ -30,6 +32,8 @@ fun MainContainer(
     onNavigateToUserProfile: (String) -> Unit = {},
     onNavigateToEditPost: (String) -> Unit = {},
     onNavigateToComment: (String) -> Unit = {},
+    onNavigateToMyQRCode: () -> Unit = {},
+    onNavigateToQRScanner: () -> Unit = {},
     onNavigateToLLMSettings: () -> Unit = {},
     onNavigateToLLMTest: () -> Unit = {},
     onNavigateToFileBrowser: () -> Unit = {},
@@ -75,6 +79,13 @@ fun MainContainer(
                     NewHomeScreen(
                         viewModel = viewModel,
                         onProfileClick = onProfileClick,
+                        onNavigateToKnowledgeList = onNavigateToKnowledgeList,
+                        onNavigateToAIChat = onNavigateToAIChat,
+                        onNavigateToLLMSettings = onNavigateToLLMSettings,
+                        onNavigateToSocialFeed = { selectedTab = 2 },  // 切换到社交tab
+                        onNavigateToMyQRCode = onNavigateToMyQRCode,
+                        onNavigateToQRScanner = onNavigateToQRScanner,
+                        onNavigateToProjectTab = { selectedTab = 1 },  // 切换到项目tab
                         onNavigateToFileBrowser = onNavigateToFileBrowser,
                         onNavigateToRemoteControl = onNavigateToRemoteControl
                     )
