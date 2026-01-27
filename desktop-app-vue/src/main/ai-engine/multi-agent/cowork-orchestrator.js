@@ -7,11 +7,11 @@
  * @module ai-engine/multi-agent/cowork-orchestrator
  */
 
-const { logger } = require('../../utils/logger.js');
-const { AgentOrchestrator } = require('./agent-orchestrator');
-const { TeammateTool } = require('../cowork/teammate-tool');
-const { FileSandbox } = require('../cowork/file-sandbox');
-const { getSkillRegistry } = require('../cowork/skills');
+const { logger } = require("../../utils/logger.js");
+const { AgentOrchestrator } = require("./agent-orchestrator");
+const { TeammateTool } = require("../cowork/teammate-tool");
+const { FileSandbox } = require("../cowork/file-sandbox");
+const { getSkillRegistry } = require("../cowork/skills");
 
 /**
  * Cowork 集成的代理协调器
@@ -41,7 +41,7 @@ class CoworkOrchestrator extends AgentOrchestrator {
     // 活跃团队: teamId -> Team
     this.activeTeams = new Map();
 
-    this._log('CoworkOrchestrator 已初始化');
+    this._log("CoworkOrchestrator 已初始化");
   }
 
   /**
@@ -65,16 +65,16 @@ class CoworkOrchestrator extends AgentOrchestrator {
    */
   shouldUseMultiAgent(task, context = {}) {
     if (!this.coworkConfig.enabled) {
-      return { useMultiAgent: false, reason: 'cowork_disabled' };
+      return { useMultiAgent: false, reason: "cowork_disabled" };
     }
 
     // 场景 1: 上下文污染
     if (this.hasContextPollution(task, context)) {
       return {
         useMultiAgent: true,
-        reason: 'context_pollution',
-        strategy: 'divide_context',
-        description: '任务上下文过大，分散到多个代理可减少污染',
+        reason: "context_pollution",
+        strategy: "divide_context",
+        description: "任务上下文过大，分散到多个代理可减少污染",
       };
     }
 
@@ -82,9 +82,9 @@ class CoworkOrchestrator extends AgentOrchestrator {
     if (this.canParallelize(task, context)) {
       return {
         useMultiAgent: true,
-        reason: 'parallelization',
-        strategy: 'parallel_execution',
-        description: '任务可分解为独立子任务，并行执行提升效率',
+        reason: "parallelization",
+        strategy: "parallel_execution",
+        description: "任务可分解为独立子任务，并行执行提升效率",
       };
     }
 
@@ -92,16 +92,16 @@ class CoworkOrchestrator extends AgentOrchestrator {
     if (this.needsSpecialization(task, context)) {
       return {
         useMultiAgent: true,
-        reason: 'specialization',
-        strategy: 'specialized_agents',
-        description: '任务需要不同领域的专业技能',
+        reason: "specialization",
+        strategy: "specialized_agents",
+        description: "任务需要不同领域的专业技能",
       };
     }
 
     return {
       useMultiAgent: false,
-      reason: 'single_agent_sufficient',
-      description: '单个代理即可高效完成任务',
+      reason: "single_agent_sufficient",
+      description: "单个代理即可高效完成任务",
     };
   }
 
@@ -116,7 +116,9 @@ class CoworkOrchestrator extends AgentOrchestrator {
 
     // 检查是否超过阈值
     if (contextSize > this.coworkConfig.contextPollutionThreshold) {
-      this._log(`检测到上下文污染: ${contextSize} 字符 > ${this.coworkConfig.contextPollutionThreshold}`);
+      this._log(
+        `检测到上下文污染: ${contextSize} 字符 > ${this.coworkConfig.contextPollutionThreshold}`,
+      );
       return true;
     }
 
@@ -137,7 +139,7 @@ class CoworkOrchestrator extends AgentOrchestrator {
     // 检查任务是否明确包含子任务
     if (task.subtasks && Array.isArray(task.subtasks)) {
       const independentTasks = task.subtasks.filter(
-        subtask => !subtask.dependencies || subtask.dependencies.length === 0
+        (subtask) => !subtask.dependencies || subtask.dependencies.length === 0,
       );
 
       if (independentTasks.length >= this.coworkConfig.minParallelTasks) {
@@ -148,11 +150,11 @@ class CoworkOrchestrator extends AgentOrchestrator {
 
     // 检查任务类型是否天然可并行
     const parallelizableTypes = [
-      'batch_processing',
-      'data_analysis',
-      'multi_file_processing',
-      'web_scraping',
-      'concurrent_api_calls',
+      "batch_processing",
+      "data_analysis",
+      "multi_file_processing",
+      "web_scraping",
+      "concurrent_api_calls",
     ];
 
     if (parallelizableTypes.includes(task.type)) {
@@ -161,7 +163,11 @@ class CoworkOrchestrator extends AgentOrchestrator {
     }
 
     // 检查输入数据是否可分批
-    if (task.input && Array.isArray(task.input) && task.input.length >= this.coworkConfig.minParallelTasks) {
+    if (
+      task.input &&
+      Array.isArray(task.input) &&
+      task.input.length >= this.coworkConfig.minParallelTasks
+    ) {
       this._log(`输入数据可分批: ${task.input.length} 项`);
       return true;
     }
@@ -179,7 +185,7 @@ class CoworkOrchestrator extends AgentOrchestrator {
 
     // 如果有多个高分技能匹配，说明需要专业化
     const highScoreSkills = skills.filter(
-      ({ score }) => score >= this.coworkConfig.minSkillScore
+      ({ score }) => score >= this.coworkConfig.minSkillScore,
     );
 
     if (highScoreSkills.length >= 2) {
@@ -195,10 +201,10 @@ class CoworkOrchestrator extends AgentOrchestrator {
 
     // 检查任务类型是否需要跨领域协作
     const specializationTypes = [
-      'research_and_analysis',
-      'document_generation_with_data',
-      'end_to_end_automation',
-      'multi_language_task',
+      "research_and_analysis",
+      "document_generation_with_data",
+      "end_to_end_automation",
+      "multi_language_task",
     ];
 
     if (specializationTypes.includes(task.type)) {
@@ -232,13 +238,13 @@ class CoworkOrchestrator extends AgentOrchestrator {
     this._log(`使用多代理模式: ${decision.reason}, 策略: ${decision.strategy}`);
 
     switch (decision.strategy) {
-      case 'divide_context':
+      case "divide_context":
         return await this.executeDivideContext(task, context);
 
-      case 'parallel_execution':
+      case "parallel_execution":
         return await this.executeParallel(task, context);
 
-      case 'specialized_agents':
+      case "specialized_agents":
         return await this.executeSpecialized(task, context);
 
       default:
@@ -254,7 +260,7 @@ class CoworkOrchestrator extends AgentOrchestrator {
     // 创建团队
     const team = await this.teammateTool.spawnTeam(`ctx-${Date.now()}`, {
       maxAgents: 3,
-      description: '分散上下文执行',
+      description: "分散上下文执行",
     });
 
     this.activeTeams.set(team.id, team);
@@ -269,7 +275,7 @@ class CoworkOrchestrator extends AgentOrchestrator {
         const agentId = `agent_${i + 1}`;
         await this.teammateTool.requestJoin(team.id, agentId, {
           name: `Context Agent ${i + 1}`,
-          capabilities: ['context_processing'],
+          capabilities: ["context_processing"],
         });
         agents.push(agentId);
       }
@@ -283,14 +289,14 @@ class CoworkOrchestrator extends AgentOrchestrator {
 
       // 并行执行
       const results = await Promise.all(
-        subtasks.map(subtask => this.dispatch(subtask))
+        subtasks.map((subtask) => this.dispatch(subtask)),
       );
 
       // 合并结果
       const mergedResult = await this.teammateTool.mergeResults(
         team.id,
         results,
-        { type: 'concatenate' }
+        { type: "concatenate" },
       );
 
       return mergedResult.result;
@@ -308,7 +314,7 @@ class CoworkOrchestrator extends AgentOrchestrator {
     // 创建团队
     const team = await this.teammateTool.spawnTeam(`parallel-${Date.now()}`, {
       maxAgents: 5,
-      description: '并行任务执行',
+      description: "并行任务执行",
     });
 
     this.activeTeams.set(team.id, team);
@@ -323,7 +329,7 @@ class CoworkOrchestrator extends AgentOrchestrator {
         const agentId = `agent_${i + 1}`;
         await this.teammateTool.requestJoin(team.id, agentId, {
           name: `Parallel Agent ${i + 1}`,
-          capabilities: ['task_execution'],
+          capabilities: ["task_execution"],
         });
         agents.push(agentId);
       }
@@ -331,9 +337,11 @@ class CoworkOrchestrator extends AgentOrchestrator {
       // 分配并执行任务
       const taskPromises = subtasks.map((subtask, i) => {
         const agentId = agents[i % agents.length];
-        return this.teammateTool.assignTask(team.id, agentId, subtask).then(() => {
-          return this.dispatch(subtask);
-        });
+        return this.teammateTool
+          .assignTask(team.id, agentId, subtask)
+          .then(() => {
+            return this.dispatch(subtask);
+          });
       });
 
       const results = await Promise.all(taskPromises);
@@ -342,7 +350,7 @@ class CoworkOrchestrator extends AgentOrchestrator {
       const mergedResult = await this.teammateTool.mergeResults(
         team.id,
         results,
-        { type: task.mergeStrategy || 'aggregate' }
+        { type: task.mergeStrategy || "aggregate" },
       );
 
       return mergedResult.result;
@@ -358,10 +366,13 @@ class CoworkOrchestrator extends AgentOrchestrator {
    */
   async executeSpecialized(task, context) {
     // 创建团队
-    const team = await this.teammateTool.spawnTeam(`specialized-${Date.now()}`, {
-      maxAgents: 5,
-      description: '专业化代理执行',
-    });
+    const team = await this.teammateTool.spawnTeam(
+      `specialized-${Date.now()}`,
+      {
+        maxAgents: 5,
+        description: "专业化代理执行",
+      },
+    );
 
     this.activeTeams.set(team.id, team);
 
@@ -386,24 +397,27 @@ class CoworkOrchestrator extends AgentOrchestrator {
           try {
             return await skill.executeWithMetrics(task, context);
           } catch (error) {
-            this._log(`技能执行失败: ${skill.name}, 错误: ${error.message}`, 'error');
+            this._log(
+              `技能执行失败: ${skill.name}, 错误: ${error.message}`,
+              "error",
+            );
             return { error: error.message };
           }
-        })
+        }),
       );
 
       // 过滤失败的结果
-      const successfulResults = results.filter(r => !r.error);
+      const successfulResults = results.filter((r) => !r.error);
 
       if (successfulResults.length === 0) {
-        throw new Error('所有专业化代理执行失败');
+        throw new Error("所有专业化代理执行失败");
       }
 
       // 合并结果（使用投票策略）
       const mergedResult = await this.teammateTool.mergeResults(
         team.id,
         successfulResults,
-        { type: 'vote' }
+        { type: "vote" },
       );
 
       return mergedResult.result;
@@ -423,7 +437,9 @@ class CoworkOrchestrator extends AgentOrchestrator {
    */
   _divideContext(context) {
     const chunks = [];
-    const chunkSize = Math.ceil(this.coworkConfig.contextPollutionThreshold / 2);
+    const chunkSize = Math.ceil(
+      this.coworkConfig.contextPollutionThreshold / 2,
+    );
 
     if (context.messageHistory && context.messageHistory.length > 0) {
       // 按消息历史分片
@@ -453,7 +469,9 @@ class CoworkOrchestrator extends AgentOrchestrator {
 
     // 如果输入是数组，按批次拆分
     if (task.input && Array.isArray(task.input)) {
-      const batchSize = Math.ceil(task.input.length / this.coworkConfig.minParallelTasks);
+      const batchSize = Math.ceil(
+        task.input.length / this.coworkConfig.minParallelTasks,
+      );
 
       for (let i = 0; i < task.input.length; i += batchSize) {
         subtasks.push({
@@ -473,12 +491,12 @@ class CoworkOrchestrator extends AgentOrchestrator {
    * 日志输出
    * @private
    */
-  _log(message, level = 'info') {
-    const prefix = '[CoworkOrchestrator]';
+  _log(message, level = "info") {
+    const prefix = "[CoworkOrchestrator]";
 
-    if (level === 'error') {
+    if (level === "error") {
       logger.error(`${prefix} ${message}`);
-    } else if (level === 'warn') {
+    } else if (level === "warn") {
       logger.warn(`${prefix} ${message}`);
     } else {
       logger.info(`${prefix} ${message}`);
@@ -499,6 +517,34 @@ class CoworkOrchestrator extends AgentOrchestrator {
         fileSandbox: this.fileSandbox.getStats(),
         skillRegistry: this.skillRegistry.getStats(),
       },
+    };
+  }
+
+  // ==========================================
+  // API 兼容层（用于测试）
+  // ==========================================
+
+  /**
+   * 判断是否应使用单代理（与 shouldUseMultiAgent 相反）
+   * @param {object} task - 任务对象
+   * @param {object} context - 上下文
+   * @returns {Promise<object>} 决策结果
+   */
+  async shouldUseSingleAgent(task, context = {}) {
+    const multiAgentDecision = this.shouldUseMultiAgent(task, context);
+
+    if (multiAgentDecision.useMultiAgent) {
+      return {
+        useSingleAgent: false,
+        reason: `应使用多代理: ${multiAgentDecision.reason}`,
+        confidence: multiAgentDecision.confidence || 0.8,
+      };
+    }
+
+    return {
+      useSingleAgent: true,
+      reason: "简单任务，使用单代理即可",
+      confidence: 0.9,
     };
   }
 }
