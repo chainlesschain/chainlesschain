@@ -14,6 +14,7 @@ const { v4: uuidv4 } = require('uuid');
 const path = require('path');
 const EventEmitter = require('events');
 const os = require('os');
+const { SmartPlanCache } = require('./smart-plan-cache.js');
 
 /**
  * 质量门禁检查器
@@ -366,6 +367,16 @@ class TaskPlannerEnhanced extends EventEmitter {
       enabled: dependencies.enableQualityGates !== false, // 默认启用
     });
     logger.info('[TaskPlannerEnhanced] 质量门禁检查器已初始化');
+
+    // 智能计划缓存
+    this.planCache = new SmartPlanCache({
+      maxSize: dependencies.planCacheMaxSize || 1000,
+      similarityThreshold: dependencies.planCacheSimilarity || 0.85,
+      ttl: dependencies.planCacheTTL || 7 * 24 * 60 * 60 * 1000, // 7天
+      enabled: dependencies.enablePlanCache !== false, // 默认启用
+      llmManager: this.llmManager, // 用于embedding
+    });
+    logger.info('[TaskPlannerEnhanced] 智能计划缓存已初始化');
   }
 
   /**
@@ -407,6 +418,18 @@ class TaskPlannerEnhanced extends EventEmitter {
     logger.info('[TaskPlannerEnhanced] 开始拆解任务:', userRequest);
 
     try {
+      // 0. 智能缓存检查（优先级最高）
+      const cachedPlan = await this.planCache.get(userRequest);
+      if (cachedPlan) {
+        logger.info('[TaskPlannerEnhanced] ✅ 缓存命中，直接返回计划');
+        // 添加缓存标记
+        return {
+          ...cachedPlan,
+          fromCache: true,
+          cacheStats: this.planCache.getStats(),
+        };
+      }
+
       // 1. RAG增强: 检索相关上下文
       let ragContext = null;
       if (projectContext.projectId && projectContext.enableRAG !== false) {
@@ -492,6 +515,11 @@ class TaskPlannerEnhanced extends EventEmitter {
 
       logger.info('[TaskPlannerEnhanced] 任务拆解成功，共', normalizedPlan.subtasks.length, '个子任务');
 
+      // 6. 缓存任务计划（异步，不等待）
+      this.planCache.set(userRequest, normalizedPlan).catch(error => {
+        logger.warn('[TaskPlannerEnhanced] 缓存任务计划失败:', error.message);
+      });
+
       return normalizedPlan;
     } catch (error) {
       logger.error('[TaskPlannerEnhanced] ❌❌❌ 任务拆解失败 ❌❌❌');
@@ -513,6 +541,11 @@ class TaskPlannerEnhanced extends EventEmitter {
           // 即使保存失败，也返回任务计划（至少可以在内存中使用）
         }
       }
+
+      // 缓存降级计划（异步，不等待）
+      this.planCache.set(userRequest, fallbackPlan).catch(error => {
+        logger.warn('[TaskPlannerEnhanced] 缓存降级计划失败:', error.message);
+      });
 
       return fallbackPlan;
     }

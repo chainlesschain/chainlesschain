@@ -157,7 +157,7 @@ const DEFAULT_CONFIG = {
   },
 
   // 工具沙箱配置
-  sandboxConfig: {
+  toolSandboxConfig: {
     timeout: 30000,           // 工具执行超时时间（毫秒）
     retries: 2,               // 失败后重试次数
     retryDelay: 1000,         // 重试延迟（毫秒）
@@ -769,11 +769,6 @@ function mergeConfig(userConfig = {}) {
         ...baseConfig.bgeRerankerConfig?.hybridWeights,
         ...(userConfig.bgeRerankerConfig?.hybridWeights || {})
       }
-    },
-    // 沙箱配置
-    sandboxConfig: {
-      ...baseConfig.sandboxConfig,
-      ...(userConfig.sandboxConfig || {})
     },
     // TTS 配置
     ttsConfig: {

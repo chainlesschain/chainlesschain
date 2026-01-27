@@ -977,6 +977,37 @@ function registerAllIPC(dependencies) {
     logger.info("[IPC Registry] ========================================");
 
     // ============================================================
+    // Phase 10: Workflow Optimizations
+    // ============================================================
+
+    try {
+      logger.info("[IPC Registry] Registering Workflow Optimizations IPC...");
+      const { registerWorkflowOptimizationsIPC } = require("./workflow-optimizations-ipc");
+      registerWorkflowOptimizationsIPC({
+        database: database || null,
+        aiEngineManager: aiEngineManager || null,
+      });
+      logger.info("[IPC Registry] ✓ Workflow Optimizations IPC registered (7 handlers)");
+      logger.info("[IPC Registry]   - Status & Statistics: 2 handlers");
+      logger.info("[IPC Registry]   - Toggle & Configuration: 3 handlers");
+      logger.info("[IPC Registry]   - Reports & Health: 2 handlers");
+    } catch (workflowError) {
+      logger.error(
+        "[IPC Registry] ❌ Workflow Optimizations IPC registration failed:",
+        workflowError.message,
+      );
+      logger.info(
+        "[IPC Registry] ⚠️  Continuing without Workflow Optimizations dashboard...",
+      );
+    }
+
+    logger.info("[IPC Registry] ========================================");
+    logger.info(
+      "[IPC Registry] Phase 10 Complete: Workflow Optimizations ready!",
+    );
+    logger.info("[IPC Registry] ========================================");
+
+    // ============================================================
     // 注册统计
     // ============================================================
 

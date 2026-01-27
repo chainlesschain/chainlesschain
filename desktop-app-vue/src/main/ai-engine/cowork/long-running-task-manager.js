@@ -284,7 +284,7 @@ class LongRunningTaskManager extends EventEmitter {
       priority: taskConfig.priority || 0,
 
       // 执行配置
-      executor: taskConfig.executor || null, // 执行函数
+      executor: taskConfig.executor || taskConfig.execute || null, // 执行函数（兼容execute和executor）
       steps: taskConfig.steps || [], // 任务步骤列表
       currentStep: 0,
       totalSteps: taskConfig.steps?.length || 0,
@@ -300,10 +300,12 @@ class LongRunningTaskManager extends EventEmitter {
       // 检查点
       checkpoints: [],
       lastCheckpointAt: null,
+      checkpointInterval: taskConfig.checkpointInterval, // 任务级别的checkpoint间隔
 
       // 重试
       retryCount: 0,
       maxRetries: taskConfig.maxRetries || this.options.maxRetries,
+      autoRecovery: taskConfig.autoRecovery, // 任务级别的自动恢复配置
 
       // 时间
       createdAt: Date.now(),
@@ -311,6 +313,7 @@ class LongRunningTaskManager extends EventEmitter {
       pausedAt: null,
       completedAt: null,
       estimatedDuration: taskConfig.estimatedDuration || null,
+      timeout: taskConfig.timeout, // 任务级别的超时配置
 
       // 元数据
       metadata: {
@@ -332,7 +335,7 @@ class LongRunningTaskManager extends EventEmitter {
   /**
    * 启动任务
    * @param {string} taskId - 任务 ID
-   * @returns {Promise<void>}
+   * @returns {Promise<void>} 返回任务执行Promise
    */
   async startTask(taskId) {
     const task = this.activeTasks.get(taskId);
@@ -361,20 +364,27 @@ class LongRunningTaskManager extends EventEmitter {
     this.taskExecutors.set(taskId, executorPromise);
 
     // 如果设置了超时，添加超时处理
-    if (this.options.taskTimeout > 0) {
+    if (this.options.taskTimeout > 0 || task.timeout) {
+      const timeout = task.timeout || this.options.taskTimeout;
       const timeoutPromise = new Promise((_, reject) =>
         setTimeout(
           () => reject(new Error("任务超时")),
-          this.options.taskTimeout,
+          timeout,
         ),
       );
 
-      Promise.race([executorPromise, timeoutPromise]).catch((error) => {
+      const racePromise = Promise.race([executorPromise, timeoutPromise]).catch((error) => {
         if (error.message === "任务超时") {
           this._handleTaskFailure(task, error);
         }
+        throw error;
       });
+
+      return racePromise;
     }
+
+    // 返回执行Promise，让调用者可以等待完成
+    return executorPromise;
   }
 
   /**
@@ -645,24 +655,22 @@ class LongRunningTaskManager extends EventEmitter {
 
     task.retryCount++;
 
-    // 如果还可以重试
-    if (task.retryCount <= task.maxRetries && this.options.autoRecovery) {
-      this._log(`准备重试任务 (${task.retryCount}/${task.maxRetries})`, "warn");
-      task.status = TaskStatus.PAUSED;
-      await this._saveTask(task);
+    // 先标记为失败
+    await this._markTaskFailed(task, error);
 
-      // 延迟后重试
+    // 如果还可以重试且启用了自动恢复
+    const autoRecovery = task.autoRecovery !== undefined ? task.autoRecovery : this.options.autoRecovery;
+    if (task.retryCount <= task.maxRetries && autoRecovery) {
+      this._log(`准备重试任务 (${task.retryCount}/${task.maxRetries})`, "warn");
+
+      // 延迟后自动重试
       setTimeout(async () => {
         try {
-          await this.resumeTask(task.id);
+          await this.retryTask(task.id);
         } catch (retryError) {
           this._log(`重试任务失败: ${retryError.message}`, "error");
-          await this._markTaskFailed(task, retryError);
         }
       }, this.options.retryDelay);
-    } else {
-      // 标记为失败
-      await this._markTaskFailed(task, error);
     }
   }
 
@@ -797,13 +805,21 @@ class LongRunningTaskManager extends EventEmitter {
       return; // 已有定时器
     }
 
+    const task = this.activeTasks.get(taskId);
+    if (!task) {
+      return;
+    }
+
+    // 使用任务级别的 checkpointInterval，否则使用全局配置
+    const interval = task.checkpointInterval || this.options.checkpointInterval;
+
     const timer = setInterval(async () => {
       try {
         await this.createCheckpoint(taskId, { auto: true });
       } catch (error) {
         this._log(`自动创建检查点失败: ${error.message}`, "error");
       }
-    }, this.options.checkpointInterval);
+    }, interval);
 
     this.checkpointTimers.set(taskId, timer);
   }
@@ -999,6 +1015,7 @@ class LongRunningTaskManager extends EventEmitter {
     // 重置任务状态
     task.status = TaskStatus.PENDING;
     task.currentRetry = 0;
+    task.retryCount = 0; // 重置重试计数
     task.error = null;
     task.completedAt = null;
 

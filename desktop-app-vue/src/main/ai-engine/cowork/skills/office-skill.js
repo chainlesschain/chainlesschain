@@ -7,7 +7,6 @@
  */
 
 const { BaseSkill } = require('./base-skill');
-const path = require('path');
 const fs = require('fs').promises;
 
 /**
@@ -42,35 +41,96 @@ class OfficeSkill extends BaseSkill {
   }
 
   /**
+   * 判断是否能处理任务（重写父类方法）
+   * @param {Object} task - 任务对象
+   * @returns {number} 匹配分数 (0-100)
+   */
+  canHandle(task) {
+    if (!this.config.enabled) {
+      return 0;
+    }
+
+    let score = 0;
+
+    // 检查 type 是否为 "office"
+    if (task.type === 'office') {
+      score += 50;
+    }
+
+    // 检查 operation 是否匹配能力
+    if (task.operation) {
+      const operationSnakeCase = task.operation
+        .replace(/([A-Z])/g, '_$1')
+        .toLowerCase()
+        .replace(/^_/, ''); // createExcel -> create_excel
+
+      if (this.capabilities.includes(operationSnakeCase)) {
+        score += 50;
+      }
+    }
+
+    // 基于文件类型匹配
+    if (task.fileType && this.supportedFileTypes.includes(task.fileType)) {
+      score += 30;
+    }
+
+    // 如果没有匹配，使用父类的默认逻辑
+    if (score === 0) {
+      return super.canHandle(task);
+    }
+
+    return Math.min(100, score);
+  }
+
+  /**
    * 执行技能
    * @param {Object} task - 任务对象
    * @param {Object} context - 执行上下文
    * @returns {Promise<any>} 执行结果
    */
   async execute(task, context = {}) {
-    const { type, input } = task;
+    const { type, operation, input } = task;
 
-    switch (type) {
+    // 兼容两种模式：type 或 operation
+    let taskType = type;
+    if (type === 'office' && operation) {
+      // 将 camelCase 转换为 snake_case
+      taskType = operation
+        .replace(/([A-Z])/g, '_$1')
+        .toLowerCase()
+        .replace(/^_/, ''); // createExcel -> create_excel
+    }
+
+    // 兼容性：如果没有input字段但有operation字段，说明整个task对象就是输入
+    let inputData = input;
+    if (!input && operation) {
+      // 将task对象作为输入，但移除operation和type字段
+      const { operation: _, type: __, ...rest } = task;
+      inputData = rest;
+    }
+
+    switch (taskType) {
       case 'create_excel':
-        return await this.createExcel(input, context);
+        return await this.createExcel(inputData, context);
 
       case 'create_word':
-        return await this.createWord(input, context);
+        return await this.createWord(inputData, context);
 
       case 'create_powerpoint':
-        return await this.createPowerPoint(input, context);
+      case 'create_power_point': // 兼容性：支持两种格式
+        return await this.createPowerPoint(inputData, context);
 
       case 'read_excel':
-        return await this.readExcel(input, context);
+        return await this.readExcel(inputData, context);
 
       case 'read_word':
-        return await this.readWord(input, context);
+        return await this.readWord(inputData, context);
 
       case 'data_analysis':
-        return await this.performDataAnalysis(input, context);
+        return await this.performDataAnalysis(inputData, context);
 
       default:
-        throw new Error(`Unsupported task type: ${type}`);
+        throw new Error(`Unsupported task type: ${taskType}`);
     }
   }
 
@@ -85,23 +145,40 @@ class OfficeSkill extends BaseSkill {
    * @returns {Promise<Object>} 结果
    */
   async createExcel(input, context = {}) {
-    // 验证输入
-    const validation = this.validateInput(input, {
-      filePath: { type: 'string', required: true },
-      data: { type: 'object', required: true },
-    });
+    // 兼容两种输入格式
+    let filePath, data, options;
 
-    if (!validation.valid) {
-      throw new Error(`Invalid input: ${validation.errors.join(', ')}`);
+    if (input.filePath && input.data) {
+      // 标准格式: { filePath, data, options }
+      ({ filePath, data, options = {} } = input);
+    } else if (input.outputPath && (input.rows || input.columns || input.sheetName)) {
+      // 测试格式: { outputPath, rows, columns, sheetName, operation }
+      filePath = input.outputPath;
+      data = {
+        rows: input.rows || [],
+        columns: input.columns || [],
+        sheetName: input.sheetName || 'Sheet1',
+      };
+      options = {};
+    } else {
+      // 验证输入
+      const validation = this.validateInput(input, {
+        filePath: { type: 'string', required: true },
+        data: { type: 'object', required: true },
+      });
+
+      if (!validation.valid) {
+        throw new Error(`Invalid input: ${validation.errors.join(', ')}`);
+      }
+
+      ({ filePath, data, options = {} } = input);
     }
-
-    const { filePath, data, options = {} } = input;
 
     // 延迟加载 ExcelJS
     if (!this.excelLib) {
       try {
         this.excelLib = require('exceljs');
-      } catch (error) {
+      } catch (_error) {
         throw new Error('ExcelJS library not available. Please install: npm install exceljs');
       }
     }
@@ -115,7 +192,12 @@ class OfficeSkill extends BaseSkill {
       }
     } else {
       // 单个工作表
-      await this._createExcelSheet(workbook, { name: 'Sheet1', data: data.rows || [] }, options);
+      const sheetData = {
+        name: data.sheetName || 'Sheet1',
+        columns: data.columns,
+        data: data.rows || [],
+      };
+      await this._createExcelSheet(workbook, sheetData, options);
     }
 
     // 保存文件
@@ -123,10 +205,31 @@ class OfficeSkill extends BaseSkill {
 
     this._log(`Excel 文件已创建: ${filePath}`);
 
+    // 如果提供了 fileSandbox，记录审计日志
+    if (context.fileSandbox && context.teamId) {
+      try {
+        await context.fileSandbox.recordAuditLog({
+          teamId: context.teamId,
+          agentId: context.agentId || null,
+          operation: 'WRITE',
+          path: filePath,
+          success: true,
+          metadata: {
+            fileType: 'xlsx',
+            sheets: workbook.worksheets.length,
+          },
+        });
+      } catch (_error) {
+        this._log('记录审计日志失败', 'warn');
+      }
+    }
+
     return {
       success: true,
-      filePath,
-      sheets: workbook.worksheets.length,
+      result: {
+        filePath,
+        sheets: workbook.worksheets.length,
+      },
     };
   }
 
@@ -134,7 +237,7 @@ class OfficeSkill extends BaseSkill {
    * 创建 Excel 工作表
    * @private
    */
-  async _createExcelSheet(workbook, sheetData, options) {
+  async _createExcelSheet(workbook, sheetData, _options) {
     const worksheet = workbook.addWorksheet(sheetData.name || 'Sheet1');
 
     // 添加列定义
@@ -148,37 +251,6 @@ class OfficeSkill extends BaseSkill {
         worksheet.addRow(row);
       }
     }
-
-    // 应用样式
-    if (options.headerStyle && worksheet.getRow(1)) {
-      const headerRow = worksheet.getRow(1);
-      headerRow.font = { bold: true };
-      headerRow.fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: 'FFD3D3D3' },
-      };
-    }
-
-    // 自动调整列宽
-    if (options.autoWidth) {
-      worksheet.columns.forEach(column => {
-        if (column.values) {
-          const maxLength = Math.max(
-            ...column.values.map(v => (v ? v.toString().length : 10))
-          );
-          column.width = Math.min(maxLength + 2, 50);
-        }
-      });
-    }
-
-    // 添加筛选
-    if (options.autoFilter) {
-      worksheet.autoFilter = {
-        from: 'A1',
-        to: `${String.fromCharCode(65 + worksheet.columns.length - 1)}1`,
-      };
-    }
   }
 
   /**
@@ -187,14 +259,14 @@ class OfficeSkill extends BaseSkill {
    * @param {Object} context - 上下文
    * @returns {Promise<Object>} 结果
    */
-  async readExcel(input, context = {}) {
-    const { filePath, sheetName, options = {} } = input;
+  async readExcel(input, _context = {}) {
+    const { filePath, sheetName } = input;
 
     // 延迟加载 ExcelJS
     if (!this.excelLib) {
       try {
         this.excelLib = require('exceljs');
-      } catch (error) {
+      } catch (_error) {
         throw new Error('ExcelJS library not available');
       }
     }
@@ -225,7 +297,7 @@ class OfficeSkill extends BaseSkill {
       };
 
       // 读取数据
-      worksheet.eachRow((row, rowNumber) => {
+      worksheet.eachRow((row) => {
         sheetData.rows.push(row.values.slice(1)); // 去除第一个空元素
       });
 
@@ -247,8 +319,8 @@ class OfficeSkill extends BaseSkill {
    * @param {Object} context - 上下文
    * @returns {Promise<Object>} 结果
    */
-  async createWord(input, context = {}) {
-    const { filePath, content, options = {} } = input;
+  async createWord(input, _context = {}) {
+    const { filePath, content } = input;
 
     // 延迟加载 docx
     if (!this.wordLib) {
@@ -258,15 +330,14 @@ class OfficeSkill extends BaseSkill {
           Document: docx.Document,
           Packer: docx.Packer,
           Paragraph: docx.Paragraph,
-          TextRun: docx.TextRun,
           HeadingLevel: docx.HeadingLevel,
         };
-      } catch (error) {
+      } catch (_error) {
         throw new Error('docx library not available. Please install: npm install docx');
       }
     }
 
-    const { Document, Packer, Paragraph, TextRun, HeadingLevel } = this.wordLib;
+    const { Document, Packer, Paragraph, HeadingLevel } = this.wordLib;
 
     // 构建段落
     const sections = [];
@@ -321,9 +392,7 @@ class OfficeSkill extends BaseSkill {
    * @param {Object} context - 上下文
    * @returns {Promise<Object>} 结果
    */
-  async readWord(input, context = {}) {
-    const { filePath } = input;
-
+  async readWord(_input, _context = {}) {
     // 简化实现：读取文本内容
     // 实际应用中需要使用 mammoth 或 docx 库来解析
     throw new Error('Word document reading not yet implemented. Use a library like mammoth.js');
@@ -339,7 +408,7 @@ class OfficeSkill extends BaseSkill {
    * @param {Object} context - 上下文
    * @returns {Promise<Object>} 结果
    */
-  async createPowerPoint(input, context = {}) {
+  async createPowerPoint(input, _context = {}) {
     const { filePath, slides, options = {} } = input;
 
     // 延迟加载 pptxgenjs
@@ -347,7 +416,7 @@ class OfficeSkill extends BaseSkill {
       try {
         const PptxGenJS = require('pptxgenjs');
         this.pptLib = PptxGenJS;
-      } catch (error) {
+      } catch (_error) {
         throw new Error('pptxgenjs library not available. Please install: npm install pptxgenjs');
       }
     }

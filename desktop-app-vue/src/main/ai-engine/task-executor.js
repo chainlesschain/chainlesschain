@@ -6,6 +6,7 @@
 const { logger, createLogger } = require('../utils/logger.js');
 const EventEmitter = require('events');
 const os = require('os');
+const { CriticalPathOptimizer } = require('./critical-path-optimizer.js');
 
 /**
  * 自动阶段转换管理器
@@ -694,6 +695,19 @@ class TaskExecutor extends EventEmitter {
       logger.info(`[TaskExecutor] 使用固定重试延迟: ${this.config.RETRY_DELAY}ms`);
     }
 
+    // 关键路径优化器（可选）
+    this.useCriticalPath = config.useCriticalPath !== false; // 默认启用
+    if (this.useCriticalPath) {
+      this.criticalPathOptimizer = new CriticalPathOptimizer({
+        priorityBoost: config.criticalPriorityBoost || 2.0,
+        slackThreshold: config.criticalSlackThreshold || 1000,
+      });
+      logger.info('[TaskExecutor] 关键路径优化已启用');
+    } else {
+      this.criticalPathOptimizer = null;
+      logger.info('[TaskExecutor] 关键路径优化已禁用');
+    }
+
     this.stats = {
       total: 0,
       completed: 0,
@@ -974,7 +988,30 @@ class TaskExecutor extends EventEmitter {
         }
 
         // 获取可执行的任务
-        const readyTasks = this.getReadyTasks();
+        let readyTasks = this.getReadyTasks();
+
+        // 应用关键路径优化（如果启用）
+        if (this.useCriticalPath && this.criticalPathOptimizer && readyTasks.length > 1) {
+          const tasksForOptimization = readyTasks.map(node => ({
+            id: node.id,
+            duration: node.estimatedDuration || 1000,
+            dependencies: node.dependencies,
+            priority: node.priority || 0,
+            estimatedDuration: node.estimatedDuration || 1000,
+          }));
+
+          const optimizedTasks = this.criticalPathOptimizer.optimize(tasksForOptimization);
+
+          // 重新排序readyTasks
+          const taskOrder = new Map(optimizedTasks.map((t, index) => [t.id, index]));
+          readyTasks.sort((a, b) => {
+            const orderA = taskOrder.get(a.id) ?? 999;
+            const orderB = taskOrder.get(b.id) ?? 999;
+            return orderA - orderB;
+          });
+
+          logger.debug(`[TaskExecutor] 关键路径优化已应用，任务顺序: [${readyTasks.map(n => n.id).join(', ')}]`);
+        }
 
         if (readyTasks.length === 0 && this.runningTasks.size === 0) {
           // 没有可执行的任务，且没有正在运行的任务
