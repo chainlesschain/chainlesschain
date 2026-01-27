@@ -125,6 +125,12 @@ Smart error diagnosis with local Ollama LLM (free), auto-classification, severit
 
 Context Engineering (KV-Cache optimization), Tool Masking, Task Tracking (todo.md), and Multi-Agent system.
 
+### Cowork Multi-Agent Collaboration
+
+**Status**: ✅ Implemented v1.0.0 | **Docs**: [`docs/features/COWORK_QUICK_START.md`](docs/features/COWORK_QUICK_START.md) | [`docs/features/COWORK_FINAL_SUMMARY.md`](docs/features/COWORK_FINAL_SUMMARY.md)
+
+Claude Cowork-style multi-agent collaboration system with 13 core operations (TeammateTool), secure file access control (FileSandbox), long-running task management with checkpoint/recovery, and extensible Skills framework (Office, Data Analysis). Includes intelligent single/multi-agent decision engine, 44 IPC handlers, and 150+ test cases with ~90% code coverage.
+
 ## Architecture Overview
 
 ### Desktop Application Structure

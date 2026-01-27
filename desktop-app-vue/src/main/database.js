@@ -2367,6 +2367,181 @@ class DatabaseManager {
       CREATE INDEX IF NOT EXISTS idx_file_transfer_tasks_status ON file_transfer_tasks(status);
       CREATE INDEX IF NOT EXISTS idx_file_transfer_tasks_device ON file_transfer_tasks(device_id);
       CREATE INDEX IF NOT EXISTS idx_file_sync_logs_created_at ON file_sync_logs(created_at DESC);
+
+      -- ============================
+      -- Cowork 多代理协作系统表结构
+      -- ============================
+
+      -- Cowork 团队表
+      CREATE TABLE IF NOT EXISTS cowork_teams (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        status TEXT DEFAULT 'active' CHECK(status IN ('active', 'paused', 'completed', 'failed', 'destroyed')),
+        max_agents INTEGER DEFAULT 5,
+        created_at INTEGER NOT NULL,
+        completed_at INTEGER,
+        metadata TEXT  -- JSON格式：团队配置、描述等
+      );
+
+      -- Cowork 代理表
+      CREATE TABLE IF NOT EXISTS cowork_agents (
+        id TEXT PRIMARY KEY,
+        team_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        status TEXT DEFAULT 'idle' CHECK(status IN ('idle', 'busy', 'waiting', 'terminated')),
+        assigned_task TEXT,
+        created_at INTEGER NOT NULL,
+        terminated_at INTEGER,
+        metadata TEXT,  -- JSON格式：能力、加入时间等
+        FOREIGN KEY (team_id) REFERENCES cowork_teams(id) ON DELETE CASCADE
+      );
+
+      -- Cowork 任务表
+      CREATE TABLE IF NOT EXISTS cowork_tasks (
+        id TEXT PRIMARY KEY,
+        team_id TEXT NOT NULL,
+        description TEXT NOT NULL,
+        status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'assigned', 'running', 'completed', 'failed')),
+        priority INTEGER DEFAULT 0,
+        assigned_to TEXT,  -- agent_id
+        result TEXT,  -- JSON格式
+        created_at INTEGER NOT NULL,
+        completed_at INTEGER,
+        metadata TEXT,  -- JSON格式
+        FOREIGN KEY (team_id) REFERENCES cowork_teams(id) ON DELETE CASCADE,
+        FOREIGN KEY (assigned_to) REFERENCES cowork_agents(id) ON DELETE SET NULL
+      );
+
+      -- Cowork 消息表
+      CREATE TABLE IF NOT EXISTS cowork_messages (
+        id TEXT PRIMARY KEY,
+        team_id TEXT NOT NULL,
+        from_agent TEXT NOT NULL,
+        to_agent TEXT,  -- NULL表示广播
+        message TEXT NOT NULL,  -- JSON格式
+        timestamp INTEGER NOT NULL,
+        metadata TEXT,  -- JSON格式
+        FOREIGN KEY (team_id) REFERENCES cowork_teams(id) ON DELETE CASCADE,
+        FOREIGN KEY (from_agent) REFERENCES cowork_agents(id) ON DELETE CASCADE,
+        FOREIGN KEY (to_agent) REFERENCES cowork_agents(id) ON DELETE CASCADE
+      );
+
+      -- Cowork 审计日志表
+      CREATE TABLE IF NOT EXISTS cowork_audit_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        team_id TEXT NOT NULL,
+        agent_id TEXT,
+        operation TEXT NOT NULL,  -- 'read', 'write', 'delete', 'execute'
+        resource_type TEXT,  -- 'file', 'task', 'message'
+        resource_path TEXT,
+        timestamp INTEGER NOT NULL,
+        success INTEGER DEFAULT 1,
+        error_message TEXT,
+        metadata TEXT,  -- JSON格式
+        FOREIGN KEY (team_id) REFERENCES cowork_teams(id) ON DELETE CASCADE,
+        FOREIGN KEY (agent_id) REFERENCES cowork_agents(id) ON DELETE SET NULL
+      );
+
+      -- Cowork 性能指标表
+      CREATE TABLE IF NOT EXISTS cowork_metrics (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        team_id TEXT NOT NULL,
+        agent_id TEXT,
+        metric_type TEXT NOT NULL,  -- 'token_usage', 'cost', 'duration', 'error_rate'
+        metric_value REAL NOT NULL,
+        tokens_used INTEGER,
+        cost REAL,
+        timestamp INTEGER NOT NULL,
+        metadata TEXT,  -- JSON格式
+        FOREIGN KEY (team_id) REFERENCES cowork_teams(id) ON DELETE CASCADE,
+        FOREIGN KEY (agent_id) REFERENCES cowork_agents(id) ON DELETE SET NULL
+      );
+
+      -- Cowork 检查点表（用于长时运行任务）
+      CREATE TABLE IF NOT EXISTS cowork_checkpoints (
+        id TEXT PRIMARY KEY,
+        team_id TEXT NOT NULL,
+        task_id TEXT,
+        checkpoint_data TEXT NOT NULL,  -- JSON格式：完整的团队状态快照
+        timestamp INTEGER NOT NULL,
+        metadata TEXT,  -- JSON格式
+        FOREIGN KEY (team_id) REFERENCES cowork_teams(id) ON DELETE CASCADE,
+        FOREIGN KEY (task_id) REFERENCES cowork_tasks(id) ON DELETE CASCADE
+      );
+
+      -- Cowork 文件沙箱权限表
+      CREATE TABLE IF NOT EXISTS cowork_sandbox_permissions (
+        id TEXT PRIMARY KEY,
+        team_id TEXT NOT NULL,
+        path TEXT NOT NULL,  -- 允许访问的路径
+        permission TEXT DEFAULT 'read' CHECK(permission IN ('read', 'write', 'execute')),
+        granted_at INTEGER NOT NULL,
+        granted_by TEXT,  -- user_did
+        expires_at INTEGER,
+        is_active INTEGER DEFAULT 1,
+        metadata TEXT,  -- JSON格式
+        FOREIGN KEY (team_id) REFERENCES cowork_teams(id) ON DELETE CASCADE,
+        UNIQUE(team_id, path, permission)
+      );
+
+      -- Cowork 决策投票表
+      CREATE TABLE IF NOT EXISTS cowork_decisions (
+        id TEXT PRIMARY KEY,
+        team_id TEXT NOT NULL,
+        decision_type TEXT NOT NULL,  -- 'task_assignment', 'conflict_resolution', 'custom'
+        description TEXT,
+        options TEXT,  -- JSON格式：投票选项
+        votes TEXT,  -- JSON格式：{agentId: vote}
+        result TEXT,  -- JSON格式：投票结果
+        threshold REAL DEFAULT 0.5,
+        passed INTEGER,  -- 0或1
+        created_at INTEGER NOT NULL,
+        completed_at INTEGER,
+        metadata TEXT,  -- JSON格式
+        FOREIGN KEY (team_id) REFERENCES cowork_teams(id) ON DELETE CASCADE
+      );
+
+      -- Cowork 索引
+      CREATE INDEX IF NOT EXISTS idx_cowork_teams_status ON cowork_teams(status);
+      CREATE INDEX IF NOT EXISTS idx_cowork_teams_created_at ON cowork_teams(created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_cowork_agents_team ON cowork_agents(team_id);
+      CREATE INDEX IF NOT EXISTS idx_cowork_agents_status ON cowork_agents(status);
+      CREATE INDEX IF NOT EXISTS idx_cowork_tasks_team ON cowork_tasks(team_id);
+      CREATE INDEX IF NOT EXISTS idx_cowork_tasks_status ON cowork_tasks(status);
+      CREATE INDEX IF NOT EXISTS idx_cowork_tasks_assigned_to ON cowork_tasks(assigned_to);
+      CREATE INDEX IF NOT EXISTS idx_cowork_tasks_priority ON cowork_tasks(priority DESC);
+      CREATE INDEX IF NOT EXISTS idx_cowork_messages_team ON cowork_messages(team_id);
+      CREATE INDEX IF NOT EXISTS idx_cowork_messages_from ON cowork_messages(from_agent);
+      CREATE INDEX IF NOT EXISTS idx_cowork_messages_to ON cowork_messages(to_agent);
+      CREATE INDEX IF NOT EXISTS idx_cowork_messages_timestamp ON cowork_messages(timestamp DESC);
+      CREATE INDEX IF NOT EXISTS idx_cowork_audit_team ON cowork_audit_log(team_id);
+      CREATE INDEX IF NOT EXISTS idx_cowork_audit_agent ON cowork_audit_log(agent_id);
+      CREATE INDEX IF NOT EXISTS idx_cowork_audit_operation ON cowork_audit_log(operation);
+      CREATE INDEX IF NOT EXISTS idx_cowork_audit_timestamp ON cowork_audit_log(timestamp DESC);
+      CREATE INDEX IF NOT EXISTS idx_cowork_metrics_team ON cowork_metrics(team_id);
+      CREATE INDEX IF NOT EXISTS idx_cowork_metrics_agent ON cowork_metrics(agent_id);
+      CREATE INDEX IF NOT EXISTS idx_cowork_metrics_type ON cowork_metrics(metric_type);
+      CREATE INDEX IF NOT EXISTS idx_cowork_metrics_timestamp ON cowork_metrics(timestamp DESC);
+      CREATE INDEX IF NOT EXISTS idx_cowork_checkpoints_team ON cowork_checkpoints(team_id);
+      CREATE INDEX IF NOT EXISTS idx_cowork_checkpoints_task ON cowork_checkpoints(task_id);
+      CREATE INDEX IF NOT EXISTS idx_cowork_checkpoints_timestamp ON cowork_checkpoints(timestamp DESC);
+      CREATE INDEX IF NOT EXISTS idx_cowork_sandbox_team ON cowork_sandbox_permissions(team_id);
+      CREATE INDEX IF NOT EXISTS idx_cowork_sandbox_path ON cowork_sandbox_permissions(path);
+      CREATE INDEX IF NOT EXISTS idx_cowork_sandbox_active ON cowork_sandbox_permissions(is_active);
+      CREATE INDEX IF NOT EXISTS idx_cowork_decisions_team ON cowork_decisions(team_id);
+      CREATE INDEX IF NOT EXISTS idx_cowork_decisions_type ON cowork_decisions(decision_type);
+      CREATE INDEX IF NOT EXISTS idx_cowork_decisions_created_at ON cowork_decisions(created_at DESC);
+
+      -- 🚀 Phase 4: Additional Composite Indexes for Performance
+      -- Cowork-specific composite indexes for common query patterns
+      CREATE INDEX IF NOT EXISTS idx_cowork_tasks_team_status ON cowork_tasks(team_id, status);
+      CREATE INDEX IF NOT EXISTS idx_cowork_tasks_team_priority ON cowork_tasks(team_id, priority DESC, created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_cowork_agents_team_status ON cowork_agents(team_id, status);
+      CREATE INDEX IF NOT EXISTS idx_cowork_messages_team_timestamp ON cowork_messages(team_id, timestamp DESC);
+      CREATE INDEX IF NOT EXISTS idx_cowork_audit_team_operation ON cowork_audit_log(team_id, operation, timestamp DESC);
+      CREATE INDEX IF NOT EXISTS idx_cowork_audit_path_timestamp ON cowork_audit_log(path, timestamp DESC);
+      CREATE INDEX IF NOT EXISTS idx_cowork_metrics_team_type ON cowork_metrics(team_id, metric_type, timestamp DESC);
+      CREATE INDEX IF NOT EXISTS idx_cowork_sandbox_team_path ON cowork_sandbox_permissions(team_id, path, is_active);
     `);
 
       logger.info("[Database] ✓ 所有表和索引创建成功");

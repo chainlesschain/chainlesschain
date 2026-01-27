@@ -944,6 +944,39 @@ function registerAllIPC(dependencies) {
     logger.info("[IPC Registry] ========================================");
 
     // ============================================================
+    // Phase 9: Cowork 多代理协作系统
+    // ============================================================
+
+    try {
+      logger.info("[IPC Registry] Registering Cowork IPC...");
+      const { registerCoworkIPC } = require("../ai-engine/cowork/cowork-ipc");
+      registerCoworkIPC({
+        database: database || null,
+        mainWindow: mainWindow || null,
+      });
+      logger.info("[IPC Registry] ✓ Cowork IPC registered (44 handlers)");
+      logger.info("[IPC Registry]   - TeammateTool: 15 handlers");
+      logger.info("[IPC Registry]   - FileSandbox: 11 handlers");
+      logger.info("[IPC Registry]   - LongRunningTaskManager: 9 handlers");
+      logger.info("[IPC Registry]   - SkillRegistry: 5 handlers");
+      logger.info("[IPC Registry]   - Utilities: 4 handlers");
+    } catch (coworkError) {
+      logger.error(
+        "[IPC Registry] ❌ Cowork IPC registration failed:",
+        coworkError.message,
+      );
+      logger.info(
+        "[IPC Registry] ⚠️  Continuing without Cowork functionality...",
+      );
+    }
+
+    logger.info("[IPC Registry] ========================================");
+    logger.info(
+      "[IPC Registry] Phase 9 Complete: Cowork system ready!",
+    );
+    logger.info("[IPC Registry] ========================================");
+
+    // ============================================================
     // 注册统计
     // ============================================================
 

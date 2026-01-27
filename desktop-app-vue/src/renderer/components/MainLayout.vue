@@ -705,6 +705,43 @@
                 标签管理
               </a-menu-item>
             </a-menu-item-group>
+
+            <!-- Cowork 多代理协作 -->
+            <a-menu-item-group title="多代理协作">
+              <a-menu-item key="cowork-dashboard">
+                <template #icon>
+                  <TeamOutlined />
+                </template>
+                <span>Cowork 协作</span>
+                <a-badge
+                  count="新"
+                  :number-style="{
+                    backgroundColor: '#52c41a',
+                    fontSize: '10px',
+                    padding: '0 4px',
+                  }"
+                  style="margin-left: 8px"
+                />
+              </a-menu-item>
+              <a-menu-item key="cowork-tasks">
+                <template #icon>
+                  <UnorderedListOutlined />
+                </template>
+                任务监控
+              </a-menu-item>
+              <a-menu-item key="cowork-skills">
+                <template #icon>
+                  <ToolOutlined />
+                </template>
+                技能管理
+              </a-menu-item>
+              <a-menu-item key="cowork-analytics">
+                <template #icon>
+                  <BarChartOutlined />
+                </template>
+                数据分析
+              </a-menu-item>
+            </a-menu-item-group>
           </a-sub-menu>
         </a-menu>
       </div>
@@ -1182,6 +1219,7 @@ import {
   ScanOutlined,
   UnorderedListOutlined,
   LineChartOutlined,
+  BarChartOutlined,
   BugOutlined,
   HistoryOutlined,
 } from "@ant-design/icons-vue";
@@ -1344,6 +1382,12 @@ const menuConfig = {
   "memory-dashboard": { path: "/memory", title: "内存仪表板" },
   "tag-manager": { path: "/tags", title: "标签管理" },
   "llm-performance": { path: "/llm/performance", title: "LLM性能监控" },
+
+  // Cowork 多代理协作模块
+  "cowork-dashboard": { path: "/cowork", title: "Cowork 多代理协作" },
+  "cowork-tasks": { path: "/cowork/tasks", title: "任务监控" },
+  "cowork-skills": { path: "/cowork/skills", title: "技能管理" },
+  "cowork-analytics": { path: "/cowork/analytics", title: "数据分析" },
 
   // MCP和高级AI配置
   "mcp-settings": {
