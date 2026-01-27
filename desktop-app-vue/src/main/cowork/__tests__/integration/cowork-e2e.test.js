@@ -11,16 +11,17 @@
 const path = require("path");
 const fs = require("fs-extra");
 const Database = require("../../../database");
-const TeammateTool = require("../../../ai-engine/cowork/teammate-tool");
-const FileSandbox = require("../../../ai-engine/cowork/file-sandbox");
-const LongRunningTaskManager = require("../../../ai-engine/cowork/long-running-task-manager");
-const SkillRegistry = require("../../../ai-engine/cowork/skills/skill-registry");
-const OfficeSkill = require("../../../ai-engine/cowork/skills/office-skill");
-const CoworkOrchestrator = require("../../../ai-engine/multi-agent/cowork-orchestrator");
+const { TeammateTool } = require("../../../ai-engine/cowork/teammate-tool");
+const { FileSandbox } = require("../../../ai-engine/cowork/file-sandbox");
+const { LongRunningTaskManager } = require("../../../ai-engine/cowork/long-running-task-manager");
+const { SkillRegistry } = require("../../../ai-engine/cowork/skills/skill-registry");
+const { OfficeSkill } = require("../../../ai-engine/cowork/skills/office-skill");
+const { CoworkOrchestrator } = require("../../../ai-engine/multi-agent/cowork-orchestrator");
 
 // Test configuration
-const TEST_DB_PATH = path.join(__dirname, "../../../../../../../data/test-cowork-e2e.db");
-const TEST_SANDBOX_ROOT = path.join(__dirname, "../../../../../../../data/test-sandbox");
+const os = require("os");
+const TEST_DB_PATH = path.join(os.tmpdir(), "test-cowork-e2e.db");
+const TEST_SANDBOX_ROOT = path.join(os.tmpdir(), "test-cowork-sandbox");
 const TEST_KEY = "test-encryption-key-32-chars!!!";
 
 describe("Cowork E2E Integration Tests", () => {
@@ -45,8 +46,8 @@ describe("Cowork E2E Integration Tests", () => {
     }
 
     // Initialize database
-    db = new Database(TEST_DB_PATH, TEST_KEY);
-    await db.open();
+    db = new Database(TEST_DB_PATH, { password: TEST_KEY, encryptionEnabled: false });
+    await db.initialize();
 
     // Initialize components
     teammateTool = new TeammateTool(db);
@@ -57,7 +58,7 @@ describe("Cowork E2E Integration Tests", () => {
 
     // Register skills
     const officeSkill = new OfficeSkill();
-    skillRegistry.registerSkill(officeSkill);
+    skillRegistry.register(officeSkill);
 
     // Create sandbox root
     await fs.ensureDir(TEST_SANDBOX_ROOT);
@@ -66,7 +67,7 @@ describe("Cowork E2E Integration Tests", () => {
   afterAll(async () => {
     // Cleanup
     if (db) {
-      await db.close();
+      db.close();
     }
     if (fs.existsSync(TEST_DB_PATH)) {
       fs.unlinkSync(TEST_DB_PATH);
@@ -722,7 +723,7 @@ describe("Cowork E2E Integration Tests", () => {
   describe("Error Handling and Recovery", () => {
     test("should handle database errors gracefully", async () => {
       // Close database to simulate error
-      await db.close();
+      db.close();
 
       // Try to create team (should fail)
       await expect(
@@ -730,7 +731,7 @@ describe("Cowork E2E Integration Tests", () => {
       ).rejects.toThrow();
 
       // Reopen database
-      await db.open();
+      await db.initialize();
 
       // Now should work
       const team = await teammateTool.spawnTeam("Recovery Test Team");

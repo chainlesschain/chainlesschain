@@ -8,6 +8,142 @@ const EventEmitter = require('events');
 const os = require('os');
 
 /**
+ * 自动阶段转换管理器
+ * 根据任务执行状态自动切换工具掩码阶段
+ */
+class AutoPhaseTransition {
+  constructor(options = {}) {
+    this.functionCaller = options.functionCaller;
+    this.taskExecutor = options.taskExecutor;
+    this.enabled = options.enabled !== false; // 默认启用
+    this.currentPhase = 'planning';
+
+    this.stats = {
+      totalTransitions: 0,
+      successfulTransitions: 0,
+      failedTransitions: 0,
+    };
+
+    if (this.enabled && this.taskExecutor) {
+      this.setupListeners();
+      logger.info('[AutoPhaseTransition] 自动阶段转换已启用');
+    }
+  }
+
+  /**
+   * 设置事件监听器
+   */
+  setupListeners() {
+    // 任务开始执行 → 切换到executing阶段
+    this.taskExecutor.on('execution-started', () => {
+      this.maybeTransition('executing', '任务开始执行');
+    });
+
+    // 所有任务完成 → 切换到validating阶段
+    this.taskExecutor.on('execution-completed', () => {
+      this.maybeTransition('validating', '所有任务执行完成');
+    });
+
+    // 执行失败 → 保持当前阶段或回退到planning
+    this.taskExecutor.on('execution-failed', () => {
+      logger.warn('[AutoPhaseTransition] 任务执行失败，保持当前阶段');
+    });
+  }
+
+  /**
+   * 尝试切换阶段
+   */
+  maybeTransition(targetPhase, reason = '') {
+    if (!this.enabled) {
+      return false;
+    }
+
+    if (!this.shouldTransition(targetPhase)) {
+      logger.debug(`[AutoPhaseTransition] 阶段转换被拒绝: ${this.currentPhase} → ${targetPhase}`);
+      return false;
+    }
+
+    logger.info(`[AutoPhaseTransition] 自动切换阶段: ${this.currentPhase} → ${targetPhase} (${reason})`);
+
+    this.stats.totalTransitions++;
+
+    try {
+      // 调用 FunctionCaller 的 transitionToPhase 方法
+      if (this.functionCaller) {
+        const success = this.functionCaller.transitionToPhase(targetPhase);
+        if (success) {
+          this.currentPhase = targetPhase;
+          this.stats.successfulTransitions++;
+          logger.info(`[AutoPhaseTransition] ✅ 阶段切换成功: ${targetPhase}`);
+          return true;
+        } else {
+          this.stats.failedTransitions++;
+          logger.warn(`[AutoPhaseTransition] ❌ 阶段切换失败: ${targetPhase}`);
+          return false;
+        }
+      }
+    } catch (error) {
+      this.stats.failedTransitions++;
+      logger.error('[AutoPhaseTransition] 阶段切换异常:', error);
+      return false;
+    }
+
+    return false;
+  }
+
+  /**
+   * 判断是否允许转换
+   */
+  shouldTransition(targetPhase) {
+    // 阶段转换状态机
+    const transitions = {
+      planning: ['executing'],                      // 规划 → 执行
+      executing: ['validating', 'executing'],       // 执行 → 验证 或 重新执行
+      validating: ['executing', 'committing'],      // 验证 → 重新执行 或 提交
+      committing: ['planning'],                     // 提交 → 规划（新任务）
+    };
+
+    const allowedTransitions = transitions[this.currentPhase] || [];
+    return allowedTransitions.includes(targetPhase);
+  }
+
+  /**
+   * 手动切换阶段
+   */
+  manualTransition(targetPhase, reason = '手动触发') {
+    return this.maybeTransition(targetPhase, reason);
+  }
+
+  /**
+   * 重置到初始阶段
+   */
+  reset() {
+    this.currentPhase = 'planning';
+    logger.info('[AutoPhaseTransition] 重置到planning阶段');
+  }
+
+  /**
+   * 获取当前阶段
+   */
+  getCurrentPhase() {
+    return this.currentPhase;
+  }
+
+  /**
+   * 获取统计信息
+   */
+  getStats() {
+    return {
+      ...this.stats,
+      currentPhase: this.currentPhase,
+      successRate: this.stats.totalTransitions > 0
+        ? ((this.stats.successfulTransitions / this.stats.totalTransitions) * 100).toFixed(2)
+        : '0.00',
+    };
+  }
+}
+
+/**
  * 任务执行器配置
  */
 const EXECUTOR_CONFIG = {
@@ -1013,6 +1149,7 @@ class TaskExecutor extends EventEmitter {
 
 module.exports = {
   TaskExecutor,
+  AutoPhaseTransition,
   DynamicConcurrencyController,
   SmartRetryStrategy,
   TaskStatus,

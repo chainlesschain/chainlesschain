@@ -13,6 +13,340 @@ const { logger, createLogger } = require('../utils/logger.js');
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
 const EventEmitter = require('events');
+const os = require('os');
+
+/**
+ * 质量门禁检查器
+ * 在任务计划执行前进行并行质量检查
+ */
+class QualityGateChecker {
+  constructor(options = {}) {
+    this.availableTools = options.availableTools || [];
+    this.maxConcurrency = options.maxConcurrency || 8;
+    this.maxMemoryUsage = options.maxMemoryUsage || 0.85; // 85%
+    this.enabled = options.enabled !== false;
+
+    this.stats = {
+      totalChecks: 0,
+      passed: 0,
+      failed: 0,
+      warnings: 0,
+    };
+  }
+
+  /**
+   * 执行所有质量门禁检查（并行）
+   */
+  async runAllGates(taskPlan) {
+    if (!this.enabled) {
+      logger.info('[QualityGate] 质量门禁检查已禁用');
+      return { passed: true, gates: [], warnings: [] };
+    }
+
+    logger.info('[QualityGate] 开始并行质量门禁检查...');
+    this.stats.totalChecks++;
+
+    const startTime = Date.now();
+
+    // 并行执行所有质量门禁
+    const gateResults = await Promise.allSettled([
+      this.checkCyclicDependencies(taskPlan),
+      this.checkResourceFeasibility(taskPlan),
+      this.checkToolAvailability(taskPlan),
+      this.checkParameterCompleteness(taskPlan),
+    ]);
+
+    const duration = Date.now() - startTime;
+
+    // 汇总结果
+    const results = {
+      passed: true,
+      gates: [],
+      warnings: [],
+      errors: [],
+      duration,
+    };
+
+    gateResults.forEach((result, index) => {
+      const gateName = ['循环依赖', '资源评估', '工具可用性', '参数完整性'][index];
+
+      if (result.status === 'fulfilled') {
+        const gateResult = result.value;
+        results.gates.push({ name: gateName, ...gateResult });
+
+        if (!gateResult.passed) {
+          results.passed = false;
+          results.errors.push(`${gateName}检查失败: ${gateResult.message}`);
+        }
+
+        if (gateResult.warnings && gateResult.warnings.length > 0) {
+          results.warnings.push(...gateResult.warnings.map(w => `[${gateName}] ${w}`));
+          this.stats.warnings += gateResult.warnings.length;
+        }
+      } else {
+        // 门禁检查本身失败
+        results.warnings.push(`${gateName}检查异常: ${result.reason.message}`);
+        logger.warn(`[QualityGate] ${gateName}检查异常:`, result.reason);
+      }
+    });
+
+    // 更新统计
+    if (results.passed) {
+      this.stats.passed++;
+      logger.info(`[QualityGate] ✅ 所有质量门禁检查通过 (${duration}ms)`);
+    } else {
+      this.stats.failed++;
+      logger.error(`[QualityGate] ❌ 质量门禁检查失败 (${duration}ms):`, results.errors);
+    }
+
+    if (results.warnings.length > 0) {
+      logger.warn('[QualityGate] ⚠️ 质量门禁警告:', results.warnings);
+    }
+
+    return results;
+  }
+
+  /**
+   * 门禁1: 检测循环依赖
+   */
+  async checkCyclicDependencies(taskPlan) {
+    logger.debug('[QualityGate] 检查循环依赖...');
+
+    const { subtasks } = taskPlan;
+    if (!subtasks || subtasks.length === 0) {
+      return { passed: true, message: '无子任务，跳过检查' };
+    }
+
+    // 构建依赖图
+    const graph = new Map();
+    for (const task of subtasks) {
+      graph.set(task.step, task.dependencies || []);
+    }
+
+    // DFS检测环
+    const visited = new Set();
+    const recursionStack = new Set();
+
+    const hasCycle = (node) => {
+      if (recursionStack.has(node)) {
+        return true; // 发现环
+      }
+
+      if (visited.has(node)) {
+        return false;
+      }
+
+      visited.add(node);
+      recursionStack.add(node);
+
+      const dependencies = graph.get(node) || [];
+      for (const dep of dependencies) {
+        if (hasCycle(dep)) {
+          return true;
+        }
+      }
+
+      recursionStack.delete(node);
+      return false;
+    };
+
+    // 检查所有节点
+    for (const node of graph.keys()) {
+      if (hasCycle(node)) {
+        return {
+          passed: false,
+          message: `检测到循环依赖，涉及步骤: ${node}`,
+        };
+      }
+    }
+
+    return {
+      passed: true,
+      message: `无循环依赖（${subtasks.length}个子任务）`,
+    };
+  }
+
+  /**
+   * 门禁2: 评估资源合理性
+   */
+  async checkResourceFeasibility(taskPlan) {
+    logger.debug('[QualityGate] 评估资源合理性...');
+
+    const { subtasks } = taskPlan;
+    if (!subtasks || subtasks.length === 0) {
+      return { passed: true, message: '无子任务，跳过检查' };
+    }
+
+    const warnings = [];
+
+    // 检查并发数是否合理
+    const totalMem = os.totalmem();
+    const freeMem = os.freemem();
+    const memUsage = (totalMem - freeMem) / totalMem;
+
+    if (memUsage > this.maxMemoryUsage) {
+      warnings.push(`内存使用率过高 (${(memUsage * 100).toFixed(1)}% > ${(this.maxMemoryUsage * 100).toFixed(0)}%)`);
+    }
+
+    // 检查并发数
+    const estimatedConcurrency = Math.min(subtasks.length, this.maxConcurrency);
+    const cpuCores = os.cpus().length;
+
+    if (estimatedConcurrency > cpuCores * 2) {
+      warnings.push(`建议并发数(${estimatedConcurrency})超过CPU核心数(${cpuCores})的2倍`);
+    }
+
+    // 预估内存消耗（每个任务约100MB）
+    const estimatedMemoryMB = subtasks.length * 100;
+    const freeMemMB = freeMem / 1024 / 1024;
+
+    if (estimatedMemoryMB > freeMemMB * 0.5) {
+      warnings.push(`预估内存消耗(${estimatedMemoryMB.toFixed(0)}MB)可能超过可用内存(${freeMemMB.toFixed(0)}MB)的50%`);
+    }
+
+    return {
+      passed: true,
+      message: `资源评估完成 (${subtasks.length}任务, 预估${estimatedConcurrency}并发)`,
+      warnings,
+      metadata: {
+        memUsage: (memUsage * 100).toFixed(1) + '%',
+        estimatedConcurrency,
+        cpuCores,
+        freeMemMB: freeMemMB.toFixed(0),
+      },
+    };
+  }
+
+  /**
+   * 门禁3: 验证工具可用性
+   */
+  async checkToolAvailability(taskPlan) {
+    logger.debug('[QualityGate] 验证工具可用性...');
+
+    const { subtasks } = taskPlan;
+    if (!subtasks || subtasks.length === 0) {
+      return { passed: true, message: '无子任务，跳过检查' };
+    }
+
+    const requiredTools = new Set();
+    const missingTools = [];
+
+    // 收集所有需要的工具
+    for (const task of subtasks) {
+      if (task.tool) {
+        requiredTools.add(task.tool);
+      }
+    }
+
+    // 检查工具是否可用
+    for (const tool of requiredTools) {
+      // 如果有可用工具列表，检查是否在列表中
+      if (this.availableTools.length > 0 && !this.availableTools.includes(tool)) {
+        missingTools.push(tool);
+      }
+    }
+
+    if (missingTools.length > 0) {
+      return {
+        passed: false,
+        message: `缺少必需工具: ${missingTools.join(', ')}`,
+        metadata: {
+          required: Array.from(requiredTools),
+          missing: missingTools,
+        },
+      };
+    }
+
+    return {
+      passed: true,
+      message: `所有工具可用 (${requiredTools.size}个工具)`,
+      metadata: {
+        tools: Array.from(requiredTools),
+      },
+    };
+  }
+
+  /**
+   * 门禁4: 检查参数完整性
+   */
+  async checkParameterCompleteness(taskPlan) {
+    logger.debug('[QualityGate] 检查参数完整性...');
+
+    const { subtasks } = taskPlan;
+    if (!subtasks || subtasks.length === 0) {
+      return { passed: true, message: '无子任务，跳过检查' };
+    }
+
+    const warnings = [];
+    const incompleteT asks = [];
+
+    for (const task of subtasks) {
+      const issues = [];
+
+      // 检查必需字段
+      if (!task.step) issues.push('缺少step');
+      if (!task.title) issues.push('缺少title');
+      if (!task.tool && !task.action) issues.push('缺少tool或action');
+
+      // 检查依赖引用
+      if (task.dependencies && task.dependencies.length > 0) {
+        for (const depStep of task.dependencies) {
+          const depExists = subtasks.some(t => t.step === depStep);
+          if (!depExists) {
+            issues.push(`依赖步骤${depStep}不存在`);
+          }
+        }
+      }
+
+      if (issues.length > 0) {
+        incompleteTasks.push({
+          step: task.step,
+          title: task.title || '未命名',
+          issues,
+        });
+      }
+    }
+
+    if (incompleteTasks.length > 0) {
+      return {
+        passed: false,
+        message: `${incompleteTasks.length}个子任务参数不完整`,
+        metadata: {
+          incompleteTasks,
+        },
+      };
+    }
+
+    return {
+      passed: true,
+      message: `所有参数完整 (${subtasks.length}个子任务)`,
+    };
+  }
+
+  /**
+   * 获取统计信息
+   */
+  getStats() {
+    return {
+      ...this.stats,
+      passRate: this.stats.totalChecks > 0
+        ? ((this.stats.passed / this.stats.totalChecks) * 100).toFixed(2)
+        : '0.00',
+    };
+  }
+
+  /**
+   * 重置统计
+   */
+  reset() {
+    this.stats = {
+      totalChecks: 0,
+      passed: 0,
+      failed: 0,
+      warnings: 0,
+    };
+  }
+}
 
 class TaskPlannerEnhanced extends EventEmitter {
   constructor(dependencies) {
@@ -25,6 +359,13 @@ class TaskPlannerEnhanced extends EventEmitter {
 
     // 引擎延迟加载（避免循环依赖）
     this.engines = {};
+
+    // 质量门禁检查器
+    this.qualityGateChecker = new QualityGateChecker({
+      availableTools: dependencies.availableTools || [],
+      enabled: dependencies.enableQualityGates !== false, // 默认启用
+    });
+    logger.info('[TaskPlannerEnhanced] 质量门禁检查器已初始化');
   }
 
   /**
@@ -759,6 +1100,51 @@ ${userRequest}
           taskPlan: taskPlan
         });
       }
+
+      // 质量门禁检查
+      const gateResults = await this.qualityGateChecker.runAllGates(taskPlan);
+
+      if (!gateResults.passed) {
+        // 质量门禁未通过，终止执行
+        const errorMessage = `质量门禁检查失败: ${gateResults.errors.join('; ')}`;
+        logger.error('[TaskPlannerEnhanced]', errorMessage);
+
+        taskPlan.status = 'failed';
+        taskPlan.error_message = errorMessage;
+        taskPlan.completed_at = Date.now();
+
+        await this.updateTaskPlan(taskPlan.id, {
+          status: 'failed',
+          error_message: errorMessage,
+          completed_at: taskPlan.completed_at
+        });
+
+        this.emit('task-failed', { taskPlan, error: errorMessage, gateResults });
+        if (progressCallback) {
+          progressCallback({
+            type: 'task-failed',
+            taskPlan: taskPlan,
+            error: errorMessage,
+            gateResults
+          });
+        }
+
+        throw new Error(errorMessage);
+      }
+
+      // 质量门禁通过，记录警告（如果有）
+      if (gateResults.warnings && gateResults.warnings.length > 0) {
+        logger.warn('[TaskPlannerEnhanced] 质量门禁警告:', gateResults.warnings);
+        this.emit('quality-gate-warnings', { taskPlan, warnings: gateResults.warnings });
+        if (progressCallback) {
+          progressCallback({
+            type: 'quality-gate-warnings',
+            warnings: gateResults.warnings
+          });
+        }
+      }
+
+      logger.info(`[TaskPlannerEnhanced] ✅ 质量门禁检查通过 (${gateResults.duration}ms)`);
 
       // 解析执行顺序（基于依赖关系）
       const executionOrder = this.resolveExecutionOrder(taskPlan.subtasks);
