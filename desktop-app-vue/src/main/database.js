@@ -2590,7 +2590,7 @@ class DatabaseManager {
       CREATE INDEX IF NOT EXISTS idx_cowork_agents_team_status ON cowork_agents(team_id, status);
       CREATE INDEX IF NOT EXISTS idx_cowork_messages_team_timestamp ON cowork_messages(team_id, timestamp DESC);
       CREATE INDEX IF NOT EXISTS idx_cowork_audit_team_operation ON cowork_audit_log(team_id, operation, timestamp DESC);
-      CREATE INDEX IF NOT EXISTS idx_cowork_audit_path_timestamp ON cowork_audit_log(path, timestamp DESC);
+      CREATE INDEX IF NOT EXISTS idx_cowork_audit_path_timestamp ON cowork_audit_log(resource_path, timestamp DESC);
       CREATE INDEX IF NOT EXISTS idx_cowork_metrics_team_type ON cowork_metrics(team_id, metric_type, timestamp DESC);
       CREATE INDEX IF NOT EXISTS idx_cowork_sandbox_team_path ON cowork_sandbox_permissions(team_id, path, is_active);
     `);
