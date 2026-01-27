@@ -186,6 +186,26 @@ const monitoringPages = createRouteGroup("monitoring", {
     ),
 });
 
+// Cowork 多代理协作页面组（中优先级）
+const coworkPages = createRouteGroup("cowork", {
+  dashboard: () =>
+    import(
+      /* webpackChunkName: "cowork-dashboard" */ "../pages/CoworkDashboard.vue"
+    ),
+  tasks: () =>
+    import(
+      /* webpackChunkName: "cowork-tasks" */ "../pages/TaskMonitor.vue"
+    ),
+  skills: () =>
+    import(
+      /* webpackChunkName: "cowork-skills" */ "../pages/SkillManager.vue"
+    ),
+  analytics: () =>
+    import(
+      /* webpackChunkName: "cowork-analytics" */ "../pages/CoworkAnalytics.vue"
+    ),
+});
+
 // P2P高级功能页面组（低优先级）
 const p2pAdvancedPages = createRouteGroup("p2p-advanced", {
   devicePairing: () =>
@@ -413,6 +433,25 @@ const routes = [
         name: "MessageQueue",
         component: () => import("../pages/p2p/MessageQueuePage.vue"),
         meta: { title: "消息队列", requiresAuth: false },
+      },
+      // ===== 远程控制 =====
+      {
+        path: "remote/control",
+        name: "RemoteControl",
+        component: () =>
+          import(
+            /* webpackChunkName: "remote-control" */ "../pages/RemoteControl.vue"
+          ),
+        meta: { title: "远程控制", requiresAuth: false },
+      },
+      {
+        path: "remote/logs",
+        name: "CommandLogs",
+        component: () =>
+          import(
+            /* webpackChunkName: "command-logs" */ "../pages/CommandLogsPage.vue"
+          ),
+        meta: { title: "命令日志", requiresAuth: false },
       },
       // ===== 测试页面 =====
       {
@@ -779,6 +818,31 @@ const routes = [
         name: "MemoryDashboard",
         component: () => import("../pages/MemoryDashboardPage.vue"),
         meta: { title: "Memory Bank 仪表板" },
+      },
+      // ===== Cowork 多代理协作路由 =====
+      {
+        path: "cowork",
+        name: "CoworkDashboard",
+        component: coworkPages.dashboard,
+        meta: { title: "Cowork 多代理协作" },
+      },
+      {
+        path: "cowork/tasks",
+        name: "CoworkTasks",
+        component: coworkPages.tasks,
+        meta: { title: "任务监控" },
+      },
+      {
+        path: "cowork/skills",
+        name: "CoworkSkills",
+        component: coworkPages.skills,
+        meta: { title: "技能管理" },
+      },
+      {
+        path: "cowork/analytics",
+        name: "CoworkAnalytics",
+        component: coworkPages.analytics,
+        meta: { title: "数据分析" },
       },
       {
         path: "error/monitor",

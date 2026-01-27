@@ -2,7 +2,7 @@
 
 <div align="center">
 
-![Version](https://img.shields.io/badge/version-v0.26.2-blue.svg)
+![Version](https://img.shields.io/badge/version-v0.27.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
 ![Node](https://img.shields.io/badge/node-%3E%3D22.12.0-brightgreen.svg)
@@ -18,10 +18,11 @@
 
 ---
 
-## ⭐ 当前版本: v0.26.2 (2026-01-26)
+## ⭐ 当前版本: v0.27.0 (2026-01-27)
 
 ### 最新更新
 
+- ✅ **Cowork多代理协作系统** - 企业级多代理协作系统(v1.0.0),15,750行代码+200+测试用例
 - ✅ **文档结构重组** - 重新组织文档目录,新增flows/implementation-reports/status-reports等分类
 - ✅ **桌面应用根目录重组** - 优化desktop-app-vue项目结构,提升代码可维护性
 - ✅ **Android社交与LLM功能合并** - 完整的移动端P2P社交和AI功能集成
@@ -38,6 +39,7 @@
 - 🟢 **PC端桌面应用**: 100% 完成 - **生产就绪**
 - 🟢 **知识库管理**: 100% 完成 - **8算法+5可视化+智能提取+6导出**
 - 🟢 **AI引擎系统**: 100% 完成 - **P2优化+16个专用引擎**
+- 🟢 **Cowork多代理系统**: 100% 完成 - **智能编排+4技能+4集成+10+图表**
 - 🟢 **企业版**: 100% 完成 - **知识库协作+DID邀请链接+企业仪表板**
 - 🟢 **区块链集成**: 100% 完成 - **15链支持+RPC管理+完整UI**
 - 🟢 **移动端应用**: 100% 完成 - **完整功能+桌面同步+Android P2P UI**
@@ -48,6 +50,7 @@
 - 📊 **统一日志系统**: 集中式logger管理 + 日志级别控制 + 结构化日志
 - 🌐 **完全去中心化**: P2P网络(libp2p 3.1.2) + DHT + 本地数据存储
 - 🧠 **AI原生**: 支持14+云LLM提供商 + Ollama本地部署 + RAG增强检索
+- 🤖 **Cowork多代理协作**: AI智能编排 + 45个IPC接口 + 文件沙箱 + 10+可视化图表
 - 🔌 **MCP集成**: Model Context Protocol支持,5个官方服务器 + 安全沙箱
 - 📊 **知识图谱可视化**: 8个图分析算法 + 5种可视化方式 + 6种导出格式
 - ⛓️ **区块链集成**: 6个智能合约 + HD钱包系统 + LayerZero跨链桥
@@ -83,7 +86,17 @@
 - ✅ 区块链集成(15链支持+跨链桥)
 - ✅ 信用评分系统(6维度评分+5级等级)
 
-详细功能说明见 [功能文档](./docs/FEATURES.md)
+### 4️⃣ Cowork多代理协作 (100% 完成) ✅
+
+- ✅ 智能编排系统(AI决策+单/多代理任务分配)
+- ✅ 文件沙箱(18+敏感文件检测+路径遍历防护)
+- ✅ 长时任务管理(检查点恢复+重试机制)
+- ✅ 技能系统(4个Office技能+智能匹配)
+- ✅ 完整集成(RAG+LLM+错误监控+会话管理)
+- ✅ 数据可视化(10+图表类型+实时监控)
+- ✅ 企业级安全(5层防护+零信任+全审计)
+
+详细功能说明见 [功能文档](./docs/FEATURES.md) | [Cowork快速开始](./docs/features/COWORK_QUICK_START.md)
 
 ## 🚀 快速开始
 
@@ -153,6 +166,8 @@ chainlesschain/
 │   │   │   ├── did/          # DID身份系统
 │   │   │   ├── p2p/          # P2P网络 (libp2p)
 │   │   │   ├── mcp/          # MCP集成
+│   │   │   ├── ai-engine/    # AI引擎
+│   │   │   │   └── cowork/   # Cowork多代理协作系统
 │   │   │   └── monitoring/   # 监控和日志
 │   │   └── renderer/         # 渲染进程 (Vue3 + 243个组件)
 │   ├── contracts/            # 智能合约 (Hardhat + Solidity)
