@@ -1,0 +1,29 @@
+# sandbox-security.test
+
+**Source**: `src\main\cowork\__tests__\security\sandbox-security.test.js`
+
+**Generated**: 2026-01-27T06:44:03.865Z
+
+---
+
+## const path = require("path");
+
+```javascript
+const path = require("path");
+```
+
+* File Sandbox Security Tests
+ *
+ * Comprehensive security testing for the file sandbox system:
+ * - Path traversal attack prevention
+ * - Permission escalation attempts
+ * - Sensitive file protection
+ * - Input validation
+ * - Race conditions
+ * - Injection attacks
+ *
+ * @category Security Tests
+ * @module SandboxSecurity
+
+---
+

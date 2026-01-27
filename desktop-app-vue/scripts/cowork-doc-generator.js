@@ -14,6 +14,7 @@
 const fs = require("fs");
 const path = require("path");
 const { execSync } = require("child_process");
+const glob = require("glob");
 
 console.log("📚 Cowork Documentation Generator\n");
 console.log("=".repeat(60));
@@ -68,45 +69,34 @@ const docConfig = {
 };
 
 /**
- * Get files matching pattern
+ * Get files matching pattern using glob
  */
 function getSourceFiles(patterns) {
-  const files = [];
+  const allFiles = [];
 
   patterns.forEach((pattern) => {
     try {
-      // Handle ** (recursive) patterns
-      if (pattern.includes("**")) {
-        const baseDir = pattern.split("**")[0].replace(/\/$/, "");
-        const fileExt = pattern.split("**")[1].replace(/^\//, "").replace(/\*/g, ".*");
+      // Use glob.sync for reliable pattern matching
+      const found = glob.sync(pattern, {
+        cwd: process.cwd(),
+        absolute: true,
+        ignore: [
+          '**/node_modules/**',
+          '**/.git/**',
+          '**/dist/**',
+          '**/build/**',
+          '**/.cache/**'
+        ]
+      });
 
-        if (!fs.existsSync(baseDir)) {
-          console.log(`   ⚠️  Directory not found: ${baseDir}`);
-          return;
-        }
-
-        const found = findFilesRecursive(baseDir, fileExt);
-        files.push(...found);
-      } else {
-        // Handle simple patterns
-        const parts = pattern.split("/");
-        const dir = parts.slice(0, -1).join("/");
-        const filePattern = parts[parts.length - 1];
-
-        if (!fs.existsSync(dir)) {
-          console.log(`   ⚠️  Directory not found: ${dir}`);
-          return;
-        }
-
-        const found = findFilesRecursive(dir, filePattern);
-        files.push(...found);
-      }
+      allFiles.push(...found);
     } catch (error) {
       console.error(`   ❌ Error processing pattern ${pattern}:`, error.message);
     }
   });
 
-  return files;
+  // Remove duplicates
+  return [...new Set(allFiles)];
 }
 
 /**
@@ -515,10 +505,13 @@ function generateArchitectureDocs() {
     const stats = fs.statSync(file);
     const size = stats.size;
 
-    if (file.includes("src/main")) {
+    // Normalize path for comparison (handle both forward and back slashes)
+    const normalizedFile = file.replace(/\\/g, "/");
+
+    if (normalizedFile.includes("src/main")) {
       modules.main.files.push({ file, size });
       modules.main.size += size;
-    } else if (file.includes("src/renderer")) {
+    } else if (normalizedFile.includes("src/renderer")) {
       modules.renderer.files.push({ file, size });
       modules.renderer.size += size;
     } else {

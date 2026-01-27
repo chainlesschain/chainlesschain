@@ -396,6 +396,26 @@ class SkillRegistry extends EventEmitter {
       logger.info(`[SkillRegistry] ${message}`);
     }
   }
+
+  // ==========================================
+  // API 兼容层（用于测试）
+  // ==========================================
+
+  /**
+   * 查找最佳技能（别名：selectBestSkill）
+   * @param {object} task - 任务对象
+   * @returns {Promise<object>} 匹配结果
+   */
+  async findBestSkill(task) {
+    const skill = await this.selectBestSkill(task);
+    if (skill) {
+      return {
+        skill,
+        score: skill.getScore ? skill.getScore(task) : 100
+      };
+    }
+    return null;
+  }
 }
 
 // 单例

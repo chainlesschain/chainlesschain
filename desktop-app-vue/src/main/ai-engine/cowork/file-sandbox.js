@@ -689,6 +689,66 @@ class FileSandbox extends EventEmitter {
     this.auditLog = [];
     this._log('FileSandbox 已重置');
   }
+
+  // ==========================================
+  // API 兼容层（用于测试）
+  // ==========================================
+
+  /**
+   * 授予权限（别名：grantAccess）
+   * @param {string} teamId - 团队ID
+   * @param {string} folderPath - 文件夹路径
+   * @param {Array<string>} permissions - 权限列表
+   * @param {object} options - 选项
+   * @returns {Promise<object>} 结果
+   */
+  async grantPermission(teamId, folderPath, permissions = ['read'], options = {}) {
+    // 转换权限字符串为 Permission 常量
+    const permissionObjects = permissions.map(p => {
+      const perm = p.toUpperCase().replace('-', '_');
+      return Permission[perm] || p;
+    });
+
+    return await this.grantAccess(teamId, folderPath, permissionObjects, options);
+  }
+
+  /**
+   * 撤销权限（别名：revokeAccess）
+   * @param {string} teamId - 团队ID
+   * @param {string} folderPath - 文件夹路径
+   * @param {Array<string>} permissions - 权限列表
+   * @returns {Promise<void>}
+   */
+  async revokePermission(teamId, folderPath, permissions = []) {
+    // 简化版本：完全撤销访问
+    return await this.revokeAccess(teamId, folderPath);
+  }
+
+  /**
+   * 记录审计日志（别名：_auditOperation）
+   * @param {object} logData - 日志数据
+   * @returns {Promise<void>}
+   */
+  async recordAuditLog(logData) {
+    const {
+      teamId,
+      agentId = null,
+      operation,
+      path: resourcePath,
+      success,
+      error_message = null,
+      metadata = {}
+    } = logData;
+
+    return await this._auditOperation(
+      teamId,
+      agentId,
+      operation,
+      resourcePath,
+      success,
+      error_message
+    );
+  }
 }
 
 module.exports = { FileSandbox, Permission };

@@ -1,6 +1,6 @@
 # Changelog
 
-**Generated**: 2026-01-27T06:31:19.467Z
+**Generated**: 2026-01-27T06:44:03.976Z
 
 **Range**: v0.26.0..HEAD
 
@@ -91,6 +91,7 @@
 
 ## 🐛 Bug Fixes
 
+- fix(cowork): Week 2 数据库 Schema 修复和测试框架验证完成 (`74f0d37`) - 2026-01-27
 - fix(desktop): update and improve 8 unit test files (`bedbae2`) - 2026-01-26
 - fix(android): final optimization for moderation queue repository (`fe57e85`) - 2026-01-26
 - fix: update content moderator and code execution tests (`bbeda56`) - 2026-01-26
@@ -121,6 +122,7 @@
 
 ## 📚 Documentation
 
+- docs: add generated documentation and test report (`38757d4`) - 2026-01-27
 - docs(cowork): add team templates summary (`7dc330c`) - 2026-01-27
 - docs(session): add comprehensive session continuation summary (`e5a9169`) - 2026-01-26
 - docs(test): add comprehensive test results summary for v0.32.0 (`e44fe09`) - 2026-01-26
