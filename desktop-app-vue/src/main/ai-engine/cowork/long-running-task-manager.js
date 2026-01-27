@@ -954,6 +954,73 @@ class LongRunningTaskManager extends EventEmitter {
       totalCheckpoints: tasks.reduce((sum, t) => sum + t.checkpoints.length, 0),
     };
   }
+
+  // ==========================================
+  // API 兼容层（用于测试）
+  // ==========================================
+
+  /**
+   * 获取任务（别名：getTaskStatus）
+   * @param {string} taskId - 任务ID
+   * @returns {object} 任务对象
+   */
+  getTask(taskId) {
+    return this.getTaskStatus(taskId);
+  }
+
+  /**
+   * 获取任务检查点列表
+   * @param {string} taskId - 任务ID
+   * @returns {Array} 检查点列表
+   */
+  getCheckpoints(taskId) {
+    const task = this.activeTasks.get(taskId);
+    if (task) {
+      return task.checkpoints || [];
+    }
+    return [];
+  }
+
+  /**
+   * 重试失败的任务
+   * @param {string} taskId - 任务ID
+   * @returns {Promise<void>}
+   */
+  async retryTask(taskId) {
+    const task = this.activeTasks.get(taskId);
+    if (!task) {
+      throw new Error(`任务不存在: ${taskId}`);
+    }
+
+    if (task.status !== TaskStatus.FAILED) {
+      throw new Error(`只能重试失败的任务，当前状态: ${task.status}`);
+    }
+
+    // 重置任务状态
+    task.status = TaskStatus.PENDING;
+    task.currentRetry = 0;
+    task.error = null;
+    task.completedAt = null;
+
+    // 重新启动任务
+    return await this.startTask(taskId);
+  }
+
+  /**
+   * 列出所有任务
+   * @param {object} filters - 筛选条件
+   * @returns {Array} 任务列表
+   */
+  listTasks(filters = {}) {
+    let tasks = this.getAllActiveTasks();
+
+    // 应用筛选
+    if (filters.status) {
+      tasks = tasks.filter(t => t.status === filters.status);
+    }
+
+    return tasks;
+  }
 }
 
 module.exports = { LongRunningTaskManager, TaskStatus };

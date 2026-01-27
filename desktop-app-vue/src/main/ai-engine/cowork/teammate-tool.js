@@ -24,6 +24,7 @@ const { v4: uuidv4 } = require('uuid');
 const path = require('path');
 const fs = require('fs').promises;
 const EventEmitter = require('events');
+const { AgentPool } = require('./agent-pool.js');
 
 /**
  * 团队状态
@@ -77,6 +78,27 @@ class TeammateTool extends EventEmitter {
 
     // 数据库实例（延迟注入）
     this.db = null;
+
+    // 代理池（可选）
+    this.useAgentPool = options.useAgentPool !== false; // 默认启用
+    if (this.useAgentPool) {
+      this.agentPool = new AgentPool({
+        minSize: options.agentPoolMinSize || 3,
+        maxSize: options.agentPoolMaxSize || 10,
+        idleTimeout: options.agentPoolIdleTimeout || 300000,
+        warmupOnInit: options.agentPoolWarmup !== false,
+      });
+
+      // 初始化代理池
+      this.agentPool.initialize().catch(error => {
+        this._log(`代理池初始化失败: ${error.message}`, 'error');
+      });
+
+      this._log('代理池已启用');
+    } else {
+      this.agentPool = null;
+      this._log('代理池未启用，使用传统代理创建模式');
+    }
 
     this._log('TeammateTool 已初始化');
   }
@@ -242,19 +264,46 @@ class TeammateTool extends EventEmitter {
       throw new Error(`代理 ${agentId} 已在团队中`);
     }
 
-    // 创建代理对象
-    const agent = {
-      id: agentId,
-      teamId,
-      name: agentInfo.name || agentId,
-      status: AgentStatus.IDLE,
-      capabilities: agentInfo.capabilities || [],
-      assignedTask: null,
-      metadata: {
+    // 创建或获取代理对象
+    let agent;
+
+    if (this.useAgentPool && this.agentPool) {
+      // 从代理池获取代理
+      agent = await this.agentPool.acquireAgent({
+        capabilities: agentInfo.capabilities || [],
+        role: agentInfo.role || 'worker',
+        teamId,
+      });
+
+      // 更新代理信息
+      agent.id = agentId; // 使用请求的agentId
+      agent.name = agentInfo.name || agentId;
+      agent.teamId = teamId;
+      agent.assignedTask = null;
+      agent.metadata = {
+        ...agent.metadata,
         joinedAt: Date.now(),
         ...agentInfo.metadata,
-      },
-    };
+      };
+
+      this._log(`从代理池获取代理: ${agentId} (复用次数: ${agent.reuseCount})`);
+    } else {
+      // 传统方式创建代理
+      agent = {
+        id: agentId,
+        teamId,
+        name: agentInfo.name || agentId,
+        status: AgentStatus.IDLE,
+        capabilities: agentInfo.capabilities || [],
+        assignedTask: null,
+        metadata: {
+          joinedAt: Date.now(),
+          ...agentInfo.metadata,
+        },
+      };
+
+      this._log(`创建新代理: ${agentId}`);
+    }
 
     // 添加到团队
     team.agents.push(agent);
@@ -663,6 +712,16 @@ class TeammateTool extends EventEmitter {
       agent.assignedTask = null;
     }
 
+    // 释放代理回池（如果启用代理池）
+    if (this.useAgentPool && this.agentPool) {
+      try {
+        this.agentPool.releaseAgent(agentId);
+        this._log(`代理已释放回池: ${agentId}`, 'debug');
+      } catch (error) {
+        this._log(`释放代理回池失败: ${error.message}`, 'error');
+      }
+    }
+
     // 持久化到数据库
     if (this.db) {
       try {
@@ -1017,6 +1076,280 @@ class TeammateTool extends EventEmitter {
     this.emit('team-destroyed', { teamId });
 
     return { success: true };
+  }
+
+  // ==========================================
+  // API 兼容层（用于测试）
+  // ==========================================
+
+  /**
+   * 添加代理到团队（别名：requestJoin）
+   * @param {string} teamId - 团队ID
+   * @param {object} agentInfo - 代理信息
+   * @returns {Promise<object>} 代理对象
+   */
+  async addAgent(teamId, agentInfo = {}) {
+    const agentId = `agent_${Date.now()}_${require('uuid').v4().slice(0, 8)}`;
+    const result = await this.requestJoin(teamId, agentId, agentInfo);
+
+    // 返回格式与测试期望一致
+    return {
+      id: agentId,
+      teamId,
+      name: agentInfo.name || 'Agent',
+      status: 'active',
+      capabilities: agentInfo.capabilities || [],
+      role: agentInfo.role || 'member',
+      ...result
+    };
+  }
+
+  /**
+   * 列出所有团队（别名：discoverTeams）
+   * @param {object} filters - 筛选条件
+   * @returns {Promise<Array>} 团队列表
+   */
+  async listTeams(filters = {}) {
+    return await this.discoverTeams(filters);
+  }
+
+  /**
+   * 解散团队（别名：destroyTeam）
+   * @param {string} teamId - 团队ID
+   * @returns {Promise<object>} 结果
+   */
+  async disbandTeam(teamId) {
+    return await this.destroyTeam(teamId);
+  }
+
+  /**
+   * 获取团队（别名：getTeamStatus）
+   * @param {string} teamId - 团队ID
+   * @returns {Promise<object>} 团队对象
+   */
+  async getTeam(teamId) {
+    const status = await this.getTeamStatus(teamId);
+    // 确保返回包含 members 和 tasks
+    const team = this.teams.get(teamId);
+    if (team) {
+      return {
+        ...status,
+        members: team.agents || [],
+        tasks: team.tasks || []
+      };
+    }
+    return status;
+  }
+
+  /**
+   * 获取代理信息
+   * @param {string} agentId - 代理ID
+   * @returns {Promise<object>} 代理对象
+   */
+  async getAgent(agentId) {
+    const agent = this.agents.get(agentId);
+
+    if (!agent) {
+      throw new Error(`代理不存在: ${agentId}`);
+    }
+
+    // 从数据库获取最新状态
+    if (this.db) {
+      try {
+        const row = await this.db.get(
+          `SELECT * FROM cowork_agents WHERE id = ?`,
+          [agentId]
+        );
+
+        if (row) {
+          return {
+            id: row.id,
+            teamId: row.team_id,
+            name: row.name,
+            status: row.status,
+            assignedTask: row.assigned_task,
+            createdAt: row.created_at,
+            terminatedAt: row.terminated_at,
+            metadata: row.metadata ? JSON.parse(row.metadata) : {}
+          };
+        }
+      } catch (error) {
+        this._log(`获取代理失败: ${error.message}`, 'error');
+      }
+    }
+
+    return agent;
+  }
+
+  /**
+   * 获取任务信息
+   * @param {string} taskId - 任务ID
+   * @returns {Promise<object>} 任务对象
+   */
+  async getTask(taskId) {
+    // 从数据库获取任务
+    if (this.db) {
+      try {
+        const row = await this.db.get(
+          `SELECT * FROM cowork_tasks WHERE id = ?`,
+          [taskId]
+        );
+
+        if (row) {
+          return {
+            id: row.id,
+            teamId: row.team_id,
+            description: row.description,
+            status: row.status,
+            priority: row.priority,
+            assignedTo: row.assigned_to,
+            result: row.result ? JSON.parse(row.result) : null,
+            createdAt: row.created_at,
+            completedAt: row.completed_at,
+            metadata: row.metadata ? JSON.parse(row.metadata) : {}
+          };
+        }
+      } catch (error) {
+        this._log(`获取任务失败: ${error.message}`, 'error');
+      }
+    }
+
+    throw new Error(`任务不存在: ${taskId}`);
+  }
+
+  /**
+   * 更新任务状态
+   * @param {string} taskId - 任务ID
+   * @param {string} status - 新状态
+   * @param {object} result - 结果数据
+   * @returns {Promise<object>} 更新后的任务
+   */
+  async updateTaskStatus(taskId, status, result = {}) {
+    if (this.db) {
+      try {
+        const now = Date.now();
+        const updates = ['status = ?'];
+        const values = [status];
+
+        if (result && Object.keys(result).length > 0) {
+          updates.push('result = ?');
+          values.push(JSON.stringify(result));
+        }
+
+        if (status === 'completed' || status === 'failed') {
+          updates.push('completed_at = ?');
+          values.push(now);
+        }
+
+        values.push(taskId);
+
+        await this.db.run(
+          `UPDATE cowork_tasks SET ${updates.join(', ')} WHERE id = ?`,
+          values
+        );
+
+        return await this.getTask(taskId);
+      } catch (error) {
+        this._log(`更新任务状态失败: ${error.message}`, 'error');
+        throw error;
+      }
+    }
+
+    throw new Error('数据库未初始化');
+  }
+
+  /**
+   * 获取团队指标（兼容测试API）
+   * @param {string} teamId - 团队ID
+   * @returns {Promise<object>} 指标数据
+   */
+  async getMetrics(teamId) {
+    if (!teamId) {
+      return this.getStats();
+    }
+
+    // 获取特定团队的指标
+    if (this.db) {
+      try {
+        // 获取任务统计
+        const taskStats = await this.db.get(
+          `SELECT
+            COUNT(*) as total,
+            SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
+            SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END) as failed
+          FROM cowork_tasks WHERE team_id = ?`,
+          [teamId]
+        );
+
+        const tasksCompleted = taskStats?.completed || 0;
+        const tasksFailed = taskStats?.failed || 0;
+        const tasksTotal = taskStats?.total || 0;
+        const successRate = tasksTotal > 0
+          ? Math.round((tasksCompleted / tasksTotal) * 100)
+          : 0;
+
+        return {
+          teamId,
+          tasksCompleted,
+          tasksFailed,
+          tasksTotal,
+          successRate
+        };
+      } catch (error) {
+        this._log(`获取团队指标失败: ${error.message}`, 'error');
+      }
+    }
+
+    return {
+      teamId,
+      tasksCompleted: 0,
+      tasksFailed: 0,
+      tasksTotal: 0,
+      successRate: 0
+    };
+  }
+
+  /**
+   * 清理资源（销毁代理池等）
+   */
+  async cleanup() {
+    this._log('[TeammateTool] 开始清理资源...');
+
+    // 清理代理池
+    if (this.useAgentPool && this.agentPool) {
+      try {
+        const poolStats = this.agentPool.getStats();
+        this._log(`[TeammateTool] 代理池统计: 创建=${poolStats.created}, 复用=${poolStats.reused}, 复用率=${poolStats.reuseRate}%`);
+
+        await this.agentPool.clear();
+        this._log('[TeammateTool] 代理池已清理');
+      } catch (error) {
+        this._log(`清理代理池失败: ${error.message}`, 'error');
+      }
+    }
+
+    // 清理消息队列定时器
+    if (this.messageCleanupTimer) {
+      clearInterval(this.messageCleanupTimer);
+      this.messageCleanupTimer = null;
+    }
+
+    this._log('[TeammateTool] ✅ 资源清理完成');
+  }
+
+  /**
+   * 获取代理池状态（调试用）
+   */
+  getAgentPoolStatus() {
+    if (!this.useAgentPool || !this.agentPool) {
+      return { enabled: false };
+    }
+
+    return {
+      enabled: true,
+      status: this.agentPool.getStatus(),
+      stats: this.agentPool.getStats(),
+    };
   }
 }
 
