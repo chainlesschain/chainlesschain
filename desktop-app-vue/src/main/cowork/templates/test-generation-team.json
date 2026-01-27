@@ -1,0 +1,143 @@
+{
+  "name": "Test Generation Team",
+  "description": "Automated test generation team with unit, integration, and edge case specialists",
+  "version": "1.0.0",
+  "type": "test-generation",
+  "config": {
+    "maxAgents": 3,
+    "autoAssignTasks": true,
+    "parallelExecution": true,
+    "conflictResolution": "llm",
+    "coverageTarget": 90
+  },
+  "agents": [
+    {
+      "name": "Unit Test Generator",
+      "role": "unit-test-generator",
+      "description": "Generates comprehensive unit tests for functions and classes",
+      "capabilities": [
+        "unit-test-generation",
+        "mocking",
+        "assertion-design",
+        "test-coverage",
+        "jest-vitest-support",
+        "mocha-chai-support",
+        "junit-support"
+      ],
+      "priority": 1,
+      "config": {
+        "testFramework": "jest",
+        "mockingLibrary": "auto",
+        "coverageTarget": 90,
+        "includeEdgeCases": true
+      },
+      "llmPrompt": "You are a unit testing expert. Generate comprehensive unit tests for the provided code:\n- Test all public methods/functions\n- Test edge cases and boundary conditions\n- Mock external dependencies\n- Achieve 90%+ code coverage\n- Use appropriate assertions\n- Follow AAA pattern (Arrange, Act, Assert)\n\nProvide complete, runnable test code with clear descriptions."
+    },
+    {
+      "name": "Integration Test Designer",
+      "role": "integration-test-designer",
+      "description": "Designs integration tests for component interactions and API endpoints",
+      "capabilities": [
+        "integration-test-design",
+        "api-testing",
+        "database-testing",
+        "end-to-end-scenarios",
+        "contract-testing",
+        "workflow-testing"
+      ],
+      "priority": 2,
+      "config": {
+        "testRealAPIs": false,
+        "useMockServer": true,
+        "testDatabase": "test-db",
+        "includeRollback": true
+      },
+      "llmPrompt": "You are an integration testing expert. Design integration tests that:\n- Test interactions between components\n- Verify API contracts\n- Test database operations (with rollback)\n- Cover complete user workflows\n- Test error scenarios\n- Verify data consistency\n\nProvide integration test scenarios with setup/teardown code."
+    },
+    {
+      "name": "Edge Case Analyzer",
+      "role": "edge-case-analyzer",
+      "description": "Identifies and tests edge cases, boundary conditions, and error scenarios",
+      "capabilities": [
+        "edge-case-detection",
+        "boundary-testing",
+        "error-scenario-testing",
+        "negative-testing",
+        "stress-testing",
+        "fuzz-testing"
+      ],
+      "priority": 3,
+      "config": {
+        "includeNullChecks": true,
+        "includeEmptyInputs": true,
+        "includeLargeInputs": true,
+        "includeInvalidInputs": true
+      },
+      "llmPrompt": "You are an edge case expert. Identify and generate tests for:\n- Null/undefined inputs\n- Empty arrays/strings/objects\n- Very large inputs (stress testing)\n- Invalid data types\n- Boundary values (min/max)\n- Race conditions\n- Error propagation\n\nProvide comprehensive edge case tests that catch bugs before production."
+    }
+  ],
+  "workflow": {
+    "type": "sequential",
+    "steps": [
+      {
+        "name": "Code Analysis",
+        "description": "Analyze source code to understand structure and dependencies",
+        "agents": ["unit-test-generator"]
+      },
+      {
+        "name": "Unit Test Generation",
+        "description": "Generate unit tests for all functions/methods",
+        "agents": ["unit-test-generator"],
+        "dependsOn": ["Code Analysis"]
+      },
+      {
+        "name": "Integration Test Design",
+        "description": "Design integration tests for component interactions",
+        "agents": ["integration-test-designer"],
+        "dependsOn": ["Unit Test Generation"]
+      },
+      {
+        "name": "Edge Case Analysis",
+        "description": "Identify edge cases and generate additional tests",
+        "agents": ["edge-case-analyzer"],
+        "dependsOn": ["Unit Test Generation"]
+      },
+      {
+        "name": "Test Suite Assembly",
+        "description": "Combine all tests into comprehensive test suite",
+        "dependsOn": ["Unit Test Generation", "Integration Test Design", "Edge Case Analysis"]
+      },
+      {
+        "name": "Coverage Validation",
+        "description": "Verify coverage target is met (90%)",
+        "dependsOn": ["Test Suite Assembly"]
+      }
+    ]
+  },
+  "output": {
+    "format": "test-files",
+    "structure": {
+      "unit": "__tests__/unit/",
+      "integration": "__tests__/integration/",
+      "edgeCases": "__tests__/edge-cases/"
+    },
+    "includeSetup": true,
+    "includeTeardown": true,
+    "includeHelpers": true,
+    "generateReport": true
+  },
+  "metrics": {
+    "track": [
+      "tests_generated",
+      "coverage_achieved",
+      "edge_cases_covered",
+      "assertions_count",
+      "generation_time",
+      "test_complexity"
+    ]
+  },
+  "usageExample": {
+    "description": "Generate tests for user authentication service",
+    "code": "const team = await cowork.createTeam({ template: 'test-generation' });\nconst task = await cowork.assignTask(team.id, {\n  type: 'test-generation',\n  input: {\n    sourceFiles: ['src/services/auth-service.js'],\n    coverageTarget: 90,\n    includeEdgeCases: true\n  }\n});"
+  }
+}
