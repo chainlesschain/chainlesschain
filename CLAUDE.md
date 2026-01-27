@@ -129,7 +129,11 @@ Context Engineering (KV-Cache optimization), Tool Masking, Task Tracking (todo.m
 
 **Status**: ✅ Implemented v1.0.0 | **Docs**: [`docs/features/COWORK_QUICK_START.md`](docs/features/COWORK_QUICK_START.md) | [`docs/features/COWORK_FINAL_SUMMARY.md`](docs/features/COWORK_FINAL_SUMMARY.md)
 
-Claude Cowork-style multi-agent collaboration system with 13 core operations (TeammateTool), secure file access control (FileSandbox), long-running task management with checkpoint/recovery, and extensible Skills framework (Office, Data Analysis). Includes intelligent single/multi-agent decision engine, 44 IPC handlers, and 150+ test cases with ~90% code coverage.
+Claude Cowork-style multi-agent collaboration system with 13 core operations (TeammateTool), secure file access control (FileSandbox), long-running task management with checkpoint/recovery, and extensible Skills framework (Office, Data Analysis). Includes intelligent single/multi-agent decision engine, 45 IPC handlers, and 200+ test cases with ~90% code coverage.
+
+**Workflow Integration**: [`docs/PROJECT_WORKFLOW_OPTIMIZATION_PLAN.md`](docs/PROJECT_WORKFLOW_OPTIMIZATION_PLAN.md) | [`docs/COWORK_INTEGRATION_ROADMAP.md`](docs/COWORK_INTEGRATION_ROADMAP.md)
+
+Comprehensive plan to integrate Cowork into project workflow, achieving 80-120% productivity boost. Covers requirement analysis, parallel development, intelligent code review, CI/CD optimization, and automated documentation generation.
 
 ## Architecture Overview
 
