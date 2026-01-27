@@ -265,15 +265,24 @@ class SkillRegistry extends EventEmitter {
    * @returns {Promise<any>} 执行结果
    */
   async autoExecute(task, context = {}) {
-    const bestSkill = this.selectBestSkill(task);
+    // 兼容性：如果task没有type但有operation，推断type为office
+    let taskObj = task;
+    if (!task.type && task.operation) {
+      taskObj = {
+        ...task,
+        type: 'office',
+      };
+    }
+
+    const bestSkill = this.selectBestSkill(taskObj);
 
     if (!bestSkill) {
-      throw new Error(`没有可用的技能来处理任务: ${task.type || 'unknown'}`);
+      throw new Error(`没有可用的技能来处理任务: ${taskObj.type || 'unknown'}`);
     }
 
     this._log(`自动选择技能: ${bestSkill.name} (${bestSkill.skillId})`);
 
-    return await bestSkill.executeWithMetrics(task, context);
+    return await bestSkill.executeWithMetrics(taskObj, context);
   }
 
   // ==========================================

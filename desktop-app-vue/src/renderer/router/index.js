@@ -663,6 +663,13 @@ const routes = [
         component: () => import("../pages/WorkflowMonitorPage.vue"),
         meta: { title: "工作流详情" },
       },
+      // ===== 工作流优化 =====
+      {
+        path: "workflow/optimizations",
+        name: "WorkflowOptimizations",
+        component: () => import("../components/WorkflowOptimizationsDashboard.vue"),
+        meta: { title: "工作流优化" },
+      },
       // Web IDE
       {
         path: "webide",

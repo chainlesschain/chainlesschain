@@ -653,6 +653,21 @@
 
             <!-- 监控与诊断 -->
             <a-menu-item-group title="监控与诊断">
+              <a-menu-item key="workflow-optimizations">
+                <template #icon>
+                  <ThunderboltOutlined />
+                </template>
+                <span>工作流优化</span>
+                <a-badge
+                  count="新"
+                  :number-style="{
+                    backgroundColor: '#52c41a',
+                    fontSize: '10px',
+                    padding: '0 4px',
+                  }"
+                  style="margin-left: 8px"
+                />
+              </a-menu-item>
               <a-menu-item key="llm-performance">
                 <template #icon>
                   <LineChartOutlined />
@@ -1389,6 +1404,7 @@ const menuConfig = {
   },
 
   // 监控与诊断模块
+  "workflow-optimizations": { path: "/workflow/optimizations", title: "工作流优化" },
   "session-manager": { path: "/sessions", title: "会话管理" },
   "error-monitor": { path: "/error/monitor", title: "错误监控" },
   "memory-dashboard": { path: "/memory", title: "内存仪表板" },
@@ -2282,6 +2298,7 @@ const getMenuIcon = (key) => {
     "sync-conflicts": "ExclamationCircleOutlined",
     "ukey-settings": "SafetyOutlined",
     "database-performance": "DashboardOutlined",
+    "workflow-optimizations": "ThunderboltOutlined",
   };
   return iconMap[key] || "FileTextOutlined";
 };
@@ -2522,6 +2539,8 @@ const breadcrumbs = computed(() => {
       items.push({ title: "同步冲突管理", path: null });
     } else if (path === "/database/performance") {
       items.push({ title: "数据库性能监控", path: null });
+    } else if (path === "/workflow/optimizations") {
+      items.push({ title: "工作流优化", path: null });
     }
   }
 
