@@ -21,17 +21,19 @@ echo.
 
 REM 复制主文件
 copy "index.html" "temp_pack\" > nul
-copy "logo.png" "temp_pack\" > nul
-copy "logo.svg" "temp_pack\" > nul
-copy "robots.txt" "temp_pack\" > nul
-copy "sitemap.xml" "temp_pack\" > nul
+if exist "logo.png" copy "logo.png" "temp_pack\" > nul
+if exist "logo.svg" copy "logo.svg" "temp_pack\" > nul
+if exist "robots.txt" copy "robots.txt" "temp_pack\" > nul
+if exist "sitemap.xml" copy "sitemap.xml" "temp_pack\" > nul
+if exist "demo.html" copy "demo.html" "temp_pack\" > nul
 
-REM 复制CSS文件
-copy "style-enhancements.css" "temp_pack\" > nul
-copy "visual-enhancements.css" "temp_pack\" > nul
-copy "fix-center.css" "temp_pack\" > nul
-copy "loading-animation.css" "temp_pack\" > nul
-copy "loading-simple.css" "temp_pack\" > nul
+REM 复制CSS文件（包含所有新增的CSS）
+if exist "loading-animation.css" copy "loading-animation.css" "temp_pack\" > nul
+if exist "loading-animation-v2.css" copy "loading-animation-v2.css" "temp_pack\" > nul
+if exist "loading-simple.css" copy "loading-simple.css" "temp_pack\" > nul
+if exist "style-enhancements.css" copy "style-enhancements.css" "temp_pack\" > nul
+if exist "visual-enhancements.css" copy "visual-enhancements.css" "temp_pack\" > nul
+if exist "fix-center.css" copy "fix-center.css" "temp_pack\" > nul
 
 REM 复制目录
 xcopy "css" "temp_pack\css\" /E /I /Q > nul
