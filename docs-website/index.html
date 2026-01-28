@@ -127,6 +127,16 @@
             padding-top: 220px !important;
         }
 
+        /* 移动端Hero区域调整 */
+        @media (max-width: 768px) {
+            .hero {
+                /* 移动端：导航栏60px + 联系栏约100px = 160px，再加60px间距 = 220px */
+                padding-top: 220px !important;
+                min-height: auto !important;
+                padding-bottom: 60px !important;
+            }
+        }
+
         .hero .container {
             width: 100% !important;
             max-width: 1200px !important;
@@ -300,6 +310,14 @@
             .top-contact-bar {
                 top: 60px;
                 padding: 12px 0;
+                transition: transform 0.3s ease, opacity 0.3s ease;
+            }
+
+            /* 移动端菜单打开时隐藏联系栏，避免遮挡 */
+            body.mobile-menu-open .top-contact-bar {
+                transform: translateY(-100%);
+                opacity: 0;
+                pointer-events: none;
             }
 
             .contact-bar-content {
@@ -310,6 +328,14 @@
             .contact-divider {
                 width: 80%;
                 height: 1px;
+            }
+
+            .contact-info .contact-value {
+                font-size: 16px;
+            }
+
+            .contact-item .icon {
+                font-size: 20px;
             }
         }
     </style>
