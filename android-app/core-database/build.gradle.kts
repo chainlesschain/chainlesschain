@@ -69,6 +69,7 @@ dependencies {
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
     testImplementation("androidx.room:room-testing:$roomVersion")
     testImplementation("org.jetbrains.kotlin:kotlin-test:1.9.22")
+    testImplementation("app.cash.turbine:turbine:1.0.0")
 
     // Robolectric for Android unit tests
     testImplementation("org.robolectric:robolectric:4.11")
