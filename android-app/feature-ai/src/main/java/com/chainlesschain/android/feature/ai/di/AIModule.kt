@@ -150,53 +150,62 @@ class LLMAdapterFactory @javax.inject.Inject constructor(
      * 创建云端LLM适配器
      */
     private fun createCloudAdapter(provider: LLMProvider, apiKey: String): LLMAdapter {
-        // 动态加载CloudLLMAdapters中的适配器
+        // 动态加载CloudLLMAdapters中的适配器，同时传递baseURL以确保使用正确的API端点
         return try {
             when (provider) {
                 LLMProvider.CLAUDE -> {
+                    val config = configManager.getConfig().anthropic
                     val clazz = Class.forName("com.chainlesschain.android.feature.ai.data.llm.ClaudeAdapter")
-                    val constructor = clazz.getConstructor(String::class.java)
-                    constructor.newInstance(apiKey) as LLMAdapter
+                    val constructor = clazz.getConstructor(String::class.java, String::class.java)
+                    constructor.newInstance(apiKey, config.baseURL) as LLMAdapter
                 }
                 LLMProvider.GEMINI -> {
+                    val config = configManager.getConfig().gemini
                     val clazz = Class.forName("com.chainlesschain.android.feature.ai.data.llm.GeminiAdapter")
-                    val constructor = clazz.getConstructor(String::class.java)
-                    constructor.newInstance(apiKey) as LLMAdapter
+                    val constructor = clazz.getConstructor(String::class.java, String::class.java)
+                    constructor.newInstance(apiKey, config.baseURL) as LLMAdapter
                 }
                 LLMProvider.QWEN -> {
+                    val config = configManager.getConfig().qwen
                     val clazz = Class.forName("com.chainlesschain.android.feature.ai.data.llm.QwenAdapter")
-                    val constructor = clazz.getConstructor(String::class.java)
-                    constructor.newInstance(apiKey) as LLMAdapter
+                    val constructor = clazz.getConstructor(String::class.java, String::class.java)
+                    constructor.newInstance(apiKey, config.baseURL) as LLMAdapter
                 }
                 LLMProvider.ERNIE -> {
+                    val config = configManager.getConfig().ernie
                     val clazz = Class.forName("com.chainlesschain.android.feature.ai.data.llm.ErnieAdapter")
-                    val constructor = clazz.getConstructor(String::class.java)
-                    constructor.newInstance(apiKey) as LLMAdapter
+                    val constructor = clazz.getConstructor(String::class.java, String::class.java)
+                    constructor.newInstance(apiKey, config.baseURL) as LLMAdapter
                 }
                 LLMProvider.CHATGLM -> {
+                    val config = configManager.getConfig().chatglm
                     val clazz = Class.forName("com.chainlesschain.android.feature.ai.data.llm.ChatGLMAdapter")
-                    val constructor = clazz.getConstructor(String::class.java)
-                    constructor.newInstance(apiKey) as LLMAdapter
+                    val constructor = clazz.getConstructor(String::class.java, String::class.java)
+                    constructor.newInstance(apiKey, config.baseURL) as LLMAdapter
                 }
                 LLMProvider.MOONSHOT -> {
+                    val config = configManager.getConfig().moonshot
                     val clazz = Class.forName("com.chainlesschain.android.feature.ai.data.llm.MoonshotAdapter")
-                    val constructor = clazz.getConstructor(String::class.java)
-                    constructor.newInstance(apiKey) as LLMAdapter
+                    val constructor = clazz.getConstructor(String::class.java, String::class.java)
+                    constructor.newInstance(apiKey, config.baseURL) as LLMAdapter
                 }
                 LLMProvider.SPARK -> {
+                    val config = configManager.getConfig().spark
                     val clazz = Class.forName("com.chainlesschain.android.feature.ai.data.llm.SparkAdapter")
-                    val constructor = clazz.getConstructor(String::class.java)
-                    constructor.newInstance(apiKey) as LLMAdapter
+                    val constructor = clazz.getConstructor(String::class.java, String::class.java)
+                    constructor.newInstance(apiKey, config.baseURL) as LLMAdapter
                 }
                 LLMProvider.DOUBAO -> {
+                    val config = configManager.getConfig().volcengine
                     val clazz = Class.forName("com.chainlesschain.android.feature.ai.data.llm.DoubaoAdapter")
-                    val constructor = clazz.getConstructor(String::class.java)
-                    constructor.newInstance(apiKey) as LLMAdapter
+                    val constructor = clazz.getConstructor(String::class.java, String::class.java)
+                    constructor.newInstance(apiKey, config.baseURL) as LLMAdapter
                 }
                 LLMProvider.CUSTOM -> OpenAIAdapter(apiKey)
                 else -> throw IllegalArgumentException("不支持的提供商: $provider")
             }
         } catch (e: Exception) {
+            android.util.Log.e("LLMAdapterFactory", "Failed to create cloud adapter for $provider", e)
             // 如果反射失败，使用OpenAI适配器作为兼容方案
             OpenAIAdapter(apiKey)
         }

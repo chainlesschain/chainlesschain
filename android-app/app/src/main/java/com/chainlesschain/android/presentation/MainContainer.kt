@@ -38,6 +38,7 @@ fun MainContainer(
     onNavigateToLLMTest: () -> Unit = {},
     onNavigateToFileBrowser: () -> Unit = {},
     onNavigateToRemoteControl: () -> Unit = {},
+    onNavigateToP2P: () -> Unit = {},
     viewModel: AuthViewModel = hiltViewModel()
 ) {
     // 使用 rememberSaveable 保存状态（进程重建后恢复）
@@ -87,7 +88,8 @@ fun MainContainer(
                         onNavigateToQRScanner = onNavigateToQRScanner,
                         onNavigateToProjectTab = { selectedTab = 1 },  // 切换到项目tab
                         onNavigateToFileBrowser = onNavigateToFileBrowser,
-                        onNavigateToRemoteControl = onNavigateToRemoteControl
+                        onNavigateToRemoteControl = onNavigateToRemoteControl,
+                        onNavigateToP2P = onNavigateToP2P  // P2P设备管理
                     )
                 }
                 1 -> key("project") {

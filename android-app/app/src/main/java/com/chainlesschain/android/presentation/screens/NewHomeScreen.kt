@@ -47,7 +47,8 @@ fun NewHomeScreen(
     onNavigateToQRScanner: () -> Unit = {},
     onNavigateToProjectTab: () -> Unit = {},
     onNavigateToFileBrowser: () -> Unit = {},
-    onNavigateToRemoteControl: () -> Unit = {}
+    onNavigateToRemoteControl: () -> Unit = {},
+    onNavigateToP2P: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var inputText by remember { mutableStateOf("") }
@@ -85,7 +86,8 @@ fun NewHomeScreen(
                 onNavigateToQRScanner = onNavigateToQRScanner,
                 onNavigateToProjectTab = onNavigateToProjectTab,
                 onNavigateToFileBrowser = onNavigateToFileBrowser,
-                onNavigateToRemoteControl = onNavigateToRemoteControl
+                onNavigateToRemoteControl = onNavigateToRemoteControl,
+                onNavigateToP2P = onNavigateToP2P
             )
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -200,7 +202,8 @@ fun FunctionEntryGrid(
     onNavigateToQRScanner: () -> Unit = {},
     onNavigateToProjectTab: () -> Unit = {},
     onNavigateToFileBrowser: () -> Unit = {},
-    onNavigateToRemoteControl: () -> Unit = {}
+    onNavigateToRemoteControl: () -> Unit = {},
+    onNavigateToP2P: () -> Unit = {}
 ) {
     // 9 个核心功能入口，覆盖三大核心板块
     val functionItems = remember(
@@ -212,6 +215,7 @@ fun FunctionEntryGrid(
         onNavigateToQRScanner,
         onNavigateToProjectTab,
         onNavigateToFileBrowser,
+        onNavigateToP2P,
         onNavigateToRemoteControl
     ) {
         listOf(
@@ -225,14 +229,11 @@ fun FunctionEntryGrid(
             FunctionEntryItem("我的二维码", Icons.Outlined.QrCode2, Color(0xFFE91E63), onClick = onNavigateToMyQRCode),
             FunctionEntryItem("扫码添加", Icons.Outlined.QrCodeScanner, Color(0xFFFF9800), onClick = onNavigateToQRScanner),
 
-            // 第三行：项目管理 & 数字资产
+            // 第三行：项目管理 & 数字资产 & 设备管理
             FunctionEntryItem("项目管理", Icons.Outlined.Assignment, Color(0xFF00BCD4), onClick = onNavigateToProjectTab),
             FunctionEntryItem("文件浏览", Icons.Outlined.FolderOpen, Color(0xFF8BC34A), onClick = onNavigateToFileBrowser),
-            // 远程控制暂时禁用（WebRTC 依赖问题）
-            FunctionEntryItem("远程控制", Icons.Outlined.Computer, Color(0xFFFF5722).copy(alpha = 0.5f), onClick = {
-                // TODO: 待 WebRTC 依赖完成后启用
-                // 暂时不做任何操作
-            })
+            // P2P设备管理
+            FunctionEntryItem("P2P设备", Icons.Outlined.Devices, Color(0xFFFF5722), onClick = onNavigateToP2P)
         )
     }
 

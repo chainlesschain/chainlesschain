@@ -223,7 +223,7 @@ class ChainlessChainApp {
           {
             cacheDir: path.join(app.getPath("userData"), "external-file-cache"),
             maxCacheSize: 1024 * 1024 * 1024, // 1GB
-          }
+          },
         );
 
         logger.info("[Main] ✓ ExternalDeviceFileManager 初始化完成");
@@ -787,71 +787,79 @@ class ChainlessChainApp {
 }
 
 // ⚡ 文件树懒加载 IPC Handler
-const fs = require('fs').promises;
-const fsSync = require('fs');
+const fsPromises = require("fs").promises;
 
-ipcMain.handle('file-tree:load-children', async (event, { projectPath, dirPath }) => {
-  try {
-    const fullPath = path.join(projectPath, dirPath || '');
+ipcMain.handle(
+  "file-tree:load-children",
+  async (event, { projectPath, dirPath }) => {
+    try {
+      const fullPath = path.join(projectPath, dirPath || "");
 
-    // 检查路径是否存在且是目录
-    const stats = await fs.stat(fullPath);
-    if (!stats.isDirectory()) {
-      throw new Error('路径不是目录');
-    }
+      // 检查路径是否存在且是目录
+      const stats = await fsPromises.stat(fullPath);
+      if (!stats.isDirectory()) {
+        throw new Error("路径不是目录");
+      }
 
-    // 读取目录内容
-    const files = await fs.readdir(fullPath, { withFileTypes: true });
+      // 读取目录内容
+      const files = await fsPromises.readdir(fullPath, { withFileTypes: true });
 
-    // 构建文件树节点
-    const nodes = await Promise.all(
-      files.map(async (file) => {
-        const filePath = path.join(dirPath || '', file.name);
-        const fullFilePath = path.join(projectPath, filePath);
+      // 构建文件树节点
+      const nodes = await Promise.all(
+        files.map(async (file) => {
+          const filePath = path.join(dirPath || "", file.name);
+          const fullFilePath = path.join(projectPath, filePath);
 
-        try {
-          const fileStats = await fs.stat(fullFilePath);
+          try {
+            const fileStats = await fsPromises.stat(fullFilePath);
 
-          return {
-            name: file.name,
-            path: filePath,
-            isDirectory: file.isDirectory(),
-            // 目录设置children为null表示未加载；文件设置为undefined表示叶子节点
-            children: file.isDirectory() ? null : undefined,
-            size: file.isFile() ? fileStats.size : 0,
-            modifiedTime: fileStats.mtime.getTime()
-          };
-        } catch (error) {
-          logger.warn(`[FileTree] 无法读取文件信息: ${fullFilePath}`, error);
-          return null;
+            return {
+              name: file.name,
+              path: filePath,
+              isDirectory: file.isDirectory(),
+              // 目录设置children为null表示未加载；文件设置为undefined表示叶子节点
+              children: file.isDirectory() ? null : undefined,
+              size: file.isFile() ? fileStats.size : 0,
+              modifiedTime: fileStats.mtime.getTime(),
+            };
+          } catch (error) {
+            logger.warn(`[FileTree] 无法读取文件信息: ${fullFilePath}`, error);
+            return null;
+          }
+        }),
+      );
+
+      // 过滤掉读取失败的节点
+      const validNodes = nodes.filter((node) => node !== null);
+
+      // 排序：目录在前，文件在后，按名称排序
+      validNodes.sort((a, b) => {
+        if (a.isDirectory && !b.isDirectory) {
+          return -1;
         }
-      })
-    );
+        if (!a.isDirectory && b.isDirectory) {
+          return 1;
+        }
+        return a.name.localeCompare(b.name);
+      });
 
-    // 过滤掉读取失败的节点
-    const validNodes = nodes.filter(node => node !== null);
+      logger.info(
+        `[FileTree] 加载目录: ${dirPath || "/"}, 文件数: ${validNodes.length}`,
+      );
 
-    // 排序：目录在前，文件在后，按名称排序
-    validNodes.sort((a, b) => {
-      if (a.isDirectory && !b.isDirectory) return -1;
-      if (!a.isDirectory && b.isDirectory) return 1;
-      return a.name.localeCompare(b.name);
-    });
-
-    logger.info(`[FileTree] 加载目录: ${dirPath || '/'}, 文件数: ${validNodes.length}`);
-
-    return {
-      success: true,
-      nodes: validNodes
-    };
-  } catch (error) {
-    logger.error('[FileTree] 加载目录失败:', error);
-    return {
-      success: false,
-      error: error.message
-    };
-  }
-});
+      return {
+        success: true,
+        nodes: validNodes,
+      };
+    } catch (error) {
+      logger.error("[FileTree] 加载目录失败:", error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  },
+);
 
 // 启动应用
 new ChainlessChainApp();
