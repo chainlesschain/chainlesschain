@@ -181,122 +181,121 @@ fun GlobalFileBrowserScreen(
                         permissionLauncher.launch(permissions)
                     }
                 )
-                return@Column
-            }
+            } else {
+                // Category tabs
+                CategoryTabRow(
+                    selectedCategory = selectedCategory,
+                    onCategorySelected = { viewModel.selectCategory(it) }
+                )
 
-            // Category tabs
-            CategoryTabRow(
-                selectedCategory = selectedCategory,
-                onCategorySelected = { viewModel.selectCategory(it) }
-            )
+                // Sort bar
+                SortBar(
+                    sortBy = sortBy,
+                    sortDirection = sortDirection,
+                    onSortByChange = { viewModel.setSortBy(it) },
+                    onToggleSortDirection = { viewModel.toggleSortDirection() }
+                )
 
-            // Sort bar
-            SortBar(
-                sortBy = sortBy,
-                sortDirection = sortDirection,
-                onSortByChange = { viewModel.setSortBy(it) },
-                onToggleSortDirection = { viewModel.toggleSortDirection() }
-            )
-
-            // Scan progress indicator
-            when (val progress = scanProgress) {
-                is MediaStoreScanner.ScanProgress.Scanning -> {
-                    LinearProgressIndicator(
-                        modifier = Modifier.fillMaxWidth(),
-                        progress = { if (progress.total > 0) progress.current.toFloat() / progress.total else 0f }
-                    )
-                    Text(
-                        text = "扫描中: ${progress.currentType} (${progress.current}/${progress.total})",
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                    )
+                // Scan progress indicator
+                when (val progress = scanProgress) {
+                    is MediaStoreScanner.ScanProgress.Scanning -> {
+                        LinearProgressIndicator(
+                            modifier = Modifier.fillMaxWidth(),
+                            progress = { if (progress.total > 0) progress.current.toFloat() / progress.total else 0f }
+                        )
+                        Text(
+                            text = "扫描中: ${progress.currentType} (${progress.current}/${progress.total})",
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        )
+                    }
+                    is MediaStoreScanner.ScanProgress.Completed -> {
+                        Text(
+                            text = "扫描完成: ${progress.totalFiles} 个文件",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        )
+                    }
+                    is MediaStoreScanner.ScanProgress.Error -> {
+                        Text(
+                            text = "扫描错误: ${progress.message}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                        )
+                    }
+                    else -> {}
                 }
-                is MediaStoreScanner.ScanProgress.Completed -> {
-                    Text(
-                        text = "扫描完成: ${progress.totalFiles} 个文件",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                    )
-                }
-                is MediaStoreScanner.ScanProgress.Error -> {
-                    Text(
-                        text = "扫描错误: ${progress.message}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-                    )
-                }
-                else -> {}
-            }
 
-            // AI Classification progress indicator
-            if (isClassifying) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(16.dp),
-                        strokeWidth = 2.dp
-                    )
-                    Text(
-                        text = "AI 分类中...",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
-
-            // File list
-            when (uiState) {
-                is GlobalFileBrowserViewModel.FileBrowserUiState.Loading -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
+                // AI Classification progress indicator
+                if (isClassifying) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        CircularProgressIndicator()
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp
+                        )
+                        Text(
+                            text = "AI 分类中...",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
                     }
                 }
 
-                is GlobalFileBrowserViewModel.FileBrowserUiState.Empty -> {
-                    EmptyStateContent()
-                }
+                // File list
+                when (uiState) {
+                    is GlobalFileBrowserViewModel.FileBrowserUiState.Loading -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator()
+                        }
+                    }
 
-                is GlobalFileBrowserViewModel.FileBrowserUiState.Error -> {
-                    ErrorStateContent(
-                        message = (uiState as GlobalFileBrowserViewModel.FileBrowserUiState.Error).message,
-                        onRetry = { viewModel.refresh() }
-                    )
-                }
+                    is GlobalFileBrowserViewModel.FileBrowserUiState.Empty -> {
+                        EmptyStateContent()
+                    }
 
-                is GlobalFileBrowserViewModel.FileBrowserUiState.Success -> {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(vertical = 8.dp)
-                    ) {
-                        items(files, key = { it.id }) { file ->
-                            FileListItem(
-                                file = file,
-                                onFileClick = { fileToPreview = file },
-                                onImportClick = {
-                                    if (projectId != null) {
-                                        // If project is pre-selected, import directly
-                                        viewModel.importFile(file.id, projectId)
-                                        onFileImported(file.id)
-                                    } else {
-                                        // Show project selector dialog
-                                        fileToImport = file
-                                    }
-                                },
-                                onFavoriteClick = { viewModel.toggleFavorite(file.id) },
-                                showImportButton = true, // Always show import button
-                                thumbnailCache = viewModel.thumbnailCache
-                            )
-                            HorizontalDivider()
+                    is GlobalFileBrowserViewModel.FileBrowserUiState.Error -> {
+                        ErrorStateContent(
+                            message = (uiState as GlobalFileBrowserViewModel.FileBrowserUiState.Error).message,
+                            onRetry = { viewModel.refresh() }
+                        )
+                    }
+
+                    is GlobalFileBrowserViewModel.FileBrowserUiState.Success -> {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(vertical = 8.dp)
+                        ) {
+                            items(files, key = { it.id }) { file ->
+                                FileListItem(
+                                    file = file,
+                                    onFileClick = { fileToPreview = file },
+                                    onImportClick = {
+                                        if (projectId != null) {
+                                            // If project is pre-selected, import directly
+                                            viewModel.importFile(file.id, projectId)
+                                            onFileImported(file.id)
+                                        } else {
+                                            // Show project selector dialog
+                                            fileToImport = file
+                                        }
+                                    },
+                                    onFavoriteClick = { viewModel.toggleFavorite(file.id) },
+                                    showImportButton = true, // Always show import button
+                                    thumbnailCache = viewModel.thumbnailCache
+                                )
+                                HorizontalDivider()
+                            }
                         }
                     }
                 }
