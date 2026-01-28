@@ -29,10 +29,16 @@
             navbar.classList.remove('scrolled');
         }
 
-        // 向下滚动时隐藏导航栏，向上滚动时显示
-        if (scrollTop > lastScrollTop && scrollTop > 100) {
-            navbar.style.transform = 'translateY(-100%)';
+        // PC端（宽度大于768px）导航栏始终显示，移动端向下滚动时隐藏
+        if (window.innerWidth <= 768) {
+            // 移动端：向下滚动时隐藏导航栏，向上滚动时显示
+            if (scrollTop > lastScrollTop && scrollTop > 100) {
+                navbar.style.transform = 'translateY(-100%)';
+            } else {
+                navbar.style.transform = 'translateY(0)';
+            }
         } else {
+            // PC端：导航栏始终显示
             navbar.style.transform = 'translateY(0)';
         }
 
