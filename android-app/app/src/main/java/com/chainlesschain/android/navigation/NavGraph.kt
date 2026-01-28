@@ -140,6 +140,9 @@ fun NavGraph(
                 },
                 onNavigateToRemoteControl = {
                     navController.navigate(Screen.RemoteControl.route)
+                },
+                onNavigateToP2P = {
+                    navController.navigate(Screen.DeviceManagement.route)
                 }
             )
         }
@@ -474,6 +477,18 @@ fun NavGraph(
             )
         }
 
+        // P2P设备管理页面
+        composable(route = Screen.DeviceManagement.route) {
+            com.chainlesschain.android.feature.p2p.ui.DeviceManagementScreen(
+                onBack = {
+                    navController.popBackStack()
+                },
+                onDeviceClick = { deviceId ->
+                    // TODO: 添加设备详情页面导航（如果需要）
+                }
+            )
+        }
+
         // 评论详情页面
         composable(
             route = "${Screen.CommentDetail.route}/{commentId}",
@@ -707,6 +722,9 @@ sealed class Screen(val route: String) {
     data object EditPost : Screen("edit_post") {
         fun createRoute(postId: String) = "edit_post/$postId"
     }
+
+    // P2P设备管理
+    data object DeviceManagement : Screen("device_management")
 
     // 远程控制功能路由（Phase 2）
     data object RemoteControl : Screen("remote_control")

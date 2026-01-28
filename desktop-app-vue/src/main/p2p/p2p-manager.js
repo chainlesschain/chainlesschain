@@ -5,7 +5,7 @@
  * 功能：节点发现、DHT、消息传输、NAT穿透、端到端加密
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
+const { logger, createLogger } = require("../utils/logger.js");
 const EventEmitter = require("events");
 const fs = require("fs");
 const path = require("path");
@@ -20,6 +20,7 @@ const NATDetector = require("./nat-detector");
 const TransportDiagnostics = require("./transport-diagnostics");
 const { ConnectionPool } = require("./connection-pool");
 const { WebRTCQualityMonitor } = require("./webrtc-quality-monitor");
+const NSDService = require("./nsd-service");
 
 // 动态导入 ESM 模块
 let createLibp2p, tcp, noise, mplex, kadDHT, mdns, bootstrap, multiaddr;
@@ -71,6 +72,9 @@ class P2PManager extends EventEmitter {
 
     // WebRTC质量监控
     this.webrtcQualityMonitor = null;
+
+    // NSD 服务（用于 Android 设备发现）
+    this.nsdService = new NSDService();
   }
 
   /**
@@ -208,8 +212,11 @@ class P2PManager extends EventEmitter {
         const libp2pModule = await Promise.race([
           import("libp2p"),
           new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('libp2p模块加载超时')), MODULE_LOAD_TIMEOUT)
-          )
+            setTimeout(
+              () => reject(new Error("libp2p模块加载超时")),
+              MODULE_LOAD_TIMEOUT,
+            ),
+          ),
         ]);
         createLibp2p = libp2pModule.createLibp2p;
 
@@ -496,6 +503,9 @@ class P2PManager extends EventEmitter {
 
       // 广播当前设备信息
       this.broadcastDeviceInfo();
+
+      // 启动 NSD 服务（让 Android 设备能发现本机）
+      this.startNSDService();
 
       this.initialized = true;
 
@@ -1773,6 +1783,9 @@ class P2PManager extends EventEmitter {
   async close() {
     logger.info("[P2PManager] 关闭 P2P 节点");
 
+    // 停止 NSD 服务
+    this.stopNSDService();
+
     // 停止WebRTC质量监控器
     if (this.webrtcQualityMonitor) {
       this.webrtcQualityMonitor.stop();
@@ -2001,6 +2014,52 @@ class P2PManager extends EventEmitter {
     }
 
     return this.webrtcQualityMonitor.getOptimizationSuggestions(peerId);
+  }
+
+  /**
+   * 启动 NSD 服务（让 Android 设备能发现本机）
+   */
+  startNSDService() {
+    try {
+      if (!this.deviceManager || !this.peerId) {
+        logger.warn(
+          "[P2PManager] DeviceManager or PeerId not initialized, skipping NSD service",
+        );
+        return;
+      }
+
+      // 获取当前设备信息
+      const currentDevice = this.deviceManager.getCurrentDevice();
+      if (!currentDevice) {
+        logger.warn(
+          "[P2PManager] Current device not found, skipping NSD service",
+        );
+        return;
+      }
+
+      const deviceInfo = {
+        deviceId: currentDevice.deviceId,
+        deviceName: currentDevice.deviceName || "Desktop",
+        publicKey: "", // 桌面端设备暂无公钥字段
+      };
+
+      this.nsdService.start(deviceInfo);
+      logger.info("[P2PManager] NSD service started for Android discovery");
+    } catch (error) {
+      logger.error("[P2PManager] Failed to start NSD service:", error);
+    }
+  }
+
+  /**
+   * 停止 NSD 服务
+   */
+  stopNSDService() {
+    try {
+      this.nsdService.stop();
+      logger.info("[P2PManager] NSD service stopped");
+    } catch (error) {
+      logger.error("[P2PManager] Failed to stop NSD service:", error);
+    }
   }
 }
 
