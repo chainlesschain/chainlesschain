@@ -130,10 +130,10 @@
         /* 移动端Hero区域调整 */
         @media (max-width: 768px) {
             .hero {
-                /* 移动端：导航栏60px + 联系栏约100px = 160px，再加60px间距 = 220px */
-                padding-top: 220px !important;
+                /* 移动端：导航栏60px + 60px间距 = 120px (联系栏改为悬浮，不占空间) */
+                padding-top: 120px !important;
                 min-height: auto !important;
-                padding-bottom: 60px !important;
+                padding-bottom: 80px !important;
             }
         }
 
@@ -307,35 +307,128 @@
         }
 
         @media (max-width: 768px) {
+            /* 移动端：将联系栏改为右侧悬浮按钮 */
             .top-contact-bar {
-                top: 60px;
-                padding: 12px 0;
-                transition: transform 0.3s ease, opacity 0.3s ease;
+                position: fixed !important;
+                top: auto !important;
+                bottom: 80px !important;
+                right: 16px !important;
+                left: auto !important;
+                width: 56px !important;
+                height: 56px !important;
+                background: linear-gradient(135deg, #1890ff 0%, #0050b3 100%) !important;
+                border-radius: 50% !important;
+                padding: 0 !important;
+                box-shadow: 0 4px 20px rgba(24, 144, 255, 0.4) !important;
+                z-index: 997 !important;
+                transition: all 0.3s ease !important;
             }
 
-            /* 移动端菜单打开时隐藏联系栏，避免遮挡 */
-            body.mobile-menu-open .top-contact-bar {
-                transform: translateY(-100%);
-                opacity: 0;
-                pointer-events: none;
+            .top-contact-bar:hover {
+                transform: scale(1.05);
+                box-shadow: 0 6px 24px rgba(24, 144, 255, 0.5) !important;
             }
 
+            /* 联系栏收起状态：只显示电话图标 */
             .contact-bar-content {
-                flex-direction: column;
-                gap: 16px;
+                width: 56px;
+                height: 56px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .contact-item {
+                display: none !important;
+            }
+
+            /* 只显示第一个联系项的图标作为触发按钮 */
+            .contact-item.hotline {
+                display: flex !important;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                padding: 0;
+                margin: 0;
+                gap: 0;
+            }
+
+            .contact-item.hotline .icon {
+                font-size: 28px !important;
+                margin: 0 !important;
+                animation: pulse 2s ease-in-out infinite;
+                filter: none !important;
+            }
+
+            .contact-item.hotline .contact-info {
+                display: none !important;
             }
 
             .contact-divider {
-                width: 80%;
-                height: 1px;
+                display: none !important;
+            }
+
+            /* 联系栏展开状态 */
+            .top-contact-bar.expanded {
+                border-radius: 16px !important;
+                width: calc(100% - 32px) !important;
+                max-width: 320px !important;
+                height: auto !important;
+                padding: 20px !important;
+            }
+
+            .top-contact-bar.expanded .contact-bar-content {
+                width: 100%;
+                height: auto;
+                flex-direction: column;
+                gap: 16px;
+                align-items: stretch;
+            }
+
+            .top-contact-bar.expanded .contact-item {
+                display: flex !important;
+                padding: 12px;
+                background: rgba(255, 255, 255, 0.15);
+                border-radius: 8px;
+                backdrop-filter: blur(10px);
+                transition: background 0.2s ease;
+            }
+
+            .top-contact-bar.expanded .contact-item:hover {
+                background: rgba(255, 255, 255, 0.25);
+            }
+
+            .top-contact-bar.expanded .contact-item.hotline {
+                gap: 12px;
+            }
+
+            .top-contact-bar.expanded .contact-item.hotline .contact-info {
+                display: flex !important;
+            }
+
+            .top-contact-bar.expanded .contact-item .icon {
+                font-size: 24px !important;
+                animation: none !important;
             }
 
             .contact-info .contact-value {
                 font-size: 16px;
             }
 
-            .contact-item .icon {
-                font-size: 20px;
+            /* 脉冲动画 */
+            @keyframes pulse {
+                0%, 100% {
+                    transform: scale(1);
+                }
+                50% {
+                    transform: scale(1.1);
+                }
+            }
+
+            /* 移动端菜单打开时不隐藏悬浮按钮 */
+            body.mobile-menu-open .top-contact-bar {
+                opacity: 1 !important;
+                pointer-events: auto !important;
             }
         }
     </style>

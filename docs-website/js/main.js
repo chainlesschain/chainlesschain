@@ -745,6 +745,39 @@
     };
 
     // ========================================
+    // ========================================
+    // 移动端联系栏悬浮按钮交互
+    // ========================================
+    const contactBar = document.querySelector('.top-contact-bar');
+
+    if (contactBar) {
+        // 移动端：点击切换展开/收起
+        contactBar.addEventListener('click', function(e) {
+            if (window.innerWidth <= 768) {
+                // 阻止事件冒泡
+                e.stopPropagation();
+                this.classList.toggle('expanded');
+            }
+        });
+
+        // 点击页面其他区域关闭联系栏
+        document.addEventListener('click', function(e) {
+            if (window.innerWidth <= 768 && contactBar.classList.contains('expanded')) {
+                if (!contactBar.contains(e.target)) {
+                    contactBar.classList.remove('expanded');
+                }
+            }
+        });
+
+        // 窗口大小改变时重置状态
+        window.addEventListener('resize', function() {
+            if (window.innerWidth > 768) {
+                contactBar.classList.remove('expanded');
+            }
+        });
+    }
+
+    // ========================================
     // 控制台输出
     // ========================================
     console.log('%c ChainlessChain ', 'background: linear-gradient(135deg, #667eea, #764ba2); color: white; padding: 8px 16px; border-radius: 4px; font-size: 16px; font-weight: bold;');
