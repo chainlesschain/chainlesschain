@@ -1,0 +1,691 @@
+/* ================================================
+   ChainlessChain 视觉增强 v2.0
+   高级视觉效果和交互体验优化
+   ================================================ */
+
+/* ==========================================
+   1. 平滑滚动和过渡
+   ========================================== */
+html {
+    scroll-behavior: smooth;
+}
+
+* {
+    scrollbar-width: thin;
+    scrollbar-color: #1890ff #f0f0f0;
+}
+
+/* Webkit 浏览器滚动条 */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f0f0f0;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #1890ff 0%, #0050b3 100%);
+    border-radius: 10px;
+    transition: background 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #0050b3 0%, #003a8c 100%);
+}
+
+/* ==========================================
+   2. 页面进入淡入动画
+   ========================================== */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideInFromLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-50px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes slideInFromRight {
+    from {
+        opacity: 0;
+        transform: translateX(50px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes scaleIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* 应用动画到各个元素 */
+.animate-fade-in {
+    animation: fadeInUp 0.8s ease-out forwards;
+    opacity: 0;
+}
+
+.animate-fade-in-delay {
+    animation: fadeInUp 0.8s ease-out 0.2s forwards;
+    opacity: 0;
+}
+
+.animate-fade-in-delay-2 {
+    animation: fadeInUp 0.8s ease-out 0.4s forwards;
+    opacity: 0;
+}
+
+/* ==========================================
+   3. Hero Section 增强特效
+   ========================================== */
+.hero-background {
+    position: relative;
+    overflow: hidden;
+}
+
+/* 动态渐变背景 */
+.hero-gradient {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+    background-size: 400% 400%;
+    animation: gradientShift 15s ease infinite;
+    z-index: 0;
+    pointer-events: none;
+}
+
+@keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+/* 浮动装饰元素 */
+.hero-decoration {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+}
+
+.floating-shape {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    animation: float 20s ease-in-out infinite;
+}
+
+.floating-shape:nth-child(1) {
+    width: 300px;
+    height: 300px;
+    top: 10%;
+    left: 10%;
+    animation-delay: 0s;
+}
+
+.floating-shape:nth-child(2) {
+    width: 200px;
+    height: 200px;
+    top: 60%;
+    right: 15%;
+    animation-delay: 5s;
+}
+
+.floating-shape:nth-child(3) {
+    width: 150px;
+    height: 150px;
+    bottom: 20%;
+    left: 50%;
+    animation-delay: 10s;
+}
+
+@keyframes float {
+    0%, 100% {
+        transform: translateY(0) rotate(0deg);
+    }
+    33% {
+        transform: translateY(-30px) rotate(5deg);
+    }
+    66% {
+        transform: translateY(30px) rotate(-5deg);
+    }
+}
+
+/* Hero section 完整居中 */
+.hero .container {
+    width: 100%;
+}
+
+/* Hero 内容层级 */
+.hero-content {
+    position: relative;
+    z-index: 10;
+    text-align: center !important;
+    width: 100%;
+    display: block;
+}
+
+/* ==========================================
+   4. 卡片悬浮效果增强
+   ========================================== */
+.product-card,
+.feature-item,
+.scenario-card,
+.download-card {
+    position: relative;
+    overflow: hidden;
+}
+
+/* 悬浮时的光晕效果 */
+.product-card::before,
+.feature-item::before,
+.scenario-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.2),
+        transparent
+    );
+    transition: left 0.5s ease;
+}
+
+.product-card:hover::before,
+.feature-item:hover::before,
+.scenario-card:hover::before {
+    left: 100%;
+}
+
+/* ==========================================
+   5. 按钮涟漪效果
+   ========================================== */
+.btn-primary,
+.btn-hero-primary,
+.btn-download {
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-primary::after,
+.btn-hero-primary::after,
+.btn-download::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.3);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s ease, height 0.6s ease;
+}
+
+.btn-primary:active::after,
+.btn-hero-primary:active::after,
+.btn-download:active::after {
+    width: 300px;
+    height: 300px;
+}
+
+/* ==========================================
+   6. 图片懒加载占位符
+   ========================================== */
+img[loading="lazy"] {
+    background: linear-gradient(
+        90deg,
+        #f0f0f0 25%,
+        #e0e0e0 50%,
+        #f0f0f0 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+}
+
+img[loading="lazy"].loaded {
+    animation: none;
+    background: none;
+}
+
+@keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+/* ==========================================
+   7. 导航栏滚动效果
+   ========================================== */
+.navbar {
+    position: fixed !important;
+    top: 0 !important;
+    z-index: 1000 !important;
+    transition: all 0.3s ease;
+}
+
+.navbar.scrolled {
+    background: rgba(255, 255, 255, 0.98) !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1) !important;
+    backdrop-filter: blur(20px);
+}
+
+.navbar.scrolled .logo img {
+    filter: brightness(0.95);
+}
+
+/* ==========================================
+   8. 技术栈标签动态效果
+   ========================================== */
+.tech-tag {
+    position: relative;
+    overflow: hidden;
+}
+
+.tech-tag::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.3),
+        transparent
+    );
+    transition: left 0.5s ease;
+}
+
+.tech-tag:hover::before {
+    left: 100%;
+}
+
+/* ==========================================
+   9. 统计数字动画
+   ========================================== */
+.stat-number,
+.stat-value {
+    background: linear-gradient(135deg, #1890ff, #722ed1);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 800;
+    text-shadow: 0 4px 8px rgba(24, 144, 255, 0.2);
+}
+
+/* ==========================================
+   10. 功能图标动效
+   ========================================== */
+.feature-icon,
+.scenario-icon,
+.download-icon {
+    transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    display: inline-block;
+}
+
+.feature-item:hover .feature-icon,
+.scenario-card:hover .scenario-icon,
+.download-card:hover .download-icon {
+    transform: scale(1.15) rotate(5deg);
+}
+
+/* ==========================================
+   11. 脉冲动画
+   ========================================== */
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.05);
+        opacity: 0.9;
+    }
+}
+
+.pulse-animation {
+    animation: pulse 2s ease-in-out infinite;
+}
+
+/* ==========================================
+   12. 渐变文字效果
+   ========================================== */
+.gradient-text {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    display: inline-block;
+}
+
+/* ==========================================
+   13. 玻璃态效果
+   ========================================== */
+.glass-effect {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+/* ==========================================
+   14. 下载按钮特效
+   ========================================== */
+.btn-download {
+    background: linear-gradient(135deg, #52c41a 0%, #389e0d 100%);
+    box-shadow: 0 4px 15px rgba(82, 196, 26, 0.4);
+}
+
+.btn-download:hover {
+    background: linear-gradient(135deg, #389e0d 0%, #237804 100%);
+    box-shadow: 0 6px 25px rgba(82, 196, 26, 0.6);
+}
+
+/* ==========================================
+   15. 版本卡片高亮效果
+   ========================================== */
+.version-card.highlight {
+    position: relative;
+    animation: highlightPulse 3s ease-in-out infinite;
+}
+
+@keyframes highlightPulse {
+    0%, 100% {
+        box-shadow: 0 8px 24px rgba(24, 144, 255, 0.15);
+    }
+    50% {
+        box-shadow: 0 12px 36px rgba(24, 144, 255, 0.3);
+    }
+}
+
+/* ==========================================
+   16. FAQ 展开动画
+   ========================================== */
+.faq-item {
+    transition: all 0.3s ease;
+}
+
+.faq-item.expanded {
+    background: linear-gradient(135deg, #f0f7ff 0%, #e6f7ff 100%);
+    border-left: 4px solid #1890ff;
+}
+
+/* ==========================================
+   17. 页脚装饰
+   ========================================== */
+.footer {
+    position: relative;
+}
+
+.footer::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg,
+        #667eea 0%,
+        #764ba2 25%,
+        #f093fb 50%,
+        #764ba2 75%,
+        #667eea 100%
+    );
+    background-size: 200% 100%;
+    animation: gradientSlide 5s linear infinite;
+}
+
+@keyframes gradientSlide {
+    0% { background-position: 0% 0; }
+    100% { background-position: 200% 0; }
+}
+
+/* ==========================================
+   18. 联系方式高亮
+   ========================================== */
+.contact-info a,
+.contact-value {
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.contact-info a::after,
+.contact-value::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: white;
+    transition: width 0.3s ease;
+}
+
+.contact-info a:hover::after,
+.contact-value:hover::after {
+    width: 100%;
+}
+
+/* ==========================================
+   19. 二维码容器美化
+   ========================================== */
+.qr-code-container {
+    padding: 20px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.qr-code-container:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.15);
+}
+
+/* ==========================================
+   20. 新功能标签动效
+   ========================================== */
+.feature-badge {
+    animation: badgeBounce 2s ease-in-out infinite;
+}
+
+@keyframes badgeBounce {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-3px);
+    }
+}
+
+/* ==========================================
+   21. 表格行悬浮效果
+   ========================================== */
+.comparison-table tbody tr {
+    transition: all 0.3s ease;
+}
+
+.comparison-table tbody tr:hover {
+    background: linear-gradient(90deg, #f0f7ff 0%, #e6f7ff 100%);
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(24, 144, 255, 0.1);
+}
+
+/* ==========================================
+   22. 输入框聚焦效果增强
+   ========================================== */
+.form-group input:focus,
+.form-group textarea:focus {
+    border-color: #1890ff !important;
+    box-shadow: 0 0 0 4px rgba(24, 144, 255, 0.1) !important;
+    transform: translateY(-2px);
+}
+
+/* ==========================================
+   23. Logo 悬浮效果
+   ========================================== */
+.navbar .logo img {
+    transition: all 0.3s ease;
+}
+
+.navbar .logo:hover img {
+    transform: scale(1.05) rotate(2deg);
+    filter: drop-shadow(0 4px 8px rgba(102, 126, 234, 0.3));
+}
+
+/* ==========================================
+   24. 链接下划线动画
+   ========================================== */
+.nav-menu a {
+    position: relative;
+}
+
+.nav-menu a::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 50%;
+    width: 0;
+    height: 2px;
+    background: linear-gradient(90deg, #1890ff, #722ed1);
+    transition: all 0.3s ease;
+    transform: translateX(-50%);
+}
+
+.nav-menu a:hover::after {
+    width: 100%;
+}
+
+/* ==========================================
+   25. 微交互反馈
+   ========================================== */
+button:active,
+.btn-primary:active,
+.btn-hero-primary:active {
+    transform: scale(0.98) !important;
+}
+
+/* ==========================================
+   26. 加载状态指示
+   ========================================== */
+.loading-indicator {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ==========================================
+   27. 响应式优化
+   ========================================== */
+@media (max-width: 768px) {
+    .floating-shape {
+        display: none;
+    }
+
+    .hero-gradient {
+        animation-duration: 10s;
+    }
+
+    .animate-fade-in,
+    .animate-fade-in-delay,
+    .animate-fade-in-delay-2 {
+        animation-duration: 0.6s;
+    }
+}
+
+/* ==========================================
+   28. 打印优化
+   ========================================== */
+@media print {
+    .loading-overlay,
+    .floating-shape,
+    .hero-decoration {
+        display: none !important;
+    }
+
+    * {
+        animation: none !important;
+        transition: none !important;
+    }
+}
+
+/* ==========================================
+   29. 高对比度模式支持
+   ========================================== */
+@media (prefers-contrast: high) {
+    .glass-effect {
+        background: rgba(255, 255, 255, 0.2);
+        border: 2px solid rgba(0, 0, 0, 0.3);
+    }
+
+    .gradient-text {
+        -webkit-text-fill-color: #1890ff;
+    }
+}
+
+/* ==========================================
+   30. 减少动画（accessibility）
+   ========================================== */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+
+    html {
+        scroll-behavior: auto;
+    }
+}

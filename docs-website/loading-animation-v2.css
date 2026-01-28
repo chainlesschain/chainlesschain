@@ -1,0 +1,293 @@
+/* ChainlessChain Loading Animation - Optimized Version */
+
+#loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+    background-size: 400% 400%;
+    animation: gradientMove 8s ease infinite;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 99999;
+    opacity: 1;
+    transition: opacity 0.8s ease, visibility 0.8s ease;
+}
+
+#loading-overlay.fade-out {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+/* 背景渐变流动 */
+@keyframes gradientMove {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+.loading-container {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Logo容器 */
+.loading-logo-wrapper {
+    position: relative;
+    width: 140px;
+    height: 140px;
+    animation: logoFloat 3s ease-in-out infinite;
+}
+
+@keyframes logoFloat {
+    0%, 100% {
+        transform: translateY(0) scale(1);
+    }
+    50% {
+        transform: translateY(-8px) scale(1.05);
+    }
+}
+
+/* 阴影层 */
+.loading-logo-shadow {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 30%,
+        rgba(255, 255, 255, 0.9) 0%,
+        rgba(255, 182, 193, 0.4) 30%,
+        rgba(186, 85, 211, 0.2) 60%,
+        transparent 70%);
+    filter: blur(1px);
+    animation: shadowPulse 3s ease-in-out infinite;
+}
+
+@keyframes shadowPulse {
+    0%, 100% { opacity: 0.7; }
+    50% { opacity: 1; }
+}
+
+/* Logo图片 */
+.loading-logo-image {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    z-index: 2;
+    box-shadow:
+        inset 3px 3px 8px rgba(255, 255, 255, 0.8),
+        inset -2px -2px 6px rgba(0, 0, 0, 0.1),
+        0 4px 12px rgba(102, 126, 234, 0.3),
+        0 8px 24px rgba(118, 75, 162, 0.25),
+        0 0 20px rgba(240, 147, 251, 0.2);
+    animation: logoRotate 12s linear infinite;
+}
+
+@keyframes logoRotate {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* 光泽层 */
+.loading-shine {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    background: linear-gradient(
+        135deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.5) 40%,
+        rgba(255, 255, 255, 0.8) 50%,
+        rgba(255, 255, 255, 0.5) 60%,
+        transparent 100%
+    );
+    z-index: 3;
+    opacity: 0;
+    animation: shineMove 4s ease-in-out infinite;
+    pointer-events: none;
+}
+
+@keyframes shineMove {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) rotate(-45deg) translateX(-120px);
+    }
+    50% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) rotate(-45deg) translateX(120px);
+    }
+}
+
+/* 光环层 */
+.loading-ring {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    border: 2px solid transparent;
+    animation: ringPulse 3s ease-in-out infinite;
+}
+
+.loading-ring-1 {
+    width: 160px;
+    height: 160px;
+    border-color: rgba(255, 182, 193, 0.6);
+    animation-delay: 0s;
+}
+
+.loading-ring-2 {
+    width: 180px;
+    height: 180px;
+    border-color: rgba(186, 85, 211, 0.4);
+    animation-delay: 0.3s;
+}
+
+@keyframes ringPulse {
+    0%, 100% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 0.6;
+    }
+    50% {
+        transform: translate(-50%, -50%) scale(1.1);
+        opacity: 1;
+    }
+}
+
+/* 外层光晕 */
+.loading-outer-glow {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    background: radial-gradient(
+        circle,
+        rgba(255, 255, 255, 0.2) 0%,
+        rgba(186, 85, 211, 0.15) 30%,
+        rgba(255, 182, 193, 0.1) 50%,
+        transparent 70%
+    );
+    filter: blur(10px);
+    animation: glowPulse 3s ease-in-out infinite;
+    z-index: 0;
+}
+
+@keyframes glowPulse {
+    0%, 100% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 0.5;
+    }
+    50% {
+        transform: translate(-50%, -50%) scale(1.15);
+        opacity: 0.8;
+    }
+}
+
+/* 加载文字 */
+.loading-text {
+    margin-top: 40px;
+    color: white;
+    font-size: 18px;
+    font-weight: 600;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    animation: textFade 2s ease-in-out infinite;
+}
+
+@keyframes textFade {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+}
+
+/* 进度条 */
+.loading-progress {
+    margin-top: 20px;
+    width: 200px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 2px;
+    overflow: hidden;
+    position: relative;
+}
+
+.loading-progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg,
+        rgba(255, 255, 255, 0.8),
+        rgba(255, 182, 193, 0.9),
+        rgba(186, 85, 211, 0.8)
+    );
+    border-radius: 2px;
+    animation: progressMove 2s ease-in-out infinite;
+}
+
+@keyframes progressMove {
+    0% {
+        width: 0%;
+        transform: translateX(0);
+    }
+    50% {
+        width: 70%;
+    }
+    100% {
+        width: 100%;
+        transform: translateX(0);
+    }
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+    .loading-logo-wrapper {
+        width: 100px;
+        height: 100px;
+    }
+
+    .loading-logo-shadow,
+    .loading-logo-image,
+    .loading-shine {
+        width: 100px;
+        height: 100px;
+    }
+
+    .loading-ring-1 {
+        width: 120px;
+        height: 120px;
+    }
+
+    .loading-ring-2 {
+        width: 140px;
+        height: 140px;
+    }
+
+    .loading-outer-glow {
+        width: 160px;
+        height: 160px;
+    }
+
+    .loading-text {
+        font-size: 16px;
+    }
+
+    .loading-progress {
+        width: 160px;
+    }
+}
