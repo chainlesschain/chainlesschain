@@ -76,6 +76,12 @@ export default defineConfig({
             { text: 'Git同步', link: '/chainlesschain/git-sync' },
             { text: '数据加密', link: '/chainlesschain/encryption' }
           ]
+        },
+        {
+          text: '企业版功能',
+          items: [
+            { text: 'Cowork多智能体协作', link: '/chainlesschain/cowork' }
+          ]
         }
       ],
 
@@ -157,7 +163,7 @@ export default defineConfig({
 
     footer: {
       message: '基于 MIT 许可发布',
-      copyright: 'Copyright © 2024 ChainlessChain Team'
+      copyright: 'Copyright © 2024-2026 ChainlessChain Team'
     },
 
     search: {
