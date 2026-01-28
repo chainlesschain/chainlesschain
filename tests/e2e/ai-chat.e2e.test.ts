@@ -23,7 +23,7 @@ async function setupVolcengineConfig(window: any) {
       provider: 'volcengine',
       'volcengine.apiKey': '7185ce7d-9775-450c-8450-783176be6265',
       'volcengine.baseURL': 'https://ark.cn-beijing.volces.com/api/v3',
-      'volcengine.model': 'doubao-seed-1-6-flash-250828',
+      'volcengine.model': 'doubao-seed-1-8-251228',
       'volcengine.embeddingModel': 'doubao-embedding-text-240715',
     };
 

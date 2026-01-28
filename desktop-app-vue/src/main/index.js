@@ -219,6 +219,7 @@ class ChainlessChainApp {
           this.database,
           this.p2pManager,
           fileTransferManager,
+          this.ragManager,
           {
             cacheDir: path.join(app.getPath("userData"), "external-file-cache"),
             maxCacheSize: 1024 * 1024 * 1024, // 1GB
