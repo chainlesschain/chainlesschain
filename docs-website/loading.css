@@ -41,8 +41,8 @@
 /* Logo容器 */
 .loader-logo-wrapper {
     position: relative;
-    width: 120px;
-    height: 120px;
+    width: 140px;
+    height: 140px;
     animation: logoFloat 3s ease-in-out infinite;
 }
 
@@ -59,13 +59,14 @@
 .loader-logo {
     width: 100%;
     height: 100%;
-    border-radius: 50%;
     object-fit: contain;
-    /* 使用透明背景，保持logo原始样式 */
-    background: transparent;
-    /* 去除padding，让logo填满容器 */
-    padding: 0;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+    /* 白色圆形背景，与logo搭配 */
+    background: white;
+    border-radius: 50%;
+    /* 添加padding确保logo不会被裁剪 */
+    padding: 10px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2),
+                0 0 20px rgba(255, 255, 255, 0.6);
     /* 确保logo清晰显示 */
     image-rendering: -webkit-optimize-contrast;
     image-rendering: crisp-edges;
@@ -76,8 +77,8 @@
     position: absolute;
     top: -15px;
     left: -15px;
-    width: 150px;
-    height: 150px;
+    width: 170px;
+    height: 170px;
     border-radius: 50%;
     border: 3px solid transparent;
     border-top-color: rgba(255, 255, 255, 0.8);
@@ -90,8 +91,8 @@
     position: absolute;
     top: -8px;
     left: -8px;
-    width: 136px;
-    height: 136px;
+    width: 156px;
+    height: 156px;
     border-radius: 50%;
     border: 2px solid transparent;
     border-bottom-color: rgba(255, 255, 255, 0.6);
@@ -110,14 +111,15 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 180px;
-    height: 180px;
+    width: 200px;
+    height: 200px;
     border-radius: 50%;
     background: radial-gradient(circle at center,
         rgba(255, 255, 255, 0.3) 0%,
         rgba(255, 255, 255, 0.1) 40%,
         transparent 70%);
     animation: glowPulse 2s ease-in-out infinite;
+    z-index: -1;
 }
 
 @keyframes glowPulse {
@@ -250,25 +252,25 @@
 /* 响应式 */
 @media (max-width: 768px) {
     .loader-logo-wrapper {
-        width: 100px;
-        height: 100px;
+        width: 110px;
+        height: 110px;
     }
 
     .loader-ring-outer {
-        width: 130px;
-        height: 130px;
+        width: 140px;
+        height: 140px;
         top: -15px;
         left: -15px;
     }
 
     .loader-ring-inner {
-        width: 116px;
-        height: 116px;
+        width: 126px;
+        height: 126px;
     }
 
     .loader-glow {
-        width: 150px;
-        height: 150px;
+        width: 160px;
+        height: 160px;
     }
 
     .loader-text {
