@@ -239,6 +239,7 @@ section {
     min-height: 100vh;
     display: flex;
     align-items: center;
+    justify-content: center;
     padding-top: 80px;
     position: relative;
     overflow: hidden;

@@ -1,0 +1,19 @@
+{
+  "name": "chainlesschain-website",
+  "version": "0.21.0",
+  "description": "ChainlessChain 官方网站",
+  "scripts": {
+    "build": "node build.js",
+    "serve": "python -m http.server 8000 || npx http-server -p 8000",
+    "deploy:server": "npm run build && bash deploy-to-server.sh",
+    "deploy:github": "npm run build && bash deploy-to-github.sh",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "chainlesschain",
+    "website",
+    "static"
+  ],
+  "author": "ChainlessChain Team",
+  "license": "MIT"
+}

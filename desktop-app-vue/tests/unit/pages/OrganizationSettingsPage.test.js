@@ -1,901 +1,994 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { mount } from "@vue/test-utils";
-import OrganizationSettingsPage from "@renderer/pages/OrganizationSettingsPage.vue";
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { mount } from '@vue/test-utils'
+import { nextTick } from 'vue'
 
-// Mock ant-design-vue
-vi.mock("ant-design-vue", () => ({
-  message: {
-    success: vi.fn(),
-    error: vi.fn(),
-    warning: vi.fn(),
+// Mock Ant Design Vue components
+const mockAntdComponents = {
+  'a-form': {
+    name: 'AForm',
+    template: '<form class="a-form"><slot /></form>',
+    props: ['model', 'rules', 'layout']
   },
-  Modal: {
-    confirm: vi.fn((config) => {
-      if (config.onOk) {
-        config.onOk();
-      }
-    }),
+  'a-form-item': {
+    name: 'AFormItem',
+    template: '<div class="a-form-item" :class="{ error: validateStatus === \'error\' }"><label v-if="label">{{ label }}</label><slot /></div>',
+    props: ['label', 'name', 'validateStatus', 'help']
   },
-}));
+  'a-input': {
+    name: 'AInput',
+    template: '<input class="a-input" :value="value" @input="$emit(\'update:value\', $event.target.value)" :placeholder="placeholder" :maxlength="maxlength" />',
+    props: ['value', 'placeholder', 'maxlength']
+  },
+  'a-textarea': {
+    name: 'ATextarea',
+    template: '<textarea class="a-textarea" :value="value" @input="$emit(\'update:value\', $event.target.value)" :placeholder="placeholder" :rows="rows" :maxlength="maxlength"></textarea>',
+    props: ['value', 'placeholder', 'rows', 'maxlength']
+  },
+  'a-switch': {
+    name: 'ASwitch',
+    template: '<button class="a-switch" :class="{ checked: checked }" @click="$emit(\'update:checked\', !checked)">{{ checked ? "ON" : "OFF" }}</button>',
+    props: ['checked', 'disabled']
+  },
+  'a-select': {
+    name: 'ASelect',
+    template: '<select class="a-select" :value="value" @change="$emit(\'update:value\', $event.target.value)"><slot /></select>',
+    props: ['value', 'placeholder', 'mode', 'allowClear']
+  },
+  'a-select-option': {
+    name: 'ASelectOption',
+    template: '<option :value="value"><slot /></option>',
+    props: ['value']
+  },
+  'a-button': {
+    name: 'AButton',
+    template: '<button class="a-button" :type="type" :disabled="disabled" :danger="danger" :loading="loading"><slot /></button>',
+    props: ['type', 'disabled', 'danger', 'loading']
+  },
+  'a-modal': {
+    name: 'AModal',
+    template: '<div v-if="open" class="a-modal"><div class="modal-title">{{ title }}</div><div class="modal-content"><slot /></div><div class="modal-footer"><slot name="footer" /></div></div>',
+    props: ['open', 'title', 'confirmLoading', 'okText', 'cancelText']
+  },
+  'a-divider': {
+    name: 'ADivider',
+    template: '<hr class="a-divider" />',
+    props: ['orientation']
+  },
+  'a-popconfirm': {
+    name: 'APopconfirm',
+    template: '<div class="a-popconfirm"><slot /></div>',
+    props: ['title', 'okText', 'cancelText']
+  },
+  'a-card': {
+    name: 'ACard',
+    template: '<div class="a-card"><div v-if="title" class="card-title">{{ title }}</div><slot /></div>',
+    props: ['title', 'bordered']
+  },
+  'a-space': {
+    name: 'ASpace',
+    template: '<div class="a-space"><slot /></div>',
+    props: ['size', 'direction']
+  },
+  'a-alert': {
+    name: 'AAlert',
+    template: '<div class="a-alert" :class="type"><slot /></div>',
+    props: ['type', 'message', 'description', 'showIcon']
+  },
+  'a-spin': {
+    name: 'ASpin',
+    template: '<div class="a-spin" :class="{ spinning }"><slot /></div>',
+    props: ['spinning']
+  },
+  'a-row': {
+    name: 'ARow',
+    template: '<div class="a-row"><slot /></div>',
+    props: ['gutter']
+  },
+  'a-col': {
+    name: 'ACol',
+    template: '<div class="a-col"><slot /></div>',
+    props: ['xs', 'sm', 'md', 'lg', 'xl', 'span']
+  },
+  'a-tag': {
+    name: 'ATag',
+    template: '<span class="a-tag" :color="color"><slot /></span>',
+    props: ['color']
+  },
+  'a-statistic': {
+    name: 'AStatistic',
+    template: '<div class="a-statistic"><div class="statistic-title">{{ title }}</div><div class="statistic-value">{{ value }}</div></div>',
+    props: ['title', 'value']
+  },
+  'a-descriptions': {
+    name: 'ADescriptions',
+    template: '<div class="a-descriptions"><slot /></div>',
+    props: ['bordered', 'column']
+  },
+  'a-descriptions-item': {
+    name: 'ADescriptionsItem',
+    template: '<div class="a-descriptions-item"><slot /></div>',
+    props: ['label']
+  }
+}
 
-// Mock vue-router
-const mockRouter = {
-  push: vi.fn(),
-  back: vi.fn(),
-  replace: vi.fn(),
-};
+// Mock IPC renderer
+const mockIpcRenderer = {
+  invoke: vi.fn()
+}
 
-vi.mock("vue-router", () => ({
-  useRouter: () => mockRouter,
-}));
+// Mock window.electron
+global.window = global.window || {}
+global.window.electron = {
+  ipcRenderer: mockIpcRenderer
+}
 
 // Mock identity store
 const mockIdentityStore = {
-  primaryDID: "did:chainlesschain:currentuser",
-  currentOrgId: "org-123",
-  isOrganizationContext: true,
-  organizations: [
-    {
-      org_id: "org-123",
-      role: "owner",
-    },
-  ],
-  leaveOrganization: vi.fn().mockResolvedValue(),
-  switchContext: vi.fn().mockResolvedValue(),
-};
+  currentOrgId: 'org-123',
+  primaryDID: 'did:key:user123',
+  currentOrgRole: 'owner' // Default to owner for most tests
+}
 
-vi.mock("@/stores/identity", () => ({
-  useIdentityStore: () => mockIdentityStore,
-}));
+// Mock stores
+vi.mock('@/stores/identity', () => ({
+  useIdentityStore: () => mockIdentityStore
+}))
 
-// Mock window.ipc and window.electronAPI
-const mockOrgInfo = {
-  org_id: "org-123",
-  org_did: "did:chainlesschain:org:org-123",
-  owner_did: "did:chainlesschain:owner",
-  name: "Test Organization",
-  type: "startup",
-  description: "A test organization",
-  avatar: "https://example.com/avatar.jpg",
-  created_at: 1704067200000,
-  updated_at: 1704153600000,
-  settings_json: JSON.stringify({
-    visibility: "private",
-    maxMembers: 100,
-    allowMemberInvite: true,
-    defaultMemberRole: "member",
-  }),
-};
+vi.mock('../stores/identity', () => ({
+  useIdentityStore: () => mockIdentityStore
+}))
 
-const mockMembers = [{ member_did: "did:user1" }, { member_did: "did:user2" }];
+// Mock message and Modal
+const mockMessage = {
+  success: vi.fn(),
+  error: vi.fn(),
+  warning: vi.fn()
+}
 
-const mockActivities = [
-  {
-    id: 1,
-    action_type: "create_organization",
-    created_at: 1704067200000,
+const mockModal = {
+  confirm: vi.fn()
+}
+
+vi.mock('ant-design-vue', () => ({
+  message: mockMessage,
+  Modal: mockModal
+}))
+
+// Mock logger
+vi.mock('@/utils/logger', () => ({
+  logger: {
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn()
   },
-  {
-    id: 2,
-    action_type: "add_member",
-    created_at: 1704153600000,
+  createLogger: vi.fn()
+}))
+
+// Mock icons
+vi.mock('@ant-design/icons-vue', () => ({
+  SaveOutlined: {
+    name: 'SaveOutlined',
+    template: '<span class="save-outlined">S</span>'
   },
-];
-
-global.window = global.window || {};
-global.window.ipc = {
-  invoke: vi.fn(),
-};
-global.window.electronAPI = {
-  invoke: vi.fn(),
-};
-
-global.FileReader = class {
-  readAsDataURL() {
-    setTimeout(() => {
-      this.onload({ target: { result: "data:image/png;base64,ABC123" } });
-    }, 0);
+  CloseOutlined: {
+    name: 'CloseOutlined',
+    template: '<span class="close-outlined">X</span>'
+  },
+  DeleteOutlined: {
+    name: 'DeleteOutlined',
+    template: '<span class="delete-outlined">D</span>'
+  },
+  WarningOutlined: {
+    name: 'WarningOutlined',
+    template: '<span class="warning-outlined">!</span>'
+  },
+  LockOutlined: {
+    name: 'LockOutlined',
+    template: '<span class="lock-outlined">L</span>'
+  },
+  UnlockOutlined: {
+    name: 'UnlockOutlined',
+    template: '<span class="unlock-outlined">U</span>'
+  },
+  TeamOutlined: {
+    name: 'TeamOutlined',
+    template: '<span class="team-outlined">T</span>'
+  },
+  SettingOutlined: {
+    name: 'SettingOutlined',
+    template: '<span class="setting-outlined">S</span>'
   }
-};
+}))
 
-describe("OrganizationSettingsPage.vue", () => {
-  let wrapper;
+// Mock router
+const mockRouter = {
+  push: vi.fn(),
+  replace: vi.fn()
+}
 
-  const createWrapper = (props = {}) => {
-    return mount(OrganizationSettingsPage, {
-      props,
-      global: {
-        stubs: {
-          "a-card": true,
-          "a-form": true,
-          "a-form-item": true,
-          "a-row": true,
-          "a-col": true,
-          "a-input": true,
-          "a-select": true,
-          "a-select-option": true,
-          "a-textarea": true,
-          "a-avatar": true,
-          "a-upload": true,
-          "a-button": true,
-          "a-space": true,
-          "a-descriptions": true,
-          "a-descriptions-item": true,
-          "a-typography-paragraph": true,
-          "a-alert": true,
-          "a-radio-group": true,
-          "a-radio": true,
-          "a-input-number": true,
-          "a-checkbox": true,
-          "a-switch": true,
-          "a-typography-text": true,
-          "a-tag": true,
-          "a-divider": true,
-          "a-list": true,
-          "a-list-item": true,
-          "a-list-item-meta": true,
-          "a-modal": true,
-          SettingOutlined: true,
-          DeleteOutlined: true,
-          TeamOutlined: true,
-          UploadOutlined: true,
-          QuestionCircleOutlined: true,
-          CloudSyncOutlined: true,
-          DatabaseOutlined: true,
-          SafetyOutlined: true,
-          SafetyCertificateOutlined: true,
-          CheckCircleOutlined: true,
-          ExportOutlined: true,
-          SyncOutlined: true,
-          UserAddOutlined: true,
-          EditOutlined: true,
-          LogoutOutlined: true,
-        },
+vi.mock('vue-router', () => ({
+  useRouter: () => mockRouter
+}))
+
+describe('OrganizationSettingsPage', () => {
+  let wrapper
+  let OrganizationSettingsPage
+  let pinia
+
+  // Helper function to create mount options
+  const createMountOptions = (additionalOptions = {}) => ({
+    global: {
+      components: {
+        ...mockAntdComponents
       },
-    });
-  };
+      plugins: [pinia],
+      ...additionalOptions.global
+    },
+    ...additionalOptions
+  })
 
-  beforeEach(() => {
-    vi.clearAllMocks();
-    window.ipc.invoke.mockImplementation((channel, ...args) => {
-      if (channel === "org:get-organization") {
-        return Promise.resolve(mockOrgInfo);
-      }
-      if (channel === "org:get-members") {
-        return Promise.resolve(mockMembers);
-      }
-      if (channel === "org:get-activities") {
-        return Promise.resolve(mockActivities);
-      }
-      if (channel === "db:get-context-path") {
-        return Promise.resolve("/path/to/database");
-      }
-      return Promise.resolve();
-    });
-  });
+  beforeEach(async () => {
+    // Reset all mocks
+    vi.clearAllMocks()
+    mockIpcRenderer.invoke.mockReset()
+
+    // Reset identity store
+    mockIdentityStore.currentOrgId = 'org-123'
+    mockIdentityStore.primaryDID = 'did:key:user123'
+    mockIdentityStore.currentOrgRole = 'owner'
+
+    // Import Pinia
+    const { createPinia, setActivePinia } = await import('pinia')
+    pinia = createPinia()
+    setActivePinia(pinia)
+
+    // Mock default organization settings
+    const mockSettings = {
+      id: 'org-123',
+      name: 'Test Organization',
+      description: 'This is a test organization for development',
+      visibility: 'private',
+      memberCount: 10,
+      memberLimit: 50,
+      createdAt: Date.now(),
+      ownerId: 'did:key:user123'
+    }
+
+    mockIpcRenderer.invoke.mockResolvedValueOnce(mockSettings) // org:get-settings
+
+    // Import component
+    OrganizationSettingsPage = (await import('E:/code/chainlesschain/desktop-app-vue/src/renderer/pages/OrganizationSettingsPage.vue')).default
+  })
 
   afterEach(() => {
     if (wrapper) {
-      wrapper.unmount();
+      wrapper.unmount()
     }
-  });
+  })
 
-  // 组件挂载和初始化
-  describe("Component Mounting and Initialization", () => {
-    it("应该成功挂载组件", () => {
-      wrapper = createWrapper();
-      expect(wrapper.exists()).toBe(true);
-    });
+  describe('1. Component Mounting and Initialization', () => {
+    it('should mount successfully and load settings', async () => {
+      wrapper = mount(OrganizationSettingsPage, createMountOptions())
 
-    it("应该在挂载时加载组织信息", async () => {
-      wrapper = createWrapper();
-      await wrapper.vm.$nextTick();
+      await nextTick()
+      await nextTick()
 
-      expect(window.ipc.invoke).toHaveBeenCalledWith(
-        "org:get-organization",
-        "org-123",
-      );
-      expect(wrapper.vm.currentOrgInfo).toEqual(mockOrgInfo);
-    });
+      expect(mockIpcRenderer.invoke).toHaveBeenCalledWith('org:get-settings', 'org-123')
+      expect(wrapper.exists()).toBe(true)
+    })
 
-    it("应该填充组织表单数据", async () => {
-      wrapper = createWrapper();
-      await wrapper.vm.$nextTick();
+    it('should display organization name and description', async () => {
+      wrapper = mount(OrganizationSettingsPage, createMountOptions())
 
-      expect(wrapper.vm.orgForm.name).toBe("Test Organization");
-      expect(wrapper.vm.orgForm.type).toBe("startup");
-      expect(wrapper.vm.orgForm.description).toBe("A test organization");
-    });
+      await nextTick()
+      await nextTick()
 
-    it("应该解析设置JSON", async () => {
-      wrapper = createWrapper();
-      await wrapper.vm.$nextTick();
+      expect(wrapper.vm.orgSettings.name).toBe('Test Organization')
+      expect(wrapper.vm.orgSettings.description).toBe('This is a test organization for development')
+    })
 
-      expect(wrapper.vm.settingsForm.visibility).toBe("private");
-      expect(wrapper.vm.settingsForm.maxMembers).toBe(100);
-      expect(wrapper.vm.settingsForm.allowMemberInvite).toBe(true);
-    });
+    it('should display current visibility status', async () => {
+      wrapper = mount(OrganizationSettingsPage, createMountOptions())
 
-    it("应该加载成员数量", async () => {
-      wrapper = createWrapper();
-      await wrapper.vm.$nextTick();
+      await nextTick()
+      await nextTick()
 
-      expect(wrapper.vm.memberCount).toBe(2);
-    });
+      expect(wrapper.vm.orgSettings.visibility).toBe('private')
+      const visibilitySection = wrapper.find('.visibility-section')
+      expect(visibilitySection.exists()).toBe(true)
+    })
 
-    it("应该加载数据库路径", async () => {
-      wrapper = createWrapper();
-      await wrapper.vm.$nextTick();
+    it('should load member count', async () => {
+      wrapper = mount(OrganizationSettingsPage, createMountOptions())
 
-      expect(wrapper.vm.databasePath).toBe("/path/to/database");
-    });
+      await nextTick()
+      await nextTick()
 
-    it("应该加载活动日志", async () => {
-      wrapper = createWrapper();
-      await wrapper.vm.$nextTick();
+      expect(wrapper.vm.orgSettings.memberCount).toBe(10)
+      expect(wrapper.vm.orgSettings.memberLimit).toBe(50)
+    })
+  })
 
-      expect(wrapper.vm.recentActivities).toEqual(mockActivities);
-    });
+  describe('2. Basic Info Management', () => {
+    it('should update organization name', async () => {
+      wrapper = mount(OrganizationSettingsPage, createMountOptions())
 
-    it("应该在非组织上下文时警告用户", async () => {
-      mockIdentityStore.isOrganizationContext = false;
-      const { message } = require("ant-design-vue");
-      wrapper = createWrapper();
+      await nextTick()
+      await nextTick()
 
-      await wrapper.vm.loadOrganizationInfo();
+      mockIpcRenderer.invoke.mockClear()
+      mockIpcRenderer.invoke.mockResolvedValueOnce({ success: true })
 
-      expect(message.warning).toHaveBeenCalledWith("请先切换到组织身份");
-      mockIdentityStore.isOrganizationContext = true;
-    });
+      wrapper.vm.basicInfoForm.name = 'Updated Organization Name'
+      wrapper.vm.basicInfoForm.description = 'This is a test organization for development'
 
-    it("应该处理加载组织信息失败", async () => {
-      window.ipc.invoke.mockRejectedValue(new Error("Load failed"));
-      const { message } = require("ant-design-vue");
-      wrapper = createWrapper();
+      // Mock form validation
+      wrapper.vm.basicInfoFormRef = {
+        validate: vi.fn().mockResolvedValue(true)
+      }
 
-      await wrapper.vm.$nextTick();
+      await wrapper.vm.handleUpdateBasicInfo()
+      await nextTick()
 
-      expect(message.error).toHaveBeenCalledWith("加载组织信息失败");
-    });
-  });
+      expect(mockIpcRenderer.invoke).toHaveBeenCalledWith(
+        'org:update-basic-info',
+        'org-123',
+        {
+          name: 'Updated Organization Name',
+          description: 'This is a test organization for development'
+        },
+        'did:key:user123'
+      )
+      expect(mockMessage.success).toHaveBeenCalledWith('组织信息更新成功')
+    })
 
-  // 保存基本信息
-  describe("Save Basic Info", () => {
-    beforeEach(async () => {
-      wrapper = createWrapper();
-      await wrapper.vm.$nextTick();
-    });
+    it('should update organization description', async () => {
+      wrapper = mount(OrganizationSettingsPage, createMountOptions())
 
-    it("应该能保存组织基本信息", async () => {
-      const { message } = require("ant-design-vue");
-      window.ipc.invoke.mockResolvedValue({ success: true });
+      await nextTick()
+      await nextTick()
 
-      wrapper.vm.orgForm.name = "Updated Organization";
-      wrapper.vm.orgForm.type = "company";
+      mockIpcRenderer.invoke.mockClear()
+      mockIpcRenderer.invoke.mockResolvedValueOnce({ success: true })
 
-      await wrapper.vm.handleSaveBasicInfo();
+      wrapper.vm.basicInfoForm.name = 'Test Organization'
+      wrapper.vm.basicInfoForm.description = 'Updated description with new content'
 
-      expect(window.ipc.invoke).toHaveBeenCalledWith(
-        "org:update-organization",
+      // Mock form validation
+      wrapper.vm.basicInfoFormRef = {
+        validate: vi.fn().mockResolvedValue(true)
+      }
+
+      await wrapper.vm.handleUpdateBasicInfo()
+      await nextTick()
+
+      expect(mockIpcRenderer.invoke).toHaveBeenCalledWith(
+        'org:update-basic-info',
+        'org-123',
         expect.objectContaining({
-          orgId: "org-123",
-          name: "Updated Organization",
-          type: "company",
+          description: 'Updated description with new content'
         }),
-      );
-      expect(message.success).toHaveBeenCalledWith("保存成功");
-    });
+        'did:key:user123'
+      )
+      expect(mockMessage.success).toHaveBeenCalledWith('组织信息更新成功')
+    })
 
-    it("应该在保存成功后重新加载信息", async () => {
-      window.ipc.invoke.mockResolvedValue({ success: true });
+    it('should validate name (required, 3-50 chars)', async () => {
+      wrapper = mount(OrganizationSettingsPage, createMountOptions())
 
-      await wrapper.vm.handleSaveBasicInfo();
+      await nextTick()
+      await nextTick()
 
-      expect(window.ipc.invoke).toHaveBeenCalledWith(
-        "org:get-organization",
-        "org-123",
-      );
-    });
+      // Test empty name
+      wrapper.vm.basicInfoForm.name = ''
 
-    it("应该处理保存失败（返回错误）", async () => {
-      const { message } = require("ant-design-vue");
-      window.ipc.invoke.mockResolvedValue({
-        success: false,
-        error: "Name already exists",
-      });
+      // Mock validation failure
+      wrapper.vm.basicInfoFormRef = {
+        validate: vi.fn().mockRejectedValue({ errorFields: [{ name: 'name' }] })
+      }
 
-      await wrapper.vm.handleSaveBasicInfo();
+      await wrapper.vm.handleUpdateBasicInfo()
 
-      expect(message.error).toHaveBeenCalledWith("Name already exists");
-    });
+      expect(mockIpcRenderer.invoke).not.toHaveBeenCalledWith('org:update-basic-info')
 
-    it("应该处理保存失败（异常）", async () => {
-      const { message } = require("ant-design-vue");
-      window.ipc.invoke.mockRejectedValue(new Error("Save failed"));
+      // Test name too short
+      wrapper.vm.basicInfoForm.name = 'AB'
 
-      await wrapper.vm.handleSaveBasicInfo();
+      await wrapper.vm.handleUpdateBasicInfo()
 
-      expect(message.error).toHaveBeenCalledWith("保存失败");
-    });
+      expect(mockIpcRenderer.invoke).not.toHaveBeenCalledWith('org:update-basic-info')
 
-    it("应该在未找到组织时显示错误", async () => {
-      mockIdentityStore.currentOrgId = null;
-      const { message } = require("ant-design-vue");
+      // Test name too long
+      wrapper.vm.basicInfoForm.name = 'A'.repeat(51)
 
-      await wrapper.vm.handleSaveBasicInfo();
+      await wrapper.vm.handleUpdateBasicInfo()
 
-      expect(message.error).toHaveBeenCalledWith("未找到当前组织");
-      mockIdentityStore.currentOrgId = "org-123";
-    });
-  });
+      expect(mockIpcRenderer.invoke).not.toHaveBeenCalledWith('org:update-basic-info')
+    })
 
-  // 保存设置
-  describe("Save Settings", () => {
-    beforeEach(async () => {
-      wrapper = createWrapper();
-      await wrapper.vm.$nextTick();
-    });
+    it('should prevent saving without changes', async () => {
+      wrapper = mount(OrganizationSettingsPage, createMountOptions())
 
-    it("应该能保存组织设置", async () => {
-      const { message } = require("ant-design-vue");
-      window.ipc.invoke.mockResolvedValue({ success: true });
+      await nextTick()
+      await nextTick()
 
-      wrapper.vm.settingsForm.p2pEnabled = true;
-      wrapper.vm.settingsForm.syncMode = "auto";
+      mockIpcRenderer.invoke.mockClear()
 
-      await wrapper.vm.handleSaveSettings();
+      // No changes made
+      wrapper.vm.basicInfoForm.name = 'Test Organization'
+      wrapper.vm.basicInfoForm.description = 'This is a test organization for development'
 
-      expect(window.ipc.invoke).toHaveBeenCalledWith(
-        "org:update-organization",
+      // Mock form validation
+      wrapper.vm.basicInfoFormRef = {
+        validate: vi.fn().mockResolvedValue(true)
+      }
+
+      await wrapper.vm.handleUpdateBasicInfo()
+
+      // Should still call IPC but show warning
+      expect(mockMessage.warning).toHaveBeenCalled()
+    })
+
+    it('should display success message after update', async () => {
+      wrapper = mount(OrganizationSettingsPage, createMountOptions())
+
+      await nextTick()
+      await nextTick()
+
+      mockIpcRenderer.invoke.mockClear()
+      mockIpcRenderer.invoke.mockResolvedValueOnce({ success: true })
+
+      wrapper.vm.basicInfoForm.name = 'New Name'
+      wrapper.vm.basicInfoForm.description = 'New Description'
+
+      // Mock form validation
+      wrapper.vm.basicInfoFormRef = {
+        validate: vi.fn().mockResolvedValue(true)
+      }
+
+      await wrapper.vm.handleUpdateBasicInfo()
+      await nextTick()
+
+      expect(mockMessage.success).toHaveBeenCalledWith('组织信息更新成功')
+    })
+  })
+
+  describe('3. Visibility Settings', () => {
+    it('should toggle visibility public/private', async () => {
+      wrapper = mount(OrganizationSettingsPage, createMountOptions())
+
+      await nextTick()
+      await nextTick()
+
+      mockIpcRenderer.invoke.mockClear()
+      mockIpcRenderer.invoke.mockResolvedValueOnce({ success: true })
+
+      // Initially private, toggle to public
+      await wrapper.vm.handleUpdateVisibility('public')
+      await nextTick()
+
+      expect(mockIpcRenderer.invoke).toHaveBeenCalledWith(
+        'org:update-visibility',
+        'org-123',
+        'public',
+        'did:key:user123'
+      )
+      expect(mockMessage.success).toHaveBeenCalledWith('组织可见性更新成功')
+    })
+
+    it('should show visibility warning modal', async () => {
+      wrapper = mount(OrganizationSettingsPage, createMountOptions())
+
+      await nextTick()
+      await nextTick()
+
+      mockModal.confirm.mockImplementation(({ onOk }) => onOk())
+
+      await wrapper.vm.showVisibilityWarning('public')
+      await nextTick()
+
+      expect(mockModal.confirm).toHaveBeenCalled()
+      const confirmCall = mockModal.confirm.mock.calls[0][0]
+      expect(confirmCall.title).toContain('更改组织可见性')
+    })
+
+    it('should confirm visibility change', async () => {
+      wrapper = mount(OrganizationSettingsPage, createMountOptions())
+
+      await nextTick()
+      await nextTick()
+
+      mockIpcRenderer.invoke.mockClear()
+      mockIpcRenderer.invoke.mockResolvedValueOnce({ success: true })
+
+      mockModal.confirm.mockImplementation(({ onOk }) => onOk())
+
+      await wrapper.vm.showVisibilityWarning('public')
+      await nextTick()
+
+      expect(mockIpcRenderer.invoke).toHaveBeenCalledWith(
+        'org:update-visibility',
+        'org-123',
+        'public',
+        'did:key:user123'
+      )
+    })
+
+    it('should update visibility via IPC', async () => {
+      wrapper = mount(OrganizationSettingsPage, createMountOptions())
+
+      await nextTick()
+      await nextTick()
+
+      mockIpcRenderer.invoke.mockClear()
+      mockIpcRenderer.invoke.mockResolvedValueOnce({ success: true })
+
+      await wrapper.vm.handleUpdateVisibility('private')
+      await nextTick()
+
+      expect(mockIpcRenderer.invoke).toHaveBeenCalledWith(
+        'org:update-visibility',
+        'org-123',
+        'private',
+        'did:key:user123'
+      )
+    })
+  })
+
+  describe('4. Member Limits', () => {
+    it('should set member limit (10, 50, 100, unlimited)', async () => {
+      wrapper = mount(OrganizationSettingsPage, createMountOptions())
+
+      await nextTick()
+      await nextTick()
+
+      mockIpcRenderer.invoke.mockClear()
+
+      // Test setting to 10
+      mockIpcRenderer.invoke.mockResolvedValueOnce({ success: true })
+      await wrapper.vm.handleUpdateMemberLimit(10)
+      expect(mockIpcRenderer.invoke).toHaveBeenCalledWith(
+        'org:update-member-limit',
+        'org-123',
+        10,
+        'did:key:user123'
+      )
+
+      mockIpcRenderer.invoke.mockClear()
+
+      // Test setting to 100
+      mockIpcRenderer.invoke.mockResolvedValueOnce({ success: true })
+      await wrapper.vm.handleUpdateMemberLimit(100)
+      expect(mockIpcRenderer.invoke).toHaveBeenCalledWith(
+        'org:update-member-limit',
+        'org-123',
+        100,
+        'did:key:user123'
+      )
+
+      mockIpcRenderer.invoke.mockClear()
+
+      // Test setting to unlimited (null)
+      mockIpcRenderer.invoke.mockResolvedValueOnce({ success: true })
+      await wrapper.vm.handleUpdateMemberLimit(null)
+      expect(mockIpcRenderer.invoke).toHaveBeenCalledWith(
+        'org:update-member-limit',
+        'org-123',
+        null,
+        'did:key:user123'
+      )
+    })
+
+    it('should validate limit does not exceed current members', async () => {
+      wrapper = mount(OrganizationSettingsPage, createMountOptions())
+
+      await nextTick()
+      await nextTick()
+
+      // Current member count is 10, try to set limit to 5
+      mockIpcRenderer.invoke.mockRejectedValueOnce(new Error('Member limit cannot be less than current member count'))
+
+      await wrapper.vm.handleUpdateMemberLimit(5)
+      await nextTick()
+
+      expect(mockMessage.error).toHaveBeenCalledWith('Member limit cannot be less than current member count')
+    })
+
+    it('should update limit via IPC', async () => {
+      wrapper = mount(OrganizationSettingsPage, createMountOptions())
+
+      await nextTick()
+      await nextTick()
+
+      mockIpcRenderer.invoke.mockClear()
+      mockIpcRenderer.invoke.mockResolvedValueOnce({ success: true })
+
+      await wrapper.vm.handleUpdateMemberLimit(50)
+      await nextTick()
+
+      expect(mockIpcRenderer.invoke).toHaveBeenCalledWith(
+        'org:update-member-limit',
+        'org-123',
+        50,
+        'did:key:user123'
+      )
+      expect(mockMessage.success).toHaveBeenCalledWith('成员上限更新成功')
+    })
+  })
+
+  describe('5. Danger Zone - Organization Deletion', () => {
+    it('should show delete confirmation modal', async () => {
+      wrapper = mount(OrganizationSettingsPage, createMountOptions())
+
+      await nextTick()
+      await nextTick()
+
+      wrapper.vm.showDeleteModal()
+      await nextTick()
+
+      expect(wrapper.vm.deleteModalVisible).toBe(true)
+      expect(wrapper.vm.deleteConfirmationText).toBe('')
+    })
+
+    it('should require typing org name to confirm', async () => {
+      wrapper = mount(OrganizationSettingsPage, createMountOptions())
+
+      await nextTick()
+      await nextTick()
+
+      wrapper.vm.showDeleteModal()
+      await nextTick()
+
+      // Try to delete without typing name
+      wrapper.vm.deleteConfirmationText = 'Wrong Name'
+
+      await wrapper.vm.handleDeleteOrg()
+
+      expect(mockMessage.error).toHaveBeenCalledWith('请输入正确的组织名称以确认删除')
+      expect(mockIpcRenderer.invoke).not.toHaveBeenCalledWith('org:delete-organization')
+    })
+
+    it('should prevent deletion without confirmation', async () => {
+      wrapper = mount(OrganizationSettingsPage, createMountOptions())
+
+      await nextTick()
+      await nextTick()
+
+      wrapper.vm.showDeleteModal()
+      await nextTick()
+
+      // Empty confirmation text
+      wrapper.vm.deleteConfirmationText = ''
+
+      await wrapper.vm.handleDeleteOrg()
+
+      expect(mockMessage.error).toHaveBeenCalledWith('请输入正确的组织名称以确认删除')
+      expect(mockIpcRenderer.invoke).not.toHaveBeenCalledWith('org:delete-organization')
+    })
+
+    it('should delete org and redirect', async () => {
+      wrapper = mount(OrganizationSettingsPage, createMountOptions())
+
+      await nextTick()
+      await nextTick()
+
+      mockIpcRenderer.invoke.mockClear()
+      mockIpcRenderer.invoke.mockResolvedValueOnce({ success: true })
+
+      wrapper.vm.showDeleteModal()
+      await nextTick()
+
+      // Type correct org name
+      wrapper.vm.deleteConfirmationText = 'Test Organization'
+
+      await wrapper.vm.handleDeleteOrg()
+      await nextTick()
+
+      expect(mockIpcRenderer.invoke).toHaveBeenCalledWith(
+        'org:delete-organization',
+        'org-123',
+        'did:key:user123'
+      )
+      expect(mockMessage.success).toHaveBeenCalledWith('组织删除成功')
+      expect(mockRouter.push).toHaveBeenCalledWith('/organizations')
+    })
+
+    it('should show error if deletion fails', async () => {
+      wrapper = mount(OrganizationSettingsPage, createMountOptions())
+
+      await nextTick()
+      await nextTick()
+
+      mockIpcRenderer.invoke.mockClear()
+      mockIpcRenderer.invoke.mockRejectedValueOnce(new Error('Cannot delete organization with active members'))
+
+      wrapper.vm.showDeleteModal()
+      await nextTick()
+
+      wrapper.vm.deleteConfirmationText = 'Test Organization'
+
+      await wrapper.vm.handleDeleteOrg()
+      await nextTick()
+
+      expect(mockMessage.error).toHaveBeenCalledWith('Cannot delete organization with active members')
+      expect(wrapper.vm.deleteModalVisible).toBe(true) // Modal stays open
+    })
+  })
+
+  describe('6. Permission Checks', () => {
+    it('should only owner can access danger zone', async () => {
+      wrapper = mount(OrganizationSettingsPage, createMountOptions())
+
+      await nextTick()
+      await nextTick()
+
+      // Owner role
+      expect(wrapper.vm.canDeleteOrg).toBe(true)
+      const dangerZone = wrapper.find('.danger-zone')
+      expect(dangerZone.exists()).toBe(true)
+    })
+
+    it('should admin cannot delete organization', async () => {
+      mockIdentityStore.currentOrgRole = 'admin'
+
+      wrapper = mount(OrganizationSettingsPage, createMountOptions())
+
+      await nextTick()
+      await nextTick()
+
+      expect(wrapper.vm.canDeleteOrg).toBe(false)
+      const deleteButton = wrapper.find('.delete-org-button')
+      expect(deleteButton.exists()).toBe(false)
+    })
+
+    it('should member cannot access settings', async () => {
+      mockIdentityStore.currentOrgRole = 'member'
+
+      const mockSettings = {
+        id: 'org-123',
+        name: 'Test Organization',
+        description: 'Test description',
+        visibility: 'private',
+        memberCount: 10,
+        memberLimit: 50,
+        createdAt: Date.now(),
+        ownerId: 'did:key:owner456'
+      }
+
+      mockIpcRenderer.invoke.mockReset()
+      mockIpcRenderer.invoke.mockResolvedValueOnce(mockSettings)
+
+      wrapper = mount(OrganizationSettingsPage, createMountOptions())
+
+      await nextTick()
+      await nextTick()
+
+      expect(wrapper.vm.canEditSettings).toBe(false)
+      const editButtons = wrapper.findAll('.a-button[type="primary"]')
+      editButtons.forEach(btn => {
+        expect(btn.attributes('disabled')).toBe('true')
+      })
+    })
+
+    it('should viewer cannot access settings', async () => {
+      mockIdentityStore.currentOrgRole = 'viewer'
+
+      const mockSettings = {
+        id: 'org-123',
+        name: 'Test Organization',
+        description: 'Test description',
+        visibility: 'private',
+        memberCount: 10,
+        memberLimit: 50,
+        createdAt: Date.now(),
+        ownerId: 'did:key:owner456'
+      }
+
+      mockIpcRenderer.invoke.mockReset()
+      mockIpcRenderer.invoke.mockResolvedValueOnce(mockSettings)
+
+      wrapper = mount(OrganizationSettingsPage, createMountOptions())
+
+      await nextTick()
+      await nextTick()
+
+      expect(wrapper.vm.canEditSettings).toBe(false)
+    })
+  })
+
+  describe('7. Form Validation', () => {
+    it('should validate org name length (3-50 chars)', async () => {
+      wrapper = mount(OrganizationSettingsPage, createMountOptions())
+
+      await nextTick()
+      await nextTick()
+
+      // Test name too short (less than 3 chars)
+      wrapper.vm.basicInfoForm.name = 'AB'
+
+      wrapper.vm.basicInfoFormRef = {
+        validate: vi.fn().mockRejectedValue({
+          errorFields: [{
+            name: 'name',
+            errors: ['组织名称长度必须在 3-50 个字符之间']
+          }]
+        })
+      }
+
+      await wrapper.vm.handleUpdateBasicInfo()
+
+      expect(mockIpcRenderer.invoke).not.toHaveBeenCalledWith('org:update-basic-info')
+
+      // Test name too long (more than 50 chars)
+      wrapper.vm.basicInfoForm.name = 'A'.repeat(51)
+
+      await wrapper.vm.handleUpdateBasicInfo()
+
+      expect(mockIpcRenderer.invoke).not.toHaveBeenCalledWith('org:update-basic-info')
+
+      // Test valid name (3-50 chars)
+      mockIpcRenderer.invoke.mockClear()
+      mockIpcRenderer.invoke.mockResolvedValueOnce({ success: true })
+
+      wrapper.vm.basicInfoForm.name = 'Valid Organization Name'
+      wrapper.vm.basicInfoFormRef = {
+        validate: vi.fn().mockResolvedValue(true)
+      }
+
+      await wrapper.vm.handleUpdateBasicInfo()
+
+      expect(mockIpcRenderer.invoke).toHaveBeenCalledWith(
+        'org:update-basic-info',
+        'org-123',
         expect.objectContaining({
-          orgId: "org-123",
-          p2pEnabled: true,
-          syncMode: "auto",
+          name: 'Valid Organization Name'
         }),
-      );
-      expect(message.success).toHaveBeenCalledWith("设置已保存");
-    });
+        'did:key:user123'
+      )
+    })
 
-    it("应该处理保存设置失败", async () => {
-      const { message } = require("ant-design-vue");
-      window.ipc.invoke.mockResolvedValue({
-        success: false,
-        error: "Invalid settings",
-      });
+    it('should validate description length (max 500 chars)', async () => {
+      wrapper = mount(OrganizationSettingsPage, createMountOptions())
 
-      await wrapper.vm.handleSaveSettings();
+      await nextTick()
+      await nextTick()
 
-      expect(message.error).toHaveBeenCalledWith("Invalid settings");
-    });
-  });
+      // Test description too long
+      wrapper.vm.basicInfoForm.description = 'A'.repeat(501)
 
-  // 上传头像
-  describe("Upload Avatar", () => {
-    beforeEach(async () => {
-      wrapper = createWrapper();
-      await wrapper.vm.$nextTick();
-    });
+      wrapper.vm.basicInfoFormRef = {
+        validate: vi.fn().mockRejectedValue({
+          errorFields: [{
+            name: 'description',
+            errors: ['描述长度不能超过 500 个字符']
+          }]
+        })
+      }
 
-    it("应该能上传组织头像", async () => {
-      const { message } = require("ant-design-vue");
-      window.ipc.invoke.mockResolvedValue({ success: true });
+      await wrapper.vm.handleUpdateBasicInfo()
 
-      const file = new File([""], "avatar.png", { type: "image/png" });
+      expect(mockIpcRenderer.invoke).not.toHaveBeenCalledWith('org:update-basic-info')
 
-      const result = wrapper.vm.handleAvatarUpload(file);
+      // Test valid description
+      mockIpcRenderer.invoke.mockClear()
+      mockIpcRenderer.invoke.mockResolvedValueOnce({ success: true })
 
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      wrapper.vm.basicInfoForm.name = 'Test Organization'
+      wrapper.vm.basicInfoForm.description = 'A'.repeat(500)
+      wrapper.vm.basicInfoFormRef = {
+        validate: vi.fn().mockResolvedValue(true)
+      }
 
-      expect(window.ipc.invoke).toHaveBeenCalledWith(
-        "org:update-organization",
+      await wrapper.vm.handleUpdateBasicInfo()
+
+      expect(mockIpcRenderer.invoke).toHaveBeenCalledWith(
+        'org:update-basic-info',
+        'org-123',
         expect.objectContaining({
-          orgId: "org-123",
-          avatar: "data:image/png;base64,ABC123",
+          description: 'A'.repeat(500)
         }),
-      );
-
-      expect(result).toBe(false);
-    });
+        'did:key:user123'
+      )
+    })
 
-    it("应该在上传成功后更新表单头像", async () => {
-      window.ipc.invoke.mockResolvedValue({ success: true });
-
-      const file = new File([""], "avatar.png", { type: "image/png" });
-      wrapper.vm.handleAvatarUpload(file);
-
-      await new Promise((resolve) => setTimeout(resolve, 10));
-
-      expect(wrapper.vm.orgForm.avatar).toBe("data:image/png;base64,ABC123");
-    });
-
-    it("应该处理上传失败", async () => {
-      window.ipc.invoke.mockResolvedValue({
-        success: false,
-        error: "Upload failed",
-      });
-      const { message } = require("ant-design-vue");
-
-      const file = new File([""], "avatar.png", { type: "image/png" });
-      wrapper.vm.handleAvatarUpload(file);
-
-      await new Promise((resolve) => setTimeout(resolve, 10));
-
-      expect(message.error).toHaveBeenCalledWith("Upload failed");
-    });
-  });
-
-  // 跳转到角色管理
-  describe("Navigate to Roles Page", () => {
-    beforeEach(async () => {
-      wrapper = createWrapper();
-      await wrapper.vm.$nextTick();
-    });
-
-    it("应该能跳转到角色管理页面", () => {
-      wrapper.vm.handleGoToRolesPage();
-
-      expect(mockRouter.push).toHaveBeenCalledWith("/organization/roles");
-    });
-  });
-
-  // 备份数据库
-  describe("Backup Database", () => {
-    beforeEach(async () => {
-      wrapper = createWrapper();
-      await wrapper.vm.$nextTick();
-    });
-
-    it("应该能备份数据库", async () => {
-      const { message } = require("ant-design-vue");
-      window.electronAPI.invoke.mockResolvedValue({
-        success: true,
-        backupPath: "/path/to/backup.db",
-      });
-
-      await wrapper.vm.handleBackupDatabase();
-
-      expect(window.electronAPI.invoke).toHaveBeenCalledWith("db:backup");
-      expect(message.success).toHaveBeenCalledWith(
-        "数据备份成功: /path/to/backup.db",
-      );
-    });
-
-    it("应该处理备份失败", async () => {
-      const { message } = require("ant-design-vue");
-      window.electronAPI.invoke.mockResolvedValue({
-        success: false,
-        error: "Backup failed",
-      });
-
-      await wrapper.vm.handleBackupDatabase();
-
-      expect(message.error).toHaveBeenCalledWith("Backup failed");
-    });
-
-    it("应该处理备份异常", async () => {
-      const { message } = require("ant-design-vue");
-      window.electronAPI.invoke.mockRejectedValue(new Error("Error"));
-
-      await wrapper.vm.handleBackupDatabase();
-
-      expect(message.error).toHaveBeenCalledWith("备份失败");
-    });
-  });
-
-  // 立即同步
-  describe("Sync Now", () => {
-    beforeEach(async () => {
-      wrapper = createWrapper();
-      await wrapper.vm.$nextTick();
-    });
-
-    it("应该能触发P2P同步", async () => {
-      const { message } = require("ant-design-vue");
-      window.electronAPI.invoke.mockResolvedValue({ success: true });
-
-      await wrapper.vm.handleSyncNow();
-
-      expect(window.electronAPI.invoke).toHaveBeenCalledWith(
-        "p2p:sync-organization",
-        { orgId: "org-123" },
-      );
-      expect(message.success).toHaveBeenCalledWith("同步完成");
-    });
-
-    it("应该处理同步失败", async () => {
-      const { message } = require("ant-design-vue");
-      window.electronAPI.invoke.mockResolvedValue({
-        success: false,
-        error: "Sync failed",
-      });
-
-      await wrapper.vm.handleSyncNow();
-
-      expect(message.error).toHaveBeenCalledWith("Sync failed");
-    });
-
-    it("应该处理同步异常", async () => {
-      const { message } = require("ant-design-vue");
-      window.electronAPI.invoke.mockRejectedValue(new Error("Error"));
-
-      await wrapper.vm.handleSyncNow();
-
-      expect(message.error).toHaveBeenCalledWith("同步失败");
-    });
-  });
-
-  // 离开组织
-  describe("Leave Organization", () => {
-    beforeEach(async () => {
-      wrapper = createWrapper();
-      await wrapper.vm.$nextTick();
-    });
-
-    it("应该能离开组织", async () => {
-      const { Modal, message } = require("ant-design-vue");
-      mockIdentityStore.leaveOrganization.mockResolvedValue();
-
-      wrapper.vm.handleLeaveOrg();
-
-      expect(Modal.confirm).toHaveBeenCalled();
-      await wrapper.vm.$nextTick();
-
-      expect(mockIdentityStore.leaveOrganization).toHaveBeenCalledWith(
-        "org-123",
-      );
-      expect(message.success).toHaveBeenCalledWith("已离开组织");
-      expect(mockRouter.push).toHaveBeenCalledWith("/");
-    });
-
-    it("应该处理离开组织失败", async () => {
-      const { Modal, message } = require("ant-design-vue");
-      mockIdentityStore.leaveOrganization.mockRejectedValue(
-        new Error("Failed"),
-      );
-
-      wrapper.vm.handleLeaveOrg();
-
-      await wrapper.vm.$nextTick();
-
-      expect(message.error).toHaveBeenCalledWith("离开组织失败");
-    });
-  });
-
-  // 删除组织
-  describe("Delete Organization", () => {
-    beforeEach(async () => {
-      wrapper = createWrapper();
-      await wrapper.vm.$nextTick();
-    });
-
-    it("应该能删除组织", async () => {
-      const { message } = require("ant-design-vue");
-      window.ipc.invoke.mockResolvedValue();
-      mockIdentityStore.switchContext.mockResolvedValue();
-
-      wrapper.vm.deleteConfirmName = "Test Organization";
-      await wrapper.vm.handleDeleteOrg();
-
-      expect(window.ipc.invoke).toHaveBeenCalledWith(
-        "org:delete-organization",
-        "org-123",
-        "did:chainlesschain:currentuser",
-      );
-      expect(message.success).toHaveBeenCalledWith("组织已删除");
-      expect(wrapper.vm.showDeleteOrgModal).toBe(false);
-      expect(mockIdentityStore.switchContext).toHaveBeenCalledWith("personal");
-      expect(mockRouter.push).toHaveBeenCalledWith("/");
-    });
-
-    it("应该在名称不匹配时显示错误", async () => {
-      const { message } = require("ant-design-vue");
-
-      wrapper.vm.deleteConfirmName = "Wrong Name";
-      await wrapper.vm.handleDeleteOrg();
-
-      expect(message.error).toHaveBeenCalledWith("组织名称不匹配");
-      expect(window.ipc.invoke).not.toHaveBeenCalledWith(
-        "org:delete-organization",
-      );
-    });
-
-    it("应该处理删除组织失败", async () => {
-      const { message } = require("ant-design-vue");
-      window.ipc.invoke.mockRejectedValue(new Error("Delete failed"));
-
-      wrapper.vm.deleteConfirmName = "Test Organization";
-      await wrapper.vm.handleDeleteOrg();
-
-      expect(message.error).toHaveBeenCalledWith("删除组织失败");
-    });
-  });
-
-  // 工具函数
-  describe("Utility Functions", () => {
-    beforeEach(async () => {
-      wrapper = createWrapper();
-      await wrapper.vm.$nextTick();
-    });
-
-    it("应该格式化DID", () => {
-      const shortDID = "did:chainlesschain:abc";
-      expect(wrapper.vm.formatDID(shortDID)).toBe(shortDID);
-
-      const longDID =
-        "did:chainlesschain:verylongidentifierstring12345678901234567890";
-      const formatted = wrapper.vm.formatDID(longDID);
-      expect(formatted).toContain("...");
-    });
-
-    it("应该处理空DID", () => {
-      expect(wrapper.vm.formatDID(null)).toBe("");
-      expect(wrapper.vm.formatDID(undefined)).toBe("");
-    });
-
-    it("应该格式化时间戳", () => {
-      const timestamp = 1704067200000;
-      const formatted = wrapper.vm.formatDate(timestamp);
-      expect(formatted).toBeTruthy();
-    });
-
-    it("应该处理空时间戳", () => {
-      expect(wrapper.vm.formatDate(null)).toBe("");
-    });
-
-    it("应该返回正确的活动图标", () => {
-      const icons = {
-        create_organization: "TeamOutlined",
-        join_organization: "UserAddOutlined",
-        add_member: "UserAddOutlined",
-        remove_member: "DeleteOutlined",
-        update_member_role: "EditOutlined",
-        leave_organization: "LogoutOutlined",
-      };
-
-      Object.keys(icons).forEach((actionType) => {
-        const icon = wrapper.vm.getActivityIcon(actionType);
-        expect(icon).toBeDefined();
-      });
-    });
-
-    it("应该返回默认图标对于未知活动类型", () => {
-      const icon = wrapper.vm.getActivityIcon("unknown_action");
-      expect(icon).toBeDefined();
-    });
-
-    it("应该返回正确的活动标题", () => {
-      expect(
-        wrapper.vm.getActivityTitle({ action_type: "create_organization" }),
-      ).toBe("创建了组织");
-      expect(wrapper.vm.getActivityTitle({ action_type: "add_member" })).toBe(
-        "添加了新成员",
-      );
-    });
-
-    it("应该返回原action_type对于未知活动", () => {
-      const activity = { action_type: "unknown_action" };
-      expect(wrapper.vm.getActivityTitle(activity)).toBe("unknown_action");
-    });
-  });
-
-  // 权限检查
-  describe("Permissions", () => {
-    it("应该识别所有者可以管理组织", async () => {
-      wrapper = createWrapper();
-      await wrapper.vm.$nextTick();
-
-      expect(wrapper.vm.canManageOrg).toBe(true);
-    });
-
-    it("应该识别管理员可以管理组织", async () => {
-      mockIdentityStore.organizations[0].role = "admin";
-      wrapper = createWrapper();
-      await wrapper.vm.$nextTick();
-
-      expect(wrapper.vm.canManageOrg).toBe(true);
-      mockIdentityStore.organizations[0].role = "owner";
-    });
-
-    it("应该识别普通成员不能管理组织", async () => {
-      mockIdentityStore.organizations[0].role = "member";
-      wrapper = createWrapper();
-      await wrapper.vm.$nextTick();
-
-      expect(wrapper.vm.canManageOrg).toBe(false);
-      mockIdentityStore.organizations[0].role = "owner";
-    });
-
-    it("应该识别所有者身份", async () => {
-      wrapper = createWrapper();
-      await wrapper.vm.$nextTick();
-
-      expect(wrapper.vm.isOwner).toBe(true);
-    });
-
-    it("应该识别非所有者身份", async () => {
-      mockIdentityStore.organizations[0].role = "admin";
-      wrapper = createWrapper();
-      await wrapper.vm.$nextTick();
-
-      expect(wrapper.vm.isOwner).toBe(false);
-      mockIdentityStore.organizations[0].role = "owner";
-    });
-
-    it("应该在非组织上下文时返回null角色", () => {
-      mockIdentityStore.isOrganizationContext = false;
-      wrapper = createWrapper();
-
-      expect(wrapper.vm.currentUserRole).toBeNull();
-      mockIdentityStore.isOrganizationContext = true;
-    });
-  });
-
-  // 加载状态
-  describe("Loading States", () => {
-    it("应该在加载时设置loading状态", async () => {
-      let resolvePromise;
-      const promise = new Promise((resolve) => {
-        resolvePromise = resolve;
-      });
-      window.ipc.invoke.mockReturnValue(promise);
-
-      wrapper = createWrapper();
-      expect(wrapper.vm.loading).toBe(true);
-
-      resolvePromise(mockOrgInfo);
-      await wrapper.vm.$nextTick();
-      await promise;
-
-      expect(wrapper.vm.loading).toBe(false);
-    });
-
-    it("应该在保存时设置saving状态", async () => {
-      wrapper = createWrapper();
-      await wrapper.vm.$nextTick();
-
-      let resolvePromise;
-      const promise = new Promise((resolve) => {
-        resolvePromise = resolve;
-      });
-      window.ipc.invoke.mockReturnValue(promise);
-
-      const savePromise = wrapper.vm.handleSaveBasicInfo();
-      expect(wrapper.vm.saving).toBe(true);
-
-      resolvePromise({ success: true });
-      await savePromise;
-
-      expect(wrapper.vm.saving).toBe(false);
-    });
-
-    it("应该在同步时设置syncing状态", async () => {
-      wrapper = createWrapper();
-      await wrapper.vm.$nextTick();
-
-      let resolvePromise;
-      const promise = new Promise((resolve) => {
-        resolvePromise = resolve;
-      });
-      window.electronAPI.invoke.mockReturnValue(promise);
-
-      const syncPromise = wrapper.vm.handleSyncNow();
-      expect(wrapper.vm.syncing).toBe(true);
-
-      resolvePromise({ success: true });
-      await syncPromise;
-
-      expect(wrapper.vm.syncing).toBe(false);
-    });
-
-    it("应该在删除时设置deleting状态", async () => {
-      wrapper = createWrapper();
-      await wrapper.vm.$nextTick();
-
-      wrapper.vm.deleteConfirmName = "Test Organization";
-
-      let resolvePromise;
-      const promise = new Promise((resolve) => {
-        resolvePromise = resolve;
-      });
-      window.ipc.invoke.mockReturnValue(promise);
-
-      const deletePromise = wrapper.vm.handleDeleteOrg();
-      expect(wrapper.vm.deleting).toBe(true);
-
-      resolvePromise();
-      await deletePromise;
-
-      expect(wrapper.vm.deleting).toBe(false);
-    });
-
-    it("应该在加载活动时设置loadingActivities状态", async () => {
-      wrapper = createWrapper();
-
-      let resolvePromise;
-      const promise = new Promise((resolve) => {
-        resolvePromise = resolve;
-      });
-      window.ipc.invoke.mockReturnValue(promise);
-
-      const loadPromise = wrapper.vm.loadActivities();
-      expect(wrapper.vm.loadingActivities).toBe(true);
-
-      resolvePromise(mockActivities);
-      await loadPromise;
-
-      expect(wrapper.vm.loadingActivities).toBe(false);
-    });
-  });
-
-  // 边界情况
-  describe("Edge Cases", () => {
-    it("应该处理缺失settings_json", async () => {
-      const orgWithoutSettings = { ...mockOrgInfo, settings_json: null };
-      window.ipc.invoke.mockImplementation((channel) => {
-        if (channel === "org:get-organization") {
-          return Promise.resolve(orgWithoutSettings);
-        }
-        return Promise.resolve([]);
-      });
-
-      wrapper = createWrapper();
-      await wrapper.vm.$nextTick();
-
-      expect(wrapper.vm.settingsForm.visibility).toBeDefined();
-    });
-
-    it("应该处理空成员列表", async () => {
-      window.ipc.invoke.mockImplementation((channel) => {
-        if (channel === "org:get-organization") {
-          return Promise.resolve(mockOrgInfo);
-        }
-        if (channel === "org:get-members") {
-          return Promise.resolve(null);
-        }
-        return Promise.resolve([]);
-      });
-
-      wrapper = createWrapper();
-      await wrapper.vm.$nextTick();
-
-      expect(wrapper.vm.memberCount).toBe(0);
-    });
-
-    it("应该处理空活动列表", async () => {
-      window.ipc.invoke.mockImplementation((channel) => {
-        if (channel === "org:get-organization") {
-          return Promise.resolve(mockOrgInfo);
-        }
-        if (channel === "org:get-activities") {
-          return Promise.resolve(null);
-        }
-        return Promise.resolve([]);
-      });
-
-      wrapper = createWrapper();
-      await wrapper.vm.$nextTick();
-
-      expect(wrapper.vm.recentActivities).toEqual([]);
-    });
-
-    it("应该处理缺失描述和头像", async () => {
-      const orgWithoutOptionals = {
-        ...mockOrgInfo,
-        description: null,
-        avatar: null,
-      };
-      window.ipc.invoke.mockImplementation((channel) => {
-        if (channel === "org:get-organization") {
-          return Promise.resolve(orgWithoutOptionals);
-        }
-        return Promise.resolve([]);
-      });
-
-      wrapper = createWrapper();
-      await wrapper.vm.$nextTick();
-
-      expect(wrapper.vm.orgForm.description).toBe("");
-      expect(wrapper.vm.orgForm.avatar).toBe("");
-    });
-  });
-});
+    it('should show validation errors inline', async () => {
+      wrapper = mount(OrganizationSettingsPage, createMountOptions())
+
+      await nextTick()
+      await nextTick()
+
+      wrapper.vm.basicInfoForm.name = ''
+
+      wrapper.vm.basicInfoFormRef = {
+        validate: vi.fn().mockRejectedValue({
+          errorFields: [{
+            name: 'name',
+            errors: ['组织名称不能为空']
+          }]
+        })
+      }
+
+      await wrapper.vm.handleUpdateBasicInfo()
+
+      // Check that form validation was called
+      expect(wrapper.vm.basicInfoFormRef.validate).toHaveBeenCalled()
+
+      // Check that IPC was not called
+      expect(mockIpcRenderer.invoke).not.toHaveBeenCalledWith('org:update-basic-info')
+    })
+  })
+
+  describe('8. Error Handling', () => {
+    it('should handle load settings failure', async () => {
+      mockIpcRenderer.invoke.mockReset()
+      mockIpcRenderer.invoke.mockRejectedValueOnce(new Error('Failed to load settings'))
+
+      wrapper = mount(OrganizationSettingsPage, createMountOptions())
+
+      await nextTick()
+      await nextTick()
+      await nextTick()
+
+      expect(mockMessage.error).toHaveBeenCalled()
+      const errorCall = mockMessage.error.mock.calls[0][0]
+      expect(errorCall).toContain('Failed to load settings')
+    })
+
+    it('should handle update failure', async () => {
+      wrapper = mount(OrganizationSettingsPage, createMountOptions())
+
+      await nextTick()
+      await nextTick()
+
+      mockIpcRenderer.invoke.mockClear()
+      mockIpcRenderer.invoke.mockRejectedValueOnce(new Error('Update failed'))
+
+      wrapper.vm.basicInfoForm.name = 'New Name'
+      wrapper.vm.basicInfoForm.description = 'New Description'
+
+      wrapper.vm.basicInfoFormRef = {
+        validate: vi.fn().mockResolvedValue(true)
+      }
+
+      await wrapper.vm.handleUpdateBasicInfo()
+      await nextTick()
+
+      expect(mockMessage.error).toHaveBeenCalledWith('Update failed')
+    })
+
+    it('should handle delete failure', async () => {
+      wrapper = mount(OrganizationSettingsPage, createMountOptions())
+
+      await nextTick()
+      await nextTick()
+
+      mockIpcRenderer.invoke.mockClear()
+      mockIpcRenderer.invoke.mockRejectedValueOnce(new Error('Delete failed: Organization has active members'))
+
+      wrapper.vm.showDeleteModal()
+      await nextTick()
+
+      wrapper.vm.deleteConfirmationText = 'Test Organization'
+
+      await wrapper.vm.handleDeleteOrg()
+      await nextTick()
+
+      expect(mockMessage.error).toHaveBeenCalledWith('Delete failed: Organization has active members')
+      expect(wrapper.vm.deleteModalVisible).toBe(true)
+    })
+
+    it('should handle invalid response format', async () => {
+      mockIpcRenderer.invoke.mockReset()
+      mockIpcRenderer.invoke.mockResolvedValueOnce(null) // Invalid response
+
+      wrapper = mount(OrganizationSettingsPage, createMountOptions())
+
+      await nextTick()
+      await nextTick()
+      await nextTick()
+
+      // Should handle null response gracefully
+      expect(mockMessage.error).toHaveBeenCalled()
+    })
+  })
+})
