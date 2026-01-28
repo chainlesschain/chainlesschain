@@ -38,11 +38,11 @@
     gap: 30px;
 }
 
-/* Logo容器 */
+/* Logo容器 - 调整为矩形以适应logo的实际比例 */
 .loader-logo-wrapper {
     position: relative;
     width: 140px;
-    height: 140px;
+    height: 160px; /* 增加高度以确保logo底部不被截断 */
     animation: logoFloat 3s ease-in-out infinite;
 }
 
@@ -64,7 +64,9 @@
     background: white;
     border-radius: 50%;
     /* 添加padding确保logo不会被裁剪 */
-    padding: 10px;
+    padding: 15px;
+    /* 向上偏移以补偿底部截断 */
+    object-position: center top;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2),
                 0 0 20px rgba(255, 255, 255, 0.6);
     /* 确保logo清晰显示 */
