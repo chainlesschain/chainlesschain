@@ -59,10 +59,46 @@
             // 控制body类，用于隐藏联系栏
             if (navMenu.classList.contains('active')) {
                 document.body.classList.add('mobile-menu-open');
+                // 移动端菜单打开时，将按钮添加到菜单底部
+                addMobileMenuButtons();
             } else {
                 document.body.classList.remove('mobile-menu-open');
+                // 移动端菜单关闭时，移除底部按钮
+                removeMobileMenuButtons();
             }
         });
+    }
+
+    // 添加移动端菜单底部按钮
+    function addMobileMenuButtons() {
+        if (window.innerWidth > 768 || document.getElementById('mobile-menu-buttons')) return;
+
+        const buttonContainer = document.createElement('div');
+        buttonContainer.id = 'mobile-menu-buttons';
+        buttonContainer.style.cssText = `
+            padding: 20px 24px;
+            border-top: 2px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            background: white;
+        `;
+
+        buttonContainer.innerHTML = `
+            <a href="https://github.com/chainlesschain" class="btn-outline" target="_blank" rel="noopener" style="display: block; text-align: center; padding: 12px;">GitHub</a>
+            <a href="https://gitee.com/chainlesschaincn/chainlesschain" class="btn-outline" target="_blank" rel="noopener" style="display: block; text-align: center; padding: 12px;">Gitee</a>
+            <button class="btn-primary" onclick="scrollToDownload(); closeMobileMenu();" style="width: 100%; padding: 14px;">立即下载</button>
+        `;
+
+        navMenu.appendChild(buttonContainer);
+    }
+
+    // 移除移动端菜单底部按钮
+    function removeMobileMenuButtons() {
+        const buttonContainer = document.getElementById('mobile-menu-buttons');
+        if (buttonContainer) {
+            buttonContainer.remove();
+        }
     }
 
     // 关闭移动端菜单的辅助函数

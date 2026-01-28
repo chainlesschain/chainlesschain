@@ -1601,10 +1601,29 @@ section {
         flex-direction: column;
     }
 
+    /* 移动端导航栏布局优化 */
+    .navbar {
+        padding: 8px 0;
+    }
+
+    .nav-wrapper {
+        padding: 8px 0;
+    }
+
+    .logo {
+        font-size: 18px;
+        gap: 8px;
+    }
+
+    .logo-image {
+        width: 32px;
+        height: 32px;
+    }
+
     /* 移动端导航菜单优化 */
     .nav-menu {
         position: fixed;
-        top: 70px;
+        top: 60px;
         left: 0;
         right: 0;
         background: white;
@@ -1620,7 +1639,7 @@ section {
     }
 
     .nav-menu.active {
-        max-height: calc(100vh - 70px);
+        max-height: calc(100vh - 60px);
         opacity: 1;
         overflow-y: auto;
     }
@@ -1656,29 +1675,37 @@ section {
         border-bottom: 1px solid rgba(0, 0, 0, 0.05);
     }
 
-    /* 移动端按钮适配 */
+    /* 移动端按钮容器优化 */
     .nav-actions {
-        flex-direction: column;
-        width: 100%;
-        padding: 20px 24px;
-        gap: 12px;
-        border-top: 2px solid var(--border-color);
-        margin-top: 12px;
+        gap: 8px;
+        position: relative;
     }
 
-    .nav-menu.active ~ .nav-actions {
-        display: none;
+    /* 移动端隐藏GitHub/Gitee/下载按钮，只显示汉堡菜单 */
+    .nav-actions .btn-outline,
+    .nav-actions .btn-primary {
+        display: none !important;
     }
 
-    .btn-outline,
-    .btn-primary {
-        width: 100%;
-        text-align: center;
-    }
-
-    /* 汉堡按钮显示 */
+    /* 汉堡按钮显示并优化样式 */
     .mobile-menu-toggle {
         display: flex;
+        z-index: 1001;
+        position: relative;
+    }
+
+    /* 在移动端菜单打开时，在菜单底部显示按钮 */
+    .nav-menu.active::after {
+        content: '';
+        display: block;
+        padding: 20px 24px;
+        border-top: 2px solid var(--border-color);
+    }
+
+    /* 创建移动端专用的按钮区域 */
+    .nav-menu.active + .nav-actions .btn-outline,
+    .nav-menu.active + .nav-actions .btn-primary {
+        display: none !important;
     }
 
     /* 汉堡按钮动画 */
