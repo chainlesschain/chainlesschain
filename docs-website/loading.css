@@ -315,9 +315,14 @@
     }
 }
 
-/* 响应式 */
+/* 响应式 - 平板和手机 */
 @media (max-width: 768px) {
     .loader-logo-wrapper {
+        width: 110px;
+        height: 130px; /* 保持椭圆比例 */
+    }
+
+    .loader-shadow {
         width: 110px;
         height: 110px;
     }
@@ -327,23 +332,111 @@
         height: 140px;
         top: -15px;
         left: -15px;
+        border-width: 2px; /* 稍细的边框 */
     }
 
     .loader-ring-inner {
         width: 126px;
         height: 126px;
+        top: -8px;
+        left: -8px;
+        border-width: 1.5px;
     }
 
     .loader-glow {
         width: 160px;
         height: 160px;
+        filter: blur(12px); /* 减少模糊以提升性能 */
     }
 
     .loader-text {
         font-size: 20px;
+        letter-spacing: 1.5px;
+    }
+
+    .loader-tip {
+        font-size: 13px;
     }
 
     .loader-progress-container {
         width: 160px;
+        height: 3px;
+    }
+
+    .loader-container {
+        gap: 25px;
+    }
+
+    /* 简化粒子效果 */
+    .loader-particle {
+        width: 4px;
+        height: 4px;
+        box-shadow: 0 0 6px currentColor;
+    }
+}
+
+/* 小屏手机优化 */
+@media (max-width: 480px) {
+    .loader-logo-wrapper {
+        width: 90px;
+        height: 110px;
+    }
+
+    .loader-shadow {
+        width: 90px;
+        height: 90px;
+    }
+
+    .loader-ring-outer {
+        width: 120px;
+        height: 120px;
+        top: -15px;
+        left: -15px;
+    }
+
+    .loader-ring-inner {
+        width: 106px;
+        height: 106px;
+    }
+
+    .loader-glow {
+        width: 140px;
+        height: 140px;
+    }
+
+    .loader-text {
+        font-size: 18px;
+    }
+
+    .loader-tip {
+        font-size: 12px;
+    }
+
+    .loader-progress-container {
+        width: 140px;
+    }
+
+    .loader-container {
+        gap: 20px;
+    }
+}
+
+/* 横屏优化 */
+@media (max-width: 768px) and (orientation: landscape) {
+    .loader-container {
+        gap: 15px;
+    }
+
+    .loader-logo-wrapper {
+        width: 80px;
+        height: 96px;
+    }
+
+    .loader-text {
+        font-size: 16px;
+    }
+
+    .loader-tip {
+        font-size: 11px;
     }
 }
