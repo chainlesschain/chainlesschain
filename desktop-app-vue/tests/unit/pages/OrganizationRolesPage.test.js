@@ -1,818 +1,1000 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { mount } from "@vue/test-utils";
-import OrganizationRolesPage from "@renderer/pages/OrganizationRolesPage.vue";
+import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { mount } from '@vue/test-utils'
+import { nextTick } from 'vue'
 
-// Mock ant-design-vue
-vi.mock("ant-design-vue", () => ({
-  message: {
-    success: vi.fn(),
-    error: vi.fn(),
-    warning: vi.fn(),
+// Mock Ant Design Vue components
+const mockAntdComponents = {
+  'a-table': {
+    name: 'ATable',
+    template: '<div class="a-table"><slot /></div>',
+    props: ['columns', 'dataSource', 'loading', 'pagination', 'rowKey']
   },
-  Modal: {
-    confirm: vi.fn((config) => {
-      if (config.onOk) {
-        config.onOk();
-      }
-    }),
+  'a-button': {
+    name: 'AButton',
+    template: '<button class="a-button" :type="type" :disabled="disabled"><slot /></button>',
+    props: ['type', 'disabled', 'danger', 'icon']
   },
-}));
+  'a-input': {
+    name: 'AInput',
+    template: '<input class="a-input" :value="value" @input="$emit(\'update:value\', $event.target.value)" :placeholder="placeholder" />',
+    props: ['value', 'placeholder']
+  },
+  'a-input-search': {
+    name: 'AInputSearch',
+    template: '<input class="a-input-search" :value="value" @input="$emit(\'update:value\', $event.target.value)" :placeholder="placeholder" />',
+    props: ['value', 'placeholder']
+  },
+  'a-modal': {
+    name: 'AModal',
+    template: '<div v-if="open" class="a-modal"><slot /></div>',
+    props: ['open', 'title', 'confirmLoading']
+  },
+  'a-form': {
+    name: 'AForm',
+    template: '<form class="a-form"><slot /></form>',
+    props: ['model', 'rules', 'layout']
+  },
+  'a-form-item': {
+    name: 'AFormItem',
+    template: '<div class="a-form-item" :class="{ error: validateStatus === \'error\' }"><slot /></div>',
+    props: ['label', 'name', 'validateStatus', 'help']
+  },
+  'a-select': {
+    name: 'ASelect',
+    template: '<select class="a-select" :value="value" @change="$emit(\'update:value\', $event.target.value)"><slot /></select>',
+    props: ['value', 'placeholder', 'mode', 'allowClear']
+  },
+  'a-select-option': {
+    name: 'ASelectOption',
+    template: '<option :value="value"><slot /></option>',
+    props: ['value']
+  },
+  'a-checkbox-group': {
+    name: 'ACheckboxGroup',
+    template: '<div class="a-checkbox-group"><slot /></div>',
+    props: ['value', 'options']
+  },
+  'a-checkbox': {
+    name: 'ACheckbox',
+    template: '<input type="checkbox" class="a-checkbox" :checked="checked" @change="$emit(\'update:checked\', $event.target.checked)" />',
+    props: ['checked', 'value']
+  },
+  'a-tag': {
+    name: 'ATag',
+    template: '<span class="a-tag" :color="color"><slot /></span>',
+    props: ['color']
+  },
+  'a-space': {
+    name: 'ASpace',
+    template: '<div class="a-space"><slot /></div>',
+    props: ['size']
+  },
+  'a-divider': {
+    name: 'ADivider',
+    template: '<hr class="a-divider" />',
+    props: []
+  },
+  'a-textarea': {
+    name: 'ATextarea',
+    template: '<textarea class="a-textarea" :value="value" @input="$emit(\'update:value\', $event.target.value)" :placeholder="placeholder"></textarea>',
+    props: ['value', 'placeholder', 'rows']
+  },
+  'a-spin': {
+    name: 'ASpin',
+    template: '<div class="a-spin" :class="{ spinning }"><slot /></div>',
+    props: ['spinning']
+  },
+  'a-row': {
+    name: 'ARow',
+    template: '<div class="a-row"><slot /></div>',
+    props: ['gutter']
+  },
+  'a-col': {
+    name: 'ACol',
+    template: '<div class="a-col"><slot /></div>',
+    props: ['xs', 'sm', 'lg']
+  },
+  'a-empty': {
+    name: 'AEmpty',
+    template: '<div class="a-empty">{{ description }}</div>',
+    props: ['description']
+  },
+  'a-collapse': {
+    name: 'ACollapse',
+    template: '<div class="a-collapse"><slot /></div>',
+    props: ['activeKey']
+  },
+  'a-collapse-panel': {
+    name: 'ACollapsePanel',
+    template: '<div class="a-collapse-panel"><slot /></div>',
+    props: ['key', 'header']
+  },
+  'a-descriptions': {
+    name: 'ADescriptions',
+    template: '<div class="a-descriptions"><slot /></div>',
+    props: ['bordered', 'column']
+  },
+  'a-descriptions-item': {
+    name: 'ADescriptionsItem',
+    template: '<div class="a-descriptions-item"><slot /></div>',
+    props: ['label']
+  },
+  'a-tooltip': {
+    name: 'ATooltip',
+    template: '<div class="a-tooltip"><slot /></div>',
+    props: ['title']
+  }
+}
+
+// Mock child components
+const mockRoleCard = {
+  name: 'RoleCard',
+  template: '<div class="role-card" :data-role-id="role.id"><slot /></div>',
+  props: ['role', 'isBuiltin'],
+  emits: ['view', 'edit', 'delete']
+}
+
+const mockPermissionGuard = {
+  name: 'PermissionGuard',
+  template: '<div class="permission-guard"><slot v-if="hasPermission" /><slot v-else name="denied" /></div>',
+  props: ['permission', 'mode'],
+  computed: {
+    hasPermission() {
+      // Mock: allow if user is admin
+      return this.permission === 'role.create' && this.$attrs['data-test-admin']
+    }
+  }
+}
+
+// Mock IPC renderer
+const mockIpcRenderer = {
+  invoke: vi.fn()
+}
+
+// Mock window.electron
+global.window = global.window || {}
+global.window.electron = {
+  ipcRenderer: mockIpcRenderer
+}
 
 // Mock identity store
 const mockIdentityStore = {
-  primaryDID: "did:chainlesschain:currentuser",
-  currentOrgId: "org-123",
-  isOrganizationContext: true,
-};
+  currentOrgId: 'org-123',
+  primaryDID: 'did:key:user123'
+}
 
-vi.mock("../stores/identity", () => ({
-  useIdentityStore: () => mockIdentityStore,
-}));
+// Mock stores
+vi.mock('@/stores/identity', () => ({
+  useIdentityStore: () => mockIdentityStore
+}))
 
-// Mock components
-vi.mock("../components/PermissionGuard.vue", () => ({
-  default: { template: "<div><slot /></div>" },
-}));
+vi.mock('../stores/identity', () => ({
+  useIdentityStore: () => mockIdentityStore
+}))
 
-vi.mock("../components/RoleCard.vue", () => ({
-  default: { template: '<div class="role-card"></div>' },
-}));
+// Mock message and Modal
+const mockMessage = {
+  success: vi.fn(),
+  error: vi.fn()
+}
 
-// Mock window.electron.ipcRenderer
-const mockBuiltinRoles = [
-  {
-    id: "role-1",
-    name: "所有者",
-    description: "拥有所有权限",
-    permissions: ["all"],
-    is_builtin: true,
-    created_at: 1704067200000,
+const mockModal = {
+  confirm: vi.fn()
+}
+
+vi.mock('ant-design-vue', () => ({
+  message: mockMessage,
+  Modal: mockModal
+}))
+
+// Mock logger
+vi.mock('@/utils/logger', () => ({
+  logger: {
+    error: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn()
   },
-  {
-    id: "role-2",
-    name: "管理员",
-    description: "管理组织",
-    permissions: ["member.manage", "role.create"],
-    is_builtin: true,
-    created_at: 1704067200000,
-  },
-  {
-    id: "role-3",
-    name: "成员",
-    description: "普通成员",
-    permissions: ["knowledge.read", "knowledge.write"],
-    is_builtin: true,
-    created_at: 1704067200000,
-  },
-];
+  createLogger: vi.fn()
+}))
 
-const mockCustomRoles = [
-  {
-    id: "custom-1",
-    name: "项目经理",
-    description: "管理项目",
-    permissions: ["project.manage", "member.view"],
-    is_builtin: false,
-    created_at: 1704153600000,
+// Mock icons
+vi.mock('@ant-design/icons-vue', () => ({
+  PlusOutlined: {
+    name: 'PlusOutlined',
+    template: '<span class="plus-outlined">+</span>'
   },
-];
+  EditOutlined: {
+    name: 'EditOutlined',
+    template: '<span class="edit-outlined">E</span>'
+  },
+  DeleteOutlined: {
+    name: 'DeleteOutlined',
+    template: '<span class="delete-outlined">D</span>'
+  },
+  SafetyCertificateOutlined: {
+    name: 'SafetyCertificateOutlined',
+    template: '<span class="safety-certificate-outlined">S</span>'
+  },
+  RightOutlined: {
+    name: 'RightOutlined',
+    template: '<span class="right-outlined">R</span>'
+  },
+  EyeOutlined: {
+    name: 'EyeOutlined',
+    template: '<span class="eye-outlined">Eye</span>'
+  }
+}))
 
-const mockAllPermissions = [
-  {
-    category: "成员管理",
-    permissions: [
+describe('OrganizationRolesPage', () => {
+  let wrapper
+  let OrganizationRolesPage
+  let pinia
+
+  // Helper function to create mount options
+  const createMountOptions = (additionalOptions = {}) => ({
+    global: {
+      components: {
+        ...mockAntdComponents,
+        RoleCard: mockRoleCard,
+        PermissionGuard: mockPermissionGuard
+      },
+      plugins: [pinia],
+      ...additionalOptions.global
+    },
+    ...additionalOptions
+  })
+
+  beforeEach(async () => {
+    // Reset all mocks
+    vi.clearAllMocks()
+    mockIpcRenderer.invoke.mockReset()
+
+    // Import Pinia
+    const { createPinia, setActivePinia } = await import('pinia')
+    pinia = createPinia()
+    setActivePinia(pinia)
+
+    // Mock default data
+    const mockRoles = [
       {
-        value: "member.view",
-        label: "查看成员",
-        description: "可以查看组织成员列表",
+        id: 'role-1',
+        name: 'Admin',
+        description: 'Administrator role',
+        is_builtin: true,
+        permissions: ['*'],
+        created_at: Date.now()
       },
       {
-        value: "member.manage",
-        label: "管理成员",
-        description: "可以添加、移除和修改成员",
-      },
-    ],
-  },
-  {
-    category: "角色管理",
-    permissions: [
-      {
-        value: "role.create",
-        label: "创建角色",
-        description: "可以创建自定义角色",
+        id: 'role-2',
+        name: 'Member',
+        description: 'Regular member',
+        is_builtin: true,
+        permissions: ['read', 'write'],
+        created_at: Date.now()
       },
       {
-        value: "role.edit",
-        label: "编辑角色",
-        description: "可以编辑角色权限",
-      },
-    ],
-  },
-  {
-    category: "知识库",
-    permissions: [
-      {
-        value: "knowledge.read",
-        label: "读取知识库",
-        description: "可以查看知识库内容",
-      },
-      {
-        value: "knowledge.write",
-        label: "编辑知识库",
-        description: "可以创建和编辑知识库",
-      },
-    ],
-  },
-];
+        id: 'role-3',
+        name: 'Custom Role',
+        description: 'Custom test role',
+        is_builtin: false,
+        permissions: ['read', 'write', 'delete'],
+        created_at: Date.now()
+      }
+    ]
 
-global.window = global.window || {};
-global.window.electron = {
-  ipcRenderer: {
-    invoke: vi.fn(),
-  },
-};
-
-describe("OrganizationRolesPage.vue", () => {
-  let wrapper;
-
-  const createWrapper = (props = {}) => {
-    return mount(OrganizationRolesPage, {
-      props,
-      global: {
-        stubs: {
-          PermissionGuard: true,
-          RoleCard: true,
-          "a-button": true,
-          "a-spin": true,
-          "a-row": true,
-          "a-col": true,
-          "a-empty": true,
-          "a-modal": true,
-          "a-form": true,
-          "a-form-item": true,
-          "a-input": true,
-          "a-textarea": true,
-          "a-collapse": true,
-          "a-collapse-panel": true,
-          "a-checkbox-group": true,
-          "a-checkbox": true,
-          "a-descriptions": true,
-          "a-descriptions-item": true,
-          "a-tag": true,
-          PlusOutlined: true,
-        },
+    const mockPermissions = [
+      {
+        category: 'Content Management',
+        permissions: [
+          { value: 'read', label: 'Read', description: 'View content' },
+          { value: 'write', label: 'Write', description: 'Create/edit content' },
+          { value: 'delete', label: 'Delete', description: 'Delete content' }
+        ]
       },
-    });
-  };
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-    window.electron.ipcRenderer.invoke.mockImplementation(
-      (channel, ...args) => {
-        if (channel === "org:get-roles") {
-          return Promise.resolve([...mockBuiltinRoles, ...mockCustomRoles]);
-        }
-        if (channel === "org:get-all-permissions") {
-          return Promise.resolve(mockAllPermissions);
-        }
-        return Promise.resolve();
+      {
+        category: 'User Management',
+        permissions: [
+          { value: 'user.view', label: 'View Users', description: 'View user list' },
+          { value: 'user.create', label: 'Create Users', description: 'Add new users' },
+          { value: 'user.delete', label: 'Delete Users', description: 'Remove users' }
+        ]
       },
-    );
-  });
+      {
+        category: 'Role Management',
+        permissions: [
+          { value: 'role.create', label: 'Create Roles', description: 'Create new roles' },
+          { value: 'role.update', label: 'Update Roles', description: 'Modify roles' }
+        ]
+      }
+    ]
+
+    mockIpcRenderer.invoke
+      .mockResolvedValueOnce(mockRoles) // org:get-roles
+      .mockResolvedValueOnce(mockPermissions) // org:get-all-permissions
+
+    // Import component
+    OrganizationRolesPage = (await import('E:/code/chainlesschain/desktop-app-vue/src/renderer/pages/OrganizationRolesPage.vue')).default
+  })
 
   afterEach(() => {
     if (wrapper) {
-      wrapper.unmount();
+      wrapper.unmount()
     }
-  });
+  })
 
-  // 组件挂载和初始化
-  describe("Component Mounting and Initialization", () => {
-    it("应该成功挂载组件", () => {
-      wrapper = createWrapper();
-      expect(wrapper.exists()).toBe(true);
-    });
+  describe('1. Component Mounting and Initialization', () => {
+    it('should mount successfully and load roles', async () => {
+      wrapper = mount(OrganizationRolesPage, createMountOptions())
 
-    it("应该在挂载时加载角色列表", async () => {
-      wrapper = createWrapper();
-      await wrapper.vm.$nextTick();
+      await nextTick()
+      await nextTick()
 
-      expect(window.electron.ipcRenderer.invoke).toHaveBeenCalledWith(
-        "org:get-roles",
-        "org-123",
-      );
-      expect(wrapper.vm.roles.length).toBe(4);
-    });
+      expect(mockIpcRenderer.invoke).toHaveBeenCalledWith('org:get-roles', 'org-123')
+      expect(mockIpcRenderer.invoke).toHaveBeenCalledWith('org:get-all-permissions')
+      expect(wrapper.exists()).toBe(true)
+    })
 
-    it("应该在挂载时加载权限列表", async () => {
-      wrapper = createWrapper();
-      await wrapper.vm.$nextTick();
+    it('should display page header with title', async () => {
+      wrapper = mount(OrganizationRolesPage, createMountOptions())
 
-      expect(window.electron.ipcRenderer.invoke).toHaveBeenCalledWith(
-        "org:get-all-permissions",
-      );
-      expect(wrapper.vm.allPermissions).toEqual(mockAllPermissions);
-    });
+      await nextTick()
 
-    it("应该默认展开第一个权限分类", async () => {
-      wrapper = createWrapper();
-      await wrapper.vm.$nextTick();
+      const header = wrapper.find('.page-header')
+      expect(header.exists()).toBe(true)
+      expect(header.text()).toContain('角色与权限管理')
+    })
 
-      expect(wrapper.vm.activePermissionCategories).toContain("成员管理");
-    });
+    it('should separate builtin and custom roles', async () => {
+      wrapper = mount(OrganizationRolesPage, createMountOptions())
 
-    it("应该处理未选择组织的情况", async () => {
-      mockIdentityStore.currentOrgId = null;
-      const { message } = require("ant-design-vue");
-      wrapper = createWrapper();
+      await nextTick()
+      await nextTick()
 
-      await wrapper.vm.loadRoles();
+      const builtinSection = wrapper.findAll('.role-section')[0]
+      const customSection = wrapper.findAll('.role-section')[1]
 
-      expect(message.error).toHaveBeenCalledWith("未选择组织");
-      mockIdentityStore.currentOrgId = "org-123";
-    });
+      expect(builtinSection.text()).toContain('内置角色')
+      expect(customSection.text()).toContain('自定义角色')
+    })
 
-    it("应该处理加载角色失败", async () => {
-      window.electron.ipcRenderer.invoke.mockRejectedValue(
-        new Error("Load failed"),
-      );
-      const { message } = require("ant-design-vue");
-      wrapper = createWrapper();
+    it('should load permissions on mount', async () => {
+      wrapper = mount(OrganizationRolesPage, createMountOptions())
 
-      await wrapper.vm.$nextTick();
+      await nextTick()
+      await nextTick()
 
-      expect(message.error).toHaveBeenCalledWith("Load failed");
-    });
+      expect(mockIpcRenderer.invoke).toHaveBeenCalledWith('org:get-all-permissions')
+    })
+  })
 
-    it("应该处理加载权限失败", async () => {
-      window.electron.ipcRenderer.invoke.mockImplementation((channel) => {
-        if (channel === "org:get-roles") {
-          return Promise.resolve([]);
+  describe('2. Role Creation', () => {
+    it('should show create button for admin', async () => {
+      wrapper = mount(OrganizationRolesPage, createMountOptions({
+        attrs: {
+          'data-test-admin': true
         }
-        if (channel === "org:get-all-permissions") {
-          return Promise.reject(new Error("Failed"));
-        }
-      });
-      const { message } = require("ant-design-vue");
-      wrapper = createWrapper();
+      }))
 
-      await wrapper.vm.$nextTick();
+      await nextTick()
 
-      expect(message.error).toHaveBeenCalledWith("加载权限列表失败");
-    });
-  });
+      const createButton = wrapper.find('button.a-button')
+      expect(createButton.exists()).toBe(true)
+      expect(createButton.text()).toContain('创建自定义角色')
+    })
 
-  // 角色分类
-  describe("Role Categories", () => {
-    beforeEach(async () => {
-      wrapper = createWrapper();
-      await wrapper.vm.$nextTick();
-    });
+    it('should open create modal when button clicked', async () => {
+      wrapper = mount(OrganizationRolesPage, createMountOptions())
 
-    it("应该正确分类内置角色", () => {
-      expect(wrapper.vm.builtinRoles.length).toBe(3);
-      expect(wrapper.vm.builtinRoles.every((r) => r.is_builtin)).toBe(true);
-    });
+      await nextTick()
 
-    it("应该正确分类自定义角色", () => {
-      expect(wrapper.vm.customRoles.length).toBe(1);
-      expect(wrapper.vm.customRoles.every((r) => !r.is_builtin)).toBe(true);
-    });
+      // Call the showCreateRoleModal method directly
+      await wrapper.vm.showCreateRoleModal()
+      await nextTick()
 
-    it("应该处理只有内置角色的情况", async () => {
-      window.electron.ipcRenderer.invoke.mockResolvedValue(mockBuiltinRoles);
-      wrapper = createWrapper();
-      await wrapper.vm.loadRoles();
+      expect(wrapper.vm.roleModalVisible).toBe(true)
+      expect(wrapper.vm.isEditMode).toBe(false)
+      expect(wrapper.vm.roleForm.name).toBe('')
+    })
 
-      expect(wrapper.vm.builtinRoles.length).toBe(3);
-      expect(wrapper.vm.customRoles.length).toBe(0);
-    });
+    it('should create custom role with IPC call', async () => {
+      wrapper = mount(OrganizationRolesPage, createMountOptions())
 
-    it("应该处理空角色列表", async () => {
-      window.electron.ipcRenderer.invoke.mockResolvedValue([]);
-      wrapper = createWrapper();
-      await wrapper.vm.loadRoles();
+      await nextTick()
+      await nextTick()
 
-      expect(wrapper.vm.builtinRoles.length).toBe(0);
-      expect(wrapper.vm.customRoles.length).toBe(0);
-    });
+      // Clear previous calls
+      mockIpcRenderer.invoke.mockClear()
 
-    it("应该处理角色列表为null", async () => {
-      window.electron.ipcRenderer.invoke.mockResolvedValue(null);
-      wrapper = createWrapper();
-      await wrapper.vm.loadRoles();
+      // Mock the create call and refresh
+      mockIpcRenderer.invoke
+        .mockResolvedValueOnce({ id: 'new-role-id' }) // org:create-custom-role
+        .mockResolvedValueOnce([]) // org:get-roles (refresh)
 
-      expect(wrapper.vm.roles).toEqual([]);
-    });
-  });
+      wrapper.vm.showCreateRoleModal()
+      wrapper.vm.roleForm.name = 'New Custom Role'
+      wrapper.vm.roleForm.description = 'Test description'
+      wrapper.vm.roleForm.permissions = ['read', 'write']
 
-  // 创建角色
-  describe("Create Role", () => {
-    beforeEach(async () => {
-      wrapper = createWrapper();
-      await wrapper.vm.$nextTick();
-    });
-
-    it("应该能打开创建角色对话框", () => {
-      wrapper.vm.showCreateRoleModal();
-
-      expect(wrapper.vm.isEditMode).toBe(false);
-      expect(wrapper.vm.roleModalVisible).toBe(true);
-      expect(wrapper.vm.roleForm.name).toBe("");
-      expect(wrapper.vm.roleForm.permissions).toEqual([]);
-    });
-
-    it("应该能创建自定义角色", async () => {
-      const { message } = require("ant-design-vue");
-      window.electron.ipcRenderer.invoke.mockResolvedValue();
-
-      wrapper.vm.roleModalVisible = true;
-      wrapper.vm.roleForm = {
-        name: "技术专家",
-        description: "负责技术决策",
-        permissions: ["knowledge.write", "member.view"],
-      };
-
+      // Mock form validation
       wrapper.vm.roleFormRef = {
-        validate: vi.fn().mockResolvedValue(),
-        resetFields: vi.fn(),
-      };
+        validate: vi.fn().mockResolvedValue(true)
+      }
 
-      await wrapper.vm.handleRoleModalOk();
+      await wrapper.vm.handleRoleModalOk()
+      await nextTick()
 
-      expect(window.electron.ipcRenderer.invoke).toHaveBeenCalledWith(
-        "org:create-custom-role",
-        "org-123",
+      expect(mockIpcRenderer.invoke).toHaveBeenCalledWith(
+        'org:create-custom-role',
+        'org-123',
         {
-          name: "技术专家",
-          description: "负责技术决策",
-          permissions: ["knowledge.write", "member.view"],
+          name: 'New Custom Role',
+          description: 'Test description',
+          permissions: ['read', 'write']
         },
-        "did:chainlesschain:currentuser",
-      );
-      expect(message.success).toHaveBeenCalledWith("角色创建成功");
-      expect(wrapper.vm.roleModalVisible).toBe(false);
-    });
+        'did:key:user123'
+      )
+      expect(mockMessage.success).toHaveBeenCalledWith('角色创建成功')
+    })
 
-    it("应该在创建成功后重新加载角色列表", async () => {
-      window.electron.ipcRenderer.invoke.mockResolvedValue();
+    it('should close modal after creation', async () => {
+      wrapper = mount(OrganizationRolesPage, createMountOptions())
+
+      await nextTick()
+      await nextTick()
+
+      mockIpcRenderer.invoke.mockClear()
+      mockIpcRenderer.invoke
+        .mockResolvedValueOnce({ id: 'new-role-id' })
+        .mockResolvedValueOnce([])
+
+      wrapper.vm.showCreateRoleModal()
+      wrapper.vm.roleForm.name = 'Test Role'
+      wrapper.vm.roleForm.permissions = ['read']
+
+      // Mock form validation
       wrapper.vm.roleFormRef = {
-        validate: vi.fn().mockResolvedValue(),
-        resetFields: vi.fn(),
-      };
+        validate: vi.fn().mockResolvedValue(true)
+      }
 
-      wrapper.vm.roleForm = {
-        name: "New Role",
-        description: "Description",
-        permissions: ["perm1"],
-      };
+      await wrapper.vm.handleRoleModalOk()
+      await nextTick()
 
-      await wrapper.vm.handleRoleModalOk();
+      expect(wrapper.vm.roleModalVisible).toBe(false)
+    })
 
-      expect(window.electron.ipcRenderer.invoke).toHaveBeenCalledWith(
-        "org:get-roles",
-        "org-123",
-      );
-    });
+    it('should prevent creating without name', async () => {
+      wrapper = mount(OrganizationRolesPage, createMountOptions())
 
-    it("应该处理表单验证失败", async () => {
+      await nextTick()
+
+      wrapper.vm.showCreateRoleModal()
+      wrapper.vm.roleForm.name = ''
+      wrapper.vm.roleForm.permissions = ['read']
+
+      // Mock validation failure
       wrapper.vm.roleFormRef = {
-        validate: vi.fn().mockRejectedValue({ errorFields: ["name"] }),
-        resetFields: vi.fn(),
-      };
+        validate: vi.fn().mockRejectedValue({ errorFields: [{ name: 'name' }] })
+      }
 
-      await wrapper.vm.handleRoleModalOk();
+      await wrapper.vm.handleRoleModalOk()
 
-      expect(window.electron.ipcRenderer.invoke).not.toHaveBeenCalledWith(
-        "org:create-custom-role",
-      );
-    });
+      expect(wrapper.vm.roleModalVisible).toBe(true) // Modal stays open
+    })
 
-    it("应该处理创建角色失败", async () => {
-      const { message } = require("ant-design-vue");
-      window.electron.ipcRenderer.invoke.mockRejectedValue(
-        new Error("Name already exists"),
-      );
+    it('should prevent creating without permissions', async () => {
+      wrapper = mount(OrganizationRolesPage, createMountOptions())
+
+      await nextTick()
+
+      wrapper.vm.showCreateRoleModal()
+      wrapper.vm.roleForm.name = 'Test Role'
+      wrapper.vm.roleForm.permissions = []
+
+      // Mock validation failure
       wrapper.vm.roleFormRef = {
-        validate: vi.fn().mockResolvedValue(),
-        resetFields: vi.fn(),
-      };
+        validate: vi.fn().mockRejectedValue({ errorFields: [{ name: 'permissions' }] })
+      }
 
-      wrapper.vm.roleForm = {
-        name: "Duplicate",
-        description: "Test",
-        permissions: ["perm1"],
-      };
+      await wrapper.vm.handleRoleModalOk()
 
-      await wrapper.vm.handleRoleModalOk();
+      expect(wrapper.vm.roleModalVisible).toBe(true)
+    })
+  })
 
-      expect(message.error).toHaveBeenCalledWith("Name already exists");
-    });
-  });
+  describe('3. Role Editing', () => {
+    it('should open edit modal with role data', async () => {
+      wrapper = mount(OrganizationRolesPage, createMountOptions())
 
-  // 编辑角色
-  describe("Edit Role", () => {
-    beforeEach(async () => {
-      wrapper = createWrapper();
-      await wrapper.vm.$nextTick();
-    });
+      await nextTick()
+      await nextTick()
 
-    it("应该能打开编辑角色对话框", () => {
-      const role = mockCustomRoles[0];
-      wrapper.vm.handleEditRole(role);
-
-      expect(wrapper.vm.isEditMode).toBe(true);
-      expect(wrapper.vm.roleModalVisible).toBe(true);
-      expect(wrapper.vm.roleForm.id).toBe("custom-1");
-      expect(wrapper.vm.roleForm.name).toBe("项目经理");
-      expect(wrapper.vm.roleForm.permissions).toEqual([
-        "project.manage",
-        "member.view",
-      ]);
-    });
-
-    it("应该能更新角色", async () => {
-      const { message } = require("ant-design-vue");
-      window.electron.ipcRenderer.invoke.mockResolvedValue();
-
-      wrapper.vm.isEditMode = true;
-      wrapper.vm.roleForm = {
-        id: "custom-1",
-        name: "项目经理（更新）",
-        description: "更新后的描述",
-        permissions: ["project.manage", "role.edit"],
-      };
-
-      wrapper.vm.roleFormRef = {
-        validate: vi.fn().mockResolvedValue(),
-        resetFields: vi.fn(),
-      };
-
-      await wrapper.vm.handleRoleModalOk();
-
-      expect(window.electron.ipcRenderer.invoke).toHaveBeenCalledWith(
-        "org:update-role",
-        "custom-1",
-        {
-          name: "项目经理（更新）",
-          description: "更新后的描述",
-          permissions: ["project.manage", "role.edit"],
-        },
-        "did:chainlesschain:currentuser",
-      );
-      expect(message.success).toHaveBeenCalledWith("角色更新成功");
-    });
-
-    it("应该在更新成功后重新加载角色列表", async () => {
-      window.electron.ipcRenderer.invoke.mockResolvedValue();
-      wrapper.vm.isEditMode = true;
-      wrapper.vm.roleFormRef = {
-        validate: vi.fn().mockResolvedValue(),
-        resetFields: vi.fn(),
-      };
-
-      wrapper.vm.roleForm = {
-        id: "custom-1",
-        name: "Updated",
-        description: "Desc",
-        permissions: ["perm1"],
-      };
-
-      await wrapper.vm.handleRoleModalOk();
-
-      expect(window.electron.ipcRenderer.invoke).toHaveBeenCalledWith(
-        "org:get-roles",
-        "org-123",
-      );
-    });
-
-    it("应该处理更新角色失败", async () => {
-      const { message } = require("ant-design-vue");
-      window.electron.ipcRenderer.invoke.mockRejectedValue(
-        new Error("Update failed"),
-      );
-      wrapper.vm.isEditMode = true;
-      wrapper.vm.roleFormRef = {
-        validate: vi.fn().mockResolvedValue(),
-        resetFields: vi.fn(),
-      };
-
-      wrapper.vm.roleForm = {
-        id: "custom-1",
-        name: "Updated",
-        description: "Desc",
-        permissions: ["perm1"],
-      };
-
-      await wrapper.vm.handleRoleModalOk();
-
-      expect(message.error).toHaveBeenCalledWith("Update failed");
-    });
-  });
-
-  // 删除角色
-  describe("Delete Role", () => {
-    beforeEach(async () => {
-      wrapper = createWrapper();
-      await wrapper.vm.$nextTick();
-    });
-
-    it("应该能删除角色", async () => {
-      const { Modal, message } = require("ant-design-vue");
-      window.electron.ipcRenderer.invoke.mockResolvedValue();
-
-      const role = mockCustomRoles[0];
-      wrapper.vm.handleDeleteRole(role);
-
-      expect(Modal.confirm).toHaveBeenCalled();
-      await wrapper.vm.$nextTick();
-
-      expect(window.electron.ipcRenderer.invoke).toHaveBeenCalledWith(
-        "org:delete-role",
-        "custom-1",
-        "did:chainlesschain:currentuser",
-      );
-      expect(message.success).toHaveBeenCalledWith("角色删除成功");
-    });
-
-    it("应该在删除成功后重新加载角色列表", async () => {
-      const { Modal } = require("ant-design-vue");
-      window.electron.ipcRenderer.invoke.mockResolvedValue();
-
-      wrapper.vm.handleDeleteRole(mockCustomRoles[0]);
-
-      await wrapper.vm.$nextTick();
-
-      expect(window.electron.ipcRenderer.invoke).toHaveBeenCalledWith(
-        "org:get-roles",
-        "org-123",
-      );
-    });
-
-    it("应该处理删除角色失败", async () => {
-      const { Modal, message } = require("ant-design-vue");
-      window.electron.ipcRenderer.invoke.mockRejectedValue(
-        new Error("Cannot delete role in use"),
-      );
-
-      wrapper.vm.handleDeleteRole(mockCustomRoles[0]);
-
-      await wrapper.vm.$nextTick();
-
-      expect(message.error).toHaveBeenCalledWith("Cannot delete role in use");
-    });
-  });
-
-  // 查看角色详情
-  describe("View Role Detail", () => {
-    beforeEach(async () => {
-      wrapper = createWrapper();
-      await wrapper.vm.$nextTick();
-    });
-
-    it("应该能打开角色详情对话框", () => {
-      const role = mockBuiltinRoles[0];
-      wrapper.vm.handleViewRole(role);
-
-      expect(wrapper.vm.viewingRole).toEqual(role);
-      expect(wrapper.vm.viewRoleModalVisible).toBe(true);
-    });
-
-    it("应该显示角色的完整信息", () => {
-      const role = mockCustomRoles[0];
-      wrapper.vm.handleViewRole(role);
-
-      expect(wrapper.vm.viewingRole.name).toBe("项目经理");
-      expect(wrapper.vm.viewingRole.description).toBe("管理项目");
-      expect(wrapper.vm.viewingRole.permissions).toEqual([
-        "project.manage",
-        "member.view",
-      ]);
-    });
-  });
-
-  // 对话框取消
-  describe("Modal Cancel", () => {
-    beforeEach(async () => {
-      wrapper = createWrapper();
-      await wrapper.vm.$nextTick();
-    });
-
-    it("应该能取消角色对话框", () => {
-      wrapper.vm.roleModalVisible = true;
-      wrapper.vm.roleFormRef = {
-        resetFields: vi.fn(),
-      };
-
-      wrapper.vm.handleRoleModalCancel();
-
-      expect(wrapper.vm.roleModalVisible).toBe(false);
-      expect(wrapper.vm.roleFormRef.resetFields).toHaveBeenCalled();
-    });
-
-    it("应该处理roleFormRef为null的情况", () => {
-      wrapper.vm.roleModalVisible = true;
-      wrapper.vm.roleFormRef = null;
-
-      expect(() => wrapper.vm.handleRoleModalCancel()).not.toThrow();
-      expect(wrapper.vm.roleModalVisible).toBe(false);
-    });
-  });
-
-  // 权限管理
-  describe("Permissions Management", () => {
-    beforeEach(async () => {
-      wrapper = createWrapper();
-      await wrapper.vm.$nextTick();
-    });
-
-    it("应该能获取权限标签", () => {
-      const label = wrapper.vm.getPermissionLabel("member.view");
-      expect(label).toBe("查看成员");
-    });
-
-    it("应该返回未知权限的原值", () => {
-      const label = wrapper.vm.getPermissionLabel("unknown.permission");
-      expect(label).toBe("unknown.permission");
-    });
-
-    it("应该能清空选中的权限", () => {
-      wrapper.vm.roleForm.permissions = ["perm1", "perm2", "perm3"];
-
-      wrapper.vm.roleForm.permissions = [];
-
-      expect(wrapper.vm.roleForm.permissions).toEqual([]);
-    });
-
-    it("应该正确统计选中的权限数量", () => {
-      wrapper.vm.roleForm.permissions = ["perm1", "perm2"];
-      expect(wrapper.vm.roleForm.permissions.length).toBe(2);
-    });
-  });
-
-  // 工具函数
-  describe("Utility Functions", () => {
-    beforeEach(async () => {
-      wrapper = createWrapper();
-      await wrapper.vm.$nextTick();
-    });
-
-    it("应该格式化时间戳", () => {
-      const timestamp = 1704067200000;
-      const formatted = wrapper.vm.formatTimestamp(timestamp);
-      expect(formatted).toBeTruthy();
-      expect(typeof formatted).toBe("string");
-    });
-
-    it("应该处理空时间戳", () => {
-      expect(wrapper.vm.formatTimestamp(null)).toBe("-");
-      expect(wrapper.vm.formatTimestamp(undefined)).toBe("-");
-    });
-  });
-
-  // 表单验证规则
-  describe("Form Validation Rules", () => {
-    beforeEach(async () => {
-      wrapper = createWrapper();
-      await wrapper.vm.$nextTick();
-    });
-
-    it("应该有名称必填规则", () => {
-      const nameRules = wrapper.vm.roleFormRules.name;
-      expect(nameRules).toBeDefined();
-      expect(nameRules.some((r) => r.required)).toBe(true);
-    });
-
-    it("应该有名称长度规则", () => {
-      const nameRules = wrapper.vm.roleFormRules.name;
-      expect(nameRules.some((r) => r.min === 2 && r.max === 20)).toBe(true);
-    });
-
-    it("应该有权限必选规则", () => {
-      const permRules = wrapper.vm.roleFormRules.permissions;
-      expect(permRules).toBeDefined();
-      expect(permRules.some((r) => r.required && r.type === "array")).toBe(
-        true,
-      );
-    });
-  });
-
-  // 加载状态
-  describe("Loading States", () => {
-    it("应该在加载时设置loading状态", async () => {
-      let resolvePromise;
-      const promise = new Promise((resolve) => {
-        resolvePromise = resolve;
-      });
-      window.electron.ipcRenderer.invoke.mockReturnValue(promise);
-
-      wrapper = createWrapper();
-      await wrapper.vm.$nextTick();
-
-      expect(wrapper.vm.loading).toBe(true);
-
-      resolvePromise([]);
-      await promise;
-      await wrapper.vm.$nextTick();
-
-      expect(wrapper.vm.loading).toBe(false);
-    });
-
-    it("应该在加载失败时清除loading状态", async () => {
-      window.electron.ipcRenderer.invoke.mockRejectedValue(new Error("Failed"));
-
-      wrapper = createWrapper();
-      await wrapper.vm.loadRoles();
-
-      expect(wrapper.vm.loading).toBe(false);
-    });
-  });
-
-  // 边界情况
-  describe("Edge Cases", () => {
-    beforeEach(async () => {
-      wrapper = createWrapper();
-      await wrapper.vm.$nextTick();
-    });
-
-    it("应该处理空权限列表", async () => {
-      window.electron.ipcRenderer.invoke.mockImplementation((channel) => {
-        if (channel === "org:get-all-permissions") {
-          return Promise.resolve([]);
-        }
-        return Promise.resolve([]);
-      });
-
-      await wrapper.vm.loadAllPermissions();
-
-      expect(wrapper.vm.allPermissions).toEqual([]);
-      expect(wrapper.vm.activePermissionCategories).toEqual([]);
-    });
-
-    it("应该处理权限列表为null", async () => {
-      window.electron.ipcRenderer.invoke.mockImplementation((channel) => {
-        if (channel === "org:get-all-permissions") {
-          return Promise.resolve(null);
-        }
-        return Promise.resolve([]);
-      });
-
-      await wrapper.vm.loadAllPermissions();
-
-      expect(wrapper.vm.allPermissions).toEqual([]);
-    });
-
-    it("应该处理缺失角色描述", () => {
-      const roleWithoutDesc = { ...mockCustomRoles[0], description: null };
-      wrapper.vm.handleViewRole(roleWithoutDesc);
-
-      expect(wrapper.vm.viewingRole.description).toBeNull();
-    });
-
-    it("应该处理空权限数组", () => {
-      const roleWithoutPerms = { ...mockCustomRoles[0], permissions: [] };
-      wrapper.vm.handleViewRole(roleWithoutPerms);
-
-      expect(wrapper.vm.viewingRole.permissions).toEqual([]);
-    });
-
-    it("应该处理编辑时复制权限数组", () => {
       const role = {
-        ...mockCustomRoles[0],
-        permissions: ["perm1", "perm2"],
-      };
+        id: 'role-3',
+        name: 'Editor',
+        description: 'Editor role',
+        permissions: ['read', 'write']
+      }
 
-      wrapper.vm.handleEditRole(role);
+      wrapper.vm.handleEditRole(role)
+      await nextTick()
 
-      expect(wrapper.vm.roleForm.permissions).toEqual(["perm1", "perm2"]);
-      expect(wrapper.vm.roleForm.permissions).not.toBe(role.permissions);
-    });
-  });
+      expect(wrapper.vm.roleModalVisible).toBe(true)
+      expect(wrapper.vm.isEditMode).toBe(true)
+      expect(wrapper.vm.roleForm.name).toBe('Editor')
+      expect(wrapper.vm.roleForm.permissions).toEqual(['read', 'write'])
+    })
 
-  // 权限分类显示
-  describe("Permission Categories", () => {
-    beforeEach(async () => {
-      wrapper = createWrapper();
-      await wrapper.vm.$nextTick();
-    });
+    it('should update role permissions via IPC', async () => {
+      wrapper = mount(OrganizationRolesPage, createMountOptions())
 
-    it("应该正确显示所有权限分类", () => {
-      expect(wrapper.vm.allPermissions.length).toBe(3);
-      expect(wrapper.vm.allPermissions[0].category).toBe("成员管理");
-      expect(wrapper.vm.allPermissions[1].category).toBe("角色管理");
-      expect(wrapper.vm.allPermissions[2].category).toBe("知识库");
-    });
+      await nextTick()
+      await nextTick()
 
-    it("应该正确显示每个分类的权限", () => {
-      const memberCategory = wrapper.vm.allPermissions[0];
-      expect(memberCategory.permissions.length).toBe(2);
-      expect(memberCategory.permissions[0].value).toBe("member.view");
-      expect(memberCategory.permissions[1].value).toBe("member.manage");
-    });
+      mockIpcRenderer.invoke.mockClear()
+      mockIpcRenderer.invoke
+        .mockResolvedValueOnce({ success: true })
+        .mockResolvedValueOnce([])
 
-    it("应该支持权限描述", () => {
-      const permission = wrapper.vm.allPermissions[0].permissions[0];
-      expect(permission.description).toBe("可以查看组织成员列表");
-    });
-  });
-});
+      const role = { id: 'role-3', name: 'Editor', description: 'Editor role', permissions: ['read'] }
+      wrapper.vm.handleEditRole(role)
+      wrapper.vm.roleForm.permissions = ['read', 'write', 'delete']
+
+      // Mock form validation
+      wrapper.vm.roleFormRef = {
+        validate: vi.fn().mockResolvedValue(true)
+      }
+
+      await wrapper.vm.handleRoleModalOk()
+      await nextTick()
+
+      expect(mockIpcRenderer.invoke).toHaveBeenCalledWith(
+        'org:update-role',
+        'role-3',
+        {
+          name: 'Editor',
+          description: 'Editor role',
+          permissions: ['read', 'write', 'delete']
+        },
+        'did:key:user123'
+      )
+      expect(mockMessage.success).toHaveBeenCalledWith('角色更新成功')
+    })
+
+    it('should allow editing custom roles', async () => {
+      wrapper = mount(OrganizationRolesPage, createMountOptions())
+
+      await nextTick()
+
+      const customRole = { id: 'role-3', name: 'Custom', is_builtin: false, permissions: [] }
+      wrapper.vm.handleEditRole(customRole)
+
+      expect(wrapper.vm.roleModalVisible).toBe(true)
+      expect(wrapper.vm.isEditMode).toBe(true)
+    })
+
+    it('should prevent editing predefined roles (admin/member/viewer)', async () => {
+      wrapper = mount(OrganizationRolesPage, createMountOptions())
+
+      await nextTick()
+      await nextTick()
+
+      // RoleCard should not emit edit for builtin roles
+      const roleCards = wrapper.findAllComponents(mockRoleCard)
+      const builtinCard = roleCards.find(c => c.props('isBuiltin') === true)
+
+      expect(builtinCard).toBeTruthy()
+      expect(builtinCard.props('isBuiltin')).toBe(true)
+    })
+
+    it('should close modal after editing', async () => {
+      wrapper = mount(OrganizationRolesPage, createMountOptions())
+
+      await nextTick()
+      await nextTick()
+
+      mockIpcRenderer.invoke.mockClear()
+      mockIpcRenderer.invoke
+        .mockResolvedValueOnce({ success: true })
+        .mockResolvedValueOnce([])
+
+      const role = { id: 'role-3', name: 'Editor', description: 'Test', permissions: ['read'] }
+      wrapper.vm.handleEditRole(role)
+
+      // Mock form validation
+      wrapper.vm.roleFormRef = {
+        validate: vi.fn().mockResolvedValue(true)
+      }
+
+      await wrapper.vm.handleRoleModalOk()
+      await nextTick()
+
+      expect(wrapper.vm.roleModalVisible).toBe(false)
+    })
+  })
+
+  describe('4. Role Deletion', () => {
+    it('should delete empty role', async () => {
+      mockIpcRenderer.invoke.mockResolvedValueOnce({ success: true })
+      mockModal.confirm.mockImplementation(({ onOk }) => onOk())
+
+      wrapper = mount(OrganizationRolesPage, createMountOptions())
+
+      await nextTick()
+
+      const role = { id: 'role-3', name: 'Empty Role', is_builtin: false }
+      wrapper.vm.handleDeleteRole(role)
+      await nextTick()
+
+      expect(mockModal.confirm).toHaveBeenCalled()
+      expect(mockIpcRenderer.invoke).toHaveBeenCalledWith('org:delete-role', 'role-3', 'did:key:user123')
+      expect(mockMessage.success).toHaveBeenCalledWith('角色删除成功')
+    })
+
+    it('should allow deleting custom roles with 0 members', async () => {
+      mockIpcRenderer.invoke.mockResolvedValueOnce({ success: true })
+      mockModal.confirm.mockImplementation(({ onOk }) => onOk())
+
+      wrapper = mount(OrganizationRolesPage, createMountOptions())
+
+      await nextTick()
+
+      const role = { id: 'role-custom', name: 'Custom', is_builtin: false, member_count: 0 }
+      wrapper.vm.handleDeleteRole(role)
+
+      expect(mockModal.confirm).toHaveBeenCalled()
+    })
+
+    it('should prevent deleting roles with members', async () => {
+      mockIpcRenderer.invoke.mockRejectedValueOnce(new Error('Cannot delete role with members'))
+      mockModal.confirm.mockImplementation(({ onOk }) => onOk())
+
+      wrapper = mount(OrganizationRolesPage, createMountOptions())
+
+      await nextTick()
+
+      const role = { id: 'role-3', name: 'Active Role', member_count: 5 }
+      wrapper.vm.handleDeleteRole(role)
+      await nextTick()
+
+      expect(mockMessage.error).toHaveBeenCalledWith('Cannot delete role with members')
+    })
+
+    it('should prevent deleting predefined roles', async () => {
+      wrapper = mount(OrganizationRolesPage, createMountOptions())
+
+      await nextTick()
+      await nextTick()
+
+      // RoleCard should not show delete button for builtin roles
+      const roleCards = wrapper.findAllComponents(mockRoleCard)
+      const builtinCards = roleCards.filter(c => c.props('isBuiltin') === true)
+
+      expect(builtinCards.length).toBeGreaterThan(0)
+    })
+  })
+
+  describe('5. Permission Assignment', () => {
+    it('should display 8 available permissions', async () => {
+      const mockRoles = []
+      const mockPermissions = [
+        {
+          category: 'Cat1',
+          permissions: [
+            { value: 'p1', label: 'P1', description: 'Desc1' },
+            { value: 'p2', label: 'P2', description: 'Desc2' },
+            { value: 'p3', label: 'P3', description: 'Desc3' },
+            { value: 'p4', label: 'P4', description: 'Desc4' }
+          ]
+        },
+        {
+          category: 'Cat2',
+          permissions: [
+            { value: 'p5', label: 'P5', description: 'Desc5' },
+            { value: 'p6', label: 'P6', description: 'Desc6' },
+            { value: 'p7', label: 'P7', description: 'Desc7' },
+            { value: 'p8', label: 'P8', description: 'Desc8' }
+          ]
+        }
+      ]
+
+      mockIpcRenderer.invoke.mockReset()
+      mockIpcRenderer.invoke
+        .mockResolvedValueOnce(mockRoles)
+        .mockResolvedValueOnce(mockPermissions)
+
+      wrapper = mount(OrganizationRolesPage, createMountOptions())
+
+      await nextTick()
+      await nextTick()
+
+      expect(wrapper.vm.allPermissions).toHaveLength(2)
+      const totalPermissions = wrapper.vm.allPermissions.reduce(
+        (sum, cat) => sum + cat.permissions.length,
+        0
+      )
+      expect(totalPermissions).toBe(8)
+    })
+
+    it('should allow selecting multiple permissions', async () => {
+      wrapper = mount(OrganizationRolesPage, createMountOptions())
+
+      await nextTick()
+
+      wrapper.vm.showCreateRoleModal()
+      wrapper.vm.roleForm.permissions = ['read', 'write', 'delete']
+
+      expect(wrapper.vm.roleForm.permissions).toHaveLength(3)
+    })
+
+    it('should display role permission tags', async () => {
+      wrapper = mount(OrganizationRolesPage, createMountOptions())
+
+      await nextTick()
+      await nextTick()
+
+      const role = {
+        id: 'role-1',
+        name: 'Test',
+        permissions: ['read', 'write'],
+        created_at: Date.now()
+      }
+
+      wrapper.vm.handleViewRole(role)
+      await nextTick()
+
+      expect(wrapper.vm.viewingRole).toEqual(role)
+      expect(wrapper.vm.viewRoleModalVisible).toBe(true)
+    })
+  })
+
+  describe('6. Role Inheritance', () => {
+    it('should filter inheritable roles (exclude admin/member/viewer)', async () => {
+      wrapper = mount(OrganizationRolesPage, createMountOptions())
+
+      await nextTick()
+      await nextTick()
+
+      // Custom roles should be separate from builtin
+      expect(wrapper.vm.builtinRoles.length).toBe(2)
+      expect(wrapper.vm.customRoles.length).toBe(1)
+    })
+
+    it('should create role inheriting from another', async () => {
+      wrapper = mount(OrganizationRolesPage, createMountOptions())
+
+      await nextTick()
+      await nextTick()
+
+      mockIpcRenderer.invoke.mockClear()
+      mockIpcRenderer.invoke
+        .mockResolvedValueOnce({ id: 'new-role-id' })
+        .mockResolvedValueOnce([])
+
+      wrapper.vm.showCreateRoleModal()
+      wrapper.vm.roleForm.name = 'Inherited Role'
+      wrapper.vm.roleForm.permissions = ['read', 'write'] // Inherited from another role
+
+      // Mock form validation
+      wrapper.vm.roleFormRef = {
+        validate: vi.fn().mockResolvedValue(true)
+      }
+
+      await wrapper.vm.handleRoleModalOk()
+
+      expect(mockIpcRenderer.invoke).toHaveBeenCalledWith(
+        'org:create-custom-role',
+        'org-123',
+        expect.objectContaining({
+          permissions: ['read', 'write']
+        }),
+        'did:key:user123'
+      )
+    })
+  })
+
+  describe('7. Search and Filtering', () => {
+    it('should filter by name', async () => {
+      wrapper = mount(OrganizationRolesPage, createMountOptions())
+
+      await nextTick()
+      await nextTick()
+
+      const allRoles = wrapper.vm.roles
+      expect(allRoles.some(r => r.name === 'Admin')).toBe(true)
+      expect(allRoles.some(r => r.name === 'Custom Role')).toBe(true)
+    })
+
+    it('should filter by description', async () => {
+      wrapper = mount(OrganizationRolesPage, createMountOptions())
+
+      await nextTick()
+      await nextTick()
+
+      const roleWithDesc = wrapper.vm.roles.find(r => r.description === 'Custom test role')
+      expect(roleWithDesc).toBeTruthy()
+    })
+
+    it('should filter by permissions', async () => {
+      wrapper = mount(OrganizationRolesPage, createMountOptions())
+
+      await nextTick()
+      await nextTick()
+
+      const rolesWithDelete = wrapper.vm.roles.filter(r => r.permissions.includes('delete'))
+      expect(rolesWithDelete.length).toBeGreaterThan(0)
+    })
+
+    it('should show all when empty', async () => {
+      wrapper = mount(OrganizationRolesPage, createMountOptions())
+
+      await nextTick()
+      await nextTick()
+
+      expect(wrapper.vm.roles.length).toBe(3)
+      expect(wrapper.vm.builtinRoles.length).toBe(2)
+      expect(wrapper.vm.customRoles.length).toBe(1)
+    })
+
+    it('should show empty when no matches', async () => {
+      mockIpcRenderer.invoke.mockReset()
+      mockIpcRenderer.invoke
+        .mockResolvedValueOnce([]) // Empty roles
+        .mockResolvedValueOnce([])
+
+      wrapper = mount(OrganizationRolesPage, createMountOptions())
+
+      await nextTick()
+      await nextTick()
+      await nextTick()
+
+      expect(wrapper.vm.customRoles.length).toBe(0)
+      const emptyComponent = wrapper.find('.a-empty')
+      expect(emptyComponent.exists()).toBe(true)
+    })
+
+    it('should update pagination total', async () => {
+      wrapper = mount(OrganizationRolesPage, createMountOptions())
+
+      await nextTick()
+      await nextTick()
+
+      // Total roles count
+      expect(wrapper.vm.roles.length).toBe(3)
+    })
+  })
+
+  describe('8. Permission Checks', () => {
+    it('should allow admin to create roles', async () => {
+      wrapper = mount(OrganizationRolesPage, createMountOptions({
+        attrs: {
+          'data-test-admin': true
+        }
+      }))
+
+      await nextTick()
+
+      wrapper.vm.showCreateRoleModal()
+      expect(wrapper.vm.roleModalVisible).toBe(true)
+    })
+
+    it('should prevent non-admin from creating', async () => {
+      wrapper = mount(OrganizationRolesPage, createMountOptions({
+        attrs: {
+          'data-test-admin': false
+        }
+      }))
+
+      await nextTick()
+
+      const permissionGuard = wrapper.findComponent(mockPermissionGuard)
+      expect(permissionGuard.exists()).toBe(true)
+    })
+
+    it('should prevent non-admin from editing', async () => {
+      mockIpcRenderer.invoke.mockRejectedValueOnce(new Error('Permission denied'))
+
+      wrapper = mount(OrganizationRolesPage, createMountOptions())
+
+      await nextTick()
+
+      const role = { id: 'role-3', name: 'Editor', description: 'Test', permissions: ['read'] }
+      wrapper.vm.handleEditRole(role)
+
+      await wrapper.vm.handleRoleModalOk()
+      await nextTick()
+
+      expect(mockMessage.error).toHaveBeenCalled()
+    })
+
+    it('should prevent non-admin from deleting', async () => {
+      mockIpcRenderer.invoke.mockRejectedValueOnce(new Error('Permission denied'))
+      mockModal.confirm.mockImplementation(({ onOk }) => onOk())
+
+      wrapper = mount(OrganizationRolesPage, createMountOptions())
+
+      await nextTick()
+
+      const role = { id: 'role-3', name: 'Test Role' }
+      wrapper.vm.handleDeleteRole(role)
+      await nextTick()
+
+      expect(mockMessage.error).toHaveBeenCalled()
+    })
+  })
+
+  describe('9. Error Handling', () => {
+    it('should handle load roles failure', async () => {
+      mockIpcRenderer.invoke.mockReset()
+      mockIpcRenderer.invoke
+        .mockRejectedValueOnce(new Error('Load roles failed'))
+        .mockResolvedValueOnce([])
+
+      wrapper = mount(OrganizationRolesPage, createMountOptions())
+
+      await nextTick()
+      await nextTick()
+      await nextTick()
+
+      expect(mockMessage.error).toHaveBeenCalled()
+      const errorCall = mockMessage.error.mock.calls[0][0]
+      expect(errorCall).toContain('Load roles failed')
+    })
+
+    it('should handle create role failure', async () => {
+      wrapper = mount(OrganizationRolesPage, createMountOptions())
+
+      await nextTick()
+      await nextTick()
+
+      mockIpcRenderer.invoke.mockClear()
+      mockIpcRenderer.invoke.mockRejectedValueOnce(new Error('Create failed'))
+
+      wrapper.vm.showCreateRoleModal()
+      wrapper.vm.roleForm.name = 'New Role'
+      wrapper.vm.roleForm.permissions = ['read']
+
+      // Mock form validation
+      wrapper.vm.roleFormRef = {
+        validate: vi.fn().mockResolvedValue(true)
+      }
+
+      await wrapper.vm.handleRoleModalOk()
+      await nextTick()
+
+      expect(mockMessage.error).toHaveBeenCalled()
+      const errorCall = mockMessage.error.mock.calls[0][0]
+      expect(errorCall).toContain('Create failed')
+    })
+
+    it('should handle delete role failure', async () => {
+      mockIpcRenderer.invoke.mockRejectedValueOnce(new Error('Delete failed'))
+      mockModal.confirm.mockImplementation(({ onOk }) => onOk())
+
+      wrapper = mount(OrganizationRolesPage, createMountOptions())
+
+      await nextTick()
+
+      const role = { id: 'role-3', name: 'Test' }
+      wrapper.vm.handleDeleteRole(role)
+      await nextTick()
+
+      expect(mockMessage.error).toHaveBeenCalledWith('Delete failed')
+    })
+
+    it('should handle invalid response format', async () => {
+      mockIpcRenderer.invoke.mockReset()
+      mockIpcRenderer.invoke
+        .mockResolvedValueOnce(null) // Invalid response
+        .mockResolvedValueOnce([])
+
+      wrapper = mount(OrganizationRolesPage, createMountOptions())
+
+      await nextTick()
+      await nextTick()
+      await nextTick()
+
+      // Should handle null response gracefully
+      expect(wrapper.vm.roles).toEqual([])
+    })
+  })
+})

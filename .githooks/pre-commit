@@ -1,0 +1,95 @@
+#!/bin/bash
+#
+# Pre-commit hook for ChainlessChain Android
+# Runs tests for changed files before allowing commit
+#
+# To install: git config core.hooksPath .githooks
+#
+
+set -e
+
+echo "🧪 Running pre-commit tests..."
+
+# Get list of changed Kotlin files
+CHANGED_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep "\.kt$" || true)
+
+if [ -z "$CHANGED_FILES" ]; then
+    echo "✅ No Kotlin files changed, skipping tests"
+    exit 0
+fi
+
+# Determine which modules are affected
+AFFECTED_MODULES=()
+
+for file in $CHANGED_FILES; do
+    if [[ $file == android-app/core-e2ee/* ]]; then
+        AFFECTED_MODULES+=("core-e2ee")
+    elif [[ $file == android-app/core-network/* ]]; then
+        AFFECTED_MODULES+=("core-network")
+    elif [[ $file == android-app/core-database/* ]]; then
+        AFFECTED_MODULES+=("core-database")
+    elif [[ $file == android-app/core-p2p/* ]]; then
+        AFFECTED_MODULES+=("core-p2p")
+    elif [[ $file == android-app/feature-ai/* ]]; then
+        AFFECTED_MODULES+=("feature-ai")
+    elif [[ $file == android-app/feature-p2p/* ]]; then
+        AFFECTED_MODULES+=("feature-p2p")
+    elif [[ $file == android-app/feature-knowledge/* ]]; then
+        AFFECTED_MODULES+=("feature-knowledge")
+    elif [[ $file == android-app/feature-project/* ]]; then
+        AFFECTED_MODULES+=("feature-project")
+    fi
+done
+
+# Remove duplicates
+AFFECTED_MODULES=($(echo "${AFFECTED_MODULES[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
+
+if [ ${#AFFECTED_MODULES[@]} -eq 0 ]; then
+    echo "✅ No test-relevant files changed"
+    exit 0
+fi
+
+echo "📦 Affected modules: ${AFFECTED_MODULES[@]}"
+
+cd android-app
+
+# Run tests for affected modules
+for module in "${AFFECTED_MODULES[@]}"; do
+    echo "🧪 Testing $module..."
+
+    case $module in
+        "core-e2ee")
+            ./gradlew :core-e2ee:testDebugUnitTest --no-daemon || {
+                echo "❌ core-e2ee tests failed!"
+                exit 1
+            }
+            ;;
+        "core-network")
+            ./gradlew :core-network:testDebugUnitTest --no-daemon || {
+                echo "❌ core-network tests failed!"
+                exit 1
+            }
+            ;;
+        "core-database")
+            ./gradlew :core-database:testDebugUnitTest --no-daemon || {
+                echo "❌ core-database tests failed!"
+                exit 1
+            }
+            ;;
+        "core-p2p")
+            ./gradlew :core-p2p:testDebugUnitTest --no-daemon || {
+                echo "❌ core-p2p tests failed!"
+                exit 1
+            }
+            ;;
+        "feature-ai"|"feature-p2p"|"feature-knowledge"|"feature-project")
+            ./gradlew :$module:testDebugUnitTest --no-daemon || {
+                echo "❌ $module tests failed!"
+                exit 1
+            }
+            ;;
+    esac
+done
+
+echo "✅ All pre-commit tests passed!"
+exit 0
