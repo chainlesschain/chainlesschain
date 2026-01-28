@@ -61,9 +61,14 @@
     height: 100%;
     border-radius: 50%;
     object-fit: contain;
-    background: rgba(255, 255, 255, 0.95);
-    padding: 15px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    /* 使用透明背景，保持logo原始样式 */
+    background: transparent;
+    /* 去除padding，让logo填满容器 */
+    padding: 0;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+    /* 确保logo清晰显示 */
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
 }
 
 /* 旋转环 - 外环 */
