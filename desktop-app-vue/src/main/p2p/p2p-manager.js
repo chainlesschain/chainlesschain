@@ -200,10 +200,17 @@ class P2PManager extends EventEmitter {
     logger.info("[P2PManager] 初始化 P2P 节点...");
 
     try {
-      // 动态导入 ESM 模块
+      // 动态导入 ESM 模块（带超时保护）
       if (!createLibp2p) {
         logger.info("[P2PManager] 加载 libp2p 模块...");
-        const libp2pModule = await import("libp2p");
+        const MODULE_LOAD_TIMEOUT = 10000; // 10秒超时
+
+        const libp2pModule = await Promise.race([
+          import("libp2p"),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('libp2p模块加载超时')), MODULE_LOAD_TIMEOUT)
+          )
+        ]);
         createLibp2p = libp2pModule.createLibp2p;
 
         const tcpModule = await import("@libp2p/tcp");
