@@ -486,8 +486,38 @@
         ]
     }
     </script>
+
+    <!-- 页面加载动画CSS -->
+    <link rel="stylesheet" href="loading.css">
 </head>
 <body>
+    <!-- 页面加载动画 -->
+    <div id="page-loader">
+        <div class="loader-container">
+            <!-- 粒子效果 -->
+            <div class="loader-particle"></div>
+            <div class="loader-particle"></div>
+            <div class="loader-particle"></div>
+            <div class="loader-particle"></div>
+
+            <!-- Logo容器 -->
+            <div class="loader-logo-wrapper">
+                <div class="loader-glow"></div>
+                <div class="loader-ring-outer"></div>
+                <div class="loader-ring-inner"></div>
+                <img src="logo.svg" alt="ChainlessChain Logo" class="loader-logo" onerror="this.src='logo.png'">
+            </div>
+
+            <!-- 加载文字 -->
+            <div class="loader-text">ChainlessChain</div>
+            <div class="loader-tip">无链之链 · 让数据主权回归个人</div>
+
+            <!-- 进度条 -->
+            <div class="loader-progress-container">
+                <div class="loader-progress-bar"></div>
+            </div>
+        </div>
+    </div>
     <!-- Navigation -->
     <nav class="navbar" id="navbar">
         <div class="container">
@@ -2417,5 +2447,8 @@
         handleScrollAnimations();
     }
     </script>
+
+    <!-- 页面加载动画JS -->
+    <script src="js/loading.js"></script>
 </body>
 </html>
