@@ -1729,6 +1729,22 @@ class DatabaseManager {
         timestamp INTEGER NOT NULL
       );
 
+      -- 权限审计日志表
+      CREATE TABLE IF NOT EXISTS permission_audit_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        org_id TEXT NOT NULL,
+        user_did TEXT NOT NULL,
+        permission TEXT NOT NULL,
+        action TEXT NOT NULL,
+        result TEXT NOT NULL,
+        resource_type TEXT,
+        resource_id TEXT,
+        context TEXT,
+        ip_address TEXT,
+        user_agent TEXT,
+        created_at INTEGER NOT NULL
+      );
+
       -- P2P同步状态表
       CREATE TABLE IF NOT EXISTS p2p_sync_state (
         id TEXT PRIMARY KEY,
@@ -1786,6 +1802,14 @@ class DatabaseManager {
       CREATE INDEX IF NOT EXISTS idx_knowledge_org_id ON knowledge_items(created_at DESC);
       CREATE INDEX IF NOT EXISTS idx_activities_org_timestamp ON organization_activities(org_id, timestamp DESC);
       CREATE INDEX IF NOT EXISTS idx_activities_actor ON organization_activities(actor_did);
+      CREATE INDEX IF NOT EXISTS idx_audit_org ON permission_audit_log(org_id);
+      CREATE INDEX IF NOT EXISTS idx_audit_user ON permission_audit_log(user_did);
+      CREATE INDEX IF NOT EXISTS idx_audit_permission ON permission_audit_log(permission);
+      CREATE INDEX IF NOT EXISTS idx_audit_action ON permission_audit_log(action);
+      CREATE INDEX IF NOT EXISTS idx_audit_result ON permission_audit_log(result);
+      CREATE INDEX IF NOT EXISTS idx_audit_created ON permission_audit_log(created_at);
+      CREATE INDEX IF NOT EXISTS idx_audit_org_user ON permission_audit_log(org_id, user_did);
+      CREATE INDEX IF NOT EXISTS idx_audit_org_created ON permission_audit_log(org_id, created_at);
       CREATE INDEX IF NOT EXISTS idx_version_history_knowledge ON knowledge_version_history(knowledge_id, version DESC);
       CREATE INDEX IF NOT EXISTS idx_version_history_created ON knowledge_version_history(created_at DESC);
       CREATE INDEX IF NOT EXISTS idx_sync_state_status ON p2p_sync_state(org_id, sync_status);
@@ -4509,6 +4533,17 @@ class DatabaseManager {
   }
 
   /**
+   * Get the underlying database instance
+   * @returns {Object} Database instance
+   */
+  getDatabase() {
+    if (!this.db) {
+      throw new Error("Database not initialized");
+    }
+    return this.db;
+  }
+
+  /**
    * Prepare a SQL statement
    * @param {string} sql - SQL statement
    * @returns {Object} Prepared statement
@@ -4788,7 +4823,7 @@ class DatabaseManager {
       // ✅ 安全验证：防止SQL注入
       const safeTableName = SqlSecurity.validateTableName(
         tableName,
-        SqlSecurity.getAllowedTables()
+        SqlSecurity.getAllowedTables(),
       );
 
       const stmt = this.db.prepare(
@@ -4846,7 +4881,7 @@ class DatabaseManager {
       // ✅ 安全验证：防止SQL注入
       const safeTableName = SqlSecurity.validateTableName(
         tableName,
-        SqlSecurity.getAllowedTables()
+        SqlSecurity.getAllowedTables(),
       );
 
       const stmt = this.db.prepare(
@@ -4882,7 +4917,7 @@ class DatabaseManager {
       // ✅ 安全验证：防止SQL注入
       const safeTableName = SqlSecurity.validateTableName(
         tableName,
-        SqlSecurity.getAllowedTables()
+        SqlSecurity.getAllowedTables(),
       );
 
       const stmt = this.db.prepare(
@@ -4961,7 +4996,7 @@ class DatabaseManager {
         // ✅ 安全验证：即使是内部表名也验证
         const safeTableName = SqlSecurity.validateTableName(
           tableName,
-          SqlSecurity.getAllowedTables()
+          SqlSecurity.getAllowedTables(),
         );
 
         const stmt = this.db.prepare(
@@ -5521,11 +5556,21 @@ class DatabaseManager {
       return [];
     }
 
-    const { offset = 0, limit = 0, sortBy = 'updated_at', sortOrder = 'DESC' } = options;
+    const {
+      offset = 0,
+      limit = 0,
+      sortBy = "updated_at",
+      sortOrder = "DESC",
+    } = options;
 
     // ✅ 安全验证：防止SQL注入
     const safeSortBy = SqlSecurity.validateColumnName(sortBy, [
-      'id', 'name', 'created_at', 'updated_at', 'project_type', 'status'
+      "id",
+      "name",
+      "created_at",
+      "updated_at",
+      "project_type",
+      "status",
     ]);
     const safeSortOrder = SqlSecurity.validateOrder(sortOrder);
 
@@ -5545,7 +5590,7 @@ class DatabaseManager {
     if (limit > 0) {
       const safeLimit = SqlSecurity.validateLimit(limit);
       const safeOffset = SqlSecurity.validateOffset(offset);
-      query += ' LIMIT ? OFFSET ?';
+      query += " LIMIT ? OFFSET ?";
       params.push(safeLimit, safeOffset);
     }
 
