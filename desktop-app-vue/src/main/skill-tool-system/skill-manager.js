@@ -3,9 +3,9 @@
  * 负责技能的注册、管理、统计和与工具的关联
  */
 
-const { logger, createLogger } = require('../utils/logger.js');
-const { v4: uuidv4 } = require('uuid');
-const DocGenerator = require('./doc-generator');
+const { logger, createLogger } = require("../utils/logger.js");
+const { v4: uuidv4 } = require("uuid");
+const DocGenerator = require("./doc-generator");
 
 class SkillManager {
   constructor(database, toolManager, dependencies = {}) {
@@ -31,7 +31,7 @@ class SkillManager {
    */
   async initialize() {
     try {
-      logger.info('[SkillManager] 初始化技能管理器...');
+      logger.info("[SkillManager] 初始化技能管理器...");
 
       // 1. 初始化文档生成器
       await this.docGenerator.initialize();
@@ -46,11 +46,13 @@ class SkillManager {
       await this.generateAllDocs();
 
       this.isInitialized = true;
-      logger.info(`[SkillManager] 初始化完成，共加载 ${this.skills.size} 个技能`);
+      logger.info(
+        `[SkillManager] 初始化完成，共加载 ${this.skills.size} 个技能`,
+      );
 
       return true;
     } catch (error) {
-      logger.error('[SkillManager] 初始化失败:', error);
+      logger.error("[SkillManager] 初始化失败:", error);
       throw error;
     }
   }
@@ -68,32 +70,45 @@ class SkillManager {
     try {
       // 验证必填字段
       if (!skillData.name) {
-        throw new Error('技能名称(name)是必填字段');
+        throw new Error("技能名称(name)是必填字段");
       }
       if (!skillData.category) {
-        throw new Error('技能分类(category)是必填字段');
+        throw new Error("技能分类(category)是必填字段");
       }
 
       const now = Date.now();
       const skillId = skillData.id || `skill_${uuidv4()}`;
+
+      // 检查技能ID是否已存在
+      if (skillData.id) {
+        const existing = await this.db.get(
+          "SELECT id FROM skills WHERE id = ?",
+          [skillData.id],
+        );
+        if (existing) {
+          throw new Error(`技能ID已存在: ${skillData.id}`);
+        }
+      }
 
       // 准备数据库记录
       const skillRecord = {
         id: skillId,
         name: skillData.name,
         display_name: skillData.display_name || skillData.name,
-        description: skillData.description || '',
+        description: skillData.description || "",
         category: skillData.category,
         icon: skillData.icon || null,
         enabled: skillData.enabled !== undefined ? skillData.enabled : 1,
         is_builtin: skillData.is_builtin || 0,
         plugin_id: skillData.plugin_id || null,
-        config: typeof skillData.config === 'string'
-          ? skillData.config
-          : JSON.stringify(skillData.config || {}),
-        tags: typeof skillData.tags === 'string'
-          ? skillData.tags
-          : JSON.stringify(skillData.tags || []),
+        config:
+          typeof skillData.config === "string"
+            ? skillData.config
+            : JSON.stringify(skillData.config || {}),
+        tags:
+          typeof skillData.tags === "string"
+            ? skillData.tags
+            : JSON.stringify(skillData.tags || []),
         doc_path: skillData.doc_path || null,
         usage_count: 0,
         success_count: 0,
@@ -109,30 +124,38 @@ class SkillManager {
           enabled, is_builtin, plugin_id, config, tags, doc_path,
           usage_count, success_count, last_used_at, created_at, updated_at
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ON CONFLICT(id) DO UPDATE SET
-          display_name = excluded.display_name,
-          description = excluded.description,
-          config = excluded.config,
-          updated_at = excluded.updated_at
       `;
 
       await this.db.run(sql, [
-        skillRecord.id, skillRecord.name, skillRecord.display_name,
-        skillRecord.description, skillRecord.category, skillRecord.icon,
-        skillRecord.enabled, skillRecord.is_builtin, skillRecord.plugin_id,
-        skillRecord.config, skillRecord.tags, skillRecord.doc_path,
-        skillRecord.usage_count, skillRecord.success_count,
-        skillRecord.last_used_at, skillRecord.created_at, skillRecord.updated_at,
+        skillRecord.id,
+        skillRecord.name,
+        skillRecord.display_name,
+        skillRecord.description,
+        skillRecord.category,
+        skillRecord.icon,
+        skillRecord.enabled,
+        skillRecord.is_builtin,
+        skillRecord.plugin_id,
+        skillRecord.config,
+        skillRecord.tags,
+        skillRecord.doc_path,
+        skillRecord.usage_count,
+        skillRecord.success_count,
+        skillRecord.last_used_at,
+        skillRecord.created_at,
+        skillRecord.updated_at,
       ]);
 
       // 缓存技能元数据
       this.skills.set(skillId, skillRecord);
 
-      logger.info(`[SkillManager] 技能注册成功: ${skillRecord.name} (${skillId})`);
+      logger.info(
+        `[SkillManager] 技能注册成功: ${skillRecord.name} (${skillId})`,
+      );
 
       return skillId;
     } catch (error) {
-      logger.error('[SkillManager] 注册技能失败:', error);
+      logger.error("[SkillManager] 注册技能失败:", error);
       throw error;
     }
   }
@@ -149,14 +172,14 @@ class SkillManager {
       }
 
       // 删除数据库记录（级联删除skill_tools关联）
-      await this.db.run('DELETE FROM skills WHERE id = ?', [skillId]);
+      await this.db.run("DELETE FROM skills WHERE id = ?", [skillId]);
 
       // 从缓存中移除
       this.skills.delete(skillId);
 
       logger.info(`[SkillManager] 技能注销成功: ${skill.name}`);
     } catch (error) {
-      logger.error('[SkillManager] 注销技能失败:', error);
+      logger.error("[SkillManager] 注销技能失败:", error);
       throw error;
     }
   }
@@ -174,8 +197,14 @@ class SkillManager {
       }
 
       const allowedFields = [
-        'display_name', 'description', 'category', 'icon',
-        'enabled', 'config', 'tags', 'doc_path',
+        "display_name",
+        "description",
+        "category",
+        "icon",
+        "enabled",
+        "config",
+        "tags",
+        "doc_path",
       ];
 
       const updatePairs = [];
@@ -186,8 +215,10 @@ class SkillManager {
           updatePairs.push(`${key} = ?`);
 
           // 处理JSON字段
-          if (['config', 'tags'].includes(key)) {
-            updateValues.push(typeof value === 'string' ? value : JSON.stringify(value));
+          if (["config", "tags"].includes(key)) {
+            updateValues.push(
+              typeof value === "string" ? value : JSON.stringify(value),
+            );
           } else {
             updateValues.push(value);
           }
@@ -198,11 +229,11 @@ class SkillManager {
         return { success: true, changes: 0 };
       }
 
-      updatePairs.push('updated_at = ?');
+      updatePairs.push("updated_at = ?");
       updateValues.push(Date.now());
       updateValues.push(skillId);
 
-      const sql = `UPDATE skills SET ${updatePairs.join(', ')} WHERE id = ?`;
+      const sql = `UPDATE skills SET ${updatePairs.join(", ")} WHERE id = ?`;
       const result = await this.db.run(sql, updateValues);
 
       // 更新缓存
@@ -212,7 +243,7 @@ class SkillManager {
       logger.info(`[SkillManager] 技能更新成功: ${skill.name}`);
       return { success: true, changes: result.changes || 1 };
     } catch (error) {
-      logger.error('[SkillManager] 更新技能失败:', error);
+      logger.error("[SkillManager] 更新技能失败:", error);
       return { success: false, changes: 0, error: error.message };
     }
   }
@@ -230,13 +261,15 @@ class SkillManager {
       }
 
       // 查数据库
-      const skill = await this.db.get('SELECT * FROM skills WHERE id = ?', [skillId]);
+      const skill = await this.db.get("SELECT * FROM skills WHERE id = ?", [
+        skillId,
+      ]);
       if (skill) {
         this.skills.set(skillId, skill);
       }
       return skill;
     } catch (error) {
-      logger.error('[SkillManager] 获取技能失败:', error);
+      logger.error("[SkillManager] 获取技能失败:", error);
       return null;
     }
   }
@@ -255,7 +288,7 @@ class SkillManager {
       const skills = await this._getAllSkillsArray(options);
       return { success: true, skills };
     } catch (error) {
-      logger.error('[SkillManager] 获取技能列表失败:', error);
+      logger.error("[SkillManager] 获取技能列表失败:", error);
       return { success: false, skills: [], error: error.message };
     }
   }
@@ -270,7 +303,7 @@ class SkillManager {
       const skills = await this._getAllSkillsArray({ category });
       return { success: true, skills };
     } catch (error) {
-      logger.error('[SkillManager] 获取技能列表失败:', error);
+      logger.error("[SkillManager] 获取技能列表失败:", error);
       return { success: false, skills: [], error: error.message };
     }
   }
@@ -316,7 +349,7 @@ class SkillManager {
    * @param {string} role - 角色 (primary/secondary/optional)
    * @param {number} priority - 优先级
    */
-  async addToolToSkill(skillId, toolId, role = 'primary', priority = 0) {
+  async addToolToSkill(skillId, toolId, role = "primary", priority = 0) {
     try {
       const skill = await this.getSkill(skillId);
       if (!skill) {
@@ -331,17 +364,22 @@ class SkillManager {
       const id = `st_${uuidv4()}`;
       const now = Date.now();
 
-      await this.db.run(`
+      await this.db.run(
+        `
         INSERT INTO skill_tools (id, skill_id, tool_id, role, priority, created_at)
         VALUES (?, ?, ?, ?, ?, ?)
         ON CONFLICT(skill_id, tool_id) DO UPDATE SET
           role = excluded.role,
           priority = excluded.priority
-      `, [id, skillId, toolId, role, priority, now]);
+      `,
+        [id, skillId, toolId, role, priority, now],
+      );
 
-      logger.info(`[SkillManager] 工具已添加到技能: ${tool.name} -> ${skill.name}`);
+      logger.info(
+        `[SkillManager] 工具已添加到技能: ${tool.name} -> ${skill.name}`,
+      );
     } catch (error) {
-      logger.error('[SkillManager] 添加工具到技能失败:', error);
+      logger.error("[SkillManager] 添加工具到技能失败:", error);
       throw error;
     }
   }
@@ -354,13 +392,13 @@ class SkillManager {
   async removeToolFromSkill(skillId, toolId) {
     try {
       await this.db.run(
-        'DELETE FROM skill_tools WHERE skill_id = ? AND tool_id = ?',
-        [skillId, toolId]
+        "DELETE FROM skill_tools WHERE skill_id = ? AND tool_id = ?",
+        [skillId, toolId],
       );
 
       logger.info(`[SkillManager] 工具已从技能移除`);
     } catch (error) {
-      logger.error('[SkillManager] 移除工具失败:', error);
+      logger.error("[SkillManager] 移除工具失败:", error);
       throw error;
     }
   }
@@ -383,7 +421,7 @@ class SkillManager {
       const tools = await this.db.all(sql, [skillId]);
       return tools;
     } catch (error) {
-      logger.error('[SkillManager] 获取技能工具失败:', error);
+      logger.error("[SkillManager] 获取技能工具失败:", error);
       return [];
     }
   }
@@ -406,7 +444,7 @@ class SkillManager {
       const skills = await this.db.all(sql, [toolId]);
       return skills;
     } catch (error) {
-      logger.error('[SkillManager] 获取工具关联技能失败:', error);
+      logger.error("[SkillManager] 获取工具关联技能失败:", error);
       return [];
     }
   }
@@ -431,21 +469,25 @@ class SkillManager {
       }
 
       const newUsageCount = skill.usage_count + 1;
-      const newSuccessCount = success ? skill.success_count + 1 : skill.success_count;
+      const newSuccessCount = success
+        ? skill.success_count + 1
+        : skill.success_count;
 
-      await this.db.run(`
+      await this.db.run(
+        `
         UPDATE skills
         SET usage_count = ?,
             success_count = ?,
             last_used_at = ?
         WHERE id = ?
-      `, [newUsageCount, newSuccessCount, Date.now(), skillId]);
+      `,
+        [newUsageCount, newSuccessCount, Date.now(), skillId],
+      );
 
       // 2. 更新每日统计表
       await this.updateDailyStats(skillId, success, duration);
-
     } catch (error) {
-      logger.error('[SkillManager] 记录技能使用失败:', error);
+      logger.error("[SkillManager] 记录技能使用失败:", error);
     }
   }
 
@@ -457,24 +499,29 @@ class SkillManager {
    */
   async updateDailyStats(skillId, success, duration) {
     try {
-      const statDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+      const statDate = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
       const now = Date.now();
 
       // 查询今日统计
       const stat = await this.db.get(
-        'SELECT * FROM skill_stats WHERE skill_id = ? AND stat_date = ?',
-        [skillId, statDate]
+        "SELECT * FROM skill_stats WHERE skill_id = ? AND stat_date = ?",
+        [skillId, statDate],
       );
 
       if (stat) {
         // 更新现有统计
         const newInvokeCount = stat.invoke_count + 1;
-        const newSuccessCount = success ? stat.success_count + 1 : stat.success_count;
-        const newFailureCount = success ? stat.failure_count : stat.failure_count + 1;
+        const newSuccessCount = success
+          ? stat.success_count + 1
+          : stat.success_count;
+        const newFailureCount = success
+          ? stat.failure_count
+          : stat.failure_count + 1;
         const newTotalDuration = stat.total_duration + duration;
         const newAvgDuration = newTotalDuration / newInvokeCount;
 
-        await this.db.run(`
+        await this.db.run(
+          `
           UPDATE skill_stats
           SET invoke_count = ?,
               success_count = ?,
@@ -483,26 +530,45 @@ class SkillManager {
               total_duration = ?,
               updated_at = ?
           WHERE id = ?
-        `, [
-          newInvokeCount, newSuccessCount, newFailureCount,
-          newAvgDuration, newTotalDuration, now, stat.id
-        ]);
+        `,
+          [
+            newInvokeCount,
+            newSuccessCount,
+            newFailureCount,
+            newAvgDuration,
+            newTotalDuration,
+            now,
+            stat.id,
+          ],
+        );
       } else {
         // 创建新统计
-        await this.db.run(`
+        await this.db.run(
+          `
           INSERT INTO skill_stats (
             id, skill_id, stat_date, invoke_count, success_count,
             failure_count, avg_duration, total_duration,
             positive_feedback, negative_feedback, created_at, updated_at
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `, [
-          `stat_${uuidv4()}`, skillId, statDate, 1,
-          success ? 1 : 0, success ? 0 : 1,
-          duration, duration, 0, 0, now, now
-        ]);
+        `,
+          [
+            `stat_${uuidv4()}`,
+            skillId,
+            statDate,
+            1,
+            success ? 1 : 0,
+            success ? 0 : 1,
+            duration,
+            duration,
+            0,
+            0,
+            now,
+            now,
+          ],
+        );
       }
     } catch (error) {
-      logger.error('[SkillManager] 更新每日统计失败:', error);
+      logger.error("[SkillManager] 更新每日统计失败:", error);
     }
   }
 
@@ -521,13 +587,14 @@ class SkillManager {
         const stats = {
           totalSkills: skills.length,
           categories: {},
-          enabled: skills.filter(s => s.enabled === 1).length,
-          disabled: skills.filter(s => s.enabled === 0).length,
+          enabled: skills.filter((s) => s.enabled === 1).length,
+          disabled: skills.filter((s) => s.enabled === 0).length,
         };
 
-        skills.forEach(skill => {
+        skills.forEach((skill) => {
           if (skill.category) {
-            stats.categories[skill.category] = (stats.categories[skill.category] || 0) + 1;
+            stats.categories[skill.category] =
+              (stats.categories[skill.category] || 0) + 1;
           }
         });
 
@@ -535,20 +602,20 @@ class SkillManager {
       }
 
       // 如果提供了skillId，返回该技能的统计数据
-      let sql = 'SELECT * FROM skill_stats WHERE skill_id = ?';
+      let sql = "SELECT * FROM skill_stats WHERE skill_id = ?";
       const params = [skillId];
 
       if (dateRange) {
-        sql += ' AND stat_date >= ? AND stat_date <= ?';
+        sql += " AND stat_date >= ? AND stat_date <= ?";
         params.push(dateRange.start, dateRange.end);
       }
 
-      sql += ' ORDER BY stat_date DESC';
+      sql += " ORDER BY stat_date DESC";
 
       const stats = await this.db.all(sql, params);
       return stats;
     } catch (error) {
-      logger.error('[SkillManager] 获取技能统计失败:', error);
+      logger.error("[SkillManager] 获取技能统计失败:", error);
       return [];
     }
   }
@@ -580,15 +647,15 @@ class SkillManager {
     try {
       // 简化实现：根据意图关键词匹配技能分类
       const intentCategoryMap = {
-        '文件': 'file',
-        '代码': 'code',
-        '数据': 'data',
-        '网页': 'web',
-        'Web': 'web',
-        '内容': 'content',
-        '文档': 'document',
-        '图片': 'media',
-        '视频': 'media',
+        文件: "file",
+        代码: "code",
+        数据: "data",
+        网页: "web",
+        Web: "web",
+        内容: "content",
+        文档: "document",
+        图片: "media",
+        视频: "media",
       };
 
       let category = null;
@@ -605,9 +672,8 @@ class SkillManager {
 
       // 默认返回使用次数最多的技能
       return this.getAllSkills({ enabled: 1, limit: 5 });
-
     } catch (error) {
-      logger.error('[SkillManager] 技能推荐失败:', error);
+      logger.error("[SkillManager] 技能推荐失败:", error);
       return [];
     }
   }
@@ -621,16 +687,16 @@ class SkillManager {
    */
   async loadBuiltInSkills() {
     try {
-      logger.info('[SkillManager] 加载内置技能...');
+      logger.info("[SkillManager] 加载内置技能...");
 
       // 导入内置技能定义
-      const builtInSkills = require('./builtin-skills');
+      const builtInSkills = require("./builtin-skills");
 
       for (const skillDef of builtInSkills) {
         // 检查是否已存在
         const existing = await this.db.get(
-          'SELECT id FROM skills WHERE id = ?',
-          [skillDef.id]
+          "SELECT id FROM skills WHERE id = ?",
+          [skillDef.id],
         );
 
         if (existing) {
@@ -655,8 +721,8 @@ class SkillManager {
               await this.addToolToSkill(
                 skillId,
                 tool.id,
-                i === 0 ? 'primary' : 'secondary',
-                skillDef.tools.length - i
+                i === 0 ? "primary" : "secondary",
+                skillDef.tools.length - i,
               );
             } else {
               logger.warn(`[SkillManager] 工具不存在，跳过关联: ${toolName}`);
@@ -665,11 +731,11 @@ class SkillManager {
         }
       }
 
-      logger.info('[SkillManager] 内置技能加载完成');
+      logger.info("[SkillManager] 内置技能加载完成");
     } catch (error) {
-      logger.error('[SkillManager] 加载内置技能失败:', error);
+      logger.error("[SkillManager] 加载内置技能失败:", error);
       // 如果builtin-skills.js还不存在，不要抛出错误
-      if (error.code !== 'MODULE_NOT_FOUND') {
+      if (error.code !== "MODULE_NOT_FOUND") {
         throw error;
       }
     }
@@ -680,20 +746,22 @@ class SkillManager {
    */
   async loadPluginSkills() {
     try {
-      logger.info('[SkillManager] 加载插件技能...');
+      logger.info("[SkillManager] 加载插件技能...");
 
       // 查询数据库中plugin_id不为空的技能
       const pluginSkills = await this.db.all(
-        'SELECT * FROM skills WHERE plugin_id IS NOT NULL AND enabled = 1'
+        "SELECT * FROM skills WHERE plugin_id IS NOT NULL AND enabled = 1",
       );
 
       for (const skill of pluginSkills) {
         this.skills.set(skill.id, skill);
       }
 
-      logger.info(`[SkillManager] 插件技能加载完成，共 ${pluginSkills.length} 个`);
+      logger.info(
+        `[SkillManager] 插件技能加载完成，共 ${pluginSkills.length} 个`,
+      );
     } catch (error) {
-      logger.error('[SkillManager] 加载插件技能失败:', error);
+      logger.error("[SkillManager] 加载插件技能失败:", error);
     }
   }
 
@@ -706,7 +774,7 @@ class SkillManager {
    */
   async generateAllDocs() {
     try {
-      logger.info('[SkillManager] 生成技能文档...');
+      logger.info("[SkillManager] 生成技能文档...");
 
       const skillsWithTools = [];
 
@@ -716,10 +784,11 @@ class SkillManager {
         skillsWithTools.push({ skill, tools });
       }
 
-      const count = await this.docGenerator.generateAllSkillDocs(skillsWithTools);
+      const count =
+        await this.docGenerator.generateAllSkillDocs(skillsWithTools);
       logger.info(`[SkillManager] 技能文档生成完成，共 ${count} 个`);
     } catch (error) {
-      logger.error('[SkillManager] 生成技能文档失败:', error);
+      logger.error("[SkillManager] 生成技能文档失败:", error);
       // 文档生成失败不影响系统运行
     }
   }
@@ -745,7 +814,7 @@ class SkillManager {
 
       return content;
     } catch (error) {
-      logger.error('[SkillManager] 获取技能文档失败:', error);
+      logger.error("[SkillManager] 获取技能文档失败:", error);
       throw error;
     }
   }
@@ -766,7 +835,7 @@ class SkillManager {
 
       logger.info(`[SkillManager] 技能文档已重新生成: ${skillId}`);
     } catch (error) {
-      logger.error('[SkillManager] 重新生成技能文档失败:', error);
+      logger.error("[SkillManager] 重新生成技能文档失败:", error);
       throw error;
     }
   }
@@ -823,7 +892,9 @@ class SkillManager {
    */
   async toggleSkillEnabled(skillId, enabled) {
     try {
-      const result = await this.updateSkill(skillId, { enabled: enabled ? 1 : 0 });
+      const result = await this.updateSkill(skillId, {
+        enabled: enabled ? 1 : 0,
+      });
       return result;
     } catch (error) {
       return { success: false, changes: 0, error: error.message };
@@ -874,40 +945,40 @@ class SkillManager {
         offset = 0,
       } = options;
 
-      let sql = 'SELECT * FROM skills WHERE 1=1';
+      let sql = "SELECT * FROM skills WHERE 1=1";
       const params = [];
 
       if (enabled !== null) {
-        sql += ' AND enabled = ?';
+        sql += " AND enabled = ?";
         params.push(enabled);
       }
 
       if (category !== null) {
-        sql += ' AND category = ?';
+        sql += " AND category = ?";
         params.push(category);
       }
 
       if (plugin_id !== null) {
-        sql += ' AND plugin_id = ?';
+        sql += " AND plugin_id = ?";
         params.push(plugin_id);
       }
 
       if (is_builtin !== null) {
-        sql += ' AND is_builtin = ?';
+        sql += " AND is_builtin = ?";
         params.push(is_builtin);
       }
 
-      sql += ' ORDER BY usage_count DESC';
+      sql += " ORDER BY usage_count DESC";
 
       if (limit !== null) {
-        sql += ' LIMIT ? OFFSET ?';
+        sql += " LIMIT ? OFFSET ?";
         params.push(limit, offset);
       }
 
       const skills = await this.db.all(sql, params);
       return skills;
     } catch (error) {
-      logger.error('[SkillManager] 获取技能列表失败:', error);
+      logger.error("[SkillManager] 获取技能列表失败:", error);
       return [];
     }
   }

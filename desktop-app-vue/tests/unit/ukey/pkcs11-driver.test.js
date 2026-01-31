@@ -40,30 +40,63 @@ vi.mock("fs", () => ({
 // Mock crypto module
 vi.mock("crypto", () => ({
   publicEncrypt: vi.fn((key, data) => Buffer.from("encrypted-" + data)),
-  publicDecrypt: vi.fn((key, data) => Buffer.from(data.toString().replace("encrypted-", ""))),
+  publicDecrypt: vi.fn((key, data) =>
+    Buffer.from(data.toString().replace("encrypted-", "")),
+  ),
   createVerify: vi.fn(() => ({
     update: vi.fn(),
     verify: vi.fn(() => true),
   })),
 }));
 
-// Mock child_process
+// Mock child_process - use correct callback signature (error, stdout, stderr)
 vi.mock("child_process", () => ({
-  exec: vi.fn((cmd, callback) => {
-    // Simulate pkcs11-tool commands
+  exec: vi.fn((cmd, options, callback) => {
+    // Handle both (cmd, callback) and (cmd, options, callback) signatures
+    if (typeof options === "function") {
+      callback = options;
+    }
+
+    // Simulate pkcs11-tool commands with correct callback signature
     if (cmd.includes("--list-slots")) {
-      callback(null, {
-        stdout: "Available slots:\nSlot 0 (0x0): Test Token\n  token label: TestToken\n  token serial: 12345678",
-        stderr: "",
-      });
+      callback(
+        null,
+        "Available slots:\nSlot 0 (0x0): Test Token\n  token label: TestToken\n  token serial: 12345678",
+        "",
+      );
     } else if (cmd.includes("--login") && cmd.includes("--pin")) {
-      callback(null, { stdout: "Logged in successfully", stderr: "" });
+      // Check for correct vs wrong PIN
+      if (cmd.includes('"123456"')) {
+        callback(null, "Logged in successfully", "");
+      } else if (cmd.includes('"wrong"')) {
+        callback(
+          new Error(
+            'Command failed: pkcs11-tool --login --pin "wrong" --list-objects --type privkey 2>&1\n',
+          ),
+          "",
+          "",
+        );
+      } else {
+        callback(null, "Logged in successfully", "");
+      }
     } else if (cmd.includes("--read-object")) {
-      callback(null, { stdout: Buffer.from("mock-public-key").toString("hex"), stderr: "" });
+      callback(null, Buffer.from("mock-public-key").toString("hex"), "");
     } else if (cmd.includes("--sign")) {
-      callback(null, { stdout: Buffer.from("mock-signature").toString("hex"), stderr: "" });
+      callback(null, Buffer.from("mock-signature").toString("hex"), "");
+    } else if (cmd.includes("--change-pin")) {
+      if (cmd.includes('"wrong"')) {
+        callback(
+          new Error(
+            'Command failed: pkcs11-tool --change-pin --pin "wrong" --new-pin "new" 2>&1\n',
+          ),
+          "",
+          "",
+        );
+      } else {
+        callback(null, "PIN changed successfully", "");
+      }
     } else {
-      callback(null, { stdout: "", stderr: "" });
+      callback(null, "", "");
     }
   }),
 }));
@@ -98,20 +131,28 @@ const mockPKCS11Instance = {
   C_FindObjectsFinal: vi.fn(),
   C_GetAttributeValue: vi.fn((session, handle, attrs) => {
     // Mock different attributes based on request
-    if (attrs.some(a => a.type === 0x00000120)) { // CKA_MODULUS
-      return [{
-        type: 0x00000120,
-        value: Buffer.alloc(256).fill(0x01),
-      }, {
-        type: 0x00000122, // CKA_PUBLIC_EXPONENT
-        value: Buffer.from([0x01, 0x00, 0x01]),
-      }];
+    if (attrs.some((a) => a.type === 0x00000120)) {
+      // CKA_MODULUS
+      return [
+        {
+          type: 0x00000120,
+          value: Buffer.alloc(256).fill(0x01),
+        },
+        {
+          type: 0x00000122, // CKA_PUBLIC_EXPONENT
+          value: Buffer.from([0x01, 0x00, 0x01]),
+        },
+      ];
     }
-    return attrs.map(a => ({ ...a, value: Buffer.from("test") }));
+    return attrs.map((a) => ({ ...a, value: Buffer.from("test") }));
   }),
-  C_Sign: vi.fn((session, data) => Buffer.from("mock-signature-" + data.toString("hex").substring(0, 10))),
+  C_Sign: vi.fn((session, data) =>
+    Buffer.from("mock-signature-" + data.toString("hex").substring(0, 10)),
+  ),
   C_Verify: vi.fn(() => true),
-  C_Encrypt: vi.fn((session, data) => Buffer.from("encrypted-" + data.toString())),
+  C_Encrypt: vi.fn((session, data) =>
+    Buffer.from("encrypted-" + data.toString()),
+  ),
   C_Decrypt: vi.fn((session, data) => {
     const str = data.toString();
     return Buffer.from(str.replace("encrypted-", ""));
@@ -204,17 +245,24 @@ describe("PKCS11Driver", () => {
       });
 
       const newDriver = new PKCS11Driver();
-      expect(newDriver.libraryPath).toBe("/Library/OpenSC/lib/opensc-pkcs11.so");
+      expect(newDriver.libraryPath).toBe(
+        "/Library/OpenSC/lib/opensc-pkcs11.so",
+      );
     });
 
     it("should search Windows paths", () => {
       mockPlatform.mockImplementation(() => "win32");
       mockExistsSync.mockImplementation((path) => {
-        return path === "C:\\Program Files\\OpenSC Project\\OpenSC\\pkcs11\\opensc-pkcs11.dll";
+        return (
+          path ===
+          "C:\\Program Files\\OpenSC Project\\OpenSC\\pkcs11\\opensc-pkcs11.dll"
+        );
       });
 
       const newDriver = new PKCS11Driver();
-      expect(newDriver.libraryPath).toBe("C:\\Program Files\\OpenSC Project\\OpenSC\\pkcs11\\opensc-pkcs11.dll");
+      expect(newDriver.libraryPath).toBe(
+        "C:\\Program Files\\OpenSC Project\\OpenSC\\pkcs11\\opensc-pkcs11.dll",
+      );
     });
 
     it("should return first path as default if none found", () => {
@@ -336,7 +384,7 @@ describe("PKCS11Driver", () => {
 
       const result = await driver.detect();
 
-      expect(result).toBe(true);
+      expect(result.detected).toBe(true);
       expect(driver.slotId).toBe(0);
       expect(driver.tokenLabel).toContain("TestToken");
     });
@@ -347,7 +395,7 @@ describe("PKCS11Driver", () => {
 
       const result = await driver.detect();
 
-      expect(result).toBe(true);
+      expect(result.detected).toBe(true);
     });
 
     it("should return false if no slots available", async () => {
@@ -357,7 +405,7 @@ describe("PKCS11Driver", () => {
 
       const result = await driver.detect();
 
-      expect(result).toBe(false);
+      expect(result.detected).toBe(false);
     });
   });
 
@@ -371,7 +419,7 @@ describe("PKCS11Driver", () => {
     it("should verify correct PIN with PKCS11", async () => {
       const result = await driver.verifyPIN("123456");
 
-      expect(result).toBe(true);
+      expect(result.success).toBe(true);
       expect(mockPKCS11Instance.C_Login).toHaveBeenCalled();
     });
 
@@ -382,7 +430,9 @@ describe("PKCS11Driver", () => {
         throw error;
       });
 
-      await expect(driver.verifyPIN("wrong")).rejects.toThrow();
+      const result = await driver.verifyPIN("wrong");
+      expect(result.success).toBe(false);
+      expect(result.reason).toBe("pin_incorrect");
     });
 
     it("should handle locked PIN", async () => {
@@ -392,7 +442,9 @@ describe("PKCS11Driver", () => {
         throw error;
       });
 
-      await expect(driver.verifyPIN("123456")).rejects.toThrow("PIN locked");
+      const result = await driver.verifyPIN("123456");
+      expect(result.success).toBe(false);
+      expect(result.reason).toBe("pin_locked");
     });
 
     it("should track PIN retry count", async () => {
@@ -402,12 +454,8 @@ describe("PKCS11Driver", () => {
         throw error;
       });
 
-      try {
-        await driver.verifyPIN("wrong");
-      } catch (e) {
-        // Expected
-      }
-
+      const result = await driver.verifyPIN("wrong");
+      expect(result.success).toBe(false);
       expect(driver.pinRetryCount).toBeLessThan(10);
     });
 
@@ -837,7 +885,7 @@ describe("PKCS11Driver", () => {
       const result = await driver.detect();
 
       expect(exec).toHaveBeenCalled();
-      expect(result).toBe(true);
+      expect(result.detected).toBe(true);
     });
 
     it("should use CLI for verifyPIN", async () => {
@@ -845,7 +893,7 @@ describe("PKCS11Driver", () => {
 
       const result = await driver.verifyPIN("123456");
 
-      expect(result).toBe(true);
+      expect(result.success).toBe(true);
     });
 
     it("should use CLI for sign", async () => {
@@ -917,7 +965,10 @@ describe("PKCS11Driver", () => {
     it("should handle macOS eToken library", () => {
       mockPlatform.mockReturnValue("darwin");
       mockExistsSync.mockImplementation((path) => {
-        return path === "/Library/Frameworks/eToken.framework/Versions/Current/libeToken.dylib";
+        return (
+          path ===
+          "/Library/Frameworks/eToken.framework/Versions/Current/libeToken.dylib"
+        );
       });
 
       const macDriver = new PKCS11Driver();

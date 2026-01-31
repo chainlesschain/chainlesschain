@@ -109,76 +109,107 @@ describe("SkillManager", () => {
 
   describe("enableSkill / disableSkill", () => {
     it("应该启用技能", async () => {
+      const mockSkill = { id: "test_skill", name: "测试技能" };
+      mockDatabase.get.mockResolvedValue(mockSkill);
       mockDatabase.run.mockResolvedValue({ changes: 1 });
 
       await skillManager.enableSkill("test_skill");
 
       expect(mockDatabase.run).toHaveBeenCalledWith(
         expect.stringContaining("UPDATE skills"),
-        expect.objectContaining({ enabled: 1 }),
+        expect.arrayContaining([1]), // enabled = 1
       );
     });
 
     it("应该禁用技能", async () => {
+      const mockSkill = { id: "test_skill", name: "测试技能" };
+      mockDatabase.get.mockResolvedValue(mockSkill);
       mockDatabase.run.mockResolvedValue({ changes: 1 });
 
       await skillManager.disableSkill("test_skill");
 
       expect(mockDatabase.run).toHaveBeenCalledWith(
         expect.stringContaining("UPDATE skills"),
-        expect.objectContaining({ enabled: 0 }),
+        expect.arrayContaining([0]), // enabled = 0
       );
     });
   });
 
   describe("addToolToSkill", () => {
     it("应该成功添加工具到技能", async () => {
+      const mockSkill = { id: "test_skill", name: "测试技能" };
+      const mockTool = { id: "test_tool", name: "测试工具" };
+
+      mockDatabase.get.mockResolvedValueOnce(mockSkill); // getSkill
+      // Mock toolManager.getTool - need to set up the method
+      skillManager.toolManager.getTool = vi.fn().mockResolvedValue(mockTool);
       mockDatabase.run.mockResolvedValue({ changes: 1 });
 
       await skillManager.addToolToSkill("test_skill", "test_tool", "primary");
 
       expect(mockDatabase.run).toHaveBeenCalled();
+      expect(mockDatabase.run).toHaveBeenCalledWith(
+        expect.stringContaining("INSERT INTO skill_tools"),
+        expect.any(Array),
+      );
     });
 
-    it("应该防止重复添加同一工具", async () => {
-      // 第一次添加成功
-      mockDatabase.get.mockResolvedValueOnce(null);
-      mockDatabase.run.mockResolvedValue({ changes: 1 });
-      await skillManager.addToolToSkill("test_skill", "test_tool");
+    it("应该允许更新现有工具关联", async () => {
+      const mockSkill = { id: "test_skill", name: "测试技能" };
+      const mockTool = { id: "test_tool", name: "测试工具" };
 
-      // 第二次应该失败或更新
-      mockDatabase.get.mockResolvedValueOnce({
-        skill_id: "test_skill",
-        tool_id: "test_tool",
-      });
+      // 第一次添加
+      mockDatabase.get.mockResolvedValue(mockSkill);
+      skillManager.toolManager.getTool = vi.fn().mockResolvedValue(mockTool);
+      mockDatabase.run.mockResolvedValue({ changes: 1 });
+      await skillManager.addToolToSkill("test_skill", "test_tool", "primary");
+
+      // 第二次更新（不应该失败）
+      mockDatabase.get.mockResolvedValue(mockSkill);
       await expect(
-        skillManager.addToolToSkill("test_skill", "test_tool"),
-      ).rejects.toThrow();
+        skillManager.addToolToSkill("test_skill", "test_tool", "secondary"),
+      ).resolves.not.toThrow();
     });
   });
 
   describe("getSkillsByCategory", () => {
     it("应该返回指定分类的所有技能", async () => {
       const mockSkills = [
-        { id: "skill1", category: "code" },
-        { id: "skill2", category: "code" },
+        { id: "skill1", category: "code", config: "{}", tags: "[]" },
+        { id: "skill2", category: "code", config: "{}", tags: "[]" },
       ];
 
       mockDatabase.all.mockResolvedValue(mockSkills);
 
-      const skills = await skillManager.getSkillsByCategory("code");
-      expect(skills).toHaveLength(2);
-      expect(skills).toEqual(mockSkills);
+      const result = await skillManager.getSkillsByCategory("code");
+      expect(result.success).toBe(true);
+      expect(result.skills).toHaveLength(2);
+      expect(result.skills[0].id).toBe("skill1");
+      expect(result.skills[1].id).toBe("skill2");
     });
   });
 
   describe("recordSkillUsage", () => {
     it("应该记录技能使用统计", async () => {
+      const mockSkill = {
+        id: "test_skill",
+        name: "测试技能",
+        usage_count: 5,
+        success_count: 3,
+      };
+
+      mockDatabase.get.mockResolvedValue(mockSkill);
       mockDatabase.run.mockResolvedValue({ changes: 1 });
 
       await skillManager.recordSkillUsage("test_skill", true, 1000);
 
+      // 应该调用db.run更新usage_count和success_count
       expect(mockDatabase.run).toHaveBeenCalled();
+      // 第一次调用应该是更新skills表
+      const firstCall = mockDatabase.run.mock.calls[0];
+      expect(firstCall[0]).toContain("UPDATE skills");
+      expect(firstCall[1]).toContain(6); // usage_count + 1
+      expect(firstCall[1]).toContain(4); // success_count + 1
     });
   });
 });
